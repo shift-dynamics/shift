@@ -1,0 +1,339 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_dir": [
+      "models/7dof_robot/",
+      "examples/"
+    ]
+  },
+  "fixed":{
+    "frames": [
+      {
+        "name": "1h_plus",
+        "R":[[-1.0, 0.0, 0.0],
+             [0.0, -1.0, 0.0],
+             [0.0,  0.0, 1.0]]
+      },
+      {
+        "name": "1h_minus",
+        "T":[0.0, 0.045, 0.0]
+      },
+      {
+        "name": "overhead_1",
+        "T": [6.0, 6.0, -6.0]
+      },
+      {
+        "name": "overhead_2",
+        "T": [-6.0, 6.0, -6.0]
+      }
+    ],
+    "lights": [
+      {
+        "name": "overhead_1",
+        "type": "point",
+        "parent": ["fixed", "overhead_1"],
+        "Ka": [0.4, 0.4, 0.4],
+        "Kd" : [0.6, 0.6, 0.6],
+        "Ks" : [0.2, 0.2, 0.2]
+      },
+      {
+        "name": "overhead_2",
+        "type": "point",
+        "parent": ["fixed", "overhead_2"],
+        "Ka": [0.6, 0.6, 0.6],
+        "Kd" : [0.6, 0.6, 0.6],
+        "Ks" : [0.2, 0.2, 0.2]
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "7DOF_Robot",
+      "active":true,
+      "bodies": [
+        {
+          "name": "body0",
+          "definition": ["base.obj", "base.mtl"],
+          "frames": [
+            {
+              "name": "0h_plus",
+              "T": [0.0, 0.045, 0.0]
+            }
+          ],
+          "center_of_mass": [0.0, 0.2, 0.0],
+          "mass": 0.31365,
+          "moment_of_inertia": {
+            "Ixx": 0.00024735,
+            "Ixy": 0.00000006,
+            "Izx": 0.00000032,
+            "Iyy": 0.00038763,
+            "Iyz": -0.00000006,
+            "Izz": 0.00024735
+          }
+        },
+        {
+          "name": "body1",
+          "definition": [
+            "offset_link.obj",
+            "offset_link.mtl"],
+          "frames": [
+            {
+              "name": "1h_plus",
+              "T": [0.0, 0.09, 0.02]
+            }
+          ],
+          "center_of_mass": [0.01339,0.06610,0.01210],
+          "mass": 0.597349,
+          "moment_of_inertia": {
+            "Ixx": 0.00108877,
+            "Ixy": 0.00012589,
+            "Izx": 0.00002944,
+            "Iyy": 0.00056608,
+            "Iyz": 0.00017760,
+            "Izz": 0.00106842
+          }
+        },
+        {
+          "name": "body2",
+          "definition": [
+            "inline_link_no_housing.obj",
+            "inline_link_no_housing.mtl"
+          ],
+          "frames": [
+            {
+              "name": "2h_plus",
+              "R": [[1.0, 0.0, 0.0],
+                    [0.0, -1.0, 0.0],
+                    [0.0,  0.0, -1.0]],
+              "T": [0.0, 0.0, -0.125]
+            }
+          ],
+          "center_of_mass": [-0.01369,0.0,-0.05924],
+          "mass": 0.5549,
+          "moment_of_inertia": {
+            "Ixx": 0.00137555,
+            "Ixy": -0.00000001,
+            "Izx": -0.00040236,
+            "Izz": 0.00149116,
+            "Iyy": 0.00149116,
+            "Iyz": 0.00054591
+          }
+        },
+        {
+          "name": "body3",
+          "definition": [
+            "inline_link_housing.obj",
+            "inline_link_housing.mtl"
+          ],
+          "frames": [
+            {
+              "name": "3h_minus",
+              "T": [0.0, 0.0, -0.085]
+            }
+          ],
+          "center_of_mass": [0.01230, 0.0000, -0.02305],
+          "mass": 0.5974,
+          "moment_of_inertia": {
+            "Ixx": 0.00095573,
+            "Ixy": 0.00000000,
+            "Izx": 0.00013319,
+            "Iyy": 0.00101589,
+            "Iyz": -0.00000001,
+            "Izz": 0.00052226
+          }
+        },
+        {
+          "name": "body4",
+          "definition": [
+            "inline_link_no_housing.obj",
+            "inline_link_no_housing.mtl"],
+          "frames": [
+            {
+              "name": "4h_plus",
+              "T": [0.0, 0.0, -0.125]
+            }
+          ],
+          "center_of_mass": [-0.01369, 0.0, -0.05924],
+          "mass": 0.5549,
+          "moment_of_inertia": {
+            "Ixx": 0.00137555,
+            "Ixy": -0.00000001,
+            "Izx": -0.00040236,
+            "Izz": 0.00149116,
+            "Iyy": -0.00000001,
+            "Iyz": 0.00054591
+          }
+        },
+        {
+          "name": "body5",
+          "definition": [
+            "inline_link_housing.obj",
+            "inline_link_housing.mtl"
+          ],
+          "frames": [
+            {
+              "name": "5h_minus",
+              "R":[[1.0, 0.0, 0.0],
+                   [0.0, -1.0, 0.0],
+                   [0.0,  0.0, -1.0]],
+              "T":[0.0, 0.0, -0.085]}
+          ],
+          "center_of_mass": [0.01230,0.0000,-0.02305],
+          "mass": 0.5974,
+          "moment_of_inertia": {
+            "Ixx": 0.00095573,
+            "Ixy": 0.00000000,
+            "Izx": 0.00013319,
+            "Iyy": 0.00101589,
+            "Iyz": -0.00000001,
+            "Izz": 0.00052226
+          }
+        },
+        {
+          "name": "body6",
+          "definition": [
+            "inline_link_no_housing.obj",
+            "inline_link_no_housing.mtl"],
+          "frames": [
+            {
+              "name": "6h_minus",
+              "R":[[1.0, 0.0, 0.0],
+                   [0.0, 0, 1],
+                   [0.0, -1, 0]],
+              "T":[0.0, 0.0, -0.125]
+            }
+          ],
+          "center_of_mass": [0.01230, 0.0000, -0.02305],
+          "mass": 0.5974,
+          "moment_of_inertia": {
+            "Ixx": 0.00095573,
+            "Ixy": 0.00000000,
+            "Izx": 0.00013319,
+            "Iyy": 0.00101589,
+            "Iyz": -0.00000001,
+            "Izz": 0.00052226
+          }
+        },
+        {
+          "name": "body7",
+          "definition": [
+            "end_effector.obj",
+            "end_effector.mtl"
+          ],
+          "frames": [
+            {
+              "name": "7h_plus",
+              "T":[0.0, 0.085, 0.0]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0051, -0.00456],
+          "mass": 0.272811,
+          "moment_of_inertia": {
+            "Ixx": 0.00044335,
+            "Ixy": 0.00000001,
+            "Izx": 0.00000002,
+            "Iyy": 0.00034321,
+            "Iyz": -0.00005473,
+            "Izz": 0.00029801
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A_fixed_body0",
+          "body_frame_pairs":[
+            ["fixed", "origin"],
+            ["body0","origin"]
+          ],
+          "type":"rigid",
+          "initial_displacement":{
+            "R":[
+              [1.0, 0.0, 0.0],
+              [0.0, 1.0, 0.0],
+              [0.0, 0.0, 1.0]
+            ],
+            "T": [0, 0, 0]
+          },
+          "initial_velocity": null
+        },
+        {
+          "name": "B_body0_body1",
+          "body_frame_pairs": [
+            ["body0", "0h_plus"],
+            ["body1", "origin"]
+          ],
+          "type": "Ry",
+          "initial_displacement": 0.1,
+          "initial_velocity": 1
+        },
+        {
+          "name": "C_body1_body2",
+          "body_frame_pairs":[
+            ["body1", "1h_plus"],
+            ["body2", "origin"]
+          ],
+          "type": "Rx",
+          "initial_displacement": 0.2,
+          "initial_velocity": 1
+        },
+        {
+          "name": "D_body2_body3",
+          "body_frame_pairs": [
+            ["body2", "2h_plus"],
+            ["body3", "3h_minus"]
+          ],
+          "type": "Rz",
+          "initial_displacement": -0.2,
+          "initial_velocity": 1
+        },
+        {
+          "name": "E_body4_body3",
+          "body_frame_pairs":[
+            ["body4", "origin"],
+            ["body3", "origin"]
+          ],
+          "type":"Rx",
+          "initial_displacement":3.3415926535,
+          "initial_velocity":1
+        },
+        {
+          "name": "F_body4_body5",
+          "body_frame_pairs": [
+            ["body4", "4h_plus"],
+            ["body5", "5h_minus"]
+          ],
+          "type": "Rz",
+          "initial_displacement": -0.2,
+          "initial_velocity": 1
+        },
+        {
+          "name": "G_body5_body6",
+          "body_frame_pairs": [
+            ["body5", "origin"],
+            ["body6", "origin"]
+          ],
+          "type": "Rx",
+          "initial_displacement": 3.3415926535,
+          "initial_velocity": 1
+        },
+        {
+          "name": "H_body6_body7",
+          "body_frame_pairs": [
+            ["body6", "6h_minus"],
+            ["body7", "origin"]
+          ],
+          "type":"Ry",
+          "initial_displacement": 1.7707963267949,
+          "initial_velocity": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "cmd": "mkdir -p build && cd build && cmake .. && make",
+  "cwd": "{PROJECT_PATH}",
+  "sh": true
+}
