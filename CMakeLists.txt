@@ -205,10 +205,10 @@ if( BUILD_DOCUMENTATION )
         VERBATIM )
 
     # copy doxyboot.js file to html directory
-    file(COPY
-     ${star2_SOURCE_DIR}/doc/doxygen-bootstrapped/doxy-boot.js
-     DESTINATION
-    ${CMAKE_CURRENT_BINARY_DIR}/html)
+    # file(COPY
+    #  ${star2_SOURCE_DIR}/doc/doxygen-bootstrapped/doxy-boot.js
+    #  DESTINATION
+    # ${CMAKE_CURRENT_BINARY_DIR}/html)
 
     # ## install sphinx documentation to /srv/http
     # install(

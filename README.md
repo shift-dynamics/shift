@@ -1,4 +1,4 @@
-# star2 - A Simulation Tool for Automation and Robotics {#mainpage}
+# A Simulation Tool for Automation and Robotics
 
 ## Dependencies
 
