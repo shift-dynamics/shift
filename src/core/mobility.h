@@ -1,0 +1,44 @@
+/**
+@file
+@author Kristopher Wehage
+@date 2016
+@remark
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+#include "../star2.h"
+
+#ifndef _STAR2_MOBILITY_H_
+#define _STAR2_MOBILITY_H_
+
+void s2_mobility_compute(
+  s2_context_t* context);
+
+void s2_mobility_initialize(
+  s2_context_t* context);
+
+void s2_mobility_print(
+  FILE* f,
+  s2_context_t* context);
+
+void s2_mobility_print_substructure(
+  FILE* f,
+  s2_context_t* context,
+  int substructureIndex);
+
+void s2_mobility_compute_substructure(
+  s2_substructure_t* substructure);
+
+void s2_mobility_computeGlobalMobility(
+  s2_context_t* context);
+
+#endif

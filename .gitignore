@@ -1,0 +1,9 @@
+*.sublime*
+*.pyc
+*.o
+*.a
+*~
+*.gch
+bin
+build
+deprecated

@@ -1,0 +1,21 @@
+<RCC>
+  <qresource prefix="/shaders">
+    <file alias="simple.frag">shaders/simple.frag</file>
+    <file alias="simple.vert">shaders/simple.vert</file>
+
+    <file alias="flat.frag">shaders/flat.frag</file>
+    <file alias="flat.geom">shaders/flat.geom</file>
+    <file alias="flat.vert">shaders/flat.vert</file>
+
+    <file alias="gouraud.frag">shaders/gouraud.frag</file>
+    <file alias="gouraud.vert">shaders/gouraud.vert</file>
+
+    <file alias="phong.frag">shaders/phong.frag</file>
+    <file alias="phong.vert">shaders/phong.vert</file>
+  </qresource>
+
+  <qresource prefix="/html">
+    <file alias="credit.html">html/credit.html</file>
+    <file alias="about.html">html/about.html</file>
+  </qresource>
+</RCC>
