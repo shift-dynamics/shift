@@ -22,7 +22,12 @@ SUCH DAMAGE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <GL/gl.h>
+
+#ifdef __APPLE__
+  #include <OpenGL/OpenGL.h>
+#else
+  #include <GL/gl.h>
+#endif
 
 #include "stack.h"
 #include "kinematics.h"
