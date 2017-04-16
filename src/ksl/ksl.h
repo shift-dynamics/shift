@@ -12,7 +12,7 @@ on 3x1 column vectors and 6x1 screws and coscrews.
 The following abbreviations are used to designate vectors, screws and coscrews
 in the function prototypes
 
-v = 3x1 vector, ksl_vector_t
+v = 3x1 vector, ksl_vec3_t
 s = 6x1 screw, ksl_screw_t
 c = 6x1 coscrew, ksl_coscrew_t
 
@@ -145,11 +145,11 @@ SUCH DAMAGE.
 #define _KSL_H_
 
 
-#ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
-#else
-  #include <cblas.h>
-#endif
+// #ifdef __APPLE__
+//   #include <Accelerate/Accelerate.h>
+// #else
+//   #include <cblas.h>
+// #endif
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -157,12 +157,12 @@ SUCH DAMAGE.
 #include <stdbool.h>
 #include <inttypes.h>
 
-typedef struct {double x, y, z;} ksl_vector_t;
-typedef struct {float x, y, z;} ksl_vectorf_t;
-typedef struct {int x, y, z;} ksl_vectori_t;
+typedef struct {double x, y, z;} ksl_vec3_t;
+typedef struct {float x, y, z;} ksl_vec3f_t;
+typedef struct {int x, y, z;} ksl_vec3i_t;
 
-typedef struct {double x, y, z, w;} ksl_quaternion_t;
-typedef struct {float x, y, z, w;} ksl_quaternionf_t;
+typedef struct {double x, y, z, w;} ksl_vec4_t;
+typedef struct {float x, y, z, w;} ksl_vec4f_t;
 
 typedef struct {double m00, m10, m20, m01, m11, m21, m02, m12, m22;} ksl_mat3x3_t;
 typedef struct {float m00, m10, m20, m01, m11, m21, m02, m12, m22;} ksl_mat3x3f_t;
@@ -181,19 +181,19 @@ float m00, m10, m20, m30,
 
 typedef struct {
   ksl_mat3x3_t R;
-  ksl_vector_t t;
+  ksl_vec3_t t;
 } ksl_displacement_t;
 
 typedef struct {
   ksl_mat3x3f_t R;
-  ksl_vectorf_t t;
+  ksl_vec3f_t t;
 } ksl_displacementf_t;
 
-typedef struct {ksl_vector_t v, w;} ksl_screw_t;
-typedef struct {ksl_vectorf_t v, w;} ksl_screwf_t;
+typedef struct {ksl_vec3_t v, w;} ksl_screw_t;
+typedef struct {ksl_vec3f_t v, w;} ksl_screwf_t;
 
-typedef struct {ksl_vector_t f, m;} ksl_coscrew_t;
-typedef struct {ksl_vectorf_t f, m;} ksl_coscrewf_t;
+typedef struct {ksl_vec3_t f, m;} ksl_coscrew_t;
+typedef struct {ksl_vec3f_t f, m;} ksl_coscrewf_t;
 
 typedef enum {
   KSL_AXIS_XYZ,
@@ -216,11 +216,11 @@ typedef enum {
 } ksl_matrix_enum_t;
 
 
-ksl_vector_t* ksl_vector();
+ksl_vec3_t* ksl_vector();
 
-ksl_vectorf_t* ksl_vectorf();
+ksl_vec3f_t* ksl_vectorf();
 
-ksl_vectori_t* ksl_vectori();
+ksl_vec3i_t* ksl_vectori();
 
 ksl_displacement_t* ksl_displacement();
 
@@ -250,9 +250,13 @@ void ksl_displacement_toMat4x4f(
   ksl_displacement_t* __restrict__ D,
   ksl_mat4x4f_t* __restrict__ M);
 
-void ksl_vector_print(
+void ksl_vec3_print(
   FILE* f,
-  ksl_vector_t* __restrict__ v);
+  ksl_vec3_t* __restrict__ v);
+
+void ksl_vec3f_print(
+  FILE* f,
+  ksl_vec3f_t* __restrict__ ti);
 
 void ksl_screw_print(
   FILE* f,
@@ -324,8 +328,8 @@ void ksl_displacement_setIdentity(
 void ksl_mat3x3_setIdentity(
   ksl_mat3x3_t* __restrict__ r);
 
-void ksl_vector_set(
-  ksl_vector_t* __restrict__ v,
+void ksl_vec3_set(
+  ksl_vec3_t* __restrict__ v,
   const uint32_t index,
   const double value);
 
@@ -339,11 +343,11 @@ void ksl_coscrew_set(
   const uint32_t index,
   const double value);
 
-double ksl_vector_l2norm(
-  ksl_vector_t* __restrict__ v);
+double ksl_vec3_l2norm(
+  ksl_vec3_t* __restrict__ v);
 
-float ksl_vectorf_l2norm(
-  ksl_vectorf_t* __restrict__ v);
+float ksl_vec3f_l2norm(
+  ksl_vec3f_t* __restrict__ v);
 
 double ksl_screw_l2norm(
   ksl_screw_t* __restrict__ s);
@@ -357,6 +361,18 @@ double ksl_coscrew_l2norm(
 float ksl_coscrewf_l2norm(
   ksl_coscrewf_t* __restrict__ c);
 
+double ksl_screw_norm(
+  ksl_screw_t* __restrict__ s);
+
+float ksl_screwf_norm(
+  ksl_screwf_t* __restrict__ s);
+
+double ksl_coscrew_norm(
+  ksl_coscrew_t* __restrict__ c);
+
+float ksl_coscrewf_norm(
+  ksl_coscrewf_t* __restrict__ c);
+
 void ksl_mat3x3_set(
   ksl_mat3x3_t* __restrict__ R,
   const uint32_t row,
@@ -365,9 +381,9 @@ void ksl_mat3x3_set(
 
 void ksl_mat3x3_setFromVectors(
   ksl_mat3x3_t* __restrict__ R,
-  ksl_vector_t* __restrict__ x,
-  ksl_vector_t* __restrict__ y,
-  ksl_vector_t* __restrict__ z);
+  ksl_vec3_t* __restrict__ x,
+  ksl_vec3_t* __restrict__ y,
+  ksl_vec3_t* __restrict__ z);
 
 void ksl_mat4x4_set(
   ksl_mat4x4_t* __restrict__ D,
@@ -381,8 +397,8 @@ void ksl_displacement_set(
   const uint32_t column,
   const double value);
 
-void ksl_vectorf_set(
-  ksl_vectorf_t* __restrict__ v,
+void ksl_vec3f_set(
+  ksl_vec3f_t* __restrict__ v,
   const uint32_t index,
   const float value);
 
@@ -417,8 +433,8 @@ void ksl_displacementf_set(
   const uint32_t column,
   const float value);
 
-double ksl_vector_get(
-  ksl_vector_t* __restrict__ v,
+double ksl_vec3_get(
+  ksl_vec3_t* __restrict__ v,
   const uint32_t index);
 
 double ksl_screw_get(
@@ -439,8 +455,8 @@ double ksl_displacement_get(
   const uint32_t row,
   const uint32_t column);
 
-float ksl_vectorf_get(
-  ksl_vectorf_t* __restrict__ v,
+float ksl_vec3f_get(
+  ksl_vec3f_t* __restrict__ v,
   const uint32_t index);
 
 float ksl_screwf_get(
@@ -453,149 +469,195 @@ float ksl_coscrewf_get(
 
 void ksl_displacement_getTranslation(
   ksl_displacement_t* __restrict__ D,
-  ksl_vector_t* t);
+  ksl_vec3_t* t);
 
-void ksl_vector_normalize(
-  ksl_vector_t* __restrict__ v);
+void ksl_vec3_normalize(
+  ksl_vec3_t* __restrict__ v);
 
-void ksl_vectorf_normalize(
-  ksl_vectorf_t* __restrict__ v);
+void ksl_vec3f_normalize(
+  ksl_vec3f_t* __restrict__ v);
 
-void ksl_vector_scale(
-  double k,
-  ksl_vector_t* __restrict__ v);
+void ksl_screw_normalize(
+  ksl_screw_t* __restrict__ s);
 
-void ksl_vectorf_scale(
-  double k,
-  ksl_vectorf_t* __restrict__ v);
+void ksl_screwf_normalize(
+  ksl_screwf_t* __restrict__ s);
+
+void ksl_coscrew_normalize(
+  ksl_coscrew_t* __restrict__ c);
+
+void ksl_coscrewf_normalize(
+  ksl_coscrewf_t* __restrict__ c);
+
+void ksl_vec3_scale(
+  const double k,
+  ksl_vec3_t* __restrict__ v);
+
+void ksl_vec3f_scale(
+  const float k,
+  ksl_vec3f_t* __restrict__ v);
+
+void ksl_quaternion_scale(
+  const double k,
+  ksl_vec4_t* __restrict__ q);
+
+void ksl_quaternionf_scale(
+  const float k,
+  ksl_vec4f_t* __restrict__ q);
 
 void ksl_copy_vv(
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_copy_vvf(
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo);
+
+void ksl_copy_qq(
+  ksl_vec4_t* __restrict__ qi,
+  ksl_vec4_t* __restrict__ qo);
+
+void ksl_copy_qqf(
+  ksl_vec4f_t* __restrict__ qi,
+  ksl_vec4f_t* __restrict__ qo);
 
 void ksl_invert_v(
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_invert_vf(
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo);
 
 double ksl_dot_vv(
-  ksl_vector_t* __restrict__ vi0,
-  ksl_vector_t* __restrict__ vi1);
+  ksl_vec3_t* __restrict__ vi0,
+  ksl_vec3_t* __restrict__ vi1);
 
-double ksl_dot_vvf(
-  ksl_vectorf_t* __restrict__ vi0,
-  ksl_vectorf_t* __restrict__ vi1);
+float ksl_dot_vvf(
+  ksl_vec3f_t* __restrict__ vi0,
+  ksl_vec3f_t* __restrict__ vi1);
+
+double ksl_dot_qq(
+  ksl_vec4_t* __restrict__ qi0,
+  ksl_vec4_t* __restrict__ qi1);
+
+float ksl_dot_qqf(
+  ksl_vec4f_t* __restrict__ qi0,
+  ksl_vec4f_t* __restrict__ qi1);
 
 double ksl_dot_cs(
   ksl_coscrew_t* __restrict__ ci,
   ksl_screw_t* __restrict__ si);
 
-double ksl_dot_csf(
+float ksl_dot_csf(
   ksl_coscrewf_t* __restrict__ ci,
   ksl_screwf_t* __restrict__ si);
 
 void ksl_product_vk(
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_vinversek(
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_vkinverse(
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_vkf(
-  ksl_vectorf_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vi,
   const float ki,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_add_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_add_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i,
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_addequal_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i);
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i);
 
 void ksl_addequal_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i);
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i);
 
 void ksl_subtract_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_subtract_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i,
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_subtractequal_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i);
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i);
 
 void ksl_subtractequal_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i);
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i);
 
 void ksl_axpy_vv(
-  double scalar,
-  ksl_vector_t* __restrict__ v1x,
-  ksl_vector_t* __restrict__ v2y);
+  const double scalar,
+  ksl_vec3_t* __restrict__ v1x,
+  ksl_vec3_t* __restrict__ v2y);
 
 void ksl_axpy_vvf(
-  float scalar,
-  ksl_vectorf_t* __restrict__ v1x,
-  ksl_vectorf_t* __restrict__ v2y);
+  const float scalar,
+  ksl_vec3f_t* __restrict__ v1x,
+  ksl_vec3f_t* __restrict__ v2y);
+
+void ksl_axpy_qq(
+  const double scalar,
+  ksl_vec4_t* __restrict__ q1x,
+  ksl_vec4_t* __restrict__ q2y);
+
+void ksl_axpy_qqf(
+  const float scalar,
+  ksl_vec4f_t* __restrict__ q1x,
+  ksl_vec4f_t* __restrict__ q2y);
 
 void ksl_axpy_ss(
-  double scalar,
+  const double scalar,
   ksl_screw_t* __restrict__ v1x,
   ksl_screw_t* __restrict__ v2y);
 
 void ksl_axpy_ssf(
-  float scalar,
+  const float scalar,
   ksl_screwf_t* __restrict__ v1x,
   ksl_screwf_t* __restrict__ v2y);
 
 void ksl_cross_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_cross_vvinverse(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_cross_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i,
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_cross_vvinversef(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i,
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_copy_ss(
   ksl_screw_t* __restrict__ si,
@@ -695,43 +757,43 @@ void ksl_invert_Rf(
 
 void ksl_product_Rv(
   ksl_mat3x3_t* __restrict__ Ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_Rvf(
   ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_product_Rvinverse(
   ksl_mat3x3_t* __restrict__ Ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_Rvinversef(
   ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_product_Rinversev(
   ksl_mat3x3_t* __restrict__ Ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_Rinversevf(
   ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_product_Rinversevinverse(
   ksl_mat3x3_t* __restrict__ Ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_Rinversevinversef(
   ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo);
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo);
 
 void ksl_product_Rs(
   ksl_mat3x3_t* __restrict__ Ri,
@@ -856,122 +918,122 @@ void ksl_product_RinverseRf(
 void ksl_product_Rvx(
   ksl_mat3x3_t* __restrict__ Ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_product_Rvxf(
   ksl_mat3x3f_t* __restrict__ Ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_product_Rvxinverse(
   ksl_mat3x3_t* __restrict__ Ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_product_Rvxinversef(
   ksl_mat3x3f_t* __restrict__ Ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_product_Rvy(
   ksl_mat3x3_t* __restrict__ Ri,
   double * __restrict__ti,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_product_Rvyf(
   ksl_mat3x3f_t* __restrict__ Ri,
   float * __restrict__ti,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_product_Rvyinverse(
   ksl_mat3x3_t* __restrict__ Ri,
   double * __restrict__ti,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_product_Rvyinversef(
   ksl_mat3x3f_t* __restrict__ Ri,
   float * __restrict__ti,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_product_Rvz(
   ksl_mat3x3_t* __restrict__ Ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_product_Rvzf(
   ksl_mat3x3f_t* __restrict__ Ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_product_Rvzinverse(
   ksl_mat3x3_t* __restrict__ Ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_product_Rtzinversef(
   ksl_mat3x3f_t* __restrict__ Ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_add_vvx(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_add_vvxf(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_add_vvxinverse(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_add_vvxinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_add_vvy(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_add_vvyf(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_add_vvyinverse(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_add_vvyinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_add_vvz(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_add_vvzf(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_add_vvzinverse(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_add_vvzinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to);
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_invert_D(
   ksl_displacement_t* __restrict__ Di,
@@ -1051,37 +1113,37 @@ void ksl_product_DDrzinversef(
 
 void ksl_product_DDt(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   ksl_displacement_t* __restrict__ Do);
 
 void ksl_product_DDtinverse(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   ksl_displacement_t* __restrict__ Do);
 
 void ksl_product_Dv(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_Dinversev(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo);
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo);
 
 void ksl_product_DDtf(
   ksl_displacementf_t* __restrict__ Di,
-  ksl_vectorf_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vi,
   ksl_displacementf_t* __restrict__ Do);
 
 void ksl_product_Dinverset(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   ksl_displacement_t* __restrict__ Do);
 
 void ksl_product_DinverseDtf(
   ksl_displacementf_t* __restrict__ Di,
-  ksl_vectorf_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vi,
   ksl_displacementf_t* __restrict__ Do);
 
 void ksl_product_DDtx(
@@ -1287,32 +1349,32 @@ void ksl_cross_sstf(
   ksl_screwf_t* __restrict__ so);
 
 void ksl_product_Adts(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so);
 
 void ksl_product_Adtsf(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so);
 
 void ksl_product_Adtinverses(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so);
 
 void ksl_product_Adtinversesf(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so);
 
 void ksl_product_Adtsinverse(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so);
 
 void ksl_product_Adtsinversef(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so);
 
@@ -1352,22 +1414,22 @@ void ksl_cross_ccf(
   ksl_coscrewf_t* __restrict__ co);
 
 void ksl_product_CoAdtc(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_coscrew_t* __restrict__ ci,
   ksl_coscrew_t* __restrict__ co);
 
 void ksl_product_CoAdtcf(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_coscrewf_t* __restrict__ ci,
   ksl_coscrewf_t* __restrict__ co);
 
 void ksl_product_CoAdtcinverse(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_coscrew_t* __restrict__ ci,
   ksl_coscrew_t* __restrict__ co);
 
 void ksl_product_CoAdtcinversef(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_coscrewf_t* __restrict__ ci,
   ksl_coscrewf_t* __restrict__ co);
 
@@ -1392,50 +1454,50 @@ void ksl_product_CoAdinversecf(
   ksl_coscrewf_t* __restrict__ co);
 
 void ksl_normalize_qe(
-  ksl_quaternion_t* __restrict__ qi);
+  ksl_vec4_t* __restrict__ qi);
 
 void ksl_normalize_qf(
-  ksl_quaternionf_t* __restrict__ qi);
+  ksl_vec4f_t* __restrict__ qi);
 
 void ksl_R_to_q(
   ksl_mat3x3_t* __restrict__ Ri,
-  ksl_quaternion_t* __restrict__ qo);
+  ksl_vec4_t* __restrict__ qo);
 
 void ksl_Rf_to_qf(
   ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_quaternionf_t* __restrict__ qo);
+  ksl_vec4f_t* __restrict__ qo);
 
 void ksl_q_to_R(
-  ksl_quaternion_t* __restrict__ qi,
+  ksl_vec4_t* __restrict__ qi,
   ksl_mat3x3_t* __restrict__ Ro);
 
 void ksl_qf_to_Rf(
-  ksl_quaternionf_t* __restrict__ qi,
+  ksl_vec4f_t* __restrict__ qi,
   ksl_mat3x3f_t* __restrict__ Ro);
 
 void ksl_slerp(
-  ksl_quaternion_t* __restrict__ q1i,
-  ksl_quaternion_t* __restrict__ q2i,
+  ksl_vec4_t* __restrict__ q1i,
+  ksl_vec4_t* __restrict__ q2i,
   double* __restrict__ t,
-  ksl_quaternion_t* __restrict__ qo);
+  ksl_vec4_t* __restrict__ qo);
 
 void ksl_slerpf(
-  ksl_quaternionf_t* __restrict__ q1i,
-  ksl_quaternionf_t* __restrict__ q2i,
+  ksl_vec4f_t* __restrict__ q1i,
+  ksl_vec4f_t* __restrict__ q2i,
   float * __restrict__ t,
-  ksl_quaternionf_t* __restrict__ qo);
+  ksl_vec4f_t* __restrict__ qo);
 
 void ksl_nlerp(
-  ksl_quaternion_t* __restrict__ q1i,
-  ksl_quaternion_t* __restrict__ q2i,
+  ksl_vec4_t* __restrict__ q1i,
+  ksl_vec4_t* __restrict__ q2i,
   double* __restrict__ t,
-  ksl_quaternion_t* __restrict__ qo);
+  ksl_vec4_t* __restrict__ qo);
 
 void ksl_nlerpf(
-  ksl_quaternionf_t* __restrict__ q1i,
-  ksl_quaternionf_t* __restrict__ q2i,
+  ksl_vec4f_t* __restrict__ q1i,
+  ksl_vec4f_t* __restrict__ q2i,
   float* __restrict__ t,
-  ksl_quaternionf_t* __restrict__ qo);
+  ksl_vec4f_t* __restrict__ qo);
 
 double ksl_normalizeDegrees(
   double angle);
@@ -1461,8 +1523,8 @@ double catan1pi(
 
 void ksl_mat3x3_getEulerAngles(
   ksl_mat3x3_t* __restrict__ rin,
-  ksl_vector_t* __restrict__ angles,
-  ksl_axis_enum_t axisType);
+  ksl_axis_enum_t axisType,
+  ksl_vec3_t* __restrict__ angles);
 
 double ksl_mat3x3_getScalar(
   ksl_mat3x3_t* __restrict__ ri);
@@ -1472,24 +1534,24 @@ float ksl_mat3x3f_getScalar(
 
 void ksl_mat4x4_getTranslation(
   ksl_mat4x4_t* __restrict__ Mi,
-  ksl_vector_t* __restrict__ to);
+  ksl_vec3_t* __restrict__ to);
 
 void ksl_mat4x4f_getTranslation(
   ksl_mat4x4f_t* __restrict__ Mi,
-  ksl_vectorf_t* __restrict__ to );
+  ksl_vec3f_t* __restrict__ to );
 
 void ksl_add_dpiToq(
-  ksl_vector_t* __restrict__ dpi,
-  ksl_quaternion_t* __restrict__ qi);
+  ksl_vec3_t* __restrict__ dpi,
+  ksl_vec4_t* __restrict__ qi);
 
 void ksl_subtract_dpiFromq(
-  ksl_vector_t* __restrict__ dpi,
-  ksl_quaternion_t* __restrict__ qi);
+  ksl_vec3_t* __restrict__ dpi,
+  ksl_vec4_t* __restrict__ qi);
 
 void ksl_omega_to_dquaternion(
-  ksl_vector_t* __restrict__ w,
-  ksl_quaternion_t* __restrict__ qi,
-  ksl_quaternion_t* __restrict__ dqo);
+  ksl_vec3_t* __restrict__ w,
+  ksl_vec4_t* __restrict__ qi,
+  ksl_vec4_t* __restrict__ dqo);
 
 void ksl_array_lerp(
   const uint32_t qCount,

@@ -1,6 +1,6 @@
 # Coding guide for C/C++
 
-This guide describes the coding style used in the *mbdl* library.
+This guide describes the coding style used in *star2*.
 
 ## Comments
 
@@ -182,4 +182,4 @@ syntax is shown below:
 * If functions already exist in standard C libraries, it is preferred to use
 those functions over custom functions for the same purpose.
 * As possible, full--dense numerical algorithms should be written to take
-advantage of the cblas library.
+advantage of the cblas library for moderate to large sized vectors/matrices.

@@ -12,21 +12,21 @@ on 3x1 column vectors and 6x1 screws and coscrews.
 The following abbreviations are used to designate vectors, screws and coscrews
 in the function prototypes
 
-v = 3x1 vector, ksl_vector_t
-s = 6x1 screw, ksl_screw_t
-c = 6x1 coscrew, ksl_coscrew_t
+v = 3x1 vector, bksl_vec3_t
+s = 6x1 screw, bksl_screw_t
+c = 6x1 coscrew, bksl_coscrew_t
 
 Vectors quantities are transformed using 3x3 rotation
 matrices (i.e. SO3 matrices) and column vectors. The 3x3 rotation datastructure
 is denoted as:
 
-R = 3x3 rotation matrix in column major order, ksl_mat3x3_t
+R = 3x3 rotation matrix in column major order, bksl_mat3x3_t
 
 The letter "D" is used to
 designate a general rigid body transformation consisting of a rotation and
 translation component.
 
-D = 3x3 rotation matrix and 3x1 translation vector, ksl_displacement_t
+D = 3x3 rotation matrix and 3x1 translation vector, bksl_displacement_t
 
 In the function prototypes, displacements consisting of only a translation
 component are denoted as:
@@ -55,7 +55,7 @@ example, the inverse of a general rigid body transformation, D, is noted as
 
 Screw and coscrew quantities are transformed using the 6x6 Adjoint and Coadjoint
 transformation matrices respectively. The full 6x6 matrix is formed from
-a rotation matrix and a vector quantity stored in a ksl_displacement_t data
+a rotation matrix and a vector quantity stored in a bksl_displacement_t data
 structure. Therefore the full 6x6 matrix is never formed in the code.
 
 The following abbreviations are used for Adjoint and Coadjoint transformations
@@ -110,7 +110,7 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include "ksl.h"
+#include "bksl.h"
 
 /*!
 @name Utilities for initializing basic datastructures
@@ -123,22 +123,22 @@ transformations
 /*! @brief s a vector_t datastructure (an array of doubles of length 3)
 
 */
-ksl_vector_t* ksl_vector() {
-  return calloc(1, sizeof(ksl_vector_t));
+bksl_vec3_t* bksl_vec3() {
+  return calloc(1, sizeof(bksl_vec3_t));
 }
 
 /*! @brief s a vectorf_t datastructure (an array of floats of length 3)
 
 */
-ksl_vectorf_t* ksl_vectorf() {
-  return calloc(1, sizeof(ksl_vectorf_t));
+bksl_vec3f_t* bksl_vec3f() {
+  return calloc(1, sizeof(bksl_vec3f_t));
 }
 
 /*! @brief s a vectori_t datastructure (an array of uint32_ts of length 3)
 
 */
-ksl_vectori_t* ksl_vectori() {
-  return calloc(1, sizeof(ksl_vectori_t));
+bksl_vec3i_t* bksl_vec3i() {
+  return calloc(1, sizeof(bksl_vec3i_t));
 }
 
 
@@ -147,10 +147,10 @@ ksl_vectori_t* ksl_vectori() {
 
 @param v [in/out] vector to normalize
 */
-inline void ksl_vector_normalize(
-  ksl_vector_t* __restrict__ v) {
+inline void bksl_vec3_normalize(
+  bksl_vec3_t* __restrict__ v) {
 
-  double norm = ksl_vector_l2norm(v);
+  double norm = bksl_vec3_l2norm(v);
   for(uint32_t i = 0; i < 3; i++) {
     ((double*)v)[i] /= norm;
   }
@@ -164,9 +164,9 @@ inline void ksl_vector_normalize(
 @brief scale a double precision vector
 @param [in/out] vector to scale
 */
-inline void ksl_vector_scale(
+inline void bksl_vec3_scale(
   double k,
-  ksl_vector_t* __restrict__ v) {
+  bksl_vec3_t* __restrict__ v) {
 
   cblas_dscal(3, k, (double*)v, 1);
 }
@@ -177,8 +177,8 @@ inline void ksl_vector_scale(
 
 @param v [in/out] vector to normalize
 */
-inline void ksl_vectorf_normalize(
-  ksl_vectorf_t* __restrict__ v) {
+inline void bksl_vec3f_normalize(
+  bksl_vec3f_t* __restrict__ v) {
 
   float norm = sqrt(cblas_sdot(3, (float*)v, 1, (float*)v, 1));
   cblas_sscal(3, 1.0 / norm, (float*)v, 1);
@@ -189,15 +189,15 @@ inline void ksl_vectorf_normalize(
 @brief scale a double precision vector
 @param [in/out] vector to scale
 */
-inline void ksl_vectorf_scale(
+inline void bksl_vec3f_scale(
   double k,
-  ksl_vectorf_t* __restrict__ v) {
+  bksl_vec3f_t* __restrict__ v) {
 
   cblas_sscal(3, k, (float*)v, 1);
 }
 
 
-/*! @brief initializes a general ksl_displacement_t datastructure
+/*! @brief initializes a general bksl_displacement_t datastructure
 
 A general displacement is an array of doubles of length 12, consisting of a
 rotation matrix in column major order followed by a translation vector.
@@ -205,55 +205,55 @@ rotation matrix in column major order followed by a translation vector.
 @returns A displacement with the rotation component set to identity and
 translation set to zero.
 */
-ksl_displacement_t* ksl_displacement() {
+bksl_displacement_t* bksl_displacement() {
 
-  ksl_displacement_t* D =
-    calloc(1, sizeof(ksl_displacement_t));
+  bksl_displacement_t* D =
+    calloc(1, sizeof(bksl_displacement_t));
   D->R.m00 = 1.0;
   D->R.m11 = 1.0;
   D->R.m22 = 1.0;
   return D;
 }
 
-/*! @brief s a general ksl_displacementf_t datastructure
+/*! @brief s a general bksl_displacementf_t datastructure
 
 A general displacement is an array of float of length 12, consisting of a
 rotation matrix in column major order followed by a translation vector
 */
-ksl_displacementf_t* ksl_displacementf() {
+bksl_displacementf_t* bksl_displacementf() {
 
-  ksl_displacementf_t* D =
-    calloc(1, sizeof(ksl_displacementf_t));
+  bksl_displacementf_t* D =
+    calloc(1, sizeof(bksl_displacementf_t));
   D->R.m00 = 1.f;
   D->R.m11 = 1.f;
   D->R.m22 = 1.f;
   return D;
 }
 
-/*! @brief s a ksl_screw_t datastructure (an array of doubles of length 6)
+/*! @brief s a bksl_screw_t datastructure (an array of doubles of length 6)
 
 */
-ksl_screw_t* ksl_screw() {
-  return calloc(1, sizeof(ksl_screw_t));
+bksl_screw_t* bksl_screw() {
+  return calloc(1, sizeof(bksl_screw_t));
 }
 
 
-/*! @brief s a ksl_screw_t datastructure (an array of floats of length 6)
+/*! @brief s a bksl_screw_t datastructure (an array of floats of length 6)
 
 */
-ksl_screwf_t* ksl_screwf() {
-  return calloc(1, sizeof(ksl_screwf_t));
+bksl_screwf_t* bksl_screwf() {
+  return calloc(1, sizeof(bksl_screwf_t));
 }
 
 
-/*! @brief s a double precision ksl_mat3x3_t datastructure for a general
+/*! @brief s a double precision bksl_mat3x3_t datastructure for a general
 rotation (i.e. a SO3 matrix). The matrix is specified in column major order.
 
-@returns A ksl_mat3x3_t rotation matrix set to identity.
+@returns A bksl_mat3x3_t rotation matrix set to identity.
 */
-ksl_mat3x3_t* ksl_mat3x3() {
+bksl_mat3x3_t* bksl_mat3x3() {
 
-  ksl_mat3x3_t* mat3 = calloc(1, sizeof(ksl_mat3x3_t));
+  bksl_mat3x3_t* mat3 = calloc(1, sizeof(bksl_mat3x3_t));
   mat3->m00 = 1.0;
   mat3->m11 = 1.0;
   mat3->m22 = 1.0;
@@ -261,15 +261,15 @@ ksl_mat3x3_t* ksl_mat3x3() {
 }
 
 
-/*! @brief s a single precision ksl_mat3x3f_t datastructure for a general
+/*! @brief s a single precision bksl_mat3x3f_t datastructure for a general
 rotation (i.e. a SO3 matrix). The matrix is specified in column major order.
 
-@returns A ksl_mat3x3f_t rotation matrix set to identity.
+@returns A bksl_mat3x3f_t rotation matrix set to identity.
 */
-ksl_mat3x3f_t* ksl_mat3x3f() {
+bksl_mat3x3f_t* bksl_mat3x3f() {
 
-  ksl_mat3x3f_t* mat3 =
-    calloc(1, sizeof(ksl_mat3x3f_t));
+  bksl_mat3x3f_t* mat3 =
+    calloc(1, sizeof(bksl_mat3x3f_t));
   mat3->m00 = 1.f;
   mat3->m11 = 1.f;
   mat3->m22 = 1.f;
@@ -277,14 +277,14 @@ ksl_mat3x3f_t* ksl_mat3x3f() {
 }
 
 
-/*! @brief s a double precision ksl_Mat4 datastructure for a general
+/*! @brief s a double precision bksl_Mat4 datastructure for a general
 transformation (i.e. a SE3 matrix). The matrix is specified in column major order.
 
-@returns A ksl_Mat4 SE3 matrix set to identity.
+@returns A bksl_Mat4 SE3 matrix set to identity.
 */
-ksl_mat4x4_t* ksl_mat4x4() {
+bksl_mat4x4_t* bksl_mat4x4() {
 
-  ksl_mat4x4_t* mat4 = calloc(1, sizeof(ksl_mat4x4_t));
+  bksl_mat4x4_t* mat4 = calloc(1, sizeof(bksl_mat4x4_t));
   mat4->m00 = 1.0;
   mat4->m11 = 1.0;
   mat4->m22 = 1.0;
@@ -293,15 +293,15 @@ ksl_mat4x4_t* ksl_mat4x4() {
 }
 
 
-/*! @brief s a single precision ksl_Mat4f datastructure for a general
+/*! @brief s a single precision bksl_Mat4f datastructure for a general
 transformation (i.e. a SE3 matrix). The matrix is specified in column major order.
 
-@returns A ksl_Mat4f SE3 matrix set to identity.
+@returns A bksl_Mat4f SE3 matrix set to identity.
 */
-ksl_mat4x4f_t* ksl_mat4x4f() {
+bksl_mat4x4f_t* bksl_mat4x4f() {
 
-  ksl_mat4x4f_t* mat4 =
-    calloc(1, sizeof(ksl_mat4x4f_t));
+  bksl_mat4x4f_t* mat4 =
+    calloc(1, sizeof(bksl_mat4x4f_t));
   mat4->m00 = 1.f;
   mat4->m11 = 1.f;
   mat4->m22 = 1.f;
@@ -310,15 +310,15 @@ ksl_mat4x4f_t* ksl_mat4x4f() {
 }
 
 
-/*! @brief converts a double precision ksl_displacement_t datastructure to ksl_Mat4
+/*! @brief converts a double precision bksl_displacement_t datastructure to bksl_Mat4
 format.
 
 */
-inline void ksl_displacement_toMat4x4(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_mat4x4_t* __restrict__ Mo) {
+inline void bksl_displacement_toMat4x4(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_mat4x4_t* __restrict__ Mo) {
 
-  memset(Mo, 0, sizeof(ksl_mat4x4_t));
+  memset(Mo, 0, sizeof(bksl_mat4x4_t));
   memcpy(&Mo->m00, &Di->R.m00, 3 * sizeof(double));
   memcpy(&Mo->m01, &Di->R.m01, 3 * sizeof(double));
   memcpy(&Mo->m02, &Di->R.m02, 3 * sizeof(double));
@@ -328,15 +328,15 @@ inline void ksl_displacement_toMat4x4(
 }
 
 
-/*! @brief converts a single precision ksl_displacementf_t datastructure to ksl_Mat4f
+/*! @brief converts a single precision bksl_displacementf_t datastructure to bksl_Mat4f
 format.
 
 */
-inline void ksl_displacementf_toMat4x4f(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_mat4x4f_t* __restrict__ Mo) {
+inline void bksl_displacementf_toMat4x4f(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_mat4x4f_t* __restrict__ Mo) {
 
-  memset(Mo, 0, sizeof(ksl_mat4x4f_t));
+  memset(Mo, 0, sizeof(bksl_mat4x4f_t));
   memcpy(&Mo->m00, &Di->R.m00, 3 * sizeof(float));
   memcpy(&Mo->m01, &Di->R.m01, 3 * sizeof(float));
   memcpy(&Mo->m02, &Di->R.m02, 3 * sizeof(float));
@@ -345,22 +345,22 @@ inline void ksl_displacementf_toMat4x4f(
 }
 
 
-/*! @brief converts a double precision ksl_displacement_t datastructure to a
-single precision ksl_Mat4f format.
+/*! @brief converts a double precision bksl_displacement_t datastructure to a
+single precision bksl_Mat4f format.
 
 */
-inline void ksl_displacement_toMat4x4f(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_mat4x4f_t* __restrict__ Mo) {
+inline void bksl_displacement_toMat4x4f(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_mat4x4f_t* __restrict__ Mo) {
 
-  memset(Mo, 0, sizeof(ksl_mat4x4_t));
+  memset(Mo, 0, sizeof(bksl_mat4x4_t));
   for(uint32_t i = 0; i < 3; i++) {
     for(uint32_t j = 0; j < 3; j++) {
-      ksl_mat4x4f_set(Mo, i, j, (float)ksl_mat3x3_get(&Di->R, i, j));
+      bksl_mat4x4f_set(Mo, i, j, (float)bksl_mat3x3_get(&Di->R, i, j));
     }
   }
   for(uint32_t i = 0; i < 3; i++) {
-    ksl_mat4x4f_set(Mo, i, 3, (float)ksl_vector_get(&Di->t, i));
+    bksl_mat4x4f_set(Mo, i, 3, (float)bksl_vec3_get(&Di->t, i));
   }
   Mo->m33 = 1.f;
 }
@@ -380,9 +380,25 @@ prints a 3x1 column vector as a row vector
 
 @param ti 3x1 column vector
 */
-void ksl_vector_print(
+void bksl_vec3_print(
   FILE* f,
-  ksl_vector_t* __restrict__ ti) {
+  bksl_vec3_t* __restrict__ ti) {
+
+  fprintf(f, "%f %f %f\n", ti->x, ti->y, ti->z);
+
+}
+
+
+/*!
+@brief Utility to print a 3x1 column vector
+
+prints a 3x1 column vector as a row vector
+
+@param ti 3x1 column vector
+*/
+void bksl_vec3f_print(
+  FILE* f,
+  bksl_vec3f_t* __restrict__ ti) {
 
   fprintf(f, "%f %f %f\n", ti->x, ti->y, ti->z);
 
@@ -396,9 +412,9 @@ prints a 6x1 column vector as a row vector
 
 @param si 6x1 column vector
 */
-void ksl_screw_print(
+void bksl_screw_print(
   FILE* f,
-  ksl_screw_t* __restrict__ si) {
+  bksl_screw_t* __restrict__ si) {
 
   fprintf(
     f,
@@ -414,9 +430,9 @@ prints a rotation matrix
 
 @param ri 3x3 rotation matrix
 */
-void ksl_mat3x3_print(
+void bksl_mat3x3_print(
   FILE* f,
-  ksl_mat3x3_t* __restrict__ ri) {
+  bksl_mat3x3_t* __restrict__ ri) {
 
   fprintf(f, "%f %f %f\n", ri->m00, ri->m01, ri->m02);
   fprintf(f, "%f %f %f\n", ri->m10, ri->m11, ri->m12);
@@ -430,9 +446,9 @@ prints a rotation matrix
 
 @param ri 3x3 rotation matrix
 */
-void ksl_mat3x3f_print(
+void bksl_mat3x3f_print(
   FILE* f,
-  ksl_mat3x3f_t* __restrict__ ri) {
+  bksl_mat3x3f_t* __restrict__ ri) {
 
   fprintf(f, "%f %f %f\n", ri->m00, ri->m01, ri->m02);
   fprintf(f, "%f %f %f\n", ri->m10, ri->m11, ri->m12);
@@ -450,9 +466,9 @@ translation terms in the last 3 entries of the array.
 
 @param Di A general displacement, \f$D_i\f$
 */
-void ksl_displacement_print(
+void bksl_displacement_print(
   FILE* f,
-  ksl_displacement_t* __restrict__ Di) {
+  bksl_displacement_t* __restrict__ Di) {
 
   fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
     Di->R.m00, Di->R.m01, Di->R.m02, Di->t.x);
@@ -470,7 +486,7 @@ void ksl_displacement_print(
 /*!
 @brief Utility to print a SE3 mat4 matrix
 
-prints a ksl_Mat4f as a 4x4 matrix for transforming
+prints a bksl_Mat4f as a 4x4 matrix for transforming
 homogeneous coordinates. Note that the displacement is stored in
 memory as a 12 x 1 contiguous array with terms of the rotation matrix
 in the first 9 entries of the array (in row major order), followed by
@@ -478,9 +494,9 @@ translation terms in the last 3 entries of the array.
 
 @param Di A general displacement, \f$D_i\f$
 */
-void ksl_mat4x4_print(
+void bksl_mat4x4_print(
   FILE* f,
-  ksl_mat4x4_t* __restrict__ Di) {
+  bksl_mat4x4_t* __restrict__ Di) {
 
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
     Di->m00, Di->m01, Di->m02, Di->m03);
@@ -495,7 +511,7 @@ void ksl_mat4x4_print(
 /*!
 @brief Utility to print a SE3 mat4 matrix
 
-prints a ksl_Mat4f as a 4x4 matrix for transforming
+prints a bksl_Mat4f as a 4x4 matrix for transforming
 homogeneous coordinates. Note that the displacement is stored in
 memory as a 12 x 1 contiguous array with terms of the rotation matrix
 in the first 9 entries of the array (in row major order), followed by
@@ -503,9 +519,9 @@ translation terms in the last 3 entries of the array.
 
 @param Di A general displacement, \f$D_i\f$
 */
-void ksl_mat4x4f_print(
+void bksl_mat4x4f_print(
   FILE* f,
-  ksl_mat4x4f_t* __restrict__ Di) {
+  bksl_mat4x4f_t* __restrict__ Di) {
 
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
     Di->m00, Di->m01, Di->m02, Di->m03);
@@ -521,7 +537,7 @@ void ksl_mat4x4f_print(
 /*!
 @brief utility to print a general array of double of length n on one line
 */
-void ksl_array_print(
+void bksl_array_print(
   FILE* f,
   const uint32_t n,
   double* __restrict__ a) {
@@ -537,16 +553,16 @@ void ksl_array_print(
 @brief utility to print a 2D array stored in a single pointer
 with dimension rowDim * colDim
 */
-void ksl_array2D_print(
+void bksl_array2D_print(
   FILE* f,
   const uint32_t rowDim,
   const uint32_t colDim,
-  ksl_matrix_enum_t matrixType,
+  bksl_matrix_enum_t matrixType,
   double* __restrict__ A) {
 
   switch(matrixType) {
 
-    case KSL_ROWMAJOR: {
+    case bksl_ROWMAJOR: {
       for(uint32_t i = 0; i < rowDim; i++) {
         fprintf(f, "  [");
         for(int j = 0; j < colDim; j++) {
@@ -559,7 +575,7 @@ void ksl_array2D_print(
       }
     } break;
 
-    case KSL_COLMAJOR: {
+    case bksl_COLMAJOR: {
       for(int i = 0; i < rowDim; i++) {
         fprintf(f, "  ");
         for(int j = 0; j < colDim; j++) {
@@ -576,7 +592,7 @@ void ksl_array2D_print(
 /*!
 @brief utility to print a general array of uint32_ts of length n on one line
 */
-void ksl_arrayi_print(
+void bksl_arrayi_print(
   FILE* f,
   const uint32_t n,
   int* __restrict__ a) {
@@ -592,7 +608,7 @@ void ksl_arrayi_print(
 @brief utility to print a lower triangular matrix of doubles stored in a
 linear array
 */
-void ksl_triang_print(
+void bksl_triang_print(
   FILE* f,
   const uint32_t n,
   double* __restrict__ A) {
@@ -611,7 +627,7 @@ void ksl_triang_print(
 @brief utility to print a lower triangular matrix of uint32_tegers stored in a
 linear array
 */
-void ksl_triangi_print(
+void bksl_triangi_print(
   FILE* f,
   const uint32_t n,
   int* __restrict__ A) {
@@ -630,7 +646,7 @@ void ksl_triangi_print(
 @brief utility to print a lower triangular matrix of uint32_tegers stored in a
 linear array
 */
-void ksl_triangb_print(
+void bksl_triangb_print(
   FILE* f,
   const uint32_t n,
   bool* __restrict__ A) {
@@ -661,7 +677,7 @@ Computes direction cosine and sine terms, terms are saved to array dc
 @param dco Array of cos, sin terms, \f$cos(theta_i) \rightarrow dc_o[0]\f$,
 \f$sin(thetai) \rightarrow dc_o[1]\f$
 */
-inline void ksl_dc(
+inline void bksl_dc(
   double* __restrict__ thetai,
   double dc[2]) {
 
@@ -685,10 +701,10 @@ Overwrites an SE3 matrix with the identity matrix.
 @param D an SE3 matrix to set to identity, the resulting matrix will be overwritten
 */
 
-inline void ksl_displacement_setIdentity(
-  ksl_displacement_t* __restrict__ D) {
+inline void bksl_displacement_setIdentity(
+  bksl_displacement_t* __restrict__ D) {
 
-  memset(D, 0, sizeof(ksl_displacement_t));
+  memset(D, 0, sizeof(bksl_displacement_t));
   D->R.m00 = 1.0;
   D->R.m11 = 1.0;
   D->R.m22 = 1.0;
@@ -704,10 +720,10 @@ Overwrites a rotation matrix with the identity matrix.
 @param R an SE3 matrix to set to identity, the resulting matrix will be overwritten
 */
 
-inline void ksl_mat3x3_setIdentity(
-  ksl_mat3x3_t* __restrict__ R) {
+inline void bksl_mat3x3_setIdentity(
+  bksl_mat3x3_t* __restrict__ R) {
 
-  memset(R, 0, sizeof(ksl_mat3x3_t));
+  memset(R, 0, sizeof(bksl_mat3x3_t));
   R->m00 = 1.0;
   R->m11 = 1.0;
   R->m22 = 1.0;
@@ -722,10 +738,10 @@ Overwrites a rotation matrix with the identity matrix.
 @param R an SE3 matrix to set to identity, the resulting matrix will be overwritten
 */
 
-inline void ksl_mat4x4f_setIdentity(
-  ksl_mat4x4f_t* __restrict__ M) {
+inline void bksl_mat4x4f_setIdentity(
+  bksl_mat4x4f_t* __restrict__ M) {
 
-  memset(M, 0, sizeof(ksl_mat4x4f_t));
+  memset(M, 0, sizeof(bksl_mat4x4f_t));
   ((float*)M)[0 * 4 + 0] = 1.f;
   ((float*)M)[1 * 4 + 1] = 1.f;
   ((float*)M)[2 * 4 + 2] = 1.f;
@@ -743,13 +759,13 @@ inline void ksl_mat4x4f_setIdentity(
 /*!
 @brief set a value of vector
 */
-inline void ksl_vector_set(
-  ksl_vector_t* __restrict__ v,
+inline void bksl_vec3_set(
+  bksl_vec3_t* __restrict__ v,
   const uint32_t index,
   double value) {
 
   // if(index > 2 || index < 0) {
-  //   fprintf(stderr, "ksl_vector_set: out of bounds\n");
+  //   fprintf(stderr, "ksl_vec3_set: out of bounds\n");
   //   return;
   // }
   ((double*)v)[index] = value;
@@ -759,12 +775,12 @@ inline void ksl_vector_set(
 /*!
 @brief l2 norm (length) of double precision vector
 */
-inline double ksl_vector_l2norm(
-  ksl_vector_t* __restrict__ v) {
+inline double bksl_vec3_l2norm(
+  bksl_vec3_t* __restrict__ v) {
 
   double sum = 0;
   for(uint32_t i = 0; i < 3; i++) {
-    sum += ksl_vector_get(v, i) * ksl_vector_get(v, i);
+    sum += bksl_vec3_get(v, i) * bksl_vec3_get(v, i);
   }
   return sqrt(sum);
 
@@ -782,12 +798,12 @@ inline double ksl_vector_l2norm(
 /*!
 @brief l2 norm (length) of single precision vector
 */
-inline float ksl_vectorf_l2norm(
-  ksl_vectorf_t* __restrict__ v) {
+inline float bksl_vec3f_l2norm(
+  bksl_vec3f_t* __restrict__ v) {
 
   double sum = 0;
   for(uint32_t i = 0; i < 3; i++) {
-    sum += ksl_vectorf_get(v, i) * ksl_vectorf_get(v, i);
+    sum += bksl_vec3f_get(v, i) * bksl_vec3f_get(v, i);
   }
   return sqrt(sum);
 
@@ -806,12 +822,12 @@ inline float ksl_vectorf_l2norm(
 /*!
 @brief l2 norm of double precision screw
 */
-inline double ksl_screw_l2norm(
-  ksl_screw_t* __restrict__ s) {
+inline double bksl_screw_l2norm(
+  bksl_screw_t* __restrict__ s) {
 
   double sum = 0;
   for(uint32_t i = 0; i < 6; i++) {
-    sum += ksl_screw_get(s, i) * ksl_screw_get(s, i);
+    sum += bksl_screw_get(s, i) * bksl_screw_get(s, i);
   }
   return sqrt(sum);
 }
@@ -820,12 +836,12 @@ inline double ksl_screw_l2norm(
 /*!
 @brief l2 norm of single precision screw
 */
-inline float ksl_screwf_l2norm(
-  ksl_screwf_t* __restrict__ s) {
+inline float bksl_screwf_l2norm(
+  bksl_screwf_t* __restrict__ s) {
 
   float sum = 0;
   for(uint32_t i = 0; i < 6; i++) {
-    sum += ksl_screwf_get(s, i) * ksl_screwf_get(s, i);
+    sum += bksl_screwf_get(s, i) * bksl_screwf_get(s, i);
   }
   return sqrt(sum);
 
@@ -844,8 +860,8 @@ inline float ksl_screwf_l2norm(
 /*!
 @brief set a value of a screw
 */
-inline void ksl_screw_set(
-  ksl_screw_t* __restrict__ s,
+inline void bksl_screw_set(
+  bksl_screw_t* __restrict__ s,
   const uint32_t index,
   const double value) {
 
@@ -860,8 +876,8 @@ inline void ksl_screw_set(
 /*!
 @brief set a value of a screw
 */
-inline void ksl_coscrew_set(
-  ksl_coscrew_t* __restrict__ c,
+inline void bksl_coscrew_set(
+  bksl_coscrew_t* __restrict__ c,
   const uint32_t index,
   const double value) {
 
@@ -876,8 +892,8 @@ inline void ksl_coscrew_set(
 /*!
 @brief set a value of a screw
 */
-inline void ksl_coscrewf_set(
-  ksl_coscrewf_t* __restrict__ c,
+inline void bksl_coscrewf_set(
+  bksl_coscrewf_t* __restrict__ c,
   const uint32_t index,
   const float value) {
 
@@ -894,8 +910,8 @@ inline void ksl_coscrewf_set(
 
 note that mat3x3 is stored in column major order
 */
-inline void ksl_mat3x3_set(
-  ksl_mat3x3_t* __restrict__ R,
+inline void bksl_mat3x3_set(
+  bksl_mat3x3_t* __restrict__ R,
   const uint32_t row,
   const uint32_t column,
   const double value) {
@@ -913,15 +929,15 @@ inline void ksl_mat3x3_set(
 
 note that mat3x3 is stored in column major order
 */
-inline void ksl_mat3x3_setFromVectors(
-  ksl_mat3x3_t* __restrict__ R,
-  ksl_vector_t* __restrict__ x,
-  ksl_vector_t* __restrict__ y,
-  ksl_vector_t* __restrict__ z) {
+inline void bksl_mat3x3_setFromVectors(
+  bksl_mat3x3_t* __restrict__ R,
+  bksl_vec3_t* __restrict__ x,
+  bksl_vec3_t* __restrict__ y,
+  bksl_vec3_t* __restrict__ z) {
 
-  memcpy(&(R->m00), x, sizeof(ksl_vector_t));
-  memcpy(&(R->m01), y, sizeof(ksl_vector_t));
-  memcpy(&(R->m02), z, sizeof(ksl_vector_t));
+  memcpy(&(R->m00), x, sizeof(bksl_vec3_t));
+  memcpy(&(R->m01), y, sizeof(bksl_vec3_t));
+  memcpy(&(R->m02), z, sizeof(bksl_vec3_t));
 
 }
 
@@ -932,8 +948,8 @@ inline void ksl_mat3x3_setFromVectors(
 
 note that mat3x3 is stored in column major order
 */
-inline void ksl_mat4x4_set(
-  ksl_mat4x4_t* __restrict__ R,
+inline void bksl_mat4x4_set(
+  bksl_mat4x4_t* __restrict__ R,
   const uint32_t row,
   const uint32_t column,
   const double value) {
@@ -949,8 +965,8 @@ inline void ksl_mat4x4_set(
 /*!
 @brief set a value of a displacement
 */
-inline void ksl_displacement_set(
-  ksl_displacement_t* __restrict__ D,
+inline void bksl_displacement_set(
+  bksl_displacement_t* __restrict__ D,
   const uint32_t row,
   const uint32_t column,
   const double value) {
@@ -960,9 +976,9 @@ inline void ksl_displacement_set(
   //   return;
   // }
   if(column == 3) {
-    ksl_vector_set(&D->t, row, value);
+    bksl_vec3_set(&D->t, row, value);
   } else {
-    ksl_mat3x3_set(&D->R, row, column, value);
+    bksl_mat3x3_set(&D->R, row, column, value);
   }
 }
 
@@ -970,13 +986,13 @@ inline void ksl_displacement_set(
 /*!
 @brief set a value of vectorf
 */
-inline void ksl_vectorf_set(
-  ksl_vectorf_t* __restrict__ v,
+inline void bksl_vec3f_set(
+  bksl_vec3f_t* __restrict__ v,
   const uint32_t index,
   float value) {
 
   // if(index > 2 || index < 0) {
-  //   fprintf(stderr, "ksl_vector_set: out of bounds\n");
+  //   fprintf(stderr, "ksl_vec3_set: out of bounds\n");
   //   return;
   // }
   ((float*)v)[index] = value;
@@ -986,8 +1002,8 @@ inline void ksl_vectorf_set(
 /*!
 @brief set a value of a screwf
 */
-inline void ksl_screwf_set(
-  ksl_screwf_t* __restrict__ s,
+inline void bksl_screwf_set(
+  bksl_screwf_t* __restrict__ s,
   const uint32_t index,
   float value) {
 
@@ -1004,8 +1020,8 @@ inline void ksl_screwf_set(
 
 note that mat3x3 is stored in column major order
 */
-inline void ksl_mat3x3f_set(
-  ksl_mat3x3f_t* __restrict__ R,
+inline void bksl_mat3x3f_set(
+  bksl_mat3x3f_t* __restrict__ R,
   const uint32_t row,
   const uint32_t column,
   float value) {
@@ -1023,8 +1039,8 @@ inline void ksl_mat3x3f_set(
 
 note that mat3x3 is stored in column major order
 */
-inline void ksl_mat4x4f_set(
-  ksl_mat4x4f_t* __restrict__ R,
+inline void bksl_mat4x4f_set(
+  bksl_mat4x4f_t* __restrict__ R,
   const uint32_t row,
   const uint32_t column,
   float value) {
@@ -1040,16 +1056,16 @@ inline void ksl_mat4x4f_set(
 /*!
 @brief set a value of a displacementf
 */
-inline void ksl_displacementf_set(
-  ksl_displacementf_t* __restrict__ D,
+inline void bksl_displacementf_set(
+  bksl_displacementf_t* __restrict__ D,
   const uint32_t row,
   const uint32_t column,
   float value) {
 
   if(column == 3) {
-    ksl_vectorf_set(&D->t, row, value);
+    bksl_vec3f_set(&D->t, row, value);
   } else {
-    ksl_mat3x3f_set(&D->R, row, column, value);
+    bksl_mat3x3f_set(&D->R, row, column, value);
   }
 }
 
@@ -1057,12 +1073,12 @@ inline void ksl_displacementf_set(
 /*!
 @brief get a value at specified index of a 3x1 column vector
 */
-inline double ksl_vector_get(
-  ksl_vector_t* __restrict__ v,
+inline double bksl_vec3_get(
+  bksl_vec3_t* __restrict__ v,
   const uint32_t index) {
 
   // if(index > 2 || index < 0) {
-  //   fprintf(stderr, "ksl_vector_set: out of bounds\n");
+  //   fprintf(stderr, "ksl_vec3_set: out of bounds\n");
   //   return -INFINITY;
   // }
   return ((double*)v)[index];
@@ -1072,8 +1088,8 @@ inline double ksl_vector_get(
 /*!
 @brief set a value of a screw
 */
-inline double ksl_screw_get(
-  ksl_screw_t* __restrict__ s,
+inline double bksl_screw_get(
+  bksl_screw_t* __restrict__ s,
   const uint32_t index) {
 
   // if(index > 5 || index < 0) {
@@ -1087,8 +1103,8 @@ inline double ksl_screw_get(
 /*!
 @brief set a value of a coscrew
 */
-inline double ksl_coscrew_get(
-  ksl_coscrew_t* __restrict__ c,
+inline double bksl_coscrew_get(
+  bksl_coscrew_t* __restrict__ c,
   const uint32_t index) {
 
   // if(index > 5 || index < 0) {
@@ -1102,8 +1118,8 @@ inline double ksl_coscrew_get(
 /*!
 @brief set a value of a coscrew
 */
-inline float ksl_coscrewf_get(
-  ksl_coscrewf_t* __restrict__ c,
+inline float bksl_coscrewf_get(
+  bksl_coscrewf_t* __restrict__ c,
   const uint32_t index) {
 
   // if(index > 5 || index < 0) {
@@ -1120,8 +1136,8 @@ inline float ksl_coscrewf_get(
 
 note that mat3x3 is stored in column major order
 */
-inline double ksl_mat3x3_get(
-  ksl_mat3x3_t* __restrict__ R,
+inline double bksl_mat3x3_get(
+  bksl_mat3x3_t* __restrict__ R,
   const uint32_t row,
   const uint32_t column) {
 
@@ -1137,27 +1153,27 @@ inline double ksl_mat3x3_get(
 /*!
 @brief get a value of a displacement
 */
-inline double ksl_displacement_get(
-  ksl_displacement_t* __restrict__ D,
+inline double bksl_displacement_get(
+  bksl_displacement_t* __restrict__ D,
   const uint32_t row,
   const uint32_t column) {
 
   if(column == 3) {
-    return ksl_vector_get(&D->t, row);
+    return bksl_vec3_get(&D->t, row);
   } else {
-    return ksl_mat3x3_get(&D->R, row, column);
+    return bksl_mat3x3_get(&D->R, row, column);
   }
 }
 
 /*!
 @brief set a value of vectorf
 */
-inline float ksl_vectorf_get(
-  ksl_vectorf_t* __restrict__ v,
+inline float bksl_vec3f_get(
+  bksl_vec3f_t* __restrict__ v,
   const uint32_t index) {
 
   // if(index > 2 || index < 0) {
-  //   fprintf(stderr, "ksl_vector_set: out of bounds\n");
+  //   fprintf(stderr, "ksl_vec3_set: out of bounds\n");
   //   return -INFINITY;
   // }
   return ((float*)v)[index];
@@ -1166,8 +1182,8 @@ inline float ksl_vectorf_get(
 /*!
 @brief set a value of a screwf
 */
-inline float ksl_screwf_get(
-  ksl_screwf_t* __restrict__ s,
+inline float bksl_screwf_get(
+  bksl_screwf_t* __restrict__ s,
   const uint32_t index) {
 
   // if(index > 5 || index < 0) {
@@ -1182,8 +1198,8 @@ inline float ksl_screwf_get(
 
 note that mat3x3 is stored in column major order
 */
-inline float ksl_mat3x3f_get(
-  ksl_mat3x3f_t* __restrict__ R,
+inline float bksl_mat3x3f_get(
+  bksl_mat3x3f_t* __restrict__ R,
   const uint32_t row,
   const uint32_t column) {
 
@@ -1197,8 +1213,8 @@ inline float ksl_mat3x3f_get(
 /*!
 @brief set a value of a displacementf
 */
-inline float ksl_displacementf_get(
-  ksl_displacementf_t* __restrict__ D,
+inline float bksl_displacementf_get(
+  bksl_displacementf_t* __restrict__ D,
   const uint32_t row,
   const uint32_t column) {
 
@@ -1207,9 +1223,9 @@ inline float ksl_displacementf_get(
   //   return -INFINITY;
   // }
   if(column == 3) {
-    return ksl_vectorf_get(&D->t, row);
+    return bksl_vec3f_get(&D->t, row);
   } else {
-    return ksl_mat3x3f_get(&D->R, row, column);
+    return bksl_mat3x3f_get(&D->R, row, column);
   }
 }
 
@@ -1217,11 +1233,11 @@ inline float ksl_displacementf_get(
 @brief get translation component of a general displacement
 
 */
-inline void ksl_displacement_getTranslation(
-  ksl_displacement_t* __restrict__ D,
-  ksl_vector_t* __restrict__ t) {
+inline void bksl_displacement_getTranslation(
+  bksl_displacement_t* __restrict__ D,
+  bksl_vec3_t* __restrict__ t) {
 
-  ksl_copy_vv(&D->t, t);
+  bksl_copy_vv(&D->t, t);
 }
 
 /*!
@@ -1241,11 +1257,11 @@ Utilities for carrying out Vector/Vector and Vector/Scalar operations
 @param vi input vector \f$V_i\f$
 @param vo output vector \f$V_o\f$
 */
-inline void ksl_copy_vv(
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+inline void bksl_copy_vv(
+  bksl_vec3_t* __restrict__ vi,
+  bksl_vec3_t* __restrict__ vo) {
 
-  memcpy(vo, vi, sizeof(ksl_vector_t));
+  memcpy(vo, vi, sizeof(bksl_vec3_t));
   // cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
 }
 
@@ -1257,11 +1273,11 @@ inline void ksl_copy_vv(
 @param vi input vector \f$V_i\f$
 @param vo output vector \f$V_o\f$
 */
-inline void ksl_copy_vvf(
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+inline void bksl_copy_vvf(
+  bksl_vec3f_t* __restrict__ vi,
+  bksl_vec3f_t* __restrict__ vo) {
 
-  memcpy(vo, vi, sizeof(ksl_vectorf_t));
+  memcpy(vo, vi, sizeof(bksl_vec3f_t));
 
   // cblas_scopy(3, (float*)vi, 1, (float*)vo, 1);
 }
@@ -1275,9 +1291,9 @@ inline void ksl_copy_vvf(
 @param vi input vector \f$V_i\f$
 @param vo output vector \f$V_o\f$
 */
-inline void ksl_vector_invert(
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+inline void bksl_vec3_invert(
+  bksl_vec3_t* __restrict__ vi,
+  bksl_vec3_t* __restrict__ vo) {
 
   memset(vo, 0, 3 * sizeof(double));
   cblas_daxpy(3, -1.0, (double*)vi, 1, (double*)vo, 1);
@@ -1292,9 +1308,9 @@ inline void ksl_vector_invert(
 @param vi input vector \f$V_i\f$
 @param vo output vector \f$V_o\f$
 */
-inline void ksl_vectorf_invert(
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+inline void bksl_vec3f_invert(
+  bksl_vec3f_t* __restrict__ vi,
+  bksl_vec3f_t* __restrict__ vo) {
 
   memset(vo, 0, 3 * sizeof(float));
   cblas_saxpy(3, -1.0, (float*)vi, 1, (float*)vo, 1);
@@ -1309,9 +1325,9 @@ inline void ksl_vectorf_invert(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double ksl_dot_vv(
-  ksl_vector_t* __restrict__ vi0,
-  ksl_vector_t* __restrict__ vi1) {
+inline double bksl_dot_vv(
+  bksl_vec3_t* __restrict__ vi0,
+  bksl_vec3_t* __restrict__ vi1) {
 
   return cblas_ddot(
     3,
@@ -1330,9 +1346,9 @@ inline double ksl_dot_vv(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double ksl_dot_vvf(
-  ksl_vectorf_t* __restrict__ vi0,
-  ksl_vectorf_t* __restrict__ vi1) {
+inline double bksl_dot_vvf(
+  bksl_vec3f_t* __restrict__ vi0,
+  bksl_vec3f_t* __restrict__ vi1) {
 
   return cblas_sdot(
     3,
@@ -1351,9 +1367,9 @@ inline double ksl_dot_vvf(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double ksl_dot_ss(
-  ksl_screw_t* __restrict__ vi0,
-  ksl_screw_t* __restrict__ vi1) {
+inline double bksl_dot_ss(
+  bksl_screw_t* __restrict__ vi0,
+  bksl_screw_t* __restrict__ vi1) {
 
   return cblas_ddot(
     6,
@@ -1372,9 +1388,9 @@ inline double ksl_dot_ss(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double ksl_dot_ssf(
-  ksl_screwf_t* __restrict__ vi0,
-  ksl_screwf_t* __restrict__ vi1) {
+inline double bksl_dot_ssf(
+  bksl_screwf_t* __restrict__ vi0,
+  bksl_screwf_t* __restrict__ vi1) {
 
   return cblas_sdot(
     6,
@@ -1394,10 +1410,10 @@ inline double ksl_dot_ssf(
 @param *ki a pointer to a scalar
 @param vo[3] the results are stored in vo[3]
 */
-inline void ksl_product_vk(
-  ksl_vector_t* __restrict__ vi,
+inline void bksl_product_vk(
+  bksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo) {
+  bksl_vec3_t* __restrict__ vo) {
 
   cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
   cblas_dscal(3, ki, (double*)vo, 1);
@@ -1413,10 +1429,10 @@ inline void ksl_product_vk(
 @param *ki a pointer to a scalar
 @param vo[3] the results are stored in vo[3]
 */
-inline void ksl_product_vkinverse(
-  ksl_vector_t* __restrict__ vi,
+inline void bksl_product_vkinverse(
+  bksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo) {
+  bksl_vec3_t* __restrict__ vo) {
 
   cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
   cblas_dscal(3, 1. / ki, (double*)vo, 1);
@@ -1432,12 +1448,12 @@ inline void ksl_product_vkinverse(
 @param *ki a pointer to a scalar
 @param vo[3] the results are stored in vo[3]
 */
-inline void ksl_product_vinversek(
-  ksl_vector_t* __restrict__ vi,
+inline void bksl_product_vinversek(
+  bksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo) {
+  bksl_vec3_t* __restrict__ vo) {
 
-  memcpy(vo, vi, sizeof(ksl_vector_t));
+  memcpy(vo, vi, sizeof(bksl_vec3_t));
   cblas_dscal(3, -ki, (double*)vo, 1);
 }
 
@@ -1451,10 +1467,10 @@ inline void ksl_product_vinversek(
 @param *ki a pointer to a scalar
 @param vo[3] the results are stored in vo[3]
 */
-inline void ksl_product_vkf(
-  ksl_vectorf_t* __restrict__ vi,
+inline void bksl_product_vkf(
+  bksl_vec3f_t* __restrict__ vi,
   const float ki,
-  ksl_vectorf_t* __restrict__ vo) {
+  bksl_vec3f_t* __restrict__ vo) {
 
   cblas_scopy(3, (float*)vi, 1, (float*)vo, 1);
   cblas_sscal(3, ki, (float*)vo, 1);
@@ -1472,10 +1488,10 @@ Add 3 by 1 column matrices v1i and v2i and store results in vo.
 @param v2i second column vector
 @param vo the results of v1i + v2i are stored in vo
 */
-inline void ksl_add_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo) {
+inline void bksl_add_vv(
+  bksl_vec3_t* __restrict__ v1i,
+  bksl_vec3_t* __restrict__ v2i,
+  bksl_vec3_t* __restrict__ vo) {
 
   cblas_dcopy(3, (double*)v1i, 1, (double*)vo, 1);
   cblas_daxpy(3, 1.0, (double*)v2i, 1, (double*)vo, 1);
@@ -1495,10 +1511,10 @@ Add 3 by 1 column matrices v1i and v2i and store results in vo.
 @param v2i second column vector
 @param vo the results of v1i + v2i are stored in vo
 */
-inline void ksl_add_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo) {
+inline void bksl_add_vvf(
+  bksl_vec3f_t* __restrict__ v1i,
+  bksl_vec3f_t* __restrict__ v2i,
+  bksl_vec3f_t* __restrict__ vo) {
 
   cblas_scopy(3, (float*)v1i, 1, (float*)vo, 1);
   cblas_saxpy(3, 1.0, (float*)v2i, 1, (float*)vo, 1);
@@ -1518,9 +1534,9 @@ Add 3 by 1 column matrix v1i to v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void ksl_addequal_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i) {
+inline void bksl_addequal_vv(
+  bksl_vec3_t* __restrict__ v1i,
+  bksl_vec3_t* __restrict__ v2i) {
 
   cblas_daxpy(3, 1.0, (double*)v1i, 1, (double*)v2i, 1);
 }
@@ -1536,9 +1552,9 @@ Add 3 by 1 column matrix v1i to v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void ksl_addequal_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i) {
+inline void bksl_addequal_vvf(
+  bksl_vec3f_t* __restrict__ v1i,
+  bksl_vec3f_t* __restrict__ v2i) {
 
   cblas_saxpy(3, 1.0, (float*)v1i, 1, (float*)v2i, 1);
   // vo[0] = v1i[0] + v2i[0];
@@ -1557,9 +1573,9 @@ subtract 3 by 1 column matrix v1i from v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void ksl_subtractequal_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i) {
+inline void bksl_subtractequal_vv(
+  bksl_vec3_t* __restrict__ v1i,
+  bksl_vec3_t* __restrict__ v2i) {
 
   cblas_daxpy(3, -1.0, (double*)v1i, 1, (double*)v2i, 1);
 }
@@ -1575,9 +1591,9 @@ Subtract 3 by 1 column matrix v1i from v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void ksl_subtractequal_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i) {
+inline void bksl_subtractequal_vvf(
+  bksl_vec3f_t* __restrict__ v1i,
+  bksl_vec3f_t* __restrict__ v2i) {
 
   cblas_saxpy(3, -1.0, (float*)v1i, 1, (float*)v2i, 1);
   // vo[0] = v1i[0] + v2i[0];
@@ -1596,10 +1612,10 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void ksl_axpy_vv(
+inline void bksl_axpy_vv(
   const double k,
-  ksl_vector_t* __restrict__ v1x,
-  ksl_vector_t* __restrict__ v2y) {
+  bksl_vec3_t* __restrict__ v1x,
+  bksl_vec3_t* __restrict__ v2y) {
 
   cblas_daxpy(3, k, (double*)v1x, 1, (double*)v2y, 1);
 }
@@ -1615,10 +1631,10 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void ksl_axpy_vvf(
+inline void bksl_axpy_vvf(
   const float k,
-  ksl_vectorf_t* __restrict__ v1x,
-  ksl_vectorf_t* __restrict__ v2y) {
+  bksl_vec3f_t* __restrict__ v1x,
+  bksl_vec3f_t* __restrict__ v2y) {
 
   cblas_saxpy(3, k, (float*)v1x, 1, (float*)v2y, 1);
 }
@@ -1634,10 +1650,10 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void ksl_axpy_ss(
+inline void bksl_axpy_ss(
   const double k,
-  ksl_screw_t* __restrict__ v1x,
-  ksl_screw_t* __restrict__ v2y) {
+  bksl_screw_t* __restrict__ v1x,
+  bksl_screw_t* __restrict__ v2y) {
 
   cblas_daxpy(6, k, (double*)v1x, 1, (double*)v2y, 1);
 }
@@ -1653,10 +1669,10 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void ksl_axpy_ssf(
+inline void bksl_axpy_ssf(
   const float k,
-  ksl_screwf_t* __restrict__ v1x,
-  ksl_screwf_t* __restrict__ v2y) {
+  bksl_screwf_t* __restrict__ v1x,
+  bksl_screwf_t* __restrict__ v2y) {
 
   cblas_saxpy(6, k, (float*)v1x, 1, (float*)v2y, 1);
 }
@@ -1673,10 +1689,10 @@ Subtract 3 by 1 column matrix v2i from v1i and store results in vo.
 @param V21 a second 3x1 vector
 @param vo the results of v1i - v2i are returned in vo
 */
-inline void ksl_subtract_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo) {
+inline void bksl_subtract_vv(
+  bksl_vec3_t* __restrict__ v1i,
+  bksl_vec3_t* __restrict__ v2i,
+  bksl_vec3_t* __restrict__ vo) {
 
   cblas_dcopy(3, (double*)v1i, 1, (double*)vo, 1);
   cblas_daxpy(3, -1, (double*)v2i, 1, (double*)vo, 1);
@@ -1694,10 +1710,10 @@ Subtract 3 by 1 column matrix v2i from v1i and store results in vo.
 @param V21 a second 3x1 vector
 @param vo the results of v1i - v2i are returned in vo
 */
-inline void ksl_subtract_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo) {
+inline void bksl_subtract_vvf(
+  bksl_vec3f_t* __restrict__ v1i,
+  bksl_vec3f_t* __restrict__ v2i,
+  bksl_vec3f_t* __restrict__ vo) {
 
   cblas_scopy(3, (float*)v1i, 1, (float*)vo, 1);
   cblas_saxpy(3, -1, (float*)v2i, 1, (float*)vo, 1);
@@ -1713,10 +1729,10 @@ inline void ksl_subtract_vvf(
 @param v2i a second 3x1 vector
 @param vo the results are stored in vo
 */
-inline void ksl_cross_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo) {
+inline void bksl_cross_vv(
+  bksl_vec3_t* __restrict__ v1i,
+  bksl_vec3_t* __restrict__ v2i,
+  bksl_vec3_t* __restrict__ vo) {
 
   vo->x = v1i->y * v2i->z - v1i->z * v2i->y;
   vo->y = v1i->z * v2i->x - v1i->x * v2i->z;
@@ -1733,10 +1749,10 @@ inline void ksl_cross_vv(
 @param v2i a second 3x1 vector
 @param vo the results are stored in vo
 */
-inline void ksl_cross_vvinverse(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo) {
+inline void bksl_cross_vvinverse(
+  bksl_vec3_t* __restrict__ v1i,
+  bksl_vec3_t* __restrict__ v2i,
+  bksl_vec3_t* __restrict__ vo) {
 
   vo->x = v1i->z * v2i->y - v1i->y * v2i->z;
   vo->y = v1i->x * v2i->z - v1i->z * v2i->x;
@@ -1753,10 +1769,10 @@ inline void ksl_cross_vvinverse(
 @param v2i a second 3x1 vector
 @param vo the results are stored in vo
 */
-inline void ksl_cross_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo) {
+inline void bksl_cross_vvf(
+  bksl_vec3f_t* __restrict__ v1i,
+  bksl_vec3f_t* __restrict__ v2i,
+  bksl_vec3f_t* __restrict__ vo) {
 
   vo->x = v1i->y * v2i->z - v1i->z * v2i->y;
   vo->y = v1i->z * v2i->x - v1i->x * v2i->z;
@@ -1773,10 +1789,10 @@ inline void ksl_cross_vvf(
 @param v2i a second 3x1 vector
 @param vo the results are stored in vo
 */
-inline void ksl_cross_vvinversef(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo) {
+inline void bksl_cross_vvinversef(
+  bksl_vec3f_t* __restrict__ v1i,
+  bksl_vec3f_t* __restrict__ v2i,
+  bksl_vec3f_t* __restrict__ vo) {
 
   vo->x = v1i->z * v2i->y - v1i->y * v2i->z;
   vo->y = v1i->x * v2i->z - v1i->z * v2i->x;
@@ -1793,155 +1809,155 @@ for 6x1 screws
 */
 
 /*!
-@brief Copy double precision ksl_screw_t si to so.
+@brief Copy double precision bksl_screw_t si to so.
 
 \f$S_i \rightarrow S_o\f$
 
 @param si 6x1 screw input
 @param so si is copied to so
 */
-inline void ksl_copy_ss(
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_copy_ss(
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  memcpy(so, si, sizeof(ksl_screw_t));
+  memcpy(so, si, sizeof(bksl_screw_t));
 
   /* previously was */
   // cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
 }
 
 /*!
-@brief Copy single precision ksl_screw_t si to so.
+@brief Copy single precision bksl_screw_t si to so.
 
 \f$S_i \rightarrow S_o\f$
 
 @param si 6x1 screw input
 @param so si is copied to so
 */
-inline void ksl_copy_ssf(
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_copy_ssf(
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  memcpy(so, si, sizeof(ksl_screwf_t));
+  memcpy(so, si, sizeof(bksl_screwf_t));
 
   // cblas_scopy(6, (float*)si, 1, (float*)so, 1);
 }
 
 /*!
-@brief Copy double precision ksl_screw_t si to so.
+@brief Copy double precision bksl_screw_t si to so.
 
 \f$S_i \rightarrow S_o\f$
 
 @param si 6x1 screw input
 @param so si is copied to so
 */
-inline void ksl_copy_cc(
-  ksl_coscrew_t* __restrict__ ci,
-  ksl_coscrew_t* __restrict__ co) {
+inline void bksl_copy_cc(
+  bksl_coscrew_t* __restrict__ ci,
+  bksl_coscrew_t* __restrict__ co) {
 
-  memcpy(co, ci, sizeof(ksl_coscrew_t));
+  memcpy(co, ci, sizeof(bksl_coscrew_t));
 
   /* previously was */
   // cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
 }
 
 /*!
-@brief Copy single precision ksl_screw_t si to so.
+@brief Copy single precision bksl_screw_t si to so.
 
 \f$S_i \rightarrow S_o\f$
 
 @param si 6x1 screw input
 @param so si is copied to so
 */
-inline void ksl_copy_ccf(
-  ksl_coscrewf_t* __restrict__ ci,
-  ksl_coscrewf_t* __restrict__ co) {
+inline void bksl_copy_ccf(
+  bksl_coscrewf_t* __restrict__ ci,
+  bksl_coscrewf_t* __restrict__ co) {
 
-  memcpy(co, ci, sizeof(ksl_coscrewf_t));
+  memcpy(co, ci, sizeof(bksl_coscrewf_t));
 
   // cblas_scopy(6, (float*)si, 1, (float*)so, 1);
 }
 
 
 /*!
-@brief Invert a double precision ksl_screw_t si, store the results in so.
+@brief Invert a double precision bksl_screw_t si, store the results in so.
 
 \f$-S_i \rightarrow S_o\f$
 
 @param si input vector \f$S_i\f$
 @param so output vector \f$S_o\f$
 */
-void ksl_invert_ss(
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+void bksl_invert_ss(
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  memset(so, 0, sizeof(ksl_screw_t));
+  memset(so, 0, sizeof(bksl_screw_t));
   cblas_daxpy(6, -1.0, (double*)si, 1, (double*)so, 1);
 }
 
 /*!
-@brief Invert a single precision ksl_screwf_t si, store the results in so.
+@brief Invert a single precision bksl_screwf_t si, store the results in so.
 
 \f$-S_i \rightarrow S_o\f$
 
 @param si input vector \f$S_i\f$
 @param so output vector \f$S_o\f$
 */
-void ksl_invert_ssf(
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+void bksl_invert_ssf(
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  memset(so, 0, sizeof(ksl_screwf_t));
+  memset(so, 0, sizeof(bksl_screwf_t));
   cblas_saxpy(6, -1.0, (float*)si, 1, (float*)so, 1);
 }
 
 
 /*!
-@brief Invert a double precision ksl_screw_t si, store the results in so.
+@brief Invert a double precision bksl_screw_t si, store the results in so.
 
 \f$-S_i \rightarrow S_o\f$
 
 @param si input vector \f$S_i\f$
 @param so output vector \f$S_o\f$
 */
-void ksl_invert_cc(
-  ksl_coscrew_t* __restrict__ ci,
-  ksl_coscrew_t* __restrict__ co) {
+void bksl_invert_cc(
+  bksl_coscrew_t* __restrict__ ci,
+  bksl_coscrew_t* __restrict__ co) {
 
   for(uint32_t i = 0; i < 6; i++) {
-    ksl_coscrew_set(co, i, -ksl_coscrew_get(ci, i));
+    bksl_coscrew_set(co, i, -bksl_coscrew_get(ci, i));
   }
 
   /* previously was */
-  // memset(so, 0, sizeof(ksl_screw_t));
+  // memset(so, 0, sizeof(bksl_screw_t));
   // cblas_daxpy(6, -1.0, (double*)si, 1, (double*)so, 1);
 }
 
 
 /*!
-@brief Invert a single precision ksl_screwf_t si, store the results in so.
+@brief Invert a single precision bksl_screwf_t si, store the results in so.
 
 \f$-S_i \rightarrow S_o\f$
 
 @param si input vector \f$S_i\f$
 @param so output vector \f$S_o\f$
 */
-void ksl_invert_ccf(
-  ksl_coscrewf_t* __restrict__ ci,
-  ksl_coscrewf_t* __restrict__ co) {
+void bksl_invert_ccf(
+  bksl_coscrewf_t* __restrict__ ci,
+  bksl_coscrewf_t* __restrict__ co) {
 
   for(uint32_t i = 0; i < 6; i++) {
-    ksl_coscrewf_set(co, i, -ksl_coscrewf_get(ci, i));
+    bksl_coscrewf_set(co, i, -bksl_coscrewf_get(ci, i));
   }
 
   /* previously was */
-  // memset(so, 0, sizeof(ksl_screw_t));
+  // memset(so, 0, sizeof(bksl_screw_t));
   // cblas_saxpy(6, -1.0, (float*)si, 1, (float*)so, 1);
 }
 
 
 /*!
-@brief Computes the product of a a double precision ksl_screw_t and a scalar
+@brief Computes the product of a a double precision bksl_screw_t and a scalar
 
 \f$S_i * k_i \rightarrow S_o\f$
 
@@ -1949,17 +1965,17 @@ void ksl_invert_ccf(
 @param *ki a pointer to a scalar
 @param so[6] the results are stored in so[6]
 */
-void ksl_product_sk(
-  ksl_screw_t* __restrict__ si,
+void bksl_product_sk(
+  bksl_screw_t* __restrict__ si,
   const double ki,
-  ksl_screw_t* __restrict__ so) {
+  bksl_screw_t* __restrict__ so) {
 
   cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
   cblas_dscal(6, ki, (double*)so, 1);
 }
 
 /*!
-@brief Computes the product of a single precision ksl_screwf_t and a scalar
+@brief Computes the product of a single precision bksl_screwf_t and a scalar
 
 \f$S_i * k_i \rightarrow S_o\f$
 
@@ -1967,17 +1983,17 @@ void ksl_product_sk(
 @param *ki a pointer to a scalar
 @param so[6] the results are stored in so[6]
 */
-void ksl_product_skf(
-  ksl_screwf_t* __restrict__ si,
+void bksl_product_skf(
+  bksl_screwf_t* __restrict__ si,
   const float ki,
-  ksl_screwf_t* __restrict__ so) {
+  bksl_screwf_t* __restrict__ so) {
 
   cblas_scopy(6, (float*)si, 1, (float*)so, 1);
   cblas_sscal(6, ki, (float*)so, 1);
 }
 
 /*!
-@brief Add double precision ksl_screw_ts s1i and s2i and store results in so.
+@brief Add double precision bksl_screw_ts s1i and s2i and store results in so.
 
 \f$S_{1i} + S_{2i} \rightarrow S_o\f$
 
@@ -1985,10 +2001,10 @@ void ksl_product_skf(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void ksl_add_ss(
-  ksl_screw_t* __restrict__ s1i,
-  ksl_screw_t* __restrict__ s2i,
-  ksl_screw_t* __restrict__ so) {
+void bksl_add_ss(
+  bksl_screw_t* __restrict__ s1i,
+  bksl_screw_t* __restrict__ s2i,
+  bksl_screw_t* __restrict__ so) {
 
   cblas_dcopy(6, (double*)s1i, 1, (double*)so, 1);
   cblas_daxpy(6, 1, (double*)s2i, 1, (double*)so, 1);
@@ -1996,7 +2012,7 @@ void ksl_add_ss(
 
 
 /*!
-@brief Add double precision ksl_screw_ts s1i to s2i.
+@brief Add double precision bksl_screw_ts s1i to s2i.
 
 \f$S_{2i} += S_{1i}\f$
 
@@ -2004,16 +2020,16 @@ void ksl_add_ss(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void ksl_addequal_ss(
-  ksl_screw_t* __restrict__ s1i,
-  ksl_screw_t* __restrict__ s2i) {
+void bksl_addequal_ss(
+  bksl_screw_t* __restrict__ s1i,
+  bksl_screw_t* __restrict__ s2i) {
 
   cblas_daxpy(6, 1, (double*)s1i, 1, (double*)s2i, 1);
 }
 
 
 /*!
-@brief Add double precision ksl_screw_ts s1i to s2i.
+@brief Add double precision bksl_screw_ts s1i to s2i.
 
 \f$S_{2i} += S_{1i}\f$
 
@@ -2021,9 +2037,9 @@ void ksl_addequal_ss(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void ksl_addequal_ssf(
-  ksl_screwf_t* __restrict__ s1i,
-  ksl_screwf_t* __restrict__ s2i) {
+void bksl_addequal_ssf(
+  bksl_screwf_t* __restrict__ s1i,
+  bksl_screwf_t* __restrict__ s2i) {
 
   cblas_saxpy(6, 1, (float*)s1i, 1, (float*)s2i, 1);
 }
@@ -2031,7 +2047,7 @@ void ksl_addequal_ssf(
 
 
 /*!
-@brief Add single precision ksl_screw_ts s1i and s2i and store results in so.
+@brief Add single precision bksl_screw_ts s1i and s2i and store results in so.
 
 \f$S_{1i} + S_{2i} \rightarrow S_o\f$
 
@@ -2039,53 +2055,53 @@ void ksl_addequal_ssf(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void ksl_add_ssf(
-  ksl_screwf_t* __restrict__ s1i,
-  ksl_screwf_t* __restrict__ s2i,
-  ksl_screwf_t* __restrict__ so) {
+void bksl_add_ssf(
+  bksl_screwf_t* __restrict__ s1i,
+  bksl_screwf_t* __restrict__ s2i,
+  bksl_screwf_t* __restrict__ so) {
 
   cblas_scopy(6, (float*)s1i, 1, (float*)so, 1);
   cblas_saxpy(6, 1, (float*)s2i, 1, (float*)so, 1);
 }
 
 /*!
-@brief Subtract double precision ksl_screw_t s2i from s1i and store results in so.
+@brief Subtract double precision bksl_screw_t s2i from s1i and store results in so.
 
 \f$S_{1i} - S_{2i} \rightarrow S_o\f$
 
-@param s1i a first ksl_screw_t
-@param s2i a second ksl_screw_t
+@param s1i a first bksl_screw_t
+@param s2i a second bksl_screw_t
 @param so The results of s1i - s2i are stored in so
 */
-void ksl_subtract_ss(
-  ksl_screw_t* __restrict__ s1i,
-  ksl_screw_t* __restrict__ s2i,
-  ksl_screw_t* __restrict__ so) {
+void bksl_subtract_ss(
+  bksl_screw_t* __restrict__ s1i,
+  bksl_screw_t* __restrict__ s2i,
+  bksl_screw_t* __restrict__ so) {
 
   cblas_dcopy(6, (double*)s1i, 1, (double*)so, 1);
   cblas_daxpy(6, -1.0, (double*)s2i, 1, (double*)so, 1);
 }
 
 /*!
-@brief Subtract single precision ksl_screw_t s2i from s1i and store results in so.
+@brief Subtract single precision bksl_screw_t s2i from s1i and store results in so.
 
 \f$S_{1i} - S_{2i} \rightarrow S_o\f$
 
-@param s1i a first ksl_screw_t
-@param s2i a second ksl_screw_t
+@param s1i a first bksl_screw_t
+@param s2i a second bksl_screw_t
 @param so The results of s1i - s2i are stored in so
 */
-void ksl_subtract_ssf(
-  ksl_screwf_t* __restrict__ s1i,
-  ksl_screwf_t* __restrict__ s2i,
-  ksl_screwf_t* __restrict__ so) {
+void bksl_subtract_ssf(
+  bksl_screwf_t* __restrict__ s1i,
+  bksl_screwf_t* __restrict__ s2i,
+  bksl_screwf_t* __restrict__ so) {
 
   cblas_scopy(6, (float*)s1i, 1, (float*)so, 1);
   cblas_saxpy(6, -1.0, (float*)s2i, 1, (float*)so, 1);
 }
 
 /*!
-@brief Add double precision ksl_screw_ts s1i to s2i.
+@brief Add double precision bksl_screw_ts s1i to s2i.
 
 \f$S_{2i} -= S_{1i}\f$
 
@@ -2093,16 +2109,16 @@ void ksl_subtract_ssf(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void ksl_subtractequal_ss(
-  ksl_screw_t* __restrict__ s1i,
-  ksl_screw_t* __restrict__ s2i) {
+void bksl_subtractequal_ss(
+  bksl_screw_t* __restrict__ s1i,
+  bksl_screw_t* __restrict__ s2i) {
 
   cblas_daxpy(6, -1.0, (double*)s1i, 1, (double*)s2i, 1);
 }
 
 
 /*!
-@brief Add double precision ksl_screw_ts s1i to s2i.
+@brief Add double precision bksl_screw_ts s1i to s2i.
 
 \f$S_{2i} += S_{1i}\f$
 
@@ -2110,9 +2126,9 @@ void ksl_subtractequal_ss(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void ksl_subtractequal_ssf(
-  ksl_screwf_t* __restrict__ s1i,
-  ksl_screwf_t* __restrict__ s2i) {
+void bksl_subtractequal_ssf(
+  bksl_screwf_t* __restrict__ s1i,
+  bksl_screwf_t* __restrict__ s2i) {
 
   cblas_saxpy(6, -1.0, (float*)s1i, 1, (float*)s2i, 1);
 }
@@ -2128,7 +2144,7 @@ Utilities for performing operations on a combination of 3x1 vectors and
 */
 
 /*!
-@brief Adds a double prevision ksl_screw_t and Vector
+@brief Adds a double prevision bksl_screw_t and Vector
 
 \f$S_i[0:3] + V_i \rightarrow S_o[0:3]\f$
 
@@ -2138,18 +2154,18 @@ Utilities for performing operations on a combination of 3x1 vectors and
 @param vi a 3x1 vector
 @param so the results of the operation are returned in so
 */
-void ksl_add_sst(
-  ksl_screw_t* __restrict__ si1,
-  ksl_screw_t* __restrict__ si2,
-  ksl_screw_t* __restrict__ so) {
+void bksl_add_sst(
+  bksl_screw_t* __restrict__ si1,
+  bksl_screw_t* __restrict__ si2,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_copy_ss(si1, so);
+  bksl_copy_ss(si1, so);
   cblas_daxpy(3, 1.0, (double*)si2, 1, (double*)so, 1);
 }
 
 
 /*!
-@brief Adds a single prevision ksl_screwf_t and Vectorf
+@brief Adds a single prevision bksl_screwf_t and Vectorf
 
 \f$S_i[0:3] + V_i \rightarrow S_o[0:3]\f$
 
@@ -2159,12 +2175,12 @@ void ksl_add_sst(
 @param vi a 3x1 vector
 @param so the results of the operation are returned in so
 */
-void ksl_add_sstf(
-  ksl_screwf_t* __restrict__ si1,
-  ksl_screwf_t* __restrict__ si2,
-  ksl_screwf_t* __restrict__ so) {
+void bksl_add_sstf(
+  bksl_screwf_t* __restrict__ si1,
+  bksl_screwf_t* __restrict__ si2,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_copy_ssf(si1, so);
+  bksl_copy_ssf(si1, so);
   cblas_saxpy(3, 1.0, (float*)si2, 1, (float*)so, 1);
 }
 
@@ -2180,48 +2196,48 @@ direction cosines.
 */
 
 /*!
-@brief Copy a double precision ksl_mat3x3_t direction cosine matrix ri uint32_to ro.
+@brief Copy a double precision bksl_mat3x3_t direction cosine matrix ri uint32_to ro.
 
 \f$R_i \rightarrow R_o\f$
 
 @param ri rotation matrix input
 @param ro rotation matrix output
 */
-void ksl_mat3x3_copy(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_mat3x3_t* __restrict__ ro) {
+void bksl_mat3x3_copy(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_mat3x3_t* __restrict__ ro) {
 
   cblas_dcopy(9, (double*)ri, 1, (double*)ro, 1);
 }
 
 
 /*!
-@brief Copy a single precision ksl_mat3x3f_t direction cosine matrix ri uint32_to ro.
+@brief Copy a single precision bksl_mat3x3f_t direction cosine matrix ri uint32_to ro.
 
 \f$R_i \rightarrow R_o\f$
 
 @param ri rotation matrix input
 @param ro rotation matrix output
 */
-void ksl_mat3x3f_copy(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_mat3x3f_t* __restrict__ ro) {
+void bksl_mat3x3f_copy(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_mat3x3f_t* __restrict__ ro) {
 
   cblas_scopy(9, (float*)ri, 1, (float*)ro, 1);
 }
 
 
 /*!
-@brief Inverts (transposes) a double precision ksl_mat3x3_t rotation matrix
+@brief Inverts (transposes) a double precision bksl_mat3x3_t rotation matrix
 
 \f$R_i^T \rightarrow R_o\f$
 
 @param ri rotation matrix to be inverted
 @param ro transposed rotation matrix returned in ro
 */
-void ksl_mat3x3_invert(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_mat3x3_t* __restrict__ ro) {
+void bksl_mat3x3_invert(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_mat3x3_t* __restrict__ ro) {
 
   cblas_dcopy(3, (double*)ri, 1, (double*)ro, 3);
   cblas_dcopy(3, ((double*)ri) + 3, 1, ((double*)ro) + 1, 3);
@@ -2233,16 +2249,16 @@ void ksl_mat3x3_invert(
 
 
 /*!
-@brief Inverts (transposes) a single precision ksl_mat3x3f_t rotation matrix
+@brief Inverts (transposes) a single precision bksl_mat3x3f_t rotation matrix
 
 \f$R_i^T \rightarrow R_o\f$
 
 @param ri rotation matrix to be inverted
 @param ro transposed rotation matrix returned in ro
 */
-void ksl_invert_Rf(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_mat3x3f_t* __restrict__ ro) {
+void bksl_invert_Rf(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_mat3x3f_t* __restrict__ ro) {
 
   cblas_scopy(3, (float*)ri, 1, (float*)ro, 3);
   cblas_scopy(3, ((float*)ri) + 3, 1, (float*)ro + 1, 3);
@@ -2259,10 +2275,10 @@ vector vi in vo.
 
 \f$R_i * V_i \rightarrow V_o\f$
 */
-void ksl_product_Rv(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+void bksl_product_Rv(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_vec3_t* __restrict__ vo) {
 
   /* suggest to leave blas for matrix-vector operations at least for now,
   I found a 10-20% speed up when using blas vs using unwrapped loops in earlier
@@ -2292,10 +2308,10 @@ void ksl_product_Rv(
 
 \f$R_i * V_i \rightarrow V_o\f$
 */
-void ksl_product_Rvf(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+void bksl_product_Rvf(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_vec3f_t* __restrict__ vi,
+  bksl_vec3f_t* __restrict__ vo) {
 
   cblas_sgemv(
     CblasColMajor,
@@ -2321,10 +2337,10 @@ vector -vi in vo.
 
 \f$R_i * -V_i \rightarrow V_o\f$
 */
-void ksl_product_Rvinverse(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+void bksl_product_Rvinverse(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_vec3_t* __restrict__ vo) {
 
   cblas_dgemv(
     CblasColMajor,
@@ -2350,10 +2366,10 @@ vector -vi in vo.
 
 \f$R_i * -V_i \rightarrow V_o\f$
 */
-void ksl_product_Rvinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+void bksl_product_Rvinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_vec3f_t* __restrict__ vi,
+  bksl_vec3f_t* __restrict__ vo) {
 
   cblas_sgemv(
     CblasColMajor,
@@ -2378,10 +2394,10 @@ void ksl_product_Rvinversef(
 
 \f$R_i^T * V_i \rightarrow V_o\f$
 */
-void ksl_product_Rinversev(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+void bksl_product_Rinversev(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_vec3_t* __restrict__ vo) {
 
   cblas_dgemv(
     CblasColMajor,
@@ -2407,10 +2423,10 @@ void ksl_product_Rinversev(
 
 \f$R_i^T * V_i \rightarrow V_o\f$
 */
-void ksl_product_Rinversevf(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+void bksl_product_Rinversevf(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_vec3f_t* __restrict__ vi,
+  bksl_vec3f_t* __restrict__ vo) {
 
   cblas_sgemv(
     CblasColMajor,
@@ -2437,10 +2453,10 @@ vector -vi in vo.
 
 \f$R_i^T * -V_i \rightarrow V_o\f$
 */
-void ksl_product_rinversevinverse(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+void bksl_product_rinversevinverse(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_vec3_t* __restrict__ vo) {
 
   cblas_dgemv(
     CblasColMajor,
@@ -2464,10 +2480,10 @@ vector -vi in vo.
 
 \f$R_i^T * -V_i \rightarrow V_o\f$
 */
-void ksl_product_Rinversevinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+void bksl_product_Rinversevinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_vec3f_t* __restrict__ vi,
+  bksl_vec3f_t* __restrict__ vo) {
 
   cblas_sgemv(
     CblasColMajor,
@@ -2498,13 +2514,13 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-void ksl_product_Adrs(
-  ksl_mat3x3_t* __restrict__ Ri,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+void bksl_product_Adrs(
+  bksl_mat3x3_t* __restrict__ Ri,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_product_Rv(Ri, &si->v, &so->v);
-  ksl_product_Rv(Ri, &si->w, &so->w);
+  bksl_product_Rv(Ri, &si->v, &so->v);
+  bksl_product_Rv(Ri, &si->w, &so->w);
 }
 
 /*!
@@ -2520,13 +2536,13 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-void ksl_product_CoAdrc(
-  ksl_mat3x3_t* __restrict__ Ri,
-  ksl_coscrew_t* __restrict__ ci,
-  ksl_coscrew_t* __restrict__ co) {
+void bksl_product_CoAdrc(
+  bksl_mat3x3_t* __restrict__ Ri,
+  bksl_coscrew_t* __restrict__ ci,
+  bksl_coscrew_t* __restrict__ co) {
 
-  ksl_product_Rv(Ri, &ci->f, &co->f);
-  ksl_product_Rv(Ri, &ci->m, &co->m);
+  bksl_product_Rv(Ri, &ci->f, &co->f);
+  bksl_product_Rv(Ri, &ci->m, &co->m);
 }
 
 
@@ -2543,13 +2559,13 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-void ksl_product_CoAdrcf(
-  ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_coscrewf_t* __restrict__ ci,
-  ksl_coscrewf_t* __restrict__ co) {
+void bksl_product_CoAdrcf(
+  bksl_mat3x3f_t* __restrict__ Ri,
+  bksl_coscrewf_t* __restrict__ ci,
+  bksl_coscrewf_t* __restrict__ co) {
 
-  ksl_product_Rvf(Ri, &ci->f, &co->f);
-  ksl_product_Rvf(Ri, &ci->m, &co->m);
+  bksl_product_Rvf(Ri, &ci->f, &co->f);
+  bksl_product_Rvf(Ri, &ci->m, &co->m);
 }
 
 
@@ -2566,14 +2582,14 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-inline void ksl_product_Adrsf(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_product_Adrsf(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_product_Rvf(ri, (ksl_vectorf_t*)si, (ksl_vectorf_t*)so);
-  ksl_product_Rvf(
-    ri, (ksl_vectorf_t*)(((float*)si) + 3), (ksl_vectorf_t*)(((float*)so) + 3));
+  bksl_product_Rvf(ri, (bksl_vec3f_t*)si, (bksl_vec3f_t*)so);
+  bksl_product_Rvf(
+    ri, (bksl_vec3f_t*)(((float*)si) + 3), (bksl_vec3f_t*)(((float*)so) + 3));
 }
 
 /*!
@@ -2589,14 +2605,14 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-inline void ksl_product_Adrsinverse(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_product_Adrsinverse(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_product_Rvinverse(ri, (ksl_vector_t*)si, (ksl_vector_t*)so);
-  ksl_product_Rvinverse(
-    ri, (ksl_vector_t*)(((double*)si) + 3), (ksl_vector_t*)(((double*)so) + 3));
+  bksl_product_Rvinverse(ri, (bksl_vec3_t*)si, (bksl_vec3_t*)so);
+  bksl_product_Rvinverse(
+    ri, (bksl_vec3_t*)(((double*)si) + 3), (bksl_vec3_t*)(((double*)so) + 3));
 }
 
 /*!
@@ -2612,15 +2628,15 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-void ksl_product_Adrsinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+void bksl_product_Adrsinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_product_Rvinversef(ri, (ksl_vectorf_t*)si, (ksl_vectorf_t*)so);
-  ksl_product_Rvinversef(
+  bksl_product_Rvinversef(ri, (bksl_vec3f_t*)si, (bksl_vec3f_t*)so);
+  bksl_product_Rvinversef(
     ri,
-    (ksl_vectorf_t*)(((float*)si) + 3), (ksl_vectorf_t*)(((float*)so) + 3));
+    (bksl_vec3f_t*)(((float*)si) + 3), (bksl_vec3f_t*)(((float*)so) + 3));
 }
 
 /*!
@@ -2635,14 +2651,14 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si screw
 @param so the output of ri * -si is returned in so
 */
-void ksl_product_Adrinverses(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+void bksl_product_Adrinverses(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_product_Rinversev(ri, (ksl_vector_t*)si, (ksl_vector_t*)so);
-  ksl_product_Rinversev(
-    ri, (ksl_vector_t*)(((double*)si) + 3), (ksl_vector_t*)(((double*)so) + 3));
+  bksl_product_Rinversev(ri, (bksl_vec3_t*)si, (bksl_vec3_t*)so);
+  bksl_product_Rinversev(
+    ri, (bksl_vec3_t*)(((double*)si) + 3), (bksl_vec3_t*)(((double*)so) + 3));
 }
 
 /*!
@@ -2657,14 +2673,14 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si screw
 @param so the output of ri * -si is returned in so
 */
-void ksl_product_Adrinversesf(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+void bksl_product_Adrinversesf(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_product_Rinversevf(ri, (ksl_vectorf_t*)si, (ksl_vectorf_t*)so);
-  ksl_product_Rinversevf(
-    ri, (ksl_vectorf_t*)(((float*)si) + 3), (ksl_vectorf_t*)(((float*)so) + 3));
+  bksl_product_Rinversevf(ri, (bksl_vec3f_t*)si, (bksl_vec3f_t*)so);
+  bksl_product_Rinversevf(
+    ri, (bksl_vec3f_t*)(((float*)si) + 3), (bksl_vec3f_t*)(((float*)so) + 3));
 }
 
 
@@ -2680,13 +2696,13 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si screw
 @param so the output of ri * -si is returned in so
 */
-void ksl_product_CoAdrinversec(
-  ksl_mat3x3_t* __restrict__ Ri,
-  ksl_coscrew_t* __restrict__ ci,
-  ksl_coscrew_t* __restrict__ co) {
+void bksl_product_CoAdrinversec(
+  bksl_mat3x3_t* __restrict__ Ri,
+  bksl_coscrew_t* __restrict__ ci,
+  bksl_coscrew_t* __restrict__ co) {
 
-  ksl_product_Rinversev(Ri, &ci->f, &co->f);
-  ksl_product_Rinversev(Ri, &ci->m, &co->m);
+  bksl_product_Rinversev(Ri, &ci->f, &co->f);
+  bksl_product_Rinversev(Ri, &ci->m, &co->m);
 }
 
 
@@ -2702,13 +2718,13 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si screw
 @param so the output of ri * -si is returned in so
 */
-void ksl_product_CoAdrinversecf(
-  ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_coscrewf_t* __restrict__ ci,
-  ksl_coscrewf_t* __restrict__ co) {
+void bksl_product_CoAdrinversecf(
+  bksl_mat3x3f_t* __restrict__ Ri,
+  bksl_coscrewf_t* __restrict__ ci,
+  bksl_coscrewf_t* __restrict__ co) {
 
-  ksl_product_Rinversevf(Ri, &ci->f, &co->f);
-  ksl_product_Rinversevf(Ri, &ci->m, &co->m);
+  bksl_product_Rinversevf(Ri, &ci->f, &co->f);
+  bksl_product_Rinversevf(Ri, &ci->m, &co->m);
 }
 
 
@@ -2724,10 +2740,10 @@ about the x axis, Rx, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void ksl_product_RRx(
-  ksl_mat3x3_t* __restrict__ ri,
+void bksl_product_RRx(
+  bksl_mat3x3_t* __restrict__ ri,
   double dc[2],
-  ksl_mat3x3_t* __restrict__ ro) {
+  bksl_mat3x3_t* __restrict__ ro) {
 
   memset(ro, 0, 9 * sizeof(double));
 
@@ -2767,12 +2783,12 @@ about the x axis, Rx, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RRxf(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_RRxf(
+  bksl_mat3x3f_t* __restrict__ ri,
   float dc[2],
-  ksl_mat3x3f_t* __restrict__ ro) {
+  bksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
+  memset(ro, 0, sizeof(bksl_mat3x3f_t));
   cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
   cblas_saxpy(3, dc[0], ((float*)ri) + 6, 1, ((float*)ro) + 3, 1);
   cblas_saxpy(3, -dc[0], ((float*)ri) + 3, 1, ((float*)ro) + 6, 1);
@@ -2807,12 +2823,12 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RRxinverse(
-  ksl_mat3x3_t* __restrict__ ri,
+inline void bksl_product_RRxinverse(
+  bksl_mat3x3_t* __restrict__ ri,
   double dc[2],
-  ksl_mat3x3_t* __restrict__ ro) {
+  bksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
+  memset(ro, 0, sizeof(bksl_mat3x3_t));
   cblas_dcopy(3, (double*)ri, 1, (double*)ro, 1);
   cblas_daxpy(3, dc[1], ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
   cblas_daxpy(3, -dc[0], ((double*)ri) + 6, 1, ((double*)ro) + 3, 1);
@@ -2848,12 +2864,12 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RRxinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_RRxinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
   float dc[2],
-  ksl_mat3x3f_t* __restrict__ ro) {
+  bksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
+  memset(ro, 0, sizeof(bksl_mat3x3f_t));
   cblas_scopy(3, (float*)ri, 1, (float*)ro, 1);
   cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
   cblas_saxpy(3, -dc[0], ((float*)ri) + 6, 1, ((float*)ro) + 3, 1);
@@ -2888,12 +2904,12 @@ about the x axis, Rx, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void ksl_product_RRy(
-  ksl_mat3x3_t* __restrict__ ri,
+void bksl_product_RRy(
+  bksl_mat3x3_t* __restrict__ ri,
   double dc[2],
-  ksl_mat3x3_t* __restrict__ ro) {
+  bksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
+  memset(ro, 0, sizeof(bksl_mat3x3_t));
   cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
   cblas_daxpy(3, -dc[0], ((double*)ri) + 6, 1, (double*)ro, 1);
   cblas_daxpy(3, dc[1], ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
@@ -2928,12 +2944,12 @@ about the x axis, Rx, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void ksl_product_RRyf(
-  ksl_mat3x3f_t* __restrict__ ri,
+void bksl_product_RRyf(
+  bksl_mat3x3f_t* __restrict__ ri,
   float dc[2],
-  ksl_mat3x3f_t* __restrict__ ro) {
+  bksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
+  memset(ro, 0, sizeof(bksl_mat3x3f_t));
   cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
   cblas_saxpy(3, -dc[0], ((float*)ri) + 6, 1, (float*)ro, 1);
   cblas_saxpy(3, dc[1], ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
@@ -2969,12 +2985,12 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void ksl_product_RRyinverse(
-  ksl_mat3x3_t* __restrict__ ri,
+void bksl_product_RRyinverse(
+  bksl_mat3x3_t* __restrict__ ri,
   double dc[2],
-  ksl_mat3x3_t* __restrict__ ro) {
+  bksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
+  memset(ro, 0, sizeof(bksl_mat3x3_t));
   cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
   cblas_daxpy(3, dc[0], ((double*)ri) + 6, 1, (double*)ro, 1);
   cblas_daxpy(3, dc[1], ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
@@ -3010,12 +3026,12 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void ksl_product_RRyinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
+void bksl_product_RRyinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
   float dc[2],
-  ksl_mat3x3f_t* __restrict__ ro) {
+  bksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
+  memset(ro, 0, sizeof(bksl_mat3x3f_t));
   cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
   cblas_saxpy(3, dc[0], ((float*)ri) + 6, 1, (float*)ro, 1);
   cblas_saxpy(3, dc[1], ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
@@ -3050,12 +3066,12 @@ about the z axis, Rz, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void ksl_product_RRz(
-  ksl_mat3x3_t* __restrict__ ri,
+void bksl_product_RRz(
+  bksl_mat3x3_t* __restrict__ ri,
   double dc[2],
-  ksl_mat3x3_t* __restrict__ ro) {
+  bksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
+  memset(ro, 0, sizeof(bksl_mat3x3_t));
   cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
   cblas_daxpy(3, dc[0], ((double*)ri) + 3, 1, (double*)ro, 1);
   cblas_daxpy(3, -dc[0], (double*)ri, 1, ((double*)ro) + 3, 1);
@@ -3090,12 +3106,12 @@ about the z axis, Rz, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void ksl_product_RRzf(
-  ksl_mat3x3f_t* __restrict__ ri,
+void bksl_product_RRzf(
+  bksl_mat3x3f_t* __restrict__ ri,
   float dc[2],
-  ksl_mat3x3f_t* __restrict__ ro) {
+  bksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
+  memset(ro, 0, sizeof(bksl_mat3x3f_t));
   cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
   cblas_saxpy(3, dc[0], ((float*)ri) + 3, 1, (float*)ro, 1);
   cblas_saxpy(3, -dc[0], (float*)ri, 1, ((float*)ro) + 3, 1);
@@ -3131,12 +3147,12 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RRzinverse(
-  ksl_mat3x3_t* __restrict__ ri,
+inline void bksl_product_RRzinverse(
+  bksl_mat3x3_t* __restrict__ ri,
   double dc[2],
-  ksl_mat3x3_t* __restrict__ ro) {
+  bksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
+  memset(ro, 0, sizeof(bksl_mat3x3_t));
   cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
   cblas_daxpy(3, -dc[0], ((double*)ri) + 3, 1, (double*)ro, 1);
   cblas_daxpy(3, dc[0], (double*)ri, 1, ((double*)ro) + 3, 1);
@@ -3175,12 +3191,12 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RRzinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_RRzinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
   float dc[2],
-  ksl_mat3x3f_t* __restrict__ ro) {
+  bksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
+  memset(ro, 0, sizeof(bksl_mat3x3f_t));
   cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
   cblas_saxpy(3, -dc[0], ((float*)ri) + 3, 1, (float*)ro, 1);
   cblas_saxpy(3, dc[0], (float*)ri, 1, ((float*)ro) + 3, 1);
@@ -3217,10 +3233,10 @@ Computes the product of two general rotation matrices, R1i and R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RR(
-  ksl_mat3x3_t* __restrict__ R1i,
-  ksl_mat3x3_t* __restrict__ R2i,
-  ksl_mat3x3_t* __restrict__ ro) {
+inline void bksl_product_RR(
+  bksl_mat3x3_t* __restrict__ R1i,
+  bksl_mat3x3_t* __restrict__ R2i,
+  bksl_mat3x3_t* __restrict__ ro) {
 
   cblas_dgemm(
     CblasColMajor,
@@ -3276,10 +3292,10 @@ Computes the product of two general rotation matrices, R1i and R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RRf(
-  ksl_mat3x3f_t* __restrict__ R1i,
-  ksl_mat3x3f_t* __restrict__ R2i,
-  ksl_mat3x3f_t* __restrict__ ro) {
+inline void bksl_product_RRf(
+  bksl_mat3x3f_t* __restrict__ R1i,
+  bksl_mat3x3f_t* __restrict__ R2i,
+  bksl_mat3x3f_t* __restrict__ ro) {
 
   cblas_sgemm(
     CblasColMajor,
@@ -3336,10 +3352,10 @@ of a second rotation matrix, R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RRinverse(
-  ksl_mat3x3_t* __restrict__ R1i,
-  ksl_mat3x3_t* __restrict__ R2i,
-  ksl_mat3x3_t* __restrict__ ro) {
+inline void bksl_product_RRinverse(
+  bksl_mat3x3_t* __restrict__ R1i,
+  bksl_mat3x3_t* __restrict__ R2i,
+  bksl_mat3x3_t* __restrict__ ro) {
 
   cblas_dgemm(
     CblasColMajor,
@@ -3398,10 +3414,10 @@ of a second rotation matrix, R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RRinversef(
-  ksl_mat3x3f_t* __restrict__ R1i,
-  ksl_mat3x3f_t* __restrict__ R2i,
-  ksl_mat3x3f_t* __restrict__ ro) {
+inline void bksl_product_RRinversef(
+  bksl_mat3x3f_t* __restrict__ R1i,
+  bksl_mat3x3f_t* __restrict__ R2i,
+  bksl_mat3x3f_t* __restrict__ ro) {
 
   cblas_sgemm(
     CblasColMajor,
@@ -3460,10 +3476,10 @@ a second rotation matrix, R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RinverseR(
-  ksl_mat3x3_t* __restrict__ R1i,
-  ksl_mat3x3_t* __restrict__ R2i,
-  ksl_mat3x3_t* __restrict__ ro) {
+inline void bksl_product_RinverseR(
+  bksl_mat3x3_t* __restrict__ R1i,
+  bksl_mat3x3_t* __restrict__ R2i,
+  bksl_mat3x3_t* __restrict__ ro) {
 
   cblas_dgemm(
     CblasColMajor,
@@ -3525,10 +3541,10 @@ a second rotation matrix, R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_RinverseRf(
-  ksl_mat3x3f_t* __restrict__ R1i,
-  ksl_mat3x3f_t* __restrict__ R2i,
-  ksl_mat3x3f_t* __restrict__ ro) {
+inline void bksl_product_RinverseRf(
+  bksl_mat3x3f_t* __restrict__ R1i,
+  bksl_mat3x3f_t* __restrict__ R2i,
+  bksl_mat3x3f_t* __restrict__ ro) {
 
   cblas_sgemm(
     CblasColMajor,
@@ -3592,10 +3608,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param to a pointer to a vector where result is stored.
 */
-inline void ksl_product_Rvx(
-  ksl_mat3x3_t* __restrict__ ri,
+inline void bksl_product_Rvx(
+  bksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, *ti, (double*)ri, 1, (double*)to, 1);
@@ -3627,10 +3643,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvxf(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_Rvxf(
+  bksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, *ti, (float*)ri, 1, (float*)to, 1);
@@ -3662,10 +3678,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvxinverse(
-  ksl_mat3x3_t* __restrict__ ri,
+inline void bksl_product_Rvxinverse(
+  bksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, -(*ti), (double*)ri, 1, (double*)to, 1);
@@ -3697,10 +3713,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvxinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_Rvxinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, -(*ti), (float*)ri, 1, (float*)to, 1);
@@ -3731,10 +3747,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvy(
-  ksl_mat3x3_t* __restrict__ ri,
+inline void bksl_product_Rvy(
+  bksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, *ti, ((double*)ri) + 3, 1, (double*)to, 1);
@@ -3765,10 +3781,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvyf(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_Rvyf(
+  bksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, *ti, ((float*)ri) + 3, 1, (float*)to, 1);
@@ -3799,10 +3815,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvyinverse(
-  ksl_mat3x3_t* __restrict__ ri,
+inline void bksl_product_Rvyinverse(
+  bksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, -(*ti), ((double*)ri) + 3, 1, (double*)to, 1);
@@ -3833,10 +3849,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvyinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_Rvyinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, -(*ti), ((float*)ri) + 3, 1, (float*)to, 1);
@@ -3868,10 +3884,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvz(
-  ksl_mat3x3_t* __restrict__ ri,
+inline void bksl_product_Rvz(
+  bksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, *ti, ((double*)ri) + 6, 1, (double*)to, 1);
@@ -3902,10 +3918,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvzf(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_Rvzf(
+  bksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, *ti, ((float*)ri) + 6, 1, (float*)to, 1);
@@ -3936,10 +3952,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvzinverse(
-  ksl_mat3x3_t* __restrict__ ri,
+inline void bksl_product_Rvzinverse(
+  bksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, -(*ti), ((double*)ri) + 6, 1, (double*)to, 1);
@@ -3971,10 +3987,10 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void ksl_product_Rvzinversef(
-  ksl_mat3x3f_t* __restrict__ ri,
+inline void bksl_product_Rvzinversef(
+  bksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, -(*ti), ((float*)ri) + 6, 1, (float*)to, 1);
@@ -4013,12 +4029,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvx(
-  ksl_vector_t* __restrict__ t1i,
+inline void bksl_add_vvx(
+  bksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
-  ksl_copy_vv(t1i, to);
+  bksl_copy_vv(t1i, to);
   to->x += *t2i;
 }
 
@@ -4040,12 +4056,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvxf(
-  ksl_vectorf_t* __restrict__ t1i,
+inline void bksl_add_vvxf(
+  bksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
-  ksl_copy_vvf(t1i, to);
+  bksl_copy_vvf(t1i, to);
   to->x += *t2i;
 }
 
@@ -4068,12 +4084,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvxinverse(
-  ksl_vector_t* __restrict__ t1i,
+inline void bksl_add_vvxinverse(
+  bksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
-  ksl_copy_vv(t1i, to);
+  bksl_copy_vv(t1i, to);
   to->x -= *t2i;
   // |to[0]|   |t1i[0]|   |t2i|
   // |to[1]| = |t1i[1]| - |0.0|
@@ -4099,12 +4115,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvxinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+inline void bksl_add_vvxinversef(
+  bksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
-  ksl_copy_vvf(t1i, to);
+  bksl_copy_vvf(t1i, to);
   to->x -= *t2i;
   // |to[0]|   |t1i[0]|   |t2i|
   // |to[1]| = |t1i[1]| - |0.0|
@@ -4130,12 +4146,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvy(
-  ksl_vector_t* __restrict__ t1i,
+inline void bksl_add_vvy(
+  bksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
-  ksl_copy_vv(t1i, to);
+  bksl_copy_vv(t1i, to);
   to->y += *t2i;
 
   // |to[0]|   |t1i[0]|   |0.0|
@@ -4162,12 +4178,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvyf(
-  ksl_vectorf_t* __restrict__ t1i,
+inline void bksl_add_vvyf(
+  bksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
-  ksl_copy_vvf(t1i, to);
+  bksl_copy_vvf(t1i, to);
   to->y += *t2i;
 
   // |to[0]|   |t1i[0]|   |0.0|
@@ -4194,12 +4210,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvyinverse(
-  ksl_vector_t* __restrict__ t1i,
+inline void bksl_add_vvyinverse(
+  bksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
-  ksl_copy_vv(t1i, to);
+  bksl_copy_vv(t1i, to);
   to->y -= *t2i;
 
   // |to[0]|   |t1i[0]|   |0.0|
@@ -4226,12 +4242,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvyinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+inline void bksl_add_vvyinversef(
+  bksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
-  ksl_copy_vvf(t1i, to);
+  bksl_copy_vvf(t1i, to);
   to->y -= *t2i;
 
   // |to[0]|   |t1i[0]|   |0.0|
@@ -4258,12 +4274,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvz(
-  ksl_vector_t* __restrict__ t1i,
+inline void bksl_add_vvz(
+  bksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
-  ksl_copy_vv(t1i, to);
+  bksl_copy_vv(t1i, to);
   to->z += *t2i;
 
   // |to[0]|   |t1i[0]|   |0.0|
@@ -4290,12 +4306,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvzf(
-  ksl_vectorf_t* __restrict__ t1i,
+inline void bksl_add_vvzf(
+  bksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
-  ksl_copy_vvf(t1i, to);
+  bksl_copy_vvf(t1i, to);
   to->z += *t2i;
 
   // |to[0]|   |t1i[0]|   |0.0|
@@ -4322,12 +4338,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvzinverse(
-  ksl_vector_t* __restrict__ t1i,
+inline void bksl_add_vvzinverse(
+  bksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  bksl_vec3_t* __restrict__ to) {
 
-  ksl_copy_vv(t1i, to);
+  bksl_copy_vv(t1i, to);
   to->z -= *t2i;
   // |to[0]|   |t1i[0]|   |0.0|
   // |to[1]| = |t1i[1]| - |0.0|
@@ -4353,12 +4369,12 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void ksl_add_vvzinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+inline void bksl_add_vvzinversef(
+  bksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  bksl_vec3f_t* __restrict__ to) {
 
-  ksl_copy_vvf(t1i, to);
+  bksl_copy_vvf(t1i, to);
   to->z -= *t2i;
   // |to[0]|   |t1i[0]|   |0.0|
   // |to[1]| = |t1i[1]| - |0.0|
@@ -4374,39 +4390,39 @@ of both a rotation and translation component.
 */
 
 /*!
-@brief Compute double precision inverse of a ksl_displacement_t
+@brief Compute double precision inverse of a bksl_displacement_t
 
 \f$D_i^{-1} \rightarrow D_o\f$
 
 @param Di a general displacement to take the inverse of
 @param Do inverse of Di is returned in Do
 */
-inline void ksl_displacement_invert(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_displacement_invert(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_invert_R(&(Di->R), &(Do->R));
-  ksl_product_Rinversevinverse(&(Di->R), &(Di->t), &(Do->t));
+  bksl_invert_R(&(Di->R), &(Do->R));
+  bksl_product_Rinversevinverse(&(Di->R), &(Di->t), &(Do->t));
 }
 
 /*!
-@brief Compute single precision inverse of a ksl_displacement_t
+@brief Compute single precision inverse of a bksl_displacement_t
 
 \f$D_i^{-1} \rightarrow D_o\f$
 
 @param Di a general displacement to take the inverse of
 @param Do inverse of Di is returned in Do
 */
-inline void ksl_displacementf_invert(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_displacementf_t* __restrict__ Do) {
+inline void bksl_displacementf_invert(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_invert_Rf(&(Di->R), &(Do->R));
-  ksl_product_Rinversevinversef(&(Di->R), &(Di->t), &(Do->t));
+  bksl_invert_Rf(&(Di->R), &(Do->R));
+  bksl_product_Rinversevinversef(&(Di->R), &(Di->t), &(Do->t));
 }
 
 /*!
-@brief Copy a double precision ksl_displacement_t consisting of a rotation and
+@brief Copy a double precision bksl_displacement_t consisting of a rotation and
 translation
 
 \f$D_i \rightarrow D_o\f$
@@ -4414,16 +4430,16 @@ translation
 @param Di a general displacement input
 @param Do Di is copied to Do
 */
-inline void ksl_displacement_copy(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_displacement_copy(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_displacement_t* __restrict__ Do) {
 
-  memcpy(Do, Di, sizeof(ksl_displacement_t));
+  memcpy(Do, Di, sizeof(bksl_displacement_t));
   // cblas_dcopy(12, (double*)Di, 1, (double*)Do, 1);
 }
 
 /*!
-@brief Copy a single precision ksl_displacementf_t consisting of a rotation and
+@brief Copy a single precision bksl_displacementf_t consisting of a rotation and
 translation
 
 \f$D_i \rightarrow D_o\f$
@@ -4431,16 +4447,16 @@ translation
 @param Di a general displacement input
 @param Do Di is copied to Do
 */
-inline void ksl_displacementf_copy(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_displacementf_t* __restrict__ Do) {
+inline void bksl_displacementf_copy(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_displacementf_t* __restrict__ Do) {
 
-  memcpy(Do, Di, sizeof(ksl_displacementf_t));
+  memcpy(Do, Di, sizeof(bksl_displacementf_t));
   // cblas_scopy(12, (float*)Di, 1, (float*)Do, 1);
 }
 
 /*!
-@brief Double precision product of a ksl_displacement_t with a primitive rotation
+@brief Double precision product of a bksl_displacement_t with a primitive rotation
 about the x-axis
 
 \f$R_i * R_x \rightarrow R_o\f$
@@ -4451,17 +4467,17 @@ about the x-axis
 @param dc direction cosines characterizing a primitive rotation
 @param the result of the computation is stored in Do
 */
-inline void ksl_product_DDrx(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDrx(
+  bksl_displacement_t* __restrict__ Di,
   double dc[2],
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RRx(&(Di->R), dc, &(Do->R));
-  ksl_copy_vv(&(Di->t), &(Do->t));
+  bksl_product_RRx(&(Di->R), dc, &(Do->R));
+  bksl_copy_vv(&(Di->t), &(Do->t));
 }
 
 /*!
-@brief single precision product of a ksl_displacement_t with a primitive rotation
+@brief single precision product of a bksl_displacement_t with a primitive rotation
 about the x-axis
 
 \f$R_i * R_x \rightarrow R_o\f$
@@ -4472,13 +4488,13 @@ about the x-axis
 @param dc direction cosines characterizing a primitive rotation
 @param the result of the computation is stored in Do
 */
-inline void ksl_product_DDrxf(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDrxf(
+  bksl_displacementf_t* __restrict__ Di,
   float dc[2],
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRxf(&(Di->R), dc, &(Do->R));
-  ksl_copy_vvf(&(Di->t), &(Do->t));
+  bksl_product_RRxf(&(Di->R), dc, &(Do->R));
+  bksl_copy_vvf(&(Di->t), &(Do->t));
 }
 
 /*!
@@ -4497,13 +4513,13 @@ is equivalent to:
 @param dc direction cosines characterizing a primitive rotation
 @param the result of the computation is stored in Do
 */
-inline void ksl_product_DDrxinverse(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDrxinverse(
+  bksl_displacement_t* __restrict__ Di,
   double dc[2],
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RRxinverse(&(Di->R), dc, &(Do->R));
-  ksl_copy_vv(&(Di->t), &(Do->t));
+  bksl_product_RRxinverse(&(Di->R), dc, &(Do->R));
+  bksl_copy_vv(&(Di->t), &(Do->t));
 }
 
 /*!
@@ -4522,17 +4538,17 @@ is equivalent to:
 @param dc direction cosines characterizing a primitive rotation
 @param the result of the computation is stored in Do
 */
-inline void ksl_product_DDrxinversef(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDrxinversef(
+  bksl_displacementf_t* __restrict__ Di,
   float dc[2],
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRxinversef(&(Di->R), dc, &(Do->R));
-  ksl_copy_vvf(&(Di->t), &(Do->t));
+  bksl_product_RRxinversef(&(Di->R), dc, &(Do->R));
+  bksl_copy_vvf(&(Di->t), &(Do->t));
 }
 
 /*!
-@brief Double precision product of a ksl_displacement_t, \f$D\f$, and a rotation
+@brief Double precision product of a bksl_displacement_t, \f$D\f$, and a rotation
 about the y axis, \f$R_y\f$
 
 The following operation:
@@ -4548,17 +4564,17 @@ is equivalent to:
 @param dc[2] direction cosines for a rotation about the Y axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDry(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDry(
+  bksl_displacement_t* __restrict__ Di,
   double dc[2],
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RRy(&(Di->R), dc, &(Do->R));
-  ksl_copy_vv(&(Di->t), &(Do->t));
+  bksl_product_RRy(&(Di->R), dc, &(Do->R));
+  bksl_copy_vv(&(Di->t), &(Do->t));
 }
 
 /*!
-@brief single precision product of a ksl_displacementf_t, \f$D\f$, and a rotation
+@brief single precision product of a bksl_displacementf_t, \f$D\f$, and a rotation
 about the y axis, \f$R_y\f$
 
 The following operation:
@@ -4574,17 +4590,17 @@ is equivalent to:
 @param dc[2] direction cosines for a rotation about the Y axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDryf(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDryf(
+  bksl_displacementf_t* __restrict__ Di,
   float dc[2],
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRyf(&(Di->R), dc, &(Do->R));
-  ksl_copy_vvf(&(Di->t), &(Do->t));
+  bksl_product_RRyf(&(Di->R), dc, &(Do->R));
+  bksl_copy_vvf(&(Di->t), &(Do->t));
 }
 
 /*!
-@brief Double precision product of a ksl_displacement_t, \f$D\f$, and the inverse of a
+@brief Double precision product of a bksl_displacement_t, \f$D\f$, and the inverse of a
 rotation about the y axis, \f$R_y^T\f$
 
 The following operation:
@@ -4600,17 +4616,17 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Y axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDryinverse(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDryinverse(
+  bksl_displacement_t* __restrict__ Di,
   double dc[2],
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RRyinverse(&(Di->R), dc, &(Do->R));
-  ksl_copy_vv(&(Di->t), &(Do->t));
+  bksl_product_RRyinverse(&(Di->R), dc, &(Do->R));
+  bksl_copy_vv(&(Di->t), &(Do->t));
 }
 
 /*!
-@brief single precision product of a ksl_displacementf_t, \f$D\f$, and the inverse of a
+@brief single precision product of a bksl_displacementf_t, \f$D\f$, and the inverse of a
 rotation about the y axis, \f$R_y^T\f$
 
 The following operation:
@@ -4626,13 +4642,13 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Y axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDryinversef(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDryinversef(
+  bksl_displacementf_t* __restrict__ Di,
   float dc[2],
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRyinversef(&(Di->R), dc, &(Do->R));
-  ksl_copy_vvf(&(Di->t), &(Do->t));
+  bksl_product_RRyinversef(&(Di->R), dc, &(Do->R));
+  bksl_copy_vvf(&(Di->t), &(Do->t));
 }
 
 /*!
@@ -4652,17 +4668,17 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDrz(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDrz(
+  bksl_displacement_t* __restrict__ Di,
   double dc[2],
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RRz(&(Di->R), dc, &(Do->R));
-  ksl_copy_vv(&(Di->t), &(Do->t));
+  bksl_product_RRz(&(Di->R), dc, &(Do->R));
+  bksl_copy_vv(&(Di->t), &(Do->t));
 }
 
 /*!
-@brief single precision product of a ksl_displacementf_t, \f$D\f$, and a
+@brief single precision product of a bksl_displacementf_t, \f$D\f$, and a
 rotation about the z axis, \f$R_z\f$
 
 The following operation:
@@ -4678,17 +4694,17 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDrzf(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDrzf(
+  bksl_displacementf_t* __restrict__ Di,
   float dc[2],
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRzf(&(Di->R), dc, &(Do->R));
-  ksl_copy_vvf(&(Di->t), &(Do->t));
+  bksl_product_RRzf(&(Di->R), dc, &(Do->R));
+  bksl_copy_vvf(&(Di->t), &(Do->t));
 }
 
 /*!
-@brief Double precision product of a ksl_displacement_t, \f$D\f$, and an inverse
+@brief Double precision product of a bksl_displacement_t, \f$D\f$, and an inverse
 rotation about the z axis, \f$R_z^T\f$
 
 The following operation:
@@ -4704,17 +4720,17 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDrzinverse(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDrzinverse(
+  bksl_displacement_t* __restrict__ Di,
   double dc[2],
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RRzinverse(&(Di->R), dc, &(Do->R));
-  ksl_copy_vv(&(Di->t), &(Do->t));
+  bksl_product_RRzinverse(&(Di->R), dc, &(Do->R));
+  bksl_copy_vv(&(Di->t), &(Do->t));
 }
 
 /*!
-@brief single precision product of a ksl_displacement_t, \f$D\f$, and an inverse
+@brief single precision product of a bksl_displacement_t, \f$D\f$, and an inverse
 rotation about the z axis, \f$R_z^T\f$
 
 The following operation:
@@ -4730,29 +4746,29 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDrzinversef(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDrzinversef(
+  bksl_displacementf_t* __restrict__ Di,
   float dc[2],
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRzinversef(&(Di->R), dc, &(Do->R));
-  ksl_copy_vvf(&(Di->t), &(Do->t));
+  bksl_product_RRzinversef(&(Di->R), dc, &(Do->R));
+  bksl_copy_vvf(&(Di->t), &(Do->t));
 }
 
 
 /*!
-@brief Double precision product of a general ksl_displacement_t with a vector
+@brief Double precision product of a general bksl_displacement_t with a vector
 
 @param Di a general displacement, \f$D_i\f$
 @param vi a general 3-d Vector
 @param vo the results are stored in vector, \f$v_o\f$
 */
-inline void ksl_product_Dv(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+inline void bksl_product_Dv(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_vec3_t* __restrict__ vo) {
 
-  ksl_product_Rv(&(Di->R), vi, vo);
+  bksl_product_Rv(&(Di->R), vi, vo);
   cblas_daxpy(
     3,
     1.0,
@@ -4764,29 +4780,29 @@ inline void ksl_product_Dv(
 
 
 /*!
-@brief Double precision product of a general ksl_displacement_t inverse
+@brief Double precision product of a general bksl_displacement_t inverse
 with a vector
 
 @param Di a general displacement, \f$D\f$
 @param vi a general 3-d Vector
 @param vo the results are stored in vector, \f$v_o\f$
 */
-inline void ksl_product_Dinversev(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+inline void bksl_product_Dinversev(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_vec3_t* __restrict__ vo) {
 
 
-  ksl_vector_t temp;
+  bksl_vec3_t temp;
 
   /* R^-1 * t -> temp*/
-  ksl_product_Rinversev(
+  bksl_product_Rinversev(
     &(Di->R),
     &(Di->t),
     &temp);
 
   /* R^-1 * vi -> vo */
-  ksl_product_Rinversev(&(Di->R), vi, vo);
+  bksl_product_Rinversev(&(Di->R), vi, vo);
 
   /* vo -= temp */
   cblas_daxpy(
@@ -4800,7 +4816,7 @@ inline void ksl_product_Dinversev(
 
 
 /*!
-@brief Double precision product of a general ksl_displacement_t, followed by
+@brief Double precision product of a general bksl_displacement_t, followed by
 a 3D translation
 
 Computes the result of a general displacement, followed by a general
@@ -4814,13 +4830,13 @@ Computes the result of a general displacement, followed by a general
 @param vi[3] a general 3-d Vector
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDt(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_product_DDt(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_displacement_t* __restrict__ Do) {
 
   cblas_dcopy(9, (double*)Di, 1, (double*)Do, 1);
-  ksl_product_Rv(&(Di->R), vi, &(Do->t));
+  bksl_product_Rv(&(Di->R), vi, &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -4831,7 +4847,7 @@ inline void ksl_product_DDt(
 }
 
 /*!
-@brief Double precision product of a general ksl_displacement_t, followed by
+@brief Double precision product of a general bksl_displacement_t, followed by
 a 3D translation
 
 Computes the result of a general displacement, followed by the inverse of
@@ -4845,13 +4861,13 @@ a general 3-d translation.
 @param vi[3] a general 3-d Vector
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_product_DDtinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_displacement_t* __restrict__ Do) {
 
   cblas_dcopy(9, (double*)Di, 1, (double*)Do, 1);
-  ksl_product_Rvinverse(&(Di->R), vi, &(Do->t));
+  bksl_product_Rvinverse(&(Di->R), vi, &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -4862,7 +4878,7 @@ inline void ksl_product_DDtinverse(
 }
 
 /*!
-@brief Product of a general ksl_displacement_t and a displacement consisting
+@brief Product of a general bksl_displacement_t and a displacement consisting
 of only a translation component
 
 Computes the result of a general displacement, followed by a general
@@ -4876,13 +4892,13 @@ Computes the result of a general displacement, followed by a general
 @param vi[3] a general 3-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_displacementf_t* __restrict__ Do) {
+inline void bksl_product_DDtf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_vec3f_t* __restrict__ vi,
+  bksl_displacementf_t* __restrict__ Do) {
 
   cblas_scopy(9, (float*)Di, 1, (float*)Do, 1);
-  ksl_product_Rvf(&(Di->R), vi, &(Do->t));
+  bksl_product_Rvf(&(Di->R), vi, &(Do->t));
   cblas_saxpy(
     3,
     1.0,
@@ -4910,14 +4926,14 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are returned in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DinverseDt(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_product_DinverseDt(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_vec3_t* __restrict__ vi,
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_subtract_vv(vi, &(Di->t), &(Do->t));
-  ksl_mat3x3_invert(&(Di->R), &(Do->R));
-  ksl_product_Rinversev(&(Di->R), &(Do->t), &(Do->t));
+  bksl_subtract_vv(vi, &(Di->t), &(Do->t));
+  bksl_mat3x3_invert(&(Di->R), &(Do->R));
+  bksl_product_Rinversev(&(Di->R), &(Do->t), &(Do->t));
 }
 
 
@@ -4938,14 +4954,14 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are returned in a general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtinversef(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_displacementf_t* __restrict__ Do) {
+inline void bksl_product_DDtinversef(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_vec3f_t* __restrict__ vi,
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_subtract_vvf(vi, &(Di->t), &(Do->t));
-  ksl_invert_Rf(&(Di->R), &(Do->R));
-  ksl_product_Rinversevf(&(Di->R), &(Do->t), &(Do->t));
+  bksl_subtract_vvf(vi, &(Di->t), &(Do->t));
+  bksl_invert_Rf(&(Di->R), &(Do->R));
+  bksl_product_Rinversevf(&(Di->R), &(Do->t), &(Do->t));
 }
 
 
@@ -4964,13 +4980,13 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtx(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDtx(
+  bksl_displacement_t* __restrict__ Di,
   double* __restrict__ ti,
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_mat3x3_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvx(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvx(&(Di->R), ti, &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -4982,7 +4998,7 @@ inline void ksl_product_DDtx(
 
 
 /*!
-@brief Double precision product of a ksl_displacement_t and a primitive translation
+@brief Double precision product of a bksl_displacement_t and a primitive translation
 
 Computes the result of a general displacement, followed by a primitive
 1-d translation.
@@ -4995,13 +5011,13 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtxinverse(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDtxinverse(
+  bksl_displacement_t* __restrict__ Di,
   double* __restrict__ ti,
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_mat3x3_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvxinverse(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvxinverse(&(Di->R), ti, &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -5013,7 +5029,7 @@ inline void ksl_product_DDtxinverse(
 
 
 /*!
-@brief single precision product of a ksl_displacement_t and a primitive translation
+@brief single precision product of a bksl_displacement_t and a primitive translation
 
 Computes the result of a general displacement, followed by a primitive
 1-d translation.
@@ -5026,13 +5042,13 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtxinversef(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDtxinversef(
+  bksl_displacementf_t* __restrict__ Di,
   float* __restrict__ ti,
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_mat3x3f_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvxinversef(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3f_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvxinversef(&(Di->R), ti, &(Do->t));
   cblas_saxpy(
     3,
     1.0,
@@ -5043,7 +5059,7 @@ inline void ksl_product_DDtxinversef(
 }
 
 /*!
-@brief Double precision general ksl_displacement_t multiplied with a primitive
+@brief Double precision general bksl_displacement_t multiplied with a primitive
 translation along the y-axis
 
 \f$R_i \rightarrow R_o\f$
@@ -5054,13 +5070,13 @@ translation along the y-axis
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDty(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDty(
+  bksl_displacement_t* __restrict__ Di,
   double* __restrict__ ti,
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_mat3x3_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvy(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvy(&(Di->R), ti, &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -5072,7 +5088,7 @@ inline void ksl_product_DDty(
 
 
 /*!
-@brief single precision ksl_displacementf_t multiplied with a primitive
+@brief single precision bksl_displacementf_t multiplied with a primitive
 translation along the y-axis
 
 \f$R_i \rightarrow R_o\f$
@@ -5083,13 +5099,13 @@ translation along the y-axis
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtyf(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDtyf(
+  bksl_displacementf_t* __restrict__ Di,
   float* __restrict__ ti,
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_mat3x3f_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvyf(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3f_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvyf(&(Di->R), ti, &(Do->t));
   cblas_saxpy(
     3,
     1.0,
@@ -5101,7 +5117,7 @@ inline void ksl_product_DDtyf(
 
 
 /*!
-@brief Double precision ksl_displacement_t multiplied with the inverse of a
+@brief Double precision bksl_displacement_t multiplied with the inverse of a
 primitive translation along y axis
 
 Computes the result of a general displacement, followed by a primitive
@@ -5115,13 +5131,13 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtyinverse(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDtyinverse(
+  bksl_displacement_t* __restrict__ Di,
   double* __restrict__ ti,
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_mat3x3_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvyinverse(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvyinverse(&(Di->R), ti, &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -5133,7 +5149,7 @@ inline void ksl_product_DDtyinverse(
 
 
 /*!
-@brief single precision ksl_displacementf_t multiplied with the inverse of a
+@brief single precision bksl_displacementf_t multiplied with the inverse of a
 primitive translation along y axis
 
 Computes the result of a general displacement, followed by a primitive
@@ -5147,13 +5163,13 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtyinversef(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDtyinversef(
+  bksl_displacementf_t* __restrict__ Di,
   float* __restrict__ ti,
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_mat3x3f_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvyinversef(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3f_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvyinversef(&(Di->R), ti, &(Do->t));
   cblas_saxpy(
     3,
     1.0,
@@ -5165,7 +5181,7 @@ inline void ksl_product_DDtyinversef(
 
 
 /*!
-@brief Double precision ksl_displacement_t multiplied with a primitive translation
+@brief Double precision bksl_displacement_t multiplied with a primitive translation
 along z axis
 
 Computes the result of a general displacement, followed by a primitive
@@ -5179,13 +5195,13 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtz(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDtz(
+  bksl_displacement_t* __restrict__ Di,
   double* __restrict__ ti,
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_mat3x3_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvz(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvz(&(Di->R), ti, &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -5197,7 +5213,7 @@ inline void ksl_product_DDtz(
 
 
 /*!
-@brief single precision ksl_displacementf_t multiplied with a primitive translation
+@brief single precision bksl_displacementf_t multiplied with a primitive translation
 along z axis
 
 Computes the result of a general displacement, followed by a primitive
@@ -5211,13 +5227,13 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtzf(
-  ksl_displacementf_t* __restrict__ Di,
+inline void bksl_product_DDtzf(
+  bksl_displacementf_t* __restrict__ Di,
   float* __restrict__ ti,
-  ksl_displacementf_t* __restrict__ Do) {
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_mat3x3f_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvzf(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3f_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvzf(&(Di->R), ti, &(Do->t));
   cblas_saxpy(
     3,
     1.0,
@@ -5229,7 +5245,7 @@ inline void ksl_product_DDtzf(
 
 
 /*!
-@brief Double precision ksl_displacement_t, multiplied with the inverse of a
+@brief Double precision bksl_displacement_t, multiplied with the inverse of a
 primitive translation along z axis
 
 Computes the result of a general displacement, followed by the inverse of a
@@ -5243,13 +5259,13 @@ primitive 1-d translation along the z axis.
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDtzinverse(
-  ksl_displacement_t* __restrict__ Di,
+inline void bksl_product_DDtzinverse(
+  bksl_displacement_t* __restrict__ Di,
   double* __restrict__ ti,
-  ksl_displacement_t* __restrict__ Do) {
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_mat3x3_copy(&(Di->R), &(Do->R));
-  ksl_product_Rvzinverse(&(Di->R), ti, &(Do->t));
+  bksl_mat3x3_copy(&(Di->R), &(Do->R));
+  bksl_product_Rvzinverse(&(Di->R), ti, &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -5278,13 +5294,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DD(
-  ksl_displacement_t* __restrict__ D1i,
-  ksl_displacement_t* __restrict__ D2i,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_product_DD(
+  bksl_displacement_t* __restrict__ D1i,
+  bksl_displacement_t* __restrict__ D2i,
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RR(&(D1i->R), &(D2i->R), &(Do)->R);
-  ksl_product_Rv(&(D1i->R), &(D2i->t), &(Do ->t));
+  bksl_product_RR(&(D1i->R), &(D2i->R), &(Do)->R);
+  bksl_product_Rv(&(D1i->R), &(D2i->t), &(Do ->t));
   cblas_daxpy(3, 1.0, ((double*)D1i) + 9, 1, ((double*)Do) + 9, 1);
 }
 
@@ -5307,13 +5323,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDf(
-  ksl_displacementf_t* __restrict__ D1i,
-  ksl_displacementf_t* __restrict__ D2i,
-  ksl_displacementf_t* __restrict__ Do) {
+inline void bksl_product_DDf(
+  bksl_displacementf_t* __restrict__ D1i,
+  bksl_displacementf_t* __restrict__ D2i,
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRf(&(D1i->R), &(D2i->R), &(Do)->R);
-  ksl_product_Rvf(&(D1i->R), &(D2i->t), &(Do ->t));
+  bksl_product_RRf(&(D1i->R), &(D2i->R), &(Do)->R);
+  bksl_product_Rvf(&(D1i->R), &(D2i->t), &(Do ->t));
   cblas_saxpy(3, 1.0, ((float*)D1i) + 9, 1, ((float*)Do) + 9, 1);
 }
 
@@ -5337,13 +5353,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDr(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_mat3x3_t* __restrict__ Ri,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_product_DDr(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_mat3x3_t* __restrict__ Ri,
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RR(&Di->R, Ri, &Do->R);
-  ksl_copy_vv(&Di->t, &Do->t);
+  bksl_product_RR(&Di->R, Ri, &Do->R);
+  bksl_copy_vv(&Di->t, &Do->t);
 
   // cblas_dcopy(3, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
@@ -5368,13 +5384,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDrf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_displacementf_t* __restrict__ Do) {
+inline void bksl_product_DDrf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_mat3x3f_t* __restrict__ Ri,
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRf(&(Di->R), Ri, &(Do)->R);
-  ksl_copy_vvf(&Di->t, &Do->t);
+  bksl_product_RRf(&(Di->R), Ri, &(Do)->R);
+  bksl_copy_vvf(&Di->t, &Do->t);
 
 }
 
@@ -5398,12 +5414,12 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDrinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_mat3x3_t* __restrict__ Ri,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_product_DDrinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_mat3x3_t* __restrict__ Ri,
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RRinverse(&(Di->R), Ri, &(Do)->R);
+  bksl_product_RRinverse(&(Di->R), Ri, &(Do)->R);
   cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
@@ -5427,12 +5443,12 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDrinversef(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_mat3x3f_t* __restrict__ Ri,
-  ksl_displacementf_t* __restrict__ Do) {
+inline void bksl_product_DDrinversef(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_mat3x3f_t* __restrict__ Ri,
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRinversef(&(Di->R), Ri, &(Do)->R);
+  bksl_product_RRinversef(&(Di->R), Ri, &(Do)->R);
   cblas_saxpy(3, 1.0, ((float*)Di) + 9, 1, ((float*)Do) + 9, 1);
 }
 
@@ -5456,13 +5472,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDinverse(
-  ksl_displacement_t* __restrict__ D1i,
-  ksl_displacement_t* __restrict__ D2i,
-  ksl_displacement_t* __restrict__ Do) {
+inline void bksl_product_DDinverse(
+  bksl_displacement_t* __restrict__ D1i,
+  bksl_displacement_t* __restrict__ D2i,
+  bksl_displacement_t* __restrict__ Do) {
 
-  ksl_product_RRinverse(&(D1i->R), &(D2i->R), &(Do->R));
-  ksl_product_Rvinverse(&(Do->R), &(D2i->t), &(Do->t));
+  bksl_product_RRinverse(&(D1i->R), &(D2i->R), &(Do->R));
+  bksl_product_Rvinverse(&(Do->R), &(D2i->t), &(Do->t));
   cblas_daxpy(
     3,
     1.0,
@@ -5492,13 +5508,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void ksl_product_DDinversef(
-  ksl_displacementf_t* __restrict__ D1i,
-  ksl_displacementf_t* __restrict__ D2i,
-  ksl_displacementf_t* __restrict__ Do) {
+inline void bksl_product_DDinversef(
+  bksl_displacementf_t* __restrict__ D1i,
+  bksl_displacementf_t* __restrict__ D2i,
+  bksl_displacementf_t* __restrict__ Do) {
 
-  ksl_product_RRinversef(&(D1i->R), &(D2i->R), &(Do->R));
-  ksl_product_Rvinversef(&(D1i->R), &(D2i->t), &(Do->t));
+  bksl_product_RRinversef(&(D1i->R), &(D2i->R), &(Do->R));
+  bksl_product_Rvinversef(&(D1i->R), &(D2i->t), &(Do->t));
   cblas_saxpy(
     3,
     1.0,
@@ -5531,9 +5547,9 @@ operation need not be computed if ho is initially set to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void ksl_htx(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_htx(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
   cblas_dcopy(3, (double*)Di, 1, (double*)ho, 1);
   //memset(ho + 3, 0, 3 * sizeof(double));
@@ -5553,9 +5569,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void ksl_htxf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_htxf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
   cblas_scopy(3, (float*)Di, 1, (float*)ho, 1);
   //memset(ho + 3, 0, 3 * sizeof(double));
@@ -5575,9 +5591,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void ksl_hty(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_hty(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
   cblas_dcopy(3, ((double*)Di) + 3, 1, (double*)ho, 1);
   //memset(ho + 3, 0, 3 * sizeof(double));
@@ -5597,9 +5613,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void ksl_htyf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_htyf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
   cblas_scopy(3, ((float*)Di) + 3, 1, (float*)ho, 1);
   //memset(ho + 3, 0, 3 * sizeof(double));
@@ -5619,9 +5635,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void ksl_htz(
-  ksl_displacement_t* __restrict__ ri,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_htz(
+  bksl_displacement_t* __restrict__ ri,
+  bksl_screw_t* __restrict__ ho) {
 
   cblas_dcopy(3, ((double*)ri) + 6, 1, (double*)ho, 1);
   //memset(ho + 3, 0, 3 * sizeof(double));
@@ -5641,9 +5657,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void ksl_htzf(
-  ksl_displacementf_t* __restrict__ ri,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_htzf(
+  bksl_displacementf_t* __restrict__ ri,
+  bksl_screwf_t* __restrict__ ho) {
 
   cblas_scopy(3, ((float*)ri) + 6, 1, (float*)ho, 1);
   //memset(ho + 3, 0, 3 * sizeof(double));
@@ -5660,12 +5676,12 @@ Computes the influence coefficient matrix for a rotation about x-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void ksl_hrx(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_hrx(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
-  ksl_htx(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  bksl_htx(Di, (bksl_screw_t*)(((double*)ho) + 3));
+  bksl_cross_vv(&(Di->t), (bksl_vec3_t*)(((double*)ho) + 3), (bksl_vec3_t*)ho);
 }
 
 
@@ -5679,12 +5695,12 @@ Computes the influence coefficient matrix for a rotation about x-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void ksl_hrxf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_hrxf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
-  ksl_htxf(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  bksl_htxf(Di, (bksl_screwf_t*)(((float*)ho) + 3));
+  bksl_cross_vvf(&(Di->t), (bksl_vec3f_t*)(((float*)ho) + 3), (bksl_vec3f_t*)ho);
 }
 
 
@@ -5698,12 +5714,12 @@ Computes the influence coefficient matrix for a rotation about y-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void ksl_hry(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_hry(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
-  ksl_hty(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  bksl_hty(Di, (bksl_screw_t*)(((double*)ho) + 3));
+  bksl_cross_vv(&(Di->t), (bksl_vec3_t*)(((double*)ho) + 3), (bksl_vec3_t*)ho);
 }
 
 
@@ -5717,12 +5733,12 @@ Computes the influence coefficient matrix for a rotation about z-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void ksl_hrz(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_hrz(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
-  ksl_htz(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  bksl_htz(Di, (bksl_screw_t*)(((double*)ho) + 3));
+  bksl_cross_vv(&(Di->t), (bksl_vec3_t*)(((double*)ho) + 3), (bksl_vec3_t*)ho);
 }
 
 
@@ -5736,12 +5752,12 @@ Computes the influence coefficient matrix for a rotation about z-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void ksl_hrzf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_hrzf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
-  ksl_htzf(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  bksl_htzf(Di, (bksl_screwf_t*)(((float*)ho) + 3));
+  bksl_cross_vvf(&(Di->t), (bksl_vec3f_t*)(((float*)ho) + 3), (bksl_vec3f_t*)ho);
 }
 
 
@@ -5758,9 +5774,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void ksl_htxinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_htxinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
   memset(ho, 0, 3 * sizeof(double));
   cblas_daxpy(3, -1, (double*)Di, 1, (double*)ho, 1);
@@ -5781,9 +5797,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void ksl_htxinversef(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_htxinversef(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
   memset(ho, 0, 3 * sizeof(float));
   cblas_saxpy(3, -1, (float*)Di, 1, (float*)ho, 1);
@@ -5804,9 +5820,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{ty}[3:5]\f$
 */
-inline void ksl_htyinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_htyinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
   memset(ho, 0, 3 * sizeof(double));
   cblas_daxpy(3, -1, ((double*)Di) + 3, 1, (double*)ho, 1);
@@ -5827,9 +5843,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{ty}[3:5]\f$
 */
-inline void ksl_htyinversef(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_htyinversef(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
   memset(ho, 0, 3 * sizeof(float));
   cblas_saxpy(3, -1, ((float*)Di) + 3, 1, (float*)ho, 1);
@@ -5850,9 +5866,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tz}[3:5]\f$
 */
-inline void ksl_htzinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_htzinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
 
   // ho[0] = -ri[0 * 3 + 2];
@@ -5860,7 +5876,7 @@ inline void ksl_htzinverse(
   // ho[2] = -ri[2 * 3 + 2];
 
   for(uint32_t i = 0; i < 3; i++) {
-    ksl_screw_set(ho, i, -ksl_mat3x3_get(&Di->R, i, 2));
+    bksl_screw_set(ho, i, -bksl_mat3x3_get(&Di->R, i, 2));
   }
 
   /* previously was */
@@ -5883,9 +5899,9 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tz}[3:5]\f$
 */
-inline void ksl_htzinversef(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_htzinversef(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
   memset(ho, 0, 3 * sizeof(float));
   cblas_saxpy(3, -1, ((float*)Di) + 6, 1, (float*)ho, 1);
@@ -5906,12 +5922,12 @@ rotation about x-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void ksl_hrxinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_hrxinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
-  ksl_htxinverse(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  bksl_htxinverse(Di, (bksl_screw_t*)(((double*)ho) + 3));
+  bksl_cross_vv(&(Di->t), (bksl_vec3_t*)(((double*)ho) + 3), (bksl_vec3_t*)ho);
 }
 
 
@@ -5926,12 +5942,12 @@ rotation about x-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void ksl_hrxinversef(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_hrxinversef(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
-  ksl_htxinversef(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  bksl_htxinversef(Di, (bksl_screwf_t*)(((float*)ho) + 3));
+  bksl_cross_vvf(&(Di->t), (bksl_vec3f_t*)(((float*)ho) + 3), (bksl_vec3f_t*)ho);
 }
 
 
@@ -5946,15 +5962,15 @@ rotation about y-axis.
 
 \f$T_i \times h_{ty}[3:5] \rightarrow h_{ry}[0:2]\f$
 */
-inline void ksl_hryinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_hryinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
-  ksl_htyinverse(Di, (ksl_screw_t*)((double*)ho + 3));
-  ksl_cross_vv(
+  bksl_htyinverse(Di, (bksl_screw_t*)((double*)ho + 3));
+  bksl_cross_vv(
     &(Di->t),
-    (ksl_vector_t*)(((double*)ho) + 3),
-    (ksl_vector_t*)ho);
+    (bksl_vec3_t*)(((double*)ho) + 3),
+    (bksl_vec3_t*)ho);
 }
 
 
@@ -5969,12 +5985,12 @@ rotation about y-axis.
 
 \f$T_i \times h_{ty}[3:5] \rightarrow h_{ry}[0:2]\f$
 */
-inline void ksl_hryinversef(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_hryinversef(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
-  ksl_htyinversef(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  bksl_htyinversef(Di, (bksl_screwf_t*)(((float*)ho) + 3));
+  bksl_cross_vvf(&(Di->t), (bksl_vec3f_t*)(((float*)ho) + 3), (bksl_vec3f_t*)ho);
 }
 
 
@@ -5989,12 +6005,12 @@ rotation about z-axis.
 
 \f$T_i \times h_{tz}[3:5] \rightarrow h_{rz}[0:2]\f$
 */
-inline void ksl_hrzinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ ho) {
+inline void bksl_hrzinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ ho) {
 
-  ksl_htzinverse(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  bksl_htzinverse(Di, (bksl_screw_t*)(((double*)ho) + 3));
+  bksl_cross_vv(&(Di->t), (bksl_vec3_t*)(((double*)ho) + 3), (bksl_vec3_t*)ho);
 }
 
 
@@ -6009,12 +6025,12 @@ rotation about z-axis.
 
 \f$T_i \times h_{tz}[3:5] \rightarrow h_{rz}[0:2]\f$
 */
-inline void ksl_hrzinversef(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ ho) {
+inline void bksl_hrzinversef(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ ho) {
 
-  ksl_htzinversef(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  bksl_htzinversef(Di, (bksl_screwf_t*)(((float*)ho) + 3));
+  bksl_cross_vvf(&(Di->t), (bksl_vec3f_t*)(((float*)ho) + 3), (bksl_vec3f_t*)ho);
 }
 
 
@@ -6022,14 +6038,14 @@ inline void ksl_hrzinversef(
 @}
 @name Utilities for transforming quantities in configuration space
 Quantities in configuration space include spatial quantities that can be
-be measured with a ruler or clock. ksl_screw_t quantities in configuration space
+be measured with a ruler or clock. bksl_screw_t quantities in configuration space
 are often referred to as screws/twists.
 @{
 */
 
 
 /*!
-@brief Compute double precision ksl_screw_t Cross product in configuration space
+@brief Compute double precision bksl_screw_t Cross product in configuration space
 
 \f$S_{1i}[3:5] \times S_{2i}[0:2] \rightarrow S_o[0:2]\f$
 
@@ -6039,16 +6055,16 @@ are often referred to as screws/twists.
 @param s2i a second 6x1 screw
 @param The results of s1i crossed with s2i are stored in so
 */
-inline void ksl_cross_ss(
-  ksl_screw_t* __restrict__ s1i,
-  ksl_screw_t* __restrict__ s2i,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_cross_ss(
+  bksl_screw_t* __restrict__ s1i,
+  bksl_screw_t* __restrict__ s2i,
+  bksl_screw_t* __restrict__ so) {
 
   /* vo <- w1i x v2i */
-  ksl_cross_vv(&s1i->w, &s2i->v, &so->v);
+  bksl_cross_vv(&s1i->w, &s2i->v, &so->v);
 
   /* wo <- w1i x w2i */
-  ksl_cross_vv(&s1i->w, &s2i->w, &so->w);
+  bksl_cross_vv(&s1i->w, &s2i->w, &so->w);
 
   /* vo += v1i x w2i */
   so->v.x += s1i->v.y * s2i->w.z - s1i->v.z * s2i->w.y;
@@ -6058,7 +6074,7 @@ inline void ksl_cross_ss(
 
 
 /*!
-@brief Compute single precision ksl_screwf_t Cross product in configuration space
+@brief Compute single precision bksl_screwf_t Cross product in configuration space
 
 \f$S_{1i}[3:5] \times S_{2i}[0:2] \rightarrow S_o[0:2]\f$
 
@@ -6068,25 +6084,25 @@ inline void ksl_cross_ss(
 @param s2i a second 6x1 screw
 @param The results of s1i crossed with s2i are stored in so
 */
-inline void ksl_cross_ssf(
-  ksl_screwf_t* __restrict__ s1i,
-  ksl_screwf_t* __restrict__ s2i,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_cross_ssf(
+  bksl_screwf_t* __restrict__ s1i,
+  bksl_screwf_t* __restrict__ s2i,
+  bksl_screwf_t* __restrict__ so) {
 
   /* @TODO change to follow convention above to avoid multiple casts,
   much cleaner! */
 
   /* vo <- w1i x v2i */
-  ksl_cross_vvf(
-    (ksl_vectorf_t*)(((float*)s1i) + 3),
-    (ksl_vectorf_t*)s2i,
-    (ksl_vectorf_t*)(((float*)so)));
+  bksl_cross_vvf(
+    (bksl_vec3f_t*)(((float*)s1i) + 3),
+    (bksl_vec3f_t*)s2i,
+    (bksl_vec3f_t*)(((float*)so)));
 
   /* wo <- w1i x w2i */
-  ksl_cross_vvf(
-    (ksl_vectorf_t*)(((float*)s1i) + 3),
-    (ksl_vectorf_t*)(((float*)s2i) + 3),
-    (ksl_vectorf_t*)(((float*)so) + 3));
+  bksl_cross_vvf(
+    (bksl_vec3f_t*)(((float*)s1i) + 3),
+    (bksl_vec3f_t*)(((float*)s2i) + 3),
+    (bksl_vec3f_t*)(((float*)so) + 3));
 
   /* vo += v1i x w2i */
   so->v.x += s1i->v.y * s2i->w.z - s1i->v.z * s2i->w.y;
@@ -6096,8 +6112,8 @@ inline void ksl_cross_ssf(
 
 
 /*!
-@brief Compute a double precision ksl_screw_t Cross product in configuration space
-Compute ksl_screw_t Cross product in configuration space, where
+@brief Compute a double precision bksl_screw_t Cross product in configuration space
+Compute bksl_screw_t Cross product in configuration space, where
 the second screw consists of only a translation component.
 
 \f$S_{1i}[3:5] \times S_{2i}[0:2] \rightarrow S_o[0:2]\f$
@@ -6108,25 +6124,25 @@ the second screw consists of only a translation component.
 @param s2i a second 6x1 screw
 @param The results of s1i crossed with s2i are stored in so
 */
-inline void ksl_cross_sst(
-  ksl_screw_t* __restrict__ s1i,
-  ksl_screw_t* __restrict__ s2i,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_cross_sst(
+  bksl_screw_t* __restrict__ s1i,
+  bksl_screw_t* __restrict__ s2i,
+  bksl_screw_t* __restrict__ so) {
 
   /* @TODO change to follow convention above to avoid multiple casts,
   much cleaner! */
 
 
-  ksl_cross_vv(
-    (ksl_vector_t*)(((double*)s1i) + 3),
-    (ksl_vector_t*)s2i,
-    (ksl_vector_t*)so);
+  bksl_cross_vv(
+    (bksl_vec3_t*)(((double*)s1i) + 3),
+    (bksl_vec3_t*)s2i,
+    (bksl_vec3_t*)so);
   memset(((double*)so) + 3, 0, 3 * sizeof(double));
 }
 
 /*!
-@brief Compute a single precision ksl_screwf_t Cross product in configuration space
-Compute ksl_screw_t Cross product in configuration space, where
+@brief Compute a single precision bksl_screwf_t Cross product in configuration space
+Compute bksl_screw_t Cross product in configuration space, where
 the second screw consists of only a translation component.
 
 \f$S_{1i}[3:5] \times S_{2i}[0:2] \rightarrow S_o[0:2]\f$
@@ -6137,19 +6153,19 @@ the second screw consists of only a translation component.
 @param s2i a second 6x1 screw
 @param The results of s1i crossed with s2i are stored in so
 */
-inline void ksl_cross_sstf(
-  ksl_screwf_t* __restrict__ s1i,
-  ksl_screwf_t* __restrict__ s2i,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_cross_sstf(
+  bksl_screwf_t* __restrict__ s1i,
+  bksl_screwf_t* __restrict__ s2i,
+  bksl_screwf_t* __restrict__ so) {
 
 
   /* @TODO change to follow convention above to avoid multiple casts,
   much cleaner! */
 
-  ksl_cross_vvf(
-    (ksl_vectorf_t*)(((float*)s1i) + 3),
-    (ksl_vectorf_t*)s2i,
-    (ksl_vectorf_t*)so);
+  bksl_cross_vvf(
+    (bksl_vec3f_t*)(((float*)s1i) + 3),
+    (bksl_vec3f_t*)s2i,
+    (bksl_vec3f_t*)so);
   memset(((float*)so) + 3, 0, 3 * sizeof(float));
 }
 
@@ -6166,12 +6182,12 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void ksl_product_Adts(
-  ksl_vector_t* __restrict__ ti,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_product_Adts(
+  bksl_vec3_t* __restrict__ ti,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_copy_ss(si, so);
+  bksl_copy_ss(si, so);
 
   /* vo += ti x w2i */
   so->v.x += ti->y * si->w.z - ti->z * si->w.y;
@@ -6192,12 +6208,12 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void ksl_product_Adtsf(
-  ksl_vectorf_t* __restrict__ ti,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_product_Adtsf(
+  bksl_vec3f_t* __restrict__ ti,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_copy_ssf(si, so);
+  bksl_copy_ssf(si, so);
 
   /* vo += ti x w2i */
   so->v.x += ti->y * si->w.z - ti->z * si->w.y;
@@ -6218,12 +6234,12 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void ksl_product_Adtinverses(
-  ksl_vector_t* __restrict__ ti,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_product_Adtinverses(
+  bksl_vec3_t* __restrict__ ti,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_copy_ss(si, so);
+  bksl_copy_ss(si, so);
 
   /* vo -= ti x w2i */
   so->v.x -= ti->y * si->w.z - ti->z * si->w.y;
@@ -6244,12 +6260,12 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void ksl_product_Adtinversesf(
-  ksl_vectorf_t* __restrict__ ti,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_product_Adtinversesf(
+  bksl_vec3f_t* __restrict__ ti,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_copy_ssf(si, so);
+  bksl_copy_ssf(si, so);
 
   /* vo -= ti x w2i */
   so->v.x -= ti->y * si->w.z - ti->z * si->w.y;
@@ -6270,12 +6286,12 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void ksl_product_Adtsinverse(
-  ksl_vector_t* __restrict__ ti,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_product_Adtsinverse(
+  bksl_vec3_t* __restrict__ ti,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_invert_ss(si, so);
+  bksl_invert_ss(si, so);
 
   /* vo -= ti x w2i */
   so->v.x -= ti->y * si->w.z - ti->z * si->w.y;
@@ -6295,12 +6311,12 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void ksl_product_Adtsinversef(
-  ksl_vectorf_t* __restrict__ ti,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_product_Adtsinversef(
+  bksl_vec3f_t* __restrict__ ti,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_invert_ssf(si, so);
+  bksl_invert_ssf(si, so);
 
   /* vo -= ti x w2i */
   so->v.x -= ti->y * si->w.z - ti->z * si->w.y;
@@ -6318,12 +6334,12 @@ and store in so.
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void ksl_product_Ads(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_product_Ads(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_product_Adrs(&(Di->R), si, so);
+  bksl_product_Adrs(&(Di->R), si, so);
 
   so->v.x += Di->t.y * so->w.z - Di->t.z * so->w.y;
   so->v.y += Di->t.z * so->w.x - Di->t.x * so->w.z;
@@ -6341,12 +6357,12 @@ and store in so.
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void ksl_product_Adsinverse(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_product_Adsinverse(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_product_Adrsinverse(&(Di->R), si, so);
+  bksl_product_Adrsinverse(&(Di->R), si, so);
   so->v.x += Di->t.y * so->w.z - Di->t.z * so->w.y;
   so->v.y += Di->t.z * so->w.x - Di->t.x * so->w.z;
   so->v.z += Di->t.x * so->w.y - Di->t.y * so->w.x;
@@ -6364,12 +6380,12 @@ and store in Do.
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void ksl_product_Adsf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_product_Adsf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_product_Adrsf(&(Di->R), si, so);
+  bksl_product_Adrsf(&(Di->R), si, so);
 
   so->v.x += Di->t.y * so->w.z - Di->t.z * so->w.y;
   so->v.y += Di->t.z * so->w.x - Di->t.x * so->w.z;
@@ -6385,19 +6401,19 @@ inline void ksl_product_Adsf(
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void ksl_product_Adinverses(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_screw_t* __restrict__ si,
-  ksl_screw_t* __restrict__ so) {
+inline void bksl_product_Adinverses(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_screw_t* __restrict__ si,
+  bksl_screw_t* __restrict__ so) {
 
-  ksl_screw_t temp;
-  ksl_copy_ss(si, &temp);
+  bksl_screw_t temp;
+  bksl_copy_ss(si, &temp);
 
   temp.v.x -= Di->t.y * temp.w.z - Di->t.z * temp.w.y;
   temp.v.y -= Di->t.z * temp.w.x - Di->t.x * temp.w.z;
   temp.v.z -= Di->t.x * temp.w.y - Di->t.y * temp.w.x;
 
-  ksl_product_Adrinverses(&Di->R, &temp, so);
+  bksl_product_Adrinverses(&Di->R, &temp, so);
 
 }
 
@@ -6410,19 +6426,19 @@ inline void ksl_product_Adinverses(
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void ksl_product_Adinversesf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_product_Adinversesf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_screwf_t temp;
-  ksl_copy_ssf(si, &temp);
+  bksl_screwf_t temp;
+  bksl_copy_ssf(si, &temp);
 
   temp.v.x -= Di->t.y * temp.w.z - Di->t.z * temp.w.y;
   temp.v.y -= Di->t.z * temp.w.x - Di->t.x * temp.w.z;
   temp.v.z -= Di->t.x * temp.w.y - Di->t.y * temp.w.x;
 
-  ksl_product_Adrinversesf(&Di->R, &temp, so);
+  bksl_product_Adrinversesf(&Di->R, &temp, so);
 }
 
 /*!
@@ -6445,23 +6461,23 @@ quantities are often referred to as coscrews or wrenches.
 @param s2i a second coscrew
 @param so the results are stored in so
 */
-inline void ksl_cross_cc(
-  ksl_coscrew_t* __restrict__ s1i,
-  ksl_coscrew_t* __restrict__ s2i,
-  ksl_coscrew_t* __restrict__ so) {
+inline void bksl_cross_cc(
+  bksl_coscrew_t* __restrict__ s1i,
+  bksl_coscrew_t* __restrict__ s2i,
+  bksl_coscrew_t* __restrict__ so) {
 
   /* @TODO restrict for what types??  */
   // /* vo <- w1 x v2 */
-  // ksl_cross_vv(
-  //   (ksl_vector_t*)(((double*)s1i) + 3),
-  //   (ksl_vector_t*)s2i,
-  //   (ksl_vector_t*)so);
+  // bksl_cross_vv(
+  //   (bksl_vec3_t*)(((double*)s1i) + 3),
+  //   (bksl_vec3_t*)s2i,
+  //   (bksl_vec3_t*)so);
   //
   // /* wo <- v1 x v2 */
-  // ksl_cross_vv(
-  //   (ksl_vector_t*)s1i,
-  //   (ksl_vector_t*)((double*)s2i),
-  //   (ksl_vector_t*)(((double*)so) + 3));
+  // bksl_cross_vv(
+  //   (bksl_vec3_t*)s1i,
+  //   (bksl_vec3_t*)((double*)s2i),
+  //   (bksl_vec3_t*)(((double*)so) + 3));
   //
   // /* wo += w1 x w2 */
   // so->w.x += s1i->w.y * s2i->w.z - s1i->w.z * s2i->w.y;
@@ -6481,25 +6497,25 @@ with s2i in so.
 @param s2i a second coscrew
 @param so the results are stored in so
 */
-inline void ksl_cross_ccf(
-  ksl_coscrewf_t* __restrict__ s1i,
-  ksl_coscrewf_t* __restrict__ s2i,
-  ksl_coscrewf_t* __restrict__ so) {
+inline void bksl_cross_ccf(
+  bksl_coscrewf_t* __restrict__ s1i,
+  bksl_coscrewf_t* __restrict__ s2i,
+  bksl_coscrewf_t* __restrict__ so) {
 
 
   /* @TODO restrict for what types */
 
   // /* vo <- w1 x v2 */
-  // ksl_cross_vvf(
-  //   (ksl_vectorf_t*)(((float*)s1i) + 3),
-  //   (ksl_vectorf_t*)s2i,
-  //   (ksl_vectorf_t*)so);
+  // bksl_cross_vvf(
+  //   (bksl_vec3f_t*)(((float*)s1i) + 3),
+  //   (bksl_vec3f_t*)s2i,
+  //   (bksl_vec3f_t*)so);
   //
   // /* wo <- v1 x v2 */
-  // ksl_cross_vvf(
-  //   (ksl_vectorf_t*)s1i,
-  //   (ksl_vectorf_t*)s2i,
-  //   (ksl_vectorf_t*)(((float*)so) + 3));
+  // bksl_cross_vvf(
+  //   (bksl_vec3f_t*)s1i,
+  //   (bksl_vec3f_t*)s2i,
+  //   (bksl_vec3f_t*)(((float*)so) + 3));
   //
   // /* wo += w1 x w2 */
   // so->w.x += s1i->w.y * s2i->w.z - s1i->w.z * s2i->w.y;
@@ -6519,12 +6535,12 @@ inline void ksl_cross_ccf(
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void ksl_product_CoAdtc(
-  ksl_vector_t* __restrict__ ti,
-  ksl_coscrew_t* __restrict__ ci,
-  ksl_coscrew_t* __restrict__ co) {
+inline void bksl_product_CoAdtc(
+  bksl_vec3_t* __restrict__ ti,
+  bksl_coscrew_t* __restrict__ ci,
+  bksl_coscrew_t* __restrict__ co) {
 
-  ksl_copy_cc(ci, co);
+  bksl_copy_cc(ci, co);
 
   /* wo += w1 x w2 */
   co->m.x += ti->y * ci->f.z - ti->z * ci->f.y;
@@ -6545,12 +6561,12 @@ ti^T and store in so.
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void ksl_product_CoAdtcf(
-  ksl_vectorf_t* __restrict__ ti,
-  ksl_coscrewf_t* __restrict__ ci,
-  ksl_coscrewf_t* __restrict__ co) {
+inline void bksl_product_CoAdtcf(
+  bksl_vec3f_t* __restrict__ ti,
+  bksl_coscrewf_t* __restrict__ ci,
+  bksl_coscrewf_t* __restrict__ co) {
 
-  ksl_copy_ccf(ci, co);
+  bksl_copy_ccf(ci, co);
 
   /* wo += w1 x w2 */
   co->m.x += ti->y * ci->f.z - ti->z * ci->f.y;
@@ -6565,14 +6581,14 @@ inline void ksl_product_CoAdtcf(
 
 \f$ S_i[0:2] \rightarrow S_o[0:2] \f$
 */
-inline void ksl_product_CoAdtcinverse(
-  ksl_vector_t* __restrict__ ti,
-  ksl_coscrew_t* __restrict__ ci,
-  ksl_coscrew_t* __restrict__ co) {
+inline void bksl_product_CoAdtcinverse(
+  bksl_vec3_t* __restrict__ ti,
+  bksl_coscrew_t* __restrict__ ci,
+  bksl_coscrew_t* __restrict__ co) {
 
-  ksl_coscrew_t temp;
-  ksl_invert_cc(ci, &temp);
-  ksl_product_CoAdtc(ti, &temp, co);
+  bksl_coscrew_t temp;
+  bksl_invert_cc(ci, &temp);
+  bksl_product_CoAdtc(ti, &temp, co);
 
   /* wo -= w1 x w2 */
   // so->w.x -= ti->y * si->v.z - ti->z * si->v.y;
@@ -6588,17 +6604,17 @@ and store in so.
 
 \f$ S_i[0:2] \rightarrow S_o[0:2] \f$
 */
-inline void ksl_product_CoAdtcinversef(
-  ksl_vectorf_t* __restrict__ ti,
-  ksl_coscrewf_t* __restrict__ ci,
-  ksl_coscrewf_t* __restrict__ co) {
+inline void bksl_product_CoAdtcinversef(
+  bksl_vec3f_t* __restrict__ ti,
+  bksl_coscrewf_t* __restrict__ ci,
+  bksl_coscrewf_t* __restrict__ co) {
 
-  ksl_coscrewf_t temp;
-  ksl_invert_ccf(ci, &temp);
-  ksl_product_CoAdtcf(ti, &temp, co);
+  bksl_coscrewf_t temp;
+  bksl_invert_ccf(ci, &temp);
+  bksl_product_CoAdtcf(ti, &temp, co);
 
     /* previously was */
-    // ksl_copy_ssf(si, so);
+    // bksl_copy_ssf(si, so);
     //
     // /* wo -= w1 x w2 */
     // so->w.x -= ti->y * si->v.z - ti->z * si->v.y;
@@ -6615,12 +6631,12 @@ inline void ksl_product_CoAdtcinversef(
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void ksl_product_CoAdc(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_coscrew_t* __restrict__ ci,
-  ksl_coscrew_t* __restrict__ co) {
+inline void bksl_product_CoAdc(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_coscrew_t* __restrict__ ci,
+  bksl_coscrew_t* __restrict__ co) {
 
-  ksl_product_CoAdrc(&(Di->R), ci, co);
+  bksl_product_CoAdrc(&(Di->R), ci, co);
 
   co->m.x += Di->t.y * co->f.z - Di->t.z * co->f.y;
   co->m.y += Di->t.z * co->f.x - Di->t.x * co->f.z;
@@ -6638,12 +6654,12 @@ and ri^-1 and store in so.
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void ksl_product_CoAdcf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_coscrewf_t* __restrict__ ci,
-  ksl_coscrewf_t* __restrict__ co) {
+inline void bksl_product_CoAdcf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_coscrewf_t* __restrict__ ci,
+  bksl_coscrewf_t* __restrict__ co) {
 
-  ksl_product_CoAdrcf(&(Di->R), ci, co);
+  bksl_product_CoAdrcf(&(Di->R), ci, co);
 
   co->m.x += Di->t.y * co->f.z - Di->t.z * co->f.y;
   co->m.y += Di->t.z * co->f.x - Di->t.x * co->f.z;
@@ -6660,19 +6676,19 @@ in so.
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void ksl_product_CoAdinversec(
-  ksl_displacement_t* __restrict__ Di,
-  ksl_coscrew_t* __restrict__ ci,
-  ksl_coscrew_t* __restrict__ co) {
+inline void bksl_product_CoAdinversec(
+  bksl_displacement_t* __restrict__ Di,
+  bksl_coscrew_t* __restrict__ ci,
+  bksl_coscrew_t* __restrict__ co) {
 
-  ksl_coscrew_t temp;
-  ksl_copy_cc(ci, &temp);
+  bksl_coscrew_t temp;
+  bksl_copy_cc(ci, &temp);
 
   temp.m.x -= Di->t.y * temp.f.z - Di->t.z * temp.f.y;
   temp.m.y -= Di->t.z * temp.f.x - Di->t.x * temp.f.z;
   temp.m.z -= Di->t.x * temp.f.y - Di->t.y * temp.f.x;
 
-  ksl_product_CoAdrinversec(&(Di->R), &temp, co);
+  bksl_product_CoAdrinversec(&(Di->R), &temp, co);
 
 }
 
@@ -6686,19 +6702,19 @@ and ti^-T and store in so.
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void ksl_coscrewproduct_dinversesf(
-  ksl_displacementf_t* __restrict__ Di,
-  ksl_screwf_t* __restrict__ si,
-  ksl_screwf_t* __restrict__ so) {
+inline void bksl_coscrewproduct_dinversesf(
+  bksl_displacementf_t* __restrict__ Di,
+  bksl_screwf_t* __restrict__ si,
+  bksl_screwf_t* __restrict__ so) {
 
-  ksl_screwf_t temp;
-  ksl_copy_ssf(si, &temp);
+  bksl_screwf_t temp;
+  bksl_copy_ssf(si, &temp);
 
   temp.w.x -= Di->t.y * temp.v.z - Di->t.z * temp.v.y;
   temp.w.y -= Di->t.z * temp.v.x - Di->t.x * temp.v.z;
   temp.w.z -= Di->t.x * temp.v.y - Di->t.y * temp.v.x;
 
-  ksl_product_Adrinversesf(&(Di->R), &temp, so);
+  bksl_product_Adrinversesf(&(Di->R), &temp, so);
 }
 
 /*!
@@ -6715,8 +6731,8 @@ Normalize a quaternion and overwrite.
 
 @param qi euler parameters to normalize
 */
-void ksl_quaternion_normalize(
-  ksl_quaternion_t* __restrict__ qi) {
+void bksl_quaternion_normalize(
+  bksl_quaternion_t* __restrict__ qi) {
 
   double norm = sqrt(cblas_ddot(4, (double*)qi, 1, (double*)qi, 1));
   cblas_dscal(4, 1.0 / norm, (double*)qi, 1);
@@ -6729,15 +6745,15 @@ Normalize a quaternion and overwrite.
 
 @param qi euler parameters to normalize
 */
-void ksl_quaternionf_normalize(
-  ksl_quaternionf_t* __restrict__ qi) {
+void bksl_quaternionf_normalize(
+  bksl_quaternionf_t* __restrict__ qi) {
 
   float norm = sqrt(cblas_sdot(4, (float*)qi, 1, (float*)qi, 1));
   cblas_sscal(4, 1.0 / norm, (float*)qi, 1);
 }
 
 /*!
-@brief Double precision function to convert ksl_mat3x3_t rotation matrix to quaternion
+@brief Double precision function to convert bksl_mat3x3_t rotation matrix to quaternion
 representation
 
 \f$R = \begin{bmatrix}
@@ -6755,9 +6771,9 @@ is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 @param ri a rotation matrix in a 9x1 column format
 @param qo the resulting euler parameters are stored in the 4x1 array, qo
 */
-void ksl_mat3x3_toQuaternion(
-  ksl_mat3x3_t* __restrict__ ri,
-  ksl_quaternion_t* __restrict__ qo) {
+void bksl_mat3x3_toQuaternion(
+  bksl_mat3x3_t* __restrict__ ri,
+  bksl_quaternion_t* __restrict__ qo) {
 
   if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
     double p;
@@ -6842,7 +6858,7 @@ void ksl_mat3x3_toQuaternion(
 }
 
 /*!
-@brief single precision function to convert ksl_mat3x3_t rotation matrix to quaternion
+@brief single precision function to convert bksl_mat3x3_t rotation matrix to quaternion
 representation
 
 \f$R = \begin{bmatrix}
@@ -6860,9 +6876,9 @@ is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 @param ri a rotation matrix in a 9x1 column format
 @param qo the resulting euler parameters are stored in the 4x1 array, qo
 */
-void ksl_mat3x3f_toQuaternion(
-  ksl_mat3x3f_t* __restrict__ ri,
-  ksl_quaternionf_t* __restrict__ qo) {
+void bksl_mat3x3f_toQuaternion(
+  bksl_mat3x3f_t* __restrict__ ri,
+  bksl_quaternionf_t* __restrict__ qo) {
 
     if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
       double p;
@@ -6963,11 +6979,11 @@ The Quaternion will be normalized during conversion.
 @param qi euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
 @param ro the resulting rotation matrix is stored in ro
 */
-void ksl_quaternion_toMat3x3(
-  ksl_quaternion_t* __restrict__ qi,
-  ksl_mat3x3_t* __restrict__ ro) {
+void bksl_quaternion_toMat3x3(
+  bksl_quaternion_t* __restrict__ qi,
+  bksl_mat3x3_t* __restrict__ ro) {
 
-  ksl_quaternion_normalize(qi);
+  bksl_quaternion_normalize(qi);
 
   double w2 = qi->w * qi->w;
   double x2 = qi->x * qi->x;
@@ -6996,7 +7012,7 @@ void ksl_quaternion_toMat3x3(
 
 /*!
 @brief single precision function to convert Quaternionf to rotation
-matrix (ksl_mat3x3f_t) representation
+matrix (bksl_mat3x3f_t) representation
 
 The following formula is used to perform conversion:
 
@@ -7011,11 +7027,11 @@ The Quaternion will be normalized during conversion.
 @param qi euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
 @param ro the resulting rotation matrix is stored in ro
 */
-void ksl_quaternionf_toMat3x3f(
-  ksl_quaternionf_t* __restrict__ qi,
-  ksl_mat3x3f_t* __restrict__ ro) {
+void bksl_quaternionf_toMat3x3f(
+  bksl_quaternionf_t* __restrict__ qi,
+  bksl_mat3x3f_t* __restrict__ ro) {
 
-  ksl_quaternionf_normalize(qi);
+  bksl_quaternionf_normalize(qi);
 
   float w2 = qi->w * qi->w;
   float x2 = qi->x * qi->x;
@@ -7054,11 +7070,11 @@ specific information on the algorithm.
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
-void ksl_quaternion_slerp(
-  ksl_quaternion_t* __restrict__ q1i,
-  ksl_quaternion_t* __restrict__ q2i,
+void bksl_quaternion_slerp(
+  bksl_quaternion_t* __restrict__ q1i,
+  bksl_quaternion_t* __restrict__ q2i,
   double* __restrict__ t,
-  ksl_quaternion_t* __restrict__ qo) {
+  bksl_quaternion_t* __restrict__ qo) {
 
   double cosHalfTheta = cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1);
 
@@ -7104,11 +7120,11 @@ specific information on the algorithm.
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
-void ksl_quaternionf_slerp(
-  ksl_quaternionf_t* __restrict__ q1i,
-  ksl_quaternionf_t* __restrict__ q2i,
+void bksl_quaternionf_slerp(
+  bksl_quaternionf_t* __restrict__ q1i,
+  bksl_quaternionf_t* __restrict__ q2i,
   float* __restrict__ t,
-  ksl_quaternionf_t* __restrict__ qo) {
+  bksl_quaternionf_t* __restrict__ qo) {
 
   float cosHalfTheta = cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1);
 
@@ -7154,11 +7170,11 @@ but does not uint32_terpolate with constant velocity
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
-void ksl_quaternion_nlerp(
-  ksl_quaternion_t* __restrict__ q1i,
-  ksl_quaternion_t* __restrict__ q2i,
+void bksl_quaternion_nlerp(
+  bksl_quaternion_t* __restrict__ q1i,
+  bksl_quaternion_t* __restrict__ q2i,
   double* __restrict__ t,
-  ksl_quaternion_t* __restrict__ qo) {
+  bksl_quaternion_t* __restrict__ qo) {
 
   if((*t) < 1e-9) {
     cblas_dcopy(4, (double*)q1i, 1, (double*)qo, 1);
@@ -7179,7 +7195,7 @@ void ksl_quaternion_nlerp(
   memset(qo, 0, 4 * sizeof(double));
   cblas_daxpy(4, alpha, (double*)q1i, 1, (double*)qo, 1);
   cblas_daxpy(4, omega, (double*)q2i, 1, (double*)qo, 1);
-  ksl_quaternion_normalize(qo);
+  bksl_quaternion_normalize(qo);
 }
 
 /*!
@@ -7193,11 +7209,11 @@ but does not uint32_terpolate with constant velocity
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
-void ksl_quaternionf_nlerp(
-  ksl_quaternionf_t* __restrict__ q1i,
-  ksl_quaternionf_t* __restrict__ q2i,
+void bksl_quaternionf_nlerp(
+  bksl_quaternionf_t* __restrict__ q1i,
+  bksl_quaternionf_t* __restrict__ q2i,
   float* __restrict__ t,
-  ksl_quaternionf_t* __restrict__ qo) {
+  bksl_quaternionf_t* __restrict__ qo) {
 
   if((*t) < 1e-9) {
     cblas_scopy(4, (float*)q1i, 1, (float*)qo, 1);
@@ -7214,7 +7230,7 @@ void ksl_quaternionf_nlerp(
   memset(qo, 0, 4 * sizeof(float));
   cblas_saxpy(4, alpha, (float*)q1i, 1, (float*)qo, 1);
   cblas_saxpy(4, omega, (float*)q2i, 1, (float*)qo, 1);
-  ksl_quaternionf_normalize(qo);
+  bksl_quaternionf_normalize(qo);
 }
 
 /*!
@@ -7229,7 +7245,7 @@ Utilities to for normalizing radians and degrees
 
 @param normalizes degrees to be between 0 and 360 degrees
 */
-double ksl_normalizeDegrees(
+double bksl_normalizeDegrees(
   double angle) {
 
   while(angle < 0) angle += 360;
@@ -7242,7 +7258,7 @@ double ksl_normalizeDegrees(
 
 @param normalizes degrees to be between 0 and 360 degrees
 */
-float ksl_normalizeDegreesf(
+float bksl_normalizeDegreesf(
   float angle) {
 
   while(angle < 0) angle += 360;
@@ -7255,7 +7271,7 @@ float ksl_normalizeDegreesf(
 
 @param normalizes double precision radians to be between 0 and 2 * PI radians
 */
-double ksl_normalizeRadians(
+double bksl_normalizeRadians(
   double angle) {
 
   while(angle < 0) angle += (2 * M_PI);
@@ -7268,7 +7284,7 @@ double ksl_normalizeRadians(
 
 @param normalizes single precision radians to be between 0 and 2 * PI radians
 */
-float ksl_normalizeRadiansf(
+float bksl_normalizeRadiansf(
   float angle) {
 
   while(angle < 0) angle += (2 * M_PI);
@@ -7406,7 +7422,7 @@ double catan1pi(
 }
 
 /*!
-@brief extract Euler angles from a ksl_mat3x3_t rotation matrix
+@brief extract Euler angles from a bksl_mat3x3_t rotation matrix
 
 This function decomposes a general direction cosine matrix uint32_to three primitive
 direction cosine matrices, whose axes are determined by the uint32_tegers passed
@@ -7433,69 +7449,69 @@ by changing "axis", but presently the sequence [rx=0, ry=1, rz=2] is hard coded
 in to the function.
 
 */
-void ksl_mat3x3_getEulerAngles(
-  ksl_mat3x3_t* __restrict__ rin,
-  ksl_vector_t* __restrict__ angles,
-  ksl_axis_enum_t axisType) {
+void bbksl_mat3x3_getEulerAngles(
+  bksl_mat3x3_t* __restrict__ rin,
+  bksl_vec3_t* __restrict__ angles,
+  bksl_axis_enum_t axisType) {
 
   uint32_t axis[3];
   switch(axisType) {
-    case KSL_AXIS_XYZ: {
+    case bksl_AXIS_XYZ: {
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 2;
     } break;
-    case KSL_AXIS_YZX: {
+    case bksl_AXIS_YZX: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 0;
     } break;
-    case KSL_AXIS_ZXY: {
+    case bksl_AXIS_ZXY: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 2;
     } break;
-    case KSL_AXIS_XZY: {
+    case bksl_AXIS_XZY: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 1;
     } break;
-    case KSL_AXIS_YXZ: {
+    case bksl_AXIS_YXZ: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 2;
     } break;
-    case KSL_AXIS_ZYX: {
+    case bksl_AXIS_ZYX: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 0;
     }break;
-    case KSL_AXIS_XYX: {
+    case bksl_AXIS_XYX: {
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 0;
     }break;
-    case KSL_AXIS_XZX: {
+    case bksl_AXIS_XZX: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 0;
     }break;
-    case KSL_AXIS_YXY: {
+    case bksl_AXIS_YXY: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 1;
     }break;
-    case KSL_AXIS_YZY: {
+    case bksl_AXIS_YZY: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 1;
     }break;
-    case KSL_AXIS_ZXZ: {
+    case bksl_AXIS_ZXZ: {
       axis[0] = 2;
       axis[1] = 0;
       axis[2] = 2;
     }break;
-    case KSL_AXIS_ZYZ: {
+    case bksl_AXIS_ZYZ: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 2;
@@ -7524,7 +7540,7 @@ void ksl_mat3x3_getEulerAngles(
   double s;
 
   /*
-    convert column major ksl_mat3x3_t matrix to row major
+    convert column major bksl_mat3x3_t matrix to row major
   */
   double ri[3][3] = {{rin->m00, rin->m01, rin->m02},
                      {rin->m10, rin->m11, rin->m12},
@@ -7570,7 +7586,7 @@ void ksl_mat3x3_getEulerAngles(
   }
 }
 
-/*! @brief Extract scalar from a uniformly scaled ksl_mat3x3_t matrix
+/*! @brief Extract scalar from a uniformly scaled bksl_mat3x3_t matrix
 
 The norm of each column or row of an orthonormal rotation matrix is one.
 Therefore, to find the scale factor for a rotation matrix that has been
@@ -7579,13 +7595,13 @@ matrix. Warning, this approach will not work for nonuniform scaling.
 For nonuniform scaling, one needs to find the eigenvectors using SVD or other means.
 
 */
-double ksl_mat3x3_getScalar(
-  ksl_mat3x3_t* __restrict__ ri) {
+double bbksl_mat3x3_getScalar(
+  bksl_mat3x3_t* __restrict__ ri) {
 
   return sqrt(ri->m00 * ri->m00 + ri->m11 * ri->m11 + ri->m22 * ri->m22);
 }
 
-// /*! @brief Extract scalar from a uniformly scaled single precision ksl_mat3x3f_t matrix
+// /*! @brief Extract scalar from a uniformly scaled single precision bksl_mat3x3f_t matrix
 //
 // The norm of each column or row of an orthonormal rotation matrix is one.
 //
@@ -7595,28 +7611,28 @@ double ksl_mat3x3_getScalar(
 // For nonuniform scaling, one needs to find the eigenvectors using SVD or other means.
 //
 // */
-// float ksl_mat3x3f_getScalar(
-//   ksl_mat3x3f_t* ri) {
+// float bksl_mat3x3f_getScalar(
+//   bksl_mat3x3f_t* ri) {
 //
 //   return sqrt(ri->m00 * ri->m00 + ri->m11 * ri->m11 + ri->m22 * ri->m22);
 // }
 
 /*!
-@brief extract translation components of a ksl_Mat4 matrix
+@brief extract translation components of a bksl_Mat4 matrix
 */
-void ksl_mat4x4_getTranslation(
-  ksl_mat4x4_t* __restrict__ Mi,
-  ksl_vector_t* __restrict__ to ) {
+void bksl_mat4x4_getTranslation(
+  bksl_mat4x4_t* __restrict__ Mi,
+  bksl_vec3_t* __restrict__ to ) {
 
   cblas_dcopy(3, (double*)Mi + 12, 1, (double*)to, 1);
 }
 
 /*!
-@brief extract translation component of a ksl_mat4x4f matrix
+@brief extract translation component of a bksl_mat4x4f matrix
 */
-void ksl_mat4x4f_getTranslation(
-  ksl_mat4x4f_t* __restrict__ Mi,
-  ksl_vectorf_t* __restrict__ to ) {
+void bksl_mat4x4f_getTranslation(
+  bksl_mat4x4f_t* __restrict__ Mi,
+  bksl_vec3f_t* __restrict__ to ) {
 
   cblas_scopy(3, (float*)Mi + 12, 1, (float*)to, 1);
 }
@@ -7625,11 +7641,11 @@ void ksl_mat4x4f_getTranslation(
 @brief utility to convert dpi, an array of length 3, to deltaq (an incremental
 change in quaternion), add incremental change to an input quaternion
 */
-void ksl_add_dpiToq(
-  ksl_vector_t* __restrict__ dpi,
-  ksl_quaternion_t* __restrict__ qi) {
+void bksl_add_dpiToq(
+  bksl_vec3_t* __restrict__ dpi,
+  bksl_quaternion_t* __restrict__ qi) {
 
-  ksl_quaternion_t dq;
+  bksl_quaternion_t dq;
   dq.x = -qi->w * dpi->x + qi->z * dpi->y - qi->y * dpi->z;
   dq.y = -qi->z * dpi->x - qi->w * dpi->y + qi->x * dpi->z;
   dq.z = qi->y * dpi->x - qi->x * dpi->y - qi->w * dpi->z;
@@ -7642,11 +7658,11 @@ void ksl_add_dpiToq(
 @brief utility to convert dpi, an array of length 3, to deltaq (an incremental
 change in quaternion), subtract incremental change from an input quaternion
 */
-void ksl_subtract_dpiFromq(
-  ksl_vector_t* __restrict__ dpi,
-  ksl_quaternion_t* __restrict__ qi) {
+void bksl_subtract_dpiFromq(
+  bksl_vec3_t* __restrict__ dpi,
+  bksl_quaternion_t* __restrict__ qi) {
 
-  ksl_quaternion_t dq;
+  bksl_quaternion_t dq;
   dq.x = -qi->w * dpi->x + qi->z * dpi->y - qi->y * dpi->z;
   dq.y = -qi->z * dpi->x - qi->w * dpi->y + qi->x * dpi->z;
   dq.z = qi->y * dpi->x - qi->x * dpi->y - qi->w * dpi->z;
@@ -7670,10 +7686,10 @@ where \f$\tau=0.5\f$ is hard coded
 @param qi [in] reference quaternion
 @param dqo [out] output quaternion time derivative
 */
-void ksl_omega_to_dquaternion(
-  ksl_vector_t* __restrict__ w,
-  ksl_quaternion_t* __restrict__ qi,
-  ksl_quaternion_t* __restrict__ dqo) {
+void bksl_omega_to_dquaternion(
+  bksl_vec3_t* __restrict__ w,
+  bksl_quaternion_t* __restrict__ qi,
+  bksl_quaternion_t* __restrict__ dqo) {
 
   /*
     1/2 * [ qi->w  qi->z -qi->y] * {w->x}
@@ -7727,7 +7743,7 @@ void ksl_omega_to_dquaternion(
 @param yOut [out] uint32_terpolated data returned in yOut
 
 */
-void ksl_array_lerp(
+void bksl_array_lerp(
   const uint32_t count,
   const double p,
   double* __restrict__ y0,
@@ -7769,7 +7785,7 @@ orthonormalized columns are passed back in A[][].
 @param A[m][n] a rectangular matrix to be orthonormalized, the orthonormalized
                matrix is returned in A
 */
-void ksl_gramSchmidt(
+void bksl_gramSchmidt(
   const uint32_t m,
   const uint32_t n,
   double* __restrict__ A) {
@@ -7804,7 +7820,7 @@ within an error tolerance of 1e-6
 @param a2 [in] second double array
 @returns true if values are all close, false if values are not all close
 */
-bool ksl_all_close(
+bool bksl_all_close(
   const uint32_t count,
   double* __restrict__ a1,
   double* __restrict__ a2) {
@@ -7825,9 +7841,9 @@ bool ksl_all_close(
 
 if sin is close to 0, the axis of rotation is not well defined.
 */
-inline void ksl_mat3x3_getAxisAngle(
-  ksl_mat3x3_t* __restrict__ r,
-  ksl_vector_t* __restrict__ axis,
+inline void bbksl_mat3x3_getAxisAngle(
+  bksl_mat3x3_t* __restrict__ r,
+  bksl_vec3_t* __restrict__ axis,
   double* __restrict__ angle) {
 
   *angle = acos(0.5 * (r->m00 + r->m11 + r->m22 - 1.0));
@@ -7849,7 +7865,7 @@ inline void ksl_mat3x3_getAxisAngle(
   axis->x = r->m21 - r->m12;
   axis->y = r->m02 - r->m20;
   axis->z = r->m10 - r->m01;
-  ksl_vector_scale(1 / (2 * sin(*angle)), axis);
+  bksl_vec3_scale(1 / (2 * sin(*angle)), axis);
 }
 
 
@@ -7857,13 +7873,13 @@ inline void ksl_mat3x3_getAxisAngle(
 @brief get axis, angle and pitch of screw motion
 from an SE3 displacement
 */
-inline void ksl_displacement_getScrewAxis(
-  ksl_displacement_t* __restrict__ d,
-  ksl_screw_t* __restrict__ h) {
+inline void bksl_displacement_getScrewAxis(
+  bksl_displacement_t* __restrict__ d,
+  bksl_screw_t* __restrict__ h) {
 
-  ksl_vector_t rotationAxis;
+  bksl_vec3_t rotationAxis;
   double angle;
-  ksl_mat3x3_getAxisAngle(
+  bbksl_mat3x3_getAxisAngle(
     &d->R,
     &rotationAxis,
     &angle);

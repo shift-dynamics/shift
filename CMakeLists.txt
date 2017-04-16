@@ -62,9 +62,16 @@ include_directories(
     ${star2_SOURCE_DIR}/src/gui
     ${star2_SOURCE_DIR}/src
     ${ASSIMP_INCLUDE_DIRS}
-    # ${mbd_SOURCE_DIR}/src/hsl/hsl_ma48-3.3.0/example/C
-    # ${mbd_SOURCE_DIR}/src/hsl/hsl_ma48-3.3.0/src
 )
+
+add_library(ksl STATIC
+  ${star2_SOURCE_DIR}/src/ksl/ksl.c
+)
+
+add_library(bksl STATIC
+  ${star2_SOURCE_DIR}/src/ksl/bksl.c
+)
+
 
 ### build static library ###
 add_library(star2_lib STATIC
@@ -113,10 +120,14 @@ add_definitions(-Wextra)
 
 ### build command line test applications ###
 add_executable(star2_cli ${star2_SOURCE_DIR}/src/application/star2_cli.c)
-target_link_libraries(star2_cli star2_lib ode113_lib ${LIBS})
+target_link_libraries(star2_cli star2_lib ode113_lib ksl ${LIBS})
 
 add_executable(7r_robot ${star2_SOURCE_DIR}/src/application/7r_robot.c)
 target_link_libraries(7r_robot star2_lib ode113_lib ${LIBS})
+
+## build ksl test functions
+add_executable(ksl_test ${star2_SOURCE_DIR}/src/ksl/ksl_test.c)
+target_link_libraries(ksl_test ksl bksl ${M_LIB} ${CBLAS_LIBRARIES})
 
 ### build ode test applications ###
 # add_executable(ode113_test
