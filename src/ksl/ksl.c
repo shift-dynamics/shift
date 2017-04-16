@@ -12,7 +12,7 @@ on 3x1 column vectors and 6x1 screws and coscrews.
 The following abbreviations are used to designate vectors, screws and coscrews
 in the function prototypes
 
-v = 3x1 vector, ksl_vector_t
+v = 3x1 vector, ksl_vec3_t
 s = 6x1 screw, ksl_screw_t
 c = 6x1 coscrew, ksl_coscrew_t
 
@@ -112,6 +112,11 @@ SUCH DAMAGE.
 
 #include "ksl.h"
 
+/* assert used for bounds checking, turn off bounds checking by setting -NDEBUG
+compiler flag */
+#include <assert.h>
+
+
 /*!
 @name Utilities for initializing basic datastructures
 
@@ -123,22 +128,22 @@ transformations
 /*! @brief s a vector_t datastructure (an array of doubles of length 3)
 
 */
-ksl_vector_t* ksl_vector() {
-  return calloc(1, sizeof(ksl_vector_t));
+ksl_vec3_t* ksl_vec3() {
+  return calloc(1, sizeof(ksl_vec3_t));
 }
 
 /*! @brief s a vectorf_t datastructure (an array of floats of length 3)
 
 */
-ksl_vectorf_t* ksl_vectorf() {
-  return calloc(1, sizeof(ksl_vectorf_t));
+ksl_vec3f_t* ksl_vec3f() {
+  return calloc(1, sizeof(ksl_vec3f_t));
 }
 
 /*! @brief s a vectori_t datastructure (an array of uint32_ts of length 3)
 
 */
-ksl_vectori_t* ksl_vectori() {
-  return calloc(1, sizeof(ksl_vectori_t));
+ksl_vec3i_t* ksl_vec3i() {
+  return calloc(1, sizeof(ksl_vec3i_t));
 }
 
 
@@ -147,16 +152,13 @@ ksl_vectori_t* ksl_vectori() {
 
 @param v [in/out] vector to normalize
 */
-inline void ksl_vector_normalize(
-  ksl_vector_t* __restrict__ v) {
+inline void ksl_vec3_normalize(
+  ksl_vec3_t* __restrict__ v) {
 
-  double norm = ksl_vector_l2norm(v);
+  double norm_inv = 1.0 / ksl_vec3_l2norm(v);
   for(uint32_t i = 0; i < 3; i++) {
-    ((double*)v)[i] /= norm;
+    ((double*)v)[i] *= norm_inv;
   }
-
-  // double norm = sqrt(cblas_ddot(3, (double*)v, 1, (double*)v, 1));
-  // cblas_dscal(3, 1.0 / norm, (double*)v, 1);
 }
 
 
@@ -164,38 +166,74 @@ inline void ksl_vector_normalize(
 @brief scale a double precision vector
 @param [in/out] vector to scale
 */
-inline void ksl_vector_scale(
-  double k,
-  ksl_vector_t* __restrict__ v) {
+inline void ksl_vec3_scale(
+  const double k,
+  ksl_vec3_t* __restrict__ v) {
 
-  cblas_dscal(3, k, (double*)v, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)v)[i] *= k;
+  }
 }
-
 
 /*!
 @brief Normalize a double precision vector
 
 @param v [in/out] vector to normalize
 */
-inline void ksl_vectorf_normalize(
-  ksl_vectorf_t* __restrict__ v) {
+inline void ksl_vec3f_normalize(
+  ksl_vec3f_t* __restrict__ v) {
 
-  float norm = sqrt(cblas_sdot(3, (float*)v, 1, (float*)v, 1));
-  cblas_sscal(3, 1.0 / norm, (float*)v, 1);
+  assert(ksl_vec3f_l2norm(v) > 1e-11);
+  float norm_inv = 1.f / ksl_vec3f_l2norm(v);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)v)[i] *= norm_inv;
+  }
 }
 
 
 /*!
 @brief scale a double precision vector
+@param k scale factor (scalar value)
 @param [in/out] vector to scale
 */
-inline void ksl_vectorf_scale(
-  double k,
-  ksl_vectorf_t* __restrict__ v) {
+inline void ksl_vec3f_scale(
+  const float k,
+  ksl_vec3f_t* __restrict__ v) {
 
-  cblas_sscal(3, k, (float*)v, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)v)[i] *= k;
+  }
 }
 
+
+/*!
+@brief scale a double precision quaternion
+@param [in] k, scale factor
+@param [in/out] quaternion to scale
+*/
+inline void ksl_vec4_scale(
+  const double k,
+  ksl_vec4_t* __restrict__ q) {
+
+  for(uint32_t i = 0; i < 4; i++) {
+    ((double*)q)[i] *= k;
+  }
+}
+
+
+/*!
+@brief scale a double precision quaternion
+@param [in] k, scale factor
+@param [in/out] quaternion to scale
+*/
+inline void ksl_vec4f_scale(
+  const float k,
+  ksl_vec4f_t* __restrict__ q) {
+
+  for(uint32_t i = 0; i < 4; i++) {
+    ((float*)q)[i] *= k;
+  }
+}
 
 /*! @brief initializes a general ksl_displacement_t datastructure
 
@@ -207,8 +245,7 @@ translation set to zero.
 */
 ksl_displacement_t* ksl_displacement() {
 
-  ksl_displacement_t* D =
-    calloc(1, sizeof(ksl_displacement_t));
+  ksl_displacement_t* D = calloc(1, sizeof(ksl_displacement_t));
   D->R.m00 = 1.0;
   D->R.m11 = 1.0;
   D->R.m22 = 1.0;
@@ -222,8 +259,7 @@ rotation matrix in column major order followed by a translation vector
 */
 ksl_displacementf_t* ksl_displacementf() {
 
-  ksl_displacementf_t* D =
-    calloc(1, sizeof(ksl_displacementf_t));
+  ksl_displacementf_t* D = calloc(1, sizeof(ksl_displacementf_t));
   D->R.m00 = 1.f;
   D->R.m11 = 1.f;
   D->R.m22 = 1.f;
@@ -268,8 +304,7 @@ rotation (i.e. a SO3 matrix). The matrix is specified in column major order.
 */
 ksl_mat3x3f_t* ksl_mat3x3f() {
 
-  ksl_mat3x3f_t* mat3 =
-    calloc(1, sizeof(ksl_mat3x3f_t));
+  ksl_mat3x3f_t* mat3 = calloc(1, sizeof(ksl_mat3x3f_t));
   mat3->m00 = 1.f;
   mat3->m11 = 1.f;
   mat3->m22 = 1.f;
@@ -300,8 +335,7 @@ transformation (i.e. a SE3 matrix). The matrix is specified in column major orde
 */
 ksl_mat4x4f_t* ksl_mat4x4f() {
 
-  ksl_mat4x4f_t* mat4 =
-    calloc(1, sizeof(ksl_mat4x4f_t));
+  ksl_mat4x4f_t* mat4 = calloc(1, sizeof(ksl_mat4x4f_t));
   mat4->m00 = 1.f;
   mat4->m11 = 1.f;
   mat4->m22 = 1.f;
@@ -360,7 +394,7 @@ inline void ksl_displacement_toMat4x4f(
     }
   }
   for(uint32_t i = 0; i < 3; i++) {
-    ksl_mat4x4f_set(Mo, i, 3, (float)ksl_vector_get(&Di->t, i));
+    ksl_mat4x4f_set(Mo, i, 3, (float)ksl_vec3_get(&Di->t, i));
   }
   Mo->m33 = 1.f;
 }
@@ -380,9 +414,25 @@ prints a 3x1 column vector as a row vector
 
 @param ti 3x1 column vector
 */
-void ksl_vector_print(
+void ksl_vec3_print(
   FILE* f,
-  ksl_vector_t* __restrict__ ti) {
+  ksl_vec3_t* __restrict__ ti) {
+
+  fprintf(f, "%f %f %f\n", ti->x, ti->y, ti->z);
+
+}
+
+
+/*!
+@brief Utility to print a 3x1 column vector
+
+prints a 3x1 column vector as a row vector
+
+@param ti 3x1 column vector
+*/
+void ksl_vec3f_print(
+  FILE* f,
+  ksl_vec3f_t* __restrict__ ti) {
 
   fprintf(f, "%f %f %f\n", ti->x, ti->y, ti->z);
 
@@ -743,15 +793,12 @@ inline void ksl_mat4x4f_setIdentity(
 /*!
 @brief set a value of vector
 */
-inline void ksl_vector_set(
-  ksl_vector_t* __restrict__ v,
+inline void ksl_vec3_set(
+  ksl_vec3_t* __restrict__ v,
   const uint32_t index,
   double value) {
 
-  // if(index > 2 || index < 0) {
-  //   fprintf(stderr, "ksl_vector_set: out of bounds\n");
-  //   return;
-  // }
+  assert(index >= 0 && index < 3);
   ((double*)v)[index] = value;
 }
 
@@ -759,52 +806,34 @@ inline void ksl_vector_set(
 /*!
 @brief l2 norm (length) of double precision vector
 */
-inline double ksl_vector_l2norm(
-  ksl_vector_t* __restrict__ v) {
+inline double ksl_vec3_l2norm(
+  ksl_vec3_t* __restrict__ v) {
 
   double sum = 0;
   for(uint32_t i = 0; i < 3; i++) {
-    sum += ksl_vector_get(v, i) * ksl_vector_get(v, i);
+    sum += ksl_vec3_get(v, i) * ksl_vec3_get(v, i);
   }
   return sqrt(sum);
-
-  /* previously was */
-    // sqrt(
-    //   cblas_ddot(
-    //     3,
-    //     (double*)v,
-    //     1,
-    //     (double*)v,
-    //     1));
 }
 
 
 /*!
 @brief l2 norm (length) of single precision vector
 */
-inline float ksl_vectorf_l2norm(
-  ksl_vectorf_t* __restrict__ v) {
+inline float ksl_vec3f_l2norm(
+  ksl_vec3f_t* __restrict__ v) {
 
   double sum = 0;
   for(uint32_t i = 0; i < 3; i++) {
-    sum += ksl_vectorf_get(v, i) * ksl_vectorf_get(v, i);
+    sum += ksl_vec3f_get(v, i) * ksl_vec3f_get(v, i);
   }
   return sqrt(sum);
-
-  /* previously was */
-  // return
-  //   sqrt(
-  //     cblas_sdot(
-  //       3,
-  //       (float*)v,
-  //       1,
-  //       (float*)v,
-  //       1));
 }
 
 
 /*!
 @brief l2 norm of double precision screw
+
 */
 inline double ksl_screw_l2norm(
   ksl_screw_t* __restrict__ s) {
@@ -816,9 +845,98 @@ inline double ksl_screw_l2norm(
   return sqrt(sum);
 }
 
+/*!
+@brief spatial screw norm of double precision screw
+
+*/
+inline double ksl_screw_norm(
+  ksl_screw_t* __restrict__ s) {
+
+  /* get l2 norm of angular component (bound) */
+  double norm_bound = ksl_vec3_l2norm(&s->w);
+
+  if(norm_bound > 1e-12) {
+    /* if l2 norm of bound vector is > 0, return l2 norm of bound vector */
+    return(norm_bound);
+  } else {
+    /* otherwise, return l2 norm of free vector */
+    return(ksl_vec3_l2norm(&s->v));
+  }
+}
+
+/*!
+@brief normalize a double precision spatial screw
+
+*/
+inline void ksl_screw_normalize(
+  ksl_screw_t* __restrict__ s) {
+
+  double norm = ksl_screw_norm(s);
+  if(norm > 1e-12) {
+    norm = 1.0 / norm;
+    for(uint32_t i = 0; i < 6; i++) {
+      ((double*)s)[i] *= norm;
+    }
+  }
+}
+
+
+/*!
+@brief l2 norm of double precision screw
+
+*/
+inline double ksl_coscrew_l2norm(
+  ksl_coscrew_t* __restrict__ c) {
+
+  double sum = 0;
+  for(uint32_t i = 0; i < 6; i++) {
+    sum += ksl_coscrew_get(c, i) * ksl_coscrew_get(c, i);
+  }
+  return sqrt(sum);
+}
+
+
+/*!
+@brief spatial screw norm of double precision screw
+
+*/
+inline double ksl_coscrew_norm(
+  ksl_coscrew_t* __restrict__ c) {
+
+  /* get l2 norm of linear component (bound) */
+  double norm_bound = ksl_vec3_l2norm(&c->f);
+
+  if(norm_bound > 1e-12) {
+    /* if l2 norm of bound vector is > 0, return l2 norm of bound vector,
+    force is bound for coscrews */
+    return(norm_bound);
+  } else {
+    /* otherwise, return l2 norm of free vector - torque is free for coscrews*/
+    return(ksl_vec3_l2norm(&c->m));
+  }
+}
+
+
+/*!
+@brief normalize a double precision spatial screw
+
+*/
+inline void ksl_coscrew_normalize(
+  ksl_coscrew_t* __restrict__ c) {
+
+  double norm = ksl_coscrew_norm(c);
+  if(norm > 1e-12) {
+    norm = 1.0 / norm;
+    for(uint32_t i = 0; i < 6; i++) {
+      ((double*)c)[i] *= norm;
+    }
+  }
+}
+
 
 /*!
 @brief l2 norm of single precision screw
+
 */
 inline float ksl_screwf_l2norm(
   ksl_screwf_t* __restrict__ s) {
@@ -828,47 +946,122 @@ inline float ksl_screwf_l2norm(
     sum += ksl_screwf_get(s, i) * ksl_screwf_get(s, i);
   }
   return sqrt(sum);
+}
 
-  /* compare to cblas function */
-  // return
-  //   sqrt(
-  //     cblas_sdot(
-  //       6,
-  //       (float*)v,
-  //       1,
-  //       (float*)v,
-  //       1));
+/*!
+@brief spatial screw norm of double precision screw
+
+*/
+inline float ksl_screwf_norm(
+  ksl_screwf_t* __restrict__ s) {
+
+  /* get l2 norm of angular component (bound) */
+  double norm_bound = ksl_vec3f_l2norm(&s->w);
+
+  if(norm_bound > 1e-12) {
+    /* if l2 norm of bound vector is > 0, return l2 norm of bound vector */
+    return(norm_bound);
+  } else {
+    /* otherwise, return l2 norm of free vector */
+    return(ksl_vec3f_l2norm(&s->v));
+  }
+}
+
+/*!
+@brief normalize a double precision spatial screw
+
+*/
+inline void ksl_screwf_normalize(
+  ksl_screwf_t* __restrict__ s) {
+
+  double norm = ksl_screwf_norm(s);
+  if(norm > 1e-12) {
+    norm = 1.f / norm;
+    for(uint32_t i = 0; i < 6; i++) {
+      ((float*)s)[i] *= norm;
+    }
+  }
+}
+
+/*!
+@brief l2 norm of double precision screw
+
+*/
+inline float ksl_coscrewf_l2norm(
+  ksl_coscrewf_t* __restrict__ c) {
+
+  double sum = 0;
+  for(uint32_t i = 0; i < 6; i++) {
+    sum += ksl_coscrewf_get(c, i) * ksl_coscrewf_get(c, i);
+  }
+  return sqrt(sum);
+}
+
+
+/*!
+@brief spatial screw norm of double precision screw
+
+*/
+inline float ksl_coscrewf_norm(
+  ksl_coscrewf_t* __restrict__ c) {
+
+  /* get l2 norm of linear component (bound) */
+  float norm_bound = ksl_vec3f_l2norm(&c->f);
+
+  if(norm_bound > 1e-12) {
+    /* if l2 norm of bound vector is > 0, return l2 norm of bound vector,
+    force is bound for coscrews */
+    return(norm_bound);
+  } else {
+    /* otherwise, return l2 norm of free vector - torque is free for coscrews*/
+    return(ksl_vec3f_l2norm(&c->m));
+  }
+}
+
+
+/*!
+@brief normalize a double precision spatial screw
+
+*/
+inline void ksl_coscrewf_normalize(
+  ksl_coscrewf_t* __restrict__ c) {
+
+  float norm = ksl_coscrewf_norm(c);
+  if(norm > 1e-12) {
+    norm = 1.0 / norm;
+    for(uint32_t i = 0; i < 6; i++) {
+      ((double*)c)[i] *= norm;
+    }
+  }
 }
 
 
 /*!
 @brief set a value of a screw
+
+note that this function performs no error checking on bounds of screw
 */
 inline void ksl_screw_set(
   ksl_screw_t* __restrict__ s,
   const uint32_t index,
   const double value) {
 
-  // if(index > 5 || index < 0) {
-  //   fprintf(stderr, "ksl_screw_set: out of bounds\n");
-  //   return;
-  // }
+  assert(index >= 0 && index < 6);
   ((double*)s)[index] = value;
 }
 
 
 /*!
 @brief set a value of a screw
+
+note that this function performs no error checking on bounds of coscrew
 */
 inline void ksl_coscrew_set(
   ksl_coscrew_t* __restrict__ c,
   const uint32_t index,
   const double value) {
 
-  // if(index > 5 || index < 0) {
-  //   fprintf(stderr, "ksl_screw_set: out of bounds\n");
-  //   return;
-  // }
+  assert(index >= 0 && index < 6);
   ((double*)c)[index] = value;
 }
 
@@ -881,10 +1074,7 @@ inline void ksl_coscrewf_set(
   const uint32_t index,
   const float value) {
 
-  // if(index > 5 || index < 0) {
-  //   fprintf(stderr, "ksl_screw_set: out of bounds\n");
-  //   return;
-  // }
+  assert(index >= 0 && index < 6);
   ((float*)c)[index] = value;
 }
 
@@ -900,37 +1090,35 @@ inline void ksl_mat3x3_set(
   const uint32_t column,
   const double value) {
 
-  // if(row > 2 || row < 0 || column < 0 || column > 2) {
-  //   fprintf(stderr, "ksl_mat3x3_set: out of bounds\n");
-  //   return;
-  // }
+  assert(row >= 0 && row < 3 && column >= 0 && column < 3);
   ((double*)R)[3 * column + row] = value;
 }
 
 
 /*!
-@brief set a mat3x3 rotation matrix from three vectors
+@brief set a mat3x3 rotation matrix from three vectors. Each vector sets one
+column of the 3x3 rotation matrix.
 
 note that mat3x3 is stored in column major order
 */
 inline void ksl_mat3x3_setFromVectors(
   ksl_mat3x3_t* __restrict__ R,
-  ksl_vector_t* __restrict__ x,
-  ksl_vector_t* __restrict__ y,
-  ksl_vector_t* __restrict__ z) {
+  ksl_vec3_t* __restrict__ x,
+  ksl_vec3_t* __restrict__ y,
+  ksl_vec3_t* __restrict__ z) {
 
-  memcpy(&(R->m00), x, sizeof(ksl_vector_t));
-  memcpy(&(R->m01), y, sizeof(ksl_vector_t));
-  memcpy(&(R->m02), z, sizeof(ksl_vector_t));
+  memcpy(&(R->m00), x, sizeof(ksl_vec3_t));
+  memcpy(&(R->m01), y, sizeof(ksl_vec3_t));
+  memcpy(&(R->m02), z, sizeof(ksl_vec3_t));
 
 }
 
 
 
 /*!
-@brief set a value of a mat3x3
+@brief set a value of a mat4x4
 
-note that mat3x3 is stored in column major order
+note that mat4x4 is stored in column major order
 */
 inline void ksl_mat4x4_set(
   ksl_mat4x4_t* __restrict__ R,
@@ -938,10 +1126,7 @@ inline void ksl_mat4x4_set(
   const uint32_t column,
   const double value) {
 
-  // if(row > 3 || row < 0 || column < 0 || column > 3) {
-  //   fprintf(stderr, "ksl_mat4x4_set: out of bounds\n");
-  //   return;
-  // }
+  assert(row >= 0 && row < 4 && column >= 0 && column < 4);
   ((double*)R)[4 * column + row] = value;
 }
 
@@ -955,12 +1140,8 @@ inline void ksl_displacement_set(
   const uint32_t column,
   const double value) {
 
-  // if(row > 3 || row < 0 || column < 0 || column > 3) {
-  //   fprintf(stderr, "ksl_displacement_set: out of bounds\n");
-  //   return;
-  // }
   if(column == 3) {
-    ksl_vector_set(&D->t, row, value);
+    ksl_vec3_set(&D->t, row, value);
   } else {
     ksl_mat3x3_set(&D->R, row, column, value);
   }
@@ -970,15 +1151,12 @@ inline void ksl_displacement_set(
 /*!
 @brief set a value of vectorf
 */
-inline void ksl_vectorf_set(
-  ksl_vectorf_t* __restrict__ v,
+inline void ksl_vec3f_set(
+  ksl_vec3f_t* __restrict__ v,
   const uint32_t index,
   float value) {
 
-  // if(index > 2 || index < 0) {
-  //   fprintf(stderr, "ksl_vector_set: out of bounds\n");
-  //   return;
-  // }
+  assert(index >= 0 && index < 3);
   ((float*)v)[index] = value;
 }
 
@@ -991,10 +1169,7 @@ inline void ksl_screwf_set(
   const uint32_t index,
   float value) {
 
-  // if(index > 5 || index < 0) {
-  //   fprintf(stderr, "ksl_screw_set: out of bounds\n");
-  //   return;
-  // }
+  assert(index >= 0 && index < 3);
   ((float*)s)[index] = value;
 }
 
@@ -1010,10 +1185,7 @@ inline void ksl_mat3x3f_set(
   const uint32_t column,
   float value) {
 
-  // if(row > 3 || row < 0 || column < 0 || column > 2) {
-  //   fprintf(stderr, "ksl_mat3x3_set: out of bounds\n");
-  //   return;
-  // }
+  assert(row >= 0 && row < 3 && column >= 0 && column < 3);
   ((float*)R)[row + column * 3] = value;
 }
 
@@ -1029,10 +1201,7 @@ inline void ksl_mat4x4f_set(
   const uint32_t column,
   float value) {
 
-  // if(row > 3 || row < 0 || column < 0 || column > 3) {
-  //   fprintf(stderr, "ksl_mat4x4f_set: out of bounds\n");
-  //   return;
-  // }
+  assert(row >= 0 && row < 4 && column >= 0 && column < 4);
   ((float*)R)[4 * column + row] = value;
 }
 
@@ -1047,7 +1216,7 @@ inline void ksl_displacementf_set(
   float value) {
 
   if(column == 3) {
-    ksl_vectorf_set(&D->t, row, value);
+    ksl_vec3f_set(&D->t, row, value);
   } else {
     ksl_mat3x3f_set(&D->R, row, column, value);
   }
@@ -1057,14 +1226,11 @@ inline void ksl_displacementf_set(
 /*!
 @brief get a value at specified index of a 3x1 column vector
 */
-inline double ksl_vector_get(
-  ksl_vector_t* __restrict__ v,
+inline double ksl_vec3_get(
+  ksl_vec3_t* __restrict__ v,
   const uint32_t index) {
 
-  // if(index > 2 || index < 0) {
-  //   fprintf(stderr, "ksl_vector_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  assert(index >= 0 && index < 3);
   return ((double*)v)[index];
 }
 
@@ -1076,10 +1242,7 @@ inline double ksl_screw_get(
   ksl_screw_t* __restrict__ s,
   const uint32_t index) {
 
-  // if(index > 5 || index < 0) {
-  //   fprintf(stderr, "ksl_screw_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  assert(index >= 0 && index < 6);
   return ((double*)s)[index];
 }
 
@@ -1091,10 +1254,7 @@ inline double ksl_coscrew_get(
   ksl_coscrew_t* __restrict__ c,
   const uint32_t index) {
 
-  // if(index > 5 || index < 0) {
-  //   fprintf(stderr, "ksl_screw_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  assert(index >= 0 && index < 6);
   return ((double*)c)[index];
 }
 
@@ -1106,10 +1266,7 @@ inline float ksl_coscrewf_get(
   ksl_coscrewf_t* __restrict__ c,
   const uint32_t index) {
 
-  // if(index > 5 || index < 0) {
-  //   fprintf(stderr, "ksl_screw_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  assert(index >= 0 && index < 6);
   return ((float*)c)[index];
 }
 
@@ -1125,11 +1282,7 @@ inline double ksl_mat3x3_get(
   const uint32_t row,
   const uint32_t column) {
 
-  // assert(row < 3 && row > -1 && column < 3 && column > -1);
-  // if(row > 3 || row < 0 || column < 0 || column > 2) {
-  //   fprintf(stderr, "ksl_mat3x3_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  assert(row >= 0 && row < 3 && column >= 0 && column < 3);
   return ((double*)R)[3 * column + row];
 }
 
@@ -1143,7 +1296,7 @@ inline double ksl_displacement_get(
   const uint32_t column) {
 
   if(column == 3) {
-    return ksl_vector_get(&D->t, row);
+    return ksl_vec3_get(&D->t, row);
   } else {
     return ksl_mat3x3_get(&D->R, row, column);
   }
@@ -1152,14 +1305,11 @@ inline double ksl_displacement_get(
 /*!
 @brief set a value of vectorf
 */
-inline float ksl_vectorf_get(
-  ksl_vectorf_t* __restrict__ v,
+inline float ksl_vec3f_get(
+  ksl_vec3f_t* __restrict__ v,
   const uint32_t index) {
 
-  // if(index > 2 || index < 0) {
-  //   fprintf(stderr, "ksl_vector_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  // assert(index >= 0 && index < 3);
   return ((float*)v)[index];
 }
 
@@ -1170,10 +1320,7 @@ inline float ksl_screwf_get(
   ksl_screwf_t* __restrict__ s,
   const uint32_t index) {
 
-  // if(index > 5 || index < 0) {
-  //   fprintf(stderr, "ksl_screw_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  assert(index >= 0 && index < 6);
   return ((float*)s)[index];
 }
 
@@ -1187,10 +1334,7 @@ inline float ksl_mat3x3f_get(
   const uint32_t row,
   const uint32_t column) {
 
-  // if(row > 3 || row < 0 || column < 0 || column > 2) {
-  //   fprintf(stderr, "ksl_mat3x3_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  assert(row >= 0 && row < 3 && column >= 0 && column < 3);
   return ((float*)R)[3 * column + row];
 }
 
@@ -1202,12 +1346,9 @@ inline float ksl_displacementf_get(
   const uint32_t row,
   const uint32_t column) {
 
-  // if(row > 3 || row < 0 || column < 0 || column > 3) {
-  //   fprintf(stderr, "ksl_displacement_set: out of bounds\n");
-  //   return -INFINITY;
-  // }
+  assert(row >= 0 && row < 3 && column >= 0 && column < 3);
   if(column == 3) {
-    return ksl_vectorf_get(&D->t, row);
+    return ksl_vec3f_get(&D->t, row);
   } else {
     return ksl_mat3x3f_get(&D->R, row, column);
   }
@@ -1219,7 +1360,7 @@ inline float ksl_displacementf_get(
 */
 inline void ksl_displacement_getTranslation(
   ksl_displacement_t* __restrict__ D,
-  ksl_vector_t* __restrict__ t) {
+  ksl_vec3_t* __restrict__ t) {
 
   ksl_copy_vv(&D->t, t);
 }
@@ -1242,15 +1383,14 @@ Utilities for carrying out Vector/Vector and Vector/Scalar operations
 @param vo output vector \f$V_o\f$
 */
 inline void ksl_copy_vv(
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
 
-  memcpy(vo, vi, sizeof(ksl_vector_t));
-  // cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
+  memcpy(vo, vi, sizeof(ksl_vec3_t));
 }
 
 /*!
-@brief Copy a single precision Vectorf vi uint32_to Vectorf vo.
+@brief Copy a single precision Vectorf vi to Vectorf vo.
 
 \f$V_i \rightarrow V_o\f$
 
@@ -1258,13 +1398,138 @@ inline void ksl_copy_vv(
 @param vo output vector \f$V_o\f$
 */
 inline void ksl_copy_vvf(
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo) {
 
-  memcpy(vo, vi, sizeof(ksl_vectorf_t));
-
-  // cblas_scopy(3, (float*)vi, 1, (float*)vo, 1);
+  memcpy(vo, vi, sizeof(ksl_vec3f_t));
 }
+
+
+/*!
+@brief Copy a double precision quaternion qi to qo.
+
+
+\f$V_i \rightarrow V_o\f$
+
+@param vi input quaternion \f$q_i\f$
+@param vo output quaternion \f$q_o\f$
+*/
+inline void ksl_copy_qq(
+  ksl_vec4_t* __restrict__ qi,
+  ksl_vec4_t* __restrict__ qo) {
+
+  memcpy(qo, qi, sizeof(ksl_vec4_t));
+}
+
+/*!
+@brief Copy a single precision quaternionf qi to qo.
+
+\f$q_i \rightarrow q_o\f$
+
+@param vi input quaternion \f$q_i\f$
+@param vo output quaternion \f$q_o\f$
+*/
+inline void ksl_copy_qqf(
+  ksl_vec4f_t* __restrict__ qi,
+  ksl_vec4f_t* __restrict__ qo) {
+
+  memcpy(qo, qi, sizeof(ksl_vec4f_t));
+}
+
+
+/*!
+@brief Copy a double precision quaternion qi to qo.
+
+
+\f$V_i \rightarrow V_o\f$
+
+@param vi input quaternion \f$q_i\f$
+@param vo output quaternion \f$q_o\f$
+*/
+inline void ksl_copy_R(
+  ksl_mat3x3_t* __restrict__ Ri,
+  ksl_mat3x3_t* __restrict__ Ro) {
+
+  memcpy(Ro, Ri, sizeof(ksl_mat3x3_t));
+}
+
+/*!
+@brief Copy a single precision quaternionf qi to qo.
+
+\f$q_i \rightarrow q_o\f$
+
+@param vi input quaternion \f$q_i\f$
+@param vo output quaternion \f$q_o\f$
+*/
+inline void ksl_copy_Rf(
+  ksl_mat3x3f_t* __restrict__ Ri,
+  ksl_mat3x3f_t* __restrict__ Ro) {
+
+  memcpy(Ro, Ri, sizeof(ksl_mat3x3f_t));
+}
+
+
+// inline void ksl_vector_axpy(
+//   const double a,
+//   ksl_vec3_t* __restrict__ vx,
+//   ksl_vec3_t* __restrict__ vy) {
+//
+//   for(uint32_t i = 0; i < 3; i++) {
+//     ((double*)vy)[i] += a * ((double*)vx)[i];
+//   }
+// }
+//
+//
+// inline void ksl_vectorf_axpy(
+//   const float a,
+//   ksl_vec3f_t* __restrict__ vx,
+//   ksl_vec3f_t* __restrict__ vy) {
+//
+//   for(uint32_t i = 0; i < 3; i++) {
+//     ((float*)vy)[i] += a * ((float*)vx)[i];
+//   }
+// }
+//
+// inline void ksl_screw_axpy(
+//   const double a,
+//   ksl_screw_t* __restrict__ sx,
+//   ksl_screw_t* __restrict__ sy) {
+//
+//   for(uint32_t i = 0; i < 6; i++) {
+//     ((double*)sy)[i] += a * ((double*)sx)[i];
+//   }
+// }
+//
+// inline void ksl_screwf_axpy(
+//   const float a,
+//   ksl_screwf_t* __restrict__ sx,
+//   ksl_screwf_t* __restrict__ sy) {
+//
+//   for(uint32_t i = 0; i < 6; i++) {
+//     ((float*)sy)[i] += a * ((float*)sx)[i];
+//   }
+// }
+//
+// inline void ksl_coscrew_axpy(
+//   const double a,
+//   ksl_coscrew_t* __restrict__ cx,
+//   ksl_coscrew_t* __restrict__ cy) {
+//
+//   for(uint32_t i = 0; i < 6; i++) {
+//     ((double*)cy)[i] += a * ((double*)cx)[i];
+//   }
+// }
+//
+// inline void ksl_coscrewf_axpy(
+//   const float a,
+//   ksl_coscrewf_t* __restrict__ cx,
+//   ksl_coscrewf_t* __restrict__ cy) {
+//
+//   for(uint32_t i = 0; i < 6; i++) {
+//     ((float*)cy)[i] += a * ((float*)cx)[i];
+//   }
+// }
+
 
 
 /*!
@@ -1276,11 +1541,12 @@ inline void ksl_copy_vvf(
 @param vo output vector \f$V_o\f$
 */
 inline void ksl_vector_invert(
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
 
-  memset(vo, 0, 3 * sizeof(double));
-  cblas_daxpy(3, -1.0, (double*)vi, 1, (double*)vo, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)vo)[i] = -((double*)vi)[i];
+  }
 }
 
 
@@ -1293,11 +1559,12 @@ inline void ksl_vector_invert(
 @param vo output vector \f$V_o\f$
 */
 inline void ksl_vectorf_invert(
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo) {
 
-  memset(vo, 0, 3 * sizeof(float));
-  cblas_saxpy(3, -1.0, (float*)vi, 1, (float*)vo, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)vo)[i] = -((float*)vi)[i];
+  }
 }
 
 
@@ -1310,15 +1577,14 @@ inline void ksl_vectorf_invert(
 @param vi1 second input vector
 */
 inline double ksl_dot_vv(
-  ksl_vector_t* __restrict__ vi0,
-  ksl_vector_t* __restrict__ vi1) {
+  ksl_vec3_t* __restrict__ vi0,
+  ksl_vec3_t* __restrict__ vi1) {
 
-  return cblas_ddot(
-    3,
-    (double*)vi0,
-    1,
-    (double*)vi1,
-    1);
+  double sum = 0;
+  for(uint32_t i = 0; i < 3; i++) {
+    sum += ksl_vec3_get(vi0, i) * ksl_vec3_get(vi1, i);
+  }
+  return sum;
 }
 
 
@@ -1330,58 +1596,55 @@ inline double ksl_dot_vv(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double ksl_dot_vvf(
-  ksl_vectorf_t* __restrict__ vi0,
-  ksl_vectorf_t* __restrict__ vi1) {
+inline float ksl_dot_vvf(
+  ksl_vec3f_t* __restrict__ vi0,
+  ksl_vec3f_t* __restrict__ vi1) {
 
-  return cblas_sdot(
-    3,
-    (float*)vi0,
-    1,
-    (float*)vi1,
-    1);
+  float sum = 0;
+  for(uint32_t i = 0; i < 3; i++) {
+    sum += ksl_vec3f_get(vi0, i) * ksl_vec3f_get(vi1, i);
+  }
+  return sum;
 }
 
 
 /*!
-@brief double precision Dot product of two screws
+@brief double precision Dot product of two quaternions
 
 \f$ V_i0 \cdot V_i1 \rightarrow V_o\f$
 
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double ksl_dot_ss(
-  ksl_screw_t* __restrict__ vi0,
-  ksl_screw_t* __restrict__ vi1) {
+inline double ksl_dot_qq(
+  ksl_vec4_t* __restrict__ qi0,
+  ksl_vec4_t* __restrict__ qi1) {
 
-  return cblas_ddot(
-    6,
-    (double*)vi0,
-    1,
-    (double*)vi1,
-    1);
+  double sum = 0;
+  for(uint32_t i = 0; i < 3; i++) {
+    sum += ((double*)qi0)[i] * ((double*)qi0)[i];
+  }
+  return sum;
 }
 
 
 /*!
-@brief single precision Dot product of two screws
+@brief single precision Dot product of two quaternions
 
 \f$ V_i0 \cdot V_i1 \rightarrow V_o\f$
 
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double ksl_dot_ssf(
-  ksl_screwf_t* __restrict__ vi0,
-  ksl_screwf_t* __restrict__ vi1) {
+inline float ksl_dot_qqf(
+  ksl_vec4f_t* __restrict__ qi0,
+  ksl_vec4f_t* __restrict__ qi1) {
 
-  return cblas_sdot(
-    6,
-    (float*)vi0,
-    1,
-    (float*)vi1,
-    1);
+  float sum = 0;
+  for(uint32_t i = 0; i < 3; i++) {
+    sum += ((float*)qi0)[i] * ((float*)qi0)[i];
+  }
+  return sum;
 }
 
 
@@ -1395,12 +1658,13 @@ inline double ksl_dot_ssf(
 @param vo[3] the results are stored in vo[3]
 */
 inline void ksl_product_vk(
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vo) {
 
-  cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
-  cblas_dscal(3, ki, (double*)vo, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)vo)[i] = ((double*)vi)[i] * ki;
+  }
 }
 
 
@@ -1414,12 +1678,13 @@ inline void ksl_product_vk(
 @param vo[3] the results are stored in vo[3]
 */
 inline void ksl_product_vkinverse(
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vo) {
 
-  cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
-  cblas_dscal(3, 1. / ki, (double*)vo, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)vo)[i] = -((double*)vi)[i] * ki;
+  }
 }
 
 
@@ -1433,12 +1698,13 @@ inline void ksl_product_vkinverse(
 @param vo[3] the results are stored in vo[3]
 */
 inline void ksl_product_vinversek(
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   const double ki,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vo) {
 
-  memcpy(vo, vi, sizeof(ksl_vector_t));
-  cblas_dscal(3, -ki, (double*)vo, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)vo)[i] = -((double*)vi)[i] * ki;
+  }
 }
 
 
@@ -1452,12 +1718,13 @@ inline void ksl_product_vinversek(
 @param vo[3] the results are stored in vo[3]
 */
 inline void ksl_product_vkf(
-  ksl_vectorf_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vi,
   const float ki,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ vo) {
 
-  cblas_scopy(3, (float*)vi, 1, (float*)vo, 1);
-  cblas_sscal(3, ki, (float*)vo, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)vo)[i] = ((float*)vi)[i] * ki;
+  }
 }
 
 
@@ -1473,15 +1740,13 @@ Add 3 by 1 column matrices v1i and v2i and store results in vo.
 @param vo the results of v1i + v2i are stored in vo
 */
 inline void ksl_add_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i,
+  ksl_vec3_t* __restrict__ vo) {
 
-  cblas_dcopy(3, (double*)v1i, 1, (double*)vo, 1);
-  cblas_daxpy(3, 1.0, (double*)v2i, 1, (double*)vo, 1);
-  // vo[0] = v1i[0] + v2i[0];
-  // vo[1] = v1i[1] + v2i[1];
-  // vo[2] = v1i[2] + v2i[2];
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)vo)[i] = ((double*)v1i)[i] + ((double*)v2i)[i];
+  }
 }
 
 /*!
@@ -1496,15 +1761,13 @@ Add 3 by 1 column matrices v1i and v2i and store results in vo.
 @param vo the results of v1i + v2i are stored in vo
 */
 inline void ksl_add_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i,
+  ksl_vec3f_t* __restrict__ vo) {
 
-  cblas_scopy(3, (float*)v1i, 1, (float*)vo, 1);
-  cblas_saxpy(3, 1.0, (float*)v2i, 1, (float*)vo, 1);
-  // vo[0] = v1i[0] + v2i[0];
-  // vo[1] = v1i[1] + v2i[1];
-  // vo[2] = v1i[2] + v2i[2];
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)vo)[i] = ((float*)v1i)[i] + ((float*)v2i)[i];
+  }
 }
 
 
@@ -1519,10 +1782,12 @@ Add 3 by 1 column matrix v1i to v2i
 @param v2i second column vector
 */
 inline void ksl_addequal_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i) {
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i) {
 
-  cblas_daxpy(3, 1.0, (double*)v1i, 1, (double*)v2i, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)v2i)[i] += ((double*)v1i)[i];
+  }
 }
 
 
@@ -1537,18 +1802,17 @@ Add 3 by 1 column matrix v1i to v2i
 @param v2i [in/out] second column vector
 */
 inline void ksl_addequal_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i) {
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i) {
 
-  cblas_saxpy(3, 1.0, (float*)v1i, 1, (float*)v2i, 1);
-  // vo[0] = v1i[0] + v2i[0];
-  // vo[1] = v1i[1] + v2i[1];
-  // vo[2] = v1i[2] + v2i[2];
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)v2i)[i] += ((float*)v1i)[i];
+  }
 }
 
 
 /*!
-@brief Adds two double precision vectors
+@brief Subtracts double precision vector v1i from v2i
 
 subtract 3 by 1 column matrix v1i from v2i
 
@@ -1558,10 +1822,12 @@ subtract 3 by 1 column matrix v1i from v2i
 @param v2i second column vector
 */
 inline void ksl_subtractequal_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i) {
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i) {
 
-  cblas_daxpy(3, -1.0, (double*)v1i, 1, (double*)v2i, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)v2i)[i] -= ((double*)v1i)[i];
+  }
 }
 
 
@@ -1576,13 +1842,12 @@ Subtract 3 by 1 column matrix v1i from v2i
 @param v2i [in/out] second column vector
 */
 inline void ksl_subtractequal_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i) {
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i) {
 
-  cblas_saxpy(3, -1.0, (float*)v1i, 1, (float*)v2i, 1);
-  // vo[0] = v1i[0] + v2i[0];
-  // vo[1] = v1i[1] + v2i[1];
-  // vo[2] = v1i[2] + v2i[2];
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)v2i)[i] -= ((float*)v1i)[i];
+  }
 }
 
 
@@ -1598,10 +1863,12 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 */
 inline void ksl_axpy_vv(
   const double k,
-  ksl_vector_t* __restrict__ v1x,
-  ksl_vector_t* __restrict__ v2y) {
+  ksl_vec3_t* __restrict__ v1x,
+  ksl_vec3_t* __restrict__ v2y) {
 
-  cblas_daxpy(3, k, (double*)v1x, 1, (double*)v2y, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)v2y)[i] += k * ((double*)v1x)[i];
+  }
 }
 
 
@@ -1617,15 +1884,56 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 */
 inline void ksl_axpy_vvf(
   const float k,
-  ksl_vectorf_t* __restrict__ v1x,
-  ksl_vectorf_t* __restrict__ v2y) {
+  ksl_vec3f_t* __restrict__ v1x,
+  ksl_vec3f_t* __restrict__ v2y) {
 
-  cblas_saxpy(3, k, (float*)v1x, 1, (float*)v2y, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)v2y)[i] += k * ((float*)v1x)[i];
+  }
+}
+
+/*!
+@brief axpy (ax plus y stored in y) for double precision quaternions
+
+
+\f$q_{2i} += k * q_{1i} \f$
+
+@param q1i a first quaternion input
+@param q2i second quaternion
+*/
+inline void ksl_axpy_qq(
+  const double k,
+  ksl_vec4_t* __restrict__ qx,
+  ksl_vec4_t* __restrict__ qy) {
+
+  for(uint32_t i = 0; i < 4; i++) {
+    ((double*)qy)[i] += k * ((double*)qx)[i];
+  }
 }
 
 
 /*!
-@brief axpy (ax plus y stored in y) for double precision screws
+@brief axpy (ax plus y stored in y) for double precision quaternions
+
+
+\f$q_{2i} += k * q_{1i} \f$
+
+@param q1i a first quaternion input
+@param q2i second quaternion
+*/
+inline void ksl_axpy_qqf(
+  const float k,
+  ksl_vec4f_t* __restrict__ qx,
+  ksl_vec4f_t* __restrict__ qy) {
+
+  for(uint32_t i = 0; i < 4; i++) {
+    ((float*)qy)[i] += k * ((float*)qx)[i];
+  }
+}
+
+
+/*!
+@brief axpy (ax plus y stored in y) for double precision coscrew and screw
 
 add 3 by 1 column matrix v1i scaled by k to v2i
 
@@ -1634,12 +1942,14 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void ksl_axpy_ss(
+inline void ksl_axpy_cs(
   const double k,
-  ksl_screw_t* __restrict__ v1x,
-  ksl_screw_t* __restrict__ v2y) {
+  ksl_coscrew_t* __restrict__ c,
+  ksl_screw_t* __restrict__ s) {
 
-  cblas_daxpy(6, k, (double*)v1x, 1, (double*)v2y, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((double*)s)[i] += k * ((double*)c)[i];
+  }
 }
 
 
@@ -1653,12 +1963,14 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void ksl_axpy_ssf(
+inline void ksl_axpy_csf(
   const float k,
-  ksl_screwf_t* __restrict__ v1x,
-  ksl_screwf_t* __restrict__ v2y) {
+  ksl_screwf_t* __restrict__ c,
+  ksl_screwf_t* __restrict__ s) {
 
-  cblas_saxpy(6, k, (float*)v1x, 1, (float*)v2y, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((float*)s)[i] += k * ((float*)c)[i];
+  }
 }
 
 
@@ -1674,12 +1986,13 @@ Subtract 3 by 1 column matrix v2i from v1i and store results in vo.
 @param vo the results of v1i - v2i are returned in vo
 */
 inline void ksl_subtract_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i,
+  ksl_vec3_t* __restrict__ vo) {
 
-  cblas_dcopy(3, (double*)v1i, 1, (double*)vo, 1);
-  cblas_daxpy(3, -1, (double*)v2i, 1, (double*)vo, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)vo)[i] = ((double*)v1i)[i] - ((double*)v2i)[i];
+  }
 }
 
 
@@ -1695,12 +2008,13 @@ Subtract 3 by 1 column matrix v2i from v1i and store results in vo.
 @param vo the results of v1i - v2i are returned in vo
 */
 inline void ksl_subtract_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i,
+  ksl_vec3f_t* __restrict__ vo) {
 
-  cblas_scopy(3, (float*)v1i, 1, (float*)vo, 1);
-  cblas_saxpy(3, -1, (float*)v2i, 1, (float*)vo, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)vo)[i] = ((float*)v1i)[i] - ((float*)v2i)[i];
+  }
 }
 
 
@@ -1714,9 +2028,9 @@ inline void ksl_subtract_vvf(
 @param vo the results are stored in vo
 */
 inline void ksl_cross_vv(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i,
+  ksl_vec3_t* __restrict__ vo) {
 
   vo->x = v1i->y * v2i->z - v1i->z * v2i->y;
   vo->y = v1i->z * v2i->x - v1i->x * v2i->z;
@@ -1734,9 +2048,9 @@ inline void ksl_cross_vv(
 @param vo the results are stored in vo
 */
 inline void ksl_cross_vvinverse(
-  ksl_vector_t* __restrict__ v1i,
-  ksl_vector_t* __restrict__ v2i,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ v1i,
+  ksl_vec3_t* __restrict__ v2i,
+  ksl_vec3_t* __restrict__ vo) {
 
   vo->x = v1i->z * v2i->y - v1i->y * v2i->z;
   vo->y = v1i->x * v2i->z - v1i->z * v2i->x;
@@ -1754,9 +2068,9 @@ inline void ksl_cross_vvinverse(
 @param vo the results are stored in vo
 */
 inline void ksl_cross_vvf(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i,
+  ksl_vec3f_t* __restrict__ vo) {
 
   vo->x = v1i->y * v2i->z - v1i->z * v2i->y;
   vo->y = v1i->z * v2i->x - v1i->x * v2i->z;
@@ -1774,9 +2088,9 @@ inline void ksl_cross_vvf(
 @param vo the results are stored in vo
 */
 inline void ksl_cross_vvinversef(
-  ksl_vectorf_t* __restrict__ v1i,
-  ksl_vectorf_t* __restrict__ v2i,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ v1i,
+  ksl_vec3f_t* __restrict__ v2i,
+  ksl_vec3f_t* __restrict__ vo) {
 
   vo->x = v1i->z * v2i->y - v1i->y * v2i->z;
   vo->y = v1i->x * v2i->z - v1i->z * v2i->x;
@@ -1805,9 +2119,6 @@ inline void ksl_copy_ss(
   ksl_screw_t* __restrict__ so) {
 
   memcpy(so, si, sizeof(ksl_screw_t));
-
-  /* previously was */
-  // cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
 }
 
 /*!
@@ -1823,8 +2134,6 @@ inline void ksl_copy_ssf(
   ksl_screwf_t* __restrict__ so) {
 
   memcpy(so, si, sizeof(ksl_screwf_t));
-
-  // cblas_scopy(6, (float*)si, 1, (float*)so, 1);
 }
 
 /*!
@@ -1840,9 +2149,6 @@ inline void ksl_copy_cc(
   ksl_coscrew_t* __restrict__ co) {
 
   memcpy(co, ci, sizeof(ksl_coscrew_t));
-
-  /* previously was */
-  // cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
 }
 
 /*!
@@ -1858,8 +2164,42 @@ inline void ksl_copy_ccf(
   ksl_coscrewf_t* __restrict__ co) {
 
   memcpy(co, ci, sizeof(ksl_coscrewf_t));
+}
 
-  // cblas_scopy(6, (float*)si, 1, (float*)so, 1);
+
+/*!
+@brief Invert a double precision ksl_screw_t si, store the results in so.
+
+\f$-S_i \rightarrow S_o\f$
+
+@param si input vector \f$S_i\f$
+@param so output vector \f$S_o\f$
+*/
+void ksl_invert_v(
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
+
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)vo)[i] = -((double*)vi)[i];
+  }
+}
+
+
+/*!
+@brief Invert a double precision ksl_screw_t si, store the results in so.
+
+\f$-S_i \rightarrow S_o\f$
+
+@param si input vector \f$S_i\f$
+@param so output vector \f$S_o\f$
+*/
+void ksl_invert_vf(
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo) {
+
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)vo)[i] = -((float*)vi)[i];
+  }
 }
 
 
@@ -1875,8 +2215,9 @@ void ksl_invert_ss(
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so) {
 
-  memset(so, 0, sizeof(ksl_screw_t));
-  cblas_daxpy(6, -1.0, (double*)si, 1, (double*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((double*)so)[i] = -((double*)si)[i];
+  }
 }
 
 /*!
@@ -1891,8 +2232,9 @@ void ksl_invert_ssf(
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so) {
 
-  memset(so, 0, sizeof(ksl_screwf_t));
-  cblas_saxpy(6, -1.0, (float*)si, 1, (float*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((float*)so)[i] = -((float*)si)[i];
+  }
 }
 
 
@@ -1909,12 +2251,8 @@ void ksl_invert_cc(
   ksl_coscrew_t* __restrict__ co) {
 
   for(uint32_t i = 0; i < 6; i++) {
-    ksl_coscrew_set(co, i, -ksl_coscrew_get(ci, i));
+    ((double*)co)[i] = -((double*)ci)[i];
   }
-
-  /* previously was */
-  // memset(so, 0, sizeof(ksl_screw_t));
-  // cblas_daxpy(6, -1.0, (double*)si, 1, (double*)so, 1);
 }
 
 
@@ -1931,12 +2269,8 @@ void ksl_invert_ccf(
   ksl_coscrewf_t* __restrict__ co) {
 
   for(uint32_t i = 0; i < 6; i++) {
-    ksl_coscrewf_set(co, i, -ksl_coscrewf_get(ci, i));
+    ((float*)co)[i] = -((float*)ci)[i];
   }
-
-  /* previously was */
-  // memset(so, 0, sizeof(ksl_screw_t));
-  // cblas_saxpy(6, -1.0, (float*)si, 1, (float*)so, 1);
 }
 
 
@@ -1954,8 +2288,9 @@ void ksl_product_sk(
   const double ki,
   ksl_screw_t* __restrict__ so) {
 
-  cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
-  cblas_dscal(6, ki, (double*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((double*)so)[i] = ((double*)si)[i] * ki;
+  }
 }
 
 /*!
@@ -1972,8 +2307,9 @@ void ksl_product_skf(
   const float ki,
   ksl_screwf_t* __restrict__ so) {
 
-  cblas_scopy(6, (float*)si, 1, (float*)so, 1);
-  cblas_sscal(6, ki, (float*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((float*)so)[i] = ((float*)si)[i] * ki;
+  }
 }
 
 /*!
@@ -1990,8 +2326,9 @@ void ksl_add_ss(
   ksl_screw_t* __restrict__ s2i,
   ksl_screw_t* __restrict__ so) {
 
-  cblas_dcopy(6, (double*)s1i, 1, (double*)so, 1);
-  cblas_daxpy(6, 1, (double*)s2i, 1, (double*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((double*)so)[i] = ((double*)s1i)[i] + ((double*)s2i)[i];
+  }
 }
 
 
@@ -2008,7 +2345,9 @@ void ksl_addequal_ss(
   ksl_screw_t* __restrict__ s1i,
   ksl_screw_t* __restrict__ s2i) {
 
-  cblas_daxpy(6, 1, (double*)s1i, 1, (double*)s2i, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((double*)s2i)[i] += ((double*)s1i)[i];
+  }
 }
 
 
@@ -2025,7 +2364,9 @@ void ksl_addequal_ssf(
   ksl_screwf_t* __restrict__ s1i,
   ksl_screwf_t* __restrict__ s2i) {
 
-  cblas_saxpy(6, 1, (float*)s1i, 1, (float*)s2i, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((float*)s2i)[i] += ((float*)s1i)[i];
+  }
 }
 
 
@@ -2044,8 +2385,9 @@ void ksl_add_ssf(
   ksl_screwf_t* __restrict__ s2i,
   ksl_screwf_t* __restrict__ so) {
 
-  cblas_scopy(6, (float*)s1i, 1, (float*)so, 1);
-  cblas_saxpy(6, 1, (float*)s2i, 1, (float*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((float*)so)[i] = ((float*)s1i)[i] + ((float*)s2i)[i];
+  }
 }
 
 /*!
@@ -2062,8 +2404,9 @@ void ksl_subtract_ss(
   ksl_screw_t* __restrict__ s2i,
   ksl_screw_t* __restrict__ so) {
 
-  cblas_dcopy(6, (double*)s1i, 1, (double*)so, 1);
-  cblas_daxpy(6, -1.0, (double*)s2i, 1, (double*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((double*)so)[i] = ((double*)s1i)[i] - ((double*)s2i)[i];
+  }
 }
 
 /*!
@@ -2080,8 +2423,9 @@ void ksl_subtract_ssf(
   ksl_screwf_t* __restrict__ s2i,
   ksl_screwf_t* __restrict__ so) {
 
-  cblas_scopy(6, (float*)s1i, 1, (float*)so, 1);
-  cblas_saxpy(6, -1.0, (float*)s2i, 1, (float*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((float*)so)[i] = ((float*)s1i)[i] - ((float*)s2i)[i];
+  }
 }
 
 /*!
@@ -2097,7 +2441,9 @@ void ksl_subtractequal_ss(
   ksl_screw_t* __restrict__ s1i,
   ksl_screw_t* __restrict__ s2i) {
 
-  cblas_daxpy(6, -1.0, (double*)s1i, 1, (double*)s2i, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((double*)s2i)[i] -= ((double*)s1i)[i];
+  }
 }
 
 
@@ -2114,7 +2460,9 @@ void ksl_subtractequal_ssf(
   ksl_screwf_t* __restrict__ s1i,
   ksl_screwf_t* __restrict__ s2i) {
 
-  cblas_saxpy(6, -1.0, (float*)s1i, 1, (float*)s2i, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((float*)s2i)[i] -= ((float*)s1i)[i];
+  }
 }
 
 
@@ -2139,12 +2487,13 @@ Utilities for performing operations on a combination of 3x1 vectors and
 @param so the results of the operation are returned in so
 */
 void ksl_add_sst(
-  ksl_screw_t* __restrict__ si1,
-  ksl_screw_t* __restrict__ si2,
+  ksl_screw_t* __restrict__ s1i,
+  ksl_screw_t* __restrict__ s2i,
   ksl_screw_t* __restrict__ so) {
 
-  ksl_copy_ss(si1, so);
-  cblas_daxpy(3, 1.0, (double*)si2, 1, (double*)so, 1);
+  for(uint32_t i = 0; i < 6; i++) {
+    ((double*)so)[i] = ((double*)s1i)[i] + ((double*)s2i)[i];
+  }
 }
 
 
@@ -2160,12 +2509,12 @@ void ksl_add_sst(
 @param so the results of the operation are returned in so
 */
 void ksl_add_sstf(
-  ksl_screwf_t* __restrict__ si1,
-  ksl_screwf_t* __restrict__ si2,
+  ksl_screwf_t* __restrict__ s1i,
+  ksl_screwf_t* __restrict__ s2i,
   ksl_screwf_t* __restrict__ so) {
 
-  ksl_copy_ssf(si1, so);
-  cblas_saxpy(3, 1.0, (float*)si2, 1, (float*)so, 1);
+  ksl_copy_ssf(s1i, so);
+  ksl_addequal_vvf(&so->v, &s2i->v);
 }
 
 
@@ -2191,7 +2540,7 @@ void ksl_mat3x3_copy(
   ksl_mat3x3_t* __restrict__ ri,
   ksl_mat3x3_t* __restrict__ ro) {
 
-  cblas_dcopy(9, (double*)ri, 1, (double*)ro, 1);
+  memcpy(ro, ri, sizeof(ksl_mat3x3_t));
 }
 
 
@@ -2207,7 +2556,7 @@ void ksl_mat3x3f_copy(
   ksl_mat3x3f_t* __restrict__ ri,
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  cblas_scopy(9, (float*)ri, 1, (float*)ro, 1);
+  memcpy(ro, ri, sizeof(ksl_mat3x3f_t));
 }
 
 
@@ -2223,12 +2572,11 @@ void ksl_mat3x3_invert(
   ksl_mat3x3_t* __restrict__ ri,
   ksl_mat3x3_t* __restrict__ ro) {
 
-  cblas_dcopy(3, (double*)ri, 1, (double*)ro, 3);
-  cblas_dcopy(3, ((double*)ri) + 3, 1, ((double*)ro) + 1, 3);
-  cblas_dcopy(3, ((double*)ri) + 6, 1, ((double*)ro) + 2, 3);
-  // ro[0 * 3 + 0] = ri[0][0]; ro[0][1] = ri[1][0]; ro[0][2] = ri[2][0];
-  // ro[1][0] = ri[0][1]; ro[1][1] = ri[1][1]; ro[1][2] = ri[2][1];
-  // ro[2][0] = ri[0][2]; ro[2][1] = ri[1][2]; ro[2][2] = ri[2][2];
+  for(unsigned int i = 0; i < 3; i++) {
+    for(unsigned int j = 0; j < 3; j++) {
+      ksl_mat3x3_set(ro, i, j, ksl_mat3x3_get(ri, j, i));
+    }
+  }
 }
 
 
@@ -2244,12 +2592,11 @@ void ksl_invert_Rf(
   ksl_mat3x3f_t* __restrict__ ri,
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  cblas_scopy(3, (float*)ri, 1, (float*)ro, 3);
-  cblas_scopy(3, ((float*)ri) + 3, 1, (float*)ro + 1, 3);
-  cblas_scopy(3, ((float*)ri) + 6, 1, (float*)ro + 2, 3);
-  // ro[0 * 3 + 0] = ri[0][0]; ro[0][1] = ri[1][0]; ro[0][2] = ri[2][0];
-  // ro[1][0] = ri[0][1]; ro[1][1] = ri[1][1]; ro[1][2] = ri[2][1];
-  // ro[2][0] = ri[0][2]; ro[2][1] = ri[1][2]; ro[2][2] = ri[2][2];
+  for(unsigned int i = 0; i < 3; i++) {
+    for(unsigned int j = 0; j < 3; j++) {
+      ksl_mat3x3f_set(ro, i, j, ksl_mat3x3f_get(ri, j, i));
+    }
+  }
 }
 
 
@@ -2261,30 +2608,23 @@ vector vi in vo.
 */
 void ksl_product_Rv(
   ksl_mat3x3_t* __restrict__ ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
 
-  /* suggest to leave blas for matrix-vector operations at least for now,
-  I found a 10-20% speed up when using blas vs using unwrapped loops in earlier
-  testing, although was not using restrict at the time. new version
-  of compiler may be able to do better */
+  ksl_vec3_set(vo, 0,
+    ksl_mat3x3_get(ri, 0, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
+    ksl_mat3x3_get(ri, 0, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
+    ksl_mat3x3_get(ri, 0, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
 
-  cblas_dgemv(
-    CblasColMajor,
-    CblasNoTrans,
-    3,
-    3,
-    1.0,
-    (double*)ri,
-    3,
-    (double*)vi,
-    1,
-    0.0,
-    (double*)vo,
-    1);
-  // vo[0] =  ri[0][0] * vi[0] + ri[0][1] * vi[1] + ri[0][2] * vi[2];
-  // vo[1] =  ri[1][0] * vi[0] + ri[1][1] * vi[1] + ri[1][2] * vi[2];
-  // vo[2] =  ri[2][0] * vi[0] + ri[2][1] * vi[1] + ri[2][2] * vi[2];
+  ksl_vec3_set(vo, 1,
+    ksl_mat3x3_get(ri, 1, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
+    ksl_mat3x3_get(ri, 1, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
+    ksl_mat3x3_get(ri, 1, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
+
+  ksl_vec3_set(vo, 2,
+    ksl_mat3x3_get(ri, 2, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
+    ksl_mat3x3_get(ri, 2, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
+    ksl_mat3x3_get(ri, 2, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
 }
 
 /*!
@@ -2294,25 +2634,23 @@ void ksl_product_Rv(
 */
 void ksl_product_Rvf(
   ksl_mat3x3f_t* __restrict__ ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo) {
 
-  cblas_sgemv(
-    CblasColMajor,
-    CblasNoTrans,
-    3,
-    3,
-    1.0,
-    (float*)ri,
-    3,
-    (float*)vi,
-    1,
-    0.0,
-    (float*)vo,
-    1);
-  // vo[0] =  ri[0][0] * vi[0] + ri[0][1] * vi[1] + ri[0][2] * vi[2];
-  // vo[1] =  ri[1][0] * vi[0] + ri[1][1] * vi[1] + ri[1][2] * vi[2];
-  // vo[2] =  ri[2][0] * vi[0] + ri[2][1] * vi[1] + ri[2][2] * vi[2];
+  ksl_vec3f_set(vo, 0,
+    ksl_mat3x3f_get(ri, 0, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
+    ksl_mat3x3f_get(ri, 0, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
+    ksl_mat3x3f_get(ri, 0, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
+
+  ksl_vec3f_set(vo, 1,
+    ksl_mat3x3f_get(ri, 1, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
+    ksl_mat3x3f_get(ri, 1, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
+    ksl_mat3x3f_get(ri, 1, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
+
+  ksl_vec3f_set(vo, 2,
+    ksl_mat3x3f_get(ri, 2, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
+    ksl_mat3x3f_get(ri, 2, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
+    ksl_mat3x3f_get(ri, 2, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
 }
 
 /*!
@@ -2323,25 +2661,24 @@ vector -vi in vo.
 */
 void ksl_product_Rvinverse(
   ksl_mat3x3_t* __restrict__ ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
 
-  cblas_dgemv(
-    CblasColMajor,
-    CblasNoTrans,
-    3,
-    3,
-    -1.0,
-    (double*)ri,
-    3,
-    (double*)vi,
-    1,
-    0.0,
-    (double*)vo,
-    1);
-  // vo[0] = -ri[0][0] * vi[0] - ri[0][1] * vi[1] - ri[0][2] * vi[2];
-  // vo[1] = -ri[1][0] * vi[0] - ri[1][1] * vi[1] - ri[1][2] * vi[2];
-  // vo[2] = -ri[2][0] * vi[0] - ri[2][1] * vi[1] - ri[2][2] * vi[2];
+  ksl_vec3_set(vo, 0,
+    ksl_mat3x3_get(ri, 0, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
+    ksl_mat3x3_get(ri, 0, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
+    ksl_mat3x3_get(ri, 0, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
+
+  ksl_vec3_set(vo, 1,
+    ksl_mat3x3_get(ri, 1, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
+    ksl_mat3x3_get(ri, 1, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
+    ksl_mat3x3_get(ri, 1, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
+
+  ksl_vec3_set(vo, 2,
+    ksl_mat3x3_get(ri, 2, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
+    ksl_mat3x3_get(ri, 2, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
+    ksl_mat3x3_get(ri, 2, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
+
 }
 
 /*!
@@ -2352,25 +2689,23 @@ vector -vi in vo.
 */
 void ksl_product_Rvinversef(
   ksl_mat3x3f_t* __restrict__ ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo) {
 
-  cblas_sgemv(
-    CblasColMajor,
-    CblasNoTrans,
-    3,
-    3,
-    -1.0,
-    (float*)ri,
-    3,
-    (float*)vi,
-    1,
-    0.0,
-    (float*)vo,
-    1);
-  // vo[0] = -ri[0][0] * vi[0] - ri[0][1] * vi[1] - ri[0][2] * vi[2];
-  // vo[1] = -ri[1][0] * vi[0] - ri[1][1] * vi[1] - ri[1][2] * vi[2];
-  // vo[2] = -ri[2][0] * vi[0] - ri[2][1] * vi[1] - ri[2][2] * vi[2];
+  ksl_vec3f_set(vo, 0,
+    ksl_mat3x3f_get(ri, 0, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
+    ksl_mat3x3f_get(ri, 0, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
+    ksl_mat3x3f_get(ri, 0, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
+
+  ksl_vec3f_set(vo, 1,
+    ksl_mat3x3f_get(ri, 1, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
+    ksl_mat3x3f_get(ri, 1, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
+    ksl_mat3x3f_get(ri, 1, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
+
+  ksl_vec3f_set(vo, 2,
+    ksl_mat3x3f_get(ri, 2, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
+    ksl_mat3x3f_get(ri, 2, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
+    ksl_mat3x3f_get(ri, 2, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
 }
 
 /*!
@@ -2380,25 +2715,13 @@ void ksl_product_Rvinversef(
 */
 void ksl_product_Rinversev(
   ksl_mat3x3_t* __restrict__ ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
 
-  cblas_dgemv(
-    CblasColMajor,
-    CblasTrans,
-    3,
-    3,
-    1.0,
-    (double*)ri,
-    3,
-    (double*)vi,
-    1,
-    0.0,
-    (double*)vo,
-    1);
-  // vo[0] =  ri[0][0] * vi[0] + ri[1][0] * vi[1] + ri[2][0] * vi[2];
-  // vo[1] =  ri[0][1] * vi[0] + ri[1][1] * vi[1] + ri[2][1] * vi[2];
-  // vo[2] =  ri[0][2] * vi[0] + ri[1][2] * vi[1] + ri[2][2] * vi[2];
+  ksl_vec3_set(vo, 0, ksl_dot_vv((ksl_vec3_t*)&ri->m00, vi));
+  ksl_vec3_set(vo, 1, ksl_dot_vv((ksl_vec3_t*)&ri->m01, vi));
+  ksl_vec3_set(vo, 2, ksl_dot_vv((ksl_vec3_t*)&ri->m02, vi));
+
 }
 
 
@@ -2409,25 +2732,12 @@ void ksl_product_Rinversev(
 */
 void ksl_product_Rinversevf(
   ksl_mat3x3f_t* __restrict__ ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo) {
 
-  cblas_sgemv(
-    CblasColMajor,
-    CblasTrans,
-    3,
-    3,
-    1.0,
-    (float*)ri,
-    3,
-    (float*)vi,
-    1,
-    0.0,
-    (float*)vo,
-    1);
-  // vo[0] =  ri[0][0] * vi[0] + ri[1][0] * vi[1] + ri[2][0] * vi[2];
-  // vo[1] =  ri[0][1] * vi[0] + ri[1][1] * vi[1] + ri[2][1] * vi[2];
-  // vo[2] =  ri[0][2] * vi[0] + ri[1][2] * vi[1] + ri[2][2] * vi[2];
+  ksl_vec3f_set(vo, 0, ksl_dot_vvf((ksl_vec3f_t*)&ri->m00, vi));
+  ksl_vec3f_set(vo, 1, ksl_dot_vvf((ksl_vec3f_t*)&ri->m01, vi));
+  ksl_vec3f_set(vo, 2, ksl_dot_vvf((ksl_vec3f_t*)&ri->m02, vi));
 }
 
 
@@ -2437,24 +2747,14 @@ vector -vi in vo.
 
 \f$R_i^T * -V_i \rightarrow V_o\f$
 */
-void ksl_product_rinversevinverse(
+void ksl_product_Rinversevinverse(
   ksl_mat3x3_t* __restrict__ ri,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
 
-  cblas_dgemv(
-    CblasColMajor,
-    CblasTrans,
-    3,
-    3,
-    -1.0,
-    (double*)ri,
-    3,
-    (double*)vi,
-    1,
-    0.0,
-    (double*)vo,
-    1);
+  ksl_vec3_set(vo, 0, -ksl_dot_vv((ksl_vec3_t*)&ri->m00, vi));
+  ksl_vec3_set(vo, 1, -ksl_dot_vv((ksl_vec3_t*)&ri->m01, vi));
+  ksl_vec3_set(vo, 2, -ksl_dot_vv((ksl_vec3_t*)&ri->m02, vi));
 }
 
 
@@ -2466,22 +2766,12 @@ vector -vi in vo.
 */
 void ksl_product_Rinversevinversef(
   ksl_mat3x3f_t* __restrict__ ri,
-  ksl_vectorf_t* __restrict__ vi,
-  ksl_vectorf_t* __restrict__ vo) {
+  ksl_vec3f_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vo) {
 
-  cblas_sgemv(
-    CblasColMajor,
-    CblasTrans,
-    3,
-    3,
-    -1.0,
-    (float*)ri,
-    3,
-    (float*)vi,
-    1,
-    0.0,
-    (float*)vo,
-    1);
+  ksl_vec3f_set(vo, 0, -ksl_dot_vvf((ksl_vec3f_t*)&ri->m00, vi));
+  ksl_vec3f_set(vo, 1, -ksl_dot_vvf((ksl_vec3f_t*)&ri->m01, vi));
+  ksl_vec3f_set(vo, 2, -ksl_dot_vvf((ksl_vec3f_t*)&ri->m02, vi));
 }
 
 
@@ -2571,9 +2861,8 @@ inline void ksl_product_Adrsf(
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so) {
 
-  ksl_product_Rvf(ri, (ksl_vectorf_t*)si, (ksl_vectorf_t*)so);
-  ksl_product_Rvf(
-    ri, (ksl_vectorf_t*)(((float*)si) + 3), (ksl_vectorf_t*)(((float*)so) + 3));
+  ksl_product_Rvf(ri, &si->v, &so->v);
+  ksl_product_Rvf(ri, &si->w, &so->w);
 }
 
 /*!
@@ -2594,9 +2883,8 @@ inline void ksl_product_Adrsinverse(
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so) {
 
-  ksl_product_Rvinverse(ri, (ksl_vector_t*)si, (ksl_vector_t*)so);
-  ksl_product_Rvinverse(
-    ri, (ksl_vector_t*)(((double*)si) + 3), (ksl_vector_t*)(((double*)so) + 3));
+  ksl_product_Rvinverse(ri, &si->v, &so->v);
+  ksl_product_Rvinverse(ri, &si->w, &so->w);
 }
 
 /*!
@@ -2617,10 +2905,8 @@ void ksl_product_Adrsinversef(
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so) {
 
-  ksl_product_Rvinversef(ri, (ksl_vectorf_t*)si, (ksl_vectorf_t*)so);
-  ksl_product_Rvinversef(
-    ri,
-    (ksl_vectorf_t*)(((float*)si) + 3), (ksl_vectorf_t*)(((float*)so) + 3));
+  ksl_product_Rvinversef(ri, &si->v, &so->v);
+  ksl_product_Rvinversef(ri, &si->w, &so->w);
 }
 
 /*!
@@ -2640,9 +2926,8 @@ void ksl_product_Adrinverses(
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so) {
 
-  ksl_product_Rinversev(ri, (ksl_vector_t*)si, (ksl_vector_t*)so);
-  ksl_product_Rinversev(
-    ri, (ksl_vector_t*)(((double*)si) + 3), (ksl_vector_t*)(((double*)so) + 3));
+  ksl_product_Rinversev(ri, &si->v, &so->v);
+  ksl_product_Rinversev(ri, &si->w, &so->w);
 }
 
 /*!
@@ -2662,9 +2947,8 @@ void ksl_product_Adrinversesf(
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so) {
 
-  ksl_product_Rinversevf(ri, (ksl_vectorf_t*)si, (ksl_vectorf_t*)so);
-  ksl_product_Rinversevf(
-    ri, (ksl_vectorf_t*)(((float*)si) + 3), (ksl_vectorf_t*)(((float*)so) + 3));
+  ksl_product_Rinversevf(ri, &si->v, &so->v);
+  ksl_product_Rinversevf(ri, &si->w, &so->w);
 }
 
 
@@ -2720,39 +3004,20 @@ about the x axis, Rx, characterized by its direction cosines.
 
 \f$R_i * R_x \rightarrow R_o\f$
 
-@param ri a pointer to a general rotation matrix
-@param dc a pointer to an array of direction cosines
-@param ro a pointer to a rotation matrix where the result is stored.
+@param ri pointer to a rotation matrix
+@param dc pointer to an array of direction cosines
+@param ro pointer to a rotation matrix where the result is stored.
 */
 void ksl_product_RRx(
   ksl_mat3x3_t* __restrict__ ri,
   double dc[2],
   ksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, 9 * sizeof(double));
-
-  cblas_dcopy(3, (double*)ri, 1, (double*)ro, 1);
-  cblas_daxpy(
-    3, dc[1],
-    ((double*)ri) + 3, 1,
-    ((double*)ro) + 3, 1);
-  cblas_daxpy(3, dc[0], ((double*)ri) + 6, 1, ((double*)ro) + 3, 1);
-  cblas_daxpy(3, -dc[0], ((double*)ri) + 3, 1, ((double*)ro) + 6, 1);
-  cblas_daxpy(3, dc[1], ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0  0.0    0.0|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1] -dc[0]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0  dc[0] dc[1]|
-
-  // ro[0 * 3 + 1] =  ri[0 * 3 + 1] * dc[1] + ri[0 * 3 + 2] * dc[0];
-  // ro[1 * 3 + 1] =  ri[1 * 3 + 1] * dc[1] + ri[1 * 3 + 2] * dc[0];
-  // ro[2 * 3 + 1] =  ri[2 * 3 + 1] * dc[1] + ri[2 * 3 + 2] * dc[0];
-
-  // ro[0 * 3 + 2] = -ri[0 * 3 + 1] * dc[0] + ri[0 * 3 + 2] * dc[1];
-  // ro[1 * 3 + 2] = -ri[1 * 3 + 1] * dc[0] + ri[1 * 3 + 2] * dc[1];
-  // ro[2 * 3 + 2] = -ri[2 * 3 + 1] * dc[0] + ri[2 * 3 + 2] * dc[1];
-
-  // cblas_dcopy(3, ri, 3, ro, 3);
+  memcpy(ro, ri, 3 * sizeof(double));
+  ksl_product_vk((ksl_vec3_t*)&ri->m01, dc[1], (ksl_vec3_t*)&ro->m01);
+  ksl_axpy_vv(dc[0], (ksl_vec3_t*)&ri->m02, (ksl_vec3_t*)&ro->m01);
+  ksl_product_vk((ksl_vec3_t*)&ri->m01, -dc[0], (ksl_vec3_t*)&ro->m02);
+  ksl_axpy_vv(dc[1], (ksl_vec3_t*)&ri->m02, (ksl_vec3_t*)&ro->m02);
 }
 
 /*!
@@ -2772,26 +3037,11 @@ inline void ksl_product_RRxf(
   float dc[2],
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
-  cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
-  cblas_saxpy(3, dc[0], ((float*)ri) + 6, 1, ((float*)ro) + 3, 1);
-  cblas_saxpy(3, -dc[0], ((float*)ri) + 3, 1, ((float*)ro) + 6, 1);
-  cblas_saxpy(3, dc[1], ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
-  cblas_scopy(3, (float*)ri, 1, (float*)ro, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0  0.0    0.0|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1] -dc[0]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0  dc[0] dc[1]|
-
-  // ro[0 * 3 + 1] =  ri[0 * 3 + 1] * dc[1] + ri[0 * 3 + 2] * dc[0];
-  // ro[1 * 3 + 1] =  ri[1 * 3 + 1] * dc[1] + ri[1 * 3 + 2] * dc[0];
-  // ro[2 * 3 + 1] =  ri[2 * 3 + 1] * dc[1] + ri[2 * 3 + 2] * dc[0];
-
-  // ro[0 * 3 + 2] = -ri[0 * 3 + 1] * dc[0] + ri[0 * 3 + 2] * dc[1];
-  // ro[1 * 3 + 2] = -ri[1 * 3 + 1] * dc[0] + ri[1 * 3 + 2] * dc[1];
-  // ro[2 * 3 + 2] = -ri[2 * 3 + 1] * dc[0] + ri[2 * 3 + 2] * dc[1];
-
-  // cblas_dcopy(3, ri, 3, ro, 3);
+  memcpy(ro, ri, 3 * sizeof(float));
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m01, dc[1], (ksl_vec3f_t*)&ro->m01);
+  ksl_axpy_vvf(dc[0], (ksl_vec3f_t*)&ri->m02, (ksl_vec3f_t*)&ro->m01);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m01, -dc[0], (ksl_vec3f_t*)&ro->m02);
+  ksl_axpy_vvf(dc[1], (ksl_vec3f_t*)&ri->m02, (ksl_vec3f_t*)&ro->m02);
 }
 
 /*!
@@ -2812,27 +3062,11 @@ inline void ksl_product_RRxinverse(
   double dc[2],
   ksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
-  cblas_dcopy(3, (double*)ri, 1, (double*)ro, 1);
-  cblas_daxpy(3, dc[1], ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
-  cblas_daxpy(3, -dc[0], ((double*)ri) + 6, 1, ((double*)ro) + 3, 1);
-  cblas_daxpy(3, dc[0], ((double*)ri) + 3, 1, ((double*)ro) + 6, 1);
-  cblas_daxpy(3, dc[1], ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0   0.0    0.0
-  // |
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1] dc[0]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0 -dc[0] dc[1]|
-
-  // ro[0 * 3 + 2] =  ri[0 * 3 + 1] * dc[0] + ri[0 * 3 + 2] * dc[1];
-  // ro[1 * 3 + 2] =  ri[1 * 3 + 1] * dc[0] + ri[1 * 3 + 2] * dc[1];
-  // ro[2 * 3 + 2] =  ri[2 * 3 + 1] * dc[0] + ri[2 * 3 + 2] * dc[1];
-
-  // ro[0 * 3 + 1] =  ri[0 * 3 + 1] * dc[1] - ri[0 * 3 + 2] * dc[0];
-  // ro[1 * 3 + 1] =  ri[1 * 3 + 1] * dc[1] - ri[1 * 3 + 2] * dc[0];
-  // ro[2 * 3 + 1] =  ri[2 * 3 + 1] * dc[1] - ri[2 * 3 + 2] * dc[0];
-
-  // cblas_dcopy(3, ri, 3, ro, 3);
+  memcpy(ro, ri, 3 * sizeof(double));
+  ksl_product_vk((ksl_vec3_t*)&ri->m01, dc[1], (ksl_vec3_t*)&ro->m01);
+  ksl_axpy_vv(-dc[0], (ksl_vec3_t*)&ri->m02, (ksl_vec3_t*)&ro->m01);
+  ksl_product_vk((ksl_vec3_t*)&ri->m01, dc[0], (ksl_vec3_t*)&ro->m02);
+  ksl_axpy_vv(dc[1], (ksl_vec3_t*)&ri->m02, (ksl_vec3_t*)&ro->m02);
 }
 
 /*!
@@ -2853,27 +3087,11 @@ inline void ksl_product_RRxinversef(
   float dc[2],
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
-  cblas_scopy(3, (float*)ri, 1, (float*)ro, 1);
-  cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
-  cblas_saxpy(3, -dc[0], ((float*)ri) + 6, 1, ((float*)ro) + 3, 1);
-  cblas_saxpy(3, dc[0], ((float*)ri) + 3, 1, ((float*)ro) + 6, 1);
-  cblas_saxpy(3, dc[1], ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0   0.0    0.0
-  // |
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1] dc[0]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0 -dc[0] dc[1]|
-
-  // ro[0 * 3 + 2] =  ri[0 * 3 + 1] * dc[0] + ri[0 * 3 + 2] * dc[1];
-  // ro[1 * 3 + 2] =  ri[1 * 3 + 1] * dc[0] + ri[1 * 3 + 2] * dc[1];
-  // ro[2 * 3 + 2] =  ri[2 * 3 + 1] * dc[0] + ri[2 * 3 + 2] * dc[1];
-
-  // ro[0 * 3 + 1] =  ri[0 * 3 + 1] * dc[1] - ri[0 * 3 + 2] * dc[0];
-  // ro[1 * 3 + 1] =  ri[1 * 3 + 1] * dc[1] - ri[1 * 3 + 2] * dc[0];
-  // ro[2 * 3 + 1] =  ri[2 * 3 + 1] * dc[1] - ri[2 * 3 + 2] * dc[0];
-
-  // cblas_dcopy(3, ri, 3, ro, 3);
+  memcpy(ro, ri, sizeof(ksl_vec3_t));
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m01, dc[1], (ksl_vec3f_t*)&ro->m01);
+  ksl_axpy_vvf(-dc[0], (ksl_vec3f_t*)&ri->m02, (ksl_vec3f_t*)&ro->m01);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m01, dc[0], (ksl_vec3f_t*)&ro->m02);
+  ksl_axpy_vvf(dc[1], (ksl_vec3f_t*)&ri->m02, (ksl_vec3f_t*)&ro->m02);
 }
 
 /*!
@@ -2893,27 +3111,11 @@ void ksl_product_RRy(
   double dc[2],
   ksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
-  cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
-  cblas_daxpy(3, -dc[0], ((double*)ri) + 6, 1, (double*)ro, 1);
-  cblas_daxpy(3, dc[1], ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
-  cblas_daxpy(3, dc[0], (double*)ri, 1, ((double*)ro) + 6, 1);
-  cblas_dcopy(3, ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   | dc[1] 0.0 dc[0]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |  0.0  1.0   0.0
-  // |
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |-dc[0] 0.0 dc[1]|
-
-  // ro[0 * 3 + 2] =  ri[0 * 3] * dc[0] + ri[0 * 3 + 2] * dc[1];
-  // ro[1 * 3 + 2] =  ri[1 * 3] * dc[0] + ri[1 * 3 + 2] * dc[1];
-  // ro[2 * 3 + 2] =  ri[2 * 3] * dc[0] + ri[2 * 3 + 2] * dc[1];
-
-  // ro[0 * 3] =  ri[0 * 3] * dc[1] - ri[0 * 3 + 2] * dc[0];
-  // ro[1 * 3] =  ri[1 * 3] * dc[1] - ri[1 * 3 + 2] * dc[0];
-  // ro[2 * 3] =  ri[2 * 3] * dc[1] - ri[2 * 3 + 2] * dc[0];
-
-  // cblas_dcopy(3, ri + 1, 3, ro + 1, 3);
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, dc[1], (ksl_vec3_t*)&ro->m00);
+  ksl_axpy_vv(dc[0], (ksl_vec3_t*)&ri->m02, (ksl_vec3_t*)&ro->m00);
+  memcpy(&ro->m01, &ri->m01, sizeof(ksl_vec3_t));
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, -dc[0], (ksl_vec3_t*)&ro->m02);
+  ksl_axpy_vv(dc[1], (ksl_vec3_t*)&ri->m02, (ksl_vec3_t*)&ro->m02);
 }
 
 /*!
@@ -2933,27 +3135,11 @@ void ksl_product_RRyf(
   float dc[2],
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
-  cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
-  cblas_saxpy(3, -dc[0], ((float*)ri) + 6, 1, (float*)ro, 1);
-  cblas_saxpy(3, dc[1], ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
-  cblas_saxpy(3, dc[0], (float*)ri, 1, ((float*)ro) + 6, 1);
-  cblas_scopy(3, ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   | dc[1] 0.0 dc[0]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |  0.0  1.0   0.0
-  // |
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |-dc[0] 0.0 dc[1]|
-
-  // ro[0 * 3 + 2] =  ri[0 * 3] * dc[0] + ri[0 * 3 + 2] * dc[1];
-  // ro[1 * 3 + 2] =  ri[1 * 3] * dc[0] + ri[1 * 3 + 2] * dc[1];
-  // ro[2 * 3 + 2] =  ri[2 * 3] * dc[0] + ri[2 * 3 + 2] * dc[1];
-
-  // ro[0 * 3] =  ri[0 * 3] * dc[1] - ri[0 * 3 + 2] * dc[0];
-  // ro[1 * 3] =  ri[1 * 3] * dc[1] - ri[1 * 3 + 2] * dc[0];
-  // ro[2 * 3] =  ri[2 * 3] * dc[1] - ri[2 * 3 + 2] * dc[0];
-
-  // cblas_dcopy(3, ri + 1, 3, ro + 1, 3);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, dc[1], (ksl_vec3f_t*)&ro->m00);
+  ksl_axpy_vvf(dc[0], (ksl_vec3f_t*)&ri->m02, (ksl_vec3f_t*)&ro->m00);
+  memcpy(&ro->m01, &ri->m01, sizeof(ksl_vec3f_t));
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, -dc[0], (ksl_vec3f_t*)&ro->m02);
+  ksl_axpy_vvf(dc[1], (ksl_vec3f_t*)&ri->m02, (ksl_vec3f_t*)&ro->m02);
 }
 
 /*!
@@ -2974,26 +3160,11 @@ void ksl_product_RRyinverse(
   double dc[2],
   ksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
-  cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
-  cblas_daxpy(3, dc[0], ((double*)ri) + 6, 1, (double*)ro, 1);
-  cblas_daxpy(3, dc[1], ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
-  cblas_daxpy(3, -dc[0], (double*)ri, 1, ((double*)ro) + 6, 1);
-  cblas_dcopy(3, ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] 0.0 -dc[0]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * | 0.0  1.0   0.0 |
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |dc[0] 0.0  dc[1]|
-
-  // ro[0 * 3] =  ri[0 * 3] * dc[1] + ri[0 * 3 + 2] * dc[0];
-  // ro[1 * 3] =  ri[1 * 3] * dc[1] + ri[1 * 3 + 2] * dc[0];
-  // ro[2 * 3] =  ri[2 * 3] * dc[1] + ri[2 * 3 + 2] * dc[0];
-
-  // ro[0 * 3 + 2] = -ri[0 * 3] * dc[0] + ri[0 * 3 + 2] * dc[1];
-  // ro[1 * 3 + 2] = -ri[1 * 3] * dc[0] + ri[1 * 3 + 2] * dc[1];
-  // ro[2 * 3 + 2] = -ri[2 * 3] * dc[0] + ri[2 * 3 + 2] * dc[1];
-
-  // cblas_dcopy(3, ri + 1, 3, ro + 1, 3);
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, dc[1], (ksl_vec3_t*)&ro->m00);
+  ksl_axpy_vv(-dc[0], (ksl_vec3_t*)&ri->m02, (ksl_vec3_t*)&ro->m00);
+  memcpy(&ro->m01, &ri->m01, sizeof(ksl_vec3_t));
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, dc[0], (ksl_vec3_t*)&ro->m02);
+  ksl_axpy_vv(dc[1], (ksl_vec3_t*)&ri->m02, (ksl_vec3_t*)&ro->m02);
 }
 
 
@@ -3015,26 +3186,11 @@ void ksl_product_RRyinversef(
   float dc[2],
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
-  cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
-  cblas_saxpy(3, dc[0], ((float*)ri) + 6, 1, (float*)ro, 1);
-  cblas_saxpy(3, dc[1], ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
-  cblas_saxpy(3, -dc[0], (float*)ri, 1, ((float*)ro) + 6, 1);
-  cblas_scopy(3, ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] 0.0 -dc[0]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * | 0.0  1.0   0.0 |
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |dc[0] 0.0  dc[1]|
-
-  // ro[0 * 3] =  ri[0 * 3] * dc[1] + ri[0 * 3 + 2] * dc[0];
-  // ro[1 * 3] =  ri[1 * 3] * dc[1] + ri[1 * 3 + 2] * dc[0];
-  // ro[2 * 3] =  ri[2 * 3] * dc[1] + ri[2 * 3 + 2] * dc[0];
-
-  // ro[0 * 3 + 2] = -ri[0 * 3] * dc[0] + ri[0 * 3 + 2] * dc[1];
-  // ro[1 * 3 + 2] = -ri[1 * 3] * dc[0] + ri[1 * 3 + 2] * dc[1];
-  // ro[2 * 3 + 2] = -ri[2 * 3] * dc[0] + ri[2 * 3 + 2] * dc[1];
-
-  // cblas_dcopy(3, ri + 1, 3, ro + 1, 3);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, dc[1], (ksl_vec3f_t*)&ro->m00);
+  ksl_axpy_vvf(-dc[0], (ksl_vec3f_t*)&ri->m02, (ksl_vec3f_t*)&ro->m00);
+  memcpy(&ro->m01, &ri->m01, sizeof(ksl_vec3f_t));
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, dc[0], (ksl_vec3f_t*)&ro->m02);
+  ksl_axpy_vvf(dc[1], (ksl_vec3f_t*)&ri->m02, (ksl_vec3f_t*)&ro->m02);
 }
 
 
@@ -3055,26 +3211,11 @@ void ksl_product_RRz(
   double dc[2],
   ksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
-  cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
-  cblas_daxpy(3, dc[0], ((double*)ri) + 3, 1, (double*)ro, 1);
-  cblas_daxpy(3, -dc[0], (double*)ri, 1, ((double*)ro) + 3, 1);
-  cblas_daxpy(3, dc[1], ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
-  cblas_dcopy(3, ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] -dc[0] 0.0|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |dc[0]  dc[1] 0.0|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   | 0.0    0.0  1.0|
-
-  // ro[0 * 3] =  ri[0 * 3] * dc[1] + ri[0 * 3 + 1] * dc[0];
-  // ro[1 * 3] =  ri[1 * 3] * dc[1] + ri[1 * 3 + 1] * dc[0];
-  // ro[2 * 3] =  ri[2 * 3] * dc[1] + ri[2 * 3 + 1] * dc[0];
-
-  // ro[0 * 3 + 1] = -ri[0 * 3] * dc[0] + ri[0 * 3 + 1] * dc[1];
-  // ro[1 * 3 + 1] = -ri[1 * 3] * dc[0] + ri[1 * 3 + 1] * dc[1];
-  // ro[2 * 3 + 1] = -ri[2 * 3] * dc[0] + ri[2 * 3 + 1] * dc[1];
-
-  // cblas_dcopy(3, ri + 2, 3, ro + 2, 3);
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, dc[1], (ksl_vec3_t*)&ro->m00);
+  ksl_axpy_vv(dc[0], (ksl_vec3_t*)&ri->m01, (ksl_vec3_t*)&ro->m00);
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, -dc[0], (ksl_vec3_t*)&ro->m01);
+  ksl_axpy_vv(dc[1], (ksl_vec3_t*)&ri->m01, (ksl_vec3_t*)&ro->m01);
+  memcpy(&ro->m02, &ri->m02, sizeof(ksl_vec3_t));
 }
 
 
@@ -3095,26 +3236,11 @@ void ksl_product_RRzf(
   float dc[2],
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
-  cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
-  cblas_saxpy(3, dc[0], ((float*)ri) + 3, 1, (float*)ro, 1);
-  cblas_saxpy(3, -dc[0], (float*)ri, 1, ((float*)ro) + 3, 1);
-  cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
-  cblas_scopy(3, ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] -dc[0] 0.0|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |dc[0]  dc[1] 0.0|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   | 0.0    0.0  1.0|
-
-  // ro[0 * 3] =  ri[0 * 3] * dc[1] + ri[0 * 3 + 1] * dc[0];
-  // ro[1 * 3] =  ri[1 * 3] * dc[1] + ri[1 * 3 + 1] * dc[0];
-  // ro[2 * 3] =  ri[2 * 3] * dc[1] + ri[2 * 3 + 1] * dc[0];
-
-  // ro[0 * 3 + 1] = -ri[0 * 3] * dc[0] + ri[0 * 3 + 1] * dc[1];
-  // ro[1 * 3 + 1] = -ri[1 * 3] * dc[0] + ri[1 * 3 + 1] * dc[1];
-  // ro[2 * 3 + 1] = -ri[2 * 3] * dc[0] + ri[2 * 3 + 1] * dc[1];
-
-  // cblas_dcopy(3, ri + 2, 3, ro + 2, 3);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, dc[1], (ksl_vec3f_t*)&ro->m00);
+  ksl_axpy_vvf(dc[0], (ksl_vec3f_t*)&ri->m01, (ksl_vec3f_t*)&ro->m00);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, -dc[0], (ksl_vec3f_t*)&ro->m01);
+  ksl_axpy_vvf(dc[1], (ksl_vec3f_t*)&ri->m01, (ksl_vec3f_t*)&ro->m01);
+  memcpy(&ro->m02, &ri->m02, sizeof(ksl_vec3f_t));
 }
 
 
@@ -3136,29 +3262,11 @@ inline void ksl_product_RRzinverse(
   double dc[2],
   ksl_mat3x3_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3_t));
-  cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
-  cblas_daxpy(3, -dc[0], ((double*)ri) + 3, 1, (double*)ro, 1);
-  cblas_daxpy(3, dc[0], (double*)ri, 1, ((double*)ro) + 3, 1);
-  cblas_daxpy(3, dc[1], ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
-  cblas_dcopy(3, ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
-
-  // |ro[0 * 3 + 0] ro[0 * 3 + 1] ro[0 * 3 + 2]|   |ri[0 * 3 + 0] ri[0 * 3 + 1] ri[0
-  // * 3 + 2]|   | dc[1] dc[0] 0.0|
-  // |ro[1 * 3 + 0] ro[1 * 3 + 1] ro[1 * 3 + 2]| = |ri[1 * 3 + 0] ri[1 * 3 + 1] ri[1
-  // * 3 + 2]| * |-dc[0] dc[1] 0.0|
-  // |ro[2 * 3 + 0] ro[2 * 3 + 1] ro[2 * 3 + 2]|   |ri[2 * 3 + 0] ri[2 * 3 + 1] ri[2
-  // * 3 + 2]|   |  0.0   0.0  1.0|
-
-  // ro[0 * 3] =  ri[0 * 3] * dc[1] - ri[0 * 3 + 1] * dc[0];
-  // ro[1 * 3] =  ri[1 * 3] * dc[1] - ri[1 * 3 + 1] * dc[0];
-  // ro[2 * 3] =  ri[2 * 3] * dc[1] - ri[2 * 3 + 1] * dc[0];
-
-  // ro[0 * 3 + 1] =  ri[0 * 3] * dc[0] + ri[0 * 3 + 1] * dc[1];
-  // ro[1 * 3 + 1] =  ri[1 * 3] * dc[0] + ri[1 * 3 + 1] * dc[1];
-  // ro[2 * 3 + 1] =  ri[2 * 3] * dc[0] + ri[2 * 3 + 1] * dc[1];
-
-  // cblas_dcopy(3, ri + 2, 3, ro + 2, 3);
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, dc[1], (ksl_vec3_t*)&ro->m00);
+  ksl_axpy_vv(-dc[0], (ksl_vec3_t*)&ri->m01, (ksl_vec3_t*)&ro->m00);
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, dc[0], (ksl_vec3_t*)&ro->m01);
+  ksl_axpy_vv(dc[1], (ksl_vec3_t*)&ri->m01, (ksl_vec3_t*)&ro->m01);
+  memcpy(&ro->m02, &ri->m02, sizeof(ksl_vec3_t));
 }
 
 
@@ -3180,29 +3288,11 @@ inline void ksl_product_RRzinversef(
   float dc[2],
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  memset(ro, 0, sizeof(ksl_mat3x3f_t));
-  cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
-  cblas_saxpy(3, -dc[0], ((float*)ri) + 3, 1, (float*)ro, 1);
-  cblas_saxpy(3, dc[0], (float*)ri, 1, ((float*)ro) + 3, 1);
-  cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
-  cblas_scopy(3, ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
-
-  // |ro[0 * 3 + 0] ro[0 * 3 + 1] ro[0 * 3 + 2]|   |ri[0 * 3 + 0] ri[0 * 3 + 1] ri[0
-  // * 3 + 2]|   | dc[1] dc[0] 0.0|
-  // |ro[1 * 3 + 0] ro[1 * 3 + 1] ro[1 * 3 + 2]| = |ri[1 * 3 + 0] ri[1 * 3 + 1] ri[1
-  // * 3 + 2]| * |-dc[0] dc[1] 0.0|
-  // |ro[2 * 3 + 0] ro[2 * 3 + 1] ro[2 * 3 + 2]|   |ri[2 * 3 + 0] ri[2 * 3 + 1] ri[2
-  // * 3 + 2]|   |  0.0   0.0  1.0|
-
-  // ro[0 * 3] =  ri[0 * 3] * dc[1] - ri[0 * 3 + 1] * dc[0];
-  // ro[1 * 3] =  ri[1 * 3] * dc[1] - ri[1 * 3 + 1] * dc[0];
-  // ro[2 * 3] =  ri[2 * 3] * dc[1] - ri[2 * 3 + 1] * dc[0];
-
-  // ro[0 * 3 + 1] =  ri[0 * 3] * dc[0] + ri[0 * 3 + 1] * dc[1];
-  // ro[1 * 3 + 1] =  ri[1 * 3] * dc[0] + ri[1 * 3 + 1] * dc[1];
-  // ro[2 * 3 + 1] =  ri[2 * 3] * dc[0] + ri[2 * 3 + 1] * dc[1];
-
-  // cblas_dcopy(3, ri + 2, 3, ro + 2, 3);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, dc[1], (ksl_vec3f_t*)&ro->m00);
+  ksl_axpy_vvf(-dc[0], (ksl_vec3f_t*)&ri->m01, (ksl_vec3f_t*)&ro->m00);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, dc[0], (ksl_vec3f_t*)&ro->m01);
+  ksl_axpy_vvf(dc[1], (ksl_vec3f_t*)&ri->m01, (ksl_vec3f_t*)&ro->m01);
+  memcpy(&ro->m02, &ri->m02, sizeof(ksl_vec3f_t));
 }
 
 
@@ -3218,44 +3308,53 @@ Computes the product of two general rotation matrices, R1i and R2i.
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void ksl_product_RR(
-  ksl_mat3x3_t* __restrict__ R1i,
-  ksl_mat3x3_t* __restrict__ R2i,
+  ksl_mat3x3_t* __restrict__ r1i,
+  ksl_mat3x3_t* __restrict__ r2i,
   ksl_mat3x3_t* __restrict__ ro) {
 
-  cblas_dgemm(
-    CblasColMajor,
-    CblasNoTrans,
-    CblasNoTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (double*)R1i,
-    3,
-    (double*)R2i,
-    3,
-    0.0,
-    (double*)ro,
-    3);
-  // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[0][1] R1i[0][2]|   |R2i[0][0]
-  // R2i[0][1] R2i[0][2]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |R1i[1][0] R1i[1][1] R1i[1][2]| * |R2i[1][0]
-  // R2i[1][1] R2i[1][2]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |R1i[2][0] R1i[2][1] R1i[2][2]|   |R2i[2][0]
-  // R2i[2][1] R2i[2][2]|
+  memset(ro, 0, sizeof(ksl_mat3x3_t));
 
-  // ro[0][0] = R1i[0][0] * R2i[0][0] + R1i[0][1] * R2i[1][0] + R1i[0][2] *
-  // R2i[2][0];
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m00 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m01 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m02 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, 2, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m10 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m11 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m12 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, 2, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m20 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m21 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m22 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, 2, i);
+  }
+
+  // ro[0][0] = R1i[0][0] * R2i[0][0] + R1i[0][1] * R2i[1][0] + R1i[0][2] * r2i[2][0];
   // ro[0][1] = R1i[0][0] * R2i[0][1] + R1i[0][1] * R2i[1][1] + R1i[0][2] *
   // R2i[2][1];
   // ro[0][2] = R1i[0][0] * R2i[0][2] + R1i[0][1] * R2i[1][2] + R1i[0][2] *
   // R2i[2][2];
+
   // ro[1][0] = R1i[1][0] * R2i[0][0] + R1i[1][1] * R2i[1][0] + R1i[1][2] *
   // R2i[2][0];
   // ro[1][1] = R1i[1][0] * R2i[0][1] + R1i[1][1] * R2i[1][1] + R1i[1][2] *
   // R2i[2][1];
   // ro[1][2] = R1i[1][0] * R2i[0][2] + R1i[1][1] * R2i[1][2] + R1i[1][2] *
   // R2i[2][2];
+
   // ro[2][0] = R1i[2][0] * R2i[0][0] + R1i[2][1] * R2i[1][0] + R1i[2][2] *
   // R2i[2][0];
   // ro[2][1] = R1i[2][0] * R2i[0][1] + R1i[2][1] * R2i[1][1] + R1i[2][2] *
@@ -3277,25 +3376,40 @@ Computes the product of two general rotation matrices, R1i and R2i.
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void ksl_product_RRf(
-  ksl_mat3x3f_t* __restrict__ R1i,
-  ksl_mat3x3f_t* __restrict__ R2i,
+  ksl_mat3x3f_t* __restrict__ r1i,
+  ksl_mat3x3f_t* __restrict__ r2i,
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  cblas_sgemm(
-    CblasColMajor,
-    CblasNoTrans,
-    CblasNoTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (float*)R1i,
-    3,
-    (float*)R2i,
-    3,
-    0.0,
-    (float*)ro,
-    3);
+  memset(ro, 0, sizeof(ksl_mat3x3f_t));
+
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m00 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m01 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m02 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, 2, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m10 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m11 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m12 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, 2, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m20 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m21 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m22 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, 2, i);
+  }
+
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[0][1] R1i[0][2]|   |R2i[0][0]
   // R2i[0][1] R2i[0][2]|
   // |ro[1][0] ro[1][1] ro[1][2]| = |R1i[1][0] R1i[1][1] R1i[1][2]| * |R2i[1][0]
@@ -3337,25 +3451,51 @@ of a second rotation matrix, R2i.
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void ksl_product_RRinverse(
-  ksl_mat3x3_t* __restrict__ R1i,
-  ksl_mat3x3_t* __restrict__ R2i,
+  ksl_mat3x3_t* __restrict__ r1i,
+  ksl_mat3x3_t* __restrict__ r2i,
   ksl_mat3x3_t* __restrict__ ro) {
 
-  cblas_dgemm(
-    CblasColMajor,
-    CblasNoTrans,
-    CblasTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (double*)R1i,
-    3,
-    (double*)R2i,
-    3,
-    0.0,
-    (double*)ro,
-    3);
+  memset(ro, 0, sizeof(ksl_mat3x3_t));
+
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m00 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, i, 0);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m01 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, i, 1);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m02 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, i, 2);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m10 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, i, 0);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m11 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, i, 1);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m12 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, i, 2);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m20 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, i, 0);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m21 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, i, 1);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m22 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, i, 2);
+  // }
+
+  ksl_axpy_vv(r1i->m00, (ksl_vec3_t*)&r2i->m00, (ksl_vec3_t*)&ro->m00);
+  ksl_axpy_vv(r1i->m01, (ksl_vec3_t*)&r2i->m01, (ksl_vec3_t*)&ro->m00);
+  ksl_axpy_vv(r1i->m02, (ksl_vec3_t*)&r2i->m02, (ksl_vec3_t*)&ro->m00);
+
+  ksl_axpy_vv(r1i->m10, (ksl_vec3_t*)&r2i->m00, (ksl_vec3_t*)&ro->m01);
+  ksl_axpy_vv(r1i->m11, (ksl_vec3_t*)&r2i->m01, (ksl_vec3_t*)&ro->m01);
+  ksl_axpy_vv(r1i->m12, (ksl_vec3_t*)&r2i->m02, (ksl_vec3_t*)&ro->m01);
+
+  ksl_axpy_vv(r1i->m20, (ksl_vec3_t*)&r2i->m00, (ksl_vec3_t*)&ro->m02);
+  ksl_axpy_vv(r1i->m21, (ksl_vec3_t*)&r2i->m01, (ksl_vec3_t*)&ro->m02);
+  ksl_axpy_vv(r1i->m22, (ksl_vec3_t*)&r2i->m02, (ksl_vec3_t*)&ro->m02);
 
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[0][1] R1i[0][2]|   |R2i[0][0]
   // R2i[1][0] R2i[2][0]|
@@ -3399,25 +3539,52 @@ of a second rotation matrix, R2i.
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void ksl_product_RRinversef(
-  ksl_mat3x3f_t* __restrict__ R1i,
-  ksl_mat3x3f_t* __restrict__ R2i,
+  ksl_mat3x3f_t* __restrict__ r1i,
+  ksl_mat3x3f_t* __restrict__ r2i,
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  cblas_sgemm(
-    CblasColMajor,
-    CblasNoTrans,
-    CblasTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (float*)R1i,
-    3,
-    (float*)R2i,
-    3,
-    0.0,
-    (float*)ro,
-    3);
+  memset(ro, 0, sizeof(ksl_mat3x3_t));
+
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m00 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, i, 0);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m01 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, i, 1);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m02 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, i, 2);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m10 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, i, 0);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m11 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, i, 1);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m12 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, i, 2);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m20 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, i, 0);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m21 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, i, 1);
+  // }
+  // for(uint32_t i = 0; i < 3; i++) {
+  //   ro->m22 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, i, 2);
+  // }
+
+  ksl_axpy_vvf(r1i->m00, (ksl_vec3f_t*)&r2i->m00, (ksl_vec3f_t*)&ro->m00);
+  ksl_axpy_vvf(r1i->m01, (ksl_vec3f_t*)&r2i->m01, (ksl_vec3f_t*)&ro->m00);
+  ksl_axpy_vvf(r1i->m02, (ksl_vec3f_t*)&r2i->m02, (ksl_vec3f_t*)&ro->m00);
+
+  ksl_axpy_vvf(r1i->m10, (ksl_vec3f_t*)&r2i->m00, (ksl_vec3f_t*)&ro->m01);
+  ksl_axpy_vvf(r1i->m11, (ksl_vec3f_t*)&r2i->m01, (ksl_vec3f_t*)&ro->m01);
+  ksl_axpy_vvf(r1i->m12, (ksl_vec3f_t*)&r2i->m02, (ksl_vec3f_t*)&ro->m01);
+
+  ksl_axpy_vvf(r1i->m20, (ksl_vec3f_t*)&r2i->m00, (ksl_vec3f_t*)&ro->m02);
+  ksl_axpy_vvf(r1i->m21, (ksl_vec3f_t*)&r2i->m01, (ksl_vec3f_t*)&ro->m02);
+  ksl_axpy_vvf(r1i->m22, (ksl_vec3f_t*)&r2i->m02, (ksl_vec3f_t*)&ro->m02);
+
 
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[0][1] R1i[0][2]|   |R2i[0][0]
   // R2i[1][0] R2i[2][0]|
@@ -3461,25 +3628,41 @@ a second rotation matrix, R2i.
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void ksl_product_RinverseR(
-  ksl_mat3x3_t* __restrict__ R1i,
-  ksl_mat3x3_t* __restrict__ R2i,
+  ksl_mat3x3_t* __restrict__ r1i,
+  ksl_mat3x3_t* __restrict__ r2i,
   ksl_mat3x3_t* __restrict__ ro) {
 
-  cblas_dgemm(
-    CblasColMajor,
-    CblasTrans,
-    CblasNoTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (double*)R1i,
-    3,
-    (double*)R2i,
-    3,
-    0.0,
-    (double*)ro,
-    3);
+  memset(ro, 0, sizeof(ksl_mat3x3_t));
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m00 += ksl_mat3x3_get(r1i, 0, i) * ksl_mat3x3_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m01 += ksl_mat3x3_get(r1i, 0, i) * ksl_mat3x3_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m02 += ksl_mat3x3_get(r1i, 0, i) * ksl_mat3x3_get(r2i, 2, i);
+  }
+
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m10 += ksl_mat3x3_get(r1i, 1, i) * ksl_mat3x3_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m11 += ksl_mat3x3_get(r1i, 1, i) * ksl_mat3x3_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m12 += ksl_mat3x3_get(r1i, 1, i) * ksl_mat3x3_get(r2i, 2, i);
+  }
+
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m20 += ksl_mat3x3_get(r1i, 2, i) * ksl_mat3x3_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m21 += ksl_mat3x3_get(r1i, 2, i) * ksl_mat3x3_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m22 += ksl_mat3x3_get(r1i, 2, i) * ksl_mat3x3_get(r2i, 2, i);
+  }
+
 
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[1][0] R1i[2][0]|   |R2i[0][0]
   // R2i[0][1] R2i[0][2]|
@@ -3526,25 +3709,40 @@ a second rotation matrix, R2i.
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void ksl_product_RinverseRf(
-  ksl_mat3x3f_t* __restrict__ R1i,
-  ksl_mat3x3f_t* __restrict__ R2i,
+  ksl_mat3x3f_t* __restrict__ r1i,
+  ksl_mat3x3f_t* __restrict__ r2i,
   ksl_mat3x3f_t* __restrict__ ro) {
 
-  cblas_sgemm(
-    CblasColMajor,
-    CblasTrans,
-    CblasNoTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (float*)R1i,
-    3,
-    (float*)R2i,
-    3,
-    0.0,
-    (float*)ro,
-    3);
+  memset(ro, 0, sizeof(ksl_mat3x3f_t));
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m00 += ksl_mat3x3f_get(r1i, 0, i) * ksl_mat3x3f_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m01 += ksl_mat3x3f_get(r1i, 0, i) * ksl_mat3x3f_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m02 += ksl_mat3x3f_get(r1i, 0, i) * ksl_mat3x3f_get(r2i, 2, i);
+  }
+
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m10 += ksl_mat3x3f_get(r1i, 1, i) * ksl_mat3x3f_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m11 += ksl_mat3x3f_get(r1i, 1, i) * ksl_mat3x3f_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m12 += ksl_mat3x3f_get(r1i, 1, i) * ksl_mat3x3f_get(r2i, 2, i);
+  }
+
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m20 += ksl_mat3x3f_get(r1i, 2, i) * ksl_mat3x3f_get(r2i, 0, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m21 += ksl_mat3x3f_get(r1i, 2, i) * ksl_mat3x3f_get(r2i, 1, i);
+  }
+  for(uint32_t i = 0; i < 3; i++) {
+    ro->m22 += ksl_mat3x3f_get(r1i, 2, i) * ksl_mat3x3f_get(r2i, 2, i);
+  }
 
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[1][0] R1i[2][0]|   |R2i[0][0]
   // R2i[0][1] R2i[0][2]|
@@ -3595,10 +3793,9 @@ is equivalent to:
 inline void ksl_product_Rvx(
   ksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(double));
-  cblas_daxpy(3, *ti, (double*)ri, 1, (double*)to, 1);
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, *ti, to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   | ti|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0|
@@ -3630,10 +3827,9 @@ is equivalent to:
 inline void ksl_product_Rvxf(
   ksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(float));
-  cblas_saxpy(3, *ti, (float*)ri, 1, (float*)to, 1);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, *ti, to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   | ti|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0|
@@ -3665,10 +3861,9 @@ is equivalent to:
 inline void ksl_product_Rvxinverse(
   ksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(double));
-  cblas_daxpy(3, -(*ti), (double*)ri, 1, (double*)to, 1);
+  ksl_product_vk((ksl_vec3_t*)&ri->m00, -(*ti), to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |-ti|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0|
@@ -3700,10 +3895,10 @@ is equivalent to:
 inline void ksl_product_Rvxinversef(
   ksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(float));
-  cblas_saxpy(3, -(*ti), (float*)ri, 1, (float*)to, 1);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m00, -(*ti), to);
+
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |-ti|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0|
@@ -3734,10 +3929,9 @@ is equivalent to:
 inline void ksl_product_Rvy(
   ksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(double));
-  cblas_daxpy(3, *ti, ((double*)ri) + 3, 1, (double*)to, 1);
+  ksl_product_vk((ksl_vec3_t*)&ri->m01, *ti, to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |0.0|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * | ti|
@@ -3768,10 +3962,9 @@ is equivalent to:
 inline void ksl_product_Rvyf(
   ksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(float));
-  cblas_saxpy(3, *ti, ((float*)ri) + 3, 1, (float*)to, 1);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m01, *ti, to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |0.0|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * | ti|
@@ -3802,10 +3995,9 @@ is equivalent to:
 inline void ksl_product_Rvyinverse(
   ksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(double));
-  cblas_daxpy(3, -(*ti), ((double*)ri) + 3, 1, (double*)to, 1);
+  ksl_product_vk((ksl_vec3_t*)&ri->m01, -(*ti), to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |0.0|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |-ti|
@@ -3836,10 +4028,10 @@ is equivalent to:
 inline void ksl_product_Rvyinversef(
   ksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(float));
-  cblas_saxpy(3, -(*ti), ((float*)ri) + 3, 1, (float*)to, 1);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m01, -(*ti), to);
+
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |0.0|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |-ti|
@@ -3871,10 +4063,9 @@ is equivalent to:
 inline void ksl_product_Rvz(
   ksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(double));
-  cblas_daxpy(3, *ti, ((double*)ri) + 6, 1, (double*)to, 1);
+  ksl_product_vk((ksl_vec3_t*)&ri->m02, *ti, to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |0.0|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0|
@@ -3905,10 +4096,9 @@ is equivalent to:
 inline void ksl_product_Rvzf(
   ksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(float));
-  cblas_saxpy(3, *ti, ((float*)ri) + 6, 1, (float*)to, 1);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m02, *ti, to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |0.0|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0|
@@ -3939,10 +4129,9 @@ is equivalent to:
 inline void ksl_product_Rvzinverse(
   ksl_mat3x3_t* __restrict__ ri,
   double* __restrict__ ti,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(double));
-  cblas_daxpy(3, -(*ti), ((double*)ri) + 6, 1, (double*)to, 1);
+  ksl_product_vk((ksl_vec3_t*)&ri->m02, -(*ti), to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |0.0|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0|
@@ -3974,10 +4163,9 @@ is equivalent to:
 inline void ksl_product_Rvzinversef(
   ksl_mat3x3f_t* __restrict__ ri,
   float* __restrict__ ti,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
-  memset(to, 0, 3 * sizeof(float));
-  cblas_saxpy(3, -(*ti), ((float*)ri) + 6, 1, (float*)to, 1);
+  ksl_product_vkf((ksl_vec3f_t*)&ri->m02, -(*ti), to);
 
   // |to[0]|   |ri[0][0] ri[0][1] ri[0][2]|   |0.0|
   // |to[1]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0|
@@ -4014,9 +4202,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvx(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
   ksl_copy_vv(t1i, to);
   to->x += *t2i;
@@ -4041,9 +4229,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvxf(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
   ksl_copy_vvf(t1i, to);
   to->x += *t2i;
@@ -4069,9 +4257,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvxinverse(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
   ksl_copy_vv(t1i, to);
   to->x -= *t2i;
@@ -4100,9 +4288,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvxinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
   ksl_copy_vvf(t1i, to);
   to->x -= *t2i;
@@ -4131,9 +4319,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvy(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
   ksl_copy_vv(t1i, to);
   to->y += *t2i;
@@ -4163,9 +4351,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvyf(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
   ksl_copy_vvf(t1i, to);
   to->y += *t2i;
@@ -4195,9 +4383,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvyinverse(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
   ksl_copy_vv(t1i, to);
   to->y -= *t2i;
@@ -4227,9 +4415,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvyinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
   ksl_copy_vvf(t1i, to);
   to->y -= *t2i;
@@ -4259,9 +4447,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvz(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
   ksl_copy_vv(t1i, to);
   to->z += *t2i;
@@ -4291,9 +4479,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvzf(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
   ksl_copy_vvf(t1i, to);
   to->z += *t2i;
@@ -4323,9 +4511,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvzinverse(
-  ksl_vector_t* __restrict__ t1i,
+  ksl_vec3_t* __restrict__ t1i,
   double* __restrict__ t2i,
-  ksl_vector_t* __restrict__ to) {
+  ksl_vec3_t* __restrict__ to) {
 
   ksl_copy_vv(t1i, to);
   to->z -= *t2i;
@@ -4354,9 +4542,9 @@ is equivalent to:
 @param to a pointer to a general 3-d translation where the result is stored.
 */
 inline void ksl_add_vvzinversef(
-  ksl_vectorf_t* __restrict__ t1i,
+  ksl_vec3f_t* __restrict__ t1i,
   float* __restrict__ t2i,
-  ksl_vectorf_t* __restrict__ to) {
+  ksl_vec3f_t* __restrict__ to) {
 
   ksl_copy_vvf(t1i, to);
   to->z -= *t2i;
@@ -4749,17 +4937,11 @@ inline void ksl_product_DDrzinversef(
 */
 inline void ksl_product_Dv(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
 
-  ksl_product_Rv(&(Di->R), vi, vo);
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    (double*)vo,
-    1);
+  ksl_product_Rv(&Di->R, vi, vo);
+  ksl_addequal_vv(&Di->t, vo);
 }
 
 
@@ -4773,11 +4955,11 @@ with a vector
 */
 inline void ksl_product_Dinversev(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
-  ksl_vector_t* __restrict__ vo) {
+  ksl_vec3_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vo) {
 
 
-  ksl_vector_t temp;
+  ksl_vec3_t temp;
 
   /* R^-1 * t -> temp*/
   ksl_product_Rinversev(
@@ -4789,13 +4971,8 @@ inline void ksl_product_Dinversev(
   ksl_product_Rinversev(&(Di->R), vi, vo);
 
   /* vo -= temp */
-  cblas_daxpy(
-    3,
-    -1.0,
-    (double*)&temp,
-    1,
-    (double*)vo,
-    1);
+  ksl_subtractequal_vv(&Di->t, vo);
+  ksl_subtractequal_vv(&temp, vo);
 }
 
 
@@ -4816,18 +4993,13 @@ Computes the result of a general displacement, followed by a general
 */
 inline void ksl_product_DDt(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   ksl_displacement_t* __restrict__ Do) {
 
-  cblas_dcopy(9, (double*)Di, 1, (double*)Do, 1);
+  ksl_copy_R(&(Di->R), &(Do->R));
   ksl_product_Rv(&(Di->R), vi, &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&Di->t, &Do->t);
+
 }
 
 /*!
@@ -4847,18 +5019,12 @@ a general 3-d translation.
 */
 inline void ksl_product_DDtinverse(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   ksl_displacement_t* __restrict__ Do) {
 
-  cblas_dcopy(9, (double*)Di, 1, (double*)Do, 1);
+  ksl_copy_R(&(Di->R), &(Do->R));
   ksl_product_Rvinverse(&(Di->R), vi, &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&Di->t, &Do->t);
 }
 
 /*!
@@ -4878,18 +5044,12 @@ Computes the result of a general displacement, followed by a general
 */
 inline void ksl_product_DDtf(
   ksl_displacementf_t* __restrict__ Di,
-  ksl_vectorf_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vi,
   ksl_displacementf_t* __restrict__ Do) {
 
-  cblas_scopy(9, (float*)Di, 1, (float*)Do, 1);
+  ksl_copy_Rf(&(Di->R), &(Do->R));
   ksl_product_Rvf(&(Di->R), vi, &(Do->t));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  ksl_addequal_vvf(&Di->t, &Do->t);
 }
 
 
@@ -4912,7 +5072,7 @@ Can be split in to:
 */
 inline void ksl_product_DinverseDt(
   ksl_displacement_t* __restrict__ Di,
-  ksl_vector_t* __restrict__ vi,
+  ksl_vec3_t* __restrict__ vi,
   ksl_displacement_t* __restrict__ Do) {
 
   ksl_subtract_vv(vi, &(Di->t), &(Do->t));
@@ -4940,7 +5100,7 @@ Can be split in to:
 */
 inline void ksl_product_DDtinversef(
   ksl_displacementf_t* __restrict__ Di,
-  ksl_vectorf_t* __restrict__ vi,
+  ksl_vec3f_t* __restrict__ vi,
   ksl_displacementf_t* __restrict__ Do) {
 
   ksl_subtract_vvf(vi, &(Di->t), &(Do->t));
@@ -4971,13 +5131,7 @@ inline void ksl_product_DDtx(
 
   ksl_mat3x3_copy(&(Di->R), &(Do->R));
   ksl_product_Rvx(&(Di->R), ti, &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&Di->t, &Do->t);
 }
 
 
@@ -5002,13 +5156,7 @@ inline void ksl_product_DDtxinverse(
 
   ksl_mat3x3_copy(&(Di->R), &(Do->R));
   ksl_product_Rvxinverse(&(Di->R), ti, &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&Di->t, &Do->t);
 }
 
 
@@ -5033,13 +5181,8 @@ inline void ksl_product_DDtxinversef(
 
   ksl_mat3x3f_copy(&(Di->R), &(Do->R));
   ksl_product_Rvxinversef(&(Di->R), ti, &(Do->t));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  ksl_addequal_vvf(&Di->t, &Do->t);
+
 }
 
 /*!
@@ -5061,13 +5204,8 @@ inline void ksl_product_DDty(
 
   ksl_mat3x3_copy(&(Di->R), &(Do->R));
   ksl_product_Rvy(&(Di->R), ti, &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&Di->t, &Do->t);
+
 }
 
 
@@ -5090,13 +5228,7 @@ inline void ksl_product_DDtyf(
 
   ksl_mat3x3f_copy(&(Di->R), &(Do->R));
   ksl_product_Rvyf(&(Di->R), ti, &(Do->t));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  ksl_addequal_vvf(&Di->t, &Do->t);
 }
 
 
@@ -5122,13 +5254,8 @@ inline void ksl_product_DDtyinverse(
 
   ksl_mat3x3_copy(&(Di->R), &(Do->R));
   ksl_product_Rvyinverse(&(Di->R), ti, &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&Di->t, &Do->t);
+
 }
 
 
@@ -5154,13 +5281,8 @@ inline void ksl_product_DDtyinversef(
 
   ksl_mat3x3f_copy(&(Di->R), &(Do->R));
   ksl_product_Rvyinversef(&(Di->R), ti, &(Do->t));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  ksl_addequal_vvf(&Di->t, &Do->t);
+
 }
 
 
@@ -5186,13 +5308,8 @@ inline void ksl_product_DDtz(
 
   ksl_mat3x3_copy(&(Di->R), &(Do->R));
   ksl_product_Rvz(&(Di->R), ti, &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&Di->t, &Do->t);
+
 }
 
 
@@ -5218,13 +5335,8 @@ inline void ksl_product_DDtzf(
 
   ksl_mat3x3f_copy(&(Di->R), &(Do->R));
   ksl_product_Rvzf(&(Di->R), ti, &(Do->t));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  ksl_addequal_vvf(&Di->t, &Do->t);
+
 }
 
 
@@ -5250,13 +5362,8 @@ inline void ksl_product_DDtzinverse(
 
   ksl_mat3x3_copy(&(Di->R), &(Do->R));
   ksl_product_Rvzinverse(&(Di->R), ti, &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&Di->t, &Do->t);
+
 }
 
 
@@ -5285,7 +5392,8 @@ inline void ksl_product_DD(
 
   ksl_product_RR(&(D1i->R), &(D2i->R), &(Do)->R);
   ksl_product_Rv(&(D1i->R), &(D2i->t), &(Do ->t));
-  cblas_daxpy(3, 1.0, ((double*)D1i) + 9, 1, ((double*)Do) + 9, 1);
+  ksl_addequal_vv(&D1i->t, &Do->t);
+
 }
 
 
@@ -5314,7 +5422,7 @@ inline void ksl_product_DDf(
 
   ksl_product_RRf(&(D1i->R), &(D2i->R), &(Do)->R);
   ksl_product_Rvf(&(D1i->R), &(D2i->t), &(Do ->t));
-  cblas_saxpy(3, 1.0, ((float*)D1i) + 9, 1, ((float*)Do) + 9, 1);
+  ksl_addequal_vvf(&D1i->t, &Do->t);
 }
 
 
@@ -5344,8 +5452,6 @@ inline void ksl_product_DDr(
 
   ksl_product_RR(&Di->R, Ri, &Do->R);
   ksl_copy_vv(&Di->t, &Do->t);
-
-  // cblas_dcopy(3, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 
@@ -5404,7 +5510,7 @@ inline void ksl_product_DDrinverse(
   ksl_displacement_t* __restrict__ Do) {
 
   ksl_product_RRinverse(&(Di->R), Ri, &(Do)->R);
-  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
+  ksl_addequal_vv(&Di->t, &Do->t);
 }
 
 
@@ -5433,7 +5539,7 @@ inline void ksl_product_DDrinversef(
   ksl_displacementf_t* __restrict__ Do) {
 
   ksl_product_RRinversef(&(Di->R), Ri, &(Do)->R);
-  cblas_saxpy(3, 1.0, ((float*)Di) + 9, 1, ((float*)Do) + 9, 1);
+  ksl_addequal_vvf(&Di->t, &Do->t);
 }
 
 
@@ -5463,13 +5569,7 @@ inline void ksl_product_DDinverse(
 
   ksl_product_RRinverse(&(D1i->R), &(D2i->R), &(Do->R));
   ksl_product_Rvinverse(&(Do->R), &(D2i->t), &(Do->t));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)D1i) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  ksl_addequal_vv(&D1i->t, &Do->t);
 }
 
 
@@ -5499,13 +5599,7 @@ inline void ksl_product_DDinversef(
 
   ksl_product_RRinversef(&(D1i->R), &(D2i->R), &(Do->R));
   ksl_product_Rvinversef(&(D1i->R), &(D2i->t), &(Do->t));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)D1i) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  ksl_addequal_vvf(&D1i->t, &Do->t);
 }
 
 
@@ -5535,8 +5629,7 @@ inline void ksl_htx(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  cblas_dcopy(3, (double*)Di, 1, (double*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  memcpy(&ho->v, &Di->R.m00, sizeof(ksl_vec3_t));
 }
 
 
@@ -5557,8 +5650,7 @@ inline void ksl_htxf(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  cblas_scopy(3, (float*)Di, 1, (float*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  memcpy(&ho->v, &Di->R.m00, sizeof(ksl_vec3f_t));
 }
 
 
@@ -5579,8 +5671,7 @@ inline void ksl_hty(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  cblas_dcopy(3, ((double*)Di) + 3, 1, (double*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  memcpy(&ho->v, &Di->R.m01, sizeof(ksl_vec3_t));
 }
 
 
@@ -5601,8 +5692,8 @@ inline void ksl_htyf(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  cblas_scopy(3, ((float*)Di) + 3, 1, (float*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  memcpy(&ho->v, &Di->R.m01, sizeof(ksl_vec3f_t));
+
 }
 
 
@@ -5620,11 +5711,11 @@ operation need not be computed if ho is d to zero.
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
 inline void ksl_htz(
-  ksl_displacement_t* __restrict__ ri,
+  ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  cblas_dcopy(3, ((double*)ri) + 6, 1, (double*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  memcpy(&ho->v, &Di->R.m02, sizeof(ksl_vec3_t));
+
 }
 
 
@@ -5642,11 +5733,11 @@ operation need not be computed if ho is d to zero.
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
 inline void ksl_htzf(
-  ksl_displacementf_t* __restrict__ ri,
+  ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  cblas_scopy(3, ((float*)ri) + 6, 1, (float*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  memcpy(&ho->v, &Di->R.m02, sizeof(ksl_vec3f_t));
+
 }
 
 
@@ -5664,8 +5755,8 @@ inline void ksl_hrx(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  ksl_htx(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  memcpy(&ho->w, &Di->R.m00, sizeof(ksl_vec3_t));
+  ksl_cross_vv(&Di->t, &ho->w, &ho->v);
 }
 
 
@@ -5683,8 +5774,8 @@ inline void ksl_hrxf(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  ksl_htxf(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  memcpy(&ho->w, &Di->R.m00, sizeof(ksl_vec3f_t));
+  ksl_cross_vvf(&Di->t, &ho->w, &ho->v);
 }
 
 
@@ -5702,8 +5793,8 @@ inline void ksl_hry(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  ksl_hty(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  memcpy(&ho->w, &Di->R.m01, sizeof(ksl_vec3_t));
+  ksl_cross_vv(&Di->t, &ho->w, &ho->v);
 }
 
 
@@ -5721,8 +5812,8 @@ inline void ksl_hrz(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  ksl_htz(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  memcpy(&ho->w, &Di->R.m02, sizeof(ksl_vec3_t));
+  ksl_cross_vv(&Di->t, &ho->w, &ho->v);
 }
 
 
@@ -5740,8 +5831,8 @@ inline void ksl_hrzf(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  ksl_htzf(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+    memcpy(&ho->w, &Di->R.m02, sizeof(ksl_vec3f_t));
+    ksl_cross_vvf(&Di->t, &ho->w, &ho->v);
 }
 
 
@@ -5762,8 +5853,9 @@ inline void ksl_htxinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  memset(ho, 0, 3 * sizeof(double));
-  cblas_daxpy(3, -1, (double*)Di, 1, (double*)ho, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)&ho->v)[i] = -((double*)&Di->R.m00)[i];
+  }
 }
 
 
@@ -5785,8 +5877,9 @@ inline void ksl_htxinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  memset(ho, 0, 3 * sizeof(float));
-  cblas_saxpy(3, -1, (float*)Di, 1, (float*)ho, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)&ho->v)[i] = -((float*)&Di->R.m00)[i];
+  }
 }
 
 
@@ -5808,8 +5901,9 @@ inline void ksl_htyinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  memset(ho, 0, 3 * sizeof(double));
-  cblas_daxpy(3, -1, ((double*)Di) + 3, 1, (double*)ho, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)&ho->v)[i] = -((double*)&Di->R.m01)[i];
+  }
 }
 
 
@@ -5831,8 +5925,9 @@ inline void ksl_htyinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  memset(ho, 0, 3 * sizeof(float));
-  cblas_saxpy(3, -1, ((float*)Di) + 3, 1, (float*)ho, 1);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)&ho->v)[i] = -((float*)&Di->R.m01)[i];
+  }
 }
 
 
@@ -5854,18 +5949,9 @@ inline void ksl_htzinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-
-  // ho[0] = -ri[0 * 3 + 2];
-  // ho[1] = -ri[1 * 3 + 2];
-  // ho[2] = -ri[2 * 3 + 2];
-
   for(uint32_t i = 0; i < 3; i++) {
-    ksl_screw_set(ho, i, -ksl_mat3x3_get(&Di->R, i, 2));
+    ((double*)&ho->v)[i] = -((double*)&Di->R.m02)[i];
   }
-
-  /* previously was */
-  // memset(ho, 0, 3 * sizeof(double));
-  // cblas_daxpy(3, -1, ((double*)Di) + 6, 1, (double*)ho, 1);
 }
 
 
@@ -5887,11 +5973,9 @@ inline void ksl_htzinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  memset(ho, 0, 3 * sizeof(float));
-  cblas_saxpy(3, -1, ((float*)Di) + 6, 1, (float*)ho, 1);
-  // ho[0] = -ri[0 * 3 + 2];
-  // ho[1] = -ri[1 * 3 + 2];
-  // ho[2] = -ri[2 * 3 + 2];
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)&ho->v)[i] = -((float*)&Di->R.m02)[i];
+  }
 }
 
 
@@ -5910,8 +5994,10 @@ inline void ksl_hrxinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  ksl_htxinverse(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)&ho->w)[i] = -((double*)&Di->R.m00)[i];
+  }
+  ksl_cross_vv(&(Di->t), &ho->w, &ho->v);
 }
 
 
@@ -5930,8 +6016,10 @@ inline void ksl_hrxinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  ksl_htxinversef(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)&ho->w)[i] = -((float*)&Di->R.m00)[i];
+  }
+  ksl_cross_vvf(&(Di->t), &ho->w, &ho->v);
 }
 
 
@@ -5950,11 +6038,11 @@ inline void ksl_hryinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  ksl_htyinverse(Di, (ksl_screw_t*)((double*)ho + 3));
-  ksl_cross_vv(
-    &(Di->t),
-    (ksl_vector_t*)(((double*)ho) + 3),
-    (ksl_vector_t*)ho);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)&ho->w)[i] = -((double*)&Di->R.m01)[i];
+  }
+  ksl_cross_vv(&(Di->t), &ho->w, &ho->v);
+
 }
 
 
@@ -5973,8 +6061,10 @@ inline void ksl_hryinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  ksl_htyinversef(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)&ho->w)[i] = -((float*)&Di->R.m01)[i];
+  }
+  ksl_cross_vvf(&(Di->t), &ho->w, &ho->v);
 }
 
 
@@ -5993,8 +6083,10 @@ inline void ksl_hrzinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  ksl_htzinverse(Di, (ksl_screw_t*)(((double*)ho) + 3));
-  ksl_cross_vv(&(Di->t), (ksl_vector_t*)(((double*)ho) + 3), (ksl_vector_t*)ho);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((double*)&ho->w)[i] = -((double*)&Di->R.m02)[i];
+  }
+  ksl_cross_vv(&(Di->t), &ho->w, &ho->v);
 }
 
 
@@ -6013,8 +6105,10 @@ inline void ksl_hrzinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  ksl_htzinversef(Di, (ksl_screwf_t*)(((float*)ho) + 3));
-  ksl_cross_vvf(&(Di->t), (ksl_vectorf_t*)(((float*)ho) + 3), (ksl_vectorf_t*)ho);
+  for(uint32_t i = 0; i < 3; i++) {
+    ((float*)&ho->w)[i] = -((float*)&Di->R.m02)[i];
+  }
+  ksl_cross_vvf(&(Di->t), &ho->w, &ho->v);
 }
 
 
@@ -6073,20 +6167,11 @@ inline void ksl_cross_ssf(
   ksl_screwf_t* __restrict__ s2i,
   ksl_screwf_t* __restrict__ so) {
 
-  /* @TODO change to follow convention above to avoid multiple casts,
-  much cleaner! */
-
   /* vo <- w1i x v2i */
-  ksl_cross_vvf(
-    (ksl_vectorf_t*)(((float*)s1i) + 3),
-    (ksl_vectorf_t*)s2i,
-    (ksl_vectorf_t*)(((float*)so)));
+  ksl_cross_vvf(&s1i->w, &s2i->v, &so->v);
 
   /* wo <- w1i x w2i */
-  ksl_cross_vvf(
-    (ksl_vectorf_t*)(((float*)s1i) + 3),
-    (ksl_vectorf_t*)(((float*)s2i) + 3),
-    (ksl_vectorf_t*)(((float*)so) + 3));
+  ksl_cross_vvf(&s1i->w, &s2i->w, &so->w);
 
   /* vo += v1i x w2i */
   so->v.x += s1i->v.y * s2i->w.z - s1i->v.z * s2i->w.y;
@@ -6113,15 +6198,8 @@ inline void ksl_cross_sst(
   ksl_screw_t* __restrict__ s2i,
   ksl_screw_t* __restrict__ so) {
 
-  /* @TODO change to follow convention above to avoid multiple casts,
-  much cleaner! */
-
-
-  ksl_cross_vv(
-    (ksl_vector_t*)(((double*)s1i) + 3),
-    (ksl_vector_t*)s2i,
-    (ksl_vector_t*)so);
-  memset(((double*)so) + 3, 0, 3 * sizeof(double));
+  ksl_cross_vv(&s1i->w, &s2i->v, &so->v);
+  memset(&so->w, 0, sizeof(ksl_vec3_t));
 }
 
 /*!
@@ -6142,15 +6220,9 @@ inline void ksl_cross_sstf(
   ksl_screwf_t* __restrict__ s2i,
   ksl_screwf_t* __restrict__ so) {
 
+  ksl_cross_vvf(&s1i->w, &s2i->v, &so->v);
+  memset(&so->w, 0, sizeof(ksl_vec3_t));
 
-  /* @TODO change to follow convention above to avoid multiple casts,
-  much cleaner! */
-
-  ksl_cross_vvf(
-    (ksl_vectorf_t*)(((float*)s1i) + 3),
-    (ksl_vectorf_t*)s2i,
-    (ksl_vectorf_t*)so);
-  memset(((float*)so) + 3, 0, 3 * sizeof(float));
 }
 
 
@@ -6167,7 +6239,7 @@ and store in so.
 @param so the results are stored in so
 */
 inline void ksl_product_Adts(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so) {
 
@@ -6193,7 +6265,7 @@ and store in so.
 @param so the results are stored in so
 */
 inline void ksl_product_Adtsf(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so) {
 
@@ -6219,7 +6291,7 @@ and store in so.
 @param so the results are stored in so
 */
 inline void ksl_product_Adtinverses(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so) {
 
@@ -6245,7 +6317,7 @@ and store in so.
 @param so the results are stored in so
 */
 inline void ksl_product_Adtinversesf(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so) {
 
@@ -6271,7 +6343,7 @@ and store in so.
 @param so the results are stored in so
 */
 inline void ksl_product_Adtsinverse(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so) {
 
@@ -6296,7 +6368,7 @@ and store in so.
 @param so the results are stored in so
 */
 inline void ksl_product_Adtsinversef(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so) {
 
@@ -6370,7 +6442,6 @@ inline void ksl_product_Adsf(
   ksl_screwf_t* __restrict__ so) {
 
   ksl_product_Adrsf(&(Di->R), si, so);
-
   so->v.x += Di->t.y * so->w.z - Di->t.z * so->w.y;
   so->v.y += Di->t.z * so->w.x - Di->t.x * so->w.z;
   so->v.z += Di->t.x * so->w.y - Di->t.y * so->w.x;
@@ -6453,15 +6524,15 @@ inline void ksl_cross_cc(
   /* @TODO restrict for what types??  */
   // /* vo <- w1 x v2 */
   // ksl_cross_vv(
-  //   (ksl_vector_t*)(((double*)s1i) + 3),
-  //   (ksl_vector_t*)s2i,
-  //   (ksl_vector_t*)so);
+  //   (ksl_vec3_t*)(((double*)s1i) + 3),
+  //   (ksl_vec3_t*)s2i,
+  //   (ksl_vec3_t*)so);
   //
   // /* wo <- v1 x v2 */
   // ksl_cross_vv(
-  //   (ksl_vector_t*)s1i,
-  //   (ksl_vector_t*)((double*)s2i),
-  //   (ksl_vector_t*)(((double*)so) + 3));
+  //   (ksl_vec3_t*)s1i,
+  //   (ksl_vec3_t*)((double*)s2i),
+  //   (ksl_vec3_t*)(((double*)so) + 3));
   //
   // /* wo += w1 x w2 */
   // so->w.x += s1i->w.y * s2i->w.z - s1i->w.z * s2i->w.y;
@@ -6491,15 +6562,15 @@ inline void ksl_cross_ccf(
 
   // /* vo <- w1 x v2 */
   // ksl_cross_vvf(
-  //   (ksl_vectorf_t*)(((float*)s1i) + 3),
-  //   (ksl_vectorf_t*)s2i,
-  //   (ksl_vectorf_t*)so);
+  //   (ksl_vec3f_t*)(((float*)s1i) + 3),
+  //   (ksl_vec3f_t*)s2i,
+  //   (ksl_vec3f_t*)so);
   //
   // /* wo <- v1 x v2 */
   // ksl_cross_vvf(
-  //   (ksl_vectorf_t*)s1i,
-  //   (ksl_vectorf_t*)s2i,
-  //   (ksl_vectorf_t*)(((float*)so) + 3));
+  //   (ksl_vec3f_t*)s1i,
+  //   (ksl_vec3f_t*)s2i,
+  //   (ksl_vec3f_t*)(((float*)so) + 3));
   //
   // /* wo += w1 x w2 */
   // so->w.x += s1i->w.y * s2i->w.z - s1i->w.z * s2i->w.y;
@@ -6520,7 +6591,7 @@ inline void ksl_cross_ccf(
 @param so the results are stored in so
 */
 inline void ksl_product_CoAdtc(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_coscrew_t* __restrict__ ci,
   ksl_coscrew_t* __restrict__ co) {
 
@@ -6546,7 +6617,7 @@ ti^T and store in so.
 @param so the results are stored in so
 */
 inline void ksl_product_CoAdtcf(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_coscrewf_t* __restrict__ ci,
   ksl_coscrewf_t* __restrict__ co) {
 
@@ -6566,7 +6637,7 @@ inline void ksl_product_CoAdtcf(
 \f$ S_i[0:2] \rightarrow S_o[0:2] \f$
 */
 inline void ksl_product_CoAdtcinverse(
-  ksl_vector_t* __restrict__ ti,
+  ksl_vec3_t* __restrict__ ti,
   ksl_coscrew_t* __restrict__ ci,
   ksl_coscrew_t* __restrict__ co) {
 
@@ -6589,7 +6660,7 @@ and store in so.
 \f$ S_i[0:2] \rightarrow S_o[0:2] \f$
 */
 inline void ksl_product_CoAdtcinversef(
-  ksl_vectorf_t* __restrict__ ti,
+  ksl_vec3f_t* __restrict__ ti,
   ksl_coscrewf_t* __restrict__ ci,
   ksl_coscrewf_t* __restrict__ co) {
 
@@ -6716,10 +6787,16 @@ Normalize a quaternion and overwrite.
 @param qi euler parameters to normalize
 */
 void ksl_quaternion_normalize(
-  ksl_quaternion_t* __restrict__ qi) {
-
-  double norm = sqrt(cblas_ddot(4, (double*)qi, 1, (double*)qi, 1));
-  cblas_dscal(4, 1.0 / norm, (double*)qi, 1);
+  ksl_vec4_t* __restrict__ qi) {
+  double norm = 0;
+  for(uint32_t i = 0; i < 4; i++) {
+    norm += ((double*)qi)[i] * ((double*)qi)[i];
+  }
+  assert(norm > 1e-12);
+  norm = 1.0 / sqrt(norm);
+  for(uint32_t i = 0; i < 4; i++) {
+    ((double*)qi)[i] *= norm;
+  }
 }
 
 /*!
@@ -6730,10 +6807,17 @@ Normalize a quaternion and overwrite.
 @param qi euler parameters to normalize
 */
 void ksl_quaternionf_normalize(
-  ksl_quaternionf_t* __restrict__ qi) {
+  ksl_vec4f_t* __restrict__ qi) {
 
-  float norm = sqrt(cblas_sdot(4, (float*)qi, 1, (float*)qi, 1));
-  cblas_sscal(4, 1.0 / norm, (float*)qi, 1);
+  float norm = 0;
+  for(uint32_t i = 0; i < 4; i++) {
+    norm += ((float*)qi)[i] * ((float*)qi)[i];
+  }
+  assert(norm > 1e-12);
+  norm = 1.0 / sqrt(norm);
+  for(uint32_t i = 0; i < 4; i++) {
+    ((float*)qi)[i] *= norm;
+  }
 }
 
 /*!
@@ -6757,7 +6841,7 @@ is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 */
 void ksl_mat3x3_toQuaternion(
   ksl_mat3x3_t* __restrict__ ri,
-  ksl_quaternion_t* __restrict__ qo) {
+  ksl_vec4_t* __restrict__ qo) {
 
   if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
     double p;
@@ -6773,12 +6857,9 @@ void ksl_mat3x3_toQuaternion(
       qo->w = p / 2; // e0
       p = p + p;     // 4e0
 
-      qo->x =
-        (((double*)ri)[2 + 1 * 3] - ((double*)ri)[1 + 2 * 3]) / p; // e1 = 4e0e1/4e0
-      qo->y =
-        (((double*)ri)[0 + 2 * 3] - ((double*)ri)[2 + 0 * 3]) / p; // e2 = 4e0e2/4e0
-      qo->z =
-        (((double*)ri)[1 + 0 * 3] - ((double*)ri)[0 + 1 * 3]) / p; // e3 = 4e0e3/4e0
+      qo->x = (ri->m21 - ri->m12) / p;  // e1 = 4e0e1/4e0
+      qo->y = (ri->m02 - ri->m20) / p;  // e2 = 4e0e2/4e0
+      qo->z = (ri->m10 - ri->m01) / p;  // e3 = 4e0e3/4e0
     }
 
     // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
@@ -6792,9 +6873,9 @@ void ksl_mat3x3_toQuaternion(
       qo->x = p / 2; // e1
       p = p + p;     // 4e1
 
-      qo->w = (((double*)ri)[2 + 1 * 3] - ((double*)ri)[1 + 2 * 3]) / p; // e0 = 4e0e1/4e1
-      qo->y = (((double*)ri)[1 + 0 * 3] + ((double*)ri)[0 + 1 * 3]) / p; // e2 = 4e1e2/4e1
-      qo->z = (((double*)ri)[2 + 0 * 3] + ((double*)ri)[0 + 2 * 3]) / p; // e3 = 4e3e1/4e1
+      qo->w = (ri->m21 - ri->m12) / p; // e0 = 4e0e1/4e1
+      qo->y = (ri->m10 - ri->m01) / p; // e2 = 4e1e2/4e1
+      qo->z = (ri->m20 - ri->m02) / p; // e3 = 4e3e1/4e1
     }
 
     // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
@@ -6808,9 +6889,9 @@ void ksl_mat3x3_toQuaternion(
       qo->y = p / 2; // e2
       p = p + p;     // 4e2
 
-      qo->w = (((double*)ri)[0 + 2 * 3] - ((double*)ri)[2 + 0 * 3]) / p; // e0 = 4e0e2/4e2
-      qo->x = (((double*)ri)[0 + 1 * 3] + ((double*)ri)[1 + 0 * 3]) / p; // e1 = 4e1e2/4e2
-      qo->z = (((double*)ri)[1 + 2 * 3] + ((double*)ri)[2 + 1 * 3]) / p; // e3 = 4e2e3/4e2
+      qo->w = (ri->m02 - ri->m20) / p; // e0 = 4e0e2/4e2
+      qo->x = (ri->m01 - ri->m10) / p; // e1 = 4e1e2/4e2
+      qo->z = (ri->m12 - ri->m21) / p; // e3 = 4e2e3/4e2
     }
 
     // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
@@ -6826,17 +6907,17 @@ void ksl_mat3x3_toQuaternion(
       qo->z = p / 2; // e3
       p = p + p;     // 4e3
 
-      qo->w = (((double*)ri)[1 + 0 * 3] - ((double*)ri)[0 + 1 * 3]) / p; // e0 = 4e0e3/4e3
-      qo->x = (((double*)ri)[0 + 2 * 3] + ((double*)ri)[2 + 0 * 3]) / p; // e1 = 4e3e1/4e3
-      qo->y = (((double*)ri)[2 + 1 * 3] + ((double*)ri)[1 + 2 * 3]) / p; // e2 = 4e2e3/4e3
+      qo->w = (ri->m10 - ri->m01) / p; // e0 = 4e0e3/4e3
+      qo->x = (ri->m02 - ri->m20) / p; // e1 = 4e3e1/4e3
+      qo->y = (ri->m21 - ri->m12) / p; // e2 = 4e2e3/4e3
     }
   }
 
   else {
     qo->w = 0.5;
-    qo->x = copysign(0.5, ((double*)ri)[2 + 1 * 3] - ((double*)ri)[1 + 2 * 3]);
-    qo->y = copysign(0.5, ((double*)ri)[0 + 2 * 3] - ((double*)ri)[2 + 0 * 3]);
-    qo->z = copysign(0.5, ((double*)ri)[1 + 0 * 3] - ((double*)ri)[0 + 1 * 3]);
+    qo->x = copysign(0.5, ri->m21 - ri->m12);
+    qo->y = copysign(0.5, ri->m02 - ri->m20);
+    qo->z = copysign(0.5, ri->m10 - ri->m01);
   }
   return;
 }
@@ -6862,7 +6943,7 @@ is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 */
 void ksl_mat3x3f_toQuaternion(
   ksl_mat3x3f_t* __restrict__ ri,
-  ksl_quaternionf_t* __restrict__ qo) {
+  ksl_vec4f_t* __restrict__ qo) {
 
     if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
       double p;
@@ -6878,16 +6959,12 @@ void ksl_mat3x3f_toQuaternion(
         qo->w = p / 2; // e0
         p = p + p;     // 4e0
 
-        qo->x =
-          (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) / p; // e1 = 4e0e1/4e0
-        qo->y =
-          (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) / p; // e2 = 4e0e2/4e0
-        qo->z =
-          (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) / p; // e3 = 4e0e3/4e0
-      }
+        qo->x = (ri->m21 - ri->m12) / p;  // e1 = 4e0e1/4e0
+        qo->y = (ri->m02 - ri->m20) / p;  // e2 = 4e0e2/4e0
+        qo->z = (ri->m10 - ri->m01) / p;  // e3 = 4e0e3/4e0
 
-      // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-      else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+      } else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+        // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
         // Now p = 2|e1| > 1
         p = sqrt(p + 1);
 
@@ -6897,13 +6974,12 @@ void ksl_mat3x3f_toQuaternion(
         qo->x = p / 2; // e1
         p = p + p;     // 4e1
 
-        qo->w = (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) / p; // e0 = 4e0e1/4e1
-        qo->y = (((float*)ri)[1 + 0 * 3] + ((float*)ri)[0 + 1 * 3]) / p; // e2 = 4e1e2/4e1
-        qo->z = (((float*)ri)[2 + 0 * 3] + ((float*)ri)[0 + 2 * 3]) / p; // e3 = 4e3e1/4e1
-      }
+        qo->w = (ri->m21 - ri->m12) / p; // e0 = 4e0e1/4e1
+        qo->y = (ri->m10 - ri->m01) / p; // e2 = 4e1e2/4e1
+        qo->z = (ri->m20 - ri->m02) / p; // e3 = 4e3e1/4e1
 
-      // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-      else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+      } else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+        // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
         // Now p = 2|e2| > 1
         p = sqrt(p + 1);
 
@@ -6913,13 +6989,12 @@ void ksl_mat3x3f_toQuaternion(
         qo->y = p / 2; // e2
         p = p + p;     // 4e2
 
-        qo->w = (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) / p; // e0 = 4e0e2/4e2
-        qo->x = (((float*)ri)[0 + 1 * 3] + ((float*)ri)[1 + 0 * 3]) / p; // e1 = 4e1e2/4e2
-        qo->z = (((float*)ri)[1 + 2 * 3] + ((float*)ri)[2 + 1 * 3]) / p; // e3 = 4e2e3/4e2
-      }
+        qo->w = (ri->m02 - ri->m20) / p; // e0 = 4e0e2/4e2
+        qo->x = (ri->m01 - ri->m10) / p; // e1 = 4e1e2/4e2
+        qo->z = (ri->m12 - ri->m21) / p; // e3 = 4e2e3/4e2
 
-      // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
-      else {
+      } else {
+        // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
         p = ri->m22 - ri->m00 - ri->m11;
 
         // Now p = 2|e3| > 1
@@ -6931,17 +7006,19 @@ void ksl_mat3x3f_toQuaternion(
         qo->z = p / 2; // e3
         p = p + p;     // 4e3
 
-        qo->w = (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) / p; // e0 = 4e0e3/4e3
-        qo->x = (((float*)ri)[0 + 2 * 3] + ((float*)ri)[2 + 0 * 3]) / p; // e1 = 4e3e1/4e3
-        qo->y = (((float*)ri)[2 + 1 * 3] + ((float*)ri)[1 + 2 * 3]) / p; // e2 = 4e2e3/4e3
+        qo->w = (ri->m10 - ri->m01) / p; // e0 = 4e0e3/4e3
+        qo->x = (ri->m02 - ri->m20) / p; // e1 = 4e3e1/4e3
+        qo->y = (ri->m21 - ri->m12) / p; // e2 = 4e2e3/4e3
+
       }
     }
 
     else {
       qo->w = 0.5;
-      qo->x = copysign(0.5, ((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]);
-      qo->y = copysign(0.5, ((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]);
-      qo->z = copysign(0.5, ((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]);
+      qo->x = copysign(0.5, ri->m21 - ri->m12);
+      qo->y = copysign(0.5, ri->m02 - ri->m20);
+      qo->z = copysign(0.5, ri->m10 - ri->m01);
+
     }
     return;
 }
@@ -6963,8 +7040,8 @@ The Quaternion will be normalized during conversion.
 @param qi euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
 @param ro the resulting rotation matrix is stored in ro
 */
-void ksl_quaternion_toMat3x3(
-  ksl_quaternion_t* __restrict__ qi,
+void ksl_vec4_toMat3x3(
+  ksl_vec4_t* __restrict__ qi,
   ksl_mat3x3_t* __restrict__ ro) {
 
   ksl_quaternion_normalize(qi);
@@ -7011,8 +7088,8 @@ The Quaternion will be normalized during conversion.
 @param qi euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
 @param ro the resulting rotation matrix is stored in ro
 */
-void ksl_quaternionf_toMat3x3f(
-  ksl_quaternionf_t* __restrict__ qi,
+void ksl_vec4f_toMat3x3f(
+  ksl_vec4f_t* __restrict__ qi,
   ksl_mat3x3f_t* __restrict__ ro) {
 
   ksl_quaternionf_normalize(qi);
@@ -7055,18 +7132,18 @@ specific information on the algorithm.
 @param qo the resulting quaternion is returned in qo
 */
 void ksl_quaternion_slerp(
-  ksl_quaternion_t* __restrict__ q1i,
-  ksl_quaternion_t* __restrict__ q2i,
+  ksl_vec4_t* __restrict__ q1i,
+  ksl_vec4_t* __restrict__ q2i,
   double* __restrict__ t,
-  ksl_quaternion_t* __restrict__ qo) {
+  ksl_vec4_t* __restrict__ qo) {
 
-  double cosHalfTheta = cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1);
+  double cosHalfTheta = ksl_dot_qq(q1i, q2i);
 
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if (fabs(cosHalfTheta) >= 1.0){
-    cblas_dcopy(4, (double*)q1i, 1, (double*)qo, 1);
+  if (fabs(cosHalfTheta) >= 1.0) {
+    ksl_copy_qq(q1i, qo);
     return;
   }
 
@@ -7078,8 +7155,8 @@ void ksl_quaternion_slerp(
   */
   memset(qo, 0, 4 * sizeof(double));
   if (fabs(sinHalfTheta) < 0.001){ // fabs is floating point absolute
-    cblas_daxpy(4, 0.5, (double*)q1i, 1, (double*)qo, 1);
-    cblas_daxpy(4, 0.5, (double*)q2i, 1, (double*)qo, 1);
+    ksl_axpy_qq(0.5, q1i, qo);
+    ksl_axpy_qq(0.5, q2i, qo);
     return;
   }
   double ratioA = sin((1 - *t) * halfTheta) / sinHalfTheta;
@@ -7088,8 +7165,8 @@ void ksl_quaternion_slerp(
   /*
     calculate quaternion.
   */
-  cblas_daxpy(4, ratioA, (double*)q1i, 1, (double*)qo, 1);
-  cblas_daxpy(4, ratioB, (double*)q2i, 1, (double*)qo, 1);
+  ksl_axpy_qq(ratioA, q1i, qo);
+  ksl_axpy_qq(ratioB, q2i, qo);
 }
 
 /*!
@@ -7105,18 +7182,18 @@ specific information on the algorithm.
 @param qo the resulting quaternion is returned in qo
 */
 void ksl_quaternionf_slerp(
-  ksl_quaternionf_t* __restrict__ q1i,
-  ksl_quaternionf_t* __restrict__ q2i,
+  ksl_vec4f_t* __restrict__ q1i,
+  ksl_vec4f_t* __restrict__ q2i,
   float* __restrict__ t,
-  ksl_quaternionf_t* __restrict__ qo) {
+  ksl_vec4f_t* __restrict__ qo) {
 
-  float cosHalfTheta = cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1);
+  float cosHalfTheta = ksl_dot_qqf(q1i, q2i);
 
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
   if (fabs(cosHalfTheta) >= 1.0){
-    cblas_scopy(4, (float*)q1i, 1, (float*)qo, 1);
+    ksl_copy_qqf(q1i, qo);
     return;
   }
   float halfTheta = acos(cosHalfTheta);
@@ -7128,8 +7205,8 @@ void ksl_quaternionf_slerp(
   */
   memset(qo, 0, 4 * sizeof(double));
   if (fabs(sinHalfTheta) < 0.001){ // fabs is floating point absolute
-    cblas_saxpy(4, 0.5, (float*)q1i, 1, (float*)qo, 1);
-    cblas_saxpy(4, 0.5, (float*)q2i, 1, (float*)qo, 1);
+    ksl_axpy_qqf(0.5, q1i, qo);
+    ksl_axpy_qqf(0.5, q2i, qo);
     return;
   }
   float ratioA = sin((1 - *t) * halfTheta) / sinHalfTheta;
@@ -7138,8 +7215,8 @@ void ksl_quaternionf_slerp(
   /*
     calculate quaternion.
   */
-  cblas_saxpy(4, ratioA, (float*)q1i, 1, (float*)qo, 1);
-  cblas_saxpy(4, ratioB, (float*)q2i, 1, (float*)qo, 1);
+  ksl_axpy_qqf(ratioA, q1i, qo);
+  ksl_axpy_qqf(ratioB, q2i, qo);
 }
 
 
@@ -7155,38 +7232,40 @@ but does not uint32_terpolate with constant velocity
 @param qo the resulting quaternion is returned in qo
 */
 void ksl_quaternion_nlerp(
-  ksl_quaternion_t* __restrict__ q1i,
-  ksl_quaternion_t* __restrict__ q2i,
+  ksl_vec4_t* __restrict__ q1i,
+  ksl_vec4_t* __restrict__ q2i,
   double* __restrict__ t,
-  ksl_quaternion_t* __restrict__ qo) {
+  ksl_vec4_t* __restrict__ qo) {
 
   if((*t) < 1e-9) {
-    cblas_dcopy(4, (double*)q1i, 1, (double*)qo, 1);
+    ksl_copy_qq(q1i, qo);
     return;
   }
   if((*t) >= 1.0) {
-    cblas_dcopy(4, (double*)q2i, 1, (double*)qo, 1);
+    ksl_copy_qq(q2i, qo);
     return;
   }
   double alpha = 1.0f - *t;
   double omega = *t;
 
-  if(cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1) < 0) omega = -omega;
+  if(ksl_dot_qq(q1i, q2i) < 0) {
+    omega = -omega;
+  }
   /*
-    simple uint32_terpolation doesn't yield quaternions of unit length,
+    simple interpolation doesn't yield quaternions of unit length,
     so must normalize before returning to user
   */
-  memset(qo, 0, 4 * sizeof(double));
-  cblas_daxpy(4, alpha, (double*)q1i, 1, (double*)qo, 1);
-  cblas_daxpy(4, omega, (double*)q2i, 1, (double*)qo, 1);
+  memset(qo, 0, sizeof(ksl_vec4_t));
+  ksl_axpy_qq(alpha, q1i, qo);
+  ksl_axpy_qq(alpha, q2i, qo);
   ksl_quaternion_normalize(qo);
 }
 
 /*!
-@brief Vectorized version of quaternion Linear uint32_terpolation (Lerp)
+@brief quaternion Linear interpolation (Lerp)
 
 Less expensive numerically than Shoemake's Slerp algorithm (ksl_Slerp)
-but does not uint32_terpolate with constant velocity
+but does not interpolate with constant velocity
 
 @param q1i a first quaternion in the form [w,x,y,z] to uint32_terpolate from
 @param q2i a second quaternion in the form [w,x,y,z] to uint32_terpolate to
@@ -7194,26 +7273,29 @@ but does not uint32_terpolate with constant velocity
 @param qo the resulting quaternion is returned in qo
 */
 void ksl_quaternionf_nlerp(
-  ksl_quaternionf_t* __restrict__ q1i,
-  ksl_quaternionf_t* __restrict__ q2i,
+  ksl_vec4f_t* __restrict__ q1i,
+  ksl_vec4f_t* __restrict__ q2i,
   float* __restrict__ t,
-  ksl_quaternionf_t* __restrict__ qo) {
+  ksl_vec4f_t* __restrict__ qo) {
 
   if((*t) < 1e-9) {
-    cblas_scopy(4, (float*)q1i, 1, (float*)qo, 1);
+    ksl_copy_qqf(q1i, qo);
     return;
   }
   if((*t) >= 1.0) {
-    cblas_scopy(4, (float*)q2i, 1, (float*)qo, 1);
+    ksl_copy_qqf(q2i, qo);
     return;
   }
   float alpha = 1.0f - *t;
   float omega = *t;
 
-  if(cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1) < 0) omega = -omega;
-  memset(qo, 0, 4 * sizeof(float));
-  cblas_saxpy(4, alpha, (float*)q1i, 1, (float*)qo, 1);
-  cblas_saxpy(4, omega, (float*)q2i, 1, (float*)qo, 1);
+  if(ksl_dot_qqf(q1i, q2i) < 0) {
+    omega = -omega;
+  }
+
+  memset(qo, 0, sizeof(ksl_vec4f_t));
+  ksl_axpy_qqf(alpha, q1i, qo);
+  ksl_axpy_qqf(alpha, q2i, qo);
   ksl_quaternionf_normalize(qo);
 }
 
@@ -7282,7 +7364,7 @@ float ksl_normalizeRadiansf(
 Caution: atan2(y,x) will return an angle with +-2m*pi accuracy only if the
 sign on x and y are both correct. If x and y are both off by (-1) then
 atan2 will return an angle with accuracy of only +-m*pi. If the sign of
-x and y are uncertain, use the alternate function, catan1pi.
+x and y are uncertain, use the alternate function, ksl_catan1pi.
 
 This function returns a continuous angle obtained from the standard math
 atan2(y,x) function. On input, the argument theta contains the
@@ -7292,10 +7374,10 @@ theta as possible. The assumption is that the current value to be returned
 by catan2() is not more than (+-)pi/4 from the previous value. This should
 be a valid assumption, because angles generally don't change very fast over
 the course of a simulation. Both input arguments x and y must have the
-correct sign for catan2pi to work correctly.
+correct sign for ksl_catan2pi to work correctly.
 
 */
-double catan2pi(
+double ksl_catan2pi(
   double y,
   double x,
   double theta) {
@@ -7346,8 +7428,8 @@ double catan2pi(
 Caution: atan2(y,x) will return an angle with +-2m*pi accuracy only if the
 sign on x and y are both correct. If x and y are both off by (-1) then
 atan2 will return an angle with accuracy of only +-m*pi. If the sign of
-x and y are certain, this or the alternate function, catan2pi will work.
-If the sign of x and y are uncertain, do not use catan2pi.
+x and y are certain, this or the alternate function, ksl_catan2pi will work.
+If the sign of x and y are uncertain, do not use ksl_catan2pi.
 This function returns a continuous angle from the standard
 math atan2(y,x) function. On input, the argument theta contains
 the previous value associated with the angle that is being computed.
@@ -7356,10 +7438,10 @@ theta as possible. The assumption is that the current value to be returned
 by catan2() is not more than (+-)pi/4 from the previous value. This should
 be a valid assumption, because angles generally don't change very fast over
 the course of a simulation. Both input arguments x and y must either
-have the correct sign or be off by the same sign for catan1pia() to work
+have the correct sign or be off by the same sign for ksl_catan1pia() to work
 correctly.
 */
-double catan1pi(
+double ksl_catan1pi(
   double y,
   double x,
   double theta) {
@@ -7410,10 +7492,10 @@ double catan1pi(
 
 This function decomposes a general direction cosine matrix uint32_to three primitive
 direction cosine matrices, whose axes are determined by the uint32_tegers passed
-in through axis (see below). The direction cosine matrix is passed in through ri, and the three computed angles are updated and returned in angle. The previous values assigned to angle are passed in to RtoA in angle. RtoA calls catan2, which uses the values stored in angle to maintain continuity if at all possible.
+in through axis (see below). The direction cosine matrix is passed in through ri, and the three computed angles are updated and returned in angle. The previous values assigned to angle are passed in to RtoA in angle. RtoA calls catan2, which uses the values stored in angle to maintain continuity if  possible.
 
 This function does not check for bad axis indices. These checks could easily
-be added. For actual reporting purposes, especially when a large
+be added. For reporting purposes, especially when a large
 number of user output requests are to be processed, it would be more efficient
 to program four or twelve different functions and have a preprocessor
 generate pointers to the appropriate functions as needed. That way, no logical
@@ -7422,21 +7504,21 @@ tests would have to be performed at runtime, except in the function catan2().
 If four functions were coded, each would handle one of the four Cases below.
 In this case, the if statements would be eliminated, and only the axis indices
 would be needed. If twelve functions were coded, each would handle one of the
-twelve Cases. Again, the if statements would be eliminated, and the axis indices would be hard coded, eliminating the need to pass them in or to perform any other tests.
+twelve Cases.
 
 Used to determine if the next axis is forward '+' or reverse '-' sequence.
 It also identifies index locations in the direction cosine matrix when
 axes are repeated, such as in the sequence 1 --> 2 --> 1.
 
-The function can be modified to decompose a matrix in any sequence of angles by
-by changing "axis", but presently the sequence [rx=0, ry=1, rz=2] is hard coded
-in to the function.
-
+@param [in] rin an SO3 rotation matrix
+@param [in] sequence of euler angles
+@param [in/out] sequence of euler angles from a previous call to this function,
+                this quantity must be initialized
 */
-void ksl_mat3x3_getEulerAngles(
+void ksl_mat3x3_cgetEulerAngles(
   ksl_mat3x3_t* __restrict__ rin,
-  ksl_vector_t* __restrict__ angles,
-  ksl_axis_enum_t axisType) {
+  ksl_axis_enum_t axisType,
+  ksl_vec3_t* __restrict__ angles) {
 
   uint32_t axis[3];
   switch(axisType) {
@@ -7452,8 +7534,8 @@ void ksl_mat3x3_getEulerAngles(
     } break;
     case KSL_AXIS_ZXY: {
       axis[0] = 2;
-      axis[1] = 1;
-      axis[2] = 2;
+      axis[1] = 0;
+      axis[2] = 1;
     } break;
     case KSL_AXIS_XZY: {
       axis[0] = 0;
@@ -7523,59 +7605,342 @@ void ksl_mat3x3_getEulerAngles(
   double c;
   double s;
 
-  /*
-    convert column major ksl_mat3x3_t matrix to row major
-  */
-  double ri[3][3] = {{rin->m00, rin->m01, rin->m02},
-                     {rin->m10, rin->m11, rin->m12},
-                     {rin->m20, rin->m21, rin->m22}};
-
-
   if (j == f[i]) {  // Identifies Cases 1 and 3: forward cycle i --> j
     if (k != i) {//forward cycle j --> k
       // Case 1: 0 --> 1 --> 2; 1 --> 2 --> 0; 2 --> 0 --> 1
-      angles->y = catan1pi(-ri[i][j], ri[i][i], angles->y);
+      // angles->y = ksl_catan1pi(-ri[i][j], ri[i][i], angles->y);
+      angles->y =
+        ksl_catan1pi(
+          -ksl_mat3x3_get(rin, i, j),
+          ksl_mat3x3_get(rin, i, i),
+          angles->y);
+
       c = cos(angles->y);
       s = sin(angles->y);
-      angles->x = catan2pi(ri[k][j]*c + ri[k][i]*s, ri[j][j]*c + ri[j][i]*s, angles->x);
-      angles->y = catan2pi(ri[i][k], ri[i][i]*c - ri[i][j]*s, angles->y);
+      // angles->x = ksl_catan2pi(ri[k][j]*c + ri[k][i]*s, ri[j][j]*c + ri[j][i]*s, angles->x);
+
+      angles->x =
+        ksl_catan2pi(
+          ksl_mat3x3_get(rin, k, j) * c + ksl_mat3x3_get(rin, k, i) * s,
+          ksl_mat3x3_get(rin, j, j) * c + ksl_mat3x3_get(rin, j, i) * s,
+          angles->x);
+
+      // angles->y = ksl_catan2pi(ri[i][k], ri[i][i]*c - ri[i][j]*s, angles->y);
+
+      angles->y =
+        ksl_catan2pi(
+          ksl_mat3x3_get(rin, i, k),
+          ksl_mat3x3_get(rin, i, i) * c + ksl_mat3x3_get(rin, i, j) * s,
+          angles->y);
+
     } else { // k == i; reverse cycle j --> i
       // Case 3: 0 --> 1 --> 0; 1 --> 2 --> 1; 2 --> 0 --> 2
       // Reset k for correct index uint32_to direction cosine matrix.
       k = f[j];
-      angles->z = catan1pi(ri[i][j], ri[i][k], angles->z);
+
+      angles->z =
+        ksl_catan1pi(
+          ksl_mat3x3_get(rin, i, j),
+          ksl_mat3x3_get(rin, i, k),
+          angles->z);
+
+
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(ri[k][j]*c - ri[k][k]*s, ri[j][j]*c - ri[j][k]*s, angles->x);
-      angles->y = catan2pi(ri[i][k]*c + ri[i][j]*s, ri[i][i], angles->y);
+
+      angles->x =
+        ksl_catan2pi(
+          ksl_mat3x3_get(rin, k, j) * c - ksl_mat3x3_get(rin, k, k) * s,
+          ksl_mat3x3_get(rin, j, j) * c + ksl_mat3x3_get(rin, j, k) * s,
+          angles->x);
+
+
+      angles->y =
+        ksl_catan2pi(
+          ksl_mat3x3_get(rin, i, k) * c - ksl_mat3x3_get(rin, i, j) * s,
+          ksl_mat3x3_get(rin, i, i),
+          angles->y);
     }
   } else { // Cases 2 and 4: reverse cycle i --> j
     if (k != i) { //reverse cycle j --> k
       // Case 2: 0 --> 2 --> 1; 1 --> 0 --> 2; 2 --> 1 --> 0
-      angles->z = catan1pi(ri[i][j], ri[i][i], angles->z);
+      angles->z =
+        ksl_catan1pi(
+          ksl_mat3x3_get(rin, i, j),
+          ksl_mat3x3_get(rin, i, i),
+          angles->z);
+
+
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(-(ri[k][j]*c - ri[k][i]*s), ri[j][j]*c - ri[j][i]*s, angles->x);
-      angles->y = catan2pi(-ri[i][k], ri[i][i]*c + ri[i][j]*s, angles->y);
+
+      angles->x =
+        ksl_catan2pi(
+          -(ksl_mat3x3_get(rin, k, j) * c - ksl_mat3x3_get(rin, k, i) * s),
+          ksl_mat3x3_get(rin, j, j) * c + ksl_mat3x3_get(rin, j, i) * s,
+          angles->x);
+
+      angles->y =
+        ksl_catan2pi(
+          -ksl_mat3x3_get(rin, i, k),
+          ksl_mat3x3_get(rin, i, i) * c + ksl_mat3x3_get(rin, i, j) * s,
+          angles->y);
+
+
     } else {// k == i; forward cycle j --> i
       // Case 4: 0 --> 2 --> 0; 1 --> 0 --> 1; 2 --> 1 --> 2
       // Reset k for correct index uint32_to direction cosine matrix.
       k = f[i];
-      angles->z = catan1pi(-ri[i][j], ri[i][k], angles->z);
+      angles->z =
+        ksl_catan1pi(
+          -ksl_mat3x3_get(rin, i, j),
+          ksl_mat3x3_get(rin, i, k),
+          angles->z);
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(-(ri[k][j]*c + ri[k][k]*s), ri[j][j]*c + ri[j][k]*s, angles->x);
-      angles->y = catan2pi(-(ri[i][k]*c - ri[i][j]*s), ri[i][i], angles->y);
+
+      angles->x =
+        ksl_catan2pi(
+          -(ksl_mat3x3_get(rin, k, j) * c + ksl_mat3x3_get(rin, k, k) * s),
+          ksl_mat3x3_get(rin, j, j) * c + ksl_mat3x3_get(rin, j, k) * s,
+          angles->x);
+
+      angles->y =
+        ksl_catan2pi(
+          -(ksl_mat3x3_get(rin, i, k) * c - ksl_mat3x3_get(rin, i, j) * s),
+          ksl_mat3x3_get(rin, i, i),
+          angles->y);
+
     }
   }
 }
+
+
+/*!
+@brief extract Euler angles from a ksl_mat3x3_t rotation matrix
+
+This function decomposes a general direction cosine matrix uint32_to three primitive
+direction cosine matrices, whose axes are determined by the uint32_tegers passed
+in through axis (see below). The direction cosine matrix is passed in through ri, and the three computed angles are updated and returned in angle. The previous values assigned to angle are passed in to RtoA in angle. RtoA calls catan2, which uses the values stored in angle to maintain continuity if  possible.
+
+This function does not check for bad axis indices. These checks could easily
+be added. For reporting purposes, especially when a large
+number of user output requests are to be processed, it would be more efficient
+to program four or twelve different functions and have a preprocessor
+generate pointers to the appropriate functions as needed. That way, no logical
+tests would have to be performed at runtime, except in the function catan2().
+
+If four functions were coded, each would handle one of the four Cases below.
+In this case, the if statements would be eliminated, and only the axis indices
+would be needed. If twelve functions were coded, each would handle one of the
+twelve Cases.
+
+Used to determine if the next axis is forward '+' or reverse '-' sequence.
+It also identifies index locations in the direction cosine matrix when
+axes are repeated, such as in the sequence 1 --> 2 --> 1.
+
+@param [in] rin a 3x3 SO3 rotation matrix
+@param [in] axisType sequence of euler/cardan angles
+@param [out] angles a vector of angles in radians set according to axis type
+
+*/
+void ksl_mat3x3_getEulerAngles(
+  ksl_mat3x3_t* __restrict__ rin,
+  ksl_axis_enum_t axisType,
+  ksl_vec3_t* __restrict__ angles
+) {
+
+  uint32_t axis[3];
+  switch(axisType) {
+    case KSL_AXIS_XYZ: {
+      axis[0] = 0;
+      axis[1] = 1;
+      axis[2] = 2;
+    } break;
+    case KSL_AXIS_YZX: {
+      axis[0] = 1;
+      axis[1] = 2;
+      axis[2] = 0;
+    } break;
+    case KSL_AXIS_ZXY: {
+      axis[0] = 2;
+      axis[1] = 0;
+      axis[2] = 1;
+    } break;
+    case KSL_AXIS_XZY: {
+      axis[0] = 0;
+      axis[1] = 2;
+      axis[2] = 1;
+    } break;
+    case KSL_AXIS_YXZ: {
+      axis[0] = 1;
+      axis[1] = 0;
+      axis[2] = 2;
+    } break;
+    case KSL_AXIS_ZYX: {
+      axis[0] = 2;
+      axis[1] = 1;
+      axis[2] = 0;
+    }break;
+    case KSL_AXIS_XYX: {
+      axis[0] = 0;
+      axis[1] = 1;
+      axis[2] = 0;
+    }break;
+    case KSL_AXIS_XZX: {
+      axis[0] = 0;
+      axis[1] = 2;
+      axis[2] = 0;
+    }break;
+    case KSL_AXIS_YXY: {
+      axis[0] = 1;
+      axis[1] = 0;
+      axis[2] = 1;
+    }break;
+    case KSL_AXIS_YZY: {
+      axis[0] = 1;
+      axis[1] = 2;
+      axis[2] = 1;
+    }break;
+    case KSL_AXIS_ZXZ: {
+      axis[0] = 2;
+      axis[1] = 0;
+      axis[2] = 2;
+    }break;
+    case KSL_AXIS_ZYZ: {
+      axis[0] = 2;
+      axis[1] = 1;
+      axis[2] = 2;
+    }break;
+    default: {
+      axis[0] = 0;
+      axis[1] = 1;
+      axis[2] = 2;
+    }
+  }
+
+  const uint32_t f[3] = {1, 2, 0};
+
+  /*
+    Short notation for the axis identifiers.
+  */
+  uint32_t i = axis[0];
+  uint32_t j = axis[1];
+  uint32_t k = axis[2];
+
+  /*
+    The value of k will be changed in Cases 3 and 4.
+    Temp variables to hold true sin and cos values of third angle.
+  */
+  double c;
+  double s;
+
+  if (j == f[i]) {  // Identifies Cases 1 and 3: forward cycle i --> j
+    if (k != i) {//forward cycle j --> k
+      // Case 1: 0 --> 1 --> 2; 1 --> 2 --> 0; 2 --> 0 --> 1
+      // angles->y = ksl_catan1pi(-ri[i][j], ri[i][i], angles->y);
+      angles->y =
+        ksl_catan1pi(
+          -ksl_mat3x3_get(rin, i, j),
+          ksl_mat3x3_get(rin, i, i),
+          angles->y);
+
+      c = cos(angles->y);
+      s = sin(angles->y);
+      // angles->x = ksl_catan2pi(ri[k][j]*c + ri[k][i]*s, ri[j][j]*c + ri[j][i]*s, angles->x);
+
+      angles->x =
+        atan2(
+          ksl_mat3x3_get(rin, k, j) * c + ksl_mat3x3_get(rin, k, i) * s,
+          ksl_mat3x3_get(rin, j, j) * c + ksl_mat3x3_get(rin, j, i) * s);
+
+      // angles->y = ksl_catan2pi(ri[i][k], ri[i][i]*c - ri[i][j]*s, angles->y);
+
+      angles->y =
+        atan2(
+          ksl_mat3x3_get(rin, i, k),
+          ksl_mat3x3_get(rin, i, i) * c + ksl_mat3x3_get(rin, i, j) * s);
+
+    } else { // k == i; reverse cycle j --> i
+      // Case 3: 0 --> 1 --> 0; 1 --> 2 --> 1; 2 --> 0 --> 2
+      // Reset k for correct index uint32_to direction cosine matrix.
+      k = f[j];
+
+      angles->z =
+        atan2(
+          ksl_mat3x3_get(rin, i, j),
+          ksl_mat3x3_get(rin, i, k));
+
+
+      c = cos(angles->z);
+      s = sin(angles->z);
+
+      angles->x =
+        atan2(
+          ksl_mat3x3_get(rin, k, j) * c - ksl_mat3x3_get(rin, k, k) * s,
+          ksl_mat3x3_get(rin, j, j) * c + ksl_mat3x3_get(rin, j, k) * s);
+
+
+      angles->y =
+        atan2(
+          ksl_mat3x3_get(rin, i, k) * c - ksl_mat3x3_get(rin, i, j) * s,
+          ksl_mat3x3_get(rin, i, i));
+    }
+  } else { // Cases 2 and 4: reverse cycle i --> j
+    if (k != i) { //reverse cycle j --> k
+      // Case 2: 0 --> 2 --> 1; 1 --> 0 --> 2; 2 --> 1 --> 0
+      angles->z =
+        atan2(
+          ksl_mat3x3_get(rin, i, j),
+          ksl_mat3x3_get(rin, i, i));
+
+
+      c = cos(angles->z);
+      s = sin(angles->z);
+
+      angles->x =
+        atan2(
+          -(ksl_mat3x3_get(rin, k, j) * c - ksl_mat3x3_get(rin, k, i) * s),
+          ksl_mat3x3_get(rin, j, j) * c + ksl_mat3x3_get(rin, j, i) * s);
+
+      angles->y =
+        atan2(
+          -ksl_mat3x3_get(rin, i, k),
+          ksl_mat3x3_get(rin, i, i) * c + ksl_mat3x3_get(rin, i, j) * s);
+
+
+    } else {// k == i; forward cycle j --> i
+      // Case 4: 0 --> 2 --> 0; 1 --> 0 --> 1; 2 --> 1 --> 2
+      // Reset k for correct index uint32_to direction cosine matrix.
+      k = f[i];
+      angles->z =
+        atan2(
+          -ksl_mat3x3_get(rin, i, j),
+          ksl_mat3x3_get(rin, i, k));
+      c = cos(angles->z);
+      s = sin(angles->z);
+
+      angles->x =
+        atan2(
+          -(ksl_mat3x3_get(rin, k, j) * c + ksl_mat3x3_get(rin, k, k) * s),
+          ksl_mat3x3_get(rin, j, j) * c + ksl_mat3x3_get(rin, j, k) * s);
+
+      angles->y =
+        atan2(
+          -(ksl_mat3x3_get(rin, i, k) * c - ksl_mat3x3_get(rin, i, j) * s),
+          ksl_mat3x3_get(rin, i, i));
+    }
+  }
+}
+
+
 
 /*! @brief Extract scalar from a uniformly scaled ksl_mat3x3_t matrix
 
 The norm of each column or row of an orthonormal rotation matrix is one.
 Therefore, to find the scale factor for a rotation matrix that has been
 <uniformly> scaled, simply find the norm of any row or column of the rotation
-matrix. Warning, this approach will not work for nonuniform scaling.
+matrix. Note that this approach will not work for nonuniform scaling.
 For nonuniform scaling, one needs to find the eigenvectors using SVD or other means.
 
 */
@@ -7606,9 +7971,9 @@ double ksl_mat3x3_getScalar(
 */
 void ksl_mat4x4_getTranslation(
   ksl_mat4x4_t* __restrict__ Mi,
-  ksl_vector_t* __restrict__ to ) {
+  ksl_vec3_t* __restrict__ to ) {
 
-  cblas_dcopy(3, (double*)Mi + 12, 1, (double*)to, 1);
+  memcpy(to, &Mi->m03, sizeof(ksl_vec3_t));
 }
 
 /*!
@@ -7616,9 +7981,9 @@ void ksl_mat4x4_getTranslation(
 */
 void ksl_mat4x4f_getTranslation(
   ksl_mat4x4f_t* __restrict__ Mi,
-  ksl_vectorf_t* __restrict__ to ) {
+  ksl_vec3f_t* __restrict__ to ) {
 
-  cblas_scopy(3, (float*)Mi + 12, 1, (float*)to, 1);
+  memcpy(to, &Mi->m03, sizeof(ksl_vec3f_t));
 }
 
 /*!
@@ -7626,15 +7991,15 @@ void ksl_mat4x4f_getTranslation(
 change in quaternion), add incremental change to an input quaternion
 */
 void ksl_add_dpiToq(
-  ksl_vector_t* __restrict__ dpi,
-  ksl_quaternion_t* __restrict__ qi) {
+  ksl_vec3_t* __restrict__ dpi,
+  ksl_vec4_t* __restrict__ qi) {
 
-  ksl_quaternion_t dq;
+  ksl_vec4_t dq;
   dq.x = -qi->w * dpi->x + qi->z * dpi->y - qi->y * dpi->z;
   dq.y = -qi->z * dpi->x - qi->w * dpi->y + qi->x * dpi->z;
   dq.z = qi->y * dpi->x - qi->x * dpi->y - qi->w * dpi->z;
   dq.w = -qi->x * dpi->x - qi->y * dpi->y - qi->z * dpi->z;
-  cblas_daxpy(4, 0.5, (double *)&dq, 1, (double *)qi, 1);
+  ksl_axpy_qq(0.5, &dq, qi);
 }
 
 
@@ -7643,15 +8008,15 @@ void ksl_add_dpiToq(
 change in quaternion), subtract incremental change from an input quaternion
 */
 void ksl_subtract_dpiFromq(
-  ksl_vector_t* __restrict__ dpi,
-  ksl_quaternion_t* __restrict__ qi) {
+  ksl_vec3_t* __restrict__ dpi,
+  ksl_vec4_t* __restrict__ qi) {
 
-  ksl_quaternion_t dq;
+  ksl_vec4_t dq;
   dq.x = -qi->w * dpi->x + qi->z * dpi->y - qi->y * dpi->z;
   dq.y = -qi->z * dpi->x - qi->w * dpi->y + qi->x * dpi->z;
   dq.z = qi->y * dpi->x - qi->x * dpi->y - qi->w * dpi->z;
   dq.w = -qi->x * dpi->x - qi->y * dpi->y - qi->z * dpi->z;
-  cblas_daxpy(4, -0.5, (double *)&dq, 1, (double *)qi, 1);
+  ksl_axpy_qq(-0.5, &dq, qi);
 }
 
 
@@ -7671,9 +8036,9 @@ where \f$\tau=0.5\f$ is hard coded
 @param dqo [out] output quaternion time derivative
 */
 void ksl_omega_to_dquaternion(
-  ksl_vector_t* __restrict__ w,
-  ksl_quaternion_t* __restrict__ qi,
-  ksl_quaternion_t* __restrict__ dqo) {
+  ksl_vec3_t* __restrict__ w,
+  ksl_vec4_t* __restrict__ qi,
+  ksl_vec4_t* __restrict__ dqo) {
 
   /*
     1/2 * [ qi->w  qi->z -qi->y] * {w->x}
@@ -7686,7 +8051,7 @@ void ksl_omega_to_dquaternion(
   dqo->z =  qi->y * w->x - qi->x * w->y + qi->w * w->z;
   dqo->w = -qi->x * w->x - qi->y * w->y - qi->z * w->z;
 
-  cblas_dscal(4, 0.5, (double*)dqo, 1);
+  ksl_vec4_scale(0.5, dqo);
 
   /*
     add feedback term to normalize quaternion
@@ -7695,8 +8060,7 @@ void ksl_omega_to_dquaternion(
   /*
     if tau is 0.5
   */
-  double alpha =
-    1.0 - cblas_ddot(4, (double*)qi, 1, (double*)qi, 1);
+  double alpha = 1.0 - ksl_dot_qq(qi, qi);
 
   /*
     if tau is not 0.5
@@ -7706,7 +8070,7 @@ void ksl_omega_to_dquaternion(
   // double alpha =
   //   coeff * (1 - cblas_ddot(4, (double*)qi, 1, (double*)qi, 1));
 
-  cblas_daxpy(4, alpha, (double*)qi, 1, (double*)dqo, 1);
+  ksl_axpy_qq(alpha, qi, dqo);
 
 }
 
@@ -7734,23 +8098,23 @@ void ksl_array_lerp(
   double* __restrict__ y1,
   double* __restrict__ yOut) {
 
-  /* suggest to keep using blas here, as the array we are normalizing may be
-  large, and benefit from using the blas library */
-
   if(p < 1e-9) {
-    cblas_dcopy(count, y0, 1, yOut, 1);
+    memcpy(yOut, y0, count * sizeof(double));
   } else if(p >= 1.0) {
-    cblas_dcopy(count, y1, 1, yOut, 1);
+    memcpy(yOut, y1, count * sizeof(double));
   }
 
   for(int i = 0; i < count; i++) {
     yOut[i] = y1[i] - y0[i];
   }
 
-  cblas_dscal(count, p, yOut, 1);
+  for(int i = 0; i < count; i++) {
+    yOut[i] *= p;
+  }
 
-  cblas_daxpy(count, 1.0, y0, 1, yOut, 1);
-
+  for(int i = 0; i < count; i++) {
+    yOut[i] += y0[i];
+  }
 }
 
 
@@ -7774,22 +8138,26 @@ void ksl_gramSchmidt(
   const uint32_t n,
   double* __restrict__ A) {
 
-  /* @TODO get rid of blas calls here */
   for(int k = 0; k < n; k++) {
+
     /* normalize column k */
-    double R = 1.0 / cblas_dnrm2(m, A + k, n);
-    cblas_dscal(
-      m,
-      R,
-      A + k,
-      n);
+    double r = 0;
+    for(int i = 0; i < m; i++) {
+      r += A[i * m + k] * A[i * m + k];
+    }
+    r = 1.0 / sqrt(r);
+
+    for(int i = 0; i < n; i++) {
+      A[i * m + k] *= r;
+    }
+
     for(int j = k + 1; j < n; j++) {
-      R = 0;
+      r = 0;
       for(int i = 0; i < m; i++) {
-        R += A[i * n + k] * A[i * n + j];
+        r += A[i * n + k] * A[i * n + j];
       }
       for(int i = 0; i < m; i++) {
-        A[i * n + j] -= A[i * n + k] * R;
+        A[i * n + j] -= A[i * n + k] * r;
       }
     }
   }
@@ -7827,7 +8195,7 @@ if sin is close to 0, the axis of rotation is not well defined.
 */
 inline void ksl_mat3x3_getAxisAngle(
   ksl_mat3x3_t* __restrict__ r,
-  ksl_vector_t* __restrict__ axis,
+  ksl_vec3_t* __restrict__ axis,
   double* __restrict__ angle) {
 
   *angle = acos(0.5 * (r->m00 + r->m11 + r->m22 - 1.0));
@@ -7849,19 +8217,21 @@ inline void ksl_mat3x3_getAxisAngle(
   axis->x = r->m21 - r->m12;
   axis->y = r->m02 - r->m20;
   axis->z = r->m10 - r->m01;
-  ksl_vector_scale(1 / (2 * sin(*angle)), axis);
+  ksl_vec3_scale(1 / (2 * sin(*angle)), axis);
 }
 
 
 /*!
 @brief get axis, angle and pitch of screw motion
 from an SE3 displacement
+
+@TODO work in progress
 */
 inline void ksl_displacement_getScrewAxis(
   ksl_displacement_t* __restrict__ d,
   ksl_screw_t* __restrict__ h) {
 
-  ksl_vector_t rotationAxis;
+  ksl_vec3_t rotationAxis;
   double angle;
   ksl_mat3x3_getAxisAngle(
     &d->R,
