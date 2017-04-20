@@ -25,3 +25,4 @@
 -Isrc/gui
 -Isrc/ksl
 -Isrc/ode
+-I/usr/include/ImageMagick-6
