@@ -134,7 +134,7 @@ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
 DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS const uint32_tERRUPTION)
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS const size_tERRUPTION)
 HOWEVER CAUSED AND ON ANY THqoRY OF LIABILITY, WHETHER IN CONTRACT, STRICT
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
@@ -288,34 +288,34 @@ void ksl_mat4x4f_print(
 
 void ksl_array_print(
   FILE* f,
-  const uint32_t n,
+  const size_t n,
   double* __restrict__ a);
 
 void ksl_array2D_print(
   FILE* f,
-  const uint32_t rowDim,
-  const uint32_t colDim,
+  const size_t rowDim,
+  const size_t colDim,
   ksl_matrix_enum_t matrixType,
   double* __restrict__ a);
 
 void ksl_arrayi_print(
   FILE* f,
-  const uint32_t n,
+  const size_t n,
   int* __restrict__ a);
 
 void ksl_triang_print(
   FILE* f,
-  const uint32_t n,
+  const size_t n,
   double* __restrict__ a);
 
 void ksl_triangi_print(
   FILE* f,
-  const uint32_t n,
+  const size_t n,
   int* __restrict__ a);
 
 void ksl_triangb_print(
   FILE* f,
-  const uint32_t n,
+  const size_t n,
   bool* __restrict__ a);
 
 void ksl_dc(
@@ -330,17 +330,17 @@ void ksl_mat3x3_setIdentity(
 
 void ksl_vec3_set(
   ksl_vec3_t* __restrict__ v,
-  const uint32_t index,
+  const size_t index,
   const double value);
 
 void ksl_screw_set(
   ksl_screw_t* __restrict__ s,
-  const uint32_t index,
+  const size_t index,
   const double value);
 
 void ksl_coscrew_set(
   ksl_coscrew_t* __restrict__ s,
-  const uint32_t index,
+  const size_t index,
   const double value);
 
 double ksl_vec3_l2norm(
@@ -375,8 +375,8 @@ float ksl_coscrewf_norm(
 
 void ksl_mat3x3_set(
   ksl_mat3x3_t* __restrict__ R,
-  const uint32_t row,
-  const uint32_t column,
+  const size_t row,
+  const size_t column,
   const double value);
 
 void ksl_mat3x3_setFromVectors(
@@ -387,41 +387,41 @@ void ksl_mat3x3_setFromVectors(
 
 void ksl_mat4x4_set(
   ksl_mat4x4_t* __restrict__ D,
-  const uint32_t row,
-  const uint32_t column,
+  const size_t row,
+  const size_t column,
   const double value);
 
 void ksl_displacement_set(
   ksl_displacement_t* __restrict__ D,
-  const uint32_t row,
-  const uint32_t column,
+  const size_t row,
+  const size_t column,
   const double value);
 
 void ksl_vec3f_set(
   ksl_vec3f_t* __restrict__ v,
-  const uint32_t index,
+  const size_t index,
   const float value);
 
 void ksl_screwf_set(
   ksl_screwf_t* __restrict__ s,
-  const uint32_t index,
+  const size_t index,
   const float value);
 
 void ksl_coscrewf_set(
   ksl_coscrewf_t* __restrict__ c,
-  const uint32_t index,
+  const size_t index,
   const float value);
 
 void ksl_mat3x3f_set(
   ksl_mat3x3f_t* __restrict__ R,
-  const uint32_t row,
-  const uint32_t column,
+  const size_t row,
+  const size_t column,
   const float value);
 
 void ksl_mat4x4f_set(
   ksl_mat4x4f_t* __restrict__ D,
-  const uint32_t row,
-  const uint32_t column,
+  const size_t row,
+  const size_t column,
   const float value);
 
 void ksl_mat4x4f_setIdentity(
@@ -429,43 +429,43 @@ void ksl_mat4x4f_setIdentity(
 
 void ksl_displacementf_set(
   ksl_displacementf_t* __restrict__ D,
-  const uint32_t row,
-  const uint32_t column,
+  const size_t row,
+  const size_t column,
   const float value);
 
 double ksl_vec3_get(
   ksl_vec3_t* __restrict__ v,
-  const uint32_t index);
+  const size_t index);
 
 double ksl_screw_get(
   ksl_screw_t* __restrict__ s,
-  const uint32_t index);
+  const size_t index);
 
 double ksl_coscrew_get(
   ksl_coscrew_t* __restrict__ c,
-  const uint32_t index);
+  const size_t index);
 
 double ksl_mat3x3_get(
   ksl_mat3x3_t* __restrict__ R,
-  const uint32_t row,
-  const uint32_t column);
+  const size_t row,
+  const size_t column);
 
 double ksl_displacement_get(
   ksl_displacement_t* __restrict__ D,
-  const uint32_t row,
-  const uint32_t column);
+  const size_t row,
+  const size_t column);
 
 float ksl_vec3f_get(
   ksl_vec3f_t* __restrict__ v,
-  const uint32_t index);
+  const size_t index);
 
 float ksl_screwf_get(
   ksl_screwf_t* __restrict__ s,
-  const uint32_t index);
+  const size_t index);
 
 float ksl_coscrewf_get(
   ksl_coscrewf_t* __restrict__ c,
-  const uint32_t index);
+  const size_t index);
 
 void ksl_displacement_getTranslation(
   ksl_displacement_t* __restrict__ D,
@@ -1554,19 +1554,19 @@ void ksl_omega_to_dquaternion(
   ksl_vec4_t* __restrict__ dqo);
 
 void ksl_array_lerp(
-  const uint32_t qCount,
+  const size_t qCount,
   const double p,
   double* __restrict__ y0,
   double* __restrict__ y1,
   double* __restrict__ yOut);
 
 void ksl_gramSchmidt(
-  const uint32_t m,
-  const uint32_t n,
+  const size_t m,
+  const size_t n,
   double* __restrict__ A);
 
 bool ksl_all_close(
-  const uint32_t count,
+  const size_t count,
   double* __restrict__ a1,
   double* __restrict__ a2);
 
