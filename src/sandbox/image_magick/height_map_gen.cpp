@@ -50,19 +50,22 @@ int main(int argc, char** argv) {
   int h = test.rows();
   Magick::PixelPacket *pixels = test.getPixels(0, 0, w, h);
 
-  double map[test.rows() * test.columns()];
+  double map2[test.rows() * test.columns()];
 
   float min = 0;
   float max = 1;
 
-  for(int x = 0; x < heightMap.columns(); x++) {
-    for(int y = 0; y < heightMap.rows(); y++) {
-      Magick::Color val = pixels[w * x + y];
-      min = fmin(min, val.redQuantum());
-      max = fmax(max, val.redQuantum());
-
+  for(int y = 0; y < heightMap.rows(); y++) {
+    for(int x = 0; x < heightMap.columns(); x++) {
+      Magick::Color z = pixels[w * x + y];
+      map2[y * heightMap.columns() + x] = z.redQuantum();
+      min = fmin(min, z.redQuantum());
+      max = fmax(max, z.redQuantum());
     }
   }
+
+  double x_offset = 15.0;
+  double y_offset = 30.0;
 
   std::cout << "min" << min << ", max:" << max << std::endl;
 
