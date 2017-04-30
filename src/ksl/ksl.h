@@ -3,7 +3,7 @@
 @brief Kinematics subroutine library: a vectorized math library for kinematics
 and dynamics
 @author Kristopher Wehage, Roger Wehage
-@date 2016
+@date 2017
 @copyright Kristopher Wehage, Roger Wehage
 
 This library contains a collection of functions for performing basic operations
@@ -147,12 +147,6 @@ extern "C" {
 #ifndef _KSL_H_
 #define _KSL_H_
 
-
-// #ifdef __APPLE__
-//   #include <Accelerate/Accelerate.h>
-// #else
-//   #include <cblas.h>
-// #endif
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
