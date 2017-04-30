@@ -140,6 +140,9 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef _KSL_H_
 #define _KSL_H_
@@ -450,6 +453,11 @@ double ksl_mat3x3_get(
   const size_t row,
   const size_t column);
 
+float ksl_mat3x3f_get(
+  ksl_mat3x3f_t* __restrict__ R,
+  const size_t row,
+  const size_t column);
+
 double ksl_displacement_get(
   ksl_displacement_t* __restrict__ D,
   const size_t row,
@@ -492,6 +500,11 @@ void ksl_coscrewf_normalize(
 void ksl_vec3_scale(
   const double k,
   ksl_vec3_t* __restrict__ v);
+
+void ksl_vec4_scale(
+  const double k,
+  ksl_vec4_t* __restrict__ q);
+
 
 void ksl_vec3f_scale(
   const float k,
@@ -1403,6 +1416,16 @@ void ksl_product_Adinversesf(
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so);
 
+void ksl_product_Adrsinverse(
+  ksl_mat3x3_t* __restrict__ ri,
+  ksl_screw_t* __restrict__ si,
+  ksl_screw_t* __restrict__ so);
+
+void ksl_product_Adrsf(
+  ksl_mat3x3f_t* __restrict__ ri,
+  ksl_screwf_t* __restrict__ si,
+  ksl_screwf_t* __restrict__ so);
+
 void ksl_cross_cc(
   ksl_coscrew_t* __restrict__ c1i,
   ksl_coscrew_t* __restrict__ c2i,
@@ -1570,4 +1593,8 @@ bool ksl_all_close(
   double* __restrict__ a1,
   double* __restrict__ a2);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
