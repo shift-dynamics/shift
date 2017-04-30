@@ -9,11 +9,13 @@
 #include <assert.h>
 #include <stdbool.h>
 
+
 void random_vec3(ksl_vec3_t* v) {
   for(uint i = 0; i < 3; i++) {
     ksl_vec3_set(v, i, (double)rand() / RAND_MAX * 2.0 - 1.0);
   }
 }
+
 
 void random_vec3f(ksl_vec3f_t* v) {
   for(uint i = 0; i < 3; i++) {
@@ -59,9 +61,6 @@ bool float_equal(const float k1, const float k2) {
   }
   return true;
 }
-
-
-
 
 
 int main() {
