@@ -1287,6 +1287,7 @@ inline double ksl_mat3x3_get(
 }
 
 
+
 /*!
 @brief get a value of a displacement
 */

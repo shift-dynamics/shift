@@ -38,7 +38,7 @@ message( ${LIBS} )
 ## set output directory ##
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/ )
 
-# add_definitions(-ggdb)
+add_definitions(-ggdb)
 add_definitions(-std=c11)
 add_definitions(-O3)
 add_definitions(-Wall)

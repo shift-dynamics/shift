@@ -239,7 +239,7 @@ typedef enum {
   PAC1996, /*!< not supported */
   PAC2002, /*!< under development */
   FIALA, /*!< under development */
-  PAC2012, /*!< not supported */
+  PAC2012, /*!< under development */
   LUGRE    /*!< not supported */
 } s2_tire_enum_t;
 
