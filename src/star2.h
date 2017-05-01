@@ -1,5 +1,5 @@
 /*!
-Multibody Dynamics Library (MBDL)
+star2: A Simulation Tool for Automation and Robotics
 @author Kristopher Wehage, 2016
 
 @copyright Kristopher Wehage
@@ -15,6 +15,7 @@ extern "C" {
 #include <assert.h>
 
 #include "core/context.h"
+#include "core/elevationmap.h"
 #include "core/topology.h"
 #include "core/joint.h"
 #include "core/kinematics.h"

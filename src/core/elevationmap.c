@@ -1,7 +1,4 @@
-#include <math.h>
-#include <assert.h>
 #include "elevationmap.h"
-
 
 /*!
 @brief generate a simple surface used to test elevation maps
@@ -144,7 +141,7 @@ double s2_elevationmap_getZ_bilinear_sae(
   s2_elevationmap_t* elevationMap,
   double x,
   double y,
-  ksl_vec3_t* normal) {
+  s2_vector_t* normal) {
 
   /* get x and y values in original height map */
   double xPos = (x - elevationMap->xOffset) / elevationMap->xScale;
@@ -187,7 +184,7 @@ double s2_elevationmap_getZ_bilinear_iso(
   s2_elevationmap_t* elevationMap,
   double x,
   double y,
-  ksl_vec3_t* normal) {
+  s2_vector_t* normal) {
 
   /* get x and y values in original height map */
   double xPos = (x - elevationMap->xOffset) / elevationMap->xScale;
@@ -230,7 +227,7 @@ double s2_elevationmap_getZ_bicubic_sae(
   s2_elevationmap_t* elevationMap,
   double x,
   double y,
-  ksl_vec3_t* normal) {
+  s2_vector_t* normal) {
 
 
   /* get x and y values in original height map */
@@ -356,7 +353,7 @@ double s2_elevationmap_getZ_bicubic_sae(
   normal->x = z_x;
   normal->y = z_y;
   normal->z = -1.0;
-  ksl_vec3_normalize(normal);
+  s2_vector_normalize(normal);
 
   return z;
 }
@@ -371,7 +368,7 @@ double s2_elevationmap_getZ_bicubic_iso(
   s2_elevationmap_t* elevationMap,
   double x,
   double y,
-  ksl_vec3_t* normal) {
+  s2_vector_t* normal) {
 
 
   /* get x and y values in original height map */
@@ -491,7 +488,7 @@ double s2_elevationmap_getZ_bicubic_iso(
   normal->x = -z_x;
   normal->y = -z_y;
   normal->z = 1.0;
-  ksl_vec3_normalize(normal);
+  s2_vector_normalize(normal);
 
   return z;
 }
@@ -505,7 +502,7 @@ double s2_elevationmap_getZ_catmulrom_sae(
   s2_elevationmap_t* elevationMap,
   double x,
   double y,
-  ksl_vec3_t* normal) {
+  s2_vector_t* normal) {
 
   double z = 0;
   return z;
@@ -520,7 +517,7 @@ double s2_elevationmap_getZ_catmulrom_iso(
   s2_elevationmap_t* elevationMap,
   double x,
   double y,
-  ksl_vec3_t* normal) {
+  s2_vector_t* normal) {
 
   double z = 0;
   return z;
@@ -533,7 +530,9 @@ double s2_elevationmap_getZ_catmulrom_iso(
 
 */
 s2_elevationmap_t* s2_elevationmap(
-  const char* filename,
+  const char* elevationmapFileName,
+  const char* textureFileName,
+  const char* propertyMapFileName,
   s2_interpolation_enum_t interpolationType,
   s2_coordinate_convention_enum_t coordinateConvention,
   double xOffset,
@@ -551,17 +550,16 @@ s2_elevationmap_t* s2_elevationmap(
   s2_elevationmap_t* elevationmap =
     (s2_elevationmap_t*)calloc(1, sizeof(s2_elevationmap_t));
   elevationmap->controlPoints = NULL;
+  elevationmap->texture = NULL;
   elevationmap->getZ = NULL;
   elevationmap->zMin = 0;
   elevationmap->zMax = 0;
 
   /* load image using imagemagick, Magick::InitializeMagick() must be
   called prior to creating an elevationmap */
-
-  // MagickWandGenesis();
   MagickBooleanType status;
   MagickWand* image = NewMagickWand();
-  status = MagickReadImage(image, filename);
+  status = MagickReadImage(image, elevationmapFileName);
   if (status == MagickFalse) {
     ThrowWandException(image);
   }
@@ -569,7 +567,7 @@ s2_elevationmap_t* s2_elevationmap(
   unsigned long columns = MagickGetImageWidth(image);
   unsigned long rows = MagickGetImageHeight(image);
 
-  printf("Loading image %s with size (%lu, %lu)\n", filename, rows, columns);
+  printf("Loading elevation map %s with size (%lu, %lu)\n", elevationmapFileName, rows, columns);
 
   elevationmap->controlPoints = calloc(rows * columns, sizeof(double));
 
@@ -597,7 +595,113 @@ s2_elevationmap_t* s2_elevationmap(
   }
 
   image = DestroyMagickWand(image);
-  // MagickWandTerminus();
+
+  /* load texture */
+  if(textureFileName != NULL) {
+    MagickWand* texture = NewMagickWand();
+    status = MagickReadImage(texture, textureFileName);
+    if (status == MagickFalse) {
+      ThrowWandException(texture);
+    }
+
+    unsigned long textureColumns = MagickGetImageWidth(texture);
+    unsigned long textureRows = MagickGetImageHeight(texture);
+
+    printf(
+      "Loading texture %s with size (%lu, %lu)\n",
+      textureFileName,
+      textureRows,
+      textureColumns);
+
+    elevationmap->texture = calloc(4 * textureRows * textureColumns, sizeof(char));
+
+    /* load values into array following sae convention with x as
+    top ordinate of view (column index) and y as left ordinate of view
+    (row index), and +z is pointing down */
+
+    PixelIterator* textureIterator = NewPixelIterator(texture);
+    for(y = 0; y < (long) MagickGetImageHeight(texture); y++) {
+
+      PixelWand** pixels = PixelGetNextIteratorRow(textureIterator, &width);
+      if(pixels == (PixelWand **) NULL) {
+        break;
+      }
+
+      for(x = 0; x < (long) width; x++) {
+        PixelGetMagickColor(pixels[x], &pixel);
+
+        elevationmap->texture[4 * (y * columns + x) + 0] =
+          PixelGetRedQuantum(pixels[x]);
+        elevationmap->texture[4 * (y * columns + x) + 1] =
+          PixelGetGreenQuantum(pixels[x]);
+        elevationmap->texture[4 * (y * columns + x) + 2] =
+          PixelGetBlueQuantum(pixels[x]);
+        elevationmap->texture[4 * (y * columns + x) + 3] =
+          PixelGetAlphaQuantum(pixels[x]);
+      }
+
+      (void) PixelSyncIterator(iterator);
+    }
+
+    texture = DestroyMagickWand(texture);
+    elevationmap->textureColumns = textureColumns;
+    elevationmap->textureRows = textureRows;
+  } else {
+    elevationmap->texture = NULL;
+    elevationmap->textureColumns = 0;
+    elevationmap->textureRows = 0;
+  }
+
+  /* load property map */
+  if(propertyMapFileName != NULL) {
+    MagickWand* propertyMap = NewMagickWand();
+    status = MagickReadImage(propertyMap, propertyMapFileName);
+    if (status == MagickFalse) {
+      ThrowWandException(propertyMap);
+    }
+
+    unsigned long propertyMapColumns = MagickGetImageWidth(propertyMap);
+    unsigned long propertyMapRows = MagickGetImageHeight(propertyMap);
+
+    printf(
+      "Loading texture %s with size (%lu, %lu)\n",
+      propertyMapFileName,
+      propertyMapRows,
+      propertyMapColumns);
+
+    elevationmap->propertyMap =
+      calloc(propertyMapRows * propertyMapColumns, sizeof(char));
+
+    /* load values into array following sae convention with x as
+    top ordinate of view (column index) and y as left ordinate of view
+    (row index), and +z is pointing down */
+
+    PixelIterator* propertyMapIterator = NewPixelIterator(propertyMap);
+    for(y = 0; y < (long) MagickGetImageHeight(propertyMap); y++) {
+
+      PixelWand** pixels = PixelGetNextIteratorRow(propertyMapIterator, &width);
+      if(pixels == (PixelWand **) NULL) {
+        break;
+      }
+
+      for(x = 0; x < (long) width; x++) {
+        PixelGetMagickColor(pixels[x], &pixel);
+
+        elevationmap->propertyMap[y * columns + x] =
+          PixelGetRedQuantum(pixels[x]);
+      }
+
+      (void) PixelSyncIterator(iterator);
+    }
+
+    propertyMap = DestroyMagickWand(propertyMap);
+    elevationmap->propertyMapColumns = propertyMapColumns;
+    elevationmap->propertyMapRows = propertyMapRows;
+  } else {
+    elevationmap->propertyMap = NULL;
+    elevationmap->propertyMapColumns = 0;
+    elevationmap->propertyMapRows = 0;
+  }
 
   elevationmap->columns = columns;
   elevationmap->rows = rows;

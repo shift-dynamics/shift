@@ -777,6 +777,7 @@ void s2_restraint_append(
   }
 }
 
+
 /*!
 @brief Initialize a input/output datastructure
 

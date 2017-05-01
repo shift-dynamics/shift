@@ -53,6 +53,7 @@ typedef struct s2_sensor_t s2_sensor_t;
 typedef struct s2_camera_t s2_camera_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_shaderhandle_t s2_shaderhandle_t;
+typedef struct s2_elevationmap_t s2_elevationmap_t;
 
 
 /*!
@@ -150,7 +151,9 @@ s2_restraint_t* s2_restraint();
 
 s2_light_t* s2_light();
 
+
 s2_forcemodule_t* s2_forcemodule(s2_forcemodule_enum_t);
+
 
 s2_material_t* s2_materials(
   int materialCount);
@@ -215,21 +218,25 @@ void s2_context_print(
   FILE* f,
   s2_context_t* context);
 
+
 s2_frame_t* s2_context_getFrameByName(
   s2_context_t* context,
   const char* bodyName,
   const char* frameName);
 
+
 s2_body_t* s2_context_getBodyByName(
   s2_context_t* context,
   const char* bodyName);
 
+
 int s2_context_getIConv(s2_context_t* context);
+
 
 double s2_context_getSimulationTime(s2_context_t* context);
 
-FILE* s2_context_getDebugPointer(s2_context_t* context, int i);
 
+FILE* s2_context_getDebugPointer(s2_context_t* context, int i);
 
 
 /*!
@@ -252,6 +259,7 @@ typedef enum {
   RIGHT
 } s2_tireside_enum_t;
 
+
 typedef struct s2_tire_t s2_tire_t;
 
 
@@ -259,6 +267,7 @@ typedef struct s2_tire_t {
   s2_tire_enum_t tireType;
   void* properties;
 } s2_tire_t;
+
 
 /*!
 @brief Types of distances
@@ -320,6 +329,50 @@ typedef enum {
   ORTHOGRAPHIC
 } s2_perspective_enum_t;
 
+
+typedef enum s2_interpolation_enum_t {
+  BILINEAR, /*!< bilinear interpolation is the simplest technique for 2D
+  interpolation. The resulting surface is C0 continuous (position continuity is maintained between surface patches, but not tangency and curvature). The surface intersects the control points. */
+  BICUBIC,  /*!< bicubic interpolation uses knot points as control points, surface passes near control point, but may not intersect control point, surface is C0, C1 and C2 continuous (position, tangency and curvature continuity are maintained between surface patches) */
+  CATMULROM /*!< catmul-rom interpolation, surface passes through control points, but is only C0 and C1 continuous (position and tangency continuity are maintained between surface patches, but not curvature) */
+} s2_interpolation_enum_t;
+
+
+typedef enum s2_coordinate_convention_enum_t {
+  ISO, /*!< x is left ordinate of image, y is top ordinate of image, z is pointing up out of height map */
+  SAE /*!< x is top ordinate of image, y is left ordinate of image, z is pointing down into height map */
+} s2_coordinate_convention_enum_t;
+
+
+typedef struct s2_elevationmap_t {
+  s2_interpolation_enum_t interpolationType; /*!< technique used for 2D interpolation */
+  s2_coordinate_convention_enum_t coordinateConvention; /*!< ISO or SAE coordinate system */
+  size_t columns;        /*!< number of columns of elevation map */
+  size_t rows;           /*!< number of rows in elevation map */
+  double xOffset;        /*!< x offset of origin of elevation map */
+  double yOffset;        /*!< y offset of origin of elevation map */
+  double xScale;         /*!< uniform scale factor for x dimension */
+  double yScale;         /*!< uniform scale factor for y dimension */
+  double zMin;           /*!< minimum z height in surface */
+  double zMax;           /*!< maximum z height in surface */
+  double* controlPoints; /*!< control points loaded from image */
+  char* texture;         /*!< rgba texture */
+  size_t textureRows;    /*!< number of rows in texture */
+  size_t textureColumns; /*!< number of columns in texture */
+  char* propertyMap;         /*!< rgba texture */
+  size_t propertyMapRows;    /*!< number of rows in texture */
+  size_t propertyMapColumns; /*!< number of columns in texture */
+  double (*getZ)(
+    struct s2_elevationmap_t* elevationMap,
+    double x,
+    double y,
+    s2_vector_t* normal); /*!< function used to obtain elevation at specified x, y location. This function pointer is set based on type of interpolation specified when elevationmap is created */
+  s2_stackstr_t* name;
+  s2_stackstr_t* parentBody;
+  s2_body_t* parentBodyPointer;
+  s2_stackstr_t* parentFrame;
+  s2_frame_t* parentFramePointer;
+} s2_elevationmap_t;
 
 /*!
 @brief mbdl context datastructure
@@ -727,6 +780,8 @@ typedef struct s2_context_t {
   void* numericalIntegrator; /*!< pointer to properties
                                                   related to numerical
                                                   integration */
+  int iterationsSinceLastConstraintError;
+
   /*!
   @}
   @name data related to setting restraints
@@ -737,14 +792,20 @@ typedef struct s2_context_t {
 
   int stiffnessCount;
   s2_joint_t** stiffnessJoints;
+  /*!
+  @}
+  @name data related to elevationmaps
+  @{
+  */
 
+  int elevationMapCount;
+  s2_elevationmap_t** elevationmaps;
 
 
   /*!
   @}
   */
 
-  int iterationsSinceLastConstraintError;
 } s2_context_t;
 
 
