@@ -8,8 +8,7 @@ double surface(double x, double y) {
 }
 
 /*! @brief generates a sample height map using surface function
-saves to 32 bit tiff floating point format.
-Magick::InitializeMagick must be called prior to calling this function */
+saves to 32 bit tiff floating point format.  */
 void generateSampleHeightMap(const char* filename) {
 
   MagickWandGenesis();
@@ -18,12 +17,6 @@ void generateSampleHeightMap(const char* filename) {
   size_t width;
 
   MagickBooleanType status;
-
-  /*
-    Read an image.
-  */
-  // MagickWandGenesis();
-
   MagickWand* image = NewMagickWand();
 	PixelWand* pixelWand = NewPixelWand();
 
@@ -46,10 +39,7 @@ void generateSampleHeightMap(const char* filename) {
 
   /* image magick convention is that y is the left ordinate of view,
   i.e. the row index. x is the top ordinate of the view. Therefore, z
-  is pointing up. This follows the ISO coordinate system for vehicle dynamics.
-
-  in this example, the SAE coordinate system is used with z pointing down.
-  Therefore, x is the top ordinate of the view, y is the left ordinate of view
+  is pointing down. This follows the SAE coordinate system for vehicle dynamics.
    */
   PixelIterator* iterator = NewPixelIterator(image);
   if (iterator == (PixelIterator *) NULL) {
@@ -74,9 +64,7 @@ void generateSampleHeightMap(const char* filename) {
     ThrowWandException(image);
   }
 
-  /*
-    Write the image then destroy it.
-  */
+  /* Write the image then destroy it. */
   status = MagickWriteImages(image, filename, MagickTrue);
   if(status == MagickFalse) {
     ThrowWandException(image);
@@ -85,8 +73,6 @@ void generateSampleHeightMap(const char* filename) {
   iterator = DestroyPixelIterator(iterator);
   image = DestroyMagickWand(image);
   MagickWandTerminus();
-
-
 }
 
 
