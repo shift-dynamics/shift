@@ -1,4 +1,4 @@
-# A Simulation Tool for Automation and Robotics
+# star2: A Simulation Tool for Automation and Robotics
 
 ## Dependencies
 
@@ -9,13 +9,14 @@ This code requires that the following libraries are installed on your system.
 *   [Qt5](<http://www.qt.io/developers/>)
 *   [Graphviz](<http://www.graphviz.org/>)
 *   [Cblas](<http://www.netlib.org/blas/>)
+*   [ImageMagick](<http://www.imagemagick.org>)
 
 ### Macintosh
 
 On a Macintosh, these dependencies can be installed using the *brew*
 package manager:
 
-    brew install assimp jansson qt5 graphviz
+    brew install assimp jansson qt5 graphviz imagemagick
 
 More information can be found at these links.
 
@@ -23,6 +24,7 @@ More information can be found at these links.
 *   <http://brewformulas.org/Jansson>
 *   <http://brewformulas.org/qt5>
 *   <http://brewformulas.org/graphviz>
+*   <http://brewformulas.org/imagemagick>
 
 The cblas package is already available on a Macintosh using the *accelerate*
 framework, the CMakeLists.txt file may need to be modified to bring in this
@@ -32,13 +34,13 @@ dependency correctly.
 
 On arch linux, the dependencies can be installed using pacman:
 
-    pacman -S assimp jansson qt5 graphviz cblas
+    pacman -S assimp jansson qt5 graphviz cblas imagemagick
 
 ### Ubuntu / Debian-based Linux Distributions
 
 Use apt-get:
 
-    apt-get install assimp jansson qt5 graphviz cblas
+    apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev
 
 ## Building the project
 
@@ -119,7 +121,7 @@ independent/dependent variables during a running simulation:
 
     *   Factor the primary Jacobian matrix.
 
-    *   Precondition the primary constraints (i.e. sparse solve for the *B  
+    *   Precondition the primary constraints (i.e. sparse solve for the *B
         matrix* which is used to find part of the right null space of Jacobian).
 
     *   Map mass matrix in original order to permuted order.

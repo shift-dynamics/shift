@@ -22,6 +22,10 @@ find_package( graphviz REQUIRED )
 find_library( stdc++ REQUIRED )
 find_package( assimp REQUIRED )
 
+find_package(ImageMagick REQUIRED)
+find_package(ImageMagick COMPONENTS MagickWand REQUIRED)
+
+
 set( LIBS
     ${ASSIMP_LIBRARIES}
     ${GRAPHVIZ_GVC_LIBRARY}
@@ -29,7 +33,9 @@ set( LIBS
     ${LIBS}
     ${JANSSON_LIBRARIES}
     ${M_LIB}
-    ${CBLAS_LIBRARIES} )
+    ${CBLAS_LIBRARIES}
+    ${ImageMagick_LIBRARIES}
+    ${ImageMagick_MagickWand_LIBRARIES})
 message( ${LIBS} )
 
 # find_library( LAPACK lapack)
@@ -53,6 +59,8 @@ add_definitions(-fassociative-math)
 add_definitions(-ftree-vectorizer-verbose=7)
 add_definitions(-fopt-info)
 add_definitions(${GRAPHVIZ_COMPILE_FLAGS})
+add_definitions(-DMAGICKCORE_HDRI_ENABLE=1)
+add_definitions(-DMAGICKCORE_QUANTUM_DEPTH=16)
 
 if(APPLE)
     add_definitions(-framework accelerate)
@@ -69,6 +77,8 @@ include_directories(
     ${star2_SOURCE_DIR}/src/gui
     ${star2_SOURCE_DIR}/src
     ${ASSIMP_INCLUDE_DIRS}
+    ${ImageMagick_INCLUDE_DIRS}
+    ${ImageMagick_MagickWand_INCLUDE_DIRS}
 )
 
 add_library(ksl STATIC
@@ -103,6 +113,7 @@ add_library(star2_lib STATIC
     ${star2_SOURCE_DIR}/src/core/restraint.c
     ${star2_SOURCE_DIR}/src/core/newtonraphson.c
     ${star2_SOURCE_DIR}/src/core/terrain.c
+    ${star2_SOURCE_DIR}/src/core/elevationmap.c
     ${star2_SOURCE_DIR}/src/force_modules/service.c
     ${star2_SOURCE_DIR}/src/force_modules/tire.c
     ${star2_SOURCE_DIR}/src/force_modules/tire/pac2002.c
@@ -114,7 +125,8 @@ add_library(star2_lib STATIC
     ${star2_SOURCE_DIR}/src/ode/numericalintegrator.c
     ${star2_SOURCE_DIR}/src/ode/ode113.c
     ${star2_SOURCE_DIR}/src/ode/ode113b.c
-    # ${star2_SOURCE_DIR}/src/mbdl/core/writer.c
+
+    # ${star2_SOURCE_DIR}/src/core/writer.c
 )
 
 add_library(ode113_lib STATIC

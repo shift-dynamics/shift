@@ -81,10 +81,12 @@
         "name": "sinxx+cosyy",
         "definition": "sinxx+cosyy.tiff",
         "texture": "moss2.png",
+        "property_map": null,
         "parent": ["fixed", "origin"],
         "x_scale": 0.2,
         "y_scale": 0.3,
-        "coordinate_type": "sae"
+        "coordinate_type": "sae",
+        "interpolation_type": "bicubic"
       }
     ]
   },

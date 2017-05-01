@@ -360,6 +360,178 @@ int s2_loadLights(
   return 0;
 }
 
+/*!
+
+*/
+int s2_loadElevationMaps(
+  s2_assembly_t* assembly,
+  json_t* assemblyObject,
+  s2_context_t* context,
+  s2_stackstr_t* prefix) {
+
+  json_t* elevationMapsObject =
+    json_object_get(assemblyObject, "elevationmaps");
+
+  if(json_is_array(elevationMapsObject)) {
+    size_t index;
+    json_t* elevationMapObject;
+
+    context->elevationMapCount =
+      json_array_size(elevationMapsObject);
+    context->elevationmaps =
+      malloc(
+        context->elevationMapCount * sizeof(s2_elevationmap_t*));
+
+    json_array_foreach(
+      elevationMapsObject,
+      index,
+      elevationMapObject) {
+
+      /* elevation map file path */
+      const char* elevationMapFilePath =
+        json_string_value(
+          json_object_get(
+            elevationMapObject,
+            "definition"));
+
+      /* get texture map file path */
+      json_t* textureMapObject =
+        json_object_get(
+          elevationMapObject,
+          "texture");
+
+      const char* textureMapFilePath;
+      if(textureMapObject != NULL) {
+        textureMapFilePath =
+          json_string_value(textureMapObject);
+      } else {
+        textureMapFilePath = NULL;
+      }
+
+      /* get property map file path */
+      json_t* propertyMapObject =
+        json_object_get(
+          elevationMapObject,
+          "texture");
+
+      const char* propertyMapFilePath;
+      if(propertyMapObject != NULL) {
+        propertyMapFilePath =
+          json_string_value(propertyMapObject);
+      } else {
+        propertyMapFilePath = NULL;
+      }
+
+      const char* coordinateTypeStr =
+        json_string_value(
+          json_object_get(
+            elevationMapObject,
+            "coordinate_type"));
+      s2_coordinate_convention_enum_t coordinateType = SAE;
+      if(!strcmp(coordinateTypeStr, "sae")) {
+        coordinateType = SAE;
+      } else if(!strcmp(coordinateTypeStr, "iso")) {
+        coordinateType = ISO;
+      }
+
+      const char* interpolationTypeStr =
+        json_string_value(
+          json_object_get(
+            elevationMapObject,
+            "coordinate_type"));
+      s2_interpolation_enum_t interpolationType = BICUBIC;
+      if(!strcmp(interpolationTypeStr, "bicubic")) {
+        interpolationType = BICUBIC;
+      } else if(!strcmp(interpolationTypeStr, "bilinear")) {
+        interpolationType = BILINEAR;
+      } else if(!strcmp(interpolationTypeStr, "catmul_rom")) {
+        interpolationType = CATMULROM;
+      }
+
+      double x_scale = 1.0;
+      json_t* xScaleObject =
+        json_object_get(elevationMapObject, "x_scale");
+      if(xScaleObject != NULL) {
+        x_scale = json_number_value(xScaleObject);
+      }
+
+      double y_scale = 1.0;
+      json_t* yScaleObject =
+        json_object_get(elevationMapObject, "y_scale");
+      if(yScaleObject != NULL) {
+        y_scale = json_number_value(yScaleObject);
+      }
+
+      double x_offset = 0.0;
+      json_t* xOffsetObject =
+        json_object_get(elevationMapObject, "x_offset");
+      if(xScaleObject != NULL) {
+        x_offset = json_number_value(xOffsetObject);
+      }
+
+      double y_offset = 0.0;
+      json_t* yOffsetObject =
+        json_object_get(elevationMapObject, "y_offset");
+      if(xScaleObject != NULL) {
+        y_offset = json_number_value(yOffsetObject);
+      }
+
+      s2_elevationmap_t* elevationMap =
+        s2_elevationmap(
+          elevationMapFilePath,
+          textureMapFilePath,
+          propertyMapFilePath,
+          interpolationType,
+          coordinateType,
+          x_offset,
+          y_offset,
+          x_scale,
+          y_scale);
+
+      elevationMap->name = s2_stackstr_copy(prefix);
+
+      s2_stackstr_append(
+        elevationMap->name,
+        json_string_value(
+          json_object_get(elevationMapObject, "name")));
+
+      json_t* parentObject =
+        json_object_get(elevationMapObject, "parent");
+      json_t* parentBodyObject =
+        json_array_get(parentObject, 0);
+      elevationMap->parentBody = s2_stackstr();
+      if(json_is_array(parentBodyObject)) {
+        /*
+          if parent body is an array, then the full path is specified.
+        */
+        size_t index2;
+        json_t* value;
+        json_array_foreach(parentBodyObject, index2, value) {
+          s2_stackstr_append(
+            elevationMap->parentBody,
+            json_string_value(value));
+        }
+      } else if (json_is_string(parentBodyObject)) {
+        /*
+          otherwise the body is contained within the assembly
+        */
+        s2_stackstr_append(
+          elevationMap->parentBody,
+          json_string_value(parentBodyObject));
+      }
+
+      elevationMap->parentFrame = s2_stackstr_copy(elevationMap->parentBody);
+      s2_stackstr_append(
+        elevationMap->parentFrame,
+        json_string_value(json_array_get(parentObject, 1)));
+
+      context->elevationmaps[index] = elevationMap;
+    }
+  }
+
+  return 0;
+}
+
 
 /*!
 @brief load force modules to an assembly data structure
@@ -987,7 +1159,7 @@ int s2_loadFixedFrames(
 
 
 /*!
-@brief Parse joints in a mechON file
+@brief Parse joints in a star2 file
 
 */
 int s2_loadJoints(
@@ -1585,7 +1757,6 @@ s2_context_t* s2_loadContext(
   // load modelParameters
   json_t* modelParametersObject = json_object_get(root, "model_parameters");
 
-
   s2_loadFixedFrames(context, root);
   json_t* fixedObject = json_object_get(root, "fixed");
 
@@ -1594,6 +1765,13 @@ s2_context_t* s2_loadContext(
     fixedObject,
     context,
     context->assembly->name);
+
+  s2_loadElevationMaps(
+    context->assembly,
+    fixedObject,
+    context,
+    context->assembly->name);
+    
   // s2_loadFixedCameras(context, root);
 
   if(!json_is_object(modelParametersObject)) {
