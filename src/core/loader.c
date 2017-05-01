@@ -4,7 +4,7 @@
 @author Kristopher Wehage
 @brief Utilities to load a context data structure from a json file
 @date 2016
-@copyright Kristopher Wehage 2015-2016
+@copyright Kristopher Wehage 2015-2017
 
 This function library loads a set of bodies and joints from a solver JSON file
 The bodies and joints are initially loaded into a linked-list datastructure
@@ -31,6 +31,7 @@ SUCH DAMAGE.
 #include <jansson.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
 
 #include "context.h"
 #include "utility.h"
@@ -387,41 +388,88 @@ int s2_loadElevationMaps(
       index,
       elevationMapObject) {
 
+
+
+
       /* elevation map file path */
       const char* elevationMapFilePath =
         json_string_value(
           json_object_get(
             elevationMapObject,
             "definition"));
+      char* fullElevationMapFilePath = NULL;
+      s2_stackstrnode_t* includeDirectoryHead =
+        context->modelParameters->includeDirectory->head;
+      while(includeDirectoryHead) {
+        asprintf(
+          &fullElevationMapFilePath,
+          "%s%s",
+          includeDirectoryHead->value,
+          elevationMapFilePath);
+        if(access(fullElevationMapFilePath, F_OK) != -1) {
+          break;
+        } else {
+          free(fullElevationMapFilePath);
+          fullElevationMapFilePath = NULL;
+        }
+        includeDirectoryHead = includeDirectoryHead->next;
+      }
 
       /* get texture map file path */
       json_t* textureMapObject =
         json_object_get(
           elevationMapObject,
           "texture");
-
-      const char* textureMapFilePath;
+      char* fullTextureMapFilePath = NULL;
       if(textureMapObject != NULL) {
-        textureMapFilePath =
+        const char* textureMapFilePath =
           json_string_value(textureMapObject);
-      } else {
-        textureMapFilePath = NULL;
+        s2_stackstrnode_t* includeDirectoryHead =
+          context->modelParameters->includeDirectory->head;
+        while(includeDirectoryHead) {
+          asprintf(
+            &fullTextureMapFilePath,
+            "%s%s",
+            includeDirectoryHead->value,
+            textureMapFilePath);
+          if(access(fullTextureMapFilePath, F_OK) != -1) {
+            break;
+          } else {
+            free(fullTextureMapFilePath);
+            fullTextureMapFilePath = NULL;
+          }
+          includeDirectoryHead = includeDirectoryHead->next;
+        }
       }
 
       /* get property map file path */
       json_t* propertyMapObject =
         json_object_get(
           elevationMapObject,
-          "texture");
-
-      const char* propertyMapFilePath;
+          "property_map");
+      char* fullPropertyMapFilePath = NULL;
       if(propertyMapObject != NULL) {
-        propertyMapFilePath =
+        const char* propertyMapFilePath =
           json_string_value(propertyMapObject);
-      } else {
-        propertyMapFilePath = NULL;
+        s2_stackstrnode_t* includeDirectoryHead =
+          context->modelParameters->includeDirectory->head;
+        while(includeDirectoryHead) {
+          asprintf(
+            &fullPropertyMapFilePath,
+            "%s%s",
+            includeDirectoryHead->value,
+            propertyMapFilePath);
+          if(access(fullPropertyMapFilePath, F_OK) != -1) {
+            break;
+          } else {
+            free(fullPropertyMapFilePath);
+            fullPropertyMapFilePath = NULL;
+          }
+          includeDirectoryHead = includeDirectoryHead->next;
+        }
       }
 
+      /* get coordinate type (SAE or ISO), defaults to SAE */
       const char* coordinateTypeStr =
         json_string_value(
           json_object_get(
@@ -434,6 +482,7 @@ int s2_loadElevationMaps(
         coordinateType = ISO;
       }
 
+      /* get interpolation type (BICUBIC or BILINEAR), defaults to BICUBIC */
       const char* interpolationTypeStr =
         json_string_value(
           json_object_get(
@@ -448,6 +497,7 @@ int s2_loadElevationMaps(
         interpolationType = CATMULROM;
       }
 
+      /* get x scale factor, defaults to 1 if no x scale provided */
       double x_scale = 1.0;
       json_t* xScaleObject =
         json_object_get(elevationMapObject, "x_scale");
@@ -455,6 +505,7 @@ int s2_loadElevationMaps(
         x_scale = json_number_value(xScaleObject);
       }
 
+      /* get y scale factor, defaults to 1 if no y scale provided */
       double y_scale = 1.0;
       json_t* yScaleObject =
         json_object_get(elevationMapObject, "y_scale");
@@ -462,6 +513,7 @@ int s2_loadElevationMaps(
         y_scale = json_number_value(yScaleObject);
       }
 
+      /* get x offset, defaults to 0 if no x offset provided */
       double x_offset = 0.0;
       json_t* xOffsetObject =
         json_object_get(elevationMapObject, "x_offset");
@@ -469,6 +521,7 @@ int s2_loadElevationMaps(
         x_offset = json_number_value(xOffsetObject);
       }
 
+      /* get y offset, defaults to 0 if no y offset provided */
       double y_offset = 0.0;
       json_t* yOffsetObject =
         json_object_get(elevationMapObject, "y_offset");
@@ -476,11 +529,15 @@ int s2_loadElevationMaps(
         y_offset = json_number_value(yOffsetObject);
       }
 
+      /* generate height map using s2_elevationmap_t constructor,
+      this constructor sets the appropriate function pointer
+      in the struct given the coordinate convention and interpolation
+      type */
       s2_elevationmap_t* elevationMap =
         s2_elevationmap(
-          elevationMapFilePath,
-          textureMapFilePath,
-          propertyMapFilePath,
+          fullElevationMapFilePath,
+          fullTextureMapFilePath,
+          fullPropertyMapFilePath,
           interpolationType,
           coordinateType,
           x_offset,
@@ -488,6 +545,8 @@ int s2_loadElevationMaps(
           x_scale,
           y_scale);
 
+      /* the elevationmap constructor does not set the name of the object, therefore check the prefix to prepend the full path
+      name to the name provided in the json file */
       elevationMap->name = s2_stackstr_copy(prefix);
 
       s2_stackstr_append(
@@ -495,14 +554,16 @@ int s2_loadElevationMaps(
         json_string_value(
           json_object_get(elevationMapObject, "name")));
 
+      /* the constructor does not set the parent body name and
+      parent body pointer. Set the name here, the pointer will be
+      connected once the json file is finished loading  */
       json_t* parentObject =
         json_object_get(elevationMapObject, "parent");
       json_t* parentBodyObject =
         json_array_get(parentObject, 0);
       elevationMap->parentBody = s2_stackstr();
       if(json_is_array(parentBodyObject)) {
-        /*
-          if parent body is an array, then the full path is specified.
+        /* if parent body is an array, then the full path is specified.
         */
         size_t index2;
         json_t* value;
@@ -520,11 +581,15 @@ int s2_loadElevationMaps(
           json_string_value(parentBodyObject));
       }
 
+      /* the constructor does not set the parent frame name and
+      parent frame pointer. Set the name here, the pointer will be
+      connected once the json file is finished loading  */
       elevationMap->parentFrame = s2_stackstr_copy(elevationMap->parentBody);
       s2_stackstr_append(
         elevationMap->parentFrame,
         json_string_value(json_array_get(parentObject, 1)));
 
+      /* save the elevation map pointer in the elevationmaps array */
       context->elevationmaps[index] = elevationMap;
     }
   }
@@ -1592,9 +1657,9 @@ void s2_loadFlattenedList(
 @brief Once a body has been identified as the parent or child of a joint,
 search through frames to match pointers to each frame
 
-@param body a STAR Body that has been identified as either the parent or child
+@param body a s2_body_t that has been identified as either the parent or child
        of a joint
-@param joint a mbdl Joint datastructure
+@param joint a s2_joint_t datastructure
 @param searchParent if true, search for a match in the joint's parentFrame
        otherwise search for a match in the joint's childFrame
 */
@@ -1741,6 +1806,51 @@ void s2_processLightPointers(
 
 
 /*!
+@brief Processes elevation map pointers from a flattened list of elevation maps
+
+Sets parent frame and body for an elevation map
+
+@param context an s2_context_t datastructure
+*/
+void s2_processElevationMapPointers(
+  s2_context_t* context) {
+
+  // FILE* debug = context->modelParameters->debugFilePointer;
+  //
+  // fprintf(debug, "# processing elevation map pointers\n");
+  // fprintf(debug, "%d lights\n", context->lightCount);
+  for (int i = 0; i < context->elevationMapCount; i++) {
+    // fprintf(debug, "\n\nprocessing light ");
+    // s2_stackstr_print(debug, context->lightPointers[i]->name);
+    //
+    // fprintf(debug, "\nsearching for ");
+    // s2_stackstr_print(debug, context->lightPointers[i]->parentFrame);
+
+    for (int j = 0; j < context->bodyCount; j++) {
+      s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
+      if(s2_stackstr_isEqual(
+        context->elevationmaps[i]->parentBody,
+        context->bodyPointers[j]->name)) {
+          context->elevationmaps[i]->parentBodyPointer =
+            context->bodyPointers[j];
+        // s2_stackstr_print(debug, context->bodyPointers[j]->name);
+      }
+
+      while(frameHead) {
+        if(s2_stackstr_isEqual(
+            context->elevationmaps[i]->parentFrame,
+            frameHead->name)) {
+          context->elevationmaps[i]->parentFramePointer = frameHead;
+          // s2_stackstr_print(debug, frameHead->name);
+        }
+        frameHead = frameHead->next;
+      }
+    }
+  }
+}
+
+
+/*!
 @brief Loads hierarchical json file into s2_context_t data structure
 
 Recursive function to extract all bodies and joints in
@@ -1766,14 +1876,6 @@ s2_context_t* s2_loadContext(
     context,
     context->assembly->name);
 
-  s2_loadElevationMaps(
-    context->assembly,
-    fixedObject,
-    context,
-    context->assembly->name);
-    
-  // s2_loadFixedCameras(context, root);
-
   if(!json_is_object(modelParametersObject)) {
     fprintf(stderr, "No valid model parameters object found.\n");
     return NULL;
@@ -1783,6 +1885,15 @@ s2_context_t* s2_loadContext(
     context->modelParameters,
     modelParametersObject,
     filePath);
+
+  /* modeParametersObject must be loaded before elevation maps
+  so that include directores can be used to find elevation map
+  related files */
+  s2_loadElevationMaps(
+    context->assembly,
+    fixedObject,
+    context,
+    context->assembly->name);
 
   json_t* assembliesObject = json_object_get(root, "assemblies");
 
@@ -1830,17 +1941,18 @@ s2_context_t* s2_loadContext(
 
   s2_processBodyJointPointers(context);
   s2_processLightPointers(context);
+  s2_processElevationMapPointers(context);
 
   return context;
 }
 
 /*!
-@brief Parse a STAR JSON file and return in "context", a SetupContext
+@brief Parse a STAR2 JSON file and return in "context", a SetupContext
 data structure
 
-This function parses a STAR JSON file and returns a SetupContext
+This function parses a STAR2 JSON file and returns a SetupContext
 data structure. The JSON file is parsed using the Jansson C library.
-@param fileName path to mechON JSON file.
+@param fileName path to star2 JSON file.
 
 @return a setupContext data structure.
 */
