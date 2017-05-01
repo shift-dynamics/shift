@@ -527,7 +527,6 @@ double s2_elevationmap_getZ_catmulrom_iso(
 /*! @brief constructor for s2_elevationmap_t
 
 
-
 */
 s2_elevationmap_t* s2_elevationmap(
   const char* elevationmapFileName,
@@ -711,6 +710,11 @@ s2_elevationmap_t* s2_elevationmap(
   elevationmap->yScale = yScale;
   elevationmap->interpolationType = interpolationType;
   elevationmap->coordinateConvention = coordinateConvention;
+  elevationmap->name = NULL;
+  elevationmap->parentBody = NULL;
+  elevationmap->parentBodyPointer = NULL;
+  elevationmap->parentFrame = NULL;
+  elevationmap->parentFramePointer = NULL;
 
   switch(interpolationType) {
     case BILINEAR: {
