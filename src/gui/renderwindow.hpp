@@ -27,6 +27,7 @@
 #include <QFileDialog>
 #include <QResizeEvent>
 #include <QTimer>
+#include <QOpenGLTexture>
 
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
@@ -76,6 +77,10 @@ typedef struct ProgramUniforms {
 
   GLuint colorUniform;
 
+  GLuint textureDisplacement;
+  GLuint textureColor;
+  GLuint projectionMatrix;
+
 } ProgramUniforms;
 
 
@@ -111,6 +116,14 @@ typedef struct Grid {
 } Grid;
 
 
+typedef struct TerrainObjects {
+  GLuint depth;
+  GLuint color;
+  QOpenGLTexture* depthTexture;
+  QOpenGLTexture* colorTexture;
+} TerrainObjects;
+
+
 class RenderWindow : public OpenGLWindow {
   Q_OBJECT
 
@@ -119,7 +132,6 @@ public:
   void render();
 
   void resizeGL(int width, int height);
-  // bool event(QEvent* event);
   void loadContext(s2_context_t* context);
   QString getCursorPositionText();
   void checkError(const QString &prefix);
@@ -241,12 +253,15 @@ private:
   QOpenGLShaderProgram* m_programGouraud;
   QOpenGLShaderProgram* m_programPhong;
   QOpenGLShaderProgram* m_programFlat;
+  QOpenGLShaderProgram* m_programTerrain;
 
   ProgramUniforms m_uniformsLine;
   ProgramUniforms m_uniformsCoordinateSystem;
   ProgramUniforms m_uniformsPhong;
   ProgramUniforms m_uniformsFlat;
+  ProgramUniforms m_uniformsTerrain;
   FrameUniforms m_uniformsFrame;
+  TerrainObjects* m_terrainObjects;
 
   GLuint m_vao_coordinateSystem;
   GLuint m_vbo_coordinateSystem;
@@ -269,6 +284,8 @@ private:
   void initializeMaterial(
     s2_material_t* material,
     s2_displacement_t* origin);
+
+  void initializeElevationMaps();
 
   bool m_initialized;
   bool m_drawFrames;

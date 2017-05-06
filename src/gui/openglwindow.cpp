@@ -28,7 +28,7 @@ OpenGLWindow::OpenGLWindow(
   */
   QSurfaceFormat format;
   format.setDepthBufferSize(24);
-  format.setVersion(3, 3);
+  format.setVersion(4, 2);
   format.setSamples(16);
   format.setProfile(QSurfaceFormat::CoreProfile);
   format.setOption(QSurfaceFormat::DebugContext);

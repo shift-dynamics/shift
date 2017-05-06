@@ -15,6 +15,11 @@
 
     <file alias="phong.frag">shaders/phong.frag</file>
     <file alias="phong.vert">shaders/phong.vert</file>
+
+    <file alias="terrain.frag">shaders/terrain.frag</file>
+    <file alias="terrain.tesc">shaders/terrain.tesc</file>
+    <file alias="terrain.tese">shaders/terrain.tese</file>
+    <file alias="terrain.vert">shaders/terrain.vert</file>
   </qresource>
 
   <qresource prefix="/about">

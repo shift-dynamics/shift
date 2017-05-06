@@ -441,6 +441,9 @@ s2_context_t* s2_context() {
   */
   context->iterationsSinceLastConstraintError = 0;
 
+  context->elevationMapCount = 0;
+  context->elevationmaps = NULL;
+
   return context;
 }
 
