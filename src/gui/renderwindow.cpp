@@ -26,7 +26,8 @@
 
 RenderWindow::RenderWindow()
   : OpenGLWindow(),
-    m_frame(0) {
+    m_frame(0),
+    m_terrainObjects(NULL) {
 
   setAnimating(true);
 
@@ -256,8 +257,8 @@ void RenderWindow::initializeLights() {
   /* @TODO move lights to uniform buffer blocks
     m_funcs->glGetActiveUniformBlockName();
   */
-  qDebug() << "initializing lights";
-  qDebug() << "lightCount: " << m_context->activeLightCount;
+  // qDebug() << "initializing lights";
+  // qDebug() << "lightCount: " << m_context->activeLightCount;
   if(m_context->activeLightCount > 10)
     m_lightParameters.lightCount = 10;
   else m_lightParameters.lightCount = m_context->activeLightCount;
@@ -616,7 +617,7 @@ void RenderWindow::initializeBody(
 
   for(int i = 0; i < body->materialCount; i++) {
     s2_material_t* material = body->materials + i;
-    printf("initializing material [%d]\n", i);
+    // printf("initializing material [%d]\n", i);
     initializeMaterial(material, m_context->d + body->origin->dIndex);
   }
 }
@@ -640,8 +641,8 @@ void RenderWindow::setAttributeLocation(
   uniforms->normal =
     shaderProgram->attributeLocation("normAttr");
 
-  printf("  uniform position: %d\n", uniforms->position);
-  printf("  normal position: %d\n", uniforms->normal);
+  // printf("  uniform position: %d\n", uniforms->position);
+  // printf("  normal position: %d\n", uniforms->normal);
 
   shaderProgram->bind();
   bufferObjects->vertexBuffer->bind();
@@ -748,6 +749,100 @@ void RenderWindow::initializeMaterial(
 
 }
 
+/*!
+@brief initialize elevation maps
+
+load textures
+
+*/
+void RenderWindow::initializeElevationMaps() {
+
+  if(m_context->elevationMapCount != 0) {
+    qDebug() << "compiling terrain shader";
+    m_programTerrain = new QOpenGLShaderProgram(this);
+    m_programTerrain->addShaderFromSourceFile(
+      QOpenGLShader::Vertex,
+      ":/shaders/terrain.vert");
+    m_programTerrain->addShaderFromSourceFile(
+      QOpenGLShader::TessellationControl,
+      ":/shaders/terrain.tesc");
+    m_programTerrain->addShaderFromSourceFile(
+      QOpenGLShader::TessellationEvaluation,
+      ":/shaders/terrain.tese");
+    m_programTerrain->addShaderFromSourceFile(
+      QOpenGLShader::Fragment,
+      ":/shaders/terrain.frag");
+    m_programTerrain->link();
+  }
+  checkError("after link program terrain");
+
+  initializeProgramUniforms(
+    &m_uniformsTerrain,
+    m_programTerrain);
+
+  /* initialize additional elevation map specific uniforms */
+  m_programTerrain->bind();
+  m_uniformsTerrain.textureColor =
+    m_programTerrain->uniformLocation("tex_color");
+  m_uniformsTerrain.textureDisplacement =
+    m_programTerrain->uniformLocation("tex_displacement");
+  m_uniformsTerrain.projectionMatrix =
+    m_programTerrain->uniformLocation("proj_matrix");
+  m_programTerrain->release();
+  checkError("after initialize terrain uniforms");
+
+  if(m_terrainObjects) {
+    delete [] m_terrainObjects;
+  }
+  m_terrainObjects = new TerrainObjects[m_context->elevationMapCount];
+  for(int i = 0; i < m_context->elevationMapCount; i++) {
+    s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
+
+    glGenTextures(1, &m_terrainObjects[i].depth);
+    checkError("after glGenTextures");
+
+    printf("m_terrainObjects[%d].depth: %d\n", i, m_terrainObjects[i].depth);
+
+    glBindTexture(GL_TEXTURE_2D, m_terrainObjects[i].depth);
+    checkError("after glGenTextures");
+
+    glTexImage2D(
+      GL_TEXTURE_2D,
+      0,
+      GL_DEPTH_COMPONENT32,
+      elevationMap->columns,
+      elevationMap->rows,
+      0,
+      GL_DEPTH_COMPONENT,
+      GL_DEPTH_COMPONENT32,
+      elevationMap->controlPoints);
+    checkError("after glTexImage2d");
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    checkError("after glTexParameteri - GL_TEXTURE_WRAP_S");
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    checkError("after glTexParameteri - GL_TEXTURE_WRAP_T");
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    checkError("after glTexParameteri - GL_TEXTURE_MAG_FILTER");
+
+    glTexParameteri(
+      GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    checkError("after glTexParameteri - GL_TEXTURE_MIN_FILTER");
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+    checkError("after generate mipmap");
+
+    glEnable(GL_TEXTURE_2D);
+    checkError("after enable texture 2d");
+
+  }
+
+  checkError("after generate terrain texture uniforms");
+
+}
+
 
 /*!
 @brief compile shaders
@@ -767,7 +862,7 @@ void RenderWindow::compileShaders() {
   m_uniformsLine.mvp = m_programLine->uniformLocation("mvp");
   m_uniformsLine.colorUniform = m_programLine->uniformLocation("colorUniform");
   m_programLine->release();
-  checkError("after release program frame");
+  checkError("after release program line");
 
 
   qDebug() << "compiling frame shader program";
@@ -1209,17 +1304,17 @@ void RenderWindow::initialize() {
     array objects
   */
   if(m_context) {
-    FILE* debug = m_context->modelParameters->debugFilePointer;
-    fprintf(debug, "initializing context");
+    // FILE* debug = m_context->modelParameters->debugFilePointer;
 
     m_context->viewport = s2_camera();
     for(int i = 0; i < m_context->activeBodyCount; i++) {
       s2_body_t* body = m_context->nonVirtualBodyPointers[i];
-      fprintf(debug, "initializing body: ");
-      s2_stackstr_print(debug, body->name);
+      // fprintf(debug, "initializing body: ");
+      // s2_stackstr_print(debug, body->name);
       initializeBody(body);
     }
     initializeLights();
+    initializeElevationMaps();
 
     // printf("active light count : %d\n", context->activeLightCount);
     updateGL();
@@ -1795,12 +1890,8 @@ void RenderWindow::render() {
     if(m_context != NULL && m_drawFrames) {
       drawFrames(m_context->assembly);
     }
-
-    // if(m_context != NULL && m_drawFrames) {
-    //   drawWFrames();
-    // }
-    m_uniformsFrame.vao->release();
-    m_programFrame->release();
+    // m_uniformsFrame.vao->release();
+    // m_programFrame->release();
 
     /* draw joints */
     m_programFrame->bind();

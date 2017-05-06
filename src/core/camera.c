@@ -156,7 +156,7 @@ s2_camera_t* s2_camera() {
   // //   center,
   // //   up,
   // //   camera->view);
-  printf("after lookat\n");
+  // printf("after lookat\n");
 
   camera->next = NULL;
 
