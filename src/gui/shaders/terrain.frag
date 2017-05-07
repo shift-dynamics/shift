@@ -41,6 +41,8 @@ void main(void) {
     color = landscape;
   }
 
+  color = vec4(0.2, 0.2, 0.5, 1.0);
+
 
   // vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
   // vec3 V = vec3(0.0, 0.0, 1.0);
