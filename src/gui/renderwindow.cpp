@@ -788,7 +788,12 @@ void RenderWindow::initializeTerrain() {
   m_programTerrain->bind();
   m_uniformsTerrain.projectionMatrix =
     m_programTerrain->uniformLocation("proj_matrix");
+  m_uniformsTerrain.textureDisplacement =
+    m_programTerrain->uniformLocation("tex_displacement");
+  m_uniformsTerrain.textureColor =
+    m_programTerrain->uniformLocation("tex_color");
   m_programTerrain->release();
+
   checkError("after initialize terrain uniforms");
 
   if(m_terrainObjects) {
@@ -810,7 +815,8 @@ void RenderWindow::initializeTerrain() {
       QOpenGLTexture::Repeat);
     checkError("after set wrap mode");
     m_terrainObjects[i].depthTexture->setMinMagFilters(
-      QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+      QOpenGLTexture::Linear,
+      QOpenGLTexture::Linear);
     checkError("after set min mag filters");
     m_terrainObjects[i].depthTexture->setSize(
       elevationMap->columns,
@@ -820,21 +826,18 @@ void RenderWindow::initializeTerrain() {
     m_terrainObjects[i].depthTexture->allocateStorage();
     checkError("after allocate storage");
 
-
-    m_terrainObjects[i].depth =
-      m_programTerrain->uniformLocation("tex_displacement");
-
-
     size_t n = elevationMap->columns * elevationMap->rows;
     float* depthFloat = (float*)malloc(n * sizeof(float));
-    for(int j = 0; j < n; j++) {
-      depthFloat[j] = elevationMap->controlPoints[j];
+    for(size_t j = 0; j < n; j++) {
+      depthFloat[j] =
+        (float)elevationMap->controlPoints[j];
+      // printf("%f\n", depthFloat[j]);
     }
 
     m_terrainObjects[i].depthTexture->setData(
       0,
       0,
-      QOpenGLTexture::Depth,
+      QOpenGLTexture::Red,
       QOpenGLTexture::Float32,
       depthFloat);
     checkError("after setData");
@@ -884,8 +887,7 @@ void RenderWindow::initializeTerrain() {
     checkError("after new color texture");
 
 
-    m_terrainObjects[i].color =
-      m_programTerrain->uniformLocation("tex_color");
+
 
   }
   m_programTerrain->release();
@@ -1886,35 +1888,49 @@ void RenderWindow::drawWFrames() {
   }
 }
 
+
 void RenderWindow::drawTerrain() {
   m_programTerrain->bind();
   for(int i = 0; i < m_context->elevationMapCount; i++) {
     s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
     double* d = (double*)&(elevationMap->parentFramePointer);
+    // QMatrix4x4 model =
+    //   QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //              (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //              (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //              0.f,  0.f,  0.f,  1.f);
+
     QMatrix4x4 model =
-      QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                 (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                 (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                 0.f,  0.f,  0.f,  1.f);
+      QMatrix4x4(1.f, 0.f, 0.f, 0.f,
+                 0.f, 1.f, 0.f, 0.f,
+                 0.f, 0.f, 1.f, 0.f,
+                 0.f, 0.f, 0.f, 1.f);
     QMatrix4x4 mv = m_view * model;
     QMatrix4x4 mvp = m_projection * mv;
 
     m_programTerrain->setUniformValue(
       m_uniformsTerrain.mvp,
       mvp);
+    checkError("after set mvp uniform");
+
     m_programTerrain->setUniformValue(
       m_uniformsTerrain.mv,
       mv);
+    checkError("after set mv uniform");
+
     m_programTerrain->setUniformValue(
       m_uniformsTerrain.projectionMatrix,
       m_projection);
+    checkError("after set projection matrix uniform");
 
     m_terrainObjects[i].depthTexture->bind();
     checkError("after bind depth texture");
 
+    // qDebug() << "texture id: " << m_terrainObjects[i].depthTexture->textureId();
+
     m_programTerrain->setUniformValue(
       m_uniformsTerrain.textureDisplacement,
-      m_terrainObjects[i].depthTexture->textureId());
+      0);
     checkError("after set texture displacement");
 
     // glUniform1f(uniforms.dmap_depth, enable_displacement ? dmap_depth : 0.0f);
@@ -1927,7 +1943,12 @@ void RenderWindow::drawTerrain() {
     //     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // else
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    m_funcs->glDrawArraysInstanced(GL_PATCHES, 0, 4, 64 * 64);
+    checkError("after glPolygonMode");
+
+    m_funcs->glDrawArraysInstanced(
+      GL_PATCHES, 0, 4, 64 * 64);
+    checkError("after draw arrays instanced");
+
     m_terrainObjects[i].depthTexture->release();
     checkError("after release depth texture");
   }

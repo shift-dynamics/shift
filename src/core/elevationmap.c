@@ -4,7 +4,7 @@
 @brief generate a simple surface used to test elevation maps
 */
 double surface(double x, double y) {
-  return 0.6 * sin(x * x) + 0.3 * cos(y * y);
+  return 0.6 * sin(x / 32.0) + 0.3 * cos(y / 16.0);
 }
 
 /*! @brief generates a sample height map using surface function
@@ -20,7 +20,7 @@ void generateSampleHeightMap(const char* filename) {
   MagickWand* image = NewMagickWand();
 	PixelWand* pixelWand = NewPixelWand();
 
-  status = MagickNewImage(image, 400, 400, pixelWand);
+  status = MagickNewImage(image, 64, 64, pixelWand);
   if(status == MagickFalse) {
     fprintf(stderr, "failed to set size\n");
   }

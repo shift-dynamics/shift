@@ -7,11 +7,19 @@ int main(int argc, char** argv) {
   printf("wrote sample image 'sinxx+cosyy.tiff'\n");
 
   s2_elevationmap_t* elevationmap =
-    s2_elevationmap("sinxx+cosyy.tiff", BICUBIC, SAE, 15.0, 30.0, 0.2, 0.3);
+    s2_elevationmap("sinxx+cosyy.tiff",
+    NULL,
+    NULL,
+    BICUBIC,
+    SAE,
+    15.0,
+    30.0,
+    0.2,
+    0.3);
 
   double x = 23.09;
   double y = 41.5;
-  ksl_vec3_t normal = {0.0, 0.0, 0.0};
+  s2_vector_t normal = {0.0, 0.0, 0.0};
   printf(
     "bicubic interpolation: z at (%f, %f) = %f ",
     x, y, elevationmap->getZ(elevationmap, x, y, &normal));
@@ -19,9 +27,9 @@ int main(int argc, char** argv) {
 
 
   s2_elevationmap_t* elevationmap2 =
-    s2_elevationmap("sinxx+cosyy.tiff", BILINEAR, SAE, 15.0, 30.0, 0.2, 0.3);
+    s2_elevationmap("sinxx+cosyy.tiff", NULL, NULL, BILINEAR, SAE, 15.0, 30.0, 0.2, 0.3);
 
-  ksl_vec3_t normal2 = {0.0, 0.0, 0.0};
+  s2_vector_t normal2 = {0.0, 0.0, 0.0};
   printf(
     "bilinear interpolation: z at (%f, %f) = %f ",
     x, y, elevationmap2->getZ(elevationmap2, x, y, &normal2));
