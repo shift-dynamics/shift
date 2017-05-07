@@ -285,7 +285,7 @@ private:
     s2_material_t* material,
     s2_displacement_t* origin);
 
-  void initializeElevationMaps();
+  void initializeTerrain();
 
   bool m_initialized;
   bool m_drawFrames;
@@ -318,6 +318,7 @@ private:
   void updateJoint();
   void drawFrames(s2_assembly_t* assembly);
   void drawWFrames();
+  void drawTerrain();
 
 };
 

@@ -608,6 +608,8 @@ void RenderWindow::initializeProgramUniforms(
 }
 
 
+
+
 /*!
 @brief initialize opengl properties for a Body datastructure
 
@@ -755,9 +757,10 @@ void RenderWindow::initializeMaterial(
 load textures
 
 */
-void RenderWindow::initializeElevationMaps() {
+void RenderWindow::initializeTerrain() {
 
   if(m_context->elevationMapCount != 0) {
+
     qDebug() << "compiling terrain shader";
     m_programTerrain = new QOpenGLShaderProgram(this);
     m_programTerrain->addShaderFromSourceFile(
@@ -776,16 +779,13 @@ void RenderWindow::initializeElevationMaps() {
   }
   checkError("after link program terrain");
 
+  /* most program uniforms are initialized here */
   initializeProgramUniforms(
     &m_uniformsTerrain,
     m_programTerrain);
 
   /* initialize additional elevation map specific uniforms */
   m_programTerrain->bind();
-  m_uniformsTerrain.textureColor =
-    m_programTerrain->uniformLocation("tex_color");
-  m_uniformsTerrain.textureDisplacement =
-    m_programTerrain->uniformLocation("tex_displacement");
   m_uniformsTerrain.projectionMatrix =
     m_programTerrain->uniformLocation("proj_matrix");
   m_programTerrain->release();
@@ -795,50 +795,100 @@ void RenderWindow::initializeElevationMaps() {
     delete [] m_terrainObjects;
   }
   m_terrainObjects = new TerrainObjects[m_context->elevationMapCount];
+
+  m_programTerrain->bind();
   for(int i = 0; i < m_context->elevationMapCount; i++) {
+
     s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
 
-    glGenTextures(1, &m_terrainObjects[i].depth);
-    checkError("after glGenTextures");
-
-    printf("m_terrainObjects[%d].depth: %d\n", i, m_terrainObjects[i].depth);
-
-    glBindTexture(GL_TEXTURE_2D, m_terrainObjects[i].depth);
-    checkError("after glGenTextures");
-
-    glTexImage2D(
-      GL_TEXTURE_2D,
-      0,
-      GL_DEPTH_COMPONENT32,
+    m_terrainObjects[i].depthTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+    checkError("after new depth texture");
+    m_terrainObjects[i].depthTexture->setFormat(
+      QOpenGLTexture::R32F);
+    checkError("after set format R32F");
+    m_terrainObjects[i].depthTexture->setWrapMode(
+      QOpenGLTexture::Repeat);
+    checkError("after set wrap mode");
+    m_terrainObjects[i].depthTexture->setMinMagFilters(
+      QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+    checkError("after set min mag filters");
+    m_terrainObjects[i].depthTexture->setSize(
       elevationMap->columns,
       elevationMap->rows,
+      1);
+    checkError("after set size");
+    m_terrainObjects[i].depthTexture->allocateStorage();
+    checkError("after allocate storage");
+
+
+    m_terrainObjects[i].depth =
+      m_programTerrain->uniformLocation("tex_displacement");
+
+
+    size_t n = elevationMap->columns * elevationMap->rows;
+    float* depthFloat = (float*)malloc(n * sizeof(float));
+    for(int j = 0; j < n; j++) {
+      depthFloat[j] = elevationMap->controlPoints[j];
+    }
+
+    m_terrainObjects[i].depthTexture->setData(
       0,
-      GL_DEPTH_COMPONENT,
-      GL_DEPTH_COMPONENT32,
-      elevationMap->controlPoints);
-    checkError("after glTexImage2d");
+      0,
+      QOpenGLTexture::Depth,
+      QOpenGLTexture::Float32,
+      depthFloat);
+    checkError("after setData");
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    checkError("after glTexParameteri - GL_TEXTURE_WRAP_S");
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    checkError("after glTexParameteri - GL_TEXTURE_WRAP_T");
+    // glGenTextures(1, &m_terrainObjects[i].depth);
+    // checkError("after glGenTextures");
+    //
+    // printf("m_terrainObjects[%d].depth: %d\n", i, m_terrainObjects[i].depth);
+    //
+    // glBindTexture(GL_TEXTURE_2D, m_terrainObjects[i].depth);
+    // checkError("after glGenTextures");
+    //
+    // glTexImage2D(
+    //   GL_TEXTURE_2D,
+    //   0,
+    //   GL_DEPTH_COMPONENT,
+    //   elevationMap->columns,
+    //   elevationMap->rows,
+    //   0,
+    //   GL_DEPTH_COMPONENT,
+    //   GL_FLOAT,
+    //   depthFloat);
+    // checkError("after glTexImage2d");
+    //
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // checkError("after glTexParameteri - GL_TEXTURE_WRAP_S");
+    //
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // checkError("after glTexParameteri - GL_TEXTURE_WRAP_T");
+    //
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // checkError("after glTexParameteri - GL_TEXTURE_MAG_FILTER");
+    //
+    // glTexParameteri(
+    //   GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    // checkError("after glTexParameteri - GL_TEXTURE_MIN_FILTER");
+    //
+    // glGenerateMipmap(GL_TEXTURE_2D);
+    // checkError("after generate mipmap");
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    checkError("after glTexParameteri - GL_TEXTURE_MAG_FILTER");
 
-    glTexParameteri(
-      GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    checkError("after glTexParameteri - GL_TEXTURE_MIN_FILTER");
+    free(depthFloat);
 
-    glGenerateMipmap(GL_TEXTURE_2D);
-    checkError("after generate mipmap");
 
-    glEnable(GL_TEXTURE_2D);
-    checkError("after enable texture 2d");
+    m_terrainObjects[i].colorTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+    checkError("after new color texture");
+
+
+    m_terrainObjects[i].color =
+      m_programTerrain->uniformLocation("tex_color");
 
   }
-
+  m_programTerrain->release();
   checkError("after generate terrain texture uniforms");
 
 }
@@ -1314,7 +1364,7 @@ void RenderWindow::initialize() {
       initializeBody(body);
     }
     initializeLights();
-    initializeElevationMaps();
+    initializeTerrain();
 
     // printf("active light count : %d\n", context->activeLightCount);
     updateGL();
@@ -1834,6 +1884,54 @@ void RenderWindow::drawWFrames() {
     // glEnable(GL_LINE_SMOOTH);
     glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
   }
+}
+
+void RenderWindow::drawTerrain() {
+  m_programTerrain->bind();
+  for(int i = 0; i < m_context->elevationMapCount; i++) {
+    s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
+    double* d = (double*)&(elevationMap->parentFramePointer);
+    QMatrix4x4 model =
+      QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                 (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                 (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                 0.f,  0.f,  0.f,  1.f);
+    QMatrix4x4 mv = m_view * model;
+    QMatrix4x4 mvp = m_projection * mv;
+
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.mvp,
+      mvp);
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.mv,
+      mv);
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.projectionMatrix,
+      m_projection);
+
+    m_terrainObjects[i].depthTexture->bind();
+    checkError("after bind depth texture");
+
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.textureDisplacement,
+      m_terrainObjects[i].depthTexture->textureId());
+    checkError("after set texture displacement");
+
+    // glUniform1f(uniforms.dmap_depth, enable_displacement ? dmap_depth : 0.0f);
+    // glUniform1i(uniforms.enable_fog, enable_fog ? 1 : 0);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+
+    // if (wireframe)
+    //     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // else
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    m_funcs->glDrawArraysInstanced(GL_PATCHES, 0, 4, 64 * 64);
+    m_terrainObjects[i].depthTexture->release();
+    checkError("after release depth texture");
+  }
+  m_programTerrain->release();
 
 }
 
@@ -1889,6 +1987,11 @@ void RenderWindow::render() {
     /* draw all frames */
     if(m_context != NULL && m_drawFrames) {
       drawFrames(m_context->assembly);
+    }
+
+    /* draw terrain */
+    if(m_context != NULL) {
+      drawTerrain();
     }
     // m_uniformsFrame.vao->release();
     // m_programFrame->release();
