@@ -26,6 +26,11 @@ SUCH DAMAGE.
 #ifndef _STAR2_TIRE_H_
 #define _STAR2_TIRE_H_
 
+typedef struct s2_tire_t {
+  s2_tire_enum_t tireType;
+  void* properties;
+} s2_tire_t;
+
 void s2_tire(
   s2_forcemodule_t* forceModule,
   s2_context_t* context,

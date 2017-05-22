@@ -133,14 +133,13 @@ independent/dependent variables during a running simulation:
 ### Run-Time Algorithm (RTA)
 
 During a simulation, the following operations are carried out at every time
-step. The RTA uses only a few primitive functions to set up and solve the
+step. RTA uses only a few primitive functions to set up and sparse solve the
 equations of motion, stepping through arrays of memory locations without
 complex logic.
 
 *   Carry out operations set up in Run-Time Optimization step using
     source and destination memory pointers.
 
-*   Monitor ratio of pivots in LU factors of Jacobian for each substructure.
-    If the ratio increases above 10 times the starting value, the simulation is
-    paused and the Run-Time Optimization step is carried out again to
+*   Monitor ratio of infinity norm of the B matrix associated with each     
+    block sub-Jacobian matrix of each substructure.  If the infinity norm increases more than 2 times from the initial starting value, the simulation is paused and the Run-Time Optimization step is carried out again to
     regenerate pointer arrays.

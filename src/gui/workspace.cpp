@@ -2970,6 +2970,7 @@ void Workspace::openFileAtLoad() {
       m_context = s2_loadJSON(byteArray.data());
       s2_context_setTopology(m_context);
       populateTree();
+      qDebug() << "loading from openFileAtLoad: " << fileName;
       m_renderWindow->loadContext(m_context);
     }
 
@@ -3118,11 +3119,12 @@ void Workspace::openFile() {
 
   if(fileName.length() != 0) {
     m_currentFileName = fileName;
-    setWindowTitle(fileName + QString(" | mbdl viewer"));
+    setWindowTitle(fileName + QString(" | STAR2"));
 
     m_context = s2_loadJSON(byteArray.data());
     s2_context_setTopology(m_context);
     populateTree();
+    qDebug() << "loading from openFile: " << fileName;
     m_renderWindow->loadContext(m_context);
   }
 
