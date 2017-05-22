@@ -80,6 +80,10 @@ typedef struct ProgramUniforms {
   GLuint textureDisplacement;
   GLuint textureColor;
   GLuint projectionMatrix;
+  GLuint zMax;
+  GLuint zMin;
+
+  GLuint viewport;
 
 } ProgramUniforms;
 
@@ -158,7 +162,6 @@ public:
   //   double targetVal,
   //   s2_axis_enum_t axisSequence);
 
-
 public slots:
   void updateGL();
   void initialize();
@@ -223,6 +226,9 @@ private:
 
   bool m_perspective;
   bool m_drawVertexNormals;
+
+  bool m_terrainShaderInitialized;
+  bool m_terrainInitialized;
   QTimer* m_timer;
 
   struct m_joint {
@@ -336,11 +342,11 @@ class RenderWindowWidget : public QWidget {
       layout->setMargin(0);
       layout->setSpacing(0);
       layout->addWidget(widget);
-      }
+    }
 
-      RenderWindow* getRenderWindow() {
-        return m_renderWindow;
-      }
+    RenderWindow* getRenderWindow() {
+      return m_renderWindow;
+    }
 
   signals:
     void mouseOut();

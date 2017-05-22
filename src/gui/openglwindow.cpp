@@ -124,9 +124,9 @@ void OpenGLWindow::renderNow() {
 
   if(needsInitialize) {
     m_funcs =
-      m_context->versionFunctions<QOpenGLFunctions_3_3_Core>();
+      m_context->versionFunctions<QOpenGLFunctions_4_2_Core>();
     if(!m_funcs) {
-      qFatal("Requires OpenGL >= 3.3");
+      qFatal("Requires OpenGL >= 4.2");
       exit(1);
     }
     m_funcs->initializeOpenGLFunctions();

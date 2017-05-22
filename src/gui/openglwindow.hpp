@@ -5,6 +5,7 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLFunctions_3_3_Core>
+#include <QOpenGLFunctions_4_2_Core>
 
 class QOpenGLContext;
 class QOpenGLPaintDevice;
@@ -28,7 +29,7 @@ class OpenGLWindow : public QWindow, protected QOpenGLFunctions {
       return m_logging;
     }
     void setOpenGLLogging(bool log);
-    QOpenGLFunctions_3_3_Core* m_funcs;
+    QOpenGLFunctions_4_2_Core* m_funcs;
 
   public slots:
     void setAnimating(bool animating);

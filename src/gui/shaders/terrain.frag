@@ -2,6 +2,7 @@
 
 out vec4 color;
 
+uniform sampler2D tex_displacement;
 layout (binding = 1) uniform sampler2D tex_color;
 
 uniform int lightCount;
@@ -11,8 +12,8 @@ uniform vec3 Kd[10];
 uniform vec3 Ks[10];
 uniform int directional[10];
 
-uniform bool enable_fog = true;
-uniform vec4 fog_color = vec4(0.7, 0.8, 0.9, 0.0);
+// uniform bool enable_fog = true;
+// uniform vec4 fog_color = vec4(0.7, 0.8, 0.9, 0.0);
 
 in TES_OUT {
   vec2 tc;
@@ -20,29 +21,32 @@ in TES_OUT {
   vec3 eye_coord;
 } fs_in;
 
-vec4 fog(vec4 c) {
-  float z = length(fs_in.eye_coord);
-
-  float de = 0.025 * smoothstep(0.0, 6.0, 10.0 - fs_in.world_coord.z);
-  float di = 0.045 * (smoothstep(0.0, 40.0, 20.0 - fs_in.world_coord.z));
-
-  float extinction   = exp(-z * de);
-  float inscattering = exp(-z * di);
-
-  return c * extinction + fog_color * (1.0 - inscattering);
-}
+// vec4 fog(vec4 c) {
+//   float z = length(fs_in.eye_coord);
+//
+//   float de = 0.025 * smoothstep(0.0, 6.0, 10.0 - fs_in.world_coord.z);
+//   float di = 0.045 * (smoothstep(0.0, 40.0, 20.0 - fs_in.world_coord.z));
+//
+//   float extinction   = exp(-z * de);
+//   float inscattering = exp(-z * di);
+//
+//   return c * extinction + fog_color * (1.0 - inscattering);
+// }
 
 void main(void) {
-  vec4 landscape = texture(tex_color, fs_in.tc);
+  // vec4 landscape = texture(tex_color, fs_in.tc);
 
-  if (enable_fog) {
-    color = fog(landscape);
-  } else {
-    color = landscape;
-  }
+  // if (enable_fog) {
+  //   color = fog(landscape);
+  // } else {
+  //   color = landscape;
+  // }
 
-  color = vec4(0.2, 0.2, 0.5, 1.0);
+  // color = vec4(0.4, 0.2, 0.5, 1.0);
+  float temp = clamp(texture(tex_displacement, fs_in.tc).r, 0.0, 1.0);
+  color = vec4(temp, temp, temp, 1.0);
 
+  // color = vec4(texture(tex_color, fs_in.tc).rgb, 1.0);
 
   // vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
   // vec3 V = vec3(0.0, 0.0, 1.0);

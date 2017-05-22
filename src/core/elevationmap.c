@@ -1,11 +1,16 @@
 #include "elevationmap.h"
+#include <float.h>
 
 /*!
 @brief generate a simple surface used to test elevation maps
 */
 double surface(double x, double y) {
-  return 0.6 * sin(x / 32.0) + 0.3 * cos(y / 16.0);
+  // return sin((y - 10.0) * (pow(x, 0.5) - 5.0) / 500.0) * 3.0 + 2.0;
+
+  return ((20.0 * sin(y / 5.0 - 2.0) * (pow(x, 0.5) - 5.0) / 50.0)) + 2.0;
+
 }
+
 
 /*! @brief generates a sample height map using surface function
 saves to 32 bit tiff floating point format.  */
@@ -55,6 +60,7 @@ void generateSampleHeightMap(const char* filename) {
 
     for(x = 0; x < (ssize_t) width; x++) {
       PixelSetRedQuantum(pixels[x], surface(x, y));
+      printf("%f -> %f\n",  surface(x, y), PixelGetRedQuantum(pixels[x]));
     }
 
     (void) PixelSyncIterator(iterator);
@@ -537,8 +543,8 @@ s2_elevationmap_t* s2_elevationmap(
   elevationmap->controlPoints = NULL;
   elevationmap->texture = NULL;
   elevationmap->getZ = NULL;
-  elevationmap->zMin = 0;
-  elevationmap->zMax = 0;
+  elevationmap->zMin = DBL_MAX;
+  elevationmap->zMax = -DBL_MAX;
 
   /* load image using imagemagick, Magick::InitializeMagick() must be
   called prior to creating an elevationmap */
@@ -552,7 +558,9 @@ s2_elevationmap_t* s2_elevationmap(
   unsigned long columns = MagickGetImageWidth(image);
   unsigned long rows = MagickGetImageHeight(image);
 
-  printf("Loading elevation map %s with size (%lu, %lu)\n", elevationmapFileName, rows, columns);
+  printf(
+    "Loading elevation map %s with size (%lu, %lu)\n",
+    elevationmapFileName, rows, columns);
 
   elevationmap->controlPoints = calloc(rows * columns, sizeof(double));
 
@@ -560,6 +568,14 @@ s2_elevationmap_t* s2_elevationmap(
   /* load values into array following sae convention with x as
   top ordinate of view (column index) and y as left ordinate of view
   (row index), and +z is pointing down */
+
+  const char* option = MagickGetImageProperty(image, "quantum:format");
+  printf("%s ", option);
+
+  float depth = MagickGetImageDepth(image);
+  printf("with depth: %f\n", depth);
+  // MagickSetOption(image, "quantum:format", "floating-point");
+
 
   PixelIterator* iterator = NewPixelIterator(image);
   for(y = 0; y < (long) MagickGetImageHeight(image); y++) {
@@ -570,10 +586,19 @@ s2_elevationmap_t* s2_elevationmap(
     }
 
     for(x = 0; x < (long) width; x++) {
-      PixelGetMagickColor(pixels[x], &pixel);
+      // PixelGetMagickColor(pixels[x], &pixel);
+      printf("%f\n", PixelGetRedQuantum(pixels[x]));
 
-      elevationmap->controlPoints[y * columns + x] = PixelGetRedQuantum(pixels[x]);
-      // printf("%f\n", elevationmap->controlPoints[y * columns + x]);
+      elevationmap->controlPoints[y * columns + x] =
+        (double)PixelGetRedQuantum(pixels[x]);
+      elevationmap->zMax =
+        fmax(
+          elevationmap->controlPoints[y * columns + x],
+          elevationmap->zMax);
+      elevationmap->zMin =
+        fmin(
+          elevationmap->controlPoints[y * columns + x],
+          elevationmap->zMin);
     }
 
     (void) PixelSyncIterator(iterator);
@@ -598,7 +623,7 @@ s2_elevationmap_t* s2_elevationmap(
       textureRows,
       textureColumns);
 
-    elevationmap->texture = calloc(4 * textureRows * textureColumns, sizeof(char));
+    elevationmap->texture = calloc(4 * textureRows * textureColumns, sizeof(unsigned char));
 
     /* load values into array following sae convention with x as
     top ordinate of view (column index) and y as left ordinate of view

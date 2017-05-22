@@ -4,9 +4,11 @@ layout (quads, fractional_odd_spacing) in;
 
 uniform sampler2D tex_displacement;
 
+uniform mat4 mvp;
 uniform mat4 mv;
 uniform mat4 proj_matrix;
-// uniform float dmap_depth;
+uniform float zMax;
+uniform float zMin;
 
 in TCS_OUT {
   vec2 tc;
@@ -57,13 +59,15 @@ void main(void) {
         gl_TessCoord.y);
 
 //    p.y += texture(tex_displacement, tc).r * dmap_depth;
-    p.z += texture(tex_displacement, tc).r;
+    p.z = (texture(tex_displacement, tc).r * (zMax - zMin)) + zMin;
+    p.z *= 10.0;
+    // p.z += texture(tex_displacement, tc).r;
 
-    vec4 P_eye = mv * p;
+    vec4 p_eye = mv * p;
 
     tes_out.tc = tc;
     tes_out.world_coord = p.xyz;
-    tes_out.eye_coord = P_eye.xyz;
+    tes_out.eye_coord = p_eye.xyz;
 
-    gl_Position = proj_matrix * P_eye;
+    gl_Position = mvp * p;
 }
