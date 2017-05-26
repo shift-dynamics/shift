@@ -1,8 +1,6 @@
 #version 420 core
 
-out vec4 color;
-
-uniform sampler2D tex_displacement;
+layout (binding = 0) uniform sampler2D tex_displacement;
 layout (binding = 1) uniform sampler2D tex_color;
 
 uniform int lightCount;
@@ -12,15 +10,16 @@ uniform vec3 Kd[10];
 uniform vec3 Ks[10];
 uniform int directional[10];
 
-// uniform bool enable_fog = true;
-// uniform vec4 fog_color = vec4(0.7, 0.8, 0.9, 0.0);
-
 in TES_OUT {
   vec2 tc;
   vec3 world_coord;
   vec3 eye_coord;
 } fs_in;
 
+out vec4 color;
+
+// uniform bool enable_fog = true;
+// uniform vec4 fog_color = vec4(0.7, 0.8, 0.9, 0.0);
 // vec4 fog(vec4 c) {
 //   float z = length(fs_in.eye_coord);
 //
@@ -43,11 +42,11 @@ void main(void) {
   // }
 
   // color = vec4(0.4, 0.2, 0.5, 1.0);
-  float temp = clamp(texture(tex_displacement, fs_in.tc).r, 0.0, 1.0);
-  color = vec4(temp, temp, temp, 1.0);
+  // float temp = clamp(texture(tex_displacement, fs_in.tc).r, 0.0, 1.0);
+  // color = vec4(temp, temp, temp, 1.0);
 
-  // color = vec4(texture(tex_color, fs_in.tc).rgb, 1.0);
-
+  // color = vec4((texture(tex_color, fs_in.tc)).rgb, 1.0);
+  color = texture2D(tex_color, fs_in.tc);
   // vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
   // vec3 V = vec3(0.0, 0.0, 1.0);
   //

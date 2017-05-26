@@ -614,6 +614,10 @@ s2_elevationmap_t* s2_elevationmap(
       ThrowWandException(texture);
     }
 
+    size_t range;
+    MagickGetQuantumRange(&range);
+    printf("range: %lu\n", range);
+
     unsigned long textureColumns = MagickGetImageWidth(texture);
     unsigned long textureRows = MagickGetImageHeight(texture);
 
@@ -638,16 +642,25 @@ s2_elevationmap_t* s2_elevationmap(
       }
 
       for(x = 0; x < (long) width; x++) {
-        PixelGetMagickColor(pixels[x], &pixel);
-
-        elevationmap->texture[4 * (y * columns + x) + 0] =
-          PixelGetRedQuantum(pixels[x]);
-        elevationmap->texture[4 * (y * columns + x) + 1] =
-          PixelGetGreenQuantum(pixels[x]);
-        elevationmap->texture[4 * (y * columns + x) + 2] =
-          PixelGetBlueQuantum(pixels[x]);
-        elevationmap->texture[4 * (y * columns + x) + 3] =
-          PixelGetAlphaQuantum(pixels[x]);
+        // PixelGetMagickColor(pixels[x], &pixel);
+        elevationmap->texture[4 * (y * textureColumns + x) + 0] =
+          (unsigned char) (PixelGetRedQuantum(pixels[x]) / range * 255.0);
+        elevationmap->texture[4 * (y * textureColumns + x) + 1] =
+          (unsigned char) (PixelGetGreenQuantum(pixels[x]) / range * 255.0);
+        elevationmap->texture[4 * (y * textureColumns + x) + 2] =
+          (unsigned char) (PixelGetBlueQuantum(pixels[x]) / range * 255.0);
+        // elevationmap->texture[4 * (y * columns + x) + 3] =
+        //   (unsigned char) (PixelGetAlpha(pixels[x]) / range * 255.0);
+        elevationmap->texture[4 * (y * textureColumns + x) + 3] = 255;
+        // if(elevationmap->texture[4 * (y * columns + x) + 3]) {
+          // printf(
+          //   "[%lu, %lu]: %d, %d, %d, %d\n",
+          //   y, x,
+          //   elevationmap->texture[4 * (y * columns + x) + 0],
+          //   elevationmap->texture[4 * (y * columns + x) + 1],
+          //   elevationmap->texture[4 * (y * columns + x) + 2],
+          //   elevationmap->texture[4 * (y * columns + x) + 3]);
+        // }
       }
 
       (void) PixelSyncIterator(iterator);
