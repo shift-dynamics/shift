@@ -317,6 +317,7 @@ INPUT /usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eufm10.pfb
 INPUT /usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eufm7.pfb
 INPUT /usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eurm10.pfb
 INPUT /usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eurm7.pfb
+INPUT /usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eusm10.pfb
 INPUT /usr/share/texmf-dist/fonts/type1/public/fpl/fplrc8a.pfb
 INPUT /usr/share/texmf-dist/fonts/type1/nowacki/iwona/iwonab.pfb
 INPUT /usr/share/texmf-dist/fonts/type1/nowacki/iwona/iwonar.pfb

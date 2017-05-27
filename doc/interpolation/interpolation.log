@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Arch Linux) (preloaded format=pdflatex 2017.4.20)  26 MAY 2017 19:02
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Arch Linux) (preloaded format=pdflatex 2017.4.22)  26 MAY 2017 20:01
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1206,26 +1206,26 @@ Overfull \hbox (3.90839pt too wide) in paragraph at lines 134--134
 [] 
  []
 
-[2] (./interpolation.bbl
+[2] [3] (./interpolation.bbl
 
 LaTeX Warning: Empty `thebibliography' environment or \BreakBibliography
                before end of `thebibliography' environment on input line 3.
 
 )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 203.
-[3]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 203.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 253.
+[4]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 253.
 (./interpolation.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 203.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 203.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 253.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 253.
 Package rerunfilecheck Info: File `interpolation.out' has not changed.
 (rerunfilecheck)             Checksum: D140E6D7D1AA6868392E233D85604A1D;373.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 203.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 253.
  ) 
 Here is how much of TeX's memory you used:
- 15046 strings out of 493013
- 265198 string characters out of 6139317
- 593635 words of memory out of 5000000
+ 15051 strings out of 493013
+ 265256 string characters out of 6139317
+ 597635 words of memory out of 5000000
  18295 multiletter control sequences out of 15000+600000
  91389 words of font info for 105 fonts, out of 8000000 for 9000
  1143 hyphenation exceptions out of 8191
@@ -1238,14 +1238,15 @@ xmf-dist/fonts/type1/public/amsfonts/euler/euex10.pfb></usr/share/texmf-dist/fo
 nts/type1/public/amsfonts/euler/eufm10.pfb></usr/share/texmf-dist/fonts/type1/p
 ublic/amsfonts/euler/eufm7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfon
 ts/euler/eurm10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eu
-rm7.pfb></usr/share/texmf-dist/fonts/type1/public/fpl/fplrc8a.pfb></usr/share/t
-exmf-dist/fonts/type1/nowacki/iwona/iwonab.pfb></usr/share/texmf-dist/fonts/typ
-e1/nowacki/iwona/iwonar.pfb></usr/share/texmf-dist/fonts/type1/urw/palatino/upl
-r8a.pfb></usr/share/texmf-dist/fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on interpolation.pdf (3 pages, 121635 bytes).
+rm7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eusm10.pfb></u
+sr/share/texmf-dist/fonts/type1/public/fpl/fplrc8a.pfb></usr/share/texmf-dist/f
+onts/type1/nowacki/iwona/iwonab.pfb></usr/share/texmf-dist/fonts/type1/nowacki/
+iwona/iwonar.pfb></usr/share/texmf-dist/fonts/type1/urw/palatino/uplr8a.pfb></u
+sr/share/texmf-dist/fonts/type1/urw/palatino/uplri8a.pfb>
+Output written on interpolation.pdf (4 pages, 128827 bytes).
 PDF statistics:
- 125 PDF objects out of 1000 (max. 8388607)
- 106 compressed objects within 2 object streams
- 19 named destinations out of 1000 (max. 500000)
+ 137 PDF objects out of 1000 (max. 8388607)
+ 116 compressed objects within 2 object streams
+ 24 named destinations out of 1000 (max. 500000)
  16945 words of extra memory for PDF output out of 17280 (max. 10000000)
 

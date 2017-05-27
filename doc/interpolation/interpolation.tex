@@ -107,7 +107,7 @@ In this document, the name \emph{terrain map} is used to describe a rectangular 
 %------------------------------------------------
 
 \section{Bilinear Interpolation}
-Bilinear interpolation is an extension of linear interpolation. In 2D bilinear interpolation, interpolation is performed along a first axis, followed by a second axis. Note that contrary to whats its name would suggest, the surface obtained from bilinear interpolation is \emph{not} linear; rather it is a quadratic function obtained from the product of two linear functions. Compared to other techniques, bilinear interpolation has the advantage of being relatively fast to compute. Additionally, the interpolated surface obtained from bilinear interpolation passes exactly through the control points, which may be desirable for some applications. A disadvantage to bilinear interpolation is that the resulting surface is only $C_1$ continuous between adjacent surface patches (i.e. continuous in position), but not $C_2$ or $C_3$ continuous (i.e. continuous in slope and curvature).
+Bilinear interpolation is an extension of linear interpolation. In 2D bilinear interpolation, interpolation is performed along a first axis, followed by a second axis. Note that contrary to whats its name would suggest, the surface obtained from bilinear interpolation is \emph{not} linear; rather it is a quadratic function obtained from the product of two linear functions. Compared to other techniques, bilinear interpolation has the advantage of being relatively fast to compute. Additionally, the interpolated surface obtained from bilinear interpolation passes exactly through the control points, which may be desirable for some applications. A disadvantage to bilinear interpolation is that the resulting surface is only $C_1$ continuous between adjacent surface patches (i.e. continuous in position), but not $C_2$ or $C_3$ continuous (i.e. continuous in slope or curvature).
 
 \subsection{Interpolated Position}
 Consider a surface patch represented with the four control points $f_{11}=f(x_1,y_1)$, $f_{12}=f(x_1,y_2)$, $f_{21}=f(x_2,y_1)$, and $f_{22}=f(x_2,y_2)$. To obtain the interpolated value at position $(x,y)$, first perform interpolation along the $x$-direction as
@@ -176,10 +176,60 @@ Similarly the tangent vector in the $y$-direction can be obtained as
 \end{equation}
 
 \paragraph{ISO Convention}
-In the ISO convention, the surface normal points in the positive $z$ direction and is obtained as
+In the ISO convention, the surface normal $\underline{n}$ points in the positive $z$ direction and is obtained as
+\begin{equation}
+  \begin{split}
+  \underline{n} &= \underline{\tilde{t}}_x \underline{t}_y = \begin{bmatrix}
+    0        & -t_{x(2)} & t_{x(1)}\\
+    t_{x(2)} & 0         & -t_{x(0)}\\
+    -t_{x(1)} & t_{x(0)} & 0
+ \end{bmatrix}
+ \begin{Bmatrix} t_{y(0)} \\ t_{y(1)} \\ t_{y(2)}  \end{Bmatrix}\\
+  &= \begin{Bmatrix}
+  t_{x(1)}t_{y(2)} - t_{x(2)} t_{y(1)} \\
+  t_{x(2)}t_{y(0)} - t_{x(0)} t_{y(2)} \\
+  t_{x(0)}t_{y(1)} - t_{x(1)} t_{y(0)}
+  \end{Bmatrix} =
+  \begin{Bmatrix}
+     - \frac{a_{21} + a_{22}v}{x_2 - x_1} \\
+     - \frac{a_{12} + a_{22}u}{y_2 - y_1} \\
+    1
+  \end{Bmatrix}
+\end{split}
+\end{equation}
+The normal vector is reported as a normalized quantity by dividing by its length.
+\begin{equation}
+  \underline{n}_{ISO} = \frac{\underline{n}}{\lvert \lvert{\underline{n}}\rvert \rvert}
+\end{equation}
 
-%
-% \paragraph{Different Paragraph Description} \lipsum[8] % Dummy text
+\paragraph{SAE Convention}
+In the SAE convention, the surface normal $\underline{n}$ points in the negative $z$ direction and is obtained as
+\begin{equation}
+  \begin{split}
+  \underline{n} &= \underline{\tilde{t}}_y \underline{t}_x = \begin{bmatrix}
+    0        & -t_{y(2)} & t_{y(1)}\\
+    t_{y(2)} & 0         & -t_{y(0)}\\
+    -t_{y(1)} & t_{y(0)} & 0
+ \end{bmatrix}
+ \begin{Bmatrix} t_{x(0)} \\ t_{x(1)} \\ t_{x(2)}  \end{Bmatrix}\\
+  &= \begin{Bmatrix}
+  t_{y(1)}t_{x(2)} - t_{y(2)} t_{x(1)} \\
+  t_{y(2)}t_{x(0)} - t_{y(0)} t_{x(2)} \\
+  t_{y(0)}t_{x(1)} - t_{y(1)} t_{x(0)}
+  \end{Bmatrix} =
+  \begin{Bmatrix}
+     \frac{a_{21} + a_{22}v}{x_2 - x_1} \\
+     \frac{a_{12} + a_{22}u}{y_2 - y_1} \\
+    -1
+  \end{Bmatrix}
+\end{split}
+\end{equation}
+Finally the normal vector is normalized for reporting purposes as
+\begin{equation}
+  \underline{n}_{SAE} = \frac{\underline{n}}{\lvert \lvert{\underline{n}}\rvert \rvert}
+\end{equation}
+
+
 
 %------------------------------------------------
 
