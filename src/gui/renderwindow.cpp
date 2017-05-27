@@ -882,8 +882,8 @@ void RenderWindow::initializeTerrain() {
         QOpenGLTexture::Linear);
       checkError("after set min mag filters");
 
-      qDebug() << "allocating color texture with size: " <<
-        elevationMap->textureColumns << "," << elevationMap->textureRows;
+      // qDebug() << "allocating color texture with size: " <<
+      //   elevationMap->textureColumns << "," << elevationMap->textureRows;
 
       m_terrainObjects[i].colorTexture->setSize(
         elevationMap->textureColumns,
