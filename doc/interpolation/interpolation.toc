@@ -3,5 +3,6 @@
 \contentsline {subsection}{\numberline {2.1}Interpolated Position}{2}{subsection.2.1}
 \contentsline {subsection}{\numberline {2.2}Interpolated Normal}{3}{subsection.2.2}
 \contentsline {paragraph}{ISO Convention}{3}{equation.2.9}
-\contentsline {section}{\numberline {3}Bicubic Interpolation}{3}{section.3}
-\contentsline {section}{\numberline {4}Catmul-Rom Interpolation}{3}{section.4}
+\contentsline {paragraph}{SAE Convention}{4}{equation.2.11}
+\contentsline {section}{\numberline {3}Bicubic Interpolation}{4}{section.3}
+\contentsline {section}{\numberline {4}Catmul-Rom Interpolation}{4}{section.4}
