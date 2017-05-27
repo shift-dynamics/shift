@@ -1,0 +1,203 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Arsclassica Article
+% LaTeX Template
+% Version 1.1 (10/6/14)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Lorenzo Pantieri (http://www.lorenzopantieri.net) with extensive modifications by:
+% Vel (vel@latextemplates.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[
+10pt, % Main document font size
+a4paper, % Paper type, use 'letterpaper' for US Letter paper
+oneside, % One page layout (no page indentation)
+%twoside, % Two page layout (page indentation for binding and different headers)
+headinclude,footinclude, % Extra spacing for the header and footer
+BCOR5mm, % Binding correction
+]{scrartcl}
+
+\input{structure.tex} % Include the structure.tex file which specified the document structure and layout
+
+\hyphenation{Fortran hy-phen-ation} % Specify custom hyphenation points in words with dashes where you would like hyphenation to occur, or alternatively, don't put any dashes in a word to stop hyphenation altogether
+
+%----------------------------------------------------------------------------------------
+%	TITLE AND AUTHOR(S)
+%----------------------------------------------------------------------------------------
+
+\title{\normalfont\spacedallcaps{Surface Approximation}} % The article title
+
+\author{\spacedlowsmallcaps{Kristopher Wehage*}} % The article author(s) - author affiliations need to be specified in the AUTHOR AFFILIATIONS block
+
+\date{} % An optional date to appear under the author(s)
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	HEADERS
+%----------------------------------------------------------------------------------------
+
+\renewcommand{\sectionmark}[1]{\markright{\spacedlowsmallcaps{#1}}} % The header for all pages (oneside) or for even pages (twoside)
+%\renewcommand{\subsectionmark}[1]{\markright{\thesubsection~#1}} % Uncomment when using the twoside option - this modifies the header on odd pages
+\lehead{\mbox{\llap{\small\thepage\kern1em\color{halfgray} \vline}\color{halfgray}\hspace{0.5em}\rightmark\hfil}} % The header style
+
+\pagestyle{scrheadings} % Enable the headers specified in this block
+
+%----------------------------------------------------------------------------------------
+%	TABLE OF CONTENTS & LISTS OF FIGURES AND TABLES
+%----------------------------------------------------------------------------------------
+
+\maketitle % Print the title/author/date block
+
+\setcounter{tocdepth}{2} % Set the depth of the table of contents to show sections and subsections only
+
+\tableofcontents % Print the table of contents
+
+\listoffigures % Print the list of figures
+
+\listoftables % Print the list of tables
+
+%----------------------------------------------------------------------------------------
+%	ABSTRACT
+%----------------------------------------------------------------------------------------
+
+\section*{Abstract}
+
+This document discusses techniques to represent a terrain height field using a rectangular array of sampled elevation data points $z(x_i, y_i)$. Bilinear, bicubic and Catmul-Rom interpolation methods are discussed.
+
+
+%----------------------------------------------------------------------------------------
+%	AUTHOR AFFILIATIONS
+%----------------------------------------------------------------------------------------
+
+{\let\thefootnote\relax\footnotetext{* \textit{Robotics Technologist, Jet Propulsion Laboratory}}}
+
+
+%----------------------------------------------------------------------------------------
+
+\newpage % Start the article content on the second page, remove this if you have a longer abstract that goes onto the second page
+
+%----------------------------------------------------------------------------------------
+%	INTRODUCTION
+%----------------------------------------------------------------------------------------
+
+\section{Introduction}
+In this document, the name \emph{terrain map} is used to describe a rectangular array of sampled elevation data points $z_i = f(x_i, y_i)$. Terrain maps are also sometimes referred to as elevation maps, displacement maps, or height fields. This document discusses techniques to compute interpolated positions, surface normals and penetration depths of terrain maps using bilinear, bicubic and Catmul-Rom interpolation.
+
+
+
+
+
+
+
+
+%------------------------------------------------
+
+\section{Bilinear Interpolation}
+Bilinear interpolation is an extension of linear interpolation. In 2D bilinear interpolation, interpolation is performed along a first axis, followed by a second axis. Note that contrary to whats its name would suggest, the surface obtained from bilinear interpolation is \emph{not} linear; rather it is a quadratic function obtained from the product of two linear functions. Compared to other techniques, bilinear interpolation has the advantage of being relatively fast to compute. Additionally, the interpolated surface obtained from bilinear interpolation passes exactly through the control points, which may be desirable for some applications. A disadvantage to bilinear interpolation is that the resulting surface is only $C_1$ continuous between adjacent surface patches (i.e. continuous in position), but not $C_2$ or $C_3$ continuous (i.e. continuous in slope and curvature).
+
+\subsection{Interpolated Position}
+Consider a surface patch represented with the four control points $f_{11}=f(x_1,y_1)$, $f_{12}=f(x_1,y_2)$, $f_{21}=f(x_2,y_1)$, and $f_{22}=f(x_2,y_2)$. To obtain the interpolated value at position $(x,y)$, first perform interpolation along the $x$-direction as
+
+\begin{equation}
+f(x,y_1) \approx \frac{x_2 - x}{x_2 - x_1} f_{11} + \frac{x - x_1}{x_2 - x_1}f_{21}
+\label{eq:x-direction-1}
+\end{equation}
+\begin{equation}
+f(x,y_2) \approx \frac{x_2 - x}{x_2 - x_1} f_{12} + \frac{x - x_1}{x_2 - x_1}f_{22}
+\label{eq:x-direction-2}
+\end{equation}
+Interpolating Eqs. \eqref{eq:x-direction-1}-\eqref{eq:x-direction-2} along the $y$-direction yields
+
+\begin{equation}
+  \begin{split}
+f(x,y) \approx& \frac{y_2 - y}{y_2 - y_1} f(x,y_1) + \frac{y - y_1}{y_2 - y_1} f(x, y_2)\\
+=& \frac{y_2 - y}{y_2 - y_1} \left(\frac{x_2 - x}{x_2 - x_1} f_{11} + \frac{x - x_1}{x_2 - x_1}f_{21}\right) + \frac{y - y_1}{y_2 - y_1} \left(\frac{x_2 - x}{x_2 - x_1} f_{12} + \frac{x - x_1}{x_2 - x_1}f_{22}\right)\\
+=& \frac{1}{\left( x_2 - x_1 \right) ( y_2 - y_1)} \left( f_{11} (x_2 - x) (y_2 - y) + f_{21}(x - x_1)(y_2 - y) + \\
+&\hspace{90} f_{12}(x_2 - x)(y - y_1) + f_{22}(x-x_1)(y-y_1) )\\
+=& \frac{1}{( x_2 - x_1) ( y_2 - y_1)} \begin{Bmatrix} x_2 - x & x - x_1 \end{Bmatrix} \begin{bmatrix}f_{11} & f_{12}\\f_{21} & f_{22}\end{bmatrix}\begin{Bmatrix}y_2 - y\\ y - y_1\end{Bmatrix}
+\end{split}
+\label{eq:simplified-bilinear-approx}
+\end{equation}
+
+Substituting $u=\frac{x-x_1}{x_2 - x_1}$, $v=\frac{y-y_1}{y_2 - y_1}$ into Eq. \eqref{eq:simplified-bilinear-approx} effectively normalizes the interpolation to a range from 0 to 1 along the $x$ and $y$ directions, yielding a simpler expression as
+\begin{equation}
+  \label{eq:bilinear-uv-1}
+f(u,v) = \begin{Bmatrix} 1 - u & u \end{Bmatrix} \begin{bmatrix}f_{11} & f_{12}\\f_{21} & f_{22} \end{bmatrix} \begin{Bmatrix} 1 - v \\ v \end{Bmatrix}
+\end{equation}
+Expanding Eq. \eqref{eq:bilinear-uv-1} yields
+\begin{equation}
+  \label{eq:bilinear-uv-2}
+  \begin{split}
+  f(u,v) &= f_{11}(1-u)(1-v) + f_{21} u (1-v) + f_{12} (1- u) v + f_{22} u v\\
+  &= (f_{11} - f_{11} u) (1 - v) + f_{21} u - f_{21} u v + f_{12}v - f_{12} u v + f_{22}uv\\
+  &= f_{11} - f_{11} u - f_{11} v + f_{11} u v + f_{21} u - f_{21} u v + f_{12}v - f_{12} u v + f_{22}uv\\
+  &= f_{11} + (-f_{11} + f_{21}) u + (-f_{11} + f_{12}) v + (f_{11} - f_{21} - f_{12} + f_{22}) u v\\
+  &= a_{11} + a_{21} u + a_{12} v + a_{22} u v
+  \end{split}
+\end{equation}
+where
+\begin{equation}
+  \begin{split}
+    a_{11} = f_{11}\\
+    a_{21} = f_{21} - f_{11}\\
+    a_{12} = f_{12} - f_{11}\\
+    a_{22} = f_{11} - f_{21} - f_{12} + f_{22}
+  \end{split}
+\end{equation}
+
+\subsection{Interpolated Normal}
+The normal can be obtained from the tangent vectors computed at $(x,y)$ or alternatively using the normalized coordinates $(u,v)$. Let $\underline{z}$ represent a point on the interpolated surface.
+
+\begin{equation}
+  \underline{z} = \begin{Bmatrix} x \\ y \\ f(x, y) \end{Bmatrix} = \begin{Bmatrix} u (x_2 - x_1 ) + x_1 \\ v (y_2 - y_1) + y_1 \\ f(u, v)   \end{Bmatrix}
+\end{equation}
+
+The tangent vector in the $x$-direction can be obtained as
+\begin{equation}
+\underline{t}_x = \frac{\partial \underline{z}}{\partial x} =  \frac{\partial u}{\partial x} \frac{\partial \underline{z}}{\partial u}  = \frac{1}{x_2 - x_1} \begin{Bmatrix} {x_2 - x_1} \\ 0 \\ a_{21} + a_{22}v \end{Bmatrix} = \begin{Bmatrix} 1 \\ 0 \\ \frac{a_{21} + a_{22}v}{x_2 - x_1} \end{Bmatrix}
+\end{equation}
+Similarly the tangent vector in the $y$-direction can be obtained as
+\begin{equation}
+\underline{t}_y = \frac{\partial \underline{z}}{\partial y} =  \frac{\partial v}{\partial y} \frac{\partial \underline{z}}{\partial v}  = \frac{1}{y_2 - y_1} \begin{Bmatrix} 0 \\  {y_2 - y_1} \\ a_{12} + a_{22}u \end{Bmatrix} = \begin{Bmatrix} 0 \\ 1 \\ \frac{a_{12} + a_{22}u}{y_2 - y_1} \end{Bmatrix}
+\end{equation}
+
+\paragraph{ISO Convention}
+In the ISO convention, the surface normal points in the positive $z$ direction and is obtained as
+
+%
+% \paragraph{Different Paragraph Description} \lipsum[8] % Dummy text
+
+%------------------------------------------------
+
+\section{Bicubic Interpolation}
+
+
+\section{Catmul-Rom Interpolation}
+
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+
+\renewcommand{\refname}{\spacedlowsmallcaps{References}} % For modifying the bibliography heading
+
+\bibliographystyle{unsrt}
+
+\bibliography{sample.bib} % The file containing the bibliography
+
+%----------------------------------------------------------------------------------------
+
+\end{document}
