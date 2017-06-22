@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Arch Linux) (preloaded format=pdflatex 2017.4.22)  26 MAY 2017 20:01
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Arch Linux) (preloaded format=pdflatex 2017.4.20)  5 JUN 2017 05:41
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -942,58 +942,89 @@ Package hyperref Warning: Option `bookmarks' has already been used,
 (hyperref)                setting the option has no effect on input line 74.
 
 Package hyperref Info: Option `bookmarksnumbered' set `true' on input line 74.
-) (./interpolation.aux)
+) (/usr/share/texmf-dist/tex/latex/listings/listings.sty
+\lst@mode=\count130
+\lst@gtempboxa=\box32
+\lst@token=\toks31
+\lst@length=\count131
+\lst@currlwidth=\dimen146
+\lst@column=\count132
+\lst@pos=\count133
+\lst@lostspace=\dimen147
+\lst@width=\dimen148
+\lst@newlines=\count134
+\lst@lineno=\count135
+\lst@maxwidth=\dimen149
+(/usr/share/texmf-dist/tex/latex/listings/lstmisc.sty
+File: lstmisc.sty 2015/06/04 1.6 (Carsten Heinz)
+\c@lstnumber=\count136
+\lst@skipnumbers=\count137
+\lst@framebox=\box33
+) (/usr/share/texmf-dist/tex/latex/listings/listings.cfg
+File: listings.cfg 2015/06/04 1.6 listings configuration
+))
+Package: listings 2015/06/04 1.6 (Carsten Heinz)
+(/usr/share/texmf-dist/tex/latex/listings/lstlang1.sty
+File: lstlang1.sty 2015/06/04 1.6 listings language file
+) (./interpolation.aux
+
+LaTeX Warning: Label `eq:parametric-eqn-line' multiply defined.
+
+
+LaTeX Warning: Label `eq:parametric-eqn-line' multiply defined.
+
+)
 \openout1 = `interpolation.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 47.
-LaTeX Font Info:    ... okay on input line 47.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 47.
-LaTeX Font Info:    ... okay on input line 47.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 47.
-LaTeX Font Info:    ... okay on input line 47.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 47.
-LaTeX Font Info:    ... okay on input line 47.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 47.
-LaTeX Font Info:    ... okay on input line 47.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 47.
-LaTeX Font Info:    ... okay on input line 47.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 47.
-LaTeX Font Info:    ... okay on input line 47.
-LaTeX Font Info:    Try loading font information for T1+pplj on input line 47.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 95.
+LaTeX Font Info:    ... okay on input line 95.
+LaTeX Font Info:    Try loading font information for T1+pplj on input line 95.
 (/usr/share/texmf-dist/tex/latex/psnfss/t1pplj.fd
 File: t1pplj.fd 2004/09/06 font definitions for T1/pplj.
 )
-\AtBeginShipoutBox=\box32
-Package hyperref Info: Link coloring ON on input line 47.
+\AtBeginShipoutBox=\box34
+Package hyperref Info: Link coloring ON on input line 95.
 (/usr/share/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
 (/usr/share/texmf-dist/tex/generic/oberdiek/gettitlestring.sty
 Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
-\c@section@level=\count130
+\c@section@level=\count138
 LaTeX Info: Redefining \Ref on input line 515.
 )
-LaTeX Info: Redefining \ref on input line 47.
-LaTeX Info: Redefining \pageref on input line 47.
-LaTeX Info: Redefining \nameref on input line 47.
+LaTeX Info: Redefining \ref on input line 95.
+LaTeX Info: Redefining \pageref on input line 95.
+LaTeX Info: Redefining \nameref on input line 95.
 (./interpolation.out) (./interpolation.out)
 \@outlinefile=\write3
 \openout3 = `interpolation.out'.
 
-LaTeX Info: Redefining \Ref on input line 47.
+LaTeX Info: Redefining \Ref on input line 95.
 (/usr/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count131
-\scratchdimen=\dimen146
-\scratchbox=\box33
-\nofMPsegments=\count132
-\nofMParguments=\count133
-\everyMPshowfont=\toks31
-\MPscratchCnt=\count134
-\MPscratchDim=\dimen147
-\MPnumerator=\count135
-\makeMPintoPDFobject=\count136
-\everyMPtoPDFconversion=\toks32
+\scratchcounter=\count139
+\scratchdimen=\dimen150
+\scratchbox=\box35
+\nofMPsegments=\count140
+\nofMParguments=\count141
+\everyMPshowfont=\toks32
+\MPscratchCnt=\count142
+\MPscratchDim=\dimen151
+\MPnumerator=\count143
+\makeMPintoPDFobject=\count144
+\everyMPtoPDFconversion=\toks33
 ) (/usr/share/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
 Package: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
 (/usr/share/texmf-dist/tex/latex/oberdiek/grfext.sty
@@ -1009,7 +1040,7 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-LaTeX Info: Redefining \microtypecontext on input line 47.
+LaTeX Info: Redefining \microtypecontext on input line 95.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -1022,9 +1053,11 @@ File: mt-ppl.cfg 2005/11/16 v1.6 microtype config. file: Palatino (RS)
 )
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: subfig package v1.3 is loaded.
+Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
-LaTeX Font Info:    Try loading font information for T1+iwona on input line 64.
-
+\c@lstlisting=\count145
+LaTeX Font Info:    Try loading font information for T1+iwona on input line 112
+.
 (/usr/share/texmf-dist/tex/latex/iwona/t1iwona.fd
 File: t1iwona.fd 2008/07/22 v0.995 font definition file for T1/iwona (MW)
 )
@@ -1033,32 +1066,33 @@ Package microtype Info: Loading generic settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
 LaTeX Font Info:    Font shape `T1/iwona/bx/n' in size <10> not available
-(Font)              Font shape `T1/iwona/b/n' tried instead on input line 64.
+(Font)              Font shape `T1/iwona/b/n' tried instead on input line 112.
 LaTeX Font Info:    Font shape `T1/iwona/bx/n' in size <20.74> not available
-(Font)              Font shape `T1/iwona/b/n' tried instead on input line 64.
-LaTeX Font Info:    Try loading font information for OT1+pplj on input line 64.
-
+(Font)              Font shape `T1/iwona/b/n' tried instead on input line 112.
+LaTeX Font Info:    Try loading font information for OT1+pplj on input line 112
+.
 (/usr/share/texmf-dist/tex/latex/psnfss/ot1pplj.fd
 File: ot1pplj.fd 2004/09/06 font definitions for OT1/pplj.
 )
-LaTeX Font Info:    Try loading font information for U+zeur on input line 64.
+LaTeX Font Info:    Try loading font information for U+zeur on input line 112.
 (/usr/share/texmf-dist/tex/latex/eulervm/uzeur.fd
 File: uzeur.fd 2005/01/11 v4.0 (WaS)
 ) (/usr/share/texmf-dist/tex/latex/microtype/mt-eur.cfg
 File: mt-eur.cfg 2006/07/31 v1.1 microtype config. file: AMS Euler Roman (RS)
 )
-LaTeX Font Info:    Try loading font information for U+zeus on input line 64.
+LaTeX Font Info:    Try loading font information for U+zeus on input line 112.
 (/usr/share/texmf-dist/tex/latex/eulervm/uzeus.fd
 File: uzeus.fd 2005/01/11 v4.0 (WaS)
 ) (/usr/share/texmf-dist/tex/latex/microtype/mt-eus.cfg
 File: mt-eus.cfg 2006/07/28 v1.2 microtype config. file: AMS Euler Script (RS)
 )
-LaTeX Font Info:    Try loading font information for U+zeuex on input line 64.
+LaTeX Font Info:    Try loading font information for U+zeuex on input line 112.
+
 (/usr/share/texmf-dist/tex/latex/eulervm/uzeuex.fd
 File: uzeuex.fd 2005/01/11 v4.0 (WaS)
 )
-LaTeX Font Info:    Try loading font information for OT1+zplm on input line 64.
-
+LaTeX Font Info:    Try loading font information for OT1+zplm on input line 112
+.
 (/usr/share/texmf-dist/tex/latex/psnfss/ot1zplm.fd
 File: ot1zplm.fd 2002/09/08 Fontinst v1.914 font definitions for OT1/zplm.
 )
@@ -1071,8 +1105,8 @@ File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 ) (/usr/share/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
-Package tocbasic Info: character protrusion at toc deactivated on input line 67
-.
+Package tocbasic Info: character protrusion at toc deactivated on input line 11
+5.
 (./interpolation.toc
 Package microtype Info: Character `029' is missing
 (microtype)             in font `T1/pplj/m/sc/10'.
@@ -1083,20 +1117,20 @@ LaTeX Font Info:    Font shape `T1/pplj/bx/n' in size <10> not available
 \tf@toc=\write4
 \openout4 = `interpolation.toc'.
 
-Package tocbasic Info: character protrusion at lof deactivated on input line 69
-.
+Package tocbasic Info: character protrusion at lof deactivated on input line 11
+7.
 (./interpolation.lof)
 \tf@lof=\write5
 \openout5 = `interpolation.lof'.
 
-Package tocbasic Info: character protrusion at lot deactivated on input line 71
-.
+Package tocbasic Info: character protrusion at lot deactivated on input line 11
+9.
 (./interpolation.lot)
 \tf@lot=\write6
 \openout6 = `interpolation.lot'.
 
 
-Package hyperref Warning: Ignoring empty anchor on input line 86.
+Package hyperref Warning: Ignoring empty anchor on input line 126.
 
 [1
 
@@ -1106,7 +1140,7 @@ Package microtype Info: Character `029' is missing
 (microtype)             in font `T1/iwona/m/sc/14.4'.
 (microtype)             Ignoring protrusion settings for this character.
 LaTeX Font Info:    Font shape `T1/iwona/bx/sc' in size <10> not available
-(Font)              Font shape `T1/iwona/b/sc' tried instead on input line 112.
+(Font)              Font shape `T1/iwona/b/sc' tried instead on input line 139.
 
 Package microtype Info: Character `029' is missing
 (microtype)             in font `T1/iwona/b/sc/10'.
@@ -1114,7 +1148,7 @@ Package microtype Info: Character `029' is missing
 ! Extra }, or forgotten \right.
 <template> }
             $\hfill \endtemplate 
-l.132 \end{split}
+l.159 \end{split}
                  
 I've deleted a group-closing symbol because it seems to be
 spurious, as in `$x}$'. But perhaps the } is legitimate and
@@ -1125,7 +1159,7 @@ deleted material, e.g., by typing `I$}'.
 ! Missing \right. inserted.
 <inserted text> 
                 \right .
-l.132 \end{split}
+l.159 \end{split}
                  
 I've inserted something that you may have forgotten.
 (See the <inserted text> above.)
@@ -1136,7 +1170,7 @@ my insertion and my current dilemma will both disappear.
 ! Missing } inserted.
 <inserted text> 
                 }
-l.132 \end{split}
+l.159 \end{split}
                  
 I've inserted something that you may have forgotten.
 (See the <inserted text> above.)
@@ -1147,7 +1181,7 @@ my insertion and my current dilemma will both disappear.
 ! Illegal unit of measure (pt inserted).
 <to be read again> 
                    \relax 
-l.132 \end{split}
+l.159 \end{split}
                  
 Dimensions can be in units of em, ex, in, pt, pc,
 cm, mm, dd, cc, nd, nc, bp, or sp; but yours is a new one!
@@ -1159,7 +1193,7 @@ two letters. (See Chapter 27 of The TeXbook.)
 ! Extra }, or forgotten \right.
 <template> }
             $\hfill \endtemplate 
-l.132 \end{split}
+l.159 \end{split}
                  
 I've deleted a group-closing symbol because it seems to be
 spurious, as in `$x}$'. But perhaps the } is legitimate and
@@ -1170,7 +1204,7 @@ deleted material, e.g., by typing `I$}'.
 ! Missing \right. inserted.
 <inserted text> 
                 \right .
-l.132 \end{split}
+l.159 \end{split}
                  
 I've inserted something that you may have forgotten.
 (See the <inserted text> above.)
@@ -1181,7 +1215,7 @@ my insertion and my current dilemma will both disappear.
 ! Missing } inserted.
 <inserted text> 
                 }
-l.132 \end{split}
+l.159 \end{split}
                  
 I've inserted something that you may have forgotten.
 (See the <inserted text> above.)
@@ -1192,7 +1226,7 @@ my insertion and my current dilemma will both disappear.
 ! Illegal unit of measure (pt inserted).
 <to be read again> 
                    \relax 
-l.132 \end{split}
+l.159 \end{split}
                  
 Dimensions can be in units of em, ex, in, pt, pc,
 cm, mm, dd, cc, nd, nc, bp, or sp; but yours is a new one!
@@ -1202,51 +1236,98 @@ delete the erroneous units; e.g., type `2' to delete
 two letters. (See Chapter 27 of The TeXbook.)
 
 
-Overfull \hbox (3.90839pt too wide) in paragraph at lines 134--134
+Overfull \hbox (3.90839pt too wide) in paragraph at lines 161--161
 [] 
  []
 
-[2] [3] (./interpolation.bbl
+[2] [3]
+Overfull \hbox (30.75035pt too wide) detected at line 291
+\U/zeur/m/n/10 f\U/zeus/m/n/10 ¨[][]\OT1/pplj/m/n/10 , [][]\U/zeus/m/n/10 © ½ [
+] [] [] []
+ []
 
-LaTeX Warning: Empty `thebibliography' environment or \BreakBibliography
-               before end of `thebibliography' environment on input line 3.
 
+Overfull \hbox (19.23338pt too wide) in paragraph at lines 322--322
+[] 
+ []
+
+[4] [5] [6] [7]
+! Misplaced alignment tab character &.
+l.611     0 &
+             = c_6 t^6 + c_5 t^5 + c_4 t^4 + c_3 t^3 + c_2 t^2 + c_1 t + c_0
+I can't figure out why you would want to use a tab mark
+here. If you just want an ampersand, the remedy is
+simple: Just type `I\&' now. But if some right brace
+up above has ended a previous alignment prematurely,
+you're probably due for more error messages, and you
+might try typing `S' now just to see what is salvageable.
+
+[8] (/usr/share/texmf-dist/tex/latex/listings/lstlang1.sty
+File: lstlang1.sty 2015/06/04 1.6 listings language file
+) (/usr/share/texmf-dist/tex/latex/listings/lstmisc.sty
+File: lstmisc.sty 2015/06/04 1.6 (Carsten Heinz)
 )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 253.
-[4]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 253.
+LaTeX Font Info:    Try loading font information for T1+fvm on input line 688.
+(/usr/share/texmf-dist/tex/latex/bera/t1fvm.fd
+File: t1fvm.fd 2004/09/07 scalable font definitions for T1/fvm.
+)
+LaTeX Font Info:    Font shape `T1/fvm/m/n' will be
+(Font)              scaled to size 6.80005pt on input line 688.
+Package microtype Info: Loading generic settings for font family
+(microtype)             `fvm' (encoding: T1).
+(microtype)             For optimal results, create family-specific settings.
+(microtype)             See the microtype manual for details.
+[9]
+LaTeX Font Info:    Font shape `T1/fvm/m/n' will be
+(Font)              scaled to size 8.50006pt on input line 731.
+(./interpolation.bbl [10])
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 756.
+[11]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 756.
 (./interpolation.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 253.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 253.
-Package rerunfilecheck Info: File `interpolation.out' has not changed.
-(rerunfilecheck)             Checksum: D140E6D7D1AA6868392E233D85604A1D;373.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 253.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 756.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 756.
+
+Package rerunfilecheck Warning: File `interpolation.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `interpolation.out':
+(rerunfilecheck)             Before: 7E6486C5277010D7DEC704BCA40E5CD4;752
+(rerunfilecheck)             After:  3D82607B42662539AF0A3F56332A3A15;761.
+
+LaTeX Warning: There were multiply-defined labels.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 756.
  ) 
 Here is how much of TeX's memory you used:
- 15051 strings out of 493013
- 265256 string characters out of 6139317
- 597635 words of memory out of 5000000
- 18295 multiletter control sequences out of 15000+600000
- 91389 words of font info for 105 fonts, out of 8000000 for 9000
+ 16997 strings out of 493013
+ 291220 string characters out of 6139317
+ 795152 words of memory out of 5000000
+ 20109 multiletter control sequences out of 15000+600000
+ 99306 words of font info for 116 fonts, out of 8000000 for 9000
  1143 hyphenation exceptions out of 8191
- 64i,23n,88p,8824b,550s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texmf-dist/fonts/enc/dvips/iwona/ec-iwona.enc}{/usr/share/texmf-d
-ist/fonts/enc/dvips/iwona/ec-iwona-sc.enc}{/usr/share/texmf-dist/fonts/enc/dvip
-s/base/8r.enc}</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb>
+ 64i,26n,88p,8824b,2102s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texmf-dist/fonts/enc/dvips/base/8r.enc}{/usr/share/texmf-dist/fon
+ts/enc/dvips/iwona/ec-iwona.enc}{/usr/share/texmf-dist/fonts/enc/dvips/iwona/ec
+-iwona-sc.enc}</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb>
 </usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/te
-xmf-dist/fonts/type1/public/amsfonts/euler/euex10.pfb></usr/share/texmf-dist/fo
-nts/type1/public/amsfonts/euler/eufm10.pfb></usr/share/texmf-dist/fonts/type1/p
-ublic/amsfonts/euler/eufm7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfon
-ts/euler/eurm10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eu
-rm7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eusm10.pfb></u
-sr/share/texmf-dist/fonts/type1/public/fpl/fplrc8a.pfb></usr/share/texmf-dist/f
-onts/type1/nowacki/iwona/iwonab.pfb></usr/share/texmf-dist/fonts/type1/nowacki/
-iwona/iwonar.pfb></usr/share/texmf-dist/fonts/type1/urw/palatino/uplr8a.pfb></u
-sr/share/texmf-dist/fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on interpolation.pdf (4 pages, 128827 bytes).
+xmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texmf-dist/fonts/
+type1/public/amsfonts/euler/euex10.pfb></usr/share/texmf-dist/fonts/type1/publi
+c/amsfonts/euler/eufm10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/
+euler/eufm7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eurm10
+.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/euler/eurm7.pfb></usr/s
+hare/texmf-dist/fonts/type1/public/amsfonts/euler/eusm10.pfb></usr/share/texmf-
+dist/fonts/type1/public/fpl/fplrc8a.pfb></usr/share/texmf-dist/fonts/type1/publ
+ic/bera/fvmr8a.pfb></usr/share/texmf-dist/fonts/type1/nowacki/iwona/iwonab.pfb>
+</usr/share/texmf-dist/fonts/type1/nowacki/iwona/iwonar.pfb></usr/share/texmf-d
+ist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/share/texmf-dist/fonts
+/type1/urw/palatino/uplr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/palatino/
+uplri8a.pfb>
+Output written on interpolation.pdf (11 pages, 197069 bytes).
 PDF statistics:
- 137 PDF objects out of 1000 (max. 8388607)
- 116 compressed objects within 2 object streams
- 24 named destinations out of 1000 (max. 500000)
- 16945 words of extra memory for PDF output out of 17280 (max. 10000000)
+ 324 PDF objects out of 1000 (max. 8388607)
+ 292 compressed objects within 3 object streams
+ 124 named destinations out of 1000 (max. 500000)
+ 19025 words of extra memory for PDF output out of 20736 (max. 10000000)
 
