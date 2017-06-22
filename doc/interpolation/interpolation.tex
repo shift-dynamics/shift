@@ -31,12 +31,60 @@ BCOR5mm, % Binding correction
 \input{structure.tex} % Include the structure.tex file which specified the document structure and layout
 
 \hyphenation{Fortran hy-phen-ation} % Specify custom hyphenation points in words with dashes where you would like hyphenation to occur, or alternatively, don't put any dashes in a word to stop hyphenation altogether
+\usepackage{listings}
+% Solarized color theme for code highlighting
+\definecolor{base03}{HTML}{002B36}
+\definecolor{base02}{HTML}{073642}
+\definecolor{base01}{HTML}{586E75}
+\definecolor{base00}{HTML}{657B83}
+\definecolor{base0}{HTML}{839496}
+\definecolor{base1}{HTML}{93A1A1}
+\definecolor{base2}{HTML}{EEE8D5}
+\definecolor{base3}{HTML}{FDF6E3}
+\definecolor{yellow}{HTML}{B58900}
+\definecolor{orange}{HTML}{CB4B16}
+\definecolor{red}{HTML}{DC322F}
+\definecolor{magenta}{HTML}{D33682}
+\definecolor{violet}{HTML}{6C71C4}
+\definecolor{blue}{HTML}{268BD2}
+\definecolor{cyan}{HTML}{2AA198}
+\definecolor{green}{HTML}{859900}
+\definecolor{bgcolor}{HTML}{FBFCFD}
+
+\lstset{ %
+  lineskip={-1.5pt},
+  backgroundcolor=\color{bgcolor},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+  basicstyle=\footnotesize\ttfamily,        % the size of the fonts that are used for the code
+  breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace
+  breaklines=true,                 % sets automatic line breaking
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{base1},    % comment style
+  deletekeywords={...},            % if you want to delete keywords from the given language
+  %escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+  frame=single,                    % adds a frame around the code
+  keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+  keywordstyle=\color{cyan},       % keyword style
+  language=python,                     % the language of the code
+  morekeywords={*,...},            % if you want to add more keywords to the set
+  numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
+  numbersep=5pt,                   % how far the line-numbers are from the code
+  numberstyle=\tiny\color{violet}, % the style that is used for the line-numbers
+  %rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+  showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+  showstringspaces=false,          % underline spaces within strings only
+  showtabs=false,                  % show tabs within strings adding particular underscores
+  stepnumber=2,                    % the step between two line-numbers. If it's 1, each line will be numbered
+  stringstyle=\color{blue},     % string literal style
+  tabsize=2,                       % sets default tabsize to 2 spaces
+  title=\lstname                   % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
 
 %----------------------------------------------------------------------------------------
 %	TITLE AND AUTHOR(S)
 %----------------------------------------------------------------------------------------
 
-\title{\normalfont\spacedallcaps{Surface Approximation}} % The article title
+\title{\normalfont\spacedallcaps{Surface Approximation for Terrain Modeling}} % The article title
 
 \author{\spacedlowsmallcaps{Kristopher Wehage*}} % The article author(s) - author affiliations need to be specified in the AUTHOR AFFILIATIONS block
 
@@ -70,47 +118,26 @@ BCOR5mm, % Binding correction
 
 \listoftables % Print the list of tables
 
-%----------------------------------------------------------------------------------------
-%	ABSTRACT
-%----------------------------------------------------------------------------------------
-
 \section*{Abstract}
 
 This document discusses techniques to represent a terrain height field using a rectangular array of sampled elevation data points $z(x_i, y_i)$. Bilinear, bicubic and Catmul-Rom interpolation methods are discussed.
 
 
-%----------------------------------------------------------------------------------------
-%	AUTHOR AFFILIATIONS
-%----------------------------------------------------------------------------------------
-
 {\let\thefootnote\relax\footnotetext{* \textit{Robotics Technologist, Jet Propulsion Laboratory}}}
 
 
-%----------------------------------------------------------------------------------------
+\newpage
 
-\newpage % Start the article content on the second page, remove this if you have a longer abstract that goes onto the second page
-
-%----------------------------------------------------------------------------------------
-%	INTRODUCTION
-%----------------------------------------------------------------------------------------
 
 \section{Introduction}
-In this document, the name \emph{terrain map} is used to describe a rectangular array of sampled elevation data points $z_i = f(x_i, y_i)$. Terrain maps are also sometimes referred to as elevation maps, displacement maps, or height fields. This document discusses techniques to compute interpolated positions, surface normals and penetration depths of terrain maps using bilinear, bicubic and Catmul-Rom interpolation.
+In this document, the name \emph{terrain map} is used to describe a rectangular array of sampled elevation data points $z_i = f(x_i, y_i)$. Terrain maps are also sometimes referred to as elevation maps, displacement maps or height fields. This document discusses techniques to compute interpolated positions, surface normals and penetration depths of terrain maps using bilinear, bicubic and Catmul-Rom interpolation. The three methods described here have the benefit of \emph{local support}, which means the interpolated surface depends on only the control points in the present patch and/or the next adjacent patches -- as opposed to \emph{global support} where the surface depends on all control points.
 
-
-
-
-
-
-
-
-%------------------------------------------------
 
 \section{Bilinear Interpolation}
 Bilinear interpolation is an extension of linear interpolation. In 2D bilinear interpolation, interpolation is performed along a first axis, followed by a second axis. Note that contrary to whats its name would suggest, the surface obtained from bilinear interpolation is \emph{not} linear; rather it is a quadratic function obtained from the product of two linear functions. Compared to other techniques, bilinear interpolation has the advantage of being relatively fast to compute. Additionally, the interpolated surface obtained from bilinear interpolation passes exactly through the control points, which may be desirable for some applications. A disadvantage to bilinear interpolation is that the resulting surface is only $C_1$ continuous between adjacent surface patches (i.e. continuous in position), but not $C_2$ or $C_3$ continuous (i.e. continuous in slope or curvature).
 
 \subsection{Interpolated Position}
-Consider a surface patch represented with the four control points $f_{11}=f(x_1,y_1)$, $f_{12}=f(x_1,y_2)$, $f_{21}=f(x_2,y_1)$, and $f_{22}=f(x_2,y_2)$. To obtain the interpolated value at position $(x,y)$, first perform interpolation along the $x$-direction as
+Consider a surface patch represented with the four control points $f_{11}=f(x_1,y_1)$, $f_{12}=f(x_1,y_2)$, $f_{21}=f(x_2,y_1)$, and $f_{22}=f(x_2,y_2)$. To obtain the interpolated value at position $(x,y)$, first interpolate along the $x$-direction as
 
 \begin{equation}
 f(x,y_1) \approx \frac{x_2 - x}{x_2 - x_1} f_{11} + \frac{x - x_1}{x_2 - x_1}f_{21}
@@ -120,7 +147,7 @@ f(x,y_1) \approx \frac{x_2 - x}{x_2 - x_1} f_{11} + \frac{x - x_1}{x_2 - x_1}f_{
 f(x,y_2) \approx \frac{x_2 - x}{x_2 - x_1} f_{12} + \frac{x - x_1}{x_2 - x_1}f_{22}
 \label{eq:x-direction-2}
 \end{equation}
-Interpolating Eqs. \eqref{eq:x-direction-1}-\eqref{eq:x-direction-2} along the $y$-direction yields
+Then interpolate Eqs. \eqref{eq:x-direction-1}-\eqref{eq:x-direction-2} along the $y$-direction, yielding
 
 \begin{equation}
   \begin{split}
@@ -142,7 +169,7 @@ Expanding Eq. \eqref{eq:bilinear-uv-1} yields
 \begin{equation}
   \label{eq:bilinear-uv-2}
   \begin{split}
-  f(u,v) &= f_{11}(1-u)(1-v) + f_{21} u (1-v) + f_{12} (1- u) v + f_{22} u v\\
+  f(u,v) &\approx f_{11}(1-u)(1-v) + f_{21} u (1-v) + f_{12} (1- u) v + f_{22} u v\\
   &= (f_{11} - f_{11} u) (1 - v) + f_{21} u - f_{21} u v + f_{12}v - f_{12} u v + f_{22}uv\\
   &= f_{11} - f_{11} u - f_{11} v + f_{11} u v + f_{21} u - f_{21} u v + f_{12}v - f_{12} u v + f_{22}uv\\
   &= f_{11} + (-f_{11} + f_{21}) u + (-f_{11} + f_{12}) v + (f_{11} - f_{21} - f_{12} + f_{22}) u v\\
@@ -159,7 +186,7 @@ where
   \end{split}
 \end{equation}
 
-\subsection{Interpolated Normal}
+\subsection{Normal of a Bilinear Surface Patch}
 The normal can be obtained from the tangent vectors computed at $(x,y)$ or alternatively using the normalized coordinates $(u,v)$. Let $\underline{z}$ represent a point on the interpolated surface.
 
 \begin{equation}
@@ -176,7 +203,7 @@ Similarly the tangent vector in the $y$-direction can be obtained as
 \end{equation}
 
 \paragraph{ISO Convention}
-In the ISO convention, the surface normal $\underline{n}$ points in the positive $z$ direction and is obtained as
+In the ISO convention, the surface normal $\underline{n}$ points in the positive $z$-direction and is obtained as
 \begin{equation}
   \begin{split}
   \underline{n} &= \underline{\tilde{t}}_x \underline{t}_y = \begin{bmatrix}
@@ -203,7 +230,7 @@ The normal vector is reported as a normalized quantity by dividing by its length
 \end{equation}
 
 \paragraph{SAE Convention}
-In the SAE convention, the surface normal $\underline{n}$ points in the negative $z$ direction and is obtained as
+In the SAE convention, the surface normal $\underline{n}$ points in the negative $z$-direction and is obtained as
 \begin{equation}
   \begin{split}
   \underline{n} &= \underline{\tilde{t}}_y \underline{t}_x = \begin{bmatrix}
@@ -224,20 +251,496 @@ In the SAE convention, the surface normal $\underline{n}$ points in the negative
   \end{Bmatrix}
 \end{split}
 \end{equation}
-Finally the normal vector is normalized for reporting purposes as
+Finally the normal vector is converted to unit length for reporting purposes as
 \begin{equation}
   \underline{n}_{SAE} = \frac{\underline{n}}{\lvert \lvert{\underline{n}}\rvert \rvert}
 \end{equation}
 
 
+\subsection{Intersection of a Line with Bilinear Surface Patch}
+A cylinder can be used for the purpose of wheel contact modeling. A cylinder can be discretized into a number of circular slices. If the axis of the cylinder is oriented along the $y$-direction of the local body frame (following the SAE convention), then each slice contains a number of vertices to describe the wheel outer profile in the wheel $x$-$z$ plane and a vertex to describe the hub center.
 
-%------------------------------------------------
+For a circular slice of the cylinder, let $\underline{r}_{fc}$ represent a point at the center of the hub expressed in the fixed inertial reference frame. Let $\underline{r}_{fp}$ represent a point on the perimeter of the circular slice expressed in the fixed inertial reference frame. The parametric equation of a line from the hub center to a vertex on the hub perimeter is then
+
+\begin{equation}
+  \label{eq:parametric-eqn-line}
+\underline{r}_{ft}^f = \underline{r}_{fc}^f + (\underline{r}_{fp}^f - \underline{r}_{fc}^f) t
+\end{equation}
+where the notation $\underline{r}_{ft}^f$ indicates a vector from the fixed inertial reference frame $f$ to an intermediate point along the line parameterized by the scalar $t$, expressed in the coordinates of the fixed inertial reference frame. Finding the point that intersects the bilinear surface patch requires solving the system of three equations
+\begin{equation}
+  \label{eq:intersection-bilinear-patch-1}
+\begin{Bmatrix}
+  \underline{r}_{fc(x)}^f\\
+  \underline{r}_{fc(y)}^f\\
+  \underline{r}_{fc(z)}^f
+\end{Bmatrix} +
+\begin{Bmatrix}
+  \underline{r}_{fp(x)}^f - \underline{r}_{fc(x)}^f\\
+  \underline{r}_{fp(y)}^f - \underline{r}_{fc(y)}^f\\
+  \underline{r}_{fp(z)}^f - \underline{r}_{fc(z)}^f
+\end{Bmatrix} t =
+\begin{Bmatrix}
+  \underline{r}_{ft(x)}^f\\
+  \underline{r}_{ft(y)}^f\\
+  f(\underline{r}_{ft(x)}^f,\underline{r}_{ft(y)}^f)
+\end{Bmatrix}
+\end{equation}
+where
+\begin{equation}
+  f(\underline{r}_{ft(x)}^f,\underline{r}_{ft(y)}^f) = \frac{1}{( x_2 - x_1) ( y_2 - y_1)} \begin{Bmatrix} x_2 - \underline{r}_{ft(x)}^f & \underline{r}_{ft(x)}^f - x_1 \end{Bmatrix} \begin{bmatrix}f_{11} & f_{12}\\f_{21} & f_{22}\end{bmatrix}\begin{Bmatrix}y_2 - \underline{r}_{ft(y)}^f\\ \underline{r}_{ft(y)}^f - y_1\end{Bmatrix}
+\end{equation}
+Substituting the first and second block rows of Eq. \eqref{eq:intersection-bilinear-patch-1} into the third block row yields
+
+\begin{equation}
+  \label{eq:intersection-bilinear-patch-2}
+\begin{split}
+  (\underline{r}_{fc(z)}^f + (\underline{r}_{fp(z)}^f - \underline{r}_{fc(z)}^f)t) ( x_2 - x_1) ( y_2 - y_1) \\
+  = \begin{Bmatrix}
+    x_2 - (\underline{r}_{fc(x)}^f  + (\underline{r}_{fp(x)}^f - \underline{r}_{fc(x)}^f)t) \\
+    (\underline{r}_{fc(x)}^f  + (\underline{r}_{fp(x)}^f - \underline{r}_{fc(x)}^f)t) - x_1
+  \end{Bmatrix}^T
+  \begin{bmatrix}
+    f_{11} & f_{12}\\
+    f_{21} & f_{22}
+  \end{bmatrix}
+  \begin{Bmatrix}
+    y_2 - (\underline{r}_{fc(y)}^f + (\underline{r}_{fp(y)}^f - \underline{r}_{fc(y)}^f)t)\\
+    (\underline{r}_{fc(y)}^f + (\underline{r}_{fp(y)}^f - \underline{r}_{fc(y)}^f)t) - y_1\end{Bmatrix}\\
+    = \begin{Bmatrix}
+      (x_2 - \underline{r}_{fc(x)}^f)  + (\underline{r}_{fc(x)}^f - \underline{r}_{fp(x)}^f)t \\
+      (\underline{r}_{fc(x)}^f  - x_1) + (\underline{r}_{fp(x)}^f - \underline{r}_{fc(x)}^f)t
+    \end{Bmatrix}^T
+    \begin{bmatrix}
+      f_{11} & f_{12}\\
+      f_{21} & f_{22}
+    \end{bmatrix}
+    \begin{Bmatrix}
+      (y_2 - \underline{r}_{fc(y)}^f) + (\underline{r}_{fc(y)}^f - \underline{r}_{fp(y)}^f)t\\
+      (\underline{r}_{fc(y)}^f - y_1) + (\underline{r}_{fp(y)}^f - \underline{r}_{fc(y)}^f)t
+    \end{Bmatrix}
+\end{split}
+\end{equation}
+With the following substitutions
+\begin{equation}
+\begin{split}
+  b_{0} &= \underline{r}_{fc(z)}^f ( x_2 - x_1) ( y_2 - y_1)\\
+  b_{1} &= (\underline{r}_{fp(z)}^f - \underline{r}_{fc(z)}^f) ( x_2 - x_1) ( y_2 - y_1)\\
+  b_{2} &= x_2 - \underline{r}_{fc(x)}^f\\
+  b_{3} &= \underline{r}_{fc(x)}^f - \underline{r}_{fp(x)}^f\\
+  b_{4} &= \underline{r}_{fc(x)}^f  - x_1\\
+  b_{5} &= y_2 - \underline{r}_{fc(y)}^f\\
+  b_{6} &= \underline{r}_{fc(y)}^f - \underline{r}_{fp(y)}^f\\
+  b_{7} &= \underline{r}_{fc(y)}^f  - y_1
+\end{split}
+\end{equation}
+Eq. \eqref{eq:intersection-bilinear-patch-2} is simplified as
+\begin{equation}
+  \label{eq:intersection-bilinear-patch-3}
+\begin{split}
+  0 =&
+    \begin{Bmatrix}
+      b_2 + b_3 t & b_4 - b_3 t
+    \end{Bmatrix}
+    \begin{bmatrix}
+      f_{11} & f_{12}\\
+      f_{21} & f_{22}
+    \end{bmatrix}
+    \begin{Bmatrix}
+      b_5 + b_6 t \\
+      b_7 - b_6 t
+    \end{Bmatrix} - b_0 - b_1t\\
+  =&
+  \begin{Bmatrix}
+    (b_2 + b_3 t) f_{11} + (b_4 - b_3t) f_{21} \\
+    (b_2 + b_3 t) f_{12} + (b_4 - b_3t) f_{22}
+  \end{Bmatrix}^T
+  \begin{Bmatrix}
+    b_5 + b_6 t \\
+    b_7 - b_6 t
+  \end{Bmatrix} - b_0 - b_1t\\
+  =&
+  ((b_2 + b_3 t) f_{11} + (b_4 - b_3t) f_{21})(b_5 + b_6t) + \\
+  & ((b_2 + b_3 t) f_{12} + (b_4 - b_3t) f_{22})(b_7 - b_6t) - b_0 - b_1t\\
+  =&
+  (b_2 f_{11} + b_3 f_{11} t + b_4 f_{21} - b_3 f_{21} t) (b_5 + b_6 t) \\
+  & + (b_2 f_{12} + b_3 f_{12} t + b_4 f_{22} - b_3 f_{22} t) (b_7 - b_6 t) - b_0 - b_1 t\\
+  =&
+  b_2 b_5 f_{11} + b_3 b_5 f_{11} t + b_4 b_5 f_{21} - b_3 b_5 f_{21} t\\
+  & + b_2 b_6 f_{11} t + b_3 b_6 f_{11} t^2 + b_4 b_6 f_{21} t - b_3 b_6 f_{21} t^2 \\
+  &+ b_2 b_7 f_{12} + b_3 b_7 f_{12} t + b_4 b_7 f_{22} - b_3 b_7 f_{22} t \\
+  &-b_2 b_6 f_{12} t - b_3 b_6 f_{12} t^2 - b_4 b_6 f_{22} t + b_3 b_6 f_{22} t^2 - b_0 - b_1 t\\
+  =&
+  (b_3 b_6 f_{11} - b_3 b_6 f_{21} - b_3 b_6 f_{12} + b_3 b_6 f_{22}) t^2 \\ & + (b_3 b_5 f_{11} - b_3 b_5 f_{21} + b_2 b_6 f_{11} + b_4 b_6 f_{21} + b_3 b_7 f_{12} - b_3 b_7 f_{22}\\
+  & - b_2 b_6 f_{12} - b_4 b_6 f_{22} - b_1) t \\
+  & + (b_2 b_5 f_{11} + b_4 b_5 f_{21} + b_2 b_7 f_{12} + b_4 b_7 f_{22} - b_0)\\
+  =&
+  b_3 b_6 (f_{11} - f_{21} - f_{12} + f_{22}) t^2 \\
+  & + (b_3 (b_5 (f_{11} - f_{21}) + b_7(f_{12} - f_{22})) + b_6 ( b_2 (f_{11}   - f_{12}) + b_4 (f_{21} - f_{22})) - b_1) t\\
+  & + (b_5 (b_2 f_{11} + b_4 f_{21}) + b_7 (b_2 f_{12} + b_4 f_{22}) - b_0)
+\end{split}
+\end{equation}
+
+The coefficients of $t$ in Eq. \eqref{eq:intersection-bilinear-patch-3} are collected as
+\begin{equation}
+\begin{split}
+  c_2 &= b_3 b_6 (f_{11} - f_{21} - f_{12} + f_{22})\\
+  c_1 &= b_3 (b_5 (f_{11} - f_{21}) + b_7(f_{12} - f_{22})) + b_6 ( b_2 (f_{11} - f_{12}) + b_4 (f_{21} - f_{22})) - b_1\\
+  c_0 &= b_5 (b_2 f_{11} + b_4 f_{21}) + b_7 (b_2 f_{12} + b_4 f_{22}) - b_0
+\end{split}
+\end{equation}
+yielding the equation
+\begin{equation}
+c_2 t^2 + c_1 t + c_0 = 0
+\end{equation}
+a quadratic equation whose roots can be found from the quadratic formula
+\begin{equation}
+  \label{eq:quadratic-formula}
+  t = \frac{-c_1 \pm \sqrt{c_1^2 - 4 c_2 c_0}}{2c_2}
+\end{equation}
+
+Substituting the result of Eq. \eqref{eq:quadratic-formula} back into Eq.   \label{eq:parametric-eqn-line} yields the coordinates of the intersection of a line cast from the hub center to a point on the hub perimeter with the bilinear surface. For values of $t$ where $0 < t < 1$, the wheel perimeter is in contact with and overlaps the bilinear surface patch. If $x < x_1$, $x > x_2$, $y < y_1$ or $y > y_2$ the intersection lies in an adjacent surface patch, and the intersection test must be repeated using the adjacent patch's parameters.
+
+After verification that $\underline{r}_{ft}^f$ lies in the present surface patch, the penetration depth normal to the wheel surface, $\delta_n$ is found as
+
+\begin{equation}
+\delta_n = \lvert \lvert \underline{r}_{fp}^f - \underline{r}_{ft}^f \rvert \rvert
+\end{equation}
+
 
 \section{Bicubic Interpolation}
+With bicubic interpolation, it is possible to represent a smooth approximation of a terrain surface that is continuous in position, slope and curvature (i.e. $C_1$, $C_2$ and $C_3$ continuous). A disadvantage to bicubic interpolation is that it is more expensive to compute than bilinear interpolation. Additionally the resulting surface passes near the grid of control points, but will not intersect the control points exactly.
+
+\subsection{Interpolated Position}
+A bicubic surfaces patch uses information from adjacent patches to ensure continuity. Therefore a bicubic patch $(x_1 < x < x_2, y_1 < y < y_2)$ is parameterized in terms of control points at sixteen locations: $f_{00} = f(x_0, y_0)$, $f_{01} = f(x_0, y_1)$, $f_{02} = f(x_0, y_2)$, $f_{03} = f(x_0, y_3)$, $f_{10} = f(x_1, y_0)$, $f_{11} = f(x_1, y_1)$, $f_{12} = f(x_1, y_2)$, $f_{13} = f(x_1, y_3)$, $f_{20} = f(x_2, y_0)$, $f_{23} = f(x_2, y_1)$, $f_{22} = f(x_2, y_2)$, $f_{23} = f(x_2, y_3)$, $f_{30} = f(x_3, y_0)$, $f_{31} = f(x_3, y_1)$, $f_{32} = f(x_3, y_2)$ and $f_{33} = f(x_3, y_3)$. The control point values are arranged in matrix form as
+
+\begin{equation}
+Z_{12} = \begin{bmatrix}
+f_{00} & f_{01} & f_{02} & f_{03}\\
+f_{10} & f_{11} & f_{12} & f_{13}\\
+f_{20} & f_{21} & f_{22} & f_{23}\\
+f_{30} & f_{31} & f_{32} & f_{33}
+\end{bmatrix}
+\end{equation}
+
+The normalized $(u,v)$ coordinates $u=\frac{x-x_1}{x_2 - x_1}$, $v=\frac{y-y_1}{y_2 - y_1}$ ($(0 \leq u \leq 1, 0 \leq v \leq 1)$) are arranged in the vectors
+
+\begin{equation}
+ \underline{u} = \begin{Bmatrix} u^3 & u^2 & u & 1 \end{Bmatrix}^T
+\end{equation}
+\begin{equation}
+ \underline{v} = \begin{Bmatrix} v^3 & v^2 & v & 1 \end{Bmatrix}^T
+\end{equation}
+and the equation for a bicubic interpolated surface in matrix form is
+\begin{equation}
+f(u,v) =
+\underline{u}^T M Z_{12} M^T \underline{v}
+\end{equation}
+where M is the constant coefficient matrix defining a B-spline \cite{rogers2000introduction,joy2000bicubic} with the form
+\begin{equation}
+M = \frac{1}{6}
+  \begin{bmatrix}
+    -1 & 3 & -3 & 1\\
+    3 & -6 & 3 & 0\\
+    -3 & 0 & 3 & 0\\
+    1 & 4 & 1 & 0
+  \end{bmatrix}
+\end{equation}
+Unless the control points change, the quantity $B_{12} = M Z_{12} M^T$ is constant and can be evaluated once for each bicubic surface patch and stored for later retrieval.
+
+\subsection{Normal of Bicubic Surface Patch}
+The normal of a bicubic surface patch can be obtained from computing the tangent vectors at $(x,y)$ or alternatively using the normalized coordinates $(u,v)$. Let $\underline{z}$ represent a point on the bicubic surface patch.
+
+\begin{equation}
+  \underline{z} = \begin{Bmatrix} x \\ y \\ f(x, y) \end{Bmatrix} = \begin{Bmatrix} u (x_2 - x_1 ) + x_1 \\ v (y_2 - y_1) + y_1 \\ f(u, v)   \end{Bmatrix}
+\end{equation}
+
+The tangent vector in the $x$-direction can be obtained as
+\begin{equation}
+\underline{t}_x = \frac{\partial \underline{z}}{\partial x} =  \frac{\partial u}{\partial x} \frac{\partial \underline{z}}{\partial u}  = \frac{1}{x_2 - x_1} \begin{Bmatrix} {x_2 - x_1} \\ 0 \\ \frac{\partial f(u,v)}{\partial u} \end{Bmatrix} =
+\begin{Bmatrix} 1 \\ 0 \\ \frac{1}{x_2 - x_1} \frac{\partial f(u,v)}{\partial u} \end{Bmatrix}
+\end{equation}
+where
+\begin{equation}
+  \begin{split}
+    \frac{\partial f(u,v)}{\partial u}
+      &= \frac{\partial \underline{u}^T M Z_{12} M^T \underline{v}}{\partial u}\\
+      &= \begin{Bmatrix}3u^2 & 2u & 1 & 0\end{Bmatrix}  M Z_{12} M^T \underline{v}\\
+      &= \begin{Bmatrix}3u^2 & 2u & 1 & 0\end{Bmatrix}  B_{12} \underline{v}
+  \end{split}
+\end{equation}
 
 
-\section{Catmul-Rom Interpolation}
+Similarly the tangent vector in the $y$-direction can be obtained as
+\begin{equation}
+\underline{t}_y = \frac{\partial \underline{z}}{\partial y} =  \frac{\partial v}{\partial y} \frac{\partial \underline{z}}{\partial v}  = \frac{1}{y_2 - y_1} \begin{Bmatrix} 0 \\  {y_2 - y_1} \\ \frac{\partial f(u,v)}{\partial v} \end{Bmatrix} = \begin{Bmatrix} 0 \\ 1 \\ \frac{1}{y_2 - y_1} \frac{\partial f(u,v)}{\partial v}\end{Bmatrix}
+\end{equation}
+where
+\begin{equation}
+  \begin{split}
+    \frac{\partial f(u,v)}{\partial v}
+      &= \frac{\partial \underline{u}^T M Z_{12} M^T \underline{v}}{\partial v}\\
+      &= \underline{u}^T  M Z_{12} M^T \begin{Bmatrix} 3v^2 & 2v & 1 & 0 \end{Bmatrix}^T\\
+      &= \underline{u}^T B_{12} \begin{Bmatrix} 3v^2 & 2v & 1 & 0 \end{Bmatrix}^T
+  \end{split}
+\end{equation}
 
+
+\paragraph{ISO Convention}
+In the ISO convention, the surface normal $\underline{n}$ points in the positive $z$-direction and is obtained as
+\begin{equation}
+  \begin{split}
+  \underline{n} &= \underline{\tilde{t}}_x \underline{t}_y = \begin{bmatrix}
+    0        & -t_{x(2)} & t_{x(1)}\\
+    t_{x(2)} & 0         & -t_{x(0)}\\
+    -t_{x(1)} & t_{x(0)} & 0
+ \end{bmatrix}
+ \begin{Bmatrix} t_{y(0)} \\ t_{y(1)} \\ t_{y(2)}  \end{Bmatrix}\\
+  &= \begin{Bmatrix}
+  t_{x(1)}t_{y(2)} - t_{x(2)} t_{y(1)} \\
+  t_{x(2)}t_{y(0)} - t_{x(0)} t_{y(2)} \\
+  t_{x(0)}t_{y(1)} - t_{x(1)} t_{y(0)}
+  \end{Bmatrix} =
+  \begin{Bmatrix}
+     - \frac{1}{x_2 - x_1} \begin{Bmatrix}3u^2 & 2u & 1 & 0\end{Bmatrix}  B_{12} \underline{v} \\
+     - \frac{1}{y_2 - y_1} \underline{u}^T B_{12} \begin{Bmatrix} 3v^2 & 2v & 1 & 0 \end{Bmatrix} ^T \\
+    1
+  \end{Bmatrix}
+\end{split}
+\end{equation}
+The normal vector is reported as a normalized quantity by dividing by its length.
+\begin{equation}
+  \underline{n}_{ISO} = \frac{\underline{n}}{\lvert \lvert{\underline{n}}\rvert \rvert}
+\end{equation}
+
+\paragraph{SAE Convention}
+In the SAE convention, the surface normal $\underline{n}$ points in the negative $z$-direction and is obtained as
+\begin{equation}
+  \begin{split}
+  \underline{n} &= \underline{\tilde{t}}_y \underline{t}_x = \begin{bmatrix}
+    0        & -t_{y(2)} & t_{y(1)}\\
+    t_{y(2)} & 0         & -t_{y(0)}\\
+    -t_{y(1)} & t_{y(0)} & 0
+ \end{bmatrix}
+ \begin{Bmatrix} t_{x(0)} \\ t_{x(1)} \\ t_{x(2)}  \end{Bmatrix}\\
+  &= \begin{Bmatrix}
+  t_{y(1)}t_{x(2)} - t_{y(2)} t_{x(1)} \\
+  t_{y(2)}t_{x(0)} - t_{y(0)} t_{x(2)} \\
+  t_{y(0)}t_{x(1)} - t_{y(1)} t_{x(0)}
+  \end{Bmatrix} =
+  \begin{Bmatrix}
+     \frac{1}{x_2 - x_1} \begin{Bmatrix}3u^2 & 2u & 1 & 0\end{Bmatrix}  B_{12} \underline{v} \\
+     \frac{1}{y_2 - y_1} \underline{u}^T B_{12} \begin{Bmatrix} 3v^2 & 2v & 1 & 0 \end{Bmatrix} ^T \\
+    -1
+  \end{Bmatrix}
+\end{split}
+\end{equation}
+Finally the normal vector is converted to unit length for reporting purposes as
+\begin{equation}
+  \underline{n}_{SAE} = \frac{\underline{n}}{\lvert \lvert{\underline{n}}\rvert \rvert}
+\end{equation}
+
+\subsection{Intersection of a Line with Bicubic Surface Patch}
+% A cylinder can be used for the purpose of wheel contact modeling. A cylinder can be discretized into a number of circular slices. If the axis of the cylinder is oriented along the $y$-direction of the local body frame (following the SAE convention), then each slice contains a number of vertices to describe the wheel outer profile in the wheel $x$-$z$ plane and a vertex to describe the hub center.
+
+For a given slice of a cylinder, let $\underline{r}_{fc}$ represent a point at the center of the hub expressed in the fixed inertial reference frame. Let $\underline{r}_{fp}$ represent a point on the perimeter of the circular slice expressed in the fixed inertial reference frame. The parametric equation of a line from the hub center to a vertex on the hub perimeter is then
+
+\begin{equation}
+  \label{eq:parametric-eqn-line}
+\underline{r}_{ft}^f = \underline{r}_{fc}^f + (\underline{r}_{fp}^f - \underline{r}_{fc}^f) t
+\end{equation}
+where the notation $\underline{r}_{ft}^f$ indicates a vector from the fixed inertial reference frame $f$ to an intermediate point along the line parameterized by the scalar $t$, expressed in the coordinates of the fixed inertial reference frame. Finding the point that intersects the bicubic surface patch requires solving the system of three equations
+\begin{equation}
+  \label{eq:intersection-bicubic-patch-1}
+\begin{Bmatrix}
+  \underline{r}_{fc(x)}^f\\
+  \underline{r}_{fc(y)}^f\\
+  \underline{r}_{fc(z)}^f
+\end{Bmatrix} +
+\begin{Bmatrix}
+  \underline{r}_{fp(x)}^f - \underline{r}_{fc(x)}^f\\
+  \underline{r}_{fp(y)}^f - \underline{r}_{fc(y)}^f\\
+  \underline{r}_{fp(z)}^f - \underline{r}_{fc(z)}^f
+\end{Bmatrix} t =
+\begin{Bmatrix}
+  \underline{r}_{ft(x)}^f\\
+  \underline{r}_{ft(y)}^f\\
+  f(\underline{r}_{ft(x)}^f,\underline{r}_{ft(y)}^f)
+\end{Bmatrix} =
+\begin{Bmatrix} u (x_2 - x_1 ) + x_1 \\ v (y_2 - y_1) + y_1 \\ f(u, v)   \end{Bmatrix}
+\end{equation}
+where
+\begin{equation}
+  \label{eq:bicubic-u}
+u=
+\frac{\underline{r}_{ft(x)}^f-x_1}{x_2 - x_1}
+= \frac{\left(\underline{r}_{fp(x)}^f - \underline{r}_{fc(x)}^f\right) t + \underline{r}_{fc(x)}^f - x_1}{x_2 - x_1} = a_0t + a_1
+\end{equation}
+\begin{equation}
+    \label{eq:bicubic-v}
+v=\frac{\underline{r}_{ft(y)}^f-y_1}{y_2 - y_1} =
+\frac{\left(\underline{r}_{fp(y)}^f - \underline{r}_{fc(y)}^f\right) t  + \underline{r}_{fc(y)}^f - y_1}{y_2 - y_1} = a_2 t + a_3
+\end{equation}
+and
+\begin{equation}
+  f(u,v) = \underline{u}^TMZ_{12}M^T\underline{v} = \underline{u}^T B_{12} \underline{v}
+\end{equation}
+Substituting equations \eqref{eq:bicubic-u} and \eqref{eq:bicubic-v} into the third block row of Eq. \eqref{eq:intersection-bicubic-patch-1} yields
+
+\begin{equation}
+  \label{eq:intersection-bicubic-patch-2}
+\begin{split}
+  \left(\underline{r}_{fp(z)}^f - \underline{r}_{fc(z)}^f\right)t + \underline{r}_{fc(z)}^f &= a_4 t + a_5\\
+  &= \begin{Bmatrix}
+    (a_0 t + a_1)^3\\
+    (a_0 t + a_1)^2\\
+    (a_0 t + a_1)\\
+    1
+  \end{Bmatrix}^T
+B
+  \begin{Bmatrix}
+    (a_2 t + a_3)^3\\
+    (a_2 t + a_3)^2\\
+    (a_2 t + a_3)\\
+    1
+  \end{Bmatrix}
+\end{split}
+\end{equation}
+After some algebraic manipulation, the following equation is found
+\begin{equation}
+  \label{eq:sextic-equation}
+    0 &= c_6 t^6 + c_5 t^5 + c_4 t^4 + c_3 t^3 + c_2 t^2 + c_1 t + c_0
+\end{equation}
+where
+\begin{equation}
+  c_6 = B_{(0,0)} a_{0}^{3} a_{2}^{3}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+ c_5 = 3 B_{(0,0)} a_{0}^{3} a_{2}^{2} a_{3} + 3 B_{(0,0)} a_{0}^{2} a_{1} a_{2}^{3} + B_{(0,1)} a_{0}^{3} a_{2}^{2} + B_{(1,0)} a_{0}^{2} a_{2}^{3}
+\end{split}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+  c_4 &= 3 B_{(0,0)} a_{0}^{3} a_{2} a_{3}^{2} + 9 B_{(0,0)} a_{0}^{2} a_{1} a_{2}^{2} a_{3} + 3 B_{(0,0)} a_{0} a_{1}^{2} a_{2}^{3} \\
+  &+ 2 B_{(0,1)} a_{0}^{3} a_{2} a_{3} + 3 B_{(0,1)} a_{0}^{2} a_{1} a_{2}^{2} + B_{(0,2)} a_{0}^{3} a_{2} \\
+  &+ 3 B_{(1,0)} a_{0}^{2} a_{2}^{2} a_{3} + 2 B_{(1,0)} a_{0} a_{1} a_{2}^{3} + B_{(1,1)} a_{0}^{2} a_{2}^{2} + B_{(2,0)} a_{0} a_{2}^{3}
+\end{split}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+  c_3 &= B_{(0,0)} a_{0}^{3} a_{3}^{3} + 9 B_{(0,0)} a_{0}^{2} a_{1} a_{2} a_{3}^{2} + 9 B_{(0,0)} a_{0} a_{1}^{2} a_{2}^{2} a_{3} \\
+  &+ B_{(0,0)} a_{1}^{3} a_{2}^{3} + B_{(0,1)} a_{0}^{3} a_{3}^{2} + 6 B_{(0,1)} a_{0}^{2} a_{1} a_{2} a_{3} \\
+  &+ 3 B_{(0,1)} a_{0} a_{1}^{2} a_{2}^{2} + B_{02} a_{0}^{3} a_{3} + 3 B_{02} a_{0}^{2} a_{1} a_{2} + B_{(0,3)} a_{0}^{3} \\
+  &+ 3 B_{(1,0)} a_{0}^{2} a_{2} a_{3}^{2} + 6 B_{(1,0)} a_{0} a_{1} a_{2}^{2} a_{3} + B_{(1,0)} a_{1}^{2} a_{2}^{3} \\
+  &+ 2 B_{(1,1)} a_{0}^{2} a_{2} a_{3} + 2 B_{(1,1)} a_{0} a_{1} a_{2}^{2} + B_{(1,2)} a_{0}^{2} a_{2} \\
+  &+ 3 B_{20} a_{0} a_{2}^{2} a_{3} + B_{20} a_{1} a_{2}^{3} + B_{(2,1)} a_{0} a_{2}^{2} + B_{(3,0)} a_{2}^{3}
+\end{split}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+  c_2 &= B_{(0,0)} a_{0}^{3} a_{3}^{3} + 9 B_{(0,0)} a_{0}^{2} a_{1} a_{2} a_{3}^{2} \\
+  &+ 9 B_{(0,0)} a_{0} a_{1}^{2} a_{2}^{2} a_{3} + B_{(0,0)} a_{1}^{3} a_{2}^{3} + B_{(0,1)} a_{0}^{3} a_{3}^{2} \\
+  &+ 6 B_{(0,1)} a_{0}^{2} a_{1} a_{2} a_{3} + 3 B_{(0,1)} a_{0} a_{1}^{2} a_{2}^{2} + B_{(0,2)} a_{0}^{3} a_{3} \\
+  &+ 3 B_{(0,2)} a_{0}^{2} a_{1} a_{2} + B_{(0,3)} a_{0}^{3} + 3 B_{(1,0)} a_{0}^{2} a_{2} a_{3}^{2} \\
+  &+ 6 B_{(1,0)} a_{0} a_{1} a_{2}^{2} a_{3} + B_{(1,0)} a_{1}^{2} a_{2}^{3} + 2 B_{(1,1)} a_{0}^{2} a_{2} a_{3} \\
+  &+ 2 B_{(1,1)} a_{0} a_{1} a_{2}^{2} + B_{(1,2)} a_{0}^{2} a_{2} + 3 B_{(2,0)} a_{0} a_{2}^{2} a_{3} \\
+  &+ B_{(2,0)} a_{1} a_{2}^{3} + B_{21} a_{0} a_{2}^{2} + B_{(3,0)} a_{2}^{3}
+\end{split}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+c_1 &= 3 B_{(0,0)} a_{0} a_{1}^{2} a_{3}^{3} + 3 B_{(0,0)} a_{1}^{3} a_{2} a_{3}^{2} \\
+&+ 3 B_{(0,1)} a_{0} a_{1}^{2} a_{3}^{2} + 2 B_{(0,1)} a_{1}^{3} a_{2} a_{3}
++ 3 B_{(0,2)} a_{0} a_{1}^{2} a_{3} + B_{(0,2)} a_{1}^{3} a_{2} + 3 B_{(0,3)} a_{0} a_{1}^{2} \\
+&+ 2 B_{(1,0)} a_{0} a_{1} a_{3}^{3} + 3 B_{(1,0)} a_{1}^{2} a_{2} a_{3}^{2}
++ 2 B_{(1,1)} a_{0} a_{1} a_{3}^{2} + 2 B_{(1,1)} a_{1}^{2} a_{2} a_{3} \\
+&+ 2 B_{12} a_{0} a_{1} a_{3} + B_{(1,2)} a_{1}^{2} a_{2} + 2 B_{(1,3)} a_{0} a_{1} \\
+&+ B_{(2,0)} a_{0} a_{3}^{3} + 3 B_{(2,0)} a_{1} a_{2} a_{3}^{2} + B_{(2,1)} a_{0} a_{3}^{2} + 2 B_{(2,1)} a_{1} a_{2} a_{3} + B_{(2,2)} a_{0} a_{3} \\
+&+ B_{(2,2)} a_{1} a_{2} + B_{(2,3)} a_{0} + 3 B_{(3,0)} a_{2} a_{3}^{2} \\
+&+ 2 B_{(3,1)} a_{2} a_{3} + B_{(3,2)} a_{2} - a_4
+\end{split}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+c_0 &= B_{(0,0)} a_{1}^{3} a_{3}^{3} + B_{(0,1)} a_{1}^{3} a_{3}^{2} + B_{(0,2)} a_{1}^{3} a_{3} + B_{(0,3)} a_{1}^{3} \\
+&+ B_{(1,0)} a_{1}^{2} a_{3}^{3} + B_{(1,1)} a_{1}^{2} a_{3}^{2} + B_{(1,2)} a_{1}^{2} a_{3} + B_{(1,3)} a_{1}^{2} \\
+&+ B_{(2,0)} a_{1} a_{3}^{3} + B_{(2,1)} a_{1} a_{3}^{2} + B_{(2,2)} a_{1} a_{3} + B_{(2,3)} a_{1} + B_{(3,0)} a_{3}^{3} \\
+&+ B_{(3,1)} a_{3}^{2} + B_{(3,2)} a_{3} + B_{(3,3)} - a_5
+\end{split}
+\end{equation}
+
+The bicubic surface patch is sextic in $t$ and therefore there are a maximum of 6 intersection points for an arbitrary line segment and a bicubic surface patch. In general it is not possible to solve a sextic equation in terms of radicals unless it can be reduced to a simpler form (see for example \cite{coble1911application,coble1911reduction,cole1886contribution}). Given the structure of Eq. \eqref{eq:sextic-equation}, it may be possible to reduce the complexity to one of these simpler forms. Alternatively the analytical roots could be found using Kamp\`{e} de F\'{e}riet functions \cite{exton1976multiple}. However, it is expected that solving the sextic function analytically would be computationally expensive and a numerical solution can be found efficiently using Newton's method.
+
+Newton's method uses an initial estimate of the location of a root, $t_0$, the function $f(t)$ and its derivative $f'(t)$ to achieve a better estimate, $t_1$.
+
+\begin{equation}
+t_1 = t_0 + \frac{f(t_0)}{f'(t_0)} = t_0 + \frac{c_6 t^6 + c_5 t^5 + c_4 t^4 + c_3 t^3 + c_2 t^2 + c_1 t + c_0}{6 c_6 t^5 + 5 c_5 t^4 + 4 c_4 t^3 + 3 c_3 t^2 + 2 c_2 t + c_1 }
+\end{equation}
+
+The process is repeated until $t_{n+1} - t_n$  is less than the desired error tolerance. Since contact is expected to occur near the wheel surface, an initial value of $t_0 = 0.8$ may be a suitable first estimate for the cylinder model. The solution can be found using the following C code:
+
+\begin{lstlisting}[language=C]
+/* one step of Newton's method: f / fprime */
+double newton(double c[7], double t) {
+  /* evaluate the powers of t recursively, requires 5 multiplies */
+  double t_power[7] = {1.0, t, 0.0, 0.0, 0.0, 0.0, 0.0};
+  for(int i = 2; i < 7; i++) {
+    t_power[i] = t_power[i - 1] * t;
+  }
+
+  double numerator = 0;
+  for(int i = 0; i < 7 ; i++) {
+    numerator += c[i] * t_power[i];
+  }
+
+  double denominator = 0;
+  for(int i = 1; i < 7; i++) {
+    denominator += (double)i * c[i] * t_power[i - 1];
+  }
+
+  /* for robustness, may wish to add a check that fabs(denominator) > 1e-12 */
+  return numerator / denominator;
+}
+
+/* initialize c[7] using surface patch and line parameters */
+double c[7] = ...
+int iterations = 0;
+int max_iterations = 20;
+bool convergence = false;
+double t0 = 0.8;
+double tolerance = 1e-9;
+
+while(iterations < max_iterations) {
+  double t1 = t0 - newton(c, t0);
+  if(fabs(t1 - t0) <= tolerance * fabs(t1)) {
+    break;
+  }
+  iterations++;
+  t0 = t1;
+}
+
+if(iterations == max_iterations) {
+  fprintf(stderr, "Maximum number of iterations exceeded\n");
+}
+\end{lstlisting}
+
+The efficacy of using Newton's method to solve for the intersection point must be verified. Particularly, the technique may need to be repeated with different initial starting values to capture multiple intersections if they exist. The intersection point with the shortest distance $t$, where $(0 < t < 1)$, would be used to compute the normal penetration depth. Additionally, as with bilinear interpolation, it is important to verify that the resulting intersection point lies within the present surface patch: $(x_1 < x < x_2, y_1 < y < y_2)$. If the intersection is not found on the surface patch, the process must be repeated for an adjacent patch.
+
+After verification that $\underline{r}_{ft}^f$ lies in the present surface patch, the penetration depth normal to the wheel surface, $\delta_n$ is found as
+
+\begin{equation}
+\delta_n = \lvert \lvert \underline{r}_{fp}^f - \underline{r}_{ft}^f \rvert \rvert
+\end{equation}
+
+
+\section{Catmul-Rom Interpolation (TODO)}
+TODO
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------

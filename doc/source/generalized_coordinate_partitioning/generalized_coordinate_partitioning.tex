@@ -1,0 +1,453 @@
+\documentclass[12pt]{article}   % you have 10pt, 11pt, or 12pt options
+\setlength{\textwidth}{17.2cm}     % if you change this, consider changing
+\setlength{\evensidemargin}{-.3cm} % side margins to retain centering
+\setlength{\oddsidemargin}{-.3cm}
+\setlength{\textheight}{23cm}   % if you change this, consider changing
+\setlength{\topmargin}{-2cm}  % top margin to retain centering
+\setlength{\headsep}{1.6cm}
+
+%---------------------- These packages below add functionality to your version of LaTeX --------------
+%---------------------- You might not use all of them -------------------
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{latexsym}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{float}
+\usepackage{subfigure}
+\usepackage{amsmath}
+\usepackage{makeidx}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage{lastpage}
+\usepackage{url}
+\usepackage{arydshln}
+\usepackage[hidelinks]{hyperref} %for hyperlinks
+\usepackage[mathscr]{euscript}
+\usepackage[makeroom]{cancel}
+
+
+%------------------------- Customized Header ---------------------------
+\fancyhead{}
+\fancyfoot{}			
+\lhead{Generalized Coordinate Partitioning}
+\rhead{Page \thepage\ of \pageref{LastPage}}
+
+%---------- the symbols below will give you the blackboard bold of R, T, etc. ----------
+\DeclareSymbolFont{AMSb}{U}{msb}{m}{n}  
+\DeclareMathSymbol{\Sph}{\mathbin}{AMSb}{"53} \DeclareMathSymbol{\R}{\mathbin}{AMSb}{"52}
+\DeclareMathSymbol{\T}{\mathbin}{AMSb}{"54} \DeclareMathSymbol{\Z}{\mathbin}{AMSb}{"5A}
+\DeclareMathSymbol{\K}{\mathbin}{AMSb}{"4B}
+
+%------------------------- Theorem and Proof Environments --------------
+\newenvironment{theorem}[1]{\vspace{.9cm}\noindent    {\bf Theorem {#1}}}{\vspace{.1cm}}
+\newenvironment{lemma}[1]{\vspace{.9cm}\noindent    {\bf Lemma {#1}}}{\vspace{.1cm}}
+\newenvironment{corollary}[1]{\vspace{.9cm}\noindent    {\bf Corollary {#1}}}{\vspace{.1cm}}
+\newenvironment{definition}{\vspace{.9cm}\noindent {\bf Definition}}{\vspace{.1cm}}
+\def\qed{\hfill $\Box$}
+\renewenvironment{proof}{\vspace{.5cm}   \noindent{\bf Proof: }}{\qed \vspace{1cm}}
+\newcounter{case}
+\newenvironment{case}[1]{\stepcounter{case} \addvspace{.5\baselineskip} \noindent\textbf{Case \thecase}. \textit{#1}}{\hfill\fbox{Case \thecase}}
+\newtheorem{subcase}{Case}[case]
+\newtheorem{sub2case}{Case}[subcase]
+\def\inj{\text{inj}}
+\def\diam{\text{diam}}
+\def\area{\text{area}}
+\def\length{\text{length}}
+
+%------------------------- Begin Document Here ------------------------
+\begin{document}  
+\title{Generalized Coordinate Partitioning}
+\author{Kristopher Wehage}
+\date{\today}
+\maketitle
+
+\section{Gauss Elimination \& LU Decomposition}
+When solving a system of linear equations by hand, we use Gauss or Gauss--Jordan elimination, which should be familiar from undergraduate linear algebra. With the advent of computers in the 1940s, automated techniques for solving a set of linear equations were developed. In 1948, Alan Turing extended Gauss elimination to perform LU decomposition \cite{turing1948}. Mahaffy provides a nice description of the connection between LU decomposition and Gauss Elimination on his website at \cite{mahaffy_website}. With a minor variation to Gauss elimination, you can get the L matrix factor as a byproduct of Gauss elimination. 
+
+Note that on Mahaffy's website, he mentions the need to perform row--pivoting for numerical stability purposes. In addition to avoiding round--off errors, row pivoting also avoids zero pivots. Note that for very large matrices, roundoff error is inevitable and an alternative (and more expensive) algorithm to factor a matrix may be required, depending on the application.
+
+\section{Partial Pivoting Example}
+When factoring square matrices, LU decomposition is performed with partial pivoting (i.e. only row or only column interchanges --- or permutations). If partial pivoting is used, the original matrix $A$ in the system of equations $Ax=b$ is not factored to $LU$ directly. Instead, the partial pivoting factorization yields 
+\begin{equation}
+P_RA=LU
+\label{eq:PALU}
+\end{equation}
+where $P_R$ is an orthonormal permutation matrix that when left--multiplied with A reorders the rows of $A$. Mahaffy performs LU decomposition in his example without partial pivoting. Read and understand his example first, then continue to see how his example can be modified to include partial pivoting to solve the same system of equations for $\underline{x}$ below.
+
+\begin{equation}
+\begin{bmatrix}
+1 & 2 & -1\\
+4 & 3 & 1\\
+2 & 2 & 3
+\end{bmatrix}
+\begin{Bmatrix}
+x_1 \\ x_2 \\ x_3
+\end{Bmatrix}=
+\begin{Bmatrix}
+2 \\ 3 \\ 5
+\end{Bmatrix}
+\end{equation}
+
+Mahaffy forms the augmented matrix
+\begin{equation}
+\left[
+\begin{array}{ccc|c}
+1 & 2 & -1 & 2 \\
+4 & 3 & 1 & 3 \\
+2 & 2 & 3 & 5
+\end{array}
+\right]
+\end{equation}
+
+To determine the equation used to start Gauss elimination, divide the coefficients of column 1 by the largest value in each respective row of matrix $A$. The row with the largest absolute value is chosen as the first pivot equation. Rows 1--3 have values of 1/2, 4/4 and 2/3 respectively. Therefore, row 2 is selected as the pivot equation and is permuted to the top position. This permutation is recorded so as to be able to construct the $P$ matrix from Eq. \ref{eq:PALU} at the end of the elimination process.
+
+\begin{equation}
+P_{R1}=\begin{bmatrix}
+0 & 1 & 0\\
+1 & 0 & 0\\
+0 & 0 & 1
+\end{bmatrix}
+\end{equation}
+
+The modified system of equations becomes
+\begin{equation}
+\left[
+\begin{array}{ccc|c}
+4 & 3 & 1 & 3 \\
+1 & 2 & -1 & 2 \\
+2 & 2 & 3 & 5 
+\end{array}
+\right]
+\end{equation}
+
+Next eliminate the entries in the first column of the second and third rows by subtracting multiples of the first row, yielding
+\begin{equation}
+\left[
+\begin{array}{c:cc|c}
+4 & 3 & 1 & 3 \\
+\hdashline
+1-4/4 & 2-3/4 & -1-1/4 & 2-3/4 \\
+2-4/2 & 2-3/2 & 3-1/2 & 5-3/2 
+\end{array}
+\right]=
+\left[
+\begin{array}{c:cc|c}
+4 & 3 & 1 & 3 \\
+\hdashline
+0 & 1.25 & -1.25 & 1.25 \\
+0 & 0.5 & 2.5 & 3.5
+\end{array}
+\right]
+\label{eq:U1}
+\end{equation}
+The section above and to the left of the dashed lines is done and does not change for the remainder of the factorization. Continue similarly, processing the remaining equations.
+
+Divide the entry in the second column of rows 2 and 3 by the maximum value in each respective row to determine the next candidate equation. Rows 2 and 3 have values of -1 and 1/5 respectively, therefore row 2 is the second pivot equation. Technically, the second permutation matrix $P_{R2}$ looks like
+
+\begin{equation}
+P_{R2}=\begin{bmatrix}
+1 & 0 & 0\\
+0 & 1 & 0\\
+0 & 0 & 1
+\end{bmatrix}
+\end{equation}
+although in this case the result is not very interesting.
+
+Eliminate the term in the third row, second column by subtracting multiples of equation 2.
+\begin{equation}
+\left[
+\begin{array}{cc:c|c}
+4 & 3 & 1 & 3 \\
+0 & 1.25 & -1.25 & 1.25 \\
+\hdashline
+0 & 0.5-1.25/2.5 & 2.5-(-1.25/2.5) & 3.5-1.25/2.5 
+\end{array}
+\right]=
+\left[
+\begin{array}{cc:c|c}
+4 & 3 & 1 & 3 \\
+0 & 1.25 & -1.25 & 1.25 \\
+\hdashline
+0 & 0 & 3 & 3 
+\end{array}
+\right]
+\label{eq:U}
+\end{equation}
+At this point, we are finished with Gauss elimination and the system of equations can be solved by back substitution.
+\begin{equation}
+x_3=3/3=1
+\end{equation}
+\begin{equation}
+x_2 = (1.25 +1.25 x_3)/1.25, x_2=2
+\end{equation}
+\begin{equation}
+x_1 = (3 -3x_2-x_3)/4, x_1=-1
+\end{equation}
+Yielding the same answer as Mahaffy. Additionally, the final row permutation matrix $P_R$ is given as
+\begin{equation}
+P_R=P_{R2}P_{R1}=\begin{bmatrix}
+0 & 1 & 0\\
+1 & 0 & 0\\
+0 & 0 & 1
+\end{bmatrix}
+\end{equation}
+Note that only Gauss elimination was performed in Eq. \ref{eq:U} to get the U matrix factor of A. The L matrix can be found by an additional book--keeping operation. As multiples of the pivot equation are subtracted from the remaining equations, the multiples that were subtracted are stored in the lower diagonal portion of the factored matrix. Therefore, after Eq. \ref{eq:U1}, the composite matrix becomes
+\begin{equation}
+\left[
+\begin{array}{c:cc|c}
+4 & 3 & 1 & 3 \\
+\hdashline
+{\color{red}0.25} & 1.25 & -1.25 & 1.25 \\
+{\color{red}0.5} & 0.5 & 2.5 & 3.5
+\end{array}
+\right]
+\end{equation}
+and after Eq. \ref{eq:U} becomes.
+\begin{equation}
+\left[
+\begin{array}{ccc|c}
+4 & 3 & 1 & 3 \\
+{\color{red}0.25} & 1.25 & -1.25 & 1.25 \\
+{\color{red}0.5} & {\color{red}0.4} & 3 & 3
+\end{array}
+\right]
+\label{eq:composite}
+\end{equation}
+The composite matrix $L\cup U$ is stored in matrix \ref{eq:composite}.
+\begin{equation}
+L=\begin{bmatrix}
+1 & 0 & 0 \\
+.25 & 1 & 0 \\
+0.5 & 0.4 & 1
+\end{bmatrix}
+\end{equation}
+and
+\begin{equation}
+U=\left[
+\begin{array}{ccc}
+4 & 3 & 1 \\
+0 & 1.25 & -1.25\\
+0 & 0 & 3
+\end{array}
+\right]
+\label{eq:U2}
+\end{equation}
+As an excercise you can verify that multiplying $LU$ together yields $P_RA$.
+
+Typically, one does not just solve a system of equations $A\underline{x}=\underline{b}$ once, but the system of equations might be solved for \underline{x} many times for different values of \underline{b}. LU  factorization (and also the Gauss elimination algorithm) requires $\mathcal{O}(n^3)$ operations, whereas backsubstitution using the L and U matrices requires only $\mathcal{O}(n^2)$ operations. Therefore, computing L and U up front and reusing them for subsequent calculations is faster than repeated Gauss elimination for a new value of $\underline{b}$ when the matrix $A$ is unchanged. 
+
+\section{Gauss--Jordan Elimination and LDU Decomposition}
+Jordan made a minor modification to Gauss elimination to make the terms in the upper diagonal matrix, U go to unity. Similarly, a minor modification to LU decomposition can be made to keep track of the operations required for Gauss--Jordan elimination. To make the diagonal terms go to unity in Eq. \ref{eq:U2}, divide all terms in the respective row by the first non-zero entry in the that row. The first row will be divided through by 4, the second row will be divided by 1.25, and the third row will be divided by 3. At the end of this process, the U matrix looks like
+\begin{equation}
+U=\left[
+\begin{array}{ccc}
+1 & 0.75 & 0.25 \\
+0 & 1 & -1\\
+0 & 0 & 1
+\end{array}
+\right]
+\label{eq:U2}
+\end{equation}
+The terms along the diagonal of the new $U$ matrix are always unity, so let us use that space to record the value that each equation was multiplied by in the factored/permuted matrix.
+\begin{equation}
+L\cup D\cup U=\left[
+\begin{array}{ccc}
+{\color{blue}0.25} & 0.75 & 0.25 \\
+{\color{red}0.25} & {\color{blue}0.8} & -1\\
+{\color{red}0.5} & {\color{red}0.4} & {\color{blue}0.33}
+\end{array}
+\right]
+\label{eq:U2}
+\end{equation}
+The composite matrix $L \cup D \cup U$ now contains the matrix factors $L$, a lower triangular matrix with 1s along the diagonal, $D$ a diagonal matrix, and $U$ an upper triangular matrix with 1s along the diagonal:
+\begin{equation}
+L=\begin{bmatrix}
+1 & 0 & 0 \\
+.25 & 1 & 0 \\
+0.5 & 0.4 & 1
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+D=\left[
+\begin{array}{ccc}
+0.25 & 0 & 0\\
+0 & 0.8 & 0\\
+0 & 0 & 0.33
+\end{array}
+\right]
+\end{equation}
+
+\begin{equation}
+U=\left[
+\begin{array}{ccc}
+1 & 0.75 & 0.25 \\
+0 & 1 & -1\\
+0 & 0 & 1
+\end{array}
+\right]
+\end{equation}
+
+$LU$ and $LDU$ factorization require the same number of operations; the primary difference lies in how the book--keeping is performed. The remaining discussion is described with reference to $LU$ decomposition, but the $LDU$ decomposition algorithm could also be used in place of the $LU$ algorithm.
+
+\section{Complete Row and Column Pivoting}
+LU decomposition with partial pivoting is used for square matrices, but the Jacobian matrix is rarely square. Furthermore, the Jacobian matrix is usually not full rank. Fortunately a simple modification to the above algorithm can be made to process the system of constraint equations found in typical multibody systems.
+
+The modification involves taking both row and column interchanges of the Jacobian matrix. When both row and column permutations are performed, the process is known as LU decomposition with full or complete pivoting. In the modified algorithm, both row and column permutations must be recorded for later reuse.
+
+\begin{equation}
+P_RAP_C^T=LU
+\label{eq:PAPLU}
+\end{equation}
+where $P^T$ is an orthonormal column permutation matrix.
+
+Let us apply the modified LU decomposition to the slider crank problem from lecture. Recall that the constraint equations for the slider crank are
+\begin{equation}
+J\underline{\dot{q}}=\underline{0}=\begin{bmatrix}
+rcos\theta & -lcos\phi & 0\\
+-rsin\theta & -lsin\phi & -1
+\end{bmatrix}
+\begin{Bmatrix}
+\dot{\theta}\\
+\dot{\phi}\\
+\dot{x}
+\end{Bmatrix}
+\label{eq:slider_crank}
+\end{equation}
+LU factorization is a numerical technique, so let us plug some numerical values in to the Jacobian matrix. Let $r$=1.4142 m, $\theta$=1.5708 radians, $l$=2.2361 m, and $\phi$=0.4636 radians, yielding
+\begin{equation}
+J=\begin{bmatrix}
+1 & -2 & 0\\
+-1 & -1 & -1
+\end{bmatrix}
+\begin{Bmatrix}
+\dot{\theta}\\
+\dot{\phi}\\
+\dot{x}
+\end{Bmatrix}=0
+\end{equation}
+To perform LU decomposition with complete pivoting, find the largest element in the Jacobian matrix to determine the pivot equation. The largest element is -2, found in the (1,2) position. Permute the value at (1,2) to the upper left (1,1) position of the matrix. Record the row and column permutations in $P_R$ and $P_C$.
+
+\begin{equation}
+P_{R1} = \begin{bmatrix}
+1 & 0 \\ 0 & 1
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+P_{C1} = \begin{bmatrix}
+0 & 1 & 0\\ 
+1 & 0 & 0\\
+0 & 0 & 1
+\end{bmatrix}
+\end{equation}
+
+Let us call the permuted matrix, A, since after permutation it is no longer the same as J.
+\begin{equation}
+A=\begin{bmatrix}
+-2 & 1 & 0\\
+-1 & -1 & -1
+\end{bmatrix}
+\end{equation}
+As in the previous example, eliminate the values under the (1,1) position \begin{equation}
+A=\begin{bmatrix}
+-2 & 1 & 0\\
+-1-(-2/2) & -1-(1/2) & -1-(0/2)
+\end{bmatrix}=
+\begin{bmatrix}
+-2 & 1 & 0\\
+{\color{red}0.5} & -1.5 & -1
+\end{bmatrix}
+\end{equation}
+It is not possible to proceed further as there are no more constraint equations to process. The matrix J has effectively been partitioned in to 
+\begin{equation}
+P_RJP^T_C=A=\begin{bmatrix}J_d & J_{in}\end{bmatrix}
+\end{equation}
+
+The Jacobian matrix for the slider crank is full row--rank. It has a column--rank of 2. The largest non--singular matrix from $A$ is $J_d$. The LU factors were found as
+
+\begin{equation}
+L=\begin{bmatrix}
+1 & 0 \\
+0.5 & 1
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+U=\begin{bmatrix}
+-2 & 1 & 0\\
+0 & -1.5 & -1
+\end{bmatrix}
+\end{equation}
+
+The slider crank Jacobian example had full row rank, however, Jacobian matrices may not have full row rank. During the factorization process, if values in the remaining matrix below and to the right of the dashed lines in the composite matrix $A$, shown in Eq. \ref{eq:partitioned_jacobian} are (very close to) zero\footnote{Due to a computer's inability to represent a number exactly, it is better to check if the values are less than machine roundoff error, rather than to test for zero explicitly.}, then factorization is complete.
+\begin{equation}
+A=\left[
+\begin{array}{c:cc}
+L\cup U_{p,d} & L\cup U_{p,in} \\
+\hdashline
+L \cup U_{s,d} & 0 
+\end{array}
+\right]
+\label{eq:partitioned_jacobian}
+\end{equation}
+Here the additional subscripts denote association with the primary constraint equations, $p$, and secondary constraint equations, $s$.
+ 
+In the example above, there was only one set of permutations, however in general there may be many permutations required in factorization and
+\begin{equation}
+P_R=P_{R,n} * P_{R,n-1} * ... * P_{R,2} * P_{R,1}
+\end{equation}
+and
+\begin{equation}
+P_C^T=P_{C,1}^T * P_{C,2}^T * ... * P_{C,n-1}^T * P_{C,n}^T
+\end{equation}
+The permutation matrices are orthonormal, therefore
+\begin{equation}
+J=P_R^TLUP^C
+\end{equation}
+Substituting back in to Eq. \ref{eq:slider_crank} yields.
+\begin{equation}
+P_RLUP_C^T\underline{\dot{q}}=P_R\begin{bmatrix}J_d & J_{in}\end{bmatrix}P_C^T\underline{\dot{q}}=\underline{0}
+\label{eq:LU_slider_crank}
+\end{equation}
+Bringing the row permutation matrix to the other side of Eq. \ref{eq:LU_slider_crank} simply permutes the zeros. The column permutation matrix can be used to identify the dependent and independent generalized coordinates.
+
+\begin{equation}
+\begin{bmatrix}
+J_d & J_{in}
+\end{bmatrix}P_C^T\underline{\dot{q}}=P_R^T\underline{0}
+\end{equation}
+where
+\begin{equation}
+P_C^T\underline{\dot{q}}=
+\left\{
+\begin{array}{c}
+
+\underline{\dot{q}}_{d}\\
+\hdashline
+\underline{\dot{q}}_{in}
+\end{array}\right\}
+=\left\{\begin{array}{c}
+
+\dot{\phi}\\
+\dot{\theta}\\
+\hdashline
+\dot{x}
+\end{array}\right\}
+\end{equation}
+
+In the slider crank mechanism, the independent generalized coordinate was chosen as $x$. As discussed in lecture, when solving the dynamics equations, it is possible to solve for the independent variable, and then solve for all dependent variables as a function of the independent variable. 
+
+What is special about $x$ compared to the other variables? By permuting the largest terms in the Jacobian matrix to the upper left, we have effectively maximized terms associated with the dependent variables and minimized terms associated with the independent variables. Only the independent variables would be numerically integrated. For stability in numerical integration, it is desirable to have variables that do not change rapidly between integration steps. By minimizing the terms in the Jacobian matrix associated with the independent variable, we have found the independent variable that changes the least for the particular configuration. The choice of \emph{best} independent variables is dependent on the multibody system's current configuration and is subject to change. 
+
+
+\bibliographystyle{plain}
+\bibliography{../../bibtex/dynamics}
+\end{document}
+
+
+
