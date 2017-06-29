@@ -7,3 +7,5 @@
 bin
 build
 deprecated
+doc/html
+doc/doctrees
