@@ -4,7 +4,7 @@
 .. _kinematic_substructuring:
 
 Kinematic Substructuring
-------------------------
+========================
 
 In the previous section, a compact formulation of the equations of motion was derived and an efficient solution method was discussed. One bottleneck in the solution process is the Gaussian Elimination with Complete Pivoting (GECP) algorithm itself, which is a triple-loop procedure requiring :math:`r(6mn - 3(m+n)r + 2r^2)/3` FLOPS, where :math:`m` is the number of rows, :math:`n` is the number of columns and :math:`r` is the rank of the matrix. Furthermore, GECP requires both row and column permutations during factorization, which necessitates non-unit stride vector copies, which is not optimal for memory access. Note that other algorithms have been proposed for the automatic identification of independent and dependent variables, for example, based on Singular Value Decomposition (SVD) :cite:`mani1985,wehage1993` or Congruency Transformations :cite:`loduha1995`. Note that the run--time of these alternative methods is increased over GECP; for example, SVD requires :math:`4m^2n+22n^3` FLOPS using the R-SVD algorithm :cite:`golub1996matrix`.
 
@@ -24,7 +24,7 @@ Block--diagonalization is a well--known technique for breaking a large system of
 
 
 Topology
-**********
+--------
 
 For completeness, the topology of the excavator is described using graph theory :cite:`bondy2008graph,wittenburg2007dynamics`. The preliminary process requires setting up a directed graph that describes how bodies, i.e. nodes, are connected by joints, i.e. edges.  The excavator's incidence matrix, :math:`\Gamma`, is shown in Eq. :eq:`eq:incidence_matrix` below. Manual generation of incidence matrices for complex mechanisms presents a burden to the analyst, and the process is prone to errors; therefore, automated methods are preferred. It is more convenient for an analyst to provide body--joint--body descriptions and shape matrices :cite:`uicker2013`, preferably exported directly from a CAD program. For the present example, the bodies and joints of a hydraulic excavator are provided in an arbitrary, user--defined order as described in the table below. Each body is assigned a unique number, and each joint is assigned a unique letter. As an aid to following the development in this work, the arbitrary letter assigned to each joint has an associated descriptive name shown in Table 1. This name includes an arrow to indicate the user—-defined sense or direction of the joint. Note that the zero identifier is reserved for the fixed inertial reference frame.
 
@@ -160,7 +160,7 @@ Using the method described in the previous section, the Jacobian matrix can be f
 where the :math:`h_j` are :math:`6\times1` influence coefficient matrices for each of the respective joints. The block row identifier labels, i through v, correspond to a minimal set of kinematic loops in the mechanism, where the number of loops is equal to the number of chords in the directed graph.
 
 Kinematic Substructuring Algorithm
-**********************************
+----------------------------------
 
 At this point in the analysis, information regarding the system topology required to solve Eq. :eq:`eq:lagrange_eqn` has been determined. Performing GECP on Eq. :eq:`eq:jacobian1` would require 9000 FLOPs, assuming the Jacobian matrix has full--row rank (i.e :math:`m=30`, :math:`n=20` and :math:`r=15`). In the following section, it will be shown how kinematic substructures can be *automatically* identified and uncoupled, allowing for an increase in computational efficiency.
 
@@ -212,7 +212,7 @@ While the incidence matrix in Eq. :eq:`eq:incidence_matrix_no_substructures` pro
 The kinematic substructuring process is divided into the following five steps:
 
 Identify the level of each node in the spanning tree
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+****************************************************
 
 Using the parent--child list and binary tree, the increasing level of each body in the spanning tree, moving away from the fixed inertial reference frame, is identified and stored in a node--level list. The parent--child list allows one to easily determine if node :math:`k` is in the kinematic path of node :math:`j` using `Algorithm 1`_:
 
@@ -261,7 +261,7 @@ The :math:`levels` list for the excavator model is shown in `Table 3`_.
 
 
 Identify loop members
-^^^^^^^^^^^^^^^^^^^^^
+*********************
 
 .. Each loop's *base* node and the nodes in the loop can also be readily identified from the parent--child list and `Table 2`_. Let the respective kinematic paths from the spanning tree's root to each chord joint's virtual body and its user--defined embedding body represent the positive and negative branch segments of the loop, as shown for loop v in Fig. :num:`loopv` below. In Fig. :num:`loopv`, edges F and T are oriented negatively with respect to the loop direction, edges K, O and S are oriented positively with respect to the loop direction, node 4 is loop v's unique base node, and nodes 0, 1, 2 and 3 are in the ancestor path of node 4. From `Table 2`_, let the *virtual body id* for loop :math:`j` be stored in :code:`positiveNodes[j]` and the corresponding *embedding body id* stored in :code:`negativeNodes[j]`.
 
@@ -323,7 +323,7 @@ At this point the loops are rearranged by sorting their base nodes into monotoni
 In the excavator example, no reordering of the loops was necessary, as their base nodes were already arranged by monotonically increasing level order.
 
 Merge loops into kinematic substructures
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*****************************************
 
 Any given mechanism will consist of at least one kinematic substructure, i.e. the entire mechanism. Therefore, the loop--merging process begins by assigning the first loop, i, to the first substructure. Each successive loop is then inspected to determine if it should be added to any of the existing kinematic substructures or if the loop should be assigned to a new substructure.
 
@@ -370,7 +370,7 @@ Loops iv and v are then analyzed. An ancestor of the base node of loop iv is fou
 
 
 Reorder bodies and joints
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+*************************
 
 In this last step the joints are ordered by level in the spanning tree and permuted according to their kinematic substructure assignments, which requires creating a *short list* of bodies that are either:
 
@@ -456,7 +456,7 @@ Although the process for automatically determining kinematic substructures is de
 
 
 Numerical Experiment
-********************
+--------------------
 
 To investigate the numerical efficiency of kinematic substructuring, GECP of the block--diagonalized Jacobian matrix in Eq. :eq:`eq:jacobian2` is computed using (a) the kinematic substructuring method applied to each of the three block submatrices, :math:`J_1`--:math:`J_3`, (b) the sparse matrix algebra MA48 factorization algorithm (part of the Harwell Subroutine Library (HSL) :cite:`duff1996design` applied only to the nonzero terms of the :math:`30\times 20` Jacobian matrix, :math:`J` and (c) the full, dense matrix algebra applied to the full :math:`30\times 20` Jacobian matrix, :math:`J`.
 
@@ -503,182 +503,3 @@ When the pivot sequence is reused from the initial call to GECP, block--diagonal
 
 
 The results of Figs. :num:`runtime1` and :num:`runtime2` indicate that block--diagonalization via kinematic substructuring requires a minimal computational expense to select a set of dependent and independent variables, which is a critical part of a robust solution of dynamics equations. The next section summarizes the role of kinematic substructures in setting up and processing the dynamic equations of motion.
-
-
-Revised Dynamics Equations
-***************************
-
-In the previous chapter, a compact form of the dynamics equations were derived from the incidence matrix. In this section, it will be shown what modifications are necessary to account for the kinematic substructures.
-
-With the addition of virtual bodies, the incidence matrix, :math:`\Gamma^T`, is now square and invertible. Accounting for the joint and body ordering and block partitioning identified above, :math:`\Gamma^T` becomes
-
-.. math::
-    :label: eq:incidence_matrix_w_substructures
-
-    \tiny
-    \Gamma^T =
-    \begin{array}{l|rr:rrrrrrr:rrrr:rrrrrrr}
-        & 1  & 2  & 3  & 8  & 9  & 11 & 10 & 16 & 17 & 4  & 12 & 13 & 18 & 7  & 5  & 14 & 6  & 15 & 19 & 20 \\
-        \hline
-    A & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
-    B & -1 & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
-    \hdashline
-    C &    & -1 & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
-    H &    & -1 &    & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
-    I &    & -1 &    &    & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
-    Q &    &    & -1 &    &    & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
-    P &    &    & -1 &    &    &    & 1  &    &    &    &    &    &    &    &    &    &    &    &    &   \\
-    L &    &    &    & -1 &    &    &    & 1  &    &    &    &    &    &    &    &    &    &    &    &   \\
-    M &    &    &    &    & -1 &    &    &    & 1  &    &    &    &    &    &    &    &    &    &    &   \\
-    \hdashline
-    D &    &    & -1 &    &    &    &    &    &    & 1  &    &    &    &    &    &    &    &    &    &   \\
-    J &    &    & -1 &    &    &    &    &    &    &    & 1  &    &    &    &    &    &    &    &    &   \\
-    R &    &    &    &    &    &    &    &    &    & -1 &    & 1  &    &    &    &    &    &    &    &   \\
-    N &    &    &    &    &    &    &    &    &    &    & -1 &    & 1  &    &    &    &    &    &    &   \\
-    \hdashline
-    F &    &    &    &    &    &    &    &    &    & -1 &    &    &    & 1  &    &    &    &    &    &   \\
-    E &    &    &    &    &    &    &    &    &    & -1 &    &    &    &    &  1 &    &    &    &    &   \\
-    K &    &    &    &    &    &    &    &    &    & -1 &    &    &    &    &    & 1  &    &    &    &   \\
-    T &    &    &    &    &    &    &    &    &    &    &    &    &    & -1 &    &    & 1  &    &    &   \\
-    O &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    & -1 &    & 1  &    &   \\
-    G &    &    &    &    &    &    &    &    &    &    &    &    &    &    & -1 &    &    &    & 1  &   \\
-    S &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    & -1 &    & 1 \\ \end{array}
-
-
-The block pattern in Eq. :eq:`eq:incidence_matrix_w_substructures` results because the kinematic substructures are coupled to each other only through their base bodies.
-With the bodies and joints now grouped/ordered according to their kinematic substructure assignments, as illustrated in Fig. :num:`spanningtree2`, a new mass matrix, :math:`M` may be formed with :math:`6x6` inertia matrices along the diagonal. The resulting matrix may be block partitioned as:
-
-.. math::
-    :label: eq:mass_matrix
-
-    M=\left[
-    \begin{array}{cccc}
-    M_{ii} &  &  & \\
-    & M_{11} & & \\
-    & & M_{22} & \\
-    & & & M_{33}\\
-    \end{array}\right]
-
-
-where :math:`M_{ii}` consists of the :math:`6\times 6` inertia terms associated with bodies 1 and 2, :math:`M_{11}` consists of inertia terms associated with bodies 3, 8, 9, 11, 10, 16 and 17, :math:`M_{22}` consists of inertia terms associated with bodies 4, 12, 13 and 18, and :math:`M_{33}` consists of inertia terms associated with bodies 7, 5, 14, 6, 15, 19 and 20. Note that a body may technically be a member of more than one kinematic substructure, but its parent joint will be included in at most one kinematic substructure. Therefore, to better understand the related body ordering and substructure assignments in Eq. :eq:`eq:mass_matrix`, refer to Fig. :num:`spanningtree2` and the ordering of each body's unique parent joint in Eq. :eq:`eq:jacobian2` or to the ordering within kinematic substructure in Eqs. :eq:`eq:jacobian2_1` to :eq:`eq:jacobian2_3`.
-
-Equation :eq:`eq:gen_mass_matrix` from the previous section defines the mapping of the mass matrix :math:`M` to the generalized mass matrix, :math:`M^{\ell}`. After the projection defined in Eq. :eq:`eq:gen_mass_matrix` is applied, the generalized mass matrix may be partitioned as:
-
-.. math::
-    :label: eq:gen_mass_matrix_substructures
-
-    M^{\ell}= \left[
-    \begin{array}{cccc}
-    M^{\ell}_{ii} & M^{\ell}_{i1} & M^{\ell}_{i2} & M^{\ell}_{i3}\\
-    M^{\ell}_{1i} & M^{\ell}_{11} & M^{\ell}_{12} & M^{\ell}_{13}\\
-    M^{\ell}_{2i} & M^{\ell}_{21} & M^{\ell}_{22} & M^{\ell}_{23}\\
-    M^{\ell}_{3i} & M^{\ell}_{31} & M^{\ell}_{32} & M^{\ell}_{33}
-    \end{array}
-    \right]
-
-
-where :math:`M^{\ell}_{ii}`, :math:`M^{\ell}_{11}`, :math:`M^{\ell}_{22}`, and :math:`M^{\ell}_{33}` each have dimensions :math:`1/6th` the size of the respective submatrices :math:`M_{ii}`, :math:`M_{11}`, :math:`M_{22}`, and :math:`M_{33}` in Eq. :eq:`eq:gen_mass_matrix_substructures`.
-
-The block–partitioned Jacobian submatrices in Eq. :eq:`eq:jacobian2` and the constraint equations may be interspersed within the generalized equations of motion as:
-
-.. math::
-    :label: eq:28
-
-    \left[
-    \begin{array}{c:cc:cc:cc}
-    M^{\ell}_{ii} & M^{\ell}_{i1} & & M^{\ell}_{i2} & & M^{\ell}_{i3} & \\
-    \hdashline
-    M^{\ell}_{1i} & M^{\ell}_{11} & J_I^T & M^{\ell}_{12} & & M^{\ell}_{13} & \\
-    & J_{1} & & & & & \\
-    \hdashline
-    M^{\ell}_{2i} & M^{\ell}_{21} & & M^{\ell}_{22} & J_{2}^T & M^{\ell}_{23} & \\
-    & & & J_{2} & & & \\
-    \hdashline
-    M^{\ell}_{3i} & M^{\ell}_{31} & & M^{\ell}_{32} & & M^{\ell}_{33} & J_{3}^T \\
-    & & & & & J_{3} & \\
-    \end{array}
-    \right]
-    \begin{Bmatrix}
-    \underline{\ddot{q}}_i \\
-    \hdashline
-    \underline{\ddot{q}}_1 \\
-    \underline{\lambda}_1 \\
-    \hdashline
-    \underline{\ddot{q}}_2 \\
-    \underline{\lambda}_2 \\
-    \hdashline
-    \underline{\ddot{q}}_3 \\
-    \underline{\lambda}_3
-    \end{Bmatrix}
-    =
-    \begin{Bmatrix}
-    \underline{f}^{\ell}_i \\
-    \hdashline
-    \underline{f}^{\ell}_1 \\
-    \underline{\gamma}_{c,1} \\
-    \hdashline
-    \underline{f}_{2}^{\ell} \\
-    \underline{\gamma}_{c,2} \\
-    \hdashline
-    \underline{f}_{3}^{\ell} \\
-    \underline{\gamma}_{c,3}
-    \end{Bmatrix}
-
-
-The kinematic substructures appear as the three block :math:`2 \times 2` submatrices along the diagonal of the coefficient matrix in Eq. :eq:`eq:28`. Coupling between these substructures is through the off-diagonal submatrices, which are relatively sparse. As in the previous chapter, the coefficient matrix in this system of equations typically does not have full rank. Therefore, GECP is applied to each of the submatrices :math:`J_1` -- :math:`J_3` to identify the primary constraint equations. The secondary constraint equations are removed and the preconditioning process that was described in the previous section is applied to each of the submatrices :math:`J_1` -- :math:`J_3`, yielding:
-
-.. math::
-    :label: eq:36
-
-    \scriptsize
-    \left[
-    \begin{array}
-    {c:ccc:ccc:ccc}
-    M^{\ell ii}_{ii} & M^{\ell ii}_{i1} & M^{\ell id}_{i1} & & M^{\ell ii}_{i2} & M^{\ell id}_{i2} & & M^{\ell ii}_{i3} & M^{\ell id}_{i3} & \\
-    \hdashline
-    M^{\ell ii}_{1i} & M_{11}^{\ell ii} & M_{11}^{\ell id} & B_{11}^{id} & M^{\ell ii}_{12} & M^{\ell id}_{12} & & M^{\ell ii}_{13} & M^{\ell id}_{13} & \\
-    M^{\ell di}_{1i} & M_{11}^{\ell di} & M_{11}^{\ell dd} & I & M^{\ell di}_{12} & M^{\ell dd}_{12} & & M^{\ell di}_{13} & M^{\ell dd}_{13} & \\
-    & B^{di}_{11} & I & & & & & & & \\
-    \hdashline
-    M^{\ell ii}_{2i} & M^{\ell ii}_{21} & M^{\ell id}_{21} & & M_{22}^{\ell ii} & M_{22}^{\ell id} & B^{id}_{22} & M^{\ell ii}_{23} & M^{\ell id}_{23} & \\
-    M^{\ell di}_{2i} & M^{\ell di}_{21} & M_{21}^{\ell dd} & & M_{22}^{\ell di} & M_{22}^{\ell dd} & I & M^{\ell di}_{23} & M^{\ell dd}_{23} & \\
-    & & & & B^{di}_{22} & I & & & & \\
-    \hdashline
-    M^{\ell ii}_{3i} & M^{\ell ii}_{31} & M^{\ell id}_{31} & & M_{32}^{\ell ii} & M_{32}^{\ell id} & & M_{33}^{\ell ii} & M_{33}^{\ell id} & B^{id}_{33} \\
-    M^{\ell di}_{3i} & M^{\ell di}_{31} & M_{31}^{\ell dd} & & M_{32}^{\ell di} & M_{32}^{\ell dd} & & M^{\ell di}_{33} & M_{33}^{\ell dd} & I \\
-    & & & & & & & B^{di}_{33} & I & \\
-    \end{array}
-    \right]
-    \begin{Bmatrix}
-    \underline{\ddot{q}}_{i}\\
-    \hdashline
-    \underline{\ddot{q}}_{1}^i\\
-    \underline{\ddot{q}}_{1}^d\\
-    \underline{\lambda}_{1}^d\\
-    \hdashline
-    \underline{\ddot{q}}_{2}^i\\
-    \underline{\ddot{q}}_{2}^d\\
-    \underline{\lambda}_{2}^d\\
-    \hdashline
-    \underline{\ddot{q}}_{3}^i\\
-    \underline{\ddot{q}}_{3}^d\\
-    \underline{\lambda}_{3}^d\\
-    \end{Bmatrix} =
-    \begin{Bmatrix}
-    \underline{f}^{\ell}_i\\
-    \hdashline
-    \underline{f}_{1}^{\ell i}\\
-    \underline{f}_{1}^{\ell d}\\
-    \underline{\gamma}_{1}^{d}\\
-    \hdashline
-    \underline{f}_{2}^{\ell i}\\
-    \underline{f}_{2}^{\ell d}\\
-    \underline{\gamma}_{2}^{d}\\
-    \hdashline
-    \underline{f}_{3}^{\ell i}\\
-    \underline{f}_{3}^{\ell d}\\
-    \underline{\gamma}_{3}^{d}\\
-    \end{Bmatrix}
-
-
-In this form, inverting the block :math:`2 \times 2` pivotal submatrices containing the identity matrices is trivial. Refer to the next section for details of the solution process.

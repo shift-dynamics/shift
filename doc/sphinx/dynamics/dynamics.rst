@@ -6,8 +6,8 @@
 Dynamics
 ========
 
-Spatial Equations of Motion for a Single Rigid Body
----------------------------------------------------
+Spatial Equations of Motion for a Rigid Body
+---------------------------------------------
 
 In the present notation, the *spatial* equations of motion for a rigid body expressed in the fixed reference frame can be found from the time derivative of spatial momentum.
 
@@ -351,7 +351,7 @@ While the second approach is appealing from an efficiency standpoint, ensuring r
 
 Historically with the second approach, specialists choose the cutset of primary constraints and generalized coordinates based on their experience with similar classes of problems. Manual selection, however, has its limitations. For complex systems, the manual approach is prone to error and imposes a burden on the analyst. The optimal set of generalized coordinates often depends on a system's posture and may require periodic updating during an analysis. In addition, a mechanism's changing posture may periodically require a different set of primary constraint equations, or even a different number of primary equations when the Jacobian matrix rank changes.
 
-In recent decades numerical methods have been devised to automatically identify optimal sets of independent generalized coordinates and primary constraint equations. Generalized Coordinate Partitioning (GCP), introduced by Uicker and Sheth in the context of kinematics :cite:`sheth1972digital,sheth1972imp` and extended by Wehage and Haug in the context of dynamics :cite:`wehage1982`, is a row and column permutation and partitioning method applied to the Jacobian matrix. The GCP method is a byproduct of Gaussian Elimination with Complete Pivoting (GECP). GECP factors a matrix into row--echelon form, reliably revealing its rank :cite:`turing1948`. At each successive factorization step, GECP permutes the largest remaining pivotal element to the upper--left position in the residual matrix, thereby selecting the next dependent variable with possibly the smallest mechanical advantage. After factorization is complete, rows of the largest nonsingular matrix identify the primary constraint equations, and columns identify the dependent variables. Refer to :ref:`appendices` for an illustrative, worked example of GECP/LU decomposition.
+In recent decades numerical methods have been devised to automatically identify optimal sets of independent generalized coordinates and primary constraint equations. Generalized Coordinate Partitioning (GCP), introduced by Uicker and Sheth in the context of kinematics :cite:`sheth1972digital,sheth1972imp` and extended by Wehage and Haug in the context of dynamics :cite:`wehage1982`, is a row and column permutation and partitioning method applied to the Jacobian matrix. The GCP method is a byproduct of Gaussian Elimination with Complete Pivoting (GECP). GECP factors a matrix into row--echelon form, reliably revealing its rank :cite:`turing1948`. At each successive factorization step, GECP permutes the largest remaining pivotal element to the upper--left position in the residual matrix, thereby selecting the next dependent variable with possibly the smallest mechanical advantage. After factorization is complete, rows of the largest nonsingular matrix identify the primary constraint equations, and columns identify the dependent variables.
 
 After the GECP decomposition process, the Jacobian will have been partitioned as:
 
@@ -476,6 +476,187 @@ This new set of constraint equations can be used in place of Eq. :eq:`eq:alterna
     \end{Bmatrix}=
     \begin{Bmatrix}\underline{f}^{\ell i}\\ \underline{f}^{\ell d} \\ \underline{\gamma}^d
     \end{Bmatrix}
+
+
+Dynamics Equations with Kinematic Substructures
+------------------------------------------------
+
+In the previous section, a compact form of the dynamics equations were derived from the incidence matrix. In this section, it will be shown what modifications are necessary to account for the kinematic substructures.
+
+With the addition of virtual bodies, the incidence matrix, :math:`\Gamma^T`, is now square and invertible. Accounting for the joint and body ordering and block partitioning identified above, :math:`\Gamma^T` becomes
+
+.. math::
+    :label: eq:incidence_matrix_w_substructures
+
+    \tiny
+    \Gamma^T =
+    \begin{array}{l|rr:rrrrrrr:rrrr:rrrrrrr}
+        & 1  & 2  & 3  & 8  & 9  & 11 & 10 & 16 & 17 & 4  & 12 & 13 & 18 & 7  & 5  & 14 & 6  & 15 & 19 & 20 \\
+        \hline
+    A & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
+    B & -1 & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
+    \hdashline
+    C &    & -1 & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
+    H &    & -1 &    & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
+    I &    & -1 &    &    & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
+    Q &    &    & -1 &    &    & 1  &    &    &    &    &    &    &    &    &    &    &    &    &    &   \\
+    P &    &    & -1 &    &    &    & 1  &    &    &    &    &    &    &    &    &    &    &    &    &   \\
+    L &    &    &    & -1 &    &    &    & 1  &    &    &    &    &    &    &    &    &    &    &    &   \\
+    M &    &    &    &    & -1 &    &    &    & 1  &    &    &    &    &    &    &    &    &    &    &   \\
+    \hdashline
+    D &    &    & -1 &    &    &    &    &    &    & 1  &    &    &    &    &    &    &    &    &    &   \\
+    J &    &    & -1 &    &    &    &    &    &    &    & 1  &    &    &    &    &    &    &    &    &   \\
+    R &    &    &    &    &    &    &    &    &    & -1 &    & 1  &    &    &    &    &    &    &    &   \\
+    N &    &    &    &    &    &    &    &    &    &    & -1 &    & 1  &    &    &    &    &    &    &   \\
+    \hdashline
+    F &    &    &    &    &    &    &    &    &    & -1 &    &    &    & 1  &    &    &    &    &    &   \\
+    E &    &    &    &    &    &    &    &    &    & -1 &    &    &    &    &  1 &    &    &    &    &   \\
+    K &    &    &    &    &    &    &    &    &    & -1 &    &    &    &    &    & 1  &    &    &    &   \\
+    T &    &    &    &    &    &    &    &    &    &    &    &    &    & -1 &    &    & 1  &    &    &   \\
+    O &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    & -1 &    & 1  &    &   \\
+    G &    &    &    &    &    &    &    &    &    &    &    &    &    &    & -1 &    &    &    & 1  &   \\
+    S &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    &    & -1 &    & 1 \\ \end{array}
+
+
+The block pattern in Eq. :eq:`eq:incidence_matrix_w_substructures` results because the kinematic substructures are coupled to each other only through their base bodies.
+
+With the bodies and joints now grouped/ordered according to their kinematic substructure assignments, a new mass matrix, :math:`M` may be formed with :math:`6x6` inertia matrices along the diagonal. The resulting matrix may be block partitioned as:
+
+.. math::
+    :label: eq:mass_matrix
+
+    M=\left[
+    \begin{array}{cccc}
+    M_{ii} &  &  & \\
+    & M_{11} & & \\
+    & & M_{22} & \\
+    & & & M_{33}\\
+    \end{array}\right]
+
+
+where :math:`M_{ii}` consists of the :math:`6\times 6` inertia terms associated with bodies 1 and 2, :math:`M_{11}` consists of inertia terms associated with bodies 3, 8, 9, 11, 10, 16 and 17, :math:`M_{22}` consists of inertia terms associated with bodies 4, 12, 13 and 18, and :math:`M_{33}` consists of inertia terms associated with bodies 7, 5, 14, 6, 15, 19 and 20. Note that a body may technically be a member of more than one kinematic substructure, but its parent joint will be included in at most one kinematic substructure.
+
+Equation :eq:`eq:gen_mass_matrix` from the previous section defines the mapping of the mass matrix :math:`M` to the generalized mass matrix, :math:`M^{\ell}`. After the projection defined in Eq. :eq:`eq:gen_mass_matrix` is applied, the generalized mass matrix may be partitioned as:
+
+.. math::
+    :label: eq:gen_mass_matrix_substructures
+
+    M^{\ell}= \left[
+    \begin{array}{cccc}
+    M^{\ell}_{ii} & M^{\ell}_{i1} & M^{\ell}_{i2} & M^{\ell}_{i3}\\
+    M^{\ell}_{1i} & M^{\ell}_{11} & M^{\ell}_{12} & M^{\ell}_{13}\\
+    M^{\ell}_{2i} & M^{\ell}_{21} & M^{\ell}_{22} & M^{\ell}_{23}\\
+    M^{\ell}_{3i} & M^{\ell}_{31} & M^{\ell}_{32} & M^{\ell}_{33}
+    \end{array}
+    \right]
+
+
+where :math:`M^{\ell}_{ii}`, :math:`M^{\ell}_{11}`, :math:`M^{\ell}_{22}`, and :math:`M^{\ell}_{33}` each have dimensions :math:`1/6th` the size of the respective submatrices :math:`M_{ii}`, :math:`M_{11}`, :math:`M_{22}`, and :math:`M_{33}` in Eq. :eq:`eq:gen_mass_matrix_substructures`.
+
+The block–partitioned Jacobian submatrices in Eq. :eq:`eq:jacobian2` and the constraint equations may be interspersed within the generalized equations of motion as:
+
+.. math::
+    :label: eq:28
+
+    \left[
+    \begin{array}{c:cc:cc:cc}
+    M^{\ell}_{ii} & M^{\ell}_{i1} & & M^{\ell}_{i2} & & M^{\ell}_{i3} & \\
+    \hdashline
+    M^{\ell}_{1i} & M^{\ell}_{11} & J_I^T & M^{\ell}_{12} & & M^{\ell}_{13} & \\
+    & J_{1} & & & & & \\
+    \hdashline
+    M^{\ell}_{2i} & M^{\ell}_{21} & & M^{\ell}_{22} & J_{2}^T & M^{\ell}_{23} & \\
+    & & & J_{2} & & & \\
+    \hdashline
+    M^{\ell}_{3i} & M^{\ell}_{31} & & M^{\ell}_{32} & & M^{\ell}_{33} & J_{3}^T \\
+    & & & & & J_{3} & \\
+    \end{array}
+    \right]
+    \begin{Bmatrix}
+    \underline{\ddot{q}}_i \\
+    \hdashline
+    \underline{\ddot{q}}_1 \\
+    \underline{\lambda}_1 \\
+    \hdashline
+    \underline{\ddot{q}}_2 \\
+    \underline{\lambda}_2 \\
+    \hdashline
+    \underline{\ddot{q}}_3 \\
+    \underline{\lambda}_3
+    \end{Bmatrix}
+    =
+    \begin{Bmatrix}
+    \underline{f}^{\ell}_i \\
+    \hdashline
+    \underline{f}^{\ell}_1 \\
+    \underline{\gamma}_{c,1} \\
+    \hdashline
+    \underline{f}_{2}^{\ell} \\
+    \underline{\gamma}_{c,2} \\
+    \hdashline
+    \underline{f}_{3}^{\ell} \\
+    \underline{\gamma}_{c,3}
+    \end{Bmatrix}
+
+
+The kinematic substructures appear as the three block :math:`2 \times 2` submatrices along the diagonal of the coefficient matrix in Eq. :eq:`eq:28`. Coupling between these substructures is through the off-diagonal submatrices, which are relatively sparse. As in the previous chapter, the coefficient matrix in this system of equations typically does not have full rank. Therefore, GECP is applied to each of the submatrices :math:`J_1` -- :math:`J_3` to identify the primary constraint equations. The secondary constraint equations are removed and the preconditioning process that was described in the previous section is applied to each of the submatrices :math:`J_1` -- :math:`J_3`, yielding:
+
+.. math::
+    :label: eq:36
+
+    \scriptsize
+    \left[
+    \begin{array}
+    {c:ccc:ccc:ccc}
+    M^{\ell ii}_{ii} & M^{\ell ii}_{i1} & M^{\ell id}_{i1} & & M^{\ell ii}_{i2} & M^{\ell id}_{i2} & & M^{\ell ii}_{i3} & M^{\ell id}_{i3} & \\
+    \hdashline
+    M^{\ell ii}_{1i} & M_{11}^{\ell ii} & M_{11}^{\ell id} & B_{11}^{id} & M^{\ell ii}_{12} & M^{\ell id}_{12} & & M^{\ell ii}_{13} & M^{\ell id}_{13} & \\
+    M^{\ell di}_{1i} & M_{11}^{\ell di} & M_{11}^{\ell dd} & I & M^{\ell di}_{12} & M^{\ell dd}_{12} & & M^{\ell di}_{13} & M^{\ell dd}_{13} & \\
+    & B^{di}_{11} & I & & & & & & & \\
+    \hdashline
+    M^{\ell ii}_{2i} & M^{\ell ii}_{21} & M^{\ell id}_{21} & & M_{22}^{\ell ii} & M_{22}^{\ell id} & B^{id}_{22} & M^{\ell ii}_{23} & M^{\ell id}_{23} & \\
+    M^{\ell di}_{2i} & M^{\ell di}_{21} & M_{21}^{\ell dd} & & M_{22}^{\ell di} & M_{22}^{\ell dd} & I & M^{\ell di}_{23} & M^{\ell dd}_{23} & \\
+    & & & & B^{di}_{22} & I & & & & \\
+    \hdashline
+    M^{\ell ii}_{3i} & M^{\ell ii}_{31} & M^{\ell id}_{31} & & M_{32}^{\ell ii} & M_{32}^{\ell id} & & M_{33}^{\ell ii} & M_{33}^{\ell id} & B^{id}_{33} \\
+    M^{\ell di}_{3i} & M^{\ell di}_{31} & M_{31}^{\ell dd} & & M_{32}^{\ell di} & M_{32}^{\ell dd} & & M^{\ell di}_{33} & M_{33}^{\ell dd} & I \\
+    & & & & & & & B^{di}_{33} & I & \\
+    \end{array}
+    \right]
+    \begin{Bmatrix}
+    \underline{\ddot{q}}_{i}\\
+    \hdashline
+    \underline{\ddot{q}}_{1}^i\\
+    \underline{\ddot{q}}_{1}^d\\
+    \underline{\lambda}_{1}^d\\
+    \hdashline
+    \underline{\ddot{q}}_{2}^i\\
+    \underline{\ddot{q}}_{2}^d\\
+    \underline{\lambda}_{2}^d\\
+    \hdashline
+    \underline{\ddot{q}}_{3}^i\\
+    \underline{\ddot{q}}_{3}^d\\
+    \underline{\lambda}_{3}^d\\
+    \end{Bmatrix} =
+    \begin{Bmatrix}
+    \underline{f}^{\ell}_i\\
+    \hdashline
+    \underline{f}_{1}^{\ell i}\\
+    \underline{f}_{1}^{\ell d}\\
+    \underline{\gamma}_{1}^{d}\\
+    \hdashline
+    \underline{f}_{2}^{\ell i}\\
+    \underline{f}_{2}^{\ell d}\\
+    \underline{\gamma}_{2}^{d}\\
+    \hdashline
+    \underline{f}_{3}^{\ell i}\\
+    \underline{f}_{3}^{\ell d}\\
+    \underline{\gamma}_{3}^{d}\\
+    \end{Bmatrix}
+
+
+In this form, inverting the block :math:`2 \times 2` pivotal submatrices containing the identity matrices is trivial. Refer to the next section for details of the solution process.
+
 
 Numerical Solution of Dynamics Equations
 ----------------------------------------
