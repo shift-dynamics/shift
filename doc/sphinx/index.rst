@@ -1,8 +1,10 @@
 .. star2 documentation master file
 
-star2
-=====
+star2: A Simulation Tool for Automation and Robotics
+====================================================
 
+overview
+--------
 .. toctree::
    :maxdepth: 2
 
@@ -23,7 +25,7 @@ developer reference
 
    notation/notation
    kinematics/kinematics
-   kinematic_substructuring/kinematic_substructuring
+   topology/topology
    dynamics/dynamics
    zreferences
 
