@@ -10,7 +10,7 @@ In the early 1800s, Chasles proved that any change in the configuration of a rig
 
 In the present work, screws are discussed with reference to 4x4 matrices for transforming homogeneous coordinates, which are commonly used to describe rigid body displacements :cite:`uicker2013`. In group theory, these 4x4 matrices are identified as the Special Euclidian group, SE(3). Another important group is the Special Orthogonal group, SO(3), the set of 3x3 orthogonal matrices for rigid body rotation. Note that screws can be formalized in terms of group theory and Lie algebra. A detailed discussion of group theory and Lie algebra is beyond the scope of the present work, but some of symbols for groups and operators are used to be consistent with the literature. The interested reader is referred to :cite:`hawkins2012emergence,selig2005geometric` for more information.
 
-Transforming Screws
+Screws
 -------------------
 
 Linear and angular velocity can be combined into a single 6x1 quantity as:
@@ -22,6 +22,9 @@ Linear and angular velocity can be combined into a single 6x1 quantity as:
 
 
 In 1873, Clifford coined the word *motor* to refer to this screw quantity (i.e. a combination of *motion* and *vector*) :cite:`davidson2004robots`. Later, Ball referred to this screw quantity as a *twist* :cite:`ball1998treatise`. The term *twist* is used more frequently in modern literature, and therefore is used in the present work.
+
+Adjoint Matrix :math:`[Ad]`
+----------------------------
 
 The :math:`6 \times 6` adjoint transformation matrix, :math:`[Ad]`, for transforming twists from one coordinate system to another can be formed from :math:`SE(3)` matrices. The derivation is briefly summarized below:
 
@@ -334,7 +337,7 @@ Full, dense Eq. :eq:`eq:adjoint_matrix`  36           30
 Carrying out the minimal required operations to transform screw quantities requires 62% fewer operations, 66% less memory and many of the matrix-matrix and matrix-vector operations benefit from vectorization. The above example illustrates that although the notational convention of Lie algebra provides a convenient and compact representation of kinematic and dynamic quantities, care should be taken in the computer implementation of the operations described here and elsewhere in the work. In the present work, a custom, sparse, vectorized kinematics library consisting of over 200 functions for processing screw quantities and SE(3) displacements has been developed that uses the minimal set of operations as described above.
 
 
-Transforming Coscrews
+Coscrews
 ---------------------
 
 Just as the linear and angular velocities can be combined in to a single :math:`6 \times 1` column vector, forces and moments can be combined in a single quantity called a *wrench*.  A wrench is *dual* to a screw, i.e., it is a linear operator on a screw. In older literature, a wrench is often referred to as another kind of screw. In modern literature, a wrenches are referred to as a *coscrews* :cite:`selig2005geometric`. A superscript :math:`^*` is used to distinguish a coscrew from a screw. A wrench, :math:`\underline{\mathbf{f}}^*`, is defined as
@@ -353,7 +356,10 @@ Just as the linear and angular velocities can be combined in to a single :math:`
     \end{Bmatrix}
 
 
-The power imparted by a linear combination of a wrench and screw is invariant, regardless of the coordinate system in which it is expressed. The power imparted by a given wrench and screw, the scalar quantity :math:`p`, is given as
+Coadjoint Matrices :math:`[Ad]^*`
+----------------------------------
+
+As coscrews are dual to screws, they are transformed differently than screws. The following simple example illustrates how coscrews are transformed.  The power imparted by a linear combination of a wrench and screw is invariant, regardless of the coordinate system in which it is expressed. The power imparted by a given wrench and screw, the scalar quantity :math:`p`, is given as
 
 .. math::
     :label: eq:power
@@ -500,7 +506,7 @@ These influence coefficient matrices taken with respect to the inertial referenc
     \end{Bmatrix}
 
 
-Once the position and orientation of each joint in the mechanism is computed, the influence coefficient matrix can be computed simply by forming the corresponding column of :math:`[Ad]`, which requires only 9 additional FLOPs for revolute joints and no additional FLOPs for prismatic joints. Additionally, if SE(3) displacements and the Jacobian matrix are stored in column-major order, updating the influence coefficient matrices and elements Jacobian matrix can be vectorized with a stride of 1, which is optimal in terms of memory access.
+Once the position and orientation of each joint in a mechanism has been computed, the influence coefficient matrix can be computed simply by forming the corresponding column of :math:`[Ad]`, which requires only 9 additional FLOPs for revolute joints and no additional FLOPs for prismatic joints. Additionally, if SE(3) displacements and the Jacobian matrix are stored in column-major order, updating the influence coefficient matrices and elements Jacobian matrix can be vectorized with a stride of 1, which is optimal in terms of memory access.
 
 
 Constraint Forces
@@ -598,7 +604,7 @@ as each of the columns of :math:`\bar{H}^*` are orthogonal to :math:`\underline{
 In the present example, :math:`[\bar{H}^* \cup \underline{\mathbf{h}}^*]=[\bar{H}^* \underline{\mathbf{h}}^*]`, as :math:`\underline{\mathbf{h}}^*` occurs in the last column of :math:`[Ad]^*`, however in the general case, :math:`\underline{\mathbf{h}}^*` may occur in a different column of :math:`[Ad]^*`, corresponding to the type of primitive joint. In the following discussion, the :math:`\cup` symbol is dropped with the understanding that the matrix :math:`\underline{\mathbf{h}}^*` occurs in its respective column, interspersed within the columns of :math:`\bar{H}^*`.
 
 
-Transforming the Inertia Matrix
+Inertia
 -------------------------------
 
 In the body center of mass frame, the :math:`6 \times 6` Inertia matrix, :math:`M`, can be expressed as:
@@ -789,8 +795,8 @@ Therefore, :math:`\tilde{a} \tilde{b}` is found as:
 
 
 
-More derivative operator matrices
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+More derivative operator matrices: :math:`[ad]` and :math:`[ad]^*`
+------------------------------------------------------------------
 
 In Eq. :eq:`eq:spatial_velocity2`, the derivative operator of the SE(3) group was found. Similarly, the derivative operator matrices for the :math:`6 \times 6` transformation matrices, :math:`[Ad]` and :math:`[Ad]^*` can be found as follows:
 
