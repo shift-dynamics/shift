@@ -24,6 +24,23 @@ void random_vec3f(ksl_vec3f_t* v) {
 }
 
 
+void random_screw(ksl_screw_t* s) {
+  for(uint i = 0; i < 6; i++) {
+    ksl_screw_set(s, i, (double)rand() / RAND_MAX * 2.0 - 1.0);
+  }
+}
+
+
+void random_coscrew(ksl_coscrew_t* c) {
+  for(uint i = 0; i < 6; i++) {
+    ksl_coscrew_set(c, i, (double)rand() / RAND_MAX * 2.0 - 1.0);
+  }
+}
+
+
+
+
+
 bool vec3_equal(ksl_vec3_t* v1, bksl_vec3_t* v2) {
   for(uint i = 0; i < 3; i++) {
     if(fabs(ksl_vec3_get(v1, i) - bksl_vec3_get(v2, i)) > 1e-9) {
@@ -224,10 +241,26 @@ int main() {
     assert(float_equal(k1, k2));
   }
 
-  //
-  // double bksl_dot_cs(
-  //   bksl_coscrew_t* __restrict__ ci,
-  //   bksl_screw_t* __restrict__ si);
+
+  /* double bksl_dot_cs */
+  for(int i = 0; i < runs; i++) {
+    ksl_screw_t s_ksl;
+    bksl_screw_t s_bksl;
+    random_screw(&s_ksl);
+    memcpy(&s_bksl, &s_ksl, sizeof(ksl_screw_t));
+
+    ksl_coscrew_t c_ksl;
+    bksl_coscrew_t c_bksl;
+    random_coscrew(&c_ksl);
+    memcpy(&c_bksl, &c_ksl, sizeof(ksl_coscrew_t));
+
+    double k1 = bksl_dot_cs(&c_bksl, &s_bksl);
+    double k2 = ksl_dot_cs(&c_ksl, &s_ksl);
+
+    assert(double_equal(k1, k2));
+  }
+
+  
   //
   // double bksl_dot_csf(
   //   bksl_coscrewf_t* __restrict__ ci,

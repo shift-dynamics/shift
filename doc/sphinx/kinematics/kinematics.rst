@@ -356,7 +356,7 @@ Just as the linear and angular velocities can be combined in to a single :math:`
     \end{Bmatrix}
 
 
-Coadjoint Matrices :math:`[Ad]^*`
+Coadjoint Matrix :math:`[Ad]^*`
 ----------------------------------
 
 As coscrews are dual to screws, they are transformed differently than screws. The following simple example illustrates how coscrews are transformed.  The power imparted by a linear combination of a wrench and screw is invariant, regardless of the coordinate system in which it is expressed. The power imparted by a given wrench and screw, the scalar quantity :math:`p`, is given as

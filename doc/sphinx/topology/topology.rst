@@ -1,18 +1,15 @@
-.. title:: Kinematic Substructuring
+.. title:: Topology
+
+.. _topology:
 
 
-.. _kinematic_substructuring:
+Topology
+========
 
-Kinematic Substructuring
-========================
+Graph Theory for Multibody Systems
+------------------------------------------------------
 
-In the previous section, a compact formulation of the equations of motion was derived and an efficient solution method was discussed. One bottleneck in the solution process is the Gaussian Elimination with Complete Pivoting (GECP) algorithm itself, which is a triple-loop procedure requiring :math:`r(6mn - 3(m+n)r + 2r^2)/3` FLOPS, where :math:`m` is the number of rows, :math:`n` is the number of columns and :math:`r` is the rank of the matrix. Furthermore, GECP requires both row and column permutations during factorization, which necessitates non-unit stride vector copies, which is not optimal for memory access. Note that other algorithms have been proposed for the automatic identification of independent and dependent variables, for example, based on Singular Value Decomposition (SVD) :cite:`mani1985,wehage1993` or Congruency Transformations :cite:`loduha1995`. Note that the run--time of these alternative methods is increased over GECP; for example, SVD requires :math:`4m^2n+22n^3` FLOPS using the R-SVD algorithm :cite:`golub1996matrix`.
-
-Although the modified GECP algorithm is more efficient than alternative partitioning strategies, due to its :math:`\mathcal{O}(n^3)` complexity and memory access requirements, calling the GECP algorithm should be avoided whenever possible. Certainly, one strategy to improve performance would be to call GECP only once at the beginning of a program's execution. As kinematic bifurcations are common in even relatively simple mechanisms and the primary system of constraints are subject to change, this approach comes at the expense of robustness and is not recommended. Alternatively, one could conservatively call GECP at every time step---and pay a substantial performance penalty. Other approaches call GECP at regular intervals or use a heuristic method to determine when to repartition the Jacobian matrix. Regardless of the specific method used, the robust numerical solution of dynamic equations may require performing GECP many times in the course of a simulation, and strategies to improve GECP algorithm performance are important.
-
-Block--diagonalization is a well--known technique for breaking a large system of equations into smaller, more manageable pieces, thereby increasing computational efficiency. Several algorithms exist in the literature to block partition matrices, such as described in :cite:`acer2011recursive,uccar2007partitioning,steward1965partitioning,aykanat2004permuting,cave2014block`. However, these methods are generally unsuitable for block partitioning mechanism Jacobian matrices because they involve taking linear combinations of variables in addition to row and column permutations; are designed for special--purpose matrices (i.e. square or hermitian); or do not fully uncouple substructures (i.e. the resulting partitioning scheme has overlap or is in single--bordered, K--way form :cite:`aykanat2004permuting`).
-
-.. This chapter introduces a technique to automatically identify and uncouple independent kinematic substructures within a mechanism. After the kinematic substructuring process is complete, the Jacobian matrix will have been permuted to a block--diagonal form, allowing each block submatrix to be processed independently, thereby reducing the overhead of applying the GECP algorithm. In other words, this method takes advantage of the kinematic substructures to block--diagonalize the Jacobian matrix. Throughout this section, kinematic substructuring is applied to a representative example of a complex mechanism, a hydraulic excavator, shown in Fig. :num:`excavator`, which contains five kinematic loops.
+In this section, a model of a hydraulic excavator is used to illustrate basic concepts from graph theory.
 
 .. _excavator:
 
@@ -23,12 +20,9 @@ Block--diagonalization is a well--known technique for breaking a large system of
     A Hydraulic Excavator
 
 
-Topology
---------
+The excavator model's topology can be described as a directed graph with a number of bodies comprising the *nodes* of the graph, connected by a number of joints as *edges* of the directed graph.  The excavator model consists of 15 bodies connected by 20 joints, shown in `Table 1`_. The bodies and joints are listed in an arbitrary, user--defined order. This organization of bodies and joints is similar to how mechanism topology is specified in the star2 JSON file format. The ID is provided here only as an aid in interpreting the following development and need not be included in the JSON file. Note that the zero identifier is reserved for the fixed inertial reference frame.
 
-For completeness, the topology of the excavator is described using graph theory :cite:`bondy2008graph,wittenburg2007dynamics`. The preliminary process requires setting up a directed graph that describes how bodies, i.e. nodes, are connected by joints, i.e. edges.  The excavator's incidence matrix, :math:`\Gamma`, is shown in Eq. :eq:`eq:incidence_matrix` below. Manual generation of incidence matrices for complex mechanisms presents a burden to the analyst, and the process is prone to errors; therefore, automated methods are preferred. It is more convenient for an analyst to provide body--joint--body descriptions and shape matrices :cite:`uicker2013`, preferably exported directly from a CAD program. For the present example, the bodies and joints of a hydraulic excavator are provided in an arbitrary, user--defined order as described in the table below. Each body is assigned a unique number, and each joint is assigned a unique letter. As an aid to following the development in this work, the arbitrary letter assigned to each joint has an associated descriptive name shown in Table 1. This name includes an arrow to indicate the user—-defined sense or direction of the joint. Note that the zero identifier is reserved for the fixed inertial reference frame.
-
-.. _table3:
+.. _Table 1:
 
 ==   ===================== ==  ==============
 ID   Body Name             ID  Joint Name
@@ -55,8 +49,27 @@ ID   Body Name             ID  Joint Name
 \    \                     T   bucket linkage 1 :math:`\rightarrow` bucket linkage 2
 ==   ===================== ==  ==============
 
+Click `here </star2/_static/excavator.json>`_ to see how the information in `Table 1`_ is encoded in a star2 JSON file.
 
-From the body--joint--body information in Table :ref:`_table3`, the incidence matrix for the excavator is given in Eq. :eq:`eq:incidence_matrix`. Zeros are removed from sparse matrices to improve view clarity.
+
+Incidence Matrix
+****************
+
+The incidence matrix, :math:`\Gamma`, is an important tool used to describe the connectivity of bodies and joints in a multibody system. From the body--joint--body information in `Table 1`_, the incidence matrix for the excavator is given in Eq. :eq:`eq:incidence_matrix`. Zeros are removed from sparse matrices to improve view clarity. Each column corresponds to a unique body and each row corresponds to a joint. The -1 and +1 in each row describe the sense of the joint.
+
+An entry of row b and column h of :math:`\Gamma` is defined as:
+
+.. math::
+    :label: eq:incidence_matrix_def
+
+    \Gamma (b,h) = \begin{cases}
+    +1&\text{if joint h is positively incident with body b}\\
+    -1& \text{if joint h is negatively incident with body b}\\
+    0&\text{if joint h is not incident with body b}
+    \end{cases}
+
+
+For example, the -1 and +1 in the first row indicate that joint A is oriented from body 0 (i.e. the fixed inertial reference frame) to body 1 (i.e. the undercarriage.)
 
 .. math::
     :label: eq:incidence_matrix
@@ -91,7 +104,13 @@ From the body--joint--body information in Table :ref:`_table3`, the incidence ma
     \end{array}
 
 
-The subset of graph edges containing all nodes, but no loops, i.e. the *spanning tree*, is identified by permuting Eq. :eq:`eq:incidence_matrix` to reduced-row echelon form as:
+It is strongly emphasized that these large sparse matrices need never be formed in multibody dynamics code. Ultimately, other more compact representations of topology allow more efficient numerical implementation of kinematics and dynamics. Nevertheless, a description of incidence matrix is provided here as it allows clearly formulating the equations of motion for complex multibody systems in the language of matrices. Later in this document, more compact representations of topology will be introduced.
+
+
+Spanning Tree
+****************
+
+The subset of graph edges containing all nodes, but no loops, is the *spanning tree*. The spanning tree can be identified from the incidence matrix by permuting Eq. :eq:`eq:incidence_matrix` to reduced-row echelon form as:
 
 .. math::
     :label: eq:incidence_matrix_no_substructures
@@ -139,7 +158,72 @@ The graph edges above the dashed line in Eq. :eq:`eq:incidence_matrix_no_substru
     Spanning tree of hydraulic excavator
 
 
-Using the method described in the previous section, the Jacobian matrix can be found from the Eq. :eq:`eq:incidence_matrix_no_substructures` as:
+Path Matrix
+***********
+The path matrix is another important tool 
+
+Jacobian Matrix obtained using Graph Theory
+*******************************************
+
+A corollary to the incidence matrix, the connectivity matrix, is formed by element-wise replacement of the +1 and -1s in :math:`\Gamma^T` with positive or negative 6x6 identity matrices. The partial velocity matrix, :math:`H`, is a block matrix containing the 6x1 influence coefficient matrices (introduced in the previous section) along the diagonal. The partial velocity matrix provides a mapping of joint velocities to relative velocities across joints.
+
+.. math::
+    :label: eq:mapping
+
+    \underline{\mathbf{v}}_{rel} = C \underline{\mathbf{v}}_{abs} = H\dot{\underline{q}}
+
+
+Once the arcs and chords of the system have been identified, Eq. :eq:`eq:mapping` can be block partitioned as:
+
+.. math::
+    :label: eq:partitioned_mapping
+
+    \begin{bmatrix}C_{arc}\\C_{chord}\end{bmatrix}\underline{\dot{q}}_{abs} =
+    \begin{bmatrix}H_{arc} & 0\\ 0 & H_{chord} \end{bmatrix}
+    \begin{Bmatrix}\underline{\dot{q}}_{arc}\\ \underline{\dot{q}}_{chord} \end{Bmatrix}
+
+
+which yields:
+
+.. math::
+    :label: eq:partmapping_yield1
+
+    \underline{\mathbf{v}}_{abs} = C^{-1}_{arc}H_{arc}\underline{q}_{arc}
+
+
+and
+
+.. math::
+    :label: eq:partmapping_yield2
+
+    C_{chord}\underline{\mathbf{v}}_{abs} = H_{chord}\underline{\dot{q}}_{chord}
+
+
+Substituting Eq. :eq:`eq:partmapping_yield1` into Eq. :eq:`eq:partmapping_yield2` and rearranging yields:
+
+.. math::
+    :label: eq:constraint_eq1
+
+    -C_{chord}C^{-1}_{arc}H_{arc}\underline{\dot{q}}_{arc} + H_{chord}\underline{\dot{q}}_{chord} = \underline{0}
+
+
+Arranging Eq. :eq:`eq:constraint_eq1` in matrix form yields
+
+.. math::
+   :label: eq:jacobian_pre
+
+   \begin{bmatrix}-C_{chord}C^{-1}_{arc}H_{arc} & H_{chord}\end{bmatrix} \begin{Bmatrix} \underline{\dot{q}}_{arc} \\ \underline{\dot{q}}_{chord} \end{Bmatrix} = \underline{0}
+
+
+Equation :eq:`eq:jacobian_pre` represents the chord-loop velocity constraints for a mechanism, and from it the constraint Jacobian matrix is identified as
+
+.. math::
+    :label: eq:jacobian
+
+    J = \begin{bmatrix}-C_{chord}C^{-1}_{arc}H_{arc} & H_{chord}\end{bmatrix}
+
+
+Equation :eq:`eq:jacobian` can be used to find the Jacobian matrix for the excavator model as
 
 .. math::
     :label: eq:jacobian1
@@ -157,20 +241,19 @@ Using the method described in the previous section, the Jacobian matrix can be f
     \end{array}
 
 
-where the :math:`h_j` are :math:`6\times1` influence coefficient matrices for each of the respective joints. The block row identifier labels, i through v, correspond to a minimal set of kinematic loops in the mechanism, where the number of loops is equal to the number of chords in the directed graph.
+where the :math:`h_j` are :math:`6\times1` influence coefficient matrices for each of the respective joints. The block row identifier labels, i through v, correspond to a minimal set of independent kinematic loops in the mechanism. Note that the number of loops is equal to the number of chords in the directed graph.
 
-Kinematic Substructuring Algorithm
-----------------------------------
 
-At this point in the analysis, information regarding the system topology required to solve Eq. :eq:`eq:lagrange_eqn` has been determined. Performing GECP on Eq. :eq:`eq:jacobian1` would require 9000 FLOPs, assuming the Jacobian matrix has full--row rank (i.e :math:`m=30`, :math:`n=20` and :math:`r=15`). In the following section, it will be shown how kinematic substructures can be *automatically* identified and uncoupled, allowing for an increase in computational efficiency.
+Parent Child List and Binary Tree
+*********************************
 
-The kinematic substructuring algorithm requires traversing the directed graph of the mechanism, and the spanning tree is an essential tool for this purpose. Note, however, that the spanning tree contains only the subset of user--defined joints that were classified as arcs in the previous section. A simple modification to Eq. :eq:`eq:incidence_matrix_no_substructures` will effectively convert all user--defined joints to arcs of the directed graph, which is useful in the following discussion. Cut the child-side Cartesian frame of each chord joint from its embedding body and consider this released frame as a *virtual*, massless body. Each chord joint will then have its own unique child body and will become an integral part of an expanded spanning tree. This process will have effectively cut open all kinematic loops and replaced all chords by arcs. For each virtual body, six chord--loop constraint equations are then imposed to connect the virtual body back to its original embedding body.
+The spanning tree contains only the subset of user--defined joints that were classified as arcs of the directed graph. A simple modification to Eq. :eq:`eq:incidence_matrix_no_substructures` effectively converts all user--defined joints to arcs of the directed graph. Cut the child-side Cartesian frame of each chord joint from its embedding body and consider this released frame as a *virtual*, massless body. Each chord joint will then have its own unique child body and will become an integral part of an expanded spanning tree. This process will have effectively cut open all kinematic loops and replaced all chords by arcs. For each virtual body, six chord--loop constraint equations are then imposed to connect the virtual body back to its original embedding body.
 
-In the excavator example, the child--side frames of the five chord joints are cut from their embedding bodies and converted into virtual, massless bodies. The virtual bodies are then constrained so that their position, orientation, velocity, and acceleration match the node locations in the respective embedding bodies from which they were cut. With this modification, the chords of the directed graph have been converted to rigid constraints. This simple modification requires no changes to Eq. :eq:`eq:jacobian1`. When the chord loops are cut, the virtual body number and the original chord's embedding (positively oriented) body id are recorded for later reuse. `Table 1`_ shows this information for the hydraulic excavator model.
+In the excavator example, the child--side frames of the five chord joints are cut from their embedding bodies and converted into virtual, massless bodies. The virtual bodies are then constrained so that their position, orientation, velocity, and acceleration match the node locations in the respective embedding bodies from which they were cut. With this modification, the chords of the directed graph have been converted to rigid constraints. This simple modification requires no changes to Eq. :eq:`eq:jacobian1`. When the chord loops are cut, the virtual body number and the original chord's embedding (positively oriented) body id are recorded for later reuse. `Table 2`_ shows this information for the hydraulic excavator model.
 
-.. _Table 1:
+.. _Table 2:
 
-.. list-table:: Table 1: Virtual and embedding body id for each kinematic loop
+.. list-table:: Table 2: Virtual and embedding body id for each kinematic loop
     :header-rows: 1
 
     * - loop id
@@ -193,13 +276,23 @@ In the excavator example, the child--side frames of the five chord joints are cu
       - 6
 
 
-A new spanning tree, modified to include the virtual bodies, is shown in Fig. . The solid arrows correspond to the joints that form the arcs in the mechanism, and the dashed lines correspond to the new constraints imposed. Virtual, massless bodies are designated by octagons.
+A new spanning tree, modified to include the virtual bodies, is shown in Fig. :num:`spanningtree2`.
 
-While the incidence matrix in Eq. :eq:`eq:incidence_matrix_no_substructures` provides all the necessary information for traversing the directed graph, navigating through its many ones and zeros may be cumbersome. To avoid this problem the excavator's graph may also be represented more compactly as a parent--child list and binary tree :cite:`cormen2009introduction`. The parent--child list facilitates traversal from any node of the spanning tree upward, toward the root element. The index into the parent--child list, :math:`P`, is each body or node's unique ID number, and the value at that index is the node's unique parent node ID number.  A binary tree facilitates traversal of the graph from any node of the directed graph away from the root element, towards the leaves of the spanning tree. Two lists, :math:`L` and :math:`R`, are used to represent the binary tree. The first list, :math:`L`, is called the *left* or *descendent* list and contains the index of each node's first descendant node, if present. The second list, :math:`R`, is called the *right* or *sibling* list and contains the node's first sibling, if present. Additionally, an *index* list contains the body indices in original user--defined order. For the excavator model, the four lists are shown in `Table 2`_.
+.. _spanningtree2:
 
-.. _Table 2:
+.. figure:: figures/digraph_w_constraints.png
 
-.. csv-table:: Table 2: Binary Tree and Parent Child list for excavator
+    Modified spanning tree for hydraulic excavator with chords converted to arcs
+
+
+Here the solid arrows correspond to the joints that form the arcs in the mechanism, and the dashed lines correspond to the new constraints imposed. Virtual, massless bodies are designated by octagons.
+
+
+While the incidence matrix in Eq. :eq:`eq:incidence_matrix_no_substructures` provides all the necessary information for traversing the directed graph, navigating through its many ones and zeros is cumbersome. To avoid this problem the excavator's graph may also be represented more compactly as a parent--child list and binary tree :cite:`cormen2009introduction`. The parent--child list facilitates traversal from any node of the spanning tree upward, toward the root element. The index into the parent--child list, :math:`P`, is each body or node's unique ID number, and the value at that index is the node's unique parent node ID number.  A binary tree facilitates traversal of the graph from any node of the directed graph away from the root element, towards the leaves of the spanning tree. Two lists, :math:`L` and :math:`R`, are used to represent the binary tree. The first list, :math:`L`, is called the *left* or *descendent* list and contains the index of each node's first descendant node, if present. The second list, :math:`R`, is called the *right* or *sibling* list and contains the node's first sibling, if present. Additionally, an *index* list contains the body indices in original user--defined order. For the excavator model, the four lists are shown in `Table 2`_.
+
+.. _Table 3:
+
+.. csv-table:: Table 3: Binary Tree and Parent Child list for excavator
     :header-rows: 1
 
     "index", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
@@ -208,11 +301,31 @@ While the incidence matrix in Eq. :eq:`eq:incidence_matrix_no_substructures` pro
     "R", 0, 0, 0, 8, 10, 7, 0, 13, 9, 0, 11, 12, 0, 14, 0, 0, 0, 0, 0, 0, 0
 
 
+Kinematic Substructuring
+------------------------
+
+In the previous section, a compact formulation of the equations of motion was derived and an efficient solution method was discussed. One bottleneck in the solution process is the Gaussian Elimination with Complete Pivoting (GECP) algorithm itself, which is a triple-loop procedure requiring :math:`r(6mn - 3(m+n)r + 2r^2)/3` FLOPS, where :math:`m` is the number of rows, :math:`n` is the number of columns and :math:`r` is the rank of the matrix. Furthermore, GECP requires both row and column permutations during factorization, which necessitates non-unit stride vector copies, which is not optimal for memory access. Note that other algorithms have been proposed for the automatic identification of independent and dependent variables, for example, based on Singular Value Decomposition (SVD) :cite:`mani1985,wehage1993` or Congruency Transformations :cite:`loduha1995`. Note that the run--time of these alternative methods is increased over GECP; for example, SVD requires :math:`4m^2n+22n^3` FLOPS using the R-SVD algorithm :cite:`golub1996matrix`.
+
+Although the modified GECP algorithm is more efficient than alternative partitioning strategies, due to its :math:`\mathcal{O}(n^3)` complexity and memory access requirements, calling the GECP algorithm should be avoided whenever possible. Certainly, one strategy to improve performance would be to call GECP only once at the beginning of a program's execution. As kinematic bifurcations are common in even relatively simple mechanisms and the primary system of constraints are subject to change, this approach comes at the expense of robustness and is not recommended. Alternatively, one could conservatively call GECP at every time step---and pay a substantial performance penalty. Other approaches call GECP at regular intervals or use a heuristic method to determine when to repartition the Jacobian matrix. Regardless of the specific method used, the robust numerical solution of dynamic equations may require performing GECP many times in the course of a simulation, and strategies to improve GECP algorithm performance are important.
+
+Block--diagonalization is a well--known technique for breaking a large system of equations into smaller, more manageable pieces, thereby increasing computational efficiency. Several algorithms exist in the literature to block partition matrices, such as described in :cite:`acer2011recursive,uccar2007partitioning,steward1965partitioning,aykanat2004permuting,cave2014block`. However, these methods are generally unsuitable for block partitioning mechanism Jacobian matrices because they involve taking linear combinations of variables in addition to row and column permutations; are designed for special--purpose matrices (i.e. square or hermitian); or do not fully uncouple substructures (i.e. the resulting partitioning scheme has overlap or is in single--bordered, K--way form :cite:`aykanat2004permuting`).
+
+.. This chapter introduces a technique to automatically identify and uncouple independent kinematic substructures within a mechanism. After the kinematic substructuring process is complete, the Jacobian matrix will have been permuted to a block--diagonal form, allowing each block submatrix to be processed independently, thereby reducing the overhead of applying the GECP algorithm. In other words, this method takes advantage of the kinematic substructures to block--diagonalize the Jacobian matrix. Throughout this section, kinematic substructuring is applied to a representative example of a complex mechanism, a hydraulic excavator, shown in Fig. :num:`excavator`, which contains five kinematic loops.
+
+
+
+
+At this point in the analysis, information regarding the system topology required to solve Eq. :eq:`eq:lagrange_eqn` has been determined. Performing GECP on Eq. :eq:`eq:jacobian1` would require 9000 FLOPs, assuming the Jacobian matrix has full--row rank (i.e :math:`m=30`, :math:`n=20` and :math:`r=15`). In the following section, it will be shown how kinematic substructures can be *automatically* identified and uncoupled, allowing for an increase in computational efficiency.
+
+The kinematic substructuring algorithm requires traversing the directed graph of the mechanism, and the spanning tree is an essential tool for this purpose.
+
+Kinematic Substructuring Algorithm
+**********************************
 
 The kinematic substructuring process is divided into the following five steps:
 
 Identify the level of each node in the spanning tree
-****************************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using the parent--child list and binary tree, the increasing level of each body in the spanning tree, moving away from the fixed inertial reference frame, is identified and stored in a node--level list. The parent--child list allows one to easily determine if node :math:`k` is in the kinematic path of node :math:`j` using `Algorithm 1`_:
 
@@ -261,11 +374,11 @@ The :math:`levels` list for the excavator model is shown in `Table 3`_.
 
 
 Identify loop members
-*********************
+^^^^^^^^^^^^^^^^^^^^^
 
-.. Each loop's *base* node and the nodes in the loop can also be readily identified from the parent--child list and `Table 2`_. Let the respective kinematic paths from the spanning tree's root to each chord joint's virtual body and its user--defined embedding body represent the positive and negative branch segments of the loop, as shown for loop v in Fig. :num:`loopv` below. In Fig. :num:`loopv`, edges F and T are oriented negatively with respect to the loop direction, edges K, O and S are oriented positively with respect to the loop direction, node 4 is loop v's unique base node, and nodes 0, 1, 2 and 3 are in the ancestor path of node 4. From `Table 2`_, let the *virtual body id* for loop :math:`j` be stored in :code:`positiveNodes[j]` and the corresponding *embedding body id* stored in :code:`negativeNodes[j]`.
+.. Each loop's *base* node and the nodes in the loop can also be readily identified from the parent--child list and `Table 3`_. Let the respective kinematic paths from the spanning tree's root to each chord joint's virtual body and its user--defined embedding body represent the positive and negative branch segments of the loop, as shown for loop v in Fig. :num:`loopv` below. In Fig. :num:`loopv`, edges F and T are oriented negatively with respect to the loop direction, edges K, O and S are oriented positively with respect to the loop direction, node 4 is loop v's unique base node, and nodes 0, 1, 2 and 3 are in the ancestor path of node 4. From `Table 3`_, let the *virtual body id* for loop :math:`j` be stored in :code:`positiveNodes[j]` and the corresponding *embedding body id* stored in :code:`negativeNodes[j]`.
 
-For each grouping in `Table 2`_, each loop's members can be identified using `Algorithm 3`_ below and stored in the list :math:`members`, an initially empty list of lists equal to the number of chord loops, i-v. The first and second while loops are used to decrement each node index in the kinematic path until node indices in the positive and negative branches of the loop are at the same level in the spanning tree. Once the decremented node indices have reached the same level, they will be decremented together by level until the loop's unique *base node* is identified. During this process, the node indices are stored in the corresponding list. At the end of the process, the last node index that was pushed to list is removed, as the base node will have been written twice, and the sequence of the nodes is reversed. The final :math:`members` list contains each loop's base node first, followed by the loop members in monotonically increasing level order.
+For each grouping in `Table 3`_, each loop's members can be identified using `Algorithm 3`_ below and stored in the list :math:`members`, an initially empty list of lists equal to the number of chord loops, i-v. The first and second while loops are used to decrement each node index in the kinematic path until node indices in the positive and negative branches of the loop are at the same level in the spanning tree. Once the decremented node indices have reached the same level, they will be decremented together by level until the loop's unique *base node* is identified. During this process, the node indices are stored in the corresponding list. At the end of the process, the last node index that was pushed to list is removed, as the base node will have been written twice, and the sequence of the nodes is reversed. The final :math:`members` list contains each loop's base node first, followed by the loop members in monotonically increasing level order.
 
 .. code-block:: python
     :caption: Algorithm 3: detectLoopMembers(P, levels, loopCount, negativeNodes, positiveNodes)
@@ -303,7 +416,7 @@ For each grouping in `Table 2`_, each loop's members can be identified using `Al
 
 
 Order loops by level
-********************
+^^^^^^^^^^^^^^^^^^^^
 
 At this point the loops are rearranged by sorting their base nodes into monotonically increasing order by level in the spanning trees. After processing by `Algorithm 2`_ and sorting, the loop ordering sequence and loop member lists are shown in `Table 4`_.
 
@@ -323,7 +436,7 @@ At this point the loops are rearranged by sorting their base nodes into monotoni
 In the excavator example, no reordering of the loops was necessary, as their base nodes were already arranged by monotonically increasing level order.
 
 Merge loops into kinematic substructures
-*****************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Any given mechanism will consist of at least one kinematic substructure, i.e. the entire mechanism. Therefore, the loop--merging process begins by assigning the first loop, i, to the first substructure. Each successive loop is then inspected to determine if it should be added to any of the existing kinematic substructures or if the loop should be assigned to a new substructure.
 
@@ -370,7 +483,7 @@ Loops iv and v are then analyzed. An ancestor of the base node of loop iv is fou
 
 
 Reorder bodies and joints
-*************************
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this last step the joints are ordered by level in the spanning tree and permuted according to their kinematic substructure assignments, which requires creating a *short list* of bodies that are either:
 
@@ -445,18 +558,14 @@ and
 
 GECP can then be applied independently to each of the Jacobian submatrices. Assuming that each Jacobian submatrix has full row rank, GECP would require a total of 1008 FLOPs, an approximate order of magnitude reduction in floating point operations. As the operations count is not always a direct measure of numerical efficiency, in the next section a numerical experiment is carried out to compare the kinematic substructuring technique to other methods.
 
-.. _spanningtree2:
 
-.. figure:: figures/digraph_w_constraints.png
-
-    Modified spanning tree for hydraulic excavator with chords converted to arcs
 
 
 Although the process for automatically determining kinematic substructures is described in specific context to mechanisms, the substructuring algorithm is a general graph partitioning method that may have applications in other disciplines. To facilitate transposition to other subject areas, note that the Jacobian matrix, :math:`J`, is a byproduct of the right null space of the directed graph, :math:`\Gamma^T`. The right null space of the directed graph is also referred to as the loop or circuit matrix in the literature. Therefore, the methods described in this section may be adapted to other subjects by replacing any reference to the Jacobian matrix with the more general loop matrix.
 
 
 Numerical Experiment
---------------------
+********************
 
 To investigate the numerical efficiency of kinematic substructuring, GECP of the block--diagonalized Jacobian matrix in Eq. :eq:`eq:jacobian2` is computed using (a) the kinematic substructuring method applied to each of the three block submatrices, :math:`J_1`--:math:`J_3`, (b) the sparse matrix algebra MA48 factorization algorithm (part of the Harwell Subroutine Library (HSL) :cite:`duff1996design` applied only to the nonzero terms of the :math:`30\times 20` Jacobian matrix, :math:`J` and (c) the full, dense matrix algebra applied to the full :math:`30\times 20` Jacobian matrix, :math:`J`.
 
