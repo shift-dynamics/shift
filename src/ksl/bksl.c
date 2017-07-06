@@ -1367,15 +1367,15 @@ inline double bksl_dot_vvf(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double bksl_dot_ss(
-  bksl_screw_t* __restrict__ vi0,
-  bksl_screw_t* __restrict__ vi1) {
+inline double bksl_dot_cs(
+  bksl_coscrew_t* __restrict__ ci0,
+  bksl_screw_t* __restrict__ si1) {
 
   return cblas_ddot(
     6,
-    (double*)vi0,
+    (double*)ci0,
     1,
-    (double*)vi1,
+    (double*)si1,
     1);
 }
 
@@ -1388,15 +1388,15 @@ inline double bksl_dot_ss(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double bksl_dot_ssf(
-  bksl_screwf_t* __restrict__ vi0,
-  bksl_screwf_t* __restrict__ vi1) {
+inline double bksl_dot_csf(
+  bksl_coscrewf_t* __restrict__ ci0,
+  bksl_screwf_t* __restrict__ si1) {
 
   return cblas_sdot(
     6,
-    (float*)vi0,
+    (float*)ci0,
     1,
-    (float*)vi1,
+    (float*)si1,
     1);
 }
 

@@ -103,7 +103,7 @@ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
 DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS size_tERRUPTION)
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS register size_tERRUPTION)
 HOWEVER CAUSED AND ON ANY THqoRY OF LIABILITY, WHETHER IN CONTRACT, STRICT
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
@@ -139,7 +139,7 @@ ksl_vec3f_t* ksl_vec3f() {
   return calloc(1, sizeof(ksl_vec3f_t));
 }
 
-/*! @brief s a vectori_t datastructure (an array of size_ts of length 3)
+/*! @brief s a vectori_t datastructure (an array of register size_ts of length 3)
 
 */
 ksl_vec3i_t* ksl_vec3i() {
@@ -156,7 +156,7 @@ inline void ksl_vec3_normalize(
   ksl_vec3_t* __restrict__ v) {
 
   double norm_inv = 1.0 / ksl_vec3_l2norm(v);
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)v)[i] *= norm_inv;
   }
 }
@@ -170,7 +170,7 @@ inline void ksl_vec3_scale(
   const double k,
   ksl_vec3_t* __restrict__ v) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)v)[i] *= k;
   }
 }
@@ -185,7 +185,7 @@ inline void ksl_vec3f_normalize(
 
   assert(ksl_vec3f_l2norm(v) > 1e-11);
   float norm_inv = 1.f / ksl_vec3f_l2norm(v);
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)v)[i] *= norm_inv;
   }
 }
@@ -200,7 +200,7 @@ inline void ksl_vec3f_scale(
   const float k,
   ksl_vec3f_t* __restrict__ v) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)v)[i] *= k;
   }
 }
@@ -215,7 +215,7 @@ inline void ksl_vec4_scale(
   const double k,
   ksl_vec4_t* __restrict__ q) {
 
-  for(size_t i = 0; i < 4; i++) {
+  for(register size_t i = 0; i < 4; i++) {
     ((double*)q)[i] *= k;
   }
 }
@@ -230,7 +230,7 @@ inline void ksl_vec4f_scale(
   const float k,
   ksl_vec4f_t* __restrict__ q) {
 
-  for(size_t i = 0; i < 4; i++) {
+  for(register size_t i = 0; i < 4; i++) {
     ((float*)q)[i] *= k;
   }
 }
@@ -388,12 +388,12 @@ inline void ksl_displacement_toMat4x4f(
   ksl_mat4x4f_t* __restrict__ Mo) {
 
   memset(Mo, 0, sizeof(ksl_mat4x4_t));
-  for(size_t i = 0; i < 3; i++) {
-    for(size_t j = 0; j < 3; j++) {
+  for(register size_t i = 0; i < 3; i++) {
+    for(register size_t j = 0; j < 3; j++) {
       ksl_mat4x4f_set(Mo, i, j, (float)ksl_mat3x3_get(&Di->R, i, j));
     }
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ksl_mat4x4f_set(Mo, i, 3, (float)ksl_vec3_get(&Di->t, i));
   }
   Mo->m33 = 1.f;
@@ -573,10 +573,10 @@ void ksl_mat4x4f_print(
 */
 void ksl_array_print(
   FILE* f,
-  const size_t n,
+  const register size_t n,
   double* __restrict__ a) {
 
-  for(size_t i = 0; i < n; i++) {
+  for(register size_t i = 0; i < n; i++) {
     fprintf(f, "%0.6g ", a[i]);
   }
   fprintf(f, "\n");
@@ -589,15 +589,15 @@ with dimension rowDim * colDim
 */
 void ksl_array2D_print(
   FILE* f,
-  const size_t rowDim,
-  const size_t colDim,
+  const register size_t rowDim,
+  const register size_t colDim,
   ksl_matrix_enum_t matrixType,
   double* __restrict__ A) {
 
   switch(matrixType) {
 
     case KSL_ROWMAJOR: {
-      for(size_t i = 0; i < rowDim; i++) {
+      for(register size_t i = 0; i < rowDim; i++) {
         fprintf(f, "  [");
         for(int j = 0; j < colDim; j++) {
           fprintf(f, "% 0.10f", A[i * colDim + j]);
@@ -610,7 +610,7 @@ void ksl_array2D_print(
     } break;
 
     case KSL_COLMAJOR: {
-      for(size_t i = 0; i < rowDim; i++) {
+      for(register size_t i = 0; i < rowDim; i++) {
         fprintf(f, "  ");
         for(int j = 0; j < colDim; j++) {
           fprintf(f, "% 0.10f ", A[i + j * rowDim]);
@@ -628,10 +628,10 @@ void ksl_array2D_print(
 */
 void ksl_arrayi_print(
   FILE* f,
-  const size_t n,
+  const register size_t n,
   int* __restrict__ a) {
 
-  for(size_t i = 0; i < n; i++) {
+  for(register size_t i = 0; i < n; i++) {
     fprintf(f, "%d ", a[i]);
   }
   fprintf(f, "\n");
@@ -644,12 +644,12 @@ linear array
 */
 void ksl_triang_print(
   FILE* f,
-  const size_t n,
+  const register size_t n,
   double* __restrict__ A) {
 
-  for(size_t i = 0; i < n; i++) {
-    size_t i_s = (i * (i + 1) / 2);
-    for(size_t j = 0; j < i + 1; j++) {
+  for(register size_t i = 0; i < n; i++) {
+    register size_t i_s = (i * (i + 1) / 2);
+    for(register size_t j = 0; j < i + 1; j++) {
       fprintf(f, "% 9.4f ", A[i_s + j]);
     }
     fprintf(f, "\n");
@@ -658,17 +658,17 @@ void ksl_triang_print(
 
 
 /*!
-@brief utility to print a lower triangular matrix of size_tegers stored in a
+@brief utility to print a lower triangular matrix of register size_tegers stored in a
 linear array
 */
 void ksl_triangi_print(
   FILE* f,
-  const size_t n,
+  const register size_t n,
   int* __restrict__ A) {
 
-  for(size_t i = 0; i < n; i++) {
-    size_t i_s = (i * (i + 1) / 2);
-    for(size_t j = 0; j < i + 1; j++) {
+  for(register size_t i = 0; i < n; i++) {
+    register size_t i_s = (i * (i + 1) / 2);
+    for(register size_t j = 0; j < i + 1; j++) {
       fprintf(f, "% d ", A[i_s + j]);
     }
     fprintf(f, "\n");
@@ -677,16 +677,16 @@ void ksl_triangi_print(
 
 
 /*!
-@brief utility to print a lower triangular matrix of size_tegers stored in a
+@brief utility to print a lower triangular matrix of register size_tegers stored in a
 linear array
 */
 void ksl_triangb_print(
   FILE* f,
-  const size_t n,
+  const register size_t n,
   bool* __restrict__ A) {
 
   for(int i = 0; i < n; i++) {
-    size_t i_s = (i * (i + 1) / 2);
+    register size_t i_s = (i * (i + 1) / 2);
     for(int j = 0; j < i + 1; j++) {
       fprintf(f, "%s ", A[i_s + j] ? "1":"0");
     }
@@ -795,7 +795,7 @@ inline void ksl_mat4x4f_setIdentity(
 */
 inline void ksl_vec3_set(
   ksl_vec3_t* __restrict__ v,
-  const size_t index,
+  const register size_t index,
   double value) {
 
   assert(index >= 0 && index < 3);
@@ -810,7 +810,7 @@ inline double ksl_vec3_l2norm(
   ksl_vec3_t* __restrict__ v) {
 
   double sum = 0;
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     sum += ksl_vec3_get(v, i) * ksl_vec3_get(v, i);
   }
   return sqrt(sum);
@@ -824,7 +824,7 @@ inline float ksl_vec3f_l2norm(
   ksl_vec3f_t* __restrict__ v) {
 
   double sum = 0;
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     sum += ksl_vec3f_get(v, i) * ksl_vec3f_get(v, i);
   }
   return sqrt(sum);
@@ -839,7 +839,7 @@ inline double ksl_screw_l2norm(
   ksl_screw_t* __restrict__ s) {
 
   double sum = 0;
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     sum += ksl_screw_get(s, i) * ksl_screw_get(s, i);
   }
   return sqrt(sum);
@@ -874,7 +874,7 @@ inline void ksl_screw_normalize(
   double norm = ksl_screw_norm(s);
   if(norm > 1e-12) {
     norm = 1.0 / norm;
-    for(size_t i = 0; i < 6; i++) {
+    for(register size_t i = 0; i < 6; i++) {
       ((double*)s)[i] *= norm;
     }
   }
@@ -889,7 +889,7 @@ inline double ksl_coscrew_l2norm(
   ksl_coscrew_t* __restrict__ c) {
 
   double sum = 0;
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     sum += ksl_coscrew_get(c, i) * ksl_coscrew_get(c, i);
   }
   return sqrt(sum);
@@ -927,7 +927,7 @@ inline void ksl_coscrew_normalize(
   double norm = ksl_coscrew_norm(c);
   if(norm > 1e-12) {
     norm = 1.0 / norm;
-    for(size_t i = 0; i < 6; i++) {
+    for(register size_t i = 0; i < 6; i++) {
       ((double*)c)[i] *= norm;
     }
   }
@@ -942,7 +942,7 @@ inline float ksl_screwf_l2norm(
   ksl_screwf_t* __restrict__ s) {
 
   float sum = 0;
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     sum += ksl_screwf_get(s, i) * ksl_screwf_get(s, i);
   }
   return sqrt(sum);
@@ -977,7 +977,7 @@ inline void ksl_screwf_normalize(
   double norm = ksl_screwf_norm(s);
   if(norm > 1e-12) {
     norm = 1.f / norm;
-    for(size_t i = 0; i < 6; i++) {
+    for(register size_t i = 0; i < 6; i++) {
       ((float*)s)[i] *= norm;
     }
   }
@@ -991,7 +991,7 @@ inline float ksl_coscrewf_l2norm(
   ksl_coscrewf_t* __restrict__ c) {
 
   double sum = 0;
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     sum += ksl_coscrewf_get(c, i) * ksl_coscrewf_get(c, i);
   }
   return sqrt(sum);
@@ -1029,7 +1029,7 @@ inline void ksl_coscrewf_normalize(
   float norm = ksl_coscrewf_norm(c);
   if(norm > 1e-12) {
     norm = 1.0 / norm;
-    for(size_t i = 0; i < 6; i++) {
+    for(register size_t i = 0; i < 6; i++) {
       ((double*)c)[i] *= norm;
     }
   }
@@ -1043,7 +1043,7 @@ note that this function performs no error checking on bounds of screw
 */
 inline void ksl_screw_set(
   ksl_screw_t* __restrict__ s,
-  const size_t index,
+  const register size_t index,
   const double value) {
 
   assert(index >= 0 && index < 6);
@@ -1058,7 +1058,7 @@ note that this function performs no error checking on bounds of coscrew
 */
 inline void ksl_coscrew_set(
   ksl_coscrew_t* __restrict__ c,
-  const size_t index,
+  const register size_t index,
   const double value) {
 
   assert(index >= 0 && index < 6);
@@ -1071,7 +1071,7 @@ inline void ksl_coscrew_set(
 */
 inline void ksl_coscrewf_set(
   ksl_coscrewf_t* __restrict__ c,
-  const size_t index,
+  const register size_t index,
   const float value) {
 
   assert(index >= 0 && index < 6);
@@ -1086,8 +1086,8 @@ note that mat3x3 is stored in column major order
 */
 inline void ksl_mat3x3_set(
   ksl_mat3x3_t* __restrict__ R,
-  const size_t row,
-  const size_t column,
+  const register size_t row,
+  const register size_t column,
   const double value) {
 
   assert(row >= 0 && row < 3 && column >= 0 && column < 3);
@@ -1122,8 +1122,8 @@ note that mat4x4 is stored in column major order
 */
 inline void ksl_mat4x4_set(
   ksl_mat4x4_t* __restrict__ R,
-  const size_t row,
-  const size_t column,
+  const register size_t row,
+  const register size_t column,
   const double value) {
 
   assert(row >= 0 && row < 4 && column >= 0 && column < 4);
@@ -1136,8 +1136,8 @@ inline void ksl_mat4x4_set(
 */
 inline void ksl_displacement_set(
   ksl_displacement_t* __restrict__ D,
-  const size_t row,
-  const size_t column,
+  const register size_t row,
+  const register size_t column,
   const double value) {
 
   if(column == 3) {
@@ -1153,7 +1153,7 @@ inline void ksl_displacement_set(
 */
 inline void ksl_vec3f_set(
   ksl_vec3f_t* __restrict__ v,
-  const size_t index,
+  const register size_t index,
   float value) {
 
   assert(index >= 0 && index < 3);
@@ -1166,7 +1166,7 @@ inline void ksl_vec3f_set(
 */
 inline void ksl_screwf_set(
   ksl_screwf_t* __restrict__ s,
-  const size_t index,
+  const register size_t index,
   float value) {
 
   assert(index >= 0 && index < 3);
@@ -1181,8 +1181,8 @@ note that mat3x3 is stored in column major order
 */
 inline void ksl_mat3x3f_set(
   ksl_mat3x3f_t* __restrict__ R,
-  const size_t row,
-  const size_t column,
+  const register size_t row,
+  const register size_t column,
   float value) {
 
   assert(row >= 0 && row < 3 && column >= 0 && column < 3);
@@ -1197,8 +1197,8 @@ note that mat3x3 is stored in column major order
 */
 inline void ksl_mat4x4f_set(
   ksl_mat4x4f_t* __restrict__ R,
-  const size_t row,
-  const size_t column,
+  const register size_t row,
+  const register size_t column,
   float value) {
 
   assert(row >= 0 && row < 4 && column >= 0 && column < 4);
@@ -1211,8 +1211,8 @@ inline void ksl_mat4x4f_set(
 */
 inline void ksl_displacementf_set(
   ksl_displacementf_t* __restrict__ D,
-  const size_t row,
-  const size_t column,
+  const register size_t row,
+  const register size_t column,
   float value) {
 
   if(column == 3) {
@@ -1228,7 +1228,7 @@ inline void ksl_displacementf_set(
 */
 inline double ksl_vec3_get(
   ksl_vec3_t* __restrict__ v,
-  const size_t index) {
+  const register size_t index) {
 
   assert(index >= 0 && index < 3);
   return ((double*)v)[index];
@@ -1240,7 +1240,7 @@ inline double ksl_vec3_get(
 */
 inline double ksl_screw_get(
   ksl_screw_t* __restrict__ s,
-  const size_t index) {
+  const register size_t index) {
 
   assert(index >= 0 && index < 6);
   return ((double*)s)[index];
@@ -1252,7 +1252,7 @@ inline double ksl_screw_get(
 */
 inline double ksl_coscrew_get(
   ksl_coscrew_t* __restrict__ c,
-  const size_t index) {
+  const register size_t index) {
 
   assert(index >= 0 && index < 6);
   return ((double*)c)[index];
@@ -1264,7 +1264,7 @@ inline double ksl_coscrew_get(
 */
 inline float ksl_coscrewf_get(
   ksl_coscrewf_t* __restrict__ c,
-  const size_t index) {
+  const register size_t index) {
 
   assert(index >= 0 && index < 6);
   return ((float*)c)[index];
@@ -1279,8 +1279,8 @@ note that mat3x3 is stored in column major order
 */
 inline double ksl_mat3x3_get(
   ksl_mat3x3_t* __restrict__ R,
-  const size_t row,
-  const size_t column) {
+  const register size_t row,
+  const register size_t column) {
 
   assert(row >= 0 && row < 3 && column >= 0 && column < 3);
   return ((double*)R)[3 * column + row];
@@ -1293,8 +1293,8 @@ inline double ksl_mat3x3_get(
 */
 inline double ksl_displacement_get(
   ksl_displacement_t* __restrict__ D,
-  const size_t row,
-  const size_t column) {
+  const register size_t row,
+  const register size_t column) {
 
   if(column == 3) {
     return ksl_vec3_get(&D->t, row);
@@ -1308,7 +1308,7 @@ inline double ksl_displacement_get(
 */
 inline float ksl_vec3f_get(
   ksl_vec3f_t* __restrict__ v,
-  const size_t index) {
+  const register size_t index) {
 
   // assert(index >= 0 && index < 3);
   return ((float*)v)[index];
@@ -1319,7 +1319,7 @@ inline float ksl_vec3f_get(
 */
 inline float ksl_screwf_get(
   ksl_screwf_t* __restrict__ s,
-  const size_t index) {
+  const register size_t index) {
 
   assert(index >= 0 && index < 6);
   return ((float*)s)[index];
@@ -1332,8 +1332,8 @@ note that mat3x3 is stored in column major order
 */
 inline float ksl_mat3x3f_get(
   ksl_mat3x3f_t* __restrict__ R,
-  const size_t row,
-  const size_t column) {
+  const register size_t row,
+  const register size_t column) {
 
   assert(row >= 0 && row < 3 && column >= 0 && column < 3);
   return ((float*)R)[3 * column + row];
@@ -1344,8 +1344,8 @@ inline float ksl_mat3x3f_get(
 */
 inline float ksl_displacementf_get(
   ksl_displacementf_t* __restrict__ D,
-  const size_t row,
-  const size_t column) {
+  const register size_t row,
+  const register size_t column) {
 
   assert(row >= 0 && row < 3 && column >= 0 && column < 3);
   if(column == 3) {
@@ -1375,7 +1375,7 @@ Utilities for carrying out Vector/Vector and Vector/Scalar operations
 
 
 /*!
-@brief Copy a double precision Vector vi size_to Vector vo.
+@brief Copy a double precision Vector vi register size_to Vector vo.
 
 
 \f$V_i \rightarrow V_o\f$
@@ -1475,7 +1475,7 @@ inline void ksl_copy_Rf(
 //   ksl_vec3_t* __restrict__ vx,
 //   ksl_vec3_t* __restrict__ vy) {
 //
-//   for(size_t i = 0; i < 3; i++) {
+//   for(register size_t i = 0; i < 3; i++) {
 //     ((double*)vy)[i] += a * ((double*)vx)[i];
 //   }
 // }
@@ -1486,7 +1486,7 @@ inline void ksl_copy_Rf(
 //   ksl_vec3f_t* __restrict__ vx,
 //   ksl_vec3f_t* __restrict__ vy) {
 //
-//   for(size_t i = 0; i < 3; i++) {
+//   for(register size_t i = 0; i < 3; i++) {
 //     ((float*)vy)[i] += a * ((float*)vx)[i];
 //   }
 // }
@@ -1496,7 +1496,7 @@ inline void ksl_copy_Rf(
 //   ksl_screw_t* __restrict__ sx,
 //   ksl_screw_t* __restrict__ sy) {
 //
-//   for(size_t i = 0; i < 6; i++) {
+//   for(register size_t i = 0; i < 6; i++) {
 //     ((double*)sy)[i] += a * ((double*)sx)[i];
 //   }
 // }
@@ -1506,7 +1506,7 @@ inline void ksl_copy_Rf(
 //   ksl_screwf_t* __restrict__ sx,
 //   ksl_screwf_t* __restrict__ sy) {
 //
-//   for(size_t i = 0; i < 6; i++) {
+//   for(register size_t i = 0; i < 6; i++) {
 //     ((float*)sy)[i] += a * ((float*)sx)[i];
 //   }
 // }
@@ -1516,7 +1516,7 @@ inline void ksl_copy_Rf(
 //   ksl_coscrew_t* __restrict__ cx,
 //   ksl_coscrew_t* __restrict__ cy) {
 //
-//   for(size_t i = 0; i < 6; i++) {
+//   for(register size_t i = 0; i < 6; i++) {
 //     ((double*)cy)[i] += a * ((double*)cx)[i];
 //   }
 // }
@@ -1526,7 +1526,7 @@ inline void ksl_copy_Rf(
 //   ksl_coscrewf_t* __restrict__ cx,
 //   ksl_coscrewf_t* __restrict__ cy) {
 //
-//   for(size_t i = 0; i < 6; i++) {
+//   for(register size_t i = 0; i < 6; i++) {
 //     ((float*)cy)[i] += a * ((float*)cx)[i];
 //   }
 // }
@@ -1534,7 +1534,7 @@ inline void ksl_copy_Rf(
 
 
 /*!
-@brief Copy a double precision Vector vi size_to vo.
+@brief Copy a double precision Vector vi register size_to vo.
 
 \f$-V_i \rightarrow V_o\f$
 
@@ -1545,14 +1545,14 @@ inline void ksl_vector_invert(
   ksl_vec3_t* __restrict__ vi,
   ksl_vec3_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)vo)[i] = -((double*)vi)[i];
   }
 }
 
 
 /*!
-@brief Copy a single prevision Vectorf vi size_to vo.
+@brief Copy a single prevision Vectorf vi register size_to vo.
 
 \f$-V_i \rightarrow V_o\f$
 
@@ -1563,7 +1563,7 @@ inline void ksl_vectorf_invert(
   ksl_vec3f_t* __restrict__ vi,
   ksl_vec3f_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)vo)[i] = -((float*)vi)[i];
   }
 }
@@ -1582,7 +1582,7 @@ inline double ksl_dot_vv(
   ksl_vec3_t* __restrict__ vi1) {
 
   double sum = 0;
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     sum += ksl_vec3_get(vi0, i) * ksl_vec3_get(vi1, i);
   }
   return sum;
@@ -1602,8 +1602,48 @@ inline float ksl_dot_vvf(
   ksl_vec3f_t* __restrict__ vi1) {
 
   float sum = 0;
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     sum += ksl_vec3f_get(vi0, i) * ksl_vec3f_get(vi1, i);
+  }
+  return sum;
+}
+
+
+/*!
+@brief double precision Dot product of two vectors
+
+\f$ V_i0 \cdot V_i1 \rightarrow V_o\f$
+
+@param vi0 first input vector
+@param vi1 second input vector
+*/
+inline double ksl_dot_cs(
+  ksl_coscrew_t* __restrict__ ci0,
+  ksl_screw_t* __restrict__ si1) {
+
+  double sum = 0;
+  for(register size_t i = 0; i < 6; i++) {
+    sum += ksl_coscrew_get(ci0, i) * ksl_screw_get(si1, i);
+  }
+  return sum;
+}
+
+
+/*!
+@brief single precision Dot product of two vectors
+
+\f$ V_i0 \cdot V_i1 \rightarrow V_o\f$
+
+@param vi0 first input vector
+@param vi1 second input vector
+*/
+inline float ksl_dot_csf(
+  ksl_coscrewf_t* __restrict__ ci0,
+  ksl_screwf_t* __restrict__ si1) {
+
+  float sum = 0;
+  for(register size_t i = 0; i < 6; i++) {
+    sum += ksl_coscrewf_get(ci0, i) * ksl_screwf_get(si1, i);
   }
   return sum;
 }
@@ -1622,7 +1662,7 @@ inline double ksl_dot_qq(
   ksl_vec4_t* __restrict__ qi1) {
 
   double sum = 0;
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     sum += ((double*)qi0)[i] * ((double*)qi0)[i];
   }
   return sum;
@@ -1642,7 +1682,7 @@ inline float ksl_dot_qqf(
   ksl_vec4f_t* __restrict__ qi1) {
 
   float sum = 0;
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     sum += ((float*)qi0)[i] * ((float*)qi0)[i];
   }
   return sum;
@@ -1663,7 +1703,7 @@ inline void ksl_product_vk(
   const double ki,
   ksl_vec3_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)vo)[i] = ((double*)vi)[i] * ki;
   }
 }
@@ -1683,7 +1723,7 @@ inline void ksl_product_vkinverse(
   const double ki,
   ksl_vec3_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)vo)[i] = -((double*)vi)[i] * ki;
   }
 }
@@ -1703,7 +1743,7 @@ inline void ksl_product_vinversek(
   const double ki,
   ksl_vec3_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)vo)[i] = -((double*)vi)[i] * ki;
   }
 }
@@ -1723,7 +1763,7 @@ inline void ksl_product_vkf(
   const float ki,
   ksl_vec3f_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)vo)[i] = ((float*)vi)[i] * ki;
   }
 }
@@ -1745,7 +1785,7 @@ inline void ksl_add_vv(
   ksl_vec3_t* __restrict__ v2i,
   ksl_vec3_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)vo)[i] = ((double*)v1i)[i] + ((double*)v2i)[i];
   }
 }
@@ -1766,7 +1806,7 @@ inline void ksl_add_vvf(
   ksl_vec3f_t* __restrict__ v2i,
   ksl_vec3f_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)vo)[i] = ((float*)v1i)[i] + ((float*)v2i)[i];
   }
 }
@@ -1786,7 +1826,7 @@ inline void ksl_addequal_vv(
   ksl_vec3_t* __restrict__ v1i,
   ksl_vec3_t* __restrict__ v2i) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)v2i)[i] += ((double*)v1i)[i];
   }
 }
@@ -1806,7 +1846,7 @@ inline void ksl_addequal_vvf(
   ksl_vec3f_t* __restrict__ v1i,
   ksl_vec3f_t* __restrict__ v2i) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)v2i)[i] += ((float*)v1i)[i];
   }
 }
@@ -1826,7 +1866,7 @@ inline void ksl_subtractequal_vv(
   ksl_vec3_t* __restrict__ v1i,
   ksl_vec3_t* __restrict__ v2i) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)v2i)[i] -= ((double*)v1i)[i];
   }
 }
@@ -1846,7 +1886,7 @@ inline void ksl_subtractequal_vvf(
   ksl_vec3f_t* __restrict__ v1i,
   ksl_vec3f_t* __restrict__ v2i) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)v2i)[i] -= ((float*)v1i)[i];
   }
 }
@@ -1867,7 +1907,7 @@ inline void ksl_axpy_vv(
   ksl_vec3_t* __restrict__ v1x,
   ksl_vec3_t* __restrict__ v2y) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)v2y)[i] += k * ((double*)v1x)[i];
   }
 }
@@ -1888,7 +1928,7 @@ inline void ksl_axpy_vvf(
   ksl_vec3f_t* __restrict__ v1x,
   ksl_vec3f_t* __restrict__ v2y) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)v2y)[i] += k * ((float*)v1x)[i];
   }
 }
@@ -1907,7 +1947,7 @@ inline void ksl_axpy_qq(
   ksl_vec4_t* __restrict__ qx,
   ksl_vec4_t* __restrict__ qy) {
 
-  for(size_t i = 0; i < 4; i++) {
+  for(register size_t i = 0; i < 4; i++) {
     ((double*)qy)[i] += k * ((double*)qx)[i];
   }
 }
@@ -1927,7 +1967,7 @@ inline void ksl_axpy_qqf(
   ksl_vec4f_t* __restrict__ qx,
   ksl_vec4f_t* __restrict__ qy) {
 
-  for(size_t i = 0; i < 4; i++) {
+  for(register size_t i = 0; i < 4; i++) {
     ((float*)qy)[i] += k * ((float*)qx)[i];
   }
 }
@@ -1948,7 +1988,7 @@ inline void ksl_axpy_cs(
   ksl_coscrew_t* __restrict__ c,
   ksl_screw_t* __restrict__ s) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)s)[i] += k * ((double*)c)[i];
   }
 }
@@ -1969,7 +2009,7 @@ inline void ksl_axpy_csf(
   ksl_screwf_t* __restrict__ c,
   ksl_screwf_t* __restrict__ s) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((float*)s)[i] += k * ((float*)c)[i];
   }
 }
@@ -1991,7 +2031,7 @@ inline void ksl_subtract_vv(
   ksl_vec3_t* __restrict__ v2i,
   ksl_vec3_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)vo)[i] = ((double*)v1i)[i] - ((double*)v2i)[i];
   }
 }
@@ -2013,7 +2053,7 @@ inline void ksl_subtract_vvf(
   ksl_vec3f_t* __restrict__ v2i,
   ksl_vec3f_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)vo)[i] = ((float*)v1i)[i] - ((float*)v2i)[i];
   }
 }
@@ -2180,7 +2220,7 @@ void ksl_invert_v(
   ksl_vec3_t* __restrict__ vi,
   ksl_vec3_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)vo)[i] = -((double*)vi)[i];
   }
 }
@@ -2198,7 +2238,7 @@ void ksl_invert_vf(
   ksl_vec3f_t* __restrict__ vi,
   ksl_vec3f_t* __restrict__ vo) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)vo)[i] = -((float*)vi)[i];
   }
 }
@@ -2216,7 +2256,7 @@ void ksl_invert_ss(
   ksl_screw_t* __restrict__ si,
   ksl_screw_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)so)[i] = -((double*)si)[i];
   }
 }
@@ -2233,7 +2273,7 @@ void ksl_invert_ssf(
   ksl_screwf_t* __restrict__ si,
   ksl_screwf_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((float*)so)[i] = -((float*)si)[i];
   }
 }
@@ -2251,7 +2291,7 @@ void ksl_invert_cc(
   ksl_coscrew_t* __restrict__ ci,
   ksl_coscrew_t* __restrict__ co) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)co)[i] = -((double*)ci)[i];
   }
 }
@@ -2269,7 +2309,7 @@ void ksl_invert_ccf(
   ksl_coscrewf_t* __restrict__ ci,
   ksl_coscrewf_t* __restrict__ co) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((float*)co)[i] = -((float*)ci)[i];
   }
 }
@@ -2289,7 +2329,7 @@ void ksl_product_sk(
   const double ki,
   ksl_screw_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)so)[i] = ((double*)si)[i] * ki;
   }
 }
@@ -2308,7 +2348,7 @@ void ksl_product_skf(
   const float ki,
   ksl_screwf_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((float*)so)[i] = ((float*)si)[i] * ki;
   }
 }
@@ -2327,7 +2367,7 @@ void ksl_add_ss(
   ksl_screw_t* __restrict__ s2i,
   ksl_screw_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)so)[i] = ((double*)s1i)[i] + ((double*)s2i)[i];
   }
 }
@@ -2346,7 +2386,7 @@ void ksl_addequal_ss(
   ksl_screw_t* __restrict__ s1i,
   ksl_screw_t* __restrict__ s2i) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)s2i)[i] += ((double*)s1i)[i];
   }
 }
@@ -2365,7 +2405,7 @@ void ksl_addequal_ssf(
   ksl_screwf_t* __restrict__ s1i,
   ksl_screwf_t* __restrict__ s2i) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((float*)s2i)[i] += ((float*)s1i)[i];
   }
 }
@@ -2386,7 +2426,7 @@ void ksl_add_ssf(
   ksl_screwf_t* __restrict__ s2i,
   ksl_screwf_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((float*)so)[i] = ((float*)s1i)[i] + ((float*)s2i)[i];
   }
 }
@@ -2405,7 +2445,7 @@ void ksl_subtract_ss(
   ksl_screw_t* __restrict__ s2i,
   ksl_screw_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)so)[i] = ((double*)s1i)[i] - ((double*)s2i)[i];
   }
 }
@@ -2424,7 +2464,7 @@ void ksl_subtract_ssf(
   ksl_screwf_t* __restrict__ s2i,
   ksl_screwf_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((float*)so)[i] = ((float*)s1i)[i] - ((float*)s2i)[i];
   }
 }
@@ -2442,7 +2482,7 @@ void ksl_subtractequal_ss(
   ksl_screw_t* __restrict__ s1i,
   ksl_screw_t* __restrict__ s2i) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)s2i)[i] -= ((double*)s1i)[i];
   }
 }
@@ -2461,7 +2501,7 @@ void ksl_subtractequal_ssf(
   ksl_screwf_t* __restrict__ s1i,
   ksl_screwf_t* __restrict__ s2i) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((float*)s2i)[i] -= ((float*)s1i)[i];
   }
 }
@@ -2492,7 +2532,7 @@ void ksl_add_sst(
   ksl_screw_t* __restrict__ s2i,
   ksl_screw_t* __restrict__ so) {
 
-  for(size_t i = 0; i < 6; i++) {
+  for(register size_t i = 0; i < 6; i++) {
     ((double*)so)[i] = ((double*)s1i)[i] + ((double*)s2i)[i];
   }
 }
@@ -2530,7 +2570,7 @@ direction cosines.
 */
 
 /*!
-@brief Copy a double precision ksl_mat3x3_t direction cosine matrix ri size_to ro.
+@brief Copy a double precision ksl_mat3x3_t direction cosine matrix ri register size_to ro.
 
 \f$R_i \rightarrow R_o\f$
 
@@ -2546,7 +2586,7 @@ void ksl_mat3x3_copy(
 
 
 /*!
-@brief Copy a single precision ksl_mat3x3f_t direction cosine matrix ri size_to ro.
+@brief Copy a single precision ksl_mat3x3f_t direction cosine matrix ri register size_to ro.
 
 \f$R_i \rightarrow R_o\f$
 
@@ -3315,31 +3355,31 @@ inline void ksl_product_RR(
 
   memset(ro, 0, sizeof(ksl_mat3x3_t));
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m00 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m01 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m02 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, 2, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m10 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m11 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m12 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, 2, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m20 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m21 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m22 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, 2, i);
   }
 
@@ -3383,31 +3423,31 @@ inline void ksl_product_RRf(
 
   memset(ro, 0, sizeof(ksl_mat3x3f_t));
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m00 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m01 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m02 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, 2, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m10 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m11 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m12 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, 2, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m20 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m21 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m22 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, 2, i);
   }
 
@@ -3458,31 +3498,31 @@ inline void ksl_product_RRinverse(
 
   memset(ro, 0, sizeof(ksl_mat3x3_t));
 
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m00 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, i, 0);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m01 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, i, 1);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m02 += ksl_mat3x3_get(r1i, i, 0) * ksl_mat3x3_get(r2i, i, 2);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m10 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, i, 0);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m11 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, i, 1);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m12 += ksl_mat3x3_get(r1i, i, 1) * ksl_mat3x3_get(r2i, i, 2);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m20 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, i, 0);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m21 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, i, 1);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m22 += ksl_mat3x3_get(r1i, i, 2) * ksl_mat3x3_get(r2i, i, 2);
   // }
 
@@ -3546,31 +3586,31 @@ inline void ksl_product_RRinversef(
 
   memset(ro, 0, sizeof(ksl_mat3x3_t));
 
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m00 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, i, 0);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m01 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, i, 1);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m02 += ksl_mat3x3f_get(r1i, i, 0) * ksl_mat3x3f_get(r2i, i, 2);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m10 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, i, 0);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m11 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, i, 1);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m12 += ksl_mat3x3f_get(r1i, i, 1) * ksl_mat3x3f_get(r2i, i, 2);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m20 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, i, 0);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m21 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, i, 1);
   // }
-  // for(size_t i = 0; i < 3; i++) {
+  // for(register size_t i = 0; i < 3; i++) {
   //   ro->m22 += ksl_mat3x3f_get(r1i, i, 2) * ksl_mat3x3f_get(r2i, i, 2);
   // }
 
@@ -3634,33 +3674,33 @@ inline void ksl_product_RinverseR(
   ksl_mat3x3_t* __restrict__ ro) {
 
   memset(ro, 0, sizeof(ksl_mat3x3_t));
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m00 += ksl_mat3x3_get(r1i, 0, i) * ksl_mat3x3_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m01 += ksl_mat3x3_get(r1i, 0, i) * ksl_mat3x3_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m02 += ksl_mat3x3_get(r1i, 0, i) * ksl_mat3x3_get(r2i, 2, i);
   }
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m10 += ksl_mat3x3_get(r1i, 1, i) * ksl_mat3x3_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m11 += ksl_mat3x3_get(r1i, 1, i) * ksl_mat3x3_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m12 += ksl_mat3x3_get(r1i, 1, i) * ksl_mat3x3_get(r2i, 2, i);
   }
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m20 += ksl_mat3x3_get(r1i, 2, i) * ksl_mat3x3_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m21 += ksl_mat3x3_get(r1i, 2, i) * ksl_mat3x3_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m22 += ksl_mat3x3_get(r1i, 2, i) * ksl_mat3x3_get(r2i, 2, i);
   }
 
@@ -3715,33 +3755,33 @@ inline void ksl_product_RinverseRf(
   ksl_mat3x3f_t* __restrict__ ro) {
 
   memset(ro, 0, sizeof(ksl_mat3x3f_t));
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m00 += ksl_mat3x3f_get(r1i, 0, i) * ksl_mat3x3f_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m01 += ksl_mat3x3f_get(r1i, 0, i) * ksl_mat3x3f_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m02 += ksl_mat3x3f_get(r1i, 0, i) * ksl_mat3x3f_get(r2i, 2, i);
   }
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m10 += ksl_mat3x3f_get(r1i, 1, i) * ksl_mat3x3f_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m11 += ksl_mat3x3f_get(r1i, 1, i) * ksl_mat3x3f_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m12 += ksl_mat3x3f_get(r1i, 1, i) * ksl_mat3x3f_get(r2i, 2, i);
   }
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m20 += ksl_mat3x3f_get(r1i, 2, i) * ksl_mat3x3f_get(r2i, 0, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m21 += ksl_mat3x3f_get(r1i, 2, i) * ksl_mat3x3f_get(r2i, 1, i);
   }
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ro->m22 += ksl_mat3x3f_get(r1i, 2, i) * ksl_mat3x3f_get(r2i, 2, i);
   }
 
@@ -5854,7 +5894,7 @@ inline void ksl_htxinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)&ho->v)[i] = -((double*)&Di->R.m00)[i];
   }
 }
@@ -5878,7 +5918,7 @@ inline void ksl_htxinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)&ho->v)[i] = -((float*)&Di->R.m00)[i];
   }
 }
@@ -5902,7 +5942,7 @@ inline void ksl_htyinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)&ho->v)[i] = -((double*)&Di->R.m01)[i];
   }
 }
@@ -5926,7 +5966,7 @@ inline void ksl_htyinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)&ho->v)[i] = -((float*)&Di->R.m01)[i];
   }
 }
@@ -5950,7 +5990,7 @@ inline void ksl_htzinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)&ho->v)[i] = -((double*)&Di->R.m02)[i];
   }
 }
@@ -5974,7 +6014,7 @@ inline void ksl_htzinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)&ho->v)[i] = -((float*)&Di->R.m02)[i];
   }
 }
@@ -5995,7 +6035,7 @@ inline void ksl_hrxinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)&ho->w)[i] = -((double*)&Di->R.m00)[i];
   }
   ksl_cross_vv(&(Di->t), &ho->w, &ho->v);
@@ -6017,7 +6057,7 @@ inline void ksl_hrxinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)&ho->w)[i] = -((float*)&Di->R.m00)[i];
   }
   ksl_cross_vvf(&(Di->t), &ho->w, &ho->v);
@@ -6039,7 +6079,7 @@ inline void ksl_hryinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)&ho->w)[i] = -((double*)&Di->R.m01)[i];
   }
   ksl_cross_vv(&(Di->t), &ho->w, &ho->v);
@@ -6062,7 +6102,7 @@ inline void ksl_hryinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)&ho->w)[i] = -((float*)&Di->R.m01)[i];
   }
   ksl_cross_vvf(&(Di->t), &ho->w, &ho->v);
@@ -6084,7 +6124,7 @@ inline void ksl_hrzinverse(
   ksl_displacement_t* __restrict__ Di,
   ksl_screw_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((double*)&ho->w)[i] = -((double*)&Di->R.m02)[i];
   }
   ksl_cross_vv(&(Di->t), &ho->w, &ho->v);
@@ -6106,7 +6146,7 @@ inline void ksl_hrzinversef(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-  for(size_t i = 0; i < 3; i++) {
+  for(register size_t i = 0; i < 3; i++) {
     ((float*)&ho->w)[i] = -((float*)&Di->R.m02)[i];
   }
   ksl_cross_vvf(&(Di->t), &ho->w, &ho->v);
@@ -6706,9 +6746,9 @@ and ri^-1 and store in so.
 
 \f$ R_i^{-1} * T_i^T * S_i \rightarrow S_o\f$
 
-@param Di a general displacement
-@param si a coscrew
-@param so the results are stored in so
+@param Di [in] a general displacement
+@param ci [in] a coscrew
+@param co [out] the results are stored in so
 */
 inline void ksl_product_CoAdcf(
   ksl_displacementf_t* __restrict__ Di,
@@ -6790,12 +6830,12 @@ Normalize a quaternion and overwrite.
 void ksl_quaternion_normalize(
   ksl_vec4_t* __restrict__ qi) {
   double norm = 0;
-  for(size_t i = 0; i < 4; i++) {
+  for(register size_t i = 0; i < 4; i++) {
     norm += ((double*)qi)[i] * ((double*)qi)[i];
   }
   assert(norm > 1e-12);
   norm = 1.0 / sqrt(norm);
-  for(size_t i = 0; i < 4; i++) {
+  for(register size_t i = 0; i < 4; i++) {
     ((double*)qi)[i] *= norm;
   }
 }
@@ -6811,12 +6851,12 @@ void ksl_quaternionf_normalize(
   ksl_vec4f_t* __restrict__ qi) {
 
   float norm = 0;
-  for(size_t i = 0; i < 4; i++) {
+  for(register size_t i = 0; i < 4; i++) {
     norm += ((float*)qi)[i] * ((float*)qi)[i];
   }
   assert(norm > 1e-12);
   norm = 1.0 / sqrt(norm);
-  for(size_t i = 0; i < 4; i++) {
+  for(register size_t i = 0; i < 4; i++) {
     ((float*)qi)[i] *= norm;
   }
 }
@@ -6834,7 +6874,7 @@ e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 & e_0^2-e_1^2-e_2^2+e_
 @todo Supply *ER*, a reference Euler Parameter. If necessary, flip the sign of *(E) so that each *(E+i) is the closest match to ER[i].
 For this algorithm to work, *(E) must be a close follow-on to ER.
 This function would then prove more useful when continuous Euler
-Parameters are desired for size_terpolation purposes. Matrix R
+Parameters are desired for register size_terpolation purposes. Matrix R
 is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 
 @param ri a rotation matrix in a 9x1 column format
@@ -6936,7 +6976,7 @@ e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 & e_0^2-e_1^2-e_2^2+e_
 @todo Supply *ER*, a reference Euler Parameter. If necessary, flip the sign of *(E) so that each *(E+i) is the closest match to ER[i].
 For this algorithm to work, *(E) must be a close follow-on to ER.
 This function would then prove more useful when continuous Euler
-Parameters are desired for size_terpolation purposes. Matrix R
+Parameters are desired for register size_terpolation purposes. Matrix R
 is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 
 @param ri a rotation matrix in a 9x1 column format
@@ -7122,13 +7162,13 @@ void ksl_vec4f_toMat3x3f(
 
 /*!
 @brief Double precision, vectorized version of Shoemake's Spherical
-Linear size_terpolation algorithm
+Linear register size_terpolation algorithm
 
 Refer to [Shoemake, Animating rotation with Quaternion Curves, SIGGRAPH, vol 19, No. 3, 1985](http://run.usc.edu/cs520-s12/assign2/p245-shoemake.pdf) for
 specific information on the algorithm.
 
-@param q1i a first quaternion in the form [w,x,y,z] to size_terpolate from
-@param q2i a second quaternion in the form [w,x,y,z] to size_terpolate to
+@param q1i a first quaternion in the form [w,x,y,z] to register size_terpolate from
+@param q2i a second quaternion in the form [w,x,y,z] to register size_terpolate to
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
@@ -7172,13 +7212,13 @@ void ksl_quaternion_slerp(
 
 /*!
 @brief single precision, vectorized version of Shoemake's Spherical
-Linear size_terpolation algorithm
+Linear register size_terpolation algorithm
 
 Refer to [Shoemake, Animating rotation with Quaternion Curves, SIGGRAPH, vol 19, No. 3, 1985](http://run.usc.edu/cs520-s12/assign2/p245-shoemake.pdf) for
 specific information on the algorithm.
 
-@param q1i a first quaternion in the form [w,x,y,z] to size_terpolate from
-@param q2i a second quaternion in the form [w,x,y,z] to size_terpolate to
+@param q1i a first quaternion in the form [w,x,y,z] to register size_terpolate from
+@param q2i a second quaternion in the form [w,x,y,z] to register size_terpolate to
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
@@ -7222,13 +7262,13 @@ void ksl_quaternionf_slerp(
 
 
 /*!
-@brief Vectorized version of quaternion Linear size_terpolation (Lerp)
+@brief Vectorized version of quaternion Linear register size_terpolation (Lerp)
 
 Less expensive numerically than Shoemake's Slerp algorithm (ksl_slerp)
-but does not size_terpolate with constant velocity
+but does not register size_terpolate with constant velocity
 
-@param q1i a first quaternion in the form [w,x,y,z] to size_terpolate from
-@param q2i a second quaternion in the form [w,x,y,z] to size_terpolate to
+@param q1i a first quaternion in the form [w,x,y,z] to register size_terpolate from
+@param q2i a second quaternion in the form [w,x,y,z] to register size_terpolate to
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
@@ -7268,8 +7308,8 @@ void ksl_quaternion_nlerp(
 Less expensive numerically than Shoemake's Slerp algorithm (ksl_Slerp)
 but does not interpolate with constant velocity
 
-@param q1i a first quaternion in the form [w,x,y,z] to size_terpolate from
-@param q2i a second quaternion in the form [w,x,y,z] to size_terpolate to
+@param q1i a first quaternion in the form [w,x,y,z] to register size_terpolate from
+@param q2i a second quaternion in the form [w,x,y,z] to register size_terpolate to
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
@@ -7491,8 +7531,8 @@ double ksl_catan1pi(
 /*!
 @brief extract Euler angles from a ksl_mat3x3_t rotation matrix
 
-This function decomposes a general direction cosine matrix size_to three primitive
-direction cosine matrices, whose axes are determined by the size_tegers passed
+This function decomposes a general direction cosine matrix register size_to three primitive
+direction cosine matrices, whose axes are determined by the register size_tegers passed
 in through axis (see below). The direction cosine matrix is passed in through ri, and the three computed angles are updated and returned in angle. The previous values assigned to angle are passed in to RtoA in angle. RtoA calls catan2, which uses the values stored in angle to maintain continuity if  possible.
 
 This function does not check for bad axis indices. These checks could easily
@@ -7636,7 +7676,7 @@ void ksl_mat3x3_cgetEulerAngles(
 
     } else { // k == i; reverse cycle j --> i
       // Case 3: 0 --> 1 --> 0; 1 --> 2 --> 1; 2 --> 0 --> 2
-      // Reset k for correct index size_to direction cosine matrix.
+      // Reset k for correct index register size_to direction cosine matrix.
       k = f[j];
 
       angles->z =
@@ -7690,7 +7730,7 @@ void ksl_mat3x3_cgetEulerAngles(
 
     } else {// k == i; forward cycle j --> i
       // Case 4: 0 --> 2 --> 0; 1 --> 0 --> 1; 2 --> 1 --> 2
-      // Reset k for correct index size_to direction cosine matrix.
+      // Reset k for correct index register size_to direction cosine matrix.
       k = f[i];
       angles->z =
         ksl_catan1pi(
@@ -7720,8 +7760,8 @@ void ksl_mat3x3_cgetEulerAngles(
 /*!
 @brief extract Euler angles from a ksl_mat3x3_t rotation matrix
 
-This function decomposes a general direction cosine matrix size_to three primitive
-direction cosine matrices, whose axes are determined by the size_tegers passed
+This function decomposes a general direction cosine matrix register size_to three primitive
+direction cosine matrices, whose axes are determined by the register size_tegers passed
 in through axis (see below). The direction cosine matrix is passed in through ri, and the three computed angles are updated and returned in angle. The previous values assigned to angle are passed in to RtoA in angle. RtoA calls catan2, which uses the values stored in angle to maintain continuity if  possible.
 
 This function does not check for bad axis indices. These checks could easily
@@ -7864,7 +7904,7 @@ void ksl_mat3x3_getEulerAngles(
 
     } else { // k == i; reverse cycle j --> i
       // Case 3: 0 --> 1 --> 0; 1 --> 2 --> 1; 2 --> 0 --> 2
-      // Reset k for correct index size_to direction cosine matrix.
+      // Reset k for correct index into direction cosine matrix.
       k = f[j];
 
       angles->z =
@@ -7912,7 +7952,7 @@ void ksl_mat3x3_getEulerAngles(
 
     } else {// k == i; forward cycle j --> i
       // Case 4: 0 --> 2 --> 0; 1 --> 0 --> 1; 2 --> 1 --> 2
-      // Reset k for correct index size_to direction cosine matrix.
+      // Reset k for correct index into direction cosine matrix.
       k = f[i];
       angles->z =
         atan2(
@@ -8086,10 +8126,10 @@ void ksl_omega_to_dquaternion(
 @brief linear interpolation
 
 @param count [in] number of entries to interpolate
-@param p [in] size_terpolant value, ranges from 0 to 1
+@param p [in] register size_terpolant value, ranges from 0 to 1
 @param y0 [in] value of function at y=0
 @param y1 [in] value of function at y=1
-@param yOut [out] size_terpolated data returned in yOut
+@param yOut [out] register size_terpolated data returned in yOut
 
 */
 void ksl_array_lerp(
@@ -8174,14 +8214,14 @@ within an error tolerance of 1e-6
 @returns true if values are all close, false if values are not all close
 */
 bool ksl_all_close(
-  const size_t count,
+  const register size_t count,
   double* __restrict__ a1,
   double* __restrict__ a2) {
 
-  for(size_t i = 0; i < count; i++) {
+  for(register size_t i = 0; i < count; i++) {
     double scaleFactor = fmax(fabs(a1[i]), 1.0);
     if(fabs(a1[i] - a2[i]) / scaleFactor > 1e-6) {
-      fprintf(stdout, "match failed at index: %d\n", i);
+      fprintf(stdout, "match failed at index: %lu\n", i);
       return false;
     }
   }
