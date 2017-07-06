@@ -274,45 +274,7 @@ and:
     \underline{f}^{\ell} = \underline{f} + H^TC^{-T}(\underline{\mathbf{g}}^* - MC^{-1}\underline{\gamma})
 
 
-The symmetric, positive semidefinite :math:`M^{\ell}` corresponds to the generalized mass matrix. It contains the same quantities that would have been obtained by expanding a Lagrangian, hence the superscript :math:`\ell` :cite:`pars1979`. :math:`\underline{f}^{\ell}` represents the generalized forces, and additionally contains quantities that would have been obtained from expanding a Lagrangian. While equation :eq:`eq:generalized_eqns_motion_no_constraints` is suitable to describe the dynamic behavior of mechanisms with star configurations, for mechanisms with multiple loops it is necessary to append constraints to the system of equations. Setting up constraint equations for a multibody system requires identifying a *spanning* tree, i.e. a root-oriented directed graph that provides a unique path between each body and the fixed inertial reference frame. The set of graph edges comprising the spanning tree are known as the arcs of the directed graph. The remaining edges are classified as chords. Once the arcs and chords of the system have been identified, Eq. :eq:`eq:mapping` can be block partitioned as:
-
-.. math::
-    :label: eq:partitioned_mapping
-
-    \begin{bmatrix}C_{arc}\\C_{chord}\end{bmatrix}\underline{\dot{q}}_{abs} =
-    \begin{bmatrix}H_{arc} & 0\\ 0 & H_{chord} \end{bmatrix}
-    \begin{Bmatrix}\underline{\dot{q}}_{arc}\\ \underline{\dot{q}}_{chord} \end{Bmatrix}
-
-which yields:
-
-.. math::
-    :label: eq:partmapping_yield1
-
-    \underline{\mathbf{v}}_{abs} = C^{-1}_{arc}H_{arc}\underline{q}_{arc}
-
-
-and
-
-.. math::
-    :label: eq:partmapping_yield2
-
-    C_{chord}\underline{\mathbf{v}}_{abs} = H_{chord}\underline{\dot{q}}_{chord}
-
-
-Substituting Eq. :eq:`eq:partmapping_yield1` into Eq. :eq:`eq:partmapping_yield2` and rearranging yields:
-
-.. math::
-    :label: eq:constraint_eq1
-
-    -C_{chord}C^{-1}_{arc}H_{arc}\underline{\dot{q}}_{arc} + H_{chord}\underline{\dot{q}}_{chord} = 0
-
-
-Equation :eq:`eq:constraint_eq1` represents the chord-loop velocity constraints for a mechanism, and from it the constraint Jacobian matrix is identifed as:
-
-.. math::
-    :label: eq:jacobian
-
-    J = \begin{bmatrix}-C_{chord}C^{-1}_{arc}H_{arc} & H_{chord}\end{bmatrix}
+The symmetric, positive semidefinite :math:`M^{\ell}` corresponds to the generalized mass matrix. It contains the same quantities that would have been obtained by expanding a Lagrangian, hence the superscript :math:`\ell` :cite:`pars1979`. :math:`\underline{f}^{\ell}` represents the generalized forces, and additionally contains quantities that would have been obtained from expanding a Lagrangian. While equation :eq:`eq:generalized_eqns_motion_no_constraints` is suitable to describe the dynamic behavior of mechanisms with star configurations, for mechanisms with multiple loops it is necessary to append constraints to the system of equations. Setting up constraint equations for a multibody system requires identifying a *spanning* tree, i.e. a root-oriented directed graph that provides a unique path between each body and the fixed inertial reference frame.
 
 
 which was introduced in Eq. :eq:`eq:lagrange_eqn`. Uicker :cite:`uicker1964` and Wittenberg :cite:`roberson1966dynamical` showed that the Jacobian matrix can be generated from the *circuit*, or loop matrix, which is found from the right null space of the incidence matrix transposed, :math:`\Gamma^T` :cite:`seshu1961linear`. Note that the result of Eq. :eq:`eq:jacobian` and the methods of Uicker and Wittenberg are equivalent.
