@@ -10,6 +10,66 @@ One unique aspect of star2 is its file format, which is based on the JSON (Javas
 In star2, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
 
 
+Faster than real--time simulation
+**********************************
+
+.. raw:: html
+
+    <video src="_static/excavator.webm" width="640" height="480" controls>
+    </video>
+
+
+*star2* models run many times faster than real--time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real--time without contact detection.
+
+
+Vehicle Chassis
+*******************
+
+.. raw:: html
+
+    <video src="_static/vehicle_control_15mps.webm" width="640" height="480" controls>
+    </video>
+
+
+The *star2* file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user's input file, even for relatively complex mechanisms such as this vehicle model. The vehicle chassis simulation demonstrates kinematic substructuring algorithm and implementation of Fiala tire model.
+
+
+Heuristic Application of Generalized Coordinate Partitioning
+************************************************************
+
+.. raw:: html
+
+    <video src="_static/bricard.webm" width="640" height="480" controls>
+    </video>
+
+
+Bricard's paradoxical mechanism cannot be parameterized by one independent variable throughout its range of motion. *star2's* heuristic reapplication of Generalized Coordinate Partitioning (GCP) successfully detects when to reapply GCP on an as--needed basis, even for exceptional or paradoxical linkages.
+
+
+Mobility Analysis and Interactive Positioning in a 3D Environment
+******************************************************************
+
+.. raw:: html
+
+    <video src="_static/brake.webm" width="640" height="480" controls>
+    </video>
+
+
+In addition to solving dynamics equations, *star2* has tools to analyze each joint's contribution to overall mechanism mobility, compute mechanical advantages and to interactively position models in a 3D visualization environment.
+
+
+OpenGL Rendering
+*****************
+
+.. raw:: html
+
+    <video src="_static/auto_lod.webm" width="640" height="480" controls>
+    </video>
+
+
+*star2* uses custom shaders written in GLSL to implement the Phong lighting model with multiple light sources. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variey of 3D model formats. Other advanced visualization functionality includes automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
+
+
 Software Design
 ---------------
 The numerical algorithms in star2 are written in the C programming language and compiled as a static library and command line interface. A 3D visualization tool is written in C++ using OpenGL and the Qt windowing framework.
