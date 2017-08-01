@@ -8214,7 +8214,7 @@ within an error tolerance of 1e-6
 @returns true if values are all close, false if values are not all close
 */
 bool ksl_all_close(
-  const register size_t count,
+  const size_t count,
   double* __restrict__ a1,
   double* __restrict__ a2) {
 
