@@ -7,11 +7,55 @@
 Contributing
 ====================
 
+Roadmap
+-----------
+
+Presently, the plan for *star2* is to make the core solver, graphical user interface and C API free and open source. Contributors to star2 are sought, particularly if you are interested in incorporating star2 into your research. Possible development tasks may include:
+
+  * Interfaces and APIs
+     - C++ API
+     - Python API
+     - ROS interface
+     - OpenAI interface
+     - Web interface via Emscriptem
+     - Web interface via web sockets
+  * Graphics
+     - Dynamic shadow mapping
+     - Texture mapping
+     - Skybox
+     - Extinction
+     - Tools to position light source as a function of time of day / geographic location
+  * Contact detection
+     - Bounding volume hierarchy
+     - Convex hull decomposition and GJK Algorithm
+  * Force modules
+     - Pacejka's ``magic'' tire model
+     - Kelvin-Voigt, Nikravesh and/or Zhiying/Qishao dissipative contact force models
+     - Lugre bristle model or other friction models
+     - ANCF or modal representation of flexible bodies
+  * Core solver
+     - Support transition to new kinematics library currently in development
+     - Investigate use of Intel IPP
+     - Implement additional core solvers
+     - Debug spherical joints
+     - Debug models with rigid joint attached to fixed inertial frame
+  * Documentation
+     - Set up and document models to demonstrate core functionality
+     - Contribute to describing theory
+
+If you are interested to contribute to any of these development tasks, or have other development/research ideas, please contact the author.
 
 Coding Style
 ------------
 
 This guide describes the coding style used in *star2*.
+
+.. figure:: code_quality.png
+    :width: 600px
+    :align: center
+
+    credit: xkcd
+
 
 Comments
 ********
@@ -210,10 +254,3 @@ Other
   those functions over custom functions for the same purpose.
 * As possible, full--dense numerical algorithms should be written to take
   advantage of the cblas library for moderate to large sized vectors/matrices.
-
-
-.. figure:: code_quality.png
-    :width: 600px
-    :align: center
-
-    credit: xkcd
