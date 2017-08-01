@@ -3,6 +3,7 @@
 layout (binding = 0) uniform sampler2D tex_displacement;
 layout (binding = 1) uniform sampler2D tex_color;
 
+/* light parameters */
 uniform int lightCount;
 uniform vec3 posLight[10];
 uniform vec3 Ka[10];
@@ -10,13 +11,26 @@ uniform vec3 Kd[10];
 uniform vec3 Ks[10];
 uniform int directional[10];
 
+/* body parameters */
+uniform mat4 mvp, mv, v;
+uniform mat3 nm;
+
+/* material parameters */
+uniform vec3 KaOverKd;
+uniform vec3 KsOverKd;
+uniform int Ns;
+
+in vec3 normalFrag;
+in vec4 positionFrag;
+
 in TES_OUT {
   vec2 tc;
+  vec3 normal;
   vec3 world_coord;
   vec3 eye_coord;
 } fs_in;
 
-out vec4 color;
+out vec4 colorFrag;
 
 // uniform bool enable_fog = true;
 // uniform vec4 fog_color = vec4(0.7, 0.8, 0.9, 0.0);
@@ -33,6 +47,49 @@ out vec4 color;
 // }
 
 void main(void) {
+
+  vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+  vec3 V = vec3(0.0, 0.0, 1.0);
+
+  for(int i = 0; i < lightCount; i++) {
+    vec3 L;
+    switch(directional[i]) {
+      case 0: {
+        // 0= point light, posLight indicates position of light source
+        //need to compute direction of incoming light
+
+        vec4 temp = v * vec4(
+          posLight[i].x,
+          posLight[i].y,
+          posLight[i].z,
+          1.0)
+          - fs_in.eye_coord;
+        L = normalize(temp.xyz);
+      } break;
+      case 1: {
+        // 1=directional light, posLight indicates direction of incoming light
+
+        vec4 temp = v * vec4(
+          posLight[i].x,
+          posLight[i].y,
+          posLight[i].z,
+          1.0);
+        L = normalize(temp.xyz);
+      } break;
+    }
+
+    vec3 KdMaterial = texture2D(tex_color, fs_in.tc);
+
+    color.rgb += KaOverKd * KdMaterial * Ka[i];          //ambient term
+    float LdotN =  max(0.0, dot(L, fs_in.normal));
+
+    color.rgb += KdMaterial * Kd[i] * LdotN; //diffuse term
+
+    vec3 R = -normalize(reflect(L, fs_in.normal));       //specular term
+    color.rgb += KsOverKd * KdMaterial * Ks[i] * pow(max(0, dot(R, V)), Ns);
+  }
+  colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));
+
   // vec4 landscape = texture(tex_color, fs_in.tc);
 
   // if (enable_fog) {
@@ -46,7 +103,7 @@ void main(void) {
   // color = vec4(temp, temp, temp, 1.0);
 
   // color = vec4((texture(tex_color, fs_in.tc)).rgb, 1.0);
-  color = texture2D(tex_color, fs_in.tc);
+
   // vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
   // vec3 V = vec3(0.0, 0.0, 1.0);
   //
