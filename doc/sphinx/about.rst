@@ -10,7 +10,7 @@ One unique aspect of star2 is its file format, which is based on the JSON (Javas
 In star2, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
 
 
-Faster than real--time simulation
+Faster than real-time simulation
 **********************************
 
 .. raw:: html
@@ -22,8 +22,8 @@ Faster than real--time simulation
 *star2* models run many times faster than real--time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real--time without contact detection.
 
 
-Vehicle Chassis
-*******************
+Automatic assembly of complex mechanisms
+****************************************
 
 .. raw:: html
 
@@ -31,7 +31,7 @@ Vehicle Chassis
     </video>
 
 
-The *star2* file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user's input file, even for relatively complex mechanisms such as this vehicle model. The vehicle chassis simulation demonstrates kinematic substructuring algorithm and implementation of Fiala tire model.
+The *star2* file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user's input file, even for relatively complex mechanisms such as this model of a vehicle chassis, which runs many times faster than real-time.
 
 
 Heuristic Application of Generalized Coordinate Partitioning
@@ -67,7 +67,7 @@ OpenGL Rendering
     </video>
 
 
-*star2* uses custom shaders written in GLSL to implement the Phong lighting model with multiple light sources. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variey of 3D model formats. Other advanced visualization functionality includes automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
+*star2* uses custom shaders written in GLSL to implement the Phong lighting model with multiple light sources. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variey of 3D model formats. Other visualization techniques are currently in development, such as automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
 
 
 Software Design
