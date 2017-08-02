@@ -10,7 +10,7 @@ One unique aspect of star2 is its file format, which is based on the JSON (Javas
 In star2, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
 
 
-Faster than real-time simulation
+Faster than real--time simulation
 **********************************
 
 .. raw:: html
@@ -34,7 +34,7 @@ Automatic assembly of complex mechanisms
 The *star2* file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user's input file, even for relatively complex mechanisms such as this model of a vehicle chassis, which runs many times faster than real-time.
 
 
-Heuristic Application of Generalized Coordinate Partitioning
+Heuristic application of Generalized Coordinate Partitioning
 ************************************************************
 
 .. raw:: html
@@ -46,7 +46,7 @@ Heuristic Application of Generalized Coordinate Partitioning
 Bricard's paradoxical mechanism cannot be parameterized by one independent variable throughout its range of motion. *star2's* heuristic reapplication of Generalized Coordinate Partitioning (GCP) successfully detects when to reapply GCP on an as--needed basis, even for exceptional or paradoxical linkages.
 
 
-Mobility Analysis and Interactive Positioning in a 3D Environment
+Mobility analysis and interactive positioning in a 3D environment
 ******************************************************************
 
 .. raw:: html
@@ -58,7 +58,7 @@ Mobility Analysis and Interactive Positioning in a 3D Environment
 In addition to solving dynamics equations, *star2* has tools to analyze each joint's contribution to overall mechanism mobility, compute mechanical advantages and to interactively position models in a 3D visualization environment.
 
 
-OpenGL Rendering
+OpenGL rendering
 *****************
 
 .. raw:: html
