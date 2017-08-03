@@ -121,9 +121,9 @@ Comments
 
 
 * Use the double slash (\\\\) comment to temporarily comment out a block of
-code for debugging purposes. The use of the (\\\\) comment conveys to
-other developers that the commented out block of code is a candidate for
-removal once the program has been verified to work correctly.
+  code for debugging purposes. The use of the (\\\\) comment conveys to
+  other developers that the commented out block of code is a candidate for
+  removal once the program has been verified to work correctly.
 
 .. code::
 
@@ -137,7 +137,7 @@ Indentation / Spaces
 * Use two spaces for indentation in C and C++. (Use 4 spaces in Python.)
 
 * Provide spaces after commas and around operators to improve readability.
-For example:
+  For example:
 
 .. code::
 
@@ -203,11 +203,11 @@ Scope of variables
 ******************
 
 * Try to reduce the scope of variables as practical. For example, it is
-preferred to declare an integer within a for loop, rather than declaring an
-integer at the beginning of a function and reusing it in multiple for loops.
-Reducing the scope of variables makes no different in execution speed or stack
-allocation and is easier to read and debug. An example of the preferred
-syntax is shown below:
+  preferred to declare an integer within a for loop, rather than declaring an
+  integer at the beginning of a function and reusing it in multiple for loops.
+  Reducing the scope of variables makes no different in execution speed or stack
+  allocation and is easier to read and debug. An example of the preferred
+  syntax is shown below:
 
 .. code::
 
