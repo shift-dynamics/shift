@@ -11,10 +11,8 @@ overview
    about
    installation
    file_format/file_format
-   page_todo
    contributing/contributing
    page_index.rst
-   :doc:`page_todo`
 
 
 developer reference
@@ -37,6 +35,8 @@ api reference
 
    global.rst
 	 :doc:`global`
+   page_todo
+   :doc:`page_todo`
 
 indices and tables
 ------------------

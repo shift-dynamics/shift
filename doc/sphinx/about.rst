@@ -9,6 +9,8 @@ One unique aspect of star2 is its file format, which is based on the JSON (Javas
 
 In star2, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
 
+Features
+---------
 
 Faster than real--time simulation
 **********************************
@@ -43,7 +45,7 @@ Heuristic application of Generalized Coordinate Partitioning
     </video>
 
 
-Bricard's paradoxical mechanism cannot be parameterized by one independent variable throughout its range of motion. *star2's* heuristic reapplication of Generalized Coordinate Partitioning (GCP) successfully detects when to reapply GCP on an as--needed basis, even for exceptional or paradoxical linkages.
+Bricard's paradoxical linkage cannot be parameterized by one independent variable throughout its range of motion. *star2's* heuristic reapplication of Generalized Coordinate Partitioning (GCP) successfully detects when to reapply GCP on an as--needed basis, even for exceptional or paradoxical linkages.
 
 
 Mobility analysis and interactive positioning in a 3D environment
