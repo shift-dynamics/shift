@@ -3940,9 +3940,10 @@ void Workspace::loadModelParameters() {
     m_modelParametersPanel.relativeError->setValue(
       m_context->modelParameters->relativeError);
 
+    qDebug() << "omega_N" << m_context->modelParameters->baumgarteOmegaN;
+
     m_modelParametersPanel.omegaN->setValue(
       m_context->modelParameters->baumgarteOmegaN);
-    qDebug() << m_context->modelParameters->baumgarteOmegaN;
 
     m_modelParametersPanel.timeSpan->setValue(
       m_context->modelParameters->timeSpan);

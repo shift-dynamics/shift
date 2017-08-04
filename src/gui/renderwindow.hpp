@@ -133,8 +133,8 @@ class RenderWindow : public OpenGLWindow {
 
 public:
   RenderWindow();
-  void render();
 
+  void render();
   void resizeGL(int width, int height);
   void loadContext(s2_context_t* context);
   QString getCursorPositionText();
@@ -295,6 +295,7 @@ private:
 
   bool m_initialized;
   bool m_drawFrames;
+  bool m_drawTerrain;
   bool m_drawJoints;
   bool m_simulationRunning;
   double m_currentSimulationTime;
