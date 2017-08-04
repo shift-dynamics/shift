@@ -27,6 +27,7 @@
 RenderWindow::RenderWindow()
   : OpenGLWindow(),
     m_frame(0),
+    m_drawTerrain(false),
     m_terrainShaderInitialized(false),
     m_terrainInitialized(false),
     m_terrainObjects(NULL) {
@@ -2062,7 +2063,7 @@ void RenderWindow::render() {
     }
 
     /* draw terrain */
-    if(m_context != NULL) {
+    if(m_context != NULL && m_drawTerrain && m_terrainShaderInitialized) {
       drawTerrain();
     }
     // m_uniformsFrame.vao->release();
