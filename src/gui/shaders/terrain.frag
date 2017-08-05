@@ -58,12 +58,7 @@ void main(void) {
         // 0= point light, posLight indicates position of light source
         //need to compute direction of incoming light
 
-        vec4 temp = v * vec4(
-          posLight[i].x,
-          posLight[i].y,
-          posLight[i].z,
-          1.0)
-          - fs_in.eye_coord;
+        vec4 temp = v * vec4(posLight[i], 1) - vec4(fs_in.eye_coord, 1);
         L = normalize(temp.xyz);
       } break;
       case 1: {
@@ -78,15 +73,19 @@ void main(void) {
       } break;
     }
 
-    vec3 KdMaterial = texture2D(tex_color, fs_in.tc);
+    /* get diffuse color from texture */
+    vec4 KdMaterial = texture2D(tex_color, fs_in.tc);
 
-    color.rgb += KaOverKd * KdMaterial * Ka[i];          //ambient term
+    /* ambient term */
+    color.rgb += KaOverKd * KdMaterial.rgb * Ka[i];
     float LdotN =  max(0.0, dot(L, fs_in.normal));
 
-    color.rgb += KdMaterial * Kd[i] * LdotN; //diffuse term
+    /* diffuse term */
+    color.rgb += KdMaterial.rgb * Kd[i] * LdotN;
 
-    vec3 R = -normalize(reflect(L, fs_in.normal));       //specular term
-    color.rgb += KsOverKd * KdMaterial * Ks[i] * pow(max(0, dot(R, V)), Ns);
+    /* specular term */
+    vec3 R = -normalize(reflect(L, fs_in.normal));
+    color.rgb += KsOverKd * KdMaterial.rgb * Ks[i] * pow(max(0, dot(R, V)), Ns);
   }
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));
 

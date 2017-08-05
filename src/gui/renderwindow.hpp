@@ -33,6 +33,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
+QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
 /*! @brief parameters related to lights
 
@@ -44,9 +45,15 @@ typedef struct LightParameters {
   GLfloat* KaLight;
   GLfloat* KdLight;
   GLfloat* KsLight;
+  GLuint* mvp;
+  GLuint* mv;
+  GLuint* v;
+  GLuint* shadowTexture;
+  GLuint* shadowBuffer;
   GLint* directional;
   GLuint lightCount;
 } LightParameters;
+
 
 
 /*! @brief uniform identifiers used for each shader program
@@ -70,6 +77,8 @@ typedef struct ProgramUniforms {
   GLuint Ka;
   GLuint Kd;
   GLuint Ks;
+  GLuint KsOverKd;
+  GLuint KaOverKd;
   GLuint lightCount;
 
   GLint position;
@@ -84,6 +93,8 @@ typedef struct ProgramUniforms {
   GLuint zMin;
 
   GLuint viewport;
+
+
 
 } ProgramUniforms;
 
@@ -175,6 +186,7 @@ public slots:
   void interpolateCurrentPosition(double t);
   void toggleFrameDisplay();
   void toggleJointDisplay();
+  void toggleDrawTerrain();
   void setPerspective();
   void setOrthogonal();
   void toggleVertexNormalDisplay();
@@ -258,6 +270,7 @@ private:
   QOpenGLShaderProgram* m_programFrame;
   QOpenGLShaderProgram* m_programGouraud;
   QOpenGLShaderProgram* m_programPhong;
+  QOpenGLShaderProgram* m_programShadow;
   QOpenGLShaderProgram* m_programFlat;
   QOpenGLShaderProgram* m_programTerrain;
 
@@ -265,6 +278,7 @@ private:
   ProgramUniforms m_uniformsCoordinateSystem;
   ProgramUniforms m_uniformsPhong;
   ProgramUniforms m_uniformsFlat;
+  ProgramUniforms m_uniformsShadow;
   ProgramUniforms m_uniformsTerrain;
   FrameUniforms m_uniformsFrame;
   TerrainObjects* m_terrainObjects;
@@ -277,6 +291,7 @@ private:
 
   void checkShader(
     GLuint shader);
+
 
   void initializeLights();
 
