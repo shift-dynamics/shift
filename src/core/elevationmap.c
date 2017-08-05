@@ -60,7 +60,7 @@ void generateSampleHeightMap(const char* filename) {
 
     for(x = 0; x < (ssize_t) width; x++) {
       PixelSetRedQuantum(pixels[x], surface(x, y));
-      printf("%f -> %f\n",  surface(x, y), PixelGetRedQuantum(pixels[x]));
+      // printf("%f -> %f\n",  surface(x, y), PixelGetRedQuantum(pixels[x]));
     }
 
     (void) PixelSyncIterator(iterator);
@@ -587,7 +587,7 @@ s2_elevationmap_t* s2_elevationmap(
 
     for(x = 0; x < (long) width; x++) {
       // PixelGetMagickColor(pixels[x], &pixel);
-      printf("%f\n", PixelGetRedQuantum(pixels[x]));
+      // printf("%f\n", PixelGetRedQuantum(pixels[x]));
 
       elevationmap->controlPoints[y * columns + x] =
         (double)PixelGetRedQuantum(pixels[x]);

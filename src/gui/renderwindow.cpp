@@ -239,6 +239,13 @@ void RenderWindow::toggleJointDisplay() {
   m_drawJoints = !m_drawJoints;
 }
 
+/*!
+@brief toggle display of terrain map
+*/
+void RenderWindow::toggleDrawTerrain() {
+  m_drawTerrain = !m_drawTerrain;
+}
+
 
 /*!
 @brief gets current position of cursor
@@ -251,6 +258,17 @@ QString RenderWindow::getCursorPositionText() {
   return str;
 }
 
+
+QMatrix4x4 s2_displacementToQMatrix4x4(
+  s2_displacement_t* displacement) {
+
+  double* d = (double*)displacement;
+  return
+    QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+               (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+               (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+               0.f,  0.f,  0.f,  1.f);
+}
 
 /*!
 @brief initialize lights
@@ -276,6 +294,7 @@ void RenderWindow::initializeLights() {
         m_lightParameters.posLight[i * 3 + 0] = d->T.x;
         m_lightParameters.posLight[i * 3 + 1] = d->T.y;
         m_lightParameters.posLight[i * 3 + 2] = d->T.z;
+
       } break;
       case DIRECTIONAL: {
         m_lightParameters.directional[i] = 1;
@@ -807,6 +826,16 @@ void RenderWindow::initializeTerrain() {
       m_programTerrain->uniformLocation("zMin");
     m_uniformsTerrain.viewport =
       m_programTerrain->uniformLocation("viewport");
+
+    m_uniformsTerrain.KaOverKd =
+      m_programTerrain->uniformLocation("KaOverKd");
+    checkError("after set uniform location KaOverKd");
+    // qDebug() << "Kd: " << programUniforms->Kd;
+
+    m_uniformsTerrain.KsOverKd =
+      m_programTerrain->uniformLocation("KsOverKd");
+    checkError("after set uniform location Ks");
+
     m_programTerrain->release();
 
     checkError("after initialize terrain uniforms");
@@ -854,10 +883,10 @@ void RenderWindow::initializeTerrain() {
       for(size_t j = 0; j < n; j++) {
         depthFloat[j] = (float)((elevationMap->controlPoints[j] -
           elevationMap->zMin) / range);
-        printf(
-          "%f -> %f\n",
-          elevationMap->controlPoints[j],
-          depthFloat[j]);
+        // printf(
+        //   "%f -> %f\n",
+        //   elevationMap->controlPoints[j],
+        //   depthFloat[j]);
       }
 
       m_terrainObjects[i].depthTexture->setData(
@@ -910,6 +939,7 @@ void RenderWindow::initializeTerrain() {
     m_programTerrain->release();
     checkError("after generate terrain texture uniforms");
 
+    m_drawTerrain = true;
     m_terrainInitialized = true;
   }
 }
@@ -984,6 +1014,20 @@ void RenderWindow::compileShaders() {
   initializeProgramUniforms(
     &m_uniformsPhong,
     m_programPhong);
+
+  qDebug() << "compiling shadow shader program";
+  m_programShadow = new QOpenGLShaderProgram(this);
+  m_programShadow->addShaderFromSourceFile(
+    QOpenGLShader::Vertex,
+    ":/shaders/shadow.vert");
+  m_programShadow->addShaderFromSourceFile(
+    QOpenGLShader::Fragment,
+    ":/shaders/shadow.frag");
+  m_programShadow->link();
+
+  initializeProgramUniforms(
+    &m_uniformsShadow,
+    m_programShadow);
 
   checkError("after compiling shaders");
   qDebug() << "shaders compiled";
@@ -1843,11 +1887,7 @@ void RenderWindow::drawFrames(s2_assembly_t* assembly) {
     while(frameHead != NULL) {
 
       double* d = (double*)frameHead->dAbsolute;
-      QMatrix4x4 model =
-        QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                   (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                   (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                   0.f,  0.f,  0.f,  1.f);
+      QMatrix4x4 model = s2_displacementToQMatrix4x4(frameHead->dAbsolute);
       QMatrix4x4 scale =
         QMatrix4x4(m_frameScaleFactor, 0.0f, 0.0f, 0.0f,
                    0.0f, m_frameScaleFactor, 0.0f, 0.0f,
@@ -1883,12 +1923,7 @@ void RenderWindow::drawWFrames() {
     s2_tire_pac2002_t* tire =
       (s2_tire_pac2002_t*)m_context->forceModulePointers[i]->parameters[0];
 
-    double* d = (double*)&(tire->wFrame);
-    QMatrix4x4 model =
-      QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                 (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                 (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                 0.f,  0.f,  0.f,  1.f);
+    QMatrix4x4 model = s2_displacementToQMatrix4x4(&tire->wFrame);
     QMatrix4x4 scale =
       QMatrix4x4(m_frameScaleFactor, 0.0f, 0.0f, 0.0f,
                  0.0f, m_frameScaleFactor, 0.0f, 0.0f,
@@ -1929,6 +1964,7 @@ void RenderWindow::drawTerrain() {
     //              (float)d[2], (float)d[5], (float)d[8], (float)d[11],
     //              0.f,  0.f,  0.f,  1.f);
 
+    // elevationMap->dAbsolute
     QMatrix4x4 model =
       QMatrix4x4(1.f, 0.f, 0.f, 0.f,
                  0.f, 1.f, 0.f, 0.f,
@@ -1979,6 +2015,79 @@ void RenderWindow::drawTerrain() {
       m_uniformsTerrain.textureColor,
       1);
     checkError("after set texture color");
+
+    /* set normal matrix */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.nm,
+      mv.normalMatrix());
+    // checkError("after set nm phong");
+
+    /* set Ka for lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.Ka,
+      m_lightParameters.KaLight,
+      10,
+      3);
+
+    /* set Ks for lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.Ks,
+      m_lightParameters.KsLight,
+      10,
+      3);
+    // checkError("after set KsLight phong");
+
+    /* set Kd for lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.Kd,
+      m_lightParameters.KdLight,
+      10,
+      3);
+    // checkError("after set KdLight phong");
+
+    /* set directional switch for lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.directional,
+      m_lightParameters.directional,
+      10);
+    // checkError("after set directional phong");
+
+    /* set positions of lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.posLight,
+      m_lightParameters.posLight,
+      10,
+      3);
+    // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+    // checkError("after set poslight phong");
+
+    /* set number of lights */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.lightCount,
+      m_lightParameters.lightCount);
+    // qDebug() << "light count:" << lightParameters.lightCount;
+    // checkError("after set light count phong");
+
+    /* set Kd properties for material */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.KaOverKd, 0.2, 0.2, 0.2);
+
+    // checkError("after set KdMaterial phong");
+
+    /* set Ks properties for material */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.KsOverKd, 0.5, 0.5, 0.5);
+    // checkError("after set KsMaterial phong");
+
+    // checkError("after set KaMaterial phong");
+
+    // qDebug() << "KaMaterial: " << material->Ka[0]
+    // << material->Ka[1] << material->Ka[2];
+
+    /* set specularity property for material */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.Ns, 1000);
+
 
     // glUniform1f(uniforms.dmap_depth, enable_displacement ? dmap_depth : 0.0f);
     // glUniform1i(uniforms.enable_fog, enable_fog ? 1 : 0);

@@ -146,6 +146,7 @@ class Workspace : public QMainWindow {
     void setPlaybackVisible(bool);
     void setLoadingVisible(bool);
     void writeMobility();
+    void drawTerrainToggleActive(bool);
 
   private:
     QSize minimumSizeHint() const {
@@ -171,6 +172,7 @@ class Workspace : public QMainWindow {
 
     SliderHandle* m_currentSlider;
     QTabWidget* m_tabwidget;
+    QAction* m_actionToggleDrawTerrain;
 
     struct m_sliders {
       QGroupBox* groupBox;
