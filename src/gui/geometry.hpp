@@ -1,5 +1,5 @@
-#ifndef _STAR2_BUFFEROBJECTS_HPP_
-#define _STAR2_BUFFEROBJECTS_HPP_
+#ifndef _STAR2_GEOMETRY_HPP_
+#define _STAR2_GEOMETRY_HPP_
 
 #include "../star2.h"
 #include "openglwindow.hpp"
@@ -32,7 +32,52 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
 
+class s2_Geometry {
+  Q_OBJECT
 
+public:
+  s2_Geometry() :
+    m_context(NULL)
+     {
+
+  };
+  ~s2_Geometry();
+
+  void initialize();
+
+  void checkError(const QString &prefix);
+
+  bool isInitialized() {
+    return m_initialized;
+  };
+
+  bool isEnabled() {
+    return m_drawEnabled;
+  }
+
+  float getScaleFactor() {
+    return m_scaleFactor;
+  }
+
+public slots:
+  void enable(bool active) {
+    m_drawEnabled = active;
+  }
+
+  void toggleEnabled() {
+    m_drawEnabled = !m_drawEnabled;
+  }
+
+private:
+  s2_context_t* m_context;
+
+  bool m_initialized;
+  bool m_drawEnabled;
+  float m_scaleFactor;
+
+  QOpenGLShaderProgram* m_program;
+
+};
 
 
 

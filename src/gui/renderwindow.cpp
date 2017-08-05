@@ -26,16 +26,30 @@
 
 RenderWindow::RenderWindow()
   : OpenGLWindow(),
+    m_context(NULL),
     m_frame(0),
-    m_drawTerrain(false),
+    m_x(0),
+    m_y(0),
+    m_xRot(0),
+    m_yRot(0),
+    m_zRot(0),
+    m_xPan(0),
+    m_yPan(0),
+    m_zPan(0),
+    m_camDistance(3.0),
+    m_perspective(true),
     m_terrainShaderInitialized(false),
     m_terrainInitialized(false),
-    m_terrainObjects(NULL) {
+    m_terrainObjects(NULL),
+    m_initialized(false),
+    m_drawFrames(false),
+    m_drawTerrain(false),
+    m_simulationRunning(false) {
 
   setAnimating(true);
 
   /*
-    set initial background color
+    initialize background color
     @TODO move default background color to a config or theme file
   */
   m_backgroundColor[0] = 0.f / 255.f;
@@ -61,29 +75,9 @@ RenderWindow::RenderWindow()
   m_planeLineColor[3] = 1.0f;
 
   m_frameScaleFactor = 0.5;
-  m_jointScaleFactor = 2;
+  m_jointScaleFactor = 2.0;
 
-  /* initialize m_context to NULL */
-  m_context = NULL;
-
-  /* initialize Camera, display variables */
-  m_xRot = 0;
-  m_yRot = 0;
-  m_zRot = 0;
-
-  m_xPan = 0;
-  m_yPan = 0;
-  m_zPan = 0;
-
-  m_x = 0;
-  m_y = 0;
-
-  m_initialized = false;
-  m_simulationRunning = false;
-  m_camDistance = 3.0;
   m_bufferObjects = QVector<BufferObjects*>();
-  m_perspective = true;
-  m_drawFrames = false;
 
   m_lightParameters.posLight = new GLfloat[30];
   memset(m_lightParameters.posLight, 0, 30 * sizeof(GLfloat));
@@ -102,17 +96,17 @@ RenderWindow::RenderWindow()
 
   m_lightParameters.lightCount = 0;
 
-  m_joint.active = false;
-  m_joint.joint = NULL;
-  m_joint.counter = 0;
-  m_joint.qIndex = -1;
-  m_joint.dqIndex = -1;
-  m_joint.maxCount = 1000;
-  m_joint.delq = 0;
-  m_joint.targetVal = 0;
-  m_joint.isPositive = true;
-  m_joint.jointType = PRIMITIVE;
-  m_joint.moveType = INCREMENT;
+  // m_joint.active = false;
+  // m_joint.joint = NULL;
+  // m_joint.counter = 0;
+  // m_joint.qIndex = -1;
+  // m_joint.dqIndex = -1;
+  // m_joint.maxCount = 1000;
+  // m_joint.delq = 0;
+  // m_joint.targetVal = 0;
+  // m_joint.isPositive = true;
+  // m_joint.jointType = PRIMITIVE;
+  // m_joint.moveType = INCREMENT;
 
   m_timer = new QTimer();
   m_timer->setTimerType(Qt::PreciseTimer);
@@ -1475,28 +1469,28 @@ void RenderWindow::updateGL() {
 }
 
 
-/*!
-  @brief set joint to be incremented
-*/
-void RenderWindow::setJoint(
-  s2_joint_t* joint,
-  int qIndex,
-  int dqIndex,
-  double delq,
-  s2_joint_enum_t jointType) {
-
-  m_joint.active = true;
-  m_joint.counter = 0;
-  m_joint.joint = joint;
-  m_joint.qIndex = qIndex;
-  m_joint.dqIndex = dqIndex;
-  m_joint.delq = delq;
-  m_joint.targetVal = -1;
-  m_joint.jointType = jointType;
-  m_joint.moveType = INCREMENT;
-  m_joint.isPositive = true;
-  m_joint.maxCount = 1000;
-}
+// /*!
+//   @brief set joint to be incremented
+// */
+// void RenderWindow::setJoint(
+//   s2_joint_t* joint,
+//   int qIndex,
+//   int dqIndex,
+//   double delq,
+//   s2_joint_enum_t jointType) {
+//
+//   m_joint.active = true;
+//   m_joint.counter = 0;
+//   m_joint.joint = joint;
+//   m_joint.qIndex = qIndex;
+//   m_joint.dqIndex = dqIndex;
+//   m_joint.delq = delq;
+//   m_joint.targetVal = -1;
+//   m_joint.jointType = jointType;
+//   m_joint.moveType = INCREMENT;
+//   m_joint.isPositive = true;
+//   m_joint.maxCount = 1000;
+// }
 
 
 /*!
@@ -1544,155 +1538,155 @@ void RenderWindow::clearJoint() {
 }
 
 
-/*!
-@brief move joint incrementally if user specifies a joint is to be moved
-using joint slider interface.
-
-This function should not be called while simulation is running, or while
-simulation is being played back.
-*/
-void RenderWindow::updateJoint() {
-
-  if(m_joint.active) {
-    m_joint.counter++;
-
-    /* determine if joint is in a substructure, if it is not constrained
-    then no need to do Newton-Raphson iteration */
-    if(m_joint.joint->substructurePointer != NULL) {
-
-      s2_mobility_compute_substructure(
-        m_joint.joint->substructurePointer);
-
-      if(m_joint.jointType == SPHERICAL) {
-
-      /*! @TODO convert euler angle sequence to quaternion and update
-          4 entries in q array */
-
-      } else {
-
-        /* specify variable as independent and update the value in q array.
-        Perform Newton-Raphson iteration with current variable as a
-        specifid coordinate */
-
-        switch(m_joint.moveType) {
-          case TARGET: {
-            if(m_joint.counter > m_joint.maxCount) {
-              /* if the number of steps allotted for the move has been
-              exceeded, stop incrementing the joint */
-
-              clearJoint();
-            } else {
-
-              double delq =
-                m_joint.delq * pow(m_joint.joint->mobilityNumber[0], 1.5);
-              if(fabs(delq) < 1e-16) {
-                clearJoint();
-                return;
-              }
-
-              if(m_joint.isPositive) {
-                if(
-                  m_context->q[m_joint.qIndex] + delq >
-                  m_joint.targetVal) {
-
-                  s2_newtonRaphson_increment_specified(
-                    m_context,
-                    m_joint.joint->substructurePointer->substructureIndex,
-                    m_joint.dqIndex,
-                    m_joint.targetVal,
-                    PRIMITIVE,
-                    TARGET);
-
-                  // qDebug() << "before clearjoint";
-
-                  clearJoint();
-                } else {
-
-                  s2_newtonRaphson_increment_specified(
-                    m_context,
-                    m_joint.joint->substructurePointer->substructureIndex,
-                    m_joint.dqIndex,
-                    delq,
-                    PRIMITIVE,
-                    INCREMENT);
-                }
-              } else {
-                if(
-                  m_context->q[m_joint.qIndex] + delq < m_joint.targetVal) {
-
-                  s2_newtonRaphson_increment_specified(
-                    m_context,
-                    m_joint.joint->substructurePointer->substructureIndex,
-                    m_joint.dqIndex,
-                    m_joint.targetVal,
-                    PRIMITIVE,
-                    TARGET);
-
-                  // qDebug() << "before clearjoint";
-                  clearJoint();
-                } else {
-
-                  s2_newtonRaphson_increment_specified(
-                    m_context,
-                    m_joint.joint->substructurePointer->substructureIndex,
-                    m_joint.dqIndex,
-                    -delq,
-                    PRIMITIVE,
-                    INCREMENT);
-                }
-              }
-            }
-          } break;
-          case INCREMENT: {
-
-            double delq =
-              m_joint.delq * pow(m_joint.joint->mobilityNumber[0], 1.5);
-
-            if(fabs(delq) < 1e-16) {
-              clearJoint();
-              break;
-            }
-
-            int returnVal = s2_newtonRaphson_increment_specified(
-              m_context,
-              m_joint.joint->substructurePointer->substructureIndex,
-              m_joint.dqIndex,
-              delq,
-              TX,
-              INCREMENT);
-
-            if(returnVal){
-              clearJoint();
-            }
-          } break;
-        }
-        s2_updateGLReferenceFrames(m_context);
-
-        // s2_mobility_compute_substructure(
-        //   m_joint.joint->substructurePointer);
-
-        s2_mobility_computeGlobalMobility(m_context);
-      }
-
-    } else {
-      /* update a joint that is not in a substructure */
-
-      if(m_joint.jointType == SPHERICAL) {
-
-        /*! @TODO convert euler angle sequence to quaternion and update
-         4 entries in q array */
-
-      } else {
-
-        /* otherwise, update a single value in q array */
-        m_context->q[m_joint.qIndex] += m_joint.delq * 1.5;
-      }
-      s2_updateDH(m_context);
-      s2_updateGLReferenceFrames(m_context);
-    }
-    emit jointChanged();
-  }
-}
+// /*!
+// @brief move joint incrementally if user specifies a joint is to be moved
+// using joint slider interface.
+//
+// This function should not be called while simulation is running, or while
+// simulation is being played back.
+// */
+// void RenderWindow::updateJoint() {
+//
+//   if(m_joint.active) {
+//     m_joint.counter++;
+//
+//     /* determine if joint is in a substructure, if it is not constrained
+//     then no need to do Newton-Raphson iteration */
+//     if(m_joint.joint->substructurePointer != NULL) {
+//
+//       s2_mobility_compute_substructure(
+//         m_joint.joint->substructurePointer);
+//
+//       if(m_joint.jointType == SPHERICAL) {
+//
+//       /*! @TODO convert euler angle sequence to quaternion and update
+//           4 entries in q array */
+//
+//       } else {
+//
+//         /* specify variable as independent and update the value in q array.
+//         Perform Newton-Raphson iteration with current variable as a
+//         specified coordinate */
+//
+//         switch(m_joint.moveType) {
+//           case TARGET: {
+//             if(m_joint.counter > m_joint.maxCount) {
+//               /* if the number of steps allotted for the move has been
+//               exceeded, stop incrementing the joint */
+//
+//               clearJoint();
+//             } else {
+//
+//               double delq =
+//                 m_joint.delq * pow(m_joint.joint->mobilityNumber[0], 1.5);
+//               if(fabs(delq) < 1e-16) {
+//                 clearJoint();
+//                 return;
+//               }
+//
+//               if(m_joint.isPositive) {
+//                 if(
+//                   m_context->q[m_joint.qIndex] + delq >
+//                   m_joint.targetVal) {
+//
+//                   s2_newtonRaphson_increment_specified(
+//                     m_context,
+//                     m_joint.joint->substructurePointer->substructureIndex,
+//                     m_joint.dqIndex,
+//                     m_joint.targetVal,
+//                     PRIMITIVE,
+//                     TARGET);
+//
+//                   // qDebug() << "before clearjoint";
+//
+//                   clearJoint();
+//                 } else {
+//
+//                   s2_newtonRaphson_increment_specified(
+//                     m_context,
+//                     m_joint.joint->substructurePointer->substructureIndex,
+//                     m_joint.dqIndex,
+//                     delq,
+//                     PRIMITIVE,
+//                     INCREMENT);
+//                 }
+//               } else {
+//                 if(
+//                   m_context->q[m_joint.qIndex] + delq < m_joint.targetVal) {
+//
+//                   s2_newtonRaphson_increment_specified(
+//                     m_context,
+//                     m_joint.joint->substructurePointer->substructureIndex,
+//                     m_joint.dqIndex,
+//                     m_joint.targetVal,
+//                     PRIMITIVE,
+//                     TARGET);
+//
+//                   // qDebug() << "before clearjoint";
+//                   clearJoint();
+//                 } else {
+//
+//                   s2_newtonRaphson_increment_specified(
+//                     m_context,
+//                     m_joint.joint->substructurePointer->substructureIndex,
+//                     m_joint.dqIndex,
+//                     -delq,
+//                     PRIMITIVE,
+//                     INCREMENT);
+//                 }
+//               }
+//             }
+//           } break;
+//           case INCREMENT: {
+//
+//             double delq =
+//               m_joint.delq * pow(m_joint.joint->mobilityNumber[0], 1.5);
+//
+//             if(fabs(delq) < 1e-16) {
+//               clearJoint();
+//               break;
+//             }
+//
+//             int returnVal = s2_newtonRaphson_increment_specified(
+//               m_context,
+//               m_joint.joint->substructurePointer->substructureIndex,
+//               m_joint.dqIndex,
+//               delq,
+//               TX,
+//               INCREMENT);
+//
+//             if(returnVal){
+//               clearJoint();
+//             }
+//           } break;
+//         }
+//         s2_updateGLReferenceFrames(m_context);
+//
+//         // s2_mobility_compute_substructure(
+//         //   m_joint.joint->substructurePointer);
+//
+//         s2_mobility_computeGlobalMobility(m_context);
+//       }
+//
+//     } else {
+//       /* update a joint that is not in a substructure */
+//
+//       if(m_joint.jointType == SPHERICAL) {
+//
+//         /*! @TODO convert euler angle sequence to quaternion and update
+//          4 entries in q array */
+//
+//       } else {
+//
+//         /* otherwise, update a single value in q array */
+//         m_context->q[m_joint.qIndex] += m_joint.delq * 1.5;
+//       }
+//       s2_updateDH(m_context);
+//       s2_updateGLReferenceFrames(m_context);
+//     }
+//     emit jointChanged();
+//   }
+// }
 
 
 /*!
