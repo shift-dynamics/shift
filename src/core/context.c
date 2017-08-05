@@ -559,6 +559,7 @@ s2_material_t* s2_materials(
   return materials;
 }
 
+
 /*!
 @brief Initialize a Frame datastructure and set to identity
 
@@ -2429,7 +2430,7 @@ double s2_context_getSimulationTime(s2_context_t* context) {
 
 
 /*!
-@brief get current iconv value, always returns -1 for
+@brief get current iconv value from numerical integrator
 */
 int s2_context_getIConv(s2_context_t* context) {
   if(context->modelParameters && context->numericalIntegrator) {
@@ -2446,3 +2447,7 @@ int s2_context_getIConv(s2_context_t* context) {
   }
   return -1;
 }
+
+/*!
+@brief free displacement
+*/

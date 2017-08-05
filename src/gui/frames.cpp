@@ -66,7 +66,7 @@ void s2_Frames::initialize() {
   m_program->bind();
   m_renderWindow->checkError("after frame program bind");
 
-  m_vao = new QOpenGLVertexArrayObject(m_renderWindow);
+  m_vao = new QOpenGLVertexArrayObject(static_cast <QWindow*>(m_renderWindow));
   m_vao->create();
   m_vao->bind();
 
