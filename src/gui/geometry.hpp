@@ -59,6 +59,15 @@ public:
     return m_scaleFactor;
   }
 
+  void setContext(s2_context_t* context) {
+    m_context = context;
+  }
+
+  void clearContext(s2_context_t* context) {
+    m_context = NULL;
+  }
+
+
 public slots:
   void enable(bool active) {
     m_drawEnabled = active;

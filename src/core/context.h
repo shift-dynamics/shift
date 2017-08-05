@@ -158,6 +158,9 @@ s2_forcemodule_t* s2_forcemodule(s2_forcemodule_enum_t);
 s2_material_t* s2_materials(
   int materialCount);
 
+void s2_materials_free(
+  s2_material_t* materials,
+  int materialCount);
 
 void s2_restraint_append(
   s2_assembly_t* assembly,

@@ -33,7 +33,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
-class s2_Frames : public s2_Geometry {
+class s2_Frames : s2_Geometry {
 public:
   s2_Frames(RenderWindow* renderWindow) {
     m_renderWindow = renderWindow;
@@ -42,7 +42,7 @@ public:
   ~s2_Frames();
   void initialize();
   void draw();
-  void setContext(s2_context_t*);
+
 
 private:
   s2_context_t* m_context;

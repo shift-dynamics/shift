@@ -32,7 +32,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
-class s2_Joints : public s2_Geometry {
+class s2_Joints : s2_Geometry {
   s2_Joints() :
     m_context(NULL),
     m_active(false),
