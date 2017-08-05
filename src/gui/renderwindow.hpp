@@ -99,17 +99,17 @@ typedef struct ProgramUniforms {
 } ProgramUniforms;
 
 
-typedef struct FrameUniforms {
-  GLuint position;
-  GLuint mvp;
-  GLuint color;
-  QOpenGLVertexArrayObject* vao;
-  QOpenGLBuffer* vbo;
-  QOpenGLBuffer* ibo;
-  GLfloat* vertices;
-  GLfloat* colors;
-  GLuint* indices;
-} FrameUniforms;
+// typedef struct FrameUniforms {
+//   GLuint position;
+//   GLuint mvp;
+//   GLuint color;
+//   QOpenGLVertexArrayObject* vao;
+//   QOpenGLBuffer* vbo;
+//   QOpenGLBuffer* ibo;
+//   GLfloat* vertices;
+//   GLfloat* colors;
+//   GLuint* indices;
+// } FrameUniforms;
 
 
 typedef struct BufferObjects {
@@ -123,12 +123,12 @@ typedef struct BufferObjects {
 
 
 /*! @brief struct for a planar grid */
-typedef struct Grid {
-  BufferObjects* faceBufferObject;
-  BufferObjects* lineBufferObject;
-  int gridSize;
-  int scaleFactor;
-} Grid;
+// typedef struct Grid {
+//   BufferObjects* faceBufferObject;
+//   BufferObjects* lineBufferObject;
+//   int gridSize;
+//   int scaleFactor;
+// } Grid;
 
 
 typedef struct TerrainObjects {
@@ -150,19 +150,19 @@ public:
   void loadContext(s2_context_t* context);
   QString getCursorPositionText();
   void checkError(const QString &prefix);
-  void setJoint(
-    s2_joint_t* joint,
-    int qIndex,
-    int dqIndex,
-    double delq,
-    s2_joint_enum_t jointType);
-  void setJointTarget(
-    s2_joint_t* joint,
-    int qIndex,
-    int dqIndex,
-    double targetVal,
-    s2_joint_enum_t jointType);
-  void clearJoint();
+  // void setJoint(
+  //   s2_joint_t* joint,
+  //   int qIndex,
+  //   int dqIndex,
+  //   double delq,
+  //   s2_joint_enum_t jointType);
+  // void setJointTarget(
+  //   s2_joint_t* joint,
+  //   int qIndex,
+  //   int dqIndex,
+  //   double targetVal,
+  //   s2_joint_enum_t jointType);
+  // void clearJoint();
   void setSimulationRunning(bool val);
   bool isInitialized();
 
@@ -203,7 +203,7 @@ signals:
   void xRotationChanged(int angle);
   void yRotationChanged(int angle);
   void zRotationChanged(int angle);
-  void jointChanged();
+  // void jointChanged();
   void simulationUpdated(double);
   void simulationStopped();
   void initialized();
@@ -243,48 +243,48 @@ private:
   bool m_terrainInitialized;
   QTimer* m_timer;
 
-  struct m_joint {
-    bool active;
-    s2_joint_t* joint;
-    unsigned int counter;
-    int qIndex;
-    int dqIndex;
-    unsigned int maxCount;
-    double delq;
-    double targetVal;
-    bool isPositive;
-    s2_joint_enum_t jointType;
-    s2_move_enum_t moveType;
-  } m_joint;
+  // struct m_joint {
+  //   bool active;
+  //   s2_joint_t* joint;
+  //   unsigned int counter;
+  //   int qIndex;
+  //   int dqIndex;
+  //   unsigned int maxCount;
+  //   double delq;
+  //   double targetVal;
+  //   bool isPositive;
+  //   s2_joint_enum_t jointType;
+  //   s2_move_enum_t moveType;
+  // } m_joint;
 
   s2_shading_enum_t m_shadingType;
   GLfloat m_backgroundColor[4];
   GLfloat m_normalColor[4];
-  float m_frameScaleFactor;
-  float m_jointScaleFactor;
-
-  GLfloat m_planeFaceColor[4];
-  GLfloat m_planeLineColor[4];
+  // float m_frameScaleFactor;
+  // float m_jointScaleFactor;
+  //
+  // GLfloat m_planeFaceColor[4];
+  // GLfloat m_planeLineColor[4];
 
   QOpenGLShaderProgram* m_programLine;
   QOpenGLShaderProgram* m_programFrame;
-  QOpenGLShaderProgram* m_programGouraud;
+  // QOpenGLShaderProgram* m_programGouraud;
   QOpenGLShaderProgram* m_programPhong;
   QOpenGLShaderProgram* m_programShadow;
   QOpenGLShaderProgram* m_programFlat;
   QOpenGLShaderProgram* m_programTerrain;
 
-  ProgramUniforms m_uniformsLine;
-  ProgramUniforms m_uniformsCoordinateSystem;
-  ProgramUniforms m_uniformsPhong;
-  ProgramUniforms m_uniformsFlat;
-  ProgramUniforms m_uniformsShadow;
-  ProgramUniforms m_uniformsTerrain;
+  // ProgramUniforms m_uniformsLine;
+  // ProgramUniforms m_uniformsCoordinateSystem;
+  // ProgramUniforms m_uniformsPhong;
+  // ProgramUniforms m_uniformsFlat;
+  // ProgramUniforms m_uniformsShadow;
+  // ProgramUniforms m_uniformsTerrain;
   FrameUniforms m_uniformsFrame;
   TerrainObjects* m_terrainObjects;
 
-  GLuint m_vao_coordinateSystem;
-  GLuint m_vbo_coordinateSystem;
+  // GLuint m_vao_coordinateSystem;
+  // GLuint m_vbo_coordinateSystem;
 
   const char* getShaderSource(
     const char* shaderSource);
@@ -299,12 +299,12 @@ private:
     ProgramUniforms* programUniforms,
     QOpenGLShaderProgram* shaderProgram);
 
-  void initializeBody(
-    s2_body_t* body);
-
-  void initializeMaterial(
-    s2_material_t* material,
-    s2_displacement_t* origin);
+  // void initializeBody(
+  //   s2_body_t* body);
+  //
+  // void initializeMaterial(
+  //   s2_material_t* material,
+  //   s2_displacement_t* origin);
 
   void initializeTerrain();
 
@@ -328,12 +328,12 @@ private:
 
   void interpolateCurrentPosition();
 
-  UniformBufferObject* m_lightsBuffer;
-  UniformBufferObject* m_lightCountBuffer;
-  QVector<BufferObjects*> m_bufferObjects;
+  // UniformBufferObject* m_lightsBuffer;
+  // UniformBufferObject* m_lightCountBuffer;
+  // QVector<BufferObjects*> m_bufferObjects;
 
-  QVector<s2_displacement_t*> m_frames;
-  Grid* m_grid;
+  // QVector<s2_displacement_t*> m_frames;
+  // Grid* m_grid;
 
   LightParameters m_lightParameters;
 
