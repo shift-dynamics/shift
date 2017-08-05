@@ -1235,7 +1235,6 @@ void Workspace::initializeMenus() {
   QAction* actionSetFlatShaded = new QAction("Flat Shaded", this);
   viewMenu->addAction(actionSetFlatShaded);
 
-
   QAction* actionSetPhongShaded = new QAction("Phong Shaded", this);
   viewMenu->addAction(actionSetPhongShaded);
 
@@ -1250,11 +1249,11 @@ void Workspace::initializeMenus() {
 
   viewMenu->addSeparator();
 
-  QAction* actionToggleVertexNormals =
-      new QAction("Display Vertex Normals", this);
-  viewMenu->addAction(actionToggleVertexNormals);
-  actionToggleVertexNormals->setCheckable(true);
-  actionToggleVertexNormals->setChecked(false);
+  // QAction* actionToggleVertexNormals =
+  //     new QAction("Display Vertex Normals", this);
+  // viewMenu->addAction(actionToggleVertexNormals);
+  // actionToggleVertexNormals->setCheckable(true);
+  // actionToggleVertexNormals->setChecked(false);
 
   QAction* actionToggleFrameDisplay =
       new QAction("Display Coordinate Systems", this);
@@ -1267,6 +1266,12 @@ void Workspace::initializeMenus() {
   viewMenu->addAction(actionToggleJointDisplay);
   actionToggleJointDisplay->setCheckable(true);
   actionToggleJointDisplay->setChecked(false);
+
+  m_actionToggleDrawTerrain =
+    new QAction("Display Terrain", this);
+  viewMenu->addAction(m_actionToggleDrawTerrain);
+  m_actionToggleDrawTerrain->setCheckable(true);
+  m_actionToggleDrawTerrain->setChecked(false);
 
 
 
@@ -1322,11 +1327,11 @@ void Workspace::initializeMenus() {
     m_renderWindow,
     SLOT(setPhongShaded()));
 
-  QObject::connect(
-    actionToggleVertexNormals,
-    SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(toggleVertexNormalDisplay()));
+  // QObject::connect(
+  //   actionToggleVertexNormals,
+  //   SIGNAL(triggered()),
+  //   m_renderWindow,
+  //   SLOT(toggleVertexNormalDisplay()));
 
   QObject::connect(
     actionToggleFrameDisplay,
@@ -1340,6 +1345,11 @@ void Workspace::initializeMenus() {
     m_renderWindow,
     SLOT(toggleJointDisplay()));
 
+  QObject::connect(
+    m_actionToggleDrawTerrain,
+    SIGNAL(triggered()),
+    m_renderWindow,
+    SLOT(toggleDrawTerrain()));
 
   /*
     help menu actions
@@ -3091,6 +3101,11 @@ void Workspace::openFileAtLoad() {
 
       updateTree();
       loadModelParameters();
+      if(m_context->elevationMapCount == 0) {
+        drawTerrainToggleActive(false);
+      } else {
+        drawTerrainToggleActive(true);
+      }
       // s2_context_print(m_context);
     }
 
@@ -3250,6 +3265,11 @@ void Workspace::openFile() {
 
     updateTree();
     loadModelParameters();
+    if(m_context->elevationMapCount == 0) {
+      drawTerrainToggleActive(false);
+    } else {
+      drawTerrainToggleActive(true);
+    }
     // s2_context_print(m_context);
   }
 
@@ -3444,6 +3464,12 @@ void Workspace::populateTreeRecursive(
   }
 }
 
+/*!
+@brief disables turning on/off terrain maps if no terrain maps are loaded
+*/
+void Workspace::drawTerrainToggleActive(bool active) {
+  m_actionToggleDrawTerrain->setEnabled(active);
+}
 
 /*!
   @brief populate model treewidget with s2_context_t data structure
@@ -3666,7 +3692,7 @@ void Workspace::about() {
   file.open(QIODevice::ReadOnly | QIODevice::Text);
   fileContents = file.readAll();
   file.close();
-  QMessageBox::about(this, "About mbdl workspace", fileContents);
+  QMessageBox::about(this, "About", fileContents);
 }
 
 

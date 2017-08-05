@@ -20,6 +20,9 @@
     <file alias="terrain.tesc">shaders/terrain.tesc</file>
     <file alias="terrain.tese">shaders/terrain.tese</file>
     <file alias="terrain.vert">shaders/terrain.vert</file>
+
+    <file alias="shadow.frag">shaders/shadow.frag</file>
+    <file alias="shadow.vert">shaders/shadow.vert</file>
   </qresource>
 
   <qresource prefix="/about">
