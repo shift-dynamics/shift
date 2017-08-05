@@ -16,23 +16,20 @@ void s2_Grid::initialize(
   /*
     set up line segments
   */
-  m_grid->lineBufferObject = new BufferObjects;
+  m_material = s2_materials(1);
+  m_material->shadingType = LINE;
+  m_material->Ns = 10;
 
-  m_grid->lineBufferObject->material = s2_materials(1);
-  m_grid->lineBufferObject->transform = s2_displacement();
+  m_transform = s2_displacement();
 
-  m_grid->lineBufferObject->material->shadingType = LINE;
-  m_grid->lineBufferObject->material->Ns = 10;
 
   /* set up vertices and line segments for grid */
-  m_grid->lineBufferObject->material->vertexCount = 4 * m_grid->gridSize;
-  m_grid->lineBufferObject->material->faceCount = 2 * (m_grid->gridSize + 1);
+  m_material->vertexCount = 4 * m_gridSize;
+  m_material->faceCount = 2 * (m_gridSize + 1);
 
-  m_grid->lineBufferObject->material->vertices =
-    new GLfloat[3 * m_grid->lineBufferObject->material->vertexCount];
-  m_grid->lineBufferObject->material->vertexNormals =
-    new GLfloat[3 * m_grid->lineBufferObject->material->vertexCount];
-  m_grid->lineBufferObject->material->faces =
+  m_material->vertices = (GLfloat*)malloc(3 * m_material->vertexCount * sizeof(GLfloat));
+  m_material->vertexNormals = (GLfloat*)malloc(3 * m_material->vertexCount * sizeof(GLfloat));
+  material->faces =
     new GLuint[2 * m_grid->lineBufferObject->material->faceCount];
 
   /* set vertices for vertical line segments */
@@ -155,6 +152,7 @@ void s2_Grid::initialize(
 
   m_bufferObjects.append(m_grid->lineBufferObject);
 }
+
 
 /*!
 @brief draw grid in OpenGL window

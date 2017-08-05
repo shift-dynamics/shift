@@ -32,7 +32,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
-class s2_Lights : public s2_Geometry {
+class s2_Lights : s2_Geometry {
 
 public:
   s2_Lights();

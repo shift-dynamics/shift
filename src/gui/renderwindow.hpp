@@ -351,7 +351,8 @@ class RenderWindowWidget : public QWidget {
   public:
     RenderWindowWidget(QWidget* parent): QWidget(parent) {
       m_renderWindow = new RenderWindow();
-      QWidget* widget = QWidget::createWindowContainer(m_renderWindow);
+      QWidget* widget =
+        QWidget::createWindowContainer(m_renderWindow);
       widget->setContentsMargins(QMargins(0, 0, 0, 0));
       QHBoxLayout* layout = new QHBoxLayout(this);
       layout->setContentsMargins(QMargins(0, 0, 0, 0));

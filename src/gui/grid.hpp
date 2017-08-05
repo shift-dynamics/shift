@@ -33,16 +33,20 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
 
-class s2_Grid : public s2_Geometry {
+class s2_Grid : s2_Geometry {
   Q_OBJECT
 
 public:
-  s2_Grid() :
-    m_context(NULL)
-     {
+  s2_Grid()
+  : m_context(NULL)
+  , m_material(NULL)
+  , m_transform(NULL) {
 
   };
-  ~s2_Grid();
+  ~s2_Grid() {
+    free(m_transform);
+    s2_materials_free(m_material, 1);
+  }
 
   void initialize();
   void draw();
@@ -76,6 +80,9 @@ private:
   s2_shading_enum_t m_shadingType;
   GLfloat m_color[4];
   GLfloat m_normalColor[4];
+
+  s2_material_t* m_material;
+  s2_displacement_t* m_transform;
 
   BufferObjects* faceBufferObject;
   BufferObjects* lineBufferObject;
