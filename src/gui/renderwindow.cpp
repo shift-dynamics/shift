@@ -27,14 +27,15 @@
 RenderWindow::RenderWindow()
   : OpenGLWindow()
   , m_context(NULL)
-  , m_x(0.0)
-  , m_y(0.0)
-  , m_xRot(0.0)
-  , m_yRot(0.0)
-  , m_zRot(0.0)
-  , m_xPan(0.0)
-  , m_yPan(0.0)
-  , m_zPan(0.0)
+  , m_frame(0)
+  , m_x(0)
+  , m_y(0)
+  , m_xRot(0)
+  , m_yRot(0)
+  , m_zRot(0)
+  , m_xPan(0)
+  , m_yPan(0)
+  , m_zPan(0)
   , m_camDistance(3.0)
   , m_perspective(true)
   , m_initialized(false)
@@ -57,30 +58,56 @@ RenderWindow::RenderWindow()
   m_normalColor[2] = 255.f / 255.f;
   m_normalColor[3] = 1.0f;
 
-  m_grid = new s2_Grid(this);
-  m_bodies = new s2_Bodies(this);
-  m_frames = new s2_Frames(this);
-  m_joints = new s2_Joints(this);
-  m_lights = new s2_Lights(this);
-  m_terrain = new s2_Terrain(this);
-
-
   /* set initial plane display colors */
   // m_planeFaceColor[0] = 36.f / 255.f;
   // m_planeFaceColor[1] = 36.f / 255.f;
   // m_planeFaceColor[2] = 36.f / 255.f;
   // m_planeFaceColor[3] = 0.5f;
-
+  //
   // m_planeLineColor[0] = 36.f / 255.f;
   // m_planeLineColor[1] = 36.f / 255.f;
   // m_planeLineColor[2] = 36.f / 255.f;
   // m_planeLineColor[3] = 1.0f;
+  //
+  // m_frameScaleFactor = 0.5;
+  // m_jointScaleFactor = 2.0;
+  //
+  // m_bufferObjects = QVector<BufferObjects*>();
+  //
+  // m_lightParameters.posLight = new GLfloat[30];
+  // memset(m_lightParameters.posLight, 0, 30 * sizeof(GLfloat));
+  //
+  // m_lightParameters.KaLight = new GLfloat[30];
+  // memset(m_lightParameters.KaLight, 0, 30 * sizeof(GLfloat));
+  //
+  // m_lightParameters.KdLight = new GLfloat[30];
+  // memset(m_lightParameters.KdLight, 0, 30 * sizeof(GLfloat));
+  //
+  // m_lightParameters.KsLight = new GLfloat[30];
+  // memset(m_lightParameters.KsLight, 0, 30 * sizeof(GLfloat));
+  //
+  // m_lightParameters.directional = new GLint[10];
+  // memset(m_lightParameters.directional, 0, 10 * sizeof(GLfloat));
+  //
+  // m_lightParameters.lightCount = 0;
+
+  // m_joint.active = false;
+  // m_joint.joint = NULL;
+  // m_joint.counter = 0;
+  // m_joint.qIndex = -1;
+  // m_joint.dqIndex = -1;
+  // m_joint.maxCount = 1000;
+  // m_joint.delq = 0;
+  // m_joint.targetVal = 0;
+  // m_joint.isPositive = true;
+  // m_joint.jointType = PRIMITIVE;
+  // m_joint.moveType = INCREMENT;
 
   m_timer = new QTimer();
   m_timer->setTimerType(Qt::PreciseTimer);
   m_timer->setSingleShot(true);
   connect(m_timer, SIGNAL(timeout()), this, SLOT(stopSimulationPlayback()));
-  // m_drawVertexNormals = false;
+  m_drawVertexNormals = false;
   // m_drawJoints = false;
   // m_shadingType = PHONG;
 }
@@ -206,14 +233,6 @@ void RenderWindow::toggleDrawJoints() {
 */
 void RenderWindow::toggleDrawTerrain() {
   m_terrain->toggleEnabled();
-}
-
-
-/*!
-@brief toggle display of dynamic shadow mapping
-*/
-void RenderWindow::toggleDrawShadows() {
-  m_lights->toggleEnabled();
 }
 
 
@@ -350,38 +369,28 @@ void RenderWindow::setOrthogonal() {
 /*!
 @brief set wire frame rendering
 */
-void RenderWindow::setBodyDrawStyleWireframe() {
-
+void RenderWindow::setWireframe() {
   m_bodies->setDrawStyle(WIREFRAME);
   updateGL();
 }
 
 /*!
+@brief set flat shading
+*/
+void RenderWindow::setFlatShaded() {
+  m_bodies->setDrawStyle(FLAT);
+  updateGL();
+}
+
+
+/*!
 @brief set phong shading
 */
-void RenderWindow::setBodyDrawStylePhong() {
+void RenderWindow::setPhongShaded() {
   m_bodies->setDrawStyle(PHONG);
   updateGL();
 }
 
-
-/*!
-@brief set wire frame rendering for terrain
-*/
-void RenderWindow::setTerrainDrawStyleWireframe() {
-
-  m_terrain->setDrawStyle(WIREFRAME);
-  updateGL();
-}
-
-
-/*!
-@brief set phong shading for terrain
-*/
-void RenderWindow::setTerrainDrawStylePhong() {
-  m_terrain->setDrawStyle(PHONG);
-  updateGL();
-}
 
 /* @brief load a Context data structure for rendering
 
@@ -453,7 +462,7 @@ const GLchar* RenderWindow::getShaderSource(
 @brief update lights, currently not implemented
 
 */
-// void RenderWindow::updateLights() {
+void RenderWindow::updateLights() {
 
   // GLint activeLightCount = 10;
   // if(m_context->activeLightCount <= 10) {
@@ -542,12 +551,12 @@ const GLchar* RenderWindow::getShaderSource(
   //   s2_glCheckError("after bind uniform light buffer");
   //   if(i >= 10) break;
   // }
-// }
+}
 
 
-/*!
-@brief initialize program uniforms
-*/
+// /*!
+// @brief initialize program uniforms
+// */
 // void RenderWindow::initializeProgramUniforms(
 //   ProgramUniforms* programUniforms,
 //   QOpenGLShaderProgram* shaderProgram) {
@@ -619,13 +628,25 @@ const GLchar* RenderWindow::getShaderSource(
 
 
 
-
-
-
 /*!
-@brief initialize attributes for each shader program
+@brief initialize opengl properties for a Body datastructure
 
 */
+// void RenderWindow::initializeBody(
+//   s2_body_t* body) {
+//
+//   for(int i = 0; i < body->materialCount; i++) {
+//     s2_material_t* material = body->materials + i;
+//     // printf("initializing material [%d]\n", i);
+//     initializeMaterial(material, m_context->d + body->origin->dIndex);
+//   }
+// }
+
+
+// /*!
+// @brief initialize attributes for each shader program
+//
+// */
 // void RenderWindow::setAttributeLocation(
 //   BufferObjects* bufferObjects,
 //   ProgramUniforms* uniforms,
@@ -670,20 +691,253 @@ const GLchar* RenderWindow::getShaderSource(
 // }
 
 
+// /*!
+// @brief initialize all shader handles on a given material
+//
+// */
+// void RenderWindow::initializeMaterial(
+//   s2_material_t* material,
+//   s2_displacement_t* origin) {
+//
+//   m_programPhong->bind();
+//   BufferObjects* bufferObjects = new BufferObjects;
+//   bufferObjects->vao = new QOpenGLVertexArrayObject(this);
+//   bufferObjects->vao->create();
+//
+//   bufferObjects->vertexBuffer =
+//     new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+//   bufferObjects->vertexBuffer->create();
+//
+//   bufferObjects->vertexNormalBuffer =
+//     new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+//   bufferObjects->vertexNormalBuffer->create();
+//
+//   bufferObjects->ibo =
+//     new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+//   bufferObjects->ibo->create();
+//
+//   checkError("before generating vertex arrays");
+//
+//   bufferObjects->vao->bind();
+//
+//   bufferObjects->vertexBuffer->bind();
+//   bufferObjects->vertexBuffer->allocate(
+//     3 * material->vertexCount * sizeof(GLfloat));
+//   bufferObjects->vertexBuffer->write(
+//     0,
+//     material->vertices,
+//     3 * material->vertexCount * sizeof(GLfloat));
+//
+//   bufferObjects->vertexNormalBuffer->bind();
+//   bufferObjects->vertexNormalBuffer->allocate(
+//     3 * material->vertexCount * sizeof(GLfloat));
+//   bufferObjects->vertexNormalBuffer->write(
+//     0,
+//     material->vertexNormals,
+//     3 * material->vertexCount * sizeof(GLfloat));
+//
+//   bufferObjects->ibo->bind();
+//   bufferObjects->ibo->allocate(
+//     material->faces,
+//     3 * material->faceCount * sizeof(GLuint));
+//
+//   bufferObjects->material = material;
+//   bufferObjects->transform = origin;
+//
+//   setAttributeLocation(
+//     bufferObjects,
+//     &m_uniformsLine,
+//     m_programLine);
+//
+//   setAttributeLocation(
+//     bufferObjects,
+//     &m_uniformsFlat,
+//     m_programFlat);
+//
+//   // setAttributeLocation(
+//   //   bufferObjects,
+//   //   &m_uniformsGouraud,
+//   //   m_programGouraud);
+//
+//   setAttributeLocation(
+//     bufferObjects,
+//     &m_uniformsPhong,
+//     m_programPhong);
+//
+//   checkError("after set attribute location");
+//   m_bufferObjects.append(bufferObjects);
+//
+// }
+
 /*!
-@brief initialize all shader handles on a given material
+@brief initialize terrain textures
 
 */
+void RenderWindow::initializeTerrain() {
+
+  /* compiles terrain shader only if terrain maps used in
+  star2 input file */
+  if(m_context->elevationMapCount != 0 && !m_terrainShaderInitialized) {
+
+    qDebug() << "compiling terrain shader";
+    m_programTerrain = new QOpenGLShaderProgram(this);
+    m_programTerrain->addShaderFromSourceFile(
+      QOpenGLShader::Vertex,
+      ":/shaders/terrain.vert");
+    m_programTerrain->addShaderFromSourceFile(
+      QOpenGLShader::TessellationControl,
+      ":/shaders/terrain.tesc");
+    m_programTerrain->addShaderFromSourceFile(
+      QOpenGLShader::TessellationEvaluation,
+      ":/shaders/terrain.tese");
+    m_programTerrain->addShaderFromSourceFile(
+      QOpenGLShader::Fragment,
+      ":/shaders/terrain.frag");
+    m_programTerrain->link();
+    checkError("after link program terrain");
+
+    /* most program uniforms are initialized here */
+    initializeProgramUniforms(
+      &m_uniformsTerrain,
+      m_programTerrain);
+
+    /* initialize additional elevation map specific uniforms */
+    m_programTerrain->bind();
+    m_uniformsTerrain.projectionMatrix =
+      m_programTerrain->uniformLocation("proj_matrix");
+    m_uniformsTerrain.textureDisplacement =
+      m_programTerrain->uniformLocation("tex_displacement");
+    m_uniformsTerrain.textureColor =
+      m_programTerrain->uniformLocation("tex_color");
+    m_uniformsTerrain.zMax =
+      m_programTerrain->uniformLocation("zMax");
+    m_uniformsTerrain.zMin =
+      m_programTerrain->uniformLocation("zMin");
+    m_uniformsTerrain.viewport =
+      m_programTerrain->uniformLocation("viewport");
+
+    m_uniformsTerrain.KaOverKd =
+      m_programTerrain->uniformLocation("KaOverKd");
+    checkError("after set uniform location KaOverKd");
+    // qDebug() << "Kd: " << programUniforms->Kd;
+
+    m_uniformsTerrain.KsOverKd =
+      m_programTerrain->uniformLocation("KsOverKd");
+    checkError("after set uniform location Ks");
+
+    m_programTerrain->release();
+
+    checkError("after initialize terrain uniforms");
+    m_terrainShaderInitialized = true;
+  }
+
+  /* initializes terrain maps, checks m_terrainInitialized to verify
+  that terrain maps have not already been loaded for this context */
+  if(m_context->elevationMapCount != 0 && !m_terrainInitialized) {
+    if(m_terrainObjects) {
+      delete [] m_terrainObjects;
+    }
+    m_terrainObjects = new TerrainObjects[m_context->elevationMapCount];
+
+    m_programTerrain->bind();
+    for(int i = 0; i < m_context->elevationMapCount; i++) {
+
+      s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
+
+      m_terrainObjects[i].depthTexture =
+        new QOpenGLTexture(QOpenGLTexture::Target2D);
+      checkError("after new depth texture");
+      m_terrainObjects[i].depthTexture->setFormat(
+        QOpenGLTexture::R32F);
+      checkError("after set format R32F");
+      m_terrainObjects[i].depthTexture->setWrapMode(
+        QOpenGLTexture::ClampToEdge);
+      checkError("after set wrap mode");
+      m_terrainObjects[i].depthTexture->setMinMagFilters(
+        QOpenGLTexture::Linear,
+        QOpenGLTexture::Linear);
+      checkError("after set min mag filters");
+      m_terrainObjects[i].depthTexture->setSize(
+        elevationMap->columns,
+        elevationMap->rows,
+        1);
+      checkError("after set size");
+      m_terrainObjects[i].depthTexture->allocateStorage();
+      checkError("after allocate storage");
+
+      /* normalize elevation map control points from 0 to 1 */
+      size_t n = elevationMap->columns * elevationMap->rows;
+      float* depthFloat = (float*)malloc(n * sizeof(float));
+      double range = elevationMap->zMax - elevationMap->zMin;
+      for(size_t j = 0; j < n; j++) {
+        depthFloat[j] = (float)((elevationMap->controlPoints[j] -
+          elevationMap->zMin) / range);
+        // printf(
+        //   "%f -> %f\n",
+        //   elevationMap->controlPoints[j],
+        //   depthFloat[j]);
+      }
+
+      m_terrainObjects[i].depthTexture->setData(
+        QOpenGLTexture::Red,
+        QOpenGLTexture::Float32,
+        depthFloat);
+      checkError("after setData");
+      free(depthFloat);
 
 
+      m_terrainObjects[i].colorTexture =
+        new QOpenGLTexture(QOpenGLTexture::Target2D);
+      checkError("after new color texture");
+
+      m_terrainObjects[i].colorTexture->setFormat(
+        QOpenGLTexture::RGBA32F);
+      checkError("after set format RF");
+      m_terrainObjects[i].colorTexture->setWrapMode(
+        QOpenGLTexture::ClampToEdge);
+      checkError("after set wrap mode");
+      m_terrainObjects[i].colorTexture->setMinMagFilters(
+        QOpenGLTexture::Linear,
+        QOpenGLTexture::Linear);
+      checkError("after set min mag filters");
+
+      // qDebug() << "allocating color texture with size: " <<
+      //   elevationMap->textureColumns << "," << elevationMap->textureRows;
+
+      m_terrainObjects[i].colorTexture->setSize(
+        elevationMap->textureColumns,
+        elevationMap->textureRows,
+        1);
+      checkError("after set size");
+
+      m_terrainObjects[i].colorTexture->allocateStorage();
+      checkError("after allocate storage");
+
+      // size_t size = elevationMap->textureRows * elevationMap->textureColumns * 4;
+      // for(size_t i = 0; i < size; i++) {
+      //   printf("[%lu]: %d\n", i, elevationMap->texture[i]);
+      // }
+
+      m_terrainObjects[i].colorTexture->setData(
+        QOpenGLTexture::RGBA,
+        QOpenGLTexture::UInt8,
+        elevationMap->texture);
+      checkError("after setData color texture");
+
+    }
+    m_programTerrain->release();
+    checkError("after generate terrain texture uniforms");
+
+    m_drawTerrain = true;
+    m_terrainInitialized = true;
+  }
+}
 
 
 /*!
 @brief compile shaders
 */
 void RenderWindow::compileShaders() {
-
-  /* initialize line shader */
   qDebug() << "compiling line shader program";
   m_programLine = new QOpenGLShaderProgram(this);
   m_programLine->addShaderFromSourceFile(
@@ -694,29 +948,29 @@ void RenderWindow::compileShaders() {
     ":/shaders/simple.frag");
   m_programLine->link();
   checkError("after link program line");
-  // m_programLine->bind();
-  // m_uniformsLine.mvp = m_programLine->uniformLocation("mvp");
-  // m_uniformsLine.colorUniform = m_programLine->uniformLocation("colorUniform");
-  // m_programLine->release();
-  // checkError("after release program line");
+  m_programLine->bind();
+  m_uniformsLine.mvp = m_programLine->uniformLocation("mvp");
+  m_uniformsLine.colorUniform = m_programLine->uniformLocation("colorUniform");
+  m_programLine->release();
+  checkError("after release program line");
 
-  /* initialize line shader */
-  qDebug() << "compiling line shader program";
+
+  qDebug() << "compiling frame shader program";
   m_programFrame = new QOpenGLShaderProgram(this);
   m_programFrame->addShaderFromSourceFile(
     QOpenGLShader::Vertex,
-    ":/shaders/frames.vert");
+    ":/shaders/frame.vert");
   m_programFrame->addShaderFromSourceFile(
     QOpenGLShader::Fragment,
     ":/shaders/frame.frag");
   m_programFrame->link();
-  checkError("after link program frame");
+  checkError("after link frame program");
 
-  /* compile frame shader */
-  // m_programFrame->bind();
-  // m_uniformsFrame.mvp = m_programFrame->uniformLocation("mvp");
-  // m_programFrame->release();
-  // checkError("after release program frame");
+  m_programFrame->bind();
+  m_uniformsFrame.mvp = m_programFrame->uniformLocation("mvp");
+  m_programFrame->release();
+  checkError("after release program frame");
+
 
   qDebug() << "compiling flat shader program";
   m_programFlat = new QOpenGLShaderProgram(this);
@@ -731,11 +985,10 @@ void RenderWindow::compileShaders() {
     ":/shaders/flat.frag");
   m_programFlat->link();
   checkError("after link program flat");
-  //
-  // initializeProgramUniforms(
-  //   &m_uniformsFlat,
-  //   m_programFlat);
-  //
+
+  initializeProgramUniforms(
+    &m_uniformsFlat,
+    m_programFlat);
 
   qDebug() << "compiling phong";
   m_programPhong = new QOpenGLShaderProgram(this);
@@ -746,11 +999,10 @@ void RenderWindow::compileShaders() {
     QOpenGLShader::Fragment,
     ":/shaders/phong.frag");
   m_programPhong->link();
-  //
-  // initializeProgramUniforms(
-  //   &m_uniformsPhong,
-  //   m_programPhong);
-  //
+
+  initializeProgramUniforms(
+    &m_uniformsPhong,
+    m_programPhong);
 
   qDebug() << "compiling shadow shader program";
   m_programShadow = new QOpenGLShaderProgram(this);
@@ -761,27 +1013,12 @@ void RenderWindow::compileShaders() {
     QOpenGLShader::Fragment,
     ":/shaders/shadow.frag");
   m_programShadow->link();
-  checkError("after compiling shadow shaders");
 
+  initializeProgramUniforms(
+    &m_uniformsShadow,
+    m_programShadow);
 
-  qDebug() << "compiling terrain shader program";
-  m_programTerrain = new QOpenGLShaderProgram(this);
-  m_programTerrain->addShaderFromSourceFile(
-    QOpenGLShader::Vertex,
-    ":/shaders/terrain.vert");
-  m_programTerrain->addShaderFromSourceFile(
-    QOpenGLShader::TessellationControl,
-    ":/shaders/terrain.tesc");
-  m_programTerrain->addShaderFromSourceFile(
-    QOpenGLShader::TessellationEvaluation,
-    ":/shaders/terrain.tese");
-  m_programTerrain->addShaderFromSourceFile(
-    QOpenGLShader::Fragment,
-    ":/shaders/terrain.frag");
-  m_programTerrain->link();
-  checkError("after compiling terrain shaders");
-
-
+  checkError("after compiling shaders");
   qDebug() << "shaders compiled";
 }
 
@@ -903,207 +1140,207 @@ void RenderWindow::compileShaders() {
 //     gridSize++;
 //   }
 //   m_grid->gridSize = gridSize;
-
-  //
-  // /* set up faces */
-  // m_grid->faceBufferObject = new BufferObjects;
-  // m_grid->faceBufferObject->transform = s2_displacement();
-  // m_grid->faceBufferObject->material = s2_materials(1);
-  // m_grid->faceBufferObject->material->shadingType = FLAT;
-  // m_grid->faceBufferObject->material->Ns = 10;
-  // memcpy(
-  //   m_grid->faceBufferObject->material->Ka,
-  //   m_planeFaceColor,
-  //   4 * sizeof(GLfloat));
-  // memcpy(
-  //   m_grid->faceBufferObject->material->Kd,
-  //   m_planeFaceColor,
-  //   4 * sizeof(GLfloat));
-  // memcpy(
-  //   m_grid->faceBufferObject->material->Ks,
-  //   m_planeFaceColor,
-  //   4 * sizeof(GLfloat));
-  // memcpy(
-  //   m_grid->faceBufferObject->material->Ke,
-  //   m_planeFaceColor,
-  //   4 * sizeof(GLfloat));
-  //
-  // m_grid->faceBufferObject->material->vertexCount = 4;
-  // m_grid->faceBufferObject->material->faceCount = 2;
-  //
-  // m_grid->faceBufferObject->material->vertices =
-  //   new GLfloat[3 * m_grid->faceBufferObject->material->vertexCount];
-  // m_grid->faceBufferObject->material->faces =
-  //   new GLuint[3 * m_grid->faceBufferObject->material->faceCount];
-  //
-  // /* set up vertices and indices to patch for faces, two triangles */
-  // m_grid->faceBufferObject->material->vertices[0] = -m_grid->gridSize / 2;
-  // m_grid->faceBufferObject->material->vertices[1] = m_grid->gridSize / 2;
-  // m_grid->faceBufferObject->material->vertices[2] = 1e-6;
-  // m_grid->faceBufferObject->material->vertices[3] = m_grid->gridSize / 2;
-  // m_grid->faceBufferObject->material->vertices[4] = m_grid->gridSize / 2;
-  // m_grid->faceBufferObject->material->vertices[5] = 1e-6;
-  // m_grid->faceBufferObject->material->vertices[6] = -m_grid->gridSize / 2;
-  // m_grid->faceBufferObject->material->vertices[7] = -m_grid->gridSize / 2;
-  // m_grid->faceBufferObject->material->vertices[8] = 1e-6;
-  // m_grid->faceBufferObject->material->vertices[9] = m_grid->gridSize / 2;
-  // m_grid->faceBufferObject->material->vertices[10] = m_grid->gridSize / 2;
-  // m_grid->faceBufferObject->material->vertices[11] = 1e-6;
-  //
-  // m_grid->faceBufferObject->material->faces[0] = 0;
-  // m_grid->faceBufferObject->material->faces[1] = 2;
-  // m_grid->faceBufferObject->material->faces[2] = 1;
-  // m_grid->faceBufferObject->material->faces[3] = 2;
-  // m_grid->faceBufferObject->material->faces[4] = 3;
-  // m_grid->faceBufferObject->material->faces[5] = 1;
-  //
-  // m_programFlat->bind();
-  //
-  // m_grid->faceBufferObject->vao = new QOpenGLVertexArrayObject(this);
-  // m_grid->faceBufferObject->vao->create();
-  // m_grid->faceBufferObject->vao->bind();
-  //
-  // m_grid->faceBufferObject->vertexBuffer =
-  //   new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  // m_grid->faceBufferObject->vertexBuffer->create();
-  // m_grid->faceBufferObject->vertexBuffer->bind();
-  // m_grid->faceBufferObject->vertexBuffer->allocate(
-  //   m_grid->faceBufferObject->material->vertices,
-  //   3 * m_grid->faceBufferObject->material->vertexCount * sizeof(GLfloat));
-  //
-  // m_grid->faceBufferObject->ibo =
-  //   new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-  // m_grid->faceBufferObject->ibo->create();
-  // m_grid->faceBufferObject->ibo->bind();
-  // m_grid->faceBufferObject->ibo->allocate(
-  //   m_grid->faceBufferObject->material->faces,
-  //   3 * m_grid->faceBufferObject->material->faceCount * sizeof(GLuint));
-  //
-  // m_uniformsFlat.position =
-  //   m_programFlat->attributeLocation("posAttr");
-  // m_programFlat->enableAttributeArray(m_uniformsFlat.position);
-  // m_programFlat->setAttributeBuffer(
-  //   m_uniformsFlat.position,
-  //   GL_FLOAT,
-  //   0,
-  //   3);
-  //
-  // m_programFlat->release();
-  //
-  // m_bufferObjects.append(m_grid->faceBufferObject);
-  //
-  // /*
-  //   set up line segments
-  // */
-  // m_grid->lineBufferObject = new BufferObjects;
-  //
-  // m_grid->lineBufferObject->material = s2_materials(1);
-  // m_grid->lineBufferObject->transform = s2_displacement();
-  //
-  // m_grid->lineBufferObject->material->shadingType = LINE;
-  // m_grid->lineBufferObject->material->Ns = 10;
-  //
-  // /* set up vertices and line segments for grid */
-  // m_grid->lineBufferObject->material->vertexCount = 4 * m_grid->gridSize;
-  // m_grid->lineBufferObject->material->faceCount = 2 * (m_grid->gridSize + 1);
-  //
-  // m_grid->lineBufferObject->material->vertices =
-  //   new GLfloat[3 * m_grid->lineBufferObject->material->vertexCount];
-  // m_grid->lineBufferObject->material->vertexNormals =
-  //   new GLfloat[3 * m_grid->lineBufferObject->material->vertexCount];
-  // m_grid->lineBufferObject->material->faces =
-  //   new GLuint[2 * m_grid->lineBufferObject->material->faceCount];
-  //
-  // /* set vertices for vertical line segments */
-  // int gridIndex = 0;
-  // for(int i = 0; i <= m_grid->gridSize; i++) {
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 0] =
-  //     (float)(i - m_grid->gridSize / 2);
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 1] =
-  //     (float)(m_grid->gridSize / 2);
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 2] = 1e-6;
-  //   m_grid->lineBufferObject->material->faces[gridIndex] = gridIndex;
-  //   gridIndex++;
-  //
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 0] =
-  //     (float)(i - m_grid->gridSize / 2);
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 1] =
-  //     -(float)(m_grid->gridSize / 2);
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 2] = 1e-6;
-  //   m_grid->lineBufferObject->material->faces[gridIndex] = gridIndex;
-  //   gridIndex++;
-  // }
-
-  // for(int i = 0; i < gridIndex; i++) {
-  //   printf("%f, %f, %f\n",
-  //     m_grid->lineBufferObject->material->vertices[i * 3 + 0],
-  //     m_grid->lineBufferObject->material->vertices[i * 3 + 1],
-  //     m_grid->lineBufferObject->material->vertices[i * 3 + 2]);
-  // }
-
-  // qDebug() << "gridIndex: " << gridIndex;
-
-  // /* set vertices for remaining horizontal line segments */
-  // for(int i = 1; i < m_grid->gridSize; i++) {
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 0] =
-  //     -(float)(m_grid->gridSize / 2);
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 1] =
-  //     (float)(i - m_grid->gridSize / 2);
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 2] = 1e-6;
-  //   m_grid->lineBufferObject->material->faces[gridIndex] = gridIndex;
-  //   gridIndex++;
-  //
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 0] =
-  //     (float)(m_grid->gridSize / 2);
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 1] =
-  //     (float)(i - m_grid->gridSize / 2);
-  //   m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 2] = 1e-6;
-  //   m_grid->lineBufferObject->material->faces[gridIndex] = gridIndex;
-  //   gridIndex++;
-  // }
-  //
-  // /* set top horizontal line segment */
-  // m_grid->lineBufferObject->material->faces[gridIndex++] = 0;
-  // m_grid->lineBufferObject->material->faces[gridIndex++] =
-  //   m_grid->gridSize * 2;
-  //
-  // /* set bottom horizontal line segment */
-  // m_grid->lineBufferObject->material->faces[gridIndex++] = 1;
-  // m_grid->lineBufferObject->material->faces[gridIndex++] =
-  //   m_grid->gridSize * 2 + 1;
-  //
-  // // qDebug() << "gridIndex final " << gridIndex;
-  // // qDebug() << "face count" << m_grid->lineBufferObject->material->faceCount;
-  //
-  //
-  // m_programLine->bind();
-  // // checkError("after line program bind");
-  //
-  // /* initialize vao and vbo */
-  // m_grid->lineBufferObject->vao = new QOpenGLVertexArrayObject(this);
-  // m_grid->lineBufferObject->vao->create();
-  // m_grid->lineBufferObject->vao->bind();
-  //
-  // // checkError("after initialize vao");
-  //
-  // // checkError("after set attribute posAttr in line program");
-  //
-  // m_grid->lineBufferObject->vertexBuffer =
-  //   new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  // m_grid->lineBufferObject->vertexBuffer->create();
-  //
-  // m_grid->lineBufferObject->vertexBuffer->bind();
-  // m_grid->lineBufferObject->vertexBuffer->allocate(
-  //   m_grid->lineBufferObject->material->vertices,
-  //   3 * m_grid->lineBufferObject->material->vertexCount * sizeof(GLfloat));
-  // checkError("after initialize vbo");
-  // m_grid->lineBufferObject->vertexNormalBuffer =
-  //   new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  // m_grid->lineBufferObject->vertexNormalBuffer->create();
-  //
-  // m_grid->lineBufferObject->vertexNormalBuffer->allocate(
-  //   m_grid->lineBufferObject->material->vertexNormals,
-  //   m_grid->lineBufferObject->material->vertexCount * sizeof(GLfloat));
+//
+//   //
+//   // /* set up faces */
+//   // m_grid->faceBufferObject = new BufferObjects;
+//   // m_grid->faceBufferObject->transform = s2_displacement();
+//   // m_grid->faceBufferObject->material = s2_materials(1);
+//   // m_grid->faceBufferObject->material->shadingType = FLAT;
+//   // m_grid->faceBufferObject->material->Ns = 10;
+//   // memcpy(
+//   //   m_grid->faceBufferObject->material->Ka,
+//   //   m_planeFaceColor,
+//   //   4 * sizeof(GLfloat));
+//   // memcpy(
+//   //   m_grid->faceBufferObject->material->Kd,
+//   //   m_planeFaceColor,
+//   //   4 * sizeof(GLfloat));
+//   // memcpy(
+//   //   m_grid->faceBufferObject->material->Ks,
+//   //   m_planeFaceColor,
+//   //   4 * sizeof(GLfloat));
+//   // memcpy(
+//   //   m_grid->faceBufferObject->material->Ke,
+//   //   m_planeFaceColor,
+//   //   4 * sizeof(GLfloat));
+//   //
+//   // m_grid->faceBufferObject->material->vertexCount = 4;
+//   // m_grid->faceBufferObject->material->faceCount = 2;
+//   //
+//   // m_grid->faceBufferObject->material->vertices =
+//   //   new GLfloat[3 * m_grid->faceBufferObject->material->vertexCount];
+//   // m_grid->faceBufferObject->material->faces =
+//   //   new GLuint[3 * m_grid->faceBufferObject->material->faceCount];
+//   //
+//   // /* set up vertices and indices to patch for faces, two triangles */
+//   // m_grid->faceBufferObject->material->vertices[0] = -m_grid->gridSize / 2;
+//   // m_grid->faceBufferObject->material->vertices[1] = m_grid->gridSize / 2;
+//   // m_grid->faceBufferObject->material->vertices[2] = 1e-6;
+//   // m_grid->faceBufferObject->material->vertices[3] = m_grid->gridSize / 2;
+//   // m_grid->faceBufferObject->material->vertices[4] = m_grid->gridSize / 2;
+//   // m_grid->faceBufferObject->material->vertices[5] = 1e-6;
+//   // m_grid->faceBufferObject->material->vertices[6] = -m_grid->gridSize / 2;
+//   // m_grid->faceBufferObject->material->vertices[7] = -m_grid->gridSize / 2;
+//   // m_grid->faceBufferObject->material->vertices[8] = 1e-6;
+//   // m_grid->faceBufferObject->material->vertices[9] = m_grid->gridSize / 2;
+//   // m_grid->faceBufferObject->material->vertices[10] = m_grid->gridSize / 2;
+//   // m_grid->faceBufferObject->material->vertices[11] = 1e-6;
+//   //
+//   // m_grid->faceBufferObject->material->faces[0] = 0;
+//   // m_grid->faceBufferObject->material->faces[1] = 2;
+//   // m_grid->faceBufferObject->material->faces[2] = 1;
+//   // m_grid->faceBufferObject->material->faces[3] = 2;
+//   // m_grid->faceBufferObject->material->faces[4] = 3;
+//   // m_grid->faceBufferObject->material->faces[5] = 1;
+//   //
+//   // m_programFlat->bind();
+//   //
+//   // m_grid->faceBufferObject->vao = new QOpenGLVertexArrayObject(this);
+//   // m_grid->faceBufferObject->vao->create();
+//   // m_grid->faceBufferObject->vao->bind();
+//   //
+//   // m_grid->faceBufferObject->vertexBuffer =
+//   //   new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+//   // m_grid->faceBufferObject->vertexBuffer->create();
+//   // m_grid->faceBufferObject->vertexBuffer->bind();
+//   // m_grid->faceBufferObject->vertexBuffer->allocate(
+//   //   m_grid->faceBufferObject->material->vertices,
+//   //   3 * m_grid->faceBufferObject->material->vertexCount * sizeof(GLfloat));
+//   //
+//   // m_grid->faceBufferObject->ibo =
+//   //   new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+//   // m_grid->faceBufferObject->ibo->create();
+//   // m_grid->faceBufferObject->ibo->bind();
+//   // m_grid->faceBufferObject->ibo->allocate(
+//   //   m_grid->faceBufferObject->material->faces,
+//   //   3 * m_grid->faceBufferObject->material->faceCount * sizeof(GLuint));
+//   //
+//   // m_uniformsFlat.position =
+//   //   m_programFlat->attributeLocation("posAttr");
+//   // m_programFlat->enableAttributeArray(m_uniformsFlat.position);
+//   // m_programFlat->setAttributeBuffer(
+//   //   m_uniformsFlat.position,
+//   //   GL_FLOAT,
+//   //   0,
+//   //   3);
+//   //
+//   // m_programFlat->release();
+//   //
+//   // m_bufferObjects.append(m_grid->faceBufferObject);
+//
+//   /*
+//     set up line segments
+//   */
+//   m_grid->lineBufferObject = new BufferObjects;
+//
+//   m_grid->lineBufferObject->material = s2_materials(1);
+//   m_grid->lineBufferObject->transform = s2_displacement();
+//
+//   m_grid->lineBufferObject->material->shadingType = LINE;
+//   m_grid->lineBufferObject->material->Ns = 10;
+//
+//   /* set up vertices and line segments for grid */
+//   m_grid->lineBufferObject->material->vertexCount = 4 * m_grid->gridSize;
+//   m_grid->lineBufferObject->material->faceCount = 2 * (m_grid->gridSize + 1);
+//
+//   m_grid->lineBufferObject->material->vertices =
+//     new GLfloat[3 * m_grid->lineBufferObject->material->vertexCount];
+//   m_grid->lineBufferObject->material->vertexNormals =
+//     new GLfloat[3 * m_grid->lineBufferObject->material->vertexCount];
+//   m_grid->lineBufferObject->material->faces =
+//     new GLuint[2 * m_grid->lineBufferObject->material->faceCount];
+//
+//   /* set vertices for vertical line segments */
+//   int gridIndex = 0;
+//   for(int i = 0; i <= m_grid->gridSize; i++) {
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 0] =
+//       (float)(i - m_grid->gridSize / 2);
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 1] =
+//       (float)(m_grid->gridSize / 2);
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 2] = 1e-6;
+//     m_grid->lineBufferObject->material->faces[gridIndex] = gridIndex;
+//     gridIndex++;
+//
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 0] =
+//       (float)(i - m_grid->gridSize / 2);
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 1] =
+//       -(float)(m_grid->gridSize / 2);
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 2] = 1e-6;
+//     m_grid->lineBufferObject->material->faces[gridIndex] = gridIndex;
+//     gridIndex++;
+//   }
+//
+//   // for(int i = 0; i < gridIndex; i++) {
+//   //   printf("%f, %f, %f\n",
+//   //     m_grid->lineBufferObject->material->vertices[i * 3 + 0],
+//   //     m_grid->lineBufferObject->material->vertices[i * 3 + 1],
+//   //     m_grid->lineBufferObject->material->vertices[i * 3 + 2]);
+//   // }
+//
+//   // qDebug() << "gridIndex: " << gridIndex;
+//
+//   /* set vertices for remaining horizontal line segments */
+//   for(int i = 1; i < m_grid->gridSize; i++) {
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 0] =
+//       -(float)(m_grid->gridSize / 2);
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 1] =
+//       (float)(i - m_grid->gridSize / 2);
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 2] = 1e-6;
+//     m_grid->lineBufferObject->material->faces[gridIndex] = gridIndex;
+//     gridIndex++;
+//
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 0] =
+//       (float)(m_grid->gridSize / 2);
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 1] =
+//       (float)(i - m_grid->gridSize / 2);
+//     m_grid->lineBufferObject->material->vertices[gridIndex * 3 + 2] = 1e-6;
+//     m_grid->lineBufferObject->material->faces[gridIndex] = gridIndex;
+//     gridIndex++;
+//   }
+//
+//   /* set top horizontal line segment */
+//   m_grid->lineBufferObject->material->faces[gridIndex++] = 0;
+//   m_grid->lineBufferObject->material->faces[gridIndex++] =
+//     m_grid->gridSize * 2;
+//
+//   /* set bottom horizontal line segment */
+//   m_grid->lineBufferObject->material->faces[gridIndex++] = 1;
+//   m_grid->lineBufferObject->material->faces[gridIndex++] =
+//     m_grid->gridSize * 2 + 1;
+//
+//   // qDebug() << "gridIndex final " << gridIndex;
+//   // qDebug() << "face count" << m_grid->lineBufferObject->material->faceCount;
+//
+//
+//   m_programLine->bind();
+//   // checkError("after line program bind");
+//
+//   /* initialize vao and vbo */
+//   m_grid->lineBufferObject->vao = new QOpenGLVertexArrayObject(this);
+//   m_grid->lineBufferObject->vao->create();
+//   m_grid->lineBufferObject->vao->bind();
+//
+//   // checkError("after initialize vao");
+//
+//   // checkError("after set attribute posAttr in line program");
+//
+//   m_grid->lineBufferObject->vertexBuffer =
+//     new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+//   m_grid->lineBufferObject->vertexBuffer->create();
+//
+//   m_grid->lineBufferObject->vertexBuffer->bind();
+//   m_grid->lineBufferObject->vertexBuffer->allocate(
+//     m_grid->lineBufferObject->material->vertices,
+//     3 * m_grid->lineBufferObject->material->vertexCount * sizeof(GLfloat));
+//   // checkError("after initialize vbo");
+//   // m_grid->lineBufferObject->vertexNormalBuffer =
+//   //   new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+//   // m_grid->lineBufferObject->vertexNormalBuffer->create();
+//   //
+//   // m_grid->lineBufferObject->vertexNormalBuffer->allocate(
+//   //   m_grid->lineBufferObject->material->vertexNormals,
+//   //   m_grid->lineBufferObject->material->vertexCount * sizeof(GLfloat));
 //
 //   m_grid->lineBufferObject->ibo =
 //     new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
@@ -1152,11 +1389,15 @@ void RenderWindow::initialize() {
   // glEnable(GL_POLYGON_SMOOTH);
 
   if(!m_initialized) {
-    m_grid->initialize();
-    m_frames->initialize();
-    m_joints->initialize();
-    m_lights->initialize();
-    m_terrain->initialize();
+    compileShaders();
+    initializeFrames();
+
+    /* push an identity matrix onto the vector of coordinate systems to
+    represent the origin */
+    m_frames.append(s2_displacement());
+
+    /* set up grid for floor plane */
+    initializeGrid(100, 1.f);
 
     m_initialized = true;
     emit initialized();
@@ -1169,10 +1410,15 @@ void RenderWindow::initialize() {
   if(m_context) {
     // FILE* debug = m_context->modelParameters->debugFilePointer;
 
-
-    m_bodies->loadContext();
-    m_lights->loadContext();
-    m_terrain->loadContext();
+    m_context->viewport = s2_camera();
+    for(int i = 0; i < m_context->activeBodyCount; i++) {
+      s2_body_t* body = m_context->nonVirtualBodyPointers[i];
+      // fprintf(debug, "initializing body: ");
+      // s2_stackstr_print(debug, body->name);
+      initializeBody(body);
+    }
+    initializeLights();
+    initializeTerrain();
 
     // printf("active light count : %d\n", context->activeLightCount);
     updateGL();
@@ -1218,62 +1464,224 @@ void RenderWindow::updateGL() {
 }
 
 
-/*!
-  @brief set joint to be incremented
-*/
-void RenderWindow::setJoint(
-  s2_joint_t* joint,
-  int qIndex,
-  int dqIndex,
-  double delq,
-  s2_joint_enum_t jointType) {
+// /*!
+//   @brief set joint to be incremented
+// */
+// void RenderWindow::setJoint(
+//   s2_joint_t* joint,
+//   int qIndex,
+//   int dqIndex,
+//   double delq,
+//   s2_joint_enum_t jointType) {
+//
+//   m_joint.active = true;
+//   m_joint.counter = 0;
+//   m_joint.joint = joint;
+//   m_joint.qIndex = qIndex;
+//   m_joint.dqIndex = dqIndex;
+//   m_joint.delq = delq;
+//   m_joint.targetVal = -1;
+//   m_joint.jointType = jointType;
+//   m_joint.moveType = INCREMENT;
+//   m_joint.isPositive = true;
+//   m_joint.maxCount = 1000;
+// }
 
-  m_joints->set(
-    joint,
-    qIndex,
-    dqIndex,
-    delq,
-    jointType);
-}
+//
+// /*!
+//   @brief set joint to be incremented
+// */
+// void RenderWindow::setJointTarget(
+//   s2_joint_t* joint,
+//   int qIndex,
+//   int dqIndex,
+//   double targetVal,
+//   s2_joint_enum_t jointType) {
+//
+//   m_joint.active = true;
+//   m_joint.counter = 0;
+//   m_joint.joint = joint;
+//   m_joint.qIndex = qIndex;
+//   m_joint.dqIndex = dqIndex;
+//   m_joint.delq = 0.01;
+//   m_joint.targetVal = targetVal;
+//   m_joint.jointType = jointType;
+//   m_joint.moveType = TARGET;
+//
+//   if(targetVal - m_context->q[qIndex] > 0) {
+//     m_joint.isPositive = true;
+//   } else {
+//     m_joint.isPositive = false;
+//   }
+//
+//   /* allow up to 1000 steps for each radian or unit of translation */
+//   m_joint.maxCount = abs(targetVal - m_context->q[qIndex]) * 1000;
+// }
+//
+//
+// /*!
+//   @brief clear joint to be incremented
+// */
+// void RenderWindow::clearJoint() {
+//   m_joint.active = false;
+//   m_joint.counter = 0;
+//   // m_joint.joint = nullptr;
+//   m_joint.qIndex = -1;
+//   m_joint.dqIndex = -1;
+//   m_joint.delq = -1;
+//   m_joint.jointType = INVALID;
+// }
 
 
-/*!
-  @brief set joint to be incremented
-*/
-void RenderWindow::setJointTarget(
-  s2_joint_t* joint,
-  int qIndex,
-  int dqIndex,
-  double targetVal,
-  s2_joint_enum_t jointType) {
-
-  m_joints->setTarget(
-    joint,
-    qIndex,
-    dqIndex,
-    targetVal,
-    jointType);
-}
-
-
-/*!
-  @brief clear joint to be incremented
-*/
-void RenderWindow::clearJoint() {
-  m_joints->clear();
-}
-
-
-/*!
-@brief move joint incrementally if user specifies a joint is to be moved
-using joint slider interface.
-
-This function should not be called while simulation is running, or while
-simulation is being played back.
-*/
-void RenderWindow::updateJoint() {
-  m_joints->update();
-}
+// /*!
+// @brief move joint incrementally if user specifies a joint is to be moved
+// using joint slider interface.
+//
+// This function should not be called while simulation is running, or while
+// simulation is being played back.
+// */
+// void RenderWindow::updateJoint() {
+//
+//   if(m_joint.active) {
+//     m_joint.counter++;
+//
+//     /* determine if joint is in a substructure, if it is not constrained
+//     then no need to do Newton-Raphson iteration */
+//     if(m_joint.joint->substructurePointer != NULL) {
+//
+//       s2_mobility_compute_substructure(
+//         m_joint.joint->substructurePointer);
+//
+//       if(m_joint.jointType == SPHERICAL) {
+//
+//       /*! @TODO convert euler angle sequence to quaternion and update
+//           4 entries in q array */
+//
+//       } else {
+//
+//         /* specify variable as independent and update the value in q array.
+//         Perform Newton-Raphson iteration with current variable as a
+//         specified coordinate */
+//
+//         switch(m_joint.moveType) {
+//           case TARGET: {
+//             if(m_joint.counter > m_joint.maxCount) {
+//               /* if the number of steps allotted for the move has been
+//               exceeded, stop incrementing the joint */
+//
+//               clearJoint();
+//             } else {
+//
+//               double delq =
+//                 m_joint.delq * pow(m_joint.joint->mobilityNumber[0], 1.5);
+//               if(fabs(delq) < 1e-16) {
+//                 clearJoint();
+//                 return;
+//               }
+//
+//               if(m_joint.isPositive) {
+//                 if(
+//                   m_context->q[m_joint.qIndex] + delq >
+//                   m_joint.targetVal) {
+//
+//                   s2_newtonRaphson_increment_specified(
+//                     m_context,
+//                     m_joint.joint->substructurePointer->substructureIndex,
+//                     m_joint.dqIndex,
+//                     m_joint.targetVal,
+//                     PRIMITIVE,
+//                     TARGET);
+//
+//                   // qDebug() << "before clearjoint";
+//
+//                   clearJoint();
+//                 } else {
+//
+//                   s2_newtonRaphson_increment_specified(
+//                     m_context,
+//                     m_joint.joint->substructurePointer->substructureIndex,
+//                     m_joint.dqIndex,
+//                     delq,
+//                     PRIMITIVE,
+//                     INCREMENT);
+//                 }
+//               } else {
+//                 if(
+//                   m_context->q[m_joint.qIndex] + delq < m_joint.targetVal) {
+//
+//                   s2_newtonRaphson_increment_specified(
+//                     m_context,
+//                     m_joint.joint->substructurePointer->substructureIndex,
+//                     m_joint.dqIndex,
+//                     m_joint.targetVal,
+//                     PRIMITIVE,
+//                     TARGET);
+//
+//                   // qDebug() << "before clearjoint";
+//                   clearJoint();
+//                 } else {
+//
+//                   s2_newtonRaphson_increment_specified(
+//                     m_context,
+//                     m_joint.joint->substructurePointer->substructureIndex,
+//                     m_joint.dqIndex,
+//                     -delq,
+//                     PRIMITIVE,
+//                     INCREMENT);
+//                 }
+//               }
+//             }
+//           } break;
+//           case INCREMENT: {
+//
+//             double delq =
+//               m_joint.delq * pow(m_joint.joint->mobilityNumber[0], 1.5);
+//
+//             if(fabs(delq) < 1e-16) {
+//               clearJoint();
+//               break;
+//             }
+//
+//             int returnVal = s2_newtonRaphson_increment_specified(
+//               m_context,
+//               m_joint.joint->substructurePointer->substructureIndex,
+//               m_joint.dqIndex,
+//               delq,
+//               TX,
+//               INCREMENT);
+//
+//             if(returnVal){
+//               clearJoint();
+//             }
+//           } break;
+//         }
+//         s2_updateGLReferenceFrames(m_context);
+//
+//         // s2_mobility_compute_substructure(
+//         //   m_joint.joint->substructurePointer);
+//
+//         s2_mobility_computeGlobalMobility(m_context);
+//       }
+//
+//     } else {
+//       /* update a joint that is not in a substructure */
+//
+//       if(m_joint.jointType == SPHERICAL) {
+//
+//         /*! @TODO convert euler angle sequence to quaternion and update
+//          4 entries in q array */
+//
+//       } else {
+//
+//         /* otherwise, update a single value in q array */
+//         m_context->q[m_joint.qIndex] += m_joint.delq * 1.5;
+//       }
+//       s2_updateDH(m_context);
+//       s2_updateGLReferenceFrames(m_context);
+//     }
+//     emit jointChanged();
+//   }
+// }
 
 
 /*!
@@ -1458,6 +1866,247 @@ void RenderWindow::setSimulationRunning(bool val) {
 
 
 /*!
+@brief draw frames, m_programFrame and m_uniformsFrame.vao must be bound
+prior to calling this recursive function
+*/
+void RenderWindow::drawFrames(s2_assembly_t* assembly) {
+  s2_body_t* bodyHead = assembly->bodyHead;
+  while(bodyHead != NULL) {
+    s2_frame_t* frameHead = bodyHead->frameHead;
+    while(frameHead != NULL) {
+
+      double* d = (double*)frameHead->dAbsolute;
+      QMatrix4x4 model = s2_displacementToQMatrix4x4(frameHead->dAbsolute);
+      QMatrix4x4 scale =
+        QMatrix4x4(m_frameScaleFactor, 0.0f, 0.0f, 0.0f,
+                   0.0f, m_frameScaleFactor, 0.0f, 0.0f,
+                   0.0f, 0.0f, m_frameScaleFactor, 0.0f,
+                   0.0f, 0.0f, 0.0f, 1.0f);
+
+      QMatrix4x4 mvp = m_projection * m_view * model * scale;
+
+      /* set model * view * projection matrix */
+      m_programFrame->setUniformValue(
+        m_uniformsFrame.mvp,
+        mvp);
+      // checkError("after set mvp coordinate systems");
+      // glEnable(GL_LINE_SMOOTH);
+      glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+      // checkError("after draw elements coordinate systems");
+
+      frameHead = frameHead->next;
+    }
+
+    bodyHead = bodyHead->next;
+  }
+  s2_assembly_t* assemblyHead = assembly->subAssemblyHead;
+  while(assemblyHead != NULL) {
+    drawFrames(assemblyHead);
+    assemblyHead = assemblyHead->next;
+  }
+}
+
+
+void RenderWindow::drawWFrames() {
+  for(int i = 0; i < m_context->forceModuleCount; i++) {
+    s2_tire_pac2002_t* tire =
+      (s2_tire_pac2002_t*)m_context->forceModulePointers[i]->parameters[0];
+
+    QMatrix4x4 model = s2_displacementToQMatrix4x4(&tire->wFrame);
+    QMatrix4x4 scale =
+      QMatrix4x4(m_frameScaleFactor, 0.0f, 0.0f, 0.0f,
+                 0.0f, m_frameScaleFactor, 0.0f, 0.0f,
+                 0.0f, 0.0f, m_frameScaleFactor, 0.0f,
+                 0.0f, 0.0f, 0.0f, 1.0f);
+
+    QMatrix4x4 mvp = m_projection * m_view * model * scale;
+
+    /* set model * view * projection matrix */
+    m_programFrame->setUniformValue(
+      m_uniformsFrame.mvp,
+      mvp);
+    // checkError("after set mvp coordinate systems");
+    // glEnable(GL_LINE_SMOOTH);
+    glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+  }
+}
+
+
+void RenderWindow::drawTerrain() {
+
+  m_programTerrain->bind();
+
+  GLint vp[4];
+  glGetIntegerv(GL_VIEWPORT, vp);
+  m_programTerrain->setUniformValue(
+    m_uniformsTerrain.viewport,
+    (GLfloat)vp[2],
+    (GLfloat)vp[3]);
+  checkError("after set viewport");
+
+  for(int i = 0; i < m_context->elevationMapCount; i++) {
+    s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
+    // double* d = (double*)&(elevationMap->parentFramePointer);
+    // QMatrix4x4 model =
+    //   QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //              (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //              (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //              0.f,  0.f,  0.f,  1.f);
+
+    // elevationMap->dAbsolute
+    QMatrix4x4 model =
+      QMatrix4x4(1.f, 0.f, 0.f, 0.f,
+                 0.f, 1.f, 0.f, 0.f,
+                 0.f, 0.f, 1.f, 0.f,
+                 0.f, 0.f, 0.f, 1.f);
+    QMatrix4x4 mv = m_view * model;
+    QMatrix4x4 mvp = m_projection * mv;
+
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.mvp,
+      mvp);
+    checkError("after set mvp uniform");
+
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.mv,
+      mv);
+    checkError("after set mv uniform");
+
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.projectionMatrix,
+      m_projection);
+    checkError("after set projection matrix uniform");
+
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.zMin, (float)elevationMap->zMin);
+    checkError("after set zMin");
+
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.zMax, (float)elevationMap->zMax);
+    checkError("after set zMax");
+
+    m_terrainObjects[i].depthTexture->bind(0);
+    checkError("after bind depth texture");
+
+    // qDebug() << "texture id: " << m_terrainObjects[i].depthTexture->textureId();
+
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.textureDisplacement,
+      0);
+    checkError("after set texture displacement");
+
+    m_terrainObjects[i].colorTexture->bind(1);
+    checkError("after bind color texture");
+    //
+    // // qDebug() << "texture id: " << m_terrainObjects[i].depthTexture->textureId();
+    //
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.textureColor,
+      1);
+    checkError("after set texture color");
+
+    /* set normal matrix */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.nm,
+      mv.normalMatrix());
+    // checkError("after set nm phong");
+
+    /* set Ka for lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.Ka,
+      m_lightParameters.KaLight,
+      10,
+      3);
+
+    /* set Ks for lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.Ks,
+      m_lightParameters.KsLight,
+      10,
+      3);
+    // checkError("after set KsLight phong");
+
+    /* set Kd for lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.Kd,
+      m_lightParameters.KdLight,
+      10,
+      3);
+    // checkError("after set KdLight phong");
+
+    /* set directional switch for lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.directional,
+      m_lightParameters.directional,
+      10);
+    // checkError("after set directional phong");
+
+    /* set positions of lights */
+    m_programTerrain->setUniformValueArray(
+      m_uniformsTerrain.posLight,
+      m_lightParameters.posLight,
+      10,
+      3);
+    // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+    // checkError("after set poslight phong");
+
+    /* set number of lights */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.lightCount,
+      m_lightParameters.lightCount);
+    // qDebug() << "light count:" << lightParameters.lightCount;
+    // checkError("after set light count phong");
+
+    /* set Kd properties for material */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.KaOverKd, 0.2, 0.2, 0.2);
+
+    // checkError("after set KdMaterial phong");
+
+    /* set Ks properties for material */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.KsOverKd, 0.5, 0.5, 0.5);
+    // checkError("after set KsMaterial phong");
+
+    // checkError("after set KaMaterial phong");
+
+    // qDebug() << "KaMaterial: " << material->Ka[0]
+    // << material->Ka[1] << material->Ka[2];
+
+    /* set specularity property for material */
+    m_programTerrain->setUniformValue(
+      m_uniformsTerrain.Ns, 1000);
+
+
+    // glUniform1f(uniforms.dmap_depth, enable_displacement ? dmap_depth : 0.0f);
+    // glUniform1i(uniforms.enable_fog, enable_fog ? 1 : 0);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glDepthFunc(GL_LEQUAL);
+
+    // if (wireframe)
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // else
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    checkError("after glPolygonMode");
+    m_funcs->glPatchParameteri(GL_PATCH_VERTICES, 4);
+    m_funcs->glDrawArraysInstanced(
+      GL_PATCHES, 0, 4, 64 * 64);
+    checkError("after draw arrays instanced");
+
+    m_terrainObjects[i].depthTexture->release();
+    checkError("after release depth texture");
+
+    m_terrainObjects[i].colorTexture->release();
+    checkError("after release color texture");
+
+  }
+  m_programTerrain->release();
+
+}
+
+/*!
 @brief main render loop
 */
 void RenderWindow::render() {
@@ -1477,14 +2126,628 @@ void RenderWindow::render() {
       interpolateCurrentPosition();
     } else {
       /* update position of current joint if driven by user */
-      m_joints->update();
+      updateJoint();
     }
 
-    m_frames->draw();
-    m_terrain->draw();
-    m_joints->draw();
+    /* draw coordinate systems */
+    m_programFrame->bind();
+    m_uniformsFrame.vao->bind();
+    checkError("after bind vao coordinate systems");
+    for(int i = 0; i < m_frames.size(); i++) {
+      double* d = (double*)(m_frames.at(i));
+      QMatrix4x4 model =
+        QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                   (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                   (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                   0.f,  0.f,  0.f,  1.f);
+      QMatrix4x4 mvp = m_projection * m_view * model;
 
+      /* set model * view * projection matrix */
+      m_programFrame->setUniformValue(
+        m_uniformsFrame.mvp,
+        mvp);
+      // checkError("after set mvp coordinate systems");
 
+      // glEnable(GL_LINE_SMOOTH);
+      // checkError("after gl gl_line_smooth");
+
+      glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+      checkError("after draw elements coordinate systems");
+    }
+
+    /* draw all frames */
+    if(m_context != NULL && m_drawFrames) {
+      drawFrames(m_context->assembly);
+    }
+
+    /* draw terrain */
+    if(m_context != NULL && m_drawTerrain && m_terrainShaderInitialized) {
+      drawTerrain();
+    }
+    // m_uniformsFrame.vao->release();
+    // m_programFrame->release();
+
+    /* draw joints */
+    m_programFrame->bind();
+    m_uniformsFrame.vao->bind();
+    if(m_context != NULL && m_drawJoints) {
+      for(int i = 0; i < m_context->activeJointCount; i++) {
+        s2_joint_t* joint = m_context->jointPointers[i];
+
+        switch(joint->jointType) {
+
+          case RX: {
+
+            double* d = (double*)joint->parentFramePointer->dAbsolute;
+            QMatrix4x4 model =
+              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                         0.f,  0.f,  0.f,  1.f);
+
+            QMatrix4x4 scale =
+              QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+                         0, m_jointScaleFactor, 0, 0,
+                         0, 0, m_jointScaleFactor, 0,
+                         0.f,  0.f,  0.f, 1.f);
+            QMatrix4x4 mvp = m_projection * m_view * model * scale;
+
+            /* set model * view * projection matrix */
+            m_programFrame->setUniformValue(
+              m_uniformsFrame.mvp,
+              mvp);
+            // checkError("after set mvp coordinate systems");
+
+            glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+            checkError("after draw elements coordinate systems");
+
+          } break;
+          case RY: {
+            double* d = (double*)joint->parentFramePointer->dAbsolute;
+            QMatrix4x4 model =
+              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                         0.f,  0.f,  0.f,  1.f);
+
+            QMatrix4x4 scale =
+              QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+                         0, m_jointScaleFactor, 0, 0,
+                         0, 0, m_jointScaleFactor, 0,
+                         0.f,  0.f,  0.f, 1.f);
+            QMatrix4x4 mvp = m_projection * m_view * model * scale;
+
+            /* set model * view * projection matrix */
+            m_programFrame->setUniformValue(
+              m_uniformsFrame.mvp,
+              mvp);
+            m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+            checkError("after draw ry");
+          } break;
+          case RZ: {
+            double* d = (double*)joint->parentFramePointer->dAbsolute;
+            QMatrix4x4 model =
+              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                         0.f,  0.f,  0.f,  1.f);
+
+            QMatrix4x4 scale =
+              QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+                         0, m_jointScaleFactor, 0, 0,
+                         0, 0, m_jointScaleFactor, 0,
+                         0.f,  0.f,  0.f, 1.f);
+            QMatrix4x4 mvp = m_projection * m_view * model * scale;
+
+            /* set model * view * projection matrix */
+            m_programFrame->setUniformValue(
+              m_uniformsFrame.mvp,
+              mvp);
+            m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+            checkError("after draw rz");
+          } break;
+          case TX: {
+            double* d = (double*)joint->parentFramePointer->dAbsolute;
+            float jointValue = (float)(m_context->q[joint->qIndex]);
+            // qDebug() << jointValue;
+            QMatrix4x4 model =
+              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                         0.f,  0.f,  0.f,  1.f);
+
+            QMatrix4x4 scale =
+              QMatrix4x4(jointValue, 0, 0, 0,
+                         0, jointValue, 0, 0,
+                         0, 0, jointValue, 0,
+                         0.f,  0.f,  0.f, 1.f);
+            QMatrix4x4 mvp = m_projection * m_view * model * scale;
+
+            /* set model * view * projection matrix */
+            m_programFrame->setUniformValue(
+              m_uniformsFrame.mvp,
+              mvp);
+            glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+            checkError("after draw tx");
+
+          } break;
+          case TY: {
+            double* d = (double*)joint->parentFramePointer->dAbsolute;
+            float jointValue = (float)(m_context->q[joint->qIndex]);
+            // qDebug() << jointValue;
+            QMatrix4x4 model =
+              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                         0.f,  0.f,  0.f,  1.f);
+            QMatrix4x4 scale =
+              QMatrix4x4(jointValue, 0, 0, 0,
+                         0, jointValue, 0, 0,
+                         0, 0, jointValue, 0,
+                         0.f,  0.f,  0.f, 1.f);
+            QMatrix4x4 mvp = m_projection * m_view * model * scale;
+
+            /* set model * view * projection matrix */
+            m_programFrame->setUniformValue(
+              m_uniformsFrame.mvp,
+              mvp);
+            m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+            checkError("after draw ty");
+
+          } break;
+          case TZ: {
+            double* d = (double*)joint->parentFramePointer->dAbsolute;
+            float jointValue = (float)(m_context->q[joint->qIndex]);
+            // qDebug() << jointValue;
+            QMatrix4x4 model =
+              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                         0.f,  0.f,  0.f,  1.f);
+
+            QMatrix4x4 scale =
+              QMatrix4x4(jointValue, 0, 0, 0,
+                         0, jointValue, 0, 0,
+                         0, 0, jointValue, 0,
+                         0.f,  0.f,  0.f, 1.f);
+            QMatrix4x4 mvp = m_projection * m_view * model * scale;
+
+            /* set model * view * projection matrix */
+            m_programFrame->setUniformValue(
+              m_uniformsFrame.mvp,
+              mvp);
+            m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+            checkError("after draw tz");
+
+          } break;
+          default:
+            break;
+        }
+      }
+    }
+    m_uniformsFrame.vao->release();
+    m_programFrame->release();
+
+    /* draw geometry */
+    for(int i = 0; i < m_bufferObjects.size(); i++ ) {
+
+      /* override phong shaded models with wireframe if
+      global wireframe shading type is selected */
+      // s2_shading_enum_t shadingType =
+      //   m_bufferObjects.at(i)->material->shadingType;
+      // if(m_shadingType == WIREFRAME && shadingType == PHONG) {
+      //   shadingType = WIREFRAME;
+      // }
+
+      switch(m_bufferObjects.at(i)->material->shadingType) {
+        case PHONG: {
+          m_programPhong->bind();
+          m_bufferObjects.at(i)->vao->bind();
+          double* d = (double*)(m_bufferObjects.at(i)->transform);
+          QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
+                                        d[1], d[4], d[7], d[10],
+                                        d[2], d[5], d[8], d[11],
+                                        0.f,  0.f,  0.f,  1.f);
+
+          s2_material_t* material = m_bufferObjects.at(i)->material;
+          QMatrix4x4 mv = m_view * model;
+
+          /* set model * view * projection matrix */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.mvp,
+            m_projection * mv);
+          // checkError("after set mvp phong");
+
+          /* set model * view matrix */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.mv, mv);
+          // checkError("after set mv phong");
+
+          /* set view matrix */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.v,
+            m_view);
+          // checkError("after set v phong");
+
+          /* set normal matrix */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.nm,
+            mv.normalMatrix());
+          // checkError("after set nm phong");
+
+          /* set Ka for lights */
+          m_programPhong->setUniformValueArray(
+            m_uniformsPhong.Ka,
+            m_lightParameters.KaLight,
+            10,
+            3);
+
+          /* set Ks for lights */
+          m_programPhong->setUniformValueArray(
+            m_uniformsPhong.Ks,
+            m_lightParameters.KsLight,
+            10,
+            3);
+          // checkError("after set KsLight phong");
+
+          /* set Kd for lights */
+          m_programPhong->setUniformValueArray(
+            m_uniformsPhong.Kd,
+            m_lightParameters.KdLight,
+            10,
+            3);
+          // checkError("after set KdLight phong");
+
+          /* set directional switch for lights */
+          m_programPhong->setUniformValueArray(
+            m_uniformsPhong.directional,
+            m_lightParameters.directional,
+            10);
+          // checkError("after set directional phong");
+
+          /* set positions of lights */
+          m_programPhong->setUniformValueArray(
+            m_uniformsPhong.posLight,
+            m_lightParameters.posLight,
+            10,
+            3);
+          // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+          // checkError("after set poslight phong");
+
+          /* set number of lights */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.lightCount,
+            m_lightParameters.lightCount);
+          // qDebug() << "light count:" << lightParameters.lightCount;
+          // checkError("after set light count phong");
+
+          /* set Kd properties for material */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.KdMaterial,
+            material->Kd[0],
+            material->Kd[1],
+            material->Kd[2]);
+          // checkError("after set KdMaterial phong");
+
+          /* set Ks properties for material */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.KsMaterial,
+            material->Ks[0],
+            material->Ks[1],
+            material->Ks[2]);
+          // checkError("after set KsMaterial phong");
+
+          /* set Ka properties for material */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.KaMaterial,
+            material->Ka[0],
+            material->Ka[1],
+            material->Ka[2]);
+          // checkError("after set KaMaterial phong");
+
+          // qDebug() << "KaMaterial: " << material->Ka[0]
+          // << material->Ka[1] << material->Ka[2];
+
+          /* set specularity property for material */
+          m_programPhong->setUniformValue(
+            m_uniformsPhong.Ns,
+            material->Ns);
+          // checkError("after set Ns phong");
+          if(m_shadingType == WIREFRAME) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+          } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+          }
+          // checkError("after set polygon mode phong");
+
+          glDrawElements(
+            GL_TRIANGLES,
+            3 * material->faceCount,
+            GL_UNSIGNED_INT,
+            0);
+          // checkError("after draw elements phong");
+
+          m_bufferObjects.at(i)->vao->release();
+          // checkError("after vao release phong");
+
+          m_programPhong->release();
+          // checkError("after phong release phong");
+
+        } break;
+        case FLAT: {
+          m_programFlat->bind();
+          m_bufferObjects.at(i)->vao->bind();
+          double* d = (double*)(m_bufferObjects.at(i)->transform);
+          QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
+                                        d[1], d[4], d[7], d[10],
+                                        d[2], d[5], d[8], d[11],
+                                        0.f,  0.f,  0.f,  1.f);
+
+          s2_material_t* material = m_bufferObjects.at(i)->material;
+          QMatrix4x4 mv = m_view * model;
+
+          /* set model * view * projection matrix */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.mvp,
+            m_projection * mv);
+          checkError("after set mvp");
+
+          /* set model * view matrix */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.mv, mv);
+          checkError("after set mv");
+
+          /* set view matrix */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.v,
+            m_view);
+          checkError("after set v");
+
+          /* set normal matrix */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.nm,
+            mv.normalMatrix());
+          checkError("after set nm");
+
+          /* set Ka for lights */
+          m_programFlat->setUniformValueArray(
+            m_uniformsFlat.Ka,
+            m_lightParameters.KaLight,
+            10,
+            3);
+
+          /* set Ks for lights */
+          m_programFlat->setUniformValueArray(
+            m_uniformsFlat.Ks,
+            m_lightParameters.KsLight,
+            10,
+            3);
+          checkError("after set KsLight");
+
+          /* set Kd for lights */
+          m_programFlat->setUniformValueArray(
+            m_uniformsFlat.Kd,
+            m_lightParameters.KdLight,
+            10,
+            3);
+          checkError("after set KdLight");
+
+          /* set directional switch for lights */
+          m_programFlat->setUniformValueArray(
+            m_uniformsFlat.directional,
+            m_lightParameters.directional,
+            10);
+          checkError("after set directional");
+
+          /* set positions of lights */
+          m_programFlat->setUniformValueArray(
+            m_uniformsFlat.posLight,
+            m_lightParameters.posLight,
+            10,
+            3);
+          // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+          checkError("after set poslight");
+
+          /* set number of lights */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.lightCount,
+            m_lightParameters.lightCount);
+
+          // qDebug() << "light count:" << lightParameters.lightCount;
+          checkError("after set light count");
+
+          /* set Kd properties for material */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.KdMaterial,
+            material->Kd[0],
+            material->Kd[1],
+            material->Kd[2],
+            material->Kd[3]);
+          checkError("after set KdMaterial");
+
+          /* set Ks properties for material */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.KsMaterial,
+            material->Ks[0],
+            material->Ks[1],
+            material->Ks[2],
+            material->Ks[3]);
+          checkError("after set KsMaterial");
+
+          /* set Ka properties for material */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.KaMaterial,
+            material->Ka[0],
+            material->Ka[1],
+            material->Ka[2],
+            material->Ka[3]);
+          checkError("after set KaMaterial");
+
+          // qDebug() << "KaMaterial: " << material->Ka[0]
+          // << material->Ka[1] << material->Ka[2];
+
+          /* set specularity property for material */
+          m_programFlat->setUniformValue(
+            m_uniformsFlat.Ns,
+            material->Ns);
+          checkError("after set Ns");
+
+          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+          checkError("after set polygon mode");
+
+          glDrawElements(
+            GL_TRIANGLES,
+            3 * material->faceCount,
+            GL_UNSIGNED_INT,
+            0);
+          checkError("after draw elements");
+
+          m_bufferObjects.at(i)->vao->release();
+          checkError("after vao release");
+
+          m_programFlat->release();
+          checkError("after flat release");
+        } break;
+        case GOURAUD: {
+          m_programGouraud->bind();
+
+          m_programGouraud->release();
+        } break;
+        case WIREFRAME: {
+          m_programLine->bind();
+
+          m_bufferObjects.at(i)->vao->bind();
+          double* d = (double*)(m_bufferObjects.at(i)->transform);
+          QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
+                                        d[1], d[4], d[7], d[10],
+                                        d[2], d[5], d[8], d[11],
+                                        0.f,  0.f,  0.f,  1.f);
+
+          s2_material_t* material = m_bufferObjects.at(i)->material;
+          QMatrix4x4 mv = m_view * model;
+
+          /* set model * view * projection matrix */
+          m_programLine->setUniformValue(
+            m_uniformsLine.mvp,
+            m_projection * mv);
+          checkError("after set mvp");
+
+          /* set model * view matrix */
+          m_programLine->setUniformValue(
+            m_uniformsLine.mv, mv);
+          checkError("after set mv");
+
+          /* set view matrix */
+          m_programLine->setUniformValue(
+            m_uniformsLine.v,
+            m_view);
+          checkError("after set v");
+
+          /* set normal matrix */
+          m_programLine->setUniformValue(
+            m_uniformsLine.nm,
+            mv.normalMatrix());
+          checkError("after set nm");
+
+          /* set Ka for lights */
+          m_programLine->setUniformValueArray(
+            m_uniformsLine.Ka,
+            m_lightParameters.KaLight,
+            10,
+            3);
+
+          /* set Ks for lights */
+          m_programFlat->setUniformValueArray(
+            m_uniformsLine.Ks,
+            m_lightParameters.KsLight,
+            10,
+            3);
+          checkError("after set KsLight");
+
+          /* set Kd for lights */
+          m_programLine->setUniformValueArray(
+            m_uniformsLine.Kd,
+            m_lightParameters.KdLight,
+            10,
+            3);
+          checkError("after set KdLight");
+
+          /* set directional switch for lights */
+          m_programLine->setUniformValueArray(
+            m_uniformsLine.directional,
+            m_lightParameters.directional,
+            10);
+          checkError("after set directional");
+
+          /* set positions of lights */
+          m_programLine->setUniformValueArray(
+            m_uniformsLine.posLight,
+            m_lightParameters.posLight,
+            10,
+            3);
+          // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+          checkError("after set poslight");
+
+          /* set number of lights */
+          m_programLine->setUniformValue(
+            m_uniformsLine.lightCount,
+            m_lightParameters.lightCount);
+          // qDebug() << "light count:" << lightParameters.lightCount;
+          checkError("after set light count");
+
+          /* set Kd properties for material */
+          m_programLine->setUniformValue(
+            m_uniformsLine.KdMaterial,
+            material->Kd[0],
+            material->Kd[1],
+            material->Kd[2],
+            material->Kd[3]);
+          checkError("after set KdMaterial");
+
+          /* set Ks properties for material */
+          m_programLine->setUniformValue(
+            m_uniformsLine.KsMaterial,
+            material->Ks[0],
+            material->Ks[1],
+            material->Ks[2],
+            material->Ks[3]);
+          checkError("after set KsMaterial");
+
+          /* set Ka properties for material */
+          m_programLine->setUniformValue(
+            m_uniformsLine.KaMaterial,
+            material->Ka[0],
+            material->Ka[1],
+            material->Ka[2],
+            material->Ka[3]);
+          checkError("after set KaMaterial");
+
+          // qDebug() << "KaMaterial: " << material->Ka[0]
+          // << material->Ka[1] << material->Ka[2];
+
+          /* set specularity property for material */
+          m_programLine->setUniformValue(
+            m_uniformsLine.Ns,
+            material->Ns);
+          checkError("after set Ns");
+
+          glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+          checkError("after set polygon mode");
+
+          glDrawElements(
+            GL_TRIANGLES,
+            3 * material->faceCount,
+            GL_UNSIGNED_INT,
+            0);
+          checkError("after draw elements");
+
+          m_bufferObjects.at(i)->vao->release();
+          checkError("after vao release");
+
+          m_programLine->release();
+          checkError("after flat release");
+
+        } break;
         case LINE: {
           m_programLine->bind();
           m_bufferObjects.at(i)->vao->bind();

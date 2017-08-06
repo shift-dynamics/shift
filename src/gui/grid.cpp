@@ -6,10 +6,9 @@
 void s2_Grid::initialize() {
 
   /* grid size must be an even number */
-  if(gridSize % 2 != 0) {
-    gridSize++;
+  if(m_gridSize % 2 != 0) {
+    m_gridSize++;
   }
-  m_gridSize = gridSize;
 
   /*
     set up line segments
@@ -27,7 +26,7 @@ void s2_Grid::initialize() {
 
   m_material->vertices = (GLfloat*) malloc(3 * m_material->vertexCount * sizeof(GLfloat));
   m_material->vertexNormals = (GLfloat*) malloc(3 * m_material->vertexCount * sizeof(GLfloat));
-  material->faces = (GLfloat*) malloc(2 * m_material->faceCount);
+  m_material->faces = (GLuint*) malloc(2 * m_material->faceCount);
 
   /* set vertices for vertical line segments */
   int gridIndex = 0;
@@ -87,7 +86,7 @@ void s2_Grid::initialize() {
   m_vbo->allocate(
     m_material->vertices,
     3 * m_material->vertexCount * sizeof(GLfloat));
-  m_renderWindow->checkError("after initialize grid vbo")
+  checkError("after initialize grid vbo");
 
   m_ibo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
   m_ibo->create();
@@ -99,11 +98,10 @@ void s2_Grid::initialize() {
     2 * m_material->faceCount * sizeof(GLuint));
   m_renderWindow->checkError("after set ibo in line program");
 
-  m_uniformsLine.position =
-    m_programLine->attributeLocation("posAttr");
-  m_programLine->enableAttributeArray(m_uniformsLine.position);
-  m_programLine->setAttributeBuffer(
-    m_uniformsLine.position,
+  m_position_a = m_program->attributeLocation("posAttr");
+  m_program->enableAttributeArray(m_position_a);
+  m_program->setAttributeBuffer(
+    m_position_a,
     GL_FLOAT,
     0,
     3);
@@ -118,27 +116,21 @@ void s2_Grid::initialize() {
 void s2_Grid::draw() {
   m_program->bind();
   m_vao->bind();
-  double* d = (double*)(m_bufferObjects.at(i)->transform);
-  QMatrix4x4 model = QMatrix4x4(1.f, 0.f, 0.f, 0.f,
-                                0.f, 1.f, 0.f, 0.f,
-                                0.f, 0.f, 1.f, 0.f,
-                                0.f, 0.f, 0.f, 1.f);
 
-  s2_material_t* material = m_bufferObjects.at(i)->material;
-  QMatrix4x4 mv = m_view * model;
+  QMatrix4x4 mv = m_renderWindow->getViewMatrix() * m_model;
 
   /* set model * view * projection matrix */
   m_program->setUniformValue(
-    m_mvp,
-    m_renderWindow->getProjectionMatrix * mv);
+    m_mvp_u,
+    m_renderWindow->getProjectionMatrix() * mv);
   checkError("line: after set mvp");
 
   m_program->setUniformValue(
-    m_colorUniform,
-    m_planeLineColor[0],
-    m_planeLineColor[1],
-    m_planeLineColor[2],
-    m_planeLineColor[3]);
+    m_color_u,
+    m_color[0],
+    m_color[1],
+    m_color[2],
+    m_color[3]);
   checkError("after set uniform color");
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -146,7 +138,7 @@ void s2_Grid::draw() {
 
   glDrawElements(
     GL_LINES,
-    2 * material->faceCount,
+    2 * m_material->faceCount,
     GL_UNSIGNED_INT,
     0);
   checkError("after draw elements");

@@ -209,6 +209,9 @@ public slots:
   void setBodyDrawStyleWireframe();
   void setTerrainDrawStylePhong();
   void setTerrainDrawStyleWireframe();
+  void setFlatShaded();
+  void setPhongShaded();
+  void setWireframe();
 
 signals:
   void mouseLeftPressEvent();
