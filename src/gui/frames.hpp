@@ -32,35 +32,47 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
+class RenderWindow;
+class s2_Geometry;
 
-class s2_Frames : s2_Geometry {
+class s2_Frames : public s2_Geometry {
+
+  Q_OBJECT
+
 public:
-  s2_Frames(RenderWindow* renderWindow) {
-    m_renderWindow = renderWindow;
+  s2_Frames(RenderWindow* renderWindow)
+    : s2_Geometry(renderWindow) {
+
+    m_scaleFactor = 0.5;
     initialize();
   };
-  ~s2_Frames();
-  void initialize();
-  void draw();
 
+  ~s2_Frames();
+
+  virtual void initialize();
+  virtual void draw();
+  void drawFrames();
+  void drawWFrames();
+  void loadContext();
 
 private:
-  s2_context_t* m_context;
+
+  QOpenGLShaderProgram* m_program;
   GLfloat m_vertices[18];
   GLfloat m_colors[18];
   GLuint m_indices[6];
 
-  RenderWindow* m_renderWindow;
-
   /* uniform locations */
-  GLuint m_position;
   GLuint m_mvp;
-  GLuint m_color;
+  GLuint m_posAttr;
+  GLuint m_colorAttr;
 
-  /* vertex'face buffers */
+  /* vertex, face and index buffers */
   QOpenGLVertexArrayObject* m_vao;
   QOpenGLBuffer* m_vbo;
   QOpenGLBuffer* m_ibo;
+
+  QVector<s2_displacement_t*> m_frames;
 
 };
 

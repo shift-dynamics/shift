@@ -4,8 +4,13 @@
 #include "../star2.h"
 #include "openglwindow.hpp"
 #include "uniformbufferobject.hpp"
+#include "bodies.hpp"
+#include "frames.hpp"
+#include "joints.hpp"
+#include "lights.hpp"
+#include "grid.hpp"
+#include "terrain.hpp"
 
-// #include <QGLWidget>
 #include <QString>
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -32,6 +37,11 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
+class s2_Bodies;
+class s2_Frames;
+class s2_Grid;
+class s2_Joints;
+class s2_Lights;
 
 QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
@@ -40,63 +50,63 @@ QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 currently the shader supports a maximum of 10 lights
 
 */
-typedef struct LightParameters {
-  GLfloat* posLight;
-  GLfloat* KaLight;
-  GLfloat* KdLight;
-  GLfloat* KsLight;
-  GLuint* mvp;
-  GLuint* mv;
-  GLuint* v;
-  GLuint* shadowTexture;
-  GLuint* shadowBuffer;
-  GLint* directional;
-  GLuint lightCount;
-} LightParameters;
+// typedef struct LightParameters {
+//   GLfloat* posLight;
+//   GLfloat* KaLight;
+//   GLfloat* KdLight;
+//   GLfloat* KsLight;
+//   GLuint* mvp;
+//   GLuint* mv;
+//   GLuint* v;
+//   GLuint* shadowTexture;
+//   GLuint* shadowBuffer;
+//   GLint* directional;
+//   GLuint lightCount;
+// } LightParameters;
 
 
 
 /*! @brief uniform identifiers used for each shader program
 
 */
-typedef struct ProgramUniforms {
-  GLuint m;
-  GLuint mv;
-  GLuint mvp;
-  GLuint nm;
-  GLuint v;
+// typedef struct ProgramUniforms {
+  // GLuint m;
+  // GLuint mv;
+  // GLuint mvp;
+  // GLuint nm;
+  // GLuint v;
+  //
+  // GLuint KaMaterial;
+  // GLuint KdMaterial;
+  // GLuint KsMaterial;
+  // GLuint KeMaterial;
+  // GLuint Ns;
+  //
+  // GLuint posLight;
+  // GLuint directional;
+  // GLuint Ka;
+  // GLuint Kd;
+  // GLuint Ks;
+  // // GLuint KsOverKd;
+  // // GLuint KaOverKd;
+  // GLuint lightCount;
+  //
+  // GLint position;
+  // GLint normal;
 
-  GLuint KaMaterial;
-  GLuint KdMaterial;
-  GLuint KsMaterial;
-  GLuint KeMaterial;
-  GLuint Ns;
+  // GLuint colorUniform;
 
-  GLuint posLight;
-  GLuint directional;
-  GLuint Ka;
-  GLuint Kd;
-  GLuint Ks;
-  GLuint KsOverKd;
-  GLuint KaOverKd;
-  GLuint lightCount;
-
-  GLint position;
-  GLint normal;
-
-  GLuint colorUniform;
-
-  GLuint textureDisplacement;
-  GLuint textureColor;
-  GLuint projectionMatrix;
-  GLuint zMax;
-  GLuint zMin;
-
-  GLuint viewport;
+  // GLuint textureDisplacement;
+  // GLuint textureColor;
+  // GLuint projectionMatrix;
+  // GLuint zMax;
+  // GLuint zMin;
+  //
+  // GLuint viewport;
 
 
 
-} ProgramUniforms;
+// } ProgramUniforms;
 
 
 // typedef struct FrameUniforms {
@@ -112,14 +122,14 @@ typedef struct ProgramUniforms {
 // } FrameUniforms;
 
 
-typedef struct BufferObjects {
-  QOpenGLVertexArrayObject* vao;
-  QOpenGLBuffer* vertexBuffer;
-  QOpenGLBuffer* vertexNormalBuffer;
-  QOpenGLBuffer* ibo;
-  s2_material_t* material;
-  s2_displacement_t* transform;
-} BufferObjects;
+// typedef struct BufferObjects {
+//   QOpenGLVertexArrayObject* vao;
+//   QOpenGLBuffer* vertexBuffer;
+//   QOpenGLBuffer* vertexNormalBuffer;
+//   QOpenGLBuffer* ibo;
+//   s2_material_t* material;
+//   s2_displacement_t* transform;
+// } BufferObjects;
 
 
 /*! @brief struct for a planar grid */
@@ -131,12 +141,12 @@ typedef struct BufferObjects {
 // } Grid;
 
 
-typedef struct TerrainObjects {
-  GLuint depth;
-  GLuint color;
-  QOpenGLTexture* depthTexture;
-  QOpenGLTexture* colorTexture;
-} TerrainObjects;
+// typedef struct TerrainObjects {
+//   GLuint depth;
+//   GLuint color;
+//   QOpenGLTexture* depthTexture;
+//   QOpenGLTexture* colorTexture;
+// } TerrainObjects;
 
 
 class RenderWindow : public OpenGLWindow {
@@ -144,34 +154,38 @@ class RenderWindow : public OpenGLWindow {
 
 public:
   RenderWindow();
+  ~RenderWindow();
 
   void render();
   void resizeGL(int width, int height);
   void loadContext(s2_context_t* context);
   QString getCursorPositionText();
   void checkError(const QString &prefix);
-  // void setJoint(
-  //   s2_joint_t* joint,
-  //   int qIndex,
-  //   int dqIndex,
-  //   double delq,
-  //   s2_joint_enum_t jointType);
-  // void setJointTarget(
-  //   s2_joint_t* joint,
-  //   int qIndex,
-  //   int dqIndex,
-  //   double targetVal,
-  //   s2_joint_enum_t jointType);
-  // void clearJoint();
   void setSimulationRunning(bool val);
   bool isInitialized();
+  void clearJoint();
+  void setJointTarget(
+    s2_joint_t* joint,
+    int qIndex,
+    int dqIndex,
+    double targetVal,
+    s2_joint_enum_t jointType);
+  void setJoint(
+    s2_joint_t* joint,
+    int qIndex,
+    int dqIndex,
+    double delq,
+    s2_joint_enum_t jointType);
+  void updateJoint();
+  s2_context_t* getContext();
 
-  // void setJointSphericalTarget(
-  //   s2_joint_t* joint,
-  //   int qIndex,
-  //   int dqIndex,
-  //   double targetVal,
-  //   s2_axis_enum_t axisSequence);
+  QMatrix4x4 getViewMatrix() {
+    return m_view;
+  }
+
+  QMatrix4x4 getProjectionMatrix() {
+    return m_projection;
+  }
 
 public slots:
   void updateGL();
@@ -184,15 +198,17 @@ public slots:
   void startSimulationPlayback(double timeRemaining);
   void stopSimulationPlayback();
   void interpolateCurrentPosition(double t);
-  void toggleFrameDisplay();
-  void toggleJointDisplay();
+  void toggleDrawFrames();
+  void toggleDrawJoints();
   void toggleDrawTerrain();
+  void toggleDrawShadows();
   void setPerspective();
   void setOrthogonal();
   void toggleVertexNormalDisplay();
-  void setFlatShaded();
-  void setPhongShaded();
-  void setWireFrame();
+  void setBodyDrawStylePhong();
+  void setBodyDrawStyleWireframe();
+  void setTerrainDrawStylePhong();
+  void setTerrainDrawStyleWireframe();
 
 signals:
   void mouseLeftPressEvent();
@@ -203,7 +219,6 @@ signals:
   void xRotationChanged(int angle);
   void yRotationChanged(int angle);
   void zRotationChanged(int angle);
-  // void jointChanged();
   void simulationUpdated(double);
   void simulationStopped();
   void initialized();
@@ -239,52 +254,17 @@ private:
   bool m_perspective;
   bool m_drawVertexNormals;
 
-  bool m_terrainShaderInitialized;
-  bool m_terrainInitialized;
   QTimer* m_timer;
 
-  // struct m_joint {
-  //   bool active;
-  //   s2_joint_t* joint;
-  //   unsigned int counter;
-  //   int qIndex;
-  //   int dqIndex;
-  //   unsigned int maxCount;
-  //   double delq;
-  //   double targetVal;
-  //   bool isPositive;
-  //   s2_joint_enum_t jointType;
-  //   s2_move_enum_t moveType;
-  // } m_joint;
-
-  s2_shading_enum_t m_shadingType;
   GLfloat m_backgroundColor[4];
   GLfloat m_normalColor[4];
-  // float m_frameScaleFactor;
-  // float m_jointScaleFactor;
-  //
-  // GLfloat m_planeFaceColor[4];
-  // GLfloat m_planeLineColor[4];
 
-  QOpenGLShaderProgram* m_programLine;
-  QOpenGLShaderProgram* m_programFrame;
-  // QOpenGLShaderProgram* m_programGouraud;
-  QOpenGLShaderProgram* m_programPhong;
-  QOpenGLShaderProgram* m_programShadow;
-  QOpenGLShaderProgram* m_programFlat;
-  QOpenGLShaderProgram* m_programTerrain;
-
-  // ProgramUniforms m_uniformsLine;
-  // ProgramUniforms m_uniformsCoordinateSystem;
-  // ProgramUniforms m_uniformsPhong;
-  // ProgramUniforms m_uniformsFlat;
-  // ProgramUniforms m_uniformsShadow;
-  // ProgramUniforms m_uniformsTerrain;
-  FrameUniforms m_uniformsFrame;
-  TerrainObjects* m_terrainObjects;
-
-  // GLuint m_vao_coordinateSystem;
-  // GLuint m_vbo_coordinateSystem;
+  s2_Bodies* m_bodies;
+  s2_Frames* m_frames;
+  s2_Joints* m_joints;
+  s2_Lights* m_lights;
+  s2_Grid* m_grid;
+  s2_Terrain* m_terrain;
 
   const char* getShaderSource(
     const char* shaderSource);
@@ -292,55 +272,21 @@ private:
   void checkShader(
     GLuint shader);
 
-
-  void initializeLights();
-
-  void initializeProgramUniforms(
-    ProgramUniforms* programUniforms,
-    QOpenGLShaderProgram* shaderProgram);
-
-  // void initializeBody(
-  //   s2_body_t* body);
-  //
-  // void initializeMaterial(
-  //   s2_material_t* material,
-  //   s2_displacement_t* origin);
-
-  void initializeTerrain();
-
   bool m_initialized;
-  bool m_drawFrames;
-  bool m_drawTerrain;
-  bool m_drawJoints;
+
   bool m_simulationRunning;
   double m_currentSimulationTime;
 
-  void setAttributeLocation(
-    BufferObjects* bufferObjects,
-    ProgramUniforms* uniforms,
-    QOpenGLShaderProgram* shaderProgram);
-
   void compileShaders();
-  void initializeFrames();
-  void initializeGrid(
-    int gridSize,
-    float scaleFactor);
 
   void interpolateCurrentPosition();
 
-  // UniformBufferObject* m_lightsBuffer;
-  // UniformBufferObject* m_lightCountBuffer;
-  // QVector<BufferObjects*> m_bufferObjects;
-
-  // QVector<s2_displacement_t*> m_frames;
-  // Grid* m_grid;
-
-  LightParameters m_lightParameters;
-
-  void updateJoint();
-  void drawFrames(s2_assembly_t* assembly);
-  void drawWFrames();
-  void drawTerrain();
+  QOpenGLShaderProgram* m_programLine;
+  QOpenGLShaderProgram* m_programPhong;
+  QOpenGLShaderProgram* m_programFlat;
+  QOpenGLShaderProgram* m_programTerrain;
+  QOpenGLShaderProgram* m_programFrame;
+  QOpenGLShaderProgram* m_programShadow;
 
 };
 
