@@ -31,32 +31,30 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
+class RenderWindow;
 
 
-class s2_Grid : s2_Geometry {
+class s2_Grid : public s2_Geometry {
+
   Q_OBJECT
 
 public:
-  s2_Grid()
-  : m_context(NULL)
+  s2_Grid(RenderWindow* renderWindow, int gridSize=100, float scaleFactor=1.f)
+  : s2_Geometry(renderWindow)
   , m_material(NULL)
   , m_transform(NULL) {
 
+    m_gridSize = gridSize;
+    m_scaleFactor = scaleFactor;
   };
+
   ~s2_Grid() {
-    free(m_transform);
     s2_materials_free(m_material, 1);
+    free(m_transform);
   }
 
   void initialize();
   void draw();
-
-  // void setJointSphericalTarget(
-  //   s2_joint_t* joint,
-  //   int qIndex,
-  //   int dqIndex,
-  //   double targetVal,
-  //   s2_axis_enum_t axisSequence);
 
 public slots:
 
@@ -72,7 +70,6 @@ protected:
 
 
 private:
-  s2_context_t* m_context;
 
   int m_gridSize;
   float m_scaleFactor;
@@ -84,9 +81,9 @@ private:
   s2_material_t* m_material;
   s2_displacement_t* m_transform;
 
-  BufferObjects* faceBufferObject;
-  BufferObjects* lineBufferObject;
-
+  //
+  // BufferObjects* faceBufferObject;
+  // BufferObjects* lineBufferObject;
 
 };
 

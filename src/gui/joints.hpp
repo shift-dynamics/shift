@@ -31,36 +31,28 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
+class RenderWindow;
 
-class s2_Joints : s2_Geometry {
-  s2_Joints() :
-    m_context(NULL),
-    m_active(false),
-    m_joint(NULL),
-    m_counter(0),
-    m_qIndex(-1),
-    m_dqIndex(-1),
-    m_maxCount(1000),
-    m_delq(0),
-    m_targetVal(0),
-    m_isPositive(true),
-    m_jointType(PRIMITIVE),
-    m_moveType(INCREMENT) {
+class s2_Joints : public s2_Geometry {
 
-  }
-
-  ~s2_Joints();
-
-
+  Q_OBJECT
 
 public:
+  s2_Joints(RenderWindow* renderWindow)
+  : s2_Geometry(renderWindow)
+  , m_active(false)
+  , m_joint(NULL)
+  , m_counter(0)
+  , m_qIndex(-1)
+  , m_dqIndex(-1)
+  , m_maxCount(1000)
+  , m_delq(0)
+  , m_targetVal(0)
+  , m_isPositive(true)
+  , m_jointType(PRIMITIVE)
+  , m_moveType(INCREMENT) {
 
-  void setContext(s2_context_t* context) {
-    m_context = context;
-  }
-
-  void clearContext() {
-    m_context = NULL;
+    m_scaleFactor = 2.0;
   }
 
   bool isActive() {
@@ -73,25 +65,29 @@ public:
   void update();
 
 public slots:
+
   void set(
     s2_joint_t* joint,
     int qIndex,
     int dqIndex,
     double delq,
     s2_joint_enum_t jointType);
+
   void setTarget(
     s2_joint_t* joint,
     int qIndex,
     int dqIndex,
     double targetVal,
     s2_joint_enum_t jointType);
+
   void clear();
 
 signals:
+
   void jointChanged();
 
 private:
-  s2_context_t* m_context;
+
   bool m_active;
   s2_joint_t* m_joint;
   uint m_counter;

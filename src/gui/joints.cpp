@@ -218,3 +218,160 @@ void s2_Joints::clear() {
   m_delq = -1;
   m_jointType = INVALID;
 }
+
+/*!
+
+*/
+void s2_Joints::draw() {
+
+  m_program->bind();
+  m_vao->bind();
+  if(m_drawEnabled) {
+    for(int i = 0; i < m_context->activeJointCount; i++) {
+      s2_joint_t* joint = m_context->jointPointers[i];
+      QMatrix4x4 vp =
+        m_renderWindow->getProjectionMatrix *
+        m_renderWindow->getViewMatrix;
+
+      switch(joint->jointType) {
+
+        case RX: {
+
+          double* d = (double*)joint->parentFramePointer->dAbsolute;
+          QMatrix4x4 model =
+            QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                       (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                       (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                       0.f,  0.f,  0.f,  1.f);
+
+          QMatrix4x4 scale =
+            QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+                       0, m_jointScaleFactor, 0, 0,
+                       0, 0, m_jointScaleFactor, 0,
+                       0.f,  0.f,  0.f, 1.f);
+          QMatrix4x4 mvp = vp * model * scale;
+
+          /* set model * view * projection matrix */
+          m_program->setUniformValue(m_mvp, mvp);
+          // checkError("after set mvp coordinate systems");
+
+          glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+          checkError("after draw elements coordinate systems");
+
+        } break;
+        case RY: {
+          double* d = (double*)joint->parentFramePointer->dAbsolute;
+          QMatrix4x4 model =
+            QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                       (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                       (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                       0.f,  0.f,  0.f,  1.f);
+
+          QMatrix4x4 scale =
+            QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+                       0, m_jointScaleFactor, 0, 0,
+                       0, 0, m_jointScaleFactor, 0,
+                       0.f,  0.f,  0.f, 1.f);
+          QMatrix4x4 mvp = vp * model * scale;
+
+          /* set model * view * projection matrix */
+          m_programFrame->setUniformValue(m_mvp, mvp);
+          m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+          checkError("after draw ry");
+        } break;
+        case RZ: {
+          double* d = (double*)joint->parentFramePointer->dAbsolute;
+          QMatrix4x4 model =
+            QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                       (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                       (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                       0.f,  0.f,  0.f,  1.f);
+
+          QMatrix4x4 scale =
+            QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+                       0, m_jointScaleFactor, 0, 0,
+                       0, 0, m_jointScaleFactor, 0,
+                       0.f,  0.f,  0.f, 1.f);
+          QMatrix4x4 mvp = vp * model * scale;
+
+          /* set model * view * projection matrix */
+          m_programFrame->setUniformValue(m_mvp, mvp);
+          m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+          checkError("after draw rz");
+        } break;
+        case TX: {
+          double* d = (double*)joint->parentFramePointer->dAbsolute;
+          float jointValue = (float)(m_context->q[joint->qIndex]);
+          // qDebug() << jointValue;
+          QMatrix4x4 model =
+            QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                       (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                       (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                       0.f,  0.f,  0.f,  1.f);
+
+          QMatrix4x4 scale =
+            QMatrix4x4(jointValue, 0, 0, 0,
+                       0, jointValue, 0, 0,
+                       0, 0, jointValue, 0,
+                       0.f,  0.f,  0.f, 1.f);
+          QMatrix4x4 mvp = vp * model * scale;
+
+          /* set model * view * projection matrix */
+          m_programFrame->setUniformValue(m_mvp, mvp);
+          glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+          checkError("after draw tx");
+
+        } break;
+        case TY: {
+          double* d = (double*)joint->parentFramePointer->dAbsolute;
+          float jointValue = (float)(m_context->q[joint->qIndex]);
+          // qDebug() << jointValue;
+          QMatrix4x4 model =
+            QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                       (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                       (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                       0.f,  0.f,  0.f,  1.f);
+          QMatrix4x4 scale =
+            QMatrix4x4(jointValue, 0, 0, 0,
+                       0, jointValue, 0, 0,
+                       0, 0, jointValue, 0,
+                       0.f,  0.f,  0.f, 1.f);
+          QMatrix4x4 mvp = vp * model * scale;
+
+          /* set model * view * projection matrix */
+          m_programFrame->setUniformValue(m_mvp, mvp);
+          m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+          checkError("after draw ty");
+
+        } break;
+        case TZ: {
+          double* d = (double*)joint->parentFramePointer->dAbsolute;
+          float jointValue = (float)(m_context->q[joint->qIndex]);
+          // qDebug() << jointValue;
+          QMatrix4x4 model =
+            QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+                       (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+                       (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+                       0.f,  0.f,  0.f,  1.f);
+
+          QMatrix4x4 scale =
+            QMatrix4x4(jointValue, 0, 0, 0,
+                       0, jointValue, 0, 0,
+                       0, 0, jointValue, 0,
+                       0.f,  0.f,  0.f, 1.f);
+          QMatrix4x4 mvp = vp * model * scale;
+
+          /* set model * view * projection matrix */
+          m_programFrame->setUniformValue(m_mvp, mvp);
+          m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+          checkError("after draw tz");
+
+        } break;
+        default:
+          break;
+      }
+    }
+  }
+  m_vao->release();
+  m_program->release();
+}

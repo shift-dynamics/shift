@@ -3,6 +3,7 @@
 
 #include "../star2.h"
 #include "openglwindow.hpp"
+#include "renderwindow.hpp"
 
 #include <QString>
 #include <QMouseEvent>
@@ -30,21 +31,25 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-
+class RenderWindow;
 
 class s2_Geometry {
+
   Q_OBJECT
 
 public:
-  s2_Geometry() :
-    m_context(NULL)
-     {
+
+  s2_Geometry(RenderWindow* renderWindow)
+    : m_context(NULL) {
+
+    m_renderWindow = renderWindow;
 
   };
+
   ~s2_Geometry();
 
-  void initialize();
-
+  virtual void initialize();
+  virtual void draw();
   void checkError(const QString &prefix);
 
   bool isInitialized() {
@@ -63,29 +68,35 @@ public:
     m_context = context;
   }
 
-  void clearContext(s2_context_t* context) {
+  void clearContext() {
     m_context = NULL;
-  }
-
-
-public slots:
-  void enable(bool active) {
-    m_drawEnabled = active;
   }
 
   void toggleEnabled() {
     m_drawEnabled = !m_drawEnabled;
   }
 
-private:
+  void setShaderProgram(QOpenGLShaderProgram* program) {
+    m_program = program;
+  }
+
+public slots:
+
+  void enable(bool active) {
+    m_drawEnabled = active;
+  }
+
+protected:
   s2_context_t* m_context;
 
   bool m_initialized;
   bool m_drawEnabled;
   float m_scaleFactor;
 
+  RenderWindow* m_renderWindow;
   QOpenGLShaderProgram* m_program;
 
+  s2_shading_enum_t shadingType;
 };
 
 

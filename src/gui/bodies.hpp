@@ -31,7 +31,7 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-
+class RenderWindow;
 /*!
 @brief vertex array and vertex buffer objects for each material
 */
@@ -44,21 +44,46 @@ typedef struct BufferObjects {
   s2_displacement_t* transform;
 } BufferObjects;
 
+struct UniformLocations {
+  GLuint m;
+  GLuint mv;
+  GLuint mvp;
+  GLuint nm;
+  GLuint v;
+
+  GLuint KaMaterial;
+  GLuint KdMaterial;
+  GLuint KsMaterial;
+  GLuint KeMaterial;
+  GLuint Ns;
+
+  GLuint posLight;
+  GLuint directional;
+  GLuint Ka;
+  GLuint Kd;
+  GLuint Ks;
+  GLuint lightCount;
+
+  GLint position;
+  GLint normal;
+};
+
 /*!
 @brief used to set up visualization assets associated with s2_body_t data
 structure
 */
 class s2_Bodies : public s2_Geometry {
 
+  Q_OBJECT
+
 public:
-  s2_Bodies() :
-    m_context(NULL),
-    m_program(NULL) {
-
+  s2_Bodies(RenderWindow* renderWindow)
+  : s2_Geometry(renderWindow) {
+    m_shadingType = PHONG;
   };
-  ~s2_Bodies();
 
-  void initialize(s2_context_t* context);
+  virtual void initialize();
+
   void initializeBody(
     s2_body_t* body);
 
@@ -66,13 +91,34 @@ public:
     s2_material_t* material,
     s2_displacement_t* origin);
 
-  void draw();
+  void setDrawStyle(s2_shading_enum_t shadingType) {
+    switch(shadingType) {
+      case WIREFRAME: {
+        m_shadingType = WIREFRAME;
+      } break;
+      default: {
+        m_shadingType = PHONG;
+      } break;
+    }
+  }
+
+  void compileShader();
+  void loadContext();
+
+  virtual void draw();
 
 private:
-  s2_context_t* m_context;
-  QOpenGLShaderProgram* m_program;
-  QVector<BufferObjects*> m_bufferObjects;
 
+  QVector<BufferObjects> m_bufferObjects;
+
+  /* uniform locations */
+  UniformLocations m_uniformLocationsFlat;
+  UniformLocations m_uniformLocationsPhong;
+
+  s2_shading_enum_t m_shadingType;
+
+  QOpenGLShaderProgram* m_programFlat;
+  QOpenGLShaderProgram* m_programPhong;
 
 };
 
