@@ -60,6 +60,7 @@ public:
 
   virtual void initialize();
   virtual void draw();
+  void loadContext();
 
 private:
 
@@ -70,21 +71,21 @@ private:
   QOpenGLTexture* m_textureSpecularMap;
 
   /* texture uniform locations */
-  GLuint m_uTextureColor;
-  GLuint m_uTextureDisplacementMap;
-  GLuint m_uTextureBumpMap;
-  GLuint m_uTextureNormalMap;
-  GLuint m_uTextureSpecularMap;
-  GLuint m_uProjectionMatrix;
+  GLuint m_textureColor_u;
+  GLuint m_textureDisplacementMap_u;
+  GLuint m_textureBumpMap_u;
+  GLuint m_textureNormalMap_u;
+  GLuint m_textureSpecularMap_u;
+  GLuint m_projectionMatrix_u;
 
   /* uniform locations */
-  GLuint m_zMax;
-  GLuint m_zMin;
-  GLuint m_viewport;
-  GLuint m_KsOverKd;
-  GLuint m_KaOverKd;
-  GLuint m_depth;
-  GLuint m_color;
+  GLuint m_zMax_u;
+  GLuint m_zMin_u;
+  GLuint m_viewport_u;
+  GLuint m_KsOverKd_u;
+  GLuint m_KaOverKd_u;
+  GLuint m_depth_u;
+  GLuint m_color_u;
 
   s2_shading_enum_t m_shadingType;
 };

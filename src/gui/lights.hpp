@@ -40,52 +40,55 @@ class s2_Lights : public s2_Geometry {
 public:
   s2_Lights(RenderWindow* renderWindow)
   : s2_Geometry(renderWindow)
-  , m_lightCount(0) {
+  , m_count(0) {
 
-    memset(m_lightPosition, 0, 30 * sizeof(GLfloat));
-    memset(m_KaLight, 0, 30 * sizeof(GLfloat));
-    memset(m_KdLight, 0, 30 * sizeof(GLfloat));
-    memset(m_KsLight, 0, 30 * sizeof(GLfloat));
+    memset(m_position, 0, 30 * sizeof(GLfloat));
+    memset(m_Ka, 0, 30 * sizeof(GLfloat));
+    memset(m_Kd, 0, 30 * sizeof(GLfloat));
+    memset(m_Ks, 0, 30 * sizeof(GLfloat));
     memset(m_directional, 0, 10 * sizeof(GLfloat));
 
   }
   ~s2_Lights();
 
-  int getLightCount() {
-    return m_lightCount;
+  int getCount() {
+    return m_count;
   }
 
-  GLfloat* getLightPosition() {
-    return m_lightPosition;
+  GLfloat* getPosition() {
+    return m_position;
   }
 
   GLfloat* getKa() {
-    return m_KaLight;
+    return m_Ka;
   }
 
   GLfloat* getKd() {
-    return m_KdLight;
+    return m_Kd;
   }
 
   GLfloat* getKs() {
-    return m_KsLight;
+    return m_Ks;
   }
 
   GLint* getDirectional() {
     return m_directional;
   }
 
-  virtual void initialize();
+  void initialize();
+  void draw();
+  void loadContext();
 
-  virtual void draw();
+
+
 
 private:
 
-  int m_lightCount;
-  GLfloat m_lightPosition[30];
-  GLfloat m_KaLight[30];
-  GLfloat m_KdLight[30];
-  GLfloat m_KsLight[30];
+  int m_count;
+  GLfloat m_position[30];
+  GLfloat m_Ka[30];
+  GLfloat m_Kd[30];
+  GLfloat m_Ks[30];
   GLint m_directional[10];
 };
 
