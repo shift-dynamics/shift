@@ -32,6 +32,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
+class s2_Geometry;
 
 
 class s2_Grid : public s2_Geometry {
@@ -46,6 +47,12 @@ public:
 
     m_gridSize = gridSize;
     m_scaleFactor = scaleFactor;
+    m_model.setToIdentity();
+
+    m_color[0] = 36.f / 255.f;
+    m_color[1] = 36.f / 255.f;
+    m_color[2] = 36.f / 255.f;
+    m_color[3] = 0.9f;
   };
 
   ~s2_Grid() {
@@ -73,13 +80,24 @@ private:
 
   int m_gridSize;
   float m_scaleFactor;
+  QMatrix4x4 m_model;
 
   s2_shading_enum_t m_shadingType;
   GLfloat m_color[4];
-  GLfloat m_normalColor[4];
 
   s2_material_t* m_material;
   s2_displacement_t* m_transform;
+
+  QOpenGLVertexArrayObject* m_vao;
+  QOpenGLBuffer* m_vbo;
+  QOpenGLBuffer* m_ibo;
+
+  /* attributes */
+  GLuint m_position_a;
+
+  /* uniforms */
+  GLuint m_color_u;
+  GLuint m_mvp_u;
 
   //
   // BufferObjects* faceBufferObject;

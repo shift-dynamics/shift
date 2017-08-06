@@ -33,7 +33,7 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
 
-class s2_Geometry {
+class s2_Geometry : protected QObject {
 
   Q_OBJECT
 
@@ -52,39 +52,17 @@ public:
   virtual void draw();
   void checkError(const QString &prefix);
 
-  bool isInitialized() {
-    return m_initialized;
-  };
-
-  bool isEnabled() {
-    return m_drawEnabled;
-  }
-
-  float getScaleFactor() {
-    return m_scaleFactor;
-  }
-
-  void setContext(s2_context_t* context) {
-    m_context = context;
-  }
-
-  void clearContext() {
-    m_context = NULL;
-  }
-
-  void toggleEnabled() {
-    m_drawEnabled = !m_drawEnabled;
-  }
-
-  void setShaderProgram(QOpenGLShaderProgram* program) {
-    m_program = program;
-  }
+  bool isInitialized();
+  bool isEnabled();
+  float getScaleFactor();
+  void setContext(s2_context_t* context);
+  void clearContext();
+  void toggleEnabled();
+  void setShaderProgram(QOpenGLShaderProgram* program);
 
 public slots:
 
-  void enable(bool active) {
-    m_drawEnabled = active;
-  }
+  void enable(bool active);
 
 protected:
   s2_context_t* m_context;

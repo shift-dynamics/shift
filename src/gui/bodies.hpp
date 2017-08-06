@@ -4,6 +4,7 @@
 #include "../star2.h"
 #include "openglwindow.hpp"
 #include "geometry.hpp"
+#include "lights.hpp"
 
 #include <QString>
 #include <QMouseEvent>
@@ -32,40 +33,46 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
+class s2_Geometry;
+class s2_Lights;
+
 /*!
 @brief vertex array and vertex buffer objects for each material
 */
-typedef struct BufferObjects {
+struct BufferObjects {
   QOpenGLVertexArrayObject* vao;
   QOpenGLBuffer* vertexBuffer;
   QOpenGLBuffer* vertexNormalBuffer;
   QOpenGLBuffer* ibo;
   s2_material_t* material;
   s2_displacement_t* transform;
-} BufferObjects;
+};
 
+/*!
+@brief uniform locations for each shader program
+*/
 struct UniformLocations {
-  GLuint m;
-  GLuint mv;
-  GLuint mvp;
-  GLuint nm;
-  GLuint v;
+  GLuint m_u;
+  GLuint mv_u;
+  GLuint mvp_u;
+  GLuint nm_u;
+  GLuint v_u;
 
-  GLuint KaMaterial;
-  GLuint KdMaterial;
-  GLuint KsMaterial;
-  GLuint KeMaterial;
-  GLuint Ns;
+  GLuint KaMaterial_u;
+  GLuint KdMaterial_u;
+  GLuint KsMaterial_u;
+  GLuint KeMaterial_u;
+  GLuint Ns_u;
 
-  GLuint posLight;
-  GLuint directional;
-  GLuint Ka;
-  GLuint Kd;
-  GLuint Ks;
-  GLuint lightCount;
+  GLuint posLight_u;
+  GLuint directional_u;
+  GLuint Ka_u;
+  GLuint Kd_u;
+  GLuint Ks_u;
+  GLuint lightCount_u;
 
-  GLint position;
-  GLint normal;
+  GLint position_a;
+  GLint normal_a;
 };
 
 /*!
@@ -103,22 +110,41 @@ public:
   }
 
   void compileShader();
+  void setUniformLocations(
+    QOpenGLShaderProgram* program,
+    UniformLocations* uniforms);
+  void setAttributeLocations(
+    QOpenGLShaderProgram* program,
+    UniformLocations* uniforms,
+    BufferObjects* bufferObjects);
   void loadContext();
+  void setLights(s2_Lights* lights) {
+    m_lights = lights;
+  }
+  void setPhongShader(QOpenGLShaderProgram* program) {
+    m_programPhong = program;
+  }
+  void setFlatShader(QOpenGLShaderProgram* program) {
+    m_programFlat = program;
+  }
 
-  virtual void draw();
+  void draw();
 
 private:
 
   QVector<BufferObjects> m_bufferObjects;
 
   /* uniform locations */
-  UniformLocations m_uniformLocationsFlat;
-  UniformLocations m_uniformLocationsPhong;
+  UniformLocations m_uniformsFlat;
+  UniformLocations m_uniformsPhong;
 
   s2_shading_enum_t m_shadingType;
 
+  /* OpenGL shader programs */
   QOpenGLShaderProgram* m_programFlat;
   QOpenGLShaderProgram* m_programPhong;
+
+  s2_Lights* m_lights;
 
 };
 
