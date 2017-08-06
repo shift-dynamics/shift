@@ -168,11 +168,12 @@ set(GUI_SOURCES
     ${star2_SOURCE_DIR}/src/gui/workspace.cpp
     ${star2_SOURCE_DIR}/src/gui/openglwindow.cpp
     ${star2_SOURCE_DIR}/src/gui/renderwindow.cpp
-    ${star2_SOURCE_DIR}/src/gui/bufferobjects.cpp
+    ${star2_SOURCE_DIR}/src/gui/bodies.cpp
     ${star2_SOURCE_DIR}/src/gui/frames.cpp
+    ${star2_SOURCE_DIR}/src/gui/joints.cpp
     ${star2_SOURCE_DIR}/src/gui/grid.cpp
     ${star2_SOURCE_DIR}/src/gui/lights.cpp
-    ${star2_SOURCE_DIR}/src/gui/joints.cpp
+    ${star2_SOURCE_DIR}/src/gui/terrain.cpp
     ${star2_SOURCE_DIR}/src/gui/resources.qrc
 )
 
