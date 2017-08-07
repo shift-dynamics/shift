@@ -33,8 +33,8 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
-class s2_Geometry;
-class s2_Lights;
+// class s2_Geometry;
+// class s2_Lights;
 
 /*!
 @brief vertex array and vertex buffer objects for each material
@@ -89,7 +89,11 @@ public:
     m_shadingType = PHONG;
   };
 
-  virtual void initialize();
+  ~s2_Bodies() {
+
+  };
+
+  void initialize();
 
   void initializeBody(
     s2_body_t* body);

@@ -1,4 +1,5 @@
 #include "joints.hpp"
+#include "renderwindow.hpp"
 
 /*!
 @brief move joint incrementally if user specifies a joint is to be moved
@@ -174,7 +175,6 @@ void s2_Joints::set(
 }
 
 
-
 /*!
   @brief set joint to be incremented
 */
@@ -207,7 +207,7 @@ void s2_Joints::setTarget(
 
 
 /*!
-  @brief clear joint to be incremented
+@brief clear joint to be incremented
 */
 void s2_Joints::clear() {
   m_active = false;
@@ -219,6 +219,15 @@ void s2_Joints::clear() {
   m_jointType = INVALID;
 }
 
+
+/*!
+@brief initialization function
+*/
+void s2_Joints::initialize() {
+
+}
+
+
 /*!
 
 */
@@ -226,12 +235,12 @@ void s2_Joints::draw() {
 
   m_program->bind();
   m_vao->bind();
-  if(m_drawEnabled) {
+  if(m_drawEnabled && m_context) {
     for(int i = 0; i < m_context->activeJointCount; i++) {
       s2_joint_t* joint = m_context->jointPointers[i];
       QMatrix4x4 vp =
-        m_renderWindow->getProjectionMatrix *
-        m_renderWindow->getViewMatrix;
+        m_renderWindow->getProjectionMatrix() *
+        m_renderWindow->getViewMatrix();
 
       switch(joint->jointType) {
 
@@ -245,14 +254,14 @@ void s2_Joints::draw() {
                        0.f,  0.f,  0.f,  1.f);
 
           QMatrix4x4 scale =
-            QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
-                       0, m_jointScaleFactor, 0, 0,
-                       0, 0, m_jointScaleFactor, 0,
+            QMatrix4x4(m_scaleFactor, 0, 0, 0,
+                       0, m_scaleFactor, 0, 0,
+                       0, 0, m_scaleFactor, 0,
                        0.f,  0.f,  0.f, 1.f);
           QMatrix4x4 mvp = vp * model * scale;
 
           /* set model * view * projection matrix */
-          m_program->setUniformValue(m_mvp, mvp);
+          m_program->setUniformValue(m_mvp_u, mvp);
           // checkError("after set mvp coordinate systems");
 
           glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
@@ -268,15 +277,15 @@ void s2_Joints::draw() {
                        0.f,  0.f,  0.f,  1.f);
 
           QMatrix4x4 scale =
-            QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
-                       0, m_jointScaleFactor, 0, 0,
-                       0, 0, m_jointScaleFactor, 0,
+            QMatrix4x4(m_scaleFactor, 0, 0, 0,
+                       0, m_scaleFactor, 0, 0,
+                       0, 0, m_scaleFactor, 0,
                        0.f,  0.f,  0.f, 1.f);
           QMatrix4x4 mvp = vp * model * scale;
 
           /* set model * view * projection matrix */
-          m_programFrame->setUniformValue(m_mvp, mvp);
-          m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+          m_program->setUniformValue(m_mvp_u, mvp);
+          m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
           checkError("after draw ry");
         } break;
         case RZ: {
@@ -288,15 +297,15 @@ void s2_Joints::draw() {
                        0.f,  0.f,  0.f,  1.f);
 
           QMatrix4x4 scale =
-            QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
-                       0, m_jointScaleFactor, 0, 0,
-                       0, 0, m_jointScaleFactor, 0,
+            QMatrix4x4(m_scaleFactor, 0, 0, 0,
+                       0, m_scaleFactor, 0, 0,
+                       0, 0, m_scaleFactor, 0,
                        0.f,  0.f,  0.f, 1.f);
           QMatrix4x4 mvp = vp * model * scale;
 
           /* set model * view * projection matrix */
-          m_programFrame->setUniformValue(m_mvp, mvp);
-          m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+          m_program->setUniformValue(m_mvp_u, mvp);
+          m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
           checkError("after draw rz");
         } break;
         case TX: {
@@ -317,7 +326,7 @@ void s2_Joints::draw() {
           QMatrix4x4 mvp = vp * model * scale;
 
           /* set model * view * projection matrix */
-          m_programFrame->setUniformValue(m_mvp, mvp);
+          m_program->setUniformValue(m_mvp_u, mvp);
           glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
           checkError("after draw tx");
 
@@ -339,8 +348,8 @@ void s2_Joints::draw() {
           QMatrix4x4 mvp = vp * model * scale;
 
           /* set model * view * projection matrix */
-          m_programFrame->setUniformValue(m_mvp, mvp);
-          m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+          m_program->setUniformValue(m_mvp_u, mvp);
+          m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
           checkError("after draw ty");
 
         } break;
@@ -362,8 +371,8 @@ void s2_Joints::draw() {
           QMatrix4x4 mvp = vp * model * scale;
 
           /* set model * view * projection matrix */
-          m_programFrame->setUniformValue(m_mvp, mvp);
-          m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+          m_program->setUniformValue(m_mvp_u, mvp);
+          m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
           checkError("after draw tz");
 
         } break;

@@ -4,12 +4,6 @@
 #include "../star2.h"
 #include "openglwindow.hpp"
 #include "uniformbufferobject.hpp"
-#include "bodies.hpp"
-#include "frames.hpp"
-#include "joints.hpp"
-#include "lights.hpp"
-#include "grid.hpp"
-#include "terrain.hpp"
 
 #include <QString>
 #include <QMouseEvent>
@@ -42,6 +36,7 @@ class s2_Frames;
 class s2_Grid;
 class s2_Joints;
 class s2_Lights;
+class s2_Terrain;
 
 QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
@@ -154,10 +149,13 @@ class RenderWindow : public OpenGLWindow {
 
 public:
   RenderWindow();
-  ~RenderWindow();
+  ~RenderWindow() {
+
+  };
 
   void render();
   void resizeGL(int width, int height);
+  void loadContext();
   void loadContext(s2_context_t* context);
   QString getCursorPositionText();
   void checkError(const QString &prefix);
@@ -177,7 +175,9 @@ public:
     double delq,
     s2_joint_enum_t jointType);
   void updateJoint();
-  s2_context_t* getContext();
+  s2_context_t* getContext() {
+    return m_context;
+  }
 
   QMatrix4x4 getViewMatrix() {
     return m_view;

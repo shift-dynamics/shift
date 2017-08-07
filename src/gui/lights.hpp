@@ -2,7 +2,6 @@
 #define _STAR2_LIGHTS_HPP_
 
 #include "../star2.h"
-#include "openglwindow.hpp"
 #include "geometry.hpp"
 
 #include <QString>
@@ -32,28 +31,21 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
+class s2_Geometry;
 
 class s2_Lights : public s2_Geometry {
 
   Q_OBJECT
 
 public:
-  s2_Lights(RenderWindow* renderWindow)
-  : s2_Geometry(renderWindow)
-  , m_count(0) {
+  s2_Lights(RenderWindow* renderWindow);
+  ~s2_Lights() {
 
-    memset(m_position, 0, 30 * sizeof(GLfloat));
-    memset(m_Ka, 0, 30 * sizeof(GLfloat));
-    memset(m_Kd, 0, 30 * sizeof(GLfloat));
-    memset(m_Ks, 0, 30 * sizeof(GLfloat));
-    memset(m_directional, 0, 10 * sizeof(GLfloat));
-
-  }
-  ~s2_Lights();
+  };
 
   int getCount() {
     return m_count;
-  }
+  };
 
   GLfloat* getPosition() {
     return m_position;
@@ -78,9 +70,6 @@ public:
   void initialize();
   void draw();
   void loadContext();
-
-
-
 
 private:
 

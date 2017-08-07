@@ -1,4 +1,5 @@
 #include "grid.hpp"
+#include "renderwindow.hpp"
 
 /*!
 @brief initialize grid

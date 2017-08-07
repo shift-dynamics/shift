@@ -1,7 +1,13 @@
 #include "geometry.hpp"
+#include "openglwindow.hpp"
+#include "renderwindow.hpp"
 
 void s2_Geometry::checkError(const QString &prefix) {
   m_renderWindow->checkError(prefix);
+}
+
+bool s2_Geometry::isInitialized() {
+  return m_initialized;
 }
 
 bool s2_Geometry::isEnabled() {
@@ -24,7 +30,7 @@ void s2_Geometry::toggleEnabled() {
   m_drawEnabled = !m_drawEnabled;
 }
 
-void s2_Geometry::setShaderProgram(QOpenGLShaderProgram* program) {
+void s2_Geometry::setShader(QOpenGLShaderProgram* program) {
   m_program = program;
 }
 
