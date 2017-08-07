@@ -16,7 +16,7 @@ void s2_Grid::initialize() {
   */
   m_material = s2_materials(1);
   m_material->shadingType = LINE;
-  m_material->Ns = 10;
+  m_material->GLuniforms.Ns = 10;
 
   m_transform = s2_displacement();
 

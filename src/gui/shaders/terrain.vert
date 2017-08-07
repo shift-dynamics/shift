@@ -1,5 +1,35 @@
 #version 420 core
 
+uniform sampler2D tex_displacement;
+
+layout (std140) uniform matrices {
+  mat4 mvp;
+  mat4 mv;
+  mat4 v;
+  mat3 nm;
+};
+
+layout (std140) uniform material {
+  uniform vec3 KaOverKd;
+  uniform vec3 KsOverKd;
+  int Ns;
+} material;
+
+layout (std140) uniform lights {
+  int count;
+  int directional[10];
+  vec3 position[10];
+  vec3 Ka[10];
+  vec3 Kd[10];
+  vec3 Ks[10];
+} lights;
+
+layout (std140) uniform terrain {
+  float zMin;
+  float zMax;
+  vec2 viewport;
+} terrain;
+
 out VS_OUT {
   vec2 tc;
 } vs_out;
