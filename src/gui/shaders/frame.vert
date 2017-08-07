@@ -2,13 +2,12 @@
 
 uniform mat4 mvp;
 
-in vec4 posAttr;
-in vec4 colorAttr;
+in vec4 position_a;
+in vec4 color_a;
 
 out vec4 color;
 
 void main() {
-  gl_Position = mvp * posAttr;
-  // color = vec4(1.f, 0.f, 0.f, 1.f);
-  color = colorAttr;
+  gl_Position = mvp * position_a;
+  color = color_a;
 }

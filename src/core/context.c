@@ -543,11 +543,11 @@ s2_material_t* s2_materials(
     materials[i].name = NULL;
     materials[i].index = 0;
     materials[i].filePath = NULL;
-    memset(materials[i].Ka, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].Kd, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].Ks, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].Ke, 0, 4 * sizeof(GLfloat));
-    materials[i].Ns = 0;
+    memset(materials[i].GLuniforms.Ka, 0, 4 * sizeof(GLfloat));
+    memset(materials[i].GLuniforms.Kd, 0, 4 * sizeof(GLfloat));
+    memset(materials[i].GLuniforms.Ks, 0, 4 * sizeof(GLfloat));
+    memset(materials[i].GLuniforms.Ke, 0, 4 * sizeof(GLfloat));
+    materials[i].GLuniforms.Ns = 0;
     materials[i].vertexCount = 0;
     materials[i].vertices = NULL;
     materials[i].vertexNormals = NULL;
