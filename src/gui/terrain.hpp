@@ -3,7 +3,6 @@
 
 #include "../star2.h"
 #include "openglwindow.hpp"
-#include "renderwindow.hpp"
 #include "geometry.hpp"
 
 #include <QString>
@@ -33,6 +32,16 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
+typedef struct TerrainObjects {
+  GLuint depth_u;
+  GLuint color_u;
+  QOpenGLTexture* textureColor;
+  QOpenGLTexture* textureDisplacementMap;
+  QOpenGLTexture* textureBumpMap;
+  QOpenGLTexture* textureNormalMap;
+  QOpenGLTexture* textureSpecularMap;
+} TerrainObjects;
+
 class s2_Terrain : public s2_Geometry {
 
   Q_OBJECT
@@ -58,17 +67,13 @@ public:
     }
   }
 
-  virtual void initialize();
-  virtual void draw();
+  void initialize();
+  void draw();
   void loadContext();
 
 private:
 
-  QOpenGLTexture* m_textureColor;
-  QOpenGLTexture* m_textureDisplacementMap;
-  QOpenGLTexture* m_textureBumpMap;
-  QOpenGLTexture* m_textureNormalMap;
-  QOpenGLTexture* m_textureSpecularMap;
+
 
   /* texture uniform locations */
   GLuint m_textureColor_u;
@@ -87,7 +92,7 @@ private:
   GLuint m_depth_u;
   GLuint m_color_u;
 
-  s2_shading_enum_t m_shadingType;
+  TerrainObjects* m_terrainObjects;
 };
 
 

@@ -1,4 +1,14 @@
 #include "bodies.hpp"
+#include "renderwindow.hpp"
+
+/*!
+@brief set up program uniforms for s2_Bodies
+*/
+void s2_Bodies::initialize() {
+  setUniformLocations(m_programFlat, &m_uniformsFlat);
+  setUniformLocations(m_programPhong, &m_uniformsPhong);
+
+}
 
 void s2_Bodies::loadContext() {
   if(m_renderWindow->getContext()) {

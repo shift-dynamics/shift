@@ -45,11 +45,13 @@ public:
     initialize();
   };
 
-  ~s2_Frames();
+  ~s2_Frames() {
+    
+  }
 
   virtual void initialize();
   virtual void draw();
-  void drawFrames();
+  void drawFrames(s2_assembly_t* assembly);
   void drawWFrames();
   void loadContext();
 
@@ -61,9 +63,9 @@ private:
   GLuint m_indices[6];
 
   /* uniform locations */
-  GLuint m_mvp;
-  GLuint m_posAttr;
-  GLuint m_colorAttr;
+  GLuint m_mvp_u;
+  GLuint m_position_a;
+  GLuint m_color_a;
 
   /* vertex, face and index buffers */
   QOpenGLVertexArrayObject* m_vao;

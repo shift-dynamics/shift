@@ -1,4 +1,18 @@
+#include "geometry.hpp"
 #include "lights.hpp"
+#include "renderwindow.hpp"
+
+s2_Lights::s2_Lights(RenderWindow* renderWindow)
+: s2_Geometry(renderWindow)
+, m_count(0) {
+
+  memset(m_position, 0, 30 * sizeof(GLfloat));
+  memset(m_Ka, 0, 30 * sizeof(GLfloat));
+  memset(m_Kd, 0, 30 * sizeof(GLfloat));
+  memset(m_Ks, 0, 30 * sizeof(GLfloat));
+  memset(m_directional, 0, 10 * sizeof(GLfloat));
+}
+
 
 /*!
 @brief initialize lights
@@ -45,7 +59,9 @@ void s2_Lights::initialize() {
   // }
 }
 
-
+/*!
+@brief load context data structure
+*/
 void s2_Lights::loadContext() {
 
   m_context = m_renderWindow->getContext();
@@ -55,7 +71,7 @@ void s2_Lights::loadContext() {
     } else {
       m_count = m_context->activeLightCount;
     }
-    for(unsigned int i = 0; i < m_count; i++) {
+    for(int i = 0; i < m_count; i++) {
       QVector4D position;
       s2_light_t* light = m_context->lightPointers[i];
       s2_displacement_t* d = light->parentFramePointer->dAbsolute;
@@ -86,4 +102,12 @@ void s2_Lights::loadContext() {
       }
     }
   }
+}
+
+
+/*!
+@brief initialize lights
+*/
+void s2_Lights::draw() {
+
 }
