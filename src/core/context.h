@@ -848,11 +848,13 @@ typedef struct s2_material_t {
   char* filePath;
   s2_shading_enum_t shadingType;
 
-  GLfloat Ka[4]; /*!< ambient color properties */
-  GLfloat Kd[4]; /*!< diffuse color properties */
-  GLfloat Ks[4]; /*!< specular color properties */
-  GLfloat Ke[4]; /*!< emissive color properties */
-  GLint Ns; /*!< specular highlight */
+  struct GLuniforms {
+    GLfloat Ka[4]; /*!< ambient color properties */
+    GLfloat Kd[4]; /*!< diffuse color properties */
+    GLfloat Ks[4]; /*!< specular color properties */
+    GLfloat Ke[4]; /*!< emissive color properties */
+    GLint Ns; /*!< specular highlight */
+  } GLuniforms;
 
   int vertexCount;
   int faceCount;

@@ -2460,24 +2460,24 @@ void Workspace::populateMaterialColorDropDown(s2_material_t* material) {
 
   QPixmap currentColor(40, 40);
   currentColor.fill(QColor(
-    material->Ka[0] * 255,
-    material->Ka[1] * 255,
-    material->Ka[2] * 255));
+    material->GLuniforms.Ka[0] * 255,
+    material->GLuniforms.Ka[1] * 255,
+    material->GLuniforms.Ka[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(0, QIcon(currentColor));
   currentColor.fill(
     QColor(
-      material->Kd[0] * 255,
-      material->Kd[1] * 255,
-      material->Kd[2] * 255));
+      material->GLuniforms.Kd[0] * 255,
+      material->GLuniforms.Kd[1] * 255,
+      material->GLuniforms.Kd[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(1, QIcon(currentColor));
   currentColor.fill(
     QColor(
-      material->Ks[0] * 255,
-      material->Ks[1] * 255,
-      material->Ks[2] * 255));
+      material->GLuniforms.Ks[0] * 255,
+      material->GLuniforms.Ks[1] * 255,
+      material->GLuniforms.Ks[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(2, QIcon(currentColor));
-  qDebug() << "setting value" << material->Ns;
-  m_bodyPanel.nsModelSpinBox->setValue((double)material->Ns);
+  qDebug() << "setting value" << material->GLuniforms.Ns;
+  m_bodyPanel.nsModelSpinBox->setValue((double)material->GLuniforms.Ns);
 }
 
 
@@ -3767,21 +3767,21 @@ void Workspace::materialColorSelector() {
       switch(colorType) {
         case AMBIENT: {
           qDebug() << "ambient";
-          material->Ka[0] = color.red() / 255.f;
-          material->Ka[1] = color.green() / 255.f;
-          material->Ka[2] = color.blue() / 255.f;
+          material->GLuniforms.Ka[0] = color.red() / 255.f;
+          material->GLuniforms.Ka[1] = color.green() / 255.f;
+          material->GLuniforms.Ka[2] = color.blue() / 255.f;
         } break;
         case DIFFUSE: {
           qDebug() << "diffuse";
-          material->Kd[0] = color.red() / 255.f;
-          material->Kd[1] = color.green() / 255.f;
-          material->Kd[2] = color.blue() / 255.f;
+          material->GLuniforms.Kd[0] = color.red() / 255.f;
+          material->GLuniforms.Kd[1] = color.green() / 255.f;
+          material->GLuniforms.Kd[2] = color.blue() / 255.f;
         } break;
         case SPECULAR: {
           qDebug() << "specular";
-          material->Ks[0] = color.red() / 255.f;
-          material->Ks[1] = color.green() / 255.f;
-          material->Ks[2] = color.blue() / 255.f;
+          material->GLuniforms.Ks[0] = color.red() / 255.f;
+          material->GLuniforms.Ks[1] = color.green() / 255.f;
+          material->GLuniforms.Ks[2] = color.blue() / 255.f;
         } break;
         case EMISSIVE: {
           qDebug() << "emissive currently not handled";

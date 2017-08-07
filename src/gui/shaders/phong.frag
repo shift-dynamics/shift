@@ -1,27 +1,27 @@
 #version 330
-/*
-  light parameters
-*/
-uniform int lightCount;
-uniform vec3 posLight[10];
-uniform vec3 Ka[10];
-uniform vec3 Kd[10];
-uniform vec3 Ks[10];
-uniform int directional[10];
 
-/*
-  body parameters
-*/
-uniform mat4 mvp, mv, v;
-uniform mat3 nm;
+layout (std140) uniform matrices {
+  mat4 mvp;
+  mat4 mv;
+  mat4 v;
+  mat3 nm;
+};
 
-/*
-  material parameters
-*/
-uniform vec3 KaMaterial;
-uniform vec3 KdMaterial;
-uniform vec3 KsMaterial;
-uniform int Ns;
+layout (std140) uniform material {
+  vec4 Ka;
+  vec4 Kd;
+  vec4 Ks;
+  int Ns;
+} material;
+
+layout (std140) uniform lights {
+  int count;
+  int directional[10];
+  vec3 position[10];
+  vec3 Ka[10];
+  vec3 Kd[10];
+  vec3 Ks[10];
+} lights;
 
 in vec3 normalFrag;
 in vec4 positionFrag;
@@ -33,43 +33,50 @@ void main() {
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
   vec3 V = vec3(0.0, 0.0, 1.0);
 
-  for(int i = 0; i < lightCount; i++) {
+  for(int i = 0; i < lights.count; i++) {
     vec3 L;
-    switch(directional[i]) {
+    switch(lights.directional[i]) {
       case 0: {
-        // 0= point light, posLight indicates position of light source
-        //need to compute direction of incoming light
-
+        /* 0= point light
+          light.position indicates position of light source
+          used to compute direction of incoming light */
         vec4 temp = v * vec4(
-          posLight[i].x,
-          posLight[i].y,
-          posLight[i].z,
+          lights.position[i].x,
+          lights.position[i].y,
+          lights.position[i].z,
           1.0)
           - mv * positionFrag;
         L = normalize(temp.xyz);
       }
       break;
       case 1: {
-        // 1=directional light, posLight indicates direction of incoming light
+        /* 1 = directional light
+          light.position indicates position of light source
+          used to compute direction of incoming light */
 
         vec4 temp = v * vec4(
-          posLight[i].x,
-          posLight[i].y,
-          posLight[i].z,
+          lights.position[i].x,
+          lights.position[i].y,
+          lights.position[i].z,
           1.0);
         L = normalize(temp.xyz);
       }
       break;
     }
 
-    color.rgb += KaMaterial * Ka[i];          //ambient term
+    /* ambient term */
+    color.rgb += material.Ka * lights.Ka[i];
+
+    /* diffuse term */
     float LdotN =  max(0.0, dot(L, normalFrag));
+    color.rgb += material.Kd * lights.Kd[i] * LdotN;
 
-    color.rgb += KdMaterial * Kd[i] * LdotN; //diffuse term
-
-    vec3 R = -normalize(reflect(L, normalFrag));       //specular term
-    color.rgb += KsMaterial * Ks[i] * pow(max(0, dot(R, V)), Ns);
+    /* specular term */
+    vec3 R = -normalize(reflect(L, normalFrag));
+    color.rgb += material.Ks * lights.Ks[i] * pow(max(0, dot(R, V)), Ns);
   }
+
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));
+  colorFrag.a = material.Ka.a;
 
 }

@@ -195,25 +195,25 @@ void s2_Bodies::draw() {
         /* set Kd properties for material */
         m_programPhong->setUniformValue(
           m_uniformsPhong.KdMaterial_u,
-          material->Kd[0],
-          material->Kd[1],
-          material->Kd[2]);
+          material->GLuniforms.Kd[0],
+          material->GLuniforms.Kd[1],
+          material->GLuniforms.Kd[2]);
         // checkError("after set KdMaterial phong");
 
         /* set Ks properties for material */
         m_programPhong->setUniformValue(
           m_uniformsPhong.KsMaterial_u,
-          material->Ks[0],
-          material->Ks[1],
-          material->Ks[2]);
+          material->GLuniforms.Ks[0],
+          material->GLuniforms.Ks[1],
+          material->GLuniforms.Ks[2]);
         // checkError("after set KsMaterial phong");
 
         /* set Ka properties for material */
         m_programPhong->setUniformValue(
           m_uniformsPhong.KaMaterial_u,
-          material->Ka[0],
-          material->Ka[1],
-          material->Ka[2]);
+          material->GLuniforms.Ka[0],
+          material->GLuniforms.Ka[1],
+          material->GLuniforms.Ka[2]);
         // checkError("after set KaMaterial phong");
 
         // qDebug() << "KaMaterial: " << material->Ka[0]
@@ -222,7 +222,7 @@ void s2_Bodies::draw() {
         /* set specularity property for material */
         m_programPhong->setUniformValue(
           m_uniformsPhong.Ns_u,
-          material->Ns);
+          material->GLuniforms.Ns);
         // checkError("after set Ns phong");
         if(m_shadingType == WIREFRAME) {
           glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -327,28 +327,28 @@ void s2_Bodies::draw() {
         /* set Kd properties for material */
         m_programFlat->setUniformValue(
           m_uniformsFlat.KdMaterial_u,
-          material->Kd[0],
-          material->Kd[1],
-          material->Kd[2],
-          material->Kd[3]);
+          material->GLuniforms.Kd[0],
+          material->GLuniforms.Kd[1],
+          material->GLuniforms.Kd[2],
+          material->GLuniforms.Kd[3]);
         checkError("after set KdMaterial");
 
         /* set Ks properties for material */
         m_programFlat->setUniformValue(
           m_uniformsFlat.KsMaterial_u,
-          material->Ks[0],
-          material->Ks[1],
-          material->Ks[2],
-          material->Ks[3]);
+          material->GLuniforms.Ks[0],
+          material->GLuniforms.Ks[1],
+          material->GLuniforms.Ks[2],
+          material->GLuniforms.Ks[3]);
         checkError("after set KsMaterial");
 
         /* set Ka properties for material */
         m_programFlat->setUniformValue(
           m_uniformsFlat.KaMaterial_u,
-          material->Ka[0],
-          material->Ka[1],
-          material->Ka[2],
-          material->Ka[3]);
+          material->GLuniforms.Ka[0],
+          material->GLuniforms.Ka[1],
+          material->GLuniforms.Ka[2],
+          material->GLuniforms.Ka[3]);
         checkError("after set KaMaterial");
 
         // qDebug() << "KaMaterial: " << material->Ka[0]
@@ -357,7 +357,7 @@ void s2_Bodies::draw() {
         /* set specularity property for material */
         m_programFlat->setUniformValue(
           m_uniformsFlat.Ns_u,
-          material->Ns);
+          material->GLuniforms.Ns);
         checkError("after set Ns");
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
