@@ -32,7 +32,6 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
-class s2_Geometry;
 
 
 class s2_Grid : public s2_Geometry {
@@ -58,7 +57,7 @@ public:
   ~s2_Grid() {
     s2_materials_free(m_material, 1);
     free(m_transform);
-  }
+  };
 
   void initialize();
   void draw();

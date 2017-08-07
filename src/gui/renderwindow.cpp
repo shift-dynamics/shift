@@ -1,6 +1,13 @@
-
 #include "renderwindow.hpp"
 #include "../star2.h"
+#include "geometry.hpp"
+#include "bodies.hpp"
+#include "frames.hpp"
+#include "joints.hpp"
+#include "lights.hpp"
+#include "grid.hpp"
+#include "terrain.hpp"
+
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QMatrix4x4>
@@ -398,8 +405,48 @@ void RenderWindow::setPhongShaded() {
 void RenderWindow::loadContext(
   s2_context_t* context) {
   m_context = context;
-  initialize();
+  loadContext();
 }
+
+
+/*!
+@brief set body draw style to Phong shaded
+*/
+void RenderWindow::setBodyDrawStylePhong() {
+  m_bodies->setDrawStyle(PHONG);
+}
+
+
+/*!
+@brief set body draw style to wireframe
+*/
+void RenderWindow::setBodyDrawStyleWireframe() {
+  m_bodies->setDrawStyle(WIREFRAME);
+}
+
+
+/*!
+@brief set terrain draw style to Phong shaded
+*/
+void RenderWindow::setTerrainDrawStylePhong() {
+  m_terrain->setDrawStyle(PHONG);
+}
+
+/*!
+@brief set terrain draw style to wireframe
+*/
+void RenderWindow::setTerrainDrawStyleWireframe() {
+  m_terrain->setDrawStyle(WIREFRAME);
+}
+
+
+/*!
+@brief toggle dynamic shadow mapping
+*/
+void RenderWindow::toggleDrawShadows() {
+  m_lights->toggleEnabled();
+}
+
 
 
 /*!
@@ -773,171 +820,172 @@ void RenderWindow::updateLights() {
 @brief initialize terrain textures
 
 */
-void RenderWindow::initializeTerrain() {
+// void RenderWindow::initializeTerrain() {
+//
+//   /* compiles terrain shader only if terrain maps used in
+//   star2 input file */
+//   if(m_context->elevationMapCount != 0 && !m_terrainShaderInitialized) {
+//
+//     qDebug() << "compiling terrain shader";
+//     m_programTerrain = new QOpenGLShaderProgram(this);
+//     m_programTerrain->addShaderFromSourceFile(
+//       QOpenGLShader::Vertex,
+//       ":/shaders/terrain.vert");
+//     m_programTerrain->addShaderFromSourceFile(
+//       QOpenGLShader::TessellationControl,
+//       ":/shaders/terrain.tesc");
+//     m_programTerrain->addShaderFromSourceFile(
+//       QOpenGLShader::TessellationEvaluation,
+//       ":/shaders/terrain.tese");
+//     m_programTerrain->addShaderFromSourceFile(
+//       QOpenGLShader::Fragment,
+//       ":/shaders/terrain.frag");
+//     m_programTerrain->link();
+//     checkError("after link program terrain");
+//
+//     /* most program uniforms are initialized here */
+//     initializeProgramUniforms(
+//       &m_uniformsTerrain,
+//       m_programTerrain);
+//
+//     /* initialize additional elevation map specific uniforms */
+//     m_programTerrain->bind();
+//     m_uniformsTerrain.projectionMatrix =
+//       m_programTerrain->uniformLocation("proj_matrix");
+//     m_uniformsTerrain.textureDisplacement =
+//       m_programTerrain->uniformLocation("tex_displacement");
+//     m_uniformsTerrain.textureColor =
+//       m_programTerrain->uniformLocation("tex_color");
+//     m_uniformsTerrain.zMax =
+//       m_programTerrain->uniformLocation("zMax");
+//     m_uniformsTerrain.zMin =
+//       m_programTerrain->uniformLocation("zMin");
+//     m_uniformsTerrain.viewport =
+//       m_programTerrain->uniformLocation("viewport");
+//
+//     m_uniformsTerrain.KaOverKd =
+//       m_programTerrain->uniformLocation("KaOverKd");
+//     checkError("after set uniform location KaOverKd");
+//     // qDebug() << "Kd: " << programUniforms->Kd;
+//
+//     m_uniformsTerrain.KsOverKd =
+//       m_programTerrain->uniformLocation("KsOverKd");
+//     checkError("after set uniform location Ks");
+//
+//     m_programTerrain->release();
+//
+//     checkError("after initialize terrain uniforms");
+//     m_terrainShaderInitialized = true;
+//   }
 
-  /* compiles terrain shader only if terrain maps used in
-  star2 input file */
-  if(m_context->elevationMapCount != 0 && !m_terrainShaderInitialized) {
-
-    qDebug() << "compiling terrain shader";
-    m_programTerrain = new QOpenGLShaderProgram(this);
-    m_programTerrain->addShaderFromSourceFile(
-      QOpenGLShader::Vertex,
-      ":/shaders/terrain.vert");
-    m_programTerrain->addShaderFromSourceFile(
-      QOpenGLShader::TessellationControl,
-      ":/shaders/terrain.tesc");
-    m_programTerrain->addShaderFromSourceFile(
-      QOpenGLShader::TessellationEvaluation,
-      ":/shaders/terrain.tese");
-    m_programTerrain->addShaderFromSourceFile(
-      QOpenGLShader::Fragment,
-      ":/shaders/terrain.frag");
-    m_programTerrain->link();
-    checkError("after link program terrain");
-
-    /* most program uniforms are initialized here */
-    initializeProgramUniforms(
-      &m_uniformsTerrain,
-      m_programTerrain);
-
-    /* initialize additional elevation map specific uniforms */
-    m_programTerrain->bind();
-    m_uniformsTerrain.projectionMatrix =
-      m_programTerrain->uniformLocation("proj_matrix");
-    m_uniformsTerrain.textureDisplacement =
-      m_programTerrain->uniformLocation("tex_displacement");
-    m_uniformsTerrain.textureColor =
-      m_programTerrain->uniformLocation("tex_color");
-    m_uniformsTerrain.zMax =
-      m_programTerrain->uniformLocation("zMax");
-    m_uniformsTerrain.zMin =
-      m_programTerrain->uniformLocation("zMin");
-    m_uniformsTerrain.viewport =
-      m_programTerrain->uniformLocation("viewport");
-
-    m_uniformsTerrain.KaOverKd =
-      m_programTerrain->uniformLocation("KaOverKd");
-    checkError("after set uniform location KaOverKd");
-    // qDebug() << "Kd: " << programUniforms->Kd;
-
-    m_uniformsTerrain.KsOverKd =
-      m_programTerrain->uniformLocation("KsOverKd");
-    checkError("after set uniform location Ks");
-
-    m_programTerrain->release();
-
-    checkError("after initialize terrain uniforms");
-    m_terrainShaderInitialized = true;
-  }
-
-  /* initializes terrain maps, checks m_terrainInitialized to verify
-  that terrain maps have not already been loaded for this context */
-  if(m_context->elevationMapCount != 0 && !m_terrainInitialized) {
-    if(m_terrainObjects) {
-      delete [] m_terrainObjects;
-    }
-    m_terrainObjects = new TerrainObjects[m_context->elevationMapCount];
-
-    m_programTerrain->bind();
-    for(int i = 0; i < m_context->elevationMapCount; i++) {
-
-      s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
-
-      m_terrainObjects[i].depthTexture =
-        new QOpenGLTexture(QOpenGLTexture::Target2D);
-      checkError("after new depth texture");
-      m_terrainObjects[i].depthTexture->setFormat(
-        QOpenGLTexture::R32F);
-      checkError("after set format R32F");
-      m_terrainObjects[i].depthTexture->setWrapMode(
-        QOpenGLTexture::ClampToEdge);
-      checkError("after set wrap mode");
-      m_terrainObjects[i].depthTexture->setMinMagFilters(
-        QOpenGLTexture::Linear,
-        QOpenGLTexture::Linear);
-      checkError("after set min mag filters");
-      m_terrainObjects[i].depthTexture->setSize(
-        elevationMap->columns,
-        elevationMap->rows,
-        1);
-      checkError("after set size");
-      m_terrainObjects[i].depthTexture->allocateStorage();
-      checkError("after allocate storage");
-
-      /* normalize elevation map control points from 0 to 1 */
-      size_t n = elevationMap->columns * elevationMap->rows;
-      float* depthFloat = (float*)malloc(n * sizeof(float));
-      double range = elevationMap->zMax - elevationMap->zMin;
-      for(size_t j = 0; j < n; j++) {
-        depthFloat[j] = (float)((elevationMap->controlPoints[j] -
-          elevationMap->zMin) / range);
-        // printf(
-        //   "%f -> %f\n",
-        //   elevationMap->controlPoints[j],
-        //   depthFloat[j]);
-      }
-
-      m_terrainObjects[i].depthTexture->setData(
-        QOpenGLTexture::Red,
-        QOpenGLTexture::Float32,
-        depthFloat);
-      checkError("after setData");
-      free(depthFloat);
-
-
-      m_terrainObjects[i].colorTexture =
-        new QOpenGLTexture(QOpenGLTexture::Target2D);
-      checkError("after new color texture");
-
-      m_terrainObjects[i].colorTexture->setFormat(
-        QOpenGLTexture::RGBA32F);
-      checkError("after set format RF");
-      m_terrainObjects[i].colorTexture->setWrapMode(
-        QOpenGLTexture::ClampToEdge);
-      checkError("after set wrap mode");
-      m_terrainObjects[i].colorTexture->setMinMagFilters(
-        QOpenGLTexture::Linear,
-        QOpenGLTexture::Linear);
-      checkError("after set min mag filters");
-
-      // qDebug() << "allocating color texture with size: " <<
-      //   elevationMap->textureColumns << "," << elevationMap->textureRows;
-
-      m_terrainObjects[i].colorTexture->setSize(
-        elevationMap->textureColumns,
-        elevationMap->textureRows,
-        1);
-      checkError("after set size");
-
-      m_terrainObjects[i].colorTexture->allocateStorage();
-      checkError("after allocate storage");
-
-      // size_t size = elevationMap->textureRows * elevationMap->textureColumns * 4;
-      // for(size_t i = 0; i < size; i++) {
-      //   printf("[%lu]: %d\n", i, elevationMap->texture[i]);
-      // }
-
-      m_terrainObjects[i].colorTexture->setData(
-        QOpenGLTexture::RGBA,
-        QOpenGLTexture::UInt8,
-        elevationMap->texture);
-      checkError("after setData color texture");
-
-    }
-    m_programTerrain->release();
-    checkError("after generate terrain texture uniforms");
-
-    m_drawTerrain = true;
-    m_terrainInitialized = true;
-  }
-}
+//   /* initializes terrain maps, checks m_terrainInitialized to verify
+//   that terrain maps have not already been loaded for this context */
+//   if(m_context->elevationMapCount != 0 && !m_terrainInitialized) {
+//     if(m_terrainObjects) {
+//       delete [] m_terrainObjects;
+//     }
+//     m_terrainObjects = new TerrainObjects[m_context->elevationMapCount];
+//
+//     m_programTerrain->bind();
+//     for(int i = 0; i < m_context->elevationMapCount; i++) {
+//
+//       s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
+//
+//       m_terrainObjects[i].depthTexture =
+//         new QOpenGLTexture(QOpenGLTexture::Target2D);
+//       checkError("after new depth texture");
+//       m_terrainObjects[i].depthTexture->setFormat(
+//         QOpenGLTexture::R32F);
+//       checkError("after set format R32F");
+//       m_terrainObjects[i].depthTexture->setWrapMode(
+//         QOpenGLTexture::ClampToEdge);
+//       checkError("after set wrap mode");
+//       m_terrainObjects[i].depthTexture->setMinMagFilters(
+//         QOpenGLTexture::Linear,
+//         QOpenGLTexture::Linear);
+//       checkError("after set min mag filters");
+//       m_terrainObjects[i].depthTexture->setSize(
+//         elevationMap->columns,
+//         elevationMap->rows,
+//         1);
+//       checkError("after set size");
+//       m_terrainObjects[i].depthTexture->allocateStorage();
+//       checkError("after allocate storage");
+//
+//       /* normalize elevation map control points from 0 to 1 */
+//       size_t n = elevationMap->columns * elevationMap->rows;
+//       float* depthFloat = (float*)malloc(n * sizeof(float));
+//       double range = elevationMap->zMax - elevationMap->zMin;
+//       for(size_t j = 0; j < n; j++) {
+//         depthFloat[j] = (float)((elevationMap->controlPoints[j] -
+//           elevationMap->zMin) / range);
+//         // printf(
+//         //   "%f -> %f\n",
+//         //   elevationMap->controlPoints[j],
+//         //   depthFloat[j]);
+//       }
+//
+//       m_terrainObjects[i].depthTexture->setData(
+//         QOpenGLTexture::Red,
+//         QOpenGLTexture::Float32,
+//         depthFloat);
+//       checkError("after setData");
+//       free(depthFloat);
+//
+//
+//       m_terrainObjects[i].colorTexture =
+//         new QOpenGLTexture(QOpenGLTexture::Target2D);
+//       checkError("after new color texture");
+//
+//       m_terrainObjects[i].colorTexture->setFormat(
+//         QOpenGLTexture::RGBA32F);
+//       checkError("after set format RF");
+//       m_terrainObjects[i].colorTexture->setWrapMode(
+//         QOpenGLTexture::ClampToEdge);
+//       checkError("after set wrap mode");
+//       m_terrainObjects[i].colorTexture->setMinMagFilters(
+//         QOpenGLTexture::Linear,
+//         QOpenGLTexture::Linear);
+//       checkError("after set min mag filters");
+//
+//       // qDebug() << "allocating color texture with size: " <<
+//       //   elevationMap->textureColumns << "," << elevationMap->textureRows;
+//
+//       m_terrainObjects[i].colorTexture->setSize(
+//         elevationMap->textureColumns,
+//         elevationMap->textureRows,
+//         1);
+//       checkError("after set size");
+//
+//       m_terrainObjects[i].colorTexture->allocateStorage();
+//       checkError("after allocate storage");
+//
+//       // size_t size = elevationMap->textureRows * elevationMap->textureColumns * 4;
+//       // for(size_t i = 0; i < size; i++) {
+//       //   printf("[%lu]: %d\n", i, elevationMap->texture[i]);
+//       // }
+//
+//       m_terrainObjects[i].colorTexture->setData(
+//         QOpenGLTexture::RGBA,
+//         QOpenGLTexture::UInt8,
+//         elevationMap->texture);
+//       checkError("after setData color texture");
+//
+//     }
+//     m_programTerrain->release();
+//     checkError("after generate terrain texture uniforms");
+//
+//     m_drawTerrain = true;
+//     m_terrainInitialized = true;
+//   }
+// }
 
 
 /*!
 @brief compile shaders
 */
 void RenderWindow::compileShaders() {
+
   qDebug() << "compiling line shader program";
   m_programLine = new QOpenGLShaderProgram(this);
   m_programLine->addShaderFromSourceFile(
@@ -948,12 +996,6 @@ void RenderWindow::compileShaders() {
     ":/shaders/simple.frag");
   m_programLine->link();
   checkError("after link program line");
-  m_programLine->bind();
-  m_uniformsLine.mvp = m_programLine->uniformLocation("mvp");
-  m_uniformsLine.colorUniform = m_programLine->uniformLocation("colorUniform");
-  m_programLine->release();
-  checkError("after release program line");
-
 
   qDebug() << "compiling frame shader program";
   m_programFrame = new QOpenGLShaderProgram(this);
@@ -964,13 +1006,6 @@ void RenderWindow::compileShaders() {
     QOpenGLShader::Fragment,
     ":/shaders/frame.frag");
   m_programFrame->link();
-  checkError("after link frame program");
-
-  m_programFrame->bind();
-  m_uniformsFrame.mvp = m_programFrame->uniformLocation("mvp");
-  m_programFrame->release();
-  checkError("after release program frame");
-
 
   qDebug() << "compiling flat shader program";
   m_programFlat = new QOpenGLShaderProgram(this);
@@ -986,10 +1021,6 @@ void RenderWindow::compileShaders() {
   m_programFlat->link();
   checkError("after link program flat");
 
-  initializeProgramUniforms(
-    &m_uniformsFlat,
-    m_programFlat);
-
   qDebug() << "compiling phong";
   m_programPhong = new QOpenGLShaderProgram(this);
   m_programPhong->addShaderFromSourceFile(
@@ -1000,10 +1031,6 @@ void RenderWindow::compileShaders() {
     ":/shaders/phong.frag");
   m_programPhong->link();
 
-  initializeProgramUniforms(
-    &m_uniformsPhong,
-    m_programPhong);
-
   qDebug() << "compiling shadow shader program";
   m_programShadow = new QOpenGLShaderProgram(this);
   m_programShadow->addShaderFromSourceFile(
@@ -1013,10 +1040,6 @@ void RenderWindow::compileShaders() {
     QOpenGLShader::Fragment,
     ":/shaders/shadow.frag");
   m_programShadow->link();
-
-  initializeProgramUniforms(
-    &m_uniformsShadow,
-    m_programShadow);
 
   checkError("after compiling shaders");
   qDebug() << "shaders compiled";
@@ -1390,44 +1413,46 @@ void RenderWindow::initialize() {
 
   if(!m_initialized) {
     compileShaders();
-    initializeFrames();
 
-    /* push an identity matrix onto the vector of coordinate systems to
-    represent the origin */
-    m_frames.append(s2_displacement());
+    m_bodies->setPhongShader(m_programPhong);
+    m_bodies->setFlatShader(m_programFlat);
+    m_lights->setShader(m_programShadow);
+    m_terrain->setShader(m_programTerrain);
+    m_grid->setShader(m_programLine);
+    m_frames->setShader(m_programFrame);
+    m_joints->setShader(m_programFrame);
 
-    /* set up grid for floor plane */
-    initializeGrid(100, 1.f);
+    m_frames->initialize();
+    m_grid->initialize();
+    m_bodies->initialize();
+    m_lights->initialize();
+    m_terrain->initialize();
+    m_joints->initialize();
 
     m_initialized = true;
     emit initialized();
   }
 
-  /*
-    initialize uniforms on each body / material, initialize buffers and vertex
-    array objects
-  */
-  if(m_context) {
-    // FILE* debug = m_context->modelParameters->debugFilePointer;
-
-    m_context->viewport = s2_camera();
-    for(int i = 0; i < m_context->activeBodyCount; i++) {
-      s2_body_t* body = m_context->nonVirtualBodyPointers[i];
-      // fprintf(debug, "initializing body: ");
-      // s2_stackstr_print(debug, body->name);
-      initializeBody(body);
-    }
-    initializeLights();
-    initializeTerrain();
-
-    // printf("active light count : %d\n", context->activeLightCount);
-    updateGL();
-  }
+  loadContext();
+  updateGL();
 }
 
 
-/*! @brief updateGL function needs to be called on mouse and screen resize events
+/*!
+@brief load bodies, joints, frames, etc from s2_context_t datastructure to visualization datastructures
+*/
+void RenderWindow::loadContext() {
 
+  if(m_context) {
+    m_bodies->loadContext();
+    m_frames->loadContext();
+    m_lights->loadContext();
+    m_terrain->loadContext();
+  }
+}
+
+/*!
+@brief updateGL needs to be called on mouse and screen resize events
 */
 void RenderWindow::updateGL() {
 
@@ -1467,25 +1492,20 @@ void RenderWindow::updateGL() {
 // /*!
 //   @brief set joint to be incremented
 // */
-// void RenderWindow::setJoint(
-//   s2_joint_t* joint,
-//   int qIndex,
-//   int dqIndex,
-//   double delq,
-//   s2_joint_enum_t jointType) {
-//
-//   m_joint.active = true;
-//   m_joint.counter = 0;
-//   m_joint.joint = joint;
-//   m_joint.qIndex = qIndex;
-//   m_joint.dqIndex = dqIndex;
-//   m_joint.delq = delq;
-//   m_joint.targetVal = -1;
-//   m_joint.jointType = jointType;
-//   m_joint.moveType = INCREMENT;
-//   m_joint.isPositive = true;
-//   m_joint.maxCount = 1000;
-// }
+void RenderWindow::setJoint(
+  s2_joint_t* joint,
+  int qIndex,
+  int dqIndex,
+  double delq,
+  s2_joint_enum_t jointType) {
+
+  m_joints->set(
+    joint,
+    qIndex,
+    dqIndex,
+    delq,
+    jointType);
+}
 
 //
 // /*!
@@ -1518,20 +1538,37 @@ void RenderWindow::updateGL() {
 //   m_joint.maxCount = abs(targetVal - m_context->q[qIndex]) * 1000;
 // }
 //
-//
-// /*!
-//   @brief clear joint to be incremented
-// */
-// void RenderWindow::clearJoint() {
-//   m_joint.active = false;
-//   m_joint.counter = 0;
-//   // m_joint.joint = nullptr;
-//   m_joint.qIndex = -1;
-//   m_joint.dqIndex = -1;
-//   m_joint.delq = -1;
-//   m_joint.jointType = INVALID;
-// }
 
+void RenderWindow::setJointTarget(
+  s2_joint_t* joint,
+  int qIndex,
+  int dqIndex,
+  double val,
+  s2_joint_enum_t jointType) {
+
+  m_joints->setTarget(
+    joint,
+    qIndex,
+    dqIndex,
+    val,
+    jointType);
+}
+
+
+/*!
+  @brief clear joint to be incremented
+*/
+void RenderWindow::clearJoint() {
+  m_joints->clear();
+}
+
+
+/*!
+  @brief clear joint to be incremented
+*/
+void RenderWindow::updateJoint() {
+  m_joints->update();
+}
 
 // /*!
 // @brief move joint incrementally if user specifies a joint is to be moved
@@ -1865,246 +1902,246 @@ void RenderWindow::setSimulationRunning(bool val) {
 }
 
 
-/*!
-@brief draw frames, m_programFrame and m_uniformsFrame.vao must be bound
-prior to calling this recursive function
-*/
-void RenderWindow::drawFrames(s2_assembly_t* assembly) {
-  s2_body_t* bodyHead = assembly->bodyHead;
-  while(bodyHead != NULL) {
-    s2_frame_t* frameHead = bodyHead->frameHead;
-    while(frameHead != NULL) {
+// /*!
+// @brief draw frames, m_programFrame and m_uniformsFrame.vao must be bound
+// prior to calling this recursive function
+// */
+// void RenderWindow::drawFrames(s2_assembly_t* assembly) {
+//   s2_body_t* bodyHead = assembly->bodyHead;
+//   while(bodyHead != NULL) {
+//     s2_frame_t* frameHead = bodyHead->frameHead;
+//     while(frameHead != NULL) {
+//
+//       double* d = (double*)frameHead->dAbsolute;
+//       QMatrix4x4 model = s2_displacementToQMatrix4x4(frameHead->dAbsolute);
+//       QMatrix4x4 scale =
+//         QMatrix4x4(m_frameScaleFactor, 0.0f, 0.0f, 0.0f,
+//                    0.0f, m_frameScaleFactor, 0.0f, 0.0f,
+//                    0.0f, 0.0f, m_frameScaleFactor, 0.0f,
+//                    0.0f, 0.0f, 0.0f, 1.0f);
+//
+//       QMatrix4x4 mvp = m_projection * m_view * model * scale;
+//
+//       /* set model * view * projection matrix */
+//       m_programFrame->setUniformValue(
+//         m_uniformsFrame.mvp,
+//         mvp);
+//       // checkError("after set mvp coordinate systems");
+//       // glEnable(GL_LINE_SMOOTH);
+//       glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+//       // checkError("after draw elements coordinate systems");
+//
+//       frameHead = frameHead->next;
+//     }
+//
+//     bodyHead = bodyHead->next;
+//   }
+//   s2_assembly_t* assemblyHead = assembly->subAssemblyHead;
+//   while(assemblyHead != NULL) {
+//     drawFrames(assemblyHead);
+//     assemblyHead = assemblyHead->next;
+//   }
+// }
+//
+//
+// void RenderWindow::drawWFrames() {
+//   for(int i = 0; i < m_context->forceModuleCount; i++) {
+//     s2_tire_pac2002_t* tire =
+//       (s2_tire_pac2002_t*)m_context->forceModulePointers[i]->parameters[0];
+//
+//     QMatrix4x4 model = s2_displacementToQMatrix4x4(&tire->wFrame);
+//     QMatrix4x4 scale =
+//       QMatrix4x4(m_frameScaleFactor, 0.0f, 0.0f, 0.0f,
+//                  0.0f, m_frameScaleFactor, 0.0f, 0.0f,
+//                  0.0f, 0.0f, m_frameScaleFactor, 0.0f,
+//                  0.0f, 0.0f, 0.0f, 1.0f);
+//
+//     QMatrix4x4 mvp = m_projection * m_view * model * scale;
+//
+//     /* set model * view * projection matrix */
+//     m_programFrame->setUniformValue(
+//       m_uniformsFrame.mvp,
+//       mvp);
+//     // checkError("after set mvp coordinate systems");
+//     // glEnable(GL_LINE_SMOOTH);
+//     glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+//   }
+// }
 
-      double* d = (double*)frameHead->dAbsolute;
-      QMatrix4x4 model = s2_displacementToQMatrix4x4(frameHead->dAbsolute);
-      QMatrix4x4 scale =
-        QMatrix4x4(m_frameScaleFactor, 0.0f, 0.0f, 0.0f,
-                   0.0f, m_frameScaleFactor, 0.0f, 0.0f,
-                   0.0f, 0.0f, m_frameScaleFactor, 0.0f,
-                   0.0f, 0.0f, 0.0f, 1.0f);
-
-      QMatrix4x4 mvp = m_projection * m_view * model * scale;
-
-      /* set model * view * projection matrix */
-      m_programFrame->setUniformValue(
-        m_uniformsFrame.mvp,
-        mvp);
-      // checkError("after set mvp coordinate systems");
-      // glEnable(GL_LINE_SMOOTH);
-      glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
-      // checkError("after draw elements coordinate systems");
-
-      frameHead = frameHead->next;
-    }
-
-    bodyHead = bodyHead->next;
-  }
-  s2_assembly_t* assemblyHead = assembly->subAssemblyHead;
-  while(assemblyHead != NULL) {
-    drawFrames(assemblyHead);
-    assemblyHead = assemblyHead->next;
-  }
-}
-
-
-void RenderWindow::drawWFrames() {
-  for(int i = 0; i < m_context->forceModuleCount; i++) {
-    s2_tire_pac2002_t* tire =
-      (s2_tire_pac2002_t*)m_context->forceModulePointers[i]->parameters[0];
-
-    QMatrix4x4 model = s2_displacementToQMatrix4x4(&tire->wFrame);
-    QMatrix4x4 scale =
-      QMatrix4x4(m_frameScaleFactor, 0.0f, 0.0f, 0.0f,
-                 0.0f, m_frameScaleFactor, 0.0f, 0.0f,
-                 0.0f, 0.0f, m_frameScaleFactor, 0.0f,
-                 0.0f, 0.0f, 0.0f, 1.0f);
-
-    QMatrix4x4 mvp = m_projection * m_view * model * scale;
-
-    /* set model * view * projection matrix */
-    m_programFrame->setUniformValue(
-      m_uniformsFrame.mvp,
-      mvp);
-    // checkError("after set mvp coordinate systems");
-    // glEnable(GL_LINE_SMOOTH);
-    glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
-  }
-}
-
-
-void RenderWindow::drawTerrain() {
-
-  m_programTerrain->bind();
-
-  GLint vp[4];
-  glGetIntegerv(GL_VIEWPORT, vp);
-  m_programTerrain->setUniformValue(
-    m_uniformsTerrain.viewport,
-    (GLfloat)vp[2],
-    (GLfloat)vp[3]);
-  checkError("after set viewport");
-
-  for(int i = 0; i < m_context->elevationMapCount; i++) {
-    s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
-    // double* d = (double*)&(elevationMap->parentFramePointer);
-    // QMatrix4x4 model =
-    //   QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-    //              (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-    //              (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-    //              0.f,  0.f,  0.f,  1.f);
-
-    // elevationMap->dAbsolute
-    QMatrix4x4 model =
-      QMatrix4x4(1.f, 0.f, 0.f, 0.f,
-                 0.f, 1.f, 0.f, 0.f,
-                 0.f, 0.f, 1.f, 0.f,
-                 0.f, 0.f, 0.f, 1.f);
-    QMatrix4x4 mv = m_view * model;
-    QMatrix4x4 mvp = m_projection * mv;
-
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.mvp,
-      mvp);
-    checkError("after set mvp uniform");
-
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.mv,
-      mv);
-    checkError("after set mv uniform");
-
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.projectionMatrix,
-      m_projection);
-    checkError("after set projection matrix uniform");
-
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.zMin, (float)elevationMap->zMin);
-    checkError("after set zMin");
-
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.zMax, (float)elevationMap->zMax);
-    checkError("after set zMax");
-
-    m_terrainObjects[i].depthTexture->bind(0);
-    checkError("after bind depth texture");
-
-    // qDebug() << "texture id: " << m_terrainObjects[i].depthTexture->textureId();
-
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.textureDisplacement,
-      0);
-    checkError("after set texture displacement");
-
-    m_terrainObjects[i].colorTexture->bind(1);
-    checkError("after bind color texture");
-    //
-    // // qDebug() << "texture id: " << m_terrainObjects[i].depthTexture->textureId();
-    //
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.textureColor,
-      1);
-    checkError("after set texture color");
-
-    /* set normal matrix */
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.nm,
-      mv.normalMatrix());
-    // checkError("after set nm phong");
-
-    /* set Ka for lights */
-    m_programTerrain->setUniformValueArray(
-      m_uniformsTerrain.Ka,
-      m_lightParameters.KaLight,
-      10,
-      3);
-
-    /* set Ks for lights */
-    m_programTerrain->setUniformValueArray(
-      m_uniformsTerrain.Ks,
-      m_lightParameters.KsLight,
-      10,
-      3);
-    // checkError("after set KsLight phong");
-
-    /* set Kd for lights */
-    m_programTerrain->setUniformValueArray(
-      m_uniformsTerrain.Kd,
-      m_lightParameters.KdLight,
-      10,
-      3);
-    // checkError("after set KdLight phong");
-
-    /* set directional switch for lights */
-    m_programTerrain->setUniformValueArray(
-      m_uniformsTerrain.directional,
-      m_lightParameters.directional,
-      10);
-    // checkError("after set directional phong");
-
-    /* set positions of lights */
-    m_programTerrain->setUniformValueArray(
-      m_uniformsTerrain.posLight,
-      m_lightParameters.posLight,
-      10,
-      3);
-    // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
-    // checkError("after set poslight phong");
-
-    /* set number of lights */
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.lightCount,
-      m_lightParameters.lightCount);
-    // qDebug() << "light count:" << lightParameters.lightCount;
-    // checkError("after set light count phong");
-
-    /* set Kd properties for material */
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.KaOverKd, 0.2, 0.2, 0.2);
-
-    // checkError("after set KdMaterial phong");
-
-    /* set Ks properties for material */
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.KsOverKd, 0.5, 0.5, 0.5);
-    // checkError("after set KsMaterial phong");
-
-    // checkError("after set KaMaterial phong");
-
-    // qDebug() << "KaMaterial: " << material->Ka[0]
-    // << material->Ka[1] << material->Ka[2];
-
-    /* set specularity property for material */
-    m_programTerrain->setUniformValue(
-      m_uniformsTerrain.Ns, 1000);
-
-
-    // glUniform1f(uniforms.dmap_depth, enable_displacement ? dmap_depth : 0.0f);
-    // glUniform1i(uniforms.enable_fog, enable_fog ? 1 : 0);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glDepthFunc(GL_LEQUAL);
-
-    // if (wireframe)
-        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    // else
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    checkError("after glPolygonMode");
-    m_funcs->glPatchParameteri(GL_PATCH_VERTICES, 4);
-    m_funcs->glDrawArraysInstanced(
-      GL_PATCHES, 0, 4, 64 * 64);
-    checkError("after draw arrays instanced");
-
-    m_terrainObjects[i].depthTexture->release();
-    checkError("after release depth texture");
-
-    m_terrainObjects[i].colorTexture->release();
-    checkError("after release color texture");
-
-  }
-  m_programTerrain->release();
-
-}
+//
+// void RenderWindow::drawTerrain() {
+//
+//   m_programTerrain->bind();
+//
+//   GLint vp[4];
+//   glGetIntegerv(GL_VIEWPORT, vp);
+//   m_programTerrain->setUniformValue(
+//     m_uniformsTerrain.viewport,
+//     (GLfloat)vp[2],
+//     (GLfloat)vp[3]);
+//   checkError("after set viewport");
+//
+//   for(int i = 0; i < m_context->elevationMapCount; i++) {
+//     s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
+//     // double* d = (double*)&(elevationMap->parentFramePointer);
+//     // QMatrix4x4 model =
+//     //   QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+//     //              (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+//     //              (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+//     //              0.f,  0.f,  0.f,  1.f);
+//
+//     // elevationMap->dAbsolute
+//     QMatrix4x4 model =
+//       QMatrix4x4(1.f, 0.f, 0.f, 0.f,
+//                  0.f, 1.f, 0.f, 0.f,
+//                  0.f, 0.f, 1.f, 0.f,
+//                  0.f, 0.f, 0.f, 1.f);
+//     QMatrix4x4 mv = m_view * model;
+//     QMatrix4x4 mvp = m_projection * mv;
+//
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.mvp,
+//       mvp);
+//     checkError("after set mvp uniform");
+//
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.mv,
+//       mv);
+//     checkError("after set mv uniform");
+//
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.projectionMatrix,
+//       m_projection);
+//     checkError("after set projection matrix uniform");
+//
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.zMin, (float)elevationMap->zMin);
+//     checkError("after set zMin");
+//
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.zMax, (float)elevationMap->zMax);
+//     checkError("after set zMax");
+//
+//     m_terrainObjects[i].depthTexture->bind(0);
+//     checkError("after bind depth texture");
+//
+//     // qDebug() << "texture id: " << m_terrainObjects[i].depthTexture->textureId();
+//
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.textureDisplacement,
+//       0);
+//     checkError("after set texture displacement");
+//
+//     m_terrainObjects[i].colorTexture->bind(1);
+//     checkError("after bind color texture");
+//     //
+//     // // qDebug() << "texture id: " << m_terrainObjects[i].depthTexture->textureId();
+//     //
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.textureColor,
+//       1);
+//     checkError("after set texture color");
+//
+//     /* set normal matrix */
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.nm,
+//       mv.normalMatrix());
+//     // checkError("after set nm phong");
+//
+//     /* set Ka for lights */
+//     m_programTerrain->setUniformValueArray(
+//       m_uniformsTerrain.Ka,
+//       m_lightParameters.KaLight,
+//       10,
+//       3);
+//
+//     /* set Ks for lights */
+//     m_programTerrain->setUniformValueArray(
+//       m_uniformsTerrain.Ks,
+//       m_lightParameters.KsLight,
+//       10,
+//       3);
+//     // checkError("after set KsLight phong");
+//
+//     /* set Kd for lights */
+//     m_programTerrain->setUniformValueArray(
+//       m_uniformsTerrain.Kd,
+//       m_lightParameters.KdLight,
+//       10,
+//       3);
+//     // checkError("after set KdLight phong");
+//
+//     /* set directional switch for lights */
+//     m_programTerrain->setUniformValueArray(
+//       m_uniformsTerrain.directional,
+//       m_lightParameters.directional,
+//       10);
+//     // checkError("after set directional phong");
+//
+//     /* set positions of lights */
+//     m_programTerrain->setUniformValueArray(
+//       m_uniformsTerrain.posLight,
+//       m_lightParameters.posLight,
+//       10,
+//       3);
+//     // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+//     // checkError("after set poslight phong");
+//
+//     /* set number of lights */
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.lightCount,
+//       m_lightParameters.lightCount);
+//     // qDebug() << "light count:" << lightParameters.lightCount;
+//     // checkError("after set light count phong");
+//
+//     /* set Kd properties for material */
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.KaOverKd, 0.2, 0.2, 0.2);
+//
+//     // checkError("after set KdMaterial phong");
+//
+//     /* set Ks properties for material */
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.KsOverKd, 0.5, 0.5, 0.5);
+//     // checkError("after set KsMaterial phong");
+//
+//     // checkError("after set KaMaterial phong");
+//
+//     // qDebug() << "KaMaterial: " << material->Ka[0]
+//     // << material->Ka[1] << material->Ka[2];
+//
+//     /* set specularity property for material */
+//     m_programTerrain->setUniformValue(
+//       m_uniformsTerrain.Ns, 1000);
+//
+//
+//     // glUniform1f(uniforms.dmap_depth, enable_displacement ? dmap_depth : 0.0f);
+//     // glUniform1i(uniforms.enable_fog, enable_fog ? 1 : 0);
+//
+//     glEnable(GL_DEPTH_TEST);
+//     glEnable(GL_CULL_FACE);
+//     glDepthFunc(GL_LEQUAL);
+//
+//     // if (wireframe)
+//         // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//     // else
+//     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//     checkError("after glPolygonMode");
+//     m_funcs->glPatchParameteri(GL_PATCH_VERTICES, 4);
+//     m_funcs->glDrawArraysInstanced(
+//       GL_PATCHES, 0, 4, 64 * 64);
+//     checkError("after draw arrays instanced");
+//
+//     m_terrainObjects[i].depthTexture->release();
+//     checkError("after release depth texture");
+//
+//     m_terrainObjects[i].colorTexture->release();
+//     checkError("after release color texture");
+//
+//   }
+//   m_programTerrain->release();
+//
+// }
 
 /*!
 @brief main render loop
@@ -2125,672 +2162,681 @@ void RenderWindow::render() {
     if(m_simulationRunning) {
       interpolateCurrentPosition();
     } else {
-      /* update position of current joint if driven by user */
-      updateJoint();
+      /* otherwise update position of current joint if driven by user using the joint slider interface */
+      m_joints->update();
     }
 
-    /* draw coordinate systems */
-    m_programFrame->bind();
-    m_uniformsFrame.vao->bind();
-    checkError("after bind vao coordinate systems");
-    for(int i = 0; i < m_frames.size(); i++) {
-      double* d = (double*)(m_frames.at(i));
-      QMatrix4x4 model =
-        QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                   (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                   (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                   0.f,  0.f,  0.f,  1.f);
-      QMatrix4x4 mvp = m_projection * m_view * model;
+    m_lights->draw();
+    m_grid->draw();
+    m_frames->draw();
+    m_joints->draw();
+    m_terrain->draw();
+    m_bodies->draw();
 
-      /* set model * view * projection matrix */
-      m_programFrame->setUniformValue(
-        m_uniformsFrame.mvp,
-        mvp);
-      // checkError("after set mvp coordinate systems");
-
-      // glEnable(GL_LINE_SMOOTH);
-      // checkError("after gl gl_line_smooth");
-
-      glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
-      checkError("after draw elements coordinate systems");
-    }
-
-    /* draw all frames */
-    if(m_context != NULL && m_drawFrames) {
-      drawFrames(m_context->assembly);
-    }
-
-    /* draw terrain */
-    if(m_context != NULL && m_drawTerrain && m_terrainShaderInitialized) {
-      drawTerrain();
-    }
+    //
+    // /* draw coordinate systems */
+    // m_programFrame->bind();
+    // m_uniformsFrame.vao->bind();
+    // checkError("after bind vao coordinate systems");
+    // for(int i = 0; i < m_frames.size(); i++) {
+    //   double* d = (double*)(m_frames.at(i));
+    //   QMatrix4x4 model =
+    //     QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //                (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //                (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //                0.f,  0.f,  0.f,  1.f);
+    //   QMatrix4x4 mvp = m_projection * m_view * model;
+    //
+    //   /* set model * view * projection matrix */
+    //   m_programFrame->setUniformValue(
+    //     m_uniformsFrame.mvp,
+    //     mvp);
+    //   // checkError("after set mvp coordinate systems");
+    //
+    //   // glEnable(GL_LINE_SMOOTH);
+    //   // checkError("after gl gl_line_smooth");
+    //
+    //   glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+    //   checkError("after draw elements coordinate systems");
+    // }
+    //
+    // /* draw all frames */
+    // if(m_context != NULL && m_drawFrames) {
+    //   drawFrames(m_context->assembly);
+    // }
+    //
+    // /* draw terrain */
+    // if(m_context != NULL && m_drawTerrain && m_terrainShaderInitialized) {
+    //   drawTerrain();
+    // }
+    // // m_uniformsFrame.vao->release();
+    // // m_programFrame->release();
+    //
+    // /* draw joints */
+    // m_programFrame->bind();
+    // m_uniformsFrame.vao->bind();
+    // if(m_context != NULL && m_drawJoints) {
+    //   for(int i = 0; i < m_context->activeJointCount; i++) {
+    //     s2_joint_t* joint = m_context->jointPointers[i];
+    //
+    //     switch(joint->jointType) {
+    //
+    //       case RX: {
+    //
+    //         double* d = (double*)joint->parentFramePointer->dAbsolute;
+    //         QMatrix4x4 model =
+    //           QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //                      (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //                      (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //                      0.f,  0.f,  0.f,  1.f);
+    //
+    //         QMatrix4x4 scale =
+    //           QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+    //                      0, m_jointScaleFactor, 0, 0,
+    //                      0, 0, m_jointScaleFactor, 0,
+    //                      0.f,  0.f,  0.f, 1.f);
+    //         QMatrix4x4 mvp = m_projection * m_view * model * scale;
+    //
+    //         /* set model * view * projection matrix */
+    //         m_programFrame->setUniformValue(
+    //           m_uniformsFrame.mvp,
+    //           mvp);
+    //         // checkError("after set mvp coordinate systems");
+    //
+    //         glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+    //         checkError("after draw elements coordinate systems");
+    //
+    //       } break;
+    //       case RY: {
+    //         double* d = (double*)joint->parentFramePointer->dAbsolute;
+    //         QMatrix4x4 model =
+    //           QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //                      (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //                      (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //                      0.f,  0.f,  0.f,  1.f);
+    //
+    //         QMatrix4x4 scale =
+    //           QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+    //                      0, m_jointScaleFactor, 0, 0,
+    //                      0, 0, m_jointScaleFactor, 0,
+    //                      0.f,  0.f,  0.f, 1.f);
+    //         QMatrix4x4 mvp = m_projection * m_view * model * scale;
+    //
+    //         /* set model * view * projection matrix */
+    //         m_programFrame->setUniformValue(
+    //           m_uniformsFrame.mvp,
+    //           mvp);
+    //         m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+    //         checkError("after draw ry");
+    //       } break;
+    //       case RZ: {
+    //         double* d = (double*)joint->parentFramePointer->dAbsolute;
+    //         QMatrix4x4 model =
+    //           QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //                      (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //                      (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //                      0.f,  0.f,  0.f,  1.f);
+    //
+    //         QMatrix4x4 scale =
+    //           QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
+    //                      0, m_jointScaleFactor, 0, 0,
+    //                      0, 0, m_jointScaleFactor, 0,
+    //                      0.f,  0.f,  0.f, 1.f);
+    //         QMatrix4x4 mvp = m_projection * m_view * model * scale;
+    //
+    //         /* set model * view * projection matrix */
+    //         m_programFrame->setUniformValue(
+    //           m_uniformsFrame.mvp,
+    //           mvp);
+    //         m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+    //         checkError("after draw rz");
+    //       } break;
+    //       case TX: {
+    //         double* d = (double*)joint->parentFramePointer->dAbsolute;
+    //         float jointValue = (float)(m_context->q[joint->qIndex]);
+    //         // qDebug() << jointValue;
+    //         QMatrix4x4 model =
+    //           QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //                      (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //                      (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //                      0.f,  0.f,  0.f,  1.f);
+    //
+    //         QMatrix4x4 scale =
+    //           QMatrix4x4(jointValue, 0, 0, 0,
+    //                      0, jointValue, 0, 0,
+    //                      0, 0, jointValue, 0,
+    //                      0.f,  0.f,  0.f, 1.f);
+    //         QMatrix4x4 mvp = m_projection * m_view * model * scale;
+    //
+    //         /* set model * view * projection matrix */
+    //         m_programFrame->setUniformValue(
+    //           m_uniformsFrame.mvp,
+    //           mvp);
+    //         glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+    //         checkError("after draw tx");
+    //
+    //       } break;
+    //       case TY: {
+    //         double* d = (double*)joint->parentFramePointer->dAbsolute;
+    //         float jointValue = (float)(m_context->q[joint->qIndex]);
+    //         // qDebug() << jointValue;
+    //         QMatrix4x4 model =
+    //           QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //                      (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //                      (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //                      0.f,  0.f,  0.f,  1.f);
+    //         QMatrix4x4 scale =
+    //           QMatrix4x4(jointValue, 0, 0, 0,
+    //                      0, jointValue, 0, 0,
+    //                      0, 0, jointValue, 0,
+    //                      0.f,  0.f,  0.f, 1.f);
+    //         QMatrix4x4 mvp = m_projection * m_view * model * scale;
+    //
+    //         /* set model * view * projection matrix */
+    //         m_programFrame->setUniformValue(
+    //           m_uniformsFrame.mvp,
+    //           mvp);
+    //         m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+    //         checkError("after draw ty");
+    //
+    //       } break;
+    //       case TZ: {
+    //         double* d = (double*)joint->parentFramePointer->dAbsolute;
+    //         float jointValue = (float)(m_context->q[joint->qIndex]);
+    //         // qDebug() << jointValue;
+    //         QMatrix4x4 model =
+    //           QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
+    //                      (float)d[1], (float)d[4], (float)d[7], (float)d[10],
+    //                      (float)d[2], (float)d[5], (float)d[8], (float)d[11],
+    //                      0.f,  0.f,  0.f,  1.f);
+    //
+    //         QMatrix4x4 scale =
+    //           QMatrix4x4(jointValue, 0, 0, 0,
+    //                      0, jointValue, 0, 0,
+    //                      0, 0, jointValue, 0,
+    //                      0.f,  0.f,  0.f, 1.f);
+    //         QMatrix4x4 mvp = m_projection * m_view * model * scale;
+    //
+    //         /* set model * view * projection matrix */
+    //         m_programFrame->setUniformValue(
+    //           m_uniformsFrame.mvp,
+    //           mvp);
+    //         m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+    //         checkError("after draw tz");
+    //
+    //       } break;
+    //       default:
+    //         break;
+    //     }
+    //   }
+    // }
     // m_uniformsFrame.vao->release();
     // m_programFrame->release();
-
-    /* draw joints */
-    m_programFrame->bind();
-    m_uniformsFrame.vao->bind();
-    if(m_context != NULL && m_drawJoints) {
-      for(int i = 0; i < m_context->activeJointCount; i++) {
-        s2_joint_t* joint = m_context->jointPointers[i];
-
-        switch(joint->jointType) {
-
-          case RX: {
-
-            double* d = (double*)joint->parentFramePointer->dAbsolute;
-            QMatrix4x4 model =
-              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                         0.f,  0.f,  0.f,  1.f);
-
-            QMatrix4x4 scale =
-              QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
-                         0, m_jointScaleFactor, 0, 0,
-                         0, 0, m_jointScaleFactor, 0,
-                         0.f,  0.f,  0.f, 1.f);
-            QMatrix4x4 mvp = m_projection * m_view * model * scale;
-
-            /* set model * view * projection matrix */
-            m_programFrame->setUniformValue(
-              m_uniformsFrame.mvp,
-              mvp);
-            // checkError("after set mvp coordinate systems");
-
-            glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
-            checkError("after draw elements coordinate systems");
-
-          } break;
-          case RY: {
-            double* d = (double*)joint->parentFramePointer->dAbsolute;
-            QMatrix4x4 model =
-              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                         0.f,  0.f,  0.f,  1.f);
-
-            QMatrix4x4 scale =
-              QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
-                         0, m_jointScaleFactor, 0, 0,
-                         0, 0, m_jointScaleFactor, 0,
-                         0.f,  0.f,  0.f, 1.f);
-            QMatrix4x4 mvp = m_projection * m_view * model * scale;
-
-            /* set model * view * projection matrix */
-            m_programFrame->setUniformValue(
-              m_uniformsFrame.mvp,
-              mvp);
-            m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
-            checkError("after draw ry");
-          } break;
-          case RZ: {
-            double* d = (double*)joint->parentFramePointer->dAbsolute;
-            QMatrix4x4 model =
-              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                         0.f,  0.f,  0.f,  1.f);
-
-            QMatrix4x4 scale =
-              QMatrix4x4(m_jointScaleFactor, 0, 0, 0,
-                         0, m_jointScaleFactor, 0, 0,
-                         0, 0, m_jointScaleFactor, 0,
-                         0.f,  0.f,  0.f, 1.f);
-            QMatrix4x4 mvp = m_projection * m_view * model * scale;
-
-            /* set model * view * projection matrix */
-            m_programFrame->setUniformValue(
-              m_uniformsFrame.mvp,
-              mvp);
-            m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
-            checkError("after draw rz");
-          } break;
-          case TX: {
-            double* d = (double*)joint->parentFramePointer->dAbsolute;
-            float jointValue = (float)(m_context->q[joint->qIndex]);
-            // qDebug() << jointValue;
-            QMatrix4x4 model =
-              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                         0.f,  0.f,  0.f,  1.f);
-
-            QMatrix4x4 scale =
-              QMatrix4x4(jointValue, 0, 0, 0,
-                         0, jointValue, 0, 0,
-                         0, 0, jointValue, 0,
-                         0.f,  0.f,  0.f, 1.f);
-            QMatrix4x4 mvp = m_projection * m_view * model * scale;
-
-            /* set model * view * projection matrix */
-            m_programFrame->setUniformValue(
-              m_uniformsFrame.mvp,
-              mvp);
-            glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
-            checkError("after draw tx");
-
-          } break;
-          case TY: {
-            double* d = (double*)joint->parentFramePointer->dAbsolute;
-            float jointValue = (float)(m_context->q[joint->qIndex]);
-            // qDebug() << jointValue;
-            QMatrix4x4 model =
-              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                         0.f,  0.f,  0.f,  1.f);
-            QMatrix4x4 scale =
-              QMatrix4x4(jointValue, 0, 0, 0,
-                         0, jointValue, 0, 0,
-                         0, 0, jointValue, 0,
-                         0.f,  0.f,  0.f, 1.f);
-            QMatrix4x4 mvp = m_projection * m_view * model * scale;
-
-            /* set model * view * projection matrix */
-            m_programFrame->setUniformValue(
-              m_uniformsFrame.mvp,
-              mvp);
-            m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
-            checkError("after draw ty");
-
-          } break;
-          case TZ: {
-            double* d = (double*)joint->parentFramePointer->dAbsolute;
-            float jointValue = (float)(m_context->q[joint->qIndex]);
-            // qDebug() << jointValue;
-            QMatrix4x4 model =
-              QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-                         (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-                         (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-                         0.f,  0.f,  0.f,  1.f);
-
-            QMatrix4x4 scale =
-              QMatrix4x4(jointValue, 0, 0, 0,
-                         0, jointValue, 0, 0,
-                         0, 0, jointValue, 0,
-                         0.f,  0.f,  0.f, 1.f);
-            QMatrix4x4 mvp = m_projection * m_view * model * scale;
-
-            /* set model * view * projection matrix */
-            m_programFrame->setUniformValue(
-              m_uniformsFrame.mvp,
-              mvp);
-            m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
-            checkError("after draw tz");
-
-          } break;
-          default:
-            break;
-        }
-      }
-    }
-    m_uniformsFrame.vao->release();
-    m_programFrame->release();
-
-    /* draw geometry */
-    for(int i = 0; i < m_bufferObjects.size(); i++ ) {
-
-      /* override phong shaded models with wireframe if
-      global wireframe shading type is selected */
-      // s2_shading_enum_t shadingType =
-      //   m_bufferObjects.at(i)->material->shadingType;
+    //
+    // /* draw geometry */
+//     for(int i = 0; i < m_bufferObjects.size(); i++ ) {
+//
+//       /* override phong shaded models with wireframe if
+//       global wireframe shading type is selected */
+//       // s2_shading_enum_t shadingType =
+//       //   m_bufferObjects.at(i)->material->shadingType;
       // if(m_shadingType == WIREFRAME && shadingType == PHONG) {
-      //   shadingType = WIREFRAME;
-      // }
+//       //   shadingType = WIREFRAME;
+//       // }
+//
+//       switch(m_bufferObjects.at(i)->material->shadingType) {
+//         case PHONG: {
+//           m_programPhong->bind();
+//           m_bufferObjects.at(i)->vao->bind();
+//           double* d = (double*)(m_bufferObjects.at(i)->transform);
+//           QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
+//                                         d[1], d[4], d[7], d[10],
+//                                         d[2], d[5], d[8], d[11],
+//                                         0.f,  0.f,  0.f,  1.f);
+//
+//           s2_material_t* material = m_bufferObjects.at(i)->material;
+//           QMatrix4x4 mv = m_view * model;
+//
+//           /* set model * view * projection matrix */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.mvp,
+//             m_projection * mv);
+//           // checkError("after set mvp phong");
+//
+//           /* set model * view matrix */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.mv, mv);
+//           // checkError("after set mv phong");
+//
+//           /* set view matrix */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.v,
+//             m_view);
+//           // checkError("after set v phong");
+//
+//           /* set normal matrix */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.nm,
+//             mv.normalMatrix());
+//           // checkError("after set nm phong");
+//
+//           /* set Ka for lights */
+//           m_programPhong->setUniformValueArray(
+//             m_uniformsPhong.Ka,
+//             m_lightParameters.KaLight,
+//             10,
+//             3);
+//
+//           /* set Ks for lights */
+//           m_programPhong->setUniformValueArray(
+//             m_uniformsPhong.Ks,
+//             m_lightParameters.KsLight,
+//             10,
+//             3);
+//           // checkError("after set KsLight phong");
+//
+//           /* set Kd for lights */
+//           m_programPhong->setUniformValueArray(
+//             m_uniformsPhong.Kd,
+//             m_lightParameters.KdLight,
+//             10,
+//             3);
+//           // checkError("after set KdLight phong");
+//
+//           /* set directional switch for lights */
+//           m_programPhong->setUniformValueArray(
+//             m_uniformsPhong.directional,
+//             m_lightParameters.directional,
+//             10);
+//           // checkError("after set directional phong");
+//
+//           /* set positions of lights */
+//           m_programPhong->setUniformValueArray(
+//             m_uniformsPhong.posLight,
+//             m_lightParameters.posLight,
+//             10,
+//             3);
+//           // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+//           // checkError("after set poslight phong");
+//
+//           /* set number of lights */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.lightCount,
+//             m_lightParameters.lightCount);
+//           // qDebug() << "light count:" << lightParameters.lightCount;
+//           // checkError("after set light count phong");
+//
+//           /* set Kd properties for material */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.KdMaterial,
+//             material->Kd[0],
+//             material->Kd[1],
+//             material->Kd[2]);
+//           // checkError("after set KdMaterial phong");
+//
+//           /* set Ks properties for material */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.KsMaterial,
+//             material->Ks[0],
+//             material->Ks[1],
+//             material->Ks[2]);
+//           // checkError("after set KsMaterial phong");
+//
+//           /* set Ka properties for material */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.KaMaterial,
+//             material->Ka[0],
+//             material->Ka[1],
+//             material->Ka[2]);
+//           // checkError("after set KaMaterial phong");
+//
+//           // qDebug() << "KaMaterial: " << material->Ka[0]
+//           // << material->Ka[1] << material->Ka[2];
+//
+//           /* set specularity property for material */
+//           m_programPhong->setUniformValue(
+//             m_uniformsPhong.Ns,
+//             material->Ns);
+//           // checkError("after set Ns phong");
+//           if(m_shadingType == WIREFRAME) {
+//             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//           } else {
+//             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//           }
+//           // checkError("after set polygon mode phong");
+//
+//           glDrawElements(
+//             GL_TRIANGLES,
+//             3 * material->faceCount,
+//             GL_UNSIGNED_INT,
+//             0);
+//           // checkError("after draw elements phong");
+//
+//           m_bufferObjects.at(i)->vao->release();
+//           // checkError("after vao release phong");
+//
+//           m_programPhong->release();
+//           // checkError("after phong release phong");
+//
+//         } break;
+//         case FLAT: {
+//           m_programFlat->bind();
+//           m_bufferObjects.at(i)->vao->bind();
+//           double* d = (double*)(m_bufferObjects.at(i)->transform);
+//           QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
+//                                         d[1], d[4], d[7], d[10],
+//                                         d[2], d[5], d[8], d[11],
+//                                         0.f,  0.f,  0.f,  1.f);
+//
+//           s2_material_t* material = m_bufferObjects.at(i)->material;
+//           QMatrix4x4 mv = m_view * model;
+//
+//           /* set model * view * projection matrix */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.mvp,
+//             m_projection * mv);
+//           checkError("after set mvp");
+//
+//           /* set model * view matrix */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.mv, mv);
+//           checkError("after set mv");
+//
+//           /* set view matrix */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.v,
+//             m_view);
+//           checkError("after set v");
+//
+//           /* set normal matrix */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.nm,
+//             mv.normalMatrix());
+//           checkError("after set nm");
+//
+//           /* set Ka for lights */
+//           m_programFlat->setUniformValueArray(
+//             m_uniformsFlat.Ka,
+//             m_lightParameters.KaLight,
+//             10,
+//             3);
+//
+//           /* set Ks for lights */
+//           m_programFlat->setUniformValueArray(
+//             m_uniformsFlat.Ks,
+//             m_lightParameters.KsLight,
+//             10,
+//             3);
+//           checkError("after set KsLight");
+//
+//           /* set Kd for lights */
+//           m_programFlat->setUniformValueArray(
+//             m_uniformsFlat.Kd,
+//             m_lightParameters.KdLight,
+//             10,
+//             3);
+//           checkError("after set KdLight");
+//
+//           /* set directional switch for lights */
+//           m_programFlat->setUniformValueArray(
+//             m_uniformsFlat.directional,
+//             m_lightParameters.directional,
+//             10);
+//           checkError("after set directional");
+//
+//           /* set positions of lights */
+//           m_programFlat->setUniformValueArray(
+//             m_uniformsFlat.posLight,
+//             m_lightParameters.posLight,
+//             10,
+//             3);
+//           // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+//           checkError("after set poslight");
+//
+//           /* set number of lights */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.lightCount,
+//             m_lightParameters.lightCount);
+//
+//           // qDebug() << "light count:" << lightParameters.lightCount;
+//           checkError("after set light count");
+//
+//           /* set Kd properties for material */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.KdMaterial,
+//             material->Kd[0],
+//             material->Kd[1],
+//             material->Kd[2],
+//             material->Kd[3]);
+//           checkError("after set KdMaterial");
+//
+//           /* set Ks properties for material */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.KsMaterial,
+//             material->Ks[0],
+//             material->Ks[1],
+//             material->Ks[2],
+//             material->Ks[3]);
+//           checkError("after set KsMaterial");
+//
+//           /* set Ka properties for material */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.KaMaterial,
+//             material->Ka[0],
+//             material->Ka[1],
+//             material->Ka[2],
+//             material->Ka[3]);
+//           checkError("after set KaMaterial");
+//
+//           // qDebug() << "KaMaterial: " << material->Ka[0]
+//           // << material->Ka[1] << material->Ka[2];
+//
+//           /* set specularity property for material */
+//           m_programFlat->setUniformValue(
+//             m_uniformsFlat.Ns,
+//             material->Ns);
+//           checkError("after set Ns");
+//
+//           glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//           checkError("after set polygon mode");
+//
+//           glDrawElements(
+//             GL_TRIANGLES,
+//             3 * material->faceCount,
+//             GL_UNSIGNED_INT,
+//             0);
+//           checkError("after draw elements");
+//
+//           m_bufferObjects.at(i)->vao->release();
+//           checkError("after vao release");
+//
+//           m_programFlat->release();
+//           checkError("after flat release");
+//         } break;
+//         case GOURAUD: {
+//           m_programGouraud->bind();
+//
+//           m_programGouraud->release();
+//         } break;
+//         case WIREFRAME: {
+//           m_programLine->bind();
+//
+//           m_bufferObjects.at(i)->vao->bind();
+//           double* d = (double*)(m_bufferObjects.at(i)->transform);
+//           QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
+//                                         d[1], d[4], d[7], d[10],
+//                                         d[2], d[5], d[8], d[11],
+//                                         0.f,  0.f,  0.f,  1.f);
+//
+//           s2_material_t* material = m_bufferObjects.at(i)->material;
+//           QMatrix4x4 mv = m_view * model;
+//
+//           /* set model * view * projection matrix */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.mvp,
+//             m_projection * mv);
+//           checkError("after set mvp");
+//
+//           /* set model * view matrix */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.mv, mv);
+//           checkError("after set mv");
+//
+//           /* set view matrix */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.v,
+//             m_view);
+//           checkError("after set v");
+//
+//           /* set normal matrix */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.nm,
+//             mv.normalMatrix());
+//           checkError("after set nm");
+//
+//           /* set Ka for lights */
+//           m_programLine->setUniformValueArray(
+//             m_uniformsLine.Ka,
+//             m_lightParameters.KaLight,
+//             10,
+//             3);
+//
+//           /* set Ks for lights */
+//           m_programFlat->setUniformValueArray(
+//             m_uniformsLine.Ks,
+//             m_lightParameters.KsLight,
+//             10,
+//             3);
+//           checkError("after set KsLight");
+//
+//           /* set Kd for lights */
+//           m_programLine->setUniformValueArray(
+//             m_uniformsLine.Kd,
+//             m_lightParameters.KdLight,
+//             10,
+//             3);
+//           checkError("after set KdLight");
+//
+//           /* set directional switch for lights */
+//           m_programLine->setUniformValueArray(
+//             m_uniformsLine.directional,
+//             m_lightParameters.directional,
+//             10);
+//           checkError("after set directional");
+//
+//           /* set positions of lights */
+//           m_programLine->setUniformValueArray(
+//             m_uniformsLine.posLight,
+//             m_lightParameters.posLight,
+//             10,
+//             3);
+//           // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
+//           checkError("after set poslight");
+//
+//           /* set number of lights */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.lightCount,
+//             m_lightParameters.lightCount);
+//           // qDebug() << "light count:" << lightParameters.lightCount;
+//           checkError("after set light count");
+//
+//           /* set Kd properties for material */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.KdMaterial,
+//             material->Kd[0],
+//             material->Kd[1],
+//             material->Kd[2],
+//             material->Kd[3]);
+//           checkError("after set KdMaterial");
+//
+//           /* set Ks properties for material */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.KsMaterial,
+//             material->Ks[0],
+//             material->Ks[1],
+//             material->Ks[2],
+//             material->Ks[3]);
+//           checkError("after set KsMaterial");
+//
+//           /* set Ka properties for material */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.KaMaterial,
+//             material->Ka[0],
+//             material->Ka[1],
+//             material->Ka[2],
+//             material->Ka[3]);
+//           checkError("after set KaMaterial");
+//
+//           // qDebug() << "KaMaterial: " << material->Ka[0]
+//           // << material->Ka[1] << material->Ka[2];
+//
+//           /* set specularity property for material */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.Ns,
+//             material->Ns);
+//           checkError("after set Ns");
+//
+//           glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//           checkError("after set polygon mode");
+//
+//           glDrawElements(
+//             GL_TRIANGLES,
+//             3 * material->faceCount,
+//             GL_UNSIGNED_INT,
+//             0);
+//           checkError("after draw elements");
+//
+//           m_bufferObjects.at(i)->vao->release();
+//           checkError("after vao release");
+//
+//           m_programLine->release();
+//           checkError("after flat release");
+//
+//         } break;
+//         case LINE: {
+//           m_programLine->bind();
+//           m_bufferObjects.at(i)->vao->bind();
+//           double* d = (double*)(m_bufferObjects.at(i)->transform);
+//           QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
+//                                         d[1], d[4], d[7], d[10],
+//                                         d[2], d[5], d[8], d[11],
+//                                         0.f,  0.f,  0.f,  1.f);
+//
+//           s2_material_t* material = m_bufferObjects.at(i)->material;
+//           QMatrix4x4 mv = m_view * model;
+//
+//           /* set model * view * projection matrix */
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.mvp,
+//             m_projection * mv);
+//           checkError("line: after set mvp");
+//
+//           m_programLine->setUniformValue(
+//             m_uniformsLine.colorUniform,
+//             m_planeLineColor[0],
+//             m_planeLineColor[1],
+//             m_planeLineColor[2],
+//             m_planeLineColor[3]);
+//           checkError("after set uniform color");
+//
+//           glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//           checkError("after set polygon mode");
+//
+//           glDrawElements(
+//             GL_LINES,
+//             2 * material->faceCount,
+//             GL_UNSIGNED_INT,
+//             0);
+//           checkError("after draw elements");
+//
+//           m_bufferObjects.at(i)->vao->release();
+//           checkError("after vao release");
+//
+//           m_programLine->release();
+//           checkError("after flat release");
+//         }
+//       }
+//     }
 
-      switch(m_bufferObjects.at(i)->material->shadingType) {
-        case PHONG: {
-          m_programPhong->bind();
-          m_bufferObjects.at(i)->vao->bind();
-          double* d = (double*)(m_bufferObjects.at(i)->transform);
-          QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
-                                        d[1], d[4], d[7], d[10],
-                                        d[2], d[5], d[8], d[11],
-                                        0.f,  0.f,  0.f,  1.f);
-
-          s2_material_t* material = m_bufferObjects.at(i)->material;
-          QMatrix4x4 mv = m_view * model;
-
-          /* set model * view * projection matrix */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.mvp,
-            m_projection * mv);
-          // checkError("after set mvp phong");
-
-          /* set model * view matrix */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.mv, mv);
-          // checkError("after set mv phong");
-
-          /* set view matrix */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.v,
-            m_view);
-          // checkError("after set v phong");
-
-          /* set normal matrix */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.nm,
-            mv.normalMatrix());
-          // checkError("after set nm phong");
-
-          /* set Ka for lights */
-          m_programPhong->setUniformValueArray(
-            m_uniformsPhong.Ka,
-            m_lightParameters.KaLight,
-            10,
-            3);
-
-          /* set Ks for lights */
-          m_programPhong->setUniformValueArray(
-            m_uniformsPhong.Ks,
-            m_lightParameters.KsLight,
-            10,
-            3);
-          // checkError("after set KsLight phong");
-
-          /* set Kd for lights */
-          m_programPhong->setUniformValueArray(
-            m_uniformsPhong.Kd,
-            m_lightParameters.KdLight,
-            10,
-            3);
-          // checkError("after set KdLight phong");
-
-          /* set directional switch for lights */
-          m_programPhong->setUniformValueArray(
-            m_uniformsPhong.directional,
-            m_lightParameters.directional,
-            10);
-          // checkError("after set directional phong");
-
-          /* set positions of lights */
-          m_programPhong->setUniformValueArray(
-            m_uniformsPhong.posLight,
-            m_lightParameters.posLight,
-            10,
-            3);
-          // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
-          // checkError("after set poslight phong");
-
-          /* set number of lights */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.lightCount,
-            m_lightParameters.lightCount);
-          // qDebug() << "light count:" << lightParameters.lightCount;
-          // checkError("after set light count phong");
-
-          /* set Kd properties for material */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.KdMaterial,
-            material->Kd[0],
-            material->Kd[1],
-            material->Kd[2]);
-          // checkError("after set KdMaterial phong");
-
-          /* set Ks properties for material */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.KsMaterial,
-            material->Ks[0],
-            material->Ks[1],
-            material->Ks[2]);
-          // checkError("after set KsMaterial phong");
-
-          /* set Ka properties for material */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.KaMaterial,
-            material->Ka[0],
-            material->Ka[1],
-            material->Ka[2]);
-          // checkError("after set KaMaterial phong");
-
-          // qDebug() << "KaMaterial: " << material->Ka[0]
-          // << material->Ka[1] << material->Ka[2];
-
-          /* set specularity property for material */
-          m_programPhong->setUniformValue(
-            m_uniformsPhong.Ns,
-            material->Ns);
-          // checkError("after set Ns phong");
-          if(m_shadingType == WIREFRAME) {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-          } else {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-          }
-          // checkError("after set polygon mode phong");
-
-          glDrawElements(
-            GL_TRIANGLES,
-            3 * material->faceCount,
-            GL_UNSIGNED_INT,
-            0);
-          // checkError("after draw elements phong");
-
-          m_bufferObjects.at(i)->vao->release();
-          // checkError("after vao release phong");
-
-          m_programPhong->release();
-          // checkError("after phong release phong");
-
-        } break;
-        case FLAT: {
-          m_programFlat->bind();
-          m_bufferObjects.at(i)->vao->bind();
-          double* d = (double*)(m_bufferObjects.at(i)->transform);
-          QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
-                                        d[1], d[4], d[7], d[10],
-                                        d[2], d[5], d[8], d[11],
-                                        0.f,  0.f,  0.f,  1.f);
-
-          s2_material_t* material = m_bufferObjects.at(i)->material;
-          QMatrix4x4 mv = m_view * model;
-
-          /* set model * view * projection matrix */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.mvp,
-            m_projection * mv);
-          checkError("after set mvp");
-
-          /* set model * view matrix */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.mv, mv);
-          checkError("after set mv");
-
-          /* set view matrix */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.v,
-            m_view);
-          checkError("after set v");
-
-          /* set normal matrix */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.nm,
-            mv.normalMatrix());
-          checkError("after set nm");
-
-          /* set Ka for lights */
-          m_programFlat->setUniformValueArray(
-            m_uniformsFlat.Ka,
-            m_lightParameters.KaLight,
-            10,
-            3);
-
-          /* set Ks for lights */
-          m_programFlat->setUniformValueArray(
-            m_uniformsFlat.Ks,
-            m_lightParameters.KsLight,
-            10,
-            3);
-          checkError("after set KsLight");
-
-          /* set Kd for lights */
-          m_programFlat->setUniformValueArray(
-            m_uniformsFlat.Kd,
-            m_lightParameters.KdLight,
-            10,
-            3);
-          checkError("after set KdLight");
-
-          /* set directional switch for lights */
-          m_programFlat->setUniformValueArray(
-            m_uniformsFlat.directional,
-            m_lightParameters.directional,
-            10);
-          checkError("after set directional");
-
-          /* set positions of lights */
-          m_programFlat->setUniformValueArray(
-            m_uniformsFlat.posLight,
-            m_lightParameters.posLight,
-            10,
-            3);
-          // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
-          checkError("after set poslight");
-
-          /* set number of lights */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.lightCount,
-            m_lightParameters.lightCount);
-
-          // qDebug() << "light count:" << lightParameters.lightCount;
-          checkError("after set light count");
-
-          /* set Kd properties for material */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.KdMaterial,
-            material->Kd[0],
-            material->Kd[1],
-            material->Kd[2],
-            material->Kd[3]);
-          checkError("after set KdMaterial");
-
-          /* set Ks properties for material */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.KsMaterial,
-            material->Ks[0],
-            material->Ks[1],
-            material->Ks[2],
-            material->Ks[3]);
-          checkError("after set KsMaterial");
-
-          /* set Ka properties for material */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.KaMaterial,
-            material->Ka[0],
-            material->Ka[1],
-            material->Ka[2],
-            material->Ka[3]);
-          checkError("after set KaMaterial");
-
-          // qDebug() << "KaMaterial: " << material->Ka[0]
-          // << material->Ka[1] << material->Ka[2];
-
-          /* set specularity property for material */
-          m_programFlat->setUniformValue(
-            m_uniformsFlat.Ns,
-            material->Ns);
-          checkError("after set Ns");
-
-          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-          checkError("after set polygon mode");
-
-          glDrawElements(
-            GL_TRIANGLES,
-            3 * material->faceCount,
-            GL_UNSIGNED_INT,
-            0);
-          checkError("after draw elements");
-
-          m_bufferObjects.at(i)->vao->release();
-          checkError("after vao release");
-
-          m_programFlat->release();
-          checkError("after flat release");
-        } break;
-        case GOURAUD: {
-          m_programGouraud->bind();
-
-          m_programGouraud->release();
-        } break;
-        case WIREFRAME: {
-          m_programLine->bind();
-
-          m_bufferObjects.at(i)->vao->bind();
-          double* d = (double*)(m_bufferObjects.at(i)->transform);
-          QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
-                                        d[1], d[4], d[7], d[10],
-                                        d[2], d[5], d[8], d[11],
-                                        0.f,  0.f,  0.f,  1.f);
-
-          s2_material_t* material = m_bufferObjects.at(i)->material;
-          QMatrix4x4 mv = m_view * model;
-
-          /* set model * view * projection matrix */
-          m_programLine->setUniformValue(
-            m_uniformsLine.mvp,
-            m_projection * mv);
-          checkError("after set mvp");
-
-          /* set model * view matrix */
-          m_programLine->setUniformValue(
-            m_uniformsLine.mv, mv);
-          checkError("after set mv");
-
-          /* set view matrix */
-          m_programLine->setUniformValue(
-            m_uniformsLine.v,
-            m_view);
-          checkError("after set v");
-
-          /* set normal matrix */
-          m_programLine->setUniformValue(
-            m_uniformsLine.nm,
-            mv.normalMatrix());
-          checkError("after set nm");
-
-          /* set Ka for lights */
-          m_programLine->setUniformValueArray(
-            m_uniformsLine.Ka,
-            m_lightParameters.KaLight,
-            10,
-            3);
-
-          /* set Ks for lights */
-          m_programFlat->setUniformValueArray(
-            m_uniformsLine.Ks,
-            m_lightParameters.KsLight,
-            10,
-            3);
-          checkError("after set KsLight");
-
-          /* set Kd for lights */
-          m_programLine->setUniformValueArray(
-            m_uniformsLine.Kd,
-            m_lightParameters.KdLight,
-            10,
-            3);
-          checkError("after set KdLight");
-
-          /* set directional switch for lights */
-          m_programLine->setUniformValueArray(
-            m_uniformsLine.directional,
-            m_lightParameters.directional,
-            10);
-          checkError("after set directional");
-
-          /* set positions of lights */
-          m_programLine->setUniformValueArray(
-            m_uniformsLine.posLight,
-            m_lightParameters.posLight,
-            10,
-            3);
-          // qDebug() << lightParameters.posLight[0] << lightParameters.posLight[1] << lightParameters.posLight[2];
-          checkError("after set poslight");
-
-          /* set number of lights */
-          m_programLine->setUniformValue(
-            m_uniformsLine.lightCount,
-            m_lightParameters.lightCount);
-          // qDebug() << "light count:" << lightParameters.lightCount;
-          checkError("after set light count");
-
-          /* set Kd properties for material */
-          m_programLine->setUniformValue(
-            m_uniformsLine.KdMaterial,
-            material->Kd[0],
-            material->Kd[1],
-            material->Kd[2],
-            material->Kd[3]);
-          checkError("after set KdMaterial");
-
-          /* set Ks properties for material */
-          m_programLine->setUniformValue(
-            m_uniformsLine.KsMaterial,
-            material->Ks[0],
-            material->Ks[1],
-            material->Ks[2],
-            material->Ks[3]);
-          checkError("after set KsMaterial");
-
-          /* set Ka properties for material */
-          m_programLine->setUniformValue(
-            m_uniformsLine.KaMaterial,
-            material->Ka[0],
-            material->Ka[1],
-            material->Ka[2],
-            material->Ka[3]);
-          checkError("after set KaMaterial");
-
-          // qDebug() << "KaMaterial: " << material->Ka[0]
-          // << material->Ka[1] << material->Ka[2];
-
-          /* set specularity property for material */
-          m_programLine->setUniformValue(
-            m_uniformsLine.Ns,
-            material->Ns);
-          checkError("after set Ns");
-
-          glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-          checkError("after set polygon mode");
-
-          glDrawElements(
-            GL_TRIANGLES,
-            3 * material->faceCount,
-            GL_UNSIGNED_INT,
-            0);
-          checkError("after draw elements");
-
-          m_bufferObjects.at(i)->vao->release();
-          checkError("after vao release");
-
-          m_programLine->release();
-          checkError("after flat release");
-
-        } break;
-        case LINE: {
-          m_programLine->bind();
-          m_bufferObjects.at(i)->vao->bind();
-          double* d = (double*)(m_bufferObjects.at(i)->transform);
-          QMatrix4x4 model = QMatrix4x4(d[0], d[3], d[6], d[9],
-                                        d[1], d[4], d[7], d[10],
-                                        d[2], d[5], d[8], d[11],
-                                        0.f,  0.f,  0.f,  1.f);
-
-          s2_material_t* material = m_bufferObjects.at(i)->material;
-          QMatrix4x4 mv = m_view * model;
-
-          /* set model * view * projection matrix */
-          m_programLine->setUniformValue(
-            m_uniformsLine.mvp,
-            m_projection * mv);
-          checkError("line: after set mvp");
-
-          m_programLine->setUniformValue(
-            m_uniformsLine.colorUniform,
-            m_planeLineColor[0],
-            m_planeLineColor[1],
-            m_planeLineColor[2],
-            m_planeLineColor[3]);
-          checkError("after set uniform color");
-
-          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-          checkError("after set polygon mode");
-
-          glDrawElements(
-            GL_LINES,
-            2 * material->faceCount,
-            GL_UNSIGNED_INT,
-            0);
-          checkError("after draw elements");
-
-          m_bufferObjects.at(i)->vao->release();
-          checkError("after vao release");
-
-          m_programLine->release();
-          checkError("after flat release");
-        }
-      }
-    }
   }
 }

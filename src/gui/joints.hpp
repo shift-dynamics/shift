@@ -32,6 +32,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
+class s2_Geometry;
 
 class s2_Joints : public s2_Geometry {
 
@@ -55,6 +56,10 @@ public:
     m_scaleFactor = 2.0;
   }
 
+  ~s2_Joints() {
+
+  };
+
   bool isActive() {
     return m_active;
   }
@@ -63,6 +68,8 @@ public:
     return m_joint;
   }
   void update();
+  void draw();
+  void initialize();
 
 public slots:
 
@@ -99,6 +106,13 @@ private:
   bool m_isPositive;
   s2_joint_enum_t m_jointType;
   s2_move_enum_t m_moveType;
+
+  GLint m_mvp_u;
+
+  /* vertex, face and index buffers */
+  QOpenGLVertexArrayObject* m_vao;
+  QOpenGLBuffer* m_vbo;
+  QOpenGLBuffer* m_ibo;
 };
 
 #endif
