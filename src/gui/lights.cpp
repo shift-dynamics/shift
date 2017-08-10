@@ -3,14 +3,14 @@
 #include "renderwindow.hpp"
 
 s2_Lights::s2_Lights(RenderWindow* renderWindow)
-: s2_Geometry(renderWindow)
-, m_count(0) {
+: s2_Geometry(renderWindow) {
 
-  memset(m_position, 0, 30 * sizeof(GLfloat));
-  memset(m_Ka, 0, 30 * sizeof(GLfloat));
-  memset(m_Kd, 0, 30 * sizeof(GLfloat));
-  memset(m_Ks, 0, 30 * sizeof(GLfloat));
-  memset(m_directional, 0, 10 * sizeof(GLfloat));
+  m_lights.count = 0;
+  memset(m_lights.position, 0, 30 * sizeof(GLfloat));
+  memset(m_lights.Ka, 0, 30 * sizeof(GLfloat));
+  memset(m_lights.Kd, 0, 30 * sizeof(GLfloat));
+  memset(m_lights.Ks, 0, 30 * sizeof(GLfloat));
+  memset(m_lights.directional, 0, 10 * sizeof(GLfloat));
 }
 
 
@@ -67,37 +67,37 @@ void s2_Lights::loadContext() {
   m_context = m_renderWindow->getContext();
   if(m_context) {
     if(m_context->activeLightCount > 10) {
-      m_count = 10;
+      m_lights.count = 10;
     } else {
-      m_count = m_context->activeLightCount;
+      m_lights.count = m_context->activeLightCount;
     }
-    for(int i = 0; i < m_count; i++) {
+    for(int i = 0; i < m_lights.count; i++) {
       QVector4D position;
       s2_light_t* light = m_context->lightPointers[i];
       s2_displacement_t* d = light->parentFramePointer->dAbsolute;
       switch(light->lightType) {
         case POINT: {
-          m_directional[i] = 0;
-          m_position[i * 3 + 0] = d->T.x;
-          m_position[i * 3 + 1] = d->T.y;
-          m_position[i * 3 + 2] = d->T.z;
+          m_lights.directional[i] = 0;
+          m_lights.position[i * 3 + 0] = d->T.x;
+          m_lights.position[i * 3 + 1] = d->T.y;
+          m_lights.position[i * 3 + 2] = d->T.z;
 
         } break;
         case DIRECTIONAL: {
-          m_directional[i] = 1;
-          m_position[i * 3 + 0] = d->T.x;
-          m_position[i * 3 + 1] = d->T.x;
-          m_position[i * 3 + 2] = d->T.x;
+          m_lights.directional[i] = 1;
+          m_lights.position[i * 3 + 0] = d->T.x;
+          m_lights.position[i * 3 + 1] = d->T.x;
+          m_lights.position[i * 3 + 2] = d->T.x;
         }
         break;
       }
 
       for(int j = 0; j < 3; j++) {
-        m_Ka[3 * i + j] =
+        m_lights.Ka[3 * i + j] =
           m_context->lightPointers[i]->glLight.Ka[j];
-        m_Kd[3 * i + j] =
+        m_lights.Kd[3 * i + j] =
           m_context->lightPointers[i]->glLight.Kd[j];
-        m_Ks[3 * i + j] =
+        m_lights.Ks[3 * i + j] =
           m_context->lightPointers[i]->glLight.Ks[j];
       }
     }

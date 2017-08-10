@@ -7,6 +7,7 @@
 #include "lights.hpp"
 #include "grid.hpp"
 #include "terrain.hpp"
+#include "phongshaderprogram.hpp"
 
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -65,50 +66,11 @@ RenderWindow::RenderWindow()
   m_normalColor[2] = 255.f / 255.f;
   m_normalColor[3] = 1.0f;
 
-  /* set initial plane display colors */
-  // m_planeFaceColor[0] = 36.f / 255.f;
-  // m_planeFaceColor[1] = 36.f / 255.f;
-  // m_planeFaceColor[2] = 36.f / 255.f;
-  // m_planeFaceColor[3] = 0.5f;
-  //
-  // m_planeLineColor[0] = 36.f / 255.f;
-  // m_planeLineColor[1] = 36.f / 255.f;
-  // m_planeLineColor[2] = 36.f / 255.f;
-  // m_planeLineColor[3] = 1.0f;
-  //
-  // m_frameScaleFactor = 0.5;
-  // m_jointScaleFactor = 2.0;
-  //
-  // m_bufferObjects = QVector<BufferObjects*>();
-  //
-  // m_lightParameters.posLight = new GLfloat[30];
-  // memset(m_lightParameters.posLight, 0, 30 * sizeof(GLfloat));
-  //
-  // m_lightParameters.KaLight = new GLfloat[30];
-  // memset(m_lightParameters.KaLight, 0, 30 * sizeof(GLfloat));
-  //
-  // m_lightParameters.KdLight = new GLfloat[30];
-  // memset(m_lightParameters.KdLight, 0, 30 * sizeof(GLfloat));
-  //
-  // m_lightParameters.KsLight = new GLfloat[30];
-  // memset(m_lightParameters.KsLight, 0, 30 * sizeof(GLfloat));
-  //
-  // m_lightParameters.directional = new GLint[10];
-  // memset(m_lightParameters.directional, 0, 10 * sizeof(GLfloat));
-  //
-  // m_lightParameters.lightCount = 0;
-
-  // m_joint.active = false;
-  // m_joint.joint = NULL;
-  // m_joint.counter = 0;
-  // m_joint.qIndex = -1;
-  // m_joint.dqIndex = -1;
-  // m_joint.maxCount = 1000;
-  // m_joint.delq = 0;
-  // m_joint.targetVal = 0;
-  // m_joint.isPositive = true;
-  // m_joint.jointType = PRIMITIVE;
-  // m_joint.moveType = INCREMENT;
+  m_joints = new s2_Joints(this);
+  m_bodies = new s2_Bodies(this);
+  m_frames = new s2_Frames(this);
+  m_terrain = new s2_Terrain(this);
+  m_lights = new s2_Lights(this);
 
   m_timer = new QTimer();
   m_timer->setTimerType(Qt::PreciseTimer);
@@ -487,22 +449,22 @@ void RenderWindow::checkError(
 /*!
 @brief get shader source code
 */
-const GLchar* RenderWindow::getShaderSource(
-  const char* shaderSource) {
-
-  GLchar* out;
-  QString fileContents;
-  QFile file(shaderSource);
-  file.open(QIODevice::ReadOnly | QIODevice::Text);
-  fileContents = file.readAll();
-  file.close();
-  std::string result = fileContents.toLocal8Bit().constData();
-  int len = strlen(result.c_str());
-  out = (GLchar*) malloc((len + 1) * sizeof(char));
-  strcpy(out, result.c_str());
-  out[len] = '\0';
-  return out;
-}
+// const GLchar* RenderWindow::getShaderSource(
+//   const char* shaderSource) {
+//
+//   GLchar* out;
+//   QString fileContents;
+//   QFile file(shaderSource);
+//   file.open(QIODevice::ReadOnly | QIODevice::Text);
+//   fileContents = file.readAll();
+//   file.close();
+//   std::string result = fileContents.toLocal8Bit().constData();
+//   int len = strlen(result.c_str());
+//   out = (GLchar*) malloc((len + 1) * sizeof(char));
+//   strcpy(out, result.c_str());
+//   out[len] = '\0';
+//   return out;
+// }
 
 
 /*!
@@ -981,69 +943,69 @@ void RenderWindow::updateLights() {
 // }
 
 
-/*!
-@brief compile shaders
-*/
-void RenderWindow::compileShaders() {
-
-  qDebug() << "compiling line shader program";
-  m_programLine = new QOpenGLShaderProgram(this);
-  m_programLine->addShaderFromSourceFile(
-    QOpenGLShader::Vertex,
-    ":/shaders/simple.vert");
-  m_programLine->addShaderFromSourceFile(
-    QOpenGLShader::Fragment,
-    ":/shaders/simple.frag");
-  m_programLine->link();
-  checkError("after link program line");
-
-  qDebug() << "compiling frame shader program";
-  m_programFrame = new QOpenGLShaderProgram(this);
-  m_programFrame->addShaderFromSourceFile(
-    QOpenGLShader::Vertex,
-    ":/shaders/frame.vert");
-  m_programFrame->addShaderFromSourceFile(
-    QOpenGLShader::Fragment,
-    ":/shaders/frame.frag");
-  m_programFrame->link();
-
-  qDebug() << "compiling flat shader program";
-  m_programFlat = new QOpenGLShaderProgram(this);
-  m_programFlat->addShaderFromSourceFile(
-    QOpenGLShader::Vertex,
-    ":/shaders/flat.vert");
-  m_programFlat->addShaderFromSourceFile(
-    QOpenGLShader::Geometry,
-    ":/shaders/flat.geom");
-  m_programFlat->addShaderFromSourceFile(
-    QOpenGLShader::Fragment,
-    ":/shaders/flat.frag");
-  m_programFlat->link();
-  checkError("after link program flat");
-
-  qDebug() << "compiling phong";
-  m_programPhong = new QOpenGLShaderProgram(this);
-  m_programPhong->addShaderFromSourceFile(
-    QOpenGLShader::Vertex,
-    ":/shaders/phong.vert");
-  m_programPhong->addShaderFromSourceFile(
-    QOpenGLShader::Fragment,
-    ":/shaders/phong.frag");
-  m_programPhong->link();
-
-  qDebug() << "compiling shadow shader program";
-  m_programShadow = new QOpenGLShaderProgram(this);
-  m_programShadow->addShaderFromSourceFile(
-    QOpenGLShader::Vertex,
-    ":/shaders/shadow.vert");
-  m_programShadow->addShaderFromSourceFile(
-    QOpenGLShader::Fragment,
-    ":/shaders/shadow.frag");
-  m_programShadow->link();
-
-  checkError("after compiling shaders");
-  qDebug() << "shaders compiled";
-}
+// /*!
+// @brief compile shaders
+// */
+// void RenderWindow::compileShaders() {
+//
+//   qDebug() << "compiling line shader program";
+//   m_programLine = new QOpenGLShaderProgram(this);
+//   m_programLine->addShaderFromSourceFile(
+//     QOpenGLShader::Vertex,
+//     ":/shaders/simple.vert");
+//   m_programLine->addShaderFromSourceFile(
+//     QOpenGLShader::Fragment,
+//     ":/shaders/simple.frag");
+//   m_programLine->link();
+//   checkError("after link program line");
+//
+//   qDebug() << "compiling frame shader program";
+//   m_programFrame = new QOpenGLShaderProgram(this);
+//   m_programFrame->addShaderFromSourceFile(
+//     QOpenGLShader::Vertex,
+//     ":/shaders/frame.vert");
+//   m_programFrame->addShaderFromSourceFile(
+//     QOpenGLShader::Fragment,
+//     ":/shaders/frame.frag");
+//   m_programFrame->link();
+//
+//   qDebug() << "compiling flat shader program";
+//   m_programFlat = new QOpenGLShaderProgram(this);
+//   m_programFlat->addShaderFromSourceFile(
+//     QOpenGLShader::Vertex,
+//     ":/shaders/flat.vert");
+//   m_programFlat->addShaderFromSourceFile(
+//     QOpenGLShader::Geometry,
+//     ":/shaders/flat.geom");
+//   m_programFlat->addShaderFromSourceFile(
+//     QOpenGLShader::Fragment,
+//     ":/shaders/flat.frag");
+//   m_programFlat->link();
+//   checkError("after link program flat");
+//
+//   qDebug() << "compiling phong";
+//   m_programPhong = new QOpenGLShaderProgram(this);
+//   m_programPhong->addShaderFromSourceFile(
+//     QOpenGLShader::Vertex,
+//     ":/shaders/phong.vert");
+//   m_programPhong->addShaderFromSourceFile(
+//     QOpenGLShader::Fragment,
+//     ":/shaders/phong.frag");
+//   m_programPhong->link();
+//
+//   qDebug() << "compiling shadow shader program";
+//   m_programShadow = new QOpenGLShaderProgram(this);
+//   m_programShadow->addShaderFromSourceFile(
+//     QOpenGLShader::Vertex,
+//     ":/shaders/shadow.vert");
+//   m_programShadow->addShaderFromSourceFile(
+//     QOpenGLShader::Fragment,
+//     ":/shaders/shadow.frag");
+//   m_programShadow->link();
+//
+//   checkError("after compiling shaders");
+//   qDebug() << "shaders compiled";
+// }
 
 
 // /*!
@@ -1412,7 +1374,7 @@ void RenderWindow::initialize() {
   // glEnable(GL_POLYGON_SMOOTH);
 
   if(!m_initialized) {
-    compileShaders();
+    m_programPhong = new PhongShaderProgram(this);
 
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
@@ -1507,38 +1469,10 @@ void RenderWindow::setJoint(
     jointType);
 }
 
-//
-// /*!
-//   @brief set joint to be incremented
-// */
-// void RenderWindow::setJointTarget(
-//   s2_joint_t* joint,
-//   int qIndex,
-//   int dqIndex,
-//   double targetVal,
-//   s2_joint_enum_t jointType) {
-//
-//   m_joint.active = true;
-//   m_joint.counter = 0;
-//   m_joint.joint = joint;
-//   m_joint.qIndex = qIndex;
-//   m_joint.dqIndex = dqIndex;
-//   m_joint.delq = 0.01;
-//   m_joint.targetVal = targetVal;
-//   m_joint.jointType = jointType;
-//   m_joint.moveType = TARGET;
-//
-//   if(targetVal - m_context->q[qIndex] > 0) {
-//     m_joint.isPositive = true;
-//   } else {
-//     m_joint.isPositive = false;
-//   }
-//
-//   /* allow up to 1000 steps for each radian or unit of translation */
-//   m_joint.maxCount = abs(targetVal - m_context->q[qIndex]) * 1000;
-// }
-//
 
+/*!
+  @brief set joint target
+*/
 void RenderWindow::setJointTarget(
   s2_joint_t* joint,
   int qIndex,
