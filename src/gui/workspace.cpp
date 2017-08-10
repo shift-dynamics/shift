@@ -59,6 +59,7 @@ SUCH DAMAGE.
 
 #include "workspace.hpp"
 #include "renderwindow.hpp"
+#include "joints.hpp"
 #include "../star2.h"
 
 /*!
@@ -1141,14 +1142,15 @@ void Workspace::initializeLayout() {
     m_renderWindow,
     SLOT(updateGL()));
 
+  s2_Joints* joints = m_renderWindow->getJoints();
   QObject::connect(
-    m_renderWindow,
+    joints,
     SIGNAL(jointChanged()),
     this,
     SLOT(updateTree()));
 
   QObject::connect(
-    m_renderWindow,
+    joints,
     SIGNAL(jointChanged()),
     this,
     SLOT(updateH()));
@@ -1309,7 +1311,7 @@ void Workspace::initializeMenus() {
     actionSetWireframe,
     SIGNAL(triggered()),
     m_renderWindow,
-    SLOT(setWireFrame()));
+    SLOT(setWireframe()));
 
   QObject::connect(
     actionSetFlatShaded,
@@ -1337,13 +1339,13 @@ void Workspace::initializeMenus() {
     actionToggleFrameDisplay,
     SIGNAL(triggered()),
     m_renderWindow,
-    SLOT(toggleFrameDisplay()));
+    SLOT(toggleDrawFrames()));
 
   QObject::connect(
     actionToggleJointDisplay,
     SIGNAL(triggered()),
     m_renderWindow,
-    SLOT(toggleJointDisplay()));
+    SLOT(toggleDrawJoints()));
 
   QObject::connect(
     m_actionToggleDrawTerrain,

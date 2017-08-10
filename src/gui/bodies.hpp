@@ -33,44 +33,20 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
+class PhongShaderProgram;
+class FlatShaderProgram;
+struct s2_lights_t;
 
 /*!
 @brief vertex array and vertex buffer objects for each material
 */
-struct BufferObjects {
+struct buffer_objects_t {
   QOpenGLVertexArrayObject* vao;
   QOpenGLBuffer* vertexBuffer;
   QOpenGLBuffer* vertexNormalBuffer;
   QOpenGLBuffer* ibo;
   s2_material_t* material;
   s2_displacement_t* transform;
-};
-
-/*!
-@brief uniform locations for each shader program
-*/
-struct UniformLocations {
-  GLuint m_u;
-  GLuint mv_u;
-  GLuint mvp_u;
-  GLuint nm_u;
-  GLuint v_u;
-
-  GLuint KaMaterial_u;
-  GLuint KdMaterial_u;
-  GLuint KsMaterial_u;
-  GLuint KeMaterial_u;
-  GLuint Ns_u;
-
-  GLuint posLight_u;
-  GLuint directional_u;
-  GLuint Ka_u;
-  GLuint Kd_u;
-  GLuint Ks_u;
-  GLuint lightCount_u;
-
-  GLint position_a;
-  GLint normal_a;
 };
 
 /*!
@@ -93,58 +69,33 @@ public:
 
   void initialize();
 
-  void initializeBody(
-    s2_body_t* body);
+  void initializeBody(s2_body_t* body);
 
-  void initializeMaterial(
-    s2_material_t* material,
-    s2_displacement_t* origin);
+  void initializeMaterial(s2_material_t*, s2_displacement_t*);
 
-  void setDrawStyle(s2_shading_enum_t shadingType) {
-    switch(shadingType) {
-      case WIREFRAME: {
-        m_shadingType = WIREFRAME;
-      } break;
-      default: {
-        m_shadingType = PHONG;
-      } break;
-    }
-  }
-
-  void compileShader();
-  void setUniformLocations(
-    QOpenGLShaderProgram* program,
-    UniformLocations* uniforms);
-  void setAttributeLocations(
-    QOpenGLShaderProgram* program,
-    UniformLocations* uniforms,
-    BufferObjects* bufferObjects);
+  void setDrawStyle(s2_shading_enum_t shadingType);
   void loadContext();
-  void setLights(s2_Lights* lights) {
-    m_lights = lights;
-  }
-  void setPhongShader(QOpenGLShaderProgram* program) {
-    m_programPhong = program;
-  }
-  void setFlatShader(QOpenGLShaderProgram* program) {
-    m_programFlat = program;
-  }
+  void setLights(s2_Lights*);
+  void setFlatShader(FlatShaderProgram*);
+  void setPhongShader(PhongShaderProgram*);
+
+  void setAttributeLocations(
+    QOpenGLShaderProgram*,
+    GLint,
+    GLint,
+    buffer_objects_t*);
 
   void draw();
 
 private:
 
-  QVector<BufferObjects> m_bufferObjects;
-
-  /* uniform locations */
-  UniformLocations m_uniformsFlat;
-  UniformLocations m_uniformsPhong;
+  QVector<buffer_objects_t> m_bufferObjects;
 
   s2_shading_enum_t m_shadingType;
 
   /* OpenGL shader programs */
-  QOpenGLShaderProgram* m_programFlat;
-  QOpenGLShaderProgram* m_programPhong;
+  FlatShaderProgram* m_programFlat;
+  PhongShaderProgram* m_programPhong;
 
   s2_Lights* m_lights;
 

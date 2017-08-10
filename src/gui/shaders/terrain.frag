@@ -3,33 +3,43 @@
 layout (binding = 0) uniform sampler2D tex_displacement;
 layout (binding = 1) uniform sampler2D tex_color;
 
-layout (std140) uniform matrices {
+struct matrices_t {
   mat4 mvp;
   mat4 mv;
   mat4 v;
   mat3 nm;
 };
 
-layout (std140) uniform material {
-  uniform vec3 KaOverKd;
-  uniform vec3 KsOverKd;
-  int Ns;
-} material;
+uniform matrices_t matrices;
 
-layout (std140) uniform lights {
-  int count;
-  int directional[10];
+struct material_t {
+  vec4 Ka;
+  vec4 Kd;
+  vec4 Ks;
+  vec4 Ke;
+  int Ns;
+};
+
+uniform material_t material;
+
+struct lights_t {
   vec3 position[10];
   vec3 Ka[10];
   vec3 Kd[10];
   vec3 Ks[10];
-} lights;
+  int directional[10];
+  int count;
+};
 
-layout (std140) uniform terrain {
+uniform lights_t lights;
+
+struct terrain_t {
   float zMin;
   float zMax;
   vec2 viewport;
-} terrain;
+};
+
+uniform terrain_t terrain;
 
 in vec3 normalFrag;
 in vec4 positionFrag;
