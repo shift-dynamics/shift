@@ -32,6 +32,15 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
 
+struct s2_lights_t {
+  GLfloat position[30];
+  GLfloat Ka[30];
+  GLfloat Kd[30];
+  GLfloat Ks[30];
+  GLint directional[10];
+  int count;
+};
+
 class s2_Lights : public s2_Geometry {
 
   Q_OBJECT
@@ -43,27 +52,27 @@ public:
   };
 
   int getCount() {
-    return m_count;
+    return m_lights.count;
   };
 
   GLfloat* getPosition() {
-    return m_position;
+    return m_lights.position;
   }
 
   GLfloat* getKa() {
-    return m_Ka;
+    return m_lights.Ka;
   }
 
   GLfloat* getKd() {
-    return m_Kd;
+    return m_lights.Kd;
   }
 
   GLfloat* getKs() {
-    return m_Ks;
+    return m_lights.Ks;
   }
 
   GLint* getDirectional() {
-    return m_directional;
+    return m_lights.directional;
   }
 
   void initialize();
@@ -72,12 +81,8 @@ public:
 
 private:
 
-  int m_count;
-  GLfloat m_position[30];
-  GLfloat m_Ka[30];
-  GLfloat m_Kd[30];
-  GLfloat m_Ks[30];
-  GLint m_directional[10];
+  s2_lights_t m_lights;
+
 };
 
 

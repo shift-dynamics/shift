@@ -37,6 +37,8 @@ class s2_Grid;
 class s2_Joints;
 class s2_Lights;
 class s2_Terrain;
+class PhongShaderProgram;
+class FlatShaderProgram;
 
 QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
@@ -186,6 +188,9 @@ public:
   QMatrix4x4 getProjectionMatrix() {
     return m_projection;
   }
+  s2_Joints* getJoints() {
+    return m_joints;
+  }
 
 public slots:
   void updateGL();
@@ -269,12 +274,6 @@ private:
   s2_Grid* m_grid;
   s2_Terrain* m_terrain;
 
-  const char* getShaderSource(
-    const char* shaderSource);
-
-  void checkShader(
-    GLuint shader);
-
   bool m_initialized;
 
   bool m_simulationRunning;
@@ -285,8 +284,8 @@ private:
   void interpolateCurrentPosition();
 
   QOpenGLShaderProgram* m_programLine;
-  QOpenGLShaderProgram* m_programPhong;
-  QOpenGLShaderProgram* m_programFlat;
+  PhongShaderProgram* m_programPhong;
+  FlatShaderProgram* m_programFlat;
   QOpenGLShaderProgram* m_programTerrain;
   QOpenGLShaderProgram* m_programFrame;
   QOpenGLShaderProgram* m_programShadow;

@@ -1,27 +1,34 @@
 #version 330
 
-layout (std140) uniform matrices {
+struct matrices_t {
   mat4 mvp;
   mat4 mv;
   mat4 v;
   mat3 nm;
 };
 
-layout (std140) uniform material {
+uniform matrices_t matrices;
+
+struct material_t {
   vec4 Ka;
   vec4 Kd;
   vec4 Ks;
+  vec4 Ke;
   int Ns;
-} material;
+};
 
-layout (std140) uniform lights {
-  int count;
-  int directional[10];
+uniform material_t material;
+
+struct lights_t {
   vec3 position[10];
   vec3 Ka[10];
   vec3 Kd[10];
   vec3 Ks[10];
-} lights;
+  int directional[10];
+  int count;
+};
+
+uniform lights_t lights;
 
 in vec3 normalFrag;
 in vec4 positionFrag;

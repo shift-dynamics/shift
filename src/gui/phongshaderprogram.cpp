@@ -1,0 +1,114 @@
+#include "phongshaderprogram.hpp"
+#include "renderwindow.hpp"
+#include "lights.hpp"
+
+void PhongShaderProgram::initialize() {
+  if(!m_initialized) {
+    addProgram();
+    addVertexShader(":/shaders/phong.vert");
+    addFragmentShader(":/shaders/phong.frag");
+    link();
+    bind();
+
+    /* set uniform locations */
+    m_matrices_u = m_program->uniformLocation("matrices");
+    m_matrices_mvp_u = m_program->uniformLocation("matrices.mvp");
+    m_matrices_mv_u = m_program->uniformLocation("matrices.mv");
+    m_matrices_v_u = m_program->uniformLocation("matrices.v");
+    m_matrices_nm_u = m_program->uniformLocation("matrices.nm");
+
+    m_material_u = m_program->uniformLocation("material");
+    m_material_Ka_u = m_program->uniformLocation("material.Ka");
+    m_material_Kd_u = m_program->uniformLocation("material.Kd");
+    m_material_Ks_u = m_program->uniformLocation("material.Ks");
+    m_material_Ke_u = m_program->uniformLocation("material.Ke");
+    m_material_Ns_u = m_program->uniformLocation("material.Ns");
+
+    m_lights_u = m_program->uniformLocation("lights");
+    m_lights_position_u = m_program->uniformLocation("lights.position");
+    m_lights_Ka_u = m_program->uniformLocation("lights.Ka");
+    m_lights_Kd_u = m_program->uniformLocation("lights.Kd");
+    m_lights_Ks_u = m_program->uniformLocation("lights.Ks");
+    m_lights_directional_u = m_program->uniformLocation("lights.directional");
+    m_lights_count_u = m_program->uniformLocation("lights.count");
+
+    /* set attribute locations */
+    m_position_a = m_program->attributeLocation("position_a");
+    m_program->enableAttributeArray(m_position_a);
+    m_program->setAttributeBuffer(m_position_a, GL_FLOAT, 0, 3);
+
+    m_normal_a = m_program->attributeLocation("normal_a");
+    m_program->enableAttributeArray(m_normal_a);
+    m_program->setAttributeBuffer(m_normal_a, GL_FLOAT, 0, 3);
+
+    release();
+    checkError("after initialize phong shader");
+    m_initialized = true;
+  }
+}
+
+
+void PhongShaderProgram::setTransform(s2_displacement_t* transform) {
+  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+  QMatrix4x4 view = m_renderWindow->getViewMatrix();
+  QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
+  QMatrix4x4 mv = view * model;
+  QMatrix4x4 mvp = projection * mv;
+  QMatrix3x3 nm = mv.normalMatrix();
+
+  m_program->setUniformValue(m_matrices_mvp_u, mvp);
+  m_program->setUniformValue(m_matrices_mv_u, mv);
+  m_program->setUniformValue(m_matrices_v_u, view);
+  m_program->setUniformValue(m_matrices_nm_u, nm);
+
+  checkError("after set transform");
+}
+
+
+void PhongShaderProgram::setMaterial(s2_material_t* material) {
+  m_program->setUniformValue(
+    m_material_Ka_u,
+    material->GLuniforms.Ka[0],
+    material->GLuniforms.Ka[1],
+    material->GLuniforms.Ka[2],
+    material->GLuniforms.Ka[3]);
+
+  m_program->setUniformValue(
+    m_material_Kd_u,
+    material->GLuniforms.Ka[0],
+    material->GLuniforms.Ka[1],
+    material->GLuniforms.Ka[2],
+    material->GLuniforms.Ka[3]);
+
+  m_program->setUniformValue(
+    m_material_Ka_u,
+    material->GLuniforms.Ka[0],
+    material->GLuniforms.Ka[1],
+    material->GLuniforms.Ka[2],
+    material->GLuniforms.Ka[3]);
+
+  m_program->setUniformValue(
+    m_material_Ke_u,
+    material->GLuniforms.Ke[0],
+    material->GLuniforms.Ke[1],
+    material->GLuniforms.Ke[2],
+    material->GLuniforms.Ke[3]);
+
+  m_program->setUniformValue(
+    m_material_Ns_u,
+    material->GLuniforms.Ns);
+
+  checkError("after set KaMaterial");
+}
+
+
+void PhongShaderProgram::setLights(s2_Lights* lights) {
+  m_program->setUniformValueArray(m_lights_position_u, lights->getPosition(), 10, 3);
+  m_program->setUniformValueArray(m_lights_Ka_u, lights->getKa(), 10, 3);
+  m_program->setUniformValueArray(m_lights_Kd_u, lights->getKd(), 10, 3);
+  m_program->setUniformValueArray(m_lights_Ks_u, lights->getKs(), 10, 3);
+  m_program->setUniformValueArray(
+    m_lights_directional_u, lights->getDirectional(), 10);
+  m_program->setUniformValue(m_lights_count_u, lights->getCount());
+  checkError("after set lights");
+}
