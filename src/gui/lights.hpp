@@ -31,6 +31,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
+class ShadowShaderProgram;
 
 struct s2_lights_t {
   GLfloat position[30];
@@ -78,10 +79,14 @@ public:
   void initialize();
   void draw();
   void loadContext();
+  void setShader(ShadowShaderProgram* program) {
+    m_program = program;
+  }
 
 private:
 
   s2_lights_t m_lights;
+  ShadowShaderProgram* m_program;
 
 };
 

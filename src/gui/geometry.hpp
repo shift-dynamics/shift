@@ -20,7 +20,6 @@ public:
     , m_initialized(false)
     , m_drawEnabled(false)
     , m_scaleFactor(1.0)
-    , m_program(NULL)
     , m_shadingType(PHONG) {
 
     m_renderWindow = renderWindow;
@@ -35,10 +34,9 @@ public:
   bool isInitialized();
   bool isEnabled();
   float getScaleFactor();
-  void setContext(s2_context_t* context);
-  void clearContext();
+  virtual void setContext(s2_context_t* context);
+  virtual void clearContext();
   void toggleEnabled();
-  void setShader(QOpenGLShaderProgram* program);
   void enable(bool active);
 
 protected:
@@ -47,7 +45,6 @@ protected:
   bool m_drawEnabled;
   float m_scaleFactor;
   RenderWindow* m_renderWindow;
-  QOpenGLShaderProgram* m_program;
   s2_shading_enum_t m_shadingType;
 };
 

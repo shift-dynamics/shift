@@ -32,6 +32,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
+class LineShaderProgram;
 
 
 class s2_Grid : public s2_Geometry {
@@ -42,7 +43,8 @@ public:
   s2_Grid(RenderWindow* renderWindow, int gridSize=100, float scaleFactor=1.f)
   : s2_Geometry(renderWindow)
   , m_material(NULL)
-  , m_transform(NULL) {
+  , m_transform(NULL)
+  , m_program(NULL) {
 
     m_gridSize = gridSize;
     m_scaleFactor = scaleFactor;
@@ -61,6 +63,9 @@ public:
 
   void initialize();
   void draw();
+  void setShader(LineShaderProgram* program) {
+    m_program = program;
+  }
 
 public slots:
 
@@ -98,6 +103,7 @@ private:
   GLuint m_color_u;
   GLuint m_mvp_u;
 
+  LineShaderProgram* m_program;
   //
   // BufferObjects* faceBufferObject;
   // BufferObjects* lineBufferObject;

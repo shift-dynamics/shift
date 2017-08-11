@@ -39,6 +39,10 @@ class s2_Lights;
 class s2_Terrain;
 class PhongShaderProgram;
 class FlatShaderProgram;
+class LineShaderProgram;
+class TerrainShaderProgram;
+class FrameShaderProgram;
+class ShadowShaderProgram;
 
 QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
@@ -158,6 +162,7 @@ public:
   void render();
   void resizeGL(int width, int height);
   void loadContext();
+  void clearContext();
   void loadContext(s2_context_t* context);
   QString getCursorPositionText();
   void checkError(const QString &prefix);
@@ -279,16 +284,15 @@ private:
   bool m_simulationRunning;
   double m_currentSimulationTime;
 
-  void compileShaders();
-
   void interpolateCurrentPosition();
 
-  QOpenGLShaderProgram* m_programLine;
+  /* shader programs */
+  ShadowShaderProgram* m_programShadow;
+  LineShaderProgram* m_programLine;
   PhongShaderProgram* m_programPhong;
   FlatShaderProgram* m_programFlat;
-  QOpenGLShaderProgram* m_programTerrain;
-  QOpenGLShaderProgram* m_programFrame;
-  QOpenGLShaderProgram* m_programShadow;
+  TerrainShaderProgram* m_programTerrain;
+  FrameShaderProgram* m_programFrame;
 
 };
 

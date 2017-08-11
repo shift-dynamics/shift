@@ -10,7 +10,6 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QMatrix4x4>
-#include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
@@ -20,16 +19,9 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
-#include <QWidget>
-#include <QString>
-#include <QMainWindow>
-#include <QHBoxLayout>
-#include <QFileDialog>
-#include <QResizeEvent>
-#include <QTimer>
-#include <QOpenGLTexture>
 
-class QOpenGLShaderProgram;
+
+class FrameShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
@@ -42,41 +34,29 @@ public:
     : s2_Geometry(renderWindow) {
 
     m_scaleFactor = 0.5;
-    initialize();
-  };
-
-  ~s2_Frames() {
-    
+    m_frames.append(s2_displacement());
   }
 
-  virtual void initialize();
-  virtual void draw();
-  void drawFrames(s2_assembly_t* assembly);
+  ~s2_Frames() {
+    s2_displacement_t* origin = m_frames.at(0);
+    free(origin);
+  }
+
+  void draw();
+  void addFrames(s2_assembly_t* assembly);
   void drawWFrames();
   void loadContext();
+  void clearContext();
+  void setShader(FrameShaderProgram* program) {
+    m_program = program;
+  }
 
 private:
 
-  QOpenGLShaderProgram* m_program;
-  GLfloat m_vertices[18];
-  GLfloat m_colors[18];
-  GLuint m_indices[6];
-
-  /* uniform locations */
-  GLuint m_mvp_u;
-  GLuint m_position_a;
-  GLuint m_color_a;
-
-  /* vertex, face and index buffers */
-  QOpenGLVertexArrayObject* m_vao;
-  QOpenGLBuffer* m_vbo;
-  QOpenGLBuffer* m_ibo;
-
+  FrameShaderProgram* m_program;
   QVector<s2_displacement_t*> m_frames;
 
 };
-
-
 
 
 #endif
