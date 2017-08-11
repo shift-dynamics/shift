@@ -96,6 +96,7 @@ private:
   /* OpenGL shader programs */
   FlatShaderProgram* m_programFlat;
   PhongShaderProgram* m_programPhong;
+  LineShaderProgram* m_programLine;
 
   s2_Lights* m_lights;
 

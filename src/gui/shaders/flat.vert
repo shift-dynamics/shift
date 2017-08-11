@@ -7,7 +7,7 @@ struct matrices_t {
   mat3 nm;
 };
 
-uniform matrices_t matrices;
+uniform matrices_t matrices_u;
 
 struct material_t {
   vec4 Ka;
@@ -17,7 +17,7 @@ struct material_t {
   int Ns;
 };
 
-uniform material_t material;
+uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -28,7 +28,7 @@ struct lights_t {
   int count;
 };
 
-uniform lights_t lights;
+uniform lights_t lights_u;
 
 /* attributes */
 in vec4 position_a;
@@ -38,5 +38,5 @@ out vec4 vertexGeom;
 
 void main() {
   vertexGeom = position_a;
-  gl_Position = mvp * position_a;
+  gl_Position = matrices_u.mvp * position_a;
 }

@@ -12,26 +12,26 @@ void FlatShaderProgram::initialize() {
     bind();
 
     /* set uniform locations */
-    m_matrices_u = m_program->uniformLocation("matrices");
-    m_matrices_mvp_u = m_program->uniformLocation("matrices.mvp");
-    m_matrices_mv_u = m_program->uniformLocation("matrices.mv");
-    m_matrices_v_u = m_program->uniformLocation("matrices.v");
-    m_matrices_nm_u = m_program->uniformLocation("matrices.nm");
+    m_matrices_u = m_program->uniformLocation("matrices_u");
+    m_matrices_mvp_u = m_program->uniformLocation("matrices_u.mvp");
+    m_matrices_mv_u = m_program->uniformLocation("matrices_u.mv");
+    m_matrices_v_u = m_program->uniformLocation("matrices_u.v");
+    m_matrices_nm_u = m_program->uniformLocation("matrices_u.nm");
 
-    m_material_u = m_program->uniformLocation("material");
-    m_material_Ka_u = m_program->uniformLocation("material.Ka");
-    m_material_Kd_u = m_program->uniformLocation("material.Kd");
-    m_material_Ks_u = m_program->uniformLocation("material.Ks");
-    m_material_Ke_u = m_program->uniformLocation("material.Ke");
-    m_material_Ns_u = m_program->uniformLocation("material.Ns");
+    m_material_u = m_program->uniformLocation("material_u");
+    m_material_Ka_u = m_program->uniformLocation("material_u.Ka");
+    m_material_Kd_u = m_program->uniformLocation("material_u.Kd");
+    m_material_Ks_u = m_program->uniformLocation("material_u.Ks");
+    m_material_Ke_u = m_program->uniformLocation("material_u.Ke");
+    m_material_Ns_u = m_program->uniformLocation("material_u.Ns");
 
-    m_lights_u = m_program->uniformLocation("lights");
-    m_lights_position_u = m_program->uniformLocation("lights.position");
-    m_lights_Ka_u = m_program->uniformLocation("lights.Ka");
-    m_lights_Kd_u = m_program->uniformLocation("lights.Kd");
-    m_lights_Ks_u = m_program->uniformLocation("lights.Ks");
-    m_lights_directional_u = m_program->uniformLocation("lights.directional");
-    m_lights_count_u = m_program->uniformLocation("lights.count");
+    m_lights_u = m_program->uniformLocation("lights_u");
+    m_lights_position_u = m_program->uniformLocation("lights_u.position");
+    m_lights_Ka_u = m_program->uniformLocation("lights_u.Ka");
+    m_lights_Kd_u = m_program->uniformLocation("lights_u.Kd");
+    m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
+    m_lights_directional_u = m_program->uniformLocation("lights_u.directional");
+    m_lights_count_u = m_program->uniformLocation("lights_u.count");
 
     /* set attribute locations */
     m_position_a = m_program->attributeLocation("position_a");

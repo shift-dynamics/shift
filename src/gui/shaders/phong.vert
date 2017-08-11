@@ -7,7 +7,7 @@ struct matrices_t {
   mat3 nm;
 };
 
-uniform matrices_t matrices;
+uniform matrices_t matrices_u;
 
 struct material_t {
   vec4 Ka;
@@ -17,7 +17,7 @@ struct material_t {
   int Ns;
 };
 
-uniform material_t material;
+uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -28,7 +28,7 @@ struct lights_t {
   int count;
 };
 
-uniform lights_t lights;
+uniform lights_t lights_u;
 
 in vec4 position_a;
 in vec3 normal_a;
@@ -37,7 +37,7 @@ out vec3 normalFrag;
 out vec4 positionFrag;
 
 void main() {
-  normalFrag = normalize(matrices.nm * normal_a);
+  normalFrag = normalize(matrices_u.nm * normal_a);
   positionFrag = position_a;
-  gl_Position = matrices.mvp * position_a;
+  gl_Position = matrices_u.mvp * position_a;
 }
