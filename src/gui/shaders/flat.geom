@@ -9,7 +9,7 @@ struct matrices_t {
   mat3 nm;
 };
 
-uniform matrices_t matrices;
+uniform matrices_t matrices_u;
 
 struct material_t {
   vec4 Ka;
@@ -19,7 +19,7 @@ struct material_t {
   int Ns;
 };
 
-uniform material_t material;
+uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -30,7 +30,7 @@ struct lights_t {
   int count;
 };
 
-uniform lights_t lights;
+uniform lights_t lights_u;
 
 in vec4 vertexGeom[];
 
@@ -41,7 +41,7 @@ void main() {
   vec4 a = vertexGeom[0];
   vec4 b = vertexGeom[1];
   vec4 c = vertexGeom[2];
-  vec3 normal = nm * normalize(cross(b.xyz - a.xyz, c.xyz - b.xyz));
+  vec3 normal = matrices_u.nm * normalize(cross(b.xyz - a.xyz, c.xyz - b.xyz));
 
   for (int i = 0; i < gl_in.length(); i++) {
     vertexFrag = vertexGeom[i];

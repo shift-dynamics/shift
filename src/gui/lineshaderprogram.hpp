@@ -1,0 +1,76 @@
+#ifndef _STAR2_LINESHADERPROGRAM_HPP_
+#define _STAR2_LINESHADERPROGRAM_HPP_
+
+#include "../star2.h"
+#include "openglwindow.hpp"
+#include "shaderprogram.hpp"
+
+#include <QString>
+#include <QMouseEvent>
+#include <QWheelEvent>
+#include <QMatrix4x4>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
+#include <QOpenGLBuffer>
+#include <QOpenGLFunctions>
+#include <QtOpenGL/QGLWidget>
+#include <QHBoxLayout>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
+#include <QOpenGLBuffer>
+#include <QWidget>
+#include <QString>
+#include <QMainWindow>
+#include <QHBoxLayout>
+#include <QFileDialog>
+#include <QResizeEvent>
+#include <QTimer>
+#include <QOpenGLTexture>
+
+class QOpenGLShaderProgram;
+class QOpenGLBuffer;
+class QOpenGLVertexArrayObject;
+class RenderWindow;
+class s2_Lights;
+
+
+class LineShaderProgram : public ShaderProgram {
+
+  Q_OBJECT
+
+public:
+  LineShaderProgram(RenderWindow* renderWindow)
+  : ShaderProgram(renderWindow) {
+
+  };
+
+  ~LineShaderProgram() {};
+
+  void initialize();
+  void draw();
+  void setTransform(s2_displacement_t*);
+  void setColor(GLfloat, GLfloat, GLfloat, GLfloat);
+  void setScale(GLfloat);
+
+  GLint getPositionAttribute() {
+    return m_position_a;
+  };
+
+signals:
+
+
+protected:
+
+
+private:
+
+  GLuint m_mvp_u;
+  GLuint m_color_u;
+  GLuint m_scale_u;
+
+  GLint m_position_a;
+
+};
+
+#endif

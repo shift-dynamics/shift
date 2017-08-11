@@ -7,7 +7,7 @@ struct matrices_t {
   mat3 nm;
 };
 
-uniform matrices_t matrices;
+uniform matrices_t matrices_u;
 
 struct material_t {
   vec4 Ka;
@@ -17,7 +17,7 @@ struct material_t {
   int Ns;
 };
 
-uniform material_t material;
+uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -28,7 +28,7 @@ struct lights_t {
   int count;
 };
 
-uniform lights_t lights;
+uniform lights_t lights_u;
 
 in vec3 normalFrag;
 in vec4 positionFrag;
@@ -48,11 +48,11 @@ void main() {
           light.position indicates position of light source
           used to compute direction of incoming light */
         vec4 temp = v * vec4(
-          lights.position[i].x,
-          lights.position[i].y,
-          lights.position[i].z,
+          lights_u.position[i].x,
+          lights_u.position[i].y,
+          lights_u.position[i].z,
           1.0)
-          - mv * positionFrag;
+          - matrices_u.mv * positionFrag;
         L = normalize(temp.xyz);
       }
       break;
@@ -62,9 +62,9 @@ void main() {
           used to compute direction of incoming light */
 
         vec4 temp = v * vec4(
-          lights.position[i].x,
-          lights.position[i].y,
-          lights.position[i].z,
+          lights_u.position[i].x,
+          lights_u.position[i].y,
+          lights_u.position[i].z,
           1.0);
         L = normalize(temp.xyz);
       }
@@ -72,18 +72,19 @@ void main() {
     }
 
     /* ambient term */
-    color.rgb += material.Ka * lights.Ka[i];
+    color.rgb += material_u.Ka * lights_u.Ka[i];
 
     /* diffuse term */
     float LdotN =  max(0.0, dot(L, normalFrag));
-    color.rgb += material.Kd * lights.Kd[i] * LdotN;
+    color.rgb += material_u.Kd * lights_u.Kd[i] * LdotN;
 
     /* specular term */
     vec3 R = -normalize(reflect(L, normalFrag));
-    color.rgb += material.Ks * lights.Ks[i] * pow(max(0, dot(R, V)), Ns);
+    color.rgb +=
+      material_u.Ks * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns);
   }
 
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));
-  colorFrag.a = material.Ka.a;
+  colorFrag.a = material_u.Ka.a;
 
 }
