@@ -1,103 +1,18 @@
 #include "frames.hpp"
 #include "renderwindow.hpp"
+#include "frameshaderprogram.hpp"
 
-/*!
-@brief initialize frames
-*/
-void s2_Frames::initialize() {
+#include <QOpenGLVertexArrayObject>
+#include <QOpenGLBuffer>
+#include <QOpenGLFunctions>
+#include <QtOpenGL/QGLWidget>
+#include <QHBoxLayout>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
+#include <QOpenGLBuffer>
+#include <QVector>
 
-  m_frames.append(s2_displacement());
-
-  /* set vertices */
-  m_vertices[0] = 0.f;
-  m_vertices[1] = 0.f;
-  m_vertices[2] = 0.f;
-
-  m_vertices[3] = 1.0f;
-  m_vertices[4] = 0.f;
-  m_vertices[5] = 0.f;
-
-  m_vertices[6] = 0.f;
-  m_vertices[7] = 0.f;
-  m_vertices[8] = 0.f;
-
-  m_vertices[9] = 0.f;
-  m_vertices[10] = 1.0f;
-  m_vertices[11] = 0.f;
-
-  m_vertices[12] = 0.f;
-  m_vertices[13] = 0.f;
-  m_vertices[14] = 0.f;
-
-  m_vertices[15] = 0.f;
-  m_vertices[16] = 0.f;
-  m_vertices[17] = 1.0f;
-
-  /* set colors */
-  m_colors[0] = 1.f;
-  m_colors[1] = 0.f;
-  m_colors[2] = 0.f;
-
-  m_colors[3] = 1.f;
-  m_colors[4] = 0.f;
-  m_colors[5] = 0.f;
-
-  m_colors[6] = 0.f;
-  m_colors[7] = 1.f;
-  m_colors[8] = 0.f;
-
-  m_colors[9] = 0.f;
-  m_colors[10] = 1.f;
-  m_colors[11] = 0.f;
-
-  m_colors[12] = 0.f;
-  m_colors[13] = 0.f;
-  m_colors[14] = 1.f;
-
-  m_colors[15] = 0.f;
-  m_colors[16] = 0.f;
-  m_colors[17] = 1.f;
-
-  /* set indices */
-  m_indices[0] = 0;
-  m_indices[1] = 1;
-  m_indices[2] = 2;
-  m_indices[3] = 3;
-  m_indices[4] = 4;
-  m_indices[5] = 5;
-
-  m_program->bind();
-  m_renderWindow->checkError("after frame program bind");
-
-  m_vao = new QOpenGLVertexArrayObject(static_cast <QWindow*>(m_renderWindow));
-  m_vao->create();
-  m_vao->bind();
-
-  m_vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  m_vbo->create();
-
-  m_vbo->bind();
-  m_vbo->allocate(2 * 18 * sizeof(GLfloat));
-  m_vbo->write(0, m_vertices, 18 * sizeof(GLfloat));
-  m_vbo->write(18 * sizeof(GLfloat), m_colors, 18 * sizeof(GLfloat));
-
-  m_ibo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-  m_ibo->create();
-  m_ibo->bind();
-  m_ibo->allocate(m_indices, 6 * sizeof(GLuint));
-
-  m_position_a = m_program->attributeLocation("posAttr");
-  m_program->enableAttributeArray(m_position_a);
-  m_program->setAttributeBuffer(m_position_a, GL_FLOAT, 0, 3);
-
-  m_color_a = m_program->attributeLocation("colorAttr");
-  m_program->enableAttributeArray(m_color_a);
-  m_program->setAttributeBuffer(m_color_a, GL_FLOAT, 18 * sizeof(GLfloat), 3);
-
-  m_program->release();
-
-  checkError("after set up frame shader");
-}
 
 /*!
 @brief load context datastructure
@@ -105,9 +20,17 @@ void s2_Frames::initialize() {
 void s2_Frames::loadContext() {
   m_context = m_renderWindow->getContext();
   if(m_context) {
-
+    addFrames(m_context->assembly);
   }
+}
 
+
+/*!
+@brief clears pointers to frames, leaving origin at first position
+*/
+void s2_Frames::clearContext() {
+  m_context = NULL;
+  m_frames.erase(m_frames.begin() + 1, m_frames.end() + 1);
 }
 
 
@@ -116,23 +39,16 @@ void s2_Frames::loadContext() {
 */
 void s2_Frames::draw() {
   if(m_drawEnabled) {
+
     m_program->bind();
-    m_vao->bind();
-    checkError("after bind frames vao");
     QMatrix4x4 pv =
       m_renderWindow->getProjectionMatrix() *
       m_renderWindow->getViewMatrix();
+    m_program->setScale(m_scaleFactor);
     for(int i = 0; i < m_frames.size(); i++) {
       QMatrix4x4 model = s2_displacementToQMatrix4x4(m_frames.at(i));
       QMatrix4x4 mvp = pv * model;
-
-      /* set model * view * projection matrix */
-      m_program->setUniformValue(m_mvp_u, mvp);
-      // checkError("after set mvp coordinate systems");
-
-      // glEnable(GL_LINE_SMOOTH);
-      // checkError("after gl gl_line_smooth");
-
+      m_program->setMVP(mvp);
       glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
       checkError("after draw elements coordinate systems");
     }
@@ -144,42 +60,27 @@ void s2_Frames::draw() {
 @brief draw frames, m_programFrame and m_uniformsFrame.vao must be bound
 prior to calling this recursive function
 */
-void s2_Frames::drawFrames(s2_assembly_t* assembly) {
+void s2_Frames::addFrames(s2_assembly_t* assembly) {
   s2_body_t* bodyHead = assembly->bodyHead;
-  QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
-  QMatrix4x4 view = m_renderWindow->getViewMatrix();
-  QMatrix4x4 pv = projection * view;
   while(bodyHead != NULL) {
     s2_frame_t* frameHead = bodyHead->frameHead;
     while(frameHead != NULL) {
-      QMatrix4x4 model = s2_displacementToQMatrix4x4(frameHead->dAbsolute);
-      QMatrix4x4 scale =
-        QMatrix4x4(m_scaleFactor, 0.0f, 0.0f, 0.0f,
-                   0.0f, m_scaleFactor, 0.0f, 0.0f,
-                   0.0f, 0.0f, m_scaleFactor, 0.0f,
-                   0.0f, 0.0f, 0.0f, 1.0f);
-
-      QMatrix4x4 mvp = pv * model * scale;
-
-      /* set model * view * projection matrix */
-      m_program->setUniformValue(m_mvp_u, mvp);
-      // checkError("after set mvp coordinate systems");
-      // glEnable(GL_LINE_SMOOTH);
-      glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
-      // checkError("after draw elements coordinate systems");
+      m_frames.append(frameHead->dAbsolute);
       frameHead = frameHead->next;
     }
-
     bodyHead = bodyHead->next;
   }
   s2_assembly_t* assemblyHead = assembly->subAssemblyHead;
   while(assemblyHead != NULL) {
-    drawFrames(assemblyHead);
+    addFrames(assemblyHead);
     assemblyHead = assemblyHead->next;
   }
 }
 
 
+/*!
+@brief draw "W" frames associated with tire contact patches
+*/
 void s2_Frames::drawWFrames() {
   QMatrix4x4 pv =
     m_renderWindow->getProjectionMatrix() *
@@ -198,9 +99,8 @@ void s2_Frames::drawWFrames() {
     QMatrix4x4 mvp = pv * model * scale;
 
     /* set model * view * projection matrix */
-    m_program->setUniformValue(
-      m_mvp_u,
-      mvp);
+    m_program->setMVP(mvp);
+
     // checkError("after set mvp coordinate systems");
     // glEnable(GL_LINE_SMOOTH);
     glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);

@@ -30,10 +30,6 @@ void s2_Geometry::toggleEnabled() {
   m_drawEnabled = !m_drawEnabled;
 }
 
-void s2_Geometry::setShader(QOpenGLShaderProgram* program) {
-  m_program = program;
-}
-
 void s2_Geometry::enable(bool active) {
   m_drawEnabled = active;
 }

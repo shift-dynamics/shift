@@ -1,4 +1,5 @@
 #include "terrain.hpp"
+#include "terrainshaderprogram.hpp"
 #include "renderwindow.hpp"
 
 /*!
@@ -34,27 +35,7 @@ void s2_Terrain::initialize() {
     //   m_program);
 
     /* initialize additional elevation map specific uniforms */
-    m_program->bind();
-    m_projectionMatrix_u =
-      m_program->uniformLocation("proj_matrix");
-    m_textureDisplacementMap_u =
-      m_program->uniformLocation("tex_displacement");
-    m_textureColor_u = m_program->uniformLocation("tex_color");
-    m_zMax_u = m_program->uniformLocation("zMax");
-    m_zMin_u = m_program->uniformLocation("zMin");
-    m_viewport_u = m_program->uniformLocation("viewport");
 
-    m_KaOverKd_u = m_program->uniformLocation("KaOverKd");
-    checkError("after set uniform location KaOverKd");
-    // qDebug() << "Kd: " << programUniforms->Kd;
-
-    m_KsOverKd_u = m_program->uniformLocation("KsOverKd");
-    checkError("after set uniform location Ks");
-
-    m_program->release();
-
-    checkError("after initialize terrain uniforms");
-    m_initialized = true;
   }
 
 }
@@ -167,5 +148,5 @@ void s2_Terrain::loadContext() {
 
 void s2_Terrain::draw() {
 
-  
+
 }
