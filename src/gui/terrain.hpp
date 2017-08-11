@@ -31,6 +31,7 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
+class TerrainShaderProgram;
 
 typedef struct TerrainObjects {
   GLuint depth_u;
@@ -70,29 +71,15 @@ public:
   void initialize();
   void draw();
   void loadContext();
+  void clearContext();
+  void setShader(TerrainShaderProgram* program) {
+    m_program = program;
+  }
 
 private:
 
-
-
-  /* texture uniform locations */
-  GLuint m_textureColor_u;
-  GLuint m_textureDisplacementMap_u;
-  GLuint m_textureBumpMap_u;
-  GLuint m_textureNormalMap_u;
-  GLuint m_textureSpecularMap_u;
-  GLuint m_projectionMatrix_u;
-
-  /* uniform locations */
-  GLuint m_zMax_u;
-  GLuint m_zMin_u;
-  GLuint m_viewport_u;
-  GLuint m_KsOverKd_u;
-  GLuint m_KaOverKd_u;
-  GLuint m_depth_u;
-  GLuint m_color_u;
-
   TerrainObjects* m_terrainObjects;
+  TerrainShaderProgram* m_program;
 };
 
 

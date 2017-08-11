@@ -7,7 +7,13 @@
 #include "lights.hpp"
 #include "grid.hpp"
 #include "terrain.hpp"
+
 #include "phongshaderprogram.hpp"
+#include "flatshaderprogram.hpp"
+#include "frameshaderprogram.hpp"
+#include "lineshaderprogram.hpp"
+#include "terrainshaderprogram.hpp"
+#include "shadowshaderprogram.hpp"
 
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -1375,21 +1381,29 @@ void RenderWindow::initialize() {
 
   if(!m_initialized) {
     m_programPhong = new PhongShaderProgram(this);
+    m_programFlat = new FlatShaderProgram(this);
+    m_programLine = new LineShaderProgram(this);
+    m_programShadow = new ShadowShaderProgram(this);
+    m_programTerrain = new TerrainShaderProgram(this);
+    m_programFrame = new FrameShaderProgram(this);
+
+    m_bodies = new s2_Bodies(this);
+    m_joints = new s2_Joints(this);
+    m_frames = new s2_Frames(this);
+    m_lights = new s2_Lights(this);
+    m_terrain = new s2_Terrain(this);
+    m_grid = new s2_Grid(this);
 
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
+    m_bodies->setLineShader(m_programLine);
     m_lights->setShader(m_programShadow);
     m_terrain->setShader(m_programTerrain);
     m_grid->setShader(m_programLine);
     m_frames->setShader(m_programFrame);
     m_joints->setShader(m_programFrame);
 
-    m_frames->initialize();
     m_grid->initialize();
-    m_bodies->initialize();
-    m_lights->initialize();
-    m_terrain->initialize();
-    m_joints->initialize();
 
     m_initialized = true;
     emit initialized();
@@ -1412,6 +1426,19 @@ void RenderWindow::loadContext() {
     m_terrain->loadContext();
   }
 }
+
+
+/*!
+@brief clear context data structure and rendered objects
+*/
+void RenderWindow::clearContext() {
+  if(m_context) {
+    m_bodies->clearContext();
+    m_frames->clearContext();
+
+  }
+}
+
 
 /*!
 @brief updateGL needs to be called on mouse and screen resize events

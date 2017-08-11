@@ -48,6 +48,14 @@ void s2_Bodies::setPhongShader(PhongShaderProgram* program) {
 
 
 /*!
+@brief set pointer to phong shader class
+*/
+void s2_Bodies::setLineShader(LineShaderProgram* program) {
+  m_programLine = program;
+}
+
+
+/*!
 @brief set up program uniforms for s2_Bodies
 */
 void s2_Bodies::initialize() {
@@ -192,7 +200,7 @@ void s2_Bodies::draw() {
         // checkError("after vao release phong");
       }
       m_programPhong->release();
-        // checkError("after phong release phong");
+      // checkError("after phong release phong");
     } break;
     case FLAT:
     case WIREFRAME: {

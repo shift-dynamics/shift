@@ -33,6 +33,7 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
 class s2_Geometry;
+class FrameShaderProgram;
 
 class s2_Joints : public s2_Geometry {
 
@@ -51,7 +52,8 @@ public:
   , m_targetVal(0)
   , m_isPositive(true)
   , m_jointType(PRIMITIVE)
-  , m_moveType(INCREMENT) {
+  , m_moveType(INCREMENT)
+  , m_program(NULL) {
 
     m_scaleFactor = 2.0;
   }
@@ -70,6 +72,9 @@ public:
   void update();
   void draw();
   void initialize();
+  void setShader(FrameShaderProgram* program) {
+    m_program = program;
+  }
 
 public slots:
 
@@ -107,12 +112,7 @@ private:
   s2_joint_enum_t m_jointType;
   s2_move_enum_t m_moveType;
 
-  GLint m_mvp_u;
-
-  /* vertex, face and index buffers */
-  QOpenGLVertexArrayObject* m_vao;
-  QOpenGLBuffer* m_vbo;
-  QOpenGLBuffer* m_ibo;
+  FrameShaderProgram* m_program;
 };
 
 #endif
