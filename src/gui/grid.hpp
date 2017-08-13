@@ -54,6 +54,7 @@ public:
     m_color[1] = 36.f / 255.f;
     m_color[2] = 36.f / 255.f;
     m_color[3] = 0.9f;
+
   };
 
   ~s2_Grid() {
@@ -65,6 +66,7 @@ public:
   void draw();
   void setShader(LineShaderProgram* program) {
     m_program = program;
+    initialize();
   }
 
 public slots:
@@ -96,17 +98,7 @@ private:
   QOpenGLBuffer* m_vbo;
   QOpenGLBuffer* m_ibo;
 
-  /* attributes */
-  GLuint m_position_a;
-
-  /* uniforms */
-  GLuint m_color_u;
-  GLuint m_mvp_u;
-
   LineShaderProgram* m_program;
-  //
-  // BufferObjects* faceBufferObject;
-  // BufferObjects* lineBufferObject;
 
 };
 

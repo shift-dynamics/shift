@@ -42,7 +42,7 @@ class ShadowShaderProgram : public ShaderProgram {
 public:
   ShadowShaderProgram(RenderWindow* renderWindow)
   : ShaderProgram(renderWindow) {
-
+    initialize();
   };
 
   ~ShadowShaderProgram() {};

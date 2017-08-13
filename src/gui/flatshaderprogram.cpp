@@ -26,21 +26,19 @@ void FlatShaderProgram::initialize() {
     m_material_Ns_u = m_program->uniformLocation("material_u.Ns");
 
     m_lights_u = m_program->uniformLocation("lights_u");
-    m_lights_position_u = m_program->uniformLocation("lights_u.position");
+    m_lights_position_u =
+      m_program->uniformLocation("lights_u.position");
     m_lights_Ka_u = m_program->uniformLocation("lights_u.Ka");
     m_lights_Kd_u = m_program->uniformLocation("lights_u.Kd");
     m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
-    m_lights_directional_u = m_program->uniformLocation("lights_u.directional");
+    m_lights_directional_u =
+      m_program->uniformLocation("lights_u.directional");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
 
     /* set attribute locations */
     m_position_a = m_program->attributeLocation("position_a");
-    m_program->enableAttributeArray(m_position_a);
-    m_program->setAttributeBuffer(m_position_a, GL_FLOAT, 0, 3);
 
     m_normal_a = m_program->attributeLocation("normal_a");
-    m_program->enableAttributeArray(m_normal_a);
-    m_program->setAttributeBuffer(m_normal_a, GL_FLOAT, 0, 3);
 
     release();
     checkError("after initialize flat shader");
@@ -62,7 +60,6 @@ void FlatShaderProgram::setTransform(s2_displacement_t* transform) {
   m_program->setUniformValue(m_matrices_v_u, view);
   m_program->setUniformValue(m_matrices_nm_u, nm);
 
-  checkError("after set transform");
 }
 
 
@@ -98,8 +95,6 @@ void FlatShaderProgram::setMaterial(s2_material_t* material) {
   m_program->setUniformValue(
     m_material_Ns_u,
     material->GLuniforms.Ns);
-
-  checkError("after set KaMaterial");
 }
 
 

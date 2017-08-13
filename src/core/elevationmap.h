@@ -36,6 +36,10 @@ typedef struct s2_elevationmap_t {
   char* propertyMap;         /*!< rgba texture */
   size_t propertyMapRows;    /*!< number of rows in texture */
   size_t propertyMapColumns; /*!< number of columns in texture */
+  GLfloat Kd[4]; /*! diffuse color value */
+  GLfloat KsOverKd;
+  GLfloat KaOverKd;
+  GLint Ns;
   double (*getZ)(
     struct s2_elevationmap_t* elevationMap,
     double x,

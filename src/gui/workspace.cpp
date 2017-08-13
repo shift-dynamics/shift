@@ -60,6 +60,10 @@ SUCH DAMAGE.
 #include "workspace.hpp"
 #include "renderwindow.hpp"
 #include "joints.hpp"
+#include "bodies.hpp"
+#include "lights.hpp"
+#include "frames.hpp"
+#include "terrain.hpp"
 #include "../star2.h"
 
 /*!
@@ -1183,7 +1187,7 @@ void Workspace::resizeEvent(QResizeEvent* event) {
 
 void Workspace::initializeMenus() {
 
-  setWindowTitle("STAR2");
+  setWindowTitle("star2");
   QMenu *fileMenu = menuBar()->addMenu("&File");
 
   /* save dialog */
@@ -1247,7 +1251,7 @@ void Workspace::initializeMenus() {
 
   shadingGroup->addAction(actionSetPhongShaded);
   actionSetPhongShaded->setCheckable(true);
-  actionSetFlatShaded->setChecked(true);
+  actionSetPhongShaded->setChecked(true);
 
   viewMenu->addSeparator();
 
@@ -1273,9 +1277,7 @@ void Workspace::initializeMenus() {
     new QAction("Display Terrain", this);
   viewMenu->addAction(m_actionToggleDrawTerrain);
   m_actionToggleDrawTerrain->setCheckable(true);
-  m_actionToggleDrawTerrain->setChecked(false);
-
-
+  m_actionToggleDrawTerrain->setChecked(true);
 
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
@@ -1302,31 +1304,29 @@ void Workspace::initializeMenus() {
     SIGNAL(triggered()),
     m_renderWindow,
     SLOT(setPerspective()));
+
   QObject::connect(
     actionSetOrthogonal,
     SIGNAL(triggered()),
     m_renderWindow,
     SLOT(setOrthogonal()));
+
   QObject::connect(
     actionSetWireframe,
     SIGNAL(triggered()),
-    m_renderWindow,
+    m_renderWindow->getBodies(),
     SLOT(setWireframe()));
 
   QObject::connect(
     actionSetFlatShaded,
     SIGNAL(triggered()),
-    m_renderWindow,
+    m_renderWindow->getBodies(),
     SLOT(setFlatShaded()));
-  // QObject::connect(
-  //   actionSetGouraudShaded,
-  //   SIGNAL(triggered()),
-  //   renWin,
-  //   SLOT(setGouraudShaded()));
+
   QObject::connect(
     actionSetPhongShaded,
     SIGNAL(triggered()),
-    m_renderWindow,
+    m_renderWindow->getBodies(),
     SLOT(setPhongShaded()));
 
   // QObject::connect(
@@ -1338,20 +1338,20 @@ void Workspace::initializeMenus() {
   QObject::connect(
     actionToggleFrameDisplay,
     SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(toggleDrawFrames()));
+    m_renderWindow->getFrames(),
+    SLOT(toggleDraw()));
 
   QObject::connect(
     actionToggleJointDisplay,
     SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(toggleDrawJoints()));
+    m_renderWindow->getJoints(),
+    SLOT(toggleDraw()));
 
   QObject::connect(
     m_actionToggleDrawTerrain,
     SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(toggleDrawTerrain()));
+    m_renderWindow->getTerrain(),
+    SLOT(toggleDraw()));
 
   /*
     help menu actions
@@ -2977,7 +2977,7 @@ void Workspace::openFileAtLoad() {
 
     if(fileName.length() != 0) {
       m_currentFileName = fileName;
-      setWindowTitle(fileName + QString(" | STAR2"));
+      setWindowTitle(fileName + QString(" | star2"));
 
       m_context = s2_loadJSON(byteArray.data());
       s2_context_setTopology(m_context);
@@ -3105,6 +3105,7 @@ void Workspace::openFileAtLoad() {
       loadModelParameters();
       if(m_context->elevationMapCount == 0) {
         drawTerrainToggleActive(false);
+
       } else {
         drawTerrainToggleActive(true);
       }
@@ -3136,7 +3137,7 @@ void Workspace::openFile() {
 
   if(fileName.length() != 0) {
     m_currentFileName = fileName;
-    setWindowTitle(fileName + QString(" | STAR2"));
+    setWindowTitle(fileName + QString(" | star2"));
 
     m_context = s2_loadJSON(byteArray.data());
     s2_context_setTopology(m_context);

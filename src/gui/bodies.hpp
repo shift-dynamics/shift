@@ -80,7 +80,6 @@ public:
   void setFlatShader(FlatShaderProgram*);
   void setPhongShader(PhongShaderProgram*);
   void setLineShader(LineShaderProgram*);
-
   void setAttributeLocations(
     QOpenGLShaderProgram*,
     GLint,
@@ -88,6 +87,21 @@ public:
     buffer_objects_t*);
 
   void draw();
+
+public slots:
+
+  void setFlatShaded() {
+    setDrawStyle(FLAT);
+  }
+
+  void setPhongShaded() {
+    setDrawStyle(PHONG);
+  }
+
+  void setWireframe() {
+    setDrawStyle(WIREFRAME);
+  }
+
 
 private:
 

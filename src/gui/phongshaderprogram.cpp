@@ -32,14 +32,11 @@ void PhongShaderProgram::initialize() {
     m_lights_directional_u = m_program->uniformLocation("lights_u.directional");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
 
+    checkError("after set phong uniforms");
+
     /* set attribute locations */
     m_position_a = m_program->attributeLocation("position_a");
-    m_program->enableAttributeArray(m_position_a);
-    m_program->setAttributeBuffer(m_position_a, GL_FLOAT, 0, 3);
-
     m_normal_a = m_program->attributeLocation("normal_a");
-    m_program->enableAttributeArray(m_normal_a);
-    m_program->setAttributeBuffer(m_normal_a, GL_FLOAT, 0, 3);
 
     release();
     checkError("after initialize phong shader");
@@ -66,6 +63,7 @@ void PhongShaderProgram::setTransform(s2_displacement_t* transform) {
 
 
 void PhongShaderProgram::setMaterial(s2_material_t* material) {
+
   m_program->setUniformValue(
     m_material_Ka_u,
     material->GLuniforms.Ka[0],
@@ -75,17 +73,17 @@ void PhongShaderProgram::setMaterial(s2_material_t* material) {
 
   m_program->setUniformValue(
     m_material_Kd_u,
-    material->GLuniforms.Ka[0],
-    material->GLuniforms.Ka[1],
-    material->GLuniforms.Ka[2],
-    material->GLuniforms.Ka[3]);
+    material->GLuniforms.Kd[0],
+    material->GLuniforms.Kd[1],
+    material->GLuniforms.Kd[2],
+    material->GLuniforms.Kd[3]);
 
   m_program->setUniformValue(
-    m_material_Ka_u,
-    material->GLuniforms.Ka[0],
-    material->GLuniforms.Ka[1],
-    material->GLuniforms.Ka[2],
-    material->GLuniforms.Ka[3]);
+    m_material_Ks_u,
+    material->GLuniforms.Ks[0],
+    material->GLuniforms.Ks[1],
+    material->GLuniforms.Ks[2],
+    material->GLuniforms.Ks[3]);
 
   m_program->setUniformValue(
     m_material_Ke_u,
@@ -98,7 +96,7 @@ void PhongShaderProgram::setMaterial(s2_material_t* material) {
     m_material_Ns_u,
     material->GLuniforms.Ns);
 
-  checkError("after set KaMaterial");
+  checkError("after set material");
 }
 
 

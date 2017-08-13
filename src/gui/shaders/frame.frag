@@ -1,6 +1,9 @@
 #version 330
 
-in vec4 color;
+uniform mat4 mvp_u;
+uniform float scale_u = 1.f;
+
+flat in vec4 color;
 out vec4 fragColor;
 
 void main() {

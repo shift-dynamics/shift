@@ -1,5 +1,6 @@
 #include "grid.hpp"
 #include "renderwindow.hpp"
+#include "lineshaderprogram.hpp"
 
 /*!
 @brief initialize grid
@@ -20,14 +21,13 @@ void s2_Grid::initialize() {
 
   m_transform = s2_displacement();
 
-
   /* set up vertices and line segments for grid */
   m_material->vertexCount = 4 * m_gridSize;
   m_material->faceCount = 2 * (m_gridSize + 1);
 
   m_material->vertices = (GLfloat*) malloc(3 * m_material->vertexCount * sizeof(GLfloat));
   m_material->vertexNormals = (GLfloat*) malloc(3 * m_material->vertexCount * sizeof(GLfloat));
-  m_material->faces = (GLuint*) malloc(2 * m_material->faceCount);
+  m_material->faces = (GLuint*) malloc(2 * m_material->faceCount * sizeof(GLuint));
 
   /* set vertices for vertical line segments */
   int gridIndex = 0;
@@ -73,7 +73,7 @@ void s2_Grid::initialize() {
 
 
   m_program->bind();
-  // checkError("after line program bind");
+  checkError("grid: after line program bind in initialization");
 
   /* initialize vao and vbo */
   m_vao = new QOpenGLVertexArrayObject(m_renderWindow);
@@ -99,15 +99,17 @@ void s2_Grid::initialize() {
     2 * m_material->faceCount * sizeof(GLuint));
   m_renderWindow->checkError("after set ibo in line program");
 
-  m_position_a = m_program->attributeLocation("posAttr");
-  m_program->enableAttributeArray(m_position_a);
-  m_program->setAttributeBuffer(
-    m_position_a,
+  QOpenGLShaderProgram* program = m_program->getProgram();
+  GLuint position_a = m_program->getPositionAttribute();
+  program->enableAttributeArray(position_a);
+  program->setAttributeBuffer(
+    position_a,
     GL_FLOAT,
     0,
     3);
+  m_vao->release();
+  program->release();
 
-  m_program->release();
 }
 
 
@@ -115,39 +117,38 @@ void s2_Grid::initialize() {
 @brief draw grid in OpenGL window
 */
 void s2_Grid::draw() {
-  m_program->bind();
-  m_vao->bind();
+  if(m_drawEnabled) {
 
-  QMatrix4x4 mv = m_renderWindow->getViewMatrix() * m_model;
+    m_program->bind();
+    checkError("grid: after bind line program");
 
-  /* set model * view * projection matrix */
-  m_program->setUniformValue(
-    m_mvp_u,
-    m_renderWindow->getProjectionMatrix() * mv);
-  checkError("line: after set mvp");
+    m_program->setTransform(m_model);
+    checkError("grid: after set transform in line program");
 
-  m_program->setUniformValue(
-    m_color_u,
-    m_color[0],
-    m_color[1],
-    m_color[2],
-    m_color[3]);
-  checkError("after set uniform color");
+    m_program->setColor(
+      m_color[0],
+      m_color[1],
+      m_color[2],
+      m_color[3]);
+    checkError("grid: after set color in line program");
 
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  checkError("after set polygon mode");
+    m_vao->bind();
+    checkError("grid: after bind vao line program");
 
-  glDrawElements(
-    GL_LINES,
-    2 * m_material->faceCount,
-    GL_UNSIGNED_INT,
-    0);
-  checkError("after draw elements");
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    checkError("grid: after set polygon mode");
 
-  m_vao->release();
-  checkError("after vao release");
+    glDrawElements(
+      GL_LINES,
+      2 * m_material->faceCount,
+      GL_UNSIGNED_INT,
+      0);
+    checkError("grid: after draw elements");
 
-  m_program->release();
-  checkError("after flat release");
+    m_vao->release();
+    checkError("grid: after vao release");
 
+    m_program->release();
+    checkError("grid: after release");
+  }
 }
