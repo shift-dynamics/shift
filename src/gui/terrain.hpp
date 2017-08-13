@@ -32,15 +32,16 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class TerrainShaderProgram;
+class s2_Lights;
 
 typedef struct TerrainObjects {
-  GLuint depth_u;
-  GLuint color_u;
+  // GLuint depth_u;
+  // GLuint color_u;
   QOpenGLTexture* textureColor;
-  QOpenGLTexture* textureDisplacementMap;
-  QOpenGLTexture* textureBumpMap;
-  QOpenGLTexture* textureNormalMap;
-  QOpenGLTexture* textureSpecularMap;
+  QOpenGLTexture* textureDisplacement;
+  QOpenGLTexture* textureBump;
+  QOpenGLTexture* textureNormal;
+  QOpenGLTexture* textureSpecular;
 } TerrainObjects;
 
 class s2_Terrain : public s2_Geometry {
@@ -49,7 +50,10 @@ class s2_Terrain : public s2_Geometry {
 
 public:
   s2_Terrain(RenderWindow* renderWindow)
-  : s2_Geometry(renderWindow) {
+  : s2_Geometry(renderWindow)
+  , m_terrainObjects(NULL)
+  , m_program(NULL)
+  , m_lights(NULL) {
 
   }
 
@@ -72,14 +76,20 @@ public:
   void draw();
   void loadContext();
   void clearContext();
+  void setLights(s2_Lights*);
   void setShader(TerrainShaderProgram* program) {
     m_program = program;
   }
+
+signals:
+
+  void terrainLoaded();
 
 private:
 
   TerrainObjects* m_terrainObjects;
   TerrainShaderProgram* m_program;
+  s2_Lights* m_lights;
 };
 
 

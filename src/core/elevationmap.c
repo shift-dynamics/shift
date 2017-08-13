@@ -726,6 +726,19 @@ s2_elevationmap_t* s2_elevationmap(
     elevationmap->propertyMapRows = 0;
   }
 
+  /*!
+  @TODO if texture is not used for color, the material properties use these
+  hardcoded values, need to modify to allow user defined material properties in
+  JSON input file 
+  */
+  elevationmap->Kd[0] = 63./255.;
+  elevationmap->Kd[1] = 53./255.;
+  elevationmap->Kd[2] = 69./255.;
+  elevationmap->Kd[3] = 1.0;
+  elevationmap->KsOverKd = 0.5;
+  elevationmap->KaOverKd = 0.3;
+  elevationmap->Ns = 1000;
+
   elevationmap->columns = columns;
   elevationmap->rows = rows;
   elevationmap->xOffset = xOffset;

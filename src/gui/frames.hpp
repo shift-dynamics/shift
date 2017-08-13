@@ -34,12 +34,12 @@ public:
     : s2_Geometry(renderWindow) {
 
     m_scaleFactor = 0.5;
-    m_frames.append(s2_displacement());
+    // m_frames.append(s2_displacement());
   }
 
   ~s2_Frames() {
-    s2_displacement_t* origin = m_frames.at(0);
-    free(origin);
+    // s2_displacement_t* origin = m_frames.at(0);
+    // free(origin);
   }
 
   void draw();

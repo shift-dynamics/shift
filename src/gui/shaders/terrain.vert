@@ -1,25 +1,26 @@
 #version 420 core
 
-uniform sampler2D tex_displacement;
+layout (binding = 0) uniform sampler2D texture_displacement_u;
+layout (binding = 1) uniform sampler2D texture_color_u;
 
 struct matrices_t {
   mat4 mvp;
   mat4 mv;
   mat4 v;
+  mat4 p;
   mat3 nm;
 };
 
-uniform matrices_t matrices;
+uniform matrices_t matrices_u;
 
 struct material_t {
-  vec4 Ka;
   vec4 Kd;
-  vec4 Ks;
-  vec4 Ke;
+  float KaOverKd;
+  float KsOverKd;
   int Ns;
 };
 
-uniform material_t material;
+uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -30,15 +31,19 @@ struct lights_t {
   int count;
 };
 
-uniform lights_t lights;
+uniform lights_t lights_u;
 
 struct terrain_t {
   float zMin;
   float zMax;
+  float xScale;
+  float yScale;
+  float xRange;
+  float yRange;
   vec2 viewport;
 };
 
-uniform terrain_t terrain;
+uniform terrain_t terrain_u;
 
 out VS_OUT {
   vec2 tc;

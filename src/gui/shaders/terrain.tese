@@ -2,26 +2,26 @@
 
 layout (quads, fractional_odd_spacing) in;
 
-uniform sampler2D tex_displacement;
+uniform sampler2D texture_displacement_u;
 
 struct matrices_t {
   mat4 mvp;
   mat4 mv;
   mat4 v;
+  mat4 p;
   mat3 nm;
 };
 
-uniform matrices_t matrices;
+uniform matrices_t matrices_u;
 
 struct material_t {
-  vec4 Ka;
   vec4 Kd;
-  vec4 Ks;
-  vec4 Ke;
+  float KaOverKd;
+  float KsOverKd;
   int Ns;
 };
 
-uniform material_t material;
+uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -32,15 +32,19 @@ struct lights_t {
   int count;
 };
 
-uniform lights_t lights;
+uniform lights_t lights_u;
 
 struct terrain_t {
   float zMin;
   float zMax;
+  float xScale;
+  float yScale;
+  float xRange;
+  float yRange;
   vec2 viewport;
 };
 
-uniform terrain_t terrain;
+uniform terrain_t terrain_u;
 
 in TCS_OUT {
   vec2 tc;
@@ -112,14 +116,14 @@ void main(void) {
         p1,
         gl_TessCoord.y);
 
-    position.z = (texture(tex_displacement, tc).r * (terrain.zMax - terrain.zMin)) + terrain.zMin;
+    position.z = (texture(texture_displacement_u, tc).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
 
-    vec4 position_eye = mv * position;
+    vec4 position_eye = matrices_u.mv * position;
 
     tes_out.tc = tc;
-    tes_out.normal = nm * n;
+    tes_out.normal = matrices_u.nm * n;
     tes_out.world_coord = position.xyz;
     tes_out.eye_coord = position_eye.xyz;
 
-    gl_Position = mvp * position;
+    gl_Position = matrices_u.mvp * position;
 }

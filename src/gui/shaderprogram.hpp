@@ -25,6 +25,8 @@ public:
     m_renderWindow = renderWindow;
   }
 
+  ~ShaderProgram() {};
+
   QOpenGLShaderProgram* getProgram() {
     return m_program;
   }
@@ -47,7 +49,7 @@ public:
   void link();
   void bind();
   void release();
-  virtual void initialize();
+  virtual void initialize() {};
   void checkError(const QString &prefix);
 
 protected:
