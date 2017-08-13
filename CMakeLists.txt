@@ -175,6 +175,13 @@ set(GUI_SOURCES
     ${star2_SOURCE_DIR}/src/gui/grid.cpp
     ${star2_SOURCE_DIR}/src/gui/lights.cpp
     ${star2_SOURCE_DIR}/src/gui/terrain.cpp
+    ${star2_SOURCE_DIR}/src/gui/flatshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/frameshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/lineshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/phongshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/shaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
     ${star2_SOURCE_DIR}/src/gui/resources.qrc
 )
 

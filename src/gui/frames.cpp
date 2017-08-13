@@ -18,10 +18,10 @@
 @brief load context datastructure
 */
 void s2_Frames::loadContext() {
-  m_context = m_renderWindow->getContext();
-  if(m_context) {
-    addFrames(m_context->assembly);
+  if(m_renderWindow->getContext()) {
+    addFrames(m_renderWindow->getContext()->assembly);
   }
+  m_context = m_renderWindow->getContext();
 }
 
 
@@ -38,20 +38,38 @@ void s2_Frames::clearContext() {
 @brief draw function
 */
 void s2_Frames::draw() {
-  if(m_drawEnabled) {
+  if(m_drawEnabled && m_context) {
 
-    m_program->bind();
+    checkError("frame: before set frame");
+
+    m_program->bindVao();
+    checkError("frame: after bind vao");
+
+    m_renderWindow->m_funcs->glProvokingVertex(0x8E4E);
+    checkError("frame: after set provoking index");
+
     QMatrix4x4 pv =
       m_renderWindow->getProjectionMatrix() *
       m_renderWindow->getViewMatrix();
-    m_program->setScale(m_scaleFactor);
+
+
+    checkError("frame: after set scale factor");
+
+    glEnable(GL_LINE_SMOOTH);
+    checkError("frame: after gl gl_line_smooth");
+
     for(int i = 0; i < m_frames.size(); i++) {
       QMatrix4x4 model = s2_displacementToQMatrix4x4(m_frames.at(i));
       QMatrix4x4 mvp = pv * model;
       m_program->setMVP(mvp);
+      m_program->setScale(m_scaleFactor);
+      checkError("frame: after set mvp");
       glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
       checkError("after draw elements coordinate systems");
     }
+
+    m_program->releaseVao();
+
   }
 }
 

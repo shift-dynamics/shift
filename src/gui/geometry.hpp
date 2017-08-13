@@ -36,7 +36,12 @@ public:
   float getScaleFactor();
   virtual void setContext(s2_context_t* context);
   virtual void clearContext();
-  void toggleEnabled();
+
+signals:
+
+public slots:
+
+  void toggleDraw();
   void enable(bool active);
 
 protected:

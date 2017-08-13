@@ -55,7 +55,7 @@ public:
   , m_moveType(INCREMENT)
   , m_program(NULL) {
 
-    m_scaleFactor = 2.0;
+    m_scaleFactor = 1.0;
   }
 
   ~s2_Joints() {
@@ -72,6 +72,7 @@ public:
   void update();
   void draw();
   void initialize();
+  void loadContext();
   void setShader(FrameShaderProgram* program) {
     m_program = program;
   }

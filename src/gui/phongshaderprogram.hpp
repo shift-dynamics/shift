@@ -42,7 +42,7 @@ class PhongShaderProgram : public ShaderProgram {
 public:
   PhongShaderProgram(RenderWindow* renderWindow)
   : ShaderProgram(renderWindow) {
-
+    initialize();
   };
 
   ~PhongShaderProgram() {};
@@ -67,26 +67,26 @@ protected:
 
 private:
 
-  GLuint m_matrices_u;
-  GLuint m_matrices_mvp_u;
-  GLuint m_matrices_mv_u;
-  GLuint m_matrices_v_u;
-  GLuint m_matrices_nm_u;
+  GLint m_matrices_u;
+  GLint m_matrices_mvp_u;
+  GLint m_matrices_mv_u;
+  GLint m_matrices_v_u;
+  GLint m_matrices_nm_u;
 
-  GLuint m_material_u;
-  GLuint m_material_Ka_u;
-  GLuint m_material_Kd_u;
-  GLuint m_material_Ks_u;
-  GLuint m_material_Ke_u;
-  GLuint m_material_Ns_u;
+  GLint m_material_u;
+  GLint m_material_Ka_u;
+  GLint m_material_Kd_u;
+  GLint m_material_Ks_u;
+  GLint m_material_Ke_u;
+  GLint m_material_Ns_u;
 
-  GLuint m_lights_u;
-  GLuint m_lights_position_u;
-  GLuint m_lights_Ka_u;
-  GLuint m_lights_Kd_u;
-  GLuint m_lights_Ks_u;
-  GLuint m_lights_directional_u;
-  GLuint m_lights_count_u;
+  GLint m_lights_u;
+  GLint m_lights_position_u;
+  GLint m_lights_Ka_u;
+  GLint m_lights_Kd_u;
+  GLint m_lights_Ks_u;
+  GLint m_lights_directional_u;
+  GLint m_lights_count_u;
 
   GLint m_position_a;
   GLint m_normal_a;

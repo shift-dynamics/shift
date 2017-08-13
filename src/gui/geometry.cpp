@@ -26,7 +26,7 @@ void s2_Geometry::clearContext() {
   m_context = NULL;
 }
 
-void s2_Geometry::toggleEnabled() {
+void s2_Geometry::toggleDraw() {
   m_drawEnabled = !m_drawEnabled;
 }
 

@@ -42,7 +42,7 @@ class LineShaderProgram : public ShaderProgram {
 public:
   LineShaderProgram(RenderWindow* renderWindow)
   : ShaderProgram(renderWindow) {
-
+    initialize();
   };
 
   ~LineShaderProgram() {};
@@ -50,6 +50,7 @@ public:
   void initialize();
   void draw();
   void setTransform(s2_displacement_t*);
+  void setTransform(QMatrix4x4&);
   void setColor(GLfloat, GLfloat, GLfloat, GLfloat);
   void setScale(GLfloat);
 
@@ -65,10 +66,12 @@ protected:
 
 private:
 
-  GLuint m_mvp_u;
-  GLuint m_color_u;
-  GLuint m_scale_u;
+  /* uniforms */
+  GLint m_mvp_u;
+  GLint m_color_u;
+  GLint m_scale_u;
 
+  /* attributes */
   GLint m_position_a;
 
 };

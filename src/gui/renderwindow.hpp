@@ -161,7 +161,6 @@ public:
 
   void render();
   void resizeGL(int width, int height);
-  void loadContext();
   void clearContext();
   void loadContext(s2_context_t* context);
   QString getCursorPositionText();
@@ -193,14 +192,35 @@ public:
   QMatrix4x4 getProjectionMatrix() {
     return m_projection;
   }
+
   s2_Joints* getJoints() {
     return m_joints;
+  }
+
+  s2_Bodies* getBodies() {
+    return m_bodies;
+  }
+
+  s2_Grid* getGrid() {
+    return m_grid;
+  }
+
+  s2_Frames* getFrames() {
+    return m_frames;
+  }
+
+  s2_Lights* getLights() {
+    return m_lights;
+  }
+
+  s2_Terrain* getTerrain() {
+    return m_terrain;
   }
 
 public slots:
   void updateGL();
   void initialize();
-  void updateLights();
+  // void updateLights();
   void setXRotation(int angle);
   void setYRotation(int angle);
   void setZRotation(int angle);
@@ -208,20 +228,9 @@ public slots:
   void startSimulationPlayback(double timeRemaining);
   void stopSimulationPlayback();
   void interpolateCurrentPosition(double t);
-  void toggleDrawFrames();
-  void toggleDrawJoints();
-  void toggleDrawTerrain();
-  void toggleDrawShadows();
   void setPerspective();
   void setOrthogonal();
-  void toggleVertexNormalDisplay();
-  void setBodyDrawStylePhong();
-  void setBodyDrawStyleWireframe();
-  void setTerrainDrawStylePhong();
-  void setTerrainDrawStyleWireframe();
-  void setFlatShaded();
-  void setPhongShaded();
-  void setWireframe();
+
 
 signals:
   void mouseLeftPressEvent();

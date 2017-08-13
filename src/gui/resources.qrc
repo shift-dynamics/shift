@@ -1,7 +1,7 @@
 <RCC>
   <qresource prefix="/shaders">
-  <file alias="frame.frag">shaders/frame.frag</file>
-  <file alias="frame.vert">shaders/frame.vert</file>
+    <file alias="frame.frag">shaders/frame.frag</file>
+    <file alias="frame.vert">shaders/frame.vert</file>
 
     <file alias="simple.frag">shaders/simple.frag</file>
     <file alias="simple.vert">shaders/simple.vert</file>
@@ -23,6 +23,9 @@
 
     <file alias="shadow.frag">shaders/shadow.frag</file>
     <file alias="shadow.vert">shaders/shadow.vert</file>
+
+    <file alias="line.frag">shaders/line.frag</file>
+    <file alias="line.vert">shaders/line.vert</file>
   </qresource>
 
   <qresource prefix="/about">

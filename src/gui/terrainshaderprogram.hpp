@@ -42,16 +42,32 @@ class TerrainShaderProgram : public ShaderProgram {
 public:
   TerrainShaderProgram(RenderWindow* renderWindow)
   : ShaderProgram(renderWindow) {
-
+    initialize();
   };
 
   ~TerrainShaderProgram() {};
 
   void initialize();
-  void draw();
   void setTransform(s2_displacement_t*);
-  void setMVP(QMatrix4x4&);
-  void setScale(GLfloat);
+  void setTransform(QMatrix4x4&);
+
+  void setTextureDisplacement(QOpenGLTexture*);
+  void setTextureColor(QOpenGLTexture*);
+  void setTextureBump(QOpenGLTexture*);
+  void setTextureNormal(QOpenGLTexture*);
+  void setTextureSpecular(QOpenGLTexture*);
+
+  void setLights(s2_Lights*);
+
+  void setKd(GLfloat[4]);
+  void setKaOverKd(GLfloat);
+  void setKsOverKd(GLfloat);
+  void setNs(GLint);
+
+  void setZExtents(GLfloat, GLfloat);
+  void setScale(GLfloat, GLfloat);
+  void setRange(GLfloat, GLfloat);
+  void setViewPort(GLfloat, GLfloat);
 
 signals:
 
@@ -62,25 +78,45 @@ protected:
 private:
 
   /* texture uniform locations */
-  GLuint m_textureColor_u;
-  GLuint m_textureDisplacementMap_u;
-  GLuint m_textureBumpMap_u;
-  GLuint m_textureNormalMap_u;
-  GLuint m_textureSpecularMap_u;
+  GLint m_texture_color_u;
+  GLint m_texture_displacement_u;
+  GLint m_texture_bump_u;
+  GLint m_texture_normal_u;
+  GLint m_texture_specular_u;
 
-  /* uniform locations */
-  GLuint m_projectionMatrix_u;
-  GLuint m_scale_u;
-  GLuint m_mvp_u;
-  GLuint m_zMax_u;
-  GLuint m_zMin_u;
-  GLuint m_viewport_u;
-  GLuint m_KsOverKd_u;
-  GLuint m_KaOverKd_u;
-  GLuint m_depth_u;
-  GLuint m_color_u;
+  /* matrix uniform locations */
+  GLint m_matrices_u;
+  GLint m_matrices_mvp_u;
+  GLint m_matrices_mv_u;
+  GLint m_matrices_v_u;
+  GLint m_matrices_p_u;
+  GLint m_matrices_nm_u;
 
-  QOpenGLShaderProgram* m_program;
+  /* material uniform locations */
+  GLint m_material_u;
+  GLint m_material_Kd_u;
+  GLint m_material_KaOverKd_u;
+  GLint m_material_KsOverKd_u;
+  GLint m_material_Ns_u;
+
+  /* light uniform locations */
+  GLint m_lights_u;
+  GLint m_lights_position_u;
+  GLint m_lights_Ka_u;
+  GLint m_lights_Kd_u;
+  GLint m_lights_Ks_u;
+  GLint m_lights_directional_u;
+  GLint m_lights_count_u;
+
+  /* terrain uniform locations */
+  GLint m_terrain_u;
+  GLint m_terrain_zMin_u;
+  GLint m_terrain_zMax_u;
+  GLint m_terrain_xScale_u;
+  GLint m_terrain_yScale_u;
+  GLint m_terrain_xRange_u;
+  GLint m_terrain_yRange_u;
+  GLint m_terrain_viewport_u;
 
 };
 

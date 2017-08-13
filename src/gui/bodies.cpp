@@ -27,7 +27,7 @@ void s2_Bodies::setDrawStyle(s2_shading_enum_t shadingType) {
 @brief sets pointer to lights datastructure
 */
 void s2_Bodies::setLights(s2_Lights* lights) {
- m_lights = lights;
+  m_lights = lights;
 }
 
 
@@ -76,6 +76,7 @@ void s2_Bodies::loadContext() {
       s2_body_t* body = m_context->nonVirtualBodyPointers[i];
       initializeBody(body);
     }
+    enable(true);
   }
 }
 
@@ -170,63 +171,68 @@ void s2_Bodies::initializeMaterial(
 
 void s2_Bodies::draw() {
 
-  if(m_shadingType == WIREFRAME) {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  } else {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  }
+  if(m_drawEnabled) {
+    if(m_shadingType == WIREFRAME) {
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 
-  switch(m_shadingType) {
-    case PHONG: {
-      m_programPhong->bind();
-      m_programPhong->setLights(m_lights);
+    switch(m_shadingType) {
+      case WIREFRAME:
+      case PHONG: {
+        m_programPhong->bind();
+        m_programPhong->setLights(m_lights);
 
-      /* draw geometry */
-      for(int i = 0; i < m_bufferObjects.size(); i++) {
+        /* draw geometry */
+        for(int i = 0; i < m_bufferObjects.size(); i++) {
 
-        m_bufferObjects.at(i).vao->bind();
+          m_bufferObjects.at(i).vao->bind();
 
-        m_programPhong->setTransform(m_bufferObjects.at(i).transform);
-        m_programPhong->setMaterial(m_bufferObjects.at(i).material);
+          m_programPhong->setTransform(m_bufferObjects.at(i).transform);
+          checkError("after set transform phong shader");
 
-        glDrawElements(
-          GL_TRIANGLES,
-          3 * m_bufferObjects.at(i).material->faceCount,
-          GL_UNSIGNED_INT,
-          0);
-        checkError("after draw elements phong");
+          m_programPhong->setMaterial(m_bufferObjects.at(i).material);
+          checkError("after set material phong shader");
 
-        m_bufferObjects.at(i).vao->release();
-        // checkError("after vao release phong");
-      }
-      m_programPhong->release();
-      // checkError("after phong release phong");
-    } break;
-    case FLAT:
-    case WIREFRAME: {
-      m_programFlat->bind();
-      m_programFlat->setLights(m_lights);
-      for(int i = 0; i < m_bufferObjects.size(); i++) {
-        m_bufferObjects.at(i).vao->bind();
+          glDrawElements(
+            GL_TRIANGLES,
+            3 * m_bufferObjects.at(i).material->faceCount,
+            GL_UNSIGNED_INT,
+            0);
+          checkError("after draw elements phong shader");
 
-        m_programFlat->setTransform(m_bufferObjects.at(i).transform);
-        m_programFlat->setMaterial(m_bufferObjects.at(i).material);
+          m_bufferObjects.at(i).vao->release();
+          // checkError("after vao release phong");
+        }
+        m_programPhong->release();
+        // checkError("after phong release phong");
+      } break;
+      case FLAT: {
+        m_programFlat->bind();
+        m_programFlat->setLights(m_lights);
+        for(int i = 0; i < m_bufferObjects.size(); i++) {
+          m_bufferObjects.at(i).vao->bind();
 
-        glDrawElements(
-          GL_TRIANGLES,
-          3 * m_bufferObjects.at(i).material->faceCount,
-          GL_UNSIGNED_INT,
-          0);
-        checkError("after draw elements");
+          m_programFlat->setTransform(m_bufferObjects.at(i).transform);
+          m_programFlat->setMaterial(m_bufferObjects.at(i).material);
 
-        m_bufferObjects.at(i).vao->release();
-        checkError("after vao release");
+          glDrawElements(
+            GL_TRIANGLES,
+            3 * m_bufferObjects.at(i).material->faceCount,
+            GL_UNSIGNED_INT,
+            0);
+          checkError("after draw elements flat");
 
-        m_programFlat->release();
-        checkError("after flat release");
-      }
-    } break;
-    default: break;
+          m_bufferObjects.at(i).vao->release();
+          checkError("after vao release flat");
+
+          m_programFlat->release();
+          checkError("after flat release flat");
+        }
+      } break;
+      default: break;
+    }
   }
 }
 

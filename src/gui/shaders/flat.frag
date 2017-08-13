@@ -41,9 +41,9 @@ void main() {
   vec3 V = vec3(0.0, 0.0, 1.0);
 
   //int i = 0;
-  for(int i = 0; i < lights.count; i++) {
+  for(int i = 0; i < lights_u.count; i++) {
     vec3 L;
-    switch(directional[i]) {
+    switch(lights_u.directional[i]) {
       case 0: {
         // point light, posLight indicates position of light source
         //need to compute direction of incoming light
@@ -76,7 +76,7 @@ void main() {
 
   }
   //fragColor = vec4(1.0);
-  fragColor = min(vec4(color.rgb, materials_u.Ka.a), vec4(1.0, 1.0, 1.0, 1.0));
+  fragColor = min(vec4(color.rgb, material_u.Ka.a), vec4(1.0, 1.0, 1.0, 1.0));
   //fragColor = vertexFrag;
   //fragColor = vec4(normalFrag.x, normalFrag.y, normalFrag.z, 1);
 
