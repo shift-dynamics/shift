@@ -31,8 +31,11 @@ void LineShaderProgram::initialize() {
 
 void LineShaderProgram::setTransform(QMatrix4x4& model) {
   bind();
+  qDebug() << model;
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
+  qDebug() << view;
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
+  qDebug() << projection;
   QMatrix4x4 mvp = projection * view * model;
   m_program->setUniformValue(m_mvp_u, mvp);
 }

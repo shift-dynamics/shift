@@ -7,108 +7,112 @@
 */
 void s2_Grid::initialize() {
 
-  /* grid size must be an even number */
-  if(m_gridSize % 2 != 0) {
-    m_gridSize++;
+  if(!m_initialized) {
+    /* grid size must be an even number */
+    if(m_gridSize % 2 != 0) {
+      m_gridSize++;
+    }
+
+    /*
+      set up line segments
+    */
+    m_material = s2_materials(1);
+    m_material->shadingType = LINE;
+    m_material->GLuniforms.Ns = 10;
+
+    m_transform = s2_displacement();
+
+    /* set up vertices and line segments for grid */
+    m_material->vertexCount = 4 * m_gridSize;
+    m_material->faceCount = 2 * (m_gridSize + 1);
+
+    m_material->vertices = (GLfloat*) malloc(3 * m_material->vertexCount * sizeof(GLfloat));
+    m_material->vertexNormals = (GLfloat*) malloc(3 * m_material->vertexCount * sizeof(GLfloat));
+    m_material->faces = (GLuint*) malloc(2 * m_material->faceCount * sizeof(GLuint));
+
+    /* set vertices for vertical line segments */
+    int gridIndex = 0;
+    for(int i = 0; i <= m_gridSize; i++) {
+      m_material->vertices[gridIndex * 3 + 0] = (float)(i - m_gridSize / 2);
+      m_material->vertices[gridIndex * 3 + 1] = (float)(m_gridSize / 2);
+      m_material->vertices[gridIndex * 3 + 2] = 1e-6;
+      m_material->faces[gridIndex] = gridIndex;
+      gridIndex++;
+
+      m_material->vertices[gridIndex * 3 + 0] = (float)(i - m_gridSize / 2);
+      m_material->vertices[gridIndex * 3 + 1] = -(float)(m_gridSize / 2);
+      m_material->vertices[gridIndex * 3 + 2] = 1e-6;
+      m_material->faces[gridIndex] = gridIndex;
+      gridIndex++;
+    }
+
+    /* set vertices for remaining horizontal line segments */
+    for(int i = 1; i < m_gridSize; i++) {
+      m_material->vertices[gridIndex * 3 + 0] = -(float)(m_gridSize / 2);
+      m_material->vertices[gridIndex * 3 + 1] = (float)(i - m_gridSize / 2);
+      m_material->vertices[gridIndex * 3 + 2] = 1e-6;
+      m_material->faces[gridIndex] = gridIndex;
+      gridIndex++;
+
+      m_material->vertices[gridIndex * 3 + 0] = (float)(m_gridSize / 2);
+      m_material->vertices[gridIndex * 3 + 1] = (float)(i - m_gridSize / 2);
+      m_material->vertices[gridIndex * 3 + 2] = 1e-6;
+      m_material->faces[gridIndex] = gridIndex;
+      gridIndex++;
+    }
+
+    /* set top horizontal line segment */
+    m_material->faces[gridIndex++] = 0;
+    m_material->faces[gridIndex++] = m_gridSize * 2;
+
+    /* set bottom horizontal line segment */
+    m_material->faces[gridIndex++] = 1;
+    m_material->faces[gridIndex++] = m_gridSize * 2 + 1;
+
+    // qDebug() << "gridIndex final " << gridIndex;
+    // qDebug() << "face count" << m_grid->lineBufferObject->material->faceCount;
+
+
+    m_program->bind();
+    checkError("grid: after line program bind in initialization");
+
+    /* initialize vao and vbo */
+    m_vao = new QOpenGLVertexArrayObject(m_renderWindow);
+    m_vao->create();
+    m_vao->bind();
+    m_renderWindow->checkError("after initialize vao");
+
+    m_vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    m_vbo->create();
+    m_vbo->bind();
+    m_vbo->allocate(
+      m_material->vertices,
+      3 * m_material->vertexCount * sizeof(GLfloat));
+    checkError("after initialize grid vbo");
+
+    m_ibo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+    m_ibo->create();
+    m_ibo->bind();
+    m_renderWindow->checkError("after create grid ibo");
+
+    m_ibo->allocate(
+      m_material->faces,
+      2 * m_material->faceCount * sizeof(GLuint));
+    m_renderWindow->checkError("after set ibo in line program");
+
+    QOpenGLShaderProgram* program = m_program->getProgram();
+    GLuint position_a = m_program->getPositionAttribute();
+    program->enableAttributeArray(position_a);
+    program->setAttributeBuffer(
+      position_a,
+      GL_FLOAT,
+      0,
+      3);
+    m_vao->release();
+    program->release();
+    m_initialized = true;
   }
 
-  /*
-    set up line segments
-  */
-  m_material = s2_materials(1);
-  m_material->shadingType = LINE;
-  m_material->GLuniforms.Ns = 10;
-
-  m_transform = s2_displacement();
-
-  /* set up vertices and line segments for grid */
-  m_material->vertexCount = 4 * m_gridSize;
-  m_material->faceCount = 2 * (m_gridSize + 1);
-
-  m_material->vertices = (GLfloat*) malloc(3 * m_material->vertexCount * sizeof(GLfloat));
-  m_material->vertexNormals = (GLfloat*) malloc(3 * m_material->vertexCount * sizeof(GLfloat));
-  m_material->faces = (GLuint*) malloc(2 * m_material->faceCount * sizeof(GLuint));
-
-  /* set vertices for vertical line segments */
-  int gridIndex = 0;
-  for(int i = 0; i <= m_gridSize; i++) {
-    m_material->vertices[gridIndex * 3 + 0] = (float)(i - m_gridSize / 2);
-    m_material->vertices[gridIndex * 3 + 1] = (float)(m_gridSize / 2);
-    m_material->vertices[gridIndex * 3 + 2] = 1e-6;
-    m_material->faces[gridIndex] = gridIndex;
-    gridIndex++;
-
-    m_material->vertices[gridIndex * 3 + 0] = (float)(i - m_gridSize / 2);
-    m_material->vertices[gridIndex * 3 + 1] = -(float)(m_gridSize / 2);
-    m_material->vertices[gridIndex * 3 + 2] = 1e-6;
-    m_material->faces[gridIndex] = gridIndex;
-    gridIndex++;
-  }
-
-  /* set vertices for remaining horizontal line segments */
-  for(int i = 1; i < m_gridSize; i++) {
-    m_material->vertices[gridIndex * 3 + 0] = -(float)(m_gridSize / 2);
-    m_material->vertices[gridIndex * 3 + 1] = (float)(i - m_gridSize / 2);
-    m_material->vertices[gridIndex * 3 + 2] = 1e-6;
-    m_material->faces[gridIndex] = gridIndex;
-    gridIndex++;
-
-    m_material->vertices[gridIndex * 3 + 0] = (float)(m_gridSize / 2);
-    m_material->vertices[gridIndex * 3 + 1] = (float)(i - m_gridSize / 2);
-    m_material->vertices[gridIndex * 3 + 2] = 1e-6;
-    m_material->faces[gridIndex] = gridIndex;
-    gridIndex++;
-  }
-
-  /* set top horizontal line segment */
-  m_material->faces[gridIndex++] = 0;
-  m_material->faces[gridIndex++] = m_gridSize * 2;
-
-  /* set bottom horizontal line segment */
-  m_material->faces[gridIndex++] = 1;
-  m_material->faces[gridIndex++] = m_gridSize * 2 + 1;
-
-  // qDebug() << "gridIndex final " << gridIndex;
-  // qDebug() << "face count" << m_grid->lineBufferObject->material->faceCount;
-
-
-  m_program->bind();
-  checkError("grid: after line program bind in initialization");
-
-  /* initialize vao and vbo */
-  m_vao = new QOpenGLVertexArrayObject(m_renderWindow);
-  m_vao->create();
-  m_vao->bind();
-  m_renderWindow->checkError("after initialize vao");
-
-  m_vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  m_vbo->create();
-  m_vbo->bind();
-  m_vbo->allocate(
-    m_material->vertices,
-    3 * m_material->vertexCount * sizeof(GLfloat));
-  checkError("after initialize grid vbo");
-
-  m_ibo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-  m_ibo->create();
-  m_ibo->bind();
-  m_renderWindow->checkError("after create grid ibo");
-
-  m_ibo->allocate(
-    m_material->faces,
-    2 * m_material->faceCount * sizeof(GLuint));
-  m_renderWindow->checkError("after set ibo in line program");
-
-  QOpenGLShaderProgram* program = m_program->getProgram();
-  GLuint position_a = m_program->getPositionAttribute();
-  program->enableAttributeArray(position_a);
-  program->setAttributeBuffer(
-    position_a,
-    GL_FLOAT,
-    0,
-    3);
-  m_vao->release();
-  program->release();
 
 }
 
@@ -117,12 +121,12 @@ void s2_Grid::initialize() {
 @brief draw grid in OpenGL window
 */
 void s2_Grid::draw() {
-  if(m_drawEnabled) {
+  if(m_drawEnabled && m_renderWindow->isInitialized() && m_initialized) {
 
     m_program->bind();
     checkError("grid: after bind line program");
 
-    m_program->setTransform(m_model);
+    m_program->setTransform(m_transform);
     checkError("grid: after set transform in line program");
 
     m_program->setColor(
