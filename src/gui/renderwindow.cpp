@@ -378,18 +378,18 @@ void RenderWindow::initialize() {
 
     m_lights->setShader(m_programShadow);
 
-    m_grid->setShader(m_programLine);
-
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
     m_bodies->setLineShader(m_programLine);
     m_bodies->setLights(m_lights);
 
+    m_frames->setShader(m_programFrame);
+    m_joints->setShader(m_programFrame);
+
     m_terrain->setShader(m_programTerrain);
     m_terrain->setLights(m_lights);
 
-    m_frames->setShader(m_programFrame);
-    m_joints->setShader(m_programFrame);
+    m_grid->setShader(m_programLine);
 
     checkError("after set shader pointers");
     m_initialized = true;
@@ -407,6 +407,8 @@ void RenderWindow::clearContext() {
   if(m_context) {
     m_bodies->clearContext();
     m_frames->clearContext();
+    m_joints->clearContext();
+    m_context = NULL;
   }
 }
 
