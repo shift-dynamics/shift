@@ -1,12 +1,12 @@
-#include "lineshaderprogram.hpp"
+#include "simpleshaderprogram.hpp"
 #include "renderwindow.hpp"
 #include "lights.hpp"
 
-void LineShaderProgram::initialize() {
+void SimpleShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/line.vert");
-    addFragmentShader(":/shaders/line.frag");
+    addVertexShader(":/shaders/simple.vert");
+    addFragmentShader(":/shaders/simple.frag");
     link();
     bind();
 
@@ -21,6 +21,7 @@ void LineShaderProgram::initialize() {
 
     /* set attribute locations */
     m_position_a = m_program->attributeLocation("position_a");
+    m_program->enableAttributeArray(m_position_a);
 
     release();
     checkError("line: after initialize line shader");
@@ -29,7 +30,7 @@ void LineShaderProgram::initialize() {
 }
 
 
-void LineShaderProgram::setTransform(QMatrix4x4& model) {
+void SimpleShaderProgram::setTransform(QMatrix4x4& model) {
   bind();
   qDebug() << model;
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
@@ -41,7 +42,7 @@ void LineShaderProgram::setTransform(QMatrix4x4& model) {
 }
 
 
-void LineShaderProgram::setTransform(s2_displacement_t* transform) {
+void SimpleShaderProgram::setTransform(s2_displacement_t* transform) {
   QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
@@ -50,7 +51,7 @@ void LineShaderProgram::setTransform(s2_displacement_t* transform) {
 }
 
 
-void LineShaderProgram::setColor(
+void SimpleShaderProgram::setColor(
   GLfloat red,
   GLfloat green,
   GLfloat blue,
@@ -64,6 +65,6 @@ void LineShaderProgram::setColor(
     alpha);
 }
 
-void LineShaderProgram::setScale(GLfloat scale) {
+void SimpleShaderProgram::setScale(GLfloat scale) {
   m_program->setUniformValue(m_scale_u, scale);
 }

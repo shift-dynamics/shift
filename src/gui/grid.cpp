@@ -1,6 +1,6 @@
 #include "grid.hpp"
 #include "renderwindow.hpp"
-#include "lineshaderprogram.hpp"
+#include "simpleshaderprogram.hpp"
 
 /*!
 @brief initialize grid
@@ -74,13 +74,13 @@ void s2_Grid::initialize() {
 
 
     m_program->bind();
-    checkError("grid: after line program bind in initialization");
+    checkError("grid: after bind simple shader program in grid initialization");
 
     /* initialize vao and vbo */
     m_vao = new QOpenGLVertexArrayObject(m_renderWindow);
     m_vao->create();
     m_vao->bind();
-    m_renderWindow->checkError("after initialize vao");
+    m_renderWindow->checkError("grid: after initialize vao");
 
     m_vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
     m_vbo->create();
@@ -88,17 +88,17 @@ void s2_Grid::initialize() {
     m_vbo->allocate(
       m_material->vertices,
       3 * m_material->vertexCount * sizeof(GLfloat));
-    checkError("after initialize grid vbo");
+    checkError("grid: after initialize vbo");
 
     m_ibo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
     m_ibo->create();
     m_ibo->bind();
-    m_renderWindow->checkError("after create grid ibo");
+    m_renderWindow->checkError("grid: after create ibo");
 
     m_ibo->allocate(
       m_material->faces,
       2 * m_material->faceCount * sizeof(GLuint));
-    m_renderWindow->checkError("after set ibo in line program");
+    m_renderWindow->checkError("grid: after set ibo");
 
     QOpenGLShaderProgram* program = m_program->getProgram();
     GLuint position_a = m_program->getPositionAttribute();
@@ -108,12 +108,11 @@ void s2_Grid::initialize() {
       GL_FLOAT,
       0,
       3);
+
     m_vao->release();
-    program->release();
+    m_program->release();
     m_initialized = true;
   }
-
-
 }
 
 
@@ -126,8 +125,14 @@ void s2_Grid::draw() {
     m_program->bind();
     checkError("grid: after bind line program");
 
+    m_vao->bind();
+    checkError("grid: after bind vao line program");
+
     m_program->setTransform(m_transform);
     checkError("grid: after set transform in line program");
+
+    m_program->setScale(1.f);
+    checkError("grid: after set scale");
 
     m_program->setColor(
       m_color[0],
@@ -135,9 +140,6 @@ void s2_Grid::draw() {
       m_color[2],
       m_color[3]);
     checkError("grid: after set color in line program");
-
-    m_vao->bind();
-    checkError("grid: after bind vao line program");
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     checkError("grid: after set polygon mode");

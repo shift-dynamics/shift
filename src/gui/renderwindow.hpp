@@ -39,7 +39,7 @@ class s2_Lights;
 class s2_Terrain;
 class PhongShaderProgram;
 class FlatShaderProgram;
-class LineShaderProgram;
+class SimpleShaderProgram;
 class TerrainShaderProgram;
 class FrameShaderProgram;
 class ShadowShaderProgram;
@@ -297,7 +297,7 @@ private:
 
   /* shader programs */
   ShadowShaderProgram* m_programShadow;
-  LineShaderProgram* m_programLine;
+  SimpleShaderProgram* m_programSimple;
   PhongShaderProgram* m_programPhong;
   FlatShaderProgram* m_programFlat;
   TerrainShaderProgram* m_programTerrain;
