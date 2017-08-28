@@ -52,24 +52,23 @@ void s2_Frames::draw() {
       m_renderWindow->getProjectionMatrix() *
       m_renderWindow->getViewMatrix();
 
-
+    m_program->setScale(m_scaleFactor);
     checkError("frame: after set scale factor");
 
     glEnable(GL_LINE_SMOOTH);
-    checkError("frame: after gl gl_line_smooth");
+    checkError("frame: after set gl_line_smooth");
 
     for(int i = 0; i < m_frames.size(); i++) {
       QMatrix4x4 model = s2_displacementToQMatrix4x4(m_frames.at(i));
       QMatrix4x4 mvp = pv * model;
       m_program->setMVP(mvp);
-      m_program->setScale(m_scaleFactor);
       checkError("frame: after set mvp");
+
       glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
-      checkError("after draw elements coordinate systems");
+      checkError("frame: after draw elements");
     }
 
     m_program->releaseVao();
-
   }
 }
 
@@ -100,27 +99,37 @@ void s2_Frames::addFrames(s2_assembly_t* assembly) {
 @brief draw "W" frames associated with tire contact patches
 */
 void s2_Frames::drawWFrames() {
-  QMatrix4x4 pv =
-    m_renderWindow->getProjectionMatrix() *
-    m_renderWindow->getViewMatrix();
-  for(int i = 0; i < m_context->forceModuleCount; i++) {
-    s2_tire_pac2002_t* tire =
-      (s2_tire_pac2002_t*)m_context->forceModulePointers[i]->parameters[0];
+  if(m_drawEnabled && m_context) {
+    m_program->bindVao();
 
-    QMatrix4x4 model = s2_displacementToQMatrix4x4(&tire->wFrame);
-    QMatrix4x4 scale =
-      QMatrix4x4(m_scaleFactor, 0.0f, 0.0f, 0.0f,
-                 0.0f, m_scaleFactor, 0.0f, 0.0f,
-                 0.0f, 0.0f, m_scaleFactor, 0.0f,
-                 0.0f, 0.0f, 0.0f, 1.0f);
+    m_program->setScale(m_scaleFactor);
+    checkError("frame: after set scale factor");
 
-    QMatrix4x4 mvp = pv * model * scale;
+    m_renderWindow->m_funcs->glProvokingVertex(0x8E4E);
+    checkError("frame: after set provoking index");
 
-    /* set model * view * projection matrix */
-    m_program->setMVP(mvp);
+    QMatrix4x4 pv =
+      m_renderWindow->getProjectionMatrix() *
+      m_renderWindow->getViewMatrix();
 
-    // checkError("after set mvp coordinate systems");
-    // glEnable(GL_LINE_SMOOTH);
-    glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+    for(int i = 0; i < m_context->forceModuleCount; i++) {
+      s2_tire_pac2002_t* tire =
+        (s2_tire_pac2002_t*)m_context->forceModulePointers[i]->parameters[0];
+      m_program->setTransform(&tire->wFrame);
+      m_program->setScale(1.f);
+      QMatrix4x4 model = s2_displacementToQMatrix4x4(&tire->wFrame);
+      QMatrix4x4 mvp = pv * model;
+
+      /* set model * view * projection matrix */
+      m_program->setMVP(mvp);
+      checkError("frame: after set mvp wframe");
+
+      // checkError("after set mvp coordinate systems");
+      // glEnable(GL_LINE_SMOOTH);
+      glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+      checkError("frame: after draw elements wframe");
+    }
+
+    m_program->releaseVao();
   }
 }

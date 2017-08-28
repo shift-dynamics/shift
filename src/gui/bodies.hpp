@@ -35,7 +35,7 @@ class QOpenGLVertexArrayObject;
 class RenderWindow;
 class PhongShaderProgram;
 class FlatShaderProgram;
-class LineShaderProgram;
+class SimpleShaderProgram;
 struct s2_lights_t;
 
 /*!
@@ -79,7 +79,7 @@ public:
   void setLights(s2_Lights*);
   void setFlatShader(FlatShaderProgram*);
   void setPhongShader(PhongShaderProgram*);
-  void setLineShader(LineShaderProgram*);
+  void setLineShader(SimpleShaderProgram*);
   void setAttributeLocations(
     QOpenGLShaderProgram*,
     GLint,
@@ -112,7 +112,7 @@ private:
   /* OpenGL shader programs */
   FlatShaderProgram* m_programFlat;
   PhongShaderProgram* m_programPhong;
-  LineShaderProgram* m_programLine;
+  SimpleShaderProgram* m_programLine;
 
   s2_Lights* m_lights;
 
