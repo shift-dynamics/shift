@@ -266,33 +266,30 @@ void s2_Joints::draw() {
         case RY: {
           m_program->setScale(m_scaleFactor);
           m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
-          checkError("after draw ry");
+          checkError("joint: after draw ry");
         } break;
         case RZ: {
           m_program->setScale(m_scaleFactor);
           m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
-          checkError("after draw rz");
+          checkError("joint: after draw rz");
         } break;
         case TX: {
           float jointValue = (float)(m_context->q[joint->qIndex]);
           m_program->setScale(jointValue);
           glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
-          checkError("after draw tx");
-
+          checkError("joint: after draw tx");
         } break;
         case TY: {
           float jointValue = (float)(m_context->q[joint->qIndex]);
           m_program->setScale(jointValue);
           m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
-          checkError("after draw ty");
-
+          checkError("joint: after draw ty");
         } break;
         case TZ: {
           float jointValue = (float)(m_context->q[joint->qIndex]);
           m_program->setScale(jointValue);
           m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
-          checkError("after draw tz");
-
+          checkError("joint: after draw tz");
         } break;
         default:
           break;

@@ -28,28 +28,28 @@ void s2_Terrain::loadContext() {
 
       m_terrainObjects[i].textureDisplacement =
         new QOpenGLTexture(QOpenGLTexture::Target2D);
-      checkError("after new depth texture");
+      checkError("terrain: after new depth texture");
 
       m_terrainObjects[i].textureDisplacement->setFormat(
         QOpenGLTexture::R32F);
-      checkError("after set format R32F");
+      checkError("terrain: after set format R32F");
 
       m_terrainObjects[i].textureDisplacement->setWrapMode(
         QOpenGLTexture::ClampToEdge);
-      checkError("after set wrap mode");
+      checkError("terrain: after set wrap mode");
 
       m_terrainObjects[i].textureDisplacement->setMinMagFilters(
         QOpenGLTexture::Linear,
         QOpenGLTexture::Linear);
-      checkError("after set min mag filters");
+      checkError("terrain: after set min mag filters");
 
       m_terrainObjects[i].textureDisplacement->setSize(
         elevationMap->columns,
         elevationMap->rows,
         1);
-      checkError("after set size");
+      checkError("terrain: after set size");
       m_terrainObjects[i].textureDisplacement->allocateStorage();
-      checkError("after allocate storage");
+      checkError("terrain after allocate storage for displacement texture");
 
       /* normalize elevation map control points from 0 to 1 */
       size_t n = elevationMap->columns * elevationMap->rows;
@@ -74,7 +74,7 @@ void s2_Terrain::loadContext() {
 
       m_terrainObjects[i].textureColor =
         new QOpenGLTexture(QOpenGLTexture::Target2D);
-      checkError("after new color texture");
+      checkError("terrain: after new color texture");
 
       m_terrainObjects[i].textureColor->setFormat(
         QOpenGLTexture::RGBA32F);
@@ -185,9 +185,9 @@ void s2_Terrain::draw() {
         (float)elevationMap->zMax);
       checkError("terrain: after set terrain zExtents");
 
-      glEnable(GL_DEPTH_TEST);
-      glEnable(GL_CULL_FACE);
-      glDepthFunc(GL_LEQUAL);
+      // glEnable(GL_DEPTH_TEST);
+      // glEnable(GL_CULL_FACE);
+      // glDepthFunc(GL_LEQUAL);
 
       if(m_shadingType == WIREFRAME) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

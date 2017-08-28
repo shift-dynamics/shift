@@ -2,6 +2,7 @@
 #include "renderwindow.hpp"
 #include "phongshaderprogram.hpp"
 #include "flatshaderprogram.hpp"
+#include "simpleshaderprogram.hpp"
 #include "lights.hpp"
 
 
@@ -50,7 +51,7 @@ void s2_Bodies::setPhongShader(PhongShaderProgram* program) {
 /*!
 @brief set pointer to phong shader class
 */
-void s2_Bodies::setLineShader(LineShaderProgram* program) {
+void s2_Bodies::setLineShader(SimpleShaderProgram* program) {
   m_programLine = program;
 }
 
@@ -121,9 +122,10 @@ void s2_Bodies::initializeMaterial(
     new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
   bufferObjects.ibo->create();
 
-  checkError("before generating vertex arrays");
+  checkError("bodies: after create vertex buffers");
 
   bufferObjects.vao->bind();
+  checkError("bodies: after bind vao");
 
   bufferObjects.vertexBuffer->bind();
   bufferObjects.vertexBuffer->allocate(
@@ -149,29 +151,35 @@ void s2_Bodies::initializeMaterial(
   bufferObjects.material = material;
   bufferObjects.transform = origin;
 
-  bufferObjects.vao->bind();
-
   setAttributeLocations(
     m_programPhong->getProgram(),
     m_programPhong->getPositionAttribute(),
     m_programPhong->getNormalAttribute(),
     &bufferObjects);
-  checkError("after set attribute location phong");
+  checkError("bodies: after set attribute locations phong");
 
   setAttributeLocations(
     m_programFlat->getProgram(),
     m_programFlat->getPositionAttribute(),
     m_programFlat->getNormalAttribute(),
     &bufferObjects);
-  checkError("after set attribute location flat");
+  checkError("bodies: after set attribute locations flat");
+
   m_bufferObjects.append(bufferObjects);
+  checkError("bodies: after append buffer objects");
+
+  bufferObjects.vao->release();
+  checkError("bodies: after release vao");
 
 }
 
 
+/*!
+@brief
+*/
 void s2_Bodies::draw() {
 
-  if(m_drawEnabled) {
+  if(m_drawEnabled && m_renderWindow->isInitialized()) {
     if(m_shadingType == WIREFRAME) {
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     } else {
@@ -188,19 +196,20 @@ void s2_Bodies::draw() {
         for(int i = 0; i < m_bufferObjects.size(); i++) {
 
           m_bufferObjects.at(i).vao->bind();
+          checkError("bodies: after bind vao phong");
 
           m_programPhong->setTransform(m_bufferObjects.at(i).transform);
-          checkError("after set transform phong shader");
+          checkError("bodies: after set transform phong shader");
 
           m_programPhong->setMaterial(m_bufferObjects.at(i).material);
-          checkError("after set material phong shader");
+          checkError("bodies: after set material phong shader");
 
           glDrawElements(
             GL_TRIANGLES,
             3 * m_bufferObjects.at(i).material->faceCount,
             GL_UNSIGNED_INT,
             0);
-          checkError("after draw elements phong shader");
+          checkError("bodies: after draw elements phong shader");
 
           m_bufferObjects.at(i).vao->release();
           // checkError("after vao release phong");
@@ -211,27 +220,34 @@ void s2_Bodies::draw() {
       case FLAT: {
         m_programFlat->bind();
         m_programFlat->setLights(m_lights);
+
         for(int i = 0; i < m_bufferObjects.size(); i++) {
+
           m_bufferObjects.at(i).vao->bind();
+          checkError("bodies: after bind vao flat");
 
           m_programFlat->setTransform(m_bufferObjects.at(i).transform);
+          checkError("bodies: after set transform flat shader");
+
+
           m_programFlat->setMaterial(m_bufferObjects.at(i).material);
+          checkError("bodies: after set material flat shader");
 
           glDrawElements(
             GL_TRIANGLES,
             3 * m_bufferObjects.at(i).material->faceCount,
             GL_UNSIGNED_INT,
             0);
-          checkError("after draw elements flat");
+          checkError("bodies: after draw elements flat");
 
           m_bufferObjects.at(i).vao->release();
-          checkError("after vao release flat");
-
-          m_programFlat->release();
-          checkError("after flat release flat");
+          checkError("bodies: after vao release flat");
         }
+        m_programFlat->release();
+        checkError("bodies: after flat release flat");
       } break;
-      default: break;
+      default: {
+      } break;
     }
   }
 }
@@ -249,7 +265,7 @@ void s2_Bodies::setAttributeLocations(
 
   program->bind();
 
-  bufferObjects->vao->bind();
+  // bufferObjects->vao->bind();
 
   // uniforms->position_a = program->attributeLocation("position_a");
   // uniforms->normal_a = program->attributeLocation("normal_a");
@@ -267,6 +283,6 @@ void s2_Bodies::setAttributeLocations(
     program->setAttributeBuffer(normal_a, GL_FLOAT, 0, 3);
   }
 
-  bufferObjects->vao->release();
+  // bufferObjects->vao->release();
   program->release();
 }

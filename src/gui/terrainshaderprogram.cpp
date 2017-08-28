@@ -20,25 +20,25 @@ void TerrainShaderProgram::initialize() {
     m_texture_color_u = m_program->uniformLocation("texture_color_u");
     m_texture_displacement_u =
       m_program->uniformLocation("texture_displacement_u");
-    m_texture_bump_u = m_program->uniformLocation("texture_bump_u");
-    m_texture_normal_u = m_program->uniformLocation("texture_normal_u");
-    m_texture_specular_u = m_program->uniformLocation("texture_specular_u");;
+    // m_texture_bump_u = m_program->uniformLocation("texture_bump_u");
+    // m_texture_normal_u = m_program->uniformLocation("texture_normal_u");
+    // m_texture_specular_u = m_program->uniformLocation("texture_specular_u");
 
     qDebug() << "m_texture_color_u:" << m_texture_color_u;
     qDebug() << "m_texture_displacement_u:" << m_texture_displacement_u;
-    qDebug() << "m_texture_bump_u:" << m_texture_bump_u;
-    qDebug() << "m_texture_normal_u:" << m_texture_normal_u;
-    qDebug() << "m_texture_specular_u:" << m_texture_specular_u;
+    // qDebug() << "m_texture_bump_u:" << m_texture_bump_u;
+    // qDebug() << "m_texture_normal_u:" << m_texture_normal_u;
+    // qDebug() << "m_texture_specular_u:" << m_texture_specular_u;
 
     /* matrix uniform locations */
-    m_matrices_u = m_program->uniformLocation("matrices_u");
+    // m_matrices_u = m_program->uniformLocation("matrices_u");
     m_matrices_mvp_u = m_program->uniformLocation("matrices_u.mvp");
     m_matrices_mv_u = m_program->uniformLocation("matrices_u.mv");
     m_matrices_v_u = m_program->uniformLocation("matrices_u.v");
     m_matrices_p_u = m_program->uniformLocation("matrices_u.p");
     m_matrices_nm_u = m_program->uniformLocation("matrices_u.nm");
 
-    qDebug() << "m_matrices_u:" << m_matrices_u;
+    // qDebug() << "m_matrices_u:" << m_matrices_u;
     qDebug() << "m_matrices_mvp_u:" << m_matrices_mvp_u;
     qDebug() << "m_matrices_mv_u:" << m_matrices_mv_u;
     qDebug() << "m_matrices_v_u:" << m_matrices_v_u;
@@ -46,20 +46,20 @@ void TerrainShaderProgram::initialize() {
     qDebug() << "m_matrices_nm_u:" << m_matrices_nm_u;
 
     /* material uniform locations */
-    m_material_u = m_program->uniformLocation("material_u");
+    // m_material_u = m_program->uniformLocation("material_u");
     m_material_Kd_u = m_program->uniformLocation("material_u.Kd");
     m_material_KaOverKd_u = m_program->uniformLocation("material_u.KaOverKd");
     m_material_KsOverKd_u = m_program->uniformLocation("material_u.KsOverKd");
     m_material_Ns_u = m_program->uniformLocation("material_u.Ns");
 
-    qDebug() << "m_material_u:" << m_material_u;
+    // qDebug() << "m_material_u:" << m_material_u;
     qDebug() << "m_material_Kd_u:" << m_material_Kd_u;
     qDebug() << "m_material_KaOverKd_u:" << m_material_KaOverKd_u;
     qDebug() << "m_material_KsOverKd_u:" << m_material_KsOverKd_u;
     qDebug() << "m_material_Ns_u:" << m_material_Ns_u;
 
     /* light uniform locations */
-    m_lights_u = m_program->uniformLocation("lights_u");
+    // m_lights_u = m_program->uniformLocation("lights_u");
     m_lights_position_u = m_program->uniformLocation("lights_u.position");
     m_lights_Ka_u = m_program->uniformLocation("lights_u.Ka");
     m_lights_Kd_u = m_program->uniformLocation("lights_u.Kd");
@@ -67,7 +67,7 @@ void TerrainShaderProgram::initialize() {
     m_lights_directional_u = m_program->uniformLocation("lights_u.directional");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
 
-    qDebug() << "lights_u: " << m_lights_u;
+    // qDebug() << "lights_u: " << m_lights_u;
     qDebug() << "lights_u.position: " << m_lights_position_u;
     qDebug() << "lights_u.Ka: " << m_lights_Ka_u;
     qDebug() << "lights_u.Kd: " << m_lights_Kd_u;
@@ -76,22 +76,22 @@ void TerrainShaderProgram::initialize() {
     qDebug() << "lights_u.count: " << m_lights_count_u;
 
     /* terrain uniform locations */
-    m_terrain_u = m_program->uniformLocation("terrain_u");
+    // m_terrain_u = m_program->uniformLocation("terrain_u");
     m_terrain_zMin_u = m_program->uniformLocation("terrain_u.zMin");
     m_terrain_zMax_u = m_program->uniformLocation("terrain_u.zMax");
-    m_terrain_xScale_u = m_program->uniformLocation("terrain_u.xScale");
-    m_terrain_yScale_u = m_program->uniformLocation("terrain_u.yScale");
-    m_terrain_xRange_u = m_program->uniformLocation("terrain_u.xRange");
-    m_terrain_yRange_u = m_program->uniformLocation("terrain_u.yRange");
+    // m_terrain_xScale_u = m_program->uniformLocation("terrain_u.xScale");
+    // m_terrain_yScale_u = m_program->uniformLocation("terrain_u.yScale");
+    // m_terrain_xRange_u = m_program->uniformLocation("terrain_u.xRange");
+    // m_terrain_yRange_u = m_program->uniformLocation("terrain_u.yRange");
     m_terrain_viewport_u = m_program->uniformLocation("terrain_u.viewport");
 
-    qDebug() << "terrain_u: " << m_terrain_u;
+    // qDebug() << "terrain_u: " << m_terrain_u;
     qDebug() << "m_terrain_zMin_u: " << m_terrain_zMin_u;
     qDebug() << "m_terrain_zMax_u: " << m_terrain_zMax_u;
-    qDebug() << "m_terrain_xScale_u: " << m_terrain_xScale_u;
-    qDebug() << "m_terrain_yScale_u: " << m_terrain_yScale_u;
-    qDebug() << "m_terrain_xRange_u: " << m_terrain_xRange_u;
-    qDebug() << "m_terrain_yRange_u: " << m_terrain_yRange_u;
+    // qDebug() << "m_terrain_xScale_u: " << m_terrain_xScale_u;
+    // qDebug() << "m_terrain_yScale_u: " << m_terrain_yScale_u;
+    // qDebug() << "m_terrain_xRange_u: " << m_terrain_xRange_u;
+    // qDebug() << "m_terrain_yRange_u: " << m_terrain_yRange_u;
     qDebug() << "m_terrain_viewport_u: " << m_terrain_viewport_u;
 
     m_program->release();
@@ -139,8 +139,8 @@ void TerrainShaderProgram::setTransform(QMatrix4x4& model) {
 @brief set scale factor
 */
 void TerrainShaderProgram::setScale(GLfloat xScale, GLfloat yScale) {
-  m_program->setUniformValue(m_terrain_xScale_u, xScale);
-  m_program->setUniformValue(m_terrain_yScale_u, yScale);
+  // m_program->setUniformValue(m_terrain_xScale_u, xScale);
+  // m_program->setUniformValue(m_terrain_yScale_u, yScale);
 }
 
 
@@ -178,7 +178,7 @@ void TerrainShaderProgram::setTextureColor(QOpenGLTexture* tex) {
 void TerrainShaderProgram::setTextureBump(QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(2);
-    m_program->setUniformValue(m_texture_bump_u, 2);
+    // m_program->setUniformValue(m_texture_bump_u, 2);
   }
 }
 
@@ -189,7 +189,7 @@ void TerrainShaderProgram::setTextureBump(QOpenGLTexture* tex) {
 void TerrainShaderProgram::setTextureNormal(QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(3);
-    m_program->setUniformValue(m_texture_normal_u, 3);
+    // m_program->setUniformValue(m_texture_normal_u, 3);
   }
 }
 
@@ -200,7 +200,7 @@ void TerrainShaderProgram::setTextureNormal(QOpenGLTexture* tex) {
 void TerrainShaderProgram::setTextureSpecular(QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(4);
-    m_program->setUniformValue(m_texture_specular_u, 4);
+    // m_program->setUniformValue(m_texture_specular_u, 4);
   }
 }
 
@@ -264,6 +264,19 @@ void TerrainShaderProgram::setZExtents(GLfloat zMin, GLfloat zMax) {
 @brief set max x and y values
 */
 void TerrainShaderProgram::setRange(GLfloat xRange, GLfloat yRange) {
-  m_program->setUniformValue(m_terrain_xRange_u, xRange);
-  m_program->setUniformValue(m_terrain_yRange_u, yRange);
+  // m_program->setUniformValue(m_terrain_xRange_u, xRange);
+  // m_program->setUniformValue(m_terrain_yRange_u, yRange);
+}
+
+
+/*!
+@brief convenience function that sets all uniforms located in elevationmap data structure
+*/
+void TerrainShaderProgram::setUniforms(s2_elevationmap_t* elevationmap) {
+  setKd(elevationmap->Kd);
+  setKaOverKd(elevationmap->KaOverKd);
+  setKsOverKd(elevationmap->KsOverKd);
+  setNs(elevationmap->Ns);
+  setZExtents(elevationmap->zMin, elevationmap->zMax);
+
 }

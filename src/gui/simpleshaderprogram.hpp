@@ -1,5 +1,5 @@
-#ifndef _STAR2_LINESHADERPROGRAM_HPP_
-#define _STAR2_LINESHADERPROGRAM_HPP_
+#ifndef _STAR2_SIMPLESHADERPROGRAM_HPP_
+#define _STAR2_SIMPLESHADERPROGRAM_HPP_
 
 #include "../star2.h"
 #include "openglwindow.hpp"
@@ -35,17 +35,17 @@ class RenderWindow;
 class s2_Lights;
 
 
-class LineShaderProgram : public ShaderProgram {
+class SimpleShaderProgram : public ShaderProgram {
 
   Q_OBJECT
 
 public:
-  LineShaderProgram(RenderWindow* renderWindow)
+  SimpleShaderProgram(RenderWindow* renderWindow)
   : ShaderProgram(renderWindow) {
     initialize();
   };
 
-  ~LineShaderProgram() {};
+  ~SimpleShaderProgram() {};
 
   void initialize();
   void draw();

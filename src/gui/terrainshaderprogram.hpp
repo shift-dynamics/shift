@@ -63,6 +63,7 @@ public:
   void setKaOverKd(GLfloat);
   void setKsOverKd(GLfloat);
   void setNs(GLint);
+  void setUniforms(s2_elevationmap_t*);
 
   void setZExtents(GLfloat, GLfloat);
   void setScale(GLfloat, GLfloat);
@@ -80,12 +81,12 @@ private:
   /* texture uniform locations */
   GLint m_texture_color_u;
   GLint m_texture_displacement_u;
-  GLint m_texture_bump_u;
-  GLint m_texture_normal_u;
-  GLint m_texture_specular_u;
+  // GLint m_texture_bump_u;
+  // GLint m_texture_normal_u;
+  // GLint m_texture_specular_u;
 
   /* matrix uniform locations */
-  GLint m_matrices_u;
+  // GLint m_matrices_u;
   GLint m_matrices_mvp_u;
   GLint m_matrices_mv_u;
   GLint m_matrices_v_u;
@@ -93,14 +94,14 @@ private:
   GLint m_matrices_nm_u;
 
   /* material uniform locations */
-  GLint m_material_u;
+  // GLint m_material_u;
   GLint m_material_Kd_u;
   GLint m_material_KaOverKd_u;
   GLint m_material_KsOverKd_u;
   GLint m_material_Ns_u;
 
   /* light uniform locations */
-  GLint m_lights_u;
+  // GLint m_lights_u;
   GLint m_lights_position_u;
   GLint m_lights_Ka_u;
   GLint m_lights_Kd_u;
@@ -109,13 +110,13 @@ private:
   GLint m_lights_count_u;
 
   /* terrain uniform locations */
-  GLint m_terrain_u;
+  // GLint m_terrain_u;
   GLint m_terrain_zMin_u;
   GLint m_terrain_zMax_u;
-  GLint m_terrain_xScale_u;
-  GLint m_terrain_yScale_u;
-  GLint m_terrain_xRange_u;
-  GLint m_terrain_yRange_u;
+  // GLint m_terrain_xScale_u;
+  // GLint m_terrain_yScale_u;
+  // GLint m_terrain_xRange_u;
+  // GLint m_terrain_yRange_u;
   GLint m_terrain_viewport_u;
 
 };

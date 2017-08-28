@@ -3472,6 +3472,7 @@ void Workspace::populateTreeRecursive(
 */
 void Workspace::drawTerrainToggleActive(bool active) {
   m_actionToggleDrawTerrain->setEnabled(active);
+  m_actionToggleDrawTerrain->setChecked(active);
 }
 
 /*!

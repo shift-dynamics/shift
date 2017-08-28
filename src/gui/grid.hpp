@@ -32,7 +32,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
-class LineShaderProgram;
+class SimpleShaderProgram;
 
 
 class s2_Grid : public s2_Geometry {
@@ -64,7 +64,7 @@ public:
 
   void initialize();
   void draw();
-  void setShader(LineShaderProgram* program) {
+  void setShader(SimpleShaderProgram* program) {
     m_program = program;
     initialize();
   }
@@ -98,7 +98,7 @@ private:
   QOpenGLBuffer* m_vbo;
   QOpenGLBuffer* m_ibo;
 
-  LineShaderProgram* m_program;
+  SimpleShaderProgram* m_program;
 
 };
 
