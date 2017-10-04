@@ -234,6 +234,7 @@ void s2_tire_fiala_update(
     tire->inContact = false;
     tire->dy[0] = -y[0] * 100.0;
     tire->dy[1] = -y[1] * 100.0;
+
     // printf("disc center is below terrain or further away by more than its radius\n");
     return;
   }

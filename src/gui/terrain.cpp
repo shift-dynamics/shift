@@ -9,16 +9,16 @@ void s2_Terrain::loadContext() {
   m_context = m_renderWindow->getContext();
   /* initializes terrain maps, checks m_terrainInitialized to verify
   that terrain maps have not already been loaded for this context */
-  if(m_context && m_context->elevationMapCount != 0) {
+  if(m_context && m_context->terrainCount != 0) {
     if(m_terrainObjects) {
       delete [] m_terrainObjects;
     }
-    m_terrainObjects = new TerrainObjects[m_context->elevationMapCount];
+    m_terrainObjects = new TerrainObjects[m_context->terrainCount];
 
     m_program->bind();
-    for(int i = 0; i < m_context->elevationMapCount; i++) {
+    for(int i = 0; i < m_context->terrainCount; i++) {
 
-      s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
+      s2_terrain_t* terrain = m_context->terrains[i];
 
       m_terrainObjects[i].textureDisplacement = NULL;
       m_terrainObjects[i].textureColor = NULL;
@@ -44,20 +44,20 @@ void s2_Terrain::loadContext() {
       checkError("terrain: after set min mag filters");
 
       m_terrainObjects[i].textureDisplacement->setSize(
-        elevationMap->columns,
-        elevationMap->rows,
+        terrain->columns,
+        terrain->rows,
         1);
       checkError("terrain: after set size");
       m_terrainObjects[i].textureDisplacement->allocateStorage();
       checkError("terrain after allocate storage for displacement texture");
 
       /* normalize elevation map control points from 0 to 1 */
-      size_t n = elevationMap->columns * elevationMap->rows;
+      size_t n = terrain->columns * terrain->rows;
       float* depthFloat = (float*)malloc(n * sizeof(float));
-      double range = elevationMap->zMax - elevationMap->zMin;
+      double range = terrain->zMax - terrain->zMin;
       for(size_t j = 0; j < n; j++) {
-        depthFloat[j] = (float)((elevationMap->controlPoints[j] -
-          elevationMap->zMin) / range);
+        depthFloat[j] = (float)((terrain->controlPoints[j] -
+          terrain->zMin) / range);
         // printf(
         //   "%f -> %f\n",
         //   elevationMap->controlPoints[j],
@@ -91,8 +91,8 @@ void s2_Terrain::loadContext() {
       //   elevationMap->textureColumns << "," << elevationMap->textureRows;
 
       m_terrainObjects[i].textureColor->setSize(
-        elevationMap->textureColumns,
-        elevationMap->textureRows,
+        terrain->textureColumns,
+        terrain->textureRows,
         1);
       checkError("after set size");
 
@@ -107,7 +107,7 @@ void s2_Terrain::loadContext() {
       m_terrainObjects[i].textureColor->setData(
         QOpenGLTexture::RGBA,
         QOpenGLTexture::UInt8,
-        elevationMap->texture);
+        terrain->texture);
       checkError("after setData color texture");
 
     }
@@ -135,8 +135,8 @@ void s2_Terrain::draw() {
     m_program->setLights(m_lights);
     checkError("terrain: after set lights");
 
-    for(int i = 0; i < m_context->elevationMapCount; i++) {
-      s2_elevationmap_t* elevationMap = m_context->elevationmaps[i];
+    for(int i = 0; i < m_context->terrainCount; i++) {
+      s2_terrain_t* terrain = m_context->terrains[i];
 
       QMatrix4x4 model =
         QMatrix4x4(1.f, 0.f, 0.f, 0.f,
@@ -145,6 +145,8 @@ void s2_Terrain::draw() {
                    0.f, 0.f, 0.f, 1.f);
       m_program->setTransform(model);
       checkError("terrain: after set transform");
+
+      m_program->setUniforms(terrain);
 
       m_program->setTextureDisplacement(
         m_terrainObjects[i].textureDisplacement);
@@ -166,28 +168,9 @@ void s2_Terrain::draw() {
       //   m_terrainObjects[i].textureSpecular);
       // checkError("after set texture specular");
 
-      // m_program->setKd(elevationMap->Kd);
-      m_program->setKaOverKd(elevationMap->KaOverKd);
-      m_program->setKsOverKd(elevationMap->KsOverKd);
-      m_program->setNs(elevationMap->Ns);
-      checkError("terrain: after set terrain material");
-
-      // m_program->setScale(elevationMap->xScale, elevationMap->yScale);
-      // checkError("after set terrain scale");
-      //
-      // m_program->setRange(
-      //   elevationMap->textureRows,
-      //   elevationMap->textureColumns);
-      // checkError("after set terrain range");
-
-      m_program->setZExtents(
-        (float)elevationMap->zMin,
-        (float)elevationMap->zMax);
-      checkError("terrain: after set terrain zExtents");
-
-      // glEnable(GL_DEPTH_TEST);
-      // glEnable(GL_CULL_FACE);
-      // glDepthFunc(GL_LEQUAL);
+      glEnable(GL_DEPTH_TEST);
+      glEnable(GL_CULL_FACE);
+      glDepthFunc(GL_LEQUAL);
 
       if(m_shadingType == WIREFRAME) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -213,6 +196,10 @@ void s2_Terrain::draw() {
   }
 }
 
+
+/*!
+@brief free memory for context datastructure
+*/
 void s2_Terrain::clearContext() {
   enable(false);
   m_context = NULL;

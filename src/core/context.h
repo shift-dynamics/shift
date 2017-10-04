@@ -53,7 +53,7 @@ typedef struct s2_sensor_t s2_sensor_t;
 typedef struct s2_camera_t s2_camera_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_shaderhandle_t s2_shaderhandle_t;
-typedef struct s2_elevationmap_t s2_elevationmap_t;
+typedef struct s2_terrain_t s2_terrain_t;
 
 
 /*!
@@ -759,15 +759,15 @@ typedef struct s2_context_t {
 
   int stiffnessCount;
   s2_joint_t** stiffnessJoints;
+
   /*!
   @}
-  @name data related to elevationmaps
+  @name data related to terrain maps
   @{
   */
 
-  int elevationMapCount;
-  s2_elevationmap_t** elevationmaps;
-
+  int terrainCount;
+  s2_terrain_t** terrains;
 
   /*!
   @}

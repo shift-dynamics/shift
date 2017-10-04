@@ -113,7 +113,6 @@ add_library(star2_lib STATIC
     ${star2_SOURCE_DIR}/src/core/restraint.c
     ${star2_SOURCE_DIR}/src/core/newtonraphson.c
     ${star2_SOURCE_DIR}/src/core/terrain.c
-    ${star2_SOURCE_DIR}/src/core/elevationmap.c
     ${star2_SOURCE_DIR}/src/force_modules/service.c
     ${star2_SOURCE_DIR}/src/force_modules/tire.c
     ${star2_SOURCE_DIR}/src/force_modules/tire/pac2002.c
