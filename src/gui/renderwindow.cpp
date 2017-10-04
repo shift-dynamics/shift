@@ -662,7 +662,6 @@ void RenderWindow::interpolateCurrentPosition(double t) {
 
     /*
       yOut = y0 + (y1 - y0) / (t1 - t0) * (t - t0)
-
     */
     s2_array_lerp(
       neqn,

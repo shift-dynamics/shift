@@ -58,7 +58,9 @@ public:
   }
 
   ~s2_Terrain() {
-
+    if(m_terrainObjects) {
+      delete [] m_terrainObjects;
+    }
   }
 
   void setDrawStyle(s2_shading_enum_t shadingType) {
