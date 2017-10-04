@@ -15,7 +15,6 @@ extern "C" {
 #include <assert.h>
 
 #include "core/context.h"
-#include "core/elevationmap.h"
 #include "core/topology.h"
 #include "core/joint.h"
 #include "core/kinematics.h"

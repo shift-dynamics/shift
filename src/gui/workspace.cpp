@@ -3103,9 +3103,8 @@ void Workspace::openFileAtLoad() {
 
       updateTree();
       loadModelParameters();
-      if(m_context->elevationMapCount == 0) {
+      if(m_context->terrainCount == 0) {
         drawTerrainToggleActive(false);
-
       } else {
         drawTerrainToggleActive(true);
       }
@@ -3268,7 +3267,7 @@ void Workspace::openFile() {
 
     updateTree();
     loadModelParameters();
-    if(m_context->elevationMapCount == 0) {
+    if(m_context->terrainCount == 0) {
       drawTerrainToggleActive(false);
     } else {
       drawTerrainToggleActive(true);

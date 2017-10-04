@@ -63,7 +63,7 @@ public:
   void setKaOverKd(GLfloat);
   void setKsOverKd(GLfloat);
   void setNs(GLint);
-  void setUniforms(s2_elevationmap_t*);
+  void setUniforms(s2_terrain_t*);
 
   void setZExtents(GLfloat, GLfloat);
   void setScale(GLfloat, GLfloat);

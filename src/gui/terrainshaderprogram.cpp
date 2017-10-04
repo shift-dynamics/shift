@@ -156,8 +156,12 @@ void TerrainShaderProgram::setViewPort(GLfloat vp1, GLfloat vp2) {
 @brief bind displacement texture
 */
 void TerrainShaderProgram::setTextureDisplacement(QOpenGLTexture* tex) {
-  tex->bind(0);
-  m_program->setUniformValue(m_texture_displacement_u, 0);
+  if(tex) {
+    tex->bind(0);
+    m_program->setUniformValue(m_texture_displacement_u, 0);
+  } else {
+    qDebug() << "no displacement texture specified";
+  }
 }
 
 
@@ -168,6 +172,8 @@ void TerrainShaderProgram::setTextureColor(QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(1);
     m_program->setUniformValue(m_texture_color_u, 1);
+  } else {
+    qDebug() << "no color texture specified";
   }
 }
 
@@ -272,11 +278,11 @@ void TerrainShaderProgram::setRange(GLfloat xRange, GLfloat yRange) {
 /*!
 @brief convenience function that sets all uniforms located in elevationmap data structure
 */
-void TerrainShaderProgram::setUniforms(s2_elevationmap_t* elevationmap) {
-  setKd(elevationmap->Kd);
-  setKaOverKd(elevationmap->KaOverKd);
-  setKsOverKd(elevationmap->KsOverKd);
-  setNs(elevationmap->Ns);
-  setZExtents(elevationmap->zMin, elevationmap->zMax);
+void TerrainShaderProgram::setUniforms(s2_terrain_t* terrain) {
+  setKd(terrain->Kd);
+  setKaOverKd(terrain->KaOverKd);
+  setKsOverKd(terrain->KsOverKd);
+  setNs(terrain->Ns);
+  setZExtents(terrain->zMin, terrain->zMax);
 
 }
