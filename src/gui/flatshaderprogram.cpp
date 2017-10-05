@@ -37,7 +37,6 @@ void FlatShaderProgram::initialize() {
 
     /* set attribute locations */
     m_position_a = m_program->attributeLocation("position_a");
-
     m_normal_a = m_program->attributeLocation("normal_a");
 
     release();

@@ -3,7 +3,8 @@
 
 layout (vertices = 4) out;
 
-uniform sampler2D texture_displacement_u;
+layout (binding = 0) uniform sampler2D texture_displacement_u;
+layout (binding = 1) uniform sampler2D texture_color_u;
 
 struct matrices_t {
   mat4 mvp;

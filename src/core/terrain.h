@@ -22,18 +22,18 @@
 typedef struct s2_terrain_t {
   s2_interpolation_enum_t interpolationType; /*!< technique used for 2D interpolation */
   s2_coordinate_convention_enum_t coordinateConvention; /*!< ISO or SAE coordinate system */
-  size_t columns;        /*!< number of columns of elevation map */
-  size_t rows;           /*!< number of rows in elevation map */
-  double xOffset;        /*!< x offset of origin of elevation map */
-  double yOffset;        /*!< y offset of origin of elevation map */
-  double xScale;         /*!< uniform scale factor for x dimension */
-  double yScale;         /*!< uniform scale factor for y dimension */
-  double zMin;           /*!< minimum z height in surface */
-  double zMax;           /*!< maximum z height in surface */
-  double* controlPoints; /*!< control points loaded from image */
-  unsigned char* texture;         /*!< rgba texture */
-  size_t textureRows;    /*!< number of rows in texture */
-  size_t textureColumns; /*!< number of columns in texture */
+  size_t columns;            /*!< number of columns of elevation map */
+  size_t rows;               /*!< number of rows in elevation map */
+  double xOffset;            /*!< x offset of origin of elevation map */
+  double yOffset;            /*!< y offset of origin of elevation map */
+  double xScale;             /*!< uniform scale factor for x dimension */
+  double yScale;             /*!< uniform scale factor for y dimension */
+  double zMin;               /*!< minimum z height in surface */
+  double zMax;               /*!< maximum z height in surface */
+  double* controlPoints;     /*!< control points loaded from image */
+  unsigned char* texture;    /*!< rgba texture */
+  size_t textureRows;        /*!< number of rows in texture */
+  size_t textureColumns;     /*!< number of columns in texture */
   char* propertyMap;         /*!< rgba texture */
   size_t propertyMapRows;    /*!< number of rows in texture */
   size_t propertyMapColumns; /*!< number of columns in texture */

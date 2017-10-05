@@ -94,6 +94,10 @@ void TerrainShaderProgram::initialize() {
     // qDebug() << "m_terrain_yRange_u: " << m_terrain_yRange_u;
     qDebug() << "m_terrain_viewport_u: " << m_terrain_viewport_u;
 
+    /* create emtpy vertex array object */
+    m_vao = new QOpenGLVertexArrayObject(m_renderWindow);
+    m_vao->create();
+
     m_program->release();
 
     checkError("after initialize terrain");
@@ -110,7 +114,7 @@ void TerrainShaderProgram::setTransform(s2_displacement_t* transform) {
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mv = view * model;
-  QMatrix4x4 mvp = projection * view * model;
+  QMatrix4x4 mvp = projection * mv;
   m_program->setUniformValue(m_matrices_mvp_u, mvp);
   m_program->setUniformValue(m_matrices_mv_u, mv);
   m_program->setUniformValue(m_matrices_v_u, view);
@@ -126,7 +130,7 @@ void TerrainShaderProgram::setTransform(QMatrix4x4& model) {
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mv = view * model;
-  QMatrix4x4 mvp = projection * view * model;
+  QMatrix4x4 mvp = projection * mv;
   m_program->setUniformValue(m_matrices_mvp_u, mvp);
   m_program->setUniformValue(m_matrices_mv_u, mv);
   m_program->setUniformValue(m_matrices_v_u, view);
@@ -159,6 +163,7 @@ void TerrainShaderProgram::setTextureDisplacement(QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(0);
     m_program->setUniformValue(m_texture_displacement_u, 0);
+    checkError("after set uniform value displacement");
   } else {
     qDebug() << "no displacement texture specified";
   }
@@ -172,6 +177,7 @@ void TerrainShaderProgram::setTextureColor(QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(1);
     m_program->setUniformValue(m_texture_color_u, 1);
+    checkError("after set uniform value color");
   } else {
     qDebug() << "no color texture specified";
   }
