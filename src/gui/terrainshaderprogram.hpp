@@ -70,6 +70,14 @@ public:
   void setRange(GLfloat, GLfloat);
   void setViewPort(GLfloat, GLfloat);
 
+  void bindVao() {
+    m_vao->bind();
+  }
+
+  void releaseVao() {
+    m_vao->release();
+  }
+
 signals:
 
 
@@ -118,6 +126,8 @@ private:
   // GLint m_terrain_xRange_u;
   // GLint m_terrain_yRange_u;
   GLint m_terrain_viewport_u;
+
+  QOpenGLVertexArrayObject* m_vao;
 
 };
 

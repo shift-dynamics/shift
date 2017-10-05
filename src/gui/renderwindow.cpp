@@ -187,6 +187,9 @@ QString RenderWindow::getCursorPositionText() {
 }
 
 
+/*!
+@brief converts double precision s2_displacement_t to floating point precision QMatrix4x4
+*/
 QMatrix4x4 s2_displacementToQMatrix4x4(
   s2_displacement_t* displacement) {
 
@@ -260,7 +263,8 @@ void RenderWindow::setOrthogonal() {
 }
 
 
-/* @brief load a Context data structure for rendering
+/*!
+@brief load a Context data structure for rendering
 
 */
 void RenderWindow::loadContext(
@@ -274,7 +278,6 @@ void RenderWindow::loadContext(
     m_joints->loadContext();
   }
 }
-
 
 
 /*!
@@ -333,9 +336,8 @@ void RenderWindow::checkError(
 // }
 
 
-
-/*! @brief Initialize render window
-
+/*!
+@brief Initialize render window
 */
 void RenderWindow::initialize() {
 
