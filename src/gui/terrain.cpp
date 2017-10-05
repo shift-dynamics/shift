@@ -9,7 +9,8 @@ void s2_Terrain::loadContext() {
   m_context = m_renderWindow->getContext();
   /* initializes terrain maps, checks m_terrainInitialized to verify
   that terrain maps have not already been loaded for this context */
-  if(m_context && m_context->terrainCount != 0) {
+  if(m_context && m_context->terrainCount != 0 && m_program->isLinked()) {
+
     if(m_terrainObjects) {
       delete [] m_terrainObjects;
     }
@@ -17,6 +18,7 @@ void s2_Terrain::loadContext() {
 
     m_program->bind();
     for(int i = 0; i < m_context->terrainCount; i++) {
+      qDebug() << "generating terrain uniforms [" << i << "]";
 
       s2_terrain_t* terrain = m_context->terrains[i];
 
@@ -60,7 +62,7 @@ void s2_Terrain::loadContext() {
           terrain->zMin) / range);
         // printf(
         //   "%f -> %f\n",
-        //   elevationMap->controlPoints[j],
+        //   terrain->controlPoints[j],
         //   depthFloat[j]);
       }
 
@@ -69,6 +71,7 @@ void s2_Terrain::loadContext() {
         QOpenGLTexture::Float32,
         depthFloat);
       checkError("after setData");
+
       free(depthFloat);
 
 
@@ -99,9 +102,8 @@ void s2_Terrain::loadContext() {
       m_terrainObjects[i].textureColor->allocateStorage();
       checkError("after allocate storage");
 
-      // size_t size = elevationMap->textureRows * elevationMap->textureColumns * 4;
-      // for(size_t i = 0; i < size; i++) {
-      //   printf("[%lu]: %d\n", i, elevationMap->texture[i]);
+      // for(size_t j = 0; j < n * 4; j++) {
+      //   printf("[%lu]: %d\n", j, terrain->texture[j]);
       // }
 
       m_terrainObjects[i].textureColor->setData(
@@ -115,6 +117,7 @@ void s2_Terrain::loadContext() {
     checkError("after generate terrain texture uniforms");
 
     m_initialized = true;
+    enable(true);
     emit terrainLoaded();
   }
 }
@@ -126,6 +129,8 @@ void s2_Terrain::draw() {
 
     m_program->bind();
     checkError("terrain: after program bind");
+
+    m_program->bindVao();
 
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
@@ -147,11 +152,14 @@ void s2_Terrain::draw() {
       checkError("terrain: after set transform");
 
       m_program->setUniforms(terrain);
+      checkError("terrain: after set uniforms");
 
+      m_terrainObjects[i].textureDisplacement->bind(0);
       m_program->setTextureDisplacement(
         m_terrainObjects[i].textureDisplacement);
       checkError("terrain: after set texture displacement");
 
+      m_terrainObjects[i].textureColor->bind(1);
       m_program->setTextureColor(
         m_terrainObjects[i].textureColor);
       checkError("terrain: after set texture color");
@@ -192,6 +200,7 @@ void s2_Terrain::draw() {
       checkError("terrain: after release color texture");
 
     }
+    m_program->releaseVao();
     m_program->release();
   }
 }
