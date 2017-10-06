@@ -64,6 +64,7 @@ SUCH DAMAGE.
 #include "lights.hpp"
 #include "frames.hpp"
 #include "terrain.hpp"
+#include "grid.hpp"
 #include "../star2.h"
 
 /*!
@@ -1279,6 +1280,12 @@ void Workspace::initializeMenus() {
   m_actionToggleDrawTerrain->setCheckable(true);
   m_actionToggleDrawTerrain->setChecked(true);
 
+  m_actionToggleDrawGrid =
+    new QAction("Display Grid", this);
+  viewMenu->addAction(m_actionToggleDrawGrid);
+  m_actionToggleDrawGrid->setCheckable(true);
+  m_actionToggleDrawGrid->setChecked(true);
+
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
   QAction* actionAbout = new QAction("About this program ...", this);
@@ -1298,7 +1305,6 @@ void Workspace::initializeMenus() {
   /*
     view menu actions
   */
-  // RenderWindow* renWin = glwidget->GetRenderWindow();
   QObject::connect(
     actionSetPerspective,
     SIGNAL(triggered()),
@@ -1351,6 +1357,12 @@ void Workspace::initializeMenus() {
     m_actionToggleDrawTerrain,
     SIGNAL(triggered()),
     m_renderWindow->getTerrain(),
+    SLOT(toggleDraw()));
+
+  QObject::connect(
+    m_actionToggleDrawGrid,
+    SIGNAL(triggered()),
+    m_renderWindow->getGrid(),
     SLOT(toggleDraw()));
 
   /*

@@ -76,12 +76,6 @@ public slots:
     m_scaleFactor = scaleFactor;
   }
 
-signals:
-
-
-protected:
-
-
 private:
 
   int m_gridSize;

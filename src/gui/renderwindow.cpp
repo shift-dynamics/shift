@@ -86,6 +86,16 @@ RenderWindow::RenderWindow()
 }
 
 
+RenderWindow::~RenderWindow(){
+  delete m_joints;
+  delete m_bodies;
+  delete m_frames;
+  delete m_terrain;
+  delete m_lights;
+  delete m_grid;
+}
+
+
 /*!
 @brief resize GL window signal
 */
