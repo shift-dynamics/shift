@@ -46,141 +46,47 @@ class ShadowShaderProgram;
 
 QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
-/*! @brief parameters related to lights
-
-currently the shader supports a maximum of 10 lights
-
-*/
-// typedef struct LightParameters {
-//   GLfloat* posLight;
-//   GLfloat* KaLight;
-//   GLfloat* KdLight;
-//   GLfloat* KsLight;
-//   GLuint* mvp;
-//   GLuint* mv;
-//   GLuint* v;
-//   GLuint* shadowTexture;
-//   GLuint* shadowBuffer;
-//   GLint* directional;
-//   GLuint lightCount;
-// } LightParameters;
-
-
-
-/*! @brief uniform identifiers used for each shader program
-
-*/
-// typedef struct ProgramUniforms {
-  // GLuint m;
-  // GLuint mv;
-  // GLuint mvp;
-  // GLuint nm;
-  // GLuint v;
-  //
-  // GLuint KaMaterial;
-  // GLuint KdMaterial;
-  // GLuint KsMaterial;
-  // GLuint KeMaterial;
-  // GLuint Ns;
-  //
-  // GLuint posLight;
-  // GLuint directional;
-  // GLuint Ka;
-  // GLuint Kd;
-  // GLuint Ks;
-  // // GLuint KsOverKd;
-  // // GLuint KaOverKd;
-  // GLuint lightCount;
-  //
-  // GLint position;
-  // GLint normal;
-
-  // GLuint colorUniform;
-
-  // GLuint textureDisplacement;
-  // GLuint textureColor;
-  // GLuint projectionMatrix;
-  // GLuint zMax;
-  // GLuint zMin;
-  //
-  // GLuint viewport;
-
-
-
-// } ProgramUniforms;
-
-
-// typedef struct FrameUniforms {
-//   GLuint position;
-//   GLuint mvp;
-//   GLuint color;
-//   QOpenGLVertexArrayObject* vao;
-//   QOpenGLBuffer* vbo;
-//   QOpenGLBuffer* ibo;
-//   GLfloat* vertices;
-//   GLfloat* colors;
-//   GLuint* indices;
-// } FrameUniforms;
-
-
-// typedef struct BufferObjects {
-//   QOpenGLVertexArrayObject* vao;
-//   QOpenGLBuffer* vertexBuffer;
-//   QOpenGLBuffer* vertexNormalBuffer;
-//   QOpenGLBuffer* ibo;
-//   s2_material_t* material;
-//   s2_displacement_t* transform;
-// } BufferObjects;
-
-
-/*! @brief struct for a planar grid */
-// typedef struct Grid {
-//   BufferObjects* faceBufferObject;
-//   BufferObjects* lineBufferObject;
-//   int gridSize;
-//   int scaleFactor;
-// } Grid;
-
-
-// typedef struct TerrainObjects {
-//   GLuint depth;
-//   GLuint color;
-//   QOpenGLTexture* depthTexture;
-//   QOpenGLTexture* colorTexture;
-// } TerrainObjects;
-
-
 class RenderWindow : public OpenGLWindow {
   Q_OBJECT
 
 public:
   RenderWindow();
-  ~RenderWindow() {
-
-  };
+  ~RenderWindow();
 
   void render();
+
   void resizeGL(int width, int height);
+
   void clearContext();
+
   void loadContext(s2_context_t* context);
+
   QString getCursorPositionText();
+
   void checkError(const QString &prefix);
+
   void setSimulationRunning(bool val);
+
   bool isInitialized();
+
   void clearJoint();
+
   void setJointTarget(
     s2_joint_t* joint,
     int qIndex,
     int dqIndex,
     double targetVal,
     s2_joint_enum_t jointType);
+
   void setJoint(
     s2_joint_t* joint,
     int qIndex,
     int dqIndex,
     double delq,
     s2_joint_enum_t jointType);
+
   void updateJoint();
+
   s2_context_t* getContext() {
     return m_context;
   }

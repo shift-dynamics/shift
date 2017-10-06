@@ -75,10 +75,15 @@ public:
   }
 
   void initialize();
+
   void draw();
+
   void loadContext();
+
   void clearContext();
+
   void setLights(s2_Lights*);
+
   void setShader(TerrainShaderProgram* program) {
     m_program = program;
   }

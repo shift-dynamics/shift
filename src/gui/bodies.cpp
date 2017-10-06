@@ -60,8 +60,6 @@ void s2_Bodies::setLineShader(SimpleShaderProgram* program) {
 @brief set up program uniforms for s2_Bodies
 */
 void s2_Bodies::initialize() {
-  // setUniformLocations(m_programFlat, &m_uniformsFlat);
-  // setUniformLocations(m_programPhong, &m_uniformsPhong);
 
 }
 
@@ -285,4 +283,14 @@ void s2_Bodies::setAttributeLocations(
 
   // bufferObjects->vao->release();
   program->release();
+}
+
+
+/*!
+@brief free memory for context datastructure
+*/
+void s2_Bodies::clearContext() {
+  enable(false);
+  m_context = NULL;
+  m_bufferObjects.clear();
 }

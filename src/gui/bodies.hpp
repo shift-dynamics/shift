@@ -76,6 +76,7 @@ public:
 
   void setDrawStyle(s2_shading_enum_t shadingType);
   void loadContext();
+  void clearContext();
   void setLights(s2_Lights*);
   void setFlatShader(FlatShaderProgram*);
   void setPhongShader(PhongShaderProgram*);
