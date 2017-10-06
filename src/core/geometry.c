@@ -170,30 +170,30 @@ int s2_loadBodyGeometry(
     ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
     if(ret1 == AI_SUCCESS) {
       // printf("diffuse: %f %f %f %f\n", diffuse.r, diffuse.g, diffuse.b, diffuse.a);
-      body->materials[i].Kd[0] = diffuse.r;
-      body->materials[i].Kd[1] = diffuse.g;
-      body->materials[i].Kd[2] = diffuse.b;
-      body->materials[i].Kd[3] = diffuse.a;
+      body->materials[i].GLuniforms.Kd[0] = diffuse.r;
+      body->materials[i].GLuniforms.Kd[1] = diffuse.g;
+      body->materials[i].GLuniforms.Kd[2] = diffuse.b;
+      body->materials[i].GLuniforms.Kd[3] = diffuse.a;
     } else {
-      body->materials[i].Kd[0] = 0.6;
-      body->materials[i].Kd[1] = 0.6;
-      body->materials[i].Kd[2] = 0.6;
-      body->materials[i].Kd[3] = 1.0;
+      body->materials[i].GLuniforms.Kd[0] = 0.6;
+      body->materials[i].GLuniforms.Kd[1] = 0.6;
+      body->materials[i].GLuniforms.Kd[2] = 0.6;
+      body->materials[i].GLuniforms.Kd[3] = 1.0;
     }
 
     struct aiColor4D ambient;
     ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient);
     if(ret1 == AI_SUCCESS) {
       // printf("ambient: %f %f %f %f\n", ambient.r, ambient.g, ambient.b, ambient.a);
-      body->materials[i].Ka[0] = ambient.r;
-      body->materials[i].Ka[1] = ambient.g;
-      body->materials[i].Ka[2] = ambient.b;
-      body->materials[i].Ka[3] = ambient.a;
+      body->materials[i].GLuniforms.Ka[0] = ambient.r;
+      body->materials[i].GLuniforms.Ka[1] = ambient.g;
+      body->materials[i].GLuniforms.Ka[2] = ambient.b;
+      body->materials[i].GLuniforms.Ka[3] = ambient.a;
     } else {
-      body->materials[i].Ka[0] = 0.6;
-      body->materials[i].Ka[1] = 0.6;
-      body->materials[i].Ka[2] = 0.6;
-      body->materials[i].Ka[3] = 1.0;
+      body->materials[i].GLuniforms.Ka[0] = 0.6;
+      body->materials[i].GLuniforms.Ka[1] = 0.6;
+      body->materials[i].GLuniforms.Ka[2] = 0.6;
+      body->materials[i].GLuniforms.Ka[3] = 1.0;
     }
 
     /*! @todo track down why some colors are loaded in as zero from
@@ -205,30 +205,30 @@ int s2_loadBodyGeometry(
     ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular);
     if(ret1 == AI_SUCCESS) {
       // printf("specular: %f %f %f %f\n", specular.r, specular.g, specular.b, specular.a);
-      body->materials[i].Ks[0] = specular.r;
-      body->materials[i].Ks[1] = specular.g;
-      body->materials[i].Ks[2] = specular.b;
-      body->materials[i].Ks[3] = specular.a;
+      body->materials[i].GLuniforms.Ks[0] = specular.r;
+      body->materials[i].GLuniforms.Ks[1] = specular.g;
+      body->materials[i].GLuniforms.Ks[2] = specular.b;
+      body->materials[i].GLuniforms.Ks[3] = specular.a;
     } else {
-      body->materials[i].Ks[0] = 0.6;
-      body->materials[i].Ks[1] = 0.6;
-      body->materials[i].Ks[2] = 0.6;
-      body->materials[i].Ks[3] = 1.0;
+      body->materials[i].GLuniforms.Ks[0] = 0.6;
+      body->materials[i].GLuniforms.Ks[1] = 0.6;
+      body->materials[i].GLuniforms.Ks[2] = 0.6;
+      body->materials[i].GLuniforms.Ks[3] = 1.0;
     }
 
     struct aiColor4D emissive;
     ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emissive);
     if(ret1 == AI_SUCCESS) {
       // printf("emissive: %f %f %f %f\n", emissive.r, emissive.g, emissive.b, emissive.a);
-      body->materials[i].Ke[0] = emissive.r;
-      body->materials[i].Ke[1] = emissive.g;
-      body->materials[i].Ke[2] = emissive.b;
-      body->materials[i].Ke[3] = emissive.a;
+      body->materials[i].GLuniforms.Ke[0] = emissive.r;
+      body->materials[i].GLuniforms.Ke[1] = emissive.g;
+      body->materials[i].GLuniforms.Ke[2] = emissive.b;
+      body->materials[i].GLuniforms.Ke[3] = emissive.a;
     } else {
-      body->materials[i].Ke[0] = 0.0;
-      body->materials[i].Ke[1] = 0.0;
-      body->materials[i].Ke[2] = 0.0;
-      body->materials[i].Ke[3] = 1.0;
+      body->materials[i].GLuniforms.Ke[0] = 0.0;
+      body->materials[i].GLuniforms.Ke[1] = 0.0;
+      body->materials[i].GLuniforms.Ke[2] = 0.0;
+      body->materials[i].GLuniforms.Ke[3] = 1.0;
     }
 
     /*
@@ -309,7 +309,7 @@ int s2_loadBodyGeometry(
     /*!
       @todo figure out where specular highlight term is stored in assimp
     */
-    body->materials[i].Ns = 10;
+    body->materials[i].GLuniforms.Ns = 10;
 
     /*
       load tangents

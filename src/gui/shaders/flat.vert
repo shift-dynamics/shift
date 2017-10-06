@@ -1,30 +1,42 @@
 #version 330
 
-/* light parameters */
-uniform int lightCount;
-uniform vec3 posLight[10];
-uniform vec3 Ka[10];
-uniform vec3 Kd[10];
-uniform vec3 Ks[10];
-uniform int directional[10];
+struct matrices_t {
+  mat4 mvp;
+  mat4 mv;
+  mat4 v;
+  mat3 nm;
+};
 
-/* body parameters */
-uniform mat4 mvp, mv, v;
-uniform mat3 nm;
+uniform matrices_t matrices_u;
 
-/* material parameters */
-uniform vec4 KaMaterial;
-uniform vec4 KdMaterial;
-uniform vec4 KsMaterial;
-uniform int Ns;
+struct material_t {
+  vec4 Ka;
+  vec4 Kd;
+  vec4 Ks;
+  vec4 Ke;
+  int Ns;
+};
+
+uniform material_t material_u;
+
+struct lights_t {
+  vec3 position[10];
+  vec3 Ka[10];
+  vec3 Kd[10];
+  vec3 Ks[10];
+  int directional[10];
+  int count;
+};
+
+uniform lights_t lights_u;
 
 /* attributes */
-in vec4 posAttr;
-in vec3 normAttr;
+in vec4 position_a;
+in vec3 normal_a;
 
 out vec4 vertexGeom;
 
 void main() {
-  vertexGeom = posAttr;
-  gl_Position = mvp * posAttr;
+  vertexGeom = position_a;
+  gl_Position = matrices_u.mvp * position_a;
 }
