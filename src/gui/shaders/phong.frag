@@ -1,27 +1,34 @@
 #version 330
-/*
-  light parameters
-*/
-uniform int lightCount;
-uniform vec3 posLight[10];
-uniform vec3 Ka[10];
-uniform vec3 Kd[10];
-uniform vec3 Ks[10];
-uniform int directional[10];
 
-/*
-  body parameters
-*/
-uniform mat4 mvp, mv, v;
-uniform mat3 nm;
+struct matrices_t {
+  mat4 mvp;
+  mat4 mv;
+  mat4 v;
+  mat3 nm;
+};
 
-/*
-  material parameters
-*/
-uniform vec3 KaMaterial;
-uniform vec3 KdMaterial;
-uniform vec3 KsMaterial;
-uniform int Ns;
+uniform matrices_t matrices_u;
+
+struct material_t {
+  vec4 Ka;
+  vec4 Kd;
+  vec4 Ks;
+  vec4 Ke;
+  int Ns;
+};
+
+uniform material_t material_u;
+
+struct lights_t {
+  vec3 position[10];
+  vec3 Ka[10];
+  vec3 Kd[10];
+  vec3 Ks[10];
+  int directional[10];
+  int count;
+};
+
+uniform lights_t lights_u;
 
 in vec3 normalFrag;
 in vec4 positionFrag;
@@ -33,43 +40,52 @@ void main() {
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
   vec3 V = vec3(0.0, 0.0, 1.0);
 
-  for(int i = 0; i < lightCount; i++) {
+  for(int i = 0; i < lights_u.count; i++) {
     vec3 L;
-    switch(directional[i]) {
+    switch(lights_u.directional[i]) {
       case 0: {
-        // 0= point light, posLight indicates position of light source
-        //need to compute direction of incoming light
-
-        vec4 temp = v * vec4(
-          posLight[i].x,
-          posLight[i].y,
-          posLight[i].z,
+        /* 0= point light
+          light.position indicates position of light source
+          used to compute direction of incoming light */
+        vec4 temp = matrices_u.v * vec4(
+          lights_u.position[i].x,
+          lights_u.position[i].y,
+          lights_u.position[i].z,
           1.0)
-          - mv * positionFrag;
+          - matrices_u.mv * positionFrag;
         L = normalize(temp.xyz);
-      }
-      break;
+      } break;
       case 1: {
-        // 1=directional light, posLight indicates direction of incoming light
+        /* 1 = directional light
+          light.position indicates position of light source
+          used to compute direction of incoming light */
 
-        vec4 temp = v * vec4(
-          posLight[i].x,
-          posLight[i].y,
-          posLight[i].z,
+        vec4 temp = matrices_u.v * vec4(
+          lights_u.position[i].x,
+          lights_u.position[i].y,
+          lights_u.position[i].z,
           1.0);
         L = normalize(temp.xyz);
-      }
-      break;
+      } break;
+      default: {
+
+      } break;
     }
 
-    color.rgb += KaMaterial * Ka[i];          //ambient term
+    /* ambient term */
+    color.rgb += material_u.Ka.rgb * lights_u.Ka[i];
+
+    /* diffuse term */
     float LdotN =  max(0.0, dot(L, normalFrag));
+    color.rgb += material_u.Kd.rgb * lights_u.Kd[i] * LdotN;
 
-    color.rgb += KdMaterial * Kd[i] * LdotN; //diffuse term
-
-    vec3 R = -normalize(reflect(L, normalFrag));       //specular term
-    color.rgb += KsMaterial * Ks[i] * pow(max(0, dot(R, V)), Ns);
+    /* specular term */
+    vec3 R = -normalize(reflect(L, normalFrag));
+    color.rgb +=
+      material_u.Ks.rgb * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns);
   }
+
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));
+  colorFrag.a = material_u.Ka.a;
 
 }

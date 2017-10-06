@@ -173,6 +173,7 @@ class Workspace : public QMainWindow {
     SliderHandle* m_currentSlider;
     QTabWidget* m_tabwidget;
     QAction* m_actionToggleDrawTerrain;
+    QAction* m_actionToggleDrawGrid;
 
     struct m_sliders {
       QGroupBox* groupBox;

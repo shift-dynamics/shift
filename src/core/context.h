@@ -53,7 +53,7 @@ typedef struct s2_sensor_t s2_sensor_t;
 typedef struct s2_camera_t s2_camera_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_shaderhandle_t s2_shaderhandle_t;
-typedef struct s2_elevationmap_t s2_elevationmap_t;
+typedef struct s2_terrain_t s2_terrain_t;
 
 
 /*!
@@ -158,6 +158,9 @@ s2_forcemodule_t* s2_forcemodule(s2_forcemodule_enum_t);
 s2_material_t* s2_materials(
   int materialCount);
 
+void s2_materials_free(
+  s2_material_t* materials,
+  int materialCount);
 
 void s2_restraint_append(
   s2_assembly_t* assembly,
@@ -756,15 +759,15 @@ typedef struct s2_context_t {
 
   int stiffnessCount;
   s2_joint_t** stiffnessJoints;
+
   /*!
   @}
-  @name data related to elevationmaps
+  @name data related to terrain maps
   @{
   */
 
-  int elevationMapCount;
-  s2_elevationmap_t** elevationmaps;
-
+  int terrainCount;
+  s2_terrain_t** terrains;
 
   /*!
   @}
@@ -845,11 +848,13 @@ typedef struct s2_material_t {
   char* filePath;
   s2_shading_enum_t shadingType;
 
-  GLfloat Ka[4]; /*!< ambient color properties */
-  GLfloat Kd[4]; /*!< diffuse color properties */
-  GLfloat Ks[4]; /*!< specular color properties */
-  GLfloat Ke[4]; /*!< emissive color properties */
-  GLint Ns; /*!< specular highlight */
+  struct GLuniforms {
+    GLfloat Ka[4]; /*!< ambient color properties */
+    GLfloat Kd[4]; /*!< diffuse color properties */
+    GLfloat Ks[4]; /*!< specular color properties */
+    GLfloat Ke[4]; /*!< emissive color properties */
+    GLint Ns; /*!< specular highlight */
+  } GLuniforms;
 
   int vertexCount;
   int faceCount;

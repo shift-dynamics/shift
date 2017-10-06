@@ -13,8 +13,8 @@
       9.81
     ],
     "include_dir": [
-      "models/elevationmap/",
-      "elevationmap/"
+      "models/terrain/",
+      "terrain/"
     ],
     "simulation": {
       "integration_type": "ode113b",
@@ -76,7 +76,7 @@
         "Ks": [0.2, 0.2, 0.2]
       }
     ],
-    "elevationmaps": [
+    "terrain": [
       {
         "name": "sinxx+cosyy",
         "definition": "sinxx+cosyy.tiff",

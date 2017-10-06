@@ -1,22 +1,34 @@
 #version 330
 
-/* light parameters */
-uniform int lightCount;
-uniform vec3 posLight[10];
-uniform vec3 Ka[10];
-uniform vec3 Kd[10];
-uniform vec3 Ks[10];
-uniform int directional[10];
+struct matrices_t {
+  mat4 mvp;
+  mat4 mv;
+  mat4 v;
+  mat3 nm;
+};
 
-/* body parameters */
-uniform mat4 mvp, mv, v;
-uniform mat3 nm;
+uniform matrices_t matrices_u;
 
-/* material parameters */
-uniform vec4 KaMaterial;
-uniform vec4 KdMaterial;
-uniform vec4 KsMaterial;
-uniform int Ns;
+struct material_t {
+  vec4 Ka;
+  vec4 Kd;
+  vec4 Ks;
+  vec4 Ke;
+  int Ns;
+};
+
+uniform material_t material_u;
+
+struct lights_t {
+  vec3 position[10];
+  vec3 Ka[10];
+  vec3 Kd[10];
+  vec3 Ks[10];
+  int directional[10];
+  int count;
+};
+
+uniform lights_t lights_u;
 
 in vec4 vertexFrag;
 in vec3 normalFrag;
@@ -29,36 +41,42 @@ void main() {
   vec3 V = vec3(0.0, 0.0, 1.0);
 
   //int i = 0;
-  for(int i = 0; i < lightCount; i++) {
+  for(int i = 0; i < lights_u.count; i++) {
     vec3 L;
-    switch(directional[i]) {
+    switch(lights_u.directional[i]) {
       case 0: {
         // point light, posLight indicates position of light source
         //need to compute direction of incoming light
-        vec4 temp = v * vec4(
-          posLight[i].x,
-          posLight[i].y,
-          posLight[i].z,
-          1.0) - mv * vertexFrag;
+        vec4 temp = matrices_u.v * vec4(
+          lights_u.position[i].x,
+          lights_u.position[i].y,
+          lights_u.position[i].z,
+          1.0) - matrices_u.mv * vertexFrag;
         L = normalize(vec3(temp.x, temp.y, temp.z));
       }
       break;
       case 1: {
         //directional light, posLight indicates direction of incoming light
-        L = normalize(mat3(v) * posLight[i]);
+        L = normalize(mat3(matrices_u.v) * lights_u.position[i]);
       }
       break;
     }
 
-    color.xyz += KaMaterial.xyz * Ka[i];          //ambient term
+    /* ambient term */
+    color.rgb += material_u.Ka.rgb * lights_u.Ka[i];
     float LdotN =  max(0.0, dot(L, normalFrag));
-    color.xyz += KdMaterial.xyz * Kd[i] * LdotN; //diffuse term
-    vec3 R = -normalize(reflect(L, normalFrag));       //specular term
-      color.xyz += KsMaterial.xyz * Ks[i] * pow(max(0, dot(R, V)), Ns);
+
+    /* diffuse term */
+    color.rgb += material_u.Kd.rgb * lights_u.Kd[i] * LdotN;
+
+    /* specular term */
+    vec3 R = -normalize(reflect(L, normalFrag));
+    color.rgb +=
+      material_u.Ks.rgb * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns);
 
   }
   //fragColor = vec4(1.0);
-  fragColor = min(vec4(color.xyz, KaMaterial.w), vec4(1.0, 1.0, 1.0, 1.0));
+  fragColor = min(vec4(color.rgb, material_u.Ka.a), vec4(1.0, 1.0, 1.0, 1.0));
   //fragColor = vertexFrag;
   //fragColor = vec4(normalFrag.x, normalFrag.y, normalFrag.z, 1);
 
