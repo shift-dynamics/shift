@@ -441,8 +441,8 @@ s2_context_t* s2_context() {
   */
   context->iterationsSinceLastConstraintError = 0;
 
-  context->elevationMapCount = 0;
-  context->elevationmaps = NULL;
+  context->terrainCount = 0;
+  context->terrains = NULL;
 
   return context;
 }
@@ -543,11 +543,11 @@ s2_material_t* s2_materials(
     materials[i].name = NULL;
     materials[i].index = 0;
     materials[i].filePath = NULL;
-    memset(materials[i].Ka, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].Kd, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].Ks, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].Ke, 0, 4 * sizeof(GLfloat));
-    materials[i].Ns = 0;
+    memset(materials[i].GLuniforms.Ka, 0, 4 * sizeof(GLfloat));
+    memset(materials[i].GLuniforms.Kd, 0, 4 * sizeof(GLfloat));
+    memset(materials[i].GLuniforms.Ks, 0, 4 * sizeof(GLfloat));
+    memset(materials[i].GLuniforms.Ke, 0, 4 * sizeof(GLfloat));
+    materials[i].GLuniforms.Ns = 0;
     materials[i].vertexCount = 0;
     materials[i].vertices = NULL;
     materials[i].vertexNormals = NULL;
@@ -558,6 +558,7 @@ s2_material_t* s2_materials(
   }
   return materials;
 }
+
 
 /*!
 @brief Initialize a Frame datastructure and set to identity
@@ -2429,7 +2430,7 @@ double s2_context_getSimulationTime(s2_context_t* context) {
 
 
 /*!
-@brief get current iconv value, always returns -1 for
+@brief get current iconv value from numerical integrator
 */
 int s2_context_getIConv(s2_context_t* context) {
   if(context->modelParameters && context->numericalIntegrator) {
@@ -2446,3 +2447,7 @@ int s2_context_getIConv(s2_context_t* context) {
   }
   return -1;
 }
+
+/*!
+@brief free displacement
+*/

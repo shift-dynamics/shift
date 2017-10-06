@@ -1,8 +1,9 @@
-#ifndef _STAR2_BUFFEROBJECTS_HPP_
-#define _STAR2_BUFFEROBJECTS_HPP_
+#ifndef _STAR2_SHADOWSHADERPROGRAM_HPP_
+#define _STAR2_SHADOWSHADERPROGRAM_HPP_
 
 #include "../star2.h"
 #include "openglwindow.hpp"
+#include "shaderprogram.hpp"
 
 #include <QString>
 #include <QMouseEvent>
@@ -30,10 +31,39 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
+class RenderWindow;
+class s2_Lights;
 
 
+class ShadowShaderProgram : public ShaderProgram {
+
+  Q_OBJECT
+
+public:
+  ShadowShaderProgram(RenderWindow* renderWindow)
+  : ShaderProgram(renderWindow) {
+    initialize();
+  };
+
+  ~ShadowShaderProgram() {};
+
+  void initialize();
+  void draw();
+  void setTransform(s2_displacement_t*);
+  void setMVP(QMatrix4x4&);
+  void setScale(GLfloat);
+
+signals:
 
 
+protected:
 
+
+private:
+
+  GLuint m_mvp_u;
+  GLuint m_scale_u;
+
+};
 
 #endif

@@ -59,6 +59,12 @@ SUCH DAMAGE.
 
 #include "workspace.hpp"
 #include "renderwindow.hpp"
+#include "joints.hpp"
+#include "bodies.hpp"
+#include "lights.hpp"
+#include "frames.hpp"
+#include "terrain.hpp"
+#include "grid.hpp"
 #include "../star2.h"
 
 /*!
@@ -1141,14 +1147,15 @@ void Workspace::initializeLayout() {
     m_renderWindow,
     SLOT(updateGL()));
 
+  s2_Joints* joints = m_renderWindow->getJoints();
   QObject::connect(
-    m_renderWindow,
+    joints,
     SIGNAL(jointChanged()),
     this,
     SLOT(updateTree()));
 
   QObject::connect(
-    m_renderWindow,
+    joints,
     SIGNAL(jointChanged()),
     this,
     SLOT(updateH()));
@@ -1181,7 +1188,7 @@ void Workspace::resizeEvent(QResizeEvent* event) {
 
 void Workspace::initializeMenus() {
 
-  setWindowTitle("STAR2");
+  setWindowTitle("star2");
   QMenu *fileMenu = menuBar()->addMenu("&File");
 
   /* save dialog */
@@ -1245,7 +1252,7 @@ void Workspace::initializeMenus() {
 
   shadingGroup->addAction(actionSetPhongShaded);
   actionSetPhongShaded->setCheckable(true);
-  actionSetFlatShaded->setChecked(true);
+  actionSetPhongShaded->setChecked(true);
 
   viewMenu->addSeparator();
 
@@ -1271,9 +1278,13 @@ void Workspace::initializeMenus() {
     new QAction("Display Terrain", this);
   viewMenu->addAction(m_actionToggleDrawTerrain);
   m_actionToggleDrawTerrain->setCheckable(true);
-  m_actionToggleDrawTerrain->setChecked(false);
+  m_actionToggleDrawTerrain->setChecked(true);
 
-
+  m_actionToggleDrawGrid =
+    new QAction("Display Grid", this);
+  viewMenu->addAction(m_actionToggleDrawGrid);
+  m_actionToggleDrawGrid->setCheckable(true);
+  m_actionToggleDrawGrid->setChecked(true);
 
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
@@ -1294,37 +1305,34 @@ void Workspace::initializeMenus() {
   /*
     view menu actions
   */
-  // RenderWindow* renWin = glwidget->GetRenderWindow();
   QObject::connect(
     actionSetPerspective,
     SIGNAL(triggered()),
     m_renderWindow,
     SLOT(setPerspective()));
+
   QObject::connect(
     actionSetOrthogonal,
     SIGNAL(triggered()),
     m_renderWindow,
     SLOT(setOrthogonal()));
+
   QObject::connect(
     actionSetWireframe,
     SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(setWireFrame()));
+    m_renderWindow->getBodies(),
+    SLOT(setWireframe()));
 
   QObject::connect(
     actionSetFlatShaded,
     SIGNAL(triggered()),
-    m_renderWindow,
+    m_renderWindow->getBodies(),
     SLOT(setFlatShaded()));
-  // QObject::connect(
-  //   actionSetGouraudShaded,
-  //   SIGNAL(triggered()),
-  //   renWin,
-  //   SLOT(setGouraudShaded()));
+
   QObject::connect(
     actionSetPhongShaded,
     SIGNAL(triggered()),
-    m_renderWindow,
+    m_renderWindow->getBodies(),
     SLOT(setPhongShaded()));
 
   // QObject::connect(
@@ -1336,20 +1344,26 @@ void Workspace::initializeMenus() {
   QObject::connect(
     actionToggleFrameDisplay,
     SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(toggleFrameDisplay()));
+    m_renderWindow->getFrames(),
+    SLOT(toggleDraw()));
 
   QObject::connect(
     actionToggleJointDisplay,
     SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(toggleJointDisplay()));
+    m_renderWindow->getJoints(),
+    SLOT(toggleDraw()));
 
   QObject::connect(
     m_actionToggleDrawTerrain,
     SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(toggleDrawTerrain()));
+    m_renderWindow->getTerrain(),
+    SLOT(toggleDraw()));
+
+  QObject::connect(
+    m_actionToggleDrawGrid,
+    SIGNAL(triggered()),
+    m_renderWindow->getGrid(),
+    SLOT(toggleDraw()));
 
   /*
     help menu actions
@@ -2460,24 +2474,24 @@ void Workspace::populateMaterialColorDropDown(s2_material_t* material) {
 
   QPixmap currentColor(40, 40);
   currentColor.fill(QColor(
-    material->Ka[0] * 255,
-    material->Ka[1] * 255,
-    material->Ka[2] * 255));
+    material->GLuniforms.Ka[0] * 255,
+    material->GLuniforms.Ka[1] * 255,
+    material->GLuniforms.Ka[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(0, QIcon(currentColor));
   currentColor.fill(
     QColor(
-      material->Kd[0] * 255,
-      material->Kd[1] * 255,
-      material->Kd[2] * 255));
+      material->GLuniforms.Kd[0] * 255,
+      material->GLuniforms.Kd[1] * 255,
+      material->GLuniforms.Kd[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(1, QIcon(currentColor));
   currentColor.fill(
     QColor(
-      material->Ks[0] * 255,
-      material->Ks[1] * 255,
-      material->Ks[2] * 255));
+      material->GLuniforms.Ks[0] * 255,
+      material->GLuniforms.Ks[1] * 255,
+      material->GLuniforms.Ks[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(2, QIcon(currentColor));
-  qDebug() << "setting value" << material->Ns;
-  m_bodyPanel.nsModelSpinBox->setValue((double)material->Ns);
+  qDebug() << "setting value" << material->GLuniforms.Ns;
+  m_bodyPanel.nsModelSpinBox->setValue((double)material->GLuniforms.Ns);
 }
 
 
@@ -2975,7 +2989,7 @@ void Workspace::openFileAtLoad() {
 
     if(fileName.length() != 0) {
       m_currentFileName = fileName;
-      setWindowTitle(fileName + QString(" | STAR2"));
+      setWindowTitle(fileName + QString(" | star2"));
 
       m_context = s2_loadJSON(byteArray.data());
       s2_context_setTopology(m_context);
@@ -3101,7 +3115,7 @@ void Workspace::openFileAtLoad() {
 
       updateTree();
       loadModelParameters();
-      if(m_context->elevationMapCount == 0) {
+      if(m_context->terrainCount == 0) {
         drawTerrainToggleActive(false);
       } else {
         drawTerrainToggleActive(true);
@@ -3134,7 +3148,7 @@ void Workspace::openFile() {
 
   if(fileName.length() != 0) {
     m_currentFileName = fileName;
-    setWindowTitle(fileName + QString(" | STAR2"));
+    setWindowTitle(fileName + QString(" | star2"));
 
     m_context = s2_loadJSON(byteArray.data());
     s2_context_setTopology(m_context);
@@ -3265,7 +3279,7 @@ void Workspace::openFile() {
 
     updateTree();
     loadModelParameters();
-    if(m_context->elevationMapCount == 0) {
+    if(m_context->terrainCount == 0) {
       drawTerrainToggleActive(false);
     } else {
       drawTerrainToggleActive(true);
@@ -3469,6 +3483,7 @@ void Workspace::populateTreeRecursive(
 */
 void Workspace::drawTerrainToggleActive(bool active) {
   m_actionToggleDrawTerrain->setEnabled(active);
+  m_actionToggleDrawTerrain->setChecked(active);
 }
 
 /*!
@@ -3767,21 +3782,21 @@ void Workspace::materialColorSelector() {
       switch(colorType) {
         case AMBIENT: {
           qDebug() << "ambient";
-          material->Ka[0] = color.red() / 255.f;
-          material->Ka[1] = color.green() / 255.f;
-          material->Ka[2] = color.blue() / 255.f;
+          material->GLuniforms.Ka[0] = color.red() / 255.f;
+          material->GLuniforms.Ka[1] = color.green() / 255.f;
+          material->GLuniforms.Ka[2] = color.blue() / 255.f;
         } break;
         case DIFFUSE: {
           qDebug() << "diffuse";
-          material->Kd[0] = color.red() / 255.f;
-          material->Kd[1] = color.green() / 255.f;
-          material->Kd[2] = color.blue() / 255.f;
+          material->GLuniforms.Kd[0] = color.red() / 255.f;
+          material->GLuniforms.Kd[1] = color.green() / 255.f;
+          material->GLuniforms.Kd[2] = color.blue() / 255.f;
         } break;
         case SPECULAR: {
           qDebug() << "specular";
-          material->Ks[0] = color.red() / 255.f;
-          material->Ks[1] = color.green() / 255.f;
-          material->Ks[2] = color.blue() / 255.f;
+          material->GLuniforms.Ks[0] = color.red() / 255.f;
+          material->GLuniforms.Ks[1] = color.green() / 255.f;
+          material->GLuniforms.Ks[2] = color.blue() / 255.f;
         } break;
         case EMISSIVE: {
           qDebug() << "emissive currently not handled";

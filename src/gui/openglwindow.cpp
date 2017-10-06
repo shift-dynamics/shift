@@ -11,7 +11,7 @@
 
 
 OpenGLWindow::OpenGLWindow(
-  QWindow *parent)
+  QWindow* parent)
   : QWindow(parent)
   , m_update_pending(false)
   , m_animating(false)
