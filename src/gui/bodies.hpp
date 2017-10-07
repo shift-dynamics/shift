@@ -75,17 +75,28 @@ public:
   void initializeMaterial(s2_material_t*, s2_displacement_t*);
 
   void setDrawStyle(s2_shading_enum_t shadingType);
+
   void loadContext();
+
   void clearContext();
+
   void setLights(s2_Lights*);
+
   void setFlatShader(FlatShaderProgram*);
+
   void setPhongShader(PhongShaderProgram*);
+
   void setLineShader(SimpleShaderProgram*);
+
   void setAttributeLocations(
     QOpenGLShaderProgram*,
     GLint,
     GLint,
     buffer_objects_t*);
+
+  QVector<buffer_objects_t>* getBufferObjects() {
+    return &m_bufferObjects;
+  }
 
   void draw();
 
@@ -112,7 +123,9 @@ private:
 
   /* OpenGL shader programs */
   FlatShaderProgram* m_programFlat;
+
   PhongShaderProgram* m_programPhong;
+
   SimpleShaderProgram* m_programLine;
 
   s2_Lights* m_lights;

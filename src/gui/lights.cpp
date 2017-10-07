@@ -3,7 +3,9 @@
 #include "renderwindow.hpp"
 
 s2_Lights::s2_Lights(RenderWindow* renderWindow)
-: s2_Geometry(renderWindow) {
+  : s2_Geometry(renderWindow)
+  , m_bodies(NULL)
+  , m_depthBufferArray(NULL) {
 
   m_lights.count = 0;
   memset(m_lights.position, 0, 30 * sizeof(GLfloat));
@@ -101,12 +103,39 @@ void s2_Lights::loadContext() {
           m_context->lightPointers[i]->glLight.Ks[j];
       }
     }
+
+    /* generate array of depth buffers, one for each light. @TODO add logic to separate out point lights into separate array of cubemap depth buffers later */
+    m_depthBufferArray =
+      new QOpenGLTexture(QOpenGLTexture::Target2D);
+    checkError("terrain: after new depth texture");
+
+    m_depthBufferArray->setFormat(
+      QOpenGLTexture::R32F);
+    checkError("terrain: after set format R32F");
+
+    m_depthBufferArray->setWrapMode(
+      QOpenGLTexture::ClampToEdge);
+    checkError("terrain: after set wrap mode");
+
+    m_depthBufferArray->setMinMagFilters(
+      QOpenGLTexture::Linear,
+      QOpenGLTexture::Linear);
+    checkError("terrain: after set min mag filters");
+
+    m_depthBufferArray->setSize(
+      512,
+      512,
+      1);
+    checkError("terrain: after set size");
+    m_depthBufferArray->allocateStorage();
+    checkError("terrain after allocate storage for displacement texture");
+
   }
 }
 
 
 /*!
-@brief initialize lights
+@brief draw function
 */
 void s2_Lights::draw() {
 

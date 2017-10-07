@@ -32,14 +32,16 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class RenderWindow;
 class ShadowShaderProgram;
+class s2_Bodies;
 
 struct s2_lights_t {
   GLfloat position[30];
   GLfloat Ka[30];
   GLfloat Kd[30];
   GLfloat Ks[30];
-  GLint directional[10];
+  GLint directional[10]; /*!< 0 = point, 1 = directional, 2 = spot */
   int count;
+
 };
 
 class s2_Lights : public s2_Geometry {
@@ -48,6 +50,7 @@ class s2_Lights : public s2_Geometry {
 
 public:
   s2_Lights(RenderWindow* renderWindow);
+
   ~s2_Lights() {
 
   };
@@ -77,16 +80,28 @@ public:
   }
 
   void initialize();
+
   void draw();
+
   void loadContext();
+
   void setShader(ShadowShaderProgram* program) {
     m_program = program;
+  }
+
+  void setBodies(s2_Bodies* bodies) {
+    m_bodies = bodies;
   }
 
 private:
 
   s2_lights_t m_lights;
+
   ShadowShaderProgram* m_program;
+
+  s2_Bodies* m_bodies;
+
+  QOpenGLTexture* m_depthBufferArray;
 
 };
 
