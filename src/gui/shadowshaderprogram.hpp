@@ -51,7 +51,6 @@ public:
   void draw();
   void setTransform(s2_displacement_t*);
   void setMVP(QMatrix4x4&);
-  void setScale(GLfloat);
 
 signals:
 

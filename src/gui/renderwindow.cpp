@@ -82,6 +82,7 @@ RenderWindow::RenderWindow()
   m_frames = new s2_Frames(this);
   m_terrain = new s2_Terrain(this);
   m_lights = new s2_Lights(this);
+  m_lights->setBodies(m_bodies);
   m_grid = new s2_Grid(this);
 }
 
