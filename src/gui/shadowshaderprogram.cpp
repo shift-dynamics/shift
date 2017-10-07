@@ -9,17 +9,16 @@
 void ShadowShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/frame.vert");
-    addFragmentShader(":/shaders/frame.frag");
+    addVertexShader(":/shaders/shadow.vert");
+    addFragmentShader(":/shaders/shadow.frag");
     link();
     bind();
 
     /* set uniform locations */
     m_mvp_u = m_program->uniformLocation("mvp_u");
-    m_scale_u = m_program->uniformLocation("scale_u");
 
     release();
-    checkError("after initialize line shader");
+    checkError("after initialize shadow shader");
     m_initialized = true;
   }
 }
@@ -44,12 +43,4 @@ void ShadowShaderProgram::setTransform(s2_displacement_t* transform) {
 void ShadowShaderProgram::setMVP(QMatrix4x4& mvp) {
   m_program->setUniformValue(m_mvp_u, mvp);
   checkError("after set transform");
-}
-
-
-/*!
-@brief set scale factor
-*/
-void ShadowShaderProgram::setScale(GLfloat scale) {
-  m_program->setUniformValue(m_scale_u, scale);
 }

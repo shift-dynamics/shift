@@ -4,7 +4,7 @@
 in vec4 position_a;
 
 // Values that stay constant for the whole mesh.
-uniform mat4 mvp;
+uniform mat4 mvp_u;
 
 void main() {
  gl_Position = mvp * position_a;
