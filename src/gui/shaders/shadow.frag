@@ -1,7 +1,7 @@
 #version 330 core
 
-out float depthFrag;
+// layout (location = 0) out vec4 color;
 
 void main() {
-  depthFrag = gl_FragCoord.z;
+  // color = vec4(1.0);
 }

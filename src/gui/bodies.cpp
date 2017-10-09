@@ -286,10 +286,10 @@ void s2_Bodies::drawShadows() {
       checkError("bodies: after draw elements shadow shader");
 
       m_bufferObjects.at(i).vao->release();
-          checkError("after release shadow vao");
+      checkError("bodies: after release shadow vao");
     }
     m_programShadow->release();
-    checkError("after release shadow shader");
+    checkError("bodies: after release shadow shader");
   }
 }
 
