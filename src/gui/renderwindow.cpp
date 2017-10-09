@@ -402,6 +402,8 @@ void RenderWindow::initialize() {
     m_terrain->setShader(m_programTerrain);
     m_terrain->setLights(m_lights);
 
+    m_lights->setShader(m_programShadow);
+
     m_grid->setShader(m_programSimple);
     checkError("renderwindow: after set shader pointers");
 
@@ -705,6 +707,7 @@ void RenderWindow::render() {
 
   if(m_initialized && isAnimating()) {
 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if(m_drawShadows) {
       m_lights->draw();
     }
