@@ -3,6 +3,7 @@
 #include "phongshaderprogram.hpp"
 #include "flatshaderprogram.hpp"
 #include "simpleshaderprogram.hpp"
+#include "shadowshaderprogram.hpp"
 #include "lights.hpp"
 
 
@@ -53,6 +54,14 @@ void s2_Bodies::setPhongShader(PhongShaderProgram* program) {
 */
 void s2_Bodies::setLineShader(SimpleShaderProgram* program) {
   m_programLine = program;
+}
+
+
+/*!
+@brief set pointer to phong shader class
+*/
+void s2_Bodies::setShadowShader(ShadowShaderProgram* program) {
+  m_programShadow = program;
 }
 
 
@@ -247,6 +256,40 @@ void s2_Bodies::draw() {
       default: {
       } break;
     }
+  }
+}
+
+
+/*!
+@brief
+*/
+void s2_Bodies::drawShadows() {
+
+  if(m_drawEnabled && m_renderWindow->isInitialized()) {
+    m_programShadow->bind();
+    checkError("bodies: after bind shadow program");
+
+    /* draw geometry */
+    for(int i = 0; i < m_bufferObjects.size(); i++) {
+
+      m_bufferObjects.at(i).vao->bind();
+      checkError("bodies: after bind vao shadow");
+
+      m_programShadow->setTransform(m_bufferObjects.at(i).transform);
+      checkError("bodies: after set transform shadow shader");
+
+      glDrawElements(
+        GL_TRIANGLES,
+        3 * m_bufferObjects.at(i).material->faceCount,
+        GL_UNSIGNED_INT,
+        0);
+      checkError("bodies: after draw elements shadow shader");
+
+      m_bufferObjects.at(i).vao->release();
+          checkError("after release shadow vao");
+    }
+    m_programShadow->release();
+    checkError("after release shadow shader");
   }
 }
 

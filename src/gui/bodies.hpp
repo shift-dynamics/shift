@@ -36,6 +36,7 @@ class RenderWindow;
 class PhongShaderProgram;
 class FlatShaderProgram;
 class SimpleShaderProgram;
+class ShadowShaderProgram;
 struct s2_lights_t;
 
 /*!
@@ -88,6 +89,8 @@ public:
 
   void setLineShader(SimpleShaderProgram*);
 
+  void setShadowShader(ShadowShaderProgram*);
+
   void setAttributeLocations(
     QOpenGLShaderProgram*,
     GLint,
@@ -99,6 +102,7 @@ public:
   }
 
   void draw();
+  void drawShadows();
 
 public slots:
 
@@ -127,6 +131,8 @@ private:
   PhongShaderProgram* m_programPhong;
 
   SimpleShaderProgram* m_programLine;
+
+  ShadowShaderProgram* m_programShadow;
 
   s2_Lights* m_lights;
 
