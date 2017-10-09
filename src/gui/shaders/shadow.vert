@@ -7,5 +7,5 @@ in vec4 position_a;
 uniform mat4 mvp_u;
 
 void main() {
- gl_Position = mvp * position_a;
+ gl_Position = mvp_u * position_a;
 }

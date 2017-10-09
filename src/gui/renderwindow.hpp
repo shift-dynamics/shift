@@ -55,6 +55,10 @@ public:
 
   void render();
 
+  void draw();
+
+  void drawShadows();
+
   void resizeGL(int width, int height);
 
   void clearContext();
@@ -181,6 +185,7 @@ private:
 
   bool m_perspective;
   bool m_drawVertexNormals;
+  bool m_drawShadows;
 
   QTimer* m_timer;
 

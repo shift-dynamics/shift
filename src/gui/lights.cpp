@@ -5,7 +5,8 @@
 s2_Lights::s2_Lights(RenderWindow* renderWindow)
   : s2_Geometry(renderWindow)
   , m_bodies(NULL)
-  , m_depthBufferArray(NULL) {
+  , m_depthBufferArray(NULL)
+  , m_depthBufferSize(1024) {
 
   m_lights.count = 0;
   memset(m_lights.position, 0, 30 * sizeof(GLfloat));
@@ -13,6 +14,26 @@ s2_Lights::s2_Lights(RenderWindow* renderWindow)
   memset(m_lights.Kd, 0, 30 * sizeof(GLfloat));
   memset(m_lights.Ks, 0, 30 * sizeof(GLfloat));
   memset(m_lights.directional, 0, 10 * sizeof(GLfloat));
+
+
+}
+
+
+s2_Lights::s2_Lights(RenderWindow* renderWindow,
+GLint depthBufferSize)
+  : s2_Geometry(renderWindow)
+  , m_bodies(NULL)
+  , m_depthBufferArray(NULL)
+  , m_depthBufferSize(1024) {
+
+  m_lights.count = 0;
+  memset(m_lights.position, 0, 30 * sizeof(GLfloat));
+  memset(m_lights.Ka, 0, 30 * sizeof(GLfloat));
+  memset(m_lights.Kd, 0, 30 * sizeof(GLfloat));
+  memset(m_lights.Ks, 0, 30 * sizeof(GLfloat));
+  memset(m_lights.directional, 0, 10 * sizeof(GLfloat));
+
+  m_depthBufferSize = depthBufferSize;
 }
 
 
@@ -104,32 +125,50 @@ void s2_Lights::loadContext() {
       }
     }
 
-    /* generate array of depth buffers, one for each light. @TODO add logic to separate out point lights into separate array of cubemap depth buffers later */
-    m_depthBufferArray =
-      new QOpenGLTexture(QOpenGLTexture::Target2D);
-    checkError("terrain: after new depth texture");
+    if(m_depthBufferArray == NULL) {
+      /* generate array of depth buffers, one for each light. @TODO add logic to separate out point lights into separate array of cubemap depth buffers later */
+      m_depthBufferArray =
+        new QOpenGLTexture(QOpenGLTexture::Target2DArray);
+      checkError("lights: after new depth texture array");
 
-    m_depthBufferArray->setFormat(
-      QOpenGLTexture::R32F);
-    checkError("terrain: after set format R32F");
+      m_depthBufferArray->setFormat(QOpenGLTexture::D32);
+      checkError("lights: after set format D32");
 
-    m_depthBufferArray->setWrapMode(
-      QOpenGLTexture::ClampToEdge);
-    checkError("terrain: after set wrap mode");
+      m_depthBufferArray->setWrapMode(
+        QOpenGLTexture::ClampToEdge);
+      checkError("lights: after set wrap mode");
 
-    m_depthBufferArray->setMinMagFilters(
-      QOpenGLTexture::Linear,
-      QOpenGLTexture::Linear);
-    checkError("terrain: after set min mag filters");
+      m_depthBufferArray->setMinMagFilters(
+        QOpenGLTexture::Linear,
+        QOpenGLTexture::Linear);
+      checkError("lights: after set min mag filters");
 
-    m_depthBufferArray->setSize(
-      512,
-      512,
-      1);
-    checkError("terrain: after set size");
-    m_depthBufferArray->allocateStorage();
-    checkError("terrain after allocate storage for displacement texture");
+      m_depthBufferArray->setComparisonFunction(
+        QOpenGLTexture::CompareLessEqual);
+      checkError("lights: after set comparison function");
 
+      m_depthBufferArray->setSize(
+        m_depthBufferSize,
+        m_depthBufferSize,
+        10);
+      checkError("lights: after set size");
+
+      m_depthBufferArray->allocateStorage(
+        QOpenGLTexture::Depth,
+        QOpenGLTexture::Float32);
+      checkError("lights: after allocate storage");
+
+      m_depthBufferArray->bind();
+
+      m_renderWindow->m_funcs->glGenFramebuffers(1, &m_fbo);
+      m_renderWindow->m_funcs->glBindFramebuffer(
+        GL_FRAMEBUFFER,
+        m_fbo);
+
+      m_renderWindow->m_funcs->glFramebufferTexture2D(
+        GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthBufferArray->textureId(), 0);
+      glDrawBuffer(GL_NONE);
+    }
   }
 }
 
@@ -138,5 +177,33 @@ void s2_Lights::loadContext() {
 @brief draw function
 */
 void s2_Lights::draw() {
+
+  m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+  glViewport(0, 0, m_depthBufferSize, m_depthBufferSize);
+  glEnable(GL_POLYGON_OFFSET_FILL);
+  glPolygonOffset(2.f, 4.f);
+  glEnable(GL_DEPTH_TEST);
+
+  m_depthBufferArray->bind();
+  for(int light = 0; light < m_lights.count; light++) {
+
+    m_renderWindow->m_funcs->glFramebufferTexture(
+      GL_FRAMEBUFFER,
+      GL_DEPTH_STENCIL_ATTACHMENT,
+      m_depthBufferArray->textureId(),
+      light);
+
+    m_renderWindow->m_funcs->glDrawBuffer(GL_NONE);
+
+    glClearDepth(1.f);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    m_renderWindow->drawShadows();
+
+  }
+
+  glDisable(GL_POLYGON_OFFSET_FILL);
+  m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  m_renderWindow->m_funcs->glDrawBuffer(GL_FRONT_AND_BACK);
 
 }
