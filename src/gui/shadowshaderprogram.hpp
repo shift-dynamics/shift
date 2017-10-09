@@ -48,8 +48,11 @@ public:
   ~ShadowShaderProgram() {};
 
   void initialize();
+
   void draw();
+
   void setTransform(s2_displacement_t*);
+
   void setMVP(QMatrix4x4&);
 
 signals:

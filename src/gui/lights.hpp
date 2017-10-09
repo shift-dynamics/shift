@@ -26,6 +26,7 @@
 #include <QResizeEvent>
 #include <QTimer>
 #include <QOpenGLTexture>
+#include <QOpenGLFramebufferObject>
 
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
@@ -50,6 +51,7 @@ class s2_Lights : public s2_Geometry {
 
 public:
   s2_Lights(RenderWindow* renderWindow);
+  s2_Lights(RenderWindow* renderWindow, GLint depthBufferSize);
 
   ~s2_Lights() {
 
@@ -85,23 +87,25 @@ public:
 
   void loadContext();
 
-  void setShader(ShadowShaderProgram* program) {
-    m_program = program;
-  }
-
   void setBodies(s2_Bodies* bodies) {
     m_bodies = bodies;
+  }
+
+  GLint getDepthBufferSize() {
+    return m_depthBufferSize;
   }
 
 private:
 
   s2_lights_t m_lights;
 
-  ShadowShaderProgram* m_program;
-
   s2_Bodies* m_bodies;
 
   QOpenGLTexture* m_depthBufferArray;
+
+  GLint m_depthBufferSize;
+
+  GLuint m_fbo;
 
 };
 

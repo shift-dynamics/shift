@@ -52,8 +52,10 @@ RenderWindow::RenderWindow()
   , m_zPan(0)
   , m_camDistance(3.0)
   , m_perspective(true)
+  , m_drawShadows(true)
   , m_initialized(false)
-  , m_simulationRunning(false) {
+  , m_simulationRunning(false)
+ {
 
   setAnimating(true);
 
@@ -388,12 +390,10 @@ void RenderWindow::initialize() {
     checkError("after initialize frame shader");
 
     qDebug() << "setting shader program pointers";
-
-    m_lights->setShader(m_programShadow);
-
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
     m_bodies->setLineShader(m_programSimple);
+    m_bodies->setShadowShader(m_programShadow);
     m_bodies->setLights(m_lights);
 
     m_frames->setShader(m_programFrame);
@@ -403,8 +403,8 @@ void RenderWindow::initialize() {
     m_terrain->setLights(m_lights);
 
     m_grid->setShader(m_programSimple);
-
     checkError("renderwindow: after set shader pointers");
+
     m_initialized = true;
     emit initialized();
     m_grid->enable(true);
@@ -432,6 +432,7 @@ void RenderWindow::clearContext() {
 void RenderWindow::updateGL() {
 
   if(m_initialized) {
+
     m_view.setToIdentity();
 
     QVector3D eye(-m_xPan, -m_yPan + m_camDistance, -m_zPan);
@@ -444,9 +445,8 @@ void RenderWindow::updateGL() {
 
     m_projection.setToIdentity();
     const qreal retinaScale = devicePixelRatio();
-    if(m_initialized) {
-      glViewport(0, 0, width() * retinaScale, height() * retinaScale);
-    }
+    glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+
     float aspectRatio = (float)width() / (float)height();
     if (m_perspective) {
       m_projection.perspective(
@@ -703,14 +703,20 @@ void RenderWindow::setSimulationRunning(bool val) {
 */
 void RenderWindow::render() {
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glClearColor(
-    m_backgroundColor[0],
-    m_backgroundColor[1],
-    m_backgroundColor[2],
-    0.0f);
-
   if(m_initialized && isAnimating()) {
+
+    if(m_drawShadows) {
+      m_lights->draw();
+    }
+
+    const qreal retinaScale = devicePixelRatio();
+    glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(
+      m_backgroundColor[0],
+      m_backgroundColor[1],
+      m_backgroundColor[2],
+      0.0f);
 
     /* if the simulation is running, get the current state of the mechanism
     from ydata array and update mechanism for display */
@@ -720,13 +726,24 @@ void RenderWindow::render() {
       /* otherwise update position of current joint if driven by user using the joint slider interface */
       m_joints->update();
     }
-
-    m_lights->draw();
-    m_grid->draw();
-    m_frames->draw();
-    m_joints->draw();
-    m_terrain->draw();
-    m_bodies->draw();
-
+    draw();
   }
+}
+
+
+void RenderWindow::draw() {
+  m_grid->draw();
+  m_frames->draw();
+  m_joints->draw();
+  m_terrain->draw();
+  m_bodies->draw();
+}
+
+
+/*!
+@brief draw function for objects that cast or receive shadows
+*/
+void RenderWindow::drawShadows() {
+  // m_terrain->drawShadows();
+  m_bodies->drawShadows();
 }
