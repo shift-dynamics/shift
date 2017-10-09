@@ -91,9 +91,15 @@ public:
     m_bodies = bodies;
   }
 
+  void setShader(ShadowShaderProgram* program) {
+    m_program = program;
+  }
+
   GLint getDepthBufferSize() {
     return m_depthBufferSize;
   }
+
+  void getFramebufferStatus();
 
 private:
 
@@ -106,6 +112,12 @@ private:
   GLint m_depthBufferSize;
 
   GLuint m_fbo;
+
+  GLuint m_depthTexture;
+
+  ShadowShaderProgram* m_program;
+
+  int m_maxCount;
 
 };
 
