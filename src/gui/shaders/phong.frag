@@ -26,6 +26,8 @@ struct lights_t {
   vec3 Ks[10];
   int directional[10];
   int count;
+  int drawShadows; /*!< 0 = false, 1 = true */
+  mat4 shadowMatrix[10];
 };
 
 uniform lights_t lights_u;

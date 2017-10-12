@@ -39,10 +39,10 @@ uniform lights_t lights_u;
 struct terrain_t {
   float zMin;
   float zMax;
-  // float xScale;
-  // float yScale;
-  // float xRange;
-  // float yRange;
+  float xScale;
+  float yScale;
+  float xRange;
+  float yRange;
   vec2 viewport;
 };
 

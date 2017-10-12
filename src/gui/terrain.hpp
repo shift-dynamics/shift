@@ -32,6 +32,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class TerrainShaderProgram;
+class TerrainShadowShaderProgram;
 class s2_Lights;
 
 typedef struct TerrainObjects {
@@ -78,6 +79,8 @@ public:
 
   void draw();
 
+  void drawShadows();
+
   void loadContext();
 
   void clearContext();
@@ -88,6 +91,10 @@ public:
     m_program = program;
   }
 
+  void setShadowShader(TerrainShadowShaderProgram* program) {
+    m_programShadow = program;
+  }
+
 signals:
 
   void terrainLoaded();
@@ -96,6 +103,7 @@ private:
 
   TerrainObjects* m_terrainObjects;
   TerrainShaderProgram* m_program;
+  TerrainShadowShaderProgram* m_programShadow;
   s2_Lights* m_lights;
 };
 

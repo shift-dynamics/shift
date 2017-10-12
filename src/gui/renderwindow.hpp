@@ -43,6 +43,7 @@ class SimpleShaderProgram;
 class TerrainShaderProgram;
 class FrameShaderProgram;
 class ShadowShaderProgram;
+class TerrainShadowShaderProgram;
 
 QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
@@ -185,7 +186,6 @@ private:
 
   bool m_perspective;
   bool m_drawVertexNormals;
-  bool m_drawShadows;
 
   QTimer* m_timer;
 
@@ -212,6 +212,7 @@ private:
   PhongShaderProgram* m_programPhong;
   FlatShaderProgram* m_programFlat;
   TerrainShaderProgram* m_programTerrain;
+  TerrainShadowShaderProgram* m_programTerrainShadow;
   FrameShaderProgram* m_programFrame;
 
 };
