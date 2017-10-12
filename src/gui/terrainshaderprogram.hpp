@@ -121,10 +121,10 @@ private:
   // GLint m_terrain_u;
   GLint m_terrain_zMin_u;
   GLint m_terrain_zMax_u;
-  // GLint m_terrain_xScale_u;
-  // GLint m_terrain_yScale_u;
-  // GLint m_terrain_xRange_u;
-  // GLint m_terrain_yRange_u;
+  GLint m_terrain_xScale_u;
+  GLint m_terrain_yScale_u;
+  GLint m_terrain_xRange_u;
+  GLint m_terrain_yRange_u;
   GLint m_terrain_viewport_u;
 
   QOpenGLVertexArrayObject* m_vao;

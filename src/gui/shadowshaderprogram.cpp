@@ -9,8 +9,8 @@
 void ShadowShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/shadow.vert");
-    addFragmentShader(":/shaders/shadow.frag");
+    addVertexShader(":/shaders/shadow_light.vert");
+    addFragmentShader(":/shaders/shadow_light.frag");
     link();
     bind();
 

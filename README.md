@@ -68,6 +68,11 @@ following command from within the ${PROJECT_DIRECTORY}/build/bin directory:
 
     ./star2
 
+To run the program with nvidia-gfx-debugger:
+
+    LD_PRELOAD=~/.tgd/libs/libNvidia_gfx_debugger.so ./star2
+
+
 ## Building documentation
 
 Documentation can be built by issuing the command in the build directory:

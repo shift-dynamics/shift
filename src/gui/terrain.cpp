@@ -1,5 +1,6 @@
 #include "terrain.hpp"
 #include "terrainshaderprogram.hpp"
+#include "terrainshadowshaderprogram.hpp"
 #include "renderwindow.hpp"
 #include "lights.hpp"
 
@@ -123,6 +124,9 @@ void s2_Terrain::loadContext() {
 }
 
 
+/*!
+@brief draw functions for rendering terrain geometry
+*/
 void s2_Terrain::draw() {
   if(m_context && m_drawEnabled && m_program->isInitialized()) {
     checkError("terrain: before program bind");
@@ -202,6 +206,68 @@ void s2_Terrain::draw() {
     }
     m_program->releaseVao();
     m_program->release();
+  }
+}
+
+
+/*!
+@brief draw functions for rendering terrain depth map from camera perspective
+*/
+void s2_Terrain::drawShadows() {
+  if(m_context && m_drawEnabled && m_renderWindow->isInitialized()) {
+    checkError("terrain: before program bind");
+
+    m_programShadow->bind();
+    checkError("terrain: after program bind");
+
+    m_programShadow->bindVao();
+
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    m_programShadow->setViewPort((float)vp[2], (float)vp[3]);
+    checkError("terrain: after set viewport");
+
+    for(int i = 0; i < m_context->terrainCount; i++) {
+      s2_terrain_t* terrain = m_context->terrains[i];
+
+      QMatrix4x4 model =
+        QMatrix4x4(1.f, 0.f, 0.f, 0.f,
+                   0.f, 1.f, 0.f, 0.f,
+                   0.f, 0.f, 1.f, 0.f,
+                   0.f, 0.f, 0.f, 1.f);
+
+      QMatrix4x4 view = m_renderWindow->getViewMatrix();
+
+      QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
+
+      m_programShadow->setMVP(model, view, projection);
+      checkError("terrain: after set mvp");
+
+      m_programShadow->setUniforms(terrain);
+      checkError("terrain: after set uniforms");
+
+      m_programShadow->setTextureDisplacement(
+        m_terrainObjects[i].textureDisplacement);
+      checkError("terrain: after set texture displacement");
+
+      glEnable(GL_DEPTH_TEST);
+
+      // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+      checkError("terrain: after glPolygonMode");
+
+      m_renderWindow->m_funcs->glPatchParameteri(GL_PATCH_VERTICES, 4);
+      checkError("terrain: after set patch parameteri");
+
+      m_renderWindow->m_funcs->glDrawArraysInstanced(GL_PATCHES, 0, 4, 64 * 64);
+      checkError("terrain: after draw arrays instanced");
+
+      m_terrainObjects[i].textureDisplacement->release();
+      checkError("terrain: after release depth texture");
+
+    }
+    m_programShadow->releaseVao();
+    m_programShadow->release();
   }
 }
 

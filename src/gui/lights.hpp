@@ -42,7 +42,8 @@ struct s2_lights_t {
   GLfloat Ks[30];
   GLint directional[10]; /*!< 0 = point, 1 = directional, 2 = spot */
   int count;
-
+  int drawShadows; /*!< 0 = false, 1 = true */
+  QMatrix4x4 shadowMatrix[10];
 };
 
 class s2_Lights : public s2_Geometry {
@@ -101,6 +102,7 @@ public:
 
   void getFramebufferStatus();
 
+
 private:
 
   s2_lights_t m_lights;
@@ -111,7 +113,7 @@ private:
 
   GLint m_depthBufferSize;
 
-  GLuint m_fbo;
+  GLuint m_fbo[10];
 
   GLuint m_depthTexture;
 

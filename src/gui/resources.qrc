@@ -21,8 +21,13 @@
     <file alias="terrain.tese">shaders/terrain.tese</file>
     <file alias="terrain.vert">shaders/terrain.vert</file>
 
-    <file alias="shadow.frag">shaders/shadow.frag</file>
-    <file alias="shadow.vert">shaders/shadow.vert</file>
+    <file alias="shadow_light.frag">shaders/shadow_light.frag</file>
+    <file alias="shadow_light.vert">shaders/shadow_light.vert</file>
+
+    <file alias="terrain_shadow.frag">shaders/terrain_shadow.frag</file>
+    <file alias="terrain_shadow.tesc">shaders/terrain_shadow.tesc</file>
+    <file alias="terrain_shadow.tese">shaders/terrain_shadow.tese</file>
+    <file alias="terrain_shadow.vert">shaders/terrain_shadow.vert</file>
 
     <file alias="line.frag">shaders/line.frag</file>
     <file alias="line.vert">shaders/line.vert</file>

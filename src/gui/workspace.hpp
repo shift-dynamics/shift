@@ -174,6 +174,7 @@ class Workspace : public QMainWindow {
     QTabWidget* m_tabwidget;
     QAction* m_actionToggleDrawTerrain;
     QAction* m_actionToggleDrawGrid;
+    QAction* m_actionToggleDrawShadows;
 
     struct m_sliders {
       QGroupBox* groupBox;
