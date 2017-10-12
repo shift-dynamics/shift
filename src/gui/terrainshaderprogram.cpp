@@ -17,15 +17,16 @@ void TerrainShaderProgram::initialize() {
     bind();
 
     /* texture uniform locations */
-    m_texture_color_u = m_program->uniformLocation("texture_color_u");
     m_texture_displacement_u =
       m_program->uniformLocation("texture_displacement_u");
-    // m_texture_bump_u = m_program->uniformLocation("texture_bump_u");
-    // m_texture_normal_u = m_program->uniformLocation("texture_normal_u");
-    // m_texture_specular_u = m_program->uniformLocation("texture_specular_u");
+
+    qDebug() << "m_texture_displacement_u:" << m_texture_displacement_u;
+
+    m_texture_color_u =
+      m_program->uniformLocation("texture_color_u");
 
     qDebug() << "m_texture_color_u:" << m_texture_color_u;
-    qDebug() << "m_texture_displacement_u:" << m_texture_displacement_u;
+
     // qDebug() << "m_texture_bump_u:" << m_texture_bump_u;
     // qDebug() << "m_texture_normal_u:" << m_texture_normal_u;
     // qDebug() << "m_texture_specular_u:" << m_texture_specular_u;
@@ -163,7 +164,7 @@ void TerrainShaderProgram::setTextureDisplacement(QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(0);
     m_program->setUniformValue(m_texture_displacement_u, 0);
-    checkError("after set uniform value displacement");
+    checkError("terrain: after set uniform value displacement");
   } else {
     qDebug() << "no displacement texture specified";
   }
@@ -177,7 +178,7 @@ void TerrainShaderProgram::setTextureColor(QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(1);
     m_program->setUniformValue(m_texture_color_u, 1);
-    checkError("after set uniform value color");
+    checkError("terrain: after set uniform value color");
   } else {
     qDebug() << "no color texture specified";
   }
@@ -276,8 +277,8 @@ void TerrainShaderProgram::setZExtents(GLfloat zMin, GLfloat zMax) {
 @brief set max x and y values
 */
 void TerrainShaderProgram::setRange(GLfloat xRange, GLfloat yRange) {
-  // m_program->setUniformValue(m_terrain_xRange_u, xRange);
-  // m_program->setUniformValue(m_terrain_yRange_u, yRange);
+  m_program->setUniformValue(m_terrain_xRange_u, xRange);
+  m_program->setUniformValue(m_terrain_yRange_u, yRange);
 }
 
 
@@ -290,5 +291,4 @@ void TerrainShaderProgram::setUniforms(s2_terrain_t* terrain) {
   setKsOverKd(terrain->KsOverKd);
   setNs(terrain->Ns);
   setZExtents(terrain->zMin, terrain->zMax);
-
 }

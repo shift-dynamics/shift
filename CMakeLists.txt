@@ -181,6 +181,7 @@ set(GUI_SOURCES
     ${star2_SOURCE_DIR}/src/gui/shaderprogram.cpp
     ${star2_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
     ${star2_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/terrainshadowshaderprogram.cpp
     ${star2_SOURCE_DIR}/src/gui/resources.qrc
 )
 

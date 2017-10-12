@@ -1286,6 +1286,13 @@ void Workspace::initializeMenus() {
   m_actionToggleDrawGrid->setCheckable(true);
   m_actionToggleDrawGrid->setChecked(true);
 
+  m_actionToggleDrawShadows =
+    new QAction("Display Shadows", this);
+  viewMenu->addAction(m_actionToggleDrawShadows);
+  m_actionToggleDrawShadows->setCheckable(true);
+  m_actionToggleDrawShadows->setChecked(true);
+
+
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
   QAction* actionAbout = new QAction("About this program ...", this);
@@ -1364,6 +1371,13 @@ void Workspace::initializeMenus() {
     SIGNAL(triggered()),
     m_renderWindow->getGrid(),
     SLOT(toggleDraw()));
+
+  QObject::connect(
+    m_actionToggleDrawShadows,
+    SIGNAL(triggered()),
+    m_renderWindow->getLights(),
+    SLOT(toggleDraw()));
+
 
   /*
     help menu actions

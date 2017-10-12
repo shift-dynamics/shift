@@ -13,6 +13,7 @@
 #include "frameshaderprogram.hpp"
 #include "simpleshaderprogram.hpp"
 #include "terrainshaderprogram.hpp"
+#include "terrainshadowshaderprogram.hpp"
 #include "shadowshaderprogram.hpp"
 
 #include <QMouseEvent>
@@ -52,7 +53,6 @@ RenderWindow::RenderWindow()
   , m_zPan(0)
   , m_camDistance(3.0)
   , m_perspective(true)
-  , m_drawShadows(true)
   , m_initialized(false)
   , m_simulationRunning(false)
  {
@@ -389,6 +389,8 @@ void RenderWindow::initialize() {
     m_programFrame = new FrameShaderProgram(this);
     checkError("after initialize frame shader");
 
+    m_programTerrainShadow = new TerrainShadowShaderProgram(this);
+
     qDebug() << "setting shader program pointers";
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
@@ -400,6 +402,7 @@ void RenderWindow::initialize() {
     m_joints->setShader(m_programFrame);
 
     m_terrain->setShader(m_programTerrain);
+    m_terrain->setShadowShader(m_programTerrainShadow);
     m_terrain->setLights(m_lights);
 
     m_lights->setShader(m_programShadow);
@@ -708,9 +711,18 @@ void RenderWindow::render() {
   if(m_initialized && isAnimating()) {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if(m_drawShadows) {
-      m_lights->draw();
+
+    /* if the simulation is running, get the current state of the mechanism
+    from ydata array and update mechanism for display */
+    if(m_simulationRunning) {
+      interpolateCurrentPosition();
+    } else {
+      /* otherwise update position of current joint if driven by user using the joint slider interface */
+      m_joints->update();
     }
+
+    /* draw shadows */
+    m_lights->draw();
 
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
@@ -721,32 +733,18 @@ void RenderWindow::render() {
       m_backgroundColor[2],
       0.0f);
 
-    /* if the simulation is running, get the current state of the mechanism
-    from ydata array and update mechanism for display */
-    if(m_simulationRunning) {
-      interpolateCurrentPosition();
-    } else {
-      /* otherwise update position of current joint if driven by user using the joint slider interface */
-      m_joints->update();
-    }
     draw();
   }
 }
 
 
+/*!
+@brief OpenGL Draw function
+*/
 void RenderWindow::draw() {
   m_grid->draw();
   m_frames->draw();
   m_joints->draw();
   m_terrain->draw();
   m_bodies->draw();
-}
-
-
-/*!
-@brief draw function for objects that cast or receive shadows
-*/
-void RenderWindow::drawShadows() {
-  // m_terrain->drawShadows();
-  m_bodies->drawShadows();
 }

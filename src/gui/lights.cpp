@@ -2,6 +2,8 @@
 #include "lights.hpp"
 #include "renderwindow.hpp"
 #include "shadowshaderprogram.hpp"
+#include "bodies.hpp"
+#include "terrain.hpp"
 
 /*!
 @brief constructor
@@ -13,13 +15,7 @@ s2_Lights::s2_Lights(RenderWindow* renderWindow)
   , m_depthBufferSize(1024)
   , m_maxCount(10) {
 
-  m_lights.count = 0;
-  memset(m_lights.position, 0, 30 * sizeof(GLfloat));
-  memset(m_lights.Ka, 0, 30 * sizeof(GLfloat));
-  memset(m_lights.Kd, 0, 30 * sizeof(GLfloat));
-  memset(m_lights.Ks, 0, 30 * sizeof(GLfloat));
-  memset(m_lights.directional, 0, 10 * sizeof(GLfloat));
-
+  initialize();
 
 }
 
@@ -35,13 +31,7 @@ s2_Lights::s2_Lights(
   , m_depthBufferArray(NULL)
   , m_maxCount(10) {
 
-  m_lights.count = 0;
-  memset(m_lights.position, 0, 30 * sizeof(GLfloat));
-  memset(m_lights.Ka, 0, 30 * sizeof(GLfloat));
-  memset(m_lights.Kd, 0, 30 * sizeof(GLfloat));
-  memset(m_lights.Ks, 0, 30 * sizeof(GLfloat));
-  memset(m_lights.directional, 0, 10 * sizeof(GLfloat));
-
+  initialize();
   m_depthBufferSize = depthBufferSize;
 }
 
@@ -51,7 +41,10 @@ s2_Lights::s2_Lights(
 */
 void s2_Lights::initialize() {
 
+  memset(&m_lights, 0, sizeof(m_lights));
+  m_drawEnabled = true;
 }
+
 
 /*!
 @brief load context data structure
@@ -100,90 +93,48 @@ void s2_Lights::loadContext() {
       qDebug() << "initializing m_depthBufferArray";
 
       m_renderWindow->m_funcs->glGenTextures(1, &m_depthTexture);
-      glBindTexture(GL_TEXTURE_2D, m_depthTexture);
-      m_renderWindow->m_funcs->glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, m_depthBufferSize, m_depthBufferSize);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glBindTexture(GL_TEXTURE_2D, 0);
+      glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
+      m_renderWindow->m_funcs->glTexStorage3D(
+        GL_TEXTURE_2D_ARRAY,
+        1,
+        GL_DEPTH_COMPONENT32F, // format
+        m_depthBufferSize,     // width
+        m_depthBufferSize,     // height
+        m_maxCount);           // layer count
+      checkError("lights: after glTexStorage3D()");
+      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      checkError("lights: after set glTexParameteri");
 
-      m_renderWindow->m_funcs->glGenFramebuffers(1, &m_fbo);
-      m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-      m_renderWindow->m_funcs->glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_depthTexture, 0);
-      glDrawBuffer(GL_NONE);
-      glReadBuffer(GL_NONE);
-      glEnable(GL_DEPTH_TEST);
+      m_renderWindow->m_funcs->glGenFramebuffers(m_maxCount, m_fbo);
+      checkError("lights: after glGenFramebuffers");
 
-      // glGenTextures(1, &depth_debug_tex);
-      // glBindTexture(GL_TEXTURE_2D, depth_debug_tex);
-      // glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, DEPTH_TEXTURE_SIZE, DEPTH_TEXTURE_SIZE);
-      // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      //
-      // glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, depth_debug_tex, 0);
-      //
-      // glBindTexture(GL_TEXTURE_2D, 0);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
+
+      for(int light = 0; light < m_maxCount; light++) {
+
+        m_renderWindow->m_funcs->glBindFramebuffer(
+          GL_FRAMEBUFFER,
+          m_fbo[light]);
+        m_renderWindow->m_funcs->glFramebufferTextureLayer(
+          GL_FRAMEBUFFER,
+          GL_DEPTH_ATTACHMENT,
+          m_depthTexture,
+          0, // mipmap level
+          light); // layer of texture to attach
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glEnable(GL_DEPTH_TEST);
+      }
+
       m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
       glEnable(GL_DEPTH_TEST);
 
-
-      // /* generate array of depth buffers, one for each light. @TODO add logic to separate out point lights into separate array of cubemap depth buffers later */
-      // m_depthBufferArray = new QOpenGLTexture(QOpenGLTexture::Target2DArray);
-      // checkError("lights: after new depth texture array");
-      //
-      // m_depthBufferArray->setFormat(QOpenGLTexture::D32);
-      // checkError("lights: after set format D32");
-      //
-      // m_depthBufferArray->setWrapMode(QOpenGLTexture::ClampToEdge);
-      // checkError("lights: after set wrap mode");
-      //
-      // m_depthBufferArray->setMinMagFilters(
-      //   QOpenGLTexture::Linear,
-      //   QOpenGLTexture::Linear);
-      // checkError("lights: after set min mag filters");
-      //
-      // m_depthBufferArray->setMipLevels(0);
-      // checkError("lights: after set mip levels");
-      //
-      // m_depthBufferArray->setComparisonFunction(
-      //   QOpenGLTexture::CompareLessEqual);
-      // checkError("lights: after set comparison function");
-      //
-      // m_depthBufferArray->setComparisonMode(
-      //   QOpenGLTexture::CompareRefToTexture);
-      // checkError("lights: after set comparison mode");
-      //
-      // m_depthBufferArray->setLayers(m_maxCount);
-      // checkError("lights: after set layers");
-      //
-      // m_depthBufferArray->setSize(
-      //   m_depthBufferSize,
-      //   m_depthBufferSize,
-      //   1);
-      // checkError("lights: after set size");
-      //
-      // m_depthBufferArray->setDepthStencilMode(QOpenGLTexture::DepthMode);
-      // checkError("lights: after set depth stencil mode");
-      //
-      // m_depthBufferArray->allocateStorage();
-      // checkError("lights: after texture 2d array allocate storage");
-      //
-      // m_depthBufferArray->bind(0);
-      //
-      // m_renderWindow->m_funcs->glFramebufferTextureLayer(
-      //   GL_FRAMEBUFFER,
-      //   GL_DEPTH_ATTACHMENT,
-      //   m_depthBufferArray->textureId(),
-      //   0,
-      //   0);
-      //
-      // m_depthBufferArray->release();
-      m_renderWindow->m_funcs->glBindFramebuffer(
-        GL_FRAMEBUFFER, 0);
     }
   }
 }
@@ -194,59 +145,55 @@ void s2_Lights::loadContext() {
 */
 void s2_Lights::draw() {
 
-  // m_program->bind();
-  // checkError("lights: after bind shadow shader program");
+  if(m_drawEnabled) {
 
-  // m_depthBufferArray->bind(0);
-  // checkError("lights: after bind 2d texture array");
+    for(int light = 0; light < m_lights.count; light++) {
 
-  m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-  checkError("lights: after glBindFramebuffer(GL_FRAMEBUFFER, m_fbo)");
+      m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, m_fbo[light]);
+      checkError("lights: after glBindFramebuffer(GL_FRAMEBUFFER, m_fbo)");
 
-  glClear(GL_DEPTH_BUFFER_BIT);
-  checkError("lights: after glClear()");
+      glClear(GL_DEPTH_BUFFER_BIT);
+      checkError("lights: after glClear()");
 
-  glViewport(0, 0, m_depthBufferSize, m_depthBufferSize);
-  checkError("lights: after glViewport()");
+      glViewport(0, 0, m_depthBufferSize, m_depthBufferSize);
+      checkError("lights: after glViewport()");
 
-  glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-  checkError("lights: after glColorMask()");
+      glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+      checkError("lights: after glColorMask()");
 
-  m_renderWindow->m_funcs->glEnable(GL_POLYGON_OFFSET_FILL);
-  checkError("lights: after glEnable(GL_POLYGON_OFFSET_FILL)");
+      m_renderWindow->m_funcs->glEnable(GL_POLYGON_OFFSET_FILL);
+      checkError("lights: after glEnable(GL_POLYGON_OFFSET_FILL)");
 
-  glPolygonOffset(2.f, 4.f);
-  checkError("lights: after glPolygonOffset(2.f, 4.f)");
+      glPolygonOffset(2.f, 4.f);
+      checkError("lights: after glPolygonOffset(2.f, 4.f)");
 
-  glEnable(GL_DEPTH_TEST);
-  checkError("lights: after glEnable(GL_DEPTH_TEST)");
+      glEnable(GL_DEPTH_TEST);
+      checkError("lights: after glEnable(GL_DEPTH_TEST)");
 
-  for(int light = 0; light < m_lights.count; light++) {
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
+      checkError("lights: after glFramebufferTextureLayer");
 
-    qDebug() << "[" << light << "]";
+      glDrawBuffer(GL_NONE);
+      checkError("lights: after glDrawBuffer(GL_NONE)");
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_depthTexture);
-    checkError("lights: after glFramebufferTextureLayer");
+      glClearDepth(1.f);
+      checkError("lights: after glClearDepth(1.f)");
 
-    glDrawBuffer(GL_NONE);
-    checkError("lights: after glDrawBuffer(GL_NONE)");
+      getFramebufferStatus();
 
-    glClearDepth(1.f);
-    checkError("lights: after glClearDepth(1.f)");
+      checkError("lights: after glCheckFramebufferStatus");
 
-    getFramebufferStatus();
+      m_renderWindow->getTerrain()->drawShadows();
+      m_renderWindow->getBodies()->drawShadows();
 
-    checkError("lights: after glCheckFramebufferStatus");
-    m_renderWindow->drawShadows();
+    }
 
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    m_renderWindow->m_funcs->glDisable(GL_POLYGON_OFFSET_FILL);
+    m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    m_renderWindow->m_funcs->glDrawBuffer(GL_FRONT_AND_BACK);
   }
-
-  // m_depthBufferArray->release();
-  m_renderWindow->m_funcs->glDisable(GL_POLYGON_OFFSET_FILL);
-  m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  m_renderWindow->m_funcs->glDrawBuffer(GL_FRONT_AND_BACK);
-
 }
 
 
@@ -263,6 +210,7 @@ void s2_Lights::getFramebufferStatus() {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_UNDEFINED";
     } break;
     case GL_FRAMEBUFFER_COMPLETE: {
+      /* no error */
     } break;
     case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
