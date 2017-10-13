@@ -34,22 +34,12 @@ SUCH DAMAGE.
 #include "context.h"
 #include "utility.h"
 #include "kinematics.h"
+#include "body.h"
+#include "joint.h"
+#include "frame.h"
+#include "assembly.h"
 #include "../force_modules/tire.h"
 #include "../ode/numericalintegrator.h"
-
-
-/*!
-@brief used to set omegaN for baumgarte constraint stabilization
-*/
-void s2_context_setOmegaN(
-  s2_context_t* context,
-  double omegaN) {
-
-  context->modelParameters->baumgarteOmegaN = omegaN;
-  context->modelParameters->baumgarte2OmegaN = 2 * omegaN;
-  context->modelParameters->baumgarteOmegaN2 =
-    omegaN * omegaN;
-}
 
 
 /*!
@@ -378,11 +368,10 @@ s2_context_t* s2_context() {
 
   /*!
   @}
-  @name properties related to kinematic drivers
+  @name properties related to input/output datastructures
   @{
   */
-  context->kinematicDrivers = NULL; /*!< pointer to kinematic drivers,
-                                         if present in the mechanism */
+  context->io = NULL; /*!< pointer to input/output datastructures */
 
   /*!
   @}
@@ -447,529 +436,18 @@ s2_context_t* s2_context() {
   return context;
 }
 
-/*!
-@brief Initialize an Assembly datastructure
-
-@param None
-@returns an assembly datastructure
-*/
-s2_assembly_t* s2_assembly() {
-
-  s2_assembly_t* assembly = malloc(sizeof(s2_assembly_t));
-
-  if (!assembly) {
-    fprintf(stderr, "Error: failed to initialize assembly.\n");
-    return NULL;
-  }
-  assembly->next = NULL;
-
-  assembly->subAssemblyHead = NULL;
-  assembly->subAssemblyTail = NULL;
-
-  assembly->name = NULL;
-  assembly->active = true;
-
-  assembly->bodyHead = NULL;
-  assembly->bodyTail = NULL;
-
-  assembly->jointHead = NULL;
-  assembly->jointTail = NULL;
-
-  assembly->restraintHead = NULL;
-  assembly->restraintTail = NULL;
-
-  assembly->lightHead = NULL;
-  assembly->lightTail = NULL;
-
-  assembly->ioHead = NULL;
-  assembly->ioTail = NULL;
-
-  assembly->forceModuleHead = NULL;
-  assembly->forceModuleTail = NULL;
-
-  return assembly;
-}
 
 /*!
-@brief Initialize a Body datastructure
-
-@param None
-
-@returns a s2_body_t datastructure
+@brief used to set omegaN for baumgarte constraint stabilization
 */
-s2_body_t* s2_body() {
-  s2_body_t* body = malloc(sizeof(s2_body_t));
-  if (!body) {
-    fprintf(stderr, "Error: failed to initialize body.\n");
-    return NULL;
-  }
-  body->name = NULL;
-  body->index = -1;
-  body->level = -1;
-  body->assembly = NULL;
-  body->definition = NULL;
-  body->isVirtual = false;
-  body->frameHead = NULL;
-  body->frameTail = NULL;
-  body->referenceFrame = NULL;
-  body->origin = NULL;
-  body->frameCount = 0;
-  body->inertia = s2_inertia();
-  body->parentJointPointer = NULL;
-  body->parentBodyPointer = NULL;
-  body->next = NULL;
-  body->materials = NULL;
-  body->materialCount = 0;
-  body->centerOfMassWRTOrigin = s2_vector();
-  body->centerOfMassWRTReference = s2_vector();
-  body->glReferenceFrame = NULL;
-  body->glReferenceFramef = NULL;
-  body->glModelView = NULL;
-  body->glModelViewProjection = NULL;
-  return body;
-}
-
-/*! @brief Initialize a Material datastructure
-
-*/
-s2_material_t* s2_materials(
-  int materialCount) {
-
-  s2_material_t* materials = malloc(materialCount * sizeof(s2_material_t));
-  if(!materials) {
-    fprintf(stderr, "Error: failed to initialize material.\n");
-  }
-  for(int i = 0; i < materialCount; i++) {
-    materials[i].name = NULL;
-    materials[i].index = 0;
-    materials[i].filePath = NULL;
-    memset(materials[i].GLuniforms.Ka, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].GLuniforms.Kd, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].GLuniforms.Ks, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].GLuniforms.Ke, 0, 4 * sizeof(GLfloat));
-    materials[i].GLuniforms.Ns = 0;
-    materials[i].vertexCount = 0;
-    materials[i].vertices = NULL;
-    materials[i].vertexNormals = NULL;
-    materials[i].faceCount = 0;
-    materials[i].faces = NULL;
-    materials[i].vao = 0;
-    materials[i].shadingType = PHONG;
-  }
-  return materials;
-}
-
-
-/*!
-@brief Initialize a Frame datastructure and set to identity
-
-@param None
-@returns a Frame datastructure
-*/
-s2_frame_t* s2_frame() {
-  s2_frame_t* frame = malloc(sizeof(s2_frame_t));
-  if(!frame) {
-    fprintf(stderr, "Error: failed to initialize frame.\n");
-    return NULL;
-  }
-  frame->name = NULL;
-
-  frame->dWRTOrigin = s2_displacement();
-  frame->dWRTOriginInverse = s2_displacement();
-  frame->dAbsolute = s2_displacement();
-
-  frame->dWRTReference = frame->dWRTOrigin;
-  frame->dWRTReferenceInverse = frame->dWRTOriginInverse;
-
-  frame->referenceFramePointer = NULL;
-  frame->next = NULL;
-  frame->isReference = false;
-  frame->isOrigin = false;
-  frame->inTree = false;
-
-  frame->velocityAbsolute = NULL;
-  frame->accelerationQuadraticAbsolute = NULL;
-  return frame;
-}
-
-/*!
-@brief Initialize a Joint datastructure
-
-@param None
-@returns a Joint datastructure
-*/
-s2_joint_t* s2_joint(
-  const char* jointTypeStr) {
-
-  s2_joint_t* joint = malloc(sizeof(s2_joint_t));
-
-  if(!joint) {
-    fprintf(stderr, "Error: failed to initialize joint.\n");
-    return NULL;
-  }
-  joint->jointTypeStr = strdup(jointTypeStr);
-  joint->jointType = s2_getJointType(jointTypeStr);
-
-  joint->name = NULL;
-
-  joint->index = -1;
-  joint->parentBody = NULL;
-  joint->parentFrame = NULL;
-  joint->childBody = NULL;
-  joint->childFrame = NULL;
-  joint->sense = 0;
-  joint->level = -1;
-  joint->stiffnessCoefficients = NULL;
-  joint->stiffnessCoefficientCount = 0;
-  joint->dampingCoefficients = NULL;
-  joint->dampingCoefficientCount = 0;
-
-  switch(joint->jointType) {
-    case TX:
-    case TY:
-    case TZ: {
-      joint->dof = 1;
-      joint->initialPrimitiveDisplacement = calloc(1, sizeof(double));
-      joint->initialPrimitiveVelocity = calloc(1, sizeof(double));
-
-      joint->primitiveDisplacement = calloc(1, sizeof(double));
-      joint->primitiveVelocity = calloc(1, sizeof(double));
-
-      joint->generalDisplacement = NULL;
-      joint->directionCosine = NULL;
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
-
-      joint->h = s2_screw();
-
-    } break;
-    case RX:
-    case RY:
-    case RZ: {
-      joint->dof = 1;
-      joint->initialPrimitiveDisplacement = calloc(1, sizeof(double));
-      joint->initialPrimitiveVelocity = calloc(1, sizeof(double));
-
-      joint->primitiveDisplacement = calloc(1, sizeof(double));
-      joint->primitiveVelocity = calloc(1, sizeof(double));
-
-      joint->generalDisplacement = NULL;
-      joint->directionCosine = calloc(2, sizeof(double));
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
-
-      joint->h = s2_screw();
-
-    } break;
-    case RIGID: {
-      joint->dof = 0;
-      joint->initialPrimitiveDisplacement = NULL;
-      joint->initialPrimitiveVelocity = NULL;
-
-      joint->primitiveDisplacement = NULL;
-      joint->primitiveVelocity = NULL;
-      joint->directionCosine = NULL;
-
-      joint->generalDisplacement = s2_displacement();
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
-
-      joint->h = NULL;
-    } break;
-    case SPHERICAL: {
-      joint->dof = 3;
-      joint->initialPrimitiveDisplacement = calloc(4, sizeof(double));
-      joint->initialPrimitiveVelocity = calloc(3, sizeof(double));
-
-      joint->primitiveDisplacement = calloc(4, sizeof(double));
-      joint->primitiveVelocity = calloc(3, sizeof(double));
-
-      joint->generalDisplacement = s2_displacement();
-      joint->directionCosine = NULL;
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
-
-      joint->h = malloc(3 * sizeof(s2_screw_t));
-    }
-    case FLOAT: {
-      joint->dof = 6;
-      joint->initialPrimitiveDisplacement = calloc(7, sizeof(double));
-      joint->initialPrimitiveVelocity = calloc(6, sizeof(double));
-
-      /* a float joint has primitive displacement specified as
-      translation in the first 3 terms, followed by orientation specified
-      as quaternions in the last four terms */
-      joint->primitiveDisplacement = calloc(7, sizeof(double));
-
-      /* velocity is specified as translational velocity in the first three
-      terms and angular velocity in the last three terms */
-      joint->primitiveVelocity = calloc(6, sizeof(double));
-
-      joint->generalDisplacement = s2_displacement();
-      joint->directionCosine = NULL;
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
-
-      joint->h = malloc(6 * sizeof(s2_screw_t));
-    } break;
-    case INVALID:
-    case PRIMITIVE: {
-      fprintf(stderr, "invalid joint type found\n");
-    } break;
-  }
-
-  joint->mobilityNumber = NULL;
-  joint->independent = false;
-
-  joint->parentJoint = NULL;
-  joint->next = NULL;
-
-  joint->substructurePointer = NULL;
-  return joint;
-}
-
-/*!
-@brief Initialize an Inertia datastructure
-
-@param None
-@returns an Inertia datastructure
-*/
-s2_inertia_t* s2_inertia() {
-  s2_inertia_t* inertia = malloc(sizeof *inertia);
-  if (!inertia) {
-    fprintf(stderr, "Error: failed to initialize inertia.\n");
-    return NULL;
-  }
-  memset(inertia, 0, sizeof(s2_inertia_t));
-  return inertia;
-}
-
-/*!
-@brief Free an Inertia datastructure
-@param inertia Inertia datastructure to free
-*/
-void s2_inertia_free(
-  s2_inertia_t* inertia) {
-
-  if(inertia) {
-    free(inertia);
-  }
-  inertia = NULL;
-}
-
-/*!
-@brief Append a Restraint datastructure to an Assembly
-
-@param assembly a pointer to an Assembly datastructure
-@param restraint Restraint datastructure to append
-*/
-void s2_restraint_append(
-  s2_assembly_t* assembly,
-  s2_restraint_t* restraint) {
-
-  if(!assembly->restraintTail) {
-    assembly->restraintHead = restraint;
-    assembly->restraintTail = restraint;
-  } else {
-    assembly->restraintTail->next = restraint;
-    assembly->restraintTail = restraint;
-  }
-}
-
-
-/*!
-@brief Initialize a input/output datastructure
-
-@param None
-@returns a input/output datastructure
-*/
-s2_io_t* s2_io() {
-  s2_io_t* io = malloc(sizeof *io);
-  if(!io) {
-    fprintf(stderr, "Error: failed to initialize device.\n");
-    return NULL;
-  }
-  io->sensorHead = NULL;
-  io->sensorHead = NULL;
-  io->deltaDisplacement = 0.0;
-  io->numberSteps = 0;
-  io->displacement = NULL;
-  return io;
-}
-
-
-/*!
-@brief Initialize a Light datastructure
-@returns a Light datastructure
-*/
-s2_light_t* s2_light() {
-  s2_light_t* light = malloc(sizeof *light);
-  if (!light) {
-    fprintf(stderr, "Error: failed to initialize light.\n");
-    return NULL;
-  }
-  light->name = NULL;
-  light->lightType = DIRECTIONAL;
-  light->parentBody = NULL;
-  light->parentFrame = NULL;
-  light->parentBodyPointer = NULL;
-  light->parentFramePointer = NULL;
-  light->next = NULL;
-  return light;
-}
-
-
-/*!
-@brief initialize a forcemodule data structure
-*/
-s2_forcemodule_t* s2_forcemodule(
-  s2_forcemodule_enum_t forceModuleType) {
-
-  s2_forcemodule_t* forceModule = NULL;
-
-  switch(forceModuleType) {
-    case TIRE: {
-      forceModule = malloc(sizeof(s2_forcemodule_t));
-      forceModule->forceModuleType = forceModuleType;
-      forceModule->data = NULL;
-      forceModule->update = NULL;
-      forceModule->saveHistory = NULL;
-      forceModule->parameters = malloc(sizeof(void*));
-      forceModule->neqn = 0;
-      forceModule->y = 0;
-      forceModule->useTransient = false;
-      forceModule->next = NULL;
-      forceModule->name = NULL;
-
-      /* the rest will be done in external tire specific
-      initialization function function */
-    } break;
-    case PID: {
-      forceModule = malloc(sizeof(s2_forcemodule_t));
-      forceModule->forceModuleType = forceModuleType;
-      forceModule->data = NULL;
-      forceModule->update = NULL;
-      forceModule->saveHistory = NULL;
-      forceModule->parameters = malloc(sizeof(void*));
-      forceModule->neqn = 1;
-      forceModule->y = NULL;
-      forceModule->useTransient = true;
-      forceModule->next = NULL;
-      forceModule->name = NULL;
-    } break;
-    default: {
-    } break;
-  }
-  return forceModule;
-}
-
-
-/*!
-@brief initialize a forcemodule data structure
-*/
-void s2_forcemodule_free(s2_forcemodule_t* forceModule) {
-
-  switch(forceModule->forceModuleType) {
-    case TIRE: {
-      s2_tire_free((s2_tire_t*)forceModule->data);
-      free(forceModule->parameters);
-      free(forceModule);
-      /* the rest will be done in external tire specific
-      initialization function function */
-    } break;
-    default: {
-    } break;
-  }
-}
-
-
-/*!
-@brief Initialize a Restraint datastructure
-@returns a Restraint datastructure
-*/
-s2_restraint_t* s2_restraint() {
-  s2_restraint_t* restraint = malloc(sizeof *restraint);
-  if (!restraint) {
-    fprintf(stderr, "Error: failed to initialize restraint.\n");
-    return NULL;
-  }
-  restraint->knots = NULL;
-  restraint->coefficients = NULL;
-  restraint->restraintType = SPRING;
-  restraint->distanceType = EUCLIDIAN;
-  restraint->coordinateType = FIXED;
-  restraint->parentFrame = NULL;
-  restraint->childFrame = NULL;
-  return restraint;
-}
-
-
-/*!
-@brief Initialize a ChordConstraint
-@returns a ChordConstraint datastructure
-*/
-s2_chordconstraint_t* s2_chordconstraint() {
-  s2_chordconstraint_t* chordConstraint = malloc(sizeof *chordConstraint);
-  if (!chordConstraint) {
-    fprintf(stderr, "Error: failed to initialize chordConstraint.\n");
-    return NULL;
-  }
-  chordConstraint->level = -1;
-  chordConstraint->index = -1;
-  chordConstraint->name = NULL;
-  chordConstraint->parentBody = NULL;
-  chordConstraint->parentBodyPointer = NULL;
-  chordConstraint->originalParentBody = NULL;
-  chordConstraint->originalParentBodyPointer = NULL;
-  chordConstraint->childBody = NULL;
-  chordConstraint->childBodyPointer = NULL;
-  chordConstraint->childFrame = NULL;
-  chordConstraint->childBodyPointer = NULL;
-  chordConstraint->childFrame = NULL;
-  chordConstraint->childFramePointer = NULL;
-  chordConstraint->parentJointPointer = NULL;
-  chordConstraint->childJointPointer = NULL;
-  chordConstraint->next = NULL;
-  chordConstraint->substructure = 0;
-  return chordConstraint;
-}
-
-
-/*!
-@brief Initialize a Substructure datastructure
-@returns a Substructure datastructure
-*/
-s2_substructure_t* s2_substructure() {
-  s2_substructure_t* substructure = malloc(sizeof *substructure);
-  if (!substructure) {
-    fprintf(stderr, "Error: failed to initialize substructure.\n");
-    return NULL;
-  }
-  substructure->chordConstraintCount = -1;
-  substructure->constraintEquationCount = -1;
-  substructure->substructureIndex = -1;
-  substructure->dqCount = -1;
-  substructure->qCount = -1;
-  substructure->jointCount = -1;
-  substructure->rank = -1;
-  substructure->constraints = NULL;
-  substructure->pr_12 = NULL;
-  substructure->pc_12 = NULL;
-  substructure->pr_21 = NULL;
-  substructure->pc_21 = NULL;
-  substructure->ijMapping = NULL;
-  substructure->J = NULL;
-  substructure->Jxx = NULL;
-  substructure->Jb = NULL;
-  substructure->q = NULL;
-  substructure->dq = NULL;
-  substructure->deltaq = NULL;
-  return substructure;
+void s2_context_setOmegaN(
+  s2_context_t* context,
+  double omegaN) {
+
+  context->modelParameters->baumgarteOmegaN = omegaN;
+  context->modelParameters->baumgarte2OmegaN = 2 * omegaN;
+  context->modelParameters->baumgarteOmegaN2 =
+    omegaN * omegaN;
 }
 
 
@@ -1108,259 +586,6 @@ void s2_modelparameters_free(
 
 
 /*!
-@brief Append a subassembly to a mbdl assembly
-
-@param assembly an Assembly datastructure to append to
-@param subAssembly an Assembly datastructure to append
-*/
-void s2_assembly_append(
-  s2_assembly_t* assembly,
-  s2_assembly_t* subAssembly) {
-
-  if (!assembly->subAssemblyTail) {
-    assembly->subAssemblyHead = subAssembly;
-    assembly->subAssemblyTail = subAssembly;
-  } else {
-    assembly->subAssemblyTail->next = subAssembly;
-    assembly->subAssemblyTail = subAssembly;
-  }
-}
-
-
-/*!
-@brief Append a force module to an Assembly datastructure
-
-@param assembly an Assembly datastructure to append to
-@param forcemodule a force module datastructure to append
-*/
-void s2_forcemodule_append(
-  s2_assembly_t* assembly,
-  s2_forcemodule_t* forceModule) {
-
-  if (!assembly->forceModuleTail) {
-    assembly->forceModuleHead = forceModule;
-    assembly->forceModuleTail = forceModule;
-  } else {
-    assembly->forceModuleTail->next = forceModule;
-    assembly->forceModuleTail = forceModule;
-  }
-}
-
-
-/*!
-@brief Append a body to an Assembly datastructure
-
-@param assembly an Assembly datastructure to append to
-@param body a Body datastructure to append
-*/
-void s2_body_append(
-  s2_assembly_t* assembly,
-  s2_body_t* body) {
-
-  if (!assembly->bodyTail) {
-    assembly->bodyHead = body;
-    assembly->bodyTail = body;
-  } else {
-    assembly->bodyTail->next = body;
-    assembly->bodyTail = body;
-  }
-}
-
-
-/*!
-@brief Append a Frame datastructure to a Body datastructure
-
-@param body a Body datastructure to append to
-@param frame a Frame datastructure to append
-*/
-void s2_frame_append(
-  s2_body_t* body,
-  s2_frame_t* frame) {
-
-  if(!body->frameTail) {
-    body->frameHead = frame;
-    body->frameTail = frame;
-  } else {
-    body->frameTail->next = frame;
-    body->frameTail = frame;
-  }
-}
-
-
-/*!
-@brief Append Joint datastructure to Assembly datastructure
-
-@param assembly an Assembly datastructure to append to
-@param joint a Joint datastructure to append
-*/
-void s2_joint_append(
-  s2_assembly_t* assembly,
-  s2_joint_t* joint) {
-
-  if (!assembly->jointTail) {
-    assembly->jointHead = joint;
-    assembly->jointTail = joint;
-  } else {
-    assembly->jointTail->next = joint;
-    assembly->jointTail = joint;
-  }
-}
-
-
-/*!
-@brief Append a Light datastructure to a Body datastructure
-
-@param body an assembly datastructure to append to
-@param light a Light datastructure to append
-*/
-void s2_light_append(
-  s2_assembly_t* assembly,
-  s2_light_t* light) {
-
-  if (!assembly->lightTail) {
-    assembly->lightHead = light;
-    assembly->lightTail = light;
-  } else {
-    assembly->lightTail->next = light;
-    assembly->lightTail = light;
-  }
-}
-
-
-/*!
-@brief print bodies in an Assembly datastructure
-@param assembly an Assembly datastructure
-*/
-void s2_printJoints(
-  FILE* f,
-  s2_assembly_t* assembly) {
-
-  s2_joint_t* jointHead = assembly->jointHead;
-  while (jointHead) {
-    fprintf(f, "\tJoint: ");
-    s2_stackstr_print(f, jointHead->name);
-    fprintf(f, "\t\tindex: %d\n", jointHead->index);
-    fprintf(f, "\t\tsense: %d\n", jointHead->sense);
-    fprintf(f, "\t\tlevel: %d\n", jointHead->level);
-    fprintf(f, "\t\tjointType: %s\n", jointHead->jointTypeStr);
-    fprintf(f, "\t\tparentBody: ");
-    s2_stackstr_print(f, jointHead->parentBody);
-    // printf("\t\tparentBodyPtr: %p\n", jointHead->parentBodyPointer);
-    fprintf(f, "\t\tparentFrame:");
-    s2_stackstr_print(f, jointHead->parentFrame);
-    // printf("\t\tparentFramePtr: %p\n", jointHead->parentFramePointer);
-    fprintf(f, "\t\tchildBody: ");
-    s2_stackstr_print(f, jointHead->childBody);
-    // printf("\t\tchildBodyPtr: %p\n", jointHead->childBodyPointer);
-    fprintf(f, "\t\tchildFrame: ");
-    s2_stackstr_print(f, jointHead->childFrame);
-    // printf("\t\tchildFramePtr: %p\n", jointHead->childFramePointer);
-    if(jointHead->primitiveDisplacement) {
-
-      fprintf(f, "\t\tprimitiveDisplacement: %0.16f\n",
-             *(jointHead->primitiveDisplacement));
-    }
-    if(jointHead->h) {
-      fprintf(f, "\t\th: ");
-      s2_screw_print(f, jointHead->h);
-    }
-    jointHead = jointHead->next;
-  }
-}
-
-
-/*!
-@brief print frames in a Nody datastructure
-@param body a Body datastructure
-*/
-void s2_printFrames(
-  FILE* f,
-  s2_body_t* body) {
-
-  s2_frame_t *frameHead = body->frameHead;
-  while(frameHead) {
-    fprintf(f, "\tFrame: ");
-    s2_stackstr_print(f, frameHead->name);
-    // printf("\t\tframePointer: %p\n", frameHead);
-    fprintf(f, "\t\tdWRTOrigin:\n");
-    s2_displacement_print(f, frameHead->dWRTOrigin);
-    fprintf(f, "\t\tdWRTOriginInverse:\n");
-    s2_displacement_print(f, frameHead->dWRTOriginInverse);
-    fprintf(f, "\t\tdWRTReference:\n");
-    s2_displacement_print(f, frameHead->dWRTReference);
-    fprintf(f, "\t\trotationWRTReferenceInverse:\n");
-    s2_displacement_print(f, frameHead->dWRTReferenceInverse);
-    fprintf(f, "\t\trotationAbsolute:\n");
-    s2_displacement_print(f, frameHead->dAbsolute);
-    if(frameHead->velocityAbsolute) {
-      fprintf(f, "\t\tvelocityAbsolute:\n");
-      s2_screw_print(f, frameHead->velocityAbsolute);
-    }
-    if(frameHead->accelerationQuadraticAbsolute) {
-      fprintf(f, "\t\taccelerationQuadraticAbsolute:\n");
-      s2_screw_print(f, frameHead->accelerationQuadraticAbsolute);
-    }
-    if(frameHead->referenceFramePointer) {
-      fprintf(f, "\t\tReference Frame: ");
-      s2_stackstr_print(f, frameHead->referenceFramePointer->name);
-    }
-    fprintf(f, "\t\tisParent: %s\n", frameHead->isReference ? "True" : "False");
-    frameHead = frameHead->next;
-  }
-}
-
-
-/*!
-@brief print bodies in a s2_assembly_t datastructure
-
-@param assembly a s2_assembly_t datastructure
-*/
-void s2_printBodies(
-  FILE* f,
-  s2_assembly_t* assembly) {
-
-  s2_body_t* bodyHead = assembly->bodyHead;
-  while (bodyHead) {
-    fprintf(f, "\tBody: ");
-    s2_stackstr_print(f, bodyHead->name);
-    // printf("\t\tbodyPtr: %p\n", bodyHead);
-    fprintf(f, "\t\tindex: %d\n", bodyHead->index);
-    fprintf(f, "\t\tdefinition: ");
-    s2_stackstr_print(f, bodyHead->definition);
-    fprintf(f, "\t\tvirtualBody: %s\n", bodyHead->isVirtual ? "True" : "False");
-
-    s2_printFrames(f, bodyHead);
-    bodyHead = bodyHead->next;
-  }
-}
-
-
-/*!
-@brief Recursively print bodies and joints in a STAR assembly
-datastructure using depth first tree traversal
-
-@param assembly a STAR Assembly datastructure
-*/
-void s2_assembly_print(
-  FILE* f,
-  s2_assembly_t* assembly) {
-
-  s2_assembly_t *subAssemblyHead = assembly->subAssemblyHead;
-  while (subAssemblyHead) {
-    fprintf(f, "\nAssembly: ");
-    s2_stackstr_print(f, subAssemblyHead->name);
-    fprintf(f, "active: %s\n", subAssemblyHead->active ? "True" : "False");
-    s2_printBodies(f, subAssemblyHead);
-    s2_printJoints(f, subAssemblyHead);
-    if (subAssemblyHead->subAssemblyHead) {
-      s2_assembly_print(f, subAssemblyHead);
-    }
-    subAssemblyHead = subAssemblyHead->next;
-  }
-}
-
-
-/*!
 @brief Print a Context datastructure
 @param context a Context datastructure
 */
@@ -1393,7 +618,7 @@ Joint datastructures
 
 @param context a Context datastructure
 */
-void s2_freeH(
+void s2_context_freeH(
   s2_context_t* context) {
 
   if(context->h) {
@@ -1417,7 +642,7 @@ Not intended to be called directly, used internally by s2_FreeDVA function
 @param context a Context datastructure
 @param assembly an Assembly datastructure
 */
-int s2_freeDVARecursive(
+int s2_context_freeDVARecursive(
   s2_context_t* context,
   s2_assembly_t* assembly) {
 
@@ -1481,7 +706,7 @@ int s2_freeDVARecursive(
 
 @param context a Context datastructure
 */
-void s2_freeDHVA(
+void s2_context_freeDHVA(
   s2_context_t* context) {
 
   if(context->d) {
@@ -1531,16 +756,16 @@ Joint datastructures, also copies q and dq back to original datastructures
 
 @param context a Context datastructure
 */
-void s2_freeDc(
+void s2_context_freeDc(
   s2_context_t* context) {
 
   if(context->dc) {
     for(int i = 0; i < context->activeJointCount; i++) {
       s2_joint_t* joint = context->jointPointers[i];
       switch(joint->jointType) {
-        case RX:
-        case RY:
-        case RZ: {
+        case S2_JOINT_RX:
+        case S2_JOINT_RY:
+        case S2_JOINT_RZ: {
           joint->directionCosine = malloc(2 * sizeof(double));
           cblas_dcopy(
             2,
@@ -1549,18 +774,18 @@ void s2_freeDc(
             joint->directionCosine,
             1);
         }
-        case TX:
-        case TY:
-        case TZ: {
+        case S2_JOINT_TX:
+        case S2_JOINT_TY:
+        case S2_JOINT_TZ: {
           joint->primitiveDisplacement = calloc(1, sizeof(double));
           joint->primitiveDisplacement[0] = context->q[joint->qIndex];
           joint->primitiveVelocity = calloc(1, sizeof(double));
           joint->primitiveVelocity[0] = context->dq[joint->dqIndex];
         } break;
-        case RIGID: {
+        case S2_JOINT_RIGID: {
 
         } break;
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           joint->primitiveDisplacement = calloc(4, sizeof(double));
           cblas_dcopy(
             4,
@@ -1576,7 +801,7 @@ void s2_freeDc(
             joint->primitiveVelocity,
             1);
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           joint->primitiveDisplacement = calloc(7, sizeof(double));
           cblas_dcopy(
             7,
@@ -1592,8 +817,8 @@ void s2_freeDc(
             joint->primitiveVelocity,
             1);
         } break;
-        case PRIMITIVE:
-        case INVALID: {
+        case S2_JOINT_PRIMITIVE:
+        case S2_JOINT_INVALID: {
         } break;
       }
     }
@@ -1687,7 +912,7 @@ run time arrays.
 
 @param context an s2_context_t datastructure
 */
-void s2_freeRunTimeArrays(
+void s2_context_freeRunTimeArrays(
   s2_context_t *context) {
 
   // copy values by value back out of D,H,V,A before clearing
@@ -1966,301 +1191,12 @@ void s2_freeRunTimeArrays(
 
 }
 
-/*!
-  @brief free a s2_joint_t data structure
-*/
-void s2_joint_free(
-  s2_joint_t* joint) {
-
-  if(joint) {
-    if(joint->name) {
-      s2_stackstr_free(joint->name);
-    }
-    if(joint->parentBody) {
-      s2_stackstr_free(joint->parentBody);
-      joint->parentBody = NULL;
-    }
-    if(joint->parentFrame) {
-      s2_stackstr_free(joint->parentFrame);
-      joint->parentFrame = NULL;
-    }
-    if(joint->childBody) {
-      s2_stackstr_free(joint->childBody);
-      joint->childBody = NULL;
-    }
-    if(joint->childFrame) {
-      s2_stackstr_free(joint->childFrame);
-      joint->childFrame = NULL;
-    }
-    if(joint->generalDisplacement) {
-      free(joint->generalDisplacement);
-      joint->generalDisplacement = NULL;
-    }
-    if(joint->directionCosine) {
-      free(joint->directionCosine);
-      joint->directionCosine = NULL;
-    }
-    if(joint->velocityRelative) {
-      free(joint->velocityRelative);
-      joint->velocityRelative = NULL;
-    }
-    if(joint->accelerationQuadraticRelative) {
-      free(joint->accelerationQuadraticRelative);
-      joint->accelerationQuadraticRelative = NULL;
-    }
-    if(joint->h) {
-      free(joint->h);
-      joint->h = NULL;
-    }
-    if(joint->primitiveVelocity) {
-      free(joint->primitiveVelocity);
-      joint->primitiveVelocity = NULL;
-    }
-    if(joint->primitiveDisplacement) {
-      free(joint->primitiveDisplacement);
-      joint->primitiveDisplacement = NULL;
-    }
-
-    if(joint->initialPrimitiveVelocity) {
-      free(joint->initialPrimitiveVelocity);
-      joint->initialPrimitiveVelocity = NULL;
-    }
-
-    if(joint->initialPrimitiveDisplacement) {
-      free(joint->initialPrimitiveDisplacement);
-      joint->initialPrimitiveDisplacement = NULL;
-    }
-    if(joint->jointTypeStr) {
-      free(joint->jointTypeStr);
-      joint->jointTypeStr = NULL;
-    }
-    free(joint);
-    joint = NULL;
-  }
-}
-
-/*!
-@brief Free a s2_frame_t datastructure
-@param frame an s2_frame_t datastructure
-*/
-void s2_frame_free(
-  s2_frame_t* frame) {
-
-  if(frame) {
-    s2_stackstr_free(frame->name);
-
-    if(frame->dWRTReference == frame->dWRTOrigin) {
-      if(frame->dWRTReference) {
-        free(frame->dWRTReference);
-        frame->dWRTReference = NULL;
-        frame->dWRTOrigin = NULL;
-      }
-    } else{
-      if(frame->dWRTReference) {
-        free(frame->dWRTReference);
-        frame->dWRTReference = NULL;
-      }
-      if(frame->dWRTOrigin) {
-        free(frame->dWRTOrigin);
-        frame->dWRTOrigin = NULL;
-      }
-    }
-
-    if(frame->dWRTReferenceInverse == frame->dWRTOriginInverse) {
-      if(frame->dWRTReferenceInverse) {
-        free(frame->dWRTReferenceInverse);
-        frame->dWRTReferenceInverse = NULL;
-        frame->dWRTOriginInverse = NULL;
-      }
-    } else{
-      if(frame->dWRTReferenceInverse) {
-        free(frame->dWRTReferenceInverse);
-        frame->dWRTReferenceInverse = NULL;
-      }
-      if(frame->dWRTOriginInverse) {
-        free(frame->dWRTOriginInverse);
-        frame->dWRTOriginInverse = NULL;
-      }
-    }
-
-    if(frame->dAbsolute) {
-      free(frame->dAbsolute);
-      frame->dAbsolute = NULL;
-    }
-    if(frame->velocityAbsolute) {
-      free(frame->velocityAbsolute);
-      frame->velocityAbsolute = NULL;
-    }
-    if(frame->accelerationQuadraticAbsolute) {
-      free(frame->accelerationQuadraticAbsolute);
-      frame->accelerationQuadraticAbsolute = NULL;
-    }
-    free(frame);
-    frame = NULL;
-  }
-}
-
-
-/*!
-@brief free materials data structures
-*/
-void s2_materials_free(
-  s2_material_t* materials,
-  int materialCount) {
-
-  if(materials) {
-    for(int i = 0; i < materialCount; i++) {
-      if(materials[i].name) {
-        free(materials[i].name);
-        materials[i].name = NULL;
-      }
-      if(materials[i].filePath) {
-        free(materials[i].filePath);
-        materials[i].filePath = NULL;
-      }
-      if(materials[i].vertices) {
-        free(materials[i].vertices);
-        materials[i].vertices = NULL;
-      }
-      if(materials[i].vertexNormals) {
-        free(materials[i].vertexNormals);
-        materials[i].vertexNormals = NULL;
-      }
-      if(materials[i].faces) {
-        free(materials[i].faces);
-        materials[i].faces = NULL;
-      }
-    }
-    free(materials);
-    materials = NULL;
-  }
-}
-
-/*!
-@brief Free a s2_body_t datastructure
-@param body an s2_body_t datastructure
-*/
-void s2_body_free(
-  s2_body_t* body) {
-
-  if(body) {
-    s2_stackstr_free(body->name);
-    if (body->definition) {
-      s2_stackstr_free(body->definition);
-    }
-    s2_inertia_free(body->inertia);
-    s2_materials_free(body->materials, body->materialCount);
-
-    free(body->centerOfMassWRTOrigin);
-    free(body->centerOfMassWRTReference);
-
-    s2_frame_t* frameHead = body->frameHead;
-    while(frameHead) {
-      s2_frame_t* nextFrame = frameHead->next;
-      s2_frame_free(frameHead);
-      frameHead = nextFrame;
-    }
-    free(body);
-    body = NULL;
-  }
-}
-
-/*!
-@brief Free a s2_body_t datastructure
-@param body a virtual Body datastructure to free
-*/
-void s2_virtualbody_free(
-  s2_body_t* body) {
-
-  if(body) {
-    s2_stackstr_free(body->name);
-    if(body->definition) {
-      s2_stackstr_free(body->definition);
-    }
-    s2_inertia_free(body->inertia);
-    free(body->centerOfMassWRTOrigin);
-    free(body->centerOfMassWRTReference);
-    s2_frame_t* frameHead = body->frameHead;
-    while(frameHead) {
-      s2_frame_t* nextFrame = frameHead->next;
-      s2_stackstr_free(frameHead->name);
-      free(frameHead->dWRTOrigin);
-      frameHead->dWRTOrigin = NULL;
-      free(frameHead->dWRTOriginInverse);
-      frameHead->dWRTOriginInverse = NULL;
-      // if(frameHead->dAbsolute) free(frameHead->dAbsolute);
-      // frameHead->dAbsolute = NULL;
-      free(frameHead);
-      frameHead = NULL;
-      frameHead = nextFrame;
-    }
-    free(body);
-    body = NULL;
-  }
-}
-
-/*!
-@brief Free a Light datastructure
-@param light a Light datastructure
-*/
-void s2_light_free(
-  s2_light_t* light) {
-
-  if(light) {
-    s2_stackstr_free(light->name);
-    s2_stackstr_free(light->parentFrame);
-    s2_stackstr_free(light->parentBody);
-    free(light);
-    light = NULL;
-  }
-}
-
-/*!
-@brief Free an Assembly datastructure
-@param assembly an Assembly datastructure
-*/
-void s2_assembly_free(
-  s2_assembly_t* assembly) {
-
-  s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
-  while(subAssemblyHead) {
-    s2_assembly_t* nextSubAssembly = subAssemblyHead->next;
-    s2_body_t* bodyHead = subAssemblyHead->bodyHead;
-    while(bodyHead) {
-      s2_body_t* nextBody = bodyHead->next;
-      s2_body_free(bodyHead);
-      bodyHead = nextBody;
-    }
-    s2_joint_t* jointHead = subAssemblyHead->jointHead;
-    while(jointHead) {
-      s2_joint_t* nextJoint = jointHead->next;
-      s2_joint_free(jointHead);
-      jointHead = nextJoint;
-    }
-    s2_light_t* lightHead = subAssemblyHead->lightHead;
-    while(lightHead) {
-      s2_light_t* nextLight = lightHead->next;
-      s2_light_free(lightHead);
-      lightHead = nextLight;
-    }
-
-    if(subAssemblyHead->subAssemblyHead) {
-      s2_assembly_free(subAssemblyHead->subAssemblyHead);
-    }
-
-    s2_stackstr_free(subAssemblyHead->name);
-    free(subAssemblyHead);
-
-    subAssemblyHead = nextSubAssembly;
-  }
-}
-
 
 /*!
 @brief Free frames on the *fixed* inertial reference frame
 @param context a Context datastructure
 */
-void s2_freeFixedFrames(
+void s2_context_freeFixedFrames(
   s2_context_t* context) {
 
   s2_body_t* bodyHead = context->assembly->bodyHead;
@@ -2310,36 +1246,6 @@ void s2_context_free(
   }
 }
 
-
-/*!
-@brief Converts jointType descriptive name to JOINTTYPE enum
-
-@param jointType descriptive name
-@return JOINTTYPE enum
-*/
-s2_joint_enum_t s2_getJointType(
-  const char* jointTypeStr) {
-
-  if (!strcmp(jointTypeStr, "Tx"))
-    return TX;
-  else if (!strcmp(jointTypeStr, "Ty"))
-    return TY;
-  else if (!strcmp(jointTypeStr, "Tz"))
-    return TZ;
-  else if (!strcmp(jointTypeStr, "Rx"))
-    return RX;
-  else if (!strcmp(jointTypeStr, "Ry"))
-    return RY;
-  else if (!strcmp(jointTypeStr, "Rz"))
-    return RZ;
-  else if (!strcmp(jointTypeStr, "rigid"))
-    return RIGID;
-  else if (!strcmp(jointTypeStr, "spherical"))
-    return SPHERICAL;
-  else if (!strcmp(jointTypeStr, "float"))
-    return FLOAT;
-  return INVALID;
-}
 
 /*!
 @brief get a frame pointer by specifying root body name and root frame name

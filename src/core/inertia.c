@@ -23,7 +23,44 @@ SUCH DAMAGE.
 #include <jansson.h>
 #include <string.h>
 #include <math.h>
-#include "../star2.h"
+#include "kinematics.c"
+#include "body.h"
+#include "inertia.h"
+#include "context.h"
+#include "joint.h"
+#include "frame.h"
+
+
+/*!
+@brief Initialize an Inertia datastructure
+
+@param None
+@returns an Inertia datastructure
+*/
+s2_inertia_t* s2_inertia() {
+  s2_inertia_t* inertia = malloc(sizeof *inertia);
+  if (!inertia) {
+    fprintf(stderr, "Error: failed to initialize inertia.\n");
+    return NULL;
+  }
+  memset(inertia, 0, sizeof(s2_inertia_t));
+  return inertia;
+}
+
+
+/*!
+@brief Free an Inertia datastructure
+@param inertia Inertia datastructure to free
+*/
+void s2_inertia_free(
+  s2_inertia_t* inertia) {
+
+  if(inertia) {
+    free(inertia);
+  }
+  inertia = NULL;
+}
+
 
 /*!
 @brief print an inertia matrix
@@ -46,6 +83,7 @@ void s2_inertia_print(
     inertia->Iyz,
     inertia->Izx);
 }
+
 
 /*!
 @brief rotate a centroidal inertia matrix, does not
@@ -229,7 +267,7 @@ void inertia_merge(
   s2_inertia_t* inertia,
   int childIndex) {
 
-  if(context->jointPointers[childIndex]->jointType == RIGID &&
+  if(context->jointPointers[childIndex]->jointType == S2_JOINT_RIGID &&
      context->pcl[childIndex] > -1) {
 
     s2_body_t* parentBody = context->bodyPointers[context->pcl[childIndex]];

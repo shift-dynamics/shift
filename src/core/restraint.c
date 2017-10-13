@@ -18,6 +18,48 @@ SUCH DAMAGE.
 */
 #include "../star2.h"
 #include "restraint.h"
+#include "assembly.h"
+
+
+/*!
+@brief Initialize an s2_restraint_t datastructure
+@returns a Restraint datastructure
+*/
+s2_restraint_t* s2_restraint() {
+  s2_restraint_t* restraint = malloc(sizeof *restraint);
+  if (!restraint) {
+    fprintf(stderr, "Error: failed to initialize restraint.\n");
+    return NULL;
+  }
+  restraint->knots = NULL;
+  restraint->coefficients = NULL;
+  restraint->restraintType = S2_RESTRAINT_SPRING;
+  restraint->distanceType = S2_DISTANCE_EUCLIDIAN;
+  restraint->coordinateType = S2_COORDINATE_FIXED;
+  restraint->parentFrame = NULL;
+  restraint->childFrame = NULL;
+  return restraint;
+}
+
+
+/*!
+@brief Append a Restraint datastructure to an Assembly
+
+@param assembly a pointer to an Assembly datastructure
+@param restraint Restraint datastructure to append
+*/
+void s2_restraint_append(
+  s2_assembly_t* assembly,
+  s2_restraint_t* restraint) {
+
+  if(!assembly->restraintTail) {
+    assembly->restraintHead = restraint;
+    assembly->restraintTail = restraint;
+  } else {
+    assembly->restraintTail->next = restraint;
+    assembly->restraintTail = restraint;
+  }
+}
 
 
 /*!

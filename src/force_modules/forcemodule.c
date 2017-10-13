@@ -29,6 +29,51 @@ SUCH DAMAGE.
 #include "forcemodule.h"
 
 
+/*!
+@brief initialize a forcemodule data structure
+*/
+s2_forcemodule_t* s2_forcemodule(
+  s2_forcemodule_enum_t forceModuleType) {
+
+  s2_forcemodule_t* forceModule = NULL;
+
+  switch(forceModuleType) {
+    case TIRE: {
+      forceModule = malloc(sizeof(s2_forcemodule_t));
+      forceModule->forceModuleType = forceModuleType;
+      forceModule->data = NULL;
+      forceModule->update = NULL;
+      forceModule->saveHistory = NULL;
+      forceModule->parameters = malloc(sizeof(void*));
+      forceModule->neqn = 0;
+      forceModule->y = 0;
+      forceModule->useTransient = false;
+      forceModule->next = NULL;
+      forceModule->name = NULL;
+
+      /* the rest will be done in external tire specific
+      initialization function function */
+    } break;
+    case PID: {
+      forceModule = malloc(sizeof(s2_forcemodule_t));
+      forceModule->forceModuleType = forceModuleType;
+      forceModule->data = NULL;
+      forceModule->update = NULL;
+      forceModule->saveHistory = NULL;
+      forceModule->parameters = malloc(sizeof(void*));
+      forceModule->neqn = 1;
+      forceModule->y = NULL;
+      forceModule->useTransient = true;
+      forceModule->next = NULL;
+      forceModule->name = NULL;
+    } break;
+    default: {
+    } break;
+  }
+  return forceModule;
+}
+
+
 /*! @brief recursively count force modules with static and transient properties
 
 */
@@ -381,5 +426,44 @@ void s2_forcemodule_saveHistory(
     if(forceModule->saveHistory != NULL) {
       forceModule->saveHistory(forceModule->data);
     }
+  }
+}
+
+
+/*!
+@brief Append a force module to an Assembly datastructure
+
+@param assembly an Assembly datastructure to append to
+@param forcemodule a force module datastructure to append
+*/
+void s2_forcemodule_append(
+  s2_assembly_t* assembly,
+  s2_forcemodule_t* forceModule) {
+
+  if (!assembly->forceModuleTail) {
+    assembly->forceModuleHead = forceModule;
+    assembly->forceModuleTail = forceModule;
+  } else {
+    assembly->forceModuleTail->next = forceModule;
+    assembly->forceModuleTail = forceModule;
+  }
+}
+
+
+/*!
+@brief initialize a forcemodule data structure
+*/
+void s2_forcemodule_free(s2_forcemodule_t* forceModule) {
+
+  switch(forceModule->forceModuleType) {
+    case TIRE: {
+      s2_tire_free((s2_tire_t*)forceModule->data);
+      free(forceModule->parameters);
+      free(forceModule);
+      /* the rest will be done in external tire specific
+      initialization function function */
+    } break;
+    default: {
+    } break;
   }
 }

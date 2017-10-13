@@ -24,6 +24,7 @@ SUCH DAMAGE.
 #define _STAR2_STACK_H_
 
 #include <stdbool.h>
+#include <stdio.h>
 
 typedef struct s2_stacknode_t {
     int value;

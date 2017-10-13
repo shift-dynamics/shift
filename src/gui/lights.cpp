@@ -147,9 +147,9 @@ void s2_Lights::draw() {
 
   if(m_drawEnabled) {
 
-    for(int light = 0; light < m_lights.count; light++) {
+    for(int i = 0; i < m_lights.count; i++) {
 
-      m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, m_fbo[light]);
+      m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, m_fbo[i]);
       checkError("lights: after glBindFramebuffer(GL_FRAMEBUFFER, m_fbo)");
 
       glClear(GL_DEPTH_BUFFER_BIT);
@@ -157,6 +157,10 @@ void s2_Lights::draw() {
 
       glViewport(0, 0, m_depthBufferSize, m_depthBufferSize);
       checkError("lights: after glViewport()");
+
+      /* set camera view and projection matrix */
+      s2_light_t* light = m_context->lightPointers[i];
+
 
       glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
       checkError("lights: after glColorMask()");

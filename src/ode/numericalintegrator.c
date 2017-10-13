@@ -1,5 +1,6 @@
 #include "numericalintegrator.h"
 
+#include "context.h"
 
 /*!
 @brief Free memory for numericalintegrator datastructure
