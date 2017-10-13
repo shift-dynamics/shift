@@ -19,6 +19,20 @@
 }
 
 
+typedef enum s2_interpolation_enum_t {
+  S2_INTERPOLATION_BILINEAR, /*!< bilinear interpolation is the simplest technique for 2D
+  interpolation. The resulting surface is C0 continuous (position continuity is maintained between surface patches, but not tangency and curvature). The surface intersects the control points. */
+  S2_INTERPOLATION_BICUBIC,  /*!< bicubic interpolation uses knot points as control points, surface passes near control point, but may not intersect control point, surface is C0, C1 and C2 continuous (position, tangency and curvature continuity are maintained between surface patches) */
+  S2_INTERPOLATION_CATMULROM /*!< catmul-rom interpolation, surface passes through control points, but is only C0 and C1 continuous (position and tangency continuity are maintained between surface patches, but not curvature) */
+} s2_interpolation_enum_t;
+
+
+typedef enum s2_coordinate_convention_enum_t {
+  S2_COORDINATECONVENTION_ISO, /*!< x is left ordinate of image, y is top ordinate of image, z is pointing up out of height map */
+  S2_COORDINATECONVENTION_SAE /*!< x is top ordinate of image, y is left ordinate of image, z is pointing down into height map */
+} s2_coordinate_convention_enum_t;
+
+
 typedef struct s2_terrain_t {
   s2_interpolation_enum_t interpolationType; /*!< technique used for 2D interpolation */
   s2_coordinate_convention_enum_t coordinateConvention; /*!< ISO or SAE coordinate system */

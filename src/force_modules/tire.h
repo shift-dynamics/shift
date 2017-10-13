@@ -26,10 +26,38 @@ SUCH DAMAGE.
 #ifndef _STAR2_TIRE_H_
 #define _STAR2_TIRE_H_
 
+typedef struct s2_tire_t s2_tire_t;
+
+
+/*!
+@brief Types of tires
+*/
+typedef enum {
+  S2_TIRE_PAC1996, /*!< not supported */
+  S2_TIRE_PAC2002, /*!< under development */
+  S2_TIRE_FIALA, /*!< under development */
+  S2_TIRE_PAC2012, /*!< under development */
+  S2_TIRE_LUGRE    /*!< not supported */
+} s2_tire_enum_t;
+
+
+/*!
+@brief tire side type
+*/
+typedef enum {
+  S2_TIRE_LEFT,
+  S2_TIRE_RIGHT
+} s2_tireside_enum_t;
+
+
+
+
+
 typedef struct s2_tire_t {
   s2_tire_enum_t tireType;
   void* properties;
 } s2_tire_t;
+
 
 void s2_tire(
   s2_forcemodule_t* forceModule,

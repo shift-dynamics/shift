@@ -24,17 +24,66 @@ SUCH DAMAGE.
 
 #include "../star2.h"
 
+
+/*!
+@brief types of force modules currently supported
+*/
+typedef enum {
+  TIRE,
+  PID
+} s2_forcemodule_enum_t;
+
+
+/*!
+@brief utility to feed back forces into a running simulation
+*/
+typedef struct s2_forcemodule_t {
+
+  s2_forcemodule_enum_t forceModuleType;
+  void* data;
+  void (*update)(s2_context_t* context, void** parameters, double* y);
+  void (*saveHistory)(void* parameters);
+  void** parameters;
+  int yOffset;
+  int neqn; /*!< number of states that need to be numerically
+    integrated */
+  double* y;
+  bool useTransient;
+  s2_stackstr_t* name;
+  s2_forcemodule_t* next;
+} s2_forcemodule_t;
+
+
+s2_forcemodule_t* s2_forcemodule(s2_forcemodule_enum_t);
+
+
+s2_forcemodule_t* s2_forcemodule(
+  s2_forcemodule_enum_t forceModuleType);
+
+
 void s2_forcemodule_flatten(
   s2_context_t* context);
 
+
 void s2_forcemodule_connect(
   s2_context_t* context);
+
 
 void s2_forcemodule_updateTransient(
   s2_context_t* context,
   double* y);
 
+
 void s2_forcemodule_saveHistory(
   s2_context_t* context);
+
+
+void s2_forcemodule_append(
+  s2_assembly_t* assembly,
+  s2_forcemodule_t* forceModule);
+
+
+void s2_forcemodule_free(s2_forcemodule_t* forceModule);
+
 
 #endif

@@ -34,7 +34,7 @@ void s2_tire(
 
   switch(tireType) {
 
-    case PAC2002: {
+    case S2_TIRE_PAC2002: {
       // printf("setting tire properties\n");
       s2_tire_pac2002_t* pac2002Tire =
         s2_tire_pac2002(
@@ -64,7 +64,7 @@ void s2_tire(
       }
     } break;
 
-    case FIALA: {
+    case S2_TIRE_FIALA: {
       s2_tire_fiala_t* fialaTire =
         s2_tire_fiala(
           context,
@@ -101,7 +101,7 @@ void s2_tire_free(
   s2_tire_t* tire) {
 
   switch(tire->tireType) {
-    case PAC2002: {
+    case S2_TIRE_PAC2002: {
       s2_tire_pac2002_t* pactire = (s2_tire_pac2002_t*)tire->properties;
       s2_tire_pac2002_free(pactire);
     } break;

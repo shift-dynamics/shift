@@ -18,7 +18,31 @@ SUCH DAMAGE.
 #ifndef _STAR2_CAMERA_H_
 #define _STAR2_CAMERA_H_
 
-#include "../star2.h"
+#include "kinematics.h"
+
+typedef struct s2_camera_t s2_camera_t;
+
+typedef enum {
+  S2_PROJECTION_PERSPECTIVE,
+  S2_PROJECTION_ORTHOGRAPHIC
+} s2_projection_enum_t;
+
+
+typedef struct s2_camera_t {
+
+  s2_projection_enum_t projectionType;
+
+  float fieldOfView;
+  float aspectRatio;
+  float nearClippingPlane;
+  float farClippingPlane;
+
+  s2_mat4x4f_t view;
+  s2_mat4x4f_t projection;
+
+  s2_camera_t* next;
+} s2_camera_t;
+
 
 void s2_camera_perspective(
   float fieldOfView,
