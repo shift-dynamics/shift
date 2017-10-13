@@ -23,7 +23,24 @@ SUCH DAMAGE.
 
 #include "ode113.h"
 #include "ode113b.h"
-#include "../star2.h"
+
+typedef struct s2_context_t s2_context_t;
+
+
+/*!
+@brief Current supported numerical integration types
+
+Currently only the Adams-Bashforth-Molton variable time step predictor
+correction numerical integrator is supported
+*/
+typedef enum {
+  ODE113, /*!< variable time step Adams-Bashforth-Molton, output is
+               interpolated at user specified time intervals */
+  ODE113B /*!< variable time step Adams-Bashforth-Molton, output
+               is reported at time interval closest to requested time
+               interval. */
+} s2_numericalintegrator_enum_t;
+
 
 void s2_numericalintegrator_allocate(
   s2_context_t* context);

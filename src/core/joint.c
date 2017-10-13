@@ -19,6 +19,180 @@ SUCH DAMAGE.
 #include "kinematics.h"
 #include "joint.h"
 
+
+/*!
+@brief Initialize a Joint datastructure
+
+@param None
+@returns a Joint datastructure
+*/
+s2_joint_t* s2_joint(
+  const char* jointTypeStr) {
+
+  s2_joint_t* joint = malloc(sizeof(s2_joint_t));
+
+  if(!joint) {
+    fprintf(stderr, "Error: failed to initialize joint.\n");
+    return NULL;
+  }
+  joint->jointTypeStr = strdup(jointTypeStr);
+  joint->jointType = s2_getJointType(jointTypeStr);
+
+  joint->name = NULL;
+
+  joint->index = -1;
+  joint->parentBody = NULL;
+  joint->parentFrame = NULL;
+  joint->childBody = NULL;
+  joint->childFrame = NULL;
+  joint->sense = 0;
+  joint->level = -1;
+  joint->stiffnessCoefficients = NULL;
+  joint->stiffnessCoefficientCount = 0;
+  joint->dampingCoefficients = NULL;
+  joint->dampingCoefficientCount = 0;
+
+  switch(joint->jointType) {
+    case S2_JOINT_TX:
+    case S2_JOINT_TY:
+    case S2_JOINT_TZ: {
+      joint->dof = 1;
+      joint->initialPrimitiveDisplacement = calloc(1, sizeof(double));
+      joint->initialPrimitiveVelocity = calloc(1, sizeof(double));
+
+      joint->primitiveDisplacement = calloc(1, sizeof(double));
+      joint->primitiveVelocity = calloc(1, sizeof(double));
+
+      joint->generalDisplacement = NULL;
+      joint->directionCosine = NULL;
+
+      joint->velocityRelative = s2_screw();
+      joint->accelerationQuadraticRelative = s2_screw();
+
+      joint->h = s2_screw();
+
+    } break;
+    case S2_JOINT_RX:
+    case S2_JOINT_RY:
+    case S2_JOINT_RZ: {
+      joint->dof = 1;
+      joint->initialPrimitiveDisplacement = calloc(1, sizeof(double));
+      joint->initialPrimitiveVelocity = calloc(1, sizeof(double));
+
+      joint->primitiveDisplacement = calloc(1, sizeof(double));
+      joint->primitiveVelocity = calloc(1, sizeof(double));
+
+      joint->generalDisplacement = NULL;
+      joint->directionCosine = calloc(2, sizeof(double));
+
+      joint->velocityRelative = s2_screw();
+      joint->accelerationQuadraticRelative = s2_screw();
+
+      joint->h = s2_screw();
+
+    } break;
+    case S2_JOINT_RIGID: {
+      joint->dof = 0;
+      joint->initialPrimitiveDisplacement = NULL;
+      joint->initialPrimitiveVelocity = NULL;
+
+      joint->primitiveDisplacement = NULL;
+      joint->primitiveVelocity = NULL;
+      joint->directionCosine = NULL;
+
+      joint->generalDisplacement = s2_displacement();
+
+      joint->velocityRelative = s2_screw();
+      joint->accelerationQuadraticRelative = s2_screw();
+
+      joint->h = NULL;
+    } break;
+    case S2_JOINT_SPHERICAL: {
+      joint->dof = 3;
+      joint->initialPrimitiveDisplacement = calloc(4, sizeof(double));
+      joint->initialPrimitiveVelocity = calloc(3, sizeof(double));
+
+      joint->primitiveDisplacement = calloc(4, sizeof(double));
+      joint->primitiveVelocity = calloc(3, sizeof(double));
+
+      joint->generalDisplacement = s2_displacement();
+      joint->directionCosine = NULL;
+
+      joint->velocityRelative = s2_screw();
+      joint->accelerationQuadraticRelative = s2_screw();
+
+      joint->h = malloc(3 * sizeof(s2_screw_t));
+    }
+    case S2_JOINT_FLOAT: {
+      joint->dof = 6;
+      joint->initialPrimitiveDisplacement = calloc(7, sizeof(double));
+      joint->initialPrimitiveVelocity = calloc(6, sizeof(double));
+
+      /* a float joint has primitive displacement specified as
+      translation in the first 3 terms, followed by orientation specified
+      as quaternions in the last four terms */
+      joint->primitiveDisplacement = calloc(7, sizeof(double));
+
+      /* velocity is specified as translational velocity in the first three
+      terms and angular velocity in the last three terms */
+      joint->primitiveVelocity = calloc(6, sizeof(double));
+
+      joint->generalDisplacement = s2_displacement();
+      joint->directionCosine = NULL;
+
+      joint->velocityRelative = s2_screw();
+      joint->accelerationQuadraticRelative = s2_screw();
+
+      joint->h = malloc(6 * sizeof(s2_screw_t));
+    } break;
+    case S2_JOINT_INVALID:
+    case S2_JOINT_PRIMITIVE: {
+      fprintf(stderr, "invalid joint type found\n");
+    } break;
+  }
+
+  joint->mobilityNumber = NULL;
+  joint->independent = false;
+
+  joint->parentJoint = NULL;
+  joint->next = NULL;
+
+  joint->substructurePointer = NULL;
+  return joint;
+}
+
+
+/*!
+@brief Converts jointType descriptive name to JOINTTYPE enum
+
+@param jointType descriptive name
+@return JOINTTYPE enum
+*/
+s2_joint_enum_t s2_getJointType(
+  const char* jointTypeStr) {
+
+  if (!strcmp(jointTypeStr, "Tx"))
+    return S2_JOINT_TX;
+  else if (!strcmp(jointTypeStr, "Ty"))
+    return S2_JOINT_TY;
+  else if (!strcmp(jointTypeStr, "Tz"))
+    return S2_JOINT_TZ;
+  else if (!strcmp(jointTypeStr, "Rx"))
+    return S2_JOINT_RX;
+  else if (!strcmp(jointTypeStr, "Ry"))
+    return S2_JOINT_RY;
+  else if (!strcmp(jointTypeStr, "Rz"))
+    return S2_JOINT_RZ;
+  else if (!strcmp(jointTypeStr, "rigid"))
+    return S2_JOINT_RIGID;
+  else if (!strcmp(jointTypeStr, "spherical"))
+    return S2_JOINT_SPHERICAL;
+  else if (!strcmp(jointTypeStr, "float"))
+    return S2_JOINT_FLOAT;
+  return S2_JOINT_INVALID;
+}
+
+
 /*!
 @brief Prismatic joint along x-axis (dh)
 
@@ -1752,4 +1926,98 @@ void s2_joint_sphericalinverse_dhva(
     aqParent,
     aqRelative,
     aqChild);
+}
+
+
+/*!
+  @brief free a s2_joint_t data structure
+*/
+void s2_joint_free(
+  s2_joint_t* joint) {
+
+  if(joint) {
+    if(joint->name) {
+      s2_stackstr_free(joint->name);
+    }
+    if(joint->parentBody) {
+      s2_stackstr_free(joint->parentBody);
+      joint->parentBody = NULL;
+    }
+    if(joint->parentFrame) {
+      s2_stackstr_free(joint->parentFrame);
+      joint->parentFrame = NULL;
+    }
+    if(joint->childBody) {
+      s2_stackstr_free(joint->childBody);
+      joint->childBody = NULL;
+    }
+    if(joint->childFrame) {
+      s2_stackstr_free(joint->childFrame);
+      joint->childFrame = NULL;
+    }
+    if(joint->generalDisplacement) {
+      free(joint->generalDisplacement);
+      joint->generalDisplacement = NULL;
+    }
+    if(joint->directionCosine) {
+      free(joint->directionCosine);
+      joint->directionCosine = NULL;
+    }
+    if(joint->velocityRelative) {
+      free(joint->velocityRelative);
+      joint->velocityRelative = NULL;
+    }
+    if(joint->accelerationQuadraticRelative) {
+      free(joint->accelerationQuadraticRelative);
+      joint->accelerationQuadraticRelative = NULL;
+    }
+    if(joint->h) {
+      free(joint->h);
+      joint->h = NULL;
+    }
+    if(joint->primitiveVelocity) {
+      free(joint->primitiveVelocity);
+      joint->primitiveVelocity = NULL;
+    }
+    if(joint->primitiveDisplacement) {
+      free(joint->primitiveDisplacement);
+      joint->primitiveDisplacement = NULL;
+    }
+
+    if(joint->initialPrimitiveVelocity) {
+      free(joint->initialPrimitiveVelocity);
+      joint->initialPrimitiveVelocity = NULL;
+    }
+
+    if(joint->initialPrimitiveDisplacement) {
+      free(joint->initialPrimitiveDisplacement);
+      joint->initialPrimitiveDisplacement = NULL;
+    }
+    if(joint->jointTypeStr) {
+      free(joint->jointTypeStr);
+      joint->jointTypeStr = NULL;
+    }
+    free(joint);
+    joint = NULL;
+  }
+}
+
+
+/*!
+@brief Append Joint datastructure to Assembly datastructure
+
+@param assembly an Assembly datastructure to append to
+@param joint a Joint datastructure to append
+*/
+void s2_joint_append(
+  s2_assembly_t* assembly,
+  s2_joint_t* joint) {
+
+  if (!assembly->jointTail) {
+    assembly->jointHead = joint;
+    assembly->jointTail = joint;
+  } else {
+    assembly->jointTail->next = joint;
+    assembly->jointTail = joint;
+  }
 }
