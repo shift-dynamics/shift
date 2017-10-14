@@ -21,6 +21,7 @@ SUCH DAMAGE.
 #define _STAR2_RESTRAINT_H_
 
 typedef struct s2_assembly_t s2_assembly_t;
+typedef struct s2_restraint_t s2_restraint_t;
 #include "restraint.h"
 #include "frame.h"
 #include "context.h"

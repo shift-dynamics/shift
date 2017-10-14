@@ -19,7 +19,7 @@ SUCH DAMAGE.
 #ifndef _STAR2_GRAPH_H_
 #define _STAR2_GRAPH_H_
 
-#include "context.h"
+typedef struct s2_context_t s2_context_t;
 
 void s2_graph_digraph(
   s2_context_t* context,

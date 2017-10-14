@@ -19,6 +19,8 @@ SUCH DAMAGE.
 */
 #include "context.h"
 #include "joint.h"
+#include "body.h"
+#include "chordconstraint.h"
 #include <stdio.h>
 #include <graphviz/gvc.h>
 #include <graphviz/cgraph.h>

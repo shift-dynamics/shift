@@ -19,8 +19,13 @@ SUCH DAMAGE.
 #ifndef _STAR2_JACOBIAN_H_
 #define _STAR2_JACOBIAN_H_
 
-#include "../star2.h"
-#include "stdlib.h"
+typedef struct s2_context_t s2_context_t;
+typedef struct s2_substructure_t s2_substructure_t;
+
+#include <stdlib.h>
+#include <stdio.h>
+
+// s2_jacobian_t* s2_jacobian();
 
 void s2_context_initializeJacobian(
   s2_context_t* context);

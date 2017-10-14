@@ -22,6 +22,8 @@ SUCH DAMAGE.
 typedef struct s2_sensor_t s2_sensor_t;
 typedef struct s2_camera_t s2_camera_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
+typedef struct s2_io_t s2_io_t;
+
 #include "kinematics.h"
 /*!
 @brief input/output data structure

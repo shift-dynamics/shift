@@ -27,7 +27,8 @@ SUCH DAMAGE.
 #else
   #include <cblas.h>
 #endif
-#include "../star2.h"
+#include "context.h"
+#include "substructure.h"
 
 /*!
   @brief initializes quantities needed to solve system of equations

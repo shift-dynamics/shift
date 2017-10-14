@@ -18,6 +18,8 @@ SUCH DAMAGE.
 */
 #include "kinematics.h"
 #include "joint.h"
+#include "assembly.h"
+#include "body.h"
 
 
 /*!

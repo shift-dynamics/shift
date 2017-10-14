@@ -22,8 +22,9 @@ SUCH DAMAGE.
 #ifndef _STAR2_FORCEMODULE_H_
 #define _STAR2_FORCEMODULE_H_
 
-#include "../star2.h"
-
+typedef struct s2_forcemodule_t s2_forcemodule_t;
+typedef struct s2_context_t s2_context_t;
+typedef struct s2_stackstr_t s2_stackstr_t;
 
 /*!
 @brief types of force modules currently supported

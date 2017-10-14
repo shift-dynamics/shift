@@ -92,27 +92,36 @@ add_library(bksl STATIC
 
 ### build static library ###
 add_library(star2_lib STATIC
-    ${star2_SOURCE_DIR}/src/core/context.c
-    ${star2_SOURCE_DIR}/src/core/kinematics.c
-    ${star2_SOURCE_DIR}/src/core/utility.c
-    ${star2_SOURCE_DIR}/src/core/loader.c
-    ${star2_SOURCE_DIR}/src/core/queue.c
-    ${star2_SOURCE_DIR}/src/core/stack.c
-    ${star2_SOURCE_DIR}/src/core/topology.c
-    ${star2_SOURCE_DIR}/src/core/joint.c
-    ${star2_SOURCE_DIR}/src/core/graph.c
-    ${star2_SOURCE_DIR}/src/core/geometry.c
+    ${star2_SOURCE_DIR}/src/core/assembly.c
+    ${star2_SOURCE_DIR}/src/core/body.c
     ${star2_SOURCE_DIR}/src/core/camera.c
-    ${star2_SOURCE_DIR}/src/core/jacobian.c
-    ${star2_SOURCE_DIR}/src/core/factor.c
-    ${star2_SOURCE_DIR}/src/core/solve.c
-    ${star2_SOURCE_DIR}/src/core/inertia.c
+    ${star2_SOURCE_DIR}/src/core/chordconstraint.c
+    ${star2_SOURCE_DIR}/src/core/context.c
     ${star2_SOURCE_DIR}/src/core/equation.c
+    ${star2_SOURCE_DIR}/src/core/factor.c
+    ${star2_SOURCE_DIR}/src/core/frame.c
+    ${star2_SOURCE_DIR}/src/core/geometry.c
+    ${star2_SOURCE_DIR}/src/core/graph.c
+    ${star2_SOURCE_DIR}/src/core/inertia.c
+    ${star2_SOURCE_DIR}/src/core/io.c
+    ${star2_SOURCE_DIR}/src/core/jacobian.c
+    ${star2_SOURCE_DIR}/src/core/joint.c
+    ${star2_SOURCE_DIR}/src/core/kinematics.c
+    ${star2_SOURCE_DIR}/src/core/light.c
+    ${star2_SOURCE_DIR}/src/core/loader.c
+    ${star2_SOURCE_DIR}/src/core/material.c
     ${star2_SOURCE_DIR}/src/core/memoize.c
     ${star2_SOURCE_DIR}/src/core/mobility.c
-    ${star2_SOURCE_DIR}/src/core/restraint.c
     ${star2_SOURCE_DIR}/src/core/newtonraphson.c
+    ${star2_SOURCE_DIR}/src/core/queue.c
+    ${star2_SOURCE_DIR}/src/core/restraint.c
+    ${star2_SOURCE_DIR}/src/core/sensor.c
+    ${star2_SOURCE_DIR}/src/core/solve.c
+    ${star2_SOURCE_DIR}/src/core/stack.c
+    ${star2_SOURCE_DIR}/src/core/substructure.c
     ${star2_SOURCE_DIR}/src/core/terrain.c
+    ${star2_SOURCE_DIR}/src/core/topology.c
+    ${star2_SOURCE_DIR}/src/core/utility.c
     ${star2_SOURCE_DIR}/src/force_modules/service.c
     ${star2_SOURCE_DIR}/src/force_modules/tire.c
     ${star2_SOURCE_DIR}/src/force_modules/tire/pac2002.c
@@ -124,7 +133,6 @@ add_library(star2_lib STATIC
     ${star2_SOURCE_DIR}/src/ode/numericalintegrator.c
     ${star2_SOURCE_DIR}/src/ode/ode113.c
     ${star2_SOURCE_DIR}/src/ode/ode113b.c
-
     # ${star2_SOURCE_DIR}/src/core/writer.c
 )
 

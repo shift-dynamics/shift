@@ -16,12 +16,20 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#include "../star2.h"
+
+#include <math.h>
+#include <stdio.h>
+
 #include "utility.h"
 #include "stdlib.h"
 #include "kinematics.h"
 #include "jacobian.h"
-#include <math.h>
+#include "substructure.h"
+#include "body.h"
+#include "context.h"
+#include "frame.h"
+#include "chordconstraint.h"
+
 
 
 /*!
@@ -83,7 +91,7 @@ void s2_jacobian_setInversePermutation(
   int* pInverse) {
 
   for(int i = 0; i < n; i++) {
-      pInverse[p[i]] = i;
+    pInverse[p[i]] = i;
   }
 }
 
@@ -114,37 +122,37 @@ void s2_jacobian_setLookup(
   for(int i = 0; i < context->activeJointCount; i++) {
     s2_joint_t* joint = context->jointPointers[i];
     switch(joint->jointType) {
-      case RX:
-      case RY:
-      case RZ:
-      case TX:
-      case TY:
-      case TZ: {
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ:
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ: {
         context->jointLookup[i] = jointCount++;
         context->dqLookup[i] = dqCount++;
         context->qLookup[i] = qCount++;
       } break;
-      case SPHERICAL: {
+      case S2_JOINT_SPHERICAL: {
         context->jointLookup[i] = jointCount++;
         context->dqLookup[i] = dqCount;
         context->qLookup[i] = qCount;
         dqCount += 3;
         qCount += 4;
       } break;
-      case FLOAT: {
+      case S2_JOINT_FLOAT: {
         context->jointLookup[i] = jointCount++;
         context->dqLookup[i] = dqCount;
         context->qLookup[i] = qCount;
         dqCount += 6;
         qCount += 7;
       } break;
-      case RIGID: {
+      case S2_JOINT_RIGID: {
         context->jointLookup[i] = -1;
         context->dqLookup[i] = -1;
         context->qLookup[i] = -1;
       } break;
-      case INVALID:
-      case PRIMITIVE:
+      case S2_JOINT_INVALID:
+      case S2_JOINT_PRIMITIVE:
         break;
     }
   }
@@ -219,29 +227,29 @@ int s2_jacobian_mallocEquations(
         context->jointPointers[context->substructureMembers[i][j]];
 
       switch(joint->jointType) {
-        case TX:
-        case TY:
-        case TZ:
-        case RX:
-        case RY:
-        case RZ: {
+        case S2_JOINT_TX:
+        case S2_JOINT_TY:
+        case S2_JOINT_TZ:
+        case S2_JOINT_RX:
+        case S2_JOINT_RY:
+        case S2_JOINT_RZ: {
           context->substructures[i].qCount++;
           context->substructures[i].dqCount++;
           context->substructures[i].jointCount++;
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           context->substructures[i].qCount += 7;
           context->substructures[i].dqCount += 6;
           context->substructures[i].jointCount++;
         } break;
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           context->substructures[i].qCount += 4;
           context->substructures[i].dqCount += 3;
           context->substructures[i].jointCount++;
         } break;
-        case RIGID:
-        case INVALID:
-        case PRIMITIVE:
+        case S2_JOINT_RIGID:
+        case S2_JOINT_INVALID:
+        case S2_JOINT_PRIMITIVE:
           break;
       }
     }
@@ -380,25 +388,25 @@ int s2_jacobian_mallocEquations(
       }
     }
     switch(context->jointPointers[i]->jointType) {
-      case RX:
-      case RY:
-      case RZ:
-      case TX:
-      case TY:
-      case TZ: {
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ:
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ: {
         context->jointDOF[i] = 1;
       } break;
-      case SPHERICAL: {
+      case S2_JOINT_SPHERICAL: {
         context->jointDOF[i] = 3;
       } break;
-      case FLOAT: {
+      case S2_JOINT_FLOAT: {
         context->jointDOF[i] = 6;
       } break;
-      case RIGID: {
+      case S2_JOINT_RIGID: {
         context->jointDOF[i] = 0;
       }
-      case INVALID:
-      case PRIMITIVE:
+      case S2_JOINT_INVALID:
+      case S2_JOINT_PRIMITIVE:
         break;
     }
   }
@@ -409,11 +417,11 @@ int s2_jacobian_mallocEquations(
   context->pclCompressed = calloc(context->nonRigidJointCount, sizeof(int));
 
   for(int i = 0; i < context->activeJointCount; i++) {
-    if(context->jointPointers[i]->jointType != RIGID) {
+    if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
       int parent = context->pcl[i];
       while(true) {
         if(parent == -1) break;
-        if(context->jointPointers[i]->jointType != RIGID) break;
+        if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) break;
         parent = context->pcl[parent];
       }
       //printf("i: %d\n", i);
@@ -470,23 +478,23 @@ int s2_jacobian_mallocEquations(
   for(int i = 0; i < context->activeJointCount; i++) {
     int baseIndex = context->dqLookup[i];
     switch(context->jointPointers[i]->jointType) {
-      case TX:
-      case TY:
-      case TZ:
-      case RIGID:
-      case PRIMITIVE:
-      case INVALID:
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ:
+      case S2_JOINT_RIGID:
+      case S2_JOINT_PRIMITIVE:
+      case S2_JOINT_INVALID:
         break;
-      case RX:
-      case RY:
-      case RZ: {
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ: {
         context->isRotation[baseIndex] = true;
       } break;
-      case SPHERICAL:
+      case S2_JOINT_SPHERICAL:
         for(int j = 0; j < 3; j++) {
           context->isRotation[baseIndex + j] = true;
         }
-      case FLOAT: {
+      case S2_JOINT_FLOAT: {
         for(int j = 3; j < 6; j++) {
           context->isRotation[baseIndex + j] = true;
         }
@@ -544,7 +552,7 @@ void jacobian_compressLoopMembers(
       /* for each positive loop members */
       for(int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
         int positiveLoopIndex = context->positiveLoopMembers[k][l];
-        if(context->jointPointers[positiveLoopIndex]->jointType != RIGID) {
+        if(context->jointPointers[positiveLoopIndex]->jointType != S2_JOINT_RIGID) {
           context->positiveLoopMembersCompressedCount[k]++;
           positiveLoopMemberCount++;
         }
@@ -553,7 +561,7 @@ void jacobian_compressLoopMembers(
       /* process negative loop members */
       for(int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
         int negativeLoopIndex = context->negativeLoopMembers[k][l];
-        if(context->jointPointers[negativeLoopIndex]->jointType != RIGID) {
+        if(context->jointPointers[negativeLoopIndex]->jointType != S2_JOINT_RIGID) {
           context->negativeLoopMembersCompressedCount[k]++;
           negativeLoopMemberCount++;
         }
@@ -664,7 +672,7 @@ void jacobian_compressLoopMembers(
         //   context->positiveLoopMembers[k][l]]->name);
 
         int positiveLoopMember = context->positiveLoopMembers[k][l];
-        if(context->jointPointers[positiveLoopMember]->jointType != RIGID) {
+        if(context->jointPointers[positiveLoopMember]->jointType != S2_JOINT_RIGID) {
           context->positiveLoopMemberOffsets[0][positiveLoopMemberCount++] =
             context->dqLookup[positiveLoopMember];
         }
@@ -688,7 +696,7 @@ void jacobian_compressLoopMembers(
         //   context->negativeLoopMembers[k][l]]->name);
 
         int negativeLoopMember = context->negativeLoopMembers[k][l];
-        if(context->jointPointers[negativeLoopMember]->jointType != RIGID) {
+        if(context->jointPointers[negativeLoopMember]->jointType != S2_JOINT_RIGID) {
           context->negativeLoopMemberOffsets[0][negativeLoopMemberCount++] =
             context->dqLookup[negativeLoopMember];
         }
@@ -2308,7 +2316,7 @@ void s2_jacobian_print(
     for(int j = 1; j < context->substructureMembersCount[i]; j++) {
       s2_joint_t* joint =
         context->jointPointers[context->substructureMembers[i][j]];
-      if(joint->jointType != RIGID) {
+      if(joint->jointType != S2_JOINT_RIGID) {
         fprintf(f, "   ");
         s2_stackstr_print(f, joint->name);
       }
@@ -2319,7 +2327,7 @@ void s2_jacobian_print(
       for(int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
         s2_joint_t* joint =
           context->jointPointers[context->positiveLoopMembers[k][l]];
-        if(joint->jointType != RIGID) {
+        if(joint->jointType != S2_JOINT_RIGID) {
           fprintf(f, "   ");
           s2_stackstr_print(f, joint->name);
         }
@@ -2328,7 +2336,7 @@ void s2_jacobian_print(
       for(int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
         s2_joint_t* joint =
           context->jointPointers[context->negativeLoopMembers[k][l]];
-        if(joint->jointType != RIGID) {
+        if(joint->jointType != S2_JOINT_RIGID) {
           fprintf(f, "   ");
           s2_stackstr_print(f, joint->name);
         }
@@ -2565,7 +2573,7 @@ void setSubstructurePointers(
       if(
         context->jointPointers[j]->dqIndex >= substructure->dqOffset &&
         context->jointPointers[j]->dqIndex < substructure->dqOffset + substructure->dqCount &&
-        context->jointPointers[j]->jointType != RIGID) {
+        context->jointPointers[j]->jointType != S2_JOINT_RIGID) {
 
         s2_joint_t* joint = context->jointPointers[j];
         // printf("joint: ");

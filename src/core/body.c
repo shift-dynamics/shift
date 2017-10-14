@@ -27,6 +27,7 @@ SUCH DAMAGE.
 #include "inertia.h"
 #include "assembly.h"
 #include "frame.h"
+#include "material.h"
 
 /*!
 @brief Initialize a Body datastructure
@@ -157,6 +158,7 @@ void s2_body_free(
     body = NULL;
   }
 }
+
 
 /*!
 @brief Free a s2_body_t datastructure

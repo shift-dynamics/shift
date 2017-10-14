@@ -38,6 +38,9 @@ SUCH DAMAGE.
 #include "joint.h"
 #include "frame.h"
 #include "assembly.h"
+#include "light.h"
+#include "io.h"
+#include "substructure.h"
 #include "../force_modules/tire.h"
 #include "../ode/numericalintegrator.h"
 
@@ -656,7 +659,7 @@ int s2_context_freeDVARecursive(
             velocity and acceleration are only stored for the
             reference frame (frameHead).
           */
-          if(bodyHead->parentJointPointer->jointType != RIGID) {
+          if(bodyHead->parentJointPointer->jointType != S2_JOINT_RIGID) {
             s2_screw_copyBack(
               context->v + frameHead->vaIndex,
               &(frameHead->velocityAbsolute));
@@ -728,7 +731,7 @@ void s2_context_freeDHVA(
       frameHead->dIndex = -1;
       frameHead = frameHead->next;
     }
-    s2_freeDVARecursive(context, context->assembly);
+    s2_context_freeDVARecursive(context, context->assembly);
 
     free(context->d);
     context->d = NULL;
@@ -746,7 +749,7 @@ void s2_context_freeDHVA(
     context->aq = NULL;
   }
 
-  s2_freeH(context);
+  s2_context_freeH(context);
 }
 
 

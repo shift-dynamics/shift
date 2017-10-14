@@ -31,12 +31,19 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <string.h>
 #include <jansson.h>
-#include "context.h"
+
+typedef struct s2_context_t s2_context_t;
+typedef struct s2_modelparameters_t s2_modelparameters_t;
+
 
 s2_context_t* s2_loadJSON(const char* fileName);
+
+
 void s2_loadModelParameters(
   s2_context_t* context,
   s2_modelparameters_t* modelParameters,
   json_t* modelParametersObject,
   const char* filePath);
-char* s2_getFileExtension(const char* fileName);
+
+
+const char* s2_getFileExtension(const char* fileName);

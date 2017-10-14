@@ -16,7 +16,9 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#include "../star2.h"
+
+#include "context.h"
+#include "substructure.h"
 #include "utility.h"
 #include "stdlib.h"
 #include "jacobian.h"
@@ -69,17 +71,17 @@ void s2_mobility_print_substructure(
     s2_joint_t* joint =
       context->jointPointers[context->substructureMembers[substructureIndex][j]];
     switch(joint->jointType) {
-      case TX:
-      case TY:
-      case TZ:
-      case RX:
-      case RY:
-      case RZ: {
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ:
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ: {
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         s2_stackstr_print(f, joint->name);
         i++;
       } break;
-      case SPHERICAL: {
+      case S2_JOINT_SPHERICAL: {
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         s2_stackstr_print(f, joint->name);
         i++;
@@ -88,7 +90,7 @@ void s2_mobility_print_substructure(
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         i++;
       } break;
-      case FLOAT: {
+      case S2_JOINT_FLOAT: {
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         s2_stackstr_print(f, joint->name);
         i++;
@@ -174,7 +176,7 @@ void s2_mobility_initialize(
 
   for(int i = 0; i < context->activeJointCount; i++) {
     s2_joint_t* joint = context->jointPointers[i];
-    if(joint->jointType != RIGID) {
+    if(joint->jointType != S2_JOINT_RIGID) {
       joint->mobilityNumber = context->mobilityNumbers + joint->dqIndex;
     } else {
       joint->mobilityNumber = NULL;
