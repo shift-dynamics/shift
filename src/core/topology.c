@@ -25,6 +25,14 @@ SUCH DAMAGE.
 #endif
 #include "../star2.h"
 #include "graph.h"
+#include "context.h"
+#include "assembly.h"
+#include "body.h"
+#include "light.h"
+#include "io.h"
+#include "chordconstraint.h"
+#include "frame.h"
+#include "substructure.h"
 
 /*! @brief count and assign a temporary index to active objects in a
 s2_context_t datastructure, the order will change after
@@ -50,34 +58,34 @@ void topology_setIndicesInitial(
     while(jointHead) {
       jointHead->index = context->activeJointCount++;
       switch(jointHead->jointType) {
-        case RX:
-        case RY:
-        case RZ: {
+        case S2_JOINT_RX:
+        case S2_JOINT_RY:
+        case S2_JOINT_RZ: {
           context->qCount++;
           context->dqCount++;
           context->dcCount++;
           context->nonRigidJointCount++;
         } break;
-        case TX:
-        case TY:
-        case TZ: {
+        case S2_JOINT_TX:
+        case S2_JOINT_TY:
+        case S2_JOINT_TZ: {
           context->qCount++;
           context->dqCount++;
           context->nonRigidJointCount++;
         } break;
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           context->qCount += 4;
           context->dqCount += 3;
           context->nonRigidJointCount++;
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           context->qCount += 7;
           context->dqCount += 6;
           context->nonRigidJointCount++;
         }
-        case RIGID:
-        case PRIMITIVE:
-        case INVALID: break;
+        case S2_JOINT_RIGID:
+        case S2_JOINT_PRIMITIVE:
+        case S2_JOINT_INVALID: break;
       }
       jointHead = jointHead->next;
     }
@@ -1730,7 +1738,7 @@ void (*topology_getJointDHFunctionPointer(
 
   switch(jointType) {
 
-    case TX: {
+    case S2_JOINT_TX: {
       if(sense > 0) {
         if(isDH) {
           return s2_joint_tx;
@@ -1746,7 +1754,7 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case TY: {
+    case S2_JOINT_TY: {
       if(sense > 0) {
         if(isDH) {
           return s2_joint_ty;
@@ -1762,7 +1770,7 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case TZ: {
+    case S2_JOINT_TZ: {
       if(sense > 0) {
         if(isDH) {
           return s2_joint_tz;
@@ -1778,7 +1786,7 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case RX: {
+    case S2_JOINT_RX: {
       if(sense > 0) {
         if(isDH) {
           return s2_joint_rx;
@@ -1794,7 +1802,7 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case RY: {
+    case S2_JOINT_RY: {
       if(sense > 0) {
         if(isDH) {
           return s2_joint_ry;
@@ -1810,7 +1818,7 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case RZ: {
+    case S2_JOINT_RZ: {
       if(sense > 0) {
         if(isDH) {
           return s2_joint_rz;
@@ -1826,7 +1834,7 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case RIGID: {
+    case S2_JOINT_RIGID: {
       if(sense > 0) {
         return s2_joint_rigid;
       } else {
@@ -1834,7 +1842,7 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case SPHERICAL: {
+    case S2_JOINT_SPHERICAL: {
       if(sense > 0) {
         if(isDH) {
           return s2_joint_spherical;
@@ -1850,7 +1858,7 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case FLOAT: {
+    case S2_JOINT_FLOAT: {
       if(sense > 0) {
         if(isDH) {
           return s2_joint_float;
@@ -1866,8 +1874,8 @@ void (*topology_getJointDHFunctionPointer(
       }
     } break;
 
-    case PRIMITIVE:
-    case INVALID: {
+    case S2_JOINT_PRIMITIVE:
+    case S2_JOINT_INVALID: {
       fprintf(stderr, "Error: INVALID JOINTTYPE detected.\n");
       return NULL;
     } break;
@@ -1885,9 +1893,9 @@ int topology_joint_copyUpdate(
   // s2_stackstr_print(joint->name);
 
   switch(joint->jointType) {
-    case TX:
-    case TY:
-    case TZ: {
+    case S2_JOINT_TX:
+    case S2_JOINT_TY:
+    case S2_JOINT_TZ: {
 
       /*
         qindex
@@ -1915,9 +1923,9 @@ int topology_joint_copyUpdate(
         context->dq + joint->dqIndex);
 
     } break;
-    case RX:
-    case RY:
-    case RZ: {
+    case S2_JOINT_RX:
+    case S2_JOINT_RY:
+    case S2_JOINT_RZ: {
 
       /*
         qindex
@@ -1955,9 +1963,9 @@ int topology_joint_copyUpdate(
         context->dq + joint->dqIndex);
 
     } break;
-    case RIGID: {
+    case S2_JOINT_RIGID: {
     } break;
-    case SPHERICAL: {
+    case S2_JOINT_SPHERICAL: {
 
       /* process terms that use qindex */
       /* q - 4 terms of a quaternion are copied */
@@ -1979,7 +1987,7 @@ int topology_joint_copyUpdate(
         &(joint->primitiveVelocity),
         context->dq + joint->dqIndex);
     } break;
-    case FLOAT: {
+    case S2_JOINT_FLOAT: {
 
       /*
         qindex
@@ -2009,8 +2017,8 @@ int topology_joint_copyUpdate(
         context->dq + joint->dqIndex);
 
     } break;
-    case PRIMITIVE:
-    case INVALID: {
+    case S2_JOINT_PRIMITIVE:
+    case S2_JOINT_INVALID: {
 
     } break;
   }
@@ -2043,21 +2051,21 @@ int topology_copyUpdateJoints(
     // s2_stackstr_print(context->jointPointers[i]->name);
 
     switch(context->jointPointers[i]->jointType) {
-      case TX:
-      case TY:
-      case TZ: {
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ: {
         context->jointPointers[i]->qIndex = qOffset++;
         context->jointPointers[i]->dcIndex = -1;
         context->jointPointers[i]->dqIndex = dqOffset++;
       } break;
-      case RX:
-      case RY:
-      case RZ: {
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ: {
         context->jointPointers[i]->qIndex = qOffset++;
         context->jointPointers[i]->dcIndex = dcOffset++;
         context->jointPointers[i]->dqIndex = dqOffset++;
       } break;
-      case RIGID: {
+      case S2_JOINT_RIGID: {
         /*
           for rigid joints, there is no influence coefficient matrix to process
         */
@@ -2072,22 +2080,22 @@ int topology_copyUpdateJoints(
         context->jointPointers[i]->dcIndex = -1;
 
       } break;
-      case SPHERICAL: {
+      case S2_JOINT_SPHERICAL: {
         context->jointPointers[i]->qIndex = qOffset;
         qOffset += 4;
         context->jointPointers[i]->dcIndex = -1;
         context->jointPointers[i]->dqIndex = dqOffset;
         dqOffset += 3;
       } break;
-      case FLOAT: {
+      case S2_JOINT_FLOAT: {
         context->jointPointers[i]->qIndex = qOffset;
         qOffset += 7;
         context->jointPointers[i]->dcIndex = -1;
         context->jointPointers[i]->dqIndex = dqOffset;
         dqOffset += 6;
       } break;
-      case PRIMITIVE:
-      case INVALID: {
+      case S2_JOINT_PRIMITIVE:
+      case S2_JOINT_INVALID: {
       } break;
     }
     topology_joint_copyUpdate(context, context->jointPointers[i]);
@@ -2148,7 +2156,7 @@ int topology_setReferenceFrames(
       }
     }
 
-    if(joint->jointType != RIGID) {
+    if(joint->jointType != S2_JOINT_RIGID) {
       parentFrame->inTree = true;
       childFrame->inTree = true;
     }
@@ -2198,7 +2206,7 @@ void topology_setDVAIndex(
     /*
       set vaIndex
     */
-    if(joint->jointType != RIGID) {
+    if(joint->jointType != S2_JOINT_RIGID) {
       childBody->referenceFrame->vaIndex = vaIndex++;
     } else {
       /* if the joint is rigid, no need to update velocity and acceleration
@@ -2291,7 +2299,7 @@ void topology_copyUpdateVA(
     s2_body_t* body = context->bodyPointers[i];
     s2_joint_t* joint = context->jointPointers[i];
 
-    if(joint->jointType == RIGID) {
+    if(joint->jointType == S2_JOINT_RIGID) {
       if(body->referenceFrame->velocityAbsolute) {
         free(body->referenceFrame->velocityAbsolute);
       }
@@ -2400,17 +2408,17 @@ void topology_copyUpdateD(
       set dWRT Reference for joints that require it (FLOAT, SPHERICAL, RIGID)
     */
     switch(joint->jointType) {
-      case PRIMITIVE:
-      case INVALID:
-      case RX:
-      case RY:
-      case RZ:
-      case TX:
-      case TY:
-      case TZ: break;
-      case FLOAT:
-      case SPHERICAL:
-      case RIGID: {
+      case S2_JOINT_PRIMITIVE:
+      case S2_JOINT_INVALID:
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ:
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ: break;
+      case S2_JOINT_FLOAT:
+      case S2_JOINT_SPHERICAL:
+      case S2_JOINT_RIGID: {
         if(joint->sense > 0) {
           // fprintf(debug, "[%d] copying rigid joint to dWRTReference\n", childFrame->dIndex);
           // s2_displacement_print(debug, joint->generalDisplacement);
@@ -2571,7 +2579,7 @@ void topology_compressRigidJoints(
 
     s2_joint_t* joint = context->jointPointers[i];
 
-    if(joint->jointType == RIGID) {
+    if(joint->jointType == S2_JOINT_RIGID) {
       s2_body_t* parentBody = NULL;
       s2_frame_t* parentFrame = NULL;
       if(joint->sense > 0) {
@@ -2713,6 +2721,7 @@ void topology_setName(
   asprintf(&(context->names[index][5]), "%d", childFrame->dIndex);
 }
 
+
 /*! count operations required to update DHVA and record parent / child
 body and frame names in context->names array, used for debugging purposes
 
@@ -2745,14 +2754,14 @@ void topology_countDHVA(
       set dWRT Reference for joints that require it (FLOAT, SPHERICAL, RIGID)
     */
     switch(joint->jointType) {
-      case PRIMITIVE:
-      case INVALID: break;
-      case RX:
-      case RY:
-      case RZ:
-      case TX:
-      case TY:
-      case TZ: {
+      case S2_JOINT_PRIMITIVE:
+      case S2_JOINT_INVALID: break;
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ:
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ: {
         topology_setName(
           context,
           operationCount++,
@@ -2762,8 +2771,8 @@ void topology_countDHVA(
           childFrame);
         dhvaCount += 11;
       } break;
-      case FLOAT:
-      case SPHERICAL: {
+      case S2_JOINT_FLOAT:
+      case S2_JOINT_SPHERICAL: {
         topology_setName(
           context,
           operationCount++,
@@ -2776,7 +2785,7 @@ void topology_countDHVA(
           joint->generalDisplacement,
           context->dWRTReference + childFrame->dIndex);
       } break;
-      case RIGID: {
+      case S2_JOINT_RIGID: {
         /* a reference frame on a body that is connected to its parent body
            through a rigid joint only needs to be processed if frames in
            bodies downstream depend on it (i.e. if it is "in the tree"),
@@ -2824,7 +2833,7 @@ void topology_countDHVA(
     /* child Frame */
     s2_frame_t* frameHead = childBody->frameHead;
 
-    if(joint->jointType == RIGID) {
+    if(joint->jointType == S2_JOINT_RIGID) {
       referenceFrame = parentFrame;
     } else {
       parentBody = childBody;
@@ -2875,7 +2884,7 @@ void topology_setDReferenceFrames(
 
   int j = 0;
   for(int i = 0; i < context->activeJointCount; i++) {
-    if(context->jointPointers[i]->jointType != RIGID) {
+    if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
       s2_body_t* body = context->bodyPointers[i];
       context->dReferenceFrames[j++] = context->d + body->referenceFrame->dIndex;
     }
@@ -2939,11 +2948,11 @@ void topology_setDHVAPointers(
       process joint function pointer
     */
     switch(joint->jointType) {
-      case PRIMITIVE:
-      case INVALID: break;
-      case RX:
-      case RY:
-      case RZ: {
+      case S2_JOINT_PRIMITIVE:
+      case S2_JOINT_INVALID: break;
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ: {
         /* direction cosines */
         context->dcq[joint->dcIndex] = context->q + joint->qIndex;
 
@@ -2994,9 +3003,9 @@ void topology_setDHVAPointers(
                                                              // aqChild [10]
 
       } break;
-      case TX:
-      case TY:
-      case TZ: {
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ: {
 
         /* function pointer */
         context->dhva[operationCount] = context->dhva[0] + dhvaCount;
@@ -3044,8 +3053,8 @@ void topology_setDHVAPointers(
           childBody->referenceFrame->accelerationQuadraticAbsolute;
                                                            // aqChild [10]
       } break;
-      case FLOAT:
-      case SPHERICAL: {
+      case S2_JOINT_FLOAT:
+      case S2_JOINT_SPHERICAL: {
         context->dhva[operationCount] = context->dhva[0] + dhvaCount;
         context->dhFunctionPointers[operationCount] =
           topology_getJointDHFunctionPointer(
@@ -3095,7 +3104,7 @@ void topology_setDHVAPointers(
                                                            // aqChild [11]
 
       } break;
-      case RIGID: {
+      case S2_JOINT_RIGID: {
         // fprintf(debug, "setting rigid joint\n");
         // fprintf(debug, "old parent frame: ");
         // s2_stackstr_print(debug, parentFrame->name);
@@ -3149,7 +3158,7 @@ void topology_setDHVAPointers(
     // child frame
     s2_frame_t* frameHead = childBody->frameHead;
 
-    if(joint->jointType == RIGID) {
+    if(joint->jointType == S2_JOINT_RIGID) {
       referenceFrame = parentFrame;
     } else {
       parentBody = childBody;
@@ -3309,6 +3318,7 @@ s2_joint_t* findJoint(
   return NULL;
 }
 
+
 s2_frame_t* findFrameVaIndex(s2_context_t* context, int vaIndex) {
   for(int i = 0; i < context->activeFrameCount; i++) {
     if(context->framePointers[i]->vaIndex == vaIndex) {
@@ -3327,7 +3337,6 @@ s2_frame_t* findFrameDIndex(s2_context_t* context, int dIndex) {
   }
   return NULL;
 }
-
 
 
 /*! @brief update dhva and print values at all dhva pointer locations
@@ -3353,82 +3362,82 @@ void s2_updateDHVADebug(
   for(int i = 0; i < context->dhvaCount; i++) {
 
     fprintf(f, "\n[%d] ", i);
-    s2_joint_enum_t jointType = INVALID;
+    s2_joint_enum_t jointType = S2_JOINT_INVALID;
     int sense = 0;
     if(context->dhvaFunctionPointers[i] == s2_joint_tx_dhva) {
       fprintf(f, "+Tx (s2_joint_tx_dhva)\n");
-      jointType = TX;
+      jointType = S2_JOINT_TX;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_txinverse_dhva) {
       fprintf(f, "-Tx (s2_joint_txinverse_dhva)\n");
-      jointType = TX;
+      jointType = S2_JOINT_TX;
       sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_ty_dhva) {
       fprintf(f, "+Ty (s2_joint_ty_dhva)\n");
-      jointType = TY;
+      jointType = S2_JOINT_TY;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_tyinverse_dhva) {
       fprintf(f, "-Ty (s2_joint_tyinverse_dhva)\n");
-      jointType = TY;
+      jointType = S2_JOINT_TY;
       sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_tz_dhva) {
       fprintf(f, "+Tz (s2_joint_tz_dhva)\n");
-      jointType = TZ;
+      jointType = S2_JOINT_TZ;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_tzinverse_dhva) {
       fprintf(f, "-Tz (s2_joint_tzinverse_dhva)\n");
-      jointType = TZ;
+      jointType = S2_JOINT_TZ;
       sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rx_dhva) {
       fprintf(f, "+Rx (s2_joint_rx_dhva)\n");
-      jointType = RX;
+      jointType = S2_JOINT_RX;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rxinverse_dhva) {
       fprintf(f, "-Rx (s2_joint_rxinverse_dhva)\n");
-      jointType = RX;
+      jointType = S2_JOINT_RX;
       sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_ry_dhva) {
       fprintf(f, "Ry (s2_joint_ry_dhva)\n");
-      jointType = RY;
+      jointType = S2_JOINT_RY;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_ryinverse_dhva) {
       fprintf(f, "-Ry (s2_joint_ryinverse_dhva)\n");
-      jointType = RY;
+      jointType = S2_JOINT_RY;
       sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rz_dhva) {
       fprintf(f, "Rz (s2_joint_rz_dhva)\n");
-      jointType = RZ;
+      jointType = S2_JOINT_RZ;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rzinverse_dhva) {
       fprintf(f, "-Rz (s2_joint_rzinverse_dhva)\n");
-      jointType = RZ;
+      jointType = S2_JOINT_RZ;
       sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_spherical_dhva) {
       fprintf(f, "+Spherical (s2_joint_spherical_dhva)\n");
-      jointType = SPHERICAL;
+      jointType = S2_JOINT_SPHERICAL;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] ==
         s2_joint_sphericalinverse_dhva) {
       fprintf(f, "-Spherical (s2_joint_sphericalinverse_dhva)\n");
-      jointType = SPHERICAL;
+      jointType = S2_JOINT_SPHERICAL;
       sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_float_dhva) {
       fprintf(f, "+Float (s2_joint_float_dhva)\n");
-      jointType = FLOAT;
+      jointType = S2_JOINT_FLOAT;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] ==
         s2_joint_floatinverse_dhva) {
       fprintf(f, "+Float (s2_joint_floatinverse_dhva)\n");
-      jointType = FLOAT;
+      jointType = S2_JOINT_FLOAT;
       sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rigid) {
       fprintf(f, "+Rigid (s2_joint_rigid)\n");
-      jointType = RIGID;
+      jointType = S2_JOINT_RIGID;
       sense = 1;
     } else if(context->dhvaFunctionPointers[i] ==
         s2_joint_rigidinverse) {
       fprintf(f, "-Rigid (s2_joint_rigidinverse)\n");
-      jointType = RIGID;
+      jointType = S2_JOINT_RIGID;
       sense = -1;
     }
 
@@ -3481,26 +3490,26 @@ void s2_updateDHVADebug(
     }
 
     switch(jointType) {
-      case TX:
-      case TY:
-      case TZ:
-      case RX:
-      case RY:
-      case RZ: {
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ:
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ: {
 
         fprintf(f, "  dParent:\n");
         s2_displacement_print(f, (s2_displacement_t*)context->dhva[i][0]);
         //   parentFrame->dAbsolute;                            // dParent [0]
 
         switch(jointType) {
-          case TX:
-          case TY:
-          case TZ: {
+          case S2_JOINT_TX:
+          case S2_JOINT_TY:
+          case S2_JOINT_TZ: {
             fprintf(f, "  q: %0.9f\n", *((double*)context->dhva[i][1]));
           } break;
-          case RX:
-          case RY:
-          case RZ: {
+          case S2_JOINT_RX:
+          case S2_JOINT_RY:
+          case S2_JOINT_RZ: {
             double* dc = (double*)context->dhva[i][1];
             fprintf(f, "  dc: s:%0.9f, c:%0.9f\n", dc[0], dc[1]);
             fprintf(f, "  q: %f\n", atan2(dc[0], dc[1]));
@@ -3565,15 +3574,15 @@ void s2_updateDHVADebug(
         //                                                      // aqChild [10]
       } break;
 
-      case SPHERICAL: {
+      case S2_JOINT_SPHERICAL: {
 
       } break;
 
-       case FLOAT: {
+       case S2_JOINT_FLOAT: {
 
       } break;
 
-      case RIGID: {
+      case S2_JOINT_RIGID: {
 
 
         fprintf(f, "  dParent:\n");
@@ -3827,7 +3836,7 @@ void s2_context_setTopology(
 
   /* free memory for run time quantities */
   // fprintf(debug, "# freeing run time arrays\n");
-  s2_freeRunTimeArrays(context);
+  s2_context_freeRunTimeArrays(context);
 
   /* count active bodies/joints/frames/lights/io */
   // fprintf(

@@ -7,13 +7,22 @@
 Utilities to perform newton raphson iteration to remove constraint violations
 */
 
+#ifdef __APPLE__
+  #include <Accelerate/Accelerate.h>
+#else
+  #include <cblas.h>
+#endif
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include "../star2.h"
+
+#include "context.h"
+#include "substructure.h"
+#include "joint.h"
+
 
 
 void s2_newtonRaphson_firstOrderUpdate(
@@ -159,7 +168,7 @@ void s2_newtonRaphson_updateq(
     switch(
       context->jointPointers[
         context->substructureMembers[substructureIndex][j]]->jointType) {
-      case FLOAT: {
+      case S2_JOINT_FLOAT: {
         /* take 6 entries at position dqIndex, expand to 7 entries and
            store at position dqIndex */
         cblas_daxpy(3, -1, context->deltaq + dqIndex, 1, context->q + qIndex, 1);
@@ -174,7 +183,7 @@ void s2_newtonRaphson_updateq(
         /* store 4 terms deltaq at substructure->deltaq[qIndex + 3]
           take 3 terms from substructure->deltaq[dqIndex + 3] */
       } break;
-      case SPHERICAL: {
+      case S2_JOINT_SPHERICAL: {
         /* take 6 entries at position dqIndex, expand to 7 entries and
             store at position dqIndex */
         s2_subtract_dpiFromq(
@@ -542,11 +551,11 @@ int s2_newtonRaphson_increment_specified(
     substructure->dqCount * sizeof(double));
 
   switch(moveType) {
-    case INCREMENT: {
+    case S2_JOINT_INCREMENT: {
       context->deltaq[specifiedCoordinateIndex] = value;
       context->q[specifiedCoordinateIndex] += value;
     } break;
-    case TARGET: {
+    case S2_JOINT_TARGET: {
       context->deltaq[specifiedCoordinateIndex] =
         value - context->q[specifiedCoordinateIndex];
       context->q[specifiedCoordinateIndex] = value;

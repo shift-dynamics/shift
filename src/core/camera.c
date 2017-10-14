@@ -137,7 +137,7 @@ void s2_camera_lookAt(
 s2_camera_t* s2_camera() {
   s2_camera_t* camera = malloc(sizeof(s2_camera_t));
 
-  camera->perspectiveType = PERSPECTIVE;
+  camera->projectionType = S2_PROJECTION_PERSPECTIVE;
 
   s2_camera_perspective(
     60.f,

@@ -16,10 +16,10 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include "../star2.h"
-
 #ifndef _STAR2_SOLVE_H_
 #define _STAR2_SOLVE_H_
+
+typedef struct s2_context_t s2_context_t;
 
 void s2_solve_integrateEquations(
   s2_context_t* context);

@@ -20,7 +20,7 @@ s2_light_t* s2_light() {
     return NULL;
   }
   light->name = NULL;
-  light->lightType = DIRECTIONAL;
+  light->lightType = S2_LIGHT_DIRECTIONAL;
   light->parentBody = NULL;
   light->parentFrame = NULL;
   light->parentBodyPointer = NULL;
