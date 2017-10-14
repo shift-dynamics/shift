@@ -840,7 +840,6 @@ inline void s2_mat3x3_setFromVectors(
 }
 
 
-
 /*!
 @brief set a value of a mat3x3
 

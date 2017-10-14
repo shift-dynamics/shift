@@ -31,6 +31,9 @@ void PhongShaderProgram::initialize() {
     m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
     m_lights_directional_u = m_program->uniformLocation("lights_u.directional");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
+    m_lights_drawShadows_u = m_program->uniformLocation("lights_u.drawShadows");
+    m_lights_shadowMatrix_u =
+      m_program->uniformLocation("lights_u.shadowMatrix");
 
     checkError("after set phong uniforms");
 
@@ -54,11 +57,25 @@ void PhongShaderProgram::setTransform(s2_displacement_t* transform) {
   QMatrix3x3 nm = mv.normalMatrix();
 
   m_program->setUniformValue(m_matrices_mvp_u, mvp);
-  m_program->setUniformValue(m_matrices_mv_u, mv);
-  m_program->setUniformValue(m_matrices_v_u, view);
-  m_program->setUniformValue(m_matrices_nm_u, nm);
+  checkError("phong: after set mvp");
 
-  checkError("after set transform");
+  m_program->setUniformValue(m_matrices_mv_u, mv);
+  checkError("phong: after set mv");
+
+  m_program->setUniformValue(m_matrices_v_u, view);
+  checkError("phong: after set view");
+
+  m_program->setUniformValue(m_matrices_nm_u, nm);
+  checkError("phong: after set nm");
+
+  if(m_renderWindow->getLights()->isEnabled()) {
+    m_program->setUniformValueArray(
+      m_lights_shadowMatrix_u,
+      m_renderWindow->getLights()->setShadowMatrix(transform),
+      m_renderWindow->getLights()->getCount());
+    checkError("phong: after set shadow matrix array");
+  }
+
 }
 
 
@@ -108,5 +125,18 @@ void PhongShaderProgram::setLights(s2_Lights* lights) {
   m_program->setUniformValueArray(
     m_lights_directional_u, lights->getDirectional(), 10);
   m_program->setUniformValue(m_lights_count_u, lights->getCount());
+  if(m_renderWindow->getLights()->isEnabled()) {
+    m_program->setUniformValue(m_lights_drawShadows_u, 1);
+  } else {
+    m_program->setUniformValue(m_lights_drawShadows_u, 0);
+  }
   checkError("after set lights");
+}
+
+
+/*!
+@brief bind depth buffer to index 0
+*/
+void PhongShaderProgram::bindDepthBuffer() {
+  m_program->setUniformValue(m_texture_shadow_u, 0);
 }

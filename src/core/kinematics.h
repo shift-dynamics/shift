@@ -404,7 +404,7 @@ void s2_mat3x3f_set(
   float value);
 
 void s2_mat4x4f_set(
-  s2_mat4x4f_t* R,
+  s2_mat4x4f_t* d,
   int row,
   int column,
   float value);
@@ -1471,7 +1471,12 @@ void s2_mat4x4_getTranslation(
 
 void s2_mat4x4f_getTranslation(
   s2_mat4x4f_t* Mi,
-  s2_vectorf_t* to );
+  s2_vectorf_t* to);
+
+void s2_mat4x4f_get(
+  s2_mat4x4f_t* Mi,
+  int row,
+  int column);
 
 void s2_add_dpiToq(
   s2_vector_t* dpi,

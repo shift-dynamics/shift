@@ -184,7 +184,7 @@ void s2_Terrain::draw() {
       glEnable(GL_CULL_FACE);
       glDepthFunc(GL_LEQUAL);
 
-      if(m_shadingType == WIREFRAME) {
+      if(m_shadingType == S2_SHADING_WIREFRAME) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       } else {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

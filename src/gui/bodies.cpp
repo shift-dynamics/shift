@@ -12,14 +12,14 @@
 */
 void s2_Bodies::setDrawStyle(s2_shading_enum_t shadingType) {
   switch(shadingType) {
-    case WIREFRAME: {
-      m_shadingType = WIREFRAME;
+    case S2_SHADING_WIREFRAME: {
+      m_shadingType = S2_SHADING_WIREFRAME;
     } break;
-    case FLAT: {
-      m_shadingType = FLAT;
+    case S2_SHADING_FLAT: {
+      m_shadingType = S2_SHADING_FLAT;
     }
     default: {
-      m_shadingType = PHONG;
+      m_shadingType = S2_SHADING_PHONG;
     } break;
   }
 }
@@ -187,17 +187,21 @@ void s2_Bodies::initializeMaterial(
 void s2_Bodies::draw() {
 
   if(m_drawEnabled && m_renderWindow->isInitialized()) {
-    if(m_shadingType == WIREFRAME) {
+
+    if(m_shadingType == S2_SHADING_WIREFRAME) {
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     } else {
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     switch(m_shadingType) {
-      case WIREFRAME:
-      case PHONG: {
+      case S2_SHADING_WIREFRAME:
+      case S2_SHADING_PHONG: {
         m_programPhong->bind();
         m_programPhong->setLights(m_lights);
+        m_programPhong->bindDepthBuffer();
+        checkError("bodies: after bind depth buffer");
+
 
         /* draw geometry */
         for(int i = 0; i < m_bufferObjects.size(); i++) {
@@ -224,7 +228,7 @@ void s2_Bodies::draw() {
         m_programPhong->release();
         // checkError("after phong release phong");
       } break;
-      case FLAT: {
+      case S2_SHADING_FLAT: {
         m_programFlat->bind();
         m_programFlat->setLights(m_lights);
 

@@ -41,6 +41,7 @@ SUCH DAMAGE.
 #include "light.h"
 #include "io.h"
 #include "substructure.h"
+#include "assembly.h"
 #include "../force_modules/tire.h"
 #include "../ode/numericalintegrator.h"
 
@@ -921,10 +922,10 @@ void s2_context_freeRunTimeArrays(
   // copy values by value back out of D,H,V,A before clearing
   // respective arrays
   // printf("Freeing dhva\n");
-  s2_freeDHVA(context);
+  s2_context_freeDHVA(context);
 
   // printf("Freeing direction cosines\n");
-  s2_freeDc(context);
+  s2_context_freeDc(context);
   //
   // printf("freed dhva\n");
 
@@ -1231,13 +1232,13 @@ void s2_context_free(
   if(context) {
     s2_numericalintegrator_free(context);
     s2_modelparameters_free(context->modelParameters);
-    s2_freeRunTimeArrays(context);
+    s2_context_freeRunTimeArrays(context);
 
     // printf("freeing assembly\n");
     s2_assembly_free(context->assembly);
 
     // printf("freeing fixed frames\n");
-    s2_freeFixedFrames(context);
+    s2_context_freeFixedFrames(context);
 
     s2_arrayi_free(context->qQuaternionIndices);
     s2_arrayi_free(context->dqQuaternionIndices);
@@ -1322,12 +1323,12 @@ FILE* s2_context_getDebugPointer(s2_context_t* context, int i) {
 double s2_context_getSimulationTime(s2_context_t* context) {
   if(context->modelParameters && context->numericalIntegrator) {
     switch(context->modelParameters->integrationType) {
-      case ODE113: {
+      case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           context->numericalIntegrator;
         return numericalIntegrator->t;
       } break;
-      case ODE113B: {
+      case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           context->numericalIntegrator;
         return numericalIntegrator->x;
@@ -1344,7 +1345,7 @@ double s2_context_getSimulationTime(s2_context_t* context) {
 int s2_context_getIConv(s2_context_t* context) {
   if(context->modelParameters && context->numericalIntegrator) {
     switch(context->modelParameters->integrationType) {
-      case ODE113B: {
+      case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           context->numericalIntegrator;
         return numericalIntegrator->iconv;
@@ -1356,7 +1357,3 @@ int s2_context_getIConv(s2_context_t* context) {
   }
   return -1;
 }
-
-/*!
-@brief free displacement
-*/

@@ -1,4 +1,6 @@
 #include "pid.h"
+#include "forcemodule.h"
+#include "../core/joint.h"
 
 s2_pid_t* s2_pid() {
 
@@ -71,27 +73,27 @@ int getVelocity(
   double* value) {
 
   switch(dof) {
-  case TX: {
+  case S2_JOINT_TX: {
     *value = screw->m0;
     return 0;
   } break;
-  case TY: {
+  case S2_JOINT_TY: {
     *value = screw->m1;
     return 0;
   } break;
-  case TZ: {
+  case S2_JOINT_TZ: {
     *value = screw->m2;
     return 0;
   } break;
-  case RX: {
+  case S2_JOINT_RX: {
     *value = screw->m3;
     return 0;
   } break;
-  case RY: {
+  case S2_JOINT_RY: {
     *value = screw->m4;
     return 0;
   } break;
-  case RZ: {
+  case S2_JOINT_RZ: {
     *value = screw->m5;
     return 0;
   } break;
@@ -106,29 +108,29 @@ int getPosition(
   double* value) {
 
   switch(dof) {
-  case TX: {
+  case S2_JOINT_TX: {
     *value = displacement->T.x;
     return 0;
   } break;
-  case TY: {
+  case S2_JOINT_TY: {
     *value = displacement->T.y;
     return 0;
   } break;
-  case TZ: {
+  case S2_JOINT_TZ: {
     *value = displacement->T.z;
     return 0;
   } break;
-  case RX: {
+  case S2_JOINT_RX: {
     /*! @TODO rotation of frame currently not implemented */
     *value = 0;
     return -1;
   } break;
-  case RY: {
+  case S2_JOINT_RY: {
     /*! @TODO rotation of frame currently not implemented */
     *value = 0;
     return -1;
   } break;
-  case RZ: {
+  case S2_JOINT_RZ: {
     /*! @TODO rotation of frame currently not implemented */
     *value = 0;
     return -1;
@@ -156,7 +158,7 @@ void s2_pid_getTime(
   double* dt) {
 
   switch(context->modelParameters->integrationType) {
-    case ODE113: {
+    case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
       *t = *(numericalIntegrator->work + 92 - 1);
@@ -164,7 +166,7 @@ void s2_pid_getTime(
         *(numericalIntegrator->work + 92 - 1);
 
     } break;
-    case ODE113B: {
+    case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       *t = numericalIntegrator->x;
@@ -187,7 +189,7 @@ void s2_pid_updateFromFrameToJoint(
   s2_screw_t velocityLocal;
   double currentValue = 0;
   switch(pid->input.coordinateSystem) {
-    case FIXED: {
+    case S2_COORDINATE_FIXED: {
       if(pid->input.targetType == PID_TARGET_VELOCITY) {
         getVelocity(
           pid->input.framePointer->velocityAbsolute,
@@ -200,7 +202,7 @@ void s2_pid_updateFromFrameToJoint(
           &currentValue);
       }
     } break;
-    case LOCAL: {
+    case S2_COORDINATE_LOCAL: {
       if(pid->input.targetType == PID_TARGET_VELOCITY) {
         s2_screwproduct_dinverses(
           pid->input.framePointer->dAbsolute,

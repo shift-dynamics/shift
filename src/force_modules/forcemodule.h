@@ -25,13 +25,14 @@ SUCH DAMAGE.
 typedef struct s2_forcemodule_t s2_forcemodule_t;
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
+typedef struct s2_assembly_t s2_assembly_t;
 
 /*!
 @brief types of force modules currently supported
 */
 typedef enum {
-  TIRE,
-  PID
+  S2_FORCEMODULE_TIRE,
+  S2_FORCEMODULE_PID
 } s2_forcemodule_enum_t;
 
 

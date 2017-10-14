@@ -66,11 +66,11 @@ public:
 
   void setDrawStyle(s2_shading_enum_t shadingType) {
     switch(shadingType) {
-      case WIREFRAME: {
-        m_shadingType = WIREFRAME;
+      case S2_SHADING_WIREFRAME: {
+        m_shadingType = S2_SHADING_WIREFRAME;
       } break;
       default: {
-        m_shadingType = PHONG;
+        m_shadingType = S2_SHADING_PHONG;
       } break;
     }
   }

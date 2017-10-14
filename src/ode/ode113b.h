@@ -5,7 +5,11 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
-#include "../star2.h"
+
+typedef struct s2_stack_t s2_stack_t;
+typedef struct s2_context_t s2_context_t;
+
+#include <stdbool.h>
 
 /*!
 @brief Attributes associated with numerical integrator

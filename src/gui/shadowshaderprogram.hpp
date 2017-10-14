@@ -55,6 +55,8 @@ public:
 
   void setMVP(QMatrix4x4&);
 
+  void bindDepthBuffer();
+
 signals:
 
 

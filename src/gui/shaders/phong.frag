@@ -1,5 +1,7 @@
 #version 330
 
+uniform sampler2DShadow texture_shadow_u[10];
+
 struct matrices_t {
   mat4 mvp;
   mat4 mv;
@@ -34,6 +36,7 @@ uniform lights_t lights_u;
 
 in vec3 normalFrag;
 in vec4 positionFrag;
+in vec4 shadowCoord[10];
 
 out vec4 colorFrag;
 
@@ -85,6 +88,10 @@ void main() {
     vec3 R = -normalize(reflect(L, normalFrag));
     color.rgb +=
       material_u.Ks.rgb * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns);
+
+    if(lights_u.drawShadows == 1) {
+      color *= shadowCoord[i];
+    }
   }
 
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));

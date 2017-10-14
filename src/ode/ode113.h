@@ -1,7 +1,10 @@
 #ifndef _STAR2_ODE113_H_
 #define _STAR2_ODE113_H_
 
-#include "../star2.h"
+#include <stdbool.h>
+
+typedef struct s2_stack_t s2_stack_t;
+typedef struct s2_context_t s2_context_t;
 
 /*!
 @brief Attributes associated with numerical integrator

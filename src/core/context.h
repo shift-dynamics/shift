@@ -32,7 +32,7 @@ SUCH DAMAGE.
 #include "stack.h"
 #include "kinematics.h"
 #include "joint.h"
-#include "numericalintegrator.h"
+#include "../ode/numericalintegrator.h"
 
 typedef struct s2_forcemodule_t s2_forcemodule_t;
 typedef struct s2_context_t s2_context_t;
