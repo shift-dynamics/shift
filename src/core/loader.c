@@ -42,7 +42,7 @@ SUCH DAMAGE.
 #include "body.h"
 #include "assembly.h"
 #include "frame.h"
-
+#include "terrain.h"
 
 /*!
 @brief get file path of assembly
@@ -126,9 +126,9 @@ void s2_loadModelParameters(
     if(integrationObject != NULL) {
       const char* integrationType = json_string_value(integrationObject);
       if(!strcmp(integrationType, "ode113")) {
-        modelParameters->integrationType = ODE113;
+        modelParameters->integrationType = S2_NUMERICALINTEGRATOR_ODE113;
       } else if(!strcmp(integrationType, "ode113b")) {
-        modelParameters->integrationType = ODE113B;
+        modelParameters->integrationType = S2_NUMERICALINTEGRATOR_ODE113B;
       } else {
         /*
           if other integration types are created in the future, add parser for
@@ -138,13 +138,13 @@ void s2_loadModelParameters(
           stderr,
           "Warning, an integration type other than ode113 or ode113b was" "specified\n"
           "currently the program only supports ode113. Setting to ode113\n");
-        modelParameters->integrationType = ODE113;
+        modelParameters->integrationType = S2_NUMERICALINTEGRATOR_ODE113;
       };
     } else {
       fprintf(
         stderr,
         "Warning, no integration type specified. ode113 will be used.\n");
-      modelParameters->integrationType = ODE113;
+      modelParameters->integrationType = S2_NUMERICALINTEGRATOR_ODE113;
     }
 
     /* load omega N for baumgarte constraint stabilization */
@@ -257,7 +257,7 @@ void s2_loadModelParameters(
   } else {
     fprintf(stderr, "Warning, no simulation parameters specifed in JSON file, "
       "using default values\n");
-    modelParameters->integrationType = ODE113;
+    modelParameters->integrationType = S2_NUMERICALINTEGRATOR_ODE113;
     modelParameters->timeSpan = 1.0;
     modelParameters->timeStep = 0.0001;
     modelParameters->relativeError = 0.0;
@@ -397,7 +397,7 @@ int s2_loadForceModules(
           /* currently "tire" is the only type available, if other force
           modules are created, add them below */
 
-          s2_forcemodule_t* forceModule = s2_forcemodule(TIRE);
+          s2_forcemodule_t* forceModule = s2_forcemodule(S2_FORCEMODULE_TIRE);
 
           assert(forceModule != NULL);
 
@@ -527,7 +527,7 @@ int s2_loadForceModules(
             s2_stackstr_append(name, "none");
           }
 
-          s2_forcemodule_t* forceModule = s2_forcemodule(PID);
+          s2_forcemodule_t* forceModule = s2_forcemodule(S2_FORCEMODULE_PID);
 
           forceModule->name = name;
 

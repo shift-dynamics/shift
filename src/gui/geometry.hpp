@@ -20,7 +20,7 @@ public:
     , m_initialized(false)
     , m_drawEnabled(false)
     , m_scaleFactor(1.0)
-    , m_shadingType(PHONG) {
+    , m_shadingType(S2_SHADING_PHONG) {
 
     m_renderWindow = renderWindow;
 

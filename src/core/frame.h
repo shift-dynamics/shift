@@ -81,6 +81,9 @@ typedef struct s2_frame_t {
 } s2_frame_t;
 
 
+s2_frame_t* s2_frame();
+
+
 void s2_frame_append(
   s2_body_t* body,
   s2_frame_t* frame);

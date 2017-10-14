@@ -1,5 +1,7 @@
 #version 330
 
+uniform sampler2DShadow texture_shadow_u[10];
+
 struct matrices_t {
   mat4 mvp;
   mat4 mv;
@@ -37,9 +39,16 @@ in vec3 normal_a;
 
 out vec3 normalFrag;
 out vec4 positionFrag;
+out vec4 shadowCoord[10];
 
 void main() {
   normalFrag = normalize(matrices_u.nm * normal_a);
   positionFrag = position_a;
   gl_Position = matrices_u.mvp * position_a;
+  if(lights_u.drawShadows == 1) {
+    for(int i = 0; i < lights_u.count; i++) {
+      shadowCoord[i] =
+        lights_u.shadowMatrix[i] * position_a;
+    }
+  }
 }

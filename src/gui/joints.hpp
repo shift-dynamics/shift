@@ -51,8 +51,8 @@ public:
   , m_delq(0)
   , m_targetVal(0)
   , m_isPositive(true)
-  , m_jointType(PRIMITIVE)
-  , m_moveType(INCREMENT)
+  , m_jointType(S2_JOINT_PRIMITIVE)
+  , m_moveType(S2_JOINT_INCREMENT)
   , m_program(NULL) {
 
     m_scaleFactor = 1.0;

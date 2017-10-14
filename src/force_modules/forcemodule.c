@@ -27,6 +27,10 @@ SUCH DAMAGE.
   #include <cblas.h>
 #endif
 #include "forcemodule.h"
+#include "../core/assembly.h"
+#include "../core/context.h"
+#include "../core/body.h"
+#include "tire.h"
 
 
 /*!
@@ -38,7 +42,7 @@ s2_forcemodule_t* s2_forcemodule(
   s2_forcemodule_t* forceModule = NULL;
 
   switch(forceModuleType) {
-    case TIRE: {
+    case S2_FORCEMODULE_TIRE: {
       forceModule = malloc(sizeof(s2_forcemodule_t));
       forceModule->forceModuleType = forceModuleType;
       forceModule->data = NULL;
@@ -54,7 +58,7 @@ s2_forcemodule_t* s2_forcemodule(
       /* the rest will be done in external tire specific
       initialization function function */
     } break;
-    case PID: {
+    case S2_FORCEMODULE_PID: {
       forceModule = malloc(sizeof(s2_forcemodule_t));
       forceModule->forceModuleType = forceModuleType;
       forceModule->data = NULL;
@@ -141,10 +145,10 @@ void s2_forcemodule_connectPointers(
 
     switch(context->forceModulePointers[i]->forceModuleType) {
 
-      case TIRE: {
+      case S2_FORCEMODULE_TIRE: {
         s2_tire_t* tire = (s2_tire_t*)context->forceModulePointers[i]->data;
         switch(tire->tireType) {
-          case PAC2002: {
+          case S2_TIRE_PAC2002: {
             s2_tire_pac2002_t* pactire = tire->properties;
 
             for(int j = 0; j < context->activeJointCount; j++) {
@@ -159,7 +163,7 @@ void s2_forcemodule_connectPointers(
               }
             }
           } break;
-          case FIALA: {
+          case S2_TIRE_FIALA: {
             s2_tire_fiala_t* fialaTire = tire->properties;
 
             for(int j = 0; j < context->activeJointCount; j++) {
@@ -182,7 +186,7 @@ void s2_forcemodule_connectPointers(
         }
       } break;
 
-      case PID: {
+      case S2_FORCEMODULE_PID: {
 
         s2_pid_t* pid =
           (s2_pid_t*)context->forceModulePointers[i]->data;
@@ -330,7 +334,7 @@ void s2_forcemodule_connect(
     /* get pointer to beginning of yp array */
     double* dy = NULL;
     switch(context->modelParameters->integrationType) {
-      case ODE113: {
+      case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
 
@@ -340,7 +344,7 @@ void s2_forcemodule_connect(
         // printf("connecting force module at yOffset: %d for ODE113\n",
         //   forceModule->yOffset);
       } break;
-      case ODE113B: {
+      case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
         dy = numericalIntegrator->dy + forceModule->yOffset;
@@ -353,13 +357,13 @@ void s2_forcemodule_connect(
     }
 
     switch(forceModule->forceModuleType) {
-      case TIRE: {
+      case S2_FORCEMODULE_TIRE: {
         s2_tire_t* tire =
           (s2_tire_t*)forceModule->data;
 
         switch(tire->tireType) {
 
-          case PAC2002: {
+          case S2_TIRE_PAC2002: {
             s2_tire_pac2002_t* pac2002Tire =
               (s2_tire_pac2002_t*)tire->properties;
             pac2002Tire->dy = dy;
@@ -367,7 +371,7 @@ void s2_forcemodule_connect(
             here later */
           } break;
 
-          case FIALA: {
+          case S2_TIRE_FIALA: {
             s2_tire_fiala_t* fialaTire =
               (s2_tire_fiala_t*)tire->properties;
             fialaTire->dy = dy;
@@ -379,7 +383,7 @@ void s2_forcemodule_connect(
         }
       } break;
 
-      case PID: {
+      case S2_FORCEMODULE_PID: {
         s2_pid_t* pid = (s2_pid_t*)forceModule->data;
         pid->dy = dy;
       }
@@ -408,6 +412,7 @@ void s2_forcemodule_update(
       y + forceModule->yOffset);
   }
 }
+
 
 /*!
 @brief save time histories of force modules
@@ -456,7 +461,7 @@ void s2_forcemodule_append(
 void s2_forcemodule_free(s2_forcemodule_t* forceModule) {
 
   switch(forceModule->forceModuleType) {
-    case TIRE: {
+    case S2_FORCEMODULE_TIRE: {
       s2_tire_free((s2_tire_t*)forceModule->data);
       free(forceModule->parameters);
       free(forceModule);

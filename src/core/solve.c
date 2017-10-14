@@ -31,6 +31,8 @@ SUCH DAMAGE.
 #include "context.h"
 #include "numericalintegrator.h"
 #include "substructure.h"
+#include "jacobian.h"
+#include "../force_modules/service.h"
 
 
 /*!
@@ -54,12 +56,12 @@ void s2_equation_fcn(
   */
 
   switch(context->modelParameters->integrationType) {
-    case ODE113: {
+    case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         context->numericalIntegrator;
       numericalIntegrator->iterationCount++;
     } break;
-    case ODE113B: {
+    case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         context->numericalIntegrator;
       numericalIntegrator->iterationCount++;
@@ -129,14 +131,14 @@ void s2_solve_writeHeaders(
   FILE* debug = context->modelParameters->debugFilePointer;
 
   switch(context->modelParameters->integrationType) {
-    case ODE113: {
+    case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
       neqn = numericalIntegrator->neqn;
       y = numericalIntegrator->y;
       t = numericalIntegrator->t;
     } break;
-    case ODE113B: {
+    case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       neqn = numericalIntegrator->neqn;
@@ -271,7 +273,7 @@ void s2_solve_writeStates(
   int iterationCount = 0;
   double omegaN = 0;
   switch(context->modelParameters->integrationType) {
-    case ODE113: {
+    case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         context->numericalIntegrator;
       neqn = numericalIntegrator->neqn;
@@ -281,7 +283,7 @@ void s2_solve_writeStates(
       iterationCount = numericalIntegrator->iterationCount;
       omegaN = context->modelParameters->baumgarte2OmegaN / 2.0;
     } break;
-    case ODE113B: {
+    case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         context->numericalIntegrator;
       neqn = numericalIntegrator->neqn;
@@ -557,7 +559,7 @@ void s2_solve_integrateEquations(
   int stepCount = 0;
   s2_stack_t* reconfigurations = NULL;
   switch(context->modelParameters->integrationType) {
-    case ODE113: {
+    case S2_NUMERICALINTEGRATOR_ODE113: {
       clock_t begin = clock();
       s2_ode113_integrateEquations(context);
       clock_t end = clock();
@@ -568,7 +570,7 @@ void s2_solve_integrateEquations(
       reconfigurations = numericalIntegrator->reconfigurations;
 
     } break;
-    case ODE113B: {
+    case S2_NUMERICALINTEGRATOR_ODE113B: {
       clock_t begin = clock();
       s2_ode113b_integrateEquations(context);
       clock_t end = clock();

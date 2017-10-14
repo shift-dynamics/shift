@@ -3720,10 +3720,10 @@ void s2_updateDHVADebug(
 
         if(context->numericalIntegrator != NULL) {
           switch(context->modelParameters->integrationType) {
-            case ODE113: {
+            case S2_NUMERICALINTEGRATOR_ODE113: {
 
             } break;
-            case ODE113B: {
+            case S2_NUMERICALINTEGRATOR_ODE113B: {
               s2_numericalintegrator_ode113b_t* numericalIntegrator =
                 context->numericalIntegrator;
               fprintf(f, "    integral_phi: ");

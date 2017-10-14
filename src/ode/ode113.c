@@ -19,7 +19,15 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
+#include <stdio.h>
+#include <time.h>
+
+#include "../core/context.h"
+#include "../force_modules/forcemodule.h"
+#include "../core/equation.h"
+#include "../core/substructure.h"
 #include "ode113.h"
+
 
 /*!
   @brief DE carries out the ODE solution algorithm.
@@ -1604,7 +1612,8 @@ void s2_ode113_free(
 void s2_ode113_integrateEquations(
   s2_context_t* context) {
 
-  if(context->modelParameters->integrationType != ODE113) {
+  if(context->modelParameters->integrationType !=
+    S2_NUMERICALINTEGRATOR_ODE113) {
     fprintf(stderr, "ERROR: s2_ode113_integrateEquations called with wrong"
       " enum set in modelParameters\n");
   }

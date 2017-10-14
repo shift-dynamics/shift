@@ -23,6 +23,8 @@ SUCH DAMAGE.
 
 #include <unistd.h>
 #include "pac2002.h"
+#include "../tire.h"
+#include "body.h"
 
 
 /*!
@@ -283,7 +285,7 @@ s2_screw_t* s2_tire_pac2002_GetTireForce_pureSlip(
   s2_coordinate_enum_t location) {
 
   switch(location) {
-    case FIXED: {
+    case S2_COORDINATE_FIXED: {
       /* transform reactions to inertial reference frame */
 
       s2_coscrewproduct_ds(
@@ -293,7 +295,7 @@ s2_screw_t* s2_tire_pac2002_GetTireForce_pureSlip(
 
       return &(tire->fmGlobal);
     } break;
-    case LOCAL: {
+    case S2_COORDINATE_LOCAL: {
       return &(tire->fmPure);
     } break;
   }
@@ -310,7 +312,7 @@ s2_screw_t*  s2_tire_pac2002_GetTireForce_combinedSlip(
   s2_coordinate_enum_t location) {
 
   switch(location) {
-    case FIXED: {
+    case S2_COORDINATE_FIXED: {
 
       /* transform reactions to inertial reference frame */
       s2_coscrewproduct_ds(
@@ -320,7 +322,7 @@ s2_screw_t*  s2_tire_pac2002_GetTireForce_combinedSlip(
 
       return &(tire->fmGlobal);
     } break;
-    case LOCAL: {
+    case S2_COORDINATE_LOCAL: {
       return &(tire->fmCombined);
     } break;
   }
@@ -1373,9 +1375,9 @@ void s2_tire_pac2002_readSection_MODEL(
   fgets(tline, 256, f);
   char* tireStr = getCharFromLine(tline);
   if(!strcmp(tireStr, "RIGHT")) {
-    tire->model.tireSide = RIGHT;
+    tire->model.tireSide = S2_TIRE_RIGHT;
   } else if(!strcmp(tireStr, "LEFT")) {
-    tire->model.tireSide = LEFT;
+    tire->model.tireSide = S2_TIRE_LEFT;
   }
 }
 
@@ -2102,7 +2104,7 @@ void s2_tire_pac2002_transferForces(
   s2_screw_t* tireForce =
     s2_tire_pac2002_GetTireForce_combinedSlip(
       tire,
-      FIXED);
+      S2_COORDINATE_FIXED);
 
   /* context->g + dqIndex += tireForce */
   s2_addequal_ss(tireForce, context->g + dqIndex);
