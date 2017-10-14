@@ -573,14 +573,14 @@ void RenderWindow::interpolateCurrentPosition() {
     double* ydata = NULL;
 
     switch(m_context->modelParameters->integrationType) {
-      case ODE113: {
+      case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           (s2_numericalintegrator_ode113_t*) m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
       } break;
-      case ODE113B: {
+      case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*) m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
@@ -648,14 +648,14 @@ void RenderWindow::interpolateCurrentPosition(double t) {
     double* ydata = NULL;
 
     switch(m_context->modelParameters->integrationType) {
-      case ODE113: {
+      case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           (s2_numericalintegrator_ode113_t*) m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
       } break;
-      case ODE113B: {
+      case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*) m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;

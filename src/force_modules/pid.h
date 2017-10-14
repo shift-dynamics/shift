@@ -16,10 +16,11 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include "../star2.h"
-
 #ifndef _STAR2_PID_H_
 #define _STAR2_PID_H_
+
+#include "../core/restraint.h"
+#include "../core/joint.h"
 
 typedef enum s2_pid_io_enum_t {
   PID_IO_FRAME,

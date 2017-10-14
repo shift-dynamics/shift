@@ -1,4 +1,5 @@
 #include "terrain.h"
+#include "body.h"
 #include <float.h>
 #include <jansson.h>
 #include <string.h>
@@ -758,32 +759,32 @@ s2_terrain_t* s2_terrain(
   terrain->parentFramePointer = NULL;
 
   switch(interpolationType) {
-    case BILINEAR: {
+    case S2_INTERPOLATION_BILINEAR: {
       switch(coordinateConvention) {
-        case ISO: {
+        case S2_COORDINATECONVENTION_ISO: {
           terrain->getZ = s2_terrain_getZ_bilinear_iso;
         } break;
-        case SAE: {
+        case S2_COORDINATECONVENTION_SAE: {
           terrain->getZ = s2_terrain_getZ_bilinear_sae;
         } break;
       }
     } break;
-    case BICUBIC: {
+    case S2_INTERPOLATION_BICUBIC: {
       switch(coordinateConvention) {
-        case ISO: {
+        case S2_COORDINATECONVENTION_ISO: {
           terrain->getZ = s2_terrain_getZ_bicubic_iso;
         } break;
-        case SAE: {
+        case S2_COORDINATECONVENTION_SAE: {
           terrain->getZ = s2_terrain_getZ_bicubic_sae;
         } break;
       }
     } break;
-    case CATMULROM: {
+    case S2_INTERPOLATION_CATMULROM: {
       switch(coordinateConvention) {
-        case ISO: {
+        case S2_COORDINATECONVENTION_ISO: {
           terrain->getZ = s2_terrain_getZ_catmulrom_iso;
         } break;
-        case SAE: {
+        case S2_COORDINATECONVENTION_SAE: {
           terrain->getZ = s2_terrain_getZ_catmulrom_sae;
         } break;
       }
@@ -908,11 +909,12 @@ int s2_terrain_load(
           json_object_get(
             terrainObject,
             "coordinate_type"));
-      s2_coordinate_convention_enum_t coordinateType = SAE;
+      s2_coordinate_convention_enum_t coordinateType =
+        S2_COORDINATECONVENTION_SAE;
       if(!strcmp(coordinateTypeStr, "sae")) {
-        coordinateType = SAE;
+        coordinateType = S2_COORDINATECONVENTION_SAE;
       } else if(!strcmp(coordinateTypeStr, "iso")) {
-        coordinateType = ISO;
+        coordinateType = S2_COORDINATECONVENTION_ISO;
       }
 
       /* get interpolation type (BICUBIC, BILINEAR or CATMULROM),
@@ -922,13 +924,13 @@ int s2_terrain_load(
           json_object_get(
             terrainObject,
             "coordinate_type"));
-      s2_interpolation_enum_t interpolationType = CATMULROM;
+      s2_interpolation_enum_t interpolationType = S2_INTERPOLATION_CATMULROM;
       if(!strcmp(interpolationTypeStr, "bicubic")) {
-        interpolationType = BICUBIC;
+        interpolationType = S2_INTERPOLATION_BICUBIC;
       } else if(!strcmp(interpolationTypeStr, "bilinear")) {
-        interpolationType = BILINEAR;
+        interpolationType = S2_INTERPOLATION_BILINEAR;
       } else if(!strcmp(interpolationTypeStr, "catmul_rom")) {
-        interpolationType = CATMULROM;
+        interpolationType = S2_INTERPOLATION_CATMULROM;
       }
 
       /* get x scale factor, defaults to 1 if no x scale provided */

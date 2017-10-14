@@ -30,24 +30,8 @@ SUCH DAMAGE.
 #include "context.h"
 #include "body.h"
 #include "material.h"
+#include "loader.h"
 
-
-/*!
-@brief get root name of assembly
-
-*/
-const char* s2_getFileExtension(
-  const char* fullName) {
-
-  char* temp = strpbrk(fullName, ".");
-  char* rootName;
-  if(!temp) return fullName;
-  while(temp!=NULL) {
-    rootName = temp;
-    temp = strpbrk(rootName + 1, ".");
-  }
-  return rootName + 1;
-}
 
 /*! @brief Loads geometry specified in Body properties from an external file
 using ASSIMP (open asset importer)

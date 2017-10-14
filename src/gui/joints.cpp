@@ -27,7 +27,7 @@ void s2_Joints::update() {
 
       s2_mobility_compute_substructure(m_joint->substructurePointer);
 
-      if(m_jointType == SPHERICAL) {
+      if(m_jointType == S2_JOINT_SPHERICAL) {
 
       /*! @TODO convert euler angle sequence to quaternion and update
           4 entries in q array */
@@ -39,7 +39,7 @@ void s2_Joints::update() {
         specified coordinate */
 
         switch(m_moveType) {
-          case TARGET: {
+          case S2_JOINT_TARGET: {
             if(m_counter > m_maxCount) {
               /* if the number of steps allotted for the move has been
               exceeded, stop incrementing the joint */
@@ -63,8 +63,8 @@ void s2_Joints::update() {
                     m_joint->substructurePointer->substructureIndex,
                     m_dqIndex,
                     m_targetVal,
-                    PRIMITIVE,
-                    TARGET);
+                    S2_JOINT_PRIMITIVE,
+                    S2_JOINT_TARGET);
 
                   // qDebug() << "before clearjoint";
 
@@ -76,8 +76,8 @@ void s2_Joints::update() {
                     m_joint->substructurePointer->substructureIndex,
                     m_dqIndex,
                     delq,
-                    PRIMITIVE,
-                    INCREMENT);
+                    S2_JOINT_PRIMITIVE,
+                    S2_JOINT_INCREMENT);
                 }
               } else {
                 if(
@@ -88,8 +88,8 @@ void s2_Joints::update() {
                     m_joint->substructurePointer->substructureIndex,
                     m_dqIndex,
                     m_targetVal,
-                    PRIMITIVE,
-                    TARGET);
+                    S2_JOINT_PRIMITIVE,
+                    S2_JOINT_TARGET);
 
                   // qDebug() << "before clearjoint";
                   clear();
@@ -100,13 +100,13 @@ void s2_Joints::update() {
                     m_joint->substructurePointer->substructureIndex,
                     m_dqIndex,
                     -delq,
-                    PRIMITIVE,
-                    INCREMENT);
+                    S2_JOINT_PRIMITIVE,
+                    S2_JOINT_INCREMENT);
                 }
               }
             }
           } break;
-          case INCREMENT: {
+          case S2_JOINT_INCREMENT: {
 
             double delq =
               m_delq * pow(m_joint->mobilityNumber[0], 1.5);
@@ -125,8 +125,8 @@ void s2_Joints::update() {
               m_joint->substructurePointer->substructureIndex,
               m_dqIndex,
               delq,
-              TX,
-              INCREMENT);
+              S2_JOINT_TX,
+              S2_JOINT_INCREMENT);
 
             if(returnVal){
               clear();
@@ -144,7 +144,7 @@ void s2_Joints::update() {
     } else {
       /* update a joint that is not in a substructure */
 
-      if(m_jointType == SPHERICAL) {
+      if(m_jointType == S2_JOINT_SPHERICAL) {
 
         /*! @TODO convert euler angle sequence to quaternion and update
          4 entries in q array */
@@ -180,7 +180,7 @@ void s2_Joints::set(
   m_delq = delq;
   m_targetVal = -1;
   m_jointType = jointType;
-  m_moveType = INCREMENT;
+  m_moveType = S2_JOINT_INCREMENT;
   m_isPositive = true;
   m_maxCount = 1000;
 }
@@ -204,7 +204,7 @@ void s2_Joints::setTarget(
   m_delq = 0.01;
   m_targetVal = targetVal;
   m_jointType = jointType;
-  m_moveType = TARGET;
+  m_moveType = S2_JOINT_TARGET;
 
   if(targetVal - m_context->q[qIndex] > 0) {
     m_isPositive = true;
@@ -227,7 +227,7 @@ void s2_Joints::clear() {
   m_qIndex = -1;
   m_dqIndex = -1;
   m_delq = -1;
-  m_jointType = INVALID;
+  m_jointType = S2_JOINT_INVALID;
 }
 
 
@@ -259,33 +259,33 @@ void s2_Joints::draw() {
       checkError("joint: after set MVP");
 
       switch(joint->jointType) {
-        case RX: {
+        case S2_JOINT_RX: {
           m_program->setScale(m_scaleFactor);
           glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
         } break;
-        case RY: {
+        case S2_JOINT_RY: {
           m_program->setScale(m_scaleFactor);
           m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
           checkError("joint: after draw ry");
         } break;
-        case RZ: {
+        case S2_JOINT_RZ: {
           m_program->setScale(m_scaleFactor);
           m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
           checkError("joint: after draw rz");
         } break;
-        case TX: {
+        case S2_JOINT_TX: {
           float jointValue = (float)(m_context->q[joint->qIndex]);
           m_program->setScale(jointValue);
           glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
           checkError("joint: after draw tx");
         } break;
-        case TY: {
+        case S2_JOINT_TY: {
           float jointValue = (float)(m_context->q[joint->qIndex]);
           m_program->setScale(jointValue);
           m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
           checkError("joint: after draw ty");
         } break;
-        case TZ: {
+        case S2_JOINT_TZ: {
           float jointValue = (float)(m_context->q[joint->qIndex]);
           m_program->setScale(jointValue);
           m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);

@@ -13,7 +13,9 @@ s2_Lights::s2_Lights(RenderWindow* renderWindow)
   , m_bodies(NULL)
   , m_depthBufferArray(NULL)
   , m_depthBufferSize(1024)
-  , m_maxCount(10) {
+  , m_maxCount(10)
+  , m_currentViewMatrix(NULL)
+  , m_currentProjectionMatrix(NULL) {
 
   initialize();
 
@@ -29,7 +31,9 @@ s2_Lights::s2_Lights(
   : s2_Geometry(renderWindow)
   , m_bodies(NULL)
   , m_depthBufferArray(NULL)
-  , m_maxCount(10) {
+  , m_maxCount(10)
+  , m_currentViewMatrix(NULL)
+  , m_currentProjectionMatrix(NULL) {
 
   initialize();
   m_depthBufferSize = depthBufferSize;
@@ -42,6 +46,14 @@ s2_Lights::s2_Lights(
 void s2_Lights::initialize() {
 
   memset(&m_lights, 0, sizeof(m_lights));
+  for(int i = 0; i < m_maxCount; i++) {
+    m_lights.projectionMatrix[i].perspective(
+      45.f,
+      1.f,
+      0.001f,
+      1000.f);
+    m_lights.viewMatrix[i].setToIdentity();
+  }
   m_drawEnabled = true;
 }
 
@@ -63,21 +75,19 @@ void s2_Lights::loadContext() {
       s2_light_t* light = m_context->lightPointers[i];
       s2_displacement_t* d = light->parentFramePointer->dAbsolute;
       switch(light->lightType) {
-        case POINT: {
+        case S2_LIGHT_POINT: {
           m_lights.directional[i] = 0;
-          m_lights.position[i * 3 + 0] = d->T.x;
-          m_lights.position[i * 3 + 1] = d->T.y;
-          m_lights.position[i * 3 + 2] = d->T.z;
-
         } break;
-        case DIRECTIONAL: {
+        case S2_LIGHT_DIRECTIONAL: {
           m_lights.directional[i] = 1;
-          m_lights.position[i * 3 + 0] = d->T.x;
-          m_lights.position[i * 3 + 1] = d->T.x;
-          m_lights.position[i * 3 + 2] = d->T.x;
-        }
-        break;
+        } break;
+        case S2_LIGHT_SPOT: {
+          m_lights.directional[i] = 2;
+        } break;
       }
+      m_lights.position[i * 3 + 0] = d->T.x;
+      m_lights.position[i * 3 + 1] = d->T.y;
+      m_lights.position[i * 3 + 2] = d->T.z;
 
       for(int j = 0; j < 3; j++) {
         m_lights.Ka[3 * i + j] =
@@ -86,6 +96,31 @@ void s2_Lights::loadContext() {
           m_context->lightPointers[i]->glLight.Kd[j];
         m_lights.Ks[3 * i + j] =
           m_context->lightPointers[i]->glLight.Ks[j];
+      }
+
+      /* initialize view matrix */
+      m_lights.viewMatrix[i] = s2_displacementToQMatrix4x4(d);
+
+      /* initialize projection matrix */
+
+      switch(light->lightType) {
+        case S2_LIGHT_POINT: {
+          m_lights.projectionMatrix[i].perspective(
+            45.f,
+            1.f,
+            0.001f,
+            1000.f);
+        } break;
+        case S2_LIGHT_DIRECTIONAL: {
+          m_lights.projectionMatrix[i].ortho(-1.f, 1.f, -1.f, 1.f, 0.001f, 1000.f);
+        } break;
+        case S2_LIGHT_SPOT: {
+          m_lights.projectionMatrix[i].perspective(
+            light->fov,
+            1.0,
+            0.001f,
+            1000.f);
+        }
       }
     }
 
@@ -146,6 +181,9 @@ void s2_Lights::loadContext() {
 void s2_Lights::draw() {
 
   if(m_drawEnabled) {
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
+    checkError("lights: after bind m_depthTexture");
 
     for(int i = 0; i < m_lights.count; i++) {
 
@@ -158,9 +196,17 @@ void s2_Lights::draw() {
       glViewport(0, 0, m_depthBufferSize, m_depthBufferSize);
       checkError("lights: after glViewport()");
 
-      /* set camera view and projection matrix */
       s2_light_t* light = m_context->lightPointers[i];
 
+      /* update view matrix only if not attached to fixed body */
+      if(light->parentBodyPointer != m_context->assembly->bodyHead) {
+        m_lights.viewMatrix[i] =
+          s2_displacementToQMatrix4x4(light->parentFramePointer->dAbsolute);
+      }
+
+      /* set current activated camera view and projection matrix */
+      m_currentViewMatrix = &m_lights.viewMatrix[i];
+      m_currentProjectionMatrix = &m_lights.projectionMatrix[i];
 
       glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
       checkError("lights: after glColorMask()");
@@ -198,6 +244,24 @@ void s2_Lights::draw() {
     m_renderWindow->m_funcs->glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_renderWindow->m_funcs->glDrawBuffer(GL_FRONT_AND_BACK);
   }
+}
+
+
+/*!
+@brief set array of shadow matrices using current transform
+@return pointer to beginning of shadowMatrix array
+*/
+QMatrix4x4* s2_Lights::setShadowMatrix(s2_displacement_t* transform) {
+  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+  QMatrix4x4 bias = QMatrix4x4(0.5f,  0.f,  0.f,  0.5f,
+                               0.f,   0.5f, 0.f,  0.5f,
+                               0.f,   0.f,  0.5f, 0.5f,
+                               0.f,   0.f,  0.f,  1.f);
+  for(int i = 0; i < m_lights.count; i++) {
+    m_lights.shadowMatrix[i] =
+      bias * getProjectionMatrix(i) * getViewMatrix(i) * model;
+  }
+  return m_lights.shadowMatrix;
 }
 
 

@@ -42,12 +42,12 @@ void s2_service_setForces(
 
   double t = 0;
   switch(context->modelParameters->integrationType) {
-    case ODE113: {
+    case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
       t = numericalIntegrator->t;
     } break;
-    case ODE113B: {
+    case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       t = numericalIntegrator->x;

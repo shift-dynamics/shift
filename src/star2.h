@@ -35,6 +35,13 @@ extern "C" {
 #include "core/mobility.h"
 #include "core/newtonraphson.h"
 #include "core/terrain.h"
+#include "core/material.h"
+#include "core/assembly.h"
+#include "core/body.h"
+#include "core/frame.h"
+#include "core/io.h"
+#include "core/light.h"
+#include "core/substructure.h"
 
 #include "ode/numericalintegrator.h"
 #include "ode/ode113.h"

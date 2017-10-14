@@ -61,8 +61,9 @@ class s2_Bodies : public s2_Geometry {
 
 public:
   s2_Bodies(RenderWindow* renderWindow)
-  : s2_Geometry(renderWindow) {
-    m_shadingType = PHONG;
+  : s2_Geometry(renderWindow)
+  , m_shadingType(S2_SHADING_PHONG) {
+
   };
 
   ~s2_Bodies() {
@@ -107,15 +108,15 @@ public:
 public slots:
 
   void setFlatShaded() {
-    setDrawStyle(FLAT);
+    setDrawStyle(S2_SHADING_FLAT);
   }
 
   void setPhongShaded() {
-    setDrawStyle(PHONG);
+    setDrawStyle(S2_SHADING_PHONG);
   }
 
   void setWireframe() {
-    setDrawStyle(WIREFRAME);
+    setDrawStyle(S2_SHADING_WIREFRAME);
   }
 
 

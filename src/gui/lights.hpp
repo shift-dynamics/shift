@@ -44,6 +44,8 @@ struct s2_lights_t {
   int count;
   int drawShadows; /*!< 0 = false, 1 = true */
   QMatrix4x4 shadowMatrix[10];
+  QMatrix4x4 projectionMatrix[10];
+  QMatrix4x4 viewMatrix[10];
 };
 
 class s2_Lights : public s2_Geometry {
@@ -102,6 +104,28 @@ public:
 
   void getFramebufferStatus();
 
+  QMatrix4x4& getCurrentViewMatrix() {
+    return *m_currentViewMatrix;
+  }
+
+  QMatrix4x4& getViewMatrix(int i) {
+    return m_lights.viewMatrix[i];
+  }
+
+  QMatrix4x4& getCurrentProjectionMatrix() {
+    return *m_currentProjectionMatrix;
+  }
+
+  QMatrix4x4& getProjectionMatrix(int i) {
+    return m_lights.projectionMatrix[i];
+  }
+
+  QMatrix4x4* setShadowMatrix(s2_displacement_t*);
+
+  GLint getDepthTexture() {
+    return m_depthTexture;
+  }
+
 
 private:
 
@@ -120,6 +144,10 @@ private:
   ShadowShaderProgram* m_program;
 
   int m_maxCount;
+
+  QMatrix4x4* m_currentViewMatrix;
+
+  QMatrix4x4* m_currentProjectionMatrix;
 
 };
 

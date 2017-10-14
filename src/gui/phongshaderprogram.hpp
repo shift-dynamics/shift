@@ -58,6 +58,7 @@ public:
   GLint getNormalAttribute() {
     return m_normal_a;
   };
+  void bindDepthBuffer();
 
 signals:
 
@@ -87,6 +88,10 @@ private:
   GLint m_lights_Ks_u;
   GLint m_lights_directional_u;
   GLint m_lights_count_u;
+  GLint m_lights_drawShadows_u;
+  GLint m_lights_shadowMatrix_u;
+
+  GLint m_texture_shadow_u;
 
   GLint m_position_a;
   GLint m_normal_a;

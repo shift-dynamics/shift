@@ -1646,7 +1646,7 @@ void Workspace::setTx(int val) {
         joint->qIndex,
         joint->dqIndex,
         delq,
-        PRIMITIVE);
+        S2_JOINT_PRIMITIVE);
       m_sliders.tx.spinBox->blockSignals(true);
       m_sliders.tx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
       m_sliders.tx.spinBox->blockSignals(false);
@@ -1689,7 +1689,7 @@ void Workspace::setTy(int val) {
       int qIndex = -1;
       int dqIndex = -1;
       switch(joint->jointType) {
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           qIndex = joint->qIndex + 1;
           dqIndex = joint->dqIndex + 1;
         } break;
@@ -1709,7 +1709,7 @@ void Workspace::setTy(int val) {
         qIndex,
         dqIndex,
         delq,
-        PRIMITIVE);
+        S2_JOINT_PRIMITIVE);
     }
     emit tyChanged(0);
   }
@@ -1749,7 +1749,7 @@ void Workspace::setTz(int val) {
       int qIndex = -1;
       int dqIndex = -1;
       switch(joint->jointType) {
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           qIndex = joint->qIndex + 2;
           dqIndex = joint->dqIndex + 2;
         } break;
@@ -1768,7 +1768,7 @@ void Workspace::setTz(int val) {
         qIndex,
         dqIndex,
         delq,
-        PRIMITIVE);
+        S2_JOINT_PRIMITIVE);
 
     }
     emit tzChanged(0);
@@ -1806,24 +1806,24 @@ void Workspace::setRx(int val) {
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
       double delq = (double)val * m_sliders.rx.singleStep;
       switch(joint->jointType) {
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           m_renderWindow->setJoint(
             joint,
             joint->qIndex,
             joint->dqIndex,
             delq,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
             m_sliders.rx.spinBox->blockSignals(true);
             m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
             m_sliders.rx.spinBox->blockSignals(false);
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           m_renderWindow->setJoint(
             joint,
             joint->qIndex + 3,
             joint->dqIndex + 3,
             delq,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
             m_sliders.rx.spinBox->blockSignals(true);
             m_sliders.rx.spinBox->setValue(
               m_context->q[joint->qIndex + 3] + delq);
@@ -1835,7 +1835,7 @@ void Workspace::setRx(int val) {
             joint->qIndex,
             joint->dqIndex,
             delq,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
             m_sliders.rx.spinBox->blockSignals(true);
             m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
             m_sliders.rx.spinBox->blockSignals(false);
@@ -1877,24 +1877,24 @@ void Workspace::setRy(int val) {
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
       double delq = (double)val * m_sliders.ry.singleStep;
       switch(joint->jointType) {
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           m_renderWindow->setJoint(
             joint,
             joint->qIndex,
             joint->dqIndex,
             delq,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
             m_sliders.ry.spinBox->blockSignals(true);
             m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
             m_sliders.ry.spinBox->blockSignals(false);
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           m_renderWindow->setJoint(
             joint,
             joint->qIndex + 3,
             joint->dqIndex + 3,
             delq,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
             m_sliders.ry.spinBox->blockSignals(true);
             m_sliders.ry.spinBox->setValue(
               m_context->q[joint->qIndex + 3] + delq);
@@ -1906,7 +1906,7 @@ void Workspace::setRy(int val) {
             joint->qIndex,
             joint->dqIndex,
             delq,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
             m_sliders.ry.spinBox->blockSignals(true);
             m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
             m_sliders.ry.spinBox->blockSignals(false);
@@ -1950,24 +1950,24 @@ void Workspace::setRz(int val) {
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
       double delq = (double)val * m_sliders.rz.singleStep;
       switch(joint->jointType) {
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           m_renderWindow->setJoint(
             joint,
             joint->qIndex,
             joint->dqIndex,
             delq,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
             m_sliders.rz.spinBox->blockSignals(true);
             m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
             m_sliders.rz.spinBox->blockSignals(false);
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           m_renderWindow->setJoint(
             joint,
             joint->qIndex + 3,
             joint->dqIndex + 3,
             delq,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
             m_sliders.rz.spinBox->blockSignals(true);
             m_sliders.rz.spinBox->setValue(
               m_context->q[joint->qIndex + 3] + delq);
@@ -1979,7 +1979,7 @@ void Workspace::setRz(int val) {
             joint->qIndex,
             joint->dqIndex,
             delq,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
             m_sliders.rz.spinBox->blockSignals(true);
             m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
             m_sliders.rz.spinBox->blockSignals(false);
@@ -2167,13 +2167,13 @@ void Workspace::setTxSpinBox(double val) {
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
       switch(joint->jointType) {
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex,
             joint->dqIndex,
             val,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
         } break;
         default: {
           m_renderWindow->setJointTarget(
@@ -2181,7 +2181,7 @@ void Workspace::setTxSpinBox(double val) {
             joint->qIndex,
             joint->dqIndex,
             val,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
         } break;
       }
     }
@@ -2221,13 +2221,13 @@ void Workspace::setTySpinBox(double val) {
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
 
       switch(joint->jointType) {
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex + 1,
             joint->dqIndex + 1,
             val,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
         } break;
         default: {
           m_renderWindow->setJointTarget(
@@ -2235,7 +2235,7 @@ void Workspace::setTySpinBox(double val) {
             joint->qIndex,
             joint->dqIndex,
             val,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
         } break;
       }
     }
@@ -2274,13 +2274,13 @@ void Workspace::setTzSpinBox(double val) {
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
       switch(joint->jointType) {
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex + 2,
             joint->dqIndex + 2,
             val,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
         } break;
         default: {
           m_renderWindow->setJointTarget(
@@ -2288,7 +2288,7 @@ void Workspace::setTzSpinBox(double val) {
             joint->qIndex,
             joint->dqIndex,
             val,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
         } break;
       }
     }
@@ -2327,21 +2327,21 @@ void Workspace::setRxSpinBox(double val) {
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
       switch(joint->jointType) {
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex,
             joint->dqIndex,
             val,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex + 3,
             joint->dqIndex + 3,
             val,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
         } break;
         default: {
           m_renderWindow->setJointTarget(
@@ -2349,7 +2349,7 @@ void Workspace::setRxSpinBox(double val) {
             joint->qIndex,
             joint->dqIndex,
             val,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
         } break;
       }
     }
@@ -2388,21 +2388,21 @@ void Workspace::setRySpinBox(double val) {
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
       switch(joint->jointType) {
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex,
             joint->dqIndex,
             val,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex + 3,
             joint->dqIndex + 3,
             val,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
         } break;
         default: {
           m_renderWindow->setJointTarget(
@@ -2410,7 +2410,7 @@ void Workspace::setRySpinBox(double val) {
             joint->qIndex,
             joint->dqIndex,
             val,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
         } break;
       }
     }
@@ -2449,21 +2449,21 @@ void Workspace::setRzSpinBox(double val) {
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
       switch(joint->jointType) {
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex,
             joint->dqIndex,
             val,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           m_renderWindow->setJointTarget(
             joint,
             joint->qIndex + 3,
             joint->dqIndex + 3,
             val,
-            SPHERICAL);
+            S2_JOINT_SPHERICAL);
         } break;
         default: {
           m_renderWindow->setJointTarget(
@@ -2471,7 +2471,7 @@ void Workspace::setRzSpinBox(double val) {
             joint->qIndex,
             joint->dqIndex,
             val,
-            PRIMITIVE);
+            S2_JOINT_PRIMITIVE);
         } break;
       }
     }
@@ -2744,7 +2744,7 @@ void Workspace::getSelectedTreeItem() {
       m_jointPanel.groupBox->setVisible(true);
 
       switch(joint->jointType) {
-        case TX: {
+        case S2_JOINT_TX: {
           setSlider(
             &m_sliders.tx,
             joint->qIndex,
@@ -2752,7 +2752,7 @@ void Workspace::getSelectedTreeItem() {
             joint->substructurePointer,
             false);
         } break;
-        case TY: {
+        case S2_JOINT_TY: {
           setSlider(
             &m_sliders.ty,
             joint->qIndex,
@@ -2760,7 +2760,7 @@ void Workspace::getSelectedTreeItem() {
             joint->substructurePointer,
             false);
         } break;
-        case TZ: {
+        case S2_JOINT_TZ: {
           setSlider(
             &m_sliders.tz,
             joint->qIndex,
@@ -2768,7 +2768,7 @@ void Workspace::getSelectedTreeItem() {
             joint->substructurePointer,
             false);
         } break;
-        case RX: {
+        case S2_JOINT_RX: {
           setSlider(
             &m_sliders.rx,
             joint->qIndex,
@@ -2776,7 +2776,7 @@ void Workspace::getSelectedTreeItem() {
             joint->substructurePointer,
             false);
         } break;
-        case RY: {
+        case S2_JOINT_RY: {
           setSlider(
             &m_sliders.ry,
             joint->qIndex,
@@ -2784,7 +2784,7 @@ void Workspace::getSelectedTreeItem() {
             joint->substructurePointer,
             false);
         } break;
-        case RZ: {
+        case S2_JOINT_RZ: {
           setSlider(
             &m_sliders.rz,
             joint->qIndex,
@@ -2792,10 +2792,10 @@ void Workspace::getSelectedTreeItem() {
             joint->substructurePointer,
             false);
         } break;
-        case RIGID: {
+        case S2_JOINT_RIGID: {
 
         } break;
-        case SPHERICAL: {
+        case S2_JOINT_SPHERICAL: {
           setSlider(
             &m_sliders.rx,
             joint->qIndex,
@@ -2815,7 +2815,7 @@ void Workspace::getSelectedTreeItem() {
             joint->substructurePointer,
             true);
         } break;
-        case FLOAT: {
+        case S2_JOINT_FLOAT: {
           setSlider(
             &m_sliders.tx,
             joint->qIndex,
@@ -2854,8 +2854,8 @@ void Workspace::getSelectedTreeItem() {
             true);
 
         } break;
-        case INVALID:
-        case PRIMITIVE: {
+        case S2_JOINT_INVALID:
+        case S2_JOINT_PRIMITIVE: {
 
         } break;
       }
@@ -3263,7 +3263,7 @@ void Workspace::openFile() {
     s2_mobility_print(debug, m_context);
 
     for(int i = 0; i < m_context->activeJointCount; i++) {
-      if(m_context->jointPointers[i]->jointType != RIGID) {
+      if(m_context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
         fprintf(
           m_mobilityFile,
           "q:%s%s",
@@ -3274,7 +3274,7 @@ void Workspace::openFile() {
 
     for(int i = 0; i < m_context->activeJointCount; i++) {
       if(i != m_context->activeJointCount - 1) {
-        if(m_context->jointPointers[i]->jointType != RIGID) {
+        if(m_context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
           fprintf(
             m_mobilityFile,
             "m:%s%s",
@@ -3282,7 +3282,7 @@ void Workspace::openFile() {
             m_context->modelParameters->delimiter);
         }
       } else {
-        if(m_context->jointPointers[i]->jointType != RIGID) {
+        if(m_context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
           fprintf(
             m_mobilityFile,
             "m:%s\n",
@@ -3794,25 +3794,25 @@ void Workspace::materialColorSelector() {
       s2_color_enum_t colorType =
         (s2_color_enum_t)m_bodyPanel.materialColorDropDown->currentIndex();
       switch(colorType) {
-        case AMBIENT: {
+        case S2_COLOR_AMBIENT: {
           qDebug() << "ambient";
           material->GLuniforms.Ka[0] = color.red() / 255.f;
           material->GLuniforms.Ka[1] = color.green() / 255.f;
           material->GLuniforms.Ka[2] = color.blue() / 255.f;
         } break;
-        case DIFFUSE: {
+        case S2_COLOR_DIFFUSE: {
           qDebug() << "diffuse";
           material->GLuniforms.Kd[0] = color.red() / 255.f;
           material->GLuniforms.Kd[1] = color.green() / 255.f;
           material->GLuniforms.Kd[2] = color.blue() / 255.f;
         } break;
-        case SPECULAR: {
+        case S2_COLOR_SPECULAR: {
           qDebug() << "specular";
           material->GLuniforms.Ks[0] = color.red() / 255.f;
           material->GLuniforms.Ks[1] = color.green() / 255.f;
           material->GLuniforms.Ks[2] = color.blue() / 255.f;
         } break;
-        case EMISSIVE: {
+        case S2_COLOR_EMISSIVE: {
           qDebug() << "emissive currently not handled";
         } break;
       }
@@ -3863,25 +3863,25 @@ void Workspace::lightColorSelector() {
       s2_color_enum_t colorType =
         (s2_color_enum_t)m_bodyPanel.materialColorDropDown->currentIndex();
       switch(colorType) {
-        case AMBIENT: {
+        case S2_COLOR_AMBIENT: {
           qDebug() << "ambient";
           light->glLight.Ka[0] = color.red() / 255.f;
           light->glLight.Ka[1] = color.green() / 255.f;
           light->glLight.Ka[2] = color.blue() / 255.f;
         } break;
-        case DIFFUSE: {
+        case S2_COLOR_DIFFUSE: {
           qDebug() << "diffuse";
           light->glLight.Kd[0] = color.red() / 255.f;
           light->glLight.Kd[1] = color.green() / 255.f;
           light->glLight.Kd[2] = color.blue() / 255.f;
         } break;
-        case SPECULAR: {
+        case S2_COLOR_SPECULAR: {
           qDebug() << "specular";
           light->glLight.Ks[0] = color.red() / 255.f;
           light->glLight.Ks[1] = color.green() / 255.f;
           light->glLight.Ks[2] = color.blue() / 255.f;
         } break;
-        case EMISSIVE: {
+        case S2_COLOR_EMISSIVE: {
           qDebug() << "emissive currently not handled";
         } break;
       }
@@ -3902,10 +3902,12 @@ void Workspace::lightColorSelector() {
 void Workspace::setIntegratorType(int val) {
   switch(val) {
     case 0: {
-      m_context->modelParameters->integrationType = ODE113;
+      m_context->modelParameters->integrationType =
+        S2_NUMERICALINTEGRATOR_ODE113;
     } break;
     case 1: {
-      m_context->modelParameters->integrationType = ODE113B;
+      m_context->modelParameters->integrationType =
+        S2_NUMERICALINTEGRATOR_ODE113B;
     } break;
   }
 }

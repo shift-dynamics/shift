@@ -23,6 +23,8 @@ SUCH DAMAGE.
 
 #include <unistd.h>
 #include "fiala.h"
+#include "../tire.h"
+#include "../core/body.h"
 
 
 /*!
@@ -480,7 +482,7 @@ void s2_tire_fiala_update(
   if(iconv == 1){
     bool report = false;
     switch(context->modelParameters->integrationType) {
-      case ODE113B: {
+      case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           context->numericalIntegrator;
         if(numericalIntegrator->x >=

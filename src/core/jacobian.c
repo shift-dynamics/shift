@@ -29,6 +29,8 @@ SUCH DAMAGE.
 #include "context.h"
 #include "frame.h"
 #include "chordconstraint.h"
+#include "joint.h"
+#include "memoize.h"
 
 
 
@@ -2636,7 +2638,7 @@ int s2_jacobian_infinityNormBCheck(
       if(context->numericalIntegrator != NULL) {
 
         switch(context->modelParameters->integrationType) {
-          case ODE113: {
+          case S2_NUMERICALINTEGRATOR_ODE113: {
             /* get current index */
             s2_numericalintegrator_ode113_t* numericalIntegrator =
               (s2_numericalintegrator_ode113_t*) context->numericalIntegrator;
@@ -2648,7 +2650,7 @@ int s2_jacobian_infinityNormBCheck(
                 - 1);
 
           } break;
-          case ODE113B: {
+          case S2_NUMERICALINTEGRATOR_ODE113B: {
             /* get current index */
             s2_numericalintegrator_ode113b_t* numericalIntegrator =
               (s2_numericalintegrator_ode113b_t*) context->numericalIntegrator;

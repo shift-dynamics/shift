@@ -29,6 +29,7 @@ SUCH DAMAGE.
 #endif
 #include "context.h"
 #include "substructure.h"
+#include "newtonraphson.h"
 
 /*!
   @brief initializes quantities needed to solve system of equations
@@ -330,7 +331,7 @@ void s2_equation_setRHS(
     context->modelParameters->baumgarteOmegaN2;
 
   switch(context->modelParameters->integrationType) {
-    case ODE113B: {
+    case S2_NUMERICALINTEGRATOR_ODE113B: {
       if(context->numericalIntegrator) {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
@@ -536,7 +537,8 @@ void s2_equation_setRHS(
       }
 
       /* substract integral error term from gamma_p  for adaptive constraint stabilization*/
-      if(context->modelParameters->integrationType == ODE113B &&
+      if(context->modelParameters->integrationType ==
+          S2_NUMERICALINTEGRATOR_ODE113B &&
         context->numericalIntegrator != NULL) {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
@@ -1330,10 +1332,10 @@ void s2_equation_setEquations(
   int returnVal = s2_jacobian_infinityNormBCheck(context);
   if(returnVal) {
     switch(context->modelParameters->integrationType) {
-      case ODE113: {
+      case S2_NUMERICALINTEGRATOR_ODE113: {
         exit(-1);
       } break;
-      case ODE113B: {
+      case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
         numericalIntegrator->newtonRaphsonFailure = true;
@@ -1494,7 +1496,6 @@ void s2_equation_factorAndSolve(
 			}
     }
   }
-
   // printf("ddq on exit s2_equation_factorAndSolve:\n");
   // s2_array_print(context->dqCount, context->ddq);
 }
