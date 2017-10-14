@@ -28,6 +28,9 @@ SUCH DAMAGE.
   #include <cblas.h>
 #endif
 #include "solve.h"
+#include "context.h"
+#include "numericalintegrator.h"
+#include "substructure.h"
 
 
 /*!

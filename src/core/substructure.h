@@ -20,6 +20,7 @@ SUCH DAMAGE.
 #ifndef _STAR2_SUBSTRUCTURE_H_
 #define _STAR2_SUBSTRUCTURE_H_
 
+#include <stdbool.h>
 
 /*!
 @brief Defines properties related to kinematic substructure or module
@@ -92,3 +93,7 @@ typedef struct s2_substructure_t {
                        newton raphson iteration */
 
 } s2_substructure_t;
+
+s2_substructure_t* s2_substructure();
+
+#endif

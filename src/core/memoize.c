@@ -26,7 +26,10 @@ SUCH DAMAGE.
 #else
   #include <cblas.h>
 #endif
-#include "../star2.h"
+#include "context.h"
+#include "assembly.h"
+#include "joint.h"
+#include "body.h"
 
 
 /*!
@@ -1063,25 +1066,25 @@ void s2_memoize_memoizeQuaternions(
   context->nonQuaternionCount = 0;
   for(int i = 0; i < context->activeJointCount; i++) {
     switch(context->jointPointers[i]->jointType) {
-      case TX:
-      case TY:
-      case TZ:
-      case RX:
-      case RY:
-      case RZ: {
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ:
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ: {
         context->nonQuaternionCount++;
       } break;
-      case RIGID:
+      case S2_JOINT_RIGID:
         break;
-      case SPHERICAL: {
+      case S2_JOINT_SPHERICAL: {
         context->quaternionCount++;
       } break;
-      case FLOAT: {
+      case S2_JOINT_FLOAT: {
         context->quaternionCount++;
         context->nonQuaternionCount += 3;
       } break;
-      case PRIMITIVE:
-      case INVALID: {
+      case S2_JOINT_PRIMITIVE:
+      case S2_JOINT_INVALID: {
         fprintf(stderr, "invalid joint type found\n");
       } break;
     }
@@ -1113,28 +1116,28 @@ void s2_memoize_memoizeQuaternions(
   int quaternionCounter = 0;
   for(int i = 0; i < context->activeJointCount; i++) {
     switch(context->jointPointers[i]->jointType) {
-      case TX:
-      case TY:
-      case TZ:
-      case RX:
-      case RY:
-      case RZ: {
+      case S2_JOINT_TX:
+      case S2_JOINT_TY:
+      case S2_JOINT_TZ:
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ: {
         context->qNonQuaternionIndices[qCounter] =
           context->jointPointers[i]->qIndex;
         context->dqNonQuaternionIndices[qCounter] =
           context->jointPointers[i]->dqIndex;
         qCounter++;
       } break;
-      case RIGID:
+      case S2_JOINT_RIGID:
         break;
-      case SPHERICAL: {
+      case S2_JOINT_SPHERICAL: {
         context->qQuaternionIndices[quaternionCounter] =
           context->jointPointers[i]->qIndex;
         context->dqQuaternionIndices[quaternionCounter] =
           context->jointPointers[i]->dqIndex;
         quaternionCounter++;
       } break;
-      case FLOAT: {
+      case S2_JOINT_FLOAT: {
         for(int j = 0; j < 3; j++) {
           context->qNonQuaternionIndices[qCounter] =
             context->jointPointers[i]->qIndex + j;
@@ -1148,8 +1151,8 @@ void s2_memoize_memoizeQuaternions(
           context->jointPointers[i]->dqIndex + 3;
         quaternionCounter++;
       } break;
-      case INVALID:
-      case PRIMITIVE: {
+      case S2_JOINT_INVALID:
+      case S2_JOINT_PRIMITIVE: {
         fprintf(stderr, "invalid joint type found\n");
       } break;
     }

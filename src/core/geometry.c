@@ -18,8 +18,6 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include "context.h"
-
 #include <assimp/cimport.h>        // Plain-C interface to assimp loader
 #include <assimp/scene.h>          // Output data structure
 #include <assimp/postprocess.h>    // Post processing flags
@@ -28,6 +26,11 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "context.h"
+#include "body.h"
+#include "material.h"
+
 
 /*!
 @brief get root name of assembly

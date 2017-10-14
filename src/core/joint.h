@@ -16,15 +16,18 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#include "context.h"
 
 #ifndef _STAR2_JOINT_H_
 #define _STAR2_JOINT_H_
 
 typedef struct s2_body_t s2_body_t;
+typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_substructure_t s2_substructure_t;
-
+typedef struct s2_context_t s2_context_t;
+typedef struct s2_assembly_t s2_assembly_t;
+#include "stack.h"
+#include "kinematics.h"
 
 /*!
 @brief Current supported joint types

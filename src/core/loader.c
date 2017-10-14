@@ -38,7 +38,11 @@ SUCH DAMAGE.
 #include "kinematics.h"
 #include "geometry.h"
 #include "assert.h"
-#include "../star2.h"
+#include "light.h"
+#include "body.h"
+#include "assembly.h"
+#include "frame.h"
+
 
 /*!
 @brief get file path of assembly
@@ -340,10 +344,10 @@ int s2_loadLights(
         json_object_get(lightObject, "type"));
 
       if(!strcmp(lightType, "point")) {
-        light->lightType = POINT;
+        light->lightType = S2_LIGHT_POINT;
         light->glLight.directional = 0;
       } else if(!strcmp(lightType, "directional")) {
-        light->lightType = DIRECTIONAL;
+        light->lightType = S2_LIGHT_DIRECTIONAL;
         light->glLight.directional = 1;
       }
       for (int i = 0; i < 3; i++) {
@@ -455,7 +459,7 @@ int s2_loadForceModules(
             s2_tire(
               forceModule,
               context,
-              PAC2002,
+              S2_TIRE_PAC2002,
               filePath,
               wheelBody,
               useTransientSlip);
@@ -498,7 +502,7 @@ int s2_loadForceModules(
             s2_tire(
               forceModule,
               context,
-              FIALA,
+              S2_TIRE_FIALA,
               filePath,
               wheelBody,
               false);
@@ -569,9 +573,9 @@ int s2_loadForceModules(
             json_t* coordinateSystemObject =
               json_object_get(inputObject, "coordinate_system");
             if(!strcmp(json_string_value(coordinateSystemObject), "fixed")) {
-              pid->input.coordinateSystem = FIXED;
+              pid->input.coordinateSystem = S2_COORDINATE_FIXED;
             } else {
-              pid->input.coordinateSystem = LOCAL;
+              pid->input.coordinateSystem = S2_COORDINATE_LOCAL;
             }
 
             json_t* bodyFramePairObject =
@@ -610,17 +614,17 @@ int s2_loadForceModules(
               json_object_get(inputObject, "dof");
             assert(dofObject);
             if(!strcmp("Tx", json_string_value(dofObject))) {
-              pid->input.dof = TX;
+              pid->input.dof = S2_JOINT_TX;
             } else if(!strcmp("Ty", json_string_value(dofObject))) {
-              pid->input.dof = TY;
+              pid->input.dof = S2_JOINT_TY;
             } else if(!strcmp("Tz", json_string_value(dofObject))) {
-              pid->input.dof = TZ;
+              pid->input.dof = S2_JOINT_TZ;
             } else if(!strcmp("Rx", json_string_value(dofObject))) {
-              pid->input.dof = RX;
+              pid->input.dof = S2_JOINT_RX;
             } else if(!strcmp("Ry", json_string_value(dofObject))) {
-              pid->input.dof = RY;
+              pid->input.dof = S2_JOINT_RY;
             } else if(!strcmp("Rz", json_string_value(dofObject))) {
-              pid->input.dof = RZ;
+              pid->input.dof = S2_JOINT_RZ;
             }
             pid->input.ioType = PID_IO_FRAME;
 
@@ -1142,12 +1146,12 @@ int s2_loadJoints(
           get initial values of joints
         */
         switch(joint->jointType) {
-          case TX:
-          case TY:
-          case TZ:
-          case RX:
-          case RY:
-          case RZ: {
+          case S2_JOINT_TX:
+          case S2_JOINT_TY:
+          case S2_JOINT_TZ:
+          case S2_JOINT_RX:
+          case S2_JOINT_RY:
+          case S2_JOINT_RZ: {
             // printf("loading primitive\n");
             joint->initialPrimitiveDisplacement[0] =
                 json_number_value(
@@ -1161,7 +1165,7 @@ int s2_loadJoints(
                   json_number_value(initialValueVelocity);
             joint->primitiveVelocity[0] = joint->initialPrimitiveVelocity[0];
           } break;
-          case RIGID: {
+          case S2_JOINT_RIGID: {
             // printf("loading rigid/float\n");
             json_t* initialValueObj =
                 json_object_get(jointObject, "initial_displacement");
@@ -1190,7 +1194,7 @@ int s2_loadJoints(
             }
 
           } break;
-          case FLOAT: {
+          case S2_JOINT_FLOAT: {
             // printf("loading rigid/float\n");
             json_t* initialValueObj =
                 json_object_get(jointObject, "initial_displacement");
@@ -1221,7 +1225,7 @@ int s2_loadJoints(
               &(joint->generalDisplacement->R),
               (s2_quaternion_t*)(joint->primitiveDisplacement + 3));
           } break;
-          case SPHERICAL: {
+          case S2_JOINT_SPHERICAL: {
             // printf("loading rigid/float\n");
             json_t* initialValueObj =
                 json_object_get(jointObject, "initial_displacement");
@@ -1241,8 +1245,8 @@ int s2_loadJoints(
               &(joint->generalDisplacement->R),
               (s2_quaternion_t*)joint->primitiveDisplacement);
           } break;
-          case PRIMITIVE:
-          case INVALID: {
+          case S2_JOINT_PRIMITIVE:
+          case S2_JOINT_INVALID: {
             fprintf(
               stderr,
               "Invalid Joint Type Found in %s\n",
@@ -1373,6 +1377,7 @@ void s2_flattenFixedLights(
   }
 }
 
+
 void s2_loadFlattenedList(
   s2_assembly_t* assembly,
   s2_context_t* context,
@@ -1455,6 +1460,7 @@ bool s2_connectFramePointer(
     }
   return found;
 }
+
 
 /*!
 @brief Processes body joint pointers from a flattened list of bodies and joints
@@ -1707,4 +1713,23 @@ s2_context_t* s2_loadJSON(
   free(realPath);
   json_decref(root);
   return context;
+}
+
+
+
+/*!
+@brief get root name of assembly
+
+*/
+const char* s2_getFileExtension(
+  const char* fullName) {
+
+  char* temp = strpbrk(fullName, ".");
+  char* rootName;
+  if(!temp) return fullName;
+  while(temp!=NULL) {
+    rootName = temp;
+    temp = strpbrk(rootName + 1, ".");
+  }
+  return rootName + 1;
 }

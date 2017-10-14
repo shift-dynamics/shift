@@ -58,8 +58,6 @@ typedef struct s2_shaderhandle_t s2_shaderhandle_t;
 typedef struct s2_terrain_t s2_terrain_t;
 
 
-
-
 /*!
 @brief star2 context datastructure
 
@@ -497,15 +495,6 @@ typedef struct s2_context_t {
 s2_context_t* s2_context();
 
 
-s2_chordconstraint_t* s2_chordconstraint();
-
-
-s2_jacobian_t* s2_jacobian();
-
-
-s2_substructure_t* s2_substructure();
-
-
 s2_units_t* s2_units();
 
 
@@ -569,7 +558,7 @@ typedef struct s2_units_t {
 numerical integration and include directories.
 */
 typedef struct s2_modelparameters_t {
-  char* version; /*!< specify mbdl file version number */
+  char* version; /*!< specify star2 file version number */
   s2_stackstr_t* includeDirectory; /*!< specify directories to search for
                                           external files */
   s2_vector_t* gravity; /*!< specify gravity force field, a 3x1 vector with

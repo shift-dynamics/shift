@@ -19,7 +19,8 @@ SUCH DAMAGE.
 #ifndef _STAR2_TOPOLOGY_H_
 #define _STAR2_TOPOLOGY_H_
 
-#include "context.h"
+typedef struct s2_context_t s2_context_t;
+#include <stdio.h>
 
 void s2_context_setTopology(
   s2_context_t* context);
