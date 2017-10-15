@@ -31,7 +31,6 @@ in TCS_OUT {
 
 out TES_OUT {
   vec2 tc;
-  vec3 normal;
   vec3 world_coord;
   vec3 eye_coord;
 } tes_out;

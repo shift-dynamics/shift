@@ -139,4 +139,5 @@ void PhongShaderProgram::setLights(s2_Lights* lights) {
 */
 void PhongShaderProgram::bindDepthBuffer() {
   m_program->setUniformValue(m_texture_shadow_u, 0);
+  qDebug() << m_texture_shadow_u;
 }
