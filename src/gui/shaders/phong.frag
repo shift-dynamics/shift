@@ -1,6 +1,6 @@
-#version 330
+#version 420 core
 
-uniform sampler2DShadow texture_shadow_u[10];
+uniform sampler2DArrayShadow texture_shadow_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -90,7 +90,12 @@ void main() {
       material_u.Ks.rgb * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns);
 
     if(lights_u.drawShadows == 1) {
-      color *= shadowCoord[i];
+      color.rgb *= textureProj(
+        texture_shadow_u,
+        vec4(
+          shadowCoord[i].xy,
+          shadowCoord[i].w,
+          float(i)));
     }
   }
 

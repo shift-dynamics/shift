@@ -127,8 +127,10 @@ void s2_Lights::loadContext() {
     if(m_depthBufferArray == NULL) {
       qDebug() << "initializing m_depthBufferArray";
 
+      glActiveTexture(GL_TEXTURE0);
       m_renderWindow->m_funcs->glGenTextures(1, &m_depthTexture);
       glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
+      checkError("lights: after glBindTexture");
       m_renderWindow->m_funcs->glTexStorage3D(
         GL_TEXTURE_2D_ARRAY,
         1,
@@ -181,9 +183,6 @@ void s2_Lights::loadContext() {
 void s2_Lights::draw() {
 
   if(m_drawEnabled) {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
-    checkError("lights: after bind m_depthTexture");
 
     for(int i = 0; i < m_lights.count; i++) {
 
@@ -221,8 +220,9 @@ void s2_Lights::draw() {
       checkError("lights: after glEnable(GL_DEPTH_TEST)");
 
       glActiveTexture(GL_TEXTURE0);
+      checkError("lights: after glActiveTexture");
       glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
-      checkError("lights: after glFramebufferTextureLayer");
+      checkError("lights: after glBindTexture");
 
       glDrawBuffer(GL_NONE);
       checkError("lights: after glDrawBuffer(GL_NONE)");
@@ -234,8 +234,8 @@ void s2_Lights::draw() {
 
       checkError("lights: after glCheckFramebufferStatus");
 
-      m_renderWindow->getTerrain()->drawShadows();
       m_renderWindow->getBodies()->drawShadows();
+      // m_renderWindow->getTerrain()->drawShadows();
 
     }
 
