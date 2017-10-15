@@ -1,6 +1,6 @@
-#version 330
+#version 420 core
 
-uniform sampler2DShadow texture_shadow_u[10];
+uniform sampler2DArrayShadow texture_shadow_u;
 
 struct matrices_t {
   mat4 mvp;
