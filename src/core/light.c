@@ -26,7 +26,7 @@ s2_light_t* s2_light() {
   light->parentBodyPointer = NULL;
   light->parentFramePointer = NULL;
   light->next = NULL;
-  light->fov = 45.0;
+  light->glLight.fov = 90.0;
   return light;
 }
 

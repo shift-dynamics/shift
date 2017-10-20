@@ -456,8 +456,8 @@ void RenderWindow::updateGL() {
     if (m_perspective) {
       m_projection.perspective(
         60,
-        (float)width() / (float)height(),
-        0.001,
+        aspectRatio,
+        0.0001,
         10000);
     } else {
       float h = 0.5 * m_camDistance;
@@ -724,6 +724,8 @@ void RenderWindow::render() {
     /* draw shadows */
     m_lights->draw();
 
+    /* restore default frame buffer */
+
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -732,7 +734,6 @@ void RenderWindow::render() {
       m_backgroundColor[1],
       m_backgroundColor[2],
       0.0f);
-
     draw();
   }
 }

@@ -19,13 +19,13 @@ void TerrainShadowShaderProgram::initialize() {
     /* set uniform locations */
     m_matrices_mvp_u = m_program->uniformLocation("matrices_u.mvp");
     m_matrices_mv_u = m_program->uniformLocation("matrices_u.mv");
-    // m_matrices_v_u = m_program->uniformLocation("matrices_u.v");
+    m_matrices_v_u = m_program->uniformLocation("matrices_u.v");
     m_matrices_p_u = m_program->uniformLocation("matrices_u.p");
 
     // qDebug() << "m_matrices_u:" << m_matrices_u;
     qDebug() << "m_matrices_mvp_u:" << m_matrices_mvp_u;
     qDebug() << "m_matrices_mv_u:" << m_matrices_mv_u;
-    // qDebug() << "m_matrices_v_u:" << m_matrices_v_u;
+    qDebug() << "m_matrices_v_u:" << m_matrices_v_u;
     qDebug() << "m_matrices_p_u:" << m_matrices_p_u;
 
     /* terrain uniform locations */
@@ -63,17 +63,50 @@ void TerrainShadowShaderProgram::initialize() {
 /*!
 @brief set mvp matrix
 */
-void TerrainShadowShaderProgram::setMVP(
-  QMatrix4x4& m,
-  QMatrix4x4& v,
-  QMatrix4x4& p) {
+void TerrainShadowShaderProgram::setTransform(
+  QMatrix4x4& m) {
+  QMatrix4x4 v =
+    m_renderWindow->getLights()->getActiveViewMatrix();
+  QMatrix4x4 p =
+    m_renderWindow->getLights()->getActiveProjectionMatrix();
+  // QMatrix4x4 v =
+  //   m_renderWindow->getViewMatrix();
+  // QMatrix4x4 p =
+  //   m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mv = v * m;
   QMatrix4x4 mvp = p * mv;
+  // qDebug() << "setting mvp in terrain shadow program:";
+  // qDebug() << p << v << m << mvp << mv;
   m_program->setUniformValue(m_matrices_mvp_u, mvp);
   m_program->setUniformValue(m_matrices_mv_u, mv);
-  m_program->setUniformValue(m_matrices_mv_u, v);
-  m_program->setUniformValue(m_matrices_mv_u, p);
+  m_program->setUniformValue(m_matrices_v_u, v);
+  m_program->setUniformValue(m_matrices_p_u, p);
+  checkError("terrain-shadow: after set mvp");
+}
 
+
+/*!
+@brief set transform
+*/
+void TerrainShadowShaderProgram::setTransform(
+  s2_displacement_t* transform) {
+  QMatrix4x4 m = s2_displacementToQMatrix4x4(transform);
+  QMatrix4x4 v =
+    m_renderWindow->getLights()->getActiveViewMatrix();
+  QMatrix4x4 p =
+    m_renderWindow->getLights()->getActiveProjectionMatrix();
+  // QMatrix4x4 v =
+  //   m_renderWindow->getViewMatrix();
+  // QMatrix4x4 p =
+    // m_renderWindow->getProjectionMatrix();
+  QMatrix4x4 mv = v * m;
+  QMatrix4x4 mvp = p * mv;
+  // qDebug() << "setting mvp in terrain shadow program:";
+  // qDebug() << p << v << m << mvp << mv;
+  m_program->setUniformValue(m_matrices_mvp_u, mvp);
+  m_program->setUniformValue(m_matrices_mv_u, mv);
+  m_program->setUniformValue(m_matrices_v_u, v);
+  m_program->setUniformValue(m_matrices_p_u, p);
   checkError("terrain-shadow: after set mvp");
 }
 

@@ -1,6 +1,10 @@
 #version 420 core
 
+/* terrain_shadow.tese */
+
 layout (quads, fractional_odd_spacing) in;
+
+layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
 
 layout (binding = 1) uniform sampler2D texture_displacement_u;
 

@@ -1,9 +1,11 @@
 #version 420 core
 
-layout (quads, fractional_odd_spacing) in;
+/* terrain.tese */
 
-layout (binding = 0) uniform sampler2D texture_displacement_u;
-layout (binding = 1) uniform sampler2D texture_color_u;
+layout (quads, fractional_odd_spacing) in;
+layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
+layout (binding = 1) uniform sampler2D texture_displacement_u;
+layout (binding = 2) uniform sampler2D texture_color_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -31,6 +33,8 @@ struct lights_t {
   vec3 Ks[10];
   int directional[10];
   int count;
+  int drawShadows; /*!< 0 = false, 1 = true */
+  mat4 shadowMatrix[10];
 };
 
 uniform lights_t lights_u;
@@ -57,6 +61,8 @@ out TES_OUT {
   vec3 world_coord;
   vec3 eye_coord;
 } tes_out;
+
+out vec4 shadowCoord[10];
 
 void main(void) {
 
@@ -127,4 +133,11 @@ void main(void) {
     tes_out.eye_coord = position_eye.xyz;
 
     gl_Position = matrices_u.mvp * position;
+
+    if(lights_u.drawShadows == 1) {
+      for(int i = 0; i < lights_u.count; i++) {
+        shadowCoord[i] =
+          lights_u.shadowMatrix[i] * position;
+      }
+    }
 }

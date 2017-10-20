@@ -1,5 +1,7 @@
 #version 450 core
 
+/* grid.geom */
+
 layout (isolines) in;
 
 void main(void) {

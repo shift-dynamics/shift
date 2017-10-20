@@ -1,5 +1,7 @@
 #version 420 core
 
+/* terrain_shadow.tesc */
+
 layout (vertices = 4) out;
 
 layout (binding = 1) uniform sampler2D texture_displacement_u;

@@ -49,13 +49,7 @@ public:
 
   void initialize();
 
-  void draw();
-
   void setTransform(s2_displacement_t*);
-
-  void setMVP(QMatrix4x4&);
-
-  void bindDepthBuffer();
 
 signals:
 
@@ -67,6 +61,7 @@ private:
 
   GLuint m_mvp_u;
   GLuint m_scale_u;
+  GLint m_position_a;
 
 };
 

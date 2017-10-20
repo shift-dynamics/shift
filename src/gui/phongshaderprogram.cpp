@@ -34,6 +34,8 @@ void PhongShaderProgram::initialize() {
     m_lights_drawShadows_u = m_program->uniformLocation("lights_u.drawShadows");
     m_lights_shadowMatrix_u =
       m_program->uniformLocation("lights_u.shadowMatrix");
+    m_texture_shadow_u =
+      m_program->uniformLocation("texture_shadow_u");
 
     checkError("after set phong uniforms");
 
@@ -49,6 +51,7 @@ void PhongShaderProgram::initialize() {
 
 
 void PhongShaderProgram::setTransform(s2_displacement_t* transform) {
+
   QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
@@ -72,7 +75,7 @@ void PhongShaderProgram::setTransform(s2_displacement_t* transform) {
     m_program->setUniformValueArray(
       m_lights_shadowMatrix_u,
       m_renderWindow->getLights()->setShadowMatrix(transform),
-      m_renderWindow->getLights()->getCount());
+      m_renderWindow->getLights()->getMaxCount());
     checkError("phong: after set shadow matrix array");
   }
 
@@ -139,5 +142,4 @@ void PhongShaderProgram::setLights(s2_Lights* lights) {
 */
 void PhongShaderProgram::bindDepthBuffer() {
   m_program->setUniformValue(m_texture_shadow_u, 0);
-  qDebug() << m_texture_shadow_u;
 }

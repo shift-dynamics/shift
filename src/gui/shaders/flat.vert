@@ -1,5 +1,7 @@
 #version 330
 
+/* flat.vert */
+
 struct matrices_t {
   mat4 mvp;
   mat4 mv;
@@ -31,8 +33,8 @@ struct lights_t {
 uniform lights_t lights_u;
 
 /* attributes */
-in vec4 position_a;
-in vec3 normal_a;
+layout (location = 0) in vec4 position_a;
+layout (location = 1) in vec3 normal_a;
 
 out vec4 vertexGeom;
 

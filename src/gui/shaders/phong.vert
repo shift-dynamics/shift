@@ -1,6 +1,8 @@
 #version 420 core
 
-uniform sampler2DArrayShadow texture_shadow_u;
+/* phong.vert */
+
+layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -34,8 +36,8 @@ struct lights_t {
 
 uniform lights_t lights_u;
 
-in vec4 position_a;
-in vec3 normal_a;
+layout (location = 0) in vec4 position_a;
+layout (location = 1) in vec3 normal_a;
 
 out vec3 normalFrag;
 out vec4 positionFrag;
