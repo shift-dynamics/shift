@@ -1,9 +1,11 @@
 #version 330
 
+/* line.vert */
+
 uniform mat4 mvp_u;
 uniform vec4 color_u;
 uniform float scale_u;
-in vec4 position_a;
+layout (location = 0) in vec4 position_a;
 
 out vec4 color;
 

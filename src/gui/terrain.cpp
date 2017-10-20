@@ -136,6 +136,15 @@ void s2_Terrain::draw() {
 
     m_program->bindVao();
 
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindTexture(
+      GL_TEXTURE_2D_ARRAY, m_renderWindow->getLights()->getDepthTexture());
+    checkError("terrain: after bind texture");
+
+    m_program->bindDepthBuffer();
+    checkError("terrain: after bind depth buffer uniform");
+
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
     m_program->setViewPort((float)vp[2], (float)vp[3]);
@@ -148,9 +157,9 @@ void s2_Terrain::draw() {
       s2_terrain_t* terrain = m_context->terrains[i];
 
       QMatrix4x4 model =
-        QMatrix4x4(1.f, 0.f, 0.f, 0.f,
-                   0.f, 1.f, 0.f, 0.f,
-                   0.f, 0.f, 1.f, 0.f,
+        QMatrix4x4(1.f, 0.f, 0.f, -32.f,
+                   0.f, 1.f, 0.f, -32.f,
+                   0.f, 0.f, 1.f, 2.5f,
                    0.f, 0.f, 0.f, 1.f);
       m_program->setTransform(model);
       checkError("terrain: after set transform");
@@ -158,12 +167,12 @@ void s2_Terrain::draw() {
       m_program->setUniforms(terrain);
       checkError("terrain: after set uniforms");
 
-      m_terrainObjects[i].textureDisplacement->bind(0);
+      m_terrainObjects[i].textureDisplacement->bind(1);
       m_program->setTextureDisplacement(
         m_terrainObjects[i].textureDisplacement);
       checkError("terrain: after set texture displacement");
 
-      m_terrainObjects[i].textureColor->bind(1);
+      m_terrainObjects[i].textureColor->bind(2);
       m_program->setTextureColor(
         m_terrainObjects[i].textureColor);
       checkError("terrain: after set texture color");
@@ -231,17 +240,13 @@ void s2_Terrain::drawShadows() {
       s2_terrain_t* terrain = m_context->terrains[i];
 
       QMatrix4x4 model =
-        QMatrix4x4(1.f, 0.f, 0.f, 0.f,
-                   0.f, 1.f, 0.f, 0.f,
-                   0.f, 0.f, 1.f, 0.f,
+        QMatrix4x4(1.f, 0.f, 0.f, -32.f,
+                   0.f, 1.f, 0.f, -32.f,
+                   0.f, 0.f, 1.f, 2.5f,
                    0.f, 0.f, 0.f, 1.f);
 
-      QMatrix4x4 view = m_renderWindow->getViewMatrix();
-
-      QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
-
-      m_programShadow->setMVP(model, view, projection);
-      checkError("terrain: after set mvp");
+      m_programShadow->setTransform(model);
+      checkError("terrain: after set transform");
 
       m_programShadow->setUniforms(terrain);
       checkError("terrain: after set uniforms");

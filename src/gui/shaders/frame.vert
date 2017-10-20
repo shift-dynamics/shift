@@ -1,9 +1,11 @@
 #version 330
 
+/* frame.vert */
+
 uniform mat4 mvp_u;
 uniform float scale_u = 1.f;
 
-in vec4 position_a;
+layout (location = 0) in vec4 position_a;
 
 flat out vec4 color;
 

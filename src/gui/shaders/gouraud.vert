@@ -1,5 +1,7 @@
 #version 330
 
+/* gouraud.vert */
+
 /*
   light parameters
 */

@@ -17,6 +17,9 @@ void ShadowShaderProgram::initialize() {
     /* set uniform locations */
     m_mvp_u = m_program->uniformLocation("mvp_u");
 
+    /* set attribute locations */
+    m_position_a = m_program->attributeLocation("position_a");
+    m_program->enableAttributeArray(m_position_a);
     release();
     checkError("after initialize shadow shader");
     m_initialized = true;
@@ -30,19 +33,10 @@ void ShadowShaderProgram::initialize() {
 void ShadowShaderProgram::setTransform(s2_displacement_t* transform) {
   QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
   QMatrix4x4 view =
-    m_renderWindow->getLights()->getCurrentViewMatrix();
+    m_renderWindow->getLights()->getActiveViewMatrix();
   QMatrix4x4 projection =
-    m_renderWindow->getLights()->getCurrentProjectionMatrix();
+    m_renderWindow->getLights()->getActiveProjectionMatrix();
   QMatrix4x4 mvp = projection * view * model;
-  m_program->setUniformValue(m_mvp_u, mvp);
-  checkError("after set transform");
-}
-
-
-/*!
-@brief set mvp matrix
-*/
-void ShadowShaderProgram::setMVP(QMatrix4x4& mvp) {
   m_program->setUniformValue(m_mvp_u, mvp);
   checkError("after set transform");
 }

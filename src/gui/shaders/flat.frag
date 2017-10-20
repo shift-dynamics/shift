@@ -1,5 +1,7 @@
 #version 330
 
+/* flat.frag */
+
 struct matrices_t {
   mat4 mvp;
   mat4 mv;

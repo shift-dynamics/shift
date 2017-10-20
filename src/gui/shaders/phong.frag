@@ -1,6 +1,8 @@
 #version 420 core
 
-uniform sampler2DArrayShadow texture_shadow_u;
+/* phong.frag */
+
+layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -34,8 +36,8 @@ struct lights_t {
 
 uniform lights_t lights_u;
 
-in vec3 normalFrag;
 in vec4 positionFrag;
+in vec3 normalFrag;
 in vec4 shadowCoord[10];
 
 out vec4 colorFrag;
@@ -62,7 +64,7 @@ void main() {
       } break;
       case 1: {
         /* 1 = directional light
-          light.position indicates position of light source
+          light.position indicates direction of light source
           used to compute direction of incoming light */
 
         vec4 temp = matrices_u.v * vec4(
@@ -72,31 +74,46 @@ void main() {
           1.0);
         L = normalize(temp.xyz);
       } break;
+      case 2: {
+        /* 2 = spot light
+          light.position indicates position of light source
+          used to compute direction of incoming light */
+        vec4 temp = matrices_u.v * vec4(
+          lights_u.position[i].x,
+          lights_u.position[i].y,
+          lights_u.position[i].z,
+          1.0)
+          - matrices_u.mv * positionFrag;
+        L = normalize(temp.xyz);
+      } break;
       default: {
 
       } break;
     }
 
+    float shadowTest = 1.f;
+    if(lights_u.drawShadows == 1) {
+      shadowTest = texture(
+        texture_shadow_u,
+        vec4(
+          shadowCoord[i].x / shadowCoord[i].w,
+          shadowCoord[i].y / shadowCoord[i].w,
+          float(i),
+          shadowCoord[i].z / shadowCoord[i].w)
+          );
+    }
     /* ambient term */
-    color.rgb += material_u.Ka.rgb * lights_u.Ka[i];
+    color.rgb += material_u.Ka.rgb;
 
     /* diffuse term */
     float LdotN =  max(0.0, dot(L, normalFrag));
-    color.rgb += material_u.Kd.rgb * lights_u.Kd[i] * LdotN;
+    color.rgb += material_u.Kd.rgb * lights_u.Kd[i] * LdotN * shadowTest;
 
     /* specular term */
     vec3 R = -normalize(reflect(L, normalFrag));
     color.rgb +=
-      material_u.Ks.rgb * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns);
+      material_u.Ks.rgb * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns) * shadowTest;
 
-    if(lights_u.drawShadows == 1) {
-      color.rgb *= textureProj(
-        texture_shadow_u,
-        vec4(
-          shadowCoord[i].xy,
-          shadowCoord[i].w,
-          float(i)));
-    }
   }
 
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));

@@ -1,7 +1,9 @@
 #version 330 core
 
-// layout (location = 0) out vec4 color;
+/* shadow_light.frag */
+
+out float fragmentDepth;
 
 void main() {
-  // color = vec4(1.0);
+  fragmentDepth = gl_FragCoord.z;
 }

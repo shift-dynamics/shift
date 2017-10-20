@@ -1,5 +1,7 @@
 #version 330
 
+/* grid.vert */
+
 uniform mat4 mvp_u;
 uniform vec4 color_u;
 

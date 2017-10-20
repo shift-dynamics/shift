@@ -1,10 +1,12 @@
 #version 420 core
 // #extension GL_ARB_tessellation_shader : enable
 
-layout (vertices = 4) out;
+/* terrain.tesc */
 
-layout (binding = 0) uniform sampler2D texture_displacement_u;
-layout (binding = 1) uniform sampler2D texture_color_u;
+layout (vertices = 4) out;
+layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
+layout (binding = 1) uniform sampler2D texture_displacement_u;
+layout (binding = 2) uniform sampler2D texture_color_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -32,6 +34,8 @@ struct lights_t {
   vec3 Ks[10];
   int directional[10];
   int count;
+  int drawShadows; /*!< 0 = false, 1 = true */
+  mat4 shadowMatrix[10];
 };
 
 uniform lights_t lights_u;

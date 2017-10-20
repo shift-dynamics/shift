@@ -51,7 +51,9 @@ public:
 
   void draw();
 
-  void setMVP(QMatrix4x4&, QMatrix4x4&, QMatrix4x4&);
+  void setTransform(QMatrix4x4&);
+
+  void setTransform(s2_displacement_t*);
 
   void bindVao() {
     m_vao->bind();

@@ -198,12 +198,16 @@ void s2_Bodies::draw() {
       case S2_SHADING_WIREFRAME:
       case S2_SHADING_PHONG: {
         m_programPhong->bind();
+
         glActiveTexture(GL_TEXTURE0);
+
         glBindTexture(
           GL_TEXTURE_2D_ARRAY, m_renderWindow->getLights()->getDepthTexture());
-        checkError("lights: after bind texture");
+        checkError("bodies: after bind texture");
+
         m_programPhong->bindDepthBuffer();
         checkError("bodies: after bind depth buffer uniform");
+
         m_programPhong->setLights(m_lights);
         checkError("bodies: after set lights");
 
@@ -243,7 +247,6 @@ void s2_Bodies::draw() {
 
           m_programFlat->setTransform(m_bufferObjects.at(i).transform);
           checkError("bodies: after set transform flat shader");
-
 
           m_programFlat->setMaterial(m_bufferObjects.at(i).material);
           checkError("bodies: after set material flat shader");

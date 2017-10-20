@@ -64,6 +64,10 @@ public:
     return m_lights.count;
   };
 
+  int getMaxCount() {
+    return m_maxCount;
+  }
+
   GLfloat* getPosition() {
     return m_lights.position;
   }
@@ -104,16 +108,16 @@ public:
 
   void getFramebufferStatus();
 
-  QMatrix4x4& getCurrentViewMatrix() {
-    return *m_currentViewMatrix;
+  QMatrix4x4& getActiveViewMatrix() {
+    return m_lights.viewMatrix[m_activeLightIndex];
   }
 
   QMatrix4x4& getViewMatrix(int i) {
     return m_lights.viewMatrix[i];
   }
 
-  QMatrix4x4& getCurrentProjectionMatrix() {
-    return *m_currentProjectionMatrix;
+  QMatrix4x4& getActiveProjectionMatrix() {
+    return m_lights.projectionMatrix[m_activeLightIndex];
   }
 
   QMatrix4x4& getProjectionMatrix(int i) {
@@ -121,6 +125,8 @@ public:
   }
 
   QMatrix4x4* setShadowMatrix(s2_displacement_t*);
+
+  QMatrix4x4* setShadowMatrix(QMatrix4x4&);
 
   GLint getDepthTexture() {
     return m_depthTexture;
@@ -145,9 +151,7 @@ private:
 
   int m_maxCount;
 
-  QMatrix4x4* m_currentViewMatrix;
-
-  QMatrix4x4* m_currentProjectionMatrix;
+  int m_activeLightIndex;
 
 };
 

@@ -1,5 +1,6 @@
 #version 420 core
 
+/* terrain_shadow.vert */
 layout (binding = 1) uniform sampler2D texture_displacement_u;
 
 struct matrices_t {
