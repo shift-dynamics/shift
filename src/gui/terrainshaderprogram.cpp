@@ -17,6 +17,9 @@ void TerrainShaderProgram::initialize() {
     bind();
 
     /* texture uniform locations */
+    m_texture_shadow_u =
+      m_program->uniformLocation("texture_shadow_u");
+
     m_texture_displacement_u =
       m_program->uniformLocation("texture_displacement_u");
 
@@ -67,6 +70,10 @@ void TerrainShaderProgram::initialize() {
     m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
     m_lights_directional_u = m_program->uniformLocation("lights_u.directional");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
+    m_lights_drawShadows_u =
+      m_program->uniformLocation("lights_u.drawShadows");
+    m_lights_shadowMatrix_u =
+      m_program->uniformLocation("lights_u.shadowMatrix");
 
     // qDebug() << "lights_u: " << m_lights_u;
     qDebug() << "lights_u.position: " << m_lights_position_u;
@@ -121,6 +128,13 @@ void TerrainShaderProgram::setTransform(s2_displacement_t* transform) {
   m_program->setUniformValue(m_matrices_v_u, view);
   m_program->setUniformValue(m_matrices_p_u, projection);
   m_program->setUniformValue(m_matrices_nm_u, mv.normalMatrix());
+  if(m_renderWindow->getLights()->isEnabled()) {
+    m_program->setUniformValueArray(
+      m_lights_shadowMatrix_u,
+      m_renderWindow->getLights()->setShadowMatrix(transform),
+      m_renderWindow->getLights()->getMaxCount());
+    checkError("terrain: after set shadow matrix array");
+  }
 }
 
 
@@ -137,6 +151,13 @@ void TerrainShaderProgram::setTransform(QMatrix4x4& model) {
   m_program->setUniformValue(m_matrices_v_u, view);
   m_program->setUniformValue(m_matrices_p_u, projection);
   m_program->setUniformValue(m_matrices_nm_u, mv.normalMatrix());
+  if(m_renderWindow->getLights()->isEnabled()) {
+    m_program->setUniformValueArray(
+      m_lights_shadowMatrix_u,
+      m_renderWindow->getLights()->setShadowMatrix(model),
+      m_renderWindow->getLights()->getMaxCount());
+    checkError("terrain: after set shadow matrix array");
+  }
 }
 
 
@@ -162,8 +183,8 @@ void TerrainShaderProgram::setViewPort(GLfloat vp1, GLfloat vp2) {
 */
 void TerrainShaderProgram::setTextureDisplacement(QOpenGLTexture* tex) {
   if(tex) {
-    tex->bind(0);
-    m_program->setUniformValue(m_texture_displacement_u, 0);
+    tex->bind(1);
+    m_program->setUniformValue(m_texture_displacement_u, 1);
     checkError("terrain: after set uniform value displacement");
   } else {
     qDebug() << "no displacement texture specified";
@@ -176,8 +197,8 @@ void TerrainShaderProgram::setTextureDisplacement(QOpenGLTexture* tex) {
 */
 void TerrainShaderProgram::setTextureColor(QOpenGLTexture* tex) {
   if(tex) {
-    tex->bind(1);
-    m_program->setUniformValue(m_texture_color_u, 1);
+    tex->bind(2);
+    m_program->setUniformValue(m_texture_color_u, 2);
     checkError("terrain: after set uniform value color");
   } else {
     qDebug() << "no color texture specified";
@@ -190,7 +211,7 @@ void TerrainShaderProgram::setTextureColor(QOpenGLTexture* tex) {
 */
 void TerrainShaderProgram::setTextureBump(QOpenGLTexture* tex) {
   if(tex) {
-    tex->bind(2);
+    tex->bind(3);
     // m_program->setUniformValue(m_texture_bump_u, 2);
   }
 }
@@ -201,7 +222,7 @@ void TerrainShaderProgram::setTextureBump(QOpenGLTexture* tex) {
 */
 void TerrainShaderProgram::setTextureNormal(QOpenGLTexture* tex) {
   if(tex) {
-    tex->bind(3);
+    tex->bind(4);
     // m_program->setUniformValue(m_texture_normal_u, 3);
   }
 }
@@ -212,7 +233,7 @@ void TerrainShaderProgram::setTextureNormal(QOpenGLTexture* tex) {
 */
 void TerrainShaderProgram::setTextureSpecular(QOpenGLTexture* tex) {
   if(tex) {
-    tex->bind(4);
+    tex->bind(5);
     // m_program->setUniformValue(m_texture_specular_u, 4);
   }
 }
@@ -229,6 +250,11 @@ void TerrainShaderProgram::setLights(s2_Lights* lights) {
   m_program->setUniformValueArray(
     m_lights_directional_u, lights->getDirectional(), 10);
   m_program->setUniformValue(m_lights_count_u, lights->getCount());
+  if(m_renderWindow->getLights()->isEnabled()) {
+    m_program->setUniformValue(m_lights_drawShadows_u, 1);
+  } else {
+    m_program->setUniformValue(m_lights_drawShadows_u, 0);
+  }
 }
 
 
@@ -291,4 +317,12 @@ void TerrainShaderProgram::setUniforms(s2_terrain_t* terrain) {
   setKsOverKd(terrain->KsOverKd);
   setNs(terrain->Ns);
   setZExtents(terrain->zMin, terrain->zMax);
+}
+
+
+/*!
+@brief bind depth buffer to index 0
+*/
+void TerrainShaderProgram::bindDepthBuffer() {
+  m_program->setUniformValue(m_texture_shadow_u, 0);
 }

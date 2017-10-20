@@ -64,9 +64,9 @@ typedef struct s2_light_t {
     GLfloat Kd[3];
     GLfloat Ks[3];
     int directional;
+    GLfloat fov; /*!< field of view in degrees */
   } glLight;
   struct s2_light_t* next;
-  float fov; /*!< field of view in degrees */
 } s2_light_t;
 
 

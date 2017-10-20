@@ -1,7 +1,9 @@
 #version 420 core
 
-layout (binding = 0) uniform sampler2D texture_displacement_u;
-layout (binding = 1) uniform sampler2D texture_color_u;
+/* terrain.frag */
+layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
+layout (binding = 1) uniform sampler2D texture_displacement_u;
+layout (binding = 2) uniform sampler2D texture_color_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -29,6 +31,8 @@ struct lights_t {
   vec3 Ks[10];
   int directional[10];
   int count;
+  int drawShadows; /*!< 0 = false, 1 = true */
+  mat4 shadowMatrix[10];
 };
 
 uniform lights_t lights_u;
@@ -47,6 +51,7 @@ uniform terrain_t terrain_u;
 
 in vec3 normalFrag;
 in vec4 positionFrag;
+in vec4 shadowCoord[10];
 
 in TES_OUT {
   vec2 tc;
@@ -103,16 +108,30 @@ void main(void) {
       } break;
     }
 
+    float shadowTest = 1.f;
+    if(lights_u.drawShadows == 1) {
+      shadowTest = texture(
+        texture_shadow_u,
+        vec4(
+          shadowCoord[i].x / shadowCoord[i].w,
+          shadowCoord[i].y / shadowCoord[i].w,
+          float(i),
+          shadowCoord[i].z / shadowCoord[i].w)
+          );
+    }
+
     /* ambient term */
-    color.rgb += KaMaterial * lights_u.Ka[i];
     float LdotN =  max(0.0, dot(L, fs_in.normal));
 
     /* diffuse term */
-    color.rgb += KdMaterial.rgb * lights_u.Kd[i] * LdotN;
+    color.rgb += KdMaterial.rgb * lights_u.Kd[i] * LdotN * shadowTest;
 
     /* specular term */
     vec3 R = -normalize(reflect(L, fs_in.normal));
-    color.rgb += KsMaterial * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns);
+    color.rgb += KsMaterial * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns) * shadowTest;
+
+    color.rgb += KaMaterial;
+
   }
 
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));

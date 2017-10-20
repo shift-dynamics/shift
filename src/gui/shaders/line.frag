@@ -1,5 +1,7 @@
 #version 330
 
+/* line.frag */
+
 in vec4 color;
 
 out vec4 fragColor;

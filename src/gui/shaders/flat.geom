@@ -2,6 +2,8 @@
 layout (triangles) in;
 layout (triangle_strip, max_vertices = 3) out;
 
+/* flat.geom */
+
 struct matrices_t {
   mat4 mvp;
   mat4 mv;

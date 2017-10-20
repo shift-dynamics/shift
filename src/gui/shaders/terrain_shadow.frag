@@ -1,6 +1,10 @@
 #version 420 core
 
+/* tertain_shadow.frag */
+
 layout (binding = 1) uniform sampler2D texture_displacement_u;
+
+out float fragmentDepth;
 
 struct matrices_t {
   mat4 mvp;
@@ -33,5 +37,5 @@ in TES_OUT {
 
 
 void main(void) {
-
+  fragmentDepth = gl_FragCoord.z;
 }

@@ -78,6 +78,8 @@ public:
     m_vao->release();
   }
 
+  void bindDepthBuffer();
+
 signals:
 
 
@@ -87,6 +89,7 @@ protected:
 private:
 
   /* texture uniform locations */
+  GLint m_texture_shadow_u;
   GLint m_texture_color_u;
   GLint m_texture_displacement_u;
   // GLint m_texture_bump_u;
@@ -116,6 +119,8 @@ private:
   GLint m_lights_Ks_u;
   GLint m_lights_directional_u;
   GLint m_lights_count_u;
+  GLint m_lights_drawShadows_u;
+  GLint m_lights_shadowMatrix_u;
 
   /* terrain uniform locations */
   // GLint m_terrain_u;

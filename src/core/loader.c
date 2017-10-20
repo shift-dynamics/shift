@@ -349,6 +349,9 @@ int s2_loadLights(
       } else if(!strcmp(lightType, "directional")) {
         light->lightType = S2_LIGHT_DIRECTIONAL;
         light->glLight.directional = 1;
+      } else if(!strcmp(lightType, "spot")) {
+        light->lightType = S2_LIGHT_SPOT;
+        light->glLight.directional = 2;
       }
       for (int i = 0; i < 3; i++) {
         light->glLight.Ka[i] = json_number_value(
@@ -358,6 +361,13 @@ int s2_loadLights(
         light->glLight.Ks[i] = json_number_value(
           json_array_get(json_object_get(lightObject, "Ks"), i));
       }
+
+      json_t* fovObject = json_object_get(lightObject, "fov");
+      if(fovObject) {
+        light->glLight.fov = json_number_value(fovObject);
+      }
+
+
       s2_light_append(assembly, light);
       context->lightCount++;
     }
@@ -1714,7 +1724,6 @@ s2_context_t* s2_loadJSON(
   json_decref(root);
   return context;
 }
-
 
 
 /*!
