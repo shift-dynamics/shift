@@ -55,6 +55,7 @@ RenderWindow::RenderWindow()
   , m_perspective(true)
   , m_initialized(false)
   , m_simulationRunning(false)
+  , m_cameraMode(S2_CAMERA_INTERACTION_ORBITAL)
  {
 
   setAnimating(true);
@@ -86,6 +87,8 @@ RenderWindow::RenderWindow()
   m_lights = new s2_Lights(this);
   m_lights->setBodies(m_bodies);
   m_grid = new s2_Grid(this);
+
+  m_orbitalCamera = new s2_OrbitalCamera(this);
 }
 
 
@@ -124,21 +127,27 @@ bool RenderWindow::isInitialized() {
 void RenderWindow::mouseMoveEvent(
   QMouseEvent* event) {
 
-  int dx = event->x() - m_lastPos.x();
-  int dy = event->y() - m_lastPos.y();
+  switch(m_cameraMode) {
+    case S2_CAMERA_INTERACTION_TURNTABLE: {
+      int dx = event->x() - m_lastPos.x();
+      int dy = event->y() - m_lastPos.y();
 
-  if(event->buttons() & Qt::LeftButton) {
-    setXRotation(m_xRot + 2 * dy);
-    setZRotation(m_zRot + 2 * dx);
-  } else if (event->buttons() & Qt::RightButton) {
-    m_xPan += dx / 120.0;
-    m_zPan += dy / 120.0;
-    updateGL();
+      if(event->buttons() & Qt::LeftButton) {
+        setXRotation(m_xRot + 2 * dy);
+        setZRotation(m_zRot + 2 * dx);
+      } else if (event->buttons() & Qt::RightButton) {
+        m_xPan += dx / 120.0;
+        m_zPan += dy / 120.0;
+      }
+      m_lastPos = event->pos();
+      m_x = event->pos().x();
+      m_y = event->pos().y();
+    } break;
+    case S2_CAMERA_INTERACTION_ORBITAL: {
+      m_orbitalCamera->mouseMoveEvent(event);
+    } break;
   }
-
-  m_lastPos = event->pos();
-  m_x = event->pos().x();
-  m_y = event->pos().y();
+  updateGL();
   emit mouseMove();
 }
 
@@ -151,7 +160,15 @@ void RenderWindow::mouseMoveEvent(
 void RenderWindow::mousePressEvent(
   QMouseEvent* event) {
 
-  m_lastPos = event->pos();
+  switch(m_cameraMode) {
+    case S2_CAMERA_INTERACTION_TURNTABLE: {
+      m_lastPos = event->pos();
+
+    } break;
+    case S2_CAMERA_INTERACTION_ORBITAL: {
+      m_orbitalCamera->mousePressEvent(event);
+    } break;
+  }
   if(event->button() == Qt::RightButton) {
     emit mouseRightPressEvent();
   }
@@ -170,7 +187,14 @@ void RenderWindow::mousePressEvent(
 void RenderWindow::mouseReleaseEvent(
   QMouseEvent* event) {
 
-  emit mouseReleaseEvent();
+  switch(m_cameraMode) {
+    case S2_CAMERA_INTERACTION_TURNTABLE: {
+      emit mouseReleaseEvent();
+    } break;
+    case S2_CAMERA_INTERACTION_ORBITAL: {
+      m_orbitalCamera->mouseReleaseEvent(event);
+    } break;
+  }
 }
 
 
@@ -182,8 +206,15 @@ void RenderWindow::mouseReleaseEvent(
 void RenderWindow::wheelEvent(
   QWheelEvent* event) {
 
-  m_camDistance += (event->delta() / 360.0);
-  if(m_camDistance < 0) m_camDistance = 0;
+  switch(m_cameraMode) {
+    case S2_CAMERA_INTERACTION_TURNTABLE: {
+      m_camDistance += (event->delta() / 360.0);
+      if(m_camDistance < 0) m_camDistance = 0;
+    } break;
+    case S2_CAMERA_INTERACTION_ORBITAL: {
+      m_orbitalCamera->wheelEvent(event);
+    } break;
+  }
   updateGL();
 }
 
@@ -437,16 +468,22 @@ void RenderWindow::clearContext() {
 void RenderWindow::updateGL() {
 
   if(m_initialized) {
+    switch(m_cameraMode) {
+      case S2_CAMERA_INTERACTION_TURNTABLE: {
+        m_view.setToIdentity();
+        QVector3D eye(-m_xPan, -m_yPan + m_camDistance, -m_zPan);
+        QVector3D center(-m_xPan, -m_yPan, -m_zPan);
+        QVector3D up(0.f, 0.f, -1.f);
 
-    m_view.setToIdentity();
-
-    QVector3D eye(-m_xPan, -m_yPan + m_camDistance, -m_zPan);
-    QVector3D center(-m_xPan, -m_yPan, -m_zPan);
-    QVector3D up(0.f, 0.f, -1.f);
-
-    m_view.lookAt(eye, center, up);
-    m_view.rotate(m_xRot, 1.0, 0.0, 0.0);
-    m_view.rotate(m_zRot, 0.0, 0.0, -1.0);
+        m_view.lookAt(eye, center, up);
+        m_view.rotate(m_xRot, 1.0, 0.0, 0.0);
+        m_view.rotate(m_zRot, 0.0, 0.0, -1.0);
+      } break;
+      case S2_CAMERA_INTERACTION_ORBITAL: {
+        m_view = m_orbitalCamera->getMVMatrix();
+        qDebug() << m_view;
+      } break;
+    }
 
     m_projection.setToIdentity();
     const qreal retinaScale = devicePixelRatio();
@@ -712,9 +749,10 @@ void RenderWindow::render() {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    /* if the simulation is running, get the current state of the mechanism
-    from ydata array and update mechanism for display */
     if(m_simulationRunning) {
+      /* if the simulation is running, get the current state
+      of the mechanism from ydata array and update mechanism for
+      display */
       interpolateCurrentPosition();
     } else {
       /* otherwise update position of current joint if driven by user using the joint slider interface */
@@ -723,8 +761,6 @@ void RenderWindow::render() {
 
     /* draw shadows */
     m_lights->draw();
-
-    /* restore default frame buffer */
 
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
