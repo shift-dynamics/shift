@@ -4,6 +4,7 @@
 #include "../star2.h"
 #include "openglwindow.hpp"
 #include "uniformbufferobject.hpp"
+#include "orbitalcamera.hpp"
 
 #include <QString>
 #include <QMouseEvent>
@@ -45,13 +46,21 @@ class FrameShaderProgram;
 class ShadowShaderProgram;
 class TerrainShadowShaderProgram;
 
+enum camera_interaction_enum_t {
+  S2_CAMERA_INTERACTION_TURNTABLE,
+  S2_CAMERA_INTERACTION_ORBITAL
+};
+
 QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
 class RenderWindow : public OpenGLWindow {
+
   Q_OBJECT
 
 public:
+
   RenderWindow();
+
   ~RenderWindow();
 
   void render();
@@ -142,7 +151,6 @@ public slots:
   void setPerspective();
   void setOrthogonal();
 
-
 signals:
   void mouseLeftPressEvent();
   void mouseRightPressEvent();
@@ -214,6 +222,10 @@ private:
   TerrainShaderProgram* m_programTerrain;
   TerrainShadowShaderProgram* m_programTerrainShadow;
   FrameShaderProgram* m_programFrame;
+
+  camera_interaction_enum_t m_cameraMode;
+
+  s2_OrbitalCamera* m_orbitalCamera;
 
 };
 
