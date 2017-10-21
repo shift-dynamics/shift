@@ -16,7 +16,6 @@ if(APPLE)
 endif(APPLE)
 find_package( jansson REQUIRED )
 find_package( cblas REQUIRED )
-# find_package( clapack REQUIRED )
 find_library( M_LIB m REQUIRED )
 find_package( graphviz REQUIRED )
 find_library( stdc++ REQUIRED )
@@ -190,6 +189,7 @@ set(GUI_SOURCES
     ${star2_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
     ${star2_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
     ${star2_SOURCE_DIR}/src/gui/terrainshadowshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/orbitalcamera.cpp
     ${star2_SOURCE_DIR}/src/gui/resources.qrc
 )
 
