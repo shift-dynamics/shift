@@ -33,6 +33,7 @@ typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
+typedef struct s2_convexhull_t s2_convexhull_t;
 
 
 /*!
@@ -106,6 +107,8 @@ typedef struct s2_body_t {
   s2_mat4x4f_t* glReferenceFramef;
   s2_mat4x4f_t* glModelView;
   s2_mat4x4f_t* glModelViewProjection;
+  s2_convexhull_t* convexHulls;
+  int convexHullCount;
 
 } s2_body_t;
 

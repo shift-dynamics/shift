@@ -145,6 +145,8 @@ void RenderWindow::mouseMoveEvent(
     } break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->mouseMoveEvent(event);
+      m_x = event->pos().x();
+      m_y = event->pos().y();
     } break;
   }
   updateGL();
@@ -226,7 +228,33 @@ void RenderWindow::wheelEvent(
 */
 QString RenderWindow::getCursorPositionText() {
   QString str;
-  QTextStream(&str) << m_x << "," << m_y;
+  float depth;
+  GLint viewport[4];
+  m_funcs->glGetIntegerv(GL_VIEWPORT, viewport);
+  m_funcs->glReadPixels(
+    m_x, height() - m_y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+  if(depth < 1 && depth > 0) {
+    QVector3D position =
+      QVector3D(
+        m_x,
+        height() - m_y,
+        depth).unproject(
+          m_view,
+          m_projection,
+          QRect(0, 0, viewport[2], viewport[3]));
+    QTextStream(&str) << "(" << position.x() << "," << position.y() << "," << position.z() << ")";
+
+    QVector3D near =
+      QVector3D(
+        m_x,
+        height() - m_y,
+        0).unproject(
+          m_view,
+          m_projection,
+          QRect(0, 0, viewport[2], viewport[3]));
+
+  }
+  // QTextStream(&str) << "(" << m_x << "," << m_y << ")";
   return str;
 }
 

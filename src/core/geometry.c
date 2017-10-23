@@ -85,7 +85,6 @@ int s2_loadBodyGeometry(
       fullPathFileName,
       aiProcess_CalcTangentSpace |
       aiProcess_Triangulate |
-      aiProcess_JoinIdenticalVertices |
       aiProcess_SortByPType);
 
   /*
@@ -104,13 +103,21 @@ int s2_loadBodyGeometry(
   body->materialCount = scene->mNumMeshes;
   body->materials = s2_materials(body->materialCount);
 
+  uint totalVertexCount = 0;
+  for(uint i = 0; i < scene->mNumMeshes; i++) {
+    totalVertexCount += scene->mMeshes[i]->mNumVertices;
+  }
+
+  GLfloat* vertices = malloc(3 * totalVertexCount * sizeof(GLfloat));
+
+  totalVertexCount = 0;
   for(uint i = 0; i < scene->mNumMeshes; i++) {
     /*
       load vertices
     */
+    body->materials[i].vertices = &vertices[totalVertexCount * 3];
     body->materials[i].vertexCount = scene->mMeshes[i]->mNumVertices;
-    body->materials[i].vertices =
-      malloc(3 * body->materials[i].vertexCount * sizeof(GLfloat));
+    totalVertexCount += body->materials[i].vertexCount;
     for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
       body->materials[i].vertices[3 * j + 0] =
         scene->mMeshes[i]->mVertices[j].x;

@@ -62,6 +62,7 @@ void s2_materials_free(
   int materialCount) {
 
   if(materials) {
+    free(materials[0].vertices);
     for(int i = 0; i < materialCount; i++) {
       if(materials[i].name) {
         free(materials[i].name);
@@ -72,7 +73,6 @@ void s2_materials_free(
         materials[i].filePath = NULL;
       }
       if(materials[i].vertices) {
-        free(materials[i].vertices);
         materials[i].vertices = NULL;
       }
       if(materials[i].vertexNormals) {
