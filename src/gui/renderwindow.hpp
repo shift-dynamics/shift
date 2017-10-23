@@ -140,7 +140,6 @@ public:
 public slots:
   void updateGL();
   void initialize();
-  // void updateLights();
   void setXRotation(int angle);
   void setYRotation(int angle);
   void setZRotation(int angle);
@@ -150,6 +149,16 @@ public slots:
   void interpolateCurrentPosition(double t);
   void setPerspective();
   void setOrthogonal();
+  void setCameraMode(camera_interaction_enum_t cameraMode) {
+    m_cameraMode = cameraMode;
+  };
+  void toggleCameraMode() {
+    if(m_cameraMode == S2_CAMERA_INTERACTION_TURNTABLE) {
+      m_cameraMode = S2_CAMERA_INTERACTION_ORBITAL;
+    } else {
+      m_cameraMode = S2_CAMERA_INTERACTION_TURNTABLE;
+    }
+  }
 
 signals:
   void mouseLeftPressEvent();

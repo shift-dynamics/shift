@@ -43,6 +43,7 @@ SUCH DAMAGE.
 #include "assembly.h"
 #include "frame.h"
 #include "terrain.h"
+#include "convexhull.h"
 
 /*!
 @brief get file path of assembly
@@ -821,6 +822,9 @@ int s2_loadBodies(
         if(returnVal == -2) {
           // printf("no body geometry was specified for body: ");
           // s2_stackstr_print(body->name);
+        } else {
+          /* compute convex hull for body */
+          s2_convexhull_qhull(body);
         }
 
         /* append origin to body */

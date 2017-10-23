@@ -65,6 +65,8 @@ s2_body_t* s2_body() {
   body->glReferenceFramef = NULL;
   body->glModelView = NULL;
   body->glModelViewProjection = NULL;
+  body->convexHullCount = 0;
+  body->convexHulls = NULL;
   return body;
 }
 
