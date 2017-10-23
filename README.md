@@ -10,13 +10,14 @@ This code requires that the following libraries are installed on your system.
 *   [Graphviz](<http://www.graphviz.org/>)
 *   [Cblas](<http://www.netlib.org/blas/>)
 *   [ImageMagick](<http://www.imagemagick.org>)
+*   [Qhull](<http://www.qhull.org>)
 
 ### Macintosh
 
 On a Macintosh, these dependencies can be installed using the *brew*
 package manager:
 
-    brew install assimp jansson qt5 graphviz imagemagick
+    brew install assimp jansson qt5 graphviz imagemagick qhull
 
 More information can be found at these links.
 
@@ -25,6 +26,7 @@ More information can be found at these links.
 *   <http://brewformulas.org/qt5>
 *   <http://brewformulas.org/graphviz>
 *   <http://brewformulas.org/imagemagick>
+*   <http://brewformulas.org/qhull>
 
 The cblas package is already available on a Macintosh using the *accelerate*
 framework, the CMakeLists.txt file may need to be modified to bring in this
@@ -34,13 +36,13 @@ dependency correctly.
 
 On arch linux, the dependencies can be installed using pacman:
 
-    pacman -S assimp jansson qt5 graphviz cblas imagemagick
+    pacman -S assimp jansson qt5 graphviz cblas imagemagick qhull
 
 ### Ubuntu / Debian-based Linux Distributions
 
 Use apt-get:
 
-    apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev
+    apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev libqhull-dev
 
 ## Building the project
 
@@ -68,7 +70,7 @@ following command from within the ${PROJECT_DIRECTORY}/build/bin directory:
 
     ./star2
 
-To run the program with nvidia-gfx-debugger:
+To run the gui program with nvidia-gfx-debugger:
 
     LD_PRELOAD=~/.tgd/libs/libNvidia_gfx_debugger.so ./star2
 
