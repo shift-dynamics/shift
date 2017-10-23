@@ -10,7 +10,7 @@ set( VERSION_PATCH   0  CACHE STRING "Project patch version number." )
 mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
 
 ## find Jansson and math libraries ##
-list( APPEND CMAKE_MODULE_PATH "${star2_SOURCE_DIR}/cmake" )
+list( INSERT CMAKE_MODULE_PATH 0 "${star2_SOURCE_DIR}/cmake" )
 if(APPLE)
   list(APPEND CMAKE_MODULE_PATH "/usr/local/Cellar/qt5/5.7.0/lib/cmake/Qt5Core")
 endif(APPLE)
@@ -20,9 +20,9 @@ find_library( M_LIB m REQUIRED )
 find_package( graphviz REQUIRED )
 find_library( stdc++ REQUIRED )
 find_package( assimp REQUIRED )
-
-find_package(ImageMagick REQUIRED)
-find_package(ImageMagick COMPONENTS MagickWand REQUIRED)
+find_package( Qhull REQUIRED )
+find_package( ImageMagick REQUIRED )
+find_package( ImageMagick COMPONENTS MagickWand REQUIRED )
 
 
 set( LIBS
@@ -34,8 +34,10 @@ set( LIBS
     ${M_LIB}
     ${CBLAS_LIBRARIES}
     ${ImageMagick_LIBRARIES}
-    ${ImageMagick_MagickWand_LIBRARIES})
-message( ${LIBS} )
+    ${ImageMagick_MagickWand_LIBRARIES}
+    ${QHULL_LIBRARIES})
+message( "using libraries: " ${LIBS} )
+message( "qhull: " ${QHULL_LIBRARIES})
 
 # find_library( LAPACK lapack)
 # find_library( PTHREAD pthread )
@@ -78,6 +80,7 @@ include_directories(
     ${ASSIMP_INCLUDE_DIRS}
     ${ImageMagick_INCLUDE_DIRS}
     ${ImageMagick_MagickWand_INCLUDE_DIRS}
+    ${QHULL_INCLUDE_DIRS}
 )
 
 add_library(ksl STATIC
@@ -96,6 +99,7 @@ add_library(star2_lib STATIC
     ${star2_SOURCE_DIR}/src/core/camera.c
     ${star2_SOURCE_DIR}/src/core/chordconstraint.c
     ${star2_SOURCE_DIR}/src/core/context.c
+    ${star2_SOURCE_DIR}/src/core/convexhull.c
     ${star2_SOURCE_DIR}/src/core/equation.c
     ${star2_SOURCE_DIR}/src/core/factor.c
     ${star2_SOURCE_DIR}/src/core/frame.c
