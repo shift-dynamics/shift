@@ -29,8 +29,9 @@ SUCH DAMAGE.
   #include <cblas.h>
 #endif
 #include <unistd.h>
+#include "factor.h"
 
-void s2_iswap(
+inline void s2_iswap(
   int* a,
   int* b) {
 

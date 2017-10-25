@@ -22,6 +22,7 @@ SUCH DAMAGE.
 
 #include <stdlib.h>
 #include <float.h>
+#include <stdio.h>
 
 s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices) {
   s2_kdtree_t* kdtree = malloc(sizeof(s2_kdtree_t));
@@ -60,6 +61,21 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
     sorted_z[i] = i;
   }
 
+  printf("\nsorted_x: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_x[i]);
+  }
+
+  printf("\nsorted_y: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_y[i]);
+  }
+
+  printf("\nsorted_z: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_z[i]);
+  }
+
   /* sort in x, y, z */
   for(int i = 0; i < vertexCount - 1; i++) {
     double min_x = vertices[sorted_x[i] * 3 + 0];
@@ -86,6 +102,38 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
     s2_iswap(sorted_y + i, sorted_y + min_y_index);
     s2_iswap(sorted_z + i, sorted_z + min_z_index);
   }
+
+  printf("\nsorted_x: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_x[i]);
+  }
+
+  printf("\nsorted_y: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_y[i]);
+  }
+
+  printf("\nsorted_z: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_z[i]);
+  }
+
+
+  printf("\nsorted_x_vertices:\n");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("  %f\n", vertices[sorted_x[i] * 3 + 0]);
+  }
+
+  printf("\nsorted_y_vertices:\n");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("  %f\n", vertices[sorted_y[i] * 3 + 1]);
+  }
+
+  printf("\nsorted_z_vertices:\n");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("  %f\n", vertices[sorted_z[i] * 3 + 2]);
+  }
+
 
 
   /* find median along x axis */
