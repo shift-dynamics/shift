@@ -48,7 +48,7 @@ double s2_factor_infinity_norm(
   int rank,
   double* A);
 
-void s2_iswap(
+inline void s2_iswap(
   int* a,
   int* b);
 

@@ -1,0 +1,22 @@
+#include "../../core/factor.h"
+#include "../../core/kdtree.h"
+
+int main(int argc, char** argv) {
+
+  /* generating some vertices to test kd tree */
+  double vertices[30] =
+    {-0.4, 50.4, 91.0,
+     454.2, 4576.0, 13.0,
+     6.0, 45.0, -36.0,
+     15.0, 91.0, 67.0,
+     6.0, 1777.0, -2.0,
+     3.0, -51.0, 90.0,
+     -39.0, -12.0, 73.0,
+     61.0, 24.0, -3.0,
+     -84.0, 120.0, 40.0,
+     73.0, 39.0, 0.0};
+
+  s2_kdtree_t* kdtree = kd_tree(10, vertices);
+
+  return 0;
+}
