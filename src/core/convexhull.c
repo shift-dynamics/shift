@@ -1,12 +1,12 @@
 /**
 @file
 @author Kristopher Wehage
-@brief Utilities to initialize and free a Context datastructure.
-@date 2016
-@copyright Kristopher Wehage 2016
+@brief Utilities to initialize, free and operate on an s2_convexhull_t datastructure.
+@date 2017
+@copyright Kristopher Wehage 2016-2017
 
-This function library is used to initialize and free memory for
-data structures defined in context.h
+This function library is used to initialize, free and operate on
+data structures defined in convexhull.h
 
 @remark
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
@@ -129,13 +129,9 @@ void makehalf(coordT *points, int numpoints, int dim) {
   }
 } /*.makehalf.*/
 
-#define SIZEcube (1<<3)
-#define SIZEdiamond (2*3)
-#define TOTpoints (SIZEcube + SIZEdiamond)
-
 
 /*!
-
+@brief initialize an empty s2_convexhull_t data structure
 */
 s2_convexhull_t* s2_convexhull() {
 
@@ -147,10 +143,10 @@ s2_convexhull_t* s2_convexhull() {
 
 
 /*!
-@brief derived from Qhull-template in user.c
-  see program header
-  this contains three runs of Qhull for convex hull, Delaunay
-  triangulation or Voronoi vertices, and halfspace intersection
+@brief Compute convex hull for body
+  code derived from Qhull-template in user.c and uses Qhull to
+  compute the convex hull and Delaunay
+  triangulation or Voronoi vertices
 */
 int s2_convexhull_qhull(s2_body_t* body) {
 
