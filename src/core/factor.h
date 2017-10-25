@@ -19,7 +19,7 @@ SUCH DAMAGE.
 #ifndef _STAR2_FACTOR_H_
 #define _STAR2_FACTOR_H_
 
-int s2_factor_LU(
+void s2_factor_LU(
   int rowDim,
   int colDim,
   int rank,
@@ -48,7 +48,7 @@ double s2_factor_infinity_norm(
   int rank,
   double* A);
 
-inline void s2_iswap(
+void s2_iswap(
   int* a,
   int* b);
 

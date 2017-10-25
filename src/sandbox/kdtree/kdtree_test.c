@@ -1,5 +1,6 @@
 #include "../../core/factor.h"
 #include "../../core/kdtree.h"
+#include <stdio.h>
 
 int main(int argc, char** argv) {
 
@@ -16,7 +17,17 @@ int main(int argc, char** argv) {
      -84.0, 120.0, 40.0,
      73.0, 39.0, 0.0};
 
-  s2_kdtree_t* kdtree = kd_tree(10, vertices);
+
+  printf("\noriginal vertices:\n");
+  for(int i = 0; i < 10; i++) {
+    printf(
+      "  (%f, %f, %f)\n",
+      vertices[i * 3 + 0],
+      vertices[i * 3 + 1],
+      vertices[i * 3 + 2]);
+  }
+
+  s2_kdtree_t* kdtree = s2_kdtree(10, vertices);
 
   return 0;
 }
