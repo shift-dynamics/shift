@@ -38,122 +38,34 @@ s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices) {
 }
 
 
-s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
-  s2_kdtree_t* kdtree = malloc(sizeof(s2_kdtree_t));
-  kdtree->vertexCount = vertexCount;
-  kdtree->precision = S2_KDTREE_FLOAT;
-  kdtree->l = calloc(4 * vertexCount, sizeof(int));
-  kdtree->r = kdtree->l + vertexCount;
-  kdtree->axis = kdtree->l + 2 * vertexCount;
-  kdtree->location = kdtree->l + 3 * vertexCount;
-  kdtree->vertices = vertices;
-  kdtree->verticesf = NULL;
-
-  int* sorted_x = malloc(3 * sizeof(vertexCount));
-  int* sorted_y = sorted_x + vertexCount;
-  int* sorted_z = sorted_y + vertexCount;
-
-  /* initialize locations */
-  for(register size_t i = 0; i < vertexCount; i++) {
-    kdtree->location[i] = i;
-    sorted_x[i] = i;
-    sorted_y[i] = i;
-    sorted_z[i] = i;
-  }
-
-  printf("\nsorted_x: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_x[i]);
-  }
-
-  printf("\nsorted_y: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_y[i]);
-  }
-
-  printf("\nsorted_z: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_z[i]);
-  }
-
-  /* sort in x, y, z */
-  for(int i = 0; i < vertexCount - 1; i++) {
-    double min_x = vertices[sorted_x[i] * 3 + 0];
-    double min_y = vertices[sorted_y[i] * 3 + 1];
-    double min_z = vertices[sorted_z[i] * 3 + 2];
-    int min_x_index = i;
-    int min_y_index = i;
-    int min_z_index = i;
-    for(int j = i + 1; j < vertexCount; j++) {
-      if(vertices[sorted_x[j] * 3 + 0] < min_x) {
-        min_x = vertices[j * 3 + 0];
-        min_x_index = j;
-      }
-      if(vertices[j * 3 + 1] < min_y) {
-        min_y = vertices[sorted_y[j] * 3 + 1];
-        min_y_index = j;
-      }
-      if(vertices[j * 3 + 2] < min_z) {
-        min_z = vertices[sorted_z[j] * 3 + 2];
-        min_z_index = j;
-      }
-    }
-    s2_iswap(sorted_x + i, sorted_x + min_x_index);
-    s2_iswap(sorted_y + i, sorted_y + min_y_index);
-    s2_iswap(sorted_z + i, sorted_z + min_z_index);
-  }
-
-  printf("\nsorted_x: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_x[i]);
-  }
-
-  printf("\nsorted_y: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_y[i]);
-  }
-
-  printf("\nsorted_z: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_z[i]);
-  }
-
-
-  printf("\nsorted_x_vertices:\n");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("  %f\n", vertices[sorted_x[i] * 3 + 0]);
-  }
-
-  printf("\nsorted_y_vertices:\n");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("  %f\n", vertices[sorted_y[i] * 3 + 1]);
-  }
-
-  printf("\nsorted_z_vertices:\n");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("  %f\n", vertices[sorted_z[i] * 3 + 2]);
-  }
-
-
-
-  /* find median along x axis */
-
-  free(sorted_x);
-  return kdtree;
-}
-
-
-int select_median_by_axis(
-  int offset,
-  int count,
+int select_median_below(
+  int range_min,
+  int range_max,
+  int vertexCount,
   int depth,
   int* location,
-  double* vertices) {
+  int** p10,
+  int** p01) {
 
   int axis = depth % 3;
-  int low = 0;
-  int high = count - 1;
-  int median = (low + high) / 2;
+
+  /* to list coordinates belonging to specified axis in order along axis:
+
+  for(int i = range_min; i < range_max; i++) {
+    printf("%f ", vertices[p01[axis][i] * 3 + axis]);
+  }
+
+  here i is in sorted order (po1). p01 permutes the index in sorted order (1) back to the original order 0
+  indexing into vertices should always be done in perutation order 0
+  */
+
+  /* find median along specified axis below specified
+  index */
+
+
+
+  int median = (range_min + range_max - 1) / 2;
+  return median;
   // int middle, ll, hh;
   //
   // for (;;) {
@@ -197,6 +109,120 @@ int select_median_by_axis(
   //   }
     return median;
 }
+
+
+s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
+  s2_kdtree_t* kdtree = malloc(sizeof(s2_kdtree_t));
+  kdtree->vertexCount = vertexCount;
+  kdtree->precision = S2_KDTREE_FLOAT;
+  kdtree->l = calloc(4 * vertexCount, sizeof(int));
+  kdtree->r = kdtree->l + vertexCount;
+  kdtree->axis = kdtree->l + 2 * vertexCount;
+  kdtree->location = kdtree->l + 3 * vertexCount;
+  kdtree->vertices = vertices;
+  kdtree->verticesf = NULL;
+
+  int* sorted_x = malloc(3 * sizeof(vertexCount));
+  int* sorted_y = sorted_x + vertexCount;
+  int* sorted_z = sorted_y + vertexCount;
+
+  /* initialize locations */
+  for(register size_t i = 0; i < vertexCount; i++) {
+    kdtree->location[i] = i;
+    sorted_x[i] = i;
+    sorted_y[i] = i;
+    sorted_z[i] = i;
+  }
+
+  /* perform selection sort for
+     x, y, z axes simultaneously */
+  for(int i = 0; i < vertexCount - 1; i++) {
+    double min_x = vertices[sorted_x[i] * 3 + 0];
+    double min_y = vertices[sorted_y[i] * 3 + 1];
+    double min_z = vertices[sorted_z[i] * 3 + 2];
+    int min_x_index = i;
+    int min_y_index = i;
+    int min_z_index = i;
+    for(int j = i + 1; j < vertexCount; j++) {
+      if(vertices[sorted_x[j] * 3 + 0] < min_x) {
+        min_x = vertices[sorted_x[j] * 3 + 0];
+        min_x_index = j;
+      }
+      if(vertices[sorted_y[j] * 3 + 1] < min_y) {
+        min_y = vertices[sorted_y[j] * 3 + 1];
+        min_y_index = j;
+      }
+      if(vertices[sorted_z[j] * 3 + 2] < min_z) {
+        min_z = vertices[sorted_z[j] * 3 + 2];
+        min_z_index = j;
+      }
+    }
+    s2_iswap(sorted_x + i, sorted_x + min_x_index);
+    s2_iswap(sorted_y + i, sorted_y + min_y_index);
+    s2_iswap(sorted_z + i, sorted_z + min_z_index);
+  }
+
+  printf("\nsorted_x: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_x[i]);
+  }
+
+  printf("\nsorted_y: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_y[i]);
+  }
+
+  printf("\nsorted_z: ");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("%d ", sorted_z[i]);
+  }
+
+
+  printf("\nsorted_x_vertices:\n");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("  %f\n", vertices[sorted_x[i] * 3 + 0]);
+  }
+
+  printf("\nsorted_y_vertices:\n");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("  %f\n", vertices[sorted_y[i] * 3 + 1]);
+  }
+
+  printf("\nsorted_z_vertices:\n");
+  for(int i = 0; i < vertexCount; i++) {
+    printf("  %f\n", vertices[sorted_z[i] * 3 + 2]);
+  }
+
+  /* array of permutation arrays mapping original order (0) to permuted order (1) */
+  int** p01 = malloc(3 * sizeof(int*));
+  p01[0] = sorted_x;
+  p01[1] = sorted_y;
+  p01[2] = sorted_z;
+
+  /* array of inverse permutation arrays mapping permuted order (1)  back to original order (0)*/
+  int** p10 = malloc(3 * sizeof(int*));
+  p10[0] = malloc(3 * vertexCount * sizeof(int));
+  p10[1] = p10[0] + vertexCount;
+  p10[2] = p10[1] + vertexCount;
+  for(register size_t i = 0; i < vertexCount; i++) {
+    p10[0][p01[0][i]] = i;
+    p10[1][p01[1][i]] = i;
+    p10[2][p01[2][i]] = i;
+  }
+
+  /* find median along x axis */
+  select_median_by_axis()
+
+
+
+  free(p01[0]);
+  free(p01);
+  free(p10[0]);
+  free(p10);
+  return kdtree;
+}
+
+
 
 
 void s2_kdtree_free(s2_kdtree_t* kdtree) {
