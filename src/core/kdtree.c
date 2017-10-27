@@ -23,6 +23,22 @@ SUCH DAMAGE.
 #include <stdlib.h>
 #include <float.h>
 #include <stdio.h>
+#include <pthread.h>
+#include <string.h>
+
+void s2_kdtree_sortVertices(
+  int vertexCount,
+  double* vertices,
+  int** p01,
+  int** p10);
+
+s2_kdlists_t* s2_kdlists(
+  int vertexCount,
+  double* vertices,
+  int** p01,
+  int** p10);
+
+void s2_kdlists_free(s2_kdlists_t*);
 
 s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices) {
   s2_kdtree_t* kdtree = malloc(sizeof(s2_kdtree_t));
@@ -37,77 +53,65 @@ s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices) {
   return kdtree;
 }
 
+void kdnode_append(
+  s2_kdlist_t* list,
+  s2_kdnode_t* node,
+  int axis);
 
-int select_median_below(
-  int range_min,
-  int range_max,
-  int vertexCount,
-  int depth,
-  int* location,
-  int** p10,
-  int** p01) {
+void kdnode_remove(
+  s2_kdlist_t* list,
+  s2_kdnode_t* node,
+  int axis);
 
-  int axis = depth % 3;
+int kdnode_subdivide(
+  int axis,
+  s2_kdlist_t* list,
+  s2_kdlist_t* below,
+  s2_kdlist_t* above);
 
-  /* to list coordinates belonging to specified axis in order along axis:
 
-  for(int i = range_min; i < range_max; i++) {
-    printf("%f ", vertices[p01[axis][i] * 3 + axis]);
+void kdlist_print(s2_kdlist_t* kdlist, double* vertices) {
+  printf("\nsorted x vertices from linked list\n");
+  s2_kdnode_t* head = kdlist->head[0];
+  while(head) {
+    printf(
+      "  %d: (%f, %f, %f) siblings: %d %d\n",
+      head->location,
+      vertices[head->location * 3 + 0],
+      vertices[head->location * 3 + 1],
+      vertices[head->location * 3 + 2],
+      head->siblings[0]->location,
+      head->siblings[1]->location);
+    head = head->next;
   }
 
-  here i is in sorted order (po1). p01 permutes the index in sorted order (1) back to the original order 0
-  indexing into vertices should always be done in perutation order 0
-  */
+  printf("\nsorted y vertices from linked list\n");
+  head = kdlist->head[1];
+  while(head) {
+    printf(
+      "  %d: (%f, %f, %f) siblings: %d %d\n",
+      head->location,
+      vertices[head->location * 3 + 0],
+      vertices[head->location * 3 + 1],
+      vertices[head->location * 3 + 2],
+      head->siblings[0]->location,
+      head->siblings[1]->location);
+    head = head->next;
+  }
 
-  /* find median along specified axis below specified
-  index */
-
-
-
-  int median = (range_min + range_max - 1) / 2;
-  return median;
-  // int middle, ll, hh;
-  //
-  // for (;;) {
-  //   if (high <= low) { /* array location consists of one element only */
-  //     return location[median] ;
-  //   }
-  //   if (high == low + 1) { /* Two elements only */
-  //     if (vertices[low * 3 + axis] > vertices[high * 3 + axis]) {
-  //       s2_iswap(location + low, location + high);
-  //     }
-  //     return location[median] ;
-  //   }
-  //
-  //   /* Find median of low, middle and high items; swap into position low */
-  //   middle = (low + high) / 2;
-  //   if (arr[middle] > arr[high])
-  //   ELEM_SWAP(arr[middle], arr[high]) ;
-  //   if (arr[low] > arr[high])
-  //   ELEM_SWAP(arr[low], arr[high]) ;
-  //   if (arr[middle] > arr[low])
-  //   ELEM_SWAP(arr[middle], arr[low]) ;
-  //   /* Swap low item (now in position middle) into position (low+1) */
-  //   ELEM_SWAP(arr[middle], arr[low+1]) ;
-  //   /* Nibble from each end towards middle, swapping items when stuck */
-  //   ll = low + 1;
-  //   hh = high;
-  //   for (;;) {
-  //   do ll++; while (arr[low] > arr[ll]) ;
-  //   do hh--; while (arr[hh] > arr[low]) ;
-  //   if (hh < ll)
-  //   break;
-  //   ELEM_SWAP(arr[ll], arr[hh]) ;
-  //   }
-  //   /* Swap middle item (in position low) back into correct position */
-  //   ELEM_SWAP(arr[low], arr[hh]) ;
-  //   /* Re-set active partition */
-  //   if (hh <= median)
-  //   low = ll;
-  //   if (hh >= median)
-  //   high = hh - 1;
-  //   }
-    return median;
+  printf("\nsorted z vertices from linked list\n");
+  head = kdlist->head[2];
+  while(head) {
+    printf(
+      "  %d: (%f, %f, %f) siblings: %d %d\n",
+      head->location,
+      vertices[head->location * 3 + 0],
+      vertices[head->location * 3 + 1],
+      vertices[head->location * 3 + 2],
+      head->siblings[0]->location,
+      head->siblings[1]->location);
+    head = head->next;
+  }
 }
 
 
@@ -115,122 +119,465 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
   s2_kdtree_t* kdtree = malloc(sizeof(s2_kdtree_t));
   kdtree->vertexCount = vertexCount;
   kdtree->precision = S2_KDTREE_FLOAT;
-  kdtree->l = calloc(4 * vertexCount, sizeof(int));
+  kdtree->p = NULL;
+  kdtree->p = calloc(6 * vertexCount, sizeof(int));
+  if(kdtree->p == NULL) {
+    fprintf(stderr, "failed to allocate memory for kdtree\n");
+  }
+  kdtree->l = kdtree->p + vertexCount;
   kdtree->r = kdtree->l + vertexCount;
-  kdtree->axis = kdtree->l + 2 * vertexCount;
-  kdtree->location = kdtree->l + 3 * vertexCount;
+  kdtree->axis = kdtree->r + vertexCount;
+  kdtree->level = kdtree->axis + vertexCount;
+  kdtree->location = kdtree->level + vertexCount;
+
   kdtree->vertices = vertices;
   kdtree->verticesf = NULL;
 
-  int* sorted_x = malloc(3 * sizeof(vertexCount));
-  int* sorted_y = sorted_x + vertexCount;
-  int* sorted_z = sorted_y + vertexCount;
+  int** p01 = NULL;
+  int** p10 = NULL;
 
-  /* initialize locations */
-  for(register size_t i = 0; i < vertexCount; i++) {
-    kdtree->location[i] = i;
-    sorted_x[i] = i;
-    sorted_y[i] = i;
-    sorted_z[i] = i;
+  p01 = malloc(3 * sizeof(int*));
+  if(p01 == NULL) {
+    fprintf(stderr, "failed to allocate memory for kdtree\n");
+  }
+  p01[0] = NULL;
+  p01[0] = malloc(3 * vertexCount * sizeof(int));
+  if(p01[0] == NULL) {
+    fprintf(stderr, "failed to allocate memory for kdtree\n");
+  }
+  p01[1] = p01[0] + vertexCount;
+  p01[2] = p01[1] + vertexCount;
+
+  p10 = malloc(3 * sizeof(int*));
+  if(p10 == NULL) {
+    fprintf(stderr, "failed to allocate memory for kdtree\n");
   }
 
-  /* perform selection sort for
-     x, y, z axes simultaneously */
-  for(int i = 0; i < vertexCount - 1; i++) {
-    double min_x = vertices[sorted_x[i] * 3 + 0];
-    double min_y = vertices[sorted_y[i] * 3 + 1];
-    double min_z = vertices[sorted_z[i] * 3 + 2];
-    int min_x_index = i;
-    int min_y_index = i;
-    int min_z_index = i;
-    for(int j = i + 1; j < vertexCount; j++) {
-      if(vertices[sorted_x[j] * 3 + 0] < min_x) {
-        min_x = vertices[sorted_x[j] * 3 + 0];
-        min_x_index = j;
-      }
-      if(vertices[sorted_y[j] * 3 + 1] < min_y) {
-        min_y = vertices[sorted_y[j] * 3 + 1];
-        min_y_index = j;
-      }
-      if(vertices[sorted_z[j] * 3 + 2] < min_z) {
-        min_z = vertices[sorted_z[j] * 3 + 2];
-        min_z_index = j;
-      }
-    }
-    s2_iswap(sorted_x + i, sorted_x + min_x_index);
-    s2_iswap(sorted_y + i, sorted_y + min_y_index);
-    s2_iswap(sorted_z + i, sorted_z + min_z_index);
-  }
-
-  printf("\nsorted_x: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_x[i]);
-  }
-
-  printf("\nsorted_y: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_y[i]);
-  }
-
-  printf("\nsorted_z: ");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("%d ", sorted_z[i]);
-  }
-
-
-  printf("\nsorted_x_vertices:\n");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("  %f\n", vertices[sorted_x[i] * 3 + 0]);
-  }
-
-  printf("\nsorted_y_vertices:\n");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("  %f\n", vertices[sorted_y[i] * 3 + 1]);
-  }
-
-  printf("\nsorted_z_vertices:\n");
-  for(int i = 0; i < vertexCount; i++) {
-    printf("  %f\n", vertices[sorted_z[i] * 3 + 2]);
-  }
-
-  /* array of permutation arrays mapping original order (0) to permuted order (1) */
-  int** p01 = malloc(3 * sizeof(int*));
-  p01[0] = sorted_x;
-  p01[1] = sorted_y;
-  p01[2] = sorted_z;
-
-  /* array of inverse permutation arrays mapping permuted order (1)  back to original order (0)*/
-  int** p10 = malloc(3 * sizeof(int*));
+  p10[0] = NULL;
   p10[0] = malloc(3 * vertexCount * sizeof(int));
+  if(p10[0] == NULL) {
+    fprintf(stderr, "failed to allocate memory for kdtree\n");
+  }
   p10[1] = p10[0] + vertexCount;
   p10[2] = p10[1] + vertexCount;
-  for(register size_t i = 0; i < vertexCount; i++) {
-    p10[0][p01[0][i]] = i;
-    p10[1][p01[1][i]] = i;
-    p10[2][p01[2][i]] = i;
+
+  s2_kdtree_sortVertices(
+    vertexCount,
+    vertices,
+    p01,
+    p10);
+
+  s2_kdlists_t* lists =
+    s2_kdlists(
+      vertexCount,
+      vertices,
+      p01,
+      p10);
+
+
+  s2_kdlist_t* temp = NULL;
+  temp = malloc(vertexCount * sizeof(s2_kdlist_t));
+
+  s2_kdlist_t above;
+  s2_kdlist_t below;
+
+  memcpy(temp + 0, &lists->kdlist, sizeof(s2_kdlist_t));
+
+  // printf("\noriginal list:\n");
+  // kdlist_print(&temp[0], vertices);
+
+  kdtree->p[0] = -1;
+  kdtree->level[0] = 0;
+  int j = 0;
+  for(int i = 0; i < vertexCount; i++) {
+    if(temp[i].count > 1) {
+      kdtree->location[i] = kdnode_subdivide(
+        kdtree->level[i],
+        &temp[i],
+        &below,
+        &above);
+
+      // printf("\n**********************\n");
+      // printf(
+      //   "\nlocation of subdivision[%d]: %d, level: %d, axis: %d\n",
+      //   i,
+      //   kdtree->location[i], kdtree->level[i], kdtree->level[i] % 3);
+      //
+      // printf("\nbelow list:\n");
+      // kdlist_print(&below, vertices);
+      //
+      // printf("\nabove list:\n");
+      // kdlist_print(&above, vertices);
+
+      if(below.count > 0) {
+        kdtree->p[++j] = i; /* i is current node index (i.e. parent),
+                               j is child index */
+        kdtree->level[j] = kdtree->level[i] + 1;
+        kdtree->l[i] = j;
+        memcpy(temp + j, &below, sizeof(s2_kdlist_t));
+      } else {
+        kdtree->l[i] = -1;
+      }
+
+      if(above.count > 0) {
+        kdtree->p[++j] = i;
+        kdtree->level[j] = kdtree->level[i] + 1;
+        kdtree->r[i] = j;
+        memcpy(temp + j, &above, sizeof(s2_kdlist_t));
+      } else {
+        kdtree->r[i] = -1;
+      }
+    } else {
+      kdtree->location[i] = temp[i].head[0]->location;
+      kdtree->l[i] = -1;
+      kdtree->r[i] = -1;
+    }
   }
 
-  /* find median along x axis */
-  select_median_by_axis()
+  for(int i = 0; i < vertexCount; i++) {
+    kdtree->axis[i] = kdtree->level[i] % 3;
+  }
 
-
-
+  free(temp);
   free(p01[0]);
   free(p01);
   free(p10[0]);
   free(p10);
+  s2_kdlists_free(lists);
+
   return kdtree;
 }
 
 
+/*!
+@brief create and initialize an empty doubly linked list used for
+sorting indices in kdtree
+*/
+s2_kdlists_t* s2_kdlists(
+  int vertexCount,
+  double* vertices,
+  int** p01,
+  int** p10) {
+
+  s2_kdlists_t* lists = malloc(sizeof(s2_kdlists_t));
+  lists->nodes = malloc(3 * sizeof(s2_kdnode_t*));
+  lists->nodes[0] = malloc(3 * vertexCount * sizeof(s2_kdnode_t));
+  lists->nodes[1] = lists->nodes[0] + vertexCount;
+  lists->nodes[2] = lists->nodes[1] + vertexCount;
+
+  /* initialize head and tail of each linked list */
+  for(size_t i = 0; i < 3; i++) {
+    lists->kdlist.head[i] = &lists->nodes[i][0];
+    lists->kdlist.tail[i] = &lists->nodes[i][vertexCount - 1];
+  }
+  lists->kdlist.count = vertexCount;
+
+  /* connect next and previous pointers for nodes in linked list */
+  for(size_t i = 0; i < 3; i++) {
+
+    lists->nodes[i][0].previous = NULL;
+    lists->nodes[i][0].next = &lists->nodes[i][1];
+    lists->nodes[i][0].location = p01[i][0];
+    int l = 0;
+    for(int k = 0; k < 3; k++) {
+      if(k != i) {
+        lists->nodes[i][0].siblings[l++] =
+          &lists->nodes[k][p10[k][p01[i][0]]];
+      }
+    }
+
+    for(size_t j = 1; j < vertexCount - 1; j++) {
+      lists->nodes[i][j].previous = &lists->nodes[i][j - 1];
+      lists->nodes[i][j].next = &lists->nodes[i][j + 1];
+      lists->nodes[i][j].location = p01[i][j];
+      l = 0;
+      for(int k = 0; k < 3; k++) {
+        if(k != i) {
+          lists->nodes[i][j].siblings[l++] =
+            &lists->nodes[k][p10[k][p01[i][j]]];
+        }
+      }
+    }
+
+    lists->nodes[i][vertexCount - 1].previous =
+      &lists->nodes[i][vertexCount - 2];
+    lists->nodes[i][vertexCount - 1].next = NULL;
+    lists->nodes[i][vertexCount - 1].location =
+      p01[i][vertexCount - 1];
+    l = 0;
+    for(int k = 0; k < 3; k++) {
+      if(k != i) {
+        lists->nodes[i][vertexCount - 1].siblings[l++] =
+          &lists->nodes[k][p10[k][p01[i][vertexCount - 1]]];
+      }
+    }
+  }
+  return lists;
+}
 
 
+/*!
+
+*/
+void kdnode_append(
+  s2_kdlist_t* list,
+  s2_kdnode_t* node,
+  int axis) {
+
+  if(list->head[axis]) {
+    /* if list has at least one element, connect node's previous pointer to tail of list */
+    list->tail[axis]->next = node;
+    node->previous = list->tail[axis];
+    node->next = NULL;
+    list->tail[axis] = node;
+  } else {
+    /* if list is empty, appended node becomes the list's head and tail */
+    list->head[axis] = node;
+    list->tail[axis] = node;
+    node->previous = NULL;
+    node->next = NULL;
+  }
+}
+
+
+/*!
+@brief remove node from doubly linked list
+*/
+void kdnode_remove(
+  s2_kdlist_t* list,
+  s2_kdnode_t* node,
+  int axis) {
+
+  if(node == list->head[axis] && node == list->tail[axis]) {
+    list->head[axis] = NULL;
+    list->tail[axis] = NULL;
+  } else if(node == list->head[axis]) {
+    list->head[axis] = list->head[axis]->next;
+    if(list->head[axis]) {
+      list->head[axis]->previous = NULL;
+    }
+  } else if(node == list->tail[axis]) {
+    list->tail[axis] = list->tail[axis]->previous;
+    if(list->tail[axis]) {
+      list->tail[axis]->next = NULL;
+    }
+  } else {
+    node->previous->next = node->next;
+    node->next->previous = node->previous;
+  }
+}
+
+
+/*!
+@brief remove kdnode
+
+*/
+int kdnode_subdivide(
+  int level,
+  s2_kdlist_t* list,
+  s2_kdlist_t* below,
+  s2_kdlist_t* above) {
+
+  int axis = level % 3;
+  int median = list->count / 2;
+  // printf("count: %d, median: %d\n", list->count, median);
+  int location = -1;
+
+  /* initialize above and below list */
+  for(int i = 0; i < 3; i++) {
+    below->head[i] = NULL;
+    below->tail[i] = NULL;
+    below->count = 0;
+    above->head[i] = NULL;
+    above->tail[i] = NULL;
+    above->count = 0;
+  }
+
+  s2_kdnode_t* head = list->head[axis];
+  size_t i = 0;
+  while(head) {
+    s2_kdnode_t* next = head->next;
+    if(i < median) {
+      below->count++;
+      for(int j = 0; j < 2; j++) {
+        head->siblings[j]->isAbove = false;
+      }
+    } else if(i > median) {
+      above->count++;
+      for(int j = 0; j < 2; j++) {
+        head->siblings[j]->isAbove = true;
+      }
+    } else {
+
+      location = head->location;
+
+      /* remove the current "head" node at specified axis
+      this node is always in the middle position, so just
+      split the linked list in the middle */
+
+      if(!head->next && !head->previous) {
+        below->head[axis] = NULL;
+        below->tail[axis] = NULL;
+        above->head[axis] = NULL;
+        above->tail[axis] = NULL;
+      } else {
+        below->head[axis] = list->head[axis];
+        below->tail[axis] = head->previous;
+        if(below->tail[axis]) {
+          below->tail[axis]->next = NULL;
+        }
+
+        above->head[axis] = head->next;
+        if(above->head[axis]) {
+          above->head[axis]->previous = NULL;
+        }
+        above->tail[axis] = list->tail[axis];
+      }
+
+      /* the sibling nodes can be located anywhere in their
+      respective lists, remove the sibling node and split the
+      lists below */
+      int l = 0;
+      for(int j = 0; j < 3; j++) {
+        if(j != axis) {
+          kdnode_remove(list, head->siblings[l++], j);
+        }
+      }
+    }
+    i++;
+    head = next;
+  }
+
+  /* subdivide remaining axes */
+  for(int i = 0; i < 3; i++) {
+    if(i != axis) {
+      head = list->head[i];
+      while(head) {
+        s2_kdnode_t* next = head->next;
+        if(head->isAbove) {
+          kdnode_append(above, head, i);
+        } else {
+          kdnode_append(below, head, i);
+        }
+        head = next;
+      }
+    }
+  }
+  return location;
+}
+
+
+/*!
+@brief struct to pass data to sort_by_axis function
+*/
+typedef struct sort_by_axis_t {
+  int vertexCount;
+  int axis;
+  double* vertices;
+  int* p01;
+  int* p10;
+} sort_by_axis_t;
+
+
+/*!
+@brief sort data by axis
+*/
+void* sort_by_axis(void* void_ptr) {
+  sort_by_axis_t* data = (sort_by_axis_t*)void_ptr;
+  int vertexCount = data->vertexCount;
+  double* vertices = data->vertices;
+  int* p01 = data->p01;
+  int* p10 = data->p10;
+  int axis = data->axis;
+
+  for(register size_t j = 0; j < vertexCount; j++) {
+    p01[j] = j;
+  }
+
+  for(register size_t j = 0; j < vertexCount - 1; j++) {
+    double min_value = vertices[p01[j] * 3 + axis];
+    int min_index = j;
+    for(register size_t k = j + 1; k < vertexCount; k++) {
+      if(vertices[p01[k] * 3 + axis] < min_value) {
+        min_value = vertices[p01[k] * 3 + axis];
+        min_index = k;
+      }
+    }
+    s2_iswap(p01 + j, p01 + min_index);
+  }
+
+  for(register size_t j = 0; j < vertexCount; j++) {
+    p10[p01[j]] = j;
+  }
+
+  return NULL;
+}
+
+
+/*!
+  @brief parallel sorts vertices by axis simultaneously
+*/
+void s2_kdtree_sortVertices(
+  int vertexCount,
+  double* restrict vertices,
+  int** restrict p01,
+  int** restrict p10) {
+
+  /* perform selection sort for
+     x, y, z axes */
+  pthread_t threads[3];
+  sort_by_axis_t data[3];
+  for(int i = 0; i < 3; i++) {
+    data[i].vertexCount = vertexCount;
+    data[i].axis = i;
+    data[i].vertices = vertices;
+    data[i].p01 = p01[i];
+    data[i].p10 = p10[i];
+  }
+
+  for(int i = 0; i < 3; i++) {
+    pthread_create(&threads[i], NULL, sort_by_axis, (void*)&data[i]);
+  }
+
+  for(int i = 0; i < 3; i++) {
+    pthread_join(threads[i], NULL);
+  }
+}
+
+
+/*!
+@brief free memory for a s2_kdtree_t datastructure
+*/
 void s2_kdtree_free(s2_kdtree_t* kdtree) {
   if(kdtree != NULL) {
-    if(kdtree->l != NULL) {
-      free(kdtree->l);
+    if(kdtree->p != NULL) {
+      free(kdtree->p);
     }
     free(kdtree);
   }
   kdtree = NULL;
+}
+
+
+/*!
+@brief utility function to free s2_kdlists_t structure
+*/
+void s2_kdlists_free(s2_kdlists_t* lists) {
+  if(lists->nodes) {
+    free(lists->nodes[0]);
+    free(lists->nodes);
+    lists->nodes = NULL;
+  }
+  free(lists);
+  lists = NULL;
+}
+
+
+/*!
+@brief nearest neighbor search
+*/
+int s2_kdtree_nnsearch(s2_vector_t* vertex) {
+
+
+  return -1;
 }

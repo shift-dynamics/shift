@@ -1,6 +1,9 @@
 #include "../../core/factor.h"
 #include "../../core/kdtree.h"
+#include "../../core/kinematics.h"
 #include <stdio.h>
+
+
 
 int main(int argc, char** argv) {
 
@@ -29,5 +32,25 @@ int main(int argc, char** argv) {
 
   s2_kdtree_t* kdtree = s2_kdtree(10, vertices);
 
+  printf("locations: ");
+  for(int i = 0; i < 10; i++) {
+    printf("%d ", kdtree->location[i]);
+  }
+  printf("\n");
+
+  s2_vector_t point = {3.0, 4.0, 5.0};
+  double squared_distance[10];
+  for(int i = 0; i < 10; i++) {
+    squared_distance[i] =
+      (point.x - vertices[i * 3 + 0]) * (point.x - vertices[i * 3 + 0]) +
+      (point.y - vertices[i * 3 + 1]) * (point.y - vertices[i * 3 + 1]) +
+      (point.z - vertices[i * 3 + 2]) * (point.z - vertices[i * 3 + 2]);
+    printf("[%d] %f\n", i, squared_distance[i]);
+  }
+
+  int nn_index = s2_kdtree_nnsearch(&point);
+  printf("nearest neighbor index from s2_kdtree_nnsearch: %d\n", nn_index);
+
+  s2_kdtree_free(kdtree);
   return 0;
 }

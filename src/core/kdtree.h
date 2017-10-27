@@ -20,18 +20,55 @@ SUCH DAMAGE.
 #ifndef _STAR2_KDTREE_H_
 #define _STAR2_KDTREE_H_
 
+#include <stdbool.h>
+#include "kinematics.h"
+
 typedef enum {
   S2_KDTREE_FLOAT,
   S2_KDTREE_DOUBLE
 } s2_kdtree_enum_t;
 
+typedef struct s2_kdnode_t s2_kdnode_t;
+
+/*!
+@brief doubly linked list used to sort vertices
+*/
+typedef struct s2_kdnode_t {
+  int location;
+  bool isAbove;
+  s2_kdnode_t* previous;
+  s2_kdnode_t* next;
+  s2_kdnode_t* siblings[2];
+} s2_kdnode_t;
+
+/*!
+@brief contains head and tail of doubly linked kdnode list
+*/
+typedef struct s2_kdlist_t {
+  s2_kdnode_t* head[3];
+  s2_kdnode_t* tail[3];
+  int count;
+} s2_kdlist_t;
+
+
+/*!
+@brief a container to manage multiple lists
+*/
+typedef struct s2_kdlists_t {
+  s2_kdlist_t kdlist;
+  s2_kdnode_t** nodes;
+  int vertexCount;
+} s2_kdlists_t;
+
 
 typedef struct s2_kdtree_t {
   s2_kdtree_enum_t precision;
   int vertexCount;
-  int* l; /*!< left child */
+  int* p; /*!< parent child list */
+  int* l; /*!< first child */
   int* r; /*!< first sibling */
   int* axis; /*!< 0 = x, 1 = y, 2 = z */
+  int* level; /*!< depth in binary tree */
   int* location; /*!< index of median vertex */
   double* vertices; /*!< pointer to double precision vertices */
   float* verticesf; /*!< pointer to single precision vertices */
@@ -44,6 +81,6 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices);
 
 void s2_kdtree_free(s2_kdtree_t*);
 
-
+int s2_kdtree_nnsearch(s2_vector_t*);
 
 #endif
