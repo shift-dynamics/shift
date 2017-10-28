@@ -25,6 +25,7 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
+#include <limits.h>
 
 void s2_kdtree_sortVertices(
   int vertexCount,
@@ -124,11 +125,12 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
   if(kdtree->p == NULL) {
     fprintf(stderr, "failed to allocate memory for kdtree\n");
   }
-  kdtree->l = kdtree->p + vertexCount;
-  kdtree->r = kdtree->l + vertexCount;
-  kdtree->axis = kdtree->r + vertexCount;
+  kdtree->axis = kdtree->p + vertexCount;
   kdtree->level = kdtree->axis + vertexCount;
   kdtree->location = kdtree->level + vertexCount;
+  kdtree->l = kdtree->location + vertexCount;
+  kdtree->r = kdtree->l + vertexCount;
+
 
   kdtree->vertices = vertices;
   kdtree->verticesf = NULL;
@@ -572,12 +574,90 @@ void s2_kdlists_free(s2_kdlists_t* lists) {
   lists = NULL;
 }
 
+inline double s2_squareddistance(const double* restrict, const double* restrict);
+
+/*!
+@brief squared distance
+*/
+double s2_squareddistance(
+  const double* restrict point1,
+  const double* restrict point2) {
+
+  double difference[3];
+  for(register int i = 0; i < 3; i++) {
+    difference[i] = point1[i] - point2[i];
+  }
+
+  double squared_distance = 0;
+  for(register int i = 0; i < 3; i++) {
+    squared_distance += difference[i] * difference[i];
+  }
+
+  return squared_distance;
+}
+
+
+void nearest(
+  const s2_kdtree_t* restrict kdtree,
+  const int nodeIndex,
+  const double* restrict point,
+  int* closest,
+  double* minimumDistance) {
+
+  if(nodeIndex == -1) {
+    return;
+  }
+
+  const double* vertex =
+    &kdtree->vertices[kdtree->location[nodeIndex] * 3];
+  const double distance = s2_squareddistance(point, vertex);
+
+  if(distance < *minimumDistance) {
+    *minimumDistance = distance;
+    *closest = nodeIndex;
+  }
+
+  const int axis = kdtree->axis[nodeIndex];
+  const double dx = vertex[axis] - point[axis];
+  const double dx2 = dx * dx;
+
+  nearest(
+    kdtree,
+    dx > 0 ? kdtree->l[nodeIndex] : kdtree->r[nodeIndex],
+    point,
+    closest,
+    minimumDistance);
+
+  if(dx2 >= *minimumDistance) {
+    return;
+  }
+
+  nearest(
+    kdtree,
+    dx > 0 ? kdtree->r[nodeIndex] : kdtree->l[nodeIndex],
+    point,
+    closest,
+    minimumDistance);
+
+}
 
 /*!
 @brief nearest neighbor search
 */
-int s2_kdtree_nnsearch(s2_vector_t* vertex) {
+int s2_kdtree_nnsearch(
+  const s2_kdtree_t* restrict kdtree,
+  const s2_vector_t* restrict vertex,
+  double* minimumDistance) {
 
+  *minimumDistance = DBL_MAX;
+  int closest = -1;
 
-  return -1;
+  nearest(
+    kdtree,
+    0, /* root node index */
+    (double*)vertex,
+    &closest,
+    minimumDistance);
+
+  return kdtree->location[closest];
 }
