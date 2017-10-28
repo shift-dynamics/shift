@@ -65,11 +65,11 @@ typedef struct s2_kdtree_t {
   s2_kdtree_enum_t precision;
   int vertexCount;
   int* p; /*!< parent child list */
-  int* l; /*!< first child */
-  int* r; /*!< first sibling */
   int* axis; /*!< 0 = x, 1 = y, 2 = z */
   int* level; /*!< depth in binary tree */
   int* location; /*!< index of median vertex */
+  int* l; /* first child */
+  int* r; /* first sibling */
   double* vertices; /*!< pointer to double precision vertices */
   float* verticesf; /*!< pointer to single precision vertices */
 } s2_kdtree_t;
@@ -81,6 +81,9 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices);
 
 void s2_kdtree_free(s2_kdtree_t*);
 
-int s2_kdtree_nnsearch(s2_vector_t*);
+int s2_kdtree_nnsearch(
+  const s2_kdtree_t*,
+  const s2_vector_t*,
+  double* minimumDistance);
 
 #endif
