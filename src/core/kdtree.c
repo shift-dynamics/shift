@@ -185,9 +185,6 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
 
   memcpy(temp + 0, &lists->kdlist, sizeof(s2_kdlist_t));
 
-  // printf("\noriginal list:\n");
-  // kdlist_print(&temp[0], vertices);
-
   kdtree->p[0] = -1;
   kdtree->level[0] = 0;
   int j = 0;
@@ -198,18 +195,6 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
         &temp[i],
         &below,
         &above);
-
-      // printf("\n**********************\n");
-      // printf(
-      //   "\nlocation of subdivision[%d]: %d, level: %d, axis: %d\n",
-      //   i,
-      //   kdtree->location[i], kdtree->level[i], kdtree->level[i] % 3);
-      //
-      // printf("\nbelow list:\n");
-      // kdlist_print(&below, vertices);
-      //
-      // printf("\nabove list:\n");
-      // kdlist_print(&above, vertices);
 
       if(below.count > 0) {
         kdtree->p[++j] = i; /* i is current node index (i.e. parent),
@@ -574,7 +559,9 @@ void s2_kdlists_free(s2_kdlists_t* lists) {
   lists = NULL;
 }
 
+
 inline double s2_squareddistance(const double* restrict, const double* restrict);
+
 
 /*!
 @brief squared distance
@@ -614,7 +601,7 @@ void nearest(
 
   if(distance < *minimumDistance) {
     *minimumDistance = distance;
-    *closest = nodeIndex;
+    *closest = kdtree->location[nodeIndex];
   }
 
   const int axis = kdtree->axis[nodeIndex];
@@ -660,4 +647,219 @@ int s2_kdtree_nnsearch(
     minimumDistance);
 
   return kdtree->location[closest];
+}
+
+
+void nearest_within_radius(
+  const s2_kdtree_t* restrict kdtree,
+  const int nodeIndex,
+  const double* restrict point,
+  const double searchRadius2,
+  int* closest,
+  double* minimumDistance,
+  int* counter,
+  int* closestArray,
+  const int maxNearestPositions) {
+
+  if(nodeIndex == -1 || *counter >= maxNearestPositions) {
+    return;
+  }
+
+  const double* vertex =
+    &kdtree->vertices[kdtree->location[nodeIndex] * 3];
+  const double distance = s2_squareddistance(point, vertex);
+
+  if(distance < *minimumDistance) {
+    *minimumDistance = distance;
+    *closest = nodeIndex;
+  }
+
+  if(distance < searchRadius2) {
+    closestArray[(*counter)++] = kdtree->location[nodeIndex];
+  }
+
+  const int axis = kdtree->axis[nodeIndex];
+  const double dx = vertex[axis] - point[axis];
+  const double dx2 = dx * dx;
+
+  nearest_within_radius(
+    kdtree,
+    dx > 0 ? kdtree->l[nodeIndex] : kdtree->r[nodeIndex],
+    point,
+    searchRadius2,
+    closest,
+    minimumDistance,
+    counter,
+    closestArray,
+    maxNearestPositions);
+
+  if(dx2 >= searchRadius2) {
+    return;
+  }
+
+  nearest_within_radius(
+    kdtree,
+    dx > 0 ? kdtree->r[nodeIndex] : kdtree->l[nodeIndex],
+    point,
+    searchRadius2,
+    closest,
+    minimumDistance,
+    counter,
+    closestArray,
+    maxNearestPositions);
+
+}
+
+
+/*!
+@brief nearest neighbor search, find all values (up to specified number) within
+specified search radius
+*/
+int s2_kdtree_nnsearch_within_radius(
+  const s2_kdtree_t* restrict kdtree,
+  const s2_vector_t* restrict vertex,
+  double searchRadius,
+  double* minimumDistance,
+  int* nearestPositions,
+  int maxNearestPositions) {
+
+  *minimumDistance = DBL_MAX;
+  int closest = -1;
+  int counter = 0;
+  for(int i = 0; i < maxNearestPositions; i++) {
+    nearestPositions[i] = -1;
+  }
+
+  nearest_within_radius(
+    kdtree,
+    0, /* root node index */
+    (double*)vertex,
+    searchRadius * searchRadius,
+    &closest,
+    minimumDistance,
+    &counter,
+    nearestPositions,
+    maxNearestPositions);
+
+  return counter;
+}
+
+
+bool intersect_line_segment_triangle(
+  const s2_kdtree_t* restrict kdtree,
+  const int nodeIndex,
+  const double* restrict point0,
+  const double* restrict point1,
+  const double t0,
+  const double t1
+) {
+
+  return true;
+}
+
+
+void intersection_test(
+  const s2_kdtree_t* restrict kdtree,
+  const int nodeIndex,
+  const double* restrict point0,
+  const double* restrict point1,
+  const double t0,
+  const double t1,
+  bool* intersection) {
+
+  if(nodeIndex == -1) {
+    return;
+  }
+
+  if(intersect_line_segment_triangle(
+      kdtree, nodeIndex, point0, point1, t0, t1)) {
+    return;
+  }
+
+  const double* vertex =
+    &kdtree->vertices[kdtree->location[nodeIndex] * 3];
+
+  const int axis = kdtree->axis[nodeIndex];
+  const bool first = point0[axis] > vertex[axis];
+
+  if(fabs(point1[axis]) < 1e-9) {
+    /* segment parallel to splitting plane, visit near side only */
+    intersection_test(
+      kdtree,
+      first ? kdtree->l[nodeIndex] : kdtree->r[nodeIndex],
+      point0,
+      point1,
+      t0,
+      t1,
+      intersection);
+  } else {
+    /* find t value of intersection of line segment with split plane */
+    double t = vertex[axis] - point0[axis] / point1[axis];
+
+    /* test if line segment straddles split plane */
+    if(0.f <= t && t < t1) {
+
+      /* yes, traverse near side, then far side */
+      intersection_test(
+        kdtree,
+        first ? kdtree->l[nodeIndex] : kdtree->r[nodeIndex],
+        point0,
+        point1,
+        t0,
+        t1,
+        intersection);
+
+      const double point2[3] = {
+        point0[0] + t * point1[0],
+        point0[1] + t * point1[1],
+        point0[2] + t * point1[2]
+      };
+
+      intersection_test(
+        kdtree,
+        first ? kdtree->r[nodeIndex] : kdtree->l[nodeIndex],
+        point2,
+        point1,
+        t0,
+        t1 - t,
+        intersection);
+    } else {
+
+      /* no, traverse near side only */
+      intersection_test(
+        kdtree,
+        first ? kdtree->l[nodeIndex] : kdtree->r[nodeIndex],
+        point0,
+        point1,
+        t0,
+        t1,
+        intersection);
+    }
+  }
+
+  return;
+}
+
+
+/*!
+@brief determine if line segment is contained by half-spaces defined by kd tree
+*/
+bool s2_kdtree_intersection_test(
+  const s2_kdtree_t* restrict kdtree,
+  const s2_vector_t* restrict point0,
+  const s2_vector_t* restrict point1,
+  const double t0,
+  const double t1) {
+
+  bool intersection = false;
+  intersection_test(
+    kdtree,
+    0,
+    (double*)point0,
+    (double*)point1,
+    t0,
+    t1,
+    &intersection);
+
+  return intersection;
 }
