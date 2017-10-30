@@ -74,7 +74,6 @@ typedef struct s2_kdtree_t {
   float* verticesf; /*!< pointer to single precision vertices */
 } s2_kdtree_t;
 
-
 s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices);
 
 s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices);
@@ -85,5 +84,20 @@ int s2_kdtree_nnsearch(
   const s2_kdtree_t*,
   const s2_vector_t*,
   double* minimumDistance);
+
+int s2_kdtree_nnsearch_within_radius(
+  const s2_kdtree_t* restrict kdtree,
+  const s2_vector_t* restrict vertex,
+  double searchRadius,
+  double* minimumDistance,
+  int* nearestPositions,
+  int maxNearestPositions);
+
+bool s2_kdtree_intersection_test(
+  const s2_kdtree_t* restrict kdtree,
+  const s2_vector_t* restrict point0,
+  const s2_vector_t* restrict point1,
+  const double t0,
+  const double t1);
 
 #endif
