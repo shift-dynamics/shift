@@ -64,19 +64,23 @@ typedef struct s2_kdlists_t {
 typedef struct s2_kdtree_t {
   s2_kdtree_enum_t precision;
   int vertexCount;
+  int faceCount;
   int* p; /*!< parent child list */
   int* axis; /*!< 0 = x, 1 = y, 2 = z */
   int* level; /*!< depth in binary tree */
-  int* location; /*!< index of median vertex */
+  int* vertexLocation; /*!< index of median vertex */
+  int* faceLocation; /*!< index of triangle patch that vertex is a member of */
+  bool* visited; /*!< indicates whether triangle patch has been visited */
   int* l; /* first child */
   int* r; /* first sibling */
   double* vertices; /*!< pointer to double precision vertices */
   float* verticesf; /*!< pointer to single precision vertices */
+  int* faces; /*!< pointer to faces */
 } s2_kdtree_t;
 
 s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices);
 
-s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices);
+s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices, int faceCount, int* faces);
 
 void s2_kdtree_free(s2_kdtree_t*);
 
@@ -97,7 +101,7 @@ bool s2_kdtree_intersection_test(
   const s2_kdtree_t* restrict kdtree,
   const s2_vector_t* restrict point0,
   const s2_vector_t* restrict point1,
-  const double t0,
-  const double t1);
+  const double t1,
+  double* restrict intersectionPoint);
 
 #endif
