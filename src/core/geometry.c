@@ -190,11 +190,6 @@ int s2_loadBodyGeometry(
       body->materials[i].GLuniforms.Ka[3] = 1.0;
     }
 
-    /*! @todo track down why some colors are loaded in as zero from
-    assimp library
-
-    */
-
     struct aiColor4D specular;
     ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular);
     if(ret1 == AI_SUCCESS) {

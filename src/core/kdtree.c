@@ -33,13 +33,16 @@ void s2_kdtree_sortVertices(
   int** p01,
   int** p10);
 
+
 s2_kdlists_t* s2_kdlists(
   int vertexCount,
   double* vertices,
   int** p01,
   int** p10);
 
+
 void s2_kdlists_free(s2_kdlists_t*);
+
 
 s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices) {
   s2_kdtree_t* kdtree = malloc(sizeof(s2_kdtree_t));
@@ -48,21 +51,24 @@ s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices) {
   kdtree->l = calloc(4 * vertexCount, sizeof(int));
   kdtree->r = kdtree->l + vertexCount;
   kdtree->axis = kdtree->l + 2 * vertexCount;
-  kdtree->location = kdtree->l + 3 * vertexCount;
+  kdtree->vertexLocation = kdtree->l + 3 * vertexCount;
   kdtree->verticesf = vertices;
   kdtree->vertices = NULL;
   return kdtree;
 }
+
 
 void kdnode_append(
   s2_kdlist_t* list,
   s2_kdnode_t* node,
   int axis);
 
+
 void kdnode_remove(
   s2_kdlist_t* list,
   s2_kdnode_t* node,
   int axis);
+
 
 int kdnode_subdivide(
   int axis,
@@ -116,24 +122,37 @@ void kdlist_print(s2_kdlist_t* kdlist, double* vertices) {
 }
 
 
-s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
+s2_kdtree_t* s2_kdtree(
+  int vertexCount,
+  double* vertices,
+  int faceCount,
+  int* faces) {
+
   s2_kdtree_t* kdtree = malloc(sizeof(s2_kdtree_t));
   kdtree->vertexCount = vertexCount;
+  kdtree->faceCount = faceCount;
   kdtree->precision = S2_KDTREE_FLOAT;
   kdtree->p = NULL;
-  kdtree->p = calloc(6 * vertexCount, sizeof(int));
+  kdtree->p = calloc(7 * vertexCount, sizeof(int));
   if(kdtree->p == NULL) {
     fprintf(stderr, "failed to allocate memory for kdtree\n");
   }
   kdtree->axis = kdtree->p + vertexCount;
   kdtree->level = kdtree->axis + vertexCount;
-  kdtree->location = kdtree->level + vertexCount;
-  kdtree->l = kdtree->location + vertexCount;
+  kdtree->vertexLocation = kdtree->level + vertexCount;
+  kdtree->faceLocation = kdtree->vertexLocation + vertexCount;
+  kdtree->l = kdtree->faceLocation + vertexCount;
   kdtree->r = kdtree->l + vertexCount;
-
 
   kdtree->vertices = vertices;
   kdtree->verticesf = NULL;
+
+  kdtree->faces = faces;
+  if(faces != NULL) {
+    kdtree->visited = calloc(faceCount, sizeof(bool));
+  } else {
+    kdtree->visited = NULL;
+  }
 
   int** p01 = NULL;
   int** p10 = NULL;
@@ -190,7 +209,7 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
   int j = 0;
   for(int i = 0; i < vertexCount; i++) {
     if(temp[i].count > 1) {
-      kdtree->location[i] = kdnode_subdivide(
+      kdtree->vertexLocation[i] = kdnode_subdivide(
         kdtree->level[i],
         &temp[i],
         &below,
@@ -215,7 +234,7 @@ s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices) {
         kdtree->r[i] = -1;
       }
     } else {
-      kdtree->location[i] = temp[i].head[0]->location;
+      kdtree->vertexLocation[i] = temp[i].head[0]->location;
       kdtree->l[i] = -1;
       kdtree->r[i] = -1;
     }
@@ -540,6 +559,9 @@ void s2_kdtree_free(s2_kdtree_t* kdtree) {
     if(kdtree->p != NULL) {
       free(kdtree->p);
     }
+    if(kdtree->visited != NULL) {
+      free(kdtree->visited);
+    }
     free(kdtree);
   }
   kdtree = NULL;
@@ -596,12 +618,12 @@ void nearest(
   }
 
   const double* vertex =
-    &kdtree->vertices[kdtree->location[nodeIndex] * 3];
+    &kdtree->vertices[kdtree->vertexLocation[nodeIndex] * 3];
   const double distance = s2_squareddistance(point, vertex);
 
   if(distance < *minimumDistance) {
     *minimumDistance = distance;
-    *closest = kdtree->location[nodeIndex];
+    *closest = kdtree->vertexLocation[nodeIndex];
   }
 
   const int axis = kdtree->axis[nodeIndex];
@@ -646,7 +668,7 @@ int s2_kdtree_nnsearch(
     &closest,
     minimumDistance);
 
-  return kdtree->location[closest];
+  return kdtree->vertexLocation[closest];
 }
 
 
@@ -666,7 +688,7 @@ void nearest_within_radius(
   }
 
   const double* vertex =
-    &kdtree->vertices[kdtree->location[nodeIndex] * 3];
+    &kdtree->vertices[kdtree->vertexLocation[nodeIndex] * 3];
   const double distance = s2_squareddistance(point, vertex);
 
   if(distance < *minimumDistance) {
@@ -675,7 +697,7 @@ void nearest_within_radius(
   }
 
   if(distance < searchRadius2) {
-    closestArray[(*counter)++] = kdtree->location[nodeIndex];
+    closestArray[(*counter)++] = kdtree->vertexLocation[nodeIndex];
   }
 
   const int axis = kdtree->axis[nodeIndex];
@@ -745,15 +767,72 @@ int s2_kdtree_nnsearch_within_radius(
 }
 
 
+/*!
+@brief basic primitive intersection test of line segment and triangle
+*/
 bool intersect_line_segment_triangle(
-  const s2_kdtree_t* restrict kdtree,
-  const int nodeIndex,
   const double* restrict point0,
   const double* restrict point1,
-  const double t0,
-  const double t1
-) {
+  const double* restrict a,
+  const double* restrict b,
+  const double* restrict c,
+  double* intersection) {
 
+  s2_vector_t ab;
+  s2_vector_t ac;
+  s2_vector_t qp;
+
+  s2_subtract_vv((s2_vector_t*)b, (s2_vector_t*)a, &ab);
+  s2_subtract_vv((s2_vector_t*)c, (s2_vector_t*)a, &ac);
+  s2_subtract_vv((s2_vector_t*)point0, (s2_vector_t*)point1, &qp);
+
+  /* compute triangle normal. Could be precomputed or cached */
+  s2_vector_t n;
+  s2_cross_vv(&ab, &ac, &n);
+
+  /* compute denominator d. If d<= 0, segment is parallel or points
+  away from triangle, so exit early */
+  double d = s2_dot_vv(&qp, &n);
+  if(d <= 0.f) {
+    return false;
+  }
+
+  /* compute intersection value t of segment and triangle */
+  s2_vector_t ap;
+  s2_subtract_vv((s2_vector_t*)point0, (s2_vector_t*)a, &ap);
+  double t = s2_dot_vv(&ap, &n);
+  if(t < 0.0f) {
+    return false;
+  }
+  if(t > d) {
+    return false;
+  }
+
+  /* Compute barycentric coordinates */
+  s2_vector_t e;
+  s2_cross_vv(&qp, &ap, &e);
+  double v = s2_dot_vv(&ac, &e);
+  if(v < 0.0f || v> d) {
+    return false;
+  }
+
+  double w = -s2_dot_vv(&ab, &e);
+  if(w < 0.0f || v + w > d) {
+    return false;
+  }
+
+  double temp = 1.0f / d;
+  // t *= temp;
+  v *= temp;
+  w *= temp;
+  double u = 1.0f - v - w;
+
+  memset(intersection, 0, 3 * sizeof(double));
+  for(int i = 0; i < 3; i++) {
+    intersection[i] += u * a[i];
+    intersection[i] += v * b[i];
+    intersection[i] += w * c[i];
+  }
   return true;
 }
 
@@ -763,7 +842,6 @@ void intersection_test(
   const int nodeIndex,
   const double* restrict point0,
   const double* restrict point1,
-  const double t0,
   const double t1,
   bool* intersection) {
 
@@ -771,13 +849,20 @@ void intersection_test(
     return;
   }
 
-  if(intersect_line_segment_triangle(
-      kdtree, nodeIndex, point0, point1, t0, t1)) {
+  /* store triangle face indices in kdtree, retrieve triangle vertices a, b, and c */
+  double* a;
+  double* b;
+  double* c;
+  double intersectionPoint[3];
+
+  if(
+    intersect_line_segment_triangle(
+      point0, point1, a, b, c, intersectionPoint)) {
     return;
   }
 
   const double* vertex =
-    &kdtree->vertices[kdtree->location[nodeIndex] * 3];
+    &kdtree->vertices[kdtree->vertexLocation[nodeIndex] * 3];
 
   const int axis = kdtree->axis[nodeIndex];
   const bool first = point0[axis] > vertex[axis];
@@ -789,7 +874,6 @@ void intersection_test(
       first ? kdtree->l[nodeIndex] : kdtree->r[nodeIndex],
       point0,
       point1,
-      t0,
       t1,
       intersection);
   } else {
@@ -805,7 +889,6 @@ void intersection_test(
         first ? kdtree->l[nodeIndex] : kdtree->r[nodeIndex],
         point0,
         point1,
-        t0,
         t1,
         intersection);
 
@@ -820,7 +903,6 @@ void intersection_test(
         first ? kdtree->r[nodeIndex] : kdtree->l[nodeIndex],
         point2,
         point1,
-        t0,
         t1 - t,
         intersection);
     } else {
@@ -831,7 +913,6 @@ void intersection_test(
         first ? kdtree->l[nodeIndex] : kdtree->r[nodeIndex],
         point0,
         point1,
-        t0,
         t1,
         intersection);
     }
@@ -848,8 +929,8 @@ bool s2_kdtree_intersection_test(
   const s2_kdtree_t* restrict kdtree,
   const s2_vector_t* restrict point0,
   const s2_vector_t* restrict point1,
-  const double t0,
-  const double t1) {
+  const double t1,
+  double* restrict intersectionPoint) {
 
   bool intersection = false;
   intersection_test(
@@ -857,7 +938,6 @@ bool s2_kdtree_intersection_test(
     0,
     (double*)point0,
     (double*)point1,
-    t0,
     t1,
     &intersection);
 

@@ -1,13 +1,11 @@
 cmake_minimum_required(VERSION 2.8.11)
-project(elevationmap_test)
+project(kdtree_test)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(cblas REQUIRED)
 find_package(Threads REQUIRED)
-add_executable(kdtree_test kdtree_test.c)
-target_link_libraries(
-  kdtree_test
-  ${CBLAS_LIBRARIES})
+add_executable(kdtree_nntest kdtree_nntest.c)
+add_executable(kdtree_raytest kdtree_raytest.c)
 include_directories(
   ${CBLAS_INCLUDE_DIRS})
 add_definitions(-ggdb)
@@ -17,6 +15,9 @@ include_directories(../../core)
 add_library(factor STATIC ../../core/factor.c)
 add_library(kdtree STATIC ../../core/kdtree.c)
 add_library(kinematics STATIC ../../core/kinematics.c)
+add_library(geometry STATIC ../../core/geometry.c)
 add_definitions(-ggdb)
 add_definitions(-O3)
-target_link_libraries(kdtree_test ${M_LIB} kdtree factor kinematics Threads::Threads)
+add_definitions(-D_GNU_SOURCE=1)
+target_link_libraries(kdtree_nntest ${M_LIB} kdtree factor kinematics Threads::Threads ${CBLAS_LIBRARIES})
+target_link_libraries(kdtree_raytest ${M_LIB} kdtree factor kinematics Threads::Threads geometry ${CBLAS_LIBRARIES})
