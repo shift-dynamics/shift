@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   //     vertices[i * 3 + 2]);
   // }
   printf("generating kdtree with %d vertices\n", vertexCount);
-  s2_kdtree_t* kdtree = s2_kdtree(vertexCount, vertices);
+  s2_kdtree_t* kdtree = s2_kdtree(vertexCount, vertices, 0, NULL);
 
   // printf("locations: ");
   // for(int i = 0; i < vertexCount; i++) {
