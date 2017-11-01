@@ -69,7 +69,6 @@ typedef struct s2_kdtree_t {
   int* axis; /*!< 0 = x, 1 = y, 2 = z */
   int* level; /*!< depth in binary tree */
   int* vertexLocation; /*!< index of median vertex */
-  int* faceLocation; /*!< index of triangle patch that vertex is a member of */
   bool* visited; /*!< indicates whether triangle patch has been visited */
   int* l; /* first child */
   int* r; /* first sibling */
@@ -80,7 +79,7 @@ typedef struct s2_kdtree_t {
 
 s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices);
 
-s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices, int faceCount, int* faces);
+s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices);
 
 void s2_kdtree_free(s2_kdtree_t*);
 
