@@ -122,16 +122,16 @@ void kdlist_print(s2_kdlist_t* kdlist, double* vertices) {
 }
 
 
+/*!
+@brief constructor for double precision s2_kdtree_t datastructure
+*/
 s2_kdtree_t* s2_kdtree(
   int vertexCount,
-  double* vertices,
-  int faceCount,
-  int* faces) {
+  double* vertices) {
 
   s2_kdtree_t* kdtree = malloc(sizeof(s2_kdtree_t));
   kdtree->vertexCount = vertexCount;
-  kdtree->faceCount = faceCount;
-  kdtree->precision = S2_KDTREE_FLOAT;
+  kdtree->precision = S2_KDTREE_DOUBLE;
   kdtree->p = NULL;
   kdtree->p = calloc(7 * vertexCount, sizeof(int));
   if(kdtree->p == NULL) {
@@ -140,19 +140,11 @@ s2_kdtree_t* s2_kdtree(
   kdtree->axis = kdtree->p + vertexCount;
   kdtree->level = kdtree->axis + vertexCount;
   kdtree->vertexLocation = kdtree->level + vertexCount;
-  kdtree->faceLocation = kdtree->vertexLocation + vertexCount;
-  kdtree->l = kdtree->faceLocation + vertexCount;
+  kdtree->l = kdtree->vertexLocation + vertexCount;
   kdtree->r = kdtree->l + vertexCount;
 
   kdtree->vertices = vertices;
   kdtree->verticesf = NULL;
-
-  kdtree->faces = faces;
-  if(faces != NULL) {
-    kdtree->visited = calloc(faceCount, sizeof(bool));
-  } else {
-    kdtree->visited = NULL;
-  }
 
   int** p01 = NULL;
   int** p10 = NULL;
@@ -323,7 +315,7 @@ s2_kdlists_t* s2_kdlists(
 
 
 /*!
-
+@brief append node to end of double linked kdlist
 */
 void kdnode_append(
   s2_kdlist_t* list,
@@ -375,7 +367,7 @@ void kdnode_remove(
 
 
 /*!
-@brief remove kdnode
+@brief subdivides kdlist, removes kdnode at median of specified axis where axis = level % 3
 
 */
 int kdnode_subdivide(
@@ -521,7 +513,7 @@ void* sort_by_axis(void* void_ptr) {
 
 
 /*!
-  @brief parallel sorts vertices by axis simultaneously
+  @brief parallel sorts vertices by x, y, and z axes simultaneously
 */
 void s2_kdtree_sortVertices(
   int vertexCount,
