@@ -10,5 +10,5 @@ layout (location = 1) in vec3 normal_a;
 uniform mat4 mvp_u;
 
 void main() {
- gl_Position = mvp_u * position_a;
+  gl_Position = mvp_u * position_a;
 }
