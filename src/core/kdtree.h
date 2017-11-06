@@ -21,6 +21,7 @@ SUCH DAMAGE.
 #define _STAR2_KDTREE_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "kinematics.h"
 
 typedef enum {
@@ -28,65 +29,57 @@ typedef enum {
   S2_KDTREE_DOUBLE
 } s2_kdtree_enum_t;
 
-typedef struct s2_kdnode_t s2_kdnode_t;
 
-/*!
-@brief doubly linked list used to sort vertices
-*/
 typedef struct s2_kdnode_t {
-  int location;
-  bool isAbove;
-  s2_kdnode_t* previous;
-  s2_kdnode_t* next;
-  s2_kdnode_t* siblings[2];
+  double splitValue;
+  int8_t splitAxis;
+  uint32_t children[2];
+  uint32_t vertexCount;
+  uint32_t faceCount;
+  int* vertexLocations;
+  int* faceLocations;
 } s2_kdnode_t;
-
-/*!
-@brief contains head and tail of doubly linked kdnode list
-*/
-typedef struct s2_kdlist_t {
-  s2_kdnode_t* head[3];
-  s2_kdnode_t* tail[3];
-  int count;
-} s2_kdlist_t;
-
-
-/*!
-@brief a container to manage multiple lists
-*/
-typedef struct s2_kdlists_t {
-  s2_kdlist_t kdlist;
-  s2_kdnode_t** nodes;
-  int vertexCount;
-} s2_kdlists_t;
 
 
 typedef struct s2_kdtree_t {
   s2_kdtree_enum_t precision;
   int vertexCount;
   int faceCount;
-  int* p; /*!< parent child list */
-  int* axis; /*!< 0 = x, 1 = y, 2 = z */
-  int* level; /*!< depth in binary tree */
-  int* vertexLocation; /*!< index of median vertex */
-  bool* visited; /*!< indicates whether triangle patch has been visited */
-  int* l; /* first child */
-  int* r; /* first sibling */
+  int nodeCount;
+  s2_kdnode_t* kdnodes;
   double* vertices; /*!< pointer to double precision vertices */
   float* verticesf; /*!< pointer to single precision vertices */
   int* faces; /*!< pointer to faces */
+  int* vertexLocations;
+  int* faceLocations;
+  bool* visited;
 } s2_kdtree_t;
 
-s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices);
 
-s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices);
+s2_kdtree_t* s2_kdtreef(
+  int vertexCount,
+  float* vertices,
+  int faceCount,
+  int* faces,
+  uint32_t binSize);
+
+
+s2_kdtree_t* s2_kdtree(
+  int vertexCount,
+  double* vertices,
+  int faceCount,
+  int* faces,
+  uint32_t binSize);
+
 
 void s2_kdtree_free(s2_kdtree_t*);
+
 
 int s2_kdtree_nnsearch(
   const s2_kdtree_t*,
   const s2_vector_t*,
   double* minimumDistance);
+
 
 int s2_kdtree_nnsearch_within_radius(
   const s2_kdtree_t* restrict kdtree,
@@ -95,6 +88,7 @@ int s2_kdtree_nnsearch_within_radius(
   double* minimumDistance,
   int* nearestPositions,
   int maxNearestPositions);
+
 
 bool s2_kdtree_intersection_test(
   const s2_kdtree_t* restrict kdtree,

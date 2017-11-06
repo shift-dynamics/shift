@@ -33,9 +33,9 @@
     <file alias="line.vert">shaders/line.vert</file>
   </qresource>
 
-  <qresource prefix="/about">
-    <file alias="license.html">about/license.html</file>
-    <file alias="about.html">about/about.html</file>
+  <qresource prefix="/html">
+    <file alias="license.html">html/license.html</file>
+    <file alias="about.html">html/about.html</file>
   </qresource>
 
   <qresource prefix="/icons">
