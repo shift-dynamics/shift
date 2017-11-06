@@ -1,0 +1,26 @@
+<RCC>
+    <qresource prefix="/shader">
+        <file alias="simple.frag">shader/simple.frag</file>
+        <file alias="simple.vert">shader/simple.vert</file>
+        
+        <file alias="phong.frag">shader/phong.frag</file>
+        <file alias="phong.vert">shader/phong.vert</file>
+        
+        <file alias="sprite.frag">shader/sprite.frag</file>
+        <file alias="sprite.vert">shader/sprite.vert</file>
+        
+        <file alias="sphere_normal_map.png">shader/sphere_normal_map.png</file>
+        <file alias="sphere.png">shader/sphere.png</file>
+    </qresource>
+
+    <qresource prefix="/about">
+        <file alias="about.md">about/about.md</file>
+        <file alias="controls.md">about/controls.md</file>
+    </qresource>
+
+      <qresource prefix="/scene">
+        <file alias="fulldepth0.png">scene/fulldepth0.png</file>
+        <file alias="depth0.png">scene/depth0.png</file>
+        <file alias="rgb0.png">scene/rgb0.png</file>
+    </qresource>  
+</RCC>

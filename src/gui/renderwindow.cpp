@@ -260,6 +260,22 @@ QString RenderWindow::getCursorPositionText() {
 
 
 /*!
+@brief set background color of viewport
+*/
+void RenderWindow::setBackgroundColor(
+  float red,
+  float green,
+  float blue) {
+
+  m_backgroundColor[0] = float(red);
+  m_backgroundColor[1] = float(green);
+  m_backgroundColor[2] = float(blue);
+
+}
+
+
+
+/*!
 @brief converts double precision s2_displacement_t to floating point precision QMatrix4x4
 */
 QMatrix4x4 s2_displacementToQMatrix4x4(

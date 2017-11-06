@@ -1,49 +1,49 @@
 cmake_minimum_required(VERSION 2.8.11)
-project( star2 )
-message( ${CMAKE_C_COMPILER} )
-message( ${CMAKE_CXX_COMPILER} )
+project(star2)
+message(${CMAKE_C_COMPILER})
+message(${CMAKE_CXX_COMPILER})
 
 # set( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} cmake )
-set( VERSION_MAJOR   2  CACHE STRING "Project major version number." )
-set( VERSION_MINOR   0  CACHE STRING "Project minor version number." )
-set( VERSION_PATCH   0  CACHE STRING "Project patch version number." )
+set(VERSION_MAJOR 2 CACHE STRING "Project major version number.")
+set(VERSION_MINOR 0 CACHE STRING "Project minor version number.")
+set(VERSION_PATCH 0 CACHE STRING "Project patch version number.")
 mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
 
 ## find Jansson and math libraries ##
-list( INSERT CMAKE_MODULE_PATH 0 "${star2_SOURCE_DIR}/cmake" )
+list(INSERT CMAKE_MODULE_PATH 0 "${star2_SOURCE_DIR}/cmake")
 if(APPLE)
   list(APPEND CMAKE_MODULE_PATH "/usr/local/Cellar/qt5/5.7.0/lib/cmake/Qt5Core")
 endif(APPLE)
-find_package( jansson REQUIRED )
-find_package( cblas REQUIRED )
-find_library( M_LIB m REQUIRED )
-find_package( graphviz REQUIRED )
-find_library( stdc++ REQUIRED )
-find_package( assimp REQUIRED )
-find_package( Qhull REQUIRED )
-find_package( ImageMagick REQUIRED )
-find_package( ImageMagick COMPONENTS MagickWand REQUIRED )
+find_package(jansson REQUIRED)
+find_package(cblas REQUIRED)
+find_library(M_LIB m REQUIRED)
+find_package(graphviz REQUIRED)
+find_library(stdc++ REQUIRED)
+find_package(assimp REQUIRED)
+find_package(Qhull REQUIRED)
+find_package(ImageMagick REQUIRED)
+find_package(ImageMagick COMPONENTS MagickWand REQUIRED)
 
 
-set( LIBS
-    ${ASSIMP_LIBRARIES}
-    ${GRAPHVIZ_GVC_LIBRARY}
-    ${GRAPHVIZ_CGRAPH_LIBRARY}
-    ${LIBS}
-    ${JANSSON_LIBRARIES}
-    ${M_LIB}
-    ${CBLAS_LIBRARIES}
-    ${ImageMagick_LIBRARIES}
-    ${ImageMagick_MagickWand_LIBRARIES}
-    ${QHULL_LIBRARIES})
-message( "using libraries: " ${LIBS} )
-message( "qhull: " ${QHULL_LIBRARIES})
+set(LIBS
+  ${ASSIMP_LIBRARIES}
+  ${GRAPHVIZ_GVC_LIBRARY}
+  ${GRAPHVIZ_CGRAPH_LIBRARY}
+  ${LIBS}
+  ${JANSSON_LIBRARIES}
+  ${M_LIB}
+  ${CBLAS_LIBRARIES}
+  ${ImageMagick_LIBRARIES}
+  ${ImageMagick_MagickWand_LIBRARIES}
+  ${QHULL_LIBRARIES})
+message("using libraries: " ${LIBS})
+message("qhull: " ${QHULL_LIBRARIES})
 
 # find_library( LAPACK lapack)
 # find_library( PTHREAD pthread )
 
 ## set output directory ##
-set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/ )
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/)
 
 add_definitions(-ggdb)
 add_definitions(-std=c11)
@@ -64,23 +64,23 @@ add_definitions(-DMAGICKCORE_HDRI_ENABLE=1)
 add_definitions(-DMAGICKCORE_QUANTUM_DEPTH=16)
 
 if(APPLE)
-    add_definitions(-framework accelerate)
+  add_definitions(-framework accelerate)
 endif(APPLE)
 message(${GRAPHVIZ_GVC_LIBRARY} ${GRAPHVIZ_CGRAPH_LIBRARY})
 # message(${GRAPHVIZ_INCLUDE_DIR})
 
 include_directories(
-    ${GRAPHVIZ_INCLUDE_DIR}
-    ${JANSSON_INCLUDE_DIRS}
-    ${CBLAS_INCLUDE_DIRS}
-    ${star2_SOURCE_DIR}/src/core
-    ${star2_SOURCE_DIR}/src/ode
-    ${star2_SOURCE_DIR}/src/gui
-    ${star2_SOURCE_DIR}/src
-    ${ASSIMP_INCLUDE_DIRS}
-    ${ImageMagick_INCLUDE_DIRS}
-    ${ImageMagick_MagickWand_INCLUDE_DIRS}
-    ${QHULL_INCLUDE_DIRS}
+  ${GRAPHVIZ_INCLUDE_DIR}
+  ${JANSSON_INCLUDE_DIRS}
+  ${CBLAS_INCLUDE_DIRS}
+  ${star2_SOURCE_DIR}/src/core
+  ${star2_SOURCE_DIR}/src/ode
+  ${star2_SOURCE_DIR}/src/gui
+  ${star2_SOURCE_DIR}/src
+  ${ASSIMP_INCLUDE_DIRS}
+  ${ImageMagick_INCLUDE_DIRS}
+  ${ImageMagick_MagickWand_INCLUDE_DIRS}
+  ${QHULL_INCLUDE_DIRS}
 )
 
 add_library(ksl STATIC
@@ -90,7 +90,6 @@ add_library(ksl STATIC
 add_library(bksl STATIC
   ${star2_SOURCE_DIR}/src/ksl/bksl.c
 )
-
 
 ### build static library ###
 add_library(star2_lib STATIC
