@@ -1,0 +1,65 @@
+<RCC>
+  <qresource prefix="/shaders">
+    <file alias="frame.frag">../../../gui/shaders/frame.frag</file>
+    <file alias="frame.vert">../../../gui/shaders/frame.vert</file>
+
+    <file alias="simple.frag">../../../gui/shaders/simple.frag</file>
+    <file alias="simple.vert">../../../gui/shaders/simple.vert</file>
+
+    <file alias="flat.frag">../../../gui/shaders/flat.frag</file>
+    <file alias="flat.geom">../../../gui/shaders/flat.geom</file>
+    <file alias="flat.vert">../../../gui/shaders/flat.vert</file>
+
+    <file alias="gouraud.frag">../../../gui/shaders/gouraud.frag</file>
+    <file alias="gouraud.vert">../../../gui/shaders/gouraud.vert</file>
+
+    <file alias="phong.frag">../../../gui/shaders/phong.frag</file>
+    <file alias="phong.vert">../../../gui/shaders/phong.vert</file>
+
+    <file alias="terrain.frag">../../../gui/shaders/terrain.frag</file>
+    <file alias="terrain.tesc">../../../gui/shaders/terrain.tesc</file>
+    <file alias="terrain.tese">../../../gui/shaders/terrain.tese</file>
+    <file alias="terrain.vert">../../../gui/shaders/terrain.vert</file>
+
+    <file alias="shadow_light.frag">../../../gui/shaders/shadow_light.frag</file>
+    <file alias="shadow_light.vert">../../../gui/shaders/shadow_light.vert</file>
+
+    <file alias="terrain_shadow.frag">../../../gui/shaders/terrain_shadow.frag</file>
+    <file alias="terrain_shadow.tesc">../../../gui/shaders/terrain_shadow.tesc</file>
+    <file alias="terrain_shadow.tese">../../../gui/shaders/terrain_shadow.tese</file>
+    <file alias="terrain_shadow.vert">../../../gui/shaders/terrain_shadow.vert</file>
+
+    <file alias="line.frag">../../../gui/shaders/line.frag</file>
+    <file alias="line.vert">../../../gui/shaders/line.vert</file>
+  </qresource>
+
+  <qresource prefix="/html">
+    <file alias="license.html">../../../gui/html/license.html</file>
+    <file alias="about.html">../../../gui/html/about.html</file>
+  </qresource>
+
+  <qresource prefix="/icons">
+    <file alias="assembly.png">../../../gui/icons/assembly.png</file>
+    <file alias="body.png">../../../gui/icons/body.png</file>
+    <file alias="camera.png">../../../gui/icons/camera.png</file>
+    <file alias="device.png">../../../gui/icons/device.png</file>
+    <file alias="frame.png">../../../gui/icons/frame.png</file>
+    <file alias="joint.png">../../../gui/icons/joint.png</file>
+    <file alias="light.png">../../../gui/icons/light.png</file>
+    <file alias="restraint.png">../../../gui/icons/restraint.png</file>
+    <file alias="scene.png">../../../gui/icons/scene.png</file>
+    <file alias="clapper.png">../../../gui/icons/clapper.png</file>
+    <file alias="anchor.png">../../../gui/icons/anchor.png</file>
+
+    <file alias="body_dark.png">../../../gui/icons/body_dark.png</file>
+    <file alias="camera_dark.png">../../../gui/icons/camera_dark.png</file>
+    <file alias="device_dark.png">../../../gui/icons/device_dark.png</file>
+    <file alias="frame_dark.png">../../../gui/icons/frame_dark.png</file>
+    <file alias="joint_dark.png">../../../gui/icons/joint_dark.png</file>
+    <file alias="light_dark.png">../../../gui/icons/light_dark.png</file>
+    <file alias="restraint_dark.png">../../../gui/icons/restraint_dark.png</file>
+
+    <file alias="play_button.png">../../../gui/icons/play_button.png</file>
+    <file alias="pause_button.png">../../../gui/icons/pause_button.png</file>
+  </qresource>
+</RCC>
