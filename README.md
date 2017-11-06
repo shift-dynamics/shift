@@ -85,10 +85,7 @@ Optional - documentation can be copied to your /share/doc folder by issuing the
 command:
 
     make install
-
-Alternatively, refer [here](<http://viper.ahmct.ucdavis.edu/static/doxygen/>)
-for the latest Doxygen generated documentation. You will need to be issued a
-username and password to view this content.
+    
 
 ## About
 
