@@ -159,6 +159,10 @@ public slots:
       m_cameraMode = S2_CAMERA_INTERACTION_TURNTABLE;
     }
   }
+  void setBackgroundColor(
+    float red,
+    float green,
+    float blue);
 
 signals:
   void mouseLeftPressEvent();

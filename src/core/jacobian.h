@@ -40,7 +40,7 @@ void s2_jacobian_setPO2_substructure(
 int s2_jacobian_factorPO2(
   s2_context_t* context);
 
-int s2_jacobian_factorPO2_substructure(
+void s2_jacobian_factorPO2_substructure(
   s2_substructure_t* substructure);
 
 void s2_jacobian_setPO1(
