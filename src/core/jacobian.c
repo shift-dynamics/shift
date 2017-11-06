@@ -1875,7 +1875,7 @@ void s2_jacobian_setPO2_substructure(
 @brief wrapper function for s2_factor_LU to evaluate the jacobian
 for a substructure that has been evaluated in PO2 order
 */
-int s2_jacobian_factorPO2_substructure(
+void s2_jacobian_factorPO2_substructure(
   s2_substructure_t* substructure) {
 
   return s2_factor_LU(
