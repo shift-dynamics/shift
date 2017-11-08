@@ -1,6 +1,6 @@
 #version 330
 
-uniform mat4 mvp, mv;
+/* point_simple.frag */
 
 in vec4 color;
 
