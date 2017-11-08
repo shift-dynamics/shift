@@ -1,5 +1,5 @@
-#ifndef _STAR2_PHONGSHADERPROGRAM_HPP_
-#define _STAR2_PHONGSHADERPROGRAM_HPP_
+#ifndef _STAR2_POINTCLOUDSHADERPROGRAM_HPP_
+#define _STAR2_POINTCLOUDSHADERPROGRAM_HPP_
 
 #include "../star2.h"
 #include "openglwindow.hpp"
@@ -34,30 +34,38 @@ class QOpenGLVertexArrayObject;
 class RenderWindow;
 class s2_Lights;
 
+enum s2_pointshader_enumt_t {
+  S2_POINTSHADER_PHONG,
+  S2_POINTSHADER_SIMPLE,
+  S2_POINTSHADER_SPRITE
+};
 
-class PhongShaderProgram : public ShaderProgram {
+
+class PointCloudShaderProgram {
 
   Q_OBJECT
 
 public:
-  PhongShaderProgram(RenderWindow* renderWindow)
-  : ShaderProgram(renderWindow) {
+  PointCloudShaderProgram(RenderWindow* renderWindow)
+  : m_initialized(false)
+  , m_phongShader(NULL)
+  , m_simpleShader(NULL)
+  , m_spriteShader(NULL)
+  , m_shaderType(S2_POINTSHADER_SIMPLE) {
+    m_renderWindow = renderWindow;
     initialize();
   };
 
-  ~PhongShaderProgram() {};
+  ~PointCloudShaderProgram() {};
 
   void initialize();
   void draw();
   void setTransform(s2_displacement_t*);
   void setMaterial(s2_material_t*);
   void setLights(s2_Lights*);
-  GLint getPositionAttribute() {
-    return m_position_a;
-  };
-  GLint getNormalAttribute() {
-    return m_normal_a;
-  };
+
+  GLint getPositionAttribute();
+  GLint getColorAttribute();
   void bindDepthBuffer();
 
 signals:
@@ -68,33 +76,56 @@ protected:
 
 private:
 
-  GLint m_matrices_u;
-  GLint m_matrices_mvp_u;
-  GLint m_matrices_mv_u;
-  GLint m_matrices_v_u;
-  GLint m_matrices_nm_u;
+  bool m_initialized;
+  RenderWindow* m_renderWindow;
+  ShaderProgram* m_phongShader;
+  ShaderProgram* m_simpleShader;
+  ShaderProgram* m_spriteShader;
+  s2_pointshader_enumt_t m_shaderType;
 
-  GLint m_material_u;
-  GLint m_material_Ka_u;
-  GLint m_material_Kd_u;
-  GLint m_material_Ks_u;
-  GLint m_material_Ke_u;
-  GLint m_material_Ns_u;
+  QOpenGLTexture* m_texture_normal;
+  QOpenGLTexture* m_texture_sprite;
 
-  GLint m_lights_u;
-  GLint m_lights_position_u;
-  GLint m_lights_Ka_u;
-  GLint m_lights_Kd_u;
-  GLint m_lights_Ks_u;
-  GLint m_lights_directional_u;
-  GLint m_lights_count_u;
-  GLint m_lights_drawShadows_u;
-  GLint m_lights_shadowMatrix_u;
+  void initializePhongShaderProgram();
+  void initializeSimpleShaderProgram();
+  void initializeSpriteShaderProgram();
 
-  GLint m_texture_shadow_u;
+  struct phongUniforms {
+    GLint m_matrices_mvp_u;
+    GLint m_matrices_mv_u;
+    GLint m_matrices_v_u;
 
-  GLint m_position_a;
-  GLint m_normal_a;
+    GLint m_lights_position_u;
+    GLint m_lights_Ka_u;
+    GLint m_lights_Kd_u;
+    GLint m_lights_Ks_u;
+    GLint m_lights_directional_u;
+    GLint m_lights_count_u;
+    GLint m_lights_drawShadows_u;
+    GLint m_lights_shadowMatrix_u;
+
+    GLint m_texture_normal_u;
+
+    GLint m_position_a;
+    GLint m_color_a;
+  } m_phongUniforms;
+
+  struct simpleUniforms {
+    GLint m_matrices_mvp_u;
+    GLint m_matrices_mv_u;
+    GLint m_position_a;
+    GLint m_color_a;
+  } m_simpleUniforms;
+
+  struct spriteUniforms {
+    GLint m_matrices_mvp_u;
+    GLint m_matrices_mv_u;
+
+    GLint m_texture_sprite_u;
+
+    GLint m_position_a;
+    GLint m_color_a;
+  } m_spriteUniforms;
 
 };
 

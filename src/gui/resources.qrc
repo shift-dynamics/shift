@@ -62,4 +62,43 @@
     <file alias="play_button.png">icons/play_button.png</file>
     <file alias="pause_button.png">icons/pause_button.png</file>
   </qresource>
+
+  <qresource prefix="/textures">
+    <file alias="asphalt.jpg">textures/asphalt.jpg</file>
+    <file alias="asphalt_normal.jpg">textures/asphalt_normal.jpg</file>
+    <file alias="asphalt_specular.jpg">textures/asphalt_specular.jpg</file>
+    <file alias="asphalt_disp.jpg">textures/asphalt_disp.jpg</file>
+
+    <file alias="asphalt2.jpg">textures/asphalt2.jpg</file>
+    <file alias="asphalt2_normal.jpg">textures/asphalt2_normal.jpg</file>
+    <file alias="asphalt2_specular.jpg">textures/asphalt2_specular.jpg</file>
+    <file alias="asphalt2_disp.jpg">textures/asphalt2_disp.jpg</file>
+
+    <file alias="concrete.jpg">textures/concrete.jpg</file>
+    <file alias="concrete_normal.jpg">textures/concrete_normal.jpg</file>
+    <file alias="concrete_specular.jpg">textures/concrete_specular.jpg</file>
+
+    <file alias="concrete_wall.jpg">textures/concrete_wall.jpg</file>
+    <file alias="concrete_wall_normal.jpg">textures/concrete_wall_normal.jpg</file>
+    <file alias="concrete_wall_specular.jpg">textures/concrete_wall_specular.jpg</file>
+
+    <file alias="cracked_sand.jpg">textures/cracked_sand.jpg</file>
+    <file alias="cracked_sand_normal.jpg">textures/cracked_sand_normal.jpg</file>
+    <file alias="cracked_sand_specular.jpg">textures/cracked_sand_specular.jpg</file>
+    <file alias="cracked_sand_disp.jpg">textures/cracked_sand_disp.jpg</file>
+
+    <file alias="grass.jpg">textures/grass.jpg</file>
+    <file alias="grass_normal.jpg">textures/grass_normal.jpg</file>
+    <file alias="grass_specular.jpg">textures/grass_specular.jpg</file>
+    <file alias="grass_disp.jpg">textures/grass_disp.jpg</file>
+
+    <file alias="pebbles.jpg">textures/pebbles.jpg</file>
+    <file alias="pebbles_normal.jpg">textures/pebbles_normal.jpg</file>
+    <file alias="pebbles_specular.jpg">textures/pebbles_specular.jpg</file>
+    <file alias="pebbles_disp.jpg">textures/pebbles_disp.jpg</file>
+
+    <file alias="sphere.png">textures/sphere.png</file>
+    <file alias="sphere_normal.png">textures/sphere_normal.png</file>
+  </qresource>
+
 </RCC>
