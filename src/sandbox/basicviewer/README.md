@@ -4,7 +4,7 @@ This standalone viewer application is a basic template for testing new functiona
 
 This simple test program uses only simple or wireframe shading.
 
-## Building and running test program
+## Building and running the test program
 
     mkdir build
     cd build
@@ -13,7 +13,6 @@ This simple test program uses only simple or wireframe shading.
     ./bin/viewer
 
 To open a model, go to the file menu and select *Open*. Navigate up one directory from the bin folder. Select scene.json in the scene folder.
-
 
 ## Starting a new viewer project
 To test new functionality, copy the "basicviewer" folder to a new directory within sandbox.

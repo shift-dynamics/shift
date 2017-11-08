@@ -54,10 +54,10 @@ struct Model : public Node {
   QOpenGLBuffer* vbo;              /*<! vertex buffer object */
   QOpenGLBuffer* ibo;              /*<! index buffer object */
 
-  GLuint position_a;                  /*!< location of position attribute */
-  GLuint color_u;                  /*!< location of color attribute */
-  GLuint matrix_u;            /*!< location of matrix uniform attribute */
-  GLuint scale_u;
+  GLuint position_a;               /*!< location of position attribute */
+  GLuint color_u;                  /*!< location of color uniform */
+  GLuint matrix_u;                 /*!< location of matrix uniform */
+  GLuint scale_u;                  /*!< location of scale uniform */
 };
 
 /*!
