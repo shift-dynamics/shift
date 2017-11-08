@@ -226,10 +226,10 @@ Scope of variables
 Classes
 *******
 
-* Use CamelCase or CamelCaps for class names
+* Use PascalCase for class names
 * use mixedCase for member functions.
 * preface all member variables with *m_*
-* An example .h file containing a class:
+* An example .hpp file containing a class:
 
 
 .. code::
@@ -262,3 +262,11 @@ Other
   those functions over custom functions for the same purpose.
 * As possible, full--dense numerical algorithms should be written to take
   advantage of the cblas library for moderate to large sized vectors/matrices.
+* Use .cpp and .hpp file extensions for C++ code. Use .c and .h file
+  extensions for C code.
+* In C, the data structure *foo* shall have a typedef `s2_foo_t`, where the `s2`
+  prefix indicates the *star2* namespace.
+* Each data structure in .c shall have a constructor and destructor with the
+  prototypes `s2_foo_t* s2_foo()` and `s2_foo_free(s2_foo_t*)`.
+* The *member functions* (i.e. functions that operate on `s2_foo_t`) shall have
+  the prototype `s2_foo_bar(s2_foo_t* foo, <additional arguments>)` where *bar* is a description of the operation being performed. The function name *bar* should follow the mixedCase convention with the first letter lowercase.
