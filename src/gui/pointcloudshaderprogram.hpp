@@ -34,10 +34,10 @@ class QOpenGLVertexArrayObject;
 class RenderWindow;
 class s2_Lights;
 
-enum s2_pointshader_enumt_t {
-  S2_POINTSHADER_PHONG,
-  S2_POINTSHADER_SIMPLE,
-  S2_POINTSHADER_SPRITE
+enum s2_point_shading_enum_t {
+  S2_POINT_SHADING_PHONG,
+  S2_POINT_SHADING_SIMPLE,
+  S2_POINT_SHADING_SPRITE
 };
 
 
@@ -51,7 +51,7 @@ public:
   , m_phongShader(NULL)
   , m_simpleShader(NULL)
   , m_spriteShader(NULL)
-  , m_shaderType(S2_POINTSHADER_SIMPLE) {
+  , m_shadingType(S2_POINT_SHADING_SIMPLE) {
     m_renderWindow = renderWindow;
     initialize();
   };
@@ -63,10 +63,14 @@ public:
   void setTransform(s2_displacement_t*);
   void setMaterial(s2_material_t*);
   void setLights(s2_Lights*);
+  void setShadingType(s2_point_shading_enum_t shadingType) {
+    m_shadingType = shadingType;
+  }
 
   GLint getPositionAttribute();
   GLint getColorAttribute();
   void bindDepthBuffer();
+  void bindTextures();
 
 signals:
 
@@ -81,7 +85,7 @@ private:
   ShaderProgram* m_phongShader;
   ShaderProgram* m_simpleShader;
   ShaderProgram* m_spriteShader;
-  s2_pointshader_enumt_t m_shaderType;
+  s2_point_shading_enum_t m_shadingType;
 
   QOpenGLTexture* m_texture_normal;
   QOpenGLTexture* m_texture_sprite;
@@ -108,6 +112,8 @@ private:
 
     GLint m_position_a;
     GLint m_color_a;
+
+    GLint m_texture_shadow_u;
   } m_phongUniforms;
 
   struct simpleUniforms {

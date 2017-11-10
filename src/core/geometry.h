@@ -22,6 +22,6 @@ SUCH DAMAGE.
 #ifndef _STAR2_GEOMETRY_H_
 #define _STAR2_GEOMETRY_H_
 
-int s2_loadBodyGeometry(s2_context_t* context, s2_body_t* body);
+int s2_body_loadGeometry(s2_context_t* context, s2_body_t* body);
 
 #endif

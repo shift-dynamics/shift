@@ -31,6 +31,7 @@ SUCH DAMAGE.
 #include "body.h"
 #include "material.h"
 #include "loader.h"
+#include "convexhull.h"
 
 
 /*! @brief Loads geometry specified in Body properties from an external file
@@ -39,7 +40,7 @@ using ASSIMP (open asset importer)
 @param context a Context datastructure
 @param body a Body datastructure
 */
-int s2_loadBodyGeometry(
+int s2_body_loadGeometry(
   s2_context_t* context,
   s2_body_t* body) {
 
@@ -328,6 +329,8 @@ int s2_loadBodyGeometry(
     asprintf(&(body->materials[i].name), "%d", i);
 
   }
+
+  s2_convexhull_qhull(body);
 
   /*
     Free resources associated with import
