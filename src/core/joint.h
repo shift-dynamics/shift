@@ -20,12 +20,15 @@ SUCH DAMAGE.
 #ifndef _STAR2_JOINT_H_
 #define _STAR2_JOINT_H_
 
+#include <jansson.h>
+
 typedef struct s2_body_t s2_body_t;
 typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_substructure_t s2_substructure_t;
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_assembly_t s2_assembly_t;
+
 #include "stack.h"
 #include "kinematics.h"
 
@@ -130,7 +133,7 @@ typedef struct s2_joint_t {
 } s2_joint_t;
 
 
-s2_joint_t* s2_joint(const char* jointTypeStr);
+s2_joint_t* s2_joint(const char*, s2_stackstr_t*);
 
 
 s2_joint_enum_t s2_getJointType(
@@ -268,5 +271,12 @@ void s2_joint_floatfixed_dhva(void** dhva);
 
 
 void s2_joint_free(s2_joint_t* joint);
+
+
+int s2_joint_load(
+  s2_context_t* context,
+  s2_assembly_t* assembly,
+  s2_stackstr_t* prefix,
+  json_t* bodyObject);
 
 #endif

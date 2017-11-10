@@ -43,26 +43,6 @@ s2_restraint_t* s2_restraint() {
 
 
 /*!
-@brief Append a Restraint datastructure to an Assembly
-
-@param assembly a pointer to an Assembly datastructure
-@param restraint Restraint datastructure to append
-*/
-void s2_restraint_append(
-  s2_assembly_t* assembly,
-  s2_restraint_t* restraint) {
-
-  if(!assembly->restraintTail) {
-    assembly->restraintHead = restraint;
-    assembly->restraintTail = restraint;
-  } else {
-    assembly->restraintTail->next = restraint;
-    assembly->restraintTail = restraint;
-  }
-}
-
-
-/*!
 @brief memoize joints with damping
 */
 void s2_restraint_memoizeDamping(

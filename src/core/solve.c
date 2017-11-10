@@ -55,7 +55,7 @@ void s2_equation_fcn(
     candidate for future speed improvement
   */
 
-  switch(context->modelParameters->integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         context->numericalIntegrator;
@@ -128,9 +128,9 @@ void s2_solve_writeHeaders(
   int neqn = 0;
   double* y = NULL;
   double t = 0;
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
 
-  switch(context->modelParameters->integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
@@ -168,41 +168,41 @@ void s2_solve_writeHeaders(
   }
   fprintf(debug, "\n");
 
-  FILE* f = context->modelParameters->outFilePointer;
+  FILE* f = context->modelParameters.outFilePointer;
   if(f != NULL) {
 
     fprintf(f, "time");
     for(int i = 0; i < context->qCount; i++) {
-      fprintf(f, "%sq[%d]", context->modelParameters->delimiter, i);
+      fprintf(f, "%sq[%d]", context->modelParameters.delimiter, i);
     }
     for(int i = 0; i < context->dqCount; i++) {
-      fprintf(f, "%sdq[%d]", context->modelParameters->delimiter, i);
+      fprintf(f, "%sdq[%d]", context->modelParameters.delimiter, i);
     }
     for(int i = 0; i < context->dqCount; i++) {
-      fprintf(f, "%sddq[%d]", context->modelParameters->delimiter, i);
+      fprintf(f, "%sddq[%d]", context->modelParameters.delimiter, i);
     }
 
     fprintf(
       f,
       "%sKE",
-      context->modelParameters->delimiter);
+      context->modelParameters.delimiter);
     fprintf(
       f,
       "%sPE",
-      context->modelParameters->delimiter);
+      context->modelParameters.delimiter);
     fprintf(
       f,
       "%siterations",
-      context->modelParameters->delimiter);
+      context->modelParameters.delimiter);
 
     fprintf(
       f,
       "%se",
-      context->modelParameters->delimiter);
+      context->modelParameters.delimiter);
     fprintf(
       f,
       "%somega_n",
-      context->modelParameters->delimiter);
+      context->modelParameters.delimiter);
     fprintf(f, "\n");
 
     /* write initial conditions to first row of file */
@@ -211,7 +211,7 @@ void s2_solve_writeHeaders(
       fprintf(
         f,
         "%s%g",
-        context->modelParameters->delimiter,
+        context->modelParameters.delimiter,
         y[i]);
     }
 
@@ -219,20 +219,20 @@ void s2_solve_writeHeaders(
     fprintf(
       f,
       "%s%f",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       context->kineticEnergy);
 
     s2_solve_gravitationalPotentialEnergy(context);
     fprintf(
       f,
       "%s%f",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       context->gravitationalPotentialEnergy);
 
     fprintf(
       f,
       "%s%d",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       0);
 
     double e = 0;
@@ -245,14 +245,14 @@ void s2_solve_writeHeaders(
     fprintf(
       f,
       "%s%e",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       e);
 
     fprintf(
       f,
       "%s%f",
-      context->modelParameters->delimiter,
-      context->modelParameters->baumgarte2OmegaN / 2.0);
+      context->modelParameters.delimiter,
+      context->modelParameters.baumgarte2OmegaN / 2.0);
     fprintf(f, "\n");
   }
 }
@@ -269,10 +269,10 @@ void s2_solve_writeStates(
   double* ydata = NULL;
   double* y = NULL;
   double t = 0;
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
   int iterationCount = 0;
   double omegaN = 0;
-  switch(context->modelParameters->integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         context->numericalIntegrator;
@@ -281,7 +281,7 @@ void s2_solve_writeStates(
       y = numericalIntegrator->y;
       t = numericalIntegrator->t;
       iterationCount = numericalIntegrator->iterationCount;
-      omegaN = context->modelParameters->baumgarte2OmegaN / 2.0;
+      omegaN = context->modelParameters.baumgarte2OmegaN / 2.0;
     } break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
@@ -376,23 +376,23 @@ void s2_solve_writeStates(
   // }
 
 
-  context->modelParameters->sumIterationCount += iterationCount;
+  context->modelParameters.sumIterationCount += iterationCount;
 
-  if(e > fabs(context->modelParameters->maxConstraintError)) {
-   context->modelParameters->maxConstraintError = fabs(e);
-   context->modelParameters->maxConstraintErrorStep = step;
+  if(e > fabs(context->modelParameters.maxConstraintError)) {
+   context->modelParameters.maxConstraintError = fabs(e);
+   context->modelParameters.maxConstraintErrorStep = step;
   }
 
   if(
     iterationCount >
-    context->modelParameters->maxIterationCount) {
+    context->modelParameters.maxIterationCount) {
 
-    context->modelParameters->maxIterationCount = iterationCount;
-    context->modelParameters->maxIterationCountStep = step;
+    context->modelParameters.maxIterationCount = iterationCount;
+    context->modelParameters.maxIterationCountStep = step;
   }
-  context->modelParameters->sumConstraintError += e;
+  context->modelParameters.sumConstraintError += e;
 
-  FILE* f = context->modelParameters->outFilePointer;
+  FILE* f = context->modelParameters.outFilePointer;
 
   /* write to file if output file is specified */
   if(f != NULL) {
@@ -407,7 +407,7 @@ void s2_solve_writeStates(
       fprintf(
       f,
       "%s%g",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       y[i]);
     }
 
@@ -416,7 +416,7 @@ void s2_solve_writeStates(
       fprintf(
         f,
         "%s%g",
-        context->modelParameters->delimiter,
+        context->modelParameters.delimiter,
         context->ddq[i]);
     }
 
@@ -424,35 +424,35 @@ void s2_solve_writeStates(
     fprintf(
       f,
       "%s%f",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       context->kineticEnergy);
 
     /* write gravitational potential energy */
     fprintf(
       f,
       "%s%f",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       context->gravitationalPotentialEnergy);
 
     /* write number of evaluations required for reporting interval */
     fprintf(
       f,
       "%s%d",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       iterationCount);
 
     /* write constraint error */
      fprintf(
      f,
      "%s%e",
-     context->modelParameters->delimiter,
+     context->modelParameters.delimiter,
      e);
 
     /* write omega N */
     fprintf(
       f,
       "%s%e",
-      context->modelParameters->delimiter,
+      context->modelParameters.delimiter,
       omegaN);
 
 
@@ -529,21 +529,21 @@ void s2_solve_writeStates(
 void s2_solve_integrateEquations(
   s2_context_t* context) {
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
 
   s2_numericalintegrator_allocate(context);
 
-  context->modelParameters->sumConstraintError = 0;
-  context->modelParameters->maxConstraintError = 0;
-  context->modelParameters->maxConstraintErrorStep = 0;
-  context->modelParameters->sumIterationCount = 0;
-  context->modelParameters->maxIterationCount = 0;
-  context->modelParameters->maxIterationCountStep = 0;
+  context->modelParameters.sumConstraintError = 0;
+  context->modelParameters.maxConstraintError = 0;
+  context->modelParameters.maxConstraintErrorStep = 0;
+  context->modelParameters.sumIterationCount = 0;
+  context->modelParameters.maxIterationCount = 0;
+  context->modelParameters.maxIterationCountStep = 0;
 
-  if(context->modelParameters->outFile) {
-    context->modelParameters->outFilePointer =
+  if(context->modelParameters.outFile) {
+    context->modelParameters.outFilePointer =
       fopen(
-        context->modelParameters->outFile, "w");
+        context->modelParameters.outFile, "w");
   }
 
   s2_solve_writeHeaders(context);
@@ -558,7 +558,7 @@ void s2_solve_integrateEquations(
 
   int stepCount = 0;
   s2_stack_t* reconfigurations = NULL;
-  switch(context->modelParameters->integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       clock_t begin = clock();
       s2_ode113_integrateEquations(context);
@@ -586,24 +586,24 @@ void s2_solve_integrateEquations(
     } break;
   }
 
-  if(context->modelParameters->outFilePointer) {
-    fclose(context->modelParameters->outFilePointer);
+  if(context->modelParameters.outFilePointer) {
+    fclose(context->modelParameters.outFilePointer);
   }
 
   fprintf(debug,
     "max constraint error: %e at time interval [%d]\n",
-    context->modelParameters->maxConstraintError,
-    context->modelParameters->maxConstraintErrorStep);
+    context->modelParameters.maxConstraintError,
+    context->modelParameters.maxConstraintErrorStep);
   fprintf(debug,
     "max number of iterations: %d at time interval [%d]\n",
-    context->modelParameters->maxIterationCount,
-    context->modelParameters->maxIterationCountStep);
+    context->modelParameters.maxIterationCount,
+    context->modelParameters.maxIterationCountStep);
   fprintf(debug,
     "average constraint error: %e\n",
-    context->modelParameters->sumConstraintError / (double)stepCount);
+    context->modelParameters.sumConstraintError / (double)stepCount);
   fprintf(debug,
     "average iteration count: %f\n",
-    (double)context->modelParameters->sumIterationCount / (double)stepCount);
+    (double)context->modelParameters.sumIterationCount / (double)stepCount);
   fprintf(debug, "full factor performed at indices: ");
     s2_stack_print(debug, reconfigurations);
   fprintf(debug, "\n");
@@ -614,7 +614,7 @@ void s2_solve_integrateEquations(
     while(stackHead != NULL) {
       fprintf(f2, "%d", stackHead->value);
       if(stackHead->next) {
-        fprintf(f2, "%s", context->modelParameters->delimiter);
+        fprintf(f2, "%s", context->modelParameters.delimiter);
       }
       stackHead = stackHead->next;
     }
@@ -671,7 +671,7 @@ void s2_solve_gravitationalPotentialEnergy(s2_context_t* context) {
       3,
       (double*)&(context->inertiaP->mt),
       1,
-      (double*)context->modelParameters->gravity,
+      (double*)context->modelParameters.gravity,
       1));
 
 }
@@ -689,7 +689,7 @@ bool s2_solve_verify(
   double* Ml,
   double* fl) {
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
   // printf("joint names in PO1:\n");
   // for(int i = 0; i < context->activeJointCount; i++) {
   //   printf("   [%d] ", i);

@@ -136,7 +136,7 @@ void s2_forcemodule_flattenRecursive(
 void s2_forcemodule_connectPointers(
   s2_context_t* context) {
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
 
   for(int i = 0; i < context->forceModuleCount; i++) {
 
@@ -333,7 +333,7 @@ void s2_forcemodule_connect(
 
     /* get pointer to beginning of yp array */
     double* dy = NULL;
-    switch(context->modelParameters->integrationType) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
@@ -471,4 +471,350 @@ void s2_forcemodule_free(s2_forcemodule_t* forceModule) {
     default: {
     } break;
   }
+}
+
+
+/*!
+@brief load forcemodule properties from json file
+*/
+void s2_forcemodule_load(
+  s2_context_t* context,
+  s2_assembly_t* assembly,
+  s2_stackstr_t* prefix,
+  json_t* forceModuleObject) {
+
+  json_t* forceModuleType = json_object_get(forceModuleObject, "type");
+  assert(forceModuleType && "no force module type specified");
+
+  if(!strcmp(json_string_value(forceModuleType), "tire")) {
+
+    /* currently "tire" is the only type available, if other force
+    modules are created, add them below */
+
+    s2_forcemodule_t* forceModule = s2_forcemodule(S2_FORCEMODULE_TIRE);
+
+    assert(forceModule != NULL);
+
+    s2_tire_t* tire = malloc(sizeof(s2_tire_t));
+    forceModule->data = tire;
+
+    s2_stackstr_t* name = s2_stackstr_copy(prefix);
+    json_t* nameObject = json_object_get(forceModuleObject, "name");
+    if(nameObject) {
+      s2_stackstr_append(name, json_string_value(nameObject));
+    } else {
+      s2_stackstr_append(name, "none");
+    }
+
+    forceModule->name = name;
+
+    assert(forceModule->data != NULL);
+
+    json_t* tireType = json_object_get(forceModuleObject, "tire_type");
+    assert(tireType && "no tire type specified.");
+
+    if(!strcmp(json_string_value(tireType), "pac2002")) {
+
+      json_t* filePathObject =
+        json_object_get(forceModuleObject, "definition");
+      assert(filePathObject && "no tire definition file specified");
+      const char* filePath = json_string_value(filePathObject);
+
+
+      json_t* wheelBodyObject =
+        json_object_get(forceModuleObject, "wheel_body");
+      assert(wheelBodyObject && "no wheel_body specified");
+      s2_stackstr_t* wheelBody = NULL;
+
+      if(json_is_array(wheelBodyObject)) {
+        wheelBody = s2_stackstr();
+        /* if parent body is an array, then the full path is specified. */
+        size_t index2;
+        json_t* value;
+        json_array_foreach(wheelBodyObject, index2, value) {
+          s2_stackstr_append(
+            wheelBody,
+            json_string_value(value));
+        }
+      } else if (json_is_string(wheelBodyObject)) {
+        /* otherwise the body is contained within the current assembly */
+        wheelBody = s2_stackstr_copy(prefix);
+        s2_stackstr_append(
+          wheelBody,
+          json_string_value(wheelBodyObject));
+      }
+
+      json_t* useTransientSlipObject =
+        json_object_get(forceModuleObject, "use_transient_slip");
+      assert(useTransientSlipObject && "use_transient_slip not specified");
+      bool useTransientSlip = json_boolean_value(useTransientSlipObject);
+
+      /* add pac2002 tire force module */
+      s2_tire(
+        forceModule,
+        context,
+        S2_TIRE_PAC2002,
+        filePath,
+        wheelBody,
+        useTransientSlip);
+
+    } else if(!strcmp(json_string_value(tireType), "fiala")) {
+
+      json_t* wheelBodyObject =
+        json_object_get(forceModuleObject, "wheel_body");
+      assert(wheelBodyObject && "no wheel_body specified");
+      s2_stackstr_t* wheelBody = NULL;
+
+      json_t* filePathObject =
+        json_object_get(forceModuleObject, "definition");
+
+      const char* filePath;
+      if(filePathObject != NULL) {
+        filePath = json_string_value(filePathObject);
+      } else {
+        filePath = NULL;
+      }
+
+      if(json_is_array(wheelBodyObject)) {
+        wheelBody = s2_stackstr();
+        /* if parent body is an array, then the full path is specified. */
+        size_t index2;
+        json_t* value;
+        json_array_foreach(wheelBodyObject, index2, value) {
+          s2_stackstr_append(
+            wheelBody,
+            json_string_value(value));
+        }
+      } else if (json_is_string(wheelBodyObject)) {
+        /* otherwise the body is contained within the current assembly */
+        wheelBody = s2_stackstr_copy(prefix);
+        s2_stackstr_append(
+          wheelBody,
+          json_string_value(wheelBodyObject));
+      }
+
+      s2_tire(
+        forceModule,
+        context,
+        S2_TIRE_FIALA,
+        filePath,
+        wheelBody,
+        false);
+    } else {
+      fprintf(stderr, "invalid tire type specified.");
+      exit(-1);
+    }
+
+    s2_forcemodule_append(assembly, forceModule);
+
+  } else if(
+    !strcmp(json_string_value(forceModuleType), "pid")) {
+
+    // printf("loading pid forcemodule: \n");
+
+
+    s2_stackstr_t* name = s2_stackstr_copy(prefix);
+    json_t* nameObject = json_object_get(forceModuleObject, "name");
+    if(nameObject) {
+      s2_stackstr_append(name, json_string_value(nameObject));
+    } else {
+      s2_stackstr_append(name, "none");
+    }
+
+    s2_forcemodule_t* forceModule = s2_forcemodule(S2_FORCEMODULE_PID);
+
+    forceModule->name = name;
+
+    assert(forceModule);
+    s2_pid_t* pid = s2_pid();
+
+    json_t* pGain = json_object_get(forceModuleObject, "p");
+    assert(pGain);
+    pid->gains.p = json_real_value(pGain);
+
+    json_t* iGain = json_object_get(forceModuleObject, "i");
+    assert(iGain);
+    pid->gains.i = json_real_value(iGain);
+
+    json_t* dGain = json_object_get(forceModuleObject, "d");
+    assert(dGain);
+    pid->gains.d = json_real_value(dGain);
+
+    printf("p: %f, i: %f, d: %f\n", pid->gains.p, pid->gains.i, pid->gains.d);
+    json_t* target =
+      json_object_get(forceModuleObject, "target");
+    assert(target);
+    pid->target = json_real_value(target);
+
+    json_t* inputObject =
+      json_object_get(forceModuleObject, "input");
+    assert(inputObject);
+    json_t* typeObject =
+      json_object_get(inputObject, "type");
+    assert(typeObject);
+    json_t* targetTypeObject =
+      json_object_get(inputObject, "target_type");
+
+    pid->input.targetType = PID_TARGET_POSITION;
+    if(targetTypeObject) {
+      if(!strcmp("velocity", json_string_value(targetTypeObject))) {
+        pid->input.targetType = PID_TARGET_VELOCITY;
+      }
+    }
+
+    /* load a frame input type */
+    if(!strcmp(json_string_value(typeObject), "frame")) {
+      json_t* coordinateSystemObject =
+        json_object_get(inputObject, "coordinate_system");
+      if(!strcmp(json_string_value(coordinateSystemObject), "fixed")) {
+        pid->input.coordinateSystem = S2_COORDINATE_FIXED;
+      } else {
+        pid->input.coordinateSystem = S2_COORDINATE_LOCAL;
+      }
+
+      json_t* bodyFramePairObject =
+        json_object_get(inputObject, "body_frame_pair");
+      assert(bodyFramePairObject);
+
+      json_t* bodyObject =
+        json_array_get(bodyFramePairObject, 0);
+
+      s2_stackstr_t* inputBody = NULL;
+      if(json_is_array(bodyObject)) {
+        s2_stackstr_t* inputBody = s2_stackstr();
+        /* if parent body is an array, then the full path is specified. */
+        size_t index2;
+        json_t* value;
+        json_array_foreach(bodyObject, index2, value) {
+          s2_stackstr_append(
+            inputBody,
+            json_string_value(value));
+        }
+      } else if (json_is_string(bodyObject)) {
+        /* otherwise the body is contained within the current assembly */
+        inputBody = s2_stackstr_copy(prefix);
+        s2_stackstr_append(
+          inputBody,
+          json_string_value(bodyObject));
+      }
+      json_t* frameObject =
+        json_array_get(bodyFramePairObject, 1);
+      assert(frameObject);
+      s2_stackstr_append(inputBody,
+        json_string_value(frameObject));
+      pid->input.frame = inputBody;
+
+      json_t* dofObject =
+        json_object_get(inputObject, "dof");
+      assert(dofObject);
+      if(!strcmp("Tx", json_string_value(dofObject))) {
+        pid->input.dof = S2_JOINT_TX;
+      } else if(!strcmp("Ty", json_string_value(dofObject))) {
+        pid->input.dof = S2_JOINT_TY;
+      } else if(!strcmp("Tz", json_string_value(dofObject))) {
+        pid->input.dof = S2_JOINT_TZ;
+      } else if(!strcmp("Rx", json_string_value(dofObject))) {
+        pid->input.dof = S2_JOINT_RX;
+      } else if(!strcmp("Ry", json_string_value(dofObject))) {
+        pid->input.dof = S2_JOINT_RY;
+      } else if(!strcmp("Rz", json_string_value(dofObject))) {
+        pid->input.dof = S2_JOINT_RZ;
+      }
+      pid->input.ioType = PID_IO_FRAME;
+
+    } else if (!strcmp(json_string_value(typeObject), "joint")) {
+
+      json_t* jointObject =
+        json_object_get(inputObject, "joint");
+
+      s2_stackstr_t* inputJoint = NULL;
+      if(json_is_array(jointObject)) {
+        inputJoint = s2_stackstr();
+        /* if joint specified is an array, then the full path is specified. */
+        size_t index2;
+        json_t* value;
+        json_array_foreach(jointObject, index2, value) {
+          s2_stackstr_append(
+            inputJoint,
+            json_string_value(value));
+        }
+      } else if (json_is_string(jointObject)) {
+        /* otherwise the body is contained within the current assembly */
+        inputJoint = s2_stackstr_copy(prefix);
+        s2_stackstr_append(
+          inputJoint,
+          json_string_value(jointObject));
+      }
+      pid->input.joint = inputJoint;
+      pid->input.ioType = PID_IO_JOINT;
+
+      // json_t* targetTypeObject =
+      //   json_object_get(inputObject, "target_type");
+      // if(targetTypeObject) {
+      //   if(!strcmp("position", json_string_value(targetTypeObject))) {
+      //     pid->input.targetType = PID_TARGET_POSITION;
+      //   } else if (!strcmp("velocity", json_string_value(targetTypeObject))) {
+      //     pid->input.targetType = PID_TARGET_VELOCITY;
+      //   }
+      // } else {
+      //   fprintf(stderr, "error: \"target_type\" not specified\n");
+      //   exit(-1);
+      // }
+
+
+
+    } else {
+      printf("only \"frame\" and \"joint\" input types supported\n");
+      exit(-1);
+    }
+
+    json_t* outputObject =
+      json_object_get(forceModuleObject, "output");
+    assert(outputObject);
+    json_t* outputTypeObject =
+      json_object_get(outputObject, "type");
+    assert(outputTypeObject);
+    if(!strcmp("joint", json_string_value(outputTypeObject))) {
+
+      json_t* jointObject =
+        json_object_get(outputObject, "joint");
+
+      s2_stackstr_t* outputJoint = NULL;
+
+      if(json_is_array(jointObject)) {
+        outputJoint = s2_stackstr();
+        /* if parent body is an array, then the full path is specified. */
+        size_t index2;
+        json_t* value;
+        json_array_foreach(jointObject, index2, value) {
+          s2_stackstr_append(
+            outputJoint,
+            json_string_value(value));
+        }
+      } else if (json_is_string(jointObject)) {
+        /* otherwise the body is contained within the current assembly */
+        outputJoint = s2_stackstr_copy(prefix);
+        s2_stackstr_append(
+          outputJoint,
+          json_string_value(jointObject));
+      }
+      pid->output.joint = outputJoint;
+      pid->output.ioType = PID_IO_JOINT;
+
+    } else {
+      printf("presently only joint output type specified\n");
+      exit(-1);
+    }
+
+    printf("connecting force module\n");
+    s2_pid_connectForceModulePointer(
+      forceModule, pid);
+
+    s2_assembly_appendForceModule(assembly, forceModule);
+
+  } else {
+    printf("force module type not supported\n");
+    exit(-1);
+  }
+
 }

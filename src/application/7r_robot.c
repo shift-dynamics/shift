@@ -443,10 +443,10 @@ void setJacobianPO2_colMajor(
 
 int main(int argc, char *argv[]) {
 
-  s2_context_t* context = s2_loadJSON(argv[1]);
+  s2_context_t* context = s2_context_load(argv[1]);
   s2_context_setTopology(context);
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
   // s2_context_print(debug, context);
 
   /* find current position of end effector */

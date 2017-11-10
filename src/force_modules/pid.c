@@ -2,6 +2,7 @@
 #include "forcemodule.h"
 #include "../core/joint.h"
 
+
 s2_pid_t* s2_pid() {
 
   s2_pid_t* pid = malloc(sizeof(s2_pid_t));
@@ -157,7 +158,7 @@ void s2_pid_getTime(
   double* t,
   double* dt) {
 
-  switch(context->modelParameters->integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;

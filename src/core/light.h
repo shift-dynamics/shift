@@ -20,10 +20,13 @@ SUCH DAMAGE.
 #ifndef _STAR2_LIGHT_H_
 #define _STAR2_LIGHT_H_
 
+#include <jansson.h>
+
 typedef struct s2_assembly_t s2_assembly_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
 typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_body_t s2_body_t;
+typedef struct s2_context_t s2_context_t;
 
 #ifdef __APPLE__
   #include <OpenGL/OpenGL.h>
@@ -73,12 +76,13 @@ typedef struct s2_light_t {
 s2_light_t* s2_light();
 
 
-void s2_light_append(
-  s2_assembly_t* assembly,
-  s2_light_t* light);
-
-
 void s2_light_free(s2_light_t* light);
 
+
+void s2_light_load(
+  s2_context_t*,
+  s2_assembly_t*,
+  s2_stackstr_t*,
+  json_t*);
 
 #endif

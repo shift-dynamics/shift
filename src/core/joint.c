@@ -16,6 +16,7 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
+#include "context.h"
 #include "kinematics.h"
 #include "joint.h"
 #include "assembly.h"
@@ -29,7 +30,8 @@ SUCH DAMAGE.
 @returns a Joint datastructure
 */
 s2_joint_t* s2_joint(
-  const char* jointTypeStr) {
+  const char* jointTypeStr,
+  s2_stackstr_t* name) {
 
   s2_joint_t* joint = malloc(sizeof(s2_joint_t));
 
@@ -40,7 +42,7 @@ s2_joint_t* s2_joint(
   joint->jointTypeStr = strdup(jointTypeStr);
   joint->jointType = s2_getJointType(jointTypeStr);
 
-  joint->name = NULL;
+  joint->name = name;
 
   joint->index = -1;
   joint->parentBody = NULL;
@@ -2006,20 +2008,268 @@ void s2_joint_free(
 
 
 /*!
-@brief Append Joint datastructure to Assembly datastructure
-
-@param assembly an Assembly datastructure to append to
-@param joint a Joint datastructure to append
+@brief loads joint from star2 json file
 */
-void s2_joint_append(
+int s2_joint_load(
+  s2_context_t* context,
   s2_assembly_t* assembly,
-  s2_joint_t* joint) {
+  s2_stackstr_t* prefix,
+  json_t* jointObject) {
 
-  if (!assembly->jointTail) {
-    assembly->jointHead = joint;
-    assembly->jointTail = joint;
-  } else {
-    assembly->jointTail->next = joint;
-    assembly->jointTail = joint;
+  s2_stackstr_t* name = s2_stackstr_copy(prefix);
+  s2_stackstr_append(
+    name,
+    json_string_value(json_object_get(jointObject, "name")));
+
+  s2_joint_t* joint =
+    s2_joint(
+      json_string_value(json_object_get(jointObject, "type")),
+      name);
+
+  json_t* bodyFramePairs =
+    json_object_get(jointObject, "body_frame_pairs");
+
+  /*
+    if the format of the parent or child body is an array, the user is
+    specifying a full path to the body. the parent or child may exist
+    within another assembly.
+  */
+
+  json_t* parentBodyObject =
+    json_array_get(json_array_get(bodyFramePairs, 0), 0);
+
+  if(json_is_array(parentBodyObject)) {
+    joint->parentBody = s2_stackstr();
+    size_t parentBodyIndex;
+    json_t* value;
+    json_array_foreach(parentBodyObject, parentBodyIndex, value) {
+      s2_stackstr_append(
+        joint->parentBody,
+        json_string_value(value));
+    }
+  } else if (json_is_string(parentBodyObject)) {
+    const char* parentBody = json_string_value(parentBodyObject);
+
+    /*
+      if parentBody == "fixed", don't append assemblyName
+    */
+    if(!strcmp(parentBody, "fixed")) {
+      joint->parentBody = s2_stackstr();
+      s2_stackstr_append(joint->parentBody, "fixed");
+    } else {
+      joint->parentBody = s2_stackstr_copy(assembly->name);
+      s2_stackstr_append(
+        joint->parentBody,
+        json_string_value(parentBodyObject));
+    }
   }
+
+  json_t* childBodyObject =
+    json_array_get(json_array_get(bodyFramePairs, 1), 0);
+
+  if(json_is_array(childBodyObject)) {
+    joint->childBody = s2_stackstr();
+    size_t childBodyIndex;
+    json_t* value;
+    json_array_foreach(childBodyObject, childBodyIndex, value) {
+      s2_stackstr_append(
+        joint->childBody,
+        json_string_value(value));
+    }
+  } else if (json_is_string(childBodyObject)) {
+
+    const char* childBody = json_string_value(childBodyObject);
+    if(!strcmp(childBody, "fixed")) {
+      joint->childBody = s2_stackstr();
+      s2_stackstr_append(joint->childBody, "fixed");
+    } else {
+      joint->childBody = s2_stackstr_copy(assembly->name);
+      s2_stackstr_append(
+        joint->childBody,
+        json_string_value(childBodyObject));
+    }
+  }
+
+  joint->parentFrame = s2_stackstr_copy(joint->parentBody);
+  s2_stackstr_append(
+    joint->parentFrame,
+    json_string_value(
+      json_array_get(json_array_get(bodyFramePairs, 0), 1)));
+
+
+  joint->childFrame = s2_stackstr_copy(joint->childBody);
+  s2_stackstr_append(
+    joint->childFrame,
+    json_string_value(
+      json_array_get(json_array_get(bodyFramePairs, 1), 1)));
+
+  /*
+    get spring coefficients
+  */
+  json_t* stiffnessCoefficients =
+    json_object_get(jointObject, "stiffness");
+  if(json_is_array(stiffnessCoefficients)) {
+
+    size_t size = json_array_size(stiffnessCoefficients);
+    joint->stiffnessCoefficientCount = (int)size;
+    joint->stiffnessCoefficients =
+      calloc(joint->stiffnessCoefficientCount, sizeof(double));
+
+    for(int i = 0; i < joint->stiffnessCoefficientCount; i++) {
+      joint->stiffnessCoefficients[i] =
+        json_real_value(json_array_get(stiffnessCoefficients, i));
+      // printf("stiffness coefficient [%d]: %f\n", i, joint->stiffnessCoefficients[i]);
+
+    }
+  }
+
+  /*
+    get damping coefficients
+  */
+  json_t* dampingCoefficients =
+    json_object_get(jointObject, "damping");
+  if(json_is_array(dampingCoefficients)) {
+
+    size_t size = json_array_size(dampingCoefficients);
+    joint->dampingCoefficientCount = (int)size;
+    joint->dampingCoefficients =
+      calloc(joint->dampingCoefficientCount, sizeof(double));
+
+    for(int i = 0; i < joint->dampingCoefficientCount; i++) {
+      joint->dampingCoefficients[i] =
+        json_real_value(json_array_get(dampingCoefficients, i));
+      // printf("damping coefficient [%d]: %f\n", i, joint->dampingCoefficients[i]);
+    }
+  }
+
+  /*
+    get initial values of joints
+  */
+  switch(joint->jointType) {
+    case S2_JOINT_TX:
+    case S2_JOINT_TY:
+    case S2_JOINT_TZ:
+    case S2_JOINT_RX:
+    case S2_JOINT_RY:
+    case S2_JOINT_RZ: {
+      // printf("loading primitive\n");
+      joint->initialPrimitiveDisplacement[0] =
+          json_number_value(
+            json_object_get(jointObject, "initial_displacement"));
+      joint->primitiveDisplacement[0] =
+        joint->initialPrimitiveDisplacement[0];
+      json_t* initialValueVelocity =
+          json_object_get(jointObject, "initial_velocity");
+      if(!json_is_null(initialValueVelocity))
+        joint->initialPrimitiveVelocity[0] =
+            json_number_value(initialValueVelocity);
+      joint->primitiveVelocity[0] = joint->initialPrimitiveVelocity[0];
+    } break;
+    case S2_JOINT_RIGID: {
+      // printf("loading rigid/float\n");
+      json_t* initialValueObj =
+          json_object_get(jointObject, "initial_displacement");
+      json_t* rotation = json_object_get(initialValueObj, "R");
+      json_t* translation = json_object_get(initialValueObj, "T");
+      if(rotation) {
+        for(int i = 0; i < 3; i++) {
+          for(int j = 0; j < 3; j++)
+            s2_displacement_set(
+              joint->generalDisplacement,
+              i,
+              j,
+              json_number_value(
+                json_array_get(json_array_get(rotation, i), j)));
+        }
+        s2_gramSchmidt(
+          3, 3, (double*)joint->generalDisplacement);
+      }
+      if (translation) {
+        for (int i = 0; i < 3; i++) {
+          s2_vector_set(
+            &(joint->generalDisplacement->T),
+            i,
+            json_number_value(json_array_get(translation, i)));
+        }
+      }
+
+    } break;
+    case S2_JOINT_FLOAT: {
+      // printf("loading rigid/float\n");
+      json_t* initialValueObj =
+          json_object_get(jointObject, "initial_displacement");
+      json_t* rotation = json_object_get(initialValueObj, "R");
+      json_t* translation = json_object_get(initialValueObj, "T");
+      if(rotation) {
+        for(int i = 0; i < 3; i++) {
+          for(int j = 0; j < 3; j++)
+            s2_displacement_set(
+              joint->generalDisplacement,
+              i,
+              j,
+              json_number_value(
+                json_array_get(json_array_get(rotation, i), j)));
+        }
+      }
+      if (translation) {
+        for (int i = 0; i < 3; i++) {
+          s2_vector_set(
+            &(joint->generalDisplacement->T),
+            i,
+            json_number_value(json_array_get(translation, i)));
+          joint->initialPrimitiveDisplacement[i] =
+            s2_vector_get(&(joint->generalDisplacement->T), i);
+        }
+      }
+      s2_mat3x3_toQuaternion(
+        &(joint->generalDisplacement->R),
+        (s2_quaternion_t*)(joint->primitiveDisplacement + 3));
+    } break;
+    case S2_JOINT_SPHERICAL: {
+      // printf("loading rigid/float\n");
+      json_t* initialValueObj =
+          json_object_get(jointObject, "initial_displacement");
+      json_t* rotation = json_object_get(initialValueObj, "R");
+      if(rotation) {
+        for(int i = 0; i < 3; i++) {
+          for(int j = 0; j < 3; j++)
+            s2_displacement_set(
+              joint->generalDisplacement,
+              i,
+              j,
+              json_number_value(
+                json_array_get(json_array_get(rotation, i), j)));
+        }
+      }
+      s2_mat3x3_toQuaternion(
+        &(joint->generalDisplacement->R),
+        (s2_quaternion_t*)joint->primitiveDisplacement);
+    } break;
+    case S2_JOINT_PRIMITIVE:
+    case S2_JOINT_INVALID: {
+      fprintf(
+        stderr,
+        "Invalid Joint Type Found in %s\n",
+        joint->name->tail->value);
+    } break;
+  }
+
+  // get driver, if applicable, otherwise driver is set to NULL
+  // by default
+  // json_t *driverObject = json_object_get(value, "driver");
+  // if (json_is_object(driverObject)) {
+  //   // printf("\n\nDRIVER found for joint %s \n\n", jointName );
+  //   // joint->driver->numberSteps =
+  //   //     json_number_value(json_object_get(driverObject, "number_steps"));
+  //   // joint->driver->deltaDisplacement = json_number_value(
+  //   //     json_object_get(driverObject, "delta_displacement"));
+  // } else {
+  //   joint->driver = NULL;
+  // }
+
+  (context->jointCount)++;
+  s2_assembly_appendJoint(assembly, joint);
+  // printf("end\n");
+
+  return 0;
 }

@@ -125,6 +125,9 @@ char* s2_stackstr_getRoot(
 char* s2_stackstr_toStr(
   s2_stackstr_t* stack);
 
+s2_stackstr_t* s2_stackstr_fromString(
+  const char*);
+
 char* s2_getRootName(
   s2_stackstr_t* stack);
 

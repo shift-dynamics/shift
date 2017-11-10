@@ -28,6 +28,7 @@ SUCH DAMAGE.
 #else
   #include <GL/gl.h>
 #endif
+#include <jansson.h>
 
 #include "stack.h"
 #include "kinematics.h"
@@ -42,7 +43,6 @@ typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_substructure_t s2_substructure_t;
-typedef struct s2_modelparameters_t s2_modelparameters_t;
 typedef struct s2_kinematicdrivers_t s2_kinematicdrivers_t;
 typedef struct s2_light_t s2_light_t;
 typedef struct s2_restraint_t s2_restraint_t;
@@ -68,7 +68,66 @@ s2_LoadJSON function.
 */
 typedef struct s2_context_t {
 
-  s2_modelparameters_t* modelParameters;
+  struct modelParameters {
+    char* version; /*!< specify star2 file version number */
+    s2_stackstr_t* includeDirectory; /*!< specify directories to search for
+                                            external files */
+    s2_vector_t* gravity; /*!< specify gravity force field, a 3x1 vector with
+                                 units as specified in the Units datastructure */
+    struct units {
+      char* angle;
+      char* length;
+      char* mass;
+      char* time;
+    } units;
+
+    s2_numericalintegrator_enum_t integrationType; /*!< type of numerical integrator
+                                             to use, currently only ODE113
+                                             Adams-Bashforth-Molton is
+                                             supported */
+    int iflag; /*!< interpolation flag for numerical integration, used by
+                    ODE113 integrator. The default value is set to
+                    -1, which reports simulation results at possibly
+                    irregular time intervals (whatever the largest time step
+                    ode113 can take). To interpolate simulation results at
+                    fixed time intervals (slower), set to 1 */
+
+    double timeSpan; /*!< span of simulation time used for numerical integration.
+                           if not specified in JSON file, the default is 1 second */
+    double timeStep; /*!< nominal time step used for simulation, if not specified
+                           in JSON file, the default is 0.001 seconds */
+    double relativeError; /*!< relative error convergence tolerance term,
+                               used by ode113. default value if not provided
+                               in JSON file is 0.0*/
+    double absoluteError; /*!< absolute error convergence tolerance term, used by
+                               ode113. default value if not provided in JSON
+                               fle is 1e-4 */
+    char* outFile; /*!< filename to write resuts to */
+    FILE* outFilePointer; /*!< file pointer to write results to */
+    char* debugFile; /*!< filename to write debug information to */
+    FILE* debugFilePointer; /*!< file pointer to write debug information to */
+    FILE* dhvaFilePointer; /*!< file pointer to write dhva debug information to */
+    char* delimiter; /*!< delimiter used in writing to file */
+
+    double baumgarteOmegaN; /*!< natural frequency for baumgarte stabilization */
+    double baumgarte2OmegaN; /*!< 2 * natural freq for baumgarte constraint stabilization */
+    double baumgarteOmegaN2; /*!< omega_N ^2 for baumgarte constraint stabilization */
+
+    bool monitorIterations; /*!< monitor iterations in de */
+    bool monitorConstraintError; /*!< monitor constraint error
+
+    */
+
+    double sumConstraintError;
+    double maxConstraintError;
+    int maxConstraintErrorStep;
+    int sumIterationCount;
+    int maxIterationCount;
+    int maxIterationCountStep;
+    double pivotRatioMultiple;
+
+  } modelParameters;
+
   s2_assembly_t* assembly;
 
   /*!
@@ -134,10 +193,6 @@ typedef struct s2_context_t {
                           first position is the index of the embedded (host)
                           body in aq, the second value is the index of the
                           virtual (released frame) */
-  double pivotRatioMultiple; /*!< if ratio of pivots increases greater
-                                  than this value, LU with full row and
-                                  column pivoting will be called again, set
-                                  to a default value of 10 */
   double* J; /*!< Jacobian matrix (or matrices) */
   double* Js; /*!< saved copy of jacobian matrices used for debugging purposes */
   int* Jxx; /*!< instructions for evaluating Jacobian matrices */
@@ -498,15 +553,8 @@ s2_context_t* s2_context();
 s2_units_t* s2_units();
 
 
-s2_modelparameters_t* s2_modelparameters();
-
-
 void s2_context_free(
   s2_context_t* context);
-
-
-void s2_modelparameters_free(
-  s2_modelparameters_t* modelparameters);
 
 
 void s2_context_freeRunTimeArrays(
@@ -538,83 +586,31 @@ double s2_context_getSimulationTime(s2_context_t* context);
 FILE* s2_context_getDebugPointer(s2_context_t* context, int i);
 
 
-/*!
-@brief attributes associated with units
-*/
-typedef struct s2_units_t {
-  char* angle; /*!< internally, radians will always be used, valid values
-                    are "radians" or "degrees". */
-  char* length; /*!< specify distance units to report to user (default is
-                     "meters") */
-  char* mass; /*!< specify mass units to report to user (default is
-                   "kilograms") */
-  char* time; /*!< specify time units to report to user (default is
-                   "seconds") */
-} s2_units_t;
-
-
-/*!
-@brief Attributes associated with force fields, file version,
-numerical integration and include directories.
-*/
-typedef struct s2_modelparameters_t {
-  char* version; /*!< specify star2 file version number */
-  s2_stackstr_t* includeDirectory; /*!< specify directories to search for
-                                          external files */
-  s2_vector_t* gravity; /*!< specify gravity force field, a 3x1 vector with
-                               units as specified in the Units datastructure */
-  s2_units_t* units; /*!< Refer to the Units data structure definition
-                            for more information */
-
-  s2_numericalintegrator_enum_t integrationType; /*!< type of numerical integrator
-                                           to use, currently only ODE113
-                                           Adams-Bashforth-Molton is
-                                           supported */
-  int iflag; /*!< interpolation flag for numerical integration, used by
-                  ODE113 integrator. The default value is set to
-                  -1, which reports simulation results at possibly
-                  irregular time intervals (whatever the largest time step
-                  ode113 can take). To interpolate simulation results at
-                  fixed time intervals (slower), set to 1 */
-
-  double timeSpan; /*!< span of simulation time used for numerical integration.
-                         if not specified in JSON file, the default is 1 second */
-  double timeStep; /*!< nominal time step used for simulation, if not specified
-                         in JSON file, the default is 0.001 seconds */
-  double relativeError; /*!< relative error convergence tolerance term,
-                             used by ode113. default value if not provided
-                             in JSON file is 0.0*/
-  double absoluteError; /*!< absolute error convergence tolerance term, used by
-                             ode113. default value if not provided in JSON
-                             fle is 1e-4 */
-  char* outFile; /*!< filename to write resuts to */
-  FILE* outFilePointer; /*!< file pointer to write results to */
-  char* debugFile; /*!< filename to write debug information to */
-  FILE* debugFilePointer; /*!< file pointer to write debug information to */
-  FILE* dhvaFilePointer; /*!< file pointer to write dhva debug information to */
-  char* delimiter; /*!< delimiter used in writing to file */
-
-  double baumgarteOmegaN; /*!< natural frequency for baumgarte stabilization */
-  double baumgarte2OmegaN; /*!< 2 * natural freq for baumgarte constraint stabilization */
-  double baumgarteOmegaN2; /*!< omega_N ^2 for baumgarte constraint stabilization */
-
-  bool monitorIterations; /*!< monitor iterations in de */
-  bool monitorConstraintError; /*!< monitor constraint error
-
-  */
-
-  double sumConstraintError;
-  double maxConstraintError;
-  int maxConstraintErrorStep;
-  int sumIterationCount;
-  int maxIterationCount;
-  int maxIterationCountStep;
-
-} s2_modelparameters_t;
-
-
 void s2_context_setOmegaN(
   s2_context_t* context,
   double omegaN);
+
+
+int s2_context_loadFixedFrames(
+  s2_context_t* context,
+  json_t* root);
+
+
+void s2_context_loadModelParameters(
+  s2_context_t* context,
+  json_t* modelParametersObject,
+  const char* filePath);
+
+
+void s2_context_freeModelParameters(
+  s2_context_t*);
+
+
+s2_context_t* s2_context_load(
+  const char*);
+
+
+void s2_context_setTerrainPointers(
+  s2_context_t*);
 
 #endif

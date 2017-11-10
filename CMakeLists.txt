@@ -102,7 +102,6 @@ add_library(star2_lib STATIC
     ${star2_SOURCE_DIR}/src/core/equation.c
     ${star2_SOURCE_DIR}/src/core/factor.c
     ${star2_SOURCE_DIR}/src/core/frame.c
-    ${star2_SOURCE_DIR}/src/core/geometry.c
     ${star2_SOURCE_DIR}/src/core/graph.c
     ${star2_SOURCE_DIR}/src/core/inertia.c
     ${star2_SOURCE_DIR}/src/core/io.c
@@ -110,7 +109,6 @@ add_library(star2_lib STATIC
     ${star2_SOURCE_DIR}/src/core/joint.c
     ${star2_SOURCE_DIR}/src/core/kinematics.c
     ${star2_SOURCE_DIR}/src/core/light.c
-    ${star2_SOURCE_DIR}/src/core/loader.c
     ${star2_SOURCE_DIR}/src/core/material.c
     ${star2_SOURCE_DIR}/src/core/memoize.c
     ${star2_SOURCE_DIR}/src/core/mobility.c

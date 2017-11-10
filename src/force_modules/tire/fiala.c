@@ -131,7 +131,7 @@ void s2_tire_fiala_loadTireDataFile(
     /* otherwise, search the user specified include directories */
     char* fullPathFileName = NULL;
     s2_stackstrnode_t* includeDirectoryHead =
-      context->modelParameters->includeDirectory->head;
+      context->modelParameters.includeDirectory->head;
     while(includeDirectoryHead) {
       if(fullPathFileName) free(fullPathFileName);
       asprintf(
@@ -481,13 +481,13 @@ void s2_tire_fiala_update(
 
   if(iconv == 1){
     bool report = false;
-    switch(context->modelParameters->integrationType) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           context->numericalIntegrator;
         if(numericalIntegrator->x >=
           numericalIntegrator->tdata[numericalIntegrator->step] +
-          context->modelParameters->timeStep) {
+          context->modelParameters.timeStep) {
             report = true;
           }
       } break;

@@ -326,11 +326,11 @@ void s2_equation_setRHS(
     evaluate primary constraints (\bar{\gamma}_p) in PO(1), store in PO(2)
   */
   double baumgarte2OmegaN =
-    context->modelParameters->baumgarte2OmegaN;
+    context->modelParameters.baumgarte2OmegaN;
   double baumgarteOmegaN2 =
-    context->modelParameters->baumgarteOmegaN2;
+    context->modelParameters.baumgarteOmegaN2;
 
-  switch(context->modelParameters->integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       if(context->numericalIntegrator) {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
@@ -537,7 +537,7 @@ void s2_equation_setRHS(
       }
 
       /* substract integral error term from gamma_p  for adaptive constraint stabilization*/
-      if(context->modelParameters->integrationType ==
+      if(context->modelParameters.integrationType ==
           S2_NUMERICALINTEGRATOR_ODE113B &&
         context->numericalIntegrator != NULL) {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
@@ -1331,7 +1331,7 @@ void s2_equation_setEquations(
   // printf("infinity norm b check in setEquations\n");
   int returnVal = s2_jacobian_infinityNormBCheck(context);
   if(returnVal) {
-    switch(context->modelParameters->integrationType) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         exit(-1);
       } break;

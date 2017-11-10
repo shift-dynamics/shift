@@ -1,5 +1,4 @@
 #include "numericalintegrator.h"
-
 #include "context.h"
 
 /*!
@@ -11,7 +10,7 @@ void s2_numericalintegrator_free(
 
   // printf("%p\n", context->numericalIntegrator);
   if(context->numericalIntegrator != NULL) {
-    switch(context->modelParameters->integrationType) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_ode113_free(context);
       } break;
@@ -40,7 +39,7 @@ void s2_numericalintegrator_allocate(
   /*
     allocate memory for quantities required for numerical integration
   */
-  switch(context->modelParameters->integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       // printf("allocating memory for ODE113 integrator\n");
       s2_ode113_allocate(context);

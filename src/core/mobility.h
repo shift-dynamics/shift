@@ -24,6 +24,9 @@ SUCH DAMAGE.
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_substructure_t s2_substructure_t;
 
+void s2_mobility_compute_substructure(
+  s2_substructure_t* substructure);
+
 void s2_mobility_compute(
   s2_context_t* context);
 
@@ -38,9 +41,6 @@ void s2_mobility_print_substructure(
   FILE* f,
   s2_context_t* context,
   int substructureIndex);
-
-void s2_mobility_compute_substructure(
-  s2_substructure_t* substructure);
 
 void s2_mobility_computeGlobalMobility(
   s2_context_t* context);

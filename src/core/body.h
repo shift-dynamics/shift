@@ -122,7 +122,8 @@ void s2_body_appendFrame(
   s2_frame_t*);
 
 
-s2_body_t* s2_body();
+s2_body_t* s2_body(
+  s2_stackstr_t*);
 
 
 void s2_body_printFrames(
@@ -148,6 +149,11 @@ int s2_body_load(
   s2_assembly_t*,
   s2_stackstr_t*,
   json_t*);
+
+
+int s2_body_loadGeometry(
+  s2_context_t* context,
+  s2_body_t* body);
 
 
 #endif

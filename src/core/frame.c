@@ -5,10 +5,10 @@
 
 
 /*!
-@brief Initialize a Frame datastructure and set to identity
+@brief Initialize an s2_frame_t datastructure and set to identity
 
 @param None
-@returns a Frame datastructure
+@returns an initialized s2_frame_t datastructure
 */
 s2_frame_t* s2_frame() {
   s2_frame_t* frame = malloc(sizeof(s2_frame_t));
@@ -34,26 +34,6 @@ s2_frame_t* s2_frame() {
   frame->velocityAbsolute = NULL;
   frame->accelerationQuadraticAbsolute = NULL;
   return frame;
-}
-
-
-/*!
-@brief Append a frame datastructure to an s2_body_t datastructure
-
-@param body a Body datastructure to append to
-@param frame a Frame datastructure to append
-*/
-void s2_frame_append(
-  s2_body_t* body,
-  s2_frame_t* frame) {
-
-  if(!body->frameTail) {
-    body->frameHead = frame;
-    body->frameTail = frame;
-  } else {
-    body->frameTail->next = frame;
-    body->frameTail = frame;
-  }
 }
 
 
@@ -116,4 +96,49 @@ void s2_frame_free(
     free(frame);
     frame = NULL;
   }
+}
+
+
+/*!
+@brief load frame from json file
+*/
+void s2_frame_load(
+  s2_body_t* body,
+  json_t* frameObject) {
+
+  s2_frame_t* frame = s2_frame();
+
+  frame->name = s2_stackstr_copy(body->name);
+  s2_stackstr_append(
+    frame->name,
+    json_string_value(json_object_get(frameObject, "name")));
+
+  json_t* rotation = json_object_get(frameObject, "R");
+  if (json_is_array(rotation)) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        ((double*)frame->dWRTOrigin)[3 * k + j] = json_number_value(
+            json_array_get(json_array_get(rotation, j), k));
+      }
+    }
+    s2_gramSchmidt(
+      3, 3, (double*)frame->dWRTOrigin);
+  }
+  json_t* translation = json_object_get(frameObject, "T");
+  if (json_is_array(translation)) {
+    for (int j = 0; j < 3; j++) {
+      ((double*)frame->dWRTOrigin)[9 + j] =
+          json_number_value(json_array_get(translation, j));
+    }
+  }
+  s2_displacement_invert(
+    frame->dWRTOrigin,
+    frame->dWRTOriginInverse);
+
+  // verify that inverse translations are computed correctly:
+  // printf("rWRT: ");
+  // kinematics_PrintVector(*(frame->rotationWRTOrigin) + 9);
+  // printf("inverse: ");
+  // kinematics_PrintVector(*(frame->rotationWRTOriginInverse) + 9);
+  s2_body_appendFrame(body, frame);
 }

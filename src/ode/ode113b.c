@@ -53,7 +53,7 @@ void s2_ode113b_allocate(
 
 
   numericalIntegrator->stepCount = ceil(
-    (double)context->modelParameters->timeSpan / (double)context->modelParameters->timeStep) + 1;
+    (double)context->modelParameters.timeSpan / (double)context->modelParameters.timeStep) + 1;
   numericalIntegrator->ydata =
     calloc(
       numericalIntegrator->neqn *
@@ -182,9 +182,9 @@ void s2_ode113b_allocate(
   numericalIntegrator->stabilityLimits[16] = 0.2; /* no data for k = 16 */
   numericalIntegrator->safetyFactor = 0.005;
   numericalIntegrator->baumgarte2OmegaN =
-    context->modelParameters->baumgarte2OmegaN;
+    context->modelParameters.baumgarte2OmegaN;
   numericalIntegrator->baumgarteOmegaN2 =
-    context->modelParameters->baumgarteOmegaN2;
+    context->modelParameters.baumgarteOmegaN2;
   numericalIntegrator->smoothingFilter = 0.001;
 
   numericalIntegrator->integralGain = 1000.0;
@@ -327,7 +327,7 @@ void s2_ode113b_fcn(
     s2_forcemodule_saveHistory(context);
 
     if(numericalIntegrator->x >=
-      numericalIntegrator->tdata[numericalIntegrator->step] + context->modelParameters->timeStep) {
+      numericalIntegrator->tdata[numericalIntegrator->step] + context->modelParameters.timeStep) {
       s2_solve_writeStates(
         context, ++(numericalIntegrator->step));
       // printf("\tk: %d, h: %0.9g, SL: %f, safetyFactor: %f, omegaN: %f\n", k, h, SL[k], safetyFactor, omegaN);
@@ -1026,15 +1026,15 @@ void s2_ode113b_de(
   numericalIntegrator->step = 0;
 	numericalIntegrator->eps =
     fmax(
-      context->modelParameters->relativeError,
-      context->modelParameters->absoluteError);
+      context->modelParameters.relativeError,
+      context->modelParameters.absoluteError);
 
 	/* test for improper parameters */
 	if(
     numericalIntegrator->neqn < 1 ||
-    context->modelParameters->timeSpan == 0.0 ||
-    context->modelParameters->relativeError < 0.0 ||
-		context->modelParameters->absoluteError < 0.0 ||
+    context->modelParameters.timeSpan == 0.0 ||
+    context->modelParameters.relativeError < 0.0 ||
+		context->modelParameters.absoluteError < 0.0 ||
     numericalIntegrator->iflag < 1 ||
     numericalIntegrator->iflag > 5 ||
     numericalIntegrator->eps < numericalIntegrator->twou) {
@@ -1043,9 +1043,9 @@ void s2_ode113b_de(
       "neqn=%d, time=%g, timeEnd=%g, relerr=%g, abserr=%g, iflag=%d, eps=%g, " "twou=%g\n",
 			numericalIntegrator->neqn,
       0.0,
-      context->modelParameters->timeSpan,
-      context->modelParameters->relativeError,
-      context->modelParameters->absoluteError,
+      context->modelParameters.timeSpan,
+      context->modelParameters.relativeError,
+      context->modelParameters.absoluteError,
       numericalIntegrator->iflag,
       numericalIntegrator->eps,
       numericalIntegrator->twou);
@@ -1056,8 +1056,8 @@ void s2_ode113b_de(
 
 	/*  on each call, set interval of integration and counter for number of
 	    steps.  adjust input error tolerances to define weight vector.   */
-  numericalIntegrator->abserr = context->modelParameters->absoluteError;
-  numericalIntegrator->relerr = context->modelParameters->relativeError;
+  numericalIntegrator->abserr = context->modelParameters.absoluteError;
+  numericalIntegrator->relerr = context->modelParameters.relativeError;
 
 	releps = numericalIntegrator->relerr / numericalIntegrator->eps;
 	abseps = numericalIntegrator->abserr / numericalIntegrator->eps;
@@ -1087,7 +1087,7 @@ void s2_ode113b_de(
 		numericalIntegrator->h =
       fmin(
         numericalIntegrator->h,
-        context->modelParameters->timeSpan - numericalIntegrator->x);
+        context->modelParameters.timeSpan - numericalIntegrator->x);
 		for(int l = 0; l < numericalIntegrator->neqn; l++) {
 			numericalIntegrator->wt[l] =
         releps * fabs(numericalIntegrator->yy[l]) + abseps;
@@ -1102,7 +1102,7 @@ void s2_ode113b_de(
       return;
     }
 
-		if(numericalIntegrator->x >= context->modelParameters->timeSpan) {
+		if(numericalIntegrator->x >= context->modelParameters.timeSpan) {
 			numericalIntegrator->iflag = 2;
 			return;
 		}

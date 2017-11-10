@@ -41,7 +41,7 @@ void s2_service_setForces(
   memset(context->f, 0, context->dqCount * sizeof(double));
 
   double t = 0;
-  switch(context->modelParameters->integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;

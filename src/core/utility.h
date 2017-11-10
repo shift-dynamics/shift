@@ -127,4 +127,10 @@ int s2_arrayf_copyBack(
   float* oldArray,
   float** newArray);
 
+char* s2_getFilePath(
+  const char* fullName);
+
+const char* s2_getFileExtension(
+  const char*);
+
 #endif

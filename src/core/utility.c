@@ -560,3 +560,43 @@ int s2_arrayf_copyBack(
   cblas_scopy(count, oldArray, 1, *newArray, 1);
   return 0;
 }
+
+
+/*!
+@brief get file path of assembly
+
+*/
+char* s2_getFilePath(
+  const char* fullName) {
+
+  char* temp = strpbrk(fullName, "/");
+  char* rootName;
+  if(!temp) return NULL;
+  while(temp != NULL) {
+    rootName = temp;
+    temp = strpbrk(rootName + 1, "/");
+  }
+  free(temp);
+  int outSize = strlen(fullName) - strlen(rootName) + 2;
+  char* out = calloc(outSize, sizeof(char));
+  strncpy(out, fullName, outSize - 1);
+  return out;
+}
+
+
+/*!
+@brief get file extension
+
+*/
+const char* s2_getFileExtension(
+  const char* fullName) {
+
+  char* temp = strpbrk(fullName, ".");
+  char* rootName;
+  if(!temp) return fullName;
+  while(temp!=NULL) {
+    rootName = temp;
+    temp = strpbrk(rootName + 1, ".");
+  }
+  return rootName + 1;
+}
