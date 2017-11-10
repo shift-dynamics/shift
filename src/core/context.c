@@ -42,9 +42,11 @@ SUCH DAMAGE.
 #include "io.h"
 #include "substructure.h"
 #include "assembly.h"
+#include "utility.h"
 #include "../force_modules/tire.h"
-#include "../ode/numericalintegrator.h"
 
+void s2_context_setBodyJointPointers(
+  s2_context_t* context);
 
 /*!
 @brief Initialize a context datastructure
@@ -66,8 +68,44 @@ s2_context_t* s2_context() {
     fprintf(stderr, "Error: failed to initialize Context.\n");
     return NULL;
   }
+  context->modelParameters.version = NULL;
+  context->modelParameters.includeDirectory = NULL;
+
+  context->modelParameters.gravity = s2_vector();
+  context->modelParameters.units.angle = NULL;
+  context->modelParameters.units.length = NULL;
+  context->modelParameters.units.mass = NULL;
+  context->modelParameters.units.time = NULL;
+
+  context->modelParameters.outFile = NULL;
+  context->modelParameters.outFilePointer = NULL;
+  context->modelParameters.debugFile = NULL;
+  context->modelParameters.debugFilePointer = stdout;
+
+  /*! @TODO remove this later once dhva verified */
+  context->modelParameters.dhvaFilePointer =
+    fopen("dhva.dat", "w");
+  if(!context->modelParameters.dhvaFilePointer) {
+    fprintf(stderr, "could not open dhva debug file\n");
+    context->modelParameters.dhvaFilePointer = NULL;
+  }
+
+  asprintf(
+    &(context->modelParameters.delimiter),
+    ","
+  );
+  context->modelParameters.monitorIterations = true;
+  context->modelParameters.monitorConstraintError = true;
+
+
+  context->modelParameters.sumConstraintError = 0;
+  context->modelParameters.maxConstraintError = 0;
+  context->modelParameters.maxConstraintErrorStep = 0;
+  context->modelParameters.sumIterationCount = 0;
+  context->modelParameters.maxIterationCount = 0;
+  context->modelParameters.maxIterationCountStep = 0;
+
   context->assembly = s2_assembly();
-  context->modelParameters = s2_modelparameters();
 
   /*!
   @name Counts of objects in Context data structure
@@ -119,7 +157,6 @@ s2_context_t* s2_context() {
   context->chordConstraints = NULL; /*!< specified chord constraints, if
                                          multiple loops are present in a
                                          mechanism */
-  context->pivotRatioMultiple = 4;
   context->J = NULL; /*!< Jacobian matrix (or matrices) */
   context->Js = NULL;
   context->Jxx = NULL; /*!< instructions for evaluating Jacobian matrices */
@@ -448,144 +485,10 @@ void s2_context_setOmegaN(
   s2_context_t* context,
   double omegaN) {
 
-  context->modelParameters->baumgarteOmegaN = omegaN;
-  context->modelParameters->baumgarte2OmegaN = 2 * omegaN;
-  context->modelParameters->baumgarteOmegaN2 =
+  context->modelParameters.baumgarteOmegaN = omegaN;
+  context->modelParameters.baumgarte2OmegaN = 2 * omegaN;
+  context->modelParameters.baumgarteOmegaN2 =
     omegaN * omegaN;
-}
-
-
-/*!
-@brief Initialize a Units datastructure
-@returns a Unit datastructure
-*/
-s2_units_t* s2_units() {
-  s2_units_t* units = malloc(sizeof *units);
-  if(!units) {
-    fprintf(stderr, "Error: failed to initialize units.\n");
-    return NULL;
-  }
-  units->angle = NULL;
-  units->length = NULL;
-  units->mass = NULL;
-  units->time = NULL;
-  return units;
-}
-
-
-/*!
-@brief Free a Units datastructure
-@param units a Units datastructure to free
-*/
-void s2_units_free(
-  s2_units_t* units) {
-
-  if(units) {
-    if(units->angle) {
-      free(units->angle);
-      units->angle = NULL;
-    }
-    if(units->length) {
-      free(units->length);
-      units->length = NULL;
-    }
-    if(units->mass) {
-      free(units->mass);
-      units->mass = NULL;
-    }
-    if(units->time) {
-      free(units->time);
-      units->time = NULL;
-    }
-    free(units);
-    units = NULL;
-  }
-}
-
-
-/*!
-@brief Initialize a ModelParameters datastructure
-@returns a ModelParameters datastructure
-*/
-s2_modelparameters_t* s2_modelparameters() {
-  s2_modelparameters_t* modelParameters = malloc(sizeof *modelParameters);
-
-  if (!modelParameters) {
-    fprintf(stderr, "Error: failed to initialize modelParameters.\n");
-    return NULL;
-  }
-  modelParameters->version = NULL;
-  modelParameters->includeDirectory = NULL;
-
-  modelParameters->gravity = s2_vector();
-  modelParameters->units = s2_units();
-
-  modelParameters->outFile = NULL;
-  modelParameters->outFilePointer = NULL;
-  modelParameters->debugFile = NULL;
-  modelParameters->debugFilePointer = stdout;
-
-  /*! @TODO remove this later once dhva verified */
-  modelParameters->dhvaFilePointer =
-    fopen("dhva.dat", "w");
-  if(!modelParameters->dhvaFilePointer) {
-    fprintf(stderr, "could not open dhva debug file\n");
-    modelParameters->dhvaFilePointer = NULL;
-  }
-
-  asprintf(
-    &(modelParameters->delimiter),
-    ","
-  );
-  modelParameters->monitorIterations = true;
-  modelParameters->monitorConstraintError = true;
-
-
-  modelParameters->sumConstraintError = 0;
-  modelParameters->maxConstraintError = 0;
-  modelParameters->maxConstraintErrorStep = 0;
-  modelParameters->sumIterationCount = 0;
-  modelParameters->maxIterationCount = 0;
-  modelParameters->maxIterationCountStep = 0;
-
-  return modelParameters;
-}
-
-
-/*!
-@brief Free memory for ModelParameters datastructure
-@param modelParameters a ModelParameters datastructure
-*/
-void s2_modelparameters_free(
-  s2_modelparameters_t* modelParameters) {
-
-  if(modelParameters) {
-    if(modelParameters->dhvaFilePointer) {
-      fclose(modelParameters->dhvaFilePointer);
-    }
-    if(
-      modelParameters->debugFilePointer &&
-      modelParameters->debugFilePointer != stdout) {
-
-      fclose(modelParameters->debugFilePointer);
-    }
-
-    if(modelParameters->version) {
-      free(modelParameters->version);
-      modelParameters->version = NULL;
-    }
-    s2_stackstr_free(modelParameters->includeDirectory);
-
-    if(modelParameters->gravity) {
-      free(modelParameters->gravity);
-      modelParameters->gravity = NULL;
-    }
-
-    s2_units_free(modelParameters->units);
-
-    free(modelParameters);
-    modelParameters = NULL;
-  }
 }
 
 
@@ -598,15 +501,15 @@ void s2_context_print(
   s2_context_t* context) {
 
   fprintf(f, "\nModel Parameters:\n");
-  fprintf(f, "\ts2_version: %s\n", context->modelParameters->version);
+  fprintf(f, "\ts2_version: %s\n", context->modelParameters.version);
   fprintf(f, "\tgravity: ");
-  s2_vector_print(f, context->modelParameters->gravity);
-  fprintf(f, "\ttime: %s\n", context->modelParameters->units->time);
-  fprintf(f, "\tlength: %s\n", context->modelParameters->units->length);
-  fprintf(f, "\tmass: %s\n", context->modelParameters->units->mass);
-  fprintf(f, "\tangle: %s\n", context->modelParameters->units->angle);
+  s2_vector_print(f, context->modelParameters.gravity);
+  fprintf(f, "\ttime: %s\n", context->modelParameters.units.time);
+  fprintf(f, "\tlength: %s\n", context->modelParameters.units.length);
+  fprintf(f, "\tmass: %s\n", context->modelParameters.units.mass);
+  fprintf(f, "\tangle: %s\n", context->modelParameters.units.angle);
   fprintf(f, "\tinclude_dir: ");
-  s2_stackstr_print(f, context->modelParameters->includeDirectory);
+  s2_stackstr_print(f, context->modelParameters.includeDirectory);
   s2_assembly_print(f, context->assembly);
   fprintf(f, "PC: ");
   for(int i = 0; i < context->activeJointCount; i++) {
@@ -1231,7 +1134,7 @@ void s2_context_free(
 
   if(context) {
     s2_numericalintegrator_free(context);
-    s2_modelparameters_free(context->modelParameters);
+    s2_context_freeModelParameters(context);
     s2_context_freeRunTimeArrays(context);
 
     // printf("freeing assembly\n");
@@ -1306,14 +1209,13 @@ s2_body_t* s2_context_getBodyByName(
 
 */
 FILE* s2_context_getDebugPointer(s2_context_t* context, int i) {
-  if(context->modelParameters) {
-    if(i == 0) {
-      return context->modelParameters->debugFilePointer;
-    } else if(i == 1) {
-      return context->modelParameters->dhvaFilePointer;
-    }
+  if(i == 0) {
+    return context->modelParameters.debugFilePointer;
+  } else if(i == 1) {
+    return context->modelParameters.dhvaFilePointer;
+  } else {
+    return stdout;
   }
-  return stdout;
 }
 
 
@@ -1321,8 +1223,8 @@ FILE* s2_context_getDebugPointer(s2_context_t* context, int i) {
 @brief get current simulation time
 */
 double s2_context_getSimulationTime(s2_context_t* context) {
-  if(context->modelParameters && context->numericalIntegrator) {
-    switch(context->modelParameters->integrationType) {
+  if(context->numericalIntegrator) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           context->numericalIntegrator;
@@ -1343,8 +1245,8 @@ double s2_context_getSimulationTime(s2_context_t* context) {
 @brief get current iconv value from numerical integrator
 */
 int s2_context_getIConv(s2_context_t* context) {
-  if(context->modelParameters && context->numericalIntegrator) {
-    switch(context->modelParameters->integrationType) {
+  if(context->numericalIntegrator) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           context->numericalIntegrator;
@@ -1356,4 +1258,723 @@ int s2_context_getIConv(s2_context_t* context) {
     }
   }
   return -1;
+}
+
+
+/*!
+@brief loads fixed frames into an s2_context_t datastructure
+*/
+int s2_context_loadFixedFrames(
+  s2_context_t* context,
+  json_t* root) {
+
+  context->assembly->name =
+    s2_stackstr_fromString("fixed");
+
+  s2_body_t* fixedBody =
+    s2_body(s2_stackstr_fromString("fixed"));
+  context->assembly->bodyHead = fixedBody;
+
+  json_t* fixedObject = json_object_get(root, "fixed");
+  if(json_is_object(fixedObject)) {
+    json_t* framesObject = json_object_get(fixedObject, "frames");
+    if(!json_is_null(framesObject) && json_is_array(framesObject)) {
+      size_t framesIndex;
+      json_t* frameObject;
+      json_array_foreach(framesObject, framesIndex, frameObject) {
+        s2_frame_t* frame = s2_frame();
+        frame->name = s2_stackstr_copy(fixedBody->name);
+        s2_stackstr_append(
+          frame->name,
+          json_string_value(json_object_get(frameObject, "name")));
+        json_t* rotation = json_object_get(frameObject, "R");
+        if (json_is_array(rotation)) {
+          for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 3; k++) {
+              s2_displacement_set(
+                frame->dWRTOrigin,
+                j,
+                k,
+                json_number_value(
+                  json_array_get(json_array_get(rotation, j), k)));
+            }
+          }
+        }
+        json_t* translation = json_object_get(frameObject, "T");
+        if (json_is_array(translation)) {
+          for (int j = 0; j < 3; j++) {
+            s2_vector_set(
+              &(frame->dWRTOrigin->T),
+              j,
+              json_number_value(json_array_get(translation, j)));
+            // frame->translationWRTReference[j] = frame->translationWRTOrigin[j];
+          }
+        }
+
+        s2_displacement_invert(
+          frame->dWRTOrigin,
+          frame->dWRTOriginInverse);
+        (context->frameCount)++;
+        s2_body_appendFrame(fixedBody, frame);
+      }
+    }
+  }
+  return 0;
+}
+
+
+/*!
+@brief Load model parameters from a star2 JSON file
+
+*/
+void s2_context_loadModelParameters(
+  s2_context_t* context,
+  json_t* modelParametersObject,
+  const char* filePath) {
+
+  asprintf(
+    &(context->modelParameters.version),
+    "%s",
+    json_string_value(
+      json_object_get(modelParametersObject, "version")));
+
+  asprintf(
+    &(context->modelParameters.units.angle),
+    "%s",
+    json_string_value(
+      json_object_get(
+        json_object_get(modelParametersObject, "units"), "angle")));
+
+  asprintf(
+    &(context->modelParameters.units.length),
+    "%s",
+    json_string_value(
+      json_object_get(
+        json_object_get(modelParametersObject, "units"), "length")));
+
+  asprintf(&(context->modelParameters.units.mass), "%s",
+    json_string_value(json_object_get(
+      json_object_get(modelParametersObject, "units"), "mass")));
+
+  asprintf(&(context->modelParameters.units.time), "%s",
+    json_string_value(json_object_get(
+      json_object_get(modelParametersObject, "units"), "time")));
+
+  for (int i = 0; i < 3; i++) {
+    ((double*)(context->modelParameters.gravity))[i] = json_number_value(
+      json_array_get(json_object_get(modelParametersObject, "gravity"), i));
+  }
+
+  /*
+    Load simulation parameters
+  */
+  json_t* simulationObject =
+    json_object_get(modelParametersObject, "simulation");
+
+  /* if there is no simulationObject, then set simulation parameters to default
+  values */
+  if(simulationObject != NULL) {
+    /*
+      parse integration type
+    */
+    json_t* integrationObject =
+      json_object_get(simulationObject, "integration_type");
+    if(integrationObject != NULL) {
+      const char* integrationType = json_string_value(integrationObject);
+      if(!strcmp(integrationType, "ode113")) {
+        context->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
+      } else if(!strcmp(integrationType, "ode113b")) {
+        context->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113B;
+      } else {
+        /*
+          if other integration types are created in the future, add parser for
+          them here
+        */
+        fprintf(
+          stderr,
+          "Warning, an integration type other than ode113 or ode113b was" "specified\n"
+          "currently the program only supports ode113. Setting to ode113\n");
+        context->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
+      };
+    } else {
+      fprintf(
+        stderr,
+        "Warning, no integration type specified. ode113 will be used.\n");
+      context->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
+    }
+
+    /* load omega N for baumgarte constraint stabilization */
+    json_t* omegaNObject =
+      json_object_get(simulationObject, "omega_n");
+    double omegaN = 20;
+    if(omegaNObject != NULL) {
+      omegaN = json_number_value(omegaNObject);
+    }
+    context->modelParameters.baumgarteOmegaN = omegaN;
+    context->modelParameters.baumgarte2OmegaN = 2 * omegaN;
+    context->modelParameters.baumgarteOmegaN2 = omegaN * omegaN;
+
+    /*
+      parse time span
+    */
+    json_t* timeSpanObject = json_object_get(simulationObject, "time_span");
+    if(timeSpanObject != NULL) {
+      context->modelParameters.timeSpan = json_number_value(timeSpanObject);
+    } else {
+      fprintf(stderr, "Warning, no time span specifed in JSON file, "
+        "using 1 second.\n");
+      context->modelParameters.timeSpan = 1.0;
+    }
+
+    /*
+      parse time step
+    */
+    json_t* timeStepObject = json_object_get(simulationObject, "time_step");
+    if(timeStepObject != NULL) {
+      context->modelParameters.timeStep = json_number_value(timeStepObject);
+    } else {
+      fprintf(stderr, "Warning, no time step specifed in JSON file, "
+        "using 0.0001 seconds.\n");
+      context->modelParameters.timeStep = 0.0001;
+    }
+
+    json_t* outFileObject =
+      json_object_get(simulationObject, "out_file");
+    if(outFileObject != NULL) {
+      asprintf(
+        &(context->modelParameters.outFile),
+        "%s",
+        json_string_value(outFileObject));
+    }
+
+    json_t* debugFileObject =
+      json_object_get(simulationObject, "debug_file");
+    if(debugFileObject != NULL) {
+      if(strcmp(json_string_value(debugFileObject), "stdout")) {
+        asprintf(
+          &(context->modelParameters.debugFile),
+          "%s",
+          json_string_value(debugFileObject));
+        context->modelParameters.debugFilePointer =
+          fopen(context->modelParameters.debugFile, "w");
+        if(!context->modelParameters.debugFilePointer) {
+          fprintf(stderr, "unable to open debug file, exiting.\n");
+          exit(-1);
+        }
+      }
+    }
+
+    /*
+      parse relative error
+    */
+    json_t* relativeErrorObject =
+      json_object_get(simulationObject, "relative_error");
+    if(relativeErrorObject != NULL) {
+      context->modelParameters.relativeError = json_number_value(relativeErrorObject);
+    } else {
+      fprintf(
+        stderr,
+        "Warning, no relative integration error specifed in JSON "
+        "file, using 0.0 seconds.\n");
+      context->modelParameters.relativeError = 0.0;
+    }
+
+    /*
+      parse absolute error
+    */
+    json_t* absoluteErrorObject =
+      json_object_get(simulationObject, "absolute_error");
+    if(absoluteErrorObject != NULL) {
+      context->modelParameters.absoluteError = json_number_value(absoluteErrorObject);
+    } else {
+      fprintf(
+        stderr,
+        "Warning, no absolute integration error specifed in JSON "
+        "file, using 0.0001 seconds.\n");
+      context->modelParameters.absoluteError = 0.0001;
+    }
+
+    /*
+      parse infinity norm multiplier
+    */
+    json_t* infNormMultiplierObject =
+      json_object_get(simulationObject, "infinity_norm_multiplier");
+    if(infNormMultiplierObject != NULL) {
+      context->modelParameters.pivotRatioMultiple =
+        json_number_value(infNormMultiplierObject);
+    } else {
+      fprintf(
+        stderr,
+        "Warning, no infinity norm multiplier specified in "
+        "file, using 4.\n");
+      context->modelParameters.pivotRatioMultiple = 4;
+    }
+
+  } else {
+    fprintf(stderr, "Warning, no simulation parameters specifed in JSON file, "
+      "using default values\n");
+    context->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
+    context->modelParameters.timeSpan = 1.0;
+    context->modelParameters.timeStep = 0.0001;
+    context->modelParameters.relativeError = 0.0;
+    context->modelParameters.absoluteError = 1e-4;
+  }
+
+  // Load include directories
+  json_t* includeDirectoryObject =
+    json_object_get(modelParametersObject, "include_dir");
+
+  context->modelParameters.includeDirectory = s2_stackstr();
+  char* fullFilePath = s2_getFilePath(filePath);
+  if(fullFilePath){
+    s2_stackstr_append(
+      context->modelParameters.includeDirectory,
+      fullFilePath);
+    free(fullFilePath);
+  }
+  if(json_is_array(includeDirectoryObject)) {
+    size_t index;
+    json_t* value;
+    json_array_foreach(includeDirectoryObject, index, value) {
+      s2_stackstr_append(
+        context->modelParameters.includeDirectory,
+        json_string_value(value));
+    }
+  } else if(json_is_string(includeDirectoryObject)) {
+    s2_stackstr_append(
+      context->modelParameters.includeDirectory,
+      json_string_value(includeDirectoryObject));
+  }
+}
+
+
+/*!
+@brief free memory associated with modelParameters substructure
+*/
+void s2_context_freeModelParameters(s2_context_t* context) {
+  if(context->modelParameters.units.angle) {
+    free(context->modelParameters.units.angle);
+    context->modelParameters.units.angle = NULL;
+  }
+  if(context->modelParameters.units.length) {
+    free(context->modelParameters.units.length);
+    context->modelParameters.units.length = NULL;
+  }
+  if(context->modelParameters.units.mass) {
+    free(context->modelParameters.units.mass);
+    context->modelParameters.units.mass = NULL;
+  }
+  if(context->modelParameters.units.time) {
+    free(context->modelParameters.units.time);
+    context->modelParameters.units.time = NULL;
+  }
+  if(context->modelParameters.dhvaFilePointer) {
+    fclose(context->modelParameters.dhvaFilePointer);
+  }
+  if(
+    context->modelParameters.debugFilePointer &&
+    context->modelParameters.debugFilePointer != stdout) {
+
+    fclose(context->modelParameters.debugFilePointer);
+  }
+
+  if(context->modelParameters.version) {
+    free(context->modelParameters.version);
+    context->modelParameters.version = NULL;
+  }
+  s2_stackstr_free(context->modelParameters.includeDirectory);
+
+  if(context->modelParameters.gravity) {
+    free(context->modelParameters.gravity);
+    context->modelParameters.gravity = NULL;
+  }
+}
+
+
+/*!
+@brief Processes light pointers from a flattened list of lights
+
+Sets parent frame for a light for a flattened list of lights and frames
+
+@param context a Context datastructure
+*/
+void s2_context_setLightPointers(
+  s2_context_t* context) {
+
+  // FILE* debug = context->modelParameters->debugFilePointer;
+
+  // fprintf(debug, "# processing light pointers\n");
+  // fprintf(debug, "%d lights\n", context->lightCount);
+  for (int i = 0; i < context->lightCount; i++) {
+    // fprintf(debug, "\n\nprocessing light ");
+    // s2_stackstr_print(debug, context->lightPointers[i]->name);
+    //
+    // fprintf(debug, "\nsearching for ");
+    // s2_stackstr_print(debug, context->lightPointers[i]->parentFrame);
+
+    for (int j = 0; j < context->bodyCount; j++) {
+      s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
+      while(frameHead) {
+        if(s2_stackstr_isEqual(
+            context->lightPointers[i]->parentFrame,
+            frameHead->name)) {
+
+          // fprintf(debug, "\nmatch found!");
+          context->lightPointers[i]->parentFramePointer = frameHead;
+
+        }
+        frameHead = frameHead->next;
+      }
+    }
+  }
+}
+
+
+void s2_context_flattenFixedLights(
+  s2_context_t* context,
+  int* lightCounter) {
+
+  s2_light_t* lightHead = context->assembly->lightHead;
+  while(lightHead) {
+    context->lightPointers[*lightCounter] = lightHead;
+    lightHead->index = (*lightCounter);
+    (*lightCounter)++;
+    lightHead = lightHead->next;
+  }
+}
+
+
+void s2_context_flattenHierarchy(
+  s2_assembly_t* assembly,
+  s2_context_t* context,
+  int* bodyCounter,
+  int* jointCounter,
+  int* lightCounter) {
+
+  s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
+  // if(subAssemblyHead){
+  while(subAssemblyHead) {
+    s2_body_t* bodyHead = subAssemblyHead->bodyHead;
+    while(bodyHead) {
+      context->bodyPointers[*bodyCounter] = bodyHead;
+      bodyHead->index = (*bodyCounter);
+      (*bodyCounter)++;
+      bodyHead = bodyHead->next;
+    }
+    s2_joint_t* jointHead = subAssemblyHead->jointHead;
+    while(jointHead) {
+      context->jointPointers[*jointCounter] = jointHead;
+      jointHead->index = (*jointCounter);
+      (*jointCounter)++;
+      jointHead = jointHead->next;
+    }
+    s2_light_t* lightHead = subAssemblyHead->lightHead;
+    while(lightHead) {
+      context->lightPointers[*lightCounter] = lightHead;
+      lightHead->index = (*lightCounter);
+      (*lightCounter)++;
+      lightHead = lightHead->next;
+    }
+
+    if(subAssemblyHead->subAssemblyHead) {
+      s2_context_flattenHierarchy(
+        subAssemblyHead,
+        context,
+        bodyCounter,
+        jointCounter,
+        lightCounter);
+    }
+    subAssemblyHead = subAssemblyHead->next;
+  }
+}
+
+
+/*!
+@brief Loads hierarchical json file into s2_context_t data structure
+
+Recursive function to extract all bodies and joints in
+ arbitrarily nested assembly hierarchy
+
+@returns Context
+*/
+s2_context_t* s2_context_loadJSON(
+  json_t* root,
+  const char* filePath) {
+
+  s2_context_t* context = s2_context();
+
+  // load modelParameters
+  json_t* modelParametersObject =
+    json_object_get(root, "model_parameters");
+  if(!json_is_object(modelParametersObject)) {
+    fprintf(stderr, "No valid model parameters object found.\n");
+    return NULL;
+  }
+
+  s2_context_loadModelParameters(
+    context,
+    modelParametersObject,
+    filePath);
+
+  s2_context_loadFixedFrames(context, root);
+
+  json_t* fixedObject = json_object_get(root, "fixed");
+
+  s2_assembly_loadLights(
+    context->assembly,
+    fixedObject,
+    context,
+    context->assembly->name);
+
+  /* modelParametersObject must be loaded before terrain
+  so that include directores can be used to find terrain
+  related files */
+  s2_terrain_load(
+    context->assembly,
+    fixedObject,
+    context,
+    context->assembly->name);
+
+  json_t* assembliesObject = json_object_get(root, "assemblies");
+
+  if (!json_is_array(assembliesObject)) {
+    fprintf(stderr, "No valid assembly object found.\n");
+    return NULL;
+  }
+
+  s2_stackstr_t* prefix = s2_stackstr();
+  s2_assembly_load(context->assembly, assembliesObject, context, prefix);
+  s2_stackstr_free(prefix);
+
+  context->bodyPointers =
+    malloc(sizeof(s2_body_t *) * (context->bodyCount + 1));
+  context->jointPointers =
+    malloc(sizeof(s2_joint_t *) * context->jointCount);
+  context->lightPointers =
+    malloc(sizeof(s2_light_t*) * context->lightCount);
+
+  for (int i = 0; i < (context->bodyCount + 1); i++) {
+    context->bodyPointers[i] = NULL;
+  }
+  for (int i = 0; i < context->jointCount; i++) {
+    context->jointPointers[i] = NULL;
+  }
+  for (int i = 0; i < context->lightCount; i++) {
+    context->lightPointers[i] = NULL;
+  }
+  context->bodyPointers[0] = context->assembly->bodyHead;
+
+  int bodyCounter = 1;
+  int jointCounter = 0;
+  int lightCounter = 0;
+
+  s2_context_flattenFixedLights(
+    context,
+    &lightCounter);
+
+  s2_context_flattenHierarchy(
+    context->assembly,
+    context,
+    &bodyCounter,
+    &jointCounter,
+    &lightCounter);
+
+  s2_context_setBodyJointPointers(context);
+  s2_context_setLightPointers(context);
+  s2_context_setTerrainPointers(context);
+
+  return context;
+}
+
+
+/*!
+@brief Parse a STAR2 JSON file and return in "context", a SetupContext
+data structure
+
+This function parses a STAR2 JSON file and returns a SetupContext
+data structure. The JSON file is parsed using the Jansson C library.
+@param fileName path to star2 JSON file.
+
+@return a setupContext data structure.
+*/
+s2_context_t* s2_context_load(
+  const char* fileName) {
+
+  json_error_t error;
+  json_t *root = json_load_file(fileName, 0, &error);
+
+  /*
+    get path to file name
+  */
+
+  if(!root) {
+    fprintf(
+      stderr,
+      "Error: file loading error on line %d: %s\n",
+      error.line,
+      error.text);
+    return NULL;
+  }
+
+  if (!json_is_object(root)) {
+    fprintf(
+      stderr,
+      "Error: file loading error, file does not contain a valid object\n");
+    json_decref(root);
+    return NULL;
+  }
+  char* realPath = realpath(fileName, NULL);
+  s2_context_t* context = s2_context_loadJSON(root, realPath);
+  free(realPath);
+  json_decref(root);
+  return context;
+}
+
+
+/*!
+@brief
+*/
+bool s2_connectFramePointer(
+  s2_body_t* body,
+  s2_joint_t* joint,
+  bool searchParent) {
+
+  bool found = false;
+  s2_frame_t* frameHead = body->frameHead;
+  if(searchParent) {
+    while(frameHead) {
+      if(s2_stackstr_isEqual(joint->parentFrame, frameHead->name)) {
+        joint->parentFramePointer = frameHead;
+        found = true;
+        break;
+      }
+      frameHead = frameHead->next;
+    }
+  } else {
+    while(frameHead) {
+      if(s2_stackstr_isEqual(joint->childFrame, frameHead->name)) {
+        joint->childFramePointer = frameHead;
+        found = true;
+        break;
+      }
+      frameHead = frameHead->next;
+    }
+  }
+  return found;
+}
+
+
+/*!
+@brief Processes body joint pointers from a flattened list of bodies and joints
+
+The flattened list must be generated using s2_LoadFlattenedBodyJointList
+
+@param context a Context datastructure
+*/
+void s2_context_setBodyJointPointers(
+  s2_context_t* context) {
+
+  for (int i = 0; i < context->jointCount; i++) {
+    bool parentFound = false;
+    for (int j = 0; j < context->bodyCount + 1; j++) {
+      if(s2_stackstr_isEqual(
+          context->jointPointers[i]->parentBody,
+          context->bodyPointers[j]->name)) {
+
+        context->jointPointers[i]->parentBodyPointer = context->bodyPointers[j];
+        if (!s2_connectFramePointer(
+              context->bodyPointers[j],
+              context->jointPointers[i], true)) {
+          fprintf(
+            stderr,
+            "Warning, parentFrame not found for joint: %s, frame: %s\n",
+            context->jointPointers[i]->name->tail->value,
+            context->jointPointers[i]->parentFrame->tail->value);
+        } else {
+          parentFound = true;
+        }
+        break;
+      }
+    }
+    bool childFound = false;
+    for (int j = 0; j < context->bodyCount + 1; j++) {
+      if(s2_stackstr_isEqual(
+          context->jointPointers[i]->childBody,
+          context->bodyPointers[j]->name)) {
+
+        context->jointPointers[i]->childBodyPointer = context->bodyPointers[j];
+        if (!s2_connectFramePointer(
+              context->bodyPointers[j],
+              context->jointPointers[i], false)) {
+          fprintf(
+            stderr,
+            "Warning, parentFrame not found for joint: %s, frame: %s\n",
+            context->jointPointers[i]->name->tail->value,
+            context->jointPointers[i]->childFrame->tail->value);
+        } else {
+          childFound = true;
+        }
+        break;
+      }
+    }
+
+    if(!parentFound) {
+      fprintf(
+        stderr,
+        "Warning, parentBody not found for joint: %s, body: %s\n",
+        context->jointPointers[i]->name->tail->value,
+        context->jointPointers[i]->childBody->tail->value);
+    }
+
+    if(!childFound) {
+      fprintf(
+        stderr,
+        "Warning, childBody not found for joint: %s, body: %s\n",
+        context->jointPointers[i]->name->tail->value,
+        context->jointPointers[i]->childBody->tail->value);
+    }
+  }
+}
+
+
+/*!
+@brief Sets parent frame and body pointers for terrains
+
+@param context an s2_context_t datastructure
+*/
+void s2_context_setTerrainPointers(
+  s2_context_t* context) {
+
+  // FILE* debug = context->modelParameters->debugFilePointer;
+  //
+  // fprintf(debug, "# processing elevation map pointers\n");
+  // fprintf(debug, "%d lights\n", context->lightCount);
+  for (int i = 0; i < context->terrainCount; i++) {
+    // fprintf(debug, "\n\nprocessing light ");
+    // s2_stackstr_print(debug, context->lightPointers[i]->name);
+    //
+    // fprintf(debug, "\nsearching for ");
+    // s2_stackstr_print(debug, context->lightPointers[i]->parentFrame);
+
+    for (int j = 0; j < context->bodyCount; j++) {
+      s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
+      if(s2_stackstr_isEqual(
+        context->terrains[i]->parentBody,
+        context->bodyPointers[j]->name)) {
+          context->terrains[i]->parentBodyPointer =
+            context->bodyPointers[j];
+        // s2_stackstr_print(debug, context->bodyPointers[j]->name);
+      }
+
+      while(frameHead) {
+        if(s2_stackstr_isEqual(
+            context->terrains[i]->parentFrame,
+            frameHead->name)) {
+          context->terrains[i]->parentFramePointer = frameHead;
+          // s2_stackstr_print(debug, frameHead->name);
+        }
+        frameHead = frameHead->next;
+      }
+    }
+  }
 }

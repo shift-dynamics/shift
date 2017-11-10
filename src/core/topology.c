@@ -594,21 +594,13 @@ void topology_processVirtualBodies(
         context->bodyPointers[i]->index = i;
       }
     } else {
-      s2_body_t* virtualBody = s2_body();
-      virtualBody->isVirtual = true;
-      virtualBody->name = s2_stackstr();
+
       char* virtualBodyName;
       asprintf(&(virtualBodyName), "_virtualBody%d", k);
-      s2_stackstr_append(virtualBody->name, virtualBodyName);
+      s2_body_t* virtualBody =
+        s2_body(s2_stackstr_fromString(virtualBodyName));
+      virtualBody->isVirtual = true;
       free(virtualBodyName);
-
-      s2_frame_t* origin = s2_frame();
-      origin->name = s2_stackstr_copy(virtualBody->name);
-      s2_stackstr_append(origin->name, "origin");
-
-      virtualBody->referenceFrame = origin;
-      virtualBody->origin = origin;
-      s2_frame_append(virtualBody, origin);
 
       // printf("chord constraint count: %d\n", k);
       context->chordConstraints[k].parentBodyPointer = virtualBody;
@@ -3719,7 +3711,7 @@ void s2_updateDHVADebug(
         s2_screw_print(f, &phi_dot);
 
         if(context->numericalIntegrator != NULL) {
-          switch(context->modelParameters->integrationType) {
+          switch(context->modelParameters.integrationType) {
             case S2_NUMERICALINTEGRATOR_ODE113: {
 
             } break;
@@ -3811,7 +3803,7 @@ void topology_setFixedFrameGravityVector(s2_context_t* context) {
   cblas_daxpy(
     3,
     -1.0,
-    (double*)context->modelParameters->gravity,
+    (double*)context->modelParameters.gravity,
     1,
     (double*)context->aq,
     1);

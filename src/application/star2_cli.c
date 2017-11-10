@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  s2_context_t* context = s2_loadJSON(argv[1]);
+  s2_context_t* context = s2_context_load(argv[1]);
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 

@@ -608,9 +608,9 @@ void RenderWindow::updateJoint() {
 @brief used to start playback of a simulation after computation has finished
 */
 void RenderWindow::startSimulationPlayback() {
-  m_timer->start(int(1000 * m_context->modelParameters->timeSpan));
+  m_timer->start(int(1000 * m_context->modelParameters.timeSpan));
   setSimulationRunning(true);
-  // qDebug() << "starting simulation playback for t=" <<  m_context->modelParameters->timeSpan;
+  // qDebug() << "starting simulation playback for t=" <<  m_context->modelParameters.timeSpan;
 
 }
 
@@ -620,7 +620,7 @@ void RenderWindow::startSimulationPlayback() {
 at time t
 */
 void RenderWindow::startSimulationPlayback(double t) {
-  double timeRemaining = m_context->modelParameters->timeSpan - t;
+  double timeRemaining = m_context->modelParameters.timeSpan - t;
   m_timer->start(int(1000 * timeRemaining));
   setSimulationRunning(true);
   // qDebug() << "starting simulation playback";
@@ -653,7 +653,7 @@ void RenderWindow::interpolateCurrentPosition() {
     int stepCount = 0;
     double* ydata = NULL;
 
-    switch(m_context->modelParameters->integrationType) {
+    switch(m_context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           (s2_numericalintegrator_ode113_t*) m_context->numericalIntegrator;
@@ -677,15 +677,15 @@ void RenderWindow::interpolateCurrentPosition() {
     after time */
     // qDebug() << "remaining time: " << m_timer->remainingTime();
     double t =
-      fmax(0, m_context->modelParameters->timeSpan -
+      fmax(0, m_context->modelParameters.timeSpan -
       (double)m_timer->remainingTime() / 1000.0);
 
-    double t0 = t - fmod(t, m_context->modelParameters->timeStep);
-    double t1 = t0 + m_context->modelParameters->timeStep;
-    // t1 = fmin(t1, m_context->modelParameters->timeSpan);
+    double t0 = t - fmod(t, m_context->modelParameters.timeStep);
+    double t1 = t0 + m_context->modelParameters.timeStep;
+    // t1 = fmin(t1, m_context->modelParameters.timeSpan);
 
     /* find index of first knot point */
-    int i0 = floor(t0 / m_context->modelParameters->timeStep);
+    int i0 = floor(t0 / m_context->modelParameters.timeStep);
     i0 = fmin(i0, stepCount - 1);
     int i1 = fmin(i0 + 1, stepCount - 1);
     // i1 = fmax(i1, i0);
@@ -728,7 +728,7 @@ void RenderWindow::interpolateCurrentPosition(double t) {
     int stepCount = 0;
     double* ydata = NULL;
 
-    switch(m_context->modelParameters->integrationType) {
+    switch(m_context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           (s2_numericalintegrator_ode113_t*) m_context->numericalIntegrator;
@@ -748,11 +748,11 @@ void RenderWindow::interpolateCurrentPosition(double t) {
       };
     }
 
-    double t0 = t - fmod(t, m_context->modelParameters->timeStep);
-    double t1 = t0 + m_context->modelParameters->timeStep;
+    double t0 = t - fmod(t, m_context->modelParameters.timeStep);
+    double t1 = t0 + m_context->modelParameters.timeStep;
 
     /* find index of first knot point */
-    int i0 = floor(t0 / m_context->modelParameters->timeStep);
+    int i0 = floor(t0 / m_context->modelParameters.timeStep);
     int i1 = fmin(i0 + 1, stepCount);
 
     double p = (t - t0) / (t1 - t0);

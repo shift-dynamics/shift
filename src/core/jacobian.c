@@ -175,7 +175,7 @@ void s2_jacobian_setLookup(
 int s2_jacobian_mallocEquations(
   s2_context_t* context) {
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
 
   s2_array_free(context->J);
   s2_arrayi_free(context->Jxx);
@@ -896,7 +896,7 @@ void s2_jacobian_setPO1_substructure(
     substructure->J);
 
   substructure->scaledInitialInfinityNormB =
-    context->pivotRatioMultiple *
+    context->modelParameters.pivotRatioMultiple *
     s2_jacobian_infinityNormB(
       substructure->constraintEquationCount,
       substructure->dqCount,
@@ -907,7 +907,7 @@ void s2_jacobian_setPO1_substructure(
   substructure and remove pivotRatio */
 
   substructure->pivotRatio =
-    context->pivotRatioMultiple *
+    context->modelParameters.pivotRatioMultiple *
     s2_jacobian_pivotRatio(
       substructure->dqCount,
       substructure->rank,
@@ -1044,7 +1044,7 @@ void s2_jacobian_setPO1Specified_substructure(
     substructure->J);
 
   substructure->scaledInitialInfinityNormB =
-    context->pivotRatioMultiple *
+    context->modelParameters.pivotRatioMultiple *
     s2_jacobian_infinityNormB(
       substructure->constraintEquationCount,
       substructure->dqCount,
@@ -1056,7 +1056,7 @@ void s2_jacobian_setPO1Specified_substructure(
     @TODO remove this once infinity norm is verified to work
   */
   substructure->pivotRatio =
-    context->pivotRatioMultiple *
+    context->modelParameters.pivotRatioMultiple *
     s2_jacobian_pivotRatio(
       substructure->dqCount,
       substructure->rank,
@@ -1878,7 +1878,7 @@ for a substructure that has been evaluated in PO2 order
 void s2_jacobian_factorPO2_substructure(
   s2_substructure_t* substructure) {
 
-  return s2_factor_LU(
+  s2_factor_LU(
     substructure->constraintEquationCount,
     substructure->dqCount,
     substructure->rank,
@@ -1925,7 +1925,7 @@ int s2_jacobian_factorPO2(
 void s2_jacobian_setConstraintPointers(
   s2_context_t* context) {
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
 
   if(context->constraints) free(context->constraints);
   if(context->chordConstraintCount > 0) {
@@ -2564,7 +2564,7 @@ void s2_jacobian_analyze(
 void setSubstructurePointers(
   s2_context_t* context) {
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
 
 
   for(int i = 0; i < context->substructureCount; i++) {
@@ -2626,7 +2626,7 @@ int s2_jacobian_infinityNormBCheck(
 
       context->iterationsSinceLastConstraintError = 0;
 
-      FILE* debug = context->modelParameters->debugFilePointer;
+      FILE* debug = context->modelParameters.debugFilePointer;
 
       fprintf(debug, "performing full factor on substructure [%d] ", sub);
       fprintf(debug, "infinityNormB: %f ", substructure->infinityNormB);
@@ -2637,7 +2637,7 @@ int s2_jacobian_infinityNormBCheck(
 
       if(context->numericalIntegrator != NULL) {
 
-        switch(context->modelParameters->integrationType) {
+        switch(context->modelParameters.integrationType) {
           case S2_NUMERICALINTEGRATOR_ODE113: {
             /* get current index */
             s2_numericalintegrator_ode113_t* numericalIntegrator =
@@ -2646,7 +2646,7 @@ int s2_jacobian_infinityNormBCheck(
             s2_stack_append(
               numericalIntegrator->reconfigurations,
               (int)(
-                numericalIntegrator->tout / context->modelParameters->timeStep)
+                numericalIntegrator->tout / context->modelParameters.timeStep)
                 - 1);
 
           } break;

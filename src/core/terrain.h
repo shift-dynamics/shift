@@ -154,8 +154,4 @@ int s2_terrain_load(
   s2_stackstr_t* prefix);
 
 
-void s2_terrain_setPointers(
-  s2_context_t* context);
-
-
 #endif

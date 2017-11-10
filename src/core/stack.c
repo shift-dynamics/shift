@@ -132,6 +132,16 @@ void s2_stackstr_append(
 
 
 /*!
+@brief initialize a new stackstr and push first value onto list
+*/
+s2_stackstr_t* s2_stackstr_fromString(const char* value) {
+  s2_stackstr_t* stackstr = s2_stackstr();
+  s2_stackstr_append(stackstr, value);
+  return stackstr;
+}
+
+
+/*!
 @brief pop the first value off of the stack
 */
 int s2_stack_pop(

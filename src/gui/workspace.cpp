@@ -3005,7 +3005,7 @@ void Workspace::openFileAtLoad() {
       m_currentFileName = fileName;
       setWindowTitle(fileName + QString(" | star2"));
 
-      m_context = s2_loadJSON(byteArray.data());
+      m_context = s2_context_load(byteArray.data());
       s2_context_setTopology(m_context);
       populateTree();
       qDebug() << "loading from openFileAtLoad: " << fileName;
@@ -3013,7 +3013,7 @@ void Workspace::openFileAtLoad() {
     }
 
     if(m_context) {
-      FILE* debug = m_context->modelParameters->debugFilePointer;
+      FILE* debug = m_context->modelParameters.debugFilePointer;
       s2_context_initializeJacobian(m_context);
       s2_jacobian_evaluateConstraints(m_context);
 
@@ -3109,7 +3109,7 @@ void Workspace::openFileAtLoad() {
           m_mobilityFile,
           "q:%s%s",
           s2_getRootName(m_context->jointPointers[i]->name),
-          m_context->modelParameters->delimiter);
+          m_context->modelParameters.delimiter);
       }
 
       for(int i = 0; i < m_context->activeJointCount; i++) {
@@ -3118,7 +3118,7 @@ void Workspace::openFileAtLoad() {
             m_mobilityFile,
             "m:%s%s",
             s2_getRootName(m_context->jointPointers[i]->name),
-            m_context->modelParameters->delimiter);
+            m_context->modelParameters.delimiter);
         } else {
           fprintf(
             m_mobilityFile,
@@ -3164,7 +3164,7 @@ void Workspace::openFile() {
     m_currentFileName = fileName;
     setWindowTitle(fileName + QString(" | star2"));
 
-    m_context = s2_loadJSON(byteArray.data());
+    m_context = s2_context_load(byteArray.data());
     s2_context_setTopology(m_context);
     populateTree();
     qDebug() << "loading from openFile: " << fileName;
@@ -3172,7 +3172,7 @@ void Workspace::openFile() {
   }
 
   if(m_context) {
-    FILE* debug = m_context->modelParameters->debugFilePointer;
+    FILE* debug = m_context->modelParameters.debugFilePointer;
     s2_context_initializeJacobian(m_context);
     s2_jacobian_evaluateConstraints(m_context);
 
@@ -3268,7 +3268,7 @@ void Workspace::openFile() {
           m_mobilityFile,
           "q:%s%s",
           s2_getRootName(m_context->jointPointers[i]->name),
-          m_context->modelParameters->delimiter);
+          m_context->modelParameters.delimiter);
       }
     }
 
@@ -3279,7 +3279,7 @@ void Workspace::openFile() {
             m_mobilityFile,
             "m:%s%s",
             s2_getRootName(m_context->jointPointers[i]->name),
-            m_context->modelParameters->delimiter);
+            m_context->modelParameters.delimiter);
         }
       } else {
         if(m_context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
@@ -3317,7 +3317,7 @@ void Workspace::writeMobility() {
       m_mobilityFile,
       "%0.12f%s",
       m_context->q[i],
-      m_context->modelParameters->delimiter);
+      m_context->modelParameters.delimiter);
   }
 
   /* write mobility */
@@ -3326,7 +3326,7 @@ void Workspace::writeMobility() {
       m_mobilityFile,
       "%0.12f%s",
       m_context->mobilityNumbers[i],
-      m_context->modelParameters->delimiter);
+      m_context->modelParameters.delimiter);
   }
   fprintf(
     m_mobilityFile,
@@ -3902,11 +3902,11 @@ void Workspace::lightColorSelector() {
 void Workspace::setIntegratorType(int val) {
   switch(val) {
     case 0: {
-      m_context->modelParameters->integrationType =
+      m_context->modelParameters.integrationType =
         S2_NUMERICALINTEGRATOR_ODE113;
     } break;
     case 1: {
-      m_context->modelParameters->integrationType =
+      m_context->modelParameters.integrationType =
         S2_NUMERICALINTEGRATOR_ODE113B;
     } break;
   }
@@ -3918,7 +3918,7 @@ void Workspace::setIntegratorType(int val) {
 */
 void Workspace::setTimeSpan(double timeSpan) {
   if(m_context != NULL) {
-    m_context->modelParameters->timeSpan = timeSpan;
+    m_context->modelParameters.timeSpan = timeSpan;
   }
 }
 
@@ -3928,7 +3928,7 @@ void Workspace::setTimeSpan(double timeSpan) {
 */
 void Workspace::setTimeStep(double timeStep) {
   if(m_context != NULL) {
-    m_context->modelParameters->timeStep = timeStep;
+    m_context->modelParameters.timeStep = timeStep;
   }
 }
 
@@ -3938,7 +3938,7 @@ void Workspace::setTimeStep(double timeStep) {
 */
 void Workspace::setRelativeError(double relativeError) {
   if(m_context != NULL) {
-    m_context->modelParameters->relativeError = relativeError;
+    m_context->modelParameters.relativeError = relativeError;
   }
 }
 
@@ -3948,7 +3948,7 @@ void Workspace::setRelativeError(double relativeError) {
 */
 void Workspace::setAbsoluteError(double absoluteError) {
   if(m_context != NULL) {
-    m_context->modelParameters->absoluteError = absoluteError;
+    m_context->modelParameters.absoluteError = absoluteError;
   }
 }
 
@@ -3992,21 +3992,21 @@ void Workspace::loadModelParameters() {
   if(m_context != NULL) {
     m_modelParametersPanel.groupBox->setVisible(true);
     m_modelParametersPanel.absoluteError->setValue(
-      m_context->modelParameters->absoluteError);
+      m_context->modelParameters.absoluteError);
 
     m_modelParametersPanel.relativeError->setValue(
-      m_context->modelParameters->relativeError);
+      m_context->modelParameters.relativeError);
 
-    qDebug() << "omega_N" << m_context->modelParameters->baumgarteOmegaN;
+    qDebug() << "omega_N" << m_context->modelParameters.baumgarteOmegaN;
 
     m_modelParametersPanel.omegaN->setValue(
-      m_context->modelParameters->baumgarteOmegaN);
+      m_context->modelParameters.baumgarteOmegaN);
 
     m_modelParametersPanel.timeSpan->setValue(
-      m_context->modelParameters->timeSpan);
+      m_context->modelParameters.timeSpan);
 
     m_modelParametersPanel.timeStep->setValue(
-      m_context->modelParameters->timeStep);
+      m_context->modelParameters.timeStep);
   }
 }
 
@@ -4076,7 +4076,7 @@ void Workspace::runSimulation() {
 
     m_playbackPanel.slider->setRange(
       0.0,
-      m_playbackPanel.singleStep * m_context->modelParameters->timeSpan);
+      m_playbackPanel.singleStep * m_context->modelParameters.timeSpan);
 
     m_renderWindow->setAnimating(true);
     m_renderWindow->startSimulationPlayback();

@@ -1,5 +1,5 @@
 -I.
--I/usr/lib/clang/4.0.1/include
+-I/usr/lib/clang/5.0.0/include
 -I/usr/include/qt
 -I/usr/include/qt/QtGui
 -I/usr/include/qt/QtOpenGLExtensions

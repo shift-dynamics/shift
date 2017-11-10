@@ -30,6 +30,7 @@ SUCH DAMAGE.
 #include "assembly.h"
 #include "joint.h"
 #include "body.h"
+#include "utility.h"
 
 
 /*!

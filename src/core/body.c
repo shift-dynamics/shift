@@ -22,17 +22,25 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
+#include <jansson.h>
+#include <assimp/cimport.h>        // Plain-C interface to assimp loader
+#include <assimp/scene.h>          // Output data structure
+#include <assimp/postprocess.h>    // Post processing flags
+#include <assimp/material.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "stack.h"
+#include "context.h"
 #include "body.h"
+#include "material.h"
+#include "convexhull.h"
+#include "frame.h"
 #include "inertia.h"
 #include "assembly.h"
-#include "frame.h"
-#include "material.h"
-#include "context.h"
-#include "geometry.h"
-
-#include <jansson.h>
-
+#include "utility.h"
 
 /*!
 @brief Append a frame datastructure to an s2_body_t datastructure
@@ -60,7 +68,7 @@ void s2_body_appendFrame(
 
 @returns a s2_body_t datastructure
 */
-s2_body_t* s2_body() {
+s2_body_t* s2_body(s2_stackstr_t* name) {
   s2_body_t* body = malloc(sizeof(s2_body_t));
   if (!body) {
     fprintf(stderr, "Error: failed to initialize body.\n");
@@ -92,6 +100,8 @@ s2_body_t* s2_body() {
   body->convexHullCount = 0;
   body->convexHulls = NULL;
 
+  body->name = name;
+
   /* append origin to body */
   s2_frame_t* origin = s2_frame();
   origin->isOrigin = true;
@@ -105,24 +115,7 @@ s2_body_t* s2_body() {
 }
 
 
-/*!
-@brief Append a body to an s2_assembly_t datastructure
 
-@param assembly an Assembly datastructure to append to
-@param body a Body datastructure to append
-*/
-void s2_body_append(
-  s2_assembly_t* assembly,
-  s2_body_t* body) {
-
-  if (!assembly->bodyTail) {
-    assembly->bodyHead = body;
-    assembly->bodyTail = body;
-  } else {
-    assembly->bodyTail->next = body;
-    assembly->bodyTail = body;
-  }
-}
 
 
 /*!
@@ -174,30 +167,34 @@ void s2_body_free(
   s2_body_t* body) {
 
   if(body) {
-    s2_stackstr_free(body->name);
-    if (body->definition) {
-      s2_stackstr_free(body->definition);
-    }
-    s2_inertia_free(body->inertia);
-    s2_materials_free(body->materials, body->materialCount);
+    if(body->isVirtual) {
+      s2_virtualbody_free(body);
+    } else {
+      s2_stackstr_free(body->name);
+      if (body->definition) {
+        s2_stackstr_free(body->definition);
+      }
+      s2_inertia_free(body->inertia);
+      s2_materials_free(body->materials, body->materialCount);
 
-    free(body->centerOfMassWRTOrigin);
-    free(body->centerOfMassWRTReference);
+      free(body->centerOfMassWRTOrigin);
+      free(body->centerOfMassWRTReference);
 
-    s2_frame_t* frameHead = body->frameHead;
-    while(frameHead) {
-      s2_frame_t* nextFrame = frameHead->next;
-      s2_frame_free(frameHead);
-      frameHead = nextFrame;
+      s2_frame_t* frameHead = body->frameHead;
+      while(frameHead) {
+        s2_frame_t* nextFrame = frameHead->next;
+        s2_frame_free(frameHead);
+        frameHead = nextFrame;
+      }
+      free(body);
+      body = NULL;
     }
-    free(body);
-    body = NULL;
   }
 }
 
 
 /*!
-@brief Free a s2_body_t datastructure
+@brief Free a virtual s2_body_t datastructure
 @param body a virtual Body datastructure to free
 */
 void s2_virtualbody_free(
@@ -248,128 +245,413 @@ int s2_body_load(
     active = json_boolean_value(activeObject);
   }
 
-  int return_val = -3;
+  if(!active) {
+    return -3;
+  }
 
-  if(active) {
+  /* get body descriptive name */
+  s2_stackstr_t* bodyName = s2_stackstr_copy(prefix);
+  const char* bodyRootName =
+    json_string_value(json_object_get(bodyObject, "name"));
+  s2_stackstr_append(bodyName, bodyRootName);
+  s2_body_t* body = s2_body(bodyName);
 
-    s2_body_t* body = s2_body();
-    body->assembly = assembly;
+  body->assembly = assembly;
 
-    /* get body descriptive name */
-    const char* bodyRootName =
-      json_string_value(json_object_get(bodyObject, "name"));
+  /* get body definition files */
+  json_t* definitionsObject =
+    json_object_get(bodyObject, "definition");
 
-    body->name = s2_stackstr_copy(prefix);
-    s2_stackstr_append(body->name, bodyRootName);
+  body->definition = s2_stackstr();
 
-    /* get body definition files */
-    json_t* definitionsObject =
-      json_object_get(bodyObject, "definition");
+  if(json_is_null(definitionsObject)) {
+    // printf("no definition files loaded\n");
+  } else if(json_is_string(definitionsObject)) {
+    s2_stackstr_append(
+      body->definition,
+      json_string_value(definitionsObject));
+  } else if(json_is_array(definitionsObject)) {
+    json_t* definitionObject;
+    size_t i;
+    json_array_foreach(
+      definitionsObject, i, definitionObject) {
 
-    body->definition = s2_stackstr();
-
-    if (json_is_null(definitionsObject)) {
-      // printf("no definition files loaded\n");
-    } else if(json_is_string(definitionsObject)) {
       s2_stackstr_append(
         body->definition,
-        json_string_value(definitionsObject));
-    } else if(json_is_array(definitionsObject)) {
-      json_t* definitionObject;
-      size_t i;
-      json_array_foreach(definitionsObject, i, definitionObject) {
-        s2_stackstr_append(
-          body->definition,
-          json_string_value(definitionObject));
-      }
+        json_string_value(definitionObject));
     }
+  }
 
-    /* load body geometry */
-    return_val = s2_body_loadGeometry(context, body);
+  json_t* framesObject =
+    json_object_get(bodyObject, "frames");
 
-    json_t* framesObject = json_object_get(bodyObject, "frames");
-    if (!json_is_null(framesObject)) {
-      json_t* frameObject;
-      size_t frameIndex;
+  if(!json_is_null(framesObject)) {
+    json_t* frameObject;
+    size_t frameIndex;
 
-      json_array_foreach(framesObject, frameIndex, frameObject) {
+    json_array_foreach(
+      framesObject,
+      frameIndex,
+      frameObject) {
 
-        s2_frame_t* frame = s2_frame();
+      s2_frame_load(body, frameObject);
 
-        frame->name = s2_stackstr_copy(body->name);
-        s2_stackstr_append(
-          frame->name,
-          json_string_value(json_object_get(frameObject, "name")));
-
-        json_t* rotation = json_object_get(frameObject, "R");
-        if (json_is_array(rotation)) {
-          for (int j = 0; j < 3; j++) {
-            for (int k = 0; k < 3; k++) {
-              ((double*)frame->dWRTOrigin)[3 * k + j] = json_number_value(
-                  json_array_get(json_array_get(rotation, j), k));
-            }
-          }
-          s2_gramSchmidt(
-            3, 3, (double*)frame->dWRTOrigin);
-        }
-        json_t* translation = json_object_get(frameObject, "T");
-        if (json_is_array(translation)) {
-          for (int j = 0; j < 3; j++) {
-            ((double*)frame->dWRTOrigin)[9 + j] =
-                json_number_value(json_array_get(translation, j));
-          }
-        }
-        s2_displacement_invert(
-          frame->dWRTOrigin,
-          frame->dWRTOriginInverse);
-
-            // verify that inverse translations are computed correctly:
-            // printf("rWRT: ");
-            // kinematics_PrintVector(*(frame->rotationWRTOrigin) + 9);
-            // printf("inverse: ");
-            // kinematics_PrintVector(*(frame->rotationWRTOriginInverse) + 9);
-            s2_frame_append(body, frame);
-      }
     }
+  }
 
-    /* get mass */
-    body->inertia->m =
-      json_number_value(json_object_get(bodyObject, "mass"));
+  /* get mass */
+  body->inertia->m =
+    json_number_value(
+      json_object_get(bodyObject, "mass"));
+
+  /* get body center of mass */
+  for (int i = 0; i < 3; i++) {
+
+    ((double*)body->centerOfMassWRTOrigin)[i] =
+      json_number_value(
+        json_array_get(json_object_get(bodyObject, "center_of_mass"), i));
+  }
+
+  s2_product_vk(
+    body->centerOfMassWRTOrigin,
+    &(body->inertia->m),
+    &(body->inertia->mt));
+
+  body->inertia->Ixx = json_number_value(
+    json_object_get(
+      json_object_get(bodyObject, "moment_of_inertia"), "Ixx"));
+
+  body->inertia->Ixy = json_number_value(
+    json_object_get(
+      json_object_get(bodyObject, "moment_of_inertia"), "Ixy"));
+
+  body->inertia->Izx = json_number_value(
+    json_object_get(
+      json_object_get(bodyObject, "moment_of_inertia"), "Izx"));
+  body->inertia->Iyy = json_number_value(
+    json_object_get(
+      json_object_get(bodyObject, "moment_of_inertia"), "Iyy"));
+
+  body->inertia->Iyz = json_number_value(
+    json_object_get(
+      json_object_get(bodyObject, "moment_of_inertia"), "Iyz"));
+
+  body->inertia->Izz = json_number_value(
+    json_object_get(
+      json_object_get(bodyObject, "moment_of_inertia"), "Izz"));
+
+  (context->bodyCount)++;
+
+  s2_assembly_appendBody(assembly, body);
+
+  /* load body geometry */
+  return s2_body_loadGeometry(context, body);
+}
+
+
+/*! @brief Loads geometry specified in Body properties from an external file
+using ASSIMP (open asset importer)
+
+@param context a Context datastructure
+@param body a Body datastructure
+*/
+int s2_body_loadGeometry(
+  s2_context_t* context,
+  s2_body_t* body) {
+
+  const char* fileName = NULL;
+
+  s2_stackstrnode_t* definitionHead = body->definition->head;
+  while(definitionHead) {
+    if(!strcmp(s2_getFileExtension(definitionHead->value), "obj")) {
+      fileName = definitionHead->value;
+      break;
+    }
+    definitionHead = definitionHead->next;
+  }
+
+  /* if the filename is not specified, the body has no geometry specified
+  */
+  if(fileName == NULL) {
+    return -2;
+  }
+
+  /*
+    check if file exists in all user specified include directories
+  */
+  char* fullPathFileName = NULL;
+  s2_stackstrnode_t* includeDirectoryHead =
+    context->modelParameters.includeDirectory->head;
+  while(includeDirectoryHead) {
+    if(fullPathFileName) free(fullPathFileName);
+    asprintf(
+      &fullPathFileName,
+      "%s%s",
+      includeDirectoryHead->value,
+      fileName);
+    if(access(fullPathFileName, F_OK) != -1) {
+      break;
+    }
+    includeDirectoryHead = includeDirectoryHead->next;
+  }
+  // printf("fullPathFileName: %s\n", fullPathFileName);
+
+  const struct aiScene* scene =
+    aiImportFile(
+      fullPathFileName,
+      aiProcess_CalcTangentSpace |
+      aiProcess_Triangulate |
+      aiProcess_SortByPType);
+
+  /*
+    If loading was not successful, report import error and exit
+  */
+  if(!scene) {
+    printf("%s\n", aiGetErrorString());
+    printf("error, exiting.\n");
+    return -1;
+  }
+
+  /*
+    Access the file contents, load in to body data structure
+  */
+  // printf("number of meshes: %d\n", scene->mNumMeshes);
+  body->materialCount = scene->mNumMeshes;
+  body->materials = s2_materials(body->materialCount);
+
+  uint totalVertexCount = 0;
+  for(uint i = 0; i < scene->mNumMeshes; i++) {
+    totalVertexCount += scene->mMeshes[i]->mNumVertices;
+  }
+
+  GLfloat* vertices = malloc(3 * totalVertexCount * sizeof(GLfloat));
+
+  totalVertexCount = 0;
+  for(uint i = 0; i < scene->mNumMeshes; i++) {
+    /*
+      load vertices
+    */
+    body->materials[i].vertices = &vertices[totalVertexCount * 3];
+    body->materials[i].vertexCount = scene->mMeshes[i]->mNumVertices;
+    totalVertexCount += body->materials[i].vertexCount;
+    for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
+      body->materials[i].vertices[3 * j + 0] =
+        scene->mMeshes[i]->mVertices[j].x;
+      body->materials[i].vertices[3 * j + 1] =
+        scene->mMeshes[i]->mVertices[j].y;
+      body->materials[i].vertices[3 * j + 2] =
+        scene->mMeshes[i]->mVertices[j].z;
+    }
 
     /*
-      get body center of mass
+      load vertex normals
     */
-    for (int i = 0; i < 3; i++) {
-      ((double*)body->centerOfMassWRTOrigin)[i] = json_number_value(
-          json_array_get(json_object_get(bodyObject, "center_of_mass"), i));
+    body->materials[i].vertexNormals =
+      malloc(3 * body->materials[i].vertexCount * sizeof(GLfloat));
+    for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++ ) {
+      body->materials[i].vertexNormals[3 * j + 0] =
+        scene->mMeshes[i]->mNormals[j].x;
+      body->materials[i].vertexNormals[3 * j + 1] =
+        scene->mMeshes[i]->mNormals[j].y;
+      body->materials[i].vertexNormals[3 * j + 2] =
+        scene->mMeshes[i]->mNormals[j].z;
     }
-    s2_product_vk(
-      body->centerOfMassWRTOrigin,
-      &(body->inertia->m),
-      &(body->inertia->mt));
-    // printf("\ninertia loaded: ");
-    // s2_vector_print(&(body->inertia->mt));
-    // printf("\n");
-    body->inertia->Ixx = json_number_value(
-      json_object_get(
-        json_object_get(bodyObject, "moment_of_inertia"), "Ixx"));
-    body->inertia->Ixy = json_number_value(
-      json_object_get(
-        json_object_get(bodyObject, "moment_of_inertia"), "Ixy"));
-    body->inertia->Izx = json_number_value(
-      json_object_get(
-        json_object_get(bodyObject, "moment_of_inertia"), "Izx"));
-    body->inertia->Iyy = json_number_value(
-      json_object_get(
-        json_object_get(bodyObject, "moment_of_inertia"), "Iyy"));
-    body->inertia->Iyz = json_number_value(
-      json_object_get(
-        json_object_get(bodyObject, "moment_of_inertia"), "Iyz"));
-    body->inertia->Izz = json_number_value(
-      json_object_get(
-        json_object_get(bodyObject, "moment_of_inertia"), "Izz"));
-    (context->bodyCount)++;
-    s2_body_append(assembly, body);
+
+    /*
+      load faces
+    */
+    // printf("\nnumber of faces: %d\n", scene->mMeshes[i]->mNumFaces);
+    body->materials[i].faceCount = scene->mMeshes[i]->mNumFaces;
+    body->materials[i].faces = malloc(
+      3 * body->materials[i].faceCount * sizeof(GLuint));
+    for(int j = 0; j < body->materials[i].faceCount; j++) {
+      body->materials[i].faces[j * 3 + 0] = scene->mMeshes[i]->mFaces[j].mIndices[0];
+      body->materials[i].faces[j * 3 + 1] = scene->mMeshes[i]->mFaces[j].mIndices[1];
+      body->materials[i].faces[j * 3 + 2] = scene->mMeshes[i]->mFaces[j].mIndices[2];
+    }
+
+    /*
+      load color properties
+    */
+    int ret1;
+    struct aiMaterial* mtl;
+    mtl = scene->mMaterials[scene->mMeshes[i]->mMaterialIndex];
+    struct aiColor4D diffuse;
+    ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
+    if(ret1 == AI_SUCCESS) {
+      // printf("diffuse: %f %f %f %f\n", diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+      body->materials[i].GLuniforms.Kd[0] = diffuse.r;
+      body->materials[i].GLuniforms.Kd[1] = diffuse.g;
+      body->materials[i].GLuniforms.Kd[2] = diffuse.b;
+      body->materials[i].GLuniforms.Kd[3] = diffuse.a;
+    } else {
+      body->materials[i].GLuniforms.Kd[0] = 0.6;
+      body->materials[i].GLuniforms.Kd[1] = 0.6;
+      body->materials[i].GLuniforms.Kd[2] = 0.6;
+      body->materials[i].GLuniforms.Kd[3] = 1.0;
+    }
+
+    struct aiColor4D ambient;
+    ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient);
+    if(ret1 == AI_SUCCESS) {
+      // printf("ambient: %f %f %f %f\n", ambient.r, ambient.g, ambient.b, ambient.a);
+      body->materials[i].GLuniforms.Ka[0] = ambient.r;
+      body->materials[i].GLuniforms.Ka[1] = ambient.g;
+      body->materials[i].GLuniforms.Ka[2] = ambient.b;
+      body->materials[i].GLuniforms.Ka[3] = ambient.a;
+    } else {
+      body->materials[i].GLuniforms.Ka[0] = 0.6;
+      body->materials[i].GLuniforms.Ka[1] = 0.6;
+      body->materials[i].GLuniforms.Ka[2] = 0.6;
+      body->materials[i].GLuniforms.Ka[3] = 1.0;
+    }
+
+    struct aiColor4D specular;
+    ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular);
+    if(ret1 == AI_SUCCESS) {
+      // printf("specular: %f %f %f %f\n", specular.r, specular.g, specular.b, specular.a);
+      body->materials[i].GLuniforms.Ks[0] = specular.r;
+      body->materials[i].GLuniforms.Ks[1] = specular.g;
+      body->materials[i].GLuniforms.Ks[2] = specular.b;
+      body->materials[i].GLuniforms.Ks[3] = specular.a;
+    } else {
+      body->materials[i].GLuniforms.Ks[0] = 0.6;
+      body->materials[i].GLuniforms.Ks[1] = 0.6;
+      body->materials[i].GLuniforms.Ks[2] = 0.6;
+      body->materials[i].GLuniforms.Ks[3] = 1.0;
+    }
+
+    struct aiColor4D emissive;
+    ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emissive);
+    if(ret1 == AI_SUCCESS) {
+      // printf("emissive: %f %f %f %f\n", emissive.r, emissive.g, emissive.b, emissive.a);
+      body->materials[i].GLuniforms.Ke[0] = emissive.r;
+      body->materials[i].GLuniforms.Ke[1] = emissive.g;
+      body->materials[i].GLuniforms.Ke[2] = emissive.b;
+      body->materials[i].GLuniforms.Ke[3] = emissive.a;
+    } else {
+      body->materials[i].GLuniforms.Ke[0] = 0.0;
+      body->materials[i].GLuniforms.Ke[1] = 0.0;
+      body->materials[i].GLuniforms.Ke[2] = 0.0;
+      body->materials[i].GLuniforms.Ke[3] = 1.0;
+    }
+
+    /*
+      this set of parameters is currently not used / loaded
+    */
+    float shininess = 0.f;
+    unsigned int max = 0;
+    ret1 = aiGetMaterialFloatArray(
+      mtl,
+      AI_MATKEY_SHININESS,
+      &shininess,
+      &max);
+    // if(ret1 == AI_SUCCESS)
+    //   printf("shininess: %f\n", shininess);
+
+    float shininess_strength = 0.f;
+    ret1 = aiGetMaterialFloatArray(
+      mtl,
+      AI_MATKEY_SHININESS_STRENGTH,
+      &shininess_strength,
+      &max);
+    // if(ret1 == AI_SUCCESS)
+    //   printf("shininess_strength: %f\n", shininess_strength);
+
+    float reflectivity = 0.f;
+    ret1 = aiGetMaterialFloatArray(
+      mtl,
+      AI_MATKEY_REFLECTIVITY,
+      &reflectivity,
+      &max);
+    // if(ret1 == AI_SUCCESS)
+    //   printf("reflectivity: %f\n", reflectivity);
+
+    float refracti = 0.f;
+    ret1 = aiGetMaterialFloatArray(
+      mtl,
+      AI_MATKEY_REFRACTI,
+      &refracti,
+      &max);
+    // if(ret1 == AI_SUCCESS)
+    //   printf("refracti: %f\n", refracti);
+
+    float opacity_f = 0.f;
+    ret1 = aiGetMaterialFloatArray(
+      mtl,
+      AI_MATKEY_OPACITY,
+      &opacity_f,
+      &max);
+    // if(ret1 == AI_SUCCESS)
+    //   printf("opacity: %f\n", opacity_f);
+
+    struct aiColor4D reflective;
+    reflective.r = 0.f;
+    reflective.g = 0.f;
+    reflective.b = 0.f;
+    reflective.a = 0.f;
+    ret1 = aiGetMaterialColor(
+      mtl,
+      AI_MATKEY_COLOR_REFLECTIVE,
+      &reflective);
+    // if(ret1 == AI_SUCCESS)
+    //   printf(
+    //     "reflective: %f %f %f %f\n",
+    //     reflective.r,
+    //     reflective.g,
+    //     reflective.b,
+    //     reflective.a);
+
+    float opacity = 0.f;
+    ret1 = aiGetMaterialFloatArray(
+      mtl,
+      AI_MATKEY_COLOR_TRANSPARENT,
+      &opacity,
+      &max);
+    // if(ret1 == AI_SUCCESS)
+    //   printf("opacity: %f", opacity);
+
+    /*!
+      @todo figure out where specular highlight term is stored in assimp
+    */
+    body->materials[i].GLuniforms.Ns = 10;
+
+    /*
+      load tangents
+    */
+    // for(int j = 0; j < scene->mMeshes[i]->mNumFaces; j++) {
+    //   printf(
+    //     "[%d] %f, %f, %f\n",
+    //     j,
+    //     scene->mMeshes[i]->mTangents[j].x,
+    //     scene->mMeshes[i]->mTangents[j].y,
+    //     scene->mMeshes[i]->mTangents[j].z);
+    // }
+
+    /*
+      load bitangents;
+    */
+    // for(int j = 0; j < scene->mMeshes[i]->mNumFaces; j++) {
+    //   printf(
+    //     "[%d] %f, %f, %f\n",
+    //     j,
+    //     scene->mMeshes[i]->mBitangents[j].x,
+    //     scene->mMeshes[i]->mBitangents[j].y,
+    //     scene->mMeshes[i]->mBitangents[j].z);
+    // }
+
+    /* load material name */
+    asprintf(&(body->materials[i].name), "%d", i);
+
   }
-  return return_val;
+
+  s2_convexhull_qhull(body);
+
+  /*
+    Free resources associated with import
+  */
+  aiReleaseImport(scene);
+  free(fullPathFileName);
+
+  return 0;
 }

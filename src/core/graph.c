@@ -17,15 +17,18 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#include "context.h"
-#include "joint.h"
-#include "body.h"
-#include "chordconstraint.h"
+
 #include <stdio.h>
 #include <graphviz/gvc.h>
 #include <graphviz/cgraph.h>
 #include <unistd.h>
 #include <sys/types.h>
+
+#include "context.h"
+#include "joint.h"
+#include "body.h"
+#include "chordconstraint.h"
+
 
 /*!
 @brief Generate a directed graph using graphviz api library
@@ -36,7 +39,7 @@ void s2_graph_digraph(
   s2_context_t* context,
   const char* fileName) {
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
 
   // fprintf(debug, "printing all joints:\n");
   // for(int i = 0; i < context->activeJointCount; i++) {
@@ -192,7 +195,7 @@ void s2_graph_digraphFrames(
   s2_context_t* context,
   const char* fileName) {
 
-  FILE* debug = context->modelParameters->debugFilePointer;
+  FILE* debug = context->modelParameters.debugFilePointer;
   FILE* DGF;
   if((DGF = fopen( fileName, "w" )) == NULL) {
     printf("Cannot open file %s\n", fileName);
