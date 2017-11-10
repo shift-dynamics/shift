@@ -113,7 +113,7 @@ void s2_Bodies::initializeMaterial(
   s2_displacement_t* origin) {
 
   // m_programPhong->bind();
-  buffer_objects_t bufferObjects;
+  body_buffer_t bufferObjects;
   bufferObjects.vao = new QOpenGLVertexArrayObject(m_renderWindow);
   bufferObjects.vao->create();
 
@@ -313,7 +313,7 @@ void s2_Bodies::setAttributeLocations(
   QOpenGLShaderProgram* program,
   GLint position_a,
   GLint normal_a,
-  buffer_objects_t* bufferObjects) {
+  body_buffer_t* bufferObjects) {
 
   program->bind();
 

@@ -28,9 +28,33 @@ SUCH DAMAGE.
 #include "assembly.h"
 #include "frame.h"
 #include "material.h"
+#include "context.h"
+#include "geometry.h"
+
+#include <jansson.h>
+
 
 /*!
-@brief Initialize a Body datastructure
+@brief Append a frame datastructure to an s2_body_t datastructure
+
+@param body a Body datastructure to append to
+@param frame a Frame datastructure to append
+*/
+void s2_body_appendFrame(
+  s2_body_t* body,
+  s2_frame_t* frame) {
+
+  if(!body->frameTail) {
+    body->frameHead = frame;
+    body->frameTail = frame;
+  } else {
+    body->frameTail->next = frame;
+    body->frameTail = frame;
+  }
+}
+
+/*!
+@brief Initialize an s2_body_t datastructure. Appends the origin frame to the body frame
 
 @param None
 
@@ -67,6 +91,16 @@ s2_body_t* s2_body() {
   body->glModelViewProjection = NULL;
   body->convexHullCount = 0;
   body->convexHulls = NULL;
+
+  /* append origin to body */
+  s2_frame_t* origin = s2_frame();
+  origin->isOrigin = true;
+  origin->name = s2_stackstr_copy(body->name);
+  s2_stackstr_append(origin->name, "origin");
+  body->origin = origin;
+  body->referenceFrame = origin;
+  s2_body_appendFrame(body, origin);
+
   return body;
 }
 
@@ -194,4 +228,148 @@ void s2_virtualbody_free(
     free(body);
     body = NULL;
   }
+}
+
+
+/*!
+@brief load body to an assembly data structure
+@return status: 0 indicates that body geometry was successfully loaded, -1 indicates failure in parsing geometry file, -2 indicates no body geometry was found, -3 indicates body is inactive and nothing was loaded
+*/
+int s2_body_load(
+  s2_context_t* context,
+  s2_assembly_t* assembly,
+  s2_stackstr_t* prefix,
+  json_t* bodyObject) {
+
+  bool active = true;
+  json_t* activeObject =
+    json_object_get(bodyObject, "active");
+  if(activeObject != NULL) {
+    active = json_boolean_value(activeObject);
+  }
+
+  int return_val = -3;
+
+  if(active) {
+
+    s2_body_t* body = s2_body();
+    body->assembly = assembly;
+
+    /* get body descriptive name */
+    const char* bodyRootName =
+      json_string_value(json_object_get(bodyObject, "name"));
+
+    body->name = s2_stackstr_copy(prefix);
+    s2_stackstr_append(body->name, bodyRootName);
+
+    /* get body definition files */
+    json_t* definitionsObject =
+      json_object_get(bodyObject, "definition");
+
+    body->definition = s2_stackstr();
+
+    if (json_is_null(definitionsObject)) {
+      // printf("no definition files loaded\n");
+    } else if(json_is_string(definitionsObject)) {
+      s2_stackstr_append(
+        body->definition,
+        json_string_value(definitionsObject));
+    } else if(json_is_array(definitionsObject)) {
+      json_t* definitionObject;
+      size_t i;
+      json_array_foreach(definitionsObject, i, definitionObject) {
+        s2_stackstr_append(
+          body->definition,
+          json_string_value(definitionObject));
+      }
+    }
+
+    /* load body geometry */
+    return_val = s2_body_loadGeometry(context, body);
+
+    json_t* framesObject = json_object_get(bodyObject, "frames");
+    if (!json_is_null(framesObject)) {
+      json_t* frameObject;
+      size_t frameIndex;
+
+      json_array_foreach(framesObject, frameIndex, frameObject) {
+
+        s2_frame_t* frame = s2_frame();
+
+        frame->name = s2_stackstr_copy(body->name);
+        s2_stackstr_append(
+          frame->name,
+          json_string_value(json_object_get(frameObject, "name")));
+
+        json_t* rotation = json_object_get(frameObject, "R");
+        if (json_is_array(rotation)) {
+          for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 3; k++) {
+              ((double*)frame->dWRTOrigin)[3 * k + j] = json_number_value(
+                  json_array_get(json_array_get(rotation, j), k));
+            }
+          }
+          s2_gramSchmidt(
+            3, 3, (double*)frame->dWRTOrigin);
+        }
+        json_t* translation = json_object_get(frameObject, "T");
+        if (json_is_array(translation)) {
+          for (int j = 0; j < 3; j++) {
+            ((double*)frame->dWRTOrigin)[9 + j] =
+                json_number_value(json_array_get(translation, j));
+          }
+        }
+        s2_displacement_invert(
+          frame->dWRTOrigin,
+          frame->dWRTOriginInverse);
+
+            // verify that inverse translations are computed correctly:
+            // printf("rWRT: ");
+            // kinematics_PrintVector(*(frame->rotationWRTOrigin) + 9);
+            // printf("inverse: ");
+            // kinematics_PrintVector(*(frame->rotationWRTOriginInverse) + 9);
+            s2_frame_append(body, frame);
+      }
+    }
+
+    /* get mass */
+    body->inertia->m =
+      json_number_value(json_object_get(bodyObject, "mass"));
+
+    /*
+      get body center of mass
+    */
+    for (int i = 0; i < 3; i++) {
+      ((double*)body->centerOfMassWRTOrigin)[i] = json_number_value(
+          json_array_get(json_object_get(bodyObject, "center_of_mass"), i));
+    }
+    s2_product_vk(
+      body->centerOfMassWRTOrigin,
+      &(body->inertia->m),
+      &(body->inertia->mt));
+    // printf("\ninertia loaded: ");
+    // s2_vector_print(&(body->inertia->mt));
+    // printf("\n");
+    body->inertia->Ixx = json_number_value(
+      json_object_get(
+        json_object_get(bodyObject, "moment_of_inertia"), "Ixx"));
+    body->inertia->Ixy = json_number_value(
+      json_object_get(
+        json_object_get(bodyObject, "moment_of_inertia"), "Ixy"));
+    body->inertia->Izx = json_number_value(
+      json_object_get(
+        json_object_get(bodyObject, "moment_of_inertia"), "Izx"));
+    body->inertia->Iyy = json_number_value(
+      json_object_get(
+        json_object_get(bodyObject, "moment_of_inertia"), "Iyy"));
+    body->inertia->Iyz = json_number_value(
+      json_object_get(
+        json_object_get(bodyObject, "moment_of_inertia"), "Iyz"));
+    body->inertia->Izz = json_number_value(
+      json_object_get(
+        json_object_get(bodyObject, "moment_of_inertia"), "Izz"));
+    (context->bodyCount)++;
+    s2_body_append(assembly, body);
+  }
+  return return_val;
 }
