@@ -23,6 +23,8 @@ SUCH DAMAGE.
 #include "stdlib.h"
 #include "jacobian.h"
 #include "kinematics.h"
+#include "topology.h"
+#include "mobility.h"
 #include <math.h>
 
 

@@ -19,7 +19,6 @@ extern "C" {
 #include "core/joint.h"
 #include "core/kinematics.h"
 #include "core/stack.h"
-#include "core/loader.h"
 #include "core/utility.h"
 #include "core/queue.h"
 #include "core/stack.h"

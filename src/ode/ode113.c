@@ -743,8 +743,8 @@ void s2_ode113(
     numericalIntegrator->y,
     &(numericalIntegrator->t),
     numericalIntegrator->tout,
-    context->modelParameters->relativeError,
-    context->modelParameters->absoluteError,
+    context->modelParameters.relativeError,
+    context->modelParameters.absoluteError,
     &(numericalIntegrator->iflag),
     numericalIntegrator->work + iyy - 1,
     numericalIntegrator->work + iwt - 1,
@@ -1552,7 +1552,7 @@ void s2_ode113_allocate(
   }
 
   numericalIntegrator->stepCount = ceil(
-    (double)context->modelParameters->timeSpan / (double)context->modelParameters->timeStep) + 1;
+    (double)context->modelParameters.timeSpan / (double)context->modelParameters.timeStep) + 1;
 
   numericalIntegrator->ydata =
     calloc(
@@ -1612,7 +1612,7 @@ void s2_ode113_free(
 void s2_ode113_integrateEquations(
   s2_context_t* context) {
 
-  if(context->modelParameters->integrationType !=
+  if(context->modelParameters.integrationType !=
     S2_NUMERICALINTEGRATOR_ODE113) {
     fprintf(stderr, "ERROR: s2_ode113_integrateEquations called with wrong"
       " enum set in modelParameters\n");
@@ -1651,8 +1651,8 @@ void s2_ode113_integrateEquations(
   printf("\n");
 
   FILE* f = NULL;
-  if(context->modelParameters->outFile != NULL) {
-    f = fopen(context->modelParameters->outFile, "w");
+  if(context->modelParameters.outFile != NULL) {
+    f = fopen(context->modelParameters.outFile, "w");
     if(f == NULL) {
       printf("Error opening file!\n");
       exit(1);
@@ -1663,7 +1663,7 @@ void s2_ode113_integrateEquations(
   for(int i = 1; i < numericalIntegrator->stepCount; i++) {
 
     numericalIntegrator->tout =
-      (double)(i) * context->modelParameters->timeStep;
+      (double)(i) * context->modelParameters.timeStep;
     numericalIntegrator->iterationCount = 0;
 
     s2_ode113(s2_equation_fcn, context);

@@ -26,6 +26,9 @@ SUCH DAMAGE.
 #define _STAR2_FRAME_H_
 
 #include "kinematics.h"
+
+#include <jansson.h>
+
 typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_body_t s2_body_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
@@ -92,5 +95,8 @@ void s2_frame_append(
 void s2_frame_free(
   s2_frame_t* frame);
 
+void s2_frame_load(
+  s2_body_t*,
+  json_t*);
 
 #endif

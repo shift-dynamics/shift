@@ -21,8 +21,10 @@ Utilities to perform newton raphson iteration to remove constraint violations
 
 #include "context.h"
 #include "substructure.h"
+#include "mobility.h"
 #include "joint.h"
-
+#include "jacobian.h"
+#include "topology.h"
 
 
 void s2_newtonRaphson_firstOrderUpdate(
@@ -423,7 +425,7 @@ int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
   // printf("  q after NR for substructure [%d]: ", substructureIndex);
   // s2_array_print(substructure->qCount, substructure->q);
   if(step == maxStep) {
-    FILE* debug = context->modelParameters->debugFilePointer;
+    FILE* debug = context->modelParameters.debugFilePointer;
     fprintf(
       debug,
       "\n\n>>> Error: could not resolve constraint violations for substructure [%d]\n",

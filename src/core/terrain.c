@@ -1,10 +1,12 @@
-#include "terrain.h"
-#include "body.h"
 #include <float.h>
 #include <jansson.h>
 #include <string.h>
 #include <limits.h>
 #include <unistd.h>
+
+#include "terrain.h"
+#include "body.h"
+
 
 /*!
 @brief generate a simple surface used to test elevation maps
@@ -13,7 +15,6 @@ double surface(double x, double y) {
   // return sin((y - 10.0) * (pow(x, 0.5) - 5.0) / 500.0) * 3.0 + 2.0;
 
   return ((20.0 * sin(y / 5.0 - 2.0) * (pow(x, 0.5) - 5.0) / 50.0)) + 2.0;
-
 }
 
 
@@ -833,7 +834,7 @@ int s2_terrain_load(
             "definition"));
       char* fullTerrainFilePath = NULL;
       s2_stackstrnode_t* includeDirectoryHead =
-        context->modelParameters->includeDirectory->head;
+        context->modelParameters.includeDirectory->head;
       while(includeDirectoryHead) {
         asprintf(
           &fullTerrainFilePath,
@@ -859,7 +860,7 @@ int s2_terrain_load(
         const char* textureMapFilePath =
           json_string_value(textureMapObject);
         s2_stackstrnode_t* includeDirectoryHead =
-          context->modelParameters->includeDirectory->head;
+          context->modelParameters.includeDirectory->head;
         while(includeDirectoryHead) {
           asprintf(
             &fullTextureMapFilePath,
@@ -886,7 +887,7 @@ int s2_terrain_load(
         const char* propertyMapFilePath =
           json_string_value(propertyMapObject);
         s2_stackstrnode_t* includeDirectoryHead =
-          context->modelParameters->includeDirectory->head;
+          context->modelParameters.includeDirectory->head;
         while(includeDirectoryHead) {
           asprintf(
             &fullPropertyMapFilePath,
@@ -1031,49 +1032,6 @@ int s2_terrain_load(
   }
 
   return 0;
-}
-
-
-/*!
-@brief Sets parent frame and body pointers for terrains
-
-@param context an s2_context_t datastructure
-*/
-void s2_terrain_setPointers(
-  s2_context_t* context) {
-
-  // FILE* debug = context->modelParameters->debugFilePointer;
-  //
-  // fprintf(debug, "# processing elevation map pointers\n");
-  // fprintf(debug, "%d lights\n", context->lightCount);
-  for (int i = 0; i < context->terrainCount; i++) {
-    // fprintf(debug, "\n\nprocessing light ");
-    // s2_stackstr_print(debug, context->lightPointers[i]->name);
-    //
-    // fprintf(debug, "\nsearching for ");
-    // s2_stackstr_print(debug, context->lightPointers[i]->parentFrame);
-
-    for (int j = 0; j < context->bodyCount; j++) {
-      s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
-      if(s2_stackstr_isEqual(
-        context->terrains[i]->parentBody,
-        context->bodyPointers[j]->name)) {
-          context->terrains[i]->parentBodyPointer =
-            context->bodyPointers[j];
-        // s2_stackstr_print(debug, context->bodyPointers[j]->name);
-      }
-
-      while(frameHead) {
-        if(s2_stackstr_isEqual(
-            context->terrains[i]->parentFrame,
-            frameHead->name)) {
-          context->terrains[i]->parentFramePointer = frameHead;
-          // s2_stackstr_print(debug, frameHead->name);
-        }
-        frameHead = frameHead->next;
-      }
-    }
-  }
 }
 
 

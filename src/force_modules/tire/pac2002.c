@@ -1894,7 +1894,7 @@ void s2_tire_pac2002_loadTireDataFile(
     /* otherwise, search the user specified include directories */
     char* fullPathFileName = NULL;
     s2_stackstrnode_t* includeDirectoryHead =
-      context->modelParameters->includeDirectory->head;
+      context->modelParameters.includeDirectory->head;
     while(includeDirectoryHead) {
       if(fullPathFileName) free(fullPathFileName);
       asprintf(

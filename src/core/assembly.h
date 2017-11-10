@@ -21,6 +21,8 @@ SUCH DAMAGE.
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <jansson.h>
+
 typedef struct s2_stackstr_t s2_stackstr_t;
 typedef struct s2_body_t s2_body_t;
 typedef struct s2_joint_t s2_joint_t;
@@ -29,6 +31,7 @@ typedef struct s2_restraint_t s2_restraint_t;
 typedef struct s2_io_t s2_io_t;
 typedef struct s2_forcemodule_t s2_forcemodule_t;
 typedef struct s2_assembly_t s2_assembly_t;
+typedef struct s2_context_t s2_context_t;
 
 /*!
 @brief Describes properties related to an Assembly
@@ -74,25 +77,94 @@ typedef struct s2_assembly_t {
 s2_assembly_t* s2_assembly();
 
 
-void s2_assembly_append(
+void s2_assembly_appendSubAssembly(
   s2_assembly_t* assembly,
   s2_assembly_t* subAssembly);
 
 
 void s2_assembly_printBodies(
-  FILE* f,
-  s2_assembly_t* assembly);
+  FILE*,
+  s2_assembly_t*);
 
 
 void s2_assembly_printJoints(
-  FILE* f,
-  s2_assembly_t* assembly);
+  FILE*,
+  s2_assembly_t*);
 
 
 void s2_assembly_print(
-  FILE* f,
-  s2_assembly_t* assembly);
+  FILE*,
+  s2_assembly_t*);
 
 
+void s2_assembly_appendBody(
+  s2_assembly_t*,
+  s2_body_t*);
+
+
+int s2_assembly_loadBodies(
+  s2_assembly_t*,
+  json_t*,
+  s2_context_t*,
+  s2_stackstr_t*);
+
+
+int s2_assembly_loadJoints(
+  s2_assembly_t*,
+  json_t*,
+  s2_context_t*,
+  s2_stackstr_t*);
+
+
+int s2_assembly_loadLights(
+  s2_assembly_t*,
+  json_t*,
+  s2_context_t*,
+  s2_stackstr_t*);
+
+
+int s2_assembly_loadRestraints(
+  s2_assembly_t*,
+  json_t*,
+  s2_context_t*,
+  s2_stackstr_t*);
+
+
+int s2_assembly_loadForceModules(
+  s2_assembly_t*,
+  json_t*,
+  s2_context_t*,
+  s2_stackstr_t*);
+
+
+void s2_assembly_free(
+  s2_assembly_t*);
+
+
+void s2_assembly_appendJoint(
+  s2_assembly_t* assembly,
+  s2_joint_t* joint);
+
+
+void s2_assembly_appendForceModule(
+  s2_assembly_t* assembly,
+  s2_forcemodule_t* forceModule);
+
+
+void s2_assembly_appendRestraint(
+  s2_assembly_t* assembly,
+  s2_restraint_t* restraint);
+
+
+void s2_assembly_appendLight(
+  s2_assembly_t*,
+  s2_light_t*);
+
+
+int s2_assembly_load(
+  s2_assembly_t* parentAssembly,
+  json_t* assembliesObject,
+  s2_context_t* context,
+  s2_stackstr_t* prefix);
 
 #endif

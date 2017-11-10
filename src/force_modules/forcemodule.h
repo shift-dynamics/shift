@@ -22,6 +22,8 @@ SUCH DAMAGE.
 #ifndef _STAR2_FORCEMODULE_H_
 #define _STAR2_FORCEMODULE_H_
 
+#include <jansson.h>
+
 typedef struct s2_forcemodule_t s2_forcemodule_t;
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
@@ -87,5 +89,10 @@ void s2_forcemodule_append(
 
 void s2_forcemodule_free(s2_forcemodule_t* forceModule);
 
-
+void s2_forcemodule_load(
+  s2_context_t* context,
+  s2_assembly_t* assembly,
+  s2_stackstr_t* prefix,
+  json_t* forceModuleObject);
+  
 #endif
