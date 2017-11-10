@@ -2,6 +2,10 @@
 #include "renderwindow.hpp"
 #include "lights.hpp"
 
+
+/*!
+@brief initialize sprite shader program and uniforms
+*/
 void PointCloudShaderProgram::initialize() {
   if(!m_initialized) {
     initializeSimpleShaderProgram();
@@ -12,6 +16,10 @@ void PointCloudShaderProgram::initialize() {
 }
 
 
+/*!
+@brief initialize simple shader program and uniforms, intended only to be called
+by initialize method
+*/
 void PointCloudShaderProgram::initializeSimpleShaderProgram() {
   m_simpleShader = new ShaderProgram(m_renderWindow);
   m_simpleShader->addProgram();
@@ -38,6 +46,10 @@ void PointCloudShaderProgram::initializeSimpleShaderProgram() {
 }
 
 
+/*!
+@brief initialize sprite shader program and uniforms, intended only to be called
+by initialize method
+*/
 void PointCloudShaderProgram::initializeSpriteShaderProgram() {
   m_spriteShader = new ShaderProgram(m_renderWindow);
   m_spriteShader->addProgram();
@@ -59,6 +71,13 @@ void PointCloudShaderProgram::initializeSpriteShaderProgram() {
   m_texture_sprite->setWrapMode(QOpenGLTexture::ClampToEdge);
   m_texture_sprite->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
 
+  /* bind textures */
+  m_spriteShader->bind();
+  m_texture_sprite->bind();
+  m_spriteShader->getProgram()->setUniformValue("texture_sprite_u", 0);
+  m_texture_sprite->release();
+  m_spriteShader->release();
+
   /* set attribute locations */
   m_spriteUniforms.m_position_a =
     m_spriteShader->getProgram()->attributeLocation("position_a");
@@ -70,6 +89,10 @@ void PointCloudShaderProgram::initializeSpriteShaderProgram() {
 }
 
 
+/*!
+@brief initialize phong shader program and uniforms, intended only to be called
+by initialize method
+*/
 void PointCloudShaderProgram::initializePhongShaderProgram() {
   m_phongShader = new ShaderProgram(m_renderWindow);
   m_phongShader->addProgram();
@@ -112,34 +135,29 @@ void PointCloudShaderProgram::initializePhongShaderProgram() {
   m_texture_normal->setMinMagFilters(
     QOpenGLTexture::Linear, QOpenGLTexture::Linear);
 
-
-
-  /// bind textures
+  /* bind textures */
   m_phongShader->bind();
   m_texture_normal->bind();
   m_phongShader->getProgram()->setUniformValue("texture_normal_u", 0);
   m_texture_normal->release();
   m_phongShader->release();
 
-  m_programPhong->bind();
-  m_normalTexture->bind();
-  m_programPhong->setUniformValue("texture_normal_u", 0);
-  m_normalTexture->release();
-  m_programPhong->release();
-
   /* set attribute locations */
   m_phongUniforms.m_position_a =
     m_phongShader->getProgram()->attributeLocation("position_a");
   m_phongUniforms.m_color_a =
-    m_phongShader->getProgram()->attributeLocation("color_a");
+    m_phongShader->getProgram()->attributeLocation("normal_a");
   m_phongShader->checkError("after set simple attrinutes");
 
   m_simpleShader->release();
 }
 
 
+/*!
+@brief retrieve position attribute from current active shader
+*/
 GLint PointCloudShaderProgram::getPositionAttribute() {
-  switch(m_shaderType) {
+  switch(m_shadingType) {
     case S2_POINTSHADER_PHONG: {
       return m_phongUniforms.m_position_a;
     } break;
@@ -153,8 +171,11 @@ GLint PointCloudShaderProgram::getPositionAttribute() {
 };
 
 
+/*!
+@brief retrieve color attribute from current active shader
+*/
 GLint PointCloudShaderProgram::getColorAttribute() {
-  switch(m_shaderType) {
+  switch(m_shadingType) {
     case S2_POINTSHADER_PHONG: {
       return m_phongUniforms.m_color_a;
     } break;
@@ -168,6 +189,9 @@ GLint PointCloudShaderProgram::getColorAttribute() {
 };
 
 
+/*!
+@brief set transform in current active shader
+*/
 void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
 
   QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
@@ -175,9 +199,8 @@ void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mv = view * model;
   QMatrix4x4 mvp = projection * mv;
-  QMatrix3x3 nm = mv.normalMatrix();
 
-  switch(m_shaderType) {
+  switch(m_shadingType) {
     case S2_POINTSHADER_PHONG: {
       m_phongShader->getProgram()->setUniformValue(
         m_phongUniforms.m_matrices_mvp_u, mvp);
@@ -195,48 +218,77 @@ void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
       }
     } break;
     case S2_POINTSHADER_SIMPLE: {
-
+      m_simpleShader->getProgram()->setUniformValue(
+        m_simpleUniforms.m_matrices_mvp_u, mvp);
+      m_simpleShader->getProgram()->setUniformValue(
+        m_simpleUniforms.m_matrices_mv_u, mv);
     } break;
     case S2_POINTSHADER_SPRITE: {
-
+      m_spriteShader->getProgram()->setUniformValue(
+        m_spriteUniforms.m_matrices_mvp_u, mvp);
+      m_spriteShader->getProgram()->setUniformValue(
+        m_spriteUniforms.m_matrices_mv_u, mv);
     } break;
   }
-
-  m_program->setUniformValue(m_matrices_mvp_u, mvp);
-  checkError("phong: after set mvp");
-
-  m_program->setUniformValue(m_matrices_mv_u, mv);
-  checkError("phong: after set mv");
-
-  m_program->setUniformValue(m_matrices_v_u, view);
-  checkError("phong: after set view");
-
-  m_program->setUniformValue(m_matrices_nm_u, nm);
-  checkError("phong: after set nm");
-
-}
-
-
-void PointCloudShaderProgram::setLights(s2_Lights* lights) {
-  m_program->setUniformValueArray(m_lights_position_u, lights->getPosition(), 10, 3);
-  m_program->setUniformValueArray(m_lights_Ka_u, lights->getKa(), 10, 3);
-  m_program->setUniformValueArray(m_lights_Kd_u, lights->getKd(), 10, 3);
-  m_program->setUniformValueArray(m_lights_Ks_u, lights->getKs(), 10, 3);
-  m_program->setUniformValueArray(
-    m_lights_directional_u, lights->getDirectional(), 10);
-  m_program->setUniformValue(m_lights_count_u, lights->getCount());
-  if(m_renderWindow->getLights()->isEnabled()) {
-    m_program->setUniformValue(m_lights_drawShadows_u, 1);
-  } else {
-    m_program->setUniformValue(m_lights_drawShadows_u, 0);
-  }
-  checkError("after set lights");
 }
 
 
 /*!
-@brief bind depth buffer to index 0
+@brief set lights, used only in phong shader
+*/
+void PointCloudShaderProgram::setLights(s2_Lights* lights) {
+  if(m_shadingType == S2_POINTSHADER_PHONG) {
+    m_phongShader->getProgram()->setUniformValueArray(
+      m_phongUniforms.m_lights_position_u, lights->getPosition(), 10, 3);
+    m_phongShader->getProgram()->setUniformValueArray(
+      m_phongUniforms.m_lights_Ka_u, lights->getKa(), 10, 3);
+    m_phongShader->getProgram()->setUniformValueArray(
+      m_phongUniforms.m_lights_Kd_u, lights->getKd(), 10, 3);
+    m_phongShader->getProgram()->setUniformValueArray(
+      m_phongUniforms.m_lights_Ks_u, lights->getKs(), 10, 3);
+    m_phongShader->getProgram()->setUniformValueArray(
+      m_phongUniforms.m_lights_directional_u, lights->getDirectional(), 10);
+    m_phongShader->getProgram()->setUniformValue(
+      m_phongUniforms.m_lights_count_u, lights->getCount());
+    if(m_renderWindow->getLights()->isEnabled()) {
+      m_phongShader->getProgram()->setUniformValue(
+        m_phongUniforms.m_lights_drawShadows_u, 1);
+    } else {
+      m_phongShader->getProgram()->setUniformValue(
+        m_phongUniforms.m_lights_drawShadows_u, 0);
+    }
+    m_phongShader->checkError("after set lights");
+  }
+}
+
+
+/*!
+@brief bind depth buffer to index 0, only used by phong shader
 */
 void PointCloudShaderProgram::bindDepthBuffer() {
-  m_program->setUniformValue(m_texture_shadow_u, 0);
+  if(m_shadingType == S2_POINTSHADER_PHONG) {
+    m_phongShader->getProgram()->setUniformValue(
+      m_phongUniforms.m_texture_shadow_u, 0);
+  }
+}
+
+
+/*!
+@brief bind textures
+*/
+void PointCloudShaderProgram::bindTextures() {
+  switch(m_shadingType) {
+    case S2_POINTSHADER_PHONG: {
+      m_texture_normal->bind(1);
+      m_phongShader->getProgram()->setUniformValue(
+        m_phongUniforms.m_texture_normal_u, 1);
+    } break;
+    case S2_POINTSHADER_SIMPLE: {
+    } break;
+    case S2_POINTSHADER_SPRITE: {
+      m_texture_sprite->bind(1);
+      m_spriteShader->getProgram()->setUniformValue(
+        m_spriteUniforms.m_texture_sprite_u, 1);
+    } break;
+  }
 }

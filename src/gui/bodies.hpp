@@ -42,7 +42,7 @@ struct s2_lights_t;
 /*!
 @brief vertex array and vertex buffer objects for each material
 */
-struct buffer_objects_t {
+struct body_buffer_t {
   QOpenGLVertexArrayObject* vao;
   QOpenGLBuffer* vertexBuffer;
   QOpenGLBuffer* vertexNormalBuffer;
@@ -96,9 +96,9 @@ public:
     QOpenGLShaderProgram*,
     GLint,
     GLint,
-    buffer_objects_t*);
+    body_buffer_t*);
 
-  QVector<buffer_objects_t>* getBufferObjects() {
+  QVector<body_buffer_t>* getBufferObjects() {
     return &m_bufferObjects;
   }
 
@@ -122,7 +122,7 @@ public slots:
 
 private:
 
-  QVector<buffer_objects_t> m_bufferObjects;
+  QVector<body_buffer_t> m_bufferObjects;
 
   s2_shading_enum_t m_shadingType;
 

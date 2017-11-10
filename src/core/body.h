@@ -26,6 +26,9 @@ SUCH DAMAGE.
 #define _STAR2_BODY_H_
 
 #include "kinematics.h"
+
+#include <jansson.h>
+
 typedef struct s2_body_t s2_body_t;
 typedef struct s2_assembly_t s2_assembly_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
@@ -34,6 +37,7 @@ typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_convexhull_t s2_convexhull_t;
+typedef struct s2_context_t s2_context_t;
 
 
 /*!
@@ -113,6 +117,11 @@ typedef struct s2_body_t {
 } s2_body_t;
 
 
+void s2_body_appendFrame(
+  s2_body_t*,
+  s2_frame_t*);
+
+
 s2_body_t* s2_body();
 
 
@@ -132,6 +141,13 @@ void s2_body_free(
 
 void s2_virtualbody_free(
   s2_body_t* body);
+
+
+int s2_body_load(
+  s2_context_t*,
+  s2_assembly_t*,
+  s2_stackstr_t*,
+  json_t*);
 
 
 #endif
