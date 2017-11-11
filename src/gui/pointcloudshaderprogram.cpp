@@ -158,13 +158,13 @@ void PointCloudShaderProgram::initializePhongShaderProgram() {
 */
 GLint PointCloudShaderProgram::getPositionAttribute() {
   switch(m_shadingType) {
-    case S2_POINTSHADER_PHONG: {
+    case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_position_a;
     } break;
-    case S2_POINTSHADER_SIMPLE: {
+    case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_position_a;
     } break;
-    case S2_POINTSHADER_SPRITE: {
+    case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_position_a;
     } break;
   }
@@ -176,13 +176,52 @@ GLint PointCloudShaderProgram::getPositionAttribute() {
 */
 GLint PointCloudShaderProgram::getColorAttribute() {
   switch(m_shadingType) {
-    case S2_POINTSHADER_PHONG: {
+    case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_color_a;
     } break;
-    case S2_POINTSHADER_SIMPLE: {
+    case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_color_a;
     } break;
-    case S2_POINTSHADER_SPRITE: {
+    case S2_POINT_SHADING_SPRITE: {
+      return m_spriteUniforms.m_color_a;
+    } break;
+  }
+};
+
+
+/*!
+@brief retrieve position attribute from specified shader
+*/
+GLint PointCloudShaderProgram::getPositionAttribute(
+  s2_point_shading_enum_t shadingType) {
+
+  switch(shadingType) {
+    case S2_POINT_SHADING_PHONG: {
+      return m_phongUniforms.m_position_a;
+    } break;
+    case S2_POINT_SHADING_SIMPLE: {
+      return m_simpleUniforms.m_position_a;
+    } break;
+    case S2_POINT_SHADING_SPRITE: {
+      return m_spriteUniforms.m_position_a;
+    } break;
+  }
+};
+
+
+/*!
+@brief retrieve color attribute from specified shader
+*/
+GLint PointCloudShaderProgram::getColorAttribute(
+  s2_point_shading_enum_t shadingType) {
+  switch(shadingType) {
+    case S2_POINT_SHADING_PHONG: {
+      return m_phongUniforms.m_color_a;
+    } break;
+    case S2_POINT_SHADING_SIMPLE: {
+      return m_simpleUniforms.m_color_a;
+    } break;
+    case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_color_a;
     } break;
   }
@@ -201,7 +240,7 @@ void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
   QMatrix4x4 mvp = projection * mv;
 
   switch(m_shadingType) {
-    case S2_POINTSHADER_PHONG: {
+    case S2_POINT_SHADING_PHONG: {
       m_phongShader->getProgram()->setUniformValue(
         m_phongUniforms.m_matrices_mvp_u, mvp);
       m_phongShader->getProgram()->setUniformValue(
@@ -217,13 +256,13 @@ void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
         m_phongShader->checkError("phong: after set shadow matrix array");
       }
     } break;
-    case S2_POINTSHADER_SIMPLE: {
+    case S2_POINT_SHADING_SIMPLE: {
       m_simpleShader->getProgram()->setUniformValue(
         m_simpleUniforms.m_matrices_mvp_u, mvp);
       m_simpleShader->getProgram()->setUniformValue(
         m_simpleUniforms.m_matrices_mv_u, mv);
     } break;
-    case S2_POINTSHADER_SPRITE: {
+    case S2_POINT_SHADING_SPRITE: {
       m_spriteShader->getProgram()->setUniformValue(
         m_spriteUniforms.m_matrices_mvp_u, mvp);
       m_spriteShader->getProgram()->setUniformValue(
@@ -237,7 +276,7 @@ void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
 @brief set lights, used only in phong shader
 */
 void PointCloudShaderProgram::setLights(s2_Lights* lights) {
-  if(m_shadingType == S2_POINTSHADER_PHONG) {
+  if(m_shadingType == S2_POINT_SHADING_PHONG) {
     m_phongShader->getProgram()->setUniformValueArray(
       m_phongUniforms.m_lights_position_u, lights->getPosition(), 10, 3);
     m_phongShader->getProgram()->setUniformValueArray(
@@ -266,7 +305,7 @@ void PointCloudShaderProgram::setLights(s2_Lights* lights) {
 @brief bind depth buffer to index 0, only used by phong shader
 */
 void PointCloudShaderProgram::bindDepthBuffer() {
-  if(m_shadingType == S2_POINTSHADER_PHONG) {
+  if(m_shadingType == S2_POINT_SHADING_PHONG) {
     m_phongShader->getProgram()->setUniformValue(
       m_phongUniforms.m_texture_shadow_u, 0);
   }
@@ -278,14 +317,14 @@ void PointCloudShaderProgram::bindDepthBuffer() {
 */
 void PointCloudShaderProgram::bindTextures() {
   switch(m_shadingType) {
-    case S2_POINTSHADER_PHONG: {
+    case S2_POINT_SHADING_PHONG: {
       m_texture_normal->bind(1);
       m_phongShader->getProgram()->setUniformValue(
         m_phongUniforms.m_texture_normal_u, 1);
     } break;
-    case S2_POINTSHADER_SIMPLE: {
+    case S2_POINT_SHADING_SIMPLE: {
     } break;
-    case S2_POINTSHADER_SPRITE: {
+    case S2_POINT_SHADING_SPRITE: {
       m_texture_sprite->bind(1);
       m_spriteShader->getProgram()->setUniformValue(
         m_spriteUniforms.m_texture_sprite_u, 1);
