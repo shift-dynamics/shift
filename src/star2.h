@@ -41,6 +41,7 @@ extern "C" {
 #include "core/io.h"
 #include "core/light.h"
 #include "core/substructure.h"
+#include "core/pointcloud.h"
 
 #include "ode/numericalintegrator.h"
 #include "ode/ode113.h"
