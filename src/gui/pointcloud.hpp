@@ -37,6 +37,7 @@ class QOpenGLVertexArrayObject;
 class RenderWindow;
 class PointCloudShaderProgram;
 struct s2_lights_t;
+struct s2_pointcloud_t;
 
 /*!
 @brief vertex array and vertex buffer objects for each material
@@ -45,6 +46,7 @@ struct pointcloud_buffer_t {
   QOpenGLVertexArrayObject* vao;
   QOpenGLBuffer* vertexBuffer;
   QOpenGLBuffer* colorBuffer;
+  s2_pointcloud_t* pointcloud;
   s2_displacement_t* transform;
 };
 
@@ -69,11 +71,11 @@ public:
 
   void initialize();
 
-  void initializeBody(s2_body_t* body);
+  void initializeCloud(s2_body_t* body);
 
   void initializeMaterial(s2_material_t*, s2_displacement_t*);
 
-  void setDrawStyle(s2_shading_enum_t shadingType);
+  void setDrawStyle(s2_point_shading_enum_t shadingType);
 
   void loadContext();
 

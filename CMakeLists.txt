@@ -190,6 +190,8 @@ set(GUI_SOURCES
     ${star2_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
     ${star2_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
     ${star2_SOURCE_DIR}/src/gui/terrainshadowshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/pointcloudshaderprogram.cpp
+    ${star2_SOURCE_DIR}/src/gui/pointcloud.cpp
     ${star2_SOURCE_DIR}/src/gui/orbitalcamera.cpp
     ${star2_SOURCE_DIR}/src/gui/resources.qrc
 )
