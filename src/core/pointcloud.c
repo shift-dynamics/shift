@@ -1,8 +1,8 @@
 /**
 @file
 @author Kristopher Wehage
-@date 2016
-@copyright Kristopher Wehage 2016
+@date 2017
+@copyright Kristopher Wehage
 @remark
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -23,3 +23,40 @@ SUCH DAMAGE.
 #include "pointcloud.h"
 #include "kinematics.h"
 #include <math.h>
+#include <stdlib.h>
+
+
+s2_pointcloud_t* s2_pointcloud() {
+  s2_pointcloud_t* pointcloud = malloc(sizeof(s2_pointcloud_t));
+  pointcloud->vertices = NULL;
+  pointcloud->verticesf = NULL;
+  pointcloud->colors = NULL;
+  pointcloud->vertexCount = 0;
+  pointcloud->definition = s2_stackstr();
+  pointcloud->assembly = NULL;
+  pointcloud->body = NULL;
+  pointcloud->frame = NULL;
+  return pointcloud;
+}
+
+void s2_pointcloud_free(s2_pointcloud_t* pointcloud) {
+  if(pointcloud->vertices) {
+    free(pointcloud->vertices);
+    pointcloud->vertices = NULL;
+  }
+  if(pointcloud->verticesf) {
+    free(pointcloud->verticesf);
+    pointcloud->verticesf = NULL;
+  }
+  if(pointcloud->colors) {
+    free(pointcloud->colors);
+    pointcloud->colors = NULL;
+  }
+  if(pointcloud->definition) {
+    s2_stackstr_free(pointcloud->definition);
+    pointcloud->definition = NULL;
+  }
+  free(pointcloud);
+  pointcloud = NULL;
+
+}

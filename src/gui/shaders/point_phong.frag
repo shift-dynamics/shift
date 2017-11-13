@@ -1,4 +1,5 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : enable
 
 /* point_phong.frag */
 
@@ -25,8 +26,10 @@ uniform lights_t lights_u;
 
 uniform sampler2D texture_normal_u;
 
-layout (location = 0) in vec4 color_u;
-layout (location = 1) in vec4 position_u;
+layout (location = 0) in vec4 position_u;
+layout (location = 1) in vec4 color_u;
+
+out vec4 colorFrag;
 
 void main() {
   vec4 normal = texture2D(texture_normal_u, gl_PointCoord);
@@ -66,5 +69,5 @@ void main() {
   vec3 R = -normalize(reflect(L, normal.xyz));
   fragColor.rgb += color_u.rgb * KsMaterial * KsLight * pow(max(0, dot(R, V)), Ns);
 
-	gl_FragColor = fragColor;
+	colorFrag = fragColor;
 }
