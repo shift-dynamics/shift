@@ -56,6 +56,7 @@ typedef struct s2_camera_t s2_camera_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_shaderhandle_t s2_shaderhandle_t;
 typedef struct s2_terrain_t s2_terrain_t;
+typedef struct s2_pointcloud_t s2_pointcloud_t;
 
 
 /*!
@@ -136,6 +137,7 @@ typedef struct s2_context_t {
   */
   int jointCount; //!< total number of joints
   int bodyCount; //!< total number of bodies
+  int pointCloudCount; //!< total point cloud count
   int frameCount; //!< total number of frames
   int lightCount; //!< total number of lights
   int ioCount; //!< total number of input/output devices
@@ -146,6 +148,7 @@ typedef struct s2_context_t {
   int activeFrameInTreeCount; //!< number of active frames in spanning tree
   int activeJointCount; //!< number of active joints
   int activeBodyCount; //!< number of active bodies
+  int activePointCloudCount;
   int activeLightCount; //!< number of active lights
   int activeIOCount; //!< number of active devices
   int activeRestraintCount; //!< number of active restraints
@@ -252,6 +255,8 @@ typedef struct s2_context_t {
   s2_body_t** bodyPointers;
     /*!< Array of pointers to bodies to directly access
          body in position in assembly hierarchy */
+
+  s2_pointcloud_t** pointCloudPointers;
 
   s2_body_t** nonVirtualBodyPointers;
     /*!< Array of pointers to bodies to directly access

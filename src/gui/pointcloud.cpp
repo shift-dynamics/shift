@@ -36,7 +36,7 @@ void s2_PointCloud::setLights(s2_Lights* lights) {
 @brief set up program uniforms for s2_PointCloud
 */
 void s2_PointCloud::initialize() {
-
+  m_program = new PointCloudShaderProgram(m_renderWindow);
 }
 
 
@@ -94,7 +94,7 @@ void s2_PointCloud::initializePointCloud(
     3 * pointcloud->vertexCount * sizeof(GLfloat));
 
   bufferObjects.pointcloud = pointcloud;
-  bufferObjects.transform = pointcloud->dWRTOrigin;
+  bufferObjects.transform = pointcloud->frame->dAbsolute;
 
   setAttributeLocations(
     m_program->getShaderProgram(S2_POINT_SHADING_PHONG)->getProgram(),

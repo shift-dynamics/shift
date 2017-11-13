@@ -38,6 +38,8 @@ class s2_Grid;
 class s2_Joints;
 class s2_Lights;
 class s2_Terrain;
+class s2_PointCloud;
+
 class PhongShaderProgram;
 class FlatShaderProgram;
 class SimpleShaderProgram;
@@ -45,6 +47,7 @@ class TerrainShaderProgram;
 class FrameShaderProgram;
 class ShadowShaderProgram;
 class TerrainShadowShaderProgram;
+class PointCloudShaderProgram;
 
 enum camera_interaction_enum_t {
   S2_CAMERA_INTERACTION_TURNTABLE,
@@ -219,6 +222,7 @@ private:
   s2_Lights* m_lights;
   s2_Grid* m_grid;
   s2_Terrain* m_terrain;
+  s2_PointCloud* m_pointclouds;
 
   bool m_initialized;
 
@@ -235,6 +239,7 @@ private:
   TerrainShaderProgram* m_programTerrain;
   TerrainShadowShaderProgram* m_programTerrainShadow;
   FrameShaderProgram* m_programFrame;
+  PointCloudShaderProgram* m_programPointCloud;
 
   camera_interaction_enum_t m_cameraMode;
 

@@ -71,9 +71,7 @@ public:
 
   void initialize();
 
-  void initializeCloud(s2_body_t* body);
-
-  void initializeMaterial(s2_material_t*, s2_displacement_t*);
+  void initializePointCloud(s2_pointcloud_t*);
 
   void setDrawStyle(s2_point_shading_enum_t shadingType);
 
@@ -83,7 +81,9 @@ public:
 
   void setLights(s2_Lights*);
 
-  void setShader(PointCloudShaderProgram*);
+  void setShader(PointCloudShaderProgram* program) {
+    m_program = program;
+  };
 
   void setAttributeLocations(
     QOpenGLShaderProgram*,
@@ -100,16 +100,16 @@ public:
 
 public slots:
 
-  void setFlatShaded() {
-    setDrawStyle(S2_SHADING_FLAT);
-  }
-
   void setPhongShaded() {
-    setDrawStyle(S2_SHADING_PHONG);
+    setDrawStyle(S2_POINT_SHADING_PHONG);
   }
 
-  void setWireframe() {
-    setDrawStyle(S2_SHADING_WIREFRAME);
+  void setSpriteShaded() {
+    setDrawStyle(S2_POINT_SHADING_SPRITE);
+  }
+
+  void setSimpleShaded() {
+    setDrawStyle(S2_POINT_SHADING_SIMPLE);
   }
 
 

@@ -31,6 +31,16 @@
 
     <file alias="line.frag">shaders/line.frag</file>
     <file alias="line.vert">shaders/line.vert</file>
+
+    <file alias="point_simple.frag">shaders/point_simple.frag</file>
+    <file alias="point_simple.vert">shaders/point_simple.vert</file>
+
+    <file alias="point_phong.frag">shaders/point_phong.frag</file>
+    <file alias="point_phong.vert">shaders/point_phong.vert</file>
+
+    <file alias="point_sprite.frag">shaders/point_sprite.frag</file>
+    <file alias="point_sprite.vert">shaders/point_sprite.vert</file>
+
   </qresource>
 
   <qresource prefix="/html">
