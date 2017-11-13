@@ -10,8 +10,8 @@ struct matrices_t {
 uniform matrices_t matrices_u;
 uniform sampler2D texture_normal_u;
 
-layout (position = 0) in vec4 position_a;
-layout (position = 1) in vec4 color_a;
+layout (location = 0) in vec4 position_a;
+layout (location = 1) in vec4 color_a;
 
 out vec4 color;
 

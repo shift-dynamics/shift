@@ -7,6 +7,7 @@
 #include "lights.hpp"
 #include "grid.hpp"
 #include "terrain.hpp"
+#include "pointcloud.hpp"
 
 #include "phongshaderprogram.hpp"
 #include "flatshaderprogram.hpp"
@@ -15,6 +16,7 @@
 #include "terrainshaderprogram.hpp"
 #include "terrainshadowshaderprogram.hpp"
 #include "shadowshaderprogram.hpp"
+#include "pointcloudshaderprogram.hpp"
 
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -53,10 +55,10 @@ RenderWindow::RenderWindow()
   , m_zPan(0)
   , m_camDistance(3.0)
   , m_perspective(true)
+  , m_pointclouds(NULL)
   , m_initialized(false)
   , m_simulationRunning(false)
-  , m_cameraMode(S2_CAMERA_INTERACTION_ORBITAL)
- {
+  , m_cameraMode(S2_CAMERA_INTERACTION_ORBITAL) {
 
   setAnimating(true);
 
@@ -87,6 +89,7 @@ RenderWindow::RenderWindow()
   m_lights = new s2_Lights(this);
   m_lights->setBodies(m_bodies);
   m_grid = new s2_Grid(this);
+  m_pointclouds = new s2_PointCloud(this);
 
   m_orbitalCamera = new s2_OrbitalCamera(this);
 }
@@ -364,6 +367,7 @@ void RenderWindow::loadContext(
     m_lights->loadContext();
     m_terrain->loadContext();
     m_joints->loadContext();
+    m_pointclouds->loadContext();
   }
 }
 
@@ -377,7 +381,7 @@ void RenderWindow::checkError(
 
   GLenum glErr = glGetError();
 
-  while( glErr != GL_NO_ERROR ) {
+  while(glErr != GL_NO_ERROR) {
     QString error;
     switch (glErr) {
     case GL_NO_ERROR:
@@ -464,6 +468,10 @@ void RenderWindow::initialize() {
     m_programFrame = new FrameShaderProgram(this);
     checkError("after initialize frame shader");
 
+    qDebug() << "initializing pointcloud shader";
+    m_programPointCloud = new PointCloudShaderProgram(this);
+    checkError("after initialize point cloud shader");
+
     m_programTerrainShadow = new TerrainShadowShaderProgram(this);
 
     qDebug() << "setting shader program pointers";
@@ -484,6 +492,8 @@ void RenderWindow::initialize() {
 
     m_grid->setShader(m_programSimple);
     checkError("renderwindow: after set shader pointers");
+
+    m_pointclouds->setShader(m_programPointCloud);
 
     m_initialized = true;
     emit initialized();
@@ -803,7 +813,7 @@ void RenderWindow::render() {
       m_joints->update();
     }
 
-    /* draw shadows */
+    /* render depth buffers for lights */
     m_lights->draw();
 
     const qreal retinaScale = devicePixelRatio();
@@ -820,7 +830,7 @@ void RenderWindow::render() {
 
 
 /*!
-@brief OpenGL Draw function
+@brief OpenGL draw function
 */
 void RenderWindow::draw() {
   m_grid->draw();
@@ -828,4 +838,5 @@ void RenderWindow::draw() {
   m_joints->draw();
   m_terrain->draw();
   m_bodies->draw();
+  m_pointclouds->draw();
 }

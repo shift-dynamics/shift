@@ -25,6 +25,8 @@ SUCH DAMAGE.
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_assembly_t s2_assembly_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
+typedef struct s2_body_t s2_body_t;
+typedef struct s2_frame_t s2_frame_t;
 
 typedef struct s2_pointcloud_t {
   double* vertices;
@@ -34,9 +36,10 @@ typedef struct s2_pointcloud_t {
   s2_displacement_t* transform;
   s2_stackstr_t* definition; /*!< Path to files that define body definitions,
                                     i.e. ply files */
-
   s2_assembly_t* assembly; /*!< Pointer to assembly that pointcloud is a
                                   member of. */
+  s2_body_t* body; /*!< pointer to body that point cloud belongs to */
+  s2_frame_t* frame;
 } s2_pointcloud_t;
 
 s2_pointcloud_t* s2_pointcloud();

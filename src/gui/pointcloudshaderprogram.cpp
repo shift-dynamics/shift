@@ -96,8 +96,8 @@ by initialize method
 void PointCloudShaderProgram::initializePhongShaderProgram() {
   m_phongShader = new ShaderProgram(m_renderWindow);
   m_phongShader->addProgram();
-  m_phongShader->addVertexShader(":/shaders/phong_sprite.vert");
-  m_phongShader->addFragmentShader(":/shaders/phong_sprite.frag");
+  m_phongShader->addVertexShader(":/shaders/point_phong.vert");
+  m_phongShader->addFragmentShader(":/shaders/point_phong.frag");
   m_phongShader->link();
   m_phongShader->bind();
 

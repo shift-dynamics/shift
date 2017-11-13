@@ -117,6 +117,7 @@ s2_context_t* s2_context() {
   context->epsNewtonRaphson = 1e-6;
   context->jointCount = 0; //!< total number of joints
   context->bodyCount = 0; //!< total number of bodies
+  context->pointCloudCount = 0;
   context->frameCount = 0; //!< total number of frames
   context->lightCount = 0; //!< total number of lights
   context->ioCount = 0; //!< total number of input/output devices
@@ -128,6 +129,7 @@ s2_context_t* s2_context() {
   context->activeFrameInTreeCount = 0; /*!< number of active frames in spanning tree */
   context->activeJointCount = 0; /*!< number of active joints */
   context->activeBodyCount = 0; /*!< number of active bodies */
+  context->activePointCloudCount = 0;
   context->activeLightCount = 0; /*!< number of active lights */
   context->activeIOCount = 0; /*!< number of active devices */
   context->activeRestraintCount = 0; //!< number of active restraints
@@ -216,6 +218,10 @@ s2_context_t* s2_context() {
   context->bodyPointers = NULL;
     /*!< Array of pointers to bodies to directly access
          body in position in assembly hierarchy */
+
+  context->pointCloudPointers = NULL;
+  /*!< Array of pointers to pointclouds to directly access
+       in position in assembly hierarchy */
 
   context->nonVirtualBodyPointers = NULL;
     /*!< Array of pointers to bodies to directly access
