@@ -27,6 +27,11 @@ SUCH DAMAGE.
 
 #include "kinematics.h"
 
+#ifdef __APPLE__
+  #include <OpenGL/OpenGL.h>
+#else
+  #include <GL/gl.h>
+#endif
 #include <jansson.h>
 
 typedef struct s2_body_t s2_body_t;
@@ -112,8 +117,10 @@ typedef struct s2_body_t {
   s2_mat4x4f_t* glModelView;
   s2_mat4x4f_t* glModelViewProjection;
   s2_convexhull_t* convexHulls;
+  GLfloat convexHullColor[3];
   int convexHullCount;
-
+  bool drawEnabled;
+  bool isVisible;
 } s2_body_t;
 
 

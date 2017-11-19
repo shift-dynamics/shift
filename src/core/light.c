@@ -30,6 +30,7 @@ s2_light_t* s2_light() {
   light->parentFramePointer = NULL;
   light->next = NULL;
   light->glLight.fov = 90.0;
+  light->isVisible = false;
   return light;
 }
 

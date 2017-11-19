@@ -25,9 +25,13 @@ SUCH DAMAGE.
 #ifndef _STAR2_CONVEXHULL_H_
 #define _STAR2_CONVEXHULL_H_
 
-#include <libqhull_r/qhull_ra.h>
-#include <libqhull_r/libqhull_r.h>
 #include <stdarg.h>
+#ifdef __APPLE__
+  #include <OpenGL/OpenGL.h>
+#else
+  #include <GL/gl.h>
+#endif
+
 #include "kinematics.h"
 
 typedef struct s2_body_t s2_body_t;
@@ -40,9 +44,11 @@ typedef struct s2_inertia_t s2_inertia_t;
 
 
 typedef struct s2_convexhull_t {
-  float* vertices;
+  GLfloat* vertices;
   int vertexCount;
-  qhT qh;
+  GLuint* faces;
+  int faceCount;
+  bool drawEnabled;
 } s2_convexhull_t;
 
 int s2_convexhull_qhull(s2_body_t*);

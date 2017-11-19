@@ -29,6 +29,36 @@ SUCH DAMAGE.
 #include "../star2.h"
 
 
+s2_camera_t* s2_camera() {
+  s2_camera_t* camera = malloc(sizeof(s2_camera_t));
+
+  camera->projectionType = S2_PROJECTION_PERSPECTIVE;
+
+  s2_camera_perspective(
+    60.f,
+    0.75,
+    0.01,
+    10000,
+    &(camera->projection));
+  //
+  // float eye[3] = {0, 0, 3};
+  // float center[3] = {0, 0, 0};
+  // float up[3] = {0, 1, 0};
+  // printf("before lookat\n");
+
+  // // camera_LookAt(
+  // //   eye,
+  // //   center,
+  // //   up,
+  // //   camera->view);
+  // printf("after lookat\n");
+
+  camera->next = NULL;
+  camera->isVisible = false;
+  return camera;
+}
+
+
 /*! @brief used to construct a perspective projection matrix
 
 */
@@ -134,34 +164,7 @@ void s2_camera_lookAt(
 }
 
 
-s2_camera_t* s2_camera() {
-  s2_camera_t* camera = malloc(sizeof(s2_camera_t));
 
-  camera->projectionType = S2_PROJECTION_PERSPECTIVE;
-
-  s2_camera_perspective(
-    60.f,
-    0.75,
-    0.01,
-    10000,
-    &(camera->projection));
-  //
-  // float eye[3] = {0, 0, 3};
-  // float center[3] = {0, 0, 0};
-  // float up[3] = {0, 1, 0};
-  // printf("before lookat\n");
-
-  // // camera_LookAt(
-  // //   eye,
-  // //   center,
-  // //   up,
-  // //   camera->view);
-  // printf("after lookat\n");
-
-  camera->next = NULL;
-
-  return camera;
-}
 
 
 //

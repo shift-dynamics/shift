@@ -65,6 +65,7 @@ typedef struct s2_terrain_t {
   s2_body_t* parentBodyPointer;
   s2_stackstr_t* parentFrame;
   s2_frame_t* parentFramePointer;
+  bool isVisible;
 } s2_terrain_t;
 
 

@@ -9,3 +9,4 @@ build
 deprecated
 doc/html
 doc/doctrees
+src/gui/html

@@ -65,6 +65,7 @@ SUCH DAMAGE.
 #include "frames.hpp"
 #include "terrain.hpp"
 #include "grid.hpp"
+#include "pointcloud.hpp"
 #include "../star2.h"
 
 /*!
@@ -684,9 +685,7 @@ void Workspace::addLightGroupBox() {
   @brief add light box
 */
 void Workspace::addLightBox() {
-  /*
-    Group box for changing light color
-  */
+  /* Group box for changing light color */
   m_lightPanel.groupBox = new QGroupBox;
   m_lightPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
@@ -873,7 +872,6 @@ void Workspace::addModelParametersBox() {
     SIGNAL(activated()),
     this,
     SLOT(runSimulation()));
-
 }
 
 
@@ -884,9 +882,7 @@ void Workspace::initializeLeftPanel() {
   m_tabwidget = new MyTabWidget();
   m_tabwidget->setContentsMargins(QMargins(0, 0, 0, 0));
 
-  /*
-    set up scene panel, add to first tab of tab widget
-  */
+  /* set up scene panel, add to first tab of tab widget */
   QGroupBox* scenePanelBox = new QGroupBox();
   scenePanelBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
@@ -898,34 +894,28 @@ void Workspace::initializeLeftPanel() {
   QPixmap sceneIconPixMap(":/icons/scene.png");
   m_tabwidget->addTab(scenePanelBox, QIcon(sceneIconPixMap), tr("Scene"));
 
-  /*
-    add vertical splitter to assembly tab
-  */
+  /* add vertical splitter to assembly tab */
   QSplitter* scenePanelSplitter = new QSplitter();
   scenePanelSplitter->setContentsMargins(QMargins(0, 0, 0, 0));
   scenePanelSplitter->setOrientation(Qt::Vertical);
   scenePanelLayout->addWidget(scenePanelSplitter);
 
-  /*
-    add tree widget to top half of scene panel
-  */
+  /* add tree widget to top half of scene panel */
   m_treeWidget = new QTreeWidget();
   m_treeWidget->setContentsMargins(QMargins(0, 0, 0, 0));
   m_treeWidget->setIconSize(QSize(24, 24));
   m_treeWidget->setAlternatingRowColors(true);
-  m_treeWidget->setColumnCount(2);
+  m_treeWidget->setColumnCount(3);
   m_treeWidget->setEditTriggers(
     QAbstractItemView::SelectedClicked |
     QAbstractItemView::DoubleClicked);
   m_treeWidget->setHeaderLabels(
-    QStringList() << "Model Browser" << "value" << "mobility");
-  // m_treeWidget->resizeColumnToContents(0);
-  m_treeWidget->setColumnWidth(0, 300);
+    QStringList() << "" << "" << "value" << "mobility");
+  m_treeWidget->resizeColumnToContents(1);
+  m_treeWidget->setColumnWidth(0, 250);
   scenePanelSplitter->addWidget(m_treeWidget);
 
-  /*
-    add "dynamic group box" to bottom half of scene panel
-  */
+  /* add "dynamic group box" to bottom half of scene panel */
   m_dynamicGroupBox = new QGroupBox;
   m_dynamicGroupBox->setContentsMargins(QMargins(0, 0, 0, 0));
   m_dynamicPanelLayout = new QVBoxLayout(m_dynamicGroupBox);
@@ -953,9 +943,7 @@ void Workspace::initializeLeftPanel() {
 
   m_dynamicPanelLayout->addStretch();
 
-  /*
-    add motion tab to layout
-  */
+  /* add motion tab to layout */
   QGroupBox* motionPanelBox = new QGroupBox();
   motionPanelBox->setContentsMargins(QMargins(0, 0, 0, 0));
   QPixmap clapperIconPixMap(":/icons/clapper.png");
@@ -989,9 +977,7 @@ void Workspace::initializeLeftPanel() {
 
 */
 void Workspace::initializeLayout() {
-  /*
-    main window and layout
-  */
+  /* main window and layout */
   QGroupBox* mainBox = new QGroupBox;
 
   mainBox->setContentsMargins(QMargins(0, 0, 0, 0));
@@ -1005,7 +991,6 @@ void Workspace::initializeLayout() {
   /* set up left panel */
   initializeLeftPanel();
 
-
   /* GL viewport */
   QGroupBox* rightPanelBox = new QGroupBox;
   rightPanelBox->setContentsMargins(QMargins(0, 0, 0, 0));
@@ -1013,7 +998,6 @@ void Workspace::initializeLayout() {
   rightPanelLayout->setContentsMargins(QMargins(0, 0, 0, 0));
   rightPanelLayout->setMargin(0);
   rightPanelLayout->setSpacing(0);
-
 
   QGroupBox* renderWindowBox = new QGroupBox;
   RenderWindowWidget* glwidget = new RenderWindowWidget(renderWindowBox);
@@ -1134,6 +1118,12 @@ void Workspace::initializeLayout() {
     this,
     SLOT(getSelectedTreeItem()));
 
+  QObject::connect(
+    m_treeWidget,
+    SIGNAL(itemClicked(QTreeWidgetItem*, int)),
+    this,
+    SLOT(toggleVisibility(QTreeWidgetItem*, int)));
+
   /* update opengl widget on window resize */
   QObject::connect(
     this,
@@ -1180,6 +1170,135 @@ void Workspace::initializeLayout() {
 
 }
 
+
+/*!
+
+*/
+void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
+  if(column == 1) {
+    MyTreeItem* currentItem =
+      static_cast<MyTreeItem*>(m_treeWidget->currentItem());
+    switch(currentItem->m_userType) {
+      case 1002: {
+        /* assembly */
+        s2_assembly_t* assembly =
+          (s2_assembly_t*)(currentItem->m_object);
+      } break;
+      case 1003: {
+        /* body folder */
+        s2_assembly_t* assembly =
+            (s2_assembly_t*)(currentItem->m_object);
+        for(
+          s2_body_t* bodyHead = assembly->bodyHead;
+          bodyHead;
+          bodyHead = bodyHead->next) {
+
+          bodyHead->isVisible = !bodyHead->isVisible;
+
+        }
+        for(int i = 0; i < item->childCount(); ++i) {
+          MyTreeItem* child = static_cast<MyTreeItem*>(item->child(i));
+          s2_body_t* body = (s2_body_t*)(child->m_object);
+          body->isVisible = !body->isVisible;
+          if(body->isVisible) {
+            item->setIcon(1, QIcon(":/icons/visible.png"));
+          } else {
+            item->setIcon(1, QIcon(":/icons/invisible.png"));
+          }
+        }
+      } break;
+      case 1004: {
+        /* body */
+        s2_body_t* body = (s2_body_t*)(currentItem->m_object);
+        body->isVisible = !body->isVisible;
+        updateItemDrawState(
+          currentItem,
+          body->isVisible,
+          m_renderWindow->getBodies()->isEnabled());
+      } break;
+      case 1005: {
+        /* frame */
+        s2_frame_t* frame = (s2_frame_t*)(currentItem->m_object);
+        qDebug() << "toggling visibility of frame";
+        s2_stackstr_print(stdout, frame->name);
+        frame->isVisible = !frame->isVisible;
+        updateItemDrawState(
+          currentItem,
+          frame->isVisible,
+          m_renderWindow->getFrames()->isEnabled());
+      } break;
+      case 1006: {
+        /* joint folder */
+
+
+      } break;
+      case 1007: {
+        /* joint */
+        s2_joint_t* joint = (s2_joint_t*)(currentItem->m_object);
+        qDebug() << "toggling visibility of frame";
+        s2_stackstr_print(stdout, joint->name);
+        joint->isVisible = !joint->isVisible;
+        updateItemDrawState(
+          currentItem,
+          joint->isVisible,
+          m_renderWindow->getJoints()->isEnabled());
+      } break;
+      case 1008: {
+        /* light folder */
+
+      } break;
+      case 1009: {
+        /* light */
+
+      } break;
+      case 1010: {
+        /* restraint folder */
+
+      } break;
+      case 1011: {
+        /* restraint */
+
+      } break;
+      case 1012: {
+        /* io folder */
+
+      } break;
+      case 1013: {
+        /* io */
+
+      } break;
+      case 1014: {
+        /* terrain folder */
+      } break;
+      case 1015: {
+        /* terrain */
+        s2_terrain_t* terrain = (s2_terrain_t*)(currentItem->m_object);
+        terrain->isVisible = !terrain->isVisible;
+        updateItemDrawState(
+          currentItem,
+          terrain->isVisible,
+          m_renderWindow->getTerrain()->isEnabled());
+      } break;
+      case 1016: {
+        /* point cloud folder */
+      } break;
+      case 1017: {
+        /* point cloud */
+        s2_pointcloud_t* pointcloud = (s2_pointcloud_t*)(currentItem->m_object);
+        pointcloud->isVisible = !pointcloud->isVisible;
+        updateItemDrawState(
+          currentItem,
+          pointcloud->isVisible,
+          m_renderWindow->getPointClouds()->isEnabled());
+      } break;
+
+
+      default: {
+
+      } break;
+    }
+  }
+}
 
 void Workspace::resizeEvent(QResizeEvent* event) {
   m_renderWindow->updateGL();
@@ -1292,6 +1411,11 @@ void Workspace::initializeMenus() {
   m_actionToggleDrawShadows->setCheckable(true);
   m_actionToggleDrawShadows->setChecked(true);
 
+  m_actionToggleDrawConvexHulls =
+    new QAction("Display Convex Hulls", this);
+  viewMenu->addAction(m_actionToggleDrawConvexHulls);
+  m_actionToggleDrawConvexHulls->setCheckable(true);
+  m_actionToggleDrawConvexHulls->setChecked(false);
 
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
@@ -1301,17 +1425,13 @@ void Workspace::initializeMenus() {
   QAction* actionLicense = new QAction("License", this);
   helpMenu->addAction(actionLicense);
 
-  /*
-    file menu actions
-  */
+  /* file menu actions */
   QObject::connect(actionOpen, SIGNAL(triggered()), this, SLOT(openFile()));
   QObject::connect(actionSave, SIGNAL(triggered()), this, SLOT(saveFile()));
   QObject::connect(actionSaveAs, SIGNAL(triggered()), this, SLOT(saveFileAs()));
   QObject::connect(actionQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
 
-  /*
-    view menu actions
-  */
+  /* view menu actions */
   QObject::connect(
     actionSetPerspective,
     SIGNAL(triggered()),
@@ -1355,10 +1475,22 @@ void Workspace::initializeMenus() {
     SLOT(toggleDraw()));
 
   QObject::connect(
+    actionToggleFrameDisplay,
+    SIGNAL(triggered()),
+    this,
+    SLOT(updateDrawState()));
+
+  QObject::connect(
     actionToggleJointDisplay,
     SIGNAL(triggered()),
     m_renderWindow->getJoints(),
     SLOT(toggleDraw()));
+
+  QObject::connect(
+    actionToggleJointDisplay,
+    SIGNAL(triggered()),
+    this,
+    SLOT(updateDrawState()));
 
   QObject::connect(
     m_actionToggleDrawTerrain,
@@ -1367,10 +1499,22 @@ void Workspace::initializeMenus() {
     SLOT(toggleDraw()));
 
   QObject::connect(
+    m_actionToggleDrawTerrain,
+    SIGNAL(triggered()),
+    this,
+    SLOT(updateDrawState()));
+
+  QObject::connect(
     m_actionToggleDrawGrid,
     SIGNAL(triggered()),
     m_renderWindow->getGrid(),
     SLOT(toggleDraw()));
+
+  QObject::connect(
+    m_actionToggleDrawGrid,
+    SIGNAL(triggered()),
+    this,
+    SLOT(updateDrawState()));
 
   QObject::connect(
     m_actionToggleDrawShadows,
@@ -1378,6 +1522,17 @@ void Workspace::initializeMenus() {
     m_renderWindow->getLights(),
     SLOT(toggleDraw()));
 
+  QObject::connect(
+    m_actionToggleDrawConvexHulls,
+    SIGNAL(triggered()),
+    m_renderWindow->getBodies(),
+    SLOT(toggleDrawConvexHulls()));
+
+  QObject::connect(
+    m_actionToggleDrawConvexHulls,
+    SIGNAL(triggered()),
+    this,
+    SLOT(updateDrawState()));
 
   /*
     help menu actions
@@ -2249,22 +2404,22 @@ void Workspace::setTySpinBox(double val) {
   also used to update shape matrices
 
     * 1002: assembly
-    * 1003: body group
+    * 1003: body folder
     * 1004: body
     * 1005: frame
-    * 1006: joint group
+    * 1006: joint folder
     * 1007: joint
-    * 1008: light group
+    * 1008: light folder
     * 1009: light
-    * 1010: restraint group
+    * 1010: restraint folder
     * 1011: restraint
-    * 1012: io group
+    * 1012: io folder
     * 1013: io
 
 */
 void Workspace::setTzSpinBox(double val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
@@ -2644,7 +2799,7 @@ void Workspace::getSelectedTreeItem() {
   m_currentSelectedItem =
     static_cast<MyTreeItem*>(m_treeWidget->currentItem());
 
-  qDebug() << m_currentSelectedItem->m_userType;
+  // qDebug() << m_currentSelectedItem->m_userType;
 
   if(m_currentSelectedItem != NULL) {
     clearDynamicBox();
@@ -3007,9 +3162,9 @@ void Workspace::openFileAtLoad() {
 
       m_context = s2_context_load(byteArray.data());
       s2_context_setTopology(m_context);
-      populateTree();
       qDebug() << "loading from openFileAtLoad: " << fileName;
       m_renderWindow->loadContext(m_context);
+      populateTree();
     }
 
     if(m_context) {
@@ -3166,9 +3321,9 @@ void Workspace::openFile() {
 
     m_context = s2_context_load(byteArray.data());
     s2_context_setTopology(m_context);
-    populateTree();
     qDebug() << "loading from openFile: " << fileName;
     m_renderWindow->loadContext(m_context);
+    populateTree();
   }
 
   if(m_context) {
@@ -3367,12 +3522,10 @@ void Workspace::populateTreeRecursive(
     subAssembly->m_object = subAssemblyHead;
     widget->addChild(subAssembly);
 
-    /*
-      add bodies
-    */
+    /* add bodies */
     MyTreeItem* bodies = new MyTreeItem(1003); // body group
     bodies->setText(0, "bodies");
-    bodies->setIcon(0, QIcon(":/icons/body_dark.png"));
+    bodies->setIcon(0, QIcon(":/icons/body_folder.png"));
     subAssembly->addChild(bodies);
 
     s2_body_t* bodyHead = subAssemblyHead->bodyHead;
@@ -3380,18 +3533,18 @@ void Workspace::populateTreeRecursive(
       MyTreeItem *item = new MyTreeItem(1004); // body
       item->setText(0, s2_getRootName(bodyHead->name));
       item->setIcon(0, QIcon(":/icons/body.png"));
+      item->setIcon(1, QIcon(":/icons/visible.png"));
       item->m_object = bodyHead;
       bodies->addChild(item);
 
-      /*
-        add frames
-      */
+      /* add frames */
       s2_frame_t* frameHead = bodyHead->frameHead;
       while(frameHead) {
         MyTreeItem *subItem = new MyTreeItem(1005); // frame
         subItem->setText(0, s2_getRootName(frameHead->name));
         subItem->m_object = frameHead;
         subItem->setIcon(0, QIcon(":/icons/frame.png"));
+        subItem->setIcon(1, QIcon(":/icons/invisible.png"));
         item->addChild(subItem);
         frameHead = frameHead->next;
       }
@@ -3400,12 +3553,11 @@ void Workspace::populateTreeRecursive(
     }
     bodies->setExpanded(true);
 
-    /*
-      add joints
-    */
+    /* add joints */
     MyTreeItem* joints = new MyTreeItem(1006); // joint group
     joints->setText(0, "joints");
-    joints->setIcon(0, QIcon(":/icons/joint_dark.png"));
+    joints->setIcon(0, QIcon(":/icons/joint_folder.png"));
+
     subAssembly->addChild(joints);
 
     s2_joint_t* jointHead = subAssemblyHead->jointHead;
@@ -3415,25 +3567,24 @@ void Workspace::populateTreeRecursive(
       qDebug() << "loading joint" << s2_getRootName(jointHead->name);
 
       /* set joint value in second column */
-      char numberString[50];
-      if(jointHead->primitiveDisplacement != NULL) {
-        sprintf(numberString, "%0.6f", *(jointHead->primitiveDisplacement));
-        item->setText(1, numberString);
-      }
+      // char numberString[50];
+      // if(jointHead->primitiveDisplacement != NULL) {
+      //   sprintf(numberString, "%0.6f", *(jointHead->primitiveDisplacement));
+      //   item->setText(1, numberString);
+      // }
 
       item->setIcon(0, QIcon(":/icons/joint.png"));
+      item->setIcon(1, QIcon(":/icons/invisible.png"));
       item->m_object = jointHead;
       joints->addChild(item);
       jointHead = jointHead->next;
     }
     joints->setExpanded(true);
 
-    /*
-      add lights
-    */
+    /* add lights */
     MyTreeItem* lights = new MyTreeItem(1008); // light group
     lights->setText(0, "lights");
-    lights->setIcon(0, QIcon(":/icons/light_dark.png"));
+    lights->setIcon(0, QIcon(":/icons/light_folder.png"));
     subAssembly->addChild(lights);
 
     s2_light_t* lightHead = subAssemblyHead->lightHead;
@@ -3441,19 +3592,18 @@ void Workspace::populateTreeRecursive(
       MyTreeItem* item = new MyTreeItem(1009); // light
       item->setText(0, s2_getRootName(lightHead->name));
       item->setIcon(0, QIcon(":/icons/light.png"));
+      item->setIcon(1, QIcon(":/icons/invisible.png"));
       item->m_object = lightHead;
       lights->addChild(item);
       lightHead = lightHead->next;
     }
     lights->setExpanded(false);
 
-    /*
-      add restraints
-    */
+    /* add restraints */
     MyTreeItem* restraints = new MyTreeItem(1010); // restraint group
     restraints->setText(0, "restraints");
     restraints->setExpanded(true);
-    restraints->setIcon(0, QIcon(":/icons/restraint_dark.png"));
+    restraints->setIcon(0, QIcon(":/icons/restraint_folder.png"));
     subAssembly->addChild(restraints);
 
     s2_restraint_t* restraintHead = subAssemblyHead->restraintHead;
@@ -3461,18 +3611,17 @@ void Workspace::populateTreeRecursive(
       MyTreeItem *item = new MyTreeItem(1011); // restraint
       item->setText(0, s2_getRootName(restraintHead->name));
       item->setIcon(0, QIcon(":/icons/restraint.png"));
+      item->setIcon(1, QIcon(":/icons/invisible.png"));
       item->m_object = restraintHead;
       restraints->addChild(item);
       restraintHead = restraintHead->next;
     }
 
-    /*
-      add devices
-    */
+    /* add input / outputs */
     MyTreeItem* io = new MyTreeItem(1012); /* io group */
     io->setText(0, "i/o");
     io->setExpanded(true);
-    io->setIcon(0, QIcon(":/icons/device_dark.png"));
+    io->setIcon(0, QIcon(":/icons/io_folder.png"));
     subAssembly->addChild(io);
 
     /*! @TODO load io data structures */
@@ -3484,6 +3633,23 @@ void Workspace::populateTreeRecursive(
     //   devices->m_object = deviceHead;
     //   deviceHead = deviceHead->next;
     // }
+
+    MyTreeItem* pointCloudFolder = new MyTreeItem(1016);
+    pointCloudFolder->setText(0, "pointclouds");
+    pointCloudFolder->setExpanded(true);
+    pointCloudFolder->setIcon(0, QIcon(":/icons/pointcloud_folder.png"));
+    subAssembly->addChild(pointCloudFolder);
+
+    s2_pointcloud_t* pointCloudHead = subAssemblyHead->pointCloudHead;
+    while(pointCloudHead) {
+      MyTreeItem *item = new MyTreeItem(1017); // restraint
+      item->setText(0, s2_getRootName(pointCloudHead->name));
+      item->setIcon(0, QIcon(":/icons/pointcloud.png"));
+      item->setIcon(1, QIcon(":/icons/visible.png"));
+      item->m_object = pointCloudHead;
+      pointCloudFolder->addChild(item);
+      pointCloudHead = pointCloudHead->next;
+    }
 
     /* add subassemblies */
     populateTreeRecursive(subAssemblyHead, subAssembly);
@@ -3498,6 +3664,7 @@ void Workspace::populateTreeRecursive(
 void Workspace::drawTerrainToggleActive(bool active) {
   m_actionToggleDrawTerrain->setEnabled(active);
   m_actionToggleDrawTerrain->setChecked(active);
+  updateDrawState();
 }
 
 /*!
@@ -3521,9 +3688,7 @@ void Workspace::populateTree() {
 
   m_treeWidget->clear();
 
-  /*
-    load fixed properties
-  */
+  /* load fixed properties */
   MyTreeItem* fixed = new MyTreeItem(1002);
   fixed->setText(0, "fixed");
   fixed->setIcon(0, QIcon(":/icons/anchor.png"));
@@ -3531,12 +3696,10 @@ void Workspace::populateTree() {
 
   m_treeWidget->invisibleRootItem()->addChild(fixed);
 
-  /*
-    load fixed frames
-  */
+  /* load fixed frames */
   MyTreeItem* fixedFrames = new MyTreeItem(1014); // frames group
   fixedFrames->setText(0, "frames");
-  fixedFrames->setIcon(0, QIcon(":/icons/frame_dark.png"));
+  fixedFrames->setIcon(0, QIcon(":/icons/frame_folder.png"));
   fixed->addChild(fixedFrames);
 
   s2_frame_t* frameHead = m_context->assembly->bodyHead->frameHead;
@@ -3550,18 +3713,14 @@ void Workspace::populateTree() {
   }
   fixedFrames->setExpanded(false);
 
-  /*
-    load fixed lights
-  */
+  /* load fixed lights */
   MyTreeItem* fixedLights = new MyTreeItem(1008); // light group
   fixedLights->setText(0, "lights");
-  fixedLights->setIcon(0, QIcon(":/icons/light_dark.png"));
+  fixedLights->setIcon(0, QIcon(":/icons/light_folder.png"));
   fixed->addChild(fixedLights);
 
   s2_light_t* lightHead = m_context->assembly->lightHead;
-  if (!lightHead)
-    printf("no lighthead\n");
-  while (lightHead) {
+  while(lightHead) {
     MyTreeItem* item = new MyTreeItem(1009); // frame
     item->setText(0, s2_getRootName(lightHead->name));
     item->setIcon(0, QIcon(":/icons/light.png"));
@@ -3572,13 +3731,25 @@ void Workspace::populateTree() {
   fixedLights->setExpanded(false);
   fixed->setExpanded(true);
 
-  /*
-    load all other bodies, joints, frames
-  */
-  populateTreeRecursive(m_context->assembly, m_treeWidget->invisibleRootItem());
+  /* load fixed terrains */
+  MyTreeItem* fixedTerrainsFolder = new MyTreeItem(1014);
+  fixedTerrainsFolder->setText(0, "terrain");
+  fixedTerrainsFolder->setIcon(0, QIcon(":/icons/terrain_folder.png"));
+  fixed->addChild(fixedTerrainsFolder);
+  for(int i = 0; i < m_context->terrainCount; i++) {
+    s2_terrain_t* terrain = m_context->terrains[i];
+      MyTreeItem* item = new MyTreeItem(1015);
+      item->setText(0, s2_getRootName(terrain->name));
+      item->setIcon(0, QIcon(":/icons/terrain.png"));
+      item->m_object = terrain;
+      fixedTerrainsFolder->addChild(item);
+  }
 
+  /* load all other bodies, joints, frames */
+  populateTreeRecursive(m_context->assembly, m_treeWidget->invisibleRootItem());
+  updateDrawState();
   m_currentSelectedItem =
-      static_cast<MyTreeItem *>(m_treeWidget->currentItem());
+    static_cast<MyTreeItem*>(m_treeWidget->currentItem());
 }
 
 
@@ -3590,7 +3761,7 @@ void Workspace::highlightSubstructure(s2_substructure_t* substructure) {
   QTreeWidgetItemIterator it(m_treeWidget);
   QPalette palette = this->palette();
 
-  while (*it) {
+  while(*it) {
     MyTreeItem* item = static_cast<MyTreeItem*>(*it);
     if(item->m_userType == 1007) {
       s2_joint_t* joint = (s2_joint_t*)item->m_object;
@@ -3617,19 +3788,19 @@ void Workspace::clearSubstructureHighlight() {
 
   QTreeWidgetItemIterator it(m_treeWidget);
 
-  while (*it) {
+  while(*it) {
     MyTreeItem* item = static_cast<MyTreeItem*>(*it);
     if(item->m_userType == 1007) {
         QPalette palette = this->palette();
         item->setForeground(0, palette.text());
     }
-  ++it;
+    ++it;
   }
 }
 
 
 /*!
-  @brief updates joint angles displayed in tree
+@brief updates joint angles displayed in tree
 */
 void Workspace::updateTree() {
 
@@ -3644,7 +3815,7 @@ void Workspace::updateTree() {
           numberString,
           "%0.4f",
           m_context->mobility);
-        (*it)->setText(2, numberString);
+        (*it)->setText(3, numberString);
       }
     }
     if(item->m_userType == 1007) {
@@ -3656,7 +3827,7 @@ void Workspace::updateTree() {
           numberString,
           "%0.4f",
           *(joint->primitiveDisplacement));
-        (*it)->setText(1, numberString);
+        (*it)->setText(2, numberString);
       }
       if(joint->dof == 0) {
         sprintf(numberString, "0");
@@ -3683,12 +3854,133 @@ void Workspace::updateTree() {
           joint->mobilityNumber[4],
           joint->mobilityNumber[5]);
       }
-      (*it)->setText(2, numberString);
+      (*it)->setText(3, numberString);
 
     }
     ++it;
   }
   writeMobility();
+}
+
+
+void Workspace::updateItemDrawState(
+  MyTreeItem* item,
+  bool isVisible,
+  bool isCategoryEnabled) {
+  if(isVisible && isCategoryEnabled) {
+    item->setIcon(1, QIcon(":/icons/visible.png"));
+  } else if(isVisible && !isCategoryEnabled) {
+    item->setIcon(1, QIcon(":/icons/visible_grey.png"));
+  } else if(!isVisible && isCategoryEnabled) {
+    item->setIcon(1, QIcon(":/icons/invisible.png"));
+  } else {
+    item->setIcon(1, QIcon(":/icons/invisible_grey.png"));
+  }
+}
+/*!
+@brief toggle draw state
+*/
+void Workspace::updateDrawState() {
+
+  QTreeWidgetItemIterator it(m_treeWidget);
+  while(*it) {
+    MyTreeItem* item = static_cast<MyTreeItem*>(*it);
+    switch(item->m_userType) {
+      case 1002: {
+        /* assembly */
+        s2_assembly_t* assembly =
+          (s2_assembly_t*)(item->m_object);
+      } break;
+      case 1003: {
+        /* body folder */
+      } break;
+      case 1004: {
+        /* body */
+        s2_body_t* body = (s2_body_t*)(item->m_object);
+        updateItemDrawState(
+          item,
+          body->isVisible,
+          m_renderWindow->getBodies()->isEnabled());
+      } break;
+      case 1005: {
+        /* frame */
+        s2_frame_t* frame = (s2_frame_t*)(item->m_object);
+        updateItemDrawState(
+          item,
+          frame->isVisible,
+          m_renderWindow->getFrames()->isEnabled());
+      } break;
+      case 1006: {
+        /* joint folder */
+
+
+      } break;
+      case 1007: {
+        /* joint */
+        s2_joint_t* joint = (s2_joint_t*)(item->m_object);
+        updateItemDrawState(
+          item,
+          joint->isVisible,
+          m_renderWindow->getJoints()->isEnabled());
+      } break;
+      case 1008: {
+        /* light folder */
+
+      } break;
+      case 1009: {
+        /* light */
+        s2_light_t* light = (s2_light_t*)(item->m_object);
+        updateItemDrawState(
+          item,
+          light->isVisible,
+          false);
+      } break;
+      case 1010: {
+        /* restraint folder */
+
+      } break;
+      case 1011: {
+        /* restraint */
+
+      } break;
+      case 1012: {
+        /* io folder */
+
+      } break;
+      case 1013: {
+        /* io */
+
+      } break;
+      case 1014: {
+        /* terrain folder */
+      } break;
+      case 1015: {
+        /* terrain */
+        s2_terrain_t* terrain = (s2_terrain_t*)(item->m_object);
+        updateItemDrawState(
+          item,
+          terrain->isVisible,
+          m_renderWindow->getTerrain()->isEnabled());
+      } break;
+      case 1016: {
+        /* point cloud folder */
+      } break;
+      case 1017: {
+        s2_pointcloud_t* pointcloud = (s2_pointcloud_t*)(item->m_object);
+        updateItemDrawState(
+          item,
+          pointcloud->isVisible,
+          m_renderWindow->getPointClouds()->isEnabled());
+        /* point cloud */
+      } break;
+      default: {
+
+      } break;
+    }
+    ++it;
+  }
+
+
 }
 
 
@@ -3698,7 +3990,7 @@ void Workspace::updateTree() {
 void Workspace::license() {
   QMessageBox messageBox;
   QString fileContents;
-  QFile file(":/about/license.html");
+  QFile file(":/html/license.html");
   file.open(QIODevice::ReadOnly | QIODevice::Text);
   fileContents = file.readAll();
   file.close();
@@ -3717,7 +4009,7 @@ void Workspace::license() {
 */
 void Workspace::about() {
   QString fileContents;
-  QFile file(":/about/about.html");
+  QFile file(":/html/about.html");
   file.open(QIODevice::ReadOnly | QIODevice::Text);
   fileContents = file.readAll();
   file.close();

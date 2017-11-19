@@ -81,6 +81,7 @@ typedef struct s2_frame_t {
   int index;
   int dIndex; /*!< index into d and dWRTReference arrays*/
   int vaIndex; /*!< index into velocity and acceleration arrays */
+  bool isVisible;
 } s2_frame_t;
 
 

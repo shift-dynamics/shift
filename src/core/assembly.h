@@ -32,6 +32,7 @@ typedef struct s2_io_t s2_io_t;
 typedef struct s2_forcemodule_t s2_forcemodule_t;
 typedef struct s2_assembly_t s2_assembly_t;
 typedef struct s2_context_t s2_context_t;
+typedef struct s2_pointcloud_t s2_pointcloud_t;
 
 /*!
 @brief Describes properties related to an Assembly
@@ -69,6 +70,9 @@ typedef struct s2_assembly_t {
   s2_io_t* ioHead; /*!< head of Device linked list */
   s2_io_t* ioTail; /*!< tail of Device linked list */
 
+  s2_pointcloud_t* pointCloudHead;
+  s2_pointcloud_t* pointCloudTail;
+
   s2_forcemodule_t* forceModuleHead; /*!< head of forcemodule linked list */
   s2_forcemodule_t* forceModuleTail; /*!< tail of forcemodule linked list */
 } s2_assembly_t;
@@ -100,6 +104,11 @@ void s2_assembly_print(
 void s2_assembly_appendBody(
   s2_assembly_t*,
   s2_body_t*);
+
+
+void s2_assembly_appendPointCloud(
+  s2_assembly_t*,
+  s2_pointcloud_t*);
 
 
 int s2_assembly_loadBodies(

@@ -24,7 +24,6 @@ find_package(Qhull REQUIRED)
 find_package(ImageMagick REQUIRED)
 find_package(ImageMagick COMPONENTS MagickWand REQUIRED)
 
-
 set(LIBS
   ${ASSIMP_LIBRARIES}
   ${GRAPHVIZ_GVC_LIBRARY}
@@ -93,47 +92,46 @@ add_library(bksl STATIC
 
 ### build static library ###
 add_library(star2_lib STATIC
-    ${star2_SOURCE_DIR}/src/core/assembly.c
-    ${star2_SOURCE_DIR}/src/core/body.c
-    ${star2_SOURCE_DIR}/src/core/camera.c
-    ${star2_SOURCE_DIR}/src/core/chordconstraint.c
-    ${star2_SOURCE_DIR}/src/core/context.c
-    ${star2_SOURCE_DIR}/src/core/convexhull.c
-    ${star2_SOURCE_DIR}/src/core/equation.c
-    ${star2_SOURCE_DIR}/src/core/factor.c
-    ${star2_SOURCE_DIR}/src/core/frame.c
-    ${star2_SOURCE_DIR}/src/core/graph.c
-    ${star2_SOURCE_DIR}/src/core/inertia.c
-    ${star2_SOURCE_DIR}/src/core/io.c
-    ${star2_SOURCE_DIR}/src/core/jacobian.c
-    ${star2_SOURCE_DIR}/src/core/joint.c
-    ${star2_SOURCE_DIR}/src/core/kinematics.c
-    ${star2_SOURCE_DIR}/src/core/light.c
-    ${star2_SOURCE_DIR}/src/core/material.c
-    ${star2_SOURCE_DIR}/src/core/memoize.c
-    ${star2_SOURCE_DIR}/src/core/mobility.c
-    ${star2_SOURCE_DIR}/src/core/newtonraphson.c
-    ${star2_SOURCE_DIR}/src/core/queue.c
-    ${star2_SOURCE_DIR}/src/core/restraint.c
-    ${star2_SOURCE_DIR}/src/core/sensor.c
-    ${star2_SOURCE_DIR}/src/core/solve.c
-    ${star2_SOURCE_DIR}/src/core/stack.c
-    ${star2_SOURCE_DIR}/src/core/substructure.c
-    ${star2_SOURCE_DIR}/src/core/terrain.c
-    ${star2_SOURCE_DIR}/src/core/topology.c
-    ${star2_SOURCE_DIR}/src/core/utility.c
-    ${star2_SOURCE_DIR}/src/force_modules/service.c
-    ${star2_SOURCE_DIR}/src/force_modules/tire.c
-    ${star2_SOURCE_DIR}/src/force_modules/tire/pac2002.c
-    ${star2_SOURCE_DIR}/src/force_modules/tire/fiala.c
-    ${star2_SOURCE_DIR}/src/force_modules/stiffness.c
-    ${star2_SOURCE_DIR}/src/force_modules/damping.c
-    ${star2_SOURCE_DIR}/src/force_modules/forcemodule.c
-    ${star2_SOURCE_DIR}/src/force_modules/pid.c
-    ${star2_SOURCE_DIR}/src/ode/numericalintegrator.c
-    ${star2_SOURCE_DIR}/src/ode/ode113.c
-    ${star2_SOURCE_DIR}/src/ode/ode113b.c
-    # ${star2_SOURCE_DIR}/src/core/writer.c
+  ${star2_SOURCE_DIR}/src/core/assembly.c
+  ${star2_SOURCE_DIR}/src/core/body.c
+  ${star2_SOURCE_DIR}/src/core/camera.c
+  ${star2_SOURCE_DIR}/src/core/chordconstraint.c
+  ${star2_SOURCE_DIR}/src/core/context.c
+  ${star2_SOURCE_DIR}/src/core/convexhull.c
+  ${star2_SOURCE_DIR}/src/core/equation.c
+  ${star2_SOURCE_DIR}/src/core/factor.c
+  ${star2_SOURCE_DIR}/src/core/frame.c
+  ${star2_SOURCE_DIR}/src/core/graph.c
+  ${star2_SOURCE_DIR}/src/core/inertia.c
+  ${star2_SOURCE_DIR}/src/core/io.c
+  ${star2_SOURCE_DIR}/src/core/jacobian.c
+  ${star2_SOURCE_DIR}/src/core/joint.c
+  ${star2_SOURCE_DIR}/src/core/kinematics.c
+  ${star2_SOURCE_DIR}/src/core/light.c
+  ${star2_SOURCE_DIR}/src/core/material.c
+  ${star2_SOURCE_DIR}/src/core/memoize.c
+  ${star2_SOURCE_DIR}/src/core/mobility.c
+  ${star2_SOURCE_DIR}/src/core/newtonraphson.c
+  ${star2_SOURCE_DIR}/src/core/queue.c
+  ${star2_SOURCE_DIR}/src/core/restraint.c
+  ${star2_SOURCE_DIR}/src/core/sensor.c
+  ${star2_SOURCE_DIR}/src/core/solve.c
+  ${star2_SOURCE_DIR}/src/core/stack.c
+  ${star2_SOURCE_DIR}/src/core/substructure.c
+  ${star2_SOURCE_DIR}/src/core/terrain.c
+  ${star2_SOURCE_DIR}/src/core/topology.c
+  ${star2_SOURCE_DIR}/src/core/utility.c
+  ${star2_SOURCE_DIR}/src/force_modules/service.c
+  ${star2_SOURCE_DIR}/src/force_modules/tire.c
+  ${star2_SOURCE_DIR}/src/force_modules/tire/pac2002.c
+  ${star2_SOURCE_DIR}/src/force_modules/tire/fiala.c
+  ${star2_SOURCE_DIR}/src/force_modules/stiffness.c
+  ${star2_SOURCE_DIR}/src/force_modules/damping.c
+  ${star2_SOURCE_DIR}/src/force_modules/forcemodule.c
+  ${star2_SOURCE_DIR}/src/force_modules/pid.c
+  ${star2_SOURCE_DIR}/src/ode/numericalintegrator.c
+  ${star2_SOURCE_DIR}/src/ode/ode113.c
+  ${star2_SOURCE_DIR}/src/ode/ode113b.c
 )
 
 add_library(ode113_lib STATIC
@@ -155,6 +153,25 @@ target_link_libraries(7r_robot star2_lib ode113_lib ${LIBS})
 add_executable(ksl_test ${star2_SOURCE_DIR}/src/ksl/ksl_test.c)
 target_link_libraries(ksl_test ksl bksl ${M_LIB} ${CBLAS_LIBRARIES})
 
+## convert markdown documents to html for display in Qt application
+INCLUDE(pandocology)
+
+add_document(
+  TARGET about
+  OUTPUT_FILE about.html
+  SOURCES about.md
+  PANDOC_DIRECTIVES -t html -s
+  PRODUCT_DIRECTORY ${CMAKE_SOURCE_DIR}/src/gui/html
+)
+
+add_document(
+  TARGET license
+  OUTPUT_FILE license.html
+  SOURCES license.md
+  PANDOC_DIRECTIVES -t html -s
+  PRODUCT_DIRECTORY ${CMAKE_SOURCE_DIR}/src/gui/html
+)
+
 ### build ode test applications ###
 # add_executable(ode113_test
 # ${star2_SOURCE_DIR}/src/mbdl/application/ode113_test.c)
@@ -171,29 +188,29 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 set(GUI_SOURCES
-    ${star2_SOURCE_DIR}/src/gui/star2_gui.cpp
-    ${star2_SOURCE_DIR}/src/gui/workspace.cpp
-    ${star2_SOURCE_DIR}/src/gui/openglwindow.cpp
-    ${star2_SOURCE_DIR}/src/gui/renderwindow.cpp
-    ${star2_SOURCE_DIR}/src/gui/geometry.cpp
-    ${star2_SOURCE_DIR}/src/gui/bodies.cpp
-    ${star2_SOURCE_DIR}/src/gui/frames.cpp
-    ${star2_SOURCE_DIR}/src/gui/joints.cpp
-    ${star2_SOURCE_DIR}/src/gui/grid.cpp
-    ${star2_SOURCE_DIR}/src/gui/lights.cpp
-    ${star2_SOURCE_DIR}/src/gui/terrain.cpp
-    ${star2_SOURCE_DIR}/src/gui/flatshaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/frameshaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/simpleshaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/phongshaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/shaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/terrainshadowshaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/pointcloudshaderprogram.cpp
-    ${star2_SOURCE_DIR}/src/gui/pointcloud.cpp
-    ${star2_SOURCE_DIR}/src/gui/orbitalcamera.cpp
-    ${star2_SOURCE_DIR}/src/gui/resources.qrc
+  ${star2_SOURCE_DIR}/src/gui/star2_gui.cpp
+  ${star2_SOURCE_DIR}/src/gui/workspace.cpp
+  ${star2_SOURCE_DIR}/src/gui/openglwindow.cpp
+  ${star2_SOURCE_DIR}/src/gui/renderwindow.cpp
+  ${star2_SOURCE_DIR}/src/gui/geometry.cpp
+  ${star2_SOURCE_DIR}/src/gui/bodies.cpp
+  ${star2_SOURCE_DIR}/src/gui/frames.cpp
+  ${star2_SOURCE_DIR}/src/gui/joints.cpp
+  ${star2_SOURCE_DIR}/src/gui/grid.cpp
+  ${star2_SOURCE_DIR}/src/gui/lights.cpp
+  ${star2_SOURCE_DIR}/src/gui/terrain.cpp
+  ${star2_SOURCE_DIR}/src/gui/flatshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/frameshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/simpleshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/phongshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/shaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/terrainshadowshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/pointcloudshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/pointcloud.cpp
+  ${star2_SOURCE_DIR}/src/gui/orbitalcamera.cpp
+  ${star2_SOURCE_DIR}/src/gui/resources.qrc
 )
 
 # qt5_use_modules does not set all the necessary flags to build the
@@ -220,15 +237,16 @@ add_definitions(-Wextra)
 # add_definitions(relro)
 
 add_executable(star2 ${GUI_SOURCES})
+add_dependencies(star2 license about)
 qt5_use_modules(star2 Core Widgets OpenGL Gui Svg)
 target_link_libraries(star2
-    star2_lib
-    ode113_lib
-    ${GLEW_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    stdc++
-    ${CBLAS_LIBRARIES}
-    ${LIBS}
+  star2_lib
+  ode113_lib
+  ${GLEW_LIBRARIES}
+  ${OPENGL_LIBRARIES}
+  stdc++
+  ${CBLAS_LIBRARIES}
+  ${LIBS}
 )
 
 file(COPY
@@ -237,54 +255,54 @@ file(COPY
     ${CMAKE_CURRENT_BINARY_DIR})
 
 ### build documentation ###
-find_package( Doxygen )
-option( BUILD_DOCUMENTATION
-    "Create and install the HTML based API documentation (requires Doxygen)"
-    ${DOXYGEN_FOUND} )
+find_package(Doxygen)
+option(BUILD_DOCUMENTATION
+  "Create and install the HTML based API documentation (requires Doxygen)"
+  ${DOXYGEN_FOUND})
 
-if( BUILD_DOCUMENTATION )
-    if( NOT DOXYGEN_FOUND )
-        message( FATAL_ERROR "Doxygen is needed to build the documentation." )
-    endif()
+if(BUILD_DOCUMENTATION)
+  if(NOT DOXYGEN_FOUND)
+    message( FATAL_ERROR "Doxygen is needed to build the documentation." )
+  endif()
 
-    set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in)
-    set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
+  set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in)
+  set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
 
-    configure_file(${doxyfile_in} ${doxyfile} @ONLY)
+  configure_file(${doxyfile_in} ${doxyfile} @ONLY)
 
-    # generate doxygen documentation
-    add_custom_target( doc
-        COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating API documentation with Doxygen"
-        VERBATIM )
+  # generate doxygen documentation
+  add_custom_target(doc
+    COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM)
 
-    # copy doxyboot.js file to html directory
-    # file(COPY
-    #  ${star2_SOURCE_DIR}/doc/doxygen-bootstrapped/doxy-boot.js
-    #  DESTINATION
-    # ${CMAKE_CURRENT_BINARY_DIR}/html)
+  # copy doxyboot.js file to html directory
+  # file(COPY
+  #  ${star2_SOURCE_DIR}/doc/doxygen-bootstrapped/doxy-boot.js
+  #  DESTINATION
+  # ${CMAKE_CURRENT_BINARY_DIR}/html)
 
-    # ## install sphinx documentation to /srv/http
-    # install(
-    #   DIRECTORY
-    #   ${star2_SOURCE_DIR}/doc/sphinx/build/html
-    #   DESTINATION
-    #   /srv)
-    #
+  # ## install sphinx documentation to /srv/http
+  # install(
+  #   DIRECTORY
+  #   ${star2_SOURCE_DIR}/doc/sphinx/build/html
+  #   DESTINATION
+  #   /srv)
+  #
 
-    ## install doxygen documentation to /srv/http/mbdl
-    install(
-      DIRECTORY
-      ${CMAKE_CURRENT_BINARY_DIR}/html
-      DESTINATION
-      /srv/http/static/doxygen)
+  ## install doxygen documentation to /srv/http/mbdl
+  install(
+    DIRECTORY
+    ${CMAKE_CURRENT_BINARY_DIR}/html
+    DESTINATION
+    /srv/http/static/doxygen)
 
-    install(
-      DIRECTORY
-      ${CMAKE_CURRENT_BINARY_DIR}/html
-      DESTINATION
-      /share/doc)
+  install(
+    DIRECTORY
+    ${CMAKE_CURRENT_BINARY_DIR}/html
+    DESTINATION
+    /share/doc)
 
 
 

@@ -793,13 +793,13 @@ s2_terrain_t* s2_terrain(
   }
 
   MagickWandTerminus();
-
+  terrain->isVisible = true;
   return terrain;
 }
 
+
 /*!
 @brief loads terrain datastructure from json file
-
 */
 int s2_terrain_load(
   s2_assembly_t* assembly,
@@ -818,8 +818,7 @@ int s2_terrain_load(
       json_array_size(terrainsObject);
 
     context->terrains =
-      malloc(
-        context->terrainCount * sizeof(s2_terrain_t*));
+      malloc(context->terrainCount * sizeof(s2_terrain_t*));
 
     json_array_foreach(
       terrainsObject,

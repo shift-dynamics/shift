@@ -42,12 +42,23 @@ struct s2_lights_t;
 /*!
 @brief vertex array and vertex buffer objects for each material
 */
-struct body_buffer_t {
+struct material_buffer_t {
   QOpenGLVertexArrayObject* vao;
   QOpenGLBuffer* vertexBuffer;
   QOpenGLBuffer* vertexNormalBuffer;
   QOpenGLBuffer* ibo;
+  s2_body_t* body;
   s2_material_t* material;
+  s2_displacement_t* transform;
+};
+
+
+struct convexhull_buffer_t {
+  QOpenGLVertexArrayObject* vao;
+  QOpenGLBuffer* vertexBuffer;
+  QOpenGLBuffer* indexBuffer;
+  s2_body_t* body;
+  s2_convexhull_t* convexhull;
   s2_displacement_t* transform;
 };
 
@@ -62,7 +73,8 @@ class s2_Bodies : public s2_Geometry {
 public:
   s2_Bodies(RenderWindow* renderWindow)
   : s2_Geometry(renderWindow)
-  , m_shadingType(S2_SHADING_PHONG) {
+  , m_shadingType(S2_SHADING_PHONG)
+  , m_drawConvexHullEnabled(false) {
 
   };
 
@@ -74,7 +86,9 @@ public:
 
   void initializeBody(s2_body_t* body);
 
-  void initializeMaterial(s2_material_t*, s2_displacement_t*);
+  void initializeMaterial(s2_material_t*, s2_body_t*, s2_displacement_t*);
+
+  void initializeConvexHull(s2_convexhull_t*, s2_body_t*);
 
   void setDrawStyle(s2_shading_enum_t shadingType);
 
@@ -92,14 +106,20 @@ public:
 
   void setShadowShader(ShadowShaderProgram*);
 
-  void setAttributeLocations(
+  void setMaterialAttributeLocations(
     QOpenGLShaderProgram*,
     GLint,
     GLint,
-    body_buffer_t*);
+    material_buffer_t*);
 
-  QVector<body_buffer_t>* getBufferObjects() {
-    return &m_bufferObjects;
+  void setConvexHullAttributeLocations(
+    QOpenGLShaderProgram*,
+    GLint,
+    convexhull_buffer_t*);
+
+
+  QVector<material_buffer_t>* getMaterialBufferObjects() {
+    return &m_materialBufferObjects;
   }
 
   void draw();
@@ -119,12 +139,27 @@ public slots:
     setDrawStyle(S2_SHADING_WIREFRAME);
   }
 
+  void toggleDrawConvexHulls() {
+    m_drawConvexHullEnabled = !m_drawConvexHullEnabled;
+  }
+
+  void enableDrawConvexHulls() {
+    m_drawConvexHullEnabled = true;
+  }
+
+  void disableDrawConvexHulls() {
+    m_drawConvexHullEnabled = false;
+  }
+
 
 private:
 
-  QVector<body_buffer_t> m_bufferObjects;
+  QVector<material_buffer_t> m_materialBufferObjects;
+  QVector<convexhull_buffer_t> m_convexhullBufferObjects;
 
   s2_shading_enum_t m_shadingType;
+
+  bool m_drawConvexHullEnabled; /*!< toggles display of convex hulls, overrides settings in each convex hull */
 
   /* OpenGL shader programs */
   FlatShaderProgram* m_programFlat;
