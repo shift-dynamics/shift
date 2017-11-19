@@ -31,6 +31,7 @@ SUCH DAMAGE.
 #include "context.h"
 #include "../force_modules/forcemodule.h"
 #include "restraint.h"
+#include "pointcloud.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +73,9 @@ s2_assembly_t* s2_assembly() {
 
   assembly->ioHead = NULL;
   assembly->ioTail = NULL;
+
+  assembly->pointCloudHead = NULL;
+  assembly->pointCloudTail = NULL;
 
   assembly->forceModuleHead = NULL;
   assembly->forceModuleTail = NULL;
@@ -243,12 +247,32 @@ void s2_assembly_appendBody(
   s2_assembly_t* assembly,
   s2_body_t* body) {
 
-  if (!assembly->bodyTail) {
+  if(!assembly->bodyTail) {
     assembly->bodyHead = body;
     assembly->bodyTail = body;
   } else {
     assembly->bodyTail->next = body;
     assembly->bodyTail = body;
+  }
+}
+
+
+/*!
+@brief Append a body to an s2_assembly_t datastructure
+
+@param assembly an Assembly datastructure to append to
+@param body a Body datastructure to append
+*/
+void s2_assembly_appendPointCloud(
+  s2_assembly_t* assembly,
+  s2_pointcloud_t* pointCloud) {
+
+  if(!assembly->pointCloudTail) {
+    assembly->pointCloudHead = pointCloud;
+    assembly->pointCloudTail = pointCloud;
+  } else {
+    assembly->pointCloudTail->next = pointCloud;
+    assembly->pointCloudTail = pointCloud;
   }
 }
 

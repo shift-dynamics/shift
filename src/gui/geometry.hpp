@@ -42,7 +42,7 @@ signals:
 public slots:
 
   void toggleDraw();
-  void enable(bool active);
+  void enable(bool);
 
 protected:
   s2_context_t* m_context;

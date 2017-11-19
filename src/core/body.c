@@ -42,30 +42,12 @@ SUCH DAMAGE.
 #include "assembly.h"
 #include "utility.h"
 
-/*!
-@brief Append a frame datastructure to an s2_body_t datastructure
 
-@param body a Body datastructure to append to
-@param frame a Frame datastructure to append
-*/
-void s2_body_appendFrame(
-  s2_body_t* body,
-  s2_frame_t* frame) {
-
-  if(!body->frameTail) {
-    body->frameHead = frame;
-    body->frameTail = frame;
-  } else {
-    body->frameTail->next = frame;
-    body->frameTail = frame;
-  }
-}
 
 /*!
 @brief Initialize an s2_body_t datastructure. Appends the origin frame to the body frame
 
 @param None
-
 @returns a s2_body_t datastructure
 */
 s2_body_t* s2_body(s2_stackstr_t* name) {
@@ -99,7 +81,10 @@ s2_body_t* s2_body(s2_stackstr_t* name) {
   body->glModelViewProjection = NULL;
   body->convexHullCount = 0;
   body->convexHulls = NULL;
-
+  body->convexHullColor[0] = 194.f / 255.f;
+  body->convexHullColor[1] = 9.f / 255.f;
+  body->convexHullColor[2] = 226.f / 255.f;
+  body->drawEnabled = true;
   body->name = name;
 
   /* append origin to body */
@@ -110,12 +95,63 @@ s2_body_t* s2_body(s2_stackstr_t* name) {
   body->origin = origin;
   body->referenceFrame = origin;
   s2_body_appendFrame(body, origin);
-
+  body->isVisible = true;
   return body;
 }
 
 
+/*!
+@brief Free a s2_body_t datastructure
+@param body an s2_body_t datastructure
+*/
+void s2_body_free(
+  s2_body_t* body) {
 
+  if(body) {
+    if(body->isVirtual) {
+      s2_virtualbody_free(body);
+    } else {
+      s2_stackstr_free(body->name);
+      if (body->definition) {
+        s2_stackstr_free(body->definition);
+      }
+      s2_inertia_free(body->inertia);
+      s2_materials_free(body->materials, body->materialCount);
+
+      free(body->centerOfMassWRTOrigin);
+      free(body->centerOfMassWRTReference);
+
+      s2_frame_t* frameHead = body->frameHead;
+      while(frameHead) {
+        s2_frame_t* nextFrame = frameHead->next;
+        s2_frame_free(frameHead);
+        frameHead = nextFrame;
+      }
+      free(body);
+      body = NULL;
+    }
+  }
+}
+
+
+/*!
+@brief Append a frame datastructure to an s2_body_t datastructure
+
+@param body a Body datastructure to append to
+@param frame a Frame datastructure to append
+*/
+void s2_body_appendFrame(
+  s2_body_t* body,
+  s2_frame_t* frame) {
+
+  if(!body->frameTail) {
+    body->frameHead = frame;
+    body->frameTail = frame;
+  } else {
+    body->frameTail->next = frame;
+    body->frameTail = frame;
+  }
+}
 
 
 /*!
@@ -155,40 +191,6 @@ void s2_body_printFrames(
     }
     fprintf(f, "\t\tisParent: %s\n", frameHead->isReference ? "True" : "False");
     frameHead = frameHead->next;
-  }
-}
-
-
-/*!
-@brief Free a s2_body_t datastructure
-@param body an s2_body_t datastructure
-*/
-void s2_body_free(
-  s2_body_t* body) {
-
-  if(body) {
-    if(body->isVirtual) {
-      s2_virtualbody_free(body);
-    } else {
-      s2_stackstr_free(body->name);
-      if (body->definition) {
-        s2_stackstr_free(body->definition);
-      }
-      s2_inertia_free(body->inertia);
-      s2_materials_free(body->materials, body->materialCount);
-
-      free(body->centerOfMassWRTOrigin);
-      free(body->centerOfMassWRTReference);
-
-      s2_frame_t* frameHead = body->frameHead;
-      while(frameHead) {
-        s2_frame_t* nextFrame = frameHead->next;
-        s2_frame_free(frameHead);
-        frameHead = nextFrame;
-      }
-      free(body);
-      body = NULL;
-    }
   }
 }
 

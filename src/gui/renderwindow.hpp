@@ -140,6 +140,10 @@ public:
     return m_terrain;
   }
 
+  s2_PointCloud* getPointClouds() {
+    return m_pointclouds;
+  }
+
 public slots:
   void updateGL();
   void initialize();

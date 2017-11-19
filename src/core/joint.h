@@ -129,7 +129,7 @@ typedef struct s2_joint_t {
   double* stiffnessCoefficients; /*!< spring coefficients, k0 + k1 * x +
                                    k2 * x**2 + ... + kn * x**n */
   int stiffnessCoefficientCount; /*!< number of spring coefficients */
-
+  bool isVisible;
 } s2_joint_t;
 
 

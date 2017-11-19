@@ -49,28 +49,41 @@
   </qresource>
 
   <qresource prefix="/icons">
-    <file alias="assembly.png">icons/assembly.png</file>
-    <file alias="body.png">icons/body.png</file>
-    <file alias="camera.png">icons/camera.png</file>
-    <file alias="device.png">icons/device.png</file>
-    <file alias="frame.png">icons/frame.png</file>
-    <file alias="joint.png">icons/joint.png</file>
-    <file alias="light.png">icons/light.png</file>
-    <file alias="restraint.png">icons/restraint.png</file>
     <file alias="scene.png">icons/scene.png</file>
     <file alias="clapper.png">icons/clapper.png</file>
     <file alias="anchor.png">icons/anchor.png</file>
 
-    <file alias="body_dark.png">icons/body_dark.png</file>
-    <file alias="camera_dark.png">icons/camera_dark.png</file>
-    <file alias="device_dark.png">icons/device_dark.png</file>
-    <file alias="frame_dark.png">icons/frame_dark.png</file>
-    <file alias="joint_dark.png">icons/joint_dark.png</file>
-    <file alias="light_dark.png">icons/light_dark.png</file>
-    <file alias="restraint_dark.png">icons/restraint_dark.png</file>
+    <file alias="assembly.png">icons/assembly.png</file>
+    <file alias="body.png">icons/body.png</file>
+    <file alias="camera.png">icons/camera.png</file>
+    <file alias="io.png">icons/io.png</file>
+    <file alias="frame.png">icons/frame.png</file>
+    <file alias="joint.png">icons/joint.png</file>
+    <file alias="light.png">icons/light.png</file>
+    <file alias="restraint.png">icons/restraint.png</file>
+    <file alias="terrain.png">icons/terrain.png</file>
+    <file alias="pointcloud.png">icons/pointcloud.png</file>
+
+    <file alias="body_folder.png">icons/body_folder.png</file>
+    <file alias="camera_folder.png">icons/camera_folder.png</file>
+    <file alias="io_folder.png">icons/io_folder.png</file>
+    <file alias="frame_folder.png">icons/frame_folder.png</file>
+    <file alias="joint_folder.png">icons/joint_folder.png</file>
+    <file alias="light_folder.png">icons/light_folder.png</file>
+    <file alias="restraint_folder.png">icons/restraint_folder.png</file>
+    <file alias="terrain_folder.png">icons/terrain_folder.png</file>
+    <file alias="pointcloud_folder.png">icons/pointcloud_folder.png</file>
 
     <file alias="play_button.png">icons/play_button.png</file>
     <file alias="pause_button.png">icons/pause_button.png</file>
+
+    <file alias="visible.png">icons/visible.png</file>
+    <file alias="invisible.png">icons/invisible.png</file>
+
+    <file alias="visible_grey.png">icons/visible_grey.png</file>
+    <file alias="invisible_grey.png">icons/invisible_grey.png</file>
+
+
   </qresource>
 
   <qresource prefix="/textures">

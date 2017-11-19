@@ -61,7 +61,8 @@ class s2_PointCloud : public s2_Geometry {
 public:
   s2_PointCloud(RenderWindow* renderWindow)
   : s2_Geometry(renderWindow)
-  , m_shadingType(S2_POINT_SHADING_SIMPLE) {
+  , m_shadingType(S2_POINT_SHADING_SIMPLE)
+  , m_drawEnabled(true) {
 
   };
 
@@ -95,6 +96,10 @@ public:
     return &m_bufferObjects;
   }
 
+  bool isEnabled() {
+    return m_drawEnabled;
+  }
+
   void draw();
   void drawShadows();
 
@@ -125,6 +130,8 @@ private:
   ShadowShaderProgram* m_programShadow;
 
   s2_Lights* m_lights;
+
+  bool m_drawEnabled;
 
 };
 
