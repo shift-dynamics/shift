@@ -33,6 +33,7 @@ s2_frame_t* s2_frame() {
 
   frame->velocityAbsolute = NULL;
   frame->accelerationQuadraticAbsolute = NULL;
+  frame->isVisible = false;
   return frame;
 }
 

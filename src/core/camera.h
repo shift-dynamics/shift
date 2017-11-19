@@ -40,6 +40,8 @@ typedef struct s2_camera_t {
   s2_mat4x4f_t view;
   s2_mat4x4f_t projection;
 
+  bool isVisible;
+
   s2_camera_t* next;
 } s2_camera_t;
 

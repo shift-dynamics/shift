@@ -30,6 +30,6 @@ void s2_Geometry::toggleDraw() {
   m_drawEnabled = !m_drawEnabled;
 }
 
-void s2_Geometry::enable(bool active) {
-  m_drawEnabled = active;
+void s2_Geometry::enable(bool drawEnabled) {
+  m_drawEnabled = drawEnabled;
 }

@@ -59,13 +59,16 @@ void s2_Frames::draw() {
     checkError("frame: after set gl_line_smooth");
 
     for(int i = 0; i < m_frames.size(); i++) {
-      QMatrix4x4 model = s2_displacementToQMatrix4x4(m_frames.at(i));
-      QMatrix4x4 mvp = pv * model;
-      m_program->setMVP(mvp);
-      checkError("frame: after set mvp");
+      if(m_frames.at(i)->isVisible) {
+        QMatrix4x4 model =
+          s2_displacementToQMatrix4x4(m_frames.at(i)->dAbsolute);
+        QMatrix4x4 mvp = pv * model;
+        m_program->setMVP(mvp);
+        checkError("frame: after set mvp");
 
-      glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
-      checkError("frame: after draw elements");
+        glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+        checkError("frame: after draw elements");
+      }
     }
 
     m_program->releaseVao();
@@ -82,7 +85,7 @@ void s2_Frames::addFrames(s2_assembly_t* assembly) {
   while(bodyHead != NULL) {
     s2_frame_t* frameHead = bodyHead->frameHead;
     while(frameHead != NULL) {
-      m_frames.append(frameHead->dAbsolute);
+      m_frames.append(frameHead);
       frameHead = frameHead->next;
     }
     bodyHead = bodyHead->next;

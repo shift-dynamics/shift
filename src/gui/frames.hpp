@@ -54,7 +54,7 @@ public:
 private:
 
   FrameShaderProgram* m_program;
-  QVector<s2_displacement_t*> m_frames;
+  QVector<s2_frame_t*> m_frames;
 
 };
 

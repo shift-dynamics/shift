@@ -7,6 +7,7 @@
 */
 void s2_Joints::loadContext() {
   m_context = m_renderWindow->getContext();
+  m_drawEnabled = false;
 }
 
 /*!
@@ -245,54 +246,53 @@ void s2_Joints::draw() {
       m_renderWindow->getProjectionMatrix() *
       m_renderWindow->getViewMatrix();
 
-    // glLineStipple(3, 0xAAAA);
-    // glEnable(GL_LINE_STIPPLE);
-
     for(int i = 0; i < m_context->activeJointCount; i++) {
       s2_joint_t* joint = m_context->jointPointers[i];
 
-      QMatrix4x4 model =
-        s2_displacementToQMatrix4x4(joint->parentFramePointer->dAbsolute);
-      QMatrix4x4 mvp = vp * model;
+      if(joint->isVisible) {
+        QMatrix4x4 model =
+          s2_displacementToQMatrix4x4(joint->parentFramePointer->dAbsolute);
+        QMatrix4x4 mvp = vp * model;
 
-      m_program->setMVP(mvp);
-      checkError("joint: after set MVP");
+        m_program->setMVP(mvp);
+        checkError("joint: after set MVP");
 
-      switch(joint->jointType) {
-        case S2_JOINT_RX: {
-          m_program->setScale(m_scaleFactor);
-          glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
-        } break;
-        case S2_JOINT_RY: {
-          m_program->setScale(m_scaleFactor);
-          m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
-          checkError("joint: after draw ry");
-        } break;
-        case S2_JOINT_RZ: {
-          m_program->setScale(m_scaleFactor);
-          m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
-          checkError("joint: after draw rz");
-        } break;
-        case S2_JOINT_TX: {
-          float jointValue = (float)(m_context->q[joint->qIndex]);
-          m_program->setScale(jointValue);
-          glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
-          checkError("joint: after draw tx");
-        } break;
-        case S2_JOINT_TY: {
-          float jointValue = (float)(m_context->q[joint->qIndex]);
-          m_program->setScale(jointValue);
-          m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
-          checkError("joint: after draw ty");
-        } break;
-        case S2_JOINT_TZ: {
-          float jointValue = (float)(m_context->q[joint->qIndex]);
-          m_program->setScale(jointValue);
-          m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
-          checkError("joint: after draw tz");
-        } break;
-        default:
-          break;
+        switch(joint->jointType) {
+          case S2_JOINT_RX: {
+            m_program->setScale(m_scaleFactor);
+            glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+          } break;
+          case S2_JOINT_RY: {
+            m_program->setScale(m_scaleFactor);
+            m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+            checkError("joint: after draw ry");
+          } break;
+          case S2_JOINT_RZ: {
+            m_program->setScale(m_scaleFactor);
+            m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+            checkError("joint: after draw rz");
+          } break;
+          case S2_JOINT_TX: {
+            float jointValue = (float)(m_context->q[joint->qIndex]);
+            m_program->setScale(jointValue);
+            glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+            checkError("joint: after draw tx");
+          } break;
+          case S2_JOINT_TY: {
+            float jointValue = (float)(m_context->q[joint->qIndex]);
+            m_program->setScale(jointValue);
+            m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+            checkError("joint: after draw ty");
+          } break;
+          case S2_JOINT_TZ: {
+            float jointValue = (float)(m_context->q[joint->qIndex]);
+            m_program->setScale(jointValue);
+            m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+            checkError("joint: after draw tz");
+          } break;
+          default:
+            break;
+        }
       }
     }
     m_program->releaseVao();

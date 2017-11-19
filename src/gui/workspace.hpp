@@ -147,6 +147,12 @@ class Workspace : public QMainWindow {
     void setLoadingVisible(bool);
     void writeMobility();
     void drawTerrainToggleActive(bool);
+    void toggleVisibility(QTreeWidgetItem* item, int column);
+    void updateDrawState();
+    void updateItemDrawState(
+      MyTreeItem* item,
+      bool isVisible,
+      bool isCategoryEnabled);
 
   private:
     QSize minimumSizeHint() const {
@@ -159,9 +165,7 @@ class Workspace : public QMainWindow {
       return QSize(700, 500);
     }
 
-    /*
-      Layout utilities
-    */
+    /* Layout utilities */
     QGridLayout* m_notificationPanelLayout;
     QProgressBar* m_progressBar;
     MyTreeItem* m_currentSelectedItem;
@@ -175,6 +179,7 @@ class Workspace : public QMainWindow {
     QAction* m_actionToggleDrawTerrain;
     QAction* m_actionToggleDrawGrid;
     QAction* m_actionToggleDrawShadows;
+    QAction* m_actionToggleDrawConvexHulls;
 
     struct m_sliders {
       QGroupBox* groupBox;
@@ -367,6 +372,7 @@ class Workspace : public QMainWindow {
       s2_substructure_t* substructure,
       bool isSpherical);
     void recenterSlider(SliderHandle* sliderHandle);
+
 
     QString getCursorPositionText();
     //virtual void resizeEvent(QResizeEvent* event);

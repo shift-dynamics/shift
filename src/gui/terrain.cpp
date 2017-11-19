@@ -154,63 +154,65 @@ void s2_Terrain::draw() {
     checkError("terrain: after set lights");
 
     for(int i = 0; i < m_context->terrainCount; i++) {
+
       s2_terrain_t* terrain = m_context->terrains[i];
+      if(terrain->isVisible) {
+        QMatrix4x4 model =
+          QMatrix4x4(1.f, 0.f, 0.f, -32.f,
+                     0.f, 1.f, 0.f, -32.f,
+                     0.f, 0.f, 1.f, 2.5f,
+                     0.f, 0.f, 0.f, 1.f);
+        m_program->setTransform(model);
+        checkError("terrain: after set transform");
 
-      QMatrix4x4 model =
-        QMatrix4x4(1.f, 0.f, 0.f, -32.f,
-                   0.f, 1.f, 0.f, -32.f,
-                   0.f, 0.f, 1.f, 2.5f,
-                   0.f, 0.f, 0.f, 1.f);
-      m_program->setTransform(model);
-      checkError("terrain: after set transform");
+        m_program->setUniforms(terrain);
+        checkError("terrain: after set uniforms");
 
-      m_program->setUniforms(terrain);
-      checkError("terrain: after set uniforms");
+        m_terrainObjects[i].textureDisplacement->bind(1);
+        m_program->setTextureDisplacement(
+          m_terrainObjects[i].textureDisplacement);
+        checkError("terrain: after set texture displacement");
 
-      m_terrainObjects[i].textureDisplacement->bind(1);
-      m_program->setTextureDisplacement(
-        m_terrainObjects[i].textureDisplacement);
-      checkError("terrain: after set texture displacement");
+        m_terrainObjects[i].textureColor->bind(2);
+        m_program->setTextureColor(
+          m_terrainObjects[i].textureColor);
+        checkError("terrain: after set texture color");
 
-      m_terrainObjects[i].textureColor->bind(2);
-      m_program->setTextureColor(
-        m_terrainObjects[i].textureColor);
-      checkError("terrain: after set texture color");
+        // m_program->setTextureBump(
+        //   m_terrainObjects[i].textureBump);
+        // checkError("after set texture bump");
+        //
+        // m_program->setTextureNormal(
+        //   m_terrainObjects[i].textureNormal);
+        // checkError("after set texture normal");
+        //
+        // m_program->setTextureSpecular(
+        //   m_terrainObjects[i].textureSpecular);
+        // checkError("after set texture specular");
 
-      // m_program->setTextureBump(
-      //   m_terrainObjects[i].textureBump);
-      // checkError("after set texture bump");
-      //
-      // m_program->setTextureNormal(
-      //   m_terrainObjects[i].textureNormal);
-      // checkError("after set texture normal");
-      //
-      // m_program->setTextureSpecular(
-      //   m_terrainObjects[i].textureSpecular);
-      // checkError("after set texture specular");
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glDepthFunc(GL_LEQUAL);
 
-      glEnable(GL_DEPTH_TEST);
-      glEnable(GL_CULL_FACE);
-      glDepthFunc(GL_LEQUAL);
+        if(m_shadingType == S2_SHADING_WIREFRAME) {
+          glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        checkError("terrain: after glPolygonMode");
 
-      if(m_shadingType == S2_SHADING_WIREFRAME) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      } else {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        m_renderWindow->m_funcs->glPatchParameteri(GL_PATCH_VERTICES, 4);
+        checkError("terrain: after set patch parameteri");
+
+        m_renderWindow->m_funcs->glDrawArraysInstanced(GL_PATCHES, 0, 4, 64 * 64);
+        checkError("terrain: after draw arrays instanced");
+
+        m_terrainObjects[i].textureDisplacement->release();
+        checkError("terrain: after release depth texture");
+
+        m_terrainObjects[i].textureColor->release();
+        checkError("terrain: after release color texture");
       }
-      checkError("terrain: after glPolygonMode");
-
-      m_renderWindow->m_funcs->glPatchParameteri(GL_PATCH_VERTICES, 4);
-      checkError("terrain: after set patch parameteri");
-
-      m_renderWindow->m_funcs->glDrawArraysInstanced(GL_PATCHES, 0, 4, 64 * 64);
-      checkError("terrain: after draw arrays instanced");
-
-      m_terrainObjects[i].textureDisplacement->release();
-      checkError("terrain: after release depth texture");
-
-      m_terrainObjects[i].textureColor->release();
-      checkError("terrain: after release color texture");
 
     }
     m_program->releaseVao();

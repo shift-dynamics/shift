@@ -21,6 +21,7 @@ SUCH DAMAGE.
 #define _STAR2_LIGHT_H_
 
 #include <jansson.h>
+#include <stdbool.h>
 
 typedef struct s2_assembly_t s2_assembly_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
@@ -69,6 +70,7 @@ typedef struct s2_light_t {
     int directional;
     GLfloat fov; /*!< field of view in degrees */
   } glLight;
+  bool isVisible;
   struct s2_light_t* next;
 } s2_light_t;
 

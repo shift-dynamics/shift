@@ -55,6 +55,7 @@ s2_joint_t* s2_joint(
   joint->stiffnessCoefficientCount = 0;
   joint->dampingCoefficients = NULL;
   joint->dampingCoefficientCount = 0;
+  joint->isVisible = false;
 
   switch(joint->jointType) {
     case S2_JOINT_TX:

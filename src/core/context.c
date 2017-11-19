@@ -220,8 +220,8 @@ s2_context_t* s2_context() {
          body in position in assembly hierarchy */
 
   context->pointCloudPointers = NULL;
-  /*!< Array of pointers to pointclouds to directly access
-       in position in assembly hierarchy */
+  /*!< Array of pointers to pointclouds for direct access
+       within assembly hierarchy */
 
   context->nonVirtualBodyPointers = NULL;
     /*!< Array of pointers to bodies to directly access
