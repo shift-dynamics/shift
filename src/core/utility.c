@@ -44,26 +44,29 @@ int** s2_arrayi_malloc2D(
   int rows,
   int columns) {
 
-    int** pRow = malloc(rows * sizeof(int*));
-    if(pRow == NULL) {
-      fprintf(
-        stderr,
-        "Error: could not allocate array [%d][%d]\n",
-        rows,
-        columns);
-      return NULL;
-    }
+  if(rows <= 0) {
+    return NULL;
+  }
+  int** pRow = malloc(rows * sizeof(int*));
+  if(pRow == NULL) {
+    fprintf(
+      stderr,
+      "Error: could not allocate array [%d][%d]\n",
+      rows,
+      columns);
+    return NULL;
+  }
 
-    pRow[0] = calloc(rows * columns, sizeof(int));
-    if(pRow[0] == NULL) {
-      fprintf( stderr,"Error: could not allocate array\n");
-      return NULL;
-    }
+  pRow[0] = calloc(rows * columns, sizeof(int));
+  if(pRow[0] == NULL) {
+    fprintf( stderr,"Error: could not allocate array\n");
+    return NULL;
+  }
 
-    for(int i = 1; i < rows; i++) {
-      pRow[i] = pRow[0] + i * columns;
-    }
-    return pRow;
+  for(int i = 1; i < rows; i++) {
+    pRow[i] = pRow[0] + i * columns;
+  }
+  return pRow;
 }
 
 /*!
@@ -162,6 +165,9 @@ double** s2_array_malloc2D(
   int rows,
   int columns) {
 
+  if(rows <= 0) {
+    return NULL;
+  }
   double** pRow = malloc(rows * sizeof(double*));
   if(pRow==NULL) {
     fprintf(
@@ -196,26 +202,29 @@ float** s2_arrayf_malloc2D(
   int rows,
   int columns) {
 
-    float** pRow = malloc(rows * sizeof(float*));
-    if(pRow==NULL) {
-      fprintf(
-        stderr,
-        "Error: could not allocate array [%d][%d]\n",
-        rows,
-        columns);
-      return NULL;
-    }
+  if(rows <= 0) {
+    return NULL;
+  }
+  float** pRow = malloc(rows * sizeof(float*));
+  if(pRow==NULL) {
+    fprintf(
+      stderr,
+      "Error: could not allocate array [%d][%d]\n",
+      rows,
+      columns);
+    return NULL;
+  }
 
-    pRow[0] = calloc(rows * columns, sizeof(float));
-    if(pRow[0]==NULL) {
-      fprintf( stderr,"Error: could not allocate array\n");
-      return NULL;
-    }
+  pRow[0] = calloc(rows * columns, sizeof(float));
+  if(pRow[0]==NULL) {
+    fprintf( stderr,"Error: could not allocate array\n");
+    return NULL;
+  }
 
-    for(int i = 1; i < rows; i++) {
-      pRow[i] = pRow[0] + i * columns;
-    }
-    return pRow;
+  for(int i = 1; i < rows; i++) {
+    pRow[i] = pRow[0] + i * columns;
+  }
+  return pRow;
 }
 
 /*!
@@ -254,26 +263,29 @@ char** s2_arrayc_malloc2D(
   int rows,
   int columns) {
 
-    char** pRow = malloc(rows * sizeof(char*));
-    if(pRow==NULL) {
-      fprintf(
-        stderr,
-        "Error: could not allocate array [%d][%d]\n",
-        rows,
-        columns);
-      return NULL;
-    }
+  if(rows <= 0) {
+    return NULL;
+  }
+  char** pRow = malloc(rows * sizeof(char*));
+  if(pRow==NULL) {
+    fprintf(
+      stderr,
+      "Error: could not allocate array [%d][%d]\n",
+      rows,
+      columns);
+    return NULL;
+  }
 
-    pRow[0] = calloc(rows * columns, sizeof(char));
-    if(pRow[0]==NULL) {
-      fprintf( stderr,"Error: could not allocate array\n");
-      return NULL;
-    }
+  pRow[0] = calloc(rows * columns, sizeof(char));
+  if(pRow[0]==NULL) {
+    fprintf( stderr,"Error: could not allocate array\n");
+    return NULL;
+  }
 
-    for(int i = 1; i < rows; i++) {
-      pRow[i] = pRow[0] + i * columns;
-    }
-    return pRow;
+  for(int i = 1; i < rows; i++) {
+    pRow[i] = pRow[0] + i * columns;
+  }
+  return pRow;
 }
 
 

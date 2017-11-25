@@ -82,52 +82,51 @@ void PhongShaderProgram::setTransform(s2_displacement_t* transform) {
 }
 
 
+void PhongShaderProgram::setKa(GLfloat Ka[4]) {
+  m_program->setUniformValue(
+    m_material_Ka_u, Ka[0], Ka[1], Ka[2], Ka[3]);
+}
+
+
+void PhongShaderProgram::setKd(GLfloat Kd[4]) {
+  m_program->setUniformValue(
+    m_material_Kd_u, Kd[0], Kd[1], Kd[2], Kd[3]);
+}
+
+
+void PhongShaderProgram::setKs(GLfloat Ks[4]) {
+  m_program->setUniformValue(
+    m_material_Ks_u, Ks[0], Ks[1], Ks[2], Ks[3]);
+}
+
+
+void PhongShaderProgram::setNs(GLint Ns) {
+  m_program->setUniformValue(m_material_Ns_u, Ns);
+}
+
+
 void PhongShaderProgram::setMaterial(s2_material_t* material) {
-
-  m_program->setUniformValue(
-    m_material_Ka_u,
-    material->GLuniforms.Ka[0],
-    material->GLuniforms.Ka[1],
-    material->GLuniforms.Ka[2],
-    material->GLuniforms.Ka[3]);
-
-  m_program->setUniformValue(
-    m_material_Kd_u,
-    material->GLuniforms.Kd[0],
-    material->GLuniforms.Kd[1],
-    material->GLuniforms.Kd[2],
-    material->GLuniforms.Kd[3]);
-
-  m_program->setUniformValue(
-    m_material_Ks_u,
-    material->GLuniforms.Ks[0],
-    material->GLuniforms.Ks[1],
-    material->GLuniforms.Ks[2],
-    material->GLuniforms.Ks[3]);
-
-  m_program->setUniformValue(
-    m_material_Ke_u,
-    material->GLuniforms.Ke[0],
-    material->GLuniforms.Ke[1],
-    material->GLuniforms.Ke[2],
-    material->GLuniforms.Ke[3]);
-
-  m_program->setUniformValue(
-    m_material_Ns_u,
-    material->GLuniforms.Ns);
-
+  setKa(material->GLuniforms.Ka);
+  setKd(material->GLuniforms.Kd);
+  setKs(material->GLuniforms.Ks);
+  setNs(material->GLuniforms.Ns);
   checkError("after set material");
 }
 
 
 void PhongShaderProgram::setLights(s2_Lights* lights) {
-  m_program->setUniformValueArray(m_lights_position_u, lights->getPosition(), 10, 3);
-  m_program->setUniformValueArray(m_lights_Ka_u, lights->getKa(), 10, 3);
-  m_program->setUniformValueArray(m_lights_Kd_u, lights->getKd(), 10, 3);
-  m_program->setUniformValueArray(m_lights_Ks_u, lights->getKs(), 10, 3);
+  m_program->setUniformValueArray(
+    m_lights_position_u, lights->getPosition(), 10, 3);
+  m_program->setUniformValueArray(
+    m_lights_Ka_u, lights->getKa(), 10, 3);
+  m_program->setUniformValueArray(
+    m_lights_Kd_u, lights->getKd(), 10, 3);
+  m_program->setUniformValueArray(
+    m_lights_Ks_u, lights->getKs(), 10, 3);
   m_program->setUniformValueArray(
     m_lights_directional_u, lights->getDirectional(), 10);
-  m_program->setUniformValue(m_lights_count_u, lights->getCount());
+  m_program->setUniformValue(
+    m_lights_count_u, lights->getCount());
   if(m_renderWindow->getLights()->isEnabled()) {
     m_program->setUniformValue(m_lights_drawShadows_u, 1);
   } else {

@@ -202,6 +202,7 @@ s2_displacement_t* s2_displacement() {
   return D;
 }
 
+
 /*! @brief s a general s2_displacementf_t datastructure
 
 A general displacement is an array of float of length 12, consisting of a
@@ -216,6 +217,7 @@ s2_displacementf_t* s2_displacementf() {
   return D;
 }
 
+
 /*! @brief s a s2_screw_t datastructure (an array of doubles of length 6)
 
 */
@@ -223,12 +225,14 @@ s2_screw_t* s2_screw() {
   return calloc(1, sizeof(s2_screw_t));
 }
 
+
 /*! @brief s a s2_screw_t datastructure (an array of floats of length 6)
 
 */
 s2_screwf_t* s2_screwf() {
   return calloc(1, sizeof(s2_screwf_t));
 }
+
 
 /*! @brief s a double precision s2_mat3x3_t datastructure for a general
 rotation (i.e. a SO3 matrix). The matrix is specified in column major order.
@@ -2057,22 +2061,23 @@ void s2_product_rv(
   s2_vector_t* vi,
   s2_vector_t* vo) {
 
-  cblas_dgemv(
-    CblasColMajor,
-    CblasNoTrans,
-    3,
-    3,
-    1.0,
-    (double*)ri,
-    3,
-    (double*)vi,
-    1,
-    0.0,
-    (double*)vo,
-    1);
-  // vo[0] =  ri[0][0] * vi[0] + ri[0][1] * vi[1] + ri[0][2] * vi[2];
-  // vo[1] =  ri[1][0] * vi[0] + ri[1][1] * vi[1] + ri[1][2] * vi[2];
-  // vo[2] =  ri[2][0] * vi[0] + ri[2][1] * vi[1] + ri[2][2] * vi[2];
+  // cblas_dgemv(
+  //   CblasColMajor,
+  //   CblasNoTrans,
+  //   3,
+  //   3,
+  //   1.0,
+  //   (double*)ri,
+  //   3,
+  //   (double*)vi,
+  //   1,
+  //   0.0,
+  //   (double*)vo,
+  //   1);
+
+  vo->x =  ri->m00 * vi->x + ri->m01 * vi->y + ri->m02 * vi->z;
+  vo->y =  ri->m10 * vi->x + ri->m11 * vi->y + ri->m12 * vi->z;
+  vo->z =  ri->m20 * vi->x + ri->m21 * vi->y + ri->m22 * vi->z;
 }
 
 /*!
@@ -2269,6 +2274,7 @@ void s2_product_rinversevinversef(
     1);
 }
 
+
 /*!
 @brief rotates a double precision spatial screw
 
@@ -2291,6 +2297,7 @@ void s2_product_rs(
   s2_product_rv(
     ri, (s2_vector_t*)(((double*)si) + 3), (s2_vector_t*)(((double*)so) + 3));
 }
+
 
 /*!
 @brief rotates a single precision spatial screw
@@ -4439,13 +4446,17 @@ inline void s2_product_dv(
   s2_vector_t* vo) {
 
   s2_product_rv(&(Di->R), vi, vo);
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    (double*)vo,
-    1);
+
+  vo->x += Di->T.x;
+  vo->y += Di->T.y;
+  vo->z += Di->T.z;
+  // cblas_daxpy(
+  //   3,
+  //   1.0,
+  //   ((double*)Di) + 9,
+  //   1,
+  //   (double*)vo,
+  //   1);
 }
 
 

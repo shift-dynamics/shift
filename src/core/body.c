@@ -457,6 +457,13 @@ int s2_body_loadGeometry(
         scene->mMeshes[i]->mNormals[j].y;
       body->materials[i].vertexNormals[3 * j + 2] =
         scene->mMeshes[i]->mNormals[j].z;
+
+      // printf("  vn: ");
+      // for(int k = 0; k < 3; k++) {
+      //   printf("%f ", body->materials[i].vertexNormals[3 * j + k]);
+      // }
+      // printf("\n");
+
     }
 
     /*
@@ -478,19 +485,31 @@ int s2_body_loadGeometry(
     int ret1;
     struct aiMaterial* mtl;
     mtl = scene->mMaterials[scene->mMeshes[i]->mMaterialIndex];
+
+    unsigned int max = 1;
+    float opacity_f = 1.f;
+    ret1 = aiGetMaterialFloatArray(
+      mtl,
+      AI_MATKEY_OPACITY,
+      &opacity_f,
+      0);
+    if(ret1 == AI_SUCCESS) {
+      printf("opacity: %f\n", opacity_f);
+    }
+
     struct aiColor4D diffuse;
     ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
     if(ret1 == AI_SUCCESS) {
-      // printf("diffuse: %f %f %f %f\n", diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+      printf("diffuse: %f %f %f %f\n", diffuse.r, diffuse.g, diffuse.b, diffuse.a);
       body->materials[i].GLuniforms.Kd[0] = diffuse.r;
       body->materials[i].GLuniforms.Kd[1] = diffuse.g;
       body->materials[i].GLuniforms.Kd[2] = diffuse.b;
-      body->materials[i].GLuniforms.Kd[3] = diffuse.a;
+      body->materials[i].GLuniforms.Kd[3] = opacity_f;
     } else {
       body->materials[i].GLuniforms.Kd[0] = 0.6;
       body->materials[i].GLuniforms.Kd[1] = 0.6;
       body->materials[i].GLuniforms.Kd[2] = 0.6;
-      body->materials[i].GLuniforms.Kd[3] = 1.0;
+      body->materials[i].GLuniforms.Kd[3] = opacity_f;
     }
 
     struct aiColor4D ambient;
@@ -500,12 +519,12 @@ int s2_body_loadGeometry(
       body->materials[i].GLuniforms.Ka[0] = ambient.r;
       body->materials[i].GLuniforms.Ka[1] = ambient.g;
       body->materials[i].GLuniforms.Ka[2] = ambient.b;
-      body->materials[i].GLuniforms.Ka[3] = ambient.a;
+      body->materials[i].GLuniforms.Ka[3] = opacity_f;
     } else {
       body->materials[i].GLuniforms.Ka[0] = 0.6;
       body->materials[i].GLuniforms.Ka[1] = 0.6;
       body->materials[i].GLuniforms.Ka[2] = 0.6;
-      body->materials[i].GLuniforms.Ka[3] = 1.0;
+      body->materials[i].GLuniforms.Ka[3] = opacity_f;
     }
 
     struct aiColor4D specular;
@@ -515,12 +534,12 @@ int s2_body_loadGeometry(
       body->materials[i].GLuniforms.Ks[0] = specular.r;
       body->materials[i].GLuniforms.Ks[1] = specular.g;
       body->materials[i].GLuniforms.Ks[2] = specular.b;
-      body->materials[i].GLuniforms.Ks[3] = specular.a;
+      body->materials[i].GLuniforms.Ks[3] = opacity_f;
     } else {
       body->materials[i].GLuniforms.Ks[0] = 0.6;
       body->materials[i].GLuniforms.Ks[1] = 0.6;
       body->materials[i].GLuniforms.Ks[2] = 0.6;
-      body->materials[i].GLuniforms.Ks[3] = 1.0;
+      body->materials[i].GLuniforms.Ks[3] = opacity_f;
     }
 
     struct aiColor4D emissive;
@@ -535,14 +554,13 @@ int s2_body_loadGeometry(
       body->materials[i].GLuniforms.Ke[0] = 0.0;
       body->materials[i].GLuniforms.Ke[1] = 0.0;
       body->materials[i].GLuniforms.Ke[2] = 0.0;
-      body->materials[i].GLuniforms.Ke[3] = 1.0;
+      body->materials[i].GLuniforms.Ke[3] = opacity_f;
     }
 
     /*
       this set of parameters is currently not used / loaded
     */
     float shininess = 0.f;
-    unsigned int max = 0;
     ret1 = aiGetMaterialFloatArray(
       mtl,
       AI_MATKEY_SHININESS,
@@ -578,14 +596,7 @@ int s2_body_loadGeometry(
     // if(ret1 == AI_SUCCESS)
     //   printf("refracti: %f\n", refracti);
 
-    float opacity_f = 0.f;
-    ret1 = aiGetMaterialFloatArray(
-      mtl,
-      AI_MATKEY_OPACITY,
-      &opacity_f,
-      &max);
-    // if(ret1 == AI_SUCCESS)
-    //   printf("opacity: %f\n", opacity_f);
+
 
     struct aiColor4D reflective;
     reflective.r = 0.f;
@@ -647,11 +658,10 @@ int s2_body_loadGeometry(
 
   }
 
+  /* compute convex hull */
   s2_convexhull_qhull(body);
 
-  /*
-    Free resources associated with import
-  */
+  /* Free resources associated with import */
   aiReleaseImport(scene);
   free(fullPathFileName);
 

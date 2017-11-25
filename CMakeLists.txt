@@ -44,6 +44,7 @@ message("qhull: " ${QHULL_LIBRARIES})
 ## set output directory ##
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/)
 
+add_definitions(-g)
 add_definitions(-ggdb)
 add_definitions(-std=c11)
 add_definitions(-O3)
@@ -61,6 +62,10 @@ add_definitions(-fopt-info)
 add_definitions(${GRAPHVIZ_COMPILE_FLAGS})
 add_definitions(-DMAGICKCORE_HDRI_ENABLE=1)
 add_definitions(-DMAGICKCORE_QUANTUM_DEPTH=16)
+# add_definitions(-fsanitize=address)
+# add_definitions(-fno-omit-frame-pointer)
+#
+# set(CMAKE_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
 
 if(APPLE)
   add_definitions(-framework accelerate)
@@ -116,6 +121,7 @@ add_library(star2_lib STATIC
   ${star2_SOURCE_DIR}/src/core/restraint.c
   ${star2_SOURCE_DIR}/src/core/sensor.c
   ${star2_SOURCE_DIR}/src/core/solve.c
+  ${star2_SOURCE_DIR}/src/core/sphere.c
   ${star2_SOURCE_DIR}/src/core/stack.c
   ${star2_SOURCE_DIR}/src/core/substructure.c
   ${star2_SOURCE_DIR}/src/core/terrain.c
@@ -206,6 +212,7 @@ set(GUI_SOURCES
   ${star2_SOURCE_DIR}/src/gui/shaderprogram.cpp
   ${star2_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
   ${star2_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
+  ${star2_SOURCE_DIR}/src/gui/normalshaderprogram.cpp
   ${star2_SOURCE_DIR}/src/gui/terrainshadowshaderprogram.cpp
   ${star2_SOURCE_DIR}/src/gui/pointcloudshaderprogram.cpp
   ${star2_SOURCE_DIR}/src/gui/pointcloud.cpp
@@ -231,6 +238,9 @@ add_definitions(-lstdc++)
 add_definitions(-pedantic)
 add_definitions(-Wall)
 add_definitions(-Wextra)
+add_definitions(-g)
+# add_definitions(-fsanitize=address)
+# add_definitions(-fno-omit-frame-pointer)
 # add_definitions(--sort-common)
 # add_definitions(--as-needed)
 # add_definitions(-z)

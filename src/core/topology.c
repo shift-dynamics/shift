@@ -33,6 +33,7 @@ SUCH DAMAGE.
 #include "chordconstraint.h"
 #include "frame.h"
 #include "substructure.h"
+#include "sphere.h"
 
 /*! @brief count and assign a temporary index to active objects in a
 s2_context_t datastructure, the order will change after
@@ -2848,22 +2849,21 @@ void topology_countDHVA(
     }
   }
 
-  /*
-    allocate source/destination pointers to traverse spanning tree
-  */
-  void** dhva = malloc(dhvaCount * sizeof(double*));
-  context->dhva = malloc(operationCount * sizeof(double**));
-  context->dhva[0] = dhva;
-  context->dhvaCount = operationCount;
-
-  /*
-    allocate function pointers to traverse spanning tree.
-  */
-  context->dhFunctionPointers =
-    malloc(dhvaCount * sizeof(void *));
-
-  context->dhvaFunctionPointers =
-    malloc(dhvaCount * sizeof(void *));
+  /* allocate source/destination pointers to traverse spanning tree */
+  if(dhvaCount > 0) {
+    void** dhva = malloc(dhvaCount * sizeof(double*));
+    context->dhva = malloc(operationCount * sizeof(double**));
+    context->dhva[0] = dhva;
+    context->dhvaCount = operationCount;
+    /* allocate function pointers to traverse spanning tree. */
+    context->dhFunctionPointers = malloc(dhvaCount * sizeof(void *));
+    context->dhvaFunctionPointers = malloc(dhvaCount * sizeof(void *));
+  } else {
+    context->dhva = NULL;
+    context->dhvaCount = 0;
+    context->dhFunctionPointers = NULL;
+    context->dhvaFunctionPointers = NULL;
+  }
 }
 
 
@@ -4114,4 +4114,10 @@ void s2_context_setTopology(
 
   /* flatten force modules if present */
   s2_forcemodule_flatten(context);
+
+  printf("setting bounding spheres:\n");
+  s2_context_setBoundingSpheres(context);
+
+  printf("updating bounding spheres:\n");
+  s2_context_updateBoundingSpheres(context);
 }

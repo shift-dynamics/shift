@@ -117,6 +117,6 @@ void main() {
   }
 
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));
-  colorFrag.a = material_u.Ka.a;
+  colorFrag.a = material_u.Kd.a;
 
 }
