@@ -48,6 +48,7 @@ class FrameShaderProgram;
 class ShadowShaderProgram;
 class TerrainShadowShaderProgram;
 class PointCloudShaderProgram;
+class NormalShaderProgram;
 
 enum camera_interaction_enum_t {
   S2_CAMERA_INTERACTION_TURNTABLE,
@@ -244,6 +245,7 @@ private:
   TerrainShadowShaderProgram* m_programTerrainShadow;
   FrameShaderProgram* m_programFrame;
   PointCloudShaderProgram* m_programPointCloud;
+  NormalShaderProgram* m_programNormal;
 
   camera_interaction_enum_t m_cameraMode;
 

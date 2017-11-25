@@ -1381,41 +1381,60 @@ void Workspace::initializeMenus() {
   // actionToggleVertexNormals->setCheckable(true);
   // actionToggleVertexNormals->setChecked(false);
 
-  QAction* actionToggleFrameDisplay =
-      new QAction("Display Coordinate Systems", this);
-  viewMenu->addAction(actionToggleFrameDisplay);
-  actionToggleFrameDisplay->setCheckable(true);
-  actionToggleFrameDisplay->setChecked(false);
+  QAction* m_actionToggleDrawFrames =
+      new QAction("Frames", this);
+  viewMenu->addAction(m_actionToggleDrawFrames);
+  m_actionToggleDrawFrames->setIcon(QIcon(":/icons/frame.png"));
+  m_actionToggleDrawFrames->setCheckable(true);
+  m_actionToggleDrawFrames->setChecked(false);
 
-  QAction* actionToggleJointDisplay =
-    new QAction("Display Joints", this);
-  viewMenu->addAction(actionToggleJointDisplay);
-  actionToggleJointDisplay->setCheckable(true);
-  actionToggleJointDisplay->setChecked(false);
+  QAction* m_actionToggleDrawJoints =
+    new QAction("Joints", this);
+  viewMenu->addAction(m_actionToggleDrawJoints);
+  m_actionToggleDrawJoints->setIcon(QIcon(":/icons/joint.png"));
+  m_actionToggleDrawJoints->setCheckable(true);
+  m_actionToggleDrawJoints->setChecked(false);
 
   m_actionToggleDrawTerrain =
-    new QAction("Display Terrain", this);
+    new QAction("Terrain", this);
   viewMenu->addAction(m_actionToggleDrawTerrain);
+  m_actionToggleDrawTerrain->setIcon(QIcon(":/icons/terrain.png"));
   m_actionToggleDrawTerrain->setCheckable(true);
   m_actionToggleDrawTerrain->setChecked(true);
 
-  m_actionToggleDrawGrid =
-    new QAction("Display Grid", this);
+  m_actionToggleDrawGrid = new QAction("Grid", this);
   viewMenu->addAction(m_actionToggleDrawGrid);
+  m_actionToggleDrawGrid->setIcon(QIcon(":/icons/grid.png"));
   m_actionToggleDrawGrid->setCheckable(true);
   m_actionToggleDrawGrid->setChecked(true);
 
   m_actionToggleDrawShadows =
-    new QAction("Display Shadows", this);
+    new QAction("Shadows", this);
   viewMenu->addAction(m_actionToggleDrawShadows);
+  m_actionToggleDrawShadows->setIcon(QIcon(":/icons/shadow.png"));
   m_actionToggleDrawShadows->setCheckable(true);
   m_actionToggleDrawShadows->setChecked(true);
 
   m_actionToggleDrawConvexHulls =
-    new QAction("Display Convex Hulls", this);
+    new QAction("Convex Hulls", this);
   viewMenu->addAction(m_actionToggleDrawConvexHulls);
+  m_actionToggleDrawConvexHulls->setIcon(QIcon(":/icons/convexhull.png"));
   m_actionToggleDrawConvexHulls->setCheckable(true);
   m_actionToggleDrawConvexHulls->setChecked(false);
+
+  m_actionToggleDrawNormals =
+    new QAction("Normals", this);
+  viewMenu->addAction(m_actionToggleDrawNormals);
+  m_actionToggleDrawNormals->setIcon(QIcon(":/icons/normal.png"));
+  m_actionToggleDrawNormals->setCheckable(true);
+  m_actionToggleDrawNormals->setChecked(false);
+
+  m_actionToggleDrawBoundingSpheres =
+    new QAction("Bounding Spheres", this);
+  viewMenu->addAction(m_actionToggleDrawBoundingSpheres);
+  m_actionToggleDrawBoundingSpheres->setIcon(QIcon(":/icons/sphere.png"));
+  m_actionToggleDrawBoundingSpheres->setCheckable(true);
+  m_actionToggleDrawBoundingSpheres->setChecked(false);
 
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
@@ -1462,32 +1481,26 @@ void Workspace::initializeMenus() {
     m_renderWindow->getBodies(),
     SLOT(setPhongShaded()));
 
-  // QObject::connect(
-  //   actionToggleVertexNormals,
-  //   SIGNAL(triggered()),
-  //   m_renderWindow,
-  //   SLOT(toggleVertexNormalDisplay()));
-
   QObject::connect(
-    actionToggleFrameDisplay,
+    m_actionToggleDrawFrames,
     SIGNAL(triggered()),
     m_renderWindow->getFrames(),
     SLOT(toggleDraw()));
 
   QObject::connect(
-    actionToggleFrameDisplay,
+    m_actionToggleDrawFrames,
     SIGNAL(triggered()),
     this,
     SLOT(updateDrawState()));
 
   QObject::connect(
-    actionToggleJointDisplay,
+    m_actionToggleDrawJoints,
     SIGNAL(triggered()),
     m_renderWindow->getJoints(),
     SLOT(toggleDraw()));
 
   QObject::connect(
-    actionToggleJointDisplay,
+    m_actionToggleDrawJoints,
     SIGNAL(triggered()),
     this,
     SLOT(updateDrawState()));
@@ -1528,11 +1541,25 @@ void Workspace::initializeMenus() {
     m_renderWindow->getBodies(),
     SLOT(toggleDrawConvexHulls()));
 
+
+  QObject::connect(
+    m_actionToggleDrawNormals,
+    SIGNAL(triggered()),
+    m_renderWindow->getBodies(),
+    SLOT(toggleDrawNormals()));
+
+  QObject::connect(
+    m_actionToggleDrawBoundingSpheres,
+    SIGNAL(triggered()),
+    m_renderWindow->getBodies(),
+    SLOT(toggleDrawBoundingSpheres()));
+
   QObject::connect(
     m_actionToggleDrawConvexHulls,
     SIGNAL(triggered()),
     this,
     SLOT(updateDrawState()));
+
 
   /*
     help menu actions
@@ -3483,10 +3510,12 @@ void Workspace::writeMobility() {
       m_context->mobilityNumbers[i],
       m_context->modelParameters.delimiter);
   }
-  fprintf(
-    m_mobilityFile,
-    "%0.12f\n",
-    m_context->mobilityNumbers[m_context->dqCount - 1]);
+  if(m_context->qCount > 0) {
+    fprintf(
+      m_mobilityFile,
+      "%0.12f\n",
+      m_context->mobilityNumbers[m_context->qCount - 1]);
+  }
 }
 
 
@@ -4386,23 +4415,16 @@ void Workspace::playPauseSimulation() {
       m_simulationRunning = false;
       setLoadingVisible(false);
       setPlaybackVisible(true);
-
-      m_playbackPanel.playPauseButton->setIcon(
-        m_playbackPanel.playIcon);
-
+      m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.playIcon);
       m_renderWindow->setAnimating(true);
       m_renderWindow->stopSimulationPlayback();
     } else {
       m_simulationRunning = true;
       setLoadingVisible(false);
       setPlaybackVisible(true);
-
-      m_playbackPanel.playPauseButton->setIcon(
-        m_playbackPanel.pauseIcon);
-
+      m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.pauseIcon);
       m_renderWindow->setAnimating(true);
-      m_renderWindow->startSimulationPlayback(
-        m_playbackPanel.time);
+      m_renderWindow->startSimulationPlayback(m_playbackPanel.time);
     }
   }
 }

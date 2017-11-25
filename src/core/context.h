@@ -57,6 +57,7 @@ typedef struct s2_material_t s2_material_t;
 typedef struct s2_shaderhandle_t s2_shaderhandle_t;
 typedef struct s2_terrain_t s2_terrain_t;
 typedef struct s2_pointcloud_t s2_pointcloud_t;
+typedef struct s2_sphere_t s2_sphere_t;
 
 
 /*!
@@ -255,8 +256,8 @@ typedef struct s2_context_t {
   s2_body_t** bodyPointers;
     /*!< Array of pointers to bodies to directly access
          body in position in assembly hierarchy */
-
   s2_pointcloud_t** pointCloudPointers;
+  s2_sphere_t* boundingSpheres; /*! array of bounding spheres */
 
   s2_body_t** nonVirtualBodyPointers;
     /*!< Array of pointers to bodies to directly access
@@ -617,5 +618,9 @@ s2_context_t* s2_context_load(
 
 void s2_context_setTerrainPointers(
   s2_context_t*);
+
+void s2_context_setBoundingSpheres(s2_context_t*);
+
+void s2_context_updateBoundingSpheres(s2_context_t*);
 
 #endif

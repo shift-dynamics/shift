@@ -51,6 +51,10 @@ public:
   void draw();
   void setTransform(s2_displacement_t*);
   void setMaterial(s2_material_t*);
+  void setKa(GLfloat*);
+  void setKd(GLfloat*);
+  void setKs(GLfloat*);
+  void setNs(GLint);
   void setLights(s2_Lights*);
   GLint getPositionAttribute() {
     return m_position_a;
