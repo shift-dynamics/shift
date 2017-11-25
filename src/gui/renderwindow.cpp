@@ -17,6 +17,7 @@
 #include "terrainshadowshaderprogram.hpp"
 #include "shadowshaderprogram.hpp"
 #include "pointcloudshaderprogram.hpp"
+#include "normalshaderprogram.hpp"
 
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -440,8 +441,6 @@ void RenderWindow::initialize() {
     m_backgroundColor[2],
     1.0f);
   glEnable(GL_DEPTH_TEST);
-  // glEnable(GL_BLEND);
-  // glEnable(GL_POLYGON_SMOOTH);
 
   if(!m_initialized) {
     qDebug() << "initializing phong shader";
@@ -474,11 +473,16 @@ void RenderWindow::initialize() {
 
     m_programTerrainShadow = new TerrainShadowShaderProgram(this);
 
+    qDebug() << "initializing normal shader";
+    m_programNormal = new NormalShaderProgram(this);
+    checkError("after initialize normal shader");
+
     qDebug() << "setting shader program pointers";
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
     m_bodies->setLineShader(m_programSimple);
     m_bodies->setShadowShader(m_programShadow);
+    m_bodies->setNormalShader(m_programNormal);
     m_bodies->setLights(m_lights);
 
     m_frames->setShader(m_programFrame);
@@ -491,13 +495,14 @@ void RenderWindow::initialize() {
     m_lights->setShader(m_programShadow);
 
     m_grid->setShader(m_programSimple);
-    checkError("renderwindow: after set shader pointers");
 
     m_pointclouds->setShader(m_programPointCloud);
+    checkError("renderwindow: after set shader pointers");
+
+    m_grid->enable(true);
 
     m_initialized = true;
     emit initialized();
-    m_grid->enable(true);
   }
   updateGL();
 }
@@ -535,7 +540,6 @@ void RenderWindow::updateGL() {
       } break;
       case S2_CAMERA_INTERACTION_ORBITAL: {
         m_view = m_orbitalCamera->getMVMatrix();
-        qDebug() << m_view;
       } break;
     }
 
@@ -549,11 +553,11 @@ void RenderWindow::updateGL() {
         60,
         aspectRatio,
         0.0001,
-        10000);
+        1000);
     } else {
       float h = 0.5 * m_camDistance;
       float w = aspectRatio * h;
-      m_projection.ortho(-w, w, -h, h, 0.01, 10000);
+      m_projection.ortho(-w, w, -h, h, 0.0001, 1000);
     }
     checkError("after updateGL");
   }

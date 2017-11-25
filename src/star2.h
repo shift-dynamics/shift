@@ -43,6 +43,7 @@ extern "C" {
 #include "core/substructure.h"
 #include "core/pointcloud.h"
 #include "core/convexhull.h"
+#include "core/sphere.h"
 
 #include "ode/numericalintegrator.h"
 #include "ode/ode113.h"

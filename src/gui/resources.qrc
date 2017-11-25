@@ -10,6 +10,10 @@
     <file alias="flat.geom">shaders/flat.geom</file>
     <file alias="flat.vert">shaders/flat.vert</file>
 
+    <file alias="vertex_normal.frag">shaders/vertex_normal.frag</file>
+    <file alias="vertex_normal.geom">shaders/vertex_normal.geom</file>
+    <file alias="vertex_normal.vert">shaders/vertex_normal.vert</file>
+
     <file alias="gouraud.frag">shaders/gouraud.frag</file>
     <file alias="gouraud.vert">shaders/gouraud.vert</file>
 
@@ -63,6 +67,11 @@
     <file alias="restraint.png">icons/restraint.png</file>
     <file alias="terrain.png">icons/terrain.png</file>
     <file alias="pointcloud.png">icons/pointcloud.png</file>
+    <file alias="convexhull.png">icons/convexhull.png</file>
+    <file alias="normal.png">icons/normal.png</file>
+    <file alias="sphere.png">icons/sphere.png</file>
+    <file alias="grid.png">icons/grid.png</file>
+    <file alias="shadow.png">icons/shadow.png</file>
 
     <file alias="body_folder.png">icons/body_folder.png</file>
     <file alias="camera_folder.png">icons/camera_folder.png</file>
@@ -74,6 +83,7 @@
     <file alias="terrain_folder.png">icons/terrain_folder.png</file>
     <file alias="pointcloud_folder.png">icons/pointcloud_folder.png</file>
 
+
     <file alias="play_button.png">icons/play_button.png</file>
     <file alias="pause_button.png">icons/pause_button.png</file>
 
@@ -82,8 +92,10 @@
 
     <file alias="visible_grey.png">icons/visible_grey.png</file>
     <file alias="invisible_grey.png">icons/invisible_grey.png</file>
+  </qresource>
 
-
+  <qresource prefix="/geometry">
+    <file alias="sphere.obj">geometry/sphere.obj</file>
   </qresource>
 
   <qresource prefix="/textures">
