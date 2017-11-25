@@ -722,6 +722,7 @@ void RenderWindow::interpolateCurrentPosition() {
 
     s2_updateDH(m_context);
     s2_updateGLReferenceFrames(m_context);
+    s2_context_updateBoundingSpheres(m_context);
     emit simulationUpdated(t);
   }
 }
@@ -786,6 +787,7 @@ void RenderWindow::interpolateCurrentPosition(double t) {
 
     s2_updateDH(m_context);
     s2_updateGLReferenceFrames(m_context);
+    s2_context_updateBoundingSpheres(m_context);
   }
 }
 
