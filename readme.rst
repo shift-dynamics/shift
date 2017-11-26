@@ -1,50 +1,64 @@
-# star2: A Simulation Tool for Automation and Robotics
+star2: A Simulation Tool for Automation and Robotics
+====================================================
 
-## Dependencies
+Dependencies
+------------
 
 This code requires that the following libraries are installed on your system.
 
-*   [Assimp](<http://assimp.sourceforge.net/>)
-*   [Jansson](<http://www.digip.org/jansson/>)
-*   [Qt5](<http://www.qt.io/developers/>)
-*   [Graphviz](<http://www.graphviz.org/>)
-*   [Cblas](<http://www.netlib.org/blas/>)
-*   [ImageMagick](<http://www.imagemagick.org>)
-*   [Qhull](<http://www.qhull.org>)
+*   `Assimp <http://assimp.sourceforge.net>`_
+*   `Jansson <http://www.digip.org/jansson/>`_
+*   `Qt5 <http://www.qt.io/developers/>`_
+*   `Graphviz <http://www.graphviz.org/>`_
+*   `Cblas <http://www.netlib.org/blas/>`_
+*   `ImageMagick <http://www.imagemagick.org>`_
+*   `Qhull <http://www.qhull.org>`_
 
-### Macintosh
+Macintosh
+*********
 
 On a Macintosh, these dependencies can be installed using the *brew*
 package manager:
+
+.. code::
 
     brew install assimp jansson qt5 graphviz imagemagick qhull
 
 More information can be found at these links.
 
-*   <http://brewformulas.org/Assimp>
-*   <http://brewformulas.org/Jansson>
-*   <http://brewformulas.org/qt5>
-*   <http://brewformulas.org/graphviz>
-*   <http://brewformulas.org/imagemagick>
-*   <http://brewformulas.org/qhull>
+*   `<http://brewformulas.org/Assimp>`_
+*   `<http://brewformulas.org/Jansson>`_
+*   `<http://brewformulas.org/qt5>`_
+*   `<http://brewformulas.org/graphviz>`_
+*   `<http://brewformulas.org/imagemagick>`_
+*   `<http://brewformulas.org/qhull>`_
 
 The cblas package is already available on a Macintosh using the *accelerate*
 framework, the CMakeLists.txt file may need to be modified to bring in this
 dependency correctly.
 
-### Arch Linux
+Arch Linux
+**********
 
 On arch linux, the dependencies can be installed using pacman:
 
+.. code::
+
     pacman -S assimp jansson qt5 graphviz cblas imagemagick qhull
 
-### Ubuntu / Debian-based Linux Distributions
+
+Ubuntu / Debian-based Linux Distributions
+*****************************************
 
 Use apt-get:
 
+.. code::
+
     apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev libqhull-dev
 
-## Building the project
+
+Building the project
+--------------------
 
 From within the top directory of the repository, issue the following command:
 
@@ -53,8 +67,7 @@ From within the top directory of the repository, issue the following command:
     cmake ..
     make
 
-Executables will be located in
-${PROJECT_DIRECTORY}/build/bin
+Executables will be located in ${PROJECT_DIRECTORY}/build/bin
 
 Where ${PROJECT_DIRECTORY} is the root directory of the git project on your
 system.
@@ -62,22 +75,30 @@ system.
 You can test if the executable works correctly by running the command line
 interface to the program as:
 
+.. code::
+
     cd ${PROJECT_DIRECTORY}/build/bin
     ./star2_cli ../models/excavator/excavator.json
 
+
 Run the graphical user interface component of the program by executing the
 following command from within the ${PROJECT_DIRECTORY}/build/bin directory:
+
+.. code::
 
     ./star2
 
 To run the gui program with nvidia-gfx-debugger:
 
+.. code::
+
     LD_PRELOAD=~/.tgd/libs/libNvidia_gfx_debugger.so ./star2
 
 
-## Building documentation
+Building documentation
+----------------------
 
-Building the documention requires the dependencies [Doxygen](<http://www.stack.nl/~dimitri/doxygen/>), [doxyrest](<https://github.com/vovkos/doxyrest/>) and [Sphinx](<http://www.sphinx-doc.org/en/stable/>). The documentaion is built in the following three steps.
+Building the documention requires the dependencies `Doxygen<http://www.stack.nl/~dimitri/doxygen/>`_, `doxyrest<https://github.com/vovkos/doxyrest/>`_ and `Sphinx<http://www.sphinx-doc.org/en/stable/>`_. The documentaion is built in the following three steps.
 
   1. A Doxygen xml listing is generated from inline Doxygen comments using Doxygen.
   2. Doxygen xml listings are converted to Restructured Text (.rst) format using doxyrest.
@@ -97,29 +118,49 @@ The html documentation will be generated in &lt git_root_directory &gt /doc/html
 Optional - documentation can be copied to your /share/doc folder by issuing the
 command:
 
+.. code::
+
     make install
+
+
+Syncing documentation with Github
+---------------------------------
+
+Issue the following commands to create a git submodule containing the gh-pages branch. This only needs to be done once after the repository has been cloned.
+
+.. code::
+
+    mkdir -p doc/html
+    cd doc/html
+    git clone git@github.com:kriswehage/star2.git
+    git checkout gh-pages
+    git branch -d master
+
+
 
 
 To update the Github hosted website:
 
-    git checkout master
+.. code::
+
     mkdir build
     cd build
     cmake ..
     make doc
-    cd ..
-    git checkout gh-pages
-    cp -r doc/html/* .
-    git commit -m "updated gh-pages"
+    cd ../doc/html
     git push
 
 
-## About
+
+About
+-----
 
 star2 loads and analyzes the topology of a mechanism specified in a JSON
 text file.  The analysis is split in to the following steps:
 
-### Preprocessing
+Preprocessing
+*************
+
 The following operations are performed once at the beginning of simulation
 and need not be called again, unless the mechanism topology changes:
 
@@ -136,7 +177,9 @@ and need not be called again, unless the mechanism topology changes:
     representation to a struct-of-arrays data structure in contiguous
     memory in level-increasing order.
 
-### Run-Time Optimization (RTO)
+
+Run-Time Optimization (RTO)
+***************************
 
 The following operations may be called once or periodically during the course
 of a simulation. The operations are performed again only if generalized
@@ -161,7 +204,8 @@ independent/dependent variables during a running simulation:
         order.
 
 
-### Run-Time Algorithm (RTA)
+Run-Time Algorithm (RTA)
+************************
 
 During a simulation, the following operations are carried out at every time
 step. RTA uses only a few primitive functions to set up and sparse solve the
@@ -171,6 +215,6 @@ complex logic.
 *   Carry out operations set up in Run-Time Optimization step using
     source and destination memory pointers.
 
-*   Monitor ratio of infinity norm of the B matrix associated with each     
+*   Monitor ratio of infinity norm of the B matrix associated with each
     block sub-Jacobian matrix of each substructure.  If the infinity norm increases more than 2 times from the initial starting value, the simulation is paused and the Run-Time Optimization step is carried out again to
     regenerate pointer arrays.
