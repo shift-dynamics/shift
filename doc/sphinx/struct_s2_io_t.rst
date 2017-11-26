@@ -11,7 +11,7 @@ struct s2_io_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <io.h>
 
 
 Overview
@@ -21,8 +21,8 @@ input/output data structure :ref:`More...<details-doxid-structs2__io__t>`
 
 .. _doxid-structs2__io__t_1a989989d997069011333e6816382cbd37:
 .. _cid-s2_io_t::name:
-.. _doxid-structs2__io__t_1a476f5e0ebb157a330524f8fb9104cb76:
-.. _cid-s2_io_t::numbersteps:
+.. _doxid-structs2__io__t_1a31edefaccab41dfccb5aafe66861ecd5:
+.. _cid-s2_io_t::stepcount:
 .. _doxid-structs2__io__t_1ae3ae75a21e627bf461b5a21311c4bf4e:
 .. _cid-s2_io_t::index:
 .. _doxid-structs2__io__t_1a9c00d43ddce87405e19325fb372b0299:
@@ -45,7 +45,7 @@ input/output data structure :ref:`More...<details-doxid-structs2__io__t>`
 	// fields
 
 	:ref:`s2_stackstr_t<doxid-structs2__stackstr__t>`* name
-	int numberSteps
+	int stepCount
 	int index
 	double deltaDisplacement
 	:ref:`s2_displacement_t<doxid-structs2__displacement__t>`* displacement

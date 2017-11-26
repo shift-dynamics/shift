@@ -1,5 +1,5 @@
 .. index:: pair: enum; s2_shading_enum_t
-.. _doxid-context_8h_1a6df9b26600246f1da863389cb03e5084:
+.. _doxid-material_8h_1a6df9b26600246f1da863389cb03e5084:
 .. _cid-s2_shading_enum_t:
 
 enum s2_shading_enum_t
@@ -9,24 +9,24 @@ enum s2_shading_enum_t
 
 
 
-.. _doxid-context_8h_1a6df9b26600246f1da863389cb03e5084ab2c0b77d8e0e4b72d36e6aab661eb5e3:
-.. _cid-s2_shading_enum_t::wireframe:
-.. _doxid-context_8h_1a6df9b26600246f1da863389cb03e5084a0338024d4d0d5bffed604c279f8f5550:
-.. _cid-s2_shading_enum_t::flat:
-.. _doxid-context_8h_1a6df9b26600246f1da863389cb03e5084a3c9496412b879c7d44d7fcaa3cc5fb4d:
-.. _cid-s2_shading_enum_t::gouraud:
-.. _doxid-context_8h_1a6df9b26600246f1da863389cb03e5084ab105fa30ed5e94117ebf6a37008f5e49:
-.. _cid-s2_shading_enum_t::phong:
-.. _doxid-context_8h_1a6df9b26600246f1da863389cb03e5084ab023460c84f774a219d46ccf4665994c:
-.. _cid-s2_shading_enum_t::line:
+.. _doxid-material_8h_1a6df9b26600246f1da863389cb03e5084a027ccec4fcc851bf284877ee67ede2c1:
+.. _cid-s2_shading_enum_t::s2_shading_wireframe:
+.. _doxid-material_8h_1a6df9b26600246f1da863389cb03e5084a6e4f7d4c95f0ffc9e85c359c08ce0376:
+.. _cid-s2_shading_enum_t::s2_shading_flat:
+.. _doxid-material_8h_1a6df9b26600246f1da863389cb03e5084a373ae14fe298657a87c5e6610bd7aaf0:
+.. _cid-s2_shading_enum_t::s2_shading_gouraud:
+.. _doxid-material_8h_1a6df9b26600246f1da863389cb03e5084abafbb14d9dd5879bdd679ac853fb853b:
+.. _cid-s2_shading_enum_t::s2_shading_phong:
+.. _doxid-material_8h_1a6df9b26600246f1da863389cb03e5084ad312eb84786f6eaf31d7dcbbf8e73b18:
+.. _cid-s2_shading_enum_t::s2_shading_line:
 .. ref-code-block:: cpp
 	:class: overview-code-block
 
 	// enum values
 
-	WIREFRAME 
-	FLAT 
-	GOURAUD 
-	PHONG 
-	LINE 
+	S2_SHADING_WIREFRAME 
+	S2_SHADING_FLAT 
+	S2_SHADING_GOURAUD 
+	S2_SHADING_PHONG 
+	S2_SHADING_LINE 
 

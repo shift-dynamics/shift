@@ -2,7 +2,6 @@
 @file
 @author Kristopher Wehage
 @brief Utilities to initialize, free and operate on an s2_convexhull_t datastructure.
-@date 2017
 @copyright Kristopher Wehage 2016-2017
 
 This function library is used to initialize, free and operate on

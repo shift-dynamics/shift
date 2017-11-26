@@ -11,7 +11,7 @@ struct s2_joint_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <joint.h>
 
 
 Overview
@@ -29,6 +29,8 @@ properties related to Joints :ref:`More...<details-doxid-structs2__joint__t>`
 .. _cid-s2_joint_t::mobilitynumber:
 .. _doxid-structs2__joint__t_1a0a1d4f083419da8b700c24b30d94d5ef:
 .. _cid-s2_joint_t::dampingcoefficientcount:
+.. _doxid-structs2__joint__t_1a418d03b62eeb20de39754b63876d9174:
+.. _cid-s2_joint_t::isvisible:
 .. ref-code-block:: cpp
 	:class: overview-code-block
 
@@ -43,7 +45,7 @@ properties related to Joints :ref:`More...<details-doxid-structs2__joint__t>`
 	int :ref:`indexSubstructure<doxid-structs2__joint__t_1a0de6193d9b1912632a0644550e7b41f3>`
 	int :ref:`sense<doxid-structs2__joint__t_1a576cdf86bb737b43085b4cb466f37f07>`
 	int :ref:`level<doxid-structs2__joint__t_1a7dbd26edc9168c7c7540df802ee7f546>`
-	:ref:`s2_joint_enum_t<doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475c>` :ref:`jointType<doxid-structs2__joint__t_1ac3226af45ae3aa539c1a37864a231cd4>`
+	:ref:`s2_joint_enum_t<doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475c>` :ref:`jointType<doxid-structs2__joint__t_1ac3226af45ae3aa539c1a37864a231cd4>`
 	char* :ref:`jointTypeStr<doxid-structs2__joint__t_1a4f3dd16b2eaeb9d586e79002483dfb55>`
 	:ref:`s2_stackstr_t<doxid-structs2__stackstr__t>`* :ref:`parentBody<doxid-structs2__joint__t_1ac07e824ed6cde2043cd58ed6e9ecb224>`
 	:ref:`s2_body_t<doxid-structs2__body__t>`* :ref:`parentBodyPointer<doxid-structs2__joint__t_1a7f50f5a5c3d8cf4d2b4bb3a417b71112>`
@@ -71,6 +73,7 @@ properties related to Joints :ref:`More...<details-doxid-structs2__joint__t>`
 	int dampingCoefficientCount
 	double* :ref:`stiffnessCoefficients<doxid-structs2__joint__t_1abf5211d78404e284d65ddfa0f111042f>`
 	int :ref:`stiffnessCoefficientCount<doxid-structs2__joint__t_1a804efaed65532e34eeaaec28e73fd5ba>`
+	bool isVisible
 
 .. _details-doxid-structs2__joint__t:
 
@@ -168,7 +171,7 @@ Indicates Joint's level in the spanning tree, automatically set by s2_ProcessTop
 .. ref-code-block:: cpp
 	:class: title-code-block
 
-	:ref:`s2_joint_enum_t<doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475c>` jointType
+	:ref:`s2_joint_enum_t<doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475c>` jointType
 
 specifies type of joint
 

@@ -1,45 +1,24 @@
-.. star2 documentation master file
-
-star2: A Simulation Tool for Automation and Robotics
-====================================================
-
-overview
---------
-.. toctree::
-   :maxdepth: 2
-
-   about
-   installation
-   file_format/file_format
-   contributing/contributing
-   page_index.rst
-
-
-developer reference
--------------------
+My Project Documentation
+========================
 
 .. toctree::
-   :maxdepth: 2
+	:hidden:
 
-   notation/notation
-   kinematics/kinematics
-   topology/topology
-   dynamics/dynamics
-   zreferences
+	page_todo.rst
+	page_index.rst
+
+.. rubric:: Related Pages:
+
+|	:doc:`page_todo`
+|	:doc:`page_index`
 
 
-api reference
--------------
+.. rubric:: Reference and Index:
 
 .. toctree::
+	:hidden:
 
-   global.rst
-	 :doc:`global`
-   page_todo
-   :doc:`page_todo`
+	global.rst
 
-indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`search`
+|	:doc:`global`
+|	:ref:`genindex`

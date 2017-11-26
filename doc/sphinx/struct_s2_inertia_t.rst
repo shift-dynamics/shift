@@ -11,7 +11,7 @@ struct s2_inertia_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <inertia.h>
 
 
 Overview

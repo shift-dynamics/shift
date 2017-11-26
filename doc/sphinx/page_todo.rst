@@ -8,6 +8,11 @@ Todo List
     :widths: 20 80
 
     *
+        - Global :ref:`s2_body_loadGeometry <doxid-body_8h_1a9798b3af24177e61f86edbcebcf45b1c>` ( :ref:`s2_context_t <doxid-structs2__context__t>` *context, :ref:`s2_body_t <doxid-structs2__body__t>` *body)
+
+        - figure out where specular highlight term is stored in assimp
+
+    *
         - Global :ref:`s2_joint_spherical_dhva <doxid-joint_8h_1af81dd6149e55911590071c65e1311faf>` (void **dhva)
 
         - add spherical joint
@@ -16,13 +21,6 @@ Todo List
         - Global :ref:`s2_joint_sphericalinverse <doxid-joint_8h_1a3fd780c6194d664a93671c0438ce1681>` (void **dhva)
 
         - add sphericalinverse
-
-    *
-        - Global :ref:`s2_loadBodyGeometry <doxid-geometry_8h_1a2808ffe4008aaaf0d600c403183ceb35>` ( :ref:`s2_context_t <doxid-structs2__context__t>` *context, :ref:`s2_body_t <doxid-structs2__body__t>` *body)
-
-        - track down why some colors are loaded in as zero from assimp library
-
-figure out where specular highlight term is stored in assimp
 
     *
         - Global :ref:`s2_mat3x3_toQuaternion <doxid-kinematics_8h_1a86d102e7d45b0a9c27368b46b11a0462>` ( :ref:`s2_mat3x3_t <doxid-structs2__mat3x3__t>` *ri, :ref:`s2_quaternion_t <doxid-structs2__quaternion__t>` *qo)

@@ -8,10 +8,12 @@ struct s2_material_t
 .. toctree::
 	:hidden:
 
+	struct_s2_material_t_GLuniforms.rst
+
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <material.h>
 
 
 Overview
@@ -27,6 +29,8 @@ data structure defining a material :ref:`More...<details-doxid-structs2__materia
 .. _cid-s2_material_t::filepath:
 .. _doxid-structs2__material__t_1a0d110dc2c378d1a79cd99406dde8db32:
 .. _cid-s2_material_t::shadingtype:
+.. _doxid-structs2__material__t_1acda99854b3d0e0175be9b51b592f2cc9:
+.. _cid-s2_material_t::gluniforms:
 .. _doxid-structs2__material__t_1acb27e6f1b5cf5e8fdf3dc261faec69a4:
 .. _cid-s2_material_t::vertexcount:
 .. _doxid-structs2__material__t_1a4951c6737429e44488fff9ea6472bed0:
@@ -42,17 +46,17 @@ data structure defining a material :ref:`More...<details-doxid-structs2__materia
 .. ref-code-block:: cpp
 	:class: overview-code-block
 
+	// structs
+
+	struct :ref:`GLuniforms<doxid-structs2__material__t_1_1_g_luniforms>`
+
 	// fields
 
 	char* name
 	int index
 	char* filePath
 	s2_shading_enum_t shadingType
-	GLfloat :ref:`Ka<doxid-structs2__material__t_1ad551dfcabf46e3b721b1519287e17974>` [4]
-	GLfloat :ref:`Kd<doxid-structs2__material__t_1a69c4006de7da6386d1217ac771bef019>` [4]
-	GLfloat :ref:`Ks<doxid-structs2__material__t_1ae026faedadf36cc8e3102ca62999ed79>` [4]
-	GLfloat :ref:`Ke<doxid-structs2__material__t_1a9781924c55f1d25f295ed9c25b574c6b>` [4]
-	GLint :ref:`Ns<doxid-structs2__material__t_1a0ac8aa75dc5d5b44fc9919a6bd5bbb0d>`
+	struct :ref:`s2_material_t::GLuniforms<doxid-structs2__material__t_1_1_g_luniforms>` GLuniforms
 	int vertexCount
 	int faceCount
 	GLfloat* vertices
@@ -72,51 +76,6 @@ data structure defining a material
 
 Fields
 ------
-
-.. _doxid-structs2__material__t_1ad551dfcabf46e3b721b1519287e17974:
-.. _cid-s2_material_t::ka:
-.. ref-code-block:: cpp
-	:class: title-code-block
-
-	GLfloat Ka [4]
-
-ambient color properties
-
-.. _doxid-structs2__material__t_1a69c4006de7da6386d1217ac771bef019:
-.. _cid-s2_material_t::kd:
-.. ref-code-block:: cpp
-	:class: title-code-block
-
-	GLfloat Kd [4]
-
-diffuse color properties
-
-.. _doxid-structs2__material__t_1ae026faedadf36cc8e3102ca62999ed79:
-.. _cid-s2_material_t::ks:
-.. ref-code-block:: cpp
-	:class: title-code-block
-
-	GLfloat Ks [4]
-
-specular color properties
-
-.. _doxid-structs2__material__t_1a9781924c55f1d25f295ed9c25b574c6b:
-.. _cid-s2_material_t::ke:
-.. ref-code-block:: cpp
-	:class: title-code-block
-
-	GLfloat Ke [4]
-
-emissive color properties
-
-.. _doxid-structs2__material__t_1a0ac8aa75dc5d5b44fc9919a6bd5bbb0d:
-.. _cid-s2_material_t::ns:
-.. ref-code-block:: cpp
-	:class: title-code-block
-
-	GLint Ns
-
-specular highlight
 
 .. _doxid-structs2__material__t_1af4fa885749e7f6273d4f56172883ad24:
 .. _cid-s2_material_t::vertexbuffer:

@@ -1,5 +1,5 @@
 .. index:: pair: enum; s2_joint_enum_t
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475c:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475c:
 .. _cid-s2_joint_enum_t:
 
 enum s2_joint_enum_t
@@ -9,42 +9,42 @@ enum s2_joint_enum_t
 
 Current supported joint types.
 
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475ca951f819598b53b2729ee0e4c05e6888e:
-.. _cid-s2_joint_enum_t::tx:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475ca1438cdab2b98c1096e68b78c7515553e:
-.. _cid-s2_joint_enum_t::ty:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475ca66087b299f0abd41bde98f0325641815:
-.. _cid-s2_joint_enum_t::tz:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475ca4aca20d6e60fffb66e9668b3a6592531:
-.. _cid-s2_joint_enum_t::rx:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475ca1860edbdf1db1cdde107df852a986e1a:
-.. _cid-s2_joint_enum_t::ry:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475caf1c3f3ee1a564e11b92e082232a16615:
-.. _cid-s2_joint_enum_t::rz:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475ca43358c4fff77d7d5712da6d4f6d9b8e7:
-.. _cid-s2_joint_enum_t::rigid:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475cae5031a2dca66aec4c071e90aa6bee1ff:
-.. _cid-s2_joint_enum_t::spherical:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475ca9cf4a0866224b0bb4a7a895da27c9c4c:
-.. _cid-s2_joint_enum_t::float:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475caef2863a469df3ea6871d640e3669a2f2:
-.. _cid-s2_joint_enum_t::invalid:
-.. _doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475ca75e70dd328c5c47f84c000dadae37142:
-.. _cid-s2_joint_enum_t::primitive:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475ca41ff20d8a4263f82567acf700f7855bc:
+.. _cid-s2_joint_enum_t::s2_joint_tx:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475ca111c4952bc9f8eec3ce64d59aed32bfc:
+.. _cid-s2_joint_enum_t::s2_joint_ty:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475caedb81e90b7be011e6f205f1b32fec929:
+.. _cid-s2_joint_enum_t::s2_joint_tz:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475ca11483c7ce1d6a994840c9eff1b30c290:
+.. _cid-s2_joint_enum_t::s2_joint_rx:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475ca8941faf49fc8e997691e1233b1dd7a8c:
+.. _cid-s2_joint_enum_t::s2_joint_ry:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475ca8429fb7ef56781d0f68693202a197699:
+.. _cid-s2_joint_enum_t::s2_joint_rz:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475ca7135e8ea63e43110866f2084c8c04799:
+.. _cid-s2_joint_enum_t::s2_joint_rigid:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475ca23399855b00f1dfef3806020595d799e:
+.. _cid-s2_joint_enum_t::s2_joint_spherical:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475caf83691e59b0fa827af6ffcfd41667b28:
+.. _cid-s2_joint_enum_t::s2_joint_float:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475ca572a01ee81ac562de3a5e9e1cb165e49:
+.. _cid-s2_joint_enum_t::s2_joint_invalid:
+.. _doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475caf9a031654d5200888048a586ef116fcc:
+.. _cid-s2_joint_enum_t::s2_joint_primitive:
 .. ref-code-block:: cpp
 	:class: overview-code-block
 
 	// enum values
 
-	TX 
-	TY 
-	TZ 
-	RX 
-	RY 
-	RZ 
-	RIGID 
-	SPHERICAL 
-	FLOAT 
-	INVALID 
-	PRIMITIVE 
+	S2_JOINT_TX 
+	S2_JOINT_TY 
+	S2_JOINT_TZ 
+	S2_JOINT_RX 
+	S2_JOINT_RY 
+	S2_JOINT_RZ 
+	S2_JOINT_RIGID 
+	S2_JOINT_SPHERICAL 
+	S2_JOINT_FLOAT 
+	S2_JOINT_INVALID 
+	S2_JOINT_PRIMITIVE 
 

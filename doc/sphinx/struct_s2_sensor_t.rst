@@ -11,7 +11,7 @@ struct s2_sensor_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <sensor.h>
 
 
 a sensor datastructure

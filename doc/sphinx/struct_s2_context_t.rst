@@ -8,6 +8,8 @@ struct s2_context_t
 .. toctree::
 	:hidden:
 
+	struct_s2_context_t_modelParameters.rst
+
 .. code-block:: cpp
 	:class: overview-code-block
 
@@ -17,18 +19,24 @@ struct s2_context_t
 Overview
 ~~~~~~~~
 
-mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
+star2 context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 
 .. _doxid-structs2__context__t_1a7e8a4d205650cfe9fa74b421f4915cfc:
 .. _cid-s2_context_t::restraintcount:
 .. _doxid-structs2__context__t_1ae1c2cabf01aacc8726aaadf9a483c682:
 .. _cid-s2_context_t::dhvacount:
+.. _doxid-structs2__context__t_1ae3c0957e3dd8e5ee137d7c1030b9a51f:
+.. _cid-s2_context_t::activepointcloudcount:
 .. _doxid-structs2__context__t_1a5a23fb1361d85571bcccab99f5ab8ddb:
 .. _cid-s2_context_t::qlookup:
 .. _doxid-structs2__context__t_1a37ff04becbc0e6ee1903b076f06b42ac:
 .. _cid-s2_context_t::isdependentpo3:
 .. _doxid-structs2__context__t_1ae9311e1b29ea7d5474f0b081833d4d3e:
 .. _cid-s2_context_t::substructures:
+.. _doxid-structs2__context__t_1a3eea947ac707cea55267492b18f425e5:
+.. _cid-s2_context_t::pointcloudpointers:
+.. _doxid-structs2__context__t_1a4f6186f736c37359ec7189ac5fedb81c:
+.. _cid-s2_context_t::boundingspheres:
 .. _doxid-structs2__context__t_1a92f9be6e15253200c1ec2fe7c8970bac:
 .. _cid-s2_context_t::forcemodulecount:
 .. _doxid-structs2__context__t_1a70287051f45b9b6149081a92337f970f:
@@ -93,21 +101,26 @@ mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 .. _cid-s2_context_t::stiffnesscount:
 .. _doxid-structs2__context__t_1a67f4afb76bdce6c5b4b3d9d1db1b0d0c:
 .. _cid-s2_context_t::stiffnessjoints:
-.. _doxid-structs2__context__t_1abcbd4d33f96f39953a58ea42632c1229:
-.. _cid-s2_context_t::elevationmapcount:
-.. _doxid-structs2__context__t_1ac6e44f522d5992749a1ff57f118942b7:
-.. _cid-s2_context_t::elevationmaps:
-.. _doxid-structs2__context__t_1adb6c7b9b4eb5f17e5a55165a03b46996:
+.. _doxid-structs2__context__t_1a5e9afbb09b13d2fcd4c48369db66ea92:
+.. _cid-s2_context_t::terraincount:
+.. _doxid-structs2__context__t_1aa0df6bdaf31872e11d2e7fd2460e0b46:
+.. _cid-s2_context_t::terrains:
+.. _doxid-structs2__context__t_1ace70c7c1fa58352b90b5666bd0f6f368:
 .. _cid-s2_context_t::modelparameters:
 .. _doxid-structs2__context__t_1a3032ac7fc49c33fabf90acb83ce56501:
 .. _cid-s2_context_t::assembly:
 .. ref-code-block:: cpp
 	:class: overview-code-block
 
+	// structs
+
+	struct :ref:`modelParameters<doxid-structs2__context__t_1_1model_parameters>`
+
 	// fields
 
 	int :ref:`jointCount<doxid-structs2__context__t_1a5ab3d6ad25ba71dc397a299cf149707f>`
 	int :ref:`bodyCount<doxid-structs2__context__t_1a9baeea9fde6c9177f1c10c9a7ff01c40>`
+	int :ref:`pointCloudCount<doxid-structs2__context__t_1a0ab2f7a99b37a3f520f04bb0f116d576>`
 	int :ref:`frameCount<doxid-structs2__context__t_1aadfa81f094172296ed1cbfd6c02e82db>`
 	int :ref:`lightCount<doxid-structs2__context__t_1ac227d8ac387ed4a116b10cbbef3fc4f5>`
 	int :ref:`ioCount<doxid-structs2__context__t_1ab843be2129c120d43d9f9480ab16b6ef>`
@@ -118,6 +131,7 @@ mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 	int :ref:`activeFrameInTreeCount<doxid-structs2__context__t_1a1ea03abb1749c89edcf96f57ce96831a>`
 	int :ref:`activeJointCount<doxid-structs2__context__t_1a6318ce8ba500f065f4bf2da31350e824>`
 	int :ref:`activeBodyCount<doxid-structs2__context__t_1a5bf142489bb5caa7dd01b168aa634eef>`
+	int activePointCloudCount
 	int :ref:`activeLightCount<doxid-structs2__context__t_1ad68284100067901bbdd5b5eec3a52630>`
 	int :ref:`activeIOCount<doxid-structs2__context__t_1a913c118033c6253d8384c88695fd4e30>`
 	int :ref:`activeRestraintCount<doxid-structs2__context__t_1a1c2fcb7dca083fd5a799e4c7805339d2>`
@@ -134,7 +148,6 @@ mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 	double :ref:`epsNewtonRaphsonRankDetermination<doxid-structs2__context__t_1ace405bbc6f7dae98b300719409c69ed4>`
 	:ref:`s2_chordconstraint_t<doxid-structs2__chordconstraint__t>`* :ref:`chordConstraints<doxid-structs2__context__t_1a4a442b177066b6b381ed3a4226f408cd>`
 	int** :ref:`constraints<doxid-structs2__context__t_1a4a53028c89b721da27be6ac67eca4a8b>`
-	double :ref:`pivotRatioMultiple<doxid-structs2__context__t_1a456cb207ec9a5a5d5d330beebd09bd74>`
 	double* :ref:`J<doxid-structs2__context__t_1afd5e5e643f4af5ca3aca6406062c9c89>`
 	double* :ref:`Js<doxid-structs2__context__t_1ad6ca693223851a9da35a60344f67a6f4>`
 	int* :ref:`Jxx<doxid-structs2__context__t_1a849dcc0e5cd4ce81f1b762a3ca3a4df4>`
@@ -166,6 +179,8 @@ mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 	int* :ref:`pv_32<doxid-structs2__context__t_1a2044323bb902b1f1c8e9674260841c54>`
 	int* :ref:`pv_23<doxid-structs2__context__t_1a07f688d84b53bdec5f2a08bd430c6efe>`
 	:ref:`s2_body_t<doxid-structs2__body__t>`** :ref:`bodyPointers<doxid-structs2__context__t_1af55f2659ce2fc5075c32c9f014be38ed>`
+	:ref:`s2_pointcloud_t<doxid-structs2__pointcloud__t>`** pointCloudPointers
+	:ref:`s2_sphere_t<doxid-structs2__sphere__t>`* boundingSpheres
 	:ref:`s2_body_t<doxid-structs2__body__t>`** :ref:`nonVirtualBodyPointers<doxid-structs2__context__t_1a5ac35f04b2b23c923c3060737f69e258>`
 	:ref:`s2_joint_t<doxid-structs2__joint__t>`** :ref:`jointPointers<doxid-structs2__context__t_1a0fac3b89830746c6cfdef2a818e90688>`
 	:ref:`s2_frame_t<doxid-structs2__frame__t>`** :ref:`framePointers<doxid-structs2__context__t_1aa7fea6e9efdb8d43d5d458ddd775ff34>`
@@ -175,7 +190,7 @@ mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 	void (** :ref:`dhFunctionPointers<doxid-structs2__context__t_1ad7f0b402f8c3623c2de74f35f1f17217>` )(void **dhva)
 	void (** :ref:`dhvaFunctionPointers<doxid-structs2__context__t_1aabef972d5b3aea63114a4594e6b9acaf>` )(void **dhva)
 	char*** names
-	:ref:`s2_joint_enum_t<doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475c>`* :ref:`jointTypes<doxid-structs2__context__t_1afca96052ed60c36da1f31eab7bca6d1a>`
+	:ref:`s2_joint_enum_t<doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475c>`* :ref:`jointTypes<doxid-structs2__context__t_1afca96052ed60c36da1f31eab7bca6d1a>`
 	int* :ref:`pcl<doxid-structs2__context__t_1a0b35838ef9095b3226bed322ff3f642e>`
 	int* :ref:`pclCompressed<doxid-structs2__context__t_1a7ca23d0a0d69fe92d595c86aa46da334>`
 	int* :ref:`pcldq<doxid-structs2__context__t_1ac1ab92cad784b07be74c53d149102bf0>`
@@ -270,7 +285,7 @@ mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 	int :ref:`rightNullSpaceCount<doxid-structs2__context__t_1a153646a1fdb3ec8465faffb85eb93b51>`
 	double* :ref:`mobilityNumbers<doxid-structs2__context__t_1a94e9ae68fa6284c5ae5a66f110166283>`
 	double :ref:`mobility<doxid-structs2__context__t_1a20cb83e016bdea6f79237967ab13fc1d>`
-	:ref:`s2_kinematicdrivers_t<doxid-structs2__kinematicdrivers__t>`* :ref:`kinematicDrivers<doxid-structs2__context__t_1af30be5bc79dc8944ed71d374aabdee36>`
+	:ref:`s2_io_t<doxid-structs2__io__t>`* :ref:`io<doxid-structs2__context__t_1ab978a0011bfc8b4ac3c35beecbc54501>`
 	:ref:`s2_inertia_t<doxid-structs2__inertia__t>`* :ref:`inertia<doxid-structs2__context__t_1a0e4acd2ebd3edd2d7340ff1b55886476>`
 	:ref:`s2_inertia_t<doxid-structs2__inertia__t>`* inertiaP
 	bool glInitialized
@@ -295,9 +310,9 @@ mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 	:ref:`s2_joint_t<doxid-structs2__joint__t>`** dampingJoints
 	int stiffnessCount
 	:ref:`s2_joint_t<doxid-structs2__joint__t>`** stiffnessJoints
-	int elevationMapCount
-	:ref:`s2_elevationmap_t<doxid-structs2__elevationmap__t>`** elevationmaps
-	:ref:`s2_modelparameters_t<doxid-structs2__modelparameters__t>`* modelParameters
+	int terrainCount
+	:ref:`s2_terrain_t<doxid-structs2__terrain__t>`** terrains
+	struct :ref:`s2_context_t::modelParameters<doxid-structs2__context__t_1_1model_parameters>` modelParameters
 	:ref:`s2_assembly_t<doxid-structs2__assembly__t>`* assembly
 
 .. _details-doxid-structs2__context__t:
@@ -305,7 +320,7 @@ mbdl context datastructure :ref:`More...<details-doxid-structs2__context__t>`
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-mbdl context datastructure
+star2 context datastructure
 
 This datastructure holds all of the values associated with a model. An empty Context data structure can be initialized using the s2_InitializeContext function or loaded from a file using the s2_LoadJSON function.
 
@@ -329,6 +344,15 @@ total number of joints
 	int bodyCount
 
 total number of bodies
+
+.. _doxid-structs2__context__t_1a0ab2f7a99b37a3f520f04bb0f116d576:
+.. _cid-s2_context_t::pointcloudcount:
+.. ref-code-block:: cpp
+	:class: title-code-block
+
+	int pointCloudCount
+
+total point cloud count
 
 .. _doxid-structs2__context__t_1aadfa81f094172296ed1cbfd6c02e82db:
 .. _cid-s2_context_t::framecount:
@@ -536,15 +560,6 @@ specified chord constraints, if multiple loops are present in a mechanism
 	int** constraints
 
 compressed table of constraints, the value at the first position is the index of the embedded (host) body in aq, the second value is the index of the virtual (released frame)
-
-.. _doxid-structs2__context__t_1a456cb207ec9a5a5d5d330beebd09bd74:
-.. _cid-s2_context_t::pivotratiomultiple:
-.. ref-code-block:: cpp
-	:class: title-code-block
-
-	double pivotRatioMultiple
-
-if ratio of pivots increases greater than this value, LU with full row and column pivoting will be called again, set to a default value of 10
 
 .. _doxid-structs2__context__t_1afd5e5e643f4af5ca3aca6406062c9c89:
 .. _cid-s2_context_t::j:
@@ -814,7 +829,7 @@ Array of pointers to bodies to directly access body in position in assembly hier
 
 	:ref:`s2_body_t<doxid-structs2__body__t>`** nonVirtualBodyPointers
 
-Array of pointers to bodies to directly access body in position in assembly hierarchy, does not include virtual bodies
+array of bounding spheres Array of pointers to bodies to directly access body in position in assembly hierarchy, does not include virtual bodies
 
 .. _doxid-structs2__context__t_1a0fac3b89830746c6cfdef2a818e90688:
 .. _cid-s2_context_t::jointpointers:
@@ -875,7 +890,7 @@ function pointers to update displacements influence coefficient matrices, veloci
 .. ref-code-block:: cpp
 	:class: title-code-block
 
-	:ref:`s2_joint_enum_t<doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475c>`* jointTypes
+	:ref:`s2_joint_enum_t<doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475c>`* jointTypes
 
 Array of joint types, equal in length to joint list
 
@@ -1608,14 +1623,14 @@ mobility associated with each variable
 
 total mobility of system
 
-.. _doxid-structs2__context__t_1af30be5bc79dc8944ed71d374aabdee36:
-.. _cid-s2_context_t::kinematicdrivers:
+.. _doxid-structs2__context__t_1ab978a0011bfc8b4ac3c35beecbc54501:
+.. _cid-s2_context_t::io:
 .. ref-code-block:: cpp
 	:class: title-code-block
 
-	:ref:`s2_kinematicdrivers_t<doxid-structs2__kinematicdrivers__t>`* kinematicDrivers
+	:ref:`s2_io_t<doxid-structs2__io__t>`* io
 
-pointer to kinematic drivers, if present in the mechanism
+pointer to input/output datastructures
 
 .. _doxid-structs2__context__t_1a0e4acd2ebd3edd2d7340ff1b55886476:
 .. _cid-s2_context_t::inertia:

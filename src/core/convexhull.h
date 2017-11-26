@@ -1,9 +1,8 @@
 /**
 @file
 @author Kristopher Wehage
-@brief Utilities to initialize and free a Context datastructure.
-@date 2016
-@copyright Kristopher Wehage 2016
+@brief Utilities to initialize and free a convex hull datastructure.
+@copyright Kristopher Wehage 2016-2017
 
 This function library is used to initialize and free memory for
 data structures defined in s2_convexhull_t

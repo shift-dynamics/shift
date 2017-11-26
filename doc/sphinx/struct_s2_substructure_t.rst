@@ -11,7 +11,7 @@ struct s2_substructure_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <substructure.h>
 
 
 Overview

@@ -10,6 +10,9 @@ struct s2_light_t::glLight
 
 
 
+Overview
+~~~~~~~~
+
 
 
 .. _doxid-structs2__light__t_1_1gl_light_1a657bd7472eeb5dd3560d21402ddeba20:
@@ -32,4 +35,24 @@ struct s2_light_t::glLight
 	GLfloat Kd [3]
 	GLfloat Ks [3]
 	int directional
+	GLfloat :ref:`fov<doxid-structs2__light__t_1_1gl_light_1a45492a980ea433fb0c51a34dc64cb591>`
+
+.. _details-doxid-structs2__light__t_1_1gl_light:
+
+Detailed Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+Fields
+------
+
+.. _doxid-structs2__light__t_1_1gl_light_1a45492a980ea433fb0c51a34dc64cb591:
+.. _cid-s2_light_t::gllight::fov:
+.. ref-code-block:: cpp
+	:class: title-code-block
+
+	GLfloat fov
+
+field of view in degrees
 
