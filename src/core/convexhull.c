@@ -57,6 +57,7 @@ void s2_convexhull_free(s2_convexhull_t* convexhull) {
 }
 
 
+
 void print_summary(qhT *qh) {
   facetT* facet;
 

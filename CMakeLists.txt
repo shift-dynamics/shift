@@ -267,7 +267,7 @@ file(COPY
 ### build documentation ###
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION
-  "Create and install the HTML based API documentation (requires Doxygen)"
+  "Create and install the HTML based API documentation (requires Doxygen, Doxyrest, and Sphinx)"
   ${DOXYGEN_FOUND})
 
 if(BUILD_DOCUMENTATION)

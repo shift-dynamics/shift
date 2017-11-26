@@ -77,15 +77,41 @@ To run the gui program with nvidia-gfx-debugger:
 
 ## Building documentation
 
-Documentation can be built by issuing the command in the build directory:
+Building the documention requires the dependencies [Doxygen](<http://www.stack.nl/~dimitri/doxygen/>), [doxyrest](<https://github.com/vovkos/doxyrest/>) and [Sphinx](<http://www.sphinx-doc.org/en/stable/>). The documentaion is built in the following three steps.
 
+  1. A Doxygen xml listing is generated from inline Doxygen comments using Doxygen.
+  2. Doxygen xml listings are converted to Restructured Text (.rst) format using doxyrest.
+  3. Sphinx documentation is generated using Sphinx.
+
+
+To build the documentation locally:
+
+    mkdir build
+    cd build
+    cmake ..
     make doc
+
+
+The html documentation will be generated in <git_root_directory>/doc/html
 
 Optional - documentation can be copied to your /share/doc folder by issuing the
 command:
 
     make install
-    
+
+
+To update the Github hosted website:
+
+    git checkout master
+    mkdir build
+    cd build
+    cmake ..
+    make doc
+    cd ../doc/html
+    git checkout gh-pages
+    git commit -m "updated gh-pages"
+    git push
+
 
 ## About
 

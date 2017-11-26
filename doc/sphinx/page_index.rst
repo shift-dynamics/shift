@@ -70,7 +70,23 @@ To run the gui program with nvidia-gfx-debugger: LD_PRELOAD=~/.tgd/libs/libNvidi
 
 .. rubric:: Building documentation
 
-Documentation can be built by issuing the command in the build directory: make doc
+Building the documention requires the dependencies Doxygen , doxyrest and Sphinx . The documentaion is built in the following three steps.
+
+#. A Doxygen xml listing is generated from inline Doxygen comments using Doxygen.
+
+#. Doxygen xml listings are converted to Restructured Text (.rst) format using doxyrest.
+
+#. Sphinx documentation is generated using Sphinx.
+
+To update the github hosted website: git checkout master
+mkdir build
+cd build
+cmake ..
+make doc
+cd ../doc/html
+git checkout gh-pages
+git commit -m "updated gh-pages"
+git push
 
 Optional - documentation can be copied to your /share/doc folder by issuing the command: make install
 
