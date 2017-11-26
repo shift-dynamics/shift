@@ -92,7 +92,7 @@ To build the documentation locally:
     make doc
 
 
-The html documentation will be generated in <git_root_directory>/doc/html
+The html documentation will be generated in &lt git_root_directory &gt /doc/html
 
 Optional - documentation can be copied to your /share/doc folder by issuing the
 command:

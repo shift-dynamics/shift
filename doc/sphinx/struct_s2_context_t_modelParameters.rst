@@ -232,7 +232,7 @@ natural frequency for baumgarte stabilization
 
 	double baumgarte2OmegaN
 
-2 * natural freq for baumgarte constraint stabilization
+2 \* natural freq for baumgarte constraint stabilization
 
 .. _doxid-structs2__context__t_1_1model_parameters_1a200f7f464399f51b41d1091860a2f88b:
 .. _cid-s2_context_t::modelparameters::baumgarteomegan2:

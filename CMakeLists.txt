@@ -287,9 +287,39 @@ if(BUILD_DOCUMENTATION)
     COMMENT "Generating API documentation with Doxygen"
     VERBATIM)
 
+  set (DOC_NAME "star2 documentation")
+
+  set (STAR2_VERSION_MAJOR 2)
+  set (STAR2_VERSION_MINOR 0)
+  set (STAR2_VERSION_REVISION 0)
+
+  set (STAR2_VERSION_COMPANY "Kristopher Wehage")
+  set (STAR2_VERSION_YEARS   "2015-2017")
+
+  set (STATIC_RST_DIR ${CMAKE_CURRENT_LIST_DIR}/sphinx)
+  set (XML_DIR  ${CMAKE_CURRENT_BINARY_DIR}/doc/xml)
+  set (RST_DIR  ${CMAKE_SOURCE_DIR}/doc/sphinx)
+  set (TMP_DIR  ${CMAKE_CURRENT_BINARY_DIR}/tmp)
+  set (HTML_DIR ${CMAKE_SOURCE_DIR}/doc/html)
+  set (DOXYREST_FRAME_DIR ${CMAKE_SOURCE_DIR}/doc/doxyrest/frame)
+
+  message(${DOXYREST_FRAME_DIR})
+
+  set (
+  	DOXYREST_CMD_LINE
+  	${XML_DIR}/index.xml
+  	-D g_hasNewLineAfterReturnType
+  	-D g_nameDelimiter=::
+  	-D g_escapeAsterisks
+  	-D g_verbatimToCodeBlock
+  	-o ${RST_DIR}/page_index.rst
+  	-F ${DOXYREST_FRAME_DIR}
+  	-f c_index.rst.in
+  	)
+
   # running doxyrest to convert doxygen to rst format
   add_custom_target(doxyrest
-    COMMAND doxyrest ${CMAKE_CURRENT_BINARY_DIR}/doc/xml/index.xml -o ${CMAKE_SOURCE_DIR}/doc/sphinx/index.rst -F ${CMAKE_SOURCE_DIR}/doc/doxyrest/frame/ -f c_index.rst.in
+    COMMAND doxyrest ${DOXYREST_CMD_LINE}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/doc
     COMMENT "Generating .rst from Doxygen .xml listing using Doxyrest"
     VERBATIM)
