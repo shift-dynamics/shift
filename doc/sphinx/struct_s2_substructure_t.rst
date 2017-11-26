@@ -165,7 +165,7 @@ number of chord loops constraint equations associated with substructure
 
 	int constraintEquationCount
 
-total number of constraint equations = 6 * numChordLoops + any additional constraints imposed by the user
+total number of constraint equations = 6 \* numChordLoops + any additional constraints imposed by the user
 
 .. _doxid-structs2__substructure__t_1addd87394fbf17f09eaf18c157e734761:
 .. _cid-s2_substructure_t::qcount:
@@ -210,7 +210,7 @@ ratio of max / min pivot
 
 	double scaledInitialInfinityNormB
 
-context->pivotRatioMultiplier * initial infinity norm of B matrix from an initial factorization of Jacobian
+context->pivotRatioMultiplier \* initial infinity norm of B matrix from an initial factorization of Jacobian
 
 .. _doxid-structs2__substructure__t_1a4810978b6ec2c6318712de2745dbba5e:
 .. _cid-s2_substructure_t::boffset:

@@ -353,9 +353,9 @@ pointer to substructure assignment
 
 	double* dampingCoefficients
 
-damping coefficients, c0 + c1*x + c2 * x**2
+damping coefficients, c0 + c1\*x + c2 \* x\*\*2
 
-* ... + cn * x**n
+* ... + cn \* x\*\*n
 
 .. _doxid-structs2__joint__t_1abf5211d78404e284d65ddfa0f111042f:
 .. _cid-s2_joint_t::stiffnesscoefficients:
@@ -364,7 +364,7 @@ damping coefficients, c0 + c1*x + c2 * x**2
 
 	double* stiffnessCoefficients
 
-number of damping coefficients spring coefficients, k0 + k1 * x + k2 * x**2 + ... + kn * x**n
+number of damping coefficients spring coefficients, k0 + k1 \* x + k2 \* x\*\*2 + ... + kn \* x\*\*n
 
 .. _doxid-structs2__joint__t_1a804efaed65532e34eeaaec28e73fd5ba:
 .. _cid-s2_joint_t::stiffnesscoefficientcount:
