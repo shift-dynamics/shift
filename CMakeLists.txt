@@ -338,7 +338,8 @@ if(BUILD_DOCUMENTATION)
   # optionally install doxygen documentation to /share/doc
   install(
     DIRECTORY
-    ${CMAKE_CURRENT_BINARY_DIR}/html
+    ${CMAKE_SOURCE_DIR}/html
     DESTINATION
     /share/doc)
+
 endif()
