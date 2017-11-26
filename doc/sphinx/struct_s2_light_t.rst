@@ -13,7 +13,7 @@ struct s2_light_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <light.h>
 
 
 Overview
@@ -29,6 +29,8 @@ Defines a Light. :ref:`More...<details-doxid-structs2__light__t>`
 .. _cid-s2_light_t::lighttype:
 .. _doxid-structs2__light__t_1ab9637a8dd0d0feccfcad3324ba95763c:
 .. _cid-s2_light_t::gllight:
+.. _doxid-structs2__light__t_1a993186c8a81e2f6e3aa09372a7a5ad09:
+.. _cid-s2_light_t::isvisible:
 .. _doxid-structs2__light__t_1a8c2a0ed4bc5e3489ad6c63e44c277fab:
 .. _cid-s2_light_t::next:
 .. ref-code-block:: cpp
@@ -47,8 +49,9 @@ Defines a Light. :ref:`More...<details-doxid-structs2__light__t>`
 	:ref:`s2_body_t<doxid-structs2__body__t>`* :ref:`parentBodyPointer<doxid-structs2__light__t_1a94daf5ec83bf9c5881156ba3ed417d45>`
 	int index
 	GLuint lightUniform
-	:ref:`s2_light_enum_t<doxid-context_8h_1a19bdf894dc0735ff78ec2d5d08821bef>` lightType
+	:ref:`s2_light_enum_t<doxid-light_8h_1a19bdf894dc0735ff78ec2d5d08821bef>` lightType
 	struct :ref:`s2_light_t::glLight<doxid-structs2__light__t_1_1gl_light>` glLight
+	bool isVisible
 	struct :ref:`s2_light_t<doxid-structs2__light__t>`* next
 
 .. _details-doxid-structs2__light__t:
@@ -77,7 +80,7 @@ descriptive name of Light
 
 	:ref:`s2_stackstr_t<doxid-structs2__stackstr__t>`* parentFrame
 
-frame that Light is attached to
+name of frame that Light is attached to
 
 .. _doxid-structs2__light__t_1a81027745043f043d8a451876a96fff6e:
 .. _cid-s2_light_t::parentframepointer:

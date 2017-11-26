@@ -35,5 +35,5 @@ input data file structs
 	int use_mode
 	double vxlow
 	double longvl
-	:ref:`s2_tireside_enum_t<doxid-context_8h_1a24c82722ee8b4105a88f56f8b22efa46>` tireSide
+	s2_tireside_enum_t tireSide
 

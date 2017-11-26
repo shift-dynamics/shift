@@ -8,12 +8,16 @@ struct s2_forcemodule_t
 .. toctree::
 	:hidden:
 
+.. code-block:: cpp
+	:class: overview-code-block
+
+	#include <forcemodule.h>
 
 
 Overview
 ~~~~~~~~
 
-
+utility to feed back forces into a running simulation :ref:`More...<details-doxid-structs2__forcemodule__t>`
 
 .. _doxid-structs2__forcemodule__t_1a95898956a9297fceade17c11cf8345e9:
 .. _cid-s2_forcemodule_t::forcemoduletype:
@@ -40,7 +44,7 @@ Overview
 
 	// fields
 
-	:ref:`s2_forcemodule_enum_t<doxid-context_8h_1aef216ac0fc3d71c6419b69df97ab6091>` forceModuleType
+	:ref:`s2_forcemodule_enum_t<doxid-forcemodule_8h_1aef216ac0fc3d71c6419b69df97ab6091>` forceModuleType
 	void* data
 	void (* update )(s2_context_t *context, void **parameters, double *y)
 	void (* saveHistory )(void *parameters)
@@ -57,7 +61,7 @@ Overview
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-
+utility to feed back forces into a running simulation
 
 Fields
 ------

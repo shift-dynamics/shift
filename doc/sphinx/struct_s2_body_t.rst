@@ -11,7 +11,7 @@ struct s2_body_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <body.h>
 
 
 Overview
@@ -29,6 +29,16 @@ Describes properties related to a rigid body. :ref:`More...<details-doxid-struct
 .. _cid-s2_body_t::glmodelview:
 .. _doxid-structs2__body__t_1aa452748af73c3a83e6710d32aafe8d09:
 .. _cid-s2_body_t::glmodelviewprojection:
+.. _doxid-structs2__body__t_1a955f4b33321b840a4d5ccfe9178dddab:
+.. _cid-s2_body_t::convexhulls:
+.. _doxid-structs2__body__t_1aa2d630aa11f0d0cbe370b18a7e1f4cfb:
+.. _cid-s2_body_t::convexhullcolor:
+.. _doxid-structs2__body__t_1a946836040ff86268eed4ab0ccba84d68:
+.. _cid-s2_body_t::convexhullcount:
+.. _doxid-structs2__body__t_1a5d56769a3618e73d66db804a0049198e:
+.. _cid-s2_body_t::drawenabled:
+.. _doxid-structs2__body__t_1a96c03ba8d88a7177521754768d7c8ea4:
+.. _cid-s2_body_t::isvisible:
 .. ref-code-block:: cpp
 	:class: overview-code-block
 
@@ -58,6 +68,11 @@ Describes properties related to a rigid body. :ref:`More...<details-doxid-struct
 	:ref:`s2_mat4x4f_t<doxid-structs2__mat4x4f__t>`* glReferenceFramef
 	:ref:`s2_mat4x4f_t<doxid-structs2__mat4x4f__t>`* glModelView
 	:ref:`s2_mat4x4f_t<doxid-structs2__mat4x4f__t>`* glModelViewProjection
+	:ref:`s2_convexhull_t<doxid-structs2__convexhull__t>`* convexHulls
+	GLfloat convexHullColor [3]
+	int convexHullCount
+	bool drawEnabled
+	bool isVisible
 
 .. _details-doxid-structs2__body__t:
 

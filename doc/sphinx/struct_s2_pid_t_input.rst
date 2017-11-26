@@ -33,8 +33,8 @@ struct s2_pid_t::input
 
 	// fields
 
-	:ref:`s2_coordinate_enum_t<doxid-context_8h_1a57ade64fd6279202ad85f6ea7232dd63>` coordinateSystem
-	:ref:`s2_joint_enum_t<doxid-context_8h_1a7a43c175bb516fb74df6eb8503a0475c>` dof
+	:ref:`s2_coordinate_enum_t<doxid-restraint_8h_1a57ade64fd6279202ad85f6ea7232dd63>` coordinateSystem
+	:ref:`s2_joint_enum_t<doxid-joint_8h_1a7a43c175bb516fb74df6eb8503a0475c>` dof
 	:ref:`s2_frame_t<doxid-structs2__frame__t>`* framePointer
 	:ref:`s2_joint_t<doxid-structs2__joint__t>`* jointPointer
 	:ref:`s2_stackstr_t<doxid-structs2__stackstr__t>`* frame

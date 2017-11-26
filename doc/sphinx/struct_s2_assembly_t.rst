@@ -11,7 +11,7 @@ struct s2_assembly_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <assembly.h>
 
 
 Overview
@@ -19,6 +19,10 @@ Overview
 
 Describes properties related to an Assembly. :ref:`More...<details-doxid-structs2__assembly__t>`
 
+.. _doxid-structs2__assembly__t_1a2bdf8a32d7d64237e7069fb656e32f26:
+.. _cid-s2_assembly_t::pointcloudhead:
+.. _doxid-structs2__assembly__t_1a68d840a2fe232a8f7ca79f479a0b8efc:
+.. _cid-s2_assembly_t::pointcloudtail:
 .. ref-code-block:: cpp
 	:class: overview-code-block
 
@@ -39,6 +43,8 @@ Describes properties related to an Assembly. :ref:`More...<details-doxid-structs
 	:ref:`s2_restraint_t<doxid-structs2__restraint__t>`* :ref:`restraintTail<doxid-structs2__assembly__t_1ad0d905631709191e910f5b231db507ca>`
 	:ref:`s2_io_t<doxid-structs2__io__t>`* :ref:`ioHead<doxid-structs2__assembly__t_1a0a6e9740532ee8d87d01a9deac264a6b>`
 	:ref:`s2_io_t<doxid-structs2__io__t>`* :ref:`ioTail<doxid-structs2__assembly__t_1aecdae67f5939dfa4d3a21446ba9b429d>`
+	:ref:`s2_pointcloud_t<doxid-structs2__pointcloud__t>`* pointCloudHead
+	:ref:`s2_pointcloud_t<doxid-structs2__pointcloud__t>`* pointCloudTail
 	:ref:`s2_forcemodule_t<doxid-structs2__forcemodule__t>`* :ref:`forceModuleHead<doxid-structs2__assembly__t_1ae90986003260af71f72eeae58385f62f>`
 	:ref:`s2_forcemodule_t<doxid-structs2__forcemodule__t>`* :ref:`forceModuleTail<doxid-structs2__assembly__t_1ae1fb32ba961f32443d8d2a32b6b76694>`
 

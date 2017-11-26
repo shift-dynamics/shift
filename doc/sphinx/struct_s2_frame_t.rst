@@ -11,7 +11,7 @@ struct s2_frame_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <frame.h>
 
 
 Overview
@@ -27,6 +27,8 @@ Frame or coordinate system. :ref:`More...<details-doxid-structs2__frame__t>`
 .. _cid-s2_frame_t::accelerationquadraticabsolute:
 .. _doxid-structs2__frame__t_1a15b6caabdce5054db627a364a850cb26:
 .. _cid-s2_frame_t::index:
+.. _doxid-structs2__frame__t_1a07cce2bbaf45773de7874d184c7e7448:
+.. _cid-s2_frame_t::isvisible:
 .. ref-code-block:: cpp
 	:class: overview-code-block
 
@@ -50,6 +52,7 @@ Frame or coordinate system. :ref:`More...<details-doxid-structs2__frame__t>`
 	int index
 	int :ref:`dIndex<doxid-structs2__frame__t_1aaf398f65d822d694dca61cf098997338>`
 	int :ref:`vaIndex<doxid-structs2__frame__t_1a3ae2dadba7da60e3a53cba6f68ab9302>`
+	bool isVisible
 
 .. _details-doxid-structs2__frame__t:
 
