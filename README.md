@@ -107,8 +107,9 @@ To update the Github hosted website:
     cd build
     cmake ..
     make doc
-    cd ../doc/html
+    cd ..
     git checkout gh-pages
+    cp -r doc/html/* .
     git commit -m "updated gh-pages"
     git push
 
