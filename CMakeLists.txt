@@ -165,7 +165,7 @@ INCLUDE(pandocology)
 add_document(
   TARGET about
   OUTPUT_FILE about.html
-  SOURCES about.md
+  SOURCES about.rst
   PANDOC_DIRECTIVES -t html -s
   PRODUCT_DIRECTORY ${CMAKE_SOURCE_DIR}/src/gui/html
 )
@@ -173,7 +173,7 @@ add_document(
 add_document(
   TARGET license
   OUTPUT_FILE license.html
-  SOURCES license.md
+  SOURCES license.rst
   PANDOC_DIRECTIVES -t html -s
   PRODUCT_DIRECTORY ${CMAKE_SOURCE_DIR}/src/gui/html
 )
