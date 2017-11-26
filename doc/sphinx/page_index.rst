@@ -78,7 +78,16 @@ Building the documention requires the dependencies Doxygen , doxyrest and Sphinx
 
 #. Sphinx documentation is generated using Sphinx.
 
-To update the github hosted website: git checkout master
+To build the documentation locally: mkdir build
+cd build
+cmake ..
+make doc
+
+The html documentation will be generated in <git_root_directory>/doc/html
+
+Optional - documentation can be copied to your /share/doc folder by issuing the command: make install
+
+To update the Github hosted website: git checkout master
 mkdir build
 cd build
 cmake ..
@@ -87,8 +96,6 @@ cd ../doc/html
 git checkout gh-pages
 git commit -m "updated gh-pages"
 git push
-
-Optional - documentation can be copied to your /share/doc folder by issuing the command: make install
 
 .. rubric:: About
 
