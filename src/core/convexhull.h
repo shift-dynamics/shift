@@ -6,8 +6,7 @@
 @copyright Kristopher Wehage 2016
 
 This function library is used to initialize and free memory for
-data structures defined in context.h
-
+data structures defined in s2_convexhull_t
 @remark
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -43,13 +42,17 @@ typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 
 
+/*!
+@brief convex hull data structure contains vertices and faces in contiguous blocks of memory
+*/
 typedef struct s2_convexhull_t {
-  GLfloat* vertices;
-  int vertexCount;
-  GLuint* faces;
-  int faceCount;
-  bool drawEnabled;
+  GLfloat* vertices; /*!< vertices in contiguous memory */
+  int vertexCount; /*!< number of vertices */
+  GLuint* faces; /*!< faces in contiguous memory */
+  int faceCount; /*!< number of faces */
+  bool drawEnabled; /*!< indicates whether the convexhull object should be drawin in gui */
 } s2_convexhull_t;
+
 
 int s2_convexhull_qhull(s2_body_t*);
 
