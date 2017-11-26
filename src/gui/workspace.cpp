@@ -4017,13 +4017,15 @@ void Workspace::updateDrawState() {
   @brief display license dialog
 */
 void Workspace::license() {
-  QMessageBox messageBox;
+
   QString fileContents;
   QFile file(":/html/license.html");
   file.open(QIODevice::ReadOnly | QIODevice::Text);
   fileContents = file.readAll();
   file.close();
-  // messageBox.setFixedSize(800, 800);
+
+  QMessageBox messageBox;
+  messageBox.setWindowTitle("License");
   QTextBrowser scrollArea;
   QGridLayout* layout = (QGridLayout *)messageBox.layout();
   layout->addWidget(&scrollArea, 0, 0, 1, 1);
@@ -4042,7 +4044,15 @@ void Workspace::about() {
   file.open(QIODevice::ReadOnly | QIODevice::Text);
   fileContents = file.readAll();
   file.close();
-  QMessageBox::about(this, "About", fileContents);
+
+  QMessageBox messageBox;
+  messageBox.setWindowTitle("About");
+  QTextBrowser scrollArea;
+  QGridLayout* layout = (QGridLayout *)messageBox.layout();
+  layout->addWidget(&scrollArea, 0, 0, 1, 1);
+  scrollArea.setText(fileContents);
+  scrollArea.setFixedSize(800, 800);
+  messageBox.exec();
 }
 
 
