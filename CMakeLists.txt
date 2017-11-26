@@ -272,7 +272,7 @@ option(BUILD_DOCUMENTATION
 
 if(BUILD_DOCUMENTATION)
   if(NOT DOXYGEN_FOUND)
-    message( FATAL_ERROR "Doxygen is needed to build the documentation." )
+    message(FATAL_ERROR "Doxygen is needed to build the documentation.")
   endif()
 
   set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in)
@@ -281,39 +281,25 @@ if(BUILD_DOCUMENTATION)
   configure_file(${doxyfile_in} ${doxyfile} @ONLY)
 
   # generate doxygen documentation
-  add_custom_target(doc
+  add_custom_target(doxygen
     COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen"
     VERBATIM)
 
-  # copy doxyboot.js file to html directory
-  # file(COPY
-  #  ${star2_SOURCE_DIR}/doc/doxygen-bootstrapped/doxy-boot.js
-  #  DESTINATION
-  # ${CMAKE_CURRENT_BINARY_DIR}/html)
+  # generate sphinx documentation
+  add_custom_target(doc
+  COMMAND make html
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/doc
+  COMMENT "Generating API documentation with Sphinx"
+  VERBATIM)
 
-  # ## install sphinx documentation to /srv/http
-  # install(
-  #   DIRECTORY
-  #   ${star2_SOURCE_DIR}/doc/sphinx/build/html
-  #   DESTINATION
-  #   /srv)
-  #
+  add_dependencies(doc doxygen)
 
-  ## install doxygen documentation to /srv/http/mbdl
-  install(
-    DIRECTORY
-    ${CMAKE_CURRENT_BINARY_DIR}/html
-    DESTINATION
-    /srv/http/static/doxygen)
-
+  # optionally install doxygen documentation to /share/doc
   install(
     DIRECTORY
     ${CMAKE_CURRENT_BINARY_DIR}/html
     DESTINATION
     /share/doc)
-
-
-
 endif()
