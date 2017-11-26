@@ -33,13 +33,13 @@ api reference
 
 .. toctree::
 
-   global.rst
+   doxyrest/global.rst
 	 :doc:`global`
-   page_todo
+   doxyrest/page_todo.rst
    :doc:`page_todo`
+
 
 indices and tables
 ------------------
 
 * :ref:`genindex`
-* :ref:`search`
