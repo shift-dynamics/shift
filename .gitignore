@@ -10,3 +10,4 @@ deprecated
 doc/html
 doc/doctrees
 src/gui/html
+doc/sphinx/doxyrest
