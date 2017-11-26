@@ -101,7 +101,7 @@ To run the gui program with nvidia-gfx-debugger:
 Building documentation
 ----------------------
 
-Building the documention requires the dependencies `Doxygen<http://www.stack.nl/~dimitri/doxygen/>`_, `doxyrest<https://github.com/vovkos/doxyrest/>`_ and `Sphinx<http://www.sphinx-doc.org/en/stable/>`_. The documentaion is built in the following three steps.
+Building the documention requires the dependencies `Doxygen <http://www.stack.nl/~dimitri/doxygen/>`_, `doxyrest <https://github.com/vovkos/doxyrest/>`_ and `Sphinx <http://www.sphinx-doc.org/en/stable/>`_. The documentaion is built in the following three steps.
 
   1. A Doxygen xml listing is generated from inline Doxygen comments using Doxygen.
   2. Doxygen xml listings are converted to Restructured Text (.rst) format using doxyrest.
