@@ -20,9 +20,11 @@ This code requires that the following libraries are installed on your system.
 
 * ImageMagick
 
+* Qhull
+
 .. rubric:: Macintosh
 
-On a Macintosh, these dependencies can be installed using the *brew* package manager: brew install assimp jansson qt5 graphviz imagemagick
+On a Macintosh, these dependencies can be installed using the *brew* package manager: brew install assimp jansson qt5 graphviz imagemagick qhull
 
 More information can be found at these links.
 
@@ -36,15 +38,17 @@ More information can be found at these links.
 
 * http://brewformulas.org/imagemagick
 
+* http://brewformulas.org/qhull
+
 The cblas package is already available on a Macintosh using the *accelerate* framework, the CMakeLists.txt file may need to be modified to bring in this dependency correctly.
 
 .. rubric:: Arch Linux
 
-On arch linux, the dependencies can be installed using pacman: pacman -S assimp jansson qt5 graphviz cblas imagemagick
+On arch linux, the dependencies can be installed using pacman: pacman -S assimp jansson qt5 graphviz cblas imagemagick qhull
 
 .. rubric:: Ubuntu / Debian-based Linux Distributions
 
-Use apt-get: apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev
+Use apt-get: apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev libqhull-dev
 
 .. rubric:: Building the project
 
@@ -62,13 +66,13 @@ You can test if the executable works correctly by running the command line inter
 
 Run the graphical user interface component of the program by executing the following command from within the ${PROJECT_DIRECTORY}/build/bin directory: ./star2
 
+To run the gui program with nvidia-gfx-debugger: LD_PRELOAD=~/.tgd/libs/libNvidia_gfx_debugger.so ./star2
+
 .. rubric:: Building documentation
 
 Documentation can be built by issuing the command in the build directory: make doc
 
 Optional - documentation can be copied to your /share/doc folder by issuing the command: make install
-
-Alternatively, refer here for the latest Doxygen generated documentation. You will need to be issued a username and password to view this content.
 
 .. rubric:: About
 

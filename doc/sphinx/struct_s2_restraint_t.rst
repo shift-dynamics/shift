@@ -11,7 +11,7 @@ struct s2_restraint_t
 .. code-block:: cpp
 	:class: overview-code-block
 
-	#include <context.h>
+	#include <restraint.h>
 
 
 defines a Restraint
@@ -45,9 +45,9 @@ defines a Restraint
 	double* knots
 	double** coefficients
 	int index
-	:ref:`s2_restraint_enum_t<doxid-context_8h_1a76313e0949644f4f5d871ed6e881fd1d>` restraintType
-	:ref:`s2_coordinate_enum_t<doxid-context_8h_1a57ade64fd6279202ad85f6ea7232dd63>` coordinateType
-	:ref:`s2_distance_enum_t<doxid-context_8h_1aacd69c927ddfaa300fb4e07c00e14c0f>` distanceType
+	:ref:`s2_restraint_enum_t<doxid-restraint_8h_1a76313e0949644f4f5d871ed6e881fd1d>` restraintType
+	:ref:`s2_coordinate_enum_t<doxid-restraint_8h_1a57ade64fd6279202ad85f6ea7232dd63>` coordinateType
+	:ref:`s2_distance_enum_t<doxid-restraint_8h_1aacd69c927ddfaa300fb4e07c00e14c0f>` distanceType
 	:ref:`s2_frame_t<doxid-structs2__frame__t>`* parentFrame
 	:ref:`s2_frame_t<doxid-structs2__frame__t>`* childFrame
 	:ref:`s2_restraint_t<doxid-structs2__restraint__t>`* next

@@ -12,8 +12,8 @@ struct s2_camera_t
 
 
 
-.. _doxid-structs2__camera__t_1a50e59cebe8d80ef2361561486d9150dc:
-.. _cid-s2_camera_t::perspectivetype:
+.. _doxid-structs2__camera__t_1afd0477969c0aa1fb9fe8e6435a2905d4:
+.. _cid-s2_camera_t::projectiontype:
 .. _doxid-structs2__camera__t_1ad85a1d5232cae032787b38e387de8941:
 .. _cid-s2_camera_t::fieldofview:
 .. _doxid-structs2__camera__t_1abc9409a011eadfd9a12d44345793e63f:
@@ -26,6 +26,8 @@ struct s2_camera_t
 .. _cid-s2_camera_t::view:
 .. _doxid-structs2__camera__t_1af8a9aadd6e63a91c5bb0b9635ea65f6f:
 .. _cid-s2_camera_t::projection:
+.. _doxid-structs2__camera__t_1a26d3300f186d9395d0a982ba7609529d:
+.. _cid-s2_camera_t::isvisible:
 .. _doxid-structs2__camera__t_1a8cbb6a346f94902fb61cf06caddd9afb:
 .. _cid-s2_camera_t::next:
 .. ref-code-block:: cpp
@@ -33,12 +35,13 @@ struct s2_camera_t
 
 	// fields
 
-	s2_perspective_enum_t perspectiveType
+	s2_projection_enum_t projectionType
 	float fieldOfView
 	float aspectRatio
 	float nearClippingPlane
 	float farClippingPlane
 	:ref:`s2_mat4x4f_t<doxid-structs2__mat4x4f__t>` view
 	:ref:`s2_mat4x4f_t<doxid-structs2__mat4x4f__t>` projection
+	bool isVisible
 	:ref:`s2_camera_t<doxid-structs2__camera__t>`* next
 
