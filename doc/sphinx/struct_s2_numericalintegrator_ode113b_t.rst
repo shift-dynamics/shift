@@ -239,7 +239,7 @@ records time step indices of a full factor event during a running simulation
 
 	double twou
 
-u is based on the machine unit roundoff error. it is the smallest positive number such that 1.0+u .gt. 1.0. the user must calculate u and assign twou = 2.0*u and fouru=4.0*u in the following statements before calling the code.
+u is based on the machine unit roundoff error. it is the smallest positive number such that 1.0+u .gt. 1.0. the user must calculate u and assign twou = 2.0\*u and fouru=4.0\*u in the following statements before calling the code.
 
 .. _doxid-structs2__numericalintegrator__ode113b__t_1a0ec5b998f9ccd548e86a94a58517e388:
 .. _cid-s2_numericalintegrator_ode113b_t::fouru:
@@ -248,7 +248,7 @@ u is based on the machine unit roundoff error. it is the smallest positive numbe
 
 	double fouru
 
-u is based on the machine unit roundoff error. it is the smallest positive number such that 1.0+u .gt. 1.0. the user must calculate u and assign twou = 2.0*u and fouru=4.0*u in the following statements before calling the code.
+u is based on the machine unit roundoff error. it is the smallest positive number such that 1.0+u .gt. 1.0. the user must calculate u and assign twou = 2.0\*u and fouru=4.0\*u in the following statements before calling the code.
 
 .. _doxid-structs2__numericalintegrator__ode113b__t_1a42422580ac8b4e3bf4b3e85d81ff2b26:
 .. _cid-s2_numericalintegrator_ode113b_t::hold:

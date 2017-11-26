@@ -141,7 +141,7 @@ indicates the status of integration. On input, IFLAG is normally 1 (or -1 in the
 
 	double* work
 
-work[100 + 21 * neqn]
+work[100 + 21 \* neqn]
 
 .. _doxid-structs2__numericalintegrator__ode113__t_1aefad9cea2bd2fc3b3d5d80d9f1b7bd9c:
 .. _cid-s2_numericalintegrator_ode113_t::iwork:

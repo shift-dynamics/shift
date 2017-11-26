@@ -1000,7 +1000,7 @@ generalized coordinates that have direction cosine terms associated with them
 
 	:ref:`s2_screw_t<doxid-structs2__screw__t>`* h
 
-an array of influence coefficient matrices equal to the 6 * number of variables in the datastructure
+an array of influence coefficient matrices equal to the 6 \* number of variables in the datastructure
 
 .. _doxid-structs2__context__t_1a4156b12dd0d77fdbbbb62494b0dee1da:
 .. _cid-s2_context_t::v:
@@ -1144,7 +1144,7 @@ constraint second derivative and quadratic terms
 
 	int Ml_size
 
-size of Ml array = ((2 + n) * (1 + n)) / 2
+size of Ml array = ((2 + n) \* (1 + n)) / 2
 
 .. _doxid-structs2__context__t_1a31292bff1b57a2935914d549c3e9d8a0:
 .. _cid-s2_context_t::ml:
@@ -1432,7 +1432,7 @@ lagrange multipliers
 
 	int i1s
 
-Points to Mkj or Mjk in Mkj -= Mij*Bik or Mjk -= Mij*Bik
+Points to Mkj or Mjk in Mkj -= Mij\*Bik or Mjk -= Mij\*Bik
 
 .. _doxid-structs2__context__t_1a71809a9ddf4d9cff45a83e1f47ebd29b:
 .. _cid-s2_context_t::i2s:
@@ -1441,7 +1441,7 @@ Points to Mkj or Mjk in Mkj -= Mij*Bik or Mjk -= Mij*Bik
 
 	int i2s
 
-Points to Mij in Mkj -= Mij*Bik or Mjk -= Mij*Bik
+Points to Mij in Mkj -= Mij\*Bik or Mjk -= Mij\*Bik
 
 .. _doxid-structs2__context__t_1a776f2e496c4616400b736ac365b591d6:
 .. _cid-s2_context_t::i6s:
@@ -1450,7 +1450,7 @@ Points to Mij in Mkj -= Mij*Bik or Mjk -= Mij*Bik
 
 	int i6s
 
-Points to Mkj or Mjk in Mkj -= Mij*Mik or Mjk -= Mij*Mik
+Points to Mkj or Mjk in Mkj -= Mij\*Mik or Mjk -= Mij\*Mik
 
 .. _doxid-structs2__context__t_1a3a3c079e29237cc5ce42361b617bbba6:
 .. _cid-s2_context_t::i8s:
@@ -1459,7 +1459,7 @@ Points to Mkj or Mjk in Mkj -= Mij*Mik or Mjk -= Mij*Mik
 
 	int i8s
 
-Points to Mik in Mkj -= Mij*Mik or Mjk -= Mij*Mik M[i1[l1]] -= M[i2[l1]] * B[i3[l1]];
+Points to Mik in Mkj -= Mij\*Mik or Mjk -= Mij\*Mik M[i1[l1]] -= M[i2[l1]] \* B[i3[l1]];
 
 .. _doxid-structs2__context__t_1ade0f985457c15266afb538e6d6eb743c:
 .. _cid-s2_context_t::i3:
@@ -1468,7 +1468,7 @@ Points to Mik in Mkj -= Mij*Mik or Mjk -= Mij*Mik M[i1[l1]] -= M[i2[l1]] * B[i3[
 
 	int* i3
 
-M[i4[i]] = 1.0/M[i4[i]]; M[p] = M[i5[l2]]; M[i5[l2]] *= M[i4[i]];
+M[i4[i]] = 1.0/M[i4[i]]; M[p] = M[i5[l2]]; M[i5[l2]] \*= M[i4[i]];
 
 .. _doxid-structs2__context__t_1ace04e85fb91cfe8de213386cdbcbc034:
 .. _cid-s2_context_t::i5:
@@ -1477,7 +1477,7 @@ M[i4[i]] = 1.0/M[i4[i]]; M[p] = M[i5[l2]]; M[i5[l2]] *= M[i4[i]];
 
 	int* i5
 
-M[i6[l3]] -= M[i7[l3]]*M[i8[l3]];
+M[i6[l3]] -= M[i7[l3]]\*M[i8[l3]];
 
 .. _doxid-structs2__context__t_1a4c9ba1615df4edb242e532d863457abf:
 .. _cid-s2_context_t::i8:
@@ -1486,7 +1486,7 @@ M[i6[l3]] -= M[i7[l3]]*M[i8[l3]];
 
 	int* i8
 
-Q[j1[m1]] -= B[j2[m1]]*Q[i]; ddq[i] -= B[j2[m1]]*ddq[j1[m1]];
+Q[j1[m1]] -= B[j2[m1]]\*Q[i]; ddq[i] -= B[j2[m1]]\*ddq[j1[m1]];
 
 .. _doxid-structs2__context__t_1a0a12f5f1e79fdb81700c207b39c8b91a:
 .. _cid-s2_context_t::j2:
@@ -1495,7 +1495,7 @@ Q[j1[m1]] -= B[j2[m1]]*Q[i]; ddq[i] -= B[j2[m1]]*ddq[j1[m1]];
 
 	int* j2
 
-Q[j3[m2]] -= M[j4[m2]]*ga[i]; la[i] -= M[j4[m2]]*ddq[j3[m2]];
+Q[j3[m2]] -= M[j4[m2]]\*ga[i]; la[i] -= M[j4[m2]]\*ddq[j3[m2]];
 
 .. _doxid-structs2__context__t_1af66a5b1ae6dbfbb189888498bc30032e:
 .. _cid-s2_context_t::j4:
@@ -1504,7 +1504,7 @@ Q[j3[m2]] -= M[j4[m2]]*ga[i]; la[i] -= M[j4[m2]]*ddq[j3[m2]];
 
 	int* j4
 
-Q[j5[m3]] -= M[j6[m3]]*Q[i]; ddq[i] -= M[j6[m3]]*ddq[j5[m3]];
+Q[j5[m3]] -= M[j6[m3]]\*Q[i]; ddq[i] -= M[j6[m3]]\*ddq[j5[m3]];
 
 .. _doxid-structs2__context__t_1a0cf6e95a541b47b9ee75064eac304434:
 .. _cid-s2_context_t::p1:
@@ -1594,7 +1594,7 @@ start of p3 in P
 
 	double* rightNullSpace
 
-single array of memory allocated for right Null space, equal to sum of dqCount * dqCount for each substructure
+single array of memory allocated for right Null space, equal to sum of dqCount \* dqCount for each substructure
 
 .. _doxid-structs2__context__t_1a153646a1fdb3ec8465faffb85eb93b51:
 .. _cid-s2_context_t::rightnullspacecount:
