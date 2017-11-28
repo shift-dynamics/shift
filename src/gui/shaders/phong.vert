@@ -42,6 +42,8 @@ layout (location = 1) in vec3 normal_a;
 out vec3 normalFrag;
 out vec4 positionFrag;
 out vec4 shadowCoord[10];
+out vec4 eyeDirectionCameraSpace;
+
 
 void main() {
   normalFrag = normalize(matrices_u.nm * normal_a);
@@ -52,5 +54,7 @@ void main() {
       shadowCoord[i] =
         lights_u.shadowMatrix[i] * position_a;
     }
+    eyeDirectionCameraSpace = -matrices_u.mv * position_a;
   }
+
 }

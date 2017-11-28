@@ -1,3 +1,12 @@
+Contact Detection
+=================
+
+This folder contains two versions of the gjk algorithm in the gjk.c file.
+I believe both files contain the same basic functions and only main and
+test functions are different.
+
+They can be compiled using gcc gjk.c.
+
 I have demonstrated the ability to subdivide a unit sphere into six major quads and 6n^2 minor quads where n is any positive number. This yields 6n^2+2 vertices. Furthermore I have demonstrated the ability to associate a five character hash-table code with each unit normal vector for any 0<n<100. For n=99 this would be 58808 vertices, which should be large enough for most applications. The hash-table code covers the unit sphere uniformly, which means that any unit direction vector will decode to the closest normal vector and corresponding closest vertex. A feature of a new procedure is that every unit direction vector decodes to a valid hash-code, which means there will be no hash-code misses for 100% performance efficiency.
 
 I have also described, but not yet tested, the ability to map any closed convex hull represented by any number of vertices onto a quadded unit sphere for any n. Assume that the vertex density of the triangulated convex hull is much higher than that of the quadded unit sphere and that every vertex on the triangulated convex hull has a corresponding unit normal vector. The mapping process computes a mean vertex location on the convex hull corresponding to each unit normal vector on the unit sphere and stores the new mean vertices in a quadded representation of the convex hull. When completed, the new quadded file for the convex hull will have the same topology and unit normal vectors as the quadded unit sphere. Thus the same hash table developed for the quadded unit sphere will apply to any convex hull mapped onto that unit sphere.
