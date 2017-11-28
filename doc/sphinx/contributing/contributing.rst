@@ -2,56 +2,16 @@
 
 .. title:: Contributing
 
-
-
 Contributing
 ====================
 
 Roadmap
 -----------
 
-Presently, the plan for *star2* is to make the core solver, graphical user interface and C API free and open source. Contributors to star2 are sought, particularly if you are interested in incorporating star2 into your research. Possible development tasks may include:
+Contributors to star2 are sought, particularly if you are interested in incorporating star2 into your research.
 
-  * Interfaces and APIs
-     - C++ API
-     - Python API
-     - ROS interface
-     - OpenAI interface
-     - Web interface via Emscriptem
-     - Web interface via web sockets
-     - Conversion from URDF to *star2* JSON input file format
-     - Solidworks or Inventor plugins to generate *star2* JSON input files from CAD models
-  * Graphics
-     - Dynamic shadow mapping
-     - Texture mapping
-     - Skybox
-     - Extinction
-     - Tools to position light source as a function of time of day / geographic location
-  * GUI
-     - Interactively build/position mechanisms and save changes to disk using JSON file format
-     - Graphic design of icons
-  * Contact detection
-     - Bounding volume hierarchy
-     - Convex hull decomposition and GJK Algorithm
-  * Force modules
-     - Pacejka's "magic" tire model
-     - Kelvin-Voigt, Nikravesh and/or Zhiying/Qishao dissipative contact force models
-     - Lugre bristle model or other friction models
-     - ANCF or modal representation of flexible bodies
-  * Core solver
-     - Support transition to new kinematics library currently in development
-     - Investigate use of Intel IPP
-     - Implement additional core solvers
-     - Debug spherical joints
-     - Debug models with rigid joint attached to fixed inertial frame
-  * Documentation
-     - Set up and document models to demonstrate core functionality
-     - Contribute to description of theory in "Developer Reference"
-  * Other
-     - Move JSON parsing/serializing functionality from loader.c to .c and .h files associated with bodies, joints, etc.
-     - Test build on Mac or Windows machines
+Refer to the `Github issues page <https://github.com/kriswehage/star2/issues>`_ for possible development tasks or contact the author if you have other development/research ideas.
 
-If you are interested to contribute to any of these development tasks, or have other development/research ideas, please contact the author.
 
 Coding Style
 ------------

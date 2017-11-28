@@ -62,6 +62,22 @@ in TES_OUT {
 
 out vec4 colorFrag;
 
+float offset_lookup(
+  sampler2DArrayShadow texture_shadow,
+  int index,
+  vec4 location,
+  vec2 offset) {
+  return texture(
+    texture_shadow,
+    vec4(
+      location.x / location.w + offset.x,
+      location.y / location.w + offset.y,
+      float(index),
+      location.z / location.w
+    )
+  );
+}
+
 // uniform bool enable_fog = true;
 // uniform vec4 fog_color = vec4(0.7, 0.8, 0.9, 0.0);
 // vec4 fog(vec4 c) {
@@ -110,14 +126,26 @@ void main(void) {
 
     float shadowTest = 1.f;
     if(lights_u.drawShadows == 1) {
-      shadowTest = texture(
-        texture_shadow_u,
-        vec4(
-          shadowCoord[i].x / shadowCoord[i].w,
-          shadowCoord[i].y / shadowCoord[i].w,
-          float(i),
-          shadowCoord[i].z / shadowCoord[i].w)
-          );
+
+      shadowTest = 0.0;
+
+      for(float y = -1.5; y <= 1.5; y += 1.0) {
+        for(float x = -1.5; x <= 1.5; x += 1.0) {
+          shadowTest += offset_lookup(
+            texture_shadow_u, i, shadowCoord[i], vec2(x, y) / 4096.0);
+        }
+      }
+
+      shadowTest /= 16.0;
+
+      // shadowTest = texture(
+      //   texture_shadow_u,
+      //   vec4(
+      //     shadowCoord[i].x / shadowCoord[i].w,
+      //     shadowCoord[i].y / shadowCoord[i].w,
+      //     float(i),
+      //     shadowCoord[i].z / shadowCoord[i].w)
+      //     );
     }
 
     /* ambient term */
