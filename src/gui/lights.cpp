@@ -214,12 +214,13 @@ void s2_Lights::draw() {
 
   if(m_drawEnabled) {
 
-    // glActiveTexture(GL_TEXTURE0);
-    // checkError("lights: after glActiveTexture");
-    // glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
-    // checkError("lights: after glBindTexture");
+    glActiveTexture(GL_TEXTURE0);
+    checkError("lights: after glActiveTexture");
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_depthTexture);
+    checkError("lights: after glBindTexture");
 
-
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
 
     for(int i = 0; i < m_lights.count; i++) {
 
@@ -291,6 +292,8 @@ void s2_Lights::draw() {
       m_renderWindow->getTerrain()->drawShadows();
 
     }
+
+    glCullFace(GL_BACK);
 
     m_renderWindow->m_funcs->glDisable(GL_POLYGON_OFFSET_FILL);
 

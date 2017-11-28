@@ -131,7 +131,7 @@ command:
 Syncing documentation with Github
 ---------------------------------
 
-Issue the following commands to create a git submodule containing the gh-pages branch. This only needs to be done once after the repository has been cloned.
+Issue the following commands to create a git submodule containing the gh-pages branch. This only needs to be done once after the main repository has been cloned.
 
 .. code::
 
@@ -140,8 +140,6 @@ Issue the following commands to create a git submodule containing the gh-pages b
     git clone git@github.com:kriswehage/star2.git
     git checkout gh-pages
     git branch -d master
-
-
 
 
 To update the Github hosted website:

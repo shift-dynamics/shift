@@ -51,6 +51,19 @@
         "Kd": [0.6, 0.6, 0.6],
         "Ks": [0.2, 0.2, 0.2]
       }
+    ],
+    "terrain": [
+      {
+        "name": "sinxx+cosyy",
+        "definition": "sinxx+cosyy.tiff",
+        "texture": "cracked_sand.jpg",
+        "property_map": null,
+        "parent": ["fixed", "origin"],
+        "x_scale": 0.2,
+        "y_scale": 0.3,
+        "coordinate_type": "sae",
+        "interpolation_type": "bicubic"
+      }
     ]
   },
   "assemblies": [
