@@ -24,14 +24,6 @@ package manager:
 
     brew install assimp jansson qt5 graphviz imagemagick qhull
 
-More information can be found at these links.
-
-*   `<http://brewformulas.org/Assimp>`_
-*   `<http://brewformulas.org/Jansson>`_
-*   `<http://brewformulas.org/qt5>`_
-*   `<http://brewformulas.org/graphviz>`_
-*   `<http://brewformulas.org/imagemagick>`_
-*   `<http://brewformulas.org/qhull>`_
 
 The cblas package is already available on a Macintosh using the *accelerate*
 framework, the CMakeLists.txt file may need to be modified to bring in this
