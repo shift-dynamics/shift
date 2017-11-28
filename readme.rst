@@ -142,7 +142,7 @@ Issue the following commands to create a git submodule containing the gh-pages b
     git branch -d master
 
 
-To update the Github hosted website:
+To update the Github hosted website, change directory back to ${PROJECT_DIRECTORY}. Then issue the commands:
 
 .. code::
 

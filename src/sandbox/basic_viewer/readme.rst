@@ -22,4 +22,4 @@ To open a model, go to the file menu and select *Open*. Navigate up one director
 Starting a new viewer project
 ------------------------------
 
-To test new functionality, copy the "basicviewer" folder to a new directory within sandbox.
+To test new functionality, copy the "basic_viewer" folder to a new directory within sandbox.
