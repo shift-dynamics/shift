@@ -1,4 +1,5 @@
-# Kinematics Subroutine Library
+Kinematics Subroutine Library
+=============================
 
 The files in this folder are a work in progress and are intended to eventually
 replace the kinematics.c library in the core folder.
