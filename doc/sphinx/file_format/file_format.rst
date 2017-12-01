@@ -19,7 +19,7 @@ A simple double pendulum model, as illustrated in :num:`Fig. #double-pendulum` b
 
 The accompanying JSON file is shown below:
 
-.. literalinclude:: double_pendulum.json
+.. literalinclude:: ../../../src/models/pendulum/double_pendulum.json
     :language: json
 
 

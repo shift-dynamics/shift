@@ -619,7 +619,9 @@ s2_context_t* s2_context_load(
 void s2_context_setTerrainPointers(
   s2_context_t*);
 
+
 void s2_context_setBoundingSpheres(s2_context_t*);
+
 
 void s2_context_updateBoundingSpheres(s2_context_t*);
 

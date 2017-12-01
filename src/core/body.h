@@ -70,7 +70,7 @@ typedef struct s2_body_t {
   s2_frame_t* frameHead; /*!< head of Frame linked list */
   s2_frame_t* frameTail; /*!< tail of Frame linked list */
 
-  s2_frame_t* referenceFrame; /*! pointer to Body's unique reference frame,
+  s2_frame_t* referenceFrame; /*!< pointer to Body's unique reference frame,
                                     which  may not be the Frame's origin.
                                     Assigned automatically by
                                     s2_ProcessTopology */
