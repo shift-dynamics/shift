@@ -87,8 +87,8 @@
     "terrain": [
       {
         "name": "sinxx+cosyy",
-        "definition": "sinxx+cosyy.tiff",
-        "texture": "Seamless_dirty_concrete_wall_texture.jpg",
+        "elevation_map": "sinxx+cosyy.tiff",
+        "texture": ":/textures/concrete_wall.jpg",
         "property_map": null,
         "parent": ["fixed", "origin"],
         "x_scale": 0.2,

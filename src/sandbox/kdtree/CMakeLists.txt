@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 2.8.11)
 project(kdtree)
 
 
-
-
-
 ## find Jansson and math libraries ##
 list(INSERT CMAKE_MODULE_PATH 0 "${kdtree_SOURCE_DIR}/cmake")
 if(APPLE)
