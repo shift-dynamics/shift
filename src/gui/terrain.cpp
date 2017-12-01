@@ -72,12 +72,12 @@ void s2_Terrain::loadContext() {
         QOpenGLTexture::Float32,
         depthFloat);
       checkError("after setData");
-
       free(depthFloat);
 
 
+      qDebug() << "creating terrain texture:" << terrain->textureFileName;
       m_terrainObjects[i].textureColor =
-        new QOpenGLTexture(QOpenGLTexture::Target2D);
+        new QOpenGLTexture(QImage(terrain->textureFileName));
       checkError("terrain: after new color texture");
 
       m_terrainObjects[i].textureColor->setFormat(
@@ -93,11 +93,6 @@ void s2_Terrain::loadContext() {
 
       // qDebug() << "allocating color texture with size: " <<
       //   elevationMap->textureColumns << "," << elevationMap->textureRows;
-
-      m_terrainObjects[i].textureColor->setSize(
-        terrain->textureColumns,
-        terrain->textureRows,
-        1);
       checkError("after set size");
 
       m_terrainObjects[i].textureColor->allocateStorage();
@@ -107,10 +102,10 @@ void s2_Terrain::loadContext() {
       //   printf("[%lu]: %d\n", j, terrain->texture[j]);
       // }
 
-      m_terrainObjects[i].textureColor->setData(
-        QOpenGLTexture::RGBA,
-        QOpenGLTexture::UInt8,
-        terrain->texture);
+      // m_terrainObjects[i].textureColor->setData(
+      //   QOpenGLTexture::RGBA,
+      //   QOpenGLTexture::UInt8,
+      //   terrain->texture);
       checkError("after setData color texture");
 
     }

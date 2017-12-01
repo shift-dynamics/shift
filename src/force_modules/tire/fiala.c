@@ -217,8 +217,7 @@ void s2_tire_fiala_update(
   0 in height and {0, 0, 1} in tire->terrainNormal */
   s2_terrain_getHeightAndSAENormal(
     context,
-    wheelCenter->x,
-    wheelCenter->y,
+    wheelCenter,
     &terrainHeight,
     &tire->terrainNormal);
 
@@ -269,8 +268,7 @@ void s2_tire_fiala_update(
 
   s2_terrain_getHeightAndSAENormal(
     context,
-    ptD.x,
-    ptD.y,
+    &ptD,
     &terrainHeight,
     &tire->terrainNormal);
   // printf("ptD.z: %f\n", ptD.z);
