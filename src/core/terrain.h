@@ -1,4 +1,6 @@
 #include "../star2.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <wand/MagickWand.h>
 
 #ifndef _STAR2_TERRAIN_H_
@@ -38,8 +40,8 @@ typedef struct s2_terrain_t {
 
   s2_coordinate_convention_enum_t coordinateConvention; /*!< ISO or SAE coordinate system */
 
-  double xScale;             /*!< uniform scale factor for x dimension */
-  double yScale;             /*!< uniform scale factor for y dimension */
+  double scale[2];  /*!< scale factor for x,y dimensions of elevation map */
+  double textureScale[2]; /*!< scale factor for x,y texture dimensions */
 
   double zMin;               /*!< minimum z height in surface */
   double zMax;               /*!< maximum z height in surface */
@@ -72,9 +74,10 @@ typedef struct s2_terrain_t {
 
   char* elevationMapFileName;
   char* propertyMapFileName;
-  char* textureFileName;
-  char* displacementMapFileName;
+  char* diffuseMapFileName;
   char* specularMapFileName;
+  char* normalMapFileName;
+  char* bumpMapFileName;
 } s2_terrain_t;
 
 
@@ -91,7 +94,18 @@ int s2_terrain_load(
   s2_stackstr_t* prefix);
 
 
-void generateSampleHeightMap(const char* filename);
+void s2_generateGDALSampleTerrain(
+  const char* filename,
+  int,
+  int,
+  void(*surface)(double, double, double*));
+
+
+void s2_generateSampleTerrain(
+  const char* filename,
+  int,
+  int,
+  void(*surface)(double, double, double*));
 
 
 double s2_terrain_get(
@@ -178,8 +192,12 @@ void s2_terrain_setInterpolationConvention(
 int s2_terrain_setElevationMap(
   s2_terrain_t* terrain,
   const char* elevationMapFileName,
-  double xScale,
-  double yScale);
+  double scale[2]);
+
+
+int s2_terrain_setGDALElevationMap(
+  s2_terrain_t* terrain,
+  const char* elevationMapFileName);
 
 
 int s2_terrain_setPropertyMap(
@@ -187,14 +205,15 @@ int s2_terrain_setPropertyMap(
   const char* propertyMapFileName);
 
 
-void s2_terrain_setTexture(
+void s2_terrain_setDiffuseMap(
   s2_terrain_t* terrain,
-  const char* textureFileName);
+  const char* diffuseMapFileName,
+  double scale[2]);
 
 
-void s2_terrain_setDisplacementMap(
+void s2_terrain_setBumpMap(
   s2_terrain_t* terrain,
-  const char* displacementMapFileName);
+  const char* bumpMapFileName);
 
 
 void s2_terrain_setSpecularMap(

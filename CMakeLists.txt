@@ -24,6 +24,28 @@ find_package(Qhull REQUIRED)
 find_package(ImageMagick REQUIRED)
 find_package(ImageMagick COMPONENTS MagickWand REQUIRED)
 
+# build gdal submodule
+add_custom_target(gdal
+  COMMAND make
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal
+  COMMENT "Building GDAL"
+  DEPENDS ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/makefile.vc
+  BYPRODUCTS ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/libgdal.la
+  VERBATIM)
+
+add_custom_target(gdal_configure
+  COMMAND ./configure
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal
+  COMMENT "Configuring GDAL"
+  BYPRODUCTS ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/makefile.vc
+  VERBATIM)
+
+# find gdal submodule
+set(ENV{GDAL_ROOT} ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal)
+set(ENV{GDAL_DIR} ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/apps)
+find_package(GDAL REQUIRED)
+
+
 set(LIBS
   ${ASSIMP_LIBRARIES}
   ${GRAPHVIZ_GVC_LIBRARY}
@@ -34,7 +56,8 @@ set(LIBS
   ${CBLAS_LIBRARIES}
   ${ImageMagick_LIBRARIES}
   ${ImageMagick_MagickWand_LIBRARIES}
-  ${QHULL_LIBRARIES})
+  ${QHULL_LIBRARIES}
+  ${GDAL_LIBRARIES})
 message("using libraries: " ${LIBS})
 message("qhull: " ${QHULL_LIBRARIES})
 
@@ -85,6 +108,7 @@ include_directories(
   ${ImageMagick_INCLUDE_DIRS}
   ${ImageMagick_MagickWand_INCLUDE_DIRS}
   ${QHULL_INCLUDE_DIRS}
+  ${GDAL_INCLUDE_DIRS}
 )
 
 add_library(ksl STATIC
@@ -151,6 +175,10 @@ add_definitions(-Wextra)
 ### build command line test applications ###
 add_executable(star2_cli ${star2_SOURCE_DIR}/src/application/star2_cli.c)
 target_link_libraries(star2_cli star2_lib ode113_lib ksl ${LIBS})
+add_dependencies(star2_cli gdal)
+
+message(STATUS "LIBS:" ${LIBS})
+
 
 add_executable(7r_robot ${star2_SOURCE_DIR}/src/application/7r_robot.c)
 target_link_libraries(7r_robot star2_lib ode113_lib ${LIBS})
@@ -247,7 +275,7 @@ add_definitions(-g)
 # add_definitions(relro)
 
 add_executable(star2 ${GUI_SOURCES})
-add_dependencies(star2 license about)
+add_dependencies(star2 license about gdal)
 qt5_use_modules(star2 Core Widgets OpenGL Gui Svg)
 target_link_libraries(star2
   star2_lib
@@ -256,8 +284,7 @@ target_link_libraries(star2
   ${OPENGL_LIBRARIES}
   stdc++
   ${CBLAS_LIBRARIES}
-  ${LIBS}
-)
+  ${LIBS})
 
 file(COPY
     ${star2_SOURCE_DIR}/src/models

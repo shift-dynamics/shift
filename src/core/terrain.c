@@ -7,6 +7,10 @@
 #include "terrain.h"
 #include "body.h"
 
+#include "gdal.h"
+#include "cpl_conv.h"
+#include "ogr_srs_api.h"
+
 
 /*!
 @brief constructor for s2_terrain_t
@@ -35,8 +39,10 @@ s2_terrain_t* s2_terrain() {
 
   terrain->columns = 0;
   terrain->rows = 0;
-  terrain->xScale = 1.0;
-  terrain->yScale = 1.0;
+  terrain->scale[0] = 1.0;
+  terrain->scale[1] = 1.0;
+  terrain->textureScale[0] = 1.0;
+  terrain->textureScale[1] = 1.0;
   terrain->interpolationType = S2_INTERPOLATION_BILINEAR;
   terrain->coordinateConvention = S2_COORDINATECONVENTION_SAE;
   terrain->name = NULL;
@@ -45,6 +51,14 @@ s2_terrain_t* s2_terrain() {
   terrain->parentFrame = NULL;
   terrain->parentFramePointer = NULL;
   terrain->isVisible = true;
+
+  terrain->elevationMapFileName = NULL;
+  terrain->propertyMapFileName = NULL;
+  terrain->diffuseMapFileName = NULL;
+  terrain->specularMapFileName = NULL;
+  terrain->normalMapFileName = NULL;
+  terrain->bumpMapFileName = NULL;
+
   return terrain;
 }
 
@@ -74,19 +88,24 @@ void s2_terrain_free(s2_terrain_t* terrain) {
     terrain->propertyMapFileName = NULL;
   }
 
-  if(terrain->textureFileName) {
-    free(terrain->textureFileName);
-    terrain->textureFileName = NULL;
+  if(terrain->diffuseMapFileName) {
+    free(terrain->diffuseMapFileName);
+    terrain->diffuseMapFileName = NULL;
   }
 
-  if(terrain->displacementMapFileName) {
-    free(terrain->displacementMapFileName);
-    terrain->displacementMapFileName = NULL;
+  if(terrain->normalMapFileName) {
+    free(terrain->normalMapFileName);
+    terrain->normalMapFileName = NULL;
   }
 
   if(terrain->specularMapFileName) {
     free(terrain->specularMapFileName);
     terrain->specularMapFileName = NULL;
+  }
+
+  if(terrain->bumpMapFileName) {
+    free(terrain->bumpMapFileName);
+    terrain->bumpMapFileName = NULL;
   }
 
   free(terrain);
@@ -115,8 +134,16 @@ char* getValidFilePath(
     return validFilePath;
   }
 
-  s2_stackstrnode_t* includeDirectoryHead = includeDirectory->head;
+  /* check if the user has specified an absolute directory first, in which case there is no need to check any of the include directories */
+  asprintf(
+    &validFilePath,
+    "%s",
+    fileName);
+  if(access(validFilePath, F_OK) != -1) {
+    return validFilePath;
+  }
 
+  s2_stackstrnode_t* includeDirectoryHead = includeDirectory->head;
   while(includeDirectoryHead) {
     asprintf(
       &validFilePath,
@@ -131,7 +158,6 @@ char* getValidFilePath(
     }
     includeDirectoryHead = includeDirectoryHead->next;
   }
-
   return validFilePath;
 }
 
@@ -145,8 +171,7 @@ int s2_terrain_load(
   s2_context_t* context,
   s2_stackstr_t* prefix) {
 
-  json_t* terrainsObject =
-    json_object_get(assemblyObject, "terrain");
+  json_t* terrainsObject = json_object_get(assemblyObject, "terrain");
 
   if(json_is_array(terrainsObject)) {
     size_t index;
@@ -172,29 +197,38 @@ int s2_terrain_load(
             terrainObject,
             "elevation_map"));
 
+      printf("elevation map file path: %s\n", elevationMapFilePath);
+
       char* fullElevationMapFilePath =
         getValidFilePath(
           context->modelParameters.includeDirectory,
           elevationMapFilePath);
 
-      /* get x scale factor, defaults to 1 if no x scale provided */
-      double x_scale = 1.0;
-      json_t* xScaleObject =
-        json_object_get(terrainObject, "x_scale");
-      if(xScaleObject != NULL) {
-        x_scale = json_number_value(xScaleObject);
-      }
+      printf("full elevation map file path: %s\n", fullElevationMapFilePath);
 
-      /* get y scale factor, defaults to 1 if no y scale provided */
-      double y_scale = 1.0;
-      json_t* yScaleObject =
-        json_object_get(terrainObject, "y_scale");
-      if(yScaleObject != NULL) {
-        y_scale = json_number_value(yScaleObject);
+      /* get x,y scale factor, defaults to 1 if no scale provided */
+      double scale[2] = {1.0, 1.0};
+
+      json_t* scaleObject = json_object_get(terrainObject, "scale");
+      if(scaleObject != NULL) {
+        if(json_is_number(scaleObject)) {
+          scale[0] = scale[1] = json_number_value(scaleObject);
+        } else if(json_is_array(scaleObject)) {
+          size_t index;
+          json_t* value;
+          json_array_foreach(scaleObject, index, value) {
+            if(json_is_number(value)) {
+              scale[index] = json_number_value(value);
+              if(index > 1) {
+                break;
+              }
+            }
+          }
+        }
       }
 
       s2_terrain_setElevationMap(
-        terrain, fullElevationMapFilePath, x_scale, y_scale);
+        terrain, fullElevationMapFilePath, scale);
 
       if(fullElevationMapFilePath) {
         free(fullElevationMapFilePath);
@@ -219,38 +253,57 @@ int s2_terrain_load(
       }
 
 
-      const char* textureFilePath =
+      const char* diffuseMapFilePath =
         json_string_value(
           json_object_get(
             terrainObject,
-            "texture"));
+            "diffuse_map"));
 
-      char* fullTextureFilePath =
+      char* fullDiffuseMapFilePath =
         getValidFilePath(
           context->modelParameters.includeDirectory,
-          textureFilePath);
+          diffuseMapFilePath);
 
-      s2_terrain_setTexture(terrain, fullTextureFilePath);
-      if(fullTextureFilePath) {
-        free(fullTextureFilePath);
+      double texture_scale[2] = {1.0, 1.0};
+
+      scaleObject = json_object_get(terrainObject, "texture_scale");
+      if(scaleObject != NULL) {
+        if(json_is_number(scaleObject)) {
+          texture_scale[0] = texture_scale[1] = json_number_value(scaleObject);
+        } else if(json_is_array(scaleObject)) {
+          size_t index;
+          json_t* value;
+          json_array_foreach(scaleObject, index, value) {
+            if(json_is_number(value)) {
+              texture_scale[index] = json_number_value(value);
+              if(index > 1) {
+                break;
+              }
+            }
+          }
+        }
       }
 
+      s2_terrain_setDiffuseMap(terrain, fullDiffuseMapFilePath, texture_scale);
+      if(fullDiffuseMapFilePath) {
+        free(fullDiffuseMapFilePath);
+      }
 
-      const char* displacementMapFilePath =
+      const char* normalMapFilePath =
         json_string_value(
           json_object_get(
             terrainObject,
-            "displacement_map"));
+            "normal_map"));
 
-      char* fullDisplacementMapFilePath =
+      char* fullNormalMapFilePath =
         getValidFilePath(
           context->modelParameters.includeDirectory,
-          displacementMapFilePath);
+          normalMapFilePath);
 
-      s2_terrain_setDisplacementMap(terrain, fullDisplacementMapFilePath);
+      s2_terrain_setNormalMap(terrain, fullNormalMapFilePath);
 
-      if(fullDisplacementMapFilePath) {
-        free(fullDisplacementMapFilePath);
+      if(fullNormalMapFilePath) {
+        free(fullNormalMapFilePath);
       }
 
 
@@ -269,6 +322,24 @@ int s2_terrain_load(
 
       if(fullSpecularMapFilePath) {
         free(fullSpecularMapFilePath);
+      }
+
+
+      const char* bumpMapFilePath =
+        json_string_value(
+          json_object_get(
+            terrainObject,
+            "bump_map"));
+
+      char* fullBumpMapFilePath =
+        getValidFilePath(
+          context->modelParameters.includeDirectory,
+          bumpMapFilePath);
+
+      s2_terrain_setBumpMap(terrain, fullBumpMapFilePath);
+
+      if(fullBumpMapFilePath) {
+        free(fullBumpMapFilePath);
       }
 
 
@@ -308,7 +379,7 @@ int s2_terrain_load(
       if(colorObject != NULL) {
         if(json_is_array(colorObject)) {
           size_t index;
-          json_t *value;
+          json_t* value;
           float Kd[4] = {0.0, 0.0, 0.0, 1.0};
           json_array_foreach(colorObject, index, value) {
             if(json_is_number(value) && index < 4) {
@@ -442,6 +513,160 @@ void s2_terrain_setInterpolationConvention(
 }
 
 
+void s2_image_properties(MagickWand* image) {
+
+  printf(
+    "  quantum-format: %s\n",
+    MagickGetImageProperty(image, "quantum:format"));
+
+  printf("  quantum-depth: %lu\n", MagickGetImageDepth(image));
+
+  size_t quantumRange;
+  printf(
+    "  quantum-range: %s\n", MagickGetQuantumRange(&quantumRange));
+
+  printf("  format: %s\n", MagickGetFormat(image));
+}
+
+
+/*!
+@brief generate sample terrain using GDAL interface
+*/
+void s2_generateGDALSampleTerrain(
+  const char* filename,
+  int rows,
+  int columns,
+  void (*surface)(double x, double y, double* z)) {
+
+  GDALAllRegister();
+  GDALDriverH hDriver = GDALGetDriverByName("GTiff");
+  char** gdalOptions = NULL;
+  GDALDatasetH hDataset =
+    GDALCreate(hDriver, filename, 64, 64, 1, GDT_Float32, gdalOptions);
+  if(hDataset == NULL) {
+    fprintf(stderr, "failed to open file\n");
+    return;
+  }
+
+  double geoTransform[6] = {
+    444720.0,  /*!< top left x */
+    1.5,      /*!< w-e (x) pixel resolution */
+    0.0,       /*!< 0 */
+    3751320.0, /*!< top left y */
+    0.0,       /*!< 0 */
+    -1.5};    /*!< n-s pixel resolution (negative value) */
+  GDALSetGeoTransform(hDataset, geoTransform);
+
+  OGRSpatialReferenceH hSRS = OSRNewSpatialReference(NULL);
+  OSRSetUTM(hSRS, 11, TRUE);
+  OSRSetWellKnownGeogCS(hSRS, "NAD27");
+
+  char* pszSRS_WKT = NULL;
+  OSRExportToWkt(hSRS, &pszSRS_WKT);
+  OSRDestroySpatialReference(hSRS);
+  GDALSetProjection(hDataset, pszSRS_WKT);
+  CPLFree(pszSRS_WKT);
+
+  float data[rows * columns];
+  double z;
+  for(int y = 0; y < columns; y++) {
+    for(int x = 0; x < rows; x++) {
+      surface(x, y, &z);
+      data[y * rows + x] = (float)z;
+    }
+  }
+
+  GDALRasterBandH hBand = GDALGetRasterBand(hDataset, 1);
+  GDALRasterIO(hBand, GF_Write, 0, 0, rows, columns,
+               data, rows, columns, GDT_Float32, 0, 0);
+
+  GDALClose(hDataset);
+}
+
+
+/*! @brief generates a sample terrain using provided "surface" function
+saves to 32 bit tiff floating point format.  */
+void s2_generateSampleTerrain(
+  const char* filename,
+  int rows,
+  int columns,
+  void (*surface)(double x, double y, double* z)) {
+
+  MagickWandGenesis();
+  ssize_t y;
+  register ssize_t x;
+  size_t width;
+
+  MagickBooleanType status;
+  MagickWand* image = NewMagickWand();
+	PixelWand* pixelWand = NewPixelWand();
+
+  status = MagickNewImage(image, columns, rows, pixelWand);
+  if(status == MagickFalse) {
+    fprintf(stderr, "failed to set size\n");
+  }
+
+  status = MagickSetDepth(image, 32);
+  if(status == MagickFalse) {
+    fprintf(stderr, "failed to set quantum depth\n");
+  }
+
+  status = MagickSetOption(image, "quantum:format", "floating-point");
+  if(status == MagickFalse) {
+    fprintf(stderr, "failed to set floating point quantum format\n");
+  }
+
+  status = MagickSetType(image, GrayscaleType);
+  if(status == MagickFalse) {
+    fprintf(stderr, "failed to set GrayScaleType\n");
+  }
+
+  s2_image_properties(image);
+
+  /* image magick convention is that y is the left ordinate of view,
+  i.e. the row index. x is the top ordinate of the view. Therefore, z
+  is pointing down. This follows the SAE coordinate system for vehicle dynamics.
+   */
+  double z;
+  PixelIterator* iterator = NewPixelIterator(image);
+  if (iterator == (PixelIterator *) NULL) {
+    ThrowWandException(image);
+  }
+
+  for(y = 0; y < (ssize_t) MagickGetImageHeight(image); y++) {
+
+    PixelWand** pixels = PixelGetNextIteratorRow(iterator, &width);
+    if(pixels == (PixelWand **) NULL) {
+      break;
+    }
+
+    for(x = 0; x < (ssize_t) width; x++) {
+      surface(x, y, &z);
+      PixelSetRed(pixels[x], z);
+      if(fabs(z - PixelGetRed(pixels[x])) > 1e-6) {
+        fprintf(stderr, "%f != %f\n", z, PixelGetRed(pixels[x]));
+      }
+    }
+
+    (void) PixelSyncIterator(iterator);
+  }
+
+  if (y < (long) MagickGetImageHeight(image)) {
+    ThrowWandException(image);
+  }
+
+  /* Write the image then destroy it. */
+  status = MagickWriteImages(image, filename, MagickTrue);
+  if(status == MagickFalse) {
+    ThrowWandException(image);
+  }
+
+  iterator = DestroyPixelIterator(iterator);
+  image = DestroyMagickWand(image);
+  MagickWandTerminus();
+}
+
+
 /*!
 @brief sets elevation map file location and loads elevation map from memory
 @return status, 0 indicates success, -1 indicates no valid file was found and
@@ -449,10 +674,11 @@ void s2_terrain_setInterpolationConvention(
 int s2_terrain_setElevationMap(
   s2_terrain_t* terrain,
   const char* elevationMapFileName,
-  double xScale,
-  double yScale) {
+  double scale[2]) {
 
   MagickWandGenesis();
+
+  printf("attempting to open %s\n", elevationMapFileName);
 
   /* load elevation map using imagemagick */
   if(elevationMapFileName == NULL) {
@@ -465,6 +691,7 @@ int s2_terrain_setElevationMap(
     return -1;
   }
   terrain->elevationMapFileName = strdup(elevationMapFileName);
+  memcpy(terrain->scale, scale, 2 * sizeof(double));
 
   /* initialize elevation map, set all values to zero */
   if(terrain->controlPoints) {
@@ -473,10 +700,8 @@ int s2_terrain_setElevationMap(
   }
   terrain->zMin = DBL_MAX;
   terrain->zMax = -DBL_MAX;
-  unsigned long columns = MagickGetImageWidth(image);
-  unsigned long rows = MagickGetImageHeight(image);
-  terrain->columns = columns;
-  terrain->rows = rows;
+  unsigned long columns = terrain->columns = MagickGetImageWidth(image);
+  unsigned long rows = terrain->rows = MagickGetImageHeight(image);
 
   printf(
     "Loading elevation map %s with size (%lu, %lu)\n",
@@ -489,12 +714,7 @@ int s2_terrain_setElevationMap(
   top ordinate of view (column index) and y as left ordinate of view
   (row index), and +z is pointing down */
 
-  const char* option = MagickGetImageProperty(image, "quantum:format");
-  printf("%s ", option);
-
-  float depth = MagickGetImageDepth(image);
-  printf("with depth: %f\n", depth);
-  // MagickSetOption(image, "quantum:format", "floating-point");
+  s2_image_properties(image);
 
   unsigned long width;
   PixelIterator* iterator = NewPixelIterator(image);
@@ -507,10 +727,10 @@ int s2_terrain_setElevationMap(
 
     for(register long x = 0; x < (long) width; x++) {
       // PixelGetMagickColor(pixels[x], &pixel);
-      // printf("%f\n", PixelGetRedQuantum(pixels[x]));
+      // printf("%f\n", PixelGetRed(pixels[x]));
 
-      terrain->controlPoints[y * columns + x] =
-        (double)PixelGetRedQuantum(pixels[x]);
+      double value = PixelGetRed(pixels[x]);
+      terrain->controlPoints[y * columns + x] = value;
       terrain->zMax =
         fmax(
           terrain->controlPoints[y * columns + x],
@@ -527,6 +747,49 @@ int s2_terrain_setElevationMap(
   image = DestroyMagickWand(image);
 
   MagickWandTerminus();
+  s2_terrain_setGetZ(terrain);
+
+  return 0;
+}
+
+
+/*!
+@brief sets elevation map file location and loads elevation map from memory
+@return status, 0 indicates success, -1 indicates no valid file was found and
+*/
+int s2_terrain_setGDALElevationMap(
+  s2_terrain_t* terrain,
+  const char* elevationMapFileName) {
+
+  GDALAllRegister();
+  GDALDatasetH hDataset = GDALOpen(elevationMapFileName, GA_ReadOnly);
+  if(hDataset == NULL) {
+    fprintf(stderr, "failed to open GDAL dataset\n");
+    return;
+  }
+  GDALDriverH hDriver = GDALGetDatasetDriver(hDataset);
+  printf(
+    "Driver: %s/%s\n",
+    GDALGetDriverShortName(hDriver),
+    GDALGetDriverLongName(hDriver));
+  printf(
+    "Size is %dx%dx%d\n",
+    GDALGetRasterXSize(hDataset),
+    GDALGetRasterYSize(hDataset),
+    GDALGetRasterCount(hDataset));
+  if(GDALGetProjectionRef(hDataset) != NULL) {
+    printf("Projection is `%s'\n", GDALGetProjectionRef(hDataset));
+  }
+  double geoTransform[6];
+  if(GDALGetGeoTransform(hDataset, geoTransform) == CE_None) {
+    printf("Origin = (%.6f,%.6f)\n",
+           geoTransform[0], geoTransform[3]);
+    printf("Pixel Size = (%.6f,%.6f)\n",
+           geoTransform[1], geoTransform[5]);
+  }
+
+  GDALClose(hDataset);
+
   s2_terrain_setGetZ(terrain);
 
   return 0;
@@ -601,29 +864,31 @@ int s2_terrain_setPropertyMap(
 /*!
 @brief sets visual texture file location, does not load from memory
 */
-void s2_terrain_setTexture(
+void s2_terrain_setDiffuseMap(
   s2_terrain_t* terrain,
-  const char* textureFileName) {
+  const char* diffuseMapFileName,
+  double scale[2]) {
 
-  if(textureFileName) {
-    terrain->textureFileName = strdup(textureFileName);
+  if(diffuseMapFileName) {
+    terrain->diffuseMapFileName = strdup(diffuseMapFileName);
   } else {
-    terrain->textureFileName = NULL;
+    terrain->diffuseMapFileName = NULL;
   }
+  memcpy(terrain->textureScale, scale, 2 * sizeof(double));
 }
 
 
 /*!
-@brief sets displacement map file location, does not load from memory
+@brief sets normal map file location, does not load into memory in core solver. only used in GUI.
 */
-void s2_terrain_setDisplacementMap(
+void s2_terrain_setNormalMap(
   s2_terrain_t* terrain,
-  const char* displacementMapFileName) {
+  const char* normalMapFileName) {
 
-  if(displacementMapFileName) {
-    terrain->displacementMapFileName = strdup(displacementMapFileName);
+  if(normalMapFileName) {
+    terrain->normalMapFileName = strdup(normalMapFileName);
   } else {
-    terrain->displacementMapFileName = NULL;
+    terrain->normalMapFileName = NULL;
   }
 }
 
@@ -644,82 +909,17 @@ void s2_terrain_setSpecularMap(
 
 
 /*!
-@brief generate a simple surface used to test elevation maps
+@brief sets bump map file location, does not load from memory
 */
-double surface(double x, double y) {
-  // return sin((y - 10.0) * (pow(x, 0.5) - 5.0) / 500.0) * 3.0 + 2.0;
+void s2_terrain_setBumpMap(
+  s2_terrain_t* terrain,
+  const char* bumpMapFileName) {
 
-  return ((20.0 * sin(y / 5.0 - 2.0) * (pow(x, 0.5) - 5.0) / 50.0)) + 2.0;
-}
-
-
-/*! @brief generates a sample terrain using surface function
-saves to 32 bit tiff floating point format.  */
-void generateSampleTerrain(const char* filename) {
-
-  MagickWandGenesis();
-  ssize_t y;
-  register ssize_t x;
-  size_t width;
-
-  MagickBooleanType status;
-  MagickWand* image = NewMagickWand();
-	PixelWand* pixelWand = NewPixelWand();
-
-  status = MagickNewImage(image, 64, 64, pixelWand);
-  if(status == MagickFalse) {
-    fprintf(stderr, "failed to set size\n");
+  if(bumpMapFileName) {
+    terrain->bumpMapFileName = strdup(bumpMapFileName);
+  } else {
+    terrain->bumpMapFileName = NULL;
   }
-
-  status = MagickSetDepth(image, 32);
-  if(status == MagickFalse) {
-    fprintf(stderr, "failed to set quantum depth\n");
-  }
-
-  status = MagickSetType(image, GrayscaleType);
-  if(status == MagickFalse) {
-    fprintf(stderr, "failed to set GrayScaleType\n");
-  }
-
-  MagickSetOption(image, "quantum:format", "floating-point");
-
-  /* image magick convention is that y is the left ordinate of view,
-  i.e. the row index. x is the top ordinate of the view. Therefore, z
-  is pointing down. This follows the SAE coordinate system for vehicle dynamics.
-   */
-  PixelIterator* iterator = NewPixelIterator(image);
-  if (iterator == (PixelIterator *) NULL) {
-    ThrowWandException(image);
-  }
-
-  for(y = 0; y < (ssize_t) MagickGetImageHeight(image); y++) {
-
-    PixelWand** pixels = PixelGetNextIteratorRow(iterator, &width);
-    if(pixels == (PixelWand **) NULL) {
-      break;
-    }
-
-    for(x = 0; x < (ssize_t) width; x++) {
-      PixelSetRedQuantum(pixels[x], surface(x, y));
-      // printf("%f -> %f\n",  surface(x, y), PixelGetRedQuantum(pixels[x]));
-    }
-
-    (void) PixelSyncIterator(iterator);
-  }
-
-  if (y < (long) MagickGetImageHeight(image)) {
-    ThrowWandException(image);
-  }
-
-  /* Write the image then destroy it. */
-  status = MagickWriteImages(image, filename, MagickTrue);
-  if(status == MagickFalse) {
-    ThrowWandException(image);
-  }
-
-  iterator = DestroyPixelIterator(iterator);
-  image = DestroyMagickWand(image);
-  MagickWandTerminus();
 }
 
 
@@ -811,8 +1011,8 @@ double s2_terrain_getZ_bilinear_sae(
   s2_product_dinversev(terrain->parentFramePointer->dAbsolute, r_0p, &r_1p);
 
   /* get x and y values in original height map */
-  double xPos = r_1p.x / terrain->xScale;
-  double yPos = r_1p.y / terrain->yScale;
+  double xPos = r_1p.x / terrain->scale[0];
+  double yPos = r_1p.y / terrain->scale[1];
 
   /* calculate i,j index into map. row index i is y dimension, column index j is x dimension */
   int j0 = clamp_int(floor(xPos), 0, terrain->columns);
@@ -857,8 +1057,8 @@ double s2_terrain_getZ_bilinear_iso(
   s2_product_dinversev(terrain->parentFramePointer->dAbsolute, r_0p, &r_1p);
 
   /* get x and y values in original height map */
-  double xPos = r_1p.x / terrain->xScale;
-  double yPos = r_1p.y / terrain->yScale;
+  double xPos = r_1p.x / terrain->scale[0];
+  double yPos = r_1p.y / terrain->scale[1];
 
   /* calculate i,j index into map. row index i is x dimension, column index j is y dimension */
   int i0 = clamp_int(floor(xPos), 0, terrain->rows);
@@ -903,8 +1103,8 @@ double s2_terrain_getZ_bicubic_sae(
   s2_product_dinversev(terrain->parentFramePointer->dAbsolute, r_0p, &r_1p);
 
   /* get x and y values in original height map */
-  double xPos = r_1p.x / terrain->xScale;
-  double yPos = r_1p.y / terrain->yScale;
+  double xPos = r_1p.x / terrain->scale[0];
+  double yPos = r_1p.y / terrain->scale[1];
 
   printf("xPos: %f, yPos: %f\n", xPos, yPos);
   printf(
@@ -991,7 +1191,7 @@ double s2_terrain_getZ_bicubic_sae(
     wi2_u * s2_terrain_get(terrain, i2, j3) * wj3 +
     wi3_u * s2_terrain_get(terrain, i3, j3) * wj3;
 
-  z_y /= terrain->yScale;
+  z_y /= terrain->scale[1];
 
   /* compute partial derivative of [v^3,v^2, v, 1] with respect to v */
   double wj0_v = -0.5 * v2 + v - 0.5;
@@ -1020,7 +1220,7 @@ double s2_terrain_getZ_bicubic_sae(
     wi2 * s2_terrain_get(terrain, i2, j3) * wj3_v +
     wi3 * s2_terrain_get(terrain, i3, j3) * wj3_v;
 
-  z_x /= terrain->xScale;
+  z_x /= terrain->scale[0];
 
   normal->x = z_x;
   normal->y = z_y;
@@ -1046,8 +1246,8 @@ double s2_terrain_getZ_bicubic_iso(
   s2_product_dinversev(terrain->parentFramePointer->dAbsolute, r_0p, &r_1p);
 
   /* get x and y values in original height map */
-  double xPos = r_1p.x / terrain->xScale;
-  double yPos = r_1p.y / terrain->yScale;
+  double xPos = r_1p.x / terrain->scale[0];
+  double yPos = r_1p.y / terrain->scale[1];
 
   /* calculate i,j index into map. row index i is y dimension, column index j is x dimension */
 
@@ -1128,7 +1328,7 @@ double s2_terrain_getZ_bicubic_iso(
     wi2_u * s2_terrain_get(terrain, i2, j3) * wj3 +
     wi3_u * s2_terrain_get(terrain, i3, j3) * wj3;
 
-  z_x /= terrain->xScale;
+  z_x /= terrain->scale[0];
 
   /* compute partial derivative of [v^3,v^2, v, 1] with respect to v */
   double wj0_v = -0.5 * v2 + v - 0.5;
@@ -1157,7 +1357,7 @@ double s2_terrain_getZ_bicubic_iso(
     wi2 * s2_terrain_get(terrain, i2, j3) * wj3_v +
     wi3 * s2_terrain_get(terrain, i3, j3) * wj3_v;
 
-  z_y /= terrain->yScale;
+  z_y /= terrain->scale[1];
 
   normal->x = -z_x;
   normal->y = -z_y;

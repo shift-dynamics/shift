@@ -65,9 +65,11 @@ public:
 
   void setZExtents(GLfloat, GLfloat);
 
+  void setScale(GLfloat, GLfloat);
+
   void setViewPort(GLfloat, GLfloat);
 
-  void setTextureDisplacement(QOpenGLTexture*);
+  void setTextureElevation(QOpenGLTexture*);
 
   void setUniforms(s2_terrain_t*);
 
@@ -86,13 +88,10 @@ private:
 
   GLint m_terrain_zMin_u;
   GLint m_terrain_zMax_u;
-  GLint m_terrain_xScale_u;
-  GLint m_terrain_yScale_u;
-  GLint m_terrain_xRange_u;
-  GLint m_terrain_yRange_u;
+  GLint m_terrain_scale_u;
   GLint m_terrain_viewport_u;
 
-  GLint m_texture_displacement_u;
+  GLint m_texture_elevation_u;
 
   QOpenGLVertexArrayObject* m_vao;
 
