@@ -1,9 +1,12 @@
 #version 420 core
 
 /* terrain.vert */
-
-layout (binding = 1) uniform sampler2D texture_displacement_u;
-layout (binding = 2) uniform sampler2D texture_color_u;
+layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
+layout (binding = 1) uniform sampler2D texture_elevation_u;
+layout (binding = 2) uniform sampler2D texture_diffuse_u;
+layout (binding = 3) uniform sampler2D texture_normal_u;
+layout (binding = 4) uniform sampler2D texture_specular_u;
+layout (binding = 5) uniform sampler2D texture_bump_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -12,7 +15,6 @@ struct matrices_t {
   mat4 p;
   mat3 nm;
 };
-
 uniform matrices_t matrices_u;
 
 struct material_t {
@@ -21,7 +23,6 @@ struct material_t {
   float KsOverKd;
   int Ns;
 };
-
 uniform material_t material_u;
 
 struct lights_t {
@@ -34,19 +35,19 @@ struct lights_t {
   int drawShadows; /*!< 0 = false, 1 = true */
   mat4 shadowMatrix[10];
 };
-
 uniform lights_t lights_u;
 
 struct terrain_t {
   float zMin;
   float zMax;
-  float xScale;
-  float yScale;
-  float xRange;
-  float yRange;
+  vec2 scale;
+  vec2 tcScale;
   vec2 viewport;
+  int enableDiffuseMap;
+  int enableNormalMap;
+  int enableSpecularMap;
+  int enableBumpMap;
 };
-
 uniform terrain_t terrain_u;
 
 out VS_OUT {
@@ -59,12 +60,21 @@ void main(void) {
     vec4(1.0, 0.0, 0.0, 1.0),
     vec4(0.0, 1.0, 0.0, 1.0),
     vec4(1.0, 1.0, 0.0, 1.0));
-  int width = 64;
-  int x = gl_InstanceID % width; // grid width
-  int y = gl_InstanceID / width; // grid height
-  vec2 offs = vec2(x, y);
-  vs_out.tc = (vertices[gl_VertexID].xy + offs) / 64.0;
+
+  ivec2 texture_size = textureSize(texture_elevation_u, 0);
+
+  int x = gl_InstanceID % texture_size.x; // row index into elevation map
+  int y = gl_InstanceID / texture_size.x; // column index into elevation map
+
+  vs_out.tc = (vertices[gl_VertexID].xy + vec2(x, y)) / texture_size;
+
   gl_Position =
     vertices[gl_VertexID] +
-    vec4(float(x), float(y), 0.0, 0.0);
+    vec4(
+      float(x),
+      float(y),
+      0.0,
+      0.0);
+
+
 }

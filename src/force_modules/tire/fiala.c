@@ -477,7 +477,7 @@ void s2_tire_fiala_update(
   double t = s2_context_getSimulationTime(context);
   FILE* f = s2_context_getDebugPointer(context, 1);
 
-  if(iconv == 1){
+  if(iconv == 1) {
     bool report = false;
     switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113B: {

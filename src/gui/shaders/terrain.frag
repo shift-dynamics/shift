@@ -1,9 +1,12 @@
 #version 420 core
-
 /* terrain.frag */
+
 layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
-layout (binding = 1) uniform sampler2D texture_displacement_u;
-layout (binding = 2) uniform sampler2D texture_color_u;
+layout (binding = 1) uniform sampler2D texture_elevation_u;
+layout (binding = 2) uniform sampler2D texture_diffuse_u;
+layout (binding = 3) uniform sampler2D texture_normal_u;
+layout (binding = 4) uniform sampler2D texture_specular_u;
+layout (binding = 5) uniform sampler2D texture_bump_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -12,7 +15,6 @@ struct matrices_t {
   mat4 p;
   mat3 nm;
 };
-
 uniform matrices_t matrices_u;
 
 struct material_t {
@@ -21,7 +23,6 @@ struct material_t {
   float KsOverKd;
   int Ns;
 };
-
 uniform material_t material_u;
 
 struct lights_t {
@@ -34,19 +35,19 @@ struct lights_t {
   int drawShadows; /*!< 0 = false, 1 = true */
   mat4 shadowMatrix[10];
 };
-
 uniform lights_t lights_u;
 
 struct terrain_t {
   float zMin;
   float zMax;
-  float xScale;
-  float yScale;
-  float xRange;
-  float yRange;
+  vec2 scale;
+  vec2 tcScale;
   vec2 viewport;
+  int enableDiffuseMap;
+  int enableNormalMap;
+  int enableSpecularMap;
+  int enableBumpMap;
 };
-
 uniform terrain_t terrain_u;
 
 in vec3 normalFrag;
@@ -55,12 +56,14 @@ in vec4 shadowCoord[10];
 
 in TES_OUT {
   vec2 tc;
-  vec3 normal;
-  vec3 world_coord;
-  vec3 eye_coord;
+  vec3 normal_cameraSpace;
+  vec3 position_cameraSpace;
+  vec3 view_direction_tangentSpace;
+  vec3 light_direction_tangentSpace[10]; /* light direction in texture space */
 } fs_in;
 
 out vec4 colorFrag;
+
 
 float offset_lookup(
   sampler2DArrayShadow texture_shadow,
@@ -95,75 +98,83 @@ float offset_lookup(
 void main(void) {
 
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+  vec4 KdMaterial;
+
+  if(terrain_u.enableDiffuseMap == 1) {
+    /* get diffuse color from texture */
+    KdMaterial = texture2D(texture_diffuse_u, fs_in.tc);
+  } else {
+    /* if no color map supplied, then use uniform material color */
+    KdMaterial = material_u.Kd;
+  }
+
+  vec3 KaMaterial = KdMaterial.rgb * material_u.KaOverKd;
+
+  vec3 KsMaterial;
+  if(terrain_u.enableSpecularMap == 1) {
+    KsMaterial = texture(texture_specular_u, fs_in.tc).rgb;
+  } else {
+    /* if no specular map supplied, set uniform specularity */
+    KsMaterial = vec3(1.0, 1.0, 1.0) * material_u.KsOverKd;
+  }
+
   vec3 V = vec3(0.0, 0.0, 1.0);
 
-  /* get diffuse color from texture */
-  vec4 KdMaterial = texture2D(texture_color_u, fs_in.tc);
-  vec3 KaMaterial = KdMaterial.rgb * material_u.KaOverKd;
-  vec3 KsMaterial = KdMaterial.rgb * material_u.KsOverKd;
-
   for(int i = 0; i < lights_u.count; i++) {
-    vec3 L;
-    switch(lights_u.directional[i]) {
-      case 0: {
-        // 0= point light, posLight indicates position of light source
-        //need to compute direction of incoming light
+    vec3 L; /* light direction */
+    vec3 N; /* normal direction */
 
-        vec4 temp = matrices_u.v * vec4(lights_u.position[i], 1) - vec4(fs_in.eye_coord, 1);
-        L = normalize(temp.xyz);
-      } break;
-      case 1: {
-        // 1=directional light, posLight indicates direction of incoming light
-
-        vec4 temp = matrices_u.v * vec4(
-          lights_u.position[i].x,
-          lights_u.position[i].y,
-          lights_u.position[i].z,
-          1.0);
-        L = normalize(temp.xyz);
-      } break;
+    if(terrain_u.enableNormalMap == 1) {
+      /* transform L and V to tangent space, retrieve normal from normal map */
+      L = fs_in.light_direction_tangentSpace[i];
+      V = fs_in.view_direction_tangentSpace;
+      N = texture(texture_normal_u, fs_in.tc).xyz;
+      N = normalize(N * 2.0 - 1.0);
+    } else {
+      switch(lights_u.directional[i]) {
+        case 0: { /* point light */
+          vec3 temp = (matrices_u.v * vec4(lights_u.position[i], 1.0)).xyz;
+          temp -= fs_in.position_cameraSpace;
+          L = normalize(temp);
+        } break;
+        case 1: { /* directional light */
+          vec3 temp = mat3(matrices_u.v) * lights_u.position[i];
+          L = normalize(temp);
+        } break;
+      }
+      N = fs_in.normal_cameraSpace;
+      // V = -fs_in.position_cameraSpace;
     }
 
     float shadowTest = 1.f;
     if(lights_u.drawShadows == 1) {
-
       shadowTest = 0.0;
-
       for(float y = -1.5; y <= 1.5; y += 1.0) {
         for(float x = -1.5; x <= 1.5; x += 1.0) {
           shadowTest += offset_lookup(
             texture_shadow_u, i, shadowCoord[i], vec2(x, y) / 4096.0);
         }
       }
-
       shadowTest /= 16.0;
-
-      // shadowTest = texture(
-      //   texture_shadow_u,
-      //   vec4(
-      //     shadowCoord[i].x / shadowCoord[i].w,
-      //     shadowCoord[i].y / shadowCoord[i].w,
-      //     float(i),
-      //     shadowCoord[i].z / shadowCoord[i].w)
-      //     );
     }
 
-    /* ambient term */
-    float LdotN =  max(0.0, dot(L, fs_in.normal));
+    float bumpTest = 1.f;
+    if(terrain_u.enableBumpMap == 1) {
+      bumpTest = texture(texture_bump_u, fs_in.tc).r;
+    }
 
     /* diffuse term */
-    color.rgb += KdMaterial.rgb * lights_u.Kd[i] * LdotN * shadowTest;
+    float LdotN =  max(0.0, dot(L, N));
+    color.rgb += KdMaterial.rgb * lights_u.Kd[i] * LdotN * shadowTest * bumpTest;
 
     /* specular term */
-    vec3 R = -normalize(reflect(L, fs_in.normal));
-    color.rgb += KsMaterial * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns) * shadowTest;
-
-    color.rgb += KaMaterial;
-
+    vec3 R = -normalize(reflect(L, N));
+    color.rgb += KsMaterial * lights_u.Ks[i] * pow(max(0, dot(R, V)), material_u.Ns) * shadowTest * bumpTest;
   }
 
+  /* ambient term */
+  color.rgb += KaMaterial;
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));
-  // colorFrag = vec4(0.3, 0.3, 0.3, 1.0);
   colorFrag.a = KdMaterial.a;
 
   // vec4 landscape = texture(tex_color, fs_in.tc);
@@ -175,7 +186,7 @@ void main(void) {
   // }
 
   // color = vec4(0.4, 0.2, 0.5, 1.0);
-  // float temp = clamp(texture(tex_displacement, fs_in.tc).r, 0.0, 1.0);
+  // float temp = clamp(texture(tex_elevation, fs_in.tc).r, 0.0, 1.0);
   // color = vec4(temp, temp, temp, 1.0);
 
   // color = vec4((texture(tex_color, fs_in.tc)).rgb, 1.0);

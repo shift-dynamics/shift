@@ -5,8 +5,11 @@
 
 layout (vertices = 4) out;
 layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
-layout (binding = 1) uniform sampler2D texture_displacement_u;
-layout (binding = 2) uniform sampler2D texture_color_u;
+layout (binding = 1) uniform sampler2D texture_elevation_u;
+layout (binding = 2) uniform sampler2D texture_diffuse_u;
+layout (binding = 3) uniform sampler2D texture_normal_u;
+layout (binding = 4) uniform sampler2D texture_specular_u;
+layout (binding = 5) uniform sampler2D texture_bump_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -15,7 +18,6 @@ struct matrices_t {
   mat4 p;
   mat3 nm;
 };
-
 uniform matrices_t matrices_u;
 
 struct material_t {
@@ -24,7 +26,6 @@ struct material_t {
   float KsOverKd;
   int Ns;
 };
-
 uniform material_t material_u;
 
 struct lights_t {
@@ -37,19 +38,19 @@ struct lights_t {
   int drawShadows; /*!< 0 = false, 1 = true */
   mat4 shadowMatrix[10];
 };
-
 uniform lights_t lights_u;
 
 struct terrain_t {
   float zMin;
   float zMax;
-  float xScale;
-  float yScale;
-  float xRange;
-  float yRange;
+  vec2 scale;
+  vec2 tcScale;
   vec2 viewport;
+  int enableDiffuseMap;
+  int enableNormalMap;
+  int enableSpecularMap;
+  int enableBumpMap;
 };
-
 uniform terrain_t terrain_u;
 
 in VS_OUT {
@@ -64,10 +65,10 @@ out TCS_OUT {
 float distTess(vec4 p0, vec4 p1, vec2 t0, vec2 t1) {
 
 	// g_tessellatedTriWidth is desired pixels per tri edge
-	float g_tessellatedTriWidth = 50.0;
+	float g_tessellatedTriWidth = 150.0;
 
-  p0.z += (texture(texture_displacement_u, t0).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
-  p1.z += (texture(texture_displacement_u, t1).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
+  p0.z += (texture(texture_elevation_u, t0).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
+  p1.z += (texture(texture_elevation_u, t1).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
 
   p0.z *= 10.0;   /* delete this once verified its working */
   p1.z *= 10.0;   /* delete this once verified its working */

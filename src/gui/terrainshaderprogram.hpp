@@ -51,11 +51,12 @@ public:
   void setTransform(s2_displacement_t*);
   void setTransform(QMatrix4x4&);
 
+  void setTextureElevation(QOpenGLTexture*);
+  void setTextureDiffuse(QOpenGLTexture*);
   void setTextureDisplacement(QOpenGLTexture*);
-  void setTextureColor(QOpenGLTexture*);
-  void setTextureBump(QOpenGLTexture*);
   void setTextureNormal(QOpenGLTexture*);
   void setTextureSpecular(QOpenGLTexture*);
+  void setTextureBump(QOpenGLTexture*);
 
   void setLights(s2_Lights*);
 
@@ -67,7 +68,7 @@ public:
 
   void setZExtents(GLfloat, GLfloat);
   void setScale(GLfloat, GLfloat);
-  void setRange(GLfloat, GLfloat);
+  void setTcScale(GLfloat, GLfloat);
   void setViewPort(GLfloat, GLfloat);
 
   void bindVao() {
@@ -90,11 +91,11 @@ private:
 
   /* texture uniform locations */
   GLint m_texture_shadow_u;
-  GLint m_texture_color_u;
-  GLint m_texture_displacement_u;
-  // GLint m_texture_bump_u;
-  // GLint m_texture_normal_u;
-  // GLint m_texture_specular_u;
+  GLint m_texture_diffuse_u;
+  GLint m_texture_elevation_u;
+  GLint m_texture_normal_u;
+  GLint m_texture_specular_u;
+  GLint m_texture_bump_u;
 
   /* matrix uniform locations */
   // GLint m_matrices_u;
@@ -126,11 +127,13 @@ private:
   // GLint m_terrain_u;
   GLint m_terrain_zMin_u;
   GLint m_terrain_zMax_u;
-  GLint m_terrain_xScale_u;
-  GLint m_terrain_yScale_u;
-  GLint m_terrain_xRange_u;
-  GLint m_terrain_yRange_u;
+  GLint m_terrain_scale_u;
+  GLint m_terrain_tcScale_u;
   GLint m_terrain_viewport_u;
+  GLint m_terrain_enableDiffuseMap_u;
+  GLint m_terrain_enableNormalMap_u;
+  GLint m_terrain_enableSpecularMap_u;
+  GLint m_terrain_enableBumpMap_u;
 
   QOpenGLVertexArrayObject* m_vao;
 
