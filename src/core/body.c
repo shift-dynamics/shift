@@ -627,7 +627,7 @@ int s2_body_loadGeometry(
     /*!
       @todo figure out where specular highlight term is stored in assimp
     */
-    body->materials[i].GLuniforms.Ns = 10;
+    body->materials[i].GLuniforms.Ns = 32;
 
     /*
       load tangents

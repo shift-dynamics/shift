@@ -26,3 +26,4 @@
 -Isrc/ksl
 -Isrc/ode
 -I/usr/include/ImageMagick-6
+-Isrc/third_party/gdal/gdal/gcore

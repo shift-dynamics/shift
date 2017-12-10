@@ -4,7 +4,7 @@
 
 layout (vertices = 4) out;
 
-layout (binding = 1) uniform sampler2D texture_displacement_u;
+layout (binding = 1) uniform sampler2D texture_elevation_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -18,10 +18,7 @@ uniform matrices_t matrices_u;
 struct terrain_t {
   float zMin;
   float zMax;
-  float xScale;
-  float yScale;
-  float xRange;
-  float yRange;
+  vec2 scale;
   vec2 viewport;
 };
 
@@ -31,18 +28,13 @@ in VS_OUT {
   vec2 tc;
 } tcs_in[];
 
-out TCS_OUT {
-  vec2 tc;
-} tcs_out[];
-
-
 float distTess(vec4 p0, vec4 p1, vec2 t0, vec2 t1) {
 
 	// g_tessellatedTriWidth is desired pixels per tri edge
 	float g_tessellatedTriWidth = 50.0;
 
-  p0.z += (texture(texture_displacement_u, t0).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
-  p1.z += (texture(texture_displacement_u, t1).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
+  p0.z += (texture(texture_elevation_u, t0).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
+  p1.z += (texture(texture_elevation_u, t1).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
 
   p0.z *= 10.0;   /* delete this once verified its working */
   p1.z *= 10.0;   /* delete this once verified its working */
@@ -104,5 +96,4 @@ void main(void) {
 
   gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
-  tcs_out[gl_InvocationID].tc = tcs_in[gl_InvocationID].tc;
 }

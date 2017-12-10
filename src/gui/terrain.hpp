@@ -38,11 +38,15 @@ class s2_Lights;
 typedef struct TerrainObjects {
   // GLuint depth_u;
   // GLuint color_u;
-  QOpenGLTexture* textureColor;
-  QOpenGLTexture* textureDisplacement;
-  QOpenGLTexture* textureBump;
-  QOpenGLTexture* textureNormal;
-  QOpenGLTexture* textureSpecular;
+  int textureElevationSize = 0; /*!< textureElevation->width() *
+                                     textureElevation->height() */
+  QOpenGLTexture* textureElevation; /*!< digital elevation map containing array
+                                         of rectangular gridded control points */
+  QOpenGLTexture* textureDiffuse;  /*!< texture used for visual properties of terrain, may be a different size / scale than overall mesh */
+  QOpenGLTexture* textureNormal; /*!< optional normal map used for bump mapping effect on surface, overlays textureColor */
+  QOpenGLTexture* textureSpecular; /*!< optional specular map used for varying
+  specular patterns on textures, overlays textureColor */
+  QOpenGLTexture* textureBump; /*!< optional bump map use to modulate the color according to the height above the surface */
 } TerrainObjects;
 
 class s2_Terrain : public s2_Geometry {
