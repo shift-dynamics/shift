@@ -70,8 +70,8 @@ float distTess(vec4 p0, vec4 p1, vec2 t0, vec2 t1) {
   p0.z += (texture(texture_elevation_u, t0).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
   p1.z += (texture(texture_elevation_u, t1).r * (terrain_u.zMax - terrain_u.zMin)) + terrain_u.zMin;
 
-  p0.z *= 10.0;   /* delete this once verified its working */
-  p1.z *= 10.0;   /* delete this once verified its working */
+  // p0.z *= 10.0;   /* delete this once verified its working */
+  // p1.z *= 10.0;   /* delete this once verified its working */
 
 	vec4 center = 0.5 * (p0 + p1);
 	float radius = distance(p0, p1) / 2.0;
