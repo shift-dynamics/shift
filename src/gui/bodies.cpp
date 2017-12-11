@@ -345,52 +345,54 @@ void s2_Bodies::initializeConvexHull(
   s2_convexhull_t* convexhull,
   s2_body_t* body) {
 
-  s2_displacement_t* origin = m_context->d + body->origin->dIndex;
-  // m_programPhong->bind();
-  convexhull_buffer_t bufferObjects;
-  bufferObjects.vao = new QOpenGLVertexArrayObject(m_renderWindow);
-  bufferObjects.vao->create();
+  if(convexhull) {
+    s2_displacement_t* origin = m_context->d + body->origin->dIndex;
+    // m_programPhong->bind();
+    convexhull_buffer_t bufferObjects;
+    bufferObjects.vao = new QOpenGLVertexArrayObject(m_renderWindow);
+    bufferObjects.vao->create();
 
-  bufferObjects.vertexBuffer =
-    new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  bufferObjects.vertexBuffer->create();
+    bufferObjects.vertexBuffer =
+      new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    bufferObjects.vertexBuffer->create();
 
-  bufferObjects.indexBuffer =
-    new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-  bufferObjects.indexBuffer->create();
+    bufferObjects.indexBuffer =
+      new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+    bufferObjects.indexBuffer->create();
 
-  checkError("bodies: after create convexhull vertex buffers");
+    checkError("bodies: after create convexhull vertex buffers");
 
-  bufferObjects.vao->bind();
-  checkError("bodies: after bind vao");
+    bufferObjects.vao->bind();
+    checkError("bodies: after bind vao");
 
-  bufferObjects.vertexBuffer->bind();
-  bufferObjects.vertexBuffer->allocate(
-    3 * convexhull->vertexCount * sizeof(GLfloat));
-  bufferObjects.vertexBuffer->write(
-    0,
-    convexhull->vertices,
-    3 * convexhull->vertexCount * sizeof(GLfloat));
+    bufferObjects.vertexBuffer->bind();
+    bufferObjects.vertexBuffer->allocate(
+      3 * convexhull->vertexCount * sizeof(GLfloat));
+    bufferObjects.vertexBuffer->write(
+      0,
+      convexhull->vertices,
+      3 * convexhull->vertexCount * sizeof(GLfloat));
 
-  bufferObjects.indexBuffer->bind();
-  bufferObjects.indexBuffer->allocate(
-    convexhull->faces,
-    3 * convexhull->faceCount * sizeof(GLuint));
+    bufferObjects.indexBuffer->bind();
+    bufferObjects.indexBuffer->allocate(
+      convexhull->faces,
+      3 * convexhull->faceCount * sizeof(GLuint));
 
-  bufferObjects.convexhull = convexhull;
-  bufferObjects.transform = origin;
+    bufferObjects.convexhull = convexhull;
+    bufferObjects.transform = origin;
 
-  setConvexHullAttributeLocations(
-    m_programLine->getProgram(),
-    m_programLine->getPositionAttribute(),
-    &bufferObjects);
-  checkError("bodies: after set attribute locations flat");
+    setConvexHullAttributeLocations(
+      m_programLine->getProgram(),
+      m_programLine->getPositionAttribute(),
+      &bufferObjects);
+    checkError("bodies: after set attribute locations flat");
 
-  m_convexhullBufferObjects.append(bufferObjects);
-  checkError("bodies: after append convex hull buffer objects");
+    m_convexhullBufferObjects.append(bufferObjects);
+    checkError("bodies: after append convex hull buffer objects");
 
-  bufferObjects.vao->release();
-  checkError("bodies: after release vao");
+    bufferObjects.vao->release();
+    checkError("bodies: after release vao");
+  }
 }
 
 
@@ -486,6 +488,7 @@ void s2_Bodies::draw() {
         glEnable(GL_BLEND);
         glEnable(GL_CULL_FACE);
         // glDisable(GL_CULL_FACE);
+
 
         /* draw translucent geometry */
         for(int i = 0; i < m_translucentBufferObjects.size(); i++) {
@@ -628,7 +631,7 @@ void s2_Bodies::draw() {
 
       s2_displacement_t transform;
       s2_displacement_setIdentity(&transform);
-      
+
       for(int i = 0; i < m_context->bodyCount; i++) {
 
         s2_sphere_t* sphere = &m_context->boundingSpheres[i];
