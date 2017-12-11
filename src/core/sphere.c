@@ -403,24 +403,26 @@ void s2_sphere_approximateMinBoundSphere(
 
   sphere->parentBody = body;
   s2_convexhull_t* convexhull = &body->convexHulls[0];
-  if(convexhull->vertexCount == 1) {
-    sphere->radius = 0;
-    sphere->centerLocal = s2_vectorFromFloatArrayAtIndex(
+  if(convexhull) {
+    if(convexhull->vertexCount == 1) {
+      sphere->radius = 0;
+      sphere->centerLocal = s2_vectorFromFloatArrayAtIndex(
+        convexhull->vertices,
+        0);
+      return;
+    }
+
+    s2_sphere_eigenSphere(
+      sphere,
       convexhull->vertices,
-      0);
-    return;
-  }
+      convexhull->vertexCount);
 
-  s2_sphere_eigenSphere(
-    sphere,
-    convexhull->vertices,
-    convexhull->vertexCount);
-
-  /* test if all points in bounding eigen sphere
-  If all points inside sphere, we are done.
-  Otherwise, enlarge bounding sphere to cover point outside of initial sphere */
-  for(int i = 1; i < convexhull->vertexCount; i++) {
-    s2_vector_t p = s2_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
-    s2_sphere_fromSphereAndPoint(sphere, &p);
+    /* test if all points in bounding eigen sphere
+    If all points inside sphere, we are done.
+    Otherwise, enlarge bounding sphere to cover point outside of initial sphere */
+    for(int i = 1; i < convexhull->vertexCount; i++) {
+      s2_vector_t p = s2_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
+      s2_sphere_fromSphereAndPoint(sphere, &p);
+    }
   }
 }
