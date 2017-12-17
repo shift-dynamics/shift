@@ -30,8 +30,8 @@ void s2_Joints::update() {
 
       if(m_jointType == S2_JOINT_SPHERICAL) {
 
-      /*! @TODO convert euler angle sequence to quaternion and update
-          4 entries in q array */
+        /*! @TODO convert euler angle sequence to quaternion and update
+            4 entries in q array */
 
       } else {
 
@@ -106,7 +106,8 @@ void s2_Joints::update() {
                 }
               }
             }
-          } break;
+          }
+          break;
           case S2_JOINT_INCREMENT: {
 
             double delq =
@@ -122,17 +123,18 @@ void s2_Joints::update() {
             qDebug() << "delq:" << delq;
 
             int returnVal = s2_newtonRaphson_increment_specified(
-              m_context,
-              m_joint->substructurePointer->substructureIndex,
-              m_dqIndex,
-              delq,
-              S2_JOINT_TX,
-              S2_JOINT_INCREMENT);
+                              m_context,
+                              m_joint->substructurePointer->substructureIndex,
+                              m_dqIndex,
+                              delq,
+                              S2_JOINT_TX,
+                              S2_JOINT_INCREMENT);
 
-            if(returnVal){
+            if(returnVal) {
               clear();
             }
-          } break;
+          }
+          break;
         }
         s2_updateGLReferenceFrames(m_context);
 
@@ -261,35 +263,41 @@ void s2_Joints::draw() {
           case S2_JOINT_RX: {
             m_program->setScale(m_scaleFactor);
             glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
-          } break;
+          }
+          break;
           case S2_JOINT_RY: {
             m_program->setScale(m_scaleFactor);
             m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
             checkError("joint: after draw ry");
-          } break;
+          }
+          break;
           case S2_JOINT_RZ: {
             m_program->setScale(m_scaleFactor);
             m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
             checkError("joint: after draw rz");
-          } break;
+          }
+          break;
           case S2_JOINT_TX: {
             float jointValue = (float)(m_context->q[joint->qIndex]);
             m_program->setScale(jointValue);
             glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
             checkError("joint: after draw tx");
-          } break;
+          }
+          break;
           case S2_JOINT_TY: {
             float jointValue = (float)(m_context->q[joint->qIndex]);
             m_program->setScale(jointValue);
             m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
             checkError("joint: after draw ty");
-          } break;
+          }
+          break;
           case S2_JOINT_TZ: {
             float jointValue = (float)(m_context->q[joint->qIndex]);
             m_program->setScale(jointValue);
             m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
             checkError("joint: after draw tz");
-          } break;
+          }
+          break;
           default:
             break;
         }

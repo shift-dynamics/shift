@@ -120,7 +120,7 @@ s2_pointcloud_t* s2_pointcloud_loadFromKinectDepthMap(
   unsigned long width;
   for(long y = 0; y < (long) MagickGetImageHeight(depthMap); y++) {
     PixelWand** pixels = PixelGetNextIteratorRow(iterator, &width);
-    if(pixels == (PixelWand **) NULL) {
+    if(pixels == (PixelWand**) NULL) {
       break;
     }
 
@@ -187,7 +187,7 @@ s2_pointcloud_t* s2_pointcloud_loadFromKinectDepthMap(
   size_t k = 0;
   for(long y = 0; y < (long) MagickGetImageHeight(depthMap); y++) {
     PixelWand** pixels = PixelGetNextIteratorRow(iterator, &width);
-    if(pixels == (PixelWand **) NULL) {
+    if(pixels == (PixelWand**) NULL) {
       break;
     }
 
@@ -237,10 +237,10 @@ s2_pointcloud_t* s2_pointcloud_loadFromKinectDepthMap(
 
 
       status = MagickGetImagePixelColor(
-        rgbImage,
-        rgb_x,
-        rgb_y,
-        color);
+                 rgbImage,
+                 rgb_x,
+                 rgb_y,
+                 color);
 
       pointcloud->colors[3 * i + 0] = PixelGetRed(color) / 255.0;
       pointcloud->colors[3 * i + 1] = PixelGetGreen(color) / 255.0;

@@ -51,11 +51,11 @@ void s2_ode113_de(
   s2_context_t* context,
   int neqn,
   double y[],
-  double *t,
+  double* t,
   double tout,
   double relerr,
   double abserr,
-  int *iflag,
+  int* iflag,
   double yy[],
   double wt[],
   double p[],
@@ -68,19 +68,19 @@ void s2_ode113_de(
   double v[],
   double w[],
   double g[],
-  int *phase1,
+  int* phase1,
   double psi[],
-  double *x,
-  double *h,
-  double *hold,
-  int *start,
-  double *told,
-  double *delsgn,
-  int *ns,
-  int *nornd,
-  int *k,
-  int *kold,
-  int *isnold);
+  double* x,
+  double* h,
+  double* hold,
+  int* start,
+  double* told,
+  double* delsgn,
+  int* ns,
+  int* nornd,
+  int* k,
+  int* kold,
+  int* isnold);
 
 
 int i4_sign(int i);
@@ -102,19 +102,19 @@ double r8_epsilon(void);
 
 
 void s2_ode113_step(
-  double *x,
+  double* x,
   double y[],
   void f(double t, double y[], double dy[], s2_context_t* context),
   s2_context_t* context,
   int neqn,
-  double *h,
-  double *eps,
+  double* h,
+  double* eps,
   double wt[],
-  int *start,
-  double *hold,
-  int *k,
-  int *kold,
-  int *crash,
+  int* start,
+  double* hold,
+  int* k,
+  int* kold,
+  int* crash,
   double phi[],
   double p[],
   double yp[],
@@ -125,9 +125,9 @@ void s2_ode113_step(
   double v[],
   double w[],
   double g[],
-  int *phase1,
-  int *ns,
-  int *nornd);
+  int* phase1,
+  int* ns,
+  int* nornd);
 
 
 void timestamp(void);

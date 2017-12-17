@@ -47,7 +47,7 @@ s2_assembly_t* s2_assembly() {
 
   s2_assembly_t* assembly = malloc(sizeof(s2_assembly_t));
 
-  if (!assembly) {
+  if(!assembly) {
     fprintf(stderr, "Error: failed to initialize assembly.\n");
     return NULL;
   }
@@ -94,7 +94,7 @@ void s2_assembly_appendSubAssembly(
   s2_assembly_t* assembly,
   s2_assembly_t* subAssembly) {
 
-  if (!assembly->subAssemblyTail) {
+  if(!assembly->subAssemblyTail) {
     assembly->subAssemblyHead = subAssembly;
     assembly->subAssemblyTail = subAssembly;
   } else {
@@ -114,14 +114,14 @@ void s2_assembly_print(
   FILE* f,
   s2_assembly_t* assembly) {
 
-  s2_assembly_t *subAssemblyHead = assembly->subAssemblyHead;
-  while (subAssemblyHead) {
+  s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
+  while(subAssemblyHead) {
     fprintf(f, "\nAssembly: ");
     s2_stackstr_print(f, subAssemblyHead->name);
     fprintf(f, "active: %s\n", subAssemblyHead->active ? "True" : "False");
     s2_assembly_printBodies(f, subAssemblyHead);
     s2_assembly_printJoints(f, subAssemblyHead);
-    if (subAssemblyHead->subAssemblyHead) {
+    if(subAssemblyHead->subAssemblyHead) {
       s2_assembly_print(f, subAssemblyHead);
     }
     subAssemblyHead = subAssemblyHead->next;
@@ -139,7 +139,7 @@ void s2_assembly_printBodies(
   s2_assembly_t* assembly) {
 
   s2_body_t* bodyHead = assembly->bodyHead;
-  while (bodyHead) {
+  while(bodyHead) {
     fprintf(f, "\tBody: ");
     s2_stackstr_print(f, bodyHead->name);
     // printf("\t\tbodyPtr: %p\n", bodyHead);
@@ -163,7 +163,7 @@ void s2_assembly_printJoints(
   s2_assembly_t* assembly) {
 
   s2_joint_t* jointHead = assembly->jointHead;
-  while (jointHead) {
+  while(jointHead) {
     fprintf(f, "\tJoint: ");
     s2_stackstr_print(f, jointHead->name);
     fprintf(f, "\t\tindex: %d\n", jointHead->index);
@@ -185,7 +185,7 @@ void s2_assembly_printJoints(
     if(jointHead->primitiveDisplacement) {
 
       fprintf(f, "\t\tprimitiveDisplacement: %0.16f\n",
-             *(jointHead->primitiveDisplacement));
+              *(jointHead->primitiveDisplacement));
     }
     if(jointHead->h) {
       fprintf(f, "\t\th: ");
@@ -323,7 +323,7 @@ void s2_assembly_appendJoint(
   s2_assembly_t* assembly,
   s2_joint_t* joint) {
 
-  if (!assembly->jointTail) {
+  if(!assembly->jointTail) {
     assembly->jointHead = joint;
     assembly->jointTail = joint;
   } else {
@@ -505,22 +505,26 @@ int s2_assembly_load(
       assembly->name = newPrefix;
 
       // printf("%s: loading bodies\n", newPrefix);
-      if(s2_assembly_loadBodies(assembly, assemblyObject, context, newPrefix))
+      if(s2_assembly_loadBodies(assembly, assemblyObject, context, newPrefix)) {
         return -1;
+      }
 
       // printf("%s: loading joints\n", newPrefix);
       if(s2_assembly_loadJoints(assembly, assemblyObject, context, newPrefix)) {
         return -1;
       }
 
-      if(s2_assembly_loadRestraints(assembly, assemblyObject, context, newPrefix))
+      if(s2_assembly_loadRestraints(assembly, assemblyObject, context, newPrefix)) {
         return -1;
+      }
 
-      if(s2_assembly_loadLights(assembly, assemblyObject, context, newPrefix))
+      if(s2_assembly_loadLights(assembly, assemblyObject, context, newPrefix)) {
         return -1;
+      }
 
-      if(s2_assembly_loadForceModules(assembly, assemblyObject, context, newPrefix))
+      if(s2_assembly_loadForceModules(assembly, assemblyObject, context, newPrefix)) {
         return -1;
+      }
 
       s2_assembly_appendSubAssembly(parentAssembly, assembly);
 
@@ -565,7 +569,7 @@ void s2_assembly_appendLight(
   s2_assembly_t* assembly,
   s2_light_t* light) {
 
-  if (!assembly->lightTail) {
+  if(!assembly->lightTail) {
     assembly->lightHead = light;
     assembly->lightTail = light;
   } else {
@@ -584,7 +588,7 @@ void s2_assembly_appendForceModule(
   s2_assembly_t* assembly,
   s2_forcemodule_t* forceModule) {
 
-  if (!assembly->forceModuleTail) {
+  if(!assembly->forceModuleTail) {
     assembly->forceModuleHead = forceModule;
     assembly->forceModuleTail = forceModule;
   } else {

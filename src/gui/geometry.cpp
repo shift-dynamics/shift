@@ -2,7 +2,7 @@
 #include "openglwindow.hpp"
 #include "renderwindow.hpp"
 
-void s2_Geometry::checkError(const QString &prefix) {
+void s2_Geometry::checkError(const QString& prefix) {
   m_renderWindow->checkError(prefix);
 }
 

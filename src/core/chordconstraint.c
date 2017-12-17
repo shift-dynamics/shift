@@ -32,8 +32,8 @@ SUCH DAMAGE.
 @returns a ChordConstraint datastructure
 */
 s2_chordconstraint_t* s2_chordconstraint() {
-  s2_chordconstraint_t* chordConstraint = malloc(sizeof *chordConstraint);
-  if (!chordConstraint) {
+  s2_chordconstraint_t* chordConstraint = malloc(sizeof * chordConstraint);
+  if(!chordConstraint) {
     fprintf(stderr, "Error: failed to initialize chordConstraint.\n");
     return NULL;
   }

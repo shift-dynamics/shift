@@ -66,7 +66,7 @@ class MyTreeItem : public QTreeWidgetItem {
 
 
 class Workspace : public QMainWindow {
-  Q_OBJECT // must be included to add qt meta information
+    Q_OBJECT // must be included to add qt meta information
 
   public:
     explicit Workspace(QWidget* parent = 0);
@@ -80,7 +80,7 @@ class Workspace : public QMainWindow {
     // }
 
   protected:
-    void resizeEvent(QResizeEvent *event);
+    void resizeEvent(QResizeEvent* event);
 
   private slots:
     void setTx(int);
@@ -113,7 +113,7 @@ class Workspace : public QMainWindow {
     void setRelativeError(double);
     void setAbsoluteError(double);
     void setOmegaN(double);
-    void setOutputFileName(const QString &str);
+    void setOutputFileName(const QString& str);
     void updateSimulationTimer(double);
     void setPlaybackPaused();
     void interpModel(int);

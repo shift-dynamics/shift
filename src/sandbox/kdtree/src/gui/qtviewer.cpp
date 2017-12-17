@@ -45,7 +45,7 @@
 #include "tiny_obj_loader.h"
 #include "matrixToEulerAngles.h"
 
-qtviewer::qtviewer(QWidget *parent) : QMainWindow(parent) {
+qtviewer::qtviewer(QWidget* parent) : QMainWindow(parent) {
   //currentSelectedModel = NULL;
   //currentFileName = "default.json";
   createMenus();
@@ -55,163 +55,161 @@ qtviewer::qtviewer(QWidget *parent) : QMainWindow(parent) {
 
 qtviewer::~qtviewer() {}
 
-void qtviewer::createMenus()
-{
-    ///////////////
-    /// MenuBar ///
-    ///////////////
+void qtviewer::createMenus() {
+  ///////////////
+  /// MenuBar ///
+  ///////////////
 
-    setWindowTitle(tr("Kinect Point Cloud Viewer"));
+  setWindowTitle(tr("Kinect Point Cloud Viewer"));
 
-    /*
-        File Menu
-    */
-    QMenu * fileMenu = menuBar()->addMenu( "&File" );
+  /*
+      File Menu
+  */
+  QMenu* fileMenu = menuBar()->addMenu("&File");
 
-    // save dialog
-    // QAction *actionOpen = new QAction("Open Scene...", this);
-    // actionOpen->setShortcut(QKeySequence::Open);
-    // fileMenu->addAction( actionOpen );
+  // save dialog
+  // QAction *actionOpen = new QAction("Open Scene...", this);
+  // actionOpen->setShortcut(QKeySequence::Open);
+  // fileMenu->addAction( actionOpen );
 
-    // QAction *actionSave = new QAction("Save Scene", this);
-    // actionSave->setShortcut(QKeySequence::Save);
-    // fileMenu->addAction( actionSave );
+  // QAction *actionSave = new QAction("Save Scene", this);
+  // actionSave->setShortcut(QKeySequence::Save);
+  // fileMenu->addAction( actionSave );
 
-    // QAction *actionSaveAs = new QAction("Save Scene As..", this);
-    // actionSaveAs->setShortcut(QKeySequence::SaveAs);
-    // fileMenu->addAction( actionSaveAs );
+  // QAction *actionSaveAs = new QAction("Save Scene As..", this);
+  // actionSaveAs->setShortcut(QKeySequence::SaveAs);
+  // fileMenu->addAction( actionSaveAs );
 
-    //fileMenu->addSeparator();
+  //fileMenu->addSeparator();
 
-    // add quit dialog
-    QAction *actionQuit = new QAction("Quit", this);
-    actionQuit->setShortcut(QKeySequence::Quit);
-    fileMenu->addAction( actionQuit );
+  // add quit dialog
+  QAction* actionQuit = new QAction("Quit", this);
+  actionQuit->setShortcut(QKeySequence::Quit);
+  fileMenu->addAction(actionQuit);
 
-    /*
-        View Menu
-    */
-    QMenu * viewMenu = menuBar()->addMenu( "&View" );
+  /*
+      View Menu
+  */
+  QMenu* viewMenu = menuBar()->addMenu("&View");
 
-    QMenu * projectionMenu = viewMenu->addMenu( "&Camera Projection" );
-    QActionGroup *perspectiveGroup = new QActionGroup( this );
+  QMenu* projectionMenu = viewMenu->addMenu("&Camera Projection");
+  QActionGroup* perspectiveGroup = new QActionGroup(this);
 
-    QAction *actionSetOrthogonal = new QAction("Orthogonal", this);
-    actionSetOrthogonal->setCheckable( true );
-    perspectiveGroup->addAction( actionSetOrthogonal );
+  QAction* actionSetOrthogonal = new QAction("Orthogonal", this);
+  actionSetOrthogonal->setCheckable(true);
+  perspectiveGroup->addAction(actionSetOrthogonal);
 
-    projectionMenu->addAction( actionSetOrthogonal );
+  projectionMenu->addAction(actionSetOrthogonal);
 
-    QAction *actionSetPerspective = new QAction("Perspective", this);
-    projectionMenu->addAction( actionSetPerspective );
-    actionSetPerspective->setCheckable( true );
-    actionSetPerspective->setChecked( true );
-    perspectiveGroup->addAction( actionSetPerspective );
+  QAction* actionSetPerspective = new QAction("Perspective", this);
+  projectionMenu->addAction(actionSetPerspective);
+  actionSetPerspective->setCheckable(true);
+  actionSetPerspective->setChecked(true);
+  perspectiveGroup->addAction(actionSetPerspective);
 
-    viewMenu->addSeparator();
+  viewMenu->addSeparator();
 
-    // point display menu items
-    QActionGroup *pointDisplayGroup = new QActionGroup( this );
+  // point display menu items
+  QActionGroup* pointDisplayGroup = new QActionGroup(this);
 
-    QMenu * pointDisplayMenu = viewMenu->addMenu( "&Point Display" );
+  QMenu* pointDisplayMenu = viewMenu->addMenu("&Point Display");
 
-    QAction *actionSetPixelView = new QAction("Single Pixel", this);
-    pointDisplayGroup->addAction( actionSetPixelView);
-    actionSetPixelView->setCheckable( true );
-    pointDisplayMenu->addAction( actionSetPixelView );
+  QAction* actionSetPixelView = new QAction("Single Pixel", this);
+  pointDisplayGroup->addAction(actionSetPixelView);
+  actionSetPixelView->setCheckable(true);
+  pointDisplayMenu->addAction(actionSetPixelView);
 
-    QAction *actionSetSpriteView = new QAction("Scaled Sprites", this);
-    pointDisplayGroup->addAction( actionSetSpriteView);
-    actionSetSpriteView->setCheckable( true );
-    actionSetSpriteView->setChecked( true );
-    pointDisplayMenu->addAction( actionSetSpriteView );
+  QAction* actionSetSpriteView = new QAction("Scaled Sprites", this);
+  pointDisplayGroup->addAction(actionSetSpriteView);
+  actionSetSpriteView->setCheckable(true);
+  actionSetSpriteView->setChecked(true);
+  pointDisplayMenu->addAction(actionSetSpriteView);
 
-    QAction *actionSetPhongView = new QAction("Phong Shaded Sprites", this);
-    pointDisplayGroup->addAction( actionSetPhongView);
-    actionSetPhongView->setCheckable( true );
-    pointDisplayMenu->addAction( actionSetPhongView );
+  QAction* actionSetPhongView = new QAction("Phong Shaded Sprites", this);
+  pointDisplayGroup->addAction(actionSetPhongView);
+  actionSetPhongView->setCheckable(true);
+  pointDisplayMenu->addAction(actionSetPhongView);
 
-    /*
-        Help Menu
-    */
-    QMenu * helpMenu = menuBar()->addMenu( "&Help" );
+  /*
+      Help Menu
+  */
+  QMenu* helpMenu = menuBar()->addMenu("&Help");
 
-    QAction *actionAbout = new QAction("About", this);
-    helpMenu->addAction( actionAbout );
+  QAction* actionAbout = new QAction("About", this);
+  helpMenu->addAction(actionAbout);
 
-    QAction *actionControls = new QAction("Controls", this);
-    helpMenu->addAction( actionControls );
+  QAction* actionControls = new QAction("Controls", this);
+  helpMenu->addAction(actionControls);
 
-    ////////////////////
-    /// Window Layout///
-    ////////////////////
+  ////////////////////
+  /// Window Layout///
+  ////////////////////
 
-    // main window
-    QGroupBox* mainBox = new QGroupBox;
-    mainBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    mainBox->setContentsMargins( QMargins( 0, 0, 0, 0 ) );
+  // main window
+  QGroupBox* mainBox = new QGroupBox;
+  mainBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  mainBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
-    QStackedLayout* mainLayout = new QStackedLayout( mainBox );
-    mainLayout->setContentsMargins( QMargins( 0, 0, 0, 0 ) );
-    mainLayout->setMargin(0);
-    mainLayout->setSpacing( 0 );
-    mainBox->resize(800,600);
+  QStackedLayout* mainLayout = new QStackedLayout(mainBox);
+  mainLayout->setContentsMargins(QMargins(0, 0, 0, 0));
+  mainLayout->setMargin(0);
+  mainLayout->setSpacing(0);
+  mainBox->resize(800, 600);
 
-    // GL viewport
-    glwidget = new RenderWindowWidget( mainBox );
-    glwidget->setMinimumHeight( 200 );
-    glwidget->setMinimumWidth( 200 );
-    glwidget->setContentsMargins( QMargins( 0, 0, 0, 0 ) );
+  // GL viewport
+  glwidget = new RenderWindowWidget(mainBox);
+  glwidget->setMinimumHeight(200);
+  glwidget->setMinimumWidth(200);
+  glwidget->setContentsMargins(QMargins(0, 0, 0, 0));
 
-    mainLayout->addWidget( glwidget );
+  mainLayout->addWidget(glwidget);
 
-    RenderWindow* renWin = glwidget->GetRenderWindow();
-    renWin->loadFrame( readFrameFromFile( ":/scene/depth0.png", ":/scene/rgb0.png" ) );
+  RenderWindow* renWin = glwidget->GetRenderWindow();
+  renWin->loadFrame(readFrameFromFile(":/scene/depth0.png", ":/scene/rgb0.png"));
 
-    setCentralWidget( mainBox );
+  setCentralWidget(mainBox);
 
-    /////////////////////////
-    /// Signals and Slots ///
-    /////////////////////////
-    // buttons
-    QObject::connect( qApp, SIGNAL( resizeEvent() ), renWin, SLOT( updateGL() ));
-    // QObject::connect( backgroundColorButton, SIGNAL( clicked() ), this, SLOT( backgroundColorSelector() ) );
-    // QObject::connect( objectColorButton, SIGNAL( clicked() ), this, SLOT( objectColorSelector() ) );
+  /////////////////////////
+  /// Signals and Slots ///
+  /////////////////////////
+  // buttons
+  QObject::connect(qApp, SIGNAL(resizeEvent()), renWin, SLOT(updateGL()));
+  // QObject::connect( backgroundColorButton, SIGNAL( clicked() ), this, SLOT( backgroundColorSelector() ) );
+  // QObject::connect( objectColorButton, SIGNAL( clicked() ), this, SLOT( objectColorSelector() ) );
 
-    // cursor dialog, lower left
-    QObject::connect( renWin, SIGNAL( mouseMove() ), this, SLOT( updateCursorPositionText() ) );
-    QObject::connect( glwidget, SIGNAL( mouseOut() ), this, SLOT( clearCursorPositionText() ) );
+  // cursor dialog, lower left
+  QObject::connect(renWin, SIGNAL(mouseMove()), this, SLOT(updateCursorPositionText()));
+  QObject::connect(glwidget, SIGNAL(mouseOut()), this, SLOT(clearCursorPositionText()));
 
-    // file menu actions
-    // QObject::connect( actionOpen, SIGNAL( triggered() ), this, SLOT( openFile() ) );
+  // file menu actions
+  // QObject::connect( actionOpen, SIGNAL( triggered() ), this, SLOT( openFile() ) );
 
-    // QObject::connect( actionSave, SIGNAL( triggered() ), this, SLOT( saveFile()) );
-    // QObject::connect( actionSaveAs, SIGNAL( triggered() ), this, SLOT( saveFileAs()) );
-    QObject::connect( actionQuit, SIGNAL( triggered() ), qApp, SLOT( quit()) );
+  // QObject::connect( actionSave, SIGNAL( triggered() ), this, SLOT( saveFile()) );
+  // QObject::connect( actionSaveAs, SIGNAL( triggered() ), this, SLOT( saveFileAs()) );
+  QObject::connect(actionQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
 
-    // view menu actions
-    QObject::connect( actionSetPerspective, SIGNAL( triggered() ), renWin, SLOT( setPerspective()) );
-    QObject::connect( actionSetOrthogonal, SIGNAL( triggered() ), renWin, SLOT( setOrthogonal()) );
-    QObject::connect( actionSetPixelView, SIGNAL( triggered() ), renWin, SLOT( setPixelView()) );
-    QObject::connect( actionSetSpriteView, SIGNAL( triggered() ), renWin, SLOT( setSpriteView()) );
-    QObject::connect( actionSetPhongView, SIGNAL( triggered() ), renWin, SLOT( setPhongView()) );
+  // view menu actions
+  QObject::connect(actionSetPerspective, SIGNAL(triggered()), renWin, SLOT(setPerspective()));
+  QObject::connect(actionSetOrthogonal, SIGNAL(triggered()), renWin, SLOT(setOrthogonal()));
+  QObject::connect(actionSetPixelView, SIGNAL(triggered()), renWin, SLOT(setPixelView()));
+  QObject::connect(actionSetSpriteView, SIGNAL(triggered()), renWin, SLOT(setSpriteView()));
+  QObject::connect(actionSetPhongView, SIGNAL(triggered()), renWin, SLOT(setPhongView()));
 
 
-    // help menu actions
-    QObject::connect( actionAbout, SIGNAL( triggered() ), this, SLOT( about()) );
-    QObject::connect( actionControls, SIGNAL( triggered() ), this, SLOT( controls()) );
+  // help menu actions
+  QObject::connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
+  QObject::connect(actionControls, SIGNAL(triggered()), this, SLOT(controls()));
 
 }
 
 
-void qtviewer::updateTransform()
-{
-    // currentSelectedModel->transform.setToIdentity();
-    // currentSelectedModel->transform.rotate( currentSelectedModel->rotation.x(), 1, 0, 0);
-    // currentSelectedModel->transform.rotate( currentSelectedModel->rotation.y(), 0, 1, 0);
-    // currentSelectedModel->transform.rotate( currentSelectedModel->rotation.z(), 0, 0, 1);
-    // currentSelectedModel->transform.translate( currentSelectedModel->translation );
-    // currentSelectedModel->transform.scale( currentSelectedModel->s );
+void qtviewer::updateTransform() {
+  // currentSelectedModel->transform.setToIdentity();
+  // currentSelectedModel->transform.rotate( currentSelectedModel->rotation.x(), 1, 0, 0);
+  // currentSelectedModel->transform.rotate( currentSelectedModel->rotation.y(), 0, 1, 0);
+  // currentSelectedModel->transform.rotate( currentSelectedModel->rotation.z(), 0, 0, 1);
+  // currentSelectedModel->transform.translate( currentSelectedModel->translation );
+  // currentSelectedModel->transform.scale( currentSelectedModel->s );
 }
 
 // void qtviewer::setRx( int val)
@@ -325,25 +323,22 @@ void qtviewer::updateTransform()
 //     emit resized();
 // }
 
-void qtviewer::updateCursorPositionText()
-{
-    RenderWindow* renWin = glwidget->GetRenderWindow();
-    QString positionText = renWin->getCursorPositionText();
-    this->statusBar()->showMessage( positionText );
-    //qDebug() << positionText;
-    //cursorPositionLabel->setText( positionText );
+void qtviewer::updateCursorPositionText() {
+  RenderWindow* renWin = glwidget->GetRenderWindow();
+  QString positionText = renWin->getCursorPositionText();
+  this->statusBar()->showMessage(positionText);
+  //qDebug() << positionText;
+  //cursorPositionLabel->setText( positionText );
 
 }
 
 
-void qtviewer::clearCursorPositionText()
-{
-    this->statusBar()->showMessage( "" );
+void qtviewer::clearCursorPositionText() {
+  this->statusBar()->showMessage("");
 }
 
 
-void qtviewer::openFile()
-{
+void qtviewer::openFile() {
 //     RenderWindow* renWin = glwidget->GetRenderWindow();
 //     renWin->setAnimating(false);
 //     QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
@@ -390,24 +385,22 @@ void qtviewer::openFile()
 //     }
 // }
 
-void qtviewer::about()
-{
-    QString fileContents;
-    QFile file( ":/about/about.md" );
-    file.open(QIODevice::ReadOnly | QIODevice::Text);
-    fileContents = file.readAll();
-    file.close();
-    QMessageBox::about(this, "About", fileContents );
+void qtviewer::about() {
+  QString fileContents;
+  QFile file(":/about/about.md");
+  file.open(QIODevice::ReadOnly | QIODevice::Text);
+  fileContents = file.readAll();
+  file.close();
+  QMessageBox::about(this, "About", fileContents);
 }
 
-void qtviewer::controls()
-{
-    QString fileContents;
-    QFile file( ":/about/controls.md" );
-    file.open(QIODevice::ReadOnly | QIODevice::Text);
-    fileContents = file.readAll();
-    file.close();
-    QMessageBox::about(this, "Controls", fileContents );
+void qtviewer::controls() {
+  QString fileContents;
+  QFile file(":/about/controls.md");
+  file.open(QIODevice::ReadOnly | QIODevice::Text);
+  fileContents = file.readAll();
+  file.close();
+  QMessageBox::about(this, "Controls", fileContents);
 }
 
 // void qtviewer::saveFile()
@@ -760,132 +753,122 @@ void qtviewer::controls()
 //     }
 // }
 
-Frame* qtviewer::readFrameFromFile( const QString &depthFileName, const QString &rgbFileName )
-{
-    Frame* frame = new Frame();
-    frame->transform.setToIdentity();
+Frame* qtviewer::readFrameFromFile(const QString& depthFileName, const QString& rgbFileName) {
+  Frame* frame = new Frame();
+  frame->transform.setToIdentity();
 
-    cv::Mat depthMat;//(cv::Size(640,480),CV_16UC1);
-    depthMat = cv::imread("../scene/fulldepth0.png", CV_16UC1);
-    //QImage depthMap = QImage(":/scene/fulldepth0.png");
-    QImage rgb = QImage(":/scene/rgb0.png");
+  cv::Mat depthMat;//(cv::Size(640,480),CV_16UC1);
+  depthMat = cv::imread("../scene/fulldepth0.png", CV_16UC1);
+  //QImage depthMap = QImage(":/scene/fulldepth0.png");
+  QImage rgb = QImage(":/scene/rgb0.png");
 
-    float fx = 594.21f;
-    float fy = 591.04f;
-    float a = -0.0030711f;
-    float b = 3.3309495f;
-    float cx = 339.5f;
-    float cy = 242.7f;
+  float fx = 594.21f;
+  float fy = 591.04f;
+  float a = -0.0030711f;
+  float b = 3.3309495f;
+  float cx = 339.5f;
+  float cy = 242.7f;
 
-    QMatrix4x4 m_vertexMatrix = QMatrix4x4(
-        1/fx,     0,  0, 0,
-        0,    -1/fy,  0, 0,
-        0,       0,  0, a,
-        -cx/fx, cy/fy, -1, b );
+  QMatrix4x4 m_vertexMatrix = QMatrix4x4(
+                                1 / fx,     0,  0, 0,
+                                0,    -1 / fy,  0, 0,
+                                0,       0,  0, a,
+                                -cx / fx, cy / fy, -1, b);
 
 
-    //count vertices
-    frame->ilen=0;
-    for (int i = 0; i < 480; i++)
-    {
-        for (int j = 0; j < 640; j++)
-        {
-            if (depthMat.at<short>(i,j)>0.0 && depthMat.at<short>(i,j)<2047.0)
-            {
-                frame->ilen++;
-            }
+  //count vertices
+  frame->ilen = 0;
+  for(int i = 0; i < 480; i++) {
+    for(int j = 0; j < 640; j++) {
+      if(depthMat.at<short>(i, j) > 0.0 && depthMat.at<short>(i, j) < 2047.0) {
+        frame->ilen++;
+      }
+    }
+  }
+
+  frame->indices = new GLint[frame->ilen];
+  frame->vlen = frame->ilen * 3;
+  frame->vertices = new GLfloat[frame->vlen];
+  frame->clen = frame->vlen;
+  frame->colors = new GLfloat[frame->vlen];
+
+  float fx_rgb = 5.2921508098293293e+02;
+  float fy_rgb = 5.2556393630057437e+02;
+  float cx_rgb = 3.2894272028759258e+02;
+  float cy_rgb = 2.6748068171871557e+02;
+  float k1_rgb = 2.6451622333009589e-01;
+  float k2_rgb = -8.3990749424620825e-01;
+  float p1_rgb = -1.9922302173693159e-03;
+  float p2_rgb = 1.4371995932897616e-03;
+  float k3_rgb = 9.1192465078713847e-01;
+
+  float fx_d = 5.9421434211923247e+02;
+  float fy_d = 5.9104053696870778e+02;
+  float cx_d = 3.3930780975300314e+02;
+  float cy_d = 2.4273913761751615e+02;
+  float k1_d = -2.6386489753128833e-01;
+  float k2_d = 9.9966832163729757e-01;
+  float p1_d = -7.6275862143610667e-04;
+  float p2_d = 5.0350940090814270e-03;
+  float k3_d = -1.3053628089976321e+00;
+
+  QMatrix4x4 R = QMatrix4x4(9.9984628826577793e-01, 1.2635359098409581e-03, -1.7487233004436643e-02, 0.0,
+                            -1.4779096108364480e-03, 9.9992385683542895e-01, -1.2251380107679535e-02, 0.0,
+                            1.7470421412464927e-02, 1.2275341476520762e-02, 9.9977202419716948e-01, 0.0,
+                            0.0, 0.0, 0.0, 1.0);
+
+  QVector4D t = QVector4D(1.9985242312092553e-02, -7.4423738761617583e-04,
+                          -1.0916736334336222e-02, 0.0);
+
+
+  int k = 0;
+  for(int y = 0; y < 480; y++) {
+    for(int x = 0; x < 640; x++) {
+      short depth;
+      if((depth = depthMat.at<short>(y, x)) > 0.0) {
+        if(depth < 2047.0) {
+          float depthVal = 1.0f / (depth * -0.0030711016f + 3.3309495161f);
+
+          frame->vertices[k++] = (x - cx_d) * depthVal / fx_d;
+          frame->vertices[k++] = (y - cy_d) * depthVal / fy_d;
+          frame->vertices[k++] = depthVal;
         }
+      }
     }
+  }
 
-    frame->indices = new GLint[frame->ilen];
-    frame->vlen = frame->ilen*3;
-    frame->vertices = new GLfloat[frame->vlen];
-    frame->clen = frame->vlen;
-    frame->colors = new GLfloat[frame->vlen];
-
-    float fx_rgb = 5.2921508098293293e+02;
-    float fy_rgb = 5.2556393630057437e+02;
-    float cx_rgb = 3.2894272028759258e+02;
-    float cy_rgb = 2.6748068171871557e+02;
-    float k1_rgb = 2.6451622333009589e-01;
-    float k2_rgb = -8.3990749424620825e-01;
-    float p1_rgb = -1.9922302173693159e-03;
-    float p2_rgb = 1.4371995932897616e-03;
-    float k3_rgb = 9.1192465078713847e-01;
-
-    float fx_d = 5.9421434211923247e+02;
-    float fy_d = 5.9104053696870778e+02;
-    float cx_d = 3.3930780975300314e+02;
-    float cy_d = 2.4273913761751615e+02;
-    float k1_d = -2.6386489753128833e-01;
-    float k2_d = 9.9966832163729757e-01;
-    float p1_d = -7.6275862143610667e-04;
-    float p2_d = 5.0350940090814270e-03;
-    float k3_d = -1.3053628089976321e+00;
-
-    QMatrix4x4 R = QMatrix4x4( 9.9984628826577793e-01, 1.2635359098409581e-03, -1.7487233004436643e-02, 0.0,
-        -1.4779096108364480e-03, 9.9992385683542895e-01, -1.2251380107679535e-02, 0.0,
-        1.7470421412464927e-02, 1.2275341476520762e-02, 9.9977202419716948e-01, 0.0,
-        0.0, 0.0, 0.0, 1.0 );
-
-    QVector4D t = QVector4D( 1.9985242312092553e-02, -7.4423738761617583e-04,
-                             -1.0916736334336222e-02, 0.0 );
+  frame->indices = new GLint[frame->ilen];
+  for(int i = 0; i < frame->ilen; i++) {
+    frame->indices[i] = (GLint)i;
+    qDebug() << frame->vertices[3 * i + 0] << frame->vertices[3 * i + 1] << frame->vertices[3 * i + 2];
+  }
 
 
-    int k = 0;
-    for (int y = 0; y < 480; y++)
-    {
-        for (int x = 0; x < 640; x++)
-        {
-            short depth;
-            if( (depth = depthMat.at<short>(y,x)) >0.0 )
-            {
-                if( depth<2047.0 )
-                {
-                    float depthVal = 1.0f / (depth * -0.0030711016f + 3.3309495161f);
+  k = 0;
+  for(int i = 0; i < frame->ilen; i++) {
+    GLfloat point_x = 9.9984628826577793e-01 * frame->vertices[3 * i + 0] +
+                      1.2635359098409581e-03 * frame->vertices[3 * i + 1] +
+                      -1.7487233004436643e-02 * frame->vertices[3 * i + 2] + 1.9985242312092553e-02;
 
-                    frame->vertices[k++] = (x - cx_d) * depthVal / fx_d;
-                    frame->vertices[k++] = (y - cy_d) * depthVal / fy_d;
-                    frame->vertices[k++] = depthVal;
-                }
-            }
-        }
-    }
+    GLfloat point_y = -1.4779096108364480e-03 * frame->vertices[3 * i + 0] +
+                      9.9992385683542895e-01 * frame->vertices[3 * i + 1] +
+                      -1.2251380107679535e-02 * frame->vertices[3 * i + 2] + -7.4423738761617583e-04;
 
-    frame->indices = new GLint[frame->ilen];
-    for (int i=0; i<frame->ilen; i++)
-    {
-        frame->indices[i]=(GLint)i;
-        qDebug() << frame->vertices[3*i+0] << frame->vertices[3*i+1] << frame->vertices[3*i+2];
-    }
+    GLfloat point_z = 1.7470421412464927e-02 * frame->vertices[3 * i + 0] +
+                      1.2275341476520762e-02 * frame->vertices[3 * i + 1] +
+                      9.9977202419716948e-01 * frame->vertices[3 * i + 2] + -1.0916736334336222e-02;
 
+    int rgb_x = (point_x * fx_rgb / point_z) + cx_rgb;
+    int rgb_y = (point_y * fy_rgb / point_z) + cy_rgb;
 
-    k = 0;
-    for (int i = 0; i < frame->ilen; i++)
-    {
-            GLfloat point_x = 9.9984628826577793e-01 * frame->vertices[3*i+0] +
-                              1.2635359098409581e-03 * frame->vertices[3*i+1] +
-                              -1.7487233004436643e-02 * frame->vertices[3*i+2] + 1.9985242312092553e-02;
+    QColor pixel = rgb.pixel(rgb_x, rgb_y);
+    frame->colors[3 * i + 0] = pixel.red() / 255.0;
+    frame->colors[3 * i + 1] = pixel.green() / 255.0;
+    frame->colors[3 * i + 2] = pixel.blue() / 255.0;
+  }
 
-            GLfloat point_y = -1.4779096108364480e-03 * frame->vertices[3*i+0] +
-                              9.9992385683542895e-01 * frame->vertices[3*i+1] +
-                              -1.2251380107679535e-02 * frame->vertices[3*i+2] + -7.4423738761617583e-04;
-
-            GLfloat point_z = 1.7470421412464927e-02 * frame->vertices[3*i+0] +
-                              1.2275341476520762e-02 * frame->vertices[3*i+1] +
-                              9.9977202419716948e-01 * frame->vertices[3*i+2] + -1.0916736334336222e-02;
-
-            int rgb_x = (point_x * fx_rgb / point_z) + cx_rgb;
-            int rgb_y = (point_y * fy_rgb / point_z) + cy_rgb;
-
-            QColor pixel = rgb.pixel(rgb_x, rgb_y);
-            frame->colors[3*i+0] = pixel.red() / 255.0;
-            frame->colors[3*i+1] = pixel.green() / 255.0;
-            frame->colors[3*i+2] = pixel.blue() / 255.0;
-    }
-
-    frame->initialized = false;
-    return frame;
+  frame->initialized = false;
+  return frame;
 }
 
 

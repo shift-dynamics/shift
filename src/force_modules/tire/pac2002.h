@@ -361,7 +361,7 @@ struct combinedTorqueCoefs {
   double t;
   double M_z_x;  // Mz due to Fx
   double M_z_y;  // Mz due to Fy
-                 // double MP_z; // = -t * FP_y
+  // double MP_z; // = -t * FP_y
 };
 
 struct relaxationL {

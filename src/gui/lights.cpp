@@ -83,19 +83,22 @@ void s2_Lights::loadContext() {
           m_lights.position[i * 3 + 0] = d->T.x;
           m_lights.position[i * 3 + 1] = d->T.y;
           m_lights.position[i * 3 + 2] = d->T.z;
-        } break;
+        }
+        break;
         case S2_LIGHT_DIRECTIONAL: {
           m_lights.directional[i] = 1;
           m_lights.position[i * 3 + 0] = d->R.m20;
           m_lights.position[i * 3 + 1] = d->R.m21;
           m_lights.position[i * 3 + 2] = d->R.m22;
-        } break;
+        }
+        break;
         case S2_LIGHT_SPOT: {
           m_lights.directional[i] = 2;
           m_lights.position[i * 3 + 0] = d->T.x;
           m_lights.position[i * 3 + 1] = d->T.y;
           m_lights.position[i * 3 + 2] = d->T.z;
-        } break;
+        }
+        break;
       }
 
       for(int j = 0; j < 3; j++) {
@@ -122,13 +125,15 @@ void s2_Lights::loadContext() {
             0.001f,
             1000.f);
           qDebug() << "initialized point (perspective) projection matrix";
-        } break;
+        }
+        break;
         case S2_LIGHT_DIRECTIONAL: {
           projection.ortho(
             -1.f, 1.f, -1.f, 1.f, 0.001f, 1000.f);
           qDebug() << "initialized directional (ortho) projection matrix";
 
-        } break;
+        }
+        break;
         case S2_LIGHT_SPOT: {
           projection.perspective(
             light->glLight.fov,
@@ -238,19 +243,22 @@ void s2_Lights::draw() {
             m_lights.position[i * 3 + 0] = d->T.x;
             m_lights.position[i * 3 + 1] = d->T.y;
             m_lights.position[i * 3 + 2] = d->T.z;
-          } break;
+          }
+          break;
           case S2_LIGHT_DIRECTIONAL: {
             m_lights.directional[i] = 1;
             m_lights.position[i * 3 + 0] = d->R.m20;
             m_lights.position[i * 3 + 1] = d->R.m21;
             m_lights.position[i * 3 + 2] = d->R.m22;
-          } break;
+          }
+          break;
           case S2_LIGHT_SPOT: {
             m_lights.directional[i] = 2;
             m_lights.position[i * 3 + 0] = d->T.x;
             m_lights.position[i * 3 + 1] = d->T.y;
             m_lights.position[i * 3 + 2] = d->T.z;
-          } break;
+          }
+          break;
         }
       }
 
@@ -347,36 +355,46 @@ void s2_Lights::getFramebufferStatus() {
   switch(status) {
     case GL_INVALID_ENUM: {
       qDebug() << "framebuffer status: GL_INVALID_ENUM";
-    } break;
+    }
+    break;
     case GL_FRAMEBUFFER_UNDEFINED: {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_UNDEFINED";
-    } break;
+    }
+    break;
     case GL_FRAMEBUFFER_COMPLETE: {
       /* no error */
     } break;
     case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
-    } break;
+    }
+    break;
     case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
-    } break;
+    }
+    break;
     case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER: {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER";
-    } break;
+    }
+    break;
     case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER: {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER";
-    } break;
+    }
+    break;
     case GL_FRAMEBUFFER_UNSUPPORTED: {
-     qDebug() << "framebuffer status: GL_FRAMEBUFFER_UNSUPPORTED";
-    } break;
+      qDebug() << "framebuffer status: GL_FRAMEBUFFER_UNSUPPORTED";
+    }
+    break;
     case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE";
-    } break;
+    }
+    break;
     case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS: {
       qDebug() << "framebuffer status: GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS";
-    } break;
+    }
+    break;
     default: {
       qDebug() << status;
-    } break;
+    }
+    break;
   }
 }

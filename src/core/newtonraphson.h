@@ -36,9 +36,9 @@ int s2_newtonRaphson_removeConstraintViolations_substructure(
   int substructureIndex);
 
 int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
-    s2_context_t* context,
-    int substructureIndex,
-    bool useTightTolerance);
+  s2_context_t* context,
+  int substructureIndex,
+  bool useTightTolerance);
 
 void s2_newtonRaphson_setup_specified(
   s2_context_t* context,

@@ -54,7 +54,7 @@ void s2_frame_free(
         frame->dWRTReference = NULL;
         frame->dWRTOrigin = NULL;
       }
-    } else{
+    } else {
       if(frame->dWRTReference) {
         free(frame->dWRTReference);
         frame->dWRTReference = NULL;
@@ -71,7 +71,7 @@ void s2_frame_free(
         frame->dWRTReferenceInverse = NULL;
         frame->dWRTOriginInverse = NULL;
       }
-    } else{
+    } else {
       if(frame->dWRTReferenceInverse) {
         free(frame->dWRTReferenceInverse);
         frame->dWRTReferenceInverse = NULL;
@@ -115,21 +115,21 @@ void s2_frame_load(
     json_string_value(json_object_get(frameObject, "name")));
 
   json_t* rotation = json_object_get(frameObject, "R");
-  if (json_is_array(rotation)) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
+  if(json_is_array(rotation)) {
+    for(int j = 0; j < 3; j++) {
+      for(int k = 0; k < 3; k++) {
         ((double*)frame->dWRTOrigin)[3 * k + j] = json_number_value(
-            json_array_get(json_array_get(rotation, j), k));
+              json_array_get(json_array_get(rotation, j), k));
       }
     }
     s2_gramSchmidt(
       3, 3, (double*)frame->dWRTOrigin);
   }
   json_t* translation = json_object_get(frameObject, "T");
-  if (json_is_array(translation)) {
-    for (int j = 0; j < 3; j++) {
+  if(json_is_array(translation)) {
+    for(int j = 0; j < 3; j++) {
       ((double*)frame->dWRTOrigin)[9 + j] =
-          json_number_value(json_array_get(translation, j));
+        json_number_value(json_array_get(translation, j));
     }
   }
   s2_displacement_invert(

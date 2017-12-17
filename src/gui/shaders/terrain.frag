@@ -2,11 +2,12 @@
 /* terrain.frag */
 
 layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
-layout (binding = 1) uniform sampler2D texture_elevation_u;
-layout (binding = 2) uniform sampler2D texture_diffuse_u;
-layout (binding = 3) uniform sampler2D texture_normal_u;
-layout (binding = 4) uniform sampler2D texture_specular_u;
-layout (binding = 5) uniform sampler2D texture_bump_u;
+layout (binding = 1) uniform samplerCubeArrayShadow texture_shadowCube_u;
+layout (binding = 2) uniform sampler2D texture_elevation_u;
+layout (binding = 3) uniform sampler2D texture_diffuse_u;
+layout (binding = 4) uniform sampler2D texture_normal_u;
+layout (binding = 5) uniform sampler2D texture_specular_u;
+layout (binding = 6) uniform sampler2D texture_bump_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -27,13 +28,15 @@ uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
+  vec3 direction[10];
   vec3 Ka[10];
   vec3 Kd[10];
   vec3 Ks[10];
-  int directional[10];
+  int type[10]; /*!< 0 = point, 1 = directional */
   int count;
   int drawShadows; /*!< 0 = false, 1 = true */
   mat4 shadowMatrix[10];
+  mat4 shadowMatrixCube[10][6];
 };
 uniform lights_t lights_u;
 
@@ -120,10 +123,13 @@ void main(void) {
 
   vec3 V = vec3(0.0, 0.0, 1.0);
 
+  /* process all directional and spot lights */
+  int j = 0; /* index into shadowmap array */
+  int k = 0; /* index into shadowcubemap array */
   for(int i = 0; i < lights_u.count; i++) {
     vec3 L; /* light direction */
     vec3 N; /* normal direction */
-
+    float attenuation = 1.0;
     if(terrain_u.enableNormalMap == 1) {
       /* transform L and V to tangent space, retrieve normal from normal map */
       L = fs_in.light_direction_tangentSpace[i];
@@ -132,31 +138,44 @@ void main(void) {
       N = normalize(N * 2.0 - 1.0);
     } else {
       switch(lights_u.directional[i]) {
-        case 0: { /* point light */
+        case 0:    /* point light */
+        case 1: {  /* spot light */
           vec3 temp = (matrices_u.v * vec4(lights_u.position[i], 1.0)).xyz;
           temp -= fs_in.position_cameraSpace;
           L = normalize(temp);
         } break;
-        case 1: { /* directional light */
-          vec3 temp = mat3(matrices_u.v) * lights_u.position[i];
+        case 2: { /* directional light */
+          vec3 temp = mat3(matrices_u.v) * lights_u.direction[i];
           L = normalize(temp);
         } break;
+        }
       }
       N = fs_in.normal_cameraSpace;
-      // V = -fs_in.position_cameraSpace;
     }
+
 
     float shadowTest = 1.f;
     if(lights_u.drawShadows == 1) {
-      shadowTest = 0.0;
-      for(float y = -1.5; y <= 1.5; y += 1.0) {
-        for(float x = -1.5; x <= 1.5; x += 1.0) {
-          shadowTest += offset_lookup(
-            texture_shadow_u, i, shadowCoord[i], vec2(x, y) / 4096.0);
-        }
+      switch(lights_u.type[i]) {
+        case 0: { /* point */
+
+        } break;
+        case 1:   /* spot */
+        case 2: { /* directional */
+          shadowTest = 0.0;
+          for(float y = -1.5; y <= 1.5; y += 1.0) {
+            for(float x = -1.5; x <= 1.5; x += 1.0) {
+              shadowTest += offset_lookup(
+                texture_shadow_u, j, shadowCoord[j], vec2(x, y) / 4096.0);
+            }
+          }
+          j++;
+          shadowTest /= 16.0;
+        } break;
       }
-      shadowTest /= 16.0;
     }
+
+
 
     float bumpTest = 1.f;
     if(terrain_u.enableBumpMap == 1) {

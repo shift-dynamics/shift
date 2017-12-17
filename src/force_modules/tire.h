@@ -71,7 +71,7 @@ void s2_tire_free(
   s2_tire_t* tire);
 
 int convertInt(const char* numArray, int* value);
-int convertDouble(const char *str, double* value);
+int convertDouble(const char* str, double* value);
 char* getCharFromLine(char* tline);
 int getIntFromLine(char* tline, int* val);
 int getDoubleFromLine(char* tline, double* val);

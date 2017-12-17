@@ -50,108 +50,108 @@ struct s2_lights_t {
 
 class s2_Lights : public s2_Geometry {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  s2_Lights(RenderWindow* renderWindow);
-  s2_Lights(RenderWindow* renderWindow, GLint depthBufferSize);
+  public:
+    s2_Lights(RenderWindow* renderWindow);
+    s2_Lights(RenderWindow* renderWindow, GLint depthBufferSize);
 
-  ~s2_Lights() {
+    ~s2_Lights() {
 
-  };
+    };
 
-  int getCount() {
-    return m_lights.count;
-  };
+    int getCount() {
+      return m_lights.count;
+    };
 
-  int getMaxCount() {
-    return m_maxCount;
-  }
+    int getMaxCount() {
+      return m_maxCount;
+    }
 
-  GLfloat* getPosition() {
-    return m_lights.position;
-  }
+    GLfloat* getPosition() {
+      return m_lights.position;
+    }
 
-  GLfloat* getKa() {
-    return m_lights.Ka;
-  }
+    GLfloat* getKa() {
+      return m_lights.Ka;
+    }
 
-  GLfloat* getKd() {
-    return m_lights.Kd;
-  }
+    GLfloat* getKd() {
+      return m_lights.Kd;
+    }
 
-  GLfloat* getKs() {
-    return m_lights.Ks;
-  }
+    GLfloat* getKs() {
+      return m_lights.Ks;
+    }
 
-  GLint* getDirectional() {
-    return m_lights.directional;
-  }
+    GLint* getDirectional() {
+      return m_lights.directional;
+    }
 
-  void initialize();
+    void initialize();
 
-  void draw();
+    void draw();
 
-  void loadContext();
+    void loadContext();
 
-  void setBodies(s2_Bodies* bodies) {
-    m_bodies = bodies;
-  }
+    void setBodies(s2_Bodies* bodies) {
+      m_bodies = bodies;
+    }
 
-  void setShader(ShadowShaderProgram* program) {
-    m_program = program;
-  }
+    void setShader(ShadowShaderProgram* program) {
+      m_program = program;
+    }
 
-  GLint getDepthBufferSize() {
-    return m_depthBufferSize;
-  }
+    GLint getDepthBufferSize() {
+      return m_depthBufferSize;
+    }
 
-  void getFramebufferStatus();
+    void getFramebufferStatus();
 
-  QMatrix4x4& getActiveViewMatrix() {
-    return m_lights.viewMatrix[m_activeLightIndex];
-  }
+    QMatrix4x4& getActiveViewMatrix() {
+      return m_lights.viewMatrix[m_activeLightIndex];
+    }
 
-  QMatrix4x4& getViewMatrix(int i) {
-    return m_lights.viewMatrix[i];
-  }
+    QMatrix4x4& getViewMatrix(int i) {
+      return m_lights.viewMatrix[i];
+    }
 
-  QMatrix4x4& getActiveProjectionMatrix() {
-    return m_lights.projectionMatrix[m_activeLightIndex];
-  }
+    QMatrix4x4& getActiveProjectionMatrix() {
+      return m_lights.projectionMatrix[m_activeLightIndex];
+    }
 
-  QMatrix4x4& getProjectionMatrix(int i) {
-    return m_lights.projectionMatrix[i];
-  }
+    QMatrix4x4& getProjectionMatrix(int i) {
+      return m_lights.projectionMatrix[i];
+    }
 
-  QMatrix4x4* setShadowMatrix(s2_displacement_t*);
+    QMatrix4x4* setShadowMatrix(s2_displacement_t*);
 
-  QMatrix4x4* setShadowMatrix(QMatrix4x4&);
+    QMatrix4x4* setShadowMatrix(QMatrix4x4&);
 
-  GLint getDepthTexture() {
-    return m_depthTexture;
-  }
+    GLint getDepthTexture() {
+      return m_depthTexture;
+    }
 
 
-private:
+  private:
 
-  s2_lights_t m_lights;
+    s2_lights_t m_lights;
 
-  s2_Bodies* m_bodies;
+    s2_Bodies* m_bodies;
 
-  QOpenGLTexture* m_depthBufferArray;
+    QOpenGLTexture* m_depthBufferArray;
 
-  GLint m_depthBufferSize;
+    GLint m_depthBufferSize;
 
-  GLuint m_fbo[10];
+    GLuint m_fbo[10];
 
-  GLuint m_depthTexture;
+    GLuint m_depthTexture;
 
-  ShadowShaderProgram* m_program;
+    ShadowShaderProgram* m_program;
 
-  int m_maxCount;
+    int m_maxCount;
 
-  int m_activeLightIndex;
+    int m_activeLightIndex;
 
 };
 

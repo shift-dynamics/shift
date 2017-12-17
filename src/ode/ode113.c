@@ -153,11 +153,11 @@ void s2_ode113_de(
   s2_context_t* context,
   int neqn,
   double y[],
-  double *t,
+  double* t,
   double tout,
   double relerr,
   double abserr,
-  int *iflag,
+  int* iflag,
   double yy[],
   double wt[],
   double p[],
@@ -170,19 +170,19 @@ void s2_ode113_de(
   double v[],
   double w[],
   double g[],
-  int *phase1,
+  int* phase1,
   double psi[],
-  double *x,
-  double *h,
-  double *hold,
-  int *start,
-  double *told,
-  double *delsgn,
-  int *ns,
-  int *nornd,
-  int *k,
-  int *kold,
-  int *isnold ) {
+  double* x,
+  double* h,
+  double* hold,
+  int* start,
+  double* told,
+  double* delsgn,
+  int* ns,
+  int* nornd,
+  int* k,
+  int* kold,
+  int* isnold) {
 
   double absdel;
   double abseps;
@@ -238,19 +238,19 @@ void s2_ode113_de(
     *iflag = 6;
     fprintf(stderr, "\nDE - Fatal error!\n");
     fprintf(stderr, "  IFLAG = 0 on input.\n");
-    exit ( 1 );
+    exit(1);
   }
 
   isn = i4_sign(*iflag);
   *iflag = abs(*iflag);
 
-  if (*iflag != 1) {
-    if ( *t != *told ) {
+  if(*iflag != 1) {
+    if(*t != *told) {
       *iflag = 6;
-      fprintf ( stderr, "\n" );
-      fprintf ( stderr, "DE - Fatal error!\n" );
-      fprintf ( stderr, "  IFLAG is not 1, and T is not equal to TOLD.\n" );
-      exit ( 1 );
+      fprintf(stderr, "\n");
+      fprintf(stderr, "DE - Fatal error!\n");
+      fprintf(stderr, "  IFLAG is not 1, and T is not equal to TOLD.\n");
+      exit(1);
     }
 
     if(*iflag < 2 || 5 < *iflag) {
@@ -283,7 +283,7 @@ void s2_ode113_de(
     On start and restart, also set work variables X and YY(*), store the
     direction of integration, and initialize the step size.
   */
-  if( *iflag == 1 || *isnold < 0 || *delsgn * del <= 0.0) {
+  if(*iflag == 1 || *isnold < 0 || *delsgn * del <= 0.0) {
     *start = 1;
     *x = *t;
 
@@ -300,7 +300,7 @@ void s2_ode113_de(
   /*
     If already past the output point, then interpolate and return.
   */
-  for( ; ; ) {
+  for(; ;) {
     if(absdel <= fabs(*x - *t)) {
       s2_ode113_intrp(*x, yy, tout, y, ypout, neqn, *kold, phi, psi);
       *iflag = 2;
@@ -365,7 +365,7 @@ void s2_ode113_de(
     *h = fmin(fabs(*h), fabs(tend - *x)) * copysign(1.0, *h);
 
     for(l = 1; l <= neqn; l++) {
-      wt[l-1] = releps * fabs ( yy[l-1] ) + abseps;
+      wt[l - 1] = releps * fabs(yy[l - 1]) + abseps;
     }
 
     s2_ode113_step(
@@ -380,9 +380,8 @@ void s2_ode113_de(
       *iflag = isn * 3;
       relerr = eps * releps;
       abserr = eps * abseps;
-      for ( l = 1; l <= neqn; l++ )
-      {
-        y[l-1] = yy[l-1];
+      for(l = 1; l <= neqn; l++) {
+        y[l - 1] = yy[l - 1];
       }
       *t = *x;
       *told = *t;
@@ -526,8 +525,8 @@ void s2_ode113_intrp(
   /*
     Initialize W for computing G.
   */
-  for( i = 1; i <= ki; i++) {
-    w[i-1] = 1.0 / ( double ) ( i );
+  for(i = 1; i <= ki; i++) {
+    w[i - 1] = 1.0 / (double)(i);
   }
 
   /*
@@ -539,14 +538,13 @@ void s2_ode113_intrp(
 
   for(j = 2; j <= ki; j++) {
     psijm1 = psi[j - 2];
-    gamma = ( hi + term ) / psijm1;
+    gamma = (hi + term) / psijm1;
     eta = hi / psijm1;
-    for ( i = 1; i <= ki + 1 - j; i++ )
-    {
-      w[i-1] = gamma * w[i-1] - eta * w[i];
+    for(i = 1; i <= ki + 1 - j; i++) {
+      w[i - 1] = gamma * w[i - 1] - eta * w[i];
     }
-    g[j-1] = w[0];
-    rho[j-1] = gamma * rho[j-2];
+    g[j - 1] = w[0];
+    rho[j - 1] = gamma * rho[j - 2];
     term = psijm1;
   }
 
@@ -560,10 +558,9 @@ void s2_ode113_intrp(
 
   for(j = 1; j <= ki; j++) {
     i = ki + 1 - j;
-    for ( k = 0; k < neqn; k++ )
-    {
-      yout[k] = yout[k] + g[i-1] * phi[k+(i-1)*neqn];
-      ypout[k] = ypout[k] + rho[i-1] * phi[k+(i-1)*neqn];
+    for(k = 0; k < neqn; k++) {
+      yout[k] = yout[k] + g[i - 1] * phi[k + (i - 1) * neqn];
+      ypout[k] = ypout[k] + rho[i - 1] * phi[k + (i - 1) * neqn];
     }
   }
 
@@ -975,19 +972,19 @@ double r8_epsilon() {
     Input/output, int *NORND, ?
 */
 void s2_ode113_step(
-  double *x,
+  double* x,
   double y[],
   void f(double t, double y[], double yp[], s2_context_t* context),
   s2_context_t* context,
   int neqn,
-  double *h,
-  double *eps,
+  double* h,
+  double* eps,
   double wt[],
-  int *start,
-  double *hold,
-  int *k,
-  int *kold,
-  int *crash,
+  int* start,
+  double* hold,
+  int* k,
+  int* kold,
+  int* crash,
   double phi[],
   double p[],
   double yp[],
@@ -998,9 +995,9 @@ void s2_ode113_step(
   double v[],
   double w[],
   double g[],
-  int *phase1,
-  int *ns,
-  int *nornd) {
+  int* phase1,
+  int* ns,
+  int* nornd) {
 
   double absh;
   double erk;
@@ -1012,7 +1009,8 @@ void s2_ode113_step(
   double gstr[13] = {
     0.50,    0.0833,  0.0417,  0.0264,  0.0188,
     0.0143,  0.0114,  0.00936, 0.00789, 0.00679,
-    0.00592, 0.00524, 0.00468};
+    0.00592, 0.00524, 0.00468
+  };
   double hnew;
   int i;
   int ifail;
@@ -1034,9 +1032,10 @@ void s2_ode113_step(
   double temp1;
   double temp2;
   double two[13] = {
-       2.0,    4.0,    8.0,  16.0,   32.0,
-      64.0,  128.0,  256.0, 512.0, 1024.0,
-    2048.0, 4096.0, 8192.0 };
+    2.0,    4.0,    8.0,  16.0,   32.0,
+    64.0,  128.0,  256.0, 512.0, 1024.0,
+    2048.0, 4096.0, 8192.0
+  };
   double twou;
   double xold;
 
@@ -1063,7 +1062,7 @@ void s2_ode113_step(
   */
   round = 0.0;
   for(i = 0; i < neqn; i++) {
-    round = round + pow (y[i] / wt[i], 2);
+    round = round + pow(y[i] / wt[i], 2);
   }
   round = twou * sqrt(round);
 
@@ -1122,7 +1121,7 @@ void s2_ode113_step(
     Compute coefficients of formulas for this step.  Avoid computing
     those quantities not changed when step size is not changed.
   */
-  for( ; ; ) {
+  for(; ;) {
     kp1 = *k + 1;
     kp2 = *k + 2;
     km1 = *k - 1;
@@ -1144,20 +1143,20 @@ void s2_ode113_step(
       Compute those components of ALPHA, BETA, PSI and SIG which change.
     */
     if(*ns <= *k) {
-      beta[*ns-1] = 1.0;
-      alpha[*ns-1] = 1.0 / ( double ) ( *ns );
-      temp1 = *h * ( double ) ( *ns );
-      sig[nsp1-1] = 1.0;
+      beta[*ns - 1] = 1.0;
+      alpha[*ns - 1] = 1.0 / (double)(*ns);
+      temp1 = *h * (double)(*ns);
+      sig[nsp1 - 1] = 1.0;
 
-      for ( i = nsp1; i <= *k; i++ ) {
-        temp2 = psi[i-2];
-        psi[i-2] = temp1;
-        beta[i-1] = beta[i-2] * psi[i-2] / temp2;
+      for(i = nsp1; i <= *k; i++) {
+        temp2 = psi[i - 2];
+        psi[i - 2] = temp1;
+        beta[i - 1] = beta[i - 2] * psi[i - 2] / temp2;
         temp1 = temp2 + *h;
-        alpha[i-1] = *h / temp1;
-        sig[i] = ( double ) ( i ) * alpha[i-1] * sig[i-1];
+        alpha[i - 1] = *h / temp1;
+        sig[i] = (double)(i) * alpha[i - 1] * sig[i - 1];
       }
-      psi[*k-1] = temp1;
+      psi[*k - 1] = temp1;
 
       /*
         Compute coefficients G.
@@ -1185,7 +1184,7 @@ void s2_ode113_step(
         /*
           Update V and set W.
         */
-        for (iq = 1; iq <= kp1 - *ns; iq++) {
+        for(iq = 1; iq <= kp1 - *ns; iq++) {
           v[iq - 1] = v[iq - 1] - alpha[*ns - 1] * v[iq];
           w[iq - 1] = v[iq - 1];
         }
@@ -1195,13 +1194,11 @@ void s2_ode113_step(
       /*
         Compute the G in the work vector W.
       */
-      for ( i = *ns + 2; i <= kp1; i++ )
-      {
-        for ( iq = 1; iq <= kp2 - i; iq++ )
-        {
-          w[iq-1] = w[iq-1] - alpha[i-2] * w[iq];
+      for(i = *ns + 2; i <= kp1; i++) {
+        for(iq = 1; iq <= kp2 - i; iq++) {
+          w[iq - 1] = w[iq - 1] - alpha[i - 2] * w[iq];
         }
-        g[i-1] = w[0];
+        g[i - 1] = w[0];
       }
     }
 
@@ -1214,9 +1211,9 @@ void s2_ode113_step(
 
       @TODO change to 0 based indexing
     */
-    for( i = nsp1; i <= *k; i++ ) {
-      for ( l = 1; l <= neqn; l++ ) {
-        phi[l-1+(i-1)*neqn] = beta[i-1] * phi[l-1+(i-1)*neqn];
+    for(i = nsp1; i <= *k; i++) {
+      for(l = 1; l <= neqn; l++) {
+        phi[l - 1 + (i - 1)*neqn] = beta[i - 1] * phi[l - 1 + (i - 1) * neqn];
       }
     }
 
@@ -1266,7 +1263,7 @@ void s2_ode113_step(
       changed to zero based indexing
     */
     for(l = 0; l < neqn; l++) {
-      if (0 < km2) {
+      if(0 < km2) {
         erkm2 =
           erkm2 +
           pow(
@@ -1278,15 +1275,15 @@ void s2_ode113_step(
         erkm1 =
           erkm1 + pow((phi[l + (*k - 1) * neqn] + yp[l] - phi[l + 0 * neqn]) / wt[l], 2);
       }
-      erk = erk + pow ((yp[l] - phi[l + 0 * neqn] ) / wt[l], 2 );
+      erk = erk + pow((yp[l] - phi[l + 0 * neqn]) / wt[l], 2);
     }
 
     if(0 < km2) {
-      erkm2 = absh * sig[km1-1] * gstr[km2-1] * sqrt(erkm2);
+      erkm2 = absh * sig[km1 - 1] * gstr[km2 - 1] * sqrt(erkm2);
     }
 
     if(0 <= km2) {
-      erkm1 = absh * sig[*k - 1] * gstr[km1-1] * sqrt ( erkm1 );
+      erkm1 = absh * sig[*k - 1] * gstr[km1 - 1] * sqrt(erkm1);
     }
     err = absh * sqrt(erk) * (g[*k - 1] - g[kp1 - 1]);
     erk = absh * sqrt(erk) * sig[kp1 - 1] * gstr[*k - 1];
@@ -1299,7 +1296,7 @@ void s2_ode113_step(
       if(fmax(erkm1, erkm2) <= erk) {
         knew = km1;
       }
-    } else if (0 == km2) {
+    } else if(0 == km2) {
       if(erkm1 <= 0.5 * erk) {
         knew = km1;
       }
@@ -1347,7 +1344,7 @@ void s2_ode113_step(
       }
     }
 
-    if (3 <= ifail) {
+    if(3 <= ifail) {
       knew = 1;
     }
 
@@ -1376,12 +1373,12 @@ void s2_ode113_step(
   if(!(*nornd)) {
     for(int l = 0; l < neqn; l++) {
       rho = *h * g[kp1 - 1] *
-        (yp[l] - phi[l + 0 * neqn]) - phi[l + (16 - 1) * neqn];
+            (yp[l] - phi[l + 0 * neqn]) - phi[l + (16 - 1) * neqn];
       y[l] = p[l] + rho;
       phi[l + (15 - 1) * neqn] = (y[l] - p[l]) - rho;
     }
   } else {
-    for (int l = 0; l < neqn; l++) {
+    for(int l = 0; l < neqn; l++) {
       y[l] = p[l] + *h * g[kp1 - 1] * (yp[l] - phi[l + 0 * neqn]);
     }
   }
@@ -1440,7 +1437,7 @@ void s2_ode113_step(
     } else if(erkm1 <= fmin(erk, erkp1)) {
       *k = km1;
       erk = erkm1;
-    } else if (erkp1 < erk && *k < 12) {
+    } else if(erkp1 < erk && *k < 12) {
       *k = kp1;
       erk = erkp1;
     }
@@ -1451,7 +1448,7 @@ void s2_ode113_step(
   */
   hnew = *h + *h;
 
-  if (!(*phase1)) {
+  if(!(*phase1)) {
     if(p5eps < erk * two[*k]) {
       hnew = *h;
 
@@ -1495,7 +1492,7 @@ void timestamp(void) {
 # define TIME_SIZE 40
 
   static char time_buffer[TIME_SIZE];
-  const struct tm *tm;
+  const struct tm* tm;
   time_t now;
 
   now = time(NULL);
@@ -1552,7 +1549,7 @@ void s2_ode113_allocate(
   }
 
   numericalIntegrator->stepCount = ceil(
-    (double)context->modelParameters.timeSpan / (double)context->modelParameters.timeStep) + 1;
+                                     (double)context->modelParameters.timeSpan / (double)context->modelParameters.timeStep) + 1;
 
   numericalIntegrator->ydata =
     calloc(
@@ -1613,9 +1610,9 @@ void s2_ode113_integrateEquations(
   s2_context_t* context) {
 
   if(context->modelParameters.integrationType !=
-    S2_NUMERICALINTEGRATOR_ODE113) {
+      S2_NUMERICALINTEGRATOR_ODE113) {
     fprintf(stderr, "ERROR: s2_ode113_integrateEquations called with wrong"
-      " enum set in modelParameters\n");
+            " enum set in modelParameters\n");
   }
 
   s2_numericalintegrator_ode113_t* numericalIntegrator =
@@ -1670,7 +1667,7 @@ void s2_ode113_integrateEquations(
 
     if(numericalIntegrator->iflag != 2) {
       printf("Fatal error! ODE113 returned IFLAG = %d\n",
-        numericalIntegrator->iflag);
+             numericalIntegrator->iflag);
       switch(numericalIntegrator->iflag) {
         case 3: {
           printf(
@@ -1678,21 +1675,25 @@ void s2_ode113_integrateEquations(
             "because the error tolerances were "
             "too small. But RELERR and ABSERR were "
             "increased appropriately for continuing\n");
-        } break;
+        }
+        break;
         case 4: {
           printf(
             "Integration did not reach TOUT because more "
             "than 500 steps were taken\n");
-        } break;
+        }
+        break;
         case 5: {
           printf(
             "Integration did not reach TOUT because "
             "the equations appear to be stiff\n");
-        } break;
+        }
+        break;
         case 6: {
           printf(
             "Invalid input parameters (fatal error)\n");
-        } break;
+        }
+        break;
         default:
           break;
       }
@@ -1704,7 +1705,7 @@ void s2_ode113_integrateEquations(
     if(numericalIntegrator->ydata != NULL) {
       memcpy(
         numericalIntegrator->ydata +
-          numericalIntegrator->neqn * i,
+        numericalIntegrator->neqn * i,
         numericalIntegrator->y,
         numericalIntegrator->neqn * sizeof(double));
     }
@@ -1719,7 +1720,7 @@ void s2_ode113_integrateEquations(
     for(int j = 0; j < context->substructureCount; j++) {
       s2_substructure_t* substructure = context->substructures + j;
       e += s2_newtonRaphson_evaluateConstraintError_substructure(
-        substructure);
+             substructure);
     }
 
     s2_solve_kineticEnergy(context);

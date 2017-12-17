@@ -94,5 +94,5 @@ void s2_forcemodule_load(
   s2_assembly_t* assembly,
   s2_stackstr_t* prefix,
   json_t* forceModuleObject);
-  
+
 #endif

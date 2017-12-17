@@ -4,15 +4,15 @@ About
 Overview
 --------
 
-Star2, a simulation tool for automation and robotics, is a general-purpose modeling environment targeted to robotics and vehicle dynamics applications. The software is maintained by Kristopher Wehage, PhD.
+Shift, a simulation tool for automation and robotics, is a general-purpose modeling environment targeted to robotics and vehicle dynamics applications. The software was created and is maintained by Kristopher Wehage, PhD.
 
-Refer to Star2's website at `<https://kriswehage.github.io/star2/>`_ for additional information on how to use the software and API.
+Refer to Shift's website at `<https://kriswehage.github.io/shift/>`_ for additional information on how to use the software and API.
 
 
 Workflow
 --------
 
-Star2 loads and analyzes the topology of a mechanism specified in a JSON
+Shift loads and analyzes the topology of a mechanism specified in a JSON
 text file.  The analysis is split in to the following steps:
 
 Preprocessing

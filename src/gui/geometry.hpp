@@ -11,46 +11,46 @@ class RenderWindow;
 
 class s2_Geometry : public QObject {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
+  public:
 
-  s2_Geometry(RenderWindow* renderWindow)
-    : m_context(NULL)
-    , m_initialized(false)
-    , m_drawEnabled(false)
-    , m_scaleFactor(1.0)
-    , m_shadingType(S2_SHADING_PHONG) {
+    s2_Geometry(RenderWindow* renderWindow)
+      : m_context(NULL)
+      , m_initialized(false)
+      , m_drawEnabled(false)
+      , m_scaleFactor(1.0)
+      , m_shadingType(S2_SHADING_PHONG) {
 
-    m_renderWindow = renderWindow;
+      m_renderWindow = renderWindow;
 
-  };
+    };
 
-  ~s2_Geometry() {
+    ~s2_Geometry() {
 
-  }
+    }
 
-  void checkError(const QString &prefix);
-  bool isInitialized();
-  bool isEnabled();
-  float getScaleFactor();
-  virtual void setContext(s2_context_t* context);
-  virtual void clearContext();
+    void checkError(const QString& prefix);
+    bool isInitialized();
+    bool isEnabled();
+    float getScaleFactor();
+    virtual void setContext(s2_context_t* context);
+    virtual void clearContext();
 
-signals:
+  signals:
 
-public slots:
+  public slots:
 
-  void toggleDraw();
-  void enable(bool);
+    void toggleDraw();
+    void enable(bool);
 
-protected:
-  s2_context_t* m_context;
-  bool m_initialized;
-  bool m_drawEnabled;
-  float m_scaleFactor;
-  RenderWindow* m_renderWindow;
-  s2_shading_enum_t m_shadingType;
+  protected:
+    s2_context_t* m_context;
+    bool m_initialized;
+    bool m_drawEnabled;
+    float m_scaleFactor;
+    RenderWindow* m_renderWindow;
+    s2_shading_enum_t m_shadingType;
 };
 
 #endif

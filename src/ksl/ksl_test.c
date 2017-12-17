@@ -260,7 +260,7 @@ int main() {
     assert(double_equal(k1, k2));
   }
 
-  
+
   //
   // double bksl_dot_csf(
   //   bksl_coscrewf_t* __restrict__ ci,

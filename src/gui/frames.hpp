@@ -27,34 +27,34 @@ class QOpenGLVertexArrayObject;
 
 class s2_Frames : public s2_Geometry {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  s2_Frames(RenderWindow* renderWindow)
-    : s2_Geometry(renderWindow) {
+  public:
+    s2_Frames(RenderWindow* renderWindow)
+      : s2_Geometry(renderWindow) {
 
-    m_scaleFactor = 0.5;
-    // m_frames.append(s2_displacement());
-  }
+      m_scaleFactor = 0.5;
+      // m_frames.append(s2_displacement());
+    }
 
-  ~s2_Frames() {
-    // s2_displacement_t* origin = m_frames.at(0);
-    // free(origin);
-  }
+    ~s2_Frames() {
+      // s2_displacement_t* origin = m_frames.at(0);
+      // free(origin);
+    }
 
-  void draw();
-  void addFrames(s2_assembly_t* assembly);
-  void drawWFrames();
-  void loadContext();
-  void clearContext();
-  void setShader(FrameShaderProgram* program) {
-    m_program = program;
-  }
+    void draw();
+    void addFrames(s2_assembly_t* assembly);
+    void drawWFrames();
+    void loadContext();
+    void clearContext();
+    void setShader(FrameShaderProgram* program) {
+      m_program = program;
+    }
 
-private:
+  private:
 
-  FrameShaderProgram* m_program;
-  QVector<s2_frame_t*> m_frames;
+    FrameShaderProgram* m_program;
+    QVector<s2_frame_t*> m_frames;
 
 };
 

@@ -26,13 +26,13 @@ Preprocessors will assign various arrays and functions to the pointer
 stubs when the convex hull is loaded into the model.
 */
 struct CH {
-    void (*e_Vertex)(struct CH *self, double uV[3], double P[3]);
-    void (*hash)(const unsigned char *keyword);
-    char keyword[10];
-    char **keyword_list;
-    int v_Index;
-    double **vertex_list;
-    double radius;
+  void (*e_Vertex)(struct CH* self, double uV[3], double P[3]);
+  void (*hash)(const unsigned char* keyword);
+  char keyword[10];
+  char** keyword_list;
+  int v_Index;
+  double** vertex_list;
+  double radius;
 };
 
 /*
@@ -51,11 +51,11 @@ the convex hulls are attached. Next we describe OBJ object structures
 that contain this necessary data and OBJI object interaction structures.
 */
 struct CMH {
-    struct CH *HA;
-    struct CH *HB;
-    double V[20][3];
-    int num_points;
-    int origin;
+  struct CH* HA;
+  struct CH* HB;
+  double V[20][3];
+  int num_points;
+  int origin;
 };
 
 /*
@@ -72,15 +72,15 @@ equations of motion. As we will see below, the object requires no knowledge
 of the convex hulls attached to the body.
 */
 struct OBJ {
-    /*
-    For initial GJK debugging only a dummy spatial displacement submatrix D
-    is provided. These will be changed to pointers later, and other pointers
-    will be added.
-    */
-    //Absolute position of Object frame O relative to fixed frame f.
-    double t_fO[3];
-    //Absolute orientation of Object frame O relative to fixed frame f.
-    double R_fO[3][3];
+  /*
+  For initial GJK debugging only a dummy spatial displacement submatrix D
+  is provided. These will be changed to pointers later, and other pointers
+  will be added.
+  */
+  //Absolute position of Object frame O relative to fixed frame f.
+  double t_fO[3];
+  //Absolute orientation of Object frame O relative to fixed frame f.
+  double R_fO[3][3];
 };
 
 /*
@@ -104,78 +104,78 @@ will get the necessary body information from the OBJ structures OBJX and
 OBJY and from the OBJI structure OBJIXY.
 */
 struct OBJI {
-    // Pointer to object structure for body X
-    struct OBJ *OBJX;
-    // Pointer to object structure for body Y
-    struct OBJ *OBJY;
-    /*
-    For now each body has only one attached convex hull, so there is only
-    one CMH structure pointer. We'll just call it CMH. Later this will
-    become a pointer to an array of CMH structures.
+  // Pointer to object structure for body X
+  struct OBJ* OBJX;
+  // Pointer to object structure for body Y
+  struct OBJ* OBJY;
+  /*
+  For now each body has only one attached convex hull, so there is only
+  one CMH structure pointer. We'll just call it CMH. Later this will
+  become a pointer to an array of CMH structures.
 
-    CMH is a convex Minkowski hull used to determine interference between
-    convex hulls on bodies X and Y. When CMH becomes a pointer to an array
-    of convex Minkowski hulls, n_xy <= n_x*n_y will indicate the maximum
-    number of potential interference checks to be performed between the
-    various convex hulls on objects OBJX and OBJY representing bodies X
-    and Y. n_xy will be the number of CMH structures in the CMH array.
-    */
-    struct CMH *CMH;
-    int n_xy;
+  CMH is a convex Minkowski hull used to determine interference between
+  convex hulls on bodies X and Y. When CMH becomes a pointer to an array
+  of convex Minkowski hulls, n_xy <= n_x*n_y will indicate the maximum
+  number of potential interference checks to be performed between the
+  various convex hulls on objects OBJX and OBJY representing bodies X
+  and Y. n_xy will be the number of CMH structures in the CMH array.
+  */
+  struct CMH* CMH;
+  int n_xy;
 };
 
-void add_point(struct CMH *CMH, double P[3]) {
-    printf("\n ***** add_point *****\n");
-    for ( int i=CMH->num_points; i>0; i-- ) {
-        for ( int j=0; j<3; j++ ) {
-            CMH->V[i+1][j] = CMH->V[i][j];
-        }
+void add_point(struct CMH* CMH, double P[3]) {
+  printf("\n ***** add_point *****\n");
+  for(int i = CMH->num_points; i > 0; i--) {
+    for(int j = 0; j < 3; j++) {
+      CMH->V[i + 1][j] = CMH->V[i][j];
     }
-    CMH->V[1][0] = P[0];
-    CMH->V[1][1] = P[1];
-    CMH->V[1][2] = P[2];
-    CMH->num_points++;
-    printf("number of points = %d\n", CMH->num_points);
+  }
+  CMH->V[1][0] = P[0];
+  CMH->V[1][1] = P[1];
+  CMH->V[1][2] = P[2];
+  CMH->num_points++;
+  printf("number of points = %d\n", CMH->num_points);
 }
 
 void cross_vec(double x[3], double y[3], double z[3]) {
-    z[0] = x[1] * y[2] - x[2] * y[1];
-    z[1] = x[2] * y[0] - x[0] * y[2];
-    z[2] = x[0] * y[1] - x[1] * y[0];
+  z[0] = x[1] * y[2] - x[2] * y[1];
+  z[1] = x[2] * y[0] - x[0] * y[2];
+  z[2] = x[0] * y[1] - x[1] * y[0];
 }
 
 void dif_vec(double x[3], double y[3], double z[3]) {
-    z[0] = x[0] - y[0];
-    z[1] = x[1] - y[1];
-    z[2] = x[2] - y[2];
+  z[0] = x[0] - y[0];
+  z[1] = x[1] - y[1];
+  z[2] = x[2] - y[2];
 }
 
 double dot_vec(double x[3], double y[3]) {
-    return (x[0] * y[0] + x[1] * y[1] + x[2] * y[2]);
+  return (x[0] * y[0] + x[1] * y[1] + x[2] * y[2]);
 }
 
 double norm_vec(double x[3]) {
-    return sqrt(dot_vec(x, x));
+  return sqrt(dot_vec(x, x));
 }
 
 void u_vec(double x[3], double y[3]) {
-    double nx = norm_vec(x);
-    y[0] = x[0]/nx;
-    y[1] = x[1]/nx;
-    y[2] = x[2]/nx;
+  double nx = norm_vec(x);
+  y[0] = x[0] / nx;
+  y[1] = x[1] / nx;
+  y[2] = x[2] / nx;
 }
 
 void swap_vec(double x[3], double y[3]) {
-    double z;
-    z = x[0];
-    x[0] = y[0];
-    y[0] = z;
-    z = x[1];
-    x[1] = y[1];
-    y[1] = z;
-    z = x[2];
-    x[2] = y[2];
-    y[2] = z;
+  double z;
+  z = x[0];
+  x[0] = y[0];
+  y[0] = z;
+  z = x[1];
+  x[1] = y[1];
+  y[1] = z;
+  z = x[2];
+  x[2] = y[2];
+  y[2] = z;
 }
 
 /*
@@ -196,49 +196,63 @@ will set a pointer in the convex hull structure to the e_Vertex()
 function designed to handle it. For debugging purposes we use an
 e_Vertex function for a simple sphere.
 */
-void e_Vertex(struct CH *CH, double uV[3], double P[3]) {
-    // P[0] = CH->radius * uV[0];
-    // P[1] = CH->radius * uV[1];
-    // P[2] = CH->radius * uV[2];
+void e_Vertex(struct CH* CH, double uV[3], double P[3]) {
+  // P[0] = CH->radius * uV[0];
+  // P[1] = CH->radius * uV[1];
+  // P[2] = CH->radius * uV[2];
 
-    printf("\n***** e_Vertx *****\n");
+  printf("\n***** e_Vertx *****\n");
 
-    double nu; nu = norm_vec(uV);
-    if ( nu > 1.0e-10 ) {
-        uV[0] /= nu;
-        uV[1] /= nu;
-        uV[2] /= nu;
-    }
-    else {
-        printf("Error: Magnitude of input vector less than %g\n", 1.0e-1);
-    }
+  double nu;
+  nu = norm_vec(uV);
+  if(nu > 1.0e-10) {
+    uV[0] /= nu;
+    uV[1] /= nu;
+    uV[2] /= nu;
+  } else {
+    printf("Error: Magnitude of input vector less than %g\n", 1.0e-1);
+  }
 
-    double a; a = 2.0;
-    double b; b = 3.0;
-    double c; c = 4.0;
-    double au; au = a * uV[0];
-    double bu; bu = b * uV[1];
-    double cu; cu = c * uV[2];
-    double aa; aa = fabs(uV[0]);
-    double bb; bb = fabs(uV[1]);
-    double cc; cc = fabs(uV[2]);
-    double theta;
-    double phi;
-    double sf; sf = 10.0/PI;
-    theta = atan2( bu, au );
-    if ( theta < 0.0 ) theta += dPI;
-    phi = atan2( au * cos(theta)+bu * sin(theta), cu );
-    if ( phi < 0.0 ) phi += PI;
-    theta = round(sf*theta)/sf;
-    phi = round(sf*phi)/sf;
-    P[0] = a*cos(theta)*sin(phi);
-    P[1] = b*sin(theta)*sin(phi);
-    P[2] = c*cos(phi);
+  double a;
+  a = 2.0;
+  double b;
+  b = 3.0;
+  double c;
+  c = 4.0;
+  double au;
+  au = a * uV[0];
+  double bu;
+  bu = b * uV[1];
+  double cu;
+  cu = c * uV[2];
+  double aa;
+  aa = fabs(uV[0]);
+  double bb;
+  bb = fabs(uV[1]);
+  double cc;
+  cc = fabs(uV[2]);
+  double theta;
+  double phi;
+  double sf;
+  sf = 10.0 / PI;
+  theta = atan2(bu, au);
+  if(theta < 0.0) {
+    theta += dPI;
+  }
+  phi = atan2(au * cos(theta) + bu * sin(theta), cu);
+  if(phi < 0.0) {
+    phi += PI;
+  }
+  theta = round(sf * theta) / sf;
+  phi = round(sf * phi) / sf;
+  P[0] = a * cos(theta) * sin(phi);
+  P[1] = b * sin(theta) * sin(phi);
+  P[2] = c * cos(phi);
 
-    printf("phi = %g, theta = %g\n", phi, theta );
-    printf(" uV = [%g, %g, %g]\n", uV[0], uV[1], uV[2] );
-    printf("suV = [%g, %g, %g]\n", P[0]/(a*a),  P[1]/(b*b),  P[2]/(c*c) );
-    printf("P  = [%g, %g, %g]\n",  P[0],  P[1],  P[2] );
+  printf("phi = %g, theta = %g\n", phi, theta);
+  printf(" uV = [%g, %g, %g]\n", uV[0], uV[1], uV[2]);
+  printf("suV = [%g, %g, %g]\n", P[0] / (a * a),  P[1] / (b * b),  P[2] / (c * c));
+  printf("P  = [%g, %g, %g]\n",  P[0],  P[1],  P[2]);
 }
 
 /*
@@ -330,26 +344,28 @@ of active points determines which simplex function the GJK algorithm must call.
 Thus it keeps track of the running number of active points in the simplex.
 */
 
-void simplex0(struct CMH *CMH) {
-    printf("\n***** simplex0 *****\n");
-    /*
-    CMH->V[0] will contain the next direction vector used by support() to
-    locate the next extreme vertex point P relative to the origin point O,
-    represented by the vector OP.
-    CMH->V[1] contains the vector OA, which locates vertex point A relative
-    to the origin point O.
-    CMH->origin == 0: The convex hull does not contain the origin.
-    CMH->origin == 1: The convex hull contains the origin.
-    */
-    CMH->V[0][0] = -CMH->V[1][0];
-    CMH->V[0][1] = -CMH->V[1][1];
-    CMH->V[0][2] = -CMH->V[1][2];
-    double norm;
-    norm = norm_vec(CMH->V[0]);
-    if( norm < EPS ) CMH->origin = 1;
-    printf("dir = [%g, %g, %g], origin = %d\n",
-        CMH->V[0][0], CMH->V[0][1], CMH->V[0][2], CMH->origin);
-    return;
+void simplex0(struct CMH* CMH) {
+  printf("\n***** simplex0 *****\n");
+  /*
+  CMH->V[0] will contain the next direction vector used by support() to
+  locate the next extreme vertex point P relative to the origin point O,
+  represented by the vector OP.
+  CMH->V[1] contains the vector OA, which locates vertex point A relative
+  to the origin point O.
+  CMH->origin == 0: The convex hull does not contain the origin.
+  CMH->origin == 1: The convex hull contains the origin.
+  */
+  CMH->V[0][0] = -CMH->V[1][0];
+  CMH->V[0][1] = -CMH->V[1][1];
+  CMH->V[0][2] = -CMH->V[1][2];
+  double norm;
+  norm = norm_vec(CMH->V[0]);
+  if(norm < EPS) {
+    CMH->origin = 1;
+  }
+  printf("dir = [%g, %g, %g], origin = %d\n",
+         CMH->V[0][0], CMH->V[0][1], CMH->V[0][2], CMH->origin);
+  return;
 }
 
 /*
@@ -363,46 +379,48 @@ to the line, in the plane containing the origin, and in the direction of the
 origin. support() then uses this direction vector to locate a third point
 on the convex hull to form a triangle simplex2 convex hull.
 */
-void simplex1(struct CMH *CMH) {
+void simplex1(struct CMH* CMH) {
 
-    /*
-    The simplex1 line consists of points A and B and vector AB = B - A
-    representing a line segment connecting points A and B. Let OA represent
-    the vector from the origin to point A. Let dir = (OA X AB) X AB represent
-    the direction orthogonal to the line and lying in a plane containing
-    the origin. Drawing lines parallel to dir through points A and B divides
-    the plane into three regions. Before entering simplex1() we have verified
-    that the origin is not in the region off the end of the line near point B.
-    Thus we have to check two other regions. First, if the magnitude of dir is
-    near zero the origin lies on the line and is in the convex hull. Thus
-    the convex hulls HA and HB intersect. Otherwise we must expand the simplex
-    with another point by searching in the direction of dir.
+  /*
+  The simplex1 line consists of points A and B and vector AB = B - A
+  representing a line segment connecting points A and B. Let OA represent
+  the vector from the origin to point A. Let dir = (OA X AB) X AB represent
+  the direction orthogonal to the line and lying in a plane containing
+  the origin. Drawing lines parallel to dir through points A and B divides
+  the plane into three regions. Before entering simplex1() we have verified
+  that the origin is not in the region off the end of the line near point B.
+  Thus we have to check two other regions. First, if the magnitude of dir is
+  near zero the origin lies on the line and is in the convex hull. Thus
+  the convex hulls HA and HB intersect. Otherwise we must expand the simplex
+  with another point by searching in the direction of dir.
 
-    CMH->V[0] will contain the next direction vector used by support() to
-    locate the next extreme vertex P relative to origin O, represented by OP.
-    CMH->V[1] contains vector OA, which locates vertex A relative to O.
-    CMH->V[2] contains vector OB, which locates vertex B relative to O.
-    CMH->V[3] contains vector AB = OB - OA, which locates B relative to A.
-    CMH->V[4] contains OA X AB
-    CMH->V[0] = (OA X AB) X AB
-    CMH->origin == 0: The convex hull does not contain the origin.
-    CMH->origin == 1: The convex hull contains the origin.
-    */
-    printf("\n***** simplex1 *****\n");
-    dif_vec(CMH->V[2], CMH->V[1], CMH->V[3]); // AB = OB - OA
-    printf("OA = [%g, %g, %g]\n", CMH->V[1][0], CMH->V[1][1], CMH->V[1][2]);
-    printf("OB = [%g, %g, %g]\n", CMH->V[2][0], CMH->V[2][1], CMH->V[2][2]);
-    printf("AB = OB - OA = [%g, %g, %g]\n", CMH->V[3][0], CMH->V[3][1], CMH->V[3][2]);
-    cross_vec(CMH->V[1], CMH->V[3], CMH->V[4]); // OA X AB
-    cross_vec(CMH->V[4], CMH->V[3], CMH->V[0]); // (OA X AB) X AB
-    printf("OA X AB = [%g, %g, %g]\n", CMH->V[4][0], CMH->V[4][1], CMH->V[4][2]);
-    printf("(OA X AB) X AB = [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-    double norm;
-    norm = norm_vec(CMH->V[0]);
-    if( norm < EPS ) CMH->origin = 1;
-    printf("dir = [%g, %g, %g], origin = %d\n",
-        CMH->V[0][0], CMH->V[0][1], CMH->V[0][2], CMH->origin);
-    return;
+  CMH->V[0] will contain the next direction vector used by support() to
+  locate the next extreme vertex P relative to origin O, represented by OP.
+  CMH->V[1] contains vector OA, which locates vertex A relative to O.
+  CMH->V[2] contains vector OB, which locates vertex B relative to O.
+  CMH->V[3] contains vector AB = OB - OA, which locates B relative to A.
+  CMH->V[4] contains OA X AB
+  CMH->V[0] = (OA X AB) X AB
+  CMH->origin == 0: The convex hull does not contain the origin.
+  CMH->origin == 1: The convex hull contains the origin.
+  */
+  printf("\n***** simplex1 *****\n");
+  dif_vec(CMH->V[2], CMH->V[1], CMH->V[3]); // AB = OB - OA
+  printf("OA = [%g, %g, %g]\n", CMH->V[1][0], CMH->V[1][1], CMH->V[1][2]);
+  printf("OB = [%g, %g, %g]\n", CMH->V[2][0], CMH->V[2][1], CMH->V[2][2]);
+  printf("AB = OB - OA = [%g, %g, %g]\n", CMH->V[3][0], CMH->V[3][1], CMH->V[3][2]);
+  cross_vec(CMH->V[1], CMH->V[3], CMH->V[4]); // OA X AB
+  cross_vec(CMH->V[4], CMH->V[3], CMH->V[0]); // (OA X AB) X AB
+  printf("OA X AB = [%g, %g, %g]\n", CMH->V[4][0], CMH->V[4][1], CMH->V[4][2]);
+  printf("(OA X AB) X AB = [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+  double norm;
+  norm = norm_vec(CMH->V[0]);
+  if(norm < EPS) {
+    CMH->origin = 1;
+  }
+  printf("dir = [%g, %g, %g], origin = %d\n",
+         CMH->V[0][0], CMH->V[0][1], CMH->V[0][2], CMH->origin);
+  return;
 }
 
 /*
@@ -416,115 +434,114 @@ to the plane of the triangle and in the direction of the origin. support()
 then uses this direction vector to locate a fourth point on the convex hull
 to form a tetrahedron simplex3 convex hull.
 */
-void simplex2(struct CMH *CMH) {
+void simplex2(struct CMH* CMH) {
 
-    /*
-    The simplex2 triangle consists of points A, B, and C. Assume that the
-    points are arranged counter-clockwise to form a triangle TABC with normal
-    vector ABCn = AB X AC pointing upward or outward or frontward as we may
-    interpret that direction. If we program simplex2() to always do this and
-    we want it to do just the reverse, simply reverse the point order to
-    C, B, and A. It is easy to see that this is equivalent to flipping the
-    triangle about point B.
+  /*
+  The simplex2 triangle consists of points A, B, and C. Assume that the
+  points are arranged counter-clockwise to form a triangle TABC with normal
+  vector ABCn = AB X AC pointing upward or outward or frontward as we may
+  interpret that direction. If we program simplex2() to always do this and
+  we want it to do just the reverse, simply reverse the point order to
+  C, B, and A. It is easy to see that this is equivalent to flipping the
+  triangle about point B.
 
-    Next let ACn = ABCn X AC and ABn = AB X ABCn represent outward-facing
-    vectors, normal to the respective edges or lines AC and AB and lying
-    in the TABC plane. Outward facing means they point away from the center
-    of the triangle. Let OA represent the vector from the origin to point A.
-    Then ABn•OA < 0 indicates that the origin is closer to the edge AB and
-    outside the triangle. We set the search direction to (OA X AB) X AB to
-    be perpendicular to edge AB and lying in the plane containing the origin.
-    Then we use simplex2() to determine where the origin lies relative to
-    this edge. If this test fails we then test ACn•OA < 0 to see if the origin
-    is closer to the edge AC and outside the triangle. In this case we set the
-    search direction to (OA X AC) X AC to be perpendicular to edge AC and lying
-    in the plane containing the origin. Then we use simplex2() to determine
-    where the origin lies relative to this edge. If this test fails, the origin
-    then lies above or below or on the triangle. Let v = OA•ABCn. If v is
-    close enough to zero the origin lies in the plane of the triangle; the
-    convex hull contains the origin and the convex hulls HA and HB intersect.
-    If v < 0 the origin is above the triangle and the next search direction is
-    ABCn. And if v > 0 the origin is below the triangle. Now we need to search
-    the same regions on this side. To do that we set the search direction to
-    -ABCn and flip the triangle over around the point A to use the same
-    simplex2() function. Thus we send C, A, B to simplex2() instead of A, B, C.
+  Next let ACn = ABCn X AC and ABn = AB X ABCn represent outward-facing
+  vectors, normal to the respective edges or lines AC and AB and lying
+  in the TABC plane. Outward facing means they point away from the center
+  of the triangle. Let OA represent the vector from the origin to point A.
+  Then ABn•OA < 0 indicates that the origin is closer to the edge AB and
+  outside the triangle. We set the search direction to (OA X AB) X AB to
+  be perpendicular to edge AB and lying in the plane containing the origin.
+  Then we use simplex2() to determine where the origin lies relative to
+  this edge. If this test fails we then test ACn•OA < 0 to see if the origin
+  is closer to the edge AC and outside the triangle. In this case we set the
+  search direction to (OA X AC) X AC to be perpendicular to edge AC and lying
+  in the plane containing the origin. Then we use simplex2() to determine
+  where the origin lies relative to this edge. If this test fails, the origin
+  then lies above or below or on the triangle. Let v = OA•ABCn. If v is
+  close enough to zero the origin lies in the plane of the triangle; the
+  convex hull contains the origin and the convex hulls HA and HB intersect.
+  If v < 0 the origin is above the triangle and the next search direction is
+  ABCn. And if v > 0 the origin is below the triangle. Now we need to search
+  the same regions on this side. To do that we set the search direction to
+  -ABCn and flip the triangle over around the point A to use the same
+  simplex2() function. Thus we send C, A, B to simplex2() instead of A, B, C.
 
-    CMH->V[0] contains the direction vector used by support() to locate the
-    next extreme vertex P relative to origin O, represented by OP.
-    CMH->V[1] contains vector OA, which locates vertex A relative to O.
-    CMH->V[2] contains vector OB, which locates vertex B relative to O.
-    CMH->V[3] contains vector OC, which locates vertex C relative to O.
-    CMH->V[4] contains vector AB = OB - OA, which locates B relative to A.
-    CMH->V[5] contains vector AC = OC - OA, which locates C relative to A.
-    CMH->V[6] contains vector ABCn = AB X AC, normal to TABC.
-    CMH->V[7] contains vector ACn = ABCn X AC, tangent to TABC, normal to AC.
-    CMH->V[8] contains vector ABn = AB X ABCn, tangent to TABC, normal to AB.
-    CMH->V[9] contains vector OA X AB.
-    CMH->V[0] = (OA X AB) X AB
-    CMH->origin == 0: The convex hull does not contain the origin.
-    CMH->origin == 1: The convex hull contains the origin.
-    */
+  CMH->V[0] contains the direction vector used by support() to locate the
+  next extreme vertex P relative to origin O, represented by OP.
+  CMH->V[1] contains vector OA, which locates vertex A relative to O.
+  CMH->V[2] contains vector OB, which locates vertex B relative to O.
+  CMH->V[3] contains vector OC, which locates vertex C relative to O.
+  CMH->V[4] contains vector AB = OB - OA, which locates B relative to A.
+  CMH->V[5] contains vector AC = OC - OA, which locates C relative to A.
+  CMH->V[6] contains vector ABCn = AB X AC, normal to TABC.
+  CMH->V[7] contains vector ACn = ABCn X AC, tangent to TABC, normal to AC.
+  CMH->V[8] contains vector ABn = AB X ABCn, tangent to TABC, normal to AB.
+  CMH->V[9] contains vector OA X AB.
+  CMH->V[0] = (OA X AB) X AB
+  CMH->origin == 0: The convex hull does not contain the origin.
+  CMH->origin == 1: The convex hull contains the origin.
+  */
 
-    printf("\n***** simplex2 *****\n");
-    dif_vec(CMH->V[2], CMH->V[1], CMH->V[4]);   //AB = OB - OA
-    dif_vec(CMH->V[3], CMH->V[1], CMH->V[5]);   //AC = OC - OA
-    cross_vec(CMH->V[4], CMH->V[5], CMH->V[6]); //ABCn = AB X AC
-    cross_vec(CMH->V[6], CMH->V[5], CMH->V[7]); //ACn = ABCn X AC
-    cross_vec(CMH->V[4], CMH->V[6], CMH->V[8]); //ABn = AB X ABCn
-    printf("OA = [%g, %g, %g]\n", CMH->V[1][0], CMH->V[1][1], CMH->V[1][2]);
-    printf("OB = [%g, %g, %g]\n", CMH->V[2][0], CMH->V[2][1], CMH->V[2][2]);
-    printf("OC = [%g, %g, %g]\n", CMH->V[3][0], CMH->V[3][1], CMH->V[3][2]);
-    printf("AB = OB - OA = [%g, %g, %g]\n", CMH->V[4][0], CMH->V[4][1], CMH->V[4][2]);
-    printf("AC = OC - OA = [%g, %g, %g]\n", CMH->V[5][0], CMH->V[5][1], CMH->V[5][2]);
-    printf("ABCn = AB X AC = [%g, %g, %g]\n", CMH->V[6][0], CMH->V[6][1], CMH->V[6][2]);
-    printf("ACn = ABCn X AC = [%g, %g, %g]\n", CMH->V[7][0], CMH->V[7][1], CMH->V[7][2]);
-    printf("ABn = AB X ABCn = [%g, %g, %g]\n", CMH->V[8][0], CMH->V[8][1], CMH->V[8][2]);
+  printf("\n***** simplex2 *****\n");
+  dif_vec(CMH->V[2], CMH->V[1], CMH->V[4]);   //AB = OB - OA
+  dif_vec(CMH->V[3], CMH->V[1], CMH->V[5]);   //AC = OC - OA
+  cross_vec(CMH->V[4], CMH->V[5], CMH->V[6]); //ABCn = AB X AC
+  cross_vec(CMH->V[6], CMH->V[5], CMH->V[7]); //ACn = ABCn X AC
+  cross_vec(CMH->V[4], CMH->V[6], CMH->V[8]); //ABn = AB X ABCn
+  printf("OA = [%g, %g, %g]\n", CMH->V[1][0], CMH->V[1][1], CMH->V[1][2]);
+  printf("OB = [%g, %g, %g]\n", CMH->V[2][0], CMH->V[2][1], CMH->V[2][2]);
+  printf("OC = [%g, %g, %g]\n", CMH->V[3][0], CMH->V[3][1], CMH->V[3][2]);
+  printf("AB = OB - OA = [%g, %g, %g]\n", CMH->V[4][0], CMH->V[4][1], CMH->V[4][2]);
+  printf("AC = OC - OA = [%g, %g, %g]\n", CMH->V[5][0], CMH->V[5][1], CMH->V[5][2]);
+  printf("ABCn = AB X AC = [%g, %g, %g]\n", CMH->V[6][0], CMH->V[6][1], CMH->V[6][2]);
+  printf("ACn = ABCn X AC = [%g, %g, %g]\n", CMH->V[7][0], CMH->V[7][1], CMH->V[7][2]);
+  printf("ABn = AB X ABCn = [%g, %g, %g]\n", CMH->V[8][0], CMH->V[8][1], CMH->V[8][2]);
 
-    //if(OA•ABn < -EPS)
-    if(dot_vec(CMH->V[1], CMH->V[8]) < -EPS) {
-        cross_vec(CMH->V[1], CMH->V[4], CMH->V[9]); // OA X AB
-        cross_vec(CMH->V[9], CMH->V[4], CMH->V[0]); // (OA X AB) X AB
-        printf("OA X AB = [%g, %g, %g]\n", CMH->V[9][0], CMH->V[9][1], CMH->V[9][2]);
-        printf("(OA X AB) X AB = [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-        CMH->num_points--;
-        return;
-        // simplex1: [OA, OB]
+  //if(OA•ABn < -EPS)
+  if(dot_vec(CMH->V[1], CMH->V[8]) < -EPS) {
+    cross_vec(CMH->V[1], CMH->V[4], CMH->V[9]); // OA X AB
+    cross_vec(CMH->V[9], CMH->V[4], CMH->V[0]); // (OA X AB) X AB
+    printf("OA X AB = [%g, %g, %g]\n", CMH->V[9][0], CMH->V[9][1], CMH->V[9][2]);
+    printf("(OA X AB) X AB = [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+    CMH->num_points--;
+    return;
+    // simplex1: [OA, OB]
+  }
+  //if(OA•ACn < -EPS)
+  else if(dot_vec(CMH->V[1], CMH->V[7]) < -EPS) {
+    cross_vec(CMH->V[1], CMH->V[5], CMH->V[9]); // OA X AC
+    cross_vec(CMH->V[9], CMH->V[5], CMH->V[0]); // (OA X AC) X AC
+    printf("OA X AC = [%g, %g, %g]\n", CMH->V[9][0], CMH->V[9][1], CMH->V[9][2]);
+    printf("(OA X AC) X AC = [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+    printf("Swap OB and OC\n");
+    swap_vec(CMH->V[2], CMH->V[3]); // swap OB and OC
+    CMH->num_points--;
+    return;
+    // swap results simplex1: [OA, OC]
+  } else {
+    double v = -dot_vec(CMH->V[1], CMH->V[6]); // -OA•ABCn
+    if(v > EPS) {  // Set search direction to ABCn
+      CMH->V[0][0] = CMH->V[6][0];
+      CMH->V[0][1] = CMH->V[6][1];
+      CMH->V[0][2] = CMH->V[6][2];
+      printf("Set search direction to ABCn [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      return;
+    } else if(v < -EPS) { // Set search direction to -ABCn
+      CMH->V[0][0] = -CMH->V[6][0];
+      CMH->V[0][1] = -CMH->V[6][1];
+      CMH->V[0][2] = -CMH->V[6][2];
+      printf("Set search direction to -ABCn [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      swap_vec(CMH->V[1], CMH->V[2]); // swap OA and OB
+      printf("Swap OA and OB\n");
+      // swap results simplex2: [OB, OA, OC]
+      return;
+    } else {
+      CMH->origin = 1;
     }
-    //if(OA•ACn < -EPS)
-    else if(dot_vec(CMH->V[1], CMH->V[7]) < -EPS) {
-        cross_vec(CMH->V[1], CMH->V[5], CMH->V[9]); // OA X AC
-        cross_vec(CMH->V[9], CMH->V[5], CMH->V[0]); // (OA X AC) X AC
-        printf("OA X AC = [%g, %g, %g]\n", CMH->V[9][0], CMH->V[9][1], CMH->V[9][2]);
-        printf("(OA X AC) X AC = [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-        printf("Swap OB and OC\n");
-        swap_vec(CMH->V[2], CMH->V[3]); // swap OB and OC
-        CMH->num_points--;
-        return;
-        // swap results simplex1: [OA, OC]
-    }
-    else {
-        double v = -dot_vec(CMH->V[1], CMH->V[6]); // -OA•ABCn
-        if (v > EPS) { // Set search direction to ABCn
-            CMH->V[0][0] = CMH->V[6][0];
-            CMH->V[0][1] = CMH->V[6][1];
-            CMH->V[0][2] = CMH->V[6][2];
-            printf("Set search direction to ABCn [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            return;
-        }
-        else if (v < -EPS) { // Set search direction to -ABCn
-            CMH->V[0][0] = -CMH->V[6][0];
-            CMH->V[0][1] = -CMH->V[6][1];
-            CMH->V[0][2] = -CMH->V[6][2];
-            printf("Set search direction to -ABCn [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            swap_vec(CMH->V[1], CMH->V[2]); // swap OA and OB
-            printf("Swap OA and OB\n");
-            // swap results simplex2: [OB, OA, OC]
-            return;
-        }
-        else CMH->origin = 1;
-        return;
-    }
+    return;
+  }
 }
 
 /*
@@ -538,253 +555,248 @@ finds one, it throws out the oldest point and calls simplex3() again.
 If the GJK algorithm finds no more points it reports no intersection and
 terminates.
 */
-void simplex3(struct CMH *CMH) {
-    /*
-    The simplex3 tetrahedron consists of points A, B, C, and D. Assume that
-    points B, C, and D form the tehrahedron's base triangle TBCD and are
-    arranged counter-clockwise in that order. Assume that point A lies above
-    TBCD and that vector BCDn = BC X BD points upward in the direction of A.
-    Vector BCDn is normal to TBCD. The other three faces of the tetrahedron
-    are represented by triangles TABC, TACD, and TADB. The outward-facing
-    normal vectors to these faces are ABCn = AB X AC, ACDn = AC X AD, and
-    ADBn = AD X AB. Let OA represent the vector from origin point O to point A.
+void simplex3(struct CMH* CMH) {
+  /*
+  The simplex3 tetrahedron consists of points A, B, C, and D. Assume that
+  points B, C, and D form the tehrahedron's base triangle TBCD and are
+  arranged counter-clockwise in that order. Assume that point A lies above
+  TBCD and that vector BCDn = BC X BD points upward in the direction of A.
+  Vector BCDn is normal to TBCD. The other three faces of the tetrahedron
+  are represented by triangles TABC, TACD, and TADB. The outward-facing
+  normal vectors to these faces are ABCn = AB X AC, ACDn = AC X AD, and
+  ADBn = AD X AB. Let OA represent the vector from origin point O to point A.
 
-    We want to determine if the origin lies inside or outside the tetrahedron.
-    If it lies on or in the tetrahedron, the convex hulls HA and HB are in
-    contact or intersecting. If the origin lies outside the tetrahedron,
-    another point will be added to the tegrahedron, if one exists, and the
-    oldest point will be thrown away. Then simplex3() will be called again.
+  We want to determine if the origin lies inside or outside the tetrahedron.
+  If it lies on or in the tetrahedron, the convex hulls HA and HB are in
+  contact or intersecting. If the origin lies outside the tetrahedron,
+  another point will be added to the tegrahedron, if one exists, and the
+  oldest point will be thrown away. Then simplex3() will be called again.
 
-    The tetrahedron has four faces represented by the triangles TBCD, TABC,
-    TACD, and TADB. A previous simplex2() has verified that the origin does
-    not lie below TBCD, so we need to check that the origin does not lie outside
-    the remaining triangles TABC, TACD, and TADB.
+  The tetrahedron has four faces represented by the triangles TBCD, TABC,
+  TACD, and TADB. A previous simplex2() has verified that the origin does
+  not lie below TBCD, so we need to check that the origin does not lie outside
+  the remaining triangles TABC, TACD, and TADB.
 
-    Start with triangle TABC with outward-facing normal ABCn. If OA•ABCn < 0
-    the origin lies somewhere outside the tetrahedron on its TABC side. It may
-    lie closer to the AC edge or the AB edge of the triangular face, but it
-    won't lie closer to the BC edge because an earlier simplex1() test verified
-    that. The vectors ACn = ABCn X AC and ABn = AB X ABCn point outward from the
-    TABC edges AC and AB, and lie in its plane. Thus if OA•ACn < 0 we use a
-    simplex1() test on the AC edge with a search direction (OA X AC) X AC.
-    Or if OA•ABn < 0 we use a simplex1() test on the AB edge with a search
-    direction (OA X AB) X AB. If the origin is not detected on the outside
-    face of TABC we flip the triangle and apply a simplex2() test to it. The
-    search direction is still ABCn because the triangle's vertex order was
-    changed from TABC to TCBA.
+  Start with triangle TABC with outward-facing normal ABCn. If OA•ABCn < 0
+  the origin lies somewhere outside the tetrahedron on its TABC side. It may
+  lie closer to the AC edge or the AB edge of the triangular face, but it
+  won't lie closer to the BC edge because an earlier simplex1() test verified
+  that. The vectors ACn = ABCn X AC and ABn = AB X ABCn point outward from the
+  TABC edges AC and AB, and lie in its plane. Thus if OA•ACn < 0 we use a
+  simplex1() test on the AC edge with a search direction (OA X AC) X AC.
+  Or if OA•ABn < 0 we use a simplex1() test on the AB edge with a search
+  direction (OA X AB) X AB. If the origin is not detected on the outside
+  face of TABC we flip the triangle and apply a simplex2() test to it. The
+  search direction is still ABCn because the triangle's vertex order was
+  changed from TABC to TCBA.
 
-    A similar set of tests is applied to triangles TACD and TADB. If all of
-    these tests fail to find the origin outside the tetrahedron, then the
-    origin is inside the tetrahedron and the convex hulls HA and HB intersect.
+  A similar set of tests is applied to triangles TACD and TADB. If all of
+  these tests fail to find the origin outside the tetrahedron, then the
+  origin is inside the tetrahedron and the convex hulls HA and HB intersect.
 
-    CMH->V[0] contains the direction vector used by support() to locate the
-    next extreme vertex P relative to origin O, represented by OP.
-    CMH->V[1] contains vector OA, which locates vertex A relative to O.
-    CMH->V[2] contains vector OB, which locates vertex B relative to O.
-    CMH->V[3] contains vector OC, which locates vertex C relative to O.
-    CMH->V[4] contains vector OD, which locates vertex D relative to O.
-    CMH->V[5] contains vector AB = OB - OA, which locates B relative to A.
-    CMH->V[6] contains vector AC = OC - OA, which locates C relative to A.
-    CMH->V[7] contains vector AD = OD - OA, which locates D relative to A.
-    CMH->V[8] contains vector ABCn = AB X AC, normal to TABC.
-    CMH->V[9] contains vector ACDn = AC X AD, normal to TACD.
-    CMH->V[10] contains vector ADBn = AD X AB, normal to TADB.
+  CMH->V[0] contains the direction vector used by support() to locate the
+  next extreme vertex P relative to origin O, represented by OP.
+  CMH->V[1] contains vector OA, which locates vertex A relative to O.
+  CMH->V[2] contains vector OB, which locates vertex B relative to O.
+  CMH->V[3] contains vector OC, which locates vertex C relative to O.
+  CMH->V[4] contains vector OD, which locates vertex D relative to O.
+  CMH->V[5] contains vector AB = OB - OA, which locates B relative to A.
+  CMH->V[6] contains vector AC = OC - OA, which locates C relative to A.
+  CMH->V[7] contains vector AD = OD - OA, which locates D relative to A.
+  CMH->V[8] contains vector ABCn = AB X AC, normal to TABC.
+  CMH->V[9] contains vector ACDn = AC X AD, normal to TACD.
+  CMH->V[10] contains vector ADBn = AD X AB, normal to TADB.
 
-    For the triangle ABC
-    CMH->V[11] contains vector ACn = ABCn X AC, tangent to TABC, normal to AC.
-    CMH->V[12] contains vector ABn = AB X ABCn, tangent to TABC, normal to AB.
-    CMH->V[13] contains vector OA X AC.
-    CMH->V[0] = (OA X AC) X AC
-    CMH->V[13] contains vector OA X AB.
-    CMH->V[0] = (OA X AB) X AB
+  For the triangle ABC
+  CMH->V[11] contains vector ACn = ABCn X AC, tangent to TABC, normal to AC.
+  CMH->V[12] contains vector ABn = AB X ABCn, tangent to TABC, normal to AB.
+  CMH->V[13] contains vector OA X AC.
+  CMH->V[0] = (OA X AC) X AC
+  CMH->V[13] contains vector OA X AB.
+  CMH->V[0] = (OA X AB) X AB
 
-    For the triangle ACD
-    CMH->V[11] contains vector ADn = ACDn X AD, tangent to TACD, normal to AD.
-    CMH->V[12] contains vector ACn = AC X ACDn, tangent to TACD, normal to AC.
-    CMH->V[13] contains vector OA X AD.
-    CMH->V[0] = (OA X AD) X AD
-    CMH->V[13] contains vector OA X AC.
-    CMH->V[0] = (OA X AC) X AC
+  For the triangle ACD
+  CMH->V[11] contains vector ADn = ACDn X AD, tangent to TACD, normal to AD.
+  CMH->V[12] contains vector ACn = AC X ACDn, tangent to TACD, normal to AC.
+  CMH->V[13] contains vector OA X AD.
+  CMH->V[0] = (OA X AD) X AD
+  CMH->V[13] contains vector OA X AC.
+  CMH->V[0] = (OA X AC) X AC
 
-    For the triangle ABD
-    CMH->V[11] contains vector ABn = ADBn X AB, tangent to TADB, normal to AB.
-    CMH->V[12] contains vector ADn = AD X ADBn, tangent to TADB, normal to AD.
-    CMH->V[13] contains vector OA X AB.
-    CMH->V[0] = (OA X AB) X AB
-    CMH->V[13] contains vector OA X AD.
-    CMH->V[0] = (OA X AD) X AD
+  For the triangle ABD
+  CMH->V[11] contains vector ABn = ADBn X AB, tangent to TADB, normal to AB.
+  CMH->V[12] contains vector ADn = AD X ADBn, tangent to TADB, normal to AD.
+  CMH->V[13] contains vector OA X AB.
+  CMH->V[0] = (OA X AB) X AB
+  CMH->V[13] contains vector OA X AD.
+  CMH->V[0] = (OA X AD) X AD
 
-    CMH->origin == 0: The convex hull does not contain the origin.
-    CMH->origin == 1: The convex hull contains the origin.
-    */
+  CMH->origin == 0: The convex hull does not contain the origin.
+  CMH->origin == 1: The convex hull contains the origin.
+  */
 
-    printf("\n***** simplex3 *****\n");
-    dif_vec(CMH->V[2], CMH->V[1], CMH->V[5]);   //AB = OB - OA
-    dif_vec(CMH->V[3], CMH->V[1], CMH->V[6]);   //AC = OC - OA
-    dif_vec(CMH->V[4], CMH->V[1], CMH->V[7]);   //AD = OD - OA
-    cross_vec(CMH->V[5], CMH->V[6], CMH->V[8]); //ABCn = AB X AC
-    cross_vec(CMH->V[6], CMH->V[7], CMH->V[9]); //ACDn = AC X AD
-    cross_vec(CMH->V[7], CMH->V[5], CMH->V[10]); //ADBn = AD X AB
+  printf("\n***** simplex3 *****\n");
+  dif_vec(CMH->V[2], CMH->V[1], CMH->V[5]);   //AB = OB - OA
+  dif_vec(CMH->V[3], CMH->V[1], CMH->V[6]);   //AC = OC - OA
+  dif_vec(CMH->V[4], CMH->V[1], CMH->V[7]);   //AD = OD - OA
+  cross_vec(CMH->V[5], CMH->V[6], CMH->V[8]); //ABCn = AB X AC
+  cross_vec(CMH->V[6], CMH->V[7], CMH->V[9]); //ACDn = AC X AD
+  cross_vec(CMH->V[7], CMH->V[5], CMH->V[10]); //ADBn = AD X AB
 
-    printf("OA = [%g, %g, %g]\n",
-        CMH->V[1][0], CMH->V[1][1], CMH->V[1][2]);
-    printf("OB = [%g, %g, %g]\n",
-        CMH->V[2][0], CMH->V[2][1], CMH->V[2][2]);
-    printf("OC = [%g, %g, %g]\n",
-        CMH->V[3][0], CMH->V[3][1], CMH->V[3][2]);
-    printf("OD = [%g, %g, %g]\n",
-        CMH->V[4][0], CMH->V[4][1], CMH->V[4][2]);
-    printf("AB = OB - OA = [%g, %g, %g]\n",
-        CMH->V[5][0], CMH->V[5][1], CMH->V[5][2]);
-    printf("AC = OC - OA = [%g, %g, %g]\n",
-        CMH->V[6][0], CMH->V[6][1], CMH->V[6][2]);
-    printf("AD = OD - OA = [%g, %g, %g]\n",
-        CMH->V[7][0], CMH->V[7][1], CMH->V[7][2]);
-    printf("ABCn = AB X AC = [%g, %g, %g]\n",
-        CMH->V[8][0], CMH->V[8][1], CMH->V[8][2]);
-    printf("ACDn = AC X AD = [%g, %g, %g]\n",
-        CMH->V[9][0], CMH->V[9][1], CMH->V[9][2]);
-    printf("ADBn = AD X AB = [%g, %g, %g]\n",
-        CMH->V[10][0], CMH->V[10][1], CMH->V[10][2]);
+  printf("OA = [%g, %g, %g]\n",
+         CMH->V[1][0], CMH->V[1][1], CMH->V[1][2]);
+  printf("OB = [%g, %g, %g]\n",
+         CMH->V[2][0], CMH->V[2][1], CMH->V[2][2]);
+  printf("OC = [%g, %g, %g]\n",
+         CMH->V[3][0], CMH->V[3][1], CMH->V[3][2]);
+  printf("OD = [%g, %g, %g]\n",
+         CMH->V[4][0], CMH->V[4][1], CMH->V[4][2]);
+  printf("AB = OB - OA = [%g, %g, %g]\n",
+         CMH->V[5][0], CMH->V[5][1], CMH->V[5][2]);
+  printf("AC = OC - OA = [%g, %g, %g]\n",
+         CMH->V[6][0], CMH->V[6][1], CMH->V[6][2]);
+  printf("AD = OD - OA = [%g, %g, %g]\n",
+         CMH->V[7][0], CMH->V[7][1], CMH->V[7][2]);
+  printf("ABCn = AB X AC = [%g, %g, %g]\n",
+         CMH->V[8][0], CMH->V[8][1], CMH->V[8][2]);
+  printf("ACDn = AC X AD = [%g, %g, %g]\n",
+         CMH->V[9][0], CMH->V[9][1], CMH->V[9][2]);
+  printf("ADBn = AD X AB = [%g, %g, %g]\n",
+         CMH->V[10][0], CMH->V[10][1], CMH->V[10][2]);
 
-    //if(OA•ABCn < -EPS) O outside face of TABC & tetrahedron
-    if(dot_vec(CMH->V[1], CMH->V[8]) < -EPS) {
-        cross_vec(CMH->V[8], CMH->V[6], CMH->V[11]); //ACn = ABCn X AC
-        cross_vec(CMH->V[5], CMH->V[8], CMH->V[12]); //ABn = AB X ABCn
-        printf("ACn = ABCn X AC = [%g, %g, %g]\n",
-            CMH->V[11][0], CMH->V[11][1], CMH->V[11][2]);
-        printf("ABn = AB X ABCn = [%g, %g, %g]\n",
-            CMH->V[12][0], CMH->V[12][1], CMH->V[12][2]);
-        if(dot_vec(CMH->V[1], CMH->V[11]) < -EPS) { //OA•ACn O outside edge AC in plane of TABC
-            cross_vec(CMH->V[1], CMH->V[6], CMH->V[13]); //OA X AC
-            cross_vec(CMH->V[13], CMH->V[6], CMH->V[0]); //(OA X AC) X AC
-            printf("OA X AC = [%g, %g, %g]\n",
-                CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
-            printf("(OA X AC) X AC = [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            printf("Swap OB and OC\n");
-            swap_vec(CMH->V[2], CMH->V[3]); //swap OB and OC
-            //simplex1: [OA, OC]
-            CMH->num_points-=2;
-            return;
-        }
-        else if(dot_vec(CMH->V[1], CMH->V[12]) < -EPS) { //OA•ABn O outside edge AB in plane of TABC
-            cross_vec(CMH->V[1], CMH->V[5], CMH->V[13]); //OA X AB
-            cross_vec(CMH->V[13], CMH->V[5], CMH->V[0]); //(OA X AB) X AB
-            printf("OA X AB = [%g, %g, %g]\n",
-                CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
-            printf("(OA X AB) X AB = [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            // simplex1: [OA, OB]
-            CMH->num_points-=2;
-            return;
-        }
-        else { //ABCn above TABC
-            CMH->V[0][0] = CMH->V[8][0];
-            CMH->V[0][1] = CMH->V[8][1];
-            CMH->V[0][2] = CMH->V[8][2];
-            printf("Set search direction to ABCn [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            // simplex2: [OA, OB, OC]
-            CMH->num_points--;
-            return;
-        }
+  //if(OA•ABCn < -EPS) O outside face of TABC & tetrahedron
+  if(dot_vec(CMH->V[1], CMH->V[8]) < -EPS) {
+    cross_vec(CMH->V[8], CMH->V[6], CMH->V[11]); //ACn = ABCn X AC
+    cross_vec(CMH->V[5], CMH->V[8], CMH->V[12]); //ABn = AB X ABCn
+    printf("ACn = ABCn X AC = [%g, %g, %g]\n",
+           CMH->V[11][0], CMH->V[11][1], CMH->V[11][2]);
+    printf("ABn = AB X ABCn = [%g, %g, %g]\n",
+           CMH->V[12][0], CMH->V[12][1], CMH->V[12][2]);
+    if(dot_vec(CMH->V[1], CMH->V[11]) < -EPS) { //OA•ACn O outside edge AC in plane of TABC
+      cross_vec(CMH->V[1], CMH->V[6], CMH->V[13]); //OA X AC
+      cross_vec(CMH->V[13], CMH->V[6], CMH->V[0]); //(OA X AC) X AC
+      printf("OA X AC = [%g, %g, %g]\n",
+             CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
+      printf("(OA X AC) X AC = [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      printf("Swap OB and OC\n");
+      swap_vec(CMH->V[2], CMH->V[3]); //swap OB and OC
+      //simplex1: [OA, OC]
+      CMH->num_points -= 2;
+      return;
+    } else if(dot_vec(CMH->V[1], CMH->V[12]) < -EPS) { //OA•ABn O outside edge AB in plane of TABC
+      cross_vec(CMH->V[1], CMH->V[5], CMH->V[13]); //OA X AB
+      cross_vec(CMH->V[13], CMH->V[5], CMH->V[0]); //(OA X AB) X AB
+      printf("OA X AB = [%g, %g, %g]\n",
+             CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
+      printf("(OA X AB) X AB = [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      // simplex1: [OA, OB]
+      CMH->num_points -= 2;
+      return;
+    } else { //ABCn above TABC
+      CMH->V[0][0] = CMH->V[8][0];
+      CMH->V[0][1] = CMH->V[8][1];
+      CMH->V[0][2] = CMH->V[8][2];
+      printf("Set search direction to ABCn [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      // simplex2: [OA, OB, OC]
+      CMH->num_points--;
+      return;
     }
-    //if(OA•ACDn < -EPS) O outside face of TACD & tetrahedron
-    else if(dot_vec(CMH->V[1], CMH->V[9]) < -EPS) {
-        cross_vec(CMH->V[9], CMH->V[7], CMH->V[11]); //ADn = ACDn X AD
-        cross_vec(CMH->V[6], CMH->V[9], CMH->V[12]); //ACn = AC X ACDn
-        printf("ADn = ACDn X AD = [%g, %g, %g]\n",
-            CMH->V[11][0], CMH->V[11][1], CMH->V[11][2]);
-        printf("ACn = AC X ACDn = [%g, %g, %g]\n",
-            CMH->V[12][0], CMH->V[12][1], CMH->V[12][2]);
-        if(dot_vec(CMH->V[1], CMH->V[11]) < -EPS) { //OA•ADn O outside edge AD in plane of TACD
-            cross_vec(CMH->V[1], CMH->V[7], CMH->V[13]); //OA X AD
-            cross_vec(CMH->V[13], CMH->V[7], CMH->V[0]); //(OA X AD) X AD
-            printf("OA X AD = [%g, %g, %g]\n",
-                CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
-            printf("(OA X AD) X AD = [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            printf("Swap OB and OD\n");
-            swap_vec(CMH->V[2], CMH->V[4]); //swap OB and OD
-            // simplex1: [OA, OD]
-            CMH->num_points-=2;
-            return;
-        }
-        else if(dot_vec(CMH->V[1], CMH->V[12]) < -EPS) { //OA•ACn O outside edge AC in plane of TACD
-            cross_vec(CMH->V[1], CMH->V[6], CMH->V[13]); //OA X AC
-            cross_vec(CMH->V[13], CMH->V[6], CMH->V[0]); //(OA X AC) X AC
-            printf("OA X AC = [%g, %g, %g]\n",
-                CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
-            printf("(OA X AC) X AC = [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            printf("Swap OB and OC\n");
-            swap_vec(CMH->V[2], CMH->V[3]); //swap OB and OC
-            // simplex1: [OA, OC]
-            CMH->num_points-=2;
-            return;
-        }
-        else { //ACDn Face of TACD toward O
-            CMH->V[0][0] = CMH->V[9][0];
-            CMH->V[0][1] = CMH->V[9][1];
-            CMH->V[0][2] = CMH->V[9][2];
-            printf("Set search direction to ACDn [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            printf("Swap OB and OC followed by swap OC and OD\n");
-            swap_vec(CMH->V[2], CMH->V[3]); //swap OB and OC
-            swap_vec(CMH->V[3], CMH->V[4]); //swap OC and OD
-            // simplex2: [OA, OC, OD]
-            CMH->num_points--;
-            return;
-        }
+  }
+  //if(OA•ACDn < -EPS) O outside face of TACD & tetrahedron
+  else if(dot_vec(CMH->V[1], CMH->V[9]) < -EPS) {
+    cross_vec(CMH->V[9], CMH->V[7], CMH->V[11]); //ADn = ACDn X AD
+    cross_vec(CMH->V[6], CMH->V[9], CMH->V[12]); //ACn = AC X ACDn
+    printf("ADn = ACDn X AD = [%g, %g, %g]\n",
+           CMH->V[11][0], CMH->V[11][1], CMH->V[11][2]);
+    printf("ACn = AC X ACDn = [%g, %g, %g]\n",
+           CMH->V[12][0], CMH->V[12][1], CMH->V[12][2]);
+    if(dot_vec(CMH->V[1], CMH->V[11]) < -EPS) { //OA•ADn O outside edge AD in plane of TACD
+      cross_vec(CMH->V[1], CMH->V[7], CMH->V[13]); //OA X AD
+      cross_vec(CMH->V[13], CMH->V[7], CMH->V[0]); //(OA X AD) X AD
+      printf("OA X AD = [%g, %g, %g]\n",
+             CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
+      printf("(OA X AD) X AD = [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      printf("Swap OB and OD\n");
+      swap_vec(CMH->V[2], CMH->V[4]); //swap OB and OD
+      // simplex1: [OA, OD]
+      CMH->num_points -= 2;
+      return;
+    } else if(dot_vec(CMH->V[1], CMH->V[12]) < -EPS) { //OA•ACn O outside edge AC in plane of TACD
+      cross_vec(CMH->V[1], CMH->V[6], CMH->V[13]); //OA X AC
+      cross_vec(CMH->V[13], CMH->V[6], CMH->V[0]); //(OA X AC) X AC
+      printf("OA X AC = [%g, %g, %g]\n",
+             CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
+      printf("(OA X AC) X AC = [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      printf("Swap OB and OC\n");
+      swap_vec(CMH->V[2], CMH->V[3]); //swap OB and OC
+      // simplex1: [OA, OC]
+      CMH->num_points -= 2;
+      return;
+    } else { //ACDn Face of TACD toward O
+      CMH->V[0][0] = CMH->V[9][0];
+      CMH->V[0][1] = CMH->V[9][1];
+      CMH->V[0][2] = CMH->V[9][2];
+      printf("Set search direction to ACDn [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      printf("Swap OB and OC followed by swap OC and OD\n");
+      swap_vec(CMH->V[2], CMH->V[3]); //swap OB and OC
+      swap_vec(CMH->V[3], CMH->V[4]); //swap OC and OD
+      // simplex2: [OA, OC, OD]
+      CMH->num_points--;
+      return;
     }
-    //if(OA•ADBn < -EPS) O outside face of TADB & tetrahedron
-    else if(dot_vec(CMH->V[1], CMH->V[10]) < -EPS) {
-        cross_vec(CMH->V[10], CMH->V[5], CMH->V[11]); //ABn = ADBn X AB
-        cross_vec(CMH->V[7], CMH->V[10], CMH->V[12]); //ADn = AD X ADBn
-        printf("ABn = ADBn X AB = [%g, %g, %g]\n",
-            CMH->V[11][0], CMH->V[11][1], CMH->V[11][2]);
-        printf("ADn = AD X ADBn = [%g, %g, %g]\n",
-            CMH->V[12][0], CMH->V[12][1], CMH->V[12][2]);
-        if(dot_vec(CMH->V[1], CMH->V[11]) < -EPS) { //OA•ABn O outside edge AB in plane of TADB
-            cross_vec(CMH->V[1], CMH->V[5], CMH->V[13]); //OA X AB
-            cross_vec(CMH->V[13], CMH->V[5], CMH->V[0]); //(OA X AB) X AB
-            printf("OA X AB = [%g, %g, %g]\n",
-                CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
-            printf("(OA X AB) X AB = [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            // simplex1: [OA, OB]
-            CMH->num_points-=2;
-            return;
-        }
-        else if(dot_vec(CMH->V[1], CMH->V[12]) < -EPS) { //OA•ADn O outside edge AD in plane of TADB
-            cross_vec(CMH->V[1], CMH->V[7], CMH->V[13]); //OA X AD
-            cross_vec(CMH->V[13], CMH->V[7], CMH->V[0]); //(OA X AD) X AD
-            swap_vec(CMH->V[2], CMH->V[4]); //swap OB and OD
-            printf("OA X AD = [%g, %g, %g]\n",
-                CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
-            printf("(OA X AD) X AD = [%g, %g, %g]\n",
-                CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            printf("Swap OB and OD\n");
-            // simplex1: [OA, OD]
-            CMH->num_points-=2;
-            return;
-        }
-        else { //ADBn Face of TADB toward OA
-            CMH->V[0][0] = CMH->V[10][0];
-            CMH->V[0][1] = CMH->V[10][1];
-            CMH->V[0][2] = CMH->V[10][2];
-            printf("Set search direction to ADBn [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
-            printf("Swap OB and OD followed by swap OC and OD\n");
-            swap_vec(CMH->V[2], CMH->V[4]); //swap OB and OD
-            swap_vec(CMH->V[3], CMH->V[4]); //swap OC and OD
-            // simplex2: [OA, OD, OB]
-            CMH->num_points--;
-            return;
-        }
+  }
+  //if(OA•ADBn < -EPS) O outside face of TADB & tetrahedron
+  else if(dot_vec(CMH->V[1], CMH->V[10]) < -EPS) {
+    cross_vec(CMH->V[10], CMH->V[5], CMH->V[11]); //ABn = ADBn X AB
+    cross_vec(CMH->V[7], CMH->V[10], CMH->V[12]); //ADn = AD X ADBn
+    printf("ABn = ADBn X AB = [%g, %g, %g]\n",
+           CMH->V[11][0], CMH->V[11][1], CMH->V[11][2]);
+    printf("ADn = AD X ADBn = [%g, %g, %g]\n",
+           CMH->V[12][0], CMH->V[12][1], CMH->V[12][2]);
+    if(dot_vec(CMH->V[1], CMH->V[11]) < -EPS) { //OA•ABn O outside edge AB in plane of TADB
+      cross_vec(CMH->V[1], CMH->V[5], CMH->V[13]); //OA X AB
+      cross_vec(CMH->V[13], CMH->V[5], CMH->V[0]); //(OA X AB) X AB
+      printf("OA X AB = [%g, %g, %g]\n",
+             CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
+      printf("(OA X AB) X AB = [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      // simplex1: [OA, OB]
+      CMH->num_points -= 2;
+      return;
+    } else if(dot_vec(CMH->V[1], CMH->V[12]) < -EPS) { //OA•ADn O outside edge AD in plane of TADB
+      cross_vec(CMH->V[1], CMH->V[7], CMH->V[13]); //OA X AD
+      cross_vec(CMH->V[13], CMH->V[7], CMH->V[0]); //(OA X AD) X AD
+      swap_vec(CMH->V[2], CMH->V[4]); //swap OB and OD
+      printf("OA X AD = [%g, %g, %g]\n",
+             CMH->V[13][0], CMH->V[13][1], CMH->V[13][2]);
+      printf("(OA X AD) X AD = [%g, %g, %g]\n",
+             CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      printf("Swap OB and OD\n");
+      // simplex1: [OA, OD]
+      CMH->num_points -= 2;
+      return;
+    } else { //ADBn Face of TADB toward OA
+      CMH->V[0][0] = CMH->V[10][0];
+      CMH->V[0][1] = CMH->V[10][1];
+      CMH->V[0][2] = CMH->V[10][2];
+      printf("Set search direction to ADBn [%g, %g, %g]\n", CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+      printf("Swap OB and OD followed by swap OC and OD\n");
+      swap_vec(CMH->V[2], CMH->V[4]); //swap OB and OD
+      swap_vec(CMH->V[3], CMH->V[4]); //swap OC and OD
+      // simplex2: [OA, OD, OB]
+      CMH->num_points--;
+      return;
     }
-    else CMH->origin = 1;
-    return;
+  } else {
+    CMH->origin = 1;
+  }
+  return;
 }
 
 /*
@@ -799,235 +811,247 @@ dir = -1 directs support() to use -V[0] as the search direction.
 P[0] contains the local extreme point on convex hull A in the
 respective search direction.
 */
-void support(struct OBJ *OBJ, struct CH *CH, double V[3], int dir, double P[3]){
-    /*
-    Incoming search direction vector V[] is in global coordinates.
-    Outgoing extreme point vector P[] must be in global coordinates.
-    e_Vertex() requires a direction vector in local coordinates so set it in VL[].
-    e_Vertex() returns the extreme point in local coordinates in PL[].
-    Transform the Local extreme point in PL[] back to P[] in global coordinates.
-    if ( dir < 0 ) support() is searching in HA so OBJ->OBJX and CH->CHA
-    if ( dir > 0 ) support() is searching in HB so OBJ->OBJY and CH->CHB
-    */
-    double VL[3];
-    double PL[3];
-    printf("\n***** support *****\n");
-    if( dir < 0 ) {
-        printf("Global search direction in HA: [%lf, %lf, %lf]\n", -V[0], -V[1], -V[2]);
-        VL[0] = -OBJ->R_fO[0][0]*V[0] - OBJ->R_fO[1][0]*V[1] - OBJ->R_fO[2][0]*V[2];
-        VL[1] = -OBJ->R_fO[0][1]*V[0] - OBJ->R_fO[1][1]*V[1] - OBJ->R_fO[2][1]*V[2];
-        VL[2] = -OBJ->R_fO[0][2]*V[0] - OBJ->R_fO[1][2]*V[1] - OBJ->R_fO[2][2]*V[2];
-        printf("Local search direction in HA: [%lf, %lf, %lf]\n", VL[0], VL[1], VL[2]);
-        CH->e_Vertex(CH, VL, PL);
-        printf("Local extreme point in HA: [%lf, %lf, %lf]\n", PL[0], PL[1], PL[2]);
-        P[0] = OBJ->R_fO[0][0]*PL[0] + OBJ->R_fO[0][1]*PL[1] + OBJ->R_fO[0][2]*PL[2];
-        P[1] = OBJ->R_fO[1][0]*PL[0] + OBJ->R_fO[1][1]*PL[1] + OBJ->R_fO[1][2]*PL[2];
-        P[2] = OBJ->R_fO[2][0]*PL[0] + OBJ->R_fO[2][1]*PL[1] + OBJ->R_fO[2][2]*PL[2];
-        printf("Global extreme point in HA: [%lf, %lf, %lf]\n", P[0], P[1], P[2]);
-    }
-    else {
-        printf("Global search direction in HB: [%lf, %lf, %lf]\n", V[0], V[1], V[2]);
-        VL[0] = OBJ->R_fO[0][0]*V[0] + OBJ->R_fO[1][0]*V[1] + OBJ->R_fO[2][0]*V[2];
-        VL[1] = OBJ->R_fO[0][1]*V[0] + OBJ->R_fO[1][1]*V[1] + OBJ->R_fO[2][1]*V[2];
-        VL[2] = OBJ->R_fO[0][2]*V[0] + OBJ->R_fO[1][2]*V[1] + OBJ->R_fO[2][2]*V[2];
-        printf("Local search direction in HB: [%lf, %lf, %lf]\n", VL[0], VL[1], VL[2]);
-        CH->e_Vertex(CH, VL, PL);
-        printf("Local extreme point in HB: [%lf, %lf, %lf]\n", PL[0], PL[1], PL[2]);
-        P[0] = OBJ->R_fO[0][0]*PL[0] + OBJ->R_fO[0][1]*PL[1] + OBJ->R_fO[0][2]*PL[2];
-        P[1] = OBJ->R_fO[1][0]*PL[0] + OBJ->R_fO[1][1]*PL[1] + OBJ->R_fO[1][2]*PL[2];
-        P[2] = OBJ->R_fO[2][0]*PL[0] + OBJ->R_fO[2][1]*PL[1] + OBJ->R_fO[2][2]*PL[2];
-        printf("Global extreme point in HB: [%lf, %lf, %lf]\n", P[0], P[1], P[2]);
-    }
-    return;
+void support(struct OBJ* OBJ, struct CH* CH, double V[3], int dir, double P[3]) {
+  /*
+  Incoming search direction vector V[] is in global coordinates.
+  Outgoing extreme point vector P[] must be in global coordinates.
+  e_Vertex() requires a direction vector in local coordinates so set it in VL[].
+  e_Vertex() returns the extreme point in local coordinates in PL[].
+  Transform the Local extreme point in PL[] back to P[] in global coordinates.
+  if ( dir < 0 ) support() is searching in HA so OBJ->OBJX and CH->CHA
+  if ( dir > 0 ) support() is searching in HB so OBJ->OBJY and CH->CHB
+  */
+  double VL[3];
+  double PL[3];
+  printf("\n***** support *****\n");
+  if(dir < 0) {
+    printf("Global search direction in HA: [%lf, %lf, %lf]\n", -V[0], -V[1], -V[2]);
+    VL[0] = -OBJ->R_fO[0][0] * V[0] - OBJ->R_fO[1][0] * V[1] - OBJ->R_fO[2][0] * V[2];
+    VL[1] = -OBJ->R_fO[0][1] * V[0] - OBJ->R_fO[1][1] * V[1] - OBJ->R_fO[2][1] * V[2];
+    VL[2] = -OBJ->R_fO[0][2] * V[0] - OBJ->R_fO[1][2] * V[1] - OBJ->R_fO[2][2] * V[2];
+    printf("Local search direction in HA: [%lf, %lf, %lf]\n", VL[0], VL[1], VL[2]);
+    CH->e_Vertex(CH, VL, PL);
+    printf("Local extreme point in HA: [%lf, %lf, %lf]\n", PL[0], PL[1], PL[2]);
+    P[0] = OBJ->R_fO[0][0] * PL[0] + OBJ->R_fO[0][1] * PL[1] + OBJ->R_fO[0][2] * PL[2];
+    P[1] = OBJ->R_fO[1][0] * PL[0] + OBJ->R_fO[1][1] * PL[1] + OBJ->R_fO[1][2] * PL[2];
+    P[2] = OBJ->R_fO[2][0] * PL[0] + OBJ->R_fO[2][1] * PL[1] + OBJ->R_fO[2][2] * PL[2];
+    printf("Global extreme point in HA: [%lf, %lf, %lf]\n", P[0], P[1], P[2]);
+  } else {
+    printf("Global search direction in HB: [%lf, %lf, %lf]\n", V[0], V[1], V[2]);
+    VL[0] = OBJ->R_fO[0][0] * V[0] + OBJ->R_fO[1][0] * V[1] + OBJ->R_fO[2][0] * V[2];
+    VL[1] = OBJ->R_fO[0][1] * V[0] + OBJ->R_fO[1][1] * V[1] + OBJ->R_fO[2][1] * V[2];
+    VL[2] = OBJ->R_fO[0][2] * V[0] + OBJ->R_fO[1][2] * V[1] + OBJ->R_fO[2][2] * V[2];
+    printf("Local search direction in HB: [%lf, %lf, %lf]\n", VL[0], VL[1], VL[2]);
+    CH->e_Vertex(CH, VL, PL);
+    printf("Local extreme point in HB: [%lf, %lf, %lf]\n", PL[0], PL[1], PL[2]);
+    P[0] = OBJ->R_fO[0][0] * PL[0] + OBJ->R_fO[0][1] * PL[1] + OBJ->R_fO[0][2] * PL[2];
+    P[1] = OBJ->R_fO[1][0] * PL[0] + OBJ->R_fO[1][1] * PL[1] + OBJ->R_fO[1][2] * PL[2];
+    P[2] = OBJ->R_fO[2][0] * PL[0] + OBJ->R_fO[2][1] * PL[1] + OBJ->R_fO[2][2] * PL[2];
+    printf("Global extreme point in HB: [%lf, %lf, %lf]\n", P[0], P[1], P[2]);
+  }
+  return;
 }
 
 void ellipse(double uV[3], double P[3]) {
-    double a; a = 2.0;
-    double b; b = 3.0;
-    double c; c = 4.0;
-    double au; au = a * uV[0];
-    double bu; bu = b * uV[1];
-    double cu; cu = c * uV[2];
-    double aa; aa = fabs(uV[0]);
-    double bb; bb = fabs(uV[1]);
-    double cc; cc = fabs(uV[2]);
-    double theta;
-    double phi;
-    theta = atan2( bu, au );
-    if ( theta < 0.0 ) theta += dPI;
-    phi = atan2( au * cos(theta)+bu * sin(theta), cu );
-    if ( phi < 0.0 ) phi += PI;
-    P[0] = a*cos(theta)*sin(phi);
-    P[1] = b*sin(theta)*sin(phi);
-    P[2] = c*cos(phi);
+  double a;
+  a = 2.0;
+  double b;
+  b = 3.0;
+  double c;
+  c = 4.0;
+  double au;
+  au = a * uV[0];
+  double bu;
+  bu = b * uV[1];
+  double cu;
+  cu = c * uV[2];
+  double aa;
+  aa = fabs(uV[0]);
+  double bb;
+  bb = fabs(uV[1]);
+  double cc;
+  cc = fabs(uV[2]);
+  double theta;
+  double phi;
+  theta = atan2(bu, au);
+  if(theta < 0.0) {
+    theta += dPI;
+  }
+  phi = atan2(au * cos(theta) + bu * sin(theta), cu);
+  if(phi < 0.0) {
+    phi += PI;
+  }
+  P[0] = a * cos(theta) * sin(phi);
+  P[1] = b * sin(theta) * sin(phi);
+  P[2] = c * cos(phi);
 }
 
-int contact(struct OBJI *OBJIXY) {
+int contact(struct OBJI* OBJIXY) {
+  /*
+  This function encloses the GJK algorithm.
+  Return 1 (contact) when origin is in convex Minkowski hull.
+  Return 0 (no contact) when origin is not in convex Minkowski hull.
+  Return -1 when the GJK algorithm fails.
+  Iteration count: limit iterations to 20 and bail out with failure -1
+  */
+  int numiters = 0;
+  /*
+  P[0] contains the current direction vector.
+  P[1] contains the extreme vector on convex hull A.
+  P[2] contains the extreme vector on convex hull B.
+  */
+  double P[3][3];
+  double dir[3];
+  dir[0] = sqrt(3.0) / 3.0;
+  dir[1] = sqrt(3.0) / 3.0;
+  dir[2] = sqrt(3.0) / 3.0;
+  ellipse(dir, P[0]);
+  printf("Point P on ellipsoid: [%g, %g, %g]\n", P[0][0], P[0][1], P[0][2]);
+  OBJIXY->OBJX->t_fO[0] = -0.98643 * P[0][0];
+  OBJIXY->OBJX->t_fO[1] = -0.98643 * P[0][1];
+  OBJIXY->OBJX->t_fO[2] = -0.98643 * P[0][2];
+  OBJIXY->OBJY->t_fO[0] =  0.98643 * P[0][0];
+  OBJIXY->OBJY->t_fO[1] =  0.98643 * P[0][1];
+  OBJIXY->OBJY->t_fO[2] =  0.98643 * P[0][2];
+  /*
+  For initial debugging, seed the initial point OA as a vector pointing
+  from the origin of HB to the origin of HA. This will be changed to use a
+  saved point OA from the previous GJK step when available. In fact, the GJK
+  algorithm returns with the previous point OA already in CMH->V[1].
+  In this case the following assignment step would not be necessary.
+  */
+  OBJIXY->CMH->V[1][0] = OBJIXY->OBJX->t_fO[0] - OBJIXY->OBJY->t_fO[0];
+  OBJIXY->CMH->V[1][1] = OBJIXY->OBJX->t_fO[1] - OBJIXY->OBJY->t_fO[1];
+  OBJIXY->CMH->V[1][2] = OBJIXY->OBJX->t_fO[2] - OBJIXY->OBJY->t_fO[2];
+  OBJIXY->CMH->V[0][0] = OBJIXY->CMH->V[1][0];
+  OBJIXY->CMH->V[0][1] = OBJIXY->CMH->V[1][1];
+  OBJIXY->CMH->V[0][2] = OBJIXY->CMH->V[1][2];
+  printf("\n*****Initial search direction in contact() [%g, %g, %g]\n",
+         OBJIXY->CMH->V[1][0], OBJIXY->CMH->V[1][1], OBJIXY->CMH->V[1][2]);
+  /*
+  Iterate until success or failure.
+  return 1 => origin in convex hull and contact.
+  return 0 => origin not in convex hull and no contact.
+  return -1 => failure and no determination.
+  */
+  double uv[3];
+  while(numiters < 50) {
+    numiters++;
+    printf("numiters = %d\n", numiters);
     /*
-    This function encloses the GJK algorithm.
-    Return 1 (contact) when origin is in convex Minkowski hull.
-    Return 0 (no contact) when origin is not in convex Minkowski hull.
-    Return -1 when the GJK algorithm fails.
-    Iteration count: limit iterations to 20 and bail out with failure -1
+    support() returns the global extreme point on convex hull A.
+    CMH->HA is the convex hull structure for convex hull A.
+    CMH->V[0] is the current direction vector.
+    -1 directs support() to use -CMH->V[0] as the search direction.
+    P[0] contains the global extreme point on convex hull A in the
+    -CMH->V[0] search direction.
     */
-    int numiters = 0;
+    support(OBJIXY->OBJX, OBJIXY->CMH->HA, OBJIXY->CMH->V[0], -1, P[0]);
+    u_vec(OBJIXY->CMH->V[0], uv);
     /*
-    P[0] contains the current direction vector.
-    P[1] contains the extreme vector on convex hull A.
-    P[2] contains the extreme vector on convex hull B.
+    The extreme point on convex hull A must be translated by CMH->HA.center.
     */
-    double P[3][3];
-    double dir[3];
-    dir[0] = sqrt(3.0)/3.0;
-    dir[1] = sqrt(3.0)/3.0;
-    dir[2] = sqrt(3.0)/3.0;
-    ellipse(dir, P[0]);
-    printf("Point P on ellipsoid: [%g, %g, %g]\n", P[0][0], P[0][1], P[0][2]);
-    OBJIXY->OBJX->t_fO[0] = -0.98643*P[0][0];
-    OBJIXY->OBJX->t_fO[1] = -0.98643*P[0][1];
-    OBJIXY->OBJX->t_fO[2] = -0.98643*P[0][2];
-    OBJIXY->OBJY->t_fO[0] =  0.98643*P[0][0];
-    OBJIXY->OBJY->t_fO[1] =  0.98643*P[0][1];
-    OBJIXY->OBJY->t_fO[2] =  0.98643*P[0][2];
+    P[0][0] += OBJIXY->OBJX->t_fO[0];
+    P[0][1] += OBJIXY->OBJX->t_fO[1];
+    P[0][2] += OBJIXY->OBJX->t_fO[2];
+    printf("Extreme point on CHA: [%lf, %lf, %lf]\n",
+           P[0][0], P[0][1], P[0][2]);
+    printf("Distance along direction vector: %g\n", -dot_vec(uv, P[0]));
     /*
-    For initial debugging, seed the initial point OA as a vector pointing
-    from the origin of HB to the origin of HA. This will be changed to use a
-    saved point OA from the previous GJK step when available. In fact, the GJK
-    algorithm returns with the previous point OA already in CMH->V[1].
-    In this case the following assignment step would not be necessary.
+    support() returns the global extreme point on convex hull B.
+    CMH->HB is the convex hull structure for convex hull B.
+    CMH->V[0] is the current direction vector.
+    1 directs support() to use CMH->V[0] as the search direction.
+    P[1] contains the global extreme point on convex hull B in the
+    CMH->V[0] search direction.
     */
-    OBJIXY->CMH->V[1][0] = OBJIXY->OBJX->t_fO[0] - OBJIXY->OBJY->t_fO[0];
-    OBJIXY->CMH->V[1][1] = OBJIXY->OBJX->t_fO[1] - OBJIXY->OBJY->t_fO[1];
-    OBJIXY->CMH->V[1][2] = OBJIXY->OBJX->t_fO[2] - OBJIXY->OBJY->t_fO[2];
-    OBJIXY->CMH->V[0][0] = OBJIXY->CMH->V[1][0];
-    OBJIXY->CMH->V[0][1] = OBJIXY->CMH->V[1][1];
-    OBJIXY->CMH->V[0][2] = OBJIXY->CMH->V[1][2];
-    printf("\n*****Initial search direction in contact() [%g, %g, %g]\n",
-        OBJIXY->CMH->V[1][0], OBJIXY->CMH->V[1][1], OBJIXY->CMH->V[1][2]);
+    support(OBJIXY->OBJY, OBJIXY->CMH->HB, OBJIXY->CMH->V[0], 1, P[1]);
     /*
-    Iterate until success or failure.
-    return 1 => origin in convex hull and contact.
-    return 0 => origin not in convex hull and no contact.
-    return -1 => failure and no determination.
+    The extreme point on convex hull B must be translated by CMH->HB.center.
     */
-    double uv[3];
-    while (numiters < 50) {
-        numiters++;
-        printf("numiters = %d\n", numiters);
-        /*
-        support() returns the global extreme point on convex hull A.
-        CMH->HA is the convex hull structure for convex hull A.
-        CMH->V[0] is the current direction vector.
-        -1 directs support() to use -CMH->V[0] as the search direction.
-        P[0] contains the global extreme point on convex hull A in the
-        -CMH->V[0] search direction.
-        */
-        support(OBJIXY->OBJX, OBJIXY->CMH->HA, OBJIXY->CMH->V[0], -1, P[0]);
-        u_vec( OBJIXY->CMH->V[0], uv );
-        /*
-        The extreme point on convex hull A must be translated by CMH->HA.center.
-        */
-        P[0][0] += OBJIXY->OBJX->t_fO[0];
-        P[0][1] += OBJIXY->OBJX->t_fO[1];
-        P[0][2] += OBJIXY->OBJX->t_fO[2];
-        printf("Extreme point on CHA: [%lf, %lf, %lf]\n",
-            P[0][0], P[0][1], P[0][2]);
-        printf("Distance along direction vector: %g\n", -dot_vec( uv, P[0] ));
-        /*
-        support() returns the global extreme point on convex hull B.
-        CMH->HB is the convex hull structure for convex hull B.
-        CMH->V[0] is the current direction vector.
-        1 directs support() to use CMH->V[0] as the search direction.
-        P[1] contains the global extreme point on convex hull B in the
-        CMH->V[0] search direction.
-        */
-        support(OBJIXY->OBJY, OBJIXY->CMH->HB, OBJIXY->CMH->V[0], 1, P[1]);
-        /*
-        The extreme point on convex hull B must be translated by CMH->HB.center.
-        */
-        P[1][0] += OBJIXY->OBJY->t_fO[0];
-        P[1][1] += OBJIXY->OBJY->t_fO[1];
-        P[1][2] += OBJIXY->OBJY->t_fO[2];
-        printf("Extreme point on CHB: [%lf, %lf, %lf]\n",
-            P[1][0], P[1][1], P[1][2]);
-        printf("Distance along direction vector: %g\n", dot_vec(uv, P[1] ));
-        /*
-        P[2] contains the extreme point on the Minkowski convex hull AB.
-        */
-        P[2][0] = P[1][0] - P[0][0];
-        P[2][1] = P[1][1] - P[0][1];
-        P[2][2] = P[1][2] - P[0][2];
-        printf("Extreme point on CMHAB: [%lf, %lf, %lf]\n",
-            P[2][0], P[2][1], P[2][2]);
-        /*
-        Function add_point() adds this new extreme point to the simplex.
-        First it shifts the previous points down one level in CMH->V
-        and inserts P[2] into CMH->V[0]. Then it increments CMH->num_points
-        by 1.
-        */
-        add_point(OBJIXY->CMH, P[2]);
-        printf("Verify new Extreme point in CMH: [%lf, %lf, %lf]\n",
-        OBJIXY->CMH->V[1][0], OBJIXY->CMH->V[1][1], OBJIXY->CMH->V[1][2]);
-        /*
-        This first test is common to all simplex functions, so put it here.
-        CMH->V[0] contains the vector OA to the last point on the simplex.
-        P[2] contains the vector OP to the extreme point on the hull.
-        If OP•OA < ZERO the last point A on the simplex did not pass the
-        origin so the convex Minkowski hull does not contain the origin.
-        */
-        if (OBJIXY->CMH->num_points > 1 && dot_vec(P[2], OBJIXY->CMH->V[0]) < ZERO) {
-            printf("Minkowski hull does not Contain Origin\n");
-            printf("Number of iterations: %d\n", numiters);
-            OBJIXY->CMH->origin = 0;
-            return 0;
-        }
-        /*
-        CMH->num_points can be 1, 2, 3, or 4 depending on the simplex
-        dimension.
-        CMH->num_points = 1: A single point is not useful unless it is the
-        origin.
-        CMH->num_points = 2: Two points define a line. The origin may be on
-        the line or not. If not on the line, the origin will be somewhere
-        around the line. Unless the origin is on the line, simplex1 cannot
-        determine if the origin is or is not in the convex Minkowski hull.
-        CMH->num_points = 3: Three points define a triangle. The origin may
-        be on the triangle or not. If not on the triangle, the origin will
-        be somewhere around the triangle. Unless the origin is on the triangle,
-        simplex2 cannot determine if the origin is or is not in the convex
-        Minkowski hull.
-        CMH->num_points = 4: Four points define a tetrahedron. The origin may
-        be on or in the tetrahedron or not. If on or in the tetrahedron, the
-        origin will be in the convex Minkowski hull. Otherwise the origin will
-        not be in the convex Minkowski hull. The final decision that the origin
-        is not in the convex Minkowski hull can only be made in simplex3.
-        */
-        switch (OBJIXY->CMH->num_points) {
-            case 1:
-            //printf("simplex0\n");
-            simplex0(OBJIXY->CMH);
-            break;
-            case 2:
-            //printf("simplex1\n");
-            simplex1(OBJIXY->CMH);
-            break;
-            case 3:
-            //printf("simplex2\n");
-            simplex2(OBJIXY->CMH);
-            break;
-            case 4:
-            //printf("simplex3\n");
-            simplex3(OBJIXY->CMH);
-            break;
-            default:
-            printf("ERROR! Incorrect number of points: %d\n", OBJIXY->CMH->num_points);
-        };
-        if (OBJIXY->CMH->origin > 0) {
-            printf("Contains Origin and Number of iterations: %d\n", numiters);
-            return 1;
-        }
+    P[1][0] += OBJIXY->OBJY->t_fO[0];
+    P[1][1] += OBJIXY->OBJY->t_fO[1];
+    P[1][2] += OBJIXY->OBJY->t_fO[2];
+    printf("Extreme point on CHB: [%lf, %lf, %lf]\n",
+           P[1][0], P[1][1], P[1][2]);
+    printf("Distance along direction vector: %g\n", dot_vec(uv, P[1]));
+    /*
+    P[2] contains the extreme point on the Minkowski convex hull AB.
+    */
+    P[2][0] = P[1][0] - P[0][0];
+    P[2][1] = P[1][1] - P[0][1];
+    P[2][2] = P[1][2] - P[0][2];
+    printf("Extreme point on CMHAB: [%lf, %lf, %lf]\n",
+           P[2][0], P[2][1], P[2][2]);
+    /*
+    Function add_point() adds this new extreme point to the simplex.
+    First it shifts the previous points down one level in CMH->V
+    and inserts P[2] into CMH->V[0]. Then it increments CMH->num_points
+    by 1.
+    */
+    add_point(OBJIXY->CMH, P[2]);
+    printf("Verify new Extreme point in CMH: [%lf, %lf, %lf]\n",
+           OBJIXY->CMH->V[1][0], OBJIXY->CMH->V[1][1], OBJIXY->CMH->V[1][2]);
+    /*
+    This first test is common to all simplex functions, so put it here.
+    CMH->V[0] contains the vector OA to the last point on the simplex.
+    P[2] contains the vector OP to the extreme point on the hull.
+    If OP•OA < ZERO the last point A on the simplex did not pass the
+    origin so the convex Minkowski hull does not contain the origin.
+    */
+    if(OBJIXY->CMH->num_points > 1 && dot_vec(P[2], OBJIXY->CMH->V[0]) < ZERO) {
+      printf("Minkowski hull does not Contain Origin\n");
+      printf("Number of iterations: %d\n", numiters);
+      OBJIXY->CMH->origin = 0;
+      return 0;
     }
-    printf("Number of iterations: %d\n", numiters);
-    return -1;
+    /*
+    CMH->num_points can be 1, 2, 3, or 4 depending on the simplex
+    dimension.
+    CMH->num_points = 1: A single point is not useful unless it is the
+    origin.
+    CMH->num_points = 2: Two points define a line. The origin may be on
+    the line or not. If not on the line, the origin will be somewhere
+    around the line. Unless the origin is on the line, simplex1 cannot
+    determine if the origin is or is not in the convex Minkowski hull.
+    CMH->num_points = 3: Three points define a triangle. The origin may
+    be on the triangle or not. If not on the triangle, the origin will
+    be somewhere around the triangle. Unless the origin is on the triangle,
+    simplex2 cannot determine if the origin is or is not in the convex
+    Minkowski hull.
+    CMH->num_points = 4: Four points define a tetrahedron. The origin may
+    be on or in the tetrahedron or not. If on or in the tetrahedron, the
+    origin will be in the convex Minkowski hull. Otherwise the origin will
+    not be in the convex Minkowski hull. The final decision that the origin
+    is not in the convex Minkowski hull can only be made in simplex3.
+    */
+    switch(OBJIXY->CMH->num_points) {
+      case 1:
+        //printf("simplex0\n");
+        simplex0(OBJIXY->CMH);
+        break;
+      case 2:
+        //printf("simplex1\n");
+        simplex1(OBJIXY->CMH);
+        break;
+      case 3:
+        //printf("simplex2\n");
+        simplex2(OBJIXY->CMH);
+        break;
+      case 4:
+        //printf("simplex3\n");
+        simplex3(OBJIXY->CMH);
+        break;
+      default:
+        printf("ERROR! Incorrect number of points: %d\n", OBJIXY->CMH->num_points);
+    };
+    if(OBJIXY->CMH->origin > 0) {
+      printf("Contains Origin and Number of iterations: %d\n", numiters);
+      return 1;
+    }
+  }
+  printf("Number of iterations: %d\n", numiters);
+  return -1;
 }
 
 /*
@@ -1040,99 +1064,99 @@ Convex Hull Contact (CMH) structure, which we'll call CMHAB.
 
 */
 int main() {
-    //The two convex hull structures.
-    struct CH CHA;
-    struct CH CHB;
-    //The convex hull contact structure.
-    struct CMH CMHAB;
-    //The two object structures.
-    struct OBJ OBJX;
-    struct OBJ OBJY;
-    //The object interaction structure.
-    struct OBJI OBJIXY;
-    // double t_fO[3];
-    // //Absolute orientation of Object frame O relative to fixed frame f.
-    // double R_fO[3][3];
+  //The two convex hull structures.
+  struct CH CHA;
+  struct CH CHB;
+  //The convex hull contact structure.
+  struct CMH CMHAB;
+  //The two object structures.
+  struct OBJ OBJX;
+  struct OBJ OBJY;
+  //The object interaction structure.
+  struct OBJI OBJIXY;
+  // double t_fO[3];
+  // //Absolute orientation of Object frame O relative to fixed frame f.
+  // double R_fO[3][3];
 
-    printf("PI = %g, dPI = %g\n", PI, dPI);
+  printf("PI = %g, dPI = %g\n", PI, dPI);
 
-    double uv[3];
-    uv[0] = sqrt(3.0)/3.0;
-    uv[1] = sqrt(3.0)/3.0;
-    uv[2] = sqrt(3.0)/3.0;
-    double P[3];
+  double uv[3];
+  uv[0] = sqrt(3.0) / 3.0;
+  uv[1] = sqrt(3.0) / 3.0;
+  uv[2] = sqrt(3.0) / 3.0;
+  double P[3];
 
 
-    //Spatial displacement of OBJX
-    // OBJX.t_fO[0] = -0.78733450;
-    // OBJX.t_fO[1] = -1.78733450;
-    // OBJX.t_fO[2] = -2.78733450;
-    OBJX.t_fO[0] = -0.68275;
-    OBJX.t_fO[1] = -1.68275;
-    OBJX.t_fO[2] = -2.68275;
-    //Spatial rotation of OBJX
-    OBJX.R_fO[0][0] = 1.0;
-    OBJX.R_fO[0][1] = 0.0;
-    OBJX.R_fO[0][2] = 0.0;
-    OBJX.R_fO[1][0] = 0.0;
-    OBJX.R_fO[1][1] = 1.0;
-    OBJX.R_fO[1][2] = 0.0;
-    OBJX.R_fO[2][0] = 0.0;
-    OBJX.R_fO[2][1] = 0.0;
-    OBJX.R_fO[2][2] = 1.0;
-    //Spatial displacement of OBJY
-    // OBJY.t_fO[0] =  1.2255;
-    // OBJY.t_fO[1] =  2.2255;
-    // OBJY.t_fO[2] =  3.2255;
-    // OBJY.t_fO[0] =  0.78733450;
-    // OBJY.t_fO[1] =  1.78733450;
-    // OBJY.t_fO[2] =  2.78733450;
-    OBJY.t_fO[0] =  0.68275;
-    OBJY.t_fO[1] =  1.68275;
-    OBJY.t_fO[2] =  2.68275;
-    //Spatial rotation of OBJY
-    OBJY.R_fO[0][0] = 1.0;
-    OBJY.R_fO[0][1] = 0.0;
-    OBJY.R_fO[0][2] = 0.0;
-    OBJY.R_fO[1][0] = 0.0;
-    OBJY.R_fO[1][1] = 1.0;
-    OBJY.R_fO[1][2] = 0.0;
-    OBJY.R_fO[2][0] = 0.0;
-    OBJY.R_fO[2][1] = 0.0;
-    OBJY.R_fO[2][2] = 1.0;
-    //Number of points in the simplex.
-    CMHAB.num_points = 0;
-    //CMHAB.origin = 0: Assume that origin is not in the convex hull.
-    //CMHAB.origin = 1: Know that origin is in the covex hull.
-    CMHAB.origin = 0;
-    //Assign convex hull A structure to the contact structure.
-    CMHAB.HA = &CHA;
-    //Assign convex hull B structure to the contact structure.
-    CMHAB.HB = &CHB;
-    //Assign object OBJX structure to the object interference OBJXY structure.
-    OBJIXY.OBJX = &OBJX;
-    //Assign object OBJY structure to the object interference OBJXY structure.
-    OBJIXY.OBJY = &OBJY;
-    //Assign Minkowski convex hull structure CMHAB to the OBJXY structure.
-    OBJIXY.CMH = &CMHAB;
-    /*
-    For this initial debugging the e_Vertex function is the same for
-    both convex hulls. Generally there may be a different e_Vertex
-    function for each convex hull with different unique features and
-    requirements. For example we may have e_Vertex_A and e_Vertex_B.
-    Then a preprocessor would make assignments like
-    CHA.e_Vertex = &e_Vertex_A; and CHB.e_Vertex = &e_Vertex_B; For
-    now the assignments are made to the same e_Vertex() function here.
-    */
-    //Set pointer to e_Vertex for convex hull A.
-    CHA.e_Vertex = &e_Vertex;
-    //Set pointer to e_Vertex for convex hull B.
-    CHB.e_Vertex = &e_Vertex;
-    //Set radius in convex hull A structure.
-    CHA.radius = 3.0;
-    //Set radius in convex hull B structure.
-    CHB.radius = 2.0;
-    //Launch the GJK algorithm. i=0 => no contact; i = 1 => contact.
-    int i = contact(&OBJIXY);
-    printf("contact = %d\n", i);
+  //Spatial displacement of OBJX
+  // OBJX.t_fO[0] = -0.78733450;
+  // OBJX.t_fO[1] = -1.78733450;
+  // OBJX.t_fO[2] = -2.78733450;
+  OBJX.t_fO[0] = -0.68275;
+  OBJX.t_fO[1] = -1.68275;
+  OBJX.t_fO[2] = -2.68275;
+  //Spatial rotation of OBJX
+  OBJX.R_fO[0][0] = 1.0;
+  OBJX.R_fO[0][1] = 0.0;
+  OBJX.R_fO[0][2] = 0.0;
+  OBJX.R_fO[1][0] = 0.0;
+  OBJX.R_fO[1][1] = 1.0;
+  OBJX.R_fO[1][2] = 0.0;
+  OBJX.R_fO[2][0] = 0.0;
+  OBJX.R_fO[2][1] = 0.0;
+  OBJX.R_fO[2][2] = 1.0;
+  //Spatial displacement of OBJY
+  // OBJY.t_fO[0] =  1.2255;
+  // OBJY.t_fO[1] =  2.2255;
+  // OBJY.t_fO[2] =  3.2255;
+  // OBJY.t_fO[0] =  0.78733450;
+  // OBJY.t_fO[1] =  1.78733450;
+  // OBJY.t_fO[2] =  2.78733450;
+  OBJY.t_fO[0] =  0.68275;
+  OBJY.t_fO[1] =  1.68275;
+  OBJY.t_fO[2] =  2.68275;
+  //Spatial rotation of OBJY
+  OBJY.R_fO[0][0] = 1.0;
+  OBJY.R_fO[0][1] = 0.0;
+  OBJY.R_fO[0][2] = 0.0;
+  OBJY.R_fO[1][0] = 0.0;
+  OBJY.R_fO[1][1] = 1.0;
+  OBJY.R_fO[1][2] = 0.0;
+  OBJY.R_fO[2][0] = 0.0;
+  OBJY.R_fO[2][1] = 0.0;
+  OBJY.R_fO[2][2] = 1.0;
+  //Number of points in the simplex.
+  CMHAB.num_points = 0;
+  //CMHAB.origin = 0: Assume that origin is not in the convex hull.
+  //CMHAB.origin = 1: Know that origin is in the covex hull.
+  CMHAB.origin = 0;
+  //Assign convex hull A structure to the contact structure.
+  CMHAB.HA = &CHA;
+  //Assign convex hull B structure to the contact structure.
+  CMHAB.HB = &CHB;
+  //Assign object OBJX structure to the object interference OBJXY structure.
+  OBJIXY.OBJX = &OBJX;
+  //Assign object OBJY structure to the object interference OBJXY structure.
+  OBJIXY.OBJY = &OBJY;
+  //Assign Minkowski convex hull structure CMHAB to the OBJXY structure.
+  OBJIXY.CMH = &CMHAB;
+  /*
+  For this initial debugging the e_Vertex function is the same for
+  both convex hulls. Generally there may be a different e_Vertex
+  function for each convex hull with different unique features and
+  requirements. For example we may have e_Vertex_A and e_Vertex_B.
+  Then a preprocessor would make assignments like
+  CHA.e_Vertex = &e_Vertex_A; and CHB.e_Vertex = &e_Vertex_B; For
+  now the assignments are made to the same e_Vertex() function here.
+  */
+  //Set pointer to e_Vertex for convex hull A.
+  CHA.e_Vertex = &e_Vertex;
+  //Set pointer to e_Vertex for convex hull B.
+  CHB.e_Vertex = &e_Vertex;
+  //Set radius in convex hull A structure.
+  CHA.radius = 3.0;
+  //Set radius in convex hull B structure.
+  CHB.radius = 2.0;
+  //Launch the GJK algorithm. i=0 => no contact; i = 1 => contact.
+  int i = contact(&OBJIXY);
+  printf("contact = %d\n", i);
 }

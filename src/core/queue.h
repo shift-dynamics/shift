@@ -27,12 +27,12 @@ SUCH DAMAGE.
 typedef struct s2_queue_t s2_queue_t;
 
 typedef enum {
-    T_QUEUE_INT,
-    T_QUEUE_BODY,
-    T_QUEUE_JOINT,
-    T_QUEUE_FRAME,
-    T_QUEUE_STACK,
-    T_QUEUE_QUEUE
+  T_QUEUE_INT,
+  T_QUEUE_BODY,
+  T_QUEUE_JOINT,
+  T_QUEUE_FRAME,
+  T_QUEUE_STACK,
+  T_QUEUE_QUEUE
 } s2_queue_enum_t;
 
 typedef struct s2_queuenode_t {

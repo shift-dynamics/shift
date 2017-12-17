@@ -30,9 +30,9 @@ typedef struct s2_body_t s2_body_t;
 typedef struct s2_context_t s2_context_t;
 
 #ifdef __APPLE__
-  #include <OpenGL/OpenGL.h>
+#include <OpenGL/OpenGL.h>
 #else
-  #include <GL/gl.h>
+#include <GL/gl.h>
 #endif
 
 

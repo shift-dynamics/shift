@@ -37,59 +37,59 @@ class s2_Lights;
 
 class FlatShaderProgram : public ShaderProgram {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  FlatShaderProgram(RenderWindow* renderWindow)
-  : ShaderProgram(renderWindow) {
-    initialize();
-  };
+  public:
+    FlatShaderProgram(RenderWindow* renderWindow)
+      : ShaderProgram(renderWindow) {
+      initialize();
+    };
 
-  ~FlatShaderProgram() {};
+    ~FlatShaderProgram() {};
 
-  void initialize();
-  void draw();
-  void setTransform(s2_displacement_t*);
-  void setMaterial(s2_material_t*);
-  void setLights(s2_Lights*);
-  GLint getPositionAttribute() {
-    return m_position_a;
-  };
-  GLint getNormalAttribute() {
-    return m_normal_a;
-  };
+    void initialize();
+    void draw();
+    void setTransform(s2_displacement_t*);
+    void setMaterial(s2_material_t*);
+    void setLights(s2_Lights*);
+    GLint getPositionAttribute() {
+      return m_position_a;
+    };
+    GLint getNormalAttribute() {
+      return m_normal_a;
+    };
 
-signals:
-
-
-protected:
+  signals:
 
 
-private:
+  protected:
 
-  GLint m_matrices_u;
-  GLint m_matrices_mvp_u;
-  GLint m_matrices_mv_u;
-  GLint m_matrices_v_u;
-  GLint m_matrices_nm_u;
 
-  GLint m_material_u;
-  GLint m_material_Ka_u;
-  GLint m_material_Kd_u;
-  GLint m_material_Ks_u;
-  GLint m_material_Ke_u;
-  GLint m_material_Ns_u;
+  private:
 
-  GLint m_lights_u;
-  GLint m_lights_position_u;
-  GLint m_lights_Ka_u;
-  GLint m_lights_Kd_u;
-  GLint m_lights_Ks_u;
-  GLint m_lights_directional_u;
-  GLint m_lights_count_u;
+    GLint m_matrices_u;
+    GLint m_matrices_mvp_u;
+    GLint m_matrices_mv_u;
+    GLint m_matrices_v_u;
+    GLint m_matrices_nm_u;
 
-  GLint m_position_a;
-  GLint m_normal_a;
+    GLint m_material_u;
+    GLint m_material_Ka_u;
+    GLint m_material_Kd_u;
+    GLint m_material_Ks_u;
+    GLint m_material_Ke_u;
+    GLint m_material_Ns_u;
+
+    GLint m_lights_u;
+    GLint m_lights_position_u;
+    GLint m_lights_Ka_u;
+    GLint m_lights_Kd_u;
+    GLint m_lights_Ks_u;
+    GLint m_lights_directional_u;
+    GLint m_lights_count_u;
+
+    GLint m_position_a;
+    GLint m_normal_a;
 
 };
 

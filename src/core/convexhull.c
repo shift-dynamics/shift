@@ -58,12 +58,12 @@ void s2_convexhull_free(s2_convexhull_t* convexhull) {
 
 
 
-void print_summary(qhT *qh) {
+void print_summary(qhT* qh) {
   facetT* facet;
 
   printf("\n%d vertices and %d facets:\n", qh->num_vertices, qh->num_facets);
 
-  vertexT *vertex, **vertexp;
+  vertexT* vertex, **vertexp;
   int i = 0;
   FORALLfacets {
     printf("[%d] ", i++);
@@ -71,7 +71,7 @@ void print_summary(qhT *qh) {
     FOREACHvertex_(facet->vertices) {
       printf("%d ", qh_pointid(qh, vertex->point));
     }
-    printf ("\n");
+    printf("\n");
 
   }
 
@@ -106,8 +106,8 @@ void load_vertices(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
       //   convexhull->vertexCount * 3,
       //   (GLfloat)vertex->point[k]);
       convexhull->vertices[
-        p10[qh_pointid(qh, vertex->point)] * 3 + k] =
-          (GLfloat)vertex->point[k];
+      p10[qh_pointid(qh, vertex->point)] * 3 + k] =
+      (GLfloat)vertex->point[k];
     }
     i++;
   }
@@ -135,7 +135,7 @@ void load_faces(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
     // printf("   ");
     FOREACHvertex_(facet->vertices) {
       convexhull->faces[i * 3 + j++] =
-        (GLuint)p10[qh_pointid(qh, vertex->point)];
+      (GLuint)p10[qh_pointid(qh, vertex->point)];
       // printf("%d ", (GLuint)p10[qh_pointid(qh, vertex->point)]);
     }
     // printf("\n");
@@ -239,14 +239,14 @@ int s2_convexhull_qhull(s2_body_t* body) {
     qhT qh;
     qh_zero(&qh, stdout);
     exitcode = qh_new_qhull(
-      &qh,
-      3,
-      totalVertexCount,
-      vertices,
-      true,
-      "qhull s Qt",
-      stdout,
-      stderr);
+                 &qh,
+                 3,
+                 totalVertexCount,
+                 vertices,
+                 true,
+                 "qhull s Qt",
+                 stdout,
+                 stderr);
 
     // if(!exitcode) {
     //   print_summary(&qh);

@@ -17,8 +17,8 @@
 @brief creates memory for s2_light_t datastructure and initializes to default values
 */
 s2_light_t* s2_light() {
-  s2_light_t* light = malloc(sizeof *light);
-  if (!light) {
+  s2_light_t* light = malloc(sizeof * light);
+  if(!light) {
     fprintf(stderr, "Error: failed to initialize light.\n");
     return NULL;
   }
@@ -63,7 +63,7 @@ void s2_light_load(
   s2_light_t* light = s2_light();
   light->name = s2_stackstr_copy(prefix);
   s2_stackstr_append(light->name, json_string_value(
-    json_object_get(lightObject, "name")));
+                       json_object_get(lightObject, "name")));
 
   json_t* parentObject = json_object_get(lightObject, "parent");
   json_t* parentBodyObject = json_array_get(parentObject, 0);
@@ -79,7 +79,7 @@ void s2_light_load(
         light->parentBody,
         json_string_value(value));
     }
-  } else if (json_is_string(parentBodyObject)) {
+  } else if(json_is_string(parentBodyObject)) {
     /*
       otherwise the body is contained within the assembly
     */
@@ -94,7 +94,7 @@ void s2_light_load(
     json_string_value(json_array_get(parentObject, 1)));
 
   const char* lightType = json_string_value(
-    json_object_get(lightObject, "type"));
+                            json_object_get(lightObject, "type"));
 
   if(!strcmp(lightType, "point")) {
     light->lightType = S2_LIGHT_POINT;
@@ -106,13 +106,13 @@ void s2_light_load(
     light->lightType = S2_LIGHT_SPOT;
     light->glLight.directional = 2;
   }
-  for (int i = 0; i < 3; i++) {
+  for(int i = 0; i < 3; i++) {
     light->glLight.Ka[i] = json_number_value(
-      json_array_get(json_object_get(lightObject, "Ka"), i));
+                             json_array_get(json_object_get(lightObject, "Ka"), i));
     light->glLight.Kd[i] = json_number_value(
-      json_array_get(json_object_get(lightObject, "Kd"), i));
+                             json_array_get(json_object_get(lightObject, "Kd"), i));
     light->glLight.Ks[i] = json_number_value(
-      json_array_get(json_object_get(lightObject, "Ks"), i));
+                             json_array_get(json_object_get(lightObject, "Ks"), i));
   }
 
   json_t* fovObject = json_object_get(lightObject, "fov");

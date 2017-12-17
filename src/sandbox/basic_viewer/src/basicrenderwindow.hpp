@@ -27,18 +27,18 @@ class QOpenGLVertexArrayObject;
   @brief class definition for BasicRenderWindow, derived from OpenGLWindow class
 */
 class BasicRenderWindow : public OpenGLWindow {
-  Q_OBJECT
+    Q_OBJECT
 
   public:
     BasicRenderWindow();
     void render();
-    void checkError( const QString& prefix );
+    void checkError(const QString& prefix);
 
     //my modifications
     void setBackgroundColor(float red, float green, float blue);
     void setObjectColor(float red, float green, float blue, Model* model);
     QString getCursorPositionText();
-    void qNormalizeAngle(int &angle);
+    void qNormalizeAngle(int& angle);
     void loadModelArray(QVector<Model*> newModelArray);
 
 
@@ -66,10 +66,10 @@ class BasicRenderWindow : public OpenGLWindow {
     void zRotationChanged(int angle);
 
   protected:
-    virtual void mousePressEvent(QMouseEvent *event);
-    virtual void mouseReleaseEvent(QMouseEvent *event);
-    virtual void mouseMoveEvent(QMouseEvent *event);
-    virtual void wheelEvent(QWheelEvent *event);
+    virtual void mousePressEvent(QMouseEvent* event);
+    virtual void mouseReleaseEvent(QMouseEvent* event);
+    virtual void mouseMoveEvent(QMouseEvent* event);
+    virtual void wheelEvent(QWheelEvent* event);
     //virtual void resizeEvent( QResizeEvent *event );
 
   private:
@@ -108,7 +108,7 @@ class BasicRenderWindow : public OpenGLWindow {
   @brief class definition for BasicRenderWindowWidget, derived from QWidget class
 */
 class BasicRenderWindowWidget : public QWidget {
-  Q_OBJECT
+    Q_OBJECT
 
   public:
     BasicRenderWindowWidget(QWidget* parent): QWidget(parent) {

@@ -53,7 +53,7 @@ void s2_ode113b_allocate(
 
 
   numericalIntegrator->stepCount = ceil(
-    (double)context->modelParameters.timeSpan / (double)context->modelParameters.timeStep) + 1;
+                                     (double)context->modelParameters.timeSpan / (double)context->modelParameters.timeStep) + 1;
   numericalIntegrator->ydata =
     calloc(
       numericalIntegrator->neqn *
@@ -202,7 +202,7 @@ void s2_ode113b_free(
   s2_context_t* context) {
 
   s2_numericalintegrator_ode113b_t* numericalIntegrator =
-    (s2_numericalintegrator_ode113b_t *)context->numericalIntegrator;
+    (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
 
   s2_array_free(numericalIntegrator->y);
   s2_array_free(numericalIntegrator->ydata);
@@ -293,7 +293,7 @@ void s2_ode113b_fcn(
 
   // printf("time: %0.16g\n", numericalIntegrator->x);
 
-	if(numericalIntegrator->iconv == 1) {
+  if(numericalIntegrator->iconv == 1) {
 
     int k = numericalIntegrator->k;
 
@@ -312,22 +312,22 @@ void s2_ode113b_fcn(
     omegaN = fmin(omegaN, 1000); /* limit omegaN */
 
     omegaN = omegaNl + numericalIntegrator->smoothingFilter *
-      (omegaN - omegaNl);
+             (omegaN - omegaNl);
 
     numericalIntegrator->baumgarte2OmegaN = 2 * omegaN;
     numericalIntegrator->baumgarteOmegaN2 = omegaN * omegaN;
 
     double rhodt = h * numericalIntegrator->integralGain;
     for(int i = 0; i < context->chordConstraintCount * 6; i++) {
-        numericalIntegrator->integralError[i] +=
-          context->cs[i] * rhodt;
+      numericalIntegrator->integralError[i] +=
+        context->cs[i] * rhodt;
     }
 
     numericalIntegrator->t = numericalIntegrator->x;
     s2_forcemodule_saveHistory(context);
 
     if(numericalIntegrator->x >=
-      numericalIntegrator->tdata[numericalIntegrator->step] + context->modelParameters.timeStep) {
+        numericalIntegrator->tdata[numericalIntegrator->step] + context->modelParameters.timeStep) {
       s2_solve_writeStates(
         context, ++(numericalIntegrator->step));
       // printf("\tk: %d, h: %0.9g, SL: %f, safetyFactor: %f, omegaN: %f\n", k, h, SL[k], safetyFactor, omegaN);
@@ -337,9 +337,9 @@ void s2_ode113b_fcn(
       // FILE* dhva = context->modelParameters->dhvaFilePointer;
       // s2_updateDHVADebug(dhva, context, numericalIntegrator->t);
     }
-	}
-	numericalIntegrator->iconv = 0;
-	return;
+  }
+  numericalIntegrator->iconv = 0;
+  return;
 }
 
 
@@ -461,466 +461,469 @@ void s2_ode113b_step(
     (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
 
   double p5eps;
-	double round;
-	double sum;
-	double temp1;
-	double temp2;
-	double temp4;
-	double temp5;
-	double tau;
-	double xold;
-	double erk;
-	double erkm1;
-	double erkm2;
-	double erkp1;
-	double err;
-	double hnew;
-	double rho;
+  double round;
+  double sum;
+  double temp1;
+  double temp2;
+  double temp4;
+  double temp5;
+  double tau;
+  double xold;
+  double erk;
+  double erkm1;
+  double erkm2;
+  double erkp1;
+  double err;
+  double hnew;
+  double rho;
 
-	int kp1;
-	int kp2;
-	int km1;
-	int km2;
-	int nsp1;
-	int im1;
-	int iq;
-	int nsm2;
-	int nsp2;
-	int limit1;
-	int ip1;
-	int knew;
+  int kp1;
+  int kp2;
+  int km1;
+  int km2;
+  int nsp1;
+  int im1;
+  int iq;
+  int nsm2;
+  int nsp2;
+  int limit1;
+  int ip1;
+  int knew;
 
-	/*
+  /*
   begin block 0
   check if step size or error tolerance is too small for machine
   precision. if first step, initialize phi array and estimate a
   starting step size.
 
   if step size is too small, determine an acceptable one */
-	numericalIntegrator->crash = true;
-	numericalIntegrator->h = fmax(numericalIntegrator->h, numericalIntegrator->fouru);
-	p5eps = 0.5 * numericalIntegrator->eps;
+  numericalIntegrator->crash = true;
+  numericalIntegrator->h = fmax(numericalIntegrator->h, numericalIntegrator->fouru);
+  p5eps = 0.5 * numericalIntegrator->eps;
 
   /*  if error tolerance is too small, increase it to an acceptable value */
-	round = 0.0;
-	for(int l = 0; l < numericalIntegrator->neqn; l++)
-		round += pow(numericalIntegrator->yy[l] / numericalIntegrator->wt[l], 2);
-	round = numericalIntegrator->twou * sqrt(round);
-	if(p5eps < round) {
-		numericalIntegrator->eps = 2.0 * round * (1.0 + numericalIntegrator->fouru);
-		return;
-	}
-	numericalIntegrator->crash = false;
+  round = 0.0;
+  for(int l = 0; l < numericalIntegrator->neqn; l++) {
+    round += pow(numericalIntegrator->yy[l] / numericalIntegrator->wt[l], 2);
+  }
+  round = numericalIntegrator->twou * sqrt(round);
+  if(p5eps < round) {
+    numericalIntegrator->eps = 2.0 * round * (1.0 + numericalIntegrator->fouru);
+    return;
+  }
+  numericalIntegrator->crash = false;
 
-	if(numericalIntegrator->start) {
+  if(numericalIntegrator->start) {
 
-		/* initialize. compute appropriate step size for first step */
-		numericalIntegrator->iconv = 1;
-		f(numericalIntegrator->yy, context);
+    /* initialize. compute appropriate step size for first step */
+    numericalIntegrator->iconv = 1;
+    f(numericalIntegrator->yy, context);
     if(numericalIntegrator->newtonRaphsonFailure) {
       return;
     }
-		sum = 0.0;
-		for(int l = 0; l < numericalIntegrator->neqn; l++) {
-			numericalIntegrator->phi[1][l] = numericalIntegrator->dy[l];
-			numericalIntegrator->phi[2][l] = 0.0;
-			sum += pow(numericalIntegrator->dy[l] / numericalIntegrator->wt[l], 2);
-		}
-		sum = sqrt(sum);
-		if(numericalIntegrator->eps < 16.0 * sum * numericalIntegrator->h * numericalIntegrator->h) {
-			numericalIntegrator->h = 0.25 * sqrt(numericalIntegrator->eps / sum);
+    sum = 0.0;
+    for(int l = 0; l < numericalIntegrator->neqn; l++) {
+      numericalIntegrator->phi[1][l] = numericalIntegrator->dy[l];
+      numericalIntegrator->phi[2][l] = 0.0;
+      sum += pow(numericalIntegrator->dy[l] / numericalIntegrator->wt[l], 2);
+    }
+    sum = sqrt(sum);
+    if(numericalIntegrator->eps < 16.0 * sum * numericalIntegrator->h * numericalIntegrator->h) {
+      numericalIntegrator->h = 0.25 * sqrt(numericalIntegrator->eps / sum);
     }
 
-		numericalIntegrator->h =
+    numericalIntegrator->h =
       fmax(
         numericalIntegrator->h,
         numericalIntegrator->fouru * numericalIntegrator->x);
-		numericalIntegrator->h =
+    numericalIntegrator->h =
       fmin(numericalIntegrator->h, numericalIntegrator->hmax);
-		numericalIntegrator->hold = 0.0;
-		numericalIntegrator->k = 1;
-		numericalIntegrator->kold = 0;
-		numericalIntegrator->start = false;
-		numericalIntegrator->phase1 = true;
-		numericalIntegrator->nornd = true;
-		if(p5eps <= 100.0 * round) {
-			numericalIntegrator->nornd = false;
-			for(int l = 0; l < numericalIntegrator->neqn; l++)
-				numericalIntegrator->phi[15][l] = 0.0;
-		}
-	}
+    numericalIntegrator->hold = 0.0;
+    numericalIntegrator->k = 1;
+    numericalIntegrator->kold = 0;
+    numericalIntegrator->start = false;
+    numericalIntegrator->phase1 = true;
+    numericalIntegrator->nornd = true;
+    if(p5eps <= 100.0 * round) {
+      numericalIntegrator->nornd = false;
+      for(int l = 0; l < numericalIntegrator->neqn; l++) {
+        numericalIntegrator->phi[15][l] = 0.0;
+      }
+    }
+  }
 
-	numericalIntegrator->ifail = 0;
+  numericalIntegrator->ifail = 0;
 
-	while(true) {
-		numericalIntegrator->iconv = 0;
+  while(true) {
+    numericalIntegrator->iconv = 0;
 
-		/*    begin block 1
+    /*    begin block 1
     compute coefficients of formulas for this step. avoid computing
     those quantities not changed when step size is not changed.  */
 
-		kp1 = numericalIntegrator->k + 1;
-		kp2 = numericalIntegrator->k + 2;
-		km1 = numericalIntegrator->k - 1;
-		km2 = numericalIntegrator->k - 2;
+    kp1 = numericalIntegrator->k + 1;
+    kp2 = numericalIntegrator->k + 2;
+    km1 = numericalIntegrator->k - 1;
+    km2 = numericalIntegrator->k - 2;
 
-		/*  ns is the number of steps taken with size h, including the current
-		   one. when k.lt.ns, no coefficients change */
+    /*  ns is the number of steps taken with size h, including the current
+       one. when k.lt.ns, no coefficients change */
 
-		if(numericalIntegrator->h != numericalIntegrator->hold) {
-			numericalIntegrator->ns = 0;
+    if(numericalIntegrator->h != numericalIntegrator->hold) {
+      numericalIntegrator->ns = 0;
     }
 
-		if(numericalIntegrator->ns <= numericalIntegrator->kold) {
-			numericalIntegrator->ns++;
+    if(numericalIntegrator->ns <= numericalIntegrator->kold) {
+      numericalIntegrator->ns++;
     }
 
-		nsp1 = numericalIntegrator->ns + 1;
+    nsp1 = numericalIntegrator->ns + 1;
 
-		if(numericalIntegrator->k >= numericalIntegrator->ns) {
+    if(numericalIntegrator->k >= numericalIntegrator->ns) {
 
-			/*  compute those components of alpha(*),beta(*),psi(*),sig(*) which
-			    are changed */
-			numericalIntegrator->beta[numericalIntegrator->ns] = 1.0;
-			numericalIntegrator->alpha[numericalIntegrator->ns] =
+      /*  compute those components of alpha(*),beta(*),psi(*),sig(*) which
+          are changed */
+      numericalIntegrator->beta[numericalIntegrator->ns] = 1.0;
+      numericalIntegrator->alpha[numericalIntegrator->ns] =
         1.0 / numericalIntegrator->ns;
-			temp1 = numericalIntegrator->h * numericalIntegrator->ns;
-			numericalIntegrator->sig[nsp1] = 1.0;
-			if(numericalIntegrator->k >= nsp1) {
-				for(int i = nsp1; i <= numericalIntegrator->k; i++) {
-					im1 = i - 1;
-					temp2 = numericalIntegrator->psi[im1];
-					numericalIntegrator->psi[im1] = temp1;
-					numericalIntegrator->beta[i] =
+      temp1 = numericalIntegrator->h * numericalIntegrator->ns;
+      numericalIntegrator->sig[nsp1] = 1.0;
+      if(numericalIntegrator->k >= nsp1) {
+        for(int i = nsp1; i <= numericalIntegrator->k; i++) {
+          im1 = i - 1;
+          temp2 = numericalIntegrator->psi[im1];
+          numericalIntegrator->psi[im1] = temp1;
+          numericalIntegrator->beta[i] =
             numericalIntegrator->beta[im1] *
             numericalIntegrator->psi[im1] / temp2;
-					temp1 = temp2 + numericalIntegrator->h;
-					numericalIntegrator->alpha[i] = numericalIntegrator->h / temp1;
-					numericalIntegrator->sig[i + 1] =
+          temp1 = temp2 + numericalIntegrator->h;
+          numericalIntegrator->alpha[i] = numericalIntegrator->h / temp1;
+          numericalIntegrator->sig[i + 1] =
             i * numericalIntegrator->alpha[i] * numericalIntegrator->sig[i];
-				}
-			}
-			numericalIntegrator->psi[numericalIntegrator->k] = temp1;
+        }
+      }
+      numericalIntegrator->psi[numericalIntegrator->k] = temp1;
 
-			/*  compute coefficients g(*)
-			    initialize v(*) and set w(*). g(2) was initialized at creation */
-			if(numericalIntegrator->ns <= 1) {
-				for(int iq = 1; iq <= numericalIntegrator->k; iq++) {
-					numericalIntegrator->v[iq] = 1.0 / (iq * (iq + 1));
-					numericalIntegrator->w[iq] = numericalIntegrator->v[iq];
-				}
-			} else {
-			  /*  if order was raised, update diagonal part of v(*) */
-				if(numericalIntegrator->k > numericalIntegrator->kold) {
-					numericalIntegrator->v[numericalIntegrator->k] =
+      /*  compute coefficients g(*)
+          initialize v(*) and set w(*). g(2) was initialized at creation */
+      if(numericalIntegrator->ns <= 1) {
+        for(int iq = 1; iq <= numericalIntegrator->k; iq++) {
+          numericalIntegrator->v[iq] = 1.0 / (iq * (iq + 1));
+          numericalIntegrator->w[iq] = numericalIntegrator->v[iq];
+        }
+      } else {
+        /*  if order was raised, update diagonal part of v(*) */
+        if(numericalIntegrator->k > numericalIntegrator->kold) {
+          numericalIntegrator->v[numericalIntegrator->k] =
             1.0 / (numericalIntegrator->k * kp1);
-					nsm2 = numericalIntegrator->ns - 2;
-					if(nsm2 >= 1) {
-						for(int j = 1; j <= nsm2; j++)	{
-							int i = numericalIntegrator->k - j;
-							numericalIntegrator->v[i] =
+          nsm2 = numericalIntegrator->ns - 2;
+          if(nsm2 >= 1) {
+            for(int j = 1; j <= nsm2; j++)  {
+              int i = numericalIntegrator->k - j;
+              numericalIntegrator->v[i] =
                 numericalIntegrator->v[i] -
                 numericalIntegrator->alpha[j + 1] *
                 numericalIntegrator->v[i + 1];
-						}
-					}
-				}
-				/*  update v(*) and set w(*) */
-				limit1 = kp1 - numericalIntegrator->ns;
-				temp5 = numericalIntegrator->alpha[numericalIntegrator->ns];
-				for (iq = 1; iq <= limit1; iq++) {
-					numericalIntegrator->v[iq] -= temp5 * numericalIntegrator->v[iq + 1];
-					numericalIntegrator->w[iq] = numericalIntegrator->v[iq];
-				}
-				numericalIntegrator->g[nsp1] = numericalIntegrator->w[1];
-			}
-			/*  compute g(*) in the work vector w(*) */
-			nsp2 = numericalIntegrator->ns + 2;
-			if(kp1 >= nsp2) {
-				for(int i = nsp2; i <= kp1; i++) {
-					for(iq = 1; iq <= kp2 - i; iq++) {
-						numericalIntegrator->w[iq] -=
+            }
+          }
+        }
+        /*  update v(*) and set w(*) */
+        limit1 = kp1 - numericalIntegrator->ns;
+        temp5 = numericalIntegrator->alpha[numericalIntegrator->ns];
+        for(iq = 1; iq <= limit1; iq++) {
+          numericalIntegrator->v[iq] -= temp5 * numericalIntegrator->v[iq + 1];
+          numericalIntegrator->w[iq] = numericalIntegrator->v[iq];
+        }
+        numericalIntegrator->g[nsp1] = numericalIntegrator->w[1];
+      }
+      /*  compute g(*) in the work vector w(*) */
+      nsp2 = numericalIntegrator->ns + 2;
+      if(kp1 >= nsp2) {
+        for(int i = nsp2; i <= kp1; i++) {
+          for(iq = 1; iq <= kp2 - i; iq++) {
+            numericalIntegrator->w[iq] -=
               numericalIntegrator->alpha[i - 1] *
               numericalIntegrator->w[iq + 1];
           }
-					numericalIntegrator->g[i] = numericalIntegrator->w[1];
-				}
+          numericalIntegrator->g[i] = numericalIntegrator->w[1];
+        }
       }
-		}
+    }
 
-		/* end block 1
+    /* end block 1
 
-		  begin block 2
-		  predict a solution p(*), evaluate derivatives using predicted
-		  solution, estimate local error at order k and errors at orders k,
-		  k-1, k-2 as if constant step size were used.
+      begin block 2
+      predict a solution p(*), evaluate derivatives using predicted
+      solution, estimate local error at order k and errors at orders k,
+      k-1, k-2 as if constant step size were used.
 
       change phi to phi star  */
 
-		if(numericalIntegrator->k >= nsp1) {
-			for(int i = nsp1; i <= numericalIntegrator->k; i++) {
-				for(int l = 0; l < numericalIntegrator->neqn; l++) {
-					numericalIntegrator->phi[i][l] =
+    if(numericalIntegrator->k >= nsp1) {
+      for(int i = nsp1; i <= numericalIntegrator->k; i++) {
+        for(int l = 0; l < numericalIntegrator->neqn; l++) {
+          numericalIntegrator->phi[i][l] =
             numericalIntegrator->beta[i] *
             numericalIntegrator->phi[i][l];
         }
-			}
-		}
+      }
+    }
 
-		/*  predict solution and differences */
-		for(int l = 0; l < numericalIntegrator->neqn; l++) {
-			numericalIntegrator->phi[kp2][l] =
+    /*  predict solution and differences */
+    for(int l = 0; l < numericalIntegrator->neqn; l++) {
+      numericalIntegrator->phi[kp2][l] =
         numericalIntegrator->phi[kp1][l];
-			numericalIntegrator->phi[kp1][l] = 0.0;
-			numericalIntegrator->p[l] = 0.0;
-		}
-		for(int j = 1; j <= numericalIntegrator->k; j++) {
-			int i = kp1 - j;
-			ip1 = i + 1;
-			for(int l = 0; l < numericalIntegrator->neqn; l++) {
-				numericalIntegrator->p[l] +=
+      numericalIntegrator->phi[kp1][l] = 0.0;
+      numericalIntegrator->p[l] = 0.0;
+    }
+    for(int j = 1; j <= numericalIntegrator->k; j++) {
+      int i = kp1 - j;
+      ip1 = i + 1;
+      for(int l = 0; l < numericalIntegrator->neqn; l++) {
+        numericalIntegrator->p[l] +=
           numericalIntegrator->g[i] *
           numericalIntegrator->phi[i][l];
-				numericalIntegrator->phi[i][l] +=
+        numericalIntegrator->phi[i][l] +=
           numericalIntegrator->phi[ip1][l];
-			}
-		}
+      }
+    }
     if(numericalIntegrator->nornd) {
-			for(int l = 0; l < numericalIntegrator->neqn; l++)
-				numericalIntegrator->p[l] =
+      for(int l = 0; l < numericalIntegrator->neqn; l++)
+        numericalIntegrator->p[l] =
           numericalIntegrator->yy[l] +
           numericalIntegrator->h *
           numericalIntegrator->p[l];
-		} else {
-			for(int l = 0; l < numericalIntegrator->neqn; l++) {
-				tau =
+    } else {
+      for(int l = 0; l < numericalIntegrator->neqn; l++) {
+        tau =
           numericalIntegrator->h *
           numericalIntegrator->p[l] -
           numericalIntegrator->phi[15][l];
-				numericalIntegrator->p[l] = numericalIntegrator->yy[l] + tau;
-				numericalIntegrator->phi[16][l] =
+        numericalIntegrator->p[l] = numericalIntegrator->yy[l] + tau;
+        numericalIntegrator->phi[16][l] =
           (numericalIntegrator->p[l] - numericalIntegrator->yy[l]) - tau;
-			}
+      }
     }
-		xold = numericalIntegrator->x;
-		numericalIntegrator->x = numericalIntegrator->x + numericalIntegrator->h;
-		f(numericalIntegrator->p, context);
+    xold = numericalIntegrator->x;
+    numericalIntegrator->x = numericalIntegrator->x + numericalIntegrator->h;
+    f(numericalIntegrator->p, context);
     if(numericalIntegrator->newtonRaphsonFailure) {
       return;
     }
 
-	  /*  estimate errors at orders k, k-1, k-2 */
-		erkm2 = 0.0;
-		erkm1 = 0.0;
-		erk = 0.0;
-		if(km2 > 0) {
-			for(int l = 0; l < numericalIntegrator->neqn; l++) {
-				temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
-				numericalIntegrator->yerr[l] =
+    /*  estimate errors at orders k, k-1, k-2 */
+    erkm2 = 0.0;
+    erkm1 = 0.0;
+    erk = 0.0;
+    if(km2 > 0) {
+      for(int l = 0; l < numericalIntegrator->neqn; l++) {
+        temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
+        numericalIntegrator->yerr[l] =
           pow(temp4 / numericalIntegrator->wt[l], 2);
-				erkm2 +=
+        erkm2 +=
           pow(
             (numericalIntegrator->phi[km1][l] + temp4) / numericalIntegrator->wt[l], 2);
-				erkm1 +=
+        erkm1 +=
           pow(
             (numericalIntegrator->phi[numericalIntegrator->k][l] + temp4) / numericalIntegrator->wt[l], 2);
-				erk += numericalIntegrator->yerr[l];
-			}
-			erkm2 =
+        erk += numericalIntegrator->yerr[l];
+      }
+      erkm2 =
         numericalIntegrator->h * numericalIntegrator->sig[km1] * numericalIntegrator->gstr[km2] * sqrt(erkm2);
-			erkm1 =
+      erkm1 =
         numericalIntegrator->h * numericalIntegrator->sig[numericalIntegrator->k] * numericalIntegrator->gstr[km1] * sqrt(erkm1);
-		}	else if(km1 > 0) {
-			for(int l = 0; l < numericalIntegrator->neqn; l++) {
-				temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
-				numericalIntegrator->yerr[l] =
+    } else if(km1 > 0) {
+      for(int l = 0; l < numericalIntegrator->neqn; l++) {
+        temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
+        numericalIntegrator->yerr[l] =
           pow(temp4 / numericalIntegrator->wt[l], 2);
-				erkm1 += pow(
-          (numericalIntegrator->phi[numericalIntegrator->k][l] + temp4) / numericalIntegrator->wt[l], 2);
-				erk += numericalIntegrator->yerr[l];
-			}
-			erkm1 =
+        erkm1 += pow(
+                   (numericalIntegrator->phi[numericalIntegrator->k][l] + temp4) / numericalIntegrator->wt[l], 2);
+        erk += numericalIntegrator->yerr[l];
+      }
+      erkm1 =
         numericalIntegrator->h * numericalIntegrator->sig[numericalIntegrator->k] * numericalIntegrator->gstr[km1] * sqrt(erkm1);
-		}	else {
-			for(int l = 0; l < numericalIntegrator->neqn; l++) {
-				temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
-				numericalIntegrator->yerr[l] =
+    } else {
+      for(int l = 0; l < numericalIntegrator->neqn; l++) {
+        temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
+        numericalIntegrator->yerr[l] =
           pow(temp4 / numericalIntegrator->wt[l], 2);
-				erk += numericalIntegrator->yerr[l];
-			}
+        erk += numericalIntegrator->yerr[l];
+      }
     }
-		temp5 = numericalIntegrator->h * sqrt(erk);
-		err =
+    temp5 = numericalIntegrator->h * sqrt(erk);
+    err =
       temp5 * (numericalIntegrator->g[numericalIntegrator->k] -
-      numericalIntegrator->g[kp1]);
-		erk = temp5 * numericalIntegrator->sig[kp1] *
-      numericalIntegrator->gstr[numericalIntegrator->k];
-		knew = numericalIntegrator->k;
+               numericalIntegrator->g[kp1]);
+    erk = temp5 * numericalIntegrator->sig[kp1] *
+          numericalIntegrator->gstr[numericalIntegrator->k];
+    knew = numericalIntegrator->k;
 
-		/*  test if order should be lowered */
-		if((km2 > 0) && (fmax(erkm1, erkm2) <= erk)) {
-			knew = km1;
-    }	else if((km2 == 0) && (erkm1 <= 0.5*erk)) {
-			knew = km1;
+    /*  test if order should be lowered */
+    if((km2 > 0) && (fmax(erkm1, erkm2) <= erk)) {
+      knew = km1;
+    } else if((km2 == 0) && (erkm1 <= 0.5 * erk)) {
+      knew = km1;
     }
 
-		if(err <= numericalIntegrator->eps) {
-			break;
+    if(err <= numericalIntegrator->eps) {
+      break;
     }
 
-		/*  begin block 3
-		   the step is unsuccessful. restore  x, phi(*,*), psi(*). if third
-		   consecutive failure, set order to one. if step fails more than three
-		   times, consider an optimal step size. double error tolerance and
-		   return if estimated step size is too small for machine precision.
+    /*  begin block 3
+       the step is unsuccessful. restore  x, phi(*,*), psi(*). if third
+       consecutive failure, set order to one. if step fails more than three
+       times, consider an optimal step size. double error tolerance and
+       return if estimated step size is too small for machine precision.
 
-		   restore x, phi(*,*) and psi(*) */
-		numericalIntegrator->phase1 = false;
-		numericalIntegrator->x = xold;
-		numericalIntegrator->iconv = -1;
-		for(int i = 1; i <= numericalIntegrator->k; i++) {
-			ip1 = i + 1;
-			for(int l = 0; l < numericalIntegrator->neqn; l++) {
-				numericalIntegrator->phi[i][l] =
+       restore x, phi(*,*) and psi(*) */
+    numericalIntegrator->phase1 = false;
+    numericalIntegrator->x = xold;
+    numericalIntegrator->iconv = -1;
+    for(int i = 1; i <= numericalIntegrator->k; i++) {
+      ip1 = i + 1;
+      for(int l = 0; l < numericalIntegrator->neqn; l++) {
+        numericalIntegrator->phi[i][l] =
           (numericalIntegrator->phi[i][l] - numericalIntegrator->phi[ip1][l]) / numericalIntegrator->beta[i];
       }
-		}
+    }
 
-		if(numericalIntegrator->k >= 2) {
+    if(numericalIntegrator->k >= 2) {
       for(int i = 2; i <= numericalIntegrator->k; i++) {
-			  numericalIntegrator->psi[i - 1] =
+        numericalIntegrator->psi[i - 1] =
           numericalIntegrator->psi[i] - numericalIntegrator->h;
       }
     }
 
-		/* on third failure, set order to one. thereafter, use optimal step size */
-		numericalIntegrator->ifail++;
-		temp2 = 0.5;
-		if((numericalIntegrator->ifail > 3) && (p5eps < 0.25 * erk))
-			temp2 = sqrt(p5eps / erk);
-
-		if(numericalIntegrator->ifail >= 3) {
-			knew = 1;
+    /* on third failure, set order to one. thereafter, use optimal step size */
+    numericalIntegrator->ifail++;
+    temp2 = 0.5;
+    if((numericalIntegrator->ifail > 3) && (p5eps < 0.25 * erk)) {
+      temp2 = sqrt(p5eps / erk);
     }
 
-		numericalIntegrator->k = knew;
-		numericalIntegrator->h = temp2 * numericalIntegrator->h;
-		if(
+    if(numericalIntegrator->ifail >= 3) {
+      knew = 1;
+    }
+
+    numericalIntegrator->k = knew;
+    numericalIntegrator->h = temp2 * numericalIntegrator->h;
+    if(
       numericalIntegrator->h < numericalIntegrator->fouru * numericalIntegrator->x) {
-			numericalIntegrator->crash = true;
-			numericalIntegrator->h =
+      numericalIntegrator->crash = true;
+      numericalIntegrator->h =
         numericalIntegrator->fouru * numericalIntegrator->x;
-			numericalIntegrator->eps += numericalIntegrator->eps;
-			return;
-		}
-	}
+      numericalIntegrator->eps += numericalIntegrator->eps;
+      return;
+    }
+  }
 
-	/*
-	  begin block 4
+  /*
+    begin block 4
 
-	  the step is successful. correct the predicted solution, evaluate
-	  the derivatives using the corrected solution and update the
-	  differences. determine best order and step size for next step. */
+    the step is successful. correct the predicted solution, evaluate
+    the derivatives using the corrected solution and update the
+    differences. determine best order and step size for next step. */
 
-	numericalIntegrator->kold = numericalIntegrator->k;
-	numericalIntegrator->hold = numericalIntegrator->h;
+  numericalIntegrator->kold = numericalIntegrator->k;
+  numericalIntegrator->hold = numericalIntegrator->h;
 
-	/*  correct and evaluate */
-	temp1 = numericalIntegrator->h * numericalIntegrator->g[kp1];
-	if(numericalIntegrator->nornd) {
-		for (int l = 0; l < numericalIntegrator->neqn; l++)
-			numericalIntegrator->yy[l] =
+  /*  correct and evaluate */
+  temp1 = numericalIntegrator->h * numericalIntegrator->g[kp1];
+  if(numericalIntegrator->nornd) {
+    for(int l = 0; l < numericalIntegrator->neqn; l++)
+      numericalIntegrator->yy[l] =
         numericalIntegrator->p[l] + temp1 *
         (numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l]);
   } else {
-		for(int l = 0; l < numericalIntegrator->neqn; l++) {
-			rho = temp1 * (numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l]) - numericalIntegrator->phi[16][l];
-			numericalIntegrator->yy[l] = numericalIntegrator->p[l] + rho;
-			numericalIntegrator->phi[15][l] =
+    for(int l = 0; l < numericalIntegrator->neqn; l++) {
+      rho = temp1 * (numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l]) - numericalIntegrator->phi[16][l];
+      numericalIntegrator->yy[l] = numericalIntegrator->p[l] + rho;
+      numericalIntegrator->phi[15][l] =
         (numericalIntegrator->yy[l] - numericalIntegrator->p[l]) - rho;
-		}
-	}
+    }
+  }
 
-	numericalIntegrator->iconv = 1;
-	f(numericalIntegrator->yy, context);
+  numericalIntegrator->iconv = 1;
+  f(numericalIntegrator->yy, context);
   if(numericalIntegrator->newtonRaphsonFailure) {
     return;
   }
 
-	/*  update differences for next step */
-	for(int l = 0; l < numericalIntegrator->neqn; l++) {
-		numericalIntegrator->phi[kp1][l] =
+  /*  update differences for next step */
+  for(int l = 0; l < numericalIntegrator->neqn; l++) {
+    numericalIntegrator->phi[kp1][l] =
       numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
-		numericalIntegrator->phi[kp2][l] =
+    numericalIntegrator->phi[kp2][l] =
       numericalIntegrator->phi[kp1][l] - numericalIntegrator->phi[kp2][l];
-	}
-	for(int i = 1; i <= numericalIntegrator->k; i++) {
-		for(int l = 0; l < numericalIntegrator->neqn; l++) {
-			numericalIntegrator->phi[i][l] += numericalIntegrator->phi[kp1][l];
+  }
+  for(int i = 1; i <= numericalIntegrator->k; i++) {
+    for(int l = 0; l < numericalIntegrator->neqn; l++) {
+      numericalIntegrator->phi[i][l] += numericalIntegrator->phi[kp1][l];
     }
-	}
-
-	/*  estimate error at order k + 1 unless:
-	    in first phase when always raise order,
-	    already decided to lower order,
-	    step size not constant so estimate unreliable */
-	erkp1 = 0.0;
-	if ((knew == km1) || (numericalIntegrator->k == 12)) {
-		numericalIntegrator->phase1 = false;
   }
 
-	if(numericalIntegrator->phase1) {
-		/* raise order */
-		numericalIntegrator->k = kp1;
-		erk = erkp1;
-	}	else if (knew == km1) {
-		/* lower order */
-		numericalIntegrator->k = km1;
-		erk = erkm1;
-	}	else if (kp1 <= numericalIntegrator->ns)	{
-		for(int l = 0; l < numericalIntegrator->neqn; l++) {
-			erkp1 +=
+  /*  estimate error at order k + 1 unless:
+      in first phase when always raise order,
+      already decided to lower order,
+      step size not constant so estimate unreliable */
+  erkp1 = 0.0;
+  if((knew == km1) || (numericalIntegrator->k == 12)) {
+    numericalIntegrator->phase1 = false;
+  }
+
+  if(numericalIntegrator->phase1) {
+    /* raise order */
+    numericalIntegrator->k = kp1;
+    erk = erkp1;
+  } else if(knew == km1) {
+    /* lower order */
+    numericalIntegrator->k = km1;
+    erk = erkm1;
+  } else if(kp1 <= numericalIntegrator->ns)  {
+    for(int l = 0; l < numericalIntegrator->neqn; l++) {
+      erkp1 +=
         pow(numericalIntegrator->phi[kp2][l] / numericalIntegrator->wt[l], 2);
     }
-		erkp1 =
+    erkp1 =
       numericalIntegrator->h * numericalIntegrator->gstr[kp1] * sqrt(erkp1);
 
-		/* using estimated error at order k+1, determine appropriate order
-		   for next step */
-		if(numericalIntegrator->k > 1) {
-			if(erkm1 <= (fmin(erk, erkp1))) {
-				/* lower order */
-				numericalIntegrator->k = km1;
-				erk = erkm1;
-			} else if ((erkp1 < erk) && (numericalIntegrator->k < 12)) {
-			/*  here erkp1 < erk < max(erkm1,erkm2) else order would have
-			    been lowered in block 2. thus order is to be raised */
-				/* raise order */
-				numericalIntegrator->k = kp1;
-				erk = erkp1;
-			}
-		}	else if(erkp1 < 0.5 * erk) {
-			/* raise order */
-			numericalIntegrator->k = kp1;
-			erk = erkp1;
-		}
-	}
+    /* using estimated error at order k+1, determine appropriate order
+       for next step */
+    if(numericalIntegrator->k > 1) {
+      if(erkm1 <= (fmin(erk, erkp1))) {
+        /* lower order */
+        numericalIntegrator->k = km1;
+        erk = erkm1;
+      } else if((erkp1 < erk) && (numericalIntegrator->k < 12)) {
+        /*  here erkp1 < erk < max(erkm1,erkm2) else order would have
+            been lowered in block 2. thus order is to be raised */
+        /* raise order */
+        numericalIntegrator->k = kp1;
+        erk = erkp1;
+      }
+    } else if(erkp1 < 0.5 * erk) {
+      /* raise order */
+      numericalIntegrator->k = kp1;
+      erk = erkp1;
+    }
+  }
 
-	hnew = numericalIntegrator->h + numericalIntegrator->h;
-	if(
+  hnew = numericalIntegrator->h + numericalIntegrator->h;
+  if(
     (!numericalIntegrator->phase1) &&
-    (p5eps < erk*numericalIntegrator->two[numericalIntegrator->k + 1])) {
+    (p5eps < erk * numericalIntegrator->two[numericalIntegrator->k + 1])) {
 
-		hnew = numericalIntegrator->h;
-		if(p5eps < erk) {
-			hnew = fmin(0.9, pow(p5eps / erk, 1.0 / (numericalIntegrator->k + 1)));
-			hnew = fmax(hnew, 0.5);
-			hnew = numericalIntegrator->h * hnew;
-			hnew = fmax(hnew, numericalIntegrator->fouru);
-		}
-	}
-	numericalIntegrator->h = hnew;
-	return;
+    hnew = numericalIntegrator->h;
+    if(p5eps < erk) {
+      hnew = fmin(0.9, pow(p5eps / erk, 1.0 / (numericalIntegrator->k + 1)));
+      hnew = fmax(hnew, 0.5);
+      hnew = numericalIntegrator->h * hnew;
+      hnew = fmax(hnew, numericalIntegrator->fouru);
+    }
+  }
+  numericalIntegrator->h = hnew;
+  return;
 }
 
 
@@ -1020,28 +1023,28 @@ void s2_ode113b_de(
   s2_numericalintegrator_ode113b_t* numericalIntegrator =
     (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
 
-	double releps;
-	double abseps;
+  double releps;
+  double abseps;
 
   numericalIntegrator->step = 0;
-	numericalIntegrator->eps =
+  numericalIntegrator->eps =
     fmax(
       context->modelParameters.relativeError,
       context->modelParameters.absoluteError);
 
-	/* test for improper parameters */
-	if(
+  /* test for improper parameters */
+  if(
     numericalIntegrator->neqn < 1 ||
     context->modelParameters.timeSpan == 0.0 ||
     context->modelParameters.relativeError < 0.0 ||
-		context->modelParameters.absoluteError < 0.0 ||
+    context->modelParameters.absoluteError < 0.0 ||
     numericalIntegrator->iflag < 1 ||
     numericalIntegrator->iflag > 5 ||
     numericalIntegrator->eps < numericalIntegrator->twou) {
 
-		printf(
+    printf(
       "neqn=%d, time=%g, timeEnd=%g, relerr=%g, abserr=%g, iflag=%d, eps=%g, " "twou=%g\n",
-			numericalIntegrator->neqn,
+      numericalIntegrator->neqn,
       0.0,
       context->modelParameters.timeSpan,
       context->modelParameters.relativeError,
@@ -1050,50 +1053,50 @@ void s2_ode113b_de(
       numericalIntegrator->eps,
       numericalIntegrator->twou);
 
-		numericalIntegrator->iflag = 6;
-		return;
-	}
+    numericalIntegrator->iflag = 6;
+    return;
+  }
 
-	/*  on each call, set interval of integration and counter for number of
-	    steps.  adjust input error tolerances to define weight vector.   */
+  /*  on each call, set interval of integration and counter for number of
+      steps.  adjust input error tolerances to define weight vector.   */
   numericalIntegrator->abserr = context->modelParameters.absoluteError;
   numericalIntegrator->relerr = context->modelParameters.relativeError;
 
-	releps = numericalIntegrator->relerr / numericalIntegrator->eps;
-	abseps = numericalIntegrator->abserr / numericalIntegrator->eps;
+  releps = numericalIntegrator->relerr / numericalIntegrator->eps;
+  abseps = numericalIntegrator->abserr / numericalIntegrator->eps;
 
-/*  on start and restart also set work variables x and yy(*), store the
-    direction of integration and initialize the step size               */
-	if(numericalIntegrator->iflag == 1) {
-		numericalIntegrator->start = true;
-		numericalIntegrator->k = 0;
-		numericalIntegrator->kold = 0;
-		numericalIntegrator->x = 0.0;
+  /*  on start and restart also set work variables x and yy(*), store the
+      direction of integration and initialize the step size               */
+  if(numericalIntegrator->iflag == 1) {
+    numericalIntegrator->start = true;
+    numericalIntegrator->k = 0;
+    numericalIntegrator->kold = 0;
+    numericalIntegrator->x = 0.0;
     memcpy(
       numericalIntegrator->yy,
       numericalIntegrator->y,
       numericalIntegrator->neqn * sizeof(double));
-		numericalIntegrator->h = numericalIntegrator->hmax;
+    numericalIntegrator->h = numericalIntegrator->hmax;
 
-		for(int i = 0; i < 13; i++) {
-			numericalIntegrator->psi[i] = 0;
+    for(int i = 0; i < 13; i++) {
+      numericalIntegrator->psi[i] = 0;
     }
-	}
+  }
 
-	while(true) {
-		/*  limit step size, set weight vector and take a step */
-		numericalIntegrator->h =
+  while(true) {
+    /*  limit step size, set weight vector and take a step */
+    numericalIntegrator->h =
       fmin(numericalIntegrator->h, numericalIntegrator->hmax);
-		numericalIntegrator->h =
+    numericalIntegrator->h =
       fmin(
         numericalIntegrator->h,
         context->modelParameters.timeSpan - numericalIntegrator->x);
-		for(int l = 0; l < numericalIntegrator->neqn; l++) {
-			numericalIntegrator->wt[l] =
+    for(int l = 0; l < numericalIntegrator->neqn; l++) {
+      numericalIntegrator->wt[l] =
         releps * fabs(numericalIntegrator->yy[l]) + abseps;
     }
 
-		s2_ode113b_step(
+    s2_ode113b_step(
       f,
       context);
 
@@ -1102,25 +1105,25 @@ void s2_ode113b_de(
       return;
     }
 
-		if(numericalIntegrator->x >= context->modelParameters.timeSpan) {
-			numericalIntegrator->iflag = 2;
-			return;
-		}
+    if(numericalIntegrator->x >= context->modelParameters.timeSpan) {
+      numericalIntegrator->iflag = 2;
+      return;
+    }
 
-		/*  If crash, increase error tolerances and return to
+    /*  If crash, increase error tolerances and return to
       calling program. Can call de again to continue integration with larger tolerances.*/
-		if(numericalIntegrator->crash) {
-			numericalIntegrator->iflag = 3;
-			numericalIntegrator->relerr = numericalIntegrator->eps * releps;
-			numericalIntegrator->abserr = numericalIntegrator->eps * abseps;
+    if(numericalIntegrator->crash) {
+      numericalIntegrator->iflag = 3;
+      numericalIntegrator->relerr = numericalIntegrator->eps * releps;
+      numericalIntegrator->abserr = numericalIntegrator->eps * abseps;
       memcpy(
         numericalIntegrator->y,
         numericalIntegrator->yy,
         numericalIntegrator->neqn * sizeof(double));
-			numericalIntegrator->x = numericalIntegrator->t;
-			return;
-		}	/*End if crash*/
-	}		/*End While*/
+      numericalIntegrator->x = numericalIntegrator->t;
+      return;
+    } /*End if crash*/
+  }   /*End While*/
 }
 
 
@@ -1149,7 +1152,7 @@ void s2_ode113b_integrateEquations(
       memcpy(
         numericalIntegrator->ydata + numericalIntegrator->neqn * i,
         numericalIntegrator->ydata + numericalIntegrator->neqn *
-          (numericalIntegrator->step - 1),
+        (numericalIntegrator->step - 1),
         numericalIntegrator->neqn * sizeof(double));
 
     }

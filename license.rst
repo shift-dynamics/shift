@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Graphical User Interface
 ------------------------
 
-The graphical user interface component of STAR 2.0 uses the `Qt<https://www.qt.io>`_ windowing framework and is released under a GNU Lesser General Public License (GLGPL).
+The graphical user interface component of Shift uses the `Qt<https://www.qt.io>`_ windowing framework and is released under a GNU Lesser General Public License (GLGPL).
 
 GNU LESSER GENERAL PUBLIC LICENSE
 *********************************

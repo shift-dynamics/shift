@@ -56,82 +56,82 @@ structure
 */
 class s2_PointCloud : public s2_Geometry {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  s2_PointCloud(RenderWindow* renderWindow)
-  : s2_Geometry(renderWindow)
-  , m_shadingType(S2_POINT_SHADING_SIMPLE)
-  , m_drawEnabled(true) {
+  public:
+    s2_PointCloud(RenderWindow* renderWindow)
+      : s2_Geometry(renderWindow)
+      , m_shadingType(S2_POINT_SHADING_SIMPLE)
+      , m_drawEnabled(true) {
 
-  };
+    };
 
-  ~s2_PointCloud() {
+    ~s2_PointCloud() {
 
-  };
+    };
 
-  void initialize();
+    void initialize();
 
-  void initializePointCloud(s2_pointcloud_t*);
+    void initializePointCloud(s2_pointcloud_t*);
 
-  void setDrawStyle(s2_point_shading_enum_t shadingType);
+    void setDrawStyle(s2_point_shading_enum_t shadingType);
 
-  void loadContext();
+    void loadContext();
 
-  void clearContext();
+    void clearContext();
 
-  void setLights(s2_Lights*);
+    void setLights(s2_Lights*);
 
-  void setShader(PointCloudShaderProgram* program) {
-    m_program = program;
-  };
+    void setShader(PointCloudShaderProgram* program) {
+      m_program = program;
+    };
 
-  void setAttributeLocations(
-    QOpenGLShaderProgram*,
-    GLint,
-    GLint,
-    pointcloud_buffer_t*);
+    void setAttributeLocations(
+      QOpenGLShaderProgram*,
+      GLint,
+      GLint,
+      pointcloud_buffer_t*);
 
-  QVector<pointcloud_buffer_t>* getBufferObjects() {
-    return &m_bufferObjects;
-  }
+    QVector<pointcloud_buffer_t>* getBufferObjects() {
+      return &m_bufferObjects;
+    }
 
-  bool isEnabled() {
-    return m_drawEnabled;
-  }
+    bool isEnabled() {
+      return m_drawEnabled;
+    }
 
-  void draw();
-  void drawShadows();
+    void draw();
+    void drawShadows();
 
-public slots:
+  public slots:
 
-  void setPhongShaded() {
-    setDrawStyle(S2_POINT_SHADING_PHONG);
-  }
+    void setPhongShaded() {
+      setDrawStyle(S2_POINT_SHADING_PHONG);
+    }
 
-  void setSpriteShaded() {
-    setDrawStyle(S2_POINT_SHADING_SPRITE);
-  }
+    void setSpriteShaded() {
+      setDrawStyle(S2_POINT_SHADING_SPRITE);
+    }
 
-  void setSimpleShaded() {
-    setDrawStyle(S2_POINT_SHADING_SIMPLE);
-  }
+    void setSimpleShaded() {
+      setDrawStyle(S2_POINT_SHADING_SIMPLE);
+    }
 
 
-private:
+  private:
 
-  QVector<pointcloud_buffer_t> m_bufferObjects;
+    QVector<pointcloud_buffer_t> m_bufferObjects;
 
-  s2_point_shading_enum_t m_shadingType;
+    s2_point_shading_enum_t m_shadingType;
 
-  /* OpenGL shader programs */
-  PointCloudShaderProgram* m_program;
+    /* OpenGL shader programs */
+    PointCloudShaderProgram* m_program;
 
-  ShadowShaderProgram* m_programShadow;
+    ShadowShaderProgram* m_programShadow;
 
-  s2_Lights* m_lights;
+    s2_Lights* m_lights;
 
-  bool m_drawEnabled;
+    bool m_drawEnabled;
 
 };
 

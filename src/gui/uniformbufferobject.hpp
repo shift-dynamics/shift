@@ -4,18 +4,17 @@
 #include <qgl.h>
 
 struct UBOInfoStruct {
-    QString uniformName;
-    GLuint progId;
-    GLuint blockIdx;
-    GLint blockSize;
-    GLuint bindingIdx;
+  QString uniformName;
+  GLuint progId;
+  GLuint blockIdx;
+  GLint blockSize;
+  GLuint bindingIdx;
 };
 
 typedef UBOInfoStruct UBOInfo;
 
-class UniformBufferObject
-{
-public:
+class UniformBufferObject {
+  public:
     UniformBufferObject();
 
     bool create();
@@ -30,13 +29,15 @@ public:
     GLuint bufferId() const;
 
 //    bool read(int offset, void *data, int count);
-    void write(int offset, const void *data, int count);
+    void write(int offset, const void* data, int count);
 
-    void allocate(const void *data, int count);
-    inline void allocate(int count) { allocate(0, count); }
+    void allocate(const void* data, int count);
+    inline void allocate(int count) {
+      allocate(0, count);
+    }
 
 
-protected:
+  protected:
     static GLuint bindingIndex();
     static QVector<GLuint> m_bindingIndices;
 

@@ -146,9 +146,9 @@ SUCH DAMAGE.
 
 
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include <math.h>
 #include <stdio.h>
@@ -157,38 +157,58 @@ SUCH DAMAGE.
 #include <stdbool.h>
 #include "inttypes.h"
 
-typedef struct {double x, y, z;} bksl_vec3_t;
-typedef struct {float x, y, z;} bksl_vec3f_t;
-typedef struct {int x, y, z;} bksl_vec3i_t;
+typedef struct {
+  double x, y, z;
+} bksl_vec3_t;
+typedef struct {
+  float x, y, z;
+} bksl_vec3f_t;
+typedef struct {
+  int x, y, z;
+} bksl_vec3i_t;
 
-typedef struct {double x, y, z, w;} bksl_vec4_t;
-typedef struct {float x, y, z, w;} bksl_vec4f_t;
-typedef struct {int x, y, z, w;} bksl_vec4i_t;
+typedef struct {
+  double x, y, z, w;
+} bksl_vec4_t;
+typedef struct {
+  float x, y, z, w;
+} bksl_vec4f_t;
+typedef struct {
+  int x, y, z, w;
+} bksl_vec4i_t;
 
-typedef struct {double x, y, z, w;} bksl_quaternion_t;
-typedef struct {float x, y, z, w;} bksl_quaternionf_t;
+typedef struct {
+  double x, y, z, w;
+} bksl_quaternion_t;
+typedef struct {
+  float x, y, z, w;
+} bksl_quaternionf_t;
 
 typedef struct {
   double m00, m10, m20,
          m01, m11, m21,
-         m02, m12, m22;} bksl_mat3x3_t;
+         m02, m12, m22;
+} bksl_mat3x3_t;
 
 typedef struct {
   float m00, m10, m20,
         m01, m11, m21,
-        m02, m12, m22;} bksl_mat3x3f_t;
+        m02, m12, m22;
+} bksl_mat3x3f_t;
 
 typedef struct {
   double m00, m10, m20, m30,
          m01, m11, m21, m31,
          m02, m12, m22, m32,
-         m03, m13, m23, m33;} bksl_mat4x4_t;
+         m03, m13, m23, m33;
+} bksl_mat4x4_t;
 
 typedef struct {
   float m00, m10, m20, m30,
-         m01, m11, m21, m31,
-         m02, m12, m22, m32,
-         m03, m13, m23, m33;} bksl_mat4x4f_t;
+        m01, m11, m21, m31,
+        m02, m12, m22, m32,
+        m03, m13, m23, m33;
+} bksl_mat4x4f_t;
 
 typedef struct {
   bksl_mat3x3_t R;
@@ -200,11 +220,19 @@ typedef struct {
   bksl_vec3f_t t;
 } bksl_displacementf_t;
 
-typedef struct {bksl_vec3_t v, w;} bksl_screw_t;
-typedef struct {bksl_vec3f_t v, w;} bksl_screwf_t;
+typedef struct {
+  bksl_vec3_t v, w;
+} bksl_screw_t;
+typedef struct {
+  bksl_vec3f_t v, w;
+} bksl_screwf_t;
 
-typedef struct {bksl_vec3_t f, m;} bksl_coscrew_t;
-typedef struct {bksl_vec3f_t f, m;} bksl_coscrewf_t;
+typedef struct {
+  bksl_vec3_t f, m;
+} bksl_coscrew_t;
+typedef struct {
+  bksl_vec3f_t f, m;
+} bksl_coscrewf_t;
 
 typedef enum {
   bksl_AXIS_XYZ,
@@ -890,22 +918,22 @@ void bksl_product_Rvxinversef(
 
 void bksl_product_Rvy(
   bksl_mat3x3_t* __restrict__ Ri,
-  double * __restrict__ti,
+  double* __restrict__ti,
   bksl_vec3_t* __restrict__ to);
 
 void bksl_product_Rvyf(
   bksl_mat3x3f_t* __restrict__ Ri,
-  float * __restrict__ti,
+  float* __restrict__ti,
   bksl_vec3f_t* __restrict__ to);
 
 void bksl_product_Rvyinverse(
   bksl_mat3x3_t* __restrict__ Ri,
-  double * __restrict__ti,
+  double* __restrict__ti,
   bksl_vec3_t* __restrict__ to);
 
 void bksl_product_Rvyinversef(
   bksl_mat3x3f_t* __restrict__ Ri,
-  float * __restrict__ti,
+  float* __restrict__ti,
   bksl_vec3f_t* __restrict__ to);
 
 void bksl_product_Rvz(
@@ -1126,12 +1154,12 @@ void bksl_product_DDtyf(
 
 void bksl_product_DDtyinverse(
   bksl_displacement_t* __restrict__ Di,
-  double * __restrict__ti,
+  double* __restrict__ti,
   bksl_displacement_t* __restrict__ Do);
 
 void bksl_product_DDtyinversef(
   bksl_displacementf_t* __restrict__ Di,
-  float * __restrict__ti,
+  float* __restrict__ti,
   bksl_displacementf_t* __restrict__ Do);
 
 void bksl_product_DDtz(
@@ -1150,9 +1178,9 @@ void bksl_product_DDtzinverse(
   bksl_displacement_t* __restrict__ Do);
 
 void bksl_product_DDr(
-    bksl_displacement_t* __restrict__ Di,
-    bksl_mat3x3_t* __restrict__ Ri,
-    bksl_displacement_t* __restrict__ Do);
+  bksl_displacement_t* __restrict__ Di,
+  bksl_mat3x3_t* __restrict__ Ri,
+  bksl_displacement_t* __restrict__ Do);
 
 void bksl_product_DDrf(
   bksl_displacementf_t* __restrict__ Di,
@@ -1437,7 +1465,7 @@ void bksl_slerp(
 void bksl_slerpf(
   bksl_quaternionf_t* __restrict__ q1i,
   bksl_quaternionf_t* __restrict__ q2i,
-  float * __restrict__ t,
+  float* __restrict__ t,
   bksl_quaternionf_t* __restrict__ qo);
 
 void bksl_nlerp(
@@ -1491,7 +1519,7 @@ void bksl_mat4x4_getTranslation(
 
 void bksl_mat4x4f_getTranslation(
   bksl_mat4x4f_t* __restrict__ Mi,
-  bksl_vec3f_t* __restrict__ to );
+  bksl_vec3f_t* __restrict__ to);
 
 void bksl_add_dpiToq(
   bksl_vec3_t* __restrict__ dpi,

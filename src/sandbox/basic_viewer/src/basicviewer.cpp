@@ -175,7 +175,7 @@ void BasicViewer::createLayout() {
 
   /* right window */
   QGroupBox* rightBox = new QGroupBox();
-  QVBoxLayout* rightLayout = new QVBoxLayout(rightBox );
+  QVBoxLayout* rightLayout = new QVBoxLayout(rightBox);
   rightBox->setFixedWidth(300);
 
   /* tree widget */
@@ -406,23 +406,23 @@ void BasicViewer::setRx(int val) {
   @brief set rotation about y axis
 */
 void BasicViewer::setRy(int val) {
-  if(m_currentSelectedModel!=NULL) {
-    m_currentSelectedModel->rotation.setY( val/16.0f);
+  if(m_currentSelectedModel != NULL) {
+    m_currentSelectedModel->rotation.setY(val / 16.0f);
     qDebug() << m_currentSelectedModel->transform;
     updateTransform();
   }
-  emit ryChanged( 0 );
+  emit ryChanged(0);
 }
 
 
 /*!
   @brief set rotation about z axis
 */
-void BasicViewer::setRz( int val) {
+void BasicViewer::setRz(int val) {
   if(m_currentSelectedModel != NULL) {
-      m_currentSelectedModel->rotation.setZ(val / 16.0f);
-      qDebug() << m_currentSelectedModel->transform;
-      updateTransform();
+    m_currentSelectedModel->rotation.setZ(val / 16.0f);
+    qDebug() << m_currentSelectedModel->transform;
+    updateTransform();
   }
   emit rzChanged(0);
 }
@@ -631,7 +631,7 @@ void BasicViewer::saveFileAs() {
 */
 void BasicViewer::backgroundColorSelector() {
   BasicRenderWindow* renderWindow = glwidget->getRenderWindow();
-  renderWindow->setAnimating( false );
+  renderWindow->setAnimating(false);
   QColor color =
     QColorDialog::getColor(
       Qt::black,
@@ -643,7 +643,7 @@ void BasicViewer::backgroundColorSelector() {
     renderWindow->setBackgroundColor(
       color.redF(), color.greenF(), color.blueF());
   }
-  renderWindow->setAnimating( true );
+  renderWindow->setAnimating(true);
 }
 
 
@@ -654,7 +654,7 @@ void BasicViewer::objectColorSelector() {
   BasicRenderWindow* renderWindow = glwidget->getRenderWindow();
   renderWindow->setAnimating(false);
 
-  if(m_currentSelectedModel==NULL) {
+  if(m_currentSelectedModel == NULL) {
     QMessageBox::information(
       this,
       "Alert",
@@ -691,7 +691,7 @@ QSlider* BasicViewer::createSlider() {
   slider->setTickInterval(15 * 16);
   slider->setTickPosition(QSlider::TicksAbove);
   slider->setContentsMargins(QMargins(0, 0, 0, 0));
-  slider->setValue( 0 * 16 );
+  slider->setValue(0 * 16);
   return slider;
 }
 
@@ -737,11 +737,11 @@ bool BasicViewer::parseGeometry(
   QString newFileName = list.join("/");
 
   const aiScene* scene = importer.ReadFile(
-    newFileName.toUtf8().constData(),
-    aiProcess_CalcTangentSpace       |
-    aiProcess_Triangulate            |
-    aiProcess_JoinIdenticalVertices  |
-    aiProcess_SortByPType);
+                           newFileName.toUtf8().constData(),
+                           aiProcess_CalcTangentSpace       |
+                           aiProcess_Triangulate            |
+                           aiProcess_JoinIdenticalVertices  |
+                           aiProcess_SortByPType);
 
   if(!scene) {
     std::cerr << importer.GetErrorString() << std::endl;
@@ -772,7 +772,7 @@ bool BasicViewer::parseGeometry(
   int j = 0;
   for(unsigned int n = 0; n < scene->mNumMeshes; ++n) {
     const aiMesh* mesh = scene->mMeshes[n];
-    for(unsigned int k= 0; k < mesh->mNumFaces; k++) {
+    for(unsigned int k = 0; k < mesh->mNumFaces; k++) {
       for(int l = 0; l < 3; l++) {
         model->faces[j++] = (GLuint)(mesh->mFaces[k].mIndices[l]);
       }
@@ -782,7 +782,7 @@ bool BasicViewer::parseGeometry(
   j = 0;
   for(unsigned int n = 0; n < scene->mNumMeshes; ++n) {
     const aiMesh* mesh = scene->mMeshes[n];
-    for(unsigned int k= 0; k < mesh->mNumVertices; k++) {
+    for(unsigned int k = 0; k < mesh->mNumVertices; k++) {
       for(int l = 0; l < 3; l++) {
         model->vertices[j++] = (GLfloat)(mesh->mVertices[k][l]);
       }
@@ -815,21 +815,19 @@ bool BasicViewer::parseGeometry(
 /*!
 @brief parse a node in a json scene graph
 */
-Node* BasicViewer::parseNode( const QJsonObject& parentNode )
-{
-    Node* out = new Node();
-    out->type = parentNode["type"].toString();
+Node* BasicViewer::parseNode(const QJsonObject& parentNode) {
+  Node* out = new Node();
+  out->type = parentNode["type"].toString();
 
-    if(out->type == "model") {
-        out->children.push_back( parseModel(parentNode) );
+  if(out->type == "model") {
+    out->children.push_back(parseModel(parentNode));
+  } else if(out->type == "node") {
+    QJsonArray nodeArray = parentNode["children"].toArray();
+    for(int i = 0; i < nodeArray.size(); ++i) {
+      out->children.push_back(parseNode(nodeArray[i].toObject()));
     }
-    else if(out->type == "node") {
-      QJsonArray nodeArray = parentNode["children"].toArray();
-      for(int i = 0; i < nodeArray.size(); ++i) {
-          out->children.push_back(parseNode(nodeArray[i].toObject()));
-      }
-    }
-    return out;
+  }
+  return out;
 }
 
 
@@ -837,7 +835,7 @@ Node* BasicViewer::parseNode( const QJsonObject& parentNode )
 @brief parse a scene specified in a JSON file
 */
 void BasicViewer::parseScene(
-  const QString &filename,
+  const QString& filename,
   QVector<Scene*>& scenes) {
 
   QStringList filepathList = filename.split("/");
@@ -847,7 +845,7 @@ void BasicViewer::parseScene(
   scenes.clear();
   QString fileContents;
 
-  QFile file( filename );
+  QFile file(filename);
 
   file.open(QIODevice::ReadOnly | QIODevice::Text);
   fileContents = file.readAll();
@@ -902,7 +900,7 @@ QJsonObject BasicViewer::writeNode(
     out["translation"] = translation;
   } else if(node->type == "node") {
     QJsonArray children;
-    for( int i = 0; i < node->children.size(); ++i ) {
+    for(int i = 0; i < node->children.size(); ++i) {
       children.push_back(writeNode(node->children[i]));
     }
     out["children"] = children;
@@ -915,10 +913,10 @@ QJsonObject BasicViewer::writeNode(
   @brief write a scene to a JSON file
 */
 void BasicViewer::sceneWrite(
-  const QString &filename,
-  QVector<Scene *> &scenes) {
+  const QString& filename,
+  QVector<Scene*>& scenes) {
 
-  QFile file( filename );
+  QFile file(filename);
 
   file.open(QIODevice::WriteOnly | QIODevice::Text);
 

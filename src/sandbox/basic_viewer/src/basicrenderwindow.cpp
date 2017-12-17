@@ -56,11 +56,11 @@ void BasicRenderWindow::mouseMoveEvent(
   int dy = event->y() - m_lastPos.y();
 
   if(event->buttons() & Qt::LeftButton) {
-   setXRotation(m_xRot + 8 * dy);
-   setYRotation(m_yRot + 8 * dx);
+    setXRotation(m_xRot + 8 * dy);
+    setYRotation(m_yRot + 8 * dx);
   } else if(event->buttons() & Qt::RightButton) {
-    m_xPan += dx/120.0;
-    m_yPan -= dy/120.0;
+    m_xPan += dx / 120.0;
+    m_yPan -= dy / 120.0;
     updateGL();
   }
 
@@ -92,7 +92,7 @@ void BasicRenderWindow::mousePressEvent(
 @brief mouse release event
 */
 void BasicRenderWindow::mouseReleaseEvent(
-  QMouseEvent *event) {
+  QMouseEvent* event) {
 
   emit mouseReleaseEvent();
 }
@@ -105,8 +105,9 @@ void BasicRenderWindow::wheelEvent(
   QWheelEvent* event) {
 
   m_camDistance += (event->delta() / 360.0);
-  if(m_camDistance < 0)
+  if(m_camDistance < 0) {
     m_camDistance = 0;
+  }
   updateGL();
 }
 
@@ -115,12 +116,14 @@ void BasicRenderWindow::wheelEvent(
 @brief normalize a rotation angle
 */
 void BasicRenderWindow::qNormalizeAngle(
-  int &angle) {
+  int& angle) {
 
-  while(angle < 0)
+  while(angle < 0) {
     angle += 360 * 16;
-  while(angle > 360 * 16)
+  }
+  while(angle > 360 * 16) {
     angle -= 360 * 16;
+  }
 
 }
 
@@ -173,7 +176,7 @@ void BasicRenderWindow::setObjectColor(
 void BasicRenderWindow::setXRotation(
   int angle) {
 
-  qNormalizeAngle( angle );
+  qNormalizeAngle(angle);
   if(angle != m_xRot) {
     m_xRot = angle;
     emit xRotationChanged(angle);
@@ -272,7 +275,7 @@ void BasicRenderWindow::loadModelArray(
   if OpenGL logging is enabled / active, use that instead
 */
 void BasicRenderWindow::checkError(
-  const QString &prefix ) {
+  const QString& prefix) {
 
   if(isOpenGLLogging()) {
     return;
@@ -285,22 +288,28 @@ void BasicRenderWindow::checkError(
     switch(glErr) {
       case GL_NO_ERROR: {
         error = "NO_ERROR";
-      } break;
+      }
+      break;
       case GL_INVALID_OPERATION: {
         error = "INVALID_OPERATION";
-      } break;
+      }
+      break;
       case GL_INVALID_ENUM: {
         error = "INVALID_ENUM";
-      } break;
+      }
+      break;
       case GL_INVALID_VALUE: {
         error = "INVALID_VALUE";
-      } break;
+      }
+      break;
       case GL_OUT_OF_MEMORY: {
         error = "OUT_OF_MEMORY";
-      } break;
+      }
+      break;
       case GL_INVALID_FRAMEBUFFER_OPERATION: {
         error = "INVALID_FRAMEBUFFER_OPERATION";
-      } break;
+      }
+      break;
     }
 
     if(error != "NO_ERROR") {
@@ -320,69 +329,69 @@ void BasicRenderWindow::initialize() {
   glEnable(GL_DEPTH_TEST);
 
 
-    // glEnable(GL_CULL_FACE); /*increase performance by culling backfaces */
+  // glEnable(GL_CULL_FACE); /*increase performance by culling backfaces */
 
-    m_program = new QOpenGLShaderProgram(this);
+  m_program = new QOpenGLShaderProgram(this);
 
-    m_program->addShaderFromSourceFile(
-      QOpenGLShader::Vertex, ":/shaders/simple.vert");
-    m_program->addShaderFromSourceFile(
-      QOpenGLShader::Fragment, ":/shaders/simple.frag");
-    m_program->link();
+  m_program->addShaderFromSourceFile(
+    QOpenGLShader::Vertex, ":/shaders/simple.vert");
+  m_program->addShaderFromSourceFile(
+    QOpenGLShader::Fragment, ":/shaders/simple.frag");
+  m_program->link();
 
-    for(int i = 0; i < (int)m_modelArray.count(); i++) {
+  for(int i = 0; i < (int)m_modelArray.count(); i++) {
 
-      qDebug() << "initializing model:" << m_modelArray[i]->name;
+    qDebug() << "initializing model:" << m_modelArray[i]->name;
 
-      m_modelArray[i]->position_a = m_program->attributeLocation("position_a");
-      m_modelArray[i]->color_u = m_program->uniformLocation("color_u");
-      m_modelArray[i]->matrix_u = m_program->uniformLocation("mvp_u");
-      m_modelArray[i]->scale_u = m_program->uniformLocation("scale_u");
+    m_modelArray[i]->position_a = m_program->attributeLocation("position_a");
+    m_modelArray[i]->color_u = m_program->uniformLocation("color_u");
+    m_modelArray[i]->matrix_u = m_program->uniformLocation("mvp_u");
+    m_modelArray[i]->scale_u = m_program->uniformLocation("scale_u");
 
-      m_modelArray[i]->vao = new QOpenGLVertexArrayObject(this);
-      m_modelArray[i]->vao->create();
+    m_modelArray[i]->vao = new QOpenGLVertexArrayObject(this);
+    m_modelArray[i]->vao->create();
 
-      m_modelArray[i]->vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-      m_modelArray[i]->vbo->create();
+    m_modelArray[i]->vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    m_modelArray[i]->vbo->create();
 
-      m_modelArray[i]->ibo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-      m_modelArray[i]->ibo->create();
+    m_modelArray[i]->ibo = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+    m_modelArray[i]->ibo->create();
 
-      checkError("state initialized");
-      m_program->bind();
+    checkError("state initialized");
+    m_program->bind();
 
-      checkError("after program bind");
-      m_modelArray[i]->vao->bind();
-      m_modelArray[i]->vbo->bind();
-      m_modelArray[i]->vbo->allocate(
-        (m_modelArray[i]->vlen) * sizeof(GLfloat));
-      m_modelArray[i]->vbo->write(
-        0,
-        m_modelArray[i]->vertices,
-        m_modelArray[i]->vlen * sizeof(GLfloat));
+    checkError("after program bind");
+    m_modelArray[i]->vao->bind();
+    m_modelArray[i]->vbo->bind();
+    m_modelArray[i]->vbo->allocate(
+      (m_modelArray[i]->vlen) * sizeof(GLfloat));
+    m_modelArray[i]->vbo->write(
+      0,
+      m_modelArray[i]->vertices,
+      m_modelArray[i]->vlen * sizeof(GLfloat));
 
-      checkError("after vertex buffer allocation");
+    checkError("after vertex buffer allocation");
 
-      m_modelArray[i]->ibo->bind();
-      m_modelArray[i]->ibo->allocate(
-        m_modelArray[i]->faces,
-        m_modelArray[i]->ilen * sizeof(GLuint));
+    m_modelArray[i]->ibo->bind();
+    m_modelArray[i]->ibo->allocate(
+      m_modelArray[i]->faces,
+      m_modelArray[i]->ilen * sizeof(GLuint));
 
-      checkError("after index buffer allocation");
+    checkError("after index buffer allocation");
 
-      m_program->enableAttributeArray(m_modelArray[i]->position_a);
+    m_program->enableAttributeArray(m_modelArray[i]->position_a);
 
-      /* vertex position start offset is 0, stride is 3 (x,y,z) */
-      m_program->setAttributeBuffer(m_modelArray[i]->position_a, GL_FLOAT, 0, 3);
+    /* vertex position start offset is 0, stride is 3 (x,y,z) */
+    m_program->setAttributeBuffer(m_modelArray[i]->position_a, GL_FLOAT, 0, 3);
 
-      checkError("after enabling attributes");
+    checkError("after enabling attributes");
 
-      m_modelArray[i]->vao->release();
+    m_modelArray[i]->vao->release();
 
-      m_program->release();
-    }
+    m_program->release();
+  }
 
-    updateGL();
+  updateGL();
 
 }
 
@@ -408,8 +417,8 @@ void BasicRenderWindow::updateGL() {
   m_projection.setToIdentity();
 
   const qreal retinaScale = devicePixelRatio();
-  glViewport( 0, 0, width() * retinaScale, height() * retinaScale );
-  float aspectRatio = (float)width()/(float)height();
+  glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+  float aspectRatio = (float)width() / (float)height();
 
   if(m_perspective) {
     m_projection.perspective(60, aspectRatio, 0.1, 10000);
@@ -459,11 +468,14 @@ void BasicRenderWindow::render() {
     switch(m_shadingType) {
       case FLAT: {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-      } break;
+      }
+      break;
       case WIREFRAME: {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      } break;
-      case PHONG: break;
+      }
+      break;
+      case PHONG:
+        break;
     }
     glDrawElements(GL_TRIANGLES, m_modelArray[i]->ilen, GL_UNSIGNED_INT, 0);
 

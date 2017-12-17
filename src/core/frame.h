@@ -77,7 +77,7 @@ typedef struct s2_frame_t {
   bool isOrigin; /*!< designates whether the current frame is the origin */
   bool isParent; /*!< designates if the current frame is the parent of a joint */
   bool inTree; /*!< designates if the current frame is either the parent or */
-              /*!< child of a joint */
+  /*!< child of a joint */
   int index;
   int dIndex; /*!< index into d and dWRTReference arrays*/
   int vaIndex; /*!< index into velocity and acceleration arrays */
