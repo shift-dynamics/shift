@@ -62,7 +62,8 @@ void s2_tire(
         forceModule->update = s2_tire_pac2002_update;
         forceModule->neqn = 0;
       }
-    } break;
+    }
+    break;
 
     case S2_TIRE_FIALA: {
       s2_tire_fiala_t* fialaTire =
@@ -83,11 +84,13 @@ void s2_tire(
 
       forceModule->neqn = 2;
       forceModule->y = fialaTire->y;
-    } break;
+    }
+    break;
 
     default: {
       fprintf(stderr, "tire type not supported\n");
-    } break;
+    }
+    break;
 
   }
   forceModule->data = tire;
@@ -104,24 +107,26 @@ void s2_tire_free(
     case S2_TIRE_PAC2002: {
       s2_tire_pac2002_t* pactire = (s2_tire_pac2002_t*)tire->properties;
       s2_tire_pac2002_free(pactire);
-    } break;
+    }
+    break;
     default: {
       tire->properties = NULL;
-    } break;
+    }
+    break;
   }
 }
 
 int convertInt(const char* numArray, int* value) {
   int n = 0;
   return sscanf(numArray, "%d%n", value, &n) > 0 /* integer was converted */
-     &&  numArray[n] == '\0'; /* all input got consumed */
+         &&  numArray[n] == '\0'; /* all input got consumed */
 }
 
 
-int convertDouble(const char *str, double* value) {
+int convertDouble(const char* str, double* value) {
   // int n = 0;
   // int intval = 0;
-  if(str!=NULL) {
+  if(str != NULL) {
     double d;
     char* str_end;
     // printf("attempting to convert: (%s)\n", str);
@@ -130,7 +135,7 @@ int convertDouble(const char *str, double* value) {
     //   d will be 0 (conversion failed)
     //   str_end will equal str
 
-    if (str == str_end) {
+    if(str == str_end) {
       // printf("The string doesn't start with a number!\n");
       return -1;
     }

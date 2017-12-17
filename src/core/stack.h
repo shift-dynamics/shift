@@ -27,26 +27,26 @@ SUCH DAMAGE.
 #include <stdio.h>
 
 typedef struct s2_stacknode_t {
-    int value;
-    struct s2_stacknode_t* next;
+  int value;
+  struct s2_stacknode_t* next;
 } s2_stacknode_t;
 
 typedef struct s2_stack_t {
-    int count;
-    int mergeCount;
-    s2_stacknode_t* head;
-    s2_stacknode_t* tail;
+  int count;
+  int mergeCount;
+  s2_stacknode_t* head;
+  s2_stacknode_t* tail;
 } s2_stack_t;
 
 typedef struct s2_stackstrnode_t {
-    char* value;
-    struct s2_stackstrnode_t* next;
+  char* value;
+  struct s2_stackstrnode_t* next;
 } s2_stackstrnode_t;
 
-typedef struct s2_stackstr_t{
-    int count;
-    s2_stackstrnode_t* head;
-    s2_stackstrnode_t* tail;
+typedef struct s2_stackstr_t {
+  int count;
+  s2_stackstrnode_t* head;
+  s2_stackstrnode_t* tail;
 } s2_stackstr_t;
 
 s2_stack_t* s2_stack();

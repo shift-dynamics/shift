@@ -51,64 +51,66 @@ typedef struct TerrainObjects {
 
 class s2_Terrain : public s2_Geometry {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  s2_Terrain(RenderWindow* renderWindow)
-  : s2_Geometry(renderWindow)
-  , m_terrainObjects(NULL)
-  , m_program(NULL)
-  , m_lights(NULL) {
+  public:
+    s2_Terrain(RenderWindow* renderWindow)
+      : s2_Geometry(renderWindow)
+      , m_terrainObjects(NULL)
+      , m_program(NULL)
+      , m_lights(NULL) {
 
-  }
-
-  ~s2_Terrain() {
-    if(m_terrainObjects) {
-      delete [] m_terrainObjects;
     }
-  }
 
-  void setDrawStyle(s2_shading_enum_t shadingType) {
-    switch(shadingType) {
-      case S2_SHADING_WIREFRAME: {
-        m_shadingType = S2_SHADING_WIREFRAME;
-      } break;
-      default: {
-        m_shadingType = S2_SHADING_PHONG;
-      } break;
+    ~s2_Terrain() {
+      if(m_terrainObjects) {
+        delete [] m_terrainObjects;
+      }
     }
-  }
 
-  void initialize();
+    void setDrawStyle(s2_shading_enum_t shadingType) {
+      switch(shadingType) {
+        case S2_SHADING_WIREFRAME: {
+          m_shadingType = S2_SHADING_WIREFRAME;
+        }
+        break;
+        default: {
+          m_shadingType = S2_SHADING_PHONG;
+        }
+        break;
+      }
+    }
 
-  void draw();
+    void initialize();
 
-  void drawShadows();
+    void draw();
 
-  void loadContext();
+    void drawShadows();
 
-  void clearContext();
+    void loadContext();
 
-  void setLights(s2_Lights*);
+    void clearContext();
 
-  void setShader(TerrainShaderProgram* program) {
-    m_program = program;
-  }
+    void setLights(s2_Lights*);
 
-  void setShadowShader(TerrainShadowShaderProgram* program) {
-    m_programShadow = program;
-  }
+    void setShader(TerrainShaderProgram* program) {
+      m_program = program;
+    }
 
-signals:
+    void setShadowShader(TerrainShadowShaderProgram* program) {
+      m_programShadow = program;
+    }
 
-  void terrainLoaded();
+  signals:
 
-private:
+    void terrainLoaded();
 
-  TerrainObjects* m_terrainObjects;
-  TerrainShaderProgram* m_program;
-  TerrainShadowShaderProgram* m_programShadow;
-  s2_Lights* m_lights;
+  private:
+
+    TerrainObjects* m_terrainObjects;
+    TerrainShaderProgram* m_program;
+    TerrainShadowShaderProgram* m_programShadow;
+    s2_Lights* m_lights;
 };
 
 

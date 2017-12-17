@@ -1,5 +1,6 @@
-star2: A Simulation Tool for Automation and Robotics
+Shift Dynamics Engine
 ====================================================
+A simulation tool for automation and robotics.
 
 Dependencies
 ------------

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.11)
-project(star2)
+project(shift)
 message(${CMAKE_C_COMPILER})
 message(${CMAKE_CXX_COMPILER})
 
@@ -10,7 +10,7 @@ set(VERSION_PATCH 0 CACHE STRING "Project patch version number.")
 mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
 
 ## find Jansson and math libraries ##
-list(INSERT CMAKE_MODULE_PATH 0 "${star2_SOURCE_DIR}/cmake")
+list(INSERT CMAKE_MODULE_PATH 0 "${shift_SOURCE_DIR}/cmake")
 if(APPLE)
   list(APPEND CMAKE_MODULE_PATH "/usr/local/Cellar/qt5/5.7.0/lib/cmake/Qt5Core")
 endif(APPLE)
@@ -24,9 +24,12 @@ find_package(Qhull REQUIRED)
 find_package(ImageMagick REQUIRED)
 find_package(ImageMagick COMPONENTS MagickWand REQUIRED)
 
+message(STATUS "ASSIMP_INCLUDE_DIRS" ${ASSIMP_INCLUDE_DIRS})
+message(STATUS "ASSIMP_LIBRARIES" ${ASSIMP_LIBRARIES})
+
 # build gdal submodule
 add_custom_target(gdal
-  COMMAND make
+  COMMAND make -j4
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal
   COMMENT "Building GDAL"
   DEPENDS ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/makefile.vc
@@ -44,6 +47,13 @@ add_custom_target(gdal_configure
 set(ENV{GDAL_ROOT} ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal)
 set(ENV{GDAL_DIR} ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/apps)
 find_package(GDAL REQUIRED)
+
+
+# build v-hacd submodule
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/third_party/v-hacd/src)
+
+# build stepcode submodule
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/third_party/stepcode)
 
 
 set(LIBS
@@ -96,14 +106,15 @@ endif(APPLE)
 message(${GRAPHVIZ_GVC_LIBRARY} ${GRAPHVIZ_CGRAPH_LIBRARY})
 # message(${GRAPHVIZ_INCLUDE_DIR})
 
+message("GDAL_INCLUDE_DIRS: " ${GDAL_INCLUDE_DIRS})
 include_directories(
   ${GRAPHVIZ_INCLUDE_DIR}
   ${JANSSON_INCLUDE_DIRS}
   ${CBLAS_INCLUDE_DIRS}
-  ${star2_SOURCE_DIR}/src/core
-  ${star2_SOURCE_DIR}/src/ode
-  ${star2_SOURCE_DIR}/src/gui
-  ${star2_SOURCE_DIR}/src
+  ${shift_SOURCE_DIR}/src/core
+  ${shift_SOURCE_DIR}/src/ode
+  ${shift_SOURCE_DIR}/src/gui
+  ${shift_SOURCE_DIR}/src
   ${ASSIMP_INCLUDE_DIRS}
   ${ImageMagick_INCLUDE_DIRS}
   ${ImageMagick_MagickWand_INCLUDE_DIRS}
@@ -112,60 +123,61 @@ include_directories(
 )
 
 add_library(ksl STATIC
-  ${star2_SOURCE_DIR}/src/ksl/ksl.c
+  ${shift_SOURCE_DIR}/src/ksl/ksl.c
 )
 
 add_library(bksl STATIC
-  ${star2_SOURCE_DIR}/src/ksl/bksl.c
+  ${shift_SOURCE_DIR}/src/ksl/bksl.c
 )
 
 ### build static library ###
-add_library(star2_lib STATIC
-  ${star2_SOURCE_DIR}/src/core/assembly.c
-  ${star2_SOURCE_DIR}/src/core/body.c
-  ${star2_SOURCE_DIR}/src/core/camera.c
-  ${star2_SOURCE_DIR}/src/core/chordconstraint.c
-  ${star2_SOURCE_DIR}/src/core/context.c
-  ${star2_SOURCE_DIR}/src/core/convexhull.c
-  ${star2_SOURCE_DIR}/src/core/equation.c
-  ${star2_SOURCE_DIR}/src/core/factor.c
-  ${star2_SOURCE_DIR}/src/core/frame.c
-  ${star2_SOURCE_DIR}/src/core/graph.c
-  ${star2_SOURCE_DIR}/src/core/inertia.c
-  ${star2_SOURCE_DIR}/src/core/io.c
-  ${star2_SOURCE_DIR}/src/core/jacobian.c
-  ${star2_SOURCE_DIR}/src/core/joint.c
-  ${star2_SOURCE_DIR}/src/core/kinematics.c
-  ${star2_SOURCE_DIR}/src/core/light.c
-  ${star2_SOURCE_DIR}/src/core/material.c
-  ${star2_SOURCE_DIR}/src/core/memoize.c
-  ${star2_SOURCE_DIR}/src/core/mobility.c
-  ${star2_SOURCE_DIR}/src/core/newtonraphson.c
-  ${star2_SOURCE_DIR}/src/core/queue.c
-  ${star2_SOURCE_DIR}/src/core/restraint.c
-  ${star2_SOURCE_DIR}/src/core/sensor.c
-  ${star2_SOURCE_DIR}/src/core/solve.c
-  ${star2_SOURCE_DIR}/src/core/sphere.c
-  ${star2_SOURCE_DIR}/src/core/stack.c
-  ${star2_SOURCE_DIR}/src/core/substructure.c
-  ${star2_SOURCE_DIR}/src/core/terrain.c
-  ${star2_SOURCE_DIR}/src/core/topology.c
-  ${star2_SOURCE_DIR}/src/core/utility.c
-  ${star2_SOURCE_DIR}/src/force_modules/service.c
-  ${star2_SOURCE_DIR}/src/force_modules/tire.c
-  ${star2_SOURCE_DIR}/src/force_modules/tire/pac2002.c
-  ${star2_SOURCE_DIR}/src/force_modules/tire/fiala.c
-  ${star2_SOURCE_DIR}/src/force_modules/stiffness.c
-  ${star2_SOURCE_DIR}/src/force_modules/damping.c
-  ${star2_SOURCE_DIR}/src/force_modules/forcemodule.c
-  ${star2_SOURCE_DIR}/src/force_modules/pid.c
-  ${star2_SOURCE_DIR}/src/ode/numericalintegrator.c
-  ${star2_SOURCE_DIR}/src/ode/ode113.c
-  ${star2_SOURCE_DIR}/src/ode/ode113b.c
+add_library(shift_lib STATIC
+  ${shift_SOURCE_DIR}/src/core/assembly.c
+  ${shift_SOURCE_DIR}/src/core/body.c
+  ${shift_SOURCE_DIR}/src/core/camera.c
+  ${shift_SOURCE_DIR}/src/core/chordconstraint.c
+  ${shift_SOURCE_DIR}/src/core/context.c
+  ${shift_SOURCE_DIR}/src/core/convexhull.c
+  ${shift_SOURCE_DIR}/src/core/equation.c
+  ${shift_SOURCE_DIR}/src/core/factor.c
+  ${shift_SOURCE_DIR}/src/core/frame.c
+  ${shift_SOURCE_DIR}/src/core/graph.c
+  ${shift_SOURCE_DIR}/src/core/inertia.c
+  ${shift_SOURCE_DIR}/src/core/io.c
+  ${shift_SOURCE_DIR}/src/core/jacobian.c
+  ${shift_SOURCE_DIR}/src/core/joint.c
+  ${shift_SOURCE_DIR}/src/core/kinematics.c
+  ${shift_SOURCE_DIR}/src/core/light.c
+  ${shift_SOURCE_DIR}/src/core/material.c
+  ${shift_SOURCE_DIR}/src/core/memoize.c
+  ${shift_SOURCE_DIR}/src/core/mobility.c
+  ${shift_SOURCE_DIR}/src/core/newtonraphson.c
+  ${shift_SOURCE_DIR}/src/core/queue.c
+  ${shift_SOURCE_DIR}/src/core/restraint.c
+  ${shift_SOURCE_DIR}/src/core/sensor.c
+  ${shift_SOURCE_DIR}/src/core/solve.c
+  ${shift_SOURCE_DIR}/src/core/sphere.c
+  ${shift_SOURCE_DIR}/src/core/stack.c
+  ${shift_SOURCE_DIR}/src/core/substructure.c
+  ${shift_SOURCE_DIR}/src/core/terrain.c
+  ${shift_SOURCE_DIR}/src/core/topology.c
+  ${shift_SOURCE_DIR}/src/core/utility.c
+  ${shift_SOURCE_DIR}/src/force_modules/service.c
+  ${shift_SOURCE_DIR}/src/force_modules/tire.c
+  ${shift_SOURCE_DIR}/src/force_modules/tire/pac2002.c
+  ${shift_SOURCE_DIR}/src/force_modules/tire/fiala.c
+  ${shift_SOURCE_DIR}/src/force_modules/stiffness.c
+  ${shift_SOURCE_DIR}/src/force_modules/damping.c
+  ${shift_SOURCE_DIR}/src/force_modules/forcemodule.c
+  ${shift_SOURCE_DIR}/src/force_modules/pid.c
+  ${shift_SOURCE_DIR}/src/ode/numericalintegrator.c
+  ${shift_SOURCE_DIR}/src/ode/ode113.c
+  ${shift_SOURCE_DIR}/src/ode/ode113b.c
 )
+add_dependencies(shift_lib gdal)
 
 add_library(ode113_lib STATIC
-  ${star2_SOURCE_DIR}/src/ode/ode113.c
+  ${shift_SOURCE_DIR}/src/ode/ode113.c
 )
 
 # add_definitions(-pedantic)
@@ -173,18 +185,18 @@ add_definitions(-Wall)
 add_definitions(-Wextra)
 
 ### build command line test applications ###
-add_executable(star2_cli ${star2_SOURCE_DIR}/src/application/star2_cli.c)
-target_link_libraries(star2_cli star2_lib ode113_lib ksl ${LIBS})
-add_dependencies(star2_cli gdal)
+add_executable(shift_cli ${shift_SOURCE_DIR}/src/application/shift_cli.c)
+target_link_libraries(shift_cli shift_lib ode113_lib ksl ${LIBS})
+add_dependencies(shift_cli gdal)
 
 message(STATUS "LIBS:" ${LIBS})
 
 
-add_executable(7r_robot ${star2_SOURCE_DIR}/src/application/7r_robot.c)
-target_link_libraries(7r_robot star2_lib ode113_lib ${LIBS})
+add_executable(7r_robot ${shift_SOURCE_DIR}/src/application/7r_robot.c)
+target_link_libraries(7r_robot shift_lib ode113_lib ${LIBS})
 
 ## build ksl test functions
-add_executable(ksl_test ${star2_SOURCE_DIR}/src/ksl/ksl_test.c)
+add_executable(ksl_test ${shift_SOURCE_DIR}/src/ksl/ksl_test.c)
 target_link_libraries(ksl_test ksl bksl ${M_LIB} ${CBLAS_LIBRARIES})
 
 ## convert markdown documents to html for display in Qt application
@@ -208,7 +220,7 @@ add_document(
 
 ### build ode test applications ###
 # add_executable(ode113_test
-# ${star2_SOURCE_DIR}/src/mbdl/application/ode113_test.c)
+# ${shift_SOURCE_DIR}/src/mbdl/application/ode113_test.c)
 # target_link_libraries(ode113_test ode113_lib ${LIBS})
 
 ### build graphical user interface ###
@@ -222,30 +234,30 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 set(GUI_SOURCES
-  ${star2_SOURCE_DIR}/src/gui/star2_gui.cpp
-  ${star2_SOURCE_DIR}/src/gui/workspace.cpp
-  ${star2_SOURCE_DIR}/src/gui/openglwindow.cpp
-  ${star2_SOURCE_DIR}/src/gui/renderwindow.cpp
-  ${star2_SOURCE_DIR}/src/gui/geometry.cpp
-  ${star2_SOURCE_DIR}/src/gui/bodies.cpp
-  ${star2_SOURCE_DIR}/src/gui/frames.cpp
-  ${star2_SOURCE_DIR}/src/gui/joints.cpp
-  ${star2_SOURCE_DIR}/src/gui/grid.cpp
-  ${star2_SOURCE_DIR}/src/gui/lights.cpp
-  ${star2_SOURCE_DIR}/src/gui/terrain.cpp
-  ${star2_SOURCE_DIR}/src/gui/flatshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/frameshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/simpleshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/phongshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/shaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/normalshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/terrainshadowshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/pointcloudshaderprogram.cpp
-  ${star2_SOURCE_DIR}/src/gui/pointcloud.cpp
-  ${star2_SOURCE_DIR}/src/gui/orbitalcamera.cpp
-  ${star2_SOURCE_DIR}/src/gui/resources.qrc
+  ${shift_SOURCE_DIR}/src/gui/shift_gui.cpp
+  ${shift_SOURCE_DIR}/src/gui/workspace.cpp
+  ${shift_SOURCE_DIR}/src/gui/openglwindow.cpp
+  ${shift_SOURCE_DIR}/src/gui/renderwindow.cpp
+  ${shift_SOURCE_DIR}/src/gui/geometry.cpp
+  ${shift_SOURCE_DIR}/src/gui/bodies.cpp
+  ${shift_SOURCE_DIR}/src/gui/frames.cpp
+  ${shift_SOURCE_DIR}/src/gui/joints.cpp
+  ${shift_SOURCE_DIR}/src/gui/grid.cpp
+  ${shift_SOURCE_DIR}/src/gui/lights.cpp
+  ${shift_SOURCE_DIR}/src/gui/terrain.cpp
+  ${shift_SOURCE_DIR}/src/gui/flatshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/frameshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/simpleshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/phongshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/shaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/shadowshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/terrainshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/normalshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/terrainshadowshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/pointcloudshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/pointcloud.cpp
+  ${shift_SOURCE_DIR}/src/gui/orbitalcamera.cpp
+  ${shift_SOURCE_DIR}/src/gui/resources.qrc
 )
 
 # qt5_use_modules does not set all the necessary flags to build the
@@ -274,11 +286,11 @@ add_definitions(-g)
 # add_definitions(-z)
 # add_definitions(relro)
 
-add_executable(star2 ${GUI_SOURCES})
-add_dependencies(star2 license about gdal)
-qt5_use_modules(star2 Core Widgets OpenGL Gui Svg)
-target_link_libraries(star2
-  star2_lib
+add_executable(shift ${GUI_SOURCES})
+add_dependencies(shift license about gdal)
+qt5_use_modules(shift Core Widgets OpenGL Gui Svg)
+target_link_libraries(shift
+  shift_lib
   ode113_lib
   ${GLEW_LIBRARIES}
   ${OPENGL_LIBRARIES}
@@ -287,7 +299,7 @@ target_link_libraries(star2
   ${LIBS})
 
 file(COPY
-    ${star2_SOURCE_DIR}/src/models
+    ${shift_SOURCE_DIR}/src/models
     DESTINATION
     ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -314,14 +326,14 @@ if(BUILD_DOCUMENTATION)
     COMMENT "Generating API documentation with Doxygen"
     VERBATIM)
 
-  set (DOC_NAME "star2 documentation")
+  set (DOC_NAME "shift documentation")
 
-  set (STAR2_VERSION_MAJOR 2)
-  set (STAR2_VERSION_MINOR 0)
-  set (STAR2_VERSION_REVISION 0)
+  set (shift_VERSION_MAJOR 2)
+  set (shift_VERSION_MINOR 0)
+  set (shift_VERSION_REVISION 0)
 
-  set (STAR2_VERSION_COMPANY "Kristopher Wehage")
-  set (STAR2_VERSION_YEARS   "2015-2017")
+  set (shift_VERSION_COMPANY "Kristopher Wehage")
+  set (shift_VERSION_YEARS   "2015-2017")
 
   set (STATIC_RST_DIR ${CMAKE_SOURCE_DIR}/doc/sphinx/doxyrest)
   set (XML_DIR  ${CMAKE_CURRENT_BINARY_DIR}/doc/xml)

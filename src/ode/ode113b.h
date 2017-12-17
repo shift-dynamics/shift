@@ -16,28 +16,28 @@ typedef struct s2_context_t s2_context_t;
 */
 typedef struct s2_numericalintegrator_ode113b_t {
   double* y; /*!< y is a de copy of the states communicated to the
-  				      calling program. Calling program provides y as the
-  				      the initial conditions. de copies y into yy and
-  				      sends this to step. If step fails to advance solution,
-  				      de copies latest yy from step back to y and returns
-  				      this result to calling program for continuation. */
+                calling program. Calling program provides y as the
+                the initial conditions. de copies y into yy and
+                sends this to step. If step fails to advance solution,
+                de copies latest yy from step back to y and returns
+                this result to calling program for continuation. */
   double* dy; /*!< This is the array de passes to step to use for
-  				       predicted and corrected state derivatives. If successful,
-  				       step computes dy and returns it to de as dy. If step
-  				       is unsuccessful, de just ignores dy. */
+                 predicted and corrected state derivatives. If successful,
+                 step computes dy and returns it to de as dy. If step
+                 is unsuccessful, de just ignores dy. */
   double* ydata; /*!< array to store results from numerical integration */
 
   double* yy;
   double* dyout;
   double* wt; /*< This array holds computed weights used to estimate
-  				        correction error limits. */
+                  correction error limits. */
   double* p; /*< This is the array de passes to step to use for
-  				      predicted and corrected states. If successful, step
-  				      copies p into its local y vector and returns it as yy
-  				      to de. If unsuccessful, step just returns its latest y
-  				      to de as yy. */
+                predicted and corrected states. If successful, step
+                copies p into its local y vector and returns it as yy
+                to de. If unsuccessful, step just returns its latest y
+                to de as yy. */
   double* yerr; /*<! Array of estimated integration errors passed
-  					       to fcn. May be used for debugging purposes. */
+                   to fcn. May be used for debugging purposes. */
   double** phi; /*<! Internal array used to set up polynomials. */
 
   int stepCount; /*! approximate number of steps in ydata array, found by
@@ -107,34 +107,34 @@ typedef struct s2_numericalintegrator_ode113b_t {
   double safetyFactor;
 
   int ns; /* Internal counter of the number of successful
-  						 * solutions. It is used to help set the current
-  						 * integration order. */
+               * solutions. It is used to help set the current
+               * integration order. */
   // int isnold;
   int ifail; /*<! Internal status flag that indicates integrator
-  						    predition failure. Four failures and the integrator
-  						    resets the order k to 1. */
+                  predition failure. Four failures and the integrator
+                  resets the order k to 1. */
   bool phase1; /*<! phase1 is a logical variable. When TRUE all lights
-  						     are go and the integrator may increase order and
-  						     integration stepsize. When false, integrator may
-  						     reduce order and stepsize. Also when false, integrator
-  						     will move cautiously as its error estimates may be
-  						     unreliable. */
+                   are go and the integrator may increase order and
+                   integration stepsize. When false, integrator may
+                   reduce order and stepsize. Also when false, integrator
+                   will move cautiously as its error estimates may be
+                   unreliable. */
   bool nornd; /* nornd is a logical variable. When TRUE a reliable
-  						 * estimate of roundoff error is not available to do
-  						 * not use it. When false, compute estimate of roundoff
-  						 * error and use it to increase prediction accuracy. */
+               * estimate of roundoff error is not available to do
+               * not use it. When false, compute estimate of roundoff
+               * error and use it to increase prediction accuracy. */
   bool crash; /*!< set to true if no step can be taken */
   bool start; /* start is a logical variable. When TRUE this is the
-  						 * first call to de. On subsequent calls deStart is FALSE. */
+               * first call to de. On subsequent calls deStart is FALSE. */
   int k; /*!< the appropriate order for the next step */
   int kold; /*!< the order used on the last successful step */
   int iconv; /*!< Integrator status flag provided to fcn.
-  							  iconv = 1 when fcn is called after a successful
-  							  correction. In this case the states are accurate.
-  							  iconv = 0 when fcn is called after a prediction
-  							  following a successful correction.
-  							  iconv = -1 when fcn is called after a prediction
-  							  following an unsuccessful correction. */
+                  iconv = 1 when fcn is called after a successful
+                  correction. In this case the states are accurate.
+                  iconv = 0 when fcn is called after a prediction
+                  following a successful correction.
+                  iconv = -1 when fcn is called after a prediction
+                  following an unsuccessful correction. */
   int step; /*!< current time step of numerical integration */
   double baumgarteOmegaN2;
   double baumgarte2OmegaN;

@@ -62,6 +62,6 @@ void ShaderProgram::release() {
   }
 }
 
-void ShaderProgram::checkError(const QString &prefix) {
+void ShaderProgram::checkError(const QString& prefix) {
   m_renderWindow->checkError(prefix);
 }

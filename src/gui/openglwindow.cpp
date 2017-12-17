@@ -62,7 +62,7 @@ void OpenGLWindow::initialize() {}
 
 
 void OpenGLWindow::render() {
-  if (!m_device) {
+  if(!m_device) {
     m_device = new QOpenGLPaintDevice;
   }
 
@@ -85,30 +85,32 @@ void OpenGLWindow::renderLater() {
 }
 
 
-bool OpenGLWindow::event(QEvent *event) {
-  switch (event->type()) {
-  case QEvent::UpdateRequest:
-    m_update_pending = false;
-    renderNow();
-    return true;
-  default:
-    return QWindow::event(event);
+bool OpenGLWindow::event(QEvent* event) {
+  switch(event->type()) {
+    case QEvent::UpdateRequest:
+      m_update_pending = false;
+      renderNow();
+      return true;
+    default:
+      return QWindow::event(event);
   }
 }
 
 
-void OpenGLWindow::exposeEvent(QExposeEvent *event) {
+void OpenGLWindow::exposeEvent(QExposeEvent* event) {
   Q_UNUSED(event);
 
-  if(isExposed())
+  if(isExposed()) {
     renderNow();
+  }
 }
 
 
 void OpenGLWindow::renderNow() {
 
-  if(!isExposed())
+  if(!isExposed()) {
     return;
+  }
 
   bool needsInitialize = false;
 
@@ -138,8 +140,9 @@ void OpenGLWindow::renderNow() {
 
   m_context->swapBuffers(this);
 
-  if(m_animating)
+  if(m_animating) {
     renderLater();
+  }
 }
 
 

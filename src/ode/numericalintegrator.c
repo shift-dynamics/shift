@@ -13,10 +13,12 @@ void s2_numericalintegrator_free(
     switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_ode113_free(context);
-      } break;
+      }
+      break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_ode113b_free(context);
-      } break;
+      }
+      break;
     }
   }
 }
@@ -43,10 +45,12 @@ void s2_numericalintegrator_allocate(
     case S2_NUMERICALINTEGRATOR_ODE113: {
       // printf("allocating memory for ODE113 integrator\n");
       s2_ode113_allocate(context);
-    } break;
+    }
+    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       // printf("allocating memory for ODE113B integrator\n");
       s2_ode113b_allocate(context);
-    } break;
+    }
+    break;
   }
 }

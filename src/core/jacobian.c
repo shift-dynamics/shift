@@ -105,16 +105,24 @@ to compressed list, removes "rigid" variables from compressed list,
 void s2_jacobian_setLookup(
   s2_context_t* context) {
 
-  if(context->jointLookup) free(context->jointLookup);
+  if(context->jointLookup) {
+    free(context->jointLookup);
+  }
   context->jointLookup = calloc(context->activeJointCount, sizeof(int));
 
-  if(context->dqLookup) free(context->dqLookup);
+  if(context->dqLookup) {
+    free(context->dqLookup);
+  }
   context->dqLookup = calloc(context->activeJointCount, sizeof(int));
 
-  if(context->qLookup) free(context->qLookup);
+  if(context->qLookup) {
+    free(context->qLookup);
+  }
   context->qLookup = calloc(context->activeJointCount, sizeof(int));
 
-  if(context->dqLookupCompressed) free(context->dqLookupCompressed);
+  if(context->dqLookupCompressed) {
+    free(context->dqLookupCompressed);
+  }
   context->dqLookupCompressed =
     calloc(context->nonRigidJointCount, sizeof(int));
 
@@ -133,26 +141,30 @@ void s2_jacobian_setLookup(
         context->jointLookup[i] = jointCount++;
         context->dqLookup[i] = dqCount++;
         context->qLookup[i] = qCount++;
-      } break;
+      }
+      break;
       case S2_JOINT_SPHERICAL: {
         context->jointLookup[i] = jointCount++;
         context->dqLookup[i] = dqCount;
         context->qLookup[i] = qCount;
         dqCount += 3;
         qCount += 4;
-      } break;
+      }
+      break;
       case S2_JOINT_FLOAT: {
         context->jointLookup[i] = jointCount++;
         context->dqLookup[i] = dqCount;
         context->qLookup[i] = qCount;
         dqCount += 6;
         qCount += 7;
-      } break;
+      }
+      break;
       case S2_JOINT_RIGID: {
         context->jointLookup[i] = -1;
         context->dqLookup[i] = -1;
         context->qLookup[i] = -1;
-      } break;
+      }
+      break;
       case S2_JOINT_INVALID:
       case S2_JOINT_PRIMITIVE:
         break;
@@ -183,7 +195,9 @@ int s2_jacobian_mallocEquations(
   s2_array_free(context->cs);
   s2_array_free(context->dcs);
 
-  if(context->substructures) free(context->substructures);
+  if(context->substructures) {
+    free(context->substructures);
+  }
   context->substructures =
     malloc(context->substructureCount * sizeof(s2_substructure_t));
 
@@ -238,17 +252,20 @@ int s2_jacobian_mallocEquations(
           context->substructures[i].qCount++;
           context->substructures[i].dqCount++;
           context->substructures[i].jointCount++;
-        } break;
+        }
+        break;
         case S2_JOINT_FLOAT: {
           context->substructures[i].qCount += 7;
           context->substructures[i].dqCount += 6;
           context->substructures[i].jointCount++;
-        } break;
+        }
+        break;
         case S2_JOINT_SPHERICAL: {
           context->substructures[i].qCount += 4;
           context->substructures[i].dqCount += 3;
           context->substructures[i].jointCount++;
-        } break;
+        }
+        break;
         case S2_JOINT_RIGID:
         case S2_JOINT_INVALID:
         case S2_JOINT_PRIMITIVE:
@@ -321,60 +338,96 @@ int s2_jacobian_mallocEquations(
     constraintEquationCount += substructure->constraintEquationCount;
   }
 
-  if(context->isDependentPO1) free(context->isDependentPO1);
+  if(context->isDependentPO1) {
+    free(context->isDependentPO1);
+  }
   context->isDependentPO1 = calloc(context->dqCount, sizeof(bool));
 
-  if(context->isDependentPO3) free(context->isDependentPO3);
+  if(context->isDependentPO3) {
+    free(context->isDependentPO3);
+  }
   context->isDependentPO3 = calloc(context->dqCount, sizeof(bool));
 
-  if(context->hasMass) free(context->hasMass);
+  if(context->hasMass) {
+    free(context->hasMass);
+  }
   context->hasMass = calloc(context->nonRigidJointCount, sizeof(bool));
 
-  if(context->hasMassdq) free(context->hasMassdq);
+  if(context->hasMassdq) {
+    free(context->hasMassdq);
+  }
   context->hasMassdq = calloc(context->dqCount, sizeof(bool));
 
-  if(context->gamma_d) free(context->gamma_d);
+  if(context->gamma_d) {
+    free(context->gamma_d);
+  }
   context->gamma_d = calloc(context->dqCount, sizeof(double));
 
-  if(context->pv_12) free(context->pv_12);
+  if(context->pv_12) {
+    free(context->pv_12);
+  }
   context->pv_12 = calloc(context->dqCount, sizeof(int));
 
-  if(context->pv_21) free(context->pv_21);
+  if(context->pv_21) {
+    free(context->pv_21);
+  }
   context->pv_21 = calloc(context->dqCount, sizeof(int));
 
-  if(context->pv_13) free(context->pv_13);
+  if(context->pv_13) {
+    free(context->pv_13);
+  }
   context->pv_13 = calloc(context->dqCount, sizeof(int));
 
-  if(context->pv_31) free(context->pv_31);
+  if(context->pv_31) {
+    free(context->pv_31);
+  }
   context->pv_31 = calloc(context->dqCount, sizeof(int));
 
-  if(context->pv_23) free(context->pv_23);
+  if(context->pv_23) {
+    free(context->pv_23);
+  }
   context->pv_23 = calloc(context->dqCount, sizeof(int));
 
-  if(context->pv_32) free(context->pv_32);
+  if(context->pv_32) {
+    free(context->pv_32);
+  }
   context->pv_32 = calloc(context->dqCount, sizeof(int));
 
   context->Ml_size = ((context->dqCount + 1) * (context->dqCount + 2)) / 2;
 
-  if(context->Ml) free(context->Ml);
+  if(context->Ml) {
+    free(context->Ml);
+  }
   context->Ml = calloc(context->Ml_size, sizeof(double));
 
-  if(context->Mls) free(context->Mls);
+  if(context->Mls) {
+    free(context->Mls);
+  }
   context->Mls = calloc(context->Ml_size, sizeof(double));
 
-  if(context->Mlb) free(context->Mlb);
+  if(context->Mlb) {
+    free(context->Mlb);
+  }
   context->Mlb = calloc(context->Ml_size, sizeof(bool));
 
-  if(context->Mlbs) free(context->Mlbs);
+  if(context->Mlbs) {
+    free(context->Mlbs);
+  }
   context->Mlbs = calloc(context->Ml_size, sizeof(bool));
 
-  if(context->hasMass) free(context->hasMass);
+  if(context->hasMass) {
+    free(context->hasMass);
+  }
   context->hasMass = calloc(context->nonRigidJointCount, sizeof(bool));
 
-  if(context->hasMassdq) free(context->hasMassdq);
+  if(context->hasMassdq) {
+    free(context->hasMassdq);
+  }
   context->hasMassdq = calloc(context->dqCount, sizeof(bool));
 
-  if(context->jointDOF) free(context->jointDOF);
+  if(context->jointDOF) {
+    free(context->jointDOF);
+  }
   context->jointDOF = calloc(context->activeJointCount, sizeof(int));
 
   // fprintf(debug, "dqCount: %d\n", context->dqCount);
@@ -397,13 +450,16 @@ int s2_jacobian_mallocEquations(
       case S2_JOINT_TY:
       case S2_JOINT_TZ: {
         context->jointDOF[i] = 1;
-      } break;
+      }
+      break;
       case S2_JOINT_SPHERICAL: {
         context->jointDOF[i] = 3;
-      } break;
+      }
+      break;
       case S2_JOINT_FLOAT: {
         context->jointDOF[i] = 6;
-      } break;
+      }
+      break;
       case S2_JOINT_RIGID: {
         context->jointDOF[i] = 0;
       }
@@ -415,15 +471,21 @@ int s2_jacobian_mallocEquations(
 
 
   /* create compressed parent child list */
-  if(context->pclCompressed) free(context->pclCompressed);
+  if(context->pclCompressed) {
+    free(context->pclCompressed);
+  }
   context->pclCompressed = calloc(context->nonRigidJointCount, sizeof(int));
 
   for(int i = 0; i < context->activeJointCount; i++) {
     if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
       int parent = context->pcl[i];
       while(true) {
-        if(parent == -1) break;
-        if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) break;
+        if(parent == -1) {
+          break;
+        }
+        if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
+          break;
+        }
         parent = context->pcl[parent];
       }
       //printf("i: %d\n", i);
@@ -440,7 +502,9 @@ int s2_jacobian_mallocEquations(
 
 
   /* create parent child list for dq */
-  if(context->pcldq) free(context->pcldq);
+  if(context->pcldq) {
+    free(context->pcldq);
+  }
   context->pcldq = calloc(context->dqCount, sizeof(int));
 
   for(int i = 0; i < context->activeJointCount; i++) {
@@ -475,7 +539,9 @@ int s2_jacobian_mallocEquations(
   // s2_arrayi_print(debug, context->dqCount, context->pcldq);
 
   /* set isRotation */
-  if(context->isRotation) free(context->isRotation);
+  if(context->isRotation) {
+    free(context->isRotation);
+  }
   context->isRotation = calloc(context->dqCount, sizeof(bool));
   for(int i = 0; i < context->activeJointCount; i++) {
     int baseIndex = context->dqLookup[i];
@@ -491,7 +557,8 @@ int s2_jacobian_mallocEquations(
       case S2_JOINT_RY:
       case S2_JOINT_RZ: {
         context->isRotation[baseIndex] = true;
-      } break;
+      }
+      break;
       case S2_JOINT_SPHERICAL:
         for(int j = 0; j < 3; j++) {
           context->isRotation[baseIndex + j] = true;
@@ -809,9 +876,9 @@ void s2_jacobian_setPO1_substructure(
     j++, k++) {
 
     for(
-        int l = 0;
-        l < context->positiveLoopMembersCompressedCount[k];
-        l++) {
+      int l = 0;
+      l < context->positiveLoopMembersCompressedCount[k];
+      l++) {
 
       int variableIndex = context->positiveLoopMemberOffsets[k][l];
 
@@ -944,8 +1011,8 @@ void s2_jacobian_setPO1Specified_substructure(
     substructure->J,
     0,
     substructure->dqCount *
-      substructure->constraintEquationCount *
-      sizeof(double));
+    substructure->constraintEquationCount *
+    sizeof(double));
 
   int k = substructure->loopOffset;
 
@@ -953,9 +1020,9 @@ void s2_jacobian_setPO1Specified_substructure(
 
   // printf("\n updating substructure [%d]\n", substructureIndex);
   for(
-      int j = 0;
-      j < context->substructureLoopCount[substructureIndex];
-      j++, k++) {
+    int j = 0;
+    j < context->substructureLoopCount[substructureIndex];
+    j++, k++) {
 
     /* positive loop members [l]*/
     // printf("  loop [%d]\n", j);
@@ -1113,8 +1180,8 @@ void s2_jacobian_translatePermutations(
 
     for(int j = 0; j < substructure->rank; j++) {
       context->isDependentPO1[
-        context->pv_12[
-          substructure->dqOffset + j]] = true;
+      context->pv_12[
+      substructure->dqOffset + j]] = true;
     }
 
     // fprintf(
@@ -1175,7 +1242,7 @@ void s2_jacobian_translatePermutations(
   /* set isDependentPO3 */
   for(int i = 0; i < context->dqCount; i++) {
     context->isDependentPO3[
-      context->pv_31[i]] =
+    context->pv_31[i]] =
         context->isDependentPO1[i];
   }
 
@@ -1245,7 +1312,9 @@ void s2_jacobian_evaluateSparsity(
     context->nnzb += substructure->nnzb;
   }
 
-  if(context->ijMapping) s2_arrayi_free(context->ijMapping);
+  if(context->ijMapping) {
+    s2_arrayi_free(context->ijMapping);
+  }
   // printf("jacobianSize: %d\n", context->jacobianSize);
   //
   // printf("bOffset: %d\n", bOffset);
@@ -1256,8 +1325,8 @@ void s2_jacobian_evaluateSparsity(
   // for(int i = 0; i < context->substructureCount; i++) {
   //   s2_substructure_t* substructure = context->substructures + i;
 
-    // printf("%d ", substructure->nnzb);
-    // nnzbSum += substructure->nnzb;
+  // printf("%d ", substructure->nnzb);
+  // nnzbSum += substructure->nnzb;
   // }
   // printf("nnzb: %d\n", context->nnzb);
   // printf("nnzbSum = nnzb: %s\n", nnzbSum == context->nnzb ? "true":"false");
@@ -1276,13 +1345,19 @@ void s2_jacobian_evaluateSparsity(
       substructure->constraintEquationCount;
   }
 
-  if(context->b3) free(context->b3);
+  if(context->b3) {
+    free(context->b3);
+  }
   context->b3 = calloc(bOffset, sizeof(double));
 
-  if(context->pb_23) free(context->pb_23);
+  if(context->pb_23) {
+    free(context->pb_23);
+  }
   context->pb_23 = calloc(bOffset, sizeof(int));
 
-  if(context->pb_32) free(context->pb_32);
+  if(context->pb_32) {
+    free(context->pb_32);
+  }
   context->pb_32 = calloc(bOffset, sizeof(int));
 
   s2_arrayi_free2D(context->rb2);
@@ -1294,13 +1369,19 @@ void s2_jacobian_evaluateSparsity(
   s2_arrayi_free2D(context->rb3);
   context->rb3 = s2_arrayi_malloc2D(context->dqCount, 2);
 
-  if(context->cb2) free(context->cb2);
+  if(context->cb2) {
+    free(context->cb2);
+  }
   context->cb2 = calloc(bOffset, sizeof(int));
 
-  if(context->cb3_temp) free(context->cb3_temp);
+  if(context->cb3_temp) {
+    free(context->cb3_temp);
+  }
   context->cb3_temp = calloc(bOffset, sizeof(int));
 
-  if(context->cb3) free(context->cb3);
+  if(context->cb3) {
+    free(context->cb3);
+  }
   context->cb3 = calloc(bOffset, sizeof(int));
 
   // int sizecb3 = bOffset;
@@ -1495,18 +1576,18 @@ void s2_jacobian_evaluateSparsity(
 
 
 
-    // fprintf(debug, "\ncb3_temp with rows in PO3:\n");
-    // for(
-    //   int i = substructure->dqOffset + substructure->dqCount - substructure->rank;
-    //   i < substructure->dqOffset + substructure->dqCount;
-    //   i++) {
-    //
-    //   fprintf(debug, "[%d] ", i);
-    //   for(int j = context->rb3_temp[i][0]; j < context->rb3_temp[i][1]; j++) {
-    //     fprintf(debug, "b3(%d): %d, ", j, context->cb3_temp[j]);
-    //   }
-    //   fprintf(debug, "\n");
-    // }
+  // fprintf(debug, "\ncb3_temp with rows in PO3:\n");
+  // for(
+  //   int i = substructure->dqOffset + substructure->dqCount - substructure->rank;
+  //   i < substructure->dqOffset + substructure->dqCount;
+  //   i++) {
+  //
+  //   fprintf(debug, "[%d] ", i);
+  //   for(int j = context->rb3_temp[i][0]; j < context->rb3_temp[i][1]; j++) {
+  //     fprintf(debug, "b3(%d): %d, ", j, context->cb3_temp[j]);
+  //   }
+  //   fprintf(debug, "\n");
+  // }
 
 
 
@@ -1643,7 +1724,7 @@ void s2_jacobian_setJacobianBooleanPO2_substructure(
       for(int m = 0; m < 6; m++) {
         int rowIndex = substructure->pr_21[j * 6 + m];
         substructure->Jb[
-          rowIndex * substructure->dqCount + columnIndex] = true;
+        rowIndex * substructure->dqCount + columnIndex] = true;
       }
     }
 
@@ -1655,7 +1736,7 @@ void s2_jacobian_setJacobianBooleanPO2_substructure(
       for(int m = 0; m < 6; m++) {
         int rowIndex = substructure->pr_21[j * 6 + m];
         substructure->Jb[
-          rowIndex * substructure->dqCount + columnIndex] = true;
+        rowIndex * substructure->dqCount + columnIndex] = true;
       }
     }
   }
@@ -1841,7 +1922,7 @@ void s2_jacobian_setPO2_substructure(
         int rowIndex_2 = substructure->pr_21[j * 6 + m];
 
         substructure->J[
-          rowIndex_2 * substructure->dqCount + columnIndex_2] =
+        rowIndex_2 * substructure->dqCount + columnIndex_2] =
             ((double*)(context->h + variableIndex))[m];
       }
     }
@@ -1862,7 +1943,7 @@ void s2_jacobian_setPO2_substructure(
         int rowIndex_2 = substructure->pr_21[j * 6 + m];
 
         substructure->J[
-          rowIndex_2 * substructure->dqCount + columnIndex_2] =
+        rowIndex_2 * substructure->dqCount + columnIndex_2] =
             -((double*)(context->h + variableIndex))[m];
       }
     }
@@ -1927,7 +2008,9 @@ void s2_jacobian_setConstraintPointers(
 
   FILE* debug = context->modelParameters.debugFilePointer;
 
-  if(context->constraints) free(context->constraints);
+  if(context->constraints) {
+    free(context->constraints);
+  }
   if(context->chordConstraintCount > 0) {
     context->constraints =
       s2_arrayi_malloc2D(context->chordConstraintCount, 4);
@@ -1935,8 +2018,8 @@ void s2_jacobian_setConstraintPointers(
 
   // int m = 0;
   // for(int k = 0; k < context->activeJointCount; k++) {
-    /* identify a virtual body */
-    // if(context->bodyPointers[k]->isVirtual) {
+  /* identify a virtual body */
+  // if(context->bodyPointers[k]->isVirtual) {
 
   // fprintf(debug, "setting chord constraints:\n");
 
@@ -1992,10 +2075,10 @@ void s2_jacobian_setConstraintPointers(
         context->chordConstraints[k].parentFramePointer->dIndex;
     }
   }
-          // m++;
-          // break;
-    //   }
-    // }
+  // m++;
+  // break;
+  //   }
+  // }
   // }
 
   // int m = 0;
@@ -2155,7 +2238,7 @@ void s2_jacobian_setBMatrixSparse_substructure(
 
 
         if(substructure->Jb[i * substructure->dqCount + k]) {
-    			double save = 0;
+          double save = 0;
 
 
           assert(J[i * substructure->dqCount + i] == pivots[i]);
@@ -2171,7 +2254,7 @@ void s2_jacobian_setBMatrixSparse_substructure(
 
           int b3Index =
             substructure->ijMapping[
-              i * substructure->dqCount + k];
+          i * substructure->dqCount + k];
 
           // printf("i * dqCount + k: %d\n", i * substructure->dqCount + k);
           // printf("i * dqCount + i: %d\n", i * substructure->dqCount + i);
@@ -2202,7 +2285,7 @@ void s2_jacobian_setBMatrixSparse_substructure(
           substructure->infinityNormB =
             fmax(substructure->infinityNormB, fabs(context->b3[b3Index]));
         }
-  		}
+      }
 
       // printf("b matrix in (po2):");
       // for(int i = 0; i < substructure->rank; i++) {
@@ -2226,7 +2309,7 @@ void s2_jacobian_setBMatrixSparse_substructure(
       // printf(
       //   "infinity norm computed in setBMatrixSparse: %f\n",
       //   substructure->infinityNormB);
-  	}
+    }
   }
 }
 
@@ -2369,9 +2452,9 @@ void s2_jacobian_print(
       // printf("  setting positive loop members:\n");
 
       for(
-          int l = 0;
-          l < context->positiveLoopMembersCompressedCount[k];
-          l++) {
+        int l = 0;
+        l < context->positiveLoopMembersCompressedCount[k];
+        l++) {
 
         int variableIndex = context->positiveLoopMemberOffsets[k][l];
         int columnIndex = variableIndex - substructure->dqOffset;
@@ -2472,7 +2555,7 @@ void s2_jacobian_print(
         f,
         "%s ",
         context->isDependentPO1[
-          j + substructure->dqOffset] ? "true":"false");
+      j + substructure->dqOffset] ? "true" : "false");
     }
     fprintf(f, "\n");
 
@@ -2611,7 +2694,7 @@ int s2_jacobian_infinityNormBCheck(
     //   substructure->scaledInitialInfinityNormB);
 
     bool infinityNormFail = substructure->infinityNormB >
-      substructure->scaledInitialInfinityNormB;
+                            substructure->scaledInitialInfinityNormB;
 
     // double eSubstructure =
     //   s2_newtonRaphson_evaluateConstraintError_substructure(
@@ -2622,7 +2705,7 @@ int s2_jacobian_infinityNormBCheck(
     //   eSubstructure > 0.01;
 
     if(infinityNormFail) {
-    // if(infinityNormFail || constraintFail) {
+      // if(infinityNormFail || constraintFail) {
 
       context->iterationsSinceLastConstraintError = 0;
 
@@ -2647,9 +2730,10 @@ int s2_jacobian_infinityNormBCheck(
               numericalIntegrator->reconfigurations,
               (int)(
                 numericalIntegrator->tout / context->modelParameters.timeStep)
-                - 1);
+              - 1);
 
-          } break;
+          }
+          break;
           case S2_NUMERICALINTEGRATOR_ODE113B: {
             /* get current index */
             s2_numericalintegrator_ode113b_t* numericalIntegrator =
@@ -2669,7 +2753,8 @@ int s2_jacobian_infinityNormBCheck(
             //   debug,
             //   numericalIntegrator->neqn,
             //   numericalIntegrator->p);
-          } break;
+          }
+          break;
         }
       }
 
@@ -2698,9 +2783,9 @@ int s2_jacobian_infinityNormBCheck(
 
 
       int returnVal = s2_newtonRaphson_removeConstraintViolationsFast_substructure(
-        context,
-        sub,
-        true);
+                        context,
+                        sub,
+                        true);
 
       e =
         s2_newtonRaphson_evaluateConstraintError_substructure(

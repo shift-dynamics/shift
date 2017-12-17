@@ -98,9 +98,9 @@ SUCH DAMAGE.
 
 
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include <math.h>
 #include <stdio.h>
@@ -109,54 +109,75 @@ SUCH DAMAGE.
 #include <stdbool.h>
 #include <assert.h>
 
-typedef struct {double x, y, z;} s2_vector_t;
-typedef struct {float x, y, z;} s2_vectorf_t;
-typedef struct {int x, y, z;} s2_vectori_t;
-
-typedef struct {double x, y, z, w;} s2_quaternion_t;
-typedef struct {float x, y, z, w;} s2_quaternionf_t;
-
-typedef struct {double m00, m10, m20, m01, m11, m21, m02, m12, m22;} s2_mat3x3_t;
-typedef struct {float m00, m10, m20, m01, m11, m21, m02, m12, m22;} s2_mat3x3f_t;
+typedef struct {
+  double x, y, z;
+} s2_vector_t;
+typedef struct {
+  float x, y, z;
+} s2_vectorf_t;
+typedef struct {
+  int x, y, z;
+} s2_vectori_t;
 
 typedef struct {
-double m00, m10, m20, m30,
-       m01, m11, m21, m31,
-       m02, m12, m22, m32,
-       m03, m13, m23, m33;} s2_mat4x4_t;
+  double x, y, z, w;
+} s2_quaternion_t;
+typedef struct {
+  float x, y, z, w;
+} s2_quaternionf_t;
 
 typedef struct {
-float m00, m10, m20, m30,
-      m01, m11, m21, m31,
-      m02, m12, m22, m32,
-      m03, m13, m23, m33;} s2_mat4x4f_t;
+  double m00, m10, m20, m01, m11, m21, m02, m12, m22;
+} s2_mat3x3_t;
+typedef struct {
+  float m00, m10, m20, m01, m11, m21, m02, m12, m22;
+} s2_mat3x3f_t;
 
 typedef struct {
-s2_mat3x3_t R;
-s2_vector_t T;
+  double m00, m10, m20, m30,
+         m01, m11, m21, m31,
+         m02, m12, m22, m32,
+         m03, m13, m23, m33;
+} s2_mat4x4_t;
+
+typedef struct {
+  float m00, m10, m20, m30,
+        m01, m11, m21, m31,
+        m02, m12, m22, m32,
+        m03, m13, m23, m33;
+} s2_mat4x4f_t;
+
+typedef struct {
+  s2_mat3x3_t R;
+  s2_vector_t T;
 } s2_displacement_t;
 
 typedef struct {
-s2_mat3x3f_t R;
-s2_vectorf_t T;
+  s2_mat3x3f_t R;
+  s2_vectorf_t T;
 } s2_displacementf_t;
 
-typedef struct {double m0, m1, m2, m3, m4, m5;} s2_screw_t;
-typedef struct {double m0, m1, m2, m3, m4, m5;} s2_screwf_t;
+typedef struct {
+  double m0, m1, m2, m3, m4, m5;
+} s2_screw_t;
+typedef struct {
+  double m0, m1, m2, m3, m4, m5;
+} s2_screwf_t;
 
 typedef enum {
-XYZ,
-YZX,
-ZXY,
-XZY,
-YXZ,
-ZYX,
-XYX,
-XZX,
-YXY,
-YZY,
-ZXZ,
-ZYZ} s2_axis_enum_t;
+  XYZ,
+  YZX,
+  ZXY,
+  XZY,
+  YXZ,
+  ZYX,
+  XYX,
+  XZX,
+  YXY,
+  YZY,
+  ZXZ,
+  ZYZ
+} s2_axis_enum_t;
 /**
 @file
 @brief Utilities for kinematics
@@ -419,8 +440,8 @@ void s2_displacementf_set(
   float value);
 
 double s2_vector_get(
-    s2_vector_t* v,
-    int index);
+  s2_vector_t* v,
+  int index);
 
 double s2_screw_get(
   s2_screw_t* s,
@@ -870,22 +891,22 @@ void s2_product_rtxinversef(
 
 void s2_product_rty(
   s2_mat3x3_t* ri,
-  double *ti,
+  double* ti,
   s2_vector_t* to);
 
 void s2_product_rtyf(
   s2_mat3x3f_t* ri,
-  float *ti,
+  float* ti,
   s2_vectorf_t* to);
 
 void s2_product_rtyinverse(
   s2_mat3x3_t* ri,
-  double *ti,
+  double* ti,
   s2_vector_t* to);
 
 void s2_product_rtyinversef(
   s2_mat3x3f_t* ri,
-  float *ti,
+  float* ti,
   s2_vectorf_t* to);
 
 void s2_product_rtz(
@@ -1106,12 +1127,12 @@ void s2_product_dtyf(
 
 void s2_product_dtyinverse(
   s2_displacement_t* Di,
-  double *ti,
+  double* ti,
   s2_displacement_t* Do);
 
 void s2_product_dtyinversef(
   s2_displacementf_t* Di,
-  float *ti,
+  float* ti,
   s2_displacementf_t* Do);
 
 void s2_product_dtz(
@@ -1130,9 +1151,9 @@ void s2_product_dtzinverse(
   s2_displacement_t* Do);
 
 void s2_product_dr(
-    s2_displacement_t* Di,
-    s2_mat3x3_t* Ri,
-    s2_displacement_t* Do);
+  s2_displacement_t* Di,
+  s2_mat3x3_t* Ri,
+  s2_displacement_t* Do);
 
 void s2_product_drf(
   s2_displacementf_t* Di,
@@ -1417,7 +1438,7 @@ void s2_quaternion_slerp(
 void s2_quaternionf_slerp(
   s2_quaternionf_t* q1i,
   s2_quaternionf_t* q2i,
-  float *t,
+  float* t,
   s2_quaternionf_t* qo);
 
 void s2_quaternion_nlerp(

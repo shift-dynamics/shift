@@ -76,7 +76,8 @@ s2_joint_t* s2_joint(
 
       joint->h = s2_screw();
 
-    } break;
+    }
+    break;
     case S2_JOINT_RX:
     case S2_JOINT_RY:
     case S2_JOINT_RZ: {
@@ -95,7 +96,8 @@ s2_joint_t* s2_joint(
 
       joint->h = s2_screw();
 
-    } break;
+    }
+    break;
     case S2_JOINT_RIGID: {
       joint->dof = 0;
       joint->initialPrimitiveDisplacement = NULL;
@@ -111,7 +113,8 @@ s2_joint_t* s2_joint(
       joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = NULL;
-    } break;
+    }
+    break;
     case S2_JOINT_SPHERICAL: {
       joint->dof = 3;
       joint->initialPrimitiveDisplacement = calloc(4, sizeof(double));
@@ -149,11 +152,13 @@ s2_joint_t* s2_joint(
       joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = malloc(6 * sizeof(s2_screw_t));
-    } break;
+    }
+    break;
     case S2_JOINT_INVALID:
     case S2_JOINT_PRIMITIVE: {
       fprintf(stderr, "invalid joint type found\n");
-    } break;
+    }
+    break;
   }
 
   joint->mobilityNumber = NULL;
@@ -176,24 +181,25 @@ s2_joint_t* s2_joint(
 s2_joint_enum_t s2_getJointType(
   const char* jointTypeStr) {
 
-  if (!strcmp(jointTypeStr, "Tx"))
+  if(!strcmp(jointTypeStr, "Tx")) {
     return S2_JOINT_TX;
-  else if (!strcmp(jointTypeStr, "Ty"))
+  } else if(!strcmp(jointTypeStr, "Ty")) {
     return S2_JOINT_TY;
-  else if (!strcmp(jointTypeStr, "Tz"))
+  } else if(!strcmp(jointTypeStr, "Tz")) {
     return S2_JOINT_TZ;
-  else if (!strcmp(jointTypeStr, "Rx"))
+  } else if(!strcmp(jointTypeStr, "Rx")) {
     return S2_JOINT_RX;
-  else if (!strcmp(jointTypeStr, "Ry"))
+  } else if(!strcmp(jointTypeStr, "Ry")) {
     return S2_JOINT_RY;
-  else if (!strcmp(jointTypeStr, "Rz"))
+  } else if(!strcmp(jointTypeStr, "Rz")) {
     return S2_JOINT_RZ;
-  else if (!strcmp(jointTypeStr, "rigid"))
+  } else if(!strcmp(jointTypeStr, "rigid")) {
     return S2_JOINT_RIGID;
-  else if (!strcmp(jointTypeStr, "spherical"))
+  } else if(!strcmp(jointTypeStr, "spherical")) {
     return S2_JOINT_SPHERICAL;
-  else if (!strcmp(jointTypeStr, "float"))
+  } else if(!strcmp(jointTypeStr, "float")) {
     return S2_JOINT_FLOAT;
+  }
   return S2_JOINT_INVALID;
 }
 
@@ -598,7 +604,7 @@ velocities and accelerations
        and accelerations.
 */
 void s2_joint_tz_dhva(
-  void **dhva) {
+  void** dhva) {
 
   s2_joint_tz(dhva);
 
@@ -1663,9 +1669,9 @@ void s2_joint_floatinverse_dhva(
   s2_screw_t* aqChild = dhva[11];
 
   s2_screwproduct_dsinverse(
-   dChild,
-   vPrimitive,
-   vRelative);
+    dChild,
+    vPrimitive,
+    vRelative);
 
   s2_add_ss(
     vParent,
@@ -1718,21 +1724,21 @@ Updates displacement and influence coefficient matrices
 void s2_joint_spherical(
   void** dhva) {
 
-    s2_displacement_t* dParent = dhva[0];
-    s2_quaternion_t* q = dhva[1];
-    s2_displacement_t* dWRTReference = dhva[2];
-    s2_displacement_t* dChild = dhva[3];
-    s2_screw_t* h = dhva[4];
+  s2_displacement_t* dParent = dhva[0];
+  s2_quaternion_t* q = dhva[1];
+  s2_displacement_t* dWRTReference = dhva[2];
+  s2_displacement_t* dChild = dhva[3];
+  s2_screw_t* h = dhva[4];
 
-    s2_quaternion_toMat3x3(q, &(dWRTReference->R));
-    s2_product_dr(
-      dParent,
-      &(dWRTReference->R),
-      dChild);
+  s2_quaternion_toMat3x3(q, &(dWRTReference->R));
+  s2_product_dr(
+    dParent,
+    &(dWRTReference->R),
+    dChild);
 
-    s2_hrx(dChild, h);
-    s2_hry(dChild, h + 1);
-    s2_hrz(dChild, h + 2);
+  s2_hrx(dChild, h);
+  s2_hry(dChild, h + 1);
+  s2_hrz(dChild, h + 2);
 }
 
 /*!
@@ -2048,7 +2054,7 @@ int s2_joint_load(
         joint->parentBody,
         json_string_value(value));
     }
-  } else if (json_is_string(parentBodyObject)) {
+  } else if(json_is_string(parentBodyObject)) {
     const char* parentBody = json_string_value(parentBodyObject);
 
     /*
@@ -2077,7 +2083,7 @@ int s2_joint_load(
         joint->childBody,
         json_string_value(value));
     }
-  } else if (json_is_string(childBodyObject)) {
+  } else if(json_is_string(childBodyObject)) {
 
     const char* childBody = json_string_value(childBodyObject);
     if(!strcmp(childBody, "fixed")) {
@@ -2155,21 +2161,22 @@ int s2_joint_load(
     case S2_JOINT_RZ: {
       // printf("loading primitive\n");
       joint->initialPrimitiveDisplacement[0] =
-          json_number_value(
-            json_object_get(jointObject, "initial_displacement"));
+        json_number_value(
+          json_object_get(jointObject, "initial_displacement"));
       joint->primitiveDisplacement[0] =
         joint->initialPrimitiveDisplacement[0];
       json_t* initialValueVelocity =
-          json_object_get(jointObject, "initial_velocity");
+        json_object_get(jointObject, "initial_velocity");
       if(!json_is_null(initialValueVelocity))
         joint->initialPrimitiveVelocity[0] =
-            json_number_value(initialValueVelocity);
+          json_number_value(initialValueVelocity);
       joint->primitiveVelocity[0] = joint->initialPrimitiveVelocity[0];
-    } break;
+    }
+    break;
     case S2_JOINT_RIGID: {
       // printf("loading rigid/float\n");
       json_t* initialValueObj =
-          json_object_get(jointObject, "initial_displacement");
+        json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
       json_t* translation = json_object_get(initialValueObj, "T");
       if(rotation) {
@@ -2185,8 +2192,8 @@ int s2_joint_load(
         s2_gramSchmidt(
           3, 3, (double*)joint->generalDisplacement);
       }
-      if (translation) {
-        for (int i = 0; i < 3; i++) {
+      if(translation) {
+        for(int i = 0; i < 3; i++) {
           s2_vector_set(
             &(joint->generalDisplacement->T),
             i,
@@ -2194,11 +2201,12 @@ int s2_joint_load(
         }
       }
 
-    } break;
+    }
+    break;
     case S2_JOINT_FLOAT: {
       // printf("loading rigid/float\n");
       json_t* initialValueObj =
-          json_object_get(jointObject, "initial_displacement");
+        json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
       json_t* translation = json_object_get(initialValueObj, "T");
       if(rotation) {
@@ -2212,8 +2220,8 @@ int s2_joint_load(
                 json_array_get(json_array_get(rotation, i), j)));
         }
       }
-      if (translation) {
-        for (int i = 0; i < 3; i++) {
+      if(translation) {
+        for(int i = 0; i < 3; i++) {
           s2_vector_set(
             &(joint->generalDisplacement->T),
             i,
@@ -2225,11 +2233,12 @@ int s2_joint_load(
       s2_mat3x3_toQuaternion(
         &(joint->generalDisplacement->R),
         (s2_quaternion_t*)(joint->primitiveDisplacement + 3));
-    } break;
+    }
+    break;
     case S2_JOINT_SPHERICAL: {
       // printf("loading rigid/float\n");
       json_t* initialValueObj =
-          json_object_get(jointObject, "initial_displacement");
+        json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
       if(rotation) {
         for(int i = 0; i < 3; i++) {
@@ -2245,14 +2254,16 @@ int s2_joint_load(
       s2_mat3x3_toQuaternion(
         &(joint->generalDisplacement->R),
         (s2_quaternion_t*)joint->primitiveDisplacement);
-    } break;
+    }
+    break;
     case S2_JOINT_PRIMITIVE:
     case S2_JOINT_INVALID: {
       fprintf(
         stderr,
         "Invalid Joint Type Found in %s\n",
         joint->name->tail->value);
-    } break;
+    }
+    break;
   }
 
   // get driver, if applicable, otherwise driver is set to NULL

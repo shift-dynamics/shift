@@ -106,8 +106,8 @@ void s2_tire_fiala_readSection_UNITS(
   /* skip loading of units, its currently user's responsibility
   to ensure units in .tir file match model json file */
 
-  while (fgets(tline, 256, f)) {
-    if (tline[0] == '$') {
+  while(fgets(tline, 256, f)) {
+    if(tline[0] == '$') {
       break;
     }
   }
@@ -133,7 +133,9 @@ void s2_tire_fiala_loadTireDataFile(
     s2_stackstrnode_t* includeDirectoryHead =
       context->modelParameters.includeDirectory->head;
     while(includeDirectoryHead) {
-      if(fullPathFileName) free(fullPathFileName);
+      if(fullPathFileName) {
+        free(fullPathFileName);
+      }
       asprintf(
         &fullPathFileName,
         "%s%s",
@@ -151,10 +153,11 @@ void s2_tire_fiala_loadTireDataFile(
 
   char tline[256];
 
-  while (fgets(tline, 256, f)) {
-      // first main break
-      if (tline[0] == '$')
-          break;
+  while(fgets(tline, 256, f)) {
+    // first main break
+    if(tline[0] == '$') {
+      break;
+    }
   }
 
   /* 0:  [UNITS], all token values are strings */
@@ -209,7 +212,7 @@ void s2_tire_fiala_update(
   /* wheel normal is second column of hub reference frame, expressed
   in global coordinates */
   s2_vector_t* wheelNormal =
-    (s2_vector_t*)&(tire->wheelBodyPointer->origin->dAbsolute->R.m01);
+    (s2_vector_t*) & (tire->wheelBodyPointer->origin->dAbsolute->R.m01);
   // printf("wheel normal: ");
   // s2_vector_print(wheelNormal);
 
@@ -285,8 +288,8 @@ void s2_tire_fiala_update(
   tire->depth = fabs(terrainHeight - ptD.z) * tire->terrainNormal.z;
 
   // if(!tire->inContact) {
-    /* if tire was not in contact from previous time step, need to set
-    y offsets here */
+  /* if tire was not in contact from previous time step, need to set
+  y offsets here */
 
   // }
   tire->inContact = true;
@@ -409,7 +412,7 @@ void s2_tire_fiala_update(
     /* 27 */
     // printf("above sCritical\n");
     double fx1 = u * fabs(tire->fLocal.m2);
-    double fx2 = fabs((fx1*fx1) / (4.0 * y[0] * tire->cslip));
+    double fx2 = fabs((fx1 * fx1) / (4.0 * y[0] * tire->cslip));
     tire->fLocal.m0 = copysign(1.0, y[0]) * (fx1 - fx2);
   }
 
@@ -428,11 +431,11 @@ void s2_tire_fiala_update(
 
     /* 31 */
     tire->fLocal.m1 = -u * fabs(tire->fLocal.m2) * (1.0 - h3) *
-      copysign(1.0, y[1]);
+                      copysign(1.0, y[1]);
 
     /* 32 */
     tire->fLocal.m5 = u * fabs(tire->fLocal.m2) * tire->width *
-      (1.0 - h) * h3 * copysign(1.0, y[1]);
+                      (1.0 - h) * h3 * copysign(1.0, y[1]);
 
   } else {
 
@@ -453,7 +456,7 @@ void s2_tire_fiala_update(
 
   /* 36 */
   tire->fLocal.m4 = -tire->rollingResistance *
-    copysign(fabs(tire->fLocal.m2), omega);
+                    copysign(fabs(tire->fLocal.m2), omega);
 
   /* 37 */
   // Mx = 0;
@@ -484,11 +487,12 @@ void s2_tire_fiala_update(
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           context->numericalIntegrator;
         if(numericalIntegrator->x >=
-          numericalIntegrator->tdata[numericalIntegrator->step] +
-          context->modelParameters.timeStep) {
-            report = true;
-          }
-      } break;
+            numericalIntegrator->tdata[numericalIntegrator->step] +
+            context->modelParameters.timeStep) {
+          report = true;
+        }
+      }
+      break;
       default: {
 
       } break;
@@ -503,11 +507,11 @@ void s2_tire_fiala_update(
       fprintf(f, "%0.9g, %0.9g, ", y[1], tire->dy[1]);
       fprintf(f, "%0.9g, ", omega);
       fprintf(f, "%0.9g, %0.9g, %0.9g, %0.9g, %0.9g, %0.9g, ",
-        tire->fLocal.m0, tire->fLocal.m1, tire->fLocal.m2,
-        tire->fLocal.m3, tire->fLocal.m4, tire->fLocal.m5);
+              tire->fLocal.m0, tire->fLocal.m1, tire->fLocal.m2,
+              tire->fLocal.m3, tire->fLocal.m4, tire->fLocal.m5);
       fprintf(f, "%0.9g, %0.9g, %0.9g, %0.9g, %0.9g, %0.9g, ",
-        context->g[dqIndex].m0, context->g[dqIndex].m1, context->g[dqIndex].m2,
-        context->g[dqIndex].m3, context->g[dqIndex].m4, context->g[dqIndex].m5);
+              context->g[dqIndex].m0, context->g[dqIndex].m1, context->g[dqIndex].m2,
+              context->g[dqIndex].m3, context->g[dqIndex].m4, context->g[dqIndex].m5);
       s2_vector_t* t = &tire->wFrame.T;
       fprintf(f, "%0.9g, %0.9g, %0.9g", t->x, t->y, t->z);
       fprintf(f, "\n");

@@ -51,41 +51,41 @@ void s2_queue_append(
   queue->count++;
   s2_queuenode_t* queueNode = malloc(sizeof(s2_queuenode_t));
   queueNode->type = type;
-  switch (type) {
+  switch(type) {
     case T_QUEUE_INT: {
-      queueNode->value.integer = (int *)value;
+      queueNode->value.integer = (int*)value;
       break;
     }
 
     case T_QUEUE_BODY: {
-      queueNode->value.body = (s2_body_t *)value;
+      queueNode->value.body = (s2_body_t*)value;
       break;
     }
 
     case T_QUEUE_JOINT: {
-      queueNode->value.joint = (s2_joint_t *)value;
+      queueNode->value.joint = (s2_joint_t*)value;
       break;
     }
 
     case T_QUEUE_FRAME: {
-      queueNode->value.frame = (s2_frame_t *)value;
+      queueNode->value.frame = (s2_frame_t*)value;
       break;
     }
 
     case T_QUEUE_STACK: {
-      queueNode->value.stack = (s2_stack_t *)value;
+      queueNode->value.stack = (s2_stack_t*)value;
       break;
     }
 
     case T_QUEUE_QUEUE: {
-      queueNode->value.queue = (s2_queue_t *)value;
+      queueNode->value.queue = (s2_queue_t*)value;
       break;
     }
   }
 
   queueNode->next = NULL;
 
-  if (queue->tail) {
+  if(queue->tail) {
     queue->tail->next = queueNode;
   } else {
     queue->head = queueNode;
@@ -99,11 +99,12 @@ void s2_queue_append(
 void* s2_queue_pop(
   s2_queue_t* queue) {
 
-  if (!queue->head)
+  if(!queue->head) {
     return NULL;
+  }
   queue->count--;
   void* returnValue = NULL;
-  switch (queue->head->type) {
+  switch(queue->head->type) {
     case T_QUEUE_INT: {
       returnValue = queue->head->value.integer;
       break;
@@ -134,7 +135,7 @@ void* s2_queue_pop(
       break;
     }
   }
-  if (queue->head->next) {
+  if(queue->head->next) {
     s2_queuenode_t* head = queue->head->next;
     free(queue->head);
     queue->head = head;
@@ -155,7 +156,7 @@ void s2_queue_free(
   s2_queuenode_t* head = queue->head;
   while(head) {
     s2_queuenode_t* next = head->next;
-    switch (head->type) {
+    switch(head->type) {
       case T_QUEUE_INT: {
         free(head->value.integer);
         break;

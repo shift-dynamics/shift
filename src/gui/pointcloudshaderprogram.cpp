@@ -160,13 +160,16 @@ GLint PointCloudShaderProgram::getPositionAttribute() {
   switch(m_shadingType) {
     case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_position_a;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_position_a;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_position_a;
-    } break;
+    }
+    break;
   }
 };
 
@@ -178,13 +181,16 @@ GLint PointCloudShaderProgram::getColorAttribute() {
   switch(m_shadingType) {
     case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_color_a;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_color_a;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_color_a;
-    } break;
+    }
+    break;
   }
 };
 
@@ -198,13 +204,16 @@ GLint PointCloudShaderProgram::getPositionAttribute(
   switch(shadingType) {
     case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_position_a;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_position_a;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_position_a;
-    } break;
+    }
+    break;
   }
 };
 
@@ -217,13 +226,16 @@ GLint PointCloudShaderProgram::getColorAttribute(
   switch(shadingType) {
     case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_color_a;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_color_a;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_color_a;
-    } break;
+    }
+    break;
   }
 };
 
@@ -255,19 +267,22 @@ void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
           m_renderWindow->getLights()->getMaxCount());
         m_phongShader->checkError("phong: after set shadow matrix array");
       }
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SIMPLE: {
       m_simpleShader->getProgram()->setUniformValue(
         m_simpleUniforms.m_matrices_mvp_u, mvp);
       m_simpleShader->getProgram()->setUniformValue(
         m_simpleUniforms.m_matrices_mv_u, mv);
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SPRITE: {
       m_spriteShader->getProgram()->setUniformValue(
         m_spriteUniforms.m_matrices_mvp_u, mvp);
       m_spriteShader->getProgram()->setUniformValue(
         m_spriteUniforms.m_matrices_mv_u, mv);
-    } break;
+    }
+    break;
   }
 }
 
@@ -321,13 +336,15 @@ void PointCloudShaderProgram::bindTextures() {
       m_texture_normal->bind(1);
       m_phongShader->getProgram()->setUniformValue(
         m_phongUniforms.m_texture_normal_u, 1);
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_SIMPLE: {
     } break;
     case S2_POINT_SHADING_SPRITE: {
       m_texture_sprite->bind(1);
       m_spriteShader->getProgram()->setUniformValue(
         m_spriteUniforms.m_texture_sprite_u, 1);
-    } break;
+    }
+    break;
   }
 }

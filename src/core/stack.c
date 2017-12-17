@@ -102,8 +102,8 @@ void s2_stack_append(
   stackNode->value = value;
   stackNode->next = NULL;
   if(!stack->head) {
-      stack->head = stackNode;
-      stack->tail = stackNode;
+    stack->head = stackNode;
+    stack->tail = stackNode;
   } else {
     stack->tail->next = stackNode;
     stack->tail = stackNode;
@@ -122,8 +122,8 @@ void s2_stackstr_append(
   stackNode->value = strdup(value);
   stackNode->next = NULL;
   if(!stack->head) {
-      stack->head = stackNode;
-      stack->tail = stackNode;
+    stack->head = stackNode;
+    stack->tail = stackNode;
   } else {
     stack->tail->next = stackNode;
     stack->tail = stackNode;
@@ -147,7 +147,9 @@ s2_stackstr_t* s2_stackstr_fromString(const char* value) {
 int s2_stack_pop(
   s2_stack_t* stack) {
 
-  if(!stack->head) return -2;
+  if(!stack->head) {
+    return -2;
+  }
   stack->count--;
 
   int value = stack->head->value;
@@ -207,13 +209,15 @@ int s2_stack_remove(
 const char* s2_stackstr_pop(
   s2_stackstr_t* stack) {
 
-  if(!stack->head) return NULL;
+  if(!stack->head) {
+    return NULL;
+  }
   stack->count--;
 
   const char* value = stack->head->value;
   if(stack->head->next) {
     s2_stackstrnode_t* head =
-        stack->head->next;
+      stack->head->next;
     free(stack->head);
     stack->head = head;
   } else {
@@ -251,7 +255,9 @@ void s2_stackstr_print(
   s2_stackstrnode_t* head = stack->head;
   fprintf(f, "[");
   while(head) {
-    if(head->value) fprintf(f, "\"%s\"", head->value);
+    if(head->value) {
+      fprintf(f, "\"%s\"", head->value);
+    }
     head = head->next;
     if(head) {
       fprintf(f, ", ");
@@ -272,8 +278,9 @@ bool s2_stack_in(
 
   s2_stacknode_t* head = stack->head;
   while(head) {
-    if(value == head->value)
+    if(value == head->value) {
       return true;
+    }
     head = head->next;
   }
   return false;
@@ -290,8 +297,9 @@ bool s2_stackstr_in(
 
   s2_stackstrnode_t* head = stack->head;
   while(head) {
-    if(!strcmp(value, head->value))
+    if(!strcmp(value, head->value)) {
       return true;
+    }
     head = head->next;
   }
   return false;
@@ -410,7 +418,9 @@ bool s2_stackstr_isEqual(
   s2_stackstrnode_t* head2 = stack2->head;
 
   while(head1 && head2) {
-    if(strcmp(head1->value, head2->value)) return false;
+    if(strcmp(head1->value, head2->value)) {
+      return false;
+    }
     head1 = head1->next;
     head2 = head2->next;
   }
@@ -457,7 +467,9 @@ char* s2_stackstr_toStr(
   int charCount = 1;
   s2_stackstrnode_t* head = stack->head;
   while(head) {
-    if(head->value) charCount += strlen(head->value) + 4;
+    if(head->value) {
+      charCount += strlen(head->value) + 4;
+    }
     head = head->next;
   }
   char* returnVal = malloc(sizeof(char) * (charCount + 1));
@@ -468,7 +480,9 @@ char* s2_stackstr_toStr(
     strcat(returnVal, "\"");
     strcat(returnVal, head->value);
     strcat(returnVal, "\"");
-    if(head->next) strcat(returnVal, ", ");
+    if(head->next) {
+      strcat(returnVal, ", ");
+    }
     head = head->next;
   }
   strcat(returnVal, "]");

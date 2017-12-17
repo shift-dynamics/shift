@@ -12,13 +12,13 @@ class QOpenGLPaintDevice;
 
 class OpenGLWindow : public QWindow, protected QOpenGLFunctions {
 
-  Q_OBJECT
+    Q_OBJECT
 
   public:
     explicit OpenGLWindow(QWindow* parent = 0);
     ~OpenGLWindow();
 
-    virtual void render(QPainter *painter);
+    virtual void render(QPainter* painter);
     virtual void render();
     virtual void initialize();
 
@@ -35,7 +35,7 @@ class OpenGLWindow : public QWindow, protected QOpenGLFunctions {
     void setAnimating(bool animating);
     void renderLater();
     void renderNow();
-    void logMessages(const QOpenGLDebugMessage &message);
+    void logMessages(const QOpenGLDebugMessage& message);
 
   protected:
     bool event(QEvent* event);

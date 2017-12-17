@@ -29,9 +29,9 @@ s2_terrain_t* s2_terrain() {
   terrain->propertyMapColumns = 0;
   terrain->propertyMapRows = 0;
 
-  terrain->Kd[0] = 63./255.;
-  terrain->Kd[1] = 53./255.;
-  terrain->Kd[2] = 69./255.;
+  terrain->Kd[0] = 63. / 255.;
+  terrain->Kd[1] = 53. / 255.;
+  terrain->Kd[2] = 69. / 255.;
   terrain->Kd[3] = 1.0;
   terrain->KsOverKd = 0.5;
   terrain->KaOverKd = 0.3;
@@ -418,7 +418,7 @@ int s2_terrain_load(
             terrain->parentBody,
             json_string_value(value));
         }
-      } else if (json_is_string(parentBodyObject)) {
+      } else if(json_is_string(parentBodyObject)) {
         /*
           otherwise the body is contained within the assembly
         */
@@ -465,15 +465,19 @@ void s2_terrain_setGetZ(s2_terrain_t* terrain) {
       switch(terrain->interpolationType) {
         case S2_INTERPOLATION_BICUBIC: {
           terrain->getZ = s2_terrain_getZ_bicubic_iso;
-        } break;
+        }
+        break;
         case S2_INTERPOLATION_BILINEAR: {
           terrain->getZ = s2_terrain_getZ_bilinear_iso;
-        } break;
+        }
+        break;
         case S2_INTERPOLATION_CATMULROM: {
           terrain->getZ = s2_terrain_getZ_catmulrom_iso;
-        } break;
+        }
+        break;
       }
-    } break;
+    }
+    break;
     case S2_COORDINATECONVENTION_SAE: {
       if(terrain->controlPoints == NULL) {
         terrain->getZ = s2_terrain_getZ_default_sae;
@@ -482,15 +486,19 @@ void s2_terrain_setGetZ(s2_terrain_t* terrain) {
       switch(terrain->interpolationType) {
         case S2_INTERPOLATION_BICUBIC: {
           terrain->getZ = s2_terrain_getZ_bicubic_sae;
-        } break;
+        }
+        break;
         case S2_INTERPOLATION_BILINEAR: {
           terrain->getZ = s2_terrain_getZ_bilinear_sae;
-        } break;
+        }
+        break;
         case S2_INTERPOLATION_CATMULROM: {
           terrain->getZ = s2_terrain_getZ_catmulrom_sae;
-        } break;
+        }
+        break;
       }
-    } break;
+    }
+    break;
   }
 }
 
@@ -554,7 +562,8 @@ void s2_generateGDALSampleTerrain(
     0.0,       /*!< 0 */
     3751320.0, /*!< top left y */
     0.0,       /*!< 0 */
-    -1.5};    /*!< n-s pixel resolution (negative value) */
+    -1.5
+  };    /*!< n-s pixel resolution (negative value) */
   GDALSetGeoTransform(hDataset, geoTransform);
 
   OGRSpatialReferenceH hSRS = OSRNewSpatialReference(NULL);
@@ -599,7 +608,7 @@ void s2_generateSampleTerrain(
 
   MagickBooleanType status;
   MagickWand* image = NewMagickWand();
-	PixelWand* pixelWand = NewPixelWand();
+  PixelWand* pixelWand = NewPixelWand();
 
   status = MagickNewImage(image, columns, rows, pixelWand);
   if(status == MagickFalse) {
@@ -629,14 +638,14 @@ void s2_generateSampleTerrain(
    */
   double z;
   PixelIterator* iterator = NewPixelIterator(image);
-  if (iterator == (PixelIterator *) NULL) {
+  if(iterator == (PixelIterator*) NULL) {
     ThrowWandException(image);
   }
 
   for(y = 0; y < (ssize_t) MagickGetImageHeight(image); y++) {
 
     PixelWand** pixels = PixelGetNextIteratorRow(iterator, &width);
-    if(pixels == (PixelWand **) NULL) {
+    if(pixels == (PixelWand**) NULL) {
       break;
     }
 
@@ -651,7 +660,7 @@ void s2_generateSampleTerrain(
     (void) PixelSyncIterator(iterator);
   }
 
-  if (y < (long) MagickGetImageHeight(image)) {
+  if(y < (long) MagickGetImageHeight(image)) {
     ThrowWandException(image);
   }
 
@@ -721,7 +730,7 @@ int s2_terrain_setElevationMap(
   for(long y = 0; y < (long) MagickGetImageHeight(image); y++) {
 
     PixelWand** pixels = PixelGetNextIteratorRow(iterator, &width);
-    if(pixels == (PixelWand **) NULL) {
+    if(pixels == (PixelWand**) NULL) {
       break;
     }
 
@@ -814,7 +823,7 @@ int s2_terrain_setPropertyMap(
   MagickWand* propertyMap = NewMagickWand();
   MagickBooleanType status =
     MagickReadImage(propertyMap, propertyMapFileName);
-  if (status == MagickFalse) {
+  if(status == MagickFalse) {
     ThrowWandException(propertyMap);
     return -1;
   }
@@ -839,7 +848,7 @@ int s2_terrain_setPropertyMap(
   for(unsigned long y = 0; y < (long) MagickGetImageHeight(propertyMap); y++) {
 
     PixelWand** pixels = PixelGetNextIteratorRow(propertyMapIterator, &width);
-    if(pixels == (PixelWand **) NULL) {
+    if(pixels == (PixelWand**) NULL) {
       break;
     }
 

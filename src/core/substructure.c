@@ -8,8 +8,8 @@
 @returns a Substructure datastructure
 */
 s2_substructure_t* s2_substructure() {
-  s2_substructure_t* substructure = malloc(sizeof *substructure);
-  if (!substructure) {
+  s2_substructure_t* substructure = malloc(sizeof * substructure);
+  if(!substructure) {
     fprintf(stderr, "Error: failed to initialize substructure.\n");
     return NULL;
   }

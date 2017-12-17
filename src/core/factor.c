@@ -24,9 +24,9 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <stdbool.h>
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include <unistd.h>
 #include "factor.h"
@@ -93,8 +93,8 @@ int s2_factor_LU_full(
   int pivotRow; /*  row with current pivotal element */
   int pivotCol; /* column with current pivotal element */
   double pivot = 0.0;
-                /* current pivotal element, holds the current pivotal element
-                   value */
+  /* current pivotal element, holds the current pivotal element
+     value */
   double tol;   /* tolerance for checking residual matrix
                               infinity norm against */
   double save; /* variable for holding intermediate results*/
@@ -103,7 +103,7 @@ int s2_factor_LU_full(
   /*
     Return failure if a bad row or column dimension was found.
   */
-  if ((rowDim <= 0) || (colDim <= 0)) {
+  if((rowDim <= 0) || (colDim <= 0)) {
     return (-1);
   }
 
@@ -127,10 +127,12 @@ int s2_factor_LU_full(
   // printf("pivotRow: %d, pivotCol: %d\n", pivotRow, pivotCol);
 
   /* Initialize the column permutation array. */
-  for(int col = 0; col < colDim; col++)
+  for(int col = 0; col < colDim; col++) {
     pc[col] = col;
-  for(int row = 0; row < rowDim; row++)
+  }
+  for(int row = 0; row < rowDim; row++) {
     pr[row] = row;
+  }
 
   /* Set tolerance to check all zero-elements against. */
   tol = fabs(eps * pivot);
@@ -260,11 +262,13 @@ int s2_factor_LU_full(
           }     /*End if rank*/
         }       /*Endfor i = rank+1*/
       }         /*Endif (rank<rowDim-1)*/
-      else
-        break; /*No more rows to process.*/
+      else {
+        break;  /*No more rows to process.*/
+      }
     }          /*End if*/
-    else
-      break; /*Done if remainder of matrix is at noise level.*/
+    else {
+      break;  /*Done if remainder of matrix is at noise level.*/
+    }
   }          /*End for col*/
 
   /*
@@ -376,7 +380,7 @@ int s2_factor_LU_full_specified(
   int j;        /* local column index */
   // int k;        /* local row/column index */
   double pivot = 0.0;
-                /* current pivotal element, holds the current pivotal element */
+  /* current pivotal element, holds the current pivotal element */
   double tol;   /* tolerance for checking residual matrix
                               infinity norm against */
   double save; /* variable for holding intermediate results*/
@@ -384,7 +388,7 @@ int s2_factor_LU_full_specified(
   /*
     Return failure if a bad row or column dimension was found.
   */
-  if ((rowDim <= 0) || (colDim <= 1)) {
+  if((rowDim <= 0) || (colDim <= 1)) {
     return (-1);
   }
 
@@ -430,17 +434,17 @@ int s2_factor_LU_full_specified(
     pivotCol. Also intialize the row permutation array pr.
   */
   pivot = A[0];
-	pivotRow = 0;
-	pivotCol = 0;
-	for(int row = 0; row < rowDim; row++) {
-		for(int col = 0; col < colDim - 1; col++) {
-			if(fabs(A[row * colDim + col]) > fabs(pivot)) {
-				pivot = A[row * colDim + col];
-				pivotRow = row;
-				pivotCol = col;
-			}
-		}
-	}
+  pivotRow = 0;
+  pivotCol = 0;
+  for(int row = 0; row < rowDim; row++) {
+    for(int col = 0; col < colDim - 1; col++) {
+      if(fabs(A[row * colDim + col]) > fabs(pivot)) {
+        pivot = A[row * colDim + col];
+        pivotRow = row;
+        pivotCol = col;
+      }
+    }
+  }
   // printf("pivotRow: %d, pivotCol: %d\n", pivotRow, pivotCol);
 
   /* Set tolerance to check all zero-elements against. */
@@ -573,11 +577,13 @@ int s2_factor_LU_full_specified(
           }     /*End if rank*/
         }       /*Endfor i = rank+1*/
       }         /*Endif (rank<rowDim-1)*/
-      else
-        break; /*No more rows to process.*/
+      else {
+        break;  /*No more rows to process.*/
+      }
     }          /*End if*/
-    else
-      break; /*Done if remainder of matrix is at noise level.*/
+    else {
+      break;  /*Done if remainder of matrix is at noise level.*/
+    }
   }          /*End for col*/
 
   /*
@@ -697,16 +703,16 @@ void s2_factor_setBMatrix(
   double* A) {
 
   if(rank > 0 && rank < colDim) {
-  	for(int i = rank - 1; i > -1; i--) { /* rows of B */
-  		for(int k = rank; k < colDim; k++) { /* columns of B */
-  			double save = 0;
-  			for(int j = rank - 1; j > i; j--) { /* columns of Ur */
+    for(int i = rank - 1; i > -1; i--) { /* rows of B */
+      for(int k = rank; k < colDim; k++) { /* columns of B */
+        double save = 0;
+        for(int j = rank - 1; j > i; j--) { /* columns of Ur */
           save += A[i * colDim + j] * A[j * colDim + k];
         }
-  			A[i * colDim + k] =
+        A[i * colDim + k] =
           (A[i * colDim + k] - save) / A[i * colDim + i];
-  		}
-  	}
+      }
+    }
   }
 }
 
@@ -737,7 +743,7 @@ void s2_factor_setCMatrix(
       for(int i = rowDim - 1; i > rank - 1; i--) {
         for(int k = 0; k < j; k++)
           A[i * colDim + k] -= A[i * colDim + j] *
-            A[j * colDim + k];
+                               A[j * colDim + k];
       }
     }
   }

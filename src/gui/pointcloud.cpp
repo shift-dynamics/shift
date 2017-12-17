@@ -13,13 +13,15 @@ void s2_PointCloud::setDrawStyle(s2_point_shading_enum_t shadingType) {
   switch(shadingType) {
     case S2_POINT_SHADING_SPRITE: {
       m_shadingType = S2_POINT_SHADING_SPRITE;
-    } break;
+    }
+    break;
     case S2_POINT_SHADING_PHONG: {
       m_shadingType = S2_POINT_SHADING_PHONG;
     }
     default: {
       m_shadingType = S2_POINT_SHADING_SIMPLE;
-    } break;
+    }
+    break;
   }
 }
 
@@ -169,7 +171,8 @@ void s2_PointCloud::draw() {
           // checkError("after vao release phong");
         }
         // checkError("after phong release phong");
-      } break;
+      }
+      break;
       case S2_POINT_SHADING_SPRITE: {
 
         for(int i = 0; i < m_bufferObjects.size(); i++) {
@@ -193,7 +196,8 @@ void s2_PointCloud::draw() {
           m_bufferObjects.at(i).vao->release();
           checkError("bodies: after vao release flat");
         }
-      } break;
+      }
+      break;
       case S2_POINT_SHADING_SIMPLE: {
 
       }

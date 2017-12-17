@@ -3,6 +3,7 @@
 /* phong.frag */
 
 layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
+layout (binding = 1) uniform samplerCubeArrayShadow texture_shadowCube_u;
 
 struct matrices_t {
   mat4 mvp;

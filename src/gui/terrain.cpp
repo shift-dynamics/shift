@@ -60,7 +60,7 @@ void s2_Terrain::loadContext() {
       double range = terrain->zMax - terrain->zMin;
       for(size_t j = 0; j < n; j++) {
         depthFloat[j] = (float)((terrain->controlPoints[j] -
-          terrain->zMin) / range);
+                                 terrain->zMin) / range);
         // printf(
         //   "%f -> %f\n",
         //   terrain->controlPoints[j],
@@ -98,7 +98,7 @@ void s2_Terrain::loadContext() {
       qDebug() << terrain->specularMapFileName;
       if(terrain->specularMapFileName) {
         qDebug() << "creating terrain specular map:" <<
-          terrain->specularMapFileName;
+                 terrain->specularMapFileName;
         m_terrainObjects[i].textureSpecular =
           new QOpenGLTexture(QImage(terrain->specularMapFileName));
         checkError("terrain: after new specular texture");
@@ -119,7 +119,7 @@ void s2_Terrain::loadContext() {
 
       if(terrain->normalMapFileName) {
         qDebug() << "creating terrain normal map:" <<
-          terrain->normalMapFileName;
+                 terrain->normalMapFileName;
         m_terrainObjects[i].textureNormal =
           new QOpenGLTexture(QImage(terrain->normalMapFileName));
         checkError("terrain: after new normal texture");
