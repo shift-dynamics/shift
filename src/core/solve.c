@@ -23,9 +23,9 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <stdbool.h>
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include "solve.h"
 #include "context.h"
@@ -60,12 +60,14 @@ void s2_equation_fcn(
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         context->numericalIntegrator;
       numericalIntegrator->iterationCount++;
-    } break;
+    }
+    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         context->numericalIntegrator;
       numericalIntegrator->iterationCount++;
-    } break;
+    }
+    break;
   }
   memcpy(
     context->q,
@@ -137,17 +139,20 @@ void s2_solve_writeHeaders(
       neqn = numericalIntegrator->neqn;
       y = numericalIntegrator->y;
       t = numericalIntegrator->t;
-    } break;
+    }
+    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       neqn = numericalIntegrator->neqn;
       y = numericalIntegrator->y;
       t = numericalIntegrator->x;
-    } break;
+    }
+    break;
     default: {
       exit(-1);
-    } break;
+    }
+    break;
   }
 
   fprintf(debug, "T");
@@ -239,7 +244,7 @@ void s2_solve_writeHeaders(
     for(int j = 0; j < context->substructureCount; j++) {
       s2_substructure_t* substructure = context->substructures + j;
       e += s2_newtonRaphson_evaluateConstraintError_substructure(
-        substructure);
+             substructure);
     }
 
     fprintf(
@@ -282,7 +287,8 @@ void s2_solve_writeStates(
       t = numericalIntegrator->t;
       iterationCount = numericalIntegrator->iterationCount;
       omegaN = context->modelParameters.baumgarte2OmegaN / 2.0;
-    } break;
+    }
+    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         context->numericalIntegrator;
@@ -297,10 +303,12 @@ void s2_solve_writeStates(
       }
       iterationCount = numericalIntegrator->iterationCount;
       omegaN = numericalIntegrator->baumgarte2OmegaN / 2.0;
-    } break;
+    }
+    break;
     default: {
       exit(-1);
-    } break;
+    }
+    break;
   }
 
   /* copy states to ydata array if ydata is specified */
@@ -336,14 +344,14 @@ void s2_solve_writeStates(
   double e = 0;
   for(int j = 0; j < context->substructureCount; j++) {
     s2_substructure_t* substructure = context->substructures + j;
-   e += s2_newtonRaphson_evaluateConstraintError_substructure(
-     substructure);
+    e += s2_newtonRaphson_evaluateConstraintError_substructure(
+           substructure);
   }
 
   s2_solve_kineticEnergy(context);
   s2_solve_gravitationalPotentialEnergy(context);
 
-/* solve for absolute displacement of error */
+  /* solve for absolute displacement of error */
 // for(int j= 0; j < context->constraintEquationCount; j++)
 
   // fprintf(debug, "\te:% 6.6g", e);
@@ -379,8 +387,8 @@ void s2_solve_writeStates(
   context->modelParameters.sumIterationCount += iterationCount;
 
   if(e > fabs(context->modelParameters.maxConstraintError)) {
-   context->modelParameters.maxConstraintError = fabs(e);
-   context->modelParameters.maxConstraintErrorStep = step;
+    context->modelParameters.maxConstraintError = fabs(e);
+    context->modelParameters.maxConstraintErrorStep = step;
   }
 
   if(
@@ -405,10 +413,10 @@ void s2_solve_writeStates(
     /* write q / ddq */
     for(int i = 0; i < neqn; i++) {
       fprintf(
-      f,
-      "%s%g",
-      context->modelParameters.delimiter,
-      y[i]);
+        f,
+        "%s%g",
+        context->modelParameters.delimiter,
+        y[i]);
     }
 
     /* write ddq */
@@ -442,11 +450,11 @@ void s2_solve_writeStates(
       iterationCount);
 
     /* write constraint error */
-     fprintf(
-     f,
-     "%s%e",
-     context->modelParameters.delimiter,
-     e);
+    fprintf(
+      f,
+      "%s%e",
+      context->modelParameters.delimiter,
+      e);
 
     /* write omega N */
     fprintf(
@@ -553,7 +561,7 @@ void s2_solve_integrateEquations(
     s2_substructure_t* substructure = context->substructures + i;
     assert(
       context->q + substructure->qOffset ==
-        substructure->q);
+      substructure->q);
   }
 
   int stepCount = 0;
@@ -569,7 +577,8 @@ void s2_solve_integrateEquations(
       stepCount = numericalIntegrator->stepCount;
       reconfigurations = numericalIntegrator->reconfigurations;
 
-    } break;
+    }
+    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       clock_t begin = clock();
       s2_ode113b_integrateEquations(context);
@@ -580,10 +589,12 @@ void s2_solve_integrateEquations(
       stepCount = numericalIntegrator->stepCount;
       reconfigurations = numericalIntegrator->reconfigurations;
 
-    } break;
+    }
+    break;
     default: {
       exit(-1);
-    } break;
+    }
+    break;
   }
 
   if(context->modelParameters.outFilePointer) {
@@ -591,21 +602,21 @@ void s2_solve_integrateEquations(
   }
 
   fprintf(debug,
-    "max constraint error: %e at time interval [%d]\n",
-    context->modelParameters.maxConstraintError,
-    context->modelParameters.maxConstraintErrorStep);
+          "max constraint error: %e at time interval [%d]\n",
+          context->modelParameters.maxConstraintError,
+          context->modelParameters.maxConstraintErrorStep);
   fprintf(debug,
-    "max number of iterations: %d at time interval [%d]\n",
-    context->modelParameters.maxIterationCount,
-    context->modelParameters.maxIterationCountStep);
+          "max number of iterations: %d at time interval [%d]\n",
+          context->modelParameters.maxIterationCount,
+          context->modelParameters.maxIterationCountStep);
   fprintf(debug,
-    "average constraint error: %e\n",
-    context->modelParameters.sumConstraintError / (double)stepCount);
+          "average constraint error: %e\n",
+          context->modelParameters.sumConstraintError / (double)stepCount);
   fprintf(debug,
-    "average iteration count: %f\n",
-    (double)context->modelParameters.sumIterationCount / (double)stepCount);
+          "average iteration count: %f\n",
+          (double)context->modelParameters.sumIterationCount / (double)stepCount);
   fprintf(debug, "full factor performed at indices: ");
-    s2_stack_print(debug, reconfigurations);
+  s2_stack_print(debug, reconfigurations);
   fprintf(debug, "\n");
 
   FILE* f2 = fopen("reconfigurations.dat", "w");
@@ -668,11 +679,11 @@ void s2_solve_gravitationalPotentialEnergy(s2_context_t* context) {
 
   context->gravitationalPotentialEnergy =
     -(cblas_ddot(
-      3,
-      (double*)&(context->inertiaP->mt),
-      1,
-      (double*)context->modelParameters.gravity,
-      1));
+        3,
+        (double*) & (context->inertiaP->mt),
+        1,
+        (double*)context->modelParameters.gravity,
+        1));
 
 }
 
@@ -1039,20 +1050,20 @@ bool s2_solve_verify(
     }
     fprintf(debug, "\nis dependent PO1: ");
     for(int i = 0; i < context->dqCount; i++) {
-      fprintf(debug, "%s, ", context->isDependentPO1[i] ? "true":"false");
+      fprintf(debug, "%s, ", context->isDependentPO1[i] ? "true" : "false");
     }
     fprintf(debug, "\n");
 
     fprintf(debug, "\nSubstructures:\n");
     for(int i = 0; i < context->substructureCount; i++) {
       fprintf(debug,
-        "rank: %d\n",
-        context->substructures[i].rank);
+              "rank: %d\n",
+              context->substructures[i].rank);
     }
 
     fprintf(debug, "\nis dependent PO3: ");
     for(int i = 0; i < context->dqCount; i++) {
-      fprintf(debug, "%s, ", context->isDependentPO3[i] ? "true":"false");
+      fprintf(debug, "%s, ", context->isDependentPO3[i] ? "true" : "false");
     }
     fprintf(debug, "\n");
 

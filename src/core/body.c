@@ -52,7 +52,7 @@ SUCH DAMAGE.
 */
 s2_body_t* s2_body(s2_stackstr_t* name) {
   s2_body_t* body = malloc(sizeof(s2_body_t));
-  if (!body) {
+  if(!body) {
     fprintf(stderr, "Error: failed to initialize body.\n");
     return NULL;
   }
@@ -112,7 +112,7 @@ void s2_body_free(
       s2_virtualbody_free(body);
     } else {
       s2_stackstr_free(body->name);
-      if (body->definition) {
+      if(body->definition) {
         s2_stackstr_free(body->definition);
       }
       s2_inertia_free(body->inertia);
@@ -162,7 +162,7 @@ void s2_body_printFrames(
   FILE* f,
   s2_body_t* body) {
 
-  s2_frame_t *frameHead = body->frameHead;
+  s2_frame_t* frameHead = body->frameHead;
   while(frameHead) {
     fprintf(f, "\tFrame: ");
     s2_stackstr_print(f, frameHead->name);
@@ -307,7 +307,7 @@ int s2_body_load(
       json_object_get(bodyObject, "mass"));
 
   /* get body center of mass */
-  for (int i = 0; i < 3; i++) {
+  for(int i = 0; i < 3; i++) {
 
     ((double*)body->centerOfMassWRTOrigin)[i] =
       json_number_value(
@@ -320,27 +320,27 @@ int s2_body_load(
     &(body->inertia->mt));
 
   body->inertia->Ixx = json_number_value(
-    json_object_get(
-      json_object_get(bodyObject, "moment_of_inertia"), "Ixx"));
+                         json_object_get(
+                           json_object_get(bodyObject, "moment_of_inertia"), "Ixx"));
 
   body->inertia->Ixy = json_number_value(
-    json_object_get(
-      json_object_get(bodyObject, "moment_of_inertia"), "Ixy"));
+                         json_object_get(
+                           json_object_get(bodyObject, "moment_of_inertia"), "Ixy"));
 
   body->inertia->Izx = json_number_value(
-    json_object_get(
-      json_object_get(bodyObject, "moment_of_inertia"), "Izx"));
+                         json_object_get(
+                           json_object_get(bodyObject, "moment_of_inertia"), "Izx"));
   body->inertia->Iyy = json_number_value(
-    json_object_get(
-      json_object_get(bodyObject, "moment_of_inertia"), "Iyy"));
+                         json_object_get(
+                           json_object_get(bodyObject, "moment_of_inertia"), "Iyy"));
 
   body->inertia->Iyz = json_number_value(
-    json_object_get(
-      json_object_get(bodyObject, "moment_of_inertia"), "Iyz"));
+                         json_object_get(
+                           json_object_get(bodyObject, "moment_of_inertia"), "Iyz"));
 
   body->inertia->Izz = json_number_value(
-    json_object_get(
-      json_object_get(bodyObject, "moment_of_inertia"), "Izz"));
+                         json_object_get(
+                           json_object_get(bodyObject, "moment_of_inertia"), "Izz"));
 
   (context->bodyCount)++;
 
@@ -385,7 +385,9 @@ int s2_body_loadGeometry(
   s2_stackstrnode_t* includeDirectoryHead =
     context->modelParameters.includeDirectory->head;
   while(includeDirectoryHead) {
-    if(fullPathFileName) free(fullPathFileName);
+    if(fullPathFileName) {
+      free(fullPathFileName);
+    }
     asprintf(
       &fullPathFileName,
       "%s%s",
@@ -450,7 +452,7 @@ int s2_body_loadGeometry(
     */
     body->materials[i].vertexNormals =
       malloc(3 * body->materials[i].vertexCount * sizeof(GLfloat));
-    for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++ ) {
+    for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
       body->materials[i].vertexNormals[3 * j + 0] =
         scene->mMeshes[i]->mNormals[j].x;
       body->materials[i].vertexNormals[3 * j + 1] =
@@ -472,7 +474,7 @@ int s2_body_loadGeometry(
     // printf("\nnumber of faces: %d\n", scene->mMeshes[i]->mNumFaces);
     body->materials[i].faceCount = scene->mMeshes[i]->mNumFaces;
     body->materials[i].faces = malloc(
-      3 * body->materials[i].faceCount * sizeof(GLuint));
+                                 3 * body->materials[i].faceCount * sizeof(GLuint));
     for(int j = 0; j < body->materials[i].faceCount; j++) {
       body->materials[i].faces[j * 3 + 0] = scene->mMeshes[i]->mFaces[j].mIndices[0];
       body->materials[i].faces[j * 3 + 1] = scene->mMeshes[i]->mFaces[j].mIndices[1];
@@ -489,10 +491,10 @@ int s2_body_loadGeometry(
     unsigned int max = 1;
     float opacity_f = 1.f;
     ret1 = aiGetMaterialFloatArray(
-      mtl,
-      AI_MATKEY_OPACITY,
-      &opacity_f,
-      0);
+             mtl,
+             AI_MATKEY_OPACITY,
+             &opacity_f,
+             0);
     if(ret1 == AI_SUCCESS) {
       printf("opacity: %f\n", opacity_f);
     }
@@ -562,37 +564,37 @@ int s2_body_loadGeometry(
     */
     float shininess = 0.f;
     ret1 = aiGetMaterialFloatArray(
-      mtl,
-      AI_MATKEY_SHININESS,
-      &shininess,
-      &max);
+             mtl,
+             AI_MATKEY_SHININESS,
+             &shininess,
+             &max);
     // if(ret1 == AI_SUCCESS)
     //   printf("shininess: %f\n", shininess);
 
     float shininess_strength = 0.f;
     ret1 = aiGetMaterialFloatArray(
-      mtl,
-      AI_MATKEY_SHININESS_STRENGTH,
-      &shininess_strength,
-      &max);
+             mtl,
+             AI_MATKEY_SHININESS_STRENGTH,
+             &shininess_strength,
+             &max);
     // if(ret1 == AI_SUCCESS)
     //   printf("shininess_strength: %f\n", shininess_strength);
 
     float reflectivity = 0.f;
     ret1 = aiGetMaterialFloatArray(
-      mtl,
-      AI_MATKEY_REFLECTIVITY,
-      &reflectivity,
-      &max);
+             mtl,
+             AI_MATKEY_REFLECTIVITY,
+             &reflectivity,
+             &max);
     // if(ret1 == AI_SUCCESS)
     //   printf("reflectivity: %f\n", reflectivity);
 
     float refracti = 0.f;
     ret1 = aiGetMaterialFloatArray(
-      mtl,
-      AI_MATKEY_REFRACTI,
-      &refracti,
-      &max);
+             mtl,
+             AI_MATKEY_REFRACTI,
+             &refracti,
+             &max);
     // if(ret1 == AI_SUCCESS)
     //   printf("refracti: %f\n", refracti);
 
@@ -604,9 +606,9 @@ int s2_body_loadGeometry(
     reflective.b = 0.f;
     reflective.a = 0.f;
     ret1 = aiGetMaterialColor(
-      mtl,
-      AI_MATKEY_COLOR_REFLECTIVE,
-      &reflective);
+             mtl,
+             AI_MATKEY_COLOR_REFLECTIVE,
+             &reflective);
     // if(ret1 == AI_SUCCESS)
     //   printf(
     //     "reflective: %f %f %f %f\n",
@@ -617,10 +619,10 @@ int s2_body_loadGeometry(
 
     float opacity = 0.f;
     ret1 = aiGetMaterialFloatArray(
-      mtl,
-      AI_MATKEY_COLOR_TRANSPARENT,
-      &opacity,
-      &max);
+             mtl,
+             AI_MATKEY_COLOR_TRANSPARENT,
+             &opacity,
+             &max);
     // if(ret1 == AI_SUCCESS)
     //   printf("opacity: %f", opacity);
 

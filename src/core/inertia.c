@@ -38,8 +38,8 @@ SUCH DAMAGE.
 @returns an Inertia datastructure
 */
 s2_inertia_t* s2_inertia() {
-  s2_inertia_t* inertia = malloc(sizeof *inertia);
-  if (!inertia) {
+  s2_inertia_t* inertia = malloc(sizeof * inertia);
+  if(!inertia) {
     fprintf(stderr, "Error: failed to initialize inertia.\n");
     return NULL;
   }
@@ -94,57 +94,57 @@ void s2_inertia_rotate(
   s2_mat3x3_t* r,
   s2_inertia_t* inertia_o) {
 
-    /* Rfc * Icc * Rcf */
-    double temp[3] = {0, 0, 0};
+  /* Rfc * Icc * Rcf */
+  double temp[3] = {0, 0, 0};
 
-    temp[0] = r->m00 * inertia_i->Ixx;
-    temp[0] += r->m01 * inertia_i->Ixy;
-    temp[0] += r->m02 * inertia_i->Izx;
-    temp[1] = r->m00 * inertia_i->Ixy;
-    temp[1] += r->m01 * inertia_i->Iyy;
-    temp[1] += r->m02 * inertia_i->Iyz;
-    temp[2] = r->m00 * inertia_i->Izx;
-    temp[2] += r->m01 * inertia_i->Iyz;
-    temp[2] += r->m02 * inertia_i->Izz;
+  temp[0] = r->m00 * inertia_i->Ixx;
+  temp[0] += r->m01 * inertia_i->Ixy;
+  temp[0] += r->m02 * inertia_i->Izx;
+  temp[1] = r->m00 * inertia_i->Ixy;
+  temp[1] += r->m01 * inertia_i->Iyy;
+  temp[1] += r->m02 * inertia_i->Iyz;
+  temp[2] = r->m00 * inertia_i->Izx;
+  temp[2] += r->m01 * inertia_i->Iyz;
+  temp[2] += r->m02 * inertia_i->Izz;
 
-    inertia_o->Ixx = cblas_ddot(3, temp, 1, (double*)r, 3);
-    inertia_o->Ixy = cblas_ddot(3, temp, 1, ((double*)r) + 1, 3);
-    inertia_o->Izx = cblas_ddot(3, temp, 1, ((double*)r) + 2, 3);
+  inertia_o->Ixx = cblas_ddot(3, temp, 1, (double*)r, 3);
+  inertia_o->Ixy = cblas_ddot(3, temp, 1, ((double*)r) + 1, 3);
+  inertia_o->Izx = cblas_ddot(3, temp, 1, ((double*)r) + 2, 3);
 
-    temp[0] = r->m10 * inertia_i->Ixx;
-    temp[0] += r->m11 * inertia_i->Ixy;
-    temp[0] += r->m12 * inertia_i->Izx;
-    temp[1] = r->m10 * inertia_i->Ixy;
-    temp[1] += r->m11 * inertia_i->Iyy;
-    temp[1] += r->m12 * inertia_i->Iyz;
-    temp[2] = r->m10 * inertia_i->Izx;
-    temp[2] += r->m11 * inertia_i->Iyz;
-    temp[2] += r->m12 * inertia_i->Izz;
+  temp[0] = r->m10 * inertia_i->Ixx;
+  temp[0] += r->m11 * inertia_i->Ixy;
+  temp[0] += r->m12 * inertia_i->Izx;
+  temp[1] = r->m10 * inertia_i->Ixy;
+  temp[1] += r->m11 * inertia_i->Iyy;
+  temp[1] += r->m12 * inertia_i->Iyz;
+  temp[2] = r->m10 * inertia_i->Izx;
+  temp[2] += r->m11 * inertia_i->Iyz;
+  temp[2] += r->m12 * inertia_i->Izz;
 
-    inertia_o->Iyy = cblas_ddot(3, temp, 1, ((double*)r) + 1, 3);
-    inertia_o->Iyz = cblas_ddot(3, temp, 1, ((double*)r) + 2, 3);
+  inertia_o->Iyy = cblas_ddot(3, temp, 1, ((double*)r) + 1, 3);
+  inertia_o->Iyz = cblas_ddot(3, temp, 1, ((double*)r) + 2, 3);
 
-    temp[0] = r->m20 * inertia_i->Ixx;
-    temp[0] += r->m21 * inertia_i->Ixy;
-    temp[0] += r->m22 * inertia_i->Izx;
-    temp[1] = r->m20 * inertia_i->Ixy;
-    temp[1] += r->m21 * inertia_i->Iyy;
-    temp[1] += r->m22 * inertia_i->Iyz;
-    temp[2] = r->m20 * inertia_i->Izx;
-    temp[2] += r->m21 * inertia_i->Iyz;
-    temp[2] += r->m22 * inertia_i->Izz;
+  temp[0] = r->m20 * inertia_i->Ixx;
+  temp[0] += r->m21 * inertia_i->Ixy;
+  temp[0] += r->m22 * inertia_i->Izx;
+  temp[1] = r->m20 * inertia_i->Ixy;
+  temp[1] += r->m21 * inertia_i->Iyy;
+  temp[1] += r->m22 * inertia_i->Iyz;
+  temp[2] = r->m20 * inertia_i->Izx;
+  temp[2] += r->m21 * inertia_i->Iyz;
+  temp[2] += r->m22 * inertia_i->Izz;
 
-    inertia_o->Izz = cblas_ddot(3, temp, 1, ((double*)r) + 2, 3);
+  inertia_o->Izz = cblas_ddot(3, temp, 1, ((double*)r) + 2, 3);
 
-    inertia_o->m = inertia_i->m;
+  inertia_o->m = inertia_i->m;
 
-    /*  m * t_bf -> inertia_o->mt */
+  /*  m * t_bf -> inertia_o->mt */
 
-    /* inertia_o->mt = Rfb * m_c * t_bc */
-    s2_product_rv(
-      r,
-      &(inertia_i->mt),
-      &(inertia_o->mt));
+  /* inertia_o->mt = Rfb * m_c * t_bc */
+  s2_product_rv(
+    r,
+    &(inertia_i->mt),
+    &(inertia_o->mt));
 }
 
 
@@ -174,7 +174,7 @@ void s2_inertia_translate(
       inertia_i->m,
       (double*)t,
       1,
-      (double*)&(inertia_o->mt),
+      (double*) & (inertia_o->mt),
       1);
 
     s2_vector_t temp;
@@ -215,45 +215,45 @@ void s2_inertia_transform(
   a check should be performed outside this function */
   // if(inertia_i->m > 0) {
 
-    s2_inertia_rotate(inertia_i, &(d->R), inertia_o);
+  s2_inertia_rotate(inertia_i, &(d->R), inertia_o);
 
-    // printf("inertia after rotate\n");
-    // s2_inertia_print(inertia_o);
+  // printf("inertia after rotate\n");
+  // s2_inertia_print(inertia_o);
 
-    cblas_daxpy(
-      3,
-      inertia_i->m,
-      (double*)&(d->T),
-      1,
-      (double*)&(inertia_o->mt),
-      1);
+  cblas_daxpy(
+    3,
+    inertia_i->m,
+    (double*) & (d->T),
+    1,
+    (double*) & (inertia_o->mt),
+    1);
 
-    s2_vector_t t;
-    memcpy(&t, &(inertia_o->mt), sizeof(s2_vector_t));
-    cblas_dscal(
-      3,
-      1 / inertia_i->m,
-      (double*)&t,
-      1);
+  s2_vector_t t;
+  memcpy(&t, &(inertia_o->mt), sizeof(s2_vector_t));
+  cblas_dscal(
+    3,
+    1 / inertia_i->m,
+    (double*)&t,
+    1);
 
-    // printf("mt: ");
-    // s2_vector_print(&inertia_o->mt);
-    //
-    // printf("t: ");
-    // s2_vector_print(&t);
+  // printf("mt: ");
+  // s2_vector_print(&inertia_o->mt);
+  //
+  // printf("t: ");
+  // s2_vector_print(&t);
 
-    inertia_o->Ixy -= inertia_o->mt.x * t.y;
-    inertia_o->Iyz -= inertia_o->mt.y * t.z;
-    inertia_o->Izx -= inertia_o->mt.z * t.x;
+  inertia_o->Ixy -= inertia_o->mt.x * t.y;
+  inertia_o->Iyz -= inertia_o->mt.y * t.z;
+  inertia_o->Izx -= inertia_o->mt.z * t.x;
 
-    s2_vector_t temp2;
-    temp2.x = inertia_o->mt.x * t.x;
-    temp2.y = inertia_o->mt.y * t.y;
-    temp2.z = inertia_o->mt.z * t.z;
+  s2_vector_t temp2;
+  temp2.x = inertia_o->mt.x * t.x;
+  temp2.y = inertia_o->mt.y * t.y;
+  temp2.z = inertia_o->mt.z * t.z;
 
-    inertia_o->Ixx += temp2.y + temp2.z;
-    inertia_o->Iyy += temp2.x + temp2.z;
-    inertia_o->Izz += temp2.x + temp2.y;
+  inertia_o->Ixx += temp2.y + temp2.z;
+  inertia_o->Iyy += temp2.x + temp2.z;
+  inertia_o->Izz += temp2.x + temp2.y;
 
   // }
 }
@@ -268,7 +268,7 @@ void inertia_merge(
   int childIndex) {
 
   if(context->jointPointers[childIndex]->jointType == S2_JOINT_RIGID &&
-     context->pcl[childIndex] > -1) {
+      context->pcl[childIndex] > -1) {
 
     s2_body_t* parentBody = context->bodyPointers[context->pcl[childIndex]];
     s2_body_t* childBody = context->bodyPointers[childIndex];
@@ -331,7 +331,7 @@ void inertia_merge(
       b. compute t_ij^i + t_jc^i -> t_jc^i (eq. 1.6)
     */
     for(int j = 0; j < 3; j++) {
-      ((double*)&t_jc_i)[j] += ((double*)&(D_ij.T))[j];
+      ((double*)&t_jc_i)[j] += ((double*) & (D_ij.T))[j];
     }
 
     /*
@@ -346,7 +346,7 @@ void inertia_merge(
     */
     for(int j = 0; j < 3; j++) {
       ((double*)&mt_icbar)[j] =
-         ((double*)&mt_jc_i)[j] + ((double*)&mt_ic_i)[j];
+        ((double*)&mt_jc_i)[j] + ((double*)&mt_ic_i)[j];
     }
 
     /*
@@ -526,9 +526,9 @@ void s2_inertia_transform1(
   s2_inertia_t* inertia_b,
   s2_inertia_t* inertia_f) {
 
-	s2_product_dv(
+  s2_product_dv(
     displacement,
-		&(inertia_b->mt),
+    &(inertia_b->mt),
     &(inertia_f->mt));
 }
 
@@ -557,7 +557,7 @@ void s2_inertia_transform2_rank1(
 // int s2_inertia_factor(
 //    s2_body_t* body) {
 //
-// 	//fprintf(f, "1. Processing body: %s\n", body->name);
+//  //fprintf(f, "1. Processing body: %s\n", body->name);
 //   double M2[3][3];
 //   //fprintf(f, "Ixx: %f\n", body->inertia->Ixx );
 //   M2[0][0] = body->inertia->Ixx;
@@ -572,17 +572,17 @@ void s2_inertia_transform2_rank1(
 //   double M2WRTReference[3][3];
 //   //fprintf(f, "2. Processing body: %s\n", body->name);
 //   if(body->frames->referenceFrame != body->frames->origin) {
-//   	double temp[3][3];
+//    double temp[3][3];
 //     kinematics_ProductRInverseR(temp, body->frames->referenceFrame->rotationWRTOrigin, M2);
 //     kinematics_ProductRR( M2WRTReference, temp, body->frames->referenceFrame->rotationWRTOrigin );
 //     kinematics_SubtractVectors(temp[0], body->inertia->centerOfMass, body->frames->referenceFrame->translationWRTOrigin);
 //     kinematics_ProductRInverseV( body->inertia->translationWRTReference,
 //         body->frames->referenceFrame->rotationWRTOrigin, temp[0]);
-// 	}
-// 	else {
-// 		memcpy(M2WRTReference, M2, sizeof(M2));
-// 	}
-// 	//fprintf(f, "3. Processing body: %s\n", body->name);
+//  }
+//  else {
+//    memcpy(M2WRTReference, M2, sizeof(M2));
+//  }
+//  //fprintf(f, "3. Processing body: %s\n", body->name);
 //
 //   // compute 3 determinants
 //   double determinants[3];
@@ -604,10 +604,10 @@ void s2_inertia_transform2_rank1(
 //   double maxVal = determinants[0];
 //
 //   if(determinants[1] > maxVal) {
-//   	i = 2;
-//   	j = 0;
-// 	  k = 1;
-//   	maxVal = determinants[1];
+//    i = 2;
+//    j = 0;
+//    k = 1;
+//    maxVal = determinants[1];
 //   }
 //
 //   if(determinants[2] > maxVal) {
@@ -618,90 +618,90 @@ void s2_inertia_transform2_rank1(
 //   }
 //
 //   if(M2WRTReference[j][j] > M2WRTReference[i][i]) {
-//   	int temp = i;
-//   	i = j;
-//   	j = temp;
+//    int temp = i;
+//    i = j;
+//    j = temp;
 //   }
-// 	//fprintf(f, "4. Processing body: %s\n", body->name);
+//  //fprintf(f, "4. Processing body: %s\n", body->name);
 //   // if maxVal > epsilon, then we have a rank of 2 or 3
 //
 //   if(maxVal > 1e-9) {
-//   	//fprintf(f, "maxVal = %f\n", maxVal);
-//   	// F[i,i]
-//   	body->inertia->F[0] = sqrt(M2WRTReference[i][i]);
+//    //fprintf(f, "maxVal = %f\n", maxVal);
+//    // F[i,i]
+//    body->inertia->F[0] = sqrt(M2WRTReference[i][i]);
 //
-// 	  // F[j,i]
-//   	body->inertia->F[1] = M2WRTReference[j][i] / body->inertia->F[0];
+//    // F[j,i]
+//    body->inertia->F[1] = M2WRTReference[j][i] / body->inertia->F[0];
 //
 //     // F[k,i]
-// 	  body->inertia->F[2] = M2WRTReference[k][i] / body->inertia->F[0];
+//    body->inertia->F[2] = M2WRTReference[k][i] / body->inertia->F[0];
 //
 //     // F[j,j]
-// 	  body->inertia->F[3] =
+//    body->inertia->F[3] =
 //       sqrt(M2WRTReference[j][j] - body->inertia->F[1] * body->inertia->F[1]);
 //
 //     /* F[k,j] */
-// 	  body->inertia->F[4] = (M2WRTReference[k][j] - body->inertia->F[2]*body->inertia->F[1])/body->inertia->F[3];
+//    body->inertia->F[4] = (M2WRTReference[k][j] - body->inertia->F[2]*body->inertia->F[1])/body->inertia->F[3];
 //
 //     /* F[k,k] */
-// 	  body->inertia->F[5] = sqrt(M2WRTReference[k][k] - body->inertia->F[2]*body->inertia->F[2] - body->inertia->F[4]*body->inertia->F[4]);
-//   	body->inertia->indices->x = i;
-//   	body->inertia->indices->y = j;
-//   	body->inertia->indices->z = k;
+//    body->inertia->F[5] = sqrt(M2WRTReference[k][k] - body->inertia->F[2]*body->inertia->F[2] - body->inertia->F[4]*body->inertia->F[4]);
+//    body->inertia->indices->x = i;
+//    body->inertia->indices->y = j;
+//    body->inertia->indices->z = k;
 //
-//   	/* assign function pointer for rank 2,3 case */
-//   	body->inertia->rank = 2;
-//   	body->inertia->InertiaFunctionPointer = evaluateGEOM_TransformInertiaPart2Rank2or3;
+//    /* assign function pointer for rank 2,3 case */
+//    body->inertia->rank = 2;
+//    body->inertia->InertiaFunctionPointer = evaluateGEOM_TransformInertiaPart2Rank2or3;
 //   } else {
 //
-//   	maxVal = 0;
+//    maxVal = 0;
 //
-//   	//scan all entries to see if there is at least one value greater than epsilon
-//   	for(i = 0; i < 3; i++) {
-//   		for(j = i; j < 3; j++) {
-//   			maxVal = fmax(maxVal, fabs(M2WRTReference[i][j]));
-//   		}
-//   	}
-//   	if(maxVal < 1e-9) {
-//   		/*rank = 0
-//   		  do nothing case...
-//   		  assign function pointer for rank 0 case
+//    //scan all entries to see if there is at least one value greater than epsilon
+//    for(i = 0; i < 3; i++) {
+//      for(j = i; j < 3; j++) {
+//        maxVal = fmax(maxVal, fabs(M2WRTReference[i][j]));
+//      }
+//    }
+//    if(maxVal < 1e-9) {
+//      /*rank = 0
+//        do nothing case...
+//        assign function pointer for rank 0 case
 //       */
-//   		body->inertia->rank = 0;
-//   		body->inertia->InertiaFunctionPointer = NULL;
-//   	}	else {
-//   		maxVal = 0;
-//   		j = 0;
-//   		//rank = 1
-//   		// 1.find largest value on diagonal
-//   		for(i = 0; i < 3; i++) {
-//   			//fprintf(f, "M2 diagonal term: %f\n", M2WRTReference[i][i]);
-//   			if(fabs(M2WRTReference[i][i]) > maxVal) {
-//   				j = i;
-//   				//fprintf(f, "\n\nj = %d\n\n", j);
-//   				maxVal = fabs( M2WRTReference[i][i] );
-//   			}
-//   		}
-//   		// 2. select that column and normalize it
-//   		// 3. compute sqrt of trace
-//   		// 4. multipy sqrt of trace with unit vector
-//   		double sqrtMassDivideByNorm =
+//      body->inertia->rank = 0;
+//      body->inertia->InertiaFunctionPointer = NULL;
+//    } else {
+//      maxVal = 0;
+//      j = 0;
+//      //rank = 1
+//      // 1.find largest value on diagonal
+//      for(i = 0; i < 3; i++) {
+//        //fprintf(f, "M2 diagonal term: %f\n", M2WRTReference[i][i]);
+//        if(fabs(M2WRTReference[i][i]) > maxVal) {
+//          j = i;
+//          //fprintf(f, "\n\nj = %d\n\n", j);
+//          maxVal = fabs( M2WRTReference[i][i] );
+//        }
+//      }
+//      // 2. select that column and normalize it
+//      // 3. compute sqrt of trace
+//      // 4. multipy sqrt of trace with unit vector
+//      double sqrtMassDivideByNorm =
 //         sqrt(
 //           (M2WRTReference[0][0] + M2WRTReference[1][1] + M2WRTReference[2][2]) /
-//   				(M2WRTReference[0][j] * M2WRTReference[0][j] + M2WRTReference[1][j] *
+//          (M2WRTReference[0][j] * M2WRTReference[0][j] + M2WRTReference[1][j] *
 //           M2WRTReference[1][j] + M2WRTReference[2][j] * M2WRTReference[2][j]));
 //
-//   		memset(body->inertia->F, 0, 6 * sizeof(double));
-//   		body->inertia->F[0] = M2WRTReference[0][j] * sqrtMassDivideByNorm;
-// 		  body->inertia->F[1] = M2WRTReference[1][j] * sqrtMassDivideByNorm;
-// 		  body->inertia->F[2] = M2WRTReference[2][j] * sqrtMassDivideByNorm;
+//      memset(body->inertia->F, 0, 6 * sizeof(double));
+//      body->inertia->F[0] = M2WRTReference[0][j] * sqrtMassDivideByNorm;
+//      body->inertia->F[1] = M2WRTReference[1][j] * sqrtMassDivideByNorm;
+//      body->inertia->F[2] = M2WRTReference[2][j] * sqrtMassDivideByNorm;
 //
-//   		// assign function pointer for rank 1 case
-//   		body->inertia->rank = 1;
-//   		body->inertia->InertiaFunctionPointer = evaluateGEOM_TransformInertiaPart2Rank1;
-//   	}
+//      // assign function pointer for rank 1 case
+//      body->inertia->rank = 1;
+//      body->inertia->InertiaFunctionPointer = evaluateGEOM_TransformInertiaPart2Rank1;
+//    }
 //   }
-// 	return 0;
+//  return 0;
 // }
 // 4 cases,
 // full rank, positive definite

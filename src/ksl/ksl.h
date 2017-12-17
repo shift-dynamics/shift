@@ -154,27 +154,43 @@ extern "C" {
 #include <stdbool.h>
 #include <inttypes.h>
 
-typedef struct {double x, y, z;} ksl_vec3_t;
-typedef struct {float x, y, z;} ksl_vec3f_t;
-typedef struct {int x, y, z;} ksl_vec3i_t;
-
-typedef struct {double x, y, z, w;} ksl_vec4_t;
-typedef struct {float x, y, z, w;} ksl_vec4f_t;
-
-typedef struct {double m00, m10, m20, m01, m11, m21, m02, m12, m22;} ksl_mat3x3_t;
-typedef struct {float m00, m10, m20, m01, m11, m21, m02, m12, m22;} ksl_mat3x3f_t;
+typedef struct {
+  double x, y, z;
+} ksl_vec3_t;
+typedef struct {
+  float x, y, z;
+} ksl_vec3f_t;
+typedef struct {
+  int x, y, z;
+} ksl_vec3i_t;
 
 typedef struct {
-double m00, m10, m20, m30,
-       m01, m11, m21, m31,
-       m02, m12, m22, m32,
-       m03, m13, m23, m33;} ksl_mat4x4_t;
+  double x, y, z, w;
+} ksl_vec4_t;
+typedef struct {
+  float x, y, z, w;
+} ksl_vec4f_t;
 
 typedef struct {
-float m00, m10, m20, m30,
-      m01, m11, m21, m31,
-      m02, m12, m22, m32,
-      m03, m13, m23, m33;} ksl_mat4x4f_t;
+  double m00, m10, m20, m01, m11, m21, m02, m12, m22;
+} ksl_mat3x3_t;
+typedef struct {
+  float m00, m10, m20, m01, m11, m21, m02, m12, m22;
+} ksl_mat3x3f_t;
+
+typedef struct {
+  double m00, m10, m20, m30,
+         m01, m11, m21, m31,
+         m02, m12, m22, m32,
+         m03, m13, m23, m33;
+} ksl_mat4x4_t;
+
+typedef struct {
+  float m00, m10, m20, m30,
+        m01, m11, m21, m31,
+        m02, m12, m22, m32,
+        m03, m13, m23, m33;
+} ksl_mat4x4f_t;
 
 typedef struct {
   ksl_mat3x3_t R;
@@ -186,11 +202,19 @@ typedef struct {
   ksl_vec3f_t t;
 } ksl_displacementf_t;
 
-typedef struct {ksl_vec3_t v, w;} ksl_screw_t;
-typedef struct {ksl_vec3f_t v, w;} ksl_screwf_t;
+typedef struct {
+  ksl_vec3_t v, w;
+} ksl_screw_t;
+typedef struct {
+  ksl_vec3f_t v, w;
+} ksl_screwf_t;
 
-typedef struct {ksl_vec3_t f, m;} ksl_coscrew_t;
-typedef struct {ksl_vec3f_t f, m;} ksl_coscrewf_t;
+typedef struct {
+  ksl_vec3_t f, m;
+} ksl_coscrew_t;
+typedef struct {
+  ksl_vec3f_t f, m;
+} ksl_coscrewf_t;
 
 typedef enum {
   KSL_AXIS_XYZ,
@@ -944,22 +968,22 @@ void ksl_product_Rvxinversef(
 
 void ksl_product_Rvy(
   ksl_mat3x3_t* __restrict__ Ri,
-  double * __restrict__ti,
+  double* __restrict__ti,
   ksl_vec3_t* __restrict__ to);
 
 void ksl_product_Rvyf(
   ksl_mat3x3f_t* __restrict__ Ri,
-  float * __restrict__ti,
+  float* __restrict__ti,
   ksl_vec3f_t* __restrict__ to);
 
 void ksl_product_Rvyinverse(
   ksl_mat3x3_t* __restrict__ Ri,
-  double * __restrict__ti,
+  double* __restrict__ti,
   ksl_vec3_t* __restrict__ to);
 
 void ksl_product_Rvyinversef(
   ksl_mat3x3f_t* __restrict__ Ri,
-  float * __restrict__ti,
+  float* __restrict__ti,
   ksl_vec3f_t* __restrict__ to);
 
 void ksl_product_Rvz(
@@ -1180,12 +1204,12 @@ void ksl_product_DDtyf(
 
 void ksl_product_DDtyinverse(
   ksl_displacement_t* __restrict__ Di,
-  double * __restrict__ti,
+  double* __restrict__ti,
   ksl_displacement_t* __restrict__ Do);
 
 void ksl_product_DDtyinversef(
   ksl_displacementf_t* __restrict__ Di,
-  float * __restrict__ti,
+  float* __restrict__ti,
   ksl_displacementf_t* __restrict__ Do);
 
 void ksl_product_DDtz(
@@ -1204,9 +1228,9 @@ void ksl_product_DDtzinverse(
   ksl_displacement_t* __restrict__ Do);
 
 void ksl_product_DDr(
-    ksl_displacement_t* __restrict__ Di,
-    ksl_mat3x3_t* __restrict__ Ri,
-    ksl_displacement_t* __restrict__ Do);
+  ksl_displacement_t* __restrict__ Di,
+  ksl_mat3x3_t* __restrict__ Ri,
+  ksl_displacement_t* __restrict__ Do);
 
 void ksl_product_DDrf(
   ksl_displacementf_t* __restrict__ Di,
@@ -1501,7 +1525,7 @@ void ksl_slerp(
 void ksl_slerpf(
   ksl_vec4f_t* __restrict__ q1i,
   ksl_vec4f_t* __restrict__ q2i,
-  float * __restrict__ t,
+  float* __restrict__ t,
   ksl_vec4f_t* __restrict__ qo);
 
 void ksl_nlerp(
@@ -1555,7 +1579,7 @@ void ksl_mat4x4_getTranslation(
 
 void ksl_mat4x4f_getTranslation(
   ksl_mat4x4f_t* __restrict__ Mi,
-  ksl_vec3f_t* __restrict__ to );
+  ksl_vec3f_t* __restrict__ to);
 
 void ksl_add_dpiToq(
   ksl_vec3_t* __restrict__ dpi,

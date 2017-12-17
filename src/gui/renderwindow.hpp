@@ -1,7 +1,7 @@
-#ifndef _STAR2_RENDERWINDOW_HPP_
-#define _STAR2_RENDERWINDOW_HPP_
+#ifndef _SH_RENDERWINDOW_HPP_
+#define _SH_RENDERWINDOW_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "uniformbufferobject.hpp"
 #include "orbitalcamera.hpp"
@@ -59,203 +59,203 @@ QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
 
 class RenderWindow : public OpenGLWindow {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
+  public:
 
-  RenderWindow();
+    RenderWindow();
 
-  ~RenderWindow();
+    ~RenderWindow();
 
-  void render();
+    void render();
 
-  void draw();
+    void draw();
 
-  void drawShadows();
+    void drawShadows();
 
-  void resizeGL(int width, int height);
+    void resizeGL(int width, int height);
 
-  void clearContext();
+    void clearContext();
 
-  void loadContext(s2_context_t* context);
+    void loadContext(s2_context_t* context);
 
-  QString getCursorPositionText();
+    QString getCursorPositionText();
 
-  void checkError(const QString &prefix);
+    void checkError(const QString& prefix);
 
-  void setSimulationRunning(bool val);
+    void setSimulationRunning(bool val);
 
-  bool isInitialized();
+    bool isInitialized();
 
-  void clearJoint();
+    void clearJoint();
 
-  void setJointTarget(
-    s2_joint_t* joint,
-    int qIndex,
-    int dqIndex,
-    double targetVal,
-    s2_joint_enum_t jointType);
+    void setJointTarget(
+      s2_joint_t* joint,
+      int qIndex,
+      int dqIndex,
+      double targetVal,
+      s2_joint_enum_t jointType);
 
-  void setJoint(
-    s2_joint_t* joint,
-    int qIndex,
-    int dqIndex,
-    double delq,
-    s2_joint_enum_t jointType);
+    void setJoint(
+      s2_joint_t* joint,
+      int qIndex,
+      int dqIndex,
+      double delq,
+      s2_joint_enum_t jointType);
 
-  void updateJoint();
+    void updateJoint();
 
-  s2_context_t* getContext() {
-    return m_context;
-  }
-
-  QMatrix4x4 getViewMatrix() {
-    return m_view;
-  }
-
-  QMatrix4x4 getProjectionMatrix() {
-    return m_projection;
-  }
-
-  s2_Joints* getJoints() {
-    return m_joints;
-  }
-
-  s2_Bodies* getBodies() {
-    return m_bodies;
-  }
-
-  s2_Grid* getGrid() {
-    return m_grid;
-  }
-
-  s2_Frames* getFrames() {
-    return m_frames;
-  }
-
-  s2_Lights* getLights() {
-    return m_lights;
-  }
-
-  s2_Terrain* getTerrain() {
-    return m_terrain;
-  }
-
-  s2_PointCloud* getPointClouds() {
-    return m_pointclouds;
-  }
-
-public slots:
-  void updateGL();
-  void initialize();
-  void setXRotation(int angle);
-  void setYRotation(int angle);
-  void setZRotation(int angle);
-  void startSimulationPlayback();
-  void startSimulationPlayback(double timeRemaining);
-  void stopSimulationPlayback();
-  void interpolateCurrentPosition(double t);
-  void setPerspective();
-  void setOrthogonal();
-  void setCameraMode(camera_interaction_enum_t cameraMode) {
-    m_cameraMode = cameraMode;
-  };
-  void toggleCameraMode() {
-    if(m_cameraMode == S2_CAMERA_INTERACTION_TURNTABLE) {
-      m_cameraMode = S2_CAMERA_INTERACTION_ORBITAL;
-    } else {
-      m_cameraMode = S2_CAMERA_INTERACTION_TURNTABLE;
+    s2_context_t* getContext() {
+      return m_context;
     }
-  }
-  void setBackgroundColor(
-    float red,
-    float green,
-    float blue);
 
-signals:
-  void mouseLeftPressEvent();
-  void mouseRightPressEvent();
-  void mouseReleaseEvent();
-  void mouseMove();
-  void mouseOut();
-  void xRotationChanged(int angle);
-  void yRotationChanged(int angle);
-  void zRotationChanged(int angle);
-  void simulationUpdated(double);
-  void simulationStopped();
-  void initialized();
+    QMatrix4x4 getViewMatrix() {
+      return m_view;
+    }
 
-protected:
-  virtual void mousePressEvent(QMouseEvent* event);
-  virtual void mouseReleaseEvent(QMouseEvent* event);
-  virtual void mouseMoveEvent(QMouseEvent* event);
-  virtual void wheelEvent(QWheelEvent* event);
+    QMatrix4x4 getProjectionMatrix() {
+      return m_projection;
+    }
 
-private:
-  s2_context_t* m_context;
+    s2_Joints* getJoints() {
+      return m_joints;
+    }
 
-  QMatrix4x4 m_projection;
-  QMatrix4x4 m_view;
-  bool m_useSourceCode;
+    s2_Bodies* getBodies() {
+      return m_bodies;
+    }
 
-  int m_frame;
-  int m_x;
-  int m_y;
+    s2_Grid* getGrid() {
+      return m_grid;
+    }
 
-  int m_xRot;
-  int m_yRot;
-  int m_zRot;
+    s2_Frames* getFrames() {
+      return m_frames;
+    }
 
-  float m_xPan;
-  float m_yPan;
-  float m_zPan;
+    s2_Lights* getLights() {
+      return m_lights;
+    }
 
-  QPoint m_lastPos;
-  float m_camDistance;
+    s2_Terrain* getTerrain() {
+      return m_terrain;
+    }
 
-  bool m_perspective;
-  bool m_drawVertexNormals;
+    s2_PointCloud* getPointClouds() {
+      return m_pointclouds;
+    }
 
-  QTimer* m_timer;
+  public slots:
+    void updateGL();
+    void initialize();
+    void setXRotation(int angle);
+    void setYRotation(int angle);
+    void setZRotation(int angle);
+    void startSimulationPlayback();
+    void startSimulationPlayback(double timeRemaining);
+    void stopSimulationPlayback();
+    void interpolateCurrentPosition(double t);
+    void setPerspective();
+    void setOrthogonal();
+    void setCameraMode(camera_interaction_enum_t cameraMode) {
+      m_cameraMode = cameraMode;
+    };
+    void toggleCameraMode() {
+      if(m_cameraMode == S2_CAMERA_INTERACTION_TURNTABLE) {
+        m_cameraMode = S2_CAMERA_INTERACTION_ORBITAL;
+      } else {
+        m_cameraMode = S2_CAMERA_INTERACTION_TURNTABLE;
+      }
+    }
+    void setBackgroundColor(
+      float red,
+      float green,
+      float blue);
 
-  GLfloat m_backgroundColor[4];
-  GLfloat m_normalColor[4];
+  signals:
+    void mouseLeftPressEvent();
+    void mouseRightPressEvent();
+    void mouseReleaseEvent();
+    void mouseMove();
+    void mouseOut();
+    void xRotationChanged(int angle);
+    void yRotationChanged(int angle);
+    void zRotationChanged(int angle);
+    void simulationUpdated(double);
+    void simulationStopped();
+    void initialized();
 
-  s2_Bodies* m_bodies;
-  s2_Frames* m_frames;
-  s2_Joints* m_joints;
-  s2_Lights* m_lights;
-  s2_Grid* m_grid;
-  s2_Terrain* m_terrain;
-  s2_PointCloud* m_pointclouds;
+  protected:
+    virtual void mousePressEvent(QMouseEvent* event);
+    virtual void mouseReleaseEvent(QMouseEvent* event);
+    virtual void mouseMoveEvent(QMouseEvent* event);
+    virtual void wheelEvent(QWheelEvent* event);
 
-  bool m_initialized;
+  private:
+    s2_context_t* m_context;
 
-  bool m_simulationRunning;
-  double m_currentSimulationTime;
+    QMatrix4x4 m_projection;
+    QMatrix4x4 m_view;
+    bool m_useSourceCode;
 
-  void interpolateCurrentPosition();
+    int m_frame;
+    int m_x;
+    int m_y;
 
-  /* shader programs */
-  ShadowShaderProgram* m_programShadow;
-  SimpleShaderProgram* m_programSimple;
-  PhongShaderProgram* m_programPhong;
-  FlatShaderProgram* m_programFlat;
-  TerrainShaderProgram* m_programTerrain;
-  TerrainShadowShaderProgram* m_programTerrainShadow;
-  FrameShaderProgram* m_programFrame;
-  PointCloudShaderProgram* m_programPointCloud;
-  NormalShaderProgram* m_programNormal;
+    int m_xRot;
+    int m_yRot;
+    int m_zRot;
 
-  camera_interaction_enum_t m_cameraMode;
+    float m_xPan;
+    float m_yPan;
+    float m_zPan;
 
-  s2_OrbitalCamera* m_orbitalCamera;
+    QPoint m_lastPos;
+    float m_camDistance;
+
+    bool m_perspective;
+    bool m_drawVertexNormals;
+
+    QTimer* m_timer;
+
+    GLfloat m_backgroundColor[4];
+    GLfloat m_normalColor[4];
+
+    s2_Bodies* m_bodies;
+    s2_Frames* m_frames;
+    s2_Joints* m_joints;
+    s2_Lights* m_lights;
+    s2_Grid* m_grid;
+    s2_Terrain* m_terrain;
+    s2_PointCloud* m_pointclouds;
+
+    bool m_initialized;
+
+    bool m_simulationRunning;
+    double m_currentSimulationTime;
+
+    void interpolateCurrentPosition();
+
+    /* shader programs */
+    ShadowShaderProgram* m_programShadow;
+    SimpleShaderProgram* m_programSimple;
+    PhongShaderProgram* m_programPhong;
+    FlatShaderProgram* m_programFlat;
+    TerrainShaderProgram* m_programTerrain;
+    TerrainShadowShaderProgram* m_programTerrainShadow;
+    FrameShaderProgram* m_programFrame;
+    PointCloudShaderProgram* m_programPointCloud;
+    NormalShaderProgram* m_programNormal;
+
+    camera_interaction_enum_t m_cameraMode;
+
+    s2_OrbitalCamera* m_orbitalCamera;
 
 };
 
 class RenderWindowWidget : public QWidget {
 
-  Q_OBJECT
+    Q_OBJECT
 
   public:
     RenderWindowWidget(QWidget* parent): QWidget(parent) {

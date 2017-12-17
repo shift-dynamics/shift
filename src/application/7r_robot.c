@@ -79,8 +79,8 @@ int LU_full_colMajor(
   int pivotRow; /*  row with current pivotal element */
   int pivotCol; /* column with current pivotal element */
   double pivot = 0.0;
-                /* current pivotal element, holds the current pivotal element
-                   value */
+  /* current pivotal element, holds the current pivotal element
+     value */
   double tol;   /* tolerance for checking residual matrix
                               infinity norm against */
   double save; /* variable for holding intermediate results*/
@@ -89,7 +89,7 @@ int LU_full_colMajor(
   /*
     Return failure if a bad row or column dimension was found.
   */
-  if ((rowDim <= 0) || (colDim <= 0)) {
+  if((rowDim <= 0) || (colDim <= 0)) {
     return (-1);
   }
 
@@ -114,10 +114,12 @@ int LU_full_colMajor(
 
 
   /* Initialize the column permutation array. */
-  for(int col = 0; col < colDim; col++)
+  for(int col = 0; col < colDim; col++) {
     pc[col] = col;
-  for(int row = 0; row < rowDim; row++)
+  }
+  for(int row = 0; row < rowDim; row++) {
     pr[row] = row;
+  }
 
   /* Set tolerance to check all zero-elements against. */
   tol = fabs(eps * pivot);
@@ -262,11 +264,13 @@ int LU_full_colMajor(
           }     /*End if rank*/
         }       /*Endfor i = rank+1*/
       }         /*Endif (rank<rowDim-1)*/
-      else
-        break; /*No more rows to process.*/
+      else {
+        break;  /*No more rows to process.*/
+      }
     }          /*End if*/
-    else
-      break; /*Done if remainder of matrix is at noise level.*/
+    else {
+      break;  /*Done if remainder of matrix is at noise level.*/
+    }
   }          /*End for col*/
 
   /*
@@ -287,7 +291,7 @@ int LU_full_colMajor(
       for(int i = rowDim - 1; i > rank; i--) {
         for(int k = 0; k < j; k++)
           A[i + k * rowDim] -= A[i + j * rowDim] *
-            A[j + k * rowDim];
+                               A[j + k * rowDim];
       }
     }
   }
@@ -441,7 +445,7 @@ void setJacobianPO2_colMajor(
 }
 
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 
   s2_context_t* context = s2_context_load(argv[1]);
   s2_context_setTopology(context);
@@ -511,7 +515,7 @@ int main(int argc, char *argv[]) {
   memset(pc_21, 0, context->dqCount * sizeof(int));
 
   int rank = LU_full_colMajor(
-    6, context->dqCount, J_po1, 1e-9, pr_12, pc_12, pr_21, pc_21);
+               6, context->dqCount, J_po1, 1e-9, pr_12, pc_12, pr_21, pc_21);
 
   fprintf(
     debug, "\nverifying jacobian LU factors (column major): rank = %d\n", rank);
@@ -577,7 +581,7 @@ int main(int argc, char *argv[]) {
 
   double pitch = 0.1;
   s2_screw_t hLocal =
-    {0.0, 0.0, 1.0, 0.0, 0.0, fabs(pitch) < 1e-9 ? 0: 1.0 / pitch};
+  {0.0, 0.0, 1.0, 0.0, 0.0, fabs(pitch) < 1e-9 ? 0 : 1.0 / pitch};
 
   s2_screw_print(debug, &hLocal);
 

@@ -107,7 +107,7 @@ void Workspace::addDynamicSceneBox() {
   sceneLayout->setContentsMargins(QMargins(0, 0, 0, 0));
   sceneLayout->setSpacing(0);
   m_scenePanel.title = new QLabel(
-      "Select an object from the treewidget to edit its properties.");
+    "Select an object from the treewidget to edit its properties.");
   m_scenePanel.title->setWordWrap(true);
   sceneLayout->addWidget(m_scenePanel.title, 0, 0, 0);
   m_scenePanel.groupBox->setVisible(true);
@@ -416,7 +416,7 @@ void Workspace::addJointGroupBox() {
 void Workspace::addJointBox() {
   m_jointPanel.groupBox = new QGroupBox;
   QGridLayout* jointLayout = new
-    QGridLayout(m_jointPanel.groupBox);
+  QGridLayout(m_jointPanel.groupBox);
   jointLayout->setMargin(0);
   jointLayout->setContentsMargins(QMargins(0, 0, 0, 0));
   jointLayout->setSpacing(0);
@@ -1183,11 +1183,12 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
         /* assembly */
         s2_assembly_t* assembly =
           (s2_assembly_t*)(currentItem->m_object);
-      } break;
+      }
+      break;
       case 1003: {
         /* body folder */
         s2_assembly_t* assembly =
-            (s2_assembly_t*)(currentItem->m_object);
+          (s2_assembly_t*)(currentItem->m_object);
         for(
           s2_body_t* bodyHead = assembly->bodyHead;
           bodyHead;
@@ -1206,7 +1207,8 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
             item->setIcon(1, QIcon(":/icons/invisible.png"));
           }
         }
-      } break;
+      }
+      break;
       case 1004: {
         /* body */
         s2_body_t* body = (s2_body_t*)(currentItem->m_object);
@@ -1215,7 +1217,8 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
           currentItem,
           body->isVisible,
           m_renderWindow->getBodies()->isEnabled());
-      } break;
+      }
+      break;
       case 1005: {
         /* frame */
         s2_frame_t* frame = (s2_frame_t*)(currentItem->m_object);
@@ -1226,7 +1229,8 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
           currentItem,
           frame->isVisible,
           m_renderWindow->getFrames()->isEnabled());
-      } break;
+      }
+      break;
       case 1006: {
         /* joint folder */
 
@@ -1242,7 +1246,8 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
           currentItem,
           joint->isVisible,
           m_renderWindow->getJoints()->isEnabled());
-      } break;
+      }
+      break;
       case 1008: {
         /* light folder */
 
@@ -1278,7 +1283,8 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
           currentItem,
           terrain->isVisible,
           m_renderWindow->getTerrain()->isEnabled());
-      } break;
+      }
+      break;
       case 1016: {
         /* point cloud folder */
       } break;
@@ -1290,7 +1296,8 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
           currentItem,
           pointcloud->isVisible,
           m_renderWindow->getPointClouds()->isEnabled());
-      } break;
+      }
+      break;
 
 
       default: {
@@ -1308,7 +1315,7 @@ void Workspace::resizeEvent(QResizeEvent* event) {
 void Workspace::initializeMenus() {
 
   setWindowTitle("star2");
-  QMenu *fileMenu = menuBar()->addMenu("&File");
+  QMenu* fileMenu = menuBar()->addMenu("&File");
 
   /* save dialog */
   QAction* actionOpen = new QAction("Open Model...", this);
@@ -1382,7 +1389,7 @@ void Workspace::initializeMenus() {
   // actionToggleVertexNormals->setChecked(false);
 
   QAction* m_actionToggleDrawFrames =
-      new QAction("Frames", this);
+    new QAction("Frames", this);
   viewMenu->addAction(m_actionToggleDrawFrames);
   m_actionToggleDrawFrames->setIcon(QIcon(":/icons/frame.png"));
   m_actionToggleDrawFrames->setCheckable(true);
@@ -1588,7 +1595,7 @@ void Workspace::initializeMenus() {
   should be accessible only from "light group" pane (1008)
 */
 void Workspace::addLight() {
-  if (m_currentSelectedItem->m_userType == 1008) {
+  if(m_currentSelectedItem->m_userType == 1008) {
     // create and initialize new light
     // Light * light = new Light();
     // for( int i=0; i<3; i++ )
@@ -1643,7 +1650,7 @@ void Workspace::addLight() {
 */
 void Workspace::deleteLight() {
 
-  if (m_currentSelectedItem->m_userType ==  1009) {
+  if(m_currentSelectedItem->m_userType ==  1009) {
 
     //     RenderWindow* renWin = glwidget->GetRenderWindow();
     //     renWin->updateLights( lightArray );
@@ -1671,7 +1678,7 @@ void Workspace::deleteLight() {
   should only be accessible from "body" pane (1004)
 */
 void Workspace::updateMaterialNs(double Ns) {
-  if (m_currentSelectedItem->m_userType == 1004) {
+  if(m_currentSelectedItem->m_userType == 1004) {
     // Model* currentModel = static_cast<Model*>(m_currentSelectedItem->object);
     // get current selected material
     // currentModel->materials[materialDropDown->currentIndex()].Ns = Ns;
@@ -1704,9 +1711,9 @@ void Workspace::updateCurrentLightType(int lightType) {
   if(m_currentSelectedItem->m_userType == 1009) {
     s2_light_t* light = (s2_light_t*)m_currentSelectedItem->m_object;
 
-  //     currentLight->lightType = (LightType) lightType;
-  //     RenderWindow* renWin = glwidget->GetRenderWindow();
-  //     renWin->updateLights( lightArray );
+    //     currentLight->lightType = (LightType) lightType;
+    //     RenderWindow* renWin = glwidget->GetRenderWindow();
+    //     renWin->updateLights( lightArray );
   }
 }
 
@@ -1730,7 +1737,7 @@ void Workspace::updateCurrentLightType(int lightType) {
   should only be accessible from panes: "frame" (1005) and "joint" (1007 -- for rigid joints only)
 */
 void Workspace::updateTransform() {
-  if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem->m_userType == 1005) {
 
     s2_frame_t* frame = (s2_frame_t*)m_currentSelectedItem->m_object;
     // Model* currentModel = static_cast<Model*>(m_currentSelectedItem->object);
@@ -1740,7 +1747,7 @@ void Workspace::updateTransform() {
     // currentModel->transform.rotate( currentModel->rotation.y(), 0, 1, 0);
     // currentModel->transform.rotate( currentModel->rotation.z(), 0, 0, 1);
 
-  } else if (m_currentSelectedItem->m_userType == 1007) {
+  } else if(m_currentSelectedItem->m_userType == 1007) {
     s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
 
   }
@@ -1808,13 +1815,13 @@ void Workspace::recenterRz() {
 
 */
 void Workspace::setTx(int val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -1857,13 +1864,13 @@ void Workspace::setTx(int val) {
 
 */
 void Workspace::setTy(int val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -1874,11 +1881,13 @@ void Workspace::setTy(int val) {
         case S2_JOINT_FLOAT: {
           qIndex = joint->qIndex + 1;
           dqIndex = joint->dqIndex + 1;
-        } break;
+        }
+        break;
         default: {
           qIndex = joint->qIndex;
           dqIndex = joint->dqIndex;
-        } break;
+        }
+        break;
       }
 
       double delq = (double)val * m_sliders.ty.singleStep;
@@ -1917,13 +1926,13 @@ void Workspace::setTy(int val) {
 
 */
 void Workspace::setTz(int val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -1934,11 +1943,13 @@ void Workspace::setTz(int val) {
         case S2_JOINT_FLOAT: {
           qIndex = joint->qIndex + 2;
           dqIndex = joint->dqIndex + 2;
-        } break;
+        }
+        break;
         default: {
           qIndex = joint->qIndex;
           dqIndex = joint->dqIndex;
-        } break;
+        }
+        break;
       }
       double delq = (double)val * m_sliders.tz.singleStep;
       m_sliders.tz.spinBox->blockSignals(true);
@@ -1976,13 +1987,13 @@ void Workspace::setTz(int val) {
     * 1013: io
 */
 void Workspace::setRx(int val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -1995,10 +2006,11 @@ void Workspace::setRx(int val) {
             joint->dqIndex,
             delq,
             S2_JOINT_SPHERICAL);
-            m_sliders.rx.spinBox->blockSignals(true);
-            m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.rx.spinBox->blockSignals(false);
-        } break;
+          m_sliders.rx.spinBox->blockSignals(true);
+          m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+          m_sliders.rx.spinBox->blockSignals(false);
+        }
+        break;
         case S2_JOINT_FLOAT: {
           m_renderWindow->setJoint(
             joint,
@@ -2006,11 +2018,12 @@ void Workspace::setRx(int val) {
             joint->dqIndex + 3,
             delq,
             S2_JOINT_SPHERICAL);
-            m_sliders.rx.spinBox->blockSignals(true);
-            m_sliders.rx.spinBox->setValue(
-              m_context->q[joint->qIndex + 3] + delq);
-            m_sliders.rx.spinBox->blockSignals(false);
-        } break;
+          m_sliders.rx.spinBox->blockSignals(true);
+          m_sliders.rx.spinBox->setValue(
+            m_context->q[joint->qIndex + 3] + delq);
+          m_sliders.rx.spinBox->blockSignals(false);
+        }
+        break;
         default: {
           m_renderWindow->setJoint(
             joint,
@@ -2018,10 +2031,11 @@ void Workspace::setRx(int val) {
             joint->dqIndex,
             delq,
             S2_JOINT_PRIMITIVE);
-            m_sliders.rx.spinBox->blockSignals(true);
-            m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.rx.spinBox->blockSignals(false);
-        } break;
+          m_sliders.rx.spinBox->blockSignals(true);
+          m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+          m_sliders.rx.spinBox->blockSignals(false);
+        }
+        break;
       }
     }
     emit rxChanged(0);
@@ -2047,13 +2061,13 @@ void Workspace::setRx(int val) {
     * 1013: io
 */
 void Workspace::setRy(int val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -2066,10 +2080,11 @@ void Workspace::setRy(int val) {
             joint->dqIndex,
             delq,
             S2_JOINT_SPHERICAL);
-            m_sliders.ry.spinBox->blockSignals(true);
-            m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.ry.spinBox->blockSignals(false);
-        } break;
+          m_sliders.ry.spinBox->blockSignals(true);
+          m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+          m_sliders.ry.spinBox->blockSignals(false);
+        }
+        break;
         case S2_JOINT_FLOAT: {
           m_renderWindow->setJoint(
             joint,
@@ -2077,11 +2092,12 @@ void Workspace::setRy(int val) {
             joint->dqIndex + 3,
             delq,
             S2_JOINT_SPHERICAL);
-            m_sliders.ry.spinBox->blockSignals(true);
-            m_sliders.ry.spinBox->setValue(
-              m_context->q[joint->qIndex + 3] + delq);
-            m_sliders.ry.spinBox->blockSignals(false);
-        } break;
+          m_sliders.ry.spinBox->blockSignals(true);
+          m_sliders.ry.spinBox->setValue(
+            m_context->q[joint->qIndex + 3] + delq);
+          m_sliders.ry.spinBox->blockSignals(false);
+        }
+        break;
         default: {
           m_renderWindow->setJoint(
             joint,
@@ -2089,10 +2105,11 @@ void Workspace::setRy(int val) {
             joint->dqIndex,
             delq,
             S2_JOINT_PRIMITIVE);
-            m_sliders.ry.spinBox->blockSignals(true);
-            m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.ry.spinBox->blockSignals(false);
-        } break;
+          m_sliders.ry.spinBox->blockSignals(true);
+          m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+          m_sliders.ry.spinBox->blockSignals(false);
+        }
+        break;
       }
     }
     emit ryChanged(0);
@@ -2119,14 +2136,14 @@ void Workspace::setRy(int val) {
 
 */
 void Workspace::setRz(int val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
 
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -2139,10 +2156,11 @@ void Workspace::setRz(int val) {
             joint->dqIndex,
             delq,
             S2_JOINT_SPHERICAL);
-            m_sliders.rz.spinBox->blockSignals(true);
-            m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.rz.spinBox->blockSignals(false);
-        } break;
+          m_sliders.rz.spinBox->blockSignals(true);
+          m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+          m_sliders.rz.spinBox->blockSignals(false);
+        }
+        break;
         case S2_JOINT_FLOAT: {
           m_renderWindow->setJoint(
             joint,
@@ -2150,11 +2168,12 @@ void Workspace::setRz(int val) {
             joint->dqIndex + 3,
             delq,
             S2_JOINT_SPHERICAL);
-            m_sliders.rz.spinBox->blockSignals(true);
-            m_sliders.rz.spinBox->setValue(
-              m_context->q[joint->qIndex + 3] + delq);
-            m_sliders.rz.spinBox->blockSignals(false);
-        } break;
+          m_sliders.rz.spinBox->blockSignals(true);
+          m_sliders.rz.spinBox->setValue(
+            m_context->q[joint->qIndex + 3] + delq);
+          m_sliders.rz.spinBox->blockSignals(false);
+        }
+        break;
         default: {
           m_renderWindow->setJoint(
             joint,
@@ -2162,10 +2181,11 @@ void Workspace::setRz(int val) {
             joint->dqIndex,
             delq,
             S2_JOINT_PRIMITIVE);
-            m_sliders.rz.spinBox->blockSignals(true);
-            m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.rz.spinBox->blockSignals(false);
-        } break;
+          m_sliders.rz.spinBox->blockSignals(true);
+          m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+          m_sliders.rz.spinBox->blockSignals(false);
+        }
+        break;
       }
     }
     emit rzChanged(0);
@@ -2177,20 +2197,20 @@ void Workspace::setRz(int val) {
   @brief resolve constraint violations before using Tx slider
 */
 void Workspace::onclickTx() {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       // updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.tx.substructureIndex != -1) {
-      s2_newtonRaphson_setup_specified(
-        m_context,
-        m_sliders.tx.substructureIndex,
-        m_sliders.tx.dqIndex);
+        s2_newtonRaphson_setup_specified(
+          m_context,
+          m_sliders.tx.substructureIndex,
+          m_sliders.tx.dqIndex);
       }
     }
   }
@@ -2201,20 +2221,20 @@ void Workspace::onclickTx() {
   @brief resolve constraint violations before using Ty slider
 */
 void Workspace::onclickTy() {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       // updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.ty.substructureIndex != -1) {
-      s2_newtonRaphson_setup_specified(
-        m_context,
-        m_sliders.ty.substructureIndex,
-        m_sliders.ty.dqIndex);
+        s2_newtonRaphson_setup_specified(
+          m_context,
+          m_sliders.ty.substructureIndex,
+          m_sliders.ty.dqIndex);
       }
     }
   }
@@ -2225,20 +2245,20 @@ void Workspace::onclickTy() {
   @brief resolve constraint violations before using Tz slider
 */
 void Workspace::onclickTz() {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       // updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.tz.substructureIndex != -1) {
-      s2_newtonRaphson_setup_specified(
-        m_context,
-        m_sliders.tz.substructureIndex,
-        m_sliders.tz.dqIndex);
+        s2_newtonRaphson_setup_specified(
+          m_context,
+          m_sliders.tz.substructureIndex,
+          m_sliders.tz.dqIndex);
       }
     }
   }
@@ -2249,21 +2269,21 @@ void Workspace::onclickTz() {
   @brief resolve constraint violations before using Rx slider
 */
 void Workspace::onclickRx() {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       // updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       qDebug() << "initialize rx slider";
       if(m_sliders.rx.substructureIndex != -1) {
-      s2_newtonRaphson_setup_specified(
-        m_context,
-        m_sliders.rx.substructureIndex,
-        m_sliders.rx.dqIndex);
+        s2_newtonRaphson_setup_specified(
+          m_context,
+          m_sliders.rx.substructureIndex,
+          m_sliders.rx.dqIndex);
       }
     }
   }
@@ -2274,13 +2294,13 @@ void Workspace::onclickRx() {
   @brief resolve constraint violations before using Ry slider
 */
 void Workspace::onclickRy() {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       // updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.ry.substructureIndex != -1) {
@@ -2298,20 +2318,20 @@ void Workspace::onclickRy() {
   @brief resolve constraint violations before using Rz slider
 */
 void Workspace::onclickRz() {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       // updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.rz.substructureIndex != -1) {
-      s2_newtonRaphson_setup_specified(
-        m_context,
-        m_sliders.rz.substructureIndex,
-        m_sliders.rz.dqIndex);
+        s2_newtonRaphson_setup_specified(
+          m_context,
+          m_sliders.rz.substructureIndex,
+          m_sliders.rz.dqIndex);
       }
     }
   }
@@ -2338,13 +2358,13 @@ void Workspace::onclickRz() {
 
 */
 void Workspace::setTxSpinBox(double val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -2356,7 +2376,8 @@ void Workspace::setTxSpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_SPHERICAL);
-        } break;
+        }
+        break;
         default: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2364,7 +2385,8 @@ void Workspace::setTxSpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_PRIMITIVE);
-        } break;
+        }
+        break;
       }
     }
     emit txChanged(0);
@@ -2391,13 +2413,13 @@ void Workspace::setTxSpinBox(double val) {
 
 */
 void Workspace::setTySpinBox(double val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -2410,7 +2432,8 @@ void Workspace::setTySpinBox(double val) {
             joint->dqIndex + 1,
             val,
             S2_JOINT_PRIMITIVE);
-        } break;
+        }
+        break;
         default: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2418,7 +2441,8 @@ void Workspace::setTySpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_PRIMITIVE);
-        } break;
+        }
+        break;
       }
     }
     emit tyChanged(0);
@@ -2451,7 +2475,7 @@ void Workspace::setTzSpinBox(double val) {
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -2463,7 +2487,8 @@ void Workspace::setTzSpinBox(double val) {
             joint->dqIndex + 2,
             val,
             S2_JOINT_PRIMITIVE);
-        } break;
+        }
+        break;
         default: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2471,7 +2496,8 @@ void Workspace::setTzSpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_PRIMITIVE);
-        } break;
+        }
+        break;
       }
     }
     emit tzChanged(0);
@@ -2498,13 +2524,13 @@ void Workspace::setTzSpinBox(double val) {
 
 */
 void Workspace::setRxSpinBox(double val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -2516,7 +2542,8 @@ void Workspace::setRxSpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_SPHERICAL);
-        } break;
+        }
+        break;
         case S2_JOINT_FLOAT: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2524,7 +2551,8 @@ void Workspace::setRxSpinBox(double val) {
             joint->dqIndex + 3,
             val,
             S2_JOINT_SPHERICAL);
-        } break;
+        }
+        break;
         default: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2532,7 +2560,8 @@ void Workspace::setRxSpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_PRIMITIVE);
-        } break;
+        }
+        break;
       }
     }
     emit rxChanged(0);
@@ -2559,13 +2588,13 @@ void Workspace::setRxSpinBox(double val) {
 
 */
 void Workspace::setRySpinBox(double val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -2577,7 +2606,8 @@ void Workspace::setRySpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_SPHERICAL);
-        } break;
+        }
+        break;
         case S2_JOINT_FLOAT: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2585,7 +2615,8 @@ void Workspace::setRySpinBox(double val) {
             joint->dqIndex + 3,
             val,
             S2_JOINT_SPHERICAL);
-        } break;
+        }
+        break;
         default: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2593,7 +2624,8 @@ void Workspace::setRySpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_PRIMITIVE);
-        } break;
+        }
+        break;
       }
     }
     emit ryChanged(0);
@@ -2620,13 +2652,13 @@ void Workspace::setRySpinBox(double val) {
 
 */
 void Workspace::setRzSpinBox(double val) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1005) {
 
       /* process a frame */
       updateTransform();
 
-    } else if (m_currentSelectedItem->m_userType == 1007) {
+    } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
       s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
@@ -2638,7 +2670,8 @@ void Workspace::setRzSpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_SPHERICAL);
-        } break;
+        }
+        break;
         case S2_JOINT_FLOAT: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2646,7 +2679,8 @@ void Workspace::setRzSpinBox(double val) {
             joint->dqIndex + 3,
             val,
             S2_JOINT_SPHERICAL);
-        } break;
+        }
+        break;
         default: {
           m_renderWindow->setJointTarget(
             joint,
@@ -2654,7 +2688,8 @@ void Workspace::setRzSpinBox(double val) {
             joint->dqIndex,
             val,
             S2_JOINT_PRIMITIVE);
-        } break;
+        }
+        break;
       }
     }
     emit rzChanged(0);
@@ -2670,9 +2705,9 @@ void Workspace::populateMaterialColorDropDown(s2_material_t* material) {
 
   QPixmap currentColor(40, 40);
   currentColor.fill(QColor(
-    material->GLuniforms.Ka[0] * 255,
-    material->GLuniforms.Ka[1] * 255,
-    material->GLuniforms.Ka[2] * 255));
+                      material->GLuniforms.Ka[0] * 255,
+                      material->GLuniforms.Ka[1] * 255,
+                      material->GLuniforms.Ka[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(0, QIcon(currentColor));
   currentColor.fill(
     QColor(
@@ -2694,7 +2729,7 @@ void Workspace::populateMaterialColorDropDown(s2_material_t* material) {
 /*!
   @brief populate the color drop down menus in the lightBox
 */
-void Workspace::populateLightColorDropDown(s2_light_t *light) {
+void Workspace::populateLightColorDropDown(s2_light_t* light) {
   QPixmap currentColor(40, 40);
   currentColor.fill(
     QColor(
@@ -2736,8 +2771,8 @@ void Workspace::populateLightColorDropDown(s2_light_t *light) {
   should be accessible only from body pane
 */
 void Workspace::updateCurrentMaterial(int index) {
-  if (m_currentSelectedItem != NULL) {
-    if (m_currentSelectedItem->m_userType == 1004) {
+  if(m_currentSelectedItem != NULL) {
+    if(m_currentSelectedItem->m_userType == 1004) {
       s2_body_t* body = (s2_body_t*)m_currentSelectedItem->m_object;
 
       // populate material Dropdown
@@ -2780,7 +2815,7 @@ void Workspace::updateH() {
 
     /* joint */
     s2_joint_t* joint =
-        (s2_joint_t*)(m_currentSelectedItem->m_object);
+      (s2_joint_t*)(m_currentSelectedItem->m_object);
     if(joint != NULL) {
       if(joint->h != NULL) {
         char number[20];
@@ -2835,7 +2870,7 @@ void Workspace::getSelectedTreeItem() {
 
       /* assembly */
       s2_assembly_t* assembly =
-          (s2_assembly_t*)(m_currentSelectedItem->m_object);
+        (s2_assembly_t*)(m_currentSelectedItem->m_object);
 
       qDebug() << s2_getRootName(assembly->name);
 
@@ -2848,7 +2883,7 @@ void Workspace::getSelectedTreeItem() {
 
       /* body */
       s2_body_t* body =
-          (s2_body_t*)(m_currentSelectedItem->m_object);
+        (s2_body_t*)(m_currentSelectedItem->m_object);
       qDebug() << s2_getRootName(body->name);
 
       m_bodyPanel.groupBox->setVisible(true);
@@ -2918,7 +2953,7 @@ void Workspace::getSelectedTreeItem() {
 
       /* joint */
       s2_joint_t* joint =
-          (s2_joint_t*)(m_currentSelectedItem->m_object);
+        (s2_joint_t*)(m_currentSelectedItem->m_object);
 
       highlightSubstructure(joint->substructurePointer);
       updateH();
@@ -2933,7 +2968,8 @@ void Workspace::getSelectedTreeItem() {
             joint->dqIndex,
             joint->substructurePointer,
             false);
-        } break;
+        }
+        break;
         case S2_JOINT_TY: {
           setSlider(
             &m_sliders.ty,
@@ -2941,7 +2977,8 @@ void Workspace::getSelectedTreeItem() {
             joint->dqIndex,
             joint->substructurePointer,
             false);
-        } break;
+        }
+        break;
         case S2_JOINT_TZ: {
           setSlider(
             &m_sliders.tz,
@@ -2949,7 +2986,8 @@ void Workspace::getSelectedTreeItem() {
             joint->dqIndex,
             joint->substructurePointer,
             false);
-        } break;
+        }
+        break;
         case S2_JOINT_RX: {
           setSlider(
             &m_sliders.rx,
@@ -2957,7 +2995,8 @@ void Workspace::getSelectedTreeItem() {
             joint->dqIndex,
             joint->substructurePointer,
             false);
-        } break;
+        }
+        break;
         case S2_JOINT_RY: {
           setSlider(
             &m_sliders.ry,
@@ -2965,7 +3004,8 @@ void Workspace::getSelectedTreeItem() {
             joint->dqIndex,
             joint->substructurePointer,
             false);
-        } break;
+        }
+        break;
         case S2_JOINT_RZ: {
           setSlider(
             &m_sliders.rz,
@@ -2973,7 +3013,8 @@ void Workspace::getSelectedTreeItem() {
             joint->dqIndex,
             joint->substructurePointer,
             false);
-        } break;
+        }
+        break;
         case S2_JOINT_RIGID: {
 
         } break;
@@ -2996,7 +3037,8 @@ void Workspace::getSelectedTreeItem() {
             joint->dqIndex,
             joint->substructurePointer,
             true);
-        } break;
+        }
+        break;
         case S2_JOINT_FLOAT: {
           setSlider(
             &m_sliders.tx,
@@ -3035,7 +3077,8 @@ void Workspace::getSelectedTreeItem() {
             joint->substructurePointer,
             true);
 
-        } break;
+        }
+        break;
         case S2_JOINT_INVALID:
         case S2_JOINT_PRIMITIVE: {
 
@@ -3205,7 +3248,7 @@ void Workspace::openFileAtLoad() {
           debug,
           "body [%d] isVirtual: %s ",
           i,
-          m_context->bodyPointers[i]->isVirtual ? "true":"false");
+          m_context->bodyPointers[i]->isVirtual ? "true" : "false");
         s2_stackstr_print(debug, m_context->bodyPointers[i]->name);
 
       }
@@ -3363,7 +3406,7 @@ void Workspace::openFile() {
       printf(
         "body [%d] isVirtual: %s ",
         i,
-        m_context->bodyPointers[i]->isVirtual ? "true":"false");
+        m_context->bodyPointers[i]->isVirtual ? "true" : "false");
       s2_stackstr_print(debug, m_context->bodyPointers[i]->name);
 
     }
@@ -3558,8 +3601,8 @@ void Workspace::populateTreeRecursive(
     subAssembly->addChild(bodies);
 
     s2_body_t* bodyHead = subAssemblyHead->bodyHead;
-    while (bodyHead) {
-      MyTreeItem *item = new MyTreeItem(1004); // body
+    while(bodyHead) {
+      MyTreeItem* item = new MyTreeItem(1004); // body
       item->setText(0, s2_getRootName(bodyHead->name));
       item->setIcon(0, QIcon(":/icons/body.png"));
       item->setIcon(1, QIcon(":/icons/visible.png"));
@@ -3569,7 +3612,7 @@ void Workspace::populateTreeRecursive(
       /* add frames */
       s2_frame_t* frameHead = bodyHead->frameHead;
       while(frameHead) {
-        MyTreeItem *subItem = new MyTreeItem(1005); // frame
+        MyTreeItem* subItem = new MyTreeItem(1005); // frame
         subItem->setText(0, s2_getRootName(frameHead->name));
         subItem->m_object = frameHead;
         subItem->setIcon(0, QIcon(":/icons/frame.png"));
@@ -3590,7 +3633,7 @@ void Workspace::populateTreeRecursive(
     subAssembly->addChild(joints);
 
     s2_joint_t* jointHead = subAssemblyHead->jointHead;
-    while (jointHead) {
+    while(jointHead) {
       MyTreeItem* item = new MyTreeItem(1007); // joint
       item->setText(0, s2_getRootName(jointHead->name));
       qDebug() << "loading joint" << s2_getRootName(jointHead->name);
@@ -3617,7 +3660,7 @@ void Workspace::populateTreeRecursive(
     subAssembly->addChild(lights);
 
     s2_light_t* lightHead = subAssemblyHead->lightHead;
-    while (lightHead) {
+    while(lightHead) {
       MyTreeItem* item = new MyTreeItem(1009); // light
       item->setText(0, s2_getRootName(lightHead->name));
       item->setIcon(0, QIcon(":/icons/light.png"));
@@ -3637,7 +3680,7 @@ void Workspace::populateTreeRecursive(
 
     s2_restraint_t* restraintHead = subAssemblyHead->restraintHead;
     while(restraintHead) {
-      MyTreeItem *item = new MyTreeItem(1011); // restraint
+      MyTreeItem* item = new MyTreeItem(1011); // restraint
       item->setText(0, s2_getRootName(restraintHead->name));
       item->setIcon(0, QIcon(":/icons/restraint.png"));
       item->setIcon(1, QIcon(":/icons/invisible.png"));
@@ -3671,7 +3714,7 @@ void Workspace::populateTreeRecursive(
 
     s2_pointcloud_t* pointCloudHead = subAssemblyHead->pointCloudHead;
     while(pointCloudHead) {
-      MyTreeItem *item = new MyTreeItem(1017); // restraint
+      MyTreeItem* item = new MyTreeItem(1017); // restraint
       item->setText(0, s2_getRootName(pointCloudHead->name));
       item->setIcon(0, QIcon(":/icons/pointcloud.png"));
       item->setIcon(1, QIcon(":/icons/visible.png"));
@@ -3732,7 +3775,7 @@ void Workspace::populateTree() {
   fixed->addChild(fixedFrames);
 
   s2_frame_t* frameHead = m_context->assembly->bodyHead->frameHead;
-  while (frameHead) {
+  while(frameHead) {
     MyTreeItem* item = new MyTreeItem(1005); // frame
     item->setText(0, s2_getRootName(frameHead->name));
     item->setIcon(0, QIcon(":/icons/frame.png"));
@@ -3767,11 +3810,11 @@ void Workspace::populateTree() {
   fixed->addChild(fixedTerrainsFolder);
   for(int i = 0; i < m_context->terrainCount; i++) {
     s2_terrain_t* terrain = m_context->terrains[i];
-      MyTreeItem* item = new MyTreeItem(1015);
-      item->setText(0, s2_getRootName(terrain->name));
-      item->setIcon(0, QIcon(":/icons/terrain.png"));
-      item->m_object = terrain;
-      fixedTerrainsFolder->addChild(item);
+    MyTreeItem* item = new MyTreeItem(1015);
+    item->setText(0, s2_getRootName(terrain->name));
+    item->setIcon(0, QIcon(":/icons/terrain.png"));
+    item->m_object = terrain;
+    fixedTerrainsFolder->addChild(item);
   }
 
   /* load all other bodies, joints, frames */
@@ -3795,7 +3838,7 @@ void Workspace::highlightSubstructure(s2_substructure_t* substructure) {
     if(item->m_userType == 1007) {
       s2_joint_t* joint = (s2_joint_t*)item->m_object;
       if(joint->substructurePointer != NULL &&
-        joint->substructurePointer == substructure) {
+          joint->substructurePointer == substructure) {
         if(palette.isBrushSet(QPalette::Active, QPalette::HighlightedText)) {
           item->setForeground(0, QBrush(palette.highlightedText()));
         } else {
@@ -3805,7 +3848,7 @@ void Workspace::highlightSubstructure(s2_substructure_t* substructure) {
         item->setForeground(0, palette.text());
       }
     }
-  ++it;
+    ++it;
   }
 }
 
@@ -3820,8 +3863,8 @@ void Workspace::clearSubstructureHighlight() {
   while(*it) {
     MyTreeItem* item = static_cast<MyTreeItem*>(*it);
     if(item->m_userType == 1007) {
-        QPalette palette = this->palette();
-        item->setForeground(0, palette.text());
+      QPalette palette = this->palette();
+      item->setForeground(0, palette.text());
     }
     ++it;
   }
@@ -3835,7 +3878,7 @@ void Workspace::updateTree() {
 
   QTreeWidgetItemIterator it(m_treeWidget);
 
-  while (*it) {
+  while(*it) {
     char numberString[100];
     MyTreeItem* item = static_cast<MyTreeItem*>(*it);
     if(item->m_userType == 1002) {
@@ -3919,7 +3962,8 @@ void Workspace::updateDrawState() {
         /* assembly */
         s2_assembly_t* assembly =
           (s2_assembly_t*)(item->m_object);
-      } break;
+      }
+      break;
       case 1003: {
         /* body folder */
       } break;
@@ -3930,7 +3974,8 @@ void Workspace::updateDrawState() {
           item,
           body->isVisible,
           m_renderWindow->getBodies()->isEnabled());
-      } break;
+      }
+      break;
       case 1005: {
         /* frame */
         s2_frame_t* frame = (s2_frame_t*)(item->m_object);
@@ -3938,7 +3983,8 @@ void Workspace::updateDrawState() {
           item,
           frame->isVisible,
           m_renderWindow->getFrames()->isEnabled());
-      } break;
+      }
+      break;
       case 1006: {
         /* joint folder */
 
@@ -3951,7 +3997,8 @@ void Workspace::updateDrawState() {
           item,
           joint->isVisible,
           m_renderWindow->getJoints()->isEnabled());
-      } break;
+      }
+      break;
       case 1008: {
         /* light folder */
 
@@ -3963,7 +4010,8 @@ void Workspace::updateDrawState() {
           item,
           light->isVisible,
           false);
-      } break;
+      }
+      break;
       case 1010: {
         /* restraint folder */
 
@@ -3990,7 +4038,8 @@ void Workspace::updateDrawState() {
           item,
           terrain->isVisible,
           m_renderWindow->getTerrain()->isEnabled());
-      } break;
+      }
+      break;
       case 1016: {
         /* point cloud folder */
       } break;
@@ -4001,7 +4050,8 @@ void Workspace::updateDrawState() {
           pointcloud->isVisible,
           m_renderWindow->getPointClouds()->isEnabled());
         /* point cloud */
-      } break;
+      }
+      break;
       default: {
 
       } break;
@@ -4027,7 +4077,7 @@ void Workspace::license() {
   QMessageBox messageBox;
   messageBox.setWindowTitle("License");
   QTextBrowser scrollArea;
-  QGridLayout* layout = (QGridLayout *)messageBox.layout();
+  QGridLayout* layout = (QGridLayout*)messageBox.layout();
   layout->addWidget(&scrollArea, 0, 0, 1, 1);
   scrollArea.setText(fileContents);
   scrollArea.setFixedSize(800, 800);
@@ -4048,7 +4098,7 @@ void Workspace::about() {
   QMessageBox messageBox;
   messageBox.setWindowTitle("About");
   QTextBrowser scrollArea;
-  QGridLayout* layout = (QGridLayout *)messageBox.layout();
+  QGridLayout* layout = (QGridLayout*)messageBox.layout();
   layout->addWidget(&scrollArea, 0, 0, 1, 1);
   scrollArea.setText(fileContents);
   scrollArea.setFixedSize(800, 800);
@@ -4073,10 +4123,10 @@ void Workspace::saveFile() {
 void Workspace::saveFileAs() {
   m_renderWindow->setAnimating(false);
   QString fileName = QFileDialog::getSaveFileName(
-    this,
-    tr("Save File"),
-    "",
-    tr("JSON Files (*.json)"));
+                       this,
+                       tr("Save File"),
+                       "",
+                       tr("JSON Files (*.json)"));
   QMessageBox::information(
     this,
     "File Selected",
@@ -4130,22 +4180,26 @@ void Workspace::materialColorSelector() {
           material->GLuniforms.Ka[0] = color.red() / 255.f;
           material->GLuniforms.Ka[1] = color.green() / 255.f;
           material->GLuniforms.Ka[2] = color.blue() / 255.f;
-        } break;
+        }
+        break;
         case S2_COLOR_DIFFUSE: {
           qDebug() << "diffuse";
           material->GLuniforms.Kd[0] = color.red() / 255.f;
           material->GLuniforms.Kd[1] = color.green() / 255.f;
           material->GLuniforms.Kd[2] = color.blue() / 255.f;
-        } break;
+        }
+        break;
         case S2_COLOR_SPECULAR: {
           qDebug() << "specular";
           material->GLuniforms.Ks[0] = color.red() / 255.f;
           material->GLuniforms.Ks[1] = color.green() / 255.f;
           material->GLuniforms.Ks[2] = color.blue() / 255.f;
-        } break;
+        }
+        break;
         case S2_COLOR_EMISSIVE: {
           qDebug() << "emissive currently not handled";
-        } break;
+        }
+        break;
       }
       populateMaterialColorDropDown(material);
 
@@ -4199,22 +4253,26 @@ void Workspace::lightColorSelector() {
           light->glLight.Ka[0] = color.red() / 255.f;
           light->glLight.Ka[1] = color.green() / 255.f;
           light->glLight.Ka[2] = color.blue() / 255.f;
-        } break;
+        }
+        break;
         case S2_COLOR_DIFFUSE: {
           qDebug() << "diffuse";
           light->glLight.Kd[0] = color.red() / 255.f;
           light->glLight.Kd[1] = color.green() / 255.f;
           light->glLight.Kd[2] = color.blue() / 255.f;
-        } break;
+        }
+        break;
         case S2_COLOR_SPECULAR: {
           qDebug() << "specular";
           light->glLight.Ks[0] = color.red() / 255.f;
           light->glLight.Ks[1] = color.green() / 255.f;
           light->glLight.Ks[2] = color.blue() / 255.f;
-        } break;
+        }
+        break;
         case S2_COLOR_EMISSIVE: {
           qDebug() << "emissive currently not handled";
-        } break;
+        }
+        break;
       }
       populateLightColorDropDown(light);
 
@@ -4235,11 +4293,13 @@ void Workspace::setIntegratorType(int val) {
     case 0: {
       m_context->modelParameters.integrationType =
         S2_NUMERICALINTEGRATOR_ODE113;
-    } break;
+    }
+    break;
     case 1: {
       m_context->modelParameters.integrationType =
         S2_NUMERICALINTEGRATOR_ODE113B;
-    } break;
+    }
+    break;
   }
 }
 
@@ -4297,7 +4357,7 @@ void Workspace::setOmegaN(double omegaN) {
 /*!
 @brief sets output filename in context data structure
 */
-void Workspace::setOutputFileName(const QString &fileName) {
+void Workspace::setOutputFileName(const QString& fileName) {
   if(m_context != NULL) {
 
   }

@@ -53,8 +53,8 @@ void s2_graph_digraph(
   // fprintf(debug, "\n");
 
   FILE* DGF;
-  if ((DGF = fopen(fileName, "w")) == NULL) {
-    fprintf(debug, "Cannot open file %s\n", fileName );
+  if((DGF = fopen(fileName, "w")) == NULL) {
+    fprintf(debug, "Cannot open file %s\n", fileName);
     exit(1);
   }
 
@@ -69,7 +69,7 @@ void s2_graph_digraph(
   agattr(g, AGEDGE, "label", "");
 
   /* set nodes (bodies) */
-  Agnode_t** nodes = malloc(context->activeJointCount * sizeof(Agnode_t *));
+  Agnode_t** nodes = malloc(context->activeJointCount * sizeof(Agnode_t*));
   for(int i = 0; i < context->activeJointCount; i++) {
     char* bodyName = s2_stackstr_getRoot(context->bodyPointers[i]->name);
     sprintf(name, "[%d] %s", i, bodyName);
@@ -112,19 +112,19 @@ void s2_graph_digraph(
     // jointName[1] = '\0';
     if(context->pcl[i] == -1) {
       edge = agedge(
-        g,
-        fixed,
-        nodes[i],
-        jointName,
-        TRUE);
+               g,
+               fixed,
+               nodes[i],
+               jointName,
+               TRUE);
     } else {
       // s2_stackstr_toStr(context->jointPointers[i]->name);
       edge = agedge(
-        g,
-        nodes[context->pcl[i]],
-        nodes[i],
-        jointName,
-        TRUE);
+               g,
+               nodes[context->pcl[i]],
+               nodes[i],
+               jointName,
+               TRUE);
     }
     sprintf(
       name,
@@ -143,19 +143,19 @@ void s2_graph_digraph(
     // jointName[2] = '\0'; /* crop joint name
     if(index == -1) {
       edge = agedge(
-        g,
-        fixed,
-        nodes[context->chordConstraints[i].childBodyPointer->index],
-        jointName,
-        TRUE);
+               g,
+               fixed,
+               nodes[context->chordConstraints[i].childBodyPointer->index],
+               jointName,
+               TRUE);
     } else {
-        // s2_stackstr_toStr(context->jointPointers[i]->name);
+      // s2_stackstr_toStr(context->jointPointers[i]->name);
       edge = agedge(
-        g,
-        nodes[context->chordConstraints[i].parentBodyPointer->index],
-        nodes[context->chordConstraints[i].childBodyPointer->index],
-        jointName,
-        TRUE);
+               g,
+               nodes[context->chordConstraints[i].parentBodyPointer->index],
+               nodes[context->chordConstraints[i].childBodyPointer->index],
+               jointName,
+               TRUE);
     }
     char* label = NULL;
     asprintf(&label, "[%d]", i);
@@ -197,7 +197,7 @@ void s2_graph_digraphFrames(
 
   FILE* debug = context->modelParameters.debugFilePointer;
   FILE* DGF;
-  if((DGF = fopen( fileName, "w" )) == NULL) {
+  if((DGF = fopen(fileName, "w")) == NULL) {
     printf("Cannot open file %s\n", fileName);
     exit(1);
   }
@@ -271,31 +271,31 @@ void s2_graph_digraphFrames(
 
     if(context->dhFunctionPointers[i] == s2_joint_tx) {
       sprintf(name, "[%d] Tx(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_txinverse){
+    } else if(context->dhFunctionPointers[i] == s2_joint_txinverse) {
       sprintf(name, "[%d] Txinverse(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_ty) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_ty) {
       sprintf(name, "[%d] Ty(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_tyinverse) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_tyinverse) {
       sprintf(name, "[%d] Tyinverse(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_tz) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_tz) {
       sprintf(name, "[%d] Tz(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_tzinverse) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_tzinverse) {
       sprintf(name, "[%d] Tzinverse(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_rx) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_rx) {
       sprintf(name, "[%d] Rx(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_rxinverse) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_rxinverse) {
       sprintf(name, "[%d] Rxinverse(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_ry) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_ry) {
       sprintf(name, "[%d] Ry(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_ryinverse) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_ryinverse) {
       sprintf(name, "[%d] Ryinverse(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_rz) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_rz) {
       sprintf(name, "[%d] Rz(%f)\n", i, *dPrimitive);
-    } else if (context->dhFunctionPointers[i] == s2_joint_rzinverse) {
+    } else if(context->dhFunctionPointers[i] == s2_joint_rzinverse) {
       sprintf(name, "[%d] Rzinverse(%f)\n", i, *dPrimitive);
-    } else if (
-        context->dhFunctionPointers[i] == s2_joint_rigid ||
-        context->dhFunctionPointers[i] == s2_joint_rigidinverse) {
+    } else if(
+      context->dhFunctionPointers[i] == s2_joint_rigid ||
+      context->dhFunctionPointers[i] == s2_joint_rigidinverse) {
       s2_displacement_t* dPrimitiveDisp = (s2_displacement_t*)dPrimitive;
       sprintf(
         name,
@@ -330,11 +330,11 @@ void s2_graph_digraphFrames(
     Agnode_t* childNode = agnode(childBodyGraph, childFrameName, TRUE);
 
     Agedge_t* edge = agedge(
-      g,
-      parentNode,
-      childNode,
-      name,
-      TRUE);
+                       g,
+                       parentNode,
+                       childNode,
+                       name,
+                       TRUE);
     agset(edge, "label", name);
   }
 
@@ -361,54 +361,54 @@ converting chords to arcs
 */
 // void graph_Digraph( char * fileName, setupContext * context, FILE * out )
 // {
-// 	FILE *digraph;
-// 	if ((digraph = fopen( fileName, "w" )) == NULL)
-// 	{
-// 		fprintf( out, "Cannot open file %s\n", fileName );
-// 		exit(1);
-// 	}
-// 	fprintf( digraph, "digraph original {\n" );
-// 	fprintf( digraph, "size=\"7,7\";\n" );
-// 	fprintf( digraph, "{rank=same; \"fixed\"}\n");
+//  FILE *digraph;
+//  if ((digraph = fopen( fileName, "w" )) == NULL)
+//  {
+//    fprintf( out, "Cannot open file %s\n", fileName );
+//    exit(1);
+//  }
+//  fprintf( digraph, "digraph original {\n" );
+//  fprintf( digraph, "size=\"7,7\";\n" );
+//  fprintf( digraph, "{rank=same; \"fixed\"}\n");
 //
-// 	jointNode * HEAD;
-// 	if ( context->jointHead )
-// 	{
-// 		int level = 1;
-// 		int count = 1;
-// 		HEAD = context->jointHead;
-// 		while( count != 0)
-// 		{
-// 			count = 0;
-// 			fprintf( digraph, "{rank=same; ");
-// 			HEAD = context->jointHead;
-// 			while( HEAD )
-// 			{
-// 				if( HEAD->level==level )
-// 				{
-// 					fprintf(digraph, "\"%s\" ", HEAD->bodyTo );
-// 					count++;
-// 				}
-// 				HEAD = HEAD->next;
-// 			}
-// 			fprintf( digraph, "}\n");
-// 			level++;
-// 		}
+//  jointNode * HEAD;
+//  if ( context->jointHead )
+//  {
+//    int level = 1;
+//    int count = 1;
+//    HEAD = context->jointHead;
+//    while( count != 0)
+//    {
+//      count = 0;
+//      fprintf( digraph, "{rank=same; ");
+//      HEAD = context->jointHead;
+//      while( HEAD )
+//      {
+//        if( HEAD->level==level )
+//        {
+//          fprintf(digraph, "\"%s\" ", HEAD->bodyTo );
+//          count++;
+//        }
+//        HEAD = HEAD->next;
+//      }
+//      fprintf( digraph, "}\n");
+//      level++;
+//    }
 //
-// 		HEAD = context->jointHead;
-// 		while( HEAD )
-// 		{
-// 			fprintf( digraph, "\"%s\" -> \"%s\"\n", HEAD->bodyFrom, HEAD->bodyTo );
-// 			HEAD = HEAD->next;
-// 		}
-// 		chordConstraintNode * HEAD2 = context->chordConstraintHead;
-// 		while( HEAD2 )
-// 		{
-// 			fprintf( digraph, "\"%s\" [shape=octagon];\n", HEAD2->bodyFrom );
-// 			fprintf( digraph, "\"%s\" -> \"%s\" [style=dashed];", HEAD2->bodyFrom, HEAD2->bodyTo );
-// 			HEAD2 = HEAD2->next;
-// 		}
-// 		fprintf(digraph,"\n}\n");
-// 	}
-// 	fclose(digraph);
+//    HEAD = context->jointHead;
+//    while( HEAD )
+//    {
+//      fprintf( digraph, "\"%s\" -> \"%s\"\n", HEAD->bodyFrom, HEAD->bodyTo );
+//      HEAD = HEAD->next;
+//    }
+//    chordConstraintNode * HEAD2 = context->chordConstraintHead;
+//    while( HEAD2 )
+//    {
+//      fprintf( digraph, "\"%s\" [shape=octagon];\n", HEAD2->bodyFrom );
+//      fprintf( digraph, "\"%s\" -> \"%s\" [style=dashed];", HEAD2->bodyFrom, HEAD2->bodyTo );
+//      HEAD2 = HEAD2->next;
+//    }
+//    fprintf(digraph,"\n}\n");
+//  }
+//  fclose(digraph);
 // }

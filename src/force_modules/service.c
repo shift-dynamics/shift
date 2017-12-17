@@ -22,9 +22,9 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <stdbool.h>
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include "../star2.h"
 
@@ -46,12 +46,14 @@ void s2_service_setForces(
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
       t = numericalIntegrator->t;
-    } break;
+    }
+    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       t = numericalIntegrator->x;
-    } break;
+    }
+    break;
   }
 
   // double ramp = 0.1;

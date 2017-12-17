@@ -20,12 +20,12 @@
   stubs when the convex hull is loaded into the model.
 */
 struct CH {
-  void (*e_Vertex)(struct CH *self, double uV[3], double P[3]);
-  void (*hash)(const unsigned char *keyword);
+  void (*e_Vertex)(struct CH* self, double uV[3], double P[3]);
+  void (*hash)(const unsigned char* keyword);
   char keyword[10];
-  char **keyword_list;
+  char** keyword_list;
   int v_Index;
-  double **vertex_list;
+  double** vertex_list;
   double radius;
 };
 
@@ -45,8 +45,8 @@ struct CH {
   that contain this necessary data and OBJI object interaction structures.
 */
 struct CMH {
-  struct CH *HA;
-  struct CH *HB;
+  struct CH* HA;
+  struct CH* HB;
   double V[20][3];
   int num_points;
   int origin;
@@ -99,9 +99,9 @@ struct OBJ {
 */
 struct OBJI {
   // Pointer to object structure for body X
-  struct OBJ *OBJX;
+  struct OBJ* OBJX;
   // Pointer to object structure for body Y
-  struct OBJ *OBJY;
+  struct OBJ* OBJY;
   /*
     For now each body has only one attached convex hull, so there is only
     one CMH structure pointer. We'll just call it CMH. Later this will
@@ -114,7 +114,7 @@ struct OBJI {
     various convex hulls on objects OBJX and OBJY representing bodies X
     and Y. n_xy will be the number of CMH structures in the CMH array.
   */
-  struct CMH *CMH;
+  struct CMH* CMH;
   int n_xy;
 };
 
@@ -136,7 +136,7 @@ struct OBJI {
   function designed to handle it. For debugging purposes we use an
   e_Vertex function for a simple sphere.
 */
-void e_Vertex(struct CH *CH, double uV[3], double P[3]) {
+void e_Vertex(struct CH* CH, double uV[3], double P[3]) {
   P[0] = CH->radius * uV[0];
   P[1] = CH->radius * uV[1];
   P[2] = CH->radius * uV[2];
@@ -149,11 +149,12 @@ void e_Vertex(struct CH *CH, double uV[3], double P[3]) {
   CMH->V[1]. CMH->V[0] contains the direction vector and is not modified by
   add_point(). Adding a new point requires increasing CMH->num_points by 1.
 */
-void add_point(struct CMH *CMH, double P[3]) {
+void add_point(struct CMH* CMH, double P[3]) {
   printf("In add_point: CMH->num_points = %d\n", CMH->num_points);
-  for (int i = 1; i <= CMH->num_points; i++)
-    for (int j = 0; j < 3; j++)
-      CMH->V[i+1][j] = CMH->V[i][j];
+  for(int i = 1; i <= CMH->num_points; i++)
+    for(int j = 0; j < 3; j++) {
+      CMH->V[i + 1][j] = CMH->V[i][j];
+    }
   CMH->V[1][0] = P[0];
   CMH->V[1][1] = P[1];
   CMH->V[1][2] = P[2];
@@ -182,9 +183,9 @@ double norm_vec(double x[3]) {
 
 void u_vec(double x[3], double y[3]) {
   double nx = norm_vec(x);
-  y[0] = x[0]/nx;
-  y[1] = x[1]/nx;
-  y[2] = x[2]/nx;
+  y[0] = x[0] / nx;
+  y[1] = x[1] / nx;
+  y[2] = x[2] / nx;
 }
 
 void swap_vec(double x[3], double y[3]) {
@@ -293,7 +294,7 @@ point A. The GJK algorithm calls simplex0() once at the beginning. If A is
 the origin of the convex Minkowski difference hull, the hulls HA and HB
 intersect and the GJK algorithm terminates.
 */
-void simplex0(struct CMH *CMH) {
+void simplex0(struct CMH* CMH) {
   /*
     CMH->V[0] will contain the next direction vector used by support() to
     locate the next extreme vertex point P relative to the origin point O,
@@ -304,7 +305,7 @@ void simplex0(struct CMH *CMH) {
     CMH->origin == 1: The convex hull contains the origin.
   */
   printf("In simplex0 norm CMH->V[1] = %lf\n", norm_vec(CMH->V[1]));
-  if( norm_vec(CMH->V[1]) > 1e-6 ) {
+  if(norm_vec(CMH->V[1]) > 1e-6) {
     CMH->V[0][0] = -CMH->V[1][0];
     CMH->V[0][1] = -CMH->V[1][1];
     CMH->V[0][2] = -CMH->V[1][2];
@@ -326,7 +327,7 @@ to the line, in the plane containing the origin, and in the direction of the
 origin. support() then uses this direction vector to locate a third point
 on the convex hull to form a triangle simplex2 convex hull.
 */
-void simplex1(struct CMH *CMH) {
+void simplex1(struct CMH* CMH) {
 
   /*
   The simplex1 line consists of points A and B and vector AB = B - A
@@ -353,15 +354,17 @@ void simplex1(struct CMH *CMH) {
   */
   dif_vec(CMH->V[2], CMH->V[1], CMH->V[3]);
   printf("Vector AB in Simplex1: [%lf, %lf, %lf]\n",
-    CMH->V[3][0], CMH->V[3][1], CMH->V[3][2]);
+         CMH->V[3][0], CMH->V[3][1], CMH->V[3][2]);
   cross_vec(CMH->V[1], CMH->V[3], CMH->V[4]);
   printf("Vector 0A X AB in Simplex1: [%lf, %lf, %lf]\n",
-    CMH->V[4][0], CMH->V[4][1], CMH->V[4][2]);
+         CMH->V[4][0], CMH->V[4][1], CMH->V[4][2]);
   cross_vec(CMH->V[4], CMH->V[3], CMH->V[0]);
   printf("Vector (0A X AB) X AB in Simplex1: [%lf, %lf, %lf]\n",
-    CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
+         CMH->V[0][0], CMH->V[0][1], CMH->V[0][2]);
   printf("In simplex1 norm CMH->V[0] = %lf\n", norm_vec(CMH->V[0]));
-  if(norm_vec(CMH->V[0]) < 1.e-6) CMH->origin = 1;
+  if(norm_vec(CMH->V[0]) < 1.e-6) {
+    CMH->origin = 1;
+  }
   printf("In simplex1 CMH->origin = %d\n", CMH->origin);
   return;
 }
@@ -377,7 +380,7 @@ to the plane of the triangle and in the direction of the origin. support()
 then uses this direction vector to locate a fourth point on the convex hull
 to form a tetrahedron simplex3 convex hull.
 */
-void simplex2(struct CMH *CMH) {
+void simplex2(struct CMH* CMH) {
 
   /*
   The simplex2 triangle consists of points A, B, and C. Assume that the
@@ -451,16 +454,14 @@ void simplex2(struct CMH *CMH) {
     CMH->num_points--;
     return;
     // swap results simplex1: [OC, OA]
-  }
-  else {
+  } else {
     double v = -dot_vec(CMH->V[1], CMH->V[6]); // -OA•ABCn
-    if (v > 1e-6) { // Set search direction to ABCn
+    if(v > 1e-6) {  // Set search direction to ABCn
       CMH->V[0][0] = CMH->V[6][0];
       CMH->V[0][1] = CMH->V[6][1];
       CMH->V[0][2] = CMH->V[6][2];
       return;
-    }
-    else if (v < -1e-6) { // Set search direction to -ABCn
+    } else if(v < -1e-6) { // Set search direction to -ABCn
       CMH->V[0][0] = -CMH->V[6][0];
       CMH->V[0][1] = -CMH->V[6][1];
       CMH->V[0][2] = -CMH->V[6][2];
@@ -468,8 +469,9 @@ void simplex2(struct CMH *CMH) {
       swap_vec(CMH->V[2], CMH->V[3]); // swap OB and OA
       // swap results simplex2: [OC, OA, OB]
       return;
+    } else {
+      CMH->origin = 1;
     }
-    else CMH->origin = 1;
     return;
   }
 }
@@ -485,7 +487,7 @@ finds one, it throws out the oldest point and calls simplex3() again.
 If the GJK algorithm finds no more points it reports no intersection and
 terminates.
 */
-void simplex3(struct CMH *CMH) {
+void simplex3(struct CMH* CMH) {
   /*
   The simplex3 tetrahedron consists of points A, B, C, and D. Assume that
   points B, C, and D form the tehrahedron's base triangle TBCD and are
@@ -582,18 +584,16 @@ void simplex3(struct CMH *CMH) {
       swap_vec(CMH->V[1], CMH->V[2]); //swap OA and OB
       swap_vec(CMH->V[1], CMH->V[3]); //swap OB and OC
       // swap results simplex1: [OC, OA]
-      CMH->num_points-=2;
+      CMH->num_points -= 2;
       return;
-    }
-    else if(dot_vec(CMH->V[1], CMH->V[12]) < -1e-6) { //OA•ABn
+    } else if(dot_vec(CMH->V[1], CMH->V[12]) < -1e-6) { //OA•ABn
       cross_vec(CMH->V[1], CMH->V[5], CMH->V[13]); //OA X AB
       cross_vec(CMH->V[13], CMH->V[5], CMH->V[0]); //(OA X AB) X AB
       swap_vec(CMH->V[1], CMH->V[2]); //swap OA and OB
       // swap results simplex1: [OB, OA]
-      CMH->num_points-=2;
+      CMH->num_points -= 2;
       return;
-    }
-    else { //ABCn
+    } else { //ABCn
       CMH->V[0][0] = CMH->V[8][0];
       CMH->V[0][1] = CMH->V[8][1];
       CMH->V[0][2] = CMH->V[8][2];
@@ -613,19 +613,17 @@ void simplex3(struct CMH *CMH) {
       swap_vec(CMH->V[1], CMH->V[2]); //swap OA and OB
       swap_vec(CMH->V[1], CMH->V[4]); //swap OB and OD
       // swap results simplex1: [OD, OA]
-      CMH->num_points-=2;
+      CMH->num_points -= 2;
       return;
-    }
-    else if(dot_vec(CMH->V[1], CMH->V[12]) < -1e-6) { //OA•ACn
+    } else if(dot_vec(CMH->V[1], CMH->V[12]) < -1e-6) { //OA•ACn
       cross_vec(CMH->V[1], CMH->V[6], CMH->V[13]); //OA X AC
       cross_vec(CMH->V[13], CMH->V[6], CMH->V[0]); //(OA X AC) X AC
       swap_vec(CMH->V[1], CMH->V[2]); //swap OA and OB
       swap_vec(CMH->V[1], CMH->V[3]); //swap OB and OC
       // swap results simplex1: [OC, OA]
-      CMH->num_points-=2;
+      CMH->num_points -= 2;
       return;
-    }
-    else { //ACDn
+    } else { //ACDn
       CMH->V[0][0] = CMH->V[9][0];
       CMH->V[0][1] = CMH->V[9][1];
       CMH->V[0][2] = CMH->V[9][2];
@@ -646,19 +644,17 @@ void simplex3(struct CMH *CMH) {
       cross_vec(CMH->V[13], CMH->V[5], CMH->V[0]); //(OA X AB) X AB
       swap_vec(CMH->V[1], CMH->V[2]); //swap OA and OB
       // swap results simplex1: [OB, OA]
-      CMH->num_points-=2;
+      CMH->num_points -= 2;
       return;
-    }
-    else if(dot_vec(CMH->V[1], CMH->V[12]) < -1e-6) { //OA•ADn
+    } else if(dot_vec(CMH->V[1], CMH->V[12]) < -1e-6) { //OA•ADn
       cross_vec(CMH->V[1], CMH->V[7], CMH->V[13]); //OA X AD
       cross_vec(CMH->V[13], CMH->V[7], CMH->V[0]); //(OA X AD) X AD
       swap_vec(CMH->V[1], CMH->V[4]); //swap OA and OD
       swap_vec(CMH->V[2], CMH->V[4]); //swap OB and OA
       // swap results simplex1: [OD, OA]
-      CMH->num_points-=2;
+      CMH->num_points -= 2;
       return;
-    }
-    else { //ABDn
+    } else { //ABDn
       CMH->V[0][0] = CMH->V[10][0];
       CMH->V[0][1] = CMH->V[10][1];
       CMH->V[0][2] = CMH->V[10][2];
@@ -669,8 +665,9 @@ void simplex3(struct CMH *CMH) {
       CMH->num_points--;
       return;
     }
+  } else {
+    CMH->origin = 1;
   }
-  else CMH->origin = 1;
   return;
 }
 
@@ -686,7 +683,7 @@ void simplex3(struct CMH *CMH) {
   P[0] contains the local extreme point on convex hull A in the
   respective search direction.
 */
-void support(struct CH *CH, double V[3], int dir, double P[3]){
+void support(struct CH* CH, double V[3], int dir, double P[3]) {
   //e_Vertex() requires a unit direction vector so set it in uV.
   double uV[3];
   u_vec(V, uV);
@@ -696,20 +693,22 @@ void support(struct CH *CH, double V[3], int dir, double P[3]){
     uV[2] = -uV[2];
   }
   printf("In support()\n");
-  if(dir < 0)
+  if(dir < 0) {
     printf("Search direction in HA: [%lf, %lf, %lf]\n", uV[0], uV[1], uV[2]);
-  else
+  } else {
     printf("Search direction in HB: [%lf, %lf, %lf]\n", uV[0], uV[1], uV[2]);
+  }
   //P contains the local extreme point in the convex hull HA or HB
   CH->e_Vertex(CH, uV, P);
-  if(dir < 0)
+  if(dir < 0) {
     printf("Extreme point in HA: [%lf, %lf, %lf]\n", P[0], P[1], P[2]);
-  else
+  } else {
     printf("Extreme point in HB: [%lf, %lf, %lf]\n", P[0], P[1], P[2]);
+  }
   return;
 }
 
-int contact(struct OBJI *OBJIXY) {
+int contact(struct OBJI* OBJIXY) {
   /*
     This function encloses the GJK algorithm.
     Return 1 (contact) when origin is in convex Minkowski hull.
@@ -740,7 +739,7 @@ int contact(struct OBJI *OBJIXY) {
       return 0 => origin not in convex hull and no contact.
       return -1 => failure and no determination.
   */
-  while (numiters < 20) {
+  while(numiters < 20) {
     numiters++;
     printf("numiters = %d\n", numiters);
     /*
@@ -757,20 +756,20 @@ int contact(struct OBJI *OBJIXY) {
       The point must be rotated by CMH->HA.orient and translated by
       CMH->HA.center. Use P[2] as a temporary work array.
     */
-    P[2][0] = OBJIXY->OBJX->R_fO[0][0]*P[0][0]
-            + OBJIXY->OBJX->R_fO[0][1]*P[0][1]
-            + OBJIXY->OBJX->R_fO[0][2]*P[0][2];
-    P[2][1] = OBJIXY->OBJX->R_fO[1][0]*P[0][0]
-            + OBJIXY->OBJX->R_fO[1][1]*P[0][1]
-            + OBJIXY->OBJX->R_fO[1][2]*P[0][2];
-    P[2][2] = OBJIXY->OBJX->R_fO[2][0]*P[0][0]
-            + OBJIXY->OBJX->R_fO[2][1]*P[0][1]
-            + OBJIXY->OBJX->R_fO[2][2]*P[0][2];
+    P[2][0] = OBJIXY->OBJX->R_fO[0][0] * P[0][0]
+              + OBJIXY->OBJX->R_fO[0][1] * P[0][1]
+              + OBJIXY->OBJX->R_fO[0][2] * P[0][2];
+    P[2][1] = OBJIXY->OBJX->R_fO[1][0] * P[0][0]
+              + OBJIXY->OBJX->R_fO[1][1] * P[0][1]
+              + OBJIXY->OBJX->R_fO[1][2] * P[0][2];
+    P[2][2] = OBJIXY->OBJX->R_fO[2][0] * P[0][0]
+              + OBJIXY->OBJX->R_fO[2][1] * P[0][1]
+              + OBJIXY->OBJX->R_fO[2][2] * P[0][2];
     P[0][0] = P[2][0] + OBJIXY->OBJX->t_fO[0];
     P[0][1] = P[2][1] + OBJIXY->OBJX->t_fO[1];
     P[0][2] = P[2][2] + OBJIXY->OBJX->t_fO[2];
     printf("Extreme point on CHA: [%lf, %lf, %lf]\n",
-      P[0][0], P[0][1], P[0][2]);
+           P[0][0], P[0][1], P[0][2]);
     /*
       support() returns the local extreme point on convex hull B.
       CMH->HB is the convex hull structure for convex hull B.
@@ -785,20 +784,20 @@ int contact(struct OBJI *OBJIXY) {
       The point must be rotated by CMH->Rb and translated by CMH->xb.
       Use P[2] as a temporary work array.
     */
-    P[2][0] = OBJIXY->OBJY->R_fO[0][0]*P[1][0]
-            + OBJIXY->OBJY->R_fO[0][1]*P[1][1]
-            + OBJIXY->OBJY->R_fO[0][2]*P[1][2];
-    P[2][1] = OBJIXY->OBJY->R_fO[1][0]*P[1][0]
-            + OBJIXY->OBJY->R_fO[1][1]*P[1][1]
-            + OBJIXY->OBJY->R_fO[1][2]*P[1][2];
-    P[2][2] = OBJIXY->OBJY->R_fO[2][0]*P[1][0]
-            + OBJIXY->OBJY->R_fO[2][1]*P[1][1]
-            + OBJIXY->OBJY->R_fO[2][2]*P[1][2];
+    P[2][0] = OBJIXY->OBJY->R_fO[0][0] * P[1][0]
+              + OBJIXY->OBJY->R_fO[0][1] * P[1][1]
+              + OBJIXY->OBJY->R_fO[0][2] * P[1][2];
+    P[2][1] = OBJIXY->OBJY->R_fO[1][0] * P[1][0]
+              + OBJIXY->OBJY->R_fO[1][1] * P[1][1]
+              + OBJIXY->OBJY->R_fO[1][2] * P[1][2];
+    P[2][2] = OBJIXY->OBJY->R_fO[2][0] * P[1][0]
+              + OBJIXY->OBJY->R_fO[2][1] * P[1][1]
+              + OBJIXY->OBJY->R_fO[2][2] * P[1][2];
     P[1][0] = P[2][0] + OBJIXY->OBJY->t_fO[0];
     P[1][1] = P[2][1] + OBJIXY->OBJX->t_fO[1];
     P[1][2] = P[2][2] + OBJIXY->OBJY->t_fO[2];
     printf("Extreme point on CHB: [%lf, %lf, %lf]\n",
-      P[1][0], P[1][1], P[1][2]);
+           P[1][0], P[1][1], P[1][2]);
     /*
       P[2] contains the extreme point on the Minkowski convex hull AB.
     */
@@ -806,7 +805,7 @@ int contact(struct OBJI *OBJIXY) {
     P[2][1] = P[1][1] - P[0][1];
     P[2][2] = P[1][2] - P[0][2];
     printf("Extreme point on CMHAB: [%lf, %lf, %lf]\n",
-      P[2][0], P[2][1], P[2][2]);
+           P[2][0], P[2][1], P[2][2]);
     /*
       Function add_point() adds this new extreme point to the simplex.
       First it shifts the previous points down one level in CMH->V
@@ -815,7 +814,7 @@ int contact(struct OBJI *OBJIXY) {
     */
     add_point(OBJIXY->CMH, P[2]);
     printf("Verify new Extreme point in CMH: [%lf, %lf, %lf]\n",
-      OBJIXY->CMH->V[0][0], OBJIXY->CMH->V[0][1], OBJIXY->CMH->V[0][2]);
+           OBJIXY->CMH->V[0][0], OBJIXY->CMH->V[0][1], OBJIXY->CMH->V[0][2]);
     /*
       This first test is common to the simplex1, simplex2, and simplex3
       functions, so put it here once instead of in each simplex function.
@@ -824,7 +823,7 @@ int contact(struct OBJI *OBJIXY) {
       If 0P•0A < -1e-6 the last point A on the simplex did not pass the
       origin so the convex Minkowski hull does not contain the origin.
     */
-    if (OBJIXY->CMH->num_points > 1 && dot_vec(P[2], OBJIXY->CMH->V[0]) < -1e-6) {
+    if(OBJIXY->CMH->num_points > 1 && dot_vec(P[2], OBJIXY->CMH->V[0]) < -1e-6) {
       printf("Minkowski hull does not Contain Origin\n");
       printf("Number of iterations: %d\n", numiters);
       OBJIXY->CMH->origin = 0;
@@ -850,27 +849,27 @@ int contact(struct OBJI *OBJIXY) {
       not be in the convex Minkowski hull. The final decision that the origin
       is not in the convex Minkowski hull can only be made in simplex3.
     */
-    switch (OBJIXY->CMH->num_points) {
+    switch(OBJIXY->CMH->num_points) {
       case 1:
-      printf("simplex0\n");
-      simplex0(OBJIXY->CMH);
-      break;
+        printf("simplex0\n");
+        simplex0(OBJIXY->CMH);
+        break;
       case 2:
-      printf("simplex1\n");
-      simplex1(OBJIXY->CMH);
-      break;
+        printf("simplex1\n");
+        simplex1(OBJIXY->CMH);
+        break;
       case 3:
-      printf("simplex2\n");
-      simplex2(OBJIXY->CMH);
-      break;
+        printf("simplex2\n");
+        simplex2(OBJIXY->CMH);
+        break;
       case 4:
-      printf("simplex3\n");
-      simplex3(OBJIXY->CMH);
-      break;
+        printf("simplex3\n");
+        simplex3(OBJIXY->CMH);
+        break;
       default:
-      printf("ERROR! Incorrect number of points: %d\n", OBJIXY->CMH->num_points);
+        printf("ERROR! Incorrect number of points: %d\n", OBJIXY->CMH->num_points);
     };
-    if (OBJIXY->CMH->origin > 0) {
+    if(OBJIXY->CMH->origin > 0) {
       printf("Contains Origin and Number of iterations: %d\n", numiters);
       return 1;
     }

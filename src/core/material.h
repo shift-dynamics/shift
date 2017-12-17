@@ -21,9 +21,9 @@ SUCH DAMAGE.
 #define _STAR2_MATERIAL_H_
 
 #ifdef __APPLE__
-  #include <OpenGL/OpenGL.h>
+#include <OpenGL/OpenGL.h>
 #else
-  #include <GL/gl.h>
+#include <GL/gl.h>
 #endif
 
 typedef struct s2_material_t s2_material_t;

@@ -505,11 +505,11 @@ void ksl_displacement_print(
   ksl_displacement_t* __restrict__ Di) {
 
   fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-    Di->R.m00, Di->R.m01, Di->R.m02, Di->t.x);
+          Di->R.m00, Di->R.m01, Di->R.m02, Di->t.x);
   fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-    Di->R.m10, Di->R.m11, Di->R.m12, Di->t.y);
+          Di->R.m10, Di->R.m11, Di->R.m12, Di->t.y);
   fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-    Di->R.m20, Di->R.m21, Di->R.m22, Di->t.z);
+          Di->R.m20, Di->R.m21, Di->R.m22, Di->t.z);
   fprintf(f, "  ");
   for(int i = 0; i < 3; i++) {
     fprintf(f, " 0.000000000 ");
@@ -533,13 +533,13 @@ void ksl_mat4x4_print(
   ksl_mat4x4_t* __restrict__ Di) {
 
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m00, Di->m01, Di->m02, Di->m03);
+          Di->m00, Di->m01, Di->m02, Di->m03);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m10, Di->m11, Di->m12, Di->m13);
+          Di->m10, Di->m11, Di->m12, Di->m13);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m20, Di->m21, Di->m22, Di->m23);
+          Di->m20, Di->m21, Di->m22, Di->m23);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m30, Di->m31, Di->m32, Di->m33);
+          Di->m30, Di->m31, Di->m32, Di->m33);
 }
 
 /*!
@@ -558,13 +558,13 @@ void ksl_mat4x4f_print(
   ksl_mat4x4f_t* __restrict__ Di) {
 
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m00, Di->m01, Di->m02, Di->m03);
+          Di->m00, Di->m01, Di->m02, Di->m03);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m10, Di->m11, Di->m12, Di->m13);
+          Di->m10, Di->m11, Di->m12, Di->m13);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m20, Di->m21, Di->m22, Di->m23);
+          Di->m20, Di->m21, Di->m22, Di->m23);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m30, Di->m31, Di->m32, Di->m33);
+          Di->m30, Di->m31, Di->m32, Di->m33);
 }
 
 
@@ -607,7 +607,8 @@ void ksl_array2D_print(
         }
         fprintf(f, "]\n");
       }
-    } break;
+    }
+    break;
 
     case KSL_COLMAJOR: {
       for(register size_t i = 0; i < rowDim; i++) {
@@ -617,7 +618,8 @@ void ksl_array2D_print(
         }
         fprintf(f, "\n");
       }
-    } break;
+    }
+    break;
 
   }
 }
@@ -688,7 +690,7 @@ void ksl_triangb_print(
   for(int i = 0; i < n; i++) {
     register size_t i_s = (i * (i + 1) / 2);
     for(int j = 0; j < i + 1; j++) {
-      fprintf(f, "%s ", A[i_s + j] ? "1":"0");
+      fprintf(f, "%s ", A[i_s + j] ? "1" : "0");
     }
     fprintf(f, "\n");
   }
@@ -2653,19 +2655,19 @@ void ksl_product_Rv(
   ksl_vec3_t* __restrict__ vo) {
 
   ksl_vec3_set(vo, 0,
-    ksl_mat3x3_get(ri, 0, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
-    ksl_mat3x3_get(ri, 0, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
-    ksl_mat3x3_get(ri, 0, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
+               ksl_mat3x3_get(ri, 0, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
+               ksl_mat3x3_get(ri, 0, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
+               ksl_mat3x3_get(ri, 0, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
 
   ksl_vec3_set(vo, 1,
-    ksl_mat3x3_get(ri, 1, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
-    ksl_mat3x3_get(ri, 1, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
-    ksl_mat3x3_get(ri, 1, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
+               ksl_mat3x3_get(ri, 1, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
+               ksl_mat3x3_get(ri, 1, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
+               ksl_mat3x3_get(ri, 1, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
 
   ksl_vec3_set(vo, 2,
-    ksl_mat3x3_get(ri, 2, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
-    ksl_mat3x3_get(ri, 2, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
-    ksl_mat3x3_get(ri, 2, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
+               ksl_mat3x3_get(ri, 2, 0 + 0) * ksl_vec3_get(vi, 0 + 0) +
+               ksl_mat3x3_get(ri, 2, 0 + 1) * ksl_vec3_get(vi, 0 + 1) +
+               ksl_mat3x3_get(ri, 2, 0 + 2) * ksl_vec3_get(vi, 0 + 2));
 }
 
 /*!
@@ -2679,19 +2681,19 @@ void ksl_product_Rvf(
   ksl_vec3f_t* __restrict__ vo) {
 
   ksl_vec3f_set(vo, 0,
-    ksl_mat3x3f_get(ri, 0, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
-    ksl_mat3x3f_get(ri, 0, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
-    ksl_mat3x3f_get(ri, 0, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
+                ksl_mat3x3f_get(ri, 0, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
+                ksl_mat3x3f_get(ri, 0, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
+                ksl_mat3x3f_get(ri, 0, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
 
   ksl_vec3f_set(vo, 1,
-    ksl_mat3x3f_get(ri, 1, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
-    ksl_mat3x3f_get(ri, 1, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
-    ksl_mat3x3f_get(ri, 1, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
+                ksl_mat3x3f_get(ri, 1, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
+                ksl_mat3x3f_get(ri, 1, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
+                ksl_mat3x3f_get(ri, 1, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
 
   ksl_vec3f_set(vo, 2,
-    ksl_mat3x3f_get(ri, 2, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
-    ksl_mat3x3f_get(ri, 2, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
-    ksl_mat3x3f_get(ri, 2, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
+                ksl_mat3x3f_get(ri, 2, 0 + 0) * ksl_vec3f_get(vi, 0 + 0) +
+                ksl_mat3x3f_get(ri, 2, 0 + 1) * ksl_vec3f_get(vi, 0 + 1) +
+                ksl_mat3x3f_get(ri, 2, 0 + 2) * ksl_vec3f_get(vi, 0 + 2));
 }
 
 /*!
@@ -2706,19 +2708,19 @@ void ksl_product_Rvinverse(
   ksl_vec3_t* __restrict__ vo) {
 
   ksl_vec3_set(vo, 0,
-    ksl_mat3x3_get(ri, 0, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
-    ksl_mat3x3_get(ri, 0, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
-    ksl_mat3x3_get(ri, 0, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
+               ksl_mat3x3_get(ri, 0, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
+               ksl_mat3x3_get(ri, 0, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
+               ksl_mat3x3_get(ri, 0, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
 
   ksl_vec3_set(vo, 1,
-    ksl_mat3x3_get(ri, 1, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
-    ksl_mat3x3_get(ri, 1, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
-    ksl_mat3x3_get(ri, 1, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
+               ksl_mat3x3_get(ri, 1, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
+               ksl_mat3x3_get(ri, 1, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
+               ksl_mat3x3_get(ri, 1, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
 
   ksl_vec3_set(vo, 2,
-    ksl_mat3x3_get(ri, 2, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
-    ksl_mat3x3_get(ri, 2, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
-    ksl_mat3x3_get(ri, 2, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
+               ksl_mat3x3_get(ri, 2, 0 + 0) * -ksl_vec3_get(vi, 0 + 0) +
+               ksl_mat3x3_get(ri, 2, 0 + 1) * -ksl_vec3_get(vi, 0 + 1) +
+               ksl_mat3x3_get(ri, 2, 0 + 2) * -ksl_vec3_get(vi, 0 + 2));
 
 }
 
@@ -2734,19 +2736,19 @@ void ksl_product_Rvinversef(
   ksl_vec3f_t* __restrict__ vo) {
 
   ksl_vec3f_set(vo, 0,
-    ksl_mat3x3f_get(ri, 0, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
-    ksl_mat3x3f_get(ri, 0, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
-    ksl_mat3x3f_get(ri, 0, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
+                ksl_mat3x3f_get(ri, 0, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
+                ksl_mat3x3f_get(ri, 0, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
+                ksl_mat3x3f_get(ri, 0, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
 
   ksl_vec3f_set(vo, 1,
-    ksl_mat3x3f_get(ri, 1, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
-    ksl_mat3x3f_get(ri, 1, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
-    ksl_mat3x3f_get(ri, 1, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
+                ksl_mat3x3f_get(ri, 1, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
+                ksl_mat3x3f_get(ri, 1, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
+                ksl_mat3x3f_get(ri, 1, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
 
   ksl_vec3f_set(vo, 2,
-    ksl_mat3x3f_get(ri, 2, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
-    ksl_mat3x3f_get(ri, 2, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
-    ksl_mat3x3f_get(ri, 2, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
+                ksl_mat3x3f_get(ri, 2, 0 + 0) * -ksl_vec3f_get(vi, 0 + 0) +
+                ksl_mat3x3f_get(ri, 2, 0 + 1) * -ksl_vec3f_get(vi, 0 + 1) +
+                ksl_mat3x3f_get(ri, 2, 0 + 2) * -ksl_vec3f_get(vi, 0 + 2));
 }
 
 /*!
@@ -5872,8 +5874,8 @@ inline void ksl_hrzf(
   ksl_displacementf_t* __restrict__ Di,
   ksl_screwf_t* __restrict__ ho) {
 
-    memcpy(&ho->w, &Di->R.m02, sizeof(ksl_vec3f_t));
-    ksl_cross_vvf(&Di->t, &ho->w, &ho->v);
+  memcpy(&ho->w, &Di->R.m02, sizeof(ksl_vec3f_t));
+  ksl_cross_vvf(&Di->t, &ho->w, &ho->v);
 }
 
 
@@ -6709,13 +6711,13 @@ inline void ksl_product_CoAdtcinversef(
   ksl_invert_ccf(ci, &temp);
   ksl_product_CoAdtcf(ti, &temp, co);
 
-    /* previously was */
-    // ksl_copy_ssf(si, so);
-    //
-    // /* wo -= w1 x w2 */
-    // so->w.x -= ti->y * si->v.z - ti->z * si->v.y;
-    // so->w.y -= ti->z * si->v.x - ti->x * si->v.z;
-    // so->w.z -= ti->x * si->v.y - ti->y * si->v.x;
+  /* previously was */
+  // ksl_copy_ssf(si, so);
+  //
+  // /* wo -= w1 x w2 */
+  // so->w.x -= ti->y * si->v.z - ti->z * si->v.y;
+  // so->w.y -= ti->z * si->v.x - ti->x * si->v.z;
+  // so->w.z -= ti->x * si->v.y - ti->y * si->v.x;
 }
 
 /*!
@@ -6884,10 +6886,10 @@ void ksl_mat3x3_toQuaternion(
   ksl_mat3x3_t* __restrict__ ri,
   ksl_vec4_t* __restrict__ qo) {
 
-  if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
+  if(fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
     double p;
     // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
-    if ((p = ri->m00 + ri->m11 + ri->m22) > 0) {
+    if((p = ri->m00 + ri->m11 + ri->m22) > 0) {
 
       // Now p = 2|e0| > 1
       p = sqrt(p + 1);
@@ -6904,7 +6906,7 @@ void ksl_mat3x3_toQuaternion(
     }
 
     // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-    else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+    else if((p = ri->m00 - ri->m11 - ri->m22) > 0) {
       // Now p = 2|e1| > 1
       p = sqrt(p + 1);
 
@@ -6920,7 +6922,7 @@ void ksl_mat3x3_toQuaternion(
     }
 
     // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-    else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+    else if((p = ri->m11 - ri->m00 - ri->m22) > 0) {
       // Now p = 2|e2| > 1
       p = sqrt(p + 1);
 
@@ -6986,82 +6988,82 @@ void ksl_mat3x3f_toQuaternion(
   ksl_mat3x3f_t* __restrict__ ri,
   ksl_vec4f_t* __restrict__ qo) {
 
-    if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
-      double p;
-      // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
-      if ((p = ri->m00 + ri->m11 + ri->m22) > 0) {
+  if(fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
+    double p;
+    // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
+    if((p = ri->m00 + ri->m11 + ri->m22) > 0) {
 
-        // Now p = 2|e0| > 1
-        p = sqrt(p + 1);
+      // Now p = 2|e0| > 1
+      p = sqrt(p + 1);
 
-        // If (2|e0| - 2er0) > 1, then p = 2|e0| has the wrong sign.
-        // if ( p - ER[0] - ER[0] > 1 ) p = -p; // 2e0
+      // If (2|e0| - 2er0) > 1, then p = 2|e0| has the wrong sign.
+      // if ( p - ER[0] - ER[0] > 1 ) p = -p; // 2e0
 
-        qo->w = p / 2; // e0
-        p = p + p;     // 4e0
+      qo->w = p / 2; // e0
+      p = p + p;     // 4e0
 
-        qo->x = (ri->m21 - ri->m12) / p;  // e1 = 4e0e1/4e0
-        qo->y = (ri->m02 - ri->m20) / p;  // e2 = 4e0e2/4e0
-        qo->z = (ri->m10 - ri->m01) / p;  // e3 = 4e0e3/4e0
+      qo->x = (ri->m21 - ri->m12) / p;  // e1 = 4e0e1/4e0
+      qo->y = (ri->m02 - ri->m20) / p;  // e2 = 4e0e2/4e0
+      qo->z = (ri->m10 - ri->m01) / p;  // e3 = 4e0e3/4e0
 
-      } else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
-        // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-        // Now p = 2|e1| > 1
-        p = sqrt(p + 1);
+    } else if((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+      // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
+      // Now p = 2|e1| > 1
+      p = sqrt(p + 1);
 
-        // If (2|e1| - 2er1) > 1, then p = 2|e1| has the wrong sign.
-        // if ( p - ER[1] - ER[1] > 1 ) p = -p; // 2e1
+      // If (2|e1| - 2er1) > 1, then p = 2|e1| has the wrong sign.
+      // if ( p - ER[1] - ER[1] > 1 ) p = -p; // 2e1
 
-        qo->x = p / 2; // e1
-        p = p + p;     // 4e1
+      qo->x = p / 2; // e1
+      p = p + p;     // 4e1
 
-        qo->w = (ri->m21 - ri->m12) / p; // e0 = 4e0e1/4e1
-        qo->y = (ri->m10 - ri->m01) / p; // e2 = 4e1e2/4e1
-        qo->z = (ri->m20 - ri->m02) / p; // e3 = 4e3e1/4e1
+      qo->w = (ri->m21 - ri->m12) / p; // e0 = 4e0e1/4e1
+      qo->y = (ri->m10 - ri->m01) / p; // e2 = 4e1e2/4e1
+      qo->z = (ri->m20 - ri->m02) / p; // e3 = 4e3e1/4e1
 
-      } else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
-        // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-        // Now p = 2|e2| > 1
-        p = sqrt(p + 1);
+    } else if((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+      // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
+      // Now p = 2|e2| > 1
+      p = sqrt(p + 1);
 
-        // If (2|e2| - 2er2) > 1, then p = 2|e2| has the wrong sign.
-        // if ( p - ER[2] - ER[2] > 1 ) p = -p; // 2e2
+      // If (2|e2| - 2er2) > 1, then p = 2|e2| has the wrong sign.
+      // if ( p - ER[2] - ER[2] > 1 ) p = -p; // 2e2
 
-        qo->y = p / 2; // e2
-        p = p + p;     // 4e2
+      qo->y = p / 2; // e2
+      p = p + p;     // 4e2
 
-        qo->w = (ri->m02 - ri->m20) / p; // e0 = 4e0e2/4e2
-        qo->x = (ri->m01 - ri->m10) / p; // e1 = 4e1e2/4e2
-        qo->z = (ri->m12 - ri->m21) / p; // e3 = 4e2e3/4e2
+      qo->w = (ri->m02 - ri->m20) / p; // e0 = 4e0e2/4e2
+      qo->x = (ri->m01 - ri->m10) / p; // e1 = 4e1e2/4e2
+      qo->z = (ri->m12 - ri->m21) / p; // e3 = 4e2e3/4e2
 
-      } else {
-        // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
-        p = ri->m22 - ri->m00 - ri->m11;
+    } else {
+      // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
+      p = ri->m22 - ri->m00 - ri->m11;
 
-        // Now p = 2|e3| > 1
-        p = sqrt(p + 1);
+      // Now p = 2|e3| > 1
+      p = sqrt(p + 1);
 
-        // If (2|e3| - 2er3) > 1, then p = 2|e3| has the wrong sign.
-        // if ( p - ER[3] - ER[3] > 1 ) p = -p; // 2e3
+      // If (2|e3| - 2er3) > 1, then p = 2|e3| has the wrong sign.
+      // if ( p - ER[3] - ER[3] > 1 ) p = -p; // 2e3
 
-        qo->z = p / 2; // e3
-        p = p + p;     // 4e3
+      qo->z = p / 2; // e3
+      p = p + p;     // 4e3
 
-        qo->w = (ri->m10 - ri->m01) / p; // e0 = 4e0e3/4e3
-        qo->x = (ri->m02 - ri->m20) / p; // e1 = 4e3e1/4e3
-        qo->y = (ri->m21 - ri->m12) / p; // e2 = 4e2e3/4e3
-
-      }
-    }
-
-    else {
-      qo->w = 0.5;
-      qo->x = copysign(0.5, ri->m21 - ri->m12);
-      qo->y = copysign(0.5, ri->m02 - ri->m20);
-      qo->z = copysign(0.5, ri->m10 - ri->m01);
+      qo->w = (ri->m10 - ri->m01) / p; // e0 = 4e0e3/4e3
+      qo->x = (ri->m02 - ri->m20) / p; // e1 = 4e3e1/4e3
+      qo->y = (ri->m21 - ri->m12) / p; // e2 = 4e2e3/4e3
 
     }
-    return;
+  }
+
+  else {
+    qo->w = 0.5;
+    qo->x = copysign(0.5, ri->m21 - ri->m12);
+    qo->y = copysign(0.5, ri->m02 - ri->m20);
+    qo->z = copysign(0.5, ri->m10 - ri->m01);
+
+  }
+  return;
 }
 
 /*!
@@ -7092,7 +7094,7 @@ void ksl_vec4_toMat3x3(
   double y2 = qi->y * qi->y;
   double z2 = qi->z * qi->z;
 
-  ro->m00 = ( x2 - y2 - z2 + w2);
+  ro->m00 = (x2 - y2 - z2 + w2);
   ro->m11 = (-x2 + y2 - z2 + w2);
   ro->m22 = (-x2 - y2 + z2 + w2);
 
@@ -7140,7 +7142,7 @@ void ksl_vec4f_toMat3x3f(
   float y2 = qi->y * qi->y;
   float z2 = qi->z * qi->z;
 
-  ro->m00 = ( x2 - y2 - z2 + w2);
+  ro->m00 = (x2 - y2 - z2 + w2);
   ro->m11 = (-x2 + y2 - z2 + w2);
   ro->m22 = (-x2 - y2 + z2 + w2);
 
@@ -7183,7 +7185,7 @@ void ksl_quaternion_slerp(
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if (fabs(cosHalfTheta) >= 1.0) {
+  if(fabs(cosHalfTheta) >= 1.0) {
     ksl_copy_qq(q1i, qo);
     return;
   }
@@ -7195,7 +7197,7 @@ void ksl_quaternion_slerp(
     we could rotate around any axis normal to q1i or q2i
   */
   memset(qo, 0, 4 * sizeof(double));
-  if (fabs(sinHalfTheta) < 0.001){ // fabs is floating point absolute
+  if(fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
     ksl_axpy_qq(0.5, q1i, qo);
     ksl_axpy_qq(0.5, q2i, qo);
     return;
@@ -7233,7 +7235,7 @@ void ksl_quaternionf_slerp(
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if (fabs(cosHalfTheta) >= 1.0){
+  if(fabs(cosHalfTheta) >= 1.0) {
     ksl_copy_qqf(q1i, qo);
     return;
   }
@@ -7245,7 +7247,7 @@ void ksl_quaternionf_slerp(
     we could rotate around any axis normal to q1i or q2i
   */
   memset(qo, 0, 4 * sizeof(double));
-  if (fabs(sinHalfTheta) < 0.001){ // fabs is floating point absolute
+  if(fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
     ksl_axpy_qqf(0.5, q1i, qo);
     ksl_axpy_qqf(0.5, q2i, qo);
     return;
@@ -7355,8 +7357,12 @@ Utilities to for normalizing radians and degrees
 double ksl_normalizeDegrees(
   double angle) {
 
-  while(angle < 0) angle += 360;
-  while(angle > 360) angle -= 360;
+  while(angle < 0) {
+    angle += 360;
+  }
+  while(angle > 360) {
+    angle -= 360;
+  }
   return angle;
 }
 
@@ -7368,8 +7374,12 @@ double ksl_normalizeDegrees(
 float ksl_normalizeDegreesf(
   float angle) {
 
-  while(angle < 0) angle += 360;
-  while(angle > 360) angle -= 360;
+  while(angle < 0) {
+    angle += 360;
+  }
+  while(angle > 360) {
+    angle -= 360;
+  }
   return angle;
 }
 
@@ -7381,8 +7391,12 @@ float ksl_normalizeDegreesf(
 double ksl_normalizeRadians(
   double angle) {
 
-  while(angle < 0) angle += (2 * M_PI);
-  while(angle > 2 * M_PI) angle -= (2 * M_PI);
+  while(angle < 0) {
+    angle += (2 * M_PI);
+  }
+  while(angle > 2 * M_PI) {
+    angle -= (2 * M_PI);
+  }
   return angle;
 }
 
@@ -7394,8 +7408,12 @@ double ksl_normalizeRadians(
 float ksl_normalizeRadiansf(
   float angle) {
 
-  while(angle < 0) angle += (2 * M_PI);
-  while(angle > 2 * M_PI) angle -= (2 * M_PI);
+  while(angle < 0) {
+    angle += (2 * M_PI);
+  }
+  while(angle > 2 * M_PI) {
+    angle -= (2 * M_PI);
+  }
   return angle;
 }
 
@@ -7441,8 +7459,9 @@ double ksl_catan2pi(
   /*
     Decrement the angle until it is below this upper limit if necessary.
   */
-  while (temp > a)
-  temp -= (2 * M_PI);
+  while(temp > a) {
+    temp -= (2 * M_PI);
+  }
 
   /*
     Or temp may be a 2*pi increment below the desired angle.
@@ -7453,8 +7472,9 @@ double ksl_catan2pi(
 
   // Increment the angle until it is above this lower limit if necessary.
 
-  while (temp < a)
-  temp += (2 * M_PI);
+  while(temp < a) {
+    temp += (2 * M_PI);
+  }
 
   /*
     Now the true angle is bracketed by theta - pi/4 and theta + pi/4.
@@ -7506,8 +7526,9 @@ double ksl_catan1pi(
   /*
     Decrement the angle until it is below this upper limit if necessary.
   */
-  while (temp > a)
-  temp -= M_PI;
+  while(temp > a) {
+    temp -= M_PI;
+  }
 
   /*
     Or temp may be one or more pi increments below the desired angle.
@@ -7519,8 +7540,9 @@ double ksl_catan1pi(
   /*
     Increment the angle until it is above this lower limit if necessary.
   */
-  while (temp < a)
-  temp += M_PI;
+  while(temp < a) {
+    temp += M_PI;
+  }
 
   /*
     Now the true angle is bracketed by theta - pi/4 and theta + pi/4.
@@ -7567,62 +7589,74 @@ void ksl_mat3x3_cgetEulerAngles(
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 2;
-    } break;
+    }
+    break;
     case KSL_AXIS_YZX: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 0;
-    } break;
+    }
+    break;
     case KSL_AXIS_ZXY: {
       axis[0] = 2;
       axis[1] = 0;
       axis[2] = 1;
-    } break;
+    }
+    break;
     case KSL_AXIS_XZY: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 1;
-    } break;
+    }
+    break;
     case KSL_AXIS_YXZ: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 2;
-    } break;
+    }
+    break;
     case KSL_AXIS_ZYX: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case KSL_AXIS_XYX: {
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case KSL_AXIS_XZX: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case KSL_AXIS_YXY: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 1;
-    }break;
+    }
+    break;
     case KSL_AXIS_YZY: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 1;
-    }break;
+    }
+    break;
     case KSL_AXIS_ZXZ: {
       axis[0] = 2;
       axis[1] = 0;
       axis[2] = 2;
-    }break;
+    }
+    break;
     case KSL_AXIS_ZYZ: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 2;
-    }break;
+    }
+    break;
     default: {
       axis[0] = 0;
       axis[1] = 1;
@@ -7646,8 +7680,8 @@ void ksl_mat3x3_cgetEulerAngles(
   double c;
   double s;
 
-  if (j == f[i]) {  // Identifies Cases 1 and 3: forward cycle i --> j
-    if (k != i) {//forward cycle j --> k
+  if(j == f[i]) {   // Identifies Cases 1 and 3: forward cycle i --> j
+    if(k != i) { //forward cycle j --> k
       // Case 1: 0 --> 1 --> 2; 1 --> 2 --> 0; 2 --> 0 --> 1
       // angles->y = ksl_catan1pi(-ri[i][j], ri[i][i], angles->y);
       angles->y =
@@ -7703,7 +7737,7 @@ void ksl_mat3x3_cgetEulerAngles(
           angles->y);
     }
   } else { // Cases 2 and 4: reverse cycle i --> j
-    if (k != i) { //reverse cycle j --> k
+    if(k != i) {  //reverse cycle j --> k
       // Case 2: 0 --> 2 --> 1; 1 --> 0 --> 2; 2 --> 1 --> 0
       angles->z =
         ksl_catan1pi(
@@ -7797,62 +7831,74 @@ void ksl_mat3x3_getEulerAngles(
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 2;
-    } break;
+    }
+    break;
     case KSL_AXIS_YZX: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 0;
-    } break;
+    }
+    break;
     case KSL_AXIS_ZXY: {
       axis[0] = 2;
       axis[1] = 0;
       axis[2] = 1;
-    } break;
+    }
+    break;
     case KSL_AXIS_XZY: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 1;
-    } break;
+    }
+    break;
     case KSL_AXIS_YXZ: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 2;
-    } break;
+    }
+    break;
     case KSL_AXIS_ZYX: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case KSL_AXIS_XYX: {
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case KSL_AXIS_XZX: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case KSL_AXIS_YXY: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 1;
-    }break;
+    }
+    break;
     case KSL_AXIS_YZY: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 1;
-    }break;
+    }
+    break;
     case KSL_AXIS_ZXZ: {
       axis[0] = 2;
       axis[1] = 0;
       axis[2] = 2;
-    }break;
+    }
+    break;
     case KSL_AXIS_ZYZ: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 2;
-    }break;
+    }
+    break;
     default: {
       axis[0] = 0;
       axis[1] = 1;
@@ -7876,8 +7922,8 @@ void ksl_mat3x3_getEulerAngles(
   double c;
   double s;
 
-  if (j == f[i]) {  // Identifies Cases 1 and 3: forward cycle i --> j
-    if (k != i) {//forward cycle j --> k
+  if(j == f[i]) {   // Identifies Cases 1 and 3: forward cycle i --> j
+    if(k != i) { //forward cycle j --> k
       // Case 1: 0 --> 1 --> 2; 1 --> 2 --> 0; 2 --> 0 --> 1
       // angles->y = ksl_catan1pi(-ri[i][j], ri[i][i], angles->y);
       angles->y =
@@ -7928,7 +7974,7 @@ void ksl_mat3x3_getEulerAngles(
           ksl_mat3x3_get(rin, i, i));
     }
   } else { // Cases 2 and 4: reverse cycle i --> j
-    if (k != i) { //reverse cycle j --> k
+    if(k != i) {  //reverse cycle j --> k
       // Case 2: 0 --> 2 --> 1; 1 --> 0 --> 2; 2 --> 1 --> 0
       angles->z =
         atan2(
@@ -8012,7 +8058,7 @@ double ksl_mat3x3_getScalar(
 */
 void ksl_mat4x4_getTranslation(
   ksl_mat4x4_t* __restrict__ Mi,
-  ksl_vec3_t* __restrict__ to ) {
+  ksl_vec3_t* __restrict__ to) {
 
   memcpy(to, &Mi->m03, sizeof(ksl_vec3_t));
 }
@@ -8022,7 +8068,7 @@ void ksl_mat4x4_getTranslation(
 */
 void ksl_mat4x4f_getTranslation(
   ksl_mat4x4f_t* __restrict__ Mi,
-  ksl_vec3f_t* __restrict__ to ) {
+  ksl_vec3f_t* __restrict__ to) {
 
   memcpy(to, &Mi->m03, sizeof(ksl_vec3f_t));
 }

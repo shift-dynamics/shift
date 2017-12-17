@@ -37,31 +37,31 @@ class s2_Lights;
 
 class ShadowShaderProgram : public ShaderProgram {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  ShadowShaderProgram(RenderWindow* renderWindow)
-  : ShaderProgram(renderWindow) {
-    initialize();
-  };
+  public:
+    ShadowShaderProgram(RenderWindow* renderWindow)
+      : ShaderProgram(renderWindow) {
+      initialize();
+    };
 
-  ~ShadowShaderProgram() {};
+    ~ShadowShaderProgram() {};
 
-  void initialize();
+    void initialize();
 
-  void setTransform(s2_displacement_t*);
+    void setTransform(s2_displacement_t*);
 
-signals:
-
-
-protected:
+  signals:
 
 
-private:
+  protected:
 
-  GLuint m_mvp_u;
-  GLuint m_scale_u;
-  GLint m_position_a;
+
+  private:
+
+    GLuint m_mvp_u;
+    GLuint m_scale_u;
+    GLint m_position_a;
 
 };
 

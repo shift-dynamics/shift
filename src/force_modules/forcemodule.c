@@ -22,9 +22,9 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <stdbool.h>
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include "forcemodule.h"
 #include "../core/assembly.h"
@@ -57,7 +57,8 @@ s2_forcemodule_t* s2_forcemodule(
 
       /* the rest will be done in external tire specific
       initialization function function */
-    } break;
+    }
+    break;
     case S2_FORCEMODULE_PID: {
       forceModule = malloc(sizeof(s2_forcemodule_t));
       forceModule->forceModuleType = forceModuleType;
@@ -70,7 +71,8 @@ s2_forcemodule_t* s2_forcemodule(
       forceModule->useTransient = true;
       forceModule->next = NULL;
       forceModule->name = NULL;
-    } break;
+    }
+    break;
     default: {
     } break;
   }
@@ -162,7 +164,8 @@ void s2_forcemodule_connectPointers(
                 break;
               }
             }
-          } break;
+          }
+          break;
           case S2_TIRE_FIALA: {
             s2_tire_fiala_t* fialaTire = tire->properties;
 
@@ -178,13 +181,16 @@ void s2_forcemodule_connectPointers(
                 break;
               }
             }
-          } break;
+          }
+          break;
           default: {
             fprintf(stderr, "the specified tire model is not supported\n");
             exit(-1);
-          } break;
+          }
+          break;
         }
-      } break;
+      }
+      break;
 
       case S2_FORCEMODULE_PID: {
 
@@ -203,34 +209,38 @@ void s2_forcemodule_connectPointers(
                 context->bodyPointers[j]->frameHead;
               while(frameHead) {
                 if(s2_stackstr_isEqual(
-                  pid->input.frame,
-                  frameHead->name)) {
-                    // fprintf(debug, "connected force module connected to: ");
-                    // s2_stackstr_print(debug, frameHead->name);
-                    pid->input.framePointer = frameHead;
-                    found = true;
-                    break;
-                  }
+                      pid->input.frame,
+                      frameHead->name)) {
+                  // fprintf(debug, "connected force module connected to: ");
+                  // s2_stackstr_print(debug, frameHead->name);
+                  pid->input.framePointer = frameHead;
+                  found = true;
+                  break;
+                }
                 frameHead = frameHead->next;
               }
-              if(found) break;
+              if(found) {
+                break;
+              }
             }
-          } break;
+          }
+          break;
           case PID_IO_JOINT: {
             // fprintf(debug, "connecting pid controller with JOINT input\n");
             for(int j = 0; j < context->activeJointCount; j++) {
               // fprintf(debug, "checking: ");
               // s2_stackstr_print(debug, context->jointPointers[j]->name);
               if(s2_stackstr_isEqual(
-                pid->input.joint,
-                context->jointPointers[j]->name)) {
+                    pid->input.joint,
+                    context->jointPointers[j]->name)) {
 
                 pid->input.jointPointer = context->jointPointers[j];
                 found = true;
                 break;
               }
             }
-          } break;
+          }
+          break;
         }
 
         if(!found) {
@@ -250,13 +260,15 @@ void s2_forcemodule_connectPointers(
             //   s2_stackstr_print(debug, joint->name);
 
             if(s2_stackstr_isEqual(
-              joint->name, pid->output.joint)) {
+                  joint->name, pid->output.joint)) {
 
               pid->output.jointPointer = joint;
               found = true;
               break;
             }
-          if(found) break;
+            if(found) {
+              break;
+            }
           }
         } else {
           fprintf(
@@ -268,12 +280,14 @@ void s2_forcemodule_connectPointers(
           s2_stackstr_print(stderr, context->forceModulePointers[i]->name);
           exit(-1);
         }
-      } break;
+      }
+      break;
 
       default: {
         fprintf(stderr, "only TIRE/PID force modules supported\n");
         exit(-1);
-      } break;
+      }
+      break;
     }
   }
 }
@@ -343,14 +357,16 @@ void s2_forcemodule_connect(
 
         // printf("connecting force module at yOffset: %d for ODE113\n",
         //   forceModule->yOffset);
-      } break;
+      }
+      break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
         dy = numericalIntegrator->dy + forceModule->yOffset;
         // printf("connecting force module at yOffset: %d for ODE113B\n",
         //   forceModule->yOffset);
-      } break;
+      }
+      break;
       default: {
 
       } break;
@@ -369,19 +385,22 @@ void s2_forcemodule_connect(
             pac2002Tire->dy = dy;
             /* connect terms for numerical integration
             here later */
-          } break;
+          }
+          break;
 
           case S2_TIRE_FIALA: {
             s2_tire_fiala_t* fialaTire =
               (s2_tire_fiala_t*)tire->properties;
             fialaTire->dy = dy;
-          } break;
+          }
+          break;
 
           default: {
             /* handle other tires here later */
           } break;
         }
-      } break;
+      }
+      break;
 
       case S2_FORCEMODULE_PID: {
         s2_pid_t* pid = (s2_pid_t*)forceModule->data;
@@ -445,7 +464,7 @@ void s2_forcemodule_append(
   s2_assembly_t* assembly,
   s2_forcemodule_t* forceModule) {
 
-  if (!assembly->forceModuleTail) {
+  if(!assembly->forceModuleTail) {
     assembly->forceModuleHead = forceModule;
     assembly->forceModuleTail = forceModule;
   } else {
@@ -467,7 +486,8 @@ void s2_forcemodule_free(s2_forcemodule_t* forceModule) {
       free(forceModule);
       /* the rest will be done in external tire specific
       initialization function function */
-    } break;
+    }
+    break;
     default: {
     } break;
   }
@@ -536,7 +556,7 @@ void s2_forcemodule_load(
             wheelBody,
             json_string_value(value));
         }
-      } else if (json_is_string(wheelBodyObject)) {
+      } else if(json_is_string(wheelBodyObject)) {
         /* otherwise the body is contained within the current assembly */
         wheelBody = s2_stackstr_copy(prefix);
         s2_stackstr_append(
@@ -585,7 +605,7 @@ void s2_forcemodule_load(
             wheelBody,
             json_string_value(value));
         }
-      } else if (json_is_string(wheelBodyObject)) {
+      } else if(json_is_string(wheelBodyObject)) {
         /* otherwise the body is contained within the current assembly */
         wheelBody = s2_stackstr_copy(prefix);
         s2_stackstr_append(
@@ -690,7 +710,7 @@ void s2_forcemodule_load(
             inputBody,
             json_string_value(value));
         }
-      } else if (json_is_string(bodyObject)) {
+      } else if(json_is_string(bodyObject)) {
         /* otherwise the body is contained within the current assembly */
         inputBody = s2_stackstr_copy(prefix);
         s2_stackstr_append(
@@ -701,7 +721,7 @@ void s2_forcemodule_load(
         json_array_get(bodyFramePairObject, 1);
       assert(frameObject);
       s2_stackstr_append(inputBody,
-        json_string_value(frameObject));
+                         json_string_value(frameObject));
       pid->input.frame = inputBody;
 
       json_t* dofObject =
@@ -722,7 +742,7 @@ void s2_forcemodule_load(
       }
       pid->input.ioType = PID_IO_FRAME;
 
-    } else if (!strcmp(json_string_value(typeObject), "joint")) {
+    } else if(!strcmp(json_string_value(typeObject), "joint")) {
 
       json_t* jointObject =
         json_object_get(inputObject, "joint");
@@ -738,7 +758,7 @@ void s2_forcemodule_load(
             inputJoint,
             json_string_value(value));
         }
-      } else if (json_is_string(jointObject)) {
+      } else if(json_is_string(jointObject)) {
         /* otherwise the body is contained within the current assembly */
         inputJoint = s2_stackstr_copy(prefix);
         s2_stackstr_append(
@@ -791,7 +811,7 @@ void s2_forcemodule_load(
             outputJoint,
             json_string_value(value));
         }
-      } else if (json_is_string(jointObject)) {
+      } else if(json_is_string(jointObject)) {
         /* otherwise the body is contained within the current assembly */
         outputJoint = s2_stackstr_copy(prefix);
         s2_stackstr_append(

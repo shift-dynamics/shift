@@ -168,7 +168,7 @@ compute a sine-cosine pair (s,c) that servers to form a Jacobi rotation matrix
 inline void s2_symSchur2(s2_mat3x3_t* A, int p, int q, double* cs) {
   if(fabs(s2_mat3x3_get(A, p, q)) > 1e-9) {
     double r = (s2_mat3x3_get(A, q, q) - s2_mat3x3_get(A, p, p)) /
-      (2.0 * s2_mat3x3_get(A, p, q));
+               (2.0 * s2_mat3x3_get(A, p, q));
     double t;
     if(r >= 0.0) {
       t = 1.0f / (r + sqrt(1.0f + r * r));
@@ -357,7 +357,7 @@ bool s2_sphere_collisionLocal(s2_sphere_t* a, s2_sphere_t* b) {
 @brief update sphere's global centroid
 */
 void s2_sphere_updateCentroid(s2_sphere_t* s) {
-  if(!s->parentBody){
+  if(!s->parentBody) {
     return;
   }
 
@@ -407,8 +407,8 @@ void s2_sphere_approximateMinBoundSphere(
     if(convexhull->vertexCount == 1) {
       sphere->radius = 0;
       sphere->centerLocal = s2_vectorFromFloatArrayAtIndex(
-        convexhull->vertices,
-        0);
+                              convexhull->vertices,
+                              0);
       return;
     }
 

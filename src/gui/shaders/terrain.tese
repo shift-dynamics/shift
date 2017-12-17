@@ -2,12 +2,14 @@
 /* terrain.tese */
 
 layout (quads, fractional_odd_spacing) in;
+
 layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
-layout (binding = 1) uniform sampler2D texture_elevation_u;
-layout (binding = 2) uniform sampler2D texture_diffuse_u;
-layout (binding = 3) uniform sampler2D texture_normal_u;
-layout (binding = 4) uniform sampler2D texture_specular_u;
-layout (binding = 5) uniform sampler2D texture_bump_u;
+layout (binding = 1) uniform samplerCubeArrayShadow texture_shadowCube_u;
+layout (binding = 2) uniform sampler2D texture_elevation_u;
+layout (binding = 3) uniform sampler2D texture_diffuse_u;
+layout (binding = 4) uniform sampler2D texture_normal_u;
+layout (binding = 5) uniform sampler2D texture_specular_u;
+layout (binding = 6) uniform sampler2D texture_bump_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -28,15 +30,29 @@ uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
+  vec3 direction[10];
   vec3 Ka[10];
   vec3 Kd[10];
   vec3 Ks[10];
-  int directional[10];
+  int type[10]; /*!< 0 = point, 1 = directional */
   int count;
-  int drawShadows;           /*!< 0 = false, 1 = true */
+  int drawShadows; /*!< 0 = false, 1 = true */
   mat4 shadowMatrix[10];
+  mat4 shadowMatrixCube[10][6];
 };
 uniform lights_t lights_u;
+
+struct spotlights_t {
+  vec3 position[10];
+  vec3 direction[10];
+  vec3 Ka[10];
+  vec3 Kd[10];
+  vec3 Ks[10];
+  int count;
+  int drawShadows;
+  mat4 shadowMatrix[10];
+}
+uniform spotlights_t spotlights_u;
 
 struct terrain_t {
   float zMin;
@@ -136,14 +152,15 @@ void main(void) {
     vec3 bitangent = mat3(matrices_u.nm) * normalize(vec3(0.0, -1.0, -ty));
     for(int i = 0; i < lights_u.count; i++) {
       vec3 L;
-      switch(lights_u.directional[i]) {
-        case 0: { /* point light */
+      switch(lights_u.type[i]) {
+        case 0:    /* point light */
+        case 1: {  /* spot light */
           vec3 temp = (matrices_u.v * vec4(lights_u.position[i], 1.0)).xyz;
           temp -= position_cameraSpace.xyz;
           L = normalize(temp);
         } break;
-        case 1: { /* directional light */
-          L = normalize(mat3(matrices_u.v) * lights_u.position[i]);
+        case 2: { /* directional light */
+          L = normalize(mat3(matrices_u.v) * lights_u.direction[i]);
         } break;
       }
       tes_out.light_direction_tangentSpace[i] =

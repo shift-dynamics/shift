@@ -25,9 +25,9 @@ SUCH DAMAGE.
 
 #include <stdarg.h>
 #ifdef __APPLE__
-  #include <OpenGL/OpenGL.h>
+#include <OpenGL/OpenGL.h>
 #else
-  #include <GL/gl.h>
+#include <GL/gl.h>
 #endif
 
 #include "kinematics.h"

@@ -433,11 +433,11 @@ void s2_displacement_print(
   s2_displacement_t* Di) {
 
   fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-    Di->R.m00, Di->R.m01, Di->R.m02, Di->T.x);
+          Di->R.m00, Di->R.m01, Di->R.m02, Di->T.x);
   fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-    Di->R.m10, Di->R.m11, Di->R.m12, Di->T.y);
+          Di->R.m10, Di->R.m11, Di->R.m12, Di->T.y);
   fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-    Di->R.m20, Di->R.m21, Di->R.m22, Di->T.z);
+          Di->R.m20, Di->R.m21, Di->R.m22, Di->T.z);
   fprintf(f, "  ");
   for(int i = 0; i < 3; i++) {
     fprintf(f, " 0.000000000 ");
@@ -461,13 +461,13 @@ void s2_mat4x4_print(
   s2_mat4x4_t* Di) {
 
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m00, Di->m01, Di->m02, Di->m03);
+          Di->m00, Di->m01, Di->m02, Di->m03);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m10, Di->m11, Di->m12, Di->m13);
+          Di->m10, Di->m11, Di->m12, Di->m13);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m20, Di->m21, Di->m22, Di->m23);
+          Di->m20, Di->m21, Di->m22, Di->m23);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m30, Di->m31, Di->m32, Di->m33);
+          Di->m30, Di->m31, Di->m32, Di->m33);
 }
 
 /*!
@@ -486,13 +486,13 @@ void s2_mat4x4f_print(
   s2_mat4x4f_t* Di) {
 
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m00, Di->m01, Di->m02, Di->m03);
+          Di->m00, Di->m01, Di->m02, Di->m03);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m10, Di->m11, Di->m12, Di->m13);
+          Di->m10, Di->m11, Di->m12, Di->m13);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m20, Di->m21, Di->m22, Di->m23);
+          Di->m20, Di->m21, Di->m22, Di->m23);
   fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-    Di->m30, Di->m31, Di->m32, Di->m33);
+          Di->m30, Di->m31, Di->m32, Di->m33);
 }
 
 /*!
@@ -608,7 +608,7 @@ void s2_triangb_print(
   for(int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
     for(int j = 0; j < i + 1; j++) {
-      fprintf(f, "%s ", a[i_s + j] ? "1":"0");
+      fprintf(f, "%s ", a[i_s + j] ? "1" : "0");
     }
     fprintf(f, "\n");
   }
@@ -1203,11 +1203,11 @@ inline double s2_dot_vv(
   s2_vector_t* vi1) {
 
   return cblas_ddot(
-    3,
-    (double*)vi0,
-    1,
-    (double*)vi1,
-    1);
+           3,
+           (double*)vi0,
+           1,
+           (double*)vi1,
+           1);
 }
 
 
@@ -1224,11 +1224,11 @@ inline double s2_dot_vvf(
   s2_vectorf_t* vi1) {
 
   return cblas_sdot(
-    3,
-    (float*)vi0,
-    1,
-    (float*)vi1,
-    1);
+           3,
+           (float*)vi0,
+           1,
+           (float*)vi1,
+           1);
 }
 
 
@@ -1245,11 +1245,11 @@ inline double s2_dot_ss(
   s2_screw_t* vi1) {
 
   return cblas_ddot(
-    6,
-    (double*)vi0,
-    1,
-    (double*)vi1,
-    1);
+           6,
+           (double*)vi0,
+           1,
+           (double*)vi1,
+           1);
 }
 
 /*!
@@ -1265,11 +1265,11 @@ inline double s2_dot_ssf(
   s2_screwf_t* vi1) {
 
   return cblas_sdot(
-    6,
-    (float*)vi0,
-    1,
-    (float*)vi1,
-    1);
+           6,
+           (float*)vi0,
+           1,
+           (float*)vi1,
+           1);
 }
 
 
@@ -3460,7 +3460,7 @@ is equivalent to:
 */
 inline void s2_product_rtyf(
   s2_mat3x3f_t* ri,
-  float *ti,
+  float* ti,
   s2_vectorf_t* to) {
 
   memset(to, 0, 3 * sizeof(float));
@@ -3528,7 +3528,7 @@ is equivalent to:
 */
 inline void s2_product_rtyinversef(
   s2_mat3x3f_t* ri,
-  float *ti,
+  float* ti,
   s2_vectorf_t* to) {
 
   memset(to, 0, 3 * sizeof(float));
@@ -4813,7 +4813,7 @@ Computes the result of a general displacement, followed by a primitive
 */
 inline void s2_product_dtyinverse(
   s2_displacement_t* Di,
-  double *ti,
+  double* ti,
   s2_displacement_t* Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
@@ -4844,7 +4844,7 @@ Computes the result of a general displacement, followed by a primitive
 */
 inline void s2_product_dtyinversef(
   s2_displacementf_t* Di,
-  float *ti,
+  float* ti,
   s2_displacementf_t* Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
@@ -6240,13 +6240,13 @@ inline void s2_coscrewproduct_dtsinversef(
   s2_screwf_invert(si, &temp);
   s2_coscrewproduct_dtsf(ti, &temp, so);
 
-    /* previously was */
-    // s2_screwf_copy(si, so);
-    //
-    // /* wo -= w1 x w2 */
-    // so->m3 -= ti->y * si->m2 - ti->z * si->m1;
-    // so->m4 -= ti->z * si->m0 - ti->x * si->m2;
-    // so->m5 -= ti->x * si->m1 - ti->y * si->m0;
+  /* previously was */
+  // s2_screwf_copy(si, so);
+  //
+  // /* wo -= w1 x w2 */
+  // so->m3 -= ti->y * si->m2 - ti->z * si->m1;
+  // so->m4 -= ti->z * si->m0 - ti->x * si->m2;
+  // so->m5 -= ti->x * si->m1 - ti->y * si->m0;
 }
 
 /*!
@@ -6402,10 +6402,10 @@ void s2_mat3x3_toQuaternion(
   s2_mat3x3_t* ri,
   s2_quaternion_t* qo) {
 
-  if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
+  if(fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
     double p;
     // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
-    if ((p = ri->m00 + ri->m11 + ri->m22) > 0) {
+    if((p = ri->m00 + ri->m11 + ri->m22) > 0) {
 
       // Now p = 2|e0| > 1
       p = sqrt(p + 1);
@@ -6425,7 +6425,7 @@ void s2_mat3x3_toQuaternion(
     }
 
     // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-    else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+    else if((p = ri->m00 - ri->m11 - ri->m22) > 0) {
       // Now p = 2|e1| > 1
       p = sqrt(p + 1);
 
@@ -6441,7 +6441,7 @@ void s2_mat3x3_toQuaternion(
     }
 
     // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-    else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+    else if((p = ri->m11 - ri->m00 - ri->m22) > 0) {
       // Now p = 2|e2| > 1
       p = sqrt(p + 1);
 
@@ -6507,86 +6507,86 @@ void s2_mat3x3f_toQuaternion(
   s2_mat3x3f_t* ri,
   s2_quaternionf_t* qo) {
 
-    if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
-      double p;
-      // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
-      if ((p = ri->m00 + ri->m11 + ri->m22) > 0) {
+  if(fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
+    double p;
+    // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
+    if((p = ri->m00 + ri->m11 + ri->m22) > 0) {
 
-        // Now p = 2|e0| > 1
-        p = sqrt(p + 1);
+      // Now p = 2|e0| > 1
+      p = sqrt(p + 1);
 
-        // If (2|e0| - 2er0) > 1, then p = 2|e0| has the wrong sign.
-        // if ( p - ER[0] - ER[0] > 1 ) p = -p; // 2e0
+      // If (2|e0| - 2er0) > 1, then p = 2|e0| has the wrong sign.
+      // if ( p - ER[0] - ER[0] > 1 ) p = -p; // 2e0
 
-        qo->w = p / 2; // e0
-        p = p + p;     // 4e0
+      qo->w = p / 2; // e0
+      p = p + p;     // 4e0
 
-        qo->x =
-          (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) / p; // e1 = 4e0e1/4e0
-        qo->y =
-          (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) / p; // e2 = 4e0e2/4e0
-        qo->z =
-          (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) / p; // e3 = 4e0e3/4e0
-      }
-
-      // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-      else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
-        // Now p = 2|e1| > 1
-        p = sqrt(p + 1);
-
-        // If (2|e1| - 2er1) > 1, then p = 2|e1| has the wrong sign.
-        // if ( p - ER[1] - ER[1] > 1 ) p = -p; // 2e1
-
-        qo->x = p / 2; // e1
-        p = p + p;     // 4e1
-
-        qo->w = (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) / p; // e0 = 4e0e1/4e1
-        qo->y = (((float*)ri)[1 + 0 * 3] + ((float*)ri)[0 + 1 * 3]) / p; // e2 = 4e1e2/4e1
-        qo->z = (((float*)ri)[2 + 0 * 3] + ((float*)ri)[0 + 2 * 3]) / p; // e3 = 4e3e1/4e1
-      }
-
-      // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-      else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
-        // Now p = 2|e2| > 1
-        p = sqrt(p + 1);
-
-        // If (2|e2| - 2er2) > 1, then p = 2|e2| has the wrong sign.
-        // if ( p - ER[2] - ER[2] > 1 ) p = -p; // 2e2
-
-        qo->y = p / 2; // e2
-        p = p + p;     // 4e2
-
-        qo->w = (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) / p; // e0 = 4e0e2/4e2
-        qo->x = (((float*)ri)[0 + 1 * 3] + ((float*)ri)[1 + 0 * 3]) / p; // e1 = 4e1e2/4e2
-        qo->z = (((float*)ri)[1 + 2 * 3] + ((float*)ri)[2 + 1 * 3]) / p; // e3 = 4e2e3/4e2
-      }
-
-      // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
-      else {
-        p = ri->m22 - ri->m00 - ri->m11;
-
-        // Now p = 2|e3| > 1
-        p = sqrt(p + 1);
-
-        // If (2|e3| - 2er3) > 1, then p = 2|e3| has the wrong sign.
-        // if ( p - ER[3] - ER[3] > 1 ) p = -p; // 2e3
-
-        qo->z = p / 2; // e3
-        p = p + p;     // 4e3
-
-        qo->w = (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) / p; // e0 = 4e0e3/4e3
-        qo->x = (((float*)ri)[0 + 2 * 3] + ((float*)ri)[2 + 0 * 3]) / p; // e1 = 4e3e1/4e3
-        qo->y = (((float*)ri)[2 + 1 * 3] + ((float*)ri)[1 + 2 * 3]) / p; // e2 = 4e2e3/4e3
-      }
+      qo->x =
+        (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) / p; // e1 = 4e0e1/4e0
+      qo->y =
+        (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) / p; // e2 = 4e0e2/4e0
+      qo->z =
+        (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) / p; // e3 = 4e0e3/4e0
     }
 
+    // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
+    else if((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+      // Now p = 2|e1| > 1
+      p = sqrt(p + 1);
+
+      // If (2|e1| - 2er1) > 1, then p = 2|e1| has the wrong sign.
+      // if ( p - ER[1] - ER[1] > 1 ) p = -p; // 2e1
+
+      qo->x = p / 2; // e1
+      p = p + p;     // 4e1
+
+      qo->w = (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) / p; // e0 = 4e0e1/4e1
+      qo->y = (((float*)ri)[1 + 0 * 3] + ((float*)ri)[0 + 1 * 3]) / p; // e2 = 4e1e2/4e1
+      qo->z = (((float*)ri)[2 + 0 * 3] + ((float*)ri)[0 + 2 * 3]) / p; // e3 = 4e3e1/4e1
+    }
+
+    // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
+    else if((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+      // Now p = 2|e2| > 1
+      p = sqrt(p + 1);
+
+      // If (2|e2| - 2er2) > 1, then p = 2|e2| has the wrong sign.
+      // if ( p - ER[2] - ER[2] > 1 ) p = -p; // 2e2
+
+      qo->y = p / 2; // e2
+      p = p + p;     // 4e2
+
+      qo->w = (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) / p; // e0 = 4e0e2/4e2
+      qo->x = (((float*)ri)[0 + 1 * 3] + ((float*)ri)[1 + 0 * 3]) / p; // e1 = 4e1e2/4e2
+      qo->z = (((float*)ri)[1 + 2 * 3] + ((float*)ri)[2 + 1 * 3]) / p; // e3 = 4e2e3/4e2
+    }
+
+    // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
     else {
-      qo->w = 0.5;
-      qo->x = copysign(0.5, ((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]);
-      qo->y = copysign(0.5, ((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]);
-      qo->z = copysign(0.5, ((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]);
+      p = ri->m22 - ri->m00 - ri->m11;
+
+      // Now p = 2|e3| > 1
+      p = sqrt(p + 1);
+
+      // If (2|e3| - 2er3) > 1, then p = 2|e3| has the wrong sign.
+      // if ( p - ER[3] - ER[3] > 1 ) p = -p; // 2e3
+
+      qo->z = p / 2; // e3
+      p = p + p;     // 4e3
+
+      qo->w = (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) / p; // e0 = 4e0e3/4e3
+      qo->x = (((float*)ri)[0 + 2 * 3] + ((float*)ri)[2 + 0 * 3]) / p; // e1 = 4e3e1/4e3
+      qo->y = (((float*)ri)[2 + 1 * 3] + ((float*)ri)[1 + 2 * 3]) / p; // e2 = 4e2e3/4e3
     }
-    return;
+  }
+
+  else {
+    qo->w = 0.5;
+    qo->x = copysign(0.5, ((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]);
+    qo->y = copysign(0.5, ((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]);
+    qo->z = copysign(0.5, ((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]);
+  }
+  return;
 }
 
 /*!
@@ -6617,7 +6617,7 @@ void s2_quaternion_toMat3x3(
   double y2 = qi->y * qi->y;
   double z2 = qi->z * qi->z;
 
-  ro->m00 = ( x2 - y2 - z2 + w2);
+  ro->m00 = (x2 - y2 - z2 + w2);
   ro->m11 = (-x2 + y2 - z2 + w2);
   ro->m22 = (-x2 - y2 + z2 + w2);
 
@@ -6665,7 +6665,7 @@ void s2_quaternionf_toMat3x3f(
   float y2 = qi->y * qi->y;
   float z2 = qi->z * qi->z;
 
-  ro->m00 = ( x2 - y2 - z2 + w2);
+  ro->m00 = (x2 - y2 - z2 + w2);
   ro->m11 = (-x2 + y2 - z2 + w2);
   ro->m22 = (-x2 - y2 + z2 + w2);
 
@@ -6708,7 +6708,7 @@ void s2_quaternion_slerp(
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if (fabs(cosHalfTheta) >= 1.0){
+  if(fabs(cosHalfTheta) >= 1.0) {
     cblas_dcopy(4, (double*)q1i, 1, (double*)qo, 1);
     return;
   }
@@ -6720,7 +6720,7 @@ void s2_quaternion_slerp(
     we could rotate around any axis normal to q1i or q2i
   */
   memset(qo, 0, 4 * sizeof(double));
-  if (fabs(sinHalfTheta) < 0.001){ // fabs is floating point absolute
+  if(fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
     cblas_daxpy(4, 0.5, (double*)q1i, 1, (double*)qo, 1);
     cblas_daxpy(4, 0.5, (double*)q2i, 1, (double*)qo, 1);
     return;
@@ -6750,7 +6750,7 @@ specific information on the algorithm.
 void s2_quaternionf_slerp(
   s2_quaternionf_t* q1i,
   s2_quaternionf_t* q2i,
-  float *t,
+  float* t,
   s2_quaternionf_t* qo) {
 
   float cosHalfTheta = cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1);
@@ -6758,7 +6758,7 @@ void s2_quaternionf_slerp(
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if (fabs(cosHalfTheta) >= 1.0){
+  if(fabs(cosHalfTheta) >= 1.0) {
     cblas_scopy(4, (float*)q1i, 1, (float*)qo, 1);
     return;
   }
@@ -6770,7 +6770,7 @@ void s2_quaternionf_slerp(
     we could rotate around any axis normal to q1i or q2i
   */
   memset(qo, 0, 4 * sizeof(double));
-  if (fabs(sinHalfTheta) < 0.001){ // fabs is floating point absolute
+  if(fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
     cblas_saxpy(4, 0.5, (float*)q1i, 1, (float*)qo, 1);
     cblas_saxpy(4, 0.5, (float*)q2i, 1, (float*)qo, 1);
     return;
@@ -6814,7 +6814,9 @@ void s2_quaternion_nlerp(
   double alpha = 1.0f - *t;
   double omega = *t;
 
-  if(cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1) < 0) omega = -omega;
+  if(cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1) < 0) {
+    omega = -omega;
+  }
   /*
     simple interpolation doesn't yield quaternions of unit length,
     so must normalize before returning to user
@@ -6853,7 +6855,9 @@ void s2_quaternionf_nlerp(
   float alpha = 1.0f - *t;
   float omega = *t;
 
-  if(cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1) < 0) omega = -omega;
+  if(cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1) < 0) {
+    omega = -omega;
+  }
   memset(qo, 0, 4 * sizeof(float));
   cblas_saxpy(4, alpha, (float*)q1i, 1, (float*)qo, 1);
   cblas_saxpy(4, omega, (float*)q2i, 1, (float*)qo, 1);
@@ -6875,8 +6879,12 @@ Utilities to for normalizing radians and degrees
 double s2_normalizeDegrees(
   double angle) {
 
-  while(angle < 0) angle += 360;
-  while(angle > 360) angle -= 360;
+  while(angle < 0) {
+    angle += 360;
+  }
+  while(angle > 360) {
+    angle -= 360;
+  }
   return angle;
 }
 
@@ -6888,8 +6896,12 @@ double s2_normalizeDegrees(
 float s2_normalizeDegreesf(
   float angle) {
 
-  while(angle < 0) angle += 360;
-  while(angle > 360) angle -= 360;
+  while(angle < 0) {
+    angle += 360;
+  }
+  while(angle > 360) {
+    angle -= 360;
+  }
   return angle;
 }
 
@@ -6901,8 +6913,12 @@ float s2_normalizeDegreesf(
 double s2_normalizeRadians(
   double angle) {
 
-  while(angle < 0) angle += (2 * M_PI);
-  while(angle > 2 * M_PI) angle -= (2 * M_PI);
+  while(angle < 0) {
+    angle += (2 * M_PI);
+  }
+  while(angle > 2 * M_PI) {
+    angle -= (2 * M_PI);
+  }
   return angle;
 }
 
@@ -6914,8 +6930,12 @@ double s2_normalizeRadians(
 float s2_normalizeRadiansf(
   float angle) {
 
-  while(angle < 0) angle += (2 * M_PI);
-  while(angle > 2 * M_PI) angle -= (2 * M_PI);
+  while(angle < 0) {
+    angle += (2 * M_PI);
+  }
+  while(angle > 2 * M_PI) {
+    angle -= (2 * M_PI);
+  }
   return angle;
 }
 
@@ -6961,8 +6981,9 @@ double catan2pi(
   /*
     Decrement the angle until it is below this upper limit if necessary.
   */
-  while (temp > a)
-  temp -= (2 * M_PI);
+  while(temp > a) {
+    temp -= (2 * M_PI);
+  }
 
   /*
     Or temp may be a 2*pi increment below the desired angle.
@@ -6973,8 +6994,9 @@ double catan2pi(
 
   // Increment the angle until it is above this lower limit if necessary.
 
-  while (temp < a)
-  temp += (2 * M_PI);
+  while(temp < a) {
+    temp += (2 * M_PI);
+  }
 
   /*
     Now the true angle is bracketed by theta - pi/4 and theta + pi/4.
@@ -7026,8 +7048,9 @@ double catan1pi(
   /*
     Decrement the angle until it is below this upper limit if necessary.
   */
-  while (temp > a)
-  temp -= M_PI;
+  while(temp > a) {
+    temp -= M_PI;
+  }
 
   /*
     Or temp may be one or more pi increments below the desired angle.
@@ -7039,8 +7062,9 @@ double catan1pi(
   /*
     Increment the angle until it is above this lower limit if necessary.
   */
-  while (temp < a)
-  temp += M_PI;
+  while(temp < a) {
+    temp += M_PI;
+  }
 
   /*
     Now the true angle is bracketed by theta - pi/4 and theta + pi/4.
@@ -7087,62 +7111,74 @@ void s2_mat3x3_getEulerAngles(
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 2;
-    } break;
+    }
+    break;
     case YZX: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 0;
-    } break;
+    }
+    break;
     case ZXY: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 2;
-    } break;
+    }
+    break;
     case XZY: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 1;
-    } break;
+    }
+    break;
     case YXZ: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 2;
-    } break;
+    }
+    break;
     case ZYX: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case XYX: {
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case XZX: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 0;
-    }break;
+    }
+    break;
     case YXY: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 1;
-    }break;
+    }
+    break;
     case YZY: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 1;
-    }break;
+    }
+    break;
     case ZXZ: {
       axis[0] = 2;
       axis[1] = 0;
       axis[2] = 2;
-    }break;
+    }
+    break;
     case ZYZ: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 2;
-    }break;
+    }
+    break;
     default: {
       axis[0] = 0;
       axis[1] = 1;
@@ -7170,18 +7206,19 @@ void s2_mat3x3_getEulerAngles(
     convert column major s2_mat3x3_t matrix to row major
   */
   double ri[3][3] = {{rin->m00, rin->m01, rin->m02},
-                     {rin->m10, rin->m11, rin->m12},
-                     {rin->m20, rin->m21, rin->m22}};
+    {rin->m10, rin->m11, rin->m12},
+    {rin->m20, rin->m21, rin->m22}
+  };
 
 
-  if (j == f[i]) {  // Identifies Cases 1 and 3: forward cycle i --> j
-    if (k != i) {//forward cycle j --> k
+  if(j == f[i]) {   // Identifies Cases 1 and 3: forward cycle i --> j
+    if(k != i) { //forward cycle j --> k
       // Case 1: 0 --> 1 --> 2; 1 --> 2 --> 0; 2 --> 0 --> 1
       angles->y = catan1pi(-ri[i][j], ri[i][i], angles->y);
       c = cos(angles->y);
       s = sin(angles->y);
-      angles->x = catan2pi(ri[k][j]*c + ri[k][i]*s, ri[j][j]*c + ri[j][i]*s, angles->x);
-      angles->y = catan2pi(ri[i][k], ri[i][i]*c - ri[i][j]*s, angles->y);
+      angles->x = catan2pi(ri[k][j] * c + ri[k][i] * s, ri[j][j] * c + ri[j][i] * s, angles->x);
+      angles->y = catan2pi(ri[i][k], ri[i][i] * c - ri[i][j] * s, angles->y);
     } else { // k == i; reverse cycle j --> i
       // Case 3: 0 --> 1 --> 0; 1 --> 2 --> 1; 2 --> 0 --> 2
       // Reset k for correct index into direction cosine matrix.
@@ -7189,17 +7226,17 @@ void s2_mat3x3_getEulerAngles(
       angles->z = catan1pi(ri[i][j], ri[i][k], angles->z);
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(ri[k][j]*c - ri[k][k]*s, ri[j][j]*c - ri[j][k]*s, angles->x);
-      angles->y = catan2pi(ri[i][k]*c + ri[i][j]*s, ri[i][i], angles->y);
+      angles->x = catan2pi(ri[k][j] * c - ri[k][k] * s, ri[j][j] * c - ri[j][k] * s, angles->x);
+      angles->y = catan2pi(ri[i][k] * c + ri[i][j] * s, ri[i][i], angles->y);
     }
   } else { // Cases 2 and 4: reverse cycle i --> j
-    if (k != i) { //reverse cycle j --> k
+    if(k != i) {  //reverse cycle j --> k
       // Case 2: 0 --> 2 --> 1; 1 --> 0 --> 2; 2 --> 1 --> 0
       angles->z = catan1pi(ri[i][j], ri[i][i], angles->z);
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(-(ri[k][j]*c - ri[k][i]*s), ri[j][j]*c - ri[j][i]*s, angles->x);
-      angles->y = catan2pi(-ri[i][k], ri[i][i]*c + ri[i][j]*s, angles->y);
+      angles->x = catan2pi(-(ri[k][j] * c - ri[k][i] * s), ri[j][j] * c - ri[j][i] * s, angles->x);
+      angles->y = catan2pi(-ri[i][k], ri[i][i] * c + ri[i][j] * s, angles->y);
     } else {// k == i; forward cycle j --> i
       // Case 4: 0 --> 2 --> 0; 1 --> 0 --> 1; 2 --> 1 --> 2
       // Reset k for correct index into direction cosine matrix.
@@ -7207,8 +7244,8 @@ void s2_mat3x3_getEulerAngles(
       angles->z = catan1pi(-ri[i][j], ri[i][k], angles->z);
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(-(ri[k][j]*c + ri[k][k]*s), ri[j][j]*c + ri[j][k]*s, angles->x);
-      angles->y = catan2pi(-(ri[i][k]*c - ri[i][j]*s), ri[i][i], angles->y);
+      angles->x = catan2pi(-(ri[k][j] * c + ri[k][k] * s), ri[j][j] * c + ri[j][k] * s, angles->x);
+      angles->y = catan2pi(-(ri[i][k] * c - ri[i][j] * s), ri[i][i], angles->y);
     }
   }
 }
@@ -7249,7 +7286,7 @@ double s2_mat3x3_getScalar(
 */
 void s2_mat4x4_getTranslation(
   s2_mat4x4_t* Mi,
-  s2_vector_t* to ) {
+  s2_vector_t* to) {
 
   cblas_dcopy(3, (double*)Mi + 12, 1, (double*)to, 1);
 }
@@ -7259,7 +7296,7 @@ void s2_mat4x4_getTranslation(
 */
 void s2_mat4x4f_getTranslation(
   s2_mat4x4f_t* Mi,
-  s2_vectorf_t* to ) {
+  s2_vectorf_t* to) {
 
   cblas_scopy(3, (float*)Mi + 12, 1, (float*)to, 1);
 }
@@ -7277,7 +7314,7 @@ void s2_add_dpiToq(
   dq.y = -qi->z * dpi->x - qi->w * dpi->y + qi->x * dpi->z;
   dq.z = qi->y * dpi->x - qi->x * dpi->y - qi->w * dpi->z;
   dq.w = -qi->x * dpi->x - qi->y * dpi->y - qi->z * dpi->z;
-  cblas_daxpy(4, 0.5, (double *)&dq, 1, (double *)qi, 1);
+  cblas_daxpy(4, 0.5, (double*)&dq, 1, (double*)qi, 1);
 }
 
 
@@ -7294,7 +7331,7 @@ void s2_subtract_dpiFromq(
   dq.y = -qi->z * dpi->x - qi->w * dpi->y + qi->x * dpi->z;
   dq.z = qi->y * dpi->x - qi->x * dpi->y - qi->w * dpi->z;
   dq.w = -qi->x * dpi->x - qi->y * dpi->y - qi->z * dpi->z;
-  cblas_daxpy(4, -0.5, (double *)&dq, 1, (double *)qi, 1);
+  cblas_daxpy(4, -0.5, (double*)&dq, 1, (double*)qi, 1);
 }
 
 

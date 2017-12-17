@@ -6,9 +6,7 @@
     <file alias="simple.frag">shaders/simple.frag</file>
     <file alias="simple.vert">shaders/simple.vert</file>
 
-    <file alias="flat.frag">shaders/flat.frag</file>
-    <file alias="flat.geom">shaders/flat.geom</file>
-    <file alias="flat.vert">shaders/flat.vert</file>
+    <file alias="flat.glsl">shaders/flat.glsl</file>
 
     <file alias="vertex_normal.frag">shaders/vertex_normal.frag</file>
     <file alias="vertex_normal.geom">shaders/vertex_normal.geom</file>

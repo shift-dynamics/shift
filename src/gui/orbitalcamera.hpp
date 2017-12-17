@@ -12,15 +12,15 @@ class RenderWindow;
 
 
 enum class OrbitalCameraMode : int {
-    None = 0x00,
-    Translate = 0x01,
-    Rotate = 0x02,
-    Scale = 0x04
+  None = 0x00,
+  Translate = 0x01,
+  Rotate = 0x02,
+  Scale = 0x04
 };
 
 class s2_OrbitalCamera {
 
-public:
+  public:
 
     s2_OrbitalCamera(RenderWindow* renderWindow) {
       m_renderWindow = renderWindow;
@@ -31,24 +31,24 @@ public:
       m_lookMat.setToIdentity();
     }
 
-    void setLookAt(const QVector3D &pos, const QVector3D& to, const QVector3D &up) {
-        m_lookMat.setToIdentity();
-        m_lookMat.lookAt(pos, to, up);
-        update();
+    void setLookAt(const QVector3D& pos, const QVector3D& to, const QVector3D& up) {
+      m_lookMat.setToIdentity();
+      m_lookMat.lookAt(pos, to, up);
+      update();
     }
 
     void setPerspective(float fov, float aspect, float nearClip, float farClip) {
-        m_projMat.setToIdentity();
-        m_projMat.perspective(fov, aspect, nearClip, farClip);
-        update();
+      m_projMat.setToIdentity();
+      m_projMat.perspective(fov, aspect, nearClip, farClip);
+      update();
     }
 
     void setOrtho(
       float left, float right, float bottom, float top,
-                  float nearClip, float farClip) {
-        m_projMat.setToIdentity();
-        m_projMat.ortho(left, right, bottom, top, nearClip, farClip);
-        update();
+      float nearClip, float farClip) {
+      m_projMat.setToIdentity();
+      m_projMat.ortho(left, right, bottom, top, nearClip, farClip);
+      update();
     }
 
     void update();
@@ -93,31 +93,31 @@ public:
       m_scroll = scroll;
     }
 
-    void mousePressEvent(QMouseEvent *ev) {
+    void mousePressEvent(QMouseEvent* ev) {
       setOldPoint(ev->pos());
       setNewPoint(ev->pos());
-      if (ev->button() == Qt::LeftButton) {
+      if(ev->button() == Qt::LeftButton) {
         setMode(OrbitalCameraMode::Rotate);
-      } else if (ev->button() == Qt::RightButton) {
+      } else if(ev->button() == Qt::RightButton) {
         setMode(OrbitalCameraMode::Translate);
-      } else if (ev->button() == Qt::MiddleButton) {
+      } else if(ev->button() == Qt::MiddleButton) {
         setMode(OrbitalCameraMode::Scale);
       }
     }
 
-    void mouseMoveEvent(QMouseEvent *ev) {
+    void mouseMoveEvent(QMouseEvent* ev) {
       setNewPoint(ev->pos());
       update();
       setOldPoint(ev->pos());
     }
 
-    void mouseReleaseEvent(QMouseEvent *ev) {
+    void mouseReleaseEvent(QMouseEvent* ev) {
       setMode(OrbitalCameraMode::None);
     }
 
-    void wheelEvent(QWheelEvent *ev);
+    void wheelEvent(QWheelEvent* ev);
 
-private:
+  private:
     QVector3D getVector(int x, int y);
 
     void updateTranslate();

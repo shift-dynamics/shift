@@ -18,6 +18,8 @@ void TerrainShaderProgram::initialize() {
 
     /* texture uniform locations */
     m_texture_shadow_u = m_program->uniformLocation("texture_shadow_u");
+    m_texture_shadowCube_u =
+      m_program->uniformLocation("texture_shadowCube_u");
     m_texture_elevation_u = m_program->uniformLocation("texture_elevation_u");
     m_texture_diffuse_u = m_program->uniformLocation("texture_diffuse_u");
     m_texture_normal_u = m_program->uniformLocation("texture_normal_u");
@@ -179,8 +181,8 @@ void TerrainShaderProgram::setViewPort(GLfloat vp1, GLfloat vp2) {
 */
 void TerrainShaderProgram::setTextureElevation(QOpenGLTexture* tex) {
   if(tex) {
-    tex->bind(1);
-    m_program->setUniformValue(m_texture_elevation_u, 1);
+    tex->bind(2);
+    m_program->setUniformValue(m_texture_elevation_u, 2);
     checkError("terrain: after set uniform value elevation");
   } else {
     qDebug() << "no elevation texture specified";
@@ -194,8 +196,8 @@ void TerrainShaderProgram::setTextureElevation(QOpenGLTexture* tex) {
 void TerrainShaderProgram::setTextureDiffuse(QOpenGLTexture* tex) {
   if(tex) {
     m_program->setUniformValue(m_terrain_enableDiffuseMap_u, 1);
-    tex->bind(2);
-    m_program->setUniformValue(m_texture_diffuse_u, 2);
+    tex->bind(3);
+    m_program->setUniformValue(m_texture_diffuse_u, 3);
     checkError("terrain: after set uniform value color");
   } else {
     m_program->setUniformValue(m_terrain_enableDiffuseMap_u, 0);
@@ -209,8 +211,8 @@ void TerrainShaderProgram::setTextureDiffuse(QOpenGLTexture* tex) {
 void TerrainShaderProgram::setTextureNormal(QOpenGLTexture* tex) {
   if(tex) {
     m_program->setUniformValue(m_terrain_enableNormalMap_u, 1);
-    tex->bind(3);
-    m_program->setUniformValue(m_texture_normal_u, 3);
+    tex->bind(4);
+    m_program->setUniformValue(m_texture_normal_u, 4);
   } else {
     m_program->setUniformValue(m_terrain_enableNormalMap_u, 0);
   }
@@ -223,8 +225,8 @@ void TerrainShaderProgram::setTextureNormal(QOpenGLTexture* tex) {
 void TerrainShaderProgram::setTextureSpecular(QOpenGLTexture* tex) {
   if(tex) {
     m_program->setUniformValue(m_terrain_enableSpecularMap_u, 1);
-    tex->bind(4);
-    m_program->setUniformValue(m_texture_specular_u, 4);
+    tex->bind(5);
+    m_program->setUniformValue(m_texture_specular_u, 5);
   } else {
     m_program->setUniformValue(m_terrain_enableSpecularMap_u, 0);
   }
@@ -237,8 +239,8 @@ void TerrainShaderProgram::setTextureSpecular(QOpenGLTexture* tex) {
 void TerrainShaderProgram::setTextureBump(QOpenGLTexture* tex) {
   if(tex) {
     m_program->setUniformValue(m_terrain_enableBumpMap_u, 1);
-    tex->bind(5);
-    m_program->setUniformValue(m_texture_bump_u, 5);
+    tex->bind(6);
+    m_program->setUniformValue(m_texture_bump_u, 6);
   } else {
     m_program->setUniformValue(m_terrain_enableBumpMap_u, 0);
   }
@@ -329,8 +331,9 @@ void TerrainShaderProgram::setUniforms(s2_terrain_t* terrain) {
 
 
 /*!
-@brief bind depth buffer to index 0
+@brief bind depth buffers to index 0 and 1
 */
 void TerrainShaderProgram::bindDepthBuffer() {
   m_program->setUniformValue(m_texture_shadow_u, 0);
+  m_program->setUniformValue(m_texture_shadowCube_u, 1);
 }

@@ -23,9 +23,9 @@ SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include <stdbool.h>
 #include "kinematics.h"
@@ -59,7 +59,7 @@ int** s2_arrayi_malloc2D(
 
   pRow[0] = calloc(rows * columns, sizeof(int));
   if(pRow[0] == NULL) {
-    fprintf( stderr,"Error: could not allocate array\n");
+    fprintf(stderr, "Error: could not allocate array\n");
     return NULL;
   }
 
@@ -73,10 +73,12 @@ int** s2_arrayi_malloc2D(
 @brief Free memory for a two dimensional integer array
 
 */
-void s2_arrayi_free2D (
+void s2_arrayi_free2D(
   int** x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x[0]);
   free(x);
   x = NULL;
@@ -89,7 +91,9 @@ void s2_arrayi_free2D (
 void s2_arrayi_free(
   int* x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x);
   x = NULL;
 }
@@ -101,7 +105,9 @@ void s2_arrayi_free(
 void s2_array_free(
   double* x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x);
   x = NULL;
 }
@@ -113,7 +119,9 @@ void s2_array_free(
 void s2_arrayf_free(
   float* x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x);
   x = NULL;
 }
@@ -125,7 +133,9 @@ void s2_arrayf_free(
 void s2_arrayb_free(
   bool* x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x);
   x = NULL;
 }
@@ -137,7 +147,9 @@ void s2_arrayb_free(
 void s2_arrays_free(
   s2_screw_t* x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x);
   x = NULL;
 }
@@ -149,7 +161,9 @@ void s2_arrays_free(
 void s2_arrayd_free(
   s2_displacement_t* x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x);
   x = NULL;
 }
@@ -169,7 +183,7 @@ double** s2_array_malloc2D(
     return NULL;
   }
   double** pRow = malloc(rows * sizeof(double*));
-  if(pRow==NULL) {
+  if(pRow == NULL) {
     fprintf(
       stderr,
       "Error: could not allocate array [%d][%d]\n",
@@ -179,8 +193,8 @@ double** s2_array_malloc2D(
   }
 
   pRow[0] = calloc(rows * columns, sizeof(double));
-  if(pRow[0]==NULL) {
-    fprintf( stderr,"Error: could not allocate array\n");
+  if(pRow[0] == NULL) {
+    fprintf(stderr, "Error: could not allocate array\n");
     return NULL;
   }
 
@@ -206,7 +220,7 @@ float** s2_arrayf_malloc2D(
     return NULL;
   }
   float** pRow = malloc(rows * sizeof(float*));
-  if(pRow==NULL) {
+  if(pRow == NULL) {
     fprintf(
       stderr,
       "Error: could not allocate array [%d][%d]\n",
@@ -216,8 +230,8 @@ float** s2_arrayf_malloc2D(
   }
 
   pRow[0] = calloc(rows * columns, sizeof(float));
-  if(pRow[0]==NULL) {
-    fprintf( stderr,"Error: could not allocate array\n");
+  if(pRow[0] == NULL) {
+    fprintf(stderr, "Error: could not allocate array\n");
     return NULL;
   }
 
@@ -234,7 +248,9 @@ float** s2_arrayf_malloc2D(
 void s2_array_free2D(
   double** x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x[0]);
   free(x);
 }
@@ -246,7 +262,9 @@ void s2_array_free2D(
 void s2_arrayf_free2D(
   float** x) {
 
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x[0]);
   free(x);
 }
@@ -267,7 +285,7 @@ char** s2_arrayc_malloc2D(
     return NULL;
   }
   char** pRow = malloc(rows * sizeof(char*));
-  if(pRow==NULL) {
+  if(pRow == NULL) {
     fprintf(
       stderr,
       "Error: could not allocate array [%d][%d]\n",
@@ -277,8 +295,8 @@ char** s2_arrayc_malloc2D(
   }
 
   pRow[0] = calloc(rows * columns, sizeof(char));
-  if(pRow[0]==NULL) {
-    fprintf( stderr,"Error: could not allocate array\n");
+  if(pRow[0] == NULL) {
+    fprintf(stderr, "Error: could not allocate array\n");
     return NULL;
   }
 
@@ -295,7 +313,9 @@ char** s2_arrayc_malloc2D(
 
 */
 void s2_arrayc_free2D(char** x) {
-  if(x==NULL) return;
+  if(x == NULL) {
+    return;
+  }
   free(x[0]);
   free(x);
 }
@@ -583,7 +603,9 @@ char* s2_getFilePath(
 
   char* temp = strpbrk(fullName, "/");
   char* rootName;
-  if(!temp) return NULL;
+  if(!temp) {
+    return NULL;
+  }
   while(temp != NULL) {
     rootName = temp;
     temp = strpbrk(rootName + 1, "/");
@@ -605,8 +627,10 @@ const char* s2_getFileExtension(
 
   char* temp = strpbrk(fullName, ".");
   char* rootName;
-  if(!temp) return fullName;
-  while(temp!=NULL) {
+  if(!temp) {
+    return fullName;
+  }
+  while(temp != NULL) {
     rootName = temp;
     temp = strpbrk(rootName + 1, ".");
   }

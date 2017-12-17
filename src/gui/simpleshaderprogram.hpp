@@ -37,42 +37,42 @@ class s2_Lights;
 
 class SimpleShaderProgram : public ShaderProgram {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  SimpleShaderProgram(RenderWindow* renderWindow)
-  : ShaderProgram(renderWindow) {
-    initialize();
-  };
+  public:
+    SimpleShaderProgram(RenderWindow* renderWindow)
+      : ShaderProgram(renderWindow) {
+      initialize();
+    };
 
-  ~SimpleShaderProgram() {};
+    ~SimpleShaderProgram() {};
 
-  void initialize();
-  void draw();
-  void setTransform(s2_displacement_t*);
-  void setTransform(QMatrix4x4&);
-  void setColor(GLfloat, GLfloat, GLfloat, GLfloat);
-  void setScale(GLfloat);
+    void initialize();
+    void draw();
+    void setTransform(s2_displacement_t*);
+    void setTransform(QMatrix4x4&);
+    void setColor(GLfloat, GLfloat, GLfloat, GLfloat);
+    void setScale(GLfloat);
 
-  GLint getPositionAttribute() {
-    return m_position_a;
-  };
+    GLint getPositionAttribute() {
+      return m_position_a;
+    };
 
-signals:
-
-
-protected:
+  signals:
 
 
-private:
+  protected:
 
-  /* uniforms */
-  GLint m_mvp_u;
-  GLint m_color_u;
-  GLint m_scale_u;
 
-  /* attributes */
-  GLint m_position_a;
+  private:
+
+    /* uniforms */
+    GLint m_mvp_u;
+    GLint m_color_u;
+    GLint m_scale_u;
+
+    /* attributes */
+    GLint m_position_a;
 
 };
 

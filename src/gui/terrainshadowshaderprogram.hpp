@@ -37,63 +37,63 @@ class s2_Lights;
 
 class TerrainShadowShaderProgram : public ShaderProgram {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  TerrainShadowShaderProgram(RenderWindow* renderWindow)
-  : ShaderProgram(renderWindow) {
-    initialize();
-  };
+  public:
+    TerrainShadowShaderProgram(RenderWindow* renderWindow)
+      : ShaderProgram(renderWindow) {
+      initialize();
+    };
 
-  ~TerrainShadowShaderProgram() {};
+    ~TerrainShadowShaderProgram() {};
 
-  void initialize();
+    void initialize();
 
-  void draw();
+    void draw();
 
-  void setTransform(QMatrix4x4&);
+    void setTransform(QMatrix4x4&);
 
-  void setTransform(s2_displacement_t*);
+    void setTransform(s2_displacement_t*);
 
-  void bindVao() {
-    m_vao->bind();
-  }
+    void bindVao() {
+      m_vao->bind();
+    }
 
-  void releaseVao() {
-    m_vao->release();
-  }
+    void releaseVao() {
+      m_vao->release();
+    }
 
-  void setZExtents(GLfloat, GLfloat);
+    void setZExtents(GLfloat, GLfloat);
 
-  void setScale(GLfloat, GLfloat);
+    void setScale(GLfloat, GLfloat);
 
-  void setViewPort(GLfloat, GLfloat);
+    void setViewPort(GLfloat, GLfloat);
 
-  void setTextureElevation(QOpenGLTexture*);
+    void setTextureElevation(QOpenGLTexture*);
 
-  void setUniforms(s2_terrain_t*);
+    void setUniforms(s2_terrain_t*);
 
-signals:
-
-
-protected:
+  signals:
 
 
-private:
+  protected:
 
-  GLint m_matrices_mvp_u;
-  GLint m_matrices_mv_u;
-  GLint m_matrices_v_u;
-  GLint m_matrices_p_u;
 
-  GLint m_terrain_zMin_u;
-  GLint m_terrain_zMax_u;
-  GLint m_terrain_scale_u;
-  GLint m_terrain_viewport_u;
+  private:
 
-  GLint m_texture_elevation_u;
+    GLint m_matrices_mvp_u;
+    GLint m_matrices_mv_u;
+    GLint m_matrices_v_u;
+    GLint m_matrices_p_u;
 
-  QOpenGLVertexArrayObject* m_vao;
+    GLint m_terrain_zMin_u;
+    GLint m_terrain_zMax_u;
+    GLint m_terrain_scale_u;
+    GLint m_terrain_viewport_u;
+
+    GLint m_texture_elevation_u;
+
+    QOpenGLVertexArrayObject* m_vao;
 
 };
 

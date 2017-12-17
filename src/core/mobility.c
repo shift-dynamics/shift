@@ -82,7 +82,8 @@ void s2_mobility_print_substructure(
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         s2_stackstr_print(f, joint->name);
         i++;
-      } break;
+      }
+      break;
       case S2_JOINT_SPHERICAL: {
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         s2_stackstr_print(f, joint->name);
@@ -91,7 +92,8 @@ void s2_mobility_print_substructure(
         i++;
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         i++;
-      } break;
+      }
+      break;
       case S2_JOINT_FLOAT: {
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         s2_stackstr_print(f, joint->name);
@@ -106,11 +108,13 @@ void s2_mobility_print_substructure(
         i++;
         fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
         i++;
-      } break;
+      }
+      break;
       default: {
         fprintf(f, "  [%d] m=0 ", i);
         s2_stackstr_print(f, joint->name);
-      } break;
+      }
+      break;
     }
   }
 }
@@ -311,7 +315,7 @@ void s2_mobility_compute(
       context->substructures + i);
 
     s2_jacobian_setBMatrix_substructure(
-        context->substructures + i);
+      context->substructures + i);
 
     s2_mobility_compute_substructure(
       context->substructures + i);

@@ -8,9 +8,9 @@ Utilities to perform newton raphson iteration to remove constraint violations
 */
 
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include <stdlib.h>
 #include <math.h>
@@ -57,11 +57,11 @@ double s2_newtonRaphson_evaluateConstraintError_substructure(
   s2_substructure_t* substructure) {
 
   return sqrt(cblas_ddot(
-    substructure->constraintEquationCount,
-    substructure->cs,
-    1,
-    substructure->cs,
-    1)) / substructure->constraintEquationCount;
+                substructure->constraintEquationCount,
+                substructure->cs,
+                1,
+                substructure->cs,
+                1)) / substructure->constraintEquationCount;
 }
 
 
@@ -74,11 +74,11 @@ double s2_newtonRaphson_evaluateqError_substructure(
   s2_substructure_t* substructure) {
 
   return sqrt(cblas_ddot(
-    substructure->dqCount,
-    substructure->deltaq,
-    1,
-    substructure->deltaq,
-    1)) / substructure->dqCount;
+                substructure->dqCount,
+                substructure->deltaq,
+                1,
+                substructure->deltaq,
+                1)) / substructure->dqCount;
 }
 
 
@@ -169,7 +169,7 @@ void s2_newtonRaphson_updateq(
 
     switch(
       context->jointPointers[
-        context->substructureMembers[substructureIndex][j]]->jointType) {
+     context->substructureMembers[substructureIndex][j]]->jointType) {
       case S2_JOINT_FLOAT: {
         /* take 6 entries at position dqIndex, expand to 7 entries and
            store at position dqIndex */
@@ -184,7 +184,8 @@ void s2_newtonRaphson_updateq(
 
         /* store 4 terms deltaq at substructure->deltaq[qIndex + 3]
           take 3 terms from substructure->deltaq[dqIndex + 3] */
-      } break;
+      }
+      break;
       case S2_JOINT_SPHERICAL: {
         /* take 6 entries at position dqIndex, expand to 7 entries and
             store at position dqIndex */
@@ -197,10 +198,12 @@ void s2_newtonRaphson_updateq(
 
         /* store 4 terms deltaq at substructure->deltaq[qIndex]
           take 3 terms from substructure->deltaq[dqIndex] */
-      } break;
+      }
+      break;
       default: {
         context->q[qIndex++] -= context->deltaq[dqIndex++];
-      } break;
+      }
+      break;
     }
   }
 }
@@ -257,7 +260,7 @@ int s2_newtonRaphson_removeConstraintViolations_substructure(
     s2_updateDH(context);
     s2_jacobian_evaluateConstraints_substructure(context, substructure);
     error = s2_newtonRaphson_evaluateConstraintError_substructure(
-      substructure);
+              substructure);
     ++step;
     // fprintf(debug, "  [%d] error: %g\n", step, error);
   }
@@ -412,7 +415,7 @@ int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
       context,
       substructure);
     error = s2_newtonRaphson_evaluateConstraintError_substructure(
-      substructure);
+              substructure);
     // s2_jacobian_setPO2_substructure(
     //   context, substructureIndex);
     //
@@ -436,7 +439,7 @@ int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
     fprintf(debug, "  qOffset: %d\n", substructure->qOffset);
     assert(
       context->q + substructure->qOffset ==
-        substructure->q);
+      substructure->q);
     fprintf(debug, " states before newton raphson:\n   ");
     s2_array_print(debug, context->dqCount, qCopy);
     fprintf(debug, " states after newton raphson:\n    ");
@@ -556,12 +559,14 @@ int s2_newtonRaphson_increment_specified(
     case S2_JOINT_INCREMENT: {
       context->deltaq[specifiedCoordinateIndex] = value;
       context->q[specifiedCoordinateIndex] += value;
-    } break;
+    }
+    break;
     case S2_JOINT_TARGET: {
       context->deltaq[specifiedCoordinateIndex] =
         value - context->q[specifiedCoordinateIndex];
       context->q[specifiedCoordinateIndex] = value;
-    } break;
+    }
+    break;
   }
 
   s2_updateDH(context);

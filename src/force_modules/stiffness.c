@@ -51,7 +51,7 @@ void s2_stiffness_joint(
   for(int i = 0; i < joint->stiffnessCoefficientCount; i++) {
     // fprintf(debug, "[%d] %f ", i, joint->stiffnessCoefficients[i]);
     temp += joint->stiffnessCoefficients[i] *
-      pow(context->q[joint->qIndex], i);
+            pow(context->q[joint->qIndex], i);
   }
 
   // FILE* debug = s2_context_getDebugPointer(context, 0);

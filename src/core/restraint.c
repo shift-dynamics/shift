@@ -26,8 +26,8 @@ SUCH DAMAGE.
 @returns a Restraint datastructure
 */
 s2_restraint_t* s2_restraint() {
-  s2_restraint_t* restraint = malloc(sizeof *restraint);
-  if (!restraint) {
+  s2_restraint_t* restraint = malloc(sizeof * restraint);
+  if(!restraint) {
     fprintf(stderr, "Error: failed to initialize restraint.\n");
     return NULL;
   }

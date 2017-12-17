@@ -23,9 +23,9 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <stdbool.h>
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include "context.h"
 #include "substructure.h"
@@ -38,21 +38,33 @@ void s2_equation_initializeEquations(
   s2_context_t* context) {
 
   s2_context_initializeInertia(context);
-  if(context->mhProduct) free(context->mhProduct);
+  if(context->mhProduct) {
+    free(context->mhProduct);
+  }
   context->mhProduct = calloc(context->dqCount, sizeof(s2_screw_t));
-  if(context->fl) free(context->fl);
+  if(context->fl) {
+    free(context->fl);
+  }
   context->fl = calloc(context->dqCount, sizeof(double));
-  if(context->g) free(context->g);
+  if(context->g) {
+    free(context->g);
+  }
   context->g = calloc(context->nonRigidJointCount, sizeof(s2_screw_t));
-  if(context->p) free(context->p);
+  if(context->p) {
+    free(context->p);
+  }
   context->p = calloc(context->nonRigidJointCount, sizeof(s2_screw_t));
   // if(context->gamma_p) free(context->gamma_p);
   // context->gamma_p =
   //   calloc(context->dqCount, sizeof(double));
-  if(context->gamma_d) free(context->gamma_d);
+  if(context->gamma_d) {
+    free(context->gamma_d);
+  }
   context->gamma_d =
     calloc(context->dqCount, sizeof(double));
-  if(context->la) free(context->la);
+  if(context->la) {
+    free(context->la);
+  }
   context->la =
     calloc(context->dqCount, sizeof(double));
   s2_newtonRaphson_removeConstraintViolations(context);
@@ -336,11 +348,12 @@ void s2_equation_setRHS(
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
 
-          baumgarte2OmegaN = numericalIntegrator->baumgarte2OmegaN;
-          baumgarteOmegaN2 = numericalIntegrator->baumgarteOmegaN2;
+        baumgarte2OmegaN = numericalIntegrator->baumgarte2OmegaN;
+        baumgarteOmegaN2 = numericalIntegrator->baumgarteOmegaN2;
 
       }
-    } break;
+    }
+    break;
     default: {
 
     } break;
@@ -475,15 +488,15 @@ void s2_equation_setRHS(
             pr = p12
           */
           context->gamma_d[
-            offset + substructure->pr_21[k * 6 + l]] =
+          offset + substructure->pr_21[k * 6 + l]] =
 
-            /* 0 is the index of the velocity of the child (-) side */
-            ((double*)(context->aq +
-                context->constraints[chordConstraintOffset][0]))[l] -
+              /* 0 is the index of the velocity of the child (-) side */
+              ((double*)(context->aq +
+                         context->constraints[chordConstraintOffset][0]))[l] -
 
-            /* 1 is the index of the velocity of the parent (+) side */
-            ((double*)(context->aq +
-              context->constraints[chordConstraintOffset][1]))[l];
+              /* 1 is the index of the velocity of the parent (+) side */
+              ((double*)(context->aq +
+                         context->constraints[chordConstraintOffset][1]))[l];
         }
       }
 
@@ -503,15 +516,15 @@ void s2_equation_setRHS(
           /* -2omega N * \dot{\phi} velocity part of baumgarte
           constraint stabilization */
           context->gamma_d[
-            offset + substructure->pr_21[k * 6 + l]] -=
+          offset + substructure->pr_21[k * 6 + l]] -=
 
-            baumgarte2OmegaN *
+              baumgarte2OmegaN *
 
               (((double*)(context->v +
-                context->constraints[chordConstraintOffset][1]))[l] -
+                          context->constraints[chordConstraintOffset][1]))[l] -
 
                ((double*)(context->v +
-                context->constraints[chordConstraintOffset][0]))[l]);
+                          context->constraints[chordConstraintOffset][0]))[l]);
         }
       }
 
@@ -528,9 +541,9 @@ void s2_equation_setRHS(
           /* -omegaN^2 * phi, position part of baumgarte
           constraint stabilization */
           context->gamma_d[
-            offset + substructure->pr_21[k * 6 + l]] -=
-            baumgarteOmegaN2 *
-            substructure->cs[k * 6 + l];
+          offset + substructure->pr_21[k * 6 + l]] -=
+              baumgarteOmegaN2 *
+              substructure->cs[k * 6 + l];
 
           assert(substructure->cs + k * 6 == context->cs + chordConstraintOffset * 6);
         }
@@ -539,7 +552,7 @@ void s2_equation_setRHS(
       /* substract integral error term from gamma_p  for adaptive constraint stabilization*/
       if(context->modelParameters.integrationType ==
           S2_NUMERICALINTEGRATOR_ODE113B &&
-        context->numericalIntegrator != NULL) {
+          context->numericalIntegrator != NULL) {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
 
@@ -550,8 +563,8 @@ void s2_equation_setRHS(
           if(substructure->pr_21[k * 6 + l] < substructure->rank) {
 
             context->gamma_d[
-              offset + substructure->pr_21[k * 6 + l]] -=
-              integralErrorTerm[k * 6 + l];
+            offset + substructure->pr_21[k * 6 + l]] -=
+                integralErrorTerm[k * 6 + l];
 
           }
         }
@@ -582,9 +595,9 @@ void s2_equation_setRHS(
     for(int i = 0; i < substructure->rank; i++) {
       for(int j = 0; j < i; j++) {
         // if(substructure->Jb[i * substructure->dqCount + j]) {
-          context->gamma_d[i + offset] -=
-            substructure->J[i * substructure->dqCount + j] *
-            context->gamma_d[j + offset];
+        context->gamma_d[i + offset] -=
+          substructure->J[i * substructure->dqCount + j] *
+          context->gamma_d[j + offset];
         // }
       }
     }
@@ -626,12 +639,12 @@ void s2_inertia_print2(
   fprintf(f, "    i%d = np.matrix([\n", index);
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    inertia->m,
-    0.f,
-    0.f,
-    0.f,
-    inertia->mt.z,
-    -inertia->mt.y);
+          inertia->m,
+          0.f,
+          0.f,
+          0.f,
+          inertia->mt.z,
+          -inertia->mt.y);
   fprintf(f, "        ");
   fprintf(
     f,
@@ -703,25 +716,25 @@ void s2_inertia_print2Original(
   fprintf(f, "    i%d = np.matrix([\n", index);
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    inertia->m, 0.f, 0.f, 0.f, 0.f, 0.f);
+          inertia->m, 0.f, 0.f, 0.f, 0.f, 0.f);
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    0.f, inertia->m, 0.f, 0.f, 0.f, 0.f);
+          0.f, inertia->m, 0.f, 0.f, 0.f, 0.f);
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    0.f, 0.f, inertia->m, 0.f, 0.f, 0.f);
+          0.f, 0.f, inertia->m, 0.f, 0.f, 0.f);
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    0.f, 0.f, 0.f,
-      inertia->Ixx, inertia->Ixy, inertia->Izx);
+          0.f, 0.f, 0.f,
+          inertia->Ixx, inertia->Ixy, inertia->Izx);
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    0.f, 0.f, 0.f,
-      inertia->Ixy, inertia->Iyy, inertia->Iyz);
+          0.f, 0.f, 0.f,
+          inertia->Ixy, inertia->Iyy, inertia->Iyz);
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g]])\n",
-    0.f, 0.f, 0.f,
-      inertia->Izx, inertia->Iyz, inertia->Izz);
+          0.f, 0.f, 0.f,
+          inertia->Izx, inertia->Iyz, inertia->Izz);
 
   fprintf(
     f,
@@ -734,7 +747,7 @@ void s2_inertia_print2Original(
     name);
   fprintf(
     f, "        print(i%d)\n",
-      index);
+    index);
 }
 
 
@@ -758,12 +771,12 @@ void s2_inertia_print2Reference(
   fprintf(f, "    i%d = np.matrix([\n", index);
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    inertiaReference->m,
-    0.f,
-    0.f,
-    0.f,
-    inertiaReference->mt.z,
-    -inertiaReference->mt.y);
+          inertiaReference->m,
+          0.f,
+          0.f,
+          0.f,
+          inertiaReference->mt.z,
+          -inertiaReference->mt.y);
   fprintf(f, "        ");
   fprintf(
     f,
@@ -773,7 +786,7 @@ void s2_inertia_print2Reference(
     0.f,
     -inertiaReference->mt.z,
     0.f,
-    inertiaReference->mt.x );
+    inertiaReference->mt.x);
   fprintf(f, "        ");
   fprintf(
     f,
@@ -791,7 +804,7 @@ void s2_inertia_print2Reference(
     0.f,
     -inertiaReference->mt.z,
     inertiaReference->mt.y,
-    inertiaReference->Ixx - (-mt.y * t.y -mt.z * t.z),
+    inertiaReference->Ixx - (-mt.y * t.y - mt.z * t.z),
     inertiaReference->Ixy - (mt.y * t.x),
     inertiaReference->Izx - (mt.z * t.x));
   fprintf(f, "        ");
@@ -818,30 +831,30 @@ void s2_inertia_print2Reference(
   fprintf(f, "    r = np.matrix([\n");
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    d->R.m00,
-    d->R.m01,
-    d->R.m02,
-    0.f,
-    0.f,
-    0.f);
+          d->R.m00,
+          d->R.m01,
+          d->R.m02,
+          0.f,
+          0.f,
+          0.f);
 
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    d->R.m10,
-    d->R.m11,
-    d->R.m12,
-    0.f,
-    0.f,
-    0.f);
+          d->R.m10,
+          d->R.m11,
+          d->R.m12,
+          0.f,
+          0.f,
+          0.f);
 
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-  d->R.m20,
-  d->R.m21,
-  d->R.m22,
-  0.f,
-  0.f,
-  0.f);
+          d->R.m20,
+          d->R.m21,
+          d->R.m22,
+          0.f,
+          0.f,
+          0.f);
 
   fprintf(f, "        ");
   fprintf(
@@ -856,21 +869,21 @@ void s2_inertia_print2Reference(
 
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    0.f,
-    0.f,
-    0.f,
-    d->R.m10,
-    d->R.m11,
-    d->R.m12);
+          0.f,
+          0.f,
+          0.f,
+          d->R.m10,
+          d->R.m11,
+          d->R.m12);
 
   fprintf(f, "        ");
   fprintf(f, "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g]])\n",
-    0.f,
-    0.f,
-    0.f,
-    d->R.m20,
-    d->R.m21,
-    d->R.m22);
+          0.f,
+          0.f,
+          0.f,
+          d->R.m20,
+          d->R.m21,
+          d->R.m22);
 
   fprintf(f, "    t = np.matrix(np.eye(6))\n");
   fprintf(f, "    t[0, 4] = %16.12g\n", -d->T.z);
@@ -896,13 +909,13 @@ void s2_inertia_print2Reference(
     -inertiaFixed->mt.y);
   fprintf(f, "        ");
   fprintf(f,
-    "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    0.f,
-    inertiaFixed->m,
-    0.f,
-    -inertiaFixed->mt.z,
-    0.f,
-    inertiaFixed->mt.x);
+          "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
+          0.f,
+          inertiaFixed->m,
+          0.f,
+          -inertiaFixed->mt.z,
+          0.f,
+          inertiaFixed->mt.x);
   fprintf(f, "        ");
   fprintf(
     f,
@@ -915,22 +928,22 @@ void s2_inertia_print2Reference(
     0.f);
   fprintf(f, "        ");
   fprintf(f,
-    "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    0.f,
-    -inertiaFixed->mt.z,
-    inertiaFixed->mt.y,
-    inertiaFixed->Ixx,
-    inertiaFixed->Ixy,
-    inertiaFixed->Izx);
+          "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
+          0.f,
+          -inertiaFixed->mt.z,
+          inertiaFixed->mt.y,
+          inertiaFixed->Ixx,
+          inertiaFixed->Ixy,
+          inertiaFixed->Izx);
   fprintf(f, "        ");
   fprintf(f,
-    "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
-    inertiaFixed->mt.z,
-    0.f,
-    -inertiaFixed->mt.x,
-    inertiaFixed->Ixy,
-    inertiaFixed->Iyy,
-    inertiaFixed->Iyz);
+          "[% 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g, % 16.12g],\n",
+          inertiaFixed->mt.z,
+          0.f,
+          -inertiaFixed->mt.x,
+          inertiaFixed->Ixy,
+          inertiaFixed->Iyy,
+          inertiaFixed->Iyz);
   fprintf(f, "        ");
   fprintf(
     f,
@@ -942,9 +955,9 @@ void s2_inertia_print2Reference(
     inertiaFixed->Izz);
 
   fprintf(f,
-    "    if not np.allclose(i%dFixed, iFixed):\n", index);
+          "    if not np.allclose(i%dFixed, iFixed):\n", index);
   fprintf(f,
-    "        print(\"[%d] %s does not match\")\n", index, name);
+          "        print(\"[%d] %s does not match\")\n", index, name);
   fprintf(f, "        print(i%dFixed)\n", index);
   fprintf(f, "        print(iFixed)\n");
 
@@ -960,7 +973,7 @@ void s2_inertia_print2Reference(
     name);
   fprintf(
     f, "        print(i%d)\n",
-      index);
+    index);
 
 
   fprintf(
@@ -974,7 +987,7 @@ void s2_inertia_print2Reference(
     name);
   fprintf(
     f, "        print(i%dFixed)\n",
-      index);
+    index);
 }
 
 
@@ -1062,13 +1075,13 @@ void s2_equation_setMassMatrix(
   */
   for(int j = context->nonRigidJointCount - 1; j > -1; j--) {
     int i = context->pclCompressed[j];
-      cblas_daxpy(
-        10,
-        1.0,
-        (double*)(inertiaP + j),
-        1,
-        (double*)(inertiaP + i),
-        1);
+    cblas_daxpy(
+      10,
+      1.0,
+      (double*)(inertiaP + j),
+      1,
+      (double*)(inertiaP + i),
+      1);
   }
 
   // for(int i = context->nonRigidJointCount - 1; i > -1; i--) {
@@ -1312,20 +1325,20 @@ void s2_equation_setEquations(
   //   context->J)) {
   //
   //   fprintf(debug, "Jacobian close to previous evaluation:\n");
-    // for(
-    //   int i = 0; i < context->substructureCount; i++) {
-    //
-    //   s2_substructure_t* substructure =
-    //     context->substructures + i;
-    //
-    //   fprintf(debug, "\nfactored Jacobian for substructure (including b matrix) [%d]\n", i);
-    //   s2_array_print2D(
-    //     debug,
-    //     substructure->constraintEquationCount,
-    //     substructure->dqCount,
-    //     true,
-    //     substructure->J);
-    // }
+  // for(
+  //   int i = 0; i < context->substructureCount; i++) {
+  //
+  //   s2_substructure_t* substructure =
+  //     context->substructures + i;
+  //
+  //   fprintf(debug, "\nfactored Jacobian for substructure (including b matrix) [%d]\n", i);
+  //   s2_array_print2D(
+  //     debug,
+  //     substructure->constraintEquationCount,
+  //     substructure->dqCount,
+  //     true,
+  //     substructure->J);
+  // }
   // }
 
   // printf("infinity norm b check in setEquations\n");
@@ -1334,13 +1347,15 @@ void s2_equation_setEquations(
     switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         exit(-1);
-      } break;
+      }
+      break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
         numericalIntegrator->newtonRaphsonFailure = true;
         return;
-      } break;
+      }
+      break;
     }
 
   }
@@ -1374,21 +1389,21 @@ void s2_equation_factorAndSolve(
   int nd = 0;
   // int k = context->dependentCount - 1;
 
-	/*
+  /*
     Factor the matrix
   */
   for(int i = context->dqCount - 1; i > -1; i--) {
     if(context->isDependentPO3[i]) {
       for(int j = 0; j < context->n1[nd]; j++) {
-				/* M[] -= M[] * B[]; */
-				*(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
-				p2 += 3;
+        /* M[] -= M[] * B[]; */
+        *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
+        p2 += 3;
       }
       nd++;
     } else {
       /* Invert the pivot: M[i] = 1.0 / M[i]; */
       if(*(context->P[i]) > 1e-6) {
-			  *(context->P[i]) = 1.0 / *(context->P[i]);
+        *(context->P[i]) = 1.0 / *(context->P[i]);
       } else {
         fprintf(
           stderr,
@@ -1401,41 +1416,41 @@ void s2_equation_factorAndSolve(
       */
       for(int j = context->startOfWorkInM; j < context->n2[ni]; j++) {
         // Copy entry into work array: M[] = M[];
-				*(context->P[p2]) = *(context->P[p2 + 1]);
+        *(context->P[p2]) = *(context->P[p2 + 1]);
         p2++;
         // Scale entry to evaluate L term: M[] *= M[];
-				*(context->P[p2]) *= *(context->P[i]);
+        *(context->P[p2]) *= *(context->P[i]);
         p2++;
-			}
+      }
       // Perform mass projections with one assignment statement.
       for(int j = 0; j < context->n3[ni]; j++) {
         // Update Schur-complement matrix: M[] -= M[] * M[];
-				*(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
-				p2 += 3;
+        *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
+        p2 += 3;
       }
       ni++;
     }
   }
 
-	nd = 0;
-	ni = 0;
+  nd = 0;
+  ni = 0;
 
-	/*
+  /*
     Backward elimination
   */
   for(int i = context->dqCount - 1; i > -1; i--) {
     if(context->isDependentPO3[i]) {
-    	for(int j = 0; j < context->p1[nd]; j++) {
-				/*
+      for(int j = 0; j < context->p1[nd]; j++) {
+        /*
           Part of b <-- L^{-T} b: Q[] -= B[] * Q[i];
         */
         *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
       }
       // Project constraint-induced inertia forces onto parent forces.
-			// Does not execute if Mii = 0.
+      // Does not execute if Mii = 0.
       for(int j = 0; j < context->p2[nd]; j++) {
-				// Part of b <-- L^{-T} b: Q[] -= M[] * ga[k];
-				*(context->P[p3++]) -=
+        // Part of b <-- L^{-T} b: Q[] -= M[] * ga[k];
+        *(context->P[p3++]) -=
           *(context->P[p2++]) *
           context->gamma_d[context->pv_23[i]];
       }
@@ -1448,14 +1463,14 @@ void s2_equation_factorAndSolve(
 
       if(context->Mlb[context->i4[i]])
         /* Part of x <-- D^{-1} b: la[k] -= M[] * ddq[i]; */
-				context->la[context->pv_23[i]] -=
+        context->la[context->pv_23[i]] -=
           *(context->P[i]) *
           context->ddq[context->pv_13[i]];
       // k--;
     } else {
       for(int j = 0; j < context->p3[ni]; j++) {
         // Part of b <-- L^{-T} b: Q[] -= M[] * Q[i];
-				*(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
+        *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
       }
       // Part of x <-- D^{-1} b: ddq[i] = M[] * Q[i];
       context->ddq[context->pv_13[i]] =
@@ -1470,7 +1485,7 @@ void s2_equation_factorAndSolve(
   /* P2 is one past last entry in L. Decrement for reverse direction. */
   p2--;
 
-	/*
+  /*
     Forward substitution
   */
   for(int i = 0; i < context->dqCount; i++) {
@@ -1478,22 +1493,22 @@ void s2_equation_factorAndSolve(
       nd--;
       for(int j = 0; j < context->p2[nd]; j++) {
         // Part of x <-- L^{-1} x: la[k] -= M[] * ddq[];
-				context->la[context->pv_23[i]] -=
+        context->la[context->pv_23[i]] -=
           *(context->P[p2--]) * *(context->P[p3++]);
       }
       for(int j = 0; j < context->p1[nd]; j++) {
-				// Part of x <-- L^{-1} x: ddq[i] -= B[] * ddq[];
-				context->ddq[context->pv_13[i]] -=
+        // Part of x <-- L^{-1} x: ddq[i] -= B[] * ddq[];
+        context->ddq[context->pv_13[i]] -=
           *(context->P[p2--]) * *(context->P[p3++]);
       }
       // k++;
     } else {
       ni--;
-			for(int j = 0; j < context->p3[ni]; j++) {
-				// Part of x <-- L^{-1} x: ddq[i] -= M[] * ddq[];
-				context->ddq[context->pv_13[i]] -=
+      for(int j = 0; j < context->p3[ni]; j++) {
+        // Part of x <-- L^{-1} x: ddq[i] -= M[] * ddq[];
+        context->ddq[context->pv_13[i]] -=
           *(context->P[p2--]) * *(context->P[p3++]);
-			}
+      }
     }
   }
   // printf("ddq on exit s2_equation_factorAndSolve:\n");

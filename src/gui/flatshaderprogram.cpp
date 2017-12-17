@@ -5,9 +5,9 @@
 void FlatShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/flat.vert");
-    addGeometryShader(":/shaders/flat.geom");
-    addFragmentShader(":/shaders/flat.frag");
+    addVertexShader(":/shaders/flat.glsl");
+    addGeometryShader(":/shaders/flat.glsl");
+    addFragmentShader(":/shaders/flat.glsl");
     link();
     bind();
 

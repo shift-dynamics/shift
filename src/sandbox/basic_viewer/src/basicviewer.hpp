@@ -54,9 +54,9 @@ class ModelTreeItem : public QTreeWidgetItem {
 class
 */
 class BasicViewer : public QMainWindow {
-  Q_OBJECT /*!< this macro must be included to add qt meta information */
+    Q_OBJECT /*!< this macro must be included to add qt meta information */
 
-  /* public methods */
+    /* public methods */
   public:
     explicit BasicViewer(QWidget* parent = 0);
     ~BasicViewer();
@@ -64,7 +64,7 @@ class BasicViewer : public QMainWindow {
     BasicRenderWindowWidget* glwidget;
     QLabel* cursorPositionLabel;
 
-  /* signals/slots are Qt's way of communicating between various objects */
+    /* signals/slots are Qt's way of communicating between various objects */
   private slots:
     void setRx(int);
     void setRy(int);
@@ -84,15 +84,15 @@ class BasicViewer : public QMainWindow {
     void about();
     void credit();
 
-  /* private methods - these methods are only called by other methods of the
-     class */
+    /* private methods - these methods are only called by other methods of the
+       class */
   private:
     QSize minimumSizeHint() const {
-       return QSize(50, 50);
+      return QSize(50, 50);
     }
 
     QSize sizeHint() const {
-       return QSize(700, 500);
+      return QSize(700, 500);
     }
 
     /* Layout utilities */
@@ -109,9 +109,9 @@ class BasicViewer : public QMainWindow {
     void populateTree();
     Model* parseModel(const QJsonObject& model);
     Node* parseNode(const QJsonObject& parentNode);
-    void parseScene(const QString& filename, QVector<Scene*> &scenes);
+    void parseScene(const QString& filename, QVector<Scene*>& scenes);
     QJsonObject writeNode(Node* node);
-    void sceneWrite(const QString& filename, QVector<Scene *> &scenes);
+    void sceneWrite(const QString& filename, QVector<Scene*>& scenes);
     bool parseGeometry(Model* model);
     void updateTransform();
     void changeObjectColor(
@@ -153,7 +153,7 @@ class BasicViewer : public QMainWindow {
     QAction* m_actionAbout;
     QAction* m_actionCredit;
 
-  /* signals/slots are Qt's way of communicating between objects */
+    /* signals/slots are Qt's way of communicating between objects */
   signals:
     void treeWidgetCleared();
     void openFileDialog();

@@ -31,7 +31,7 @@ bool terrainCompare(s2_terrain_t* terrain, double* controlPoints) {
   for(int y = 0; y < terrain->rows; y++) {
     for(int x = 0; x < terrain->columns; x++) {
       if(fabs(terrain->controlPoints[y * terrain->rows + x] -
-        controlPoints[y * terrain->rows + x]) > 1e-6) {
+              controlPoints[y * terrain->rows + x]) > 1e-6) {
         fprintf(
           stderr,
           "   [x=%d, y=%d] %f != %f\n",

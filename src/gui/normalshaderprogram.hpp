@@ -37,47 +37,47 @@ class s2_Lights;
 
 class NormalShaderProgram : public ShaderProgram {
 
-  Q_OBJECT
+    Q_OBJECT
 
-public:
-  NormalShaderProgram(RenderWindow* renderWindow)
-  : ShaderProgram(renderWindow) {
-    initialize();
-  };
+  public:
+    NormalShaderProgram(RenderWindow* renderWindow)
+      : ShaderProgram(renderWindow) {
+      initialize();
+    };
 
-  ~NormalShaderProgram() {};
+    ~NormalShaderProgram() {};
 
-  void initialize();
-  void draw();
-  void setTransform(s2_displacement_t*);
-  void setColor(float&, float&, float&);
-  void setScale(float&);
-  GLint getPositionAttribute() {
-    return m_position_a;
-  };
-  GLint getNormalAttribute() {
-    return m_normal_a;
-  };
+    void initialize();
+    void draw();
+    void setTransform(s2_displacement_t*);
+    void setColor(float&, float&, float&);
+    void setScale(float&);
+    GLint getPositionAttribute() {
+      return m_position_a;
+    };
+    GLint getNormalAttribute() {
+      return m_normal_a;
+    };
 
-signals:
-
-
-protected:
+  signals:
 
 
-private:
+  protected:
 
-  GLint m_matrices_u;
-  GLint m_matrices_mvp_u;
-  GLint m_matrices_mv_u;
-  GLint m_matrices_v_u;
-  GLint m_matrices_nm_u;
-  
-  GLint m_color_u;
-  GLint m_scale_u;
 
-  GLint m_position_a;
-  GLint m_normal_a;
+  private:
+
+    GLint m_matrices_u;
+    GLint m_matrices_mvp_u;
+    GLint m_matrices_mv_u;
+    GLint m_matrices_v_u;
+    GLint m_matrices_nm_u;
+
+    GLint m_color_u;
+    GLint m_scale_u;
+
+    GLint m_position_a;
+    GLint m_normal_a;
 
 };
 

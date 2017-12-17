@@ -376,10 +376,10 @@ s2_kdtree_t* s2_kdtree(
         to stack for deferred processing, this orders kdtree nodes in
         preorder traversal order */
         int location = kdnode_subdivide(
-          i,
-          &temp,
-          &below,
-          ++list_head);
+                         i,
+                         &temp,
+                         &below,
+                         ++list_head);
         ++j;
 
         s2_kdnode_t* node = kdtree->kdnodes + i++;
@@ -994,7 +994,7 @@ bool intersect_line_segment_triangle(
   s2_vector_t e;
   s2_cross_vv(&qp, &ap, &e);
   double v = s2_dot_vv(&ac, &e);
-  if(v < 0.0f || v> d) {
+  if(v < 0.0f || v > d) {
     return false;
   }
 

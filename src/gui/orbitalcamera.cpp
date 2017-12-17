@@ -2,7 +2,7 @@
 #include "renderwindow.hpp"
 
 
-void s2_OrbitalCamera::wheelEvent(QWheelEvent *ev) {
+void s2_OrbitalCamera::wheelEvent(QWheelEvent* ev) {
   m_translate +=
     m_lookMat.inverted().column(2).toVector3D() * (ev->delta() / 1000.f);
   // setScroll(scroll() + ev->delta() / 1000.0);
@@ -11,31 +11,34 @@ void s2_OrbitalCamera::wheelEvent(QWheelEvent *ev) {
 
 
 void s2_OrbitalCamera::update() {
-    switch (m_mode) {
-      case OrbitalCameraMode::Translate: {
-        updateTranslate();
-      } break;
-      case OrbitalCameraMode::Rotate: {
-        updateRotate();
-      } break;
-      case OrbitalCameraMode::Scale: {
-        updateScale();
-      }break;
-      default: {
-      } break;
+  switch(m_mode) {
+    case OrbitalCameraMode::Translate: {
+      updateTranslate();
     }
+    break;
+    case OrbitalCameraMode::Rotate: {
+      updateRotate();
+    }
+    break;
+    case OrbitalCameraMode::Scale: {
+      updateScale();
+    }
+    break;
+    default: {
+    } break;
+  }
 
-    m_modelMat = m_rotMat;
-    // m_modelMat.scale(1.0 - m_scroll * 0.1);
+  m_modelMat = m_rotMat;
+  // m_modelMat.scale(1.0 - m_scroll * 0.1);
 
-    m_viewMat = m_lookMat;
-    m_viewMat.translate(m_translate);
+  m_viewMat = m_lookMat;
+  m_viewMat.translate(m_translate);
 }
 
 
 void s2_OrbitalCamera::updateScale() {
-    const double dy = 20.0 * (m_newPoint.y() - m_oldPoint.y()) / m_renderWindow->height();
-    m_scroll += dy;
+  const double dy = 20.0 * (m_newPoint.y() - m_oldPoint.y()) / m_renderWindow->height();
+  m_scroll += dy;
 }
 
 
@@ -73,12 +76,12 @@ void s2_OrbitalCamera::updateRotate() {
 
 
 QVector3D s2_OrbitalCamera::getVector(int x, int y) {
-  QVector3D pt( 2.0 * x / m_renderWindow->width()  - 1.0,
+  QVector3D pt(2.0 * x / m_renderWindow->width()  - 1.0,
                -2.0 * y / m_renderWindow->height() + 1.0,
-                0.0);
+               0.0);
 
   const double xySquared = pt.x() * pt.x() + pt.y() * pt.y();
-  if (xySquared) {
+  if(xySquared) {
     pt.setZ(std::sqrt(1.0 - xySquared));
   } else {
     pt.normalized();

@@ -22,9 +22,9 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <stdbool.h>
 #ifdef __APPLE__
-  #include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 #else
-  #include <cblas.h>
+#include <cblas.h>
 #endif
 #include "context.h"
 #include "assembly.h"
@@ -110,8 +110,11 @@ void s2_memoize_countOperations(
   int ni = 0; /*!< counter for number of independent variables */
   int nd = 0; /*!< counter for number of dependent variables */
   for(int i = 0; i < context->dqCount; i++) {
-    if(context->isDependentPO3[i]) nd++;
-    else ni++;
+    if(context->isDependentPO3[i]) {
+      nd++;
+    } else {
+      ni++;
+    }
   }
 
   // Allocate arrays based on ni and nd to be used later.
@@ -178,7 +181,7 @@ void s2_memoize_countOperations(
           coupledList[coupleddqCount] = colIndex;
           // coupledIndexList[coupleddqCount] = k;
           coupleddqCount++;
-        } else{
+        } else {
           // If Mik = 0, variable k is not coupled to variable i--add to nonCoupledList.
           nonCoupledList[nonCoupleddqCount] = colIndex;
           // nonCoupledIndexList[nonCoupleddqCount] = k;
@@ -312,8 +315,9 @@ void s2_memoize_countOperations(
 
             /* Remove this variable from the non-coupled list and compress
                the list. */
-            for(k = j; k < nonCoupleddqCount - 1; k++)
+            for(k = j; k < nonCoupleddqCount - 1; k++) {
               nonCoupledList[k] = nonCoupledList[k + 1];
+            }
 
             /* Decrement size of non-coupled list. */
             nonCoupleddqCount--;
@@ -380,7 +384,7 @@ void s2_memoize_countOperations(
         // If Mij != 0 then process.
         if(context->Mlb[startOfRowiInM + j]) {
 
-        //  i5[l2] = startOfRowiInM + j; Mij.
+          //  i5[l2] = startOfRowiInM + j; Mij.
           int startOfRowjInM = j * (j + 1) / 2;
 
           // Index over the row i entries in M, starting at j.
@@ -558,7 +562,7 @@ void s2_memoize_recordOperations(
           coupledList[coupleddqCount] = colIndex;
           coupledIndexList[coupleddqCount] = k;
           coupleddqCount++;
-        } else{
+        } else {
           // If Mik = 0, variable k is not coupled to variable i--add to nonCoupledList.
           nonCoupledList[nonCoupleddqCount] = colIndex;
           nonCoupledIndexList[nonCoupleddqCount] = k;
@@ -607,11 +611,13 @@ void s2_memoize_recordOperations(
             // If Mij != 0 then process.
             if(context->Mlb[context->i2[l1]]) {
               // Mkj.
-              if(k >= j)
+              if(k >= j) {
                 context->i1[l1] = startOfRowkInM + j;
+              }
               // Mjk.
-              else
+              else {
                 context->i1[l1] = j * (j + 1) / 2 + k;
+              }
 
               // Record assignment to Mjk or Mkj.
               context->Mlb[context->i1[l1]] = 1;
@@ -676,8 +682,9 @@ void s2_memoize_recordOperations(
             coupleddqCount++;
 
             // Remove this variable from the non-coupled list and compress the list.
-            for(k = j; k < nonCoupleddqCount - 1; k++)
+            for(k = j; k < nonCoupleddqCount - 1; k++) {
               nonCoupledList[k] = nonCoupledList[k + 1];
+            }
 
             // Decrement size of non-coupled list.
             nonCoupleddqCount--;
@@ -781,68 +788,70 @@ void s2_memoize_countPointerOperations(
   context->P[0], the first context->dqCount entries in context->P[0]
   point to the diagonal entries in context->M[], in reverse order.
   Thus p2 starts at context->dqCount.*/
-	int p2 = context->dqCount;
+  int p2 = context->dqCount;
 
   /* Count the total number of operations
   required to factor the matrix and access the L matrix. */
-	int p3 = 0;
+  int p3 = 0;
 
 
-	for(int i = 0; i < context->dqCount; i++)
-		if(context->isDependentPO3[i]) k++;
+  for(int i = 0; i < context->dqCount; i++)
+    if(context->isDependentPO3[i]) {
+      k++;
+    }
 
-	/* Factor the matrix */
+  /* Factor the matrix */
   for(int i = context->dqCount - 1; i > -1; i--) {
     if(context->isDependentPO3[i]) {
       for(int j = 0; j < context->n1[nd]; j++) {
-				// M[] -= M[] * B[];
-				// *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
-				p2 += 3;
+        // M[] -= M[] * B[];
+        // *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
+        p2 += 3;
       }
       nd++;
     } else {
       // Invert the pivot: M[i] = 1.0 / M[i];
-			// *(context->P[i]) = 1.0 / *(context->P[i]);
+      // *(context->P[i]) = 1.0 / *(context->P[i]);
 
       // Copy the nonzero entries in row i of the M[]
       // array to the left of the diagonal into the work array
-			// and scale the entries in row i to L terms.
+      // and scale the entries in row i to L terms.
       for(int j = context->startOfWorkInM; j < context->n2[ni]; j++) {
         // Copy entry into work array: M[] = M[];
-				// *(context->P[p2]) = *(context->P[p2 + 1]);
+        // *(context->P[p2]) = *(context->P[p2 + 1]);
         p2++;
         // Scale entry to evaluate L term: M[] *= M[];
-				// *(context->P[p2]) *= *(context->P[i]);
+        // *(context->P[p2]) *= *(context->P[i]);
         p2++;
-			}
+      }
       // Perform mass projections with one assignment statement.
       for(int j = 0; j < context->n3[ni]; j++) {
         // Update Schur-complement matrix: M[] -= M[] * M[];
-				// *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
-				p2 += 3;
+        // *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
+        p2 += 3;
       }
       ni++;
     }
   }
 
   k = nd - 1;
-	nd = 0;
-	ni = 0;
+  nd = 0;
+  ni = 0;
 
-	//Backward elimination
+  //Backward elimination
   for(int i = context->dqCount - 1; i > -1; i--) {
     if(context->isDependentPO3[i]) {
-    	for(int j = 0; j < context->p1[nd]; j++) {
-				// Part of b <-- L^{-T} b: Q[] -= B[] * Q[i];
-				// *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
+      for(int j = 0; j < context->p1[nd]; j++) {
+        // Part of b <-- L^{-T} b: Q[] -= B[] * Q[i];
+        // *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
         p3++;
         p2++;
       }
       // Project constraint-induced inertia forces onto parent forces.
-			// Does not execute if Mii = 0.
+      // Does not execute if Mii = 0.
       for(int j = 0; j < context->p2[nd]; j++) {
-				// Part of b <-- L^{-T} b: Q[] -= M[] * ga[k];
-				// *(context->P[p3++]) -= *(context->P[p2++]) * context->gamma_d[k];
+        // Part of b <-- L^{-T} b: Q[] -= M[] * ga[k];
+        // *(context->P[p3++]) -= *(context->P[p2++]) * context->gamma_d[k];
         p3++;
         p2++;
       }
@@ -854,12 +863,14 @@ void s2_memoize_countPointerOperations(
 
       if(context->Mlb[context->i4[i]])
         // Part of x <-- D^{-1} b: la[k] -= M[] * ddq[i];
-				// context->la[k] -= *(context->P[i]) * context->ddq[i];
-      k--;
+        // context->la[k] -= *(context->P[i]) * context->ddq[i];
+      {
+        k--;
+      }
     } else {
       for(int j = 0; j < context->p3[ni]; j++) {
         // Part of b <-- L^{-T} b: Q[] -= M[] * Q[i];
-				// *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
+        // *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
         p3++;
         p2++;
       }
@@ -875,28 +886,28 @@ void s2_memoize_countPointerOperations(
   /* P2 is one past last entry in L. Decrement for reverse direction. */
   // p2--;
 
-	//Forward substitution
-	for(int i = 0; i < context->dqCount; i++) {
+  //Forward substitution
+  for(int i = 0; i < context->dqCount; i++) {
     if(context->isDependentPO3[i]) {
       nd--;
       for(int j = 0; j < context->p2[nd]; j++) {
         // Part of x <-- L^{-1} x: la[k] -= M[] * ddq[];
-				// context->la[k] -= *(context->P[p2--]) * *(context->P[p3++]);
+        // context->la[k] -= *(context->P[p2--]) * *(context->P[p3++]);
         p3++;
       }
       for(int j = 0; j < context->p1[nd]; j++) {
-				// Part of x <-- L^{-1} x: ddq[i] -= B[] * ddq[];
-				// context->ddq[i] -= *(context->P[p2--]) * *(context->P[p3++]);
+        // Part of x <-- L^{-1} x: ddq[i] -= B[] * ddq[];
+        // context->ddq[i] -= *(context->P[p2--]) * *(context->P[p3++]);
         p3++;
       }
       k++;
     } else {
       ni--;
-			for(int j = 0; j < context->p3[ni]; j++) {
-				// Part of x <-- L^{-1} x: ddq[i] -= M[] * ddq[];
-				// context->ddq[i] -= *(context->P[p2--]) * *(context->P[p3++]);
+      for(int j = 0; j < context->p3[ni]; j++) {
+        // Part of x <-- L^{-1} x: ddq[i] -= M[] * ddq[];
+        // context->ddq[i] -= *(context->P[p2--]) * *(context->P[p3++]);
         p3++;
-			}
+      }
     }
   }
   if(context->P != NULL) {
@@ -931,7 +942,7 @@ void s2_memoize_setSourceDestinationPointers(
   context->P[0], the first context->n entries in context->P[0]
   point to the diagonal entries in context->M[], in reverse order.
   Thus p2 starts at context->dqCount.*/
-	int p2 = context->dqCount;
+  int p2 = context->dqCount;
 
   /* Subsequently the AOP that sets up context->P[0] for matrix factorization
   and solution will determine in advance the total number of operations
@@ -960,8 +971,8 @@ void s2_memoize_setSourceDestinationPointers(
         context->P[p2++] = &context->Ml[j];
         /* M[] *= M[]; Scale row i, col j of context->M[] into L matrix. */
         context->P[p2++] = &context->Ml[context->i5[l2]];
-				l2++;
-			}
+        l2++;
+      }
       // Update Schur-complement
       for(int j = 0; j < context->n3[ni]; j++) {
         /* M[] -= M[] * M[]; */
@@ -1074,20 +1085,24 @@ void s2_memoize_memoizeQuaternions(
       case S2_JOINT_RY:
       case S2_JOINT_RZ: {
         context->nonQuaternionCount++;
-      } break;
+      }
+      break;
       case S2_JOINT_RIGID:
         break;
       case S2_JOINT_SPHERICAL: {
         context->quaternionCount++;
-      } break;
+      }
+      break;
       case S2_JOINT_FLOAT: {
         context->quaternionCount++;
         context->nonQuaternionCount += 3;
-      } break;
+      }
+      break;
       case S2_JOINT_PRIMITIVE:
       case S2_JOINT_INVALID: {
         fprintf(stderr, "invalid joint type found\n");
-      } break;
+      }
+      break;
     }
   }
 
@@ -1128,7 +1143,8 @@ void s2_memoize_memoizeQuaternions(
         context->dqNonQuaternionIndices[qCounter] =
           context->jointPointers[i]->dqIndex;
         qCounter++;
-      } break;
+      }
+      break;
       case S2_JOINT_RIGID:
         break;
       case S2_JOINT_SPHERICAL: {
@@ -1137,7 +1153,8 @@ void s2_memoize_memoizeQuaternions(
         context->dqQuaternionIndices[quaternionCounter] =
           context->jointPointers[i]->dqIndex;
         quaternionCounter++;
-      } break;
+      }
+      break;
       case S2_JOINT_FLOAT: {
         for(int j = 0; j < 3; j++) {
           context->qNonQuaternionIndices[qCounter] =
@@ -1151,11 +1168,13 @@ void s2_memoize_memoizeQuaternions(
         context->dqQuaternionIndices[quaternionCounter] =
           context->jointPointers[i]->dqIndex + 3;
         quaternionCounter++;
-      } break;
+      }
+      break;
       case S2_JOINT_INVALID:
       case S2_JOINT_PRIMITIVE: {
         fprintf(stderr, "invalid joint type found\n");
-      } break;
+      }
+      break;
     }
   }
 }

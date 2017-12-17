@@ -20,7 +20,7 @@ if(UNIX)
     OUTPUT_VARIABLE GDAL_LIBRARY_LA_FILE)
 
     # read libtools generate la meta data file to find location of shared libraries
-    if(GDAL_LIBRARY_LA_FILE)
+    if(EXISTS GDAL_LIBRARY_LA_FILE)
       FILE(READ ${GDAL_LIBRARY_LA_FILE} GDAL_LIBRARY_LA_CONTENTS)
       STRING(
         REGEX REPLACE ";" "\\\\;"
@@ -38,32 +38,40 @@ if(UNIX)
         endif()
       endforeach()
       string(REGEX MATCH "(([^\\/]*\\/)*)" GDAL_LIBRARY_PATH ${GDAL_LIBRARY_LA_FILE})
-    endif()
-    exec_program(
-      ${GDAL_CONFIG} ARGS --cflags
-      OUTPUT_VARIABLE GDAL_CFLAGS)
-    if(GDAL_CFLAGS)
-      string(REGEX MATCHALL "-I[^ ]+" _gdal_dashI ${GDAL_CFLAGS})
-      string(REPLACE "-I" ";" GDAL_INCLUDE_DIR ${_gdal_dashI})
-      # string(REPLACE " " ";" GDAL_INCLUDE_DIR ${_gdal_dashI})
+      # the code below reads the autotools --cflags variable to find all include
+      # directories for gdal, which requires that gdal already be configured
+      # and built. explicitly adding output of this command below
+      # exec_program(
+      #   ${GDAL_CONFIG} ARGS --cflags
+      #   OUTPUT_VARIABLE GDAL_CFLAGS)
+      # if(GDAL_CFLAGS)
+      #   string(REGEX MATCHALL "-I[^ ]+" _gdal_dashI ${GDAL_CFLAGS})
+      #   string(REPLACE "-I" ";" GDAL_INCLUDE_DIR ${_gdal_dashI})
+      # endif()
+    else()
+      set(GDAL_LIBRARY_PATH ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/.libs)
     endif()
   endif()
 endif()
 
 find_library(GDAL_LIBRARY
   NAMES gdal
-  HINTS GDAL_LIBRARY_PATH
-  PATHS
-    GDAL_LIBRARY_PATH
-    ${GDAL_LIBRARY_PATH}.libs)
+  PATHS ${GDAL_LIBRARY_PATH})
 
 message(STATUS "GDAL_CFLAGS: " ${GDAL_CFLAGS})
 message(STATUS "GDAL_LIBRARY_PATH: " ${GDAL_LIBRARY_PATH})
 message(STATUS "GDAL_LIBRARY: " ${GDAL_LIBRARY})
+
+
+set(GDAL_INCLUDE_DIR
+  ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/port                  ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/gcore                 ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/alg                   ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/ogr                   ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/ogr/ogrsf_frmts       ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/frmts/vrt
+  ${CMAKE_SOURCE_DIR}/src/third_party/gdal/gdal/apps)
+
 foreach(INCLUDE_DIR ${GDAL_INCLUDE_DIR})
   message(STATUS ${INCLUDE_DIR})
 endforeach()
-message(STATUS "GDAL_INCLUDE_DIR: " ${GDAL_INCLUDE_DIR})
+
+# message(STATUS "GDAL_INCLUDE_DIR: " ${GDAL_INCLUDE_DIR})
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(

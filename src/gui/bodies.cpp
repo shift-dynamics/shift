@@ -13,19 +13,21 @@
 #include <assimp/material.h>
 
 /*!
-@brief sets draw style, WIREFRAME, PHONG, and FLAT are the only
+@brief sets draw style, WIREFRAME, PHONG, and FLAT are the three supported draw styles
 */
 void s2_Bodies::setDrawStyle(s2_shading_enum_t shadingType) {
   switch(shadingType) {
     case S2_SHADING_WIREFRAME: {
       m_shadingType = S2_SHADING_WIREFRAME;
-    } break;
+    }
+    break;
     case S2_SHADING_FLAT: {
       m_shadingType = S2_SHADING_FLAT;
     }
     default: {
       m_shadingType = S2_SHADING_PHONG;
-    } break;
+    }
+    break;
   }
 }
 
@@ -42,12 +44,12 @@ void s2_Bodies::loadGeometryPrimitives() {
   sphere_data.close();
 
   const aiScene* scene = aiImportFileFromMemory(
-    sphere.constData(),
-    sphere.size(),
-    aiProcess_CalcTangentSpace |
-    aiProcess_Triangulate |
-    aiProcess_SortByPType,
-    ".obj");
+                           sphere.constData(),
+                           sphere.size(),
+                           aiProcess_CalcTangentSpace |
+                           aiProcess_Triangulate |
+                           aiProcess_SortByPType,
+                           ".obj");
 
   /* If loading was not successful, report import error and exit */
   if(!scene) {
@@ -461,7 +463,7 @@ void s2_Bodies::draw() {
         for(int i = 0; i < m_opaqueBufferObjects.size(); i++) {
 
           if(m_opaqueBufferObjects.at(i).body->drawEnabled &&
-            m_opaqueBufferObjects.at(i).body->isVisible) {
+              m_opaqueBufferObjects.at(i).body->isVisible) {
 
             m_opaqueBufferObjects.at(i).vao->bind();
             checkError("bodies: after bind vao phong");
@@ -493,7 +495,7 @@ void s2_Bodies::draw() {
         /* draw translucent geometry */
         for(int i = 0; i < m_translucentBufferObjects.size(); i++) {
           if(m_translucentBufferObjects.at(i).body->drawEnabled &&
-            m_translucentBufferObjects.at(i).body->isVisible) {
+              m_translucentBufferObjects.at(i).body->isVisible) {
 
             m_translucentBufferObjects.at(i).vao->bind();
             checkError("bodies: after bind vao phong");
@@ -519,7 +521,8 @@ void s2_Bodies::draw() {
         glDisable(GL_BLEND);
         m_programPhong->release();
         // checkError("after phong release phong");
-      } break;
+      }
+      break;
       case S2_SHADING_FLAT: {
         m_programFlat->bind();
         m_programFlat->setLights(m_lights);
@@ -576,7 +579,8 @@ void s2_Bodies::draw() {
         glDisable(GL_BLEND);
         m_programFlat->release();
         checkError("bodies: after flat release flat");
-      } break;
+      }
+      break;
       default: {
       } break;
     }

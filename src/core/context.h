@@ -24,9 +24,9 @@ SUCH DAMAGE.
 #include <stdbool.h>
 
 #ifdef __APPLE__
-  #include <OpenGL/OpenGL.h>
+#include <OpenGL/OpenGL.h>
 #else
-  #include <GL/gl.h>
+#include <GL/gl.h>
 #endif
 #include <jansson.h>
 
@@ -164,18 +164,18 @@ typedef struct s2_context_t {
   int chordConstraintCount; /*!< number of chord constraints, one for
                                  each kinematic loop */
   int* dqLookup;
-    /*!< lookup table used to look up a joint's position in variable
-         list. float variables have 6 variables, spherical joints have
-         3 variables, and rigid joints
-         have 0 variables associated with them */
+  /*!< lookup table used to look up a joint's position in variable
+       list. float variables have 6 variables, spherical joints have
+       3 variables, and rigid joints
+       have 0 variables associated with them */
   int* qLookup;
   int* jointLookup;
-    /*!< lookup table used to find a joint's position in compressed joint list
-         rigid joints are removed from compressed list and have a value of -1
-         in lookup table */
+  /*!< lookup table used to find a joint's position in compressed joint list
+       rigid joints are removed from compressed list and have a value of -1
+       in lookup table */
   int* dqLookupCompressed;
-    /*!< provides mapping of nonrigid joints to
-         index into dq array */
+  /*!< provides mapping of nonrigid joints to
+       index into dq array */
 
   /*!
   @}
@@ -254,15 +254,15 @@ typedef struct s2_context_t {
   @{
   */
   s2_body_t** bodyPointers;
-    /*!< Array of pointers to bodies to directly access
-         body in position in assembly hierarchy */
+  /*!< Array of pointers to bodies to directly access
+       body in position in assembly hierarchy */
   s2_pointcloud_t** pointCloudPointers;
   s2_sphere_t* boundingSpheres; /*! array of bounding spheres */
 
   s2_body_t** nonVirtualBodyPointers;
-    /*!< Array of pointers to bodies to directly access
-         body in position in assembly hierarchy, does not include
-         virtual bodies */
+  /*!< Array of pointers to bodies to directly access
+       body in position in assembly hierarchy, does not include
+       virtual bodies */
 
   s2_joint_t** jointPointers; /*!< Array of pointers to joints to directly
                                      access body in position in assembly
@@ -275,15 +275,15 @@ typedef struct s2_context_t {
 
   s2_light_t** lightPointers; /*!< array of pointers to lights */
 
-  void (**dhFunctionPointers) (void** dhva);
-    /*!< function pointers to update displacements
-         and influence coefficient matrices in
-         spanning tree */
+  void (**dhFunctionPointers)(void** dhva);
+  /*!< function pointers to update displacements
+       and influence coefficient matrices in
+       spanning tree */
 
-  void (**dhvaFunctionPointers) (void** dhva);
-    /*!< function pointers to update displacements
-        influence coefficient matrices,
-        velocities and accelerations in spanning tree */
+  void (**dhvaFunctionPointers)(void** dhva);
+  /*!< function pointers to update displacements
+      influence coefficient matrices,
+      velocities and accelerations in spanning tree */
 
   char*** names;
 

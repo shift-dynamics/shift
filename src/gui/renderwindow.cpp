@@ -96,7 +96,7 @@ RenderWindow::RenderWindow()
 }
 
 
-RenderWindow::~RenderWindow(){
+RenderWindow::~RenderWindow() {
   delete m_joints;
   delete m_bodies;
   delete m_frames;
@@ -139,19 +139,21 @@ void RenderWindow::mouseMoveEvent(
       if(event->buttons() & Qt::LeftButton) {
         setXRotation(m_xRot + 2 * dy);
         setZRotation(m_zRot + 2 * dx);
-      } else if (event->buttons() & Qt::RightButton) {
+      } else if(event->buttons() & Qt::RightButton) {
         m_xPan += dx / 120.0;
         m_zPan += dy / 120.0;
       }
       m_lastPos = event->pos();
       m_x = event->pos().x();
       m_y = event->pos().y();
-    } break;
+    }
+    break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->mouseMoveEvent(event);
       m_x = event->pos().x();
       m_y = event->pos().y();
-    } break;
+    }
+    break;
   }
   updateGL();
   emit mouseMove();
@@ -170,10 +172,12 @@ void RenderWindow::mousePressEvent(
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       m_lastPos = event->pos();
 
-    } break;
+    }
+    break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->mousePressEvent(event);
-    } break;
+    }
+    break;
   }
   if(event->button() == Qt::RightButton) {
     emit mouseRightPressEvent();
@@ -196,10 +200,12 @@ void RenderWindow::mouseReleaseEvent(
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       emit mouseReleaseEvent();
-    } break;
+    }
+    break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->mouseReleaseEvent(event);
-    } break;
+    }
+    break;
   }
 }
 
@@ -215,11 +221,15 @@ void RenderWindow::wheelEvent(
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       m_camDistance += (event->delta() / 360.0);
-      if(m_camDistance < 0) m_camDistance = 0;
-    } break;
+      if(m_camDistance < 0) {
+        m_camDistance = 0;
+      }
+    }
+    break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->wheelEvent(event);
-    } break;
+    }
+    break;
   }
   updateGL();
 }
@@ -243,9 +253,9 @@ QString RenderWindow::getCursorPositionText() {
         m_x,
         height() - m_y,
         depth).unproject(
-          m_view,
-          m_projection,
-          QRect(0, 0, viewport[2], viewport[3]));
+        m_view,
+        m_projection,
+        QRect(0, 0, viewport[2], viewport[3]));
     QTextStream(&str) << "(" << position.x() << "," << position.y() << "," << position.z() << ")";
 
     QVector3D near =
@@ -253,9 +263,9 @@ QString RenderWindow::getCursorPositionText() {
         m_x,
         height() - m_y,
         0).unproject(
-          m_view,
-          m_projection,
-          QRect(0, 0, viewport[2], viewport[3]));
+        m_view,
+        m_projection,
+        QRect(0, 0, viewport[2], viewport[3]));
 
   }
   // QTextStream(&str) << "(" << m_x << "," << m_y << ")";
@@ -378,30 +388,30 @@ void RenderWindow::loadContext(
 
 */
 void RenderWindow::checkError(
-  const QString &prefix) {
+  const QString& prefix) {
 
   GLenum glErr = glGetError();
 
   while(glErr != GL_NO_ERROR) {
     QString error;
-    switch (glErr) {
-    case GL_NO_ERROR:
-      break;
-    case GL_INVALID_OPERATION:
-      qDebug() << prefix << ": GL_INVALID_OPERATION";
-      break;
-    case GL_INVALID_ENUM:
-      qDebug() << prefix << ": GL_INVALID_ENUM";
-      break;
-    case GL_INVALID_VALUE:
-      qDebug() << prefix << ": GL_INVALID_VALUE";
-      break;
-    case GL_OUT_OF_MEMORY:
-      qDebug() << prefix << ": GL_OUT_OF_MEMORY";
-      break;
-    case GL_INVALID_FRAMEBUFFER_OPERATION:
-      qDebug() << prefix << ": GL_INVALID_FRAMEBUFFER_OPERATION";
-      break;
+    switch(glErr) {
+      case GL_NO_ERROR:
+        break;
+      case GL_INVALID_OPERATION:
+        qDebug() << prefix << ": GL_INVALID_OPERATION";
+        break;
+      case GL_INVALID_ENUM:
+        qDebug() << prefix << ": GL_INVALID_ENUM";
+        break;
+      case GL_INVALID_VALUE:
+        qDebug() << prefix << ": GL_INVALID_VALUE";
+        break;
+      case GL_OUT_OF_MEMORY:
+        qDebug() << prefix << ": GL_OUT_OF_MEMORY";
+        break;
+      case GL_INVALID_FRAMEBUFFER_OPERATION:
+        qDebug() << prefix << ": GL_INVALID_FRAMEBUFFER_OPERATION";
+        break;
     }
     glErr = glGetError();
   }
@@ -537,10 +547,12 @@ void RenderWindow::updateGL() {
         m_view.lookAt(eye, center, up);
         m_view.rotate(m_xRot, 1.0, 0.0, 0.0);
         m_view.rotate(m_zRot, 0.0, 0.0, -1.0);
-      } break;
+      }
+      break;
       case S2_CAMERA_INTERACTION_ORBITAL: {
         m_view = m_orbitalCamera->getMVMatrix();
-      } break;
+      }
+      break;
     }
 
     m_projection.setToIdentity();
@@ -548,7 +560,7 @@ void RenderWindow::updateGL() {
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
 
     float aspectRatio = (float)width() / (float)height();
-    if (m_perspective) {
+    if(m_perspective) {
       m_projection.perspective(
         60,
         aspectRatio,
@@ -674,17 +686,20 @@ void RenderWindow::interpolateCurrentPosition() {
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
-      } break;
+      }
+      break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*) m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
-      } break;
+      }
+      break;
       default: {
         exit(-1);
-      } break;
+      }
+      break;
     }
 
     /* find current time, and time at knot point before and
@@ -692,7 +707,7 @@ void RenderWindow::interpolateCurrentPosition() {
     // qDebug() << "remaining time: " << m_timer->remainingTime();
     double t =
       fmax(0, m_context->modelParameters.timeSpan -
-      (double)m_timer->remainingTime() / 1000.0);
+           (double)m_timer->remainingTime() / 1000.0);
 
     double t0 = t - fmod(t, m_context->modelParameters.timeStep);
     double t1 = t0 + m_context->modelParameters.timeStep;
@@ -750,14 +765,16 @@ void RenderWindow::interpolateCurrentPosition(double t) {
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
-      } break;
+      }
+      break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*) m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
-      } break;
+      }
+      break;
       default: {
         exit(-1);
       };
