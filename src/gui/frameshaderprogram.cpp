@@ -9,8 +9,8 @@
 void FrameShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/frame.vert");
-    addFragmentShader(":/shaders/frame.frag");
+    addVertexShader(":/shaders/frame.glsl");
+    addFragmentShader(":/shaders/frame.glsl");
     link();
     bind();
     checkError("frame: after link frame program");

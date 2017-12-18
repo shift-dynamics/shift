@@ -4,7 +4,7 @@
 #include "shadowshaderprogram.hpp"
 #include "lights.hpp"
 #include "pointcloud.hpp"
-#include "../star2.h"
+#include "../shift.h"
 
 /*!
 @brief sets draw style, WIREFRAME, PHONG, and FLAT are the only

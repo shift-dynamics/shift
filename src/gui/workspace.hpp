@@ -1,5 +1,5 @@
-#ifndef _STAR2_WORKSPACE_H_
-#define _STAR2_WORKSPACE_H_
+#ifndef _SHIFT_WORKSPACE_H_
+#define _SHIFT_WORKSPACE_H_
 
 #include <QtGui>
 #include <QApplication>
@@ -21,7 +21,7 @@
 #include <QPixmap>
 
 #include "renderwindow.hpp"
-#include "../star2.h"
+#include "../shift.h"
 
 
 class QSlider;

@@ -1,6 +1,6 @@
-.. star2 documentation master file
+.. Shift documentation master file
 
-star2: A Simulation Tool for Automation and Robotics
+Shift: A Simulation Tool for Automation and Robotics
 ====================================================
 
 overview

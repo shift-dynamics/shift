@@ -1,7 +1,7 @@
-#ifndef _STAR2_PHONGSHADERPROGRAM_HPP_
-#define _STAR2_PHONGSHADERPROGRAM_HPP_
+#ifndef _SHIFT_PHONGSHADERPROGRAM_HPP_
+#define _SHIFT_PHONGSHADERPROGRAM_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "shaderprogram.hpp"
 
@@ -90,7 +90,7 @@ class PhongShaderProgram : public ShaderProgram {
     GLint m_lights_Ka_u;
     GLint m_lights_Kd_u;
     GLint m_lights_Ks_u;
-    GLint m_lights_directional_u;
+    GLint m_lights_type_u;
     GLint m_lights_count_u;
     GLint m_lights_drawShadows_u;
     GLint m_lights_shadowMatrix_u;

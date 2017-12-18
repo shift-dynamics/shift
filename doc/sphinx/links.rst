@@ -11,7 +11,7 @@
     `Point Could Viewer </lidar/>`_
     ---------------------------------
 
-    `STAR 2.0 API Documentation </static/doxygen/>`_
+    `Shift API Documentation </static/doxygen/>`_
     ------------------------------------------------
 
     Publications

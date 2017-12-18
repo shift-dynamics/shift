@@ -22,8 +22,8 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#ifndef _STAR2_BODY_H_
-#define _STAR2_BODY_H_
+#ifndef _SHIFT_BODY_H_
+#define _SHIFT_BODY_H_
 
 #include "kinematics.h"
 

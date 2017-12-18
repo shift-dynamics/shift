@@ -72,7 +72,7 @@
     "lights": [
       {
         "name": "overhead_1",
-        "type": "point",
+        "type": "spot",
         "parent": ["fixed", "overhead_3"],
         "Ka": [0.2, 0.2, 0.2],
         "Kd": [0.8, 0.8, 0.8],
@@ -80,7 +80,7 @@
       },
       {
         "name": "overhead_2",
-        "type": "point",
+        "type": "spot",
         "parent": ["fixed", "overhead_1"],
         "Ka": [0.2, 0.2, 0.2],
         "Kd": [0.8, 0.8, 0.8],

@@ -9,10 +9,10 @@
 void TerrainShadowShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/terrain_shadow.vert");
-    addTessellationControlShader(":/shaders/terrain_shadow.tesc");
-    addTessellationEvaluationShader(":/shaders/terrain_shadow.tese");
-    addFragmentShader(":/shaders/terrain_shadow.frag");
+    addVertexShader(":/shaders/terrain_shadow.glsl");
+    addTessellationControlShader(":/shaders/terrain_shadow.glsl");
+    addTessellationEvaluationShader(":/shaders/terrain_shadow.glsl");
+    addFragmentShader(":/shaders/terrain_shadow.glsl");
     link();
     bind();
 

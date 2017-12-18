@@ -16,8 +16,8 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#ifndef _STAR2_POINTCLOUD_H_
-#define _STAR2_POINTCLOUD_H_
+#ifndef _SHIFT_POINTCLOUD_H_
+#define _SHIFT_POINTCLOUD_H_
 
 #include <stdio.h>
 #include "kinematics.h"

@@ -1,7 +1,7 @@
-#ifndef _STAR2_TIRE_PAC2002_H_
-#define _STAR2_TIRE_PAC2002_H_
+#ifndef _SHIFT_TIRE_PAC2002_H_
+#define _SHIFT_TIRE_PAC2002_H_
 
-#include "../../star2.h"
+#include "../../shift.h"
 #include "../tire.h"
 
 

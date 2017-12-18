@@ -19,10 +19,10 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#include "../star2.h"
+#include "../shift.h"
 
-#ifndef _STAR2_DAMPING_H_
-#define _STAR2_DAMPING_H_
+#ifndef _SHIFT_DAMPING_H_
+#define _SHIFT_DAMPING_H_
 
 /*!
   @brief damper data structure

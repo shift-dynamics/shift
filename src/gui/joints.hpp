@@ -1,7 +1,7 @@
-#ifndef _STAR2_JOINTS_HPP_
-#define _STAR2_JOINTS_HPP_
+#ifndef _SHIFT_JOINTS_HPP_
+#define _SHIFT_JOINTS_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "geometry.hpp"
 

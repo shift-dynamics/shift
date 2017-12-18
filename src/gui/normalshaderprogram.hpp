@@ -1,7 +1,7 @@
-#ifndef _STAR2_NORMALSHADERPROGRAM_HPP_
-#define _STAR2_NORMALSHADERPROGRAM_HPP_
+#ifndef _SHIFT_NORMALSHADERPROGRAM_HPP_
+#define _SHIFT_NORMALSHADERPROGRAM_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "shaderprogram.hpp"
 

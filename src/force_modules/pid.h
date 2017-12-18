@@ -16,8 +16,8 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#ifndef _STAR2_PID_H_
-#define _STAR2_PID_H_
+#ifndef _SHIFT_PID_H_
+#define _SHIFT_PID_H_
 
 #include "../core/restraint.h"
 #include "../core/joint.h"

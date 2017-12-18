@@ -16,10 +16,10 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include "../star2.h"
+#include "../shift.h"
 
-#ifndef _STAR2_SERVICE_H_
-#define _STAR2_SERVICE_H_
+#ifndef _SHIFT_SERVICE_H_
+#define _SHIFT_SERVICE_H_
 
 void s2_service_setForces(
   s2_context_t* context,
