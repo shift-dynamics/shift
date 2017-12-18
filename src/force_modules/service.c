@@ -26,7 +26,7 @@ SUCH DAMAGE.
 #else
 #include <cblas.h>
 #endif
-#include "../star2.h"
+#include "../shift.h"
 
 
 /*!

@@ -1,14 +1,12 @@
 #version 330
 #extension GL_ARB_separate_shader_objects : enable
-
-/* point_phong.frag */
+/* point_phong.glsl */
 
 struct matrices_t {
   mat4 mvp;
   mat4 mv;
   mat4 v;
 };
-
 uniform matrices_t matrices_u;
 
 struct lights_t {
@@ -21,13 +19,29 @@ struct lights_t {
   int drawShadows; /*!< 0 = false, 1 = true */
   mat4 shadowMatrix[10];
 };
-
 uniform lights_t lights_u;
 
+uniform vec4 color_u;
 uniform sampler2D texture_normal_u;
 
-layout (location = 0) in vec4 position_u;
-layout (location = 1) in vec4 color_u;
+
+#ifdef VERTEX_SHADER
+layout (location = 0) in vec4 position_a;
+layout (location = 1) in vec4 color_a;
+
+out vec4 color;
+
+void main() {
+  color = color_a;
+  gl_PointSize = max(10.0 / abs((matrices_u.mv * position_a).z), 1.0);
+  gl_Position = matrices_u.mvp * position_a;
+}
+#endif
+
+
+#ifdef FRAGMENT_SHADER
+
+in vec4 color;
 
 out vec4 colorFrag;
 
@@ -71,3 +85,4 @@ void main() {
 
 	colorFrag = fragColor;
 }
+#endif

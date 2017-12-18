@@ -1,7 +1,7 @@
-#ifndef _STAR2_TERRAIN_HPP_
-#define _STAR2_TERRAIN_HPP_
+#ifndef _SHIFT_TERRAIN_HPP_
+#define _SHIFT_TERRAIN_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "geometry.hpp"
 

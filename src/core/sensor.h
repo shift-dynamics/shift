@@ -17,8 +17,8 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#ifndef _STAR2_SENSOR_H_
-#define _STAR2_SENSOR_H_
+#ifndef _SHIFT_SENSOR_H_
+#define _SHIFT_SENSOR_H_
 
 typedef struct s2_sensor_t s2_sensor_t;
 

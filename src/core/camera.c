@@ -26,7 +26,7 @@ SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "../star2.h"
+#include "../shift.h"
 
 
 s2_camera_t* s2_camera() {

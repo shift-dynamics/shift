@@ -98,13 +98,13 @@ void s2_light_load(
 
   if(!strcmp(lightType, "point")) {
     light->lightType = S2_LIGHT_POINT;
-    light->glLight.directional = 0;
-  } else if(!strcmp(lightType, "directional")) {
-    light->lightType = S2_LIGHT_DIRECTIONAL;
-    light->glLight.directional = 1;
+    light->glLight.type = 0;
   } else if(!strcmp(lightType, "spot")) {
     light->lightType = S2_LIGHT_SPOT;
-    light->glLight.directional = 2;
+    light->glLight.type = 1;
+  } else if(!strcmp(lightType, "directional")) {
+    light->lightType = S2_LIGHT_DIRECTIONAL;
+    light->glLight.type = 2;
   }
   for(int i = 0; i < 3; i++) {
     light->glLight.Ka[i] = json_number_value(

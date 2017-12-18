@@ -1,7 +1,7 @@
-#ifndef _STAR2_TIRE_FIALA_H_
-#define _STAR2_TIRE_FIALA_H_
+#ifndef _SHIFT_TIRE_FIALA_H_
+#define _SHIFT_TIRE_FIALA_H_
 
-#include "../../star2.h"
+#include "../../shift.h"
 #include "../tire.h"
 
 /* collect subsections into master struct */

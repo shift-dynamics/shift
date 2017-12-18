@@ -1,10 +1,5 @@
 #version 330
-/* vertex_normal.geom */
-
-layout(triangles) in;
-
-// Three lines will be generated: 6 vertices
-layout(line_strip, max_vertices=6) out;
+/* vertex_normal.frag */
 
 struct matrices_t {
   mat4 mvp;
@@ -15,6 +10,25 @@ struct matrices_t {
 uniform matrices_t matrices_u;
 uniform float scale_u;
 uniform vec3 color_u;
+
+
+#ifdef VERTEX_SHADER
+layout (location = 0) in vec4 position_a;
+layout (location = 1) in vec3 normal_a;
+
+out vec4 position;
+out vec3 normal;
+
+void main() {
+  position = position_a;
+  normal = normalize(normal_a);
+}
+#endif
+
+
+#ifdef GEOMETRY_SHADER
+layout(triangles) in;
+layout(line_strip, max_vertices=6) out;
 
 in vec4 position[];
 in vec3 normal[];
@@ -34,3 +48,13 @@ void main() {
     EndPrimitive();
   }
 }
+#endif
+
+
+#ifdef FRAGMENT_SHADER
+out vec4 fragColor;
+
+void main() {
+  fragColor = vec4(color_u, 1.0);
+}
+#endif

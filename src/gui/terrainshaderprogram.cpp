@@ -9,10 +9,10 @@
 void TerrainShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/terrain.vert");
-    addTessellationControlShader(":/shaders/terrain.tesc");
-    addTessellationEvaluationShader(":/shaders/terrain.tese");
-    addFragmentShader(":/shaders/terrain.frag");
+    addVertexShader(":/shaders/terrain.glsl");
+    addTessellationControlShader(":/shaders/terrain.glsl");
+    addTessellationEvaluationShader(":/shaders/terrain.glsl");
+    addFragmentShader(":/shaders/terrain.glsl");
     link();
     bind();
 
@@ -62,7 +62,7 @@ void TerrainShaderProgram::initialize() {
     m_lights_Ka_u = m_program->uniformLocation("lights_u.Ka");
     m_lights_Kd_u = m_program->uniformLocation("lights_u.Kd");
     m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
-    m_lights_directional_u = m_program->uniformLocation("lights_u.directional");
+    m_lights_type_u = m_program->uniformLocation("lights_u.type");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
     m_lights_drawShadows_u =
       m_program->uniformLocation("lights_u.drawShadows");
@@ -73,7 +73,7 @@ void TerrainShaderProgram::initialize() {
     qDebug() << "lights_u.Ka: " << m_lights_Ka_u;
     qDebug() << "lights_u.Kd: " << m_lights_Kd_u;
     qDebug() << "lights_u.Ks: " << m_lights_Ks_u;
-    qDebug() << "lights_u.directional: " << m_lights_directional_u;
+    qDebug() << "lights_u.directional: " << m_lights_type_u;
     qDebug() << "lights_u.count: " << m_lights_count_u;
 
     /* terrain uniform locations */
@@ -256,8 +256,7 @@ void TerrainShaderProgram::setLights(s2_Lights* lights) {
   m_program->setUniformValueArray(m_lights_Ka_u, lights->getKa(), 10, 3);
   m_program->setUniformValueArray(m_lights_Kd_u, lights->getKd(), 10, 3);
   m_program->setUniformValueArray(m_lights_Ks_u, lights->getKs(), 10, 3);
-  m_program->setUniformValueArray(
-    m_lights_directional_u, lights->getDirectional(), 10);
+  m_program->setUniformValueArray(m_lights_type_u, lights->getType(), 10);
   m_program->setUniformValue(m_lights_count_u, lights->getCount());
   if(m_renderWindow->getLights()->isEnabled()) {
     m_program->setUniformValue(m_lights_drawShadows_u, 1);

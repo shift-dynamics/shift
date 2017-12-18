@@ -1,5 +1,5 @@
 #include "renderwindow.hpp"
-#include "../star2.h"
+#include "../shift.h"
 #include "geometry.hpp"
 #include "bodies.hpp"
 #include "frames.hpp"

@@ -66,7 +66,7 @@ SUCH DAMAGE.
 #include "terrain.hpp"
 #include "grid.hpp"
 #include "pointcloud.hpp"
-#include "../star2.h"
+#include "../shift.h"
 
 /*!
 @brief class constructor for Workspace application

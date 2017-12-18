@@ -16,8 +16,8 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#ifndef _STAR2_FACTOR_H_
-#define _STAR2_FACTOR_H_
+#ifndef _SHIFT_FACTOR_H_
+#define _SHIFT_FACTOR_H_
 
 void s2_factor_LU(
   int rowDim,

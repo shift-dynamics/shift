@@ -1,7 +1,7 @@
-#ifndef _STAR2_SHADOWSHADERPROGRAM_HPP_
-#define _STAR2_SHADOWSHADERPROGRAM_HPP_
+#ifndef _SHIFT_SHADOWSHADERPROGRAM_HPP_
+#define _SHIFT_SHADOWSHADERPROGRAM_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "shaderprogram.hpp"
 

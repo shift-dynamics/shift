@@ -1,7 +1,7 @@
-#ifndef _STAR2_FRAMES_HPP_
-#define _STAR2_FRAMES_HPP_
+#ifndef _SHIFT_FRAMES_HPP_
+#define _SHIFT_FRAMES_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "geometry.hpp"
 #include "renderwindow.hpp"

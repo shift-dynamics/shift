@@ -1,5 +1,5 @@
-#ifndef _SH_RENDERWINDOW_HPP_
-#define _SH_RENDERWINDOW_HPP_
+#ifndef _SHIFT_RENDERWINDOW_HPP_
+#define _SHIFT_RENDERWINDOW_HPP_
 
 #include "../shift.h"
 #include "openglwindow.hpp"

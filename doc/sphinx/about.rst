@@ -3,11 +3,11 @@
 About
 =====
 
-star2, *A Simulation Tool for Automation and Robotics*, is a general-purpose software tool for simulating and visualizing rigid body dynamics of robotic systems. Although the underlying algorithms are tailored to process complex robotic systems with multiple overlapping kinematic chord loops, the software  is also capable of efficiently modeling simpler systems, such as those consisting of serial chains or *tree* topologies.
+Shift, *A Simulation Tool for Automation and Robotics*, is a general-purpose software tool for simulating and visualizing rigid body dynamics of robotic systems. Although the underlying algorithms are tailored to process complex robotic systems with multiple overlapping kinematic chord loops, the software  is also capable of efficiently modeling simpler systems, such as those consisting of serial chains or *tree* topologies.
 
-A unique aspect of star2 is its file format, which is based on the JSON (Javascript Object Notation) specification. In a star2 JSON file, the system topology is specified by enumerating a number of bodies and a number of joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled. star2 does not burden the user with identifying the *spanning tree* or closed kinematic loops present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.
+A unique aspect of Shift is its file format, which is based on the JSON (Javascript Object Notation) specification. In a Shift JSON file, the system topology is specified by enumerating a number of bodies and a number of joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled. Shift does not burden the user with identifying the *spanning tree* or closed kinematic loops present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.
 
-In star2, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
+In Shift, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
 
 Features
 ---------
@@ -21,7 +21,7 @@ Faster than real--time simulation
     </video>
 
 
-*star2* models run many times faster than real--time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real--time without contact detection.
+*Shift* models run many times faster than real--time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real--time without contact detection.
 
 
 Automatic assembly of complex mechanisms
@@ -33,7 +33,7 @@ Automatic assembly of complex mechanisms
     </video>
 
 
-The *star2* file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user's input file, even for relatively complex mechanisms such as this model of a vehicle chassis, which runs many times faster than real-time.
+The *Shift* file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user's input file, even for relatively complex mechanisms such as this model of a vehicle chassis, which runs many times faster than real-time.
 
 
 Heuristic application of Generalized Coordinate Partitioning
@@ -45,7 +45,7 @@ Heuristic application of Generalized Coordinate Partitioning
     </video>
 
 
-Bricard's paradoxical linkage cannot be parameterized by one independent variable throughout its range of motion. *star2's* heuristic reapplication of Generalized Coordinate Partitioning (GCP) successfully detects when to reapply GCP on an as--needed basis, even for exceptional or paradoxical linkages.
+Bricard's paradoxical linkage cannot be parameterized by one independent variable throughout its range of motion. *Shift's* heuristic reapplication of Generalized Coordinate Partitioning (GCP) successfully detects when to reapply GCP on an as--needed basis, even for exceptional or paradoxical linkages.
 
 
 Mobility analysis and interactive positioning in a 3D environment
@@ -57,7 +57,7 @@ Mobility analysis and interactive positioning in a 3D environment
     </video>
 
 
-In addition to solving dynamics equations, *star2* has tools to analyze each joint's contribution to overall mechanism mobility, compute mechanical advantages and to interactively position models in a 3D visualization environment.
+In addition to solving dynamics equations, *Shift* has tools to analyze each joint's contribution to overall mechanism mobility, compute mechanical advantages and to interactively position models in a 3D visualization environment.
 
 
 OpenGL rendering
@@ -69,14 +69,14 @@ OpenGL rendering
     </video>
 
 
-*star2* uses custom shaders written in GLSL to implement the Phong lighting model with multiple light sources. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variey of 3D model formats. Other visualization techniques are currently in development, such as automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
+*Shift* uses custom shaders written in GLSL to implement the Phong lighting model with multiple light sources. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variey of 3D model formats. Other visualization techniques are currently in development, such as automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
 
 
 Software Design
 ---------------
-The numerical algorithms in star2 are written in the C programming language and compiled as a static library and command line interface. A 3D visualization tool is written in C++ using OpenGL and the Qt windowing framework.
+The numerical algorithms in *Shift* are written in the C programming language and compiled as a static library and command line interface. A 3D visualization tool is written in C++ using OpenGL and the Qt windowing framework.
 
-Additionally, star2 adheres to the following design criteria:
+Additionally, *Shift* adheres to the following design criteria:
 
     * The user interfaces (i.e. the C command line interface or C++ graphical interface) are separated from the core functionality, thereby allowing alternative front-ends to be programmed with no changes to the core code-base.
 
@@ -92,7 +92,7 @@ Additionally, star2 adheres to the following design criteria:
 Workflow
 --------
 
-When star2 is launched, the system topology is loaded from an external JSON text file. The analysis is split in to the following steps:
+When *Shift* is launched, the system topology is loaded from an external JSON text file. The analysis is split in to the following steps:
 
 
 Preprocessing

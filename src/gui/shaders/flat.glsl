@@ -1,6 +1,6 @@
 #version 330
-
 /* flat.glsl */
+
 struct matrices_t {
   mat4 mvp;
   mat4 mv;
@@ -43,6 +43,9 @@ void main() {
 
 
 #ifdef GEOMETRY_SHADER
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
 in vec4 vertexGeom[];
 
 out vec4 vertexFrag;

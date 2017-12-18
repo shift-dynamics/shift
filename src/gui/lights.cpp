@@ -47,7 +47,7 @@ void s2_Lights::initialize() {
   memset(&m_lights.Ka, 0, 30 * sizeof(GLfloat));
   memset(&m_lights.Kd, 0, 30 * sizeof(GLfloat));
   memset(&m_lights.Ks, 0, 30 * sizeof(GLfloat));
-  memset(&m_lights.directional, 0, 10 * sizeof(GLfloat)); /*!< 0 = point, 1 = directional, 2 = spot */
+  memset(&m_lights.type, 0, 10 * sizeof(GLfloat)); /*!< 0 = point, 1 = directional, 2 = spot */
   m_lights.count = 0;
   m_lights.drawShadows = 1; /*!< 0 = false, 1 = true */
   for(int i = 0; i < m_maxCount; i++) {
@@ -79,24 +79,24 @@ void s2_Lights::loadContext() {
       s2_displacement_t* d = light->parentFramePointer->dAbsolute;
       switch(light->lightType) {
         case S2_LIGHT_POINT: {
-          m_lights.directional[i] = 0;
+          m_lights.type[i] = 0;
+          m_lights.position[i * 3 + 0] = d->T.x;
+          m_lights.position[i * 3 + 1] = d->T.y;
+          m_lights.position[i * 3 + 2] = d->T.z;
+        }
+        break;
+        case S2_LIGHT_SPOT: {
+          m_lights.type[i] = 1;
           m_lights.position[i * 3 + 0] = d->T.x;
           m_lights.position[i * 3 + 1] = d->T.y;
           m_lights.position[i * 3 + 2] = d->T.z;
         }
         break;
         case S2_LIGHT_DIRECTIONAL: {
-          m_lights.directional[i] = 1;
+          m_lights.type[i] = 2;
           m_lights.position[i * 3 + 0] = d->R.m20;
           m_lights.position[i * 3 + 1] = d->R.m21;
           m_lights.position[i * 3 + 2] = d->R.m22;
-        }
-        break;
-        case S2_LIGHT_SPOT: {
-          m_lights.directional[i] = 2;
-          m_lights.position[i * 3 + 0] = d->T.x;
-          m_lights.position[i * 3 + 1] = d->T.y;
-          m_lights.position[i * 3 + 2] = d->T.z;
         }
         break;
       }
@@ -125,15 +125,7 @@ void s2_Lights::loadContext() {
             0.001f,
             1000.f);
           qDebug() << "initialized point (perspective) projection matrix";
-        }
-        break;
-        case S2_LIGHT_DIRECTIONAL: {
-          projection.ortho(
-            -1.f, 1.f, -1.f, 1.f, 0.001f, 1000.f);
-          qDebug() << "initialized directional (ortho) projection matrix";
-
-        }
-        break;
+        } break;
         case S2_LIGHT_SPOT: {
           projection.perspective(
             light->glLight.fov,
@@ -141,7 +133,13 @@ void s2_Lights::loadContext() {
             0.001f,
             1000.f);
           qDebug() << "initialized spot (perspective) projection matrix";
-        }
+        } break;
+        case S2_LIGHT_DIRECTIONAL: {
+          projection.ortho(
+            -1.f, 1.f, -1.f, 1.f, 0.001f, 1000.f);
+          qDebug() << "initialized directional (ortho) projection matrix";
+        } break;
+
       }
       m_lights.projectionMatrix[i] = projection;
       qDebug() << m_lights.projectionMatrix[i];
@@ -239,26 +237,23 @@ void s2_Lights::draw() {
 
         switch(light->lightType) {
           case S2_LIGHT_POINT: {
-            m_lights.directional[i] = 0;
+            m_lights.type[i] = 0;
             m_lights.position[i * 3 + 0] = d->T.x;
             m_lights.position[i * 3 + 1] = d->T.y;
             m_lights.position[i * 3 + 2] = d->T.z;
-          }
-          break;
+          } break;
+          case S2_LIGHT_SPOT: {
+            m_lights.type[i] = 1;
+            m_lights.position[i * 3 + 0] = d->T.x;
+            m_lights.position[i * 3 + 1] = d->T.y;
+            m_lights.position[i * 3 + 2] = d->T.z;
+          } break;
           case S2_LIGHT_DIRECTIONAL: {
-            m_lights.directional[i] = 1;
+            m_lights.type[i] = 2;
             m_lights.position[i * 3 + 0] = d->R.m20;
             m_lights.position[i * 3 + 1] = d->R.m21;
             m_lights.position[i * 3 + 2] = d->R.m22;
-          }
-          break;
-          case S2_LIGHT_SPOT: {
-            m_lights.directional[i] = 2;
-            m_lights.position[i * 3 + 0] = d->T.x;
-            m_lights.position[i * 3 + 1] = d->T.y;
-            m_lights.position[i * 3 + 2] = d->T.z;
-          }
-          break;
+          } break;
         }
       }
 

@@ -5,8 +5,8 @@
 void SimpleShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/simple.vert");
-    addFragmentShader(":/shaders/simple.frag");
+    addVertexShader(":/shaders/simple.glsl");
+    addFragmentShader(":/shaders/simple.glsl");
     link();
     bind();
 

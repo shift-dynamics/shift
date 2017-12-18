@@ -1,7 +1,7 @@
-#ifndef _STAR2_SHADERPROGRAM_HPP_
-#define _STAR2_SHADERPROGRAM_HPP_
+#ifndef _SHIFT_SHADERPROGRAM_HPP_
+#define _SHIFT_SHADERPROGRAM_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "uniformbufferobject.hpp"
 #include <QOpenGLShaderProgram>
@@ -51,6 +51,10 @@ class ShaderProgram : public QObject {
     void release();
     virtual void initialize() {};
     void checkError(const QString& prefix);
+
+  private:
+
+    QString readSource(const char* shaderSource, const char* define);
 
   protected:
 
