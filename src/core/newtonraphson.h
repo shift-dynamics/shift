@@ -16,10 +16,10 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#ifndef _STAR2_NEWTONRAPHSON_H_
-#define _STAR2_NEWTONRAPHSON_H_
+#ifndef _SHIFT_NEWTONRAPHSON_H_
+#define _SHIFT_NEWTONRAPHSON_H_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "jacobian.h"
 
 double s2_newtonRaphson_evaluateConstraintError_substructure(

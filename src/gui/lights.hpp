@@ -1,7 +1,7 @@
-#ifndef _STAR2_LIGHTS_HPP_
-#define _STAR2_LIGHTS_HPP_
+#ifndef _SHIFT_LIGHTS_HPP_
+#define _SHIFT_LIGHTS_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "geometry.hpp"
 
 #include <QString>
@@ -40,7 +40,7 @@ struct s2_lights_t {
   GLfloat Ka[30];
   GLfloat Kd[30];
   GLfloat Ks[30];
-  GLint directional[10]; /*!< 0 = point, 1 = directional, 2 = spot */
+  GLint type[10]; /*!< 0 = point, 1 = spot, 2 = directional */
   int count;
   int drawShadows; /*!< 0 = false, 1 = true */
   QMatrix4x4 shadowMatrix[10];
@@ -84,8 +84,8 @@ class s2_Lights : public s2_Geometry {
       return m_lights.Ks;
     }
 
-    GLint* getDirectional() {
-      return m_lights.directional;
+    GLint* getType() {
+      return m_lights.type;
     }
 
     void initialize();

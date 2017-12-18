@@ -19,12 +19,12 @@ SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "../star2.h"
+#include "../shift.h"
 #include "tire/pac2002.h"
 #include "tire/fiala.h"
 
-#ifndef _STAR2_TIRE_H_
-#define _STAR2_TIRE_H_
+#ifndef _SHIFT_TIRE_H_
+#define _SHIFT_TIRE_H_
 
 typedef struct s2_tire_t s2_tire_t;
 

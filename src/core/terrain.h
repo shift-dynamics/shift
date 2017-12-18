@@ -1,10 +1,10 @@
-#include "../star2.h"
+#include "../shift.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <wand/MagickWand.h>
 
-#ifndef _STAR2_TERRAIN_H_
-#define _STAR2_TERRAIN_H_
+#ifndef _SHIFT_TERRAIN_H_
+#define _SHIFT_TERRAIN_H_
 
 #define ThrowWandException(wand) \
 { \

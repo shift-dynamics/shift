@@ -31,8 +31,7 @@ void FlatShaderProgram::initialize() {
     m_lights_Ka_u = m_program->uniformLocation("lights_u.Ka");
     m_lights_Kd_u = m_program->uniformLocation("lights_u.Kd");
     m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
-    m_lights_directional_u =
-      m_program->uniformLocation("lights_u.directional");
+    m_lights_type_u = m_program->uniformLocation("lights_u.type");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
 
     /* set attribute locations */
@@ -103,7 +102,7 @@ void FlatShaderProgram::setLights(s2_Lights* lights) {
   m_program->setUniformValueArray(m_lights_Kd_u, lights->getKd(), 10, 3);
   m_program->setUniformValueArray(m_lights_Ks_u, lights->getKs(), 10, 3);
   m_program->setUniformValueArray(
-    m_lights_directional_u, lights->getDirectional(), 10);
+    m_lights_type_u, lights->getType(), 10);
   m_program->setUniformValue(m_lights_count_u, lights->getCount());
   checkError("after set lights");
 }

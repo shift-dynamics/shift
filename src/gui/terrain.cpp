@@ -27,6 +27,7 @@ void s2_Terrain::loadContext() {
       m_terrainObjects[i].textureDiffuse = NULL;
       m_terrainObjects[i].textureNormal = NULL;
       m_terrainObjects[i].textureSpecular = NULL;
+      m_terrainObjects[i].textureBump = NULL;
 
       m_terrainObjects[i].textureElevation =
         new QOpenGLTexture(QOpenGLTexture::Target2D);

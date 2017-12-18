@@ -17,8 +17,8 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#ifndef _STAR2_LIGHT_H_
-#define _STAR2_LIGHT_H_
+#ifndef _SHIFT_LIGHT_H_
+#define _SHIFT_LIGHT_H_
 
 #include <jansson.h>
 #include <stdbool.h>
@@ -41,8 +41,8 @@ typedef struct s2_context_t s2_context_t;
 */
 typedef enum {
   S2_LIGHT_POINT,
-  S2_LIGHT_DIRECTIONAL,
-  S2_LIGHT_SPOT
+  S2_LIGHT_SPOT,
+  S2_LIGHT_DIRECTIONAL
 } s2_light_enum_t;
 
 
@@ -67,7 +67,7 @@ typedef struct s2_light_t {
     GLfloat Ka[3];
     GLfloat Kd[3];
     GLfloat Ks[3];
-    int directional;
+    int type;
     GLfloat fov; /*!< field of view in degrees */
   } glLight;
   bool isVisible;

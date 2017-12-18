@@ -1,46 +1,68 @@
 #include "shaderprogram.hpp"
 #include "renderwindow.hpp"
 
+#include <QTextStream>
+
 void ShaderProgram::addProgram() {
   if(m_program == NULL) {
     m_program = new QOpenGLShaderProgram(m_renderWindow);
   }
 }
 
+QString ShaderProgram::readSource(
+  const char* shaderSource, const char* define) {
+  QFile file(shaderSource);
+  file.open(QIODevice::ReadOnly);
+  QString sourceCode;
+  QTextStream s(&file);
+  sourceCode.append(s.readAll());
+  QString defineStr(define);
+  sourceCode.insert(sourceCode.indexOf("\n"), "\n#define " + defineStr + "\n");
+  return sourceCode;
+}
+
 void ShaderProgram::addVertexShader(const char* shaderSource) {
-  m_program->addShaderFromSourceFile(
+  QString shaderSourceCode = readSource(shaderSource, "VERTEX_SHADER");
+  m_program->addShaderFromSourceCode(
     QOpenGLShader::Vertex,
-    shaderSource);
+    shaderSourceCode);
 }
 
 void ShaderProgram::addGeometryShader(const char* shaderSource) {
-  m_program->addShaderFromSourceFile(
+  QString shaderSourceCode = readSource(shaderSource, "GEOMETRY_SHADER");
+  m_program->addShaderFromSourceCode(
     QOpenGLShader::Geometry,
-    shaderSource);
+    shaderSourceCode);
 }
 
 void ShaderProgram::addTessellationControlShader(const char* shaderSource) {
-  m_program->addShaderFromSourceFile(
+  QString shaderSourceCode =
+    readSource(shaderSource, "TESSELATION_CONTROL_SHADER");
+  m_program->addShaderFromSourceCode(
     QOpenGLShader::TessellationControl,
-    shaderSource);
+    shaderSourceCode);
 }
 
 void ShaderProgram::addTessellationEvaluationShader(const char* shaderSource) {
-  m_program->addShaderFromSourceFile(
+  QString shaderSourceCode =
+    readSource(shaderSource, "TESSELATION_EVALUATION_SHADER");
+  m_program->addShaderFromSourceCode(
     QOpenGLShader::TessellationEvaluation,
-    shaderSource);
+    shaderSourceCode);
 }
 
 void ShaderProgram::addFragmentShader(const char* shaderSource) {
-  m_program->addShaderFromSourceFile(
+  QString shaderSourceCode = readSource(shaderSource, "FRAGMENT_SHADER");
+  m_program->addShaderFromSourceCode(
     QOpenGLShader::Fragment,
-    shaderSource);
+    shaderSourceCode);
 }
 
 void ShaderProgram::addComputeShader(const char* shaderSource) {
-  m_program->addShaderFromSourceFile(
+  QString shaderSourceCode = readSource(shaderSource, "COMPUTE_SHADER");
+  m_program->addShaderFromSourceCode(
     QOpenGLShader::Compute,
-    shaderSource);
+    shaderSourceCode);
 }
 
 void ShaderProgram::link() {

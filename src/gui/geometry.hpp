@@ -1,7 +1,7 @@
-#ifndef _STAR2_GEOMETRY_HPP_
-#define _STAR2_GEOMETRY_HPP_
+#ifndef _SHIFT_GEOMETRY_HPP_
+#define _SHIFT_GEOMETRY_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 
 #include <QObject>
 #include <QOpenGLShaderProgram>

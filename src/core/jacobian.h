@@ -16,8 +16,8 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#ifndef _STAR2_JACOBIAN_H_
-#define _STAR2_JACOBIAN_H_
+#ifndef _SHIFT_JACOBIAN_H_
+#define _SHIFT_JACOBIAN_H_
 
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_substructure_t s2_substructure_t;

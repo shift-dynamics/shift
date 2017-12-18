@@ -3,20 +3,20 @@
 Installation
 ============
 
-Acquiring star2
+Acquiring Shift
 ---------------
 
-Presently, star2 is accessible only through a private github repository located at `<https://github.com/kriswehage/star2>`_. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project using the following command:
+Presently, Shift is accessible only through a private github repository located at `<https://github.com/kriswehage/shift>`_. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project using the following command:
 
 .. code::
 
-   git clone git@github.com:kriswehage/star2.git
+   git clone git@github.com:kriswehage/shift.git
 
 
 Dependencies
 ------------
 
-star2 requires the following libraries to be installed on your system.
+Shift requires the following libraries to be installed on your system.
 
 * Assimp
 
@@ -73,9 +73,9 @@ For Ubuntu / Debian-based Linux Distributions, use apt-get to install the depend
 Windows
 *******
 
-star2 has not been tested on Windows machines.
+Shift has not been tested on Windows machines.
 
-Building star2
+Building Shift
 --------------------
 
 From within the top directory of the repository, issue the following commands:
@@ -97,14 +97,14 @@ You can test if the executable works correctly by running the command line inter
 .. code::
 
    cd ${PROJECT_DIRECTORY}/build/bin
-   ./star2_cli ../models/excavator/excavator.json
+   ./Shift_cli ../models/excavator/excavator.json
 
 
 Run the graphical user interface component of the program by executing the following command from within the ${PROJECT_DIRECTORY}/build/bin directory:
 
 .. code::
 
-   ./star2
+   ./shift
 
 Building documentation
 ----------------------

@@ -1,5 +1,5 @@
-#ifndef _STAR2_OPENGLWINDOW_H_
-#define _STAR2_OPENGLWINDOW_H_
+#ifndef _SHIFT_OPENGLWINDOW_H_
+#define _SHIFT_OPENGLWINDOW_H_
 
 #include <QWindow>
 #include <QOpenGLFunctions>

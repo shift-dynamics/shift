@@ -26,7 +26,7 @@ uniform vec3 KdMaterial;
 uniform vec3 KsMaterial;
 uniform int Ns;
 
-
+#ifdef VERTEX_SHADER
 layout(location = 0) in vec4 position;
 layout(location = 1) in vec3 normal;
 
@@ -75,3 +75,15 @@ void main(){
   }
   gl_Position = mvp * position;
 }
+#endif
+
+
+#ifdef FRAGMENT_SHADER
+in vec4 color;
+out vec4 fragColor;
+
+void main() {
+  /* for gouraud shading, interpolate colors computed at each vertex */
+  fragColor = min(color, vec4(1.0, 1.0, 1.0, 1.0));
+}
+#endif

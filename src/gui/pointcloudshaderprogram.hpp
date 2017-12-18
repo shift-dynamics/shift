@@ -1,7 +1,7 @@
-#ifndef _STAR2_POINTCLOUDSHADERPROGRAM_HPP_
-#define _STAR2_POINTCLOUDSHADERPROGRAM_HPP_
+#ifndef _SHIFT_POINTCLOUDSHADERPROGRAM_HPP_
+#define _SHIFT_POINTCLOUDSHADERPROGRAM_HPP_
 
-#include "../star2.h"
+#include "../shift.h"
 #include "openglwindow.hpp"
 #include "shaderprogram.hpp"
 
@@ -157,7 +157,7 @@ class PointCloudShaderProgram : QObject {
       GLint m_lights_Ka_u;
       GLint m_lights_Kd_u;
       GLint m_lights_Ks_u;
-      GLint m_lights_directional_u;
+      GLint m_lights_type_u;
       GLint m_lights_count_u;
       GLint m_lights_drawShadows_u;
       GLint m_lights_shadowMatrix_u;

@@ -7,7 +7,7 @@ All rights reserved.
 Core Solver
 -----------
 
-The core solver code and API are released under a BSD 3-Clause License
+Shift's core solver code and API are released under a BSD 3-Clause License
 
 BSD 3-CLAUSE LICENSE
 ********************

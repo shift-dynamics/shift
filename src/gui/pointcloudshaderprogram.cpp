@@ -23,8 +23,8 @@ by initialize method
 void PointCloudShaderProgram::initializeSimpleShaderProgram() {
   m_simpleShader = new ShaderProgram(m_renderWindow);
   m_simpleShader->addProgram();
-  m_simpleShader->addVertexShader(":/shaders/point_simple.vert");
-  m_simpleShader->addFragmentShader(":/shaders/point_simple.frag");
+  m_simpleShader->addVertexShader(":/shaders/point_simple.glsl");
+  m_simpleShader->addFragmentShader(":/shaders/point_simple.glsl");
   m_simpleShader->link();
   m_simpleShader->bind();
 
@@ -53,8 +53,8 @@ by initialize method
 void PointCloudShaderProgram::initializeSpriteShaderProgram() {
   m_spriteShader = new ShaderProgram(m_renderWindow);
   m_spriteShader->addProgram();
-  m_spriteShader->addVertexShader(":/shaders/point_sprite.vert");
-  m_spriteShader->addFragmentShader(":/shaders/point_sprite.frag");
+  m_spriteShader->addVertexShader(":/shaders/point_sprite.glsl");
+  m_spriteShader->addFragmentShader(":/shaders/point_sprite.glsl");
   m_spriteShader->link();
   m_spriteShader->bind();
 
@@ -96,8 +96,8 @@ by initialize method
 void PointCloudShaderProgram::initializePhongShaderProgram() {
   m_phongShader = new ShaderProgram(m_renderWindow);
   m_phongShader->addProgram();
-  m_phongShader->addVertexShader(":/shaders/point_phong.vert");
-  m_phongShader->addFragmentShader(":/shaders/point_phong.frag");
+  m_phongShader->addVertexShader(":/shaders/point_phong.glsl");
+  m_phongShader->addFragmentShader(":/shaders/point_phong.glsl");
   m_phongShader->link();
   m_phongShader->bind();
 
@@ -117,8 +117,8 @@ void PointCloudShaderProgram::initializePhongShaderProgram() {
     m_phongShader->getProgram()->uniformLocation("lights_u.Kd");
   m_phongUniforms.m_lights_Ks_u =
     m_phongShader->getProgram()->uniformLocation("lights_u.Ks");
-  m_phongUniforms.m_lights_directional_u =
-    m_phongShader->getProgram()->uniformLocation("lights_u.directional");
+  m_phongUniforms.m_lights_type_u =
+    m_phongShader->getProgram()->uniformLocation("lights_u.type");
   m_phongUniforms.m_lights_count_u =
     m_phongShader->getProgram()->uniformLocation("lights_u.count");
   m_phongUniforms.m_lights_drawShadows_u =
@@ -301,7 +301,7 @@ void PointCloudShaderProgram::setLights(s2_Lights* lights) {
     m_phongShader->getProgram()->setUniformValueArray(
       m_phongUniforms.m_lights_Ks_u, lights->getKs(), 10, 3);
     m_phongShader->getProgram()->setUniformValueArray(
-      m_phongUniforms.m_lights_directional_u, lights->getDirectional(), 10);
+      m_phongUniforms.m_lights_type_u, lights->getType(), 10);
     m_phongShader->getProgram()->setUniformValue(
       m_phongUniforms.m_lights_count_u, lights->getCount());
     if(m_renderWindow->getLights()->isEnabled()) {

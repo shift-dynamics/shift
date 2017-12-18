@@ -5,9 +5,9 @@
 void NormalShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/vertex_normal.vert");
-    addGeometryShader(":/shaders/vertex_normal.geom");
-    addFragmentShader(":/shaders/vertex_normal.frag");
+    addVertexShader(":/shaders/vertex_normal.glsl");
+    addGeometryShader(":/shaders/vertex_normal.glsl");
+    addFragmentShader(":/shaders/vertex_normal.glsl");
     link();
     bind();
 

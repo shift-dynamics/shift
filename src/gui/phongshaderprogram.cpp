@@ -5,8 +5,8 @@
 void PhongShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/phong.vert");
-    addFragmentShader(":/shaders/phong.frag");
+    addVertexShader(":/shaders/phong.glsl");
+    addFragmentShader(":/shaders/phong.glsl");
     link();
     bind();
 
@@ -29,7 +29,7 @@ void PhongShaderProgram::initialize() {
     m_lights_Ka_u = m_program->uniformLocation("lights_u.Ka");
     m_lights_Kd_u = m_program->uniformLocation("lights_u.Kd");
     m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
-    m_lights_directional_u = m_program->uniformLocation("lights_u.directional");
+    m_lights_type_u = m_program->uniformLocation("lights_u.type");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
     m_lights_drawShadows_u = m_program->uniformLocation("lights_u.drawShadows");
     m_lights_shadowMatrix_u =
@@ -124,7 +124,7 @@ void PhongShaderProgram::setLights(s2_Lights* lights) {
   m_program->setUniformValueArray(
     m_lights_Ks_u, lights->getKs(), 10, 3);
   m_program->setUniformValueArray(
-    m_lights_directional_u, lights->getDirectional(), 10);
+    m_lights_type_u, lights->getType(), 10);
   m_program->setUniformValue(
     m_lights_count_u, lights->getCount());
   if(m_renderWindow->getLights()->isEnabled()) {
