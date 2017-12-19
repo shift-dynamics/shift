@@ -1,147 +1,90 @@
-Shift Dynamics Engine
-====================================================
-A simulation tool for automation and robotics.
+*Shift*
+=======
 
-Dependencies
-------------
+A dynamics engine and visualization tool for automation and robotics.
 
-This code requires that the following libraries are installed on your system.
+Overview
+--------
 
-*   `Assimp <http://assimp.sourceforge.net>`_
-*   `Jansson <http://www.digip.org/jansson/>`_
-*   `Qt5 <http://www.qt.io/developers/>`_
-*   `Graphviz <http://www.graphviz.org/>`_
-*   `Cblas <http://www.netlib.org/blas/>`_
-*   `ImageMagick <http://www.imagemagick.org>`_
-*   `Qhull <http://www.qhull.org>`_
+*Shift* is a general-purpose modeling environment targeted to robotics, automation and vehicle dynamics applications. The software was created and is maintained by Kristopher Wehage, PhD.
 
-Macintosh
-*********
-
-On a Macintosh, these dependencies can be installed using the *brew*
-package manager:
-
-.. code::
-
-    brew install assimp jansson qt5 graphviz imagemagick qhull
+Refer to *Shift's* website at `<https://kriswehage.github.io/shift/>`_ for additional information on how to use the software and API.
 
 
-The cblas package is already available on a Macintosh using the *accelerate*
-framework, the CMakeLists.txt file may need to be modified to bring in this
-dependency correctly.
+Workflow
+--------
 
-Arch Linux
-**********
+*Shift* loads and analyzes the topology of a mechanism specified in a JSON
+text file.  The analysis is split in to the following steps:
 
-On arch linux, the dependencies can be installed using pacman:
+Preprocessing
+*************
 
-.. code::
+The following operations are performed once at the beginning of simulation
+and need not be called again, unless the mechanism topology changes:
 
-    pacman -S assimp jansson qt5 graphviz cblas imagemagick qhull
+*   The user-defined body-joint-body information is initially loaded into
+    computer working memory as a linked list.
 
+*   The topology of the mechanism is analyzed automatically to identify groups
+    of overlapping chord loops, which are referred to as *kinematic substructures* -- or as *s2_substructure_t* in the code.
 
-Ubuntu / Debian-based Linux Distributions
-*****************************************
+*   Bodies and joints are arranged in level increasing order within each
+    substructure, thereby block-diagonalizing the Jacobian matrix.
 
-Use apt-get:
-
-.. code::
-
-    apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev libqhull-dev
-
-
-Building the project
---------------------
-
-From within the top directory of the repository, issue the following command:
-
-.. code::
-
-    mkdir build
-    cd build
-    cmake ..
-    make
+*   To minimize cache misses, data is copied by value from linked-list
+    representation to a struct-of-arrays data structure in contiguous
+    memory in level-increasing order.
 
 
-Executables will be located in ${PROJECT_DIRECTORY}/build/bin
+Run-Time Optimization (RTO)
+***************************
 
-Where ${PROJECT_DIRECTORY} is the root directory of the git project on your
-system.
+The following operations may be called once or periodically during the course
+of a simulation. The operations are performed again only if generalized
+coordinate partitioning indicates to use a different split of
+independent/dependent variables during a running simulation:
 
-You can test if the executable works correctly by running the command line
-interface to the program as:
+*   Set up source and destination memory pointers to:
 
-.. code::
+    *   Evaluate primary Jacobian matrix in permuted order.
 
-    cd ${PROJECT_DIRECTORY}/build/bin
-    ./star2_cli ../models/excavator/excavator.json
+    *   Evaluate primary constraints (and first and second time derivatives)
+        in permuted order (no need to evaluate secondary constraints).
 
+    *   Factor the primary Jacobian matrix.
 
-Run the graphical user interface component of the program by executing the
-following command from within the ${PROJECT_DIRECTORY}/build/bin directory:
+    *   Precondition the primary constraints (i.e. sparse solve for the *B
+        matrix* which is used to find part of the right null space of Jacobian).
 
-.. code::
+    *   Map mass matrix in original order to permuted order.
 
-    ./star2
-
-To run the gui program with nvidia-gfx-debugger:
-
-.. code::
-
-    LD_PRELOAD=~/.tgd/libs/libNvidia_gfx_debugger.so ./star2
+    *   Evaluate equations of motion and store the results in unpermuted
+        order.
 
 
-Building documentation
-----------------------
+Run-Time Algorithm (RTA)
+************************
 
-Building the documention requires the dependencies `Doxygen <http://www.stack.nl/~dimitri/doxygen/>`_, `doxyrest <https://github.com/vovkos/doxyrest/>`_ and `Sphinx <http://www.sphinx-doc.org/en/stable/>`_. The documentaion is built in the following three steps.
+During a simulation, the following operations are carried out at every time
+step. RTA uses only a few primitive functions to set up and sparse solve the
+equations of motion, stepping through arrays of memory locations without
+complex logic.
 
-  1. A Doxygen xml listing is generated from inline Doxygen comments using Doxygen.
-  2. Doxygen xml listings are converted to Restructured Text (.rst) format using doxyrest.
-  3. Sphinx documentation is generated using Sphinx.
+*   Carry out operations set up in Run-Time Optimization step using
+    source and destination memory pointers.
 
-
-To build the documentation locally:
-
-.. code::
-
-    mkdir build
-    cd build
-    cmake ..
-    make doc
+*   Monitor ratio of infinity norm of the B matrix associated with each
+    block sub-Jacobian matrix of each substructure.  If the infinity norm increases more than a specified threshold from the initial starting value, the simulation is paused and the Run-Time Optimization step is carried out again to regenerate pointer arrays.
 
 
-The html documentation will be generated in ${PROJECT_DIRECTORY}/doc/html
+References
+----------
 
-Optional - documentation can be copied to your /share/doc folder by issuing the
-command:
+Refer to the following publications for additional details on how the software works:
 
-.. code::
+* Wehage K., Computational Methods for Dynamics and Mobility Analysis of Multiloop Mechanisms and Robotic Systems, Thesis, December 2016 `<https://search.proquest.com/openview/2b96ee91ebc96f840bdada69a21b7cbe>`_
 
-    make install
+* Wehage K. Ravani B., A Computational Method for Formulation and Solution of Dynamical Equations for Complex Mechanisms and Multibody Systems, Proceedings of IDETC/DIE at Cleveland Ohio, August 2017, `<https://doi.org/10.1115/DETC2017-67766>`_
 
-
-Syncing documentation with Github
----------------------------------
-
-Issue the following commands to create a git submodule containing the gh-pages branch. This only needs to be done once after the main repository has been cloned.
-
-.. code::
-
-    mkdir -p doc/html
-    cd doc/html
-    git clone git@github.com:kriswehage/star2.git
-    git checkout gh-pages
-    git branch -d master
-
-
-To update the Github hosted website, change directory back to ${PROJECT_DIRECTORY}. Then issue the commands:
-
-.. code::
-
-    mkdir build
-    cd build
-    cmake ..
-    make doc
-    cd ../doc/html
-    git push
+* Wehage K., Wehage R., Ravani B., Generalized coordinate partitioning for complex mechanisms based on kinematic substructuring, Mechanism and Machine Theory 92:464-483, October 2015 `<https://doi.org/10.1016/j.mechmachtheory.2015.06.006>`_
