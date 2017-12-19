@@ -770,13 +770,12 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = @doxy_main_page@ \
-                         @PROJECT_SOURCE_DIR@/README.md \
-                         @star2_SOURCE_DIR@/src/core \
-                         @star2_SOURCE_DIR@/src/ode \
-                         @star2_SOURCE_DIR@/src/gui \
-                         @star2_SOURCE_DIR@/src/force_modules \
-                         @star2_SOURCE_DIR@/src/star2.h \
-                         @PROJECT_SOURCE_DIR@/README.md \
+                         @PROJECT_SOURCE_DIR@/about.rst \
+                         @shift_SOURCE_DIR@/src/core \
+                         @shift_SOURCE_DIR@/src/ode \
+                         @shift_SOURCE_DIR@/src/gui \
+                         @shift_SOURCE_DIR@/src/force_modules \
+                         @shift_SOURCE_DIR@/src/shift.h
 
 
 # This tag can be used to specify the character encoding of the source files

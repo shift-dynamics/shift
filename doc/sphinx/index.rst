@@ -1,8 +1,8 @@
 .. Shift documentation master file
 
-Shift Dynamics Engine
+*Shift*
 ====================================================
-A Simulation Tool for Automation and Robotics
+A Dynamics Engine and Visualization Tool for Automation and Robotics
 
 overview
 --------
