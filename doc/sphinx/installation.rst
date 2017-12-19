@@ -97,7 +97,7 @@ You can test if the executable works correctly by running the command line inter
 .. code::
 
    cd ${PROJECT_DIRECTORY}/build/bin
-   ./Shift_cli ../models/excavator/excavator.json
+   ./shift_cli ../models/excavator/excavator.json
 
 
 Run the graphical user interface component of the program by executing the following command from within the ${PROJECT_DIRECTORY}/build/bin directory:
