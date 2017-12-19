@@ -6,7 +6,7 @@ Installation
 Acquiring Shift
 ---------------
 
-Presently, Shift is accessible only through a private github repository located at `<https://github.com/kriswehage/shift>`_. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project using the following command:
+Presently, *Shift* is accessible only through a private github repository located at `<https://github.com/kriswehage/shift>`_. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project using the following command:
 
 .. code::
 
@@ -16,7 +16,7 @@ Presently, Shift is accessible only through a private github repository located 
 Dependencies
 ------------
 
-Shift requires the following libraries to be installed on your system.
+*Shift* requires the following libraries to be installed on your system.
 
 * Assimp
 
