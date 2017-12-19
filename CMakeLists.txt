@@ -205,7 +205,7 @@ INCLUDE(pandocology)
 add_document(
   TARGET about
   OUTPUT_FILE about.html
-  SOURCES about.rst
+  SOURCES readme.rst
   PANDOC_DIRECTIVES -t html -s
   PRODUCT_DIRECTORY ${CMAKE_SOURCE_DIR}/src/gui/html
 )

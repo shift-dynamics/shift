@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>About</title>
+  <title>Shift</title>
   <style type="text/css">
       code{white-space: pre-wrap;}
       span.smallcaps{font-variant: small-caps;}
@@ -18,13 +18,14 @@
 </head>
 <body>
 <header>
-<h1 class="title">About</h1>
+<h1 class="title"><em>Shift</em></h1>
 </header>
+<p>A dynamics engine and visualization tool for automation and robotics.</p>
 <h1 id="overview">Overview</h1>
-<p>Shift, a simulation tool for automation and robotics, is a general-purpose modeling environment targeted to robotics and vehicle dynamics applications. The software was created and is maintained by Kristopher Wehage, PhD.</p>
-<p>Refer to Shift's website at <a href="https://kriswehage.github.io/shift/" class="uri">https://kriswehage.github.io/shift/</a> for additional information on how to use the software and API.</p>
+<p><em>Shift</em> is a general-purpose modeling environment targeted to robotics, automation and vehicle dynamics applications. The software was created and is maintained by Kristopher Wehage, PhD.</p>
+<p>Refer to <em>Shift's</em> website at <a href="https://kriswehage.github.io/shift/" class="uri">https://kriswehage.github.io/shift/</a> for additional information on how to use the software and API.</p>
 <h1 id="workflow">Workflow</h1>
-<p>Shift loads and analyzes the topology of a mechanism specified in a JSON text file. The analysis is split in to the following steps:</p>
+<p><em>Shift</em> loads and analyzes the topology of a mechanism specified in a JSON text file. The analysis is split in to the following steps:</p>
 <h2 id="preprocessing">Preprocessing</h2>
 <p>The following operations are performed once at the beginning of simulation and need not be called again, unless the mechanism topology changes:</p>
 <ul>
@@ -50,7 +51,7 @@
 <p>During a simulation, the following operations are carried out at every time step. RTA uses only a few primitive functions to set up and sparse solve the equations of motion, stepping through arrays of memory locations without complex logic.</p>
 <ul>
 <li>Carry out operations set up in Run-Time Optimization step using source and destination memory pointers.</li>
-<li>Monitor ratio of infinity norm of the B matrix associated with each block sub-Jacobian matrix of each substructure. If the infinity norm increases more than 2 times from the initial starting value, the simulation is paused and the Run-Time Optimization step is carried out again to regenerate pointer arrays.</li>
+<li>Monitor ratio of infinity norm of the B matrix associated with each block sub-Jacobian matrix of each substructure. If the infinity norm increases more than a specified threshold from the initial starting value, the simulation is paused and the Run-Time Optimization step is carried out again to regenerate pointer arrays.</li>
 </ul>
 <h1 id="references">References</h1>
 <p>Refer to the following publications for additional details on how the software works:</p>
