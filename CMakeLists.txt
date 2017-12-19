@@ -50,7 +50,7 @@ find_package(GDAL REQUIRED)
 
 
 # build v-hacd submodule
-add_subdirectory(${CMAKE_SOURCE_DIR}/src/third_party/v-hacd/src)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/src/third_party/v-hacd/src)
 
 # build stepcode submodule
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/third_party/stepcode)

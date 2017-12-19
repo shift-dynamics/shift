@@ -1,7 +1,8 @@
 .. Shift documentation master file
 
-Shift: A Simulation Tool for Automation and Robotics
+Shift Dynamics Engine
 ====================================================
+A Simulation Tool for Automation and Robotics
 
 overview
 --------
@@ -34,9 +35,7 @@ api reference
 .. toctree::
 
    doxyrest/global.rst
-	 :doc:`global`
-   doxyrest/page_todo.rst
-   :doc:`page_todo`
+
 
 
 indices and tables

@@ -8,15 +8,15 @@ Contributing
 Roadmap
 -----------
 
-Contributors to star2 are sought, particularly if you are interested in incorporating star2 into your research.
+Contributors to Shift are sought, particularly if you are interested in incorporating Shift into your research.
 
-Refer to the `Github issues page <https://github.com/kriswehage/star2/issues>`_ for possible development tasks or contact the author if you have other development/research ideas.
+Refer to the `Github issues page <https://github.com/kriswehage/shift/issues>`_ for possible development tasks or contact the author if you have other development/research ideas.
 
 
 Coding Style
 ------------
 
-This guide describes the coding style used in *star2*.
+This guide describes the coding style used in *Shift*.
 
 .. figure:: code_quality.png
     :width: 600px
@@ -230,3 +230,13 @@ Other
   prototypes `s2_foo_t* s2_foo()` and `s2_foo_free(s2_foo_t*)`.
 * The *member functions* (i.e. functions that operate on `s2_foo_t`) shall have
   the prototype `s2_foo_bar(s2_foo_t* foo, <additional arguments>)` where *bar* is a description of the operation being performed. The function name *bar* should follow the mixedCase convention with the first letter lowercase.
+
+
+Using *Artistic Style*
+**********************
+
+The *Shift* repository contains an `Artistic Style <http://astyle.sourceforge.net/astyle.html>`_ configuration file that can be used to auto-format code to follow most of the conventions described above. Artistic Style can be obtained through their website or using your package manager. To run *Artistic Style* on your code, from the top level directory of the git repository run:
+
+.. code::
+
+    astyle --options=.astyle.cfg <path_to_file>

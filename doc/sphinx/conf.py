@@ -60,7 +60,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'star2'
+project = 'shift'
 copyright = '2015-2017, Kristopher Wehage'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -229,7 +229,7 @@ html_show_sphinx = False
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'star2-doc'
+htmlhelp_basename = 'shift-doc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -250,8 +250,8 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   ('index',
-   'star2.tex',
-   'Star2',
+   'shift.tex',
+   'Shift',
    'Kristopher Wehage',
    'manual'),
 ]
@@ -282,7 +282,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'star2', 'star2 Documentation',
+    ('index', 'shift', 'Shift Documentation',
      ['Kristopher Wehage'], 1)
 ]
 
@@ -296,8 +296,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'star2', 'star2 Documentation',
-   'Kristopher Wehage', 'star2', 'A Simulation Tool for Automation and Robotics.',
+  ('index', 'shift', 'Shift Documentation',
+   'Kristopher Wehage', 'shift', 'A Simulation Tool for Automation and Robotics.',
    'Miscellaneous'),
 ]
 
@@ -317,7 +317,7 @@ texinfo_documents = [
 # -- Options for Epub output ----------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = 'star2'
+epub_title = 'Shift'
 epub_author = 'Kristopher Wehage'
 epub_publisher = 'Kristopher Wehage'
 epub_copyright = '2017, Kristopher Wehage'
