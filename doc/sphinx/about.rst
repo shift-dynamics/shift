@@ -3,11 +3,11 @@
 About
 =====
 
-Shift, *A Simulation Tool for Automation and Robotics*, is a general-purpose software tool for simulating and visualizing rigid body dynamics of robotic systems. Although the underlying algorithms are tailored to process complex robotic systems with multiple overlapping kinematic chord loops, the software  is also capable of efficiently modeling simpler systems, such as those consisting of serial chains or *tree* topologies.
+*Shift* is a general-purpose software tool for simulating and visualizing rigid body dynamics of robotic systems. The underlying algorithms are tailored to process complex robotic systems with multiple overlapping kinematic chord loops, but the software is also capable of efficiently modeling simple systems, such as those consisting of serial chains or *tree* topologies.
 
-A unique aspect of Shift is its file format, which is based on the JSON (Javascript Object Notation) specification. In a Shift JSON file, the system topology is specified by enumerating a number of bodies and a number of joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled. Shift does not burden the user with identifying the *spanning tree* or closed kinematic loops present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.
+A unique aspect of *Shift* is its file format, which is based on the JSON (Javascript Object Notation) specification. In a *Shift* JSON file, the system topology is specified by enumerating a number of bodies and a number of joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled; the software does not burden the user with identifying a *spanning tree* or identifying closed kinematic loops present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.
 
-In Shift, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
+In *Shift*, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
 
 Features
 ---------
@@ -17,7 +17,7 @@ Faster than real--time simulation
 
 .. raw:: html
 
-    <video src="_static/excavator.webm" width="640" height="480" controls>
+    <video src="_static/excavator.webm" width="640" height="440" controls>
     </video>
 
 
@@ -29,7 +29,7 @@ Automatic assembly of complex mechanisms
 
 .. raw:: html
 
-    <video src="_static/vehicle_control_15mps.webm" width="640" height="480" controls>
+    <video src="_static/vehicle_control_15mps.webm" width="640" height="440" controls>
     </video>
 
 
@@ -41,7 +41,7 @@ Heuristic application of Generalized Coordinate Partitioning
 
 .. raw:: html
 
-    <video src="_static/bricard.webm" width="640" height="480" controls>
+    <video src="_static/bricard.webm" width="640" height="440" controls>
     </video>
 
 
@@ -53,7 +53,7 @@ Mobility analysis and interactive positioning in a 3D environment
 
 .. raw:: html
 
-    <video src="_static/brake.webm" width="640" height="480" controls>
+    <video src="_static/brake.webm" width="640" height="440" controls>
     </video>
 
 
@@ -65,11 +65,11 @@ OpenGL rendering
 
 .. raw:: html
 
-    <video src="_static/auto_lod.webm" width="640" height="480" controls>
+    <video src="_static/auto_lod.webm" width="640" height="440" controls>
     </video>
 
 
-*Shift* uses custom shaders written in GLSL to implement the Phong lighting model with multiple light sources. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variey of 3D model formats. Other visualization techniques are currently in development, such as automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
+*Shift* uses custom shaders written in GLSL to implement the Phong lighting model with multiple light sources and dynamic shadow mapping. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variety of 3D model formats. Other visualization techniques are currently in development, such as automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
 
 
 Software Design
