@@ -1,8 +1,8 @@
 .. title:: Installation
 
 
-*Shift* - Installation
-====================================================
+Installing *Shift*
+==================
 
 Dependencies
 ------------
