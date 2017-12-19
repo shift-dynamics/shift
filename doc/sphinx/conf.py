@@ -124,7 +124,7 @@ html_theme = 'alabaster'
 # documentation.
 html_theme_options = {
     'logo_name': True,
-    'description': 'A Simulation Tool for Automation and Robotics',
+    # 'description': 'A Simulation Tool for Automation and Robotics',
     'fixed_sidebar': False
     # 'collapsiblesidebar': True,
     # 'footerbgcolor': '#f8f8f8',
