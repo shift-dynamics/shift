@@ -49,10 +49,15 @@ typedef struct s2_convexhull_t {
   int vertexCount; /*!< number of vertices */
   GLuint* faces; /*!< faces in contiguous memory */
   int faceCount; /*!< number of faces */
-  bool drawEnabled; /*!< indicates whether the convexhull object should be drawin in gui */
+  bool drawEnabled; /*!< indicates whether the convexhull object should be drawn in gui */
 } s2_convexhull_t;
 
+s2_convexhull_t* s2_convexhull();
+
+void s2_convexhull_free(s2_convexhull_t* convexhull);
 
 int s2_convexhull_qhull(s2_body_t*);
+
+s2_vector_t s2_convexhull_basicSupport(void*, s2_vector_t*);
 
 #endif

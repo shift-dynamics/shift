@@ -138,6 +138,7 @@ add_library(shift_lib STATIC
   ${shift_SOURCE_DIR}/src/core/chordconstraint.c
   ${shift_SOURCE_DIR}/src/core/context.c
   ${shift_SOURCE_DIR}/src/core/convexhull.c
+  ${shift_SOURCE_DIR}/src/core/collisionobject.c
   ${shift_SOURCE_DIR}/src/core/equation.c
   ${shift_SOURCE_DIR}/src/core/factor.c
   ${shift_SOURCE_DIR}/src/core/frame.c

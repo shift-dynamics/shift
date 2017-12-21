@@ -1,12 +1,12 @@
 /**
 @file
 @author Kristopher Wehage
-@brief Utilities for frame datastructure.
+@brief Utilities to operate on a frame datastructure.
 @date 2017
 @copyright Kristopher Wehage 2016-2017
 
 This function library is used to initialize and free memory for
-data structures defined in context.h
+data structures defined in frame.h
 
 @remark
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
