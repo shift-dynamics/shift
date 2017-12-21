@@ -1,7 +1,7 @@
 Basic Viewer OpenGL Template
 ===============================
 
-This standalone viewer application is a basic template for testing new functionality before integrating into main Star2 GUI application. This example model loads one or more .obj files specified in a .json file within the scene directory. In this simple example, the two obj files are tetrahedron. It is possible to add other obj files to the scene directory and modify the json file accordingly to point to the new files.
+This standalone viewer application is a basic template for testing new functionality before integrating into main *Shift* GUI application. This example model loads one or more .obj files specified in a .json file within the scene directory. In this simple example, the two obj files are tetrahedron. It is possible to add other obj files to the scene directory and modify the json file accordingly to point to the new files.
 
 This simple test program uses only simple or wireframe shading.
 

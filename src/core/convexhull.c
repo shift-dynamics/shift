@@ -274,20 +274,28 @@ int s2_convexhull_qhull(s2_body_t* body) {
 
 
 /*!
-@brief basic support function, performs linear search through indices to find maximum projection along given direction. returns index with greatest projection along supplied axis. later to be replaced by hash table method
+@brief basic support function, performs linear search through indices to find maximum projection along specified direction. returns vertex with greatest projection along supplied axis. later to be replaced by dobkin-kirkpatrick hierarchy or hash table methods
 */
-size_t s2_convexhull_support(s2_convexhull_t* convexhull, float direction[3]) {
+s2_vector_t s2_convexhull_basicSupport(
+  void* collisionobject,
+  s2_vector_t* direction) {
+
+  s2_convexhull_t* convexhull = (s2_convexhull_t*)collisionobject;
   float max_projection = -FLT_MAX;
   size_t max_index;
   for(size_t i = 0; i < convexhull->vertexCount; i++) {
     float projection = 0;
-    for(int j = 0; j < 3; j++) {
-      projection += direction[j] * convexhull->vertices[j * 3 + 0];
-    }
+    projection += direction->x * convexhull->vertices[i * 3 + 0];
+    projection += direction->y * convexhull->vertices[i * 3 + 1];
+    projection += direction->z * convexhull->vertices[i * 3 + 2];
     if(projection > max_projection) {
       max_projection = projection;
       max_index = i;
     }
   }
-  return max_index;
+  s2_vector_t max_vector;
+  max_vector.x = (double)(convexhull->vertices[max_index * 3 + 0]);
+  max_vector.y = (double)(convexhull->vertices[max_index * 3 + 1]);
+  max_vector.z = (double)(convexhull->vertices[max_index * 3 + 2]);
+  return max_vector;
 }
