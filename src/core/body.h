@@ -6,7 +6,7 @@
 @copyright Kristopher Wehage 2016
 
 This function library is used to initialize and free memory for
-data structures defined in context.h
+data structures defined in body.h
 
 @remark
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
@@ -43,6 +43,7 @@ typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_convexhull_t s2_convexhull_t;
 typedef struct s2_context_t s2_context_t;
+typedef struct s2_collisionobject_t s2_collisionobject_t;
 
 
 /*!
@@ -98,8 +99,8 @@ typedef struct s2_body_t {
 
   int materialCount; /*!< number of materials assigned to a body */
 
-  bool isVirtual; /*!< indicates whether the Body is *virtual*. By default,
-                       all user-defined bodies are not virtual. Massless
+  bool isVirtual; /*!< indicates whether the Body is *virtual*. All
+                       user-defined bodies are not virtual. Massless
                        virtual bodies are added to simplify processing
                        kinematics if multiple loops are present in the
                        mechanism */
@@ -116,11 +117,11 @@ typedef struct s2_body_t {
   s2_mat4x4f_t* glReferenceFramef;
   s2_mat4x4f_t* glModelView;
   s2_mat4x4f_t* glModelViewProjection;
-  s2_convexhull_t* convexHulls;
-  GLfloat convexHullColor[3];
-  int convexHullCount;
   bool drawEnabled;
   bool isVisible;
+  int collisionObjectCount;
+  s2_collisionobject_t* collisionObjects;
+
 } s2_body_t;
 
 

@@ -44,6 +44,8 @@ extern "C" {
 #include "core/pointcloud.h"
 #include "core/convexhull.h"
 #include "core/sphere.h"
+#include "core/ellipsoid.h"
+#include "core/collisionobject.h"
 
 #include "ode/numericalintegrator.h"
 #include "ode/ode113.h"

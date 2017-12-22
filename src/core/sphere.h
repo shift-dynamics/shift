@@ -49,13 +49,15 @@ typedef struct s2_sphere_t {
   s2_vector_t centerLocal;
   double radius;
   s2_body_t* parentBody;
+  bool malloced;
 } s2_sphere_t;
 
-void s2_sphere_approximateMinBoundSphere(
-  s2_sphere_t*,
-  s2_body_t*);
+s2_sphere_t* s2_sphere_alloc(int);
 
-void s2_sphere_updateCentroid(
-  s2_sphere_t*);
+int s2_sphere(s2_sphere_t*, s2_body_t*);
+
+void s2_sphere_updateCentroid(s2_sphere_t*);
+
+s2_vector_t s2_sphere_support(void*, s2_vector_t*);
 
 #endif

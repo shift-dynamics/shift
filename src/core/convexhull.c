@@ -26,34 +26,53 @@ SUCH DAMAGE.
 #include "convexhull.h"
 #include "body.h"
 #include "material.h"
+#include "collisionobject.h"
 
 /*!
 @brief convex hull constructor, initializes an empty s2_convexhull_t data structure
 */
-s2_convexhull_t* s2_convexhull() {
-  s2_convexhull_t* convexhull = calloc(1, sizeof(s2_convexhull_t));
+s2_convexhull_t* s2_convexhull_alloc(int count) {
+  s2_convexhull_t* self = calloc(count, sizeof(s2_convexhull_t));
+  for(int i = 0; i < count; i++) {
+    s2_convexhull_init(&self[i]);
+  }
+  self[0].malloced = true;
+  return self;
+}
+
+
+/*!
+@brief initialize convex hull
+*/
+void s2_convexhull_init(s2_convexhull_t* convexhull) {
   convexhull->vertices = NULL;
   convexhull->faces = NULL;
   convexhull->faceCount = 0;
   convexhull->vertexCount = 0;
   convexhull->drawEnabled = true;
-  return convexhull;
+  convexhull->malloced = false;
 }
 
 
 /*!
 @brief convex hull destructor
 */
-void s2_convexhull_free(s2_convexhull_t* convexhull) {
-  if(convexhull->vertices) {
-    free(convexhull->vertices);
-    convexhull->vertices = NULL;
+void s2_convexhull_free(s2_convexhull_t* self) {
+  if(self->vertices) {
+    free(self->vertices);
+    self->vertices = NULL;
   }
-  if(convexhull->faces) {
-    free(convexhull->faces);
-    convexhull->faces = NULL;
+  if(self->faces) {
+    free(self->faces);
+    self->faces = NULL;
   }
-  free(convexhull);
+  if(self->malloced) {
+    free(self);
+    self = NULL;
+  }
+  if(self->malloced) {
+    free(self);
+  }
 }
 
 
@@ -210,7 +229,7 @@ code derived from Qhull template at https://github.com/qhull/qhull
 
 Currently, only one convex hull is generated to encompass body using the qhull algorithm. Later, this could be modified to fit a number of conformal convex hulls with adjustable level of detail using the v-hacd algorithm or similar.
 */
-int s2_convexhull_qhull(s2_body_t* body) {
+int s2_convexhull(s2_convexhull_t* self, s2_body_t* body) {
 
   QHULL_LIB_CHECK
   int exitcode = 0; /* 0 if no error from qhull */
@@ -220,8 +239,8 @@ int s2_convexhull_qhull(s2_body_t* body) {
 
   if(body->materials) {
 
-    body->convexHullCount = 1;
-    body->convexHulls = s2_convexhull();
+    /* initialize memory and set support function */
+
 
     uint totalVertexCount = 0;
     for(uint i = 0; i < body->materialCount; i++) {
@@ -251,7 +270,8 @@ int s2_convexhull_qhull(s2_body_t* body) {
     // if(!exitcode) {
     //   print_summary(&qh);
     // }
-    load_data(&body->convexHulls[0], &qh);
+    s2_convexhull_init(self);
+    load_data(self, &qh);
 
     // printf("freeing memory\n");
     int curlong, totlong;     /* memory remaining after qh_memfreeshort */
@@ -271,6 +291,85 @@ int s2_convexhull_qhull(s2_body_t* body) {
   }
   return exitcode;
 }
+
+
+/*!
+@brief Compute single convex hull for s2_body_t datastructure
+convex hull encompasses all submeshes associated with a body
+
+code derived from Qhull template at https://github.com/qhull/qhull
+
+Currently, only one convex hull is generated to encompass body using the qhull algorithm. Later, this could be modified to fit a number of conformal convex hulls with adjustable level of detail using the v-hacd algorithm or similar.
+*/
+s2_convexhull_t* s2_convexhull_qhull(s2_body_t* body) {
+
+  QHULL_LIB_CHECK
+  int exitcode = 0; /* 0 if no error from qhull */
+  char flags[250];  /* option flags for qhull */
+
+  sprintf(flags, "qhull s Qt");
+
+  if(body->materials) {
+
+    /* initialize memory and set support function */
+
+    uint totalVertexCount = 0;
+    for(uint i = 0; i < body->materialCount; i++) {
+      totalVertexCount = body->materials[i].vertexCount;
+    }
+
+    double* vertices = calloc(3 * totalVertexCount, sizeof(double));
+
+    for(size_t i = 0; i < totalVertexCount; i++) {
+      vertices[i * 3 + 0] = (double)(body->materials[0].vertices[i * 3 + 0]);
+      vertices[i * 3 + 1] = (double)(body->materials[0].vertices[i * 3 + 1]);
+      vertices[i * 3 + 2] = (double)(body->materials[0].vertices[i * 3 + 2]);
+    }
+
+    qhT qh;
+    qh_zero(&qh, stdout);
+    exitcode = qh_new_qhull(
+                 &qh,
+                 3,
+                 totalVertexCount,
+                 vertices,
+                 true,
+                 "qhull s Qt",
+                 stdout,
+                 stderr);
+
+    // if(!exitcode) {
+    //   print_summary(&qh);
+    // }
+
+    s2_convexhull_t* convexhull = s2_convexhull_alloc(1);
+    s2_convexhull(convexhull, body);
+    load_data(convexhull, &qh);
+
+    // printf("freeing memory\n");
+    int curlong, totlong;     /* memory remaining after qh_memfreeshort */
+    FILE* errfile = stderr;    /* error messages from qhull code */
+    qh_freeqhull(&qh, !qh_ALL);      /* free long memory  */
+    // printf("freed qh long memory\n");
+
+    qh_memfreeshort(&qh, &curlong, &totlong);    /* free short memory and memory allocator */
+    // printf("freed qh short memory\n");
+
+    if(curlong || totlong) {
+      fprintf(errfile, "qhull internal warning: did not free %d bytes of long memory (%d pieces)\n", totlong, curlong);
+    }
+    // printf("freed qh data\n");
+    // free(vertices);
+    if(exitcode) {
+      return NULL;
+    } else {
+      return convexhull;
+    }
+  } else {
+    return NULL;
+  }
+}
+
 
 
 /*!
