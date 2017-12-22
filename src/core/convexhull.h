@@ -50,13 +50,19 @@ typedef struct s2_convexhull_t {
   GLuint* faces; /*!< faces in contiguous memory */
   int faceCount; /*!< number of faces */
   bool drawEnabled; /*!< indicates whether the convexhull object should be drawn in gui */
+  bool malloced; /*!< indicates whether the data structure was malloced and
+  needs to be freed, false if convexhull is part of another structure */
 } s2_convexhull_t;
 
-s2_convexhull_t* s2_convexhull();
+s2_convexhull_t* s2_convexhull_alloc(int);
 
-void s2_convexhull_free(s2_convexhull_t* convexhull);
+void s2_convexhull_init(s2_convexhull_t*);
 
-int s2_convexhull_qhull(s2_body_t*);
+void s2_convexhull_free(s2_convexhull_t*);
+
+int s2_convexhull(s2_convexhull_t*, s2_body_t*);
+
+s2_convexhull_t* s2_convexhull_qhull(s2_body_t*);
 
 s2_vector_t s2_convexhull_basicSupport(void*, s2_vector_t*);
 

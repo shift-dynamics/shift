@@ -23,16 +23,23 @@ SUCH DAMAGE.
 
 #include "collisionobject.h"
 #include "convexhull.h"
+#include "sphere.h"
+#include "body.h"
 
 /*!
 @brief generic collision object constructor
 */
-s2_collisionobject_t* s2_collisionobject() {
-  s2_collisionobject_t* collisionobject = malloc(sizeof(s2_collisionobject_t));
-  collisionobject->type = S2_COLLISIONOBJECT_NONE;
-  collisionobject->support = NULL;
-  collisionobject->object = NULL;
-  return collisionobject;
+s2_collisionobject_t* s2_collisionobject(int count) {
+  s2_collisionobject_t* collisionobjects =
+    calloc(count, sizeof(s2_collisionobject_t));
+  for(int i = 0; i < count; i++) {
+    collisionobjects[i].type = S2_COLLISIONOBJECT_NONE;
+    collisionobjects[i].support = NULL;
+    collisionobjects[i].color[0] = 194.f / 255.f;
+    collisionobjects[i].color[1] = 9.f / 255.f;
+    collisionobjects[i].color[2] = 226.f / 255.f;
+  }
+  return collisionobjects;
 }
 
 
@@ -40,36 +47,64 @@ s2_collisionobject_t* s2_collisionobject() {
 @brief generic collision object destructor
 
 */
-void s2_collisionobject_free(s2_collisionobject_t* self) {
-  switch(self->type) {
-    case S2_COLLISIONOBJECT_CONVEXHULL: {
-      s2_convexhull_free((s2_convexhull_t*)(self->object));
-    } break;
-    case S2_COLLISIONOBJECT_ELLIPSOID:
-    case S2_COLLISIONOBJECT_SPHERE:
-    case S2_COLLISIONOBJECT_OBB:
-    case S2_COLLISIONOBJECT_AABB:
-    case S2_COLLISIONOBJECT_POLYTOPE:
-    case S2_COLLISIONOBJECT_NONE:
-      break;
+void s2_collisionobject_free(s2_collisionobject_t* collisionObjects, int count) {
+  for(int i = 0; i < count; i++) {
+    switch(collisionObjects[i].type) {
+      case S2_COLLISIONOBJECT_CONVEXHULL: {
+        s2_convexhull_free((s2_convexhull_t*)&(collisionObjects[i].object));
+      } break;
+      case S2_COLLISIONOBJECT_ELLIPSOID:
+      case S2_COLLISIONOBJECT_SPHERE:
+      case S2_COLLISIONOBJECT_OBB:
+      case S2_COLLISIONOBJECT_AABB:
+      case S2_COLLISIONOBJECT_NONE:
+        break;
+    }
+    collisionObjects[i].support = NULL;
   }
-  self->support = NULL;
-  self->object = NULL;
-  free(self);
+  free(collisionObjects);
 }
 
 
 /*!
-@brief generates collision object from convex hull
-
+@brief creates a single convex hull to encompass body using qhull algorithm
 */
-s2_collisionobject_t* s2_collisionobject_fromConvexHull(
-  s2_convexhull_t* convexhull) {
+void s2_collisionobject_convexhull(s2_body_t* body) {
+  body->collisionObjectCount = 1;
+  body->collisionObjects = s2_collisionobject(1);
+  s2_collisionobject_t* collisionObject = &body->collisionObjects[0];
+  collisionObject->type = S2_COLLISIONOBJECT_CONVEXHULL;
+  collisionObject->support = s2_convexhull_basicSupport;
+  s2_convexhull_t* convexhull = (s2_convexhull_t*)&collisionObject->object;
+  s2_convexhull(convexhull, body);
+}
 
-  s2_collisionobject_t* collisionobject = s2_collisionobject();
-  collisionobject->type = S2_COLLISIONOBJECT_CONVEXHULL;
-  collisionobject->support = s2_convexhull_basicSupport;
-  return collisionobject;
+
+/*!
+@brief create a single shere collision object
+*/
+void s2_collisionobject_sphere(s2_body_t* body) {
+  body->collisionObjectCount = 1;
+  body->collisionObjects = s2_collisionobject(1);
+  s2_collisionobject_t* collisionObject = &body->collisionObjects[0];
+  collisionObject->type = S2_COLLISIONOBJECT_SPHERE;
+  collisionObject->support = s2_sphere_support;
+  s2_sphere_t* sphere = (s2_sphere_t*)&collisionObject->object;
+  s2_sphere(sphere, body);
+}
+
+
+/*!
+@brief create a single ellipsoid collision object
+*/
+void s2_collisionobject_ellipsoid(s2_body_t* body) {
+  body->collisionObjectCount = 1;
+  body->collisionObjects = s2_collisionobject(1);
+  s2_collisionobject_t* collisionObject = &body->collisionObjects[0];
+  collisionObject->type = S2_COLLISIONOBJECT_ELLIPSOID;
+  collisionObject->support = s2_ellipsoid_support;
+  s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)&collisionObject->object;
+  s2_ellipsoid(ellipsoid, body);
 }
 
 
@@ -80,5 +115,5 @@ for primitive collision object
 s2_vector_t s2_collisionobject_support(
   s2_collisionobject_t* self,
   s2_vector_t* direction) {
-  return self->support(self->object, direction);
+  return self->support((void*)&self->object, direction);
 }

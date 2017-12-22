@@ -41,6 +41,7 @@ SUCH DAMAGE.
 #include "inertia.h"
 #include "assembly.h"
 #include "utility.h"
+#include "collisionobject.h"
 
 
 
@@ -79,11 +80,8 @@ s2_body_t* s2_body(s2_stackstr_t* name) {
   body->glReferenceFramef = NULL;
   body->glModelView = NULL;
   body->glModelViewProjection = NULL;
-  body->convexHullCount = 0;
-  body->convexHulls = NULL;
-  body->convexHullColor[0] = 194.f / 255.f;
-  body->convexHullColor[1] = 9.f / 255.f;
-  body->convexHullColor[2] = 226.f / 255.f;
+  body->collisionObjectCount = 0;
+  body->collisionObjects = NULL;
   body->drawEnabled = true;
   body->name = name;
 
@@ -347,7 +345,23 @@ int s2_body_load(
   s2_assembly_appendBody(assembly, body);
 
   /* load body geometry */
-  return s2_body_loadGeometry(context, body);
+  int exitcode = s2_body_loadGeometry(context, body);
+
+  const char* collisionGeometry = NULL;
+  collisionGeometry = 
+    json_string_value(json_object_get(bodyObject, "collision_geometry"));
+  if(collisionGeometry) {
+    if(!strcmp(collisionGeometry, "sphere")) {
+      s2_collisionobject_sphere(body);
+    } else if(!strcmp(collisionGeometry, "ellipsoid")) {
+      s2_collisionobject_ellipsoid(body);
+    } else {
+      s2_collisionobject_convexhull(body);
+    }
+  } else {
+    s2_collisionobject_convexhull(body);
+  }
+  return exitcode;
 }
 
 
@@ -432,9 +446,7 @@ int s2_body_loadGeometry(
 
   totalVertexCount = 0;
   for(uint i = 0; i < scene->mNumMeshes; i++) {
-    /*
-      load vertices
-    */
+    /* load vertices */
     body->materials[i].vertices = &vertices[totalVertexCount * 3];
     body->materials[i].vertexCount = scene->mMeshes[i]->mNumVertices;
     totalVertexCount += body->materials[i].vertexCount;
@@ -447,9 +459,7 @@ int s2_body_loadGeometry(
         scene->mMeshes[i]->mVertices[j].z;
     }
 
-    /*
-      load vertex normals
-    */
+    /* load vertex normals */
     body->materials[i].vertexNormals =
       malloc(3 * body->materials[i].vertexCount * sizeof(GLfloat));
     for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
@@ -468,9 +478,7 @@ int s2_body_loadGeometry(
 
     }
 
-    /*
-      load faces
-    */
+    /* load faces */
     // printf("\nnumber of faces: %d\n", scene->mMeshes[i]->mNumFaces);
     body->materials[i].faceCount = scene->mMeshes[i]->mNumFaces;
     body->materials[i].faces = malloc(
@@ -481,9 +489,7 @@ int s2_body_loadGeometry(
       body->materials[i].faces[j * 3 + 2] = scene->mMeshes[i]->mFaces[j].mIndices[2];
     }
 
-    /*
-      load color properties
-    */
+    /* load color properties */
     int ret1;
     struct aiMaterial* mtl;
     mtl = scene->mMaterials[scene->mMeshes[i]->mMaterialIndex];
@@ -559,9 +565,7 @@ int s2_body_loadGeometry(
       body->materials[i].GLuniforms.Ke[3] = opacity_f;
     }
 
-    /*
-      this set of parameters is currently not used / loaded
-    */
+    /* this set of parameters is currently not used / loaded */
     float shininess = 0.f;
     ret1 = aiGetMaterialFloatArray(
              mtl,
@@ -657,11 +661,7 @@ int s2_body_loadGeometry(
 
     /* load material name */
     asprintf(&(body->materials[i].name), "%d", i);
-
   }
-
-  /* compute convex hull */
-  s2_convexhull_qhull(body);
 
   /* Free resources associated with import */
   aiReleaseImport(scene);

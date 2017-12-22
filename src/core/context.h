@@ -257,7 +257,7 @@ typedef struct s2_context_t {
   /*!< Array of pointers to bodies to directly access
        body in position in assembly hierarchy */
   s2_pointcloud_t** pointCloudPointers;
-  s2_sphere_t* boundingSpheres; /*! array of bounding spheres */
+  // s2_sphere_t* boundingSpheres; /*! array of bounding spheres */
 
   s2_body_t** nonVirtualBodyPointers;
   /*!< Array of pointers to bodies to directly access

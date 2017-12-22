@@ -126,7 +126,7 @@ class s2_Bodies : public s2_Geometry {
       s2_body_t*,
       s2_displacement_t*);
 
-    void initializeConvexHull(s2_convexhull_t*, s2_body_t*);
+    void initializeCollisionObject(s2_collisionobject_t*, s2_body_t*);
 
     void setDrawStyle(s2_shading_enum_t shadingType);
 

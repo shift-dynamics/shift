@@ -158,6 +158,7 @@ add_library(shift_lib STATIC
   ${shift_SOURCE_DIR}/src/core/sensor.c
   ${shift_SOURCE_DIR}/src/core/solve.c
   ${shift_SOURCE_DIR}/src/core/sphere.c
+  ${shift_SOURCE_DIR}/src/core/ellipsoid.c
   ${shift_SOURCE_DIR}/src/core/stack.c
   ${shift_SOURCE_DIR}/src/core/substructure.c
   ${shift_SOURCE_DIR}/src/core/terrain.c
