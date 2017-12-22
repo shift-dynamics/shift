@@ -224,7 +224,7 @@ s2_context_t* s2_context() {
   /*!< Array of pointers to pointclouds for direct access
        within assembly hierarchy */
 
-  context->boundingSpheres = NULL;
+  // context->boundingSpheres = NULL;
 
   context->nonVirtualBodyPointers = NULL;
   /*!< Array of pointers to bodies to directly access
@@ -1720,26 +1720,26 @@ void s2_context_flattenHierarchy(
 }
 
 
-void s2_context_setBoundingSpheres(s2_context_t* context) {
-
-  context->boundingSpheres = calloc(
-                               context->bodyCount, sizeof(s2_sphere_t));
-  if(context->boundingSpheres == NULL) {
-    fprintf(stderr, "failed to allocate memory for bounding spheres\n");
-    exit(-1);
-  }
-  int j = 0;
-  for(int i = 0; i < context->bodyCount + context->chordConstraintCount; i++) {
-    s2_body_t* body = context->bodyPointers[i];
-    if(!body->isVirtual) {
-      printf("[%d] ", i);
-      s2_stackstr_print(stdout, body->name);
-      s2_sphere_approximateMinBoundSphere(
-        &context->boundingSpheres[j++],
-        context->bodyPointers[i]);
-    }
-  }
-}
+// void s2_context_setBoundingSpheres(s2_context_t* context) {
+//
+//   context->boundingSpheres = calloc(
+//                                context->bodyCount, sizeof(s2_sphere_t));
+//   if(context->boundingSpheres == NULL) {
+//     fprintf(stderr, "failed to allocate memory for bounding spheres\n");
+//     exit(-1);
+//   }
+//   int j = 0;
+//   for(int i = 0; i < context->bodyCount + context->chordConstraintCount; i++) {
+//     s2_body_t* body = context->bodyPointers[i];
+//     if(!body->isVirtual) {
+//       printf("[%d] ", i);
+//       s2_stackstr_print(stdout, body->name);
+//       s2_sphere_approximateMinBoundSphere(
+//         &context->boundingSpheres[j++],
+//         context->bodyPointers[i]);
+//     }
+//   }
+// }
 
 
 /*!
@@ -2036,13 +2036,13 @@ void s2_context_setTerrainPointers(
 /*!
 @brief update global centroid of bounding spheres
 */
-void s2_context_updateBoundingSpheres(s2_context_t* context) {
-  for(int i = 0; i < context->bodyCount; i++) {
-    s2_sphere_updateCentroid(&context->boundingSpheres[i]);
-    s2_stackstr_print(stdout, context->boundingSpheres[i].parentBody->name);
-    printf("radius: %f, centerGlobal: ", context->boundingSpheres[i].radius);
-    s2_vector_print(stdout, &context->boundingSpheres[i].centerGlobal);
-    printf("centerLocal: ");
-    s2_vector_print(stdout, &context->boundingSpheres[i].centerLocal);
-  }
-}
+// void s2_context_updateBoundingSpheres(s2_context_t* context) {
+//   for(int i = 0; i < context->bodyCount; i++) {
+//     s2_sphere_updateCentroid(&context->boundingSpheres[i]);
+//     s2_stackstr_print(stdout, context->boundingSpheres[i].parentBody->name);
+//     printf("radius: %f, centerGlobal: ", context->boundingSpheres[i].radius);
+//     s2_vector_print(stdout, &context->boundingSpheres[i].centerGlobal);
+//     printf("centerLocal: ");
+//     s2_vector_print(stdout, &context->boundingSpheres[i].centerLocal);
+//   }
+// }

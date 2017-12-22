@@ -250,7 +250,7 @@ void s2_Bodies::initializeBody(
     // printf("initializing material [%d]\n", i);
     initializeMaterial(material, body, m_context->d + body->origin->dIndex);
   }
-  initializeConvexHull(&body->convexHulls[0], body);
+  initializeCollisionObject(&body->collisionObjects[0], body);
 }
 
 
@@ -343,57 +343,68 @@ void s2_Bodies::initializeMaterial(
 @brief initialize opengl properties for a s2_convexhull_t datastructure
 
 */
-void s2_Bodies::initializeConvexHull(
-  s2_convexhull_t* convexhull,
+void s2_Bodies::initializeCollisionObject(
+  s2_collisionobject_t* collisionobject,
   s2_body_t* body) {
 
-  if(convexhull) {
-    s2_displacement_t* origin = m_context->d + body->origin->dIndex;
-    // m_programPhong->bind();
-    convexhull_buffer_t bufferObjects;
-    bufferObjects.vao = new QOpenGLVertexArrayObject(m_renderWindow);
-    bufferObjects.vao->create();
+  if(collisionobject) {
 
-    bufferObjects.vertexBuffer =
-      new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-    bufferObjects.vertexBuffer->create();
+    switch(collisionobject->type) {
+      case S2_COLLISIONOBJECT_CONVEXHULL: {
+        s2_convexhull_t* convexhull =
+          (s2_convexhull_t*)&collisionobject->object;
+        s2_displacement_t* origin = m_context->d + body->origin->dIndex;
+        // m_programPhong->bind();
+        convexhull_buffer_t bufferObjects;
+        bufferObjects.vao = new QOpenGLVertexArrayObject(m_renderWindow);
+        bufferObjects.vao->create();
 
-    bufferObjects.indexBuffer =
-      new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-    bufferObjects.indexBuffer->create();
+        bufferObjects.vertexBuffer =
+          new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+        bufferObjects.vertexBuffer->create();
 
-    checkError("bodies: after create convexhull vertex buffers");
+        bufferObjects.indexBuffer =
+          new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+        bufferObjects.indexBuffer->create();
 
-    bufferObjects.vao->bind();
-    checkError("bodies: after bind vao");
+        checkError("bodies: after create convexhull vertex buffers");
 
-    bufferObjects.vertexBuffer->bind();
-    bufferObjects.vertexBuffer->allocate(
-      3 * convexhull->vertexCount * sizeof(GLfloat));
-    bufferObjects.vertexBuffer->write(
-      0,
-      convexhull->vertices,
-      3 * convexhull->vertexCount * sizeof(GLfloat));
+        bufferObjects.vao->bind();
+        checkError("bodies: after bind vao");
 
-    bufferObjects.indexBuffer->bind();
-    bufferObjects.indexBuffer->allocate(
-      convexhull->faces,
-      3 * convexhull->faceCount * sizeof(GLuint));
+        bufferObjects.vertexBuffer->bind();
+        bufferObjects.vertexBuffer->allocate(
+          3 * convexhull->vertexCount * sizeof(GLfloat));
+        bufferObjects.vertexBuffer->write(
+          0,
+          convexhull->vertices,
+          3 * convexhull->vertexCount * sizeof(GLfloat));
 
-    bufferObjects.convexhull = convexhull;
-    bufferObjects.transform = origin;
+        bufferObjects.indexBuffer->bind();
+        bufferObjects.indexBuffer->allocate(
+          convexhull->faces,
+          3 * convexhull->faceCount * sizeof(GLuint));
 
-    setConvexHullAttributeLocations(
-      m_programLine->getProgram(),
-      m_programLine->getPositionAttribute(),
-      &bufferObjects);
-    checkError("bodies: after set attribute locations flat");
+        bufferObjects.convexhull = convexhull;
+        bufferObjects.transform = origin;
 
-    m_convexhullBufferObjects.append(bufferObjects);
-    checkError("bodies: after append convex hull buffer objects");
+        setConvexHullAttributeLocations(
+          m_programLine->getProgram(),
+          m_programLine->getPositionAttribute(),
+          &bufferObjects);
+        checkError("bodies: after set attribute locations flat");
 
-    bufferObjects.vao->release();
-    checkError("bodies: after release vao");
+        m_convexhullBufferObjects.append(bufferObjects);
+        checkError("bodies: after append convex hull buffer objects");
+
+        bufferObjects.vao->release();
+        checkError("bodies: after release vao");
+
+      } break;
+      default: {
+
+      } break;
+    }
   }
 }
 
@@ -599,7 +610,7 @@ void s2_Bodies::draw() {
           checkError("bodies: after set transform line shader");
 
           GLfloat* color =
-            m_convexhullBufferObjects.at(i).body->convexHullColor;
+            m_convexhullBufferObjects.at(i).body->collisionObjects[0].color;
           m_programLine->setColor(color[0], color[1], color[2], 1.f);
           m_programLine->setScale(1.f);
           checkError("bodies: after set material line shader");
@@ -618,55 +629,55 @@ void s2_Bodies::draw() {
       m_programLine->release();
     }
 
-    if(m_drawBoundingSpheresEnabled) {
-      m_programPhong->bind();
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glEnable(GL_BLEND);
-      glEnable(GL_CULL_FACE);
-
-      m_sphere.vao->bind();
-      checkError("after bind bounding sphere vao");
-
-      m_programPhong->setKd(m_sphere.Kd);
-      m_programPhong->setKa(m_sphere.Ka);
-      m_programPhong->setKs(m_sphere.Ks);
-      m_programPhong->setNs(1000.0);
-
-      s2_displacement_t transform;
-      s2_displacement_setIdentity(&transform);
-
-      for(int i = 0; i < m_context->bodyCount; i++) {
-
-        s2_sphere_t* sphere = &m_context->boundingSpheres[i];
-        for(int i = 0; i < 3; i++) {
-          s2_displacement_set(&transform, i, i, sphere->radius);
-        }
-        transform.T = sphere->centerGlobal;
-
-        // s2_displacement_print(stdout, &transform);
-
-        m_programPhong->setTransform(&transform);
-        checkError("bounding spheres: after set transform");
-
-        glDrawElements(
-          GL_TRIANGLES,
-          3 * m_sphere.faceCount,
-          GL_UNSIGNED_INT,
-          0);
-        checkError("bounding spheres: after draw elements");
-      }
-
-      m_sphere.vao->release();
-      glDisable(GL_BLEND);
-      m_programPhong->release();
-    }
-
-    if(m_shadingType == S2_SHADING_WIREFRAME) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    } else {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
+    // if(m_drawBoundingSpheresEnabled) {
+    //   m_programPhong->bind();
+    //   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //   glEnable(GL_BLEND);
+    //   glEnable(GL_CULL_FACE);
+    //
+    //   m_sphere.vao->bind();
+    //   checkError("after bind bounding sphere vao");
+    //
+    //   m_programPhong->setKd(m_sphere.Kd);
+    //   m_programPhong->setKa(m_sphere.Ka);
+    //   m_programPhong->setKs(m_sphere.Ks);
+    //   m_programPhong->setNs(1000.0);
+    //
+    //   s2_displacement_t transform;
+    //   s2_displacement_setIdentity(&transform);
+    //
+    //   for(int i = 0; i < m_context->bodyCount; i++) {
+    //
+    //     s2_sphere_t* sphere = &m_context->boundingSpheres[i];
+    //     for(int i = 0; i < 3; i++) {
+    //       s2_displacement_set(&transform, i, i, sphere->radius);
+    //     }
+    //     transform.T = sphere->centerGlobal;
+    //
+    //     // s2_displacement_print(stdout, &transform);
+    //
+    //     m_programPhong->setTransform(&transform);
+    //     checkError("bounding spheres: after set transform");
+    //
+    //     glDrawElements(
+    //       GL_TRIANGLES,
+    //       3 * m_sphere.faceCount,
+    //       GL_UNSIGNED_INT,
+    //       0);
+    //     checkError("bounding spheres: after draw elements");
+    //   }
+    //
+    //   m_sphere.vao->release();
+    //   glDisable(GL_BLEND);
+    //   m_programPhong->release();
+    // }
+    //
+    // if(m_shadingType == S2_SHADING_WIREFRAME) {
+    //   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // } else {
+    //   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    // }
   }
 }
 

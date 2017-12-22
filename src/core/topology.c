@@ -4187,9 +4187,9 @@ void s2_context_setTopology(
   /* flatten force modules if present */
   s2_forcemodule_flatten(context);
 
-  printf("setting bounding spheres:\n");
-  s2_context_setBoundingSpheres(context);
-
-  printf("updating bounding spheres:\n");
-  s2_context_updateBoundingSpheres(context);
+  // printf("setting bounding spheres:\n");
+  // s2_context_setBoundingSpheres(context);
+  //
+  // printf("updating bounding spheres:\n");
+  // s2_context_updateBoundingSpheres(context);
 }

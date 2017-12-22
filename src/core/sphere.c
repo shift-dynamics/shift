@@ -44,25 +44,30 @@ SUCH DAMAGE.
 #include "assembly.h"
 #include "utility.h"
 
-void s2_sphere_approximateMinBoundSphere(s2_sphere_t*, s2_body_t*);
+void s2_sphere_approximateMinBoundSphere(s2_body_t*);
 
 
 /*!
 @brief constructor for sphere geometry
 */
-s2_sphere_t* s2_sphere(s2_body_t* parentBody) {
-  s2_sphere_t* sphere = calloc(1, sizeof(s2_sphere_t));
-  sphere->parentBody = parentBody;
-  return sphere;
+s2_sphere_t* s2_sphere_alloc(int count) {
+  s2_sphere_t* self = calloc(count, sizeof(s2_sphere_t));
+  for(int i = 0; i < count; i++) {
+    self[i].parentBody = NULL;
+  }
+  self[0].malloced = true;
+  return self;
 }
 
 
 /*!
 @brief destructor for sphere geometry
 */
-void s2_sphere_free(s2_sphere_t* sphere) {
-  free(sphere);
-  sphere = NULL;
+void s2_sphere_free(s2_sphere_t* self) {
+  if(self->malloced) {
+    free(self);
+    self = NULL;
+  }
 }
 
 
@@ -397,23 +402,27 @@ REFERENCES:
 [1] Ritter, J. (1990), 'An efficient bounding sphere', in Graphics Gems,
     A. Glassner, Ed. Academic Press, pp.301303
 */
-void s2_sphere_approximateMinBoundSphere(
-  s2_sphere_t* sphere,
-  s2_body_t* body) {
+int s2_sphere(s2_sphere_t* self, s2_body_t* body) {
 
-  sphere->parentBody = body;
-  s2_convexhull_t* convexhull = &body->convexHulls[0];
-  if(convexhull) {
+  if(body->materials) {
+
+    /* initialize memory and set support function */
+
+    /* generate temporary convex hull */
+    s2_convexhull_t* convexhull = s2_convexhull_alloc(1);
+    s2_convexhull(convexhull, body);
+
+    /* degenerate case with one vertex */
     if(convexhull->vertexCount == 1) {
-      sphere->radius = 0;
-      sphere->centerLocal = s2_vectorFromFloatArrayAtIndex(
+      self->radius = 0;
+      self->centerLocal = s2_vectorFromFloatArrayAtIndex(
                               convexhull->vertices,
                               0);
-      return;
+      return 0;
     }
 
     s2_sphere_eigenSphere(
-      sphere,
+      self,
       convexhull->vertices,
       convexhull->vertexCount);
 
@@ -422,7 +431,28 @@ void s2_sphere_approximateMinBoundSphere(
     Otherwise, enlarge bounding sphere to cover point outside of initial sphere */
     for(int i = 1; i < convexhull->vertexCount; i++) {
       s2_vector_t p = s2_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
-      s2_sphere_fromSphereAndPoint(sphere, &p);
+      s2_sphere_fromSphereAndPoint(self, &p);
     }
+
+    s2_convexhull_free(convexhull);
+    return 0;
   }
+  return -1;
+}
+
+
+/*!
+@brief simple sphere support function
+*/
+s2_vector_t s2_sphere_support(
+  void* collisionobject,
+  s2_vector_t* direction) {
+
+  s2_sphere_t* sphere = (s2_sphere_t*)collisionobject;
+  s2_vector_normalize(direction);
+  s2_vector_t temp;
+  s2_product_vk(direction, &sphere->radius, &temp);
+  s2_vector_t max_vector;
+  s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
+  return max_vector;
 }
