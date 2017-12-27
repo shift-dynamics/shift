@@ -1,14 +1,32 @@
 .. title:: Installation
 
 
+Acquiring *Shift*
+=================
+
+To download the *Shift* repository, you will need to set up your ssh key as described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the repository recursively as:
+
+.. code::
+
+  git clone --recursive git@github.com:kriswehage/shift.git
+
+
+The recursive flag is necessary to initialize the submodules. If you already cloned the repository without the recursive flag, you can initialize the submodules later by issuing the command:
+
+.. code::
+
+  git submodule update --init --recursive
+
+
 Installing *Shift*
 ==================
 
 Dependencies
 ------------
 
-*Shift* requires that the following libraries are installed on your system.
+In addition to the git submodules that are packaged with the *Shift* repository, the following additional libraries and tools are required:
 
+*   `Cmake <https://cmake.org>`_
 *   `Assimp <http://assimp.sourceforge.net>`_
 *   `Jansson <http://www.digip.org/jansson/>`_
 *   `Qt5 <http://www.qt.io/developers/>`_
@@ -16,40 +34,43 @@ Dependencies
 *   `Cblas <http://www.netlib.org/blas/>`_
 *   `ImageMagick <http://www.imagemagick.org>`_
 *   `Qhull <http://www.qhull.org>`_
+*   `pandoc <http://pandoc.org>`_
+
+
+Linux
+*****
+
+On most linux variants, the above packages can be installed using the distribution's package manager.
+
+Arch Linux:
+^^^^^^^^^^^
+
+.. code::
+
+    pacman -S cmake assimp jansson qt5 graphviz cblas imagemagick qhull pandoc
+
+
+Ubuntu / Debian-based Linux Distributions:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+    apt-get install cmake assimp jansson qt5 graphviz cblas libmagickwand-dev libqhull-dev pandoc
+
 
 Macintosh
 *********
 
-On a Macintosh, these dependencies can be installed using the *brew*
-package manager:
+On a Macintosh, the dependencies can be installed using the *brew* package manager:
 
 .. code::
 
-    brew install assimp jansson qt5 graphviz imagemagick qhull
+    brew install cmake assimp jansson qt5 graphviz imagemagick qhull pandoc
 
 
-The cblas package is already available on a Macintosh using the *accelerate*
+Cblas package is already available on a Macintosh using the *accelerate*
 framework, the CMakeLists.txt file may need to be modified to bring in this
 dependency correctly.
-
-Arch Linux
-**********
-
-On arch linux, the dependencies can be installed using pacman:
-
-.. code::
-
-    pacman -S assimp jansson qt5 graphviz cblas imagemagick qhull
-
-
-Ubuntu / Debian-based Linux Distributions
-*****************************************
-
-Use apt-get:
-
-.. code::
-
-    apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev libqhull-dev
 
 
 Building the project
