@@ -10,7 +10,7 @@ Presently, *Shift* is accessible only through a private github repository locate
 
 .. code::
 
-   git clone git@github.com:kriswehage/shift.git
+   git clone --recursive git@github.com:kriswehage/shift.git
 
 
 Dependencies
