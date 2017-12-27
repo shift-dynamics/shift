@@ -6,7 +6,7 @@ Installation
 Acquiring Shift
 ---------------
 
-Presently, *Shift* is accessible only through a private github repository located at `<https://github.com/kriswehage/shift>`_. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project using the following command:
+*Shift* is accessible through a private github repository located at `<https://github.com/kriswehage/shift>`_. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project recursively using the following command:
 
 .. code::
 
@@ -16,7 +16,7 @@ Presently, *Shift* is accessible only through a private github repository locate
 Dependencies
 ------------
 
-*Shift* requires the following libraries to be installed on your system.
+In addition to the git submodules that are packaged together with *Shift*, the following additional libraries must be installed on your system.
 
 * Assimp
 
@@ -30,6 +30,30 @@ Dependencies
 
 * ImageMagick
 
+* pandoc
+
+
+Linux
+*****
+
+On most Linux distributions the above packages can be installed using the distribution's package manager.
+
+Arch Linux:
+^^^^^^^^^^^
+
+.. code::
+
+   pacman -S assimp jansson qt5 graphviz cblas imagemagick pandoc
+
+
+Ubuntu / Debian-based Linux Distributions:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+   apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev pandoc
+
+
 Macintosh
 *********
 
@@ -37,43 +61,17 @@ On a Macintosh, the dependencies can be installed using the *brew* package manag
 
 .. code::
 
-   brew install assimp jansson qt5 graphviz imagemagick
+  brew install assimp jansson qt5 graphviz imagemagick pandoc
 
-More information can be found at these links.
-
-* http://brewformulas.org/Assimp
-
-* http://brewformulas.org/Jansson
-
-* http://brewformulas.org/qt5
-
-* http://brewformulas.org/graphviz
-
-* http://brewformulas.org/imagemagick
 
 The cblas package is already available on a Macintosh using the *accelerate* framework, the CMakeLists.txt file may need to be modified to bring in this dependency correctly.
-
-Linux
-*****
-
-On most Linux distributions the packages can be installed using the distribution's package manager. For example, on Arch Linux, the dependencies can be installed as:
-
-.. code::
-
-   pacman -S assimp jansson qt5 graphviz cblas imagemagick
-
-
-For Ubuntu / Debian-based Linux Distributions, use apt-get to install the dependencies as:
-
-.. code::
-
-   apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev
 
 
 Windows
 *******
 
 Shift has not been tested on Windows machines.
+
 
 Building Shift
 --------------------
