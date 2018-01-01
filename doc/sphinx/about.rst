@@ -21,7 +21,7 @@ Faster than real--time simulation
     </video>
 
 
-*Shift* models run many times faster than real--time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real--time without contact detection.
+Most *Shift* models run many times faster than real--time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real--time without contact detection.
 
 
 Automatic assembly of complex mechanisms
@@ -69,7 +69,7 @@ OpenGL rendering
     </video>
 
 
-*Shift* uses custom shaders written in GLSL to implement the Phong lighting model with multiple light sources and dynamic shadow mapping. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variety of 3D model formats. Other visualization techniques are currently in development, such as automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
+*Shift* uses custom GLSL shaders written to implement the Phong lighting model with multiple light sources and dynamic shadow mapping. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variety of 3D model formats. Other visualization techniques are currently in development, such as automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.
 
 
 Software Design

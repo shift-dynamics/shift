@@ -63,151 +63,148 @@ s2_context_t* s2_context() {
   assert(sizeof(s2_displacement_t) == 12 * sizeof(double));
   assert(sizeof(s2_vector_t) == 3 * sizeof(double));
 
-  s2_context_t* context = malloc(sizeof * context);
+  s2_context_t* self = malloc(sizeof * self);
 
-  if(!context) {
+  if(!self) {
     fprintf(stderr, "Error: failed to initialize Context.\n");
     return NULL;
   }
-  context->modelParameters.version = NULL;
-  context->modelParameters.includeDirectory = NULL;
+  self->modelParameters.version = NULL;
+  self->modelParameters.includeDirectory = NULL;
 
-  context->modelParameters.gravity = s2_vector();
-  context->modelParameters.units.angle = NULL;
-  context->modelParameters.units.length = NULL;
-  context->modelParameters.units.mass = NULL;
-  context->modelParameters.units.time = NULL;
+  self->modelParameters.gravity = s2_vector();
+  self->modelParameters.units.angle = NULL;
+  self->modelParameters.units.length = NULL;
+  self->modelParameters.units.mass = NULL;
+  self->modelParameters.units.time = NULL;
 
-  context->modelParameters.outFile = NULL;
-  context->modelParameters.outFilePointer = NULL;
-  context->modelParameters.debugFile = NULL;
-  context->modelParameters.debugFilePointer = stdout;
+  self->modelParameters.outFile = NULL;
+  self->modelParameters.outFilePointer = NULL;
+  self->modelParameters.debugFile = NULL;
+  self->modelParameters.debugFilePointer = stdout;
 
   /*! @TODO remove this later once dhva verified */
-  context->modelParameters.dhvaFilePointer =
+  self->modelParameters.dhvaFilePointer =
     fopen("dhva.dat", "w");
-  if(!context->modelParameters.dhvaFilePointer) {
+  if(!self->modelParameters.dhvaFilePointer) {
     fprintf(stderr, "could not open dhva debug file\n");
-    context->modelParameters.dhvaFilePointer = NULL;
+    self->modelParameters.dhvaFilePointer = NULL;
   }
 
-  asprintf(
-    &(context->modelParameters.delimiter),
-    ","
-  );
-  context->modelParameters.monitorIterations = true;
-  context->modelParameters.monitorConstraintError = true;
+  asprintf(&(self->modelParameters.delimiter), ",");
+  self->modelParameters.monitorIterations = true;
+  self->modelParameters.monitorConstraintError = true;
 
 
-  context->modelParameters.sumConstraintError = 0;
-  context->modelParameters.maxConstraintError = 0;
-  context->modelParameters.maxConstraintErrorStep = 0;
-  context->modelParameters.sumIterationCount = 0;
-  context->modelParameters.maxIterationCount = 0;
-  context->modelParameters.maxIterationCountStep = 0;
+  self->modelParameters.sumConstraintError = 0;
+  self->modelParameters.maxConstraintError = 0;
+  self->modelParameters.maxConstraintErrorStep = 0;
+  self->modelParameters.sumIterationCount = 0;
+  self->modelParameters.maxIterationCount = 0;
+  self->modelParameters.maxIterationCountStep = 0;
 
-  context->assembly = s2_assembly();
+  self->assembly = s2_assembly();
 
   /*!
   @name Counts of objects in Context data structure
   @{
   */
-  context->epsRankDetermination = 1e-9; /*!< epsilon, tolerance used for rank determination
+  self->epsRankDetermination = 1e-9; /*!< epsilon, tolerance used for rank determination
                             in LU factorization */
-  context->epsNewtonRaphsonRankDetermination = 1e-12;
-  context->epsNewtonRaphson = 1e-6;
-  context->jointCount = 0; //!< total number of joints
-  context->bodyCount = 0; //!< total number of bodies
-  context->pointCloudCount = 0;
-  context->frameCount = 0; //!< total number of frames
-  context->lightCount = 0; //!< total number of lights
-  context->ioCount = 0; //!< total number of input/output devices
-  context->restraintCount = 0; //<! total number of restraints
-  context->nonRigidJointCount = 0; /*!< total number of non-rigid joints, equal
+  self->epsNewtonRaphsonRankDetermination = 1e-12;
+  self->epsNewtonRaphson = 1e-6;
+  self->jointCount = 0; //!< total number of joints
+  self->bodyCount = 0; //!< total number of bodies
+  self->pointCloudCount = 0;
+  self->frameCount = 0; //!< total number of frames
+  self->lightCount = 0; //!< total number of lights
+  self->ioCount = 0; //!< total number of input/output devices
+  self->restraintCount = 0; //<! total number of restraints
+  self->nonRigidJointCount = 0; /*!< total number of non-rigid joints, equal
                                         to dof */
-  context->dhvaCount = 0;
-  context->activeFrameCount = 0; /*!< number of active frames in mechanism */
-  context->activeFrameInTreeCount = 0; /*!< number of active frames in spanning tree */
-  context->activeJointCount = 0; /*!< number of active joints */
-  context->activeBodyCount = 0; /*!< number of active bodies */
-  context->activePointCloudCount = 0;
-  context->activeLightCount = 0; /*!< number of active lights */
-  context->activeIOCount = 0; /*!< number of active devices */
-  context->activeRestraintCount = 0; //!< number of active restraints
-  context->qCount = 0; /*!< dof for generalized positions */
-  context->dqCount = 0; /*!< dof for generalized velocities */
-  context->dcCount = 0; /*!< count of direction cosines */
+  self->dhvaCount = 0;
+  self->activeFrameCount = 0; /*!< number of active frames in mechanism */
+  self->activeFrameInTreeCount = 0; /*!< number of active frames in spanning tree */
+  self->activeJointCount = 0; /*!< number of active joints */
+  self->activeBodyCount = 0; /*!< number of active bodies */
+  self->activePointCloudCount = 0;
+  self->activeLightCount = 0; /*!< number of active lights */
+  self->activeIOCount = 0; /*!< number of active devices */
+  self->activeRestraintCount = 0; //!< number of active restraints
+  self->qCount = 0; /*!< dof for generalized positions */
+  self->dqCount = 0; /*!< dof for generalized velocities */
+  self->dcCount = 0; /*!< count of direction cosines */
 
-  context->chordConstraintCount = 0; /*!< number of chord constraints, one for
+  self->chordConstraintCount = 0; /*!< number of chord constraints, one for
                                  each kinematic loop */
-  context->dqLookup = NULL;
+  self->dqLookup = NULL;
   /*!< lookup table used to look up a joint's position in variable
        list. float variables have 6 variables, spherical joints have
        3 variables, and rigid joints
        have 0 variables associated with them */
-  context->qLookup = NULL;
-  context->jointLookup = NULL;
+  self->qLookup = NULL;
+  self->jointLookup = NULL;
   /*!< lookup table used to find a joint's position in compressed joint list
        rigid joints are removed from compressed list and have a value of -1
        in lookup table */
-  context->dqLookupCompressed = NULL;
+  self->dqLookupCompressed = NULL;
 
   /*!
   @}
   @name Data related to processing kinematic loops within mechanism
   @{
   */
-  context->chordConstraints = NULL; /*!< specified chord constraints, if
+  self->chordConstraints = NULL; /*!< specified chord constraints, if
                                          multiple loops are present in a
                                          mechanism */
-  context->J = NULL; /*!< Jacobian matrix (or matrices) */
-  context->Js = NULL;
-  context->Jxx = NULL; /*!< instructions for evaluating Jacobian matrices */
-  context->Jb = NULL; /*!< Boolean Jacobian matrix */
-  context->jacobianSize = 0; /*!< total size of jacobian matrix */
+  self->J = NULL; /*!< Jacobian matrix (or matrices) */
+  self->Js = NULL;
+  self->Jxx = NULL; /*!< instructions for evaluating Jacobian matrices */
+  self->Jb = NULL; /*!< Boolean Jacobian matrix */
+  self->jacobianSize = 0; /*!< total size of jacobian matrix */
 
-  context->isDependentPO1 = NULL; /*!< equal to dof, in PO1 */
-  context->isDependentPO3 = NULL; /*! equal to dof, in PO3 */
-  context->hasMass = NULL; /*!< equal to active jointCount */
-  context->hasMassdq = NULL; /*!< indicates whether body associated with
+  self->isDependentPO1 = NULL; /*!< equal to dof, in PO1 */
+  self->isDependentPO3 = NULL; /*! equal to dof, in PO3 */
+  self->hasMass = NULL; /*!< equal to active jointCount */
+  self->hasMassdq = NULL; /*!< indicates whether body associated with
                                   joint variable has mass */
-  context->jointDOF = NULL;
+  self->jointDOF = NULL;
 
-  context->substructures = NULL;
-  context->substructureCount = 0; /*!< Number of kinematic substructures */
-  context->substructureLoopCount = NULL; /*!< Number of loops in each
+  self->substructures = NULL;
+  self->substructureCount = 0; /*!< Number of kinematic substructures */
+  self->substructureLoopCount = NULL; /*!< Number of loops in each
                                    kinematic substructure */
-  context->substructureMembers = NULL; /*!< members of each kinematic substructure */
-  context->substructureMembersCount = NULL; /*!< count of members in each substructure */
+  self->substructureMembers = NULL; /*!< members of each kinematic substructure */
+  self->substructureMembersCount = NULL; /*!< count of members in each substructure */
 
-  context->positiveLoopMembers = NULL; /*!< Indicates mechanism's positive loop members */
-  context->positiveLoopMembersCount = NULL; /*!< Count of positive members in each loop */
-  context->positiveLoopMembersCompressedCount = NULL; /*!< containts a compressed list
+  self->positiveLoopMembers = NULL; /*!< Indicates mechanism's positive loop members */
+  self->positiveLoopMembersCount = NULL; /*!< Count of positive members in each loop */
+  self->positiveLoopMembersCompressedCount = NULL; /*!< containts a compressed list
                                                 of loop members with rigid
                                                 joints removed */
-  context->positiveLoopMemberOffsets = NULL; /*!< Indicates mechanism's local positive loop
+  self->positiveLoopMemberOffsets = NULL; /*!< Indicates mechanism's local positive loop
                                         member offsets */
 
-  context->negativeLoopMembers = NULL; /*!< Indicates mechanism's negative
+  self->negativeLoopMembers = NULL; /*!< Indicates mechanism's negative
                                             loop members */
-  context->negativeLoopMembersCompressedCount = NULL; /*!< containts a compressed list
+  self->negativeLoopMembersCompressedCount = NULL; /*!< containts a compressed list
                                                 of loop members with rigid
                                                 joints removed */
-  context->negativeLoopMembersCount = NULL; /*!< Count of negative members in each loop */
-  context->negativeLoopMemberOffsets = NULL; /*!< Indicates mechanism's negative loop
+  self->negativeLoopMembersCount = NULL; /*!< Count of negative members in each loop */
+  self->negativeLoopMemberOffsets = NULL; /*!< Indicates mechanism's negative loop
                                         member offsets */
 
-  context->pv_12 = NULL; /*!< global compressed variable permutation array
+  self->pv_12 = NULL; /*!< global compressed variable permutation array
                               going from PO2 to PO1 */
-  context->pv_21 = NULL; /*!< global compressed variable permutation array
+  self->pv_21 = NULL; /*!< global compressed variable permutation array
                               going from PO1 to PO2 */
-  context->pv_13 = NULL; /*!< global compressed variable permutation array
+  self->pv_13 = NULL; /*!< global compressed variable permutation array
                               going from PO3 to PO1 */
-  context->pv_31 = NULL; /*!< global compressed variable permutation array
+  self->pv_31 = NULL; /*!< global compressed variable permutation array
                               going from PO1 to PO3 */
-  context->pv_32 = NULL; /*!< global compressed variable permutation array
+  self->pv_32 = NULL; /*!< global compressed variable permutation array
                               going from PO2 to PO3 */
-  context->pv_23 = NULL; /*!< global compressed variable permutation array
+  self->pv_23 = NULL; /*!< global compressed variable permutation array
                               going from PO3 to PO2 */
 
   /*!
@@ -216,142 +213,142 @@ s2_context_t* s2_context() {
   frames and other quantities used at runtime for processing kinematics
   @{
   */
-  context->bodyPointers = NULL;
+  self->bodyPointers = NULL;
   /*!< Array of pointers to bodies to directly access
        body in position in assembly hierarchy */
 
-  context->pointCloudPointers = NULL;
+  self->pointCloudPointers = NULL;
   /*!< Array of pointers to pointclouds for direct access
        within assembly hierarchy */
 
   // context->boundingSpheres = NULL;
 
-  context->nonVirtualBodyPointers = NULL;
+  self->nonVirtualBodyPointers = NULL;
   /*!< Array of pointers to bodies to directly access
        body in position in assembly hierarchy, does not include
        virtual bodies */
 
-  context->jointPointers = NULL; /*!< Array of pointers to joints to directly
+  self->jointPointers = NULL; /*!< Array of pointers to joints to directly
                                      access body in position in assembly
                                      hierarchy */
-  context->framePointers = NULL; /*!< array of pointers to frames for
+  self->framePointers = NULL; /*!< array of pointers to frames for
                                      direct access */
 
-  context->lightPointers = NULL; //!< array of pointers to lights
+  self->lightPointers = NULL; //!< array of pointers to lights
 
-  context->dhFunctionPointers = NULL;
+  self->dhFunctionPointers = NULL;
   /*!< function pointers to update displacements
        and influence coefficient matrices in
        spanning tree */
 
-  context->dhvaFunctionPointers = NULL;
+  self->dhvaFunctionPointers = NULL;
   /*!< function pointers to update displacements
       influence coefficient matrices,
       velocities and accelerations in spanning tree */
 
-  context->forceModuleCount = 0;
-  context->forceModulePointers = NULL;
+  self->forceModuleCount = 0;
+  self->forceModulePointers = NULL;
 
-  context->names = NULL;
+  self->names = NULL;
 
-  context->jointTypes = NULL; /*!< Array of joint types, equal in length to joint
+  self->jointTypes = NULL; /*!< Array of joint types, equal in length to joint
                               list */
-  context->pcl = NULL; /*!< Parent Child List, used to navigate mechanism
+  self->pcl = NULL; /*!< Parent Child List, used to navigate mechanism
                              topology, set automatically by
                              s2_ProcessTopology */
-  context->pclCompressed = NULL;
-  context->pcldq = NULL;
-  context->isRotation = NULL;
+  self->pclCompressed = NULL;
+  self->pcldq = NULL;
+  self->isRotation = NULL;
 
-  context->levels = NULL; /*!< Levels list, set by s2_ProcessTopology */
-  context->isReference = NULL; /*!< an array of booleans that indicate whether the
+  self->levels = NULL; /*!< Levels list, set by s2_ProcessTopology */
+  self->isReference = NULL; /*!< an array of booleans that indicate whether the
                           displacement at the current index of context->d is
                           a reference Frame */
-  context->originInTree = NULL; /*< an array of booleans equal to
+  self->originInTree = NULL; /*< an array of booleans equal to
                           number of bodies, true if body origin is in
                           spanning tree */
 
-  context->originPointers = NULL;
-  context->referenceFramePointers = NULL;
+  self->originPointers = NULL;
+  self->referenceFramePointers = NULL;
 
-  context->d = NULL; /*!< array of displacements equal
+  self->d = NULL; /*!< array of displacements equal
                                in size to number of frames */
-  context->dWRTReference = NULL; /*!< array of relative displacements,
+  self->dWRTReference = NULL; /*!< array of relative displacements,
                                            equal in size to number of shape
                                            matrices + rigid joints*/
-  context->dReferenceFrames = NULL;
+  self->dReferenceFrames = NULL;
 
-  context->dc = NULL; //!< direction cosine arrays
-  context->dcq = NULL; /*!< generalized coordinates that have direction cosine terms
+  self->dc = NULL; //!< direction cosine arrays
+  self->dcq = NULL; /*!< generalized coordinates that have direction cosine terms
                       associated with them */
-  context->h = NULL; /*!< an array of influence coefficient matrices equal to the
+  self->h = NULL; /*!< an array of influence coefficient matrices equal to the
                     6 * number of variables in the datastructure */
-  context->v = NULL; /*!< an array of body velocities equal to the
+  self->v = NULL; /*!< an array of body velocities equal to the
                     number of variables in the datastructure */
-  context->aq = NULL; /*!< an array of body accelerations equal to the
+  self->aq = NULL; /*!< an array of body accelerations equal to the
                     number of variables in the datastructure */
-  context->vRelative = NULL; /*!< an array of body velocities equal to the
+  self->vRelative = NULL; /*!< an array of body velocities equal to the
                     number of variables in the datastructure */
-  context->aqRelative = NULL; /*!< an array of body accelerations equal to the
+  self->aqRelative = NULL; /*!< an array of body accelerations equal to the
                     number of variables in the datastructure */
-  context->dhva = NULL; /*!< pointers to quantities needed by dhFunctionPointers
+  self->dhva = NULL; /*!< pointers to quantities needed by dhFunctionPointers
                          and dhvaFunctionPointers, set by
                          topology_ProcessTopology */
 
-  context->q = NULL; //!< primitive joint displacements
-  context->qCopy = NULL;
-  context->dq = NULL; //!< primitive joint velocities
-  context->ddq = NULL; //!< primitive joint accelerations
+  self->q = NULL; //!< primitive joint displacements
+  self->qCopy = NULL;
+  self->dq = NULL; //!< primitive joint velocities
+  self->ddq = NULL; //!< primitive joint accelerations
 
   // context->gamma_p = NULL; /*!< primary loop constraints */
-  context->gamma_d = NULL; /*!< preconditioned constraints */
-  context->cs = NULL; /*!< constraints */
-  context->dcs = NULL; /*!< constraint first derivative */
-  context->ddcs = NULL; /*!< constraint second derivative */
-  context->ddcsq = NULL; /*!< constraint second derivative and quadratic terms */
+  self->gamma_d = NULL; /*!< preconditioned constraints */
+  self->cs = NULL; /*!< constraints */
+  self->dcs = NULL; /*!< constraint first derivative */
+  self->ddcs = NULL; /*!< constraint second derivative */
+  self->ddcsq = NULL; /*!< constraint second derivative and quadratic terms */
 
-  context->Ml = NULL; /*!< Generalized mass matrix, linear array containing mass
+  self->Ml = NULL; /*!< Generalized mass matrix, linear array containing mass
                      matrix terms on and below the diagonal */
-  context->Mls = NULL; /*!< Saved copy of original M */
-  context->Ml_size = 0;
+  self->Mls = NULL; /*!< Saved copy of original M */
+  self->Ml_size = 0;
 
-  context->p = NULL; /*!< momentum */
-  context->g = NULL; /*!< body and inertia forces */
-  context->k = NULL; /*!< joint reaction forces */
-  context->mhProduct = NULL; /*!< initialize mH product */
+  self->p = NULL; /*!< momentum */
+  self->g = NULL; /*!< body and inertia forces */
+  self->k = NULL; /*!< joint reaction forces */
+  self->mhProduct = NULL; /*!< initialize mH product */
 
-  context->nnzm = 0; /*!< number of nonzero entries in mass matrix */
-  context->nnzms = 0; /*!< original number of nonzero entries in mass matrix */
-  context->nnzb = 0; /*!< number of nonzero entries in B matrix */
+  self->nnzm = 0; /*!< number of nonzero entries in mass matrix */
+  self->nnzms = 0; /*!< original number of nonzero entries in mass matrix */
+  self->nnzb = 0; /*!< number of nonzero entries in B matrix */
 
-  context->pcl = NULL; /*!< parent-child list in PO(1) */
+  self->pcl = NULL; /*!< parent-child list in PO(1) */
 
-  context->Mlb = NULL; /*!< boolean mass matrix, equal in size to M */
-  context->Mlbs = NULL; /*!< original boolean mass matrix, with no fills recorded */
+  self->Mlb = NULL; /*!< boolean mass matrix, equal in size to M */
+  self->Mlbs = NULL; /*!< original boolean mass matrix, with no fills recorded */
 
-  context->rm = NULL; /*!< row ranges of M matrix in PO(3) */
-  context->cm = NULL; /*!< row ranges of M matrix in PO(3) */
+  self->rm = NULL; /*!< row ranges of M matrix in PO(3) */
+  self->cm = NULL; /*!< row ranges of M matrix in PO(3) */
 
-  context->rb2 = NULL; /*!< row ranges of B matrix in PO(2) */
-  context->rb3_temp = NULL; /*!< temporary array used to convert rb2 to rb3 */
-  context->rb3 = NULL; /*!< row ranges of B matrix in PO(3) */
+  self->rb2 = NULL; /*!< row ranges of B matrix in PO(2) */
+  self->rb3_temp = NULL; /*!< temporary array used to convert rb2 to rb3 */
+  self->rb3 = NULL; /*!< row ranges of B matrix in PO(3) */
 
-  context->cb2 = NULL; /*!< global col indices of B matrix in PO(2) */
-  context->cb3_temp = NULL; /*!< temporary array used to convert cb2 to cb3*/
-  context->cb3 = NULL; /*!< global col indices of B matrix in PO(3) */
-  context->colb = NULL; /*!< local col indices of B matrix in PO(3) */
-  context->ncb = 0; /*!< number of columns in B matrix */
-  context->pb_23 = NULL; /*!< permutation of linear b matrix from 3 to 2 */
-  context->pb_32 = NULL; /*!< permutation of linear b matrix from 2 to 3 */
+  self->cb2 = NULL; /*!< global col indices of B matrix in PO(2) */
+  self->cb3_temp = NULL; /*!< temporary array used to convert cb2 to cb3*/
+  self->cb3 = NULL; /*!< global col indices of B matrix in PO(3) */
+  self->colb = NULL; /*!< local col indices of B matrix in PO(3) */
+  self->ncb = 0; /*!< number of columns in B matrix */
+  self->pb_23 = NULL; /*!< permutation of linear b matrix from 3 to 2 */
+  self->pb_32 = NULL; /*!< permutation of linear b matrix from 2 to 3 */
 
-  context->ijMapping = NULL;
-  context->b3 = NULL; /*!< Linear array containing terms of preconditioned constraints
+  self->ijMapping = NULL;
+  self->b3 = NULL; /*!< Linear array containing terms of preconditioned constraints
                      in PO(3) */
-  context->f = NULL; /*!< working forces applied in a joint, equal in length to
+  self->f = NULL; /*!< working forces applied in a joint, equal in length to
                           total number of degrees of freedom */
-  context->fl = NULL; /*!< Generalized forces */
-  context->la = NULL; /*!< lagrange multipliers */
-  context->constraints = NULL;
+  self->fl = NULL; /*!< Generalized forces */
+  self->la = NULL; /*!< lagrange multipliers */
+  self->constraints = NULL;
 
   /*!
   @}
@@ -359,48 +356,48 @@ s2_context_t* s2_context() {
   equations
   @{
   */
-  context->i1s = 0; /*!< Points to Mkj or Mjk in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
-  context->i2s = 0; /*!< Points to Mij in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
-  context->i6s = 0; /*!< Points to Mkj or Mjk in Mkj -= Mij*Mik or Mjk -= Mij*Mik */
-  context->i8s = 0; /*!< Points to Mik in Mkj -= Mij*Mik or Mjk -= Mij*Mik */
+  self->i1s = 0; /*!< Points to Mkj or Mjk in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
+  self->i2s = 0; /*!< Points to Mij in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
+  self->i6s = 0; /*!< Points to Mkj or Mjk in Mkj -= Mij*Mik or Mjk -= Mij*Mik */
+  self->i8s = 0; /*!< Points to Mik in Mkj -= Mij*Mik or Mjk -= Mij*Mik */
 
   /*!< M[i1[l1]] -= M[i2[l1]] * B[i3[l1]]; */
-  context->i1 = NULL;
-  context->i2 = NULL;
-  context->i3 = NULL;
+  self->i1 = NULL;
+  self->i2 = NULL;
+  self->i3 = NULL;
 
   /*!< M[i4[i]] = 1.0/M[i4[i]];
        M[p] = M[i5[l2]];
        M[i5[l2]] *= M[i4[i]]; */
-  context->i4 = NULL;
-  context->i5 = NULL;
+  self->i4 = NULL;
+  self->i5 = NULL;
 
   /*!< M[i6[l3]] -= M[i7[l3]]*M[i8[l3]]; */
-  context->i6 = NULL;
-  context->i7 = NULL;
-  context->i8 = NULL;
+  self->i6 = NULL;
+  self->i7 = NULL;
+  self->i8 = NULL;
 
   /*!< Q[j1[m1]] -= B[j2[m1]]*Q[i];
        ddq[i] -= B[j2[m1]]*ddq[j1[m1]]; */
-  context->j1 = NULL;
-  context->j2 = NULL;
+  self->j1 = NULL;
+  self->j2 = NULL;
 
   /*!< Q[j3[m2]] -= M[j4[m2]]*ga[i];
        la[i] -= M[j4[m2]]*ddq[j3[m2]]; */
-  context->j3 = NULL;
-  context->j4 = NULL;
+  self->j3 = NULL;
+  self->j4 = NULL;
 
   /*!< Q[j5[m3]] -= M[j6[m3]]*Q[i];
        ddq[i] -= M[j6[m3]]*ddq[j5[m3]]; */
-  context->j5 = NULL;
-  context->j6 = NULL;
+  self->j5 = NULL;
+  self->j6 = NULL;
 
-  context->p1 = NULL; /*!< increments in l1 to process current dependent variable. */
-  context->p2 = NULL; /*!< increments in m1 to process current dependent variable. */
-  context->p3 = NULL; /*!< increments in m2 to process current dependent variable. */
-  context->n1 = NULL; /*!< increments in l2 to process current independent variable. */
-  context->n2 = NULL; /*!< increments in l3 to process current independent variable. */
-  context->n3 = NULL; /*!< increments in m3 to process current independent variable. */
+  self->p1 = NULL; /*!< increments in l1 to process current dependent variable. */
+  self->p2 = NULL; /*!< increments in m1 to process current dependent variable. */
+  self->p3 = NULL; /*!< increments in m2 to process current dependent variable. */
+  self->n1 = NULL; /*!< increments in l2 to process current independent variable. */
+  self->n2 = NULL; /*!< increments in l3 to process current independent variable. */
+  self->n3 = NULL; /*!< increments in m3 to process current independent variable. */
 
   /*! Single array of source and destination memory pointers.
   The dimension of this array is hard coded for initial testing.
@@ -408,20 +405,20 @@ s2_context_t* s2_context() {
   sufficient memory for all source and destination memory pointers
   will be malloced. This memory cannot be malloced until the size
   of P has been determined. */
-  context->startOfWorkInM = 0;
-  context->P = NULL;
-  context->p3Start = 0;
-  context->rightNullSpace = NULL;
-  context->rightNullSpaceCount = 0;
-  context->mobilityNumbers = NULL;
-  context->mobility = 0;
+  self->startOfWorkInM = 0;
+  self->P = NULL;
+  self->p3Start = 0;
+  self->rightNullSpace = NULL;
+  self->rightNullSpaceCount = 0;
+  self->mobilityNumbers = NULL;
+  self->mobility = 0;
 
   /*!
   @}
   @name properties related to input/output datastructures
   @{
   */
-  context->io = NULL; /*!< pointer to input/output datastructures */
+  self->io = NULL; /*!< pointer to input/output datastructures */
 
   /*!
   @}
@@ -429,11 +426,11 @@ s2_context_t* s2_context() {
   @{
   */
 
-  context->qQuaternionIndices = NULL;
-  context->dqQuaternionIndices = NULL;
-  context->qNonQuaternionIndices = NULL;
-  context->dqNonQuaternionIndices = NULL;
-  context->numericalIntegrator = NULL; /*!< pointer to properties
+  self->qQuaternionIndices = NULL;
+  self->dqQuaternionIndices = NULL;
+  self->qNonQuaternionIndices = NULL;
+  self->dqNonQuaternionIndices = NULL;
+  self->numericalIntegrator = NULL; /*!< pointer to properties
                                             related to numerical
                                             integration */
 
@@ -443,26 +440,26 @@ s2_context_t* s2_context() {
   @name quantities related to processing inertia
   @{
   */
-  context->inertia = NULL;
-  context->inertiaP = NULL;
+  self->inertia = NULL;
+  self->inertiaP = NULL;
 
   /*!
   @}
   @name quantities related to processing graphics
   @{
   */
-  context->glInitialized = false;
-  context->viewport = NULL;
-  context->glReferenceFramesf = NULL;
-  context->glReferenceFrames = NULL;
-  context->shaderHandleLight = NULL;
+  self->glInitialized = false;
+  self->viewport = NULL;
+  self->glReferenceFramesf = NULL;
+  self->glReferenceFrames = NULL;
+  self->shaderHandleLight = NULL;
 
-  context->programLine = -1;
-  context->programFlat = -1;
-  context->programGouraud = -1;
-  context->programPhong = -1;
+  self->programLine = -1;
+  self->programFlat = -1;
+  self->programGouraud = -1;
+  self->programPhong = -1;
 
-  context->lightCountUniform = 0;
+  self->lightCountUniform = 0;
 
   /*!
   @}
@@ -470,20 +467,32 @@ s2_context_t* s2_context() {
   @{
   */
 
-  context->stiffnessCount = 0;
-  context->stiffnessJoints = NULL;
+  self->stiffnessCount = 0;
+  self->stiffnessJoints = NULL;
 
-  context->dampingCount = 0;
-  context->dampingJoints = NULL;
+  self->dampingCount = 0;
+  self->dampingJoints = NULL;
   /*!
   @}
   */
-  context->iterationsSinceLastConstraintError = 0;
+  self->iterationsSinceLastConstraintError = 0;
 
-  context->terrainCount = 0;
-  context->terrains = NULL;
+  self->terrainCount = 0;
+  self->terrains = NULL;
 
-  return context;
+  self->convexhullCount = 0;
+  self->convexhulls = NULL;
+
+  self->sphereCount = 0;
+  self->spheres = NULL;
+
+  self->ellipsoidCount = 0;
+  self->ellipsoids = NULL;
+
+  self->materialCount = 0;
+  self->materials = NULL;
+
+  return self;
 }
 
 
@@ -496,8 +505,7 @@ void s2_context_setOmegaN(
 
   context->modelParameters.baumgarteOmegaN = omegaN;
   context->modelParameters.baumgarte2OmegaN = 2 * omegaN;
-  context->modelParameters.baumgarteOmegaN2 =
-    omegaN * omegaN;
+  context->modelParameters.baumgarteOmegaN2 = omegaN * omegaN;
 }
 
 
@@ -535,17 +543,17 @@ Joint datastructures
 @param context a Context datastructure
 */
 void s2_context_freeH(
-  s2_context_t* context) {
+  s2_context_t* self) {
 
-  if(context->h) {
-    for(int i = 0; i < context->activeJointCount; i++) {
-      s2_joint_t* joint = context->jointPointers[i];
+  if(self->h) {
+    for(int i = 0; i < self->activeJointCount; i++) {
+      s2_joint_t* joint = self->jointPointers[i];
       if(joint->dqIndex > -1) {
-        s2_screw_copyBack(context->h + joint->dqIndex, &(joint->h));
+        s2_screw_copyBack(self->h + joint->dqIndex, &(joint->h));
       }
     }
-    free(context->h);
-    context->h = NULL;
+    free(self->h);
+    self->h = NULL;
   }
 }
 
@@ -559,7 +567,7 @@ Not intended to be called directly, used internally by s2_FreeDVA function
 @param assembly an Assembly datastructure
 */
 int s2_context_freeDVARecursive(
-  s2_context_t* context,
+  s2_context_t* self,
   s2_assembly_t* assembly) {
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
@@ -574,19 +582,19 @@ int s2_context_freeDVARecursive(
         */
         if(bodyHead->parentJointPointer->jointType != S2_JOINT_RIGID) {
           s2_screw_copyBack(
-            context->v + frameHead->vaIndex,
+            self->v + frameHead->vaIndex,
             &(frameHead->velocityAbsolute));
           s2_screw_copyBack(
-            context->aq + frameHead->vaIndex,
+            self->aq + frameHead->vaIndex,
             &(frameHead->accelerationQuadraticAbsolute));
         } else {
           frameHead->velocityAbsolute = s2_screw();
           s2_screw_copy(
-            context->v + frameHead->vaIndex,
+            self->v + frameHead->vaIndex,
             frameHead->velocityAbsolute);
           frameHead->accelerationQuadraticAbsolute = s2_screw();
           s2_screw_copy(
-            context->aq + frameHead->vaIndex,
+            self->aq + frameHead->vaIndex,
             frameHead->accelerationQuadraticAbsolute);
         }
 
@@ -597,7 +605,7 @@ int s2_context_freeDVARecursive(
         while(frameHead) {
           if(frameHead->dIndex > -1) {
             s2_displacement_copyBack(
-              context->d + frameHead->dIndex,
+              self->d + frameHead->dIndex,
               &(frameHead->dAbsolute));
           }
           frameHead = frameHead->next;
@@ -623,46 +631,46 @@ int s2_context_freeDVARecursive(
 @param context a Context datastructure
 */
 void s2_context_freeDHVA(
-  s2_context_t* context) {
+  s2_context_t* self) {
 
-  if(context->d) {
-    s2_frame_t* frameHead = context->assembly->bodyHead->frameHead;
+  if(self->d) {
+    s2_frame_t* frameHead = self->assembly->bodyHead->frameHead;
     s2_screw_copyBack(
-      context->v,
+      self->v,
       &(frameHead->velocityAbsolute));
     s2_screw_copyBack(
-      context->aq,
+      self->aq,
       &(frameHead->accelerationQuadraticAbsolute));
 
     while(frameHead) {
       if(frameHead->dIndex > -1) {
         s2_displacement_copyBack(
-          context->d + frameHead->dIndex,
+          self->d + frameHead->dIndex,
           &(frameHead->dAbsolute));
       }
       frameHead->index = -1;
       frameHead->dIndex = -1;
       frameHead = frameHead->next;
     }
-    s2_context_freeDVARecursive(context, context->assembly);
+    s2_context_freeDVARecursive(self, self->assembly);
 
-    free(context->d);
-    context->d = NULL;
+    free(self->d);
+    self->d = NULL;
   }
-  if(context->dWRTReference) {
-    free(context->dWRTReference);
-    context->dWRTReference = NULL;
+  if(self->dWRTReference) {
+    free(self->dWRTReference);
+    self->dWRTReference = NULL;
   }
-  if(context->v) {
-    free(context->v);
-    context->v = NULL;
+  if(self->v) {
+    free(self->v);
+    self->v = NULL;
   }
-  if(context->aq) {
-    free(context->aq);
-    context->aq = NULL;
+  if(self->aq) {
+    free(self->aq);
+    self->aq = NULL;
   }
 
-  s2_context_freeH(context);
+  s2_context_freeH(self);
 }
 
 
@@ -1754,15 +1762,14 @@ s2_context_t* s2_context_loadJSON(
   json_t* root,
   const char* filePath) {
 
-  s2_context_t* context = s2_context();
-
-  // load modelParameters
-  json_t* modelParametersObject =
-    json_object_get(root, "model_parameters");
+  /* load modelParameters */
+  json_t* modelParametersObject = json_object_get(root, "model_parameters");
   if(!json_is_object(modelParametersObject)) {
     fprintf(stderr, "No valid model parameters object found.\n");
     return NULL;
   }
+
+  s2_context_t* context = s2_context();
 
   s2_context_loadModelParameters(
     context,

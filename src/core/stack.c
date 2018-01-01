@@ -252,18 +252,22 @@ void s2_stackstr_print(
   FILE* f,
   s2_stackstr_t* stack) {
 
-  s2_stackstrnode_t* head = stack->head;
-  fprintf(f, "[");
-  while(head) {
-    if(head->value) {
-      fprintf(f, "\"%s\"", head->value);
+  if(stack) {
+    s2_stackstrnode_t* head = stack->head;
+    fprintf(f, "[");
+    while(head) {
+      if(head->value) {
+        fprintf(f, "\"%s\"", head->value);
+      }
+      head = head->next;
+      if(head) {
+        fprintf(f, ", ");
+      }
     }
-    head = head->next;
-    if(head) {
-      fprintf(f, ", ");
-    }
+    fprintf(f, "]\n");
+  } else {
+    fprintf(f, "null\n");
   }
-  fprintf(f, "]\n");
 }
 
 
@@ -276,12 +280,14 @@ bool s2_stack_in(
   s2_stack_t* stack,
   int value) {
 
-  s2_stacknode_t* head = stack->head;
-  while(head) {
-    if(value == head->value) {
-      return true;
+  if(stack) {
+    s2_stacknode_t* head = stack->head;
+    while(head) {
+      if(value == head->value) {
+        return true;
+      }
+      head = head->next;
     }
-    head = head->next;
   }
   return false;
 }
@@ -295,12 +301,14 @@ bool s2_stackstr_in(
   s2_stackstr_t* stack,
   const char* value) {
 
-  s2_stackstrnode_t* head = stack->head;
-  while(head) {
-    if(!strcmp(value, head->value)) {
-      return true;
+  if(stack) {
+    s2_stackstrnode_t* head = stack->head;
+    while(head) {
+      if(!strcmp(value, head->value)) {
+        return true;
+      }
+      head = head->next;
     }
-    head = head->next;
   }
   return false;
 }

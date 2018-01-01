@@ -1314,7 +1314,7 @@ void Workspace::resizeEvent(QResizeEvent* event) {
 
 void Workspace::initializeMenus() {
 
-  setWindowTitle("star2");
+  setWindowTitle("Shift");
   QMenu* fileMenu = menuBar()->addMenu("&File");
 
   /* save dialog */
@@ -1423,7 +1423,7 @@ void Workspace::initializeMenus() {
   m_actionToggleDrawShadows->setChecked(true);
 
   m_actionToggleDrawConvexHulls =
-    new QAction("Convex Hulls", this);
+    new QAction("Collision Geometry", this);
   viewMenu->addAction(m_actionToggleDrawConvexHulls);
   m_actionToggleDrawConvexHulls->setIcon(QIcon(":/icons/convexhull.png"));
   m_actionToggleDrawConvexHulls->setCheckable(true);
@@ -1436,12 +1436,12 @@ void Workspace::initializeMenus() {
   m_actionToggleDrawNormals->setCheckable(true);
   m_actionToggleDrawNormals->setChecked(false);
 
-  m_actionToggleDrawBoundingSpheres =
-    new QAction("Bounding Spheres", this);
-  viewMenu->addAction(m_actionToggleDrawBoundingSpheres);
-  m_actionToggleDrawBoundingSpheres->setIcon(QIcon(":/icons/sphere.png"));
-  m_actionToggleDrawBoundingSpheres->setCheckable(true);
-  m_actionToggleDrawBoundingSpheres->setChecked(false);
+  // m_actionToggleDrawBoundingSpheres =
+  //   new QAction("Bounding Spheres", this);
+  // viewMenu->addAction(m_actionToggleDrawBoundingSpheres);
+  // m_actionToggleDrawBoundingSpheres->setIcon(QIcon(":/icons/sphere.png"));
+  // m_actionToggleDrawBoundingSpheres->setCheckable(true);
+  // m_actionToggleDrawBoundingSpheres->setChecked(false);
 
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
@@ -1555,11 +1555,11 @@ void Workspace::initializeMenus() {
     m_renderWindow->getBodies(),
     SLOT(toggleDrawNormals()));
 
-  QObject::connect(
-    m_actionToggleDrawBoundingSpheres,
-    SIGNAL(triggered()),
-    m_renderWindow->getBodies(),
-    SLOT(toggleDrawBoundingSpheres()));
+  // QObject::connect(
+  //   m_actionToggleDrawBoundingSpheres,
+  //   SIGNAL(triggered()),
+  //   m_renderWindow->getBodies(),
+  //   SLOT(toggleDrawBoundingSpheres()));
 
   QObject::connect(
     m_actionToggleDrawConvexHulls,
@@ -2891,11 +2891,15 @@ void Workspace::getSelectedTreeItem() {
       m_bodyPanel.materialDropDown->clear();
 
       /* populate material dropdown menu */
-      for(int i = 0; i < body->materialCount; i++) {
-        m_bodyPanel.materialDropDown->addItem(body->materials[i].name);
+      for(
+        int i = body->materialIndex;
+        i < body->materialIndex + body->materialCount;
+        i++) {
+        m_bodyPanel.materialDropDown->addItem(m_context->materials[i].name);
       }
       if(body->materials != NULL) {
-        populateMaterialColorDropDown(&body->materials[0]);
+        populateMaterialColorDropDown(
+          &m_context->materials[body->materialIndex]);
       }
 
     } else if(m_currentSelectedItem->m_userType == 1005) {
@@ -3228,7 +3232,7 @@ void Workspace::openFileAtLoad() {
 
     if(fileName.length() != 0) {
       m_currentFileName = fileName;
-      setWindowTitle(fileName + QString(" | star2"));
+      setWindowTitle(fileName + QString(" | Shift"));
 
       m_context = s2_context_load(byteArray.data());
       s2_context_setTopology(m_context);
@@ -3387,7 +3391,8 @@ void Workspace::openFile() {
 
   if(fileName.length() != 0) {
     m_currentFileName = fileName;
-    setWindowTitle(fileName + QString(" | star2"));
+
+    setWindowTitle(fileName + QString(" | Shift"));
 
     m_context = s2_context_load(byteArray.data());
     s2_context_setTopology(m_context);

@@ -88,6 +88,12 @@ typedef struct s2_body_t {
   s2_body_t* next; /*!< Pointer to next Body in linked list datastructure */
 
   s2_material_t* materials; /*!< s2_material_t datastructure */
+  s2_body_t* geometryInstanceOf; /*!< if this body has identical geometry to another
+                              body, this pointer is set to the original body.
+                              Otherwise, if this geometry is unique to this body or is the first instance of this geometry, the pointer is set to NULL */
+  s2_body_t* collisionGeometryInstanceOf; /*!< if this body has identical collision geometry to another
+                              body, this pointer is set to the original body.
+                              Otherwise, if the collision geometry is unique to this body or is the first instance of this collision geometry, the pointer is set to NULL */
 
   int frameCount; /*!< count of total number of frames */
 
@@ -97,8 +103,8 @@ typedef struct s2_body_t {
   int level; /*!< level in the spanning tree, set
                   by s2_ProcessTopology */
 
+  int materialIndex; /*!< offset into context->materials */
   int materialCount; /*!< number of materials assigned to a body */
-
   bool isVirtual; /*!< indicates whether the Body is *virtual*. All
                        user-defined bodies are not virtual. Massless
                        virtual bodies are added to simplify processing
@@ -113,15 +119,15 @@ typedef struct s2_body_t {
 
   s2_vector_t* centerOfMassWRTReference; /*!< vector from body reference
                                                 frame to center of mass */
-  s2_mat4x4_t* glReferenceFrame;
-  s2_mat4x4f_t* glReferenceFramef;
-  s2_mat4x4f_t* glModelView;
-  s2_mat4x4f_t* glModelViewProjection;
+  // s2_mat4x4_t* glReferenceFrame;
+  // s2_mat4x4f_t* glReferenceFramef;
+  // s2_mat4x4f_t* glModelView;
+  // s2_mat4x4f_t* glModelViewProjection;
   bool drawEnabled;
   bool isVisible;
+  bool collisionObjectDrawEnabled;
   int collisionObjectCount;
   s2_collisionobject_t* collisionObjects;
-
 } s2_body_t;
 
 
