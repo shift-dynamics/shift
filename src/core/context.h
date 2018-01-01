@@ -34,6 +34,7 @@ SUCH DAMAGE.
 #include "kinematics.h"
 #include "joint.h"
 #include "../ode/numericalintegrator.h"
+#include "collisionobject.h"
 
 typedef struct s2_forcemodule_t s2_forcemodule_t;
 typedef struct s2_context_t s2_context_t;
@@ -57,7 +58,9 @@ typedef struct s2_material_t s2_material_t;
 typedef struct s2_shaderhandle_t s2_shaderhandle_t;
 typedef struct s2_terrain_t s2_terrain_t;
 typedef struct s2_pointcloud_t s2_pointcloud_t;
+typedef struct s2_convexhull_t s2_convexhull_t;
 typedef struct s2_sphere_t s2_sphere_t;
+typedef struct s2_ellipsoid_t s2_ellipsoid_t;
 
 
 /*!
@@ -550,6 +553,24 @@ typedef struct s2_context_t {
   @}
   */
 
+  /*!
+  @name data related to collision geometry
+  */
+  int sphereCount;
+  s2_sphere_t* spheres;
+
+  int convexhullCount;
+  s2_convexhull_t* convexhulls;
+
+  int ellipsoidCount;
+  s2_ellipsoid_t* ellipsoids;
+
+  int materialCount;
+  s2_material_t* materials;
+  /*!
+  @}
+  */
+
 } s2_context_t;
 
 
@@ -624,5 +645,10 @@ void s2_context_setBoundingSpheres(s2_context_t*);
 
 
 void s2_context_updateBoundingSpheres(s2_context_t*);
+
+void s2_context_pushCollisionGeometry(
+  s2_context_t*,
+  void*,
+  s2_collisionobject_enum_t);
 
 #endif

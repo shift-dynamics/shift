@@ -504,6 +504,8 @@ int s2_assembly_load(
       s2_assembly_t* assembly = s2_assembly();
       assembly->name = newPrefix;
 
+      s2_assembly_appendSubAssembly(parentAssembly, assembly);
+
       // printf("%s: loading bodies\n", newPrefix);
       if(s2_assembly_loadBodies(assembly, assemblyObject, context, newPrefix)) {
         return -1;
@@ -526,12 +528,8 @@ int s2_assembly_load(
         return -1;
       }
 
-      s2_assembly_appendSubAssembly(parentAssembly, assembly);
-
       // load subassemblies
-      json_t* subAssemblyObject =
-        json_object_get(assemblyObject, "assemblies");
-
+      json_t* subAssemblyObject = json_object_get(assemblyObject, "assemblies");
       s2_assembly_load(assembly, subAssemblyObject, context, newPrefix);
     }
   }

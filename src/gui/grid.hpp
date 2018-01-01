@@ -58,7 +58,7 @@ class s2_Grid : public s2_Geometry {
     };
 
     ~s2_Grid() {
-      s2_materials_free(m_material, 1);
+      s2_material_free(m_material, 1);
       free(m_transform);
     };
 

@@ -12,25 +12,27 @@ Acquiring Shift
 
    git clone --recursive git@github.com:kriswehage/shift.git
 
+The recursive flag is necessary to initialize the submodules. If you cloned the repository without the recursive flag, you can initialize the submodules later by issuing the command:
+
+.. code::
+
+   git submodule update --init --recursive
+
 
 Dependencies
 ------------
 
 In addition to the git submodules that are packaged together with *Shift*, the following additional libraries must be installed on your system.
 
-* Assimp
-
-* Jansson
-
-* Qt5
-
-* Graphviz
-
-* Cblas
-
-* ImageMagick
-
-* pandoc
+*   `Cmake <https://cmake.org>`_
+*   `Assimp <http://assimp.sourceforge.net>`_
+*   `Jansson <http://www.digip.org/jansson/>`_
+*   `Qt5 <http://www.qt.io/developers/>`_
+*   `Graphviz <http://www.graphviz.org/>`_
+*   `Cblas <http://www.netlib.org/blas/>`_
+*   `ImageMagick <http://www.imagemagick.org>`_
+*   `Qhull <http://www.qhull.org>`_
+*   `pandoc <http://pandoc.org>`_
 
 
 Linux
@@ -43,7 +45,7 @@ Arch Linux:
 
 .. code::
 
-   pacman -S assimp jansson qt5 graphviz cblas imagemagick pandoc
+   pacman -S cmake assimp jansson qt5 graphviz cblas imagemagick pandoc
 
 
 Ubuntu / Debian-based Linux Distributions:
@@ -51,7 +53,7 @@ Ubuntu / Debian-based Linux Distributions:
 
 .. code::
 
-   apt-get install assimp jansson qt5 graphviz cblas libmagickwand-dev pandoc
+   apt-get install cmake assimp jansson qt5 graphviz cblas libmagickwand-dev pandoc
 
 
 Macintosh
@@ -61,7 +63,7 @@ On a Macintosh, the dependencies can be installed using the *brew* package manag
 
 .. code::
 
-  brew install assimp jansson qt5 graphviz imagemagick pandoc
+  brew install cmake assimp jansson qt5 graphviz imagemagick pandoc
 
 
 The cblas package is already available on a Macintosh using the *accelerate* framework, the CMakeLists.txt file may need to be modified to bring in this dependency correctly.
@@ -70,7 +72,7 @@ The cblas package is already available on a Macintosh using the *accelerate* fra
 Windows
 *******
 
-Shift has not been tested on Windows machines.
+*Shift* has not been tested on Windows machines.
 
 
 Building Shift

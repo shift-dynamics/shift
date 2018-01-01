@@ -334,16 +334,16 @@ void s2_sphere_eigenSphere(
 }
 
 
-/*!
-@brief test for global collision between two spheres, requires that global centroid has been updated
-*/
-bool s2_sphere_collisionGlobal(s2_sphere_t* a, s2_sphere_t* b) {
-  s2_vector_t d;
-  s2_subtract_vv(&a->centerGlobal, &b->centerGlobal, &d);
-  double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
-  double radiusSum = a->radius + b->radius;
-  return dist2 < radiusSum * radiusSum;
-}
+// /*!
+// @brief test for global collision between two spheres, requires that global centroid has been updated
+// */
+// bool s2_sphere_collisionGlobal(s2_sphere_t* a, s2_sphere_t* b) {
+//   s2_vector_t d;
+//   s2_subtract_vv(&a->centerGlobal, &b->centerGlobal, &d);
+//   double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
+//   double radiusSum = a->radius + b->radius;
+//   return dist2 < radiusSum * radiusSum;
+// }
 
 
 /*!
@@ -358,19 +358,19 @@ bool s2_sphere_collisionLocal(s2_sphere_t* a, s2_sphere_t* b) {
 }
 
 
-/*!
-@brief update sphere's global centroid
-*/
-void s2_sphere_updateCentroid(s2_sphere_t* s) {
-  if(!s->parentBody) {
-    return;
-  }
-
-  /* transform centroid coordinates to global reference frame */
-  s2_product_dv(
-    s->parentBody->origin->dAbsolute, &s->centerLocal, &s->centerGlobal);
-
-}
+// /*!
+// @brief update sphere's global centroid
+// */
+// void s2_sphere_updateCentroid(s2_sphere_t* s) {
+//   if(!s->parentBody) {
+//     return;
+//   }
+//
+//   /* transform centroid coordinates to global reference frame */
+//   s2_product_dv(
+//     s->parentBody->origin->dAbsolute, &s->centerLocal, &s->centerGlobal);
+//
+// }
 
 
 /*!
@@ -402,15 +402,15 @@ REFERENCES:
 [1] Ritter, J. (1990), 'An efficient bounding sphere', in Graphics Gems,
     A. Glassner, Ed. Academic Press, pp.301303
 */
-int s2_sphere(s2_sphere_t* self, s2_body_t* body) {
+int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body) {
 
-  if(body->materials) {
+  if(body->materialIndex != -1) {
 
     /* initialize memory and set support function */
 
     /* generate temporary convex hull */
     s2_convexhull_t* convexhull = s2_convexhull_alloc(1);
-    s2_convexhull(convexhull, body);
+    s2_convexhull(convexhull, context, body);
 
     /* degenerate case with one vertex */
     if(convexhull->vertexCount == 1) {
@@ -448,11 +448,11 @@ s2_vector_t s2_sphere_support(
   void* collisionobject,
   s2_vector_t* direction) {
 
-  s2_sphere_t* sphere = (s2_sphere_t*)collisionobject;
-  s2_vector_normalize(direction);
-  s2_vector_t temp;
-  s2_product_vk(direction, &sphere->radius, &temp);
-  s2_vector_t max_vector;
-  s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
+  // s2_sphere_t* sphere = (s2_sphere_t*)collisionobject;
+  // s2_vector_normalize(direction);
+  // s2_vector_t temp;
+  // s2_product_vk(direction, &sphere->radius, &temp);
+  s2_vector_t max_vector = {0.0, 0.0, 0.0};
+  // s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
   return max_vector;
 }

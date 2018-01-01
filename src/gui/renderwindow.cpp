@@ -256,19 +256,25 @@ QString RenderWindow::getCursorPositionText() {
         m_view,
         m_projection,
         QRect(0, 0, viewport[2], viewport[3]));
-    QTextStream(&str) << "(" << position.x() << "," << position.y() << "," << position.z() << ")";
+    QTextStream retStream(&str);
 
-    QVector3D near =
-      QVector3D(
-        m_x,
-        height() - m_y,
-        0).unproject(
-        m_view,
-        m_projection,
-        QRect(0, 0, viewport[2], viewport[3]));
+    retStream.setFieldAlignment(QTextStream::AlignLeft);
+    retStream.setRealNumberNotation(QTextStream::FixedNotation);
+    retStream.setRealNumberPrecision(3);
+    retStream.setNumberFlags(QTextStream::ForceSign);
+    retStream << "(" << position.x() << "," << position.y() << "," << position.z() << ")";
+    retStream.setFieldWidth(25);
+
+    // QVector3D near =
+    //   QVector3D(
+    //     m_x,
+    //     height() - m_y,
+    //     0).unproject(
+    //     m_view,
+    //     m_projection,
+    //     QRect(0, 0, viewport[2], viewport[3]));
 
   }
-  // QTextStream(&str) << "(" << m_x << "," << m_y << ")";
   return str;
 }
 
@@ -564,8 +570,8 @@ void RenderWindow::updateGL() {
       m_projection.perspective(
         60,
         aspectRatio,
-        0.0001,
-        1000);
+        0.001,
+        100);
     } else {
       float h = 0.5 * m_camDistance;
       float w = aspectRatio * h;

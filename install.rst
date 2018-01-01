@@ -67,8 +67,8 @@ On a Macintosh, the dependencies can be installed using the *brew* package manag
     brew install cmake assimp jansson qt5 graphviz imagemagick qhull pandoc
 
 
-Cblas package is already available on a Macintosh using the *accelerate*
-framework, the CMakeLists.txt file may need to be modified to bring in this
+The Cblas package is already available on a Macintosh using the *accelerate*
+framework. The CMakeLists.txt file may need to be modified to bring in this
 dependency correctly.
 
 

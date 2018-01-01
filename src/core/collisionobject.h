@@ -21,6 +21,9 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
+#ifndef _SHIFT_COLLISIONOBJECT_H_
+#define _SHIFT_COLLISIONOBJECT_H_
+
 #include "kinematics.h"
 #include "convexhull.h"
 #include "ellipsoid.h"
@@ -45,23 +48,26 @@ typedef enum {
 typedef struct s2_collisionobject_t {
   s2_displacement_t dAbsolute; /*!< absolute displacement of collision geometry */
   s2_collisionobject_enum_t type; /*!< collision object type */
-  union {
-    s2_convexhull_t convexHull;
-    s2_ellipsoid_t ellipsoid;
-    s2_sphere_t sphere;
-  } object;
+  void* object;
   s2_vector_t (*support)(void*, s2_vector_t*); /*!< support function pointer */
   float color[3];
+  int index;
 } s2_collisionobject_t;
 
 s2_vector_t s2_collisionobject_support(s2_collisionobject_t*, s2_vector_t*);
 
-s2_collisionobject_t* s2_collisionobject(int count);
+s2_collisionobject_t* s2_collisionobject_alloc(int count);
+
+void s2_collisionobject_init(s2_collisionobject_t*);
 
 void s2_collisionobject_free(s2_collisionobject_t*, int);
 
-void s2_collisionobject_sphere(s2_body_t*);
+void s2_collisionobject_sphere(s2_context_t*, s2_body_t*);
 
-void s2_collisionobject_convexhull(s2_body_t*);
+void s2_collisionobject_convexhull(s2_context_t*, s2_body_t*);
 
-void s2_collisionobject_ellipsoid(s2_body_t*);
+void s2_collisionobject_ellipsoid(s2_context_t*, s2_body_t*);
+
+s2_collisionobject_enum_t s2_collisionobject_enumFromChar(const char*);
+
+#endif

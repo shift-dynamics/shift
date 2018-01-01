@@ -51,8 +51,6 @@ typedef enum {
 
 
 
-
-
 typedef struct s2_tire_t {
   s2_tire_enum_t tireType;
   void* properties;
