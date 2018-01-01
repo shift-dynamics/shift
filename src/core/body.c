@@ -43,7 +43,7 @@ SUCH DAMAGE.
 #include "utility.h"
 #include "collisionobject.h"
 
-
+int s2_body_loadCollisionGeometry(s2_context_t*, s2_body_t*, s2_collisionobject_enum_t);
 
 /*!
 @brief Initialize an s2_body_t datastructure. Appends the origin frame to the body frame
@@ -72,17 +72,21 @@ s2_body_t* s2_body(s2_stackstr_t* name) {
   body->parentJointPointer = NULL;
   body->parentBodyPointer = NULL;
   body->next = NULL;
+  body->geometryInstanceOf = NULL;
+  body->collisionGeometryInstanceOf = NULL;
   body->materials = NULL;
   body->materialCount = 0;
+  body->materialIndex = -1;
   body->centerOfMassWRTOrigin = s2_vector();
   body->centerOfMassWRTReference = s2_vector();
-  body->glReferenceFrame = NULL;
-  body->glReferenceFramef = NULL;
-  body->glModelView = NULL;
-  body->glModelViewProjection = NULL;
+  // body->glReferenceFrame = NULL;
+  // body->glReferenceFramef = NULL;
+  // body->glModelView = NULL;
+  // body->glModelViewProjection = NULL;
   body->collisionObjectCount = 0;
   body->collisionObjects = NULL;
   body->drawEnabled = true;
+  body->collisionObjectDrawEnabled = true;
   body->name = name;
 
   /* append origin to body */
@@ -102,8 +106,7 @@ s2_body_t* s2_body(s2_stackstr_t* name) {
 @brief Free a s2_body_t datastructure
 @param body an s2_body_t datastructure
 */
-void s2_body_free(
-  s2_body_t* body) {
+void s2_body_free(s2_body_t* body) {
 
   if(body) {
     if(body->isVirtual) {
@@ -114,11 +117,11 @@ void s2_body_free(
         s2_stackstr_free(body->definition);
       }
       s2_inertia_free(body->inertia);
-      s2_materials_free(body->materials, body->materialCount);
-
+      if(!body->geometryInstanceOf) {
+        s2_material_free(body->materials, body->materialCount);
+      }
       free(body->centerOfMassWRTOrigin);
       free(body->centerOfMassWRTReference);
-
       s2_frame_t* frameHead = body->frameHead;
       while(frameHead) {
         s2_frame_t* nextFrame = frameHead->next;
@@ -259,8 +262,7 @@ int s2_body_load(
   body->assembly = assembly;
 
   /* get body definition files */
-  json_t* definitionsObject =
-    json_object_get(bodyObject, "definition");
+  json_t* definitionsObject = json_object_get(bodyObject, "definition");
 
   body->definition = s2_stackstr();
 
@@ -273,17 +275,18 @@ int s2_body_load(
   } else if(json_is_array(definitionsObject)) {
     json_t* definitionObject;
     size_t i;
-    json_array_foreach(
-      definitionsObject, i, definitionObject) {
-
-      s2_stackstr_append(
-        body->definition,
-        json_string_value(definitionObject));
+    json_array_foreach(definitionsObject, i, definitionObject) {
+      s2_stackstr_append(body->definition, json_string_value(definitionObject));
     }
   }
 
-  json_t* framesObject =
-    json_object_get(bodyObject, "frames");
+  // printf("body: ");
+  // s2_stackstr_print(stdout, body->name);
+  // printf("definition: ");
+  // s2_stackstr_print(stdout, body->definition);
+
+
+  json_t* framesObject = json_object_get(bodyObject, "frames");
 
   if(!json_is_null(framesObject)) {
     json_t* frameObject;
@@ -295,14 +298,11 @@ int s2_body_load(
       frameObject) {
 
       s2_frame_load(body, frameObject);
-
     }
   }
 
   /* get mass */
-  body->inertia->m =
-    json_number_value(
-      json_object_get(bodyObject, "mass"));
+  body->inertia->m = json_number_value(json_object_get(bodyObject, "mass"));
 
   /* get body center of mass */
   for(int i = 0; i < 3; i++) {
@@ -348,324 +348,484 @@ int s2_body_load(
   int exitcode = s2_body_loadGeometry(context, body);
 
   const char* collisionGeometry = NULL;
-  collisionGeometry = 
+  collisionGeometry =
     json_string_value(json_object_get(bodyObject, "collision_geometry"));
+
+  s2_collisionobject_enum_t collisionObjectType = S2_COLLISIONOBJECT_CONVEXHULL;
   if(collisionGeometry) {
-    if(!strcmp(collisionGeometry, "sphere")) {
-      s2_collisionobject_sphere(body);
-    } else if(!strcmp(collisionGeometry, "ellipsoid")) {
-      s2_collisionobject_ellipsoid(body);
-    } else {
-      s2_collisionobject_convexhull(body);
-    }
-  } else {
-    s2_collisionobject_convexhull(body);
+    collisionObjectType = s2_collisionobject_enumFromChar(collisionGeometry);
   }
+
+  s2_body_loadCollisionGeometry(context, body, collisionObjectType);
   return exitcode;
+}
+
+
+s2_body_t* s2_geometryInUse(
+  s2_assembly_t* assembly,
+  s2_body_t* body,
+  const char* filename) {
+
+  s2_body_t* bodyHead = assembly->bodyHead;
+  while(bodyHead) {
+
+    // printf("name in geometryInUse: ");
+    // s2_stackstr_print(stdout, bodyHead->name);
+    // printf("definition in geometryInUse: ");
+    // s2_stackstr_print(stdout, bodyHead->definition);
+    if(body != bodyHead) {
+      if(s2_stackstr_in(bodyHead->definition, filename)) {
+        // printf("returning bodyHead");
+        // s2_stackstr_print(stdout, bodyHead->name);
+        return bodyHead;
+      }
+    }
+    bodyHead = bodyHead->next;
+  }
+  s2_assembly_t* subassemblyHead = assembly->subAssemblyHead;
+  while(subassemblyHead) {
+    s2_body_t* instance = s2_geometryInUse(subassemblyHead, body, filename);
+    if(instance) {
+      // printf("returning instance");
+      // s2_stackstr_print(stdout, instance->name);
+      return instance;
+    }
+    subassemblyHead = subassemblyHead->next;
+  }
+  return NULL;
+}
+
+
+s2_body_t* s2_collisionGeometryInUse(
+  s2_assembly_t* assembly,
+  s2_body_t* body,
+  const char* filename,
+  s2_collisionobject_enum_t collisionObjectType) {
+
+  s2_body_t* bodyHead = assembly->bodyHead;
+  while(bodyHead) {
+    if(body != bodyHead) {
+      if(
+        bodyHead->collisionObjects &&
+        s2_stackstr_in(bodyHead->definition, filename) &&
+        bodyHead->collisionObjects[0].type == collisionObjectType) {
+
+        return bodyHead;
+      }
+    }
+    bodyHead = bodyHead->next;
+  }
+  s2_assembly_t* subassemblyHead = assembly->subAssemblyHead;
+  while(subassemblyHead) {
+    s2_body_t* instance = s2_collisionGeometryInUse(
+      subassemblyHead, body, filename, collisionObjectType);
+    if(instance) {
+      return instance;
+    }
+    subassemblyHead = subassemblyHead->next;
+  }
+  return NULL;
+}
+
+
+
+/*! @brief get path to obj file definition
+*/
+const char* s2_getGeometryFileName(s2_body_t* body) {
+  s2_stackstrnode_t* definitionHead = body->definition->head;
+  while(definitionHead) {
+    if(!strcmp(s2_getFileExtension(definitionHead->value), "obj")) {
+      return definitionHead->value;
+    }
+    definitionHead = definitionHead->next;
+  }
+  return NULL;
+}
+
+
+/*!
+@brief load collision geometry associated with body
+*/
+int s2_body_loadCollisionGeometry(
+  s2_context_t* context,
+  s2_body_t* body,
+  s2_collisionobject_enum_t collisionObjectType) {
+
+  /* if the user has specified not to use a collision object, exit and
+  print warning to user */
+  if(collisionObjectType == S2_COLLISIONOBJECT_NONE) {
+    printf("no collision object specified for body:");
+    s2_stackstr_print(stdout, body->name);
+    return -1;
+  }
+
+  /* if the filename is not specified, the body has no geometry specified */
+  const char* fileName = s2_getGeometryFileName(body);
+  if(fileName == NULL) {
+    return -2;
+  }
+
+  /* check if collision geometry was used in specification of another body
+  Both the filename and collisionobject type must match */
+
+  printf("filename: %s\n", fileName);
+  // s2_body_t* body2 = body;
+  body->collisionGeometryInstanceOf = s2_collisionGeometryInUse(
+      context->assembly, body, fileName, collisionObjectType);
+  if(body->collisionGeometryInstanceOf) {
+    printf("collision geometry already loaded on body: ");
+    s2_stackstr_print(stdout, body->name);
+  }
+  switch(collisionObjectType) {
+    case S2_COLLISIONOBJECT_CONVEXHULL: {
+      s2_collisionobject_convexhull(context, body);
+    } break;
+    case S2_COLLISIONOBJECT_ELLIPSOID: {
+      s2_collisionobject_ellipsoid(context, body);
+    } break;
+    case S2_COLLISIONOBJECT_SPHERE: {
+      s2_collisionobject_sphere(context, body);
+    } break;
+    case S2_COLLISIONOBJECT_OBB: {
+      printf("object aligned bounding boxes not handled yet\n");
+      return -1;
+    } break;
+    case S2_COLLISIONOBJECT_AABB: {
+      printf("axis aligned bounding boxes not handled yet\n");
+      return -1;
+    } break;
+    default:
+      break;
+  }
+  return 0;
 }
 
 
 /*! @brief Loads geometry specified in Body properties from an external file
 using ASSIMP (open asset importer)
 
-@param context a Context datastructure
-@param body a Body datastructure
+@param context a context datastructure
+@param body a body datastructure
 */
 int s2_body_loadGeometry(
   s2_context_t* context,
   s2_body_t* body) {
 
-  const char* fileName = NULL;
+  const char* fileName = s2_getGeometryFileName(body);
+  printf("filename: %s\n", fileName);
 
-  s2_stackstrnode_t* definitionHead = body->definition->head;
-  while(definitionHead) {
-    if(!strcmp(s2_getFileExtension(definitionHead->value), "obj")) {
-      fileName = definitionHead->value;
-      break;
-    }
-    definitionHead = definitionHead->next;
-  }
-
-  /* if the filename is not specified, the body has no geometry specified
-  */
+  /* if the filename is not specified, the body has no geometry specified */
   if(fileName == NULL) {
     return -2;
   }
 
-  /*
-    check if file exists in all user specified include directories
-  */
-  char* fullPathFileName = NULL;
-  s2_stackstrnode_t* includeDirectoryHead =
-    context->modelParameters.includeDirectory->head;
-  while(includeDirectoryHead) {
-    if(fullPathFileName) {
-      free(fullPathFileName);
-    }
-    asprintf(
-      &fullPathFileName,
-      "%s%s",
-      includeDirectoryHead->value,
-      fileName);
-    if(access(fullPathFileName, F_OK) != -1) {
-      break;
-    }
-    includeDirectoryHead = includeDirectoryHead->next;
-  }
-  // printf("fullPathFileName: %s\n", fullPathFileName);
+  printf("body before loading: ");
+  s2_stackstr_print(stdout, body->name);
+  printf("body definition before loading: ");
+  s2_stackstr_print(stdout, body->definition);
 
-  const struct aiScene* scene =
-    aiImportFile(
-      fullPathFileName,
-      aiProcess_CalcTangentSpace |
-      aiProcess_Triangulate |
-      aiProcess_SortByPType);
+  /* check if file was used in specification of another body */
+  body->geometryInstanceOf =
+    s2_geometryInUse(context->assembly, body, fileName);
 
-  /*
-    If loading was not successful, report import error and exit
-  */
-  if(!scene) {
-    printf("%s\n", aiGetErrorString());
-    printf("error, exiting.\n");
-    return -1;
+  printf("body after loading: ");
+  s2_stackstr_print(stdout, body->name);
+  printf("body definition after loading: ");
+  s2_stackstr_print(stdout, body->definition);
+
+  printf("geometry instance of: ");
+  if(body->geometryInstanceOf) {
+    s2_stackstr_print(stdout, body->geometryInstanceOf->name);
+    if(body == body->geometryInstanceOf) {
+      printf("body and instance are the same body equal!\n");
+    }
+
+    printf("body1 definition: ");
+    s2_stackstr_print(stdout, body->definition);
+    printf("body2 definition: ");
+    s2_stackstr_print(stdout, body->geometryInstanceOf->definition);
+  } else {
+    printf("null\n");
   }
 
   /*
     Access the file contents, load in to body data structure
   */
   // printf("number of meshes: %d\n", scene->mNumMeshes);
-  body->materialCount = scene->mNumMeshes;
-  body->materials = s2_materials(body->materialCount);
+  if(body->geometryInstanceOf) {
+    body->materialIndex = body->geometryInstanceOf->materialIndex;
+    body->materialCount = body->geometryInstanceOf->materialCount;
+    body->materials = body->geometryInstanceOf->materials;
+  } else {
+    /* check if file exists in all user specified include directories */
+    char* fullPathFileName = NULL;
+    s2_stackstrnode_t* includeDirectoryHead =
+      context->modelParameters.includeDirectory->head;
+    while(includeDirectoryHead) {
+      if(fullPathFileName) {
+        free(fullPathFileName);
+      }
+      asprintf(
+        &fullPathFileName,
+        "%s%s",
+        includeDirectoryHead->value,
+        fileName);
+      if(access(fullPathFileName, F_OK) != -1) {
+        break;
+      }
+      includeDirectoryHead = includeDirectoryHead->next;
+    }
+    // printf("fullPathFileName: %s\n", fullPathFileName);
 
-  uint totalVertexCount = 0;
-  for(uint i = 0; i < scene->mNumMeshes; i++) {
-    totalVertexCount += scene->mMeshes[i]->mNumVertices;
-  }
+    const struct aiScene* scene =
+      aiImportFile(
+        fullPathFileName,
+        aiProcess_CalcTangentSpace |
+        aiProcess_Triangulate |
+        aiProcess_SortByPType);
 
-  GLfloat* vertices = malloc(3 * totalVertexCount * sizeof(GLfloat));
+    /* If loading was not successful, report import error and exit */
+    if(!scene) {
+      printf("%s\n", aiGetErrorString());
+      printf("error, exiting.\n");
+      return -1;
+    }
+    body->materialCount = scene->mNumMeshes;
+    body->materialIndex = context->materialCount;
 
-  totalVertexCount = 0;
-  for(uint i = 0; i < scene->mNumMeshes; i++) {
-    /* load vertices */
-    body->materials[i].vertices = &vertices[totalVertexCount * 3];
-    body->materials[i].vertexCount = scene->mMeshes[i]->mNumVertices;
-    totalVertexCount += body->materials[i].vertexCount;
-    for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
-      body->materials[i].vertices[3 * j + 0] =
-        scene->mMeshes[i]->mVertices[j].x;
-      body->materials[i].vertices[3 * j + 1] =
-        scene->mMeshes[i]->mVertices[j].y;
-      body->materials[i].vertices[3 * j + 2] =
-        scene->mMeshes[i]->mVertices[j].z;
+    if(!context->materials) {
+      context->materials = malloc(body->materialCount * sizeof(s2_material_t));
+    } else {
+      printf("reallocing materials\n");
+      context->materials =
+        realloc(
+          context->materials,
+          (context->materialCount + body->materialCount) * sizeof(s2_material_t));
+    }
+    for(
+      int i = context->materialCount;
+      i < context->materialCount + body->materialCount;
+      i++) {
+      s2_material_init(&context->materials[i]);
+      context->materials[i].index = i;
+    }
+    context->materialCount += body->materialCount;
+
+    uint totalVertexCount = 0;
+    uint totalFaceCount = 0;
+    for(uint i = 0; i < scene->mNumMeshes; i++) {
+      totalVertexCount += scene->mMeshes[i]->mNumVertices;
+      totalFaceCount += scene->mMeshes[i]->mNumFaces;
     }
 
-    /* load vertex normals */
-    body->materials[i].vertexNormals =
-      malloc(3 * body->materials[i].vertexCount * sizeof(GLfloat));
-    for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
-      body->materials[i].vertexNormals[3 * j + 0] =
-        scene->mMeshes[i]->mNormals[j].x;
-      body->materials[i].vertexNormals[3 * j + 1] =
-        scene->mMeshes[i]->mNormals[j].y;
-      body->materials[i].vertexNormals[3 * j + 2] =
-        scene->mMeshes[i]->mNormals[j].z;
+    GLfloat* vertices = malloc(3 * totalVertexCount * sizeof(GLfloat));
+    GLfloat* vertexNormals = malloc(3 * totalVertexCount * sizeof(GLfloat));
+    GLuint* faces = malloc(3 * totalFaceCount * sizeof(GLuint));
 
-      // printf("  vn: ");
-      // for(int k = 0; k < 3; k++) {
-      //   printf("%f ", body->materials[i].vertexNormals[3 * j + k]);
+    totalVertexCount = 0;
+    totalFaceCount = 0;
+    for(uint i = 0; i < scene->mNumMeshes; i++) {
+
+      s2_material_t* material = &context->materials[body->materialIndex + i];
+
+      /* load vertices */
+      material->vertices = &vertices[totalVertexCount * 3];
+      material->vertexCount = scene->mMeshes[i]->mNumVertices;
+
+      for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
+        material->vertices[3 * j + 0] = scene->mMeshes[i]->mVertices[j].x;
+        material->vertices[3 * j + 1] = scene->mMeshes[i]->mVertices[j].y;
+        material->vertices[3 * j + 2] = scene->mMeshes[i]->mVertices[j].z;
+      }
+
+      /* load vertex normals */
+      material->vertexNormals = &vertexNormals[totalVertexCount * 3];
+      for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
+        material->vertexNormals[3 * j + 0] = scene->mMeshes[i]->mNormals[j].x;
+        material->vertexNormals[3 * j + 1] = scene->mMeshes[i]->mNormals[j].y;
+        material->vertexNormals[3 * j + 2] = scene->mMeshes[i]->mNormals[j].z;
+      }
+      totalVertexCount += material->vertexCount;
+
+      /* load faces */
+      material->faceCount = scene->mMeshes[i]->mNumFaces;
+      material->faces = &faces[totalFaceCount * 3];
+      for(int j = 0; j < material->faceCount; j++) {
+        material->faces[j * 3 + 0] = scene->mMeshes[i]->mFaces[j].mIndices[0];
+        material->faces[j * 3 + 1] = scene->mMeshes[i]->mFaces[j].mIndices[1];
+        material->faces[j * 3 + 2] = scene->mMeshes[i]->mFaces[j].mIndices[2];
+      }
+      totalFaceCount += material->faceCount;
+
+      /* load color properties */
+      int ret1;
+      struct aiMaterial* mtl;
+      mtl = scene->mMaterials[scene->mMeshes[i]->mMaterialIndex];
+
+      unsigned int max = 1;
+      float opacity_f = 1.f;
+      ret1 = aiGetMaterialFloatArray(
+               mtl,
+               AI_MATKEY_OPACITY,
+               &opacity_f,
+               0);
+      if(ret1 == AI_SUCCESS) {
+        printf("opacity: %f\n", opacity_f);
+      }
+
+      struct aiColor4D diffuse;
+      ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
+      if(ret1 == AI_SUCCESS) {
+        printf("diffuse: %f %f %f %f\n", diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+        material->GLuniforms.Kd[0] = diffuse.r;
+        material->GLuniforms.Kd[1] = diffuse.g;
+        material->GLuniforms.Kd[2] = diffuse.b;
+        material->GLuniforms.Kd[3] = opacity_f;
+      } else {
+        material->GLuniforms.Kd[0] = 0.6;
+        material->GLuniforms.Kd[1] = 0.6;
+        material->GLuniforms.Kd[2] = 0.6;
+        material->GLuniforms.Kd[3] = opacity_f;
+      }
+
+      struct aiColor4D ambient;
+      ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient);
+      if(ret1 == AI_SUCCESS) {
+        material->GLuniforms.Ka[0] = ambient.r;
+        material->GLuniforms.Ka[1] = ambient.g;
+        material->GLuniforms.Ka[2] = ambient.b;
+        material->GLuniforms.Ka[3] = opacity_f;
+      } else {
+        material->GLuniforms.Ka[0] = 0.6;
+        material->GLuniforms.Ka[1] = 0.6;
+        material->GLuniforms.Ka[2] = 0.6;
+        material->GLuniforms.Ka[3] = opacity_f;
+      }
+
+      struct aiColor4D specular;
+      ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular);
+      if(ret1 == AI_SUCCESS) {
+        // printf("specular: %f %f %f %f\n", specular.r, specular.g, specular.b, specular.a);
+        material->GLuniforms.Ks[0] = specular.r;
+        material->GLuniforms.Ks[1] = specular.g;
+        material->GLuniforms.Ks[2] = specular.b;
+        material->GLuniforms.Ks[3] = opacity_f;
+      } else {
+        material->GLuniforms.Ks[0] = 0.6;
+        material->GLuniforms.Ks[1] = 0.6;
+        material->GLuniforms.Ks[2] = 0.6;
+        material->GLuniforms.Ks[3] = opacity_f;
+      }
+
+      struct aiColor4D emissive;
+      ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emissive);
+      if(ret1 == AI_SUCCESS) {
+        material->GLuniforms.Ke[0] = emissive.r;
+        material->GLuniforms.Ke[1] = emissive.g;
+        material->GLuniforms.Ke[2] = emissive.b;
+        material->GLuniforms.Ke[3] = emissive.a;
+      } else {
+        material->GLuniforms.Ke[0] = 0.0;
+        material->GLuniforms.Ke[1] = 0.0;
+        material->GLuniforms.Ke[2] = 0.0;
+        material->GLuniforms.Ke[3] = opacity_f;
+      }
+
+      /* this set of parameters is currently not used / loaded */
+      float shininess = 0.f;
+      ret1 = aiGetMaterialFloatArray(
+               mtl,
+               AI_MATKEY_SHININESS,
+               &shininess,
+               &max);
+      // if(ret1 == AI_SUCCESS)
+      //   printf("shininess: %f\n", shininess);
+
+      float shininess_strength = 0.f;
+      ret1 = aiGetMaterialFloatArray(
+               mtl,
+               AI_MATKEY_SHININESS_STRENGTH,
+               &shininess_strength,
+               &max);
+      // if(ret1 == AI_SUCCESS)
+      //   printf("shininess_strength: %f\n", shininess_strength);
+
+      float reflectivity = 0.f;
+      ret1 = aiGetMaterialFloatArray(
+               mtl,
+               AI_MATKEY_REFLECTIVITY,
+               &reflectivity,
+               &max);
+      // if(ret1 == AI_SUCCESS)
+      //   printf("reflectivity: %f\n", reflectivity);
+
+      float refracti = 0.f;
+      ret1 = aiGetMaterialFloatArray(
+               mtl,
+               AI_MATKEY_REFRACTI,
+               &refracti,
+               &max);
+      // if(ret1 == AI_SUCCESS)
+      //   printf("refracti: %f\n", refracti);
+
+      struct aiColor4D reflective;
+      reflective.r = 0.f;
+      reflective.g = 0.f;
+      reflective.b = 0.f;
+      reflective.a = 0.f;
+      ret1 = aiGetMaterialColor(
+               mtl,
+               AI_MATKEY_COLOR_REFLECTIVE,
+               &reflective);
+      // if(ret1 == AI_SUCCESS)
+      //   printf(
+      //     "reflective: %f %f %f %f\n",
+      //     reflective.r,
+      //     reflective.g,
+      //     reflective.b,
+      //     reflective.a);
+
+      float opacity = 0.f;
+      ret1 = aiGetMaterialFloatArray(
+               mtl,
+               AI_MATKEY_COLOR_TRANSPARENT,
+               &opacity,
+               &max);
+      // if(ret1 == AI_SUCCESS)
+      //   printf("opacity: %f", opacity);
+
+      /*! @todo figure out where specular highlight term is stored in assimp */
+      material->GLuniforms.Ns = 32;
+
+      /*! @TODO add loading of tangents and bitangents to support textures */
+
+      /* load tangents */
+      // for(int j = 0; j < scene->mMeshes[i]->mNumFaces; j++) {
+      //   printf(
+      //     "[%d] %f, %f, %f\n",
+      //     j,
+      //     scene->mMeshes[i]->mTangents[j].x,
+      //     scene->mMeshes[i]->mTangents[j].y,
+      //     scene->mMeshes[i]->mTangents[j].z);
       // }
-      // printf("\n");
 
+      /* load bitangents */
+      // for(int j = 0; j < scene->mMeshes[i]->mNumFaces; j++) {
+      //   printf(
+      //     "[%d] %f, %f, %f\n",
+      //     j,
+      //     scene->mMeshes[i]->mBitangents[j].x,
+      //     scene->mMeshes[i]->mBitangents[j].y,
+      //     scene->mMeshes[i]->mBitangents[j].z);
+      // }
+
+      /* load material name */
+      asprintf(&(material->name), "%d", i);
     }
 
-    /* load faces */
-    // printf("\nnumber of faces: %d\n", scene->mMeshes[i]->mNumFaces);
-    body->materials[i].faceCount = scene->mMeshes[i]->mNumFaces;
-    body->materials[i].faces = malloc(
-                                 3 * body->materials[i].faceCount * sizeof(GLuint));
-    for(int j = 0; j < body->materials[i].faceCount; j++) {
-      body->materials[i].faces[j * 3 + 0] = scene->mMeshes[i]->mFaces[j].mIndices[0];
-      body->materials[i].faces[j * 3 + 1] = scene->mMeshes[i]->mFaces[j].mIndices[1];
-      body->materials[i].faces[j * 3 + 2] = scene->mMeshes[i]->mFaces[j].mIndices[2];
-    }
-
-    /* load color properties */
-    int ret1;
-    struct aiMaterial* mtl;
-    mtl = scene->mMaterials[scene->mMeshes[i]->mMaterialIndex];
-
-    unsigned int max = 1;
-    float opacity_f = 1.f;
-    ret1 = aiGetMaterialFloatArray(
-             mtl,
-             AI_MATKEY_OPACITY,
-             &opacity_f,
-             0);
-    if(ret1 == AI_SUCCESS) {
-      printf("opacity: %f\n", opacity_f);
-    }
-
-    struct aiColor4D diffuse;
-    ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
-    if(ret1 == AI_SUCCESS) {
-      printf("diffuse: %f %f %f %f\n", diffuse.r, diffuse.g, diffuse.b, diffuse.a);
-      body->materials[i].GLuniforms.Kd[0] = diffuse.r;
-      body->materials[i].GLuniforms.Kd[1] = diffuse.g;
-      body->materials[i].GLuniforms.Kd[2] = diffuse.b;
-      body->materials[i].GLuniforms.Kd[3] = opacity_f;
-    } else {
-      body->materials[i].GLuniforms.Kd[0] = 0.6;
-      body->materials[i].GLuniforms.Kd[1] = 0.6;
-      body->materials[i].GLuniforms.Kd[2] = 0.6;
-      body->materials[i].GLuniforms.Kd[3] = opacity_f;
-    }
-
-    struct aiColor4D ambient;
-    ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient);
-    if(ret1 == AI_SUCCESS) {
-      // printf("ambient: %f %f %f %f\n", ambient.r, ambient.g, ambient.b, ambient.a);
-      body->materials[i].GLuniforms.Ka[0] = ambient.r;
-      body->materials[i].GLuniforms.Ka[1] = ambient.g;
-      body->materials[i].GLuniforms.Ka[2] = ambient.b;
-      body->materials[i].GLuniforms.Ka[3] = opacity_f;
-    } else {
-      body->materials[i].GLuniforms.Ka[0] = 0.6;
-      body->materials[i].GLuniforms.Ka[1] = 0.6;
-      body->materials[i].GLuniforms.Ka[2] = 0.6;
-      body->materials[i].GLuniforms.Ka[3] = opacity_f;
-    }
-
-    struct aiColor4D specular;
-    ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular);
-    if(ret1 == AI_SUCCESS) {
-      // printf("specular: %f %f %f %f\n", specular.r, specular.g, specular.b, specular.a);
-      body->materials[i].GLuniforms.Ks[0] = specular.r;
-      body->materials[i].GLuniforms.Ks[1] = specular.g;
-      body->materials[i].GLuniforms.Ks[2] = specular.b;
-      body->materials[i].GLuniforms.Ks[3] = opacity_f;
-    } else {
-      body->materials[i].GLuniforms.Ks[0] = 0.6;
-      body->materials[i].GLuniforms.Ks[1] = 0.6;
-      body->materials[i].GLuniforms.Ks[2] = 0.6;
-      body->materials[i].GLuniforms.Ks[3] = opacity_f;
-    }
-
-    struct aiColor4D emissive;
-    ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emissive);
-    if(ret1 == AI_SUCCESS) {
-      // printf("emissive: %f %f %f %f\n", emissive.r, emissive.g, emissive.b, emissive.a);
-      body->materials[i].GLuniforms.Ke[0] = emissive.r;
-      body->materials[i].GLuniforms.Ke[1] = emissive.g;
-      body->materials[i].GLuniforms.Ke[2] = emissive.b;
-      body->materials[i].GLuniforms.Ke[3] = emissive.a;
-    } else {
-      body->materials[i].GLuniforms.Ke[0] = 0.0;
-      body->materials[i].GLuniforms.Ke[1] = 0.0;
-      body->materials[i].GLuniforms.Ke[2] = 0.0;
-      body->materials[i].GLuniforms.Ke[3] = opacity_f;
-    }
-
-    /* this set of parameters is currently not used / loaded */
-    float shininess = 0.f;
-    ret1 = aiGetMaterialFloatArray(
-             mtl,
-             AI_MATKEY_SHININESS,
-             &shininess,
-             &max);
-    // if(ret1 == AI_SUCCESS)
-    //   printf("shininess: %f\n", shininess);
-
-    float shininess_strength = 0.f;
-    ret1 = aiGetMaterialFloatArray(
-             mtl,
-             AI_MATKEY_SHININESS_STRENGTH,
-             &shininess_strength,
-             &max);
-    // if(ret1 == AI_SUCCESS)
-    //   printf("shininess_strength: %f\n", shininess_strength);
-
-    float reflectivity = 0.f;
-    ret1 = aiGetMaterialFloatArray(
-             mtl,
-             AI_MATKEY_REFLECTIVITY,
-             &reflectivity,
-             &max);
-    // if(ret1 == AI_SUCCESS)
-    //   printf("reflectivity: %f\n", reflectivity);
-
-    float refracti = 0.f;
-    ret1 = aiGetMaterialFloatArray(
-             mtl,
-             AI_MATKEY_REFRACTI,
-             &refracti,
-             &max);
-    // if(ret1 == AI_SUCCESS)
-    //   printf("refracti: %f\n", refracti);
-
-
-
-    struct aiColor4D reflective;
-    reflective.r = 0.f;
-    reflective.g = 0.f;
-    reflective.b = 0.f;
-    reflective.a = 0.f;
-    ret1 = aiGetMaterialColor(
-             mtl,
-             AI_MATKEY_COLOR_REFLECTIVE,
-             &reflective);
-    // if(ret1 == AI_SUCCESS)
-    //   printf(
-    //     "reflective: %f %f %f %f\n",
-    //     reflective.r,
-    //     reflective.g,
-    //     reflective.b,
-    //     reflective.a);
-
-    float opacity = 0.f;
-    ret1 = aiGetMaterialFloatArray(
-             mtl,
-             AI_MATKEY_COLOR_TRANSPARENT,
-             &opacity,
-             &max);
-    // if(ret1 == AI_SUCCESS)
-    //   printf("opacity: %f", opacity);
-
-    /*!
-      @todo figure out where specular highlight term is stored in assimp
-    */
-    body->materials[i].GLuniforms.Ns = 32;
-
-    /*
-      load tangents
-    */
-    // for(int j = 0; j < scene->mMeshes[i]->mNumFaces; j++) {
-    //   printf(
-    //     "[%d] %f, %f, %f\n",
-    //     j,
-    //     scene->mMeshes[i]->mTangents[j].x,
-    //     scene->mMeshes[i]->mTangents[j].y,
-    //     scene->mMeshes[i]->mTangents[j].z);
-    // }
-
-    /*
-      load bitangents;
-    */
-    // for(int j = 0; j < scene->mMeshes[i]->mNumFaces; j++) {
-    //   printf(
-    //     "[%d] %f, %f, %f\n",
-    //     j,
-    //     scene->mMeshes[i]->mBitangents[j].x,
-    //     scene->mMeshes[i]->mBitangents[j].y,
-    //     scene->mMeshes[i]->mBitangents[j].z);
-    // }
-
-    /* load material name */
-    asprintf(&(body->materials[i].name), "%d", i);
+    /* Free resources associated with import */
+    aiReleaseImport(scene);
+    free(fullPathFileName);
   }
-
-  /* Free resources associated with import */
-  aiReleaseImport(scene);
-  free(fullPathFileName);
-
   return 0;
 }

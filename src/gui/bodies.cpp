@@ -19,22 +19,22 @@ void s2_Bodies::setDrawStyle(s2_shading_enum_t shadingType) {
   switch(shadingType) {
     case S2_SHADING_WIREFRAME: {
       m_shadingType = S2_SHADING_WIREFRAME;
+      break;
     }
-    break;
     case S2_SHADING_FLAT: {
       m_shadingType = S2_SHADING_FLAT;
+      break;
     }
     default: {
       m_shadingType = S2_SHADING_PHONG;
+      break;
     }
-    break;
   }
 }
 
 
 void s2_Bodies::loadGeometryPrimitives() {
 
-  printf("loading geometry primitives\n");
   QFile sphere_data(":/geometry/sphere.obj");
   if(!sphere_data.open(QIODevice::ReadOnly | QIODevice::Text)) {
     qDebug() << "failed to open qresource file :/geometry/sphere.obj";
@@ -62,34 +62,33 @@ void s2_Bodies::loadGeometryPrimitives() {
   aiMesh* mesh = scene->mMeshes[0];
 
   /* load vertices */
-  m_sphere.vertices =
+  m_sphereBufferObject.vertices =
     (GLfloat*)malloc(3 * mesh->mNumVertices * sizeof(GLfloat));
-  m_sphere.vertexCount = mesh->mNumVertices;
+  m_sphereBufferObject.vertexCount = mesh->mNumVertices;
   for(uint j = 0; j < mesh->mNumVertices; j++) {
-    m_sphere.vertices[3 * j + 0] = mesh->mVertices[j].x;
-    m_sphere.vertices[3 * j + 1] = mesh->mVertices[j].y;
-    m_sphere.vertices[3 * j + 2] = mesh->mVertices[j].z;
+    m_sphereBufferObject.vertices[3 * j + 0] = mesh->mVertices[j].x;
+    m_sphereBufferObject.vertices[3 * j + 1] = mesh->mVertices[j].y;
+    m_sphereBufferObject.vertices[3 * j + 2] = mesh->mVertices[j].z;
   }
 
   /* load vertex normals */
-  m_sphere.vertexNormals =
+  m_sphereBufferObject.vertexNormals =
     (GLfloat*)malloc(3 * mesh->mNumVertices * sizeof(GLfloat));
   for(uint j = 0; j < mesh->mNumVertices; j++) {
-    m_sphere.vertexNormals[3 * j + 0] = mesh->mNormals[j].x;
-    m_sphere.vertexNormals[3 * j + 1] = mesh->mNormals[j].y;
-    m_sphere.vertexNormals[3 * j + 2] = mesh->mNormals[j].z;
+    m_sphereBufferObject.vertexNormals[3 * j + 0] = mesh->mNormals[j].x;
+    m_sphereBufferObject.vertexNormals[3 * j + 1] = mesh->mNormals[j].y;
+    m_sphereBufferObject.vertexNormals[3 * j + 2] = mesh->mNormals[j].z;
   }
 
   /* load faces */
-  m_sphere.faceCount = mesh->mNumFaces;
-  m_sphere.faces =
+  m_sphereBufferObject.faceCount = mesh->mNumFaces;
+  m_sphereBufferObject.faces =
     (GLuint*)malloc(3 * mesh->mNumFaces * sizeof(GLuint));
   for(int j = 0; j < mesh->mNumFaces; j++) {
-    m_sphere.faces[j * 3 + 0] = mesh->mFaces[j].mIndices[0];
-    m_sphere.faces[j * 3 + 1] = mesh->mFaces[j].mIndices[1];
-    m_sphere.faces[j * 3 + 2] = mesh->mFaces[j].mIndices[2];
+    m_sphereBufferObject.faces[j * 3 + 0] = mesh->mFaces[j].mIndices[0];
+    m_sphereBufferObject.faces[j * 3 + 1] = mesh->mFaces[j].mIndices[1];
+    m_sphereBufferObject.faces[j * 3 + 2] = mesh->mFaces[j].mIndices[2];
   }
-
 }
 
 
@@ -151,45 +150,45 @@ void s2_Bodies::initialize() {
 
 void s2_Bodies::initializeSphere() {
   m_programPhong->bind();
-  m_sphere.vao = new QOpenGLVertexArrayObject(m_renderWindow);
-  m_sphere.vao->create();
+  m_sphereBufferObject.vao = new QOpenGLVertexArrayObject(m_renderWindow);
+  m_sphereBufferObject.vao->create();
 
-  m_sphere.vertexBuffer =
+  m_sphereBufferObject.vertexBuffer =
     new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  m_sphere.vertexBuffer->create();
+  m_sphereBufferObject.vertexBuffer->create();
 
-  m_sphere.vertexNormalBuffer =
+  m_sphereBufferObject.vertexNormalBuffer =
     new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  m_sphere.vertexNormalBuffer->create();
+  m_sphereBufferObject.vertexNormalBuffer->create();
 
-  m_sphere.ibo =
+  m_sphereBufferObject.ibo =
     new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-  m_sphere.ibo->create();
+  m_sphereBufferObject.ibo->create();
   checkError("bodies: after create sphere vertex buffers");
 
-  m_sphere.vao->bind();
+  m_sphereBufferObject.vao->bind();
   checkError("bodies: after bind sphere vao");
 
-  m_sphere.vertexBuffer->bind();
-  m_sphere.vertexBuffer->allocate(
-    3 * m_sphere.vertexCount * sizeof(GLfloat));
-  m_sphere.vertexBuffer->write(
+  m_sphereBufferObject.vertexBuffer->bind();
+  m_sphereBufferObject.vertexBuffer->allocate(
+    3 * m_sphereBufferObject.vertexCount * sizeof(GLfloat));
+  m_sphereBufferObject.vertexBuffer->write(
     0,
-    m_sphere.vertices,
-    3 * m_sphere.vertexCount * sizeof(GLfloat));
+    m_sphereBufferObject.vertices,
+    3 * m_sphereBufferObject.vertexCount * sizeof(GLfloat));
 
-  m_sphere.vertexNormalBuffer->bind();
-  m_sphere.vertexNormalBuffer->allocate(
-    3 * m_sphere.vertexCount * sizeof(GLfloat));
-  m_sphere.vertexNormalBuffer->write(
+  m_sphereBufferObject.vertexNormalBuffer->bind();
+  m_sphereBufferObject.vertexNormalBuffer->allocate(
+    3 * m_sphereBufferObject.vertexCount * sizeof(GLfloat));
+  m_sphereBufferObject.vertexNormalBuffer->write(
     0,
-    m_sphere.vertexNormals,
-    3 * m_sphere.vertexCount * sizeof(GLfloat));
+    m_sphereBufferObject.vertexNormals,
+    3 * m_sphereBufferObject.vertexCount * sizeof(GLfloat));
 
-  m_sphere.ibo->bind();
-  m_sphere.ibo->allocate(
-    m_sphere.faces,
-    3 * m_sphere.faceCount * sizeof(GLuint));
+  m_sphereBufferObject.ibo->bind();
+  m_sphereBufferObject.ibo->allocate(
+    m_sphereBufferObject.faces,
+    3 * m_sphereBufferObject.faceCount * sizeof(GLuint));
 
 
   // bufferObjects->vao->bind();
@@ -200,21 +199,21 @@ void s2_Bodies::initializeSphere() {
   // printf("  uniform position: %d\n", uniforms->position);
   // printf("  normal position: %d\n", uniforms->normal);
 
-  m_sphere.vertexBuffer->bind();
+  m_sphereBufferObject.vertexBuffer->bind();
 
   m_programPhong->getProgram()->enableAttributeArray(
     m_programPhong->getPositionAttribute());
   m_programPhong->getProgram()->setAttributeBuffer(
     m_programPhong->getPositionAttribute(), GL_FLOAT, 0, 3);
 
-  m_sphere.vertexNormalBuffer->bind();
+  m_sphereBufferObject.vertexNormalBuffer->bind();
   m_programPhong->getProgram()->enableAttributeArray(
     m_programPhong->getNormalAttribute());
   m_programPhong->getProgram()->setAttributeBuffer(
     m_programPhong->getNormalAttribute(), GL_FLOAT, 0, 3);
 
   m_programPhong->release();
-  m_sphere.initialized = true;
+  m_sphereBufferObject.initialized = true;
 }
 
 
@@ -223,12 +222,14 @@ void s2_Bodies::initializeSphere() {
 */
 void s2_Bodies::loadContext() {
   if(m_renderWindow->getContext()) {
-    if(!m_sphere.initialized) {
+    if(!m_sphereBufferObject.initialized) {
       initializeSphere();
     }
 
     m_context = m_renderWindow->getContext();
     m_context->viewport = s2_camera();
+    initializeMaterials();
+    initializeConvexHulls();
     for(int i = 0; i < m_context->activeBodyCount; i++) {
       s2_body_t* body = m_context->nonVirtualBodyPointers[i];
       initializeBody(body);
@@ -245,12 +246,8 @@ void s2_Bodies::loadContext() {
 void s2_Bodies::initializeBody(
   s2_body_t* body) {
 
-  for(int i = 0; i < body->materialCount; i++) {
-    s2_material_t* material = body->materials + i;
-    // printf("initializing material [%d]\n", i);
-    initializeMaterial(material, body, m_context->d + body->origin->dIndex);
-  }
-  initializeCollisionObject(&body->collisionObjects[0], body);
+  setMaterialTransforms(body);
+  setCollisionObjectTransforms(body);
 }
 
 
@@ -258,84 +255,94 @@ void s2_Bodies::initializeBody(
 @brief initialize opengl properties for a s2_material_t datastructure
 
 */
-void s2_Bodies::initializeMaterial(
-  s2_material_t* material,
-  s2_body_t* body,
-  s2_displacement_t* origin) {
+void s2_Bodies::initializeMaterials() {
 
-  // m_programPhong->bind();
-  material_buffer_t bufferObjects;
-  bufferObjects.body = body;
-  bufferObjects.vao = new QOpenGLVertexArrayObject(m_renderWindow);
-  bufferObjects.vao->create();
+  for(int i = 0; i < m_context->materialCount; i++) {
 
-  bufferObjects.vertexBuffer =
-    new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  bufferObjects.vertexBuffer->create();
+    // m_programPhong->bind();
+    s2_material_t* material = &m_context->materials[i];
+    material_buffer_t* bufferObjects = new material_buffer_t;
+    bufferObjects->vao = new QOpenGLVertexArrayObject(m_renderWindow);
+    bufferObjects->vao->create();
 
-  bufferObjects.vertexNormalBuffer =
-    new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-  bufferObjects.vertexNormalBuffer->create();
+    bufferObjects->vertexBuffer =
+      new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    bufferObjects->vertexBuffer->create();
 
-  bufferObjects.ibo =
-    new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-  bufferObjects.ibo->create();
+    bufferObjects->vertexNormalBuffer =
+      new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    bufferObjects->vertexNormalBuffer->create();
 
-  checkError("bodies: after create vertex buffers");
+    bufferObjects->ibo =
+      new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+    bufferObjects->ibo->create();
 
-  bufferObjects.vao->bind();
-  checkError("bodies: after bind vao");
+    checkError("bodies: after create vertex buffers");
 
-  bufferObjects.vertexBuffer->bind();
-  bufferObjects.vertexBuffer->allocate(
-    3 * material->vertexCount * sizeof(GLfloat));
-  bufferObjects.vertexBuffer->write(
-    0,
-    material->vertices,
-    3 * material->vertexCount * sizeof(GLfloat));
+    bufferObjects->vao->bind();
+    checkError("bodies: after bind vao");
 
-  bufferObjects.vertexNormalBuffer->bind();
-  bufferObjects.vertexNormalBuffer->allocate(
-    3 * material->vertexCount * sizeof(GLfloat));
-  bufferObjects.vertexNormalBuffer->write(
-    0,
-    material->vertexNormals,
-    3 * material->vertexCount * sizeof(GLfloat));
+    bufferObjects->vertexBuffer->bind();
+    bufferObjects->vertexBuffer->allocate(
+      3 * material->vertexCount * sizeof(GLfloat));
+    bufferObjects->vertexBuffer->write(
+      0,
+      material->vertices,
+      3 * material->vertexCount * sizeof(GLfloat));
 
-  bufferObjects.ibo->bind();
-  bufferObjects.ibo->allocate(
-    material->faces,
-    3 * material->faceCount * sizeof(GLuint));
+    bufferObjects->vertexNormalBuffer->bind();
+    bufferObjects->vertexNormalBuffer->allocate(
+      3 * material->vertexCount * sizeof(GLfloat));
+    bufferObjects->vertexNormalBuffer->write(
+      0,
+      material->vertexNormals,
+      3 * material->vertexCount * sizeof(GLfloat));
 
-  bufferObjects.material = material;
-  bufferObjects.transform = origin;
+    bufferObjects->ibo->bind();
+    bufferObjects->ibo->allocate(
+      material->faces,
+      3 * material->faceCount * sizeof(GLuint));
 
-  setMaterialAttributeLocations(
-    m_programPhong->getProgram(),
-    m_programPhong->getPositionAttribute(),
-    m_programPhong->getNormalAttribute(),
-    &bufferObjects);
-  checkError("bodies: after set attribute locations phong");
+    bufferObjects->material = material;
 
-  setMaterialAttributeLocations(
-    m_programFlat->getProgram(),
-    m_programFlat->getPositionAttribute(),
-    m_programFlat->getNormalAttribute(),
-    &bufferObjects);
-  checkError("bodies: after set attribute locations flat");
+    setMaterialAttributeLocations(
+      m_programPhong->getProgram(),
+      m_programPhong->getPositionAttribute(),
+      m_programPhong->getNormalAttribute(),
+      bufferObjects);
+    checkError("bodies: after set attribute locations phong");
 
-  m_materialBufferObjects.append(bufferObjects);
-  checkError("bodies: after append buffer objects");
+    setMaterialAttributeLocations(
+      m_programFlat->getProgram(),
+      m_programFlat->getPositionAttribute(),
+      m_programFlat->getNormalAttribute(),
+      bufferObjects);
+    checkError("bodies: after set attribute locations flat");
 
-  if(bufferObjects.material->GLuniforms.Kd[3] < 1.0) {
-    m_translucentBufferObjects.append(bufferObjects);
-  } else {
-    m_opaqueBufferObjects.append(bufferObjects);
+    m_materialBufferObjects.append(bufferObjects);
+    checkError("bodies: after append buffer objects");
+
+    if(bufferObjects->material->GLuniforms.Kd[3] < 1.0) {
+      m_translucentBufferObjects.append(bufferObjects);
+    } else {
+      m_opaqueBufferObjects.append(bufferObjects);
+    }
+
+    bufferObjects->vao->release();
+    checkError("bodies: after release vao");
   }
+}
 
-  bufferObjects.vao->release();
-  checkError("bodies: after release vao");
 
+void s2_Bodies::setMaterialTransforms(s2_body_t* body) {
+  for(
+    int i = body->materialIndex;
+    i < body->materialIndex + body->materialCount;
+    i++) {
+
+    m_materialBufferObjects[i]->transforms.push_back(body->origin->dAbsolute);
+    m_materialBufferObjects[i]->bodies.push_back(body);
+  }
 }
 
 
@@ -343,70 +350,98 @@ void s2_Bodies::initializeMaterial(
 @brief initialize opengl properties for a s2_convexhull_t datastructure
 
 */
-void s2_Bodies::initializeCollisionObject(
-  s2_collisionobject_t* collisionobject,
-  s2_body_t* body) {
+void s2_Bodies::initializeConvexHulls() {
 
-  if(collisionobject) {
+  qDebug() << "convexhullCount " << m_context->convexhullCount;
+  for(int i = 0; i < m_context->convexhullCount; i++) {
 
-    switch(collisionobject->type) {
-      case S2_COLLISIONOBJECT_CONVEXHULL: {
-        s2_convexhull_t* convexhull =
-          (s2_convexhull_t*)&collisionobject->object;
-        s2_displacement_t* origin = m_context->d + body->origin->dIndex;
-        // m_programPhong->bind();
-        convexhull_buffer_t bufferObjects;
-        bufferObjects.vao = new QOpenGLVertexArrayObject(m_renderWindow);
-        bufferObjects.vao->create();
+    s2_convexhull_t* convexhull = &m_context->convexhulls[i];
 
-        bufferObjects.vertexBuffer =
-          new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-        bufferObjects.vertexBuffer->create();
+    // m_programPhong->bind();
+    convexhull_buffer_t bufferObjects;
+    bufferObjects.vao = new QOpenGLVertexArrayObject(m_renderWindow);
+    bufferObjects.vao->create();
 
-        bufferObjects.indexBuffer =
-          new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-        bufferObjects.indexBuffer->create();
+    bufferObjects.vertexBuffer =
+      new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    bufferObjects.vertexBuffer->create();
 
-        checkError("bodies: after create convexhull vertex buffers");
+    bufferObjects.indexBuffer =
+      new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+    bufferObjects.indexBuffer->create();
 
-        bufferObjects.vao->bind();
-        checkError("bodies: after bind vao");
+    checkError("bodies: after create convexhull vertex buffers");
 
-        bufferObjects.vertexBuffer->bind();
-        bufferObjects.vertexBuffer->allocate(
-          3 * convexhull->vertexCount * sizeof(GLfloat));
-        bufferObjects.vertexBuffer->write(
-          0,
-          convexhull->vertices,
-          3 * convexhull->vertexCount * sizeof(GLfloat));
+    bufferObjects.vao->bind();
+    checkError("bodies: after bind vao");
+
+    qDebug() << "vertex count: " << convexhull->vertexCount;
+
+    bufferObjects.vertexBuffer->bind();
+    bufferObjects.vertexBuffer->allocate(
+      3 * convexhull->vertexCount * sizeof(GLfloat));
+    bufferObjects.vertexBuffer->write(
+      0,
+      convexhull->vertices,
+      3 * convexhull->vertexCount * sizeof(GLfloat));
 
         bufferObjects.indexBuffer->bind();
         bufferObjects.indexBuffer->allocate(
           convexhull->faces,
           3 * convexhull->faceCount * sizeof(GLuint));
 
-        bufferObjects.convexhull = convexhull;
-        bufferObjects.transform = origin;
+    bufferObjects.convexhull = convexhull;
 
-        setConvexHullAttributeLocations(
-          m_programLine->getProgram(),
-          m_programLine->getPositionAttribute(),
-          &bufferObjects);
-        checkError("bodies: after set attribute locations flat");
+    setConvexHullAttributeLocations(
+      m_programLine->getProgram(),
+      m_programLine->getPositionAttribute(),
+      &bufferObjects);
 
-        m_convexhullBufferObjects.append(bufferObjects);
-        checkError("bodies: after append convex hull buffer objects");
+    checkError("bodies: after set attribute locations flat");
 
-        bufferObjects.vao->release();
-        checkError("bodies: after release vao");
+    m_convexhullBufferObjects.append(bufferObjects);
+    checkError("bodies: after append convex hull buffer objects");
 
-      } break;
+    bufferObjects.vao->release();
+    checkError("bodies: after release vao");
+  }
+}
+
+
+/*!
+@brief initialize collision objects
+
+assigns transforms to collision buffer objects
+*/
+void s2_Bodies::setCollisionObjectTransforms(s2_body_t* body) {
+
+  for(int i = 0; i < body->collisionObjectCount; i++) {
+    s2_collisionobject_t* object = &body->collisionObjects[i];
+
+    switch(object->type) {
+      case S2_COLLISIONOBJECT_CONVEXHULL: {
+        m_convexhullBufferObjects[object->index].transforms.push_back(
+          body->origin->dAbsolute);
+        m_convexhullBufferObjects[object->index].bodies.push_back(body);
+        break;
+      }
+      case S2_COLLISIONOBJECT_SPHERE: {
+        m_sphereBufferObject.sphereTransforms.push_back(&object->dAbsolute);
+        m_sphereBufferObject.sphereBodies.push_back(body);
+        break;
+      }
+      case S2_COLLISIONOBJECT_ELLIPSOID: {
+        m_sphereBufferObject.ellipsoidTransforms.push_back(&object->dAbsolute);
+        m_sphereBufferObject.ellipsoidBodies.push_back(body);
+        break;
+      }
       default: {
-
-      } break;
+        break;
+      }
     }
   }
 }
+
 
 
 /*!
@@ -427,25 +462,43 @@ void s2_Bodies::draw() {
       m_programNormal->bind();
       checkError("bodies: after bind normal program");
       for(int i = 0; i < m_materialBufferObjects.size(); i++) {
-        if(m_materialBufferObjects.at(i).body->drawEnabled) {
-          m_materialBufferObjects.at(i).vao->bind();
+
+        bool drawAnyEnabled = false;
+        for(int j = 0; j < m_materialBufferObjects.at(i)->bodies.size(); j++) {
+          if(m_materialBufferObjects.at(i)->bodies.at(j)->drawEnabled) {
+            drawAnyEnabled = true;
+            break;
+          }
+        }
+
+        if(drawAnyEnabled) {
+          m_materialBufferObjects.at(i)->vao->bind();
           checkError("bodies: after bind vao normal");
 
-          m_programNormal->setTransform(m_materialBufferObjects.at(i).transform);
           m_programNormal->setScale(m_normalScale);
           checkError("bodies: after set transform normal shader");
 
           m_programNormal->setColor(
             m_normalColor[0], m_normalColor[1], m_normalColor[2]);
 
-          glDrawElements(
-            GL_TRIANGLES,
-            3 * m_materialBufferObjects.at(i).material->faceCount,
-            GL_UNSIGNED_INT,
-            0);
-          checkError("bodies: after draw elements normal");
+          for(
+            int j = 0;
+            j < m_materialBufferObjects.at(i)->transforms.size();
+            j++) {
 
-          m_materialBufferObjects.at(i).vao->release();
+            if(m_materialBufferObjects.at(i)->bodies.at(j)->drawEnabled) {
+              m_programNormal->setTransform(
+                m_materialBufferObjects.at(i)->transforms.at(j));
+              glDrawElements(
+                GL_TRIANGLES,
+                3 * m_materialBufferObjects.at(i)->material->faceCount,
+                GL_UNSIGNED_INT,
+                0);
+              checkError("bodies: after draw elements normal");
+            }
+          }
+
+          m_materialBufferObjects.at(i)->vao->release();
           checkError("bodies: after vao release normal");
         }
       }
@@ -472,27 +525,43 @@ void s2_Bodies::draw() {
 
         /* draw opaque geometry */
         for(int i = 0; i < m_opaqueBufferObjects.size(); i++) {
+          bool anyDrawEnabled = false;
+          for(int j = 0; j < m_opaqueBufferObjects[i]->bodies.size(); j++) {
+            if(
+              m_opaqueBufferObjects[i]->bodies.at(j)->drawEnabled &&
+              m_opaqueBufferObjects[i]->bodies.at(j)->isVisible) {
+              anyDrawEnabled = true;
+              break;
+            }
+          }
 
-          if(m_opaqueBufferObjects.at(i).body->drawEnabled &&
-              m_opaqueBufferObjects.at(i).body->isVisible) {
-
-            m_opaqueBufferObjects.at(i).vao->bind();
+          if(anyDrawEnabled) {
+            m_opaqueBufferObjects.at(i)->vao->bind();
             checkError("bodies: after bind vao phong");
 
-            m_programPhong->setTransform(m_opaqueBufferObjects.at(i).transform);
-            checkError("bodies: after set transform phong shader");
-
-            m_programPhong->setMaterial(m_opaqueBufferObjects.at(i).material);
+            m_programPhong->setMaterial(m_opaqueBufferObjects.at(i)->material);
             checkError("bodies: after set material phong shader");
 
-            glDrawElements(
-              GL_TRIANGLES,
-              3 * m_opaqueBufferObjects.at(i).material->faceCount,
-              GL_UNSIGNED_INT,
-              0);
-            checkError("bodies: after draw elements phong shader");
+            for(int j = 0; j < m_opaqueBufferObjects.at(i)->transforms.size(); j++) {
 
-            m_opaqueBufferObjects.at(i).vao->release();
+              if(
+                m_opaqueBufferObjects.at(i)->bodies.at(j)->drawEnabled &&
+                m_opaqueBufferObjects.at(i)->bodies.at(j)->isVisible) {
+
+                m_programPhong->setTransform(
+                  m_opaqueBufferObjects.at(i)->transforms.at(j));
+                checkError("bodies: after set transform phong shader");
+
+                glDrawElements(
+                  GL_TRIANGLES,
+                  3 * m_opaqueBufferObjects.at(i)->material->faceCount,
+                  GL_UNSIGNED_INT,
+                  0);
+                checkError("bodies: after draw elements phong shader");
+              }
+            }
+
+            m_opaqueBufferObjects.at(i)->vao->release();
             // checkError("after vao release phong");
           }
         }
@@ -505,26 +574,48 @@ void s2_Bodies::draw() {
 
         /* draw translucent geometry */
         for(int i = 0; i < m_translucentBufferObjects.size(); i++) {
-          if(m_translucentBufferObjects.at(i).body->drawEnabled &&
-              m_translucentBufferObjects.at(i).body->isVisible) {
 
-            m_translucentBufferObjects.at(i).vao->bind();
+          bool anyDrawEnabled = false;
+          for(int j = 0; j < m_translucentBufferObjects.at(i)->bodies.size(); j++) {
+            if(
+              m_translucentBufferObjects.at(i)->bodies.at(j)->drawEnabled &&
+              m_translucentBufferObjects.at(i)->bodies.at(j)->isVisible) {
+              anyDrawEnabled = true;
+              break;
+            }
+          }
+
+          if(anyDrawEnabled) {
+
+            m_translucentBufferObjects.at(i)->vao->bind();
             checkError("bodies: after bind vao phong");
 
-            m_programPhong->setTransform(m_translucentBufferObjects.at(i).transform);
-            checkError("bodies: after set transform phong shader");
-
-            m_programPhong->setMaterial(m_translucentBufferObjects.at(i).material);
+            m_programPhong->setMaterial(m_translucentBufferObjects.at(i)->material);
             checkError("bodies: after set material phong shader");
 
-            glDrawElements(
-              GL_TRIANGLES,
-              3 * m_translucentBufferObjects.at(i).material->faceCount,
-              GL_UNSIGNED_INT,
-              0);
-            checkError("bodies: after draw elements phong shader");
+            for(
+              int j = 0;
+              j < m_translucentBufferObjects.at(i)->transforms.size();
+              j++) {
 
-            m_translucentBufferObjects.at(i).vao->release();
+              if(
+                m_translucentBufferObjects.at(i)->bodies.at(j)->drawEnabled &&
+                m_translucentBufferObjects.at(i)->bodies.at(j)->isVisible) {
+
+                m_programPhong->setTransform(
+                  m_translucentBufferObjects.at(i)->transforms.at(j));
+                checkError("bodies: after set transform phong shader");
+
+                glDrawElements(
+                  GL_TRIANGLES,
+                  3 * m_translucentBufferObjects.at(i)->material->faceCount,
+                  GL_UNSIGNED_INT,
+                  0);
+                checkError("bodies: after draw elements phong shader");
+              }
+            }
+
+            m_translucentBufferObjects.at(i)->vao->release();
             // checkError("after vao release phong");
           }
         }
@@ -539,25 +630,46 @@ void s2_Bodies::draw() {
         m_programFlat->setLights(m_lights);
 
         for(int i = 0; i < m_opaqueBufferObjects.size(); i++) {
-          if(m_opaqueBufferObjects.at(i).body->drawEnabled) {
+          bool anyDrawEnabled = false;
+          for(int j = 0; j < m_opaqueBufferObjects.at(i)->bodies.size(); j++) {
+            if(
+              m_opaqueBufferObjects.at(i)->bodies.at(j)->drawEnabled &&
+              m_opaqueBufferObjects.at(i)->bodies.at(j)->isVisible) {
+              anyDrawEnabled = true;
+              break;
+            }
+          }
+          if(anyDrawEnabled) {
 
-            m_opaqueBufferObjects.at(i).vao->bind();
+            m_opaqueBufferObjects.at(i)->vao->bind();
             checkError("bodies: after bind vao flat");
 
-            m_programFlat->setTransform(m_opaqueBufferObjects.at(i).transform);
-            checkError("bodies: after set transform flat shader");
-
-            m_programFlat->setMaterial(m_opaqueBufferObjects.at(i).material);
+            m_programFlat->setMaterial(m_opaqueBufferObjects.at(i)->material);
             checkError("bodies: after set material flat shader");
 
-            glDrawElements(
-              GL_TRIANGLES,
-              3 * m_opaqueBufferObjects.at(i).material->faceCount,
-              GL_UNSIGNED_INT,
-              0);
-            checkError("bodies: after draw elements flat");
+            for(
+              int j = 0;
+              j < m_opaqueBufferObjects.at(i)->transforms.size();
+              j++) {
 
-            m_opaqueBufferObjects.at(i).vao->release();
+              if(
+                m_opaqueBufferObjects.at(i)->bodies.at(j)->drawEnabled &&
+                m_opaqueBufferObjects.at(i)->bodies.at(j)->isVisible) {
+
+                m_programFlat->setTransform(
+                  m_opaqueBufferObjects.at(i)->transforms.at(j));
+                checkError("bodies: after set transform flat shader");
+
+                glDrawElements(
+                  GL_TRIANGLES,
+                  3 * m_opaqueBufferObjects.at(i)->material->faceCount,
+                  GL_UNSIGNED_INT,
+                  0);
+                checkError("bodies: after draw elements flat");
+              }
+            }
+
+            m_opaqueBufferObjects.at(i)->vao->release();
             checkError("bodies: after vao release flat");
           }
         }
@@ -565,25 +677,46 @@ void s2_Bodies::draw() {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
         for(int i = 0; i < m_translucentBufferObjects.size(); i++) {
-          if(m_translucentBufferObjects.at(i).body->drawEnabled) {
+          bool anyDrawEnabled = false;
+          for(int j = 0; j < m_translucentBufferObjects.at(i)->bodies.size(); j++) {
+            if(
+              m_translucentBufferObjects.at(i)->bodies.at(j)->drawEnabled &&
+              m_translucentBufferObjects.at(i)->bodies.at(j)->isVisible) {
+              anyDrawEnabled = true;
+              break;
+            }
+          }
+          if(anyDrawEnabled) {
 
-            m_translucentBufferObjects.at(i).vao->bind();
+            m_translucentBufferObjects.at(i)->vao->bind();
             checkError("bodies: after bind vao flat");
 
-            m_programFlat->setTransform(m_translucentBufferObjects.at(i).transform);
-            checkError("bodies: after set transform flat shader");
-
-            m_programFlat->setMaterial(m_translucentBufferObjects.at(i).material);
+            m_programFlat->setMaterial(m_translucentBufferObjects.at(i)->material);
             checkError("bodies: after set material flat shader");
 
-            glDrawElements(
-              GL_TRIANGLES,
-              3 * m_translucentBufferObjects.at(i).material->faceCount,
-              GL_UNSIGNED_INT,
-              0);
-            checkError("bodies: after draw elements flat");
+            for(
+              int j = 0;
+              j < m_translucentBufferObjects.at(i)->transforms.size();
+              j++) {
 
-            m_translucentBufferObjects.at(i).vao->release();
+              if(
+                m_translucentBufferObjects.at(i)->bodies.at(j)->drawEnabled &&
+                m_translucentBufferObjects.at(i)->bodies.at(j)->isVisible) {
+
+                m_programFlat->setTransform(
+                  m_translucentBufferObjects.at(i)->transforms.at(j));
+                checkError("bodies: after set transform flat shader");
+
+                glDrawElements(
+                  GL_TRIANGLES,
+                  3 * m_translucentBufferObjects.at(i)->material->faceCount,
+                  GL_UNSIGNED_INT,
+                  0);
+                checkError("bodies: after draw elements flat");
+              }
+            }
+
+            m_translucentBufferObjects.at(i)->vao->release();
             checkError("bodies: after vao release flat");
           }
         }
@@ -600,27 +733,55 @@ void s2_Bodies::draw() {
       m_programLine->bind();
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       for(int i = 0; i < m_convexhullBufferObjects.size(); i++) {
-        if(m_convexhullBufferObjects.at(i).convexhull->drawEnabled) {
+        bool drawAnyEnabled = false;
+        for(
+          int j = 0;
+          j < m_convexhullBufferObjects.at(i).bodies.size();
+          j++) {
 
+          s2_body_t* body = m_convexhullBufferObjects.at(i).bodies.at(j);
+          if(body->collisionObjectDrawEnabled) {
+            drawAnyEnabled = true;
+            break;
+          }
+        }
+
+        if(drawAnyEnabled) {
           m_convexhullBufferObjects.at(i).vao->bind();
           checkError("bodies: after bind vao flat");
 
-          m_programLine->setTransform(
-            m_convexhullBufferObjects.at(i).transform);
-          checkError("bodies: after set transform line shader");
-
-          GLfloat* color =
-            m_convexhullBufferObjects.at(i).body->collisionObjects[0].color;
-          m_programLine->setColor(color[0], color[1], color[2], 1.f);
           m_programLine->setScale(1.f);
           checkError("bodies: after set material line shader");
 
-          glDrawElements(
-            GL_TRIANGLES,
-            3 * m_convexhullBufferObjects.at(i).convexhull->faceCount,
-            GL_UNSIGNED_INT,
-            0);
-          checkError("bodies: after draw elements flat");
+          // qDebug() << "drawing " <<
+          //   m_convexhullBufferObjects.at(i).transforms.size() << "convex hulls";
+
+          for(
+            int j = 0;
+            j < m_convexhullBufferObjects.at(i).transforms.size();
+            j++) {
+
+            s2_body_t* body = m_convexhullBufferObjects.at(i).bodies.at(j);
+
+            if(body->collisionObjectDrawEnabled) {
+              GLfloat* color = body->collisionObjects[0].color;
+              m_programLine->setColor(color[0], color[1], color[2], 1.f);
+
+              // qDebug() << "color" << color[0] << color[1] << color[2];
+              // s2_displacement_print(stdout, m_convexhullBufferObjects.at(i).transforms.at(j));
+
+              m_programLine->setTransform(
+                m_convexhullBufferObjects.at(i).transforms.at(j));
+              checkError("bodies: after set transform line shader");
+
+              glDrawElements(
+                GL_TRIANGLES,
+                3 * m_convexhullBufferObjects.at(i).convexhull->faceCount,
+                GL_UNSIGNED_INT,
+                0);
+              checkError("bodies: after draw elements flat");
+            }
+          }
 
           m_convexhullBufferObjects.at(i).vao->release();
           checkError("bodies: after vao release flat");
@@ -694,22 +855,41 @@ void s2_Bodies::drawShadows() {
     /* draw geometry */
     for(int i = 0; i < m_materialBufferObjects.size(); i++) {
 
-      if(m_materialBufferObjects.at(i).body->isVisible) {
+      bool drawAnyEnabled = false;
+      for(int j = 0; j < m_materialBufferObjects.at(i)->bodies.size(); j++) {
+        s2_body_t* body = m_materialBufferObjects.at(i)->bodies.at(j);
+        if(body->isVisible) {
+          drawAnyEnabled = true;
+          break;
+        }
+      }
 
-        m_materialBufferObjects.at(i).vao->bind();
+      if(drawAnyEnabled) {
+
+        m_materialBufferObjects.at(i)->vao->bind();
         checkError("bodies: after bind vao shadow");
 
-        m_programShadow->setTransform(m_materialBufferObjects.at(i).transform);
-        checkError("bodies: after set transform shadow shader");
+        for(
+          int j = 0;
+          j < m_materialBufferObjects.at(i)->transforms.size();
+          j++) {
 
-        glDrawElements(
-          GL_TRIANGLES,
-          3 * m_materialBufferObjects.at(i).material->faceCount,
-          GL_UNSIGNED_INT,
-          0);
-        checkError("bodies: after draw elements shadow shader");
+          if(m_materialBufferObjects.at(i)->bodies.at(j)->isVisible) {
 
-        m_materialBufferObjects.at(i).vao->release();
+            m_programShadow->setTransform(
+              m_materialBufferObjects.at(i)->transforms.at(j));
+            checkError("bodies: after set transform shadow shader");
+
+            glDrawElements(
+              GL_TRIANGLES,
+              3 * m_materialBufferObjects.at(i)->material->faceCount,
+              GL_UNSIGNED_INT,
+              0);
+            checkError("bodies: after draw elements shadow shader");
+          }
+        }
+
+        m_materialBufferObjects.at(i)->vao->release();
         checkError("bodies: after release shadow vao");
       }
     }

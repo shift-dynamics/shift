@@ -45,7 +45,7 @@ SUCH DAMAGE.
 #include "utility.h"
 #include "collisionobject.h"
 
-int s2_ellipsoid(s2_ellipsoid_t*, s2_body_t*);
+int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*);
 
 
 /*!
@@ -436,15 +436,15 @@ REFERENCES:
 [1] Ritter, J. (1990), 'An efficient bounding sphere', in Graphics Gems,
     A. Glassner, Ed. Academic Press, pp.301303
 */
-int s2_ellipsoid(s2_ellipsoid_t* self, s2_body_t* body) {
+int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
 
-  if(body->materials) {
+  if(body->materialIndex != -1) {
 
     /* initialize memory and set support function */
 
     /* generate temporary convex hull */
     s2_convexhull_t* convexhull = s2_convexhull_alloc(1);
-    s2_convexhull(convexhull, body);
+    s2_convexhull(convexhull, context, body);
 
     /* degenerate case with one vertex */
     if(convexhull->vertexCount == 1) {

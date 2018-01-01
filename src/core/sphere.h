@@ -6,7 +6,7 @@
 @copyright Kristopher Wehage 2016
 
 This function library is used to initialize and free memory for
-data structures defined in spheretree.h
+data structures defined in sphere.h
 
 @remark
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
@@ -45,7 +45,6 @@ typedef struct s2_convexhull_t s2_convexhull_t;
 typedef struct s2_context_t s2_context_t;
 
 typedef struct s2_sphere_t {
-  s2_vector_t centerGlobal;
   s2_vector_t centerLocal;
   double radius;
   s2_body_t* parentBody;
@@ -54,7 +53,7 @@ typedef struct s2_sphere_t {
 
 s2_sphere_t* s2_sphere_alloc(int);
 
-int s2_sphere(s2_sphere_t*, s2_body_t*);
+int s2_sphere(s2_sphere_t*, s2_context_t*, s2_body_t*);
 
 void s2_sphere_updateCentroid(s2_sphere_t*);
 

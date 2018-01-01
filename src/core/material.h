@@ -74,17 +74,13 @@ typedef struct s2_material_t {
   GLuint vertexNormalBuffer;
   GLuint vao; /*!< vertex array objects */
   GLuint ibo; /*!< index buffer objects */
-
 } s2_material_t;
 
 
-s2_material_t* s2_materials(
-  int materialCount);
+s2_material_t* s2_material_alloc(int);
 
+void s2_material_init(s2_material_t*);
 
-void s2_materials_free(
-  s2_material_t* materials,
-  int materialCount);
-
+void s2_material_free(s2_material_t*, int);
 
 #endif

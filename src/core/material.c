@@ -27,38 +27,42 @@ SUCH DAMAGE.
 @brief Initialize a Material datastructure
 
 */
-s2_material_t* s2_materials(
-  int materialCount) {
+s2_material_t* s2_material_alloc(int count) {
 
-  s2_material_t* materials = malloc(materialCount * sizeof(s2_material_t));
+  s2_material_t* materials = malloc(count * sizeof(s2_material_t));
   if(!materials) {
     fprintf(stderr, "Error: failed to initialize material.\n");
   }
-  for(int i = 0; i < materialCount; i++) {
-    materials[i].name = NULL;
-    materials[i].index = 0;
-    materials[i].filePath = NULL;
-    memset(materials[i].GLuniforms.Ka, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].GLuniforms.Kd, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].GLuniforms.Ks, 0, 4 * sizeof(GLfloat));
-    memset(materials[i].GLuniforms.Ke, 0, 4 * sizeof(GLfloat));
-    materials[i].GLuniforms.Ns = 0;
-    materials[i].vertexCount = 0;
-    materials[i].vertices = NULL;
-    materials[i].vertexNormals = NULL;
-    materials[i].faceCount = 0;
-    materials[i].faces = NULL;
-    materials[i].vao = 0;
-    materials[i].shadingType = S2_SHADING_PHONG;
+  for(int i = 0; i < count; i++) {
+    s2_material_init(&materials[i]);
   }
   return materials;
+}
+
+
+void s2_material_init(s2_material_t* material) {
+  material->name = NULL;
+  material->index = 0;
+  material->filePath = NULL;
+  memset(material->GLuniforms.Ka, 0, 4 * sizeof(GLfloat));
+  memset(material->GLuniforms.Kd, 0, 4 * sizeof(GLfloat));
+  memset(material->GLuniforms.Ks, 0, 4 * sizeof(GLfloat));
+  memset(material->GLuniforms.Ke, 0, 4 * sizeof(GLfloat));
+  material->GLuniforms.Ns = 0;
+  material->vertexCount = 0;
+  material->vertices = NULL;
+  material->vertexNormals = NULL;
+  material->faceCount = 0;
+  material->faces = NULL;
+  material->vao = 0;
+  material->shadingType = S2_SHADING_PHONG;
 }
 
 
 /*!
 @brief free materials data structures
 */
-void s2_materials_free(
+void s2_material_free(
   s2_material_t* materials,
   int materialCount) {
 

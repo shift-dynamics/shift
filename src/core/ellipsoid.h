@@ -56,7 +56,7 @@ typedef struct s2_ellipsoid_t {
 
 s2_ellipsoid_t* s2_ellipsoid_alloc(int);
 
-int s2_ellipsoid(s2_ellipsoid_t*, s2_body_t*);
+int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*);
 
 void s2_ellipsoid_updateCentroid(s2_ellipsoid_t*);
 
