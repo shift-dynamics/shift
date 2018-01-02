@@ -1910,59 +1910,46 @@ void Workspace::setTy(int val) {
 /*!
   @brief updates Tz for prismatic joints, spherical joints and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Workspace::setTz(int val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
-
-      int qIndex = -1;
-      int dqIndex = -1;
-      switch(joint->jointType) {
-        case S2_JOINT_FLOAT: {
-          qIndex = joint->qIndex + 2;
-          dqIndex = joint->dqIndex + 2;
-        }
-        break;
-        default: {
-          qIndex = joint->qIndex;
-          dqIndex = joint->dqIndex;
-        }
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
         break;
       }
-      double delq = (double)val * m_sliders.tz.singleStep;
-      m_sliders.tz.spinBox->blockSignals(true);
-      m_sliders.tz.spinBox->setValue(m_context->q[qIndex] + delq);
-      m_sliders.tz.spinBox->blockSignals(false);
+      case S2_MODELTREE_JOINT: {
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        int qIndex = -1;
+        int dqIndex = -1;
+        switch(joint->jointType) {
+          case S2_JOINT_FLOAT: {
+            qIndex = joint->qIndex + 2;
+            dqIndex = joint->dqIndex + 2;
+          }
+          break;
+          default: {
+            qIndex = joint->qIndex;
+            dqIndex = joint->dqIndex;
+          }
+          break;
+        }
+        double delq = (double)val * m_sliders.tz.singleStep;
+        m_sliders.tz.spinBox->blockSignals(true);
+        m_sliders.tz.spinBox->setValue(m_context->q[qIndex] + delq);
+        m_sliders.tz.spinBox->blockSignals(false);
 
-      m_renderWindow->setJoint(
-        joint,
-        qIndex,
-        dqIndex,
-        delq,
-        S2_JOINT_PRIMITIVE);
-
+        m_renderWindow->setJoint(
+          joint,
+          qIndex,
+          dqIndex,
+          delq,
+          S2_JOINT_PRIMITIVE);
+        break;
+      }
+      default: {
+        break;
+      }
     }
     emit tzChanged(0);
   }
@@ -4208,9 +4195,9 @@ void Workspace::materialColorSelector() {
       }
       populateMaterialColorDropDown(material);
 
-      qDebug(
-        "ok r:%i g:%i b:%i\n",
-        color.red(), color.green(), color.blue());
+      // qDebug(
+      //   "ok r:%i g:%i b:%i\n",
+      //   color.red(), color.green(), color.blue());
     }
   }
   m_renderWindow->setAnimating(true);

@@ -66,10 +66,7 @@ independent/dependent variables during a running simulation:
 Run-Time Algorithm (RTA)
 ************************
 
-During a simulation, the following operations are carried out at every time
-step. RTA uses only a few primitive functions to set up and sparse solve the
-equations of motion, stepping through arrays of memory locations without
-complex logic.
+RTA uses only a few primitive functions to set up and sparse solve the equations of motion, stepping through arrays of memory locations without complex logic. During a simulation, the following operations are carried out at every time step:
 
 *   Carry out operations set up in Run-Time Optimization step using
     source and destination memory pointers.
