@@ -66,23 +66,23 @@
         {
           "name": "1",
           "definition": [
-            "part1.obj",
-            "part1.mtl"
+            "lbr_iiwa_14_r820_part_1.obj",
+            "lbr_iiwa_14_r820_part_1.mtl"
           ],
           "frames": [
             {
               "name": "1_distal",
               "T": [
                 0,
-                -0.1575,
-                0
+                0.0,
+                -0.1575
               ]
             }
           ],
           "center_of_mass": [
             0.0,
-            -0.07875,
-            0.0
+            0.0,
+            -0.07875
           ],
           "mass": 1.0,
           "moment_of_inertia": {
@@ -97,8 +97,8 @@
         {
           "name": "2",
           "definition": [
-            "part2.obj",
-            "part2.mtl"
+            "lbr_iiwa_14_r820_part_2.obj",
+            "lbr_iiwa_14_r820_part_2.mtl"
           ],
           "frames": [
             {
@@ -128,8 +128,8 @@
         {
           "name": "3",
           "definition": [
-            "part3.obj",
-            "part3.mtl"
+            "lbr_iiwa_14_r820_part_3.obj",
+            "lbr_iiwa_14_r820_part_3.mtl"
           ],
           "frames": [
             {
@@ -159,8 +159,8 @@
         {
           "name": "4",
           "definition": [
-            "part4.obj",
-            "part4.mtl"
+            "lbr_iiwa_14_r820_part_4.obj",
+            "lbr_iiwa_14_r820_part_4.mtl"
           ],
           "frames": [
             {
@@ -190,8 +190,8 @@
         {
           "name": "5",
           "definition": [
-            "part5.obj",
-            "part5.mtl"
+            "lbr_iiwa_14_r820_part_5.obj",
+            "lbr_iiwa_14_r820_part_5.mtl"
           ],
           "frames": [
             {
@@ -221,8 +221,8 @@
         {
           "name": "6",
           "definition": [
-            "part6.obj",
-            "part6.mtl"
+            "lbr_iiwa_14_r820_part_6.obj",
+            "lbr_iiwa_14_r820_part_6.mtl"
           ],
           "frames": [
             {
@@ -252,8 +252,8 @@
         {
           "name": "7",
           "definition": [
-            "part7.obj",
-            "part7.mtl"
+            "lbr_iiwa_14_r820_part_7.obj",
+            "lbr_iiwa_14_r820_part_7.mtl"
           ],
           "frames": [
             {
@@ -283,8 +283,8 @@
         {
           "name": "8",
           "definition": [
-            "part8.obj",
-            "part8.mtl"
+            "lbr_iiwa_14_r820_part_8.obj",
+            "lbr_iiwa_14_r820_part_8.mtl"
           ],
           "frames": [
             {
@@ -414,17 +414,33 @@
           "name": "F",
           "body_frame_pairs": [
             [
-              "1",
-              "origin"
-            ],
-            [
               "6",
               "6_distal"
+            ],
+            [
+              "7",
+              "origin"
             ]
           ],
-          "type": "Rx",
-          "initial_displacement": -1.9978749127373070,
-          "initial_velocity": -0.266585
+          "type": "Ry",
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "G",
+          "body_frame_pairs": [
+            [
+              "7",
+              "7_distal"
+            ],
+            [
+              "8",
+              "origin"
+            ]
+          ],
+          "type": "Rz",
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
         }
       ]
     }
