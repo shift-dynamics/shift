@@ -450,18 +450,19 @@ int s2_jacobian_mallocEquations(
       case S2_JOINT_TY:
       case S2_JOINT_TZ: {
         context->jointDOF[i] = 1;
+        break;
       }
-      break;
       case S2_JOINT_SPHERICAL: {
         context->jointDOF[i] = 3;
+        break;
       }
-      break;
       case S2_JOINT_FLOAT: {
         context->jointDOF[i] = 6;
+        break;
       }
-      break;
       case S2_JOINT_RIGID: {
         context->jointDOF[i] = 0;
+        break;
       }
       case S2_JOINT_INVALID:
       case S2_JOINT_PRIMITIVE:
@@ -557,16 +558,19 @@ int s2_jacobian_mallocEquations(
       case S2_JOINT_RY:
       case S2_JOINT_RZ: {
         context->isRotation[baseIndex] = true;
+        break;
       }
-      break;
-      case S2_JOINT_SPHERICAL:
+      case S2_JOINT_SPHERICAL: {
         for(int j = 0; j < 3; j++) {
           context->isRotation[baseIndex + j] = true;
         }
+        break;
+      }
       case S2_JOINT_FLOAT: {
         for(int j = 3; j < 6; j++) {
           context->isRotation[baseIndex + j] = true;
         }
+        break;
       }
     }
   }

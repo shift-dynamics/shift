@@ -75,9 +75,8 @@ s2_joint_t* s2_joint(
       joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = s2_screw();
-
+      break;
     }
-    break;
     case S2_JOINT_RX:
     case S2_JOINT_RY:
     case S2_JOINT_RZ: {
@@ -95,9 +94,8 @@ s2_joint_t* s2_joint(
       joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = s2_screw();
-
+      break;
     }
-    break;
     case S2_JOINT_RIGID: {
       joint->dof = 0;
       joint->initialPrimitiveDisplacement = NULL;
@@ -113,8 +111,8 @@ s2_joint_t* s2_joint(
       joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = NULL;
+      break;
     }
-    break;
     case S2_JOINT_SPHERICAL: {
       joint->dof = 3;
       joint->initialPrimitiveDisplacement = calloc(4, sizeof(double));
@@ -130,6 +128,7 @@ s2_joint_t* s2_joint(
       joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = malloc(3 * sizeof(s2_screw_t));
+      break;
     }
     case S2_JOINT_FLOAT: {
       joint->dof = 6;
@@ -152,13 +151,13 @@ s2_joint_t* s2_joint(
       joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = malloc(6 * sizeof(s2_screw_t));
+      break;
     }
-    break;
     case S2_JOINT_INVALID:
     case S2_JOINT_PRIMITIVE: {
       fprintf(stderr, "invalid joint type found\n");
+      break;
     }
-    break;
   }
 
   joint->mobilityNumber = NULL;
@@ -2084,7 +2083,6 @@ int s2_joint_load(
         json_string_value(value));
     }
   } else if(json_is_string(childBodyObject)) {
-
     const char* childBody = json_string_value(childBodyObject);
     if(!strcmp(childBody, "fixed")) {
       joint->childBody = s2_stackstr();
@@ -2204,7 +2202,7 @@ int s2_joint_load(
     }
     break;
     case S2_JOINT_FLOAT: {
-      // printf("loading rigid/float\n");
+      printf("loading float\n");
       json_t* initialValueObj =
         json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
@@ -2236,7 +2234,7 @@ int s2_joint_load(
     }
     break;
     case S2_JOINT_SPHERICAL: {
-      // printf("loading rigid/float\n");
+
       json_t* initialValueObj =
         json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
@@ -2254,6 +2252,11 @@ int s2_joint_load(
       s2_mat3x3_toQuaternion(
         &(joint->generalDisplacement->R),
         (s2_quaternion_t*)joint->primitiveDisplacement);
+      printf("loading spherical: q=");
+      for(int i = 0; i < 4; i++) {
+        printf("%f,", joint->primitiveDisplacement[i]);
+      }
+      printf("\n");
     }
     break;
     case S2_JOINT_PRIMITIVE:
