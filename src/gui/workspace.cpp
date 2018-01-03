@@ -3538,18 +3538,18 @@ void Workspace::writeMobility() {
   }
 
   /* write mobility */
-  for(int i = 0; i < m_context->qCount - 1; i++) {
+  for(int i = 0; i < m_context->dqCount - 1; i++) {
     fprintf(
       m_mobilityFile,
       "%0.12f%s",
       m_context->mobilityNumbers[i],
       m_context->modelParameters.delimiter);
   }
-  if(m_context->qCount > 0) {
+  if(m_context->dqCount > 0) {
     fprintf(
       m_mobilityFile,
       "%0.12f\n",
-      m_context->mobilityNumbers[m_context->qCount - 1]);
+      m_context->mobilityNumbers[m_context->dqCount - 1]);
   }
 }
 
@@ -3580,21 +3580,21 @@ void Workspace::populateTreeRecursive(
   while(subAssemblyHead) {
 
     /* add assembly */
-    MyTreeItem* subAssembly = new MyTreeItem(1002); // assembly
+    MyTreeItem* subAssembly = new MyTreeItem(S2_MODELTREE_ASSEMBLY); // assembly
     subAssembly->setText(0, s2_getRootName(subAssemblyHead->name));
     subAssembly->setIcon(0, QIcon(":/icons/assembly.png"));
     subAssembly->m_object = subAssemblyHead;
     widget->addChild(subAssembly);
 
     /* add bodies */
-    MyTreeItem* bodies = new MyTreeItem(1003); // body group
+    MyTreeItem* bodies = new MyTreeItem(S2_MODELTREE_BODY_GROUP); // body group
     bodies->setText(0, "bodies");
     bodies->setIcon(0, QIcon(":/icons/body_folder.png"));
     subAssembly->addChild(bodies);
 
     s2_body_t* bodyHead = subAssemblyHead->bodyHead;
     while(bodyHead) {
-      MyTreeItem* item = new MyTreeItem(1004); // body
+      MyTreeItem* item = new MyTreeItem(S2_MODELTREE_BODY); // body
       item->setText(0, s2_getRootName(bodyHead->name));
       item->setIcon(0, QIcon(":/icons/body.png"));
       item->setIcon(1, QIcon(":/icons/visible.png"));
@@ -3604,7 +3604,7 @@ void Workspace::populateTreeRecursive(
       /* add frames */
       s2_frame_t* frameHead = bodyHead->frameHead;
       while(frameHead) {
-        MyTreeItem* subItem = new MyTreeItem(1005); // frame
+        MyTreeItem* subItem = new MyTreeItem(S2_MODELTREE_FRAME); // frame
         subItem->setText(0, s2_getRootName(frameHead->name));
         subItem->m_object = frameHead;
         subItem->setIcon(0, QIcon(":/icons/frame.png"));
@@ -3618,7 +3618,7 @@ void Workspace::populateTreeRecursive(
     bodies->setExpanded(true);
 
     /* add joints */
-    MyTreeItem* joints = new MyTreeItem(1006); // joint group
+    MyTreeItem* joints = new MyTreeItem(S2_MODELTREE_JOINT_GROUP); // joint group
     joints->setText(0, "joints");
     joints->setIcon(0, QIcon(":/icons/joint_folder.png"));
 
@@ -3626,7 +3626,7 @@ void Workspace::populateTreeRecursive(
 
     s2_joint_t* jointHead = subAssemblyHead->jointHead;
     while(jointHead) {
-      MyTreeItem* item = new MyTreeItem(1007); // joint
+      MyTreeItem* item = new MyTreeItem(S2_MODELTREE_JOINT); // joint
       item->setText(0, s2_getRootName(jointHead->name));
       qDebug() << "loading joint" << s2_getRootName(jointHead->name);
 
@@ -3646,14 +3646,14 @@ void Workspace::populateTreeRecursive(
     joints->setExpanded(true);
 
     /* add lights */
-    MyTreeItem* lights = new MyTreeItem(1008); // light group
+    MyTreeItem* lights = new MyTreeItem(S2_MODELTREE_LIGHT_GROUP); // light group
     lights->setText(0, "lights");
     lights->setIcon(0, QIcon(":/icons/light_folder.png"));
     subAssembly->addChild(lights);
 
     s2_light_t* lightHead = subAssemblyHead->lightHead;
     while(lightHead) {
-      MyTreeItem* item = new MyTreeItem(1009); // light
+      MyTreeItem* item = new MyTreeItem(S2_MODELTREE_LIGHT); // light
       item->setText(0, s2_getRootName(lightHead->name));
       item->setIcon(0, QIcon(":/icons/light.png"));
       item->setIcon(1, QIcon(":/icons/invisible.png"));
@@ -3664,7 +3664,7 @@ void Workspace::populateTreeRecursive(
     lights->setExpanded(false);
 
     /* add restraints */
-    MyTreeItem* restraints = new MyTreeItem(1010); // restraint group
+    MyTreeItem* restraints = new MyTreeItem(S2_MODELTREE_RESTRAINT_GROUP); // restraint group
     restraints->setText(0, "restraints");
     restraints->setExpanded(true);
     restraints->setIcon(0, QIcon(":/icons/restraint_folder.png"));
@@ -3672,7 +3672,7 @@ void Workspace::populateTreeRecursive(
 
     s2_restraint_t* restraintHead = subAssemblyHead->restraintHead;
     while(restraintHead) {
-      MyTreeItem* item = new MyTreeItem(1011); // restraint
+      MyTreeItem* item = new MyTreeItem(S2_MODELTREE_RESTRAINT); // restraint
       item->setText(0, s2_getRootName(restraintHead->name));
       item->setIcon(0, QIcon(":/icons/restraint.png"));
       item->setIcon(1, QIcon(":/icons/invisible.png"));
@@ -3682,7 +3682,7 @@ void Workspace::populateTreeRecursive(
     }
 
     /* add input / outputs */
-    MyTreeItem* io = new MyTreeItem(1012); /* io group */
+    MyTreeItem* io = new MyTreeItem(S2_MODELTREE_IO_GROUP); /* io group */
     io->setText(0, "i/o");
     io->setExpanded(true);
     io->setIcon(0, QIcon(":/icons/io_folder.png"));
@@ -3706,7 +3706,7 @@ void Workspace::populateTreeRecursive(
 
     s2_pointcloud_t* pointCloudHead = subAssemblyHead->pointCloudHead;
     while(pointCloudHead) {
-      MyTreeItem* item = new MyTreeItem(1017); // restraint
+      MyTreeItem* item = new MyTreeItem(1017);
       item->setText(0, s2_getRootName(pointCloudHead->name));
       item->setIcon(0, QIcon(":/icons/pointcloud.png"));
       item->setIcon(1, QIcon(":/icons/visible.png"));
@@ -3873,53 +3873,58 @@ void Workspace::updateTree() {
   while(*it) {
     char numberString[100];
     MyTreeItem* item = static_cast<MyTreeItem*>(*it);
-    if(item->m_userType == 1002) {
-      if(item->text(0) == QString("fixed")) {
-        sprintf(
-          numberString,
-          "%0.4f",
-          m_context->mobility);
+    switch(item->m_userType) {
+      case S2_MODELTREE_ASSEMBLY: {
+        if(item->text(0) == QString("fixed")) {
+          sprintf(
+            numberString,
+            "%0.4f",
+            m_context->mobility);
+          (*it)->setText(3, numberString);
+        }
+        break;
+      }
+      case S2_MODELTREE_JOINT: {
+        s2_joint_t* joint = (s2_joint_t*)item->m_object;
+        qDebug() << "updating joint" << s2_getRootName(joint->name) << " dof:" << joint->dof;
+        if(joint->primitiveDisplacement != NULL) {
+          sprintf(
+            numberString,
+            "%0.4f",
+            *(joint->primitiveDisplacement));
+          (*it)->setText(2, numberString);
+        }
+        if(joint->dof == 0) {
+          sprintf(numberString, "0");
+        } else if(joint->dof == 1) {
+          sprintf(
+            numberString,
+            "%0.4f",
+            joint->mobilityNumber[0]);
+        } else if(joint->dof == 3) {
+          sprintf(
+            numberString,
+            "%0.4f, %0.4f, %0.4f",
+            joint->mobilityNumber[0],
+            joint->mobilityNumber[1],
+            joint->mobilityNumber[2]);
+        } else if(joint->dof == 6) {
+          sprintf(
+            numberString,
+            "%0.4f, %0.4f, %0.4f, %0.4f, %0.4f, %0.4f",
+            joint->mobilityNumber[0],
+            joint->mobilityNumber[1],
+            joint->mobilityNumber[2],
+            joint->mobilityNumber[3],
+            joint->mobilityNumber[4],
+            joint->mobilityNumber[5]);
+        }
         (*it)->setText(3, numberString);
+        break;
       }
-    }
-    if(item->m_userType == 1007) {
-      s2_joint_t* joint = (s2_joint_t*)item->m_object;
-      // qDebug() << "updating joint" << s2_getRootName(joint->name);
-
-      if(joint->primitiveDisplacement != NULL) {
-        sprintf(
-          numberString,
-          "%0.4f",
-          *(joint->primitiveDisplacement));
-        (*it)->setText(2, numberString);
+      default: {
+        break;
       }
-      if(joint->dof == 0) {
-        sprintf(numberString, "0");
-      } else if(joint->dof == 1) {
-        sprintf(
-          numberString,
-          "%0.4f",
-          joint->mobilityNumber[0]);
-      } else if(joint->dof == 3) {
-        sprintf(
-          numberString,
-          "%0.4f, %0.4f, %0.4f",
-          joint->mobilityNumber[0],
-          joint->mobilityNumber[1],
-          joint->mobilityNumber[2]);
-      } else if(joint->dof == 6) {
-        sprintf(
-          numberString,
-          "%0.4f, %0.4f, %0.4f, %0.4f, %0.4f, %0.4f",
-          joint->mobilityNumber[0],
-          joint->mobilityNumber[1],
-          joint->mobilityNumber[2],
-          joint->mobilityNumber[3],
-          joint->mobilityNumber[4],
-          joint->mobilityNumber[5]);
-      }
-      (*it)->setText(3, numberString);
-
     }
     ++it;
   }
