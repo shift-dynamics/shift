@@ -66,26 +66,27 @@ void topology_setIndicesInitial(
           context->dqCount++;
           context->dcCount++;
           context->nonRigidJointCount++;
+          break;
         }
-        break;
         case S2_JOINT_TX:
         case S2_JOINT_TY:
         case S2_JOINT_TZ: {
           context->qCount++;
           context->dqCount++;
           context->nonRigidJointCount++;
+          break;
         }
-        break;
         case S2_JOINT_SPHERICAL: {
           context->qCount += 4;
           context->dqCount += 3;
           context->nonRigidJointCount++;
+          break;
         }
-        break;
         case S2_JOINT_FLOAT: {
           context->qCount += 7;
           context->dqCount += 6;
           context->nonRigidJointCount++;
+          break;
         }
         case S2_JOINT_RIGID:
         case S2_JOINT_PRIMITIVE:
@@ -2001,11 +2002,11 @@ int topology_joint_copyUpdate(
         1,
         &(joint->primitiveVelocity),
         context->dq + joint->dqIndex);
-
+      break;
     }
-    break;
     case S2_JOINT_RIGID: {
-    } break;
+      break;
+    }
     case S2_JOINT_SPHERICAL: {
 
       /* process terms that use qindex */
@@ -2019,7 +2020,7 @@ int topology_joint_copyUpdate(
       /* h */
       s2_array_copyUpdate(
         18,
-        (double**) & (joint->h),
+        (double**) &(joint->h),
         (double*)(context->h + joint->dqIndex));
 
       /* dq */
@@ -2027,8 +2028,8 @@ int topology_joint_copyUpdate(
         3,
         &(joint->primitiveVelocity),
         context->dq + joint->dqIndex);
+      break;
     }
-    break;
     case S2_JOINT_FLOAT: {
 
       /*
@@ -2057,13 +2058,12 @@ int topology_joint_copyUpdate(
         6,
         &(joint->primitiveVelocity),
         context->dq + joint->dqIndex);
-
+      break;
     }
-    break;
     case S2_JOINT_PRIMITIVE:
     case S2_JOINT_INVALID: {
-
-    } break;
+      break;
+    }
   }
   return 0;
 }
@@ -2100,16 +2100,16 @@ int topology_copyUpdateJoints(
         context->jointPointers[i]->qIndex = qOffset++;
         context->jointPointers[i]->dcIndex = -1;
         context->jointPointers[i]->dqIndex = dqOffset++;
+        break;
       }
-      break;
       case S2_JOINT_RX:
       case S2_JOINT_RY:
       case S2_JOINT_RZ: {
         context->jointPointers[i]->qIndex = qOffset++;
         context->jointPointers[i]->dcIndex = dcOffset++;
         context->jointPointers[i]->dqIndex = dqOffset++;
+        break;
       }
-      break;
       case S2_JOINT_RIGID: {
         /*
           for rigid joints, there is no influence coefficient matrix to process
@@ -2123,28 +2123,28 @@ int topology_copyUpdateJoints(
           context->jointPointers[i]->dqIndex = 0;
         }
         context->jointPointers[i]->dcIndex = -1;
-
+        break;
       }
-      break;
       case S2_JOINT_SPHERICAL: {
         context->jointPointers[i]->qIndex = qOffset;
         qOffset += 4;
         context->jointPointers[i]->dcIndex = -1;
         context->jointPointers[i]->dqIndex = dqOffset;
         dqOffset += 3;
+        break;
       }
-      break;
       case S2_JOINT_FLOAT: {
         context->jointPointers[i]->qIndex = qOffset;
         qOffset += 7;
         context->jointPointers[i]->dcIndex = -1;
         context->jointPointers[i]->dqIndex = dqOffset;
         dqOffset += 6;
+        break;
       }
-      break;
       case S2_JOINT_PRIMITIVE:
       case S2_JOINT_INVALID: {
-      } break;
+        break;
+      }
     }
     topology_joint_copyUpdate(context, context->jointPointers[i]);
   }
@@ -2463,8 +2463,9 @@ void topology_copyUpdateD(
       case S2_JOINT_RZ:
       case S2_JOINT_TX:
       case S2_JOINT_TY:
-      case S2_JOINT_TZ:
+      case S2_JOINT_TZ: {
         break;
+      }
       case S2_JOINT_FLOAT:
       case S2_JOINT_SPHERICAL:
       case S2_JOINT_RIGID: {
@@ -2488,6 +2489,7 @@ void topology_copyUpdateD(
         //   context->dWRTReference + childFrame->dIndex,
         //   context->d + childFrame->dIndex);
         // s2_displacement_print(context->d + childFrame->dIndex);
+        break;
       }
     }
 
@@ -2614,18 +2616,14 @@ void topology_copyUpdateD(
 
 /*!
   @brief compress shape matrices on rigid joints
-
-  Compress shape matrices on rigid bodies
 */
 void topology_compressRigidJoints(
   s2_context_t* context) {
 
   /* compress shape matrices for rigid bodies */
-
   s2_displacement_t* temp = s2_displacement();
 
   for(int i = 0; i < context->activeJointCount; i++) {
-
     s2_joint_t* joint = context->jointPointers[i];
 
     if(joint->jointType == S2_JOINT_RIGID) {
@@ -2720,6 +2718,7 @@ void topology_compressRigidJoints(
   free(temp);
 }
 
+
 /*!
 @brief sets parent joint pointer in active bodies
 
@@ -2732,6 +2731,7 @@ void topology_setParentJointPointers(
       context->jointPointers[i];
   }
 }
+
 
 /*!
 @brief utility to copy names to context->names char array
@@ -2820,8 +2820,8 @@ void topology_countDHVA(
           childBody,
           childFrame);
         dhvaCount += 11;
+        break;
       }
-      break;
       case S2_JOINT_FLOAT:
       case S2_JOINT_SPHERICAL: {
         topology_setName(
@@ -2835,8 +2835,8 @@ void topology_countDHVA(
         s2_displacement_copy(
           joint->generalDisplacement,
           context->dWRTReference + childFrame->dIndex);
+          break;
       }
-      break;
       case S2_JOINT_RIGID: {
         /* a reference frame on a body that is connected to its parent body
            through a rigid joint only needs to be processed if frames in
@@ -3002,8 +3002,9 @@ void topology_setDHVAPointers(
     */
     switch(joint->jointType) {
       case S2_JOINT_PRIMITIVE:
-      case S2_JOINT_INVALID:
+      case S2_JOINT_INVALID: {
         break;
+      }
       case S2_JOINT_RX:
       case S2_JOINT_RY:
       case S2_JOINT_RZ: {
@@ -3055,13 +3056,11 @@ void topology_setDHVAPointers(
         context->dhva[0][dhvaCount++] =
           childBody->referenceFrame->accelerationQuadraticAbsolute;
         // aqChild [10]
-
+        break;
       }
-      break;
       case S2_JOINT_TX:
       case S2_JOINT_TY:
       case S2_JOINT_TZ: {
-
         /* function pointer */
         context->dhva[operationCount] = context->dhva[0] + dhvaCount;
         context->dhFunctionPointers[operationCount] =
@@ -3107,8 +3106,8 @@ void topology_setDHVAPointers(
         context->dhva[0][dhvaCount++] =
           childBody->referenceFrame->accelerationQuadraticAbsolute;
         // aqChild [10]
+        break;
       }
-      break;
       case S2_JOINT_FLOAT:
       case S2_JOINT_SPHERICAL: {
         context->dhva[operationCount] = context->dhva[0] + dhvaCount;
@@ -3158,9 +3157,8 @@ void topology_setDHVAPointers(
         context->dhva[0][dhvaCount++] =
           childBody->referenceFrame->accelerationQuadraticAbsolute;
         // aqChild [11]
-
+        break;
       }
-      break;
       case S2_JOINT_RIGID: {
         // fprintf(debug, "setting rigid joint\n");
         // fprintf(debug, "old parent frame: ");
@@ -3203,13 +3201,11 @@ void topology_setDHVAPointers(
           context->dhva[0][dhvaCount++] =
             childFrame->dAbsolute;                         // dChild [2]
         }
+        break;
       }
-      break;
     }
 
-    /*
-      proces remaining frames on body
-    */
+    /* proces remaining frames on body */
     // parent frame
     s2_frame_t* referenceFrame = childBody->referenceFrame;
 
@@ -3282,6 +3278,7 @@ void s2_updateDH(
     (context->dhFunctionPointers[i])(context->dhva[i]);
   }
 }
+
 
 /*! @brief optimized function to update displacements, coefficient matrices,
 velocities and accelerations

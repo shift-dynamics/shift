@@ -99,7 +99,11 @@ typedef struct s2_joint_t {
                                          by user */
 
   double* primitiveDisplacement; /*!< current primitive displacement in
-                                     model */
+                                     model, for spherical joints consists of
+                                     quaternion following x,y,z,w
+                                     convention, for float joints consists of
+                                     x,y,z translation, followed by
+                                     quaternion specified using x,y,z,w convention */
   double* primitiveVelocity; /*!< current primitive velocity in model */
 
   s2_displacement_t* generalDisplacement; /*!< used for rigid joints and to
