@@ -552,6 +552,11 @@ void s2_Bodies::draw() {
                   m_opaqueBufferObjects.at(i)->transforms.at(j));
                 checkError("bodies: after set transform phong shader");
 
+                s2_stackstr_print(stdout, m_opaqueBufferObjects.at(i)->bodies.at(j)->name);
+                s2_displacement_print(stdout, m_opaqueBufferObjects.at(i)->transforms.at(j));
+                printf("\n");
+
+
                 glDrawElements(
                   GL_TRIANGLES,
                   3 * m_opaqueBufferObjects.at(i)->material->faceCount,

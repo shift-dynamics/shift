@@ -2198,9 +2198,8 @@ int s2_joint_load(
             json_number_value(json_array_get(translation, i)));
         }
       }
-
+      break;
     }
-    break;
     case S2_JOINT_FLOAT: {
       printf("loading float\n");
       json_t* initialValueObj =
@@ -2231,8 +2230,8 @@ int s2_joint_load(
       s2_mat3x3_toQuaternion(
         &(joint->generalDisplacement->R),
         (s2_quaternion_t*)(joint->primitiveDisplacement + 3));
+      break;
     }
-    break;
     case S2_JOINT_SPHERICAL: {
 
       json_t* initialValueObj =
@@ -2257,34 +2256,19 @@ int s2_joint_load(
         printf("%f,", joint->primitiveDisplacement[i]);
       }
       printf("\n");
+      break;
     }
-    break;
     case S2_JOINT_PRIMITIVE:
     case S2_JOINT_INVALID: {
       fprintf(
         stderr,
         "Invalid Joint Type Found in %s\n",
         joint->name->tail->value);
+      break;
     }
-    break;
   }
-
-  // get driver, if applicable, otherwise driver is set to NULL
-  // by default
-  // json_t *driverObject = json_object_get(value, "driver");
-  // if (json_is_object(driverObject)) {
-  //   // printf("\n\nDRIVER found for joint %s \n\n", jointName );
-  //   // joint->driver->numberSteps =
-  //   //     json_number_value(json_object_get(driverObject, "number_steps"));
-  //   // joint->driver->deltaDisplacement = json_number_value(
-  //   //     json_object_get(driverObject, "delta_displacement"));
-  // } else {
-  //   joint->driver = NULL;
-  // }
 
   (context->jointCount)++;
   s2_assembly_appendJoint(assembly, joint);
-  // printf("end\n");
-
   return 0;
 }
