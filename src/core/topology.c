@@ -1782,9 +1782,8 @@ void (*topology_getJointDHFunctionPointer(
           return s2_joint_txinverse_dhva;
         }
       }
+      break;
     }
-    break;
-
     case S2_JOINT_TY: {
       if(sense > 0) {
         if(isDH) {
@@ -1799,9 +1798,8 @@ void (*topology_getJointDHFunctionPointer(
           return s2_joint_tyinverse_dhva;
         }
       }
+      break;
     }
-    break;
-
     case S2_JOINT_TZ: {
       if(sense > 0) {
         if(isDH) {
@@ -1816,9 +1814,8 @@ void (*topology_getJointDHFunctionPointer(
           return s2_joint_tzinverse_dhva;
         }
       }
+      break;
     }
-    break;
-
     case S2_JOINT_RX: {
       if(sense > 0) {
         if(isDH) {
@@ -1833,9 +1830,8 @@ void (*topology_getJointDHFunctionPointer(
           return s2_joint_rxinverse_dhva;
         }
       }
+      break;
     }
-    break;
-
     case S2_JOINT_RY: {
       if(sense > 0) {
         if(isDH) {
@@ -1850,9 +1846,8 @@ void (*topology_getJointDHFunctionPointer(
           return s2_joint_ryinverse_dhva;
         }
       }
+      break;
     }
-    break;
-
     case S2_JOINT_RZ: {
       if(sense > 0) {
         if(isDH) {
@@ -1867,18 +1862,16 @@ void (*topology_getJointDHFunctionPointer(
           return s2_joint_rzinverse_dhva;
         }
       }
+      break;
     }
-    break;
-
     case S2_JOINT_RIGID: {
       if(sense > 0) {
         return s2_joint_rigid;
       } else {
         return s2_joint_rigidinverse;
       }
+      break;
     }
-    break;
-
     case S2_JOINT_SPHERICAL: {
       if(sense > 0) {
         if(isDH) {
@@ -1893,9 +1886,8 @@ void (*topology_getJointDHFunctionPointer(
           return s2_joint_sphericalinverse_dhva;
         }
       }
+      break;
     }
-    break;
-
     case S2_JOINT_FLOAT: {
       if(sense > 0) {
         if(isDH) {
@@ -1910,16 +1902,13 @@ void (*topology_getJointDHFunctionPointer(
           return s2_joint_floatinverse_dhva;
         }
       }
+      break;
     }
-    break;
-
     case S2_JOINT_PRIMITIVE:
     case S2_JOINT_INVALID: {
       fprintf(stderr, "Error: INVALID JOINTTYPE detected.\n");
       return NULL;
     }
-    break;
-
   }
   return NULL;
 }

@@ -1735,6 +1735,13 @@ void s2_joint_spherical(
     &(dWRTReference->R),
     dChild);
 
+  printf("\nquaternion: %f %f %f %f\n", q->x, q->y, q->z, q->w);
+  printf("R: ");
+  s2_displacement_print(stdout, dWRTReference);
+  printf("dParent: ");
+  s2_displacement_print(stdout, dParent);
+  printf("dChild: ");
+  s2_displacement_print(stdout, dChild);
   s2_hrx(dChild, h);
   s2_hry(dChild, h + 1);
   s2_hrz(dChild, h + 2);
