@@ -6859,6 +6859,7 @@ void bksl_mat3x3_toQuaternion(
   return;
 }
 
+
 /*!
 @brief single precision function to convert bksl_mat3x3_t rotation matrix to quaternion
 representation
@@ -6963,6 +6964,7 @@ void bksl_mat3x3f_toQuaternion(
   }
   return;
 }
+
 
 /*!
 @brief Double precision function to convert quaternion to rotation
