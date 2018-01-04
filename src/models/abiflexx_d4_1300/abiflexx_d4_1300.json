@@ -469,6 +469,58 @@
                 [0, 1, 0],
                 [-1, 0, 0]
               ]
+            },
+            {
+              "name": "distal_3",
+              "T": [
+                -0.01705127,
+                -0.07046633,
+                -0.06045543
+              ],
+              "R": [
+                [0, -0.8660254037844386, -0.5],
+                [0, -0.5, 0.8660254037844386],
+                [1, 0, 0]
+              ]
+            },
+            {
+              "name": "distal_4",
+              "T": [
+                -0.06955127,
+                0.02046633,
+                -0.06045543
+              ],
+              "R": [
+                [0, -0.8660254037844386, 0.5],
+                [0, -0.5, -0.8660254037844386],
+                [-1, 0, 0]
+              ]
+            },
+            {
+              "name": "distal_5",
+              "T": [
+                0.06955127,
+                0.02046633,
+                -0.06045543
+              ],
+              "R": [
+                [0, 0.8660254037844386, -0.5],
+                [0, -0.5, -0.8660254037844386],
+                [1, 0, 0]
+              ]
+            },
+            {
+              "name": "distal_6",
+              "T": [
+                0.01705127,
+                -0.07046633,
+                -0.06045543
+              ],
+              "R": [
+                [0, 0.8660254037844386, 0.5],
+                [0, -0.5, 0.8660254037844386],
+                [-1, 0, 0]
+              ]
             }
           ],
           "center_of_mass": [
@@ -518,7 +570,7 @@
             ]
           ],
           "type": "Rz",
-          "initial_displacement": 0.5,
+          "initial_displacement": -0.18808393901926798,
           "initial_velocity": 0.0
         },
         {
@@ -534,7 +586,7 @@
             ]
           ],
           "type": "Rz",
-          "initial_displacement": 0.5,
+          "initial_displacement": -0.18808393901926798,
           "initial_velocity": 0.0
         },
         {
@@ -550,7 +602,7 @@
             ]
           ],
           "type": "Rz",
-          "initial_displacement": 0.5,
+          "initial_displacement": -0.18808393901926798,
           "initial_velocity": 0.0
         },
         {
@@ -568,9 +620,9 @@
           "type": "spherical",
           "initial_displacement": {
             "R": [
-              [0, -1, 0],
-              [1, 0, 0],
-              [0, 0, 1]
+              [-0.76420563, 0.64497268,  0.0        ],
+                      [-0.64497268, -0.76420563,  0.0        ],
+                      [ 0.0        ,  0.0        ,  1.0        ]
             ]
           }
         },
@@ -589,10 +641,10 @@
           "type": "spherical",
           "initial_displacement": {
             "R": [
-                [0, 1, 0],
-                [-1, 0, 0],
-                [0, 0, 1]
-              ]
+              [-0.76420564, -0.64497267, 0.0],
+              [0.64497267, -0.76420564, 0.0],
+              [0.0, 0.0, 1.0]
+            ]
           }
         },
         {
@@ -608,7 +660,13 @@
             ]
           ],
           "type": "spherical",
-          "initial_displacement": 0.0,
+          "initial_displacement": {
+            "R": [
+              [-0.76420564, 0.64497267, 0.0],
+              [-0.64497267, -0.76420564, 0.0],
+              [0.0, 0.0, 1.0]
+            ]
+          },
           "initial_velocity": 0.0
         },
         {
@@ -624,7 +682,13 @@
             ]
           ],
           "type": "spherical",
-          "initial_displacement": 0.0,
+          "initial_displacement": {
+            "R": [
+              [-0.76420564, -0.64497267, 0.0],
+              [0.64497267, -0.76420564, 0.0],
+              [0.0, 0.0, 1.0]
+              ]
+          },
           "initial_velocity": 0.0
         },
         {
@@ -640,7 +704,13 @@
             ]
           ],
           "type": "spherical",
-          "initial_displacement": 0.0,
+          "initial_displacement": {
+            "R": [
+              [-0.76420564, 0.64497267, 0.0],
+              [-0.64497267, -0.76420564, 0.0],
+              [0.0, 0.0, 1.0]
+            ]
+          },
           "initial_velocity": 0.0
         },
         {
@@ -656,12 +726,18 @@
             ]
           ],
           "type": "spherical",
-          "initial_displacement": 0.0,
+          "initial_displacement": {
+            "R": [
+              [-0.76420564, -0.64497267, 0.0],
+              [0.64497267, -0.76420564, 0.0],
+              [0.0, 0.0, 1.0]
+            ]
+          },
           "initial_velocity": 0.0
         },
         {
           "name": "K_link_lower_1_end_effector",
-          "active": false,
+          "active": true,
           "body_frame_pairs": [
             [
               "link_lower_1",
@@ -673,11 +749,18 @@
             ]
           ],
           "type": "spherical",
-          "initial_displacement": 0.0,
+          "initial_displacement": {
+            "R": [
+              [-0.6301333, -0.77648698, 0.0],
+              [0.77648698, -0.6301333, 0.0],
+              [0.0,  0.0,  1.0]
+            ]
+          },
           "initial_velocity": 0.0
         },
         {
           "name": "L_link_lower_2_end_effector",
+          "active": false,
           "body_frame_pairs": [
             [
               "link_lower_2",
@@ -689,7 +772,105 @@
             ]
           ],
           "type": "spherical",
-          "initial_displacement": 0.0,
+          "initial_displacement": {
+            "R": [
+              [-0.6301333, 0.77648698, 0.0],
+              [-0.77648698, -0.6301333, 0.0],
+              [0.0,  0.0,  1.0]
+            ]
+          },
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "M_link_lower_3_end_effector",
+          "active": false,
+          "body_frame_pairs": [
+            [
+              "link_lower_3",
+              "distal"
+            ],
+            [
+              "end_effector",
+              "distal_3"
+            ]
+          ],
+          "type": "spherical",
+          "initial_displacement": {
+            "R": [
+              [-0.6301333, -0.77648698, 0.0],
+              [0.77648698, -0.6301333, 0.0],
+              [0.0,  0.0,  1.0]
+            ]
+          },
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "N_link_lower_4_end_effector",
+          "active": false,
+          "body_frame_pairs": [
+            [
+              "link_lower_4",
+              "distal"
+            ],
+            [
+              "end_effector",
+              "distal_4"
+            ]
+          ],
+          "type": "spherical",
+          "initial_displacement": {
+            "R": [
+              [-0.6301333, 0.77648698, 0.0],
+              [-0.77648698, -0.6301333, 0.0],
+              [0.0,  0.0,  1.0]
+            ]
+          },
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "O_link_lower_5_end_effector",
+          "active": false,
+          "body_frame_pairs": [
+            [
+              "link_lower_5",
+              "distal"
+            ],
+            [
+              "end_effector",
+              "distal_5"
+            ]
+          ],
+          "type": "spherical",
+          "initial_displacement": {
+            "R": [
+              [-0.6301333, -0.77648698, 0.0],
+              [0.77648698, -0.6301333, 0.0],
+              [0.0,  0.0,  1.0]
+            ]
+          },
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "P_link_lower_6_end_effector",
+          "active": false,
+          "body_frame_pairs": [
+            [
+              "link_lower_6",
+              "distal"
+            ],
+            [
+              "end_effector",
+              "distal_6"
+            ]
+          ],
+          "type": "spherical",
+          "initial_displacement": {
+            "R": [
+              [-0.6301333, 0.77648698, 0.0],
+              [-0.77648698, -0.6301333, 0.0],
+              [0.0,  0.0,  1.0]
+            ]
+          },
           "initial_velocity": 0.0
         }
       ]
