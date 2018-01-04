@@ -6978,8 +6978,8 @@ e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 & e_0^2-e_1^2-e_2^2+e_
 
 The Quaternion will be normalized during conversion.
 
-@param qi euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
-@param ro the resulting rotation matrix is stored in ro
+@param qi [in] euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
+@param ro [out] the resulting rotation matrix is stored in ro
 */
 void bksl_quaternion_toMat3x3(
   bksl_quaternion_t* __restrict__ qi,
@@ -6997,7 +6997,7 @@ void bksl_quaternion_toMat3x3(
   ro->m22 = (-x2 - y2 + z2 + w2);
 
   double tmp1 = qi->x * qi->y;
-  double tmp2 = qi->z * qi->y;
+  double tmp2 = qi->z * qi->w;
   ro->m10 = 2.0 * (tmp1 + tmp2);
   ro->m01 = 2.0 * (tmp1 - tmp2);
 
@@ -7045,7 +7045,7 @@ void bksl_quaternionf_toMat3x3f(
   ro->m22 = (-x2 - y2 + z2 + w2);
 
   float tmp1 = qi->x * qi->y;
-  float tmp2 = qi->z * qi->y;
+  float tmp2 = qi->z * qi->w;
   ro->m10 = 2.0 * (tmp1 + tmp2);
   ro->m01 = 2.0 * (tmp1 - tmp2);
 

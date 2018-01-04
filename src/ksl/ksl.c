@@ -7099,7 +7099,7 @@ void ksl_vec4_toMat3x3(
   ro->m22 = (-x2 - y2 + z2 + w2);
 
   double tmp1 = qi->x * qi->y;
-  double tmp2 = qi->z * qi->y;
+  double tmp2 = qi->z * qi->w;
   ro->m10 = 2.0 * (tmp1 + tmp2);
   ro->m01 = 2.0 * (tmp1 - tmp2);
 
