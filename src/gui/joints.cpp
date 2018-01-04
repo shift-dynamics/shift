@@ -38,7 +38,6 @@ void s2_Joints::update() {
         /* specify variable as independent and update the value in q array.
         Perform Newton-Raphson iteration with current variable as a
         specified coordinate */
-
         switch(m_moveType) {
           case S2_JOINT_TARGET: {
             if(m_counter > m_maxCount) {
