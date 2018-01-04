@@ -26,7 +26,6 @@
 
 class QSlider;
 
-
 typedef struct SliderHandle {
   QGroupBox* box;
   QSlider* slider;

@@ -6500,8 +6500,8 @@ This function would then prove more useful when continuous Euler
 Parameters are desired for interpolation purposes. Matrix R
 is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 
-@param ri a rotation matrix in a 9x1 column format
-@param qo the resulting euler parameters are stored in the 4x1 array, qo
+@param ri [in] a rotation matrix in a 9x1 column format
+@param qo [out] resulting euler parameters
 */
 void s2_mat3x3f_toQuaternion(
   s2_mat3x3f_t* ri,
@@ -6603,8 +6603,8 @@ e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 & e_0^2-e_1^2-e_2^2+e_
 
 The Quaternion will be normalized during conversion.
 
-@param qi euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
-@param ro the resulting rotation matrix is stored in ro
+@param qi [in] euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
+@param ro [out] the resulting rotation matrix is stored in ro
 */
 void s2_quaternion_toMat3x3(
   s2_quaternion_t* qi,
@@ -6622,7 +6622,7 @@ void s2_quaternion_toMat3x3(
   ro->m22 = (-x2 - y2 + z2 + w2);
 
   double tmp1 = qi->x * qi->y;
-  double tmp2 = qi->z * qi->y;
+  double tmp2 = qi->z * qi->w;
   ro->m10 = 2.0 * (tmp1 + tmp2);
   ro->m01 = 2.0 * (tmp1 - tmp2);
 

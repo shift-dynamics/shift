@@ -1735,13 +1735,6 @@ void s2_joint_spherical(
     &(dWRTReference->R),
     dChild);
 
-  printf("\nquaternion: %f %f %f %f\n", q->x, q->y, q->z, q->w);
-  printf("R: ");
-  s2_displacement_print(stdout, dWRTReference);
-  printf("dParent: ");
-  s2_displacement_print(stdout, dParent);
-  printf("dChild: ");
-  s2_displacement_print(stdout, dChild);
   s2_hrx(dChild, h);
   s2_hry(dChild, h + 1);
   s2_hrz(dChild, h + 2);
@@ -1850,10 +1843,8 @@ Updates displacement and influence coefficient matrices
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
-@todo add sphericalinverse
 */
-void s2_joint_sphericalinverse(
-  void** dhva) {
+void s2_joint_sphericalinverse(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   s2_quaternion_t* q = dhva[1];
@@ -2240,7 +2231,6 @@ int s2_joint_load(
       break;
     }
     case S2_JOINT_SPHERICAL: {
-
       json_t* initialValueObj =
         json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
