@@ -367,8 +367,22 @@ void s2_vector_print(
   s2_vector_t* ti) {
 
   fprintf(f, "%f %f %f\n", ti->x, ti->y, ti->z);
-
 }
+
+
+/*!
+@brief Utility to print a quaternion
+
+quaternion is printed following the x,y,z,w convention
+
+@param f [in] file pointer to direct output to
+@param q [in] quaternion to print
+*/
+void s2_quaternion_print(FILE* f, s2_quaternion_t* q) {
+  fprintf(f, "%f %f %f %f\n", q->x, q->y, q->z, q->w);
+}
+
+
 
 /*!
 @brief Utility to print a 6x1 screw vector
@@ -7326,12 +7340,27 @@ void s2_subtract_dpiFromq(
   s2_vector_t* dpi,
   s2_quaternion_t* qi) {
 
+  /*
+  qi -= 1/2 * L_c(e_{ij} d\underline{\pi}_{ij}^j)
+
+  qi -= 1 / 2 * [ e_w  -e_z   e_y] [dpi_x]
+                [ e_z   e_w  -e_x] [dpi_y]
+                [-e_y   e_x   e_w] [dpi_z]
+                [-e_x  -e_y  -e_z]
+  */
+
+  /* dq \leftarrow L_c(e_{ij} d\underline{\pi}_{ij}^j) */
   s2_quaternion_t dq;
-  dq.x = -qi->w * dpi->x + qi->z * dpi->y - qi->y * dpi->z;
-  dq.y = -qi->z * dpi->x - qi->w * dpi->y + qi->x * dpi->z;
-  dq.z = qi->y * dpi->x - qi->x * dpi->y - qi->w * dpi->z;
+  dq.x =  qi->w * dpi->x - qi->z * dpi->y + qi->y * dpi->z;
+  dq.y =  qi->z * dpi->x + qi->w * dpi->y - qi->x * dpi->z;
+  dq.z = -qi->y * dpi->x + qi->x * dpi->y + qi->w * dpi->z;
   dq.w = -qi->x * dpi->x - qi->y * dpi->y - qi->z * dpi->z;
-  cblas_daxpy(4, -0.5, (double*)&dq, 1, (double*)qi, 1);
+
+  /* qi -= 1/2 * dq */
+  qi->x -= 0.5 * dq.x;
+  qi->y -= 0.5 * dq.y;
+  qi->z -= 0.5 * dq.z;
+  qi->w -= 0.5 * dq.w;
 }
 
 

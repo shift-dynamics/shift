@@ -760,7 +760,7 @@
         },
         {
           "name": "L_link_lower_2_end_effector",
-          "active": false,
+          "active": true,
           "body_frame_pairs": [
             [
               "link_lower_2",
@@ -783,7 +783,7 @@
         },
         {
           "name": "M_link_lower_3_end_effector",
-          "active": false,
+          "active": true,
           "body_frame_pairs": [
             [
               "link_lower_3",
@@ -806,7 +806,7 @@
         },
         {
           "name": "N_link_lower_4_end_effector",
-          "active": false,
+          "active": true,
           "body_frame_pairs": [
             [
               "link_lower_4",
@@ -829,7 +829,7 @@
         },
         {
           "name": "O_link_lower_5_end_effector",
-          "active": false,
+          "active": true,
           "body_frame_pairs": [
             [
               "link_lower_5",
@@ -852,7 +852,7 @@
         },
         {
           "name": "P_link_lower_6_end_effector",
-          "active": false,
+          "active": true,
           "body_frame_pairs": [
             [
               "link_lower_6",

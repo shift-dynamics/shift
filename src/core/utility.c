@@ -438,46 +438,48 @@ int  s2_displacementf_copyBack(
 
 
 /*!
-@brief Copies data by value from a rotation matrix and translation vector
-to a 12*1 array
+@brief Copies data by value from a double precision screw at specified location to index within an array of screws and updates original pointer
 
 Frees memory at old location and updates pointer address to point to new
 location.
 
-@param Di a 12 x 1 displacement
-@param Do Di is copied by value to Do, Di is updated to point to the address of Do
-@param d a 12x1 vector
+@param Si a pointer to a screw quantity
+@param number of screws in array
+@param new location of screw within array
 */
-int  s2_screw_copyUpdate(
+int s2_screw_copyUpdate(
+  int count,
   s2_screw_t** Si,
   s2_screw_t* So) {
 
-  cblas_dcopy(6, (double*)*Si, 1, (double*)So, 1);
+  memcpy(So, *Si, count * sizeof(s2_screw_t));
   free(*Si);
   *Si = So;
   return 0;
 }
 
+
 /*!
-@brief Copies data by value from a rotation matrix and translation vector
-to a 12*1 array
+@brief Copies data by value from a double precision screw at specified location to index within an array of screws and updates original pointer
 
 Frees memory at old location and updates pointer address to point to new
 location.
 
-@param Di a 12 x 1 displacement
-@param Do Di is copied by value to Do, Di is updated to point to the address of Do
-@param d a 12x1 vector
+@param Si a pointer to a screw quantity
+@param number of screws in array
+@param new location of screw within array
 */
-int s2_screwf_copyUpdate(
+int  s2_screwf_copyUpdate(
+  int count,
   s2_screwf_t** Si,
   s2_screwf_t* So) {
 
-  cblas_scopy(6, (float*)*Si, 1, (float*)So, 1);
+  memcpy(So, *Si, count * sizeof(s2_screwf_t));
   free(*Si);
   *Si = So;
   return 0;
 }
+
 
 /*!
 @brief Copies data by value from a rotation matrix and translation vector
