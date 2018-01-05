@@ -127,7 +127,7 @@ s2_joint_t* s2_joint(
       joint->velocityRelative = s2_screw();
       joint->accelerationQuadraticRelative = s2_screw();
 
-      joint->h = malloc(3 * sizeof(s2_screw_t));
+      joint->h = calloc(3, sizeof(s2_screw_t));
       break;
     }
     case S2_JOINT_FLOAT: {
@@ -150,7 +150,7 @@ s2_joint_t* s2_joint(
       joint->velocityRelative = s2_screw();
       joint->accelerationQuadraticRelative = s2_screw();
 
-      joint->h = malloc(6 * sizeof(s2_screw_t));
+      joint->h = calloc(6, sizeof(s2_screw_t));
       break;
     }
     case S2_JOINT_INVALID:

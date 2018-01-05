@@ -1942,6 +1942,7 @@ int topology_joint_copyUpdate(
 
       /* h */
       s2_screw_copyUpdate(
+        1,
         &(joint->h),
         context->h + joint->dqIndex);
 
@@ -1983,6 +1984,7 @@ int topology_joint_copyUpdate(
 
       /* h */
       s2_screw_copyUpdate(
+        1,
         &(joint->h),
         context->h + joint->dqIndex);
 
@@ -2007,10 +2009,10 @@ int topology_joint_copyUpdate(
 
       /* process terms that use dqindex */
       /* h */
-      s2_array_copyUpdate(
-        18,
-        (double**) &(joint->h),
-        (double*)(context->h + joint->dqIndex));
+      s2_screw_copyUpdate(
+        3,
+        &(joint->h),
+        context->h + joint->dqIndex);
 
       /* dq */
       s2_array_copyUpdate(
@@ -2037,10 +2039,10 @@ int topology_joint_copyUpdate(
       */
 
       /* h */
-      s2_array_copyUpdate(
-        36,
-        (double**) & (joint->h),
-        (double*)(context->h + joint->dqIndex));
+      s2_screw_copyUpdate(
+        6,
+        &(joint->h),
+        context->h + joint->dqIndex);
 
       /* dq */
       s2_array_copyUpdate(
@@ -2322,12 +2324,14 @@ void topology_copyUpdateVA(
   /* copyUpdate velocity */
   fixed->velocityAbsolute = s2_screw();
   s2_screw_copyUpdate(
+    1,
     &fixed->velocityAbsolute,
     context->v);
 
   /* copyUpdate acceleration Quadratic absolute (gamma) */
   fixed->accelerationQuadraticAbsolute = s2_screw();
   s2_screw_copyUpdate(
+    1,
     &fixed->accelerationQuadraticAbsolute,
     context->aq);
 
@@ -2355,11 +2359,13 @@ void topology_copyUpdateVA(
     } else {
       body->referenceFrame->velocityAbsolute = s2_screw();
       s2_screw_copyUpdate(
+        1,
         &body->referenceFrame->velocityAbsolute,
         context->v + body->referenceFrame->vaIndex);
 
       body->referenceFrame->accelerationQuadraticAbsolute = s2_screw();
       s2_screw_copyUpdate(
+        1,
         &body->referenceFrame->accelerationQuadraticAbsolute,
         context->aq + body->referenceFrame->vaIndex);
     }

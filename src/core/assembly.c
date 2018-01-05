@@ -187,9 +187,31 @@ void s2_assembly_printJoints(
       fprintf(f, "\t\tprimitiveDisplacement: %0.16f\n",
               *(jointHead->primitiveDisplacement));
     }
+    int offset = 0;
     if(jointHead->h) {
       fprintf(f, "\t\th: ");
-      s2_screw_print(f, jointHead->h);
+      switch(jointHead->jointType) {
+        case S2_JOINT_FLOAT: {
+          s2_screw_print(f, jointHead->h + offset++);
+          fprintf(f, "\t\t   ");
+          s2_screw_print(f, jointHead->h + offset++);
+          fprintf(f, "\t\t   ");
+          s2_screw_print(f, jointHead->h + offset++);
+          /* fall through */
+        }
+        case S2_JOINT_SPHERICAL: {
+          s2_screw_print(f, jointHead->h + offset++);
+          fprintf(f, "\t\t   ");
+          s2_screw_print(f, jointHead->h + offset++);
+          fprintf(f, "\t\t   ");
+          s2_screw_print(f, jointHead->h + offset++);
+          break;
+        }
+        default: {
+          s2_screw_print(f, jointHead->h);
+          break;
+        }
+      }
     }
     jointHead = jointHead->next;
   }

@@ -156,54 +156,48 @@ void s2_newtonRaphson_updateq(
 
   s2_substructure_t* substructure =
     context->substructures + substructureIndex;
-  // printf("  deltaq: ");
-  // s2_array_print(substructure->dqCount, substructure->deltaq);
-  // for(int i = 0; i < substructure->dqCount; i++) {
-  //   printf("%e ", substructure->deltaq[i]);
-  // }
-  // printf("\n");
+  printf("  deltaq [%d]: ", substructureIndex);
+  for(int i = 0; i < substructure->dqCount; i++) {
+    printf("%e ", substructure->deltaq[i]);
+  }
+  printf("\n");
 
   int dqIndex = substructure->dqOffset;
   int qIndex = substructure->qOffset;
   for(int j = 1; j < context->substructureMembersCount[substructureIndex]; j++) {
-
     switch(
       context->jointPointers[
      context->substructureMembers[substructureIndex][j]]->jointType) {
       case S2_JOINT_FLOAT: {
-        /* take 6 entries at position dqIndex, expand to 7 entries and
-           store at position dqIndex */
-        cblas_daxpy(3, -1, context->deltaq + dqIndex, 1, context->q + qIndex, 1);
-        s2_subtract_dpiFromq(
-          (s2_vector_t*)(context->deltaq + dqIndex + 3),
-          (s2_quaternion_t*)(context->q + qIndex + 3));
-        s2_quaternion_normalize(
-          (s2_quaternion_t*)(context->q + qIndex + 3));
-        qIndex += 7;
-        dqIndex += 6;
-
-        /* store 4 terms deltaq at substructure->deltaq[qIndex + 3]
-          take 3 terms from substructure->deltaq[dqIndex + 3] */
+        context->q[qIndex++] -= context->deltaq[dqIndex++];
+        context->q[qIndex++] -= context->deltaq[dqIndex++];
+        context->q[qIndex++] -= context->deltaq[dqIndex++];
+        /* no break here, falls through to spherical case to process
+        rotational dof */
       }
-      break;
       case S2_JOINT_SPHERICAL: {
-        /* take 6 entries at position dqIndex, expand to 7 entries and
-            store at position dqIndex */
+        /* store 4 terms deltaq at substructure->deltaq[qIndex]
+          take 3 terms from substructure->deltaq[dqIndex] */
+        printf("[%d] processing spherical joint in newton raphson: \n  ", j);
+        s2_stackstr_print(stdout, context->jointPointers[
+       context->substructureMembers[substructureIndex][j]]->name);
+       printf("deltaq: ");
+       s2_vector_print(stdout, (s2_vector_t*)(context->deltaq + dqIndex));
+       printf("qi: ");
+       s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
+
         s2_subtract_dpiFromq(
           (s2_vector_t*)(context->deltaq + dqIndex),
           (s2_quaternion_t*)(context->q + qIndex));
         s2_quaternion_normalize((s2_quaternion_t*)(context->q + qIndex));
         qIndex += 4;
         dqIndex += 3;
-
-        /* store 4 terms deltaq at substructure->deltaq[qIndex]
-          take 3 terms from substructure->deltaq[dqIndex] */
+        break;
       }
-      break;
       default: {
         context->q[qIndex++] -= context->deltaq[dqIndex++];
+        break;
       }
-      break;
     }
   }
 }
@@ -227,27 +221,55 @@ int s2_newtonRaphson_removeConstraintViolations_substructure(
   error = sqrt(cs[] . cs[]) / constraintEquationCount
   < eps when converged.
   */
-  int maxStep = 100;
+  int maxStep = 3;
 
-  s2_substructure_t* substructure =
-    context->substructures + substructureIndex;
+  s2_substructure_t* substructure = context->substructures + substructureIndex;
+
+  printf(
+    "initial constraint error for substructure[%d], (PO1): ", substructureIndex);
+  s2_array_print(stdout,
+    substructure->constraintEquationCount,
+    substructure->cs);
 
   s2_updateDH(context);
 
   // FILE* debug = context->modelParameters->debugFilePointer;
   // fprintf(debug, "\nq before NR for substructure [%d]:\n", substructureIndex);
   //
-  // for(int i = 0; i < substructure->qCount; i++) {
-  //   int jointIndex = i + substructure->qOffset;
-  //   fprintf(debug, "[%d] ", jointIndex);
-  //   fprintf(debug, " % 0.12g ", context->q[jointIndex]);
-  //   s2_stackstr_print(
-  //     debug,
-  //     context->jointPointers[jointIndex]->name);
-  // }
-  // s2_array_print(context->qCount, context->q);
+  printf("jointCount: %d\n", substructure->jointCount);
+  for(int i = 1; i < substructure->jointCount; i++) {
+    int jointIndex = i + substructure->jointOffset;
+    int qOffset = substructure->qOffset;
 
-  // fprintf(debug, "   qOffset: %d\n", substructure->qOffset);
+    s2_joint_t* joint = context->jointPointers[jointIndex];
+    int count;
+    switch(joint->jointType) {
+      case S2_JOINT_RIGID: {
+        count = 0;
+        break;
+      }
+      case S2_JOINT_FLOAT: {
+        count = 7;
+        break;
+      }
+      case S2_JOINT_SPHERICAL: {
+        count = 4;
+        break;
+      } default: {
+        count = 1;
+        break;
+      }
+    }
+    fprintf(stdout, "[%d] ", jointIndex);
+    s2_stackstr_print(stdout, joint->name);
+    for(int i = 0; i < count; i++) {
+      fprintf(stdout, " % 0.12g ", context->q[qOffset++]);
+    }
+    printf("\n");
+  }
+  s2_array_print(stdout, context->qCount, context->q);
+
+  fprintf(stdout, "   qOffset: %d\n", substructure->qOffset);
 
   s2_jacobian_evaluateConstraints_substructure(context, substructure);
 
@@ -334,35 +356,22 @@ int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
   int substructureIndex,
   bool useTightTolerance) {
 
-  s2_substructure_t* substructure =
-    context->substructures + substructureIndex;
+  s2_substructure_t* substructure = context->substructures + substructureIndex;
 
   // exit(1);
   // printf("  q before NR for substructure [%d]: ", substructureIndex);
   // s2_array_print(context->qCount, context->q);
-
-  // printf("cs (PO1): ");
-  // s2_array_print(
-  //   substructure->constraintEquationCount,
-  //   substructure->cs);
 
   s2_updateDH(context);
 
   // printf("  q before NR for substructure [%d]: ", substructureIndex);
   // s2_array_print(context->qCount, context->q);
 
-  s2_jacobian_evaluateConstraints_substructure(
-    context,
-    substructure);
+  s2_jacobian_evaluateConstraints_substructure(context, substructure);
 
-  // printf("cs (PO1): ");
-  // s2_array_print(
-  //   substructure->constraintEquationCount,
-  //   substructure->cs);
-
-  // printf(
-  //   "initial error: %f\n", s2_newtonRaphson_evaluateConstraintError_substructure(
-  //     substructure));
+  printf(
+    "initial error: %f\n", s2_newtonRaphson_evaluateConstraintError_substructure(
+      substructure));
 
   double initialError =
     s2_newtonRaphson_evaluateConstraintError_substructure(substructure);
@@ -389,8 +398,7 @@ int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
   //   true,
   //   substructure->J);
 
-  s2_jacobian_factorPO2_substructure(
-    substructure);
+  s2_jacobian_factorPO2_substructure(substructure);
 
   // printf("factored jacobian:\n");
   // s2_array_print2D(
@@ -399,9 +407,7 @@ int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
   //   true,
   //   substructure->J);
 
-  s2_jacobian_evaluateConstraints_substructure(
-    context,
-    substructure);
+  s2_jacobian_evaluateConstraints_substructure(context, substructure);
 
   while(error > tol && step < maxStep) {
     s2_newtonRaphson_solver(context, substructureIndex);
@@ -414,8 +420,7 @@ int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
     s2_jacobian_evaluateConstraints_substructure(
       context,
       substructure);
-    error = s2_newtonRaphson_evaluateConstraintError_substructure(
-              substructure);
+    error = s2_newtonRaphson_evaluateConstraintError_substructure(substructure);
     // s2_jacobian_setPO2_substructure(
     //   context, substructureIndex);
     //
