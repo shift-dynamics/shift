@@ -34,8 +34,6 @@ int main(int argc, char* argv[]) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 
-  // printf("\n# printing context\n");
-  // s2_context_print(context);
 
 
   // fprintf(debug, "\n# processing topology\n");
@@ -51,8 +49,12 @@ int main(int argc, char* argv[]) {
   s2_jacobian_setPO1(context);
   // s2_jacobian_print(debug, context);
 
+
+    printf("\n# printing context\n");
+    s2_context_print(stdout, context);
+    
   // printf("\n## creating graph\n");
-  // s2_graph_digraph(context, "digraph_bodies.png");
+  s2_graph_digraph(context, "digraph_bodies.png");
   // s2_graph_digraphFrames(context, "digraph_frames.png");
 
   // printf("verifying dq arrays in substructures:\n");

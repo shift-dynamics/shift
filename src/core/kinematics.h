@@ -296,6 +296,10 @@ void s2_vector_print(
   FILE* f,
   s2_vector_t* v);
 
+void s2_quaternion_print(
+  FILE* f,
+  s2_quaternion_t* q);
+    
 void s2_screw_print(
   FILE* f,
   s2_screw_t* s);

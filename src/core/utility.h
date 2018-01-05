@@ -92,10 +92,12 @@ int s2_displacementf_copyBack(
   s2_displacementf_t** Do);
 
 int s2_screw_copyUpdate(
+  int count,
   s2_screw_t** Si,
   s2_screw_t* So);
 
 int s2_screwf_copyUpdate(
+  int count,
   s2_screwf_t** Si,
   s2_screwf_t* So);
 
