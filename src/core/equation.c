@@ -34,8 +34,7 @@ SUCH DAMAGE.
 /*!
   @brief initializes quantities needed to solve system of equations
 */
-void s2_equation_initializeEquations(
-  s2_context_t* context) {
+void s2_context_initializeEquations(s2_context_t* context) {
 
   s2_context_initializeInertia(context);
   if(context->mhProduct) {
@@ -67,12 +66,12 @@ void s2_equation_initializeEquations(
   }
   context->la =
     calloc(context->dqCount, sizeof(double));
-  s2_newtonRaphson_removeConstraintViolations(context);
-  s2_jacobian_analyze(context);
-  s2_updateDHVA(context);
-  s2_equation_setEquations(context);
-  s2_memoize_memoizeEquations(context);
-  s2_restraint_memoize(context);
+  s2_context_removeConstraintViolations(context);
+  s2_context_analyzeJacobian(context);
+  s2_context_updateDHVA(context);
+  s2_context_setEquations(context);
+  s2_context_memoizeEquations(context);
+  s2_context_memoizeRestraints(context);
 }
 
 
@@ -87,11 +86,10 @@ void s2_equation_initializeEquations(
 
   setRHS must be called before setMassMatrix
 */
-void s2_equation_setRHS(
-  s2_context_t* context) {
+void s2_context_setRHS(s2_context_t* context) {
 
-  s2_updateDHVA(context);
-  s2_jacobian_evaluateConstraints(context);
+  s2_context_updateDHVA(context);
+  s2_context_evaluateConstraints(context);
 
   /* g and f are cleared in s2_service_setForces in service.c */
   memset(context->fl, 0, context->dqCount * sizeof(double));
@@ -108,13 +106,9 @@ void s2_equation_setRHS(
   memset(context->inertiaP, 0, (context->dqCount + 1) * sizeof(s2_inertia_t));
   s2_inertia_t* inertiaP = context->inertiaP + 1;
 
-
-
   for(int i = 0; i < context->nonRigidJointCount; i++) {
     // printf("i: %d\n", i);
-
     if(context->hasMass[i]) {
-
       // printf("transforming from i=%d to %d\n", i, context->dqLookupCompressed[i]);
 
       s2_inertia_transform(
@@ -334,13 +328,9 @@ void s2_equation_setRHS(
     */
   }
 
-  /*
-    evaluate primary constraints (\bar{\gamma}_p) in PO(1), store in PO(2)
-  */
-  double baumgarte2OmegaN =
-    context->modelParameters.baumgarte2OmegaN;
-  double baumgarteOmegaN2 =
-    context->modelParameters.baumgarteOmegaN2;
+  /* evaluate primary constraints (\bar{\gamma}_p) in PO(1), store in PO(2) */
+  double baumgarte2OmegaN = context->modelParameters.baumgarte2OmegaN;
+  double baumgarteOmegaN2 = context->modelParameters.baumgarteOmegaN2;
 
   switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113B: {
@@ -352,11 +342,11 @@ void s2_equation_setRHS(
         baumgarteOmegaN2 = numericalIntegrator->baumgarteOmegaN2;
 
       }
+      break;
     }
-    break;
     default: {
-
-    } break;
+      break;
+    }
   }
 
   int chordConstraintOffset = 0;
@@ -374,8 +364,6 @@ void s2_equation_setRHS(
 
       // FILE* debug = context->modelParameters->debugFilePointer;
       // fprintf(debug, "\n   [%d]\n", chordConstraintOffset);
-
-
 
       // printf(
       //   "constraints[chordConstraintOffset][1]: %d\n", context->constraints[chordConstraintOffset][1]);
@@ -487,16 +475,13 @@ void s2_equation_setRHS(
             prInverse = pr_21
             pr = p12
           */
-          context->gamma_d[
-          offset + substructure->pr_21[k * 6 + l]] =
-
-              /* 0 is the index of the velocity of the child (-) side */
-              ((double*)(context->aq +
-                         context->constraints[chordConstraintOffset][0]))[l] -
-
-              /* 1 is the index of the velocity of the parent (+) side */
-              ((double*)(context->aq +
-                         context->constraints[chordConstraintOffset][1]))[l];
+          context->gamma_d[offset + substructure->pr_21[k * 6 + l]] =
+            /* 0 is the index of the velocity of the child (-) side */
+            ((double*)(context->aq +
+                       context->constraints[chordConstraintOffset][0]))[l] -
+            /* 1 is the index of the velocity of the parent (+) side */
+            ((double*)(context->aq +
+                       context->constraints[chordConstraintOffset][1]))[l];
         }
       }
 
@@ -517,14 +502,11 @@ void s2_equation_setRHS(
           constraint stabilization */
           context->gamma_d[
           offset + substructure->pr_21[k * 6 + l]] -=
-
-              baumgarte2OmegaN *
-
-              (((double*)(context->v +
-                          context->constraints[chordConstraintOffset][1]))[l] -
-
-               ((double*)(context->v +
-                          context->constraints[chordConstraintOffset][0]))[l]);
+            baumgarte2OmegaN *
+            (((double*)(context->v +
+                        context->constraints[chordConstraintOffset][1]))[l] -
+             ((double*)(context->v +
+                        context->constraints[chordConstraintOffset][0]))[l]);
         }
       }
 
@@ -996,8 +978,7 @@ void s2_inertia_print2Reference(
 @brief evaluate generalized mass matrix
 
 */
-void s2_equation_setMassMatrix(
-  s2_context_t* context) {
+void s2_context_setMassMatrix(s2_context_t* context) {
 
   memset(context->mhProduct, 0, context->dqCount * sizeof(s2_screw_t));
   memset(context->Ml, 0, context->Ml_size * sizeof(double));
@@ -1237,9 +1218,7 @@ void s2_equation_setMassMatrix(
 @brief convert angular velocities to time derivative of quaternions
 copy by value other terms from dq to dY array
 */
-void s2_equation_dq_to_dy(
-  s2_context_t* context,
-  double* dy) {
+void s2_context_dqTody(s2_context_t* context, double* dy) {
 
   /*
     convert angular velocities to time derivative of quaternions
@@ -1265,8 +1244,7 @@ void s2_equation_dq_to_dy(
   @brief evaluates Jacobians in PO2, factors Jacobian in PO2, sets mass matrix
   and RHS in PO3.
 */
-void s2_equation_setEquations(
-  s2_context_t* context) {
+void s2_context_setEquations(s2_context_t* context) {
 
   /* save a copy of the Jacobian to Js for
   comparison */
@@ -1275,7 +1253,7 @@ void s2_equation_setEquations(
     context->J,
     context->jacobianSize * sizeof(double));
 
-  s2_jacobian_setPO2(context);
+  s2_context_setJacobianPO2(context);
 
   // FILE* debug = context->modelParameters->debugFilePointer;
   // printf("\nJacobian after setPO2:\n");
@@ -1288,7 +1266,7 @@ void s2_equation_setEquations(
   //     true,
   //     substructure->J);
   // }
-  s2_jacobian_factorPO2(context);
+  s2_context_factorJacobianPO2(context);
 
   // printf("\nJacobian after factorPO2:\n");
   // for(int i = 0; i < context->substructureCount; i++) {
@@ -1313,7 +1291,7 @@ void s2_equation_setEquations(
   //   printf("\n");
   // }
 
-  s2_jacobian_setBMatrixSparse(context);
+  s2_context_setBMatrixSparse(context);
 
 
 
@@ -1342,7 +1320,7 @@ void s2_equation_setEquations(
   // }
 
   // printf("infinity norm b check in setEquations\n");
-  int returnVal = s2_jacobian_infinityNormBCheck(context);
+  int returnVal = s2_context_infinityNormBCheck(context);
   if(returnVal) {
     switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
@@ -1362,8 +1340,8 @@ void s2_equation_setEquations(
 
   // printf("setBMmatrixSparse from s2_setEquatons\n");
 
-  s2_equation_setRHS(context);
-  s2_equation_setMassMatrix(context);
+  s2_context_setRHS(context);
+  s2_context_setMassMatrix(context);
 }
 
 
@@ -1373,8 +1351,7 @@ pointer arrays set up in memoize.c
 
 This algorithm is intended to be called after s2_equation_memoize()
 */
-void s2_equation_factorAndSolve(
-  s2_context_t* context) {
+void s2_context_factorAndSolve(s2_context_t* context) {
 
   // printf("ddq on entering s2_equation_factorAndSolve:\n");
   // s2_array_print(context->dqCount, context->ddq);
@@ -1424,20 +1401,17 @@ void s2_equation_factorAndSolve(
       }
       // Perform mass projections with one assignment statement.
       for(int j = 0; j < context->n3[ni]; j++) {
-        // Update Schur-complement matrix: M[] -= M[] * M[];
+        /* Update Schur-complement matrix: M[] -= M[] * M[]; */
         *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
         p2 += 3;
       }
       ni++;
     }
   }
-
   nd = 0;
   ni = 0;
 
-  /*
-    Backward elimination
-  */
+  /* Backward elimination */
   for(int i = context->dqCount - 1; i > -1; i--) {
     if(context->isDependentPO3[i]) {
       for(int j = 0; j < context->p1[nd]; j++) {

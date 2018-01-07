@@ -147,17 +147,13 @@ typedef struct s2_numericalintegrator_ode113b_t {
 } s2_numericalintegrator_ode113b_t;
 
 
-void s2_ode113b_allocate(
-  s2_context_t* context);
+void s2_context_allocOde113b(s2_context_t*);
 
 
-void s2_ode113b_free(
-  s2_context_t* context);
+void s2_context_freeOde113b(s2_context_t*);
 
 
-void s2_ode113b_fcn(
-  double y[],
-  s2_context_t* context);
+void s2_ode113b_fcn(double y[], s2_context_t*);
 
 
 void s2_ode113b_step(
@@ -170,7 +166,6 @@ void s2_ode113b_de(
   s2_context_t* context);
 
 
-void s2_ode113b_integrateEquations(
-  s2_context_t* context);
+void s2_context_integrateEquationsOde113b(s2_context_t* context);
 
 #endif

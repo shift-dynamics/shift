@@ -22,6 +22,7 @@ SUCH DAMAGE.
 
 #include <stdbool.h>
 
+typedef struct s2_context_t s2_context_t;
 /*!
 @brief Defines properties related to kinematic substructure or module
 
@@ -92,6 +93,8 @@ typedef struct s2_substructure_t {
   double* deltaq; /*!< pointer to start of array in global deltaq, used in
                        newton raphson iteration */
 
+  s2_context_t* context; /*!< pointer to context that substructure
+                              is a member of */
 } s2_substructure_t;
 
 s2_substructure_t* s2_substructure();

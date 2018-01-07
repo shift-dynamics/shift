@@ -454,7 +454,7 @@ int main(int argc, char* argv[]) {
   // s2_context_print(debug, context);
 
   /* find current position of end effector */
-  s2_updateDH(context);
+  s2_context_updateDH(context);
   s2_frame_t* endEffectorFrame =
     s2_context_getFrameByName(context, "body7", "7h_plus");
 

@@ -2194,7 +2194,7 @@ void Workspace::onclickTx() {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.tx.substructureIndex != -1) {
-        s2_newtonRaphson_setup_specified(
+        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
           m_context,
           m_sliders.tx.substructureIndex,
           m_sliders.tx.dqIndex);
@@ -2218,7 +2218,7 @@ void Workspace::onclickTy() {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.ty.substructureIndex != -1) {
-        s2_newtonRaphson_setup_specified(
+        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
           m_context,
           m_sliders.ty.substructureIndex,
           m_sliders.ty.dqIndex);
@@ -2242,7 +2242,7 @@ void Workspace::onclickTz() {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.tz.substructureIndex != -1) {
-        s2_newtonRaphson_setup_specified(
+        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
           m_context,
           m_sliders.tz.substructureIndex,
           m_sliders.tz.dqIndex);
@@ -2267,7 +2267,7 @@ void Workspace::onclickRx() {
       /* drive constraint error to zero before subsecquent fast factorization */
       qDebug() << "initialize rx slider";
       if(m_sliders.rx.substructureIndex != -1) {
-        s2_newtonRaphson_setup_specified(
+        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
           m_context,
           m_sliders.rx.substructureIndex,
           m_sliders.rx.dqIndex);
@@ -2291,7 +2291,7 @@ void Workspace::onclickRy() {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.ry.substructureIndex != -1) {
-        s2_newtonRaphson_setup_specified(
+        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
           m_context,
           m_sliders.ry.substructureIndex,
           m_sliders.ry.dqIndex);
@@ -2315,7 +2315,7 @@ void Workspace::onclickRz() {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.rz.substructureIndex != -1) {
-        s2_newtonRaphson_setup_specified(
+        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
           m_context,
           m_sliders.rz.substructureIndex,
           m_sliders.rz.dqIndex);
@@ -3231,7 +3231,7 @@ void Workspace::openFileAtLoad() {
     if(m_context) {
       FILE* debug = m_context->modelParameters.debugFilePointer;
       s2_context_initializeJacobian(m_context);
-      s2_jacobian_evaluateConstraints(m_context);
+      s2_context_evaluateConstraints(m_context);
 
       /* print bodies */
       for(int i = 0; i < m_context->activeJointCount; i++) {
@@ -3256,8 +3256,7 @@ void Workspace::openFileAtLoad() {
 
       for(int i = 0; i < m_context->substructureCount; i++) {
         s2_substructure_t* substructure = m_context->substructures + i;
-        double error =
-          s2_newtonRaphson_evaluateConstraintError_substructure(substructure);
+        double error = s2_substructure_evaluateConstraintError(substructure);
         fprintf(debug, "constraint violations before load: %0.16e\n", error);
       }
 
@@ -3305,20 +3304,20 @@ void Workspace::openFileAtLoad() {
       //   }
       // }
 
-      s2_newtonRaphson_removeConstraintViolations(m_context);
+      s2_context_removeConstraintViolations(m_context);
       for(int i = 0; i < m_context->substructureCount; i++) {
         s2_substructure_t* substructure = m_context->substructures + i;
         double error =
-          s2_newtonRaphson_evaluateConstraintError_substructure(substructure);
+          s2_substructure_evaluateConstraintError(substructure);
         printf("constraint violations after Newton-Raphson at load: %g\n", error);
       }
 
-      s2_updateDH(m_context);
-      s2_jacobian_setPO1(m_context);
+      s2_context_updateDH(m_context);
+      s2_context_setJacobianPO1(m_context);
 
-      s2_mobility_initialize(m_context);
-      s2_mobility_compute(m_context);
-      s2_mobility_print(debug, m_context);
+      s2_context_initializeMobility(m_context);
+      s2_context_computeMobility(m_context);
+      s2_context_printMobility(debug, m_context);
 
       for(int i = 0; i < m_context->activeJointCount; i++) {
         fprintf(
@@ -3391,7 +3390,7 @@ void Workspace::openFile() {
   if(m_context) {
     FILE* debug = m_context->modelParameters.debugFilePointer;
     s2_context_initializeJacobian(m_context);
-    s2_jacobian_evaluateConstraints(m_context);
+    s2_context_evaluateConstraints(m_context);
 
     /* print bodies */
     for(int i = 0; i < m_context->activeJointCount; i++) {
@@ -3415,8 +3414,7 @@ void Workspace::openFile() {
 
     for(int i = 0; i < m_context->substructureCount; i++) {
       s2_substructure_t* substructure = m_context->substructures + i;
-      double error =
-        s2_newtonRaphson_evaluateConstraintError_substructure(substructure);
+      double error = s2_substructure_evaluateConstraintError(substructure);
       fprintf(debug, "constraint violations before load: %0.16e\n", error);
     }
 
@@ -3464,20 +3462,19 @@ void Workspace::openFile() {
     //   }
     // }
 
-    s2_newtonRaphson_removeConstraintViolations(m_context);
+    s2_context_removeConstraintViolations(m_context);
     for(int i = 0; i < m_context->substructureCount; i++) {
       s2_substructure_t* substructure = m_context->substructures + i;
-      double error =
-        s2_newtonRaphson_evaluateConstraintError_substructure(substructure);
+      double error = s2_substructure_evaluateConstraintError(substructure);
       printf("constraint violations after Newton-Raphson at load: %g\n", error);
     }
 
-    s2_updateDH(m_context);
-    s2_jacobian_setPO1(m_context);
+    s2_context_updateDH(m_context);
+    s2_context_setJacobianPO1(m_context);
 
-    s2_mobility_initialize(m_context);
-    s2_mobility_compute(m_context);
-    s2_mobility_print(debug, m_context);
+    s2_context_initializeMobility(m_context);
+    s2_context_computeMobility(m_context);
+    s2_context_printMobility(debug, m_context);
 
     for(int i = 0; i < m_context->activeJointCount; i++) {
       if(m_context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
@@ -3524,7 +3521,7 @@ void Workspace::openFile() {
 
 /*!
 @brief write line of joint variables and mobility numbers to m_mobilityFile,
-called after s2_mobility_compute
+called after s2_context_computeMobility
 */
 void Workspace::writeMobility() {
 
@@ -4446,12 +4443,12 @@ void Workspace::runSimulation() {
     setLoadingVisible(true);
 
     printf("\n##initializing equations\n");
-    s2_equation_initializeEquations(m_context);
+    s2_context_initializeEquations(m_context);
 
     m_renderWindow->setAnimating(false);
 
     printf("\nintegrating equations:\n");
-    s2_solve_integrateEquations(m_context);
+    s2_context_integrateEquations(m_context);
 
     setLoadingVisible(false);
     setPlaybackVisible(true);

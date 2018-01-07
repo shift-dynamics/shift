@@ -85,7 +85,7 @@ void s2_restraint_append(
   s2_restraint_t* restraint);
 
 
-void s2_restraint_memoize(s2_context_t* context);
+void s2_context_memoizeRestraints(s2_context_t* context);
 
 
 #endif

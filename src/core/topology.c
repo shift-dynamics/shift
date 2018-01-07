@@ -1213,8 +1213,7 @@ void topology_detectSubstructures(
 @brief sort members of each kinematic substructure by increasing level order
 using selection sort algorithm
 */
-void topology_substructureLevelOrderSort(
-  s2_context_t* context) {
+void topology_substructureLevelOrderSort(s2_context_t* context) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 
@@ -2382,8 +2381,7 @@ copies by value and updates memory pointer locations for
 * updates count of source and destination memory pointers (dhvaCount)
 * updates count of function pointers necessary to traverse tree (operationCount)
 */
-void topology_copyUpdateD(
-  s2_context_t* context) {
+void topology_copyUpdateD(s2_context_t* context) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
   /*
@@ -3249,11 +3247,10 @@ void topology_setDHVAPointers(
 /*!
 @brief update direction cosines
 */
-void s2_updateDC(
-  s2_context_t* context) {
+void s2_context_updateDC(s2_context_t* self) {
 
-  for(int i = 0; i < context->dcCount; i++) {
-    sincos(*context->dcq[i], &context->dc[i * 2], &context->dc[i * 2 + 1]);
+  for(int i = 0; i < self->dcCount; i++) {
+    sincos(*self->dcq[i], &self->dc[i * 2], &self->dc[i * 2 + 1]);
   }
 }
 
@@ -3262,15 +3259,14 @@ void s2_updateDC(
 @brief updates only displacements and influence coefficient matrices
 
 */
-void s2_updateDH(
-  s2_context_t* context) {
+void s2_context_updateDH(s2_context_t* self) {
 
   /* update direction cosines */
-  s2_updateDC(context);
+  s2_context_updateDC(self);
 
   /* update displacements and influence coefficient matrices */
-  for(int i = 0; i < context->dhvaCount; i++) {
-    (context->dhFunctionPointers[i])(context->dhva[i]);
+  for(int i = 0; i < self->dhvaCount; i++) {
+    (self->dhFunctionPointers[i])(self->dhva[i]);
   }
 }
 
@@ -3279,17 +3275,15 @@ void s2_updateDH(
 velocities and accelerations
 
 */
-void s2_updateDHVA(
-  s2_context_t* context) {
+void s2_context_updateDHVA(s2_context_t* self) {
 
   /* update direction cosines */
-  s2_updateDC(context);
+  s2_context_updateDC(self);
 
   /* update displacements, influence coefficient matrices,
      velocities and quadratic accelerations */
-  for(int i = 0; i < context->dhvaCount; i++) {
-    // printf("i = %d\n", i);
-    (context->dhvaFunctionPointers[i])(context->dhva[i]);
+  for(int i = 0; i < self->dhvaCount; i++) {
+    (self->dhvaFunctionPointers[i])(self->dhva[i]);
   }
 }
 
@@ -3302,7 +3296,7 @@ frame that (parent) displacement is associated with
 @param frame [out]
 @param joint [out]
 */
-s2_body_t* findBody(
+s2_body_t* s2_context_findBody(
   s2_context_t* context,
   s2_displacement_t* displacement) {
 
@@ -3321,7 +3315,7 @@ s2_body_t* findBody(
   return NULL;
 }
 
-s2_frame_t* findFrame(
+s2_frame_t* s2_context_findFrame(
   s2_context_t* context,
   s2_displacement_t* displacement) {
 
@@ -3341,7 +3335,7 @@ s2_frame_t* findFrame(
 }
 
 
-s2_joint_t* findJoint(
+s2_joint_t* s2_context_findJoint(
   s2_context_t* context,
   s2_displacement_t* displacement) {
 
@@ -3392,13 +3386,13 @@ s2_frame_t* findFrameDIndex(s2_context_t* context, int dIndex) {
 /*! @brief update dhva and print values at all dhva pointer locations
 
 */
-void s2_updateDHVADebug(
+void s2_context_updateDHVADebug(
   FILE* f,
   s2_context_t* context,
   double t) {
 
   /* update direction cosines */
-  s2_updateDC(context);
+  s2_context_updateDC(context);
 
   /* update displacements, influence coefficient matrices,
      velocities and quadratic accelerations */
@@ -3491,19 +3485,19 @@ void s2_updateDHVADebug(
       sense = -1;
     }
 
-    s2_body_t* parentBody = findBody(
+    s2_body_t* parentBody = s2_context_findBody(
                               context,
                               (s2_displacement_t*)context->dhva[i][0]);
 
-    s2_frame_t* parentFrame = findFrame(
+    s2_frame_t* parentFrame = s2_context_findFrame(
                                 context,
                                 (s2_displacement_t*)context->dhva[i][0]);
 
-    s2_body_t* childBody = findBody(
+    s2_body_t* childBody = s2_context_findBody(
                              context,
                              (s2_displacement_t*)context->dhva[i][2]);
 
-    s2_frame_t* childFrame = findFrame(
+    s2_frame_t* childFrame = s2_context_findFrame(
                                context,
                                (s2_displacement_t*)context->dhva[i][2]);
 
@@ -3531,7 +3525,7 @@ void s2_updateDHVADebug(
       fprintf(f, "    dIndex: %d\n", childFrame->dIndex);
     }
 
-    s2_joint_t* joint = findJoint(
+    s2_joint_t* joint = s2_context_findJoint(
                           context,
                           (s2_displacement_t*)context->dhva[i][0]);
     if(joint != NULL) {
@@ -3676,26 +3670,16 @@ void s2_updateDHVADebug(
       j < substructure->chordConstraintCount;
       j++, chordConstraintOffset++) {
 
+      int vaChild = context->constraints[chordConstraintOffset][0];
+      int vaParent = context->constraints[chordConstraintOffset][1];
+      int dChild = context->constraints[chordConstraintOffset][2];
+      int dParent = context->constraints[chordConstraintOffset][3];
 
+      s2_frame_t* velocityChildFrame = findFrameVaIndex(context, vaChild);
+      s2_frame_t* velocityParentFrame = findFrameVaIndex(context, vaParent);
 
-      int vaChild =
-        context->constraints[chordConstraintOffset][0];
-      int vaParent =
-        context->constraints[chordConstraintOffset][1];
-      int dChild =
-        context->constraints[chordConstraintOffset][2];
-      int dParent =
-        context->constraints[chordConstraintOffset][3];
-
-      s2_frame_t* velocityChildFrame =
-        findFrameVaIndex(context, vaChild);
-      s2_frame_t* velocityParentFrame =
-        findFrameVaIndex(context, vaParent);
-
-      s2_frame_t* displacementChildFrame =
-        findFrameDIndex(context, dChild);
-      s2_frame_t* displacementParentFrame =
-        findFrameDIndex(context, dParent);
+      s2_frame_t* displacementChildFrame = findFrameDIndex(context, dChild);
+      s2_frame_t* displacementParentFrame = findFrameDIndex(context, dParent);
 
       fprintf(f, "\n  constraint [%d]\n", chordConstraintOffset);
 
@@ -3757,8 +3741,6 @@ void s2_updateDHVADebug(
       fprintf(f, "    aq:           ");
       s2_screw_print(f, context->aq + vaChild);
 
-
-
       s2_screw_t gamma_p;
       s2_subtract_ss(context->aq + vaChild, context->aq + vaParent, &gamma_p);
       fprintf(f, "    gamma_p:      ");
@@ -3799,8 +3781,7 @@ void s2_updateDHVADebug(
 /*! @brief initialize openGL reference frames
 
 */
-void s2_initializeGLReferenceFrames(
-  s2_context_t* context) {
+void s2_context_initializeGLReferenceFrames(s2_context_t* context) {
 
   for(int i = 0; i < context->activeBodyCount; i++) {
     s2_mat4x4f_setIdentity(context->glReferenceFramesf + i);
@@ -3836,25 +3817,24 @@ void s2_initializeGLReferenceFrames(
 /*! @brief update open gl frames (i.e. the origin of each body)
 
 */
-void s2_updateGLReferenceFrames(
-  s2_context_t* context) {
+void s2_context_updateGLReferenceFrames(s2_context_t* self) {
 
   // printf("updating GL reference frames:\n");
-  for(int i = 0; i < context->activeBodyCount; i++) {
-    if(!context->originInTree[i]) {
+  for(int i = 0; i < self->activeBodyCount; i++) {
+    if(!self->originInTree[i]) {
 
       s2_product_dd(
-        context->d + context->referenceFramePointers[i]->dIndex,
-        context->dWRTReference + context->originPointers[i]->dIndex,
-        context->d + context->originPointers[i]->dIndex);
+        self->d + self->referenceFramePointers[i]->dIndex,
+        self->dWRTReference + self->originPointers[i]->dIndex,
+        self->d + self->originPointers[i]->dIndex);
       // printf("updated frame [%d]:\n", i);
       // s2_stackstr_print(context->originPointers[i]->name);
       // s2_displacement_print(context->d + context->originPointers[i]->dIndex);
     }
 
     s2_displacement_toMat4x4f(
-      context->d + context->originPointers[i]->dIndex,
-      context->glReferenceFramesf + i);
+      self->d + self->originPointers[i]->dIndex,
+      self->glReferenceFramesf + i);
   }
 }
 
@@ -3874,14 +3854,11 @@ void topology_setFixedFrameGravityVector(s2_context_t* context) {
 }
 
 
-
-
 /*! @brief reset or initialize runtime context (optimized directed graph) from
 user's directed acyclic (linked list) representation
 
 */
-void s2_context_setTopology(
-  s2_context_t* context) {
+void s2_context_setTopology(s2_context_t* context) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 
@@ -4067,9 +4044,7 @@ void s2_context_setTopology(
 
   topology_setFixedFrameGravityVector(context);
 
-  /*
-    carry out update of dhva
-  */
+  /* carry out update of dhva */
   // printf("d: \n");
   // for(int i = 0; i < context->activeFrameInTreeCount; i++) {
   //   printf("[%d] ", i);
@@ -4086,7 +4061,7 @@ void s2_context_setTopology(
   // fprintf(
   //   debug,
   //   "# updating dh\n");
-  s2_updateDH(context);
+  s2_context_updateDH(context);
 
   // printf("verify dhva set up correctly\n");
   // printf("q: \n");
@@ -4132,7 +4107,7 @@ void s2_context_setTopology(
   // fprintf(
   //   debug,
   //   "# updating dhva\n");
-  s2_updateDHVA(context);
+  s2_context_updateDHVA(context);
 
   // fprintf(
   //   debug,
@@ -4144,8 +4119,6 @@ void s2_context_setTopology(
   // fprintf(
   //   debug,
   //   "loop count: %d\n", context->chordConstraintCount);
-
-
   // int k = 0;
   // for(int i = 0; i < context->substructureCount; i++) {
   //   printf(
@@ -4173,11 +4146,11 @@ void s2_context_setTopology(
   //   }
   // }
 
-  s2_initializeGLReferenceFrames(context);
-  s2_updateGLReferenceFrames(context);
+  s2_context_initializeGLReferenceFrames(context);
+  s2_context_updateGLReferenceFrames(context);
 
   /* flatten force modules if present */
-  s2_forcemodule_flatten(context);
+  s2_context_flattenForceModules(context);
 
   // printf("setting bounding spheres:\n");
   // s2_context_setBoundingSpheres(context);

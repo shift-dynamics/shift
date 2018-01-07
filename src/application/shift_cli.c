@@ -34,28 +34,22 @@ int main(int argc, char* argv[]) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 
-
-
   // fprintf(debug, "\n# processing topology\n");
   s2_context_setTopology(context);
 
-
-
   // fprintf(debug, "\n# initializing jacobian\n");
-
   s2_context_initializeJacobian(context);
 
   // fprintf(debug, "\n## printing jacobian\n");
-  s2_jacobian_setPO1(context);
-  // s2_jacobian_print(debug, context);
+  s2_context_setJacobianPO1(context);
+  // s2_context_printJacobian(debug, context);
 
+  printf("\n# printing context\n");
+  s2_context_print(stdout, context);
 
-    printf("\n# printing context\n");
-    s2_context_print(stdout, context);
-    
   // printf("\n## creating graph\n");
-  s2_graph_digraph(context, "digraph_bodies.png");
-  // s2_graph_digraphFrames(context, "digraph_frames.png");
+  // s2_graph_digraph(context, "digraph_bodies.png");
+  s2_graph_digraphFrames(context, "digraph_frames.png");
 
   // printf("verifying dq arrays in substructures:\n");
   // for(int i = 0; i < context->substructureCount; i++) {
@@ -76,12 +70,12 @@ int main(int argc, char* argv[]) {
   // fprintf(debug, "\n# removing constraint error\n");
 
 
-  s2_newtonRaphson_removeConstraintViolations(context);
+  s2_context_removeConstraintViolations(context);
 
   context->epsRankDetermination = context->epsRankDetermination * 10;
 
 
-  s2_jacobian_setPO1(context);
+  s2_context_setJacobianPO1(context);
 
   // fprintf(debug, "\n## jacobian after removing constraint violations\n");
   // s2_jacobian_print(debug, context);
@@ -149,7 +143,7 @@ int main(int argc, char* argv[]) {
 
   // fprintf(debug, "\n##initializing equations\n");
 
-  s2_equation_initializeEquations(context);
+  s2_context_initializeEquations(context);
 
   // fprintf(debug, "\ninertia\n");
   // for(int i = 0; i < context->activeJointCount; i++) {
@@ -340,7 +334,7 @@ int main(int argc, char* argv[]) {
   // s2_updateDHVA(context);
   //
   // fprintf(debug, "\nintegrating equations:\n");
-  s2_solve_integrateEquations(context);
+  s2_context_integrateEquations(context);
 
 
   s2_context_free(context);

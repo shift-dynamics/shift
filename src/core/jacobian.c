@@ -31,6 +31,7 @@ SUCH DAMAGE.
 #include "chordconstraint.h"
 #include "joint.h"
 #include "memoize.h"
+#include "topology.h"
 
 
 
@@ -102,7 +103,7 @@ void s2_jacobian_setInversePermutation(
 @brief set lookup tables for variables and joints, converts expanded list
 to compressed list, removes "rigid" variables from compressed list,
 */
-void s2_jacobian_setLookup(
+void s2_context_setJacobianLookup(
   s2_context_t* context) {
 
   if(context->jointLookup) {
@@ -184,7 +185,7 @@ void s2_jacobian_setLookup(
 @brief Allocates memory for Jacobian matrices associated with each substructure
 
 */
-int s2_jacobian_mallocEquations(
+int s2_context_mallocEquations(
   s2_context_t* context) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
@@ -252,20 +253,20 @@ int s2_jacobian_mallocEquations(
           context->substructures[i].qCount++;
           context->substructures[i].dqCount++;
           context->substructures[i].jointCount++;
+          break;
         }
-        break;
         case S2_JOINT_FLOAT: {
           context->substructures[i].qCount += 7;
           context->substructures[i].dqCount += 6;
           context->substructures[i].jointCount++;
+          break;
         }
-        break;
         case S2_JOINT_SPHERICAL: {
           context->substructures[i].qCount += 4;
           context->substructures[i].dqCount += 3;
           context->substructures[i].jointCount++;
+          break;
         }
-        break;
         case S2_JOINT_RIGID:
         case S2_JOINT_INVALID:
         case S2_JOINT_PRIMITIVE:
@@ -583,7 +584,7 @@ int s2_jacobian_mallocEquations(
 lists and compute offsets in jacobian
 
 */
-void jacobian_compressLoopMembers(
+void s2_context_compressLoopMembers(
   s2_context_t* context) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
@@ -835,11 +836,11 @@ a pointer to the local Jacobian is stored in context->substructure[i]->J
 
 note the Jacobian is stored in row-major order
 */
-void s2_jacobian_setPO1(
+void s2_context_setJacobianPO1(
   s2_context_t* context) {
 
   for(int i = 0; i < context->substructureCount; i++) {
-    s2_jacobian_setPO1_substructure(context, i);
+    s2_substructure_setJacobianPO1(context, i);
   }
 }
 
@@ -852,9 +853,8 @@ a pointer to the local Jacobian is stored in context->substructure[i]->J
 
 the Jacobian is stored in row-major order
 */
-void s2_jacobian_setPO1_substructure(
-  s2_context_t* context,
-  int substructureIndex) {
+void s2_substructure_setJacobianPO1(
+  s2_context_t* context, int substructureIndex) {
 
   // printf("\n updating substructure [%d]\n", substructureIndex);
   s2_substructure_t* substructure = context->substructures + substructureIndex;
@@ -984,7 +984,7 @@ void s2_jacobian_setPO1_substructure(
       substructure->rank,
       substructure->J);
 
-  s2_jacobian_setJacobianBooleanPO2_substructure(
+  s2_substructure_setJacobianBooleanPO2(
     context,
     substructureIndex);
 
@@ -1003,13 +1003,12 @@ specified coordinate
 
 note the Jacobian is stored in row-major order
 */
-void s2_jacobian_setPO1Specified_substructure(
+void s2_substructure_setJacobianPO1Specified(
   s2_context_t* context,
   int substructureIndex,
   int dqIndex) {
 
-  s2_substructure_t* substructure =
-    context->substructures + substructureIndex;
+  s2_substructure_t* substructure = context->substructures + substructureIndex;
 
   memset(
     substructure->J,
@@ -1133,7 +1132,7 @@ void s2_jacobian_setPO1Specified_substructure(
       substructure->rank,
       substructure->J);
 
-  s2_jacobian_setJacobianBooleanPO2_substructure(
+  s2_substructure_setJacobianBooleanPO2(
     context,
     substructureIndex);
 
@@ -1144,7 +1143,7 @@ void s2_jacobian_setPO1Specified_substructure(
   @brief translate local permutations to global permutations
 
 */
-void s2_jacobian_translatePermutations(
+void s2_context_translatePermutations(
   s2_context_t* context) {
 
 
@@ -1287,7 +1286,7 @@ void s2_jacobian_translatePermutations(
 constraints in linear array
 in PO3
 */
-void s2_jacobian_evaluateSparsity(
+void s2_context_evaluateJacobianSparsity(
   s2_context_t* context) {
 
   int bOffset = 0;
@@ -1682,7 +1681,7 @@ void s2_jacobian_evaluateSparsity(
 @brief evaluate permuted Jacobian boolean matrix in PO2
 for a single substructure
 */
-void s2_jacobian_setJacobianBooleanPO2_substructure(
+void s2_substructure_setJacobianBooleanPO2(
   s2_context_t* context,
   int substructureIndex) {
 
@@ -1812,11 +1811,11 @@ void s2_jacobian_setJacobianBooleanPO2_substructure(
 /*!
 @brief set jacobian boolean matrix for all substructures in PO2
 */
-void s2_jacobian_setJacobianBooleanPO2(
+void s2_context_setJacobianBooleanPO2(
   s2_context_t* context) {
 
   for(int i = 0; i < context->substructureCount; i++) {
-    s2_jacobian_setJacobianBooleanPO2_substructure(
+    s2_substructure_setJacobianBooleanPO2(
       context,
       i);
   }
@@ -1826,7 +1825,7 @@ void s2_jacobian_setJacobianBooleanPO2(
 /*!
   @brief set ij mapping array for substructure
 */
-void s2_jacobian_setijMapping_substructure(
+void s2_context_setJacobianIJMapping_substructure(
   s2_context_t* context,
   s2_substructure_t* substructure) {
 
@@ -1855,14 +1854,14 @@ void s2_jacobian_setijMapping_substructure(
 /*!
   @brief records row and column position in ijMapping array
 */
-void s2_jacobian_setijMapping(
+void s2_context_setJacobianIJMapping(
   s2_context_t* context) {
 
   /* get */
   for(int sub = 0; sub < context->substructureCount; sub++) {
     s2_substructure_t* substructure = context->substructures + sub;
 
-    s2_jacobian_setijMapping_substructure(
+    s2_context_setJacobianIJMapping_substructure(
       context,
       substructure);
 
@@ -1873,11 +1872,11 @@ void s2_jacobian_setijMapping(
 /*!
 @brief evaluate permuted Jacobian matrix for all substructures in PO2
 */
-void s2_jacobian_setPO2(
+void s2_context_setJacobianPO2(
   s2_context_t* context) {
 
   for(int i = 0; i < context->substructureCount; i++) {
-    s2_jacobian_setPO2_substructure(context, i);
+    s2_substructure_setJacobianPO2(context, i);
   }
 }
 
@@ -1886,11 +1885,11 @@ void s2_jacobian_setPO2(
 @brief evaluate permuted Jacobian matrix for one substructure in PO2
 
 note: does not zero out the jacobian matrix for the substructure. zeroing the
-Jacobian is performed in s2_jacobian_setPO2. If it is desired to set the
+Jacobian is performed in s2_context_setJacobianPO2. If it is desired to set the
 substructure jacobian without setting other jacobians, the array should
 explicitly be zeroed before this function is called.
 */
-void s2_jacobian_setPO2_substructure(
+void s2_substructure_setJacobianPO2(
   s2_context_t* context,
   int substructureIndex) {
 
@@ -1960,7 +1959,7 @@ void s2_jacobian_setPO2_substructure(
 @brief wrapper function for s2_factor_LU to evaluate the jacobian
 for a substructure that has been evaluated in PO2 order
 */
-void s2_jacobian_factorPO2_substructure(
+void s2_substructure_factorJacobianPO2(
   s2_substructure_t* substructure) {
 
   s2_factor_LU(
@@ -1993,11 +1992,11 @@ C=LR*inverse(Lr) or B=-inverse(Ur)*UR.
 @param *A input/output matrix to be factored with dimensions
 A[0:rowDim-1][0:colDim-1]:
 */
-int s2_jacobian_factorPO2(
+int s2_context_factorJacobianPO2(
   s2_context_t* context) {
 
   for(int i = 0; i < context->substructureCount; i++) {
-    s2_jacobian_factorPO2_substructure(context->substructures + i);
+    s2_substructure_factorJacobianPO2(context->substructures + i);
   }
   return 0;
 }
@@ -2007,7 +2006,7 @@ int s2_jacobian_factorPO2(
 @brief record location of velocity and position level constraints
 
 */
-void s2_jacobian_setConstraintPointers(
+void s2_context_setConstraintPointers(
   s2_context_t* context) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
@@ -2097,77 +2096,54 @@ void s2_jacobian_setConstraintPointers(
 /*!
   evaluate position level constraints for one substructure
 */
-void s2_jacobian_evaluateConstraints_substructure(
+void s2_substructure_evaluateConstraints(
   s2_context_t* context,
   s2_substructure_t* substructure) {
 
   for(int i = 0; i < substructure->chordConstraintCount; i++) {
-
-    s2_displacement_t* parentFrame =
-      context->d + substructure->constraints[i][3];
-
-    s2_displacement_t* childFrame =
-      context->d + substructure->constraints[i][2];
-
+    s2_displacement_t* parentFrame = context->d +
+      substructure->constraints[i][3];
+    s2_displacement_t* childFrame = context->d +substructure->constraints[i][2];
     s2_displacement_t temp;
     s2_product_ddinverse(parentFrame, childFrame, &temp);
-    // if(printResults) {
-    //   printf("parent Frame [%d]: \n", substructure->constraints[i][3]);
-    //   s2_displacement_print(parentFrame);
-    //   printf("child Frame [%d]: \n", substructure->constraints[i][2]);
-    //   s2_displacement_print(childFrame);
-    //   printf("temp: \n");
-    //   s2_displacement_print(&temp);
-    // }
 
-    cblas_dcopy(
-      3,
-      (double*)(&(temp.T)),
-      1,
-      substructure->cs + i * 6,
-      1);
+    // s2_frame_t* parentFramePointer = findFrame(context, parentFrame);
+    // printf("\nparent frame [%d]: ", substructure->constraints[i][3]);
+    // s2_stackstr_print(stdout, parentFramePointer->name);
+    // s2_displacement_print(stdout, parentFrame);
+    //
+    // s2_frame_t* childFramePointer = findFrame(context, childFrame);
+    // printf("child Frame [%d]: ", substructure->constraints[i][2]);
+    // s2_stackstr_print(stdout, childFramePointer->name);
+    // s2_displacement_print(stdout, childFrame);
+    //
+    // printf("parent * child^(-1): \n");
+    // s2_displacement_print(stdout, &temp);
+
+    memcpy(substructure->cs + i * 6, &temp.T, sizeof(s2_vector_t));
     double trace = temp.R.m00 + temp.R.m11 + temp.R.m22 - 3;
-    substructure->cs[i * 6 + 3] =
-      0.5 * (temp.R.m21 - temp.R.m12) + trace;
-    substructure->cs[i * 6 + 4] =
-      0.5 * (temp.R.m02 - temp.R.m20) + trace;
-    substructure->cs[i * 6 + 5] =
-      0.5 * (temp.R.m10 - temp.R.m01) + trace;
+    substructure->cs[i * 6 + 3] = 0.5 * (temp.R.m21 - temp.R.m12) + trace;
+    substructure->cs[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20) + trace;
+    substructure->cs[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
   }
 }
 
 
 /*!
-  evaluates all position level constraints
+  evaluates position level constraints
 */
-void s2_jacobian_evaluateConstraints(
-  s2_context_t* context) {
+void s2_context_evaluateConstraints(s2_context_t* context) {
 
   for(int i = 0; i < context->chordConstraintCount; i++) {
-
-    s2_displacement_t* parentFrame =
-      context->d + context->constraints[i][3];
-    s2_displacement_t* childFrame =
-      context->d + context->constraints[i][2];
-
+    s2_displacement_t* parentFrame = context->d + context->constraints[i][3];
+    s2_displacement_t* childFrame = context->d + context->constraints[i][2];
     s2_displacement_t temp;
-
     s2_product_ddinverse(parentFrame, childFrame, &temp);
-
-    cblas_dcopy(
-      3,
-      (double*)(&(temp.T)),
-      1,
-      context->cs + i * 6,
-      1);
-
+    memcpy(context->cs + i * 6, &temp.T, sizeof(s2_vector_t));
     double trace = temp.R.m00 + temp.R.m11 + temp.R.m22 - 3;
-    context->cs[i * 6 + 3] =
-      0.5 * (temp.R.m21 - temp.R.m12) + trace;
-    context->cs[i * 6 + 4] =
-      0.5 * (temp.R.m02 - temp.R.m20) + trace;
-    context->cs[i * 6 + 5] =
-      0.5 * (temp.R.m10 - temp.R.m01) + trace;
+    context->cs[i * 6 + 3] = 0.5 * (temp.R.m21 - temp.R.m12) + trace;
+    context->cs[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20) + trace;
+    context->cs[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
   }
 }
 
@@ -2179,7 +2155,7 @@ void s2_jacobian_evaluateConstraints(
 
   to be called after evaluate sparsity
 */
-void s2_jacobian_setBMatrixSparse_substructure(
+void s2_substructure_setBMatrixSparse(
   s2_context_t* context,
   s2_substructure_t* substructure) {
 
@@ -2324,13 +2300,12 @@ void s2_jacobian_setBMatrixSparse_substructure(
 
   to be called after evaluate sparsity
 */
-void s2_jacobian_setBMatrixSparse(
-  s2_context_t* context) {
+void s2_context_setBMatrixSparse(s2_context_t* self) {
 
-  for(int i = 0; i < context->substructureCount; i++) {
-    s2_jacobian_setBMatrixSparse_substructure(
-      context,
-      context->substructures + i);
+  for(int i = 0; i < self->substructureCount; i++) {
+    s2_substructure_setBMatrixSparse(
+      self,
+      self->substructures + i);
   }
 }
 
@@ -2338,26 +2313,22 @@ void s2_jacobian_setBMatrixSparse(
 /*!
   @brief wrapper function for s2_factor_setBMatrix for a substructure
 */
-void s2_jacobian_setBMatrix_substructure(
-  s2_substructure_t* substructure) {
+void s2_substructure_setBMatrix(s2_substructure_t* self) {
 
   s2_factor_setBMatrix(
-    substructure->constraintEquationCount,
-    substructure->dqCount,
-    substructure->rank,
-    substructure->J);
+    self->constraintEquationCount,
+    self->dqCount,
+    self->rank,
+    self->J);
 }
 
 
 /*!
   @brief sets B matrix for all substructures
 */
-void s2_jacobian_setBMatrix(
-  s2_context_t* context) {
-
-  for(int i = 0; i < context->substructureCount; i++) {
-    s2_jacobian_setBMatrix_substructure(
-      context->substructures + i);
+void s2_context_setBMatrix(s2_context_t* self) {
+  for(int i = 0; i < self->substructureCount; i++) {
+    s2_substructure_setBMatrix(self->substructures + i);
   }
 }
 
@@ -2366,12 +2337,12 @@ void s2_jacobian_setBMatrix(
 @brief used to print properties of substructure datastructures related
 to Jacobians
 */
-void s2_jacobian_print(
+void s2_context_printJacobian(
   FILE* f,
   s2_context_t* context) {
 
   if(context->mobilityNumbers == NULL) {
-    s2_mobility_initialize(context);
+    s2_context_initializeMobility(context);
   }
 
   /* backup screws before doing anything */
@@ -2523,7 +2494,7 @@ void s2_jacobian_print(
     double J1[jacobianSize]; /* copy of jacobian in PO1 */
     memcpy(J1, substructure->J, jacobianSize * sizeof(double));
 
-    s2_jacobian_setPO1_substructure(context, i);
+    s2_substructure_setJacobianPO1(context, i);
 
 
     // printf("pr_12: ");
@@ -2552,7 +2523,7 @@ void s2_jacobian_print(
     // double J2[jacobianSize];
     // memcpy(J2, substructure->J, jacobianSize * sizeof(double));
 
-    s2_jacobian_translatePermutations(context);
+    s2_context_translatePermutations(context);
     fprintf(f, "  isDependentPO1: ");
     for(int j = 0; j < substructure->dqCount; j++) {
       fprintf(
@@ -2564,8 +2535,8 @@ void s2_jacobian_print(
     fprintf(f, "\n");
 
 
-    s2_mobility_compute_substructure(substructure);
-    s2_mobility_print_substructure(f, context, i);
+    s2_substructure_computeMobility(substructure);
+    s2_substructure_printMobility(f, context, i);
 
     // double m1[substructure->dqCount];
     // memcpy(
@@ -2574,8 +2545,8 @@ void s2_jacobian_print(
     //   substructure->dqCount * sizeof(double));
 
 
-    // s2_jacobian_setPO2_substructure(context, i);
-    // s2_jacobian_factorPO2_substructure(substructure);
+    // s2_substructure_setJacobianPO2(context, i);
+    // s2_context_factorJacobianPO2_substructure(substructure);
     // s2_jacobian_setBMatrix_substructure(substructure);
     // s2_mobility_compute_substructure(substructure);
     // s2_mobility_print_substructure(context, i);
@@ -2587,7 +2558,7 @@ void s2_jacobian_print(
     //   substructure->dqCount * sizeof(double));
     //
     //
-    // s2_jacobian_translatePermutations(context);
+    // s2_context_translatePermutations(context);
     // printf("  isDependentPO1: ");
     // for(int j = 0; j < substructure->dqCount; j++) {
     //   printf(
@@ -2604,55 +2575,25 @@ void s2_jacobian_print(
 /*!
 @brief called after s2_context_initializeJacobian
 */
-void s2_jacobian_analyze(
-  s2_context_t* context) {
+void s2_context_analyzeJacobian(s2_context_t* context) {
 
-  s2_jacobian_setPO1(context);
-
-  s2_jacobian_translatePermutations(context);
-  s2_jacobian_setJacobianBooleanPO2(context);
-
-
-  // printf("jacobian boolean po2 in s2_jacobian_analyze:\n");
-  //
-  // for(int i = 0; i < context->substructureCount; i++) {
-  //   s2_substructure_t* substructure = context->substructures + i;
-  //   for(int j = 0; j < substructure->constraintEquationCount; j++) {
-  //     for(int k = 0; k < substructure->dqCount; k++) {
-  //       if(substructure->Jb[j * substructure->dqCount + k]) {
-  //         printf("1 ");
-  //       } else {
-  //         printf("0 ");
-  //       }
-  //     }
-  //     printf("\n");
-  //   }
-  //   printf("\n");
-  // }
-
-  s2_jacobian_evaluateSparsity(context);
-
-  s2_jacobian_setijMapping(context);
-
-  s2_jacobian_setPO2(context);
-  s2_jacobian_factorPO2(context);
-
-
-  // printf("setBMatrixSparse from s2_jacobian_analyze\n");
-
-  s2_jacobian_setBMatrixSparse(context);
-
+  s2_context_setJacobianPO1(context);
+  s2_context_translatePermutations(context);
+  s2_context_setJacobianBooleanPO2(context);
+  s2_context_evaluateJacobianSparsity(context);
+  s2_context_setJacobianIJMapping(context);
+  s2_context_setJacobianPO2(context);
+  s2_context_factorJacobianPO2(context);
+  s2_context_setBMatrixSparse(context);
 }
 
 
 /*!
   @brief set pointer to substructure within each joint datastructure
 */
-void setSubstructurePointers(
-  s2_context_t* context) {
+void s2_context_setSubstructurePointers(s2_context_t* context) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
-
 
   for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
@@ -2663,13 +2604,9 @@ void setSubstructurePointers(
         context->jointPointers[j]->dqIndex >= substructure->dqOffset &&
         context->jointPointers[j]->dqIndex < substructure->dqOffset + substructure->dqCount &&
         context->jointPointers[j]->jointType != S2_JOINT_RIGID) {
-
         s2_joint_t* joint = context->jointPointers[j];
-        // printf("joint: ");
-        // s2_stackstr_print(debug, joint->name);
-
-        // printf(" is in substructure [%d]\n", i);
         joint->substructurePointer = substructure;
+        substructure->context = context;
       }
     }
   }
@@ -2680,8 +2617,7 @@ void setSubstructurePointers(
 @brief check pivot ratios in all jacobians and call full factor if
 pivot ratio has changed a specified threshold from initial starting value
 */
-int s2_jacobian_infinityNormBCheck(
-  s2_context_t* context) {
+int s2_context_infinityNormBCheck(s2_context_t* context) {
 
   bool convergence = true;
   bool pass = true;
@@ -2701,7 +2637,7 @@ int s2_jacobian_infinityNormBCheck(
                             substructure->scaledInitialInfinityNormB;
 
     // double eSubstructure =
-    //   s2_newtonRaphson_evaluateConstraintError_substructure(
+    //   s2_substructure_evaluateConstraintError(
     //     context->substructures + sub);
 
     // bool constraintFail =
@@ -2763,7 +2699,7 @@ int s2_jacobian_infinityNormBCheck(
       }
 
       double e =
-        s2_newtonRaphson_evaluateConstraintError_substructure(
+        s2_substructure_evaluateConstraintError(
           substructure);
       fprintf(debug, "e before nr: % 0.9g ", e);
 
@@ -2782,23 +2718,19 @@ int s2_jacobian_infinityNormBCheck(
       //   substructure->qCount,
       //   context->q + substructure->qOffset);
 
-      // s2_jacobian_setPO2_substructure(context, sub);
-      // s2_jacobian_factorPO2_substructure(substructure);
+      // s2_substructure_setJacobianPO2(context, sub);
+      // s2_context_factorJacobianPO2_substructure(substructure);
 
 
-      int returnVal = s2_newtonRaphson_removeConstraintViolationsFast_substructure(
+      int returnVal = s2_substructure_removeConstraintViolationsFast(
                         context,
                         sub,
                         true);
 
-      e =
-        s2_newtonRaphson_evaluateConstraintError_substructure(
-          substructure);
+      e = s2_substructure_evaluateConstraintError(substructure);
       fprintf(debug, "e after nr: % 0.9g ", e);
 
-      s2_jacobian_setPO1_substructure(
-        context,
-        sub);
+      s2_substructure_setJacobianPO1(context, sub);
 
       fprintf(debug, "rank: %d ", substructure->rank);
 
@@ -2816,8 +2748,8 @@ int s2_jacobian_infinityNormBCheck(
         context->qCopy + substructure->qOffset,
         substructure->qCount * sizeof(double));
 
-      s2_updateDHVA(context);
-      s2_jacobian_evaluateConstraints_substructure(
+      s2_context_updateDHVA(context);
+      s2_substructure_evaluateConstraints(
         context,
         substructure);
 
@@ -2825,24 +2757,24 @@ int s2_jacobian_infinityNormBCheck(
   }
   if(!pass) {
 
-    s2_updateDHVA(context);
-    s2_jacobian_setPO2(context);
-    s2_jacobian_factorPO2(context);
-    s2_jacobian_translatePermutations(context);
-    s2_jacobian_setJacobianBooleanPO2(context);
-    s2_jacobian_evaluateSparsity(context);
-    s2_jacobian_setijMapping(context);
-    s2_jacobian_setPO2(context);
-    s2_jacobian_factorPO2(context);
+    s2_context_updateDHVA(context);
+    s2_context_setJacobianPO2(context);
+    s2_context_factorJacobianPO2(context);
+    s2_context_translatePermutations(context);
+    s2_context_setJacobianBooleanPO2(context);
+    s2_context_evaluateJacobianSparsity(context);
+    s2_context_setJacobianIJMapping(context);
+    s2_context_setJacobianPO2(context);
+    s2_context_factorJacobianPO2(context);
     // printf("setBMatrixSparse in infinity norm b check:\n");
-    s2_jacobian_setBMatrixSparse(context);
-    s2_jacobian_evaluateConstraints(context);
-    s2_equation_setRHS(context);
-    s2_equation_setMassMatrix(context);
-    s2_memoize_memoizeEquations(context);
+    s2_context_setBMatrixSparse(context);
+    s2_context_evaluateConstraints(context);
+    s2_context_setRHS(context);
+    s2_context_setMassMatrix(context);
+    s2_context_memoizeEquations(context);
 
-    // s2_jacobian_setPO2(context);
-    // s2_jacobian_factorPO2(context);
+    // s2_context_setJacobianPO2(context);
+    // s2_context_factorJacobianPO2(context);
   }
 
   if(!convergence) {
@@ -2865,22 +2797,22 @@ void s2_context_initializeJacobian(
   // FILE* debug = context->modelParameters->debugFilePointer;
 
   // fprintf(debug, "\n# setting variable and joint lookup tables\n");
-  s2_jacobian_setLookup(context);
+  s2_context_setJacobianLookup(context);
 
   // fprintf(debug, "\n# initializing storage for jacobian and equations of motion\n");
-  s2_jacobian_mallocEquations(context);
+  s2_context_mallocEquations(context);
 
   // fprintf(debug, "\n# compressing loop members\n");
-  jacobian_compressLoopMembers(context);
+  s2_context_compressLoopMembers(context);
 
   // fprintf(debug, "\n# setting initial Jacobian in PO1\n");
-  s2_jacobian_setPO1(context);
+  s2_context_setJacobianPO1(context);
 
   // fprintf(debug, "\n# translate local permutations to global permutations\n");
-  s2_jacobian_translatePermutations(context);
+  s2_context_translatePermutations(context);
 
   // fprintf(debug, "\n# evaluate jacobian boolean and sparsity pattern in PO2\n");
-  s2_jacobian_setJacobianBooleanPO2(context);
+  s2_context_setJacobianBooleanPO2(context);
 
   /* print jacobian boolean */
   // for(int i = 0; i < context->substructureCount; i++) {
@@ -2900,12 +2832,12 @@ void s2_context_initializeJacobian(
 
   // fprintf(debug, "verify jacobian boolean po2:\n");
   // fprintf(debug, "\n# evaluating sparsity\n");
-  s2_jacobian_evaluateSparsity(context);
+  s2_context_evaluateJacobianSparsity(context);
 
   // fprintf(debug, "\n# setting ijmapping\n");
-  s2_jacobian_setijMapping(context);
+  s2_context_setJacobianIJMapping(context);
 
-  s2_jacobian_setPO2(context);
+  s2_context_setJacobianPO2(context);
 
   // fprintf(debug, "\nJacobian before fast factor:\n");
   // for(int i = 0; i < context->substructureCount; i++) {
@@ -2918,7 +2850,7 @@ void s2_context_initializeJacobian(
   //     substructure->J);
   // }
 
-  s2_jacobian_factorPO2(context);
+  s2_context_factorJacobianPO2(context);
 
   // fprintf(debug, "\nJacobian after fast factor:\n");
   // for(int i = 0; i < context->substructureCount; i++) {
@@ -2932,13 +2864,13 @@ void s2_context_initializeJacobian(
   // }
 
   // fprintf(debug, "\n# setting sparse b matrix\n");
-  s2_jacobian_setBMatrixSparse(context);
+  s2_context_setBMatrixSparse(context);
 
   // fprintf(debug, "\n# initialize constraints\n");
-  s2_jacobian_setConstraintPointers(context);
+  s2_context_setConstraintPointers(context);
 
   // fprintf(debug, "\n# setting joint->substructure pointers\n");
-  setSubstructurePointers(context);
+  s2_context_setSubstructurePointers(context);
 
   // printf("\n# printing jacobian\n");
   // s2_jacobian_print(context);

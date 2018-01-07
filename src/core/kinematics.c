@@ -7336,9 +7336,7 @@ void s2_add_dpiToq(
 @brief utility to convert dpi, an array of length 3, to deltaq (an incremental
 change in quaternion), subtract incremental change from an input quaternion
 */
-void s2_subtract_dpiFromq(
-  s2_vector_t* dpi,
-  s2_quaternion_t* qi) {
+void s2_subtract_dpiFromq(s2_vector_t* dpi, s2_quaternion_t* qi) {
 
   /*
   qi -= 1/2 * L_c(e_{ij} d\underline{\pi}_{ij}^j)
@@ -7395,17 +7393,15 @@ void s2_omega_to_dquaternion(
   dqo->z =  qi->y * w->x - qi->x * w->y + qi->w * w->z;
   dqo->w = -qi->x * w->x - qi->y * w->y - qi->z * w->z;
 
-  cblas_dscal(4, 0.5, (double*)dqo, 1);
+  dqo->x *= 0.5;
+  dqo->y *= 0.5;
+  dqo->z *= 0.5;
+  dqo->w *= 0.5;
 
-  /*
-    add feedback term to normalize quaternion
-  */
+  /* add feedback term to normalize quaternion */
 
-  /*
-    if tau is 0.5
-  */
-  double alpha =
-    1.0 - cblas_ddot(4, (double*)qi, 1, (double*)qi, 1);
+  /* if tau is 0.5 */
+  double alpha = 1.0 - cblas_ddot(4, (double*)qi, 1, (double*)qi, 1);
 
   /*
     if tau is not 0.5
@@ -7500,6 +7496,7 @@ void s2_gramSchmidt(
   }
 }
 
+
 /*!
 @brief used to determine if two double arrays are close to each other
 within an error tolerance of 1e-6
@@ -7568,7 +7565,4 @@ inline void s2_displacement_getScrewAxis(
     &d->R,
     &rotationAxis,
     &angle);
-
-
-
 }

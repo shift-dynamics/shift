@@ -24,25 +24,16 @@ SUCH DAMAGE.
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_substructure_t s2_substructure_t;
 
-void s2_mobility_compute_substructure(
-  s2_substructure_t* substructure);
+void s2_substructure_computeMobility(s2_substructure_t*);
 
-void s2_mobility_compute(
-  s2_context_t* context);
+void s2_context_computeMobility(s2_context_t*);
 
-void s2_mobility_initialize(
-  s2_context_t* context);
+void s2_context_initializeMobility(s2_context_t*);
 
-void s2_mobility_print(
-  FILE* f,
-  s2_context_t* context);
+void s2_context_printMobility(FILE*, s2_context_t*);
 
-void s2_mobility_print_substructure(
-  FILE* f,
-  s2_context_t* context,
-  int substructureIndex);
+void s2_substructure_printMobility(FILE* f, s2_context_t*, int);
 
-void s2_mobility_computeGlobalMobility(
-  s2_context_t* context);
+void s2_context_computeGlobalMobility(s2_context_t*);
 
 #endif

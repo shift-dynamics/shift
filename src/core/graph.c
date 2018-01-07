@@ -294,6 +294,13 @@ void s2_graph_digraphFrames(
     } else if(context->dhFunctionPointers[i] == s2_joint_rzinverse) {
       sprintf(name, "[%d] Rzinverse(%f)\n", i, *dPrimitive);
     } else if(
+      context->dhFunctionPointers[i] == s2_joint_spherical ||
+      context->dhFunctionPointers[i] == s2_joint_sphericalinverse) {
+      s2_quaternion_t* q = (s2_quaternion_t*)dPrimitive;
+      sprintf(
+        name,
+        "[%d] q: [% 2.2f, % 2.2f, % 2.2f, % 2.2f]", i, q->x, q->y, q->z, q->w);
+    } else if(
       context->dhFunctionPointers[i] == s2_joint_rigid ||
       context->dhFunctionPointers[i] == s2_joint_rigidinverse) {
       s2_displacement_t* dPrimitiveDisp = (s2_displacement_t*)dPrimitive;
