@@ -42,14 +42,14 @@ int main(int argc, char* argv[]) {
 
   // fprintf(debug, "\n## printing jacobian\n");
   s2_context_setJacobianPO1(context);
-  // s2_context_printJacobian(debug, context);
+  s2_context_printJacobian(stdout, context);
 
   printf("\n# printing context\n");
   s2_context_print(stdout, context);
 
   // printf("\n## creating graph\n");
   // s2_graph_digraph(context, "digraph_bodies.png");
-  s2_graph_digraphFrames(context, "digraph_frames.png");
+  // s2_graph_digraphFrames(context, "digraph_frames.png");
 
   // printf("verifying dq arrays in substructures:\n");
   // for(int i = 0; i < context->substructureCount; i++) {
@@ -67,15 +67,15 @@ int main(int argc, char* argv[]) {
 
 
   /* remove constraint error */
-  // fprintf(debug, "\n# removing constraint error\n");
-
-
+  fprintf(stdout, "\n# removing constraint error\n");
   s2_context_removeConstraintViolations(context);
 
-  context->epsRankDetermination = context->epsRankDetermination * 10;
+  // context->epsRankDetermination = context->epsRankDetermination * 10;
+  //
+  //
+  // s2_context_setJacobianPO1(context);
 
 
-  s2_context_setJacobianPO1(context);
 
   // fprintf(debug, "\n## jacobian after removing constraint violations\n");
   // s2_jacobian_print(debug, context);
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
 
   // fprintf(debug, "\n##initializing equations\n");
 
-  s2_context_initializeEquations(context);
+  // s2_context_initializeEquations(context);
 
   // fprintf(debug, "\ninertia\n");
   // for(int i = 0; i < context->activeJointCount; i++) {
@@ -334,7 +334,10 @@ int main(int argc, char* argv[]) {
   // s2_updateDHVA(context);
   //
   // fprintf(debug, "\nintegrating equations:\n");
-  s2_context_integrateEquations(context);
+
+
+
+  // s2_context_integrateEquations(context);
 
 
   s2_context_free(context);
