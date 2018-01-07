@@ -178,85 +178,6 @@ typedef enum {
   ZXZ,
   ZYZ
 } s2_axis_enum_t;
-/**
-@file
-@brief Utilities for kinematics
-@author Kristopher Wehage
-@date 7/14/2015
-@copyright Kristopher Wehage
-
-This library contains a collection of functions for translating,
-rotating and displacing (translation and rotation) of vectors and
-spatial quantities or screws. The following quantities can be
-translated, rotated or generally displaced:
-
-S = 6x1 s2_screw_t
-
-V = 3x1 Vector
-
-
-Translations are denoted as:
-
-T = General Translation
-
-Tx = Translation along x axis
-
-Ty = Translation along y axis
-
-Tz = Translation along z axis
-
-
-Likewise, rotations are denoted as
-
-R = General rotation
-
-Rx = rotation about x axis
-
-Ry = rotation about y axis
-
-Rz = rotation about z axis
-
-
-s2_displacement_ts, consisting of both rotation and translation are
-abbreviated using a "D"
-
-D = General s2_displacement_t
-
-Functions for computing products using the inverse of D, R, and T are
-are also provided. When the inverse operation is specified, the term
-inverse appears in the function declaration AFTER D, R or T. For example:
-
-The inverse of D is noted as "Dinverse".
-
-When transforming screw quantities the D, R and T operators take on
-different forms depending on whether the spatial quantity lies in
-Configuration Space or Function Space. Therefore, different functions
-are provided for the two spaces.  Configuration space consists of the
-spatial quantities that can be measured using a ruler or clock (i.e. position,
-velocity, and acceleration). Function space (also called dual space)
-consists of linear operators on configuration space (i.e. forces and torques).
-
-In some literature, 6x1 quantities in configuration space are referred to as
-screws and 6x1 quantities in function space are referred to as coscrews.
-
-Readers are referred to *J.M. Selig, Gqometric Fundamentals of robotics (2005)*
-or *R. Featherstone, rigid Body Dynamics Algorithms (2008)* for more information.
-
-@remark
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THqoRY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-SUCH DAMAGE.
-*/
-
-#include "kinematics.h"
 
 s2_vector_t* s2_vector();
 
@@ -299,7 +220,7 @@ void s2_vector_print(
 void s2_quaternion_print(
   FILE* f,
   s2_quaternion_t* q);
-    
+
 void s2_screw_print(
   FILE* f,
   s2_screw_t* s);

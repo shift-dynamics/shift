@@ -7448,11 +7448,8 @@ void s2_array_lerp(
   for(int i = 0; i < count; i++) {
     yOut[i] = y1[i] - y0[i];
   }
-
   cblas_dscal(count, p, yOut, 1);
-
   cblas_daxpy(count, 1.0, y0, 1, yOut, 1);
-
 }
 
 
@@ -7471,19 +7468,11 @@ orthonormalized columns are passed back in A[][].
 @param A[m][n] a rectangular matrix to be orthonormalized, the orthonormalized
                matrix is returned in A
 */
-void s2_gramSchmidt(
-  int m,
-  int n,
-  double* A) {
-
+void s2_gramSchmidt(int m, int n, double* A) {
   for(int k = 0; k < n; k++) {
     /* normalize column k */
     double R = 1.0 / cblas_dnrm2(m, A + k, n);
-    cblas_dscal(
-      m,
-      R,
-      A + k,
-      n);
+    cblas_dscal(m, R, A + k, n);
     for(int j = k + 1; j < n; j++) {
       R = 0;
       for(int i = 0; i < m; i++) {
@@ -7543,7 +7532,7 @@ inline void s2_mat3x3_getAxisAngle(
       return;
     }
   }
-  /*u_tilde = (1 / 2 sin \theta) * (r - r^T) */
+  /* u_tilde = (1 / 2 sin \theta) * (r - r^T) */
   axis->x = r->m21 - r->m12;
   axis->y = r->m02 - r->m20;
   axis->z = r->m10 - r->m01;
@@ -7554,6 +7543,7 @@ inline void s2_mat3x3_getAxisAngle(
 /*!
 @brief get axis, angle and pitch of screw motion
 from an SE3 displacement
+@TODO finish / verify this
 */
 inline void s2_displacement_getScrewAxis(
   s2_displacement_t* d,
@@ -7561,8 +7551,5 @@ inline void s2_displacement_getScrewAxis(
 
   s2_vector_t rotationAxis;
   double angle;
-  s2_mat3x3_getAxisAngle(
-    &d->R,
-    &rotationAxis,
-    &angle);
+  s2_mat3x3_getAxisAngle(&d->R, &rotationAxis, &angle);
 }
