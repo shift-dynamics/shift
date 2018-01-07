@@ -119,9 +119,7 @@ void s2_substructure_newtonRaphsonSolver(s2_substructure_t* substructure) {
 
   memset(substructure->deltaq, 0, substructure->dqCount * sizeof(double));
 
-  /*
-    cs <-  L^-1 cs
-  */
+  /* cs <-  L^-1 cs */
   for(int i = 0; i < substructure->rank; i++) {
     for(int j = 0; j < i; j++) {
       substructure->cs[substructure->pr_12[i]] -=
@@ -130,9 +128,7 @@ void s2_substructure_newtonRaphsonSolver(s2_substructure_t* substructure) {
     }
   }
 
-  /*
-    deltaq <- U^-1 * (L^-1 * cs)
-  */
+  /* deltaq <- U^-1 * (L^-1 * cs) */
   for(int i = substructure->rank - 1; i > -1; i--) {
     for(int j = substructure->rank - 1; j > i; j--) {
       substructure->cs[substructure->pr_12[i]] -=
@@ -151,15 +147,20 @@ void s2_substructure_newtonRaphsonSolver(s2_substructure_t* substructure) {
 
 */
 void s2_substructure_updateq(s2_substructure_t* substructure) {
-
   s2_context_t* context = substructure->context;
   int substructureIndex = substructure->index;
   int dqIndex = substructure->dqOffset;
   int qIndex = substructure->qOffset;
+  printf("\n");
   for(int j = 1; j < context->substructureMembersCount[substructureIndex]; j++) {
+    printf("qIndex: %d/%d dqIndex: %d/%d\n", qIndex, context->qCount, dqIndex, context->dqCount);
     switch(
       context->jointPointers[
      context->substructureMembers[substructureIndex][j]]->jointType) {
+      case S2_JOINT_RIGID: {
+        printf("rigid joint detected!\n");
+        break;
+      }
       case S2_JOINT_FLOAT: {
         context->q[qIndex++] -= context->deltaq[dqIndex++];
         context->q[qIndex++] -= context->deltaq[dqIndex++];
@@ -171,11 +172,12 @@ void s2_substructure_updateq(s2_substructure_t* substructure) {
         for(int i = 0; i < 3; i++) {
           if(fabs(context->deltaq[dqIndex + i]) > 1e-9) {
             anyNonZero = true;
+            break;
           }
         }
         if(anyNonZero) {
           printf(
-            "nonzero dq: %g %g %g\n",
+            "  nonzero dq: %g %g %g\n",
             context->deltaq[dqIndex + 0],
             context->deltaq[dqIndex + 1],
             context->deltaq[dqIndex + 2]
@@ -184,17 +186,27 @@ void s2_substructure_updateq(s2_substructure_t* substructure) {
         /* store 4 terms deltaq at substructure->deltaq[qIndex]
           take 3 terms from substructure->deltaq[dqIndex] */
 
-        //  printf("[%d] processing spherical joint in newton raphson: \n  ", j);
-        //  s2_stackstr_print(stdout, context->jointPointers[
-        // context->substructureMembers[substructureIndex][j]]->name);
-        // printf("deltaq: ");
-        // s2_vector_print(stdout, (s2_vector_t*)(context->deltaq + dqIndex));
-        // printf("qi: ");
-        // s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
+        printf("[%d] processing spherical joint in newton raphson: \n  ", j);
+        s2_stackstr_print(stdout, context->jointPointers[
+          context->substructureMembers[substructureIndex][j]]->name);
+        printf("  deltaq: ");
+        s2_vector_print(stdout, (s2_vector_t*)(context->deltaq + dqIndex));
+        printf("  qi: ");
+        s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
+
+        double q_prev[4];
+        memcpy(&q_prev, context->q + qIndex, 4 * sizeof(double));
         s2_subtract_dpiFromq(
           (s2_vector_t*)(context->deltaq + dqIndex),
           (s2_quaternion_t*)(context->q + qIndex));
         s2_quaternion_normalize((s2_quaternion_t*)(context->q + qIndex));
+        printf("  qo: ");
+        s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
+        printf("  updated: ");
+        for(int i = 0; i < 4; i++) {
+          printf("%s ", fabs(q_prev[i] - context->q[qIndex + i]) > 1e-9 ? "true" : "false");
+        }
+        printf("\n");
         qIndex += 4;
         dqIndex += 3;
         break;
@@ -231,7 +243,7 @@ int s2_substructure_removeConstraintViolations(
   error = sqrt(cs[] . cs[]) / constraintEquationCount
   < eps when converged.
   */
-  int maxStep = 1000;
+  int maxStep = 3;
   double qCopy[context->qCount];
   memcpy(qCopy, context->q, context->qCount * sizeof(double));
   // FILE* debug = context->modelParameters->debugFilePointer;
@@ -340,7 +352,8 @@ void s2_printNewtonRaphsonError(
     substructure->index);
   fprintf(
     f, "initial error: %f, final error: %f\n", initialError, finalError);
-  fprintf(f, "  qCount: %d\n", substructure->qCount);
+  fprintf(f, "  context->qCount: %d\n", context->qCount);
+  fprintf(f, "  substructure->qCount: %d\n", substructure->qCount);
   fprintf(f, "  qOffset: %d\n", substructure->qOffset);
   assert(context->q + substructure->qOffset == substructure->q);
   fprintf(f, " states before Newton-Raphson:\n   ");

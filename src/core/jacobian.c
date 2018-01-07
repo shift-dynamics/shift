@@ -978,7 +978,7 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
       substructure->dqCount,
       substructure->rank,
       substructure->J);
-
+      
   s2_substructure_setJacobianBooleanPO2(substructure);
 }
 
@@ -2052,9 +2052,7 @@ void s2_context_setConstraintPointers(
   evaluate position level constraints for one substructure
 */
 void s2_substructure_evaluateConstraints(s2_substructure_t* substructure) {
-
   s2_context_t* context = substructure->context;
-
   for(int i = 0; i < substructure->chordConstraintCount; i++) {
     s2_displacement_t* parentFrame = context->d +
       substructure->constraints[i][3];
@@ -2118,20 +2116,14 @@ void s2_substructure_setBMatrixSparse(s2_substructure_t* substructure) {
   //   }
   //   printf("\n");
   // }
-
-
   s2_context_t* context = substructure->context;
   double* J = substructure->J;
-
-
   // double J[substructure->constraintEquationCount * substructure->dqCount];
   // memcpy(
   //   J,
   //   substructure->J,
   //   substructure->constraintEquationCount * substructure->dqCount *
   //   sizeof(double));
-
-
 
   // printf("Factored jacobian before setBMatrixSparse\n");
   // s2_array_print2D(
@@ -2141,57 +2133,39 @@ void s2_substructure_setBMatrixSparse(s2_substructure_t* substructure) {
   //   J);
 
   if(substructure->rank > 0 && substructure->rank < substructure->dqCount) {
-
     substructure->infinityNormB = 0;
-
     double pivots[substructure->rank];
     for(int i = 0; i < substructure->rank; i++) {
       pivots[i] = J[i * substructure->dqCount + i];
     }
-
-
     // printf("substructure->dqCount: %d\n", substructure->dqCount);
-
     for(int i = substructure->rank - 1; i > -1; i--) { /* rows of B */
-
       // printf("\n[%d] pivot value: %f, original pivot value: %f\n",
       //   i, J[i * substructure->dqCount + i], pivots[i]);
-
       for(
         int k = substructure->rank;
         k < substructure->dqCount;
         k++)  {
 
         /* columns of B */
-
         // printf("index [%d][%d]\n", i, k);
         // printf("i: %d\n", i);
         assert(J[i * substructure->dqCount + i] == pivots[i]);
-
-
         if(substructure->Jb[i * substructure->dqCount + k]) {
           double save = 0;
-
-
           assert(J[i * substructure->dqCount + i] == pivots[i]);
-
-
           for(int j = substructure->rank - 1; j > i; j--) {
             save +=
               J[i * substructure->dqCount + j] *
               J[j * substructure->dqCount + k];
           }
-
           assert(J[i * substructure->dqCount + i] == pivots[i]);
-
           int b3Index =
             substructure->ijMapping[
           i * substructure->dqCount + k];
 
           // printf("i * dqCount + k: %d\n", i * substructure->dqCount + k);
           // printf("i * dqCount + i: %d\n", i * substructure->dqCount + i);
-
-
           context->b3[b3Index] =
             (J[i * substructure->dqCount + k] - save) /
             J[i * substructure->dqCount + i];
@@ -2206,14 +2180,11 @@ void s2_substructure_setBMatrixSparse(s2_substructure_t* substructure) {
           //     J + (p * substructure->dqCount + p));
           // }
           J[i * substructure->dqCount + k] = context->b3[b3Index];
-
           assert(J[i * substructure->dqCount + i] == pivots[i]);
-
           // printf(
           //   " b3[%d/%d], J[%d, %d]: %f\n", b3Index, substructure->nnzb, i, k, context->b3[b3Index]);
           assert(!isinf(context->b3[b3Index]));
           assert(!isnan(context->b3[b3Index]));
-
           substructure->infinityNormB =
             fmax(substructure->infinityNormB, fabs(context->b3[b3Index]));
         }
@@ -2253,7 +2224,6 @@ void s2_substructure_setBMatrixSparse(s2_substructure_t* substructure) {
   to be called after evaluate sparsity
 */
 void s2_context_setBMatrixSparse(s2_context_t* self) {
-
   s2_substructure_t* substructure = self->substructures;
   for(int i = 0; i < self->substructureCount; i++, substructure++) {
     s2_substructure_setBMatrixSparse(substructure);
@@ -2296,18 +2266,15 @@ void s2_context_printJacobian(
   }
 
   /* backup screws before doing anything */
-
   int k = 0;
   for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
-
     fprintf(
       f,
       "\n substructure [%d] with dimension [%d, %d]\n",
       i,
       substructure->constraintEquationCount,
       substructure->dqCount);
-
     fprintf(f, "  rank: %d\n", substructure->rank);
     fprintf(f, "pr_12: ");
     s2_arrayi_print(f, substructure->constraintEquationCount, substructure->pr_12);
@@ -2558,9 +2525,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
 
   bool convergence = true;
   bool pass = true;
-
   context->iterationsSinceLastConstraintError++;
-
   s2_substructure_t* substructure = context->substructures;
   for(int i = 0; i < context->substructureCount; i++, substructure++) {
     // printf(
