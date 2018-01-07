@@ -111,11 +111,7 @@ will be used to access the permuted independent entries in dx[0:n-1].
 @param *c column matrix of constraint equations
 */
 void s2_substructure_newtonRaphsonSolver(
-  s2_context_t* context,
-  int substructureIndex) {
-
-  s2_substructure_t* substructure =
-    context->substructures + substructureIndex;
+  s2_substructure_t* substructure) {
 
   memset(substructure->deltaq, 0, substructure->dqCount * sizeof(double));
 
@@ -150,11 +146,10 @@ void s2_substructure_newtonRaphsonSolver(
 @brief update q array
 
 */
-void s2_substructure_updateq(
-  s2_context_t* context,
-  int substructureIndex) {
+void s2_substructure_updateq(s2_substructure_t* substructure) {
 
-  s2_substructure_t* substructure = context->substructures + substructureIndex;
+  s2_context_t* context = substructure->context;
+  int substructureIndex = substructure->index;
   // printf("  deltaq [%d]: ", substructureIndex);
   // for(int i = 0; i < substructure->dqCount; i++) {
   //   printf("%e ", substructure->deltaq[i]);
@@ -214,9 +209,9 @@ on exit, sets the sparsity pattern of J in the Jb boolean matrix
 @param context [in] an s2_context_t datastructure
 */
 int s2_substructure_removeConstraintViolations(
-  s2_context_t* context,
-  int substructureIndex) {
+  s2_substructure_t* substructure) {
 
+  s2_context_t* context = substructure->context;
   /*
   Iteratively update x to satisfy the constraint equations.
   dx[colDim] contains changes in x[colDim] for current N-R iteration.
@@ -224,10 +219,6 @@ int s2_substructure_removeConstraintViolations(
   < eps when converged.
   */
   int maxStep = 1000;
-
-  s2_substructure_t* substructure = context->substructures + substructureIndex;
-
-
 
   // FILE* debug = context->modelParameters->debugFilePointer;
   // fprintf(debug, "\nq before NR for substructure [%d]:\n", substructureIndex);
@@ -276,11 +267,11 @@ int s2_substructure_removeConstraintViolations(
   int step = 0;
   double error = context->epsNewtonRaphsonRankDetermination + 1;
   while(error > context->epsNewtonRaphsonRankDetermination && step < maxStep) {
-    s2_substructure_setJacobianPO1(context, substructureIndex);
-    s2_substructure_newtonRaphsonSolver(context, substructureIndex);
-    s2_substructure_updateq(context, substructureIndex);
+    s2_substructure_setJacobianPO1(substructure);
+    s2_substructure_newtonRaphsonSolver(substructure);
+    s2_substructure_updateq(substructure);
     s2_context_updateDH(context);
-    s2_substructure_evaluateConstraints(context, substructure);
+    s2_substructure_evaluateConstraints(substructure);
     error = s2_substructure_evaluateConstraintError(substructure);
     ++step;
     fprintf(stdout, "  [%d] error: %g\n", step, error);
@@ -301,7 +292,7 @@ int s2_substructure_removeConstraintViolations(
   s2_context_updateDH(context);
 
   // s2_jacobian_setBMatrix_substructure(substructure);
-  s2_substructure_setJacobianBooleanPO2(context, substructureIndex);
+  s2_substructure_setJacobianBooleanPO2(substructure);
   if(step == maxStep) {
     return -1;
   } else {
@@ -320,7 +311,8 @@ int s2_context_removeConstraintViolations(s2_context_t* self) {
 
   bool constraintsSatisfied = true;
   for(int i = 0; i < self->substructureCount; i++) {
-    int returnVal = s2_substructure_removeConstraintViolations(self, i);
+    s2_substructure_t* substructure = self->substructures + i;
+    int returnVal = s2_substructure_removeConstraintViolations(substructure);
     if(returnVal) {
       constraintsSatisfied = false;
     }
@@ -344,11 +336,10 @@ the equations of motion.
 @param context [in] s2_context_t datastructure
 */
 int s2_substructure_removeConstraintViolationsFast(
-  s2_context_t* context,
-  int substructureIndex,
+  s2_substructure_t* substructure,
   bool useTightTolerance) {
 
-  s2_substructure_t* substructure = context->substructures + substructureIndex;
+  s2_context_t* context = substructure->context;
 
   // exit(1);
   // printf("  q before NR for substructure [%d]: ", substructureIndex);
@@ -377,7 +368,7 @@ int s2_substructure_removeConstraintViolationsFast(
   }
   double error = tol + 1;
 
-  s2_substructure_setJacobianPO2(context, substructureIndex);
+  s2_substructure_setJacobianPO2(substructure);
 
   // printf("set jacobian in po2:\n");
   // s2_array_print2D(
@@ -398,14 +389,14 @@ int s2_substructure_removeConstraintViolationsFast(
   s2_substructure_evaluateConstraints(context, substructure);
 
   while(error > tol && step < maxStep) {
-    s2_substructure_newtonRaphsonSolver(context, substructureIndex);
+    s2_substructure_newtonRaphsonSolver(substructure);
 
     // printf("deltaq: ");
     // s2_array_print(substructure->dqCount, substructure->deltaq);
 
-    s2_substructure_updateq(context, substructureIndex);
+    s2_substructure_updateq(substructure);
     s2_context_updateDH(context);
-    s2_substructure_evaluateConstraints(context, substructure);
+    s2_substructure_evaluateConstraints(substructure);
     error = s2_substructure_evaluateConstraintError(substructure);
     // s2_jacobian_setPO2_substructure(
     //   context, substructureIndex);
@@ -423,7 +414,7 @@ int s2_substructure_removeConstraintViolationsFast(
     fprintf(
       debug,
       "\n\n>>> Error: could not resolve constraint violations for substructure [%d]\n",
-      substructureIndex);
+      substructure->index);
     fprintf(
       debug, "initial error: %f, final error: %f\n", initialError, error);
     fprintf(debug, "  qCount: %d\n", substructure->qCount);
@@ -448,14 +439,14 @@ requires that setJacobianPO1 has been called in every substructure.
 
 @param context [in] an s2_context_t datastructure
 */
-void s2_newtonRaphson_removeConstraintViolationsFast(
+void s2_context_removeConstraintViolationsFast(
   s2_context_t* context,
   bool useTightTolerance) {
 
   for(int i = 0; i < context->substructureCount; i++) {
+    s2_substructure_t* substructure = context->substructures + i;
     s2_substructure_removeConstraintViolationsFast(
-      context,
-      i,
+      substructure,
       useTightTolerance);
   }
 }
@@ -471,25 +462,21 @@ fast factorization
 
 */
 void s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-  s2_context_t* context,
-  int substructureIndex,
+  s2_substructure_t* substructure,
   int specifiedCoordinateIndex) {
 
-  s2_substructure_t* substructure = context->substructures + substructureIndex;
+  s2_context_t* context = substructure->context;
 
   s2_context_updateDH(context);
-  s2_substructure_setJacobianPO1(context, substructureIndex);
+  s2_substructure_setJacobianPO1(context);
 
-  s2_substructure_removeConstraintViolationsFast(
-    context,
-    substructureIndex,
-    true);
+  s2_substructure_removeConstraintViolationsFast(substructure, true);
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 
   // fprintf(debug, "rank after set specified: %d\n", substructure->rank);
 
-  s2_substructure_setJacobianPO1(context, substructureIndex);
+  s2_substructure_setJacobianPO1(substructure);
   s2_substructure_computeMobility(substructure);
 
   // fprintf(debug, "mobility numbers: ");
@@ -505,9 +492,7 @@ void s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
   //   substructure->J);
 
   s2_substructure_setJacobianPO1Specified(
-    context,
-    substructureIndex,
-    specifiedCoordinateIndex);
+    substructure, specifiedCoordinateIndex);
 }
 
 
@@ -526,14 +511,14 @@ for the purpose of determining the mechanism rank.
 @param specifiedCoordinateIndex [in] global index of coordinate to set as specified
 */
 int s2_substructure_incrementSpecifiedCoordinate(
-  s2_context_t* context,
-  int substructureIndex,
+  s2_substructure_t* substructure,
   int specifiedCoordinateIndex,
   double value,
   s2_joint_enum_t jointType,
   s2_move_enum_t moveType) {
 
-  s2_substructure_t* substructure = context->substructures + substructureIndex;
+  s2_context_t* context = substructure->context;
+
   memset(substructure->deltaq, 0, substructure->dqCount * sizeof(double));
 
   switch(moveType) {
@@ -553,13 +538,11 @@ int s2_substructure_incrementSpecifiedCoordinate(
 
   s2_context_updateDH(context);
   s2_substructure_setJacobianPO1Specified(
-    context,
-    substructureIndex,
+    substructure,
     specifiedCoordinateIndex);
   s2_substructure_firstOrderUpdate(substructure);
   s2_substructure_removeConstraintViolationsFast(
-    context,
-    substructureIndex,
+    substructure,
     true);
   s2_substructure_setBMatrix(substructure);
   return 0;

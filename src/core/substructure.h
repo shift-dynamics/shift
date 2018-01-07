@@ -42,7 +42,7 @@ typedef struct s2_substructure_t {
   int* Jxx; /*!< pointer to offset in context->Jxx array */
   bool* Jb; /*!< pointer to offset in context->Jb array */
 
-  int substructureIndex; /*!< index of this substructure */
+  int index; /*!< index of this substructure */
   int rank;
   int qOffset; /*!< offset in compressed list of generalized positions */
   int dqOffset; /*!< offset in compressed lists of generalized velocities */

@@ -296,11 +296,12 @@ void s2_context_computeMobility(s2_context_t* context) {
 
   s2_context_updateDH(context);
 
-  for(int i = 0; i < context->substructureCount; i++) {
-    s2_substructure_setJacobianPO2(context, i);
-    s2_substructure_factorJacobianPO2(context->substructures + i);
-    s2_substructure_setBMatrix(context->substructures + i);
-    s2_substructure_computeMobility(context->substructures + i);
+  s2_substructure_t* substructure = context->substructures;
+  for(int i = 0; i < context->substructureCount; i++, substructure++) {
+    s2_substructure_setJacobianPO2(substructure);
+    s2_substructure_factorJacobianPO2(substructure);
+    s2_substructure_setBMatrix(substructure);
+    s2_substructure_computeMobility(substructure);
   }
   s2_context_computeGlobalMobility(context);
 }

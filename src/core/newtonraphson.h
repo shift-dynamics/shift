@@ -28,23 +28,18 @@ double s2_substructure_evaluateqError(s2_substructure_t*);
 
 int s2_context_removeConstraintViolations(s2_context_t*);
 
-int s2_substructure_removeConstraintViolations(
-  s2_context_t* context,
-  int substructureIndex);
+int s2_substructure_removeConstraintViolations(s2_substructure_t*);
 
 int s2_substructure_removeConstraintViolationsFast(
-  s2_context_t* context,
-  int substructureIndex,
+  s2_substructure_t*,
   bool useTightTolerance);
 
 void s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-  s2_context_t* context,
-  int substructureIndex,
+  s2_substructure_t*,
   int specifiedCoordinateIndex);
 
 int s2_substructure_incrementSpecifiedCoordinate(
-  s2_context_t* context,
-  int substructureIndex,
+  s2_substructure_t*,
   int specifiedCoordinateIndex,
   double value,
   s2_joint_enum_t jointType,
