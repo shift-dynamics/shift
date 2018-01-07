@@ -280,22 +280,7 @@ int s2_substructure_removeConstraintViolations(
     ++step;
     fprintf(stdout, "  [%d] error: %g\n", step, error);
   }
-
-  // fprintf(
-  //   debug,
-  //   "  q after NR for substructure [%d]:\n",
-  //   substructureIndex);
-  // for(int i = 0; i < substructure->qCount; i++) {
-  //   int jointIndex = i + substructure->qOffset;
-  //   printf("[%d] ", jointIndex);
-  //   printf(" % 0.12g ", context->q[jointIndex]);
-  //   s2_stackstr_print(
-  //     debug,
-  //     context->jointPointers[jointIndex]->name);
-  // }
   s2_context_updateDH(context);
-
-  // s2_jacobian_setBMatrix_substructure(substructure);
   s2_substructure_setJacobianBooleanPO2(substructure);
   if(step == maxStep) {
     return -1;
@@ -345,68 +330,34 @@ int s2_substructure_removeConstraintViolationsFast(
 
   s2_context_t* context = substructure->context;
 
-  // exit(1);
   // printf("  q before NR for substructure [%d]: ", substructureIndex);
   // s2_array_print(context->qCount, context->q);
-
   s2_context_updateDH(context);
-
-  // printf("  q before NR for substructure [%d]: ", substructureIndex);
-  // s2_array_print(context->qCount, context->q);
-
   s2_substructure_evaluateConstraints(substructure);
-
   double initialError =
     s2_substructure_evaluateConstraintError(substructure);
   printf("initial error: %f\n", initialError);
 
   double qCopy[context->qCount];
   memcpy(qCopy, context->q, context->qCount * sizeof(double));
-  int step = 0;
-  int maxStep = 100;
+  const int maxStep = 100;
   double tol;
   if(useTightTolerance) {
     tol = context->epsNewtonRaphsonRankDetermination;
   } else {
     tol = context->epsNewtonRaphson;
   }
-  double error = tol + 1;
-
   s2_substructure_setJacobianPO2(substructure);
-
-  // printf("set jacobian in po2:\n");
-  // s2_array_print2D(
-  //   substructure->constraintEquationCount,
-  //   substructure->dqCount,
-  //   true,
-  //   substructure->J);
-
   s2_substructure_factorJacobianPO2(substructure);
-
-  // printf("factored jacobian:\n");
-  // s2_array_print2D(
-  //   substructure->constraintEquationCount,
-  //   substructure->dqCount,
-  //   true,
-  //   substructure->J);
-
   s2_substructure_evaluateConstraints(substructure);
-
+  int step = 0;
+  double error = tol + 1;
   while(error > tol && step < maxStep) {
     s2_substructure_newtonRaphsonSolver(substructure);
-
-    // printf("deltaq: ");
-    // s2_array_print(substructure->dqCount, substructure->deltaq);
-
     s2_substructure_updateq(substructure);
     s2_context_updateDH(context);
     s2_substructure_evaluateConstraints(substructure);
     error = s2_substructure_evaluateConstraintError(substructure);
-    // s2_jacobian_setPO2_substructure(
-    //   context, substructureIndex);
-    //
-    // s2_jacobian_factorPO2_substructure(
-    //   substructure);
     step++;
     // printf("  [%d] error: %g\n", step, error);
   }
@@ -504,7 +455,6 @@ int s2_substructure_incrementSpecifiedCoordinate(
   s2_move_enum_t moveType) {
 
   s2_context_t* context = substructure->context;
-
   memset(substructure->deltaq, 0, substructure->dqCount * sizeof(double));
 
   switch(moveType) {
@@ -513,7 +463,6 @@ int s2_substructure_incrementSpecifiedCoordinate(
       context->q[specifiedCoordinateIndex] += value;
       break;
     }
-    break;
     case S2_JOINT_TARGET: {
       context->deltaq[specifiedCoordinateIndex] =
         value - context->q[specifiedCoordinateIndex];
