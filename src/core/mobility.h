@@ -32,7 +32,7 @@ void s2_context_initializeMobility(s2_context_t*);
 
 void s2_context_printMobility(FILE*, s2_context_t*);
 
-void s2_substructure_printMobility(FILE* f, s2_context_t*, int);
+void s2_substructure_printMobility(FILE* f, s2_substructure_t*);
 
 void s2_context_computeGlobalMobility(s2_context_t*);
 

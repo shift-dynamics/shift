@@ -2193,10 +2193,9 @@ void Workspace::onclickTx() {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.tx.substructureIndex != -1) {
+      if(m_sliders.tx.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_context,
-          m_sliders.tx.substructureIndex,
+          m_sliders.tx.substructure,
           m_sliders.tx.dqIndex);
       }
     }
@@ -2217,10 +2216,9 @@ void Workspace::onclickTy() {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.ty.substructureIndex != -1) {
+      if(m_sliders.ty.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_context,
-          m_sliders.ty.substructureIndex,
+          m_sliders.ty.substructure,
           m_sliders.ty.dqIndex);
       }
     }
@@ -2241,10 +2239,9 @@ void Workspace::onclickTz() {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.tz.substructureIndex != -1) {
+      if(m_sliders.tz.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_context,
-          m_sliders.tz.substructureIndex,
+          m_sliders.tz.substructure,
           m_sliders.tz.dqIndex);
       }
     }
@@ -2266,10 +2263,9 @@ void Workspace::onclickRx() {
 
       /* drive constraint error to zero before subsecquent fast factorization */
       qDebug() << "initialize rx slider";
-      if(m_sliders.rx.substructureIndex != -1) {
+      if(m_sliders.rx.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_context,
-          m_sliders.rx.substructureIndex,
+          m_sliders.rx.substructure,
           m_sliders.rx.dqIndex);
       }
     }
@@ -2290,10 +2286,9 @@ void Workspace::onclickRy() {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.ry.substructureIndex != -1) {
+      if(m_sliders.ry.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_context,
-          m_sliders.ry.substructureIndex,
+          m_sliders.ry.substructure,
           m_sliders.ry.dqIndex);
       }
     }
@@ -2314,10 +2309,9 @@ void Workspace::onclickRz() {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.rz.substructureIndex != -1) {
+      if(m_sliders.rz.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_context,
-          m_sliders.rz.substructureIndex,
+          m_sliders.rz.substructure,
           m_sliders.rz.dqIndex);
       }
     }
@@ -2346,33 +2340,38 @@ void Workspace::onclickRz() {
 */
 void Workspace::setTxSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-      updateH();
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
-      switch(joint->jointType) {
-        case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_SPHERICAL);
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
+      }
+      case S2_MODELTREE_JOINT: {
+        updateH();
+        /* process a joint */
+        s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+        switch(joint->jointType) {
+          case S2_JOINT_SPHERICAL: {
+            m_renderWindow->setJointTarget(
+              joint,
+              joint->qIndex,
+              joint->dqIndex,
+              val,
+              S2_JOINT_SPHERICAL);
+            break;
+          }
+          default: {
+            m_renderWindow->setJointTarget(
+              joint,
+              joint->qIndex,
+              joint->dqIndex,
+              val,
+              S2_JOINT_PRIMITIVE);
+            break;
+          }
         }
         break;
-        default: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_PRIMITIVE);
-        }
+      }
+      default: {
         break;
       }
     }
@@ -2784,11 +2783,9 @@ void Workspace::setSlider(
   sliderHandle->qIndex = qIndex;
   sliderHandle->dqIndex = dqIndex;
   if(substructure != NULL) {
-    qDebug() << "setting substructure index " << substructure->substructureIndex;
-    sliderHandle->substructureIndex = substructure->substructureIndex;
+    sliderHandle->substructure = substructure;
   } else {
-    qDebug() << "setting substructure index " << -1;
-    sliderHandle->substructureIndex = -1;
+    sliderHandle->substructure = NULL;
   }
   sliderHandle->isSpherical = isSpherical;
   sliderHandle->spinBoxValue = m_context->q + qIndex;
@@ -2797,9 +2794,11 @@ void Workspace::setSlider(
 }
 
 
+/*!
+@brief update display of influence coefficient matrices
+*/
 void Workspace::updateH() {
-  if(m_currentSelectedItem->m_userType == 1007) {
-
+  if(m_currentSelectedItem->m_userType == S2_MODELTREE_JOINT) {
     /* joint */
     s2_joint_t* joint =
       (s2_joint_t*)(m_currentSelectedItem->m_object);
@@ -2853,273 +2852,252 @@ void Workspace::getSelectedTreeItem() {
   if(m_currentSelectedItem != NULL) {
     clearDynamicBox();
 
-    if(m_currentSelectedItem->m_userType == 1002) {
+    switch(m_currentSelectedItem->m_userType) {
 
-      /* assembly */
-      s2_assembly_t* assembly =
-        (s2_assembly_t*)(m_currentSelectedItem->m_object);
-
-      qDebug() << s2_getRootName(assembly->name);
-
-    } else if(m_currentSelectedItem->m_userType == 1003) {
-
-      /* body group */
-      m_bodyGroupPanel.groupBox->setVisible(true);
-
-    } else if(m_currentSelectedItem->m_userType == 1004) {
-
-      /* body */
-      s2_body_t* body =
-        (s2_body_t*)(m_currentSelectedItem->m_object);
-      qDebug() << s2_getRootName(body->name);
-
-      m_bodyPanel.groupBox->setVisible(true);
-
-      m_bodyPanel.materialDropDown->clear();
-
-      /* populate material dropdown menu */
-      for(
-        int i = body->materialIndex;
-        i < body->materialIndex + body->materialCount;
-        i++) {
-        m_bodyPanel.materialDropDown->addItem(m_context->materials[i].name);
+      case S2_MODELTREE_ASSEMBLY: {
+        s2_assembly_t* assembly =
+          (s2_assembly_t*)(m_currentSelectedItem->m_object);
+        qDebug() << s2_getRootName(assembly->name);
+        break;
       }
-      if(body->materials != NULL) {
-        populateMaterialColorDropDown(
-          &m_context->materials[body->materialIndex]);
+      case S2_MODELTREE_BODY_GROUP: {
+        m_bodyGroupPanel.groupBox->setVisible(true);
+        break;
       }
+      case S2_MODELTREE_BODY: {
+        s2_body_t* body = (s2_body_t*)(m_currentSelectedItem->m_object);
+        qDebug() << s2_getRootName(body->name);
+        m_bodyPanel.groupBox->setVisible(true);
+        m_bodyPanel.materialDropDown->clear();
 
-    } else if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* frame */
-      s2_frame_t* frame =
-        (s2_frame_t*)(m_currentSelectedItem->m_object);
-      qDebug() << s2_getRootName(frame->name);
-
-      char number[20];
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m00);
-      m_framePanel.m00->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m01);
-      m_framePanel.m01->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m02);
-      m_framePanel.m02->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->T.x);
-      m_framePanel.m03->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m10);
-      m_framePanel.m10->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m11);
-      m_framePanel.m11->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m12);
-      m_framePanel.m12->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->T.y);
-      m_framePanel.m13->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m20);
-      m_framePanel.m20->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m21);
-      m_framePanel.m21->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->R.m22);
-      m_framePanel.m22->setText(number);
-
-      sprintf(number, "%2.3f", frame->dAbsolute->T.z);
-      m_framePanel.m23->setText(number);
-
-      m_framePanel.groupBox->setVisible(true);
-
-    } else if(m_currentSelectedItem->m_userType == 1006) {
-
-      /* joint group */
-      m_jointGroupPanel.groupBox->setVisible(true);
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* joint */
-      s2_joint_t* joint =
-        (s2_joint_t*)(m_currentSelectedItem->m_object);
-
-      highlightSubstructure(joint->substructurePointer);
-      updateH();
-      clearSliders();
-      m_jointPanel.groupBox->setVisible(true);
-
-      switch(joint->jointType) {
-        case S2_JOINT_TX: {
-          setSlider(
-            &m_sliders.tx,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            false);
+        /* populate material dropdown menu */
+        for(
+          int i = body->materialIndex;
+          i < body->materialIndex + body->materialCount;
+          i++) {
+          m_bodyPanel.materialDropDown->addItem(m_context->materials[i].name);
+        }
+        if(body->materials != NULL) {
+          populateMaterialColorDropDown(
+            &m_context->materials[body->materialIndex]);
         }
         break;
-        case S2_JOINT_TY: {
-          setSlider(
-            &m_sliders.ty,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            false);
-        }
-        break;
-        case S2_JOINT_TZ: {
-          setSlider(
-            &m_sliders.tz,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            false);
-        }
-        break;
-        case S2_JOINT_RX: {
-          setSlider(
-            &m_sliders.rx,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            false);
-        }
-        break;
-        case S2_JOINT_RY: {
-          setSlider(
-            &m_sliders.ry,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            false);
-        }
-        break;
-        case S2_JOINT_RZ: {
-          setSlider(
-            &m_sliders.rz,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            false);
-        }
-        break;
-        case S2_JOINT_RIGID: {
-
-        } break;
-        case S2_JOINT_SPHERICAL: {
-          setSlider(
-            &m_sliders.rx,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            true);
-          setSlider(
-            &m_sliders.ry,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            true);
-          setSlider(
-            &m_sliders.rz,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            true);
-        }
-        break;
-        case S2_JOINT_FLOAT: {
-          setSlider(
-            &m_sliders.tx,
-            joint->qIndex,
-            joint->dqIndex,
-            joint->substructurePointer,
-            true);
-          setSlider(
-            &m_sliders.ty,
-            joint->qIndex + 1,
-            joint->dqIndex + 1,
-            joint->substructurePointer,
-            true);
-          setSlider(
-            &m_sliders.tz,
-            joint->qIndex + 2,
-            joint->dqIndex + 2,
-            joint->substructurePointer,
-            true);
-          setSlider(
-            &m_sliders.rx,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            joint->substructurePointer,
-            true);
-          setSlider(
-            &m_sliders.ry,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            joint->substructurePointer,
-            true);
-          setSlider(
-            &m_sliders.rz,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            joint->substructurePointer,
-            true);
-
-        }
-        break;
-        case S2_JOINT_INVALID:
-        case S2_JOINT_PRIMITIVE: {
-
-        } break;
       }
+      case S2_MODELTREE_FRAME: {
+        s2_frame_t* frame = (s2_frame_t*)(m_currentSelectedItem->m_object);
+        qDebug() << s2_getRootName(frame->name);
 
-    } else if(m_currentSelectedItem->m_userType == 1008) {
+        char number[20];
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m00);
+        m_framePanel.m00->setText(number);
 
-      /* light group */
-      m_lightGroupPanel.groupBox->setVisible(true);
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m01);
+        m_framePanel.m01->setText(number);
 
-    } else if(m_currentSelectedItem->m_userType == 1009) {
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m02);
+        m_framePanel.m02->setText(number);
 
-      /* light */
+        sprintf(number, "%2.3f", frame->dAbsolute->T.x);
+        m_framePanel.m03->setText(number);
 
-      s2_light_t* light =
-        (s2_light_t*) m_currentSelectedItem->m_object;
-      // qDebug() << s2_getRootName(light->name);
-      m_lightPanel.groupBox->setVisible(true);
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m10);
+        m_framePanel.m10->setText(number);
 
-      populateLightColorDropDown(light);
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m11);
+        m_framePanel.m11->setText(number);
 
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m12);
+        m_framePanel.m12->setText(number);
 
-    } else if(m_currentSelectedItem->m_userType == 1010) {
+        sprintf(number, "%2.3f", frame->dAbsolute->T.y);
+        m_framePanel.m13->setText(number);
 
-      /* restraint group */
-      m_restraintGroupPanel.groupBox->setVisible(true);
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m20);
+        m_framePanel.m20->setText(number);
 
-    } else if(m_currentSelectedItem->m_userType == 1011) {
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m21);
+        m_framePanel.m21->setText(number);
 
-      /* restraint */
-      s2_restraint_t* restraint =
-        (s2_restraint_t*) m_currentSelectedItem->m_object;
-      qDebug() << s2_getRootName(restraint->name);
-      m_restraintPanel.groupBox->setVisible(true);
+        sprintf(number, "%2.3f", frame->dAbsolute->R.m22);
+        m_framePanel.m22->setText(number);
 
-    } else if(m_currentSelectedItem->m_userType == 1012) {
+        sprintf(number, "%2.3f", frame->dAbsolute->T.z);
+        m_framePanel.m23->setText(number);
 
-      /* io group */
-      m_ioGroupPanel.groupBox->setVisible(true);
+        m_framePanel.groupBox->setVisible(true);
+        break;
+      }
+      case S2_MODELTREE_JOINT_GROUP: {
+        m_jointGroupPanel.groupBox->setVisible(true);
+        break;
+      }
+      case S2_MODELTREE_JOINT: {
+        s2_joint_t* joint = (s2_joint_t*)(m_currentSelectedItem->m_object);
 
+        highlightSubstructure(joint->substructurePointer);
+        updateH();
+        clearSliders();
+        m_jointPanel.groupBox->setVisible(true);
 
-    } else if(m_currentSelectedItem->m_userType == 1013) {
-
-      /* io */
-      s2_io_t* io =
-        (s2_io_t*) m_currentSelectedItem->m_object;
-      qDebug() << s2_getRootName(io->name);
-      m_ioPanel.groupBox->setVisible(true);
-
+        switch(joint->jointType) {
+          case S2_JOINT_TX: {
+            setSlider(
+              &m_sliders.tx,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              false);
+            break;
+          }
+          case S2_JOINT_TY: {
+            setSlider(
+              &m_sliders.ty,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              false);
+            break;
+          }
+          case S2_JOINT_TZ: {
+            setSlider(
+              &m_sliders.tz,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              false);
+            break;
+          }
+          case S2_JOINT_RX: {
+            setSlider(
+              &m_sliders.rx,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              false);
+            break;
+          }
+          case S2_JOINT_RY: {
+            setSlider(
+              &m_sliders.ry,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              false);
+            break;
+          }
+          case S2_JOINT_RZ: {
+            setSlider(
+              &m_sliders.rz,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              false);
+            break;
+          }
+          case S2_JOINT_RIGID: {
+            break;
+          }
+          case S2_JOINT_SPHERICAL: {
+            setSlider(
+              &m_sliders.rx,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              true);
+            setSlider(
+              &m_sliders.ry,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              true);
+            setSlider(
+              &m_sliders.rz,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              true);
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            setSlider(
+              &m_sliders.tx,
+              joint->qIndex,
+              joint->dqIndex,
+              joint->substructurePointer,
+              true);
+            setSlider(
+              &m_sliders.ty,
+              joint->qIndex + 1,
+              joint->dqIndex + 1,
+              joint->substructurePointer,
+              true);
+            setSlider(
+              &m_sliders.tz,
+              joint->qIndex + 2,
+              joint->dqIndex + 2,
+              joint->substructurePointer,
+              true);
+            setSlider(
+              &m_sliders.rx,
+              joint->qIndex + 3,
+              joint->dqIndex + 3,
+              joint->substructurePointer,
+              true);
+            setSlider(
+              &m_sliders.ry,
+              joint->qIndex + 3,
+              joint->dqIndex + 3,
+              joint->substructurePointer,
+              true);
+            setSlider(
+              &m_sliders.rz,
+              joint->qIndex + 3,
+              joint->dqIndex + 3,
+              joint->substructurePointer,
+              true);
+            break;
+          }
+          case S2_JOINT_INVALID:
+          case S2_JOINT_PRIMITIVE: {
+            break;
+          }
+        }
+        break;
+      }
+      case S2_MODELTREE_LIGHT_GROUP: {
+        m_lightGroupPanel.groupBox->setVisible(true);
+        break;
+      }
+      case S2_MODELTREE_LIGHT: {
+        s2_light_t* light = (s2_light_t*) m_currentSelectedItem->m_object;
+        m_lightPanel.groupBox->setVisible(true);
+        populateLightColorDropDown(light);
+        break;
+      }
+      case S2_MODELTREE_RESTRAINT_GROUP: {
+        m_restraintGroupPanel.groupBox->setVisible(true);
+        break;
+      }
+      case S2_MODELTREE_RESTRAINT: {
+        s2_restraint_t* restraint =
+          (s2_restraint_t*)m_currentSelectedItem->m_object;
+        qDebug() << s2_getRootName(restraint->name);
+        m_restraintPanel.groupBox->setVisible(true);
+        break;
+      }
+      case S2_MODELTREE_IO_GROUP: {
+        m_ioGroupPanel.groupBox->setVisible(true);
+        break;
+      }
+      case S2_MODELTREE_IO: {
+        s2_io_t* io = (s2_io_t*) m_currentSelectedItem->m_object;
+        qDebug() << s2_getRootName(io->name);
+        m_ioPanel.groupBox->setVisible(true);
+        break;
+      }
+      default: {
+        break;
+      }
     }
   }
 }
