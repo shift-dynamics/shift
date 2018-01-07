@@ -185,8 +185,7 @@ void s2_context_setJacobianLookup(
 @brief Allocates memory for Jacobian matrices associated with each substructure
 
 */
-int s2_context_mallocEquations(
-  s2_context_t* context) {
+int s2_context_mallocEquations(s2_context_t* context) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
 
@@ -212,6 +211,7 @@ int s2_context_mallocEquations(
   for(int i = 0; i < context->substructureCount; i++) {
 
     // fprintf(debug, "  allocating memory for substructure [%d]\n", i);
+    context->substructures[i].context = context;
     context->substructures[i].qCount = 0;
     context->substructures[i].dqCount = 0;
     context->substructures[i].jointCount = 0;
@@ -836,9 +836,7 @@ a pointer to the local Jacobian is stored in context->substructure[i]->J
 
 note the Jacobian is stored in row-major order
 */
-void s2_context_setJacobianPO1(
-  s2_context_t* context) {
-
+void s2_context_setJacobianPO1(s2_context_t* context) {
   s2_substructure_t* substructure = context->substructures;
   for(int i = 0; i < context->substructureCount; i++, substructure++) {
     s2_substructure_setJacobianPO1(substructure);
@@ -871,7 +869,6 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
     substructure->dqCount *
     substructure->constraintEquationCount * sizeof(bool));
 
-
   /* j is local loop index, k is global loop index */
   int k = substructure->loopOffset;
   for(
@@ -888,8 +885,6 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
 
       int columnIndex =
         variableIndex - substructure->dqOffset;
-
-
 
       // assert(columnIndex >= 0);
       // printf(
@@ -985,10 +980,7 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
       substructure->J);
 
   s2_substructure_setJacobianBooleanPO2(substructure);
-
-
 }
-
 
 
 /*! @brief set initial jacobian in permutation order 1 and perform an initial
@@ -1018,7 +1010,6 @@ void s2_substructure_setJacobianPO1Specified(
   int k = substructure->loopOffset;
 
   /* j is local loop index, k is global loop index */
-
   // printf("\n updating substructure [%d]\n", substructureIndex);
   for(
     int j = 0;
@@ -1028,7 +1019,6 @@ void s2_substructure_setJacobianPO1Specified(
     /* positive loop members [l]*/
     // printf("  loop [%d]\n", j);
     // printf("  setting positive loop members:\n");
-
     /* l is current loop member being processed */
     for(int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
       int variableIndex = context->positiveLoopMemberOffsets[k][l];
@@ -1052,11 +1042,9 @@ void s2_substructure_setJacobianPO1Specified(
     /* negative loop members [l]*/
     // printf("  setting negative loop members:\n");
     for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
-
       int variableIndex = context->negativeLoopMemberOffsets[k][l];
       int columnIndex = variableIndex - substructure->dqOffset;
       assert(columnIndex > -1);
-
       // printf(
       //   "    processing variable: %d, column: [%d], dqOffset: %d, \n     h: ",
       //   variableIndex,
@@ -1119,10 +1107,7 @@ void s2_substructure_setJacobianPO1Specified(
       substructure->rank,
       substructure->J);
 
-
-  /*!
-    @TODO remove this once infinity norm is verified to work
-  */
+  /*! @TODO remove this once infinity norm is verified to work */
   substructure->pivotRatio =
     context->modelParameters.pivotRatioMultiple *
     s2_jacobian_pivotRatio(
@@ -1131,7 +1116,6 @@ void s2_substructure_setJacobianPO1Specified(
       substructure->J);
 
   s2_substructure_setJacobianBooleanPO2(substructure);
-
 }
 
 
@@ -1278,8 +1262,7 @@ void s2_context_translatePermutations(
 constraints in linear array
 in PO3
 */
-void s2_context_evaluateJacobianSparsity(
-  s2_context_t* context) {
+void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
 
   int bOffset = 0;
   context->nnzb = 0;
@@ -1433,8 +1416,6 @@ void s2_context_evaluateJacobianSparsity(
     //   }
     //   fprintf(debug, "\n");
     // }
-
-
     assert(substructure->ijMapping != NULL);
     /* permute ij mapping temp to po2 */
     for(int i3 = substructure->dqCount - substructure->rank; i3 < substructure->dqCount; i3++) {
@@ -2337,10 +2318,8 @@ void s2_context_printJacobian(
     s2_arrayi_print(f, substructure->constraintEquationCount, substructure->pr_21);
     fprintf(f, "pc_21: ");
     s2_arrayi_print(f, substructure->dqCount, substructure->pc_21);
-
     fprintf(f, "  dqOffset: %d\n", substructure->dqOffset);
     fprintf(f, "  qOffset: %d\n", substructure->qOffset);
-
     fprintf(f, "  Jacobian members:\n");
     for(int j = 1; j < context->substructureMembersCount[i]; j++) {
       s2_joint_t* joint =
@@ -2384,7 +2363,6 @@ void s2_context_printJacobian(
       substructure->dqCount *
       substructure->constraintEquationCount * sizeof(bool));
 
-
     int k = substructure->loopOffset;
     for(
       int j = 0;
@@ -2394,7 +2372,6 @@ void s2_context_printJacobian(
       /* positive loop members [l]*/
       // printf("  loop [%d]\n", j);
       // printf("  setting positive loop members:\n");
-
       for(
         int l = 0;
         l < context->positiveLoopMembersCompressedCount[k];
@@ -2421,7 +2398,6 @@ void s2_context_printJacobian(
 
       /* negative loop members [l]*/
       // printf("  setting negative loop members:\n");
-
       for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
 
         int variableIndex = context->negativeLoopMemberOffsets[k][l];
@@ -2464,8 +2440,6 @@ void s2_context_printJacobian(
     memcpy(J1, substructure->J, jacobianSize * sizeof(double));
 
     s2_substructure_setJacobianPO1(substructure);
-
-
     // printf("pr_12: ");
     // s2_arrayi_print(substructure->constraintEquationCount, substructure->pr_12);
     // printf("pc_12: ");
@@ -2505,7 +2479,7 @@ void s2_context_printJacobian(
 
 
     s2_substructure_computeMobility(substructure);
-    s2_substructure_printMobility(f, context, i);
+    s2_substructure_printMobility(f, substructure);
 
     // double m1[substructure->dqCount];
     // memcpy(
@@ -2545,7 +2519,6 @@ void s2_context_printJacobian(
 @brief called after s2_context_initializeJacobian
 */
 void s2_context_analyzeJacobian(s2_context_t* context) {
-
   s2_context_setJacobianPO1(context);
   s2_context_translatePermutations(context);
   s2_context_setJacobianBooleanPO2(context);
@@ -2561,21 +2534,16 @@ void s2_context_analyzeJacobian(s2_context_t* context) {
   @brief set pointer to substructure within each joint datastructure
 */
 void s2_context_setSubstructurePointers(s2_context_t* context) {
-
   FILE* debug = context->modelParameters.debugFilePointer;
-
   for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
-
     for(int j = 0; j < context->activeJointCount; j++) {
-
       if(
         context->jointPointers[j]->dqIndex >= substructure->dqOffset &&
         context->jointPointers[j]->dqIndex < substructure->dqOffset + substructure->dqCount &&
         context->jointPointers[j]->jointType != S2_JOINT_RIGID) {
         s2_joint_t* joint = context->jointPointers[j];
         joint->substructurePointer = substructure;
-        substructure->context = context;
       }
     }
   }
