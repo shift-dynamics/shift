@@ -36,14 +36,14 @@ typedef struct SliderHandle {
   int qIndex;
   int dqIndex;
   bool isSpherical;
-  int substructureIndex;
+  s2_substructure_t* substructure = NULL;
   double singleStep;
 } SliderHandle;
 
 enum s2_modeltree_enum_t {
   S2_MODELTREE_ASSEMBLY = 1002,
   S2_MODELTREE_BODY_GROUP = 1003,
-  S2_MODELTREE_BODY = 1003,
+  S2_MODELTREE_BODY = 1004,
   S2_MODELTREE_FRAME = 1005,
   S2_MODELTREE_JOINT_GROUP = 1006,
   S2_MODELTREE_JOINT = 1007,

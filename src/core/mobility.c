@@ -51,12 +51,11 @@ void s2_mobilityNumbers(
 */
 void s2_substructure_printMobility(
   FILE* f,
-  s2_context_t* context,
-  int substructureIndex) {
+  s2_substructure_t* substructure) {
 
 
-  s2_substructure_t* substructure =
-    context->substructures + substructureIndex;
+  int substructureIndex = substructure->index;
+  s2_context_t* context = substructure->context;
   fprintf(
     f,
     "\nsubstructure [%d], rank: %d, dqOffset: %d, dqCount, %d, constraintEqnCount: %d\n",
@@ -72,6 +71,7 @@ void s2_substructure_printMobility(
   for(int j = 1; j < context->substructureMembersCount[substructureIndex]; j++) {
     s2_joint_t* joint =
       context->jointPointers[context->substructureMembers[substructureIndex][j]];
+    double mobility = 0;
     switch(joint->jointType) {
       case S2_JOINT_TX:
       case S2_JOINT_TY:
@@ -79,43 +79,28 @@ void s2_substructure_printMobility(
       case S2_JOINT_RX:
       case S2_JOINT_RY:
       case S2_JOINT_RZ: {
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        s2_stackstr_print(f, joint->name);
-        i++;
+        mobility += context->mobilityNumbers[i++];
+        break;
       }
-      break;
-      case S2_JOINT_SPHERICAL: {
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        s2_stackstr_print(f, joint->name);
-        i++;
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        i++;
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        i++;
-      }
-      break;
       case S2_JOINT_FLOAT: {
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        s2_stackstr_print(f, joint->name);
-        i++;
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        i++;
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        i++;
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        i++;
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        i++;
-        fprintf(f, "  [%d] m=%0.9f ", i, context->mobilityNumbers[i]);
-        i++;
+        mobility += context->mobilityNumbers[i++];
+        mobility += context->mobilityNumbers[i++];
+        mobility += context->mobilityNumbers[i++];
+        /* fallthrough */
       }
-      break;
+      case S2_JOINT_SPHERICAL: {
+        mobility += context->mobilityNumbers[i++];
+        mobility += context->mobilityNumbers[i++];
+        mobility += context->mobilityNumbers[i++];
+        break;
+      }
       default: {
-        fprintf(f, "  [%d] m=0 ", i);
-        s2_stackstr_print(f, joint->name);
+        break;
       }
-      break;
     }
+    fprintf(f, "  m=%f2.2 ", mobility);
+
+    s2_stackstr_print(f, joint->name);
   }
 }
 
@@ -131,12 +116,12 @@ void s2_context_printMobility(FILE* f, s2_context_t* context) {
 
   for(int i = 0; i < context->dqCount; i++) {
     bool inSubstructure = false;
-    for(int j = 0; j < context->substructureCount; j++) {
-      s2_substructure_t* substructure = context->substructures + j;
+    s2_substructure_t* substructure = context->substructures;
+    for(int j = 0; j < context->substructureCount; j++, substructure++) {
       if(
         i >= substructure->dqOffset &&
         i < substructure->dqOffset + substructure->dqCount) {
-        s2_substructure_printMobility(f, context, j);
+        s2_substructure_printMobility(f, substructure);
         inSubstructure = true;
         break;
       }

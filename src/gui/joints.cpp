@@ -59,8 +59,7 @@ void s2_Joints::update() {
                   m_targetVal) {
 
                   s2_substructure_incrementSpecifiedCoordinate(
-                    m_context,
-                    m_joint->substructurePointer->substructureIndex,
+                    m_joint->substructurePointer,
                     m_dqIndex,
                     m_targetVal,
                     S2_JOINT_PRIMITIVE,
@@ -72,8 +71,7 @@ void s2_Joints::update() {
                 } else {
 
                   s2_substructure_incrementSpecifiedCoordinate(
-                    m_context,
-                    m_joint->substructurePointer->substructureIndex,
+                    m_joint->substructurePointer,
                     m_dqIndex,
                     delq,
                     S2_JOINT_PRIMITIVE,
@@ -84,8 +82,7 @@ void s2_Joints::update() {
                   m_context->q[m_qIndex] + delq < m_targetVal) {
 
                   s2_substructure_incrementSpecifiedCoordinate(
-                    m_context,
-                    m_joint->substructurePointer->substructureIndex,
+                    m_joint->substructurePointer,
                     m_dqIndex,
                     m_targetVal,
                     S2_JOINT_PRIMITIVE,
@@ -96,8 +93,7 @@ void s2_Joints::update() {
                 } else {
 
                   s2_substructure_incrementSpecifiedCoordinate(
-                    m_context,
-                    m_joint->substructurePointer->substructureIndex,
+                    m_joint->substructurePointer,
                     m_dqIndex,
                     -delq,
                     S2_JOINT_PRIMITIVE,
@@ -117,13 +113,12 @@ void s2_Joints::update() {
               break;
             }
 
-            qDebug() << m_joint->substructurePointer->substructureIndex;
+            qDebug() << m_joint->substructurePointer->index;
             qDebug() << "dqIndex:" << m_dqIndex;
             qDebug() << "delq:" << delq;
 
             int returnVal = s2_substructure_incrementSpecifiedCoordinate(
-                              m_context,
-                              m_joint->substructurePointer->substructureIndex,
+                              m_joint->substructurePointer,
                               m_dqIndex,
                               delq,
                               S2_JOINT_TX,
