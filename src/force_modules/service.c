@@ -32,7 +32,7 @@ SUCH DAMAGE.
 /*!
 @brief clear and set externally applied forces to model
 */
-void s2_service_setForces(
+void s2_context_setForces(
   s2_context_t* context,
   double* y) {
 

@@ -27,75 +27,45 @@ typedef struct s2_substructure_t s2_substructure_t;
 
 // s2_jacobian_t* s2_jacobian();
 
-void s2_context_initializeJacobian(
-  s2_context_t* context);
+void s2_context_initializeJacobian(s2_context_t*);
 
-void s2_jacobian_setPO2(
-  s2_context_t* context);
+void s2_context_setJacobianPO2(s2_context_t*);
 
-void s2_jacobian_setPO2_substructure(
-  s2_context_t* context,
-  int substructureIndex);
+void s2_substructure_setJacobianPO2(s2_context_t*, int);
 
-int s2_jacobian_factorPO2(
-  s2_context_t* context);
+int s2_context_factorJacobianPO2(s2_context_t*);
 
-void s2_jacobian_factorPO2_substructure(
-  s2_substructure_t* substructure);
+void s2_substructure_factorJacobianPO2(s2_substructure_t*);
 
-void s2_jacobian_setPO1(
-  s2_context_t* context);
+void s2_context_setJacobianPO1(s2_context_t*);
 
-void s2_jacobian_setPO1_substructure(
-  s2_context_t* context,
-  int substructureIndex);
+void s2_substructure_setJacobianPO1(s2_context_t*, int);
 
-void s2_jacobian_setPO1Specified_substructure(
-  s2_context_t* context,
-  int substructureIndex,
-  int specifiedCoordinateIndex);
+void s2_substructure_setJacobianPO1Specified(s2_context_t*, int, int);
 
-void s2_jacobian_evaluateConstraints(
-  s2_context_t* context);
+void s2_context_evaluateConstraints(s2_context_t*);
 
-void s2_jacobian_evaluateConstraints_substructure(
-  s2_context_t* context,
-  s2_substructure_t* substructure);
+void s2_substructure_evaluateConstraints(s2_context_t*, s2_substructure_t*);
 
-void s2_jacobian_analyze(
-  s2_context_t* context);
+void s2_context_analyzeJacobian(s2_context_t*);
 
-double s2_jacobian_pivotRatio(
-  int colDim,
-  int rank,
-  double* J);
+double s2_jacobian_pivotRatio(int, int, double*);
 
-void s2_jacobian_print(
-  FILE* f,
-  s2_context_t* context);
+void s2_context_printJacobian(FILE*, s2_context_t*);
 
-void s2_jacobian_setBMatrix_substructure(
-  s2_substructure_t* substructure);
+void s2_substructure_setBMatrix(s2_substructure_t*);
 
-void s2_jacobian_setBMatrix(
-  s2_context_t* context);
+void s2_context_setBMatrix(s2_context_t*);
 
-void s2_jacobian_setBMatrixSparse_substructure(
-  s2_context_t* context,
-  s2_substructure_t* substructure);
+void s2_substructure_setBMatrixSparse(s2_context_t*, s2_substructure_t*);
 
-void s2_jacobian_setBMatrixSparse(
-  s2_context_t* context);
+void s2_context_setBMatrixSparse(s2_context_t*);
 
-int s2_jacobian_infinityNormBCheck(
-  s2_context_t* context);
+int s2_context_infinityNormBCheck(s2_context_t*);
 
-void s2_jacobian_setJacobianBooleanPO2(
-  s2_context_t* context);
+void s2_context_setJacobianBooleanPO2(s2_context_t*);
 
-void s2_jacobian_setJacobianBooleanPO2_substructure(
-  s2_context_t* context,
-  int substructureIndex);
+void s2_substructure_setJacobianBooleanPO2(s2_context_t*, int);
 
 double s2_jacobian_infinityNormB(
   int rowDim,

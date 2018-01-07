@@ -22,30 +22,27 @@ SUCH DAMAGE.
 #include "../shift.h"
 #include "jacobian.h"
 
-double s2_newtonRaphson_evaluateConstraintError_substructure(
-  s2_substructure_t* substructure);
+double s2_substructure_evaluateConstraintError(s2_substructure_t*);
 
-double s2_newtonRaphson_evaluateqError_substructure(
-  s2_substructure_t* substructure);
+double s2_substructure_evaluateqError(s2_substructure_t*);
 
-int s2_newtonRaphson_removeConstraintViolations(
-  s2_context_t* context);
+int s2_context_removeConstraintViolations(s2_context_t*);
 
-int s2_newtonRaphson_removeConstraintViolations_substructure(
+int s2_substructure_removeConstraintViolations(
   s2_context_t* context,
   int substructureIndex);
 
-int s2_newtonRaphson_removeConstraintViolationsFast_substructure(
+int s2_substructure_removeConstraintViolationsFast(
   s2_context_t* context,
   int substructureIndex,
   bool useTightTolerance);
 
-void s2_newtonRaphson_setup_specified(
+void s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
   s2_context_t* context,
   int substructureIndex,
   int specifiedCoordinateIndex);
 
-int s2_newtonRaphson_increment_specified(
+int s2_substructure_incrementSpecifiedCoordinate(
   s2_context_t* context,
   int substructureIndex,
   int specifiedCoordinateIndex,

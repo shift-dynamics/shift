@@ -5,18 +5,17 @@
 @brief Free memory for numericalintegrator datastructure
 @param numericalIntegrator a numerical integrator datastructure
 */
-void s2_numericalintegrator_free(
-  s2_context_t* context) {
+void s2_context_freeNumericalIntegrator(s2_context_t* context) {
 
   // printf("%p\n", context->numericalIntegrator);
   if(context->numericalIntegrator != NULL) {
     switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
-        s2_ode113_free(context);
+        s2_context_freeOde113(context);
       }
       break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
-        s2_ode113b_free(context);
+        s2_context_freeOde113b(context);
       }
       break;
     }
@@ -28,14 +27,13 @@ void s2_numericalintegrator_free(
 @brief Initialize and allocate memory for numericalIntegrator datastructure
 @returns a numericalIntegrator datastructure
 */
-void s2_numericalintegrator_allocate(
-  s2_context_t* context) {
+void s2_context_allocNumericalIntegrator(s2_context_t* context) {
 
   /*
     release memory if there is already something there
   */
   if(context->numericalIntegrator != NULL) {
-    s2_numericalintegrator_free(context);
+    s2_context_freeNumericalIntegrator(context);
   }
 
   /*
@@ -44,12 +42,12 @@ void s2_numericalintegrator_allocate(
   switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       // printf("allocating memory for ODE113 integrator\n");
-      s2_ode113_allocate(context);
+      s2_context_allocOde113(context);
     }
     break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       // printf("allocating memory for ODE113B integrator\n");
-      s2_ode113b_allocate(context);
+      s2_context_allocOde113b(context);
     }
     break;
   }

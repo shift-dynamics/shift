@@ -74,10 +74,10 @@ void s2_equation_fcn(
     y,
     (context->qCount + context->dqCount) * sizeof(double));
 
-  s2_updateDHVA(context);
-  s2_jacobian_evaluateConstraints(context);
-  s2_service_setForces(context, y);
-  s2_equation_setEquations(context);
+  s2_context_updateDHVA(context);
+  s2_context_evaluateConstraints(context);
+  s2_context_setForces(context, y);
+  s2_context_setEquations(context);
 
   /* make a copy of Ml and fl to verify equations of motion, remove this
   once equations of motion verified */
@@ -98,7 +98,7 @@ void s2_equation_fcn(
   // double fl[context->dqCount];
   // memcpy(fl, context->fl, context->dqCount * sizeof(double));
 
-  s2_equation_factorAndSolve(context);
+  s2_context_factorAndSolve(context);
 
   /* verify that multiplying coefficient matrix with lhs gets back the
   right hand side, comment out once verified */
@@ -108,7 +108,7 @@ void s2_equation_fcn(
     convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array
   */
-  s2_equation_dq_to_dy(context, dy);
+  s2_context_dqTody(context, dy);
 
   /*
     copy context->ddq to second half of dy, starting at qCount
@@ -124,9 +124,7 @@ void s2_equation_fcn(
 @brief writes headers for output file to stdout and to the output file
 pointer specified in context->modelParameters->outFilePointer
 */
-void s2_solve_writeHeaders(
-  s2_context_t* context) {
-
+void s2_context_writeHeaders(s2_context_t* context) {
   int neqn = 0;
   double* y = NULL;
   double t = 0;
@@ -220,14 +218,14 @@ void s2_solve_writeHeaders(
         y[i]);
     }
 
-    s2_solve_kineticEnergy(context);
+    s2_context_evaluateKineticEnergy(context);
     fprintf(
       f,
       "%s%f",
       context->modelParameters.delimiter,
       context->kineticEnergy);
 
-    s2_solve_gravitationalPotentialEnergy(context);
+    s2_context_evaluateGravitationalPotentialEnergy(context);
     fprintf(
       f,
       "%s%f",
@@ -243,8 +241,7 @@ void s2_solve_writeHeaders(
     double e = 0;
     for(int j = 0; j < context->substructureCount; j++) {
       s2_substructure_t* substructure = context->substructures + j;
-      e += s2_newtonRaphson_evaluateConstraintError_substructure(
-             substructure);
+      e += s2_substructure_evaluateConstraintError(substructure);
     }
 
     fprintf(
@@ -266,7 +263,7 @@ void s2_solve_writeHeaders(
 /*!
 @brief writes states to output file, ydata array and/or stdout
 */
-void s2_solve_writeStates(
+void s2_context_writeStates(
   s2_context_t* context,
   int step) {
 
@@ -344,12 +341,11 @@ void s2_solve_writeStates(
   double e = 0;
   for(int j = 0; j < context->substructureCount; j++) {
     s2_substructure_t* substructure = context->substructures + j;
-    e += s2_newtonRaphson_evaluateConstraintError_substructure(
-           substructure);
+    e += s2_substructure_evaluateConstraintError(substructure);
   }
 
-  s2_solve_kineticEnergy(context);
-  s2_solve_gravitationalPotentialEnergy(context);
+  s2_context_evaluateKineticEnergy(context);
+  s2_context_evaluateGravitationalPotentialEnergy(context);
 
   /* solve for absolute displacement of error */
 // for(int j= 0; j < context->constraintEquationCount; j++)
@@ -534,12 +530,11 @@ void s2_solve_writeStates(
 /*!
 @brief wrapper function to ode integrator
 */
-void s2_solve_integrateEquations(
-  s2_context_t* context) {
+void s2_context_integrateEquations(s2_context_t* context) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
 
-  s2_numericalintegrator_allocate(context);
+  s2_context_allocNumericalIntegrator(context);
 
   context->modelParameters.sumConstraintError = 0;
   context->modelParameters.maxConstraintError = 0;
@@ -554,7 +549,7 @@ void s2_solve_integrateEquations(
         context->modelParameters.outFile, "w");
   }
 
-  s2_solve_writeHeaders(context);
+  s2_context_writeHeaders(context);
 
 
   for(int i = 0; i < context->substructureCount; i++) {
@@ -569,7 +564,7 @@ void s2_solve_integrateEquations(
   switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       clock_t begin = clock();
-      s2_ode113_integrateEquations(context);
+      s2_context_integrateEquationsOde113(context);
       clock_t end = clock();
       fprintf(debug, "simulation time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
       s2_numericalintegrator_ode113_t* numericalIntegrator =
@@ -581,7 +576,7 @@ void s2_solve_integrateEquations(
     break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       clock_t begin = clock();
-      s2_ode113b_integrateEquations(context);
+      s2_context_integrateEquationsOde113b(context);
       clock_t end = clock();
       fprintf(debug, "simulation time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
@@ -637,7 +632,7 @@ void s2_solve_integrateEquations(
 /*!
 @brief compute total spatial momentum for system
 */
-void s2_solve_momentum(s2_context_t* context) {
+void s2_context_evaluateMomentum(s2_context_t* context) {
 
   memset(&(context->spatialMomentum), 0, sizeof(s2_screw_t));
   for(int i = 0; i < context->nonRigidJointCount; i++) {
@@ -656,7 +651,7 @@ void s2_solve_momentum(s2_context_t* context) {
 @brief compute kinetic energy for system
 
 */
-void s2_solve_kineticEnergy(s2_context_t* context) {
+void s2_context_evaluateKineticEnergy(s2_context_t* context) {
 
   context->kineticEnergy =
     cblas_ddot(
@@ -675,7 +670,7 @@ result is stored in context->gravitationalPotentialEnergy
 
 @param context [in] context datastructure
 */
-void s2_solve_gravitationalPotentialEnergy(s2_context_t* context) {
+void s2_context_evaluateGravitationalPotentialEnergy(s2_context_t* context) {
 
   context->gravitationalPotentialEnergy =
     -(cblas_ddot(

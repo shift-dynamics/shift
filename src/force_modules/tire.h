@@ -50,7 +50,6 @@ typedef enum {
 } s2_tireside_enum_t;
 
 
-
 typedef struct s2_tire_t {
   s2_tire_enum_t tireType;
   void* properties;
@@ -58,23 +57,19 @@ typedef struct s2_tire_t {
 
 
 void s2_tire(
-  s2_forcemodule_t* forceModule,
-  s2_context_t* context,
-  s2_tire_enum_t tireType,
-  const char* filePath,
-  s2_stackstr_t* wheelBody,
-  bool useTransientSlip);
-
-void s2_tire_free(
-  s2_tire_t* tire);
-
-int convertInt(const char* numArray, int* value);
-int convertDouble(const char* str, double* value);
-char* getCharFromLine(char* tline);
-int getIntFromLine(char* tline, int* val);
-int getDoubleFromLine(char* tline, double* val);
-int getDoubleFromLineAtIndex(
-  char* tline, double* val, int index);
+  s2_forcemodule_t*,
+  s2_context_t*,
+  s2_tire_enum_t,
+  const char*,
+  s2_stackstr_t*,
+  bool);
+void s2_tire_free(s2_tire_t*);
+int convertInt(const char*, int*);
+int convertDouble(const char*, double*);
+char* getCharFromLine(char*);
+int getIntFromLine(char*, int*);
+int getDoubleFromLine(char*, double*);
+int getDoubleFromLineAtIndex(char*, double*, int);
 
 
 #endif

@@ -4,8 +4,7 @@
 /*!
 @brief allocate memory for ode113b numerical integrator
 */
-void s2_ode113b_allocate(
-  s2_context_t* context) {
+void s2_context_allocOde113b(s2_context_t* context) {
 
   context->numericalIntegrator =
     malloc(sizeof(s2_numericalintegrator_ode113b_t));
@@ -71,7 +70,7 @@ void s2_ode113b_allocate(
   numericalIntegrator->dy =
     calloc(numericalIntegrator->neqn, sizeof(double));
 
-  s2_forcemodule_connect(context);
+  s2_context_connectForceModules(context);
 
   numericalIntegrator->yy =
     calloc(numericalIntegrator->neqn, sizeof(double));
@@ -198,8 +197,7 @@ void s2_ode113b_allocate(
 /*!
 @brief free memory for ode113b integrator
 */
-void s2_ode113b_free(
-  s2_context_t* context) {
+void s2_context_freeOde113b(s2_context_t* context) {
 
   s2_numericalintegrator_ode113b_t* numericalIntegrator =
     (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
@@ -244,10 +242,10 @@ void s2_ode113b_fcn(
     y,
     (context->qCount + context->dqCount) * sizeof(double));
 
-  s2_updateDHVA(context);
-  s2_jacobian_evaluateConstraints(context);
-  s2_service_setForces(context, y);
-  s2_equation_setEquations(context);
+  s2_context_updateDHVA(context);
+  s2_context_evaluateConstraints(context);
+  s2_context_setForces(context, y);
+  s2_context_setEquations(context);
 
   /* make a copy of Ml and fl to verify equations of motion, remove this
   once equations of motion verified */
@@ -267,7 +265,7 @@ void s2_ode113b_fcn(
   // double fl[context->dqCount];
   // memcpy(fl, context->fl, context->dqCount * sizeof(double));
 
-  s2_equation_factorAndSolve(context);
+  s2_context_factorAndSolve(context);
 
   if(numericalIntegrator->newtonRaphsonFailure) {
     return;
@@ -281,7 +279,7 @@ void s2_ode113b_fcn(
     convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array
   */
-  s2_equation_dq_to_dy(context, numericalIntegrator->dy);
+  s2_context_dqTody(context, numericalIntegrator->dy);
 
   /*
     copy context->ddq to second half of dy, starting at qCount
@@ -324,11 +322,11 @@ void s2_ode113b_fcn(
     }
 
     numericalIntegrator->t = numericalIntegrator->x;
-    s2_forcemodule_saveHistory(context);
+    s2_context_saveForceModuleHistory(context);
 
     if(numericalIntegrator->x >=
         numericalIntegrator->tdata[numericalIntegrator->step] + context->modelParameters.timeStep) {
-      s2_solve_writeStates(
+      s2_context_writeStates(
         context, ++(numericalIntegrator->step));
       // printf("\tk: %d, h: %0.9g, SL: %f, safetyFactor: %f, omegaN: %f\n", k, h, SL[k], safetyFactor, omegaN);
       numericalIntegrator->iterationCount = 0;
@@ -1130,8 +1128,7 @@ void s2_ode113b_de(
 /*!
 @brief placeholder for integrating using ode113b method
 */
-void s2_ode113b_integrateEquations(
-  s2_context_t* context) {
+void s2_context_integrateEquationsOde113b(s2_context_t* context) {
 
   s2_ode113b_de(s2_ode113b_fcn, context);
   s2_numericalintegrator_ode113b_t* numericalIntegrator =

@@ -741,8 +741,8 @@ void RenderWindow::interpolateCurrentPosition() {
       ydata + i1 * neqn,
       m_context->q);
 
-    s2_updateDH(m_context);
-    s2_updateGLReferenceFrames(m_context);
+    s2_context_updateDH(m_context);
+    s2_context_updateGLReferenceFrames(m_context);
     // s2_context_updateBoundingSpheres(m_context);
     emit simulationUpdated(t);
   }
@@ -808,8 +808,8 @@ void RenderWindow::interpolateCurrentPosition(double t) {
       m_context->q);
     // emit simulationUpdated(t);
 
-    s2_updateDH(m_context);
-    s2_updateGLReferenceFrames(m_context);
+    s2_context_updateDH(m_context);
+    s2_context_updateGLReferenceFrames(m_context);
     // s2_context_updateBoundingSpheres(m_context);
   }
 }

@@ -1,0 +1,116 @@
+{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs36 Loading bodies and joints in Delta Robot\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs32 Identifying Directed Acyclic Graph, Spanning Tree and Chord Constraints\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 The user-defined model is a list of bodies and joints. The input file specifies a Directed Graph (DG) with possible cycles. When the input file is loaded, the software identifies any user-specified joints that are not aligned with the spanning tree, and flips the sense as necessary, thereby converting the DG to a Directed Acyclic Graph (DAG) (i.e.\u160?with cycles removed). If any joints are identified to be not aligned with the spanning tree during this process, the user-defined sense of the inverse transformation is used across the joint to maintain the user-defined sign of the joint as specified in the input file. In the Delta robot model, all user-defined joints were specified to be aligned with the spanning tree and therefore it was not necessary to flip the sense of any joints.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 When the user input file is loaded, all user-defined bodies and joints are loaded into a {\f1 bodies} and {\f1 joints} list in the software. The pseudocode to identify the DAG and sort bodies and joints in level-increasing order follows below. The process starts by identifying all user specified joints with a connection to the fixed inertial reference frame as:\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \f1 @require joints\line
+@return temp\line
+@return joints\line
+temp = []\line
+for joint in joints:\line
+  if joint.parent is fixed:\line
+    joint.sense = positive\line
+    joints.pop(joint)\line
+    temp.append(joint)\line
+  else if joint.child is fixed:\line
+    joint.sense = negative\line
+    joints.pop(joint)\line
+    temp.append(joint)\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 If no joints with a connection to the fixed inertial reference frame are specified above, additional logic must be carried to reference a model to the fixed inertial reference frame using a 6DOF float joint. The additional logic for this operation is not discussed here.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 After the above operation has been carried out, the temporary list {\f1 temp} will have been seeded with the first joints connected to the fixed frame. Bodies and joints are systematically removed from the user\u8217's initial list of bodies and joints specified in an arbitrary user-defined order in the input file and appended to the new temporary list of bodies and joints (specified as {\f1 bodies_temp} and {\f1 joints_temp} respectively below). In the below pseudocode, the notation {\f1 pop(0)} indicates to remove the first element of a list and {\f1 pop(element)} indicates to remove a specified element from the list. The notation {\f1 append(element)} indicates to append an element to the end of the list. The process continues sorting and flipping the sense of joints until all user-defined joints have been processed.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \f1 @require temp\line
+@require bodies\line
+@require joints\line
+@return bodies\line
+@return joints\line
+@return chord_constraints\line
+\line
+bodies_temp = []\line
+joints_temp = []\line
+chord_constraints = []\line
+\line
+while(temp):\line
+\line
+  joint = temp.pop(0)\line
+  joints_temp.append(joint)\line
+\line
+  if joint.sense is positive:\line
+    body = joint.child\line
+  else if joint.sense is negative:\line
+    body = joint.parent\line
+\line
+  if body in bodies:\line
+    bodies.pop(body)\line
+    bodies_temp.append(body)\line
+  else:\line
+    virtualbody\line
+    chordconstraint\line
+    chordconstraint.parent = virtualbody\line
+    if joint.sense is positive:\line
+      chordconstraint.child = joint.child\line
+      joint.child = virtualbody\line
+    else if joint.sense is negative:\line
+      chordconstraint.child = joint.parent\line
+      joint.parent = virtualbody\line
+    chord_constraints.append(chord_constraint)\line
+    bodies_temp.append(virtualbody)\line
+\line
+  for joint in joints:\line
+    if joint.parent is body:\line
+      joint.sense = positive\line
+      joints.pop(joint)\line
+      temp.append(joint)\line
+    else if joint.child is body:\line
+      joint.sense = negative\line
+      joints.pop(joint)\line
+      temp.append(joint)\line
+\line
+bodies = bodies_temp\line
+joints = joints_temp\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 Note that additional processing must be performed to identify and book-keep coordinate systems and shape matrices on bodies.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs32 Delta Robot Model\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 The delta robot contains 16 joints and 11 bodies and therefore has 5 chord loop constraints. The bodies and joints specified in the input file are as follows:\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs28 Bodies\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 -1. Fixed\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 0. Base\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 1. Upper Link 1\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 2. Upper Link 2\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 3. Upper Link 3\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 4. Lower Link 1\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 5. Lower Link 2\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 6. Lower Link 3\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 7. Lower Link 4\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 8. Lower Link 5\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 9. Lower Link 6\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 10. End-Effector\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs28 Joints\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 A. -1 \u8594? 0, rigid\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 B. 0 \u8594? 1, Rz\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 C. 0 \u8594? 3, Rz\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 D. 0 \u8594? 2, Rz\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 E. 1 \u8594? 5, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 F. 1 \u8594? 9, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 G. 3 \u8594? 6, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 H. 3 \u8594? 7, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 I. 2 \u8594? 8, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 J. 2 \u8594? 4, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 K. 5 \u8594? 10, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 L. 9 \u8594? 10, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 M. 6 \u8594? 10, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 N. 7 \u8594? 10, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 O. 8 \u8594? 10, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 P. 4 \u8594? 10, spherical\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs32 Cut Body Version\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 After processing the input file, the virtual bodies and chord constraints are imposed, resulting in the additional virtual bodies and chord constraints.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs28 Virtual Bodies\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [11]. Virtual Body 1\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [12]. Virtual Body 2\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [13]. Virtual Body 3\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [14]. Virtual Body 4\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [15]. Virtual Body 5\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs28 Chord Constraints\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [0]. [11] \u8594? 10\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [1]. [12] \u8594? 10\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [2]. [13] \u8594? 10\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [3]. [14] \u8594? 10\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 [4]. [15] \u8594? 10\par}
+

@@ -18,8 +18,8 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#ifndef _STAR2_NUMERICALINTEGRATOR_H_
-#define _STAR2_NUMERICALINTEGRATOR_H_
+#ifndef _SHIFT_NUMERICALINTEGRATOR_H_
+#define _SHIFT_NUMERICALINTEGRATOR_H_
 
 #include "ode113.h"
 #include "ode113b.h"
@@ -41,11 +41,8 @@ typedef enum {
 } s2_numericalintegrator_enum_t;
 
 
-void s2_numericalintegrator_allocate(
-  s2_context_t* context);
+void s2_context_allocNumericalIntegrator(s2_context_t*);
 
-
-void s2_numericalintegrator_free(
-  s2_context_t* context);
+void s2_context_freeNumericalintegrator(s2_context_t*);
 
 #endif

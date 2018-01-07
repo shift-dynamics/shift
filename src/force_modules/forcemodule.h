@@ -60,34 +60,17 @@ typedef struct s2_forcemodule_t {
 
 s2_forcemodule_t* s2_forcemodule(s2_forcemodule_enum_t);
 
+void s2_context_flattenForceModules(s2_context_t*);
 
-s2_forcemodule_t* s2_forcemodule(
-  s2_forcemodule_enum_t forceModuleType);
+void s2_context_connectForceModules(s2_context_t*);
 
+void s2_context_updateTransientForceModules(s2_context_t*, double*);
 
-void s2_forcemodule_flatten(
-  s2_context_t* context);
+void s2_context_saveForceModuleHistory(s2_context_t*);
 
+void s2_forcemodule_append(s2_assembly_t*, s2_forcemodule_t*);
 
-void s2_forcemodule_connect(
-  s2_context_t* context);
-
-
-void s2_forcemodule_updateTransient(
-  s2_context_t* context,
-  double* y);
-
-
-void s2_forcemodule_saveHistory(
-  s2_context_t* context);
-
-
-void s2_forcemodule_append(
-  s2_assembly_t* assembly,
-  s2_forcemodule_t* forceModule);
-
-
-void s2_forcemodule_free(s2_forcemodule_t* forceModule);
+void s2_forcemodule_free(s2_forcemodule_t*);
 
 void s2_forcemodule_load(
   s2_context_t* context,

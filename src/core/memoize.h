@@ -21,10 +21,8 @@ SUCH DAMAGE.
 #ifndef _SHIFT_MEMOIZE_H_
 #define _SHIFT_MEMOIZE_H_
 
-void s2_memoize_initializeEquations(
-  s2_context_t* context);
+void s2_context_initializeEquations(s2_context_t*);
 
-void s2_memoize_memoizeEquations(
-  s2_context_t* context);
+void s2_context_memoizeEquations(s2_context_t*);
 
 #endif

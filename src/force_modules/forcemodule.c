@@ -83,7 +83,7 @@ s2_forcemodule_t* s2_forcemodule(
 /*! @brief recursively count force modules with static and transient properties
 
 */
-void s2_forcemodule_countRecursive(
+void s2_context_countForceModulesRecursive(
   s2_context_t* context,
   s2_assembly_t* assembly) {
 
@@ -95,7 +95,7 @@ void s2_forcemodule_countRecursive(
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
   while(subAssemblyHead != NULL) {
-    s2_forcemodule_countRecursive(
+    s2_context_countForceModulesRecursive(
       context,
       subAssemblyHead);
     subAssemblyHead = subAssemblyHead->next;
@@ -107,7 +107,7 @@ void s2_forcemodule_countRecursive(
 @brief recursively flatten hierarchical datastructure to array of
 pointers
 */
-void s2_forcemodule_flattenRecursive(
+void s2_context_flattenForceModulesRecursive(
   s2_context_t* context,
   s2_assembly_t* assembly,
   int* counter) {
@@ -123,7 +123,7 @@ void s2_forcemodule_flattenRecursive(
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
   while(subAssemblyHead != NULL) {
-    s2_forcemodule_flattenRecursive(
+    s2_context_flattenForceModulesRecursive(
       context,
       subAssemblyHead,
       counter);
@@ -135,8 +135,7 @@ void s2_forcemodule_flattenRecursive(
 /*!
 @brief use flattened arrays of bodies to set pointers in forcemodules
 */
-void s2_forcemodule_connectPointers(
-  s2_context_t* context) {
+void s2_context_connectForceModulePointers(s2_context_t* context) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
 
@@ -297,11 +296,10 @@ void s2_forcemodule_connectPointers(
 @brief flatten force modules into array of array of pointers
 to force modules with static and transient properties
 */
-void s2_forcemodule_flatten(
-  s2_context_t* context) {
+void s2_context_flattenForceModules(s2_context_t* context) {
 
   context->forceModuleCount = 0;
-  s2_forcemodule_countRecursive(
+  s2_context_countForceModulesRecursive(
     context,
     context->assembly);
 
@@ -317,13 +315,13 @@ void s2_forcemodule_flatten(
   // FILE* debug = context->modelParameters->debugFilePointer;
   // fprintf(debug, "context->forceModuleCount: %d\n", context->forceModuleCount);
   int counter = 0;
-  s2_forcemodule_flattenRecursive(
+  s2_context_flattenForceModulesRecursive(
     context,
     context->assembly,
     &counter);
 
   /* connect pointers */
-  s2_forcemodule_connectPointers(context);
+  s2_context_connectForceModulePointers(context);
 }
 
 
@@ -331,8 +329,7 @@ void s2_forcemodule_flatten(
 @brief connect force module dy array pointer and set
 yOffset, called after numerical integrator set up
 */
-void s2_forcemodule_connect(
-  s2_context_t* context) {
+void s2_context_connectForceModules(s2_context_t* context) {
 
   int yOffset = context->dqCount + context->qCount;
 
@@ -418,9 +415,7 @@ void s2_forcemodule_connect(
 /*!
 @brief update transient properties associated with force modules
 */
-void s2_forcemodule_update(
-  s2_context_t* context,
-  double* y) {
+void s2_context_updateForceModules(s2_context_t* context, double* y) {
 
   for(int i = 0; i < context->forceModuleCount; i++) {
     s2_forcemodule_t* forceModule =
@@ -441,8 +436,7 @@ increasing order, any values that need to be saved are set in this
 function and called in a different location when integrating the
 equations only when convergence is true
 */
-void s2_forcemodule_saveHistory(
-  s2_context_t* context) {
+void s2_context_saveForceModuleHistory(s2_context_t* context) {
 
   for(int i = 0; i < context->forceModuleCount; i++) {
     s2_forcemodule_t* forceModule =

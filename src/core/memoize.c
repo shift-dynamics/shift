@@ -63,8 +63,7 @@ L-matrix. startOfWorkInM + p is an integer index into this work array.
 The array is used only for processing factors associated with solving for
 independent variables.
 */
-void s2_memoize_countOperations(
-  s2_context_t* context) {
+void s2_context_countOperations(s2_context_t* context) {
 
   memcpy(context->Mlbs, context->Mlb, context->Ml_size * sizeof(bool));
 
@@ -511,8 +510,7 @@ n3[ni] = number of increments in l3 to process the current independent variable.
 p3[ni] = number of increments in m3 to process the current independent variable.
 
 */
-void s2_memoize_recordOperations(
-  s2_context_t* context) {
+void s2_context_recordOperations(s2_context_t* context) {
 
   int l1 = 0;
   int l2 = 0;
@@ -773,8 +771,7 @@ source and destination memory pointers
 
 This function is intended to be called after s2_equation_memoize()
 */
-void s2_memoize_countPointerOperations(
-  s2_context_t* context) {
+void s2_context_countPointerOperations(s2_context_t* context) {
 
   /* Currently on entry to this function, context->nd = 0. Normally
   k = context->nd - 1; The following effectively sets k = context->nd - 1; */
@@ -924,8 +921,7 @@ void s2_memoize_countPointerOperations(
 the arrays of integers set up in recordOperations.
 
 */
-void s2_memoize_setSourceDestinationPointers(
-  s2_context_t* context) {
+void s2_context_setSourceDestinationPointers(s2_context_t* context) {
 
   int ni = 0;
   int nd = 0;
@@ -1068,12 +1064,9 @@ void s2_memoize_setSourceDestinationPointers(
 @brief memoize operations for converting angular velocities (of length 3)
 to time derivative of quaternions (of length 4)
 */
-void s2_memoize_memoizeQuaternions(
-  s2_context_t* context) {
+void s2_context_memoizeQuaternions(s2_context_t* context) {
 
-  /*
-    count number of quaternions
-  */
+  /* count number of quaternions */
   context->quaternionCount = 0;
   context->nonQuaternionCount = 0;
   for(int i = 0; i < context->activeJointCount; i++) {
@@ -1085,10 +1078,11 @@ void s2_memoize_memoizeQuaternions(
       case S2_JOINT_RY:
       case S2_JOINT_RZ: {
         context->nonQuaternionCount++;
-      }
-      break;
-      case S2_JOINT_RIGID:
         break;
+      }
+      case S2_JOINT_RIGID: {
+        break;
+      }
       case S2_JOINT_SPHERICAL: {
         context->quaternionCount++;
       }
@@ -1143,8 +1137,8 @@ void s2_memoize_memoizeQuaternions(
         context->dqNonQuaternionIndices[qCounter] =
           context->jointPointers[i]->dqIndex;
         qCounter++;
+        break;
       }
-      break;
       case S2_JOINT_RIGID:
         break;
       case S2_JOINT_SPHERICAL: {
@@ -1153,8 +1147,8 @@ void s2_memoize_memoizeQuaternions(
         context->dqQuaternionIndices[quaternionCounter] =
           context->jointPointers[i]->dqIndex;
         quaternionCounter++;
+        break;
       }
-      break;
       case S2_JOINT_FLOAT: {
         for(int j = 0; j < 3; j++) {
           context->qNonQuaternionIndices[qCounter] =
@@ -1168,13 +1162,13 @@ void s2_memoize_memoizeQuaternions(
         context->dqQuaternionIndices[quaternionCounter] =
           context->jointPointers[i]->dqIndex + 3;
         quaternionCounter++;
+        break;
       }
-      break;
       case S2_JOINT_INVALID:
       case S2_JOINT_PRIMITIVE: {
         fprintf(stderr, "invalid joint type found\n");
+        break;
       }
-      break;
     }
   }
 }
@@ -1186,12 +1180,10 @@ performs factorization again, recording the operations in integer arrays,
 finally, the instructions encoded in integer arrays are recorded in arrays
 of source and destination memory pointers
 */
-void s2_memoize_memoizeEquations(
-  s2_context_t* context) {
-
-  s2_memoize_memoizeQuaternions(context);
-  s2_memoize_countOperations(context);
-  s2_memoize_recordOperations(context);
-  s2_memoize_countPointerOperations(context);
-  s2_memoize_setSourceDestinationPointers(context);
+void s2_context_memoizeEquations(s2_context_t* context) {
+  s2_context_memoizeQuaternions(context);
+  s2_context_countOperations(context);
+  s2_context_recordOperations(context);
+  s2_context_countPointerOperations(context);
+  s2_context_setSourceDestinationPointers(context);
 }

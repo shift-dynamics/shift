@@ -21,8 +21,6 @@ SUCH DAMAGE.
 #ifndef _SHIFT_SERVICE_H_
 #define _SHIFT_SERVICE_H_
 
-void s2_service_setForces(
-  s2_context_t* context,
-  double* y);
+void s2_context_setForces(s2_context_t*, double*);
 
 #endif

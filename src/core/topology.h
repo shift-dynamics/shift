@@ -19,24 +19,30 @@ SUCH DAMAGE.
 #ifndef _SHIFT_TOPOLOGY_H_
 #define _SHIFT_TOPOLOGY_H_
 
-typedef struct s2_context_t s2_context_t;
 #include <stdio.h>
 
-void s2_context_setTopology(
-  s2_context_t* context);
+#include "kinematics.h"
 
-void s2_updateDH(
-  s2_context_t* context);
+typedef struct s2_context_t s2_context_t;
+typedef struct s2_frame_t s2_frame_t;
+typedef struct s2_body_t s2_body_t;
 
-void s2_updateDHVA(
-  s2_context_t* context);
 
-void s2_updateDHVADebug(
+void s2_context_setTopology(s2_context_t*);
+
+void s2_context_updateDH(s2_context_t*);
+
+void s2_context_updateDHVA(s2_context_t*);
+
+void s2_context_updateDHVADebug(
   FILE* f,
   s2_context_t* context,
   double t);
 
-void s2_updateGLReferenceFrames(
-  s2_context_t* context);
+void s2_context_updateGLReferenceFrames(s2_context_t* context);
+
+s2_body_t* s2_context_findBody(s2_context_t*, s2_displacement_t*);
+
+s2_frame_t* s2_context_findFrame(s2_context_t*, s2_displacement_t*);
 
 #endif

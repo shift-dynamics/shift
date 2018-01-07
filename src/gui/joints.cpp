@@ -26,7 +26,7 @@ void s2_Joints::update() {
     then no need to do Newton-Raphson iteration */
     if(m_joint->substructurePointer != NULL) {
 
-      s2_mobility_compute_substructure(m_joint->substructurePointer);
+      s2_substructure_computeMobility(m_joint->substructurePointer);
 
       if(m_jointType == S2_JOINT_SPHERICAL) {
 
@@ -58,7 +58,7 @@ void s2_Joints::update() {
                   m_context->q[m_qIndex] + delq >
                   m_targetVal) {
 
-                  s2_newtonRaphson_increment_specified(
+                  s2_substructure_incrementSpecifiedCoordinate(
                     m_context,
                     m_joint->substructurePointer->substructureIndex,
                     m_dqIndex,
@@ -71,7 +71,7 @@ void s2_Joints::update() {
                   clear();
                 } else {
 
-                  s2_newtonRaphson_increment_specified(
+                  s2_substructure_incrementSpecifiedCoordinate(
                     m_context,
                     m_joint->substructurePointer->substructureIndex,
                     m_dqIndex,
@@ -83,7 +83,7 @@ void s2_Joints::update() {
                 if(
                   m_context->q[m_qIndex] + delq < m_targetVal) {
 
-                  s2_newtonRaphson_increment_specified(
+                  s2_substructure_incrementSpecifiedCoordinate(
                     m_context,
                     m_joint->substructurePointer->substructureIndex,
                     m_dqIndex,
@@ -95,7 +95,7 @@ void s2_Joints::update() {
                   clear();
                 } else {
 
-                  s2_newtonRaphson_increment_specified(
+                  s2_substructure_incrementSpecifiedCoordinate(
                     m_context,
                     m_joint->substructurePointer->substructureIndex,
                     m_dqIndex,
@@ -121,7 +121,7 @@ void s2_Joints::update() {
             qDebug() << "dqIndex:" << m_dqIndex;
             qDebug() << "delq:" << delq;
 
-            int returnVal = s2_newtonRaphson_increment_specified(
+            int returnVal = s2_substructure_incrementSpecifiedCoordinate(
                               m_context,
                               m_joint->substructurePointer->substructureIndex,
                               m_dqIndex,
@@ -135,12 +135,12 @@ void s2_Joints::update() {
           }
           break;
         }
-        s2_updateGLReferenceFrames(m_context);
+        s2_context_updateGLReferenceFrames(m_context);
 
         // s2_mobility_compute_substructure(
         //   m_joint->substructurePointer);
 
-        s2_mobility_computeGlobalMobility(m_context);
+        s2_context_computeGlobalMobility(m_context);
       }
 
     } else {
@@ -156,8 +156,8 @@ void s2_Joints::update() {
         /* otherwise, update a single value in q array */
         m_context->q[m_qIndex] += m_delq * 1.5;
       }
-      s2_updateDH(m_context);
-      s2_updateGLReferenceFrames(m_context);
+      s2_context_updateDH(m_context);
+      s2_context_updateGLReferenceFrames(m_context);
     }
     emit jointChanged();
   }

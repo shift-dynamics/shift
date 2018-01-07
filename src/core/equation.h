@@ -21,24 +21,16 @@ SUCH DAMAGE.
 #ifndef _SHIFT_EQUATION_H_
 #define _SHIFT_EQUATION_H_
 
-void s2_equation_initializeEquations(
-  s2_context_t* context);
+void s2_context_initializeEquations(s2_context_t*);
 
-void s2_equation_setEquations(
-  s2_context_t* context);
+void s2_context_setEquations(s2_context_t*);
 
-void s2_equation_factorAndSolve(
-  s2_context_t* context);
+void s2_context_factorAndSolve(s2_context_t*);
 
-void s2_equation_setMassMatrix(
-  s2_context_t* context);
+void s2_context_setMassMatrix(s2_context_t*);
 
-void s2_equation_setRHS(
-  s2_context_t* context);
+void s2_context_setRHS(s2_context_t*);
 
-void s2_equation_dq_to_dy(
-  s2_context_t* context,
-  double* dy);
-
+void s2_context_dqTody(s2_context_t*, double*);
 
 #endif

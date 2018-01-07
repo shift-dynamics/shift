@@ -49,7 +49,7 @@ void s2_mobilityNumbers(
 /*!
 @brief prints mobility numbers for one substructure
 */
-void s2_mobility_print_substructure(
+void s2_substructure_printMobility(
   FILE* f,
   s2_context_t* context,
   int substructureIndex) {
@@ -123,9 +123,7 @@ void s2_mobility_print_substructure(
 /*!
 @brief print mobility information,
 */
-void s2_mobility_print(
-  FILE* f,
-  s2_context_t* context) {
+void s2_context_printMobility(FILE* f, s2_context_t* context) {
 
   fprintf(f, "Mobility:\n");
   fprintf(f, "Total mobility: %0.1f\n", context->mobility);
@@ -138,7 +136,7 @@ void s2_mobility_print(
       if(
         i >= substructure->dqOffset &&
         i < substructure->dqOffset + substructure->dqCount) {
-        s2_mobility_print_substructure(f, context, j);
+        s2_substructure_printMobility(f, context, j);
         inSubstructure = true;
         break;
       }
@@ -169,8 +167,7 @@ this matrix as mobility numbers in the mn[] array.
 @param** J Jacobian matrix
 @param *mn square of row norms of submatrix J[0:r-1][r:n-1] are returned in the mn[] array
 */
-void s2_mobility_initialize(
-  s2_context_t* context) {
+void s2_context_initializeMobility(s2_context_t* context) {
 
   context->mobility = 0;
   s2_array_free(context->mobilityNumbers);
@@ -224,8 +221,7 @@ void s2_mobility_initialize(
 /*!
 @brief free quantities related to processing mobility
 */
-void s2_mobility_free(
-  s2_context_t* context) {
+void s2_context_freeMobility(s2_context_t* context) {
 
   for(int i = 0; i < context->activeJointCount; i++) {
     context->jointPointers[i]->mobilityNumber = NULL;
@@ -244,14 +240,10 @@ void s2_mobility_free(
   @brief compute global instantaneous mobility, to be called after
   mobility has been computed within each substructure
 */
-void s2_mobility_computeGlobalMobility(
-  s2_context_t* context) {
+void s2_context_computeGlobalMobility(s2_context_t* context) {
 
   context->mobility =
-    cblas_dasum(
-      context->dqCount,
-      context->mobilityNumbers,
-      1);
+    cblas_dasum(context->dqCount, context->mobilityNumbers, 1);
 }
 
 
@@ -264,8 +256,7 @@ void s2_mobility_computeGlobalMobility(
   @param J [in] pointer to start of Jacobian matrix
   @param Z [out] pointer to start of null space array
 */
-void s2_copyNullSpace(
-  s2_substructure_t* substructure) {
+void s2_substructure_copyNullSpace(s2_substructure_t* substructure) {
 
   /* dqCount - rank is the column dimension of null space */
   int colDim = substructure->dqCount - substructure->rank;
@@ -301,26 +292,17 @@ this matrix as mobility numbers in the mn[] array.
 
 @param context [in]
 */
-void s2_mobility_compute(
-  s2_context_t* context) {
+void s2_context_computeMobility(s2_context_t* context) {
 
-  s2_updateDH(context);
+  s2_context_updateDH(context);
 
   for(int i = 0; i < context->substructureCount; i++) {
-
-    s2_jacobian_setPO2_substructure(
-      context, i);
-
-    s2_jacobian_factorPO2_substructure(
-      context->substructures + i);
-
-    s2_jacobian_setBMatrix_substructure(
-      context->substructures + i);
-
-    s2_mobility_compute_substructure(
-      context->substructures + i);
+    s2_substructure_setJacobianPO2(context, i);
+    s2_substructure_factorJacobianPO2(context->substructures + i);
+    s2_substructure_setBMatrix(context->substructures + i);
+    s2_substructure_computeMobility(context->substructures + i);
   }
-  s2_mobility_computeGlobalMobility(context);
+  s2_context_computeGlobalMobility(context);
 }
 
 
@@ -333,10 +315,9 @@ void s2_mobility_compute(
   s2_jacobian_setBMatrix_substructure has been called prior
   to execution
 */
-void s2_mobility_compute_substructure(
-  s2_substructure_t* substructure) {
+void s2_substructure_computeMobility(s2_substructure_t* substructure) {
 
-  s2_copyNullSpace(substructure);
+  s2_substructure_copyNullSpace(substructure);
 
   if(substructure->dqCount - substructure->rank == 0) {
     printf(

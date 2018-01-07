@@ -1169,7 +1169,7 @@ void s2_context_free(
   s2_context_t* context) {
 
   if(context) {
-    s2_numericalintegrator_free(context);
+    s2_context_freeNumericalIntegrator(context);
     s2_context_freeModelParameters(context);
     s2_context_freeRunTimeArrays(context);
 
