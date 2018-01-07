@@ -319,7 +319,7 @@ void s2_ode113_de(
 
 
       f(*x, yy, yp, context);
-      s2_forcemodule_saveHistory(context);
+      s2_context_saveForceModuleHistory(context);
 
       // f ( *x, yy, yp );
 
@@ -1507,8 +1507,7 @@ void timestamp(void) {
 }
 
 
-void s2_ode113_allocate(
-  s2_context_t* context) {
+void s2_context_allocOde113(s2_context_t* context) {
 
   context->numericalIntegrator =
     malloc(sizeof(s2_numericalintegrator_ode113_t));
@@ -1575,7 +1574,7 @@ void s2_ode113_allocate(
   numericalIntegrator->tout = 0;
 
   /* connect pointer to dy array within each force module */
-  s2_forcemodule_connect(context);
+  s2_context_connectForceModules(context);
 
   numericalIntegrator->reconfigurations = s2_stack();
 }
@@ -1584,8 +1583,7 @@ void s2_ode113_allocate(
 /*!
 @brief free a numerical integrator datastructure for ode113 integration type
 */
-void s2_ode113_free(
-  s2_context_t* context) {
+void s2_context_freeOde113(s2_context_t* context) {
 
   s2_numericalintegrator_ode113_t* numericalIntegrator =
     (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
@@ -1606,8 +1604,7 @@ void s2_ode113_free(
 /*!
 @brief integrate equations using ode113 integration method
 */
-void s2_ode113_integrateEquations(
-  s2_context_t* context) {
+void s2_context_integrateEquationsOde113(s2_context_t* context) {
 
   if(context->modelParameters.integrationType !=
       S2_NUMERICALINTEGRATOR_ODE113) {
@@ -1655,7 +1652,7 @@ void s2_ode113_integrateEquations(
       exit(1);
     }
   }
-  s2_solve_writeHeaders(context);
+  s2_context_writeHeaders(context);
 
   for(int i = 1; i < numericalIntegrator->stepCount; i++) {
 
@@ -1719,17 +1716,16 @@ void s2_ode113_integrateEquations(
     double e = 0;
     for(int j = 0; j < context->substructureCount; j++) {
       s2_substructure_t* substructure = context->substructures + j;
-      e += s2_newtonRaphson_evaluateConstraintError_substructure(
-             substructure);
+      e += s2_substructure_evaluateConstraintError(substructure);
     }
 
-    s2_solve_kineticEnergy(context);
-    s2_solve_gravitationalPotentialEnergy(context);
+    s2_context_evaluateKineticEnergy(context);
+    s2_context_evaluateGravitationalPotentialEnergy(context);
 
     /* solve for absolute displacement of error */
     // for(int j= 0; j < context->constraintEquationCount; j++)
 
-    s2_solve_writeStates(context, i);
+    s2_context_writeStates(context, i);
 
   }
 

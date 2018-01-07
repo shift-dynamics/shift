@@ -45,26 +45,23 @@ s2_restraint_t* s2_restraint() {
 /*!
 @brief memoize joints with damping
 */
-void s2_restraint_memoizeDamping(
-  s2_context_t* context) {
-
+void s2_context_memoizeDamping(s2_context_t* self) {
   /* count joints with damping */
-  context->dampingCount = 0;
-  for(int i = 0; i < context->activeJointCount; i++) {
-    if(context->jointPointers[i]->dampingCoefficientCount > 0) {
-      context->dampingCount++;
+  self->dampingCount = 0;
+  for(int i = 0; i < self->activeJointCount; i++) {
+    if(self->jointPointers[i]->dampingCoefficientCount > 0) {
+      self->dampingCount++;
     }
   }
   // printf("found %d joint with damping\n", context->dampingCount);
-  if(context->dampingJoints != NULL) {
-    free(context->dampingJoints);
+  if(self->dampingJoints != NULL) {
+    free(self->dampingJoints);
   }
-  context->dampingJoints =
-    malloc(context->dampingCount * sizeof(s2_joint_t*));
+  self->dampingJoints = malloc(self->dampingCount * sizeof(s2_joint_t*));
   int k = 0;
-  for(int i = 0; i < context->activeJointCount; i++) {
-    if(context->jointPointers[i]->dampingCoefficientCount > 0) {
-      context->dampingJoints[k++] = context->jointPointers[i];
+  for(int i = 0; i < self->activeJointCount; i++) {
+    if(self->jointPointers[i]->dampingCoefficientCount > 0) {
+      self->dampingJoints[k++] = self->jointPointers[i];
     }
   }
 }
@@ -73,26 +70,24 @@ void s2_restraint_memoizeDamping(
 /*!
 @brief memoize joints with stiffness
 */
-void s2_restraint_memoizeStiffness(
-  s2_context_t* context) {
+void s2_context_memoizeStiffness(s2_context_t* self) {
 
   /* count joints with stiffness */
-  context->stiffnessCount = 0;
-  for(int i = 0; i < context->activeJointCount; i++) {
-    if(context->jointPointers[i]->stiffnessCoefficientCount > 0) {
-      context->stiffnessCount++;
+  self->stiffnessCount = 0;
+  for(int i = 0; i < self->activeJointCount; i++) {
+    if(self->jointPointers[i]->stiffnessCoefficientCount > 0) {
+      self->stiffnessCount++;
     }
   }
   // printf("found %d joint with internal stiffness\n", context->stiffnessCount);
-  if(context->stiffnessJoints != NULL) {
-    free(context->stiffnessJoints);
+  if(self->stiffnessJoints != NULL) {
+    free(self->stiffnessJoints);
   }
-  context->stiffnessJoints =
-    malloc(context->stiffnessCount * sizeof(s2_joint_t*));
+  self->stiffnessJoints = malloc(self->stiffnessCount * sizeof(s2_joint_t*));
   int k = 0;
-  for(int i = 0; i < context->activeJointCount; i++) {
-    if(context->jointPointers[i]->stiffnessCoefficientCount > 0) {
-      context->stiffnessJoints[k++] = context->jointPointers[i];
+  for(int i = 0; i < self->activeJointCount; i++) {
+    if(self->jointPointers[i]->stiffnessCoefficientCount > 0) {
+      self->stiffnessJoints[k++] = self->jointPointers[i];
     }
   }
 }
@@ -101,9 +96,7 @@ void s2_restraint_memoizeStiffness(
 /*!
 
 */
-void s2_restraint_memoize(
-  s2_context_t* context) {
-
-  s2_restraint_memoizeDamping(context);
-  s2_restraint_memoizeStiffness(context);
+void s2_context_memoizeRestraints(s2_context_t* self) {
+  s2_context_memoizeDamping(self);
+  s2_context_memoizeStiffness(self);
 }

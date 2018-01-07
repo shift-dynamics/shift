@@ -132,8 +132,8 @@ void s2_ode113_step(
 
 void timestamp(void);
 
-void s2_ode113_allocate(s2_context_t* context);
-void s2_ode113_free(s2_context_t* context);
-void s2_ode113_integrateEquations(s2_context_t* context);
+void s2_context_allocOde113(s2_context_t* context);
+void s2_context_freeOde113(s2_context_t* context);
+void s2_context_integrateEquationsOde113(s2_context_t* context);
 
 #endif

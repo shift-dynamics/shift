@@ -1082,22 +1082,17 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rz(
-  void** dhva) {
+void s2_joint_rz(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dc = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_drz(
-    dParent,
-    dc,
-    dChild);
-  s2_hrz(
-    dChild,
-    h);
+  s2_product_drz(dParent, dc, dChild);
+  s2_hrz(dChild, h);
 }
+
 
 /*!
 @brief Revolute joint aligned with z-axis (dhva)
@@ -1137,6 +1132,7 @@ void s2_joint_rz_dhva(void** dhva) {
   s2_screwcross_ss(vChild, vRelative, aqRelative);
   s2_add_ss(aqParent, aqRelative, aqChild);
 }
+
 
 /*!
 @brief Revolute Joint aligned with z-axis - inverse (dh)
@@ -1205,6 +1201,7 @@ void s2_joint_rzinverse_dhva(void** dhva) {
   s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
+
 /*!
 @brief Rigid Joint (dh)
 
@@ -1248,6 +1245,7 @@ void s2_joint_rigid(
   s2_product_dd(dParent, dPrimitive, dChild);
 }
 
+
 /*!
 @brief Rigid Joint (dhva)
 
@@ -1276,6 +1274,7 @@ void s2_joint_rigid_dhva(void** dhva) {
   s2_screw_copy(aqParent, aqChild);
 }
 
+
 /*!
 @brief Rigid Joint - inverse (dh)
 
@@ -1297,6 +1296,7 @@ void s2_joint_rigidinverse(void** dhva) {
 
   s2_product_ddinverse(dParent, dPrimitive, dChild);
 }
+
 
 /*!
 @brief Rigid Joint - inverse (dhva)
@@ -1324,6 +1324,7 @@ void s2_joint_rigidinverse_dhva(void** dhva) {
   s2_screw_copy(vParent, vChild);
   s2_screw_copy(aqParent, aqChild);
 }
+
 
 /*!
 @brief Rigid Joint (dh)
@@ -1582,10 +1583,8 @@ void s2_joint_spherical(
   s2_screw_t* h = dhva[4];
 
   s2_quaternion_toMat3x3(q, &(dWRTReference->R));
-  s2_product_dr(
-    dParent,
-    &(dWRTReference->R),
-    dChild);
+  s2_product_dr(dParent, &(dWRTReference->R), dChild);
+  s2_vector_copy(&dParent->T, &dChild->T);
 
   s2_hrx(dChild, h);
   s2_hry(dChild, h + 1);
@@ -1705,11 +1704,8 @@ void s2_joint_sphericalinverse(void** dhva) {
   s2_screw_t* h = dhva[4];
 
   s2_quaternion_toMat3x3(q, &(dWRTReference->R));
-
-  s2_product_drinverse(
-    dParent,
-    &(dWRTReference->R),
-    dChild);
+  s2_product_drinverse(dParent, &(dWRTReference->R), dChild);
+  s2_vector_copy(&dParent->T, &dChild->T);
 
   s2_hrxinverse(dChild, h);
   s2_hryinverse(dChild, h + 1);
