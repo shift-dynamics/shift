@@ -35,7 +35,7 @@ s2_substructure_t* s2_substructure(s2_context_t* context) {
   }
   substructure->chordConstraintCount = -1;
   substructure->constraintEquationCount = -1;
-  substructure->substructureIndex = -1;
+  substructure->index = -1;
   substructure->dqCount = -1;
   substructure->qCount = -1;
   substructure->jointCount = -1;
