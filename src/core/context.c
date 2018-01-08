@@ -691,12 +691,10 @@ void s2_context_freeDc(
         case S2_JOINT_RY:
         case S2_JOINT_RZ: {
           joint->directionCosine = malloc(2 * sizeof(double));
-          cblas_dcopy(
-            2,
-            context->dc + (2 * joint->dcIndex),
-            1,
+          memcpy(
             joint->directionCosine,
-            1);
+            context->dc + 2 * joint->dcIndex,
+            2 * sizeof(double));
         }
         case S2_JOINT_TX:
         case S2_JOINT_TY:
@@ -712,41 +710,26 @@ void s2_context_freeDc(
         } break;
         case S2_JOINT_SPHERICAL: {
           joint->primitiveDisplacement = calloc(4, sizeof(double));
-          cblas_dcopy(
-            4,
-            context->q + joint->qIndex,
-            1,
-            joint->primitiveDisplacement,
-            1);
+          memcpy(joint->primitiveDisplacement, context->q + joint->qIndex,
+            4 * sizeof(double));
           joint->primitiveVelocity = calloc(3, sizeof(double));
-          cblas_dcopy(
-            3,
-            context->dq + joint->dqIndex,
-            1,
-            joint->primitiveVelocity,
-            1);
+          memcpy(joint->primitiveVelocity, context->dq + joint->dqIndex,
+            3 * sizeof(double));
+          break;
         }
-        break;
         case S2_JOINT_FLOAT: {
           joint->primitiveDisplacement = calloc(7, sizeof(double));
-          cblas_dcopy(
-            7,
-            context->dq + joint->qIndex,
-            1,
-            joint->primitiveVelocity,
-            1);
+          memcpy(joint->primitiveDisplacement, context->q + joint->qIndex,
+            7 * sizeof(double));
           joint->primitiveVelocity = calloc(6, sizeof(double));
-          cblas_dcopy(
-            6,
-            context->dq + joint->dqIndex,
-            1,
-            joint->primitiveVelocity,
-            1);
+          memcpy(joint->primitiveVelocity, context->dq + joint->dqIndex,
+            6 * sizeof(double));
+          break;
         }
-        break;
         case S2_JOINT_PRIMITIVE:
         case S2_JOINT_INVALID: {
-        } break;
+          break;
+        }
       }
     }
     free(context->dc);
@@ -841,8 +824,7 @@ run time arrays.
 
 @param context an s2_context_t datastructure
 */
-void s2_context_freeRunTimeArrays(
-  s2_context_t* context) {
+void s2_context_freeRunTimeArrays(s2_context_t* context) {
 
   // copy values by value back out of D,H,V,A before clearing
   // respective arrays
