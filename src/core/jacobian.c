@@ -626,7 +626,25 @@ void s2_context_compressLoopMembers(
       /* for each positive loop members */
       for(int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
         int positiveLoopIndex = context->positiveLoopMembers[k][l];
-        if(context->jointPointers[positiveLoopIndex]->jointType != S2_JOINT_RIGID) {
+        int dof;
+        switch(context->jointPointers[positiveLoopIndex]->jointType) {
+          case S2_JOINT_RIGID: {
+            dof = 0;
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            dof = 6;
+            break;
+          }
+          case S2_JOINT_SPHERICAL: {
+            dof = 3;
+            break;
+          }
+          default: {
+            dof = 1;
+          }
+        }
+        for(int m = 0; m < dof; m++) {
           context->positiveLoopMembersCompressedCount[k]++;
           positiveLoopMemberCount++;
         }
@@ -635,7 +653,25 @@ void s2_context_compressLoopMembers(
       /* process negative loop members */
       for(int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
         int negativeLoopIndex = context->negativeLoopMembers[k][l];
-        if(context->jointPointers[negativeLoopIndex]->jointType != S2_JOINT_RIGID) {
+        int dof;
+        switch(context->jointPointers[negativeLoopIndex]->jointType) {
+          case S2_JOINT_RIGID: {
+            dof = 0;
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            dof = 6;
+            break;
+          }
+          case S2_JOINT_SPHERICAL: {
+            dof = 3;
+            break;
+          }
+          default: {
+            dof = 1;
+          }
+        }
+        for(int m = 0; m < dof; m++) {
           context->negativeLoopMembersCompressedCount[k]++;
           negativeLoopMemberCount++;
         }
@@ -746,9 +782,28 @@ void s2_context_compressLoopMembers(
         //   context->positiveLoopMembers[k][l]]->name);
 
         int positiveLoopMember = context->positiveLoopMembers[k][l];
-        if(context->jointPointers[positiveLoopMember]->jointType != S2_JOINT_RIGID) {
+        int dof;
+        switch(context->jointPointers[positiveLoopMember]->jointType) {
+          case S2_JOINT_RIGID: {
+            dof = 0;
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            dof = 6;
+            break;
+          }
+          case S2_JOINT_SPHERICAL: {
+            dof = 3;
+            break;
+          }
+          default: {
+            dof = 1;
+          }
+        }
+        int dqOffset = context->dqLookup[positiveLoopMember];
+        for(int m = 0; m < dof; m++) {
           context->positiveLoopMemberOffsets[0][positiveLoopMemberCount++] =
-            context->dqLookup[positiveLoopMember];
+            dqOffset++;
         }
       }
 
@@ -770,13 +825,30 @@ void s2_context_compressLoopMembers(
         //   context->negativeLoopMembers[k][l]]->name);
 
         int negativeLoopMember = context->negativeLoopMembers[k][l];
-        if(context->jointPointers[negativeLoopMember]->jointType != S2_JOINT_RIGID) {
+        int dof;
+        switch(context->jointPointers[negativeLoopMember]->jointType) {
+          case S2_JOINT_RIGID: {
+            dof = 0;
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            dof = 6;
+            break;
+          }
+          case S2_JOINT_SPHERICAL: {
+            dof = 3;
+            break;
+          }
+          default: {
+            dof = 1;
+          }
+        }
+        int dqOffset = context->dqLookup[negativeLoopMember];
+        for(int m = 0; m < dof; m++) {
           context->negativeLoopMemberOffsets[0][negativeLoopMemberCount++] =
-            context->dqLookup[negativeLoopMember];
+            dqOffset++;
         }
       }
-
-
     }
   }
 
@@ -978,7 +1050,7 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
       substructure->dqCount,
       substructure->rank,
       substructure->J);
-      
+
   s2_substructure_setJacobianBooleanPO2(substructure);
 }
 
@@ -2348,12 +2420,12 @@ void s2_context_printJacobian(
         int columnIndex = variableIndex - substructure->dqOffset;
 
         assert(columnIndex >= 0);
-        // printf(
-        //   "    processing variable: %d, column: [%d], dqOffset: %d, \n     h: ",
-        //   variableIndex,
-        //   columnIndex,
-        //   substructure->dqOffset);
-        // s2_screw_print(context->h + variableIndex);
+        printf(
+          "    processing variable: %d, column: [%d], dqOffset: %d, \n     h: ",
+          variableIndex,
+          columnIndex,
+          substructure->dqOffset);
+        s2_screw_print(stdout, context->h + variableIndex);
 
         cblas_dcopy(
           6,
@@ -2387,17 +2459,20 @@ void s2_context_printJacobian(
       }
     }
 
+
+    FILE* outfile = fopen("jacobian.csv", "w");
     fprintf(f, "Jacobian in PO1:\n");
     for(int m = 0; m < substructure->constraintEquationCount; m++) {
-      fprintf(f, "   [ ");
       for(int n = 0; n < substructure->dqCount; n++) {
         fprintf(
-          f,
-          "% 0.9f ",
+          outfile,
+          "% 0.9f,",
           substructure->J[m * substructure->dqCount + n]);
       }
-      fprintf(f, "]\n");
+      fprintf(outfile, "\n");
     }
+    fclose(outfile);
+
     fprintf(f, "\n");
 
     int jacobianSize =

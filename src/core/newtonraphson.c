@@ -151,9 +151,9 @@ void s2_substructure_updateq(s2_substructure_t* substructure) {
   int substructureIndex = substructure->index;
   int dqIndex = substructure->dqOffset;
   int qIndex = substructure->qOffset;
-  printf("\n");
+  // printf("\n");
   for(int j = 1; j < context->substructureMembersCount[substructureIndex]; j++) {
-    printf("qIndex: %d/%d dqIndex: %d/%d\n", qIndex, context->qCount, dqIndex, context->dqCount);
+    // printf("qIndex: %d/%d dqIndex: %d/%d\n", qIndex, context->qCount, dqIndex, context->dqCount);
     switch(
       context->jointPointers[
      context->substructureMembers[substructureIndex][j]]->jointType) {
@@ -168,45 +168,45 @@ void s2_substructure_updateq(s2_substructure_t* substructure) {
         /* falls through to spherical case to process rotational dof */
       }
       case S2_JOINT_SPHERICAL: {
-        bool anyNonZero = false;
-        for(int i = 0; i < 3; i++) {
-          if(fabs(context->deltaq[dqIndex + i]) > 1e-9) {
-            anyNonZero = true;
-            break;
-          }
-        }
-        if(anyNonZero) {
-          printf(
-            "  nonzero dq: %g %g %g\n",
-            context->deltaq[dqIndex + 0],
-            context->deltaq[dqIndex + 1],
-            context->deltaq[dqIndex + 2]
-          );
-        }
+        // bool anyNonZero = false;
+        // for(int i = 0; i < 3; i++) {
+        //   if(fabs(context->deltaq[dqIndex + i]) > 1e-9) {
+        //     anyNonZero = true;
+        //     break;
+        //   }
+        // }
+        // if(anyNonZero) {
+        //   printf(
+        //     "  nonzero dq: %g %g %g\n",
+        //     context->deltaq[dqIndex + 0],
+        //     context->deltaq[dqIndex + 1],
+        //     context->deltaq[dqIndex + 2]
+        //   );
+        // }
         /* store 4 terms deltaq at substructure->deltaq[qIndex]
           take 3 terms from substructure->deltaq[dqIndex] */
 
-        printf("[%d] processing spherical joint in newton raphson: \n  ", j);
-        s2_stackstr_print(stdout, context->jointPointers[
-          context->substructureMembers[substructureIndex][j]]->name);
-        printf("  deltaq: ");
-        s2_vector_print(stdout, (s2_vector_t*)(context->deltaq + dqIndex));
-        printf("  qi: ");
-        s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
-
-        double q_prev[4];
-        memcpy(&q_prev, context->q + qIndex, 4 * sizeof(double));
+        // printf("[%d] processing spherical joint in newton raphson: \n  ", j);
+        // s2_stackstr_print(stdout, context->jointPointers[
+        //   context->substructureMembers[substructureIndex][j]]->name);
+        // printf("  deltaq: ");
+        // s2_vector_print(stdout, (s2_vector_t*)(context->deltaq + dqIndex));
+        // printf("  qi: ");
+        // s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
+        //
+        // double q_prev[4];
+        // memcpy(&q_prev, context->q + qIndex, 4 * sizeof(double));
         s2_subtract_dpiFromq(
           (s2_vector_t*)(context->deltaq + dqIndex),
           (s2_quaternion_t*)(context->q + qIndex));
         s2_quaternion_normalize((s2_quaternion_t*)(context->q + qIndex));
-        printf("  qo: ");
-        s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
-        printf("  updated: ");
-        for(int i = 0; i < 4; i++) {
-          printf("%s ", fabs(q_prev[i] - context->q[qIndex + i]) > 1e-9 ? "true" : "false");
-        }
-        printf("\n");
+        // printf("  qo: ");
+        // s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
+        // printf("  updated: ");
+        // for(int i = 0; i < 4; i++) {
+        //   printf("%s ", fabs(q_prev[i] - context->q[qIndex + i]) > 1e-9 ? "true" : "false");
+        // }
+        // printf("\n");
         qIndex += 4;
         dqIndex += 3;
         break;
@@ -243,7 +243,7 @@ int s2_substructure_removeConstraintViolations(
   error = sqrt(cs[] . cs[]) / constraintEquationCount
   < eps when converged.
   */
-  int maxStep = 3;
+  int maxStep = 100;
   double qCopy[context->qCount];
   memcpy(qCopy, context->q, context->qCount * sizeof(double));
   // FILE* debug = context->modelParameters->debugFilePointer;
@@ -300,7 +300,7 @@ int s2_substructure_removeConstraintViolations(
     s2_substructure_evaluateConstraints(substructure);
     error = s2_substructure_evaluateConstraintError(substructure);
     ++step;
-    // fprintf(stdout, "  [%d] error: %g\n", step, error);
+    fprintf(stdout, "  [%d] error: %g\n", step, error);
   }
   s2_context_updateDH(context);
   s2_substructure_setJacobianBooleanPO2(substructure);

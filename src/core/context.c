@@ -714,9 +714,9 @@ void s2_context_freeDc(
           joint->primitiveDisplacement = calloc(4, sizeof(double));
           cblas_dcopy(
             4,
-            context->dq + joint->qIndex,
+            context->q + joint->qIndex,
             1,
-            joint->primitiveVelocity,
+            joint->primitiveDisplacement,
             1);
           joint->primitiveVelocity = calloc(3, sizeof(double));
           cblas_dcopy(
