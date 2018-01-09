@@ -142,8 +142,16 @@ void s2_frame_load(
               json_array_get(json_array_get(rotation, j), k));
       }
     }
-    s2_gramSchmidt(
-      3, 3, (double*)frame->dWRTOrigin);
+    /* compute determinant and throw error if not closed to 1 */
+    double det = s2_mat3x3_determinant(&frame->dWRTOrigin->R);
+    if(fabs(det - 1) > 1e-2) {
+      fprintf(stderr, "error loading frame: ");
+      s2_stackstr_print(stdout, frame->name);
+      fprintf(stdout, "rotation matrix has determinant: %g\n", det);
+      exit(1);
+    }
+
+    s2_gramSchmidt(3, 3, (double*)frame->dWRTOrigin);
   }
   json_t* translation = json_object_get(frameObject, "T");
   if(json_is_array(translation)) {

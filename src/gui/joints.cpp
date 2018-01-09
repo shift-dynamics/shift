@@ -105,9 +105,7 @@ void s2_Joints::update() {
           break;
           case S2_JOINT_INCREMENT: {
 
-            double delq =
-              m_delq * pow(m_joint->mobilityNumber[0], 1.5);
-
+            double delq = m_delq * pow(m_joint->mobilityNumber[0], 1.5);
             if(fabs(delq) < 1e-16) {
               clear();
               break;

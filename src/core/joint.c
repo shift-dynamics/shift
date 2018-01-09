@@ -1747,8 +1747,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_sphericalinverse_dhva(
-  void** dhva) {
+void s2_joint_sphericalinverse_dhva(void** dhva) {
 
   s2_joint_sphericalinverse(dhva);
 
