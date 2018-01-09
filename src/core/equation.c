@@ -1220,9 +1220,7 @@ copy by value other terms from dq to dY array
 */
 void s2_context_dqTody(s2_context_t* context, double* dy) {
 
-  /*
-    convert angular velocities to time derivative of quaternions
-  */
+  /* convert angular velocities to time derivative of quaternions */
   for(int i = 0; i < context->quaternionCount; i++) {
     s2_omega_to_dquaternion(
       (s2_vector_t*)(context->dq + context->dqQuaternionIndices[i]),
@@ -1230,9 +1228,7 @@ void s2_context_dqTody(s2_context_t* context, double* dy) {
       (s2_quaternion_t*)(dy + context->qQuaternionIndices[i]));
   }
 
-  /*
-    copy primitive variables
-  */
+  /* copy primitive variables */
   for(int i = 0; i < context->nonQuaternionCount; i++) {
     dy[context->qNonQuaternionIndices[i]] =
       context->dq[context->dqNonQuaternionIndices[i]];
@@ -1246,8 +1242,7 @@ void s2_context_dqTody(s2_context_t* context, double* dy) {
 */
 void s2_context_setEquations(s2_context_t* context) {
 
-  /* save a copy of the Jacobian to Js for
-  comparison */
+  /* save a copy of the Jacobian to Js for comparison */
   memcpy(
     context->Js,
     context->J,
@@ -1293,10 +1288,6 @@ void s2_context_setEquations(s2_context_t* context) {
 
   s2_context_setBMatrixSparse(context);
 
-
-
-
-
   // if(s2_all_close(
   //   context->jacobianSize,
   //   context->Js,
@@ -1337,9 +1328,6 @@ void s2_context_setEquations(s2_context_t* context) {
     }
 
   }
-
-  // printf("setBMmatrixSparse from s2_setEquatons\n");
-
   s2_context_setRHS(context);
   s2_context_setMassMatrix(context);
 }

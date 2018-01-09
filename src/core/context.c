@@ -1984,8 +1984,7 @@ void s2_context_setBodyJointPointers(
 
 @param context an s2_context_t datastructure
 */
-void s2_context_setTerrainPointers(
-  s2_context_t* context) {
+void s2_context_setTerrainPointers(s2_context_t* context) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
   //
