@@ -3865,7 +3865,7 @@ void Workspace::updateTree() {
         if(joint->primitiveDisplacement != NULL) {
           sprintf(
             numberString,
-            "%0.4f",
+            "%0.5f",
             *(joint->primitiveDisplacement));
           (*it)->setText(2, numberString);
         }
@@ -3874,24 +3874,24 @@ void Workspace::updateTree() {
         } else if(joint->dof == 1) {
           sprintf(
             numberString,
-            "%0.4f",
+            "%0.5f",
             joint->mobilityNumber[0]);
         } else if(joint->dof == 3) {
           sprintf(
             numberString,
-            "%0.4f, %0.4f, %0.4f",
-            joint->mobilityNumber[0],
-            joint->mobilityNumber[1],
+            "%0.5f",
+            joint->mobilityNumber[0] +
+            joint->mobilityNumber[1] +
             joint->mobilityNumber[2]);
         } else if(joint->dof == 6) {
           sprintf(
             numberString,
-            "%0.4f, %0.4f, %0.4f, %0.4f, %0.4f, %0.4f",
-            joint->mobilityNumber[0],
-            joint->mobilityNumber[1],
-            joint->mobilityNumber[2],
-            joint->mobilityNumber[3],
-            joint->mobilityNumber[4],
+            "%0.5f",
+            joint->mobilityNumber[0] +
+            joint->mobilityNumber[1] +
+            joint->mobilityNumber[2] +
+            joint->mobilityNumber[3] +
+            joint->mobilityNumber[4] +
             joint->mobilityNumber[5]);
         }
         (*it)->setText(3, numberString);
