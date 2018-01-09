@@ -1,4 +1,4 @@
-# Loading bodies and joints in Delta Robot
+# Loading bodies and joints of the Delta Robot
 
 
 ## Identifying Directed Acyclic Graph, Spanning Tree and Chord Constraints
