@@ -2459,21 +2459,93 @@ void s2_context_printJacobian(
       }
     }
 
+    FILE* loopOffsetFile = fopen("loop_offsets.csv", "w");
+    k = 0;
+    for(int j = 0; j < context->jointCount; j++) {
+      s2_joint_t* joint = context->jointPointers[j];
+      switch(joint->jointType) {
+        case S2_JOINT_RIGID: {
+          fprintf(loopOffsetFile, "%d\t", -1);
+          s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
 
-    FILE* outfile = fopen("jacobian.csv", "w");
-    fprintf(f, "Jacobian in PO1:\n");
+          break;
+        }
+        case S2_JOINT_FLOAT: {
+          fprintf(loopOffsetFile, "%d\t", k++);
+          s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
+
+          fprintf(loopOffsetFile, "%d\t", k++);
+          s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
+
+          fprintf(loopOffsetFile, "%d\t", k++);
+          s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
+
+        }
+        case S2_JOINT_SPHERICAL: {
+          fprintf(loopOffsetFile, "%d\t", k++);
+          s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
+
+          fprintf(loopOffsetFile, "%d\t", k++);
+          s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
+
+          fprintf(loopOffsetFile, "%d\t", k++);
+          s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
+
+          break;
+        }
+        default: {
+          fprintf(loopOffsetFile, "%d\t", k++);
+          s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
+          break;
+        }
+      }
+    }
+    k = substructure->loopOffset;
+    for(
+      int j = 0;
+      j < context->substructureLoopCount[i];
+      j++, k++) {
+
+      fprintf(loopOffsetFile, "%d\tpositive loop members\t", k);
+      for(
+        int l = 0;
+        l < context->positiveLoopMembersCompressedCount[k];
+        l++) {
+
+        int variableIndex = context->positiveLoopMemberOffsets[k][l];
+        fprintf(
+          loopOffsetFile,
+          "%d\t",
+          variableIndex);
+      }
+      fprintf(loopOffsetFile, "\n");
+
+      /* negative loop members [l]*/
+      fprintf(loopOffsetFile, "%d\tnegative loop members\t", k);
+      for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
+
+        int variableIndex = context->negativeLoopMemberOffsets[k][l];
+        fprintf(
+          loopOffsetFile,
+          "%d\t",
+          variableIndex);
+      }
+      fprintf(loopOffsetFile, "\n");
+    }
+    fclose(loopOffsetFile);
+
+    FILE* jacobianFile = fopen("jacobian.csv", "w");
+    // fprintf(f, "Jacobian in PO1:\n");
     for(int m = 0; m < substructure->constraintEquationCount; m++) {
       for(int n = 0; n < substructure->dqCount; n++) {
         fprintf(
-          outfile,
+          jacobianFile,
           "% 0.9f,",
           substructure->J[m * substructure->dqCount + n]);
       }
-      fprintf(outfile, "\n");
+      fprintf(jacobianFile, "\n");
     }
-    fclose(outfile);
-
-    fprintf(f, "\n");
+    fclose(jacobianFile);
 
     int jacobianSize =
       substructure->dqCount * substructure->constraintEquationCount;

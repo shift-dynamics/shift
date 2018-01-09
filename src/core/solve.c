@@ -545,12 +545,10 @@ void s2_context_integrateEquations(s2_context_t* context) {
 
   if(context->modelParameters.outFile) {
     context->modelParameters.outFilePointer =
-      fopen(
-        context->modelParameters.outFile, "w");
+      fopen(context->modelParameters.outFile, "w");
   }
 
   s2_context_writeHeaders(context);
-
 
   for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
@@ -571,9 +569,8 @@ void s2_context_integrateEquations(s2_context_t* context) {
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
       stepCount = numericalIntegrator->stepCount;
       reconfigurations = numericalIntegrator->reconfigurations;
-
+      break;
     }
-    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       clock_t begin = clock();
       s2_context_integrateEquationsOde113b(context);
@@ -583,13 +580,12 @@ void s2_context_integrateEquations(s2_context_t* context) {
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       stepCount = numericalIntegrator->stepCount;
       reconfigurations = numericalIntegrator->reconfigurations;
-
+      break;
     }
-    break;
     default: {
       exit(-1);
+      break;
     }
-    break;
   }
 
   if(context->modelParameters.outFilePointer) {
@@ -681,9 +677,6 @@ void s2_context_evaluateGravitationalPotentialEnergy(s2_context_t* context) {
         1));
 
 }
-
-
-
 
 
 /*!
