@@ -1451,4 +1451,6 @@ void s2_gramSchmidt(
 
 bool s2_all_close(int count, double* a1, double* a2);
 
+double s2_mat3x3_determinant(s2_mat3x3_t*);
+
 #endif

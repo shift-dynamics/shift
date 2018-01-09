@@ -7553,3 +7553,10 @@ inline void s2_displacement_getScrewAxis(
   double angle;
   s2_mat3x3_getAxisAngle(&d->R, &rotationAxis, &angle);
 }
+
+
+inline double s2_mat3x3_determinant(s2_mat3x3_t* R) {
+  return (R->m00 * (R->m11 * R->m22 - R->m21 * R->m12)
+         -R->m10 * (R->m01 * R->m22 - R->m21 * R->m02)
+         +R->m20 * (R->m01 * R->m12 - R->m11 * R->m02));
+}
