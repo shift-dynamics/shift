@@ -11,3 +11,4 @@ doc/html
 doc/doctrees
 src/gui/html
 doc/sphinx/doxyrest
+__pycache__

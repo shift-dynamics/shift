@@ -83,22 +83,22 @@ void s2_Lights::loadContext() {
           m_lights.position[i * 3 + 0] = d->T.x;
           m_lights.position[i * 3 + 1] = d->T.y;
           m_lights.position[i * 3 + 2] = d->T.z;
+          break;
         }
-        break;
         case S2_LIGHT_SPOT: {
           m_lights.type[i] = 1;
           m_lights.position[i * 3 + 0] = d->T.x;
           m_lights.position[i * 3 + 1] = d->T.y;
           m_lights.position[i * 3 + 2] = d->T.z;
+          break;
         }
-        break;
         case S2_LIGHT_DIRECTIONAL: {
           m_lights.type[i] = 2;
           m_lights.position[i * 3 + 0] = d->R.m20;
           m_lights.position[i * 3 + 1] = d->R.m21;
           m_lights.position[i * 3 + 2] = d->R.m22;
+          break;
         }
-        break;
       }
 
       for(int j = 0; j < 3; j++) {
@@ -122,27 +122,37 @@ void s2_Lights::loadContext() {
           projection.perspective(
             90.f,
             1.f,
-            0.001f,
-            1000.f);
+            0.01f,
+            100.f);
           qDebug() << "initialized point (perspective) projection matrix";
         } break;
         case S2_LIGHT_SPOT: {
           projection.perspective(
             light->glLight.fov,
             1.0,
-            0.001f,
-            1000.f);
+            0.01f,
+            100.f);
           qDebug() << "initialized spot (perspective) projection matrix";
         } break;
         case S2_LIGHT_DIRECTIONAL: {
-          projection.ortho(
-            -1.f, 1.f, -1.f, 1.f, 0.001f, 1000.f);
+          projection.ortho(-1.f, 1.f, -1.f, 1.f, 0.01f, 100.f);
           qDebug() << "initialized directional (ortho) projection matrix";
         } break;
 
       }
       m_lights.projectionMatrix[i] = projection;
       qDebug() << m_lights.projectionMatrix[i];
+    }
+
+    if(m_lights.count == 0) {
+      m_lights.count = 1;
+      m_lights.type[0] = 2;
+      m_lights.position[0 * 3 + 0] = m_context->modelParameters.gravity->x;
+      m_lights.position[0 * 3 + 1] = m_context->modelParameters.gravity->y;
+      m_lights.position[0 * 3 + 2] = m_context->modelParameters.gravity->z;
+      QMatrix4x4 projection;
+      projection.ortho(-1.f, 1.f, -1.f, 1.f, 0.01f, 100.f);
+      m_lights.projectionMatrix[0] = projection;
     }
 
     if(m_depthBufferArray == NULL) {
@@ -226,34 +236,38 @@ void s2_Lights::draw() {
     glCullFace(GL_FRONT);
 
     for(int i = 0; i < m_lights.count; i++) {
+      if(m_context->lightPointers) {
+        s2_light_t* light = m_context->lightPointers[i];
 
-      s2_light_t* light = m_context->lightPointers[i];
+        /* update view matrix only if not attached to fixed body */
+        if(light->parentBodyPointer != m_context->assembly->bodyHead) {
+          s2_displacement_t* d = light->parentFramePointer->dAbsolute;
+          m_lights.viewMatrix[i] =
+            s2_displacementToQMatrix4x4(d).inverted();
 
-      /* update view matrix only if not attached to fixed body */
-      if(light->parentBodyPointer != m_context->assembly->bodyHead) {
-        s2_displacement_t* d = light->parentFramePointer->dAbsolute;
-        m_lights.viewMatrix[i] =
-          s2_displacementToQMatrix4x4(d).inverted();
-
-        switch(light->lightType) {
-          case S2_LIGHT_POINT: {
-            m_lights.type[i] = 0;
-            m_lights.position[i * 3 + 0] = d->T.x;
-            m_lights.position[i * 3 + 1] = d->T.y;
-            m_lights.position[i * 3 + 2] = d->T.z;
-          } break;
-          case S2_LIGHT_SPOT: {
-            m_lights.type[i] = 1;
-            m_lights.position[i * 3 + 0] = d->T.x;
-            m_lights.position[i * 3 + 1] = d->T.y;
-            m_lights.position[i * 3 + 2] = d->T.z;
-          } break;
-          case S2_LIGHT_DIRECTIONAL: {
-            m_lights.type[i] = 2;
-            m_lights.position[i * 3 + 0] = d->R.m20;
-            m_lights.position[i * 3 + 1] = d->R.m21;
-            m_lights.position[i * 3 + 2] = d->R.m22;
-          } break;
+          switch(light->lightType) {
+            case S2_LIGHT_POINT: {
+              m_lights.type[i] = 0;
+              m_lights.position[i * 3 + 0] = d->T.x;
+              m_lights.position[i * 3 + 1] = d->T.y;
+              m_lights.position[i * 3 + 2] = d->T.z;
+              break;
+            }
+            case S2_LIGHT_SPOT: {
+              m_lights.type[i] = 1;
+              m_lights.position[i * 3 + 0] = d->T.x;
+              m_lights.position[i * 3 + 1] = d->T.y;
+              m_lights.position[i * 3 + 2] = d->T.z;
+              break;
+            }
+            case S2_LIGHT_DIRECTIONAL: {
+              m_lights.type[i] = 2;
+              m_lights.position[i * 3 + 0] = d->R.m20;
+              m_lights.position[i * 3 + 1] = d->R.m21;
+              m_lights.position[i * 3 + 2] = d->R.m22;
+              break;
+            }
+          }
         }
       }
 
