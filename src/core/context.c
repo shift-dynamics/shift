@@ -492,6 +492,8 @@ s2_context_t* s2_context() {
   self->materialCount = 0;
   self->materials = NULL;
 
+  s2_context_setOmegaN(self, 50);
+
   return self;
 }
 
@@ -1425,8 +1427,7 @@ void s2_context_loadModelParameters(
     }
 
     /* load omega N for baumgarte constraint stabilization */
-    json_t* omegaNObject =
-      json_object_get(simulationObject, "omega_n");
+    json_t* omegaNObject = json_object_get(simulationObject, "omega_n");
     double omegaN = 20;
     if(omegaNObject != NULL) {
       omegaN = json_number_value(omegaNObject);
@@ -1619,8 +1620,7 @@ Sets parent frame for a light for a flattened list of lights and frames
 
 @param context a Context datastructure
 */
-void s2_context_setLightPointers(
-  s2_context_t* context) {
+void s2_context_setLightPointers(s2_context_t* context) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 
@@ -1642,7 +1642,6 @@ void s2_context_setLightPointers(
 
           // fprintf(debug, "\nmatch found!");
           context->lightPointers[i]->parentFramePointer = frameHead;
-
         }
         frameHead = frameHead->next;
       }
@@ -1792,8 +1791,12 @@ s2_context_t* s2_context_loadJSON(
     malloc(sizeof(s2_body_t*) * (context->bodyCount + 1));
   context->jointPointers =
     malloc(sizeof(s2_joint_t*) * context->jointCount);
-  context->lightPointers =
-    malloc(sizeof(s2_light_t*) * context->lightCount);
+  if(context->lightCount > 0) {
+    context->lightPointers =
+      malloc(sizeof(s2_light_t*) * context->lightCount);
+  } else {
+    context->lightPointers = NULL;
+  }
 
   for(int i = 0; i < (context->bodyCount + 1); i++) {
     context->bodyPointers[i] = NULL;

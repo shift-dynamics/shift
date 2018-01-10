@@ -309,8 +309,12 @@ void topology_mallocRunTimeArrays(
   if(context->lightPointers) {
     free(context->lightPointers);
   }
-  context->lightPointers =
-    malloc(context->activeLightCount * sizeof(s2_light_t*));
+  if(context->activeLightCount > 0) {
+    context->lightPointers =
+      malloc(context->activeLightCount * sizeof(s2_light_t*));
+  } else {
+    context->lightPointers = NULL;
+  }
 
   /*
     parent child list
