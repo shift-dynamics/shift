@@ -30,19 +30,16 @@ int s2_context_removeConstraintViolations(s2_context_t*);
 
 int s2_substructure_removeConstraintViolations(s2_substructure_t*);
 
-int s2_substructure_removeConstraintViolationsFast(
-  s2_substructure_t*,
-  bool useTightTolerance);
+int s2_substructure_removeConstraintViolationsFast(s2_substructure_t*,
+                                                   bool useTightTolerance);
 
 void s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-  s2_substructure_t*,
-  int specifiedCoordinateIndex);
+  s2_substructure_t*, int specifiedCoordinateIndex);
 
-int s2_substructure_incrementSpecifiedCoordinate(
-  s2_substructure_t*,
-  int specifiedCoordinateIndex,
-  double value,
-  s2_joint_enum_t jointType,
-  s2_move_enum_t moveType);
+int s2_substructure_incrementSpecifiedCoordinate(s2_substructure_t*,
+                                                 int specifiedCoordinateIndex,
+                                                 double value,
+                                                 s2_joint_enum_t jointType,
+                                                 s2_move_enum_t moveType);
 
 #endif

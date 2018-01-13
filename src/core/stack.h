@@ -53,82 +53,48 @@ s2_stack_t* s2_stack();
 
 s2_stackstr_t* s2_stackstr();
 
-void s2_stack_push(
-  s2_stack_t* stack,
-  int value);
+void s2_stack_push(s2_stack_t* stack, int value);
 
-void s2_stackstr_push(
-  s2_stackstr_t* stack,
-  const char* value);
+void s2_stackstr_push(s2_stackstr_t* stack, const char* value);
 
-void s2_stack_append(
-  s2_stack_t* stack,
-  int value);
+void s2_stack_append(s2_stack_t* stack, int value);
 
-int s2_stack_remove(
-  s2_stack_t* stack,
-  s2_stacknode_t* node);
+int s2_stack_remove(s2_stack_t* stack, s2_stacknode_t* node);
 
-void s2_stackstr_append(
-  s2_stackstr_t* stack,
-  const char* value);
+void s2_stackstr_append(s2_stackstr_t* stack, const char* value);
 
-int s2_stack_pop(
-  s2_stack_t* stack);
+int s2_stack_pop(s2_stack_t* stack);
 
-const char* s2_stackstr_pop(
-  s2_stackstr_t* stack);
+const char* s2_stackstr_pop(s2_stackstr_t* stack);
 
-void s2_stack_print(
-  FILE* f,
-  s2_stack_t* stack);
+void s2_stack_print(FILE* f, s2_stack_t* stack);
 
-void s2_stackstr_print(
-  FILE* f,
-  s2_stackstr_t* stack);
+void s2_stackstr_print(FILE* f, s2_stackstr_t* stack);
 
-void s2_stack_merge(
-  s2_stack_t* stack1,
-  s2_stack_t* stack2);
+void s2_stack_merge(s2_stack_t* stack1, s2_stack_t* stack2);
 
-void s2_stackstr_merge(
-  s2_stackstr_t* stack1,
-  s2_stackstr_t* stack2);
+void s2_stackstr_merge(s2_stackstr_t* stack1, s2_stackstr_t* stack2);
 
-int* s2_stack_toArray(
-  s2_stack_t* stack);
+int* s2_stack_toArray(s2_stack_t* stack);
 
-void s2_stack_free(
-  s2_stack_t* stack);
+void s2_stack_free(s2_stack_t* stack);
 
-void s2_stackstr_free(
-  s2_stackstr_t* stack);
+void s2_stackstr_free(s2_stackstr_t* stack);
 
-bool s2_stack_in(
-  s2_stack_t* stack,
-  int value);
+bool s2_stack_in(s2_stack_t* stack, int value);
 
-bool s2_stackstr_in(
-  s2_stackstr_t* stack,
-  const char* value);
+bool s2_stackstr_in(s2_stackstr_t* stack, const char* value);
 
-bool s2_stackstr_isEqual(
-  s2_stackstr_t* stack1,
-  s2_stackstr_t* stack2);
+bool s2_stackstr_isEqual(s2_stackstr_t* stack1, s2_stackstr_t* stack2);
 
-s2_stackstr_t* s2_stackstr_copy(
-  s2_stackstr_t* stack);
+s2_stackstr_t* s2_stackstr_copy(s2_stackstr_t* stack);
 
-char* s2_stackstr_getRoot(
-  s2_stackstr_t* stack);
+char* s2_stackstr_getRoot(s2_stackstr_t* stack);
 
-char* s2_stackstr_toStr(
-  s2_stackstr_t* stack);
+char* s2_stackstr_toStr(s2_stackstr_t* stack);
 
-s2_stackstr_t* s2_stackstr_fromString(
-  const char*);
+s2_stackstr_t* s2_stackstr_fromString(const char*);
 
-char* s2_getRootName(
-  s2_stackstr_t* stack);
+char* s2_getRootName(s2_stackstr_t* stack);
 
 #endif

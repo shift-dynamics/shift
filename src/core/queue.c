@@ -20,14 +20,14 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include "context.h"
 #include "queue.h"
-#include "utility.h"
+#include "context.h"
 #include "stack.h"
+#include "utility.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*!
 @brief used to initialize a queue datastructure
@@ -43,15 +43,12 @@ s2_queue_t* s2_queue() {
 /*!
 @brief append a value to the end of a queue datastructure
 */
-void s2_queue_append(
-  s2_queue_t* queue,
-  void* value,
-  s2_queue_enum_t type) {
+void s2_queue_append(s2_queue_t* queue, void* value, s2_queue_enum_t type) {
 
   queue->count++;
   s2_queuenode_t* queueNode = malloc(sizeof(s2_queuenode_t));
   queueNode->type = type;
-  switch(type) {
+  switch (type) {
     case T_QUEUE_INT: {
       queueNode->value.integer = (int*)value;
       break;
@@ -85,7 +82,7 @@ void s2_queue_append(
 
   queueNode->next = NULL;
 
-  if(queue->tail) {
+  if (queue->tail) {
     queue->tail->next = queueNode;
   } else {
     queue->head = queueNode;
@@ -96,15 +93,14 @@ void s2_queue_append(
 /*!
 @brief pop the value off the front of a queue datastructure
 */
-void* s2_queue_pop(
-  s2_queue_t* queue) {
+void* s2_queue_pop(s2_queue_t* queue) {
 
-  if(!queue->head) {
+  if (!queue->head) {
     return NULL;
   }
   queue->count--;
   void* returnValue = NULL;
-  switch(queue->head->type) {
+  switch (queue->head->type) {
     case T_QUEUE_INT: {
       returnValue = queue->head->value.integer;
       break;
@@ -135,7 +131,7 @@ void* s2_queue_pop(
       break;
     }
   }
-  if(queue->head->next) {
+  if (queue->head->next) {
     s2_queuenode_t* head = queue->head->next;
     free(queue->head);
     queue->head = head;
@@ -150,13 +146,12 @@ void* s2_queue_pop(
 /*!
 @brief free memory for a queue datastructure
 */
-void s2_queue_free(
-  s2_queue_t* queue) {
+void s2_queue_free(s2_queue_t* queue) {
 
   s2_queuenode_t* head = queue->head;
-  while(head) {
+  while (head) {
     s2_queuenode_t* next = head->next;
-    switch(head->type) {
+    switch (head->type) {
       case T_QUEUE_INT: {
         free(head->value.integer);
         break;

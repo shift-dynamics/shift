@@ -33,7 +33,6 @@ typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_body_t s2_body_t;
 typedef struct s2_stackstr_t s2_stackstr_t;
 
-
 /*!
 @brief Frame or coordinate system
 */
@@ -75,29 +74,22 @@ typedef struct s2_frame_t {
                         frame - or is the child of a Joint */
 
   bool isOrigin; /*!< designates whether the current frame is the origin */
-  bool isParent; /*!< designates if the current frame is the parent of a joint */
+  bool
+    isParent;  /*!< designates if the current frame is the parent of a joint */
   bool inTree; /*!< designates if the current frame is either the parent or */
   /*!< child of a joint */
   int index;
-  int dIndex; /*!< index into d and dWRTReference arrays*/
+  int dIndex;  /*!< index into d and dWRTReference arrays*/
   int vaIndex; /*!< index into velocity and acceleration arrays */
   bool isVisible;
 } s2_frame_t;
 
-
 s2_frame_t* s2_frame();
 
+void s2_frame_append(s2_body_t* body, s2_frame_t* frame);
 
-void s2_frame_append(
-  s2_body_t* body,
-  s2_frame_t* frame);
+void s2_frame_free(s2_frame_t* frame);
 
-
-void s2_frame_free(
-  s2_frame_t* frame);
-
-void s2_frame_load(
-  s2_body_t*,
-  json_t*);
+void s2_frame_load(s2_body_t*, json_t*);
 
 #endif

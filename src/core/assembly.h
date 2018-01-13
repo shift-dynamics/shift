@@ -19,9 +19,9 @@ SUCH DAMAGE.
 #ifndef _SHIFT_ASSEMBLY_H_
 #define _SHIFT_ASSEMBLY_H_
 
+#include <jansson.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <jansson.h>
 
 typedef struct s2_stackstr_t s2_stackstr_t;
 typedef struct s2_body_t s2_body_t;
@@ -52,9 +52,9 @@ typedef struct s2_assembly_t {
   s2_assembly_t* subAssemblyTail; /*!< pointer to tail of subAssembly linked
                                          list datastructure */
 
-  s2_stackstr_t* name;  /*!< Assembly descriptive name */
-  bool active; /*!< specifies whether current assembly is active, i.e.
-                    true for "switched on", false for "switched off" */
+  s2_stackstr_t* name; /*!< Assembly descriptive name */
+  bool active;         /*!< specifies whether current assembly is active, i.e.
+                            true for "switched on", false for "switched off" */
   s2_body_t* bodyHead; /*!< head of Body linked list */
   s2_body_t* bodyTail; /*!< tail of Body linked list */
 
@@ -77,103 +77,49 @@ typedef struct s2_assembly_t {
   s2_forcemodule_t* forceModuleTail; /*!< tail of forcemodule linked list */
 } s2_assembly_t;
 
-
 s2_assembly_t* s2_assembly();
 
+void s2_assembly_appendSubAssembly(s2_assembly_t* assembly,
+                                   s2_assembly_t* subAssembly);
 
-void s2_assembly_appendSubAssembly(
-  s2_assembly_t* assembly,
-  s2_assembly_t* subAssembly);
+void s2_assembly_printBodies(FILE*, s2_assembly_t*);
 
+void s2_assembly_printJoints(FILE*, s2_assembly_t*);
 
-void s2_assembly_printBodies(
-  FILE*,
-  s2_assembly_t*);
+void s2_assembly_print(FILE*, s2_assembly_t*);
 
+void s2_assembly_appendBody(s2_assembly_t*, s2_body_t*);
 
-void s2_assembly_printJoints(
-  FILE*,
-  s2_assembly_t*);
+void s2_assembly_appendPointCloud(s2_assembly_t*, s2_pointcloud_t*);
 
+int s2_assembly_loadBodies(s2_assembly_t*, json_t*, s2_context_t*,
+                           s2_stackstr_t*);
 
-void s2_assembly_print(
-  FILE*,
-  s2_assembly_t*);
+int s2_assembly_loadJoints(s2_assembly_t*, json_t*, s2_context_t*,
+                           s2_stackstr_t*);
 
+int s2_assembly_loadLights(s2_assembly_t*, json_t*, s2_context_t*,
+                           s2_stackstr_t*);
 
-void s2_assembly_appendBody(
-  s2_assembly_t*,
-  s2_body_t*);
+int s2_assembly_loadRestraints(s2_assembly_t*, json_t*, s2_context_t*,
+                               s2_stackstr_t*);
 
+int s2_assembly_loadForceModules(s2_assembly_t*, json_t*, s2_context_t*,
+                                 s2_stackstr_t*);
 
-void s2_assembly_appendPointCloud(
-  s2_assembly_t*,
-  s2_pointcloud_t*);
+void s2_assembly_free(s2_assembly_t*);
 
+void s2_assembly_appendJoint(s2_assembly_t* assembly, s2_joint_t* joint);
 
-int s2_assembly_loadBodies(
-  s2_assembly_t*,
-  json_t*,
-  s2_context_t*,
-  s2_stackstr_t*);
+void s2_assembly_appendForceModule(s2_assembly_t* assembly,
+                                   s2_forcemodule_t* forceModule);
 
+void s2_assembly_appendRestraint(s2_assembly_t* assembly,
+                                 s2_restraint_t* restraint);
 
-int s2_assembly_loadJoints(
-  s2_assembly_t*,
-  json_t*,
-  s2_context_t*,
-  s2_stackstr_t*);
+void s2_assembly_appendLight(s2_assembly_t*, s2_light_t*);
 
-
-int s2_assembly_loadLights(
-  s2_assembly_t*,
-  json_t*,
-  s2_context_t*,
-  s2_stackstr_t*);
-
-
-int s2_assembly_loadRestraints(
-  s2_assembly_t*,
-  json_t*,
-  s2_context_t*,
-  s2_stackstr_t*);
-
-
-int s2_assembly_loadForceModules(
-  s2_assembly_t*,
-  json_t*,
-  s2_context_t*,
-  s2_stackstr_t*);
-
-
-void s2_assembly_free(
-  s2_assembly_t*);
-
-
-void s2_assembly_appendJoint(
-  s2_assembly_t* assembly,
-  s2_joint_t* joint);
-
-
-void s2_assembly_appendForceModule(
-  s2_assembly_t* assembly,
-  s2_forcemodule_t* forceModule);
-
-
-void s2_assembly_appendRestraint(
-  s2_assembly_t* assembly,
-  s2_restraint_t* restraint);
-
-
-void s2_assembly_appendLight(
-  s2_assembly_t*,
-  s2_light_t*);
-
-
-int s2_assembly_load(
-  s2_assembly_t* parentAssembly,
-  json_t* assembliesObject,
-  s2_context_t* context,
-  s2_stackstr_t* prefix);
+int s2_assembly_load(s2_assembly_t* parentAssembly, json_t* assembliesObject,
+                     s2_context_t* context, s2_stackstr_t* prefix);
 
 #endif

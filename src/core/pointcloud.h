@@ -19,22 +19,20 @@ SUCH DAMAGE.
 #ifndef _SHIFT_POINTCLOUD_H_
 #define _SHIFT_POINTCLOUD_H_
 
-#include <stdio.h>
 #include "kinematics.h"
+#include <stdio.h>
 
-#define ThrowWandException(wand) \
-{ \
-  char \
-    *description; \
- \
-  ExceptionType \
-    severity; \
- \
-  description = MagickGetException(wand,&severity); \
-  (void) fprintf(stderr, "%s %s %lu %s\n", GetMagickModule(), description); \
-  description = (char *)MagickRelinquishMemory(description); \
-  exit(-1); \
-}
+#define ThrowWandException(wand)                                               \
+  {                                                                            \
+    char* description;                                                         \
+                                                                               \
+    ExceptionType severity;                                                    \
+                                                                               \
+    description = MagickGetException(wand, &severity);                         \
+    (void)fprintf(stderr, "%s %s %lu %s\n", GetMagickModule(), description);   \
+    description = (char*)MagickRelinquishMemory(description);                  \
+    exit(-1);                                                                  \
+  }
 
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_assembly_t s2_assembly_t;
@@ -49,9 +47,9 @@ typedef struct s2_pointcloud_t {
   size_t vertexCount;
   s2_stackstr_t* definition; /*!< Path to files that define body definitions,
                                     i.e. ply files */
-  s2_assembly_t* assembly; /*!< Pointer to assembly that pointcloud is a
-                                  member of. */
-  s2_body_t* body; /*!< pointer to body that point cloud belongs to */
+  s2_assembly_t* assembly;   /*!< Pointer to assembly that pointcloud is a
+                                    member of. */
+  s2_body_t* body;           /*!< pointer to body that point cloud belongs to */
   s2_frame_t* frame;
   s2_displacement_t* transform;
   s2_stackstr_t* name;
@@ -62,8 +60,5 @@ typedef struct s2_pointcloud_t {
 s2_pointcloud_t* s2_pointcloud(s2_stackstr_t*);
 
 void s2_pointcloud_free(s2_pointcloud_t*);
-
-
-
 
 #endif

@@ -19,9 +19,9 @@ SUCH DAMAGE.
 #ifndef _SHIFT_CONTEXT_H_
 #define _SHIFT_CONTEXT_H_
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef __APPLE__
 #include <OpenGL/OpenGL.h>
@@ -30,11 +30,11 @@ SUCH DAMAGE.
 #endif
 #include <jansson.h>
 
-#include "stack.h"
-#include "kinematics.h"
-#include "joint.h"
 #include "../ode/numericalintegrator.h"
 #include "collisionobject.h"
+#include "joint.h"
+#include "kinematics.h"
+#include "stack.h"
 
 typedef struct s2_forcemodule_t s2_forcemodule_t;
 typedef struct s2_context_t s2_context_t;
@@ -62,7 +62,6 @@ typedef struct s2_convexhull_t s2_convexhull_t;
 typedef struct s2_sphere_t s2_sphere_t;
 typedef struct s2_ellipsoid_t s2_ellipsoid_t;
 
-
 /*!
 @brief star2 context datastructure
 
@@ -74,11 +73,12 @@ s2_LoadJSON function.
 typedef struct s2_context_t {
 
   struct modelParameters {
-    char* version; /*!< specify star2 file version number */
+    char* version;                   /*!< specify star2 file version number */
     s2_stackstr_t* includeDirectory; /*!< specify directories to search for
                                             external files */
-    s2_vector_t* gravity; /*!< specify gravity force field, a 3x1 vector with
-                                 units as specified in the Units datastructure */
+    s2_vector_t*
+      gravity; /*!< specify gravity force field, a 3x1 vector with
+                      units as specified in the Units datastructure */
     struct units {
       char* angle;
       char* length;
@@ -86,9 +86,9 @@ typedef struct s2_context_t {
       char* time;
     } units;
 
-    s2_numericalintegrator_enum_t integrationType; /*!< type of numerical integrator
-                                             to use, currently only ODE113
-                                             Adams-Bashforth-Molton is
+    s2_numericalintegrator_enum_t integrationType; /*!< type of numerical
+                                             integrator to use, currently only
+                                             ODE113 Adams-Bashforth-Molton is
                                              supported */
     int iflag; /*!< interpolation flag for numerical integration, used by
                     ODE113 integrator. The default value is set to
@@ -97,28 +97,33 @@ typedef struct s2_context_t {
                     ode113 can take). To interpolate simulation results at
                     fixed time intervals (slower), set to 1 */
 
-    double timeSpan; /*!< span of simulation time used for numerical integration.
-                           if not specified in JSON file, the default is 1 second */
-    double timeStep; /*!< nominal time step used for simulation, if not specified
-                           in JSON file, the default is 0.001 seconds */
-    double relativeError; /*!< relative error convergence tolerance term,
-                               used by ode113. default value if not provided
-                               in JSON file is 0.0*/
-    double absoluteError; /*!< absolute error convergence tolerance term, used by
-                               ode113. default value if not provided in JSON
-                               fle is 1e-4 */
-    char* outFile; /*!< filename to write resuts to */
-    FILE* outFilePointer; /*!< file pointer to write results to */
-    char* debugFile; /*!< filename to write debug information to */
+    double timeSpan;        /*!< span of simulation time used for numerical
+                               integration.        if not specified in JSON file, the default
+                               is 1 second */
+    double timeStep;        /*!< nominal time step used for simulation, if not
+                               specified        in JSON file, the default is 0.001 seconds */
+    double relativeError;   /*!< relative error convergence tolerance term,
+                                 used by ode113. default value if not provided
+                                 in JSON file is 0.0*/
+    double absoluteError;   /*!< absolute error convergence tolerance term, used
+                               by   ode113. default value if not provided in JSON
+                                 fle is 1e-4 */
+    char* outFile;          /*!< filename to write resuts to */
+    FILE* outFilePointer;   /*!< file pointer to write results to */
+    char* debugFile;        /*!< filename to write debug information to */
     FILE* debugFilePointer; /*!< file pointer to write debug information to */
-    FILE* dhvaFilePointer; /*!< file pointer to write dhva debug information to */
-    char* delimiter; /*!< delimiter used in writing to file */
+    FILE*
+      dhvaFilePointer; /*!< file pointer to write dhva debug information to */
+    char* delimiter;   /*!< delimiter used in writing to file */
 
-    double baumgarteOmegaN; /*!< natural frequency for baumgarte stabilization */
-    double baumgarte2OmegaN; /*!< 2 * natural freq for baumgarte constraint stabilization */
-    double baumgarteOmegaN2; /*!< omega_N ^2 for baumgarte constraint stabilization */
+    double
+      baumgarteOmegaN; /*!< natural frequency for baumgarte stabilization */
+    double baumgarte2OmegaN; /*!< 2 * natural freq for baumgarte constraint
+                                stabilization */
+    double baumgarteOmegaN2; /*!< omega_N ^2 for baumgarte constraint
+                                stabilization */
 
-    bool monitorIterations; /*!< monitor iterations in de */
+    bool monitorIterations;      /*!< monitor iterations in de */
     bool monitorConstraintError; /*!< monitor constraint error
 
     */
@@ -139,26 +144,28 @@ typedef struct s2_context_t {
   @name Counts of objects in Context data structure
   @{
   */
-  int jointCount; //!< total number of joints
-  int bodyCount; //!< total number of bodies
-  int pointCloudCount; //!< total point cloud count
-  int frameCount; //!< total number of frames
-  int lightCount; //!< total number of lights
-  int ioCount; //!< total number of input/output devices
-  int restraintCount; //<! total number of restraints
-  int nonRigidJointCount; /*!< total number of non-rigid joints - includes 1 entry for each multi degree of freedom joint and zero entries for each rigid joint*/
+  int jointCount;         //!< total number of joints
+  int bodyCount;          //!< total number of bodies
+  int pointCloudCount;    //!< total point cloud count
+  int frameCount;         //!< total number of frames
+  int lightCount;         //!< total number of lights
+  int ioCount;            //!< total number of input/output devices
+  int restraintCount;     //<! total number of restraints
+  int nonRigidJointCount; /*!< total number of non-rigid joints - includes 1
+                             entry for each multi degree of freedom joint and
+                             zero entries for each rigid joint*/
   int dhvaCount;
-  int activeFrameCount; //!< number of active frames in mechanism
+  int activeFrameCount;       //!< number of active frames in mechanism
   int activeFrameInTreeCount; //!< number of active frames in spanning tree
-  int activeJointCount; //!< number of active joints
-  int activeBodyCount; //!< number of active bodies
+  int activeJointCount;       //!< number of active joints
+  int activeBodyCount;        //!< number of active bodies
   int activePointCloudCount;
-  int activeLightCount; //!< number of active lights
-  int activeIOCount; //!< number of active devices
+  int activeLightCount;     //!< number of active lights
+  int activeIOCount;        //!< number of active devices
   int activeRestraintCount; //!< number of active restraints
-  int qCount; /*!< total number of generalized coordinates in system, 7 for
-                   each FLOAT joint, 4 for each spherical joint
-                   0 dof for RIGID joints, and 1 otherwise */
+  int qCount;  /*!< total number of generalized coordinates in system, 7 for
+                    each FLOAT joint, 4 for each spherical joint
+                    0 dof for RIGID joints, and 1 otherwise */
   int dqCount; /*!< total number of generalized velocites in system, 6 for
                    each FLOAT joint, 3 for each spherical joint
                    0 dof for RIGID joints, and 1 otherwise */
@@ -185,9 +192,10 @@ typedef struct s2_context_t {
   @name Data related to processing kinematic loops within mechanism
   @{
   */
-  double epsRankDetermination; /*!< tolerance for rank determination in LU decomposition */
-  double epsNewtonRaphson; /*!< general tolerance for
-  resolving constraint violation */
+  double epsRankDetermination; /*!< tolerance for rank determination in LU
+                                  decomposition */
+  double epsNewtonRaphson;     /*!< general tolerance for
+      resolving constraint violation */
   double epsNewtonRaphsonRankDetermination; /*!< tighter newton raphson
                                                  tolerance for the purpose of
                                                  determining mechanism rank */
@@ -200,25 +208,26 @@ typedef struct s2_context_t {
                           first position is the index of the embedded (host)
                           body in aq, the second value is the index of the
                           virtual (released frame) */
-  double* J; /*!< Jacobian matrix (or matrices) */
-  double* Js; /*!< saved copy of jacobian matrices used for debugging purposes */
+  double* J;         /*!< Jacobian matrix (or matrices) */
+  double*
+    Js;     /*!< saved copy of jacobian matrices used for debugging purposes */
   int* Jxx; /*!< instructions for evaluating Jacobian matrices */
   bool* Jb; /*!< Boolean Jacobian matrix */
   int jacobianSize; /*!< total size of jacobian matrix */
 
   bool* isDependentPO1; /*!< equal to dof, in PO1 */
   bool* isDependentPO3; /*! equal to dof, in PO3 */
-  bool* hasMass; /*!< size equal to nonRigidJointCount */
-  bool* hasMassdq; /*!< size equal to dqCount */
-  int dependentCount; /*!< number of dependent variables */
+  bool* hasMass;        /*!< size equal to nonRigidJointCount */
+  bool* hasMassdq;      /*!< size equal to dqCount */
+  int dependentCount;   /*!< number of dependent variables */
 
   int* jointDOF; /*!< size equal to number of active joints */
 
   s2_substructure_t* substructures;
-  int substructureCount; /*!< Number of kinematic substructures */
-  int* substructureLoopCount; /*!< Number of loops in each
-                                   kinematic substructure */
-  int** substructureMembers; /*!< members of each kinematic substructure */
+  int substructureCount;         /*!< Number of kinematic substructures */
+  int* substructureLoopCount;    /*!< Number of loops in each
+                                      kinematic substructure */
+  int** substructureMembers;     /*!< members of each kinematic substructure */
   int* substructureMembersCount; /*!< count of members in each substructure */
 
   int** positiveLoopMembers; /*!< Indicates mechanism's positive loop members */
@@ -226,8 +235,8 @@ typedef struct s2_context_t {
   int* positiveLoopMembersCompressedCount; /*!< containts a compressed list
                                                 of loop members with rigid
                                                 joints removed */
-  int** positiveLoopMemberOffsets; /*!< Indicates mechanism's local positive loop
-                                        member offsets */
+  int** positiveLoopMemberOffsets; /*!< Indicates mechanism's local positive
+                                      loop member offsets */
 
   int** negativeLoopMembers; /*!< Indicates mechanism's negative loop members */
   int* negativeLoopMembersCompressedCount; /*!< containts a compressed list
@@ -274,7 +283,8 @@ typedef struct s2_context_t {
                                      direct access */
 
   int forceModuleCount;
-  s2_forcemodule_t** forceModulePointers; /*!< Array of pointers to force modules */
+  s2_forcemodule_t**
+    forceModulePointers; /*!< Array of pointers to force modules */
 
   s2_light_t** lightPointers; /*!< array of pointers to lights */
 
@@ -292,21 +302,21 @@ typedef struct s2_context_t {
 
   s2_joint_enum_t* jointTypes; /*!< Array of joint types, equal in length to
                                       joint list */
-  int* pcl; /*!< Parent Child List, used to navigate mechanism
-                             topology, set automatically by
-                             s2_ProcessTopology */
+  int* pcl;           /*!< Parent Child List, used to navigate mechanism
+                                       topology, set automatically by
+                                       s2_ProcessTopology */
   int* pclCompressed; /*!< parent child list, with rigid joints
                            compressed out */
-  int* pcldq; /*!< parent child list, with rigid joints compressed out and
-                   including multi-dof joints */
+  int* pcldq;       /*!< parent child list, with rigid joints compressed out and
+                         including multi-dof joints */
   bool* isRotation; /*!< Boolean matrix, equal in length to dqCount, true if
                          primitive joint is a rotation, false
                          otherwise */
-  int* levels; //!< Levels list, set automatically by s2_ProcessTopology
+  int* levels;      //!< Levels list, set automatically by s2_ProcessTopology
 
-  bool* isReference; /*!< an array of booleans that indicate whether the
-                          displacement at the current index of context->d is
-                          a reference Frame */
+  bool* isReference;  /*!< an array of booleans that indicate whether the
+                           displacement at the current index of context->d is
+                           a reference Frame */
   bool* originInTree; /*< an array of booleans equal to
                           number of bodies, true if body origin is in
                           spanning tree */
@@ -314,56 +324,56 @@ typedef struct s2_context_t {
   s2_frame_t** originPointers;
   s2_frame_t** referenceFramePointers;
 
-  s2_displacement_t* d; /*!< array of displacements equal
-                               in size to number of frames */
-  s2_displacement_t* dWRTReference; /*!< array of relative displacements,
-                                           equal in size to number of shape
-                                           matrices + rigid joints*/
+  s2_displacement_t* d;                 /*!< array of displacements equal
+                                               in size to number of frames */
+  s2_displacement_t* dWRTReference;     /*!< array of relative displacements,
+                                               equal in size to number of shape
+                                               matrices + rigid joints*/
   s2_displacement_t** dReferenceFrames; /*!< absolute displacement of
                                                reference frames */
-  double* dc; //!< direction cosine arrays
-  double** dcq; /*!< generalized coordinates that have direction cosine terms
-                    associated with them */
-  s2_screw_t* h; /*!< an array of influence coefficient matrices equal to the
-                  6 * number of variables in the datastructure */
-  s2_screw_t* v; /*!< an array of body velocities equal to the
-                  number of variables in the datastructure */
+  double* dc;                           //!< direction cosine arrays
+  double** dcq;   /*!< generalized coordinates that have direction cosine terms
+                      associated with them */
+  s2_screw_t* h;  /*!< an array of influence coefficient matrices equal to the
+                   6 * number of variables in the datastructure */
+  s2_screw_t* v;  /*!< an array of body velocities equal to the
+                   number of variables in the datastructure */
   s2_screw_t* aq; /*!< an array of body accelerations equal to the
                   number of variables in the datastructure */
-  s2_screw_t* vRelative; /*!< an array of body velocities equal to the
-                  number of variables in the datastructure */
+  s2_screw_t* vRelative;  /*!< an array of body velocities equal to the
+                   number of variables in the datastructure */
   s2_screw_t* aqRelative; /*!< an array of body accelerations equal to the
                   number of variables in the datastructure */
   void*** dhva; /*!< pointers to quantities needed by dhFunctionPointers
                        and dhvaFunctionPointers, set by
                        topology_ProcessTopology */
 
-  double* q; /*!< primitive joint displacements */
+  double* q;     /*!< primitive joint displacements */
   double* qCopy; /*!< copy of primitive joint displacements */
-  double* dq; /*!< primitive joint velocities */
-  double* ddq; /*!< primitive joint accelerations */
+  double* dq;    /*!< primitive joint velocities */
+  double* ddq;   /*!< primitive joint accelerations */
 
   double* deltaq; /*!< incremental change in q, used in Newton Raphson
                        iteration */
   // double* gamma_p; /*!< loop constraints */
   double* gamma_d; /*!< preconditioned constraints */
-  double* cs; /*!< constraints */
-  double* dcs; /*!< constraint first derivative */
-  double* ddcs; /*!< constraint second derivative */
-  double* ddcsq; /*!< constraint second derivative and quadratic terms */
+  double* cs;      /*!< constraints */
+  double* dcs;     /*!< constraint first derivative */
+  double* ddcs;    /*!< constraint second derivative */
+  double* ddcsq;   /*!< constraint second derivative and quadratic terms */
 
   int Ml_size; /*!< size of Ml array = ((2 + n) * (1 + n)) / 2*/
 
-  double* Ml; /*!< Generalized mass matrix, linear array containing mass
-                   matrix terms on and below the diagonal */
+  double* Ml;  /*!< Generalized mass matrix, linear array containing mass
+                    matrix terms on and below the diagonal */
   double* Mls; /*!< Saved copy of original M */
 
-  bool* Mlb; /*!< boolean mass matrix, equal in size to M */
+  bool* Mlb;  /*!< boolean mass matrix, equal in size to M */
   bool* Mlbs; /*!< original boolean mass matrix, with no fills recorded */
 
-  s2_screw_t* p; /*!< momentum */
-  s2_screw_t* g; /*!< body and inertia forces */
-  s2_screw_t* k; /*!< joint reaction forces */
+  s2_screw_t* p;         /*!< momentum */
+  s2_screw_t* g;         /*!< body and inertia forces */
+  s2_screw_t* k;         /*!< joint reaction forces */
   s2_screw_t* mhProduct; /*!< product of mass matrix and influence
                                 coefficient matrices in PO(1) */
 
@@ -376,22 +386,22 @@ typedef struct s2_context_t {
                                             energy of the system, currently
                                             does not compute potential energy
                                             due to springs, etc. */
-  int nnzm; /*!< number of nonzero entries in mass matrix */
+  int nnzm;  /*!< number of nonzero entries in mass matrix */
   int nnzms; /*!< original number of nonzero entries in mass matrix */
-  int nnzb; /*!< number of nonzero entries in B matrix */
+  int nnzb;  /*!< number of nonzero entries in B matrix */
 
   int** rm; /*!< row ranges of M matrix in PO(3) */
-  int* cm; /*!< row ranges of M matrix in PO(3) */
+  int* cm;  /*!< row ranges of M matrix in PO(3) */
 
-  int** rb2; /*!< row ranges of B matrix in PO(2) */
+  int** rb2;      /*!< row ranges of B matrix in PO(2) */
   int** rb3_temp; /*!< temporary array used to convert rb2 to rb3 */
-  int** rb3; /*!< row ranges of B matrix in PO(3) */
+  int** rb3;      /*!< row ranges of B matrix in PO(3) */
 
-  int* cb2; /*!< global col indices of B matrix in PO(2) */
+  int* cb2;      /*!< global col indices of B matrix in PO(2) */
   int* cb3_temp; /*!< temporary array used to convert cb2 to cb3*/
-  int* cb3; /*!< global col indices of B matrix in PO(3) */
-  int* colb; /*!< local col indices of B matrix in PO(3) */
-  int ncb; /*!< number of columns in B matrix */
+  int* cb3;      /*!< global col indices of B matrix in PO(3) */
+  int* colb;     /*!< local col indices of B matrix in PO(3) */
+  int ncb;       /*!< number of columns in B matrix */
 
   int* pb_23; /*!< permutation of linear b matrix from 3 to 2 */
   int* pb_32; /*!< permutation of linear b matrix from 2 to 3 */
@@ -399,7 +409,8 @@ typedef struct s2_context_t {
   int* ijMapping; /*!< row and column indices in B matrix to process */
   double* b3; /*!< Linear array containing terms of preconditioned constraints
                    in PO(3) */
-  double* f; /*!< Working forces within a joint, such as from friction or damping */
+  double*
+    f; /*!< Working forces within a joint, such as from friction or damping */
   double* fl; /*!< Generalized forces */
 
   // double* ga; /*!< quadratic acceleration terms */
@@ -451,7 +462,7 @@ typedef struct s2_context_t {
 
   int startOfWorkInM; /*!< n(n+1)/2 points to first entry in temporary storage
                            part of Ml[] */
-  double** P;   /*!< Single array of source and destination memory pointers. */
+  double** P; /*!< Single array of source and destination memory pointers. */
   double p3Start; /*!< start of p3 in P */
 
   /*!
@@ -459,12 +470,12 @@ typedef struct s2_context_t {
   @name quantities related to mobility numbers
   @{
   */
-  double* rightNullSpace; /*!< single array of memory allocated for right
-                               Null space, equal to sum of dqCount * dqCount
-                               for each substructure */
+  double* rightNullSpace;  /*!< single array of memory allocated for right
+                                Null space, equal to sum of dqCount * dqCount
+                                for each substructure */
   int rightNullSpaceCount; /*!< total number of entries in rightNullSpace */
   double* mobilityNumbers; /*!< mobility associated with each variable */
-  double mobility; /*!< total mobility of system */
+  double mobility;         /*!< total mobility of system */
 
   s2_io_t* io; /*!< pointer to input/output datastructures */
 
@@ -473,13 +484,13 @@ typedef struct s2_context_t {
   @name quantities related to updating inertia
   @{
   */
-  s2_inertia_t* inertia; /*!< inertia expressed at COM WRT body reference
-                                frame, this inertia may differ from
-                                inertia on a body, as any bodies connected by
-                                rigid joints are merged together and expressed
-                                in terms of their common centroidal
-                                inertial reference frame with respect to the
-                                reference frame of the parent body */
+  s2_inertia_t* inertia;  /*!< inertia expressed at COM WRT body reference
+                                 frame, this inertia may differ from
+                                 inertia on a body, as any bodies connected by
+                                 rigid joints are merged together and expressed
+                                 in terms of their common centroidal
+                                 inertial reference frame with respect to the
+                                 reference frame of the parent body */
   s2_inertia_t* inertiaP; /*! accumulated or "projected" inertia matrices
                                 used in solving dynamics equations */
 
@@ -508,15 +519,18 @@ typedef struct s2_context_t {
   @{
   */
 
-  int quaternionCount; /*!< number of quaternions included in generalized
-                            coordinates */
-  int* qQuaternionIndices; /*! indices where quaternions start in q array */
-  int* dqQuaternionIndices; /*! indices where angular velocities start in dq array */
+  int quaternionCount;      /*!< number of quaternions included in generalized
+                                 coordinates */
+  int* qQuaternionIndices;  /*! indices where quaternions start in q array */
+  int* dqQuaternionIndices; /*! indices where angular velocities start in dq
+                               array */
 
   int nonQuaternionCount; /*! number of indices in q and dq to process that are
                               not associated with quaternions */
-  int* qNonQuaternionIndices; /*! indices where non quaternions start in q array */
-  int* dqNonQuaternionIndices; /*! indices where non quaternions start in dq array */
+  int*
+    qNonQuaternionIndices; /*! indices where non quaternions start in q array */
+  int* dqNonQuaternionIndices; /*! indices where non quaternions start in dq
+                                  array */
 
   /*!
   @}
@@ -573,82 +587,48 @@ typedef struct s2_context_t {
 
 } s2_context_t;
 
-
 s2_context_t* s2_context();
-
 
 s2_units_t* s2_units();
 
+void s2_context_free(s2_context_t* context);
 
-void s2_context_free(
-  s2_context_t* context);
+void s2_context_freeRunTimeArrays(s2_context_t* context);
 
+void s2_context_print(FILE* f, s2_context_t* context);
 
-void s2_context_freeRunTimeArrays(
-  s2_context_t* context);
+s2_frame_t* s2_context_getFrameByName(s2_context_t* context,
+                                      const char* bodyName,
+                                      const char* frameName);
 
-
-void s2_context_print(
-  FILE* f,
-  s2_context_t* context);
-
-
-s2_frame_t* s2_context_getFrameByName(
-  s2_context_t* context,
-  const char* bodyName,
-  const char* frameName);
-
-
-s2_body_t* s2_context_getBodyByName(
-  s2_context_t* context,
-  const char* bodyName);
-
+s2_body_t* s2_context_getBodyByName(s2_context_t* context,
+                                    const char* bodyName);
 
 int s2_context_getIConv(s2_context_t* context);
 
-
 double s2_context_getSimulationTime(s2_context_t* context);
-
 
 FILE* s2_context_getDebugPointer(s2_context_t* context, int i);
 
+void s2_context_setOmegaN(s2_context_t* context, double omegaN);
 
-void s2_context_setOmegaN(
-  s2_context_t* context,
-  double omegaN);
+int s2_context_loadFixedFrames(s2_context_t* context, json_t* root);
 
+void s2_context_loadModelParameters(s2_context_t* context,
+                                    json_t* modelParametersObject,
+                                    const char* filePath);
 
-int s2_context_loadFixedFrames(
-  s2_context_t* context,
-  json_t* root);
+void s2_context_freeModelParameters(s2_context_t*);
 
+s2_context_t* s2_context_load(const char*);
 
-void s2_context_loadModelParameters(
-  s2_context_t* context,
-  json_t* modelParametersObject,
-  const char* filePath);
-
-
-void s2_context_freeModelParameters(
-  s2_context_t*);
-
-
-s2_context_t* s2_context_load(
-  const char*);
-
-
-void s2_context_setTerrainPointers(
-  s2_context_t*);
-
+void s2_context_setTerrainPointers(s2_context_t*);
 
 void s2_context_setBoundingSpheres(s2_context_t*);
 
-
 void s2_context_updateBoundingSpheres(s2_context_t*);
 
-void s2_context_pushCollisionGeometry(
-  s2_context_t*,
-  void*,
-  s2_collisionobject_enum_t);
+void s2_context_pushCollisionGeometry(s2_context_t*, void*,
+                                      s2_collisionobject_enum_t);
 
 #endif

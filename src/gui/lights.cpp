@@ -147,12 +147,24 @@ void s2_Lights::loadContext() {
     if(m_lights.count == 0) {
       m_lights.count = 1;
       m_lights.type[0] = 2;
-      m_lights.position[0 * 3 + 0] = m_context->modelParameters.gravity->x;
-      m_lights.position[0 * 3 + 1] = m_context->modelParameters.gravity->y;
-      m_lights.position[0 * 3 + 2] = m_context->modelParameters.gravity->z;
+      s2_displacement_t d;
+      s2_displacement_setIdentity(&d);
+      d.T = *m_context->modelParameters.gravity;
+      s2_vector_normalize(&d.T);
+      s2_vector_invertInPlace(&d.T);
+      s2_vector_scale(50, &d.T);
+      m_lights.position[0 * 3 + 0] = d.T.x;
+      m_lights.position[0 * 3 + 1] = d.T.y;
+      m_lights.position[0 * 3 + 2] = d.T.z;
+      m_lights.viewMatrix[0] = s2_displacementToQMatrix4x4(&d).inverted();
       QMatrix4x4 projection;
       projection.ortho(-1.f, 1.f, -1.f, 1.f, 0.01f, 100.f);
       m_lights.projectionMatrix[0] = projection;
+      for(int i = 0; i < 3; i++) {
+        m_lights.Ka[i] = 1.0;
+        m_lights.Kd[i] = 1.0;
+        m_lights.Ks[i] = 1.0;
+      }
     }
 
     if(m_depthBufferArray == NULL) {

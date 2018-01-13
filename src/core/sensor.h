@@ -31,7 +31,6 @@ typedef struct s2_sensor_t {
   s2_sensor_t* next;
 } s2_sensor_t;
 
-
 s2_sensor_t* s2_sensor();
 
 #endif

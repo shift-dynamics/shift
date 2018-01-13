@@ -16,12 +16,11 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-#include "context.h"
-#include "kinematics.h"
 #include "joint.h"
 #include "assembly.h"
 #include "body.h"
-
+#include "context.h"
+#include "kinematics.h"
 
 /*!
 @brief Initialize a Joint datastructure
@@ -29,13 +28,11 @@ SUCH DAMAGE.
 @param None
 @returns a Joint datastructure
 */
-s2_joint_t* s2_joint(
-  const char* jointTypeStr,
-  s2_stackstr_t* name) {
+s2_joint_t* s2_joint(const char* jointTypeStr, s2_stackstr_t* name) {
 
   s2_joint_t* joint = malloc(sizeof(s2_joint_t));
 
-  if(!joint) {
+  if (!joint) {
     fprintf(stderr, "Error: failed to initialize joint.\n");
     return NULL;
   }
@@ -57,7 +54,7 @@ s2_joint_t* s2_joint(
   joint->dampingCoefficientCount = 0;
   joint->isVisible = false;
 
-  switch(joint->jointType) {
+  switch (joint->jointType) {
     case S2_JOINT_TX:
     case S2_JOINT_TY:
     case S2_JOINT_TZ: {
@@ -170,38 +167,35 @@ s2_joint_t* s2_joint(
   return joint;
 }
 
-
 /*!
 @brief Converts jointType descriptive name to JOINTTYPE enum
 
 @param jointType descriptive name
 @return JOINTTYPE enum
 */
-s2_joint_enum_t s2_getJointType(
-  const char* jointTypeStr) {
+s2_joint_enum_t s2_getJointType(const char* jointTypeStr) {
 
-  if(!strcmp(jointTypeStr, "Tx")) {
+  if (!strcmp(jointTypeStr, "Tx")) {
     return S2_JOINT_TX;
-  } else if(!strcmp(jointTypeStr, "Ty")) {
+  } else if (!strcmp(jointTypeStr, "Ty")) {
     return S2_JOINT_TY;
-  } else if(!strcmp(jointTypeStr, "Tz")) {
+  } else if (!strcmp(jointTypeStr, "Tz")) {
     return S2_JOINT_TZ;
-  } else if(!strcmp(jointTypeStr, "Rx")) {
+  } else if (!strcmp(jointTypeStr, "Rx")) {
     return S2_JOINT_RX;
-  } else if(!strcmp(jointTypeStr, "Ry")) {
+  } else if (!strcmp(jointTypeStr, "Ry")) {
     return S2_JOINT_RY;
-  } else if(!strcmp(jointTypeStr, "Rz")) {
+  } else if (!strcmp(jointTypeStr, "Rz")) {
     return S2_JOINT_RZ;
-  } else if(!strcmp(jointTypeStr, "rigid")) {
+  } else if (!strcmp(jointTypeStr, "rigid")) {
     return S2_JOINT_RIGID;
-  } else if(!strcmp(jointTypeStr, "spherical")) {
+  } else if (!strcmp(jointTypeStr, "spherical")) {
     return S2_JOINT_SPHERICAL;
-  } else if(!strcmp(jointTypeStr, "float")) {
+  } else if (!strcmp(jointTypeStr, "float")) {
     return S2_JOINT_FLOAT;
   }
   return S2_JOINT_INVALID;
 }
-
 
 /*!
 @brief Prismatic joint along x-axis (dh)
@@ -217,21 +211,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tx(
-  void** dhva) {
+void s2_joint_tx(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dPrimitive = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_dtx(
-    dParent,
-    dPrimitive,
-    dChild);
-  s2_htx(
-    dChild,
-    h);
+  s2_product_dtx(dParent, dPrimitive, dChild);
+  s2_htx(dChild, h);
 }
 
 /*!
@@ -257,8 +245,7 @@ The dhva array contains pointers to the following quantities:
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tx_dhva(
-  void** dhva) {
+void s2_joint_tx_dhva(void** dhva) {
 
   s2_joint_tx(dhva);
 
@@ -273,22 +260,10 @@ void s2_joint_tx_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_sst(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_sst(
-    vParent,
-    vRelative,
-    aqRelative);
-  s2_add_sst(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_sst(vParent, vRelative, vChild);
+  s2_screwcross_sst(vParent, vRelative, aqRelative);
+  s2_add_sst(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -305,21 +280,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_txinverse(
-  void** dhva) {
+void s2_joint_txinverse(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dPrimitive = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_dtxinverse(
-    dParent,
-    dPrimitive,
-    dChild);
-  s2_htxinverse(
-    dChild,
-    h);
+  s2_product_dtxinverse(dParent, dPrimitive, dChild);
+  s2_htxinverse(dChild, h);
 }
 
 /*!
@@ -343,8 +312,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_txinverse_dhva(
-  void** dhva) {
+void s2_joint_txinverse_dhva(void** dhva) {
 
   s2_joint_txinverse(dhva);
 
@@ -359,22 +327,10 @@ void s2_joint_txinverse_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_sst(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_sst(
-    vParent,
-    vRelative,
-    aqRelative);
-  s2_add_sst(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_sst(vParent, vRelative, vChild);
+  s2_screwcross_sst(vParent, vRelative, aqRelative);
+  s2_add_sst(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -391,21 +347,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ty(
-  void** dhva) {
+void s2_joint_ty(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dPrimitive = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_dty(
-    dParent,
-    dPrimitive,
-    dChild);
-  s2_hty(
-    dChild,
-    h);
+  s2_product_dty(dParent, dPrimitive, dChild);
+  s2_hty(dChild, h);
 }
 
 /*!
@@ -429,8 +379,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ty_dhva(
-  void** dhva) {
+void s2_joint_ty_dhva(void** dhva) {
 
   s2_joint_ty(dhva);
 
@@ -445,24 +394,11 @@ void s2_joint_ty_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_sst(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_sst(
-    vParent,
-    vRelative,
-    aqRelative);
-  s2_add_sst(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_sst(vParent, vRelative, vChild);
+  s2_screwcross_sst(vParent, vRelative, aqRelative);
+  s2_add_sst(aqParent, aqRelative, aqChild);
 }
-
 
 /*!
 @brief Prismatic Joint aligned with y-axis - inverse (dh)
@@ -478,21 +414,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tyinverse(
-  void** dhva) {
+void s2_joint_tyinverse(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dPrimitive = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_dtyinverse(
-    dParent,
-    dPrimitive,
-    dChild);
-  s2_htyinverse(
-    dChild,
-    h);
+  s2_product_dtyinverse(dParent, dPrimitive, dChild);
+  s2_htyinverse(dChild, h);
 }
 
 /*!
@@ -516,8 +446,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tyinverse_dhva(
-  void** dhva) {
+void s2_joint_tyinverse_dhva(void** dhva) {
 
   s2_joint_tyinverse(dhva);
 
@@ -532,22 +461,10 @@ void s2_joint_tyinverse_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_sst(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_sst(
-    vParent,
-    vRelative,
-    aqRelative);
-  s2_add_sst(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_sst(vParent, vRelative, vChild);
+  s2_screwcross_sst(vParent, vRelative, aqRelative);
+  s2_add_sst(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -564,21 +481,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tz(
-  void** dhva) {
+void s2_joint_tz(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dPrimitive = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_dtz(
-    dParent,
-    dPrimitive,
-    dChild);
-  s2_htz(
-    dChild,
-    h);
+  s2_product_dtz(dParent, dPrimitive, dChild);
+  s2_htz(dChild, h);
 }
 
 /*!
@@ -602,8 +513,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tz_dhva(
-  void** dhva) {
+void s2_joint_tz_dhva(void** dhva) {
 
   s2_joint_tz(dhva);
 
@@ -618,22 +528,10 @@ void s2_joint_tz_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_sst(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_sst(
-    vParent,
-    vRelative,
-    aqRelative);
-  s2_add_sst(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_sst(vParent, vRelative, vChild);
+  s2_screwcross_sst(vParent, vRelative, aqRelative);
+  s2_add_sst(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -650,21 +548,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tzinverse(
-  void** dhva) {
+void s2_joint_tzinverse(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dPrimitive = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_dtzinverse(
-    dParent,
-    dPrimitive,
-    dChild);
-  s2_htzinverse(
-    dChild,
-    h);
+  s2_product_dtzinverse(dParent, dPrimitive, dChild);
+  s2_htzinverse(dChild, h);
 }
 
 /*!
@@ -688,8 +580,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tzinverse_dhva(
-  void** dhva) {
+void s2_joint_tzinverse_dhva(void** dhva) {
 
   s2_joint_tzinverse(dhva);
 
@@ -704,22 +595,10 @@ void s2_joint_tzinverse_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_sst(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_sst(
-    vParent,
-    vRelative,
-    aqRelative);
-  s2_add_sst(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_sst(vParent, vRelative, vChild);
+  s2_screwcross_sst(vParent, vRelative, aqRelative);
+  s2_add_sst(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -736,21 +615,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rx(
-  void** dhva) {
+void s2_joint_rx(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dc = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_drx(
-    dParent,
-    dc,
-    dChild);
-  s2_hrx(
-    dChild,
-    h);
+  s2_product_drx(dParent, dc, dChild);
+  s2_hrx(dChild, h);
 }
 
 /*!
@@ -774,8 +647,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rx_dhva(
-  void** dhva) {
+void s2_joint_rx_dhva(void** dhva) {
 
   s2_joint_rx(dhva);
 
@@ -790,24 +662,11 @@ void s2_joint_rx_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_ss(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_ss(
-    vChild,
-    vRelative,
-    aqRelative);
-  s2_add_ss(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_ss(vParent, vRelative, vChild);
+  s2_screwcross_ss(vChild, vRelative, aqRelative);
+  s2_add_ss(aqParent, aqRelative, aqChild);
 }
-
 
 /*!
 @brief Revolute Joint aligned with x-axis - inverse (dh)
@@ -823,21 +682,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rxinverse(
-  void** dhva) {
+void s2_joint_rxinverse(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dc = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_drxinverse(
-    dParent,
-    dc,
-    dChild);
-  s2_hrxinverse(
-    dChild,
-    h);
+  s2_product_drxinverse(dParent, dc, dChild);
+  s2_hrxinverse(dChild, h);
 }
 
 /*!
@@ -861,8 +714,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rxinverse_dhva(
-  void** dhva) {
+void s2_joint_rxinverse_dhva(void** dhva) {
 
   s2_joint_rxinverse(dhva);
 
@@ -877,22 +729,10 @@ void s2_joint_rxinverse_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_ss(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_ss(
-    vChild,
-    vRelative,
-    aqRelative);
-  s2_add_ss(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_ss(vParent, vRelative, vChild);
+  s2_screwcross_ss(vChild, vRelative, aqRelative);
+  s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -909,21 +749,15 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ry(
-  void** dhva) {
+void s2_joint_ry(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dc = dhva[1];
   s2_displacement_t* dChild = dhva[2];
   s2_screw_t* h = dhva[3];
 
-  s2_product_dry(
-    dParent,
-    dc,
-    dChild);
-  s2_hry(
-    dChild,
-    h);
+  s2_product_dry(dParent, dc, dChild);
+  s2_hry(dChild, h);
 }
 
 /*!
@@ -947,8 +781,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ry_dhva(
-  void** dhva) {
+void s2_joint_ry_dhva(void** dhva) {
 
   s2_joint_ry(dhva);
 
@@ -963,22 +796,10 @@ void s2_joint_ry_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_ss(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_ss(
-    vChild,
-    vRelative,
-    aqRelative);
-  s2_add_ss(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_ss(vParent, vRelative, vChild);
+  s2_screwcross_ss(vChild, vRelative, aqRelative);
+  s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -995,8 +816,7 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ryinverse(
-  void** dhva) {
+void s2_joint_ryinverse(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   double* dc = dhva[1];
@@ -1004,13 +824,8 @@ void s2_joint_ryinverse(
 
   s2_screw_t* h = dhva[3];
 
-  s2_product_dryinverse(
-    dParent,
-    dc,
-    dChild);
-  s2_hryinverse(
-    dChild,
-    h);
+  s2_product_dryinverse(dParent, dc, dChild);
+  s2_hryinverse(dChild, h);
 }
 
 /*!
@@ -1034,8 +849,7 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ryinverse_dhva(
-  void** dhva) {
+void s2_joint_ryinverse_dhva(void** dhva) {
 
   s2_joint_ryinverse(dhva);
 
@@ -1050,22 +864,10 @@ void s2_joint_ryinverse_dhva(
   s2_screw_t* aqRelative = dhva[9];
   s2_screw_t* aqChild = dhva[10];
 
-  s2_product_sk(
-    h,
-    vPrimitive,
-    vRelative);
-  s2_add_ss(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_ss(
-    vChild,
-    vRelative,
-    aqRelative);
-  s2_add_ss(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_sk(h, vPrimitive, vRelative);
+  s2_add_ss(vParent, vRelative, vChild);
+  s2_screwcross_ss(vChild, vRelative, aqRelative);
+  s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -1092,7 +894,6 @@ void s2_joint_rz(void** dhva) {
   s2_product_drz(dParent, dc, dChild);
   s2_hrz(dChild, h);
 }
-
 
 /*!
 @brief Revolute joint aligned with z-axis (dhva)
@@ -1133,7 +934,6 @@ void s2_joint_rz_dhva(void** dhva) {
   s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
-
 /*!
 @brief Revolute Joint aligned with z-axis - inverse (dh)
 
@@ -1157,7 +957,6 @@ void s2_joint_rzinverse(void** dhva) {
   s2_product_drzinverse(dParent, dc, dChild);
   s2_hrzinverse(dChild, h);
 }
-
 
 /*!
 @brief Revolute joint aligned with z-axis - inverse (dhva)
@@ -1201,7 +1000,6 @@ void s2_joint_rzinverse_dhva(void** dhva) {
   s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
-
 /*!
 @brief Rigid Joint (dh)
 
@@ -1235,8 +1033,7 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rigid(
-  void** dhva) {
+void s2_joint_rigid(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   s2_displacement_t* dPrimitive = dhva[1];
@@ -1244,7 +1041,6 @@ void s2_joint_rigid(
 
   s2_product_dd(dParent, dPrimitive, dChild);
 }
-
 
 /*!
 @brief Rigid Joint (dhva)
@@ -1274,7 +1070,6 @@ void s2_joint_rigid_dhva(void** dhva) {
   s2_screw_copy(aqParent, aqChild);
 }
 
-
 /*!
 @brief Rigid Joint - inverse (dh)
 
@@ -1296,7 +1091,6 @@ void s2_joint_rigidinverse(void** dhva) {
 
   s2_product_ddinverse(dParent, dPrimitive, dChild);
 }
-
 
 /*!
 @brief Rigid Joint - inverse (dhva)
@@ -1324,7 +1118,6 @@ void s2_joint_rigidinverse_dhva(void** dhva) {
   s2_screw_copy(vParent, vChild);
   s2_screw_copy(aqParent, aqChild);
 }
-
 
 /*!
 @brief Rigid Joint (dh)
@@ -1370,7 +1163,7 @@ void s2_joint_float(void** dhva) {
 
   s2_quaternion_toMat3x3(q, &(dWRTReference->R));
   s2_product_rr(&(dParent->R), &(dWRTReference->R), &(dChild->R));
-  s2_product_rv(&(dParent->R), t, &(dChild ->T));
+  s2_product_rv(&(dParent->R), t, &(dChild->T));
   cblas_daxpy(3, 1.0, ((double*)dParent) + 9, 1, ((double*)dChild) + 9, 1);
   s2_htx(dChild, h);
   s2_hty(dChild, h + 1);
@@ -1476,7 +1269,7 @@ void s2_joint_floatinverse(void** dhva) {
 
   s2_quaternion_toMat3x3(q, &(dWRTReference->R));
   s2_product_rrinverse(&(dParent->R), &(dWRTReference->R), &(dChild->R));
-  s2_product_rvinverse(&(dParent->R), t, &(dChild ->T));
+  s2_product_rvinverse(&(dParent->R), t, &(dChild->T));
   cblas_daxpy(3, 1.0, ((double*)dParent) + 9, 1, ((double*)dChild) + 9, 1);
   s2_htxinverse(dChild, h);
   s2_htyinverse(dChild, h + 1);
@@ -1485,7 +1278,6 @@ void s2_joint_floatinverse(void** dhva) {
   s2_hryinverse(dChild, h + 4);
   s2_hrzinverse(dChild, h + 5);
 }
-
 
 /*!
 @brief Float Joint - inverse (dhva)
@@ -1539,7 +1331,6 @@ void s2_joint_floatinverse_dhva(void** dhva) {
   s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
-
 /*!
 @brief Spherical Joint (dh)
 
@@ -1573,8 +1364,7 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_spherical(
-  void** dhva) {
+void s2_joint_spherical(void** dhva) {
 
   s2_displacement_t* dParent = dhva[0];
   s2_quaternion_t* q = dhva[1];
@@ -1626,8 +1416,7 @@ velocities and accelerations
        and accelerations.
 @todo add spherical joint
 */
-void s2_joint_spherical_dhva(
-  void** dhva) {
+void s2_joint_spherical_dhva(void** dhva) {
 
   s2_joint_spherical(dhva);
 
@@ -1640,26 +1429,13 @@ void s2_joint_spherical_dhva(
   s2_screw_t* aqRelative = dhva[10];
   s2_screw_t* aqChild = dhva[11];
 
-  s2_product_rv(
-    &(dChild->R),
-    vPrimitive,
-    (s2_vector_t*)(((double*)vRelative) + 3));
-  s2_cross_vv(
-    &(dChild->T),
-    (s2_vector_t*)(((double*)vRelative) + 3),
-    (s2_vector_t*)vRelative);
-  s2_add_ss(
-    vParent,
-    vRelative,
-    vChild);
-  s2_screwcross_ss(
-    vChild,
-    vRelative,
-    aqRelative);
-  s2_add_ss(
-    aqParent,
-    aqRelative,
-    aqChild);
+  s2_product_rv(&(dChild->R), vPrimitive,
+                (s2_vector_t*)(((double*)vRelative) + 3));
+  s2_cross_vv(&(dChild->T), (s2_vector_t*)(((double*)vRelative) + 3),
+              (s2_vector_t*)vRelative);
+  s2_add_ss(vParent, vRelative, vChild);
+  s2_screwcross_ss(vChild, vRelative, aqRelative);
+  s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
 /*!
@@ -1712,7 +1488,6 @@ void s2_joint_sphericalinverse(void** dhva) {
   s2_hrzinverse(dChild, h + 2);
 }
 
-
 /*!
 @brief Spherical Joint - inverse (dhva)
 
@@ -1760,85 +1535,79 @@ void s2_joint_sphericalinverse_dhva(void** dhva) {
   s2_screw_t* aqRelative = dhva[10];
   s2_screw_t* aqChild = dhva[11];
 
-  s2_product_rvinverse(
-    &(dChild->R),
-    vPrimitive,
-    (s2_vector_t*)(((double*)vRelative) + 3));
-  s2_cross_vv(
-    &(dChild->T),
-    (s2_vector_t*)(((double*)vRelative) + 3),
-    (s2_vector_t*)vRelative);
+  s2_product_rvinverse(&(dChild->R), vPrimitive,
+                       (s2_vector_t*)(((double*)vRelative) + 3));
+  s2_cross_vv(&(dChild->T), (s2_vector_t*)(((double*)vRelative) + 3),
+              (s2_vector_t*)vRelative);
   s2_add_ss(vParent, vRelative, vChild);
   s2_screwcross_ss(vChild, vRelative, aqRelative);
   s2_add_ss(aqParent, aqRelative, aqChild);
 }
 
-
 /*!
   @brief free a s2_joint_t data structure
 */
-void s2_joint_free(
-  s2_joint_t* joint) {
+void s2_joint_free(s2_joint_t* joint) {
 
-  if(joint) {
-    if(joint->name) {
+  if (joint) {
+    if (joint->name) {
       s2_stackstr_free(joint->name);
     }
-    if(joint->parentBody) {
+    if (joint->parentBody) {
       s2_stackstr_free(joint->parentBody);
       joint->parentBody = NULL;
     }
-    if(joint->parentFrame) {
+    if (joint->parentFrame) {
       s2_stackstr_free(joint->parentFrame);
       joint->parentFrame = NULL;
     }
-    if(joint->childBody) {
+    if (joint->childBody) {
       s2_stackstr_free(joint->childBody);
       joint->childBody = NULL;
     }
-    if(joint->childFrame) {
+    if (joint->childFrame) {
       s2_stackstr_free(joint->childFrame);
       joint->childFrame = NULL;
     }
-    if(joint->generalDisplacement) {
+    if (joint->generalDisplacement) {
       free(joint->generalDisplacement);
       joint->generalDisplacement = NULL;
     }
-    if(joint->directionCosine) {
+    if (joint->directionCosine) {
       free(joint->directionCosine);
       joint->directionCosine = NULL;
     }
-    if(joint->velocityRelative) {
+    if (joint->velocityRelative) {
       free(joint->velocityRelative);
       joint->velocityRelative = NULL;
     }
-    if(joint->accelerationQuadraticRelative) {
+    if (joint->accelerationQuadraticRelative) {
       free(joint->accelerationQuadraticRelative);
       joint->accelerationQuadraticRelative = NULL;
     }
-    if(joint->h) {
+    if (joint->h) {
       free(joint->h);
       joint->h = NULL;
     }
-    if(joint->primitiveVelocity) {
+    if (joint->primitiveVelocity) {
       free(joint->primitiveVelocity);
       joint->primitiveVelocity = NULL;
     }
-    if(joint->primitiveDisplacement) {
+    if (joint->primitiveDisplacement) {
       free(joint->primitiveDisplacement);
       joint->primitiveDisplacement = NULL;
     }
 
-    if(joint->initialPrimitiveVelocity) {
+    if (joint->initialPrimitiveVelocity) {
       free(joint->initialPrimitiveVelocity);
       joint->initialPrimitiveVelocity = NULL;
     }
 
-    if(joint->initialPrimitiveDisplacement) {
+    if (joint->initialPrimitiveDisplacement) {
       free(joint->initialPrimitiveDisplacement);
       joint->initialPrimitiveDisplacement = NULL;
     }
-    if(joint->jointTypeStr) {
+    if (joint->jointTypeStr) {
       free(joint->jointTypeStr);
       joint->jointTypeStr = NULL;
     }
@@ -1847,28 +1616,20 @@ void s2_joint_free(
   }
 }
 
-
 /*!
 @brief loads joint from shift json file
 */
-int s2_joint_load(
-  s2_context_t* context,
-  s2_assembly_t* assembly,
-  s2_stackstr_t* prefix,
-  json_t* jointObject) {
+int s2_joint_load(s2_context_t* context, s2_assembly_t* assembly,
+                  s2_stackstr_t* prefix, json_t* jointObject) {
 
   s2_stackstr_t* name = s2_stackstr_copy(prefix);
-  s2_stackstr_append(
-    name,
-    json_string_value(json_object_get(jointObject, "name")));
+  s2_stackstr_append(name,
+                     json_string_value(json_object_get(jointObject, "name")));
 
   s2_joint_t* joint =
-    s2_joint(
-      json_string_value(json_object_get(jointObject, "type")),
-      name);
+    s2_joint(json_string_value(json_object_get(jointObject, "type")), name);
 
-  json_t* bodyFramePairs =
-    json_object_get(jointObject, "body_frame_pairs");
+  json_t* bodyFramePairs = json_object_get(jointObject, "body_frame_pairs");
 
   /* if the format of the parent or child body is an array, the user is
     specifying a full path to the body. the parent or child may exist
@@ -1876,104 +1637,94 @@ int s2_joint_load(
   json_t* parentBodyObject =
     json_array_get(json_array_get(bodyFramePairs, 0), 0);
 
-  if(json_is_array(parentBodyObject)) {
+  if (json_is_array(parentBodyObject)) {
     joint->parentBody = s2_stackstr();
     size_t parentBodyIndex;
     json_t* value;
     json_array_foreach(parentBodyObject, parentBodyIndex, value) {
-      s2_stackstr_append(
-        joint->parentBody,
-        json_string_value(value));
+      s2_stackstr_append(joint->parentBody, json_string_value(value));
     }
-  } else if(json_is_string(parentBodyObject)) {
+  } else if (json_is_string(parentBodyObject)) {
     const char* parentBody = json_string_value(parentBodyObject);
 
     /* if parentBody == "fixed", don't append assemblyName */
-    if(!strcmp(parentBody, "fixed")) {
+    if (!strcmp(parentBody, "fixed")) {
       joint->parentBody = s2_stackstr();
       s2_stackstr_append(joint->parentBody, "fixed");
     } else {
       joint->parentBody = s2_stackstr_copy(assembly->name);
-      s2_stackstr_append(
-        joint->parentBody,
-        json_string_value(parentBodyObject));
+      s2_stackstr_append(joint->parentBody,
+                         json_string_value(parentBodyObject));
     }
   }
 
   json_t* childBodyObject =
     json_array_get(json_array_get(bodyFramePairs, 1), 0);
 
-  if(json_is_array(childBodyObject)) {
+  if (json_is_array(childBodyObject)) {
     joint->childBody = s2_stackstr();
     size_t childBodyIndex;
     json_t* value;
     json_array_foreach(childBodyObject, childBodyIndex, value) {
-      s2_stackstr_append(
-        joint->childBody,
-        json_string_value(value));
+      s2_stackstr_append(joint->childBody, json_string_value(value));
     }
-  } else if(json_is_string(childBodyObject)) {
+  } else if (json_is_string(childBodyObject)) {
     const char* childBody = json_string_value(childBodyObject);
-    if(!strcmp(childBody, "fixed")) {
+    if (!strcmp(childBody, "fixed")) {
       joint->childBody = s2_stackstr();
       s2_stackstr_append(joint->childBody, "fixed");
     } else {
       joint->childBody = s2_stackstr_copy(assembly->name);
-      s2_stackstr_append(
-        joint->childBody,
-        json_string_value(childBodyObject));
+      s2_stackstr_append(joint->childBody, json_string_value(childBodyObject));
     }
   }
 
   joint->parentFrame = s2_stackstr_copy(joint->parentBody);
   s2_stackstr_append(
     joint->parentFrame,
-    json_string_value(
-      json_array_get(json_array_get(bodyFramePairs, 0), 1)));
+    json_string_value(json_array_get(json_array_get(bodyFramePairs, 0), 1)));
 
   joint->childFrame = s2_stackstr_copy(joint->childBody);
   s2_stackstr_append(
     joint->childFrame,
-    json_string_value(
-      json_array_get(json_array_get(bodyFramePairs, 1), 1)));
+    json_string_value(json_array_get(json_array_get(bodyFramePairs, 1), 1)));
 
   /* get spring coefficients */
-  json_t* stiffnessCoefficients =
-    json_object_get(jointObject, "stiffness");
-  if(json_is_array(stiffnessCoefficients)) {
+  json_t* stiffnessCoefficients = json_object_get(jointObject, "stiffness");
+  if (json_is_array(stiffnessCoefficients)) {
 
     size_t size = json_array_size(stiffnessCoefficients);
     joint->stiffnessCoefficientCount = (int)size;
     joint->stiffnessCoefficients =
       calloc(joint->stiffnessCoefficientCount, sizeof(double));
 
-    for(int i = 0; i < joint->stiffnessCoefficientCount; i++) {
+    for (int i = 0; i < joint->stiffnessCoefficientCount; i++) {
       joint->stiffnessCoefficients[i] =
         json_real_value(json_array_get(stiffnessCoefficients, i));
-      // printf("stiffness coefficient [%d]: %f\n", i, joint->stiffnessCoefficients[i]);
-
+      // printf("stiffness coefficient [%d]: %f\n", i,
+      // joint->stiffnessCoefficients[i]);
     }
   }
 
   /* get damping coefficients */
-  json_t* dampingCoefficients =
-    json_object_get(jointObject, "damping");
-  if(json_is_array(dampingCoefficients)) {
+  json_t* dampingCoefficients = json_object_get(jointObject, "damping");
+  if (json_is_array(dampingCoefficients)) {
 
     size_t size = json_array_size(dampingCoefficients);
     joint->dampingCoefficientCount = (int)size;
     joint->dampingCoefficients =
       calloc(joint->dampingCoefficientCount, sizeof(double));
 
-    for(int i = 0; i < joint->dampingCoefficientCount; i++) {
+    for (int i = 0; i < joint->dampingCoefficientCount; i++) {
       joint->dampingCoefficients[i] =
         json_real_value(json_array_get(dampingCoefficients, i));
-      // printf("damping coefficient [%d]: %f\n", i, joint->dampingCoefficients[i]);
+      // printf("damping coefficient [%d]: %f\n", i,
+      // joint->dampingCoefficients[i]);
     }
   }
 
   /* get initial values of joints */
-  switch(joint->jointType) {
+  switch (joint->jointType) {
     case S2_JOINT_TX:
     case S2_JOINT_TY:
     case S2_JOINT_TZ:
@@ -1982,13 +1733,11 @@ int s2_joint_load(
     case S2_JOINT_RZ: {
       // printf("loading primitive\n");
       joint->initialPrimitiveDisplacement[0] =
-        json_number_value(
-          json_object_get(jointObject, "initial_displacement"));
-      joint->primitiveDisplacement[0] =
-        joint->initialPrimitiveDisplacement[0];
+        json_number_value(json_object_get(jointObject, "initial_displacement"));
+      joint->primitiveDisplacement[0] = joint->initialPrimitiveDisplacement[0];
       json_t* initialValueVelocity =
         json_object_get(jointObject, "initial_velocity");
-      if(!json_is_null(initialValueVelocity))
+      if (!json_is_null(initialValueVelocity))
         joint->initialPrimitiveVelocity[0] =
           json_number_value(initialValueVelocity);
       joint->primitiveVelocity[0] = joint->initialPrimitiveVelocity[0];
@@ -2000,25 +1749,19 @@ int s2_joint_load(
         json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
       json_t* translation = json_object_get(initialValueObj, "T");
-      if(rotation) {
-        for(int i = 0; i < 3; i++) {
-          for(int j = 0; j < 3; j++)
-            s2_displacement_set(
-              joint->generalDisplacement,
-              i,
-              j,
-              json_number_value(
-                json_array_get(json_array_get(rotation, i), j)));
+      if (rotation) {
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++)
+            s2_displacement_set(joint->generalDisplacement, i, j,
+                                json_number_value(json_array_get(
+                                  json_array_get(rotation, i), j)));
         }
-        s2_gramSchmidt(
-          3, 3, (double*)joint->generalDisplacement);
+        s2_gramSchmidt(3, 3, (double*)joint->generalDisplacement);
       }
-      if(translation) {
-        for(int i = 0; i < 3; i++) {
-          s2_vector_set(
-            &(joint->generalDisplacement->T),
-            i,
-            json_number_value(json_array_get(translation, i)));
+      if (translation) {
+        for (int i = 0; i < 3; i++) {
+          s2_vector_set(&(joint->generalDisplacement->T), i,
+                        json_number_value(json_array_get(translation, i)));
         }
       }
       break;
@@ -2029,23 +1772,18 @@ int s2_joint_load(
         json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
       json_t* translation = json_object_get(initialValueObj, "T");
-      if(rotation) {
-        for(int i = 0; i < 3; i++) {
-          for(int j = 0; j < 3; j++)
-            s2_displacement_set(
-              joint->generalDisplacement,
-              i,
-              j,
-              json_number_value(
-                json_array_get(json_array_get(rotation, i), j)));
+      if (rotation) {
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++)
+            s2_displacement_set(joint->generalDisplacement, i, j,
+                                json_number_value(json_array_get(
+                                  json_array_get(rotation, i), j)));
         }
       }
-      if(translation) {
-        for(int i = 0; i < 3; i++) {
-          s2_vector_set(
-            &(joint->generalDisplacement->T),
-            i,
-            json_number_value(json_array_get(translation, i)));
+      if (translation) {
+        for (int i = 0; i < 3; i++) {
+          s2_vector_set(&(joint->generalDisplacement->T), i,
+                        json_number_value(json_array_get(translation, i)));
           joint->initialPrimitiveDisplacement[i] =
             s2_vector_get(&(joint->generalDisplacement->T), i);
         }
@@ -2059,22 +1797,18 @@ int s2_joint_load(
       json_t* initialValueObj =
         json_object_get(jointObject, "initial_displacement");
       json_t* rotation = json_object_get(initialValueObj, "R");
-      if(rotation) {
-        for(int i = 0; i < 3; i++) {
-          for(int j = 0; j < 3; j++)
-            s2_displacement_set(
-              joint->generalDisplacement,
-              i,
-              j,
-              json_number_value(
-                json_array_get(json_array_get(rotation, i), j)));
+      if (rotation) {
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++)
+            s2_displacement_set(joint->generalDisplacement, i, j,
+                                json_number_value(json_array_get(
+                                  json_array_get(rotation, i), j)));
         }
       }
-      s2_mat3x3_toQuaternion(
-        &(joint->generalDisplacement->R),
-        (s2_quaternion_t*)joint->primitiveDisplacement);
+      s2_mat3x3_toQuaternion(&(joint->generalDisplacement->R),
+                             (s2_quaternion_t*)joint->primitiveDisplacement);
       printf("loading spherical: q=");
-      for(int i = 0; i < 4; i++) {
+      for (int i = 0; i < 4; i++) {
         printf("%f,", joint->primitiveDisplacement[i]);
       }
       printf("\n");
@@ -2082,10 +1816,8 @@ int s2_joint_load(
     }
     case S2_JOINT_PRIMITIVE:
     case S2_JOINT_INVALID: {
-      fprintf(
-        stderr,
-        "Invalid Joint Type Found in %s\n",
-        joint->name->tail->value);
+      fprintf(stderr, "Invalid Joint Type Found in %s\n",
+              joint->name->tail->value);
       break;
     }
   }

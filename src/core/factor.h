@@ -19,49 +19,20 @@ SUCH DAMAGE.
 #ifndef _SHIFT_FACTOR_H_
 #define _SHIFT_FACTOR_H_
 
-void s2_factor_LU(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* A);
+void s2_factor_LU(int rowDim, int colDim, int rank, double* A);
 
-int s2_factor_LU_full(
-  int rowDim,
-  int colDim,
-  double* A,
-  double eps,
-  int* pr,
-  int* pc);
+int s2_factor_LU_full(int rowDim, int colDim, double* A, double eps, int* pr,
+                      int* pc);
 
-int s2_factor_LU_full_specified(
-  int rowDim,
-  int colDim,
-  double* A,
-  double eps,
-  int* pr,
-  int* pc,
-  int specifiedCoordinate);
+int s2_factor_LU_full_specified(int rowDim, int colDim, double* A, double eps,
+                                int* pr, int* pc, int specifiedCoordinate);
 
-double s2_factor_infinity_norm(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* A);
+double s2_factor_infinity_norm(int rowDim, int colDim, int rank, double* A);
 
-void s2_iswap(
-  int* a,
-  int* b);
+void s2_iswap(int* a, int* b);
 
-void s2_factor_setBMatrix(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* A);
+void s2_factor_setBMatrix(int rowDim, int colDim, int rank, double* A);
 
-void s2_factor_setCMatrix(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* A);
+void s2_factor_setCMatrix(int rowDim, int colDim, int rank, double* A);
 
 #endif

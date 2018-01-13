@@ -45,7 +45,6 @@ typedef struct s2_convexhull_t s2_convexhull_t;
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_collisionobject_t s2_collisionobject_t;
 
-
 /*!
 @brief Describes properties related to a rigid body
 
@@ -87,13 +86,18 @@ typedef struct s2_body_t {
   s2_frame_t* parentFramePointer; /*!< parent frame of body reference frame */
   s2_body_t* next; /*!< Pointer to next Body in linked list datastructure */
 
-  s2_material_t* materials; /*!< s2_material_t datastructure */
-  s2_body_t* geometryInstanceOf; /*!< if this body has identical geometry to another
-                              body, this pointer is set to the original body.
-                              Otherwise, if this geometry is unique to this body or is the first instance of this geometry, the pointer is set to NULL */
-  s2_body_t* collisionGeometryInstanceOf; /*!< if this body has identical collision geometry to another
-                              body, this pointer is set to the original body.
-                              Otherwise, if the collision geometry is unique to this body or is the first instance of this collision geometry, the pointer is set to NULL */
+  s2_material_t* materials;      /*!< s2_material_t datastructure */
+  s2_body_t* geometryInstanceOf; /*!< if this body has identical geometry to
+                              another body, this pointer is set to the original
+                              body. Otherwise, if this geometry is unique to
+                              this body or is the first instance of this
+                              geometry, the pointer is set to NULL */
+  s2_body_t* collisionGeometryInstanceOf; /*!< if this body has identical
+                              collision geometry to another body, this pointer
+                              is set to the original body. Otherwise, if the
+                              collision geometry is unique to this body or is
+                              the first instance of this collision geometry, the
+                              pointer is set to NULL */
 
   int frameCount; /*!< count of total number of frames */
 
@@ -105,11 +109,11 @@ typedef struct s2_body_t {
 
   int materialIndex; /*!< offset into context->materials */
   int materialCount; /*!< number of materials assigned to a body */
-  bool isVirtual; /*!< indicates whether the Body is *virtual*. All
-                       user-defined bodies are not virtual. Massless
-                       virtual bodies are added to simplify processing
-                       kinematics if multiple loops are present in the
-                       mechanism */
+  bool isVirtual;    /*!< indicates whether the Body is *virtual*. All
+                          user-defined bodies are not virtual. Massless
+                          virtual bodies are added to simplify processing
+                          kinematics if multiple loops are present in the
+                          mechanism */
 
   s2_inertia_t* inertia; /*!< centroidal Mass and moment of Inertia
                                 properties in origin coordinate system */
@@ -130,44 +134,20 @@ typedef struct s2_body_t {
   s2_collisionobject_t* collisionObjects;
 } s2_body_t;
 
+void s2_body_appendFrame(s2_body_t*, s2_frame_t*);
 
-void s2_body_appendFrame(
-  s2_body_t*,
-  s2_frame_t*);
+s2_body_t* s2_body(s2_stackstr_t*);
 
+void s2_body_printFrames(FILE* f, s2_body_t* body);
 
-s2_body_t* s2_body(
-  s2_stackstr_t*);
+void s2_body_append(s2_assembly_t* assembly, s2_body_t* body);
 
+void s2_body_free(s2_body_t* body);
 
-void s2_body_printFrames(
-  FILE* f,
-  s2_body_t* body);
+void s2_virtualbody_free(s2_body_t* body);
 
+int s2_body_load(s2_context_t*, s2_assembly_t*, s2_stackstr_t*, json_t*);
 
-void s2_body_append(
-  s2_assembly_t* assembly,
-  s2_body_t* body);
-
-
-void s2_body_free(
-  s2_body_t* body);
-
-
-void s2_virtualbody_free(
-  s2_body_t* body);
-
-
-int s2_body_load(
-  s2_context_t*,
-  s2_assembly_t*,
-  s2_stackstr_t*,
-  json_t*);
-
-
-int s2_body_loadGeometry(
-  s2_context_t* context,
-  s2_body_t* body);
-
+int s2_body_loadGeometry(s2_context_t* context, s2_body_t* body);
 
 #endif

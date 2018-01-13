@@ -27,17 +27,13 @@ typedef struct s2_context_t s2_context_t;
 typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_body_t s2_body_t;
 
-
 void s2_context_setTopology(s2_context_t*);
 
 void s2_context_updateDH(s2_context_t*);
 
 void s2_context_updateDHVA(s2_context_t*);
 
-void s2_context_updateDHVADebug(
-  FILE* f,
-  s2_context_t* context,
-  double t);
+void s2_context_updateDHVADebug(FILE* f, s2_context_t* context, double t);
 
 void s2_context_updateGLReferenceFrames(s2_context_t* context);
 

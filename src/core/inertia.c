@@ -17,19 +17,18 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <jansson.h>
-#include <string.h>
-#include <math.h>
-#include "kinematics.c"
-#include "body.h"
 #include "inertia.h"
+#include "body.h"
 #include "context.h"
-#include "joint.h"
 #include "frame.h"
-
+#include "joint.h"
+#include "kinematics.c"
+#include <jansson.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*!
 @brief Initialize an Inertia datastructure
@@ -38,8 +37,8 @@ SUCH DAMAGE.
 @returns an Inertia datastructure
 */
 s2_inertia_t* s2_inertia() {
-  s2_inertia_t* inertia = malloc(sizeof * inertia);
-  if(!inertia) {
+  s2_inertia_t* inertia = malloc(sizeof *inertia);
+  if (!inertia) {
     fprintf(stderr, "Error: failed to initialize inertia.\n");
     return NULL;
   }
@@ -47,52 +46,39 @@ s2_inertia_t* s2_inertia() {
   return inertia;
 }
 
-
 /*!
 @brief Free an Inertia datastructure
 @param inertia Inertia datastructure to free
 */
-void s2_inertia_free(
-  s2_inertia_t* inertia) {
+void s2_inertia_free(s2_inertia_t* inertia) {
 
-  if(inertia) {
+  if (inertia) {
     free(inertia);
   }
   inertia = NULL;
 }
 
-
 /*!
 @brief print an inertia matrix
 */
-void s2_inertia_print(
-  FILE* f,
-  s2_inertia_t* inertia) {
+void s2_inertia_print(FILE* f, s2_inertia_t* inertia) {
 
   fprintf(f, "  m: %0.4f\n", inertia->m);
   fprintf(f, "  mt: ");
   s2_vector_print(f, &inertia->mt);
-  fprintf(
-    f,
-    "  Ixx: %0.4f, Iyy: %0.4f, Izz: %0.4f\n"
-    "  Ixy: %0.4f, Iyz: %0.4f, Izx: %0.4f\n",
-    inertia->Ixx,
-    inertia->Iyy,
-    inertia->Izz,
-    inertia->Ixy,
-    inertia->Iyz,
-    inertia->Izx);
+  fprintf(f,
+          "  Ixx: %0.4f, Iyy: %0.4f, Izz: %0.4f\n"
+          "  Ixy: %0.4f, Iyz: %0.4f, Izx: %0.4f\n",
+          inertia->Ixx, inertia->Iyy, inertia->Izz, inertia->Ixy, inertia->Iyz,
+          inertia->Izx);
 }
-
 
 /*!
 @brief rotate a centroidal inertia matrix, does not
 modify m\tilde{t} terms
 */
-void s2_inertia_rotate(
-  s2_inertia_t* inertia_i,
-  s2_mat3x3_t* r,
-  s2_inertia_t* inertia_o) {
+void s2_inertia_rotate(s2_inertia_t* inertia_i, s2_mat3x3_t* r,
+                       s2_inertia_t* inertia_o) {
 
   /* Rfc * Icc * Rcf */
   double temp[3] = {0, 0, 0};
@@ -141,12 +127,8 @@ void s2_inertia_rotate(
   /*  m * t_bf -> inertia_o->mt */
 
   /* inertia_o->mt = Rfb * m_c * t_bc */
-  s2_product_rv(
-    r,
-    &(inertia_i->mt),
-    &(inertia_o->mt));
+  s2_product_rv(r, &(inertia_i->mt), &(inertia_o->mt));
 }
-
 
 /*!
 @brief translate inertia matrix
@@ -161,29 +143,17 @@ double Ixy;
 double Iyz;
 double Izx;
 */
-void s2_inertia_translate(
-  s2_inertia_t* inertia_i,
-  s2_vector_t* t,
-  s2_inertia_t* inertia_o) {
+void s2_inertia_translate(s2_inertia_t* inertia_i, s2_vector_t* t,
+                          s2_inertia_t* inertia_o) {
 
   // memcpy(inertia_o, inertia_i, sizeof(s2_inertia_t));
-  if(inertia_i->m > 0) {
+  if (inertia_i->m > 0) {
 
-    cblas_daxpy(
-      3,
-      inertia_i->m,
-      (double*)t,
-      1,
-      (double*) & (inertia_o->mt),
-      1);
+    cblas_daxpy(3, inertia_i->m, (double*)t, 1, (double*)&(inertia_o->mt), 1);
 
     s2_vector_t temp;
     memcpy(&temp, &(inertia_o->mt), sizeof(s2_vector_t));
-    cblas_dscal(
-      3,
-      1 / inertia_i->m,
-      (double*)&temp,
-      1);
+    cblas_dscal(3, 1 / inertia_i->m, (double*)&temp, 1);
 
     inertia_o->Ixy -= inertia_o->mt.x * temp.y;
     inertia_o->Iyz -= inertia_o->mt.y * temp.z;
@@ -197,18 +167,14 @@ void s2_inertia_translate(
     inertia_o->Ixx += temp2.y + temp2.z;
     inertia_o->Iyy += temp2.x + temp2.z;
     inertia_o->Izz += temp2.x + temp2.y;
-
   }
 }
-
 
 /*!
 @brief transform spatial centroidal inertia matrix to global reference frame
 */
-void s2_inertia_transform(
-  s2_inertia_t* inertia_i,
-  s2_displacement_t* d,
-  s2_inertia_t* inertia_o) {
+void s2_inertia_transform(s2_inertia_t* inertia_i, s2_displacement_t* d,
+                          s2_inertia_t* inertia_o) {
 
   /* no check is performed to detect whether inertia datastructure has
   mass. to avoid unecessary operations for transforming mass quantities,
@@ -220,21 +186,12 @@ void s2_inertia_transform(
   // printf("inertia after rotate\n");
   // s2_inertia_print(inertia_o);
 
-  cblas_daxpy(
-    3,
-    inertia_i->m,
-    (double*) & (d->T),
-    1,
-    (double*) & (inertia_o->mt),
-    1);
+  cblas_daxpy(3, inertia_i->m, (double*)&(d->T), 1, (double*)&(inertia_o->mt),
+              1);
 
   s2_vector_t t;
   memcpy(&t, &(inertia_o->mt), sizeof(s2_vector_t));
-  cblas_dscal(
-    3,
-    1 / inertia_i->m,
-    (double*)&t,
-    1);
+  cblas_dscal(3, 1 / inertia_i->m, (double*)&t, 1);
 
   // printf("mt: ");
   // s2_vector_print(&inertia_o->mt);
@@ -258,16 +215,13 @@ void s2_inertia_transform(
   // }
 }
 
-
 /*!
 @brief merge body i with its parent
 */
-void inertia_merge(
-  s2_context_t* context,
-  s2_inertia_t* inertia,
-  int childIndex) {
+void inertia_merge(s2_context_t* context, s2_inertia_t* inertia,
+                   int childIndex) {
 
-  if(context->jointPointers[childIndex]->jointType == S2_JOINT_RIGID &&
+  if (context->jointPointers[childIndex]->jointType == S2_JOINT_RIGID &&
       context->pcl[childIndex] > -1) {
 
     s2_body_t* parentBody = context->bodyPointers[context->pcl[childIndex]];
@@ -300,18 +254,16 @@ void inertia_merge(
     s2_displacement_setIdentity(&D_ij);
 
     s2_frame_t* parentFrame = NULL;
-    if(context->jointPointers[childIndex]->sense > 0) {
+    if (context->jointPointers[childIndex]->sense > 0) {
       s2_displacement_copy(
-        context->jointPointers[childIndex]->generalDisplacement,
-        &temp);
+        context->jointPointers[childIndex]->generalDisplacement, &temp);
       parentFrame = context->jointPointers[childIndex]->parentFramePointer;
     } else {
       s2_displacement_invert(
-        context->jointPointers[childIndex]->generalDisplacement,
-        &temp);
+        context->jointPointers[childIndex]->generalDisplacement, &temp);
       parentFrame = context->jointPointers[childIndex]->childFramePointer;
     }
-    if(!parentFrame->isReference) {
+    if (!parentFrame->isReference) {
       s2_product_dd(parentFrame->dWRTReference, &temp, &D_ij);
     } else {
       s2_displacement_copy(&temp, &D_ij);
@@ -330,33 +282,31 @@ void inertia_merge(
     /*
       b. compute t_ij^i + t_jc^i -> t_jc^i (eq. 1.6)
     */
-    for(int j = 0; j < 3; j++) {
-      ((double*)&t_jc_i)[j] += ((double*) & (D_ij.T))[j];
+    for (int j = 0; j < 3; j++) {
+      ((double*)&t_jc_i)[j] += ((double*)&(D_ij.T))[j];
     }
 
     /*
       c. compute mt_jc_i (eq 1.6)
     */
-    for(int j = 0; j < 3; j++) {
+    for (int j = 0; j < 3; j++) {
       ((double*)&mt_jc_i)[j] += *m_j * ((double*)&t_jc_i)[j];
     }
 
     /*
       d. compute quantity m_{i} * t_{ic}^i + m_{j} * t_{ic} (eq. 1.6)
     */
-    for(int j = 0; j < 3; j++) {
-      ((double*)&mt_icbar)[j] =
-        ((double*)&mt_jc_i)[j] + ((double*)&mt_ic_i)[j];
+    for (int j = 0; j < 3; j++) {
+      ((double*)&mt_icbar)[j] = ((double*)&mt_jc_i)[j] + ((double*)&mt_ic_i)[j];
     }
 
     /*
       e. compute t_icbar^i =
       m_{i} * t_{ic}^i + m_{j} * t_{ic} / (m_i + m_j) (eq 1.7)
     */
-    for(int j = 0; j < 3; j++) {
+    for (int j = 0; j < 3; j++) {
       ((double*)&t_icbar)[j] = ((double*)&mt_icbar)[j] / m_ij;
     }
-
 
     /*
       2. compute combined moment of inertia referenced to the combined center
@@ -392,7 +342,7 @@ void inertia_merge(
     memset(&vec, 0, sizeof(s2_vector_t));
 
     s2_product_rv(&(D_ij.R), t_jc_j, &vec);
-    for(int j = 0; j < 3; j++) {
+    for (int j = 0; j < 3; j++) {
       ((double*)&vec)[j] += ((double*)&D_ij.T)[j];
     }
     s2_subtract_vv(&t_icbar, &vec, &t_ccbar);
@@ -410,13 +360,9 @@ void inertia_merge(
     inertia[parentIndex].Ixy = M_i_ccbar.Ixy + M_j_ccbar.Ixy;
     inertia[parentIndex].Iyz = M_i_ccbar.Iyz + M_j_ccbar.Iyz;
     inertia[parentIndex].Izx = M_i_ccbar.Izx + M_j_ccbar.Izx;
-    s2_product_vk(
-      &t_icbar,
-      &m_ij,
-      &(inertia[parentIndex].mt));
+    s2_product_vk(&t_icbar, &m_ij, &(inertia[parentIndex].mt));
   }
 }
-
 
 /*!
 @brief initializes array of inertia matrices in level increasing order
@@ -424,8 +370,7 @@ void inertia_merge(
 if a body is connected to another body through a rigid joint, the child
 body's inertia properties are merged with the parent body
 */
-void s2_context_initializeInertia(
-  s2_context_t* context) {
+void s2_context_initializeInertia(s2_context_t* context) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
   /*
@@ -442,24 +387,22 @@ void s2_context_initializeInertia(
 
   /* compute each inertia matrix with respect to reference frame on
      each body */
-  for(int i = context->activeJointCount - 1; i > -1; i--) {
+  for (int i = context->activeJointCount - 1; i > -1; i--) {
     s2_body_t* body = context->bodyPointers[i];
 
-    if(body->inertia->m < 1e-9) {
+    if (body->inertia->m < 1e-9) {
       memset(inertia + i, 0, sizeof(s2_inertia_t));
       context->hasMass[i] = false;
-    } else if(!body->isVirtual) {
+    } else if (!body->isVirtual) {
 
-      // fprintf(debug, "\n[%d] Transforming Inertia to reference frame for body: ", i);
-      // s2_stackstr_print(debug, context->bodyPointers[i]->name);
+      // fprintf(debug, "\n[%d] Transforming Inertia to reference frame for
+      // body: ", i); s2_stackstr_print(debug, context->bodyPointers[i]->name);
       /*
         compute displacement from center of mass (c) to reference frame (r)
         D_{ro} * (D(t)_{co})^-1 -> D_{rc}
       */
-      s2_product_dtinverse(
-        body->referenceFrame->dWRTOrigin,
-        body->centerOfMassWRTOrigin,
-        &d_rc);
+      s2_product_dtinverse(body->referenceFrame->dWRTOrigin,
+                           body->centerOfMassWRTOrigin, &d_rc);
       // fprintf(debug, " D_rc:");
       // s2_displacement_print(debug, &d_rc);
 
@@ -474,81 +417,62 @@ void s2_context_initializeInertia(
       memcpy(inertia + i, body->inertia, sizeof(s2_inertia_t));
       // fprintf(debug, "rotating inertia by: \n");
       // s2_mat3x3_print(debug, &(body->referenceFrame->dWRTOrigin->R));
-      s2_inertia_rotate(
-        body->inertia,
-        &(body->referenceFrame->dWRTOrigin->R),
-        inertia + i);
-      s2_product_vk(
-        &(d_cr.T),
-        &(inertia[i].m),
-        &(inertia[i].mt));
+      s2_inertia_rotate(body->inertia, &(body->referenceFrame->dWRTOrigin->R),
+                        inertia + i);
+      s2_product_vk(&(d_cr.T), &(inertia[i].m), &(inertia[i].mt));
     }
   }
 
   /* if a body is connected to its parent body with a rigid joint, merge
      the body's inertia properties with the parent */
-  for(int i = context->activeJointCount - 1; i > -1; i--) {
+  for (int i = context->activeJointCount - 1; i > -1; i--) {
     /* only perform merge if parent joint type is rigid and
        the parent body is not the fixed body */
     inertia_merge(context, inertia, i);
   }
 
-
-  if(context->inertia) {
+  if (context->inertia) {
     free(context->inertia);
   }
-  context->inertia =
-    calloc(context->dqCount, sizeof(s2_inertia_t));
+  context->inertia = calloc(context->dqCount, sizeof(s2_inertia_t));
 
   /* compress expanded inertia list into compressed list */
-  for(int i = 0; i < context->activeJointCount; i++) {
+  for (int i = 0; i < context->activeJointCount; i++) {
     int j = context->dqLookup[i];
-    if(j != -1) {
+    if (j != -1) {
       memcpy(context->inertia + j, inertia + i, sizeof(s2_inertia_t));
     }
   }
 
   free(inertia);
 
-  if(context->inertiaP) {
+  if (context->inertiaP) {
     free(context->inertiaP);
   }
   context->inertiaP = calloc(context->dqCount + 1, sizeof(s2_inertia_t));
-
 }
 
 /*!
 @brief
 
 */
-void s2_inertia_transform1(
-  s2_displacement_t* displacement,
-  s2_inertia_t* inertia_b,
-  s2_inertia_t* inertia_f) {
+void s2_inertia_transform1(s2_displacement_t* displacement,
+                           s2_inertia_t* inertia_b, s2_inertia_t* inertia_f) {
 
-  s2_product_dv(
-    displacement,
-    &(inertia_b->mt),
-    &(inertia_f->mt));
+  s2_product_dv(displacement, &(inertia_b->mt), &(inertia_f->mt));
 }
 
 /*!
 @brief
 
 */
-void s2_inertia_transform2_rank23(
-  s2_body_t* body) {
-
-}
+void s2_inertia_transform2_rank23(s2_body_t* body) {}
 
 /*!
 @brief
 
 */
-void s2_inertia_transform2_rank1(
-  s2_body_t* body) {
-
-}
+void s2_inertia_transform2_rank1(s2_body_t* body) {}
 
 /*!
 @brief factor inertia matrix
@@ -573,9 +497,12 @@ void s2_inertia_transform2_rank1(
 //   //fprintf(f, "2. Processing body: %s\n", body->name);
 //   if(body->frames->referenceFrame != body->frames->origin) {
 //    double temp[3][3];
-//     kinematics_ProductRInverseR(temp, body->frames->referenceFrame->rotationWRTOrigin, M2);
-//     kinematics_ProductRR( M2WRTReference, temp, body->frames->referenceFrame->rotationWRTOrigin );
-//     kinematics_SubtractVectors(temp[0], body->inertia->centerOfMass, body->frames->referenceFrame->translationWRTOrigin);
+//     kinematics_ProductRInverseR(temp,
+//     body->frames->referenceFrame->rotationWRTOrigin, M2);
+//     kinematics_ProductRR( M2WRTReference, temp,
+//     body->frames->referenceFrame->rotationWRTOrigin );
+//     kinematics_SubtractVectors(temp[0], body->inertia->centerOfMass,
+//     body->frames->referenceFrame->translationWRTOrigin);
 //     kinematics_ProductRInverseV( body->inertia->translationWRTReference,
 //         body->frames->referenceFrame->rotationWRTOrigin, temp[0]);
 //  }
@@ -641,23 +568,26 @@ void s2_inertia_transform2_rank1(
 //       sqrt(M2WRTReference[j][j] - body->inertia->F[1] * body->inertia->F[1]);
 //
 //     /* F[k,j] */
-//    body->inertia->F[4] = (M2WRTReference[k][j] - body->inertia->F[2]*body->inertia->F[1])/body->inertia->F[3];
+//    body->inertia->F[4] = (M2WRTReference[k][j] -
+//    body->inertia->F[2]*body->inertia->F[1])/body->inertia->F[3];
 //
 //     /* F[k,k] */
-//    body->inertia->F[5] = sqrt(M2WRTReference[k][k] - body->inertia->F[2]*body->inertia->F[2] - body->inertia->F[4]*body->inertia->F[4]);
-//    body->inertia->indices->x = i;
+//    body->inertia->F[5] = sqrt(M2WRTReference[k][k] -
+//    body->inertia->F[2]*body->inertia->F[2] -
+//    body->inertia->F[4]*body->inertia->F[4]); body->inertia->indices->x = i;
 //    body->inertia->indices->y = j;
 //    body->inertia->indices->z = k;
 //
 //    /* assign function pointer for rank 2,3 case */
 //    body->inertia->rank = 2;
-//    body->inertia->InertiaFunctionPointer = evaluateGEOM_TransformInertiaPart2Rank2or3;
+//    body->inertia->InertiaFunctionPointer =
+//    evaluateGEOM_TransformInertiaPart2Rank2or3;
 //   } else {
 //
 //    maxVal = 0;
 //
-//    //scan all entries to see if there is at least one value greater than epsilon
-//    for(i = 0; i < 3; i++) {
+//    //scan all entries to see if there is at least one value greater than
+//    epsilon for(i = 0; i < 3; i++) {
 //      for(j = i; j < 3; j++) {
 //        maxVal = fmax(maxVal, fabs(M2WRTReference[i][j]));
 //      }
@@ -687,9 +617,12 @@ void s2_inertia_transform2_rank1(
 //      // 4. multipy sqrt of trace with unit vector
 //      double sqrtMassDivideByNorm =
 //         sqrt(
-//           (M2WRTReference[0][0] + M2WRTReference[1][1] + M2WRTReference[2][2]) /
-//          (M2WRTReference[0][j] * M2WRTReference[0][j] + M2WRTReference[1][j] *
-//           M2WRTReference[1][j] + M2WRTReference[2][j] * M2WRTReference[2][j]));
+//           (M2WRTReference[0][0] + M2WRTReference[1][1] +
+//           M2WRTReference[2][2]) /
+//          (M2WRTReference[0][j] * M2WRTReference[0][j] + M2WRTReference[1][j]
+//          *
+//           M2WRTReference[1][j] + M2WRTReference[2][j] *
+//           M2WRTReference[2][j]));
 //
 //      memset(body->inertia->F, 0, 6 * sizeof(double));
 //      body->inertia->F[0] = M2WRTReference[0][j] * sqrtMassDivideByNorm;
@@ -698,7 +631,8 @@ void s2_inertia_transform2_rank1(
 //
 //      // assign function pointer for rank 1 case
 //      body->inertia->rank = 1;
-//      body->inertia->InertiaFunctionPointer = evaluateGEOM_TransformInertiaPart2Rank1;
+//      body->inertia->InertiaFunctionPointer =
+//      evaluateGEOM_TransformInertiaPart2Rank1;
 //    }
 //   }
 //  return 0;

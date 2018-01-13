@@ -1,7 +1,8 @@
 /**
 @file
 @author Kristopher Wehage
-@brief Utilities to initialize, free, and operate on an s2_chordconstraint_t datastructure.
+@brief Utilities to initialize, free, and operate on an s2_chordconstraint_t
+datastructure.
 @date 2017
 @copyright Kristopher Wehage 2016-2017
 
@@ -22,7 +23,6 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-
 #include "chordconstraint.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,8 +32,8 @@ SUCH DAMAGE.
 @returns a ChordConstraint datastructure
 */
 s2_chordconstraint_t* s2_chordconstraint() {
-  s2_chordconstraint_t* chordConstraint = malloc(sizeof * chordConstraint);
-  if(!chordConstraint) {
+  s2_chordconstraint_t* chordConstraint = malloc(sizeof *chordConstraint);
+  if (!chordConstraint) {
     fprintf(stderr, "Error: failed to initialize chordConstraint.\n");
     return NULL;
   }
