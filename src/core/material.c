@@ -22,7 +22,6 @@ SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
-
 /*!
 @brief Initialize a Material datastructure
 
@@ -30,15 +29,14 @@ SUCH DAMAGE.
 s2_material_t* s2_material_alloc(int count) {
 
   s2_material_t* materials = malloc(count * sizeof(s2_material_t));
-  if(!materials) {
+  if (!materials) {
     fprintf(stderr, "Error: failed to initialize material.\n");
   }
-  for(int i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     s2_material_init(&materials[i]);
   }
   return materials;
 }
-
 
 void s2_material_init(s2_material_t* material) {
   material->name = NULL;
@@ -58,33 +56,30 @@ void s2_material_init(s2_material_t* material) {
   material->shadingType = S2_SHADING_PHONG;
 }
 
-
 /*!
 @brief free materials data structures
 */
-void s2_material_free(
-  s2_material_t* materials,
-  int materialCount) {
+void s2_material_free(s2_material_t* materials, int materialCount) {
 
-  if(materials) {
+  if (materials) {
     free(materials[0].vertices);
-    for(int i = 0; i < materialCount; i++) {
-      if(materials[i].name) {
+    for (int i = 0; i < materialCount; i++) {
+      if (materials[i].name) {
         free(materials[i].name);
         materials[i].name = NULL;
       }
-      if(materials[i].filePath) {
+      if (materials[i].filePath) {
         free(materials[i].filePath);
         materials[i].filePath = NULL;
       }
-      if(materials[i].vertices) {
+      if (materials[i].vertices) {
         materials[i].vertices = NULL;
       }
-      if(materials[i].vertexNormals) {
+      if (materials[i].vertexNormals) {
         free(materials[i].vertexNormals);
         materials[i].vertexNormals = NULL;
       }
-      if(materials[i].faces) {
+      if (materials[i].faces) {
         free(materials[i].faces);
         materials[i].faces = NULL;
       }

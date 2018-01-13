@@ -18,20 +18,19 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 #include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
 #else
 #include <cblas.h>
 #endif
-#include "context.h"
 #include "assembly.h"
-#include "joint.h"
 #include "body.h"
+#include "context.h"
+#include "joint.h"
 #include "utility.h"
-
 
 /*!
 @brief performs a dry run through the sparse factorization
@@ -108,8 +107,8 @@ void s2_context_countOperations(s2_context_t* context) {
   /* Index for the dependent variable currently being processed. */
   int ni = 0; /*!< counter for number of independent variables */
   int nd = 0; /*!< counter for number of dependent variables */
-  for(int i = 0; i < context->dqCount; i++) {
-    if(context->isDependentPO3[i]) {
+  for (int i = 0; i < context->dqCount; i++) {
+    if (context->isDependentPO3[i]) {
       nd++;
     } else {
       ni++;
@@ -136,7 +135,7 @@ void s2_context_countOperations(s2_context_t* context) {
   /*
     MATRIX FACTORIZATION
   */
-  for(int i = context->dqCount - 1; i > -1; i--) {
+  for (int i = context->dqCount - 1; i > -1; i--) {
     // i points to the current variable
     // being processed.
 
@@ -151,7 +150,7 @@ void s2_context_countOperations(s2_context_t* context) {
     context->i4[i] = endOfRowiInM;
 
     // Process a dependent variable when true.
-    if(context->isDependentPO3[i]) {
+    if (context->isDependentPO3[i]) {
       // Initialize incremental count of l1 for current variable.
       cl1 = 0;
 
@@ -171,30 +170,30 @@ void s2_context_countOperations(s2_context_t* context) {
 
       // Classify all independent variables.
       /* here k is the index into the cb3 and b3 arrays */
-      for(int k = context->rb3[i][0]; k < context->rb3[i][1]; k++) {
+      for (int k = context->rb3[i][0]; k < context->rb3[i][1]; k++) {
 
         int colIndex = context->cb3[k];
 
         // If Mik != 0, variable k is coupled to variable i--add to coupledList.
-        if(context->Mlb[startOfRowiInM + colIndex]) {
+        if (context->Mlb[startOfRowiInM + colIndex]) {
           coupledList[coupleddqCount] = colIndex;
           // coupledIndexList[coupleddqCount] = k;
           coupleddqCount++;
         } else {
-          // If Mik = 0, variable k is not coupled to variable i--add to nonCoupledList.
+          // If Mik = 0, variable k is not coupled to variable i--add to
+          // nonCoupledList.
           nonCoupledList[nonCoupleddqCount] = colIndex;
           // nonCoupledIndexList[nonCoupleddqCount] = k;
           nonCoupleddqCount++;
         }
       } // end for(k = kColStartOfRowiInB; k <= kColEndOfRowiInB; k++).
 
-      /*! As each dependent variable within a kinematic substructure is eliminated,
-      assignment equations are generated and executed, based on a particular
-      sequence of independent variables in that kinematic substructure. As each
-      independent variable is accessed or processed, this variable is decremented. */
-      int unprocesseddqCount =
-        coupleddqCount +
-        nonCoupleddqCount;
+      /*! As each dependent variable within a kinematic substructure is
+      eliminated, assignment equations are generated and executed, based on a
+      particular sequence of independent variables in that kinematic
+      substructure. As each independent variable is accessed or processed, this
+      variable is decremented. */
+      int unprocesseddqCount = coupleddqCount + nonCoupleddqCount;
 
       /*
         Start the factorization process for this dependent variable.
@@ -203,11 +202,11 @@ void s2_context_countOperations(s2_context_t* context) {
         associated with a particular column of the b matrix and differs from the
         k used in the for loop above */
       int k;
-      while(unprocesseddqCount) {
+      while (unprocesseddqCount) {
 
         /* Process a coupled variable if any left. */
         // int kIndexInB; /*!< points to the current index into b3 */
-        if(coupleddqCount) {
+        if (coupleddqCount) {
           coupleddqCount--;
           k = coupledList[coupleddqCount];
           // kIndexInB = coupledIndexList[coupleddqCount];
@@ -229,18 +228,18 @@ void s2_context_countOperations(s2_context_t* context) {
         // Other terms in row/column i may be nonzero when true.
         // All terms in row/column i are zero when false, so skip projections
         // involving mass terms.
-        if(context->Mlb[endOfRowiInM]) {
+        if (context->Mlb[endOfRowiInM]) {
           // Process pointers for if (k >= j)Mkj -= Mij*Bik else Mjk -= Mij*Bik.
 
-          //Index over the row i entries in M, starting left of diagonal.
-          for(int j = i - 1; j > -1; j--) {
+          // Index over the row i entries in M, starting left of diagonal.
+          for (int j = i - 1; j > -1; j--) {
             // i2[l1] = startOfRowiInM + j; Mij.
             context->i2s = startOfRowiInM + j;
 
             // if (im[i2[l1]]) If Mij != 0 then process.
-            if(context->Mlb[context->i2s]) {
+            if (context->Mlb[context->i2s]) {
               // if (k >= j) i1[l1] = startOfRowkInM + j; Mkj.
-              if(k >= j) {
+              if (k >= j) {
                 context->i1s = startOfRowkInM + j;
               } else {
                 //  else i1[l1] = j*(j+1)/2 + k; //Mjk.
@@ -255,7 +254,7 @@ void s2_context_countOperations(s2_context_t* context) {
               // Advance the count of l1.
               cl1++;
             } // end if (im[i2[l1]]).
-          } // end for (j = i-1; j >= 0; j--).
+          }   // end for (j = i-1; j >= 0; j--).
 
           // Process pointers for Mik -= Mii*Bik.
           //  i1[l1] = startOfRowiInM + k; //Mik.
@@ -302,19 +301,19 @@ void s2_context_countOperations(s2_context_t* context) {
         int j = 0;
 
         // Search through the non-coupled list.
-        while(j < nonCoupleddqCount) {
+        while (j < nonCoupleddqCount) {
           // Get the index of a non-coupled variable.
           k = nonCoupledList[j];
 
           // If true, a fill has coupled this variable.
-          if(context->Mlb[startOfRowiInM + k]) {
+          if (context->Mlb[startOfRowiInM + k]) {
             // Add to end of coupled list.
             coupledList[coupleddqCount] = k;
             coupleddqCount++;
 
             /* Remove this variable from the non-coupled list and compress
                the list. */
-            for(k = j; k < nonCoupleddqCount - 1; k++) {
+            for (k = j; k < nonCoupleddqCount - 1; k++) {
               nonCoupledList[k] = nonCoupledList[k + 1];
             }
 
@@ -329,7 +328,7 @@ void s2_context_countOperations(s2_context_t* context) {
           // Move on to next variable in list.
           j++;
         } // end while (j < nonCoupleddqCount).
-      } // end while(numberOfUnprocessedVariables).
+      }   // end while(numberOfUnprocessedVariables).
 
       /*
         FORWARD ELIMINATION / BACKWARD SUBSTITUTION
@@ -337,12 +336,12 @@ void s2_context_countOperations(s2_context_t* context) {
 
       /* This block sets pointers for forward elimination/back substitution.
          Index over the row i entries in M, starting left of diagonal. */
-      for(int j = i - 1; j > -1; j--) {
+      for (int j = i - 1; j > -1; j--) {
         // Mij.
         int pMij = startOfRowiInM + j;
 
         // If Mij != 0, some operations are required.
-        if(context->Mlb[pMij]) {
+        if (context->Mlb[pMij]) {
           // Process pointers for Qj -= Mij * gai and lai -= Mij * ddqj.
           //  j3[m2] = j;.
 
@@ -354,7 +353,7 @@ void s2_context_countOperations(s2_context_t* context) {
           // Advance the count of m2.
           cm2++;
         } // end if (im[pMij]).
-      } // end for (j = i-1; j >= 0; j--).
+      }   // end for (j = i-1; j >= 0; j--).
 
       // Save the operations count for this dependent variable.
       context->n1[nd] = cl1;
@@ -379,21 +378,21 @@ void s2_context_countOperations(s2_context_t* context) {
       //  p = startOfWorkInM; //Index into the M work array.
 
       // Index over the row i entries in M, starting left of the diagonal.
-      for(int j = i - 1; j > -1; j--) {
+      for (int j = i - 1; j > -1; j--) {
         // If Mij != 0 then process.
-        if(context->Mlb[startOfRowiInM + j]) {
+        if (context->Mlb[startOfRowiInM + j]) {
 
           //  i5[l2] = startOfRowiInM + j; Mij.
           int startOfRowjInM = j * (j + 1) / 2;
 
           // Index over the row i entries in M, starting at j.
-          for(int k = j; k > -1; k--) {
+          for (int k = j; k > -1; k--) {
             // Save pointer to Mik, but Mik may be zero.
             //  i8[l3] = startOfRowiInM + k;
             context->i8s = startOfRowiInM + k;
 
             //  if (im[i8[l3]]) //If Mik != 0 then process.
-            if(context->Mlb[context->i8s]) {
+            if (context->Mlb[context->i8s]) {
               //  i6[l3] = startOfRowjInM + k; Mjk.
               context->i6s = startOfRowjInM + k;
               context->Mlb[context->i6s] = true;
@@ -403,7 +402,7 @@ void s2_context_countOperations(s2_context_t* context) {
               // Advance the count of l3.
               cl3++;
             } // end if (im[i7[l3]]).
-          } // end for (k = i-1; k <= j; k--).
+          }   // end for (k = i-1; k <= j; k--).
 
           // Advance the index into the M work array for the next term.
           //  p++;
@@ -425,7 +424,7 @@ void s2_context_countOperations(s2_context_t* context) {
           // Advance the count of l2.
           cl2++;
         } // end if (im[startOfRowiInM + j]).
-      } // end for (j = i-1; j >=0; j--).
+      }   // end for (j = i-1; j >=0; j--).
 
       // Save the operations count for this independent variable.
       context->n2[ni] = cl2;
@@ -435,7 +434,7 @@ void s2_context_countOperations(s2_context_t* context) {
       // Move forward for the next independent variable.
       ni++;
     } // end if (!depend[i]).
-  } // end for (i = n-1; i >= 0; i--).
+  }   // end for (i = n-1; i >= 0; i--).
 
   /*
     Allocate arrays here
@@ -478,7 +477,6 @@ void s2_context_countOperations(s2_context_t* context) {
   // fprintf(debug, "Mlb after symbolic factorization:\n");
   // s2_triangb_print(debug, context->dqCount, context->Mlb);
 
-
   // Restore Mlb for subsequent processing.
   memcpy(context->Mlb, context->Mlbs, context->Ml_size * sizeof(bool));
 }
@@ -491,7 +489,8 @@ factorization, backward elimination, and forward substitution steps.
 
 Entries in the following six arrays were set in the previous block.
 n1, n2, and n3 are integer arrays used in matrix factorization.
-p1, p2, and p3 are integer arrays used in backward elimination/forward substitution.
+p1, p2, and p3 are integer arrays used in backward elimination/forward
+substitution.
 
 nd is the total number of dependent variables, which is known in advance.
 nd is also the dimension of arrays n1, p1, and p2.
@@ -528,11 +527,12 @@ void s2_context_recordOperations(s2_context_t* context) {
   /*! As each dependent variable within a kinematic substructure is eliminated,
   assignment equations are generated and executed based on a particular
   sequence of independent variables in that kinematic substructure. As each
-  independent variable is accessed or processed, this variable is decremented. */
+  independent variable is accessed or processed, this variable is decremented.
+*/
 
   // Backward recursion for matrix factorization.
   // i points to the current variable being processed.
-  for(int i = context->dqCount - 1; i > -1; i--) {
+  for (int i = context->dqCount - 1; i > -1; i--) {
 
     // Pointer to first column entry in the ith row of M, Mi0.
     // The ith row forms the current row in the L-matrix.
@@ -543,7 +543,7 @@ void s2_context_recordOperations(s2_context_t* context) {
     int endOfRowiInM = startOfRowiInM + i;
 
     // Process a dependent variable.
-    if(context->isDependentPO3[i]) {
+    if (context->isDependentPO3[i]) {
 
       // Initialize number of coupled independent variables.
       int coupleddqCount = 0;
@@ -552,16 +552,17 @@ void s2_context_recordOperations(s2_context_t* context) {
       int nonCoupleddqCount = 0;
 
       // Classify all independent variables.
-      for(int k = context->rb3[i][0]; k < context->rb3[i][1]; k++) {
+      for (int k = context->rb3[i][0]; k < context->rb3[i][1]; k++) {
         int colIndex = context->cb3[k];
 
         // If Mik != 0, variable k is coupled to variable i--add to coupledList.
-        if(context->Mlb[startOfRowiInM + colIndex]) {
+        if (context->Mlb[startOfRowiInM + colIndex]) {
           coupledList[coupleddqCount] = colIndex;
           coupledIndexList[coupleddqCount] = k;
           coupleddqCount++;
         } else {
-          // If Mik = 0, variable k is not coupled to variable i--add to nonCoupledList.
+          // If Mik = 0, variable k is not coupled to variable i--add to
+          // nonCoupledList.
           nonCoupledList[nonCoupleddqCount] = colIndex;
           nonCoupledIndexList[nonCoupleddqCount] = k;
           nonCoupleddqCount++;
@@ -570,16 +571,14 @@ void s2_context_recordOperations(s2_context_t* context) {
 
       /* Set the remaining number of independent variables in substructure to
         be processed. */
-      int unprocesseddqCount =
-        coupleddqCount +
-        nonCoupleddqCount;
+      int unprocesseddqCount = coupleddqCount + nonCoupleddqCount;
 
       // Start the factorization process for this dependent variable.
       int k;
-      while(unprocesseddqCount) {
+      while (unprocesseddqCount) {
         /* Process a coupled variable if any left. */
         int kIndexInB; /*!< points to the current index into b3 */
-        if(coupleddqCount) {
+        if (coupleddqCount) {
           coupleddqCount--;
           k = coupledList[coupleddqCount];
           kIndexInB = coupledIndexList[coupleddqCount];
@@ -599,17 +598,18 @@ void s2_context_recordOperations(s2_context_t* context) {
 
         // The mass matrix term on the diagonal is nonzero.
         // Other terms in row/column i may be nonzero when true.
-        // All terms in row/column i are zero when false, so skip projections involving mass terms.
-        if(context->Mlb[endOfRowiInM]) {
+        // All terms in row/column i are zero when false, so skip projections
+        // involving mass terms.
+        if (context->Mlb[endOfRowiInM]) {
           // Process pointers for if (k >= j)Mkj += Mij*Bik else Mjk += Mij*Bik.
           // Index over the row i entries in M, starting left of diagonal.
-          for(int j = i - 1; j > -1; j--) {
+          for (int j = i - 1; j > -1; j--) {
             // Mij.
             context->i2[l1] = startOfRowiInM + j;
             // If Mij != 0 then process.
-            if(context->Mlb[context->i2[l1]]) {
+            if (context->Mlb[context->i2[l1]]) {
               // Mkj.
-              if(k >= j) {
+              if (k >= j) {
                 context->i1[l1] = startOfRowkInM + j;
               }
               // Mjk.
@@ -624,7 +624,7 @@ void s2_context_recordOperations(s2_context_t* context) {
               context->i3[l1] = kIndexInB;
               l1++;
             } // end if (im[i2[l1]]).
-          } // end for (j = i-1; j >= 0; j--).
+          }   // end for (j = i-1; j >= 0; j--).
 
           // Process pointers for Mik += Mii*Bik.
 
@@ -669,25 +669,27 @@ void s2_context_recordOperations(s2_context_t* context) {
         int j = 0;
 
         // Search through the non-coupled list.
-        while(j < nonCoupleddqCount) {
+        while (j < nonCoupleddqCount) {
           // Get the number of a non-coupled variable.
           k = nonCoupledList[j];
 
           // If true, a fill has turned variable into coupled.
-          if(context->Mlb[startOfRowiInM + k]) {
+          if (context->Mlb[startOfRowiInM + k]) {
             // Add to end of coupled list.
             coupledList[coupleddqCount] = k;
             coupleddqCount++;
 
-            // Remove this variable from the non-coupled list and compress the list.
-            for(k = j; k < nonCoupleddqCount - 1; k++) {
+            // Remove this variable from the non-coupled list and compress the
+            // list.
+            for (k = j; k < nonCoupleddqCount - 1; k++) {
               nonCoupledList[k] = nonCoupledList[k + 1];
             }
 
             // Decrement size of non-coupled list.
             nonCoupleddqCount--;
 
-            // Need this to counter the j++; below, because list size was decremented.
+            // Need this to counter the j++; below, because list size was
+            // decremented.
             j--;
 
           } // end if(im[startOfRowiInM + k]).
@@ -701,12 +703,12 @@ void s2_context_recordOperations(s2_context_t* context) {
 
       // This block sets pointers for forward elimination/back substitution.
       // Index over the row i entries in M, starting left of diagonal.
-      for(int j = i - 1; j > -1; j--) {
+      for (int j = i - 1; j > -1; j--) {
         // Mij.
         int pMij = startOfRowiInM + j;
 
         // If Mij != 0, some operations are required.
-        if(context->Mlb[pMij]) {
+        if (context->Mlb[pMij]) {
           // Process pointers for Qj -= Mij*gai and lai -= Mij*ddqj.
           context->j3[m2] = j;
 
@@ -714,7 +716,7 @@ void s2_context_recordOperations(s2_context_t* context) {
           context->j4[m2] = pMij;
           m2++;
         } // end if (im[pMij]).
-      } // end for (j = i-1; j >= 0; j--).
+      }   // end for (j = i-1; j >= 0; j--).
     } else {
       // if (!depend[i])--Process an independent variable.
 
@@ -722,19 +724,19 @@ void s2_context_recordOperations(s2_context_t* context) {
       int p = context->startOfWorkInM;
 
       // Index over the row i entries in M, starting left of the diagonal.
-      for(int j = i - 1; j >= 0; j--) {
+      for (int j = i - 1; j >= 0; j--) {
         // If Mij != 0 then process.
-        if(context->Mlb[startOfRowiInM + j]) {
+        if (context->Mlb[startOfRowiInM + j]) {
           // Mij.
           context->i5[l2] = startOfRowiInM + j;
           int startOfRowjInM = j * (j + 1) / 2;
 
           // Index over the row j entries in M, starting at j.
-          for(int k = j; k > -1; k--) {
+          for (int k = j; k > -1; k--) {
             // Save pointer to Mik, but Mik may be zero.
             context->i8[l3] = startOfRowiInM + k;
             // If Mik != 0 then process.
-            if(context->Mlb[context->i8[l3]]) {
+            if (context->Mlb[context->i8[l3]]) {
               // Mjk.
               context->i6[l3] = startOfRowjInM + k;
               context->Mlb[context->i6[l3]] = 1;
@@ -743,7 +745,7 @@ void s2_context_recordOperations(s2_context_t* context) {
               context->i7[l3] = p;
               l3++;
             } // end if(im[i6[l3]]).
-          } // end for(k = j; k >= 0; k--).
+          }   // end for(k = j; k >= 0; k--).
 
           // Advance the index into the M work array for the next term.
           p++;
@@ -759,11 +761,10 @@ void s2_context_recordOperations(s2_context_t* context) {
           // Now done with i5[l2] so can move on to next term.
           l2++;
         } // end if (im[startOfRowiInM + j]).
-      } // end for (j = i-1; j >=0; j--).
-    } // end if (!depend[i]).
-  } // end for (i = n-1; i >= 0; i--).
+      }   // end for (j = i-1; j >=0; j--).
+    }     // end if (!depend[i]).
+  }       // end for (i = n-1; i >= 0; i--).
 }
-
 
 /*!
 @brief counts operations used for factoring and solving using arrays of
@@ -791,16 +792,15 @@ void s2_context_countPointerOperations(s2_context_t* context) {
   required to factor the matrix and access the L matrix. */
   int p3 = 0;
 
-
-  for(int i = 0; i < context->dqCount; i++)
-    if(context->isDependentPO3[i]) {
+  for (int i = 0; i < context->dqCount; i++)
+    if (context->isDependentPO3[i]) {
       k++;
     }
 
   /* Factor the matrix */
-  for(int i = context->dqCount - 1; i > -1; i--) {
-    if(context->isDependentPO3[i]) {
-      for(int j = 0; j < context->n1[nd]; j++) {
+  for (int i = context->dqCount - 1; i > -1; i--) {
+    if (context->isDependentPO3[i]) {
+      for (int j = 0; j < context->n1[nd]; j++) {
         // M[] -= M[] * B[];
         // *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
         p2 += 3;
@@ -813,7 +813,7 @@ void s2_context_countPointerOperations(s2_context_t* context) {
       // Copy the nonzero entries in row i of the M[]
       // array to the left of the diagonal into the work array
       // and scale the entries in row i to L terms.
-      for(int j = context->startOfWorkInM; j < context->n2[ni]; j++) {
+      for (int j = context->startOfWorkInM; j < context->n2[ni]; j++) {
         // Copy entry into work array: M[] = M[];
         // *(context->P[p2]) = *(context->P[p2 + 1]);
         p2++;
@@ -822,7 +822,7 @@ void s2_context_countPointerOperations(s2_context_t* context) {
         p2++;
       }
       // Perform mass projections with one assignment statement.
-      for(int j = 0; j < context->n3[ni]; j++) {
+      for (int j = 0; j < context->n3[ni]; j++) {
         // Update Schur-complement matrix: M[] -= M[] * M[];
         // *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
         p2 += 3;
@@ -835,10 +835,10 @@ void s2_context_countPointerOperations(s2_context_t* context) {
   nd = 0;
   ni = 0;
 
-  //Backward elimination
-  for(int i = context->dqCount - 1; i > -1; i--) {
-    if(context->isDependentPO3[i]) {
-      for(int j = 0; j < context->p1[nd]; j++) {
+  // Backward elimination
+  for (int i = context->dqCount - 1; i > -1; i--) {
+    if (context->isDependentPO3[i]) {
+      for (int j = 0; j < context->p1[nd]; j++) {
         // Part of b <-- L^{-T} b: Q[] -= B[] * Q[i];
         // *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
         p3++;
@@ -846,7 +846,7 @@ void s2_context_countPointerOperations(s2_context_t* context) {
       }
       // Project constraint-induced inertia forces onto parent forces.
       // Does not execute if Mii = 0.
-      for(int j = 0; j < context->p2[nd]; j++) {
+      for (int j = 0; j < context->p2[nd]; j++) {
         // Part of b <-- L^{-T} b: Q[] -= M[] * ga[k];
         // *(context->P[p3++]) -= *(context->P[p2++]) * context->gamma_d[k];
         p3++;
@@ -858,14 +858,14 @@ void s2_context_countPointerOperations(s2_context_t* context) {
       // context->ddq[i] = context->gamma_d[k];
       // context->la[k] = context->fl[i];
 
-      if(context->Mlb[context->i4[i]])
-        // Part of x <-- D^{-1} b: la[k] -= M[] * ddq[i];
-        // context->la[k] -= *(context->P[i]) * context->ddq[i];
+      if (context->Mlb[context->i4[i]])
+      // Part of x <-- D^{-1} b: la[k] -= M[] * ddq[i];
+      // context->la[k] -= *(context->P[i]) * context->ddq[i];
       {
         k--;
       }
     } else {
-      for(int j = 0; j < context->p3[ni]; j++) {
+      for (int j = 0; j < context->p3[ni]; j++) {
         // Part of b <-- L^{-T} b: Q[] -= M[] * Q[i];
         // *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
         p3++;
@@ -883,16 +883,16 @@ void s2_context_countPointerOperations(s2_context_t* context) {
   /* P2 is one past last entry in L. Decrement for reverse direction. */
   // p2--;
 
-  //Forward substitution
-  for(int i = 0; i < context->dqCount; i++) {
-    if(context->isDependentPO3[i]) {
+  // Forward substitution
+  for (int i = 0; i < context->dqCount; i++) {
+    if (context->isDependentPO3[i]) {
       nd--;
-      for(int j = 0; j < context->p2[nd]; j++) {
+      for (int j = 0; j < context->p2[nd]; j++) {
         // Part of x <-- L^{-1} x: la[k] -= M[] * ddq[];
         // context->la[k] -= *(context->P[p2--]) * *(context->P[p3++]);
         p3++;
       }
-      for(int j = 0; j < context->p1[nd]; j++) {
+      for (int j = 0; j < context->p1[nd]; j++) {
         // Part of x <-- L^{-1} x: ddq[i] -= B[] * ddq[];
         // context->ddq[i] -= *(context->P[p2--]) * *(context->P[p3++]);
         p3++;
@@ -900,21 +900,20 @@ void s2_context_countPointerOperations(s2_context_t* context) {
       k++;
     } else {
       ni--;
-      for(int j = 0; j < context->p3[ni]; j++) {
+      for (int j = 0; j < context->p3[ni]; j++) {
         // Part of x <-- L^{-1} x: ddq[i] -= M[] * ddq[];
         // context->ddq[i] -= *(context->P[p2--]) * *(context->P[p3++]);
         p3++;
       }
     }
   }
-  if(context->P != NULL) {
+  if (context->P != NULL) {
     free(context->P);
     context->P = NULL;
   }
   context->P = malloc((p3 + p2) * sizeof(double*));
   context->p3Start = p2;
 }
-
 
 /*!
 @brief this function records source and destination memory pointers using
@@ -946,12 +945,12 @@ void s2_context_setSourceDestinationPointers(s2_context_t* context) {
   offset value for initializing p3. */
   int p3 = context->p3Start;
 
-  for(int i = context->dqCount - 1; i > -1; i--) {
+  for (int i = context->dqCount - 1; i > -1; i--) {
     /* Point to the current diagonal entry in context->M[] */
     context->P[i] = &context->Ml[context->i4[i]];
-    if(context->isDependentPO3[i]) {
+    if (context->isDependentPO3[i]) {
       // Processing dependent variable
-      for(int j = 0; j < context->n1[nd]; j++) {
+      for (int j = 0; j < context->n1[nd]; j++) {
         /* M[] -= M[] * B[]; */
         context->P[p2++] = &context->Ml[context->i1[l1]];
         context->P[p2++] = &context->Ml[context->i2[l1]];
@@ -962,7 +961,7 @@ void s2_context_setSourceDestinationPointers(s2_context_t* context) {
     } else {
       // Processing independent variable
       /* M[] = 1.0 / M[]; This pointer already set above*/
-      for(int j = context->startOfWorkInM; j < context->n2[ni]; j++) {
+      for (int j = context->startOfWorkInM; j < context->n2[ni]; j++) {
         /* M[] = M[]; Copy row i, col j of context->M[] into work area. */
         context->P[p2++] = &context->Ml[j];
         /* M[] *= M[]; Scale row i, col j of context->M[] into L matrix. */
@@ -970,7 +969,7 @@ void s2_context_setSourceDestinationPointers(s2_context_t* context) {
         l2++;
       }
       // Update Schur-complement
-      for(int j = 0; j < context->n3[ni]; j++) {
+      for (int j = 0; j < context->n3[ni]; j++) {
         /* M[] -= M[] * M[]; */
         context->P[p2++] = &context->Ml[context->i6[l3]];
         context->P[p2++] = &context->Ml[context->i7[l3]];
@@ -994,16 +993,16 @@ void s2_context_setSourceDestinationPointers(s2_context_t* context) {
   m3 = 0;
 
   // Start of Backward Elimination
-  for(int i = context->dqCount - 1; i > -1; i--) {
-    if(context->isDependentPO3[i]) {
+  for (int i = context->dqCount - 1; i > -1; i--) {
+    if (context->isDependentPO3[i]) {
       /* Processing dependent variable: b <- L^{-T} b */
-      for(int j = 0; j < context->p1[nd]; j++) {
+      for (int j = 0; j < context->p1[nd]; j++) {
         /* Q[] -= B[] * Q[i]; */
         context->P[p3++] = &context->fl[context->j1[m1]];
         context->P[p2++] = &context->b3[context->j2[m1]];
         m1++;
       }
-      for(int j = 0; j < context->p2[nd]; j++) {
+      for (int j = 0; j < context->p2[nd]; j++) {
         /* Q[] -= M[] * ga[k]; */
         context->P[p3++] = &context->fl[context->j3[m2]];
         context->P[p2++] = &context->Ml[context->j4[m2]];
@@ -1019,7 +1018,7 @@ void s2_context_setSourceDestinationPointers(s2_context_t* context) {
       k--;
     } else {
       /* Processing independent variable: b <- L^{-T} b */
-      for(int j = 0; j < context->p3[ni]; j++) {
+      for (int j = 0; j < context->p3[ni]; j++) {
         /* Q[] -= M[] * Q[i] */
         context->P[p3++] = &context->fl[context->j5[m3]];
         context->P[p2++] = &context->Ml[context->j6[m3]];
@@ -1033,16 +1032,16 @@ void s2_context_setSourceDestinationPointers(s2_context_t* context) {
 
   // Start of Forward Substitution
   k = 0;
-  for(int i = 0; i < context->dqCount; i++) {
-    if(context->isDependentPO3[i]) {
+  for (int i = 0; i < context->dqCount; i++) {
+    if (context->isDependentPO3[i]) {
       /* Processing dependent variable: x <- L^{-1} x */
       nd--;
-      for(int j = 0; j < context->p2[nd]; j++) {
+      for (int j = 0; j < context->p2[nd]; j++) {
         --(m2);
         /* la[k] -= M[] * ddq[]; */
         context->P[p3++] = context->ddq + context->pv_13[context->j3[m2]];
       }
-      for(int j = 0; j < context->p1[nd]; j++) {
+      for (int j = 0; j < context->p1[nd]; j++) {
         --(m1);
         /* ddq[i] -= B[] * ddq[]; */
         context->P[p3++] = context->ddq + context->pv_13[context->j1[m1]];
@@ -1051,14 +1050,13 @@ void s2_context_setSourceDestinationPointers(s2_context_t* context) {
     } else {
       /* Processing independent variable x <- L^{-1} x */
       ni--;
-      for(int j = 0; j < context->p3[ni]; j++) {
+      for (int j = 0; j < context->p3[ni]; j++) {
         --(m3);
         context->P[p3++] = context->ddq + context->pv_13[context->j5[m3]];
       }
     }
   }
 }
-
 
 /*!
 @brief memoize operations for converting angular velocities (of length 3)
@@ -1069,8 +1067,8 @@ void s2_context_memoizeQuaternions(s2_context_t* context) {
   /* count number of quaternions */
   context->quaternionCount = 0;
   context->nonQuaternionCount = 0;
-  for(int i = 0; i < context->activeJointCount; i++) {
-    switch(context->jointPointers[i]->jointType) {
+  for (int i = 0; i < context->activeJointCount; i++) {
+    switch (context->jointPointers[i]->jointType) {
       case S2_JOINT_TX:
       case S2_JOINT_TY:
       case S2_JOINT_TZ:
@@ -1085,18 +1083,15 @@ void s2_context_memoizeQuaternions(s2_context_t* context) {
       }
       case S2_JOINT_SPHERICAL: {
         context->quaternionCount++;
-      }
-      break;
+      } break;
       case S2_JOINT_FLOAT: {
         context->quaternionCount++;
         context->nonQuaternionCount += 3;
-      }
-      break;
+      } break;
       case S2_JOINT_PRIMITIVE:
       case S2_JOINT_INVALID: {
         fprintf(stderr, "invalid joint type found\n");
-      }
-      break;
+      } break;
     }
   }
 
@@ -1109,10 +1104,8 @@ void s2_context_memoizeQuaternions(s2_context_t* context) {
   s2_arrayi_free(context->qNonQuaternionIndices);
   s2_arrayi_free(context->dqNonQuaternionIndices);
 
-  context->qQuaternionIndices =
-    malloc(context->quaternionCount * sizeof(int));
-  context->dqQuaternionIndices =
-    malloc(context->quaternionCount * sizeof(int));
+  context->qQuaternionIndices = malloc(context->quaternionCount * sizeof(int));
+  context->dqQuaternionIndices = malloc(context->quaternionCount * sizeof(int));
   context->qNonQuaternionIndices =
     malloc(context->nonQuaternionCount * sizeof(int));
   context->dqNonQuaternionIndices =
@@ -1124,8 +1117,8 @@ void s2_context_memoizeQuaternions(s2_context_t* context) {
   */
   int qCounter = 0;
   int quaternionCounter = 0;
-  for(int i = 0; i < context->activeJointCount; i++) {
-    switch(context->jointPointers[i]->jointType) {
+  for (int i = 0; i < context->activeJointCount; i++) {
+    switch (context->jointPointers[i]->jointType) {
       case S2_JOINT_TX:
       case S2_JOINT_TY:
       case S2_JOINT_TZ:
@@ -1150,7 +1143,7 @@ void s2_context_memoizeQuaternions(s2_context_t* context) {
         break;
       }
       case S2_JOINT_FLOAT: {
-        for(int j = 0; j < 3; j++) {
+        for (int j = 0; j < 3; j++) {
           context->qNonQuaternionIndices[qCounter] =
             context->jointPointers[i]->qIndex + j;
           context->dqNonQuaternionIndices[qCounter] =
@@ -1172,7 +1165,6 @@ void s2_context_memoizeQuaternions(s2_context_t* context) {
     }
   }
 }
-
 
 /*!
 @brief memoize performs an initial factorization to count operations, then

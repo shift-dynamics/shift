@@ -20,20 +20,18 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 #include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
 #else
 #include <cblas.h>
 #endif
-#include <unistd.h>
 #include "factor.h"
+#include <unistd.h>
 
-inline void s2_iswap(
-  int* a,
-  int* b) {
+inline void s2_iswap(int* a, int* b) {
 
   int temp = *a;
   *a = *b;
@@ -74,13 +72,8 @@ A[0:rowDim-1][0:colDim-1], LU factors are overwritten in original matrix
 @param pc [out] output column permutation array with dimensions pc[0:colDim-1]
 @return rank of matrix A
 */
-int s2_factor_LU_full(
-  int rowDim,
-  int colDim,
-  double* A,
-  double eps,
-  int* pr,
-  int* pc) {
+int s2_factor_LU_full(int rowDim, int colDim, double* A, double eps, int* pr,
+                      int* pc) {
 
   // printf("Jacobian matrix in fullFactor_LU\n");
   // for(int i = 0; i < rowDim; i++) {
@@ -95,15 +88,15 @@ int s2_factor_LU_full(
   double pivot = 0.0;
   /* current pivotal element, holds the current pivotal element
      value */
-  double tol;   /* tolerance for checking residual matrix
-                              infinity norm against */
-  double save; /* variable for holding intermediate results*/
+  double tol;                    /* tolerance for checking residual matrix
+                                               infinity norm against */
+  double save;                   /* variable for holding intermediate results*/
   double size = rowDim * colDim; /*overall size of matrix */
 
   /*
     Return failure if a bad row or column dimension was found.
   */
-  if((rowDim <= 0) || (colDim <= 0)) {
+  if ((rowDim <= 0) || (colDim <= 0)) {
     return (-1);
   }
 
@@ -127,10 +120,10 @@ int s2_factor_LU_full(
   // printf("pivotRow: %d, pivotCol: %d\n", pivotRow, pivotCol);
 
   /* Initialize the column permutation array. */
-  for(int col = 0; col < colDim; col++) {
+  for (int col = 0; col < colDim; col++) {
     pc[col] = col;
   }
-  for(int row = 0; row < rowDim; row++) {
+  for (int row = 0; row < rowDim; row++) {
     pr[row] = row;
   }
 
@@ -142,7 +135,7 @@ int s2_factor_LU_full(
     Generate factors column by column, so outer loop
     sweeps over columns.
   */
-  for(int col = 0; col < colDim; col++) {
+  for (int col = 0; col < colDim; col++) {
     /*
       If the current pivotal element is <= tol, the
       remaining submatrix is zero and factorization
@@ -150,7 +143,7 @@ int s2_factor_LU_full(
       break out of this loop so not to waste time
       going through remaining columns?
     */
-    if(fabs(pivot) > tol) {
+    if (fabs(pivot) > tol) {
       /* Increase rank for the current column. */
       ++rank;
 
@@ -159,7 +152,7 @@ int s2_factor_LU_full(
         If pivotRow==rank, then no permutation is needed.
         If pivotRow>rank, then need to swap rows.
       */
-      if(pivotRow > rank) {
+      if (pivotRow > rank) {
         /*
           Need to swap entire row A[rank][:] and A[pivotRow][:].
           This also swaps rows in the Lr matrix to this point.
@@ -172,12 +165,7 @@ int s2_factor_LU_full(
           stride =
         */
 
-        cblas_dswap(
-          colDim,
-          A + colDim * rank,
-          1,
-          A + colDim * pivotRow,
-          1);
+        cblas_dswap(colDim, A + colDim * rank, 1, A + colDim * pivotRow, 1);
 
         /*
           Swap row permutation entries pr[rank] and
@@ -191,7 +179,7 @@ int s2_factor_LU_full(
         If pivotCol==rank, then no permutation is needed.
         If pivotCol>rank, then need to swap columns.
       */
-      if(pivotCol > rank) {
+      if (pivotCol > rank) {
         // printf("rank: %d, pivotCol: %d\n", rank, pivotCol);
         // printf("colDim %d\n", colDim);
         /*
@@ -201,12 +189,7 @@ int s2_factor_LU_full(
             N = rowDim
             stride = colDim
         */
-        cblas_dswap(
-          rowDim,
-          A + rank,
-          colDim,
-          A + pivotCol,
-          colDim);
+        cblas_dswap(rowDim, A + rank, colDim, A + pivotCol, colDim);
 
         /*
           Swap column permutation entries pc[rank] and
@@ -223,7 +206,7 @@ int s2_factor_LU_full(
         the matrix and searches for a new pivotal element
         for the next factorization step.
       */
-      if(rank < rowDim - 1) {
+      if (rank < rowDim - 1) {
 
         /*
           Copy the current pivotal element into save so new
@@ -233,7 +216,7 @@ int s2_factor_LU_full(
         pivot = 0;
 
         /* Need only process the rows from rank+1 to rowDim. */
-        for(int i = rank + 1; i < rowDim; i++) {
+        for (int i = rank + 1; i < rowDim; i++) {
 
           /* Evaluate the current entry in the L matrix.*/
           A[i * colDim + rank] /= save;
@@ -244,16 +227,16 @@ int s2_factor_LU_full(
             rank == colDim-1, only a pivot remains on the
             diagonal.
           */
-          if(rank < colDim) {
+          if (rank < colDim) {
 
             /*
               This next loop computes the remaining U matrix,
               searches for the largest pivotal element, and
               remembers the new pivotal element row and colum.
             */
-            for(int j = rank + 1; j < colDim; j++) {
+            for (int j = rank + 1; j < colDim; j++) {
               A[i * colDim + j] -= A[i * colDim + rank] * A[rank * colDim + j];
-              if(fabs(A[i * colDim + j]) > fabs(pivot)) {
+              if (fabs(A[i * colDim + j]) > fabs(pivot)) {
                 pivot = A[i * colDim + j];
                 pivotRow = i;
                 pivotCol = j;
@@ -263,13 +246,13 @@ int s2_factor_LU_full(
         }       /*Endfor i = rank+1*/
       }         /*Endif (rank<rowDim-1)*/
       else {
-        break;  /*No more rows to process.*/
+        break; /*No more rows to process.*/
       }
-    }          /*End if*/
+    } /*End if*/
     else {
-      break;  /*Done if remainder of matrix is at noise level.*/
+      break; /*Done if remainder of matrix is at noise level.*/
     }
-  }          /*End for col*/
+  } /*End for col*/
 
   /*
     This block computes LR*inverse(Lr)
@@ -320,15 +303,14 @@ int s2_factor_LU_full(
   return (rank + 1);
 }
 
-
 /*!
 @brief LU Decomposition with complete row and column pivoting with one
 specified coordinate
 
-s2_factor_LU_full_specified factors a double precision matrix, A[rowDim * colDim],
-stored in row major order using full row and column pivoting. Matrix A need
-not have full row or column rank. The integer variable 'rank' represents the
-matrix rank and internally is always one less than the true rank to be
+s2_factor_LU_full_specified factors a double precision matrix, A[rowDim *
+colDim], stored in row major order using full row and column pivoting. Matrix A
+need not have full row or column rank. The integer variable 'rank' represents
+the matrix rank and internally is always one less than the true rank to be
 consistent with C's indexing from zero. Upon return from the function,
 rank will be set to the correct value.
 
@@ -356,14 +338,8 @@ A[0:rowDim-1][0:colDim-1]:
 @param pc output column permutation array with dimensions pc[0:colDim-1]
 @return rank of matrix A
 */
-int s2_factor_LU_full_specified(
-  int rowDim,
-  int colDim,
-  double* A,
-  double eps,
-  int* pr,
-  int* pc,
-  int specifiedIndex) {
+int s2_factor_LU_full_specified(int rowDim, int colDim, double* A, double eps,
+                                int* pr, int* pc, int specifiedIndex) {
 
   // printf("Jacobian matrix in fullFactor_LU\n");
   // for(int i = 0; i < rowDim; i++) {
@@ -381,14 +357,14 @@ int s2_factor_LU_full_specified(
   // int k;        /* local row/column index */
   double pivot = 0.0;
   /* current pivotal element, holds the current pivotal element */
-  double tol;   /* tolerance for checking residual matrix
-                              infinity norm against */
+  double tol;  /* tolerance for checking residual matrix
+                             infinity norm against */
   double save; /* variable for holding intermediate results*/
 
   /*
     Return failure if a bad row or column dimension was found.
   */
-  if((rowDim <= 0) || (colDim <= 1)) {
+  if ((rowDim <= 0) || (colDim <= 1)) {
     return (-1);
   }
 
@@ -401,10 +377,10 @@ int s2_factor_LU_full_specified(
   /*
     Initialize permutation arrays
   */
-  for(int row = 0; row < rowDim; row++) {
+  for (int row = 0; row < rowDim; row++) {
     pr[row] = row;
   }
-  for(int col = 0; col < colDim; col++) {
+  for (int col = 0; col < colDim; col++) {
     pc[col] = col;
   }
 
@@ -412,13 +388,8 @@ int s2_factor_LU_full_specified(
     Swap the specified column to the last position in the input
     matrix
   */
-  if(specifiedIndex != colDim - 1) {
-    cblas_dswap(
-      rowDim,
-      A + specifiedIndex,
-      colDim,
-      A + colDim - 1,
-      colDim);
+  if (specifiedIndex != colDim - 1) {
+    cblas_dswap(rowDim, A + specifiedIndex, colDim, A + colDim - 1, colDim);
 
     /*
       Swap column permutation entries pc[] and
@@ -436,9 +407,9 @@ int s2_factor_LU_full_specified(
   pivot = A[0];
   pivotRow = 0;
   pivotCol = 0;
-  for(int row = 0; row < rowDim; row++) {
-    for(int col = 0; col < colDim - 1; col++) {
-      if(fabs(A[row * colDim + col]) > fabs(pivot)) {
+  for (int row = 0; row < rowDim; row++) {
+    for (int col = 0; col < colDim - 1; col++) {
+      if (fabs(A[row * colDim + col]) > fabs(pivot)) {
         pivot = A[row * colDim + col];
         pivotRow = row;
         pivotCol = col;
@@ -455,7 +426,7 @@ int s2_factor_LU_full_specified(
     Generate factors column by column, so outer loop
     sweeps over columns.
   */
-  for(col = 0; col < colDim; col++) {
+  for (col = 0; col < colDim; col++) {
     /*
       If the current pivotal element is <= tol, the
       remaining submatrix is zero and factorization
@@ -463,7 +434,7 @@ int s2_factor_LU_full_specified(
       break out of this loop so not to waste time
       going through remaining columns?
     */
-    if(fabs(pivot) > tol) {
+    if (fabs(pivot) > tol) {
       /* Increase rank for the current column. */
       ++rank;
 
@@ -472,7 +443,7 @@ int s2_factor_LU_full_specified(
         If pivotRow==rank, then no permutation is needed.
         If pivotRow>rank, then need to swap rows.
       */
-      if(pivotRow > rank) {
+      if (pivotRow > rank) {
         /*
           Need to swap entire row A[rank][:] and A[pivotRow][:].
           This also swaps rows in the Lr matrix to this point.
@@ -485,12 +456,7 @@ int s2_factor_LU_full_specified(
           stride = rowDim
         */
 
-        cblas_dswap(
-          colDim,
-          A + colDim * rank,
-          1,
-          A + colDim * pivotRow,
-          1);
+        cblas_dswap(colDim, A + colDim * rank, 1, A + colDim * pivotRow, 1);
 
         /*
           Swap row permutation entries pr[rank] and
@@ -504,7 +470,7 @@ int s2_factor_LU_full_specified(
         If pivotCol==rank, then no permutation is needed.
         If pivotCol>rank, then need to swap columns.
       */
-      if(pivotCol > rank) {
+      if (pivotCol > rank) {
         // printf("rank: %d, pivotCol: %d\n", rank, pivotCol);
         // printf("colDim %d\n", colDim);
         /*
@@ -514,12 +480,7 @@ int s2_factor_LU_full_specified(
             N = rowDim
             stride = colDim
         */
-        cblas_dswap(
-          rowDim,
-          A + rank,
-          colDim,
-          A + pivotCol,
-          colDim);
+        cblas_dswap(rowDim, A + rank, colDim, A + pivotCol, colDim);
 
         /*
           Swap column permutation entries pc[rank] and
@@ -536,7 +497,7 @@ int s2_factor_LU_full_specified(
         the matrix and searches for a new pivotal element
         for the next factorization step.
       */
-      if(rank < rowDim - 1) {
+      if (rank < rowDim - 1) {
 
         /*
           Copy the current pivotal element into save so new
@@ -546,7 +507,7 @@ int s2_factor_LU_full_specified(
         pivot = 0;
 
         /* Need only process the rows from rank+1 to rowDim. */
-        for(i = rank + 1; i < rowDim; i++) {
+        for (i = rank + 1; i < rowDim; i++) {
 
           /* Evaluate the current entry in the L matrix.*/
           A[i * colDim + rank] /= save;
@@ -557,34 +518,34 @@ int s2_factor_LU_full_specified(
             rank == colDim-1, only a pivot remains on the
             diagonal.
           */
-          if(rank < colDim) {
+          if (rank < colDim) {
 
             /*
               This next loop computes the remaining U matrix,
               searches for the largest pivotal element, and
               remembers the new pivotal element row and colum.
             */
-            for(j = rank + 1; j < colDim; j++) {
+            for (j = rank + 1; j < colDim; j++) {
               A[i * colDim + j] -= A[i * colDim + rank] * A[rank * colDim + j];
             }
-            for(j = rank + 1; j < colDim - 1; j++) {
-              if(fabs(A[i * colDim + j]) > fabs(pivot)) {
+            for (j = rank + 1; j < colDim - 1; j++) {
+              if (fabs(A[i * colDim + j]) > fabs(pivot)) {
                 pivot = A[i * colDim + j];
                 pivotRow = i;
                 pivotCol = j;
               }
             }
-          }     /*End if rank*/
-        }       /*Endfor i = rank+1*/
-      }         /*Endif (rank<rowDim-1)*/
+          } /*End if rank*/
+        }   /*Endfor i = rank+1*/
+      }     /*Endif (rank<rowDim-1)*/
       else {
-        break;  /*No more rows to process.*/
+        break; /*No more rows to process.*/
       }
-    }          /*End if*/
+    } /*End if*/
     else {
-      break;  /*Done if remainder of matrix is at noise level.*/
+      break; /*Done if remainder of matrix is at noise level.*/
     }
-  }          /*End for col*/
+  } /*End for col*/
 
   /*
     This block computes LR*inverse(Lr)
@@ -634,7 +595,6 @@ int s2_factor_LU_full_specified(
   return (rank + 1);
 }
 
-
 /*!
 @brief LU Decomposition with no row or column pivoting
 
@@ -653,35 +613,31 @@ C=LR*inverse(Lr)
 @param rowDim [in] row dimension of matrix A.
 @param colDim [in] column dimension of matrix A.
 @param rank [in] only the square rank x colDim submatrix of A will be processed
-@param *A [in/out] matrix to be factored with dimensions A[0:rowDim-1][0:colDim-1]:
+@param *A [in/out] matrix to be factored with dimensions
+A[0:rowDim-1][0:colDim-1]:
 */
-void s2_factor_LU(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* A) {
+void s2_factor_LU(int rowDim, int colDim, int rank, double* A) {
 
   /*
     Major loop to factor the matrix.
     Generate factors column by column
   */
-  for(int row = 0; row < rank; row++) {
+  for (int row = 0; row < rank; row++) {
 
     /* i iterates over rows of A, up to rank,
     previously rank was rowDim */
-    for(int i = row + 1; i < rank; i++) {
+    for (int i = row + 1; i < rank; i++) {
 
       /* Evaluate the current entry in the L matrix.*/
       A[i * colDim + row] /= A[row * colDim + row];
 
       /* Compute U matrix */
-      for(int j = row + 1; j < colDim; j++) {
+      for (int j = row + 1; j < colDim; j++) {
         A[i * colDim + j] -= A[i * colDim + row] * A[row * colDim + j];
       }
     }
   }
 }
-
 
 /*!
 @brief compute B matrix (inverse(Ur) * UR)
@@ -696,26 +652,20 @@ j is the column number in Ur & row number in UR.
 k is the column number in UR.
 
 */
-void s2_factor_setBMatrix(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* A) {
+void s2_factor_setBMatrix(int rowDim, int colDim, int rank, double* A) {
 
-  if(rank > 0 && rank < colDim) {
-    for(int i = rank - 1; i > -1; i--) { /* rows of B */
-      for(int k = rank; k < colDim; k++) { /* columns of B */
+  if (rank > 0 && rank < colDim) {
+    for (int i = rank - 1; i > -1; i--) {   /* rows of B */
+      for (int k = rank; k < colDim; k++) { /* columns of B */
         double save = 0;
-        for(int j = rank - 1; j > i; j--) { /* columns of Ur */
+        for (int j = rank - 1; j > i; j--) { /* columns of Ur */
           save += A[i * colDim + j] * A[j * colDim + k];
         }
-        A[i * colDim + k] =
-          (A[i * colDim + k] - save) / A[i * colDim + i];
+        A[i * colDim + k] = (A[i * colDim + k] - save) / A[i * colDim + i];
       }
     }
   }
 }
-
 
 /*!
 @brief compute C matrix
@@ -732,18 +682,13 @@ because the diagonal entry in row 0 of Lr is 1.
 i is the row number in LR.
 k is the column number in Lr
 */
-void s2_factor_setCMatrix(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* A) {
+void s2_factor_setCMatrix(int rowDim, int colDim, int rank, double* A) {
 
-  if(rank > 1) {
-    for(int j = rank - 1; j > 0; j--) {
-      for(int i = rowDim - 1; i > rank - 1; i--) {
-        for(int k = 0; k < j; k++)
-          A[i * colDim + k] -= A[i * colDim + j] *
-                               A[j * colDim + k];
+  if (rank > 1) {
+    for (int j = rank - 1; j > 0; j--) {
+      for (int i = rowDim - 1; i > rank - 1; i--) {
+        for (int k = 0; k < j; k++)
+          A[i * colDim + k] -= A[i * colDim + j] * A[j * colDim + k];
       }
     }
   }

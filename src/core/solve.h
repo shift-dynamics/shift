@@ -29,16 +29,9 @@ void s2_context_evaluateKineticEnergy(s2_context_t*);
 
 void s2_context_evaluateGravitationalPotentialEnergy(s2_context_t*);
 
-bool s2_context_verify(
-  s2_context_t* context,
-  double* Ml,
-  double* fl);
+bool s2_context_verify(s2_context_t* context, double* Ml, double* fl);
 
-void s2_equation_fcn(
-  double t,
-  double y[],
-  double dy[],
-  s2_context_t* context);
+void s2_equation_fcn(double t, double y[], double dy[], s2_context_t* context);
 
 void s2_context_writeHeaders(s2_context_t*);
 

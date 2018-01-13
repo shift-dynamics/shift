@@ -134,56 +134,45 @@ s2_vectori_t* s2_vectori() {
   return calloc(1, sizeof(s2_vectori_t));
 }
 
-
 /*!
 @brief Normalize a double precision vector
 
 @param v [in/out] vector to normalize
 */
-inline void s2_vector_normalize(
-  s2_vector_t* v) {
+inline void s2_vector_normalize(s2_vector_t* v) {
 
   double norm = sqrt(cblas_ddot(3, (double*)v, 1, (double*)v, 1));
   cblas_dscal(3, 1.0 / norm, (double*)v, 1);
 }
 
-
 /*!
 @brief scale a double precision vector
 @param [in/out] vector to scale
 */
-inline void s2_vector_scale(
-  double k,
-  s2_vector_t* v) {
+inline void s2_vector_scale(double k, s2_vector_t* v) {
 
   cblas_dscal(3, k, (double*)v, 1);
 }
-
 
 /*!
 @brief Normalize a double precision vector
 
 @param v [in/out] vector to normalize
 */
-inline void s2_vectorf_normalize(
-  s2_vectorf_t* v) {
+inline void s2_vectorf_normalize(s2_vectorf_t* v) {
 
   float norm = sqrt(cblas_sdot(3, (float*)v, 1, (float*)v, 1));
   cblas_sscal(3, 1.0 / norm, (float*)v, 1);
 }
 
-
 /*!
 @brief scale a double precision vector
 @param [in/out] vector to scale
 */
-inline void s2_vectorf_scale(
-  double k,
-  s2_vectorf_t* v) {
+inline void s2_vectorf_scale(double k, s2_vectorf_t* v) {
 
   cblas_sscal(3, k, (float*)v, 1);
 }
-
 
 /*! @brief initializes a general s2_displacement_t datastructure
 
@@ -194,14 +183,12 @@ rotation matrix in column major order followed by a translation vector.
 translation set to zero.
 */
 s2_displacement_t* s2_displacement() {
-  s2_displacement_t* D =
-    calloc(1, sizeof(s2_displacement_t));
+  s2_displacement_t* D = calloc(1, sizeof(s2_displacement_t));
   D->R.m00 = 1.0;
   D->R.m11 = 1.0;
   D->R.m22 = 1.0;
   return D;
 }
-
 
 /*! @brief s a general s2_displacementf_t datastructure
 
@@ -209,14 +196,12 @@ A general displacement is an array of float of length 12, consisting of a
 rotation matrix in column major order followed by a translation vector
 */
 s2_displacementf_t* s2_displacementf() {
-  s2_displacementf_t* D =
-    calloc(1, sizeof(s2_displacementf_t));
+  s2_displacementf_t* D = calloc(1, sizeof(s2_displacementf_t));
   D->R.m00 = 1.f;
   D->R.m11 = 1.f;
   D->R.m22 = 1.f;
   return D;
 }
-
 
 /*! @brief s a s2_screw_t datastructure (an array of doubles of length 6)
 
@@ -225,14 +210,12 @@ s2_screw_t* s2_screw() {
   return calloc(1, sizeof(s2_screw_t));
 }
 
-
 /*! @brief s a s2_screw_t datastructure (an array of floats of length 6)
 
 */
 s2_screwf_t* s2_screwf() {
   return calloc(1, sizeof(s2_screwf_t));
 }
-
 
 /*! @brief s a double precision s2_mat3x3_t datastructure for a general
 rotation (i.e. a SO3 matrix). The matrix is specified in column major order.
@@ -253,8 +236,7 @@ rotation (i.e. a SO3 matrix). The matrix is specified in column major order.
 @returns A s2_mat3x3f_t rotation matrix set to identity.
 */
 s2_mat3x3f_t* s2_mat3x3f() {
-  s2_mat3x3f_t* mat3 =
-    calloc(1, sizeof(s2_mat3x3f_t));
+  s2_mat3x3f_t* mat3 = calloc(1, sizeof(s2_mat3x3f_t));
   mat3->m00 = 1.f;
   mat3->m11 = 1.f;
   mat3->m22 = 1.f;
@@ -262,7 +244,8 @@ s2_mat3x3f_t* s2_mat3x3f() {
 }
 
 /*! @brief s a double precision s2_Mat4 datastructure for a general
-transformation (i.e. a SE3 matrix). The matrix is specified in column major order.
+transformation (i.e. a SE3 matrix). The matrix is specified in column major
+order.
 
 @returns A s2_Mat4 SE3 matrix set to identity.
 */
@@ -276,14 +259,14 @@ s2_mat4x4_t* s2_mat4x4() {
 }
 
 /*! @brief s a single precision s2_Mat4f datastructure for a general
-transformation (i.e. a SE3 matrix). The matrix is specified in column major order.
+transformation (i.e. a SE3 matrix). The matrix is specified in column major
+order.
 
 @returns A s2_Mat4f SE3 matrix set to identity.
 */
 s2_mat4x4f_t* s2_mat4x4f() {
 
-  s2_mat4x4f_t* mat4 =
-    calloc(1, sizeof(s2_mat4x4f_t));
+  s2_mat4x4f_t* mat4 = calloc(1, sizeof(s2_mat4x4f_t));
   mat4->m00 = 1.f;
   mat4->m11 = 1.f;
   mat4->m22 = 1.f;
@@ -291,13 +274,11 @@ s2_mat4x4f_t* s2_mat4x4f() {
   return mat4;
 }
 
-/*! @brief converts a double precision s2_displacement_t datastructure to s2_Mat4
-format.
+/*! @brief converts a double precision s2_displacement_t datastructure to
+s2_Mat4 format.
 
 */
-inline void s2_displacement_toMat4x4(
-  s2_displacement_t* D,
-  s2_mat4x4_t* mat4) {
+inline void s2_displacement_toMat4x4(s2_displacement_t* D, s2_mat4x4_t* mat4) {
 
   memset(mat4, 0, sizeof(s2_mat4x4_t));
   cblas_dcopy(3, (double*)D, 1, (double*)mat4, 1);
@@ -307,13 +288,12 @@ inline void s2_displacement_toMat4x4(
   mat4->m33 = 1.0;
 }
 
-/*! @brief converts a single precision s2_displacementf_t datastructure to s2_Mat4f
-format.
+/*! @brief converts a single precision s2_displacementf_t datastructure to
+s2_Mat4f format.
 
 */
-inline void s2_displacementf_toMat4x4f(
-  s2_displacementf_t* D,
-  s2_mat4x4f_t* mat4) {
+inline void s2_displacementf_toMat4x4f(s2_displacementf_t* D,
+                                       s2_mat4x4f_t* mat4) {
 
   memset(mat4, 0, sizeof(s2_mat4x4f_t));
   cblas_scopy(3, (float*)D, 1, (float*)mat4, 1);
@@ -327,23 +307,22 @@ inline void s2_displacementf_toMat4x4f(
 single precision s2_Mat4f format.
 
 */
-inline void s2_displacement_toMat4x4f(
-  s2_displacement_t* D,
-  s2_mat4x4f_t* mat4) {
+inline void s2_displacement_toMat4x4f(s2_displacement_t* D,
+                                      s2_mat4x4f_t* mat4) {
 
   double* Di = (double*)D;
   float* mat4i = (float*)mat4;
   memset(mat4, 0, 15 * sizeof(float));
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     mat4i[i + 0] = (float)Di[i];
   }
-  for(int i = 3; i < 6; i++) {
-    mat4i[i + 1] = (float) Di[i];
+  for (int i = 3; i < 6; i++) {
+    mat4i[i + 1] = (float)Di[i];
   }
-  for(int i = 6; i < 9; i++) {
-    mat4i[i + 2] = (float) Di[i];
+  for (int i = 6; i < 9; i++) {
+    mat4i[i + 2] = (float)Di[i];
   }
-  for(int i = 9; i < 12; i++) {
+  for (int i = 9; i < 12; i++) {
     mat4i[i + 3] = (float)Di[i];
   }
 }
@@ -362,13 +341,10 @@ prints a 3x1 column vector as a row vector
 
 @param ti 3x1 column vector
 */
-void s2_vector_print(
-  FILE* f,
-  s2_vector_t* ti) {
+void s2_vector_print(FILE* f, s2_vector_t* ti) {
 
   fprintf(f, "%f %f %f\n", ti->x, ti->y, ti->z);
 }
-
 
 /*!
 @brief Utility to print a quaternion
@@ -382,8 +358,6 @@ void s2_quaternion_print(FILE* f, s2_quaternion_t* q) {
   fprintf(f, "%f %f %f %f\n", q->x, q->y, q->z, q->w);
 }
 
-
-
 /*!
 @brief Utility to print a 6x1 screw vector
 
@@ -391,12 +365,10 @@ prints a 6x1 column vector as a row vector
 
 @param si 6x1 column vector
 */
-void s2_screw_print(
-  FILE* f,
-  s2_screw_t* si) {
+void s2_screw_print(FILE* f, s2_screw_t* si) {
 
-  fprintf(f, "%g %g %g %g %g %g\n", si->m0, si->m1, si->m2, si->m3, si->m4, si->m5);
-
+  fprintf(f, "%g %g %g %g %g %g\n", si->m0, si->m1, si->m2, si->m3, si->m4,
+          si->m5);
 }
 
 /*!
@@ -406,9 +378,7 @@ prints a rotation matrix
 
 @param ri 3x3 rotation matrix
 */
-void s2_mat3x3_print(
-  FILE* f,
-  s2_mat3x3_t* ri) {
+void s2_mat3x3_print(FILE* f, s2_mat3x3_t* ri) {
 
   fprintf(f, "%f %f %f\n", ri->m00, ri->m01, ri->m02);
   fprintf(f, "%f %f %f\n", ri->m10, ri->m11, ri->m12);
@@ -422,9 +392,7 @@ prints a rotation matrix
 
 @param ri 3x3 rotation matrix
 */
-void s2_mat3x3f_print(
-  FILE* f,
-  s2_mat3x3f_t* ri) {
+void s2_mat3x3f_print(FILE* f, s2_mat3x3f_t* ri) {
 
   fprintf(f, "%f %f %f\n", ri->m00, ri->m01, ri->m02);
   fprintf(f, "%f %f %f\n", ri->m10, ri->m11, ri->m12);
@@ -442,18 +410,16 @@ translation terms in the last 3 entries of the array.
 
 @param Di A general displacement, \f$D_i\f$
 */
-void s2_displacement_print(
-  FILE* f,
-  s2_displacement_t* Di) {
+void s2_displacement_print(FILE* f, s2_displacement_t* Di) {
 
-  fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-          Di->R.m00, Di->R.m01, Di->R.m02, Di->T.x);
-  fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-          Di->R.m10, Di->R.m11, Di->R.m12, Di->T.y);
-  fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n",
-          Di->R.m20, Di->R.m21, Di->R.m22, Di->T.z);
+  fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n", Di->R.m00, Di->R.m01, Di->R.m02,
+          Di->T.x);
+  fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n", Di->R.m10, Di->R.m11, Di->R.m12,
+          Di->T.y);
+  fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n", Di->R.m20, Di->R.m21, Di->R.m22,
+          Di->T.z);
   fprintf(f, "  ");
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     fprintf(f, " 0.000000000 ");
   }
   fprintf(f, " 1.000000000\n");
@@ -470,18 +436,12 @@ translation terms in the last 3 entries of the array.
 
 @param Di A general displacement, \f$D_i\f$
 */
-void s2_mat4x4_print(
-  FILE* f,
-  s2_mat4x4_t* Di) {
+void s2_mat4x4_print(FILE* f, s2_mat4x4_t* Di) {
 
-  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-          Di->m00, Di->m01, Di->m02, Di->m03);
-  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-          Di->m10, Di->m11, Di->m12, Di->m13);
-  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-          Di->m20, Di->m21, Di->m22, Di->m23);
-  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-          Di->m30, Di->m31, Di->m32, Di->m33);
+  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n", Di->m00, Di->m01, Di->m02, Di->m03);
+  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n", Di->m10, Di->m11, Di->m12, Di->m13);
+  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n", Di->m20, Di->m21, Di->m22, Di->m23);
+  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n", Di->m30, Di->m31, Di->m32, Di->m33);
 }
 
 /*!
@@ -495,29 +455,20 @@ translation terms in the last 3 entries of the array.
 
 @param Di A general displacement, \f$D_i\f$
 */
-void s2_mat4x4f_print(
-  FILE* f,
-  s2_mat4x4f_t* Di) {
+void s2_mat4x4f_print(FILE* f, s2_mat4x4f_t* Di) {
 
-  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-          Di->m00, Di->m01, Di->m02, Di->m03);
-  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-          Di->m10, Di->m11, Di->m12, Di->m13);
-  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-          Di->m20, Di->m21, Di->m22, Di->m23);
-  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n",
-          Di->m30, Di->m31, Di->m32, Di->m33);
+  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n", Di->m00, Di->m01, Di->m02, Di->m03);
+  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n", Di->m10, Di->m11, Di->m12, Di->m13);
+  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n", Di->m20, Di->m21, Di->m22, Di->m23);
+  fprintf(f, "%0.4f %0.4f %0.4f %0.4f\n", Di->m30, Di->m31, Di->m32, Di->m33);
 }
 
 /*!
 @brief utility to print a general array of double of length n on one line
 */
-void s2_array_print(
-  FILE* f,
-  int n,
-  double* a) {
+void s2_array_print(FILE* f, int n, double* a) {
 
-  for(int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     fprintf(f, "%0.6g ", a[i]);
   }
   fprintf(f, "\n");
@@ -527,28 +478,24 @@ void s2_array_print(
 @brief utility to print a 2D array stored in a single pointer
 with dimension rowDim * colDim
 */
-void s2_array_print2D(
-  FILE* f,
-  int rowDim,
-  int colDim,
-  bool isRowMajor,
-  double* a) {
+void s2_array_print2D(FILE* f, int rowDim, int colDim, bool isRowMajor,
+                      double* a) {
 
-  if(isRowMajor) {
-    for(int i = 0; i < rowDim; i++) {
+  if (isRowMajor) {
+    for (int i = 0; i < rowDim; i++) {
       fprintf(f, "  [");
-      for(int j = 0; j < colDim; j++) {
+      for (int j = 0; j < colDim; j++) {
         fprintf(f, "% 0.10f", a[i * colDim + j]);
-        if(j != colDim - 1) {
+        if (j != colDim - 1) {
           fprintf(f, ", ");
         }
       }
       fprintf(f, "]\n");
     }
   } else {
-    for(int i = 0; i < rowDim; i++) {
+    for (int i = 0; i < rowDim; i++) {
       fprintf(f, "  ");
-      for(int j = 0; j < colDim; j++) {
+      for (int j = 0; j < colDim; j++) {
         fprintf(f, "% 0.10f ", a[i + j * rowDim]);
       }
       fprintf(f, "\n");
@@ -556,78 +503,61 @@ void s2_array_print2D(
   }
 }
 
-
 /*!
 @brief utility to print a general array of ints of length n on one line
 */
-void s2_arrayi_print(
-  FILE* f,
-  int n,
-  int* a) {
+void s2_arrayi_print(FILE* f, int n, int* a) {
 
-  for(int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     fprintf(f, "%d ", a[i]);
   }
   fprintf(f, "\n");
 }
 
-
 /*!
 @brief utility to print a lower triangular matrix of doubles stored in a
 linear array
 */
-void s2_triang_print(
-  FILE* f,
-  int n,
-  double* a) {
+void s2_triang_print(FILE* f, int n, double* a) {
 
-  for(int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
-    for(int j = 0; j < i + 1; j++) {
+    for (int j = 0; j < i + 1; j++) {
       fprintf(f, "% 9.4f ", a[i_s + j]);
     }
     fprintf(f, "\n");
   }
 }
 
-
 /*!
 @brief utility to print a lower triangular matrix of integers stored in a
 linear array
 */
-void s2_triangi_print(
-  FILE* f,
-  int n,
-  int* a) {
+void s2_triangi_print(FILE* f, int n, int* a) {
 
-  for(int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
-    for(int j = 0; j < i + 1; j++) {
+    for (int j = 0; j < i + 1; j++) {
       fprintf(f, "% d ", a[i_s + j]);
     }
     fprintf(f, "\n");
   }
 }
 
-
 /*!
 @brief utility to print a lower triangular matrix of integers stored in a
 linear array
 */
-void s2_triangb_print(
-  FILE* f,
-  int n,
-  bool* a) {
+void s2_triangb_print(FILE* f, int n, bool* a) {
 
-  for(int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
-    for(int j = 0; j < i + 1; j++) {
+    for (int j = 0; j < i + 1; j++) {
       fprintf(f, "%s ", a[i_s + j] ? "1" : "0");
     }
     fprintf(f, "\n");
   }
 }
-
 
 /*!
 @}
@@ -645,14 +575,11 @@ Computes direction cosine and sine terms, terms are saved to array dc
 @param dco Array of cos, sin terms, \f$cos(theta_i) \rightarrow dc_o[0]\f$,
 \f$sin(thetai) \rightarrow dc_o[1]\f$
 */
-inline void s2_dc(
-  double* thetai,
-  double dc[2]) {
+inline void s2_dc(double* thetai, double dc[2]) {
 
   dc[0] = sin(*thetai);
   dc[1] = cos(*thetai);
 }
-
 
 /*!
 @}
@@ -666,11 +593,11 @@ Utilities for initializing general displacements, vectors and screws
 
 Overwrites an SE3 matrix with the identity matrix.
 
-@param D an SE3 matrix to set to identity, the resulting matrix will be overwritten
+@param D an SE3 matrix to set to identity, the resulting matrix will be
+overwritten
 */
 
-inline void s2_displacement_setIdentity(
-  s2_displacement_t* D) {
+inline void s2_displacement_setIdentity(s2_displacement_t* D) {
 
   memset(D, 0, sizeof(s2_displacement_t));
   D->R.m00 = 1.0;
@@ -678,17 +605,16 @@ inline void s2_displacement_setIdentity(
   D->R.m22 = 1.0;
 }
 
-
 /*!
 @brief Set a rotation matrix to identity
 
 Overwrites a rotation matrix with the identity matrix.
 
-@param R an SE3 matrix to set to identity, the resulting matrix will be overwritten
+@param R an SE3 matrix to set to identity, the resulting matrix will be
+overwritten
 */
 
-inline void s2_mat3x3_setIdentity(
-  s2_mat3x3_t* R) {
+inline void s2_mat3x3_setIdentity(s2_mat3x3_t* R) {
 
   memset(R, 0, sizeof(s2_mat3x3_t));
   R->m00 = 1.0;
@@ -696,17 +622,16 @@ inline void s2_mat3x3_setIdentity(
   R->m22 = 1.0;
 }
 
-
 /*!
 @brief Set a rotation matrix to identity
 
 Overwrites a rotation matrix with the identity matrix.
 
-@param R an SE3 matrix to set to identity, the resulting matrix will be overwritten
+@param R an SE3 matrix to set to identity, the resulting matrix will be
+overwritten
 */
 
-inline void s2_mat4x4f_setIdentity(
-  s2_mat4x4f_t* R) {
+inline void s2_mat4x4f_setIdentity(s2_mat4x4f_t* R) {
 
   memset(R, 0, sizeof(s2_mat4x4f_t));
   ((float*)R)[0 * 4 + 0] = 1.f;
@@ -714,7 +639,6 @@ inline void s2_mat4x4f_setIdentity(
   ((float*)R)[2 * 4 + 2] = 1.f;
   ((float*)R)[3 * 4 + 3] = 1.f;
 }
-
 
 /*!
 @}
@@ -726,10 +650,7 @@ inline void s2_mat4x4f_setIdentity(
 /*!
 @brief set a value of vector
 */
-inline void s2_vector_set(
-  s2_vector_t* v,
-  int index,
-  double value) {
+inline void s2_vector_set(s2_vector_t* v, int index, double value) {
 
   // if(index > 2 || index < 0) {
   //   fprintf(stderr, "s2_vector_set: out of bounds\n");
@@ -741,77 +662,39 @@ inline void s2_vector_set(
 /*!
 @brief l2 norm (length) of double precision vector
 */
-inline double s2_vector_l2norm(
-  s2_vector_t* v) {
+inline double s2_vector_l2norm(s2_vector_t* v) {
 
-  return
-    sqrt(
-      cblas_ddot(
-        3,
-        (double*)v,
-        1,
-        (double*)v,
-        1));
+  return sqrt(cblas_ddot(3, (double*)v, 1, (double*)v, 1));
 }
 
 /*!
 @brief l2 norm (length) of single precision vector
 */
-inline float s2_vectorf_l2norm(
-  s2_vectorf_t* v) {
+inline float s2_vectorf_l2norm(s2_vectorf_t* v) {
 
-  return
-    sqrt(
-      cblas_sdot(
-        3,
-        (float*)v,
-        1,
-        (float*)v,
-        1));
+  return sqrt(cblas_sdot(3, (float*)v, 1, (float*)v, 1));
 }
 
 /*!
 @brief l2 norm of double precision screw
 */
-inline double s2_screw_l2norm(
-  s2_screw_t* v) {
+inline double s2_screw_l2norm(s2_screw_t* v) {
 
-  return
-    sqrt(
-      cblas_ddot(
-        6,
-        (double*)v,
-        1,
-        (double*)v,
-        1));
+  return sqrt(cblas_ddot(6, (double*)v, 1, (double*)v, 1));
 }
 
 /*!
 @brief l2 norm of single precision screw
 */
-inline float s2_screwf_l2norm(
-  s2_screwf_t* v) {
+inline float s2_screwf_l2norm(s2_screwf_t* v) {
 
-  return
-    sqrt(
-      cblas_sdot(
-        6,
-        (float*)v,
-        1,
-        (float*)v,
-        1));
+  return sqrt(cblas_sdot(6, (float*)v, 1, (float*)v, 1));
 }
-
-
-
 
 /*!
 @brief set a value of a screw
 */
-inline void s2_screw_set(
-  s2_screw_t* s,
-  int index,
-  double value) {
+inline void s2_screw_set(s2_screw_t* s, int index, double value) {
 
   // if(index > 5 || index < 0) {
   //   fprintf(stderr, "s2_screw_set: out of bounds\n");
@@ -820,17 +703,12 @@ inline void s2_screw_set(
   ((double*)s)[index] = value;
 }
 
-
 /*!
 @brief set a value of a mat3x3
 
 note that mat3x3 is stored in column major order
 */
-inline void s2_mat3x3_set(
-  s2_mat3x3_t* R,
-  int row,
-  int column,
-  double value) {
+inline void s2_mat3x3_set(s2_mat3x3_t* R, int row, int column, double value) {
 
   // if(row > 2 || row < 0 || column < 0 || column > 2) {
   //   fprintf(stderr, "s2_mat3x3_set: out of bounds\n");
@@ -839,35 +717,25 @@ inline void s2_mat3x3_set(
   ((double*)R)[3 * column + row] = value;
 }
 
-
 /*!
 @brief set a mat3x3 rotation matrix from three vectors
 
 note that mat3x3 is stored in column major order
 */
-inline void s2_mat3x3_setFromVectors(
-  s2_mat3x3_t* R,
-  s2_vector_t* x,
-  s2_vector_t* y,
-  s2_vector_t* z) {
+inline void s2_mat3x3_setFromVectors(s2_mat3x3_t* R, s2_vector_t* x,
+                                     s2_vector_t* y, s2_vector_t* z) {
 
   memcpy(&(R->m00), x, sizeof(s2_vector_t));
   memcpy(&(R->m01), y, sizeof(s2_vector_t));
   memcpy(&(R->m02), z, sizeof(s2_vector_t));
-
 }
-
 
 /*!
 @brief set a value of a mat3x3
 
 note that mat3x3 is stored in column major order
 */
-inline void s2_mat4x4_set(
-  s2_mat4x4_t* R,
-  int row,
-  int column,
-  double value) {
+inline void s2_mat4x4_set(s2_mat4x4_t* R, int row, int column, double value) {
 
   // if(row > 3 || row < 0 || column < 0 || column > 3) {
   //   fprintf(stderr, "s2_mat4x4_set: out of bounds\n");
@@ -876,35 +744,27 @@ inline void s2_mat4x4_set(
   ((double*)R)[4 * column + row] = value;
 }
 
-
 /*!
 @brief set a value of a displacement
 */
-inline void s2_displacement_set(
-  s2_displacement_t* D,
-  int row,
-  int column,
-  double value) {
+inline void s2_displacement_set(s2_displacement_t* D, int row, int column,
+                                double value) {
 
   // if(row > 3 || row < 0 || column < 0 || column > 3) {
   //   fprintf(stderr, "s2_displacement_set: out of bounds\n");
   //   return;
   // }
-  if(column == 3) {
+  if (column == 3) {
     s2_vector_set(&D->T, row, value);
   } else {
     s2_mat3x3_set(&D->R, row, column, value);
   }
 }
 
-
 /*!
 @brief set a value of vectorf
 */
-inline void s2_vectorf_set(
-  s2_vectorf_t* v,
-  int index,
-  float value) {
+inline void s2_vectorf_set(s2_vectorf_t* v, int index, float value) {
 
   // if(index > 2 || index < 0) {
   //   fprintf(stderr, "s2_vector_set: out of bounds\n");
@@ -913,14 +773,10 @@ inline void s2_vectorf_set(
   ((float*)v)[index] = value;
 }
 
-
 /*!
 @brief set a value of a screwf
 */
-inline void s2_screwf_set(
-  s2_screwf_t* s,
-  int index,
-  float value) {
+inline void s2_screwf_set(s2_screwf_t* s, int index, float value) {
 
   // if(index > 5 || index < 0) {
   //   fprintf(stderr, "s2_screw_set: out of bounds\n");
@@ -929,17 +785,12 @@ inline void s2_screwf_set(
   ((float*)s)[index] = value;
 }
 
-
 /*!
 @brief set a value of a mat3x3f
 
 note that mat3x3 is stored in column major order
 */
-inline void s2_mat3x3f_set(
-  s2_mat3x3f_t* R,
-  int row,
-  int column,
-  float value) {
+inline void s2_mat3x3f_set(s2_mat3x3f_t* R, int row, int column, float value) {
 
   // if(row > 3 || row < 0 || column < 0 || column > 2) {
   //   fprintf(stderr, "s2_mat3x3_set: out of bounds\n");
@@ -948,17 +799,12 @@ inline void s2_mat3x3f_set(
   ((float*)R)[row + column * 3] = value;
 }
 
-
 /*!
 @brief set a value of a mat4x4f
 
 note that mat3x3 is stored in column major order
 */
-inline void s2_mat4x4f_set(
-  s2_mat4x4f_t* R,
-  int row,
-  int column,
-  float value) {
+inline void s2_mat4x4f_set(s2_mat4x4f_t* R, int row, int column, float value) {
 
   // if(row > 3 || row < 0 || column < 0 || column > 3) {
   //   fprintf(stderr, "s2_mat4x4f_set: out of bounds\n");
@@ -967,34 +813,27 @@ inline void s2_mat4x4f_set(
   ((float*)R)[4 * column + row] = value;
 }
 
-
 /*!
 @brief set a value of a displacementf
 */
-inline void s2_displacementf_set(
-  s2_displacementf_t* D,
-  int row,
-  int column,
-  float value) {
+inline void s2_displacementf_set(s2_displacementf_t* D, int row, int column,
+                                 float value) {
   //
   // if(row > 3 || row < 0 || column < 0 || column > 3) {
   //   fprintf(stderr, "s2_displacement_set: out of bounds\n");
   //   return;
   // }
-  if(column == 3) {
+  if (column == 3) {
     s2_vectorf_set(&D->T, row, value);
   } else {
     s2_mat3x3f_set(&D->R, row, column, value);
   }
 }
 
-
 /*!
 @brief get a value of vector
 */
-inline double s2_vector_get(
-  s2_vector_t* v,
-  int index) {
+inline double s2_vector_get(s2_vector_t* v, int index) {
 
   // if(index > 2 || index < 0) {
   //   fprintf(stderr, "s2_vector_set: out of bounds\n");
@@ -1003,13 +842,10 @@ inline double s2_vector_get(
   return ((double*)v)[index];
 }
 
-
 /*!
 @brief set a value of a screw
 */
-inline double s2_screw_get(
-  s2_screw_t* s,
-  int index) {
+inline double s2_screw_get(s2_screw_t* s, int index) {
 
   // if(index > 5 || index < 0) {
   //   fprintf(stderr, "s2_screw_set: out of bounds\n");
@@ -1023,10 +859,7 @@ inline double s2_screw_get(
 
 note that mat3x3 is stored in column major order
 */
-inline double s2_mat3x3_get(
-  s2_mat3x3_t* R,
-  int row,
-  int column) {
+inline double s2_mat3x3_get(s2_mat3x3_t* R, int row, int column) {
 
   // assert(row < 3 && row > -1 && column < 3 && column > -1);
   // if(row > 3 || row < 0 || column < 0 || column > 2) {
@@ -1039,16 +872,13 @@ inline double s2_mat3x3_get(
 /*!
 @brief set a value of a displacement
 */
-inline double s2_displacement_get(
-  s2_displacement_t* D,
-  int row,
-  int column) {
+inline double s2_displacement_get(s2_displacement_t* D, int row, int column) {
 
-  if(row > 3 || row < 0 || column < 0 || column > 3) {
+  if (row > 3 || row < 0 || column < 0 || column > 3) {
     fprintf(stderr, "s2_displacement_set: out of bounds\n");
     return -INFINITY;
   }
-  if(column == 3) {
+  if (column == 3) {
     return s2_vector_get(&D->T, row);
   } else {
     return s2_mat3x3_get(&D->R, row, column);
@@ -1058,9 +888,7 @@ inline double s2_displacement_get(
 /*!
 @brief set a value of vectorf
 */
-inline float s2_vectorf_get(
-  s2_vectorf_t* v,
-  int index) {
+inline float s2_vectorf_get(s2_vectorf_t* v, int index) {
 
   // if(index > 2 || index < 0) {
   //   fprintf(stderr, "s2_vector_set: out of bounds\n");
@@ -1072,9 +900,7 @@ inline float s2_vectorf_get(
 /*!
 @brief set a value of a screwf
 */
-inline float s2_screwf_get(
-  s2_screwf_t* s,
-  int index) {
+inline float s2_screwf_get(s2_screwf_t* s, int index) {
 
   // if(index > 5 || index < 0) {
   //   fprintf(stderr, "s2_screw_set: out of bounds\n");
@@ -1088,10 +914,7 @@ inline float s2_screwf_get(
 
 note that mat3x3 is stored in column major order
 */
-inline float s2_mat3x3f_get(
-  s2_mat3x3f_t* R,
-  int row,
-  int column) {
+inline float s2_mat3x3f_get(s2_mat3x3f_t* R, int row, int column) {
 
   // if(row > 3 || row < 0 || column < 0 || column > 2) {
   //   fprintf(stderr, "s2_mat3x3_set: out of bounds\n");
@@ -1103,16 +926,13 @@ inline float s2_mat3x3f_get(
 /*!
 @brief set a value of a displacementf
 */
-inline float s2_displacementf_get(
-  s2_displacementf_t* D,
-  int row,
-  int column) {
+inline float s2_displacementf_get(s2_displacementf_t* D, int row, int column) {
 
   // if(row > 3 || row < 0 || column < 0 || column > 3) {
   //   fprintf(stderr, "s2_displacement_set: out of bounds\n");
   //   return -INFINITY;
   // }
-  if(column == 3) {
+  if (column == 3) {
     return s2_vectorf_get(&D->T, row);
   } else {
     return s2_mat3x3f_get(&D->R, row, column);
@@ -1123,9 +943,8 @@ inline float s2_displacementf_get(
 @brief get translation component of a general displacement
 
 */
-inline void s2_displacement_getTranslation(
-  s2_displacement_t* d,
-  s2_vector_t* t) {
+inline void s2_displacement_getTranslation(s2_displacement_t* d,
+                                           s2_vector_t* t) {
 
   s2_vector_copy(&(d->T), t);
 }
@@ -1137,7 +956,6 @@ Utilities for carrying out Vector/Vector and Vector/Scalar operations
 @{
 */
 
-
 /*!
 @brief Copy a double precision Vector vi into Vector vo.
 
@@ -1147,9 +965,7 @@ Utilities for carrying out Vector/Vector and Vector/Scalar operations
 @param vi input vector \f$V_i\f$
 @param vo output vector \f$V_o\f$
 */
-inline void s2_vector_copy(
-  s2_vector_t* vi,
-  s2_vector_t* vo) {
+inline void s2_vector_copy(s2_vector_t* vi, s2_vector_t* vo) {
 
   memcpy(vo, vi, sizeof(s2_vector_t));
   // cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
@@ -1163,9 +979,7 @@ inline void s2_vector_copy(
 @param vi input vector \f$V_i\f$
 @param vo output vector \f$V_o\f$
 */
-inline void s2_vectorf_copy(
-  s2_vectorf_t* vi,
-  s2_vectorf_t* vo) {
+inline void s2_vectorf_copy(s2_vectorf_t* vi, s2_vectorf_t* vo) {
 
   memcpy(vo, vi, sizeof(s2_vectorf_t));
 
@@ -1180,12 +994,26 @@ inline void s2_vectorf_copy(
 @param vi input vector \f$V_i\f$
 @param vo output vector \f$V_o\f$
 */
-inline void s2_vector_invert(
-  s2_vector_t* vi,
-  s2_vector_t* vo) {
+inline void s2_vector_invert(s2_vector_t* vi, s2_vector_t* vo) {
 
-  memset(vo, 0, 3 * sizeof(double));
-  cblas_daxpy(3, -1.0, (double*)vi, 1, (double*)vo, 1);
+  vo->x = -vi->x;
+  vo->y = -vi->y;
+  vo->z = -vi->z;
+}
+
+/*!
+@brief invert a double precision vector.
+
+\f$-V_i \rightarrow V_i\f$
+
+@param vi input vector \f$V_i\f$
+@param vo output vector \f$V_o\f$
+*/
+inline void s2_vector_invertInPlace(s2_vector_t* vi) {
+
+  vi->x = -vi->x;
+  vi->y = -vi->y;
+  vi->z = -vi->z;
 }
 
 /*!
@@ -1196,12 +1024,26 @@ inline void s2_vector_invert(
 @param vi input vector \f$V_i\f$
 @param vo output vector \f$V_o\f$
 */
-inline void s2_vectorf_invert(
-  s2_vectorf_t* vi,
-  s2_vectorf_t* vo) {
+inline void s2_vectorf_invert(s2_vectorf_t* vi, s2_vectorf_t* vo) {
 
-  memset(vo, 0, 3 * sizeof(float));
-  cblas_saxpy(3, -1.0, (float*)vi, 1, (float*)vo, 1);
+  vo->x = -vi->x;
+  vo->y = -vi->y;
+  vo->z = -vi->z;
+}
+
+/*!
+@brief invert a single precision vector in place
+
+\f$-V_i \rightarrow V_i\f$
+
+@param vi input vector \f$V_i\f$
+@param vo output vector \f$V_o\f$
+*/
+inline void s2_vectorf_invertInPlace(s2_vectorf_t* vi) {
+
+  vi->x = -vi->x;
+  vi->y = -vi->y;
+  vi->z = -vi->z;
 }
 
 /*!
@@ -1212,18 +1054,14 @@ inline void s2_vectorf_invert(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double s2_dot_vv(
-  s2_vector_t* vi0,
-  s2_vector_t* vi1) {
+inline double s2_dot_vv(s2_vector_t* vi0, s2_vector_t* vi1) {
 
-  return cblas_ddot(
-           3,
-           (double*)vi0,
-           1,
-           (double*)vi1,
-           1);
+  double sum = 0;
+  sum += vi0->x * vi1->x;
+  sum += vi0->x * vi1->y;
+  sum += vi0->z * vi1->y;
+  return sum;
 }
-
 
 /*!
 @brief single precision Dot product of two vectors
@@ -1233,18 +1071,14 @@ inline double s2_dot_vv(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double s2_dot_vvf(
-  s2_vectorf_t* vi0,
-  s2_vectorf_t* vi1) {
+inline float s2_dot_vvf(s2_vectorf_t* vi0, s2_vectorf_t* vi1) {
 
-  return cblas_sdot(
-           3,
-           (float*)vi0,
-           1,
-           (float*)vi1,
-           1);
+  float sum = 0;
+  sum += vi0->x * vi1->x;
+  sum += vi0->x * vi1->y;
+  sum += vi0->z * vi1->y;
+  return sum;
 }
-
 
 /*!
 @brief double precision Dot product of two screws
@@ -1254,16 +1088,9 @@ inline double s2_dot_vvf(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double s2_dot_ss(
-  s2_screw_t* vi0,
-  s2_screw_t* vi1) {
+inline double s2_dot_ss(s2_screw_t* vi0, s2_screw_t* vi1) {
 
-  return cblas_ddot(
-           6,
-           (double*)vi0,
-           1,
-           (double*)vi1,
-           1);
+  return cblas_ddot(6, (double*)vi0, 1, (double*)vi1, 1);
 }
 
 /*!
@@ -1274,19 +1101,10 @@ inline double s2_dot_ss(
 @param vi0 first input vector
 @param vi1 second input vector
 */
-inline double s2_dot_ssf(
-  s2_screwf_t* vi0,
-  s2_screwf_t* vi1) {
+inline float s2_dot_ssf(s2_screwf_t* vi0, s2_screwf_t* vi1) {
 
-  return cblas_sdot(
-           6,
-           (float*)vi0,
-           1,
-           (float*)vi1,
-           1);
+  return cblas_sdot(6, (float*)vi0, 1, (float*)vi1, 1);
 }
-
-
 
 /*!
 @brief Computes the product of a vector and a scalar
@@ -1297,16 +1115,12 @@ inline double s2_dot_ssf(
 @param *ki a pointer to a scalar
 @param vo[3] the results are stored in vo[3]
 */
-inline void s2_product_vk(
-  s2_vector_t* vi,
-  double* ki,
-  s2_vector_t* vo) {
+inline void s2_product_vk(s2_vector_t* vi, double* ki, s2_vector_t* vo) {
 
   cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
   cblas_dscal(3, *ki, (double*)vo, 1);
 }
 
-
 /*!
 @brief Computes the product of a vector and a 1/scalar
 
@@ -1316,16 +1130,12 @@ inline void s2_product_vk(
 @param *ki a pointer to a scalar
 @param vo[3] the results are stored in vo[3]
 */
-inline void s2_product_vkinverse(
-  s2_vector_t* vi,
-  double* ki,
-  s2_vector_t* vo) {
+inline void s2_product_vkinverse(s2_vector_t* vi, double* ki, s2_vector_t* vo) {
 
   cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
   cblas_dscal(3, 1. / *ki, (double*)vo, 1);
 }
 
-
 /*!
 @brief Computes the product of a vector and a 1/scalar
 
@@ -1335,15 +1145,11 @@ inline void s2_product_vkinverse(
 @param *ki a pointer to a scalar
 @param vo[3] the results are stored in vo[3]
 */
-inline void s2_product_vinversek(
-  s2_vector_t* vi,
-  double* ki,
-  s2_vector_t* vo) {
+inline void s2_product_vinversek(s2_vector_t* vi, double* ki, s2_vector_t* vo) {
 
   memcpy(vo, vi, sizeof(s2_vector_t));
   cblas_dscal(3, -(*ki), (double*)vo, 1);
 }
-
 
 /*!
 @brief Computes the product of a vector and a scalar
@@ -1354,15 +1160,11 @@ inline void s2_product_vinversek(
 @param *ki a pointer to a scalar
 @param vo[3] the results are stored in vo[3]
 */
-inline void s2_product_vkf(
-  s2_vectorf_t* vi,
-  float* ki,
-  s2_vectorf_t* vo) {
+inline void s2_product_vkf(s2_vectorf_t* vi, float* ki, s2_vectorf_t* vo) {
 
   cblas_scopy(3, (float*)vi, 1, (float*)vo, 1);
   cblas_sscal(3, *ki, (float*)vo, 1);
 }
-
 
 /*!
 @brief Adds two double precision vectors
@@ -1375,10 +1177,7 @@ Add 3 by 1 column matrices v1i and v2i and store results in vo.
 @param v2i second column vector
 @param vo the results of v1i + v2i are stored in vo
 */
-inline void s2_add_vv(
-  s2_vector_t* v1i,
-  s2_vector_t* v2i,
-  s2_vector_t* vo) {
+inline void s2_add_vv(s2_vector_t* v1i, s2_vector_t* v2i, s2_vector_t* vo) {
 
   cblas_dcopy(3, (double*)v1i, 1, (double*)vo, 1);
   cblas_daxpy(3, 1.0, (double*)v2i, 1, (double*)vo, 1);
@@ -1398,10 +1197,7 @@ Add 3 by 1 column matrices v1i and v2i and store results in vo.
 @param v2i second column vector
 @param vo the results of v1i + v2i are stored in vo
 */
-inline void s2_add_vvf(
-  s2_vectorf_t* v1i,
-  s2_vectorf_t* v2i,
-  s2_vectorf_t* vo) {
+inline void s2_add_vvf(s2_vectorf_t* v1i, s2_vectorf_t* v2i, s2_vectorf_t* vo) {
 
   cblas_scopy(3, (float*)v1i, 1, (float*)vo, 1);
   cblas_saxpy(3, 1.0, (float*)v2i, 1, (float*)vo, 1);
@@ -1409,7 +1205,6 @@ inline void s2_add_vvf(
   // vo[1] = v1i[1] + v2i[1];
   // vo[2] = v1i[2] + v2i[2];
 }
-
 
 /*!
 @brief Adds two double precision vectors
@@ -1421,13 +1216,10 @@ Add 3 by 1 column matrix v1i to v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void s2_addequal_vv(
-  s2_vector_t* v1i,
-  s2_vector_t* v2i) {
+inline void s2_addequal_vv(s2_vector_t* v1i, s2_vector_t* v2i) {
 
   cblas_daxpy(3, 1.0, (double*)v1i, 1, (double*)v2i, 1);
 }
-
 
 /*!
 @brief Adds two single precision vectors
@@ -1439,16 +1231,13 @@ Add 3 by 1 column matrix v1i to v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void s2_addequal_vvf(
-  s2_vectorf_t* v1i,
-  s2_vectorf_t* v2i) {
+inline void s2_addequal_vvf(s2_vectorf_t* v1i, s2_vectorf_t* v2i) {
 
   cblas_saxpy(3, 1.0, (float*)v1i, 1, (float*)v2i, 1);
   // vo[0] = v1i[0] + v2i[0];
   // vo[1] = v1i[1] + v2i[1];
   // vo[2] = v1i[2] + v2i[2];
 }
-
 
 /*!
 @brief Adds two double precision vectors
@@ -1460,13 +1249,10 @@ subtract 3 by 1 column matrix v1i from v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void s2_subtractequal_vv(
-  s2_vector_t* v1i,
-  s2_vector_t* v2i) {
+inline void s2_subtractequal_vv(s2_vector_t* v1i, s2_vector_t* v2i) {
 
   cblas_daxpy(3, -1.0, (double*)v1i, 1, (double*)v2i, 1);
 }
-
 
 /*!
 @brief Adds two single precision vectors
@@ -1478,16 +1264,13 @@ Subtract 3 by 1 column matrix v1i from v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void s2_subtractequal_vvf(
-  s2_vectorf_t* v1i,
-  s2_vectorf_t* v2i) {
+inline void s2_subtractequal_vvf(s2_vectorf_t* v1i, s2_vectorf_t* v2i) {
 
   cblas_saxpy(3, -1.0, (float*)v1i, 1, (float*)v2i, 1);
   // vo[0] = v1i[0] + v2i[0];
   // vo[1] = v1i[1] + v2i[1];
   // vo[2] = v1i[2] + v2i[2];
 }
-
 
 /*!
 @brief axpy (ax plus y stored in y) for double precision vectors
@@ -1499,14 +1282,10 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void s2_axpy_vv(
-  double k,
-  s2_vector_t* v1x,
-  s2_vector_t* v2y) {
+inline void s2_axpy_vv(double k, s2_vector_t* v1x, s2_vector_t* v2y) {
 
   cblas_daxpy(3, k, (double*)v1x, 1, (double*)v2y, 1);
 }
-
 
 /*!
 @brief axpy (ax plus y stored in y) for single precision vectors
@@ -1518,14 +1297,10 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void s2_axpy_vvf(
-  float k,
-  s2_vectorf_t* v1x,
-  s2_vectorf_t* v2y) {
+inline void s2_axpy_vvf(float k, s2_vectorf_t* v1x, s2_vectorf_t* v2y) {
 
   cblas_saxpy(3, k, (float*)v1x, 1, (float*)v2y, 1);
 }
-
 
 /*!
 @brief axpy (ax plus y stored in y) for double precision screws
@@ -1537,14 +1312,10 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i a first column vector input
 @param v2i second column vector
 */
-inline void s2_axpy_ss(
-  double k,
-  s2_screw_t* v1x,
-  s2_screw_t* v2y) {
+inline void s2_axpy_ss(double k, s2_screw_t* v1x, s2_screw_t* v2y) {
 
   cblas_daxpy(6, k, (double*)v1x, 1, (double*)v2y, 1);
 }
-
 
 /*!
 @brief axpy (ax plus y stored in y) for single precision screws
@@ -1556,14 +1327,10 @@ add 3 by 1 column matrix v1i scaled by k to v2i
 @param v1i [in] a first column vector input
 @param v2i [in/out] second column vector
 */
-inline void s2_axpy_ssf(
-  float k,
-  s2_screwf_t* v1x,
-  s2_screwf_t* v2y) {
+inline void s2_axpy_ssf(float k, s2_screwf_t* v1x, s2_screwf_t* v2y) {
 
   cblas_saxpy(6, k, (float*)v1x, 1, (float*)v2y, 1);
 }
-
 
 /*!
 @brief Subtract two double precision vectors
@@ -1576,15 +1343,12 @@ Subtract 3 by 1 column matrix v2i from v1i and store results in vo.
 @param V21 a second 3x1 vector
 @param vo the results of v1i - v2i are returned in vo
 */
-inline void s2_subtract_vv(
-  s2_vector_t* v1i,
-  s2_vector_t* v2i,
-  s2_vector_t* vo) {
+inline void s2_subtract_vv(s2_vector_t* v1i, s2_vector_t* v2i,
+                           s2_vector_t* vo) {
 
   cblas_dcopy(3, (double*)v1i, 1, (double*)vo, 1);
   cblas_daxpy(3, -1, (double*)v2i, 1, (double*)vo, 1);
 }
-
 
 /*!
 @brief Subtract two single precision vectors
@@ -1597,15 +1361,12 @@ Subtract 3 by 1 column matrix v2i from v1i and store results in vo.
 @param V21 a second 3x1 vector
 @param vo the results of v1i - v2i are returned in vo
 */
-inline void s2_subtract_vvf(
-  s2_vectorf_t* v1i,
-  s2_vectorf_t* v2i,
-  s2_vectorf_t* vo) {
+inline void s2_subtract_vvf(s2_vectorf_t* v1i, s2_vectorf_t* v2i,
+                            s2_vectorf_t* vo) {
 
   cblas_scopy(3, (float*)v1i, 1, (float*)vo, 1);
   cblas_saxpy(3, -1, (float*)v2i, 1, (float*)vo, 1);
 }
-
 
 /*!
 @brief Compute double precision cross product of v1i with v2i
@@ -1616,16 +1377,12 @@ inline void s2_subtract_vvf(
 @param v2i a second 3x1 vector
 @param vo the results are stored in vo
 */
-void s2_cross_vv(
-  s2_vector_t* v1i,
-  s2_vector_t* v2i,
-  s2_vector_t* vo) {
+void s2_cross_vv(s2_vector_t* v1i, s2_vector_t* v2i, s2_vector_t* vo) {
 
   vo->x = v1i->y * v2i->z - v1i->z * v2i->y;
   vo->y = v1i->z * v2i->x - v1i->x * v2i->z;
   vo->z = v1i->x * v2i->y - v1i->y * v2i->x;
 }
-
 
 /*!
 @brief Compute double precision cross product of v1i with v2i^-1
@@ -1636,16 +1393,12 @@ void s2_cross_vv(
 @param v2i a second 3x1 vector
 @param vo the results are stored in vo
 */
-void s2_cross_vvinverse(
-  s2_vector_t* v1i,
-  s2_vector_t* v2i,
-  s2_vector_t* vo) {
+void s2_cross_vvinverse(s2_vector_t* v1i, s2_vector_t* v2i, s2_vector_t* vo) {
 
   vo->x = v1i->z * v2i->y - v1i->y * v2i->z;
   vo->y = v1i->x * v2i->z - v1i->z * v2i->x;
   vo->z = v1i->y * v2i->x - v1i->x * v2i->y;
 }
-
 
 /*!
 @brief Compute single precision cross product of v1i with v2i
@@ -1656,16 +1409,12 @@ void s2_cross_vvinverse(
 @param v2i a second 3x1 vector
 @param vo the results are stored in vo
 */
-void s2_cross_vvf(
-  s2_vectorf_t* v1i,
-  s2_vectorf_t* v2i,
-  s2_vectorf_t* vo) {
+void s2_cross_vvf(s2_vectorf_t* v1i, s2_vectorf_t* v2i, s2_vectorf_t* vo) {
 
   vo->x = v1i->y * v2i->z - v1i->z * v2i->y;
   vo->y = v1i->z * v2i->x - v1i->x * v2i->z;
   vo->z = v1i->x * v2i->y - v1i->y * v2i->x;
 }
-
 
 /*!
 @brief Compute single precision cross product of v1i with v2i inverse
@@ -1676,16 +1425,13 @@ void s2_cross_vvf(
 @param v2i a second 3x1 vector
 @param vo the results are stored in vo
 */
-void s2_cross_vvinversef(
-  s2_vectorf_t* v1i,
-  s2_vectorf_t* v2i,
-  s2_vectorf_t* vo) {
+void s2_cross_vvinversef(s2_vectorf_t* v1i, s2_vectorf_t* v2i,
+                         s2_vectorf_t* vo) {
 
   vo->x = v1i->z * v2i->y - v1i->y * v2i->z;
   vo->y = v1i->x * v2i->z - v1i->z * v2i->x;
   vo->z = v1i->y * v2i->x - v1i->x * v2i->y;
 }
-
 
 /*!
 @}
@@ -1703,9 +1449,7 @@ for 6x1 screws
 @param si 6x1 screw input
 @param so si is copied to so
 */
-void s2_screw_copy(
-  s2_screw_t* si,
-  s2_screw_t* so) {
+void s2_screw_copy(s2_screw_t* si, s2_screw_t* so) {
 
   cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
 }
@@ -1718,9 +1462,7 @@ void s2_screw_copy(
 @param si 6x1 screw input
 @param so si is copied to so
 */
-void s2_screwf_copy(
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+void s2_screwf_copy(s2_screwf_t* si, s2_screwf_t* so) {
 
   cblas_scopy(6, (float*)si, 1, (float*)so, 1);
 }
@@ -1733,9 +1475,7 @@ void s2_screwf_copy(
 @param si input vector \f$S_i\f$
 @param so output vector \f$S_o\f$
 */
-void s2_screw_invert(
-  s2_screw_t* si,
-  s2_screw_t* so) {
+void s2_screw_invert(s2_screw_t* si, s2_screw_t* so) {
 
   memset(so, 0, sizeof(s2_screw_t));
   cblas_daxpy(6, -1.0, (double*)si, 1, (double*)so, 1);
@@ -1749,9 +1489,7 @@ void s2_screw_invert(
 @param si input vector \f$S_i\f$
 @param so output vector \f$S_o\f$
 */
-void s2_screwf_invert(
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+void s2_screwf_invert(s2_screwf_t* si, s2_screwf_t* so) {
   memset(so, 0, sizeof(s2_screwf_t));
   cblas_saxpy(6, -1.0, (float*)si, 1, (float*)so, 1);
 }
@@ -1765,10 +1503,7 @@ void s2_screwf_invert(
 @param *ki a pointer to a scalar
 @param so[6] the results are stored in so[6]
 */
-void s2_product_sk(
-  s2_screw_t* si,
-  double* ki,
-  s2_screw_t* so) {
+void s2_product_sk(s2_screw_t* si, double* ki, s2_screw_t* so) {
 
   cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
   cblas_dscal(6, *ki, (double*)so, 1);
@@ -1783,10 +1518,7 @@ void s2_product_sk(
 @param *ki a pointer to a scalar
 @param so[6] the results are stored in so[6]
 */
-void s2_product_skf(
-  s2_screwf_t* si,
-  float* ki,
-  s2_screwf_t* so) {
+void s2_product_skf(s2_screwf_t* si, float* ki, s2_screwf_t* so) {
 
   cblas_scopy(6, (float*)si, 1, (float*)so, 1);
   cblas_sscal(6, *ki, (float*)so, 1);
@@ -1801,16 +1533,12 @@ void s2_product_skf(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void s2_add_ss(
-  s2_screw_t* s1i,
-  s2_screw_t* s2i,
-  s2_screw_t* so) {
+void s2_add_ss(s2_screw_t* s1i, s2_screw_t* s2i, s2_screw_t* so) {
 
   cblas_dcopy(6, (double*)s1i, 1, (double*)so, 1);
   cblas_daxpy(6, 1, (double*)s2i, 1, (double*)so, 1);
 }
 
-
 /*!
 @brief Add double precision s2_screw_ts s1i to s2i.
 
@@ -1820,14 +1548,11 @@ void s2_add_ss(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void s2_addequal_ss(
-  s2_screw_t* s1i,
-  s2_screw_t* s2i) {
+void s2_addequal_ss(s2_screw_t* s1i, s2_screw_t* s2i) {
 
   cblas_daxpy(6, 1, (double*)s1i, 1, (double*)s2i, 1);
 }
 
-
 /*!
 @brief Add double precision s2_screw_ts s1i to s2i.
 
@@ -1837,14 +1562,10 @@ void s2_addequal_ss(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void s2_addequal_ssf(
-  s2_screwf_t* s1i,
-  s2_screwf_t* s2i) {
+void s2_addequal_ssf(s2_screwf_t* s1i, s2_screwf_t* s2i) {
 
   cblas_saxpy(6, 1, (float*)s1i, 1, (float*)s2i, 1);
 }
-
-
 
 /*!
 @brief Add single precision s2_screw_ts s1i and s2i and store results in so.
@@ -1855,17 +1576,15 @@ void s2_addequal_ssf(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void s2_add_ssf(
-  s2_screwf_t* s1i,
-  s2_screwf_t* s2i,
-  s2_screwf_t* so) {
+void s2_add_ssf(s2_screwf_t* s1i, s2_screwf_t* s2i, s2_screwf_t* so) {
 
   cblas_scopy(6, (float*)s1i, 1, (float*)so, 1);
   cblas_saxpy(6, 1, (float*)s2i, 1, (float*)so, 1);
 }
 
 /*!
-@brief Subtract double precision s2_screw_t s2i from s1i and store results in so.
+@brief Subtract double precision s2_screw_t s2i from s1i and store results in
+so.
 
 \f$S_{1i} - S_{2i} \rightarrow S_o\f$
 
@@ -1873,17 +1592,15 @@ void s2_add_ssf(
 @param s2i a second s2_screw_t
 @param so The results of s1i - s2i are stored in so
 */
-void s2_subtract_ss(
-  s2_screw_t* s1i,
-  s2_screw_t* s2i,
-  s2_screw_t* so) {
+void s2_subtract_ss(s2_screw_t* s1i, s2_screw_t* s2i, s2_screw_t* so) {
 
   cblas_dcopy(6, (double*)s1i, 1, (double*)so, 1);
   cblas_daxpy(6, -1.0, (double*)s2i, 1, (double*)so, 1);
 }
 
 /*!
-@brief Subtract single precision s2_screw_t s2i from s1i and store results in so.
+@brief Subtract single precision s2_screw_t s2i from s1i and store results in
+so.
 
 \f$S_{1i} - S_{2i} \rightarrow S_o\f$
 
@@ -1891,10 +1608,7 @@ void s2_subtract_ss(
 @param s2i a second s2_screw_t
 @param so The results of s1i - s2i are stored in so
 */
-void s2_subtract_ssf(
-  s2_screwf_t* s1i,
-  s2_screwf_t* s2i,
-  s2_screwf_t* so) {
+void s2_subtract_ssf(s2_screwf_t* s1i, s2_screwf_t* s2i, s2_screwf_t* so) {
 
   cblas_scopy(6, (float*)s1i, 1, (float*)so, 1);
   cblas_saxpy(6, -1.0, (float*)s2i, 1, (float*)so, 1);
@@ -1909,13 +1623,10 @@ void s2_subtract_ssf(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void s2_subtractequal_ss(
-  s2_screw_t* s1i,
-  s2_screw_t* s2i) {
+void s2_subtractequal_ss(s2_screw_t* s1i, s2_screw_t* s2i) {
 
   cblas_daxpy(6, -1.0, (double*)s1i, 1, (double*)s2i, 1);
 }
-
 
 /*!
 @brief Add double precision s2_screw_ts s1i to s2i.
@@ -1926,13 +1637,10 @@ void s2_subtractequal_ss(
 @param s2i a second 6x1 screw
 @param so The results of s1i + s2i are stored in so
 */
-void s2_subtractequal_ssf(
-  s2_screwf_t* s1i,
-  s2_screwf_t* s2i) {
+void s2_subtractequal_ssf(s2_screwf_t* s1i, s2_screwf_t* s2i) {
 
   cblas_saxpy(6, -1.0, (float*)s1i, 1, (float*)s2i, 1);
 }
-
 
 /*!
 @}
@@ -1954,10 +1662,7 @@ Utilities for performing operations on a combination of 3x1 vectors and
 @param vi a 3x1 vector
 @param so the results of the operation are returned in so
 */
-void s2_add_sst(
-  s2_screw_t* si1,
-  s2_screw_t* si2,
-  s2_screw_t* so) {
+void s2_add_sst(s2_screw_t* si1, s2_screw_t* si2, s2_screw_t* so) {
 
   s2_screw_copy(si1, so);
   cblas_daxpy(3, 1.0, (double*)si2, 1, (double*)so, 1);
@@ -1974,14 +1679,10 @@ void s2_add_sst(
 @param vi a 3x1 vector
 @param so the results of the operation are returned in so
 */
-void s2_add_sstf(
-  s2_screwf_t* si1,
-  s2_screwf_t* si2,
-  s2_screwf_t* so) {
+void s2_add_sstf(s2_screwf_t* si1, s2_screwf_t* si2, s2_screwf_t* so) {
 
   s2_screwf_copy(si1, so);
   cblas_saxpy(3, 1.0, (float*)si2, 1, (float*)so, 1);
-
 }
 
 /*!
@@ -2002,9 +1703,7 @@ direction cosines.
 @param ri rotation matrix input
 @param ro rotation matrix output
 */
-void s2_mat3x3_copy(
-  s2_mat3x3_t* ri,
-  s2_mat3x3_t* ro) {
+void s2_mat3x3_copy(s2_mat3x3_t* ri, s2_mat3x3_t* ro) {
   cblas_dcopy(9, (double*)ri, 1, (double*)ro, 1);
 }
 
@@ -2016,9 +1715,7 @@ void s2_mat3x3_copy(
 @param ri rotation matrix input
 @param ro rotation matrix output
 */
-void s2_mat3x3f_copy(
-  s2_mat3x3f_t* ri,
-  s2_mat3x3f_t* ro) {
+void s2_mat3x3f_copy(s2_mat3x3f_t* ri, s2_mat3x3f_t* ro) {
 
   cblas_scopy(9, (float*)ri, 1, (float*)ro, 1);
 }
@@ -2031,9 +1728,7 @@ void s2_mat3x3f_copy(
 @param ri rotation matrix to be inverted
 @param ro transposed rotation matrix returned in ro
 */
-void s2_mat3x3_invert(
-  s2_mat3x3_t* ri,
-  s2_mat3x3_t* ro) {
+void s2_mat3x3_invert(s2_mat3x3_t* ri, s2_mat3x3_t* ro) {
 
   cblas_dcopy(3, (double*)ri, 1, (double*)ro, 3);
   cblas_dcopy(3, ((double*)ri) + 3, 1, ((double*)ro) + 1, 3);
@@ -2051,9 +1746,7 @@ void s2_mat3x3_invert(
 @param ri rotation matrix to be inverted
 @param ro transposed rotation matrix returned in ro
 */
-void s2_mat3x3f_invert(
-  s2_mat3x3f_t* ri,
-  s2_mat3x3f_t* ro) {
+void s2_mat3x3f_invert(s2_mat3x3f_t* ri, s2_mat3x3f_t* ro) {
 
   cblas_scopy(3, (float*)ri, 1, (float*)ro, 3);
   cblas_scopy(3, ((float*)ri) + 3, 1, (float*)ro + 1, 3);
@@ -2063,17 +1756,13 @@ void s2_mat3x3f_invert(
   // ro[2][0] = ri[0][2]; ro[2][1] = ri[1][2]; ro[2][2] = ri[2][2];
 }
 
-
 /*!
 @brief Store product of a double precision direction cosine matrix ri with
 vector vi in vo.
 
 \f$R_i * V_i \rightarrow V_o\f$
 */
-void s2_product_rv(
-  s2_mat3x3_t* ri,
-  s2_vector_t* vi,
-  s2_vector_t* vo) {
+void s2_product_rv(s2_mat3x3_t* ri, s2_vector_t* vi, s2_vector_t* vo) {
 
   // cblas_dgemv(
   //   CblasColMajor,
@@ -2089,9 +1778,9 @@ void s2_product_rv(
   //   (double*)vo,
   //   1);
 
-  vo->x =  ri->m00 * vi->x + ri->m01 * vi->y + ri->m02 * vi->z;
-  vo->y =  ri->m10 * vi->x + ri->m11 * vi->y + ri->m12 * vi->z;
-  vo->z =  ri->m20 * vi->x + ri->m21 * vi->y + ri->m22 * vi->z;
+  vo->x = ri->m00 * vi->x + ri->m01 * vi->y + ri->m02 * vi->z;
+  vo->y = ri->m10 * vi->x + ri->m11 * vi->y + ri->m12 * vi->z;
+  vo->z = ri->m20 * vi->x + ri->m21 * vi->y + ri->m22 * vi->z;
 }
 
 /*!
@@ -2099,24 +1788,10 @@ void s2_product_rv(
 
 \f$R_i * V_i \rightarrow V_o\f$
 */
-void s2_product_rvf(
-  s2_mat3x3f_t* ri,
-  s2_vectorf_t* vi,
-  s2_vectorf_t* vo) {
+void s2_product_rvf(s2_mat3x3f_t* ri, s2_vectorf_t* vi, s2_vectorf_t* vo) {
 
-  cblas_sgemv(
-    CblasColMajor,
-    CblasNoTrans,
-    3,
-    3,
-    1.0,
-    (float*)ri,
-    3,
-    (float*)vi,
-    1,
-    0.0,
-    (float*)vo,
-    1);
+  cblas_sgemv(CblasColMajor, CblasNoTrans, 3, 3, 1.0, (float*)ri, 3, (float*)vi,
+              1, 0.0, (float*)vo, 1);
   // vo[0] =  ri[0][0] * vi[0] + ri[0][1] * vi[1] + ri[0][2] * vi[2];
   // vo[1] =  ri[1][0] * vi[0] + ri[1][1] * vi[1] + ri[1][2] * vi[2];
   // vo[2] =  ri[2][0] * vi[0] + ri[2][1] * vi[1] + ri[2][2] * vi[2];
@@ -2128,24 +1803,10 @@ vector -vi in vo.
 
 \f$R_i * -V_i \rightarrow V_o\f$
 */
-void s2_product_rvinverse(
-  s2_mat3x3_t* ri,
-  s2_vector_t* vi,
-  s2_vector_t* vo) {
+void s2_product_rvinverse(s2_mat3x3_t* ri, s2_vector_t* vi, s2_vector_t* vo) {
 
-  cblas_dgemv(
-    CblasColMajor,
-    CblasNoTrans,
-    3,
-    3,
-    -1.0,
-    (double*)ri,
-    3,
-    (double*)vi,
-    1,
-    0.0,
-    (double*)vo,
-    1);
+  cblas_dgemv(CblasColMajor, CblasNoTrans, 3, 3, -1.0, (double*)ri, 3,
+              (double*)vi, 1, 0.0, (double*)vo, 1);
   // vo[0] = -ri[0][0] * vi[0] - ri[0][1] * vi[1] - ri[0][2] * vi[2];
   // vo[1] = -ri[1][0] * vi[0] - ri[1][1] * vi[1] - ri[1][2] * vi[2];
   // vo[2] = -ri[2][0] * vi[0] - ri[2][1] * vi[1] - ri[2][2] * vi[2];
@@ -2157,80 +1818,42 @@ vector -vi in vo.
 
 \f$R_i * -V_i \rightarrow V_o\f$
 */
-void s2_product_rvinversef(
-  s2_mat3x3f_t* ri,
-  s2_vectorf_t* vi,
-  s2_vectorf_t* vo) {
+void s2_product_rvinversef(s2_mat3x3f_t* ri, s2_vectorf_t* vi,
+                           s2_vectorf_t* vo) {
 
-  cblas_sgemv(
-    CblasColMajor,
-    CblasNoTrans,
-    3,
-    3,
-    -1.0,
-    (float*)ri,
-    3,
-    (float*)vi,
-    1,
-    0.0,
-    (float*)vo,
-    1);
+  cblas_sgemv(CblasColMajor, CblasNoTrans, 3, 3, -1.0, (float*)ri, 3,
+              (float*)vi, 1, 0.0, (float*)vo, 1);
   // vo[0] = -ri[0][0] * vi[0] - ri[0][1] * vi[1] - ri[0][2] * vi[2];
   // vo[1] = -ri[1][0] * vi[0] - ri[1][1] * vi[1] - ri[1][2] * vi[2];
   // vo[2] = -ri[2][0] * vi[0] - ri[2][1] * vi[1] - ri[2][2] * vi[2];
 }
 
 /*!
-@brief Store product of a double precision direction cosine matrix ri^-1 with vector vi in vo.
+@brief Store product of a double precision direction cosine matrix ri^-1 with
+vector vi in vo.
 
 \f$R_i^T * V_i \rightarrow V_o\f$
 */
-void s2_product_rinversev(
-  s2_mat3x3_t* ri,
-  s2_vector_t* vi,
-  s2_vector_t* vo) {
+void s2_product_rinversev(s2_mat3x3_t* ri, s2_vector_t* vi, s2_vector_t* vo) {
 
-  cblas_dgemv(
-    CblasColMajor,
-    CblasTrans,
-    3,
-    3,
-    1.0,
-    (double*)ri,
-    3,
-    (double*)vi,
-    1,
-    0.0,
-    (double*)vo,
-    1);
+  cblas_dgemv(CblasColMajor, CblasTrans, 3, 3, 1.0, (double*)ri, 3, (double*)vi,
+              1, 0.0, (double*)vo, 1);
   // vo[0] =  ri[0][0] * vi[0] + ri[1][0] * vi[1] + ri[2][0] * vi[2];
   // vo[1] =  ri[0][1] * vi[0] + ri[1][1] * vi[1] + ri[2][1] * vi[2];
   // vo[2] =  ri[0][2] * vi[0] + ri[1][2] * vi[1] + ri[2][2] * vi[2];
 }
 
 /*!
-@brief Store product of a single precision direction cosine matrix ri^-1 with vector vi in vo.
+@brief Store product of a single precision direction cosine matrix ri^-1 with
+vector vi in vo.
 
 \f$R_i^T * V_i \rightarrow V_o\f$
 */
-void s2_product_rinversevf(
-  s2_mat3x3f_t* ri,
-  s2_vectorf_t* vi,
-  s2_vectorf_t* vo) {
+void s2_product_rinversevf(s2_mat3x3f_t* ri, s2_vectorf_t* vi,
+                           s2_vectorf_t* vo) {
 
-  cblas_sgemv(
-    CblasColMajor,
-    CblasTrans,
-    3,
-    3,
-    1.0,
-    (float*)ri,
-    3,
-    (float*)vi,
-    1,
-    0.0,
-    (float*)vo,
-    1);
+  cblas_sgemv(CblasColMajor, CblasTrans, 3, 3, 1.0, (float*)ri, 3, (float*)vi,
+              1, 0.0, (float*)vo, 1);
   // vo[0] =  ri[0][0] * vi[0] + ri[1][0] * vi[1] + ri[2][0] * vi[2];
   // vo[1] =  ri[0][1] * vi[0] + ri[1][1] * vi[1] + ri[2][1] * vi[2];
   // vo[2] =  ri[0][2] * vi[0] + ri[1][2] * vi[1] + ri[2][2] * vi[2];
@@ -2242,24 +1865,11 @@ vector -vi in vo.
 
 \f$R_i^T * -V_i \rightarrow V_o\f$
 */
-void s2_product_rinversevinverse(
-  s2_mat3x3_t* ri,
-  s2_vector_t* vi,
-  s2_vector_t* vo) {
+void s2_product_rinversevinverse(s2_mat3x3_t* ri, s2_vector_t* vi,
+                                 s2_vector_t* vo) {
 
-  cblas_dgemv(
-    CblasColMajor,
-    CblasTrans,
-    3,
-    3,
-    -1.0,
-    (double*)ri,
-    3,
-    (double*)vi,
-    1,
-    0.0,
-    (double*)vo,
-    1);
+  cblas_dgemv(CblasColMajor, CblasTrans, 3, 3, -1.0, (double*)ri, 3,
+              (double*)vi, 1, 0.0, (double*)vo, 1);
 }
 
 /*!
@@ -2268,26 +1878,12 @@ vector -vi in vo.
 
 \f$R_i^T * -V_i \rightarrow V_o\f$
 */
-void s2_product_rinversevinversef(
-  s2_mat3x3f_t* ri,
-  s2_vectorf_t* vi,
-  s2_vectorf_t* vo) {
+void s2_product_rinversevinversef(s2_mat3x3f_t* ri, s2_vectorf_t* vi,
+                                  s2_vectorf_t* vo) {
 
-  cblas_sgemv(
-    CblasColMajor,
-    CblasTrans,
-    3,
-    3,
-    -1.0,
-    (float*)ri,
-    3,
-    (float*)vi,
-    1,
-    0.0,
-    (float*)vo,
-    1);
+  cblas_sgemv(CblasColMajor, CblasTrans, 3, 3, -1.0, (float*)ri, 3, (float*)vi,
+              1, 0.0, (float*)vo, 1);
 }
-
 
 /*!
 @brief rotates a double precision spatial screw
@@ -2302,16 +1898,12 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-void s2_product_rs(
-  s2_mat3x3_t* ri,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+void s2_product_rs(s2_mat3x3_t* ri, s2_screw_t* si, s2_screw_t* so) {
 
   s2_product_rv(ri, (s2_vector_t*)si, (s2_vector_t*)so);
-  s2_product_rv(
-    ri, (s2_vector_t*)(((double*)si) + 3), (s2_vector_t*)(((double*)so) + 3));
+  s2_product_rv(ri, (s2_vector_t*)(((double*)si) + 3),
+                (s2_vector_t*)(((double*)so) + 3));
 }
-
 
 /*!
 @brief rotates a single precision spatial screw
@@ -2326,14 +1918,11 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-inline void s2_product_rsf(
-  s2_mat3x3f_t* ri,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_product_rsf(s2_mat3x3f_t* ri, s2_screwf_t* si, s2_screwf_t* so) {
 
   s2_product_rvf(ri, (s2_vectorf_t*)si, (s2_vectorf_t*)so);
-  s2_product_rvf(
-    ri, (s2_vectorf_t*)(((float*)si) + 3), (s2_vectorf_t*)(((float*)so) + 3));
+  s2_product_rvf(ri, (s2_vectorf_t*)(((float*)si) + 3),
+                 (s2_vectorf_t*)(((float*)so) + 3));
 }
 
 /*!
@@ -2349,14 +1938,12 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-inline void s2_product_rsinverse(
-  s2_mat3x3_t* ri,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_product_rsinverse(s2_mat3x3_t* ri, s2_screw_t* si,
+                                 s2_screw_t* so) {
 
   s2_product_rvinverse(ri, (s2_vector_t*)si, (s2_vector_t*)so);
-  s2_product_rvinverse(
-    ri, (s2_vector_t*)(((double*)si) + 3), (s2_vector_t*)(((double*)so) + 3));
+  s2_product_rvinverse(ri, (s2_vector_t*)(((double*)si) + 3),
+                       (s2_vector_t*)(((double*)so) + 3));
 }
 
 /*!
@@ -2372,15 +1959,11 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si a 1x6 screw
 @param so the output of ri * si is returned in so
 */
-void s2_product_rsinversef(
-  s2_mat3x3f_t* ri,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+void s2_product_rsinversef(s2_mat3x3f_t* ri, s2_screwf_t* si, s2_screwf_t* so) {
 
   s2_product_rvinversef(ri, (s2_vectorf_t*)si, (s2_vectorf_t*)so);
-  s2_product_rvinversef(
-    ri,
-    (s2_vectorf_t*)(((float*)si) + 3), (s2_vectorf_t*)(((float*)so) + 3));
+  s2_product_rvinversef(ri, (s2_vectorf_t*)(((float*)si) + 3),
+                        (s2_vectorf_t*)(((float*)so) + 3));
 }
 
 /*!
@@ -2395,14 +1978,11 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si screw
 @param so the output of ri * -si is returned in so
 */
-void s2_product_rinverses(
-  s2_mat3x3_t* ri,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+void s2_product_rinverses(s2_mat3x3_t* ri, s2_screw_t* si, s2_screw_t* so) {
 
   s2_product_rinversev(ri, (s2_vector_t*)si, (s2_vector_t*)so);
-  s2_product_rinversev(
-    ri, (s2_vector_t*)(((double*)si) + 3), (s2_vector_t*)(((double*)so) + 3));
+  s2_product_rinversev(ri, (s2_vector_t*)(((double*)si) + 3),
+                       (s2_vector_t*)(((double*)so) + 3));
 }
 
 /*!
@@ -2417,14 +1997,11 @@ Store product of direction cosine matrix ri with spatial vector si in so.
 @param si screw
 @param so the output of ri * -si is returned in so
 */
-void s2_product_rinversesf(
-  s2_mat3x3f_t* ri,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+void s2_product_rinversesf(s2_mat3x3f_t* ri, s2_screwf_t* si, s2_screwf_t* so) {
 
   s2_product_rinversevf(ri, (s2_vectorf_t*)si, (s2_vectorf_t*)so);
-  s2_product_rinversevf(
-    ri, (s2_vectorf_t*)(((float*)si) + 3), (s2_vectorf_t*)(((float*)so) + 3));
+  s2_product_rinversevf(ri, (s2_vectorf_t*)(((float*)si) + 3),
+                        (s2_vectorf_t*)(((float*)so) + 3));
 }
 
 /*!
@@ -2439,25 +2016,20 @@ about the x axis, Rx, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void s2_product_rrx(
-  s2_mat3x3_t* ri,
-  double dc[2],
-  s2_mat3x3_t* ro) {
+void s2_product_rrx(s2_mat3x3_t* ri, double dc[2], s2_mat3x3_t* ro) {
 
   memset(ro, 0, 9 * sizeof(double));
 
   cblas_dcopy(3, (double*)ri, 1, (double*)ro, 1);
-  cblas_daxpy(
-    3, dc[1],
-    ((double*)ri) + 3, 1,
-    ((double*)ro) + 3, 1);
+  cblas_daxpy(3, dc[1], ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
   cblas_daxpy(3, dc[0], ((double*)ri) + 6, 1, ((double*)ro) + 3, 1);
   cblas_daxpy(3, -dc[0], ((double*)ri) + 3, 1, ((double*)ro) + 6, 1);
   cblas_daxpy(3, dc[1], ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0  0.0    0.0|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1] -dc[0]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0  dc[0] dc[1]|
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0  0.0
+  // 0.0| |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0
+  // dc[1] -dc[0]| |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|
+  // |0.0  dc[0] dc[1]|
 
   // ro[0 * 3 + 1] =  ri[0 * 3 + 1] * dc[1] + ri[0 * 3 + 2] * dc[0];
   // ro[1 * 3 + 1] =  ri[1 * 3 + 1] * dc[1] + ri[1 * 3 + 2] * dc[0];
@@ -2482,10 +2054,7 @@ about the x axis, Rx, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rrxf(
-  s2_mat3x3f_t* ri,
-  float dc[2],
-  s2_mat3x3f_t* ro) {
+inline void s2_product_rrxf(s2_mat3x3f_t* ri, float dc[2], s2_mat3x3f_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3f_t));
   cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
@@ -2494,9 +2063,10 @@ inline void s2_product_rrxf(
   cblas_saxpy(3, dc[1], ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
   cblas_scopy(3, (float*)ri, 1, (float*)ro, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0  0.0    0.0|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1] -dc[0]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0  dc[0] dc[1]|
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0  0.0
+  // 0.0| |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0
+  // dc[1] -dc[0]| |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|
+  // |0.0  dc[0] dc[1]|
 
   // ro[0 * 3 + 1] =  ri[0 * 3 + 1] * dc[1] + ri[0 * 3 + 2] * dc[0];
   // ro[1 * 3 + 1] =  ri[1 * 3 + 1] * dc[1] + ri[1 * 3 + 2] * dc[0];
@@ -2522,10 +2092,8 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rrxinverse(
-  s2_mat3x3_t* ri,
-  double dc[2],
-  s2_mat3x3_t* ro) {
+inline void s2_product_rrxinverse(s2_mat3x3_t* ri, double dc[2],
+                                  s2_mat3x3_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3_t));
   cblas_dcopy(3, (double*)ri, 1, (double*)ro, 1);
@@ -2534,10 +2102,12 @@ inline void s2_product_rrxinverse(
   cblas_daxpy(3, dc[0], ((double*)ri) + 3, 1, ((double*)ro) + 6, 1);
   cblas_daxpy(3, dc[1], ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0   0.0    0.0
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0   0.0
+  // 0.0
   // |
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1] dc[0]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0 -dc[0] dc[1]|
+  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1]
+  // dc[0]| |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0
+  // -dc[0] dc[1]|
 
   // ro[0 * 3 + 2] =  ri[0 * 3 + 1] * dc[0] + ri[0 * 3 + 2] * dc[1];
   // ro[1 * 3 + 2] =  ri[1 * 3 + 1] * dc[0] + ri[1 * 3 + 2] * dc[1];
@@ -2563,10 +2133,8 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rrxinversef(
-  s2_mat3x3f_t* ri,
-  float dc[2],
-  s2_mat3x3f_t* ro) {
+inline void s2_product_rrxinversef(s2_mat3x3f_t* ri, float dc[2],
+                                   s2_mat3x3f_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3f_t));
   cblas_scopy(3, (float*)ri, 1, (float*)ro, 1);
@@ -2575,10 +2143,12 @@ inline void s2_product_rrxinversef(
   cblas_saxpy(3, dc[0], ((float*)ri) + 3, 1, ((float*)ro) + 6, 1);
   cblas_saxpy(3, dc[1], ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0   0.0    0.0
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |1.0   0.0
+  // 0.0
   // |
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1] dc[0]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0 -dc[0] dc[1]|
+  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |0.0  dc[1]
+  // dc[0]| |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |0.0
+  // -dc[0] dc[1]|
 
   // ro[0 * 3 + 2] =  ri[0 * 3 + 1] * dc[0] + ri[0 * 3 + 2] * dc[1];
   // ro[1 * 3 + 2] =  ri[1 * 3 + 1] * dc[0] + ri[1 * 3 + 2] * dc[1];
@@ -2603,10 +2173,7 @@ about the x axis, Rx, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void s2_product_rry(
-  s2_mat3x3_t* ri,
-  double dc[2],
-  s2_mat3x3_t* ro) {
+void s2_product_rry(s2_mat3x3_t* ri, double dc[2], s2_mat3x3_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3_t));
   cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
@@ -2615,10 +2182,12 @@ void s2_product_rry(
   cblas_daxpy(3, dc[0], (double*)ri, 1, ((double*)ro) + 6, 1);
   cblas_dcopy(3, ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   | dc[1] 0.0 dc[0]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |  0.0  1.0   0.0
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   | dc[1] 0.0
+  // dc[0]| |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |
+  // 0.0  1.0   0.0
   // |
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |-dc[0] 0.0 dc[1]|
+  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |-dc[0] 0.0
+  // dc[1]|
 
   // ro[0 * 3 + 2] =  ri[0 * 3] * dc[0] + ri[0 * 3 + 2] * dc[1];
   // ro[1 * 3 + 2] =  ri[1 * 3] * dc[0] + ri[1 * 3 + 2] * dc[1];
@@ -2643,10 +2212,7 @@ about the x axis, Rx, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void s2_product_rryf(
-  s2_mat3x3f_t* ri,
-  float dc[2],
-  s2_mat3x3f_t* ro) {
+void s2_product_rryf(s2_mat3x3f_t* ri, float dc[2], s2_mat3x3f_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3f_t));
   cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
@@ -2655,10 +2221,12 @@ void s2_product_rryf(
   cblas_saxpy(3, dc[0], (float*)ri, 1, ((float*)ro) + 6, 1);
   cblas_scopy(3, ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   | dc[1] 0.0 dc[0]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |  0.0  1.0   0.0
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   | dc[1] 0.0
+  // dc[0]| |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |
+  // 0.0  1.0   0.0
   // |
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |-dc[0] 0.0 dc[1]|
+  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |-dc[0] 0.0
+  // dc[1]|
 
   // ro[0 * 3 + 2] =  ri[0 * 3] * dc[0] + ri[0 * 3 + 2] * dc[1];
   // ro[1 * 3 + 2] =  ri[1 * 3] * dc[0] + ri[1 * 3 + 2] * dc[1];
@@ -2684,10 +2252,7 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void s2_product_rryinverse(
-  s2_mat3x3_t* ri,
-  double dc[2],
-  s2_mat3x3_t* ro) {
+void s2_product_rryinverse(s2_mat3x3_t* ri, double dc[2], s2_mat3x3_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3_t));
   cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
@@ -2696,9 +2261,10 @@ void s2_product_rryinverse(
   cblas_daxpy(3, -dc[0], (double*)ri, 1, ((double*)ro) + 6, 1);
   cblas_dcopy(3, ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] 0.0 -dc[0]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * | 0.0  1.0   0.0 |
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |dc[0] 0.0  dc[1]|
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] 0.0
+  // -dc[0]| |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |
+  // 0.0  1.0   0.0 | |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1]
+  // ri[2][2]|   |dc[0] 0.0  dc[1]|
 
   // ro[0 * 3] =  ri[0 * 3] * dc[1] + ri[0 * 3 + 2] * dc[0];
   // ro[1 * 3] =  ri[1 * 3] * dc[1] + ri[1 * 3 + 2] * dc[0];
@@ -2724,10 +2290,7 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void s2_product_rryinversef(
-  s2_mat3x3f_t* ri,
-  float dc[2],
-  s2_mat3x3f_t* ro) {
+void s2_product_rryinversef(s2_mat3x3f_t* ri, float dc[2], s2_mat3x3f_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3f_t));
   cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
@@ -2736,9 +2299,10 @@ void s2_product_rryinversef(
   cblas_saxpy(3, -dc[0], (float*)ri, 1, ((float*)ro) + 6, 1);
   cblas_scopy(3, ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] 0.0 -dc[0]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * | 0.0  1.0   0.0 |
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |dc[0] 0.0  dc[1]|
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] 0.0
+  // -dc[0]| |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |
+  // 0.0  1.0   0.0 | |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1]
+  // ri[2][2]|   |dc[0] 0.0  dc[1]|
 
   // ro[0 * 3] =  ri[0 * 3] * dc[1] + ri[0 * 3 + 2] * dc[0];
   // ro[1 * 3] =  ri[1 * 3] * dc[1] + ri[1 * 3 + 2] * dc[0];
@@ -2763,10 +2327,7 @@ about the z axis, Rz, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void s2_product_rrz(
-  s2_mat3x3_t* ri,
-  double dc[2],
-  s2_mat3x3_t* ro) {
+void s2_product_rrz(s2_mat3x3_t* ri, double dc[2], s2_mat3x3_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3_t));
   cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
@@ -2775,9 +2336,10 @@ void s2_product_rrz(
   cblas_daxpy(3, dc[1], ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
   cblas_dcopy(3, ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] -dc[0] 0.0|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |dc[0]  dc[1] 0.0|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   | 0.0    0.0  1.0|
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] -dc[0]
+  // 0.0| |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |dc[0]
+  // dc[1] 0.0| |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |
+  // 0.0    0.0  1.0|
 
   // ro[0 * 3] =  ri[0 * 3] * dc[1] + ri[0 * 3 + 1] * dc[0];
   // ro[1 * 3] =  ri[1 * 3] * dc[1] + ri[1 * 3 + 1] * dc[0];
@@ -2802,10 +2364,7 @@ about the z axis, Rz, characterized by its direction cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-void s2_product_rrzf(
-  s2_mat3x3f_t* ri,
-  float dc[2],
-  s2_mat3x3f_t* ro) {
+void s2_product_rrzf(s2_mat3x3f_t* ri, float dc[2], s2_mat3x3f_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3f_t));
   cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
@@ -2814,9 +2373,10 @@ void s2_product_rrzf(
   cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
   cblas_scopy(3, ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
 
-  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] -dc[0] 0.0|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |dc[0]  dc[1] 0.0|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   | 0.0    0.0  1.0|
+  // |ro[0][0] ro[0][1] ro[0][2]|   |ri[0][0] ri[0][1] ri[0][2]|   |dc[1] -dc[0]
+  // 0.0| |ro[1][0] ro[1][1] ro[1][2]| = |ri[1][0] ri[1][1] ri[1][2]| * |dc[0]
+  // dc[1] 0.0| |ro[2][0] ro[2][1] ro[2][2]|   |ri[2][0] ri[2][1] ri[2][2]|   |
+  // 0.0    0.0  1.0|
 
   // ro[0 * 3] =  ri[0 * 3] * dc[1] + ri[0 * 3 + 1] * dc[0];
   // ro[1 * 3] =  ri[1 * 3] * dc[1] + ri[1 * 3 + 1] * dc[0];
@@ -2842,10 +2402,8 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rrzinverse(
-  s2_mat3x3_t* ri,
-  double dc[2],
-  s2_mat3x3_t* ro) {
+inline void s2_product_rrzinverse(s2_mat3x3_t* ri, double dc[2],
+                                  s2_mat3x3_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3_t));
   cblas_daxpy(3, dc[1], (double*)ri, 1, (double*)ro, 1);
@@ -2854,11 +2412,14 @@ inline void s2_product_rrzinverse(
   cblas_daxpy(3, dc[1], ((double*)ri) + 3, 1, ((double*)ro) + 3, 1);
   cblas_dcopy(3, ((double*)ri) + 6, 1, ((double*)ro) + 6, 1);
 
-  // |ro[0 * 3 + 0] ro[0 * 3 + 1] ro[0 * 3 + 2]|   |ri[0 * 3 + 0] ri[0 * 3 + 1] ri[0
+  // |ro[0 * 3 + 0] ro[0 * 3 + 1] ro[0 * 3 + 2]|   |ri[0 * 3 + 0] ri[0 * 3 + 1]
+  // ri[0
   // * 3 + 2]|   | dc[1] dc[0] 0.0|
-  // |ro[1 * 3 + 0] ro[1 * 3 + 1] ro[1 * 3 + 2]| = |ri[1 * 3 + 0] ri[1 * 3 + 1] ri[1
+  // |ro[1 * 3 + 0] ro[1 * 3 + 1] ro[1 * 3 + 2]| = |ri[1 * 3 + 0] ri[1 * 3 + 1]
+  // ri[1
   // * 3 + 2]| * |-dc[0] dc[1] 0.0|
-  // |ro[2 * 3 + 0] ro[2 * 3 + 1] ro[2 * 3 + 2]|   |ri[2 * 3 + 0] ri[2 * 3 + 1] ri[2
+  // |ro[2 * 3 + 0] ro[2 * 3 + 1] ro[2 * 3 + 2]|   |ri[2 * 3 + 0] ri[2 * 3 + 1]
+  // ri[2
   // * 3 + 2]|   |  0.0   0.0  1.0|
 
   // ro[0 * 3] =  ri[0 * 3] * dc[1] - ri[0 * 3 + 1] * dc[0];
@@ -2885,10 +2446,8 @@ cosines.
 @param dc a pointer to an array of direction cosines
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rrzinversef(
-  s2_mat3x3f_t* ri,
-  float dc[2],
-  s2_mat3x3f_t* ro) {
+inline void s2_product_rrzinversef(s2_mat3x3f_t* ri, float dc[2],
+                                   s2_mat3x3f_t* ro) {
 
   memset(ro, 0, sizeof(s2_mat3x3f_t));
   cblas_saxpy(3, dc[1], (float*)ri, 1, (float*)ro, 1);
@@ -2897,11 +2456,14 @@ inline void s2_product_rrzinversef(
   cblas_saxpy(3, dc[1], ((float*)ri) + 3, 1, ((float*)ro) + 3, 1);
   cblas_scopy(3, ((float*)ri) + 6, 1, ((float*)ro) + 6, 1);
 
-  // |ro[0 * 3 + 0] ro[0 * 3 + 1] ro[0 * 3 + 2]|   |ri[0 * 3 + 0] ri[0 * 3 + 1] ri[0
+  // |ro[0 * 3 + 0] ro[0 * 3 + 1] ro[0 * 3 + 2]|   |ri[0 * 3 + 0] ri[0 * 3 + 1]
+  // ri[0
   // * 3 + 2]|   | dc[1] dc[0] 0.0|
-  // |ro[1 * 3 + 0] ro[1 * 3 + 1] ro[1 * 3 + 2]| = |ri[1 * 3 + 0] ri[1 * 3 + 1] ri[1
+  // |ro[1 * 3 + 0] ro[1 * 3 + 1] ro[1 * 3 + 2]| = |ri[1 * 3 + 0] ri[1 * 3 + 1]
+  // ri[1
   // * 3 + 2]| * |-dc[0] dc[1] 0.0|
-  // |ro[2 * 3 + 0] ro[2 * 3 + 1] ro[2 * 3 + 2]|   |ri[2 * 3 + 0] ri[2 * 3 + 1] ri[2
+  // |ro[2 * 3 + 0] ro[2 * 3 + 1] ro[2 * 3 + 2]|   |ri[2 * 3 + 0] ri[2 * 3 + 1]
+  // ri[2
   // * 3 + 2]|   |  0.0   0.0  1.0|
 
   // ro[0 * 3] =  ri[0 * 3] * dc[1] - ri[0 * 3 + 1] * dc[0];
@@ -2926,26 +2488,10 @@ Computes the product of two general rotation matrices, R1i and R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rr(
-  s2_mat3x3_t* R1i,
-  s2_mat3x3_t* R2i,
-  s2_mat3x3_t* ro) {
+inline void s2_product_rr(s2_mat3x3_t* R1i, s2_mat3x3_t* R2i, s2_mat3x3_t* ro) {
 
-  cblas_dgemm(
-    CblasColMajor,
-    CblasNoTrans,
-    CblasNoTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (double*)R1i,
-    3,
-    (double*)R2i,
-    3,
-    0.0,
-    (double*)ro,
-    3);
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 3, 3, 3, 1.0,
+              (double*)R1i, 3, (double*)R2i, 3, 0.0, (double*)ro, 3);
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[0][1] R1i[0][2]|   |R2i[0][0]
   // R2i[0][1] R2i[0][2]|
   // |ro[1][0] ro[1][1] ro[1][2]| = |R1i[1][0] R1i[1][1] R1i[1][2]| * |R2i[1][0]
@@ -2984,26 +2530,11 @@ Computes the product of two general rotation matrices, R1i and R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rrf(
-  s2_mat3x3f_t* R1i,
-  s2_mat3x3f_t* R2i,
-  s2_mat3x3f_t* ro) {
+inline void s2_product_rrf(s2_mat3x3f_t* R1i, s2_mat3x3f_t* R2i,
+                           s2_mat3x3f_t* ro) {
 
-  cblas_sgemm(
-    CblasColMajor,
-    CblasNoTrans,
-    CblasNoTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (float*)R1i,
-    3,
-    (float*)R2i,
-    3,
-    0.0,
-    (float*)ro,
-    3);
+  cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 3, 3, 3, 1.0,
+              (float*)R1i, 3, (float*)R2i, 3, 0.0, (float*)ro, 3);
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[0][1] R1i[0][2]|   |R2i[0][0]
   // R2i[0][1] R2i[0][2]|
   // |ro[1][0] ro[1][1] ro[1][2]| = |R1i[1][0] R1i[1][1] R1i[1][2]| * |R2i[1][0]
@@ -3044,26 +2575,11 @@ of a second rotation matrix, R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rrinverse(
-  s2_mat3x3_t* R1i,
-  s2_mat3x3_t* R2i,
-  s2_mat3x3_t* ro) {
+inline void s2_product_rrinverse(s2_mat3x3_t* R1i, s2_mat3x3_t* R2i,
+                                 s2_mat3x3_t* ro) {
 
-  cblas_dgemm(
-    CblasColMajor,
-    CblasNoTrans,
-    CblasTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (double*)R1i,
-    3,
-    (double*)R2i,
-    3,
-    0.0,
-    (double*)ro,
-    3);
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, 3, 3, 3, 1.0,
+              (double*)R1i, 3, (double*)R2i, 3, 0.0, (double*)ro, 3);
 
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[0][1] R1i[0][2]|   |R2i[0][0]
   // R2i[1][0] R2i[2][0]|
@@ -3091,7 +2607,6 @@ inline void s2_product_rrinverse(
   // ro[2][2] = R1i[2][0] * R2i[2][0] + R1i[2][1] * R2i[2][1] + R1i[2][2] *
   // R2i[2][2];
 }
-
 
 /*!
 @brief Product of a general rotation matrix and the inverse of a general
@@ -3106,26 +2621,11 @@ of a second rotation matrix, R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rrinversef(
-  s2_mat3x3f_t* R1i,
-  s2_mat3x3f_t* R2i,
-  s2_mat3x3f_t* ro) {
+inline void s2_product_rrinversef(s2_mat3x3f_t* R1i, s2_mat3x3f_t* R2i,
+                                  s2_mat3x3f_t* ro) {
 
-  cblas_sgemm(
-    CblasColMajor,
-    CblasNoTrans,
-    CblasTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (float*)R1i,
-    3,
-    (float*)R2i,
-    3,
-    0.0,
-    (float*)ro,
-    3);
+  cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans, 3, 3, 3, 1.0,
+              (float*)R1i, 3, (float*)R2i, 3, 0.0, (float*)ro, 3);
 
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[0][1] R1i[0][2]|   |R2i[0][0]
   // R2i[1][0] R2i[2][0]|
@@ -3154,10 +2654,9 @@ inline void s2_product_rrinversef(
   // R2i[2][2];
 }
 
-
 /*!
-@brief Double precision product of the inverse of a general rotation matrix and a general
-rotation matrix
+@brief Double precision product of the inverse of a general rotation matrix and
+a general rotation matrix
 
 Computes the product of the inverse of a general rotation matrix, R1i, and
 a second rotation matrix, R2i.
@@ -3168,91 +2667,11 @@ a second rotation matrix, R2i.
 @param R2i a pointer to a general rotation matrix
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rinverser(
-  s2_mat3x3_t* R1i,
-  s2_mat3x3_t* R2i,
-  s2_mat3x3_t* ro) {
+inline void s2_product_rinverser(s2_mat3x3_t* R1i, s2_mat3x3_t* R2i,
+                                 s2_mat3x3_t* ro) {
 
-  cblas_dgemm(
-    CblasColMajor,
-    CblasTrans,
-    CblasNoTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (double*)R1i,
-    3,
-    (double*)R2i,
-    3,
-    0.0,
-    (double*)ro,
-    3);
-
-  // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[1][0] R1i[2][0]|   |R2i[0][0]
-  // R2i[0][1] R2i[0][2]|
-  // |ro[1][0] ro[1][1] ro[1][2]| = |R1i[0][1] R1i[1][1] R1i[2][1]| * |R2i[1][0]
-  // R2i[1][1] R2i[1][2]|
-  // |ro[2][0] ro[2][1] ro[2][2]|   |R1i[0][2] R1i[1][2] R1i[2][2]|   |R2i[2][0]
-  // R2i[2][1] R2i[2][2]|
-
-  // ro[0][0] = R1i[0][0] * R2i[0][0] + R1i[1][0] * R2i[1][0] + R1i[2][0] *
-  // R2i[2][0];
-  // ro[0][1] = R1i[0][0] * R2i[0][1] + R1i[1][0] * R2i[1][1] + R1i[2][0] *
-  // R2i[2][1];
-  // ro[0][2] = R1i[0][0] * R2i[0][2] + R1i[1][0] * R2i[1][2] + R1i[2][0] *
-  // R2i[2][2];
-
-  // ro[1][0] = R1i[0][1] * R2i[0][0] + R1i[1][1] * R2i[1][0] + R1i[2][1] *
-  // R2i[2][0];
-  // ro[1][1] = R1i[0][1] * R2i[0][1] + R1i[1][1] * R2i[1][1] + R1i[2][1] *
-  // R2i[2][1];
-  // ro[1][2] = R1i[0][1] * R2i[0][2] + R1i[1][1] * R2i[1][2] + R1i[2][1] *
-  // R2i[2][2];
-
-  // ro[2][0] = R1i[0][2] * R2i[0][0] + R1i[1][2] * R2i[1][0] + R1i[2][2] *
-  // R2i[2][0];
-  // ro[2][1] = R1i[0][2] * R2i[0][1] + R1i[1][2] * R2i[1][1] + R1i[2][2] *
-  // R2i[2][1];
-  // ro[2][2] = R1i[0][2] * R2i[0][2] + R1i[1][2] * R2i[1][2] + R1i[2][2] *
-  // R2i[2][2];
-}
-
-
-
-/*!
-@brief single precision product of the inverse of a general rotation matrix and a general
-rotation matrix
-
-Computes the product of the inverse of a general rotation matrix, R1i, and
-a second rotation matrix, R2i.
-
-\f$R_{1i}^T * R_{2i} \rightarrow R_o\f$
-
-@param R1i a pointer to a general rotation matrix
-@param R2i a pointer to a general rotation matrix
-@param ro a pointer to a rotation matrix where the result is stored.
-*/
-inline void s2_product_rinverserf(
-  s2_mat3x3f_t* R1i,
-  s2_mat3x3f_t* R2i,
-  s2_mat3x3f_t* ro) {
-
-  cblas_sgemm(
-    CblasColMajor,
-    CblasTrans,
-    CblasNoTrans,
-    3,
-    3,
-    3,
-    1.0,
-    (float*)R1i,
-    3,
-    (float*)R2i,
-    3,
-    0.0,
-    (float*)ro,
-    3);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, 3, 3, 3, 1.0,
+              (double*)R1i, 3, (double*)R2i, 3, 0.0, (double*)ro, 3);
 
   // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[1][0] R1i[2][0]|   |R2i[0][0]
   // R2i[0][1] R2i[0][2]|
@@ -3284,8 +2703,56 @@ inline void s2_product_rinverserf(
 }
 
 /*!
-@brief Double precision product of the a general rotation matrix and a primitive translation
-along the x axis
+@brief single precision product of the inverse of a general rotation matrix and
+a general rotation matrix
+
+Computes the product of the inverse of a general rotation matrix, R1i, and
+a second rotation matrix, R2i.
+
+\f$R_{1i}^T * R_{2i} \rightarrow R_o\f$
+
+@param R1i a pointer to a general rotation matrix
+@param R2i a pointer to a general rotation matrix
+@param ro a pointer to a rotation matrix where the result is stored.
+*/
+inline void s2_product_rinverserf(s2_mat3x3f_t* R1i, s2_mat3x3f_t* R2i,
+                                  s2_mat3x3f_t* ro) {
+
+  cblas_sgemm(CblasColMajor, CblasTrans, CblasNoTrans, 3, 3, 3, 1.0,
+              (float*)R1i, 3, (float*)R2i, 3, 0.0, (float*)ro, 3);
+
+  // |ro[0][0] ro[0][1] ro[0][2]|   |R1i[0][0] R1i[1][0] R1i[2][0]|   |R2i[0][0]
+  // R2i[0][1] R2i[0][2]|
+  // |ro[1][0] ro[1][1] ro[1][2]| = |R1i[0][1] R1i[1][1] R1i[2][1]| * |R2i[1][0]
+  // R2i[1][1] R2i[1][2]|
+  // |ro[2][0] ro[2][1] ro[2][2]|   |R1i[0][2] R1i[1][2] R1i[2][2]|   |R2i[2][0]
+  // R2i[2][1] R2i[2][2]|
+
+  // ro[0][0] = R1i[0][0] * R2i[0][0] + R1i[1][0] * R2i[1][0] + R1i[2][0] *
+  // R2i[2][0];
+  // ro[0][1] = R1i[0][0] * R2i[0][1] + R1i[1][0] * R2i[1][1] + R1i[2][0] *
+  // R2i[2][1];
+  // ro[0][2] = R1i[0][0] * R2i[0][2] + R1i[1][0] * R2i[1][2] + R1i[2][0] *
+  // R2i[2][2];
+
+  // ro[1][0] = R1i[0][1] * R2i[0][0] + R1i[1][1] * R2i[1][0] + R1i[2][1] *
+  // R2i[2][0];
+  // ro[1][1] = R1i[0][1] * R2i[0][1] + R1i[1][1] * R2i[1][1] + R1i[2][1] *
+  // R2i[2][1];
+  // ro[1][2] = R1i[0][1] * R2i[0][2] + R1i[1][1] * R2i[1][2] + R1i[2][1] *
+  // R2i[2][2];
+
+  // ro[2][0] = R1i[0][2] * R2i[0][0] + R1i[1][2] * R2i[1][0] + R1i[2][2] *
+  // R2i[2][0];
+  // ro[2][1] = R1i[0][2] * R2i[0][1] + R1i[1][2] * R2i[1][1] + R1i[2][2] *
+  // R2i[2][1];
+  // ro[2][2] = R1i[0][2] * R2i[0][2] + R1i[1][2] * R2i[1][2] + R1i[2][2] *
+  // R2i[2][2];
+}
+
+/*!
+@brief Double precision product of the a general rotation matrix and a primitive
+translation along the x axis
 
 Computes the product of a general rotation matrix and a primitive translation
 along the x axis using sparse algebra.
@@ -3300,10 +2767,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param to a pointer to a vector where result is stored.
 */
-inline void s2_product_rtx(
-  s2_mat3x3_t* ri,
-  double* ti,
-  s2_vector_t* to) {
+inline void s2_product_rtx(s2_mat3x3_t* ri, double* ti, s2_vector_t* to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, *ti, (double*)ri, 1, (double*)to, 1);
@@ -3317,10 +2781,9 @@ inline void s2_product_rtx(
   // to[0+2] = ri[2 * 3] * ti;
 }
 
-
 /*!
-@brief single precision product of the a general rotation matrix and a primitive translation
-along the x axis
+@brief single precision product of the a general rotation matrix and a primitive
+translation along the x axis
 
 Computes the product of a general rotation matrix and a primitive translation
 along the x axis using sparse algebra.
@@ -3335,10 +2798,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtxf(
-  s2_mat3x3f_t* ri,
-  float* ti,
-  s2_vectorf_t* to) {
+inline void s2_product_rtxf(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, *ti, (float*)ri, 1, (float*)to, 1);
@@ -3353,8 +2813,8 @@ inline void s2_product_rtxf(
 }
 
 /*!
-@brief Double precision product of the a general rotation matrix and the inverse of a
-primitive translation along the x axis
+@brief Double precision product of the a general rotation matrix and the inverse
+of a primitive translation along the x axis
 
 Computes the product of a general rotation matrix and the inverse of a
 primitive translation along the x axis using sparse algebra.
@@ -3369,10 +2829,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtxinverse(
-  s2_mat3x3_t* ri,
-  double* ti,
-  s2_vector_t* to) {
+inline void s2_product_rtxinverse(s2_mat3x3_t* ri, double* ti,
+                                  s2_vector_t* to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, -(*ti), (double*)ri, 1, (double*)to, 1);
@@ -3386,10 +2844,9 @@ inline void s2_product_rtxinverse(
   // to[0+2] = -ri[2 * 3] * ti;
 }
 
-
 /*!
-@brief single precision product of the a general rotation matrix and the inverse of a
-primitive translation along the x axis
+@brief single precision product of the a general rotation matrix and the inverse
+of a primitive translation along the x axis
 
 Computes the product of a general rotation matrix and the inverse of a
 primitive translation along the x axis using sparse algebra.
@@ -3404,10 +2861,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtxinversef(
-  s2_mat3x3f_t* ri,
-  float* ti,
-  s2_vectorf_t* to) {
+inline void s2_product_rtxinversef(s2_mat3x3f_t* ri, float* ti,
+                                   s2_vectorf_t* to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, -(*ti), (float*)ri, 1, (float*)to, 1);
@@ -3438,10 +2893,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rty(
-  s2_mat3x3_t* ri,
-  double* ti,
-  s2_vector_t* to) {
+inline void s2_product_rty(s2_mat3x3_t* ri, double* ti, s2_vector_t* to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, *ti, ((double*)ri) + 3, 1, (double*)to, 1);
@@ -3472,10 +2924,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtyf(
-  s2_mat3x3f_t* ri,
-  float* ti,
-  s2_vectorf_t* to) {
+inline void s2_product_rtyf(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, *ti, ((float*)ri) + 3, 1, (float*)to, 1);
@@ -3506,10 +2955,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtyinverse(
-  s2_mat3x3_t* ri,
-  double* ti,
-  s2_vector_t* to) {
+inline void s2_product_rtyinverse(s2_mat3x3_t* ri, double* ti,
+                                  s2_vector_t* to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, -(*ti), ((double*)ri) + 3, 1, (double*)to, 1);
@@ -3524,8 +2971,8 @@ inline void s2_product_rtyinverse(
 }
 
 /*!
-@brief single precision product of a general rotation matrix and the inverse of a
-primitive translation along the y axis
+@brief single precision product of a general rotation matrix and the inverse of
+a primitive translation along the y axis
 
 Computes the product of a general rotation matrix and the inverse of a
 primitive translation along the x axis using sparse algebra.
@@ -3540,10 +2987,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtyinversef(
-  s2_mat3x3f_t* ri,
-  float* ti,
-  s2_vectorf_t* to) {
+inline void s2_product_rtyinversef(s2_mat3x3f_t* ri, float* ti,
+                                   s2_vectorf_t* to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, -(*ti), ((float*)ri) + 3, 1, (float*)to, 1);
@@ -3556,7 +3001,6 @@ inline void s2_product_rtyinversef(
   // to[0+1] = -ri[1 * 3 + 1] * ti;
   // to[0+2] = -ri[2 * 3 + 1] * ti;
 }
-
 
 /*!
 @brief Double precision product of a general rotation matrix and a
@@ -3575,10 +3019,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtz(
-  s2_mat3x3_t* ri,
-  double* ti,
-  s2_vector_t* to) {
+inline void s2_product_rtz(s2_mat3x3_t* ri, double* ti, s2_vector_t* to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, *ti, ((double*)ri) + 6, 1, (double*)to, 1);
@@ -3609,10 +3050,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtzf(
-  s2_mat3x3f_t* ri,
-  float* ti,
-  s2_vectorf_t* to) {
+inline void s2_product_rtzf(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, *ti, ((float*)ri) + 6, 1, (float*)to, 1);
@@ -3643,10 +3081,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtzinverse(
-  s2_mat3x3_t* ri,
-  double* ti,
-  s2_vector_t* to) {
+inline void s2_product_rtzinverse(s2_mat3x3_t* ri, double* ti,
+                                  s2_vector_t* to) {
 
   memset(to, 0, 3 * sizeof(double));
   cblas_daxpy(3, -(*ti), ((double*)ri) + 6, 1, (double*)to, 1);
@@ -3659,7 +3095,6 @@ inline void s2_product_rtzinverse(
   // to[0+1] = -ri[1 * 3 + 2] * ti;
   // to[0+2] = -ri[2 * 3 + 2] * ti;
 }
-
 
 /*!
 @brief single precision product of the a general rotation matrix and
@@ -3678,10 +3113,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtzinversef(
-  s2_mat3x3f_t* ri,
-  float* ti,
-  s2_vectorf_t* to) {
+inline void s2_product_rtzinversef(s2_mat3x3f_t* ri, float* ti,
+                                   s2_vectorf_t* to) {
 
   memset(to, 0, 3 * sizeof(float));
   cblas_saxpy(3, -(*ti), ((float*)ri) + 6, 1, (float*)to, 1);
@@ -3720,10 +3153,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttx(
-  s2_vector_t* t1i,
-  double* t2i,
-  s2_vector_t* to) {
+inline void s2_add_ttx(s2_vector_t* t1i, double* t2i, s2_vector_t* to) {
 
   s2_vector_copy(t1i, to);
   to->x += *t2i;
@@ -3747,10 +3177,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttxf(
-  s2_vectorf_t* t1i,
-  float* t2i,
-  s2_vectorf_t* to) {
+inline void s2_add_ttxf(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to) {
 
   s2_vectorf_copy(t1i, to);
   to->x += *t2i;
@@ -3775,10 +3202,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttxinverse(
-  s2_vector_t* t1i,
-  double* t2i,
-  s2_vector_t* to) {
+inline void s2_add_ttxinverse(s2_vector_t* t1i, double* t2i, s2_vector_t* to) {
 
   s2_vector_copy(t1i, to);
   to->x -= *t2i;
@@ -3806,10 +3230,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttxinversef(
-  s2_vectorf_t* t1i,
-  float* t2i,
-  s2_vectorf_t* to) {
+inline void s2_add_ttxinversef(s2_vectorf_t* t1i, float* t2i,
+                               s2_vectorf_t* to) {
 
   s2_vectorf_copy(t1i, to);
   to->x -= *t2i;
@@ -3837,10 +3259,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_tty(
-  s2_vector_t* t1i,
-  double* t2i,
-  s2_vector_t* to) {
+inline void s2_add_tty(s2_vector_t* t1i, double* t2i, s2_vector_t* to) {
 
   s2_vector_copy(t1i, to);
   to->y += *t2i;
@@ -3869,10 +3288,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttyf(
-  s2_vectorf_t* t1i,
-  float* t2i,
-  s2_vectorf_t* to) {
+inline void s2_add_ttyf(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to) {
 
   s2_vectorf_copy(t1i, to);
   to->y += *t2i;
@@ -3901,10 +3317,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttyinverse(
-  s2_vector_t* t1i,
-  double* t2i,
-  s2_vector_t* to) {
+inline void s2_add_ttyinverse(s2_vector_t* t1i, double* t2i, s2_vector_t* to) {
 
   s2_vector_copy(t1i, to);
   to->y -= *t2i;
@@ -3933,10 +3346,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttyinversef(
-  s2_vectorf_t* t1i,
-  float* t2i,
-  s2_vectorf_t* to) {
+inline void s2_add_ttyinversef(s2_vectorf_t* t1i, float* t2i,
+                               s2_vectorf_t* to) {
 
   s2_vectorf_copy(t1i, to);
   to->y -= *t2i;
@@ -3965,10 +3376,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttz(
-  s2_vector_t* t1i,
-  double* t2i,
-  s2_vector_t* to) {
+inline void s2_add_ttz(s2_vector_t* t1i, double* t2i, s2_vector_t* to) {
 
   s2_vector_copy(t1i, to);
   to->z += *t2i;
@@ -3997,10 +3405,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttzf(
-  s2_vectorf_t* t1i,
-  float* t2i,
-  s2_vectorf_t* to) {
+inline void s2_add_ttzf(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to) {
 
   s2_vectorf_copy(t1i, to);
   to->z += *t2i;
@@ -4029,10 +3434,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttzinverse(
-  s2_vector_t* t1i,
-  double* t2i,
-  s2_vector_t* to) {
+inline void s2_add_ttzinverse(s2_vector_t* t1i, double* t2i, s2_vector_t* to) {
 
   s2_vector_copy(t1i, to);
   to->z -= *t2i;
@@ -4060,10 +3462,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttzinversef(
-  s2_vectorf_t* t1i,
-  float* t2i,
-  s2_vectorf_t* to) {
+inline void s2_add_ttzinversef(s2_vectorf_t* t1i, float* t2i,
+                               s2_vectorf_t* to) {
 
   s2_vectorf_copy(t1i, to);
   to->z -= *t2i;
@@ -4088,9 +3488,8 @@ of both a rotation and translation component.
 @param Di a general displacement to take the inverse of
 @param Do inverse of Di is returned in Do
 */
-inline void s2_displacement_invert(
-  s2_displacement_t* Di,
-  s2_displacement_t* Do) {
+inline void s2_displacement_invert(s2_displacement_t* Di,
+                                   s2_displacement_t* Do) {
 
   s2_mat3x3_invert(&(Di->R), &(Do->R));
   s2_product_rinversevinverse(&(Di->R), &(Di->T), &(Do->T));
@@ -4104,9 +3503,8 @@ inline void s2_displacement_invert(
 @param Di a general displacement to take the inverse of
 @param Do inverse of Di is returned in Do
 */
-inline void s2_displacementf_invert(
-  s2_displacementf_t* Di,
-  s2_displacementf_t* Do) {
+inline void s2_displacementf_invert(s2_displacementf_t* Di,
+                                    s2_displacementf_t* Do) {
 
   s2_mat3x3f_invert(&(Di->R), &(Do->R));
   s2_product_rinversevinversef(&(Di->R), &(Di->T), &(Do->T));
@@ -4121,9 +3519,7 @@ translation
 @param Di a general displacement input
 @param Do Di is copied to Do
 */
-inline void s2_displacement_copy(
-  s2_displacement_t* Di,
-  s2_displacement_t* Do) {
+inline void s2_displacement_copy(s2_displacement_t* Di, s2_displacement_t* Do) {
 
   memcpy(Do, Di, sizeof(s2_displacement_t));
   // cblas_dcopy(12, (double*)Di, 1, (double*)Do, 1);
@@ -4138,9 +3534,8 @@ translation
 @param Di a general displacement input
 @param Do Di is copied to Do
 */
-inline void s2_displacementf_copy(
-  s2_displacementf_t* Di,
-  s2_displacementf_t* Do) {
+inline void s2_displacementf_copy(s2_displacementf_t* Di,
+                                  s2_displacementf_t* Do) {
 
   memcpy(Do, Di, sizeof(s2_displacementf_t));
   // cblas_scopy(12, (float*)Di, 1, (float*)Do, 1);
@@ -4158,10 +3553,8 @@ about the x-axis
 @param dc direction cosines characterizing a primitive rotation
 @param the result of the computation is stored in Do
 */
-inline void s2_product_drx(
-  s2_displacement_t* Di,
-  double dc[2],
-  s2_displacement_t* Do) {
+inline void s2_product_drx(s2_displacement_t* Di, double dc[2],
+                           s2_displacement_t* Do) {
 
   s2_product_rrx(&(Di->R), dc, &(Do->R));
   s2_vector_copy(&(Di->T), &(Do->T));
@@ -4179,10 +3572,8 @@ about the x-axis
 @param dc direction cosines characterizing a primitive rotation
 @param the result of the computation is stored in Do
 */
-inline void s2_product_drxf(
-  s2_displacementf_t* Di,
-  float dc[2],
-  s2_displacementf_t* Do) {
+inline void s2_product_drxf(s2_displacementf_t* Di, float dc[2],
+                            s2_displacementf_t* Do) {
 
   s2_product_rrxf(&(Di->R), dc, &(Do->R));
   s2_vectorf_copy(&(Di->T), &(Do->T));
@@ -4204,10 +3595,8 @@ is equivalent to:
 @param dc direction cosines characterizing a primitive rotation
 @param the result of the computation is stored in Do
 */
-inline void s2_product_drxinverse(
-  s2_displacement_t* Di,
-  double dc[2],
-  s2_displacement_t* Do) {
+inline void s2_product_drxinverse(s2_displacement_t* Di, double dc[2],
+                                  s2_displacement_t* Do) {
 
   s2_product_rrxinverse(&(Di->R), dc, &(Do->R));
   s2_vector_copy(&(Di->T), &(Do->T));
@@ -4229,10 +3618,8 @@ is equivalent to:
 @param dc direction cosines characterizing a primitive rotation
 @param the result of the computation is stored in Do
 */
-inline void s2_product_drxinversef(
-  s2_displacementf_t* Di,
-  float dc[2],
-  s2_displacementf_t* Do) {
+inline void s2_product_drxinversef(s2_displacementf_t* Di, float dc[2],
+                                   s2_displacementf_t* Do) {
 
   s2_product_rrxinversef(&(Di->R), dc, &(Do->R));
   s2_vectorf_copy(&(Di->T), &(Do->T));
@@ -4255,10 +3642,8 @@ is equivalent to:
 @param dc[2] direction cosines for a rotation about the Y axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void s2_product_dry(
-  s2_displacement_t* Di,
-  double dc[2],
-  s2_displacement_t* Do) {
+inline void s2_product_dry(s2_displacement_t* Di, double dc[2],
+                           s2_displacement_t* Do) {
 
   s2_product_rry(&(Di->R), dc, &(Do->R));
   s2_vector_copy(&(Di->T), &(Do->T));
@@ -4281,18 +3666,16 @@ is equivalent to:
 @param dc[2] direction cosines for a rotation about the Y axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void s2_product_dryf(
-  s2_displacementf_t* Di,
-  float dc[2],
-  s2_displacementf_t* Do) {
+inline void s2_product_dryf(s2_displacementf_t* Di, float dc[2],
+                            s2_displacementf_t* Do) {
 
   s2_product_rryf(&(Di->R), dc, &(Do->R));
   s2_vectorf_copy(&(Di->T), &(Do->T));
 }
 
 /*!
-@brief Double precision product of a s2_displacement_t, \f$D\f$, and the inverse of a
-rotation about the y axis, \f$R_y^T\f$
+@brief Double precision product of a s2_displacement_t, \f$D\f$, and the inverse
+of a rotation about the y axis, \f$R_y^T\f$
 
 The following operation:
 \f$D_i * R_y^T \rightarrow D_o\f$
@@ -4307,18 +3690,16 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Y axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void s2_product_dryinverse(
-  s2_displacement_t* Di,
-  double dc[2],
-  s2_displacement_t* Do) {
+inline void s2_product_dryinverse(s2_displacement_t* Di, double dc[2],
+                                  s2_displacement_t* Do) {
 
   s2_product_rryinverse(&(Di->R), dc, &(Do->R));
   s2_vector_copy(&(Di->T), &(Do->T));
 }
 
 /*!
-@brief single precision product of a s2_displacementf_t, \f$D\f$, and the inverse of a
-rotation about the y axis, \f$R_y^T\f$
+@brief single precision product of a s2_displacementf_t, \f$D\f$, and the
+inverse of a rotation about the y axis, \f$R_y^T\f$
 
 The following operation:
 \f$D_i * R_y^T \rightarrow D_o\f$
@@ -4333,10 +3714,8 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Y axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void s2_product_dryinversef(
-  s2_displacementf_t* Di,
-  float dc[2],
-  s2_displacementf_t* Do) {
+inline void s2_product_dryinversef(s2_displacementf_t* Di, float dc[2],
+                                   s2_displacementf_t* Do) {
 
   s2_product_rryinversef(&(Di->R), dc, &(Do->R));
   s2_vectorf_copy(&(Di->T), &(Do->T));
@@ -4359,10 +3738,8 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void s2_product_drz(
-  s2_displacement_t* Di,
-  double dc[2],
-  s2_displacement_t* Do) {
+inline void s2_product_drz(s2_displacement_t* Di, double dc[2],
+                           s2_displacement_t* Do) {
 
   s2_product_rrz(&(Di->R), dc, &(Do->R));
   s2_vector_copy(&(Di->T), &(Do->T));
@@ -4385,10 +3762,8 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void s2_product_drzf(
-  s2_displacementf_t* Di,
-  float dc[2],
-  s2_displacementf_t* Do) {
+inline void s2_product_drzf(s2_displacementf_t* Di, float dc[2],
+                            s2_displacementf_t* Do) {
 
   s2_product_rrzf(&(Di->R), dc, &(Do->R));
   s2_vectorf_copy(&(Di->T), &(Do->T));
@@ -4411,10 +3786,8 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void s2_product_drzinverse(
-  s2_displacement_t* Di,
-  double dc[2],
-  s2_displacement_t* Do) {
+inline void s2_product_drzinverse(s2_displacement_t* Di, double dc[2],
+                                  s2_displacement_t* Do) {
 
   s2_product_rrzinverse(&(Di->R), dc, &(Do->R));
   s2_vector_copy(&(Di->T), &(Do->T));
@@ -4437,15 +3810,12 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are stored in a general displacement, \f$D_o\f$
 */
-inline void s2_product_drzinversef(
-  s2_displacementf_t* Di,
-  float dc[2],
-  s2_displacementf_t* Do) {
+inline void s2_product_drzinversef(s2_displacementf_t* Di, float dc[2],
+                                   s2_displacementf_t* Do) {
 
   s2_product_rrzinversef(&(Di->R), dc, &(Do->R));
   s2_vectorf_copy(&(Di->T), &(Do->T));
 }
-
 
 /*!
 @brief Double precision product of a general s2_displacement_t with a vector
@@ -4454,10 +3824,8 @@ inline void s2_product_drzinversef(
 @param vi a general 3-d Vector
 @param vo the results are stored in vector, \f$v_o\f$
 */
-inline void s2_product_dv(
-  s2_displacement_t* Di,
-  s2_vector_t* vi,
-  s2_vector_t* vo) {
+inline void s2_product_dv(s2_displacement_t* Di, s2_vector_t* vi,
+                          s2_vector_t* vo) {
 
   s2_product_rv(&(Di->R), vi, vo);
 
@@ -4473,7 +3841,6 @@ inline void s2_product_dv(
   //   1);
 }
 
-
 /*!
 @brief Double precision product of a general s2_displacement_t inverse
 with a vector
@@ -4482,33 +3849,20 @@ with a vector
 @param vi a general 3-d Vector
 @param vo the results are stored in vector, \f$v_o\f$
 */
-inline void s2_product_dinversev(
-  s2_displacement_t* Di,
-  s2_vector_t* vi,
-  s2_vector_t* vo) {
-
+inline void s2_product_dinversev(s2_displacement_t* Di, s2_vector_t* vi,
+                                 s2_vector_t* vo) {
 
   s2_vector_t temp;
 
   /* R^-1 * t -> temp*/
-  s2_product_rinversev(
-    &(Di->R),
-    &(Di->T),
-    &temp);
+  s2_product_rinversev(&(Di->R), &(Di->T), &temp);
 
   /* R^-1 * vi -> vo */
   s2_product_rinversev(&(Di->R), vi, vo);
 
   /* vo -= temp */
-  cblas_daxpy(
-    3,
-    -1.0,
-    (double*)&temp,
-    1,
-    (double*)vo,
-    1);
+  cblas_daxpy(3, -1.0, (double*)&temp, 1, (double*)vo, 1);
 }
-
 
 /*!
 @brief Double precision product of a general s2_displacement_t, followed by
@@ -4525,20 +3879,12 @@ Computes the result of a general displacement, followed by a general
 @param vi[3] a general 3-d Vector
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dt(
-  s2_displacement_t* Di,
-  s2_vector_t* vi,
-  s2_displacement_t* Do) {
+inline void s2_product_dt(s2_displacement_t* Di, s2_vector_t* vi,
+                          s2_displacement_t* Do) {
 
   cblas_dcopy(9, (double*)Di, 1, (double*)Do, 1);
   s2_product_rv(&(Di->R), vi, &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!
@@ -4556,20 +3902,12 @@ a general 3-d translation.
 @param vi[3] a general 3-d Vector
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtinverse(
-  s2_displacement_t* Di,
-  s2_vector_t* vi,
-  s2_displacement_t* Do) {
+inline void s2_product_dtinverse(s2_displacement_t* Di, s2_vector_t* vi,
+                                 s2_displacement_t* Do) {
 
   cblas_dcopy(9, (double*)Di, 1, (double*)Do, 1);
   s2_product_rvinverse(&(Di->R), vi, &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!
@@ -4587,26 +3925,13 @@ Computes the result of a general displacement, followed by a general
 @param vi[3] a general 3-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtf(
-  s2_displacementf_t* Di,
-  s2_vectorf_t* vi,
-  s2_displacementf_t* Do) {
+inline void s2_product_dtf(s2_displacementf_t* Di, s2_vectorf_t* vi,
+                           s2_displacementf_t* Do) {
 
   cblas_scopy(9, (float*)Di, 1, (float*)Do, 1);
   s2_product_rvf(&(Di->R), vi, &(Do->T));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  cblas_saxpy(3, 1.0, ((float*)Di) + 9, 1, ((float*)Do) + 9, 1);
 }
-
-
-
-
-
 
 /*!
 @brief Double precision product of the inverse of a general
@@ -4625,10 +3950,8 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are returned in a general displacement, \f$D_o\f$
 */
-inline void s2_product_dinverset(
-  s2_displacement_t* Di,
-  s2_vector_t* vi,
-  s2_displacement_t* Do) {
+inline void s2_product_dinverset(s2_displacement_t* Di, s2_vector_t* vi,
+                                 s2_displacement_t* Do) {
 
   s2_subtract_vv(vi, &(Di->T), &(Do->T));
   s2_mat3x3_invert(&(Di->R), &(Do->R));
@@ -4652,10 +3975,8 @@ Can be split in to:
 @param dc[2] direction cosines for a rotation about the Z axis.
 @param Do the results are returned in a general displacement, \f$D_o\f$
 */
-inline void s2_product_dinversetf(
-  s2_displacementf_t* Di,
-  s2_vectorf_t* vi,
-  s2_displacementf_t* Do) {
+inline void s2_product_dinversetf(s2_displacementf_t* Di, s2_vectorf_t* vi,
+                                  s2_displacementf_t* Do) {
 
   s2_subtract_vvf(vi, &(Di->T), &(Do->T));
   s2_mat3x3f_invert(&(Di->R), &(Do->R));
@@ -4677,24 +3998,17 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtx(
-  s2_displacement_t* Di,
-  double* ti,
-  s2_displacement_t* Do) {
+inline void s2_product_dtx(s2_displacement_t* Di, double* ti,
+                           s2_displacement_t* Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
   s2_product_rtx(&(Di->R), ti, &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!
-@brief Double precision product of a s2_displacement_t and a primitive translation
+@brief Double precision product of a s2_displacement_t and a primitive
+translation
 
 Computes the result of a general displacement, followed by a primitive
 1-d translation.
@@ -4707,25 +4021,17 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtxinverse(
-  s2_displacement_t* Di,
-  double* ti,
-  s2_displacement_t* Do) {
+inline void s2_product_dtxinverse(s2_displacement_t* Di, double* ti,
+                                  s2_displacement_t* Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
   s2_product_rtxinverse(&(Di->R), ti, &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
-
 /*!
-@brief single precision product of a s2_displacement_t and a primitive translation
+@brief single precision product of a s2_displacement_t and a primitive
+translation
 
 Computes the result of a general displacement, followed by a primitive
 1-d translation.
@@ -4738,20 +4044,12 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtxinversef(
-  s2_displacementf_t* Di,
-  float* ti,
-  s2_displacementf_t* Do) {
+inline void s2_product_dtxinversef(s2_displacementf_t* Di, float* ti,
+                                   s2_displacementf_t* Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
   s2_product_rtxinversef(&(Di->R), ti, &(Do->T));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  cblas_saxpy(3, 1.0, ((float*)Di) + 9, 1, ((float*)Do) + 9, 1);
 }
 
 /*!
@@ -4766,20 +4064,12 @@ translation along the y-axis
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dty(
-  s2_displacement_t* Di,
-  double* ti,
-  s2_displacement_t* Do) {
+inline void s2_product_dty(s2_displacement_t* Di, double* ti,
+                           s2_displacement_t* Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
   s2_product_rty(&(Di->R), ti, &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!
@@ -4794,20 +4084,12 @@ translation along the y-axis
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtyf(
-  s2_displacementf_t* Di,
-  float* ti,
-  s2_displacementf_t* Do) {
+inline void s2_product_dtyf(s2_displacementf_t* Di, float* ti,
+                            s2_displacementf_t* Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
   s2_product_rtyf(&(Di->R), ti, &(Do->T));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  cblas_saxpy(3, 1.0, ((float*)Di) + 9, 1, ((float*)Do) + 9, 1);
 }
 
 /*!
@@ -4825,20 +4107,12 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtyinverse(
-  s2_displacement_t* Di,
-  double* ti,
-  s2_displacement_t* Do) {
+inline void s2_product_dtyinverse(s2_displacement_t* Di, double* ti,
+                                  s2_displacement_t* Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
   s2_product_rtyinverse(&(Di->R), ti, &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!
@@ -4856,25 +4130,17 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtyinversef(
-  s2_displacementf_t* Di,
-  float* ti,
-  s2_displacementf_t* Do) {
+inline void s2_product_dtyinversef(s2_displacementf_t* Di, float* ti,
+                                   s2_displacementf_t* Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
   s2_product_rtyinversef(&(Di->R), ti, &(Do->T));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  cblas_saxpy(3, 1.0, ((float*)Di) + 9, 1, ((float*)Do) + 9, 1);
 }
 
 /*!
-@brief Double precision s2_displacement_t multiplied with a primitive translation
-along z axis
+@brief Double precision s2_displacement_t multiplied with a primitive
+translation along z axis
 
 Computes the result of a general displacement, followed by a primitive
 1-d translation along z axis.
@@ -4887,25 +4153,17 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtz(
-  s2_displacement_t* Di,
-  double* ti,
-  s2_displacement_t* Do) {
+inline void s2_product_dtz(s2_displacement_t* Di, double* ti,
+                           s2_displacement_t* Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
   s2_product_rtz(&(Di->R), ti, &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!
-@brief single precision s2_displacementf_t multiplied with a primitive translation
-along z axis
+@brief single precision s2_displacementf_t multiplied with a primitive
+translation along z axis
 
 Computes the result of a general displacement, followed by a primitive
 1-d translation along z axis.
@@ -4918,20 +4176,12 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtzf(
-  s2_displacementf_t* Di,
-  float* ti,
-  s2_displacementf_t* Do) {
+inline void s2_product_dtzf(s2_displacementf_t* Di, float* ti,
+                            s2_displacementf_t* Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
   s2_product_rtzf(&(Di->R), ti, &(Do->T));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)Di) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  cblas_saxpy(3, 1.0, ((float*)Di) + 9, 1, ((float*)Do) + 9, 1);
 }
 
 /*!
@@ -4949,20 +4199,12 @@ primitive 1-d translation along the z axis.
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtzinverse(
-  s2_displacement_t* Di,
-  double* ti,
-  s2_displacement_t* Do) {
+inline void s2_product_dtzinverse(s2_displacement_t* Di, double* ti,
+                                  s2_displacement_t* Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
   s2_product_rtzinverse(&(Di->R), ti, &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)Di) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!
@@ -4983,13 +4225,11 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dd(
-  s2_displacement_t* D1i,
-  s2_displacement_t* D2i,
-  s2_displacement_t* Do) {
+inline void s2_product_dd(s2_displacement_t* D1i, s2_displacement_t* D2i,
+                          s2_displacement_t* Do) {
 
   s2_product_rr(&(D1i->R), &(D2i->R), &(Do)->R);
-  s2_product_rv(&(D1i->R), &(D2i->T), &(Do ->T));
+  s2_product_rv(&(D1i->R), &(D2i->T), &(Do->T));
   cblas_daxpy(3, 1.0, ((double*)D1i) + 9, 1, ((double*)Do) + 9, 1);
 }
 
@@ -5011,16 +4251,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_ddf(
-  s2_displacementf_t* D1i,
-  s2_displacementf_t* D2i,
-  s2_displacementf_t* Do) {
+inline void s2_product_ddf(s2_displacementf_t* D1i, s2_displacementf_t* D2i,
+                           s2_displacementf_t* Do) {
 
   s2_product_rrf(&(D1i->R), &(D2i->R), &(Do)->R);
-  s2_product_rvf(&(D1i->R), &(D2i->T), &(Do ->T));
+  s2_product_rvf(&(D1i->R), &(D2i->T), &(Do->T));
   cblas_saxpy(3, 1.0, ((float*)D1i) + 9, 1, ((float*)Do) + 9, 1);
 }
-
 
 /*!
 @brief Double precision product of q displacement matrix with a mat3x3 rotation
@@ -5041,10 +4278,8 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dr(
-  s2_displacement_t* Di,
-  s2_mat3x3_t* Ri,
-  s2_displacement_t* Do) {
+inline void s2_product_dr(s2_displacement_t* Di, s2_mat3x3_t* Ri,
+                          s2_displacement_t* Do) {
 
   s2_product_rr(&Di->R, Ri, &Do->R);
   s2_vector_copy(&Di->T, &Do->T);
@@ -5052,7 +4287,6 @@ inline void s2_product_dr(
   // cblas_dcopy(3, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
-
 /*!
 @brief Double precision product of q displacement matrix with a mat3x3 rotation
 matrix
@@ -5072,14 +4306,11 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_drf(
-  s2_displacementf_t* Di,
-  s2_mat3x3f_t* Ri,
-  s2_displacementf_t* Do) {
+inline void s2_product_drf(s2_displacementf_t* Di, s2_mat3x3f_t* Ri,
+                           s2_displacementf_t* Do) {
 
   s2_product_rrf(&(Di->R), Ri, &(Do)->R);
   s2_vectorf_copy(&Di->T, &Do->T);
-
 }
 
 /*!
@@ -5101,16 +4332,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_drinverse(
-  s2_displacement_t* Di,
-  s2_mat3x3_t* Ri,
-  s2_displacement_t* Do) {
+inline void s2_product_drinverse(s2_displacement_t* Di, s2_mat3x3_t* Ri,
+                                 s2_displacement_t* Do) {
 
   s2_product_rrinverse(&(Di->R), Ri, &(Do)->R);
   cblas_daxpy(3, 1.0, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
-
 /*!
 @brief Double precision product of q displacement matrix with a mat3x3 rotation
 matrix
@@ -5130,15 +4358,12 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_drinversef(
-  s2_displacementf_t* Di,
-  s2_mat3x3f_t* Ri,
-  s2_displacementf_t* Do) {
+inline void s2_product_drinversef(s2_displacementf_t* Di, s2_mat3x3f_t* Ri,
+                                  s2_displacementf_t* Do) {
 
   s2_product_rrinversef(&(Di->R), Ri, &(Do)->R);
   cblas_saxpy(3, 1.0, ((float*)Di) + 9, 1, ((float*)Do) + 9, 1);
 }
-
 
 /*!
 @brief Double precision product of a first general displacement matrix and
@@ -5159,20 +4384,12 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_ddinverse(
-  s2_displacement_t* D1i,
-  s2_displacement_t* D2i,
-  s2_displacement_t* Do) {
+inline void s2_product_ddinverse(s2_displacement_t* D1i, s2_displacement_t* D2i,
+                                 s2_displacement_t* Do) {
 
   s2_product_rrinverse(&(D1i->R), &(D2i->R), &(Do->R));
   s2_product_rvinverse(&(Do->R), &(D2i->T), &(Do->T));
-  cblas_daxpy(
-    3,
-    1.0,
-    ((double*)D1i) + 9,
-    1,
-    ((double*)Do) + 9,
-    1);
+  cblas_daxpy(3, 1.0, ((double*)D1i) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!
@@ -5194,20 +4411,13 @@ can be simplified as:
 @param D2i a second general displacement, \f$D_{2i}\f$
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_ddinversef(
-  s2_displacementf_t* D1i,
-  s2_displacementf_t* D2i,
-  s2_displacementf_t* Do) {
+inline void s2_product_ddinversef(s2_displacementf_t* D1i,
+                                  s2_displacementf_t* D2i,
+                                  s2_displacementf_t* Do) {
 
   s2_product_rrinversef(&(D1i->R), &(D2i->R), &(Do->R));
   s2_product_rvinversef(&(D1i->R), &(D2i->T), &(Do->T));
-  cblas_saxpy(
-    3,
-    1.0,
-    ((float*)D1i) + 9,
-    1,
-    ((float*)Do) + 9,
-    1);
+  cblas_saxpy(3, 1.0, ((float*)D1i) + 9, 1, ((float*)Do) + 9, 1);
 }
 
 /*!
@@ -5232,12 +4442,10 @@ operation need not be computed if ho is initially set to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void s2_htx(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_htx(s2_displacement_t* Di, s2_screw_t* ho) {
 
   cblas_dcopy(3, (double*)Di, 1, (double*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  // memset(ho + 3, 0, 3 * sizeof(double));
 }
 
 /*!
@@ -5253,12 +4461,10 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void s2_htxf(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_htxf(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   cblas_scopy(3, (float*)Di, 1, (float*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  // memset(ho + 3, 0, 3 * sizeof(double));
 }
 
 /*!
@@ -5274,12 +4480,10 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void s2_hty(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_hty(s2_displacement_t* Di, s2_screw_t* ho) {
 
   cblas_dcopy(3, ((double*)Di) + 3, 1, (double*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  // memset(ho + 3, 0, 3 * sizeof(double));
 }
 
 /*!
@@ -5295,12 +4499,10 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void s2_htyf(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_htyf(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   cblas_scopy(3, ((float*)Di) + 3, 1, (float*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  // memset(ho + 3, 0, 3 * sizeof(double));
 }
 
 /*!
@@ -5316,12 +4518,10 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void s2_htz(
-  s2_displacement_t* ri,
-  s2_screw_t* ho) {
+inline void s2_htz(s2_displacement_t* ri, s2_screw_t* ho) {
 
   cblas_dcopy(3, ((double*)ri) + 6, 1, (double*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  // memset(ho + 3, 0, 3 * sizeof(double));
 }
 
 /*!
@@ -5337,12 +4537,10 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void s2_htzf(
-  s2_displacementf_t* ri,
-  s2_screwf_t* ho) {
+inline void s2_htzf(s2_displacementf_t* ri, s2_screwf_t* ho) {
 
   cblas_scopy(3, ((float*)ri) + 6, 1, (float*)ho, 1);
-  //memset(ho + 3, 0, 3 * sizeof(double));
+  // memset(ho + 3, 0, 3 * sizeof(double));
 }
 
 /*!
@@ -5355,9 +4553,7 @@ Computes the influence coefficient matrix for a rotation about x-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void s2_hrx(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_hrx(s2_displacement_t* Di, s2_screw_t* ho) {
 
   s2_htx(Di, (s2_screw_t*)(((double*)ho) + 3));
   s2_cross_vv(&(Di->T), (s2_vector_t*)(((double*)ho) + 3), (s2_vector_t*)ho);
@@ -5373,9 +4569,7 @@ Computes the influence coefficient matrix for a rotation about x-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void s2_hrxf(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_hrxf(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   s2_htxf(Di, (s2_screwf_t*)(((float*)ho) + 3));
   s2_cross_vvf(&(Di->T), (s2_vectorf_t*)(((float*)ho) + 3), (s2_vectorf_t*)ho);
@@ -5391,9 +4585,7 @@ Computes the influence coefficient matrix for a rotation about y-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void s2_hry(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_hry(s2_displacement_t* Di, s2_screw_t* ho) {
 
   s2_hty(Di, (s2_screw_t*)(((double*)ho) + 3));
   s2_cross_vv(&(Di->T), (s2_vector_t*)(((double*)ho) + 3), (s2_vector_t*)ho);
@@ -5409,9 +4601,7 @@ Computes the influence coefficient matrix for a rotation about z-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void s2_hrz(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_hrz(s2_displacement_t* Di, s2_screw_t* ho) {
 
   s2_htz(Di, (s2_screw_t*)(((double*)ho) + 3));
   s2_cross_vv(&(Di->T), (s2_vector_t*)(((double*)ho) + 3), (s2_vector_t*)ho);
@@ -5427,16 +4617,15 @@ Computes the influence coefficient matrix for a rotation about z-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void s2_hrzf(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_hrzf(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   s2_htzf(Di, (s2_screwf_t*)(((float*)ho) + 3));
   s2_cross_vvf(&(Di->T), (s2_vectorf_t*)(((float*)ho) + 3), (s2_vectorf_t*)ho);
 }
 
 /*!
-@brief Double precision influence coefficient matrix for inverse primitive translation along x-axis
+@brief Double precision influence coefficient matrix for inverse primitive
+translation along x-axis
 
 Computes the influence coefficient matrix for an inverse primitive translation
 along the x-axis.
@@ -5448,9 +4637,7 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void s2_htxinverse(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_htxinverse(s2_displacement_t* Di, s2_screw_t* ho) {
 
   memset(ho, 0, 3 * sizeof(double));
   cblas_daxpy(3, -1, (double*)Di, 1, (double*)ho, 1);
@@ -5470,9 +4657,7 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tx}[3:5]\f$
 */
-inline void s2_htxinversef(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_htxinversef(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   memset(ho, 0, 3 * sizeof(float));
   cblas_saxpy(3, -1, (float*)Di, 1, (float*)ho, 1);
@@ -5492,9 +4677,7 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{ty}[3:5]\f$
 */
-inline void s2_htyinverse(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_htyinverse(s2_displacement_t* Di, s2_screw_t* ho) {
 
   memset(ho, 0, 3 * sizeof(double));
   cblas_daxpy(3, -1, ((double*)Di) + 3, 1, (double*)ho, 1);
@@ -5514,9 +4697,7 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{ty}[3:5]\f$
 */
-inline void s2_htyinversef(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_htyinversef(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   memset(ho, 0, 3 * sizeof(float));
   cblas_saxpy(3, -1, ((float*)Di) + 3, 1, (float*)ho, 1);
@@ -5536,9 +4717,7 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tz}[3:5]\f$
 */
-inline void s2_htzinverse(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_htzinverse(s2_displacement_t* Di, s2_screw_t* ho) {
 
   memset(ho, 0, 3 * sizeof(double));
   cblas_daxpy(3, -1, ((double*)Di) + 6, 1, (double*)ho, 1);
@@ -5561,9 +4740,7 @@ operation need not be computed if ho is d to zero.
 
 \f$0 \rightarrow h_{tz}[3:5]\f$
 */
-inline void s2_htzinversef(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_htzinversef(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   memset(ho, 0, 3 * sizeof(float));
   cblas_saxpy(3, -1, ((float*)Di) + 6, 1, (float*)ho, 1);
@@ -5583,9 +4760,7 @@ rotation about x-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void s2_hrxinverse(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_hrxinverse(s2_displacement_t* Di, s2_screw_t* ho) {
 
   s2_htxinverse(Di, (s2_screw_t*)(((double*)ho) + 3));
   s2_cross_vv(&(Di->T), (s2_vector_t*)(((double*)ho) + 3), (s2_vector_t*)ho);
@@ -5602,9 +4777,7 @@ rotation about x-axis.
 
 \f$T_i \times h_{tx}[3:5] \rightarrow h_{rx}[0:2]\f$
 */
-inline void s2_hrxinversef(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_hrxinversef(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   s2_htxinversef(Di, (s2_screwf_t*)(((float*)ho) + 3));
   s2_cross_vvf(&(Di->T), (s2_vectorf_t*)(((float*)ho) + 3), (s2_vectorf_t*)ho);
@@ -5621,15 +4794,10 @@ rotation about y-axis.
 
 \f$T_i \times h_{ty}[3:5] \rightarrow h_{ry}[0:2]\f$
 */
-inline void s2_hryinverse(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_hryinverse(s2_displacement_t* Di, s2_screw_t* ho) {
 
   s2_htyinverse(Di, (s2_screw_t*)((double*)ho + 3));
-  s2_cross_vv(
-    &(Di->T),
-    (s2_vector_t*)(((double*)ho) + 3),
-    (s2_vector_t*)ho);
+  s2_cross_vv(&(Di->T), (s2_vector_t*)(((double*)ho) + 3), (s2_vector_t*)ho);
 }
 
 /*!
@@ -5643,9 +4811,7 @@ rotation about y-axis.
 
 \f$T_i \times h_{ty}[3:5] \rightarrow h_{ry}[0:2]\f$
 */
-inline void s2_hryinversef(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_hryinversef(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   s2_htyinversef(Di, (s2_screwf_t*)(((float*)ho) + 3));
   s2_cross_vvf(&(Di->T), (s2_vectorf_t*)(((float*)ho) + 3), (s2_vectorf_t*)ho);
@@ -5662,9 +4828,7 @@ rotation about z-axis.
 
 \f$T_i \times h_{tz}[3:5] \rightarrow h_{rz}[0:2]\f$
 */
-inline void s2_hrzinverse(
-  s2_displacement_t* Di,
-  s2_screw_t* ho) {
+inline void s2_hrzinverse(s2_displacement_t* Di, s2_screw_t* ho) {
 
   s2_htzinverse(Di, (s2_screw_t*)(((double*)ho) + 3));
   s2_cross_vv(&(Di->T), (s2_vector_t*)(((double*)ho) + 3), (s2_vector_t*)ho);
@@ -5681,9 +4845,7 @@ rotation about z-axis.
 
 \f$T_i \times h_{tz}[3:5] \rightarrow h_{rz}[0:2]\f$
 */
-inline void s2_hrzinversef(
-  s2_displacementf_t* Di,
-  s2_screwf_t* ho) {
+inline void s2_hrzinversef(s2_displacementf_t* Di, s2_screwf_t* ho) {
 
   s2_htzinversef(Di, (s2_screwf_t*)(((float*)ho) + 3));
   s2_cross_vvf(&(Di->T), (s2_vectorf_t*)(((float*)ho) + 3), (s2_vectorf_t*)ho);
@@ -5703,28 +4865,23 @@ are often referred to as screws/twists.
 
 \f$S_{1i}[3:5] \times S_{2i}[0:2] \rightarrow S_o[0:2]\f$
 
-\f$S_{1i}[0:2] \times S_{2i}[0:2] + S_{1i}[3:5] \times S_{2i}[3:5] \rightarrow S_o[3:5]\f$
+\f$S_{1i}[0:2] \times S_{2i}[0:2] + S_{1i}[3:5] \times S_{2i}[3:5] \rightarrow
+S_o[3:5]\f$
 
 @param s1i a first 6x1 screw
 @param s2i a second 6x1 screw
 @param The results of s1i crossed with s2i are stored in so
 */
-inline void s2_screwcross_ss(
-  s2_screw_t* s1i,
-  s2_screw_t* s2i,
-  s2_screw_t* so) {
+inline void s2_screwcross_ss(s2_screw_t* s1i, s2_screw_t* s2i, s2_screw_t* so) {
 
   /* vo <- w1i x v2i */
-  s2_cross_vv(
-    (s2_vector_t*)(((double*)s1i) + 3),
-    (s2_vector_t*)s2i,
-    (s2_vector_t*)(((double*)so)));
+  s2_cross_vv((s2_vector_t*)(((double*)s1i) + 3), (s2_vector_t*)s2i,
+              (s2_vector_t*)(((double*)so)));
 
   /* wo <- w1i x w2i */
-  s2_cross_vv(
-    (s2_vector_t*)(((double*)s1i) + 3),
-    (s2_vector_t*)(((double*)s2i) + 3),
-    (s2_vector_t*)(((double*)so) + 3));
+  s2_cross_vv((s2_vector_t*)(((double*)s1i) + 3),
+              (s2_vector_t*)(((double*)s2i) + 3),
+              (s2_vector_t*)(((double*)so) + 3));
 
   /* vo += v1i x w2i */
   so->m0 += s1i->m1 * s2i->m5 - s1i->m2 * s2i->m4;
@@ -5737,28 +4894,24 @@ inline void s2_screwcross_ss(
 
 \f$S_{1i}[3:5] \times S_{2i}[0:2] \rightarrow S_o[0:2]\f$
 
-\f$S_{1i}[0:2] \times S_{2i}[0:2] + S_{1i}[3:5] \times S_{2i}[3:5] \rightarrow S_o[3:5]\f$
+\f$S_{1i}[0:2] \times S_{2i}[0:2] + S_{1i}[3:5] \times S_{2i}[3:5] \rightarrow
+S_o[3:5]\f$
 
 @param s1i a first 6x1 screw
 @param s2i a second 6x1 screw
 @param The results of s1i crossed with s2i are stored in so
 */
-inline void s2_screwcross_ssf(
-  s2_screwf_t* s1i,
-  s2_screwf_t* s2i,
-  s2_screwf_t* so) {
+inline void s2_screwcross_ssf(s2_screwf_t* s1i, s2_screwf_t* s2i,
+                              s2_screwf_t* so) {
 
   /* vo <- w1i x v2i */
-  s2_cross_vvf(
-    (s2_vectorf_t*)(((float*)s1i) + 3),
-    (s2_vectorf_t*)s2i,
-    (s2_vectorf_t*)(((float*)so)));
+  s2_cross_vvf((s2_vectorf_t*)(((float*)s1i) + 3), (s2_vectorf_t*)s2i,
+               (s2_vectorf_t*)(((float*)so)));
 
   /* wo <- w1i x w2i */
-  s2_cross_vvf(
-    (s2_vectorf_t*)(((float*)s1i) + 3),
-    (s2_vectorf_t*)(((float*)s2i) + 3),
-    (s2_vectorf_t*)(((float*)so) + 3));
+  s2_cross_vvf((s2_vectorf_t*)(((float*)s1i) + 3),
+               (s2_vectorf_t*)(((float*)s2i) + 3),
+               (s2_vectorf_t*)(((float*)so) + 3));
 
   /* vo += v1i x w2i */
   so->m0 += s1i->m1 * s2i->m5 - s1i->m2 * s2i->m4;
@@ -5767,9 +4920,9 @@ inline void s2_screwcross_ssf(
 }
 
 /*!
-@brief Compute a double precision s2_screw_t Cross product in configuration space
-Compute s2_screw_t Cross product in configuration space, where
-the second screw consists of only a translation component.
+@brief Compute a double precision s2_screw_t Cross product in configuration
+space Compute s2_screw_t Cross product in configuration space, where the second
+screw consists of only a translation component.
 
 \f$S_{1i}[3:5] \times S_{2i}[0:2] \rightarrow S_o[0:2]\f$
 
@@ -5779,22 +4932,18 @@ the second screw consists of only a translation component.
 @param s2i a second 6x1 screw
 @param The results of s1i crossed with s2i are stored in so
 */
-inline void s2_screwcross_sst(
-  s2_screw_t* s1i,
-  s2_screw_t* s2i,
-  s2_screw_t* so) {
+inline void s2_screwcross_sst(s2_screw_t* s1i, s2_screw_t* s2i,
+                              s2_screw_t* so) {
 
-  s2_cross_vv(
-    (s2_vector_t*)(((double*)s1i) + 3),
-    (s2_vector_t*)s2i,
-    (s2_vector_t*)so);
+  s2_cross_vv((s2_vector_t*)(((double*)s1i) + 3), (s2_vector_t*)s2i,
+              (s2_vector_t*)so);
   memset(((double*)so) + 3, 0, 3 * sizeof(double));
 }
 
 /*!
-@brief Compute a single precision s2_screwf_t Cross product in configuration space
-Compute s2_screw_t Cross product in configuration space, where
-the second screw consists of only a translation component.
+@brief Compute a single precision s2_screwf_t Cross product in configuration
+space Compute s2_screw_t Cross product in configuration space, where the second
+screw consists of only a translation component.
 
 \f$S_{1i}[3:5] \times S_{2i}[0:2] \rightarrow S_o[0:2]\f$
 
@@ -5804,18 +4953,13 @@ the second screw consists of only a translation component.
 @param s2i a second 6x1 screw
 @param The results of s1i crossed with s2i are stored in so
 */
-inline void s2_screwcross_sstf(
-  s2_screwf_t* s1i,
-  s2_screwf_t* s2i,
-  s2_screwf_t* so) {
+inline void s2_screwcross_sstf(s2_screwf_t* s1i, s2_screwf_t* s2i,
+                               s2_screwf_t* so) {
 
-  s2_cross_vvf(
-    (s2_vectorf_t*)(((float*)s1i) + 3),
-    (s2_vectorf_t*)s2i,
-    (s2_vectorf_t*)so);
+  s2_cross_vvf((s2_vectorf_t*)(((float*)s1i) + 3), (s2_vectorf_t*)s2i,
+               (s2_vectorf_t*)so);
   memset(((float*)so) + 3, 0, 3 * sizeof(float));
 }
-
 
 /*!
 @brief Double precision translate a screw, si, in configuration space by ti
@@ -5829,10 +4973,8 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dts(
-  s2_vector_t* ti,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_screwproduct_dts(s2_vector_t* ti, s2_screw_t* si,
+                                s2_screw_t* so) {
 
   s2_screw_copy(si, so);
 
@@ -5854,10 +4996,8 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dtsf(
-  s2_vectorf_t* ti,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_screwproduct_dtsf(s2_vectorf_t* ti, s2_screwf_t* si,
+                                 s2_screwf_t* so) {
 
   s2_screwf_copy(si, so);
 
@@ -5866,7 +5006,6 @@ inline void s2_screwproduct_dtsf(
   so->m1 += ti->z * si->m3 - ti->x * si->m5;
   so->m2 += ti->x * si->m4 - ti->y * si->m3;
 }
-
 
 /*!
 @brief In configuration space, double precision translate screw si by ti^-1
@@ -5880,10 +5019,8 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dtinverses(
-  s2_vector_t* ti,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_screwproduct_dtinverses(s2_vector_t* ti, s2_screw_t* si,
+                                       s2_screw_t* so) {
 
   s2_screw_copy(si, so);
 
@@ -5905,10 +5042,8 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dtinversesf(
-  s2_vectorf_t* ti,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_screwproduct_dtinversesf(s2_vectorf_t* ti, s2_screwf_t* si,
+                                        s2_screwf_t* so) {
 
   s2_screwf_copy(si, so);
 
@@ -5917,7 +5052,6 @@ inline void s2_screwproduct_dtinversesf(
   so->m1 -= ti->z * si->m3 - ti->x * si->m5;
   so->m2 -= ti->x * si->m4 - ti->y * si->m3;
 }
-
 
 /*!
 @brief In configuration space, double precision translate screw si by ti^-1
@@ -5931,10 +5065,8 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dtsinverse(
-  s2_vector_t* ti,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_screwproduct_dtsinverse(s2_vector_t* ti, s2_screw_t* si,
+                                       s2_screw_t* so) {
 
   s2_screw_invert(si, so);
 
@@ -5956,10 +5088,8 @@ and store in so.
 @param si a screw to translate
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dtsinversef(
-  s2_vectorf_t* ti,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_screwproduct_dtsinversef(s2_vectorf_t* ti, s2_screwf_t* si,
+                                        s2_screwf_t* so) {
 
   s2_screwf_invert(si, so);
 
@@ -5979,17 +5109,14 @@ and store in so.
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void s2_screwproduct_ds(
-  s2_displacement_t* Di,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_screwproduct_ds(s2_displacement_t* Di, s2_screw_t* si,
+                               s2_screw_t* so) {
 
   s2_product_rs(&(Di->R), si, so);
 
   so->m0 += Di->T.y * so->m5 - Di->T.z * so->m4;
   so->m1 += Di->T.z * so->m3 - Di->T.x * so->m5;
   so->m2 += Di->T.x * so->m4 - Di->T.y * so->m3;
-
 }
 
 /*!
@@ -6002,18 +5129,14 @@ and store in so.
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dsinverse(
-  s2_displacement_t* Di,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_screwproduct_dsinverse(s2_displacement_t* Di, s2_screw_t* si,
+                                      s2_screw_t* so) {
 
   s2_product_rsinverse(&(Di->R), si, so);
   so->m0 += Di->T.y * so->m5 - Di->T.z * so->m4;
   so->m1 += Di->T.z * so->m3 - Di->T.x * so->m5;
   so->m2 += Di->T.x * so->m4 - Di->T.y * so->m3;
-
 }
-
 
 /*!
 @brief single precision displace screw si by general displacement
@@ -6025,10 +5148,8 @@ and store in Do.
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dsf(
-  s2_displacementf_t* Di,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_screwproduct_dsf(s2_displacementf_t* Di, s2_screwf_t* si,
+                                s2_screwf_t* so) {
 
   s2_product_rsf(&(Di->R), si, so);
 
@@ -6046,10 +5167,8 @@ inline void s2_screwproduct_dsf(
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dinverses(
-  s2_displacement_t* Di,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_screwproduct_dinverses(s2_displacement_t* Di, s2_screw_t* si,
+                                      s2_screw_t* so) {
 
   s2_screw_t temp;
   s2_screw_copy(si, &temp);
@@ -6059,7 +5178,6 @@ inline void s2_screwproduct_dinverses(
   temp.m2 -= Di->T.x * temp.m4 - Di->T.y * temp.m3;
 
   s2_product_rinverses(&Di->R, &temp, so);
-
 }
 
 /*!
@@ -6071,10 +5189,8 @@ inline void s2_screwproduct_dinverses(
 @param si a screw to transform
 @param so the results are stored in so
 */
-inline void s2_screwproduct_dinversesf(
-  s2_displacementf_t* Di,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_screwproduct_dinversesf(s2_displacementf_t* Di, s2_screwf_t* si,
+                                       s2_screwf_t* so) {
 
   s2_screwf_t temp;
   s2_screwf_copy(si, &temp);
@@ -6098,7 +5214,8 @@ quantities are often referred to as coscrews or wrenches.
 /*!
 @brief In function space, store spatial cross product of s1i with s2i in so.
 
-\f$ S_{1i}[3:5]\times S_{2i}[0:2] + S_{1i}[0:2] \times S_{2i}[3:5] \rightarrow S_o[0:2]\f$
+\f$ S_{1i}[3:5]\times S_{2i}[0:2] + S_{1i}[0:2] \times S_{2i}[3:5] \rightarrow
+S_o[0:2]\f$
 
 \f$ S_{1i}[3:5] \times S_{2i}[3:5] \rightarrow S_o[3:5]\f$
 
@@ -6106,22 +5223,16 @@ quantities are often referred to as coscrews or wrenches.
 @param s2i a second coscrew
 @param so the results are stored in so
 */
-inline void s2_coscrewcross_ss(
-  s2_screw_t* s1i,
-  s2_screw_t* s2i,
-  s2_screw_t* so) {
+inline void s2_coscrewcross_ss(s2_screw_t* s1i, s2_screw_t* s2i,
+                               s2_screw_t* so) {
 
   /* vo <- w1 x v2 */
-  s2_cross_vv(
-    (s2_vector_t*)(((double*)s1i) + 3),
-    (s2_vector_t*)s2i,
-    (s2_vector_t*)so);
+  s2_cross_vv((s2_vector_t*)(((double*)s1i) + 3), (s2_vector_t*)s2i,
+              (s2_vector_t*)so);
 
   /* wo <- v1 x v2 */
-  s2_cross_vv(
-    (s2_vector_t*)s1i,
-    (s2_vector_t*)((double*)s2i),
-    (s2_vector_t*)(((double*)so) + 3));
+  s2_cross_vv((s2_vector_t*)s1i, (s2_vector_t*)((double*)s2i),
+              (s2_vector_t*)(((double*)so) + 3));
 
   /* wo += w1 x w2 */
   so->m3 += s1i->m4 * s2i->m5 - s1i->m5 * s2i->m4;
@@ -6133,7 +5244,8 @@ inline void s2_coscrewcross_ss(
 @brief In function space, store single precision spatial cross product of s1i
 with s2i in so.
 
-\f$ S_{1i}[3:5]\times S_{2i}[0:2] + S_{1i}[0:2] \times S_{2i}[3:5] \rightarrow S_o[0:2]\f$
+\f$ S_{1i}[3:5]\times S_{2i}[0:2] + S_{1i}[0:2] \times S_{2i}[3:5] \rightarrow
+S_o[0:2]\f$
 
 \f$ S_{1i}[3:5] \times S_{2i}[3:5] \rightarrow S_o[3:5]\f$
 
@@ -6141,29 +5253,22 @@ with s2i in so.
 @param s2i a second coscrew
 @param so the results are stored in so
 */
-inline void s2_coscrewcross_ssf(
-  s2_screwf_t* s1i,
-  s2_screwf_t* s2i,
-  s2_screwf_t* so) {
+inline void s2_coscrewcross_ssf(s2_screwf_t* s1i, s2_screwf_t* s2i,
+                                s2_screwf_t* so) {
 
   /* vo <- w1 x v2 */
-  s2_cross_vvf(
-    (s2_vectorf_t*)(((float*)s1i) + 3),
-    (s2_vectorf_t*)s2i,
-    (s2_vectorf_t*)so);
+  s2_cross_vvf((s2_vectorf_t*)(((float*)s1i) + 3), (s2_vectorf_t*)s2i,
+               (s2_vectorf_t*)so);
 
   /* wo <- v1 x v2 */
-  s2_cross_vvf(
-    (s2_vectorf_t*)s1i,
-    (s2_vectorf_t*)s2i,
-    (s2_vectorf_t*)(((float*)so) + 3));
+  s2_cross_vvf((s2_vectorf_t*)s1i, (s2_vectorf_t*)s2i,
+               (s2_vectorf_t*)(((float*)so) + 3));
 
   /* wo += w1 x w2 */
   so->m3 += s1i->m4 * s2i->m5 - s1i->m5 * s2i->m4;
   so->m4 += s1i->m5 * s2i->m3 - s1i->m3 * s2i->m5;
   so->m5 += s1i->m3 * s2i->m4 - s1i->m4 * s2i->m3;
 }
-
 
 /*!
 @brief In function space displace spatial vector si by ti^T and store in so.
@@ -6176,10 +5281,8 @@ inline void s2_coscrewcross_ssf(
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void s2_coscrewproduct_dts(
-  s2_vector_t* ti,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_coscrewproduct_dts(s2_vector_t* ti, s2_screw_t* si,
+                                  s2_screw_t* so) {
 
   s2_screw_copy(si, so);
 
@@ -6187,7 +5290,6 @@ inline void s2_coscrewproduct_dts(
   so->m3 += ti->y * si->m2 - ti->z * si->m1;
   so->m4 += ti->z * si->m0 - ti->x * si->m2;
   so->m5 += ti->x * si->m1 - ti->y * si->m0;
-
 }
 
 /*!
@@ -6202,10 +5304,8 @@ ti^T and store in so.
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void s2_coscrewproduct_dtsf(
-  s2_vectorf_t* ti,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_coscrewproduct_dtsf(s2_vectorf_t* ti, s2_screwf_t* si,
+                                   s2_screwf_t* so) {
 
   s2_screwf_copy(si, so);
 
@@ -6222,10 +5322,8 @@ inline void s2_coscrewproduct_dtsf(
 
 \f$ S_i[0:2] \rightarrow S_o[0:2] \f$
 */
-inline void s2_coscrewproduct_dtsinverse(
-  s2_vector_t* ti,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_coscrewproduct_dtsinverse(s2_vector_t* ti, s2_screw_t* si,
+                                         s2_screw_t* so) {
 
   s2_screw_t temp;
   s2_screw_invert(si, &temp);
@@ -6245,10 +5343,8 @@ and store in so.
 
 \f$ S_i[0:2] \rightarrow S_o[0:2] \f$
 */
-inline void s2_coscrewproduct_dtsinversef(
-  s2_vectorf_t* ti,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_coscrewproduct_dtsinversef(s2_vectorf_t* ti, s2_screwf_t* si,
+                                          s2_screwf_t* so) {
 
   s2_screwf_t temp;
   s2_screwf_invert(si, &temp);
@@ -6264,7 +5360,8 @@ inline void s2_coscrewproduct_dtsinversef(
 }
 
 /*!
-@brief In function space displace spatial vector si by ti^T and ri^-1 and store in so.
+@brief In function space displace spatial vector si by ti^T and ri^-1 and store
+in so.
 
 \f$ R_i^{-1} * T_i^T * S_i \rightarrow S_o\f$
 
@@ -6272,17 +5369,14 @@ inline void s2_coscrewproduct_dtsinversef(
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void s2_coscrewproduct_ds(
-  s2_displacement_t* Di,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_coscrewproduct_ds(s2_displacement_t* Di, s2_screw_t* si,
+                                 s2_screw_t* so) {
 
   s2_product_rs(&(Di->R), si, so);
 
   so->m3 += Di->T.y * so->m2 - Di->T.z * so->m1;
   so->m4 += Di->T.z * so->m0 - Di->T.x * so->m2;
   so->m5 += Di->T.x * so->m1 - Di->T.y * so->m0;
-
 }
 
 /*!
@@ -6295,10 +5389,8 @@ and ri^-1 and store in so.
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void s2_coscrewproduct_dsf(
-  s2_displacementf_t* Di,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_coscrewproduct_dsf(s2_displacementf_t* Di, s2_screwf_t* si,
+                                  s2_screwf_t* so) {
 
   s2_product_rsf(&(Di->R), si, so);
 
@@ -6317,10 +5409,8 @@ in so.
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void s2_coscrewproduct_dinverses(
-  s2_displacement_t* Di,
-  s2_screw_t* si,
-  s2_screw_t* so) {
+inline void s2_coscrewproduct_dinverses(s2_displacement_t* Di, s2_screw_t* si,
+                                        s2_screw_t* so) {
 
   s2_screw_t temp;
   s2_screw_copy(si, &temp);
@@ -6330,7 +5420,6 @@ inline void s2_coscrewproduct_dinverses(
   temp.m5 -= Di->T.x * temp.m1 - Di->T.y * temp.m0;
 
   s2_product_rinverses(&(Di->R), &temp, so);
-
 }
 
 /*!
@@ -6343,10 +5432,8 @@ and ti^-T and store in so.
 @param si a coscrew
 @param so the results are stored in so
 */
-inline void s2_coscrewproduct_dinversesf(
-  s2_displacementf_t* Di,
-  s2_screwf_t* si,
-  s2_screwf_t* so) {
+inline void s2_coscrewproduct_dinversesf(s2_displacementf_t* Di,
+                                         s2_screwf_t* si, s2_screwf_t* so) {
 
   s2_screwf_t temp;
   s2_screwf_copy(si, &temp);
@@ -6372,8 +5459,7 @@ Normalize a quaternion and overwrite.
 
 @param qi euler parameters to normalize
 */
-void s2_quaternion_normalize(
-  s2_quaternion_t* qi) {
+void s2_quaternion_normalize(s2_quaternion_t* qi) {
 
   double norm = sqrt(cblas_ddot(4, (double*)qi, 1, (double*)qi, 1));
   cblas_dscal(4, 1.0 / norm, (double*)qi, 1);
@@ -6386,40 +5472,39 @@ Normalize a quaternion and overwrite.
 
 @param qi euler parameters to normalize
 */
-void s2_quaternionf_normalize(
-  s2_quaternionf_t* qi) {
+void s2_quaternionf_normalize(s2_quaternionf_t* qi) {
 
   float norm = sqrt(cblas_sdot(4, (float*)qi, 1, (float*)qi, 1));
   cblas_sscal(4, 1.0 / norm, (float*)qi, 1);
 }
 
 /*!
-@brief Double precision function to convert s2_mat3x3_t rotation matrix to quaternion
-representation
+@brief Double precision function to convert s2_mat3x3_t rotation matrix to
+quaternion representation
 
 \f$R = \begin{bmatrix}
-e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 & e_3e_1+e_3e_1+e_0e_2+e_0e_2 \\
-e_1e_2 + e_1e_2 + e_0e_3 + e_0e_3 & e_0^2 - e_1^2 + e_2^2 - e_3^2 & e_2e_3 + e_2e_3 - e_0e_1 - e_0e_1 \\
-e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 & e_0^2-e_1^2-e_2^2+e_3^2 \\
-\end{bmatrix}\f$
+e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 &
+e_3e_1+e_3e_1+e_0e_2+e_0e_2 \\
+e_1e_2 + e_1e_2 + e_0e_3 + e_0e_3 & e_0^2 - e_1^2 + e_2^2 - e_3^2 & e_2e_3 +
+e_2e_3 - e_0e_1 - e_0e_1 \\
+e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 &
+e_0^2-e_1^2-e_2^2+e_3^2 \\ \end{bmatrix}\f$
 
-@todo Supply *ER*, a reference Euler Parameter. If necessary, flip the sign of *(E) so that each *(E+i) is the closest match to ER[i].
-For this algorithm to work, *(E) must be a close follow-on to ER.
-This function would then prove more useful when continuous Euler
-Parameters are desired for interpolation purposes. Matrix R
-is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
+@todo Supply *ER*, a reference Euler Parameter. If necessary, flip the sign of
+*(E) so that each *(E+i) is the closest match to ER[i]. For this algorithm to
+work, *(E) must be a close follow-on to ER. This function would then prove more
+useful when continuous Euler Parameters are desired for interpolation purposes.
+Matrix R is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 
 @param ri a rotation matrix in a 9x1 column format
 @param qo the resulting euler parameters are stored in the 4x1 array, qo
 */
-void s2_mat3x3_toQuaternion(
-  s2_mat3x3_t* ri,
-  s2_quaternion_t* qo) {
+void s2_mat3x3_toQuaternion(s2_mat3x3_t* ri, s2_quaternion_t* qo) {
 
-  if(fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
+  if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
     double p;
     // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
-    if((p = ri->m00 + ri->m11 + ri->m22) > 0) {
+    if ((p = ri->m00 + ri->m11 + ri->m22) > 0) {
 
       // Now p = 2|e0| > 1
       p = sqrt(p + 1);
@@ -6430,16 +5515,16 @@ void s2_mat3x3_toQuaternion(
       qo->w = p / 2; // e0
       p = p + p;     // 4e0
 
-      qo->x =
-        (((double*)ri)[2 + 1 * 3] - ((double*)ri)[1 + 2 * 3]) / p; // e1 = 4e0e1/4e0
-      qo->y =
-        (((double*)ri)[0 + 2 * 3] - ((double*)ri)[2 + 0 * 3]) / p; // e2 = 4e0e2/4e0
-      qo->z =
-        (((double*)ri)[1 + 0 * 3] - ((double*)ri)[0 + 1 * 3]) / p; // e3 = 4e0e3/4e0
+      qo->x = (((double*)ri)[2 + 1 * 3] - ((double*)ri)[1 + 2 * 3]) /
+              p; // e1 = 4e0e1/4e0
+      qo->y = (((double*)ri)[0 + 2 * 3] - ((double*)ri)[2 + 0 * 3]) /
+              p; // e2 = 4e0e2/4e0
+      qo->z = (((double*)ri)[1 + 0 * 3] - ((double*)ri)[0 + 1 * 3]) /
+              p; // e3 = 4e0e3/4e0
     }
 
     // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-    else if((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+    else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
       // Now p = 2|e1| > 1
       p = sqrt(p + 1);
 
@@ -6449,13 +5534,16 @@ void s2_mat3x3_toQuaternion(
       qo->x = p / 2; // e1
       p = p + p;     // 4e1
 
-      qo->w = (((double*)ri)[2 + 1 * 3] - ((double*)ri)[1 + 2 * 3]) / p; // e0 = 4e0e1/4e1
-      qo->y = (((double*)ri)[1 + 0 * 3] + ((double*)ri)[0 + 1 * 3]) / p; // e2 = 4e1e2/4e1
-      qo->z = (((double*)ri)[2 + 0 * 3] + ((double*)ri)[0 + 2 * 3]) / p; // e3 = 4e3e1/4e1
+      qo->w = (((double*)ri)[2 + 1 * 3] - ((double*)ri)[1 + 2 * 3]) /
+              p; // e0 = 4e0e1/4e1
+      qo->y = (((double*)ri)[1 + 0 * 3] + ((double*)ri)[0 + 1 * 3]) /
+              p; // e2 = 4e1e2/4e1
+      qo->z = (((double*)ri)[2 + 0 * 3] + ((double*)ri)[0 + 2 * 3]) /
+              p; // e3 = 4e3e1/4e1
     }
 
     // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-    else if((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+    else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
       // Now p = 2|e2| > 1
       p = sqrt(p + 1);
 
@@ -6465,9 +5553,12 @@ void s2_mat3x3_toQuaternion(
       qo->y = p / 2; // e2
       p = p + p;     // 4e2
 
-      qo->w = (((double*)ri)[0 + 2 * 3] - ((double*)ri)[2 + 0 * 3]) / p; // e0 = 4e0e2/4e2
-      qo->x = (((double*)ri)[0 + 1 * 3] + ((double*)ri)[1 + 0 * 3]) / p; // e1 = 4e1e2/4e2
-      qo->z = (((double*)ri)[1 + 2 * 3] + ((double*)ri)[2 + 1 * 3]) / p; // e3 = 4e2e3/4e2
+      qo->w = (((double*)ri)[0 + 2 * 3] - ((double*)ri)[2 + 0 * 3]) /
+              p; // e0 = 4e0e2/4e2
+      qo->x = (((double*)ri)[0 + 1 * 3] + ((double*)ri)[1 + 0 * 3]) /
+              p; // e1 = 4e1e2/4e2
+      qo->z = (((double*)ri)[1 + 2 * 3] + ((double*)ri)[2 + 1 * 3]) /
+              p; // e3 = 4e2e3/4e2
     }
 
     // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
@@ -6483,9 +5574,12 @@ void s2_mat3x3_toQuaternion(
       qo->z = p / 2; // e3
       p = p + p;     // 4e3
 
-      qo->w = (((double*)ri)[1 + 0 * 3] - ((double*)ri)[0 + 1 * 3]) / p; // e0 = 4e0e3/4e3
-      qo->x = (((double*)ri)[0 + 2 * 3] + ((double*)ri)[2 + 0 * 3]) / p; // e1 = 4e3e1/4e3
-      qo->y = (((double*)ri)[2 + 1 * 3] + ((double*)ri)[1 + 2 * 3]) / p; // e2 = 4e2e3/4e3
+      qo->w = (((double*)ri)[1 + 0 * 3] - ((double*)ri)[0 + 1 * 3]) /
+              p; // e0 = 4e0e3/4e3
+      qo->x = (((double*)ri)[0 + 2 * 3] + ((double*)ri)[2 + 0 * 3]) /
+              p; // e1 = 4e3e1/4e3
+      qo->y = (((double*)ri)[2 + 1 * 3] + ((double*)ri)[1 + 2 * 3]) /
+              p; // e2 = 4e2e3/4e3
     }
   }
 
@@ -6499,32 +5593,32 @@ void s2_mat3x3_toQuaternion(
 }
 
 /*!
-@brief single precision function to convert s2_mat3x3_t rotation matrix to quaternion
-representation
+@brief single precision function to convert s2_mat3x3_t rotation matrix to
+quaternion representation
 
 \f$R = \begin{bmatrix}
-e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 & e_3e_1+e_3e_1+e_0e_2+e_0e_2 \\
-e_1e_2 + e_1e_2 + e_0e_3 + e_0e_3 & e_0^2 - e_1^2 + e_2^2 - e_3^2 & e_2e_3 + e_2e_3 - e_0e_1 - e_0e_1 \\
-e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 & e_0^2-e_1^2-e_2^2+e_3^2 \\
-\end{bmatrix}\f$
+e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 &
+e_3e_1+e_3e_1+e_0e_2+e_0e_2 \\
+e_1e_2 + e_1e_2 + e_0e_3 + e_0e_3 & e_0^2 - e_1^2 + e_2^2 - e_3^2 & e_2e_3 +
+e_2e_3 - e_0e_1 - e_0e_1 \\
+e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 &
+e_0^2-e_1^2-e_2^2+e_3^2 \\ \end{bmatrix}\f$
 
-@todo Supply *ER*, a reference Euler Parameter. If necessary, flip the sign of *(E) so that each *(E+i) is the closest match to ER[i].
-For this algorithm to work, *(E) must be a close follow-on to ER.
-This function would then prove more useful when continuous Euler
-Parameters are desired for interpolation purposes. Matrix R
-is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
+@todo Supply *ER*, a reference Euler Parameter. If necessary, flip the sign of
+*(E) so that each *(E+i) is the closest match to ER[i]. For this algorithm to
+work, *(E) must be a close follow-on to ER. This function would then prove more
+useful when continuous Euler Parameters are desired for interpolation purposes.
+Matrix R is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 
 @param ri [in] a rotation matrix in a 9x1 column format
 @param qo [out] resulting euler parameters
 */
-void s2_mat3x3f_toQuaternion(
-  s2_mat3x3f_t* ri,
-  s2_quaternionf_t* qo) {
+void s2_mat3x3f_toQuaternion(s2_mat3x3f_t* ri, s2_quaternionf_t* qo) {
 
-  if(fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
+  if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
     double p;
     // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
-    if((p = ri->m00 + ri->m11 + ri->m22) > 0) {
+    if ((p = ri->m00 + ri->m11 + ri->m22) > 0) {
 
       // Now p = 2|e0| > 1
       p = sqrt(p + 1);
@@ -6535,16 +5629,16 @@ void s2_mat3x3f_toQuaternion(
       qo->w = p / 2; // e0
       p = p + p;     // 4e0
 
-      qo->x =
-        (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) / p; // e1 = 4e0e1/4e0
-      qo->y =
-        (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) / p; // e2 = 4e0e2/4e0
-      qo->z =
-        (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) / p; // e3 = 4e0e3/4e0
+      qo->x = (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) /
+              p; // e1 = 4e0e1/4e0
+      qo->y = (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) /
+              p; // e2 = 4e0e2/4e0
+      qo->z = (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) /
+              p; // e3 = 4e0e3/4e0
     }
 
     // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-    else if((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+    else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
       // Now p = 2|e1| > 1
       p = sqrt(p + 1);
 
@@ -6554,13 +5648,16 @@ void s2_mat3x3f_toQuaternion(
       qo->x = p / 2; // e1
       p = p + p;     // 4e1
 
-      qo->w = (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) / p; // e0 = 4e0e1/4e1
-      qo->y = (((float*)ri)[1 + 0 * 3] + ((float*)ri)[0 + 1 * 3]) / p; // e2 = 4e1e2/4e1
-      qo->z = (((float*)ri)[2 + 0 * 3] + ((float*)ri)[0 + 2 * 3]) / p; // e3 = 4e3e1/4e1
+      qo->w = (((float*)ri)[2 + 1 * 3] - ((float*)ri)[1 + 2 * 3]) /
+              p; // e0 = 4e0e1/4e1
+      qo->y = (((float*)ri)[1 + 0 * 3] + ((float*)ri)[0 + 1 * 3]) /
+              p; // e2 = 4e1e2/4e1
+      qo->z = (((float*)ri)[2 + 0 * 3] + ((float*)ri)[0 + 2 * 3]) /
+              p; // e3 = 4e3e1/4e1
     }
 
     // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-    else if((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+    else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
       // Now p = 2|e2| > 1
       p = sqrt(p + 1);
 
@@ -6570,9 +5667,12 @@ void s2_mat3x3f_toQuaternion(
       qo->y = p / 2; // e2
       p = p + p;     // 4e2
 
-      qo->w = (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) / p; // e0 = 4e0e2/4e2
-      qo->x = (((float*)ri)[0 + 1 * 3] + ((float*)ri)[1 + 0 * 3]) / p; // e1 = 4e1e2/4e2
-      qo->z = (((float*)ri)[1 + 2 * 3] + ((float*)ri)[2 + 1 * 3]) / p; // e3 = 4e2e3/4e2
+      qo->w = (((float*)ri)[0 + 2 * 3] - ((float*)ri)[2 + 0 * 3]) /
+              p; // e0 = 4e0e2/4e2
+      qo->x = (((float*)ri)[0 + 1 * 3] + ((float*)ri)[1 + 0 * 3]) /
+              p; // e1 = 4e1e2/4e2
+      qo->z = (((float*)ri)[1 + 2 * 3] + ((float*)ri)[2 + 1 * 3]) /
+              p; // e3 = 4e2e3/4e2
     }
 
     // 4e3^2-1 > 0 or e3^2 > 1/4 or |e3| > 1/2
@@ -6588,9 +5688,12 @@ void s2_mat3x3f_toQuaternion(
       qo->z = p / 2; // e3
       p = p + p;     // 4e3
 
-      qo->w = (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) / p; // e0 = 4e0e3/4e3
-      qo->x = (((float*)ri)[0 + 2 * 3] + ((float*)ri)[2 + 0 * 3]) / p; // e1 = 4e3e1/4e3
-      qo->y = (((float*)ri)[2 + 1 * 3] + ((float*)ri)[1 + 2 * 3]) / p; // e2 = 4e2e3/4e3
+      qo->w = (((float*)ri)[1 + 0 * 3] - ((float*)ri)[0 + 1 * 3]) /
+              p; // e0 = 4e0e3/4e3
+      qo->x = (((float*)ri)[0 + 2 * 3] + ((float*)ri)[2 + 0 * 3]) /
+              p; // e1 = 4e3e1/4e3
+      qo->y = (((float*)ri)[2 + 1 * 3] + ((float*)ri)[1 + 2 * 3]) /
+              p; // e2 = 4e2e3/4e3
     }
   }
 
@@ -6610,19 +5713,19 @@ matrix representation
 The following formula is used to perform conversion:
 
 \f$R = \begin{bmatrix}
-e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 & e_3e_1+e_3e_1+e_0e_2+e_0e_2 \\
-e_1e_2 + e_1e_2 + e_0e_3 + e_0e_3 & e_0^2 - e_1^2 + e_2^2 - e_3^2 & e_2e_3 + e_2e_3 - e_0e_1 - e_0e_1 \\
-e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 & e_0^2-e_1^2-e_2^2+e_3^2 \\
-\end{bmatrix}\f$
+e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 &
+e_3e_1+e_3e_1+e_0e_2+e_0e_2 \\
+e_1e_2 + e_1e_2 + e_0e_3 + e_0e_3 & e_0^2 - e_1^2 + e_2^2 - e_3^2 & e_2e_3 +
+e_2e_3 - e_0e_1 - e_0e_1 \\
+e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 &
+e_0^2-e_1^2-e_2^2+e_3^2 \\ \end{bmatrix}\f$
 
 The Quaternion will be normalized during conversion.
 
 @param qi [in] euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
 @param ro [out] the resulting rotation matrix is stored in ro
 */
-void s2_quaternion_toMat3x3(
-  s2_quaternion_t* qi,
-  s2_mat3x3_t* ro) {
+void s2_quaternion_toMat3x3(s2_quaternion_t* qi, s2_mat3x3_t* ro) {
 
   s2_quaternion_normalize(qi);
 
@@ -6658,19 +5761,19 @@ matrix (s2_mat3x3f_t) representation
 The following formula is used to perform conversion:
 
 \f$R = \begin{bmatrix}
-e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 & e_3e_1+e_3e_1+e_0e_2+e_0e_2 \\
-e_1e_2 + e_1e_2 + e_0e_3 + e_0e_3 & e_0^2 - e_1^2 + e_2^2 - e_3^2 & e_2e_3 + e_2e_3 - e_0e_1 - e_0e_1 \\
-e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 & e_0^2-e_1^2-e_2^2+e_3^2 \\
-\end{bmatrix}\f$
+e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 &
+e_3e_1+e_3e_1+e_0e_2+e_0e_2 \\
+e_1e_2 + e_1e_2 + e_0e_3 + e_0e_3 & e_0^2 - e_1^2 + e_2^2 - e_3^2 & e_2e_3 +
+e_2e_3 - e_0e_1 - e_0e_1 \\
+e_3e_1+e_3e_1-e_0e_2-e_0e_2 & e_2e_3+e_2e_3+e_0e_1+e_0e_1 &
+e_0^2-e_1^2-e_2^2+e_3^2 \\ \end{bmatrix}\f$
 
 The Quaternion will be normalized during conversion.
 
 @param qi euler parameters to convert in a 4x1 array, in the form [w,x,y,z]
 @param ro the resulting rotation matrix is stored in ro
 */
-void s2_quaternionf_toMat3x3f(
-  s2_quaternionf_t* qi,
-  s2_mat3x3f_t* ro) {
+void s2_quaternionf_toMat3x3f(s2_quaternionf_t* qi, s2_mat3x3f_t* ro) {
 
   s2_quaternionf_normalize(qi);
 
@@ -6703,7 +5806,8 @@ void s2_quaternionf_toMat3x3f(
 @brief Double precision, vectorized version of Shoemake's Spherical
 Linear Interpolation algorithm
 
-Refer to [Shoemake, Animating rotation with Quaternion Curves, SIGGRAPH, vol 19, No. 3, 1985](http://run.usc.edu/cs520-s12/assign2/p245-shoemake.pdf) for
+Refer to [Shoemake, Animating rotation with Quaternion Curves, SIGGRAPH, vol 19,
+No. 3, 1985](http://run.usc.edu/cs520-s12/assign2/p245-shoemake.pdf) for
 specific information on the algorithm.
 
 @param q1i a first quaternion in the form [w,x,y,z] to interpolate from
@@ -6711,18 +5815,15 @@ specific information on the algorithm.
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
-void s2_quaternion_slerp(
-  s2_quaternion_t* q1i,
-  s2_quaternion_t* q2i,
-  double* t,
-  s2_quaternion_t* qo) {
+void s2_quaternion_slerp(s2_quaternion_t* q1i, s2_quaternion_t* q2i, double* t,
+                         s2_quaternion_t* qo) {
 
   double cosHalfTheta = cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1);
 
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if(fabs(cosHalfTheta) >= 1.0) {
+  if (fabs(cosHalfTheta) >= 1.0) {
     cblas_dcopy(4, (double*)q1i, 1, (double*)qo, 1);
     return;
   }
@@ -6734,7 +5835,7 @@ void s2_quaternion_slerp(
     we could rotate around any axis normal to q1i or q2i
   */
   memset(qo, 0, 4 * sizeof(double));
-  if(fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
+  if (fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
     cblas_daxpy(4, 0.5, (double*)q1i, 1, (double*)qo, 1);
     cblas_daxpy(4, 0.5, (double*)q2i, 1, (double*)qo, 1);
     return;
@@ -6753,7 +5854,8 @@ void s2_quaternion_slerp(
 @brief single precision, vectorized version of Shoemake's Spherical
 Linear Interpolation algorithm
 
-Refer to [Shoemake, Animating rotation with Quaternion Curves, SIGGRAPH, vol 19, No. 3, 1985](http://run.usc.edu/cs520-s12/assign2/p245-shoemake.pdf) for
+Refer to [Shoemake, Animating rotation with Quaternion Curves, SIGGRAPH, vol 19,
+No. 3, 1985](http://run.usc.edu/cs520-s12/assign2/p245-shoemake.pdf) for
 specific information on the algorithm.
 
 @param q1i a first quaternion in the form [w,x,y,z] to interpolate from
@@ -6761,18 +5863,15 @@ specific information on the algorithm.
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
-void s2_quaternionf_slerp(
-  s2_quaternionf_t* q1i,
-  s2_quaternionf_t* q2i,
-  float* t,
-  s2_quaternionf_t* qo) {
+void s2_quaternionf_slerp(s2_quaternionf_t* q1i, s2_quaternionf_t* q2i,
+                          float* t, s2_quaternionf_t* qo) {
 
   float cosHalfTheta = cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1);
 
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if(fabs(cosHalfTheta) >= 1.0) {
+  if (fabs(cosHalfTheta) >= 1.0) {
     cblas_scopy(4, (float*)q1i, 1, (float*)qo, 1);
     return;
   }
@@ -6784,7 +5883,7 @@ void s2_quaternionf_slerp(
     we could rotate around any axis normal to q1i or q2i
   */
   memset(qo, 0, 4 * sizeof(double));
-  if(fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
+  if (fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
     cblas_saxpy(4, 0.5, (float*)q1i, 1, (float*)qo, 1);
     cblas_saxpy(4, 0.5, (float*)q2i, 1, (float*)qo, 1);
     return;
@@ -6799,7 +5898,6 @@ void s2_quaternionf_slerp(
   cblas_saxpy(4, ratioB, (float*)q2i, 1, (float*)qo, 1);
 }
 
-
 /*!
 @brief Vectorized version of quaternion Linear Interpolation (Lerp)
 
@@ -6811,24 +5909,21 @@ but does not interpolate with constant velocity
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
-void s2_quaternion_nlerp(
-  s2_quaternion_t* q1i,
-  s2_quaternion_t* q2i,
-  double* t,
-  s2_quaternion_t* qo) {
+void s2_quaternion_nlerp(s2_quaternion_t* q1i, s2_quaternion_t* q2i, double* t,
+                         s2_quaternion_t* qo) {
 
-  if((*t) < 1e-9) {
+  if ((*t) < 1e-9) {
     cblas_dcopy(4, (double*)q1i, 1, (double*)qo, 1);
     return;
   }
-  if((*t) >= 1.0) {
+  if ((*t) >= 1.0) {
     cblas_dcopy(4, (double*)q2i, 1, (double*)qo, 1);
     return;
   }
   double alpha = 1.0f - *t;
   double omega = *t;
 
-  if(cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1) < 0) {
+  if (cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1) < 0) {
     omega = -omega;
   }
   /*
@@ -6852,24 +5947,21 @@ but does not interpolate with constant velocity
 @param t fraction from q1i to q2i (0<t<1)
 @param qo the resulting quaternion is returned in qo
 */
-void s2_quaternionf_nlerp(
-  s2_quaternionf_t* q1i,
-  s2_quaternionf_t* q2i,
-  float* t,
-  s2_quaternionf_t* qo) {
+void s2_quaternionf_nlerp(s2_quaternionf_t* q1i, s2_quaternionf_t* q2i,
+                          float* t, s2_quaternionf_t* qo) {
 
-  if((*t) < 1e-9) {
+  if ((*t) < 1e-9) {
     cblas_scopy(4, (float*)q1i, 1, (float*)qo, 1);
     return;
   }
-  if((*t) >= 1.0) {
+  if ((*t) >= 1.0) {
     cblas_scopy(4, (float*)q2i, 1, (float*)qo, 1);
     return;
   }
   float alpha = 1.0f - *t;
   float omega = *t;
 
-  if(cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1) < 0) {
+  if (cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1) < 0) {
     omega = -omega;
   }
   memset(qo, 0, 4 * sizeof(float));
@@ -6890,13 +5982,12 @@ Utilities to for normalizing radians and degrees
 
 @param normalizes degrees to be between 0 and 360 degrees
 */
-double s2_normalizeDegrees(
-  double angle) {
+double s2_normalizeDegrees(double angle) {
 
-  while(angle < 0) {
+  while (angle < 0) {
     angle += 360;
   }
-  while(angle > 360) {
+  while (angle > 360) {
     angle -= 360;
   }
   return angle;
@@ -6907,13 +5998,12 @@ double s2_normalizeDegrees(
 
 @param normalizes degrees to be between 0 and 360 degrees
 */
-float s2_normalizeDegreesf(
-  float angle) {
+float s2_normalizeDegreesf(float angle) {
 
-  while(angle < 0) {
+  while (angle < 0) {
     angle += 360;
   }
-  while(angle > 360) {
+  while (angle > 360) {
     angle -= 360;
   }
   return angle;
@@ -6924,13 +6014,12 @@ float s2_normalizeDegreesf(
 
 @param normalizes double precision radians to be between 0 and 2 * PI radians
 */
-double s2_normalizeRadians(
-  double angle) {
+double s2_normalizeRadians(double angle) {
 
-  while(angle < 0) {
+  while (angle < 0) {
     angle += (2 * M_PI);
   }
-  while(angle > 2 * M_PI) {
+  while (angle > 2 * M_PI) {
     angle -= (2 * M_PI);
   }
   return angle;
@@ -6941,13 +6030,12 @@ double s2_normalizeRadians(
 
 @param normalizes single precision radians to be between 0 and 2 * PI radians
 */
-float s2_normalizeRadiansf(
-  float angle) {
+float s2_normalizeRadiansf(float angle) {
 
-  while(angle < 0) {
+  while (angle < 0) {
     angle += (2 * M_PI);
   }
-  while(angle > 2 * M_PI) {
+  while (angle > 2 * M_PI) {
     angle -= (2 * M_PI);
   }
   return angle;
@@ -6972,16 +6060,15 @@ the course of a simulation. Both input arguments x and y must have the
 correct sign for catan2pi to work correctly.
 
 */
-double catan2pi(
-  double y,
-  double x,
-  double theta) {
+double catan2pi(double y, double x, double theta) {
 
   double temp;
   double a;
 
   /*
-    temp holds the exact current angle, but it may be off by multiples of 2*pi. so it is brought closer to theta by adding multiples of 2*pi obtained from theta.
+    temp holds the exact current angle, but it may be off by multiples of 2*pi.
+    so it is brought closer to theta by adding multiples of 2*pi obtained from
+    theta.
   */
   temp = atan2(y, x) + 2 * M_PI * floor(theta / 2 / M_PI);
 
@@ -6995,7 +6082,7 @@ double catan2pi(
   /*
     Decrement the angle until it is below this upper limit if necessary.
   */
-  while(temp > a) {
+  while (temp > a) {
     temp -= (2 * M_PI);
   }
 
@@ -7008,7 +6095,7 @@ double catan2pi(
 
   // Increment the angle until it is above this lower limit if necessary.
 
-  while(temp < a) {
+  while (temp < a) {
     temp += (2 * M_PI);
   }
 
@@ -7017,7 +6104,6 @@ double catan2pi(
   */
   return temp;
 }
-
 
 /*!
 @brief returns a continuous angle from the atan2(y, x) function
@@ -7038,17 +6124,15 @@ the course of a simulation. Both input arguments x and y must either
 have the correct sign or be off by the same sign for catan1pia() to work
 correctly.
 */
-double catan1pi(
-  double y,
-  double x,
-  double theta) {
+double catan1pi(double y, double x, double theta) {
 
   double temp;
   double a;
 
   /*
     temp holds the exact current angle, but it may be off by multiples of pi.
-    so it is brought closer to theta by adding multiples of pi obtained from theta.
+    so it is brought closer to theta by adding multiples of pi obtained from
+    theta.
   */
   temp = atan2(y, x) + M_PI * floor(theta / M_PI);
 
@@ -7062,7 +6146,7 @@ double catan1pi(
   /*
     Decrement the angle until it is below this upper limit if necessary.
   */
-  while(temp > a) {
+  while (temp > a) {
     temp -= M_PI;
   }
 
@@ -7076,7 +6160,7 @@ double catan1pi(
   /*
     Increment the angle until it is above this lower limit if necessary.
   */
-  while(temp < a) {
+  while (temp < a) {
     temp += M_PI;
   }
 
@@ -7091,7 +6175,11 @@ double catan1pi(
 
 This function decomposes a general direction cosine matrix into three primitive
 direction cosine matrices, whose axes are determined by the integers passed
-in through axis (see below). The direction cosine matrix is passed in through ri, and the three computed angles are updated and returned in angle. The previous values assigned to angle are passed in to RtoA in angle. RtoA calls catan2, which uses the values stored in angle to maintain continuity if at all possible.
+in through axis (see below). The direction cosine matrix is passed in through
+ri, and the three computed angles are updated and returned in angle. The
+previous values assigned to angle are passed in to RtoA in angle. RtoA calls
+catan2, which uses the values stored in angle to maintain continuity if at all
+possible.
 
 This function does not check for bad axis indices. These checks could easily
 be added. For actual reporting purposes, especially when a large
@@ -7103,7 +6191,9 @@ tests would have to be performed at runtime, except in the function catan2().
 If four functions were coded, each would handle one of the four Cases below.
 In this case, the if statements would be eliminated, and only the axis indices
 would be needed. If twelve functions were coded, each would handle one of the
-twelve Cases. Again, the if statements would be eliminated, and the axis indices would be hard coded, eliminating the need to pass them in or to perform any other tests.
+twelve Cases. Again, the if statements would be eliminated, and the axis indices
+would be hard coded, eliminating the need to pass them in or to perform any
+other tests.
 
 Used to determine if the next axis is forward '+' or reverse '-' sequence.
 It also identifies index locations in the direction cosine matrix when
@@ -7114,85 +6204,71 @@ by changing "axis", but presently the sequence [rx=0, ry=1, rz=2] is hard coded
 in to the function.
 
 */
-void s2_mat3x3_getEulerAngles(
-  s2_mat3x3_t* rin,
-  s2_vector_t* angles,
-  s2_axis_enum_t axisType) {
+void s2_mat3x3_getEulerAngles(s2_mat3x3_t* rin, s2_vector_t* angles,
+                              s2_axis_enum_t axisType) {
 
   int axis[3];
-  switch(axisType) {
+  switch (axisType) {
     case XYZ: {
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 2;
-    }
-    break;
+    } break;
     case YZX: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 0;
-    }
-    break;
+    } break;
     case ZXY: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 2;
-    }
-    break;
+    } break;
     case XZY: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 1;
-    }
-    break;
+    } break;
     case YXZ: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 2;
-    }
-    break;
+    } break;
     case ZYX: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 0;
-    }
-    break;
+    } break;
     case XYX: {
       axis[0] = 0;
       axis[1] = 1;
       axis[2] = 0;
-    }
-    break;
+    } break;
     case XZX: {
       axis[0] = 0;
       axis[1] = 2;
       axis[2] = 0;
-    }
-    break;
+    } break;
     case YXY: {
       axis[0] = 1;
       axis[1] = 0;
       axis[2] = 1;
-    }
-    break;
+    } break;
     case YZY: {
       axis[0] = 1;
       axis[1] = 2;
       axis[2] = 1;
-    }
-    break;
+    } break;
     case ZXZ: {
       axis[0] = 2;
       axis[1] = 0;
       axis[2] = 2;
-    }
-    break;
+    } break;
     case ZYZ: {
       axis[0] = 2;
       axis[1] = 1;
       axis[2] = 2;
-    }
-    break;
+    } break;
     default: {
       axis[0] = 0;
       axis[1] = 1;
@@ -7220,18 +6296,17 @@ void s2_mat3x3_getEulerAngles(
     convert column major s2_mat3x3_t matrix to row major
   */
   double ri[3][3] = {{rin->m00, rin->m01, rin->m02},
-    {rin->m10, rin->m11, rin->m12},
-    {rin->m20, rin->m21, rin->m22}
-  };
+                     {rin->m10, rin->m11, rin->m12},
+                     {rin->m20, rin->m21, rin->m22}};
 
-
-  if(j == f[i]) {   // Identifies Cases 1 and 3: forward cycle i --> j
-    if(k != i) { //forward cycle j --> k
+  if (j == f[i]) { // Identifies Cases 1 and 3: forward cycle i --> j
+    if (k != i) {  // forward cycle j --> k
       // Case 1: 0 --> 1 --> 2; 1 --> 2 --> 0; 2 --> 0 --> 1
       angles->y = catan1pi(-ri[i][j], ri[i][i], angles->y);
       c = cos(angles->y);
       s = sin(angles->y);
-      angles->x = catan2pi(ri[k][j] * c + ri[k][i] * s, ri[j][j] * c + ri[j][i] * s, angles->x);
+      angles->x = catan2pi(ri[k][j] * c + ri[k][i] * s,
+                           ri[j][j] * c + ri[j][i] * s, angles->x);
       angles->y = catan2pi(ri[i][k], ri[i][i] * c - ri[i][j] * s, angles->y);
     } else { // k == i; reverse cycle j --> i
       // Case 3: 0 --> 1 --> 0; 1 --> 2 --> 1; 2 --> 0 --> 2
@@ -7240,25 +6315,28 @@ void s2_mat3x3_getEulerAngles(
       angles->z = catan1pi(ri[i][j], ri[i][k], angles->z);
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(ri[k][j] * c - ri[k][k] * s, ri[j][j] * c - ri[j][k] * s, angles->x);
+      angles->x = catan2pi(ri[k][j] * c - ri[k][k] * s,
+                           ri[j][j] * c - ri[j][k] * s, angles->x);
       angles->y = catan2pi(ri[i][k] * c + ri[i][j] * s, ri[i][i], angles->y);
     }
-  } else { // Cases 2 and 4: reverse cycle i --> j
-    if(k != i) {  //reverse cycle j --> k
+  } else {        // Cases 2 and 4: reverse cycle i --> j
+    if (k != i) { // reverse cycle j --> k
       // Case 2: 0 --> 2 --> 1; 1 --> 0 --> 2; 2 --> 1 --> 0
       angles->z = catan1pi(ri[i][j], ri[i][i], angles->z);
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(-(ri[k][j] * c - ri[k][i] * s), ri[j][j] * c - ri[j][i] * s, angles->x);
+      angles->x = catan2pi(-(ri[k][j] * c - ri[k][i] * s),
+                           ri[j][j] * c - ri[j][i] * s, angles->x);
       angles->y = catan2pi(-ri[i][k], ri[i][i] * c + ri[i][j] * s, angles->y);
-    } else {// k == i; forward cycle j --> i
+    } else { // k == i; forward cycle j --> i
       // Case 4: 0 --> 2 --> 0; 1 --> 0 --> 1; 2 --> 1 --> 2
       // Reset k for correct index into direction cosine matrix.
       k = f[i];
       angles->z = catan1pi(-ri[i][j], ri[i][k], angles->z);
       c = cos(angles->z);
       s = sin(angles->z);
-      angles->x = catan2pi(-(ri[k][j] * c + ri[k][k] * s), ri[j][j] * c + ri[j][k] * s, angles->x);
+      angles->x = catan2pi(-(ri[k][j] * c + ri[k][k] * s),
+                           ri[j][j] * c + ri[j][k] * s, angles->x);
       angles->y = catan2pi(-(ri[i][k] * c - ri[i][j] * s), ri[i][i], angles->y);
     }
   }
@@ -7270,23 +6348,25 @@ The norm of each column or row of an orthonormal rotation matrix is one.
 Therefore, to find the scale factor for a rotation matrix that has been
 <uniformly> scaled, simply find the norm of any row or column of the rotation
 matrix. Warning, this approach will not work for nonuniform scaling.
-For nonuniform scaling, one needs to find the eigenvectors using SVD or other means.
+For nonuniform scaling, one needs to find the eigenvectors using SVD or other
+means.
 
 */
-double s2_mat3x3_getScalar(
-  s2_mat3x3_t* ri) {
+double s2_mat3x3_getScalar(s2_mat3x3_t* ri) {
 
   return sqrt(ri->m00 * ri->m00 + ri->m11 * ri->m11 + ri->m22 * ri->m22);
 }
 
-// /*! @brief Extract scalar from a uniformly scaled single precision s2_mat3x3f_t matrix
+// /*! @brief Extract scalar from a uniformly scaled single precision
+// s2_mat3x3f_t matrix
 //
 // The norm of each column or row of an orthonormal rotation matrix is one.
 //
 // Therefore, to find the scale factor for a rotation matrix that has been
 // <uniformly> scaled, simply find the norm of any row or column of the rotation
 // matrix. Warning, this approach will not work for nonuniform scaling.
-// For nonuniform scaling, one needs to find the eigenvectors using SVD or other means.
+// For nonuniform scaling, one needs to find the eigenvectors using SVD or other
+// means.
 //
 // */
 // float s2_mat3x3f_getScalar(
@@ -7298,9 +6378,7 @@ double s2_mat3x3_getScalar(
 /*!
 @brief extract translation components of a s2_Mat4 matrix
 */
-void s2_mat4x4_getTranslation(
-  s2_mat4x4_t* Mi,
-  s2_vector_t* to) {
+void s2_mat4x4_getTranslation(s2_mat4x4_t* Mi, s2_vector_t* to) {
 
   cblas_dcopy(3, (double*)Mi + 12, 1, (double*)to, 1);
 }
@@ -7308,9 +6386,7 @@ void s2_mat4x4_getTranslation(
 /*!
 @brief extract translation component of a s2_mat4x4f matrix
 */
-void s2_mat4x4f_getTranslation(
-  s2_mat4x4f_t* Mi,
-  s2_vectorf_t* to) {
+void s2_mat4x4f_getTranslation(s2_mat4x4f_t* Mi, s2_vectorf_t* to) {
 
   cblas_scopy(3, (float*)Mi + 12, 1, (float*)to, 1);
 }
@@ -7319,9 +6395,7 @@ void s2_mat4x4f_getTranslation(
 @brief utility to convert dpi, an array of length 3, to deltaq (an incremental
 change in quaternion), add incremental change to an input quaternion
 */
-void s2_add_dpiToq(
-  s2_vector_t* dpi,
-  s2_quaternion_t* qi) {
+void s2_add_dpiToq(s2_vector_t* dpi, s2_quaternion_t* qi) {
 
   s2_quaternion_t dq;
   dq.x = -qi->w * dpi->x + qi->z * dpi->y - qi->y * dpi->z;
@@ -7330,7 +6404,6 @@ void s2_add_dpiToq(
   dq.w = -qi->x * dpi->x - qi->y * dpi->y - qi->z * dpi->z;
   cblas_daxpy(4, 0.5, (double*)&dq, 1, (double*)qi, 1);
 }
-
 
 /*!
 @brief utility to convert dpi, an array of length 3, to deltaq (an incremental
@@ -7349,8 +6422,8 @@ void s2_subtract_dpiFromq(s2_vector_t* dpi, s2_quaternion_t* qi) {
 
   /* dq \leftarrow L_c(e_{ij} d\underline{\pi}_{ij}^j) */
   s2_quaternion_t dq;
-  dq.x =  qi->w * dpi->x - qi->z * dpi->y + qi->y * dpi->z;
-  dq.y =  qi->z * dpi->x + qi->w * dpi->y - qi->x * dpi->z;
+  dq.x = qi->w * dpi->x - qi->z * dpi->y + qi->y * dpi->z;
+  dq.y = qi->z * dpi->x + qi->w * dpi->y - qi->x * dpi->z;
   dq.z = -qi->y * dpi->x + qi->x * dpi->y + qi->w * dpi->z;
   dq.w = -qi->x * dpi->x - qi->y * dpi->y - qi->z * dpi->z;
 
@@ -7361,15 +6434,16 @@ void s2_subtract_dpiFromq(s2_vector_t* dpi, s2_quaternion_t* qi) {
   qi->w -= 0.5 * dq.w;
 }
 
-
 /*!
 @brief utility to convert angular velocity to time derivative of quaternion
 
-\f$ \underline{\dot{e}}^{ij} \leftarrow 1/2 \mathscr{R}(\underline{e}) \underline{\omega}_{ij}^i\f$
+\f$ \underline{\dot{e}}^{ij} \leftarrow 1/2 \mathscr{R}(\underline{e})
+\underline{\omega}_{ij}^i\f$
 
 The result is then normalized by adding a feedback term
 
-\f$ \underline{\dot{e}}^{ij} - \frac{0.5}{\tau}(1 - \underline{e}^{ijT} \underline{e}^{ij})\underline{e}^{ij} \f$
+\f$ \underline{\dot{e}}^{ij} - \frac{0.5}{\tau}(1 - \underline{e}^{ijT}
+\underline{e}^{ij})\underline{e}^{ij} \f$
 
 where \f$\tau=0.5\f$ is hard coded
 
@@ -7377,10 +6451,8 @@ where \f$\tau=0.5\f$ is hard coded
 @param qi [in] reference quaternion
 @param dqo [out] output quaternion time derivative
 */
-void s2_omega_to_dquaternion(
-  s2_vector_t* w,
-  s2_quaternion_t* qi,
-  s2_quaternion_t* dqo) {
+void s2_omega_to_dquaternion(s2_vector_t* w, s2_quaternion_t* qi,
+                             s2_quaternion_t* dqo) {
 
   /*
     1/2 * [ qi->w  qi->z -qi->y] * {w->x}
@@ -7388,9 +6460,9 @@ void s2_omega_to_dquaternion(
           [ qi->y -qi->x  qi->w]   {w->z}
           [-qi->x -qi->y -qi->z]
   */
-  dqo->x =  qi->w * w->x + qi->z * w->y - qi->y * w->z;
+  dqo->x = qi->w * w->x + qi->z * w->y - qi->y * w->z;
   dqo->y = -qi->z * w->x + qi->w * w->y + qi->x * w->z;
-  dqo->z =  qi->y * w->x - qi->x * w->y + qi->w * w->z;
+  dqo->z = qi->y * w->x - qi->x * w->y + qi->w * w->z;
   dqo->w = -qi->x * w->x - qi->y * w->y - qi->z * w->z;
 
   dqo->x *= 0.5;
@@ -7412,15 +6484,11 @@ void s2_omega_to_dquaternion(
   //   coeff * (1 - cblas_ddot(4, (double*)qi, 1, (double*)qi, 1));
 
   cblas_daxpy(4, alpha, (double*)qi, 1, (double*)dqo, 1);
-
 }
-
 
 /*!
 @}
 */
-
-
 
 /*!
 @brief linear interpolation nlerp
@@ -7432,26 +6500,20 @@ void s2_omega_to_dquaternion(
 @param yOut [out] interpolated data returned in yOut
 
 */
-void s2_array_lerp(
-  int count,
-  double p,
-  double* y0,
-  double* y1,
-  double* yOut) {
+void s2_array_lerp(int count, double p, double* y0, double* y1, double* yOut) {
 
-  if(p < 1e-9) {
+  if (p < 1e-9) {
     cblas_dcopy(count, y0, 1, yOut, 1);
-  } else if(p >= 1.0) {
+  } else if (p >= 1.0) {
     cblas_dcopy(count, y1, 1, yOut, 1);
   }
 
-  for(int i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     yOut[i] = y1[i] - y0[i];
   }
   cblas_dscal(count, p, yOut, 1);
   cblas_daxpy(count, 1.0, y0, 1, yOut, 1);
 }
-
 
 /*!
 @brief Function for performing modified Gram-Schmidt orthonormalization
@@ -7469,22 +6531,21 @@ orthonormalized columns are passed back in A[][].
                matrix is returned in A
 */
 void s2_gramSchmidt(int m, int n, double* A) {
-  for(int k = 0; k < n; k++) {
+  for (int k = 0; k < n; k++) {
     /* normalize column k */
     double R = 1.0 / cblas_dnrm2(m, A + k, n);
     cblas_dscal(m, R, A + k, n);
-    for(int j = k + 1; j < n; j++) {
+    for (int j = k + 1; j < n; j++) {
       R = 0;
-      for(int i = 0; i < m; i++) {
+      for (int i = 0; i < m; i++) {
         R += A[i * n + k] * A[i * n + j];
       }
-      for(int i = 0; i < m; i++) {
+      for (int i = 0; i < m; i++) {
         A[i * n + j] -= A[i * n + k] * R;
       }
     }
   }
 }
-
 
 /*!
 @brief used to determine if two double arrays are close to each other
@@ -7496,9 +6557,9 @@ within an error tolerance of 1e-6
 @returns true if values are all close, false if values are not all close
 */
 bool s2_all_close(int count, double* a1, double* a2) {
-  for(int i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     double scaleFactor = fmax(fabs(a1[i]), 1.0);
-    if(fabs(a1[i] - a2[i]) / scaleFactor > 1e-6) {
+    if (fabs(a1[i] - a2[i]) / scaleFactor > 1e-6) {
       fprintf(stdout, "match failed at index: %d\n", i);
       return false;
     }
@@ -7506,21 +6567,18 @@ bool s2_all_close(int count, double* a1, double* a2) {
   return true;
 }
 
-
 /*!
 @brief get axis and angle from a rotation matrix
 
 if sin is close to 0, the axis of rotation is not well defined.
 */
-inline void s2_mat3x3_getAxisAngle(
-  s2_mat3x3_t* r,
-  s2_vector_t* axis,
-  double* angle) {
+inline void s2_mat3x3_getAxisAngle(s2_mat3x3_t* r, s2_vector_t* axis,
+                                   double* angle) {
 
   *angle = acos(0.5 * (r->m00 + r->m11 + r->m22 - 1.0));
-  if(fabs(sin(*angle)) < 1e-9) {
+  if (fabs(sin(*angle)) < 1e-9) {
     /* if m22 == -1, return {1, 0, 0} */
-    if(fabs(r->m22 + 1) < 1e-9) {
+    if (fabs(r->m22 + 1) < 1e-9) {
       axis->x = 1.0;
       axis->y = 0.0;
       axis->z = 0.0;
@@ -7539,24 +6597,20 @@ inline void s2_mat3x3_getAxisAngle(
   s2_vector_scale(1 / (2 * sin(*angle)), axis);
 }
 
-
 /*!
 @brief get axis, angle and pitch of screw motion
 from an SE3 displacement
 @TODO finish / verify this
 */
-inline void s2_displacement_getScrewAxis(
-  s2_displacement_t* d,
-  s2_screw_t* h) {
+inline void s2_displacement_getScrewAxis(s2_displacement_t* d, s2_screw_t* h) {
 
   s2_vector_t rotationAxis;
   double angle;
   s2_mat3x3_getAxisAngle(&d->R, &rotationAxis, &angle);
 }
 
-
 inline double s2_mat3x3_determinant(s2_mat3x3_t* R) {
-  return (R->m00 * (R->m11 * R->m22 - R->m21 * R->m12)
-         -R->m10 * (R->m01 * R->m22 - R->m21 * R->m02)
-         +R->m20 * (R->m01 * R->m12 - R->m11 * R->m02));
+  return (R->m00 * (R->m11 * R->m22 - R->m21 * R->m12) -
+          R->m10 * (R->m01 * R->m22 - R->m21 * R->m02) +
+          R->m20 * (R->m01 * R->m12 - R->m11 * R->m02));
 }

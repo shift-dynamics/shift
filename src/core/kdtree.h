@@ -20,15 +20,11 @@ SUCH DAMAGE.
 #ifndef _SHIFT_KDTREE_H_
 #define _SHIFT_KDTREE_H_
 
+#include "kinematics.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include "kinematics.h"
 
-typedef enum {
-  S2_KDTREE_FLOAT,
-  S2_KDTREE_DOUBLE
-} s2_kdtree_enum_t;
-
+typedef enum { S2_KDTREE_FLOAT, S2_KDTREE_DOUBLE } s2_kdtree_enum_t;
 
 typedef struct s2_kdnode_t {
   double splitValue;
@@ -40,7 +36,6 @@ typedef struct s2_kdnode_t {
   int* faceLocations;
 } s2_kdnode_t;
 
-
 typedef struct s2_kdtree_t {
   s2_kdtree_enum_t precision;
   int vertexCount;
@@ -49,52 +44,34 @@ typedef struct s2_kdtree_t {
   s2_kdnode_t* kdnodes;
   double* vertices; /*!< pointer to double precision vertices */
   float* verticesf; /*!< pointer to single precision vertices */
-  int* faces; /*!< pointer to faces */
+  int* faces;       /*!< pointer to faces */
   int* vertexLocations;
   int* faceLocations;
   bool* visited;
 } s2_kdtree_t;
 
+s2_kdtree_t* s2_kdtreef(int vertexCount, float* vertices, int faceCount,
+                        int* faces, uint32_t binSize);
 
-s2_kdtree_t* s2_kdtreef(
-  int vertexCount,
-  float* vertices,
-  int faceCount,
-  int* faces,
-  uint32_t binSize);
-
-
-s2_kdtree_t* s2_kdtree(
-  int vertexCount,
-  double* vertices,
-  int faceCount,
-  int* faces,
-  uint32_t binSize);
-
+s2_kdtree_t* s2_kdtree(int vertexCount, double* vertices, int faceCount,
+                       int* faces, uint32_t binSize);
 
 void s2_kdtree_free(s2_kdtree_t*);
 
+int s2_kdtree_nnsearch(const s2_kdtree_t*, const s2_vector_t*,
+                       double* minimumDistance);
 
-int s2_kdtree_nnsearch(
-  const s2_kdtree_t*,
-  const s2_vector_t*,
-  double* minimumDistance);
+int s2_kdtree_nnsearch_within_radius(const s2_kdtree_t* restrict kdtree,
+                                     const s2_vector_t* restrict vertex,
+                                     double searchRadius,
+                                     double* minimumDistance,
+                                     int* nearestPositions,
+                                     int maxNearestPositions);
 
-
-int s2_kdtree_nnsearch_within_radius(
-  const s2_kdtree_t* restrict kdtree,
-  const s2_vector_t* restrict vertex,
-  double searchRadius,
-  double* minimumDistance,
-  int* nearestPositions,
-  int maxNearestPositions);
-
-
-bool s2_kdtree_intersection_test(
-  const s2_kdtree_t* restrict kdtree,
-  const s2_vector_t* restrict point0,
-  const s2_vector_t* restrict point1,
-  const double t1,
-  double* restrict intersectionPoint);
+bool s2_kdtree_intersection_test(const s2_kdtree_t* restrict kdtree,
+                                 const s2_vector_t* restrict point0,
+                                 const s2_vector_t* restrict point1,
+                                 const double t1,
+                                 double* restrict intersectionPoint);
 
 #endif

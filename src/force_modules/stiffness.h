@@ -21,11 +21,7 @@ SUCH DAMAGE.
 #ifndef _SHIFT_SPRING_H_
 #define _SHIFT_SPRING_H_
 
-typedef enum {
-  SPRING_IN_JOINT,
-  COIL_SPRING_BETWEEN_POINTS
-} s2_spring_enum_t;
-
+typedef enum { SPRING_IN_JOINT, COIL_SPRING_BETWEEN_POINTS } s2_spring_enum_t;
 
 /*!
   @brief spring data structure
@@ -49,8 +45,6 @@ typedef struct s2_spring_t {
 
 } s2_spring_t;
 
-
 void s2_stiffness_joint(s2_context_t* context, s2_joint_t* joint);
-
 
 #endif

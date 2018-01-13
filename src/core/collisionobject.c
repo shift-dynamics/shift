@@ -1,7 +1,8 @@
 /**
 @file
 @author Kristopher Wehage
-@brief Utilities to initialize, free and operate on an s2_collisionobject_t datastructure.
+@brief Utilities to initialize, free and operate on an s2_collisionobject_t
+datastructure.
 @copyright Kristopher Wehage 2016-2017
 
 This function library is used to initialize, free and operate on
@@ -22,11 +23,11 @@ SUCH DAMAGE.
 */
 
 #include "collisionobject.h"
-#include "convexhull.h"
-#include "sphere.h"
 #include "body.h"
 #include "context.h"
+#include "convexhull.h"
 #include "frame.h"
+#include "sphere.h"
 
 /*!
 @brief collision object constructor
@@ -34,12 +35,11 @@ SUCH DAMAGE.
 s2_collisionobject_t* s2_collisionobject_alloc(int count) {
   s2_collisionobject_t* collisionobjects =
     calloc(count, sizeof(s2_collisionobject_t));
-  for(int i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     s2_collisionobject_init(&collisionobjects[i]);
   }
   return collisionobjects;
 }
-
 
 /*!
 @brief initialize s2_collisionobject_t with default settings
@@ -52,13 +52,13 @@ void s2_collisionobject_init(s2_collisionobject_t* self) {
   self->color[2] = 226.f / 255.f;
 }
 
-
 /*!
 @brief collision object destructor
 */
-void s2_collisionobject_free(s2_collisionobject_t* collisionObjects, int count) {
-  for(int i = 0; i < count; i++) {
-    switch(collisionObjects[i].type) {
+void s2_collisionobject_free(s2_collisionobject_t* collisionObjects,
+                             int count) {
+  for (int i = 0; i < count; i++) {
+    switch (collisionObjects[i].type) {
       case S2_COLLISIONOBJECT_CONVEXHULL: {
         s2_convexhull_free((s2_convexhull_t*)(collisionObjects[i].object));
       } break;
@@ -76,35 +76,32 @@ void s2_collisionobject_free(s2_collisionobject_t* collisionObjects, int count) 
   free(collisionObjects);
 }
 
-
 /*!
 @brief get an s2_collisionobject_enum_t from a character string
 */
-s2_collisionobject_enum_t s2_collisionobject_enumFromChar(
-  const char* collisionObjectType) {
+s2_collisionobject_enum_t
+s2_collisionobject_enumFromChar(const char* collisionObjectType) {
 
-  if(!strcmp(collisionObjectType, "convex_hull")) {
+  if (!strcmp(collisionObjectType, "convex_hull")) {
     return S2_COLLISIONOBJECT_CONVEXHULL;
-  } else if(!strcmp(collisionObjectType, "ellipsoid")) {
+  } else if (!strcmp(collisionObjectType, "ellipsoid")) {
     return S2_COLLISIONOBJECT_ELLIPSOID;
-  } else if(!strcmp(collisionObjectType, "sphere")) {
+  } else if (!strcmp(collisionObjectType, "sphere")) {
     return S2_COLLISIONOBJECT_SPHERE;
-  } else if(!strcmp(collisionObjectType, "obb")) {
+  } else if (!strcmp(collisionObjectType, "obb")) {
     return S2_COLLISIONOBJECT_OBB;
-  } else if(!strcmp(collisionObjectType, "aabb")) {
+  } else if (!strcmp(collisionObjectType, "aabb")) {
     return S2_COLLISIONOBJECT_AABB;
   } else {
     return S2_COLLISIONOBJECT_NONE;
   }
 }
 
-
 /*!
-@brief append a single convex hull to encompass body, convex hull generated using qhull library
+@brief append a single convex hull to encompass body, convex hull generated
+using qhull library
 */
-void s2_collisionobject_convexhull(
-  s2_context_t* context,
-  s2_body_t* body) {
+void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
 
   body->collisionObjectCount = 1;
   body->collisionObjects = s2_collisionobject_alloc(1);
@@ -113,20 +110,21 @@ void s2_collisionobject_convexhull(
   collisionObject->support = s2_convexhull_basicSupport;
   s2_displacement_setIdentity(&collisionObject->dAbsolute);
 
-  if(!body->collisionGeometryInstanceOf) {
-    /* if collision geometry is not an instance, allocate memory for a new convex hull and push it onto list of convexhull objects */
+  if (!body->collisionGeometryInstanceOf) {
+    /* if collision geometry is not an instance, allocate memory for a new
+     * convex hull and push it onto list of convexhull objects */
     collisionObject->index = context->convexhullCount++;
-    if(!context->convexhulls) {
+    if (!context->convexhulls) {
       context->convexhulls = malloc(sizeof(s2_convexhull_t));
     } else {
       context->convexhulls =
-        realloc(
-          context->convexhulls,
-          context->convexhullCount * sizeof(s2_convexhull_t));
+        realloc(context->convexhulls,
+                context->convexhullCount * sizeof(s2_convexhull_t));
     }
     printf("loading convex hull at index %d\n", collisionObject->index);
     s2_convexhull_init(&(context->convexhulls[collisionObject->index]));
-    s2_convexhull(&(context->convexhulls[collisionObject->index]), context, body);
+    s2_convexhull(&(context->convexhulls[collisionObject->index]), context,
+                  body);
     collisionObject->object = &context->convexhulls[collisionObject->index];
   } else {
     /* otherwise, set reference to original instance of collision object */
@@ -137,7 +135,6 @@ void s2_collisionobject_convexhull(
     collisionObject->object = &context->convexhulls[collisionObject->index];
   }
 }
-
 
 /*!
 @brief append a sphere collision object
@@ -151,15 +148,13 @@ void s2_collisionobject_sphere(s2_context_t* context, s2_body_t* body) {
   s2_displacement_setIdentity(&collisionObject->dAbsolute);
 
   context->sphereCount++;
-  if(!context->spheres) {
+  if (!context->spheres) {
     context->spheres = malloc(sizeof(s2_sphere_t));
   } else {
     context->spheres =
-      realloc(
-        context->spheres,
-        context->sphereCount * sizeof(s2_sphere_t));
+      realloc(context->spheres, context->sphereCount * sizeof(s2_sphere_t));
   }
-  if(!body->collisionGeometryInstanceOf) {
+  if (!body->collisionGeometryInstanceOf) {
     s2_sphere(&context->spheres[context->sphereCount - 1], context, body);
   } else {
     s2_collisionobject_t* instanceOf =
@@ -168,7 +163,6 @@ void s2_collisionobject_sphere(s2_context_t* context, s2_body_t* body) {
     collisionObject->object = &context->spheres[collisionObject->index];
   }
 }
-
 
 /*!
 @brief append an ellipsoid collision object
@@ -182,24 +176,21 @@ void s2_collisionobject_ellipsoid(s2_context_t* context, s2_body_t* body) {
   s2_displacement_setIdentity(&collisionObject->dAbsolute);
 
   context->ellipsoidCount++;
-  if(!context->ellipsoids) {
+  if (!context->ellipsoids) {
     context->ellipsoids = malloc(sizeof(s2_ellipsoid_t));
   } else {
-    context->ellipsoids =
-      realloc(
-        context->ellipsoids,
-        context->ellipsoidCount * sizeof(s2_ellipsoid_t));
+    context->ellipsoids = realloc(
+      context->ellipsoids, context->ellipsoidCount * sizeof(s2_ellipsoid_t));
   }
-  s2_ellipsoid(&context->ellipsoids[context->ellipsoidCount - 1], context, body);
+  s2_ellipsoid(&context->ellipsoids[context->ellipsoidCount - 1], context,
+               body);
 }
-
 
 /*!
 @brief collision object support function, wraps support function
 for primitive collision object
 */
-s2_vector_t s2_collisionobject_support(
-  s2_collisionobject_t* self,
-  s2_vector_t* direction) {
+s2_vector_t s2_collisionobject_support(s2_collisionobject_t* self,
+                                       s2_vector_t* direction) {
   return self->support((void*)self->object, direction);
 }

@@ -1,46 +1,44 @@
 #include "renderwindow.hpp"
 #include "../shift.h"
-#include "geometry.hpp"
 #include "bodies.hpp"
 #include "frames.hpp"
+#include "geometry.hpp"
+#include "grid.hpp"
 #include "joints.hpp"
 #include "lights.hpp"
-#include "grid.hpp"
-#include "terrain.hpp"
 #include "pointcloud.hpp"
+#include "terrain.hpp"
 
-#include "phongshaderprogram.hpp"
 #include "flatshaderprogram.hpp"
 #include "frameshaderprogram.hpp"
+#include "normalshaderprogram.hpp"
+#include "phongshaderprogram.hpp"
+#include "pointcloudshaderprogram.hpp"
+#include "shadowshaderprogram.hpp"
 #include "simpleshaderprogram.hpp"
 #include "terrainshaderprogram.hpp"
 #include "terrainshadowshaderprogram.hpp"
-#include "shadowshaderprogram.hpp"
-#include "pointcloudshaderprogram.hpp"
-#include "normalshaderprogram.hpp"
 
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QMatrix4x4>
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
-#include <QScreen>
-#include <QMouseEvent>
-#include <cmath>
 #include <QFileDialog>
-#include <QResizeEvent>
-#include <iostream>
-#include <QVector3D>
+#include <QGenericMatrix>
 #include <QMatrix3x3>
 #include <QMatrix4x4>
-#include <QGenericMatrix>
+#include <QMouseEvent>
+#include <QOpenGLBuffer>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
+#include <QResizeEvent>
+#include <QScreen>
 #include <QTimer>
+#include <QVector3D>
+#include <QWheelEvent>
+#include <cmath>
+#include <iostream>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 RenderWindow::RenderWindow()
   : OpenGLWindow()
@@ -95,7 +93,6 @@ RenderWindow::RenderWindow()
   m_orbitalCamera = new s2_OrbitalCamera(this);
 }
 
-
 RenderWindow::~RenderWindow() {
   delete m_joints;
   delete m_bodies;
@@ -105,15 +102,10 @@ RenderWindow::~RenderWindow() {
   delete m_grid;
 }
 
-
 /*!
 @brief resize GL window signal
 */
-void RenderWindow::resizeGL(
-  int width,
-  int height) {
-}
-
+void RenderWindow::resizeGL(int width, int height) {}
 
 /*!
 @brief report whether render window is initialized
@@ -122,15 +114,12 @@ bool RenderWindow::isInitialized() {
   return m_initialized;
 }
 
-
 /*!
 @brief handler for mouse move events
 
 @param event a QMouseEvent
 */
-void RenderWindow::mouseMoveEvent(
-  QMouseEvent* event) {
-
+void RenderWindow::mouseMoveEvent(QMouseEvent* event) {
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       int dx = event->x() - m_lastPos.x();
@@ -146,94 +135,82 @@ void RenderWindow::mouseMoveEvent(
       m_lastPos = event->pos();
       m_x = event->pos().x();
       m_y = event->pos().y();
+      break;
     }
-    break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->mouseMoveEvent(event);
       m_x = event->pos().x();
       m_y = event->pos().y();
+      break;
     }
-    break;
   }
   updateGL();
   emit mouseMove();
 }
-
 
 /*!
 @brief handler for mouse press events
 
 @param event a QMouseEvent
 */
-void RenderWindow::mousePressEvent(
-  QMouseEvent* event) {
-
+void RenderWindow::mousePressEvent(QMouseEvent* event) {
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       m_lastPos = event->pos();
-
+      break;
     }
-    break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->mousePressEvent(event);
+      break;
     }
-    break;
   }
   if(event->button() == Qt::RightButton) {
     emit mouseRightPressEvent();
   }
-
   if(event->button() == Qt::LeftButton) {
     emit mouseLeftPressEvent();
   }
 }
-
 
 /*!
 @brief handler for mouse release events
 
 @param event a QMouseEvent
 */
-void RenderWindow::mouseReleaseEvent(
-  QMouseEvent* event) {
-
+void RenderWindow::mouseReleaseEvent(QMouseEvent* event) {
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       emit mouseReleaseEvent();
+      break;
     }
-    break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->mouseReleaseEvent(event);
+      break;
     }
-    break;
   }
 }
-
 
 /*!
 @brief handler for mouse scroll wheel events
 
 @param event a QMouseEvent
 */
-void RenderWindow::wheelEvent(
-  QWheelEvent* event) {
-
+void RenderWindow::wheelEvent(QWheelEvent* event) {
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       m_camDistance += (event->delta() / 360.0);
       if(m_camDistance < 0) {
         m_camDistance = 0;
       }
+      break;
     }
-    break;
     case S2_CAMERA_INTERACTION_ORBITAL: {
       m_orbitalCamera->wheelEvent(event);
+      break;
     }
-    break;
   }
   updateGL();
 }
-
 
 /*!
 @brief gets current position of cursor
@@ -245,24 +222,20 @@ QString RenderWindow::getCursorPositionText() {
   float depth;
   GLint viewport[4];
   m_funcs->glGetIntegerv(GL_VIEWPORT, viewport);
-  m_funcs->glReadPixels(
-    m_x, height() - m_y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+  m_funcs->glReadPixels(m_x, height() - m_y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT,
+                        &depth);
   if(depth < 1 && depth > 0) {
     QVector3D position =
-      QVector3D(
-        m_x,
-        height() - m_y,
-        depth).unproject(
-        m_view,
-        m_projection,
-        QRect(0, 0, viewport[2], viewport[3]));
+      QVector3D(m_x, height() - m_y, depth)
+        .unproject(m_view, m_projection, QRect(0, 0, viewport[2], viewport[3]));
     QTextStream retStream(&str);
 
     retStream.setFieldAlignment(QTextStream::AlignLeft);
     retStream.setRealNumberNotation(QTextStream::FixedNotation);
     retStream.setRealNumberPrecision(3);
     retStream.setNumberFlags(QTextStream::ForceSign);
-    retStream << "(" << position.x() << "," << position.y() << "," << position.z() << ")";
+    retStream << "(" << position.x() << "," << position.y() << ","
+              << position.z() << ")";
     retStream.setFieldWidth(25);
 
     // QVector3D near =
@@ -273,48 +246,36 @@ QString RenderWindow::getCursorPositionText() {
     //     m_view,
     //     m_projection,
     //     QRect(0, 0, viewport[2], viewport[3]));
-
   }
   return str;
 }
 
-
 /*!
 @brief set background color of viewport
 */
-void RenderWindow::setBackgroundColor(
-  float red,
-  float green,
-  float blue) {
-
+void RenderWindow::setBackgroundColor(float red, float green, float blue) {
   m_backgroundColor[0] = float(red);
   m_backgroundColor[1] = float(green);
   m_backgroundColor[2] = float(blue);
-
 }
-
-
 
 /*!
-@brief converts double precision s2_displacement_t to floating point precision QMatrix4x4
+@brief converts double precision s2_displacement_t to floating point precision
+QMatrix4x4
 */
-QMatrix4x4 s2_displacementToQMatrix4x4(
-  s2_displacement_t* displacement) {
+QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t* d) {
 
-  double* d = (double*)displacement;
-  return
-    QMatrix4x4((float)d[0], (float)d[3], (float)d[6], (float)d[9],
-               (float)d[1], (float)d[4], (float)d[7], (float)d[10],
-               (float)d[2], (float)d[5], (float)d[8], (float)d[11],
-               0.f,  0.f,  0.f,  1.f);
+  return QMatrix4x4((float)(d->R.m00), (float)(d->R.m01), (float)(d->R.m02),
+                    (float)(d->T.x), (float)(d->R.m10), (float)(d->R.m11),
+                    (float)(d->R.m12), (float)(d->T.y), (float)(d->R.m20),
+                    (float)(d->R.m21), (float)(d->R.m22), (float)(d->T.z), 0.0f,
+                    0.f, 0.f, 1.f);
 }
-
 
 /*!
 @brief set camera x rotation
 */
-void RenderWindow::setXRotation(
-  int angle) {
+void RenderWindow::setXRotation(int angle) {
 
   angle = s2_normalizeDegrees(angle);
   if(angle != m_xRot) {
@@ -323,7 +284,6 @@ void RenderWindow::setXRotation(
     updateGL();
   }
 }
-
 
 /*!
 @brief set camera y rotation
@@ -337,7 +297,6 @@ void RenderWindow::setYRotation(int angle) {
   }
 }
 
-
 /*!
 @brief set camera z rotation
 */
@@ -350,7 +309,6 @@ void RenderWindow::setZRotation(int angle) {
   }
 }
 
-
 /*!
 @brief set camera projection to perspective
 
@@ -359,7 +317,6 @@ void RenderWindow::setPerspective() {
   m_perspective = true;
   updateGL();
 }
-
 
 /*!
 @brief set camera projection to orthogonal
@@ -370,13 +327,11 @@ void RenderWindow::setOrthogonal() {
   updateGL();
 }
 
-
 /*!
 @brief load a Context data structure for rendering
 
 */
-void RenderWindow::loadContext(
-  s2_context_t* context) {
+void RenderWindow::loadContext(s2_context_t* context) {
   m_context = context;
   if(m_context) {
     m_bodies->loadContext();
@@ -385,44 +340,54 @@ void RenderWindow::loadContext(
     m_terrain->loadContext();
     m_joints->loadContext();
     m_pointclouds->loadContext();
+
+    s2_vector_t* gravity = m_context->modelParameters.gravity;
+    if(fabs(gravity->x) > 0 || fabs(gravity->y) > 0 || fabs(gravity->z) > 0) {
+      QVector3D pos(-2, -2, -2);
+      QVector3D to(0.f, 0.f, 0.f);
+      QVector3D up(-gravity->x, -gravity->y, -gravity->z);
+      up.normalize();
+      m_orbitalCamera->setLookAt(pos, to, up);
+    }
   }
 }
-
 
 /*!
 @brief check error in OpenGL
 
 */
-void RenderWindow::checkError(
-  const QString& prefix) {
+void RenderWindow::checkError(const QString& prefix) {
 
   GLenum glErr = glGetError();
-
   while(glErr != GL_NO_ERROR) {
     QString error;
     switch(glErr) {
       case GL_NO_ERROR:
         break;
-      case GL_INVALID_OPERATION:
+      case GL_INVALID_OPERATION: {
         qDebug() << prefix << ": GL_INVALID_OPERATION";
         break;
-      case GL_INVALID_ENUM:
+      }
+      case GL_INVALID_ENUM: {
         qDebug() << prefix << ": GL_INVALID_ENUM";
         break;
-      case GL_INVALID_VALUE:
+      }
+      case GL_INVALID_VALUE: {
         qDebug() << prefix << ": GL_INVALID_VALUE";
         break;
-      case GL_OUT_OF_MEMORY:
+      }
+      case GL_OUT_OF_MEMORY: {
         qDebug() << prefix << ": GL_OUT_OF_MEMORY";
         break;
-      case GL_INVALID_FRAMEBUFFER_OPERATION:
+      }
+      case GL_INVALID_FRAMEBUFFER_OPERATION: {
         qDebug() << prefix << ": GL_INVALID_FRAMEBUFFER_OPERATION";
         break;
+      }
     }
     glErr = glGetError();
   }
 }
-
 
 /*!
 @brief get shader source code
@@ -444,56 +409,52 @@ void RenderWindow::checkError(
 //   return out;
 // }
 
-
 /*!
 @brief Initialize render window
 */
 void RenderWindow::initialize() {
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glClearColor(
-    m_backgroundColor[0],
-    m_backgroundColor[1],
-    m_backgroundColor[2],
-    1.0f);
+  glClearColor(m_backgroundColor[0], m_backgroundColor[1], m_backgroundColor[2],
+               1.0f);
   glEnable(GL_DEPTH_TEST);
 
   if(!m_initialized) {
-    qDebug() << "initializing phong shader";
+    // qDebug() << "initializing phong shader";
     m_programPhong = new PhongShaderProgram(this);
     checkError("after initialize phong shader");
 
-    qDebug() << "initializing flat shader";
+    // qDebug() << "initializing flat shader";
     m_programFlat = new FlatShaderProgram(this);
     checkError("after initialize flat shader");
 
-    qDebug() << "initializing line shader";
+    // qDebug() << "initializing line shader";
     m_programSimple = new SimpleShaderProgram(this);
     checkError("after initialize line shader");
 
-    qDebug() << "initializing shadow shader";
+    // qDebug() << "initializing shadow shader";
     m_programShadow = new ShadowShaderProgram(this);
     checkError("after initialize shadow shader");
 
-    qDebug() << "initializing terrain shader";
+    // qDebug() << "initializing terrain shader";
     m_programTerrain = new TerrainShaderProgram(this);
     checkError("after initialize terrain shader");
 
-    qDebug() << "initializing frame shader";
+    // qDebug() << "initializing frame shader";
     m_programFrame = new FrameShaderProgram(this);
     checkError("after initialize frame shader");
 
-    qDebug() << "initializing pointcloud shader";
+    // qDebug() << "initializing pointcloud shader";
     m_programPointCloud = new PointCloudShaderProgram(this);
     checkError("after initialize point cloud shader");
 
     m_programTerrainShadow = new TerrainShadowShaderProgram(this);
 
-    qDebug() << "initializing normal shader";
+    // qDebug() << "initializing normal shader";
     m_programNormal = new NormalShaderProgram(this);
     checkError("after initialize normal shader");
 
-    qDebug() << "setting shader program pointers";
+    // qDebug() << "setting shader program pointers";
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
     m_bodies->setLineShader(m_programSimple);
@@ -523,7 +484,6 @@ void RenderWindow::initialize() {
   updateGL();
 }
 
-
 /*!
 @brief clear context data structure and rendered objects
 */
@@ -535,7 +495,6 @@ void RenderWindow::clearContext() {
     m_context = NULL;
   }
 }
-
 
 /*!
 @brief updateGL needs to be called on mouse and screen resize events
@@ -549,92 +508,63 @@ void RenderWindow::updateGL() {
         QVector3D eye(-m_xPan, -m_yPan + m_camDistance, -m_zPan);
         QVector3D center(-m_xPan, -m_yPan, -m_zPan);
         QVector3D up(0.f, 0.f, -1.f);
-
         m_view.lookAt(eye, center, up);
         m_view.rotate(m_xRot, 1.0, 0.0, 0.0);
         m_view.rotate(m_zRot, 0.0, 0.0, -1.0);
+        break;
       }
-      break;
       case S2_CAMERA_INTERACTION_ORBITAL: {
-        m_view = m_orbitalCamera->getMVMatrix();
+        m_view = m_orbitalCamera->getViewMatrix();
+        break;
       }
-      break;
     }
 
     m_projection.setToIdentity();
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
-
     float aspectRatio = (float)width() / (float)height();
     if(m_perspective) {
-      m_projection.perspective(
-        60,
-        aspectRatio,
-        0.001,
-        100);
+      m_projection.perspective(60, aspectRatio, 0.001, 100);
     } else {
       float h = 0.5 * m_camDistance;
       float w = aspectRatio * h;
-      m_projection.ortho(-w, w, -h, h, 0.0001, 1000);
+      m_projection.ortho(-w, w, -h, h, 0.001, 100);
     }
     checkError("after updateGL");
   }
 }
 
-
 /*!
-  @brief set joint to be incremented
+@brief set joint to be incremented
 */
-void RenderWindow::setJoint(
-  s2_joint_t* joint,
-  int qIndex,
-  int dqIndex,
-  double delq,
-  s2_joint_enum_t jointType) {
+void RenderWindow::setJoint(s2_joint_t* joint, int qIndex, int dqIndex,
+                            double delq, s2_joint_enum_t jointType) {
 
-  m_joints->set(
-    joint,
-    qIndex,
-    dqIndex,
-    delq,
-    jointType);
+  m_joints->set(joint, qIndex, dqIndex, delq, jointType);
 }
 
-
 /*!
-  @brief set joint target
+@brief set joint target
 */
-void RenderWindow::setJointTarget(
-  s2_joint_t* joint,
-  int qIndex,
-  int dqIndex,
-  double val,
-  s2_joint_enum_t jointType) {
+void RenderWindow::setJointTarget(s2_joint_t* joint, int qIndex, int dqIndex,
+                                  double val, s2_joint_enum_t jointType) {
 
-  m_joints->setTarget(
-    joint,
-    qIndex,
-    dqIndex,
-    val,
-    jointType);
+  m_joints->setTarget(joint, qIndex, dqIndex, val, jointType);
 }
 
-
 /*!
-  @brief clear joint to be incremented
+@brief clear joint to be incremented
 */
 void RenderWindow::clearJoint() {
   m_joints->clear();
 }
 
-
 /*!
-  @brief clear joint to be incremented
+@brief clear joint to be incremented
 */
 void RenderWindow::updateJoint() {
   m_joints->update();
 }
-
 
 /*!
 @brief used to start playback of a simulation after computation has finished
@@ -642,10 +572,9 @@ void RenderWindow::updateJoint() {
 void RenderWindow::startSimulationPlayback() {
   m_timer->start(int(1000 * m_context->modelParameters.timeSpan));
   setSimulationRunning(true);
-  // qDebug() << "starting simulation playback for t=" <<  m_context->modelParameters.timeSpan;
-
+  // qDebug() << "starting simulation playback for t=" <<
+  // m_context->modelParameters.timeSpan;
 }
-
 
 /*!
 @brief used to start playback of a simulation after computation has finished
@@ -656,9 +585,7 @@ void RenderWindow::startSimulationPlayback(double t) {
   m_timer->start(int(1000 * timeRemaining));
   setSimulationRunning(true);
   // qDebug() << "starting simulation playback";
-
 }
-
 
 /*!
 @brief used to stop playback of a simulation after computation has finished
@@ -668,7 +595,6 @@ void RenderWindow::stopSimulationPlayback() {
   emit simulationStopped();
   // qDebug() << "stopping simulation playback";
 }
-
 
 /*!
 @brief interpolated current position in ydata array for playback of a simulation
@@ -688,32 +614,26 @@ void RenderWindow::interpolateCurrentPosition() {
     switch(m_context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
-          (s2_numericalintegrator_ode113_t*) m_context->numericalIntegrator;
+          (s2_numericalintegrator_ode113_t*)m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
-      }
-      break;
+      } break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
-          (s2_numericalintegrator_ode113b_t*) m_context->numericalIntegrator;
+          (s2_numericalintegrator_ode113b_t*)m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
-      }
-      break;
-      default: {
-        exit(-1);
-      }
-      break;
+      } break;
+      default: { exit(-1); } break;
     }
 
     /* find current time, and time at knot point before and
     after time */
     // qDebug() << "remaining time: " << m_timer->remainingTime();
-    double t =
-      fmax(0, m_context->modelParameters.timeSpan -
-           (double)m_timer->remainingTime() / 1000.0);
+    double t = fmax(0, m_context->modelParameters.timeSpan -
+                         (double)m_timer->remainingTime() / 1000.0);
 
     double t0 = t - fmod(t, m_context->modelParameters.timeStep);
     double t1 = t0 + m_context->modelParameters.timeStep;
@@ -727,19 +647,16 @@ void RenderWindow::interpolateCurrentPosition() {
 
     double p = (t - t0) / (t1 - t0);
 
-    // qDebug() << "interpolating, t=" << t << ", t0=" << t0 << "t1=" << t1 << "i0" << i0 << "i1:" << i1 << "p:" << p << "stepCount" << stepCount;
+    // qDebug() << "interpolating, t=" << t << ", t0=" << t0 << "t1=" << t1 <<
+    // "i0" << i0 << "i1:" << i1 << "p:" << p << "stepCount" << stepCount;
     // printf("i0: ");
     // s2_array_print(m_context->qCount, ydata + i0 * neqn);
     // printf("i1: ");
     // s2_array_print(m_context->qCount, ydata + i1 * neqn);
 
     /* yOut = y0 + (y1 - y0) / (t1 - t0) * (t - t0) */
-    s2_array_lerp(
-      m_context->qCount + m_context->dqCount,
-      p,
-      ydata + i0 * neqn,
-      ydata + i1 * neqn,
-      m_context->q);
+    s2_array_lerp(m_context->qCount + m_context->dqCount, p, ydata + i0 * neqn,
+                  ydata + i1 * neqn, m_context->q);
 
     s2_context_updateDH(m_context);
     s2_context_updateGLReferenceFrames(m_context);
@@ -747,7 +664,6 @@ void RenderWindow::interpolateCurrentPosition() {
     emit simulationUpdated(t);
   }
 }
-
 
 /*!
 @brief interpolated current position in ydata array for playback of a simulation
@@ -767,23 +683,21 @@ void RenderWindow::interpolateCurrentPosition(double t) {
     switch(m_context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
-          (s2_numericalintegrator_ode113_t*) m_context->numericalIntegrator;
+          (s2_numericalintegrator_ode113_t*)m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
+        break;
       }
-      break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
-          (s2_numericalintegrator_ode113b_t*) m_context->numericalIntegrator;
+          (s2_numericalintegrator_ode113b_t*)m_context->numericalIntegrator;
         neqn = numericalIntegrator->neqn;
         stepCount = numericalIntegrator->stepCount;
         ydata = numericalIntegrator->ydata;
+        break;
       }
-      break;
-      default: {
-        exit(-1);
-      };
+      default: { exit(-1); };
     }
 
     double t0 = t - fmod(t, m_context->modelParameters.timeStep);
@@ -795,17 +709,8 @@ void RenderWindow::interpolateCurrentPosition(double t) {
 
     double p = (t - t0) / (t1 - t0);
 
-    // qDebug() << "interpolating, t=" << t << ", t0=" << t0 << "t1=" << t1 << "i0" << i0 << "i1:" << i1 << "p:" << p;
-
-    /*
-      yOut = y0 + (y1 - y0) / (t1 - t0) * (t - t0)
-    */
-    s2_array_lerp(
-      neqn,
-      p,
-      ydata + i0 * neqn,
-      ydata + i1 * neqn,
-      m_context->q);
+    /* yOut = y0 + (y1 - y0) / (t1 - t0) * (t - t0) */
+    s2_array_lerp(neqn, p, ydata + i0 * neqn, ydata + i1 * neqn, m_context->q);
     // emit simulationUpdated(t);
 
     s2_context_updateDH(m_context);
@@ -814,7 +719,6 @@ void RenderWindow::interpolateCurrentPosition(double t) {
   }
 }
 
-
 /*!
 @brief set simulation running boolean to true or false
 */
@@ -822,41 +726,34 @@ void RenderWindow::setSimulationRunning(bool val) {
   m_simulationRunning = val;
 }
 
-
 /*!
 @brief main render loop
 */
 void RenderWindow::render() {
 
   if(m_initialized && isAnimating()) {
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     if(m_simulationRunning) {
       /* if the simulation is running, get the current state
       of the mechanism from ydata array and update mechanism for
       display */
       interpolateCurrentPosition();
     } else {
-      /* otherwise update position of current joint if driven by user using the joint slider interface */
+      /* otherwise update position of current joint if driven by user using the
+       * joint slider interface */
       m_joints->update();
     }
 
     /* render depth buffers for lights */
     m_lights->draw();
-
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(
-      m_backgroundColor[0],
-      m_backgroundColor[1],
-      m_backgroundColor[2],
-      0.0f);
+    glClearColor(m_backgroundColor[0], m_backgroundColor[1],
+                 m_backgroundColor[2], 0.0f);
     draw();
   }
 }
-
 
 /*!
 @brief OpenGL draw function

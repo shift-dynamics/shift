@@ -22,24 +22,18 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
+#include "../shift.h"
 #include <cblas.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "../shift.h"
-
 
 s2_camera_t* s2_camera() {
   s2_camera_t* camera = malloc(sizeof(s2_camera_t));
 
   camera->projectionType = S2_PROJECTION_PERSPECTIVE;
 
-  s2_camera_perspective(
-    60.f,
-    0.75,
-    0.01,
-    10000,
-    &(camera->projection));
+  s2_camera_perspective(60.f, 0.75, 0.01, 10000, &(camera->projection));
   //
   // float eye[3] = {0, 0, 3};
   // float center[3] = {0, 0, 0};
@@ -58,16 +52,11 @@ s2_camera_t* s2_camera() {
   return camera;
 }
 
-
 /*! @brief used to construct a perspective projection matrix
 
 */
-void s2_camera_perspective(
-  float fieldOfView,
-  float aspectRatio,
-  float near,
-  float far,
-  s2_mat4x4f_t* projection) {
+void s2_camera_perspective(float fieldOfView, float aspectRatio, float near,
+                           float far, s2_mat4x4f_t* projection) {
 
   float q = 1.0f / tan(M_PI * (0.5f * fieldOfView) / 180.f);
   float A = q / aspectRatio;
@@ -83,18 +72,11 @@ void s2_camera_perspective(
   projection->m23 = -1.f;
 }
 
-
 /* @brief used to construct an orthographic projection matrix
 
 */
-void s2_camera_orthographic(
-  float left,
-  float right,
-  float bottom,
-  float top,
-  float near,
-  float far,
-  s2_mat4x4f_t* projection) {
+void s2_camera_orthographic(float left, float right, float bottom, float top,
+                            float near, float far, s2_mat4x4f_t* projection) {
 
   memset(projection, 0, 16 * sizeof(float));
   float bottom_top = bottom - top;
@@ -109,15 +91,11 @@ void s2_camera_orthographic(
   projection->m33 = 1.0f;
 }
 
-
 /* @brief set a camera lookat matrix
 
 */
-void s2_camera_lookAt(
-  s2_vectorf_t* eye,
-  s2_vectorf_t* center,
-  s2_vectorf_t* up,
-  s2_mat4x4f_t* matrix) {
+void s2_camera_lookAt(s2_vectorf_t* eye, s2_vectorf_t* center, s2_vectorf_t* up,
+                      s2_mat4x4f_t* matrix) {
 
   s2_vectorf_t f = {0.f, 0.f, 0.f};
   s2_vectorf_t upN = {0.f, 0.f, 0.f};
@@ -127,28 +105,27 @@ void s2_camera_lookAt(
   s2_displacementf_t M1;
   s2_displacementf_t M2;
 
-
   memset(&M1, 0, sizeof(s2_displacementf_t));
   memset(&M2, 0, sizeof(s2_displacementf_t));
 
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     ((float*)&f)[i] = ((float*)&center)[i] - ((float*)&eye)[i];
   };
 
   float fNorm = cblas_snrm2(3, (float*)&f, 1);
   float upNorm = cblas_snrm2(3, (float*)&up, 1);
 
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     ((float*)&f)[i] /= fNorm;
   }
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     ((float*)&upN)[i] = ((float*)&up)[i] / upNorm;
   }
 
   s2_cross_vvf(&f, &upN, &s);
   s2_cross_vvf(&s, &f, &u);
 
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     ((float*)&f)[i] = -((float*)&f)[i];
   }
 
@@ -160,12 +137,7 @@ void s2_camera_lookAt(
 
   s2_product_dtf(&M1, &t, &M2);
   s2_displacementf_toMat4x4f(&M2, matrix);
-
 }
-
-
-
-
 
 //
 // void s2_glCheckError(
@@ -213,12 +185,13 @@ void s2_camera_lookAt(
 //
 // /*! @brief initialize shader program from source files
 //
-// Sets up an OpenGL pipeline vertex shader -> geometry shader -> fragment shader
-// The geometry shader is optional; vertex and fragment shaders are required
+// Sets up an OpenGL pipeline vertex shader -> geometry shader -> fragment
+// shader The geometry shader is optional; vertex and fragment shaders are
+// required
 //
 // @param vertexShaderSource path to vertex shader GLSL source (required)
-// @param compShaderSource path to compute shader GLSL source (optional), specify
-// NULL if no compute shader is specified
+// @param compShaderSource path to compute shader GLSL source (optional),
+// specify NULL if no compute shader is specified
 // @param fragmentShaderSource path to fragment shader GLSL source (required)
 // @return GLuint a handle to an opengl shader program
 // */
@@ -265,7 +238,8 @@ void s2_camera_lookAt(
 //   glLinkProgram(program);
 //
 //   /*
-//     clean up, individual shaders are no longer necessary once attached to program
+//     clean up, individual shaders are no longer necessary once attached to
+//     program
 //   */
 //   glDeleteShader(vertexShader);
 //   if(geometryShaderSource) {
@@ -282,9 +256,12 @@ void s2_camera_lookAt(
 // // void s2_glGetMaterialUniformLocations(
 // //   MaterialUniforms* materialUniforms,
 // //   GLuint shaderProgram) {
-// //   materialUniforms->Ka = glGetUniformLocation(shaderProgram, "KaMaterial");
-// //   materialUniforms->Kd = glGetUniformLocation(shaderProgram, "KdMaterial");
-// //   materialUniforms->Ks = glGetUniformLocation(shaderProgram, "KsMaterial");
+// //   materialUniforms->Ka = glGetUniformLocation(shaderProgram,
+// "KaMaterial");
+// //   materialUniforms->Kd = glGetUniformLocation(shaderProgram,
+// "KdMaterial");
+// //   materialUniforms->Ks = glGetUniformLocation(shaderProgram,
+// "KsMaterial");
 // //   // shaderHandle->Ke = glGetUniformLocation(shaderProgram, "KeMaterial");
 // //   materialUniforms->Ns = glGetUniformLocation(shaderProgram, "Ns");
 // //   s2_glCheckError("after shader handle material");
@@ -310,7 +287,9 @@ void s2_camera_lookAt(
 // Initializes all vertex/index buffer objects on bodies, sets uniform
 // locations and loads lights to opengl.  Must be called after glewInit().
 //
-// @todo current glewInit is called from C++ program glwidget.cpp. Once shaders are debugged and stable, they should be compiled and loaded from C code. For development/debugging purposes, the shaders are loaded as Qt resources.
+// @todo current glewInit is called from C++ program glwidget.cpp. Once shaders
+// are debugged and stable, they should be compiled and loaded from C code. For
+// development/debugging purposes, the shaders are loaded as Qt resources.
 //
 // */
 // void s2_glInitialize(
@@ -571,13 +550,15 @@ void s2_camera_lookAt(
 //         //                   m_modelArray[i]->materials[j].flat.nm,
 //         //                   mv.normalMatrix() );
 //         //
-//         //                 //qDebug() <<m_modelArray[i]->vertices[0] <<m_modelArray[i]->vertices[1] <<m_modelArray[i]->vertices[2];
+//         //                 //qDebug() <<m_modelArray[i]->vertices[0]
+//         <<m_modelArray[i]->vertices[1] <<m_modelArray[i]->vertices[2];
 //         //                 m_programFlat->setUniformValueArray(
 //         //                   m_modelArray[i]->materials[j].flat.posLight,
 //         //                   lightParam.posLight,
 //         //                   10,
 //         //                   3);
-//         //                 //qDebug() << lightParam.posLight[0] << lightParam.posLight[1] << lightParam.posLight[2];
+//         //                 //qDebug() << lightParam.posLight[0] <<
+//         lightParam.posLight[1] << lightParam.posLight[2];
 //         //
 //         //                 m_programFlat->setUniformValueArray(
 //         //                   m_modelArray[i]->materials[j].flat.KaLight,
@@ -625,11 +606,13 @@ void s2_camera_lookAt(
 //         //                   3);
 //         //
 //         //                 m_programFlat->setUniformValue(
-//         //                   m_modelArray[i]->materials[j].flat.Ns, (GLuint)m_modelArray[i]->materials[j].Ns);
+//         //                   m_modelArray[i]->materials[j].flat.Ns,
+//         (GLuint)m_modelArray[i]->materials[j].Ns);
 //         //
 //         //                m_modelArray[i]->materials[j].m_vao->bind();
 //         //                 glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-//         //                 glDrawElements( GL_TRIANGLES,m_modelArray[i]->ilen, GL_UNSIGNED_INT, 0 );
+//         //                 glDrawElements(
+//         GL_TRIANGLES,m_modelArray[i]->ilen, GL_UNSIGNED_INT, 0 );
 //         //                m_modelArray[i]->materials[j].m_vao->release();
 //         //                 m_programFlat->release();
 //         //                 checkError("after program release");
@@ -639,47 +622,68 @@ void s2_camera_lookAt(
 //         //             case GOURAUD:
 //         //             {
 //         //                 m_programGouraud->bind();
-//         //                 m_programGouraud->setUniformValue(m_modelArray[i]->materials[j].gouraud.mvp, projection_view *m_modelArray[i]->transform );
-//         //                 m_programGouraud->setUniformValue(m_modelArray[i]->materials[j].gouraud.mv, mv );
-//         //                 m_programGouraud->setUniformValue(m_modelArray[i]->materials[j].gouraud.v, m_view );
-//         //                 m_programGouraud->setUniformValue(m_modelArray[i]->materials[j].gouraud.nm, mv.normalMatrix() );
 //         //
-//         //                 m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.posLight, lightParam.posLight, 10, 3);
-//         //                 //qDebug() << lightParam.posLight[0] << lightParam.posLight[1] << lightParam.posLight[2];
-//         //                 m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.KaLight, lightParam.KaLight, 10, 3);
-//         //                 m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.KdLight, lightParam.KdLight, 10, 3);
-//         //                 m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.KsLight, lightParam.KsLight, 10, 3);
+//         m_programGouraud->setUniformValue(m_modelArray[i]->materials[j].gouraud.mvp,
+//         projection_view *m_modelArray[i]->transform );
 //         //
-//         //                 m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.directional, lightParam.directional, 10);
+//         m_programGouraud->setUniformValue(m_modelArray[i]->materials[j].gouraud.mv,
+//         mv );
+//         //
+//         m_programGouraud->setUniformValue(m_modelArray[i]->materials[j].gouraud.v,
+//         m_view );
+//         //
+//         m_programGouraud->setUniformValue(m_modelArray[i]->materials[j].gouraud.nm,
+//         mv.normalMatrix() );
+//         //
+//         //
+//         m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.posLight,
+//         lightParam.posLight, 10, 3);
+//         //                 //qDebug() << lightParam.posLight[0] <<
+//         lightParam.posLight[1] << lightParam.posLight[2];
+//         //
+//         m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.KaLight,
+//         lightParam.KaLight, 10, 3);
+//         //
+//         m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.KdLight,
+//         lightParam.KdLight, 10, 3);
+//         //
+//         m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.KsLight,
+//         lightParam.KsLight, 10, 3);
+//         //
+//         //
+//         m_programGouraud->setUniformValueArray(m_modelArray[i]->materials[j].gouraud.directional,
+//         lightParam.directional, 10);
 //         //
 //         //                 m_programGouraud->setUniformValue(
 //         //                   m_modelArray[i]->materials[j].gouraud.numLights,
 //         //                   lightParam.numLights );
 //         //
 //         //                 m_programGouraud->setUniformValueArray(
-//         //                   m_modelArray[i]->materials[j].gouraud.KaMaterial,
+//         // m_modelArray[i]->materials[j].gouraud.KaMaterial,
 //         //                   m_modelArray[i]->materials[j].Ka,
 //         //                   1,
 //         //                   3);
 //         //
 //         //                 m_programGouraud->setUniformValueArray(
-//         //                   m_modelArray[i]->materials[j].gouraud.KdMaterial,
+//         // m_modelArray[i]->materials[j].gouraud.KdMaterial,
 //         //                   m_modelArray[i]->materials[j].Kd,
 //         //                   1,
 //         //                   3);
 //         //
 //         //                 m_programGouraud->setUniformValueArray(
-//         //                   m_modelArray[i]->materials[j].gouraud.KsMaterial,
+//         // m_modelArray[i]->materials[j].gouraud.KsMaterial,
 //         //                   m_modelArray[i]->materials[j].Ks,
 //         //                   1,
 //         //                   3);
 //         //
 //         //                 m_programGouraud->setUniformValue(
-//         //                   m_modelArray[i]->materials[j].gouraud.Ns, (GLuint)m_modelArray[i]->materials[j].Ns);
+//         //                   m_modelArray[i]->materials[j].gouraud.Ns,
+//         (GLuint)m_modelArray[i]->materials[j].Ns);
 //         //
 //         //                 m_modelArray[i]->materials[j].m_vao2->bind();
 //         //                 glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-//         //                 glDrawElements( GL_TRIANGLES,m_modelArray[i]->ilen, GL_UNSIGNED_INT, 0 );
+//         //                 glDrawElements(
+//         GL_TRIANGLES,m_modelArray[i]->ilen, GL_UNSIGNED_INT, 0 );
 //         //                 m_modelArray[i]->materials[j].m_vao2->release();
 //         //                 m_programGouraud->release();
 //         //                 checkError("after program release");
@@ -712,7 +716,8 @@ void s2_camera_lookAt(
 //         //                   10,
 //         //                   3);
 //         //
-//         //                 //qDebug() << lightParam.posLight[0] << lightParam.posLight[1] << lightParam.posLight[2];
+//         //                 //qDebug() << lightParam.posLight[0] <<
+//         lightParam.posLight[1] << lightParam.posLight[2];
 //         //                 m_programPhong->setUniformValueArray(
 //         //                   m_modelArray[i]->materials[j].phong.KaLight,
 //         //                   lightParam.KaLight,
@@ -764,7 +769,8 @@ void s2_camera_lookAt(
 //         //
 //         //                m_modelArray[i]->materials[j].m_vao2->bind();
 //         //                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//         //                 glDrawElements(GL_TRIANGLES,m_modelArray[i]->ilen, GL_UNSIGNED_INT, 0);
+//         //                 glDrawElements(GL_TRIANGLES,m_modelArray[i]->ilen,
+//         GL_UNSIGNED_INT, 0);
 //         //
 //         //                m_modelArray[i]->materials[j].m_vao2->release();
 //         //               m_programPhong->release();
@@ -777,10 +783,16 @@ void s2_camera_lookAt(
 //         //     {
 //         //         // draw vertex normals
 //         //         m_programLine->bind();
-//         //         m_programLine->setUniformValue(m_modelArray[i]->m_mvpUniform_normals, projection_view *m_modelArray[i]->transform );
-//         //         m_programLine->setUniformValue(m_modelArray[i]->m_colorUniform_normals, QVector4D(m_normalColor[0], m_normalColor[1], m_normalColor[2], 1.f));
+//         //
+//         m_programLine->setUniformValue(m_modelArray[i]->m_mvpUniform_normals,
+//         projection_view *m_modelArray[i]->transform );
+//         //
+//         m_programLine->setUniformValue(m_modelArray[i]->m_colorUniform_normals,
+//         QVector4D(m_normalColor[0], m_normalColor[1],
+//         m_normalColor[2], 1.f));
 //         //        m_modelArray[i]->m_vao_normals->bind();
-//         //         glDrawElements( GL_LINES,m_modelArray[i]->vlen*2/3, GL_UNSIGNED_INT, 0 );
+//         //         glDrawElements( GL_LINES,m_modelArray[i]->vlen*2/3,
+//         GL_UNSIGNED_INT, 0 );
 //         //        m_modelArray[i]->m_vao_normals->release();
 //         //         m_programLine->release();
 //         //         checkError("after program release");

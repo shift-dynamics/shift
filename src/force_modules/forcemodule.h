@@ -32,11 +32,7 @@ typedef struct s2_assembly_t s2_assembly_t;
 /*!
 @brief types of force modules currently supported
 */
-typedef enum {
-  S2_FORCEMODULE_TIRE,
-  S2_FORCEMODULE_PID
-} s2_forcemodule_enum_t;
-
+typedef enum { S2_FORCEMODULE_TIRE, S2_FORCEMODULE_PID } s2_forcemodule_enum_t;
 
 /*!
 @brief utility to feed back forces into a running simulation
@@ -57,7 +53,6 @@ typedef struct s2_forcemodule_t {
   s2_forcemodule_t* next;
 } s2_forcemodule_t;
 
-
 s2_forcemodule_t* s2_forcemodule(s2_forcemodule_enum_t);
 
 void s2_context_flattenForceModules(s2_context_t*);
@@ -72,10 +67,7 @@ void s2_forcemodule_append(s2_assembly_t*, s2_forcemodule_t*);
 
 void s2_forcemodule_free(s2_forcemodule_t*);
 
-void s2_forcemodule_load(
-  s2_context_t* context,
-  s2_assembly_t* assembly,
-  s2_stackstr_t* prefix,
-  json_t* forceModuleObject);
+void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
+                         s2_stackstr_t* prefix, json_t* forceModuleObject);
 
 #endif

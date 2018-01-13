@@ -19,32 +19,27 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 #include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
 #else
 #include <cblas.h>
 #endif
-#include "solve.h"
-#include "context.h"
-#include "numericalintegrator.h"
-#include "substructure.h"
-#include "jacobian.h"
 #include "../force_modules/service.h"
-
+#include "context.h"
+#include "jacobian.h"
+#include "numericalintegrator.h"
+#include "solve.h"
+#include "substructure.h"
 
 /*!
 @brief generic function to solve equations of motion for one time step
 of numerical integration
 
 */
-void s2_equation_fcn(
-  double t,
-  double y[],
-  double dy[],
-  s2_context_t* context) {
+void s2_equation_fcn(double t, double y[], double dy[], s2_context_t* context) {
 
   /*
     copy y to context->q and context->dq
@@ -55,24 +50,19 @@ void s2_equation_fcn(
     candidate for future speed improvement
   */
 
-  switch(context->modelParameters.integrationType) {
+  switch (context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         context->numericalIntegrator;
       numericalIntegrator->iterationCount++;
-    }
-    break;
+    } break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         context->numericalIntegrator;
       numericalIntegrator->iterationCount++;
-    }
-    break;
+    } break;
   }
-  memcpy(
-    context->q,
-    y,
-    (context->qCount + context->dqCount) * sizeof(double));
+  memcpy(context->q, y, (context->qCount + context->dqCount) * sizeof(double));
 
   s2_context_updateDHVA(context);
   s2_context_evaluateConstraints(context);
@@ -113,12 +103,8 @@ void s2_equation_fcn(
   /*
     copy context->ddq to second half of dy, starting at qCount
   */
-  memcpy(
-    dy + context->qCount,
-    context->ddq,
-    context->dqCount * sizeof(double));
+  memcpy(dy + context->qCount, context->ddq, context->dqCount * sizeof(double));
 }
-
 
 /*!
 @brief writes headers for output file to stdout and to the output file
@@ -130,142 +116,98 @@ void s2_context_writeHeaders(s2_context_t* context) {
   double t = 0;
   FILE* debug = context->modelParameters.debugFilePointer;
 
-  switch(context->modelParameters.integrationType) {
+  switch (context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
       neqn = numericalIntegrator->neqn;
       y = numericalIntegrator->y;
       t = numericalIntegrator->t;
-    }
-    break;
+    } break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       neqn = numericalIntegrator->neqn;
       y = numericalIntegrator->y;
       t = numericalIntegrator->x;
-    }
-    break;
-    default: {
-      exit(-1);
-    }
-    break;
+    } break;
+    default: { exit(-1); } break;
   }
 
   fprintf(debug, "T");
-  for(int i = 0; i < context->qCount; i++) {
+  for (int i = 0; i < context->qCount; i++) {
     fprintf(debug, "\tq[%d]", i);
   }
-  for(int i = 0; i < context->dqCount; i++) {
+  for (int i = 0; i < context->dqCount; i++) {
     fprintf(debug, "\tdq[%d]", i);
   }
-  for(int i = 0; i < context->dqCount; i++) {
+  for (int i = 0; i < context->dqCount; i++) {
     fprintf(debug, "\tddq[%d]", i);
   }
   fprintf(debug, "\n");
 
   fprintf(debug, "[0]\t%g", 0.0);
-  for(int i = 0; i < neqn; i++) {
+  for (int i = 0; i < neqn; i++) {
     fprintf(debug, "\t% 6.4f", y[i]);
   }
   fprintf(debug, "\n");
 
   FILE* f = context->modelParameters.outFilePointer;
-  if(f != NULL) {
+  if (f != NULL) {
 
     fprintf(f, "time");
-    for(int i = 0; i < context->qCount; i++) {
+    for (int i = 0; i < context->qCount; i++) {
       fprintf(f, "%sq[%d]", context->modelParameters.delimiter, i);
     }
-    for(int i = 0; i < context->dqCount; i++) {
+    for (int i = 0; i < context->dqCount; i++) {
       fprintf(f, "%sdq[%d]", context->modelParameters.delimiter, i);
     }
-    for(int i = 0; i < context->dqCount; i++) {
+    for (int i = 0; i < context->dqCount; i++) {
       fprintf(f, "%sddq[%d]", context->modelParameters.delimiter, i);
     }
 
-    fprintf(
-      f,
-      "%sKE",
-      context->modelParameters.delimiter);
-    fprintf(
-      f,
-      "%sPE",
-      context->modelParameters.delimiter);
-    fprintf(
-      f,
-      "%siterations",
-      context->modelParameters.delimiter);
+    fprintf(f, "%sKE", context->modelParameters.delimiter);
+    fprintf(f, "%sPE", context->modelParameters.delimiter);
+    fprintf(f, "%siterations", context->modelParameters.delimiter);
 
-    fprintf(
-      f,
-      "%se",
-      context->modelParameters.delimiter);
-    fprintf(
-      f,
-      "%somega_n",
-      context->modelParameters.delimiter);
+    fprintf(f, "%se", context->modelParameters.delimiter);
+    fprintf(f, "%somega_n", context->modelParameters.delimiter);
     fprintf(f, "\n");
 
     /* write initial conditions to first row of file */
     fprintf(f, "%g", t);
-    for(int i = 0; i < context->qCount + context->dqCount; i++) {
-      fprintf(
-        f,
-        "%s%g",
-        context->modelParameters.delimiter,
-        y[i]);
+    for (int i = 0; i < context->qCount + context->dqCount; i++) {
+      fprintf(f, "%s%g", context->modelParameters.delimiter, y[i]);
     }
 
     s2_context_evaluateKineticEnergy(context);
-    fprintf(
-      f,
-      "%s%f",
-      context->modelParameters.delimiter,
-      context->kineticEnergy);
+    fprintf(f, "%s%f", context->modelParameters.delimiter,
+            context->kineticEnergy);
 
     s2_context_evaluateGravitationalPotentialEnergy(context);
-    fprintf(
-      f,
-      "%s%f",
-      context->modelParameters.delimiter,
-      context->gravitationalPotentialEnergy);
+    fprintf(f, "%s%f", context->modelParameters.delimiter,
+            context->gravitationalPotentialEnergy);
 
-    fprintf(
-      f,
-      "%s%d",
-      context->modelParameters.delimiter,
-      0);
+    fprintf(f, "%s%d", context->modelParameters.delimiter, 0);
 
     double e = 0;
-    for(int j = 0; j < context->substructureCount; j++) {
+    for (int j = 0; j < context->substructureCount; j++) {
       s2_substructure_t* substructure = context->substructures + j;
       e += s2_substructure_evaluateConstraintError(substructure);
     }
 
-    fprintf(
-      f,
-      "%s%e",
-      context->modelParameters.delimiter,
-      e);
+    fprintf(f, "%s%e", context->modelParameters.delimiter, e);
 
-    fprintf(
-      f,
-      "%s%f",
-      context->modelParameters.delimiter,
-      context->modelParameters.baumgarte2OmegaN / 2.0);
+    fprintf(f, "%s%f", context->modelParameters.delimiter,
+            context->modelParameters.baumgarte2OmegaN / 2.0);
     fprintf(f, "\n");
   }
 }
 
-
 /*!
 @brief writes states to output file, ydata array and/or stdout
 */
-void s2_context_writeStates(
-  s2_context_t* context,
-  int step) {
+void s2_context_writeStates(s2_context_t* context, int step) {
 
   int neqn = 0;
   double* ydata = NULL;
@@ -274,7 +216,7 @@ void s2_context_writeStates(
   FILE* debug = context->modelParameters.debugFilePointer;
   int iterationCount = 0;
   double omegaN = 0;
-  switch(context->modelParameters.integrationType) {
+  switch (context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         context->numericalIntegrator;
@@ -284,8 +226,7 @@ void s2_context_writeStates(
       t = numericalIntegrator->t;
       iterationCount = numericalIntegrator->iterationCount;
       omegaN = context->modelParameters.baumgarte2OmegaN / 2.0;
-    }
-    break;
+    } break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         context->numericalIntegrator;
@@ -295,25 +236,18 @@ void s2_context_writeStates(
       t = numericalIntegrator->x;
       iterationCount = numericalIntegrator->iterationCount;
       /* write to tdata array if it exists */
-      if(numericalIntegrator->tdata) {
+      if (numericalIntegrator->tdata) {
         numericalIntegrator->tdata[step] = t;
       }
       iterationCount = numericalIntegrator->iterationCount;
       omegaN = numericalIntegrator->baumgarte2OmegaN / 2.0;
-    }
-    break;
-    default: {
-      exit(-1);
-    }
-    break;
+    } break;
+    default: { exit(-1); } break;
   }
 
   /* copy states to ydata array if ydata is specified */
-  if(ydata != NULL) {
-    memcpy(
-      ydata + neqn * step,
-      y,
-      neqn * sizeof(double));
+  if (ydata != NULL) {
+    memcpy(ydata + neqn * step, y, neqn * sizeof(double));
   }
 
   /* do post processing and report requested information to user */
@@ -339,7 +273,7 @@ void s2_context_writeStates(
   // }
 
   double e = 0;
-  for(int j = 0; j < context->substructureCount; j++) {
+  for (int j = 0; j < context->substructureCount; j++) {
     s2_substructure_t* substructure = context->substructures + j;
     e += s2_substructure_evaluateConstraintError(substructure);
   }
@@ -348,7 +282,7 @@ void s2_context_writeStates(
   s2_context_evaluateGravitationalPotentialEnergy(context);
 
   /* solve for absolute displacement of error */
-// for(int j= 0; j < context->constraintEquationCount; j++)
+  // for(int j= 0; j < context->constraintEquationCount; j++)
 
   // fprintf(debug, "\te:% 6.6g", e);
   // fprintf(debug, " KE:% 6.6g", context->kineticEnergy);
@@ -356,10 +290,10 @@ void s2_context_writeStates(
   // fprintf(debug,
   //  " E:% 6.6g",
   //  context->kineticEnergy + context->gravitationalPotentialEnergy);
-  //fprintf(debug, " i: %d", iterationCount);
+  // fprintf(debug, " i: %d", iterationCount);
   // fprintf(debug, " infNormB: ");
 
-  //fprintf(debug, " omega_n: %0.9f ", omegaN);
+  // fprintf(debug, " omega_n: %0.9f ", omegaN);
 
   // for(int i = 0; i < context->substructureCount; i++) {
   //
@@ -367,7 +301,7 @@ void s2_context_writeStates(
   //     context->substructures[i].infinityNormB;
   //   fprintf(debug, "[%d] %0.9f ", i, infNormB);
   // }
-  //fprintf(debug, "\n");
+  // fprintf(debug, "\n");
 
   // if(context->modelParameters->integrationType == ODE113B) {
   //   s2_numericalintegrator_ode113b_t* numericalIntegrator =
@@ -379,17 +313,14 @@ void s2_context_writeStates(
   //   printf("\n");
   // }
 
-
   context->modelParameters.sumIterationCount += iterationCount;
 
-  if(e > fabs(context->modelParameters.maxConstraintError)) {
+  if (e > fabs(context->modelParameters.maxConstraintError)) {
     context->modelParameters.maxConstraintError = fabs(e);
     context->modelParameters.maxConstraintErrorStep = step;
   }
 
-  if(
-    iterationCount >
-    context->modelParameters.maxIterationCount) {
+  if (iterationCount > context->modelParameters.maxIterationCount) {
 
     context->modelParameters.maxIterationCount = iterationCount;
     context->modelParameters.maxIterationCountStep = step;
@@ -399,66 +330,36 @@ void s2_context_writeStates(
   FILE* f = context->modelParameters.outFilePointer;
 
   /* write to file if output file is specified */
-  if(f != NULL) {
+  if (f != NULL) {
     /* write time */
-    fprintf(
-      f,
-      "%g",
-      t);
+    fprintf(f, "%g", t);
 
     /* write q / ddq */
-    for(int i = 0; i < neqn; i++) {
-      fprintf(
-        f,
-        "%s%g",
-        context->modelParameters.delimiter,
-        y[i]);
+    for (int i = 0; i < neqn; i++) {
+      fprintf(f, "%s%g", context->modelParameters.delimiter, y[i]);
     }
 
     /* write ddq */
-    for(int i = 0; i < context->dqCount; i++) {
-      fprintf(
-        f,
-        "%s%g",
-        context->modelParameters.delimiter,
-        context->ddq[i]);
+    for (int i = 0; i < context->dqCount; i++) {
+      fprintf(f, "%s%g", context->modelParameters.delimiter, context->ddq[i]);
     }
 
     /* write kinetic energy */
-    fprintf(
-      f,
-      "%s%f",
-      context->modelParameters.delimiter,
-      context->kineticEnergy);
+    fprintf(f, "%s%f", context->modelParameters.delimiter,
+            context->kineticEnergy);
 
     /* write gravitational potential energy */
-    fprintf(
-      f,
-      "%s%f",
-      context->modelParameters.delimiter,
-      context->gravitationalPotentialEnergy);
+    fprintf(f, "%s%f", context->modelParameters.delimiter,
+            context->gravitationalPotentialEnergy);
 
     /* write number of evaluations required for reporting interval */
-    fprintf(
-      f,
-      "%s%d",
-      context->modelParameters.delimiter,
-      iterationCount);
+    fprintf(f, "%s%d", context->modelParameters.delimiter, iterationCount);
 
     /* write constraint error */
-    fprintf(
-      f,
-      "%s%e",
-      context->modelParameters.delimiter,
-      e);
+    fprintf(f, "%s%e", context->modelParameters.delimiter, e);
 
     /* write omega N */
-    fprintf(
-      f,
-      "%s%e",
-      context->modelParameters.delimiter,
-      omegaN);
-
+    fprintf(f, "%s%e", context->modelParameters.delimiter, omegaN);
 
     /* write velocity and acceleration for chassis */
     // s2_body_t* chassis = s2_context_getBodyByName(context, "chassis");
@@ -506,11 +407,10 @@ void s2_context_writeStates(
     //   s2_screw_t aLocal;
     //   s2_screwproduct_dinverses(d, &aGlobal, &aLocal);
     //
-    //   /* add omega cross v in body frame to translational component of acceleration */
-    //   s2_vector_t omegaCrossV;
-    //   s2_vector_t* omegaLocal = (s2_vector_t*)(((double*)&vLocal) + 3);
-    //   s2_cross_vv(omegaLocal, (s2_vector_t*)&vLocal, &omegaCrossV);
-    //   for(int i = 0; i < 3; i++) {
+    //   /* add omega cross v in body frame to translational component of
+    //   acceleration */ s2_vector_t omegaCrossV; s2_vector_t* omegaLocal =
+    //   (s2_vector_t*)(((double*)&vLocal) + 3); s2_cross_vv(omegaLocal,
+    //   (s2_vector_t*)&vLocal, &omegaCrossV); for(int i = 0; i < 3; i++) {
     //     ((double*)&aLocal)[i] += ((double*)&omegaCrossV)[i];
     //   }
     //   for(int i = 0; i < 6; i++) {
@@ -522,10 +422,8 @@ void s2_context_writeStates(
     //   }
     // }
     fprintf(f, "\n");
-
   }
 }
-
 
 /*!
 @brief wrapper function to ode integrator
@@ -543,28 +441,27 @@ void s2_context_integrateEquations(s2_context_t* context) {
   context->modelParameters.maxIterationCount = 0;
   context->modelParameters.maxIterationCountStep = 0;
 
-  if(context->modelParameters.outFile) {
+  if (context->modelParameters.outFile) {
     context->modelParameters.outFilePointer =
       fopen(context->modelParameters.outFile, "w");
   }
 
   s2_context_writeHeaders(context);
 
-  for(int i = 0; i < context->substructureCount; i++) {
+  for (int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
-    assert(
-      context->q + substructure->qOffset ==
-      substructure->q);
+    assert(context->q + substructure->qOffset == substructure->q);
   }
 
   int stepCount = 0;
   s2_stack_t* reconfigurations = NULL;
-  switch(context->modelParameters.integrationType) {
+  switch (context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       clock_t begin = clock();
       s2_context_integrateEquationsOde113(context);
       clock_t end = clock();
-      fprintf(debug, "simulation time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+      fprintf(debug, "simulation time: %f\n",
+              (double)(end - begin) / CLOCKS_PER_SEC);
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
       stepCount = numericalIntegrator->stepCount;
@@ -575,7 +472,8 @@ void s2_context_integrateEquations(s2_context_t* context) {
       clock_t begin = clock();
       s2_context_integrateEquationsOde113b(context);
       clock_t end = clock();
-      fprintf(debug, "simulation time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+      fprintf(debug, "simulation time: %f\n",
+              (double)(end - begin) / CLOCKS_PER_SEC);
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       stepCount = numericalIntegrator->stepCount;
@@ -588,34 +486,31 @@ void s2_context_integrateEquations(s2_context_t* context) {
     }
   }
 
-  if(context->modelParameters.outFilePointer) {
+  if (context->modelParameters.outFilePointer) {
     fclose(context->modelParameters.outFilePointer);
   }
 
-  fprintf(debug,
-          "max constraint error: %e at time interval [%d]\n",
+  fprintf(debug, "max constraint error: %e at time interval [%d]\n",
           context->modelParameters.maxConstraintError,
           context->modelParameters.maxConstraintErrorStep);
-  fprintf(debug,
-          "max number of iterations: %d at time interval [%d]\n",
+  fprintf(debug, "max number of iterations: %d at time interval [%d]\n",
           context->modelParameters.maxIterationCount,
           context->modelParameters.maxIterationCountStep);
-  fprintf(debug,
-          "average constraint error: %e\n",
+  fprintf(debug, "average constraint error: %e\n",
           context->modelParameters.sumConstraintError / (double)stepCount);
-  fprintf(debug,
-          "average iteration count: %f\n",
-          (double)context->modelParameters.sumIterationCount / (double)stepCount);
+  fprintf(debug, "average iteration count: %f\n",
+          (double)context->modelParameters.sumIterationCount /
+            (double)stepCount);
   fprintf(debug, "full factor performed at indices: ");
   s2_stack_print(debug, reconfigurations);
   fprintf(debug, "\n");
 
   FILE* f2 = fopen("reconfigurations.dat", "w");
-  if(f2 != NULL) {
+  if (f2 != NULL) {
     s2_stacknode_t* stackHead = reconfigurations->head;
-    while(stackHead != NULL) {
+    while (stackHead != NULL) {
       fprintf(f2, "%d", stackHead->value);
-      if(stackHead->next) {
+      if (stackHead->next) {
         fprintf(f2, "%s", context->modelParameters.delimiter);
       }
       stackHead = stackHead->next;
@@ -624,24 +519,17 @@ void s2_context_integrateEquations(s2_context_t* context) {
   }
 }
 
-
 /*!
 @brief compute total spatial momentum for system
 */
 void s2_context_evaluateMomentum(s2_context_t* context) {
 
   memset(&(context->spatialMomentum), 0, sizeof(s2_screw_t));
-  for(int i = 0; i < context->nonRigidJointCount; i++) {
-    cblas_daxpy(
-      6,
-      1,
-      (double*)(context->p + i),
-      1,
-      (double*)(&(context->spatialMomentum)),
-      1);
+  for (int i = 0; i < context->nonRigidJointCount; i++) {
+    cblas_daxpy(6, 1, (double*)(context->p + i), 1,
+                (double*)(&(context->spatialMomentum)), 1);
   }
 }
-
 
 /*!
 @brief compute kinetic energy for system
@@ -650,14 +538,10 @@ void s2_context_evaluateMomentum(s2_context_t* context) {
 void s2_context_evaluateKineticEnergy(s2_context_t* context) {
 
   context->kineticEnergy =
-    cblas_ddot(
-      6 * context->nonRigidJointCount,
-      (double*)(context->p),
-      1,
-      (double*)(context->v + 1),
-      1) / 2.0;
+    cblas_ddot(6 * context->nonRigidJointCount, (double*)(context->p), 1,
+               (double*)(context->v + 1), 1) /
+    2.0;
 }
-
 
 /*!
 @brief computes total gravitational potential energy for system
@@ -669,24 +553,15 @@ result is stored in context->gravitationalPotentialEnergy
 void s2_context_evaluateGravitationalPotentialEnergy(s2_context_t* context) {
 
   context->gravitationalPotentialEnergy =
-    -(cblas_ddot(
-        3,
-        (double*) & (context->inertiaP->mt),
-        1,
-        (double*)context->modelParameters.gravity,
-        1));
-
+    -(cblas_ddot(3, (double*)&(context->inertiaP->mt), 1,
+                 (double*)context->modelParameters.gravity, 1));
 }
-
 
 /*!
 @brief set coefficient matrix and multiply with answer to verify we get the
 right hand side back
 */
-bool s2_solve_verify(
-  s2_context_t* context,
-  double* Ml,
-  double* fl) {
+bool s2_solve_verify(s2_context_t* context, double* Ml, double* fl) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
   // printf("joint names in PO1:\n");
@@ -760,7 +635,6 @@ bool s2_solve_verify(
 
   /* copy Ml to full dense array */
 
-
   // printf("\nMl (full dense version) after set equation:\n");
   // s2_array_print2D(context->dqCount, context->dqCount, true, Ml);
   //
@@ -779,7 +653,7 @@ bool s2_solve_verify(
   /* copy ddq to PO3 */
   double ddq_po3[context->dqCount];
   memset(ddq_po3, 0, context->dqCount * sizeof(double));
-  for(int i = 0; i < context->dqCount; i++) {
+  for (int i = 0; i < context->dqCount; i++) {
     ddq_po3[i] = context->ddq[context->pv_13[i]];
   }
 
@@ -799,7 +673,7 @@ bool s2_solve_verify(
 
   double la_po3[context->dqCount];
   memset(la_po3, 0, context->dqCount * sizeof(double));
-  for(int i = 0; i < context->dqCount; i++) {
+  for (int i = 0; i < context->dqCount; i++) {
     la_po3[i] = context->la[context->pv_23[i]];
   }
 
@@ -816,31 +690,18 @@ bool s2_solve_verify(
   //   for(int i = 0; i < substructure->constraintEquationCount; i++) {
   //     printf("   ");
   //     for(int j = 0; j < substructure->dqCount; j++) {
-  //       printf("%d ", substructure->ijMapping[i * substructure->dqCount + j]);
+  //       printf("%d ", substructure->ijMapping[i * substructure->dqCount +
+  //       j]);
   //     }
   //     printf("\n");
   //   }
   // }
 
-
-
-  cblas_dgemv(
-    CblasRowMajor,
-    CblasNoTrans,
-    context->dqCount,
-    context->dqCount,
-    1,
-    Ml,
-    context->dqCount,
-    ddq_po3,
-    1,
-    0.0,
-    fl_po3,
-    1);
+  cblas_dgemv(CblasRowMajor, CblasNoTrans, context->dqCount, context->dqCount,
+              1, Ml, context->dqCount, ddq_po3, 1, 0.0, fl_po3, 1);
 
   // printf("fl_po3 after adding Ml * ddq:\n");
   // s2_array_print(context->dqCount, fl_po3);
-
 
   // printf("\nfl_po3 <- Ml * ddq: \n   ");
   // s2_array_print(context->dqCount, fl_po3);
@@ -866,12 +727,9 @@ bool s2_solve_verify(
   double B[context->dqCount * context->dqCount];
   memset(B, 0, context->dqCount * context->dqCount * sizeof(double));
   int row = 0;
-  for(int i = 0; i < context->dqCount; i++) {
-    if(context->isDependentPO3[i]) {
-      for(
-        int j = context->rb3[i][0];
-        j < context->rb3[i][1];
-        j++) {
+  for (int i = 0; i < context->dqCount; i++) {
+    if (context->isDependentPO3[i]) {
+      for (int j = context->rb3[i][0]; j < context->rb3[i][1]; j++) {
 
         int col = context->cb3[j];
         B[i * context->dqCount + col] = context->b3[j];
@@ -901,20 +759,8 @@ bool s2_solve_verify(
   // s2_array_print(context->dqCount, la_po3);
   // s2_array_print(context->dqCount, fl_po3);
 
-
-  cblas_dgemv(
-    CblasRowMajor,
-    CblasTrans,
-    context->dqCount,
-    context->dqCount,
-    1.0,
-    B,
-    context->dqCount,
-    la_po3,
-    1,
-    1.0,
-    fl_po3,
-    1);
+  cblas_dgemv(CblasRowMajor, CblasTrans, context->dqCount, context->dqCount,
+              1.0, B, context->dqCount, la_po3, 1, 1.0, fl_po3, 1);
 
   bool verify = true;
 
@@ -922,61 +768,49 @@ bool s2_solve_verify(
   // printf("context->dqCount: %d\n", context->dqCount);
   // s2_array_print(context->dqCount, fl_po3);
 
-  if(!s2_all_close(context->dqCount, fl_po3, fl)) {
+  if (!s2_all_close(context->dqCount, fl_po3, fl)) {
 
     verify = false;
 
     fprintf(debug, "error: context->fl (po3): ");
-    for(int i = 0; i < context->dqCount; i++) {
+    for (int i = 0; i < context->dqCount; i++) {
       fprintf(debug, "%0.5g, ", fl[i]);
     }
     fprintf(debug, "\n");
 
     fprintf(debug, "         != fl_po3 (po3): ");
-    for(int i = 0; i < context->dqCount; i++) {
+    for (int i = 0; i < context->dqCount; i++) {
       fprintf(debug, "%0.5g, ", fl_po3[i]);
     }
     fprintf(debug, "\n");
-
   }
 
   double gamma_d_po3[context->dqCount];
   memset(gamma_d_po3, 0, context->dqCount * sizeof(double));
-  cblas_dgemv(
-    CblasRowMajor,
-    CblasNoTrans,
-    context->dqCount,
-    context->dqCount,
-    1.0,
-    B,
-    context->dqCount,
-    ddq_po3,
-    1,
-    0.0,
-    gamma_d_po3,
-    1);
+  cblas_dgemv(CblasRowMajor, CblasNoTrans, context->dqCount, context->dqCount,
+              1.0, B, context->dqCount, ddq_po3, 1, 0.0, gamma_d_po3, 1);
 
   /* permute gamma_d po3 to po2 */
   double gamma_d_po2[context->dqCount];
   memset(gamma_d_po2, 0, context->dqCount * sizeof(double));
-  for(int i = 0; i < context->dqCount; i++) {
+  for (int i = 0; i < context->dqCount; i++) {
     gamma_d_po2[context->pv_23[i]] = gamma_d_po3[i];
   }
 
-  if(!s2_all_close(context->dqCount, gamma_d_po2, context->gamma_d)) {
+  if (!s2_all_close(context->dqCount, gamma_d_po2, context->gamma_d)) {
 
     fprintf(debug, "\n>>> Error, equations of motion not solved correctly.\n");
 
     verify = false;
 
     fprintf(debug, "\nerror: context->gamma_d (po2): \n");
-    for(int i = 0; i < context->dqCount; i++) {
+    for (int i = 0; i < context->dqCount; i++) {
       fprintf(debug, "%0.5g, ", context->gamma_d[i]);
     }
     fprintf(debug, "\n");
 
     fprintf(debug, "\n             != gamma_d (po2): \n");
-    for(int i = 0; i < context->dqCount; i++) {
+    for (int i = 0; i < context->dqCount; i++) {
       fprintf(debug, "%0.5g, ", gamma_d_po2[i]);
     }
     fprintf(debug, "\n");
@@ -1008,7 +842,6 @@ bool s2_solve_verify(
   // }
   // printf("cs (PO1): ");
 
-
   // for(int i = 0; i < context->substructureCount; i++) {
   //   s2_substructure_t* substructure = context->substructures + i;
   //   s2_array_print(
@@ -1029,28 +862,26 @@ bool s2_solve_verify(
   //       substructure->J));
   // }
 
-  if(!verify) {
+  if (!verify) {
 
     fprintf(debug, "\nJoint Names:\n");
-    for(int i = 0; i < context->activeJointCount; i++) {
+    for (int i = 0; i < context->activeJointCount; i++) {
       fprintf(debug, "   ");
       s2_stackstr_print(debug, context->jointPointers[i]->name);
     }
     fprintf(debug, "\nis dependent PO1: ");
-    for(int i = 0; i < context->dqCount; i++) {
+    for (int i = 0; i < context->dqCount; i++) {
       fprintf(debug, "%s, ", context->isDependentPO1[i] ? "true" : "false");
     }
     fprintf(debug, "\n");
 
     fprintf(debug, "\nSubstructures:\n");
-    for(int i = 0; i < context->substructureCount; i++) {
-      fprintf(debug,
-              "rank: %d\n",
-              context->substructures[i].rank);
+    for (int i = 0; i < context->substructureCount; i++) {
+      fprintf(debug, "rank: %d\n", context->substructures[i].rank);
     }
 
     fprintf(debug, "\nis dependent PO3: ");
-    for(int i = 0; i < context->dqCount; i++) {
+    for (int i = 0; i < context->dqCount; i++) {
       fprintf(debug, "%s, ", context->isDependentPO3[i] ? "true" : "false");
     }
     fprintf(debug, "\n");

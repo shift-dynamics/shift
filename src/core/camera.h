@@ -27,7 +27,6 @@ typedef enum {
   S2_PROJECTION_ORTHOGRAPHIC
 } s2_projection_enum_t;
 
-
 typedef struct s2_camera_t {
 
   s2_projection_enum_t projectionType;
@@ -45,22 +44,12 @@ typedef struct s2_camera_t {
   s2_camera_t* next;
 } s2_camera_t;
 
+void s2_camera_perspective(float fieldOfView, float aspectRatio,
+                           float nearClippingPlane, float farClippingPlane,
+                           s2_mat4x4f_t* perspective);
 
-void s2_camera_perspective(
-  float fieldOfView,
-  float aspectRatio,
-  float nearClippingPlane,
-  float farClippingPlane,
-  s2_mat4x4f_t* perspective);
-
-void s2_camera_orthographic(
-  float left,
-  float right,
-  float bottom,
-  float top,
-  float near,
-  float far,
-  s2_mat4x4f_t* orthographic);
+void s2_camera_orthographic(float left, float right, float bottom, float top,
+                            float near, float far, s2_mat4x4f_t* orthographic);
 
 s2_camera_t* s2_camera();
 //

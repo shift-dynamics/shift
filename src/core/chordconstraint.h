@@ -23,7 +23,6 @@ typedef struct s2_body_t s2_body_t;
 typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_joint_t s2_joint_t;
 
-
 /*!
 @brief chordConstraintNode properties
 
@@ -44,19 +43,19 @@ typedef struct s2_chordconstraint_t {
 
   char* originalParentFrame; //!< name of original frameFrom
 
-  char* childBody; //!< name of child body
+  char* childBody;  //!< name of child body
   char* childFrame; //!< name of child frame
 
-  s2_body_t* parentBodyPointer; /*!< pointer to virtual body */
-  s2_body_t* originalParentBodyPointer; /*!< pointer to original bodyFrom
-                                             (on the nonvirtual body) */
-  s2_frame_t* parentFramePointer; /*!< pointer to parentFrame
-                                       (on the virtual body) */
+  s2_body_t* parentBodyPointer;           /*!< pointer to virtual body */
+  s2_body_t* originalParentBodyPointer;   /*!< pointer to original bodyFrom
+                                               (on the nonvirtual body) */
+  s2_frame_t* parentFramePointer;         /*!< pointer to parentFrame
+                                               (on the virtual body) */
   s2_frame_t* originalParentFramePointer; /*!< pointer to original
                                                frameFrom (on the
                                                nonvirtual body) */
 
-  s2_body_t* childBodyPointer; /*!< pointer to body data structure */
+  s2_body_t* childBodyPointer;   /*!< pointer to body data structure */
   s2_frame_t* childFramePointer; /*!< pointer to frame data structure */
 
   s2_joint_t* parentJointPointer;
@@ -64,7 +63,6 @@ typedef struct s2_chordconstraint_t {
 
   s2_chordconstraint_t* next;
 } s2_chordconstraint_t;
-
 
 s2_chordconstraint_t* s2_chordconstraint();
 

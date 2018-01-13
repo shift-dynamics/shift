@@ -19,7 +19,6 @@ SUCH DAMAGE.
 
 #include "io.h"
 
-
 /*!
 @brief Initialize a input/output datastructure
 
@@ -27,8 +26,8 @@ SUCH DAMAGE.
 @returns a input/output datastructure
 */
 s2_io_t* s2_io() {
-  s2_io_t* io = malloc(sizeof * io);
-  if(!io) {
+  s2_io_t* io = malloc(sizeof *io);
+  if (!io) {
     fprintf(stderr, "Error: failed to initialize device.\n");
     return NULL;
   }

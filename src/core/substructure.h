@@ -39,55 +39,58 @@ violations are computed for each kinematic substructure.
 */
 typedef struct s2_substructure_t {
   double* J; /*!< pointer to offset in context->J array */
-  int* Jxx; /*!< pointer to offset in context->Jxx array */
-  bool* Jb; /*!< pointer to offset in context->Jb array */
+  int* Jxx;  /*!< pointer to offset in context->Jxx array */
+  bool* Jb;  /*!< pointer to offset in context->Jb array */
 
   int index; /*!< index of this substructure */
   int rank;
-  int qOffset; /*!< offset in compressed list of generalized positions */
-  int dqOffset; /*!< offset in compressed lists of generalized velocities */
+  int qOffset;     /*!< offset in compressed list of generalized positions */
+  int dqOffset;    /*!< offset in compressed lists of generalized velocities */
   int jointOffset; /*!< offset into compressed list of joints */
-  int loopOffset; /*!< offset into global list of loops*/
+  int loopOffset;  /*!< offset into global list of loops*/
   int chordConstraintOffset;
-  int chordConstraintCount; /*!< number of chord loops
-                                 constraint equations associated with
-                                 substructure */
+  int chordConstraintCount;    /*!< number of chord loops
+                                    constraint equations associated with
+                                    substructure */
   int constraintEquationCount; /*!< total number of constraint equations =
                                     6 * numChordLoops + any additional
                                     constraints imposed by the user */
-  int qCount; /*!< number of generalized coordinates in substructure */
-  int dqCount; /*!< number of generalized velocities in substructure */
-  int jointCount; /*!< number of joints in a substructure, not necessarily
-                       equal to the number of variables if a joint has more
-                       than one DOF */
+  int qCount;        /*!< number of generalized coordinates in substructure */
+  int dqCount;       /*!< number of generalized velocities in substructure */
+  int jointCount;    /*!< number of joints in a substructure, not necessarily
+                          equal to the number of variables if a joint has more
+                          than one DOF */
   double pivotRatio; /*!< ratio of max / min pivot */
-  double scaledInitialInfinityNormB; /*!< context->pivotRatioMultiplier * initial infinity norm of B matrix from an initial factorization of Jacobian */
-  double infinityNormB; /*! current infinity norm of B matrix */
-  int bOffset; /*!< offset into linear b array */
+  double scaledInitialInfinityNormB; /*!< context->pivotRatioMultiplier *
+                                        initial infinity norm of B matrix from
+                                        an initial factorization of Jacobian */
+  double infinityNormB;              /*! current infinity norm of B matrix */
+  int bOffset;                       /*!< offset into linear b array */
   int nnzb; /*!< number of nonzero entries in B matrix */
-  int nb; /*!< total number of entries in full, dense B matrix */
-  int* pc_12; /*!< local column permutation array, permutation goes from PO(1) to
-                PO(2) */
+  int nb;   /*!< total number of entries in full, dense B matrix */
+  int*
+    pc_12; /*!< local column permutation array, permutation goes from PO(1) to
+             PO(2) */
   int* pr_12; /*!< local row permutation array, goes from PO(1) to PO(2) */
 
-  int* pc_21; /*!< (pcInverse) local column (variable) permutation array, permutation
-                       goes from PO2 to PO1 */
-  int* pr_21; /*!< (prInverse) local row (constraint) permutation array, permutation
-                       goes from PO2 to PO1 */
+  int* pc_21;        /*!< (pcInverse) local column (variable) permutation array,
+                        permutation        goes from PO2 to PO1 */
+  int* pr_21;        /*!< (prInverse) local row (constraint) permutation array,
+                        permutation        goes from PO2 to PO1 */
   int** constraints; /*!< compressed table of constraints, the value at the
                           first position is the index of the embedded (host)
                           body in aq, the second value is the index of the
                           virtual (released frame) */
-  int* ijMapping; /*!< maps positions in right null space of full dense
-                        Jacobian matrix to compressed sparse location in b3 */
-  double* rightNullSpace; /*!< full right null space matrix */
+  int* ijMapping;    /*!< maps positions in right null space of full dense
+                           Jacobian matrix to compressed sparse location in b3 */
+  double* rightNullSpace;  /*!< full right null space matrix */
   double* mobilityNumbers; /*!< sum of squares of each row of orthonormalized
                                 null space matrix */
 
-  double* q; /*!< pointer to start of q in global q array */
-  double* dq; /*!< pointer to start of dq in global dq array */
-  double* cs; /*!< pointer to start of constraints in global constraints array
-                   context->cs */
+  double* q;   /*!< pointer to start of q in global q array */
+  double* dq;  /*!< pointer to start of dq in global dq array */
+  double* cs;  /*!< pointer to start of constraints in global constraints array
+                    context->cs */
   double* dcs; /*!< pointer to start of time derivative of global constraints
                     array context->dcs */
   double* deltaq; /*!< pointer to start of array in global deltaq, used in

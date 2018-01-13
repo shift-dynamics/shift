@@ -41,17 +41,17 @@ typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_context_t s2_context_t;
 
-
 /*!
-@brief convex hull data structure contains vertices and faces in contiguous blocks of memory
+@brief convex hull data structure contains vertices and faces in contiguous
+blocks of memory
 */
 typedef struct s2_convexhull_t {
   GLfloat* vertices; /*!< vertices in contiguous memory */
-  int vertexCount; /*!< number of vertices */
-  GLuint* faces; /*!< faces in contiguous memory */
-  int faceCount; /*!< number of faces */
-  bool malloced; /*!< indicates whether the data structure was malloced and
-  needs to be freed, false if convexhull is part of another structure */
+  int vertexCount;   /*!< number of vertices */
+  GLuint* faces;     /*!< faces in contiguous memory */
+  int faceCount;     /*!< number of faces */
+  bool malloced;     /*!< indicates whether the data structure was malloced and
+      needs to be freed, false if convexhull is part of another structure */
 } s2_convexhull_t;
 
 s2_convexhull_t* s2_convexhull_alloc(int);

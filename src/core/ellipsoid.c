@@ -22,62 +22,59 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include <jansson.h>
-#include <assimp/cimport.h>        // Plain-C interface to assimp loader
-#include <assimp/scene.h>          // Output data structure
-#include <assimp/postprocess.h>    // Post processing flags
+#include <assimp/cimport.h> // Plain-C interface to assimp loader
 #include <assimp/material.h>
+#include <assimp/postprocess.h> // Post processing flags
+#include <assimp/scene.h>       // Output data structure
+#include <float.h>
+#include <jansson.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <float.h>
 
-#include "ellipsoid.h"
-#include "stack.h"
-#include "context.h"
+#include "assembly.h"
 #include "body.h"
-#include "material.h"
+#include "collisionobject.h"
+#include "context.h"
 #include "convexhull.h"
+#include "ellipsoid.h"
 #include "frame.h"
 #include "inertia.h"
-#include "assembly.h"
+#include "material.h"
+#include "stack.h"
 #include "utility.h"
-#include "collisionobject.h"
 
 int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*);
-
 
 /*!
 @brief constructor for sphere geometry
 */
 s2_ellipsoid_t* s2_ellipsoid_alloc(int count) {
   s2_ellipsoid_t* self = calloc(count, sizeof(s2_ellipsoid_t));
-  for(int i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++) {
     self[i].parentBody = NULL;
   }
   return self;
 }
 
-
 /*!
 @brief destructor for sphere geometry
 */
 void s2_ellipsoid_free(s2_sphere_t* self) {
-  if(self) {
+  if (self) {
     free(self);
     self = NULL;
   }
 }
 
-
 /*!
 @brief get a double precision vector from array of single precision vectors
 stored in a float array
 */
-inline s2_vector_t s2_ellipsoid_vectorFromFloatArrayAtIndex(
-  const GLfloat* vertices,
-  const size_t index) {
+inline s2_vector_t
+s2_ellipsoid_vectorFromFloatArrayAtIndex(const GLfloat* vertices,
+                                         const size_t index) {
 
   s2_vector_t vector;
   s2_vector_set(&vector, 0, (double)vertices[3 * index + 0]);
@@ -86,14 +83,13 @@ inline s2_vector_t s2_ellipsoid_vectorFromFloatArrayAtIndex(
   return vector;
 }
 
-
 /*!
-@brief compute squared distance at specified index of a single precision vector array
+@brief compute squared distance at specified index of a single precision vector
+array
 */
-inline float s2_ellipsoid_squaredDistanceAtIndex(
-  const GLfloat* vertices,
-  const size_t index0,
-  const size_t index1) {
+inline float s2_ellipsoid_squaredDistanceAtIndex(const GLfloat* vertices,
+                                                 const size_t index0,
+                                                 const size_t index1) {
 
   float sq_distance = 0;
   sq_distance += vertices[3 * index0 + 0] * vertices[3 * index1 + 0];
@@ -102,21 +98,17 @@ inline float s2_ellipsoid_squaredDistanceAtIndex(
   return sq_distance;
 }
 
-
 /*!
 @brief compute covariance matrix of point set
 */
-void s2_ellipsoid_covarianceMatrix(
-  s2_mat3x3f_t* cov,
-  const GLfloat* vertices,
-  const size_t vertexCount) {
+void s2_ellipsoid_covarianceMatrix(s2_mat3x3f_t* cov, const GLfloat* vertices,
+                                   const size_t vertexCount) {
 
   float oon = 1.0f / (float)vertexCount;
   s2_vectorf_t c = {0.0f, 0.0f, 0.0f};
 
-
   /* compute center of mass */
-  for(int i = 0; i < vertexCount; i++) {
+  for (int i = 0; i < vertexCount; i++) {
     s2_vectorf_t* pt = (s2_vectorf_t*)(&vertices[i * 3]);
     s2_addequal_vvf(pt, &c);
   }
@@ -130,7 +122,7 @@ void s2_ellipsoid_covarianceMatrix(
   float e12 = 0.f;
 
   /* compute covariance elements */
-  for(int i = 0; i < vertexCount; i++) {
+  for (int i = 0; i < vertexCount; i++) {
     /* translate points so center of mass is at origin */
     s2_vectorf_t p;
     s2_vectorf_t* pt = (s2_vectorf_t*)(&vertices[i * 3]);
@@ -161,9 +153,7 @@ void s2_ellipsoid_covarianceMatrix(
   temp = e12 * oon;
   s2_mat3x3f_set(cov, 1, 2, temp);
   s2_mat3x3f_set(cov, 2, 1, temp);
-
 }
-
 
 /*!
 @brief 2x2 symmetric schur decomposition
@@ -171,11 +161,11 @@ Given an nxn symmetric matrix, A, and indices p,q such that 1 <= p < q <= n,
 compute a sine-cosine pair (s,c) that servers to form a Jacobi rotation matrix
 */
 inline void s2_ellipsoid_symSchur2(s2_mat3x3_t* A, int p, int q, double* cs) {
-  if(fabs(s2_mat3x3_get(A, p, q)) > 1e-9) {
+  if (fabs(s2_mat3x3_get(A, p, q)) > 1e-9) {
     double r = (s2_mat3x3_get(A, q, q) - s2_mat3x3_get(A, p, p)) /
                (2.0 * s2_mat3x3_get(A, p, q));
     double t;
-    if(r >= 0.0) {
+    if (r >= 0.0) {
       t = 1.0f / (r + sqrt(1.0f + r * r));
     } else {
       t = -1.0f / (-r + sqrt(1.0f + r * r));
@@ -187,7 +177,6 @@ inline void s2_ellipsoid_symSchur2(s2_mat3x3_t* A, int p, int q, double* cs) {
     cs[1] = 0.0;
   }
 }
-
 
 /*!
 @brief compute eigenvectors and eigenvalues of a symmetric matrix A using
@@ -204,14 +193,14 @@ void s2_ellipsoid_jacobi(s2_mat3x3_t* A, s2_mat3x3_t* v) {
   double cs[2];
   double prev_norm = DBL_MAX;
 
-  for(int n = 0; n < MAX_ITERATIONS; n++) {
+  for (int n = 0; n < MAX_ITERATIONS; n++) {
     /* find largest off diagonal element */
-    for(int i = 0; i < 3; i++) {
-      for(int j = 0; j < 3; j++) {
-        if(i == j) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        if (i == j) {
           continue;
         }
-        if(fabs(s2_mat3x3_get(A, i, j)) > fabs(s2_mat3x3_get(A, p, q))) {
+        if (fabs(s2_mat3x3_get(A, i, j)) > fabs(s2_mat3x3_get(A, p, q))) {
           p = i;
           q = j;
         }
@@ -233,9 +222,9 @@ void s2_ellipsoid_jacobi(s2_mat3x3_t* A, s2_mat3x3_t* v) {
     s2_product_rr(&temp, &J, A);
 
     double norm = 0.0;
-    for(int i = 0; i < 3; i++) {
-      for(int j = 0; j < 3; j++) {
-        if(i == j) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        if (i == j) {
           continue;
         } else {
           norm += s2_mat3x3_get(A, i, j) * s2_mat3x3_get(A, i, j);
@@ -243,7 +232,7 @@ void s2_ellipsoid_jacobi(s2_mat3x3_t* A, s2_mat3x3_t* v) {
       }
     }
 
-    if(n > 2 && norm >= prev_norm) {
+    if (n > 2 && norm >= prev_norm) {
       return;
     }
 
@@ -251,44 +240,42 @@ void s2_ellipsoid_jacobi(s2_mat3x3_t* A, s2_mat3x3_t* v) {
   }
 }
 
-
-void s2_ellipsoid_extremePointsAlongDirection(
-  s2_vectorf_t* restrict e,
-  const float* restrict vertices,
-  const int vertexCount,
-  int* restrict imin,
-  int* restrict imax) {
+void s2_ellipsoid_extremePointsAlongDirection(s2_vectorf_t* restrict e,
+                                              const float* restrict vertices,
+                                              const int vertexCount,
+                                              int* restrict imin,
+                                              int* restrict imax) {
 
   float max_projection2 = -FLT_MAX;
   float min_projection2 = FLT_MAX;
-  for(int i = 0; i < vertexCount; i++) {
+  for (int i = 0; i < vertexCount; i++) {
     float projection2 = 0;
     projection2 += e->x * vertices[i * 3 + 0];
     projection2 += e->y * vertices[i * 3 + 1];
     projection2 += e->z * vertices[i * 3 + 2];
-    if(projection2 > max_projection2) {
+    if (projection2 > max_projection2) {
       *imax = i;
       max_projection2 = projection2;
     }
-    if(projection2 < max_projection2) {
+    if (projection2 < max_projection2) {
       *imin = i;
       min_projection2 = projection2;
     }
   }
 }
 
-
-double s2_ellipsoid_semiPrincipleAxis(
-  s2_vectorf_t* e,
-  const float* restrict vertices,
-  int vertexCount,
-  s2_vectorf_t* center) {
+double s2_ellipsoid_semiPrincipleAxis(s2_vectorf_t* e,
+                                      const float* restrict vertices,
+                                      int vertexCount, s2_vectorf_t* center) {
 
   int imin;
   int imax;
-  s2_ellipsoid_extremePointsAlongDirection(e, vertices, vertexCount, &imin, &imax);
-  s2_vector_t min_vertex = s2_ellipsoid_vectorFromFloatArrayAtIndex(vertices, imin);
-  s2_vector_t max_vertex = s2_ellipsoid_vectorFromFloatArrayAtIndex(vertices, imax);
+  s2_ellipsoid_extremePointsAlongDirection(e, vertices, vertexCount, &imin,
+                                           &imax);
+  s2_vector_t min_vertex =
+    s2_ellipsoid_vectorFromFloatArrayAtIndex(vertices, imin);
+  s2_vector_t max_vertex =
+    s2_ellipsoid_vectorFromFloatArrayAtIndex(vertices, imax);
   s2_vector_t temp;
   s2_subtract_vv(&max_vertex, &min_vertex, &temp);
   double dist = 0;
@@ -302,19 +289,17 @@ double s2_ellipsoid_semiPrincipleAxis(
   return dist * 0.5;
 }
 
-
-void s2_ellipsoid_eigenSphere(
-  s2_ellipsoid_t* restrict ellipsoid,
-  const float* restrict vertices,
-  const int vertexCount) {
+void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
+                              const float* restrict vertices,
+                              const int vertexCount) {
 
   /* compute single prevision covariance matrix */
   s2_mat3x3f_t Mf;
   s2_ellipsoid_covarianceMatrix(&Mf, vertices, vertexCount);
 
   s2_mat3x3_t M, v;
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
       s2_mat3x3_set(&M, i, j, s2_mat3x3f_get(&Mf, i, j));
     }
   }
@@ -324,11 +309,11 @@ void s2_ellipsoid_eigenSphere(
   int maxc = 0;
   double maxf;
   double maxe = fabs(s2_mat3x3_get(&M, 0, 0));
-  if((maxf = fabs(s2_mat3x3_get(&M, 1, 1))) > maxe) {
+  if ((maxf = fabs(s2_mat3x3_get(&M, 1, 1))) > maxe) {
     maxc = 1;
     maxe = maxf;
   }
-  if((maxf = fabs(s2_mat3x3_get(&M, 2, 2))) > maxe) {
+  if ((maxf = fabs(s2_mat3x3_get(&M, 2, 2))) > maxe) {
     maxc = 2;
     maxe = maxf;
   }
@@ -336,7 +321,7 @@ void s2_ellipsoid_eigenSphere(
   s2_vectorf_t x;
   s2_vectorf_t y;
   s2_vectorf_t z;
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     s2_vectorf_set(&x, i, (float)s2_mat3x3_get(&v, i, 0));
     s2_vectorf_set(&y, i, (float)s2_mat3x3_get(&v, i, 1));
     s2_vectorf_set(&z, i, (float)s2_mat3x3_get(&v, i, 2));
@@ -346,12 +331,12 @@ void s2_ellipsoid_eigenSphere(
   s2_vectorf_t center_y;
   s2_vectorf_t center_z;
 
-  ellipsoid->a = s2_ellipsoid_semiPrincipleAxis(
-    &x, vertices, vertexCount, &center_x);
-  ellipsoid->b = s2_ellipsoid_semiPrincipleAxis(
-    &y, vertices, vertexCount, &center_y);
-  ellipsoid->c = s2_ellipsoid_semiPrincipleAxis(
-    &z, vertices, vertexCount, &center_z);
+  ellipsoid->a =
+    s2_ellipsoid_semiPrincipleAxis(&x, vertices, vertexCount, &center_x);
+  ellipsoid->b =
+    s2_ellipsoid_semiPrincipleAxis(&y, vertices, vertexCount, &center_y);
+  ellipsoid->c =
+    s2_ellipsoid_semiPrincipleAxis(&z, vertices, vertexCount, &center_z);
 
   ellipsoid->dWRTOrigin.T.x =
     (double)((center_x.x + center_y.x + center_z.x) / 3.0);
@@ -363,9 +348,9 @@ void s2_ellipsoid_eigenSphere(
   ellipsoid->dWRTOrigin.R = v;
 }
 
-
 /*!
-@brief test for global collision between two spheres, requires that global centroid has been updated
+@brief test for global collision between two spheres, requires that global
+centroid has been updated
 */
 bool s2_ellipsoid_collisionGlobal(s2_ellipsoid_t* a, s2_ellipsoid_t* b) {
   // s2_vector_t d;
@@ -376,9 +361,10 @@ bool s2_ellipsoid_collisionGlobal(s2_ellipsoid_t* a, s2_ellipsoid_t* b) {
   return true;
 }
 
-
 /*!
-@brief test for local collision between two spheres. The "local" centroid is used for this test. Spheres must therefore be in the same "local" coordinate system
+@brief test for local collision between two spheres. The "local" centroid is
+used for this test. Spheres must therefore be in the same "local" coordinate
+system
 */
 bool s2_ellipsoid_collisionLocal(s2_ellipsoid_t* a, s2_ellipsoid_t* b) {
   // s2_vector_t d;
@@ -389,26 +375,22 @@ bool s2_ellipsoid_collisionLocal(s2_ellipsoid_t* a, s2_ellipsoid_t* b) {
   return true;
 }
 
-
 /*!
 @brief update sphere's global centroid
 */
 void s2_ellipsoid_updateCentroid(s2_ellipsoid_t* self) {
-  if(!self->parentBody) {
+  if (!self->parentBody) {
     return;
   }
 
   /* transform centroid coordinates to global reference frame */
-  s2_product_dd(
-    self->parentBody->origin->dAbsolute,
-    &self->dWRTOrigin,
-    &self->dAbsolute);
-
+  s2_product_dd(self->parentBody->origin->dAbsolute, &self->dWRTOrigin,
+                &self->dAbsolute);
 }
 
-
 /*!
-@brief create a new sphere from existing sphere and point p. The sphere s is updated (if needed) to just encompass the new point p
+@brief create a new sphere from existing sphere and point p. The sphere s is
+updated (if needed) to just encompass the new point p
 */
 void s2_ellipsoid_fromEllipsoidAndPoint(s2_ellipsoid_t* e, s2_vector_t* p) {
   s2_vector_t d;
@@ -422,7 +404,6 @@ void s2_ellipsoid_fromEllipsoidAndPoint(s2_ellipsoid_t* e, s2_vector_t* p) {
   //   s2_axpy_vv(k, &d, &s->centerLocal);
   // }
 }
-
 
 /*!
 Find a bounding sphere for a set of M points in
@@ -438,7 +419,7 @@ REFERENCES:
 */
 int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
 
-  if(body->materialIndex != -1) {
+  if (body->materialIndex != -1) {
 
     /* initialize memory and set support function */
 
@@ -447,27 +428,26 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
     s2_convexhull(convexhull, context, body);
 
     /* degenerate case with one vertex */
-    if(convexhull->vertexCount == 1) {
+    if (convexhull->vertexCount == 1) {
       self->a = 0;
       self->b = 0;
       self->c = 0;
 
-      self->dWRTOrigin.T = s2_ellipsoid_vectorFromFloatArrayAtIndex(
-                              convexhull->vertices,
-                              0);
+      self->dWRTOrigin.T =
+        s2_ellipsoid_vectorFromFloatArrayAtIndex(convexhull->vertices, 0);
       return 0;
     }
 
-    s2_ellipsoid_eigenSphere(
-      self,
-      convexhull->vertices,
-      convexhull->vertexCount);
+    s2_ellipsoid_eigenSphere(self, convexhull->vertices,
+                             convexhull->vertexCount);
 
     /* test if all points in bounding eigen sphere
     If all points inside sphere, we are done.
-    Otherwise, enlarge bounding sphere to cover point outside of initial sphere */
-    for(int i = 1; i < convexhull->vertexCount; i++) {
-      s2_vector_t p = s2_ellipsoid_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
+    Otherwise, enlarge bounding sphere to cover point outside of initial sphere
+  */
+    for (int i = 1; i < convexhull->vertexCount; i++) {
+      s2_vector_t p =
+        s2_ellipsoid_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
       s2_ellipsoid_fromEllipsoidAndPoint(self, &p);
     }
 
@@ -477,13 +457,11 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
   return -1;
 }
 
-
 /*!
 @brief simple sphere support function
 */
-s2_vector_t s2_ellipsoid_support(
-  void* collisionobject,
-  s2_vector_t* direction) {
+s2_vector_t s2_ellipsoid_support(void* collisionobject,
+                                 s2_vector_t* direction) {
 
   s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)collisionobject;
   // s2_vector_normalize(direction);

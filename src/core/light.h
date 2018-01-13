@@ -35,7 +35,6 @@ typedef struct s2_context_t s2_context_t;
 #include <GL/gl.h>
 #endif
 
-
 /*!
 @brief Light types
 */
@@ -45,20 +44,19 @@ typedef enum {
   S2_LIGHT_DIRECTIONAL
 } s2_light_enum_t;
 
-
 /*!
 @brief Defines a Light
 */
 typedef struct s2_light_t {
-  s2_stackstr_t* name; /*!< descriptive name of Light */
+  s2_stackstr_t* name;        /*!< descriptive name of Light */
   s2_stackstr_t* parentFrame; /*!< name of frame that Light is attached to */
   s2_frame_t* parentFramePointer; /*!< pointer to frame that Light is
                                          attached to */
-  s2_stackstr_t* parentBody; /*!< descriptive name of body that Light is
-                                    attached to note, set to "fixed" for
-                                    inertial reference frame */
-  s2_body_t* parentBodyPointer; /*!< pointer to parent body that Light is
-                                       light is attached to */
+  s2_stackstr_t* parentBody;      /*!< descriptive name of body that Light is
+                                         attached to note, set to "fixed" for
+                                         inertial reference frame */
+  s2_body_t* parentBodyPointer;   /*!< pointer to parent body that Light is
+                                         light is attached to */
   int index;
   GLuint lightUniform;
   s2_light_enum_t lightType;
@@ -74,17 +72,10 @@ typedef struct s2_light_t {
   struct s2_light_t* next;
 } s2_light_t;
 
-
 s2_light_t* s2_light();
-
 
 void s2_light_free(s2_light_t* light);
 
-
-void s2_light_load(
-  s2_context_t*,
-  s2_assembly_t*,
-  s2_stackstr_t*,
-  json_t*);
+void s2_light_load(s2_context_t*, s2_assembly_t*, s2_stackstr_t*, json_t*);
 
 #endif

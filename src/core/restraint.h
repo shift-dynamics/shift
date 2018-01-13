@@ -22,10 +22,9 @@ SUCH DAMAGE.
 
 typedef struct s2_assembly_t s2_assembly_t;
 typedef struct s2_restraint_t s2_restraint_t;
-#include "restraint.h"
-#include "frame.h"
 #include "context.h"
-
+#include "frame.h"
+#include "restraint.h"
 
 /*!
 @brief Types of distances
@@ -37,24 +36,15 @@ typedef enum {
   S2_DISTANCE_ZDIRECTION
 } s2_distance_enum_t;
 
-
 /*!
 @brief Restraint types
 */
-typedef enum  {
-  S2_RESTRAINT_SPRING,
-  S2_RESTRAINT_DAMPER
-} s2_restraint_enum_t;
-
+typedef enum { S2_RESTRAINT_SPRING, S2_RESTRAINT_DAMPER } s2_restraint_enum_t;
 
 /*!
 @brief Type of coordinate for specifying restraints
 */
-typedef enum {
-  S2_COORDINATE_FIXED,
-  S2_COORDINATE_LOCAL
-} s2_coordinate_enum_t;
-
+typedef enum { S2_COORDINATE_FIXED, S2_COORDINATE_LOCAL } s2_coordinate_enum_t;
 
 /*!
 @brief defines a Restraint
@@ -76,16 +66,10 @@ typedef struct s2_restraint_t {
   s2_restraint_t* next;
 } s2_restraint_t;
 
-
 s2_restraint_t* s2_restraint();
 
-
-void s2_restraint_append(
-  s2_assembly_t* assembly,
-  s2_restraint_t* restraint);
-
+void s2_restraint_append(s2_assembly_t* assembly, s2_restraint_t* restraint);
 
 void s2_context_memoizeRestraints(s2_context_t* context);
-
 
 #endif
