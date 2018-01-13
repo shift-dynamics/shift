@@ -22,8 +22,8 @@ SUCH DAMAGE.
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_substructure_t s2_substructure_t;
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // s2_jacobian_t* s2_jacobian();
 
@@ -57,7 +57,7 @@ void s2_substructure_setBMatrix(s2_substructure_t*);
 
 void s2_context_setBMatrix(s2_context_t*);
 
-void s2_substructure_setBMatrixSparse( s2_substructure_t*);
+void s2_substructure_setBMatrixSparse(s2_substructure_t*);
 
 void s2_context_setBMatrixSparse(s2_context_t*);
 
@@ -67,10 +67,6 @@ void s2_context_setJacobianBooleanPO2(s2_context_t*);
 
 void s2_substructure_setJacobianBooleanPO2(s2_substructure_t*);
 
-double s2_jacobian_infinityNormB(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* J);
+double s2_jacobian_infinityNormB(int rowDim, int colDim, int rank, double* J);
 
 #endif

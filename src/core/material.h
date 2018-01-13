@@ -35,15 +35,13 @@ typedef enum {
   S2_COLOR_EMISSIVE
 } s2_color_enum_t;
 
-
-typedef enum  {
+typedef enum {
   S2_SHADING_WIREFRAME,
   S2_SHADING_FLAT,
   S2_SHADING_GOURAUD,
   S2_SHADING_PHONG,
   S2_SHADING_LINE
 } s2_shading_enum_t;
-
 
 /*!
 @brief data structure defining a material
@@ -60,7 +58,7 @@ typedef struct s2_material_t {
     GLfloat Kd[4]; /*!< diffuse color properties */
     GLfloat Ks[4]; /*!< specular color properties */
     GLfloat Ke[4]; /*!< emissive color properties */
-    GLint Ns; /*!< specular highlight */
+    GLint Ns;      /*!< specular highlight */
   } GLuniforms;
 
   int vertexCount;
@@ -75,7 +73,6 @@ typedef struct s2_material_t {
   GLuint vao; /*!< vertex array objects */
   GLuint ibo; /*!< index buffer objects */
 } s2_material_t;
-
 
 s2_material_t* s2_material_alloc(int);
 

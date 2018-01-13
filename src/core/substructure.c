@@ -20,16 +20,16 @@ SUCH DAMAGE.
 #include "substructure.h"
 #include "context.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /*!
 @brief Initialize a Substructure datastructure
 @returns a Substructure datastructure
 */
 s2_substructure_t* s2_substructure(s2_context_t* context) {
-  s2_substructure_t* substructure = malloc(sizeof * substructure);
-  if(!substructure) {
+  s2_substructure_t* substructure = malloc(sizeof *substructure);
+  if (!substructure) {
     fprintf(stderr, "Error: failed to initialize substructure.\n");
     return NULL;
   }

@@ -19,20 +19,15 @@ SUCH DAMAGE.
 #ifndef _SHIFT_PID_H_
 #define _SHIFT_PID_H_
 
-#include "../core/restraint.h"
 #include "../core/joint.h"
+#include "../core/restraint.h"
 
-typedef enum s2_pid_io_enum_t {
-  PID_IO_FRAME,
-  PID_IO_JOINT
-} s2_pid_io_enum_t;
-
+typedef enum s2_pid_io_enum_t { PID_IO_FRAME, PID_IO_JOINT } s2_pid_io_enum_t;
 
 typedef enum s2_pid_target_enum_t {
   PID_TARGET_POSITION,
   PID_TARGET_VELOCITY
 } s2_pid_target_enum_t;
-
 
 /*!
 initially set up to apply a force in a joint
@@ -89,24 +84,15 @@ typedef struct s2_pid_t {
 
 s2_pid_t* s2_pid();
 
+void s2_pid_updateFromJointToJoint(s2_context_t* context, void** parameters,
+                                   double* y);
 
-void s2_pid_updateFromJointToJoint(
-  s2_context_t* context,
-  void** parameters,
-  double* y);
+void s2_pid_updateFromFrameToJoint(s2_context_t* context, void** parameters,
+                                   double* y);
 
+void s2_pid_connectForceModulePointer(s2_forcemodule_t* forceModule,
+                                      s2_pid_t* pid);
 
-void s2_pid_updateFromFrameToJoint(
-  s2_context_t* context,
-  void** parameters,
-  double* y);
-
-
-void s2_pid_connectForceModulePointer(
-  s2_forcemodule_t* forceModule,
-  s2_pid_t* pid);
-
-void s2_pid_saveHistory(
-  void* parameters);
+void s2_pid_saveHistory(void* parameters);
 
 #endif

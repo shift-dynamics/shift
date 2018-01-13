@@ -52,22 +52,15 @@ typedef struct s2_queue_t {
   int count;
   s2_queuenode_t* head;
   s2_queuenode_t* tail;
-} Queue;
+} s2_queue_t;
 
 s2_queue_t* s2_queue();
 
-void s2_queue_append(
-  s2_queue_t* queue,
-  void* value,
-  s2_queue_enum_t type);
+void s2_queue_append(s2_queue_t* queue, void* value, s2_queue_enum_t type);
 
-void* s2_queue_pop(
-  s2_queue_t* queue);
+void* s2_queue_pop(s2_queue_t* queue);
 
-int s2_queue_popInt(
-  s2_queue_t* queue,
-  int integer);
+int s2_queue_popInt(s2_queue_t* queue, int integer);
 
-void s2_queue_free(
-  s2_queue_t* queue);
+void s2_queue_free(s2_queue_t* queue);
 #endif

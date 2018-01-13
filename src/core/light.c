@@ -19,20 +19,18 @@ SUCH DAMAGE.
 
 #include "light.h"
 #include "assembly.h"
-#include "stack.h"
 #include "context.h"
-#include "assembly.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "stack.h"
 #include <jansson.h>
-
+#include <stdio.h>
+#include <stdlib.h>
 
 /*!
 @brief initialize an s2_light_t datastructure and set default values
 */
 s2_light_t* s2_light() {
-  s2_light_t* light = malloc(sizeof * light);
-  if(!light) {
+  s2_light_t* light = malloc(sizeof *light);
+  if (!light) {
     fprintf(stderr, "Error: failed to initialize light.\n");
     return NULL;
   }
@@ -48,15 +46,13 @@ s2_light_t* s2_light() {
   return light;
 }
 
-
 /*!
 @brief Free a Light datastructure
 @param light a Light datastructure
 */
-void s2_light_free(
-  s2_light_t* light) {
+void s2_light_free(s2_light_t* light) {
 
-  if(light) {
+  if (light) {
     s2_stackstr_free(light->name);
     s2_stackstr_free(light->parentFrame);
     s2_stackstr_free(light->parentBody);
@@ -68,69 +64,61 @@ void s2_light_free(
 /*!
 @brief load light from json file
 */
-void s2_light_load(
-  s2_context_t* context,
-  s2_assembly_t* assembly,
-  s2_stackstr_t* prefix,
-  json_t* lightObject) {
+void s2_light_load(s2_context_t* context, s2_assembly_t* assembly,
+                   s2_stackstr_t* prefix, json_t* lightObject) {
 
   s2_light_t* light = s2_light();
   light->name = s2_stackstr_copy(prefix);
-  s2_stackstr_append(light->name, json_string_value(
-                       json_object_get(lightObject, "name")));
+  s2_stackstr_append(light->name,
+                     json_string_value(json_object_get(lightObject, "name")));
 
   json_t* parentObject = json_object_get(lightObject, "parent");
   json_t* parentBodyObject = json_array_get(parentObject, 0);
   light->parentBody = s2_stackstr();
-  if(json_is_array(parentBodyObject)) {
+  if (json_is_array(parentBodyObject)) {
     /*
       if parent body is an array, then the full path is specified.
     */
     size_t index2;
     json_t* value;
     json_array_foreach(parentBodyObject, index2, value) {
-      s2_stackstr_append(
-        light->parentBody,
-        json_string_value(value));
+      s2_stackstr_append(light->parentBody, json_string_value(value));
     }
-  } else if(json_is_string(parentBodyObject)) {
+  } else if (json_is_string(parentBodyObject)) {
     /*
       otherwise the body is contained within the assembly
     */
-    s2_stackstr_append(
-      light->parentBody,
-      json_string_value(parentBodyObject));
+    s2_stackstr_append(light->parentBody, json_string_value(parentBodyObject));
   }
 
   light->parentFrame = s2_stackstr_copy(light->parentBody);
-  s2_stackstr_append(
-    light->parentFrame,
-    json_string_value(json_array_get(parentObject, 1)));
+  s2_stackstr_append(light->parentFrame,
+                     json_string_value(json_array_get(parentObject, 1)));
 
-  const char* lightType = json_string_value(
-                            json_object_get(lightObject, "type"));
+  const char* lightType =
+    json_string_value(json_object_get(lightObject, "type"));
 
-  if(!strcmp(lightType, "point")) {
+  if (!strcmp(lightType, "point")) {
     light->lightType = S2_LIGHT_POINT;
     light->glLight.type = 0;
-  } else if(!strcmp(lightType, "spot")) {
+  } else if (!strcmp(lightType, "spot")) {
     light->lightType = S2_LIGHT_SPOT;
     light->glLight.type = 1;
-  } else if(!strcmp(lightType, "directional")) {
+  } else if (!strcmp(lightType, "directional")) {
     light->lightType = S2_LIGHT_DIRECTIONAL;
     light->glLight.type = 2;
   }
-  for(int i = 0; i < 3; i++) {
-    light->glLight.Ka[i] = json_number_value(
-                             json_array_get(json_object_get(lightObject, "Ka"), i));
-    light->glLight.Kd[i] = json_number_value(
-                             json_array_get(json_object_get(lightObject, "Kd"), i));
-    light->glLight.Ks[i] = json_number_value(
-                             json_array_get(json_object_get(lightObject, "Ks"), i));
+  for (int i = 0; i < 3; i++) {
+    light->glLight.Ka[i] =
+      json_number_value(json_array_get(json_object_get(lightObject, "Ka"), i));
+    light->glLight.Kd[i] =
+      json_number_value(json_array_get(json_object_get(lightObject, "Kd"), i));
+    light->glLight.Ks[i] =
+      json_number_value(json_array_get(json_object_get(lightObject, "Ks"), i));
   }
 
   json_t* fovObject = json_object_get(lightObject, "fov");
-  if(fovObject) {
+  if (fovObject) {
     light->glLight.fov = json_number_value(fovObject);
   }
 

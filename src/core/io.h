@@ -49,5 +49,4 @@ typedef struct s2_io_t {
   s2_io_t* next;
 } s2_io_t;
 
-
 #endif

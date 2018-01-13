@@ -3,13 +3,11 @@
 
 #include <cmath>
 
-#include <QtWidgets/qwidget.h>
-#include <QtGui/qvector3d.h>
-#include <QtGui/qmatrix4x4.h>
 #include <QtGui/qevent.h>
+#include <QtGui/qmatrix4x4.h>
+#include <QtGui/qvector3d.h>
+#include <QtWidgets/qwidget.h>
 class RenderWindow;
-
-
 
 enum class OrbitalCameraMode : int {
   None = 0x00,
@@ -20,124 +18,76 @@ enum class OrbitalCameraMode : int {
 
 class s2_OrbitalCamera {
 
-  public:
+public:
+  s2_OrbitalCamera(RenderWindow* renderWindow) {
+    m_renderWindow = renderWindow;
+    m_view.setToIdentity();
+    setLookAt(QVector3D(-2, -2, -2), QVector3D(0.0, 0.0, 0.0),
+              QVector3D(0.0, 0.0, -1.0));
+  }
 
-    s2_OrbitalCamera(RenderWindow* renderWindow) {
-      m_renderWindow = renderWindow;
-      m_modelMat.setToIdentity();
-      m_viewMat.setToIdentity();
-      m_projMat.setToIdentity();
-      m_rotMat.setToIdentity();
-      m_lookMat.setToIdentity();
-    }
+  void setLookAt(const QVector3D& pos, const QVector3D& to,
+                 const QVector3D& up);
 
-    void setLookAt(const QVector3D& pos, const QVector3D& to, const QVector3D& up) {
-      m_lookMat.setToIdentity();
-      m_lookMat.lookAt(pos, to, up);
-      update();
-    }
+  void setPerspective(float fov, float aspect, float nearClip, float farClip);
 
-    void setPerspective(float fov, float aspect, float nearClip, float farClip) {
-      m_projMat.setToIdentity();
-      m_projMat.perspective(fov, aspect, nearClip, farClip);
-      update();
-    }
+  void setOrtho(float left, float right, float bottom, float top,
+                float nearClip, float farClip);
 
-    void setOrtho(
-      float left, float right, float bottom, float top,
-      float nearClip, float farClip) {
-      m_projMat.setToIdentity();
-      m_projMat.ortho(left, right, bottom, top, nearClip, farClip);
-      update();
-    }
+  void update();
 
-    void update();
+  inline QMatrix4x4 getViewMatrix() const {
+    return m_view;
+  }
 
-    inline QMatrix4x4 getModelMatrix() const {
-      return m_modelMat;
-    }
+  inline double scroll() const {
+    return m_scroll;
+  }
 
-    inline QMatrix4x4 getViewMatrix() const {
-      return m_viewMat;
-    }
+  inline void setMode(OrbitalCameraMode mode) {
+    m_mode = mode;
+  }
 
-    inline QMatrix4x4 getProjectionMatrix() const {
-      return m_projMat;
-    }
+  inline void setOldPoint(const QPoint& pos) {
+    m_oldPoint = pos;
+  }
 
-    inline QMatrix4x4 getMVMatrix() const {
-      return m_viewMat * m_modelMat;
-    }
+  inline void setNewPoint(const QPoint& pos) {
+    m_newPoint = pos;
+  }
 
-    inline QMatrix4x4 getMVPMatrix() const {
-      return m_projMat * m_viewMat * m_modelMat;
-    }
+  inline void setScroll(double scroll) {
+    m_scroll = scroll;
+  }
 
-    inline double scroll() const {
-      return m_scroll;
-    }
+  void mousePressEvent(QMouseEvent* ev);
 
-    inline void setMode(OrbitalCameraMode mode) {
-      m_mode = mode;
-    }
+  void mouseMoveEvent(QMouseEvent* ev);
 
-    inline void setOldPoint(const QPoint& pos) {
-      m_oldPoint = pos;
-    }
+  void mouseReleaseEvent(QMouseEvent* ev);
 
-    inline void setNewPoint(const QPoint& pos) {
-      m_newPoint = pos;
-    }
+  void wheelEvent(QWheelEvent* ev);
 
-    inline void setScroll(double scroll) {
-      m_scroll = scroll;
-    }
+private:
+  QVector3D getVector(int x, int y);
 
-    void mousePressEvent(QMouseEvent* ev) {
-      setOldPoint(ev->pos());
-      setNewPoint(ev->pos());
-      if(ev->button() == Qt::LeftButton) {
-        setMode(OrbitalCameraMode::Rotate);
-      } else if(ev->button() == Qt::RightButton) {
-        setMode(OrbitalCameraMode::Translate);
-      } else if(ev->button() == Qt::MiddleButton) {
-        setMode(OrbitalCameraMode::Scale);
-      }
-    }
+  void updateTranslate();
 
-    void mouseMoveEvent(QMouseEvent* ev) {
-      setNewPoint(ev->pos());
-      update();
-      setOldPoint(ev->pos());
-    }
+  void updateRotate();
 
-    void mouseReleaseEvent(QMouseEvent* ev) {
-      setMode(OrbitalCameraMode::None);
-    }
+  void updateScale();
 
-    void wheelEvent(QWheelEvent* ev);
+  QMatrix4x4 m_view;
 
-  private:
-    QVector3D getVector(int x, int y);
+  double m_scroll = 0.0;
 
-    void updateTranslate();
+  QPoint m_oldPoint = QPoint(0, 0);
 
-    void updateRotate();
+  QPoint m_newPoint = QPoint(0, 0);
 
-    void updateScale();
+  OrbitalCameraMode m_mode = OrbitalCameraMode::None;
 
-    QMatrix4x4 m_modelMat;
-    QMatrix4x4 m_viewMat;
-    QMatrix4x4 m_projMat;
-    double m_scroll = 0.0;
-    QPoint m_oldPoint = QPoint(0, 0);
-    QPoint m_newPoint = QPoint(0, 0);
-
-    OrbitalCameraMode m_mode = OrbitalCameraMode::None;
-    QVector3D m_translate = QVector3D(0.0f, 0.0f, 0.0f);
-    QMatrix4x4 m_lookMat;
-    QMatrix4x4 m_rotMat;
-    RenderWindow* m_renderWindow;
+  RenderWindow* m_renderWindow;
 };
 
 #endif

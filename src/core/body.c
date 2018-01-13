@@ -22,38 +22,40 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include <jansson.h>
-#include <assimp/cimport.h>        // Plain-C interface to assimp loader
-#include <assimp/scene.h>          // Output data structure
-#include <assimp/postprocess.h>    // Post processing flags
+#include <assimp/cimport.h> // Plain-C interface to assimp loader
 #include <assimp/material.h>
+#include <assimp/postprocess.h> // Post processing flags
+#include <assimp/scene.h>       // Output data structure
+#include <jansson.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "stack.h"
-#include "context.h"
+#include "assembly.h"
 #include "body.h"
-#include "material.h"
+#include "collisionobject.h"
+#include "context.h"
 #include "convexhull.h"
 #include "frame.h"
 #include "inertia.h"
-#include "assembly.h"
+#include "material.h"
+#include "stack.h"
 #include "utility.h"
-#include "collisionobject.h"
 
-int s2_body_loadCollisionGeometry(s2_context_t*, s2_body_t*, s2_collisionobject_enum_t);
+int s2_body_loadCollisionGeometry(s2_context_t*, s2_body_t*,
+                                  s2_collisionobject_enum_t);
 
 /*!
-@brief Initialize an s2_body_t datastructure. Appends the origin frame to the body frame
+@brief Initialize an s2_body_t datastructure. Appends the origin frame to the
+body frame
 
 @param None
 @returns a s2_body_t datastructure
 */
 s2_body_t* s2_body(s2_stackstr_t* name) {
   s2_body_t* body = malloc(sizeof(s2_body_t));
-  if(!body) {
+  if (!body) {
     fprintf(stderr, "Error: failed to initialize body.\n");
     return NULL;
   }
@@ -101,29 +103,28 @@ s2_body_t* s2_body(s2_stackstr_t* name) {
   return body;
 }
 
-
 /*!
 @brief Free a s2_body_t datastructure
 @param body an s2_body_t datastructure
 */
 void s2_body_free(s2_body_t* body) {
 
-  if(body) {
-    if(body->isVirtual) {
+  if (body) {
+    if (body->isVirtual) {
       s2_virtualbody_free(body);
     } else {
       s2_stackstr_free(body->name);
-      if(body->definition) {
+      if (body->definition) {
         s2_stackstr_free(body->definition);
       }
       s2_inertia_free(body->inertia);
-      if(!body->geometryInstanceOf) {
+      if (!body->geometryInstanceOf) {
         s2_material_free(body->materials, body->materialCount);
       }
       free(body->centerOfMassWRTOrigin);
       free(body->centerOfMassWRTReference);
       s2_frame_t* frameHead = body->frameHead;
-      while(frameHead) {
+      while (frameHead) {
         s2_frame_t* nextFrame = frameHead->next;
         s2_frame_free(frameHead);
         frameHead = nextFrame;
@@ -134,18 +135,15 @@ void s2_body_free(s2_body_t* body) {
   }
 }
 
-
 /*!
 @brief Append a frame datastructure to an s2_body_t datastructure
 
 @param body a Body datastructure to append to
 @param frame a Frame datastructure to append
 */
-void s2_body_appendFrame(
-  s2_body_t* body,
-  s2_frame_t* frame) {
+void s2_body_appendFrame(s2_body_t* body, s2_frame_t* frame) {
 
-  if(!body->frameTail) {
+  if (!body->frameTail) {
     body->frameHead = frame;
     body->frameTail = frame;
   } else {
@@ -154,17 +152,14 @@ void s2_body_appendFrame(
   }
 }
 
-
 /*!
 @brief print frames in a s2_body_t datastructure
 @param body a Body datastructure
 */
-void s2_body_printFrames(
-  FILE* f,
-  s2_body_t* body) {
+void s2_body_printFrames(FILE* f, s2_body_t* body) {
 
   s2_frame_t* frameHead = body->frameHead;
-  while(frameHead) {
+  while (frameHead) {
     fprintf(f, "\tFrame: ");
     s2_stackstr_print(f, frameHead->name);
     // printf("\t\tframePointer: %p\n", frameHead);
@@ -178,15 +173,15 @@ void s2_body_printFrames(
     s2_displacement_print(f, frameHead->dWRTReferenceInverse);
     fprintf(f, "\t\trotationAbsolute:\n");
     s2_displacement_print(f, frameHead->dAbsolute);
-    if(frameHead->velocityAbsolute) {
+    if (frameHead->velocityAbsolute) {
       fprintf(f, "\t\tvelocityAbsolute:\n");
       s2_screw_print(f, frameHead->velocityAbsolute);
     }
-    if(frameHead->accelerationQuadraticAbsolute) {
+    if (frameHead->accelerationQuadraticAbsolute) {
       fprintf(f, "\t\taccelerationQuadraticAbsolute:\n");
       s2_screw_print(f, frameHead->accelerationQuadraticAbsolute);
     }
-    if(frameHead->referenceFramePointer) {
+    if (frameHead->referenceFramePointer) {
       fprintf(f, "\t\tReference Frame: ");
       s2_stackstr_print(f, frameHead->referenceFramePointer->name);
     }
@@ -195,24 +190,22 @@ void s2_body_printFrames(
   }
 }
 
-
 /*!
 @brief Free a virtual s2_body_t datastructure
 @param body a virtual Body datastructure to free
 */
-void s2_virtualbody_free(
-  s2_body_t* body) {
+void s2_virtualbody_free(s2_body_t* body) {
 
-  if(body) {
+  if (body) {
     s2_stackstr_free(body->name);
-    if(body->definition) {
+    if (body->definition) {
       s2_stackstr_free(body->definition);
     }
     s2_inertia_free(body->inertia);
     free(body->centerOfMassWRTOrigin);
     free(body->centerOfMassWRTReference);
     s2_frame_t* frameHead = body->frameHead;
-    while(frameHead) {
+    while (frameHead) {
       s2_frame_t* nextFrame = frameHead->next;
       s2_stackstr_free(frameHead->name);
       free(frameHead->dWRTOrigin);
@@ -230,25 +223,22 @@ void s2_virtualbody_free(
   }
 }
 
-
 /*!
 @brief load body to an assembly data structure
-@return status: 0 indicates that body geometry was successfully loaded, -1 indicates failure in parsing geometry file, -2 indicates no body geometry was found, -3 indicates body is inactive and nothing was loaded
+@return status: 0 indicates that body geometry was successfully loaded, -1
+indicates failure in parsing geometry file, -2 indicates no body geometry was
+found, -3 indicates body is inactive and nothing was loaded
 */
-int s2_body_load(
-  s2_context_t* context,
-  s2_assembly_t* assembly,
-  s2_stackstr_t* prefix,
-  json_t* bodyObject) {
+int s2_body_load(s2_context_t* context, s2_assembly_t* assembly,
+                 s2_stackstr_t* prefix, json_t* bodyObject) {
 
   bool active = true;
-  json_t* activeObject =
-    json_object_get(bodyObject, "active");
-  if(activeObject != NULL) {
+  json_t* activeObject = json_object_get(bodyObject, "active");
+  if (activeObject != NULL) {
     active = json_boolean_value(activeObject);
   }
 
-  if(!active) {
+  if (!active) {
     return -3;
   }
 
@@ -266,13 +256,11 @@ int s2_body_load(
 
   body->definition = s2_stackstr();
 
-  if(json_is_null(definitionsObject)) {
+  if (json_is_null(definitionsObject)) {
     // printf("no definition files loaded\n");
-  } else if(json_is_string(definitionsObject)) {
-    s2_stackstr_append(
-      body->definition,
-      json_string_value(definitionsObject));
-  } else if(json_is_array(definitionsObject)) {
+  } else if (json_is_string(definitionsObject)) {
+    s2_stackstr_append(body->definition, json_string_value(definitionsObject));
+  } else if (json_is_array(definitionsObject)) {
     json_t* definitionObject;
     size_t i;
     json_array_foreach(definitionsObject, i, definitionObject) {
@@ -285,17 +273,13 @@ int s2_body_load(
   // printf("definition: ");
   // s2_stackstr_print(stdout, body->definition);
 
-
   json_t* framesObject = json_object_get(bodyObject, "frames");
 
-  if(!json_is_null(framesObject)) {
+  if (!json_is_null(framesObject)) {
     json_t* frameObject;
     size_t frameIndex;
 
-    json_array_foreach(
-      framesObject,
-      frameIndex,
-      frameObject) {
+    json_array_foreach(framesObject, frameIndex, frameObject) {
 
       s2_frame_load(body, frameObject);
     }
@@ -305,40 +289,31 @@ int s2_body_load(
   body->inertia->m = json_number_value(json_object_get(bodyObject, "mass"));
 
   /* get body center of mass */
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
 
-    ((double*)body->centerOfMassWRTOrigin)[i] =
-      json_number_value(
-        json_array_get(json_object_get(bodyObject, "center_of_mass"), i));
+    ((double*)body->centerOfMassWRTOrigin)[i] = json_number_value(
+      json_array_get(json_object_get(bodyObject, "center_of_mass"), i));
   }
 
-  s2_product_vk(
-    body->centerOfMassWRTOrigin,
-    &(body->inertia->m),
-    &(body->inertia->mt));
+  s2_product_vk(body->centerOfMassWRTOrigin, &(body->inertia->m),
+                &(body->inertia->mt));
 
   body->inertia->Ixx = json_number_value(
-                         json_object_get(
-                           json_object_get(bodyObject, "moment_of_inertia"), "Ixx"));
+    json_object_get(json_object_get(bodyObject, "moment_of_inertia"), "Ixx"));
 
   body->inertia->Ixy = json_number_value(
-                         json_object_get(
-                           json_object_get(bodyObject, "moment_of_inertia"), "Ixy"));
+    json_object_get(json_object_get(bodyObject, "moment_of_inertia"), "Ixy"));
 
   body->inertia->Izx = json_number_value(
-                         json_object_get(
-                           json_object_get(bodyObject, "moment_of_inertia"), "Izx"));
+    json_object_get(json_object_get(bodyObject, "moment_of_inertia"), "Izx"));
   body->inertia->Iyy = json_number_value(
-                         json_object_get(
-                           json_object_get(bodyObject, "moment_of_inertia"), "Iyy"));
+    json_object_get(json_object_get(bodyObject, "moment_of_inertia"), "Iyy"));
 
   body->inertia->Iyz = json_number_value(
-                         json_object_get(
-                           json_object_get(bodyObject, "moment_of_inertia"), "Iyz"));
+    json_object_get(json_object_get(bodyObject, "moment_of_inertia"), "Iyz"));
 
   body->inertia->Izz = json_number_value(
-                         json_object_get(
-                           json_object_get(bodyObject, "moment_of_inertia"), "Izz"));
+    json_object_get(json_object_get(bodyObject, "moment_of_inertia"), "Izz"));
 
   (context->bodyCount)++;
 
@@ -352,7 +327,7 @@ int s2_body_load(
     json_string_value(json_object_get(bodyObject, "collision_geometry"));
 
   s2_collisionobject_enum_t collisionObjectType = S2_COLLISIONOBJECT_CONVEXHULL;
-  if(collisionGeometry) {
+  if (collisionGeometry) {
     collisionObjectType = s2_collisionobject_enumFromChar(collisionGeometry);
   }
 
@@ -360,21 +335,18 @@ int s2_body_load(
   return exitcode;
 }
 
-
-s2_body_t* s2_geometryInUse(
-  s2_assembly_t* assembly,
-  s2_body_t* body,
-  const char* filename) {
+s2_body_t* s2_geometryInUse(s2_assembly_t* assembly, s2_body_t* body,
+                            const char* filename) {
 
   s2_body_t* bodyHead = assembly->bodyHead;
-  while(bodyHead) {
+  while (bodyHead) {
 
     // printf("name in geometryInUse: ");
     // s2_stackstr_print(stdout, bodyHead->name);
     // printf("definition in geometryInUse: ");
     // s2_stackstr_print(stdout, bodyHead->definition);
-    if(body != bodyHead) {
-      if(s2_stackstr_in(bodyHead->definition, filename)) {
+    if (body != bodyHead) {
+      if (s2_stackstr_in(bodyHead->definition, filename)) {
         // printf("returning bodyHead");
         // s2_stackstr_print(stdout, bodyHead->name);
         return bodyHead;
@@ -383,9 +355,9 @@ s2_body_t* s2_geometryInUse(
     bodyHead = bodyHead->next;
   }
   s2_assembly_t* subassemblyHead = assembly->subAssemblyHead;
-  while(subassemblyHead) {
+  while (subassemblyHead) {
     s2_body_t* instance = s2_geometryInUse(subassemblyHead, body, filename);
-    if(instance) {
+    if (instance) {
       // printf("returning instance");
       // s2_stackstr_print(stdout, instance->name);
       return instance;
@@ -395,20 +367,17 @@ s2_body_t* s2_geometryInUse(
   return NULL;
 }
 
-
-s2_body_t* s2_collisionGeometryInUse(
-  s2_assembly_t* assembly,
-  s2_body_t* body,
-  const char* filename,
-  s2_collisionobject_enum_t collisionObjectType) {
+s2_body_t*
+s2_collisionGeometryInUse(s2_assembly_t* assembly, s2_body_t* body,
+                          const char* filename,
+                          s2_collisionobject_enum_t collisionObjectType) {
 
   s2_body_t* bodyHead = assembly->bodyHead;
-  while(bodyHead) {
-    if(body != bodyHead) {
-      if(
-        bodyHead->collisionObjects &&
-        s2_stackstr_in(bodyHead->definition, filename) &&
-        bodyHead->collisionObjects[0].type == collisionObjectType) {
+  while (bodyHead) {
+    if (body != bodyHead) {
+      if (bodyHead->collisionObjects &&
+          s2_stackstr_in(bodyHead->definition, filename) &&
+          bodyHead->collisionObjects[0].type == collisionObjectType) {
 
         return bodyHead;
       }
@@ -416,10 +385,10 @@ s2_body_t* s2_collisionGeometryInUse(
     bodyHead = bodyHead->next;
   }
   s2_assembly_t* subassemblyHead = assembly->subAssemblyHead;
-  while(subassemblyHead) {
+  while (subassemblyHead) {
     s2_body_t* instance = s2_collisionGeometryInUse(
       subassemblyHead, body, filename, collisionObjectType);
-    if(instance) {
+    if (instance) {
       return instance;
     }
     subassemblyHead = subassemblyHead->next;
@@ -427,14 +396,12 @@ s2_body_t* s2_collisionGeometryInUse(
   return NULL;
 }
 
-
-
 /*! @brief get path to obj file definition
-*/
+ */
 const char* s2_getGeometryFileName(s2_body_t* body) {
   s2_stackstrnode_t* definitionHead = body->definition->head;
-  while(definitionHead) {
-    if(!strcmp(s2_getFileExtension(definitionHead->value), "obj")) {
+  while (definitionHead) {
+    if (!strcmp(s2_getFileExtension(definitionHead->value), "obj")) {
       return definitionHead->value;
     }
     definitionHead = definitionHead->next;
@@ -442,18 +409,16 @@ const char* s2_getGeometryFileName(s2_body_t* body) {
   return NULL;
 }
 
-
 /*!
 @brief load collision geometry associated with body
 */
 int s2_body_loadCollisionGeometry(
-  s2_context_t* context,
-  s2_body_t* body,
+  s2_context_t* context, s2_body_t* body,
   s2_collisionobject_enum_t collisionObjectType) {
 
   /* if the user has specified not to use a collision object, exit and
   print warning to user */
-  if(collisionObjectType == S2_COLLISIONOBJECT_NONE) {
+  if (collisionObjectType == S2_COLLISIONOBJECT_NONE) {
     printf("no collision object specified for body:");
     s2_stackstr_print(stdout, body->name);
     return -1;
@@ -461,7 +426,7 @@ int s2_body_loadCollisionGeometry(
 
   /* if the filename is not specified, the body has no geometry specified */
   const char* fileName = s2_getGeometryFileName(body);
-  if(fileName == NULL) {
+  if (fileName == NULL) {
     return -2;
   }
 
@@ -471,12 +436,12 @@ int s2_body_loadCollisionGeometry(
   printf("filename: %s\n", fileName);
   // s2_body_t* body2 = body;
   body->collisionGeometryInstanceOf = s2_collisionGeometryInUse(
-      context->assembly, body, fileName, collisionObjectType);
-  if(body->collisionGeometryInstanceOf) {
+    context->assembly, body, fileName, collisionObjectType);
+  if (body->collisionGeometryInstanceOf) {
     printf("collision geometry already loaded on body: ");
     s2_stackstr_print(stdout, body->name);
   }
-  switch(collisionObjectType) {
+  switch (collisionObjectType) {
     case S2_COLLISIONOBJECT_CONVEXHULL: {
       s2_collisionobject_convexhull(context, body);
     } break;
@@ -500,22 +465,19 @@ int s2_body_loadCollisionGeometry(
   return 0;
 }
 
-
 /*! @brief Loads geometry specified in Body properties from an external file
 using ASSIMP (open asset importer)
 
 @param context a context datastructure
 @param body a body datastructure
 */
-int s2_body_loadGeometry(
-  s2_context_t* context,
-  s2_body_t* body) {
+int s2_body_loadGeometry(s2_context_t* context, s2_body_t* body) {
 
   const char* fileName = s2_getGeometryFileName(body);
   printf("filename: %s\n", fileName);
 
   /* if the filename is not specified, the body has no geometry specified */
-  if(fileName == NULL) {
+  if (fileName == NULL) {
     return -2;
   }
 
@@ -534,9 +496,9 @@ int s2_body_loadGeometry(
   s2_stackstr_print(stdout, body->definition);
 
   printf("geometry instance of: ");
-  if(body->geometryInstanceOf) {
+  if (body->geometryInstanceOf) {
     s2_stackstr_print(stdout, body->geometryInstanceOf->name);
-    if(body == body->geometryInstanceOf) {
+    if (body == body->geometryInstanceOf) {
       printf("body and instance are the same body equal!\n");
     }
 
@@ -552,7 +514,7 @@ int s2_body_loadGeometry(
     Access the file contents, load in to body data structure
   */
   // printf("number of meshes: %d\n", scene->mNumMeshes);
-  if(body->geometryInstanceOf) {
+  if (body->geometryInstanceOf) {
     body->materialIndex = body->geometryInstanceOf->materialIndex;
     body->materialCount = body->geometryInstanceOf->materialCount;
     body->materials = body->geometryInstanceOf->materials;
@@ -561,31 +523,25 @@ int s2_body_loadGeometry(
     char* fullPathFileName = NULL;
     s2_stackstrnode_t* includeDirectoryHead =
       context->modelParameters.includeDirectory->head;
-    while(includeDirectoryHead) {
-      if(fullPathFileName) {
+    while (includeDirectoryHead) {
+      if (fullPathFileName) {
         free(fullPathFileName);
       }
-      asprintf(
-        &fullPathFileName,
-        "%s%s",
-        includeDirectoryHead->value,
-        fileName);
-      if(access(fullPathFileName, F_OK) != -1) {
+      asprintf(&fullPathFileName, "%s%s", includeDirectoryHead->value,
+               fileName);
+      if (access(fullPathFileName, F_OK) != -1) {
         break;
       }
       includeDirectoryHead = includeDirectoryHead->next;
     }
     // printf("fullPathFileName: %s\n", fullPathFileName);
 
-    const struct aiScene* scene =
-      aiImportFile(
-        fullPathFileName,
-        aiProcess_CalcTangentSpace |
-        aiProcess_Triangulate |
-        aiProcess_SortByPType);
+    const struct aiScene* scene = aiImportFile(
+      fullPathFileName, aiProcess_CalcTangentSpace | aiProcess_Triangulate |
+                          aiProcess_SortByPType);
 
     /* If loading was not successful, report import error and exit */
-    if(!scene) {
+    if (!scene) {
       printf("%s\n", aiGetErrorString());
       printf("error, exiting.\n");
       return -1;
@@ -593,19 +549,16 @@ int s2_body_loadGeometry(
     body->materialCount = scene->mNumMeshes;
     body->materialIndex = context->materialCount;
 
-    if(!context->materials) {
+    if (!context->materials) {
       context->materials = malloc(body->materialCount * sizeof(s2_material_t));
     } else {
       printf("reallocing materials\n");
-      context->materials =
-        realloc(
-          context->materials,
-          (context->materialCount + body->materialCount) * sizeof(s2_material_t));
+      context->materials = realloc(
+        context->materials,
+        (context->materialCount + body->materialCount) * sizeof(s2_material_t));
     }
-    for(
-      int i = context->materialCount;
-      i < context->materialCount + body->materialCount;
-      i++) {
+    for (int i = context->materialCount;
+         i < context->materialCount + body->materialCount; i++) {
       s2_material_init(&context->materials[i]);
       context->materials[i].index = i;
     }
@@ -613,7 +566,7 @@ int s2_body_loadGeometry(
 
     uint totalVertexCount = 0;
     uint totalFaceCount = 0;
-    for(uint i = 0; i < scene->mNumMeshes; i++) {
+    for (uint i = 0; i < scene->mNumMeshes; i++) {
       totalVertexCount += scene->mMeshes[i]->mNumVertices;
       totalFaceCount += scene->mMeshes[i]->mNumFaces;
     }
@@ -624,7 +577,7 @@ int s2_body_loadGeometry(
 
     totalVertexCount = 0;
     totalFaceCount = 0;
-    for(uint i = 0; i < scene->mNumMeshes; i++) {
+    for (uint i = 0; i < scene->mNumMeshes; i++) {
 
       s2_material_t* material = &context->materials[body->materialIndex + i];
 
@@ -632,7 +585,7 @@ int s2_body_loadGeometry(
       material->vertices = &vertices[totalVertexCount * 3];
       material->vertexCount = scene->mMeshes[i]->mNumVertices;
 
-      for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
+      for (uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
         material->vertices[3 * j + 0] = scene->mMeshes[i]->mVertices[j].x;
         material->vertices[3 * j + 1] = scene->mMeshes[i]->mVertices[j].y;
         material->vertices[3 * j + 2] = scene->mMeshes[i]->mVertices[j].z;
@@ -640,7 +593,7 @@ int s2_body_loadGeometry(
 
       /* load vertex normals */
       material->vertexNormals = &vertexNormals[totalVertexCount * 3];
-      for(uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
+      for (uint j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
         material->vertexNormals[3 * j + 0] = scene->mMeshes[i]->mNormals[j].x;
         material->vertexNormals[3 * j + 1] = scene->mMeshes[i]->mNormals[j].y;
         material->vertexNormals[3 * j + 2] = scene->mMeshes[i]->mNormals[j].z;
@@ -650,7 +603,7 @@ int s2_body_loadGeometry(
       /* load faces */
       material->faceCount = scene->mMeshes[i]->mNumFaces;
       material->faces = &faces[totalFaceCount * 3];
-      for(int j = 0; j < material->faceCount; j++) {
+      for (int j = 0; j < material->faceCount; j++) {
         material->faces[j * 3 + 0] = scene->mMeshes[i]->mFaces[j].mIndices[0];
         material->faces[j * 3 + 1] = scene->mMeshes[i]->mFaces[j].mIndices[1];
         material->faces[j * 3 + 2] = scene->mMeshes[i]->mFaces[j].mIndices[2];
@@ -664,19 +617,16 @@ int s2_body_loadGeometry(
 
       unsigned int max = 1;
       float opacity_f = 1.f;
-      ret1 = aiGetMaterialFloatArray(
-               mtl,
-               AI_MATKEY_OPACITY,
-               &opacity_f,
-               0);
-      if(ret1 == AI_SUCCESS) {
+      ret1 = aiGetMaterialFloatArray(mtl, AI_MATKEY_OPACITY, &opacity_f, 0);
+      if (ret1 == AI_SUCCESS) {
         printf("opacity: %f\n", opacity_f);
       }
 
       struct aiColor4D diffuse;
       ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
-      if(ret1 == AI_SUCCESS) {
-        printf("diffuse: %f %f %f %f\n", diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+      if (ret1 == AI_SUCCESS) {
+        printf("diffuse: %f %f %f %f\n", diffuse.r, diffuse.g, diffuse.b,
+               diffuse.a);
         material->GLuniforms.Kd[0] = diffuse.r;
         material->GLuniforms.Kd[1] = diffuse.g;
         material->GLuniforms.Kd[2] = diffuse.b;
@@ -690,7 +640,7 @@ int s2_body_loadGeometry(
 
       struct aiColor4D ambient;
       ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient);
-      if(ret1 == AI_SUCCESS) {
+      if (ret1 == AI_SUCCESS) {
         material->GLuniforms.Ka[0] = ambient.r;
         material->GLuniforms.Ka[1] = ambient.g;
         material->GLuniforms.Ka[2] = ambient.b;
@@ -704,8 +654,9 @@ int s2_body_loadGeometry(
 
       struct aiColor4D specular;
       ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular);
-      if(ret1 == AI_SUCCESS) {
-        // printf("specular: %f %f %f %f\n", specular.r, specular.g, specular.b, specular.a);
+      if (ret1 == AI_SUCCESS) {
+        // printf("specular: %f %f %f %f\n", specular.r, specular.g, specular.b,
+        // specular.a);
         material->GLuniforms.Ks[0] = specular.r;
         material->GLuniforms.Ks[1] = specular.g;
         material->GLuniforms.Ks[2] = specular.b;
@@ -719,7 +670,7 @@ int s2_body_loadGeometry(
 
       struct aiColor4D emissive;
       ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emissive);
-      if(ret1 == AI_SUCCESS) {
+      if (ret1 == AI_SUCCESS) {
         material->GLuniforms.Ke[0] = emissive.r;
         material->GLuniforms.Ke[1] = emissive.g;
         material->GLuniforms.Ke[2] = emissive.b;
@@ -733,38 +684,25 @@ int s2_body_loadGeometry(
 
       /* this set of parameters is currently not used / loaded */
       float shininess = 0.f;
-      ret1 = aiGetMaterialFloatArray(
-               mtl,
-               AI_MATKEY_SHININESS,
-               &shininess,
-               &max);
+      ret1 =
+        aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS, &shininess, &max);
       // if(ret1 == AI_SUCCESS)
       //   printf("shininess: %f\n", shininess);
 
       float shininess_strength = 0.f;
-      ret1 = aiGetMaterialFloatArray(
-               mtl,
-               AI_MATKEY_SHININESS_STRENGTH,
-               &shininess_strength,
-               &max);
+      ret1 = aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS_STRENGTH,
+                                     &shininess_strength, &max);
       // if(ret1 == AI_SUCCESS)
       //   printf("shininess_strength: %f\n", shininess_strength);
 
       float reflectivity = 0.f;
-      ret1 = aiGetMaterialFloatArray(
-               mtl,
-               AI_MATKEY_REFLECTIVITY,
-               &reflectivity,
-               &max);
+      ret1 = aiGetMaterialFloatArray(mtl, AI_MATKEY_REFLECTIVITY, &reflectivity,
+                                     &max);
       // if(ret1 == AI_SUCCESS)
       //   printf("reflectivity: %f\n", reflectivity);
 
       float refracti = 0.f;
-      ret1 = aiGetMaterialFloatArray(
-               mtl,
-               AI_MATKEY_REFRACTI,
-               &refracti,
-               &max);
+      ret1 = aiGetMaterialFloatArray(mtl, AI_MATKEY_REFRACTI, &refracti, &max);
       // if(ret1 == AI_SUCCESS)
       //   printf("refracti: %f\n", refracti);
 
@@ -773,10 +711,7 @@ int s2_body_loadGeometry(
       reflective.g = 0.f;
       reflective.b = 0.f;
       reflective.a = 0.f;
-      ret1 = aiGetMaterialColor(
-               mtl,
-               AI_MATKEY_COLOR_REFLECTIVE,
-               &reflective);
+      ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_REFLECTIVE, &reflective);
       // if(ret1 == AI_SUCCESS)
       //   printf(
       //     "reflective: %f %f %f %f\n",
@@ -786,11 +721,8 @@ int s2_body_loadGeometry(
       //     reflective.a);
 
       float opacity = 0.f;
-      ret1 = aiGetMaterialFloatArray(
-               mtl,
-               AI_MATKEY_COLOR_TRANSPARENT,
-               &opacity,
-               &max);
+      ret1 = aiGetMaterialFloatArray(mtl, AI_MATKEY_COLOR_TRANSPARENT, &opacity,
+                                     &max);
       // if(ret1 == AI_SUCCESS)
       //   printf("opacity: %f", opacity);
 
