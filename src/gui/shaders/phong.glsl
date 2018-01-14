@@ -120,7 +120,8 @@ void main() {
           1.0)
           - matrices_u.mv * positionFrag;
         L = normalize(temp.xyz);
-      } break;
+        break;
+      }
       case 1: {
         /* 1 = spot light
           light.position indicates position of light source
@@ -132,22 +133,22 @@ void main() {
           1.0)
           - matrices_u.mv * positionFrag;
         L = normalize(temp.xyz);
-      } break;
+        break;
+      }
       case 2: {
         /* 2 = directional light
           light.position indicates direction of light source
           used to compute direction of incoming light */
-
         vec4 temp = matrices_u.v * vec4(
           lights_u.position[i].x,
           lights_u.position[i].y,
           lights_u.position[i].z,
           1.0);
         L = normalize(temp.xyz);
-      } break;
-      default: {
-
-      } break;
+        break;
+      }
+      default:
+        break;
     }
 
     float shadowTest = 1.f;
@@ -200,6 +201,8 @@ void main() {
   /* ambient term */
   color.rgb += material_u.Ka.rgb;
   colorFrag = min(color, vec4(1.0, 1.0, 1.0, 1.0));
+
+  /* opacity */
   colorFrag.a = material_u.Kd.a;
 }
 #endif

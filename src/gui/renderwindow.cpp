@@ -124,7 +124,6 @@ void RenderWindow::mouseMoveEvent(QMouseEvent* event) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       int dx = event->x() - m_lastPos.x();
       int dy = event->y() - m_lastPos.y();
-
       if(event->buttons() & Qt::LeftButton) {
         setXRotation(m_xRot + 2 * dy);
         setZRotation(m_zRot + 2 * dx);
@@ -343,10 +342,12 @@ void RenderWindow::loadContext(s2_context_t* context) {
 
     s2_vector_t* gravity = m_context->modelParameters.gravity;
     if(fabs(gravity->x) > 0 || fabs(gravity->y) > 0 || fabs(gravity->z) > 0) {
-      QVector3D pos(-2, -2, -2);
       QVector3D to(0.f, 0.f, 0.f);
       QVector3D up(-gravity->x, -gravity->y, -gravity->z);
       up.normalize();
+      QMatrix4x4 rot(0.70710678, -0.5, 0.5, 0.f, 0.70710678, 0.5, -0.5, 0.f,
+                     0.f, 0.70710678, 0.70710678, 0.f, 0.f, 0.f, 0.f, 1.f);
+      QVector3D pos = rot * (2 * up);
       m_orbitalCamera->setLookAt(pos, to, up);
     }
   }
@@ -357,7 +358,6 @@ void RenderWindow::loadContext(s2_context_t* context) {
 
 */
 void RenderWindow::checkError(const QString& prefix) {
-
   GLenum glErr = glGetError();
   while(glErr != GL_NO_ERROR) {
     QString error;
