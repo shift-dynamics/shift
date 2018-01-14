@@ -93,13 +93,23 @@ void s2_OrbitalCamera::updateRotate() {
   const QVector3D vb = getVector(m_newPoint.x(), m_newPoint.y());
   const double angle = std::acos(std::min(1.0f, QVector3D::dotProduct(va, vb)));
   const QVector3D rotAxis = QVector3D::crossProduct(va, vb);
-
-  const QMatrix4x4 camera2objMat = getRotation(m_view).transposed();
-  const QVector3D objSpaceRotAxis = camera2objMat * rotAxis;
   QMatrix4x4 temp;
   double angleByDegree = 180.0 * angle / M_PI;
-  temp.rotate(4.0 * angleByDegree, objSpaceRotAxis);
-  m_view = m_view * temp;
+  temp.rotate(4.0 * angleByDegree, rotAxis);
+
+  /*! @TODO if user has clicked on a vertex in model, find rotation center to
+  apply rotation about user-defined position, otherwise, rotate about camera
+  position */
+  // QMatrix4x4 viewToRotCenter;
+  // viewToRotCenter.translate(0, 0, -0.5);
+  // QMatrix4x4 rotCenter = viewToRotCenter * m_view;
+  //
+  // QMatrix4x4 rotCenterToView;
+  // rotCenterToView.translate(0, 0, 0.5);
+
+  // m_view = rotCenterToView * temp * rotCenter;
+
+  m_view = temp * m_view;
 }
 
 QVector3D s2_OrbitalCamera::getVector(int x, int y) {
