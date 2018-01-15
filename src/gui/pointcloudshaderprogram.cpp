@@ -1,12 +1,11 @@
 #include "pointcloudshaderprogram.hpp"
-#include "renderwindow.hpp"
 #include "lights.hpp"
-
+#include "renderwindow.hpp"
 
 /*!
 @brief initialize sprite shader program and uniforms
 */
-void PointCloudShaderProgram::initialize() {
+void Shift::PointCloudShaderProgram::initialize() {
   if(!m_initialized) {
     initializeSimpleShaderProgram();
     initializeSpriteShaderProgram();
@@ -15,12 +14,11 @@ void PointCloudShaderProgram::initialize() {
   }
 }
 
-
 /*!
 @brief initialize simple shader program and uniforms, intended only to be called
 by initialize method
 */
-void PointCloudShaderProgram::initializeSimpleShaderProgram() {
+void Shift::PointCloudShaderProgram::initializeSimpleShaderProgram() {
   m_simpleShader = new ShaderProgram(m_renderWindow);
   m_simpleShader->addProgram();
   m_simpleShader->addVertexShader(":/shaders/point_simple.glsl");
@@ -45,12 +43,11 @@ void PointCloudShaderProgram::initializeSimpleShaderProgram() {
   m_simpleShader->release();
 }
 
-
 /*!
 @brief initialize sprite shader program and uniforms, intended only to be called
 by initialize method
 */
-void PointCloudShaderProgram::initializeSpriteShaderProgram() {
+void Shift::PointCloudShaderProgram::initializeSpriteShaderProgram() {
   m_spriteShader = new ShaderProgram(m_renderWindow);
   m_spriteShader->addProgram();
   m_spriteShader->addVertexShader(":/shaders/point_sprite.glsl");
@@ -69,7 +66,8 @@ void PointCloudShaderProgram::initializeSpriteShaderProgram() {
 
   m_texture_sprite = new QOpenGLTexture(QImage(":/textures/sphere.png"));
   m_texture_sprite->setWrapMode(QOpenGLTexture::ClampToEdge);
-  m_texture_sprite->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+  m_texture_sprite->setMinMagFilters(QOpenGLTexture::Linear,
+                                     QOpenGLTexture::Linear);
 
   /* bind textures */
   m_spriteShader->bind();
@@ -88,12 +86,11 @@ void PointCloudShaderProgram::initializeSpriteShaderProgram() {
   m_simpleShader->release();
 }
 
-
 /*!
 @brief initialize phong shader program and uniforms, intended only to be called
 by initialize method
 */
-void PointCloudShaderProgram::initializePhongShaderProgram() {
+void Shift::PointCloudShaderProgram::initializePhongShaderProgram() {
   m_phongShader = new ShaderProgram(m_renderWindow);
   m_phongShader->addProgram();
   m_phongShader->addVertexShader(":/shaders/point_phong.glsl");
@@ -132,8 +129,8 @@ void PointCloudShaderProgram::initializePhongShaderProgram() {
 
   m_texture_normal = new QOpenGLTexture(QImage(":/textures/sphere_normal.png"));
   m_texture_normal->setWrapMode(QOpenGLTexture::ClampToEdge);
-  m_texture_normal->setMinMagFilters(
-    QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+  m_texture_normal->setMinMagFilters(QOpenGLTexture::Linear,
+                                     QOpenGLTexture::Linear);
 
   /* bind textures */
   m_phongShader->bind();
@@ -152,100 +149,84 @@ void PointCloudShaderProgram::initializePhongShaderProgram() {
   m_simpleShader->release();
 }
 
-
 /*!
 @brief retrieve position attribute from current active shader
 */
-GLint PointCloudShaderProgram::getPositionAttribute() {
+GLint Shift::PointCloudShaderProgram::getPositionAttribute() {
   switch(m_shadingType) {
     case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_position_a;
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_position_a;
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_position_a;
-    }
-    break;
+    } break;
   }
 };
-
 
 /*!
 @brief retrieve color attribute from current active shader
 */
-GLint PointCloudShaderProgram::getColorAttribute() {
+GLint Shift::PointCloudShaderProgram::getColorAttribute() {
   switch(m_shadingType) {
     case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_color_a;
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_color_a;
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_color_a;
-    }
-    break;
+    } break;
   }
 };
-
 
 /*!
 @brief retrieve position attribute from specified shader
 */
-GLint PointCloudShaderProgram::getPositionAttribute(
+GLint Shift::PointCloudShaderProgram::getPositionAttribute(
   s2_point_shading_enum_t shadingType) {
 
   switch(shadingType) {
     case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_position_a;
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_position_a;
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_position_a;
-    }
-    break;
+    } break;
   }
 };
-
 
 /*!
 @brief retrieve color attribute from specified shader
 */
-GLint PointCloudShaderProgram::getColorAttribute(
+GLint Shift::PointCloudShaderProgram::getColorAttribute(
   s2_point_shading_enum_t shadingType) {
   switch(shadingType) {
     case S2_POINT_SHADING_PHONG: {
       return m_phongUniforms.m_color_a;
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SIMPLE: {
       return m_simpleUniforms.m_color_a;
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SPRITE: {
       return m_spriteUniforms.m_color_a;
-    }
-    break;
+    } break;
   }
 };
-
 
 /*!
 @brief set transform in current active shader
 */
-void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
+void Shift::PointCloudShaderProgram::setTransform(
+  s2_displacement_t* transform) {
 
-  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+  QMatrix4x4 model = displacementToQMatrix4x4(transform);
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mv = view * model;
@@ -267,30 +248,26 @@ void PointCloudShaderProgram::setTransform(s2_displacement_t* transform) {
           m_renderWindow->getLights()->getMaxCount());
         m_phongShader->checkError("phong: after set shadow matrix array");
       }
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SIMPLE: {
       m_simpleShader->getProgram()->setUniformValue(
         m_simpleUniforms.m_matrices_mvp_u, mvp);
       m_simpleShader->getProgram()->setUniformValue(
         m_simpleUniforms.m_matrices_mv_u, mv);
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SPRITE: {
       m_spriteShader->getProgram()->setUniformValue(
         m_spriteUniforms.m_matrices_mvp_u, mvp);
       m_spriteShader->getProgram()->setUniformValue(
         m_spriteUniforms.m_matrices_mv_u, mv);
-    }
-    break;
+    } break;
   }
 }
-
 
 /*!
 @brief set lights, used only in phong shader
 */
-void PointCloudShaderProgram::setLights(s2_Lights* lights) {
+void Shift::PointCloudShaderProgram::setLights(Lights* lights) {
   if(m_shadingType == S2_POINT_SHADING_PHONG) {
     m_phongShader->getProgram()->setUniformValueArray(
       m_phongUniforms.m_lights_position_u, lights->getPosition(), 10, 3);
@@ -315,36 +292,32 @@ void PointCloudShaderProgram::setLights(s2_Lights* lights) {
   }
 }
 
-
 /*!
 @brief bind depth buffer to index 0, only used by phong shader
 */
-void PointCloudShaderProgram::bindDepthBuffer() {
+void Shift::PointCloudShaderProgram::bindDepthBuffer() {
   if(m_shadingType == S2_POINT_SHADING_PHONG) {
     m_phongShader->getProgram()->setUniformValue(
       m_phongUniforms.m_texture_shadow_u, 0);
   }
 }
 
-
 /*!
 @brief bind textures
 */
-void PointCloudShaderProgram::bindTextures() {
+void Shift::PointCloudShaderProgram::bindTextures() {
   switch(m_shadingType) {
     case S2_POINT_SHADING_PHONG: {
       m_texture_normal->bind(1);
       m_phongShader->getProgram()->setUniformValue(
         m_phongUniforms.m_texture_normal_u, 1);
-    }
-    break;
+    } break;
     case S2_POINT_SHADING_SIMPLE: {
     } break;
     case S2_POINT_SHADING_SPRITE: {
       m_texture_sprite->bind(1);
       m_spriteShader->getProgram()->setUniformValue(
         m_spriteUniforms.m_texture_sprite_u, 1);
-    }
-    break;
+    } break;
   }
 }

@@ -4,36 +4,34 @@
 #include "../shift.h"
 #include "geometry.hpp"
 
-#include <QString>
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QMatrix4x4>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
-#include <QtOpenGL/QGLWidget>
-#include <QHBoxLayout>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QWidget>
-#include <QString>
-#include <QMainWindow>
-#include <QHBoxLayout>
 #include <QFileDialog>
-#include <QResizeEvent>
-#include <QTimer>
-#include <QOpenGLTexture>
+#include <QHBoxLayout>
+#include <QMainWindow>
+#include <QMatrix4x4>
+#include <QMouseEvent>
+#include <QOpenGLBuffer>
+#include <QOpenGLDebugLogger>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QResizeEvent>
+#include <QString>
+#include <QTimer>
+#include <QWheelEvent>
+#include <QWidget>
+#include <QtOpenGL/QGLWidget>
 
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
+
+namespace Shift {
+
 class RenderWindow;
 class ShadowShaderProgram;
-class s2_Bodies;
+class Bodies;
 
 struct s2_lights_t {
   GLfloat position[30];
@@ -48,112 +46,109 @@ struct s2_lights_t {
   QMatrix4x4 viewMatrix[10];
 };
 
-class s2_Lights : public s2_Geometry {
+class Lights : public Geometry {
 
-    Q_OBJECT
+  Q_OBJECT
 
-  public:
-    s2_Lights(RenderWindow* renderWindow);
-    s2_Lights(RenderWindow* renderWindow, GLint depthBufferSize);
+public:
+  Lights(RenderWindow* renderWindow);
+  Lights(RenderWindow* renderWindow, GLint depthBufferSize);
 
-    ~s2_Lights() {
+  ~Lights(){
 
-    };
+  };
 
-    int getCount() {
-      return m_lights.count;
-    };
+  int getCount() {
+    return m_lights.count;
+  };
 
-    int getMaxCount() {
-      return m_maxCount;
-    }
+  int getMaxCount() {
+    return m_maxCount;
+  }
 
-    GLfloat* getPosition() {
-      return m_lights.position;
-    }
+  GLfloat* getPosition() {
+    return m_lights.position;
+  }
 
-    GLfloat* getKa() {
-      return m_lights.Ka;
-    }
+  GLfloat* getKa() {
+    return m_lights.Ka;
+  }
 
-    GLfloat* getKd() {
-      return m_lights.Kd;
-    }
+  GLfloat* getKd() {
+    return m_lights.Kd;
+  }
 
-    GLfloat* getKs() {
-      return m_lights.Ks;
-    }
+  GLfloat* getKs() {
+    return m_lights.Ks;
+  }
 
-    GLint* getType() {
-      return m_lights.type;
-    }
+  GLint* getType() {
+    return m_lights.type;
+  }
 
-    void initialize();
+  void initialize();
 
-    void draw();
+  void draw();
 
-    void loadContext();
+  void loadContext();
 
-    void setBodies(s2_Bodies* bodies) {
-      m_bodies = bodies;
-    }
+  void setBodies(Bodies* bodies) {
+    m_bodies = bodies;
+  }
 
-    void setShader(ShadowShaderProgram* program) {
-      m_program = program;
-    }
+  void setShader(ShadowShaderProgram* program) {
+    m_program = program;
+  }
 
-    GLint getDepthBufferSize() {
-      return m_depthBufferSize;
-    }
+  GLint getDepthBufferSize() {
+    return m_depthBufferSize;
+  }
 
-    void getFramebufferStatus();
+  void getFramebufferStatus();
 
-    QMatrix4x4& getActiveViewMatrix() {
-      return m_lights.viewMatrix[m_activeLightIndex];
-    }
+  QMatrix4x4& getActiveViewMatrix() {
+    return m_lights.viewMatrix[m_activeLightIndex];
+  }
 
-    QMatrix4x4& getViewMatrix(int i) {
-      return m_lights.viewMatrix[i];
-    }
+  QMatrix4x4& getViewMatrix(int i) {
+    return m_lights.viewMatrix[i];
+  }
 
-    QMatrix4x4& getActiveProjectionMatrix() {
-      return m_lights.projectionMatrix[m_activeLightIndex];
-    }
+  QMatrix4x4& getActiveProjectionMatrix() {
+    return m_lights.projectionMatrix[m_activeLightIndex];
+  }
 
-    QMatrix4x4& getProjectionMatrix(int i) {
-      return m_lights.projectionMatrix[i];
-    }
+  QMatrix4x4& getProjectionMatrix(int i) {
+    return m_lights.projectionMatrix[i];
+  }
 
-    QMatrix4x4* setShadowMatrix(s2_displacement_t*);
+  QMatrix4x4* setShadowMatrix(s2_displacement_t*);
 
-    QMatrix4x4* setShadowMatrix(QMatrix4x4&);
+  QMatrix4x4* setShadowMatrix(QMatrix4x4&);
 
-    GLint getDepthTexture() {
-      return m_depthTexture;
-    }
+  GLint getDepthTexture() {
+    return m_depthTexture;
+  }
 
+private:
+  s2_lights_t m_lights;
 
-  private:
+  Bodies* m_bodies;
 
-    s2_lights_t m_lights;
+  QOpenGLTexture* m_depthBufferArray;
 
-    s2_Bodies* m_bodies;
+  GLint m_depthBufferSize;
 
-    QOpenGLTexture* m_depthBufferArray;
+  GLuint m_fbo[10];
 
-    GLint m_depthBufferSize;
+  GLuint m_depthTexture;
 
-    GLuint m_fbo[10];
+  ShadowShaderProgram* m_program;
 
-    GLuint m_depthTexture;
+  int m_maxCount;
 
-    ShadowShaderProgram* m_program;
-
-    int m_maxCount;
-
-    int m_activeLightIndex;
-
+  int m_activeLightIndex;
 };
-
+} // namespace Shift
 
 #endif

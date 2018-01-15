@@ -1,8 +1,8 @@
 #include "flatshaderprogram.hpp"
-#include "renderwindow.hpp"
 #include "lights.hpp"
+#include "renderwindow.hpp"
 
-void FlatShaderProgram::initialize() {
+void Shift::FlatShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
     addVertexShader(":/shaders/flat.glsl");
@@ -26,8 +26,7 @@ void FlatShaderProgram::initialize() {
     m_material_Ns_u = m_program->uniformLocation("material_u.Ns");
 
     m_lights_u = m_program->uniformLocation("lights_u");
-    m_lights_position_u =
-      m_program->uniformLocation("lights_u.position");
+    m_lights_position_u = m_program->uniformLocation("lights_u.position");
     m_lights_Ka_u = m_program->uniformLocation("lights_u.Ka");
     m_lights_Kd_u = m_program->uniformLocation("lights_u.Kd");
     m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
@@ -44,9 +43,8 @@ void FlatShaderProgram::initialize() {
   }
 }
 
-
-void FlatShaderProgram::setTransform(s2_displacement_t* transform) {
-  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+void Shift::FlatShaderProgram::setTransform(s2_displacement_t* transform) {
+  QMatrix4x4 model = displacementToQMatrix4x4(transform);
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mv = view * model;
@@ -57,52 +55,35 @@ void FlatShaderProgram::setTransform(s2_displacement_t* transform) {
   m_program->setUniformValue(m_matrices_mv_u, mv);
   m_program->setUniformValue(m_matrices_v_u, view);
   m_program->setUniformValue(m_matrices_nm_u, nm);
-
 }
 
-
-void FlatShaderProgram::setMaterial(s2_material_t* material) {
+void Shift::FlatShaderProgram::setMaterial(s2_material_t* material) {
   m_program->setUniformValue(
-    m_material_Ka_u,
-    material->GLuniforms.Ka[0],
-    material->GLuniforms.Ka[1],
-    material->GLuniforms.Ka[2],
-    material->GLuniforms.Ka[3]);
+    m_material_Ka_u, material->GLuniforms.Ka[0], material->GLuniforms.Ka[1],
+    material->GLuniforms.Ka[2], material->GLuniforms.Ka[3]);
 
   m_program->setUniformValue(
-    m_material_Kd_u,
-    material->GLuniforms.Ka[0],
-    material->GLuniforms.Ka[1],
-    material->GLuniforms.Ka[2],
-    material->GLuniforms.Ka[3]);
+    m_material_Kd_u, material->GLuniforms.Ka[0], material->GLuniforms.Ka[1],
+    material->GLuniforms.Ka[2], material->GLuniforms.Ka[3]);
 
   m_program->setUniformValue(
-    m_material_Ka_u,
-    material->GLuniforms.Ka[0],
-    material->GLuniforms.Ka[1],
-    material->GLuniforms.Ka[2],
-    material->GLuniforms.Ka[3]);
+    m_material_Ka_u, material->GLuniforms.Ka[0], material->GLuniforms.Ka[1],
+    material->GLuniforms.Ka[2], material->GLuniforms.Ka[3]);
 
   m_program->setUniformValue(
-    m_material_Ke_u,
-    material->GLuniforms.Ke[0],
-    material->GLuniforms.Ke[1],
-    material->GLuniforms.Ke[2],
-    material->GLuniforms.Ke[3]);
+    m_material_Ke_u, material->GLuniforms.Ke[0], material->GLuniforms.Ke[1],
+    material->GLuniforms.Ke[2], material->GLuniforms.Ke[3]);
 
-  m_program->setUniformValue(
-    m_material_Ns_u,
-    material->GLuniforms.Ns);
+  m_program->setUniformValue(m_material_Ns_u, material->GLuniforms.Ns);
 }
 
-
-void FlatShaderProgram::setLights(s2_Lights* lights) {
-  m_program->setUniformValueArray(m_lights_position_u, lights->getPosition(), 10, 3);
+void Shift::FlatShaderProgram::setLights(Lights* lights) {
+  m_program->setUniformValueArray(m_lights_position_u, lights->getPosition(),
+                                  10, 3);
   m_program->setUniformValueArray(m_lights_Ka_u, lights->getKa(), 10, 3);
   m_program->setUniformValueArray(m_lights_Kd_u, lights->getKd(), 10, 3);
   m_program->setUniformValueArray(m_lights_Ks_u, lights->getKs(), 10, 3);
-  m_program->setUniformValueArray(
-    m_lights_type_u, lights->getType(), 10);
+  m_program->setUniformValueArray(m_lights_type_u, lights->getType(), 10);
   m_program->setUniformValue(m_lights_count_u, lights->getCount());
   checkError("after set lights");
 }

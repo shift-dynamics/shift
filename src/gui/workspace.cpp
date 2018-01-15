@@ -24,6 +24,7 @@ SUCH DAMAGE.
 #include <QFileDialog>
 #include <QGenericMatrix>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QIcon>
 #include <QKeySequence>
 #include <QLabel>
@@ -31,48 +32,48 @@ SUCH DAMAGE.
 #include <QMatrix4x4>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPalette>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QResizeEvent>
+#include <QShortcut>
 #include <QSizePolicy>
+#include <QSpacerItem>
 #include <QSplitter>
 #include <QStatusBar>
+#include <QSvgWidget>
 #include <QTabWidget>
 #include <QTextBrowser>
 #include <QTreeWidget>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QVector3D>
-#include <QPalette>
-#include <QShortcut>
-#include <QProgressBar>
-#include <QSvgWidget>
-#include <QSpacerItem>
 
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
 #include <vector>
-#include <stdio.h>
 
-#include "workspace.hpp"
-#include "renderwindow.hpp"
-#include "joints.hpp"
-#include "bodies.hpp"
-#include "lights.hpp"
-#include "frames.hpp"
-#include "terrain.hpp"
-#include "grid.hpp"
-#include "pointcloud.hpp"
 #include "../shift.h"
+#include "bodies.hpp"
+#include "frames.hpp"
+#include "grid.hpp"
+#include "joints.hpp"
+#include "lights.hpp"
+#include "pointcloud.hpp"
+#include "renderwindow.hpp"
+#include "terrain.hpp"
+#include "workspace.hpp"
 
 /*!
 @brief class constructor for Workspace application
 
 */
-Workspace::Workspace(QWidget* parent) : QMainWindow(parent) {
+Shift::Workspace::Workspace(QWidget* parent)
+  : QMainWindow(parent) {
 
   m_currentSelectedItem = NULL;
   m_renderWindow = NULL;
@@ -86,39 +87,35 @@ Workspace::Workspace(QWidget* parent) : QMainWindow(parent) {
   initializeMenus();
   m_mobilityFile = fopen("mobility.dat", "w");
   m_currentFileName = "untitled.json";
-
 }
-
 
 /*! @brief class destructor
 
 */
-Workspace::~Workspace() {}
-
+Shift::Workspace::~Workspace() {}
 
 /*!
   @brief add context-dependent dynamic scene box
 */
-void Workspace::addDynamicSceneBox() {
+void Shift::Workspace::addDynamicSceneBox() {
   m_scenePanel.groupBox = new QGroupBox;
   m_scenePanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
   QGridLayout* sceneLayout = new QGridLayout(m_scenePanel.groupBox);
   sceneLayout->setMargin(0);
   sceneLayout->setContentsMargins(QMargins(0, 0, 0, 0));
   sceneLayout->setSpacing(0);
-  m_scenePanel.title = new QLabel(
-    "Select an object from the treewidget to edit its properties.");
+  m_scenePanel.title =
+    new QLabel("Select an object from the treewidget to edit its properties.");
   m_scenePanel.title->setWordWrap(true);
   sceneLayout->addWidget(m_scenePanel.title, 0, 0, 0);
   m_scenePanel.groupBox->setVisible(true);
   m_dynamicPanelLayout->addWidget(m_scenePanel.groupBox);
 }
 
-
 /*!
   @brief add all sliders to slider group box
 */
-void Workspace::addSliders() {
+void Shift::Workspace::addSliders() {
 
   m_sliders.groupBox = new QGroupBox;
   m_sliders.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
@@ -130,207 +127,107 @@ void Workspace::addSliders() {
     translation sliders
   */
   double singleStep = m_sliders.prismaticRange / 100.0;
-  addSlider(
-    singleStep,
-    &m_sliders.tx,
-    sliderLayout,
-    "Tx");
+  addSlider(singleStep, &m_sliders.tx, sliderLayout, "Tx");
 
-  addSlider(
-    singleStep,
-    &m_sliders.ty,
-    sliderLayout,
-    "Ty");
+  addSlider(singleStep, &m_sliders.ty, sliderLayout, "Ty");
 
-  addSlider(
-    singleStep,
-    &m_sliders.tz,
-    sliderLayout,
-    "Tz");
+  addSlider(singleStep, &m_sliders.tz, sliderLayout, "Tz");
 
   /*
     rotation sliders
   */
   singleStep = m_sliders.revoluteRange / 100.0;
 
-  addSlider(
-    singleStep,
-    &m_sliders.rx,
-    sliderLayout,
-    "Rx");
+  addSlider(singleStep, &m_sliders.rx, sliderLayout, "Rx");
 
-  addSlider(
-    singleStep,
-    &m_sliders.ry,
-    sliderLayout,
-    "Ry");
+  addSlider(singleStep, &m_sliders.ry, sliderLayout, "Ry");
 
-  addSlider(
-    singleStep,
-    &m_sliders.rz,
-    sliderLayout,
-    "Rz");
+  addSlider(singleStep, &m_sliders.rz, sliderLayout, "Rz");
 
   m_dynamicPanelLayout->addWidget(m_sliders.groupBox);
 
-  QObject::connect(
-    m_sliders.tx.slider,
-    SIGNAL(valueChanged(int)),
-    this,
-    SLOT(setTx(int)));
+  QObject::connect(m_sliders.tx.slider, SIGNAL(valueChanged(int)), this,
+                   SLOT(setTx(int)));
 
-  QObject::connect(
-    m_sliders.ty.slider,
-    SIGNAL(valueChanged(int)),
-    this,
-    SLOT(setTy(int)));
+  QObject::connect(m_sliders.ty.slider, SIGNAL(valueChanged(int)), this,
+                   SLOT(setTy(int)));
 
-  QObject::connect(
-    m_sliders.tz.slider,
-    SIGNAL(valueChanged(int)),
-    this,
-    SLOT(setTz(int)));
+  QObject::connect(m_sliders.tz.slider, SIGNAL(valueChanged(int)), this,
+                   SLOT(setTz(int)));
 
-  QObject::connect(
-    m_sliders.rx.slider,
-    SIGNAL(valueChanged(int)),
-    this,
-    SLOT(setRx(int)));
+  QObject::connect(m_sliders.rx.slider, SIGNAL(valueChanged(int)), this,
+                   SLOT(setRx(int)));
 
-  QObject::connect(
-    m_sliders.ry.slider,
-    SIGNAL(valueChanged(int)),
-    this,
-    SLOT(setRy(int)));
+  QObject::connect(m_sliders.ry.slider, SIGNAL(valueChanged(int)), this,
+                   SLOT(setRy(int)));
 
-  QObject::connect(
-    m_sliders.rz.slider,
-    SIGNAL(valueChanged(int)),
-    this,
-    SLOT(setRz(int)));
+  QObject::connect(m_sliders.rz.slider, SIGNAL(valueChanged(int)), this,
+                   SLOT(setRz(int)));
 
   /* connect spinbox value changed to recenter slider */
-  QObject::connect(
-    m_sliders.tx.spinBox,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setTxSpinBox(double)));
+  QObject::connect(m_sliders.tx.spinBox, SIGNAL(valueChanged(double)), this,
+                   SLOT(setTxSpinBox(double)));
 
-  QObject::connect(
-    m_sliders.ty.spinBox,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setTySpinBox(double)));
+  QObject::connect(m_sliders.ty.spinBox, SIGNAL(valueChanged(double)), this,
+                   SLOT(setTySpinBox(double)));
 
-  QObject::connect(
-    m_sliders.tz.spinBox,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setTzSpinBox(double)));
+  QObject::connect(m_sliders.tz.spinBox, SIGNAL(valueChanged(double)), this,
+                   SLOT(setTzSpinBox(double)));
 
-  QObject::connect(
-    m_sliders.rx.spinBox,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setRxSpinBox(double)));
+  QObject::connect(m_sliders.rx.spinBox, SIGNAL(valueChanged(double)), this,
+                   SLOT(setRxSpinBox(double)));
 
-  QObject::connect(
-    m_sliders.ry.spinBox,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setRySpinBox(double)));
+  QObject::connect(m_sliders.ry.spinBox, SIGNAL(valueChanged(double)), this,
+                   SLOT(setRySpinBox(double)));
 
-  QObject::connect(
-    m_sliders.rz.spinBox,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setRzSpinBox(double)));
+  QObject::connect(m_sliders.rz.spinBox, SIGNAL(valueChanged(double)), this,
+                   SLOT(setRzSpinBox(double)));
 
   /* connect mouse clicked button to setup initial factorization and
   remove constraint violations */
-  QObject::connect(
-    m_sliders.tx.slider,
-    SIGNAL(sliderPressed()),
-    this,
-    SLOT(onclickTx()));
+  QObject::connect(m_sliders.tx.slider, SIGNAL(sliderPressed()), this,
+                   SLOT(onclickTx()));
 
-  QObject::connect(
-    m_sliders.ty.slider,
-    SIGNAL(sliderPressed()),
-    this,
-    SLOT(onclickTy()));
+  QObject::connect(m_sliders.ty.slider, SIGNAL(sliderPressed()), this,
+                   SLOT(onclickTy()));
 
-  QObject::connect(
-    m_sliders.tz.slider,
-    SIGNAL(sliderPressed()),
-    this,
-    SLOT(onclickTz()));
+  QObject::connect(m_sliders.tz.slider, SIGNAL(sliderPressed()), this,
+                   SLOT(onclickTz()));
 
-  QObject::connect(
-    m_sliders.rx.slider,
-    SIGNAL(sliderPressed()),
-    this,
-    SLOT(onclickRx()));
+  QObject::connect(m_sliders.rx.slider, SIGNAL(sliderPressed()), this,
+                   SLOT(onclickRx()));
 
-  QObject::connect(
-    m_sliders.ry.slider,
-    SIGNAL(sliderPressed()),
-    this,
-    SLOT(onclickRy()));
+  QObject::connect(m_sliders.ry.slider, SIGNAL(sliderPressed()), this,
+                   SLOT(onclickRy()));
 
-  QObject::connect(
-    m_sliders.rz.slider,
-    SIGNAL(sliderPressed()),
-    this,
-    SLOT(onclickRz()));
+  QObject::connect(m_sliders.rz.slider, SIGNAL(sliderPressed()), this,
+                   SLOT(onclickRz()));
 
   /* connect mouse button released to recenter slider function */
-  QObject::connect(
-    m_sliders.tx.slider,
-    SIGNAL(sliderReleased()),
-    this,
-    SLOT(recenterTx()));
+  QObject::connect(m_sliders.tx.slider, SIGNAL(sliderReleased()), this,
+                   SLOT(recenterTx()));
 
-  QObject::connect(
-    m_sliders.ty.slider,
-    SIGNAL(sliderReleased()),
-    this,
-    SLOT(recenterTy()));
+  QObject::connect(m_sliders.ty.slider, SIGNAL(sliderReleased()), this,
+                   SLOT(recenterTy()));
 
-  QObject::connect(
-    m_sliders.tz.slider,
-    SIGNAL(sliderReleased()),
-    this,
-    SLOT(recenterTz()));
+  QObject::connect(m_sliders.tz.slider, SIGNAL(sliderReleased()), this,
+                   SLOT(recenterTz()));
 
-  QObject::connect(
-    m_sliders.rx.slider,
-    SIGNAL(sliderReleased()),
-    this,
-    SLOT(recenterRx()));
+  QObject::connect(m_sliders.rx.slider, SIGNAL(sliderReleased()), this,
+                   SLOT(recenterRx()));
 
-  QObject::connect(
-    m_sliders.ry.slider,
-    SIGNAL(sliderReleased()),
-    this,
-    SLOT(recenterRy()));
+  QObject::connect(m_sliders.ry.slider, SIGNAL(sliderReleased()), this,
+                   SLOT(recenterRy()));
 
-  QObject::connect(
-    m_sliders.rz.slider,
-    SIGNAL(sliderReleased()),
-    this,
-    SLOT(recenterRz()));
+  QObject::connect(m_sliders.rz.slider, SIGNAL(sliderReleased()), this,
+                   SLOT(recenterRz()));
 }
-
 
 /*!
   @brief add a slider to slider group box
 */
-void Workspace::addSlider(
-  double singleStep,
-  SliderHandle* sliderHandle,
-  QLayout* layout,
-  const char* label) {
+void Shift::Workspace::addSlider(double singleStep, SliderHandle* sliderHandle,
+                                 QLayout* layout, const char* label) {
 
   sliderHandle->singleStep = singleStep;
 
@@ -363,11 +260,10 @@ void Workspace::addSlider(
   sliderHandle->box->setVisible(false);
 }
 
-
 /*!
   @brief add dynamic assembly box
 */
-void Workspace::addAssemblyBox() {
+void Shift::Workspace::addAssemblyBox() {
   m_assemblyPanel.groupBox = new QGroupBox;
   m_assemblyPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
   QGridLayout* assemblyLayout = new QGridLayout(m_assemblyPanel.groupBox);
@@ -384,11 +280,10 @@ void Workspace::addAssemblyBox() {
   m_dynamicPanelLayout->addWidget(m_scenePanel.groupBox);
 }
 
-
 /*!
   @brief add dynamic joint group box
 */
-void Workspace::addJointGroupBox() {
+void Shift::Workspace::addJointGroupBox() {
   m_jointGroupPanel.groupBox = new QGroupBox;
   QGridLayout* jointGroupLayout = new QGridLayout(m_jointGroupPanel.groupBox);
 
@@ -406,17 +301,14 @@ void Workspace::addJointGroupBox() {
 
   m_jointGroupPanel.groupBox->setVisible(false);
   m_dynamicPanelLayout->addWidget(m_jointGroupPanel.groupBox);
-
 }
-
 
 /*!
   @brief add dynamic box for modifying joints or displaying properties
 */
-void Workspace::addJointBox() {
+void Shift::Workspace::addJointBox() {
   m_jointPanel.groupBox = new QGroupBox;
-  QGridLayout* jointLayout = new
-  QGridLayout(m_jointPanel.groupBox);
+  QGridLayout* jointLayout = new QGridLayout(m_jointPanel.groupBox);
   jointLayout->setMargin(0);
   jointLayout->setContentsMargins(QMargins(0, 0, 0, 0));
   jointLayout->setSpacing(0);
@@ -440,11 +332,10 @@ void Workspace::addJointBox() {
   m_dynamicPanelLayout->addWidget(m_jointPanel.groupBox);
 }
 
-
 /*!
   @brief add dynamic body group box
 */
-void Workspace::addBodyGroupBox() {
+void Shift::Workspace::addBodyGroupBox() {
 
   m_bodyGroupPanel.groupBox = new QGroupBox;
   m_bodyGroupPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
@@ -466,11 +357,10 @@ void Workspace::addBodyGroupBox() {
   m_dynamicPanelLayout->addWidget(m_bodyGroupPanel.groupBox);
 }
 
-
 /*!
   @brief add dynamic body box
 */
-void Workspace::addBodyBox() {
+void Shift::Workspace::addBodyBox() {
   m_bodyPanel.groupBox = new QGroupBox;
   m_bodyPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
@@ -486,8 +376,9 @@ void Workspace::addBodyBox() {
   m_bodyPanel.materialColorButton->setText("select color");
   m_bodyPanel.materialColorDropDown = new QComboBox();
   m_bodyPanel.materialDropDown = new QComboBox();
-  m_bodyPanel.materialColorDropDown->addItems(
-    QStringList() << "ambient" << "diffuse" << "specular");
+  m_bodyPanel.materialColorDropDown->addItems(QStringList() << "ambient"
+                                                            << "diffuse"
+                                                            << "specular");
   QLabel* materialLabel = new QLabel("material");
   QLabel* colorLabel = new QLabel("color");
   QLabel* NsLabel1 = new QLabel("Ns");
@@ -498,31 +389,24 @@ void Workspace::addBodyBox() {
   materialColorLayout->addWidget(NsLabel1, 2, 2, 0);
   materialColorLayout->addWidget(m_bodyPanel.nsModelSpinBox, 2, 3, 0);
   materialColorLayout->addWidget(colorLabel, 2, 0, 0);
-  materialColorLayout->addWidget(
-    m_bodyPanel.materialColorDropDown, 3, 0, 1, 2, 0);
-  materialColorLayout->addWidget(
-    m_bodyPanel.materialColorButton, 3, 2, 1, 2, 0);
+  materialColorLayout->addWidget(m_bodyPanel.materialColorDropDown, 3, 0, 1, 2,
+                                 0);
+  materialColorLayout->addWidget(m_bodyPanel.materialColorButton, 3, 2, 1, 2,
+                                 0);
   m_bodyPanel.groupBox->setVisible(false);
   m_dynamicPanelLayout->addWidget(m_bodyPanel.groupBox);
 
-  QObject::connect(
-    m_bodyPanel.nsModelSpinBox,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(updateMaterialNs(double)));
+  QObject::connect(m_bodyPanel.nsModelSpinBox, SIGNAL(valueChanged(double)),
+                   this, SLOT(updateMaterialNs(double)));
 
-  QObject::connect(
-    m_bodyPanel.materialColorButton,
-    SIGNAL(clicked()),
-    this,
-    SLOT(materialColorSelector()));
+  QObject::connect(m_bodyPanel.materialColorButton, SIGNAL(clicked()), this,
+                   SLOT(materialColorSelector()));
 }
-
 
 /*!
   @brief add dynamic frame box
 */
-void Workspace::addFrameBox() {
+void Shift::Workspace::addFrameBox() {
   m_framePanel.groupBox = new QGroupBox;
   m_framePanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
@@ -583,11 +467,10 @@ void Workspace::addFrameBox() {
   m_dynamicPanelLayout->addWidget(m_framePanel.groupBox);
 }
 
-
 /*!
   @brief add restraint group box
 */
-void Workspace::addRestraintGroupBox() {
+void Shift::Workspace::addRestraintGroupBox() {
 
   m_restraintGroupPanel.groupBox = new QGroupBox;
   m_restraintGroupPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
@@ -598,32 +481,29 @@ void Workspace::addRestraintGroupBox() {
   restraintGroupLayout->setContentsMargins(QMargins(0, 0, 0, 0));
   restraintGroupLayout->setSpacing(0);
 
-
   m_restraintGroupPanel.addRestraintButton = new QPushButton();
   m_restraintGroupPanel.addRestraintButton->setText("add restraint");
-  restraintGroupLayout->addWidget(
-    m_restraintGroupPanel.addRestraintButton, 1, 0, 0);
+  restraintGroupLayout->addWidget(m_restraintGroupPanel.addRestraintButton, 1,
+                                  0, 0);
 
   m_restraintGroupPanel.groupBox->setVisible(false);
   m_dynamicPanelLayout->addWidget(m_restraintGroupPanel.groupBox);
 }
 
-
 /*!
   @brief add dynamic restraint box
 */
-void Workspace::addRestraintBox() {
+void Shift::Workspace::addRestraintBox() {
   m_restraintPanel.groupBox = new QGroupBox;
   m_restraintPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
   m_restraintPanel.groupBox->setVisible(false);
   m_dynamicPanelLayout->addWidget(m_restraintPanel.groupBox);
 }
 
-
 /*!
   @brief add dynamic io group box
 */
-void Workspace::addIoGroupBox() {
+void Shift::Workspace::addIoGroupBox() {
   m_ioGroupPanel.groupBox = new QGroupBox;
   m_ioGroupPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
@@ -638,26 +518,22 @@ void Workspace::addIoGroupBox() {
 
   m_ioGroupPanel.groupBox->setVisible(false);
   m_dynamicPanelLayout->addWidget(m_ioGroupPanel.groupBox);
-
 }
-
 
 /*!
   @brief add dynamic io box
 */
-void Workspace::addIoBox() {
+void Shift::Workspace::addIoBox() {
   m_ioPanel.groupBox = new QGroupBox;
   m_ioPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
   m_ioPanel.groupBox->setVisible(false);
   m_dynamicPanelLayout->addWidget(m_ioPanel.groupBox);
 }
 
-
-
 /*!
   @brief add dynamic light group box
 */
-void Workspace::addLightGroupBox() {
+void Shift::Workspace::addLightGroupBox() {
   m_lightGroupPanel.groupBox = new QGroupBox;
   m_lightGroupPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
@@ -673,18 +549,14 @@ void Workspace::addLightGroupBox() {
   m_lightGroupPanel.groupBox->setVisible(false);
   m_dynamicPanelLayout->addWidget(m_lightGroupPanel.groupBox);
 
-  QObject::connect(
-    m_lightGroupPanel.addLightButton,
-    SIGNAL(clicked()),
-    this,
-    SLOT(addLight()));
+  QObject::connect(m_lightGroupPanel.addLightButton, SIGNAL(clicked()), this,
+                   SLOT(addLight()));
 }
-
 
 /*!
   @brief add light box
 */
-void Workspace::addLightBox() {
+void Shift::Workspace::addLightBox() {
   /* Group box for changing light color */
   m_lightPanel.groupBox = new QGroupBox;
   m_lightPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
@@ -701,8 +573,8 @@ void Workspace::addLightBox() {
   m_lightPanel.lightColorButton = new QPushButton();
   m_lightPanel.lightColorButton->setText("select color");
   m_lightPanel.lightTypeDropDown = new QComboBox();
-  m_lightPanel.lightTypeDropDown->addItems(
-    QStringList() << "point" << "directional");
+  m_lightPanel.lightTypeDropDown->addItems(QStringList() << "point"
+                                                         << "directional");
   QLabel* lightLabel = new QLabel("light type");
   lightColorLayout->addWidget(lightLabel, 2, 0, 0);
   lightColorLayout->addWidget(m_lightPanel.lightTypeDropDown, 3, 0, 1, 4, 0);
@@ -714,62 +586,48 @@ void Workspace::addLightBox() {
   lightColorLayout->addWidget(colorLabel, 4, 0, 0);
   m_lightPanel.lightColorDropDown = new QComboBox();
   // lightColorLayout->addWidget(NsLabel2, 2, 2, 0);
-  m_lightPanel.lightColorDropDown->addItems(
-    QStringList() << "ambient" << "diffuse" << "specular");
+  m_lightPanel.lightColorDropDown->addItems(QStringList() << "ambient"
+                                                          << "diffuse"
+                                                          << "specular");
   lightColorLayout->addWidget(m_lightPanel.lightColorDropDown, 5, 0, 1, 2, 0);
   lightColorLayout->addWidget(m_lightPanel.lightColorButton, 5, 2, 1, 2, 0);
 
   m_lightPanel.groupBox->setVisible(false);
   m_dynamicPanelLayout->addWidget(m_lightPanel.groupBox);
 
-  QObject::connect(
-    m_lightPanel.lightColorButton,
-    SIGNAL(clicked()),
-    this,
-    SLOT(lightColorSelector()));
+  QObject::connect(m_lightPanel.lightColorButton, SIGNAL(clicked()), this,
+                   SLOT(lightColorSelector()));
 
-  QObject::connect(
-    m_lightPanel.deleteLightButton,
-    SIGNAL(clicked()),
-    this,
-    SLOT(deleteLight()));
+  QObject::connect(m_lightPanel.deleteLightButton, SIGNAL(clicked()), this,
+                   SLOT(deleteLight()));
 
-  QObject::connect(
-    m_lightPanel.lightTypeDropDown,
-    SIGNAL(activated(int)),
-    this,
-    SLOT(updateCurrentLightType(int)));
-
+  QObject::connect(m_lightPanel.lightTypeDropDown, SIGNAL(activated(int)), this,
+                   SLOT(updateCurrentLightType(int)));
 }
-
 
 /*!
 @brief add box to display model parameters
 */
-void Workspace::addModelParametersBox() {
+void Shift::Workspace::addModelParametersBox() {
   m_modelParametersPanel.groupBox = new QGroupBox();
   m_modelParametersPanel.groupBox->setVisible(false);
   QGridLayout* modelParametersLayout =
     new QGridLayout(m_modelParametersPanel.groupBox);
 
   QLabel* integratorLabel = new QLabel("Integrator Type");
-  modelParametersLayout->addWidget(
-    integratorLabel, 0, 0, 0);
+  modelParametersLayout->addWidget(integratorLabel, 0, 0, 0);
   m_modelParametersPanel.integratorType = new QComboBox();
-  m_modelParametersPanel.integratorType->addItems(
-    QStringList() << "ode113" << "ode113b");
-  modelParametersLayout->addWidget(
-    m_modelParametersPanel.integratorType, 0, 1, 0);
+  m_modelParametersPanel.integratorType->addItems(QStringList() << "ode113"
+                                                                << "ode113b");
+  modelParametersLayout->addWidget(m_modelParametersPanel.integratorType, 0, 1,
+                                   0);
 
-  QObject::connect(
-    m_modelParametersPanel.integratorType,
-    SIGNAL(currentIndexChanged(int)),
-    this,
-    SLOT(setIntegratorType(int)));
+  QObject::connect(m_modelParametersPanel.integratorType,
+                   SIGNAL(currentIndexChanged(int)), this,
+                   SLOT(setIntegratorType(int)));
 
   QLabel* timeSpanLabel = new QLabel("Time Span");
-  modelParametersLayout->addWidget(
-    timeSpanLabel, 1, 0, 0);
+  modelParametersLayout->addWidget(timeSpanLabel, 1, 0, 0);
   m_modelParametersPanel.timeSpan = new QDoubleSpinBox();
   m_modelParametersPanel.timeSpan->setValue(0);
   m_modelParametersPanel.timeSpan->setDecimals(4);
@@ -777,17 +635,13 @@ void Workspace::addModelParametersBox() {
   m_modelParametersPanel.timeSpan->setMaximum(10000000);
   m_modelParametersPanel.timeSpan->setKeyboardTracking(false);
   m_modelParametersPanel.timeSpan->setSingleStep(0.01);
-  modelParametersLayout->addWidget(
-    m_modelParametersPanel.timeSpan, 1, 1, 0);
-  QObject::connect(
-    m_modelParametersPanel.timeSpan,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setTimeSpan(double)));
+  modelParametersLayout->addWidget(m_modelParametersPanel.timeSpan, 1, 1, 0);
+  QObject::connect(m_modelParametersPanel.timeSpan,
+                   SIGNAL(valueChanged(double)), this,
+                   SLOT(setTimeSpan(double)));
 
   QLabel* timeStepLabel = new QLabel("Time Step");
-  modelParametersLayout->addWidget(
-    timeStepLabel, 2, 0, 0);
+  modelParametersLayout->addWidget(timeStepLabel, 2, 0, 0);
   m_modelParametersPanel.timeStep = new QDoubleSpinBox();
   m_modelParametersPanel.timeStep->setValue(0);
   m_modelParametersPanel.timeStep->setDecimals(4);
@@ -795,17 +649,13 @@ void Workspace::addModelParametersBox() {
   m_modelParametersPanel.timeStep->setMaximum(10);
   m_modelParametersPanel.timeStep->setKeyboardTracking(false);
   m_modelParametersPanel.timeStep->setSingleStep(0.001);
-  modelParametersLayout->addWidget(
-    m_modelParametersPanel.timeStep, 2, 1, 0);
-  QObject::connect(
-    m_modelParametersPanel.timeStep,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setTimeStep(double)));
+  modelParametersLayout->addWidget(m_modelParametersPanel.timeStep, 2, 1, 0);
+  QObject::connect(m_modelParametersPanel.timeStep,
+                   SIGNAL(valueChanged(double)), this,
+                   SLOT(setTimeStep(double)));
 
   QLabel* relativeErrorLabel = new QLabel("Relative Error");
-  modelParametersLayout->addWidget(
-    relativeErrorLabel, 3, 0, 0);
+  modelParametersLayout->addWidget(relativeErrorLabel, 3, 0, 0);
   m_modelParametersPanel.relativeError = new QDoubleSpinBox();
   m_modelParametersPanel.relativeError->setValue(0);
   m_modelParametersPanel.relativeError->setDecimals(12);
@@ -813,17 +663,14 @@ void Workspace::addModelParametersBox() {
   m_modelParametersPanel.relativeError->setMaximum(1);
   m_modelParametersPanel.relativeError->setKeyboardTracking(false);
   m_modelParametersPanel.relativeError->setSingleStep(0.000000001);
-  modelParametersLayout->addWidget(
-    m_modelParametersPanel.relativeError, 3, 1, 0);
-  QObject::connect(
-    m_modelParametersPanel.relativeError,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setRelativeError(double)));
+  modelParametersLayout->addWidget(m_modelParametersPanel.relativeError, 3, 1,
+                                   0);
+  QObject::connect(m_modelParametersPanel.relativeError,
+                   SIGNAL(valueChanged(double)), this,
+                   SLOT(setRelativeError(double)));
 
   QLabel* absoluteErrorLabel = new QLabel("Absolute Error");
-  modelParametersLayout->addWidget(
-    absoluteErrorLabel, 4, 0, 0);
+  modelParametersLayout->addWidget(absoluteErrorLabel, 4, 0, 0);
   m_modelParametersPanel.absoluteError = new QDoubleSpinBox();
   m_modelParametersPanel.absoluteError->setValue(0);
   m_modelParametersPanel.absoluteError->setDecimals(12);
@@ -831,17 +678,14 @@ void Workspace::addModelParametersBox() {
   m_modelParametersPanel.absoluteError->setMaximum(1);
   m_modelParametersPanel.absoluteError->setKeyboardTracking(false);
   m_modelParametersPanel.absoluteError->setSingleStep(0.000000001);
-  modelParametersLayout->addWidget(
-    m_modelParametersPanel.absoluteError, 4, 1, 0);
-  QObject::connect(
-    m_modelParametersPanel.absoluteError,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setAbsoluteError(double)));
+  modelParametersLayout->addWidget(m_modelParametersPanel.absoluteError, 4, 1,
+                                   0);
+  QObject::connect(m_modelParametersPanel.absoluteError,
+                   SIGNAL(valueChanged(double)), this,
+                   SLOT(setAbsoluteError(double)));
 
   QLabel* omegaNLabel = new QLabel("\u03C9<sub>n</sub>");
-  modelParametersLayout->addWidget(
-    omegaNLabel, 5, 0, 0);
+  modelParametersLayout->addWidget(omegaNLabel, 5, 0, 0);
   m_modelParametersPanel.omegaN = new QDoubleSpinBox();
   m_modelParametersPanel.omegaN->setValue(0);
   m_modelParametersPanel.omegaN->setDecimals(4);
@@ -849,36 +693,24 @@ void Workspace::addModelParametersBox() {
   m_modelParametersPanel.omegaN->setMaximum(1000);
   m_modelParametersPanel.omegaN->setKeyboardTracking(false);
   m_modelParametersPanel.omegaN->setSingleStep(0.01);
-  modelParametersLayout->addWidget(
-    m_modelParametersPanel.omegaN, 5, 1, 0);
-  QObject::connect(
-    m_modelParametersPanel.omegaN,
-    SIGNAL(valueChanged(double)),
-    this,
-    SLOT(setOmegaN(double)));
+  modelParametersLayout->addWidget(m_modelParametersPanel.omegaN, 5, 1, 0);
+  QObject::connect(m_modelParametersPanel.omegaN, SIGNAL(valueChanged(double)),
+                   this, SLOT(setOmegaN(double)));
 
   QPushButton* runButton = new QPushButton("&Run", this);
   modelParametersLayout->addWidget(runButton, 6, 0, 1, 2);
-  QObject::connect(
-    runButton,
-    SIGNAL(clicked()),
-    this,
-    SLOT(runSimulation()));
+  QObject::connect(runButton, SIGNAL(clicked()), this, SLOT(runSimulation()));
 
   QShortcut* runShortcut =
     new QShortcut(QKeySequence(tr("Ctrl+R", "Run")), this);
-  QObject::connect(
-    runShortcut,
-    SIGNAL(activated()),
-    this,
-    SLOT(runSimulation()));
+  QObject::connect(runShortcut, SIGNAL(activated()), this,
+                   SLOT(runSimulation()));
 }
-
 
 /*!
 @brief initialize left panel
 */
-void Workspace::initializeLeftPanel() {
+void Shift::Workspace::initializeLeftPanel() {
   m_tabwidget = new MyTabWidget();
   m_tabwidget->setContentsMargins(QMargins(0, 0, 0, 0));
 
@@ -906,11 +738,12 @@ void Workspace::initializeLeftPanel() {
   m_treeWidget->setIconSize(QSize(24, 24));
   m_treeWidget->setAlternatingRowColors(true);
   m_treeWidget->setColumnCount(3);
-  m_treeWidget->setEditTriggers(
-    QAbstractItemView::SelectedClicked |
-    QAbstractItemView::DoubleClicked);
-  m_treeWidget->setHeaderLabels(
-    QStringList() << "" << "" << "value" << "mobility");
+  m_treeWidget->setEditTriggers(QAbstractItemView::SelectedClicked |
+                                QAbstractItemView::DoubleClicked);
+  m_treeWidget->setHeaderLabels(QStringList() << ""
+                                              << ""
+                                              << "value"
+                                              << "mobility");
   m_treeWidget->resizeColumnToContents(1);
   m_treeWidget->setColumnWidth(0, 250);
   scenePanelSplitter->addWidget(m_treeWidget);
@@ -972,11 +805,10 @@ void Workspace::initializeLeftPanel() {
   motionPanelSplitter->addWidget(motionSubBox);
 }
 
-
 /*! @brief initialize layout
 
 */
-void Workspace::initializeLayout() {
+void Shift::Workspace::initializeLayout() {
   /* main window and layout */
   QGroupBox* mainBox = new QGroupBox;
 
@@ -1005,7 +837,6 @@ void Workspace::initializeLayout() {
   glwidget->setMinimumHeight(200);
   glwidget->setMinimumWidth(200);
 
-
   QSizePolicy policy = glwidget->sizePolicy();
   policy.setHorizontalStretch(3);
   glwidget->setSizePolicy(policy);
@@ -1013,7 +844,6 @@ void Workspace::initializeLayout() {
   glwidget->setContentsMargins(QMargins(0, 0, 0, 0));
 
   rightPanelLayout->addWidget(glwidget);
-
 
   /* initialize splitter and tab layout */
 
@@ -1050,11 +880,8 @@ void Workspace::initializeLayout() {
   m_playbackPanel.playPauseButton = new QPushButton();
   m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.playIcon);
 
-  QObject::connect(
-    m_playbackPanel.playPauseButton,
-    SIGNAL(clicked()),
-    this,
-    SLOT(playPauseSimulation()));
+  QObject::connect(m_playbackPanel.playPauseButton, SIGNAL(clicked()), this,
+                   SLOT(playPauseSimulation()));
 
   playbackLayout->addWidget(m_playbackPanel.playPauseButton, 0, 0);
 
@@ -1062,11 +889,8 @@ void Workspace::initializeLayout() {
   m_playbackPanel.singleStep = 100;
   m_playbackPanel.slider->setTickPosition(QSlider::NoTicks);
   m_playbackPanel.slider->setSingleStep(m_playbackPanel.singleStep);
-  QObject::connect(
-    m_playbackPanel.slider,
-    SIGNAL(valueChanged(int)),
-    this,
-    SLOT(interpModel(int)));
+  QObject::connect(m_playbackPanel.slider, SIGNAL(valueChanged(int)), this,
+                   SLOT(interpModel(int)));
 
   playbackLayout->addWidget(m_playbackPanel.slider, 0, 1);
   m_notificationPanelLayout->addWidget(m_playbackPanel.groupBox, 0, 2);
@@ -1099,103 +923,60 @@ void Workspace::initializeLayout() {
 
   // QObject::connect(backgroundColorButton, SIGNAL(clicked()),
   //                  this, SLOT(backgroundColorSelector() ) );
-  QObject::connect(
-    m_renderWindow,
-    SIGNAL(mouseMove()),
-    this,
-    SLOT(updateCursorPositionText()));
+  QObject::connect(m_renderWindow, SIGNAL(mouseMove()), this,
+                   SLOT(updateCursorPositionText()));
 
-  QObject::connect(
-    m_renderWindow,
-    SIGNAL(mouseOut()),
-    this,
-    SLOT(clearCursorPositionText()));
+  QObject::connect(m_renderWindow, SIGNAL(mouseOut()), this,
+                   SLOT(clearCursorPositionText()));
 
   /* qtreewidget actions */
-  QObject::connect(
-    m_treeWidget,
-    SIGNAL(itemSelectionChanged()),
-    this,
-    SLOT(getSelectedTreeItem()));
+  QObject::connect(m_treeWidget, SIGNAL(itemSelectionChanged()), this,
+                   SLOT(getSelectedTreeItem()));
 
-  QObject::connect(
-    m_treeWidget,
-    SIGNAL(itemClicked(QTreeWidgetItem*, int)),
-    this,
-    SLOT(toggleVisibility(QTreeWidgetItem*, int)));
+  QObject::connect(m_treeWidget, SIGNAL(itemClicked(QTreeWidgetItem*, int)),
+                   this, SLOT(toggleVisibility(QTreeWidgetItem*, int)));
 
   /* update opengl widget on window resize */
-  QObject::connect(
-    this,
-    SIGNAL(windowResized()),
-    m_renderWindow,
-    SLOT(updateGL()));
+  QObject::connect(this, SIGNAL(windowResized()), m_renderWindow,
+                   SLOT(updateGL()));
 
-  QObject::connect(
-    mainSplitter,
-    SIGNAL(splitterMoved(int, int)),
-    m_renderWindow,
-    SLOT(updateGL()));
+  QObject::connect(mainSplitter, SIGNAL(splitterMoved(int, int)),
+                   m_renderWindow, SLOT(updateGL()));
 
-  s2_Joints* joints = m_renderWindow->getJoints();
-  QObject::connect(
-    joints,
-    SIGNAL(jointChanged()),
-    this,
-    SLOT(updateTree()));
+  Joints* joints = m_renderWindow->getJoints();
+  QObject::connect(joints, SIGNAL(jointChanged()), this, SLOT(updateTree()));
 
-  QObject::connect(
-    joints,
-    SIGNAL(jointChanged()),
-    this,
-    SLOT(updateH()));
+  QObject::connect(joints, SIGNAL(jointChanged()), this, SLOT(updateH()));
 
-  QObject::connect(
-    m_renderWindow,
-    SIGNAL(simulationUpdated(double)),
-    this,
-    SLOT(updateSimulationTimer(double)));
+  QObject::connect(m_renderWindow, SIGNAL(simulationUpdated(double)), this,
+                   SLOT(updateSimulationTimer(double)));
 
-  QObject::connect(
-    m_renderWindow,
-    SIGNAL(simulationStopped()),
-    this,
-    SLOT(setPlaybackPaused()));
+  QObject::connect(m_renderWindow, SIGNAL(simulationStopped()), this,
+                   SLOT(setPlaybackPaused()));
 
-  QObject::connect(
-    m_renderWindow,
-    SIGNAL(initialized()),
-    this,
-    SLOT(openFileAtLoad()));
-
+  QObject::connect(m_renderWindow, SIGNAL(initialized()), this,
+                   SLOT(openFileAtLoad()));
 }
-
 
 /*!
 
 */
-void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
+void Shift::Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
   if(column == 1) {
     MyTreeItem* currentItem =
       static_cast<MyTreeItem*>(m_treeWidget->currentItem());
     switch(currentItem->m_userType) {
       case 1002: {
         /* assembly */
-        s2_assembly_t* assembly =
-          (s2_assembly_t*)(currentItem->m_object);
-      }
-      break;
+        s2_assembly_t* assembly = (s2_assembly_t*)(currentItem->m_object);
+      } break;
       case 1003: {
         /* body folder */
-        s2_assembly_t* assembly =
-          (s2_assembly_t*)(currentItem->m_object);
-        for(
-          s2_body_t* bodyHead = assembly->bodyHead;
-          bodyHead;
-          bodyHead = bodyHead->next) {
+        s2_assembly_t* assembly = (s2_assembly_t*)(currentItem->m_object);
+        for(s2_body_t* bodyHead = assembly->bodyHead; bodyHead;
+            bodyHead = bodyHead->next) {
 
           bodyHead->isVisible = !bodyHead->isVisible;
-
         }
         for(int i = 0; i < item->childCount(); ++i) {
           MyTreeItem* child = static_cast<MyTreeItem*>(item->child(i));
@@ -1207,33 +988,25 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
             item->setIcon(1, QIcon(":/icons/invisible.png"));
           }
         }
-      }
-      break;
+      } break;
       case 1004: {
         /* body */
         s2_body_t* body = (s2_body_t*)(currentItem->m_object);
         body->isVisible = !body->isVisible;
-        updateItemDrawState(
-          currentItem,
-          body->isVisible,
-          m_renderWindow->getBodies()->isEnabled());
-      }
-      break;
+        updateItemDrawState(currentItem, body->isVisible,
+                            m_renderWindow->getBodies()->isEnabled());
+      } break;
       case 1005: {
         /* frame */
         s2_frame_t* frame = (s2_frame_t*)(currentItem->m_object);
         qDebug() << "toggling visibility of frame";
         s2_stackstr_print(stdout, frame->name);
         frame->isVisible = !frame->isVisible;
-        updateItemDrawState(
-          currentItem,
-          frame->isVisible,
-          m_renderWindow->getFrames()->isEnabled());
-      }
-      break;
+        updateItemDrawState(currentItem, frame->isVisible,
+                            m_renderWindow->getFrames()->isEnabled());
+      } break;
       case 1006: {
         /* joint folder */
-
 
       } break;
       case 1007: {
@@ -1242,12 +1015,9 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
         qDebug() << "toggling visibility of frame";
         s2_stackstr_print(stdout, joint->name);
         joint->isVisible = !joint->isVisible;
-        updateItemDrawState(
-          currentItem,
-          joint->isVisible,
-          m_renderWindow->getJoints()->isEnabled());
-      }
-      break;
+        updateItemDrawState(currentItem, joint->isVisible,
+                            m_renderWindow->getJoints()->isEnabled());
+      } break;
       case 1008: {
         /* light folder */
 
@@ -1279,12 +1049,9 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
         /* terrain */
         s2_terrain_t* terrain = (s2_terrain_t*)(currentItem->m_object);
         terrain->isVisible = !terrain->isVisible;
-        updateItemDrawState(
-          currentItem,
-          terrain->isVisible,
-          m_renderWindow->getTerrain()->isEnabled());
-      }
-      break;
+        updateItemDrawState(currentItem, terrain->isVisible,
+                            m_renderWindow->getTerrain()->isEnabled());
+      } break;
       case 1016: {
         /* point cloud folder */
       } break;
@@ -1292,27 +1059,19 @@ void Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
         /* point cloud */
         s2_pointcloud_t* pointcloud = (s2_pointcloud_t*)(currentItem->m_object);
         pointcloud->isVisible = !pointcloud->isVisible;
-        updateItemDrawState(
-          currentItem,
-          pointcloud->isVisible,
-          m_renderWindow->getPointClouds()->isEnabled());
-      }
-      break;
-
-
-      default: {
-
+        updateItemDrawState(currentItem, pointcloud->isVisible,
+                            m_renderWindow->getPointClouds()->isEnabled());
       } break;
-    }
+
+      default: { } break; }
   }
 }
 
-void Workspace::resizeEvent(QResizeEvent* event) {
+void Shift::Workspace::resizeEvent(QResizeEvent* event) {
   m_renderWindow->updateGL();
 }
 
-
-void Workspace::initializeMenus() {
+void Shift::Workspace::initializeMenus() {
 
   setWindowTitle("Shift");
   QMenu* fileMenu = menuBar()->addMenu("&File");
@@ -1388,22 +1147,19 @@ void Workspace::initializeMenus() {
   // actionToggleVertexNormals->setCheckable(true);
   // actionToggleVertexNormals->setChecked(false);
 
-  QAction* m_actionToggleDrawFrames =
-    new QAction("Frames", this);
+  QAction* m_actionToggleDrawFrames = new QAction("Frames", this);
   viewMenu->addAction(m_actionToggleDrawFrames);
   m_actionToggleDrawFrames->setIcon(QIcon(":/icons/frame.png"));
   m_actionToggleDrawFrames->setCheckable(true);
   m_actionToggleDrawFrames->setChecked(false);
 
-  QAction* m_actionToggleDrawJoints =
-    new QAction("Joints", this);
+  QAction* m_actionToggleDrawJoints = new QAction("Joints", this);
   viewMenu->addAction(m_actionToggleDrawJoints);
   m_actionToggleDrawJoints->setIcon(QIcon(":/icons/joint.png"));
   m_actionToggleDrawJoints->setCheckable(true);
   m_actionToggleDrawJoints->setChecked(false);
 
-  m_actionToggleDrawTerrain =
-    new QAction("Terrain", this);
+  m_actionToggleDrawTerrain = new QAction("Terrain", this);
   viewMenu->addAction(m_actionToggleDrawTerrain);
   m_actionToggleDrawTerrain->setIcon(QIcon(":/icons/terrain.png"));
   m_actionToggleDrawTerrain->setCheckable(true);
@@ -1415,22 +1171,19 @@ void Workspace::initializeMenus() {
   m_actionToggleDrawGrid->setCheckable(true);
   m_actionToggleDrawGrid->setChecked(true);
 
-  m_actionToggleDrawShadows =
-    new QAction("Shadows", this);
+  m_actionToggleDrawShadows = new QAction("Shadows", this);
   viewMenu->addAction(m_actionToggleDrawShadows);
   m_actionToggleDrawShadows->setIcon(QIcon(":/icons/shadow.png"));
   m_actionToggleDrawShadows->setCheckable(true);
   m_actionToggleDrawShadows->setChecked(true);
 
-  m_actionToggleDrawConvexHulls =
-    new QAction("Collision Geometry", this);
+  m_actionToggleDrawConvexHulls = new QAction("Collision Geometry", this);
   viewMenu->addAction(m_actionToggleDrawConvexHulls);
   m_actionToggleDrawConvexHulls->setIcon(QIcon(":/icons/convexhull.png"));
   m_actionToggleDrawConvexHulls->setCheckable(true);
   m_actionToggleDrawConvexHulls->setChecked(false);
 
-  m_actionToggleDrawNormals =
-    new QAction("Normals", this);
+  m_actionToggleDrawNormals = new QAction("Normals", this);
   viewMenu->addAction(m_actionToggleDrawNormals);
   m_actionToggleDrawNormals->setIcon(QIcon(":/icons/normal.png"));
   m_actionToggleDrawNormals->setCheckable(true);
@@ -1458,102 +1211,53 @@ void Workspace::initializeMenus() {
   QObject::connect(actionQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
 
   /* view menu actions */
-  QObject::connect(
-    actionSetPerspective,
-    SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(setPerspective()));
+  QObject::connect(actionSetPerspective, SIGNAL(triggered()), m_renderWindow,
+                   SLOT(setPerspective()));
 
-  QObject::connect(
-    actionSetOrthogonal,
-    SIGNAL(triggered()),
-    m_renderWindow,
-    SLOT(setOrthogonal()));
+  QObject::connect(actionSetOrthogonal, SIGNAL(triggered()), m_renderWindow,
+                   SLOT(setOrthogonal()));
 
-  QObject::connect(
-    actionSetWireframe,
-    SIGNAL(triggered()),
-    m_renderWindow->getBodies(),
-    SLOT(setWireframe()));
+  QObject::connect(actionSetWireframe, SIGNAL(triggered()),
+                   m_renderWindow->getBodies(), SLOT(setWireframe()));
 
-  QObject::connect(
-    actionSetFlatShaded,
-    SIGNAL(triggered()),
-    m_renderWindow->getBodies(),
-    SLOT(setFlatShaded()));
+  QObject::connect(actionSetFlatShaded, SIGNAL(triggered()),
+                   m_renderWindow->getBodies(), SLOT(setFlatShaded()));
 
-  QObject::connect(
-    actionSetPhongShaded,
-    SIGNAL(triggered()),
-    m_renderWindow->getBodies(),
-    SLOT(setPhongShaded()));
+  QObject::connect(actionSetPhongShaded, SIGNAL(triggered()),
+                   m_renderWindow->getBodies(), SLOT(setPhongShaded()));
 
-  QObject::connect(
-    m_actionToggleDrawFrames,
-    SIGNAL(triggered()),
-    m_renderWindow->getFrames(),
-    SLOT(toggleDraw()));
+  QObject::connect(m_actionToggleDrawFrames, SIGNAL(triggered()),
+                   m_renderWindow->getFrames(), SLOT(toggleDraw()));
 
-  QObject::connect(
-    m_actionToggleDrawFrames,
-    SIGNAL(triggered()),
-    this,
-    SLOT(updateDrawState()));
+  QObject::connect(m_actionToggleDrawFrames, SIGNAL(triggered()), this,
+                   SLOT(updateDrawState()));
 
-  QObject::connect(
-    m_actionToggleDrawJoints,
-    SIGNAL(triggered()),
-    m_renderWindow->getJoints(),
-    SLOT(toggleDraw()));
+  QObject::connect(m_actionToggleDrawJoints, SIGNAL(triggered()),
+                   m_renderWindow->getJoints(), SLOT(toggleDraw()));
 
-  QObject::connect(
-    m_actionToggleDrawJoints,
-    SIGNAL(triggered()),
-    this,
-    SLOT(updateDrawState()));
+  QObject::connect(m_actionToggleDrawJoints, SIGNAL(triggered()), this,
+                   SLOT(updateDrawState()));
 
-  QObject::connect(
-    m_actionToggleDrawTerrain,
-    SIGNAL(triggered()),
-    m_renderWindow->getTerrain(),
-    SLOT(toggleDraw()));
+  QObject::connect(m_actionToggleDrawTerrain, SIGNAL(triggered()),
+                   m_renderWindow->getTerrain(), SLOT(toggleDraw()));
 
-  QObject::connect(
-    m_actionToggleDrawTerrain,
-    SIGNAL(triggered()),
-    this,
-    SLOT(updateDrawState()));
+  QObject::connect(m_actionToggleDrawTerrain, SIGNAL(triggered()), this,
+                   SLOT(updateDrawState()));
 
-  QObject::connect(
-    m_actionToggleDrawGrid,
-    SIGNAL(triggered()),
-    m_renderWindow->getGrid(),
-    SLOT(toggleDraw()));
+  QObject::connect(m_actionToggleDrawGrid, SIGNAL(triggered()),
+                   m_renderWindow->getGrid(), SLOT(toggleDraw()));
 
-  QObject::connect(
-    m_actionToggleDrawGrid,
-    SIGNAL(triggered()),
-    this,
-    SLOT(updateDrawState()));
+  QObject::connect(m_actionToggleDrawGrid, SIGNAL(triggered()), this,
+                   SLOT(updateDrawState()));
 
-  QObject::connect(
-    m_actionToggleDrawShadows,
-    SIGNAL(triggered()),
-    m_renderWindow->getLights(),
-    SLOT(toggleDraw()));
+  QObject::connect(m_actionToggleDrawShadows, SIGNAL(triggered()),
+                   m_renderWindow->getLights(), SLOT(toggleDraw()));
 
-  QObject::connect(
-    m_actionToggleDrawConvexHulls,
-    SIGNAL(triggered()),
-    m_renderWindow->getBodies(),
-    SLOT(toggleDrawConvexHulls()));
+  QObject::connect(m_actionToggleDrawConvexHulls, SIGNAL(triggered()),
+                   m_renderWindow->getBodies(), SLOT(toggleDrawConvexHulls()));
 
-
-  QObject::connect(
-    m_actionToggleDrawNormals,
-    SIGNAL(triggered()),
-    m_renderWindow->getBodies(),
-    SLOT(toggleDrawNormals()));
+  QObject::connect(m_actionToggleDrawNormals, SIGNAL(triggered()),
+                   m_renderWindow->getBodies(), SLOT(toggleDrawNormals()));
 
   // QObject::connect(
   //   m_actionToggleDrawBoundingSpheres,
@@ -1561,12 +1265,8 @@ void Workspace::initializeMenus() {
   //   m_renderWindow->getBodies(),
   //   SLOT(toggleDrawBoundingSpheres()));
 
-  QObject::connect(
-    m_actionToggleDrawConvexHulls,
-    SIGNAL(triggered()),
-    this,
-    SLOT(updateDrawState()));
-
+  QObject::connect(m_actionToggleDrawConvexHulls, SIGNAL(triggered()), this,
+                   SLOT(updateDrawState()));
 
   /*
     help menu actions
@@ -1574,7 +1274,6 @@ void Workspace::initializeMenus() {
   QObject::connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
   QObject::connect(actionLicense, SIGNAL(triggered()), this, SLOT(license()));
 }
-
 
 /*!
   @brief add a light to assembly
@@ -1594,7 +1293,7 @@ void Workspace::initializeMenus() {
 
   should be accessible only from "light group" pane (1008)
 */
-void Workspace::addLight() {
+void Shift::Workspace::addLight() {
   if(m_currentSelectedItem->m_userType == 1008) {
     // create and initialize new light
     // Light * light = new Light();
@@ -1642,22 +1341,20 @@ void Workspace::addLight() {
   }
 }
 
-
 /*!
   @brief delete light from assembly
 
   should only be accessible from "light" pane (1009)
 */
-void Workspace::deleteLight() {
+void Shift::Workspace::deleteLight() {
 
-  if(m_currentSelectedItem->m_userType ==  1009) {
+  if(m_currentSelectedItem->m_userType == 1009) {
 
     //     RenderWindow* renWin = glwidget->GetRenderWindow();
     //     renWin->updateLights( lightArray );
     //     populateTree();
   }
 }
-
 
 /*!
   @brief update specular highlight for material
@@ -1677,14 +1374,13 @@ void Workspace::deleteLight() {
 
   should only be accessible from "body" pane (1004)
 */
-void Workspace::updateMaterialNs(double Ns) {
+void Shift::Workspace::updateMaterialNs(double Ns) {
   if(m_currentSelectedItem->m_userType == 1004) {
     // Model* currentModel = static_cast<Model*>(m_currentSelectedItem->object);
     // get current selected material
     // currentModel->materials[materialDropDown->currentIndex()].Ns = Ns;
   }
 }
-
 
 /*!
   @brief update current light type
@@ -1707,7 +1403,7 @@ void Workspace::updateMaterialNs(double Ns) {
 
   should only be accessible from "light" pane (1009)
 */
-void Workspace::updateCurrentLightType(int lightType) {
+void Shift::Workspace::updateCurrentLightType(int lightType) {
   if(m_currentSelectedItem->m_userType == 1009) {
     s2_light_t* light = (s2_light_t*)m_currentSelectedItem->m_object;
 
@@ -1716,7 +1412,6 @@ void Workspace::updateCurrentLightType(int lightType) {
     //     renWin->updateLights( lightArray );
   }
 }
-
 
 /*!
   @brief update transform of shape matrices
@@ -1734,9 +1429,10 @@ void Workspace::updateCurrentLightType(int lightType) {
   * 1012: io group
   * 1013: io
 
-  should only be accessible from panes: "frame" (1005) and "joint" (1007 -- for rigid joints only)
+  should only be accessible from panes: "frame" (1005) and "joint" (1007 -- for
+  rigid joints only)
 */
-void Workspace::updateTransform() {
+void Shift::Workspace::updateTransform() {
   if(m_currentSelectedItem->m_userType == 1005) {
 
     s2_frame_t* frame = (s2_frame_t*)m_currentSelectedItem->m_object;
@@ -1749,52 +1445,50 @@ void Workspace::updateTransform() {
 
   } else if(m_currentSelectedItem->m_userType == 1007) {
     s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-
   }
 }
 
 /*!
   @brief recenters Tx slider with current value of m_currentValue
 */
-void Workspace::recenterTx() {
+void Shift::Workspace::recenterTx() {
   recenterSlider(&m_sliders.tx);
 }
 
 /*!
   @brief recenters Tx slider with current value of m_currentValue
 */
-void Workspace::recenterTy() {
+void Shift::Workspace::recenterTy() {
   recenterSlider(&m_sliders.ty);
 }
 
 /*!
   @brief recenters Tx slider with current value of m_currentValue
 */
-void Workspace::recenterTz() {
+void Shift::Workspace::recenterTz() {
   recenterSlider(&m_sliders.tz);
 }
 
 /*!
   @brief recenters Tx slider with current value of m_currentValue
 */
-void Workspace::recenterRx() {
+void Shift::Workspace::recenterRx() {
   recenterSlider(&m_sliders.rx);
 }
 
 /*!
   @brief recenters Tx slider with current value of m_currentValue
 */
-void Workspace::recenterRy() {
+void Shift::Workspace::recenterRy() {
   recenterSlider(&m_sliders.ry);
 }
 
 /*!
   @brief recenters Tx slider with current value of m_currentValue
 */
-void Workspace::recenterRz() {
+void Shift::Workspace::recenterRz() {
   recenterSlider(&m_sliders.rz);
 }
-
 
 /*!
   @brief updates Tx for prismatic joints, spherical joints and float joints
@@ -1814,7 +1508,7 @@ void Workspace::recenterRz() {
     * 1013: io
 
 */
-void Workspace::setTx(int val) {
+void Shift::Workspace::setTx(int val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -1824,18 +1518,14 @@ void Workspace::setTx(int val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
 
       double delq = (double)val * m_sliders.tx.singleStep;
 
       // qDebug() << delq;
 
-      m_renderWindow->setJoint(
-        joint,
-        joint->qIndex,
-        joint->dqIndex,
-        delq,
-        S2_JOINT_PRIMITIVE);
+      m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                               S2_JOINT_PRIMITIVE);
       m_sliders.tx.spinBox->blockSignals(true);
       m_sliders.tx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
       m_sliders.tx.spinBox->blockSignals(false);
@@ -1843,7 +1533,6 @@ void Workspace::setTx(int val) {
     emit txChanged(0);
   }
 }
-
 
 /*!
   @brief updates Ty for prismatic joints, spherical joints and float joints
@@ -1863,7 +1552,7 @@ void Workspace::setTx(int val) {
     * 1013: io
 
 */
-void Workspace::setTy(int val) {
+void Shift::Workspace::setTy(int val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -1873,7 +1562,7 @@ void Workspace::setTy(int val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
 
       int qIndex = -1;
       int dqIndex = -1;
@@ -1881,13 +1570,11 @@ void Workspace::setTy(int val) {
         case S2_JOINT_FLOAT: {
           qIndex = joint->qIndex + 1;
           dqIndex = joint->dqIndex + 1;
-        }
-        break;
+        } break;
         default: {
           qIndex = joint->qIndex;
           dqIndex = joint->dqIndex;
-        }
-        break;
+        } break;
       }
 
       double delq = (double)val * m_sliders.ty.singleStep;
@@ -1895,23 +1582,18 @@ void Workspace::setTy(int val) {
       m_sliders.ty.spinBox->setValue(m_context->q[qIndex] + delq);
       m_sliders.ty.spinBox->blockSignals(false);
 
-      m_renderWindow->setJoint(
-        joint,
-        qIndex,
-        dqIndex,
-        delq,
-        S2_JOINT_PRIMITIVE);
+      m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
+                               S2_JOINT_PRIMITIVE);
     }
     emit tyChanged(0);
   }
 }
 
-
 /*!
   @brief updates Tz for prismatic joints, spherical joints and float joints
   also used to update shape matrices
 */
-void Workspace::setTz(int val) {
+void Shift::Workspace::setTz(int val) {
   if(m_currentSelectedItem != NULL) {
     switch(m_currentSelectedItem->m_userType) {
       case S2_MODELTREE_FRAME: {
@@ -1926,35 +1608,26 @@ void Workspace::setTz(int val) {
           case S2_JOINT_FLOAT: {
             qIndex = joint->qIndex + 2;
             dqIndex = joint->dqIndex + 2;
-          }
-          break;
+          } break;
           default: {
             qIndex = joint->qIndex;
             dqIndex = joint->dqIndex;
-          }
-          break;
+          } break;
         }
         double delq = (double)val * m_sliders.tz.singleStep;
         m_sliders.tz.spinBox->blockSignals(true);
         m_sliders.tz.spinBox->setValue(m_context->q[qIndex] + delq);
         m_sliders.tz.spinBox->blockSignals(false);
 
-        m_renderWindow->setJoint(
-          joint,
-          qIndex,
-          dqIndex,
-          delq,
-          S2_JOINT_PRIMITIVE);
+        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
+                                 S2_JOINT_PRIMITIVE);
         break;
       }
-      default: {
-        break;
-      }
+      default: { break; }
     }
     emit tzChanged(0);
   }
 }
-
 
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
@@ -1973,7 +1646,7 @@ void Workspace::setTz(int val) {
     * 1012: io group
     * 1013: io
 */
-void Workspace::setRx(int val) {
+void Shift::Workspace::setRx(int val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -1983,53 +1656,37 @@ void Workspace::setRx(int val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
       double delq = (double)val * m_sliders.rx.singleStep;
       switch(joint->jointType) {
         case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            delq,
-            S2_JOINT_SPHERICAL);
+          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                   S2_JOINT_SPHERICAL);
           m_sliders.rx.spinBox->blockSignals(true);
           m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
           m_sliders.rx.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
         case S2_JOINT_FLOAT: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            delq,
-            S2_JOINT_SPHERICAL);
+          m_renderWindow->setJoint(joint, joint->qIndex + 3, joint->dqIndex + 3,
+                                   delq, S2_JOINT_SPHERICAL);
           m_sliders.rx.spinBox->blockSignals(true);
-          m_sliders.rx.spinBox->setValue(
-            m_context->q[joint->qIndex + 3] + delq);
+          m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex + 3] +
+                                         delq);
           m_sliders.rx.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
         default: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            delq,
-            S2_JOINT_PRIMITIVE);
+          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                   S2_JOINT_PRIMITIVE);
           m_sliders.rx.spinBox->blockSignals(true);
           m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
           m_sliders.rx.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
       }
     }
     emit rxChanged(0);
   }
 }
 
-
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
@@ -2047,7 +1704,7 @@ void Workspace::setRx(int val) {
     * 1012: io group
     * 1013: io
 */
-void Workspace::setRy(int val) {
+void Shift::Workspace::setRy(int val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2057,53 +1714,37 @@ void Workspace::setRy(int val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
       double delq = (double)val * m_sliders.ry.singleStep;
       switch(joint->jointType) {
         case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            delq,
-            S2_JOINT_SPHERICAL);
+          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                   S2_JOINT_SPHERICAL);
           m_sliders.ry.spinBox->blockSignals(true);
           m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
           m_sliders.ry.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
         case S2_JOINT_FLOAT: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            delq,
-            S2_JOINT_SPHERICAL);
+          m_renderWindow->setJoint(joint, joint->qIndex + 3, joint->dqIndex + 3,
+                                   delq, S2_JOINT_SPHERICAL);
           m_sliders.ry.spinBox->blockSignals(true);
-          m_sliders.ry.spinBox->setValue(
-            m_context->q[joint->qIndex + 3] + delq);
+          m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex + 3] +
+                                         delq);
           m_sliders.ry.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
         default: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            delq,
-            S2_JOINT_PRIMITIVE);
+          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                   S2_JOINT_PRIMITIVE);
           m_sliders.ry.spinBox->blockSignals(true);
           m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
           m_sliders.ry.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
       }
     }
     emit ryChanged(0);
   }
 }
 
-
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
@@ -2122,7 +1763,7 @@ void Workspace::setRy(int val) {
     * 1013: io
 
 */
-void Workspace::setRz(int val) {
+void Shift::Workspace::setRz(int val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2133,57 +1774,41 @@ void Workspace::setRz(int val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
 
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
       double delq = (double)val * m_sliders.rz.singleStep;
       switch(joint->jointType) {
         case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            delq,
-            S2_JOINT_SPHERICAL);
+          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                   S2_JOINT_SPHERICAL);
           m_sliders.rz.spinBox->blockSignals(true);
           m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
           m_sliders.rz.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
         case S2_JOINT_FLOAT: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            delq,
-            S2_JOINT_SPHERICAL);
+          m_renderWindow->setJoint(joint, joint->qIndex + 3, joint->dqIndex + 3,
+                                   delq, S2_JOINT_SPHERICAL);
           m_sliders.rz.spinBox->blockSignals(true);
-          m_sliders.rz.spinBox->setValue(
-            m_context->q[joint->qIndex + 3] + delq);
+          m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex + 3] +
+                                         delq);
           m_sliders.rz.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
         default: {
-          m_renderWindow->setJoint(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            delq,
-            S2_JOINT_PRIMITIVE);
+          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                   S2_JOINT_PRIMITIVE);
           m_sliders.rz.spinBox->blockSignals(true);
           m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
           m_sliders.rz.spinBox->blockSignals(false);
-        }
-        break;
+        } break;
       }
     }
     emit rzChanged(0);
   }
 }
 
-
 /*!
   @brief resolve constraint violations before using Tx slider
 */
-void Workspace::onclickTx() {
+void Shift::Workspace::onclickTx() {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2195,18 +1820,16 @@ void Workspace::onclickTx() {
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.tx.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.tx.substructure,
-          m_sliders.tx.dqIndex);
+          m_sliders.tx.substructure, m_sliders.tx.dqIndex);
       }
     }
   }
 }
 
-
 /*!
   @brief resolve constraint violations before using Ty slider
 */
-void Workspace::onclickTy() {
+void Shift::Workspace::onclickTy() {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2218,18 +1841,16 @@ void Workspace::onclickTy() {
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.ty.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.ty.substructure,
-          m_sliders.ty.dqIndex);
+          m_sliders.ty.substructure, m_sliders.ty.dqIndex);
       }
     }
   }
 }
 
-
 /*!
   @brief resolve constraint violations before using Tz slider
 */
-void Workspace::onclickTz() {
+void Shift::Workspace::onclickTz() {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2241,18 +1862,16 @@ void Workspace::onclickTz() {
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.tz.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.tz.substructure,
-          m_sliders.tz.dqIndex);
+          m_sliders.tz.substructure, m_sliders.tz.dqIndex);
       }
     }
   }
 }
 
-
 /*!
   @brief resolve constraint violations before using Rx slider
 */
-void Workspace::onclickRx() {
+void Shift::Workspace::onclickRx() {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2265,18 +1884,16 @@ void Workspace::onclickRx() {
       qDebug() << "initialize rx slider";
       if(m_sliders.rx.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.rx.substructure,
-          m_sliders.rx.dqIndex);
+          m_sliders.rx.substructure, m_sliders.rx.dqIndex);
       }
     }
   }
 }
 
-
 /*!
   @brief resolve constraint violations before using Ry slider
 */
-void Workspace::onclickRy() {
+void Shift::Workspace::onclickRy() {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2288,18 +1905,16 @@ void Workspace::onclickRy() {
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.ry.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.ry.substructure,
-          m_sliders.ry.dqIndex);
+          m_sliders.ry.substructure, m_sliders.ry.dqIndex);
       }
     }
   }
 }
 
-
 /*!
   @brief resolve constraint violations before using Rz slider
 */
-void Workspace::onclickRz() {
+void Shift::Workspace::onclickRz() {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2311,14 +1926,11 @@ void Workspace::onclickRz() {
       /* drive constraint error to zero before subsecquent fast factorization */
       if(m_sliders.rz.substructure) {
         s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.rz.substructure,
-          m_sliders.rz.dqIndex);
+          m_sliders.rz.substructure, m_sliders.rz.dqIndex);
       }
     }
   }
 }
-
-
 
 /*!
   @brief updates Tx for prismatic joints, spherical joints and float joints
@@ -2338,7 +1950,7 @@ void Workspace::onclickRz() {
     * 1013: io
 
 */
-void Workspace::setTxSpinBox(double val) {
+void Shift::Workspace::setTxSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
     switch(m_currentSelectedItem->m_userType) {
       case S2_MODELTREE_FRAME: {
@@ -2348,37 +1960,26 @@ void Workspace::setTxSpinBox(double val) {
       case S2_MODELTREE_JOINT: {
         updateH();
         /* process a joint */
-        s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
         switch(joint->jointType) {
           case S2_JOINT_SPHERICAL: {
-            m_renderWindow->setJointTarget(
-              joint,
-              joint->qIndex,
-              joint->dqIndex,
-              val,
-              S2_JOINT_SPHERICAL);
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_SPHERICAL);
             break;
           }
           default: {
-            m_renderWindow->setJointTarget(
-              joint,
-              joint->qIndex,
-              joint->dqIndex,
-              val,
-              S2_JOINT_PRIMITIVE);
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_PRIMITIVE);
             break;
           }
         }
         break;
       }
-      default: {
-        break;
-      }
+      default: { break; }
     }
     emit txChanged(0);
   }
 }
-
 
 /*!
   @brief updates Ty for prismatic joints, spherical joints and float joints
@@ -2398,7 +1999,7 @@ void Workspace::setTxSpinBox(double val) {
     * 1013: io
 
 */
-void Workspace::setTySpinBox(double val) {
+void Shift::Workspace::setTySpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2408,33 +2009,23 @@ void Workspace::setTySpinBox(double val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
 
       switch(joint->jointType) {
         case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex + 1,
-            joint->dqIndex + 1,
-            val,
-            S2_JOINT_PRIMITIVE);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex + 1,
+                                         joint->dqIndex + 1, val,
+                                         S2_JOINT_PRIMITIVE);
+        } break;
         default: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_PRIMITIVE);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                         val, S2_JOINT_PRIMITIVE);
+        } break;
       }
     }
     emit tyChanged(0);
   }
 }
-
 
 /*!
   @brief updates Tz for prismatic joints, spherical joints and float joints
@@ -2454,7 +2045,7 @@ void Workspace::setTySpinBox(double val) {
     * 1013: io
 
 */
-void Workspace::setTzSpinBox(double val) {
+void Shift::Workspace::setTzSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2464,33 +2055,23 @@ void Workspace::setTzSpinBox(double val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
       switch(joint->jointType) {
         case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex + 2,
-            joint->dqIndex + 2,
-            val,
-            S2_JOINT_PRIMITIVE);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex + 2,
+                                         joint->dqIndex + 2, val,
+                                         S2_JOINT_PRIMITIVE);
+        } break;
         default: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_PRIMITIVE);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                         val, S2_JOINT_PRIMITIVE);
+        } break;
       }
     }
     emit tzChanged(0);
   }
 }
 
-
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
@@ -2509,7 +2090,7 @@ void Workspace::setTzSpinBox(double val) {
     * 1013: io
 
 */
-void Workspace::setRxSpinBox(double val) {
+void Shift::Workspace::setRxSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2519,42 +2100,27 @@ void Workspace::setRxSpinBox(double val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
       switch(joint->jointType) {
         case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_SPHERICAL);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                         val, S2_JOINT_SPHERICAL);
+        } break;
         case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            val,
-            S2_JOINT_SPHERICAL);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
+                                         joint->dqIndex + 3, val,
+                                         S2_JOINT_SPHERICAL);
+        } break;
         default: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_PRIMITIVE);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                         val, S2_JOINT_PRIMITIVE);
+        } break;
       }
     }
     emit rxChanged(0);
   }
 }
 
-
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
@@ -2573,7 +2139,7 @@ void Workspace::setRxSpinBox(double val) {
     * 1013: io
 
 */
-void Workspace::setRySpinBox(double val) {
+void Shift::Workspace::setRySpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2583,42 +2149,27 @@ void Workspace::setRySpinBox(double val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
       switch(joint->jointType) {
         case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_SPHERICAL);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                         val, S2_JOINT_SPHERICAL);
+        } break;
         case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            val,
-            S2_JOINT_SPHERICAL);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
+                                         joint->dqIndex + 3, val,
+                                         S2_JOINT_SPHERICAL);
+        } break;
         default: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_PRIMITIVE);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                         val, S2_JOINT_PRIMITIVE);
+        } break;
       }
     }
     emit ryChanged(0);
   }
 }
 
-
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
@@ -2637,7 +2188,7 @@ void Workspace::setRySpinBox(double val) {
     * 1013: io
 
 */
-void Workspace::setRzSpinBox(double val) {
+void Shift::Workspace::setRzSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1005) {
 
@@ -2647,96 +2198,68 @@ void Workspace::setRzSpinBox(double val) {
     } else if(m_currentSelectedItem->m_userType == 1007) {
       updateH();
       /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*) m_currentSelectedItem->m_object;
+      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
       switch(joint->jointType) {
         case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_SPHERICAL);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                         val, S2_JOINT_SPHERICAL);
+        } break;
         case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex + 3,
-            joint->dqIndex + 3,
-            val,
-            S2_JOINT_SPHERICAL);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
+                                         joint->dqIndex + 3, val,
+                                         S2_JOINT_SPHERICAL);
+        } break;
         default: {
-          m_renderWindow->setJointTarget(
-            joint,
-            joint->qIndex,
-            joint->dqIndex,
-            val,
-            S2_JOINT_PRIMITIVE);
-        }
-        break;
+          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                         val, S2_JOINT_PRIMITIVE);
+        } break;
       }
     }
     emit rzChanged(0);
   }
 }
 
-
 /*!
   @brief populates material color drop down in the body group box
   with body colors
 */
-void Workspace::populateMaterialColorDropDown(s2_material_t* material) {
+void Shift::Workspace::populateMaterialColorDropDown(s2_material_t* material) {
 
   QPixmap currentColor(40, 40);
-  currentColor.fill(QColor(
-                      material->GLuniforms.Ka[0] * 255,
-                      material->GLuniforms.Ka[1] * 255,
-                      material->GLuniforms.Ka[2] * 255));
+  currentColor.fill(QColor(material->GLuniforms.Ka[0] * 255,
+                           material->GLuniforms.Ka[1] * 255,
+                           material->GLuniforms.Ka[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(0, QIcon(currentColor));
-  currentColor.fill(
-    QColor(
-      material->GLuniforms.Kd[0] * 255,
-      material->GLuniforms.Kd[1] * 255,
-      material->GLuniforms.Kd[2] * 255));
+  currentColor.fill(QColor(material->GLuniforms.Kd[0] * 255,
+                           material->GLuniforms.Kd[1] * 255,
+                           material->GLuniforms.Kd[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(1, QIcon(currentColor));
-  currentColor.fill(
-    QColor(
-      material->GLuniforms.Ks[0] * 255,
-      material->GLuniforms.Ks[1] * 255,
-      material->GLuniforms.Ks[2] * 255));
+  currentColor.fill(QColor(material->GLuniforms.Ks[0] * 255,
+                           material->GLuniforms.Ks[1] * 255,
+                           material->GLuniforms.Ks[2] * 255));
   m_bodyPanel.materialColorDropDown->setItemIcon(2, QIcon(currentColor));
   qDebug() << "setting value" << material->GLuniforms.Ns;
   m_bodyPanel.nsModelSpinBox->setValue((double)material->GLuniforms.Ns);
 }
 
-
 /*!
   @brief populate the color drop down menus in the lightBox
 */
-void Workspace::populateLightColorDropDown(s2_light_t* light) {
+void Shift::Workspace::populateLightColorDropDown(s2_light_t* light) {
   QPixmap currentColor(40, 40);
-  currentColor.fill(
-    QColor(
-      light->glLight.Ka[0] * 255,
-      light->glLight.Ka[1] * 255,
-      light->glLight.Ka[2] * 255));
+  currentColor.fill(QColor(light->glLight.Ka[0] * 255,
+                           light->glLight.Ka[1] * 255,
+                           light->glLight.Ka[2] * 255));
   m_lightPanel.lightColorDropDown->setItemIcon(0, QIcon(currentColor));
-  currentColor.fill(
-    QColor(
-      light->glLight.Kd[0] * 255,
-      light->glLight.Kd[1] * 255,
-      light->glLight.Kd[2] * 255));
+  currentColor.fill(QColor(light->glLight.Kd[0] * 255,
+                           light->glLight.Kd[1] * 255,
+                           light->glLight.Kd[2] * 255));
   m_lightPanel.lightColorDropDown->setItemIcon(1, QIcon(currentColor));
-  currentColor.fill(
-    QColor(
-      light->glLight.Ks[0] * 255,
-      light->glLight.Ks[1] * 255,
-      light->glLight.Ks[2] * 255));
+  currentColor.fill(QColor(light->glLight.Ks[0] * 255,
+                           light->glLight.Ks[1] * 255,
+                           light->glLight.Ks[2] * 255));
   m_lightPanel.lightColorDropDown->setItemIcon(2, QIcon(currentColor));
 }
-
 
 /*!
   @brief used to update the current material, currently not implemented
@@ -2756,7 +2279,7 @@ void Workspace::populateLightColorDropDown(s2_light_t* light) {
 
   should be accessible only from body pane
 */
-void Workspace::updateCurrentMaterial(int index) {
+void Shift::Workspace::updateCurrentMaterial(int index) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1004) {
       s2_body_t* body = (s2_body_t*)m_currentSelectedItem->m_object;
@@ -2768,17 +2291,12 @@ void Workspace::updateCurrentMaterial(int index) {
   }
 }
 
-
 /*!
 @brief initialize a joint slider with default values
 */
-void Workspace::setSlider(
-  SliderHandle* sliderHandle,
-  int qIndex,
-  int dqIndex,
-  s2_substructure_t* substructure,
-  bool isSpherical) {
-
+void Shift::Workspace::setSlider(SliderHandle* sliderHandle, int qIndex,
+                                 int dqIndex, s2_substructure_t* substructure,
+                                 bool isSpherical) {
 
   sliderHandle->qIndex = qIndex;
   sliderHandle->dqIndex = dqIndex;
@@ -2793,15 +2311,13 @@ void Workspace::setSlider(
   recenterSlider(sliderHandle);
 }
 
-
 /*!
 @brief update display of influence coefficient matrices
 */
-void Workspace::updateH() {
+void Shift::Workspace::updateH() {
   if(m_currentSelectedItem->m_userType == S2_MODELTREE_JOINT) {
     /* joint */
-    s2_joint_t* joint =
-      (s2_joint_t*)(m_currentSelectedItem->m_object);
+    s2_joint_t* joint = (s2_joint_t*)(m_currentSelectedItem->m_object);
     if(joint != NULL) {
       if(joint->h != NULL) {
         char number[20];
@@ -2840,12 +2356,11 @@ void Workspace::updateH() {
   * 1013: io
 
 */
-void Workspace::getSelectedTreeItem() {
+void Shift::Workspace::getSelectedTreeItem() {
 
   clearSubstructureHighlight();
 
-  m_currentSelectedItem =
-    static_cast<MyTreeItem*>(m_treeWidget->currentItem());
+  m_currentSelectedItem = static_cast<MyTreeItem*>(m_treeWidget->currentItem());
 
   // qDebug() << m_currentSelectedItem->m_userType;
 
@@ -2871,10 +2386,8 @@ void Workspace::getSelectedTreeItem() {
         m_bodyPanel.materialDropDown->clear();
 
         /* populate material dropdown menu */
-        for(
-          int i = body->materialIndex;
-          i < body->materialIndex + body->materialCount;
-          i++) {
+        for(int i = body->materialIndex;
+            i < body->materialIndex + body->materialCount; i++) {
           m_bodyPanel.materialDropDown->addItem(m_context->materials[i].name);
         }
         if(body->materials != NULL) {
@@ -2941,120 +2454,60 @@ void Workspace::getSelectedTreeItem() {
 
         switch(joint->jointType) {
           case S2_JOINT_TX: {
-            setSlider(
-              &m_sliders.tx,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              false);
+            setSlider(&m_sliders.tx, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, false);
             break;
           }
           case S2_JOINT_TY: {
-            setSlider(
-              &m_sliders.ty,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              false);
+            setSlider(&m_sliders.ty, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, false);
             break;
           }
           case S2_JOINT_TZ: {
-            setSlider(
-              &m_sliders.tz,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              false);
+            setSlider(&m_sliders.tz, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, false);
             break;
           }
           case S2_JOINT_RX: {
-            setSlider(
-              &m_sliders.rx,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              false);
+            setSlider(&m_sliders.rx, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, false);
             break;
           }
           case S2_JOINT_RY: {
-            setSlider(
-              &m_sliders.ry,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              false);
+            setSlider(&m_sliders.ry, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, false);
             break;
           }
           case S2_JOINT_RZ: {
-            setSlider(
-              &m_sliders.rz,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              false);
+            setSlider(&m_sliders.rz, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, false);
             break;
           }
           case S2_JOINT_RIGID: {
             break;
           }
           case S2_JOINT_SPHERICAL: {
-            setSlider(
-              &m_sliders.rx,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              true);
-            setSlider(
-              &m_sliders.ry,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              true);
-            setSlider(
-              &m_sliders.rz,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              true);
+            setSlider(&m_sliders.rx, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, true);
+            setSlider(&m_sliders.ry, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, true);
+            setSlider(&m_sliders.rz, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, true);
             break;
           }
           case S2_JOINT_FLOAT: {
-            setSlider(
-              &m_sliders.tx,
-              joint->qIndex,
-              joint->dqIndex,
-              joint->substructurePointer,
-              true);
-            setSlider(
-              &m_sliders.ty,
-              joint->qIndex + 1,
-              joint->dqIndex + 1,
-              joint->substructurePointer,
-              true);
-            setSlider(
-              &m_sliders.tz,
-              joint->qIndex + 2,
-              joint->dqIndex + 2,
-              joint->substructurePointer,
-              true);
-            setSlider(
-              &m_sliders.rx,
-              joint->qIndex + 3,
-              joint->dqIndex + 3,
-              joint->substructurePointer,
-              true);
-            setSlider(
-              &m_sliders.ry,
-              joint->qIndex + 3,
-              joint->dqIndex + 3,
-              joint->substructurePointer,
-              true);
-            setSlider(
-              &m_sliders.rz,
-              joint->qIndex + 3,
-              joint->dqIndex + 3,
-              joint->substructurePointer,
-              true);
+            setSlider(&m_sliders.tx, joint->qIndex, joint->dqIndex,
+                      joint->substructurePointer, true);
+            setSlider(&m_sliders.ty, joint->qIndex + 1, joint->dqIndex + 1,
+                      joint->substructurePointer, true);
+            setSlider(&m_sliders.tz, joint->qIndex + 2, joint->dqIndex + 2,
+                      joint->substructurePointer, true);
+            setSlider(&m_sliders.rx, joint->qIndex + 3, joint->dqIndex + 3,
+                      joint->substructurePointer, true);
+            setSlider(&m_sliders.ry, joint->qIndex + 3, joint->dqIndex + 3,
+                      joint->substructurePointer, true);
+            setSlider(&m_sliders.rz, joint->qIndex + 3, joint->dqIndex + 3,
+                      joint->substructurePointer, true);
             break;
           }
           case S2_JOINT_INVALID:
@@ -3069,7 +2522,7 @@ void Workspace::getSelectedTreeItem() {
         break;
       }
       case S2_MODELTREE_LIGHT: {
-        s2_light_t* light = (s2_light_t*) m_currentSelectedItem->m_object;
+        s2_light_t* light = (s2_light_t*)m_currentSelectedItem->m_object;
         m_lightPanel.groupBox->setVisible(true);
         populateLightColorDropDown(light);
         break;
@@ -3090,23 +2543,20 @@ void Workspace::getSelectedTreeItem() {
         break;
       }
       case S2_MODELTREE_IO: {
-        s2_io_t* io = (s2_io_t*) m_currentSelectedItem->m_object;
+        s2_io_t* io = (s2_io_t*)m_currentSelectedItem->m_object;
         qDebug() << s2_getRootName(io->name);
         m_ioPanel.groupBox->setVisible(true);
         break;
       }
-      default: {
-        break;
-      }
+      default: { break; }
     }
   }
 }
 
-
 /*!
   @brief set visible flag of all dynamic group boxes to false
 */
-void Workspace::clearDynamicBox() {
+void Shift::Workspace::clearDynamicBox() {
 
   clearSliders();
   m_scenePanel.groupBox->setVisible(false);
@@ -3124,11 +2574,10 @@ void Workspace::clearDynamicBox() {
   m_lightPanel.groupBox->setVisible(false);
 }
 
-
 /*!
   @brief set visible flag for all slider boxes to false
 */
-void Workspace::clearSliders() {
+void Shift::Workspace::clearSliders() {
   m_sliders.rx.box->setVisible(false);
   m_sliders.ry.box->setVisible(false);
   m_sliders.rz.box->setVisible(false);
@@ -3137,15 +2586,13 @@ void Workspace::clearSliders() {
   m_sliders.tz.box->setVisible(false);
 }
 
-
 /*!
   @brief used to recenter slider at current joint position
   +/- PI for revolute joints
   +/- 1 for prismatic joints
 
 */
-void Workspace::recenterSlider(
-  SliderHandle* sliderHandle) {
+void Shift::Workspace::recenterSlider(SliderHandle* sliderHandle) {
 
   sliderHandle->slider->blockSignals(true);
   if(QApplication::keyboardModifiers() != Qt::ShiftModifier) {
@@ -3160,24 +2607,20 @@ void Workspace::recenterSlider(
   sliderHandle->slider->blockSignals(false);
 }
 
-
 /*!
   @brief render x,y cursor position in status bar
 */
-void Workspace::updateCursorPositionText() {
+void Shift::Workspace::updateCursorPositionText() {
   QString positionText = m_renderWindow->getCursorPositionText();
   m_cursorPositionLabel->setText(positionText);
 }
 
-
 /*!
 @brief clears cursor position text in status bar
 */
-void Workspace::clearCursorPositionText() {
+void Shift::Workspace::clearCursorPositionText() {
   m_cursorPositionLabel->clear();
 }
-
-
 
 /*!
 @brief open an external model definition
@@ -3185,7 +2628,7 @@ void Workspace::clearCursorPositionText() {
 Opens an external model definition file and loads objects recursively
 in to treewidget
 */
-void Workspace::openFileAtLoad() {
+void Shift::Workspace::openFileAtLoad() {
 
   QStringList arguments = QCoreApplication::arguments();
   if(arguments.count() == 2) {
@@ -3213,13 +2656,9 @@ void Workspace::openFileAtLoad() {
 
       /* print bodies */
       for(int i = 0; i < m_context->activeJointCount; i++) {
-        fprintf(
-          debug,
-          "body [%d] isVirtual: %s ",
-          i,
-          m_context->bodyPointers[i]->isVirtual ? "true" : "false");
+        fprintf(debug, "body [%d] isVirtual: %s ", i,
+                m_context->bodyPointers[i]->isVirtual ? "true" : "false");
         s2_stackstr_print(debug, m_context->bodyPointers[i]->name);
-
       }
 
       /* printing constraints */
@@ -3285,9 +2724,9 @@ void Workspace::openFileAtLoad() {
       s2_context_removeConstraintViolations(m_context);
       for(int i = 0; i < m_context->substructureCount; i++) {
         s2_substructure_t* substructure = m_context->substructures + i;
-        double error =
-          s2_substructure_evaluateConstraintError(substructure);
-        printf("constraint violations after Newton-Raphson at load: %g\n", error);
+        double error = s2_substructure_evaluateConstraintError(substructure);
+        printf("constraint violations after Newton-Raphson at load: %g\n",
+               error);
       }
 
       s2_context_updateDH(m_context);
@@ -3298,25 +2737,19 @@ void Workspace::openFileAtLoad() {
       s2_context_printMobility(debug, m_context);
 
       for(int i = 0; i < m_context->activeJointCount; i++) {
-        fprintf(
-          m_mobilityFile,
-          "q:%s%s",
-          s2_getRootName(m_context->jointPointers[i]->name),
-          m_context->modelParameters.delimiter);
+        fprintf(m_mobilityFile, "q:%s%s",
+                s2_getRootName(m_context->jointPointers[i]->name),
+                m_context->modelParameters.delimiter);
       }
 
       for(int i = 0; i < m_context->activeJointCount; i++) {
         if(i != m_context->activeJointCount - 1) {
-          fprintf(
-            m_mobilityFile,
-            "m:%s%s",
-            s2_getRootName(m_context->jointPointers[i]->name),
-            m_context->modelParameters.delimiter);
+          fprintf(m_mobilityFile, "m:%s%s",
+                  s2_getRootName(m_context->jointPointers[i]->name),
+                  m_context->modelParameters.delimiter);
         } else {
-          fprintf(
-            m_mobilityFile,
-            "m:%s\n",
-            s2_getRootName(m_context->jointPointers[i]->name));
+          fprintf(m_mobilityFile, "m:%s\n",
+                  s2_getRootName(m_context->jointPointers[i]->name));
         }
       }
 
@@ -3334,22 +2767,17 @@ void Workspace::openFileAtLoad() {
   }
 }
 
-
 /*!
 @brief open an external model definition
 
 Opens an external model definition file and loads objects recursively
 in to treewidget
 */
-void Workspace::openFile() {
+void Shift::Workspace::openFile() {
   m_renderWindow->setAnimating(false);
 
-  QString fileName =
-    QFileDialog::getOpenFileName(
-      this,
-      tr("Open File"),
-      "",
-      tr("json files (*.json)"));
+  QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "",
+                                                  tr("json files (*.json)"));
 
   QByteArray byteArray = fileName.toLatin1();
 
@@ -3372,12 +2800,9 @@ void Workspace::openFile() {
 
     /* print bodies */
     for(int i = 0; i < m_context->activeJointCount; i++) {
-      printf(
-        "body [%d] isVirtual: %s ",
-        i,
-        m_context->bodyPointers[i]->isVirtual ? "true" : "false");
+      printf("body [%d] isVirtual: %s ", i,
+             m_context->bodyPointers[i]->isVirtual ? "true" : "false");
       s2_stackstr_print(debug, m_context->bodyPointers[i]->name);
-
     }
 
     /* printing constraints */
@@ -3456,29 +2881,23 @@ void Workspace::openFile() {
 
     for(int i = 0; i < m_context->activeJointCount; i++) {
       if(m_context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
-        fprintf(
-          m_mobilityFile,
-          "q:%s%s",
-          s2_getRootName(m_context->jointPointers[i]->name),
-          m_context->modelParameters.delimiter);
+        fprintf(m_mobilityFile, "q:%s%s",
+                s2_getRootName(m_context->jointPointers[i]->name),
+                m_context->modelParameters.delimiter);
       }
     }
 
     for(int i = 0; i < m_context->activeJointCount; i++) {
       if(i != m_context->activeJointCount - 1) {
         if(m_context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
-          fprintf(
-            m_mobilityFile,
-            "m:%s%s",
-            s2_getRootName(m_context->jointPointers[i]->name),
-            m_context->modelParameters.delimiter);
+          fprintf(m_mobilityFile, "m:%s%s",
+                  s2_getRootName(m_context->jointPointers[i]->name),
+                  m_context->modelParameters.delimiter);
         }
       } else {
         if(m_context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
-          fprintf(
-            m_mobilityFile,
-            "m:%s\n",
-            s2_getRootName(m_context->jointPointers[i]->name));
+          fprintf(m_mobilityFile, "m:%s\n",
+                  s2_getRootName(m_context->jointPointers[i]->name));
         }
       }
     }
@@ -3496,38 +2915,28 @@ void Workspace::openFile() {
   m_renderWindow->setAnimating(true);
 }
 
-
 /*!
 @brief write line of joint variables and mobility numbers to m_mobilityFile,
 called after s2_context_computeMobility
 */
-void Workspace::writeMobility() {
+void Shift::Workspace::writeMobility() {
 
   /* write states */
   for(int i = 0; i < m_context->qCount; i++) {
-    fprintf(
-      m_mobilityFile,
-      "%0.12f%s",
-      m_context->q[i],
-      m_context->modelParameters.delimiter);
+    fprintf(m_mobilityFile, "%0.12f%s", m_context->q[i],
+            m_context->modelParameters.delimiter);
   }
 
   /* write mobility */
   for(int i = 0; i < m_context->dqCount - 1; i++) {
-    fprintf(
-      m_mobilityFile,
-      "%0.12f%s",
-      m_context->mobilityNumbers[i],
-      m_context->modelParameters.delimiter);
+    fprintf(m_mobilityFile, "%0.12f%s", m_context->mobilityNumbers[i],
+            m_context->modelParameters.delimiter);
   }
   if(m_context->dqCount > 0) {
-    fprintf(
-      m_mobilityFile,
-      "%0.12f\n",
-      m_context->mobilityNumbers[m_context->dqCount - 1]);
+    fprintf(m_mobilityFile, "%0.12f\n",
+            m_context->mobilityNumbers[m_context->dqCount - 1]);
   }
 }
-
 
 /*!
   @brief populates model tree recursively
@@ -3546,9 +2955,8 @@ void Workspace::writeMobility() {
   * 1012: io group
   * 1013: io
 */
-void Workspace::populateTreeRecursive(
-  s2_assembly_t* assemblyHead,
-  QTreeWidgetItem* widget) {
+void Shift::Workspace::populateTreeRecursive(s2_assembly_t* assemblyHead,
+                                             QTreeWidgetItem* widget) {
 
   s2_assembly_t* subAssemblyHead = assemblyHead->subAssemblyHead;
 
@@ -3593,7 +3001,8 @@ void Workspace::populateTreeRecursive(
     bodies->setExpanded(true);
 
     /* add joints */
-    MyTreeItem* joints = new MyTreeItem(S2_MODELTREE_JOINT_GROUP); // joint group
+    MyTreeItem* joints =
+      new MyTreeItem(S2_MODELTREE_JOINT_GROUP); // joint group
     joints->setText(0, "joints");
     joints->setIcon(0, QIcon(":/icons/joint_folder.png"));
 
@@ -3621,7 +3030,8 @@ void Workspace::populateTreeRecursive(
     joints->setExpanded(true);
 
     /* add lights */
-    MyTreeItem* lights = new MyTreeItem(S2_MODELTREE_LIGHT_GROUP); // light group
+    MyTreeItem* lights =
+      new MyTreeItem(S2_MODELTREE_LIGHT_GROUP); // light group
     lights->setText(0, "lights");
     lights->setIcon(0, QIcon(":/icons/light_folder.png"));
     subAssembly->addChild(lights);
@@ -3639,7 +3049,8 @@ void Workspace::populateTreeRecursive(
     lights->setExpanded(false);
 
     /* add restraints */
-    MyTreeItem* restraints = new MyTreeItem(S2_MODELTREE_RESTRAINT_GROUP); // restraint group
+    MyTreeItem* restraints =
+      new MyTreeItem(S2_MODELTREE_RESTRAINT_GROUP); // restraint group
     restraints->setText(0, "restraints");
     restraints->setExpanded(true);
     restraints->setIcon(0, QIcon(":/icons/restraint_folder.png"));
@@ -3700,7 +3111,7 @@ void Workspace::populateTreeRecursive(
 /*!
 @brief disables turning on/off terrain maps if no terrain maps are loaded
 */
-void Workspace::drawTerrainToggleActive(bool active) {
+void Shift::Workspace::drawTerrainToggleActive(bool active) {
   m_actionToggleDrawTerrain->setEnabled(active);
   m_actionToggleDrawTerrain->setChecked(active);
   updateDrawState();
@@ -3723,7 +3134,7 @@ void Workspace::drawTerrainToggleActive(bool active) {
   * 1013: io
 
 */
-void Workspace::populateTree() {
+void Shift::Workspace::populateTree() {
 
   m_treeWidget->clear();
 
@@ -3787,15 +3198,13 @@ void Workspace::populateTree() {
   /* load all other bodies, joints, frames */
   populateTreeRecursive(m_context->assembly, m_treeWidget->invisibleRootItem());
   updateDrawState();
-  m_currentSelectedItem =
-    static_cast<MyTreeItem*>(m_treeWidget->currentItem());
+  m_currentSelectedItem = static_cast<MyTreeItem*>(m_treeWidget->currentItem());
 }
-
 
 /*!
   @brief highlight treewidget items belonging to current substructure
 */
-void Workspace::highlightSubstructure(s2_substructure_t* substructure) {
+void Shift::Workspace::highlightSubstructure(s2_substructure_t* substructure) {
 
   QTreeWidgetItemIterator it(m_treeWidget);
   QPalette palette = this->palette();
@@ -3805,7 +3214,7 @@ void Workspace::highlightSubstructure(s2_substructure_t* substructure) {
     if(item->m_userType == 1007) {
       s2_joint_t* joint = (s2_joint_t*)item->m_object;
       if(joint->substructurePointer != NULL &&
-          joint->substructurePointer == substructure) {
+         joint->substructurePointer == substructure) {
         if(palette.isBrushSet(QPalette::Active, QPalette::HighlightedText)) {
           item->setForeground(0, QBrush(palette.highlightedText()));
         } else {
@@ -3819,11 +3228,10 @@ void Workspace::highlightSubstructure(s2_substructure_t* substructure) {
   }
 }
 
-
 /*!
 @brief clear treewidget highlighting
 */
-void Workspace::clearSubstructureHighlight() {
+void Shift::Workspace::clearSubstructureHighlight() {
 
   QTreeWidgetItemIterator it(m_treeWidget);
 
@@ -3837,11 +3245,10 @@ void Workspace::clearSubstructureHighlight() {
   }
 }
 
-
 /*!
 @brief updates joint angles displayed in tree
 */
-void Workspace::updateTree() {
+void Shift::Workspace::updateTree() {
 
   QTreeWidgetItemIterator it(m_treeWidget);
 
@@ -3851,66 +3258,45 @@ void Workspace::updateTree() {
     switch(item->m_userType) {
       case S2_MODELTREE_ASSEMBLY: {
         if(item->text(0) == QString("fixed")) {
-          sprintf(
-            numberString,
-            "%0.4f",
-            m_context->mobility);
+          sprintf(numberString, "%0.4f", m_context->mobility);
           (*it)->setText(3, numberString);
         }
         break;
       }
       case S2_MODELTREE_JOINT: {
         s2_joint_t* joint = (s2_joint_t*)item->m_object;
-        qDebug() << "updating joint" << s2_getRootName(joint->name) << " dof:" << joint->dof;
+        qDebug() << "updating joint" << s2_getRootName(joint->name)
+                 << " dof:" << joint->dof;
         if(joint->primitiveDisplacement != NULL) {
-          sprintf(
-            numberString,
-            "%0.5f",
-            *(joint->primitiveDisplacement));
+          sprintf(numberString, "%0.5f", *(joint->primitiveDisplacement));
           (*it)->setText(2, numberString);
         }
         if(joint->dof == 0) {
           sprintf(numberString, "0");
         } else if(joint->dof == 1) {
-          sprintf(
-            numberString,
-            "%0.5f",
-            joint->mobilityNumber[0]);
+          sprintf(numberString, "%0.5f", joint->mobilityNumber[0]);
         } else if(joint->dof == 3) {
-          sprintf(
-            numberString,
-            "%0.5f",
-            joint->mobilityNumber[0] +
-            joint->mobilityNumber[1] +
-            joint->mobilityNumber[2]);
+          sprintf(numberString, "%0.5f",
+                  joint->mobilityNumber[0] + joint->mobilityNumber[1] +
+                    joint->mobilityNumber[2]);
         } else if(joint->dof == 6) {
-          sprintf(
-            numberString,
-            "%0.5f",
-            joint->mobilityNumber[0] +
-            joint->mobilityNumber[1] +
-            joint->mobilityNumber[2] +
-            joint->mobilityNumber[3] +
-            joint->mobilityNumber[4] +
-            joint->mobilityNumber[5]);
+          sprintf(numberString, "%0.5f",
+                  joint->mobilityNumber[0] + joint->mobilityNumber[1] +
+                    joint->mobilityNumber[2] + joint->mobilityNumber[3] +
+                    joint->mobilityNumber[4] + joint->mobilityNumber[5]);
         }
         (*it)->setText(3, numberString);
         break;
       }
-      default: {
-        break;
-      }
+      default: { break; }
     }
     ++it;
   }
   writeMobility();
 }
 
-
-void Workspace::updateItemDrawState(
-  MyTreeItem* item,
-  bool isVisible,
-  bool isCategoryEnabled) {
+void Shift::Workspace::updateItemDrawState(MyTreeItem* item, bool isVisible,
+                                           bool isCategoryEnabled) {
   if(isVisible && isCategoryEnabled) {
     item->setIcon(1, QIcon(":/icons/visible.png"));
   } else if(isVisible && !isCategoryEnabled) {
@@ -3924,7 +3310,7 @@ void Workspace::updateItemDrawState(
 /*!
 @brief toggle draw state
 */
-void Workspace::updateDrawState() {
+void Shift::Workspace::updateDrawState() {
 
   QTreeWidgetItemIterator it(m_treeWidget);
   while(*it) {
@@ -3932,45 +3318,33 @@ void Workspace::updateDrawState() {
     switch(item->m_userType) {
       case 1002: {
         /* assembly */
-        s2_assembly_t* assembly =
-          (s2_assembly_t*)(item->m_object);
-      }
-      break;
+        s2_assembly_t* assembly = (s2_assembly_t*)(item->m_object);
+      } break;
       case 1003: {
         /* body folder */
       } break;
       case 1004: {
         /* body */
         s2_body_t* body = (s2_body_t*)(item->m_object);
-        updateItemDrawState(
-          item,
-          body->isVisible,
-          m_renderWindow->getBodies()->isEnabled());
-      }
-      break;
+        updateItemDrawState(item, body->isVisible,
+                            m_renderWindow->getBodies()->isEnabled());
+      } break;
       case 1005: {
         /* frame */
         s2_frame_t* frame = (s2_frame_t*)(item->m_object);
-        updateItemDrawState(
-          item,
-          frame->isVisible,
-          m_renderWindow->getFrames()->isEnabled());
-      }
-      break;
+        updateItemDrawState(item, frame->isVisible,
+                            m_renderWindow->getFrames()->isEnabled());
+      } break;
       case 1006: {
         /* joint folder */
-
 
       } break;
       case 1007: {
         /* joint */
         s2_joint_t* joint = (s2_joint_t*)(item->m_object);
-        updateItemDrawState(
-          item,
-          joint->isVisible,
-          m_renderWindow->getJoints()->isEnabled());
-      }
-      break;
+        updateItemDrawState(item, joint->isVisible,
+                            m_renderWindow->getJoints()->isEnabled());
+      } break;
       case 1008: {
         /* light folder */
 
@@ -3978,12 +3352,8 @@ void Workspace::updateDrawState() {
       case 1009: {
         /* light */
         s2_light_t* light = (s2_light_t*)(item->m_object);
-        updateItemDrawState(
-          item,
-          light->isVisible,
-          false);
-      }
-      break;
+        updateItemDrawState(item, light->isVisible, false);
+      } break;
       case 1010: {
         /* restraint folder */
 
@@ -4006,39 +3376,27 @@ void Workspace::updateDrawState() {
       case 1015: {
         /* terrain */
         s2_terrain_t* terrain = (s2_terrain_t*)(item->m_object);
-        updateItemDrawState(
-          item,
-          terrain->isVisible,
-          m_renderWindow->getTerrain()->isEnabled());
-      }
-      break;
+        updateItemDrawState(item, terrain->isVisible,
+                            m_renderWindow->getTerrain()->isEnabled());
+      } break;
       case 1016: {
         /* point cloud folder */
       } break;
       case 1017: {
         s2_pointcloud_t* pointcloud = (s2_pointcloud_t*)(item->m_object);
-        updateItemDrawState(
-          item,
-          pointcloud->isVisible,
-          m_renderWindow->getPointClouds()->isEnabled());
+        updateItemDrawState(item, pointcloud->isVisible,
+                            m_renderWindow->getPointClouds()->isEnabled());
         /* point cloud */
-      }
-      break;
-      default: {
-
       } break;
-    }
+      default: { } break; }
     ++it;
   }
-
-
 }
-
 
 /*!
   @brief display license dialog
 */
-void Workspace::license() {
+void Shift::Workspace::license() {
 
   QString fileContents;
   QFile file(":/html/license.html");
@@ -4056,11 +3414,10 @@ void Workspace::license() {
   messageBox.exec();
 }
 
-
 /*!
   @brief display about dialog
 */
-void Workspace::about() {
+void Shift::Workspace::about() {
   QString fileContents;
   QFile file(":/html/about.html");
   file.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -4077,36 +3434,29 @@ void Workspace::about() {
   messageBox.exec();
 }
 
-
 /*!
   @brief save changes to json configuration file, currently not implemented
 
   @TODO add feature to allow saving modified context
   datastructure
 */
-void Workspace::saveFile() {
+void Shift::Workspace::saveFile() {
   // sceneWrite(currentFileName, scenes);
 }
-
 
 /*!
   @brief save changes to json configuration file, currently not implemented
 */
-void Workspace::saveFileAs() {
+void Shift::Workspace::saveFileAs() {
   m_renderWindow->setAnimating(false);
-  QString fileName = QFileDialog::getSaveFileName(
-                       this,
-                       tr("Save File"),
-                       "",
-                       tr("JSON Files (*.json)"));
-  QMessageBox::information(
-    this,
-    "File Selected",
-    fileName.length() == 0 ? "No File Selected" : fileName);
+  QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"), "",
+                                                  tr("JSON Files (*.json)"));
+  QMessageBox::information(this, "File Selected",
+                           fileName.length() == 0 ? "No File Selected"
+                                                  : fileName);
   // sceneWrite(fileName, m_context);
   m_renderWindow->setAnimating(true);
 }
-
 
 /*!
   @brief display color selection dialog to change material color
@@ -4127,18 +3477,13 @@ void Workspace::saveFileAs() {
   valid only for body pane (1004)
 
 */
-void Workspace::materialColorSelector() {
+void Shift::Workspace::materialColorSelector() {
   m_renderWindow->setAnimating(false);
-  if(
-    m_currentSelectedItem != NULL &&
-    m_currentSelectedItem->m_userType == 1004) {
+  if(m_currentSelectedItem != NULL &&
+     m_currentSelectedItem->m_userType == 1004) {
 
-    QColor color =
-      QColorDialog::getColor(
-        Qt::white,
-        this,
-        "Select Color",
-        QColorDialog::DontUseNativeDialog);
+    QColor color = QColorDialog::getColor(Qt::white, this, "Select Color",
+                                          QColorDialog::DontUseNativeDialog);
 
     if(color.isValid()) {
       s2_body_t* body = (s2_body_t*)m_currentSelectedItem->m_object;
@@ -4152,26 +3497,22 @@ void Workspace::materialColorSelector() {
           material->GLuniforms.Ka[0] = color.red() / 255.f;
           material->GLuniforms.Ka[1] = color.green() / 255.f;
           material->GLuniforms.Ka[2] = color.blue() / 255.f;
-        }
-        break;
+        } break;
         case S2_COLOR_DIFFUSE: {
           qDebug() << "diffuse";
           material->GLuniforms.Kd[0] = color.red() / 255.f;
           material->GLuniforms.Kd[1] = color.green() / 255.f;
           material->GLuniforms.Kd[2] = color.blue() / 255.f;
-        }
-        break;
+        } break;
         case S2_COLOR_SPECULAR: {
           qDebug() << "specular";
           material->GLuniforms.Ks[0] = color.red() / 255.f;
           material->GLuniforms.Ks[1] = color.green() / 255.f;
           material->GLuniforms.Ks[2] = color.blue() / 255.f;
-        }
-        break;
+        } break;
         case S2_COLOR_EMISSIVE: {
           qDebug() << "emissive currently not handled";
-        }
-        break;
+        } break;
       }
       populateMaterialColorDropDown(material);
 
@@ -4182,7 +3523,6 @@ void Workspace::materialColorSelector() {
   }
   m_renderWindow->setAnimating(true);
 }
-
 
 /*!
   @brief light color selector
@@ -4202,18 +3542,13 @@ void Workspace::materialColorSelector() {
 
   valid only for light pane (1009)
 */
-void Workspace::lightColorSelector() {
+void Shift::Workspace::lightColorSelector() {
   m_renderWindow->setAnimating(false);
-  if(
-    m_currentSelectedItem != NULL &&
-    m_currentSelectedItem->m_userType == 1009) {
+  if(m_currentSelectedItem != NULL &&
+     m_currentSelectedItem->m_userType == 1009) {
 
-    QColor color =
-      QColorDialog::getColor(
-        Qt::white,
-        this,
-        "Select Color",
-        QColorDialog::DontUseNativeDialog);
+    QColor color = QColorDialog::getColor(Qt::white, this, "Select Color",
+                                          QColorDialog::DontUseNativeDialog);
 
     if(color.isValid()) {
       s2_light_t* light = (s2_light_t*)m_currentSelectedItem->m_object;
@@ -4225,133 +3560,115 @@ void Workspace::lightColorSelector() {
           light->glLight.Ka[0] = color.red() / 255.f;
           light->glLight.Ka[1] = color.green() / 255.f;
           light->glLight.Ka[2] = color.blue() / 255.f;
-        }
-        break;
+        } break;
         case S2_COLOR_DIFFUSE: {
           qDebug() << "diffuse";
           light->glLight.Kd[0] = color.red() / 255.f;
           light->glLight.Kd[1] = color.green() / 255.f;
           light->glLight.Kd[2] = color.blue() / 255.f;
-        }
-        break;
+        } break;
         case S2_COLOR_SPECULAR: {
           qDebug() << "specular";
           light->glLight.Ks[0] = color.red() / 255.f;
           light->glLight.Ks[1] = color.green() / 255.f;
           light->glLight.Ks[2] = color.blue() / 255.f;
-        }
-        break;
+        } break;
         case S2_COLOR_EMISSIVE: {
           qDebug() << "emissive currently not handled";
-        }
-        break;
+        } break;
       }
       populateLightColorDropDown(light);
 
-      qDebug(
-        "ok r:%i g:%i b:%i\n",
-        color.red(), color.green(), color.blue());
+      qDebug("ok r:%i g:%i b:%i\n", color.red(), color.green(), color.blue());
     }
   }
   m_renderWindow->setAnimating(true);
 }
 
-
 /*!
 @brief set integrator type in context data structure
 */
-void Workspace::setIntegratorType(int val) {
+void Shift::Workspace::setIntegratorType(int val) {
   switch(val) {
     case 0: {
       m_context->modelParameters.integrationType =
         S2_NUMERICALINTEGRATOR_ODE113;
-    }
-    break;
+    } break;
     case 1: {
       m_context->modelParameters.integrationType =
         S2_NUMERICALINTEGRATOR_ODE113B;
-    }
-    break;
+    } break;
   }
 }
-
 
 /*!
 @brief sets time span in context data structure
 */
-void Workspace::setTimeSpan(double timeSpan) {
+void Shift::Workspace::setTimeSpan(double timeSpan) {
   if(m_context != NULL) {
     m_context->modelParameters.timeSpan = timeSpan;
   }
 }
 
-
 /*!
 @brief sets time step in context data structure
 */
-void Workspace::setTimeStep(double timeStep) {
+void Shift::Workspace::setTimeStep(double timeStep) {
   if(m_context != NULL) {
     m_context->modelParameters.timeStep = timeStep;
   }
 }
 
-
 /*!
 @brief sets relative error in context data structure
 */
-void Workspace::setRelativeError(double relativeError) {
+void Shift::Workspace::setRelativeError(double relativeError) {
   if(m_context != NULL) {
     m_context->modelParameters.relativeError = relativeError;
   }
 }
 
-
 /*!
 @brief sets absolute error in context data structure
 */
-void Workspace::setAbsoluteError(double absoluteError) {
+void Shift::Workspace::setAbsoluteError(double absoluteError) {
   if(m_context != NULL) {
     m_context->modelParameters.absoluteError = absoluteError;
   }
 }
 
-
 /*!
 @brief sets omega n in context data structure
 */
-void Workspace::setOmegaN(double omegaN) {
+void Shift::Workspace::setOmegaN(double omegaN) {
   if(m_context != NULL) {
     s2_context_setOmegaN(m_context, omegaN);
   }
 }
 
-
 /*!
 @brief sets output filename in context data structure
 */
-void Workspace::setOutputFileName(const QString& fileName) {
+void Shift::Workspace::setOutputFileName(const QString& fileName) {
   if(m_context != NULL) {
-
   }
 }
-
 
 /*!
 @brief update simulation timer
 */
-void Workspace::updateSimulationTimer(double t) {
+void Shift::Workspace::updateSimulationTimer(double t) {
   m_playbackPanel.time = t;
   m_playbackPanel.slider->blockSignals(true);
   m_playbackPanel.slider->setValue(t * m_playbackPanel.singleStep);
   m_playbackPanel.slider->blockSignals(false);
 }
 
-
 /*!
 @brief loads model parameters from context data structure to display in
 model parameters box
 */
-void Workspace::loadModelParameters() {
+void Shift::Workspace::loadModelParameters() {
   if(m_context != NULL) {
     m_modelParametersPanel.groupBox->setVisible(true);
     m_modelParametersPanel.absoluteError->setValue(
@@ -4373,48 +3690,42 @@ void Workspace::loadModelParameters() {
   }
 }
 
-
 /*!
 @brief toggle visibility of playback box
 */
-void Workspace::setPlaybackVisible(bool val) {
+void Shift::Workspace::setPlaybackVisible(bool val) {
   m_playbackPanel.groupBox->setVisible(val);
 }
-
 
 /*!
 @brief toggle visibility of loading dialog
 */
-void Workspace::setLoadingVisible(bool val) {
+void Shift::Workspace::setLoadingVisible(bool val) {
   m_progressBar->setVisible(val);
 }
-
 
 /*!
 @brief set playback panel to paused state
 */
-void Workspace::setPlaybackPaused() {
-  m_playbackPanel.playPauseButton->setIcon(
-    m_playbackPanel.playIcon);
+void Shift::Workspace::setPlaybackPaused() {
+  m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.playIcon);
   m_simulationRunning = false;
 }
-
 
 /*!
 @brief interpolate slider position in render window
 */
-void Workspace::interpModel(int val) {
-  double t = (double) val / (double)m_playbackPanel.singleStep;
+void Shift::Workspace::interpModel(int val) {
+  double t = (double)val / (double)m_playbackPanel.singleStep;
   m_renderWindow->stopSimulationPlayback();
   m_renderWindow->interpolateCurrentPosition(t);
   m_playbackPanel.time = t;
 }
 
-
 /*!
 @brief run simulation
 */
-void Workspace::runSimulation() {
+void Shift::Workspace::runSimulation() {
   if(m_context != NULL) {
 
     setPlaybackVisible(false);
@@ -4431,26 +3742,23 @@ void Workspace::runSimulation() {
     setLoadingVisible(false);
     setPlaybackVisible(true);
 
-    m_playbackPanel.playPauseButton->setIcon(
-      m_playbackPanel.pauseIcon);
+    m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.pauseIcon);
 
     m_simulationRunning = true;
     m_playbackPanel.time = 0;
 
     m_playbackPanel.slider->setRange(
-      0.0,
-      m_playbackPanel.singleStep * m_context->modelParameters.timeSpan);
+      0.0, m_playbackPanel.singleStep * m_context->modelParameters.timeSpan);
 
     m_renderWindow->setAnimating(true);
     m_renderWindow->startSimulationPlayback();
   }
 }
 
-
 /*!
 @brief play/pause simulation
 */
-void Workspace::playPauseSimulation() {
+void Shift::Workspace::playPauseSimulation() {
   if(m_context != NULL) {
 
     if(m_simulationRunning) {

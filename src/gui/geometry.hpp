@@ -7,50 +7,49 @@
 #include <QOpenGLShaderProgram>
 
 class QOpenGLShaderProgram;
+
+namespace Shift {
+
 class RenderWindow;
 
-class s2_Geometry : public QObject {
+class Geometry : public QObject {
 
-    Q_OBJECT
+  Q_OBJECT
 
-  public:
+public:
+  Geometry(RenderWindow* renderWindow)
+    : m_context(NULL)
+    , m_initialized(false)
+    , m_drawEnabled(false)
+    , m_scaleFactor(1.0)
+    , m_shadingType(S2_SHADING_PHONG) {
 
-    s2_Geometry(RenderWindow* renderWindow)
-      : m_context(NULL)
-      , m_initialized(false)
-      , m_drawEnabled(false)
-      , m_scaleFactor(1.0)
-      , m_shadingType(S2_SHADING_PHONG) {
+    m_renderWindow = renderWindow;
+  };
 
-      m_renderWindow = renderWindow;
+  ~Geometry() {}
 
-    };
+  void checkError(const QString& prefix);
+  bool isInitialized();
+  bool isEnabled();
+  float getScaleFactor();
+  virtual void setContext(s2_context_t* context);
+  virtual void clearContext();
 
-    ~s2_Geometry() {
+signals:
 
-    }
+public slots:
 
-    void checkError(const QString& prefix);
-    bool isInitialized();
-    bool isEnabled();
-    float getScaleFactor();
-    virtual void setContext(s2_context_t* context);
-    virtual void clearContext();
+  void toggleDraw();
+  void enable(bool);
 
-  signals:
-
-  public slots:
-
-    void toggleDraw();
-    void enable(bool);
-
-  protected:
-    s2_context_t* m_context;
-    bool m_initialized;
-    bool m_drawEnabled;
-    float m_scaleFactor;
-    RenderWindow* m_renderWindow;
-    s2_shading_enum_t m_shadingType;
+protected:
+  s2_context_t* m_context;
+  bool m_initialized;
+  bool m_drawEnabled;
+  float m_scaleFactor;
+  RenderWindow* m_renderWindow;
+  s2_shading_enum_t m_shadingType;
 };
-
+} // namespace Shift
 #endif

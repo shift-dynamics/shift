@@ -1,8 +1,8 @@
 #include "normalshaderprogram.hpp"
-#include "renderwindow.hpp"
 #include "lights.hpp"
+#include "renderwindow.hpp"
 
-void NormalShaderProgram::initialize() {
+void Shift::NormalShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
     addVertexShader(":/shaders/vertex_normal.glsl");
@@ -23,8 +23,8 @@ void NormalShaderProgram::initialize() {
     qDebug() << "  m_matrices_mvp_u:" << m_matrices_mvp_u;
     qDebug() << "  m_matrices_mv_u:" << m_matrices_mv_u;
     qDebug() << "  m_matrices_v_u:" << m_matrices_v_u;
-    qDebug() << "  m_matrices_nm_u:" <<  m_matrices_nm_u;
-    qDebug() << "  m_scale_u:" <<  m_scale_u;
+    qDebug() << "  m_matrices_nm_u:" << m_matrices_nm_u;
+    qDebug() << "  m_scale_u:" << m_scale_u;
     qDebug() << "  m_color_u:" << m_color_u;
 
     /* set attribute locations */
@@ -37,10 +37,9 @@ void NormalShaderProgram::initialize() {
   }
 }
 
+void Shift::NormalShaderProgram::setTransform(s2_displacement_t* transform) {
 
-void NormalShaderProgram::setTransform(s2_displacement_t* transform) {
-
-  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+  QMatrix4x4 model = displacementToQMatrix4x4(transform);
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   // QMatrix4x4 mv = view * model;
@@ -51,15 +50,12 @@ void NormalShaderProgram::setTransform(s2_displacement_t* transform) {
   checkError("normal: after set mvp");
 }
 
-
-void NormalShaderProgram::setColor(float& r, float& g, float& b) {
-
+void Shift::NormalShaderProgram::setColor(float& r, float& g, float& b) {
   m_program->setUniformValue(m_color_u, r, g, b);
   checkError("normal: after set color");
 }
 
-
-void NormalShaderProgram::setScale(float& scale) {
+void Shift::NormalShaderProgram::setScale(float& scale) {
   m_program->setUniformValue(m_scale_u, scale);
   checkError("normal: after set scale");
 }

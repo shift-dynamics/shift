@@ -1,8 +1,7 @@
-#include <QApplication>
 #include "workspace.hpp"
+#include <QApplication>
 
 int main(int argc, char* argv[]) {
-
 
   // qputenv(QT_STYLE_OVERRIDE, "gtk2");
   // qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "1");
@@ -15,7 +14,7 @@ int main(int argc, char* argv[]) {
   font.setFamily(font.defaultFamily());
   app.setFont(font);
 
-  Workspace workspace;
+  Shift::Workspace workspace;
   workspace.setMouseTracking(true);
   // window.show();
   workspace.showMaximized();
