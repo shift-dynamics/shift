@@ -1,11 +1,11 @@
 #include "joints.hpp"
-#include "renderwindow.hpp"
 #include "frameshaderprogram.hpp"
+#include "renderwindow.hpp"
 
 /*!
 @brief sets pointer to m_renderWindow->m_context;
 */
-void s2_Joints::loadContext() {
+void Shift::Joints::loadContext() {
   m_context = m_renderWindow->getContext();
   m_drawEnabled = false;
 }
@@ -17,7 +17,7 @@ using joint slider interface.
 This function should not be called while simulation is running, or while
 simulation is being played back.
 */
-void s2_Joints::update() {
+void Shift::Joints::update() {
 
   if(m_active) {
     m_counter++;
@@ -54,16 +54,11 @@ void s2_Joints::update() {
               }
 
               if(m_isPositive) {
-                if(
-                  m_context->q[m_qIndex] + delq >
-                  m_targetVal) {
+                if(m_context->q[m_qIndex] + delq > m_targetVal) {
 
                   s2_substructure_incrementSpecifiedCoordinate(
-                    m_joint->substructurePointer,
-                    m_dqIndex,
-                    m_targetVal,
-                    S2_JOINT_PRIMITIVE,
-                    S2_JOINT_TARGET);
+                    m_joint->substructurePointer, m_dqIndex, m_targetVal,
+                    S2_JOINT_PRIMITIVE, S2_JOINT_TARGET);
 
                   // qDebug() << "before clearjoint";
 
@@ -71,38 +66,27 @@ void s2_Joints::update() {
                 } else {
 
                   s2_substructure_incrementSpecifiedCoordinate(
-                    m_joint->substructurePointer,
-                    m_dqIndex,
-                    delq,
-                    S2_JOINT_PRIMITIVE,
-                    S2_JOINT_INCREMENT);
+                    m_joint->substructurePointer, m_dqIndex, delq,
+                    S2_JOINT_PRIMITIVE, S2_JOINT_INCREMENT);
                 }
               } else {
-                if(
-                  m_context->q[m_qIndex] + delq < m_targetVal) {
+                if(m_context->q[m_qIndex] + delq < m_targetVal) {
 
                   s2_substructure_incrementSpecifiedCoordinate(
-                    m_joint->substructurePointer,
-                    m_dqIndex,
-                    m_targetVal,
-                    S2_JOINT_PRIMITIVE,
-                    S2_JOINT_TARGET);
+                    m_joint->substructurePointer, m_dqIndex, m_targetVal,
+                    S2_JOINT_PRIMITIVE, S2_JOINT_TARGET);
 
                   // qDebug() << "before clearjoint";
                   clear();
                 } else {
 
                   s2_substructure_incrementSpecifiedCoordinate(
-                    m_joint->substructurePointer,
-                    m_dqIndex,
-                    -delq,
-                    S2_JOINT_PRIMITIVE,
-                    S2_JOINT_INCREMENT);
+                    m_joint->substructurePointer, m_dqIndex, -delq,
+                    S2_JOINT_PRIMITIVE, S2_JOINT_INCREMENT);
                 }
               }
             }
-          }
-          break;
+          } break;
           case S2_JOINT_INCREMENT: {
 
             double delq = m_delq * pow(m_joint->mobilityNumber[0], 1.5);
@@ -116,17 +100,13 @@ void s2_Joints::update() {
             qDebug() << "delq:" << delq;
 
             int returnVal = s2_substructure_incrementSpecifiedCoordinate(
-                              m_joint->substructurePointer,
-                              m_dqIndex,
-                              delq,
-                              S2_JOINT_TX,
-                              S2_JOINT_INCREMENT);
+              m_joint->substructurePointer, m_dqIndex, delq, S2_JOINT_TX,
+              S2_JOINT_INCREMENT);
 
             if(returnVal) {
               clear();
             }
-          }
-          break;
+          } break;
         }
         s2_context_updateGLReferenceFrames(m_context);
 
@@ -156,16 +136,11 @@ void s2_Joints::update() {
   }
 }
 
-
 /*!
   @brief set joint to be incremented
 */
-void s2_Joints::set(
-  s2_joint_t* joint,
-  int qIndex,
-  int dqIndex,
-  double delq,
-  s2_joint_enum_t jointType) {
+void Shift::Joints::set(s2_joint_t* joint, int qIndex, int dqIndex, double delq,
+                        s2_joint_enum_t jointType) {
 
   m_active = true;
   m_counter = 0;
@@ -180,16 +155,11 @@ void s2_Joints::set(
   m_maxCount = 1000;
 }
 
-
 /*!
   @brief set joint to be incremented
 */
-void s2_Joints::setTarget(
-  s2_joint_t* joint,
-  int qIndex,
-  int dqIndex,
-  double targetVal,
-  s2_joint_enum_t jointType) {
+void Shift::Joints::setTarget(s2_joint_t* joint, int qIndex, int dqIndex,
+                              double targetVal, s2_joint_enum_t jointType) {
 
   m_active = true;
   m_counter = 0;
@@ -211,11 +181,10 @@ void s2_Joints::setTarget(
   m_maxCount = abs(targetVal - m_context->q[qIndex]) * 1000;
 }
 
-
 /*!
 @brief clear joint to be incremented
 */
-void s2_Joints::clear() {
+void Shift::Joints::clear() {
   m_active = false;
   m_counter = 0;
   m_joint = NULL;
@@ -225,11 +194,10 @@ void s2_Joints::clear() {
   m_jointType = S2_JOINT_INVALID;
 }
 
-
 /*!
 
 */
-void s2_Joints::draw() {
+void Shift::Joints::draw() {
 
   if(m_drawEnabled && m_context) {
 
@@ -237,15 +205,14 @@ void s2_Joints::draw() {
     checkError("joint: after bind vao");
 
     QMatrix4x4 vp =
-      m_renderWindow->getProjectionMatrix() *
-      m_renderWindow->getViewMatrix();
+      m_renderWindow->getProjectionMatrix() * m_renderWindow->getViewMatrix();
 
     for(int i = 0; i < m_context->activeJointCount; i++) {
       s2_joint_t* joint = m_context->jointPointers[i];
 
       if(joint->isVisible) {
         QMatrix4x4 model =
-          s2_displacementToQMatrix4x4(joint->parentFramePointer->dAbsolute);
+          displacementToQMatrix4x4(joint->parentFramePointer->dAbsolute);
         QMatrix4x4 mvp = vp * model;
 
         m_program->setMVP(mvp);
@@ -255,41 +222,39 @@ void s2_Joints::draw() {
           case S2_JOINT_RX: {
             m_program->setScale(m_scaleFactor);
             glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
-          }
-          break;
+          } break;
           case S2_JOINT_RY: {
             m_program->setScale(m_scaleFactor);
-            m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+            m_renderWindow->m_funcs->glDrawElementsBaseVertex(
+              GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
             checkError("joint: after draw ry");
-          }
-          break;
+          } break;
           case S2_JOINT_RZ: {
             m_program->setScale(m_scaleFactor);
-            m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+            m_renderWindow->m_funcs->glDrawElementsBaseVertex(
+              GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
             checkError("joint: after draw rz");
-          }
-          break;
+          } break;
           case S2_JOINT_TX: {
             float jointValue = (float)(m_context->q[joint->qIndex]);
             m_program->setScale(jointValue);
             glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
             checkError("joint: after draw tx");
-          }
-          break;
+          } break;
           case S2_JOINT_TY: {
             float jointValue = (float)(m_context->q[joint->qIndex]);
             m_program->setScale(jointValue);
-            m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
+            m_renderWindow->m_funcs->glDrawElementsBaseVertex(
+              GL_LINES, 2, GL_UNSIGNED_INT, 0, 2);
             checkError("joint: after draw ty");
-          }
-          break;
+          } break;
           case S2_JOINT_TZ: {
             float jointValue = (float)(m_context->q[joint->qIndex]);
             m_program->setScale(jointValue);
-            m_renderWindow->m_funcs->glDrawElementsBaseVertex(GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
+            m_renderWindow->m_funcs->glDrawElementsBaseVertex(
+              GL_LINES, 2, GL_UNSIGNED_INT, 0, 4);
             checkError("joint: after draw tz");
-          }
-          break;
+          } break;
           default:
             break;
         }

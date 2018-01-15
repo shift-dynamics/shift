@@ -1,8 +1,8 @@
 #include "phongshaderprogram.hpp"
-#include "renderwindow.hpp"
 #include "lights.hpp"
+#include "renderwindow.hpp"
 
-void PhongShaderProgram::initialize() {
+void Shift::PhongShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
     addVertexShader(":/shaders/phong.glsl");
@@ -34,8 +34,7 @@ void PhongShaderProgram::initialize() {
     m_lights_drawShadows_u = m_program->uniformLocation("lights_u.drawShadows");
     m_lights_shadowMatrix_u =
       m_program->uniformLocation("lights_u.shadowMatrix");
-    m_texture_shadow_u =
-      m_program->uniformLocation("texture_shadow_u");
+    m_texture_shadow_u = m_program->uniformLocation("texture_shadow_u");
 
     checkError("after set phong uniforms");
 
@@ -49,10 +48,9 @@ void PhongShaderProgram::initialize() {
   }
 }
 
+void Shift::PhongShaderProgram::setTransform(s2_displacement_t* transform) {
 
-void PhongShaderProgram::setTransform(s2_displacement_t* transform) {
-
-  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+  QMatrix4x4 model = displacementToQMatrix4x4(transform);
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mv = view * model;
@@ -78,34 +76,25 @@ void PhongShaderProgram::setTransform(s2_displacement_t* transform) {
       m_renderWindow->getLights()->getMaxCount());
     checkError("phong: after set shadow matrix array");
   }
-
 }
 
-
-void PhongShaderProgram::setKa(GLfloat Ka[4]) {
-  m_program->setUniformValue(
-    m_material_Ka_u, Ka[0], Ka[1], Ka[2], Ka[3]);
+void Shift::PhongShaderProgram::setKa(GLfloat Ka[4]) {
+  m_program->setUniformValue(m_material_Ka_u, Ka[0], Ka[1], Ka[2], Ka[3]);
 }
 
-
-void PhongShaderProgram::setKd(GLfloat Kd[4]) {
-  m_program->setUniformValue(
-    m_material_Kd_u, Kd[0], Kd[1], Kd[2], Kd[3]);
+void Shift::PhongShaderProgram::setKd(GLfloat Kd[4]) {
+  m_program->setUniformValue(m_material_Kd_u, Kd[0], Kd[1], Kd[2], Kd[3]);
 }
 
-
-void PhongShaderProgram::setKs(GLfloat Ks[4]) {
-  m_program->setUniformValue(
-    m_material_Ks_u, Ks[0], Ks[1], Ks[2], Ks[3]);
+void Shift::PhongShaderProgram::setKs(GLfloat Ks[4]) {
+  m_program->setUniformValue(m_material_Ks_u, Ks[0], Ks[1], Ks[2], Ks[3]);
 }
 
-
-void PhongShaderProgram::setNs(GLint Ns) {
+void Shift::PhongShaderProgram::setNs(GLint Ns) {
   m_program->setUniformValue(m_material_Ns_u, Ns);
 }
 
-
-void PhongShaderProgram::setMaterial(s2_material_t* material) {
+void Shift::PhongShaderProgram::setMaterial(s2_material_t* material) {
   setKa(material->GLuniforms.Ka);
   setKd(material->GLuniforms.Kd);
   setKs(material->GLuniforms.Ks);
@@ -113,20 +102,14 @@ void PhongShaderProgram::setMaterial(s2_material_t* material) {
   checkError("after set material");
 }
 
-
-void PhongShaderProgram::setLights(s2_Lights* lights) {
-  m_program->setUniformValueArray(
-    m_lights_position_u, lights->getPosition(), 10, 3);
-  m_program->setUniformValueArray(
-    m_lights_Ka_u, lights->getKa(), 10, 3);
-  m_program->setUniformValueArray(
-    m_lights_Kd_u, lights->getKd(), 10, 3);
-  m_program->setUniformValueArray(
-    m_lights_Ks_u, lights->getKs(), 10, 3);
-  m_program->setUniformValueArray(
-    m_lights_type_u, lights->getType(), 10);
-  m_program->setUniformValue(
-    m_lights_count_u, lights->getCount());
+void Shift::PhongShaderProgram::setLights(Lights* lights) {
+  m_program->setUniformValueArray(m_lights_position_u, lights->getPosition(),
+                                  10, 3);
+  m_program->setUniformValueArray(m_lights_Ka_u, lights->getKa(), 10, 3);
+  m_program->setUniformValueArray(m_lights_Kd_u, lights->getKd(), 10, 3);
+  m_program->setUniformValueArray(m_lights_Ks_u, lights->getKs(), 10, 3);
+  m_program->setUniformValueArray(m_lights_type_u, lights->getType(), 10);
+  m_program->setUniformValue(m_lights_count_u, lights->getCount());
   if(m_renderWindow->getLights()->isEnabled()) {
     m_program->setUniformValue(m_lights_drawShadows_u, 1);
   } else {
@@ -135,10 +118,9 @@ void PhongShaderProgram::setLights(s2_Lights* lights) {
   checkError("after set lights");
 }
 
-
 /*!
 @brief bind depth buffer to index 0
 */
-void PhongShaderProgram::bindDepthBuffer() {
+void Shift::PhongShaderProgram::bindDepthBuffer() {
   m_program->setUniformValue(m_texture_shadow_u, 0);
 }

@@ -1,12 +1,11 @@
 #include "frameshaderprogram.hpp"
-#include "renderwindow.hpp"
 #include "lights.hpp"
-
+#include "renderwindow.hpp"
 
 /*!
 @brief initialize frame shader and check for errors
 */
-void FrameShaderProgram::initialize() {
+void Shift::FrameShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
     addVertexShader(":/shaders/frame.glsl");
@@ -48,51 +47,47 @@ void FrameShaderProgram::initialize() {
   }
 }
 
-
 /*!
-@brief set mvp using only a transform data structure. The model and view matrices are obtained from the current render window.
+@brief set mvp using only a transform data structure. The model and view
+matrices are obtained from the current render window.
 */
-void FrameShaderProgram::setTransform(s2_displacement_t* transform) {
-  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+void Shift::FrameShaderProgram::setTransform(s2_displacement_t* transform) {
+  QMatrix4x4 model = displacementToQMatrix4x4(transform);
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mvp = projection * view * model;
   m_program->setUniformValue(m_mvp_u, mvp);
 }
 
-
 /*!
 @brief set mvp matrix
 */
-void FrameShaderProgram::setMVP(QMatrix4x4& mvp) {
+void Shift::FrameShaderProgram::setMVP(QMatrix4x4& mvp) {
   // m_mvp_u = m_program->uniformLocation("mvp_u");
   // checkError("after set uniform location");
   // qDebug() << "m_mvp_u:" << m_mvp_u;
   m_program->setUniformValue(m_mvp_u, mvp);
 }
 
-
 /*!
 @brief set scale factor
 */
-void FrameShaderProgram::setScale(GLfloat scale) {
+void Shift::FrameShaderProgram::setScale(GLfloat scale) {
   m_program->setUniformValue(m_scale_u, scale);
 }
-
 
 /*!
 
 */
-void FrameShaderProgram::bindVao() {
+void Shift::FrameShaderProgram::bindVao() {
   m_program->bind();
   m_vao->bind();
 }
 
-
 /*!
 @brief release vao object
 */
-void FrameShaderProgram::releaseVao() {
+void Shift::FrameShaderProgram::releaseVao() {
   m_vao->release();
   m_program->release();
 }

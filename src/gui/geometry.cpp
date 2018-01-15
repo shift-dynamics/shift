@@ -2,34 +2,34 @@
 #include "openglwindow.hpp"
 #include "renderwindow.hpp"
 
-void s2_Geometry::checkError(const QString& prefix) {
+void Shift::Geometry::checkError(const QString& prefix) {
   m_renderWindow->checkError(prefix);
 }
 
-bool s2_Geometry::isInitialized() {
+bool Shift::Geometry::isInitialized() {
   return m_initialized;
 }
 
-bool s2_Geometry::isEnabled() {
+bool Shift::Geometry::isEnabled() {
   return m_drawEnabled;
 }
 
-float s2_Geometry::getScaleFactor() {
+float Shift::Geometry::getScaleFactor() {
   return m_scaleFactor;
 }
 
-void s2_Geometry::setContext(s2_context_t* context) {
+void Shift::Geometry::setContext(s2_context_t* context) {
   m_context = context;
 }
 
-void s2_Geometry::clearContext() {
+void Shift::Geometry::clearContext() {
   m_context = NULL;
 }
 
-void s2_Geometry::toggleDraw() {
+void Shift::Geometry::toggleDraw() {
   m_drawEnabled = !m_drawEnabled;
 }
 
-void s2_Geometry::enable(bool drawEnabled) {
+void Shift::Geometry::enable(bool drawEnabled) {
   m_drawEnabled = drawEnabled;
 }

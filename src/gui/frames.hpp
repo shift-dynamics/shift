@@ -2,61 +2,59 @@
 #define _SHIFT_FRAMES_HPP_
 
 #include "../shift.h"
-#include "openglwindow.hpp"
 #include "geometry.hpp"
+#include "openglwindow.hpp"
 #include "renderwindow.hpp"
 
-#include <QString>
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QMatrix4x4>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
-#include <QtOpenGL/QGLWidget>
 #include <QHBoxLayout>
+#include <QMatrix4x4>
+#include <QMouseEvent>
+#include <QOpenGLBuffer>
 #include <QOpenGLDebugLogger>
+#include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
+#include <QString>
+#include <QWheelEvent>
+#include <QtOpenGL/QGLWidget>
 
-
-class FrameShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
-class s2_Frames : public s2_Geometry {
+namespace Shift {
 
-    Q_OBJECT
+class FrameShaderProgram;
 
-  public:
-    s2_Frames(RenderWindow* renderWindow)
-      : s2_Geometry(renderWindow) {
+class Frames : public Geometry {
 
-      m_scaleFactor = 0.5;
-      // m_frames.append(s2_displacement());
-    }
+  Q_OBJECT
 
-    ~s2_Frames() {
-      // s2_displacement_t* origin = m_frames.at(0);
-      // free(origin);
-    }
+public:
+  Frames(RenderWindow* renderWindow)
+    : Geometry(renderWindow) {
 
-    void draw();
-    void addFrames(s2_assembly_t* assembly);
-    void drawWFrames();
-    void loadContext();
-    void clearContext();
-    void setShader(FrameShaderProgram* program) {
-      m_program = program;
-    }
+    m_scaleFactor = 0.5;
+    // m_frames.append(s2_displacement());
+  }
 
-  private:
+  ~Frames() {
+    // s2_displacement_t* origin = m_frames.at(0);
+    // free(origin);
+  }
 
-    FrameShaderProgram* m_program;
-    QVector<s2_frame_t*> m_frames;
+  void draw();
+  void addFrames(s2_assembly_t* assembly);
+  void drawWFrames();
+  void loadContext();
+  void clearContext();
+  void setShader(FrameShaderProgram* program) {
+    m_program = program;
+  }
 
+private:
+  FrameShaderProgram* m_program;
+  QVector<s2_frame_t*> m_frames;
 };
-
+} // namespace Shift
 
 #endif

@@ -3,14 +3,14 @@
 
 #include <QTextStream>
 
-void ShaderProgram::addProgram() {
+void Shift::ShaderProgram::addProgram() {
   if(m_program == NULL) {
     m_program = new QOpenGLShaderProgram(m_renderWindow);
   }
 }
 
-QString ShaderProgram::readSource(
-  const char* shaderSource, const char* define) {
+QString Shift::ShaderProgram::readSource(const char* shaderSource,
+                                         const char* define) {
   QFile file(shaderSource);
   file.open(QIODevice::ReadOnly);
   QString sourceCode;
@@ -21,69 +21,61 @@ QString ShaderProgram::readSource(
   return sourceCode;
 }
 
-void ShaderProgram::addVertexShader(const char* shaderSource) {
+void Shift::ShaderProgram::addVertexShader(const char* shaderSource) {
   QString shaderSourceCode = readSource(shaderSource, "VERTEX_SHADER");
-  m_program->addShaderFromSourceCode(
-    QOpenGLShader::Vertex,
-    shaderSourceCode);
+  m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, shaderSourceCode);
 }
 
-void ShaderProgram::addGeometryShader(const char* shaderSource) {
+void Shift::ShaderProgram::addGeometryShader(const char* shaderSource) {
   QString shaderSourceCode = readSource(shaderSource, "GEOMETRY_SHADER");
-  m_program->addShaderFromSourceCode(
-    QOpenGLShader::Geometry,
-    shaderSourceCode);
+  m_program->addShaderFromSourceCode(QOpenGLShader::Geometry, shaderSourceCode);
 }
 
-void ShaderProgram::addTessellationControlShader(const char* shaderSource) {
+void Shift::ShaderProgram::addTessellationControlShader(
+  const char* shaderSource) {
   QString shaderSourceCode =
     readSource(shaderSource, "TESSELATION_CONTROL_SHADER");
-  m_program->addShaderFromSourceCode(
-    QOpenGLShader::TessellationControl,
-    shaderSourceCode);
+  m_program->addShaderFromSourceCode(QOpenGLShader::TessellationControl,
+                                     shaderSourceCode);
 }
 
-void ShaderProgram::addTessellationEvaluationShader(const char* shaderSource) {
+void Shift::ShaderProgram::addTessellationEvaluationShader(
+  const char* shaderSource) {
   QString shaderSourceCode =
     readSource(shaderSource, "TESSELATION_EVALUATION_SHADER");
-  m_program->addShaderFromSourceCode(
-    QOpenGLShader::TessellationEvaluation,
-    shaderSourceCode);
+  m_program->addShaderFromSourceCode(QOpenGLShader::TessellationEvaluation,
+                                     shaderSourceCode);
 }
 
-void ShaderProgram::addFragmentShader(const char* shaderSource) {
+void Shift::ShaderProgram::addFragmentShader(const char* shaderSource) {
   QString shaderSourceCode = readSource(shaderSource, "FRAGMENT_SHADER");
-  m_program->addShaderFromSourceCode(
-    QOpenGLShader::Fragment,
-    shaderSourceCode);
+  m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, shaderSourceCode);
 }
 
-void ShaderProgram::addComputeShader(const char* shaderSource) {
+void Shift::ShaderProgram::addComputeShader(const char* shaderSource) {
   QString shaderSourceCode = readSource(shaderSource, "COMPUTE_SHADER");
-  m_program->addShaderFromSourceCode(
-    QOpenGLShader::Compute,
-    shaderSourceCode);
+  m_program->addShaderFromSourceCode(QOpenGLShader::Compute, shaderSourceCode);
 }
 
-void ShaderProgram::link() {
+void Shift::ShaderProgram::link() {
   m_program->link();
   m_linked = true;
 }
 
-void ShaderProgram::bind() {
+void Shift::ShaderProgram::bind() {
   if(!m_bound) {
     m_program->bind();
     m_bound = true;
   }
 }
 
-void ShaderProgram::release() {
+void Shift::ShaderProgram::release() {
   if(m_bound) {
     m_program->release();
     m_bound = false;
   }
 }
 
-void ShaderProgram::checkError(const QString& prefix) {
+void Shift::ShaderProgram::checkError(const QString& prefix) {
   m_renderWindow->checkError(prefix);
 }

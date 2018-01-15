@@ -2,42 +2,40 @@
 #define _SHIFT_POINTCLOUD_HPP_
 
 #include "../shift.h"
-#include "openglwindow.hpp"
 #include "geometry.hpp"
 #include "lights.hpp"
+#include "openglwindow.hpp"
 
-#include <QString>
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QMatrix4x4>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
-#include <QtOpenGL/QGLWidget>
-#include <QHBoxLayout>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QWidget>
-#include <QString>
-#include <QMainWindow>
-#include <QHBoxLayout>
 #include <QFileDialog>
-#include <QResizeEvent>
-#include <QTimer>
+#include <QHBoxLayout>
+#include <QMainWindow>
+#include <QMatrix4x4>
+#include <QMouseEvent>
+#include <QOpenGLBuffer>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QResizeEvent>
+#include <QString>
+#include <QTimer>
+#include <QWheelEvent>
+#include <QWidget>
+#include <QtOpenGL/QGLWidget>
 
 #include "pointcloudshaderprogram.hpp"
 
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-class RenderWindow;
-class PointCloudShaderProgram;
+
 struct s2_lights_t;
 struct s2_pointcloud_t;
+
+namespace Shift {
+
+class RenderWindow;
 
 /*!
 @brief vertex array and vertex buffer objects for each material
@@ -54,86 +52,77 @@ struct pointcloud_buffer_t {
 @brief used to set up visualization assets associated with s2_body_t data
 structure
 */
-class s2_PointCloud : public s2_Geometry {
+class PointCloud : public Geometry {
 
-    Q_OBJECT
+  Q_OBJECT
 
-  public:
-    s2_PointCloud(RenderWindow* renderWindow)
-      : s2_Geometry(renderWindow)
-      , m_shadingType(S2_POINT_SHADING_SIMPLE)
-      , m_drawEnabled(true) {
+public:
+  PointCloud(RenderWindow* renderWindow)
+    : Geometry(renderWindow)
+    , m_shadingType(S2_POINT_SHADING_SIMPLE)
+    , m_drawEnabled(true){};
 
-    };
+  ~PointCloud(){};
 
-    ~s2_PointCloud() {
+  void initialize();
 
-    };
+  void initializePointCloud(s2_pointcloud_t*);
 
-    void initialize();
+  void setDrawStyle(s2_point_shading_enum_t shadingType);
 
-    void initializePointCloud(s2_pointcloud_t*);
+  void loadContext();
 
-    void setDrawStyle(s2_point_shading_enum_t shadingType);
+  void clearContext();
 
-    void loadContext();
+  void setLights(Lights*);
 
-    void clearContext();
+  void setShader(PointCloudShaderProgram* program) {
+    m_program = program;
+  };
 
-    void setLights(s2_Lights*);
+  void setAttributeLocations(QOpenGLShaderProgram*, GLint, GLint,
+                             pointcloud_buffer_t*);
 
-    void setShader(PointCloudShaderProgram* program) {
-      m_program = program;
-    };
+  QVector<pointcloud_buffer_t>* getBufferObjects() {
+    return &m_bufferObjects;
+  }
 
-    void setAttributeLocations(
-      QOpenGLShaderProgram*,
-      GLint,
-      GLint,
-      pointcloud_buffer_t*);
+  bool isEnabled() {
+    return m_drawEnabled;
+  }
 
-    QVector<pointcloud_buffer_t>* getBufferObjects() {
-      return &m_bufferObjects;
-    }
+  void draw();
+  void drawShadows();
 
-    bool isEnabled() {
-      return m_drawEnabled;
-    }
+public slots:
 
-    void draw();
-    void drawShadows();
+  void setPhongShaded() {
+    setDrawStyle(S2_POINT_SHADING_PHONG);
+  }
 
-  public slots:
+  void setSpriteShaded() {
+    setDrawStyle(S2_POINT_SHADING_SPRITE);
+  }
 
-    void setPhongShaded() {
-      setDrawStyle(S2_POINT_SHADING_PHONG);
-    }
+  void setSimpleShaded() {
+    setDrawStyle(S2_POINT_SHADING_SIMPLE);
+  }
 
-    void setSpriteShaded() {
-      setDrawStyle(S2_POINT_SHADING_SPRITE);
-    }
+private:
+  QVector<pointcloud_buffer_t> m_bufferObjects;
 
-    void setSimpleShaded() {
-      setDrawStyle(S2_POINT_SHADING_SIMPLE);
-    }
+  s2_point_shading_enum_t m_shadingType;
 
+  /* OpenGL shader programs */
+  PointCloudShaderProgram* m_program;
 
-  private:
+  ShadowShaderProgram* m_programShadow;
 
-    QVector<pointcloud_buffer_t> m_bufferObjects;
+  Lights* m_lights;
 
-    s2_point_shading_enum_t m_shadingType;
-
-    /* OpenGL shader programs */
-    PointCloudShaderProgram* m_program;
-
-    ShadowShaderProgram* m_programShadow;
-
-    s2_Lights* m_lights;
-
-    bool m_drawEnabled;
-
+  bool m_drawEnabled;
 };
 
+} // namespace Shift
 
 #endif

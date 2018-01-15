@@ -2,100 +2,93 @@
 #define _SHIFT_GRID_HPP_
 
 #include "../shift.h"
-#include "openglwindow.hpp"
 #include "geometry.hpp"
+#include "openglwindow.hpp"
 
-#include <QString>
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QMatrix4x4>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
-#include <QtOpenGL/QGLWidget>
-#include <QHBoxLayout>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QWidget>
-#include <QString>
-#include <QMainWindow>
-#include <QHBoxLayout>
 #include <QFileDialog>
-#include <QResizeEvent>
-#include <QTimer>
+#include <QHBoxLayout>
+#include <QMainWindow>
+#include <QMatrix4x4>
+#include <QMouseEvent>
+#include <QOpenGLBuffer>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QResizeEvent>
+#include <QString>
+#include <QTimer>
+#include <QWheelEvent>
+#include <QWidget>
+#include <QtOpenGL/QGLWidget>
 
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
+
+namespace Shift {
+
 class RenderWindow;
 class SimpleShaderProgram;
 
+class Grid : public Geometry {
 
-class s2_Grid : public s2_Geometry {
+  Q_OBJECT
 
-    Q_OBJECT
+public:
+  Grid(RenderWindow* renderWindow, int gridSize = 100, float scaleFactor = 1.f)
+    : Geometry(renderWindow)
+    , m_material(NULL)
+    , m_transform(NULL)
+    , m_program(NULL) {
 
-  public:
-    s2_Grid(RenderWindow* renderWindow, int gridSize = 100, float scaleFactor = 1.f)
-      : s2_Geometry(renderWindow)
-      , m_material(NULL)
-      , m_transform(NULL)
-      , m_program(NULL) {
+    m_gridSize = gridSize;
+    m_scaleFactor = scaleFactor;
+    m_model.setToIdentity();
 
-      m_gridSize = gridSize;
-      m_scaleFactor = scaleFactor;
-      m_model.setToIdentity();
+    m_color[0] = 36.f / 255.f;
+    m_color[1] = 36.f / 255.f;
+    m_color[2] = 36.f / 255.f;
+    m_color[3] = 0.9f;
+  };
 
-      m_color[0] = 36.f / 255.f;
-      m_color[1] = 36.f / 255.f;
-      m_color[2] = 36.f / 255.f;
-      m_color[3] = 0.9f;
+  ~Grid() {
+    s2_material_free(m_material, 1);
+    free(m_transform);
+  };
 
-    };
+  void initialize();
+  void draw();
+  void setShader(SimpleShaderProgram* program) {
+    m_program = program;
+    initialize();
+  }
 
-    ~s2_Grid() {
-      s2_material_free(m_material, 1);
-      free(m_transform);
-    };
+public slots:
 
-    void initialize();
-    void draw();
-    void setShader(SimpleShaderProgram* program) {
-      m_program = program;
-      initialize();
-    }
+  void setGridSize(int gridSize, float scaleFactor) {
+    m_gridSize = gridSize;
+    m_scaleFactor = scaleFactor;
+  }
 
-  public slots:
+private:
+  int m_gridSize;
+  float m_scaleFactor;
+  QMatrix4x4 m_model;
 
-    void setGridSize(int gridSize, float scaleFactor) {
-      m_gridSize = gridSize;
-      m_scaleFactor = scaleFactor;
-    }
+  s2_shading_enum_t m_shadingType;
+  GLfloat m_color[4];
 
-  private:
+  s2_material_t* m_material;
+  s2_displacement_t* m_transform;
 
-    int m_gridSize;
-    float m_scaleFactor;
-    QMatrix4x4 m_model;
+  QOpenGLVertexArrayObject* m_vao;
+  QOpenGLBuffer* m_vbo;
+  QOpenGLBuffer* m_ibo;
 
-    s2_shading_enum_t m_shadingType;
-    GLfloat m_color[4];
-
-    s2_material_t* m_material;
-    s2_displacement_t* m_transform;
-
-    QOpenGLVertexArrayObject* m_vao;
-    QOpenGLBuffer* m_vbo;
-    QOpenGLBuffer* m_ibo;
-
-    SimpleShaderProgram* m_program;
-
+  SimpleShaderProgram* m_program;
 };
-
-
+} // namespace Shift
 
 #endif
