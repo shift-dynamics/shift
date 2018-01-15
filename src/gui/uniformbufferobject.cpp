@@ -4,9 +4,10 @@
 
 #include <QDebug>
 
-QVector<GLuint> UniformBufferObject::m_bindingIndices = QVector<GLuint>();
+QVector<GLuint> Shift::UniformBufferObject::m_bindingIndices =
+  QVector<GLuint>();
 
-GLuint UniformBufferObject::bindingIndex() {
+GLuint Shift::UniformBufferObject::bindingIndex() {
   for(GLuint i = 0, size = m_bindingIndices.size(); i < size; i++) {
     if(m_bindingIndices.at(i) != i) {
       m_bindingIndices.insert(i, i);
@@ -17,14 +18,23 @@ GLuint UniformBufferObject::bindingIndex() {
   return m_bindingIndices.size();
 }
 
-UniformBufferObject::UniformBufferObject() :
-  m_bufferId(0), m_glContext(NULL), m_inited(false),
-  glBindBuffer(NULL), glBindBufferBase(NULL), glBindBufferRange(NULL), glBufferData(NULL), glDeleteBuffers(NULL), glGenBuffers(NULL),
-  glGetActiveUniformBlockiv(NULL), glGetActiveUniformsiv(NULL), glGetUniformBlockIndex(NULL), glGetUniformIndices(NULL),
-  glUniformBlockBinding(NULL) {
-}
+Shift::UniformBufferObject::UniformBufferObject()
+  : m_bufferId(0)
+  , m_glContext(NULL)
+  , m_inited(false)
+  , glBindBuffer(NULL)
+  , glBindBufferBase(NULL)
+  , glBindBufferRange(NULL)
+  , glBufferData(NULL)
+  , glDeleteBuffers(NULL)
+  , glGenBuffers(NULL)
+  , glGetActiveUniformBlockiv(NULL)
+  , glGetActiveUniformsiv(NULL)
+  , glGetUniformBlockIndex(NULL)
+  , glGetUniformIndices(NULL)
+  , glUniformBlockBinding(NULL) {}
 
-bool UniformBufferObject::create() {
+bool Shift::UniformBufferObject::create() {
   const QGLContext* m_glContext = QGLContext::currentContext();
 
   if(m_glContext) {
@@ -51,11 +61,11 @@ bool UniformBufferObject::create() {
   return false;
 }
 
-bool UniformBufferObject::isCreated() const {
+bool Shift::UniformBufferObject::isCreated() const {
   return (bool)(m_bufferId != 0);
 }
 
-void UniformBufferObject::destroy() {
+void Shift::UniformBufferObject::destroy() {
   if(m_bufferId != 0) {
     glDeleteBuffers(1, &m_bufferId);
   }
@@ -63,7 +73,7 @@ void UniformBufferObject::destroy() {
   m_glContext = NULL;
 }
 
-bool UniformBufferObject::bind() {
+bool Shift::UniformBufferObject::bind() {
   if(!isCreated()) {
     qDebug("Buffer not created");
     return false;
@@ -74,17 +84,19 @@ bool UniformBufferObject::bind() {
   return true;
 }
 
-bool UniformBufferObject::bind(GLuint progId, QString uniformName) {
+bool Shift::UniformBufferObject::bind(GLuint progId, QString uniformName) {
   GLuint tmpBlockIdx = glGetUniformBlockIndex(progId, uniformName.toUtf8());
 
   if(tmpBlockIdx == GL_INVALID_INDEX) {
-    qDebug() << QString("Could not find block index of block named: %1").arg(uniformName);
+    qDebug() << QString("Could not find block index of block named: %1")
+                  .arg(uniformName);
 
     return false;
   }
 
   GLint tmpBlockSize;
-  glGetActiveUniformBlockiv(progId, tmpBlockIdx, GL_UNIFORM_BLOCK_DATA_SIZE, &tmpBlockSize);
+  glGetActiveUniformBlockiv(progId, tmpBlockIdx, GL_UNIFORM_BLOCK_DATA_SIZE,
+                            &tmpBlockSize);
 
   GLuint tmpBindingIdx = bindingIndex();
   glUniformBlockBinding(progId, tmpBlockIdx, tmpBindingIdx);
@@ -107,15 +119,16 @@ bool UniformBufferObject::bind(GLuint progId, QString uniformName) {
   return true;
 }
 
-void UniformBufferObject::release() {
+void Shift::UniformBufferObject::release() {
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-GLuint UniformBufferObject::bufferId() const {
+GLuint Shift::UniformBufferObject::bufferId() const {
   return m_bufferId;
 }
 
-void UniformBufferObject::write(int offset, const void* data, int count) {
+void Shift::UniformBufferObject::write(int offset, const void* data,
+                                       int count) {
   if(!isCreated()) {
     return;
   }
@@ -125,7 +138,7 @@ void UniformBufferObject::write(int offset, const void* data, int count) {
   glBufferSubData(GL_UNIFORM_BUFFER, offset, count, data);
 }
 
-void UniformBufferObject::allocate(const void* data, int count) {
+void Shift::UniformBufferObject::allocate(const void* data, int count) {
   if(!isCreated()) {
     return;
   }
@@ -135,32 +148,42 @@ void UniformBufferObject::allocate(const void* data, int count) {
   glBufferData(GL_UNIFORM_BUFFER, count, data, GL_DYNAMIC_DRAW);
 }
 
-bool UniformBufferObject::initFunctionPointers(const QGLContext* m_glContext) {
-  glBindBuffer = (PFNGLBINDBUFFERPROC)m_glContext->getProcAddress("glBindBuffer");
-  glBindBufferBase = (PFNGLBINDBUFFERBASEPROC)m_glContext->getProcAddress("glBindBufferBase");
-  glBindBufferRange = (PFNGLBINDBUFFERRANGEPROC)m_glContext->getProcAddress("glBindBufferRange");
-  glBufferData = (PFNGLBUFFERDATAPROC)m_glContext->getProcAddress("glBufferData");
-  glBufferSubData = (PFNGLBUFFERSUBDATAPROC)m_glContext->getProcAddress("glBufferSubData");
-  glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)m_glContext->getProcAddress("glDeleteBuffers");
-  glGenBuffers = (PFNGLGENBUFFERSPROC)m_glContext->getProcAddress("glGenBuffers");
-  glGetActiveUniformBlockiv = (PFNGLGETACTIVEUNIFORMBLOCKIVPROC)m_glContext->getProcAddress("glGetActiveUniformBlockiv");
-  glGetActiveUniformsiv = (PFNGLGETACTIVEUNIFORMSIVPROC)m_glContext->getProcAddress("glGetActiveUniformsiv");
-  glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)m_glContext->getProcAddress("glGetUniformBlockIndex");
-  glGetUniformIndices = (PFNGLGETUNIFORMINDICESPROC)m_glContext->getProcAddress("glGetUniformIndices");
-  glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)m_glContext->getProcAddress("glUniformBlockBinding");
+bool Shift::UniformBufferObject::initFunctionPointers(
+  const QGLContext* m_glContext) {
+  glBindBuffer =
+    (PFNGLBINDBUFFERPROC)m_glContext->getProcAddress("glBindBuffer");
+  glBindBufferBase =
+    (PFNGLBINDBUFFERBASEPROC)m_glContext->getProcAddress("glBindBufferBase");
+  glBindBufferRange =
+    (PFNGLBINDBUFFERRANGEPROC)m_glContext->getProcAddress("glBindBufferRange");
+  glBufferData =
+    (PFNGLBUFFERDATAPROC)m_glContext->getProcAddress("glBufferData");
+  glBufferSubData =
+    (PFNGLBUFFERSUBDATAPROC)m_glContext->getProcAddress("glBufferSubData");
+  glDeleteBuffers =
+    (PFNGLDELETEBUFFERSPROC)m_glContext->getProcAddress("glDeleteBuffers");
+  glGenBuffers =
+    (PFNGLGENBUFFERSPROC)m_glContext->getProcAddress("glGenBuffers");
+  glGetActiveUniformBlockiv =
+    (PFNGLGETACTIVEUNIFORMBLOCKIVPROC)m_glContext->getProcAddress(
+      "glGetActiveUniformBlockiv");
+  glGetActiveUniformsiv =
+    (PFNGLGETACTIVEUNIFORMSIVPROC)m_glContext->getProcAddress(
+      "glGetActiveUniformsiv");
+  glGetUniformBlockIndex =
+    (PFNGLGETUNIFORMBLOCKINDEXPROC)m_glContext->getProcAddress(
+      "glGetUniformBlockIndex");
+  glGetUniformIndices = (PFNGLGETUNIFORMINDICESPROC)m_glContext->getProcAddress(
+    "glGetUniformIndices");
+  glUniformBlockBinding =
+    (PFNGLUNIFORMBLOCKBINDINGPROC)m_glContext->getProcAddress(
+      "glUniformBlockBinding");
 
-  if(!glBindBuffer ||
-      !glBindBufferBase ||
-      !glBindBufferRange ||
-      !glBufferData ||
-      !glBufferSubData ||
-      !glDeleteBuffers ||
-      !glGenBuffers ||
-      !glGetActiveUniformBlockiv ||
-      !glGetActiveUniformsiv ||
-      !glGetUniformBlockIndex ||
-      !glGetUniformIndices ||
-      !glUniformBlockBinding) {
+  if(!glBindBuffer || !glBindBufferBase || !glBindBufferRange ||
+     !glBufferData || !glBufferSubData || !glDeleteBuffers || !glGenBuffers ||
+     !glGetActiveUniformBlockiv || !glGetActiveUniformsiv ||
+     !glGetUniformBlockIndex || !glGetUniformIndices ||
+     !glUniformBlockBinding) {
     qDebug("Could not init function pointers");
     return false;
   }

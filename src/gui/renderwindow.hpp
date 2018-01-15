@@ -27,13 +27,16 @@
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-class s2_Bodies;
-class s2_Frames;
-class s2_Grid;
-class s2_Joints;
-class s2_Lights;
-class s2_Terrain;
-class s2_PointCloud;
+
+namespace Shift {
+
+class Bodies;
+class Frames;
+class Grid;
+class Joints;
+class Lights;
+class Terrain;
+class PointCloud;
 
 class PhongShaderProgram;
 class FlatShaderProgram;
@@ -50,7 +53,7 @@ enum camera_interaction_enum_t {
   S2_CAMERA_INTERACTION_ORBITAL
 };
 
-QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t*);
+QMatrix4x4 displacementToQMatrix4x4(s2_displacement_t*);
 
 class RenderWindow : public OpenGLWindow {
 
@@ -103,31 +106,31 @@ public:
     return m_projection;
   }
 
-  s2_Joints* getJoints() {
+  Joints* getJoints() {
     return m_joints;
   }
 
-  s2_Bodies* getBodies() {
+  Bodies* getBodies() {
     return m_bodies;
   }
 
-  s2_Grid* getGrid() {
+  Grid* getGrid() {
     return m_grid;
   }
 
-  s2_Frames* getFrames() {
+  Frames* getFrames() {
     return m_frames;
   }
 
-  s2_Lights* getLights() {
+  Lights* getLights() {
     return m_lights;
   }
 
-  s2_Terrain* getTerrain() {
+  Terrain* getTerrain() {
     return m_terrain;
   }
 
-  s2_PointCloud* getPointClouds() {
+  PointCloud* getPointClouds() {
     return m_pointclouds;
   }
 
@@ -147,7 +150,7 @@ public slots:
     m_cameraMode = cameraMode;
   };
   void toggleCameraMode() {
-    if (m_cameraMode == S2_CAMERA_INTERACTION_TURNTABLE) {
+    if(m_cameraMode == S2_CAMERA_INTERACTION_TURNTABLE) {
       m_cameraMode = S2_CAMERA_INTERACTION_ORBITAL;
     } else {
       m_cameraMode = S2_CAMERA_INTERACTION_TURNTABLE;
@@ -204,13 +207,13 @@ private:
   GLfloat m_backgroundColor[4];
   GLfloat m_normalColor[4];
 
-  s2_Bodies* m_bodies;
-  s2_Frames* m_frames;
-  s2_Joints* m_joints;
-  s2_Lights* m_lights;
-  s2_Grid* m_grid;
-  s2_Terrain* m_terrain;
-  s2_PointCloud* m_pointclouds;
+  Bodies* m_bodies;
+  Frames* m_frames;
+  Joints* m_joints;
+  Lights* m_lights;
+  Grid* m_grid;
+  Terrain* m_terrain;
+  PointCloud* m_pointclouds;
 
   bool m_initialized;
 
@@ -231,7 +234,7 @@ private:
   NormalShaderProgram* m_programNormal;
 
   camera_interaction_enum_t m_cameraMode;
-  s2_OrbitalCamera* m_orbitalCamera;
+  OrbitalCamera* m_orbitalCamera;
 };
 
 class RenderWindowWidget : public QWidget {
@@ -267,4 +270,5 @@ private:
   RenderWindow* m_renderWindow;
 };
 
+} // namespace Shift
 #endif

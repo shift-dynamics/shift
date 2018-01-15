@@ -7,6 +7,9 @@
 #include <QtGui/qmatrix4x4.h>
 #include <QtGui/qvector3d.h>
 #include <QtWidgets/qwidget.h>
+
+namespace Shift {
+
 class RenderWindow;
 
 enum class OrbitalCameraMode : int {
@@ -16,10 +19,10 @@ enum class OrbitalCameraMode : int {
   Scale = 0x04
 };
 
-class s2_OrbitalCamera {
+class OrbitalCamera {
 
 public:
-  s2_OrbitalCamera(RenderWindow* renderWindow) {
+  OrbitalCamera(RenderWindow* renderWindow) {
     m_renderWindow = renderWindow;
     m_view.setToIdentity();
     setLookAt(QVector3D(-2, -2, -2), QVector3D(0.0, 0.0, 0.0),
@@ -89,5 +92,7 @@ private:
 
   RenderWindow* m_renderWindow;
 };
+
+} // namespace Shift
 
 #endif

@@ -9,21 +9,21 @@ QMatrix4x4 getRotation(QMatrix4x4& mat) {
   return rotation;
 }
 
-void s2_OrbitalCamera::wheelEvent(QWheelEvent* ev) {
+void Shift::OrbitalCamera::wheelEvent(QWheelEvent* ev) {
   QVector3D temp =
     m_view.transposed().column(2).toVector3D() * (ev->delta() / 1000.f);
   m_view.translate(temp);
   update();
 }
 
-void s2_OrbitalCamera::setLookAt(const QVector3D& pos, const QVector3D& to,
-                                 const QVector3D& up) {
+void Shift::OrbitalCamera::setLookAt(const QVector3D& pos, const QVector3D& to,
+                                     const QVector3D& up) {
   m_view.setToIdentity();
   m_view.lookAt(pos, to, up);
   update();
 }
 
-void s2_OrbitalCamera::mousePressEvent(QMouseEvent* ev) {
+void Shift::OrbitalCamera::mousePressEvent(QMouseEvent* ev) {
   setOldPoint(ev->pos());
   setNewPoint(ev->pos());
   switch(ev->button()) {
@@ -44,7 +44,7 @@ void s2_OrbitalCamera::mousePressEvent(QMouseEvent* ev) {
   }
 }
 
-void s2_OrbitalCamera::update() {
+void Shift::OrbitalCamera::update() {
   switch(m_mode) {
     case OrbitalCameraMode::Translate: {
       updateTranslate();
@@ -63,23 +63,23 @@ void s2_OrbitalCamera::update() {
   }
 }
 
-void s2_OrbitalCamera::mouseMoveEvent(QMouseEvent* ev) {
+void Shift::OrbitalCamera::mouseMoveEvent(QMouseEvent* ev) {
   setNewPoint(ev->pos());
   update();
   setOldPoint(ev->pos());
 }
 
-void s2_OrbitalCamera::mouseReleaseEvent(QMouseEvent* ev) {
+void Shift::OrbitalCamera::mouseReleaseEvent(QMouseEvent* ev) {
   setMode(OrbitalCameraMode::None);
 }
 
-void s2_OrbitalCamera::updateScale() {
+void Shift::OrbitalCamera::updateScale() {
   const double dy =
     20.0 * (m_newPoint.y() - m_oldPoint.y()) / m_renderWindow->height();
   m_scroll += dy;
 }
 
-void s2_OrbitalCamera::updateTranslate() {
+void Shift::OrbitalCamera::updateTranslate() {
   QMatrix4x4 camera2objMat = getRotation(m_view).transposed();
   const double dx =
     10.0 * (m_newPoint.x() - m_oldPoint.x()) / m_renderWindow->width();
@@ -88,7 +88,7 @@ void s2_OrbitalCamera::updateTranslate() {
   m_view.translate(camera2objMat * QVector3D(dx, dy, 0.0));
 }
 
-void s2_OrbitalCamera::updateRotate() {
+void Shift::OrbitalCamera::updateRotate() {
   const QVector3D va = getVector(m_oldPoint.x(), m_oldPoint.y());
   const QVector3D vb = getVector(m_newPoint.x(), m_newPoint.y());
   const double angle = std::acos(std::min(1.0f, QVector3D::dotProduct(va, vb)));
@@ -112,7 +112,7 @@ void s2_OrbitalCamera::updateRotate() {
   m_view = temp * m_view;
 }
 
-QVector3D s2_OrbitalCamera::getVector(int x, int y) {
+QVector3D Shift::OrbitalCamera::getVector(int x, int y) {
   QVector3D pt(2.0 * x / m_renderWindow->width() - 1.0,
                -2.0 * y / m_renderWindow->height() + 1.0, 0.0);
 

@@ -8,8 +8,8 @@
 /*!
 @brief constructor
 */
-s2_Lights::s2_Lights(RenderWindow* renderWindow)
-  : s2_Geometry(renderWindow)
+Shift::Lights::Lights(RenderWindow* renderWindow)
+  : Geometry(renderWindow)
   , m_bodies(NULL)
   , m_depthBufferArray(NULL)
   , m_depthBufferSize(4096)
@@ -22,8 +22,8 @@ s2_Lights::s2_Lights(RenderWindow* renderWindow)
 /*!
 @brief alternate constructor, allows overriding default depth buffer size
 */
-s2_Lights::s2_Lights(RenderWindow* renderWindow, GLint depthBufferSize)
-  : s2_Geometry(renderWindow)
+Shift::Lights::Lights(RenderWindow* renderWindow, GLint depthBufferSize)
+  : Geometry(renderWindow)
   , m_bodies(NULL)
   , m_depthBufferArray(NULL)
   , m_maxCount(10)
@@ -36,7 +36,7 @@ s2_Lights::s2_Lights(RenderWindow* renderWindow, GLint depthBufferSize)
 /*!
 @brief initialize lights
 */
-void s2_Lights::initialize() {
+void Shift::Lights::initialize() {
 
   memset(&m_lights.position, 0, 30 * sizeof(GLfloat));
   memset(&m_lights.Ka, 0, 30 * sizeof(GLfloat));
@@ -56,7 +56,7 @@ void s2_Lights::initialize() {
 /*!
 @brief load context data structure
 */
-void s2_Lights::loadContext() {
+void Shift::Lights::loadContext() {
 
   m_context = m_renderWindow->getContext();
   if(m_context) {
@@ -99,7 +99,7 @@ void s2_Lights::loadContext() {
       }
 
       /* initialize view matrix */
-      m_lights.viewMatrix[i] = s2_displacementToQMatrix4x4(d).inverted();
+      m_lights.viewMatrix[i] = displacementToQMatrix4x4(d).inverted();
       qDebug() << "initialized view matrix to:" << m_lights.viewMatrix[i];
 
       /* initialize projection matrix */
@@ -135,7 +135,7 @@ void s2_Lights::loadContext() {
       m_lights.position[0 * 3 + 0] = d.T.x;
       m_lights.position[0 * 3 + 1] = d.T.y;
       m_lights.position[0 * 3 + 2] = d.T.z;
-      m_lights.viewMatrix[0] = s2_displacementToQMatrix4x4(&d).inverted();
+      m_lights.viewMatrix[0] = displacementToQMatrix4x4(&d).inverted();
       QMatrix4x4 projection;
       projection.ortho(-1.f, 1.f, -1.f, 1.f, 0.01f, 100.f);
       m_lights.projectionMatrix[0] = projection;
@@ -197,7 +197,7 @@ void s2_Lights::loadContext() {
 /*!
 @brief draw function
 */
-void s2_Lights::draw() {
+void Shift::Lights::draw() {
 
   if(m_drawEnabled) {
 
@@ -216,7 +216,7 @@ void s2_Lights::draw() {
         /* update view matrix only if not attached to fixed body */
         if(light->parentBodyPointer != m_context->assembly->bodyHead) {
           s2_displacement_t* d = light->parentFramePointer->dAbsolute;
-          m_lights.viewMatrix[i] = s2_displacementToQMatrix4x4(d).inverted();
+          m_lights.viewMatrix[i] = displacementToQMatrix4x4(d).inverted();
 
           switch(light->lightType) {
             case S2_LIGHT_POINT: {
@@ -295,8 +295,8 @@ void s2_Lights::draw() {
 @brief set array of shadow matrices using current transform
 @return pointer to beginning of shadowMatrix array
 */
-QMatrix4x4* s2_Lights::setShadowMatrix(s2_displacement_t* transform) {
-  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+QMatrix4x4* Shift::Lights::setShadowMatrix(s2_displacement_t* transform) {
+  QMatrix4x4 model = displacementToQMatrix4x4(transform);
   QMatrix4x4 bias = QMatrix4x4(0.5f, 0.f, 0.f, 0.5f, 0.f, 0.5f, 0.f, 0.5f, 0.f,
                                0.f, 0.5f, 0.5f, 0.f, 0.f, 0.f, 1.f);
   for(int i = 0; i < m_lights.count; i++) {
@@ -310,7 +310,7 @@ QMatrix4x4* s2_Lights::setShadowMatrix(s2_displacement_t* transform) {
 @brief set array of shadow matrices using current transform
 @return pointer to beginning of shadowMatrix array
 */
-QMatrix4x4* s2_Lights::setShadowMatrix(QMatrix4x4& model) {
+QMatrix4x4* Shift::Lights::setShadowMatrix(QMatrix4x4& model) {
   QMatrix4x4 bias = QMatrix4x4(0.5f, 0.f, 0.f, 0.5f, 0.f, 0.5f, 0.f, 0.5f, 0.f,
                                0.f, 0.5f, 0.5f, 0.f, 0.f, 0.f, 1.f);
   for(int i = 0; i < m_lights.count; i++) {
@@ -323,7 +323,7 @@ QMatrix4x4* s2_Lights::setShadowMatrix(QMatrix4x4& model) {
 /*!
 @brief utility function to get frame buffer status, prints errors to qDebug()
 */
-void s2_Lights::getFramebufferStatus() {
+void Shift::Lights::getFramebufferStatus() {
   GLenum status =
     m_renderWindow->m_funcs->glCheckFramebufferStatus(GL_FRAMEBUFFER);
   switch(status) {

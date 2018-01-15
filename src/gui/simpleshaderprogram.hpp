@@ -5,75 +5,68 @@
 #include "openglwindow.hpp"
 #include "shaderprogram.hpp"
 
-#include <QString>
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QMatrix4x4>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
-#include <QtOpenGL/QGLWidget>
-#include <QHBoxLayout>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QWidget>
-#include <QString>
-#include <QMainWindow>
-#include <QHBoxLayout>
 #include <QFileDialog>
-#include <QResizeEvent>
-#include <QTimer>
+#include <QHBoxLayout>
+#include <QMainWindow>
+#include <QMatrix4x4>
+#include <QMouseEvent>
+#include <QOpenGLBuffer>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QResizeEvent>
+#include <QString>
+#include <QTimer>
+#include <QWheelEvent>
+#include <QWidget>
+#include <QtOpenGL/QGLWidget>
 
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-class RenderWindow;
-class s2_Lights;
 
+namespace Shift {
+
+class RenderWindow;
+class Lights;
 
 class SimpleShaderProgram : public ShaderProgram {
 
-    Q_OBJECT
+  Q_OBJECT
 
-  public:
-    SimpleShaderProgram(RenderWindow* renderWindow)
-      : ShaderProgram(renderWindow) {
-      initialize();
-    };
+public:
+  SimpleShaderProgram(RenderWindow* renderWindow)
+    : ShaderProgram(renderWindow) {
+    initialize();
+  };
 
-    ~SimpleShaderProgram() {};
+  ~SimpleShaderProgram(){};
 
-    void initialize();
-    void draw();
-    void setTransform(s2_displacement_t*);
-    void setTransform(QMatrix4x4&);
-    void setColor(GLfloat, GLfloat, GLfloat, GLfloat);
-    void setScale(GLfloat);
+  void initialize();
+  void draw();
+  void setTransform(s2_displacement_t*);
+  void setTransform(QMatrix4x4&);
+  void setColor(GLfloat, GLfloat, GLfloat, GLfloat);
+  void setScale(GLfloat);
 
-    GLint getPositionAttribute() {
-      return m_position_a;
-    };
+  GLint getPositionAttribute() {
+    return m_position_a;
+  };
 
-  signals:
+signals:
 
+protected:
+private:
+  /* uniforms */
+  GLint m_mvp_u;
+  GLint m_color_u;
+  GLint m_scale_u;
 
-  protected:
-
-
-  private:
-
-    /* uniforms */
-    GLint m_mvp_u;
-    GLint m_color_u;
-    GLint m_scale_u;
-
-    /* attributes */
-    GLint m_position_a;
-
+  /* attributes */
+  GLint m_position_a;
 };
 
+} // namespace Shift
 #endif

@@ -5,98 +5,91 @@
 #include "openglwindow.hpp"
 #include "shaderprogram.hpp"
 
-#include <QString>
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QMatrix4x4>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
-#include <QtOpenGL/QGLWidget>
-#include <QHBoxLayout>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QWidget>
-#include <QString>
-#include <QMainWindow>
-#include <QHBoxLayout>
 #include <QFileDialog>
-#include <QResizeEvent>
-#include <QTimer>
+#include <QHBoxLayout>
+#include <QMainWindow>
+#include <QMatrix4x4>
+#include <QMouseEvent>
+#include <QOpenGLBuffer>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QResizeEvent>
+#include <QString>
+#include <QTimer>
+#include <QWheelEvent>
+#include <QWidget>
+#include <QtOpenGL/QGLWidget>
 
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-class RenderWindow;
-class s2_Lights;
 
+namespace Shift {
+
+class RenderWindow;
+class Lights;
 
 class FrameShaderProgram : public ShaderProgram {
 
-    Q_OBJECT
+  Q_OBJECT
 
-  public:
-    FrameShaderProgram(RenderWindow* renderWindow)
-      : ShaderProgram(renderWindow) {
-      m_vertices[0] = 0.f;
-      m_vertices[1] = 0.f;
-      m_vertices[2] = 0.f;
+public:
+  FrameShaderProgram(RenderWindow* renderWindow)
+    : ShaderProgram(renderWindow) {
+    m_vertices[0] = 0.f;
+    m_vertices[1] = 0.f;
+    m_vertices[2] = 0.f;
 
-      m_vertices[3] = 1.f;
-      m_vertices[4] = 0.f;
-      m_vertices[5] = 0.f;
+    m_vertices[3] = 1.f;
+    m_vertices[4] = 0.f;
+    m_vertices[5] = 0.f;
 
-      m_vertices[6] = 0.f;
-      m_vertices[7] = 1.f;
-      m_vertices[8] = 0.f;
+    m_vertices[6] = 0.f;
+    m_vertices[7] = 1.f;
+    m_vertices[8] = 0.f;
 
-      m_vertices[9] = 0.f;
-      m_vertices[10] = 0.f;
-      m_vertices[11] = 1.f;
+    m_vertices[9] = 0.f;
+    m_vertices[10] = 0.f;
+    m_vertices[11] = 1.f;
 
-      m_indices[0] = 0;
-      m_indices[1] = 1;
-      m_indices[2] = 0;
-      m_indices[3] = 2;
-      m_indices[4] = 0;
-      m_indices[5] = 3;
+    m_indices[0] = 0;
+    m_indices[1] = 1;
+    m_indices[2] = 0;
+    m_indices[3] = 2;
+    m_indices[4] = 0;
+    m_indices[5] = 3;
 
-      initialize();
-    };
+    initialize();
+  };
 
-    ~FrameShaderProgram() {};
+  ~FrameShaderProgram(){};
 
-    void initialize();
-    void draw();
-    void setTransform(s2_displacement_t*);
-    void setMVP(QMatrix4x4&);
-    void setScale(GLfloat);
-    void bindVao();
-    void releaseVao();
+  void initialize();
+  void draw();
+  void setTransform(s2_displacement_t*);
+  void setMVP(QMatrix4x4&);
+  void setScale(GLfloat);
+  void bindVao();
+  void releaseVao();
 
-  signals:
+signals:
 
+protected:
+private:
+  GLint m_mvp_u;
+  GLint m_scale_u;
 
-  protected:
+  GLint m_position_a;
 
+  QOpenGLVertexArrayObject* m_vao;
+  QOpenGLBuffer* m_vbo;
+  QOpenGLBuffer* m_ibo;
 
-  private:
-
-    GLint m_mvp_u;
-    GLint m_scale_u;
-
-    GLint m_position_a;
-
-    QOpenGLVertexArrayObject* m_vao;
-    QOpenGLBuffer* m_vbo;
-    QOpenGLBuffer* m_ibo;
-
-    GLfloat m_vertices[12];
-    GLuint m_indices[6];
+  GLfloat m_vertices[12];
+  GLuint m_indices[6];
 };
-
+} // namespace Shift
 #endif

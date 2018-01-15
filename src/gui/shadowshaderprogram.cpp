@@ -1,12 +1,11 @@
 #include "shadowshaderprogram.hpp"
-#include "renderwindow.hpp"
 #include "lights.hpp"
-
+#include "renderwindow.hpp"
 
 /*!
 @brief initialize frame shader and check for errors
 */
-void ShadowShaderProgram::initialize() {
+void Shift::ShadowShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
     addVertexShader(":/shaders/shadow_light.glsl");
@@ -26,14 +25,13 @@ void ShadowShaderProgram::initialize() {
   }
 }
 
-
 /*!
-@brief set mvp using only a transform data structure. The model and view matrices are obtained from the current activated light
+@brief set mvp using only a transform data structure. The model and view
+matrices are obtained from the current activated light
 */
-void ShadowShaderProgram::setTransform(s2_displacement_t* transform) {
-  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
-  QMatrix4x4 view =
-    m_renderWindow->getLights()->getActiveViewMatrix();
+void Shift::ShadowShaderProgram::setTransform(s2_displacement_t* transform) {
+  QMatrix4x4 model = displacementToQMatrix4x4(transform);
+  QMatrix4x4 view = m_renderWindow->getLights()->getActiveViewMatrix();
   QMatrix4x4 projection =
     m_renderWindow->getLights()->getActiveProjectionMatrix();
   QMatrix4x4 mvp = projection * view * model;

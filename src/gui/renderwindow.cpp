@@ -40,7 +40,7 @@
 #include <string.h>
 #include <unistd.h>
 
-RenderWindow::RenderWindow()
+Shift::RenderWindow::RenderWindow()
   : OpenGLWindow()
   , m_context(NULL)
   , m_frame(0)
@@ -81,19 +81,18 @@ RenderWindow::RenderWindow()
   m_timer->setSingleShot(true);
   connect(m_timer, SIGNAL(timeout()), this, SLOT(stopSimulationPlayback()));
 
-  m_joints = new s2_Joints(this);
-  m_bodies = new s2_Bodies(this);
-  m_frames = new s2_Frames(this);
-  m_terrain = new s2_Terrain(this);
-  m_lights = new s2_Lights(this);
+  m_joints = new Joints(this);
+  m_bodies = new Bodies(this);
+  m_frames = new Frames(this);
+  m_terrain = new Terrain(this);
+  m_lights = new Lights(this);
   m_lights->setBodies(m_bodies);
-  m_grid = new s2_Grid(this);
-  m_pointclouds = new s2_PointCloud(this);
-
-  m_orbitalCamera = new s2_OrbitalCamera(this);
+  m_grid = new Grid(this);
+  m_pointclouds = new PointCloud(this);
+  m_orbitalCamera = new OrbitalCamera(this);
 }
 
-RenderWindow::~RenderWindow() {
+Shift::RenderWindow::~RenderWindow() {
   delete m_joints;
   delete m_bodies;
   delete m_frames;
@@ -105,12 +104,12 @@ RenderWindow::~RenderWindow() {
 /*!
 @brief resize GL window signal
 */
-void RenderWindow::resizeGL(int width, int height) {}
+void Shift::RenderWindow::resizeGL(int width, int height) {}
 
 /*!
 @brief report whether render window is initialized
 */
-bool RenderWindow::isInitialized() {
+bool Shift::RenderWindow::isInitialized() {
   return m_initialized;
 }
 
@@ -119,7 +118,7 @@ bool RenderWindow::isInitialized() {
 
 @param event a QMouseEvent
 */
-void RenderWindow::mouseMoveEvent(QMouseEvent* event) {
+void Shift::RenderWindow::mouseMoveEvent(QMouseEvent* event) {
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       int dx = event->x() - m_lastPos.x();
@@ -152,7 +151,7 @@ void RenderWindow::mouseMoveEvent(QMouseEvent* event) {
 
 @param event a QMouseEvent
 */
-void RenderWindow::mousePressEvent(QMouseEvent* event) {
+void Shift::RenderWindow::mousePressEvent(QMouseEvent* event) {
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       m_lastPos = event->pos();
@@ -176,7 +175,7 @@ void RenderWindow::mousePressEvent(QMouseEvent* event) {
 
 @param event a QMouseEvent
 */
-void RenderWindow::mouseReleaseEvent(QMouseEvent* event) {
+void Shift::RenderWindow::mouseReleaseEvent(QMouseEvent* event) {
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       emit mouseReleaseEvent();
@@ -194,7 +193,7 @@ void RenderWindow::mouseReleaseEvent(QMouseEvent* event) {
 
 @param event a QMouseEvent
 */
-void RenderWindow::wheelEvent(QWheelEvent* event) {
+void Shift::RenderWindow::wheelEvent(QWheelEvent* event) {
   switch(m_cameraMode) {
     case S2_CAMERA_INTERACTION_TURNTABLE: {
       m_camDistance += (event->delta() / 360.0);
@@ -216,7 +215,7 @@ void RenderWindow::wheelEvent(QWheelEvent* event) {
 
 @return cursor position as a string "x,y=0.00,0.00"
 */
-QString RenderWindow::getCursorPositionText() {
+QString Shift::RenderWindow::getCursorPositionText() {
   QString str;
   float depth;
   GLint viewport[4];
@@ -252,7 +251,8 @@ QString RenderWindow::getCursorPositionText() {
 /*!
 @brief set background color of viewport
 */
-void RenderWindow::setBackgroundColor(float red, float green, float blue) {
+void Shift::RenderWindow::setBackgroundColor(float red, float green,
+                                             float blue) {
   m_backgroundColor[0] = float(red);
   m_backgroundColor[1] = float(green);
   m_backgroundColor[2] = float(blue);
@@ -262,7 +262,7 @@ void RenderWindow::setBackgroundColor(float red, float green, float blue) {
 @brief converts double precision s2_displacement_t to floating point precision
 QMatrix4x4
 */
-QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t* d) {
+QMatrix4x4 Shift::displacementToQMatrix4x4(s2_displacement_t* d) {
 
   return QMatrix4x4((float)(d->R.m00), (float)(d->R.m01), (float)(d->R.m02),
                     (float)(d->T.x), (float)(d->R.m10), (float)(d->R.m11),
@@ -274,7 +274,7 @@ QMatrix4x4 s2_displacementToQMatrix4x4(s2_displacement_t* d) {
 /*!
 @brief set camera x rotation
 */
-void RenderWindow::setXRotation(int angle) {
+void Shift::RenderWindow::setXRotation(int angle) {
 
   angle = s2_normalizeDegrees(angle);
   if(angle != m_xRot) {
@@ -287,7 +287,7 @@ void RenderWindow::setXRotation(int angle) {
 /*!
 @brief set camera y rotation
 */
-void RenderWindow::setYRotation(int angle) {
+void Shift::RenderWindow::setYRotation(int angle) {
   angle = s2_normalizeDegrees(angle);
   if(angle != m_yRot) {
     m_yRot = angle;
@@ -299,7 +299,7 @@ void RenderWindow::setYRotation(int angle) {
 /*!
 @brief set camera z rotation
 */
-void RenderWindow::setZRotation(int angle) {
+void Shift::RenderWindow::setZRotation(int angle) {
   angle = s2_normalizeDegrees(angle);
   if(angle != m_zRot) {
     m_zRot = angle;
@@ -312,7 +312,7 @@ void RenderWindow::setZRotation(int angle) {
 @brief set camera projection to perspective
 
 */
-void RenderWindow::setPerspective() {
+void Shift::RenderWindow::setPerspective() {
   m_perspective = true;
   updateGL();
 }
@@ -321,7 +321,7 @@ void RenderWindow::setPerspective() {
 @brief set camera projection to orthogonal
 
 */
-void RenderWindow::setOrthogonal() {
+void Shift::RenderWindow::setOrthogonal() {
   m_perspective = false;
   updateGL();
 }
@@ -330,7 +330,7 @@ void RenderWindow::setOrthogonal() {
 @brief load a Context data structure for rendering
 
 */
-void RenderWindow::loadContext(s2_context_t* context) {
+void Shift::RenderWindow::loadContext(s2_context_t* context) {
   m_context = context;
   if(m_context) {
     m_bodies->loadContext();
@@ -357,7 +357,7 @@ void RenderWindow::loadContext(s2_context_t* context) {
 @brief check error in OpenGL
 
 */
-void RenderWindow::checkError(const QString& prefix) {
+void Shift::RenderWindow::checkError(const QString& prefix) {
   GLenum glErr = glGetError();
   while(glErr != GL_NO_ERROR) {
     QString error;
@@ -392,7 +392,7 @@ void RenderWindow::checkError(const QString& prefix) {
 /*!
 @brief get shader source code
 */
-// const GLchar* RenderWindow::getShaderSource(
+// const GLchar* Shift::RenderWindow::getShaderSource(
 //   const char* shaderSource) {
 //
 //   GLchar* out;
@@ -412,7 +412,7 @@ void RenderWindow::checkError(const QString& prefix) {
 /*!
 @brief Initialize render window
 */
-void RenderWindow::initialize() {
+void Shift::RenderWindow::initialize() {
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glClearColor(m_backgroundColor[0], m_backgroundColor[1], m_backgroundColor[2],
@@ -487,7 +487,7 @@ void RenderWindow::initialize() {
 /*!
 @brief clear context data structure and rendered objects
 */
-void RenderWindow::clearContext() {
+void Shift::RenderWindow::clearContext() {
   if(m_context) {
     m_bodies->clearContext();
     m_frames->clearContext();
@@ -499,7 +499,7 @@ void RenderWindow::clearContext() {
 /*!
 @brief updateGL needs to be called on mouse and screen resize events
 */
-void RenderWindow::updateGL() {
+void Shift::RenderWindow::updateGL() {
 
   if(m_initialized) {
     switch(m_cameraMode) {
@@ -537,8 +537,8 @@ void RenderWindow::updateGL() {
 /*!
 @brief set joint to be incremented
 */
-void RenderWindow::setJoint(s2_joint_t* joint, int qIndex, int dqIndex,
-                            double delq, s2_joint_enum_t jointType) {
+void Shift::RenderWindow::setJoint(s2_joint_t* joint, int qIndex, int dqIndex,
+                                   double delq, s2_joint_enum_t jointType) {
 
   m_joints->set(joint, qIndex, dqIndex, delq, jointType);
 }
@@ -546,8 +546,9 @@ void RenderWindow::setJoint(s2_joint_t* joint, int qIndex, int dqIndex,
 /*!
 @brief set joint target
 */
-void RenderWindow::setJointTarget(s2_joint_t* joint, int qIndex, int dqIndex,
-                                  double val, s2_joint_enum_t jointType) {
+void Shift::RenderWindow::setJointTarget(s2_joint_t* joint, int qIndex,
+                                         int dqIndex, double val,
+                                         s2_joint_enum_t jointType) {
 
   m_joints->setTarget(joint, qIndex, dqIndex, val, jointType);
 }
@@ -555,21 +556,21 @@ void RenderWindow::setJointTarget(s2_joint_t* joint, int qIndex, int dqIndex,
 /*!
 @brief clear joint to be incremented
 */
-void RenderWindow::clearJoint() {
+void Shift::RenderWindow::clearJoint() {
   m_joints->clear();
 }
 
 /*!
 @brief clear joint to be incremented
 */
-void RenderWindow::updateJoint() {
+void Shift::RenderWindow::updateJoint() {
   m_joints->update();
 }
 
 /*!
 @brief used to start playback of a simulation after computation has finished
 */
-void RenderWindow::startSimulationPlayback() {
+void Shift::RenderWindow::startSimulationPlayback() {
   m_timer->start(int(1000 * m_context->modelParameters.timeSpan));
   setSimulationRunning(true);
   // qDebug() << "starting simulation playback for t=" <<
@@ -580,7 +581,7 @@ void RenderWindow::startSimulationPlayback() {
 @brief used to start playback of a simulation after computation has finished
 at time t
 */
-void RenderWindow::startSimulationPlayback(double t) {
+void Shift::RenderWindow::startSimulationPlayback(double t) {
   double timeRemaining = m_context->modelParameters.timeSpan - t;
   m_timer->start(int(1000 * timeRemaining));
   setSimulationRunning(true);
@@ -590,7 +591,7 @@ void RenderWindow::startSimulationPlayback(double t) {
 /*!
 @brief used to stop playback of a simulation after computation has finished
 */
-void RenderWindow::stopSimulationPlayback() {
+void Shift::RenderWindow::stopSimulationPlayback() {
   setSimulationRunning(false);
   emit simulationStopped();
   // qDebug() << "stopping simulation playback";
@@ -604,7 +605,7 @@ use tspan and tstep to find the current position in the ydata array
 use timer to interpolate between two positions and set q and dq arrays,
 then update DH
 */
-void RenderWindow::interpolateCurrentPosition() {
+void Shift::RenderWindow::interpolateCurrentPosition() {
   if(m_context && m_timer->remainingTime() != -1) {
 
     int neqn = 0;
@@ -673,7 +674,7 @@ use tspan and tstep to find the current position in the ydata array
 use timer to interpolate between two positions and set q and dq arrays,
 then update DH
 */
-void RenderWindow::interpolateCurrentPosition(double t) {
+void Shift::RenderWindow::interpolateCurrentPosition(double t) {
   if(m_context) {
 
     int neqn = 0;
@@ -722,14 +723,14 @@ void RenderWindow::interpolateCurrentPosition(double t) {
 /*!
 @brief set simulation running boolean to true or false
 */
-void RenderWindow::setSimulationRunning(bool val) {
+void Shift::RenderWindow::setSimulationRunning(bool val) {
   m_simulationRunning = val;
 }
 
 /*!
 @brief main render loop
 */
-void RenderWindow::render() {
+void Shift::RenderWindow::render() {
 
   if(m_initialized && isAnimating()) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -758,7 +759,7 @@ void RenderWindow::render() {
 /*!
 @brief OpenGL draw function
 */
-void RenderWindow::draw() {
+void Shift::RenderWindow::draw() {
   m_grid->draw();
   m_frames->draw();
   m_joints->draw();

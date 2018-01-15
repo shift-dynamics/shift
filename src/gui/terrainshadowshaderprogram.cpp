@@ -1,12 +1,11 @@
 #include "terrainshadowshaderprogram.hpp"
-#include "renderwindow.hpp"
 #include "lights.hpp"
-
+#include "renderwindow.hpp"
 
 /*!
 @brief initialize frame shader and check for errors
 */
-void TerrainShadowShaderProgram::initialize() {
+void Shift::TerrainShadowShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
     addVertexShader(":/shaders/terrain_shadow.glsl");
@@ -34,8 +33,7 @@ void TerrainShadowShaderProgram::initialize() {
     m_terrain_zMax_u = m_program->uniformLocation("terrain_u.zMax");
     m_terrain_scale_u = m_program->uniformLocation("terrain_u.scale");
     m_terrain_viewport_u = m_program->uniformLocation("terrain_u.viewport");
-    m_texture_elevation_u =
-      m_program->uniformLocation("texture_elevation_u");
+    m_texture_elevation_u = m_program->uniformLocation("texture_elevation_u");
 
     // qDebug() << "terrain_u: " << m_terrain_u;
     qDebug() << "m_terrain_zMin_u: " << m_terrain_zMin_u;
@@ -53,16 +51,12 @@ void TerrainShadowShaderProgram::initialize() {
   }
 }
 
-
 /*!
 @brief set mvp matrix
 */
-void TerrainShadowShaderProgram::setTransform(
-  QMatrix4x4& m) {
-  QMatrix4x4 v =
-    m_renderWindow->getLights()->getActiveViewMatrix();
-  QMatrix4x4 p =
-    m_renderWindow->getLights()->getActiveProjectionMatrix();
+void Shift::TerrainShadowShaderProgram::setTransform(QMatrix4x4& m) {
+  QMatrix4x4 v = m_renderWindow->getLights()->getActiveViewMatrix();
+  QMatrix4x4 p = m_renderWindow->getLights()->getActiveProjectionMatrix();
   // QMatrix4x4 v =
   //   m_renderWindow->getViewMatrix();
   // QMatrix4x4 p =
@@ -78,29 +72,27 @@ void TerrainShadowShaderProgram::setTransform(
   checkError("terrain-shadow: after set mvp");
 }
 
-
 /*!
 @brief set transform
 */
-void TerrainShadowShaderProgram::setTransform(
+void Shift::TerrainShadowShaderProgram::setTransform(
   s2_displacement_t* transform) {
-  QMatrix4x4 m = s2_displacementToQMatrix4x4(transform);
+  QMatrix4x4 m = displacementToQMatrix4x4(transform);
   setTransform(m);
 }
-
 
 /*!
 @brief set view port size
 */
-void TerrainShadowShaderProgram::setViewPort(GLfloat vp1, GLfloat vp2) {
+void Shift::TerrainShadowShaderProgram::setViewPort(GLfloat vp1, GLfloat vp2) {
   m_program->setUniformValue(m_terrain_viewport_u, vp1, vp2);
 }
-
 
 /*!
 @brief bind elevation texture
 */
-void TerrainShadowShaderProgram::setTextureElevation(QOpenGLTexture* tex) {
+void Shift::TerrainShadowShaderProgram::setTextureElevation(
+  QOpenGLTexture* tex) {
   if(tex) {
     tex->bind(1);
     m_program->setUniformValue(m_texture_elevation_u, 1);
@@ -110,28 +102,28 @@ void TerrainShadowShaderProgram::setTextureElevation(QOpenGLTexture* tex) {
   }
 }
 
-
 /*!
 @brief set max and min z value
 */
-void TerrainShadowShaderProgram::setZExtents(GLfloat zMin, GLfloat zMax) {
+void Shift::TerrainShadowShaderProgram::setZExtents(GLfloat zMin,
+                                                    GLfloat zMax) {
   m_program->setUniformValue(m_terrain_zMin_u, zMin);
   m_program->setUniformValue(m_terrain_zMax_u, zMax);
 }
 
-
 /*!
 @brief set x,y scale
 */
-void TerrainShadowShaderProgram::setScale(GLfloat xScale, GLfloat yScale) {
+void Shift::TerrainShadowShaderProgram::setScale(GLfloat xScale,
+                                                 GLfloat yScale) {
   m_program->setUniformValue(m_terrain_scale_u, xScale, yScale);
 }
 
-
 /*!
-@brief convenience function that sets all uniforms located in terrain data structure
+@brief convenience function that sets all uniforms located in terrain data
+structure
 */
-void TerrainShadowShaderProgram::setUniforms(s2_terrain_t* terrain) {
+void Shift::TerrainShadowShaderProgram::setUniforms(s2_terrain_t* terrain) {
   setZExtents(terrain->zMin, terrain->zMax);
   setScale(terrain->scale[0], terrain->scale[1]);
 }

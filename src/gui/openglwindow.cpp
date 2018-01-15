@@ -1,17 +1,15 @@
 #include "openglwindow.hpp"
 
+#include <QCoreApplication>
+#include <QDebug>
+#include <QList>
+#include <QOpenGLContext>
+#include <QOpenGLDebugLogger>
 #include <QOpenGLPaintDevice>
 #include <QPainter>
-#include <QCoreApplication>
-#include <QOpenGLContext>
 #include <QSurfaceFormat>
-#include <QOpenGLDebugLogger>
-#include <QList>
-#include <QDebug>
 
-
-OpenGLWindow::OpenGLWindow(
-  QWindow* parent)
+OpenGLWindow::OpenGLWindow(QWindow* parent)
   : QWindow(parent)
   , m_update_pending(false)
   , m_animating(false)
@@ -39,27 +37,20 @@ OpenGLWindow::OpenGLWindow(
   create();
 }
 
-
 OpenGLWindow::~OpenGLWindow() {}
 
-
-void OpenGLWindow::render(
-  QPainter* painter) {
+void OpenGLWindow::render(QPainter* painter) {
 
   Q_UNUSED(painter);
 }
 
-
-void OpenGLWindow::setAnimating(
-  bool animating) {
+void OpenGLWindow::setAnimating(bool animating) {
 
   m_animating = animating;
   renderLater();
 }
 
-
 void OpenGLWindow::initialize() {}
-
 
 void OpenGLWindow::render() {
   if(!m_device) {
@@ -74,16 +65,12 @@ void OpenGLWindow::render() {
   render(&painter);
 }
 
-
 void OpenGLWindow::renderLater() {
   if(!m_update_pending) {
     m_update_pending = true;
-    QCoreApplication::postEvent(
-      this,
-      new QEvent(QEvent::UpdateRequest));
+    QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
   }
 }
-
 
 bool OpenGLWindow::event(QEvent* event) {
   switch(event->type()) {
@@ -96,7 +83,6 @@ bool OpenGLWindow::event(QEvent* event) {
   }
 }
 
-
 void OpenGLWindow::exposeEvent(QExposeEvent* event) {
   Q_UNUSED(event);
 
@@ -104,7 +90,6 @@ void OpenGLWindow::exposeEvent(QExposeEvent* event) {
     renderNow();
   }
 }
-
 
 void OpenGLWindow::renderNow() {
 
@@ -125,8 +110,7 @@ void OpenGLWindow::renderNow() {
   m_context->makeCurrent(this);
 
   if(needsInitialize) {
-    m_funcs =
-      m_context->versionFunctions<QOpenGLFunctions_4_2_Core>();
+    m_funcs = m_context->versionFunctions<QOpenGLFunctions_4_2_Core>();
     if(!m_funcs) {
       qFatal("Requires OpenGL >= 4.2");
       exit(1);
@@ -145,9 +129,7 @@ void OpenGLWindow::renderNow() {
   }
 }
 
-
-void OpenGLWindow::setOpenGLLogging(
-  bool log) {
+void OpenGLWindow::setOpenGLLogging(bool log) {
 
   /*
     current state same as new requested
@@ -168,11 +150,8 @@ void OpenGLWindow::setOpenGLLogging(
       m_logger = new QOpenGLDebugLogger(this);
 
       if(m_logger->initialize()) {
-        connect(
-          m_logger,
-          SIGNAL(messageLogged(QOpenGLDebugMessage)),
-          this,
-          SLOT(logMessages(QOpenGLDebugMessage)));
+        connect(m_logger, SIGNAL(messageLogged(QOpenGLDebugMessage)), this,
+                SLOT(logMessages(QOpenGLDebugMessage)));
         m_logger->startLogging();
       } else {
         qDebug() << "OpenGL logging failed to initialize";
@@ -181,11 +160,8 @@ void OpenGLWindow::setOpenGLLogging(
         m_logging = false;
       }
     } else {
-      connect(
-        m_logger,
-        SIGNAL(messageLogged(QOpenGLDebugMessage)),
-        this,
-        SLOT(logMessages(QOpenGLDebugMessage)));
+      connect(m_logger, SIGNAL(messageLogged(QOpenGLDebugMessage)), this,
+              SLOT(logMessages(QOpenGLDebugMessage)));
       m_logger->startLogging();
     }
   } else {
@@ -193,19 +169,14 @@ void OpenGLWindow::setOpenGLLogging(
       only disable debugging if logger has been initialized
     */
     if(m_logger != NULL) {
-      disconnect(
-        m_logger,
-        SIGNAL(messageLogged(QOpenGLDebugMessage)),
-        this,
-        SLOT(logMessages(QOpenGLDebugMessage)));
+      disconnect(m_logger, SIGNAL(messageLogged(QOpenGLDebugMessage)), this,
+                 SLOT(logMessages(QOpenGLDebugMessage)));
       m_logger->stopLogging();
     }
   }
 }
 
-
-void OpenGLWindow::logMessages(
-  const QOpenGLDebugMessage& message) {
+void OpenGLWindow::logMessages(const QOpenGLDebugMessage& message) {
 
   qDebug() << "OpenGL Log Message: " << message.message();
 }

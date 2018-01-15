@@ -1,8 +1,8 @@
 #include "simpleshaderprogram.hpp"
-#include "renderwindow.hpp"
 #include "lights.hpp"
+#include "renderwindow.hpp"
 
-void SimpleShaderProgram::initialize() {
+void Shift::SimpleShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
     addVertexShader(":/shaders/simple.glsl");
@@ -29,8 +29,7 @@ void SimpleShaderProgram::initialize() {
   }
 }
 
-
-void SimpleShaderProgram::setTransform(QMatrix4x4& model) {
+void Shift::SimpleShaderProgram::setTransform(QMatrix4x4& model) {
   bind();
   qDebug() << model;
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
@@ -41,30 +40,19 @@ void SimpleShaderProgram::setTransform(QMatrix4x4& model) {
   m_program->setUniformValue(m_mvp_u, mvp);
 }
 
-
-void SimpleShaderProgram::setTransform(s2_displacement_t* transform) {
-  QMatrix4x4 model = s2_displacementToQMatrix4x4(transform);
+void Shift::SimpleShaderProgram::setTransform(s2_displacement_t* transform) {
+  QMatrix4x4 model = displacementToQMatrix4x4(transform);
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mvp = projection * view * model;
   m_program->setUniformValue(m_mvp_u, mvp);
 }
 
-
-void SimpleShaderProgram::setColor(
-  GLfloat red,
-  GLfloat green,
-  GLfloat blue,
-  GLfloat alpha) {
-
-  m_program->setUniformValue(
-    m_color_u,
-    red,
-    green,
-    blue,
-    alpha);
+void Shift::SimpleShaderProgram::setColor(GLfloat red, GLfloat green,
+                                          GLfloat blue, GLfloat alpha) {
+  m_program->setUniformValue(m_color_u, red, green, blue, alpha);
 }
 
-void SimpleShaderProgram::setScale(GLfloat scale) {
+void Shift::SimpleShaderProgram::setScale(GLfloat scale) {
   m_program->setUniformValue(m_scale_u, scale);
 }

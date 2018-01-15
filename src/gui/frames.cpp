@@ -1,43 +1,38 @@
 #include "frames.hpp"
-#include "renderwindow.hpp"
 #include "frameshaderprogram.hpp"
+#include "renderwindow.hpp"
 
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLFunctions>
-#include <QtOpenGL/QGLWidget>
 #include <QHBoxLayout>
+#include <QOpenGLBuffer>
 #include <QOpenGLDebugLogger>
+#include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
 #include <QVector>
-
+#include <QtOpenGL/QGLWidget>
 
 /*!
 @brief load context datastructure
 */
-void s2_Frames::loadContext() {
+void Shift::Frames::loadContext() {
   if(m_renderWindow->getContext()) {
     addFrames(m_renderWindow->getContext()->assembly);
   }
   m_context = m_renderWindow->getContext();
 }
 
-
 /*!
 @brief clears pointers to frames, leaving origin at first position
 */
-void s2_Frames::clearContext() {
+void Shift::Frames::clearContext() {
   m_context = NULL;
   m_frames.erase(m_frames.begin() + 1, m_frames.end() + 1);
 }
 
-
 /*!
 @brief draw function
 */
-void s2_Frames::draw() {
+void Shift::Frames::draw() {
   if(m_drawEnabled && m_context) {
 
     checkError("frame: before set frame");
@@ -49,8 +44,7 @@ void s2_Frames::draw() {
     checkError("frame: after set provoking index");
 
     QMatrix4x4 pv =
-      m_renderWindow->getProjectionMatrix() *
-      m_renderWindow->getViewMatrix();
+      m_renderWindow->getProjectionMatrix() * m_renderWindow->getViewMatrix();
 
     m_program->setScale(m_scaleFactor);
     checkError("frame: after set scale factor");
@@ -60,8 +54,7 @@ void s2_Frames::draw() {
 
     for(int i = 0; i < m_frames.size(); i++) {
       if(m_frames.at(i)->isVisible) {
-        QMatrix4x4 model =
-          s2_displacementToQMatrix4x4(m_frames.at(i)->dAbsolute);
+        QMatrix4x4 model = displacementToQMatrix4x4(m_frames.at(i)->dAbsolute);
         QMatrix4x4 mvp = pv * model;
         m_program->setMVP(mvp);
         checkError("frame: after set mvp");
@@ -75,12 +68,11 @@ void s2_Frames::draw() {
   }
 }
 
-
 /*!
 @brief draw frames, m_programFrame and m_uniformsFrame.vao must be bound
 prior to calling this recursive function
 */
-void s2_Frames::addFrames(s2_assembly_t* assembly) {
+void Shift::Frames::addFrames(s2_assembly_t* assembly) {
   s2_body_t* bodyHead = assembly->bodyHead;
   while(bodyHead != NULL) {
     s2_frame_t* frameHead = bodyHead->frameHead;
@@ -97,11 +89,10 @@ void s2_Frames::addFrames(s2_assembly_t* assembly) {
   }
 }
 
-
 /*!
 @brief draw "W" frames associated with tire contact patches
 */
-void s2_Frames::drawWFrames() {
+void Shift::Frames::drawWFrames() {
   if(m_drawEnabled && m_context) {
     m_program->bindVao();
 
@@ -112,15 +103,14 @@ void s2_Frames::drawWFrames() {
     checkError("frame: after set provoking index");
 
     QMatrix4x4 pv =
-      m_renderWindow->getProjectionMatrix() *
-      m_renderWindow->getViewMatrix();
+      m_renderWindow->getProjectionMatrix() * m_renderWindow->getViewMatrix();
 
     for(int i = 0; i < m_context->forceModuleCount; i++) {
       s2_tire_pac2002_t* tire =
         (s2_tire_pac2002_t*)m_context->forceModulePointers[i]->parameters[0];
       m_program->setTransform(&tire->wFrame);
       m_program->setScale(1.f);
-      QMatrix4x4 model = s2_displacementToQMatrix4x4(&tire->wFrame);
+      QMatrix4x4 model = displacementToQMatrix4x4(&tire->wFrame);
       QMatrix4x4 mvp = pv * model;
 
       /* set model * view * projection matrix */
