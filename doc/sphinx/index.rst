@@ -16,17 +16,17 @@ overview
    page_index.rst
 
 
-.. developer reference
-   -------------------
+developer reference
+-------------------
 
-   .. toctree::
-     :maxdepth: 2
+.. toctree::
+   :maxdepth: 2
 
-     notation/notation
-     kinematics/kinematics
-     topology/topology
-     dynamics/dynamics
-     zreferences
+   notation/notation
+   kinematics/kinematics
+   topology/topology
+   dynamics/dynamics
+   zreferences
 
 
 api reference
