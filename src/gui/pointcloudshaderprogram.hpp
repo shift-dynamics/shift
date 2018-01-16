@@ -75,13 +75,20 @@ public:
     switch(shading_type) {
       case S2_POINT_SHADING_PHONG: {
         return m_phongShader;
-      } break;
+        break;
+      }
       case S2_POINT_SHADING_SIMPLE: {
         return m_simpleShader;
-      } break;
+        break;
+      }
       case S2_POINT_SHADING_SPRITE: {
         return m_spriteShader;
-      } break;
+        break;
+      }
+      default: {
+        return NULL;
+        break;
+      }
     }
   }
 
@@ -89,13 +96,16 @@ public:
     switch(m_shadingType) {
       case S2_POINT_SHADING_PHONG: {
         m_phongShader->bind();
-      } break;
+        break;
+      }
       case S2_POINT_SHADING_SIMPLE: {
         m_simpleShader->bind();
-      } break;
+        break;
+      }
       case S2_POINT_SHADING_SPRITE: {
         m_spriteShader->bind();
-      } break;
+        break;
+      }
     }
   }
 
@@ -103,13 +113,16 @@ public:
     switch(m_shadingType) {
       case S2_POINT_SHADING_PHONG: {
         m_phongShader->release();
-      } break;
+        break;
+      }
       case S2_POINT_SHADING_SIMPLE: {
         m_simpleShader->release();
-      } break;
+        break;
+      }
       case S2_POINT_SHADING_SPRITE: {
         m_spriteShader->release();
-      } break;
+        break;
+      }
     }
   }
 
