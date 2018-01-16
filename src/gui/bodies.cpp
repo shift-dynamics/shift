@@ -81,7 +81,7 @@ void Shift::Bodies::loadGeometryPrimitives() {
   m_sphereBufferObject.faceCount = mesh->mNumFaces;
   m_sphereBufferObject.faces =
     (GLuint*)malloc(3 * mesh->mNumFaces * sizeof(GLuint));
-  for(int j = 0; j < mesh->mNumFaces; j++) {
+  for(uint j = 0; j < mesh->mNumFaces; j++) {
     m_sphereBufferObject.faces[j * 3 + 0] = mesh->mFaces[j].mIndices[0];
     m_sphereBufferObject.faces[j * 3 + 1] = mesh->mFaces[j].mIndices[1];
     m_sphereBufferObject.faces[j * 3 + 2] = mesh->mFaces[j].mIndices[2];
