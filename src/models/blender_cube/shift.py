@@ -76,7 +76,7 @@ class Context(object):
     def __init__(self):
         self.data = {}
         self.data["model_parameters"] = {
-            "format": "0.2",
+            "version": "2.0",
             "units": {
                 "angle": "radians",
                 "length": "meters",
@@ -127,7 +127,7 @@ class Context(object):
 
     def write_to_file(self, filename):
         with open(filename, "w") as outfile:
-            json.dump(self.data, outfile, indent=4)
+            json.dump(self.data, outfile, indent=2)
 
 
 if __name__ == "__main__":
