@@ -11,13 +11,14 @@ import shift
 
 if __name__ == "__main__":
     cube = shift.Context()
+
     cube.add_include_dir(".")
 
     main_assembly = shift.Assembly("main_assembly")
 
     main_assembly.add_body(
         shift.Body("cube",
-                   definition=["blender_cube.obj", "blender_cube.mtl"]))
+                   definition=["cube.obj", "cube.mtl"]))
 
     main_assembly.add_joint(
         shift.Joint("joint1",
@@ -25,4 +26,5 @@ if __name__ == "__main__":
                         ["fixed", "origin"], ["cube", "origin"]]))
 
     cube.add_assembly(main_assembly)
+
     cube.write_to_file("cube.json")
