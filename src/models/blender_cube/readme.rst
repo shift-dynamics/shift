@@ -1,5 +1,5 @@
 Python API
-----------
+==========
 
 This directory contains an example of building a simple model programmatically using Python.
 
