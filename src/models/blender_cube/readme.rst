@@ -41,3 +41,5 @@ And the file is written to disk as::
 
 
 Refer to **cube.py** for the complete source code.
+
+.. image:: cube.png
