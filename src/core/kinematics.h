@@ -298,7 +298,7 @@ void s2_vectorf_normalize(s2_vectorf_t* v);
 
 void s2_vector_scale(double k, s2_vector_t* v);
 
-void s2_vectorf_scale(double k, s2_vectorf_t* v);
+void s2_vectorf_scale(float k, s2_vectorf_t* v);
 
 void s2_vector_copy(s2_vector_t* vi, s2_vector_t* vo);
 

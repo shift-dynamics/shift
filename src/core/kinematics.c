@@ -113,25 +113,43 @@ transformations
 @{
 */
 
-/*! @brief s a vector_t datastructure (an array of doubles of length 3)
-
+/*!
+@brief  initialize a vector_t datastructure on the heap (an array of doubles of
+length 3)
 */
 s2_vector_t* s2_vector() {
   return calloc(1, sizeof(s2_vector_t));
 }
 
-/*! @brief s a vectorf_t datastructure (an array of floats of length 3)
+/*!
+@brief initialize a  vectorf_t datastructure on the heap (an array of floats of
+length 3)
 
 */
 s2_vectorf_t* s2_vectorf() {
   return calloc(1, sizeof(s2_vectorf_t));
 }
 
-/*! @brief s a vectori_t datastructure (an array of ints of length 3)
-
+/*! @brief
+initialize a vectori_t datastructure on the heap (an array of ints of length 3),
+must be freed later
 */
 s2_vectori_t* s2_vectori() {
   return calloc(1, sizeof(s2_vectori_t));
+}
+
+/*!
+@brief compute the norm of a double precision vector
+*/
+inline double s2_vector_l2norm(s2_vector_t* v) {
+  return sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
+}
+
+/*!
+@brief compute the norm of a single precision vector
+*/
+inline float s2_vectorf_l2norm(s2_vectorf_t* v) {
+  return sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
 }
 
 /*!
@@ -141,8 +159,8 @@ s2_vectori_t* s2_vectori() {
 */
 inline void s2_vector_normalize(s2_vector_t* v) {
 
-  double norm = sqrt(cblas_ddot(3, (double*)v, 1, (double*)v, 1));
-  cblas_dscal(3, 1.0 / norm, (double*)v, 1);
+  double norm = s2_vector_l2norm(v);
+  s2_vector_scale(1.0 / norm, v);
 }
 
 /*!
@@ -150,8 +168,9 @@ inline void s2_vector_normalize(s2_vector_t* v) {
 @param [in/out] vector to scale
 */
 inline void s2_vector_scale(double k, s2_vector_t* v) {
-
-  cblas_dscal(3, k, (double*)v, 1);
+  v->x *= k;
+  v->y *= k;
+  v->z *= k;
 }
 
 /*!
@@ -161,17 +180,19 @@ inline void s2_vector_scale(double k, s2_vector_t* v) {
 */
 inline void s2_vectorf_normalize(s2_vectorf_t* v) {
 
-  float norm = sqrt(cblas_sdot(3, (float*)v, 1, (float*)v, 1));
-  cblas_sscal(3, 1.0 / norm, (float*)v, 1);
+  float norm = s2_vectorf_l2norm(v);
+  s2_vectorf_scale(1.0 / norm, v);
 }
 
 /*!
 @brief scale a double precision vector
 @param [in/out] vector to scale
 */
-inline void s2_vectorf_scale(double k, s2_vectorf_t* v) {
+inline void s2_vectorf_scale(float k, s2_vectorf_t* v) {
 
-  cblas_sscal(3, k, (float*)v, 1);
+  v->x *= k;
+  v->y *= k;
+  v->z *= k;
 }
 
 /*! @brief initializes a general s2_displacement_t datastructure
@@ -281,10 +302,10 @@ s2_Mat4 format.
 inline void s2_displacement_toMat4x4(s2_displacement_t* D, s2_mat4x4_t* mat4) {
 
   memset(mat4, 0, sizeof(s2_mat4x4_t));
-  cblas_dcopy(3, (double*)D, 1, (double*)mat4, 1);
-  cblas_dcopy(3, (double*)D + 3, 1, (double*)mat4 + 4, 1);
-  cblas_dcopy(3, (double*)D + 6, 1, (double*)mat4 + 8, 1);
-  cblas_dcopy(3, (double*)D + 9, 1, (double*)mat4 + 12, 1);
+  memcpy(&mat4->m00, &D->R.m00, sizeof(s2_vector_t));
+  memcpy(&mat4->m01, &D->R.m01, sizeof(s2_vector_t));
+  memcpy(&mat4->m02, &D->R.m02, sizeof(s2_vector_t));
+  memcpy(&mat4->m03, &D->T, sizeof(s2_vector_t));
   mat4->m33 = 1.0;
 }
 
@@ -296,10 +317,10 @@ inline void s2_displacementf_toMat4x4f(s2_displacementf_t* D,
                                        s2_mat4x4f_t* mat4) {
 
   memset(mat4, 0, sizeof(s2_mat4x4f_t));
-  cblas_scopy(3, (float*)D, 1, (float*)mat4, 1);
-  cblas_scopy(3, (float*)D + 3, 1, (float*)mat4 + 4, 1);
-  cblas_scopy(3, (float*)D + 6, 1, (float*)mat4 + 8, 1);
-  cblas_scopy(3, (float*)D + 9, 1, (float*)mat4 + 12, 1);
+  memcpy(&mat4->m00, &D->R.m00, sizeof(s2_vectorf_t));
+  memcpy(&mat4->m01, &D->R.m01, sizeof(s2_vectorf_t));
+  memcpy(&mat4->m02, &D->R.m02, sizeof(s2_vectorf_t));
+  memcpy(&mat4->m03, &D->T, sizeof(s2_vectorf_t));
   mat4->m33 = 1.0;
 }
 
@@ -313,16 +334,16 @@ inline void s2_displacement_toMat4x4f(s2_displacement_t* D,
   double* Di = (double*)D;
   float* mat4i = (float*)mat4;
   memset(mat4, 0, 15 * sizeof(float));
-  for (int i = 0; i < 3; i++) {
+  for(int i = 0; i < 3; i++) {
     mat4i[i + 0] = (float)Di[i];
   }
-  for (int i = 3; i < 6; i++) {
+  for(int i = 3; i < 6; i++) {
     mat4i[i + 1] = (float)Di[i];
   }
-  for (int i = 6; i < 9; i++) {
+  for(int i = 6; i < 9; i++) {
     mat4i[i + 2] = (float)Di[i];
   }
-  for (int i = 9; i < 12; i++) {
+  for(int i = 9; i < 12; i++) {
     mat4i[i + 3] = (float)Di[i];
   }
 }
@@ -419,7 +440,7 @@ void s2_displacement_print(FILE* f, s2_displacement_t* Di) {
   fprintf(f, "  % 9.9f % 9.9f % 9.9f % 9.9f\n", Di->R.m20, Di->R.m21, Di->R.m22,
           Di->T.z);
   fprintf(f, "  ");
-  for (int i = 0; i < 3; i++) {
+  for(int i = 0; i < 3; i++) {
     fprintf(f, " 0.000000000 ");
   }
   fprintf(f, " 1.000000000\n");
@@ -468,7 +489,7 @@ void s2_mat4x4f_print(FILE* f, s2_mat4x4f_t* Di) {
 */
 void s2_array_print(FILE* f, int n, double* a) {
 
-  for (int i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     fprintf(f, "%0.6g ", a[i]);
   }
   fprintf(f, "\n");
@@ -481,21 +502,21 @@ with dimension rowDim * colDim
 void s2_array_print2D(FILE* f, int rowDim, int colDim, bool isRowMajor,
                       double* a) {
 
-  if (isRowMajor) {
-    for (int i = 0; i < rowDim; i++) {
+  if(isRowMajor) {
+    for(int i = 0; i < rowDim; i++) {
       fprintf(f, "  [");
-      for (int j = 0; j < colDim; j++) {
+      for(int j = 0; j < colDim; j++) {
         fprintf(f, "% 0.10f", a[i * colDim + j]);
-        if (j != colDim - 1) {
+        if(j != colDim - 1) {
           fprintf(f, ", ");
         }
       }
       fprintf(f, "]\n");
     }
   } else {
-    for (int i = 0; i < rowDim; i++) {
+    for(int i = 0; i < rowDim; i++) {
       fprintf(f, "  ");
-      for (int j = 0; j < colDim; j++) {
+      for(int j = 0; j < colDim; j++) {
         fprintf(f, "% 0.10f ", a[i + j * rowDim]);
       }
       fprintf(f, "\n");
@@ -508,7 +529,7 @@ void s2_array_print2D(FILE* f, int rowDim, int colDim, bool isRowMajor,
 */
 void s2_arrayi_print(FILE* f, int n, int* a) {
 
-  for (int i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     fprintf(f, "%d ", a[i]);
   }
   fprintf(f, "\n");
@@ -520,9 +541,9 @@ linear array
 */
 void s2_triang_print(FILE* f, int n, double* a) {
 
-  for (int i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
-    for (int j = 0; j < i + 1; j++) {
+    for(int j = 0; j < i + 1; j++) {
       fprintf(f, "% 9.4f ", a[i_s + j]);
     }
     fprintf(f, "\n");
@@ -535,9 +556,9 @@ linear array
 */
 void s2_triangi_print(FILE* f, int n, int* a) {
 
-  for (int i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
-    for (int j = 0; j < i + 1; j++) {
+    for(int j = 0; j < i + 1; j++) {
       fprintf(f, "% d ", a[i_s + j]);
     }
     fprintf(f, "\n");
@@ -550,9 +571,9 @@ linear array
 */
 void s2_triangb_print(FILE* f, int n, bool* a) {
 
-  for (int i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
-    for (int j = 0; j < i + 1; j++) {
+    for(int j = 0; j < i + 1; j++) {
       fprintf(f, "%s ", a[i_s + j] ? "1" : "0");
     }
     fprintf(f, "\n");
@@ -660,22 +681,6 @@ inline void s2_vector_set(s2_vector_t* v, int index, double value) {
 }
 
 /*!
-@brief l2 norm (length) of double precision vector
-*/
-inline double s2_vector_l2norm(s2_vector_t* v) {
-
-  return sqrt(cblas_ddot(3, (double*)v, 1, (double*)v, 1));
-}
-
-/*!
-@brief l2 norm (length) of single precision vector
-*/
-inline float s2_vectorf_l2norm(s2_vectorf_t* v) {
-
-  return sqrt(cblas_sdot(3, (float*)v, 1, (float*)v, 1));
-}
-
-/*!
 @brief l2 norm of double precision screw
 */
 inline double s2_screw_l2norm(s2_screw_t* v) {
@@ -754,7 +759,7 @@ inline void s2_displacement_set(s2_displacement_t* D, int row, int column,
   //   fprintf(stderr, "s2_displacement_set: out of bounds\n");
   //   return;
   // }
-  if (column == 3) {
+  if(column == 3) {
     s2_vector_set(&D->T, row, value);
   } else {
     s2_mat3x3_set(&D->R, row, column, value);
@@ -823,7 +828,7 @@ inline void s2_displacementf_set(s2_displacementf_t* D, int row, int column,
   //   fprintf(stderr, "s2_displacement_set: out of bounds\n");
   //   return;
   // }
-  if (column == 3) {
+  if(column == 3) {
     s2_vectorf_set(&D->T, row, value);
   } else {
     s2_mat3x3f_set(&D->R, row, column, value);
@@ -874,11 +879,11 @@ inline double s2_mat3x3_get(s2_mat3x3_t* R, int row, int column) {
 */
 inline double s2_displacement_get(s2_displacement_t* D, int row, int column) {
 
-  if (row > 3 || row < 0 || column < 0 || column > 3) {
+  if(row > 3 || row < 0 || column < 0 || column > 3) {
     fprintf(stderr, "s2_displacement_set: out of bounds\n");
     return -INFINITY;
   }
-  if (column == 3) {
+  if(column == 3) {
     return s2_vector_get(&D->T, row);
   } else {
     return s2_mat3x3_get(&D->R, row, column);
@@ -932,7 +937,7 @@ inline float s2_displacementf_get(s2_displacementf_t* D, int row, int column) {
   //   fprintf(stderr, "s2_displacement_set: out of bounds\n");
   //   return -INFINITY;
   // }
-  if (column == 3) {
+  if(column == 3) {
     return s2_vectorf_get(&D->T, row);
   } else {
     return s2_mat3x3f_get(&D->R, row, column);
@@ -5501,10 +5506,10 @@ Matrix R is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 */
 void s2_mat3x3_toQuaternion(s2_mat3x3_t* ri, s2_quaternion_t* qo) {
 
-  if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
+  if(fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
     double p;
     // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
-    if ((p = ri->m00 + ri->m11 + ri->m22) > 0) {
+    if((p = ri->m00 + ri->m11 + ri->m22) > 0) {
 
       // Now p = 2|e0| > 1
       p = sqrt(p + 1);
@@ -5524,7 +5529,7 @@ void s2_mat3x3_toQuaternion(s2_mat3x3_t* ri, s2_quaternion_t* qo) {
     }
 
     // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-    else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+    else if((p = ri->m00 - ri->m11 - ri->m22) > 0) {
       // Now p = 2|e1| > 1
       p = sqrt(p + 1);
 
@@ -5543,7 +5548,7 @@ void s2_mat3x3_toQuaternion(s2_mat3x3_t* ri, s2_quaternion_t* qo) {
     }
 
     // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-    else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+    else if((p = ri->m11 - ri->m00 - ri->m22) > 0) {
       // Now p = 2|e2| > 1
       p = sqrt(p + 1);
 
@@ -5615,10 +5620,10 @@ Matrix R is quadratic in *(E) so *(E+i) and -*(E+i) give the same R.
 */
 void s2_mat3x3f_toQuaternion(s2_mat3x3f_t* ri, s2_quaternionf_t* qo) {
 
-  if (fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
+  if(fabs(ri->m00) > 1e-9 || fabs(ri->m11) > 1e-9 || fabs(ri->m22) > 1e-9) {
     double p;
     // p = 4e0^2-1 > 0 or e0^2 > 1/4 or |e0| > 1/2
-    if ((p = ri->m00 + ri->m11 + ri->m22) > 0) {
+    if((p = ri->m00 + ri->m11 + ri->m22) > 0) {
 
       // Now p = 2|e0| > 1
       p = sqrt(p + 1);
@@ -5638,7 +5643,7 @@ void s2_mat3x3f_toQuaternion(s2_mat3x3f_t* ri, s2_quaternionf_t* qo) {
     }
 
     // 4e1^2-1 > 0 or e1^2 > 1/4 or |e1| > 1/2
-    else if ((p = ri->m00 - ri->m11 - ri->m22) > 0) {
+    else if((p = ri->m00 - ri->m11 - ri->m22) > 0) {
       // Now p = 2|e1| > 1
       p = sqrt(p + 1);
 
@@ -5657,7 +5662,7 @@ void s2_mat3x3f_toQuaternion(s2_mat3x3f_t* ri, s2_quaternionf_t* qo) {
     }
 
     // 4e2^2-1 > 0 or e2^2 > 1/4 or |e2| > 1/2
-    else if ((p = ri->m11 - ri->m00 - ri->m22) > 0) {
+    else if((p = ri->m11 - ri->m00 - ri->m22) > 0) {
       // Now p = 2|e2| > 1
       p = sqrt(p + 1);
 
@@ -5823,7 +5828,7 @@ void s2_quaternion_slerp(s2_quaternion_t* q1i, s2_quaternion_t* q2i, double* t,
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if (fabs(cosHalfTheta) >= 1.0) {
+  if(fabs(cosHalfTheta) >= 1.0) {
     cblas_dcopy(4, (double*)q1i, 1, (double*)qo, 1);
     return;
   }
@@ -5835,7 +5840,7 @@ void s2_quaternion_slerp(s2_quaternion_t* q1i, s2_quaternion_t* q2i, double* t,
     we could rotate around any axis normal to q1i or q2i
   */
   memset(qo, 0, 4 * sizeof(double));
-  if (fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
+  if(fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
     cblas_daxpy(4, 0.5, (double*)q1i, 1, (double*)qo, 1);
     cblas_daxpy(4, 0.5, (double*)q2i, 1, (double*)qo, 1);
     return;
@@ -5871,7 +5876,7 @@ void s2_quaternionf_slerp(s2_quaternionf_t* q1i, s2_quaternionf_t* q2i,
   /*
     if q1i=q2i or q1i=-q2i then theta = 0 and we can return q1i
   */
-  if (fabs(cosHalfTheta) >= 1.0) {
+  if(fabs(cosHalfTheta) >= 1.0) {
     cblas_scopy(4, (float*)q1i, 1, (float*)qo, 1);
     return;
   }
@@ -5883,7 +5888,7 @@ void s2_quaternionf_slerp(s2_quaternionf_t* q1i, s2_quaternionf_t* q2i,
     we could rotate around any axis normal to q1i or q2i
   */
   memset(qo, 0, 4 * sizeof(double));
-  if (fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
+  if(fabs(sinHalfTheta) < 0.001) { // fabs is floating point absolute
     cblas_saxpy(4, 0.5, (float*)q1i, 1, (float*)qo, 1);
     cblas_saxpy(4, 0.5, (float*)q2i, 1, (float*)qo, 1);
     return;
@@ -5912,18 +5917,18 @@ but does not interpolate with constant velocity
 void s2_quaternion_nlerp(s2_quaternion_t* q1i, s2_quaternion_t* q2i, double* t,
                          s2_quaternion_t* qo) {
 
-  if ((*t) < 1e-9) {
+  if((*t) < 1e-9) {
     cblas_dcopy(4, (double*)q1i, 1, (double*)qo, 1);
     return;
   }
-  if ((*t) >= 1.0) {
+  if((*t) >= 1.0) {
     cblas_dcopy(4, (double*)q2i, 1, (double*)qo, 1);
     return;
   }
   double alpha = 1.0f - *t;
   double omega = *t;
 
-  if (cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1) < 0) {
+  if(cblas_ddot(4, (double*)q1i, 1, (double*)q2i, 1) < 0) {
     omega = -omega;
   }
   /*
@@ -5950,18 +5955,18 @@ but does not interpolate with constant velocity
 void s2_quaternionf_nlerp(s2_quaternionf_t* q1i, s2_quaternionf_t* q2i,
                           float* t, s2_quaternionf_t* qo) {
 
-  if ((*t) < 1e-9) {
+  if((*t) < 1e-9) {
     cblas_scopy(4, (float*)q1i, 1, (float*)qo, 1);
     return;
   }
-  if ((*t) >= 1.0) {
+  if((*t) >= 1.0) {
     cblas_scopy(4, (float*)q2i, 1, (float*)qo, 1);
     return;
   }
   float alpha = 1.0f - *t;
   float omega = *t;
 
-  if (cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1) < 0) {
+  if(cblas_sdot(4, (float*)q1i, 1, (float*)q2i, 1) < 0) {
     omega = -omega;
   }
   memset(qo, 0, 4 * sizeof(float));
@@ -5984,10 +5989,10 @@ Utilities to for normalizing radians and degrees
 */
 double s2_normalizeDegrees(double angle) {
 
-  while (angle < 0) {
+  while(angle < 0) {
     angle += 360;
   }
-  while (angle > 360) {
+  while(angle > 360) {
     angle -= 360;
   }
   return angle;
@@ -6000,10 +6005,10 @@ double s2_normalizeDegrees(double angle) {
 */
 float s2_normalizeDegreesf(float angle) {
 
-  while (angle < 0) {
+  while(angle < 0) {
     angle += 360;
   }
-  while (angle > 360) {
+  while(angle > 360) {
     angle -= 360;
   }
   return angle;
@@ -6016,10 +6021,10 @@ float s2_normalizeDegreesf(float angle) {
 */
 double s2_normalizeRadians(double angle) {
 
-  while (angle < 0) {
+  while(angle < 0) {
     angle += (2 * M_PI);
   }
-  while (angle > 2 * M_PI) {
+  while(angle > 2 * M_PI) {
     angle -= (2 * M_PI);
   }
   return angle;
@@ -6032,10 +6037,10 @@ double s2_normalizeRadians(double angle) {
 */
 float s2_normalizeRadiansf(float angle) {
 
-  while (angle < 0) {
+  while(angle < 0) {
     angle += (2 * M_PI);
   }
-  while (angle > 2 * M_PI) {
+  while(angle > 2 * M_PI) {
     angle -= (2 * M_PI);
   }
   return angle;
@@ -6082,7 +6087,7 @@ double catan2pi(double y, double x, double theta) {
   /*
     Decrement the angle until it is below this upper limit if necessary.
   */
-  while (temp > a) {
+  while(temp > a) {
     temp -= (2 * M_PI);
   }
 
@@ -6095,7 +6100,7 @@ double catan2pi(double y, double x, double theta) {
 
   // Increment the angle until it is above this lower limit if necessary.
 
-  while (temp < a) {
+  while(temp < a) {
     temp += (2 * M_PI);
   }
 
@@ -6146,7 +6151,7 @@ double catan1pi(double y, double x, double theta) {
   /*
     Decrement the angle until it is below this upper limit if necessary.
   */
-  while (temp > a) {
+  while(temp > a) {
     temp -= M_PI;
   }
 
@@ -6160,7 +6165,7 @@ double catan1pi(double y, double x, double theta) {
   /*
     Increment the angle until it is above this lower limit if necessary.
   */
-  while (temp < a) {
+  while(temp < a) {
     temp += M_PI;
   }
 
@@ -6208,7 +6213,7 @@ void s2_mat3x3_getEulerAngles(s2_mat3x3_t* rin, s2_vector_t* angles,
                               s2_axis_enum_t axisType) {
 
   int axis[3];
-  switch (axisType) {
+  switch(axisType) {
     case XYZ: {
       axis[0] = 0;
       axis[1] = 1;
@@ -6299,8 +6304,8 @@ void s2_mat3x3_getEulerAngles(s2_mat3x3_t* rin, s2_vector_t* angles,
                      {rin->m10, rin->m11, rin->m12},
                      {rin->m20, rin->m21, rin->m22}};
 
-  if (j == f[i]) { // Identifies Cases 1 and 3: forward cycle i --> j
-    if (k != i) {  // forward cycle j --> k
+  if(j == f[i]) { // Identifies Cases 1 and 3: forward cycle i --> j
+    if(k != i) {  // forward cycle j --> k
       // Case 1: 0 --> 1 --> 2; 1 --> 2 --> 0; 2 --> 0 --> 1
       angles->y = catan1pi(-ri[i][j], ri[i][i], angles->y);
       c = cos(angles->y);
@@ -6319,8 +6324,8 @@ void s2_mat3x3_getEulerAngles(s2_mat3x3_t* rin, s2_vector_t* angles,
                            ri[j][j] * c - ri[j][k] * s, angles->x);
       angles->y = catan2pi(ri[i][k] * c + ri[i][j] * s, ri[i][i], angles->y);
     }
-  } else {        // Cases 2 and 4: reverse cycle i --> j
-    if (k != i) { // reverse cycle j --> k
+  } else {       // Cases 2 and 4: reverse cycle i --> j
+    if(k != i) { // reverse cycle j --> k
       // Case 2: 0 --> 2 --> 1; 1 --> 0 --> 2; 2 --> 1 --> 0
       angles->z = catan1pi(ri[i][j], ri[i][i], angles->z);
       c = cos(angles->z);
@@ -6502,13 +6507,13 @@ void s2_omega_to_dquaternion(s2_vector_t* w, s2_quaternion_t* qi,
 */
 void s2_array_lerp(int count, double p, double* y0, double* y1, double* yOut) {
 
-  if (p < 1e-9) {
+  if(p < 1e-9) {
     cblas_dcopy(count, y0, 1, yOut, 1);
-  } else if (p >= 1.0) {
+  } else if(p >= 1.0) {
     cblas_dcopy(count, y1, 1, yOut, 1);
   }
 
-  for (int i = 0; i < count; i++) {
+  for(int i = 0; i < count; i++) {
     yOut[i] = y1[i] - y0[i];
   }
   cblas_dscal(count, p, yOut, 1);
@@ -6531,16 +6536,16 @@ orthonormalized columns are passed back in A[][].
                matrix is returned in A
 */
 void s2_gramSchmidt(int m, int n, double* A) {
-  for (int k = 0; k < n; k++) {
+  for(int k = 0; k < n; k++) {
     /* normalize column k */
     double R = 1.0 / cblas_dnrm2(m, A + k, n);
     cblas_dscal(m, R, A + k, n);
-    for (int j = k + 1; j < n; j++) {
+    for(int j = k + 1; j < n; j++) {
       R = 0;
-      for (int i = 0; i < m; i++) {
+      for(int i = 0; i < m; i++) {
         R += A[i * n + k] * A[i * n + j];
       }
-      for (int i = 0; i < m; i++) {
+      for(int i = 0; i < m; i++) {
         A[i * n + j] -= A[i * n + k] * R;
       }
     }
@@ -6557,9 +6562,9 @@ within an error tolerance of 1e-6
 @returns true if values are all close, false if values are not all close
 */
 bool s2_all_close(int count, double* a1, double* a2) {
-  for (int i = 0; i < count; i++) {
+  for(int i = 0; i < count; i++) {
     double scaleFactor = fmax(fabs(a1[i]), 1.0);
-    if (fabs(a1[i] - a2[i]) / scaleFactor > 1e-6) {
+    if(fabs(a1[i] - a2[i]) / scaleFactor > 1e-6) {
       fprintf(stdout, "match failed at index: %d\n", i);
       return false;
     }
@@ -6576,9 +6581,9 @@ inline void s2_mat3x3_getAxisAngle(s2_mat3x3_t* r, s2_vector_t* axis,
                                    double* angle) {
 
   *angle = acos(0.5 * (r->m00 + r->m11 + r->m22 - 1.0));
-  if (fabs(sin(*angle)) < 1e-9) {
+  if(fabs(sin(*angle)) < 1e-9) {
     /* if m22 == -1, return {1, 0, 0} */
-    if (fabs(r->m22 + 1) < 1e-9) {
+    if(fabs(r->m22 + 1) < 1e-9) {
       axis->x = 1.0;
       axis->y = 0.0;
       axis->z = 0.0;

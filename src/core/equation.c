@@ -37,30 +37,30 @@ SUCH DAMAGE.
 void s2_context_initializeEquations(s2_context_t* context) {
 
   s2_context_initializeInertia(context);
-  if (context->mhProduct) {
+  if(context->mhProduct) {
     free(context->mhProduct);
   }
   context->mhProduct = calloc(context->dqCount, sizeof(s2_screw_t));
-  if (context->fl) {
+  if(context->fl) {
     free(context->fl);
   }
   context->fl = calloc(context->dqCount, sizeof(double));
-  if (context->g) {
+  if(context->g) {
     free(context->g);
   }
   context->g = calloc(context->nonRigidJointCount, sizeof(s2_screw_t));
-  if (context->p) {
+  if(context->p) {
     free(context->p);
   }
   context->p = calloc(context->nonRigidJointCount, sizeof(s2_screw_t));
   // if(context->gamma_p) free(context->gamma_p);
   // context->gamma_p =
   //   calloc(context->dqCount, sizeof(double));
-  if (context->gamma_d) {
+  if(context->gamma_d) {
     free(context->gamma_d);
   }
   context->gamma_d = calloc(context->dqCount, sizeof(double));
-  if (context->la) {
+  if(context->la) {
     free(context->la);
   }
   context->la = calloc(context->dqCount, sizeof(double));
@@ -94,37 +94,39 @@ void s2_context_setRHS(s2_context_t* context) {
   s2_screw_t* aq = context->aq + 1;
   s2_screw_t* v = context->v + 1;
 
-  // printf("inertia before mass projection / local:\n");
-  // for(int i = 0; i < context->nonRigidJointCount; i++) {
-  //   s2_inertia_print(context->inertia + i);
-  // }
+  printf("inertia before mass projection / local:\n");
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    s2_inertia_print(stdout, context->inertia + i);
+  }
 
-  /* transform inertias to fixed reference frame */
+  /* transform inertias to fixed reference frame, carried out in PO1*/
   memset(context->inertiaP, 0, (context->dqCount + 1) * sizeof(s2_inertia_t));
   s2_inertia_t* inertiaP = context->inertiaP + 1;
 
-  for (int i = 0; i < context->nonRigidJointCount; i++) {
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
     // printf("i: %d\n", i);
-    if (context->hasMass[i]) {
-      // printf("transforming from i=%d to %d\n", i,
-      // context->dqLookupCompressed[i]);
+    if(context->hasMass[i]) {
+      printf("transforming from i=%d to %d\n", i,
+             context->dqLookupCompressed[i]);
+
+      // int bodyIndex = context->jointLookup[i];
 
       s2_inertia_transform(context->inertia + i, context->dReferenceFrames[i],
                            inertiaP + context->dqLookupCompressed[i]);
 
-      // printf("[%d] inertia in body frame:\n", i);
-      // s2_inertia_print(context->inertia + i);
-      //
-      // printf("absolute displacement:\n");
-      // s2_displacement_print(context->dReferenceFrames[i]);
-      //
-      // printf("inertia transformed to fixed reference frame:\n");
-      // s2_inertia_print(inertiaP + context->dqLookupCompressed[i]);
+      printf("[%d] inertia in body frame:\n", i);
+      s2_inertia_print(stdout, context->inertia + i);
+
+      printf("absolute displacement:\n");
+      s2_displacement_print(stdout, context->dReferenceFrames[i]);
+
+      printf("inertia transformed to fixed reference frame:\n");
+      s2_inertia_print(stdout, inertiaP + context->dqLookupCompressed[i]);
     }
   }
 
   /* g <- g - M \gamma, (carried out in PO1) */
-  for (int j = 0; j < context->nonRigidJointCount; j++) {
+  for(int j = 0; j < context->nonRigidJointCount; j++) {
 
     // printf("inertia [%d]\n", j);
     // s2_inertia_print(context->inertia + j);
@@ -132,15 +134,6 @@ void s2_context_setRHS(s2_context_t* context) {
     // printf("aq [%d]\n", j);
     // s2_screw_print(context->aq + j);
 
-    // cblas_daxpy(
-    //   3,
-    //   -inertiaP[j].m,
-    //   (double*)(aq + j),
-    //   1,
-    //   (double*)(context->g + j),
-    //   1);
-
-    /* the daxpy code above would replace the following three assignments */
     context->g[j].m0 -= inertiaP[j].m * aq[j].m0;
     context->g[j].m1 -= inertiaP[j].m * aq[j].m1;
     context->g[j].m2 -= inertiaP[j].m * aq[j].m2;
@@ -177,17 +170,8 @@ void s2_context_setRHS(s2_context_t* context) {
   }
 
   /* p = Mv, (carried out in PO1) */
-  for (int j = 0; j < context->nonRigidJointCount; j++) {
+  for(int j = 0; j < context->nonRigidJointCount; j++) {
 
-    // cblas_daxpy(
-    //   3,
-    //   inertiaP[j].m,
-    //   (double*)(v + j),
-    //   1,
-    //   (double*)(context->p + j),
-    //   1);
-
-    /* the daxpy code above would replace the following three assignments */
     context->p[j].m0 += inertiaP[j].m * v[j].m0;
     context->p[j].m1 += inertiaP[j].m * v[j].m1;
     context->p[j].m2 += inertiaP[j].m * v[j].m2;
@@ -224,7 +208,7 @@ void s2_context_setRHS(s2_context_t* context) {
   }
 
   /* g += cross^T(v, p) (carried out in PO1)*/
-  for (int j = 0; j < context->nonRigidJointCount; j++) {
+  for(int j = 0; j < context->nonRigidJointCount; j++) {
 
     // context->g[j][0:3] -= cross(context->v[j][3:6], context->p[j][0:3]);
     // x1 = m3, y1 = m4, z1 = m5; x2 = m0, y2 = m1, z2 = m2
@@ -245,7 +229,7 @@ void s2_context_setRHS(s2_context_t* context) {
     context->g[j].m5 -= v[j].m3 * context->p[j].m4;
   }
 
-  for (int j = 0; j < context->nonRigidJointCount; j++) {
+  for(int j = 0; j < context->nonRigidJointCount; j++) {
     context->g[j].m0 += v[j].m5 * context->p[j].m1;
     context->g[j].m1 += v[j].m3 * context->p[j].m2;
     context->g[j].m2 += v[j].m4 * context->p[j].m0;
@@ -260,11 +244,17 @@ void s2_context_setRHS(s2_context_t* context) {
   }
 
   /* g <- C{-T} * (g + \tilde{v}^T p - m\gamma) (carried out in PO1) */
-  for (int j = context->nonRigidJointCount - 1; j > -1; j--) {
+  for(int j = context->nonRigidJointCount - 1; j > -1; j--) {
     int i = context->pclCompressed[j];
-    if (i > -1) {
-      cblas_daxpy(6, 1.0, (double*)(context->g + j), 1,
-                  (double*)(context->g + i), 1);
+    if(i > -1) {
+      context->g[i].m0 += context->g[j].m0;
+      context->g[i].m1 += context->g[j].m1;
+      context->g[i].m2 += context->g[j].m2;
+      context->g[i].m3 += context->g[j].m3;
+      context->g[i].m4 += context->g[j].m4;
+      context->g[i].m5 += context->g[j].m5;
+      // cblas_daxpy(6, 1.0, (double*)(context->g + j), 1,
+      //             (double*)(context->g + i), 1);
     }
   }
   // for(int i = 0; i < context->dqCount; i++) {
@@ -274,11 +264,11 @@ void s2_context_setRHS(s2_context_t* context) {
 
   /*
     f_l = f + H^T * C{-T} * (g + \tilde{v}^Tp - m\gamma)
-    this step is evaluated in level 1 order and stored in level 3 order,
-    we need the permutation to assign in f_l
+    this step is evaluated in PO1 and stored in PO3,
+    use the permutation array p_v31 to assign to f_l
   */
 
-  for (int j = 0; j < context->nonRigidJointCount; j++) {
+  for(int j = 0; j < context->nonRigidJointCount; j++) {
     /* j is index into compressed list of joints and g in PO1 */
 
     /* l = start of multiple degree of freedom joint in dq array in PO1 */
@@ -291,7 +281,7 @@ void s2_context_setRHS(s2_context_t* context) {
     for composite joints */
 
     context->fl[k] = context->f[l];
-    if (context->isRotation[l]) {
+    if(context->isRotation[l]) {
       context->fl[k] += cblas_ddot(6, (double*)(context->h + l), 1,
                                    (double*)(context->g + j), 1);
     } else {
@@ -311,9 +301,9 @@ void s2_context_setRHS(s2_context_t* context) {
   double baumgarte2OmegaN = context->modelParameters.baumgarte2OmegaN;
   double baumgarteOmegaN2 = context->modelParameters.baumgarteOmegaN2;
 
-  switch (context->modelParameters.integrationType) {
+  switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113B: {
-      if (context->numericalIntegrator) {
+      if(context->numericalIntegrator) {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
 
@@ -326,15 +316,15 @@ void s2_context_setRHS(s2_context_t* context) {
   }
 
   int chordConstraintOffset = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
 
     s2_substructure_t* substructure = context->substructures + i;
     int offset = substructure->dqOffset;
     // printf("offset for substructure [%d]: %d\n", i, substructure->dqOffset);
 
     /* number of constraints to evaluate */
-    for (int k = 0; k < substructure->chordConstraintCount;
-         k++, chordConstraintOffset++) {
+    for(int k = 0; k < substructure->chordConstraintCount;
+        k++, chordConstraintOffset++) {
 
       // FILE* debug = context->modelParameters->debugFilePointer;
       // fprintf(debug, "\n   [%d]\n", chordConstraintOffset);
@@ -440,8 +430,8 @@ void s2_context_setRHS(s2_context_t* context) {
              context->constraints[chordConstraintOffset]);
 
       /* set gamma_p */
-      for (int l = 0; l < 6; l++) {
-        if (substructure->pr_21[k * 6 + l] < substructure->rank) {
+      for(int l = 0; l < 6; l++) {
+        if(substructure->pr_21[k * 6 + l] < substructure->rank) {
           /*
             first constraint is embedded (host) body
             second is the virtual body (released frame)
@@ -471,8 +461,8 @@ void s2_context_setRHS(s2_context_t* context) {
       // fprintf(debug, "\n");
 
       /* subtract 2 * omega_n * \dot{phi} from gamma_p */
-      for (int l = 0; l < 6; l++) {
-        if (substructure->pr_21[k * 6 + l] < substructure->rank) {
+      for(int l = 0; l < 6; l++) {
+        if(substructure->pr_21[k * 6 + l] < substructure->rank) {
 
           /* -2omega N * \dot{\phi} velocity part of baumgarte
           constraint stabilization */
@@ -492,8 +482,8 @@ void s2_context_setRHS(s2_context_t* context) {
       // fprintf(debug, "\n");
 
       /* subtract omega_n^2 * \dot{phi} from gamma_p */
-      for (int l = 0; l < 6; l++) {
-        if (substructure->pr_21[k * 6 + l] < substructure->rank) {
+      for(int l = 0; l < 6; l++) {
+        if(substructure->pr_21[k * 6 + l] < substructure->rank) {
 
           /* -omegaN^2 * phi, position part of baumgarte
           constraint stabilization */
@@ -507,16 +497,16 @@ void s2_context_setRHS(s2_context_t* context) {
 
       /* substract integral error term from gamma_p  for adaptive constraint
        * stabilization*/
-      if (context->modelParameters.integrationType ==
-            S2_NUMERICALINTEGRATOR_ODE113B &&
-          context->numericalIntegrator != NULL) {
+      if(context->modelParameters.integrationType ==
+           S2_NUMERICALINTEGRATOR_ODE113B &&
+         context->numericalIntegrator != NULL) {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
 
         double* integralErrorTerm = numericalIntegrator->integralError;
 
-        for (int l = 0; l < 6; l++) {
-          if (substructure->pr_21[k * 6 + l] < substructure->rank) {
+        for(int l = 0; l < 6; l++) {
+          if(substructure->pr_21[k * 6 + l] < substructure->rank) {
 
             context->gamma_d[offset + substructure->pr_21[k * 6 + l]] -=
               integralErrorTerm[k * 6 + l];
@@ -537,7 +527,7 @@ void s2_context_setRHS(s2_context_t* context) {
     precondition primary constraints in PO(2)
     \bar{\gamma}_d = U^{-1} L^{-1} \bar{\gamma}_p
   */
-  for (int sub = 0; sub < context->substructureCount; sub++) {
+  for(int sub = 0; sub < context->substructureCount; sub++) {
     s2_substructure_t* substructure = context->substructures + sub;
 
     int offset = substructure->dqOffset;
@@ -546,8 +536,8 @@ void s2_context_setRHS(s2_context_t* context) {
       forward elimination
       \bar{\gamma} <- L^{-1} * \bar\{\gamma}
     */
-    for (int i = 0; i < substructure->rank; i++) {
-      for (int j = 0; j < i; j++) {
+    for(int i = 0; i < substructure->rank; i++) {
+      for(int j = 0; j < i; j++) {
         // if(substructure->Jb[i * substructure->dqCount + j]) {
         context->gamma_d[i + offset] -=
           substructure->J[i * substructure->dqCount + j] *
@@ -560,9 +550,9 @@ void s2_context_setRHS(s2_context_t* context) {
       back substitution
       \bar{\gamma} <- U^{-1} * \bar\{\gamma}
     */
-    for (int i = substructure->rank - 1; i > -1; i--) {
+    for(int i = substructure->rank - 1; i > -1; i--) {
       double save = 0;
-      for (int j = substructure->rank - 1; j > i; j--) {
+      for(int j = substructure->rank - 1; j > i; j--) {
         // if(substructure->Jb[i * substructure->dqCount + j]) {
         save += substructure->J[i * substructure->dqCount + j] *
                 context->gamma_d[j + offset];
@@ -648,7 +638,7 @@ void s2_inertia_print2Reference(FILE* f, s2_inertia_t* inertiaReference,
                                 const char* name, s2_displacement_t* d) {
 
   s2_vector_t t;
-  if (inertiaReference->m > 1e-9) {
+  if(inertiaReference->m > 1e-9) {
     double invMass = 1 / inertiaReference->m;
     s2_product_vk(&inertiaReference->mt, &invMass, &t);
   }
@@ -848,8 +838,10 @@ void s2_context_setMassMatrix(s2_context_t* context) {
   /*
     compute ``accumulated'' inertia matrices, project child inertia onto parent
   */
-  for (int j = context->nonRigidJointCount - 1; j > -1; j--) {
+  for(int j = context->nonRigidJointCount - 1; j > -1; j--) {
     int i = context->pclCompressed[j];
+    // inertiaP[i].m0 += inertiaP[j].m0;
+
     cblas_daxpy(10, 1.0, (double*)(inertiaP + j), 1, (double*)(inertiaP + i),
                 1);
   }
@@ -873,7 +865,7 @@ void s2_context_setMassMatrix(s2_context_t* context) {
   // }
 
   /* compute mh product */
-  for (int j = 0; j < context->dqCount; j++) {
+  for(int j = 0; j < context->dqCount; j++) {
 
     /* update quantities that are processed for both rotation and
     translation */
@@ -890,7 +882,7 @@ void s2_context_setMassMatrix(s2_context_t* context) {
     context->mhProduct[j].m4 -= inertiaP[j].mt.x * context->h[j].m2;
 
     /* do stuff just for rotation */
-    if (context->isRotation[j]) {
+    if(context->isRotation[j]) {
 
       context->mhProduct[j].m1 -= inertiaP[j].mt.z * context->h[j].m3;
       context->mhProduct[j].m2 += inertiaP[j].mt.y * context->h[j].m3;
@@ -927,8 +919,8 @@ void s2_context_setMassMatrix(s2_context_t* context) {
   int ks_3;
   int k_3;
 
-  for (int j = context->dqCount - 1; j > -1; j--) {
-    if (context->hasMassdq[j]) {
+  for(int j = context->dqCount - 1; j > -1; j--) {
+    if(context->hasMassdq[j]) {
       m_3 = context->pv_31[j];
       // m_1 = j;
       // ks_1 = (m_1 * (m_1 + 1)) / 2;
@@ -938,7 +930,7 @@ void s2_context_setMassMatrix(s2_context_t* context) {
       k_3 = ks_3 + m_3;
       context->Mlb[k_3] = true;
 
-      if (context->isRotation[j]) {
+      if(context->isRotation[j]) {
         context->Ml[k_3] += cblas_ddot(6, (double*)(context->mhProduct + j), 1,
                                        (double*)(context->h + j), 1);
       } else {
@@ -947,16 +939,16 @@ void s2_context_setMassMatrix(s2_context_t* context) {
       }
 
       int i = context->pcldq[j];
-      while (i > -1) {
+      while(i > -1) {
         int i_3 = context->pv_31[i];
-        if (m_3 > i_3) {
+        if(m_3 > i_3) {
           k_3 = ks_3 + i_3;
         } else {
           k_3 = (i_3 * (i_3 + 1)) / 2 + context->pv_31[j];
         }
         context->Mlb[k_3] = true;
 
-        if (context->isRotation[i]) {
+        if(context->isRotation[i]) {
           context->Ml[k_3] += cblas_ddot(6, (double*)(context->mhProduct + j),
                                          1, (double*)(context->h + i), 1);
         } else {
@@ -983,7 +975,7 @@ copy by value other terms from dq to dY array
 void s2_context_dqTody(s2_context_t* context, double* dy) {
 
   /* convert angular velocities to time derivative of quaternions */
-  for (int i = 0; i < context->quaternionCount; i++) {
+  for(int i = 0; i < context->quaternionCount; i++) {
     s2_omega_to_dquaternion(
       (s2_vector_t*)(context->dq + context->dqQuaternionIndices[i]),
       (s2_quaternion_t*)(context->q + context->qQuaternionIndices[i]),
@@ -991,7 +983,7 @@ void s2_context_dqTody(s2_context_t* context, double* dy) {
   }
 
   /* copy primitive variables */
-  for (int i = 0; i < context->nonQuaternionCount; i++) {
+  for(int i = 0; i < context->nonQuaternionCount; i++) {
     dy[context->qNonQuaternionIndices[i]] =
       context->dq[context->dqNonQuaternionIndices[i]];
   }
@@ -1071,8 +1063,8 @@ void s2_context_setEquations(s2_context_t* context) {
 
   // printf("infinity norm b check in setEquations\n");
   int returnVal = s2_context_infinityNormBCheck(context);
-  if (returnVal) {
-    switch (context->modelParameters.integrationType) {
+  if(returnVal) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         exit(-1);
       } break;
@@ -1112,9 +1104,9 @@ void s2_context_factorAndSolve(s2_context_t* context) {
   /*
     Factor the matrix
   */
-  for (int i = context->dqCount - 1; i > -1; i--) {
-    if (context->isDependentPO3[i]) {
-      for (int j = 0; j < context->n1[nd]; j++) {
+  for(int i = context->dqCount - 1; i > -1; i--) {
+    if(context->isDependentPO3[i]) {
+      for(int j = 0; j < context->n1[nd]; j++) {
         /* M[] -= M[] * B[]; */
         *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
         p2 += 3;
@@ -1122,7 +1114,7 @@ void s2_context_factorAndSolve(s2_context_t* context) {
       nd++;
     } else {
       /* Invert the pivot: M[i] = 1.0 / M[i]; */
-      if (*(context->P[i]) > 1e-6) {
+      if(*(context->P[i]) > 1e-6) {
         *(context->P[i]) = 1.0 / *(context->P[i]);
       } else {
         fprintf(stderr, "error: pivot at index [%d] has the value %0.9g\n", i,
@@ -1133,7 +1125,7 @@ void s2_context_factorAndSolve(s2_context_t* context) {
          array to the left of the diagonal into the work array and scale the
          entries in row i to L terms.
       */
-      for (int j = context->startOfWorkInM; j < context->n2[ni]; j++) {
+      for(int j = context->startOfWorkInM; j < context->n2[ni]; j++) {
         // Copy entry into work array: M[] = M[];
         *(context->P[p2]) = *(context->P[p2 + 1]);
         p2++;
@@ -1142,7 +1134,7 @@ void s2_context_factorAndSolve(s2_context_t* context) {
         p2++;
       }
       // Perform mass projections with one assignment statement.
-      for (int j = 0; j < context->n3[ni]; j++) {
+      for(int j = 0; j < context->n3[ni]; j++) {
         /* Update Schur-complement matrix: M[] -= M[] * M[]; */
         *(context->P[p2]) -= *(context->P[p2 + 1]) * *(context->P[p2 + 2]);
         p2 += 3;
@@ -1154,9 +1146,9 @@ void s2_context_factorAndSolve(s2_context_t* context) {
   ni = 0;
 
   /* Backward elimination */
-  for (int i = context->dqCount - 1; i > -1; i--) {
-    if (context->isDependentPO3[i]) {
-      for (int j = 0; j < context->p1[nd]; j++) {
+  for(int i = context->dqCount - 1; i > -1; i--) {
+    if(context->isDependentPO3[i]) {
+      for(int j = 0; j < context->p1[nd]; j++) {
         /*
           Part of b <-- L^{-T} b: Q[] -= B[] * Q[i];
         */
@@ -1164,7 +1156,7 @@ void s2_context_factorAndSolve(s2_context_t* context) {
       }
       // Project constraint-induced inertia forces onto parent forces.
       // Does not execute if Mii = 0.
-      for (int j = 0; j < context->p2[nd]; j++) {
+      for(int j = 0; j < context->p2[nd]; j++) {
         // Part of b <-- L^{-T} b: Q[] -= M[] * ga[k];
         *(context->P[p3++]) -=
           *(context->P[p2++]) * context->gamma_d[context->pv_23[i]];
@@ -1175,13 +1167,13 @@ void s2_context_factorAndSolve(s2_context_t* context) {
       context->ddq[context->pv_13[i]] = context->gamma_d[context->pv_23[i]];
       context->la[context->pv_23[i]] = context->fl[i];
 
-      if (context->Mlb[context->i4[i]])
+      if(context->Mlb[context->i4[i]])
         /* Part of x <-- D^{-1} b: la[k] -= M[] * ddq[i]; */
         context->la[context->pv_23[i]] -=
           *(context->P[i]) * context->ddq[context->pv_13[i]];
       // k--;
     } else {
-      for (int j = 0; j < context->p3[ni]; j++) {
+      for(int j = 0; j < context->p3[ni]; j++) {
         // Part of b <-- L^{-T} b: Q[] -= M[] * Q[i];
         *(context->P[p3++]) -= *(context->P[p2++]) * context->fl[i];
       }
@@ -1200,15 +1192,15 @@ void s2_context_factorAndSolve(s2_context_t* context) {
   /*
     Forward substitution
   */
-  for (int i = 0; i < context->dqCount; i++) {
-    if (context->isDependentPO3[i]) {
+  for(int i = 0; i < context->dqCount; i++) {
+    if(context->isDependentPO3[i]) {
       nd--;
-      for (int j = 0; j < context->p2[nd]; j++) {
+      for(int j = 0; j < context->p2[nd]; j++) {
         // Part of x <-- L^{-1} x: la[k] -= M[] * ddq[];
         context->la[context->pv_23[i]] -=
           *(context->P[p2--]) * *(context->P[p3++]);
       }
-      for (int j = 0; j < context->p1[nd]; j++) {
+      for(int j = 0; j < context->p1[nd]; j++) {
         // Part of x <-- L^{-1} x: ddq[i] -= B[] * ddq[];
         context->ddq[context->pv_13[i]] -=
           *(context->P[p2--]) * *(context->P[p3++]);
@@ -1216,7 +1208,7 @@ void s2_context_factorAndSolve(s2_context_t* context) {
       // k++;
     } else {
       ni--;
-      for (int j = 0; j < context->p3[ni]; j++) {
+      for(int j = 0; j < context->p3[ni]; j++) {
         // Part of x <-- L^{-1} x: ddq[i] -= M[] * ddq[];
         context->ddq[context->pv_13[i]] -=
           *(context->P[p2--]) * *(context->P[p3++]);
