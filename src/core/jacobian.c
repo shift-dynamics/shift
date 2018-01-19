@@ -42,10 +42,10 @@ double s2_jacobian_pivotRatio(int colDim, int rank, double* J) {
 
   double min = fabs(J[0]);
   double max = fabs(J[0]);
-  for (int i = 1; i < rank; i++) {
+  for(int i = 1; i < rank; i++) {
     min = fmin(min, fabs(J[i * colDim + i]));
   }
-  for (int i = 1; i < rank; i++) {
+  for(int i = 1; i < rank; i++) {
     max = fmax(max, fabs(J[i * colDim + i]));
   }
   return (max / min);
@@ -62,8 +62,8 @@ double s2_jacobian_infinityNormB(int rowDim, int colDim, int rank, double* J) {
   // printf("J in infinity norm B check:\n");
   // s2_array_print2D(rowDim, colDim, true, J);
   double max = 0;
-  for (int i = 0; i < rank; i++) {
-    for (int j = rank; j < colDim; j++) {
+  for(int i = 0; i < rank; i++) {
+    for(int j = rank; j < colDim; j++) {
       max = fmax(max, fabs(J[i * colDim + j]));
     }
   }
@@ -78,7 +78,7 @@ double s2_jacobian_infinityNormB(int rowDim, int colDim, int rank, double* J) {
 */
 void s2_jacobian_setInversePermutation(int n, int* p, int* pInverse) {
 
-  for (int i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     pInverse[p[i]] = i;
   }
 }
@@ -89,22 +89,22 @@ to compressed list, removes "rigid" variables from compressed list,
 */
 void s2_context_setJacobianLookup(s2_context_t* context) {
 
-  if (context->jointLookup) {
+  if(context->jointLookup) {
     free(context->jointLookup);
   }
   context->jointLookup = calloc(context->activeJointCount, sizeof(int));
 
-  if (context->dqLookup) {
+  if(context->dqLookup) {
     free(context->dqLookup);
   }
   context->dqLookup = calloc(context->activeJointCount, sizeof(int));
 
-  if (context->qLookup) {
+  if(context->qLookup) {
     free(context->qLookup);
   }
   context->qLookup = calloc(context->activeJointCount, sizeof(int));
 
-  if (context->dqLookupCompressed) {
+  if(context->dqLookupCompressed) {
     free(context->dqLookupCompressed);
   }
   context->dqLookupCompressed =
@@ -113,9 +113,9 @@ void s2_context_setJacobianLookup(s2_context_t* context) {
   int jointCount = 0;
   int dqCount = 0;
   int qCount = 0;
-  for (int i = 0; i < context->activeJointCount; i++) {
+  for(int i = 0; i < context->activeJointCount; i++) {
     s2_joint_t* joint = context->jointPointers[i];
-    switch (joint->jointType) {
+    switch(joint->jointType) {
       case S2_JOINT_RX:
       case S2_JOINT_RY:
       case S2_JOINT_RZ:
@@ -151,8 +151,8 @@ void s2_context_setJacobianLookup(s2_context_t* context) {
     }
   }
 
-  for (int i = 0; i < context->activeJointCount; i++) {
-    if (context->jointLookup[i] > -1) {
+  for(int i = 0; i < context->activeJointCount; i++) {
+    if(context->jointLookup[i] > -1) {
       context->dqLookupCompressed[context->jointLookup[i]] =
         context->dqLookup[i];
     }
@@ -173,7 +173,7 @@ int s2_context_mallocEquations(s2_context_t* context) {
   s2_array_free(context->cs);
   s2_array_free(context->dcs);
 
-  if (context->substructures) {
+  if(context->substructures) {
     free(context->substructures);
   }
   context->substructures =
@@ -184,7 +184,7 @@ int s2_context_mallocEquations(s2_context_t* context) {
   int constraintEquationCount = 0;
 
   // fprintf(debug, "allocating memory for equations:\n");
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
 
     // fprintf(debug, "  allocating memory for substructure [%d]\n", i);
     context->substructures[i].context = context;
@@ -215,12 +215,12 @@ int s2_context_mallocEquations(s2_context_t* context) {
       1, to include only those joints which are parents of other loop
       members
     */
-    for (int j = 1; j < context->substructureMembersCount[i]; j++) {
+    for(int j = 1; j < context->substructureMembersCount[i]; j++) {
 
       s2_joint_t* joint =
         context->jointPointers[context->substructureMembers[i][j]];
 
-      switch (joint->jointType) {
+      switch(joint->jointType) {
         case S2_JOINT_TX:
         case S2_JOINT_TY:
         case S2_JOINT_TZ:
@@ -294,7 +294,7 @@ int s2_context_mallocEquations(s2_context_t* context) {
   int qCount = 0;
   int dqCount = 0;
 
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
 
     substructure->J = context->J + jacobianSize;
@@ -313,110 +313,130 @@ int s2_context_mallocEquations(s2_context_t* context) {
     constraintEquationCount += substructure->constraintEquationCount;
   }
 
-  if (context->isDependentPO1) {
+  if(context->isDependentPO1) {
     free(context->isDependentPO1);
   }
   context->isDependentPO1 = calloc(context->dqCount, sizeof(bool));
 
-  if (context->isDependentPO3) {
+  if(context->isDependentPO3) {
     free(context->isDependentPO3);
   }
   context->isDependentPO3 = calloc(context->dqCount, sizeof(bool));
 
-  if (context->hasMass) {
+  if(context->hasMass) {
     free(context->hasMass);
   }
   context->hasMass = calloc(context->nonRigidJointCount, sizeof(bool));
 
-  if (context->hasMassdq) {
+  if(context->hasMassdq) {
     free(context->hasMassdq);
   }
   context->hasMassdq = calloc(context->dqCount, sizeof(bool));
 
-  if (context->gamma_d) {
+  if(context->gamma_d) {
     free(context->gamma_d);
   }
   context->gamma_d = calloc(context->dqCount, sizeof(double));
 
-  if (context->pv_12) {
+  if(context->pv_12) {
     free(context->pv_12);
   }
   context->pv_12 = calloc(context->dqCount, sizeof(int));
 
-  if (context->pv_21) {
+  if(context->pv_21) {
     free(context->pv_21);
   }
   context->pv_21 = calloc(context->dqCount, sizeof(int));
 
-  if (context->pv_13) {
+  if(context->pv_13) {
     free(context->pv_13);
   }
   context->pv_13 = calloc(context->dqCount, sizeof(int));
 
-  if (context->pv_31) {
+  if(context->pv_31) {
     free(context->pv_31);
   }
   context->pv_31 = calloc(context->dqCount, sizeof(int));
 
-  if (context->pv_23) {
+  if(context->pv_23) {
     free(context->pv_23);
   }
   context->pv_23 = calloc(context->dqCount, sizeof(int));
 
-  if (context->pv_32) {
+  if(context->pv_32) {
     free(context->pv_32);
   }
   context->pv_32 = calloc(context->dqCount, sizeof(int));
 
   context->Ml_size = ((context->dqCount + 1) * (context->dqCount + 2)) / 2;
 
-  if (context->Ml) {
+  if(context->Ml) {
     free(context->Ml);
   }
   context->Ml = calloc(context->Ml_size, sizeof(double));
 
-  if (context->Mls) {
+  if(context->Mls) {
     free(context->Mls);
   }
   context->Mls = calloc(context->Ml_size, sizeof(double));
 
-  if (context->Mlb) {
+  if(context->Mlb) {
     free(context->Mlb);
   }
   context->Mlb = calloc(context->Ml_size, sizeof(bool));
 
-  if (context->Mlbs) {
+  if(context->Mlbs) {
     free(context->Mlbs);
   }
   context->Mlbs = calloc(context->Ml_size, sizeof(bool));
 
-  if (context->hasMass) {
+  if(context->hasMass) {
     free(context->hasMass);
   }
   context->hasMass = calloc(context->nonRigidJointCount, sizeof(bool));
 
-  if (context->hasMassdq) {
+  if(context->hasMassdq) {
     free(context->hasMassdq);
   }
   context->hasMassdq = calloc(context->dqCount, sizeof(bool));
 
-  if (context->jointDOF) {
+  if(context->jointDOF) {
     free(context->jointDOF);
   }
   context->jointDOF = calloc(context->activeJointCount, sizeof(int));
 
-  // fprintf(debug, "dqCount: %d\n", context->dqCount);
-  for (int i = 0; i < context->activeJointCount; i++) {
-    if (!(context->bodyPointers[i]->isVirtual ||
-          context->bodyPointers[i]->inertia == NULL)) {
-      if (context->jointLookup[i] > -1) {
-        // printf("context->jointLookup[i]: %d\n", context->jointLookup[i]);
+  fprintf(debug, "dqCount: %d\n", context->dqCount);
+  for(int i = 0; i < context->activeJointCount; i++) {
+
+    s2_body_t* childBody = context->bodyPointers[i];
+    // s2_body_t* parentBody2 =
+    // s2_joint_getChildBody(context->jointPointers[i]);
+
+    int jointIndex = context->jointLookup[i];
+    int dqIndex = context->dqLookup[i];
+
+    printf("\nbody pointer: ");
+    s2_stackstr_print(debug, childBody->name);
+    printf("jointIndex: %d\n", jointIndex);
+    printf("dqIndex: %d\n", dqIndex);
+
+    // printf("child pointer: ");
+    // s2_stackstr_print(debug, parentBody2->name);
+    // assert(parentBody == parentBody2);
+    // s2_joint_getParentBody(context->jointPointers[i]);
+
+    if(!(childBody->isVirtual || childBody->inertia == NULL)) {
+      if(context->jointLookup[i] > -1) {
+
+        s2_stackstr_print(debug, context->jointPointers[i]->name);
+        printf("context->jointLookup[%d]: %d\n", i, jointIndex);
         context->hasMass[context->jointLookup[i]] = true;
-        // printf("context->dqLookup[i]: %d\n", context->dqLookup[i]);
+
+        printf("context->dqLookup[%d]: %d\n", i, dqIndex);
         context->hasMassdq[context->dqLookup[i]] = true;
       }
     }
-    switch (context->jointPointers[i]->jointType) {
+    switch(context->jointPointers[i]->jointType) {
       case S2_JOINT_RX:
       case S2_JOINT_RY:
       case S2_JOINT_RZ:
@@ -438,26 +458,25 @@ int s2_context_mallocEquations(s2_context_t* context) {
         context->jointDOF[i] = 0;
         break;
       }
-      case S2_JOINT_INVALID:
-      case S2_JOINT_PRIMITIVE:
+      default:
         break;
     }
   }
 
   /* create compressed parent child list */
-  if (context->pclCompressed) {
+  if(context->pclCompressed) {
     free(context->pclCompressed);
   }
   context->pclCompressed = calloc(context->nonRigidJointCount, sizeof(int));
 
-  for (int i = 0; i < context->activeJointCount; i++) {
-    if (context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
+  for(int i = 0; i < context->activeJointCount; i++) {
+    if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
       int parent = context->pcl[i];
-      while (true) {
-        if (parent == -1) {
+      while(true) {
+        if(parent == -1) {
           break;
         }
-        if (context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
+        if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
           break;
         }
         parent = context->pcl[parent];
@@ -465,7 +484,7 @@ int s2_context_mallocEquations(s2_context_t* context) {
       // printf("i: %d\n", i);
       // printf("parent: %d\n", parent);
       // fprintf(debug, "parent: %d\n", parent);
-      if (parent == -1) {
+      if(parent == -1) {
         context->pclCompressed[context->jointLookup[i]] = -1;
       } else {
         context->pclCompressed[context->jointLookup[i]] =
@@ -475,50 +494,61 @@ int s2_context_mallocEquations(s2_context_t* context) {
   }
 
   /* create parent child list for dq */
-  if (context->pcldq) {
+  if(context->pcldq) {
     free(context->pcldq);
   }
   context->pcldq = calloc(context->dqCount, sizeof(int));
 
-  for (int i = 0; i < context->activeJointCount; i++) {
+  for(int i = 0; i < context->activeJointCount; i++) {
     int parentIndex = context->pcl[i];
     int variableIndex = context->dqLookup[i];
-    if (variableIndex != -1) {
-      if (parentIndex != -1) {
+    if(variableIndex != -1) {
+      if(parentIndex != -1) {
         context->pcldq[variableIndex] = context->dqLookup[parentIndex];
       } else {
         context->pcldq[variableIndex] = -1;
       }
     }
     int jointDOF = context->jointDOF[i];
-    if (jointDOF > 1) {
-      for (int j = 1; j < jointDOF; j++) {
+    if(jointDOF > 1) {
+      for(int j = 1; j < jointDOF; j++) {
         context->pcldq[variableIndex + j] = variableIndex + j - 1;
       }
     }
   }
 
-  // fprintf(debug, "jointDOF: ");
-  // s2_arrayi_print(debug, context->activeJointCount, context->jointDOF);
-  // fprintf(debug, "jointLookup: ");
-  // s2_arrayi_print(debug, context->activeJointCount, context->jointLookup);
-  // fprintf(debug, "dqLookup: ");
-  // s2_arrayi_print(debug, context->activeJointCount, context->dqLookup);
-  // fprintf(debug, "pcl: ");
-  // s2_arrayi_print(debug, context->activeJointCount, context->pcl);
-  // fprintf(debug, "pclCompressed: ");
-  // s2_arrayi_print(debug, context->nonRigidJointCount,
-  // context->pclCompressed); fprintf(debug, "pcldq: "); s2_arrayi_print(debug,
-  // context->dqCount, context->pcldq);
+  fprintf(debug, "jointDOF: ");
+  s2_arrayi_print(debug, context->activeJointCount, context->jointDOF);
+  fprintf(debug, "jointLookup: ");
+  s2_arrayi_print(debug, context->activeJointCount, context->jointLookup);
+  fprintf(debug, "dqLookup: ");
+  s2_arrayi_print(debug, context->activeJointCount, context->dqLookup);
+  fprintf(debug, "pcl: ");
+  s2_arrayi_print(debug, context->activeJointCount, context->pcl);
+  fprintf(debug, "pclCompressed: ");
+  s2_arrayi_print(debug, context->nonRigidJointCount, context->pclCompressed);
+  fprintf(debug, "pcldq: ");
+  s2_arrayi_print(debug, context->dqCount, context->pcldq);
+  fprintf(debug, "hasMass: ");
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    printf("%d ", context->hasMass[i] ? 1 : 0);
+  }
+  printf("\n");
+
+  fprintf(debug, "hasMassdq: ");
+  for(int i = 0; i < context->dqCount; i++) {
+    printf("%d ", context->hasMassdq[i] ? 1 : 0);
+  }
+  printf("\n");
 
   /* set isRotation */
-  if (context->isRotation) {
+  if(context->isRotation) {
     free(context->isRotation);
   }
   context->isRotation = calloc(context->dqCount, sizeof(bool));
-  for (int i = 0; i < context->activeJointCount; i++) {
+  for(int i = 0; i < context->activeJointCount; i++) {
     int baseIndex = context->dqLookup[i];
-    switch (context->jointPointers[i]->jointType) {
+    switch(context->jointPointers[i]->jointType) {
       case S2_JOINT_TX:
       case S2_JOINT_TY:
       case S2_JOINT_TZ:
@@ -533,20 +563,19 @@ int s2_context_mallocEquations(s2_context_t* context) {
         break;
       }
       case S2_JOINT_SPHERICAL: {
-        for (int j = 0; j < 3; j++) {
+        for(int j = 0; j < 3; j++) {
           context->isRotation[baseIndex + j] = true;
         }
         break;
       }
       case S2_JOINT_FLOAT: {
-        for (int j = 3; j < 6; j++) {
+        for(int j = 3; j < 6; j++) {
           context->isRotation[baseIndex + j] = true;
         }
         break;
       }
     }
   }
-
   return 0;
 }
 
@@ -573,26 +602,23 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
   int positiveLoopMemberCount = 0;
   int negativeLoopMemberCount = 0;
 
-  /*
-    compute total size
-  */
+  /* compute total size */
 
   /* for each substructure
   j is index into local list of loops for substructure
   k is index into global list of loops */
   int k = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
 
     context->substructures[i].loopOffset = k;
 
     /* for each loop in substructure */
-    for (int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
-
+    for(int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
       /* for each positive loop members */
-      for (int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
+      for(int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
         int positiveLoopIndex = context->positiveLoopMembers[k][l];
         int dof;
-        switch (context->jointPointers[positiveLoopIndex]->jointType) {
+        switch(context->jointPointers[positiveLoopIndex]->jointType) {
           case S2_JOINT_RIGID: {
             dof = 0;
             break;
@@ -605,19 +631,22 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
             dof = 3;
             break;
           }
-          default: { dof = 1; }
+          default: {
+            dof = 1;
+            break;
+          }
         }
-        for (int m = 0; m < dof; m++) {
+        for(int m = 0; m < dof; m++) {
           context->positiveLoopMembersCompressedCount[k]++;
           positiveLoopMemberCount++;
         }
       }
 
       /* process negative loop members */
-      for (int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
+      for(int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
         int negativeLoopIndex = context->negativeLoopMembers[k][l];
         int dof;
-        switch (context->jointPointers[negativeLoopIndex]->jointType) {
+        switch(context->jointPointers[negativeLoopIndex]->jointType) {
           case S2_JOINT_RIGID: {
             dof = 0;
             break;
@@ -632,7 +661,7 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
           }
           default: { dof = 1; }
         }
-        for (int m = 0; m < dof; m++) {
+        for(int m = 0; m < dof; m++) {
           context->negativeLoopMembersCompressedCount[k]++;
           negativeLoopMemberCount++;
         }
@@ -640,7 +669,7 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
     }
   }
 
-  if (context->chordConstraintCount > 0) {
+  if(context->chordConstraintCount > 0) {
     // fprintf(debug, "positiveLoopMemberCount: %d\n", positiveLoopMemberCount);
     context->positiveLoopMemberOffsets[0] =
       malloc(positiveLoopMemberCount * sizeof(int));
@@ -659,7 +688,7 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
   k = 0; /* loop counter */
   positiveLoopMemberCount = 0;
   negativeLoopMemberCount = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
 
     /* set offset into global variable list */
     // fprintf(debug, "all substructure members:");
@@ -676,7 +705,6 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
 
     int substructureOffset = fmin(context->substructureMembers[i][1],
                                   context->substructureMembers[i][2]);
-    // int substructureOffset = context->substructureMembers[i][1];
 
     // fprintf(
     //   debug,
@@ -714,7 +742,7 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
 
     /* for each loop in substructure [j] local loop index, [k] global loop index
      */
-    for (int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
+    for(int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
 
       context->positiveLoopMemberOffsets[k] =
         context->positiveLoopMemberOffsets[0] + positiveLoopMemberCount;
@@ -725,7 +753,7 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
       // fprintf(
       //   debug,
       //   "positive loop [%d]\n", k);
-      for (int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
+      for(int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
         // fprintf(
         //   debug,
         //   "  loop member [%d/%d]: %d ",
@@ -740,7 +768,7 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
 
         int positiveLoopMember = context->positiveLoopMembers[k][l];
         int dof;
-        switch (context->jointPointers[positiveLoopMember]->jointType) {
+        switch(context->jointPointers[positiveLoopMember]->jointType) {
           case S2_JOINT_RIGID: {
             dof = 0;
             break;
@@ -753,10 +781,13 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
             dof = 3;
             break;
           }
-          default: { dof = 1; }
+          default: {
+            dof = 1;
+            break;
+          }
         }
         int dqOffset = context->dqLookup[positiveLoopMember];
-        for (int m = 0; m < dof; m++) {
+        for(int m = 0; m < dof; m++) {
           context->positiveLoopMemberOffsets[0][positiveLoopMemberCount++] =
             dqOffset++;
         }
@@ -766,7 +797,7 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
       // fprintf(
       //   debug,
       //   "negative loop [%d]\n", k);
-      for (int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
+      for(int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
         // fprintf(
         //   debug,
         //   "  loop member [%d/%d]: %d ",
@@ -781,7 +812,7 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
 
         int negativeLoopMember = context->negativeLoopMembers[k][l];
         int dof;
-        switch (context->jointPointers[negativeLoopMember]->jointType) {
+        switch(context->jointPointers[negativeLoopMember]->jointType) {
           case S2_JOINT_RIGID: {
             dof = 0;
             break;
@@ -794,10 +825,13 @@ void s2_context_compressLoopMembers(s2_context_t* context) {
             dof = 3;
             break;
           }
-          default: { dof = 1; }
+          default: {
+            dof = 1;
+            break;
+          }
         }
         int dqOffset = context->dqLookup[negativeLoopMember];
-        for (int m = 0; m < dof; m++) {
+        for(int m = 0; m < dof; m++) {
           context->negativeLoopMemberOffsets[0][negativeLoopMemberCount++] =
             dqOffset++;
         }
@@ -866,7 +900,7 @@ note the Jacobian is stored in row-major order
 */
 void s2_context_setJacobianPO1(s2_context_t* context) {
   s2_substructure_t* substructure = context->substructures;
-  for (int i = 0; i < context->substructureCount; i++, substructure++) {
+  for(int i = 0; i < context->substructureCount; i++, substructure++) {
     s2_substructure_setJacobianPO1(substructure);
   }
 }
@@ -894,10 +928,10 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
 
   /* j is local loop index, k is global loop index */
   int k = substructure->loopOffset;
-  for (int j = 0; j < context->substructureLoopCount[substructureIndex];
-       j++, k++) {
+  for(int j = 0; j < context->substructureLoopCount[substructureIndex];
+      j++, k++) {
 
-    for (int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
+    for(int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
 
       int variableIndex = context->positiveLoopMemberOffsets[k][l];
 
@@ -918,7 +952,7 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
     /* negative loop members [l]*/
     // printf("  setting negative loop members:\n");
 
-    for (int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
+    for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
 
       int variableIndex = context->negativeLoopMemberOffsets[k][l];
       int columnIndex = variableIndex - substructure->dqOffset;
@@ -1000,14 +1034,14 @@ void s2_substructure_setJacobianPO1Specified(s2_substructure_t* substructure,
 
   /* j is local loop index, k is global loop index */
   // printf("\n updating substructure [%d]\n", substructureIndex);
-  for (int j = 0; j < context->substructureLoopCount[substructureIndex];
-       j++, k++) {
+  for(int j = 0; j < context->substructureLoopCount[substructureIndex];
+      j++, k++) {
 
     /* positive loop members [l]*/
     // printf("  loop [%d]\n", j);
     // printf("  setting positive loop members:\n");
     /* l is current loop member being processed */
-    for (int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
+    for(int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
       int variableIndex = context->positiveLoopMemberOffsets[k][l];
       int columnIndex = variableIndex - substructure->dqOffset;
       assert(columnIndex > -1);
@@ -1024,7 +1058,7 @@ void s2_substructure_setJacobianPO1Specified(s2_substructure_t* substructure,
 
     /* negative loop members [l]*/
     // printf("  setting negative loop members:\n");
-    for (int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
+    for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
       int variableIndex = context->negativeLoopMemberOffsets[k][l];
       int columnIndex = variableIndex - substructure->dqOffset;
       assert(columnIndex > -1);
@@ -1091,7 +1125,7 @@ void s2_context_translatePermutations(s2_context_t* context) {
   memset(context->isDependentPO1, 0, context->dqCount * sizeof(bool));
 
   /* initialize permutation arrays */
-  for (int i = 0; i < context->dqCount; i++) {
+  for(int i = 0; i < context->dqCount; i++) {
     context->pv_12[i] = i;
     context->pv_21[i] = i;
     context->pv_13[i] = i;
@@ -1099,10 +1133,10 @@ void s2_context_translatePermutations(s2_context_t* context) {
   }
 
   /* set pv_21 */
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
 
-    for (int j = 0; j < substructure->dqCount; j++) {
+    for(int j = 0; j < substructure->dqCount; j++) {
 
       context->pv_12[substructure->dqOffset + j] =
         substructure->pc_12[j] + substructure->dqOffset;
@@ -1114,10 +1148,10 @@ void s2_context_translatePermutations(s2_context_t* context) {
                                     context->pv_21);
 
   /* determine which variables are independent / dependent */
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
 
-    for (int j = 0; j < substructure->rank; j++) {
+    for(int j = 0; j < substructure->rank; j++) {
       context->isDependentPO1[context->pv_12[substructure->dqOffset + j]] =
         true;
     }
@@ -1142,25 +1176,25 @@ void s2_context_translatePermutations(s2_context_t* context) {
   // s2_arrayi_print(debug, context->dqCount, context->pv_21);
 
   /* set p_v_13 */
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
 
     // fprintf(
     //   debug,
     //   "rank for substructure [%d]: %d\n", i, substructure->rank);
     int k = substructure->dqOffset;
-    for (int j = substructure->dqOffset;
-         j < substructure->dqOffset + substructure->dqCount; j++) {
+    for(int j = substructure->dqOffset;
+        j < substructure->dqOffset + substructure->dqCount; j++) {
 
-      if (!context->isDependentPO1[j]) {
+      if(!context->isDependentPO1[j]) {
         context->pv_13[k++] = j;
       }
     }
 
-    for (int j = substructure->dqOffset;
-         j < substructure->dqOffset + substructure->dqCount; j++) {
+    for(int j = substructure->dqOffset;
+        j < substructure->dqOffset + substructure->dqCount; j++) {
 
-      if (context->isDependentPO1[j]) {
+      if(context->isDependentPO1[j]) {
         context->pv_13[k++] = j;
       }
     }
@@ -1171,12 +1205,12 @@ void s2_context_translatePermutations(s2_context_t* context) {
                                     context->pv_31);
 
   /* set isDependentPO3 */
-  for (int i = 0; i < context->dqCount; i++) {
+  for(int i = 0; i < context->dqCount; i++) {
     context->isDependentPO3[context->pv_31[i]] = context->isDependentPO1[i];
   }
 
   /* set pv_23 */
-  for (int i = 0; i < context->dqCount; i++) {
+  for(int i = 0; i < context->dqCount; i++) {
     context->pv_23[i] = context->pv_21[context->pv_13[i]];
   }
 
@@ -1213,7 +1247,7 @@ void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
 
   int bOffset = 0;
   context->nnzb = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
 
     /* record offset into linear b array */
@@ -1221,9 +1255,9 @@ void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
 
     /* record number of nonzero entries in B matrix */
     substructure->nnzb = 0;
-    for (int j = 0; j < substructure->rank; j++) {
-      for (int k = substructure->rank; k < substructure->dqCount; k++) {
-        if (substructure->Jb[j * substructure->dqCount + k]) {
+    for(int j = 0; j < substructure->rank; j++) {
+      for(int k = substructure->rank; k < substructure->dqCount; k++) {
+        if(substructure->Jb[j * substructure->dqCount + k]) {
           (substructure->nnzb)++;
         }
       }
@@ -1237,7 +1271,7 @@ void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
     context->nnzb += substructure->nnzb;
   }
 
-  if (context->ijMapping) {
+  if(context->ijMapping) {
     s2_arrayi_free(context->ijMapping);
   }
   // printf("jacobianSize: %d\n", context->jacobianSize);
@@ -1259,7 +1293,7 @@ void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
   context->ijMapping = calloc(context->jacobianSize, sizeof(int));
 
   int jacobianOffset = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
 
     substructure->ijMapping = context->ijMapping + jacobianOffset;
@@ -1267,17 +1301,17 @@ void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
       substructure->dqCount * substructure->constraintEquationCount;
   }
 
-  if (context->b3) {
+  if(context->b3) {
     free(context->b3);
   }
   context->b3 = calloc(bOffset, sizeof(double));
 
-  if (context->pb_23) {
+  if(context->pb_23) {
     free(context->pb_23);
   }
   context->pb_23 = calloc(bOffset, sizeof(int));
 
-  if (context->pb_32) {
+  if(context->pb_32) {
     free(context->pb_32);
   }
   context->pb_32 = calloc(bOffset, sizeof(int));
@@ -1291,24 +1325,24 @@ void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
   s2_arrayi_free2D(context->rb3);
   context->rb3 = s2_arrayi_malloc2D(context->dqCount, 2);
 
-  if (context->cb2) {
+  if(context->cb2) {
     free(context->cb2);
   }
   context->cb2 = calloc(bOffset, sizeof(int));
 
-  if (context->cb3_temp) {
+  if(context->cb3_temp) {
     free(context->cb3_temp);
   }
   context->cb3_temp = calloc(bOffset, sizeof(int));
 
-  if (context->cb3) {
+  if(context->cb3) {
     free(context->cb3);
   }
   context->cb3 = calloc(bOffset, sizeof(int));
 
   // int sizecb3 = bOffset;
 
-  for (int sub = 0; sub < context->substructureCount; sub++) {
+  for(int sub = 0; sub < context->substructureCount; sub++) {
     s2_substructure_t* substructure = context->substructures + sub;
 
     int jacobianSize =
@@ -1316,34 +1350,34 @@ void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
 
     int ijMapping_temp_po3[substructure->dqCount * substructure->dqCount];
 
-    for (int i = 0; i < substructure->dqCount * substructure->dqCount; i++) {
+    for(int i = 0; i < substructure->dqCount * substructure->dqCount; i++) {
       ijMapping_temp_po3[i] = -1;
     }
-    for (int i = 0; i < jacobianSize; i++) {
+    for(int i = 0; i < jacobianSize; i++) {
       substructure->ijMapping[i] = -1;
     }
 
     /* generate a local pv_local_23 array */
     int pv_local_23[substructure->dqCount];
-    for (int i = 0; i < substructure->dqCount; i++) {
+    for(int i = 0; i < substructure->dqCount; i++) {
       pv_local_23[i] =
         context->pv_23[i + substructure->dqOffset] - substructure->dqOffset;
     }
 
     /* set ij mapping temp po3 indices */
     int k = substructure->bOffset;
-    for (int i3 = substructure->dqCount - substructure->rank;
-         i3 < substructure->dqCount; i3++) {
+    for(int i3 = substructure->dqCount - substructure->rank;
+        i3 < substructure->dqCount; i3++) {
       int i2 = pv_local_23[i3];
       // assert(i2 > -1 && i2 < substructure->dqCount);
       int rb3Index = i3 + substructure->dqOffset;
       context->rb3[rb3Index][0] = k;
-      for (int j3 = 0; j3 < substructure->dqCount - substructure->rank; j3++) {
+      for(int j3 = 0; j3 < substructure->dqCount - substructure->rank; j3++) {
         int j2 = pv_local_23[j3];
 
         // assert(j2 > -1 && j2 < substructure->constraintEquationCount);
 
-        if (substructure->Jb[i2 * substructure->dqCount + j2]) {
+        if(substructure->Jb[i2 * substructure->dqCount + j2]) {
 
           ijMapping_temp_po3[i3 * substructure->dqCount + j3] = k;
           context->cb3[k] = j3 + substructure->dqOffset;
@@ -1365,14 +1399,14 @@ void s2_context_evaluateJacobianSparsity(s2_context_t* context) {
     // }
     assert(substructure->ijMapping != NULL);
     /* permute ij mapping temp to po2 */
-    for (int i3 = substructure->dqCount - substructure->rank;
-         i3 < substructure->dqCount; i3++) {
+    for(int i3 = substructure->dqCount - substructure->rank;
+        i3 < substructure->dqCount; i3++) {
 
       int i2 = pv_local_23[i3];
       assert(i2 > -1 && i2 < substructure->dqCount);
 
       // fprintf(debug, "i2: %d\n", i2);
-      for (int j3 = 0; j3 < substructure->dqCount - substructure->rank; j3++) {
+      for(int j3 = 0; j3 < substructure->dqCount - substructure->rank; j3++) {
         int j2 =
           pv_local_23[j3]; // + substructure->dqCount - substructure->rank;
         // fprintf(stdout, "i2: %d\n", i2);
@@ -1610,11 +1644,11 @@ void s2_substructure_setJacobianBooleanPO2(s2_substructure_t* substructure) {
 
   /* j iterates over local list of loops in substructure,
      k iterates over global list of loops */
-  for (int j = 0; j < context->substructureLoopCount[substructureIndex];
-       j++, k++) {
+  for(int j = 0; j < context->substructureLoopCount[substructureIndex];
+      j++, k++) {
 
     /* positive loop members [l]*/
-    for (int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
+    for(int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
       int variableIndex = context->positiveLoopMemberOffsets[k][l];
 
       // printf("   variableIndex: %d\n", variableIndex);
@@ -1632,18 +1666,18 @@ void s2_substructure_setJacobianBooleanPO2(s2_substructure_t* substructure) {
 
       // printf("   columnIndex: %d\n", columnIndex);
 
-      for (int m = 0; m < 6; m++) {
+      for(int m = 0; m < 6; m++) {
         int rowIndex = substructure->pr_21[j * 6 + m];
         substructure->Jb[rowIndex * substructure->dqCount + columnIndex] = true;
       }
     }
 
     /* negative loop members [l]*/
-    for (int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
+    for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
       int variableIndex = context->negativeLoopMemberOffsets[k][l];
       int columnIndex =
         substructure->pc_21[variableIndex - substructure->dqOffset];
-      for (int m = 0; m < 6; m++) {
+      for(int m = 0; m < 6; m++) {
         int rowIndex = substructure->pr_21[j * 6 + m];
         substructure->Jb[rowIndex * substructure->dqCount + columnIndex] = true;
       }
@@ -1665,11 +1699,11 @@ void s2_substructure_setJacobianBooleanPO2(s2_substructure_t* substructure) {
   // printf("\n");
 
   /* Major Boolean LU factors */
-  for (int j = 0; j < substructure->rank; j++) {
-    for (int k = j + 1; k < substructure->rank; k++) {
-      if (substructure->Jb[k * substructure->dqCount + j]) {
-        for (int l = j + 1; l < substructure->dqCount; l++) {
-          if (context->Jb[j * substructure->dqCount + l]) {
+  for(int j = 0; j < substructure->rank; j++) {
+    for(int k = j + 1; k < substructure->rank; k++) {
+      if(substructure->Jb[k * substructure->dqCount + j]) {
+        for(int l = j + 1; l < substructure->dqCount; l++) {
+          if(context->Jb[j * substructure->dqCount + l]) {
             substructure->Jb[k * substructure->dqCount + l] = true;
           }
         }
@@ -1678,11 +1712,11 @@ void s2_substructure_setJacobianBooleanPO2(s2_substructure_t* substructure) {
   }
 
   /* Record fills in Boolean B matrix */
-  for (int j = substructure->rank - 1; j > -1; j--) {
-    for (int k = substructure->rank - 1; k > j; k--) {
-      if (substructure->Jb[j * substructure->dqCount + k]) {
-        for (int l = substructure->rank; l < substructure->dqCount; l++) {
-          if (substructure->Jb[k * substructure->dqCount + l]) {
+  for(int j = substructure->rank - 1; j > -1; j--) {
+    for(int k = substructure->rank - 1; k > j; k--) {
+      if(substructure->Jb[j * substructure->dqCount + k]) {
+        for(int l = substructure->rank; l < substructure->dqCount; l++) {
+          if(substructure->Jb[k * substructure->dqCount + l]) {
             substructure->Jb[j * substructure->dqCount + l] = true;
           }
         }
@@ -1718,7 +1752,7 @@ void s2_substructure_setJacobianBooleanPO2(s2_substructure_t* substructure) {
 */
 void s2_context_setJacobianBooleanPO2(s2_context_t* self) {
   s2_substructure_t* substructure = self->substructures;
-  for (int i = 0; i < self->substructureCount; i++, substructure++) {
+  for(int i = 0; i < self->substructureCount; i++, substructure++) {
     s2_substructure_setJacobianBooleanPO2(substructure);
   }
 }
@@ -1754,7 +1788,7 @@ void s2_substructure_setJacobianIJMapping(s2_substructure_t* substructure) {
 */
 void s2_context_setJacobianIJMapping(s2_context_t* context) {
   s2_substructure_t* substructure = context->substructures;
-  for (int i = 0; i < context->substructureCount; i++, substructure++) {
+  for(int i = 0; i < context->substructureCount; i++, substructure++) {
     s2_substructure_setJacobianIJMapping(substructure);
   }
 }
@@ -1764,7 +1798,7 @@ void s2_context_setJacobianIJMapping(s2_context_t* context) {
 */
 void s2_context_setJacobianPO2(s2_context_t* context) {
   s2_substructure_t* substructure = context->substructures;
-  for (int i = 0; i < context->substructureCount; i++, substructure++) {
+  for(int i = 0; i < context->substructureCount; i++, substructure++) {
     s2_substructure_setJacobianPO2(substructure);
   }
 }
@@ -1787,18 +1821,18 @@ void s2_substructure_setJacobianPO2(s2_substructure_t* substructure) {
 
   /* j is local loop index, k is global loop index */
   int k = substructure->loopOffset;
-  for (int j = 0; j < context->substructureLoopCount[substructureIndex];
-       j++, k++) {
+  for(int j = 0; j < context->substructureLoopCount[substructureIndex];
+      j++, k++) {
 
     /* positive loop members [l]*/
-    for (int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
+    for(int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
 
       int variableIndex = context->positiveLoopMemberOffsets[k][l];
 
       int columnIndex_2 =
         substructure->pc_21[variableIndex - substructure->dqOffset];
 
-      for (int m = 0; m < 6; m++) {
+      for(int m = 0; m < 6; m++) {
 
         int rowIndex_2 = substructure->pr_21[j * 6 + m];
 
@@ -1808,14 +1842,14 @@ void s2_substructure_setJacobianPO2(s2_substructure_t* substructure) {
     }
 
     /* negative loop members [l]*/
-    for (int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
+    for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
 
       int variableIndex = context->negativeLoopMemberOffsets[k][l];
 
       int columnIndex_2 =
         substructure->pc_21[variableIndex - substructure->dqOffset];
 
-      for (int m = 0; m < 6; m++) {
+      for(int m = 0; m < 6; m++) {
 
         int rowIndex_2 = substructure->pr_21[j * 6 + m];
 
@@ -1860,7 +1894,7 @@ A[0:rowDim-1][0:colDim-1]:
 */
 int s2_context_factorJacobianPO2(s2_context_t* context) {
 
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_factorJacobianPO2(context->substructures + i);
   }
   return 0;
@@ -1874,10 +1908,10 @@ void s2_context_setConstraintPointers(s2_context_t* context) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
 
-  if (context->constraints) {
+  if(context->constraints) {
     free(context->constraints);
   }
-  if (context->chordConstraintCount > 0) {
+  if(context->chordConstraintCount > 0) {
     context->constraints = s2_arrayi_malloc2D(context->chordConstraintCount, 4);
   }
 
@@ -1891,12 +1925,12 @@ void s2_context_setConstraintPointers(s2_context_t* context) {
   /* find chord constraint that contains the virtual body */
 
   int k = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
     // fprintf(debug, " [%d] substructure:\n", i);
     substructure->constraints = context->constraints + k;
 
-    for (int j = 0; j < substructure->chordConstraintCount; j++, k++) {
+    for(int j = 0; j < substructure->chordConstraintCount; j++, k++) {
 
       // fprintf(debug, "   [%d] chord constraint\n", k);
       // fprintf(debug, "        parent Body: ");
@@ -1959,7 +1993,7 @@ void s2_context_setConstraintPointers(s2_context_t* context) {
 */
 void s2_substructure_evaluateConstraints(s2_substructure_t* substructure) {
   s2_context_t* context = substructure->context;
-  for (int i = 0; i < substructure->chordConstraintCount; i++) {
+  for(int i = 0; i < substructure->chordConstraintCount; i++) {
     s2_displacement_t* parentFrame =
       context->d + substructure->constraints[i][3];
     s2_displacement_t* childFrame =
@@ -1992,7 +2026,7 @@ void s2_substructure_evaluateConstraints(s2_substructure_t* substructure) {
   evaluates position level constraints
 */
 void s2_context_evaluateConstraints(s2_context_t* context) {
-  for (int i = 0; i < context->chordConstraintCount; i++) {
+  for(int i = 0; i < context->chordConstraintCount; i++) {
     s2_displacement_t* parentFrame = context->d + context->constraints[i][3];
     s2_displacement_t* childFrame = context->d + context->constraints[i][2];
     s2_displacement_t temp;
@@ -2037,26 +2071,26 @@ void s2_substructure_setBMatrixSparse(s2_substructure_t* substructure) {
   //   true,
   //   J);
 
-  if (substructure->rank > 0 && substructure->rank < substructure->dqCount) {
+  if(substructure->rank > 0 && substructure->rank < substructure->dqCount) {
     substructure->infinityNormB = 0;
     double pivots[substructure->rank];
-    for (int i = 0; i < substructure->rank; i++) {
+    for(int i = 0; i < substructure->rank; i++) {
       pivots[i] = J[i * substructure->dqCount + i];
     }
     // printf("substructure->dqCount: %d\n", substructure->dqCount);
-    for (int i = substructure->rank - 1; i > -1; i--) { /* rows of B */
+    for(int i = substructure->rank - 1; i > -1; i--) { /* rows of B */
       // printf("\n[%d] pivot value: %f, original pivot value: %f\n",
       //   i, J[i * substructure->dqCount + i], pivots[i]);
-      for (int k = substructure->rank; k < substructure->dqCount; k++) {
+      for(int k = substructure->rank; k < substructure->dqCount; k++) {
 
         /* columns of B */
         // printf("index [%d][%d]\n", i, k);
         // printf("i: %d\n", i);
         assert(J[i * substructure->dqCount + i] == pivots[i]);
-        if (substructure->Jb[i * substructure->dqCount + k]) {
+        if(substructure->Jb[i * substructure->dqCount + k]) {
           double save = 0;
           assert(J[i * substructure->dqCount + i] == pivots[i]);
-          for (int j = substructure->rank - 1; j > i; j--) {
+          for(int j = substructure->rank - 1; j > i; j--) {
             save += J[i * substructure->dqCount + j] *
                     J[j * substructure->dqCount + k];
           }
@@ -2122,7 +2156,7 @@ void s2_substructure_setBMatrixSparse(s2_substructure_t* substructure) {
 */
 void s2_context_setBMatrixSparse(s2_context_t* self) {
   s2_substructure_t* substructure = self->substructures;
-  for (int i = 0; i < self->substructureCount; i++, substructure++) {
+  for(int i = 0; i < self->substructureCount; i++, substructure++) {
     s2_substructure_setBMatrixSparse(substructure);
   }
 }
@@ -2139,7 +2173,7 @@ void s2_substructure_setBMatrix(s2_substructure_t* self) {
   @brief sets B matrix for all substructures
 */
 void s2_context_setBMatrix(s2_context_t* self) {
-  for (int i = 0; i < self->substructureCount; i++) {
+  for(int i = 0; i < self->substructureCount; i++) {
     s2_substructure_setBMatrix(self->substructures + i);
   }
 }
@@ -2150,13 +2184,13 @@ to Jacobians
 */
 void s2_context_printJacobian(FILE* f, s2_context_t* context) {
 
-  if (context->mobilityNumbers == NULL) {
+  if(context->mobilityNumbers == NULL) {
     s2_context_initializeMobility(context);
   }
 
   /* backup screws before doing anything */
   int k = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
     fprintf(f, "\n substructure [%d] with dimension [%d, %d]\n", i,
             substructure->constraintEquationCount, substructure->dqCount);
@@ -2175,30 +2209,30 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
     fprintf(f, "  dqOffset: %d\n", substructure->dqOffset);
     fprintf(f, "  qOffset: %d\n", substructure->qOffset);
     fprintf(f, "  Jacobian members:\n");
-    for (int j = 1; j < context->substructureMembersCount[i]; j++) {
+    for(int j = 1; j < context->substructureMembersCount[i]; j++) {
       s2_joint_t* joint =
         context->jointPointers[context->substructureMembers[i][j]];
-      if (joint->jointType != S2_JOINT_RIGID) {
+      if(joint->jointType != S2_JOINT_RIGID) {
         fprintf(f, "   ");
         s2_stackstr_print(f, joint->name);
       }
     }
 
-    for (int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
+    for(int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
       fprintf(f, "   loop [%d], positive loop members:\n", k);
-      for (int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
+      for(int l = 0; l < context->positiveLoopMembersCount[k]; l++) {
         s2_joint_t* joint =
           context->jointPointers[context->positiveLoopMembers[k][l]];
-        if (joint->jointType != S2_JOINT_RIGID) {
+        if(joint->jointType != S2_JOINT_RIGID) {
           fprintf(f, "   ");
           s2_stackstr_print(f, joint->name);
         }
       }
       fprintf(f, "   loop [%d], negative loop members:\n", k);
-      for (int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
+      for(int l = 0; l < context->negativeLoopMembersCount[k]; l++) {
         s2_joint_t* joint =
           context->jointPointers[context->negativeLoopMembers[k][l]];
-        if (joint->jointType != S2_JOINT_RIGID) {
+        if(joint->jointType != S2_JOINT_RIGID) {
           fprintf(f, "   ");
           s2_stackstr_print(f, joint->name);
         }
@@ -2214,12 +2248,12 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
              sizeof(bool));
 
     int k = substructure->loopOffset;
-    for (int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
+    for(int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
 
       /* positive loop members [l]*/
       // printf("  loop [%d]\n", j);
       // printf("  setting positive loop members:\n");
-      for (int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
+      for(int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
 
         int variableIndex = context->positiveLoopMemberOffsets[k][l];
         int columnIndex = variableIndex - substructure->dqOffset;
@@ -2238,7 +2272,7 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
 
       /* negative loop members [l]*/
       // printf("  setting negative loop members:\n");
-      for (int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
+      for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
 
         int variableIndex = context->negativeLoopMemberOffsets[k][l];
         int columnIndex = variableIndex - substructure->dqOffset;
@@ -2257,9 +2291,9 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
 
     FILE* loopOffsetFile = fopen("loop_offsets.csv", "w");
     k = 0;
-    for (int j = 0; j < context->jointCount; j++) {
+    for(int j = 0; j < context->jointCount; j++) {
       s2_joint_t* joint = context->jointPointers[j];
-      switch (joint->jointType) {
+      switch(joint->jointType) {
         case S2_JOINT_RIGID: {
           fprintf(loopOffsetFile, "%d\t", -1);
           s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
@@ -2296,10 +2330,10 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
       }
     }
     k = substructure->loopOffset;
-    for (int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
+    for(int j = 0; j < context->substructureLoopCount[i]; j++, k++) {
 
       fprintf(loopOffsetFile, "%d\tpositive loop members\t", k);
-      for (int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
+      for(int l = 0; l < context->positiveLoopMembersCompressedCount[k]; l++) {
 
         int variableIndex = context->positiveLoopMemberOffsets[k][l];
         fprintf(loopOffsetFile, "%d\t", variableIndex);
@@ -2308,7 +2342,7 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
 
       /* negative loop members [l]*/
       fprintf(loopOffsetFile, "%d\tnegative loop members\t", k);
-      for (int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
+      for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
 
         int variableIndex = context->negativeLoopMemberOffsets[k][l];
         fprintf(loopOffsetFile, "%d\t", variableIndex);
@@ -2319,8 +2353,8 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
 
     FILE* jacobianFile = fopen("jacobian.csv", "w");
     // fprintf(f, "Jacobian in PO1:\n");
-    for (int m = 0; m < substructure->constraintEquationCount; m++) {
-      for (int n = 0; n < substructure->dqCount; n++) {
+    for(int m = 0; m < substructure->constraintEquationCount; m++) {
+      for(int n = 0; n < substructure->dqCount; n++) {
         fprintf(jacobianFile, "% 0.9f,",
                 substructure->J[m * substructure->dqCount + n]);
       }
@@ -2363,7 +2397,7 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
 
     s2_context_translatePermutations(context);
     fprintf(f, "  isDependentPO1: ");
-    for (int j = 0; j < substructure->dqCount; j++) {
+    for(int j = 0; j < substructure->dqCount; j++) {
       fprintf(f, "%s ",
               context->isDependentPO1[j + substructure->dqOffset] ? "true"
                                                                   : "false");
@@ -2424,13 +2458,13 @@ void s2_context_analyzeJacobian(s2_context_t* context) {
 */
 void s2_context_setSubstructurePointers(s2_context_t* context) {
   FILE* debug = context->modelParameters.debugFilePointer;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
-    for (int j = 0; j < context->activeJointCount; j++) {
-      if (context->jointPointers[j]->dqIndex >= substructure->dqOffset &&
-          context->jointPointers[j]->dqIndex <
-            substructure->dqOffset + substructure->dqCount &&
-          context->jointPointers[j]->jointType != S2_JOINT_RIGID) {
+    for(int j = 0; j < context->activeJointCount; j++) {
+      if(context->jointPointers[j]->dqIndex >= substructure->dqOffset &&
+         context->jointPointers[j]->dqIndex <
+           substructure->dqOffset + substructure->dqCount &&
+         context->jointPointers[j]->jointType != S2_JOINT_RIGID) {
         s2_joint_t* joint = context->jointPointers[j];
         joint->substructurePointer = substructure;
       }
@@ -2448,7 +2482,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
   bool pass = true;
   context->iterationsSinceLastConstraintError++;
   s2_substructure_t* substructure = context->substructures;
-  for (int i = 0; i < context->substructureCount; i++, substructure++) {
+  for(int i = 0; i < context->substructureCount; i++, substructure++) {
     // printf(
     //   "testing if %f > %f\n",
     //   substructure->infinityNormB,
@@ -2465,7 +2499,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
     //   context->iterationsSinceLastConstraintError > 100 &&
     //   eSubstructure > 0.01;
 
-    if (infinityNormFail) {
+    if(infinityNormFail) {
       // if(infinityNormFail || constraintFail) {
 
       context->iterationsSinceLastConstraintError = 0;
@@ -2478,9 +2512,9 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
       fprintf(debug, "scaledInitialInfinityNormB: %f ",
               substructure->scaledInitialInfinityNormB);
 
-      if (context->numericalIntegrator != NULL) {
+      if(context->numericalIntegrator != NULL) {
 
-        switch (context->modelParameters.integrationType) {
+        switch(context->modelParameters.integrationType) {
           case S2_NUMERICALINTEGRATOR_ODE113: {
             /* get current index */
             s2_numericalintegrator_ode113_t* numericalIntegrator =
@@ -2544,7 +2578,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
 
       fprintf(debug, "rank: %d ", substructure->rank);
 
-      if (returnVal) {
+      if(returnVal) {
         fprintf(debug, "NR FAILED!\n");
         convergence = false;
         break;
@@ -2561,7 +2595,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
       s2_substructure_evaluateConstraints(substructure);
     }
   }
-  if (!pass) {
+  if(!pass) {
 
     s2_context_updateDHVA(context);
     s2_context_setJacobianPO2(context);
@@ -2583,7 +2617,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
     // s2_context_factorJacobianPO2(context);
   }
 
-  if (!convergence) {
+  if(!convergence) {
     return -1;
   } else {
     return 0;
