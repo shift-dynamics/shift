@@ -226,4 +226,8 @@ void s2_joint_free(s2_joint_t* joint);
 int s2_joint_load(s2_context_t* context, s2_assembly_t* assembly,
                   s2_stackstr_t* prefix, json_t* bodyObject);
 
+s2_body_t* s2_joint_getParentBody(s2_joint_t* self);
+
+s2_body_t* s2_joint_getChildBody(s2_joint_t* self);
+
 #endif

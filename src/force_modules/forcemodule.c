@@ -39,7 +39,7 @@ s2_forcemodule_t* s2_forcemodule(s2_forcemodule_enum_t forceModuleType) {
 
   s2_forcemodule_t* forceModule = NULL;
 
-  switch (forceModuleType) {
+  switch(forceModuleType) {
     case S2_FORCEMODULE_TIRE: {
       forceModule = malloc(sizeof(s2_forcemodule_t));
       forceModule->forceModuleType = forceModuleType;
@@ -84,13 +84,13 @@ void s2_context_countForceModulesRecursive(s2_context_t* context,
                                            s2_assembly_t* assembly) {
 
   s2_forcemodule_t* forceModuleHead = assembly->forceModuleHead;
-  while (forceModuleHead != NULL) {
+  while(forceModuleHead != NULL) {
     context->forceModuleCount++;
     forceModuleHead = forceModuleHead->next;
   }
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
-  while (subAssemblyHead != NULL) {
+  while(subAssemblyHead != NULL) {
     s2_context_countForceModulesRecursive(context, subAssemblyHead);
     subAssemblyHead = subAssemblyHead->next;
   }
@@ -105,7 +105,7 @@ void s2_context_flattenForceModulesRecursive(s2_context_t* context,
                                              int* counter) {
 
   s2_forcemodule_t* forceModuleHead = assembly->forceModuleHead;
-  while (forceModuleHead != NULL) {
+  while(forceModuleHead != NULL) {
     // printf("setting index: %d\n", *counter);
     context->forceModulePointers[*counter] = forceModuleHead;
     (*counter) += 1;
@@ -113,7 +113,7 @@ void s2_context_flattenForceModulesRecursive(s2_context_t* context,
   }
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
-  while (subAssemblyHead != NULL) {
+  while(subAssemblyHead != NULL) {
     s2_context_flattenForceModulesRecursive(context, subAssemblyHead, counter);
     subAssemblyHead = subAssemblyHead->next;
   }
@@ -126,22 +126,22 @@ void s2_context_connectForceModulePointers(s2_context_t* context) {
 
   FILE* debug = context->modelParameters.debugFilePointer;
 
-  for (int i = 0; i < context->forceModuleCount; i++) {
+  for(int i = 0; i < context->forceModuleCount; i++) {
 
     // fprintf(debug, "connecting force module: ");
     // s2_stackstr_print(debug, context->forceModulePointers[i]->name);
 
-    switch (context->forceModulePointers[i]->forceModuleType) {
+    switch(context->forceModulePointers[i]->forceModuleType) {
 
       case S2_FORCEMODULE_TIRE: {
         s2_tire_t* tire = (s2_tire_t*)context->forceModulePointers[i]->data;
-        switch (tire->tireType) {
+        switch(tire->tireType) {
           case S2_TIRE_PAC2002: {
             s2_tire_pac2002_t* pactire = tire->properties;
 
-            for (int j = 0; j < context->activeJointCount; j++) {
+            for(int j = 0; j < context->activeJointCount; j++) {
               s2_body_t* body = context->bodyPointers[j];
-              if (s2_stackstr_isEqual(body->name, pactire->wheelBody)) {
+              if(s2_stackstr_isEqual(body->name, pactire->wheelBody)) {
                 // fprintf(debug, "pac2002 force module connected:\n   ");
                 // s2_stackstr_print(debug, body->name);
                 // fprintf(debug, "   ");
@@ -155,10 +155,10 @@ void s2_context_connectForceModulePointers(s2_context_t* context) {
           case S2_TIRE_FIALA: {
             s2_tire_fiala_t* fialaTire = tire->properties;
 
-            for (int j = 0; j < context->activeJointCount; j++) {
+            for(int j = 0; j < context->activeJointCount; j++) {
 
               s2_body_t* body = context->bodyPointers[j];
-              if (s2_stackstr_isEqual(body->name, fialaTire->wheelBody)) {
+              if(s2_stackstr_isEqual(body->name, fialaTire->wheelBody)) {
                 // fprintf(debug, "fiala force module connected:\n   ");
                 // s2_stackstr_print(debug, body->name);
                 // fprintf(debug, "   ");
@@ -185,14 +185,14 @@ void s2_context_connectForceModulePointers(s2_context_t* context) {
         /* connect input pointer */
         bool found = false;
 
-        switch (pid->input.ioType) {
+        switch(pid->input.ioType) {
 
           case PID_IO_FRAME: {
             // fprintf(debug, "loading PID controller with FRAME input:\n");
-            for (int j = 0; j < context->activeJointCount; j++) {
+            for(int j = 0; j < context->activeJointCount; j++) {
               s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
-              while (frameHead) {
-                if (s2_stackstr_isEqual(pid->input.frame, frameHead->name)) {
+              while(frameHead) {
+                if(s2_stackstr_isEqual(pid->input.frame, frameHead->name)) {
                   // fprintf(debug, "connected force module connected to: ");
                   // s2_stackstr_print(debug, frameHead->name);
                   pid->input.framePointer = frameHead;
@@ -201,7 +201,7 @@ void s2_context_connectForceModulePointers(s2_context_t* context) {
                 }
                 frameHead = frameHead->next;
               }
-              if (found) {
+              if(found) {
                 break;
               }
             }
@@ -209,11 +209,11 @@ void s2_context_connectForceModulePointers(s2_context_t* context) {
           }
           case PID_IO_JOINT: {
             // fprintf(debug, "connecting pid controller with JOINT input\n");
-            for (int j = 0; j < context->activeJointCount; j++) {
+            for(int j = 0; j < context->activeJointCount; j++) {
               // fprintf(debug, "checking: ");
               // s2_stackstr_print(debug, context->jointPointers[j]->name);
-              if (s2_stackstr_isEqual(pid->input.joint,
-                                      context->jointPointers[j]->name)) {
+              if(s2_stackstr_isEqual(pid->input.joint,
+                                     context->jointPointers[j]->name)) {
 
                 pid->input.jointPointer = context->jointPointers[j];
                 found = true;
@@ -224,7 +224,7 @@ void s2_context_connectForceModulePointers(s2_context_t* context) {
           }
         }
 
-        if (!found) {
+        if(!found) {
           fprintf(stderr, "error: no input found for forceModule: ");
           s2_stackstr_print(debug, context->forceModulePointers[i]->name);
           exit(-1);
@@ -232,27 +232,27 @@ void s2_context_connectForceModulePointers(s2_context_t* context) {
 
         /* connect output pointer */
         found = false;
-        if (pid->output.ioType == PID_IO_JOINT) {
-          for (int j = 0; j < context->activeJointCount; j++) {
+        if(pid->output.ioType == PID_IO_JOINT) {
+          for(int j = 0; j < context->activeJointCount; j++) {
             // fprintf(debug, "looking for joint: ");
             // s2_stackstr_print(debug, pid->output.joint);
             s2_joint_t* joint = context->jointPointers[j];
             // fprintf(debug, " [%d] current joint: \n", j);
             //   s2_stackstr_print(debug, joint->name);
 
-            if (s2_stackstr_isEqual(joint->name, pid->output.joint)) {
+            if(s2_stackstr_isEqual(joint->name, pid->output.joint)) {
               pid->output.jointPointer = joint;
               found = true;
               break;
             }
-            if (found) {
+            if(found) {
               break;
             }
           }
         } else {
           fprintf(stderr, "frame output type not currently supported\n");
         }
-        if (!found) {
+        if(!found) {
           fprintf(stderr, "error: no output found for forceModule:\n");
           s2_stackstr_print(stderr, context->forceModulePointers[i]->name);
           exit(-1);
@@ -278,11 +278,11 @@ void s2_context_flattenForceModules(s2_context_t* context) {
   context->forceModuleCount = 0;
   s2_context_countForceModulesRecursive(context, context->assembly);
 
-  if (context->forceModulePointers) {
+  if(context->forceModulePointers) {
     free(context->forceModulePointers);
     context->forceModulePointers = NULL;
   }
-  if (context->forceModuleCount > 0) {
+  if(context->forceModuleCount > 0) {
     context->forceModulePointers =
       malloc(context->forceModuleCount * sizeof(s2_forcemodule_t*));
   }
@@ -305,7 +305,7 @@ void s2_context_connectForceModules(s2_context_t* context) {
 
   int yOffset = context->dqCount + context->qCount;
 
-  for (int i = 0; i < context->forceModuleCount; i++) {
+  for(int i = 0; i < context->forceModuleCount; i++) {
     s2_forcemodule_t* forceModule = context->forceModulePointers[i];
 
     /* set y offset */
@@ -315,7 +315,7 @@ void s2_context_connectForceModules(s2_context_t* context) {
 
     /* get pointer to beginning of yp array */
     double* dy = NULL;
-    switch (context->modelParameters.integrationType) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
@@ -339,11 +339,11 @@ void s2_context_connectForceModules(s2_context_t* context) {
         break;
     }
 
-    switch (forceModule->forceModuleType) {
+    switch(forceModule->forceModuleType) {
       case S2_FORCEMODULE_TIRE: {
         s2_tire_t* tire = (s2_tire_t*)forceModule->data;
 
-        switch (tire->tireType) {
+        switch(tire->tireType) {
 
           case S2_TIRE_PAC2002: {
             s2_tire_pac2002_t* pac2002Tire =
@@ -387,7 +387,7 @@ void s2_context_connectForceModules(s2_context_t* context) {
 */
 void s2_context_updateForceModules(s2_context_t* context, double* y) {
 
-  for (int i = 0; i < context->forceModuleCount; i++) {
+  for(int i = 0; i < context->forceModuleCount; i++) {
     s2_forcemodule_t* forceModule = context->forceModulePointers[i];
     forceModule->update(context, forceModule->parameters,
                         y + forceModule->yOffset);
@@ -404,9 +404,9 @@ equations only when convergence is true
 */
 void s2_context_saveForceModuleHistory(s2_context_t* context) {
 
-  for (int i = 0; i < context->forceModuleCount; i++) {
+  for(int i = 0; i < context->forceModuleCount; i++) {
     s2_forcemodule_t* forceModule = context->forceModulePointers[i];
-    if (forceModule->saveHistory != NULL) {
+    if(forceModule->saveHistory != NULL) {
       forceModule->saveHistory(forceModule->data);
     }
   }
@@ -421,7 +421,7 @@ void s2_context_saveForceModuleHistory(s2_context_t* context) {
 void s2_forcemodule_append(s2_assembly_t* assembly,
                            s2_forcemodule_t* forceModule) {
 
-  if (!assembly->forceModuleTail) {
+  if(!assembly->forceModuleTail) {
     assembly->forceModuleHead = forceModule;
     assembly->forceModuleTail = forceModule;
   } else {
@@ -435,7 +435,7 @@ void s2_forcemodule_append(s2_assembly_t* assembly,
 */
 void s2_forcemodule_free(s2_forcemodule_t* forceModule) {
 
-  switch (forceModule->forceModuleType) {
+  switch(forceModule->forceModuleType) {
     case S2_FORCEMODULE_TIRE: {
       s2_tire_free((s2_tire_t*)forceModule->data);
       free(forceModule->parameters);
@@ -458,11 +458,10 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
   json_t* forceModuleType = json_object_get(forceModuleObject, "type");
   assert(forceModuleType && "no force module type specified");
 
-  if (!strcmp(json_string_value(forceModuleType), "tire")) {
+  if(!strcmp(json_string_value(forceModuleType), "tire")) {
 
-    /* currently "tire" is the only type available, if other force
-    modules are created, add them below */
-
+    /* currently "tire" is the only type available, as other force
+    modules are created, they will be added below */
     s2_forcemodule_t* forceModule = s2_forcemodule(S2_FORCEMODULE_TIRE);
 
     assert(forceModule != NULL);
@@ -472,7 +471,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
 
     s2_stackstr_t* name = s2_stackstr_copy(prefix);
     json_t* nameObject = json_object_get(forceModuleObject, "name");
-    if (nameObject) {
+    if(nameObject) {
       s2_stackstr_append(name, json_string_value(nameObject));
     } else {
       s2_stackstr_append(name, "none");
@@ -485,7 +484,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
     json_t* tireType = json_object_get(forceModuleObject, "tire_type");
     assert(tireType && "no tire type specified.");
 
-    if (!strcmp(json_string_value(tireType), "pac2002")) {
+    if(!strcmp(json_string_value(tireType), "pac2002")) {
 
       json_t* filePathObject = json_object_get(forceModuleObject, "definition");
       assert(filePathObject && "no tire definition file specified");
@@ -496,7 +495,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
       assert(wheelBodyObject && "no wheel_body specified");
       s2_stackstr_t* wheelBody = NULL;
 
-      if (json_is_array(wheelBodyObject)) {
+      if(json_is_array(wheelBodyObject)) {
         wheelBody = s2_stackstr();
         /* if parent body is an array, then the full path is specified. */
         size_t index2;
@@ -504,7 +503,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
         json_array_foreach(wheelBodyObject, index2, value) {
           s2_stackstr_append(wheelBody, json_string_value(value));
         }
-      } else if (json_is_string(wheelBodyObject)) {
+      } else if(json_is_string(wheelBodyObject)) {
         /* otherwise the body is contained within the current assembly */
         wheelBody = s2_stackstr_copy(prefix);
         s2_stackstr_append(wheelBody, json_string_value(wheelBodyObject));
@@ -519,7 +518,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
       s2_tire(forceModule, context, S2_TIRE_PAC2002, filePath, wheelBody,
               useTransientSlip);
 
-    } else if (!strcmp(json_string_value(tireType), "fiala")) {
+    } else if(!strcmp(json_string_value(tireType), "fiala")) {
 
       json_t* wheelBodyObject =
         json_object_get(forceModuleObject, "wheel_body");
@@ -529,13 +528,13 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
       json_t* filePathObject = json_object_get(forceModuleObject, "definition");
 
       const char* filePath;
-      if (filePathObject != NULL) {
+      if(filePathObject != NULL) {
         filePath = json_string_value(filePathObject);
       } else {
         filePath = NULL;
       }
 
-      if (json_is_array(wheelBodyObject)) {
+      if(json_is_array(wheelBodyObject)) {
         wheelBody = s2_stackstr();
         /* if parent body is an array, then the full path is specified. */
         size_t index2;
@@ -543,7 +542,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
         json_array_foreach(wheelBodyObject, index2, value) {
           s2_stackstr_append(wheelBody, json_string_value(value));
         }
-      } else if (json_is_string(wheelBodyObject)) {
+      } else if(json_is_string(wheelBodyObject)) {
         /* otherwise the body is contained within the current assembly */
         wheelBody = s2_stackstr_copy(prefix);
         s2_stackstr_append(wheelBody, json_string_value(wheelBodyObject));
@@ -557,13 +556,13 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
 
     s2_forcemodule_append(assembly, forceModule);
 
-  } else if (!strcmp(json_string_value(forceModuleType), "pid")) {
+  } else if(!strcmp(json_string_value(forceModuleType), "pid")) {
 
     // printf("loading pid forcemodule: \n");
 
     s2_stackstr_t* name = s2_stackstr_copy(prefix);
     json_t* nameObject = json_object_get(forceModuleObject, "name");
-    if (nameObject) {
+    if(nameObject) {
       s2_stackstr_append(name, json_string_value(nameObject));
     } else {
       s2_stackstr_append(name, "none");
@@ -600,17 +599,17 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
     json_t* targetTypeObject = json_object_get(inputObject, "target_type");
 
     pid->input.targetType = PID_TARGET_POSITION;
-    if (targetTypeObject) {
-      if (!strcmp("velocity", json_string_value(targetTypeObject))) {
+    if(targetTypeObject) {
+      if(!strcmp("velocity", json_string_value(targetTypeObject))) {
         pid->input.targetType = PID_TARGET_VELOCITY;
       }
     }
 
     /* load a frame input type */
-    if (!strcmp(json_string_value(typeObject), "frame")) {
+    if(!strcmp(json_string_value(typeObject), "frame")) {
       json_t* coordinateSystemObject =
         json_object_get(inputObject, "coordinate_system");
-      if (!strcmp(json_string_value(coordinateSystemObject), "fixed")) {
+      if(!strcmp(json_string_value(coordinateSystemObject), "fixed")) {
         pid->input.coordinateSystem = S2_COORDINATE_FIXED;
       } else {
         pid->input.coordinateSystem = S2_COORDINATE_LOCAL;
@@ -623,7 +622,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
       json_t* bodyObject = json_array_get(bodyFramePairObject, 0);
 
       s2_stackstr_t* inputBody = NULL;
-      if (json_is_array(bodyObject)) {
+      if(json_is_array(bodyObject)) {
         s2_stackstr_t* inputBody = s2_stackstr();
         /* if parent body is an array, then the full path is specified. */
         size_t index2;
@@ -631,7 +630,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
         json_array_foreach(bodyObject, index2, value) {
           s2_stackstr_append(inputBody, json_string_value(value));
         }
-      } else if (json_is_string(bodyObject)) {
+      } else if(json_is_string(bodyObject)) {
         /* otherwise the body is contained within the current assembly */
         inputBody = s2_stackstr_copy(prefix);
         s2_stackstr_append(inputBody, json_string_value(bodyObject));
@@ -643,27 +642,27 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
 
       json_t* dofObject = json_object_get(inputObject, "dof");
       assert(dofObject);
-      if (!strcmp("Tx", json_string_value(dofObject))) {
+      if(!strcmp("Tx", json_string_value(dofObject))) {
         pid->input.dof = S2_JOINT_TX;
-      } else if (!strcmp("Ty", json_string_value(dofObject))) {
+      } else if(!strcmp("Ty", json_string_value(dofObject))) {
         pid->input.dof = S2_JOINT_TY;
-      } else if (!strcmp("Tz", json_string_value(dofObject))) {
+      } else if(!strcmp("Tz", json_string_value(dofObject))) {
         pid->input.dof = S2_JOINT_TZ;
-      } else if (!strcmp("Rx", json_string_value(dofObject))) {
+      } else if(!strcmp("Rx", json_string_value(dofObject))) {
         pid->input.dof = S2_JOINT_RX;
-      } else if (!strcmp("Ry", json_string_value(dofObject))) {
+      } else if(!strcmp("Ry", json_string_value(dofObject))) {
         pid->input.dof = S2_JOINT_RY;
-      } else if (!strcmp("Rz", json_string_value(dofObject))) {
+      } else if(!strcmp("Rz", json_string_value(dofObject))) {
         pid->input.dof = S2_JOINT_RZ;
       }
       pid->input.ioType = PID_IO_FRAME;
 
-    } else if (!strcmp(json_string_value(typeObject), "joint")) {
+    } else if(!strcmp(json_string_value(typeObject), "joint")) {
 
       json_t* jointObject = json_object_get(inputObject, "joint");
 
       s2_stackstr_t* inputJoint = NULL;
-      if (json_is_array(jointObject)) {
+      if(json_is_array(jointObject)) {
         inputJoint = s2_stackstr();
         /* if joint specified is an array, then the full path is specified. */
         size_t index2;
@@ -671,7 +670,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
         json_array_foreach(jointObject, index2, value) {
           s2_stackstr_append(inputJoint, json_string_value(value));
         }
-      } else if (json_is_string(jointObject)) {
+      } else if(json_is_string(jointObject)) {
         /* otherwise the body is contained within the current assembly */
         inputJoint = s2_stackstr_copy(prefix);
         s2_stackstr_append(inputJoint, json_string_value(jointObject));
@@ -702,13 +701,13 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
     assert(outputObject);
     json_t* outputTypeObject = json_object_get(outputObject, "type");
     assert(outputTypeObject);
-    if (!strcmp("joint", json_string_value(outputTypeObject))) {
+    if(!strcmp("joint", json_string_value(outputTypeObject))) {
 
       json_t* jointObject = json_object_get(outputObject, "joint");
 
       s2_stackstr_t* outputJoint = NULL;
 
-      if (json_is_array(jointObject)) {
+      if(json_is_array(jointObject)) {
         outputJoint = s2_stackstr();
         /* if parent body is an array, then the full path is specified. */
         size_t index2;
@@ -716,7 +715,7 @@ void s2_forcemodule_load(s2_context_t* context, s2_assembly_t* assembly,
         json_array_foreach(jointObject, index2, value) {
           s2_stackstr_append(outputJoint, json_string_value(value));
         }
-      } else if (json_is_string(jointObject)) {
+      } else if(json_is_string(jointObject)) {
         /* otherwise the body is contained within the current assembly */
         outputJoint = s2_stackstr_copy(prefix);
         s2_stackstr_append(outputJoint, json_string_value(jointObject));
