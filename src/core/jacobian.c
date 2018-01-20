@@ -165,7 +165,9 @@ void s2_context_setJacobianLookup(s2_context_t* context) {
 */
 int s2_context_mallocEquations(s2_context_t* context) {
 
+#if _SHIFT_VERBOSE
   FILE* debug = context->modelParameters.debugFilePointer;
+#endif
 
   s2_array_free(context->J);
   s2_arrayi_free(context->Jxx);
@@ -183,10 +185,7 @@ int s2_context_mallocEquations(s2_context_t* context) {
   context->jacobianSize = 0;
   int constraintEquationCount = 0;
 
-  // fprintf(debug, "allocating memory for equations:\n");
   for(int i = 0; i < context->substructureCount; i++) {
-
-    // fprintf(debug, "  allocating memory for substructure [%d]\n", i);
     context->substructures[i].context = context;
     context->substructures[i].qCount = 0;
     context->substructures[i].dqCount = 0;
@@ -404,36 +403,33 @@ int s2_context_mallocEquations(s2_context_t* context) {
     free(context->jointDOF);
   }
   context->jointDOF = calloc(context->activeJointCount, sizeof(int));
-
+#if _SHIFT_VERBOSE
   fprintf(debug, "dqCount: %d\n", context->dqCount);
+#endif
   for(int i = 0; i < context->activeJointCount; i++) {
 
     s2_body_t* childBody = context->bodyPointers[i];
-    // s2_body_t* parentBody2 =
-    // s2_joint_getChildBody(context->jointPointers[i]);
 
+#if _SHIFT_VERBOSE
     int jointIndex = context->jointLookup[i];
     int dqIndex = context->dqLookup[i];
-
     printf("\nbody pointer: ");
     s2_stackstr_print(debug, childBody->name);
     printf("jointIndex: %d\n", jointIndex);
     printf("dqIndex: %d\n", dqIndex);
-
-    // printf("child pointer: ");
-    // s2_stackstr_print(debug, parentBody2->name);
-    // assert(parentBody == parentBody2);
-    // s2_joint_getParentBody(context->jointPointers[i]);
+#endif
 
     if(!(childBody->isVirtual || childBody->inertia == NULL)) {
       if(context->jointLookup[i] > -1) {
 
-        s2_stackstr_print(debug, context->jointPointers[i]->name);
-        printf("context->jointLookup[%d]: %d\n", i, jointIndex);
         context->hasMass[context->jointLookup[i]] = true;
-
-        printf("context->dqLookup[%d]: %d\n", i, dqIndex);
         context->hasMassdq[context->dqLookup[i]] = true;
+
+#if _SHIFT_VERBOSE
+        s2_stackstr_print(debug, context->jointPointers[i]->name);
+        printf("context->jointLookup[%d]: %d hasMass: true\n", i, jointIndex);
+        printf("context->dqLookup[%d]: %d hasMass: true\n", i, dqIndex);
+#endif
       }
     }
     switch(context->jointPointers[i]->jointType) {
@@ -517,30 +513,6 @@ int s2_context_mallocEquations(s2_context_t* context) {
     }
   }
 
-  fprintf(debug, "jointDOF: ");
-  s2_arrayi_print(debug, context->activeJointCount, context->jointDOF);
-  fprintf(debug, "jointLookup: ");
-  s2_arrayi_print(debug, context->activeJointCount, context->jointLookup);
-  fprintf(debug, "dqLookup: ");
-  s2_arrayi_print(debug, context->activeJointCount, context->dqLookup);
-  fprintf(debug, "pcl: ");
-  s2_arrayi_print(debug, context->activeJointCount, context->pcl);
-  fprintf(debug, "pclCompressed: ");
-  s2_arrayi_print(debug, context->nonRigidJointCount, context->pclCompressed);
-  fprintf(debug, "pcldq: ");
-  s2_arrayi_print(debug, context->dqCount, context->pcldq);
-  fprintf(debug, "hasMass: ");
-  for(int i = 0; i < context->nonRigidJointCount; i++) {
-    printf("%d ", context->hasMass[i] ? 1 : 0);
-  }
-  printf("\n");
-
-  fprintf(debug, "hasMassdq: ");
-  for(int i = 0; i < context->dqCount; i++) {
-    printf("%d ", context->hasMassdq[i] ? 1 : 0);
-  }
-  printf("\n");
-
   /* set isRotation */
   if(context->isRotation) {
     free(context->isRotation);
@@ -576,6 +548,40 @@ int s2_context_mallocEquations(s2_context_t* context) {
       }
     }
   }
+
+#if VERBOSE > 0
+  fprintf(debug, "jointDOF: ");
+  s2_arrayi_print(debug, context->activeJointCount, context->jointDOF);
+  fprintf(debug, "jointLookup: ");
+  s2_arrayi_print(debug, context->activeJointCount, context->jointLookup);
+  fprintf(debug, "dqLookup: ");
+  s2_arrayi_print(debug, context->activeJointCount, context->dqLookup);
+  fprintf(debug, "pcl: ");
+  s2_arrayi_print(debug, context->activeJointCount, context->pcl);
+  fprintf(debug, "dqLookupCompresed: ");
+  s2_arrayi_print(debug, context->nonRigidJointCount,
+                  context->dqLookupCompressed);
+  fprintf(debug, "pclCompressed: ");
+  s2_arrayi_print(debug, context->nonRigidJointCount, context->pclCompressed);
+  fprintf(debug, "pcldq: ");
+  s2_arrayi_print(debug, context->dqCount, context->pcldq);
+  fprintf(debug, "hasMass: ");
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    printf("%d ", context->hasMass[i] ? 1 : 0);
+  }
+  printf("\n");
+  fprintf(debug, "hasMassdq: ");
+  for(int i = 0; i < context->dqCount; i++) {
+    printf("%d ", context->hasMassdq[i] ? 1 : 0);
+  }
+  printf("\n");
+  printf("isRotation: ");
+  for(int i = 0; i < context->dqCount; i++) {
+    printf("%d ", context->isRotation[i] ? 1 : 0);
+  }
+  printf("\n");
+#endif
+
   return 0;
 }
 
@@ -950,8 +956,6 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
     }
 
     /* negative loop members [l]*/
-    // printf("  setting negative loop members:\n");
-
     for(int l = 0; l < context->negativeLoopMembersCompressedCount[k]; l++) {
 
       int variableIndex = context->negativeLoopMemberOffsets[k][l];
@@ -1002,10 +1006,10 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
   /*! @TODO remove duplicate code for setting up PO1 in a
   substructure and remove pivotRatio */
 
-  substructure->pivotRatio =
-    context->modelParameters.pivotRatioMultiple *
-    s2_jacobian_pivotRatio(substructure->dqCount, substructure->rank,
-                           substructure->J);
+  // substructure->pivotRatio =
+  //   context->modelParameters.pivotRatioMultiple *
+  //   s2_jacobian_pivotRatio(substructure->dqCount, substructure->rank,
+  //                          substructure->J);
 
   s2_substructure_setJacobianBooleanPO2(substructure);
 }
@@ -1107,10 +1111,10 @@ void s2_substructure_setJacobianPO1Specified(s2_substructure_t* substructure,
                               substructure->J);
 
   /*! @TODO remove this once infinity norm is verified to work */
-  substructure->pivotRatio =
-    context->modelParameters.pivotRatioMultiple *
-    s2_jacobian_pivotRatio(substructure->dqCount, substructure->rank,
-                           substructure->J);
+  // substructure->pivotRatio =
+  //   context->modelParameters.pivotRatioMultiple *
+  //   s2_jacobian_pivotRatio(substructure->dqCount, substructure->rank,
+  //                          substructure->J);
 
   s2_substructure_setJacobianBooleanPO2(substructure);
 }
@@ -1906,7 +1910,9 @@ int s2_context_factorJacobianPO2(s2_context_t* context) {
 */
 void s2_context_setConstraintPointers(s2_context_t* context) {
 
+#if _SHIFT_VERBOSE
   FILE* debug = context->modelParameters.debugFilePointer;
+#endif
 
   if(context->constraints) {
     free(context->constraints);
@@ -2457,7 +2463,9 @@ void s2_context_analyzeJacobian(s2_context_t* context) {
   @brief set pointer to substructure within each joint datastructure
 */
 void s2_context_setSubstructurePointers(s2_context_t* context) {
+#if _SHIFT_VERBOSE
   FILE* debug = context->modelParameters.debugFilePointer;
+#endif
   for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
     for(int j = 0; j < context->activeJointCount; j++) {
@@ -2503,7 +2511,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
       // if(infinityNormFail || constraintFail) {
 
       context->iterationsSinceLastConstraintError = 0;
-
+#if _SHIFT_VERBOSE
       FILE* debug = context->modelParameters.debugFilePointer;
 
       fprintf(debug, "performing full factor on substructure [%d] ",
@@ -2511,7 +2519,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
       fprintf(debug, "infinityNormB: %f ", substructure->infinityNormB);
       fprintf(debug, "scaledInitialInfinityNormB: %f ",
               substructure->scaledInitialInfinityNormB);
-
+#endif
       if(context->numericalIntegrator != NULL) {
 
         switch(context->modelParameters.integrationType) {
@@ -2549,8 +2557,9 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
       }
 
       double e = s2_substructure_evaluateConstraintError(substructure);
+#ifdef _SHIFT_VERBOSE
       fprintf(debug, "e before nr: % 0.9g ", e);
-
+#endif
       pass = false;
 
       /* backup q array to qCopy */
@@ -2572,18 +2581,23 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
         s2_substructure_removeConstraintViolationsFast(substructure, true);
 
       e = s2_substructure_evaluateConstraintError(substructure);
+#if _SHIFT_VERBOSE
       fprintf(debug, "e after nr: % 0.9g ", e);
-
+#endif
       s2_substructure_setJacobianPO1(substructure);
-
+#if _SHIFT_VERBOSE
       fprintf(debug, "rank: %d ", substructure->rank);
-
+#endif
       if(returnVal) {
+#if _SHIFT_VERBOSE
         fprintf(debug, "NR FAILED!\n");
+#endif
         convergence = false;
         break;
       } else {
+#if _SHIFT_VERBOSE
         fprintf(debug, "\n");
+#endif
       }
 
       /* restore states */

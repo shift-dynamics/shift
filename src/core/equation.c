@@ -53,9 +53,6 @@ void s2_context_initializeEquations(s2_context_t* context) {
     free(context->p);
   }
   context->p = calloc(context->nonRigidJointCount, sizeof(s2_screw_t));
-  // if(context->gamma_p) free(context->gamma_p);
-  // context->gamma_p =
-  //   calloc(context->dqCount, sizeof(double));
   if(context->gamma_d) {
     free(context->gamma_d);
   }
@@ -94,25 +91,25 @@ void s2_context_setRHS(s2_context_t* context) {
   s2_screw_t* aq = context->aq + 1;
   s2_screw_t* v = context->v + 1;
 
+#if _SHIFT_VERBOSE
   printf("inertia before mass projection / local:\n");
   for(int i = 0; i < context->nonRigidJointCount; i++) {
     s2_inertia_print(stdout, context->inertia + i);
   }
+#endif
 
   /* transform inertias to fixed reference frame, carried out in PO1*/
   memset(context->inertiaP, 0, (context->dqCount + 1) * sizeof(s2_inertia_t));
   s2_inertia_t* inertiaP = context->inertiaP + 1;
 
   for(int i = 0; i < context->nonRigidJointCount; i++) {
-    // printf("i: %d\n", i);
     if(context->hasMass[i]) {
-      printf("transforming from i=%d to %d\n", i,
-             context->dqLookupCompressed[i]);
-
-      // int bodyIndex = context->jointLookup[i];
-
       s2_inertia_transform(context->inertia + i, context->dReferenceFrames[i],
                            inertiaP + context->dqLookupCompressed[i]);
+
+#if _SHIFT_VERBOSE
+      printf("transforming from i=%d to %d\n", i,
+             context->dqLookupCompressed[i]);
 
       printf("[%d] inertia in body frame:\n", i);
       s2_inertia_print(stdout, context->inertia + i);
@@ -122,6 +119,7 @@ void s2_context_setRHS(s2_context_t* context) {
 
       printf("inertia transformed to fixed reference frame:\n");
       s2_inertia_print(stdout, inertiaP + context->dqLookupCompressed[i]);
+#endif
     }
   }
 
@@ -262,12 +260,15 @@ void s2_context_setRHS(s2_context_t* context) {
   //   s2_screw_print(context->g + i);
   // }
 
+  /*!
+  @NOTE need to check that logic for multi dof joints is handled correctly here
+  */
+
   /*
     f_l = f + H^T * C{-T} * (g + \tilde{v}^Tp - m\gamma)
     this step is evaluated in PO1 and stored in PO3,
     use the permutation array p_v31 to assign to f_l
   */
-
   for(int j = 0; j < context->nonRigidJointCount; j++) {
     /* j is index into compressed list of joints and g in PO1 */
 
@@ -280,6 +281,7 @@ void s2_context_setRHS(s2_context_t* context) {
     /* need to increment l for each additional degree of freedom
     for composite joints */
 
+    /* f_l <- f */
     context->fl[k] = context->f[l];
     if(context->isRotation[l]) {
       context->fl[k] += cblas_ddot(6, (double*)(context->h + l), 1,
@@ -312,7 +314,8 @@ void s2_context_setRHS(s2_context_t* context) {
       }
       break;
     }
-    default: { break; }
+    default:
+      break;
   }
 
   int chordConstraintOffset = 0;
