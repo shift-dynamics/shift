@@ -9,6 +9,12 @@ set(VERSION_MINOR 0 CACHE STRING "Project minor version number.")
 set(VERSION_PATCH 0 CACHE STRING "Project patch version number.")
 mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
 
+if (DEFINED _SHIFT_VERBOSE)
+  add_definitions(-D_SHIFT_VERBOSE=${_SHIFT_VERBOSE})
+else()
+  add_definitions(-D_SHIFT_VERBOSE=0)
+endif()
+
 ## find Jansson and math libraries ##
 list(INSERT CMAKE_MODULE_PATH 0 "${shift_SOURCE_DIR}/cmake")
 if(APPLE)
@@ -53,7 +59,7 @@ find_package(GDAL REQUIRED)
 # add_subdirectory(${CMAKE_SOURCE_DIR}/src/third_party/v-hacd/src)
 
 # build stepcode submodule
-add_subdirectory(${CMAKE_SOURCE_DIR}/src/third_party/stepcode)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/src/third_party/stepcode)
 
 
 set(LIBS
