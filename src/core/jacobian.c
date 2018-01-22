@@ -403,11 +403,16 @@ int s2_context_mallocEquations(s2_context_t* context) {
     free(context->jointDOF);
   }
   context->jointDOF = calloc(context->activeJointCount, sizeof(int));
+  if(context->jointDOFCompressed) {
+    free(context->jointDOFCompressed);
+  }
+  context->jointDOFCompressed =
+    calloc(context->nonRigidJointCount, sizeof(int));
 #if _SHIFT_VERBOSE
   fprintf(debug, "dqCount: %d\n", context->dqCount);
 #endif
-  for(int i = 0; i < context->activeJointCount; i++) {
 
+  for(int i = 0; i < context->activeJointCount; i++) {
     s2_body_t* childBody = context->bodyPointers[i];
 
 #if _SHIFT_VERBOSE
@@ -421,7 +426,6 @@ int s2_context_mallocEquations(s2_context_t* context) {
 
     if(!(childBody->isVirtual || childBody->inertia == NULL)) {
       if(context->jointLookup[i] > -1) {
-
         context->hasMass[context->jointLookup[i]] = true;
         context->hasMassdq[context->dqLookup[i]] = true;
 
@@ -430,6 +434,24 @@ int s2_context_mallocEquations(s2_context_t* context) {
         printf("context->jointLookup[%d]: %d hasMass: true\n", i, jointIndex);
         printf("context->dqLookup[%d]: %d hasMass: true\n", i, dqIndex);
 #endif
+
+        switch(context->jointPointers[i]->jointType) {
+          case S2_JOINT_SPHERICAL: {
+            context->hasMassdq[context->dqLookup[i] + 1] = true;
+            context->hasMassdq[context->dqLookup[i] + 2] = true;
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            context->hasMassdq[context->dqLookup[i] + 1] = true;
+            context->hasMassdq[context->dqLookup[i] + 2] = true;
+            context->hasMassdq[context->dqLookup[i] + 3] = true;
+            context->hasMassdq[context->dqLookup[i] + 4] = true;
+            context->hasMassdq[context->dqLookup[i] + 5] = true;
+            break;
+          }
+          default:
+            break;
+        }
       }
     }
     switch(context->jointPointers[i]->jointType) {
@@ -549,9 +571,19 @@ int s2_context_mallocEquations(s2_context_t* context) {
     }
   }
 
-#if VERBOSE > 0
+  for(int i = 0; i < context->activeJointCount; i++) {
+    int compressedJointIndex = context->jointLookup[i];
+    if(compressedJointIndex > -1) {
+      context->jointDOFCompressed[compressedJointIndex] = context->jointDOF[i];
+    }
+  }
+
+#if _SHIFT_VERBOSE
   fprintf(debug, "jointDOF: ");
   s2_arrayi_print(debug, context->activeJointCount, context->jointDOF);
+  fprintf(debug, "jointDOFCompressed: ");
+  s2_arrayi_print(debug, context->nonRigidJointCount,
+                  context->jointDOFCompressed);
   fprintf(debug, "jointLookup: ");
   s2_arrayi_print(debug, context->activeJointCount, context->jointLookup);
   fprintf(debug, "dqLookup: ");
@@ -2511,15 +2543,16 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
       // if(infinityNormFail || constraintFail) {
 
       context->iterationsSinceLastConstraintError = 0;
+
 #if _SHIFT_VERBOSE
       FILE* debug = context->modelParameters.debugFilePointer;
-
       fprintf(debug, "performing full factor on substructure [%d] ",
               substructure->index);
       fprintf(debug, "infinityNormB: %f ", substructure->infinityNormB);
       fprintf(debug, "scaledInitialInfinityNormB: %f ",
               substructure->scaledInitialInfinityNormB);
 #endif
+
       if(context->numericalIntegrator != NULL) {
 
         switch(context->modelParameters.integrationType) {
@@ -2557,7 +2590,7 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
       }
 
       double e = s2_substructure_evaluateConstraintError(substructure);
-#ifdef _SHIFT_VERBOSE
+#if _SHIFT_VERBOSE
       fprintf(debug, "e before nr: % 0.9g ", e);
 #endif
       pass = false;
@@ -2581,17 +2614,23 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
         s2_substructure_removeConstraintViolationsFast(substructure, true);
 
       e = s2_substructure_evaluateConstraintError(substructure);
+
 #if _SHIFT_VERBOSE
       fprintf(debug, "e after nr: % 0.9g ", e);
 #endif
+
       s2_substructure_setJacobianPO1(substructure);
+
 #if _SHIFT_VERBOSE
       fprintf(debug, "rank: %d ", substructure->rank);
 #endif
+
       if(returnVal) {
+
 #if _SHIFT_VERBOSE
         fprintf(debug, "NR FAILED!\n");
 #endif
+
         convergence = false;
         break;
       } else {

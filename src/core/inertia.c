@@ -38,7 +38,7 @@ SUCH DAMAGE.
 */
 s2_inertia_t* s2_inertia() {
   s2_inertia_t* inertia = malloc(sizeof *inertia);
-  if (!inertia) {
+  if(!inertia) {
     fprintf(stderr, "Error: failed to initialize inertia.\n");
     return NULL;
   }
@@ -52,7 +52,7 @@ s2_inertia_t* s2_inertia() {
 */
 void s2_inertia_free(s2_inertia_t* inertia) {
 
-  if (inertia) {
+  if(inertia) {
     free(inertia);
   }
   inertia = NULL;
@@ -147,7 +147,7 @@ void s2_inertia_translate(s2_inertia_t* inertia_i, s2_vector_t* t,
                           s2_inertia_t* inertia_o) {
 
   // memcpy(inertia_o, inertia_i, sizeof(s2_inertia_t));
-  if (inertia_i->m > 0) {
+  if(inertia_i->m > 0) {
 
     cblas_daxpy(3, inertia_i->m, (double*)t, 1, (double*)&(inertia_o->mt), 1);
 
@@ -221,8 +221,8 @@ void s2_inertia_transform(s2_inertia_t* inertia_i, s2_displacement_t* d,
 void inertia_merge(s2_context_t* context, s2_inertia_t* inertia,
                    int childIndex) {
 
-  if (context->jointPointers[childIndex]->jointType == S2_JOINT_RIGID &&
-      context->pcl[childIndex] > -1) {
+  if(context->jointPointers[childIndex]->jointType == S2_JOINT_RIGID &&
+     context->pcl[childIndex] > -1) {
 
     s2_body_t* parentBody = context->bodyPointers[context->pcl[childIndex]];
     s2_body_t* childBody = context->bodyPointers[childIndex];
@@ -254,7 +254,7 @@ void inertia_merge(s2_context_t* context, s2_inertia_t* inertia,
     s2_displacement_setIdentity(&D_ij);
 
     s2_frame_t* parentFrame = NULL;
-    if (context->jointPointers[childIndex]->sense > 0) {
+    if(context->jointPointers[childIndex]->sense > 0) {
       s2_displacement_copy(
         context->jointPointers[childIndex]->generalDisplacement, &temp);
       parentFrame = context->jointPointers[childIndex]->parentFramePointer;
@@ -263,15 +263,13 @@ void inertia_merge(s2_context_t* context, s2_inertia_t* inertia,
         context->jointPointers[childIndex]->generalDisplacement, &temp);
       parentFrame = context->jointPointers[childIndex]->childFramePointer;
     }
-    if (!parentFrame->isReference) {
+    if(!parentFrame->isReference) {
       s2_product_dd(parentFrame->dWRTReference, &temp, &D_ij);
     } else {
       s2_displacement_copy(&temp, &D_ij);
     }
 
-    /*
-      1. Locate the combined center of mass t_icbar^i
-    */
+    /* 1. Locate the combined center of mass t_icbar^i */
 
     /*
       a. compute R^ij * t_jc^j (second half of Eq. 1.6)
@@ -282,21 +280,21 @@ void inertia_merge(s2_context_t* context, s2_inertia_t* inertia,
     /*
       b. compute t_ij^i + t_jc^i -> t_jc^i (eq. 1.6)
     */
-    for (int j = 0; j < 3; j++) {
+    for(int j = 0; j < 3; j++) {
       ((double*)&t_jc_i)[j] += ((double*)&(D_ij.T))[j];
     }
 
     /*
       c. compute mt_jc_i (eq 1.6)
     */
-    for (int j = 0; j < 3; j++) {
+    for(int j = 0; j < 3; j++) {
       ((double*)&mt_jc_i)[j] += *m_j * ((double*)&t_jc_i)[j];
     }
 
     /*
       d. compute quantity m_{i} * t_{ic}^i + m_{j} * t_{ic} (eq. 1.6)
     */
-    for (int j = 0; j < 3; j++) {
+    for(int j = 0; j < 3; j++) {
       ((double*)&mt_icbar)[j] = ((double*)&mt_jc_i)[j] + ((double*)&mt_ic_i)[j];
     }
 
@@ -304,7 +302,7 @@ void inertia_merge(s2_context_t* context, s2_inertia_t* inertia,
       e. compute t_icbar^i =
       m_{i} * t_{ic}^i + m_{j} * t_{ic} / (m_i + m_j) (eq 1.7)
     */
-    for (int j = 0; j < 3; j++) {
+    for(int j = 0; j < 3; j++) {
       ((double*)&t_icbar)[j] = ((double*)&mt_icbar)[j] / m_ij;
     }
 
@@ -342,7 +340,7 @@ void inertia_merge(s2_context_t* context, s2_inertia_t* inertia,
     memset(&vec, 0, sizeof(s2_vector_t));
 
     s2_product_rv(&(D_ij.R), t_jc_j, &vec);
-    for (int j = 0; j < 3; j++) {
+    for(int j = 0; j < 3; j++) {
       ((double*)&vec)[j] += ((double*)&D_ij.T)[j];
     }
     s2_subtract_vv(&t_icbar, &vec, &t_ccbar);
@@ -385,15 +383,19 @@ void s2_context_initializeInertia(s2_context_t* context) {
   s2_displacement_t d_rc;
   s2_displacement_t d_cr;
 
-  /* compute each inertia matrix with respect to reference frame on
-     each body */
-  for (int i = context->activeJointCount - 1; i > -1; i--) {
+// bool* hasMass = calloc(context->activeJointCount, sizeof(bool));
+
+/* compute each inertia matrix with respect to reference frame on
+   each body */
+#if _SHIFT_VERBOSE
+  printf("inertias before compression, expressed in inertial reference frame "
+         "coordinates:\n");
+#endif
+  for(int i = context->activeJointCount - 1; i > -1; i--) {
     s2_body_t* body = context->bodyPointers[i];
 
-    if (body->inertia->m < 1e-9) {
-      memset(inertia + i, 0, sizeof(s2_inertia_t));
-      context->hasMass[i] = false;
-    } else if (!body->isVirtual) {
+    if(!(body->inertia->m < 1e-9 || body->isVirtual)) {
+      // hasMass[i] = true;
 
       // fprintf(debug, "\n[%d] Transforming Inertia to reference frame for
       // body: ", i); s2_stackstr_print(debug, context->bodyPointers[i]->name);
@@ -415,41 +417,54 @@ void s2_context_initializeInertia(s2_context_t* context) {
       // s2_displacement_print(debug, &d_cr);
 
       memcpy(inertia + i, body->inertia, sizeof(s2_inertia_t));
+
       // fprintf(debug, "rotating inertia by: \n");
       // s2_mat3x3_print(debug, &(body->referenceFrame->dWRTOrigin->R));
       s2_inertia_rotate(body->inertia, &(body->referenceFrame->dWRTOrigin->R),
                         inertia + i);
       s2_product_vk(&(d_cr.T), &(inertia[i].m), &(inertia[i].mt));
+
+#if _SHIFT_VERBOSE
+      printf("  [%i] ", i);
+      s2_inertia_print(stdout, inertia + i);
+#endif
     }
   }
 
-  /* if a body is connected to its parent body with a rigid joint, merge
-     the body's inertia properties with the parent */
-  for (int i = context->activeJointCount - 1; i > -1; i--) {
+  /* for bodies connected by rigid joints, merge inertias into parent body
+  inertia */
+  for(int i = context->activeJointCount - 1; i > -1; i--) {
     /* only perform merge if parent joint type is rigid and
        the parent body is not the fixed body */
     inertia_merge(context, inertia, i);
   }
 
-  if (context->inertia) {
+  /* compress expanded inertia list into compressed list */
+  if(context->inertia) {
     free(context->inertia);
   }
-  context->inertia = calloc(context->dqCount, sizeof(s2_inertia_t));
-
-  /* compress expanded inertia list into compressed list */
-  for (int i = 0; i < context->activeJointCount; i++) {
-    int j = context->dqLookup[i];
-    if (j != -1) {
+  context->inertia = calloc(context->nonRigidJointCount, sizeof(s2_inertia_t));
+  for(int i = 0; i < context->activeJointCount; i++) {
+    int j = context->jointLookup[i];
+    if(j != -1) {
       memcpy(context->inertia + j, inertia + i, sizeof(s2_inertia_t));
     }
   }
-
   free(inertia);
 
-  if (context->inertiaP) {
+#if _SHIFT_VERBOSE
+  printf("inertia:\n");
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    printf("  [%i] ", i);
+    s2_inertia_print(stdout, context->inertia + i);
+  }
+#endif
+
+  if(context->inertiaP) {
     free(context->inertiaP);
   }
-  context->inertiaP = calloc(context->dqCount + 1, sizeof(s2_inertia_t));
+  context->inertiaP =
+    calloc(context->nonRigidJointCount + 1, sizeof(s2_inertia_t));
 }
 
 /*!

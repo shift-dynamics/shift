@@ -98,10 +98,11 @@ typedef struct s2_context_t {
                     fixed time intervals (slower), set to 1 */
 
     double timeSpan;        /*!< span of simulation time used for numerical
-                               integration.        if not specified in JSON file, the default
-                               is 1 second */
+                               integration.        if not specified in JSON file, the
+                               default        is 1 second */
     double timeStep;        /*!< nominal time step used for simulation, if not
-                               specified        in JSON file, the default is 0.001 seconds */
+                               specified        in JSON file, the default is 0.001
+                               seconds */
     double relativeError;   /*!< relative error convergence tolerance term,
                                  used by ode113. default value if not provided
                                  in JSON file is 0.0*/
@@ -221,7 +222,8 @@ typedef struct s2_context_t {
   bool* hasMassdq;      /*!< size equal to dqCount */
   int dependentCount;   /*!< number of dependent variables */
 
-  int* jointDOF; /*!< size equal to number of active joints */
+  int* jointDOF;           /*!< size equal to number of active joints */
+  int* jointDOFCompressed; /*!< size equal to number of non rigid joints */
 
   s2_substructure_t* substructures;
   int substructureCount;         /*!< Number of kinematic substructures */
@@ -348,14 +350,12 @@ typedef struct s2_context_t {
                        and dhvaFunctionPointers, set by
                        topology_ProcessTopology */
 
-  double* q;     /*!< primitive joint displacements */
-  double* qCopy; /*!< copy of primitive joint displacements */
-  double* dq;    /*!< primitive joint velocities */
-  double* ddq;   /*!< primitive joint accelerations */
-
-  double* deltaq; /*!< incremental change in q, used in Newton Raphson
-                       iteration */
-  // double* gamma_p; /*!< loop constraints */
+  double* q;       /*!< primitive joint displacements */
+  double* qCopy;   /*!< copy of primitive joint displacements */
+  double* dq;      /*!< primitive joint velocities */
+  double* ddq;     /*!< primitive joint accelerations */
+  double* deltaq;  /*!< incremental change in q, used in Newton Raphson
+                        iteration */
   double* gamma_d; /*!< preconditioned constraints */
   double* cs;      /*!< constraints */
   double* dcs;     /*!< constraint first derivative */
@@ -371,9 +371,9 @@ typedef struct s2_context_t {
   bool* Mlb;  /*!< boolean mass matrix, equal in size to M */
   bool* Mlbs; /*!< original boolean mass matrix, with no fills recorded */
 
-  s2_screw_t* p;         /*!< momentum */
-  s2_screw_t* g;         /*!< body and inertia forces */
-  s2_screw_t* k;         /*!< joint reaction forces */
+  s2_screw_t* p; /*!< momentum */
+  s2_screw_t* g; /*!< body and inertial forces, length equal to dq count */
+  s2_screw_t* k; /*!< joint reaction forces */
   s2_screw_t* mhProduct; /*!< product of mass matrix and influence
                                 coefficient matrices in PO(1) */
 
