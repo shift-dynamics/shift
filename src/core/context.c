@@ -62,7 +62,7 @@ s2_context_t* s2_context() {
 
   s2_context_t* self = malloc(sizeof *self);
 
-  if (!self) {
+  if(!self) {
     fprintf(stderr, "Error: failed to initialize Context.\n");
     return NULL;
   }
@@ -82,7 +82,7 @@ s2_context_t* s2_context() {
 
   /*! @TODO remove this later once dhva verified */
   self->modelParameters.dhvaFilePointer = fopen("dhva.dat", "w");
-  if (!self->modelParameters.dhvaFilePointer) {
+  if(!self->modelParameters.dhvaFilePointer) {
     fprintf(stderr, "could not open dhva debug file\n");
     self->modelParameters.dhvaFilePointer = NULL;
   }
@@ -165,6 +165,7 @@ s2_context_t* s2_context() {
   self->hasMassdq = NULL;      /*!< indicates whether body associated with
                                        joint variable has mass */
   self->jointDOF = NULL;
+  self->jointDOFCompressed = NULL;
 
   self->substructures = NULL;
   self->substructureCount = 0;        /*!< Number of kinematic substructures */
@@ -534,7 +535,7 @@ void s2_context_print(FILE* f, s2_context_t* context) {
   s2_stackstr_print(f, context->modelParameters.includeDirectory);
   s2_assembly_print(f, context->assembly);
   fprintf(f, "PC: ");
-  for (int i = 0; i < context->activeJointCount; i++) {
+  for(int i = 0; i < context->activeJointCount; i++) {
     fprintf(f, "%d ", context->pcl[i]);
   }
   fprintf(f, "\n");
@@ -548,10 +549,10 @@ Joint datastructures
 */
 void s2_context_freeH(s2_context_t* self) {
 
-  if (self->h) {
-    for (int i = 0; i < self->activeJointCount; i++) {
+  if(self->h) {
+    for(int i = 0; i < self->activeJointCount; i++) {
       s2_joint_t* joint = self->jointPointers[i];
-      if (joint->dqIndex > -1) {
+      if(joint->dqIndex > -1) {
         s2_screw_copyBack(self->h + joint->dqIndex, &(joint->h));
       }
     }
@@ -571,16 +572,16 @@ Not intended to be called directly, used internally by s2_FreeDVA function
 int s2_context_freeDVARecursive(s2_context_t* self, s2_assembly_t* assembly) {
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
-  while (subAssemblyHead) {
-    if (subAssemblyHead->active) {
+  while(subAssemblyHead) {
+    if(subAssemblyHead->active) {
       s2_body_t* bodyHead = subAssemblyHead->bodyHead;
-      while (bodyHead) {
+      while(bodyHead) {
         s2_frame_t* frameHead = bodyHead->referenceFrame;
         /*
           velocity and acceleration are only stored for the
           reference frame (frameHead).
         */
-        if (bodyHead->parentJointPointer->jointType != S2_JOINT_RIGID) {
+        if(bodyHead->parentJointPointer->jointType != S2_JOINT_RIGID) {
           s2_screw_copyBack(self->v + frameHead->vaIndex,
                             &(frameHead->velocityAbsolute));
           s2_screw_copyBack(self->aq + frameHead->vaIndex,
@@ -598,8 +599,8 @@ int s2_context_freeDVARecursive(s2_context_t* self, s2_assembly_t* assembly) {
           displacement is stored, computed for all frames
         */
         frameHead = bodyHead->frameHead;
-        while (frameHead) {
-          if (frameHead->dIndex > -1) {
+        while(frameHead) {
+          if(frameHead->dIndex > -1) {
             s2_displacement_copyBack(self->d + frameHead->dIndex,
                                      &(frameHead->dAbsolute));
           }
@@ -626,13 +627,13 @@ int s2_context_freeDVARecursive(s2_context_t* self, s2_assembly_t* assembly) {
 */
 void s2_context_freeDHVA(s2_context_t* self) {
 
-  if (self->d) {
+  if(self->d) {
     s2_frame_t* frameHead = self->assembly->bodyHead->frameHead;
     s2_screw_copyBack(self->v, &(frameHead->velocityAbsolute));
     s2_screw_copyBack(self->aq, &(frameHead->accelerationQuadraticAbsolute));
 
-    while (frameHead) {
-      if (frameHead->dIndex > -1) {
+    while(frameHead) {
+      if(frameHead->dIndex > -1) {
         s2_displacement_copyBack(self->d + frameHead->dIndex,
                                  &(frameHead->dAbsolute));
       }
@@ -645,15 +646,15 @@ void s2_context_freeDHVA(s2_context_t* self) {
     free(self->d);
     self->d = NULL;
   }
-  if (self->dWRTReference) {
+  if(self->dWRTReference) {
     free(self->dWRTReference);
     self->dWRTReference = NULL;
   }
-  if (self->v) {
+  if(self->v) {
     free(self->v);
     self->v = NULL;
   }
-  if (self->aq) {
+  if(self->aq) {
     free(self->aq);
     self->aq = NULL;
   }
@@ -669,10 +670,10 @@ Joint datastructures, also copies q and dq back to original datastructures
 */
 void s2_context_freeDc(s2_context_t* context) {
 
-  if (context->dc) {
-    for (int i = 0; i < context->activeJointCount; i++) {
+  if(context->dc) {
+    for(int i = 0; i < context->activeJointCount; i++) {
       s2_joint_t* joint = context->jointPointers[i];
-      switch (joint->jointType) {
+      switch(joint->jointType) {
         case S2_JOINT_RX:
         case S2_JOINT_RY:
         case S2_JOINT_RZ: {
@@ -728,10 +729,10 @@ void s2_context_freeDc(s2_context_t* context) {
 void s2_clearIndices(s2_assembly_t* assembly) {
 
   s2_body_t* bodyHead = assembly->bodyHead;
-  while (bodyHead) {
+  while(bodyHead) {
     bodyHead->index = -1;
     s2_frame_t* frameHead = bodyHead->frameHead;
-    while (frameHead) {
+    while(frameHead) {
       frameHead->index = -1;
       frameHead->vaIndex = -1;
       frameHead->isReference = false;
@@ -742,7 +743,7 @@ void s2_clearIndices(s2_assembly_t* assembly) {
   }
 
   s2_joint_t* jointHead = assembly->jointHead;
-  while (jointHead) {
+  while(jointHead) {
     jointHead->index = -1;
     jointHead->qIndex = -1;
     jointHead->dqIndex = -1;
@@ -750,25 +751,25 @@ void s2_clearIndices(s2_assembly_t* assembly) {
   }
 
   s2_light_t* lightHead = assembly->lightHead;
-  while (lightHead) {
+  while(lightHead) {
     lightHead->index = -1;
     lightHead = lightHead->next;
   }
 
   s2_io_t* ioHead = assembly->ioHead;
-  while (ioHead) {
+  while(ioHead) {
     ioHead->index = -1;
     ioHead = ioHead->next;
   }
 
   s2_restraint_t* restraintHead = assembly->restraintHead;
-  while (restraintHead) {
+  while(restraintHead) {
     restraintHead->index = -1;
     restraintHead = restraintHead->next;
   }
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
-  while (subAssemblyHead) {
+  while(subAssemblyHead) {
     s2_clearIndices(subAssemblyHead);
     subAssemblyHead = subAssemblyHead->next;
   }
@@ -779,7 +780,7 @@ void s2_clearIndices(s2_assembly_t* assembly) {
 */
 void s2_context_freeSubstructures(s2_context_t* context) {
 
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
     s2_arrayi_free(substructure->pc_12);
     s2_arrayi_free(substructure->pr_12);
@@ -789,7 +790,7 @@ void s2_context_freeSubstructures(s2_context_t* context) {
   s2_arrayi_free(context->Jxx);
   s2_array_free(context->J);
   s2_arrayb_free(context->Jb);
-  if (context->substructures) {
+  if(context->substructures) {
     free(context->substructures);
   }
   context->substructures = NULL;
@@ -816,150 +817,150 @@ void s2_context_freeRunTimeArrays(s2_context_t* context) {
   // printf("freed dhva\n");
 
   // printf("Freeing virtual bodies\n");
-  for (int i = 0; i < context->activeJointCount; i++) {
-    if (context->bodyPointers[i]->isVirtual) {
+  for(int i = 0; i < context->activeJointCount; i++) {
+    if(context->bodyPointers[i]->isVirtual) {
       s2_virtualbody_free(context->bodyPointers[i]);
     }
   }
 
   // printf("freeing body pointer array\n");
-  if (context->bodyPointers) {
+  if(context->bodyPointers) {
     free(context->bodyPointers);
     context->bodyPointers = NULL;
   }
 
   // printf("freeing joint pointer array\n");
-  if (context->jointPointers) {
+  if(context->jointPointers) {
     free(context->jointPointers);
     context->jointPointers = NULL;
   }
 
   // printf("freeing frame pointer array\n");
-  if (context->framePointers) {
+  if(context->framePointers) {
     free(context->framePointers);
     context->framePointers = NULL;
   }
 
-  if (context->dhFunctionPointers) {
+  if(context->dhFunctionPointers) {
     free(context->dhFunctionPointers);
     context->dhFunctionPointers = NULL;
   }
 
-  if (context->dhvaFunctionPointers) {
+  if(context->dhvaFunctionPointers) {
     free(context->dhvaFunctionPointers);
     context->dhvaFunctionPointers = NULL;
   }
 
-  if (context->dhva) {
+  if(context->dhva) {
     free(context->dhva[0]);
     free(context->dhva);
   }
 
-  if (context->q) {
+  if(context->q) {
     free(context->q);
     context->q = NULL;
     context->dq = NULL;
   }
 
   // printf("freeing jointTypes array\n");
-  if (context->jointTypes) {
+  if(context->jointTypes) {
     free(context->jointTypes);
     context->jointTypes = NULL;
   }
 
   // printf("freeing parent child list\n");
-  if (context->pcl) {
+  if(context->pcl) {
     free(context->pcl);
     context->pcl = NULL;
   }
 
   // printf("freeing levels list\n");
-  if (context->levels) {
+  if(context->levels) {
     free(context->levels);
     context->levels = NULL;
   }
 
   // printf("freeing substructureMembers list\n");
-  if (context->substructureMembers) {
-    for (int i = 0; i < context->substructureCount; i++) {
+  if(context->substructureMembers) {
+    for(int i = 0; i < context->substructureCount; i++) {
       free(context->substructureMembers[i]);
     }
     free(context->substructureMembers);
     context->substructureMembers = NULL;
   }
 
-  if (context->substructureMembersCount) {
+  if(context->substructureMembersCount) {
     free(context->substructureMembersCount);
     context->substructureMembersCount = NULL;
   }
 
   // printf("freeing chordConstraints\n");
-  if (context->chordConstraints) {
+  if(context->chordConstraints) {
     free(context->chordConstraints);
     context->chordConstraints = NULL;
   }
 
   // printf("freeing isReference\n");
-  if (context->isReference) {
+  if(context->isReference) {
     free(context->isReference);
     context->isReference = NULL;
   }
 
   // printf("freeing positiveLoopMembers\n");
-  if (context->positiveLoopMembers) {
+  if(context->positiveLoopMembers) {
     free(context->positiveLoopMembers[0]);
     free(context->positiveLoopMembers);
     context->positiveLoopMembers = NULL;
   }
 
   // printf("freeing positiveLoopMembersCount\n");
-  if (context->positiveLoopMembersCount) {
+  if(context->positiveLoopMembersCount) {
     free(context->positiveLoopMembersCount);
     context->positiveLoopMembersCount = NULL;
   }
 
   // printf("freeing negativeLoopMembers\n");
-  if (context->negativeLoopMembers) {
+  if(context->negativeLoopMembers) {
     free(context->negativeLoopMembers[0]);
     free(context->negativeLoopMembers);
     context->negativeLoopMembers = NULL;
   }
 
   // printf("freeing negativeLoopMembersCount\n");
-  if (context->negativeLoopMembersCount) {
+  if(context->negativeLoopMembersCount) {
     free(context->negativeLoopMembersCount);
     context->negativeLoopMembersCount = NULL;
   }
 
   // printf("freeing glReferenceFramesf\n");
-  if (context->glReferenceFramesf) {
+  if(context->glReferenceFramesf) {
     free(context->glReferenceFramesf);
     context->glReferenceFramesf = NULL;
   }
 
   // printf("freeing glReferenceFrames\n");
-  if (context->glReferenceFrames) {
+  if(context->glReferenceFrames) {
     free(context->glReferenceFrames);
     context->glReferenceFrames = NULL;
   }
 
-  if (context->nonVirtualBodyPointers) {
+  if(context->nonVirtualBodyPointers) {
     free(context->nonVirtualBodyPointers);
     context->nonVirtualBodyPointers = NULL;
   }
-  if (context->referenceFramePointers) {
+  if(context->referenceFramePointers) {
     free(context->referenceFramePointers);
     context->referenceFramePointers = NULL;
   }
-  if (context->lightPointers) {
+  if(context->lightPointers) {
     free(context->lightPointers);
     context->lightPointers = NULL;
   }
-  if (context->names) {
-    for (int i = 0; i < context->activeFrameInTreeCount; i++) {
-      if (context->names[i]) {
-        for (int j = 0; j < 4; j++) {
-          if (context->names[i][j]) {
+  if(context->names) {
+    for(int i = 0; i < context->activeFrameInTreeCount; i++) {
+      if(context->names[i]) {
+        for(int j = 0; j < 4; j++) {
+          if(context->names[i][j]) {
             free(context->names[i][j]);
           }
         }
@@ -1036,16 +1037,16 @@ void s2_context_freeRunTimeArrays(s2_context_t* context) {
   s2_arrayi_free(context->n1);
   s2_arrayi_free(context->n2);
   s2_arrayi_free(context->n3);
-  if (context->P) {
+  if(context->P) {
     free(context->P);
   }
   context->P = NULL;
   context->p3Start = 0;
-  if (context->inertia) {
+  if(context->inertia) {
     free(context->inertia);
   }
   context->inertia = NULL;
-  if (context->inertiaP) {
+  if(context->inertiaP) {
     free(context->inertiaP);
   }
   context->inertiaP = NULL;
@@ -1063,32 +1064,32 @@ void s2_context_freeRunTimeArrays(s2_context_t* context) {
   s2_arrayi_free(context->dqLookup);
   s2_arrayi_free(context->qLookup);
   s2_arrayi_free(context->jointLookup);
-  if (context->positiveLoopMembers) {
+  if(context->positiveLoopMembers) {
     s2_arrayi_free2D(context->positiveLoopMemberOffsets);
   }
-  if (context->negativeLoopMembers) {
+  if(context->negativeLoopMembers) {
     s2_arrayi_free2D(context->negativeLoopMemberOffsets);
   }
-  if (context->constraints) {
+  if(context->constraints) {
     s2_arrayi_free2D(context->constraints);
   }
   s2_arrays_free(context->g);
-  if (context->dcq) {
+  if(context->dcq) {
     free(context->dcq);
   }
   context->dcq = NULL;
-  if (context->originPointers) {
+  if(context->originPointers) {
     free(context->originPointers);
   }
   context->originPointers = NULL;
   s2_array_free(context->ddq);
-  if (context->dReferenceFrames) {
+  if(context->dReferenceFrames) {
     free(context->dReferenceFrames);
   }
   context->dReferenceFrames = NULL;
   s2_arrays_free(context->p);
   s2_array_free(context->gamma_d);
-  if (context->glReferenceFramesf) {
+  if(context->glReferenceFramesf) {
     free(context->glReferenceFramesf);
   }
   context->glReferenceFramesf = NULL;
@@ -1101,14 +1102,14 @@ void s2_context_freeRunTimeArrays(s2_context_t* context) {
 void s2_context_freeFixedFrames(s2_context_t* context) {
 
   s2_body_t* bodyHead = context->assembly->bodyHead;
-  while (bodyHead) {
+  while(bodyHead) {
     s2_body_t* bodyNext = bodyHead->next;
     s2_body_free(bodyHead);
     bodyHead = bodyNext;
   }
 
   s2_light_t* lightHead = context->assembly->lightHead;
-  while (lightHead) {
+  while(lightHead) {
     s2_light_t* lightNext = lightHead->next;
     s2_light_free(lightHead);
     lightHead = lightNext;
@@ -1124,7 +1125,7 @@ void s2_context_freeFixedFrames(s2_context_t* context) {
 */
 void s2_context_free(s2_context_t* context) {
 
-  if (context) {
+  if(context) {
     s2_context_freeNumericalIntegrator(context);
     s2_context_freeModelParameters(context);
     s2_context_freeRunTimeArrays(context);
@@ -1156,12 +1157,12 @@ s2_frame_t* s2_context_getFrameByName(s2_context_t* context,
                                       const char* bodyName,
                                       const char* frameName) {
 
-  for (int i = 0; i < context->activeJointCount; i++) {
+  for(int i = 0; i < context->activeJointCount; i++) {
     s2_body_t* bodyHead = context->bodyPointers[i];
-    if (!strcmp(bodyName, s2_stackstr_getRoot(bodyHead->name))) {
+    if(!strcmp(bodyName, s2_stackstr_getRoot(bodyHead->name))) {
       s2_frame_t* frameHead = bodyHead->frameHead;
-      while (frameHead) {
-        if (!strcmp(frameName, s2_stackstr_getRoot(frameHead->name))) {
+      while(frameHead) {
+        if(!strcmp(frameName, s2_stackstr_getRoot(frameHead->name))) {
           return frameHead;
         }
         frameHead = frameHead->next;
@@ -1182,9 +1183,9 @@ with root name match searching through all assemblies
 s2_body_t* s2_context_getBodyByName(s2_context_t* context,
                                     const char* bodyName) {
 
-  for (int i = 0; i < context->activeJointCount; i++) {
+  for(int i = 0; i < context->activeJointCount; i++) {
     s2_body_t* bodyHead = context->bodyPointers[i];
-    if (!strcmp(bodyName, s2_stackstr_getRoot(bodyHead->name))) {
+    if(!strcmp(bodyName, s2_stackstr_getRoot(bodyHead->name))) {
       return bodyHead;
     }
   }
@@ -1196,9 +1197,9 @@ s2_body_t* s2_context_getBodyByName(s2_context_t* context,
 
 */
 FILE* s2_context_getDebugPointer(s2_context_t* context, int i) {
-  if (i == 0) {
+  if(i == 0) {
     return context->modelParameters.debugFilePointer;
-  } else if (i == 1) {
+  } else if(i == 1) {
     return context->modelParameters.dhvaFilePointer;
   } else {
     return stdout;
@@ -1209,8 +1210,8 @@ FILE* s2_context_getDebugPointer(s2_context_t* context, int i) {
 @brief get current simulation time
 */
 double s2_context_getSimulationTime(s2_context_t* context) {
-  if (context->numericalIntegrator) {
-    switch (context->modelParameters.integrationType) {
+  if(context->numericalIntegrator) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
           context->numericalIntegrator;
@@ -1230,8 +1231,8 @@ double s2_context_getSimulationTime(s2_context_t* context) {
 @brief get current iconv value from numerical integrator
 */
 int s2_context_getIConv(s2_context_t* context) {
-  if (context->numericalIntegrator) {
-    switch (context->modelParameters.integrationType) {
+  if(context->numericalIntegrator) {
+    switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           context->numericalIntegrator;
@@ -1254,9 +1255,9 @@ int s2_context_loadFixedFrames(s2_context_t* context, json_t* root) {
   context->assembly->bodyHead = fixedBody;
 
   json_t* fixedObject = json_object_get(root, "fixed");
-  if (json_is_object(fixedObject)) {
+  if(json_is_object(fixedObject)) {
     json_t* framesObject = json_object_get(fixedObject, "frames");
-    if (!json_is_null(framesObject) && json_is_array(framesObject)) {
+    if(!json_is_null(framesObject) && json_is_array(framesObject)) {
       size_t framesIndex;
       json_t* frameObject;
       json_array_foreach(framesObject, framesIndex, frameObject) {
@@ -1265,9 +1266,9 @@ int s2_context_loadFixedFrames(s2_context_t* context, json_t* root) {
         s2_stackstr_append(
           frame->name, json_string_value(json_object_get(frameObject, "name")));
         json_t* rotation = json_object_get(frameObject, "R");
-        if (json_is_array(rotation)) {
-          for (int j = 0; j < 3; j++) {
-            for (int k = 0; k < 3; k++) {
+        if(json_is_array(rotation)) {
+          for(int j = 0; j < 3; j++) {
+            for(int k = 0; k < 3; k++) {
               s2_displacement_set(frame->dWRTOrigin, j, k,
                                   json_number_value(json_array_get(
                                     json_array_get(rotation, j), k)));
@@ -1275,8 +1276,8 @@ int s2_context_loadFixedFrames(s2_context_t* context, json_t* root) {
           }
         }
         json_t* translation = json_object_get(frameObject, "T");
-        if (json_is_array(translation)) {
-          for (int j = 0; j < 3; j++) {
+        if(json_is_array(translation)) {
+          for(int j = 0; j < 3; j++) {
             s2_vector_set(&(frame->dWRTOrigin->T), j,
                           json_number_value(json_array_get(translation, j)));
             // frame->translationWRTReference[j] =
@@ -1321,7 +1322,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
            json_string_value(json_object_get(
              json_object_get(modelParametersObject, "units"), "time")));
 
-  for (int i = 0; i < 3; i++) {
+  for(int i = 0; i < 3; i++) {
     ((double*)(context->modelParameters.gravity))[i] = json_number_value(
       json_array_get(json_object_get(modelParametersObject, "gravity"), i));
   }
@@ -1334,18 +1335,18 @@ void s2_context_loadModelParameters(s2_context_t* context,
 
   /* if there is no simulationObject, then set simulation parameters to default
   values */
-  if (simulationObject != NULL) {
+  if(simulationObject != NULL) {
     /*
       parse integration type
     */
     json_t* integrationObject =
       json_object_get(simulationObject, "integration_type");
-    if (integrationObject != NULL) {
+    if(integrationObject != NULL) {
       const char* integrationType = json_string_value(integrationObject);
-      if (!strcmp(integrationType, "ode113")) {
+      if(!strcmp(integrationType, "ode113")) {
         context->modelParameters.integrationType =
           S2_NUMERICALINTEGRATOR_ODE113;
-      } else if (!strcmp(integrationType, "ode113b")) {
+      } else if(!strcmp(integrationType, "ode113b")) {
         context->modelParameters.integrationType =
           S2_NUMERICALINTEGRATOR_ODE113B;
       } else {
@@ -1370,7 +1371,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
     /* load omega N for baumgarte constraint stabilization */
     json_t* omegaNObject = json_object_get(simulationObject, "omega_n");
     double omegaN = 20;
-    if (omegaNObject != NULL) {
+    if(omegaNObject != NULL) {
       omegaN = json_number_value(omegaNObject);
     }
     context->modelParameters.baumgarteOmegaN = omegaN;
@@ -1381,7 +1382,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
       parse time span
     */
     json_t* timeSpanObject = json_object_get(simulationObject, "time_span");
-    if (timeSpanObject != NULL) {
+    if(timeSpanObject != NULL) {
       context->modelParameters.timeSpan = json_number_value(timeSpanObject);
     } else {
       fprintf(stderr, "Warning, no time span specifed in JSON file, "
@@ -1393,7 +1394,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
       parse time step
     */
     json_t* timeStepObject = json_object_get(simulationObject, "time_step");
-    if (timeStepObject != NULL) {
+    if(timeStepObject != NULL) {
       context->modelParameters.timeStep = json_number_value(timeStepObject);
     } else {
       fprintf(stderr, "Warning, no time step specifed in JSON file, "
@@ -1402,19 +1403,19 @@ void s2_context_loadModelParameters(s2_context_t* context,
     }
 
     json_t* outFileObject = json_object_get(simulationObject, "out_file");
-    if (outFileObject != NULL) {
+    if(outFileObject != NULL) {
       asprintf(&(context->modelParameters.outFile), "%s",
                json_string_value(outFileObject));
     }
 
     json_t* debugFileObject = json_object_get(simulationObject, "debug_file");
-    if (debugFileObject != NULL) {
-      if (strcmp(json_string_value(debugFileObject), "stdout")) {
+    if(debugFileObject != NULL) {
+      if(strcmp(json_string_value(debugFileObject), "stdout")) {
         asprintf(&(context->modelParameters.debugFile), "%s",
                  json_string_value(debugFileObject));
         context->modelParameters.debugFilePointer =
           fopen(context->modelParameters.debugFile, "w");
-        if (!context->modelParameters.debugFilePointer) {
+        if(!context->modelParameters.debugFilePointer) {
           fprintf(stderr, "unable to open debug file, exiting.\n");
           exit(-1);
         }
@@ -1426,7 +1427,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
     */
     json_t* relativeErrorObject =
       json_object_get(simulationObject, "relative_error");
-    if (relativeErrorObject != NULL) {
+    if(relativeErrorObject != NULL) {
       context->modelParameters.relativeError =
         json_number_value(relativeErrorObject);
     } else {
@@ -1440,7 +1441,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
     */
     json_t* absoluteErrorObject =
       json_object_get(simulationObject, "absolute_error");
-    if (absoluteErrorObject != NULL) {
+    if(absoluteErrorObject != NULL) {
       context->modelParameters.absoluteError =
         json_number_value(absoluteErrorObject);
     } else {
@@ -1454,7 +1455,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
     */
     json_t* infNormMultiplierObject =
       json_object_get(simulationObject, "infinity_norm_multiplier");
-    if (infNormMultiplierObject != NULL) {
+    if(infNormMultiplierObject != NULL) {
       context->modelParameters.pivotRatioMultiple =
         json_number_value(infNormMultiplierObject);
     } else {
@@ -1479,18 +1480,18 @@ void s2_context_loadModelParameters(s2_context_t* context,
 
   context->modelParameters.includeDirectory = s2_stackstr();
   char* fullFilePath = s2_getFilePath(filePath);
-  if (fullFilePath) {
+  if(fullFilePath) {
     s2_stackstr_append(context->modelParameters.includeDirectory, fullFilePath);
     free(fullFilePath);
   }
-  if (json_is_array(includeDirectoryObject)) {
+  if(json_is_array(includeDirectoryObject)) {
     size_t index;
     json_t* value;
     json_array_foreach(includeDirectoryObject, index, value) {
       s2_stackstr_append(context->modelParameters.includeDirectory,
                          json_string_value(value));
     }
-  } else if (json_is_string(includeDirectoryObject)) {
+  } else if(json_is_string(includeDirectoryObject)) {
     s2_stackstr_append(context->modelParameters.includeDirectory,
                        json_string_value(includeDirectoryObject));
   }
@@ -1500,38 +1501,38 @@ void s2_context_loadModelParameters(s2_context_t* context,
 @brief free memory associated with modelParameters substructure
 */
 void s2_context_freeModelParameters(s2_context_t* context) {
-  if (context->modelParameters.units.angle) {
+  if(context->modelParameters.units.angle) {
     free(context->modelParameters.units.angle);
     context->modelParameters.units.angle = NULL;
   }
-  if (context->modelParameters.units.length) {
+  if(context->modelParameters.units.length) {
     free(context->modelParameters.units.length);
     context->modelParameters.units.length = NULL;
   }
-  if (context->modelParameters.units.mass) {
+  if(context->modelParameters.units.mass) {
     free(context->modelParameters.units.mass);
     context->modelParameters.units.mass = NULL;
   }
-  if (context->modelParameters.units.time) {
+  if(context->modelParameters.units.time) {
     free(context->modelParameters.units.time);
     context->modelParameters.units.time = NULL;
   }
-  if (context->modelParameters.dhvaFilePointer) {
+  if(context->modelParameters.dhvaFilePointer) {
     fclose(context->modelParameters.dhvaFilePointer);
   }
-  if (context->modelParameters.debugFilePointer &&
-      context->modelParameters.debugFilePointer != stdout) {
+  if(context->modelParameters.debugFilePointer &&
+     context->modelParameters.debugFilePointer != stdout) {
 
     fclose(context->modelParameters.debugFilePointer);
   }
 
-  if (context->modelParameters.version) {
+  if(context->modelParameters.version) {
     free(context->modelParameters.version);
     context->modelParameters.version = NULL;
   }
   s2_stackstr_free(context->modelParameters.includeDirectory);
 
-  if (context->modelParameters.gravity) {
+  if(context->modelParameters.gravity) {
     free(context->modelParameters.gravity);
     context->modelParameters.gravity = NULL;
   }
@@ -1550,18 +1551,18 @@ void s2_context_setLightPointers(s2_context_t* context) {
 
   // fprintf(debug, "# processing light pointers\n");
   // fprintf(debug, "%d lights\n", context->lightCount);
-  for (int i = 0; i < context->lightCount; i++) {
+  for(int i = 0; i < context->lightCount; i++) {
     // fprintf(debug, "\n\nprocessing light ");
     // s2_stackstr_print(debug, context->lightPointers[i]->name);
     //
     // fprintf(debug, "\nsearching for ");
     // s2_stackstr_print(debug, context->lightPointers[i]->parentFrame);
 
-    for (int j = 0; j < context->bodyCount; j++) {
+    for(int j = 0; j < context->bodyCount; j++) {
       s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
-      while (frameHead) {
-        if (s2_stackstr_isEqual(context->lightPointers[i]->parentFrame,
-                                frameHead->name)) {
+      while(frameHead) {
+        if(s2_stackstr_isEqual(context->lightPointers[i]->parentFrame,
+                               frameHead->name)) {
 
           // fprintf(debug, "\nmatch found!");
           context->lightPointers[i]->parentFramePointer = frameHead;
@@ -1575,7 +1576,7 @@ void s2_context_setLightPointers(s2_context_t* context) {
 void s2_context_flattenFixedLights(s2_context_t* context, int* lightCounter) {
 
   s2_light_t* lightHead = context->assembly->lightHead;
-  while (lightHead) {
+  while(lightHead) {
     context->lightPointers[*lightCounter] = lightHead;
     lightHead->index = (*lightCounter);
     (*lightCounter)++;
@@ -1589,30 +1590,30 @@ void s2_context_flattenHierarchy(s2_assembly_t* assembly, s2_context_t* context,
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
   // if(subAssemblyHead){
-  while (subAssemblyHead) {
+  while(subAssemblyHead) {
     s2_body_t* bodyHead = subAssemblyHead->bodyHead;
-    while (bodyHead) {
+    while(bodyHead) {
       context->bodyPointers[*bodyCounter] = bodyHead;
       bodyHead->index = (*bodyCounter);
       (*bodyCounter)++;
       bodyHead = bodyHead->next;
     }
     s2_joint_t* jointHead = subAssemblyHead->jointHead;
-    while (jointHead) {
+    while(jointHead) {
       context->jointPointers[*jointCounter] = jointHead;
       jointHead->index = (*jointCounter);
       (*jointCounter)++;
       jointHead = jointHead->next;
     }
     s2_light_t* lightHead = subAssemblyHead->lightHead;
-    while (lightHead) {
+    while(lightHead) {
       context->lightPointers[*lightCounter] = lightHead;
       lightHead->index = (*lightCounter);
       (*lightCounter)++;
       lightHead = lightHead->next;
     }
 
-    if (subAssemblyHead->subAssemblyHead) {
+    if(subAssemblyHead->subAssemblyHead) {
       s2_context_flattenHierarchy(subAssemblyHead, context, bodyCounter,
                                   jointCounter, lightCounter);
     }
@@ -1654,7 +1655,7 @@ s2_context_t* s2_context_loadJSON(json_t* root, const char* filePath) {
 
   /* load modelParameters */
   json_t* modelParametersObject = json_object_get(root, "model_parameters");
-  if (!json_is_object(modelParametersObject)) {
+  if(!json_is_object(modelParametersObject)) {
     fprintf(stderr, "No valid model parameters object found.\n");
     return NULL;
   }
@@ -1678,7 +1679,7 @@ s2_context_t* s2_context_loadJSON(json_t* root, const char* filePath) {
 
   json_t* assembliesObject = json_object_get(root, "assemblies");
 
-  if (!json_is_array(assembliesObject)) {
+  if(!json_is_array(assembliesObject)) {
     fprintf(stderr, "No valid assembly object found.\n");
     return NULL;
   }
@@ -1689,19 +1690,19 @@ s2_context_t* s2_context_loadJSON(json_t* root, const char* filePath) {
 
   context->bodyPointers = malloc(sizeof(s2_body_t*) * (context->bodyCount + 1));
   context->jointPointers = malloc(sizeof(s2_joint_t*) * context->jointCount);
-  if (context->lightCount > 0) {
+  if(context->lightCount > 0) {
     context->lightPointers = malloc(sizeof(s2_light_t*) * context->lightCount);
   } else {
     context->lightPointers = NULL;
   }
 
-  for (int i = 0; i < (context->bodyCount + 1); i++) {
+  for(int i = 0; i < (context->bodyCount + 1); i++) {
     context->bodyPointers[i] = NULL;
   }
-  for (int i = 0; i < context->jointCount; i++) {
+  for(int i = 0; i < context->jointCount; i++) {
     context->jointPointers[i] = NULL;
   }
-  for (int i = 0; i < context->lightCount; i++) {
+  for(int i = 0; i < context->lightCount; i++) {
     context->lightPointers[i] = NULL;
   }
   context->bodyPointers[0] = context->assembly->bodyHead;
@@ -1741,13 +1742,13 @@ s2_context_t* s2_context_load(const char* fileName) {
     get path to file name
   */
 
-  if (!root) {
+  if(!root) {
     fprintf(stderr, "Error: file loading error on line %d: %s\n", error.line,
             error.text);
     return NULL;
   }
 
-  if (!json_is_object(root)) {
+  if(!json_is_object(root)) {
     fprintf(
       stderr,
       "Error: file loading error, file does not contain a valid object\n");
@@ -1769,9 +1770,9 @@ bool s2_connectFramePointer(s2_body_t* body, s2_joint_t* joint,
 
   bool found = false;
   s2_frame_t* frameHead = body->frameHead;
-  if (searchParent) {
-    while (frameHead) {
-      if (s2_stackstr_isEqual(joint->parentFrame, frameHead->name)) {
+  if(searchParent) {
+    while(frameHead) {
+      if(s2_stackstr_isEqual(joint->parentFrame, frameHead->name)) {
         joint->parentFramePointer = frameHead;
         found = true;
         break;
@@ -1779,8 +1780,8 @@ bool s2_connectFramePointer(s2_body_t* body, s2_joint_t* joint,
       frameHead = frameHead->next;
     }
   } else {
-    while (frameHead) {
-      if (s2_stackstr_isEqual(joint->childFrame, frameHead->name)) {
+    while(frameHead) {
+      if(s2_stackstr_isEqual(joint->childFrame, frameHead->name)) {
         joint->childFramePointer = frameHead;
         found = true;
         break;
@@ -1800,15 +1801,15 @@ The flattened list must be generated using s2_LoadFlattenedBodyJointList
 */
 void s2_context_setBodyJointPointers(s2_context_t* context) {
 
-  for (int i = 0; i < context->jointCount; i++) {
+  for(int i = 0; i < context->jointCount; i++) {
     bool parentFound = false;
-    for (int j = 0; j < context->bodyCount + 1; j++) {
-      if (s2_stackstr_isEqual(context->jointPointers[i]->parentBody,
-                              context->bodyPointers[j]->name)) {
+    for(int j = 0; j < context->bodyCount + 1; j++) {
+      if(s2_stackstr_isEqual(context->jointPointers[i]->parentBody,
+                             context->bodyPointers[j]->name)) {
 
         context->jointPointers[i]->parentBodyPointer = context->bodyPointers[j];
-        if (!s2_connectFramePointer(context->bodyPointers[j],
-                                    context->jointPointers[i], true)) {
+        if(!s2_connectFramePointer(context->bodyPointers[j],
+                                   context->jointPointers[i], true)) {
           fprintf(stderr,
                   "Warning, parentFrame not found for joint: %s, frame: %s\n",
                   context->jointPointers[i]->name->tail->value,
@@ -1820,13 +1821,13 @@ void s2_context_setBodyJointPointers(s2_context_t* context) {
       }
     }
     bool childFound = false;
-    for (int j = 0; j < context->bodyCount + 1; j++) {
-      if (s2_stackstr_isEqual(context->jointPointers[i]->childBody,
-                              context->bodyPointers[j]->name)) {
+    for(int j = 0; j < context->bodyCount + 1; j++) {
+      if(s2_stackstr_isEqual(context->jointPointers[i]->childBody,
+                             context->bodyPointers[j]->name)) {
 
         context->jointPointers[i]->childBodyPointer = context->bodyPointers[j];
-        if (!s2_connectFramePointer(context->bodyPointers[j],
-                                    context->jointPointers[i], false)) {
+        if(!s2_connectFramePointer(context->bodyPointers[j],
+                                   context->jointPointers[i], false)) {
           fprintf(stderr,
                   "Warning, parentFrame not found for joint: %s, frame: %s\n",
                   context->jointPointers[i]->name->tail->value,
@@ -1838,13 +1839,13 @@ void s2_context_setBodyJointPointers(s2_context_t* context) {
       }
     }
 
-    if (!parentFound) {
+    if(!parentFound) {
       fprintf(stderr, "Warning, parentBody not found for joint: %s, body: %s\n",
               context->jointPointers[i]->name->tail->value,
               context->jointPointers[i]->childBody->tail->value);
     }
 
-    if (!childFound) {
+    if(!childFound) {
       fprintf(stderr, "Warning, childBody not found for joint: %s, body: %s\n",
               context->jointPointers[i]->name->tail->value,
               context->jointPointers[i]->childBody->tail->value);
@@ -1863,24 +1864,24 @@ void s2_context_setTerrainPointers(s2_context_t* context) {
   //
   // fprintf(debug, "# processing elevation map pointers\n");
   // fprintf(debug, "%d lights\n", context->lightCount);
-  for (int i = 0; i < context->terrainCount; i++) {
+  for(int i = 0; i < context->terrainCount; i++) {
     // fprintf(debug, "\n\nprocessing light ");
     // s2_stackstr_print(debug, context->lightPointers[i]->name);
     //
     // fprintf(debug, "\nsearching for ");
     // s2_stackstr_print(debug, context->lightPointers[i]->parentFrame);
 
-    for (int j = 0; j < context->bodyCount; j++) {
+    for(int j = 0; j < context->bodyCount; j++) {
       s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
-      if (s2_stackstr_isEqual(context->terrains[i]->parentBody,
-                              context->bodyPointers[j]->name)) {
+      if(s2_stackstr_isEqual(context->terrains[i]->parentBody,
+                             context->bodyPointers[j]->name)) {
         context->terrains[i]->parentBodyPointer = context->bodyPointers[j];
         // s2_stackstr_print(debug, context->bodyPointers[j]->name);
       }
 
-      while (frameHead) {
-        if (s2_stackstr_isEqual(context->terrains[i]->parentFrame,
-                                frameHead->name)) {
+      while(frameHead) {
+        if(s2_stackstr_isEqual(context->terrains[i]->parentFrame,
+                               frameHead->name)) {
           context->terrains[i]->parentFramePointer = frameHead;
           // s2_stackstr_print(debug, frameHead->name);
         }

@@ -18,9 +18,9 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 #include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
 #else
@@ -28,32 +28,29 @@ SUCH DAMAGE.
 #endif
 #include "../shift.h"
 
-
 /*!
 @brief clear and set externally applied forces to model
 */
-void s2_context_setForces(
-  s2_context_t* context,
-  double* y) {
+void s2_context_setForces(s2_context_t* self, double* y) {
 
-  /* clear g array */
-  memset(context->g, 0, context->nonRigidJointCount * sizeof(s2_screw_t));
-  memset(context->f, 0, context->dqCount * sizeof(double));
+  /* clear g and f arrays */
+  memset(self->g, 0, self->nonRigidJointCount * sizeof(s2_screw_t));
+  memset(self->f, 0, self->dqCount * sizeof(double));
 
   double t = 0;
-  switch(context->modelParameters.integrationType) {
+  switch(self->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
-        (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
+        (s2_numericalintegrator_ode113_t*)self->numericalIntegrator;
       t = numericalIntegrator->t;
+      break;
     }
-    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
-        (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
+        (s2_numericalintegrator_ode113b_t*)self->numericalIntegrator;
       t = numericalIntegrator->x;
+      break;
     }
-    break;
   }
 
   // double ramp = 0.1;
@@ -66,27 +63,25 @@ void s2_context_setForces(
   // }
 
   /* service force modules */
-  for(int i = 0; i < context->forceModuleCount; i++) {
+  for(int i = 0; i < self->forceModuleCount; i++) {
 
-    s2_forcemodule_t* forceModule = context->forceModulePointers[i];
+    s2_forcemodule_t* forceModule = self->forceModulePointers[i];
     // FILE* debug = s2_context_getDebugPointer(context, 0);
     // fprintf(debug,
     //   "servicing force module [%d] at yOffset: %d ",
     //   i, forceModule->yOffset);
     // s2_stackstr_print(debug, forceModule->name);
-    forceModule->update(
-      context,
-      forceModule->parameters,
-      y + forceModule->yOffset);
+    forceModule->update(self, forceModule->parameters,
+                        y + forceModule->yOffset);
   }
 
   /* set damping */
-  for(int i = 0; i < context->dampingCount; i++) {
-    s2_damping_joint(context, context->dampingJoints[i]);
+  for(int i = 0; i < self->dampingCount; i++) {
+    s2_damping_joint(self, self->dampingJoints[i]);
   }
 
   /* set stiffness */
-  for(int i = 0; i < context->stiffnessCount; i++) {
-    s2_stiffness_joint(context, context->stiffnessJoints[i]);
+  for(int i = 0; i < self->stiffnessCount; i++) {
+    s2_stiffness_joint(self, self->stiffnessJoints[i]);
   }
 }
