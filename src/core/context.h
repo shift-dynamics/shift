@@ -125,9 +125,7 @@ typedef struct s2_context_t {
                                 stabilization */
 
     bool monitorIterations;      /*!< monitor iterations in de */
-    bool monitorConstraintError; /*!< monitor constraint error
-
-    */
+    bool monitorConstraintError; /*!< monitor constraint error */
 
     double sumConstraintError;
     double maxConstraintError;

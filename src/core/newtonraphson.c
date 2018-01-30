@@ -33,9 +33,9 @@ void s2_printNewtonRaphsonError(s2_substructure_t* substructure,
 void s2_substructure_firstOrderUpdate(s2_substructure_t* substructure) {
 
   /* rows in B matrix */
-  for (int i = 0; i < substructure->rank; i++) {
+  for(int i = 0; i < substructure->rank; i++) {
     /* columns in B matrix */
-    for (int j = substructure->rank; j < substructure->dqCount; j++) {
+    for(int j = substructure->rank; j < substructure->dqCount; j++) {
 
       substructure->q[substructure->pc_12[i]] -=
         substructure->J[i * substructure->dqCount + j] *
@@ -103,8 +103,8 @@ void s2_substructure_newtonRaphsonSolver(s2_substructure_t* substructure) {
   memset(substructure->deltaq, 0, substructure->dqCount * sizeof(double));
 
   /* cs <-  L^-1 cs */
-  for (int i = 0; i < substructure->rank; i++) {
-    for (int j = 0; j < i; j++) {
+  for(int i = 0; i < substructure->rank; i++) {
+    for(int j = 0; j < i; j++) {
       substructure->cs[substructure->pr_12[i]] -=
         substructure->J[i * substructure->dqCount + j] *
         substructure->cs[substructure->pr_12[j]];
@@ -112,8 +112,8 @@ void s2_substructure_newtonRaphsonSolver(s2_substructure_t* substructure) {
   }
 
   /* deltaq <- U^-1 * (L^-1 * cs) */
-  for (int i = substructure->rank - 1; i > -1; i--) {
-    for (int j = substructure->rank - 1; j > i; j--) {
+  for(int i = substructure->rank - 1; i > -1; i--) {
+    for(int j = substructure->rank - 1; j > i; j--) {
       substructure->cs[substructure->pr_12[i]] -=
         substructure->J[i * substructure->dqCount + j] *
         substructure->deltaq[substructure->pc_12[j]];
@@ -126,7 +126,7 @@ void s2_substructure_newtonRaphsonSolver(s2_substructure_t* substructure) {
 
 /*!
 @brief update q array
-
+@param a kinematic substructure to process
 */
 void s2_substructure_updateq(s2_substructure_t* substructure) {
   s2_context_t* context = substructure->context;
@@ -134,11 +134,11 @@ void s2_substructure_updateq(s2_substructure_t* substructure) {
   int dqIndex = substructure->dqOffset;
   int qIndex = substructure->qOffset;
   // printf("\n");
-  for (int j = 1; j < context->substructureMembersCount[substructureIndex];
-       j++) {
+  for(int j = 1; j < context->substructureMembersCount[substructureIndex];
+      j++) {
     // printf("qIndex: %d/%d dqIndex: %d/%d\n", qIndex, context->qCount,
     // dqIndex, context->dqCount);
-    switch (
+    switch(
       context->jointPointers[context->substructureMembers[substructureIndex][j]]
         ->jointType) {
       case S2_JOINT_RIGID: {
@@ -196,7 +196,7 @@ void s2_substructure_updateq(s2_substructure_t* substructure) {
         break;
       }
       default: {
-        if (fabs(context->deltaq[dqIndex]) > 1e-9) {
+        if(fabs(context->deltaq[dqIndex]) > 1e-9) {
           printf("nonzero dq: %g\n", context->deltaq[dqIndex]);
         }
         context->q[qIndex++] -= context->deltaq[dqIndex++];
@@ -276,7 +276,7 @@ int s2_substructure_removeConstraintViolations(
 
   int step = 0;
   double error = context->epsNewtonRaphsonRankDetermination + 1;
-  while (error > context->epsNewtonRaphsonRankDetermination && step < maxStep) {
+  while(error > context->epsNewtonRaphsonRankDetermination && step < maxStep) {
     s2_substructure_setJacobianPO1(substructure);
     s2_substructure_newtonRaphsonSolver(substructure);
     s2_substructure_updateq(substructure);
@@ -288,7 +288,7 @@ int s2_substructure_removeConstraintViolations(
   }
   s2_context_updateDH(context);
   s2_substructure_setJacobianBooleanPO2(substructure);
-  if (step == maxStep) {
+  if(step == maxStep) {
     s2_printNewtonRaphsonError(substructure, initialError, error, qCopy);
     return -1;
   } else {
@@ -305,15 +305,15 @@ using a strict error tolerance (context->epsNewtonRaphsonRankDetermination)
 int s2_context_removeConstraintViolations(s2_context_t* self) {
 
   bool constraintsSatisfied = true;
-  for (int i = 0; i < self->substructureCount; i++) {
+  for(int i = 0; i < self->substructureCount; i++) {
     s2_substructure_t* substructure = self->substructures + i;
     int returnVal = s2_substructure_removeConstraintViolations(substructure);
-    if (returnVal) {
+    if(returnVal) {
       constraintsSatisfied = false;
     }
   }
   s2_context_updateGLReferenceFrames(self);
-  if (constraintsSatisfied) {
+  if(constraintsSatisfied) {
     return 0;
   } else {
     return -1;
@@ -340,7 +340,7 @@ void s2_printNewtonRaphsonError(s2_substructure_t* substructure,
   fprintf(f, " states after Newton-Raphson:\n    ");
   s2_array_print(f, context->qCount, context->q);
   fprintf(f, " values that have changed:\n       ");
-  for (int i = 0; i < context->qCount; i++) {
+  for(int i = 0; i < context->qCount; i++) {
     fprintf(f, "%s ", fabs(context->q[i] - qCopy[i]) > 1e-9 ? "true" : "false");
   }
   printf(">>>\n\n");
@@ -368,7 +368,7 @@ int s2_substructure_removeConstraintViolationsFast(
   memcpy(qCopy, context->q, context->qCount * sizeof(double));
   const int maxStep = 100;
   double tol;
-  if (useTightTolerance) {
+  if(useTightTolerance) {
     tol = context->epsNewtonRaphsonRankDetermination;
   } else {
     tol = context->epsNewtonRaphson;
@@ -378,7 +378,7 @@ int s2_substructure_removeConstraintViolationsFast(
   s2_substructure_evaluateConstraints(substructure);
   int step = 0;
   double error = tol + 1;
-  while (error > tol && step < maxStep) {
+  while(error > tol && step < maxStep) {
     s2_substructure_newtonRaphsonSolver(substructure);
     s2_substructure_updateq(substructure);
     s2_context_updateDH(context);
@@ -390,7 +390,7 @@ int s2_substructure_removeConstraintViolationsFast(
 
   // printf("  q after NR for substructure [%d]: ", substructureIndex);
   // s2_array_print(substructure->qCount, substructure->q);
-  if (step == maxStep) {
+  if(step == maxStep) {
     s2_printNewtonRaphsonError(substructure, initialError, error, qCopy);
     return -1;
   } else {
@@ -408,7 +408,7 @@ requires that setJacobianPO1 has been called in every substructure.
 void s2_context_removeConstraintViolationsFast(s2_context_t* context,
                                                bool useTightTolerance) {
 
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
     s2_substructure_removeConstraintViolationsFast(substructure,
                                                    useTightTolerance);
@@ -459,7 +459,7 @@ int s2_substructure_incrementSpecifiedCoordinate(
   s2_context_t* context = substructure->context;
   memset(substructure->deltaq, 0, substructure->dqCount * sizeof(double));
 
-  switch (moveType) {
+  switch(moveType) {
     case S2_JOINT_INCREMENT: {
       context->deltaq[specifiedCoordinateIndex] = value;
       context->q[specifiedCoordinateIndex] += value;

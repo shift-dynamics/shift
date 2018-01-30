@@ -389,7 +389,7 @@ prints a 6x1 column vector as a row vector
 */
 void s2_screw_print(FILE* f, s2_screw_t* si) {
 
-  fprintf(f, "%g %g %g %g %g %g\n", si->m0, si->m1, si->m2, si->m3, si->m4,
+  fprintf(f, "%g,%g,%g,%g,%g,%g,", si->m0, si->m1, si->m2, si->m3, si->m4,
           si->m5);
 }
 
@@ -530,7 +530,7 @@ void s2_array_print2D(FILE* f, int rowDim, int colDim, bool isRowMajor,
 void s2_arrayi_print(FILE* f, int n, int* a) {
 
   for(int i = 0; i < n; i++) {
-    fprintf(f, "%d ", a[i]);
+    fprintf(f, "%d, ", a[i]);
   }
   fprintf(f, "\n");
 }
@@ -544,7 +544,7 @@ void s2_triang_print(FILE* f, int n, double* a) {
   for(int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
     for(int j = 0; j < i + 1; j++) {
-      fprintf(f, "% 9.4f ", a[i_s + j]);
+      fprintf(f, "% 9.4f,", a[i_s + j]);
     }
     fprintf(f, "\n");
   }
@@ -559,7 +559,7 @@ void s2_triangi_print(FILE* f, int n, int* a) {
   for(int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
     for(int j = 0; j < i + 1; j++) {
-      fprintf(f, "% d ", a[i_s + j]);
+      fprintf(f, "% d,", a[i_s + j]);
     }
     fprintf(f, "\n");
   }
@@ -574,7 +574,7 @@ void s2_triangb_print(FILE* f, int n, bool* a) {
   for(int i = 0; i < n; i++) {
     int i_s = (i * (i + 1) / 2);
     for(int j = 0; j < i + 1; j++) {
-      fprintf(f, "%s ", a[i_s + j] ? "1" : "0");
+      fprintf(f, "%s,", a[i_s + j] ? "1" : "0");
     }
     fprintf(f, "\n");
   }

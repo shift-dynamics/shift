@@ -43,13 +43,8 @@ int main(int argc, char* argv[]) {
   // fprintf(debug, "\n## printing jacobian\n");
   s2_context_setJacobianPO1(context);
 
-
   printf("\n# printing context\n");
   s2_context_print(stdout, context);
-
-  // printf("\n## creating graph\n");
-  // s2_graph_digraph(context, "digraph_bodies.png");
-  s2_graph_digraphFrames(context, "digraph_frames.png");
 
   // printf("verifying dq arrays in substructures:\n");
   // for(int i = 0; i < context->substructureCount; i++) {
@@ -65,10 +60,14 @@ int main(int argc, char* argv[]) {
   //
   // }
 
-
   /* remove constraint error */
   fprintf(stdout, "\n# removing constraint error\n");
   s2_context_removeConstraintViolations(context);
+
+  // printf("\n## creating graph\n");
+  // s2_graph_digraph(context, "digraph_bodies.png");
+  s2_context_updateDH(context);
+  s2_context_digraphFrames(context, "digraph_frames.png");
 
   s2_context_printJacobian(stdout, context);
 
@@ -76,8 +75,6 @@ int main(int argc, char* argv[]) {
   //
   //
   // s2_context_setJacobianPO1(context);
-
-
 
   // fprintf(debug, "\n## jacobian after removing constraint violations\n");
   // s2_jacobian_print(debug, context);
@@ -112,7 +109,8 @@ int main(int argc, char* argv[]) {
   // // s2_arrayi_print(context->dqCount, context->pcldq);
   // //
   // printf("pclCompressed: ");
-  // s2_arrayi_print(debug, context->nonRigidJointCount, context->pclCompressed);
+  // s2_arrayi_print(debug, context->nonRigidJointCount,
+  // context->pclCompressed);
   //
   // fprintf(debug, "pv_12: ");
   // s2_arrayi_print(debug, context->dqCount, context->pv_12);
@@ -208,7 +206,8 @@ int main(int argc, char* argv[]) {
   //
   //   int dependentOffset = substructure->dqOffset + substructure->dqCount -
   //     substructure->rank;
-  //   for(int j = dependentOffset; j < substructure->dqCount + substructure->dqOffset; j++) {
+  //   for(int j = dependentOffset; j < substructure->dqCount +
+  //   substructure->dqOffset; j++) {
   //     fprintf(debug, "[%d]: ", j);
   //     for(int k = context->rb3[j][0]; k < context->rb3[j][1]; k++) {
   //       fprintf(debug, "(%d): %0.9f, ", context->cb3[k], context->b3[k]);
@@ -216,26 +215,31 @@ int main(int argc, char* argv[]) {
   //     fprintf(debug, "\n");
   //   }
   //
-  //   fprintf(debug, "\n[%d] B matrix in PO3 permuted from full dense PO2:\n", sub);
+  //   fprintf(debug, "\n[%d] B matrix in PO3 permuted from full dense PO2:\n",
+  //   sub);
   //
   //   int pv_local_23[substructure->dqCount];
   //   for(int i = 0; i < substructure->dqCount; i++) {
-  //     pv_local_23[i] = context->pv_23[i + substructure->dqOffset] - substructure->dqOffset;
+  //     pv_local_23[i] = context->pv_23[i + substructure->dqOffset] -
+  //     substructure->dqOffset;
   //   }
   //   fprintf(debug, "pv_local_23 ");
   //   s2_arrayi_print(debug, substructure->dqCount, pv_local_23);
   //
-  //   for(int i3 = substructure->dqCount - substructure->rank; i3 < substructure->dqCount; i3++) {
+  //   for(int i3 = substructure->dqCount - substructure->rank; i3 <
+  //   substructure->dqCount; i3++) {
   //
   //     int i2 = pv_local_23[i3];
   //
   //     fprintf(debug, "[%d] ", i3 + substructure->dqOffset);
   //     int k = substructure->dqOffset;
-  //     for(int j3 = 0; j3 < substructure->dqCount - substructure->rank; j3++, k++) {
+  //     for(int j3 = 0; j3 < substructure->dqCount - substructure->rank; j3++,
+  //     k++) {
   //
   //       int j2 = pv_local_23[j3];
   //       // fprintf(debug, "i2: %d, j2: %d ", i2, j2);
-  //       fprintf(debug, "(%d) %0.9f ", k, substructure->J[i2 * substructure->dqCount + j2]);
+  //       fprintf(debug, "(%d) %0.9f ", k, substructure->J[i2 *
+  //       substructure->dqCount + j2]);
   //     }
   //     fprintf(debug, "\n");
   //   }
@@ -252,18 +256,21 @@ int main(int argc, char* argv[]) {
   //   for(int i = 0; i < substructure->rank; i++) {
   //     fprintf(outFile, "        [");
   //     for(int j = 0; j < substructure->dqCount - 1; j++) {
-  //       fprintf(outFile, "% 0.12g, ", substructure->J[i * substructure->dqCount + j]);
+  //       fprintf(outFile, "% 0.12g, ", substructure->J[i *
+  //       substructure->dqCount + j]);
   //     }
   //     if(i != substructure->rank - 1) {
   //       fprintf(
   //         outFile,
   //         "% 0.12g],\n",
-  //         substructure->J[i * substructure->dqCount + substructure->dqCount - 1]);
+  //         substructure->J[i * substructure->dqCount + substructure->dqCount -
+  //         1]);
   //     } else {
   //       fprintf(
   //         outFile,
   //         "% 0.12g]])\n",
-  //         substructure->J[i * substructure->dqCount + substructure->dqCount - 1]);
+  //         substructure->J[i * substructure->dqCount + substructure->dqCount -
+  //         1]);
   //     }
   //   }
   // }
@@ -280,9 +287,10 @@ int main(int argc, char* argv[]) {
   //   for(int i = 0; i < substructure->rank; i++) {
   //     fprintf(outFile, "[");
   //     for(int j = substructure->rank; j < substructure->dqCount; j++) {
-  //       fprintf(outFile, "%0.12g, ", substructure->J[i * substructure->dqCount + j]);
-  //       int b3Index = substructure->ijMapping[i * substructure->dqCount + j];
-  //       assert(substructure->J[i * substructure->dqCount + j] ==
+  //       fprintf(outFile, "%0.12g, ", substructure->J[i *
+  //       substructure->dqCount + j]); int b3Index = substructure->ijMapping[i
+  //       * substructure->dqCount + j]; assert(substructure->J[i *
+  //       substructure->dqCount + j] ==
   //         context->b3[b3Index]);
   //     }
   //     fprintf(outFile, "]\n");
@@ -337,10 +345,7 @@ int main(int argc, char* argv[]) {
   //
   // fprintf(debug, "\nintegrating equations:\n");
 
-
-
   // s2_context_integrateEquations(context);
-
 
   s2_context_free(context);
 
