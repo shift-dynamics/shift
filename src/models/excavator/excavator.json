@@ -15,7 +15,17 @@
     "include_dir": [
       "models/excavator/",
       "examples/"
-    ]
+    ],
+    "simulation": {
+      "integration_type": "ode113b",
+      "time_span": 10,
+      "time_step": 0.03,
+      "relative_error": 1e-4,
+      "absolute_error": 1e-4,
+      "omega_n": 200,
+      "infinity_norm_multiplier": 2.0,
+      "out_file": "excavator.dat"
+    }
   },
   "fixed": {
     "frames": [

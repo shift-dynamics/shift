@@ -93,6 +93,7 @@ void s2_context_setRHS(s2_context_t* context) {
   s2_screw_t* v = context->v + 1;
 
 #if _SHIFT_VERBOSE
+  FILE* dReference = fopen("dReference.csv", "w");
   printf("inertia before mass projection / local:\n");
   for(int i = 0; i < context->nonRigidJointCount; i++) {
     printf("[%d] hasmass %s ", i, context->hasMass[i] ? "true" : "false");
@@ -106,15 +107,17 @@ void s2_context_setRHS(s2_context_t* context) {
   s2_inertia_t* inertiaP = context->inertiaP + 1;
 
   for(int i = 0; i < context->nonRigidJointCount; i++) {
+#if _SHIFT_VERBOSE
+    fprintf(dReference, "[%d]\n", i);
+    s2_displacement_print(dReference, context->dReferenceFrames[i]);
+    fprintf(dReference, "\n");
+#endif
     if(context->hasMass[i]) {
 
       s2_inertia_transform(context->inertia + i, context->dReferenceFrames[i],
                            inertiaP + i);
 
 #if _SHIFT_VERBOSE
-      printf("transforming from i=%d to %d\n", i,
-             context->dqLookupCompressed[i]);
-
       printf("[%d] inertia in body frame:\n", i);
       s2_inertia_print(stdout, context->inertia + i);
 
@@ -127,14 +130,15 @@ void s2_context_setRHS(s2_context_t* context) {
     }
   }
 
-  /* g <- g - M \gamma, (carried out in PO1) */
-  for(int j = 0; j < context->nonRigidJointCount; j++) {
+#if _SHIFT_VERBOSE
+  fclose(dReference);
+#endif
 
-    // printf("inertia [%d]\n", j);
-    // s2_inertia_print(context->inertia + j);
-    //
-    // printf("aq [%d]\n", j);
-    // s2_screw_print(context->aq + j);
+/* g <- g - M \gamma, (carried out in PO1) */
+#ifdef _SHIFT_USE_OPENMP
+#pragma omp parallel for
+#endif
+  for(int j = 0; j < context->nonRigidJointCount; j++) {
 
     context->g[j].m0 -= inertiaP[j].m * aq[j].m0;
     context->g[j].m1 -= inertiaP[j].m * aq[j].m1;
@@ -169,11 +173,12 @@ void s2_context_setRHS(s2_context_t* context) {
     context->g[j].m3 -= inertiaP[j].Izx * aq[j].m5;
     context->g[j].m4 -= inertiaP[j].Iyz * aq[j].m5;
     context->g[j].m5 -= inertiaP[j].Izz * aq[j].m5;
+#ifndef _SHIFT_USE_OPENMP
   }
 
   /* p = Mv, (carried out in PO1) */
   for(int j = 0; j < context->nonRigidJointCount; j++) {
-
+#endif
     context->p[j].m0 += inertiaP[j].m * v[j].m0;
     context->p[j].m1 += inertiaP[j].m * v[j].m1;
     context->p[j].m2 += inertiaP[j].m * v[j].m2;
@@ -209,7 +214,10 @@ void s2_context_setRHS(s2_context_t* context) {
     context->p[j].m5 += inertiaP[j].Izz * v[j].m5;
   }
 
-  /* g += cross^T(v, p) (carried out in PO1)*/
+  /* g += cross(v)^T * p (carried out in PO1)*/
+#ifdef _SHIFT_USE_OPENMP
+#pragma omp parallel for
+#endif
   for(int j = 0; j < context->nonRigidJointCount; j++) {
 
     // context->g[j][0:3] -= cross(context->v[j][3:6], context->p[j][0:3]);
@@ -255,26 +263,27 @@ void s2_context_setRHS(s2_context_t* context) {
       context->g[i].m3 += context->g[j].m3;
       context->g[i].m4 += context->g[j].m4;
       context->g[i].m5 += context->g[j].m5;
-      // cblas_daxpy(6, 1.0, (double*)(context->g + j), 1,
-      //             (double*)(context->g + i), 1);
     }
   }
-  // for(int i = 0; i < context->dqCount; i++) {
-  //   printf("g[%d] (after): ", i);
-  //   s2_screw_print(context->g + i);
-  // }
+// for(int i = 0; i < context->dqCount; i++) {
+//   printf("g[%d] (after): ", i);
+//   s2_screw_print(context->g + i);
+// }
 
-  /*
-    f_l = f + H^T * C{-T} * (g + \tilde{v}^Tp - m\gamma)
-    this step is evaluated in PO1 and stored in PO3,
-    use the permutation array p_v31 to assign to f_l
+/*
+  f_l = f + H^T * C{-T} * (g + \tilde{v}^Tp - m\gamma)
+  this step is evaluated in PO1 and stored in PO3,
+  use the permutation array p_v31 to assign to f_l
 
-    at this point the quantity g contains C{-T} (g + \tilde{v}^Tp - m\gamma)
-    which has length nonRigidJointCount and is stored in PO1.
+  at this point the quantity g contains C{-T} (g + \tilde{v}^Tp - m\gamma)
+  which has length nonRigidJointCount and is stored in PO1.
 
-    Expand each multi DOF joint to expand the quantity in g with length
-    nonRigidJointCount in PO1 to fl of length dqCount in PO3
-  */
+  Expand each multi DOF joint to expand the quantity in g with length
+  nonRigidJointCount in PO1 to fl of length dqCount in PO3
+*/
+#ifdef _SHIFT_USE_OPENMP
+#pragma omp parallel for
+#endif
   for(int j = 0; j < context->nonRigidJointCount; j++) {
     /* j is index into compressed list of joints and g in PO1,
     increment l and k for each additional degree of freedom
@@ -518,15 +527,8 @@ void s2_context_setRHS(s2_context_t* context) {
           }
         }
       }
-
-      // fprintf(debug, "   gamma_p (po2) -= w^2 phi:\t");
-      // for(int q = offset; q < offset + substructure->rank; q++) {
-      //   fprintf(debug, "% 0.9g\t", context->gamma_d[q]);
-      // }
-      // fprintf(debug, "\n");
     }
   }
-  // exit(-1);
 
   /*
     precondition primary constraints in PO(2)
@@ -543,11 +545,9 @@ void s2_context_setRHS(s2_context_t* context) {
     */
     for(int i = 0; i < substructure->rank; i++) {
       for(int j = 0; j < i; j++) {
-        // if(substructure->Jb[i * substructure->dqCount + j]) {
         context->gamma_d[i + offset] -=
           substructure->J[i * substructure->dqCount + j] *
           context->gamma_d[j + offset];
-        // }
       }
     }
 
@@ -558,23 +558,14 @@ void s2_context_setRHS(s2_context_t* context) {
     for(int i = substructure->rank - 1; i > -1; i--) {
       double save = 0;
       for(int j = substructure->rank - 1; j > i; j--) {
-        // if(substructure->Jb[i * substructure->dqCount + j]) {
         save += substructure->J[i * substructure->dqCount + j] *
                 context->gamma_d[j + offset];
-        // }
       }
       context->gamma_d[i + offset] =
         (context->gamma_d[i + offset] - save) /
         substructure->J[i * substructure->dqCount + i];
     }
-    // offset += substructure->dqCount;
   }
-
-  // FILE* debug = context->modelParameters->debugFilePointer;
-  // fprintf(debug, "   all gamma_d (po2):\t");
-  // s2_array_print(debug, context->dqCount, context->gamma_d);
-  //
-  // exit(1);
 }
 
 void s2_inertia_print2(FILE* f, s2_inertia_t* inertia, int index,
@@ -849,27 +840,37 @@ void s2_context_setMassMatrix(s2_context_t* context) {
                 1);
   }
 
-  // for(int i = context->nonRigidJointCount - 1; i > -1; i--) {
-  //   const char* name = s2_stackstr_getRoot(context->bodyPointers[i]->name);
-  //   s2_inertia_print2(outFile, inertiaP + i, i, name);
-  // }
+// for(int i = context->nonRigidJointCount - 1; i > -1; i--) {
+//   const char* name = s2_stackstr_getRoot(context->bodyPointers[i]->name);
+//   s2_inertia_print2(outFile, inertiaP + i, i, name);
+// }
+#if _SHIFT_VERBOSE
+  FILE* f = fopen("massmatrix.csv", "w");
+  fprintf(f, "inertia:\nindex,m,mt.x,mt.y,mt.z,Ixx,Iyy,Izz,Ixy,Iyz,Izx,\n");
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    fprintf(f, "%d,", i);
+    s2_inertia_print(f, context->inertia + i);
+  }
 
-  // printf("\ninertiaP: \n");
-  // for(int i = -1; i < context->dqCount; i++) {
-  //   printf("[%d] ", i);
-  //   if(i != -1) {
-  //   s2_stackstr_print(
-  //     debug,
-  //     context->bodyPointers[context->pv_13[i]]->name);
-  //   } else {
-  //     fprintf(debug, "[fixed]\n");
-  //   }
-  //   s2_inertia_print(debug, inertiaP + i);
-  // }
-
+  fprintf(f, "inertiaP:\nindex,m,mt.x,mt.y,mt.z,Ixx,Iyy,Izz,Ixy,Iyz,Izx,\n");
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    // s2_stackstr_print(debug, context->bodyPointers[context->pv_13[i]]->name);
+    fprintf(f, "%d,", i);
+    s2_inertia_print(f, inertiaP + i);
+  }
+#endif
   /* compute mh product */
+
+#if _SHIFT_VERBOSE
+  printf("processing dqIndex in mhProduct: ");
+#endif
+#ifdef _SHIFT_USE_OPENMP
+#pragma omp parallel for
+#endif
   for(int j = 0; j < context->nonRigidJointCount; j++) {
-    for(int k = j; k < j + context->jointDOFCompressed[j]; k++) {
+    for(int dof = 0; dof < context->jointDOFCompressed[j]; dof++) {
+      int k = context->dqLookupCompressed[j] + dof;
+
       /* update quantities that are processed for both rotation and
       translation */
       context->mhProduct[k].m0 += inertiaP[j].m * context->h[k].m0;
@@ -912,21 +913,29 @@ void s2_context_setMassMatrix(s2_context_t* context) {
     }
   }
 
-  // FILE* debug = context->modelParameters->debugFilePointer;
-  // fprintf(debug, "\nmhProduct:\n");
-  // for(int i = 0; i < context->dqCount; i++) {
-  //   fprintf(debug, "[%d]\tmhProduct: ", i);
-  //   s2_screw_print(debug, context->mhProduct + i);
-  //   fprintf(debug, "\th: ");
-  //   s2_screw_print(debug, context->h + i);
-  // }
+#if _SHIFT_VERBOSE
+  printf("\n");
+  fprintf(f, "index,hasMass,");
+  for(int i = 0; i < 6; i++) {
+    fprintf(f, "mhProduct.m%d,", i);
+  }
+  for(int i = 0; i < 6; i++) {
+    fprintf(f, "h.m%d,", i);
+  }
+  fprintf(f, "\n");
+  for(int i = 0; i < context->dqCount; i++) {
+    fprintf(f, "%d,%s,", i, context->hasMassdq[i] ? "true" : "false");
+    s2_screw_print(f, context->mhProduct + i);
+    s2_screw_print(f, context->h + i);
+    fprintf(f, "\n");
+  }
+#endif
 
   /* use inverse permutation to save terms computed in PO1 order and
   store in PO3 */
   int m_3;
   int ks_3;
   int k_3;
-
   for(int j = context->dqCount - 1; j > -1; j--) {
     if(context->hasMassdq[j]) {
       m_3 = context->pv_31[j];
@@ -939,19 +948,11 @@ void s2_context_setMassMatrix(s2_context_t* context) {
       context->Mlb[k_3] = true;
 
       if(context->isRotation[j]) {
-
         context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, context->h + j);
-
-        /* the cblas call could replace the above function call */
-        // context->Ml[k_3] += cblas_ddot(6, (double*)(context->mhProduct + j),
-        // 1,
-        //                                (double*)(context->h + j), 1);
       } else {
-
         context->Ml[k_3] += context->mhProduct[j].m0 * context->h[j].m0;
         context->Ml[k_3] += context->mhProduct[j].m1 * context->h[j].m1;
         context->Ml[k_3] += context->mhProduct[j].m2 * context->h[j].m2;
-
         /* the cblas call could replace the above function calls */
         // context->Ml[k_3] += cblas_ddot(3, (double*)(context->mhProduct + j),
         // 1,
@@ -970,10 +971,6 @@ void s2_context_setMassMatrix(s2_context_t* context) {
 
         if(context->isRotation[i]) {
           context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, context->h + j);
-
-          // context->Ml[k_3] += cblas_ddot(6, (double*)(context->mhProduct +
-          // j),
-          //                                1, (double*)(context->h + i), 1);
         } else {
 
           context->Ml[k_3] += context->mhProduct[j].m0 * context->h[j].m0;
@@ -989,12 +986,16 @@ void s2_context_setMassMatrix(s2_context_t* context) {
     }
   }
 
-  // printf("mass matrix boolean before factorization Mlb:\n");
-  // s2_triangb_print(debug, context->dqCount, context->Mlb);
-  // printf("\n");
-  //
-  // printf("\ngeneralized mass matrix before factorization:\n");
-  // s2_triang_print(debug, context->dqCount, context->Ml);
+#if _SHIFT_VERBOSE
+  printf("mass matrix boolean before factorization Mlb:\n");
+  s2_triangb_print(f, context->dqCount, context->Mlb);
+  printf("\n");
+
+  printf("\ngeneralized mass matrix before factorization:\n");
+  s2_triang_print(f, context->dqCount, context->Ml);
+  fclose(f);
+  exit(0);
+#endif
 }
 
 /*!

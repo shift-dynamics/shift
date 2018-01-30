@@ -61,7 +61,7 @@ void s2_inertia_free(s2_inertia_t* inertia) {
 /*!
 @brief print an inertia matrix
 */
-void s2_inertia_print(FILE* f, s2_inertia_t* inertia) {
+void s2_inertia_print_verbose(FILE* f, s2_inertia_t* inertia) {
 
   fprintf(f, "  m: %0.4f\n", inertia->m);
   fprintf(f, "  mt: ");
@@ -71,6 +71,16 @@ void s2_inertia_print(FILE* f, s2_inertia_t* inertia) {
           "  Ixy: %0.4f, Iyz: %0.4f, Izx: %0.4f\n",
           inertia->Ixx, inertia->Iyy, inertia->Izz, inertia->Ixy, inertia->Iyz,
           inertia->Izx);
+}
+
+/*!
+@brief print an inertia matrix
+*/
+void s2_inertia_print(FILE* f, s2_inertia_t* inertia) {
+  fprintf(f, "%0.4f,", inertia->m);
+  fprintf(f, "%0.4f,%0.4f,%0.4f,", inertia->mt.x, inertia->mt.y, inertia->mt.z);
+  fprintf(f, "%0.4f,%0.4f,%0.4f,%0.4f,%0.4f,%0.4f\n", inertia->Ixx,
+          inertia->Iyy, inertia->Izz, inertia->Ixy, inertia->Iyz, inertia->Izx);
 }
 
 /*!

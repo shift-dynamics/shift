@@ -21,8 +21,8 @@ SUCH DAMAGE.
 
 typedef struct s2_context_t s2_context_t;
 
-void s2_graph_digraph(s2_context_t* context, const char* fileName);
+void s2_context_digraph(s2_context_t* context, const char* fileName);
 
-void s2_graph_digraphFrames(s2_context_t* context, const char* fileName);
+void s2_context_digraphFrames(s2_context_t* context, const char* fileName);
 
 #endif
