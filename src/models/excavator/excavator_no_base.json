@@ -10,7 +10,7 @@
     "gravity": [
       0.0,
       0.0,
-      -9.81
+      9.81
     ],
     "include_dir": [
       "models/excavator/",
@@ -24,24 +24,31 @@
       "absolute_error": 1e-4,
       "omega_n": 200,
       "infinity_norm_multiplier": 2.0,
-      "out_file": "excavator.dat"
+      "out_file": "excavator_no_base.dat"
     }
   },
   "fixed": {
     "frames": [
       {
         "name": "overhead_1",
-        "T": [6.0, -6.0, -6.0],
+        "T": [6.0, -6.0, -24.0],
         "R": [[1.0, 0.0, 0.0],
-              [0.0, 1.0, 0.0],
-              [0.0, 0.0, 1.0]]
+              [0.0, -1.0, 0.0],
+              [0.0, 0.0, -1.0]]
       },
       {
         "name": "overhead_2",
-        "T": [-6.0, -6.0, -6.0],
+        "T": [-6.0, -6.0, -24.0],
         "R": [[1.0, 0.0, 0.0],
-              [0.0, 1.0, 0.0],
-              [0.0, 0.0, 1.0]]
+              [0.0, -1.0, 0.0],
+              [0.0, 0.0, -1.0]]
+      },
+      {
+        "name": "base_attachment",
+        "R": [[1.0, 0.0, 0.0],
+              [0.0, -1.0, 0.0],
+              [0.0, 0.0, -1.0]],
+        "T": [0, 0.46293, -1.1065]
       }
     ],
     "lights": [
@@ -494,7 +501,7 @@
           "body_frame_pairs": [
             [
               "fixed",
-              "origin"
+              "base_attachment"
             ],
             [
               "cabin",

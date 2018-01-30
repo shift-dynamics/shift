@@ -212,7 +212,6 @@ Updates displacement and influence coefficient matrices
        and accelerations.
 */
 void s2_joint_tx(void** dhva) {
-
   s2_displacement_t* dParent = dhva[0];
   double* dPrimitive = dhva[1];
   s2_displacement_t* dChild = dhva[2];
@@ -246,7 +245,6 @@ The dhva array contains pointers to the following quantities:
        and accelerations.
 */
 void s2_joint_tx_dhva(void** dhva) {
-
   s2_joint_tx(dhva);
 
   s2_screw_t* h = dhva[3];
