@@ -680,6 +680,7 @@ void s2_context_freeDc(s2_context_t* context) {
           joint->directionCosine = malloc(2 * sizeof(double));
           memcpy(joint->directionCosine, context->dc + 2 * joint->dcIndex,
                  2 * sizeof(double));
+          /* fallthrough */
         }
         case S2_JOINT_TX:
         case S2_JOINT_TY:

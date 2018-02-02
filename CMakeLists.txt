@@ -83,10 +83,10 @@ message("qhull: " ${QHULL_LIBRARIES})
 ## set output directory ##
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/)
 
-add_definitions(-g)
+add_definitions(-g3)
 add_definitions(-ggdb)
 add_definitions(-std=c11)
-add_definitions(-O3)
+add_definitions(-O0)
 add_definitions(-Wall)
 add_definitions(-D_GNU_SOURCE=1)
 add_definitions(-pipe)
@@ -128,13 +128,13 @@ include_directories(
   ${GDAL_INCLUDE_DIRS}
 )
 
-add_library(ksl STATIC
-  ${shift_SOURCE_DIR}/src/ksl/ksl.c
-)
-
-add_library(bksl STATIC
-  ${shift_SOURCE_DIR}/src/ksl/bksl.c
-)
+# add_library(ksl STATIC
+#   ${shift_SOURCE_DIR}/src/ksl/ksl.c
+# )
+#
+# add_library(bksl STATIC
+#   ${shift_SOURCE_DIR}/src/ksl/bksl.c
+# )
 
 ### build static library ###
 add_library(shift_lib STATIC
@@ -159,6 +159,7 @@ add_library(shift_lib STATIC
   ${shift_SOURCE_DIR}/src/core/memoize.c
   ${shift_SOURCE_DIR}/src/core/mobility.c
   ${shift_SOURCE_DIR}/src/core/newtonraphson.c
+  ${shift_SOURCE_DIR}/src/core/pca.c
   ${shift_SOURCE_DIR}/src/core/queue.c
   ${shift_SOURCE_DIR}/src/core/restraint.c
   ${shift_SOURCE_DIR}/src/core/sensor.c
@@ -194,18 +195,17 @@ add_definitions(-Wextra)
 
 ### build command line test applications ###
 add_executable(shift_cli ${shift_SOURCE_DIR}/src/application/shift_cli.c)
-target_link_libraries(shift_cli shift_lib ode113_lib ksl ${LIBS})
+target_link_libraries(shift_cli shift_lib ode113_lib ${LIBS})
 add_dependencies(shift_cli gdal)
 
 message(STATUS "LIBS:" ${LIBS})
-
 
 add_executable(7r_robot ${shift_SOURCE_DIR}/src/application/7r_robot.c)
 target_link_libraries(7r_robot shift_lib ode113_lib ${LIBS})
 
 ## build ksl test functions
-add_executable(ksl_test ${shift_SOURCE_DIR}/src/ksl/ksl_test.c)
-target_link_libraries(ksl_test ksl bksl ${M_LIB} ${CBLAS_LIBRARIES})
+# add_executable(ksl_test ${shift_SOURCE_DIR}/src/ksl/ksl_test.c)
+# target_link_libraries(ksl_test ksl bksl ${M_LIB} ${CBLAS_LIBRARIES})
 
 ## convert markdown documents to html for display in Qt application
 INCLUDE(pandocology)
@@ -286,7 +286,7 @@ add_definitions(-lstdc++)
 add_definitions(-pedantic)
 add_definitions(-Wall)
 add_definitions(-Wextra)
-add_definitions(-g)
+add_definitions(-g3)
 # add_definitions(-fsanitize=address)
 # add_definitions(-fno-omit-frame-pointer)
 # add_definitions(--sort-common)
