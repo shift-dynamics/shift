@@ -104,12 +104,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -151,12 +151,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -206,12 +206,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -261,12 +261,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -292,12 +292,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -323,12 +323,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -354,12 +354,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -376,12 +376,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -398,12 +398,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -420,12 +420,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -442,12 +442,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -464,12 +464,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -486,12 +486,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -508,12 +508,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         },
         {
@@ -530,12 +530,12 @@
           ],
           "mass": 2.0,
           "moment_of_inertia": {
-            "Izx": -1.0,
+            "Izx": 0.0,
             "Ixx": 5.0,
-            "Ixy": -1.0,
+            "Ixy": 0.0,
             "Izz": 5.0,
             "Iyy": 5.0,
-            "Iyz": -1.0
+            "Iyz": 0.0
           }
         }
       ],
@@ -577,7 +577,7 @@
               0
             ]
           },
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "B_undercarriage_to_cabin",
@@ -593,7 +593,7 @@
           ],
           "type": "Rz",
           "initial_displacement": 0.0,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.2
         },
         {
           "name": "C_cabin_to_boom",
@@ -609,7 +609,7 @@
           ],
           "type": "Rx",
           "initial_displacement": -0.3,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "D_boom_to_stick",
@@ -625,7 +625,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 0.1,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "E_stick_to_bucket",
@@ -641,7 +641,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 1.0,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "F_stick_to_bucket_linkage_2",
@@ -657,7 +657,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 0.8,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "G_bucket_to_bucket_linkage_1",
@@ -673,7 +673,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 0.1,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "H_cabin_to_boom_cylinder_1",
@@ -689,7 +689,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 2.18,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "I_cabin_to_boom_cylinder_2",
@@ -705,7 +705,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 2.18,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "J_boom_to_stick_cylinder",
@@ -721,7 +721,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 3.4,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "K_stick_to_bucket_cylinder",
@@ -737,7 +737,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 3.7,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "L_boom_cylinder_1_to_boom_rod_1",
@@ -753,7 +753,7 @@
           ],
           "type": "Ty",
           "initial_displacement": 2.65,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "M_boom_cylinder_2_to_boom_rod_2",
@@ -769,7 +769,7 @@
           ],
           "type": "Ty",
           "initial_displacement": 2.65,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "N_stick_cylinder_to_stick_rod",
@@ -785,7 +785,7 @@
           ],
           "type": "Ty",
           "initial_displacement": 2.3,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "O_bucket_cylinder_to_bucket_rod",
@@ -801,7 +801,7 @@
           ],
           "type": "Ty",
           "initial_displacement": 2.4,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "P_boom_rod_1_to_boom",
@@ -817,7 +817,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 3.8,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "Q_boom_rod_2_to_boom",
@@ -833,7 +833,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 3.8,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "R_stick_rod_to_stick",
@@ -849,7 +849,7 @@
           ],
           "type": "Rx",
           "initial_displacement": 3.0,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "S_bucket_rod_to_bucket_linkage_1",
@@ -865,7 +865,7 @@
           ],
           "type": "Rx",
           "initial_displacement": -2.6,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         },
         {
           "name": "T_bucket_linkage_1_to_bucket_linkage_2",
@@ -881,7 +881,7 @@
           ],
           "type": "Rx",
           "initial_displacement": -0.1,
-          "initial_velocity": 1.0
+          "initial_velocity": 0.0
         }
       ]
     }

@@ -132,6 +132,17 @@ void s2_context_setRHS(s2_context_t* context) {
 
 #if _SHIFT_VERBOSE
   fclose(dReference);
+  printf("pv_13: ");
+  for(int i = 0; i < context->dqCount; i++) {
+    printf("%d ", context->pv_13[i]);
+  }
+  printf("\n");
+  printf("aq: ");
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    printf("%f %f %f %f %f %f\n", aq[i].m0, aq[i].m1, aq[i].m2, aq[i].m3,
+           aq[i].m4, aq[i].m5);
+  }
+  printf("\n");
 #endif
 
 /* g <- g - M \gamma, (carried out in PO1) */
@@ -859,11 +870,9 @@ void s2_context_setMassMatrix(s2_context_t* context) {
     s2_inertia_print(f, inertiaP + i);
   }
 #endif
+
   /* compute mh product */
 
-#if _SHIFT_VERBOSE
-  printf("processing dqIndex in mhProduct: ");
-#endif
 #ifdef _SHIFT_USE_OPENMP
 #pragma omp parallel for
 #endif
@@ -890,7 +899,7 @@ void s2_context_setMassMatrix(s2_context_t* context) {
       context->mhProduct[k].m3 += inertiaP[j].mt.y * context->h[k].m2;
       context->mhProduct[k].m4 -= inertiaP[j].mt.x * context->h[k].m2;
 
-      /* do stuff just for rotation */
+      /* do stuff just for rotational degrees of freedom */
       if(context->isRotation[k]) {
         context->mhProduct[k].m1 -= inertiaP[j].mt.z * context->h[k].m3;
         context->mhProduct[k].m2 += inertiaP[j].mt.y * context->h[k].m3;
@@ -970,12 +979,12 @@ void s2_context_setMassMatrix(s2_context_t* context) {
         context->Mlb[k_3] = true;
 
         if(context->isRotation[i]) {
-          context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, context->h + j);
+          context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, context->h + i);
         } else {
 
-          context->Ml[k_3] += context->mhProduct[j].m0 * context->h[j].m0;
-          context->Ml[k_3] += context->mhProduct[j].m1 * context->h[j].m1;
-          context->Ml[k_3] += context->mhProduct[j].m2 * context->h[j].m2;
+          context->Ml[k_3] += context->mhProduct[j].m0 * context->h[i].m0;
+          context->Ml[k_3] += context->mhProduct[j].m1 * context->h[i].m1;
+          context->Ml[k_3] += context->mhProduct[j].m2 * context->h[i].m2;
 
           // context->Ml[k_3] += cblas_ddot(3, (double*)(context->mhProduct +
           // j),
@@ -987,14 +996,13 @@ void s2_context_setMassMatrix(s2_context_t* context) {
   }
 
 #if _SHIFT_VERBOSE
-  printf("mass matrix boolean before factorization Mlb:\n");
+  fprintf(f, "mass matrix boolean before factorization Mlb:\n");
   s2_triangb_print(f, context->dqCount, context->Mlb);
   printf("\n");
 
-  printf("\ngeneralized mass matrix before factorization:\n");
+  fprintf(f, "\ngeneralized mass matrix before factorization:\n");
   s2_triang_print(f, context->dqCount, context->Ml);
   fclose(f);
-  exit(0);
 #endif
 }
 
