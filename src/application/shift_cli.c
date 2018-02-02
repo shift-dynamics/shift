@@ -71,9 +71,6 @@ int main(int argc, char* argv[]) {
 
   s2_context_printJacobian(stdout, context);
 
-  // context->epsRankDetermination = context->epsRankDetermination * 10;
-  //
-  //
   // s2_context_setJacobianPO1(context);
 
   // fprintf(debug, "\n## jacobian after removing constraint violations\n");
@@ -141,9 +138,13 @@ int main(int argc, char* argv[]) {
   //
   //
 
+  FILE* dhvaDebug = fopen("dhva_debug.dat", "w");
+  s2_context_updateDHVADebug(dhvaDebug, context, 0);
+  fclose(dhvaDebug);
+
   // fprintf(debug, "\n##initializing equations\n");
 
-  // s2_context_initializeEquations(context);
+  s2_context_initializeEquations(context);
 
   // fprintf(debug, "\ninertia\n");
   // for(int i = 0; i < context->activeJointCount; i++) {

@@ -33,16 +33,15 @@ Currently only the Adams-Bashforth-Molton variable time step predictor
 correction numerical integrator is supported
 */
 typedef enum {
-  S2_NUMERICALINTEGRATOR_ODE113, /*!< variable time step Adams-Bashforth-Molton, output is
-               interpolated at user specified time intervals */
-  S2_NUMERICALINTEGRATOR_ODE113B /*!< variable time step Adams-Bashforth-Molton, output
-               is reported at time interval closest to requested time
+  S2_NUMERICALINTEGRATOR_ODE113, /*!< variable time step Adams-Bashforth-Molton,
+               output is interpolated at user specified time intervals */
+  S2_NUMERICALINTEGRATOR_ODE113B /*!< variable time step Adams-Bashforth-Molton,
+               output is reported at time interval closest to requested time
                interval. */
 } s2_numericalintegrator_enum_t;
 
-
 void s2_context_allocNumericalIntegrator(s2_context_t*);
 
-void s2_context_freeNumericalintegrator(s2_context_t*);
+void s2_context_freeNumericalIntegrator(s2_context_t*);
 
 #endif

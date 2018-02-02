@@ -425,6 +425,10 @@ void s2_context_initializeInertia(s2_context_t* context) {
       s2_displacement_invert(&d_rc, &d_cr);
       // fprintf(debug, " D_cr:");
       // s2_displacement_print(debug, &d_cr);
+#if _SHIFT_VERBOSE
+      printf("  [%i] ", i);
+      s2_inertia_print(stdout, body->inertia);
+#endif
 
       memcpy(inertia + i, body->inertia, sizeof(s2_inertia_t));
 
