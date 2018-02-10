@@ -388,16 +388,6 @@ int s2_context_mallocEquations(s2_context_t* context) {
   }
   context->Mlbs = calloc(context->Ml_size, sizeof(bool));
 
-  if(context->hasMass) {
-    free(context->hasMass);
-  }
-  context->hasMass = calloc(context->nonRigidJointCount, sizeof(bool));
-
-  if(context->hasMassdq) {
-    free(context->hasMassdq);
-  }
-  context->hasMassdq = calloc(context->dqCount, sizeof(bool));
-
   if(context->jointDOF) {
     free(context->jointDOF);
   }
@@ -429,7 +419,8 @@ int s2_context_mallocEquations(s2_context_t* context) {
     printf("dqIndex: %d\n", dqIndex);
 #endif
 
-    if(!(childBody->isVirtual || childBody->inertia == NULL)) {
+    if(!(childBody->isVirtual || childBody->inertia == NULL ||
+         childBody->inertia->m < 1e-9)) {
       if(context->jointLookup[i] > -1) {
         context->hasMass[context->jointLookup[i]] = true;
         context->hasMassdq[context->dqLookup[i]] = true;
