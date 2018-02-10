@@ -92,15 +92,6 @@ void s2_context_setRHS(s2_context_t* context) {
   s2_screw_t* aq = context->aq + 1;
   s2_screw_t* v = context->v + 1;
 
-#if _SHIFT_VERBOSE
-  FILE* dReference = fopen("dReference.csv", "w");
-  printf("inertia before mass projection / local:\n");
-  for(int i = 0; i < context->nonRigidJointCount; i++) {
-    printf("[%d] hasmass %s ", i, context->hasMass[i] ? "true" : "false");
-    s2_inertia_print(stdout, context->inertia + i);
-  }
-#endif
-
   /* transform inertias to fixed reference frame, carried out in PO1*/
   memset(context->inertiaP, 0,
          (context->nonRigidJointCount + 1) * sizeof(s2_inertia_t));
@@ -108,9 +99,11 @@ void s2_context_setRHS(s2_context_t* context) {
 
   for(int i = 0; i < context->nonRigidJointCount; i++) {
 #if _SHIFT_VERBOSE
+    FILE* dReference = fopen("dReference.csv", "w");
     fprintf(dReference, "[%d]\n", i);
     s2_displacement_print(dReference, context->dReferenceFrames[i]);
     fprintf(dReference, "\n");
+    fclose(dReference);
 #endif
     if(context->hasMass[i]) {
 
@@ -129,21 +122,6 @@ void s2_context_setRHS(s2_context_t* context) {
 #endif
     }
   }
-
-#if _SHIFT_VERBOSE
-  fclose(dReference);
-  printf("pv_13: ");
-  for(int i = 0; i < context->dqCount; i++) {
-    printf("%d ", context->pv_13[i]);
-  }
-  printf("\n");
-  printf("aq: ");
-  for(int i = 0; i < context->nonRigidJointCount; i++) {
-    printf("%f %f %f %f %f %f\n", aq[i].m0, aq[i].m1, aq[i].m2, aq[i].m3,
-           aq[i].m4, aq[i].m5);
-  }
-  printf("\n");
-#endif
 
 /* g <- g - M \gamma, (carried out in PO1) */
 #ifdef _SHIFT_USE_OPENMP
@@ -184,12 +162,14 @@ void s2_context_setRHS(s2_context_t* context) {
     context->g[j].m3 -= inertiaP[j].Izx * aq[j].m5;
     context->g[j].m4 -= inertiaP[j].Iyz * aq[j].m5;
     context->g[j].m5 -= inertiaP[j].Izz * aq[j].m5;
+
 #ifndef _SHIFT_USE_OPENMP
   }
 
   /* p = Mv, (carried out in PO1) */
   for(int j = 0; j < context->nonRigidJointCount; j++) {
 #endif
+
     context->p[j].m0 += inertiaP[j].m * v[j].m0;
     context->p[j].m1 += inertiaP[j].m * v[j].m1;
     context->p[j].m2 += inertiaP[j].m * v[j].m2;
@@ -889,7 +869,6 @@ void s2_context_setMassMatrix(s2_context_t* context) {
       /* this cblas call could replace the three += calls above */
       // cblas_daxpy(3, inertiaP[j].m, (double*)(context->h + j), 1,
       //             (double*)(context->mhProduct + j), 1);
-
       context->mhProduct[k].m4 += inertiaP[j].mt.z * context->h[k].m0;
       context->mhProduct[k].m5 -= inertiaP[j].mt.y * context->h[k].m0;
 
@@ -923,8 +902,7 @@ void s2_context_setMassMatrix(s2_context_t* context) {
   }
 
 #if _SHIFT_VERBOSE
-  printf("\n");
-  fprintf(f, "index,hasMass,");
+  fprintf(f, "\nindex,hasMass,");
   for(int i = 0; i < 6; i++) {
     fprintf(f, "mhProduct.m%d,", i);
   }
@@ -981,11 +959,9 @@ void s2_context_setMassMatrix(s2_context_t* context) {
         if(context->isRotation[i]) {
           context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, context->h + i);
         } else {
-
           context->Ml[k_3] += context->mhProduct[j].m0 * context->h[i].m0;
           context->Ml[k_3] += context->mhProduct[j].m1 * context->h[i].m1;
           context->Ml[k_3] += context->mhProduct[j].m2 * context->h[i].m2;
-
           // context->Ml[k_3] += cblas_ddot(3, (double*)(context->mhProduct +
           // j),
           //                                1, (double*)(context->h + i), 1);
@@ -1002,6 +978,35 @@ void s2_context_setMassMatrix(s2_context_t* context) {
 
   fprintf(f, "\ngeneralized mass matrix before factorization:\n");
   s2_triang_print(f, context->dqCount, context->Ml);
+
+  fprintf(f, "\n\npv_13:\n");
+  for(int i = 0; i < context->dqCount; i++) {
+    fprintf(f, "%d,", context->pv_13[i]);
+  }
+
+  fprintf(f, "\n\npcldq:\n");
+  for(int i = 0; i < context->dqCount; i++) {
+    fprintf(f, "%d,", context->pcldq[i]);
+  }
+
+  fprintf(f, "\n\npclCompressed:\n");
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    fprintf(f, "%d,", context->pclCompressed[i]);
+  }
+
+  fprintf(f, "\n\npcl:\n");
+  for(int i = 0; i < context->activeJointCount; i++) {
+    fprintf(f, "%d,", context->pcl[i]);
+  }
+
+  fprintf(f, "\n\naq:\n");
+  s2_screw_t* aq = context->aq + 1;
+  for(int i = 0; i < context->nonRigidJointCount; i++) {
+    fprintf(f, "%d,%f,%f,%f,%f,%f,%f\n", i, aq[i].m0, aq[i].m1, aq[i].m2,
+            aq[i].m3, aq[i].m4, aq[i].m5);
+  }
+  fprintf(f, "\n");
+
   fclose(f);
 #endif
 }
@@ -1105,13 +1110,15 @@ void s2_context_setEquations(s2_context_t* context) {
     switch(context->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         exit(-1);
-      } break;
+        break;
+      }
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
         numericalIntegrator->newtonRaphsonFailure = true;
         return;
-      } break;
+        break;
+      }
     }
   }
   s2_context_setRHS(context);
@@ -1139,9 +1146,7 @@ void s2_context_factorAndSolve(s2_context_t* context) {
   int nd = 0;
   // int k = context->dependentCount - 1;
 
-  /*
-    Factor the matrix
-  */
+  /* Factor the matrix */
   for(int i = context->dqCount - 1; i > -1; i--) {
     if(context->isDependentPO3[i]) {
       for(int j = 0; j < context->n1[nd]; j++) {

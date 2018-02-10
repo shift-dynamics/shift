@@ -186,7 +186,7 @@ void s2_inertia_translate(s2_inertia_t* inertia_i, s2_vector_t* t,
 void s2_inertia_transform(s2_inertia_t* inertia_i, s2_displacement_t* d,
                           s2_inertia_t* inertia_o) {
 
-  /* no check is performed to detect whether inertia datastructure has
+  /* no check is performed here to detect whether inertia datastructure has
   mass. to avoid unecessary operations for transforming mass quantities,
   a check should be performed outside this function */
   // if(inertia_i->m > 0) {
@@ -201,6 +201,7 @@ void s2_inertia_transform(s2_inertia_t* inertia_i, s2_displacement_t* d,
 
   s2_vector_t t;
   memcpy(&t, &(inertia_o->mt), sizeof(s2_vector_t));
+
   cblas_dscal(3, 1 / inertia_i->m, (double*)&t, 1);
 
   // printf("mt: ");
@@ -243,13 +244,16 @@ void inertia_merge(s2_context_t* context, s2_inertia_t* inertia,
     s2_vector_t* t_ic_i = parentBody->centerOfMassWRTReference;
     s2_vector_t* t_jc_j = childBody->centerOfMassWRTReference;
     s2_vector_t* mt_ic_i = &(parentInertia->mt);
-    // s2_vector_t* mt_jc_j = &(childInertia->mt);
+
     s2_vector_t t_jc_i;
     memset(&t_jc_i, 0, sizeof(s2_vector_t));
+
     s2_vector_t mt_jc_i;
     memset(&mt_jc_i, 0, sizeof(s2_vector_t));
+
     s2_vector_t t_icbar;
     memset(&t_icbar, 0, sizeof(s2_vector_t));
+
     s2_vector_t mt_icbar;
     memset(&mt_icbar, 0, sizeof(s2_vector_t));
 
@@ -389,11 +393,9 @@ void s2_context_initializeInertia(s2_context_t* context) {
   s2_inertia_t* inertia =
     calloc(context->activeJointCount, sizeof(s2_inertia_t));
 
-  /* displacement from reference frame to com */
+  /* displacement from reference frame (r) to center of mass (c) */
   s2_displacement_t d_rc;
   s2_displacement_t d_cr;
-
-// bool* hasMass = calloc(context->activeJointCount, sizeof(bool));
 
 /* compute each inertia matrix with respect to reference frame on
    each body */
@@ -405,7 +407,6 @@ void s2_context_initializeInertia(s2_context_t* context) {
     s2_body_t* body = context->bodyPointers[i];
 
     if(!(body->inertia->m < 1e-9 || body->isVirtual)) {
-      // hasMass[i] = true;
 
       // fprintf(debug, "\n[%d] Transforming Inertia to reference frame for
       // body: ", i); s2_stackstr_print(debug, context->bodyPointers[i]->name);
@@ -671,7 +672,3 @@ void s2_inertia_transform2_rank1(s2_body_t* body) {}
 // rank 2, positive semidefinite
 // rank 1
 // rank 0, do nothing
-
-/*!
-  @brief transform inertia reference frames to reference frame on each body
-*/
