@@ -856,6 +856,33 @@ void s2_context_setMassMatrix(s2_context_t* context) {
 #ifdef _SHIFT_USE_OPENMP
 #pragma omp parallel for
 #endif
+  // printf("dqLookupCompressed: ");
+  // s2_arrayi_print(stdout, context->nonRigidJointCount,
+  //                 context->dqLookupCompressed);
+  //
+  // printf("jointDOFCompressed: ");
+  // s2_arrayi_print(stdout, context->nonRigidJointCount,
+  //                 context->jointDOFCompressed);
+  //
+  // printf("isRotation: ");
+  // for(int i = 0; i < context->dqCount; i++) {
+  //   printf("%d,", context->isRotation[i] ? 1 : 0);
+  // }
+  // printf("\n");
+  //
+  // printf("hasMassdq: ");
+  // for(int i = 0; i < context->dqCount; i++) {
+  //   printf("%d,", context->hasMassdq[i] ? 1 : 0);
+  // }
+  // printf("\n");
+  //
+  // printf("h:\n");
+  // for(int i = 0; i < context->dqCount; i++) {
+  //   printf("[%d] ", i);
+  //   s2_screw_print(stdout, context->h + i);
+  //   printf("\n");
+  // }
+
   for(int j = 0; j < context->nonRigidJointCount; j++) {
     for(int dof = 0; dof < context->jointDOFCompressed[j]; dof++) {
       int k = context->dqLookupCompressed[j] + dof;

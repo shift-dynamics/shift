@@ -449,6 +449,7 @@ int s2_context_mallocEquations(s2_context_t* context) {
         }
       }
     }
+
     switch(context->jointPointers[i]->jointType) {
       case S2_JOINT_RX:
       case S2_JOINT_RY:
@@ -529,6 +530,15 @@ int s2_context_mallocEquations(s2_context_t* context) {
       for(int j = 1; j < jointDOF; j++) {
         context->pcldq[variableIndex + j] = variableIndex + j - 1;
       }
+    }
+  }
+
+  /* update has mass dq to set true for any variable that has mass
+  projected onto it */
+  for(int k = context->dqCount - 1; k > -1; k--) {
+    int j = context->pcldq[k];
+    if(context->hasMassdq[k] && j > -1) {
+      context->hasMassdq[j] = true;
     }
   }
 
