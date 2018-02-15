@@ -163,7 +163,9 @@ s2_context_t* s2_context() {
   self->isDependentPO3 = NULL; /*! equal to dof, in PO3 */
   self->hasMass = NULL;        /*!< equal to active jointCount */
   self->hasMassdq = NULL;      /*!< indicates whether body associated with
-                                       joint variable has mass */
+                                       joint variable has mass itself or
+                                       has mass projected onto it from
+                                       a child body */
   self->jointDOF = NULL;
   self->jointDOFCompressed = NULL;
 
@@ -510,11 +512,11 @@ s2_context_t* s2_context() {
 /*!
 @brief used to set omegaN for baumgarte constraint stabilization
 */
-void s2_context_setOmegaN(s2_context_t* context, double omegaN) {
+void s2_context_setOmegaN(s2_context_t* self, double omegaN) {
 
-  context->modelParameters.baumgarteOmegaN = omegaN;
-  context->modelParameters.baumgarte2OmegaN = 2 * omegaN;
-  context->modelParameters.baumgarteOmegaN2 = omegaN * omegaN;
+  self->modelParameters.baumgarteOmegaN = omegaN;
+  self->modelParameters.baumgarte2OmegaN = 2 * omegaN;
+  self->modelParameters.baumgarteOmegaN2 = omegaN * omegaN;
 }
 
 /*!
@@ -680,7 +682,7 @@ void s2_context_freeDc(s2_context_t* context) {
           joint->directionCosine = malloc(2 * sizeof(double));
           memcpy(joint->directionCosine, context->dc + 2 * joint->dcIndex,
                  2 * sizeof(double));
-          /* fallthrough */
+          __attribute__((fallthrough));
         }
         case S2_JOINT_TX:
         case S2_JOINT_TY:
@@ -1296,7 +1298,7 @@ int s2_context_loadFixedFrames(s2_context_t* context, json_t* root) {
 }
 
 /*!
-@brief Load model parameters from a star2 JSON file
+@brief Load model parameters from a Shift JSON file
 
 */
 void s2_context_loadModelParameters(s2_context_t* context,
@@ -1725,14 +1727,14 @@ s2_context_t* s2_context_loadJSON(json_t* root, const char* filePath) {
 }
 
 /*!
-@brief Parse a STAR2 JSON file and return in "context", a SetupContext
-data structure
+@brief Parse a Shift JSON file and return in "context", an s2_context_t
+datastructure
 
-This function parses a STAR2 JSON file and returns a SetupContext
+This function parses a Shift JSON file and returns a n s2_context_t
 data structure. The JSON file is parsed using the Jansson C library.
-@param fileName path to star2 JSON file.
 
-@return a setupContext data structure.
+@param fileName path to Shift JSON file.
+@return a context data structure.
 */
 s2_context_t* s2_context_load(const char* fileName) {
 

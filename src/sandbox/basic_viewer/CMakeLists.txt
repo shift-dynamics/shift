@@ -11,7 +11,7 @@ mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
 set(CMAKE_MODULE_PATH "${viewer_SOURCE_DIR}/../../../cmake")
 
 ## find Jansson and math libraries ##
-list(INSERT CMAKE_MODULE_PATH 0 "${star2_SOURCE_DIR}/cmake")
+list(INSERT CMAKE_MODULE_PATH 0 "${shift_SOURCE_DIR}/cmake")
 if(APPLE)
   list(APPEND CMAKE_MODULE_PATH "/usr/local/Cellar/qt5/5.7.0/lib/cmake/Qt5Core")
 endif(APPLE)
@@ -106,7 +106,7 @@ add_definitions(-fPIC)
 
 
 ### build static library ###
-add_library(star2_lib STATIC
+add_library(shift_lib STATIC
   ${viewer_SOURCE_DIR}/../../core/assembly.c
   ${viewer_SOURCE_DIR}/../../core/body.c
   ${viewer_SOURCE_DIR}/../../core/camera.c
@@ -200,7 +200,7 @@ add_definitions(-lstdc++)
 add_executable(viewer ${GUI_SOURCES})
 qt5_use_modules(viewer Core Widgets OpenGL Gui)
 target_link_libraries(viewer
-  star2_lib
+  shift_lib
   ${OPENGL_LIBRARIES}
   stdc++
   ${CBLAS_LIBRARIES}
