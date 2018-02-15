@@ -35,7 +35,7 @@ SUCH DAMAGE.
 void s2_mobilityNumbers(int m, int n, double* A, double* a) {
 
   /* m is row dimension, i iterates over all rows */
-  for (int i = 0; i < m; i++) {
+  for(int i = 0; i < m; i++) {
     a[i] = cblas_ddot(n, A + i * n, 1, A + i * n, 1);
   }
 }
@@ -56,13 +56,13 @@ void s2_substructure_printMobility(FILE* f, s2_substructure_t* substructure) {
   fprintf(f, "mobility numbers: \n");
 
   int i = substructure->dqOffset;
-  for (int j = 1; j < context->substructureMembersCount[substructureIndex];
-       j++) {
+  for(int j = 1; j < context->substructureMembersCount[substructureIndex];
+      j++) {
     s2_joint_t* joint =
       context
         ->jointPointers[context->substructureMembers[substructureIndex][j]];
     double mobility = 0;
-    switch (joint->jointType) {
+    switch(joint->jointType) {
       case S2_JOINT_TX:
       case S2_JOINT_TY:
       case S2_JOINT_TZ:
@@ -76,7 +76,7 @@ void s2_substructure_printMobility(FILE* f, s2_substructure_t* substructure) {
         mobility += context->mobilityNumbers[i++];
         mobility += context->mobilityNumbers[i++];
         mobility += context->mobilityNumbers[i++];
-        /* fallthrough */
+        __attribute__((fallthrough));
       }
       case S2_JOINT_SPHERICAL: {
         mobility += context->mobilityNumbers[i++];
@@ -102,12 +102,12 @@ void s2_context_printMobility(FILE* f, s2_context_t* context) {
   fprintf(f,
           "----------------------------------------------------------------\n");
 
-  for (int i = 0; i < context->dqCount; i++) {
+  for(int i = 0; i < context->dqCount; i++) {
     bool inSubstructure = false;
     s2_substructure_t* substructure = context->substructures;
-    for (int j = 0; j < context->substructureCount; j++, substructure++) {
-      if (i >= substructure->dqOffset &&
-          i < substructure->dqOffset + substructure->dqCount) {
+    for(int j = 0; j < context->substructureCount; j++, substructure++) {
+      if(i >= substructure->dqOffset &&
+         i < substructure->dqOffset + substructure->dqCount) {
         s2_substructure_printMobility(f, substructure);
         inSubstructure = true;
         break;
@@ -145,13 +145,13 @@ void s2_context_initializeMobility(s2_context_t* context) {
   s2_array_free(context->mobilityNumbers);
   context->mobilityNumbers = malloc(context->dqCount * sizeof(double));
 
-  for (int i = 0; i < context->dqCount; i++) {
+  for(int i = 0; i < context->dqCount; i++) {
     context->mobilityNumbers[i] = 1.0;
   }
 
-  for (int i = 0; i < context->activeJointCount; i++) {
+  for(int i = 0; i < context->activeJointCount; i++) {
     s2_joint_t* joint = context->jointPointers[i];
-    if (joint->jointType != S2_JOINT_RIGID) {
+    if(joint->jointType != S2_JOINT_RIGID) {
       joint->mobilityNumber = context->mobilityNumbers + joint->dqIndex;
     } else {
       joint->mobilityNumber = NULL;
@@ -160,7 +160,7 @@ void s2_context_initializeMobility(s2_context_t* context) {
 
   /* get count of size for single right null space array */
   context->rightNullSpaceCount = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
 
     context->rightNullSpaceCount +=
@@ -175,7 +175,7 @@ void s2_context_initializeMobility(s2_context_t* context) {
     calloc(context->rightNullSpaceCount, sizeof(double));
 
   int rightNullSpaceCount = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
 
     substructure->rightNullSpace =
@@ -193,13 +193,13 @@ void s2_context_initializeMobility(s2_context_t* context) {
 */
 void s2_context_freeMobility(s2_context_t* context) {
 
-  for (int i = 0; i < context->activeJointCount; i++) {
+  for(int i = 0; i < context->activeJointCount; i++) {
     context->jointPointers[i]->mobilityNumber = NULL;
   }
   s2_array_free(context->mobilityNumbers);
   s2_array_free(context->rightNullSpace);
   context->rightNullSpaceCount = 0;
-  for (int i = 0; i < context->substructureCount; i++) {
+  for(int i = 0; i < context->substructureCount; i++) {
     context->substructures[i].rightNullSpace = NULL;
     context->substructures[i].mobilityNumbers = NULL;
   }
@@ -228,7 +228,7 @@ void s2_substructure_copyNullSpace(s2_substructure_t* substructure) {
 
   /* dqCount - rank is the column dimension of null space */
   int colDim = substructure->dqCount - substructure->rank;
-  for (int i = 0; i < substructure->rank; i++) {
+  for(int i = 0; i < substructure->rank; i++) {
 
     cblas_dcopy(
       colDim,
@@ -238,7 +238,7 @@ void s2_substructure_copyNullSpace(s2_substructure_t* substructure) {
 
   /* set the remaining matrix to identity */
   int j = 0;
-  for (int i = substructure->rank; i < substructure->dqCount; i++) {
+  for(int i = substructure->rank; i < substructure->dqCount; i++) {
     substructure->rightNullSpace[substructure->pc_12[i] * colDim + j++] = 1.0;
   }
 }
@@ -262,7 +262,7 @@ void s2_context_computeMobility(s2_context_t* context) {
   s2_context_updateDH(context);
 
   s2_substructure_t* substructure = context->substructures;
-  for (int i = 0; i < context->substructureCount; i++, substructure++) {
+  for(int i = 0; i < context->substructureCount; i++, substructure++) {
     s2_substructure_setJacobianPO2(substructure);
     s2_substructure_factorJacobianPO2(substructure);
     s2_substructure_setBMatrix(substructure);
@@ -284,7 +284,7 @@ void s2_substructure_computeMobility(s2_substructure_t* substructure) {
 
   s2_substructure_copyNullSpace(substructure);
 
-  if (substructure->dqCount - substructure->rank == 0) {
+  if(substructure->dqCount - substructure->rank == 0) {
     printf("zero mobility detected for substructure\n");
     memset(substructure->mobilityNumbers, 0,
            substructure->dqCount * sizeof(double));

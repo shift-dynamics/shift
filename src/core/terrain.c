@@ -86,42 +86,42 @@ s2_terrain_t* s2_terrain() {
 */
 void s2_terrain_free(s2_terrain_t* terrain) {
 
-  if (terrain->controlPoints) {
+  if(terrain->controlPoints) {
     free(terrain->controlPoints);
     terrain->controlPoints = NULL;
   }
 
-  if (terrain->propertyMap) {
+  if(terrain->propertyMap) {
     free(terrain->propertyMap);
     terrain->propertyMap = NULL;
   }
 
-  if (terrain->elevationMapFileName) {
+  if(terrain->elevationMapFileName) {
     free(terrain->elevationMapFileName);
     terrain->elevationMapFileName = NULL;
   }
 
-  if (terrain->propertyMapFileName) {
+  if(terrain->propertyMapFileName) {
     free(terrain->propertyMapFileName);
     terrain->propertyMapFileName = NULL;
   }
 
-  if (terrain->diffuseMapFileName) {
+  if(terrain->diffuseMapFileName) {
     free(terrain->diffuseMapFileName);
     terrain->diffuseMapFileName = NULL;
   }
 
-  if (terrain->normalMapFileName) {
+  if(terrain->normalMapFileName) {
     free(terrain->normalMapFileName);
     terrain->normalMapFileName = NULL;
   }
 
-  if (terrain->specularMapFileName) {
+  if(terrain->specularMapFileName) {
     free(terrain->specularMapFileName);
     terrain->specularMapFileName = NULL;
   }
 
-  if (terrain->bumpMapFileName) {
+  if(terrain->bumpMapFileName) {
     free(terrain->bumpMapFileName);
     terrain->bumpMapFileName = NULL;
   }
@@ -136,7 +136,7 @@ Search all include directories to make sure file specified in json file exists
 */
 char* getValidFilePath(s2_stackstr_t* includeDirectory, const char* fileName) {
 
-  if (fileName == NULL) {
+  if(fileName == NULL) {
     return NULL;
   }
 
@@ -144,7 +144,7 @@ char* getValidFilePath(s2_stackstr_t* includeDirectory, const char* fileName) {
 
   /* if the filename begins with :, then an internal qt file object is
    * specified. simply return without checking any include directories */
-  if (fileName[0] == ':') {
+  if(fileName[0] == ':') {
     validFilePath = strdup(fileName);
     return validFilePath;
   }
@@ -152,14 +152,14 @@ char* getValidFilePath(s2_stackstr_t* includeDirectory, const char* fileName) {
   /* check if the user has specified an absolute directory first, in which case
    * there is no need to check any of the include directories */
   asprintf(&validFilePath, "%s", fileName);
-  if (access(validFilePath, F_OK) != -1) {
+  if(access(validFilePath, F_OK) != -1) {
     return validFilePath;
   }
 
   s2_stackstrnode_t* includeDirectoryHead = includeDirectory->head;
-  while (includeDirectoryHead) {
+  while(includeDirectoryHead) {
     asprintf(&validFilePath, "%s%s", includeDirectoryHead->value, fileName);
-    if (access(validFilePath, F_OK) != -1) {
+    if(access(validFilePath, F_OK) != -1) {
       break;
     } else {
       free(validFilePath);
@@ -178,7 +178,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
 
   json_t* terrainsObject = json_object_get(assemblyObject, "terrain");
 
-  if (json_is_array(terrainsObject)) {
+  if(json_is_array(terrainsObject)) {
     size_t index;
     json_t* terrainObject;
 
@@ -205,16 +205,16 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
       double scale[2] = {1.0, 1.0};
 
       json_t* scaleObject = json_object_get(terrainObject, "scale");
-      if (scaleObject != NULL) {
-        if (json_is_number(scaleObject)) {
+      if(scaleObject != NULL) {
+        if(json_is_number(scaleObject)) {
           scale[0] = scale[1] = json_number_value(scaleObject);
-        } else if (json_is_array(scaleObject)) {
+        } else if(json_is_array(scaleObject)) {
           size_t index;
           json_t* value;
           json_array_foreach(scaleObject, index, value) {
-            if (json_is_number(value)) {
+            if(json_is_number(value)) {
               scale[index] = json_number_value(value);
-              if (index > 1) {
+              if(index > 1) {
                 break;
               }
             }
@@ -224,7 +224,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
 
       s2_terrain_setElevationMap(terrain, fullElevationMapFilePath, scale);
 
-      if (fullElevationMapFilePath) {
+      if(fullElevationMapFilePath) {
         free(fullElevationMapFilePath);
       }
 
@@ -236,7 +236,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
 
       s2_terrain_setPropertyMap(terrain, fullPropertyMapFilePath);
 
-      if (fullPropertyMapFilePath) {
+      if(fullPropertyMapFilePath) {
         free(fullPropertyMapFilePath);
       }
 
@@ -249,16 +249,16 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
       double texture_scale[2] = {1.0, 1.0};
 
       scaleObject = json_object_get(terrainObject, "texture_scale");
-      if (scaleObject != NULL) {
-        if (json_is_number(scaleObject)) {
+      if(scaleObject != NULL) {
+        if(json_is_number(scaleObject)) {
           texture_scale[0] = texture_scale[1] = json_number_value(scaleObject);
-        } else if (json_is_array(scaleObject)) {
+        } else if(json_is_array(scaleObject)) {
           size_t index;
           json_t* value;
           json_array_foreach(scaleObject, index, value) {
-            if (json_is_number(value)) {
+            if(json_is_number(value)) {
               texture_scale[index] = json_number_value(value);
-              if (index > 1) {
+              if(index > 1) {
                 break;
               }
             }
@@ -267,7 +267,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
       }
 
       s2_terrain_setDiffuseMap(terrain, fullDiffuseMapFilePath, texture_scale);
-      if (fullDiffuseMapFilePath) {
+      if(fullDiffuseMapFilePath) {
         free(fullDiffuseMapFilePath);
       }
 
@@ -279,7 +279,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
 
       s2_terrain_setNormalMap(terrain, fullNormalMapFilePath);
 
-      if (fullNormalMapFilePath) {
+      if(fullNormalMapFilePath) {
         free(fullNormalMapFilePath);
       }
 
@@ -291,7 +291,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
 
       s2_terrain_setSpecularMap(terrain, fullSpecularMapFilePath);
 
-      if (fullSpecularMapFilePath) {
+      if(fullSpecularMapFilePath) {
         free(fullSpecularMapFilePath);
       }
 
@@ -303,7 +303,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
 
       s2_terrain_setBumpMap(terrain, fullBumpMapFilePath);
 
-      if (fullBumpMapFilePath) {
+      if(fullBumpMapFilePath) {
         free(fullBumpMapFilePath);
       }
 
@@ -312,9 +312,9 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
         json_string_value(json_object_get(terrainObject, "coordinate_type"));
       s2_coordinate_convention_enum_t coordinateType =
         S2_COORDINATECONVENTION_SAE;
-      if (!strcmp(coordinateTypeStr, "sae")) {
+      if(!strcmp(coordinateTypeStr, "sae")) {
         coordinateType = S2_COORDINATECONVENTION_SAE;
-      } else if (!strcmp(coordinateTypeStr, "iso")) {
+      } else if(!strcmp(coordinateTypeStr, "iso")) {
         coordinateType = S2_COORDINATECONVENTION_ISO;
       }
       s2_terrain_setCoordinateConvention(terrain, coordinateType);
@@ -324,23 +324,23 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
       const char* interpolationTypeStr =
         json_string_value(json_object_get(terrainObject, "coordinate_type"));
       s2_interpolation_enum_t interpolationType = S2_INTERPOLATION_CATMULROM;
-      if (!strcmp(interpolationTypeStr, "bicubic")) {
+      if(!strcmp(interpolationTypeStr, "bicubic")) {
         interpolationType = S2_INTERPOLATION_BICUBIC;
-      } else if (!strcmp(interpolationTypeStr, "bilinear")) {
+      } else if(!strcmp(interpolationTypeStr, "bilinear")) {
         interpolationType = S2_INTERPOLATION_BILINEAR;
-      } else if (!strcmp(interpolationTypeStr, "catmul_rom")) {
+      } else if(!strcmp(interpolationTypeStr, "catmul_rom")) {
         interpolationType = S2_INTERPOLATION_CATMULROM;
       }
       s2_terrain_setInterpolationConvention(terrain, interpolationType);
 
       json_t* colorObject = json_object_get(terrainObject, "color");
-      if (colorObject != NULL) {
-        if (json_is_array(colorObject)) {
+      if(colorObject != NULL) {
+        if(json_is_array(colorObject)) {
           size_t index;
           json_t* value;
           float Kd[4] = {0.0, 0.0, 0.0, 1.0};
           json_array_foreach(colorObject, index, value) {
-            if (json_is_number(value) && index < 4) {
+            if(json_is_number(value) && index < 4) {
               Kd[index] = json_number_value(value);
             }
             /* block of code that uses index and value */
@@ -363,7 +363,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
       json_t* parentObject = json_object_get(terrainObject, "parent");
       json_t* parentBodyObject = json_array_get(parentObject, 0);
       terrain->parentBody = s2_stackstr();
-      if (json_is_array(parentBodyObject)) {
+      if(json_is_array(parentBodyObject)) {
         /* if parent body is an array, then the full path is specified.
          */
         size_t index2;
@@ -371,7 +371,7 @@ int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
         json_array_foreach(parentBodyObject, index2, value) {
           s2_stackstr_append(terrain->parentBody, json_string_value(value));
         }
-      } else if (json_is_string(parentBodyObject)) {
+      } else if(json_is_string(parentBodyObject)) {
         /*
           otherwise the body is contained within the assembly
         */
@@ -400,20 +400,20 @@ be in the range from 0 to 1 and follow the RGBA convention.
 */
 void s2_terrain_setColor(s2_terrain_t* terrain, float Kd[4]) {
   memcpy(terrain->Kd, Kd, 4 * sizeof(float));
-  for (int i = 0; i < 4; i++) {
+  for(int i = 0; i < 4; i++) {
     terrain->Kd[i] = fmin(terrain->Kd[i], 1.0);
   }
 }
 
 void s2_terrain_setGetZ(s2_terrain_t* terrain) {
 
-  switch (terrain->coordinateConvention) {
+  switch(terrain->coordinateConvention) {
     case S2_COORDINATECONVENTION_ISO: {
-      if (terrain->controlPoints == NULL) {
+      if(terrain->controlPoints == NULL) {
         terrain->getZ = s2_terrain_getZ_default_iso;
         return;
       }
-      switch (terrain->interpolationType) {
+      switch(terrain->interpolationType) {
         case S2_INTERPOLATION_BICUBIC: {
           terrain->getZ = s2_terrain_getZ_bicubic_iso;
         } break;
@@ -426,11 +426,11 @@ void s2_terrain_setGetZ(s2_terrain_t* terrain) {
       }
     } break;
     case S2_COORDINATECONVENTION_SAE: {
-      if (terrain->controlPoints == NULL) {
+      if(terrain->controlPoints == NULL) {
         terrain->getZ = s2_terrain_getZ_default_sae;
         return;
       }
-      switch (terrain->interpolationType) {
+      switch(terrain->interpolationType) {
         case S2_INTERPOLATION_BICUBIC: {
           terrain->getZ = s2_terrain_getZ_bicubic_sae;
         } break;
@@ -484,7 +484,7 @@ void s2_generateGDALSampleTerrain(const char* filename, int rows, int columns,
   char** gdalOptions = NULL;
   GDALDatasetH hDataset =
     GDALCreate(hDriver, filename, 64, 64, 1, GDT_Float32, gdalOptions);
-  if (hDataset == NULL) {
+  if(hDataset == NULL) {
     fprintf(stderr, "failed to open file\n");
     return;
   }
@@ -509,8 +509,8 @@ void s2_generateGDALSampleTerrain(const char* filename, int rows, int columns,
 
   float data[rows * columns];
   double z;
-  for (int y = 0; y < columns; y++) {
-    for (int x = 0; x < rows; x++) {
+  for(int y = 0; y < columns; y++) {
+    for(int x = 0; x < rows; x++) {
       surface(x, y, &z);
       data[y * rows + x] = (float)z;
     }
@@ -538,22 +538,22 @@ void s2_generateSampleTerrain(const char* filename, int rows, int columns,
   PixelWand* pixelWand = NewPixelWand();
 
   status = MagickNewImage(image, columns, rows, pixelWand);
-  if (status == MagickFalse) {
+  if(status == MagickFalse) {
     fprintf(stderr, "failed to set size\n");
   }
 
   status = MagickSetDepth(image, 32);
-  if (status == MagickFalse) {
+  if(status == MagickFalse) {
     fprintf(stderr, "failed to set quantum depth\n");
   }
 
   status = MagickSetOption(image, "quantum:format", "floating-point");
-  if (status == MagickFalse) {
+  if(status == MagickFalse) {
     fprintf(stderr, "failed to set floating point quantum format\n");
   }
 
   status = MagickSetType(image, GrayscaleType);
-  if (status == MagickFalse) {
+  if(status == MagickFalse) {
     fprintf(stderr, "failed to set GrayScaleType\n");
   }
 
@@ -565,21 +565,21 @@ void s2_generateSampleTerrain(const char* filename, int rows, int columns,
    */
   double z;
   PixelIterator* iterator = NewPixelIterator(image);
-  if (iterator == (PixelIterator*)NULL) {
+  if(iterator == (PixelIterator*)NULL) {
     ThrowWandException(image);
   }
 
-  for (y = 0; y < (ssize_t)MagickGetImageHeight(image); y++) {
+  for(y = 0; y < (ssize_t)MagickGetImageHeight(image); y++) {
 
     PixelWand** pixels = PixelGetNextIteratorRow(iterator, &width);
-    if (pixels == (PixelWand**)NULL) {
+    if(pixels == (PixelWand**)NULL) {
       break;
     }
 
-    for (x = 0; x < (ssize_t)width; x++) {
+    for(x = 0; x < (ssize_t)width; x++) {
       surface(x, y, &z);
       PixelSetRed(pixels[x], z);
-      if (fabs(z - PixelGetRed(pixels[x])) > 1e-6) {
+      if(fabs(z - PixelGetRed(pixels[x])) > 1e-6) {
         fprintf(stderr, "%f != %f\n", z, PixelGetRed(pixels[x]));
       }
     }
@@ -587,13 +587,13 @@ void s2_generateSampleTerrain(const char* filename, int rows, int columns,
     (void)PixelSyncIterator(iterator);
   }
 
-  if (y < (long)MagickGetImageHeight(image)) {
+  if(y < (long)MagickGetImageHeight(image)) {
     ThrowWandException(image);
   }
 
   /* Write the image then destroy it. */
   status = MagickWriteImages(image, filename, MagickTrue);
-  if (status == MagickFalse) {
+  if(status == MagickFalse) {
     ThrowWandException(image);
   }
 
@@ -615,12 +615,12 @@ int s2_terrain_setElevationMap(s2_terrain_t* terrain,
   printf("attempting to open %s\n", elevationMapFileName);
 
   /* load elevation map using imagemagick */
-  if (elevationMapFileName == NULL) {
+  if(elevationMapFileName == NULL) {
     return -1;
   }
   MagickWand* image = NewMagickWand();
   MagickBooleanType status = MagickReadImage(image, elevationMapFileName);
-  if (status == MagickFalse) {
+  if(status == MagickFalse) {
     ThrowWandException(image);
     return -1;
   }
@@ -628,7 +628,7 @@ int s2_terrain_setElevationMap(s2_terrain_t* terrain,
   memcpy(terrain->scale, scale, 2 * sizeof(double));
 
   /* initialize elevation map, set all values to zero */
-  if (terrain->controlPoints) {
+  if(terrain->controlPoints) {
     free(terrain->controlPoints);
     terrain->controlPoints = NULL;
   }
@@ -650,14 +650,14 @@ int s2_terrain_setElevationMap(s2_terrain_t* terrain,
 
   unsigned long width;
   PixelIterator* iterator = NewPixelIterator(image);
-  for (long y = 0; y < (long)MagickGetImageHeight(image); y++) {
+  for(long y = 0; y < (long)MagickGetImageHeight(image); y++) {
 
     PixelWand** pixels = PixelGetNextIteratorRow(iterator, &width);
-    if (pixels == (PixelWand**)NULL) {
+    if(pixels == (PixelWand**)NULL) {
       break;
     }
 
-    for (register long x = 0; x < (long)width; x++) {
+    for(register long x = 0; x < (long)width; x++) {
       // PixelGetMagickColor(pixels[x], &pixel);
       // printf("%f\n", PixelGetRed(pixels[x]));
 
@@ -689,20 +689,20 @@ int s2_terrain_setGDALElevationMap(s2_terrain_t* terrain,
 
   GDALAllRegister();
   GDALDatasetH hDataset = GDALOpen(elevationMapFileName, GA_ReadOnly);
-  if (hDataset == NULL) {
+  if(hDataset == NULL) {
     fprintf(stderr, "failed to open GDAL dataset\n");
-    return;
+    return -1;
   }
   GDALDriverH hDriver = GDALGetDatasetDriver(hDataset);
   printf("Driver: %s/%s\n", GDALGetDriverShortName(hDriver),
          GDALGetDriverLongName(hDriver));
   printf("Size is %dx%dx%d\n", GDALGetRasterXSize(hDataset),
          GDALGetRasterYSize(hDataset), GDALGetRasterCount(hDataset));
-  if (GDALGetProjectionRef(hDataset) != NULL) {
+  if(GDALGetProjectionRef(hDataset) != NULL) {
     printf("Projection is `%s'\n", GDALGetProjectionRef(hDataset));
   }
   double geoTransform[6];
-  if (GDALGetGeoTransform(hDataset, geoTransform) == CE_None) {
+  if(GDALGetGeoTransform(hDataset, geoTransform) == CE_None) {
     printf("Origin = (%.6f,%.6f)\n", geoTransform[0], geoTransform[3]);
     printf("Pixel Size = (%.6f,%.6f)\n", geoTransform[1], geoTransform[5]);
   }
@@ -722,7 +722,7 @@ the s2_terrain_t datastructure was not modified
 int s2_terrain_setPropertyMap(s2_terrain_t* terrain,
                               const char* propertyMapFileName) {
 
-  if (propertyMapFileName == NULL) {
+  if(propertyMapFileName == NULL) {
     return -1;
   }
 
@@ -730,12 +730,12 @@ int s2_terrain_setPropertyMap(s2_terrain_t* terrain,
 
   MagickWand* propertyMap = NewMagickWand();
   MagickBooleanType status = MagickReadImage(propertyMap, propertyMapFileName);
-  if (status == MagickFalse) {
+  if(status == MagickFalse) {
     ThrowWandException(propertyMap);
     return -1;
   }
 
-  if (terrain->propertyMap) {
+  if(terrain->propertyMap) {
     free(terrain->propertyMap);
     terrain->propertyMap = NULL;
   }
@@ -752,14 +752,14 @@ int s2_terrain_setPropertyMap(s2_terrain_t* terrain,
   MagickPixelPacket pixel;
 
   PixelIterator* propertyMapIterator = NewPixelIterator(propertyMap);
-  for (unsigned long y = 0; y < (long)MagickGetImageHeight(propertyMap); y++) {
+  for(unsigned long y = 0; y < (long)MagickGetImageHeight(propertyMap); y++) {
 
     PixelWand** pixels = PixelGetNextIteratorRow(propertyMapIterator, &width);
-    if (pixels == (PixelWand**)NULL) {
+    if(pixels == (PixelWand**)NULL) {
       break;
     }
 
-    for (register unsigned long x = 0; x < (long)width; x++) {
+    for(register unsigned long x = 0; x < (long)width; x++) {
       PixelGetMagickColor(pixels[x], &pixel);
 
       terrain->propertyMap[y * propertyMapColumns + x] =
@@ -781,7 +781,7 @@ int s2_terrain_setPropertyMap(s2_terrain_t* terrain,
 void s2_terrain_setDiffuseMap(s2_terrain_t* terrain,
                               const char* diffuseMapFileName, double scale[2]) {
 
-  if (diffuseMapFileName) {
+  if(diffuseMapFileName) {
     terrain->diffuseMapFileName = strdup(diffuseMapFileName);
   } else {
     terrain->diffuseMapFileName = NULL;
@@ -796,7 +796,7 @@ only used in GUI.
 void s2_terrain_setNormalMap(s2_terrain_t* terrain,
                              const char* normalMapFileName) {
 
-  if (normalMapFileName) {
+  if(normalMapFileName) {
     terrain->normalMapFileName = strdup(normalMapFileName);
   } else {
     terrain->normalMapFileName = NULL;
@@ -809,7 +809,7 @@ void s2_terrain_setNormalMap(s2_terrain_t* terrain,
 void s2_terrain_setSpecularMap(s2_terrain_t* terrain,
                                const char* specularMapFileName) {
 
-  if (specularMapFileName) {
+  if(specularMapFileName) {
     terrain->specularMapFileName = strdup(specularMapFileName);
   } else {
     terrain->specularMapFileName = NULL;
@@ -821,7 +821,7 @@ void s2_terrain_setSpecularMap(s2_terrain_t* terrain,
 */
 void s2_terrain_setBumpMap(s2_terrain_t* terrain, const char* bumpMapFileName) {
 
-  if (bumpMapFileName) {
+  if(bumpMapFileName) {
     terrain->bumpMapFileName = strdup(bumpMapFileName);
   } else {
     terrain->bumpMapFileName = NULL;
@@ -829,9 +829,9 @@ void s2_terrain_setBumpMap(s2_terrain_t* terrain, const char* bumpMapFileName) {
 }
 
 int clamp_int(int val, int min, int max) {
-  if (val < min) {
+  if(val < min) {
     return min;
-  } else if (val >= max) {
+  } else if(val >= max) {
     return max;
   } else {
     return val;
@@ -843,9 +843,9 @@ int clamp_int(int val, int min, int max) {
 points are assumed to be distance 1 apart
 */
 double blend(double f, double min, double max) {
-  if (f < 1e-9) {
+  if(f < 1e-9) {
     return min;
-  } else if (f >= 1.0) {
+  } else if(f >= 1.0) {
     return max;
   } else {
     return (max - min) * f + min;
@@ -1259,7 +1259,7 @@ double s2_terrain_getZ_catmulrom_iso(s2_terrain_t* terrain, s2_vector_t* r_0p,
 
 /*!
 @brief gets height and surface normal at specified x,y coordinates
-@param context [in] star2 context data structure containing model data
+@param context [in] Shift context data structure containing model data
 @param x [in] x coordinate
 @param y [in] y coordinate
 @param height [out] height at x, y coordinate
@@ -1280,7 +1280,7 @@ void s2_terrain_getHeightAndSAENormal(s2_context_t* context, s2_vector_t* r_0p,
 
 /*!
 @brief gets height and surface normal at specified x,y coordinates
-@param context [in] star2 context data structure containing model data
+@param context [in] Shift context data structure containing model data
 @param r_0p vector from reference frame to point p to test, expressed in global
 coordinates
 @param height [out] height at x, y coordinate

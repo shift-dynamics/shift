@@ -1,6 +1,6 @@
 /**
 @file
-@brief A Qt class for laying out a workspace to interface with star2
+@brief A Qt class for laying out a workspace to interface with Shift
 @author Kristopher Wehage
 @date 2016
 @version 1.0

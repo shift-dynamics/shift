@@ -101,7 +101,7 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 set(GUI_SOURCES
-  ${kdtree_SOURCE_DIR}/src/gui/star2_gui.cpp
+  ${kdtree_SOURCE_DIR}/src/gui/shift_gui.cpp
   ${kdtree_SOURCE_DIR}/src/gui/workspace.cpp
   ${kdtree_SOURCE_DIR}/src/gui/openglwindow.cpp
   ${kdtree_SOURCE_DIR}/src/gui/renderwindow.cpp
@@ -143,10 +143,10 @@ add_definitions(-pedantic)
 add_definitions(-Wall)
 add_definitions(-Wextra)
 
-add_executable(star2 ${GUI_SOURCES})
-qt5_use_modules(star2 Core Widgets OpenGL Gui Svg)
-target_link_libraries(star2
-  star2_lib
+add_executable(shift ${GUI_SOURCES})
+qt5_use_modules(shift Core Widgets OpenGL Gui Svg)
+target_link_libraries(shift
+  shift_lib
   ode113_lib
   ${OPENGL_LIBRARIES}
   stdc++

@@ -225,7 +225,7 @@ Other
 * Use .cpp and .hpp file extensions for C++ code. Use .c and .h file
   extensions for C code.
 * In C, the data structure *foo* shall have a typedef `s2_foo_t`, where the `s2`
-  prefix indicates the *star2* namespace.
+  prefix indicates the *shift* namespace.
 * Each data structure in .c shall have a constructor and destructor with the
   prototypes `s2_foo_t* s2_foo()` and `s2_foo_free(s2_foo_t*)`.
 * The *member functions* (i.e. functions that operate on `s2_foo_t`) shall have

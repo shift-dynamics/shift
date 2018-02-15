@@ -13,11 +13,16 @@ void Shift::PointCloud::setDrawStyle(s2_point_shading_enum_t shadingType) {
   switch(shadingType) {
     case S2_POINT_SHADING_SPRITE: {
       m_shadingType = S2_POINT_SHADING_SPRITE;
-    } break;
+      break;
+    }
     case S2_POINT_SHADING_PHONG: {
       m_shadingType = S2_POINT_SHADING_PHONG;
+      break;
     }
-    default: { m_shadingType = S2_POINT_SHADING_SIMPLE; } break;
+    default: {
+      m_shadingType = S2_POINT_SHADING_SIMPLE;
+      break;
+    }
   }
 }
 
