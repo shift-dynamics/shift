@@ -46,7 +46,7 @@ s2_assembly_t* s2_assembly() {
 
   s2_assembly_t* assembly = malloc(sizeof(s2_assembly_t));
 
-  if (!assembly) {
+  if(!assembly) {
     fprintf(stderr, "Error: failed to initialize assembly.\n");
     return NULL;
   }
@@ -91,7 +91,7 @@ s2_assembly_t* s2_assembly() {
 void s2_assembly_appendSubAssembly(s2_assembly_t* assembly,
                                    s2_assembly_t* subAssembly) {
 
-  if (!assembly->subAssemblyTail) {
+  if(!assembly->subAssemblyTail) {
     assembly->subAssemblyHead = subAssembly;
     assembly->subAssemblyTail = subAssembly;
   } else {
@@ -109,13 +109,13 @@ datastructure using depth first tree traversal
 void s2_assembly_print(FILE* f, s2_assembly_t* assembly) {
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
-  while (subAssemblyHead) {
+  while(subAssemblyHead) {
     fprintf(f, "\nAssembly: ");
     s2_stackstr_print(f, subAssemblyHead->name);
     fprintf(f, "active: %s\n", subAssemblyHead->active ? "True" : "False");
     s2_assembly_printBodies(f, subAssemblyHead);
     s2_assembly_printJoints(f, subAssemblyHead);
-    if (subAssemblyHead->subAssemblyHead) {
+    if(subAssemblyHead->subAssemblyHead) {
       s2_assembly_print(f, subAssemblyHead);
     }
     subAssemblyHead = subAssemblyHead->next;
@@ -130,7 +130,7 @@ void s2_assembly_print(FILE* f, s2_assembly_t* assembly) {
 void s2_assembly_printBodies(FILE* f, s2_assembly_t* assembly) {
 
   s2_body_t* bodyHead = assembly->bodyHead;
-  while (bodyHead) {
+  while(bodyHead) {
     fprintf(f, "\tBody: ");
     s2_stackstr_print(f, bodyHead->name);
     // printf("\t\tbodyPtr: %p\n", bodyHead);
@@ -151,7 +151,7 @@ void s2_assembly_printBodies(FILE* f, s2_assembly_t* assembly) {
 void s2_assembly_printJoints(FILE* f, s2_assembly_t* assembly) {
 
   s2_joint_t* jointHead = assembly->jointHead;
-  while (jointHead) {
+  while(jointHead) {
     fprintf(f, "\tJoint: ");
     s2_stackstr_print(f, jointHead->name);
     fprintf(f, "\t\tindex: %d\n", jointHead->index);
@@ -170,15 +170,15 @@ void s2_assembly_printJoints(FILE* f, s2_assembly_t* assembly) {
     fprintf(f, "\t\tchildFrame: ");
     s2_stackstr_print(f, jointHead->childFrame);
     // printf("\t\tchildFramePtr: %p\n", jointHead->childFramePointer);
-    if (jointHead->primitiveDisplacement) {
+    if(jointHead->primitiveDisplacement) {
 
       fprintf(f, "\t\tprimitiveDisplacement: %0.16f\n",
               *(jointHead->primitiveDisplacement));
     }
     int offset = 0;
-    if (jointHead->h) {
+    if(jointHead->h) {
       fprintf(f, "\t\th: ");
-      switch (jointHead->jointType) {
+      switch(jointHead->jointType) {
         case S2_JOINT_FLOAT: {
           s2_screw_print(f, jointHead->h + offset++);
           fprintf(f, "\t\t   ");
@@ -186,6 +186,7 @@ void s2_assembly_printJoints(FILE* f, s2_assembly_t* assembly) {
           fprintf(f, "\t\t   ");
           s2_screw_print(f, jointHead->h + offset++);
           /* fall through */
+          __attribute__((fallthrough));
         }
         case S2_JOINT_SPHERICAL: {
           s2_screw_print(f, jointHead->h + offset++);
@@ -212,28 +213,28 @@ void s2_assembly_printJoints(FILE* f, s2_assembly_t* assembly) {
 void s2_assembly_free(s2_assembly_t* assembly) {
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
-  while (subAssemblyHead) {
+  while(subAssemblyHead) {
     s2_assembly_t* nextSubAssembly = subAssemblyHead->next;
     s2_body_t* bodyHead = subAssemblyHead->bodyHead;
-    while (bodyHead) {
+    while(bodyHead) {
       s2_body_t* nextBody = bodyHead->next;
       s2_body_free(bodyHead);
       bodyHead = nextBody;
     }
     s2_joint_t* jointHead = subAssemblyHead->jointHead;
-    while (jointHead) {
+    while(jointHead) {
       s2_joint_t* nextJoint = jointHead->next;
       s2_joint_free(jointHead);
       jointHead = nextJoint;
     }
     s2_light_t* lightHead = subAssemblyHead->lightHead;
-    while (lightHead) {
+    while(lightHead) {
       s2_light_t* nextLight = lightHead->next;
       s2_light_free(lightHead);
       lightHead = nextLight;
     }
 
-    if (subAssemblyHead->subAssemblyHead) {
+    if(subAssemblyHead->subAssemblyHead) {
       s2_assembly_free(subAssemblyHead->subAssemblyHead);
     }
 
@@ -252,7 +253,7 @@ void s2_assembly_free(s2_assembly_t* assembly) {
 */
 void s2_assembly_appendBody(s2_assembly_t* assembly, s2_body_t* body) {
 
-  if (!assembly->bodyTail) {
+  if(!assembly->bodyTail) {
     assembly->bodyHead = body;
     assembly->bodyTail = body;
   } else {
@@ -270,7 +271,7 @@ void s2_assembly_appendBody(s2_assembly_t* assembly, s2_body_t* body) {
 void s2_assembly_appendPointCloud(s2_assembly_t* assembly,
                                   s2_pointcloud_t* pointCloud) {
 
-  if (!assembly->pointCloudTail) {
+  if(!assembly->pointCloudTail) {
     assembly->pointCloudHead = pointCloud;
     assembly->pointCloudTail = pointCloud;
   } else {
@@ -293,7 +294,7 @@ int s2_assembly_loadBodies(s2_assembly_t* assembly, json_t* assemblyObject,
 
   json_t* bodiesObject = json_object_get(assemblyObject, "bodies");
 
-  if (json_is_array(bodiesObject)) {
+  if(json_is_array(bodiesObject)) {
 
     json_t* bodyObject;
     size_t index;
@@ -314,7 +315,7 @@ int s2_assembly_loadBodies(s2_assembly_t* assembly, json_t* assemblyObject,
 */
 void s2_assembly_appendJoint(s2_assembly_t* assembly, s2_joint_t* joint) {
 
-  if (!assembly->jointTail) {
+  if(!assembly->jointTail) {
     assembly->jointHead = joint;
     assembly->jointTail = joint;
   } else {
@@ -324,7 +325,7 @@ void s2_assembly_appendJoint(s2_assembly_t* assembly, s2_joint_t* joint) {
 }
 
 /*!
-@brief Parse joints in a star2 file
+@brief Parse joints in a Shift JSON file
 
 */
 int s2_assembly_loadJoints(s2_assembly_t* assembly, json_t* assemblyObject,
@@ -332,7 +333,7 @@ int s2_assembly_loadJoints(s2_assembly_t* assembly, json_t* assemblyObject,
 
   json_t* jointsObject = json_object_get(assemblyObject, "joints");
 
-  if (json_is_array(jointsObject)) {
+  if(json_is_array(jointsObject)) {
     json_t* jointObject;
     size_t index;
 
@@ -340,11 +341,11 @@ int s2_assembly_loadJoints(s2_assembly_t* assembly, json_t* assemblyObject,
 
       bool active = true;
       json_t* activeObject = json_object_get(jointObject, "active");
-      if (activeObject != NULL) {
+      if(activeObject != NULL) {
         active = json_boolean_value(activeObject);
       }
 
-      if (active) {
+      if(active) {
 
         s2_joint_load(context, assembly, prefix, jointObject);
       }
@@ -360,7 +361,7 @@ int s2_assembly_loadLights(s2_assembly_t* assembly, json_t* assemblyObject,
                            s2_context_t* context, s2_stackstr_t* prefix) {
 
   json_t* lightsObject = json_object_get(assemblyObject, "lights");
-  if (json_is_array(lightsObject)) {
+  if(json_is_array(lightsObject)) {
     size_t index;
     json_t* lightObject;
     json_array_foreach(lightsObject, index, lightObject) {
@@ -378,7 +379,7 @@ int s2_assembly_loadRestraints(s2_assembly_t* assembly, json_t* assemblyObject,
                                s2_context_t* context, s2_stackstr_t* prefix) {
 
   json_t* restraintsObject = json_object_get(assemblyObject, "restraints");
-  if (json_is_array(restraintsObject)) {
+  if(json_is_array(restraintsObject)) {
     json_t* restraintObject;
     size_t index;
     json_array_foreach(restraintsObject, index, restraintObject) {
@@ -404,17 +405,17 @@ int s2_assembly_loadForceModules(s2_assembly_t* assembly,
 
   json_t* forceModulesObject = json_object_get(assemblyObject, "force_modules");
 
-  if (json_is_array(forceModulesObject)) {
+  if(json_is_array(forceModulesObject)) {
     size_t index;
     json_t* forceModuleObject;
     json_array_foreach(forceModulesObject, index, forceModuleObject) {
 
       bool active = true;
       json_t* activeObject = json_object_get(forceModuleObject, "active");
-      if (activeObject) {
+      if(activeObject) {
         active = json_boolean_value(activeObject);
       }
-      if (active) {
+      if(active) {
 
         s2_forcemodule_load(context, assembly, prefix, forceModuleObject);
       }
@@ -442,7 +443,7 @@ within a hierarchical datastructure
 int s2_assembly_load(s2_assembly_t* parentAssembly, json_t* assembliesObject,
                      s2_context_t* context, s2_stackstr_t* prefix) {
 
-  if (json_is_array(assembliesObject)) {
+  if(json_is_array(assembliesObject)) {
 
     size_t index;
     json_t* assemblyObject;
@@ -465,29 +466,26 @@ int s2_assembly_load(s2_assembly_t* parentAssembly, json_t* assembliesObject,
       s2_assembly_appendSubAssembly(parentAssembly, assembly);
 
       // printf("%s: loading bodies\n", newPrefix);
-      if (s2_assembly_loadBodies(assembly, assemblyObject, context,
-                                 newPrefix)) {
+      if(s2_assembly_loadBodies(assembly, assemblyObject, context, newPrefix)) {
         return -1;
       }
 
       // printf("%s: loading joints\n", newPrefix);
-      if (s2_assembly_loadJoints(assembly, assemblyObject, context,
-                                 newPrefix)) {
+      if(s2_assembly_loadJoints(assembly, assemblyObject, context, newPrefix)) {
         return -1;
       }
 
-      if (s2_assembly_loadRestraints(assembly, assemblyObject, context,
-                                     newPrefix)) {
+      if(s2_assembly_loadRestraints(assembly, assemblyObject, context,
+                                    newPrefix)) {
         return -1;
       }
 
-      if (s2_assembly_loadLights(assembly, assemblyObject, context,
-                                 newPrefix)) {
+      if(s2_assembly_loadLights(assembly, assemblyObject, context, newPrefix)) {
         return -1;
       }
 
-      if (s2_assembly_loadForceModules(assembly, assemblyObject, context,
-                                       newPrefix)) {
+      if(s2_assembly_loadForceModules(assembly, assemblyObject, context,
+                                      newPrefix)) {
         return -1;
       }
 
@@ -508,7 +506,7 @@ int s2_assembly_load(s2_assembly_t* parentAssembly, json_t* assembliesObject,
 void s2_assembly_appendRestraint(s2_assembly_t* assembly,
                                  s2_restraint_t* restraint) {
 
-  if (!assembly->restraintTail) {
+  if(!assembly->restraintTail) {
     assembly->restraintHead = restraint;
     assembly->restraintTail = restraint;
   } else {
@@ -525,7 +523,7 @@ void s2_assembly_appendRestraint(s2_assembly_t* assembly,
 */
 void s2_assembly_appendLight(s2_assembly_t* assembly, s2_light_t* light) {
 
-  if (!assembly->lightTail) {
+  if(!assembly->lightTail) {
     assembly->lightHead = light;
     assembly->lightTail = light;
   } else {
@@ -543,7 +541,7 @@ void s2_assembly_appendLight(s2_assembly_t* assembly, s2_light_t* light) {
 void s2_assembly_appendForceModule(s2_assembly_t* assembly,
                                    s2_forcemodule_t* forceModule) {
 
-  if (!assembly->forceModuleTail) {
+  if(!assembly->forceModuleTail) {
     assembly->forceModuleHead = forceModule;
     assembly->forceModuleTail = forceModule;
   } else {

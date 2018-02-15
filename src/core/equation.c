@@ -749,7 +749,7 @@ void s2_inertia_print2Reference(FILE* f, s2_inertia_t* inertiaReference,
 
 /*!
 @brief evaluate generalized mass matrix
-
+@todo create version of this function that does not set terms in Mb
 */
 void s2_context_setMassMatrix(s2_context_t* context) {
 
@@ -893,9 +893,6 @@ void s2_context_setMassMatrix(s2_context_t* context) {
       context->mhProduct[k].m1 += inertiaP[j].m * context->h[k].m1;
       context->mhProduct[k].m2 += inertiaP[j].m * context->h[k].m2;
 
-      /* this cblas call could replace the three += calls above */
-      // cblas_daxpy(3, inertiaP[j].m, (double*)(context->h + j), 1,
-      //             (double*)(context->mhProduct + j), 1);
       context->mhProduct[k].m4 += inertiaP[j].mt.z * context->h[k].m0;
       context->mhProduct[k].m5 -= inertiaP[j].mt.y * context->h[k].m0;
 
@@ -967,10 +964,6 @@ void s2_context_setMassMatrix(s2_context_t* context) {
         context->Ml[k_3] += context->mhProduct[j].m0 * context->h[j].m0;
         context->Ml[k_3] += context->mhProduct[j].m1 * context->h[j].m1;
         context->Ml[k_3] += context->mhProduct[j].m2 * context->h[j].m2;
-        /* the cblas call could replace the above function calls */
-        // context->Ml[k_3] += cblas_ddot(3, (double*)(context->mhProduct + j),
-        // 1,
-        //                                (double*)(context->h + j), 1);
       }
 
       int i = context->pcldq[j];

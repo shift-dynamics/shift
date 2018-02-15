@@ -142,63 +142,25 @@ void s2_substructure_updateq(s2_substructure_t* substructure) {
       context->jointPointers[context->substructureMembers[substructureIndex][j]]
         ->jointType) {
       case S2_JOINT_RIGID: {
-        printf("rigid joint detected!\n");
+        // printf("rigid joint detected!\n");
         break;
       }
       case S2_JOINT_FLOAT: {
         context->q[qIndex++] -= context->deltaq[dqIndex++];
         context->q[qIndex++] -= context->deltaq[dqIndex++];
         context->q[qIndex++] -= context->deltaq[dqIndex++];
-        /* falls through to spherical case to process rotational dof */
+        __attribute__((fallthrough));
       }
       case S2_JOINT_SPHERICAL: {
-        // bool anyNonZero = false;
-        // for(int i = 0; i < 3; i++) {
-        //   if(fabs(context->deltaq[dqIndex + i]) > 1e-9) {
-        //     anyNonZero = true;
-        //     break;
-        //   }
-        // }
-        // if(anyNonZero) {
-        //   printf(
-        //     "  nonzero dq: %g %g %g\n",
-        //     context->deltaq[dqIndex + 0],
-        //     context->deltaq[dqIndex + 1],
-        //     context->deltaq[dqIndex + 2]
-        //   );
-        // }
-        /* store 4 terms deltaq at substructure->deltaq[qIndex]
-          take 3 terms from substructure->deltaq[dqIndex] */
-
-        // printf("[%d] processing spherical joint in newton raphson: \n  ", j);
-        // s2_stackstr_print(stdout, context->jointPointers[
-        //   context->substructureMembers[substructureIndex][j]]->name);
-        // printf("  deltaq: ");
-        // s2_vector_print(stdout, (s2_vector_t*)(context->deltaq + dqIndex));
-        // printf("  qi: ");
-        // s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
-        //
-        // double q_prev[4];
-        // memcpy(&q_prev, context->q + qIndex, 4 * sizeof(double));
         s2_subtract_dpiFromq((s2_vector_t*)(context->deltaq + dqIndex),
                              (s2_quaternion_t*)(context->q + qIndex));
         s2_quaternion_normalize((s2_quaternion_t*)(context->q + qIndex));
-        // printf("  qo: ");
-        // s2_quaternion_print(stdout, (s2_quaternion_t*)(context->q + qIndex));
-        // printf("  updated: ");
-        // for(int i = 0; i < 4; i++) {
-        //   printf("%s ", fabs(q_prev[i] - context->q[qIndex + i]) > 1e-9 ?
-        //   "true" : "false");
-        // }
-        // printf("\n");
         qIndex += 4;
         dqIndex += 3;
         break;
       }
       default: {
-        if(fabs(context->deltaq[dqIndex]) > 1e-9) {
-          printf("nonzero dq: %g\n", context->deltaq[dqIndex]);
-        }
+        /* update single dof joints */
         context->q[qIndex++] -= context->deltaq[dqIndex++];
         break;
       }

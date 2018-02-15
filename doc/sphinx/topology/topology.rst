@@ -20,7 +20,7 @@ In this section, a model of a hydraulic excavator is used to illustrate basic co
     A Hydraulic Excavator
 
 
-The excavator model's topology can be described as a directed graph with a number of bodies comprising the *nodes* of the graph, connected by a number of joints as *edges* of the directed graph.  The excavator model consists of 15 bodies connected by 20 joints, shown in `Table 1`_. The bodies and joints are listed in an arbitrary, user--defined order. This organization of bodies and joints is similar to how mechanism topology is specified in the star2 JSON file format. The ID is provided here only as an aid in interpreting the following development and need not be included in the JSON file. Note that the zero identifier is reserved for the fixed inertial reference frame.
+The excavator model's topology can be described as a directed graph with a number of bodies comprising the *nodes* of the graph, connected by a number of joints as *edges* of the directed graph.  The excavator model consists of 15 bodies connected by 20 joints, shown in `Table 1`_. The bodies and joints are listed in an arbitrary, user--defined order. This organization of bodies and joints is similar to how mechanism topology is specified in the Shift JSON file format. The ID is provided here only as an aid in interpreting the following development and need not be included in the JSON file. Note that the zero identifier is reserved for the fixed inertial reference frame.
 
 .. _Table 1:
 
@@ -49,7 +49,7 @@ ID   Body Name             ID  Joint Name
 \    \                     T   bucket linkage 1 :math:`\rightarrow` bucket linkage 2
 ==   ===================== ==  ==============
 
-Click `here </star2/_static/excavator.json>`_ to see how the information in `Table 1`_ is encoded in a star2 JSON file.
+Click `here </shift/_static/excavator.json>`_ to see how the information in `Table 1`_ is encoded in a Shift JSON file.
 
 
 Incidence Matrix
@@ -160,7 +160,7 @@ The graph edges above the dashed line in Eq. :eq:`eq:incidence_matrix_no_substru
 
 Path Matrix
 ***********
-The path matrix is another important tool 
+The path matrix is another important tool
 
 Jacobian Matrix obtained using Graph Theory
 *******************************************

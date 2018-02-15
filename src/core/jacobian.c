@@ -2312,7 +2312,7 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
           s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
           fprintf(loopOffsetFile, "%d\t", k++);
           s2_stackstr_print(loopOffsetFile, context->jointPointers[j]->name);
-          /* fall through */
+          __attribute__((fallthrough));
         }
         case S2_JOINT_SPHERICAL: {
           fprintf(loopOffsetFile, "%d\t", k++);

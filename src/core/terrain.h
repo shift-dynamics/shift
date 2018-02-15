@@ -91,13 +91,12 @@ typedef struct s2_terrain_t {
   GLfloat KaOverKd;
   GLint Ns;
 
-  double (
-    *getZ)(struct s2_terrain_t* terrain, s2_vector_t* position,
-           s2_vector_t* normal); /*!< function used to obtain elevation at
-                                    specified x, y location. This function
-                                    pointer is set based on type of
-                                    interpolation specified when terrain is
-                                    created */
+  double (*getZ)(struct s2_terrain_t* terrain, s2_vector_t* position,
+                 s2_vector_t* normal); /*!< function used to obtain elevation at
+                                          specified x, y location. This function
+                                          pointer is set based on type of
+                                          interpolation specified when terrain
+                                          is created */
 
   s2_stackstr_t* name;
   s2_stackstr_t* parentBody;
@@ -185,5 +184,8 @@ void s2_terrain_setBumpMap(s2_terrain_t* terrain, const char* bumpMapFileName);
 
 void s2_terrain_setSpecularMap(s2_terrain_t* terrain,
                                const char* specularMapFileName);
+
+void s2_terrain_setNormalMap(s2_terrain_t* terrain,
+                             const char* normalMapFileName);
 
 #endif
