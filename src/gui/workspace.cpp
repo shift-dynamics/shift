@@ -966,12 +966,12 @@ void Shift::Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
     MyTreeItem* currentItem =
       static_cast<MyTreeItem*>(m_treeWidget->currentItem());
     switch(currentItem->m_userType) {
-      case 1002: {
+      case S2_MODELTREE_ASSEMBLY: {
         /* assembly */
-        s2_assembly_t* assembly = (s2_assembly_t*)(currentItem->m_object);
-      } break;
-      case 1003: {
-        /* body folder */
+        // s2_assembly_t* assembly = (s2_assembly_t*)(currentItem->m_object);
+        break;
+      }
+      case S2_MODELTREE_BODY_GROUP: {
         s2_assembly_t* assembly = (s2_assembly_t*)(currentItem->m_object);
         for(s2_body_t* bodyHead = assembly->bodyHead; bodyHead;
             bodyHead = bodyHead->next) {
@@ -988,15 +988,16 @@ void Shift::Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
             item->setIcon(1, QIcon(":/icons/invisible.png"));
           }
         }
-      } break;
-      case 1004: {
-        /* body */
+        break;
+      }
+      case S2_MODELTREE_BODY: {
         s2_body_t* body = (s2_body_t*)(currentItem->m_object);
         body->isVisible = !body->isVisible;
         updateItemDrawState(currentItem, body->isVisible,
                             m_renderWindow->getBodies()->isEnabled());
-      } break;
-      case 1005: {
+        break;
+      }
+      case S2_MODELTREE_FRAME: {
         /* frame */
         s2_frame_t* frame = (s2_frame_t*)(currentItem->m_object);
         qDebug() << "toggling visibility of frame";
@@ -1004,66 +1005,72 @@ void Shift::Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
         frame->isVisible = !frame->isVisible;
         updateItemDrawState(currentItem, frame->isVisible,
                             m_renderWindow->getFrames()->isEnabled());
-      } break;
-      case 1006: {
+        break;
+      }
+      case S2_MODELTREE_JOINT_GROUP: {
         /* joint folder */
-
-      } break;
-      case 1007: {
-        /* joint */
+        break;
+      }
+      case S2_MODELTREE_JOINT: {
         s2_joint_t* joint = (s2_joint_t*)(currentItem->m_object);
         qDebug() << "toggling visibility of frame";
         s2_stackstr_print(stdout, joint->name);
         joint->isVisible = !joint->isVisible;
         updateItemDrawState(currentItem, joint->isVisible,
                             m_renderWindow->getJoints()->isEnabled());
-      } break;
-      case 1008: {
+        break;
+      }
+      case S2_MODELTREE_LIGHT_GROUP: {
         /* light folder */
-
-      } break;
-      case 1009: {
+        break;
+      }
+      case S2_MODELTREE_LIGHT: {
         /* light */
-
-      } break;
-      case 1010: {
+        break;
+      }
+      case S2_MODELTREE_RESTRAINT_GROUP: {
         /* restraint folder */
-
-      } break;
-      case 1011: {
+        break;
+      }
+      case S2_MODELTREE_RESTRAINT: {
         /* restraint */
-
-      } break;
-      case 1012: {
+        break;
+      }
+      case S2_MODELTREE_IO_GROUP: {
         /* io folder */
-
-      } break;
-      case 1013: {
+        break;
+      }
+      case S2_MODELTREE_IO: {
         /* io */
-
-      } break;
-      case 1014: {
+        break;
+      }
+      case S2_MODELTREE_TERRAIN_GROUP: {
         /* terrain folder */
-      } break;
-      case 1015: {
+        break;
+      }
+      case S2_MODELTREE_TERRAIN: {
         /* terrain */
         s2_terrain_t* terrain = (s2_terrain_t*)(currentItem->m_object);
         terrain->isVisible = !terrain->isVisible;
         updateItemDrawState(currentItem, terrain->isVisible,
                             m_renderWindow->getTerrain()->isEnabled());
-      } break;
-      case 1016: {
+        break;
+      }
+      case S2_MODELTREE_POINTCLOUD_GROUP: {
         /* point cloud folder */
-      } break;
-      case 1017: {
+        break;
+      }
+      case S2_MODELTREE_POINTCLOUD: {
         /* point cloud */
         s2_pointcloud_t* pointcloud = (s2_pointcloud_t*)(currentItem->m_object);
         pointcloud->isVisible = !pointcloud->isVisible;
         updateItemDrawState(currentItem, pointcloud->isVisible,
                             m_renderWindow->getPointClouds()->isEnabled());
-      } break;
-
-      default: { } break; }
+        break;
+      }
+      default:
+        break;
+    }
   }
 }
 
@@ -1405,7 +1412,7 @@ void Shift::Workspace::updateMaterialNs(double Ns) {
 */
 void Shift::Workspace::updateCurrentLightType(int lightType) {
   if(m_currentSelectedItem->m_userType == 1009) {
-    s2_light_t* light = (s2_light_t*)m_currentSelectedItem->m_object;
+    // s2_light_t* light = (s2_light_t*)m_currentSelectedItem->m_object;
 
     //     currentLight->lightType = (LightType) lightType;
     //     RenderWindow* renWin = glwidget->GetRenderWindow();
@@ -1435,7 +1442,7 @@ void Shift::Workspace::updateCurrentLightType(int lightType) {
 void Shift::Workspace::updateTransform() {
   if(m_currentSelectedItem->m_userType == 1005) {
 
-    s2_frame_t* frame = (s2_frame_t*)m_currentSelectedItem->m_object;
+    // s2_frame_t* frame = (s2_frame_t*)m_currentSelectedItem->m_object;
     // Model* currentModel = static_cast<Model*>(m_currentSelectedItem->object);
     // currentModel->transform.setToIdentity();
     // currentModel->transform.translate( currentModel->translation );
@@ -1444,7 +1451,7 @@ void Shift::Workspace::updateTransform() {
     // currentModel->transform.rotate( currentModel->rotation.z(), 0, 0, 1);
 
   } else if(m_currentSelectedItem->m_userType == 1007) {
-    s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+    // s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
   }
 }
 
@@ -1491,99 +1498,71 @@ void Shift::Workspace::recenterRz() {
 }
 
 /*!
-  @brief updates Tx for prismatic joints, spherical joints and float joints
+  @brief updates Tx for prismatic joints and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Shift::Workspace::setTx(int val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-
-      double delq = (double)val * m_sliders.tx.singleStep;
-
-      // qDebug() << delq;
-
-      m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                               S2_JOINT_PRIMITIVE);
-      m_sliders.tx.spinBox->blockSignals(true);
-      m_sliders.tx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-      m_sliders.tx.spinBox->blockSignals(false);
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
+      }
+      case S2_MODELTREE_JOINT: {
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        double delq = (double)val * m_sliders.tx.singleStep;
+        m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                 S2_JOINT_PRIMITIVE);
+        m_sliders.tx.spinBox->blockSignals(true);
+        m_sliders.tx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+        m_sliders.tx.spinBox->blockSignals(false);
+        break;
+      }
+      default:
+        break;
     }
     emit txChanged(0);
   }
 }
 
 /*!
-  @brief updates Ty for prismatic joints, spherical joints and float joints
+  @brief updates Ty for prismatic joints, and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Shift::Workspace::setTy(int val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-
-      int qIndex = -1;
-      int dqIndex = -1;
-      switch(joint->jointType) {
-        case S2_JOINT_FLOAT: {
-          qIndex = joint->qIndex + 1;
-          dqIndex = joint->dqIndex + 1;
-        } break;
-        default: {
-          qIndex = joint->qIndex;
-          dqIndex = joint->dqIndex;
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        int qIndex = -1;
+        int dqIndex = -1;
+        switch(joint->jointType) {
+          case S2_JOINT_FLOAT: {
+            qIndex = joint->qIndex + 1;
+            dqIndex = joint->dqIndex + 1;
+            break;
+          }
+          default: {
+            qIndex = joint->qIndex;
+            dqIndex = joint->dqIndex;
+            break;
+          }
+        }
+        double delq = (double)val * m_sliders.ty.singleStep;
+        m_sliders.ty.spinBox->blockSignals(true);
+        m_sliders.ty.spinBox->setValue(m_context->q[qIndex] + delq);
+        m_sliders.ty.spinBox->blockSignals(false);
 
-      double delq = (double)val * m_sliders.ty.singleStep;
-      m_sliders.ty.spinBox->blockSignals(true);
-      m_sliders.ty.spinBox->setValue(m_context->q[qIndex] + delq);
-      m_sliders.ty.spinBox->blockSignals(false);
-
-      m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
-                               S2_JOINT_PRIMITIVE);
+        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
+                                 S2_JOINT_PRIMITIVE);
+        break;
+      }
+      default:
+        break;
     }
     emit tyChanged(0);
   }
@@ -1608,11 +1587,13 @@ void Shift::Workspace::setTz(int val) {
           case S2_JOINT_FLOAT: {
             qIndex = joint->qIndex + 2;
             dqIndex = joint->dqIndex + 2;
-          } break;
+            break;
+          }
           default: {
             qIndex = joint->qIndex;
             dqIndex = joint->dqIndex;
-          } break;
+            break;
+          }
         }
         double delq = (double)val * m_sliders.tz.singleStep;
         m_sliders.tz.spinBox->blockSignals(true);
@@ -1623,123 +1604,109 @@ void Shift::Workspace::setTz(int val) {
                                  S2_JOINT_PRIMITIVE);
         break;
       }
-      default: { break; }
+      default:
+        break;
     }
     emit tzChanged(0);
   }
 }
 
 /*!
-  @brief updates Rx for revolute joints, spherical joints and float joints
-  also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
+@brief updates Rx for revolute joints, spherical joints and float joints
+also used to update shape matrices
 */
 void Shift::Workspace::setRx(int val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-      double delq = (double)val * m_sliders.rx.singleStep;
-      switch(joint->jointType) {
-        case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                   S2_JOINT_SPHERICAL);
-          m_sliders.rx.spinBox->blockSignals(true);
-          m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-          m_sliders.rx.spinBox->blockSignals(false);
-        } break;
-        case S2_JOINT_FLOAT: {
-          m_renderWindow->setJoint(joint, joint->qIndex + 3, joint->dqIndex + 3,
-                                   delq, S2_JOINT_SPHERICAL);
-          m_sliders.rx.spinBox->blockSignals(true);
-          m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex + 3] +
-                                         delq);
-          m_sliders.rx.spinBox->blockSignals(false);
-        } break;
-        default: {
-          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                   S2_JOINT_PRIMITIVE);
-          m_sliders.rx.spinBox->blockSignals(true);
-          m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-          m_sliders.rx.spinBox->blockSignals(false);
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        double delq = (double)val * m_sliders.rx.singleStep;
+        switch(joint->jointType) {
+          case S2_JOINT_SPHERICAL: {
+            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                     S2_JOINT_SPHERICAL);
+            m_sliders.rx.spinBox->blockSignals(true);
+            m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+            m_sliders.rx.spinBox->blockSignals(false);
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            m_renderWindow->setJoint(joint, joint->qIndex + 3,
+                                     joint->dqIndex + 3, delq,
+                                     S2_JOINT_SPHERICAL);
+            m_sliders.rx.spinBox->blockSignals(true);
+            m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex + 3] +
+                                           delq);
+            m_sliders.rx.spinBox->blockSignals(false);
+            break;
+          }
+          default: {
+            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                     S2_JOINT_PRIMITIVE);
+            m_sliders.rx.spinBox->blockSignals(true);
+            m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+            m_sliders.rx.spinBox->blockSignals(false);
+            break;
+          }
+        }
+      }
+      default:
+        break;
     }
     emit rxChanged(0);
   }
 }
 
 /*!
-  @brief updates Rx for revolute joints, spherical joints and float joints
-  also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
+@brief updates Rx for revolute joints, spherical joints and float joints
+also used to update shape matrices
 */
 void Shift::Workspace::setRy(int val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-      double delq = (double)val * m_sliders.ry.singleStep;
-      switch(joint->jointType) {
-        case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                   S2_JOINT_SPHERICAL);
-          m_sliders.ry.spinBox->blockSignals(true);
-          m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-          m_sliders.ry.spinBox->blockSignals(false);
-        } break;
-        case S2_JOINT_FLOAT: {
-          m_renderWindow->setJoint(joint, joint->qIndex + 3, joint->dqIndex + 3,
-                                   delq, S2_JOINT_SPHERICAL);
-          m_sliders.ry.spinBox->blockSignals(true);
-          m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex + 3] +
-                                         delq);
-          m_sliders.ry.spinBox->blockSignals(false);
-        } break;
-        default: {
-          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                   S2_JOINT_PRIMITIVE);
-          m_sliders.ry.spinBox->blockSignals(true);
-          m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-          m_sliders.ry.spinBox->blockSignals(false);
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        /* process a joint */
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        double delq = (double)val * m_sliders.ry.singleStep;
+        switch(joint->jointType) {
+          case S2_JOINT_SPHERICAL: {
+            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                     S2_JOINT_SPHERICAL);
+            m_sliders.ry.spinBox->blockSignals(true);
+            m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+            m_sliders.ry.spinBox->blockSignals(false);
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            m_renderWindow->setJoint(joint, joint->qIndex + 3,
+                                     joint->dqIndex + 3, delq,
+                                     S2_JOINT_SPHERICAL);
+            m_sliders.ry.spinBox->blockSignals(true);
+            m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex + 3] +
+                                           delq);
+            m_sliders.ry.spinBox->blockSignals(false);
+            break;
+          }
+          default: {
+            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                     S2_JOINT_PRIMITIVE);
+            m_sliders.ry.spinBox->blockSignals(true);
+            m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+            m_sliders.ry.spinBox->blockSignals(false);
+            break;
+          }
+        }
+      }
+      default:
+        break;
     }
     emit ryChanged(0);
   }
@@ -1748,58 +1715,48 @@ void Shift::Workspace::setRy(int val) {
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Shift::Workspace::setRz(int val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-      double delq = (double)val * m_sliders.rz.singleStep;
-      switch(joint->jointType) {
-        case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                   S2_JOINT_SPHERICAL);
-          m_sliders.rz.spinBox->blockSignals(true);
-          m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-          m_sliders.rz.spinBox->blockSignals(false);
-        } break;
-        case S2_JOINT_FLOAT: {
-          m_renderWindow->setJoint(joint, joint->qIndex + 3, joint->dqIndex + 3,
-                                   delq, S2_JOINT_SPHERICAL);
-          m_sliders.rz.spinBox->blockSignals(true);
-          m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex + 3] +
-                                         delq);
-          m_sliders.rz.spinBox->blockSignals(false);
-        } break;
-        default: {
-          m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                   S2_JOINT_PRIMITIVE);
-          m_sliders.rz.spinBox->blockSignals(true);
-          m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-          m_sliders.rz.spinBox->blockSignals(false);
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        double delq = (double)val * m_sliders.rz.singleStep;
+        switch(joint->jointType) {
+          case S2_JOINT_SPHERICAL: {
+            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                     S2_JOINT_SPHERICAL);
+            m_sliders.rz.spinBox->blockSignals(true);
+            m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+            m_sliders.rz.spinBox->blockSignals(false);
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            m_renderWindow->setJoint(joint, joint->qIndex + 3,
+                                     joint->dqIndex + 3, delq,
+                                     S2_JOINT_SPHERICAL);
+            m_sliders.rz.spinBox->blockSignals(true);
+            m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex + 3] +
+                                           delq);
+            m_sliders.rz.spinBox->blockSignals(false);
+            break;
+          }
+          default: {
+            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
+                                     S2_JOINT_PRIMITIVE);
+            m_sliders.rz.spinBox->blockSignals(true);
+            m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
+            m_sliders.rz.spinBox->blockSignals(false);
+            break;
+          }
+        }
+      }
+      default:
+        break;
     }
     emit rzChanged(0);
   }
@@ -1809,19 +1766,13 @@ void Shift::Workspace::setRz(int val) {
   @brief resolve constraint violations before using Tx slider
 */
 void Shift::Workspace::onclickTx() {
-  if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_JOINT) {
 
-      /* process a frame */
-      // updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.tx.substructure) {
-        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.tx.substructure, m_sliders.tx.dqIndex);
-      }
+    /* drive constraint error to zero before applying fast factorization */
+    if(m_sliders.tx.substructure) {
+      s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
+        m_sliders.tx.substructure, m_sliders.tx.dqIndex);
     }
   }
 }
@@ -1830,19 +1781,13 @@ void Shift::Workspace::onclickTx() {
   @brief resolve constraint violations before using Ty slider
 */
 void Shift::Workspace::onclickTy() {
-  if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_JOINT) {
 
-      /* process a frame */
-      // updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.ty.substructure) {
-        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.ty.substructure, m_sliders.ty.dqIndex);
-      }
+    /* drive constraint error to zero before applying fast factorization */
+    if(m_sliders.ty.substructure) {
+      s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
+        m_sliders.ty.substructure, m_sliders.ty.dqIndex);
     }
   }
 }
@@ -1851,19 +1796,12 @@ void Shift::Workspace::onclickTy() {
   @brief resolve constraint violations before using Tz slider
 */
 void Shift::Workspace::onclickTz() {
-  if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      // updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.tz.substructure) {
-        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.tz.substructure, m_sliders.tz.dqIndex);
-      }
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_JOINT) {
+    /* drive constraint error to zero before applying fast factorization */
+    if(m_sliders.tz.substructure) {
+      s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
+        m_sliders.tz.substructure, m_sliders.tz.dqIndex);
     }
   }
 }
@@ -1872,20 +1810,12 @@ void Shift::Workspace::onclickTz() {
   @brief resolve constraint violations before using Rx slider
 */
 void Shift::Workspace::onclickRx() {
-  if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      // updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* drive constraint error to zero before subsecquent fast factorization */
-      qDebug() << "initialize rx slider";
-      if(m_sliders.rx.substructure) {
-        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.rx.substructure, m_sliders.rx.dqIndex);
-      }
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_JOINT) {
+    /* drive constraint error to zero before applying fast factorization */
+    if(m_sliders.rx.substructure) {
+      s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
+        m_sliders.rx.substructure, m_sliders.rx.dqIndex);
     }
   }
 }
@@ -1894,19 +1824,12 @@ void Shift::Workspace::onclickRx() {
   @brief resolve constraint violations before using Ry slider
 */
 void Shift::Workspace::onclickRy() {
-  if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      // updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.ry.substructure) {
-        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.ry.substructure, m_sliders.ry.dqIndex);
-      }
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_JOINT) {
+    /* drive constraint error to zero before applying fast factorization */
+    if(m_sliders.ry.substructure) {
+      s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
+        m_sliders.ry.substructure, m_sliders.ry.dqIndex);
     }
   }
 }
@@ -1915,19 +1838,12 @@ void Shift::Workspace::onclickRy() {
   @brief resolve constraint violations before using Rz slider
 */
 void Shift::Workspace::onclickRz() {
-  if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      // updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-
-      /* drive constraint error to zero before subsecquent fast factorization */
-      if(m_sliders.rz.substructure) {
-        s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
-          m_sliders.rz.substructure, m_sliders.rz.dqIndex);
-      }
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_JOINT) {
+    /* drive constraint error to zero before applying fast factorization */
+    if(m_sliders.rz.substructure) {
+      s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
+        m_sliders.rz.substructure, m_sliders.rz.dqIndex);
     }
   }
 }
@@ -1935,20 +1851,6 @@ void Shift::Workspace::onclickRz() {
 /*!
   @brief updates Tx for prismatic joints, spherical joints and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Shift::Workspace::setTxSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
@@ -1975,7 +1877,8 @@ void Shift::Workspace::setTxSpinBox(double val) {
         }
         break;
       }
-      default: { break; }
+      default:
+        break;
     }
     emit txChanged(0);
   }
@@ -1984,44 +1887,34 @@ void Shift::Workspace::setTxSpinBox(double val) {
 /*!
   @brief updates Ty for prismatic joints, spherical joints and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Shift::Workspace::setTySpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-      updateH();
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-
-      switch(joint->jointType) {
-        case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex + 1,
-                                         joint->dqIndex + 1, val,
-                                         S2_JOINT_PRIMITIVE);
-        } break;
-        default: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
-                                         val, S2_JOINT_PRIMITIVE);
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        updateH();
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        switch(joint->jointType) {
+          case S2_JOINT_FLOAT: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex + 1,
+                                           joint->dqIndex + 1, val,
+                                           S2_JOINT_PRIMITIVE);
+            break;
+          }
+          default: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_PRIMITIVE);
+            break;
+          }
+        }
+        break;
+      }
+      default:
+        break;
     }
     emit tyChanged(0);
   }
@@ -2030,43 +1923,34 @@ void Shift::Workspace::setTySpinBox(double val) {
 /*!
   @brief updates Tz for prismatic joints, spherical joints and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body folder
-    * 1004: body
-    * 1005: frame
-    * 1006: joint folder
-    * 1007: joint
-    * 1008: light folder
-    * 1009: light
-    * 1010: restraint folder
-    * 1011: restraint
-    * 1012: io folder
-    * 1013: io
-
 */
 void Shift::Workspace::setTzSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-      updateH();
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-      switch(joint->jointType) {
-        case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex + 2,
-                                         joint->dqIndex + 2, val,
-                                         S2_JOINT_PRIMITIVE);
-        } break;
-        default: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
-                                         val, S2_JOINT_PRIMITIVE);
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        updateH();
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        switch(joint->jointType) {
+          case S2_JOINT_FLOAT: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex + 2,
+                                           joint->dqIndex + 2, val,
+                                           S2_JOINT_PRIMITIVE);
+            break;
+          }
+          default: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_PRIMITIVE);
+            break;
+          }
+        }
+        break;
+      }
+      default:
+        break;
     }
     emit tzChanged(0);
   }
@@ -2076,46 +1960,40 @@ void Shift::Workspace::setTzSpinBox(double val) {
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
 
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Shift::Workspace::setRxSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-      updateH();
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-      switch(joint->jointType) {
-        case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
-                                         val, S2_JOINT_SPHERICAL);
-        } break;
-        case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
-                                         joint->dqIndex + 3, val,
-                                         S2_JOINT_SPHERICAL);
-        } break;
-        default: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
-                                         val, S2_JOINT_PRIMITIVE);
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        updateH();
+        /* process a joint */
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        switch(joint->jointType) {
+          case S2_JOINT_SPHERICAL: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_SPHERICAL);
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
+                                           joint->dqIndex + 3, val,
+                                           S2_JOINT_SPHERICAL);
+            break;
+          }
+          default: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_PRIMITIVE);
+            break;
+          }
+        }
+        break;
+      }
+      default:
+        break;
     }
     emit rxChanged(0);
   }
@@ -2124,47 +2002,40 @@ void Shift::Workspace::setRxSpinBox(double val) {
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Shift::Workspace::setRySpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-      updateH();
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-      switch(joint->jointType) {
-        case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
-                                         val, S2_JOINT_SPHERICAL);
-        } break;
-        case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
-                                         joint->dqIndex + 3, val,
-                                         S2_JOINT_SPHERICAL);
-        } break;
-        default: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
-                                         val, S2_JOINT_PRIMITIVE);
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        updateH();
+        /* process a joint */
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        switch(joint->jointType) {
+          case S2_JOINT_SPHERICAL: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_SPHERICAL);
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
+                                           joint->dqIndex + 3, val,
+                                           S2_JOINT_SPHERICAL);
+            break;
+          }
+          default: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_PRIMITIVE);
+            break;
+          }
+        }
+        break;
+      }
+      default:
+        break;
     }
     emit ryChanged(0);
   }
@@ -2173,47 +2044,40 @@ void Shift::Workspace::setRySpinBox(double val) {
 /*!
   @brief updates Rx for revolute joints, spherical joints and float joints
   also used to update shape matrices
-
-    * 1002: assembly
-    * 1003: body group
-    * 1004: body
-    * 1005: frame
-    * 1006: joint group
-    * 1007: joint
-    * 1008: light group
-    * 1009: light
-    * 1010: restraint group
-    * 1011: restraint
-    * 1012: io group
-    * 1013: io
-
 */
 void Shift::Workspace::setRzSpinBox(double val) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1005) {
-
-      /* process a frame */
-      updateTransform();
-
-    } else if(m_currentSelectedItem->m_userType == 1007) {
-      updateH();
-      /* process a joint */
-      s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-      switch(joint->jointType) {
-        case S2_JOINT_SPHERICAL: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
-                                         val, S2_JOINT_SPHERICAL);
-        } break;
-        case S2_JOINT_FLOAT: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
-                                         joint->dqIndex + 3, val,
-                                         S2_JOINT_SPHERICAL);
-        } break;
-        default: {
-          m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
-                                         val, S2_JOINT_PRIMITIVE);
-        } break;
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        updateTransform();
+        break;
       }
+      case S2_MODELTREE_JOINT: {
+        updateH();
+        /* process a joint */
+        s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        switch(joint->jointType) {
+          case S2_JOINT_SPHERICAL: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_SPHERICAL);
+            break;
+          }
+          case S2_JOINT_FLOAT: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex + 3,
+                                           joint->dqIndex + 3, val,
+                                           S2_JOINT_SPHERICAL);
+            break;
+          }
+          default: {
+            m_renderWindow->setJointTarget(joint, joint->qIndex, joint->dqIndex,
+                                           val, S2_JOINT_PRIMITIVE);
+            break;
+          }
+        }
+        break;
+      }
+      default:
+        break;
     }
     emit rzChanged(0);
   }
