@@ -2317,13 +2317,13 @@ void topology_copyUpdateD(s2_context_t* context) {
 
     s2_joint_t* joint = context->jointPointers[i];
 
-    s2_body_t* parentBody = NULL;
+    // s2_body_t* parentBody = NULL;
     s2_frame_t* parentFrame = NULL;
     if(joint->sense > 0) {
-      parentBody = joint->parentBodyPointer;
+      // parentBody = joint->parentBodyPointer;
       parentFrame = joint->parentFramePointer;
     } else {
-      parentBody = joint->childBodyPointer;
+      // parentBody = joint->childBodyPointer;
       parentFrame = joint->childFramePointer;
     }
     s2_body_t* childBody = context->bodyPointers[i];
@@ -3188,80 +3188,80 @@ void s2_context_updateDHVADebug(FILE* f, s2_context_t* context, double t) {
 
     fprintf(f, "\n[%d] ", i);
     s2_joint_enum_t jointType = S2_JOINT_INVALID;
-    int sense = 0;
+    // int sense = 0;
     if(context->dhvaFunctionPointers[i] == s2_joint_tx_dhva) {
       fprintf(f, "+Tx (s2_joint_tx_dhva)\n");
       jointType = S2_JOINT_TX;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_txinverse_dhva) {
       fprintf(f, "-Tx (s2_joint_txinverse_dhva)\n");
       jointType = S2_JOINT_TX;
-      sense = -1;
+      // sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_ty_dhva) {
       fprintf(f, "+Ty (s2_joint_ty_dhva)\n");
       jointType = S2_JOINT_TY;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_tyinverse_dhva) {
       fprintf(f, "-Ty (s2_joint_tyinverse_dhva)\n");
       jointType = S2_JOINT_TY;
-      sense = -1;
+      // sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_tz_dhva) {
       fprintf(f, "+Tz (s2_joint_tz_dhva)\n");
       jointType = S2_JOINT_TZ;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_tzinverse_dhva) {
       fprintf(f, "-Tz (s2_joint_tzinverse_dhva)\n");
       jointType = S2_JOINT_TZ;
-      sense = -1;
+      // sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rx_dhva) {
       fprintf(f, "+Rx (s2_joint_rx_dhva)\n");
       jointType = S2_JOINT_RX;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rxinverse_dhva) {
       fprintf(f, "-Rx (s2_joint_rxinverse_dhva)\n");
       jointType = S2_JOINT_RX;
-      sense = -1;
+      // sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_ry_dhva) {
       fprintf(f, "Ry (s2_joint_ry_dhva)\n");
       jointType = S2_JOINT_RY;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_ryinverse_dhva) {
       fprintf(f, "-Ry (s2_joint_ryinverse_dhva)\n");
       jointType = S2_JOINT_RY;
-      sense = -1;
+      // sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rz_dhva) {
       fprintf(f, "Rz (s2_joint_rz_dhva)\n");
       jointType = S2_JOINT_RZ;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rzinverse_dhva) {
       fprintf(f, "-Rz (s2_joint_rzinverse_dhva)\n");
       jointType = S2_JOINT_RZ;
-      sense = -1;
+      // sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_spherical_dhva) {
       fprintf(f, "+Spherical (s2_joint_spherical_dhva)\n");
       jointType = S2_JOINT_SPHERICAL;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] ==
               s2_joint_sphericalinverse_dhva) {
       fprintf(f, "-Spherical (s2_joint_sphericalinverse_dhva)\n");
       jointType = S2_JOINT_SPHERICAL;
-      sense = -1;
+      // sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_float_dhva) {
       fprintf(f, "+Float (s2_joint_float_dhva)\n");
       jointType = S2_JOINT_FLOAT;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_floatinverse_dhva) {
       fprintf(f, "+Float (s2_joint_floatinverse_dhva)\n");
       jointType = S2_JOINT_FLOAT;
-      sense = -1;
+      // sense = -1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rigid) {
       fprintf(f, "+Rigid (s2_joint_rigid)\n");
       jointType = S2_JOINT_RIGID;
-      sense = 1;
+      // sense = 1;
     } else if(context->dhvaFunctionPointers[i] == s2_joint_rigidinverse) {
       fprintf(f, "-Rigid (s2_joint_rigidinverse)\n");
       jointType = S2_JOINT_RIGID;
-      sense = -1;
+      // sense = -1;
     }
 
     s2_body_t* parentBody =

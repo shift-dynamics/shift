@@ -21,9 +21,7 @@ OpenGLWindow::OpenGLWindow(QWindow* parent)
 
   setSurfaceType(QWindow::OpenGLSurface);
 
-  /*
-    Specify the format and create platform-specific surface
-  */
+  /* Specify the format and create platform-specific surface */
   QSurfaceFormat format;
   format.setDepthBufferSize(24);
   format.setVersion(4, 2);
@@ -131,9 +129,7 @@ void OpenGLWindow::renderNow() {
 
 void OpenGLWindow::setOpenGLLogging(bool log) {
 
-  /*
-    current state same as new requested
-  */
+  /*  current state same as new requested */
   if(m_logging == log) {
     return;
   }
@@ -146,7 +142,7 @@ void OpenGLWindow::setOpenGLLogging(bool log) {
     */
     if(m_logger == NULL) {
 
-      QOpenGLContext* ctx = QOpenGLContext::currentContext();
+      // QOpenGLContext* ctx = QOpenGLContext::currentContext();
       m_logger = new QOpenGLDebugLogger(this);
 
       if(m_logger->initialize()) {

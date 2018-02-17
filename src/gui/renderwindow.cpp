@@ -104,7 +104,7 @@ Shift::RenderWindow::~RenderWindow() {
 /*!
 @brief resize GL window signal
 */
-void Shift::RenderWindow::resizeGL(int width, int height) {}
+void Shift::RenderWindow::resizeGL(int, int) {}
 
 /*!
 @brief report whether render window is initialized

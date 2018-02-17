@@ -64,7 +64,7 @@ s2_mat3x3f_t s2_pca_covariancef(const float* vertices,
   s2_vectorf_t c = {0.0f, 0.0f, 0.0f};
 
   /* compute center of mass */
-  for(int i = 0; i < vertexCount; i++) {
+  for(uint i = 0; i < vertexCount; i++) {
     s2_vectorf_t* pt = (s2_vectorf_t*)(&vertices[i * 3]);
     s2_addequal_vvf(pt, &c);
   }
@@ -78,7 +78,7 @@ s2_mat3x3f_t s2_pca_covariancef(const float* vertices,
   float e12 = 0.f;
 
   /* compute covariance elements */
-  for(int i = 0; i < vertexCount; i++) {
+  for(uint i = 0; i < vertexCount; i++) {
     /* translate points so center of mass is at origin */
     s2_vectorf_t p;
     s2_vectorf_t* pt = (s2_vectorf_t*)(&vertices[i * 3]);
@@ -127,7 +127,7 @@ s2_mat3x3_t s2_pca_covariance(const double* vertices,
   s2_vector_t c = {0.0f, 0.0f, 0.0f};
 
   /* compute center of mass */
-  for(int i = 0; i < vertexCount; i++) {
+  for(uint i = 0; i < vertexCount; i++) {
     s2_vector_t* pt = (s2_vector_t*)(&vertices[i * 3]);
     s2_addequal_vv(pt, &c);
   }
@@ -141,7 +141,7 @@ s2_mat3x3_t s2_pca_covariance(const double* vertices,
   float e12 = 0.f;
 
   /* compute covariance elements */
-  for(int i = 0; i < vertexCount; i++) {
+  for(uint i = 0; i < vertexCount; i++) {
     /* translate points so center of mass is at origin */
     s2_vector_t p;
     s2_vector_t* pt = (s2_vector_t*)(&vertices[i * 3]);
@@ -268,7 +268,7 @@ void s2_pca_extremePointsAlongDirection(s2_vectorf_t* restrict e,
       *imax = i;
       max_projection2 = projection2;
     }
-    if(projection2 < max_projection2) {
+    if(projection2 < min_projection2) {
       *imin = i;
       min_projection2 = projection2;
     }

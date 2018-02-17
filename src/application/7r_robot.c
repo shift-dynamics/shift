@@ -22,8 +22,6 @@ SUCH DAMAGE.
 
 #include "../shift.h"
 
-
-
 /*!
 @brief LU Decomposition with complete row and column pivoting
 
@@ -58,15 +56,8 @@ A[0:rowDim-1][0:colDim-1], LU factors are overwritten in original matrix
 @param pc [out] output column permutation array with dimensions pc[0:colDim-1]
 @return rank of matrix A
 */
-int LU_full_colMajor(
-  int rowDim,
-  int colDim,
-  double* A,
-  double eps,
-  int* pr,
-  int* pc,
-  int* pr_inv,
-  int* pc_inv) {
+int LU_full_colMajor(int rowDim, int colDim, double* A, double eps, int* pr,
+                     int* pc, int* pr_inv, int* pc_inv) {
 
   // printf("Jacobian matrix in fullFactor_LU\n");
   // for(int i = 0; i < rowDim; i++) {
@@ -81,9 +72,9 @@ int LU_full_colMajor(
   double pivot = 0.0;
   /* current pivotal element, holds the current pivotal element
      value */
-  double tol;   /* tolerance for checking residual matrix
-                              infinity norm against */
-  double save; /* variable for holding intermediate results*/
+  double tol;                    /* tolerance for checking residual matrix
+                                               infinity norm against */
+  double save;                   /* variable for holding intermediate results*/
   double size = rowDim * colDim; /*overall size of matrix */
 
   /*
@@ -110,8 +101,8 @@ int LU_full_colMajor(
   pivotCol = result.quot;
   pivotRow = result.rem;
   pivot = A[index];
-  // printf("pivotRow: %d, pivotCol: %d, pivot: %f\n", pivotRow, pivotCol, pivot);
-
+  // printf("pivotRow: %d, pivotCol: %d, pivot: %f\n", pivotRow, pivotCol,
+  // pivot);
 
   /* Initialize the column permutation array. */
   for(int col = 0; col < colDim; col++) {
@@ -165,12 +156,7 @@ int LU_full_colMajor(
         // s2_array_print2D(stdout, rowDim, colDim, false, A);
 
         // fprintf(stdout, "swapping row %d and %d:\n", rank, pivotRow);
-        cblas_dswap(
-          colDim,
-          A + rank,
-          rowDim,
-          A + pivotRow,
-          rowDim);
+        cblas_dswap(colDim, A + rank, rowDim, A + pivotRow, rowDim);
 
         // fprintf(stdout, "after row swap\n");
         // s2_array_print2D(stdout, rowDim, colDim, false, A);
@@ -198,12 +184,7 @@ int LU_full_colMajor(
         */
         // fprintf(stdout, "swapping column %d and %d:\n", rank, pivotCol);
 
-        cblas_dswap(
-          rowDim,
-          A + rank * rowDim,
-          1,
-          A + pivotCol * rowDim,
-          1);
+        cblas_dswap(rowDim, A + rank * rowDim, 1, A + pivotCol * rowDim, 1);
 
         // fprintf(stdout, "after column swap\n");
         // s2_array_print2D(stdout, rowDim, colDim, false, A);
@@ -265,13 +246,13 @@ int LU_full_colMajor(
         }       /*Endfor i = rank+1*/
       }         /*Endif (rank<rowDim-1)*/
       else {
-        break;  /*No more rows to process.*/
+        break; /*No more rows to process.*/
       }
-    }          /*End if*/
+    } /*End if*/
     else {
-      break;  /*Done if remainder of matrix is at noise level.*/
+      break; /*Done if remainder of matrix is at noise level.*/
     }
-  }          /*End for col*/
+  } /*End for col*/
 
   /*
     This block computes LR*inverse(Lr)
@@ -290,8 +271,7 @@ int LU_full_colMajor(
     for(int j = rank; j > 0; j--) {
       for(int i = rowDim - 1; i > rank; i--) {
         for(int k = 0; k < j; k++)
-          A[i + k * rowDim] -= A[i + j * rowDim] *
-                               A[j + k * rowDim];
+          A[i + k * rowDim] -= A[i + j * rowDim] * A[j + k * rowDim];
       }
     }
   }
@@ -327,7 +307,6 @@ int LU_full_colMajor(
   return (rank + 1);
 }
 
-
 /*!
 @brief LU Decomposition with no row or column pivoting
 
@@ -346,13 +325,10 @@ C=LR*inverse(Lr)
 @param rowDim [in] row dimension of matrix A.
 @param colDim [in] column dimension of matrix A.
 @param rank [in] only the square rank x colDim submatrix of A will be processed
-@param *A [in/out] matrix to be factored with dimensions A[0:rowDim-1][0:colDim-1]:
+@param *A [in/out] matrix to be factored with dimensions
+A[0:rowDim-1][0:colDim-1]:
 */
-void LU_colMajor(
-  int rowDim,
-  int colDim,
-  int rank,
-  double* A) {
+void LU_colMajor(int rowDim, int colDim, int rank, double* A) {
 
   /*
     Major loop to factor the matrix.
@@ -375,14 +351,13 @@ void LU_colMajor(
   }
 
   if(rank > 0 && rank < colDim) {
-    for(int i = rank - 1; i > -1; i--) { /* rows of B */
+    for(int i = rank - 1; i > -1; i--) {   /* rows of B */
       for(int k = rank; k < colDim; k++) { /* columns of B */
         double save = 0;
         for(int j = rank - 1; j > i; j--) { /* columns of Ur */
           save += A[i + j * rowDim] * A[j + k * rowDim];
         }
-        A[i * colDim + k] =
-          (A[i + k * rowDim] - save) / A[i + i * rowDim];
+        A[i * colDim + k] = (A[i + k * rowDim] - save) / A[i + i * rowDim];
       }
     }
   }
@@ -403,10 +378,7 @@ orthonormalized columns are passed back in A[][].
 @param A[m][n] a rectangular matrix to be orthonormalized, the orthonormalized
                matrix is returned in A
 */
-void gramSchmidt_colMajor(
-  int rowDim,
-  int colDim,
-  double* A) {
+void gramSchmidt_colMajor(int rowDim, int colDim, double* A) {
 
   for(int k = 0; k < colDim; k++) {
     /* normalize column k */
@@ -425,17 +397,12 @@ void gramSchmidt_colMajor(
   }
 }
 
-
 /*!
 @brief
 set jacobian for a single loop mechanism in column major order in PO2
 */
-void setJacobianPO2_colMajor(
-  int colDim,
-  double* J_po1,
-  double* J_po2,
-  int* pr_12,
-  int* pc_12) {
+void setJacobianPO2_colMajor(int colDim, double* J_po1, double* J_po2,
+                             int* pr_12, int* pc_12) {
 
   for(int i = 0; i < 6; i++) {
     for(int j = 0; j < colDim; j++) {
@@ -444,8 +411,11 @@ void setJacobianPO2_colMajor(
   }
 }
 
-
 int main(int argc, char* argv[]) {
+
+  /* suppress compiler warnings */
+  (void)argc;
+  (void)argv;
 
   s2_context_t* context = s2_context_load(argv[1]);
   s2_context_setTopology(context);
@@ -460,17 +430,15 @@ int main(int argc, char* argv[]) {
 
   if(!endEffectorFrame) {
     fprintf(stderr, "frame not found\n");
-    return(-1);
+    return (-1);
   }
 
-  /* end effector frame not in spanning tree, need to explicitly update using dRelative */
-  s2_body_t* endEffectorBody =
-    s2_context_getBodyByName(context, "body7");
+  /* end effector frame not in spanning tree, need to explicitly update using
+   * dRelative */
+  s2_body_t* endEffectorBody = s2_context_getBodyByName(context, "body7");
 
-  s2_product_dd(
-    endEffectorBody->referenceFrame->dAbsolute,
-    endEffectorFrame->dWRTReference,
-    endEffectorFrame->dAbsolute);
+  s2_product_dd(endEffectorBody->referenceFrame->dAbsolute,
+                endEffectorFrame->dWRTReference, endEffectorFrame->dAbsolute);
 
   fprintf(debug, "dAbsolute:\n");
   s2_displacement_print(debug, endEffectorFrame->dAbsolute);
@@ -514,11 +482,11 @@ int main(int argc, char* argv[]) {
   memset(pc_12, 0, context->dqCount * sizeof(int));
   memset(pc_21, 0, context->dqCount * sizeof(int));
 
-  int rank = LU_full_colMajor(
-               6, context->dqCount, J_po1, 1e-9, pr_12, pc_12, pr_21, pc_21);
+  int rank = LU_full_colMajor(6, context->dqCount, J_po1, 1e-9, pr_12, pc_12,
+                              pr_21, pc_21);
 
-  fprintf(
-    debug, "\nverifying jacobian LU factors (column major): rank = %d\n", rank);
+  fprintf(debug, "\nverifying jacobian LU factors (column major): rank = %d\n",
+          rank);
   s2_array_print2D(debug, 6, context->dqCount, false, J_po1);
 
   fprintf(debug, "\northonormalizing last column\n");
@@ -580,22 +548,15 @@ int main(int argc, char* argv[]) {
   }
 
   double pitch = 0.1;
-  s2_screw_t hLocal =
-  {0.0, 0.0, 1.0, 0.0, 0.0, fabs(pitch) < 1e-9 ? 0 : 1.0 / pitch};
+  s2_screw_t hLocal = {0.0, 0.0, 1.0,
+                       0.0, 0.0, fabs(pitch) < 1e-9 ? 0 : 1.0 / pitch};
 
   s2_screw_print(debug, &hLocal);
 
-  s2_screwproduct_ds(
-    endEffectorFrame->dAbsolute,
-    &hLocal,
-    &context->h[context->dqCount]);
-
-
-
-
+  s2_screwproduct_ds(endEffectorFrame->dAbsolute, &hLocal,
+                     &context->h[context->dqCount]);
 
   // for
-
 
   // s2_displacement_print(debug, )
   //
@@ -603,19 +564,6 @@ int main(int argc, char* argv[]) {
   // for(int i = 0; i < context->dqCount; i++) {
   //
   // }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   return 0;
 }

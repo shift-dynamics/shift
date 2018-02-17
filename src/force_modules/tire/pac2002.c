@@ -2,7 +2,8 @@
 @file
 @author Kristopher Wehage
 @brief Utilities to model tires, based on the "PAC2002" tire model,
-as presented in the 2006 edition of Pacjeka. Currently, this tire model does not work due to a possible sign error.
+as presented in the 2006 edition of Pacjeka. Currently, this tire model does not
+work due to a possible sign error.
 @date 2016
 @copyright Kristopher Wehage 2016
 
@@ -21,20 +22,17 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include <unistd.h>
 #include "pac2002.h"
 #include "../tire.h"
 #include "body.h"
-
+#include <unistd.h>
 
 /*!
 @brief allocate memory for tire with default parameters
 */
-s2_tire_pac2002_t* s2_tire_pac2002(
-  s2_context_t* context,
-  const char* filePath,
-  s2_stackstr_t* wheelBody,
-  bool useTransientSlip) {
+s2_tire_pac2002_t* s2_tire_pac2002(s2_context_t* context, const char* filePath,
+                                   s2_stackstr_t* wheelBody,
+                                   bool useTransientSlip) {
 
   s2_tire_pac2002_t* tire = malloc(sizeof(s2_tire_pac2002_t));
   memset(tire, 0, sizeof(s2_tire_pac2002_t));
@@ -87,7 +85,7 @@ s2_tire_pac2002_t* s2_tire_pac2002(
   tire->zeta.z8 = 1.0;
 
   tire->combinedTorque.alpha_r_eq = 0.0;
-  tire->pureLat.D_y = tire->vertical.fnomin;  // initial approximation
+  tire->pureLat.D_y = tire->vertical.fnomin; // initial approximation
   tire->C_Fx = 161000; // calibrated, sigma_kappa = sigma_kappa_ref = 1.29
   tire->C_Fy = 144000; // calibrated, sigma_alpha = sigma_alpha_ref = 0.725
 
@@ -98,7 +96,6 @@ s2_tire_pac2002_t* s2_tire_pac2002(
   tire->y[1] = 0.0;
   return tire;
 }
-
 
 /*!
 @brief free memory for s2_tire_pac2002_t
@@ -117,15 +114,15 @@ void s2_tire_pac2002_free(s2_tire_pac2002_t* tire) {
   tire = NULL;
 }
 
-
 /*!
 @brief update slip angle, longtitudinal slip and camber angle, update
 forces to model
 */
-void s2_tire_pac2002_update(
-  s2_context_t* context,
-  void** parameters,
-  double* y) {
+void s2_tire_pac2002_update(s2_context_t* context, void** parameters,
+                            double* y) {
+
+  /* suppress compiler warning for unused y */
+  (void)y;
 
   s2_tire_pac2002_t* tire = (s2_tire_pac2002_t*)parameters[0];
 
@@ -166,11 +163,9 @@ void s2_tire_pac2002_update(
      opposite side */
   double Mx =
     // tire->sameSide *
-    s2_tire_pac2002_calc_Mx(
-      tire,
-      // tire->sameSide *
-      tire->fmCombined.m1,
-      tire->slips.gammaP);
+    s2_tire_pac2002_calc_Mx(tire,
+                            // tire->sameSide *
+                            tire->fmCombined.m1, tire->slips.gammaP);
   tire->fmPure.m3 = Mx;
   tire->fmCombined.m3 = Mx;
 
@@ -187,18 +182,13 @@ void s2_tire_pac2002_update(
   body frame */
   s2_tire_pac2002_transferForces(context, tire);
 
-  memcpy(
-    &(tire->fmCombinedLast),
-    &(tire->fmCombined), sizeof(s2_screw_t));
-
+  memcpy(&(tire->fmCombinedLast), &(tire->fmCombined), sizeof(s2_screw_t));
 }
-
 
 /*!
 @brief updates wFrame, wheel normal (in iso convention), terrain normal,
 */
-void s2_tire_pac2002_updateWFrame(
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_updateWFrame(s2_tire_pac2002_t* tire) {
 
   /* update geometry */
 
@@ -225,13 +215,12 @@ void s2_tire_pac2002_updateWFrame(
   tire->terrainNormal.z = -1.0;
 
   /* Longitudinal (heading) and lateral directions, in the terrain plane */
-  s2_cross_vv(
-    &(tire->wheelNormal), &(tire->terrainNormal), &(tire->xDirection));
+  s2_cross_vv(&(tire->wheelNormal), &(tire->terrainNormal),
+              &(tire->xDirection));
 
   s2_vector_normalize(&(tire->xDirection));
 
-  s2_cross_vv(
-    &(tire->terrainNormal), &(tire->xDirection), &(tire->yDirection));
+  s2_cross_vv(&(tire->terrainNormal), &(tire->xDirection), &(tire->yDirection));
 
   /*
     Calculate the tire contact coordinate system "W" following the
@@ -245,11 +234,8 @@ void s2_tire_pac2002_updateWFrame(
 
     Pacejka (2006), Fig 2.3, all forces are calculated at the contact point
   */
-  s2_mat3x3_setFromVectors(
-    &(tire->wFrame.R),
-    &(tire->xDirection),
-    &(tire->yDirection),
-    &(tire->terrainNormal));
+  s2_mat3x3_setFromVectors(&(tire->wFrame.R), &(tire->xDirection),
+                           &(tire->yDirection), &(tire->terrainNormal));
 
   /* get z vector of hub from third column of hub reference frame,
   z vector of terrain normal is pointing up per iso convention,
@@ -257,88 +243,69 @@ void s2_tire_pac2002_updateWFrame(
   the opposite direction of terrain normal. scale the unit terrain
   normal by tire->rl to find the axle height */
   s2_vector_t axleHeight;
-  s2_product_vinversek(
-    &(tire->terrainNormal),
-    &(tire->rl),
-    &axleHeight);
+  s2_product_vinversek(&(tire->terrainNormal), &(tire->rl), &axleHeight);
 
   /* add scaled z vector to absolute displacement of hub, store in wFrame.T */
-  s2_add_vv(
-    &(tire->wheelBodyPointer->origin->dAbsolute->T),
-    &axleHeight,
-    &(tire->wFrame.T));
+  s2_add_vv(&(tire->wheelBodyPointer->origin->dAbsolute->T), &axleHeight,
+            &(tire->wFrame.T));
 
   /* transform global linear velocity at hub to local frame */
-  s2_screwproduct_dinverses(
-    &(tire->wFrame),
-    tire->wheelBodyPointer->origin->velocityAbsolute,
-    &(tire->velocityLocal));
+  s2_screwproduct_dinverses(&(tire->wFrame),
+                            tire->wheelBodyPointer->origin->velocityAbsolute,
+                            &(tire->velocityLocal));
 }
-
 
 /*!
 @brief Return the reactions for the pure slip EQs, in local or global coords
 
 */
-s2_screw_t* s2_tire_pac2002_GetTireForce_pureSlip(
-  s2_tire_pac2002_t* tire,
-  s2_coordinate_enum_t location) {
+s2_screw_t*
+s2_tire_pac2002_GetTireForce_pureSlip(s2_tire_pac2002_t* tire,
+                                      s2_coordinate_enum_t location) {
 
   switch(location) {
     case S2_COORDINATE_FIXED: {
       /* transform reactions to inertial reference frame */
 
-      s2_coscrewproduct_ds(
-        &(tire->wFrame),
-        &(tire->fmPure),
-        &(tire->fmGlobal));
+      s2_coscrewproduct_ds(&(tire->wFrame), &(tire->fmPure), &(tire->fmGlobal));
 
       return &(tire->fmGlobal);
-    }
-    break;
+    } break;
     case S2_COORDINATE_LOCAL: {
       return &(tire->fmPure);
-    }
-    break;
+    } break;
   }
   return NULL;
 }
-
 
 /*!
 @brief Return the reactions for the combined slip EQs, in local or
 global coords
 */
-s2_screw_t*  s2_tire_pac2002_GetTireForce_combinedSlip(
-  s2_tire_pac2002_t* tire,
-  s2_coordinate_enum_t location) {
+s2_screw_t*
+s2_tire_pac2002_GetTireForce_combinedSlip(s2_tire_pac2002_t* tire,
+                                          s2_coordinate_enum_t location) {
 
   switch(location) {
     case S2_COORDINATE_FIXED: {
 
       /* transform reactions to inertial reference frame */
-      s2_coscrewproduct_ds(
-        &(tire->wFrame),
-        &(tire->fmCombined),
-        &(tire->fmGlobal));
+      s2_coscrewproduct_ds(&(tire->wFrame), &(tire->fmCombined),
+                           &(tire->fmGlobal));
 
       return &(tire->fmGlobal);
-    }
-    break;
+    } break;
     case S2_COORDINATE_LOCAL: {
       return &(tire->fmCombined);
-    }
-    break;
+    } break;
   }
   return NULL;
 }
 
-
 /*!
 @brief calculate Fz using spring - damper model
 */
-double s2_tire_pac2002_calc_Fz(
-  s2_tire_pac2002_t* tire) {
+double s2_tire_pac2002_calc_Fz(s2_tire_pac2002_t* tire) {
 
   /* Initialize the statically loaded radius to R0.  This is the returned value
      if no vertical force is generated. */
@@ -350,19 +317,17 @@ double s2_tire_pac2002_calc_Fz(
 
     /* Calculate normal contact force, using a spring-damper model.
     Note: depth is always positive, so the damping should always subtract */
-    double Fz =
-      tire->vertical.vertical_stiffness *
-      tire->depth - tire->vertical.vertical_damping *
-      tire->velocityLocal.m2;
+    double Fz = tire->vertical.vertical_stiffness * tire->depth -
+                tire->vertical.vertical_damping * tire->velocityLocal.m2;
 
     // Adams reference, Fz = Fz(omega, Fx, Fy, gamma, m_depth, relvel_loc.z)
-    double q_v2 = 2.0;                       // linear stiffness increase with spin
-    double q_Fcx = 0.2;                      // Fx stiffness reduction
-    double q_Fcy = 0.35;                     // Fy stiffness reduction
-    double q_FcG = 0.001;                    // camber stiffness increase
-    double C_Fz = tire->vertical.vertical_damping;     // damping
-    double q_Fz1 = tire->vertical.vertical_stiffness;  // linear stiffness
-    double q_Fz2 = 500.0;                                  // 2nd order stiffness
+    double q_v2 = 2.0;    // linear stiffness increase with spin
+    double q_Fcx = 0.2;   // Fx stiffness reduction
+    double q_Fcy = 0.35;  // Fy stiffness reduction
+    double q_FcG = 0.001; // camber stiffness increase
+    double C_Fz = tire->vertical.vertical_damping;    // damping
+    double q_Fz1 = tire->vertical.vertical_stiffness; // linear stiffness
+    double q_Fz2 = 500.0;                             // 2nd order stiffness
     // scale the stiffness by considering forces and spin rate
     double force_term =
       1.0 + q_v2 * fabs(tire->omega) * tire->r0 / tire->model.longvl -
@@ -377,10 +342,10 @@ double s2_tire_pac2002_calc_Fz(
     // for a 37x12.5 R16.5 Wrangler MT @ 30 psi
     // double k1 = 550000.0;
     // double k2 = 1e5;
-    // vertical_damping can be some small percentage of vertical_stiffness (e.g., 2%)
-    // double c = 0.001 * k1;
-    // double Fz = k1 * m_depth - c * relvel_loc.z; // + k2 * pow(m_depth,2);
-    // if (Fz < tire->vertical_force_range.fzmin)
+    // vertical_damping can be some small percentage of vertical_stiffness
+    // (e.g., 2%) double c = 0.001 * k1; double Fz = k1 * m_depth - c *
+    // relvel_loc.z; // + k2 * pow(m_depth,2); if (Fz <
+    // tire->vertical_force_range.fzmin)
 
     if(Fz_adams < tire->vertical_force_range.fzmin) {
       return tire->vertical_force_range.fzmin;
@@ -393,13 +358,11 @@ double s2_tire_pac2002_calc_Fz(
   }
 }
 
-
 /*!
-@brief Calculate the tire vertical load at the current configuration and update the
-tire deflection and tire rolling radius.
+@brief Calculate the tire vertical load at the current configuration and update
+the tire deflection and tire rolling radius.
 */
-void s2_tire_pac2002_updateVerticalLoad(
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_updateVerticalLoad(s2_tire_pac2002_t* tire) {
 
   /* Calculate the tire vertical load using a spring-damper model. Note that
   this also sets the statically loaded radius tire->rl, as well as the boolean
@@ -415,9 +378,8 @@ void s2_tire_pac2002_updateVerticalLoad(
   tire->dFz = (tire->force.m2 - tire->vertical.fnomin) / tire->vertical.fnomin;
 
   /* Calculate tire vertical deflection, rho. */
-  double qV1 = 0.000071;  // from example
-  double K1 =
-    pow(tire->omega * tire->r0 / tire->model.longvl, 2);
+  double qV1 = 0.000071; // from example
+  double K1 = pow(tire->omega * tire->r0 / tire->model.longvl, 2);
   double rho = tire->r0 - tire->rl + qV1 * tire->r0 * K1;
   double rho_Fz0 = tire->vertical.fnomin / (tire->vertical.vertical_stiffness);
   double rho_d = rho / rho_Fz0;
@@ -438,14 +400,12 @@ void s2_tire_pac2002_updateVerticalLoad(
   }
 }
 
-
 /*!
 @brief Calculate kinematic slip quantities from the current wheel state.
 
 Note: when not in contact, all slips are assumed zero, but velocities still set
 */
-void s2_tire_pac2002_updateSlipKinematic(
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_updateSlipKinematic(s2_tire_pac2002_t* tire) {
 
   /* Express wheel normal in w frame */
   s2_vector_t n;
@@ -458,28 +418,31 @@ void s2_tire_pac2002_updateSlipKinematic(
     (abs_Vx > zero_Vx) ? atan(tire->velocityLocal.m1 / abs_Vx) : 0;
 
   s2_vector_t* wheelAngularVelocity =
-    (s2_vector_t*) & (tire->wheelBodyPointer->origin->velocityAbsolute->m3);
-  tire->omega =
-    s2_dot_vv(wheelAngularVelocity, &(tire->yDirection));
+    (s2_vector_t*)&(tire->wheelBodyPointer->origin->velocityAbsolute->m3);
+  tire->omega = s2_dot_vv(wheelAngularVelocity, &(tire->yDirection));
 
   /* update longitudinal slip */
   tire->longitudinalSlip =
-    (abs_Vx > zero_Vx) ? -(tire->velocityLocal.m0 - tire->omega * tire->rEff) / abs_Vx : 0;
+    (abs_Vx > zero_Vx)
+      ? -(tire->velocityLocal.m0 - tire->omega * tire->rEff) / abs_Vx
+      : 0;
 
   /* Update Camber angle*/
   tire->camberAngle = atan2(n.z, n.y);
 
   // regardless of contact
-  tire->slips.V_cx = tire->velocityLocal.m0;  // tire center x-vel, tire c-sys
-  tire->slips.V_cy = tire->velocityLocal.m1;  // tire center y-vel, tire c-sys
+  tire->slips.V_cx = tire->velocityLocal.m0; // tire center x-vel, tire c-sys
+  tire->slips.V_cy = tire->velocityLocal.m1; // tire center y-vel, tire c-sys
 
   if(tire->inContact) {
-    tire->slips.V_sx = tire->velocityLocal.m0 - tire->omega * tire->rEff; // x-slip vel, tire c-sys
-    tire->slips.V_sy = tire->velocityLocal.m1;                            // approx.
+    tire->slips.V_sx = tire->velocityLocal.m0 -
+                       tire->omega * tire->rEff; // x-slip vel, tire c-sys
+    tire->slips.V_sy = tire->velocityLocal.m1;   // approx.
 
     // ensure V_x is not too small, else scale V_x to the threshold
     if(fabs(tire->velocityLocal.m0) < tire->model.vxlow) {
-      tire->velocityLocal.m0 = (tire->velocityLocal.m0 < 0) ? -tire->model.vxlow : tire->model.vxlow;
+      tire->velocityLocal.m0 =
+        (tire->velocityLocal.m0 < 0) ? -tire->model.vxlow : tire->model.vxlow;
     }
 
     double V_x_abs = fabs(tire->velocityLocal.m0);
@@ -507,9 +470,8 @@ void s2_tire_pac2002_updateSlipKinematic(
     tire->slips.psi_dot = tire->velocityLocal.m5;
 
     /* For aligning torque, to handle large slips, and backwards operation */
-    double V_mag =
-      sqrt(tire->velocityLocal.m0 * tire->velocityLocal.m0 +
-           tire->velocityLocal.m1 * tire->velocityLocal.m1);
+    double V_mag = sqrt(tire->velocityLocal.m0 * tire->velocityLocal.m0 +
+                        tire->velocityLocal.m1 * tire->velocityLocal.m1);
     tire->slips.cosPrime_alpha = tire->velocityLocal.m0 / V_mag;
 
     // Finally, if non-transient, use wheel slips as input to Magic Formula.
@@ -539,7 +501,6 @@ void s2_tire_pac2002_updateSlipKinematic(
   }
 }
 
-
 /*!
 @brief set the tire m_slip vector to all zeros
 */
@@ -547,15 +508,13 @@ void s2_tire_pac2002_zeroSlips(s2_tire_pac2002_t* tire) {
   memset(&(tire->slips), 0, sizeof(struct slips));
 }
 
-
 /*!
 @brief after calculating reactions, enforce limits when forces/moments exceed
 specified thresholds (except on Fz)
 */
-void s2_tire_pac2002_evaluateReactions(
-  s2_tire_pac2002_t* tire,
-  bool write_violations,
-  bool enforce_threshold) {
+void s2_tire_pac2002_evaluateReactions(s2_tire_pac2002_t* tire,
+                                       bool write_violations,
+                                       bool enforce_threshold) {
 
   /* if any thresholds exceeded, print some details about slip state */
   bool output_slip_to_console = false;
@@ -564,23 +523,20 @@ void s2_tire_pac2002_evaluateReactions(
     output_slip_to_console = true;
     if(enforce_threshold) {
       tire->fmCombined.m0 =
-        tire->fmCombined.m0 *
-        (tire->thresholds.Fx / fabs(tire->fmCombined.m0));
+        tire->fmCombined.m0 * (tire->thresholds.Fx / fabs(tire->fmCombined.m0));
     }
   }
   if(fabs(tire->fmCombined.m1) > tire->thresholds.Fy) {
     output_slip_to_console = true;
     if(enforce_threshold)
       tire->fmCombined.m1 =
-        tire->fmCombined.m1 *
-        (tire->thresholds.Fy / fabs(tire->fmCombined.m1));
+        tire->fmCombined.m1 * (tire->thresholds.Fy / fabs(tire->fmCombined.m1));
   }
 
   if(fabs(tire->fmCombined.m3) > tire->thresholds.Mx) {
     if(enforce_threshold) {
       tire->fmCombined.m3 =
-        tire->fmCombined.m3 *
-        (tire->thresholds.Mx / fabs(tire->fmCombined.m3));
+        tire->fmCombined.m3 * (tire->thresholds.Mx / fabs(tire->fmCombined.m3));
     }
     output_slip_to_console = true;
   }
@@ -588,8 +544,7 @@ void s2_tire_pac2002_evaluateReactions(
   if(fabs(tire->fmCombined.m4) > tire->thresholds.My) {
     if(enforce_threshold) {
       tire->fmCombined.m4 =
-        tire->fmCombined.m4 *
-        (tire->thresholds.My / fabs(tire->fmCombined.m4));
+        tire->fmCombined.m4 * (tire->thresholds.My / fabs(tire->fmCombined.m4));
     }
     output_slip_to_console = true;
   }
@@ -597,43 +552,39 @@ void s2_tire_pac2002_evaluateReactions(
   if(fabs(tire->fmCombined.m5) > tire->thresholds.Mz) {
     if(enforce_threshold) {
       tire->fmCombined.m5 =
-        tire->fmCombined.m5 *
-        (tire->thresholds.Mz / fabs(tire->fmCombined.m5));
+        tire->fmCombined.m5 * (tire->thresholds.Mz / fabs(tire->fmCombined.m5));
     }
     output_slip_to_console = true;
   }
 
-  if(write_violations) {
+  if(write_violations && output_slip_to_console) {
     fprintf(stderr, "tire parameters out of range detected\n");
     fprintf(stderr, "  u: %f\n", tire->slips.u);
     fprintf(stderr, "  v_alpha: %f\n", tire->slips.v_alpha);
     fprintf(stderr, "  v_gamma: %f\n", tire->slips.v_gamma);
     fprintf(stderr, "  v_alpha: %f\n", tire->slips.v_alpha);
-    fprintf(stderr, "  velocity, center (x,y): %f, %f\n",
-            tire->slips.V_cx, tire->slips.V_cy);
-    fprintf(stderr, "  velocity, slip (x,y): %f, %f\n",
-            tire->slips.V_sx, tire->slips.V_sy);
+    fprintf(stderr, "  velocity, center (x,y): %f, %f\n", tire->slips.V_cx,
+            tire->slips.V_cy);
+    fprintf(stderr, "  velocity, slip (x,y): %f, %f\n", tire->slips.V_sx,
+            tire->slips.V_sy);
   }
 }
 
+double s2_tire_pac2002_get_dFy_dtan_alphaP(s2_tire_pac2002_t* tire,
+                                           double x_curr) {
 
-double s2_tire_pac2002_get_dFy_dtan_alphaP(
-  s2_tire_pac2002_t* tire,
-  double x_curr) {
+  /* suppress compiler warning for unused x_curr */
+  (void)x_curr;
 
-  // I suppose I could do a diff(Fx_c, alphaP) w/ a symbolic toolkit.
+  // I could do a diff(Fx_c, alphaP) w/ a symbolic toolkit.
   // for now, just use forward differencing
 
-  double dx = 0.01;  // x_curr is tan(alpha'), range (-1,1) over x < (-pi/2,pi/2)
+  double dx = 0.01; // x_curr is tan(alpha'), range (-1,1) over x < (-pi/2,pi/2)
   // changing tan(alpha') has no effect on kappa', gamma'
 
-  double Fy_x_dx =
-    s2_tire_pac2002_Fy_combined(
-      tire,
-      tire->slips.alphaP + dx,
-      tire->slips.gammaP,
-      tire->slips.kappaP,
-      tire->fmCombined.m1);
+  double Fy_x_dx = s2_tire_pac2002_Fy_combined(
+    tire, tire->slips.alphaP + dx, tire->slips.gammaP, tire->slips.kappaP,
+    tire->fmCombined.m1);
 
   /* dFy_dx = (f(x+dx) - f(x)) / dx */
   double d_Fy = Fy_x_dx - tire->fmCombined.m1;
@@ -641,15 +592,14 @@ double s2_tire_pac2002_get_dFy_dtan_alphaP(
   return d_Fy / dx;
 }
 
-
 /*! @brief
 non-linear model, just use alphaP = alpha'
 small alpha, use Eq. 7.37
 here, we integrate d[tan(alphaP)]/dt for the step size
 returns delta_v_alpha = delta_tan_alphaP * sigma_a
 */
-double s2_tire_pac2002_ODE_RK_kappaAlpha(
-  double V_s, double sigma, double V_cx, double step_size, double x_curr) {
+double s2_tire_pac2002_ODE_RK_kappaAlpha(double V_s, double sigma, double V_cx,
+                                         double step_size, double x_curr) {
   double V_cx_abs = fabs(V_cx);
   // double sigma_alpha = get_dFy_dtan_alphaP(x_curr) / C_Fy;
   double k1 = (-V_s - V_cx_abs * x_curr) / sigma;
@@ -662,13 +612,9 @@ double s2_tire_pac2002_ODE_RK_kappaAlpha(
   return delta_x;
 }
 
-
-double s2_tire_pac2002_ODE_RK_gamma(double C_Fgamma,
-                                    double C_Falpha,
-                                    double sigma_alpha,
-                                    double V_cx,
-                                    double step_size,
-                                    double gamma,
+double s2_tire_pac2002_ODE_RK_gamma(double C_Fgamma, double C_Falpha,
+                                    double sigma_alpha, double V_cx,
+                                    double step_size, double gamma,
                                     double v_gamma) {
   double V_cx_abs = fabs(V_cx);
   double g0 = C_Fgamma / C_Falpha * V_cx_abs * gamma;
@@ -683,17 +629,10 @@ double s2_tire_pac2002_ODE_RK_gamma(double C_Fgamma,
   return delta_g;
 }
 
-
-double s2_tire_pac2002_ODE_RK_phi(double C_Fphi,
-                                  double C_Falpha,
-                                  double V_cx,
-                                  double psi_dot,
-                                  double omega,
-                                  double gamma,
-                                  double sigma_alpha,
-                                  double v_phi,
-                                  double eps_gamma,
-                                  double step_size) {
+double s2_tire_pac2002_ODE_RK_phi(double C_Fphi, double C_Falpha, double V_cx,
+                                  double psi_dot, double omega, double gamma,
+                                  double sigma_alpha, double v_phi,
+                                  double eps_gamma, double step_size) {
   int sign_Vcx = 0;
   if(V_cx < 0) {
     sign_Vcx = -1;
@@ -701,9 +640,8 @@ double s2_tire_pac2002_ODE_RK_phi(double C_Fphi,
     sign_Vcx = 1;
   }
 
-  double p0 =
-    (C_Fphi / C_Falpha) * sign_Vcx * (psi_dot - (1.0 - eps_gamma) *
-                                      omega * sin(gamma));
+  double p0 = (C_Fphi / C_Falpha) * sign_Vcx *
+              (psi_dot - (1.0 - eps_gamma) * omega * sin(gamma));
   double p1 = (1.0 / sigma_alpha) * fabs(V_cx);
 
   double k1 = -p0 - p1 * v_phi;
@@ -716,17 +654,13 @@ double s2_tire_pac2002_ODE_RK_phi(double C_Fphi,
   return delta_phi;
 }
 
-
 /*!
 @brief calculate and set the transient slip values (kappaP, alphaP, gammaP) from
 u, v deflections. optionally turn on/off besselink low velocity damping
 */
-void s2_tire_pac2002_slip_from_uv(
-  s2_tire_pac2002_t* tire,
-  bool use_besselink,
-  double bessel_Cx,
-  double bessel_Cy,
-  double V_low) {
+void s2_tire_pac2002_slip_from_uv(s2_tire_pac2002_t* tire, bool use_besselink,
+                                  double bessel_Cx, double bessel_Cy,
+                                  double V_low) {
 
   // separate long and lateral damping components
   double d_Vxlow = 0;
@@ -763,25 +697,24 @@ void s2_tire_pac2002_slip_from_uv(
   // tan(alpha') ~= alpha' for small slip
   double v_sigma = -tire->slips.v_alpha / tire->relaxation.sigma_alpha;
   // double v_sigma = atan(tire->slips.v_alpha / tire->relaxation.sigma_alpha);
-  double v_Bessel =
-    -d_Vylow * tire->slips.V_sy
-    // * tire->sameSide
-    / tire->relaxation.C_Falpha;
+  double v_Bessel = -d_Vylow *
+                    tire->slips.V_sy
+                    // * tire->sameSide
+                    / tire->relaxation.C_Falpha;
 
-  double alpha_p = v_sigma - v_Bessel;  //  - v_tow;
+  double alpha_p = v_sigma - v_Bessel; //  - v_tow;
   // don't allow damping to switch sign of alpha
   if(v_sigma * alpha_p < 0) {
     alpha_p = 0;
   }
 
   // gammaP, phiP, phiT not effected by Besselink
-  double gamma_p =
-    tire->relaxation.C_Falpha * tire->slips.v_gamma /
-    (tire->relaxation.C_Fgamma * tire->relaxation.sigma_alpha);
+  double gamma_p = tire->relaxation.C_Falpha * tire->slips.v_gamma /
+                   (tire->relaxation.C_Fgamma * tire->relaxation.sigma_alpha);
   double phi_p =
     (tire->relaxation.C_Falpha * tire->slips.v_phi) /
-    (tire->relaxation.C_Fphi * tire->relaxation.sigma_alpha);  // turn slip
-  double phi_t = -tire->slips.psi_dot / tire->slips.V_cx; // for turn slip
+    (tire->relaxation.C_Fphi * tire->relaxation.sigma_alpha); // turn slip
+  double phi_t = -tire->slips.psi_dot / tire->slips.V_cx;     // for turn slip
 
   // set transient slips
   tire->slips.alphaP = alpha_p;
@@ -794,42 +727,34 @@ void s2_tire_pac2002_slip_from_uv(
   tire->bessel = tmp;
 }
 
-
 /*!
 @brief Calculate tire reactions.
 
-pure slip reactions, if the tire is in contact with the ground, in the TYDEX W-Axis system.
-calcFx               alphaP ~= 0
-calcFy and calcMz    kappaP ~= 0
-NOTE: alphaP, gammaP and kappaP defined with respect to tire side specified from *.tir input file.
-e.g., positive alpha = turn wheel toward vehicle centerline
+pure slip reactions, if the tire is in contact with the ground, in the TYDEX
+W-Axis system. calcFx               alphaP ~= 0 calcFy and calcMz    kappaP ~= 0
+NOTE: alphaP, gammaP and kappaP defined with respect to tire side specified from
+*.tir input file. e.g., positive alpha = turn wheel toward vehicle centerline
 e.g., positive gamma = wheel vertical axis top pointing toward vehicle center */
 
-void s2_tire_pac2002_pureSlipReactions(
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_pureSlipReactions(s2_tire_pac2002_t* tire) {
 
   if(tire->inContact) {
     /* calculate Fx, pure long. slip condition */
     tire->fmPure.m0 =
-      s2_tire_pac2002_Fx_pureLong(
-        tire, tire->slips.gammaP, tire->slips.kappaP);
+      s2_tire_pac2002_Fx_pureLong(tire, tire->slips.gammaP, tire->slips.kappaP);
 
     /* calc. Fy, pure lateral slip. */
     tire->fmPure.m1 =
       // tire->sameSide *
-      s2_tire_pac2002_Fy_pureLat(
-        tire, tire->slips.alphaP, tire->slips.gammaP);
+      s2_tire_pac2002_Fy_pureLat(tire, tire->slips.alphaP, tire->slips.gammaP);
 
     /* calc Mz, pure lateral slip. Negative y-input force, and also the
     output Mz. */
     tire->fmPure.m5 =
       // tire->sameSide *
-      s2_tire_pac2002_Mz_pureLat(
-        tire,
-        tire->slips.alphaP,
-        tire->slips.gammaP,
-        // tire->sameSide *
-        tire->fmPure.m1);
+      s2_tire_pac2002_Mz_pureLat(tire, tire->slips.alphaP, tire->slips.gammaP,
+                                 // tire->sameSide *
+                                 tire->fmPure.m1);
   }
 }
 
@@ -841,73 +766,56 @@ values
 NOTE: alphaP and gammaP have already been modified for being on the L/R side
 e.g., positive alpha = turn wheel toward vehicle centerline
 e.g., positive gamma = wheel vertical axis top pointing toward vehicle center */
-void s2_tire_pac2002_combinedSlipReactions(
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_combinedSlipReactions(s2_tire_pac2002_t* tire) {
 
   if(tire->inContact) {
 
     /* calculate Fx for combined slip */
     tire->fmCombined.m0 =
-      s2_tire_pac2002_Fx_combined(
-        tire,
-        tire->slips.alphaP,
-        tire->slips.gammaP,
-        tire->slips.kappaP,
-        tire->fmPure.m0);
+      s2_tire_pac2002_Fx_combined(tire, tire->slips.alphaP, tire->slips.gammaP,
+                                  tire->slips.kappaP, tire->fmPure.m0);
 
     /* calc Fy for combined slip. */
     tire->fmCombined.m1 =
       // tire->sameSide *
-      s2_tire_pac2002_Fy_combined(
-        tire,
-        tire->slips.alphaP,
-        tire->slips.gammaP,
-        tire->slips.kappaP,
-        // tire->sameSide *
-        tire->fmPure.m1);
+      s2_tire_pac2002_Fy_combined(tire, tire->slips.alphaP, tire->slips.gammaP,
+                                  tire->slips.kappaP,
+                                  // tire->sameSide *
+                                  tire->fmPure.m1);
 
     /* calc Mz for combined slip */
     tire->fmCombined.m5 =
       // tire->sameSide *
-      s2_tire_pac2002_Mz_combined(
-        tire,
-        tire->pureTorque.alpha_r,
-        tire->pureTorque.alpha_t,
-        tire->slips.gammaP,
-        tire->slips.kappaP,
-        tire->fmCombined.m0,
-        // tire->sameSide *
-        tire->fmCombined.m1);
+      s2_tire_pac2002_Mz_combined(tire, tire->pureTorque.alpha_r,
+                                  tire->pureTorque.alpha_t, tire->slips.gammaP,
+                                  tire->slips.kappaP, tire->fmCombined.m0,
+                                  // tire->sameSide *
+                                  tire->fmCombined.m1);
   }
 }
-
 
 /*!
 @brief compute relaxation lengths
 */
-void s2_tire_pac2002_updateRelaxationLengths(
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_updateRelaxationLengths(s2_tire_pac2002_t* tire) {
 
-  double p_Ky4 = 2;  // according to Pac2002 model
+  double p_Ky4 = 2; // according to Pac2002 model
   // double p_Ky5 = 0;
-  double p_Ky6 = 2.5;  // 0.92;
+  double p_Ky6 = 2.5; // 0.92;
   double p_Ky7 = 0.24;
 
-  tire->relaxation.C_Falpha =
-    fabs(tire->lateral.pky1 * tire->vertical.fnomin *
-         sin(p_Ky4 * atan(tire->Fz / (tire->lateral.pky2 * tire->vertical.fnomin))) * tire->zeta.z3 *
-         tire->scaling.lyka);
-  tire->relaxation.sigma_alpha =
-    tire->relaxation.C_Falpha / tire->C_Fy;
+  tire->relaxation.C_Falpha = fabs(
+    tire->lateral.pky1 * tire->vertical.fnomin *
+    sin(p_Ky4 * atan(tire->Fz / (tire->lateral.pky2 * tire->vertical.fnomin))) *
+    tire->zeta.z3 * tire->scaling.lyka);
+  tire->relaxation.sigma_alpha = tire->relaxation.C_Falpha / tire->C_Fy;
   tire->relaxation.C_Fkappa =
     tire->Fz * (tire->longitudinal.pkx1 + tire->longitudinal.pkx2 * tire->dFz) *
     exp(tire->longitudinal.pkx3 * tire->dFz) * tire->scaling.lky;
-  tire->relaxation.sigma_kappa =
-    tire->relaxation.C_Fkappa / tire->C_Fx;
+  tire->relaxation.sigma_kappa = tire->relaxation.C_Fkappa / tire->C_Fx;
   tire->relaxation.C_Fgamma =
     tire->Fz * (p_Ky6 + p_Ky7 * tire->dFz) * tire->scaling.lgay;
-  tire->relaxation.C_Fphi =
-    2.0 * (tire->relaxation.C_Fgamma * tire->r0);
+  tire->relaxation.C_Fphi = 2.0 * (tire->relaxation.C_Fgamma * tire->r0);
 
   /* NOTE: C_Falpha is positive according to Pacejka, negative in Pac2002.
      Positive stiffness makes sense, so ensure all these are positive */
@@ -918,25 +826,24 @@ void s2_tire_pac2002_updateRelaxationLengths(
   assert(tire->relaxation.C_Fgamma > 0);
   assert(tire->relaxation.C_Fphi > 0);
 
-  // NOTE: reference does not include the negative in the exponent for sigma_kappa_ref
-  // double sigma_kappa_ref = tire->Fz * (tire->longitudinal.ptx1 + tire->longitudinal.ptx2 *
-  // tire->dFz)*(tire->r0*tire->scaling.lsgkp / tire->vertical.fnomin) * exp( -tire->longitudinal.ptx3 * tire->dFz);
-  // double sigma_alpha_ref = tire->lateral.pty1 * (1.0 - tire->lateral.pky3 * abs( tire->slips.gammaP ) ) *
-  // tire->r0 * tire->scaling.lsgal * sin(p_Ky4 * atan(tire->Fz / (tire->lateral.pty2 * tire->vertical.fnomin) )
+  // NOTE: reference does not include the negative in the exponent for
+  // sigma_kappa_ref double sigma_kappa_ref = tire->Fz *
+  // (tire->longitudinal.ptx1 + tire->longitudinal.ptx2 *
+  // tire->dFz)*(tire->r0*tire->scaling.lsgkp / tire->vertical.fnomin) * exp(
+  // -tire->longitudinal.ptx3 * tire->dFz); double sigma_alpha_ref =
+  // tire->lateral.pty1 * (1.0 - tire->lateral.pky3 * abs( tire->slips.gammaP )
+  // ) * tire->r0 * tire->scaling.lsgal * sin(p_Ky4 * atan(tire->Fz /
+  // (tire->lateral.pty2 * tire->vertical.fnomin) )
   // );
-
 }
-
 
 /*!
 @brief longitudinal force, alpha ~= 0
 assign to m_FM.force.x
 assign m_pureLong, trionometric function calculated constants
 */
-double s2_tire_pac2002_Fx_pureLong(
-  s2_tire_pac2002_t* tire,
-  double gamma,
-  double kappa) {
+double s2_tire_pac2002_Fx_pureLong(s2_tire_pac2002_t* tire, double gamma,
+                                   double kappa) {
 
   // double eps_Vx = 0.6;
   double eps_x = 0;
@@ -944,74 +851,71 @@ double s2_tire_pac2002_Fx_pureLong(
   tire->pureLong.S_Hx =
     (tire->longitudinal.phx1 + tire->longitudinal.phx2 * tire->dFz) *
     tire->scaling.lhx;
-  tire->pureLong.kappa_x = kappa + tire->pureLong.S_Hx;  // * 0.1;
+  tire->pureLong.kappa_x = kappa + tire->pureLong.S_Hx; // * 0.1;
 
   tire->pureLong.mu_x =
     (tire->longitudinal.pdx1 + tire->longitudinal.pdx2 * tire->dFz) *
-    (1.0 - tire->longitudinal.pdx3 * pow(gamma, 2)) *
-    tire->scaling.lmux;  // >0
+    (1.0 - tire->longitudinal.pdx3 * pow(gamma, 2)) * tire->scaling.lmux; // >0
   tire->pureLong.K_x =
-    tire->Fz *
-    (tire->longitudinal.pkx1 + tire->longitudinal.pkx2 * tire->dFz) *
+    tire->Fz * (tire->longitudinal.pkx1 + tire->longitudinal.pkx2 * tire->dFz) *
     exp(tire->longitudinal.pkx3 * tire->dFz) * tire->scaling.lkx;
-  tire->pureLong.C_x = tire->longitudinal.pcx1 * tire->scaling.lcx;  // >0
-  tire->pureLong.D_x = tire->pureLong.mu_x * tire->Fz * tire->zeta.z1;     // >0
+  tire->pureLong.C_x = tire->longitudinal.pcx1 * tire->scaling.lcx;    // >0
+  tire->pureLong.D_x = tire->pureLong.mu_x * tire->Fz * tire->zeta.z1; // >0
   tire->pureLong.B_x =
-    tire->pureLong.K_x /
-    (tire->pureLong.C_x * tire->pureLong.D_x + eps_x);
+    tire->pureLong.K_x / (tire->pureLong.C_x * tire->pureLong.D_x + eps_x);
 
   // double sign_kap = copysign(1.0, kappa_x);
 
   tire->pureLong.E_x =
     (tire->longitudinal.pex1 + tire->longitudinal.pex2 * tire->dFz +
      tire->longitudinal.pex3 * pow(tire->dFz, 2)) *
-    (1.0 - copysign(tire->longitudinal.pex4, tire->pureLong.kappa_x)) * tire->scaling.lex;
+    (1.0 - copysign(tire->longitudinal.pex4, tire->pureLong.kappa_x)) *
+    tire->scaling.lex;
 
   tire->pureLong.S_Vx =
-    tire->Fz * (tire->longitudinal.pvx1 + tire->longitudinal.pvx2 *
-                tire->dFz) * tire->scaling.lvx *
-    tire->scaling.lmux * tire->zeta.z1;
+    tire->Fz * (tire->longitudinal.pvx1 + tire->longitudinal.pvx2 * tire->dFz) *
+    tire->scaling.lvx * tire->scaling.lmux * tire->zeta.z1;
 
   double F_x =
     tire->pureLong.D_x *
-    sin(tire->pureLong.C_x * atan(tire->pureLong.B_x *
-                                  tire->pureLong.kappa_x - tire->pureLong.E_x *
-                                  (tire->pureLong.B_x * tire->pureLong.kappa_x -
-                                   atan(tire->pureLong.B_x * tire->pureLong.kappa_x)))) -
+      sin(tire->pureLong.C_x *
+          atan(tire->pureLong.B_x * tire->pureLong.kappa_x -
+               tire->pureLong.E_x *
+                 (tire->pureLong.B_x * tire->pureLong.kappa_x -
+                  atan(tire->pureLong.B_x * tire->pureLong.kappa_x)))) -
     tire->pureLong.S_Vx;
 
   return F_x;
 }
-
 
 /*!
 @brief lateral force,  kappa ~= 0
 assign to m_FM.force.y
 assign m_pureLong, trionometric function calculated constants
 */
-double s2_tire_pac2002_Fy_pureLat(
-  s2_tire_pac2002_t* tire,
-  double alpha,
-  double gamma) {
+double s2_tire_pac2002_Fy_pureLat(s2_tire_pac2002_t* tire, double alpha,
+                                  double gamma) {
 
-  tire->pureLat.C_y =
-    tire->lateral.pcy1 * tire->scaling.lcy;  // > 0
-  tire->pureLat.mu_y =
-    (tire->lateral.pdy1 + tire->lateral.pdy2 * tire->dFz) *
-    (1.0 - tire->lateral.pdy3 * pow(gamma, 2)) * tire->scaling.lmuy;  // > 0
-  tire->pureLat.D_y =
-    tire->pureLat.mu_y * tire->Fz * tire->zeta.z2;
+  tire->pureLat.C_y = tire->lateral.pcy1 * tire->scaling.lcy; // > 0
+  tire->pureLat.mu_y = (tire->lateral.pdy1 + tire->lateral.pdy2 * tire->dFz) *
+                       (1.0 - tire->lateral.pdy3 * pow(gamma, 2)) *
+                       tire->scaling.lmuy; // > 0
+  tire->pureLat.D_y = tire->pureLat.mu_y * tire->Fz * tire->zeta.z2;
 
-  // doesn't make sense to ever have K_y be negative (it can be interpreted as lateral stiffnesss)
-  tire->pureLat.K_y = tire->lateral.pky1 * tire->vertical.fnomin *
-                      sin(2.0 * atan(tire->Fz / (tire->lateral.pky2 * tire->vertical.fnomin))) *
-                      (1.0 - tire->lateral.pky3 * fabs(gamma)) * tire->zeta.z3 * tire->scaling.lyka;
+  // doesn't make sense to ever have K_y be negative (it can be interpreted as
+  // lateral stiffnesss)
+  tire->pureLat.K_y =
+    tire->lateral.pky1 * tire->vertical.fnomin *
+    sin(2.0 * atan(tire->Fz / (tire->lateral.pky2 * tire->vertical.fnomin))) *
+    (1.0 - tire->lateral.pky3 * fabs(gamma)) * tire->zeta.z3 *
+    tire->scaling.lyka;
   tire->pureLat.B_y =
     tire->pureLat.K_y / (tire->pureLat.C_y * tire->pureLat.D_y);
 
-  // double S_Hy = (tire->lateral.phy1 + tire->lateral.phy2 * tire->dFz) * tire->scaling.lhy + (K_yGamma_0 *
-  // tire->slips.gammaP - S_VyGamma) * tire->zeta.z0 / (K_yAlpha + 0.1) + tire->zeta.z4 - 1.0;
-  // Adams S_Hy is a bit different
+  // double S_Hy = (tire->lateral.phy1 + tire->lateral.phy2 * tire->dFz) *
+  // tire->scaling.lhy + (K_yGamma_0 * tire->slips.gammaP - S_VyGamma) *
+  // tire->zeta.z0 / (K_yAlpha + 0.1) + tire->zeta.z4 - 1.0; Adams S_Hy is a bit
+  // different
 
   tire->pureLat.S_Hy =
     (tire->lateral.phy1 + tire->lateral.phy2 * tire->dFz) * tire->scaling.lhy +
@@ -1023,31 +927,34 @@ double s2_tire_pac2002_Fy_pureLat(
 
   tire->pureLat.E_y =
     (tire->lateral.pey1 + tire->lateral.pey2 * tire->dFz) *
-    (1.0 - copysign(tire->lateral.pey3 + tire->lateral.pey4 * gamma, tire->pureLat.alpha_y)) *
-    tire->scaling.ley;  // + p_Ey5 * pow(gamma,2)
+    (1.0 - copysign(tire->lateral.pey3 + tire->lateral.pey4 * gamma,
+                    tire->pureLat.alpha_y)) *
+    tire->scaling.ley; // + p_Ey5 * pow(gamma,2)
   tire->pureLat.S_Vy =
-    tire->Fz * ((tire->lateral.pvy1 + tire->lateral.pvy2 * tire->dFz) * tire->scaling.lvy + (tire->lateral.pvy3 + tire->lateral.pvy4 * tire->dFz) * gamma) * tire->scaling.lmuy * tire->zeta.z2;
+    tire->Fz *
+    ((tire->lateral.pvy1 + tire->lateral.pvy2 * tire->dFz) * tire->scaling.lvy +
+     (tire->lateral.pvy3 + tire->lateral.pvy4 * tire->dFz) * gamma) *
+    tire->scaling.lmuy * tire->zeta.z2;
 
   double F_y =
-    tire->pureLat.D_y * sin(tire->pureLat.C_y * atan(tire->pureLat.B_y *
-                            tire->pureLat.alpha_y - tire->pureLat.E_y *
-                            (tire->pureLat.B_y * tire->pureLat.alpha_y -
-                             atan(tire->pureLat.B_y * tire->pureLat.alpha_y)))) + tire->pureLat.S_Vy;
+    tire->pureLat.D_y *
+      sin(tire->pureLat.C_y *
+          atan(tire->pureLat.B_y * tire->pureLat.alpha_y -
+               tire->pureLat.E_y *
+                 (tire->pureLat.B_y * tire->pureLat.alpha_y -
+                  atan(tire->pureLat.B_y * tire->pureLat.alpha_y)))) +
+    tire->pureLat.S_Vy;
 
   return F_y;
 }
-
 
 /*!
 @brief aligning moment,  kappa ~= 0
 assign to m_FM.moment.z
 assign m_pureLong, trigonometric function calculated constants
 */
-double s2_tire_pac2002_Mz_pureLat(
-  s2_tire_pac2002_t* tire,
-  double alpha,
-  double gamma,
-  double Fy_pureSlip) {
+double s2_tire_pac2002_Mz_pureLat(s2_tire_pac2002_t* tire, double alpha,
+                                  double gamma, double Fy_pureSlip) {
 
   // some constants
   int sign_Vx = (tire->slips.V_cx >= 0) ? 1 : -1;
@@ -1069,17 +976,18 @@ double s2_tire_pac2002_Mz_pureLat(
   tire->pureTorque.C_r = tire->zeta.z7;
 
   // no terms (Dz10, Dz11) for gamma^2 term seen in Pacejka
-  // double D_r = tire->Fz*tire->r0 * ((tire->aligning.qdz6 + tire->aligning.qdz7 *
-  // tire->dFz)*tire->scaling.lres*tire->zeta.z2 + (tire->aligning.qdz8 + tire->aligning.qdz9 *
-  // tire->dFz)*gamma*tire->scaling.lgaz*tire->zeta.z0) * tire->slips.cosPrime_alpha*tire->scaling.lmuy*sign_Vx +
-  // tire->zeta.z8 - 1.0;
-  // reference
+  // double D_r = tire->Fz*tire->r0 * ((tire->aligning.qdz6 +
+  // tire->aligning.qdz7 * tire->dFz)*tire->scaling.lres*tire->zeta.z2 +
+  // (tire->aligning.qdz8 + tire->aligning.qdz9 *
+  // tire->dFz)*gamma*tire->scaling.lgaz*tire->zeta.z0) *
+  // tire->slips.cosPrime_alpha*tire->scaling.lmuy*sign_Vx + tire->zeta.z8
+  // - 1.0; reference
   tire->pureTorque.D_r =
     tire->Fz * tire->r0 *
-    ((tire->aligning.qdz6 + tire->aligning.qdz7 * tire->dFz) *
-     tire->scaling.lres +
-     (tire->aligning.qdz8 + tire->aligning.qdz9 * tire->dFz) * gamma) *
-    tire->scaling.lmuy * tire->slips.cosPrime_alpha * sign_Vx +
+      ((tire->aligning.qdz6 + tire->aligning.qdz7 * tire->dFz) *
+         tire->scaling.lres +
+       (tire->aligning.qdz8 + tire->aligning.qdz9 * tire->dFz) * gamma) *
+      tire->scaling.lmuy * tire->slips.cosPrime_alpha * sign_Vx +
     tire->zeta.z8 - 1.0;
 
   // qbz4 is not in Pacejka
@@ -1087,38 +995,38 @@ double s2_tire_pac2002_Mz_pureLat(
     (tire->aligning.qbz1 + tire->aligning.qbz2 * tire->dFz +
      tire->aligning.qbz3 * pow(tire->dFz, 2)) *
     (1.0 + tire->aligning.qbz4 * gamma + tire->aligning.qbz5 * fabs(gamma)) *
-    tire->scaling.lvyka /
-    tire->scaling.lmuy;
+    tire->scaling.lvyka / tire->scaling.lmuy;
   tire->pureTorque.C_t = tire->aligning.qcz1;
   tire->pureTorque.D_t0 =
     tire->Fz * (tire->r0 / tire->vertical.fnomin) *
     (tire->aligning.qdz1 + tire->aligning.qdz2 * tire->dFz) * sign_Vx;
 
   // no abs on qdz3 gamma in reference
-  tire->pureTorque.D_t =
-    tire->pureTorque.D_t0 * (1.0 + tire->aligning.qdz3 * fabs(gamma) +
-                             tire->aligning.qdz4 * pow(gamma, 2)) *
-    tire->zeta.z5 * tire->scaling.ltr;
+  tire->pureTorque.D_t = tire->pureTorque.D_t0 *
+                         (1.0 + tire->aligning.qdz3 * fabs(gamma) +
+                          tire->aligning.qdz4 * pow(gamma, 2)) *
+                         tire->zeta.z5 * tire->scaling.ltr;
 
   tire->pureTorque.E_t =
     (tire->aligning.qez1 + tire->aligning.qez2 * tire->dFz +
      tire->aligning.qez3 * pow(tire->dFz, 2)) *
-    (1.0 +
-     (tire->aligning.qez4 + tire->aligning.qez5 * gamma) * (2.0 / M_PI) *
-     atan(tire->pureTorque.B_t * tire->pureTorque.C_t *
-          tire->pureTorque.alpha_t));
+    (1.0 + (tire->aligning.qez4 + tire->aligning.qez5 * gamma) * (2.0 / M_PI) *
+             atan(tire->pureTorque.B_t * tire->pureTorque.C_t *
+                  tire->pureTorque.alpha_t));
   tire->pureTorque.t =
     tire->pureTorque.D_t *
     cos(tire->pureTorque.C_t *
         atan(tire->pureTorque.B_t * tire->pureTorque.alpha_t -
-             tire->pureTorque.E_t * (tire->pureTorque.B_t * tire->pureTorque.alpha_t -
-                                     atan(tire->pureTorque.B_t * tire->pureTorque.alpha_t)))) *
+             tire->pureTorque.E_t *
+               (tire->pureTorque.B_t * tire->pureTorque.alpha_t -
+                atan(tire->pureTorque.B_t * tire->pureTorque.alpha_t)))) *
     tire->slips.cosPrime_alpha;
 
   tire->pureTorque.MP_z = -tire->pureTorque.t * Fy_pureSlip;
-  tire->pureTorque.M_zr = tire->pureTorque.D_r *
-                          cos(tire->pureTorque.C_r *
-                              atan(tire->pureTorque.B_r * tire->pureTorque.alpha_r));
+  tire->pureTorque.M_zr =
+    tire->pureTorque.D_r *
+    cos(tire->pureTorque.C_r *
+        atan(tire->pureTorque.B_r * tire->pureTorque.alpha_r));
   // this is in the D_r term: * tire->slips.cosPrime_alpha;
 
   double M_z = tire->pureTorque.MP_z + tire->pureTorque.M_zr;
@@ -1126,18 +1034,14 @@ double s2_tire_pac2002_Mz_pureLat(
   return M_z;
 }
 
-
 /*!
 @brief longitudinal force, combined slip (general case)
 assign m_FM_combined.force.x
 assign m_combinedLong
 */
-double s2_tire_pac2002_Fx_combined(
-  s2_tire_pac2002_t* tire,
-  double alpha,
-  double gamma,
-  double kappa,
-  double Fx_pureSlip) {
+double s2_tire_pac2002_Fx_combined(s2_tire_pac2002_t* tire, double alpha,
+                                   double gamma, double kappa,
+                                   double Fx_pureSlip) {
 
   double rbx3 = 1.0;
 
@@ -1150,23 +1054,24 @@ double s2_tire_pac2002_Fx_combined(
   tire->combinedLong.E_xAlpha =
     tire->longitudinal.rex1 + tire->longitudinal.rex2 * tire->dFz;
 
-  // double G_xAlpha0 = cos(C_xAlpha * atan(B_xAlpha * S_HxAlpha - E_xAlpha * (B_xAlpha * S_HxAlpha -
-  // atan(B_xAlpha * S_HxAlpha)) ) );
-  tire->combinedLong.G_xAlpha0 =
-    cos(tire->combinedLong.C_xAlpha *
-        atan(tire->combinedLong.B_xAlpha * tire->combinedLong.S_HxAlpha -
-             tire->combinedLong.E_xAlpha *
-             (tire->combinedLong.B_xAlpha *
-              tire->combinedLong.S_HxAlpha - atan(
-                tire->combinedLong.B_xAlpha * tire->combinedLong.S_HxAlpha))));
+  // double G_xAlpha0 = cos(C_xAlpha * atan(B_xAlpha * S_HxAlpha - E_xAlpha *
+  // (B_xAlpha * S_HxAlpha - atan(B_xAlpha * S_HxAlpha)) ) );
+  tire->combinedLong.G_xAlpha0 = cos(
+    tire->combinedLong.C_xAlpha *
+    atan(tire->combinedLong.B_xAlpha * tire->combinedLong.S_HxAlpha -
+         tire->combinedLong.E_xAlpha *
+           (tire->combinedLong.B_xAlpha * tire->combinedLong.S_HxAlpha -
+            atan(tire->combinedLong.B_xAlpha * tire->combinedLong.S_HxAlpha))));
 
-  // double G_xAlpha = cos(C_xAlpha * atan(B_xAlpha * alpha_S - E_xAlpha * (B_xAlpha * alpha_S -
-  // atan(B_xAlpha * alpha_S)) ) ) / G_xAlpha0;
+  // double G_xAlpha = cos(C_xAlpha * atan(B_xAlpha * alpha_S - E_xAlpha *
+  // (B_xAlpha * alpha_S - atan(B_xAlpha * alpha_S)) ) ) / G_xAlpha0;
   tire->combinedLong.G_xAlpha =
-    cos(tire->combinedLong.C_xAlpha * atan(tire->combinedLong.B_xAlpha * tire->combinedLong.alpha_S -
-        tire->combinedLong.E_xAlpha * (tire->combinedLong.B_xAlpha *
-                                       tire->combinedLong.alpha_S - atan(
-                                         tire->combinedLong.B_xAlpha * tire->combinedLong.alpha_S)))) /
+    cos(tire->combinedLong.C_xAlpha *
+        atan(
+          tire->combinedLong.B_xAlpha * tire->combinedLong.alpha_S -
+          tire->combinedLong.E_xAlpha *
+            (tire->combinedLong.B_xAlpha * tire->combinedLong.alpha_S -
+             atan(tire->combinedLong.B_xAlpha * tire->combinedLong.alpha_S)))) /
     tire->combinedLong.G_xAlpha0;
 
   double F_x = tire->combinedLong.G_xAlpha * Fx_pureSlip;
@@ -1174,18 +1079,14 @@ double s2_tire_pac2002_Fx_combined(
   return F_x;
 }
 
-
 /*!
 @brief calculate lateral force, combined slip (general case)
 assign m_FM_combined.force.y
 assign m_combinedLat
 */
-double s2_tire_pac2002_Fy_combined(
-  s2_tire_pac2002_t* tire,
-  double alpha,
-  double gamma,
-  double kappa,
-  double Fy_pureSlip) {
+double s2_tire_pac2002_Fy_combined(s2_tire_pac2002_t* tire, double alpha,
+                                   double gamma, double kappa,
+                                   double Fy_pureSlip) {
 
   double rby4 = 0;
 
@@ -1205,19 +1106,22 @@ double s2_tire_pac2002_Fy_combined(
      tire->lateral.rvy3 * gamma) *
     cos(atan(tire->lateral.rvy4 * alpha)) * tire->zeta.z2;
   tire->combinedLat.S_VyKappa =
-    tire->combinedLat.D_VyKappa * sin(tire->lateral.rvy5 * atan(tire->lateral.rvy6 * kappa)) *
+    tire->combinedLat.D_VyKappa *
+    sin(tire->lateral.rvy5 * atan(tire->lateral.rvy6 * kappa)) *
     tire->scaling.lvyka;
-  tire->combinedLat.G_yKappa0 =
-    cos(tire->combinedLat.C_yKappa *
-        atan(tire->combinedLat.B_yKappa *
-             tire->combinedLat.S_HyKappa - tire->combinedLat.E_yKappa *
-             (tire->combinedLat.B_yKappa * tire->combinedLat.S_HyKappa - atan(tire->combinedLat.B_yKappa * tire->combinedLat.S_HyKappa))));
+  tire->combinedLat.G_yKappa0 = cos(
+    tire->combinedLat.C_yKappa *
+    atan(tire->combinedLat.B_yKappa * tire->combinedLat.S_HyKappa -
+         tire->combinedLat.E_yKappa *
+           (tire->combinedLat.B_yKappa * tire->combinedLat.S_HyKappa -
+            atan(tire->combinedLat.B_yKappa * tire->combinedLat.S_HyKappa))));
   tire->combinedLat.G_yKappa =
-    cos(tire->combinedLat.C_yKappa * atan(tire->combinedLat.B_yKappa *
-                                          tire->combinedLat.kappa_S -
-                                          tire->combinedLat.E_yKappa * (
-                                              tire->combinedLat.B_yKappa * tire->combinedLat.kappa_S -
-                                              atan(tire->combinedLat.B_yKappa * tire->combinedLat.kappa_S)))) /
+    cos(
+      tire->combinedLat.C_yKappa *
+      atan(tire->combinedLat.B_yKappa * tire->combinedLat.kappa_S -
+           tire->combinedLat.E_yKappa *
+             (tire->combinedLat.B_yKappa * tire->combinedLat.kappa_S -
+              atan(tire->combinedLat.B_yKappa * tire->combinedLat.kappa_S)))) /
     tire->combinedLat.G_yKappa0;
 
   double F_y =
@@ -1226,122 +1130,108 @@ double s2_tire_pac2002_Fy_combined(
   return F_y;
 }
 
-
 /*!
 @brief calculate aligning torque, combined slip (gernal case)
 assign m_FM_combined.moment.z
 assign m_combinedTorque
 */
-double s2_tire_pac2002_Mz_combined(
-  s2_tire_pac2002_t* tire,
-  double alpha_r,
-  double alpha_t,
-  double gamma,
-  double kappa,
-  double Fx_combined,
-  double Fy_combined) {
+double s2_tire_pac2002_Mz_combined(s2_tire_pac2002_t* tire, double alpha_r,
+                                   double alpha_t, double gamma, double kappa,
+                                   double Fx_combined, double Fy_combined) {
 
   tire->combinedTorque.FP_y = Fy_combined - tire->combinedLat.S_VyKappa;
   tire->combinedTorque.s =
-    tire->r0 * (tire->aligning.ssz1 + tire->aligning.ssz2 *
-                (Fy_combined / tire->vertical.fnomin) +
-                (tire->aligning.ssz3 + tire->aligning.ssz4 * tire->dFz) * gamma) *
+    tire->r0 *
+    (tire->aligning.ssz1 +
+     tire->aligning.ssz2 * (Fy_combined / tire->vertical.fnomin) +
+     (tire->aligning.ssz3 + tire->aligning.ssz4 * tire->dFz) * gamma) *
     tire->scaling.ls;
   int sign_alpha_t = (alpha_t >= 0) ? 1 : -1;
   int sign_alpha_r = (alpha_r >= 0) ? 1 : -1;
 
   tire->combinedTorque.alpha_t_eq =
-    sign_alpha_t* sqrt(pow(alpha_t, 2) +
-                       pow(tire->pureLong.K_x / tire->pureTorque.K_y, 2) * pow(kappa, 2));
+    sign_alpha_t *
+    sqrt(pow(alpha_t, 2) +
+         pow(tire->pureLong.K_x / tire->pureTorque.K_y, 2) * pow(kappa, 2));
   tire->combinedTorque.alpha_r_eq =
-    sign_alpha_r * sqrt(pow(alpha_r, 2) +
-                        pow(tire->pureLong.K_x / tire->pureTorque.K_y, 2) * pow(kappa, 2));
+    sign_alpha_r *
+    sqrt(pow(alpha_r, 2) +
+         pow(tire->pureLong.K_x / tire->pureTorque.K_y, 2) * pow(kappa, 2));
 
   tire->combinedTorque.M_zr =
-    tire->pureTorque.D_r * cos(tire->pureTorque.C_r *
-                               atan(tire->pureTorque.B_r * tire->combinedTorque.alpha_r_eq)) *
+    tire->pureTorque.D_r *
+    cos(tire->pureTorque.C_r *
+        atan(tire->pureTorque.B_r * tire->combinedTorque.alpha_r_eq)) *
     tire->slips.cosPrime_alpha;
 
   tire->combinedTorque.t =
     tire->pureTorque.D_t *
-    cos(tire->pureTorque.C_t * atan(tire->pureTorque.B_t *
-                                    tire->combinedTorque.alpha_t_eq -
-                                    tire->pureTorque.E_t * (tire->pureTorque.B_t *
-                                        tire->combinedTorque.alpha_t_eq -
-                                        atan(tire->pureTorque.B_t *
-                                            tire->combinedTorque.alpha_t_eq)))) *
+    cos(
+      tire->pureTorque.C_t *
+      atan(tire->pureTorque.B_t * tire->combinedTorque.alpha_t_eq -
+           tire->pureTorque.E_t *
+             (tire->pureTorque.B_t * tire->combinedTorque.alpha_t_eq -
+              atan(tire->pureTorque.B_t * tire->combinedTorque.alpha_t_eq)))) *
     tire->slips.cosPrime_alpha;
 
   tire->combinedTorque.M_z_y =
     -tire->combinedTorque.t * tire->combinedTorque.FP_y;
-  tire->combinedTorque.M_z_x =
-    tire->combinedTorque.s * Fx_combined;
-  double M_z =
-    tire->combinedTorque.M_z_y + tire->combinedTorque.M_zr +
-    tire->combinedTorque.M_z_x;
+  tire->combinedTorque.M_z_x = tire->combinedTorque.s * Fx_combined;
+  double M_z = tire->combinedTorque.M_z_y + tire->combinedTorque.M_zr +
+               tire->combinedTorque.M_z_x;
 
   return M_z;
 }
-
 
 /*!
 @brief calculate the overturning couple moment
 assign m_FM.moment.x and m_FM_combined.moment.x
 */
-double s2_tire_pac2002_calc_Mx(
-  s2_tire_pac2002_t* tire,
-  double gamma,
-  double Fy_combined) {
+double s2_tire_pac2002_calc_Mx(s2_tire_pac2002_t* tire, double gamma,
+                               double Fy_combined) {
 
   double M_x = 0;
   if(tire->inContact) {
-    M_x =
-      tire->Fz * tire->r0 *
-      (tire->overturning.qsx1 - tire->overturning.qsx2 * gamma +
-       tire->overturning.qsx3 * (Fy_combined / tire->vertical.fnomin)) *
-      tire->scaling.lmx;
+    M_x = tire->Fz * tire->r0 *
+          (tire->overturning.qsx1 - tire->overturning.qsx2 * gamma +
+           tire->overturning.qsx3 * (Fy_combined / tire->vertical.fnomin)) *
+          tire->scaling.lmx;
   }
 
   return M_x;
 }
 
-
 /*!
 @brief calculate the rolling resistance moment,
 assign m_FM.moment.y and m_FM_combined.moment.y
 */
-double s2_tire_pac2002_calc_My(
-  s2_tire_pac2002_t* tire,
-  double Fx_combined) {
+double s2_tire_pac2002_calc_My(s2_tire_pac2002_t* tire, double Fx_combined) {
 
   double M_y = 0;
   if(tire->inContact) {
     double V_r = tire->omega * tire->rEff;
-    M_y =
-      -tire->Fz * tire->r0 * (tire->rolling.qsy1 *
-                              atan(V_r / tire->model.longvl) +
-                              tire->rolling.qsy2 * (Fx_combined / tire->vertical.fnomin)) *
-      tire->scaling.lmy;
+    M_y = -tire->Fz * tire->r0 *
+          (tire->rolling.qsy1 * atan(V_r / tire->model.longvl) +
+           tire->rolling.qsy2 * (Fx_combined / tire->vertical.fnomin)) *
+          tire->scaling.lmy;
 
     // reference calc
-    // M_y = tire->r0*tire->Fz * (tire->rolling.qsy1 + tire->rolling.qsy2*s2_tire_pac2002_Fx_combined/tire->vertical.fnomin +
+    // M_y = tire->r0*tire->Fz * (tire->rolling.qsy1 +
+    // tire->rolling.qsy2*s2_tire_pac2002_Fx_combined/tire->vertical.fnomin +
     // tire->rolling.qsy3*abs(tire->slips.V_cx/tire->model.longvl) +
     // tire->rolling.qsy4*pow(tire->slips.V_cx/tire->model.longvl,4));
   }
   return M_y;
 }
 
-
-
-void s2_tire_pac2002_readSection_UNITS(
-  FILE* f, s2_tire_pac2002_t* tire) {
-
-  char tline[256];
-  fgets(tline, 256, f);
+void s2_tire_pac2002_readSection_UNITS(FILE* f, s2_tire_pac2002_t* tire) {
 
   /* skip loading of units, its currently user's responsibility
   to ensure units in .tir file match model json file */
+  (void)tire;
 
+  char tline[256];
+  fgets(tline, 256, f);
   while(fgets(tline, 256, f)) {
     if(tline[0] == '$') {
       break;
@@ -1349,9 +1239,7 @@ void s2_tire_pac2002_readSection_UNITS(
   }
 }
 
-
-void s2_tire_pac2002_readSection_MODEL(
-  FILE* f, s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_MODEL(FILE* f, s2_tire_pac2002_t* tire) {
 
   printf("[MODEL]:\n");
   // skip the first line
@@ -1364,18 +1252,17 @@ void s2_tire_pac2002_readSection_MODEL(
   printf("  propertyFileFormat: %s\n", tire->model.propertyFileFormat);
 
   fgets(tline, 256, f);
-  assert(
-    !getIntFromLine(tline, &(tire->model.use_mode)) && "use mode not found");
+  assert(!getIntFromLine(tline, &(tire->model.use_mode)) &&
+         "use mode not found");
   printf("  useMode: %d\n", tire->model.use_mode);
 
   fgets(tline, 256, f);
-  assert(
-    !getDoubleFromLine(tline, &(tire->model.vxlow)) && "vxlow not found");
+  assert(!getDoubleFromLine(tline, &(tire->model.vxlow)) && "vxlow not found");
   printf("   vxlow: %f\n", tire->model.vxlow);
 
   fgets(tline, 256, f);
-  assert(
-    !getDoubleFromLine(tline, &(tire->model.longvl)) && "longvl not found");
+  assert(!getDoubleFromLine(tline, &(tire->model.longvl)) &&
+         "longvl not found");
   printf("   longvl: %f\n", tire->model.longvl);
 
   fgets(tline, 256, f);
@@ -1387,9 +1274,7 @@ void s2_tire_pac2002_readSection_MODEL(
   }
 }
 
-
-void s2_tire_pac2002_readSection_DIMENSION(
-  FILE* f, s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_DIMENSION(FILE* f, s2_tire_pac2002_t* tire) {
 
   // skip the first two lines
   char tline[256];
@@ -1406,11 +1291,10 @@ void s2_tire_pac2002_readSection_DIMENSION(
     if(tline[0] == '$') {
       break;
     }
-    assert(
-      row != 5 && "error reading DIMENSION section of pactire input file\n");
-    assert(
-      !getDoubleFromLine(tline, ((double*)(&(tire->dimension))) + row++) &&
-      "no double found on line of DIMENSION section");
+    assert(row != 5 &&
+           "error reading DIMENSION section of pactire input file\n");
+    assert(!getDoubleFromLine(tline, ((double*)(&(tire->dimension))) + row++) &&
+           "no double found on line of DIMENSION section");
   }
 
   printf("[DIMENSION]\n");
@@ -1421,10 +1305,7 @@ void s2_tire_pac2002_readSection_DIMENSION(
   printf("   dimension.rim_width: %f\n", tire->dimension.rim_width);
 }
 
-
-void s2_tire_pac2002_readSection_SHAPE(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_SHAPE(FILE* f, s2_tire_pac2002_t* tire) {
 
   /* skip the first two lines */
   char tline[256];
@@ -1446,18 +1327,12 @@ void s2_tire_pac2002_readSection_SHAPE(
     assert(row != 256);
 
     double val1;
-    assert(!getDoubleFromLineAtIndex(
-             tline,
-             &val1,
-             0));
+    assert(!getDoubleFromLineAtIndex(tline, &val1, 0));
 
     printf("val1: [%f]\n", val1);
 
     double val2;
-    assert(!getDoubleFromLineAtIndex(
-             tline,
-             &val2,
-             1));
+    assert(!getDoubleFromLineAtIndex(tline, &val2, 1));
 
     printf("val2: [%f]\n", val2);
 
@@ -1484,13 +1359,9 @@ void s2_tire_pac2002_readSection_SHAPE(
   s2_array_print(stdout, tire->shape.count, tire->shape.radial);
   printf("width: ");
   s2_array_print(stdout, tire->shape.count, tire->shape.width);
-
 }
 
-
-void s2_tire_pac2002_readSection_VERTICAL(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_VERTICAL(FILE* f, s2_tire_pac2002_t* tire) {
 
   /* skip the first line */
   char tline[256];
@@ -1503,23 +1374,20 @@ void s2_tire_pac2002_readSection_VERTICAL(
       break;
     }
     assert(row != 6);
-    assert(!getDoubleFromLine(
-             tline,
-             ((double*) & (tire->vertical)) + row++));
+    assert(!getDoubleFromLine(tline, ((double*)&(tire->vertical)) + row++));
   }
   printf("[VERTICAL]\n");
-  printf("   vertical->vertical_stiffness: %f\n", tire->vertical.vertical_stiffness);
-  printf("   vertical->vertical_damping: %f\n", tire->vertical.vertical_damping);
+  printf("   vertical->vertical_stiffness: %f\n",
+         tire->vertical.vertical_stiffness);
+  printf("   vertical->vertical_damping: %f\n",
+         tire->vertical.vertical_damping);
   printf("   vertical->breff: %f\n", tire->vertical.breff);
   printf("   vertical->dreff: %f\n", tire->vertical.dreff);
   printf("   vertical->freff: %f\n", tire->vertical.freff);
   printf("   vertical->fnomin: %f\n", tire->vertical.fnomin);
 }
 
-
-void s2_tire_pac2002_readSection_RANGES(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_RANGES(FILE* f, s2_tire_pac2002_t* tire) {
 
   char tline[256];
   fgets(tline, 256, f);
@@ -1534,16 +1402,12 @@ void s2_tire_pac2002_readSection_RANGES(
 
     assert(row != 2);
     assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->long_slip_range)) + row++)));
+      !getDoubleFromLine(tline, ((double*)(&(tire->long_slip_range)) + row++)));
   }
 
   printf("[LONG_SLIP_RANGE]\n");
-  printf("   long_slip_range->kpumin: %f\n",
-         tire->long_slip_range.kpumin);
-  printf("   long_slip_range->kpumax: %f\n",
-         tire->long_slip_range.kpumax);
+  printf("   long_slip_range->kpumin: %f\n", tire->long_slip_range.kpumin);
+  printf("   long_slip_range->kpumax: %f\n", tire->long_slip_range.kpumax);
 
   fgets(tline, 256, f);
 
@@ -1555,18 +1419,13 @@ void s2_tire_pac2002_readSection_RANGES(
       break;
     }
     assert(row != 2);
-    assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->slip_angle_range)) + row++)));
-
+    assert(!getDoubleFromLine(tline,
+                              ((double*)(&(tire->slip_angle_range)) + row++)));
   }
 
   printf("[SLIP_ANGLE_RANGE]\n");
-  printf("   slip_angle_range->alpmin: %f\n",
-         tire->slip_angle_range.alpmin);
-  printf("   slip_angle_range->alpmax: %f\n",
-         tire->slip_angle_range.alpmax);
+  printf("   slip_angle_range->alpmin: %f\n", tire->slip_angle_range.alpmin);
+  printf("   slip_angle_range->alpmax: %f\n", tire->slip_angle_range.alpmax);
 
   fgets(tline, 256, f);
 
@@ -1579,11 +1438,8 @@ void s2_tire_pac2002_readSection_RANGES(
       break;
     }
     assert(row != 2);
-    assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->inclination_angle_range)) + row++)));
-
+    assert(!getDoubleFromLine(
+      tline, ((double*)(&(tire->inclination_angle_range)) + row++)));
   }
 
   printf("[INCLINATION_ANGLE_RANGE]\n");
@@ -1602,10 +1458,8 @@ void s2_tire_pac2002_readSection_RANGES(
       break;
     }
     assert(row != 2);
-    assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->vertical_force_range)) + row++)));
+    assert(!getDoubleFromLine(
+      tline, ((double*)(&(tire->vertical_force_range)) + row++)));
   }
 
   printf("[VERTICAL_FORCE_RANGE]\n");
@@ -1613,12 +1467,9 @@ void s2_tire_pac2002_readSection_RANGES(
          tire->vertical_force_range.fzmin);
   printf("   vertical_force_range->fzmax: %f\n",
          tire->vertical_force_range.fzmax);
-
 }
 
-void s2_tire_pac2002_readSection_scaling(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_scaling(FILE* f, s2_tire_pac2002_t* tire) {
 
   char tline[256];
   fgets(tline, 256, f);
@@ -1630,10 +1481,7 @@ void s2_tire_pac2002_readSection_scaling(
       break;
     }
     assert(row != 28);
-    assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->scaling)) + row++)));
+    assert(!getDoubleFromLine(tline, ((double*)(&(tire->scaling)) + row++)));
   }
 
   printf("[SCALING_COEFFICIENTS]\n");
@@ -1667,9 +1515,8 @@ void s2_tire_pac2002_readSection_scaling(
   printf("   scaling->lmy: %f\n", tire->scaling.lmy);
 }
 
-void s2_tire_pac2002_readSection_longitudinal(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_longitudinal(FILE* f,
+                                              s2_tire_pac2002_t* tire) {
 
   char tline[256];
   fgets(tline, 256, f);
@@ -1682,9 +1529,7 @@ void s2_tire_pac2002_readSection_longitudinal(
     }
     assert(row != 24);
     assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->longitudinal)) + row++)));
+      !getDoubleFromLine(tline, ((double*)(&(tire->longitudinal)) + row++)));
   }
 
   printf("[LONGITUDINAL_COEFFICIENTS]\n");
@@ -1714,10 +1559,7 @@ void s2_tire_pac2002_readSection_longitudinal(
   printf("   longitudinal->ptx3: %f\n", tire->longitudinal.ptx3);
 }
 
-
-void s2_tire_pac2002_readSection_overturning(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_overturning(FILE* f, s2_tire_pac2002_t* tire) {
 
   char tline[256];
   fgets(tline, 256, f);
@@ -1730,9 +1572,7 @@ void s2_tire_pac2002_readSection_overturning(
     }
     assert(row != 3);
     assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->overturning)) + row++)));
+      !getDoubleFromLine(tline, ((double*)(&(tire->overturning)) + row++)));
   }
 
   printf("[OVERTURNING_COEFFICIENTS]\n");
@@ -1741,10 +1581,7 @@ void s2_tire_pac2002_readSection_overturning(
   printf("   overturning->qsx3: %f\n", tire->overturning.qsx3);
 }
 
-
-void s2_tire_pac2002_readSection_lateral(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_lateral(FILE* f, s2_tire_pac2002_t* tire) {
 
   char tline[256];
   fgets(tline, 256, f);
@@ -1755,10 +1592,7 @@ void s2_tire_pac2002_readSection_lateral(
       break;
     }
     assert(row != 34);
-    assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->lateral)) + row++)));
+    assert(!getDoubleFromLine(tline, ((double*)(&(tire->lateral)) + row++)));
   }
 
   printf("[LATERAL_COEFFICIENTS]\n");
@@ -1798,10 +1632,7 @@ void s2_tire_pac2002_readSection_lateral(
   printf("   lateral->pty2: %f\n", tire->lateral.pty2);
 }
 
-
-void s2_tire_pac2002_readSection_rolling(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_rolling(FILE* f, s2_tire_pac2002_t* tire) {
 
   char tline[256];
   fgets(tline, 256, f);
@@ -1813,10 +1644,7 @@ void s2_tire_pac2002_readSection_rolling(
       break;
     }
     assert(row != 4);
-    assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->rolling)) + row++)));
+    assert(!getDoubleFromLine(tline, ((double*)(&(tire->rolling)) + row++)));
   }
 
   printf("[ROLLING_COEFFICIENTS]\n");
@@ -1826,10 +1654,7 @@ void s2_tire_pac2002_readSection_rolling(
   printf("   rolling->qsy4: %f\n", tire->rolling.qsy4);
 }
 
-
-void s2_tire_pac2002_readSection_aligning(
-  FILE* f,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_readSection_aligning(FILE* f, s2_tire_pac2002_t* tire) {
 
   char tline[256];
   fgets(tline, 256, f);
@@ -1842,10 +1667,7 @@ void s2_tire_pac2002_readSection_aligning(
       break;
     }
     assert(row != 31);
-    assert(
-      !getDoubleFromLine(
-        tline,
-        ((double*)(&(tire->aligning)) + row++)));
+    assert(!getDoubleFromLine(tline, ((double*)(&(tire->aligning)) + row++)));
   }
 
   printf("[ALIGNING_COEFFICIENTS]\n");
@@ -1880,17 +1702,14 @@ void s2_tire_pac2002_readSection_aligning(
   printf("   aligning->ssz4: %f\n", tire->aligning.ssz4);
   printf("   aligning->qtz1: %f\n", tire->aligning.qtz1);
   printf("   aligning->mbelt: %f\n", tire->aligning.mbelt);
-
 }
-
 
 /*!
 @brief Load a .tir tire specification file
 */
-void s2_tire_pac2002_loadTireDataFile(
-  s2_context_t* context,
-  s2_tire_pac2002_t* tire,
-  const char* fileName) {
+void s2_tire_pac2002_loadTireDataFile(s2_context_t* context,
+                                      s2_tire_pac2002_t* tire,
+                                      const char* fileName) {
 
   FILE* f = NULL;
   if(access(fileName, F_OK) != -1) {
@@ -1906,11 +1725,8 @@ void s2_tire_pac2002_loadTireDataFile(
       if(fullPathFileName) {
         free(fullPathFileName);
       }
-      asprintf(
-        &fullPathFileName,
-        "%s%s",
-        includeDirectoryHead->value,
-        fileName);
+      asprintf(&fullPathFileName, "%s%s", includeDirectoryHead->value,
+               fileName);
       if(access(fullPathFileName, F_OK) != -1) {
         f = fopen(fullPathFileName, "r");
         break;
@@ -1993,7 +1809,7 @@ double s2_tire_pac2002_get_gammaPrime(s2_tire_pac2002_t* tire) {
   return tire->slips.gammaP;
 }
 
-double s2_tire_pac2002_get_min_long_slip(s2_tire_pac2002_t* tire)  {
+double s2_tire_pac2002_get_min_long_slip(s2_tire_pac2002_t* tire) {
   return tire->long_slip_range.kpumin;
 }
 
@@ -2013,12 +1829,10 @@ double s2_tire_pac2002_get_longvl(s2_tire_pac2002_t* tire) {
   return tire->model.longvl;
 }
 
-
 /*!
 @brief check for contact, set tire->inContact flag and set penetration depth
 */
-bool s2_tire_pac2002_discTerrainContact(
-  s2_tire_pac2002_t* tire) {
+bool s2_tire_pac2002_discTerrainContact(s2_tire_pac2002_t* tire) {
 
   /* Find terrain height below disc center. There is no contact if the disc
      center is below the terrain or farther away by more than its radius.
@@ -2083,15 +1897,10 @@ bool s2_tire_pac2002_discTerrainContact(
   s2_vector_t lateral;
   s2_cross_vv(&normal, &longitudinal, &lateral);
 
-  s2_mat3x3_setFromVectors(
-    &(tire->contactFrame.R),
-    &longitudinal,
-    &lateral,
-    &normal);
+  s2_mat3x3_setFromVectors(&(tire->contactFrame.R), &longitudinal, &lateral,
+                           &normal);
 
-  s2_vector_copy(
-    &ptD,
-    &(tire->contactFrame.T));
+  s2_vector_copy(&ptD, &(tire->contactFrame.T));
 
   // s2_vector_t temp3 = {0.0, 0.0, hp - ptD.z};
   // tire->depth = s2_dot_vv(&temp3, &normal);
@@ -2102,28 +1911,25 @@ bool s2_tire_pac2002_discTerrainContact(
   return true;
 }
 
-
 /*!
 @brief wrapper function to update for use with force module data structure
 */
-void s2_tire_pac2002_transferForces(
-  s2_context_t* context,
-  s2_tire_pac2002_t* tire) {
+void s2_tire_pac2002_transferForces(s2_context_t* context,
+                                    s2_tire_pac2002_t* tire) {
 
   int dqIndex = tire->wheelBodyPointer->parentJointPointer->dqIndex;
   s2_screw_t* tireForce =
-    s2_tire_pac2002_GetTireForce_combinedSlip(
-      tire,
-      S2_COORDINATE_FIXED);
+    s2_tire_pac2002_GetTireForce_combinedSlip(tire, S2_COORDINATE_FIXED);
 
   /* context->g + dqIndex += tireForce */
   s2_addequal_ss(tireForce, context->g + dqIndex);
 }
 
+void s2_tire_pac2002_updateTransient(s2_context_t* context, void** parameters,
+                                     double* y) {
 
-void s2_tire_pac2002_updateTransient(
-  s2_context_t* context,
-  void** parameters,
-  double* y) {
-
+  /* suppress compiler warnings */
+  (void)context;
+  (void)parameters;
+  (void)y;
 }

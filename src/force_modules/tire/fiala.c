@@ -21,19 +21,16 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#include <unistd.h>
 #include "fiala.h"
-#include "../tire.h"
 #include "../core/body.h"
-
+#include "../tire.h"
+#include <unistd.h>
 
 /*!
 @brief allocate memory for tire with default parameters
 */
-s2_tire_fiala_t* s2_tire_fiala(
-  s2_context_t* context,
-  const char* filePath,
-  s2_stackstr_t* wheelBody) {
+s2_tire_fiala_t* s2_tire_fiala(s2_context_t* context, const char* filePath,
+                               s2_stackstr_t* wheelBody) {
 
   s2_tire_fiala_t* tire = malloc(sizeof(s2_tire_fiala_t));
 
@@ -84,7 +81,6 @@ s2_tire_fiala_t* s2_tire_fiala(
   return tire;
 }
 
-
 /*!
 @brief free memory for s2_tire_fiala_t
 */
@@ -96,15 +92,14 @@ void s2_tire_fiala_free(s2_tire_fiala_t* tire) {
   tire = NULL;
 }
 
-
-void s2_tire_fiala_readSection_UNITS(
-  FILE* f, s2_tire_fiala_t* tire) {
-
-  char tline[256];
-  fgets(tline, 256, f);
+void s2_tire_fiala_readSection_UNITS(FILE* f, s2_tire_fiala_t* tire) {
 
   /* skip loading of units, its currently user's responsibility
   to ensure units in .tir file match model json file */
+  (void)tire;
+
+  char tline[256];
+  fgets(tline, 256, f);
 
   while(fgets(tline, 256, f)) {
     if(tline[0] == '$') {
@@ -113,14 +108,12 @@ void s2_tire_fiala_readSection_UNITS(
   }
 }
 
-
 /*!
 @brief Load a .tir tire specification file
 */
-void s2_tire_fiala_loadTireDataFile(
-  s2_context_t* context,
-  s2_tire_fiala_t* tire,
-  const char* fileName) {
+void s2_tire_fiala_loadTireDataFile(s2_context_t* context,
+                                    s2_tire_fiala_t* tire,
+                                    const char* fileName) {
 
   FILE* f = NULL;
   if(access(fileName, F_OK) != -1) {
@@ -136,11 +129,8 @@ void s2_tire_fiala_loadTireDataFile(
       if(fullPathFileName) {
         free(fullPathFileName);
       }
-      asprintf(
-        &fullPathFileName,
-        "%s%s",
-        includeDirectoryHead->value,
-        fileName);
+      asprintf(&fullPathFileName, "%s%s", includeDirectoryHead->value,
+               fileName);
       if(access(fullPathFileName, F_OK) != -1) {
         f = fopen(fullPathFileName, "r");
         break;
@@ -166,17 +156,13 @@ void s2_tire_fiala_loadTireDataFile(
   fclose(f);
 }
 
-
 /*!
 @brief get vertical force using simple spring / damper model
 */
 double s2_tire_fiala_getNormalForce(s2_tire_fiala_t* tire) {
 
-  double Fz =
-    -tire->verticalStiffness *
-    tire->depth -
-    tire->verticalDamping *
-    tire->velocityLocal.m2;
+  double Fz = -tire->verticalStiffness * tire->depth -
+              tire->verticalDamping * tire->velocityLocal.m2;
 
   // printf("   tire->depth: %0.9f\n", tire->depth);
   // printf(
@@ -185,18 +171,13 @@ double s2_tire_fiala_getNormalForce(s2_tire_fiala_t* tire) {
   // printf("   Fz: %f\n", Fz);
 
   return fmin(Fz, 0.0);
-
 }
-
 
 /*!
 @brief placeholder function to update transient properties associated with
 fiala tire
 */
-void s2_tire_fiala_update(
-  s2_context_t* context,
-  void** parameters,
-  double* y) {
+void s2_tire_fiala_update(s2_context_t* context, void** parameters, double* y) {
 
   s2_tire_fiala_t* tire = (s2_tire_fiala_t*)parameters[0];
 
@@ -204,47 +185,43 @@ void s2_tire_fiala_update(
   double terrainHeight; /* z coordinate of ground beneath tire center */
 
   /* wheel position in global coordinates */
-  s2_vector_t* wheelCenter =
-    &(tire->wheelBodyPointer->origin->dAbsolute->T);
+  s2_vector_t* wheelCenter = &(tire->wheelBodyPointer->origin->dAbsolute->T);
   // printf("wheel center: ");
   // s2_vector_print(wheelCenter);
 
   /* wheel normal is second column of hub reference frame, expressed
   in global coordinates */
   s2_vector_t* wheelNormal =
-    (s2_vector_t*) & (tire->wheelBodyPointer->origin->dAbsolute->R.m01);
+    (s2_vector_t*)&(tire->wheelBodyPointer->origin->dAbsolute->R.m01);
   // printf("wheel normal: ");
   // s2_vector_print(wheelNormal);
 
   /* at present this is a place holder function that simply returns
   0 in height and {0, 0, 1} in tire->terrainNormal */
-  s2_terrain_getHeightAndSAENormal(
-    context,
-    wheelCenter,
-    &terrainHeight,
-    &tire->terrainNormal);
+  s2_terrain_getHeightAndSAENormal(context, wheelCenter, &terrainHeight,
+                                   &tire->terrainNormal);
 
   /* check for contact, there is no contact if the disc center is
   below the terrain or farther away by more than its radius */
-  if(
-    wheelCenter->z >= terrainHeight ||
-    wheelCenter->z <= terrainHeight - tire->r0) {
+  if(wheelCenter->z >= terrainHeight ||
+     wheelCenter->z <= terrainHeight - tire->r0) {
 
     // printf("arg1 [%s], ", wheelCenter->z >= terrainHeight ? "true": "false");
-    // printf("arg2 [%s], ", wheelCenter->z <= terrainHeight - tire->r0 ? "true": "false");
-    // printf("terrainHeight: %f, wheelCenter->z: %0.10f, tire->r0: %f\n",
+    // printf("arg2 [%s], ", wheelCenter->z <= terrainHeight - tire->r0 ?
+    // "true": "false"); printf("terrainHeight: %f, wheelCenter->z: %0.10f,
+    // tire->r0: %f\n",
     //   terrainHeight, wheelCenter->z, tire->r0);
     tire->depth = 0.0;
     tire->inContact = false;
     tire->dy[0] = -y[0] * 100.0;
     tire->dy[1] = -y[1] * 100.0;
 
-    // printf("disc center is below terrain or further away by more than its radius\n");
+    // printf("disc center is below terrain or further away by more than its
+    // radius\n");
     return;
   }
 
-  s2_cross_vv(
-    wheelNormal, &(tire->terrainNormal), &(tire->xDirection));
+  s2_cross_vv(wheelNormal, &(tire->terrainNormal), &(tire->xDirection));
 
   /* 4 */
   double sinTilt = s2_vector_l2norm(&tire->xDirection);
@@ -269,11 +246,8 @@ void s2_tire_fiala_update(
 
   s2_axpy_vv(tire->r0 / sinTilt, &temp1, &ptD);
 
-  s2_terrain_getHeightAndSAENormal(
-    context,
-    &ptD,
-    &terrainHeight,
-    &tire->terrainNormal);
+  s2_terrain_getHeightAndSAENormal(context, &ptD, &terrainHeight,
+                                   &tire->terrainNormal);
   // printf("ptD.z: %f\n", ptD.z);
   if(ptD.z <= terrainHeight) {
     tire->depth = 0.0;
@@ -303,17 +277,11 @@ void s2_tire_fiala_update(
   s2_vector_normalize(&tire->xDirection);
 
   /* 12 */
-  s2_cross_vv(
-    &tire->terrainNormal,
-    &tire->xDirection,
-    &tire->yDirection);
+  s2_cross_vv(&tire->terrainNormal, &tire->xDirection, &tire->yDirection);
 
   /* 14 */
-  s2_mat3x3_setFromVectors(
-    &tire->wFrame.R,
-    &tire->xDirection,
-    &tire->yDirection,
-    &tire->terrainNormal);
+  s2_mat3x3_setFromVectors(&tire->wFrame.R, &tire->xDirection,
+                           &tire->yDirection, &tire->terrainNormal);
 
   /* 13 */
   tire->wFrame.T.x = ptD.x;
@@ -334,20 +302,18 @@ void s2_tire_fiala_update(
 
   /* 16 / 17 */
   /* transform global linear velocity at hub to local frame */
-  s2_screwproduct_dinverses(
-    &(tire->wFrame),
-    tire->wheelBodyPointer->origin->velocityAbsolute,
-    &(tire->velocityLocal));
+  s2_screwproduct_dinverses(&(tire->wFrame),
+                            tire->wheelBodyPointer->origin->velocityAbsolute,
+                            &(tire->velocityLocal));
 
   // printf("velocityLocal: ");
   // s2_screw_print(
   //   &tire->velocityLocal);
 
   s2_screw_t v_0_0t_c;
-  s2_screwproduct_dtinverses(
-    &tire->wheelBodyPointer->origin->dAbsolute->T,
-    tire->wheelBodyPointer->origin->velocityAbsolute,
-    &v_0_0t_c);
+  s2_screwproduct_dtinverses(&tire->wheelBodyPointer->origin->dAbsolute->T,
+                             tire->wheelBodyPointer->origin->velocityAbsolute,
+                             &v_0_0t_c);
 
   // printf("v_0_0t_c (linear): ");
   // s2_vector_print((s2_vector_t*)&v_0_0t_c);
@@ -360,7 +326,6 @@ void s2_tire_fiala_update(
   // s2_vector_print(&tire->xDirection);
   // printf("Vx: %f\n", Vx);
 
-
   /* 20 */
   double abs_Vx = fabs(Vx);
 
@@ -368,12 +333,12 @@ void s2_tire_fiala_update(
     Generate normal contact force, Fz.
     ISO: If the resulting force is negative, the disk is moving away from the
     terrain so fast that no contact force is generated. The sign of the velocity
-    term in the damping function is then eversed since a positive velocity means a
-    decreasing depth, not an increasing depth.
-    SAE: If the resulting force is positive, the disc is moving away from the
-    terrain so fast that no contact force is generated. The sign of the velocity
-    term in the damping function is not reversed since a positive velocity means a
-    decreasing depth, not an increasing depth.
+    term in the damping function is then eversed since a positive velocity means
+    a decreasing depth, not an increasing depth. SAE: If the resulting force is
+    positive, the disc is moving away from the terrain so fast that no contact
+    force is generated. The sign of the velocity term in the damping function is
+    not reversed since a positive velocity means a decreasing depth, not an
+    increasing depth.
   */
 
   /* 19. */
@@ -381,17 +346,13 @@ void s2_tire_fiala_update(
 
   /* 21 */
   tire->dy[0] =
-    -(abs_Vx * y[0] + tire->velocityLocal.m0) /
-    tire->xRelaxationLength;
+    -(abs_Vx * y[0] + tire->velocityLocal.m0) / tire->xRelaxationLength;
   // tire->dy[0] -= 100 * y[0];
-
 
   /* 22 */
   tire->dy[1] =
-    (tire->velocityLocal.m1 - abs_Vx * tan(y[1])) /
-    tire->yRelaxationLength;
+    (tire->velocityLocal.m1 - abs_Vx * tan(y[1])) / tire->yRelaxationLength;
   // tire->dy[1] -= 100 * y[1];
-
 
   // printf("y[0]: %f, y[1]: %f\n", y[0], y[1]);
   // printf("dy[0]: %f, dy[1]: %f\n", tire->dy[0], tire->dy[1]);
@@ -403,7 +364,6 @@ void s2_tire_fiala_update(
 
   /* 25 */
   double sCritical = fabs(u * tire->fLocal.m2 / (2.0 * tire->cslip));
-
 
   if(fabs(y[0]) < sCritical) {
     /* 26 */
@@ -420,8 +380,6 @@ void s2_tire_fiala_update(
   double temp = 3.0 * u * fabs(tire->fLocal.m2) / tire->calpha;
   double alphaCritical = atan(temp);
 
-
-
   if(fabs(y[1]) <= alphaCritical) {
     /* 29 */
     double h = 1.0 - fabs(tan(y[1])) / temp;
@@ -430,12 +388,12 @@ void s2_tire_fiala_update(
     double h3 = h * h * h;
 
     /* 31 */
-    tire->fLocal.m1 = -u * fabs(tire->fLocal.m2) * (1.0 - h3) *
-                      copysign(1.0, y[1]);
+    tire->fLocal.m1 =
+      -u * fabs(tire->fLocal.m2) * (1.0 - h3) * copysign(1.0, y[1]);
 
     /* 32 */
-    tire->fLocal.m5 = u * fabs(tire->fLocal.m2) * tire->width *
-                      (1.0 - h) * h3 * copysign(1.0, y[1]);
+    tire->fLocal.m5 = u * fabs(tire->fLocal.m2) * tire->width * (1.0 - h) * h3 *
+                      copysign(1.0, y[1]);
 
   } else {
 
@@ -455,24 +413,21 @@ void s2_tire_fiala_update(
   // printf("omega: %f\n", omega);
 
   /* 36 */
-  tire->fLocal.m4 = -tire->rollingResistance *
-                    copysign(fabs(tire->fLocal.m2), omega);
+  tire->fLocal.m4 =
+    -tire->rollingResistance * copysign(fabs(tire->fLocal.m2), omega);
 
   /* 37 */
   // Mx = 0;
 
   /* transform forces to inertial reference frame and add to appropriate
   body frame */
-  int qIndex = tire->wheelBodyPointer->parentJointPointer->qIndex;
+  // int qIndex = tire->wheelBodyPointer->parentJointPointer->qIndex;
   int dqIndex = tire->wheelBodyPointer->parentJointPointer->dqIndex;
 
   // printf("fLocal: ");
   // s2_screw_print(&tire->fLocal);
 
-  s2_coscrewproduct_ds(
-    &tire->wFrame,
-    &tire->fLocal,
-    &tire->fGlobal);
+  s2_coscrewproduct_ds(&tire->wFrame, &tire->fLocal, &tire->fGlobal);
 
   s2_addequal_ss(&tire->fGlobal, context->g + dqIndex);
 
@@ -487,15 +442,14 @@ void s2_tire_fiala_update(
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
           context->numericalIntegrator;
         if(numericalIntegrator->x >=
-            numericalIntegrator->tdata[numericalIntegrator->step] +
-            context->modelParameters.timeStep) {
+           numericalIntegrator->tdata[numericalIntegrator->step] +
+             context->modelParameters.timeStep) {
           report = true;
         }
+        break;
       }
-      break;
-      default: {
-
-      } break;
+      default:
+        break;
     }
 
     if(report) {
@@ -506,12 +460,13 @@ void s2_tire_fiala_update(
       fprintf(f, "%0.9g, %0.9g, ", y[0], tire->dy[0]);
       fprintf(f, "%0.9g, %0.9g, ", y[1], tire->dy[1]);
       fprintf(f, "%0.9g, ", omega);
+      fprintf(f, "%0.9g, %0.9g, %0.9g, %0.9g, %0.9g, %0.9g, ", tire->fLocal.m0,
+              tire->fLocal.m1, tire->fLocal.m2, tire->fLocal.m3,
+              tire->fLocal.m4, tire->fLocal.m5);
       fprintf(f, "%0.9g, %0.9g, %0.9g, %0.9g, %0.9g, %0.9g, ",
-              tire->fLocal.m0, tire->fLocal.m1, tire->fLocal.m2,
-              tire->fLocal.m3, tire->fLocal.m4, tire->fLocal.m5);
-      fprintf(f, "%0.9g, %0.9g, %0.9g, %0.9g, %0.9g, %0.9g, ",
-              context->g[dqIndex].m0, context->g[dqIndex].m1, context->g[dqIndex].m2,
-              context->g[dqIndex].m3, context->g[dqIndex].m4, context->g[dqIndex].m5);
+              context->g[dqIndex].m0, context->g[dqIndex].m1,
+              context->g[dqIndex].m2, context->g[dqIndex].m3,
+              context->g[dqIndex].m4, context->g[dqIndex].m5);
       s2_vector_t* t = &tire->wFrame.T;
       fprintf(f, "%0.9g, %0.9g, %0.9g", t->x, t->y, t->z);
       fprintf(f, "\n");
