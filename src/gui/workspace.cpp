@@ -1074,7 +1074,7 @@ void Shift::Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
   }
 }
 
-void Shift::Workspace::resizeEvent(QResizeEvent* event) {
+void Shift::Workspace::resizeEvent(QResizeEvent*) {
   m_renderWindow->updateGL();
 }
 
@@ -1285,23 +1285,11 @@ void Shift::Workspace::initializeMenus() {
 /*!
   @brief add a light to assembly
 
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
   should be accessible only from "light group" pane (1008)
 */
 void Shift::Workspace::addLight() {
-  if(m_currentSelectedItem->m_userType == 1008) {
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_LIGHT_GROUP) {
     // create and initialize new light
     // Light * light = new Light();
     // for( int i=0; i<3; i++ )
@@ -1351,12 +1339,11 @@ void Shift::Workspace::addLight() {
 /*!
   @brief delete light from assembly
 
-  should only be accessible from "light" pane (1009)
+  should only be accessible from "light" pane
 */
 void Shift::Workspace::deleteLight() {
-
-  if(m_currentSelectedItem->m_userType == 1009) {
-
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_LIGHT) {
     //     RenderWindow* renWin = glwidget->GetRenderWindow();
     //     renWin->updateLights( lightArray );
     //     populateTree();
@@ -1365,24 +1352,13 @@ void Shift::Workspace::deleteLight() {
 
 /*!
   @brief update specular highlight for material
-
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
-  should only be accessible from "body" pane (1004)
+  should only be accessible from "body" pane
 */
 void Shift::Workspace::updateMaterialNs(double Ns) {
-  if(m_currentSelectedItem->m_userType == 1004) {
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_BODY) {
+    /* suppress compiler warning, hook this up later */
+    (void)Ns;
     // Model* currentModel = static_cast<Model*>(m_currentSelectedItem->object);
     // get current selected material
     // currentModel->materials[materialDropDown->currentIndex()].Ns = Ns;
@@ -1395,23 +1371,12 @@ void Shift::Workspace::updateMaterialNs(double Ns) {
   0 for point
   1 for directional
 
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
-  should only be accessible from "light" pane (1009)
+  should only be accessible from "light" pane
 */
-void Shift::Workspace::updateCurrentLightType(int lightType) {
-  if(m_currentSelectedItem->m_userType == 1009) {
+void Shift::Workspace::updateCurrentLightType(int) {
+
+  if(m_currentSelectedItem &&
+     m_currentSelectedItem->m_userType == S2_MODELTREE_LIGHT) {
     // s2_light_t* light = (s2_light_t*)m_currentSelectedItem->m_object;
 
     //     currentLight->lightType = (LightType) lightType;
@@ -1423,35 +1388,30 @@ void Shift::Workspace::updateCurrentLightType(int lightType) {
 /*!
   @brief update transform of shape matrices
 
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
   should only be accessible from panes: "frame" (1005) and "joint" (1007 -- for
   rigid joints only)
 */
 void Shift::Workspace::updateTransform() {
-  if(m_currentSelectedItem->m_userType == 1005) {
-
-    // s2_frame_t* frame = (s2_frame_t*)m_currentSelectedItem->m_object;
-    // Model* currentModel = static_cast<Model*>(m_currentSelectedItem->object);
-    // currentModel->transform.setToIdentity();
-    // currentModel->transform.translate( currentModel->translation );
-    // currentModel->transform.rotate( currentModel->rotation.x(), 1, 0, 0);
-    // currentModel->transform.rotate( currentModel->rotation.y(), 0, 1, 0);
-    // currentModel->transform.rotate( currentModel->rotation.z(), 0, 0, 1);
-
-  } else if(m_currentSelectedItem->m_userType == 1007) {
-    // s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+  if(m_currentSelectedItem != NULL) {
+    switch(m_currentSelectedItem->m_userType) {
+      case S2_MODELTREE_FRAME: {
+        // s2_frame_t* frame = (s2_frame_t*)m_currentSelectedItem->m_object;
+        // Model* currentModel =
+        // static_cast<Model*>(m_currentSelectedItem->object);
+        // currentModel->transform.setToIdentity();
+        // currentModel->transform.translate( currentModel->translation );
+        // currentModel->transform.rotate( currentModel->rotation.x(), 1, 0, 0);
+        // currentModel->transform.rotate( currentModel->rotation.y(), 0, 1, 0);
+        // currentModel->transform.rotate( currentModel->rotation.z(), 0, 0, 1);
+        break;
+      }
+      case S2_MODELTREE_JOINT: {
+        // s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
+        break;
+      }
+      default:
+        break;
+    }
   }
 }
 
@@ -2146,7 +2106,7 @@ void Shift::Workspace::populateLightColorDropDown(s2_light_t* light) {
 void Shift::Workspace::updateCurrentMaterial(int index) {
   if(m_currentSelectedItem != NULL) {
     if(m_currentSelectedItem->m_userType == 1004) {
-      s2_body_t* body = (s2_body_t*)m_currentSelectedItem->m_object;
+      // s2_body_t* body = (s2_body_t*)m_currentSelectedItem->m_object;
 
       // populate material Dropdown
       qDebug() << "material" << index << "updated";
@@ -3182,7 +3142,7 @@ void Shift::Workspace::updateDrawState() {
     switch(item->m_userType) {
       case 1002: {
         /* assembly */
-        s2_assembly_t* assembly = (s2_assembly_t*)(item->m_object);
+        // s2_assembly_t* assembly = (s2_assembly_t*)(item->m_object);
       } break;
       case 1003: {
         /* body folder */
@@ -3513,7 +3473,7 @@ void Shift::Workspace::setOmegaN(double omegaN) {
 /*!
 @brief sets output filename in context data structure
 */
-void Shift::Workspace::setOutputFileName(const QString& fileName) {
+void Shift::Workspace::setOutputFileName(const QString&) {
   if(m_context != NULL) {
   }
 }

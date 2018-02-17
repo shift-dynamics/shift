@@ -214,7 +214,7 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body) {
     If all points inside sphere, we are done.
     Otherwise, enlarge bounding sphere to cover point outside of initial sphere
   */
-    for(int i = 1; i < convexhull->vertexCount; i++) {
+    for(uint i = 1; i < convexhull->vertexCount; i++) {
       s2_vector_t p =
         s2_pca_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
       s2_sphere_fromSphereAndPoint(self, &p);
@@ -231,11 +231,16 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body) {
 */
 s2_vector_t s2_sphere_support(void* collisionobject, s2_vector_t* direction) {
 
+  /* use of collision object is not implemented yet */
+  (void)collisionobject;
+  (void)direction;
+
   // s2_sphere_t* sphere = (s2_sphere_t*)collisionobject;
   // s2_vector_normalize(direction);
   // s2_vector_t temp;
   // s2_product_vk(direction, &sphere->radius, &temp);
   s2_vector_t max_vector = {0.0, 0.0, 0.0};
+
   // s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
   return max_vector;
 }

@@ -94,7 +94,7 @@ private:
   uint m_counter;
   int m_qIndex;
   int m_dqIndex;
-  int m_maxCount;
+  uint m_maxCount;
   double m_delq;
   double m_targetVal;
   bool m_isPositive;

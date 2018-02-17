@@ -38,7 +38,7 @@ SUCH DAMAGE.
 
 returns the ratio of the largest to the smallest pivot
 */
-double s2_jacobian_pivotRatio(int colDim, int rank, double* J) {
+double s2_jacobian_pivotRatio(int rank, int colDim, double* J) {
 
   double min = fabs(J[0]);
   double max = fabs(J[0]);
@@ -55,7 +55,7 @@ double s2_jacobian_pivotRatio(int colDim, int rank, double* J) {
 @brief returns infinity norm of B matrix
 
 */
-double s2_jacobian_infinityNormB(int rowDim, int colDim, int rank, double* J) {
+double s2_jacobian_infinityNormB(int rank, int colDim, double* J) {
 
   // printf("\nevaluating infinity norm B\n");
   // printf("rank: %d\n", rank);
@@ -1036,14 +1036,12 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
   s2_jacobian_setInversePermutation(substructure->dqCount, substructure->pc_12,
                                     substructure->pc_21);
 
-  s2_factor_setBMatrix(substructure->constraintEquationCount,
-                       substructure->dqCount, substructure->rank,
+  s2_factor_setBMatrix(substructure->rank, substructure->dqCount,
                        substructure->J);
 
   substructure->scaledInitialInfinityNormB =
     context->modelParameters.pivotRatioMultiple *
-    s2_jacobian_infinityNormB(substructure->constraintEquationCount,
-                              substructure->dqCount, substructure->rank,
+    s2_jacobian_infinityNormB(substructure->rank, substructure->dqCount,
                               substructure->J);
 
   /*! @TODO remove duplicate code for setting up PO1 in a
@@ -1051,7 +1049,7 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
 
   // substructure->pivotRatio =
   //   context->modelParameters.pivotRatioMultiple *
-  //   s2_jacobian_pivotRatio(substructure->dqCount, substructure->rank,
+  //   s2_jacobian_pivotRatio(substructure->rank, substructure->dqCount,
   //                          substructure->J);
 
   s2_substructure_setJacobianBooleanPO2(substructure);
@@ -1142,14 +1140,12 @@ void s2_substructure_setJacobianPO1Specified(s2_substructure_t* substructure,
   s2_jacobian_setInversePermutation(substructure->dqCount, substructure->pc_12,
                                     substructure->pc_21);
 
-  s2_factor_setBMatrix(substructure->constraintEquationCount,
-                       substructure->dqCount, substructure->rank,
+  s2_factor_setBMatrix(substructure->rank, substructure->dqCount,
                        substructure->J);
 
   substructure->scaledInitialInfinityNormB =
     context->modelParameters.pivotRatioMultiple *
-    s2_jacobian_infinityNormB(substructure->constraintEquationCount,
-                              substructure->dqCount, substructure->rank,
+    s2_jacobian_infinityNormB(substructure->rank, substructure->dqCount,
                               substructure->J);
 
   s2_substructure_setJacobianBooleanPO2(substructure);
@@ -1870,8 +1866,7 @@ for a substructure that has been evaluated in PO2 order
 */
 void s2_substructure_factorJacobianPO2(s2_substructure_t* substructure) {
 
-  s2_factor_LU(substructure->constraintEquationCount, substructure->dqCount,
-               substructure->rank, substructure->J);
+  s2_factor_LU(substructure->rank, substructure->dqCount, substructure->J);
 }
 
 /*!
@@ -2171,8 +2166,7 @@ void s2_context_setBMatrixSparse(s2_context_t* self) {
   @brief wrapper function for s2_factor_setBMatrix for a substructure
 */
 void s2_substructure_setBMatrix(s2_substructure_t* self) {
-  s2_factor_setBMatrix(self->constraintEquationCount, self->dqCount, self->rank,
-                       self->J);
+  s2_factor_setBMatrix(self->rank, self->dqCount, self->J);
 }
 
 /*!
@@ -2549,8 +2543,8 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
         }
       }
 
-      double e = s2_substructure_evaluateConstraintError(substructure);
 #if _SHIFT_VERBOSE
+      double e = s2_substructure_evaluateConstraintError(substructure);
       fprintf(debug, "e before nr: % 0.9g ", e);
 #endif
       pass = false;
@@ -2573,9 +2567,8 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
       int returnVal =
         s2_substructure_removeConstraintViolationsFast(substructure, true);
 
-      e = s2_substructure_evaluateConstraintError(substructure);
-
 #if _SHIFT_VERBOSE
+      e = s2_substructure_evaluateConstraintError(substructure);
       fprintf(debug, "e after nr: % 0.9g ", e);
 #endif
 

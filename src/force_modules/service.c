@@ -53,6 +53,8 @@ void s2_context_setForces(s2_context_t* self, double* y) {
     }
   }
 
+  /* suppress compiler warnings for unused t */
+  (void)t;
   // double ramp = 0.1;
   // double force = 5000;
   // int jointIndex = 5;

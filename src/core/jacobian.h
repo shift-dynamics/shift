@@ -67,6 +67,6 @@ void s2_context_setJacobianBooleanPO2(s2_context_t*);
 
 void s2_substructure_setJacobianBooleanPO2(s2_substructure_t*);
 
-double s2_jacobian_infinityNormB(int rowDim, int colDim, int rank, double* J);
+double s2_jacobian_infinityNormB(int rank, int colDim, double* J);
 
 #endif

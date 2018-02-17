@@ -493,16 +493,20 @@ void s2_inertia_transform1(s2_displacement_t* displacement,
 }
 
 /*!
-@brief
+@brief do not use, not yet implemented
 
 */
-void s2_inertia_transform2_rank23(s2_body_t* body) {}
+void s2_inertia_transform2_rank23(s2_body_t* body) {
+  (void)body;
+}
 
 /*!
-@brief
+@brief do not use, not yet implemented
 
 */
-void s2_inertia_transform2_rank1(s2_body_t* body) {}
+void s2_inertia_transform2_rank1(s2_body_t* body) {
+  (void)body;
+}
 
 /*!
 @brief factor inertia matrix

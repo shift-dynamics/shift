@@ -47,9 +47,9 @@ blocks of memory
 */
 typedef struct s2_convexhull_t {
   GLfloat* vertices; /*!< vertices in contiguous memory */
-  int vertexCount;   /*!< number of vertices */
+  uint vertexCount;  /*!< number of vertices */
   GLuint* faces;     /*!< faces in contiguous memory */
-  int faceCount;     /*!< number of faces */
+  uint faceCount;    /*!< number of faces */
   bool malloced;     /*!< indicates whether the data structure was malloced and
       needs to be freed, false if convexhull is part of another structure */
 } s2_convexhull_t;

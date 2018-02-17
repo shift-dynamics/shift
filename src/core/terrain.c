@@ -176,6 +176,12 @@ char* getValidFilePath(s2_stackstr_t* includeDirectory, const char* fileName) {
 int s2_terrain_load(s2_assembly_t* assembly, json_t* assemblyObject,
                     s2_context_t* context, s2_stackstr_t* prefix) {
 
+  /* currently all terrains are being added directly to context and
+  are not stored in assembly data structures. If it is desired to organize
+  terrains by assembly later, use the assembly pointer later, for now use (void)
+  to suppress compiler warning */
+  (void)assembly;
+
   json_t* terrainsObject = json_object_get(assemblyObject, "terrain");
 
   if(json_is_array(terrainsObject)) {
@@ -517,8 +523,31 @@ void s2_generateGDALSampleTerrain(const char* filename, int rows, int columns,
   }
 
   GDALRasterBandH hBand = GDALGetRasterBand(hDataset, 1);
-  GDALRasterIO(hBand, GF_Write, 0, 0, rows, columns, data, rows, columns,
-               GDT_Float32, 0, 0);
+  CPLErr error = GDALRasterIO(hBand, GF_Write, 0, 0, rows, columns, data, rows,
+                              columns, GDT_Float32, 0, 0);
+
+  switch(error) {
+    case CE_None: {
+      break;
+    }
+    case CE_Debug: {
+      fprintf(stderr, "GDAL Debug warning\n");
+      break;
+    }
+    case CE_Warning: {
+      fprintf(stderr, "GDAL warning\n");
+      break;
+    }
+    case CE_Failure: {
+      fprintf(stderr, "GDAL failed to load raster data\n");
+      break;
+    }
+    case CE_Fatal: {
+      fprintf(stderr, "Fatal error: GDAL failed to load raster data\n");
+      exit(-1);
+      break;
+    }
+  }
 
   GDALClose(hDataset);
 }
@@ -752,14 +781,14 @@ int s2_terrain_setPropertyMap(s2_terrain_t* terrain,
   MagickPixelPacket pixel;
 
   PixelIterator* propertyMapIterator = NewPixelIterator(propertyMap);
-  for(unsigned long y = 0; y < (long)MagickGetImageHeight(propertyMap); y++) {
+  for(unsigned long y = 0; y < MagickGetImageHeight(propertyMap); y++) {
 
     PixelWand** pixels = PixelGetNextIteratorRow(propertyMapIterator, &width);
     if(pixels == (PixelWand**)NULL) {
       break;
     }
 
-    for(register unsigned long x = 0; x < (long)width; x++) {
+    for(register unsigned long x = 0; x < width; x++) {
       PixelGetMagickColor(pixels[x], &pixel);
 
       terrain->propertyMap[y * propertyMapColumns + x] =
@@ -854,11 +883,11 @@ double blend(double f, double min, double max) {
 
 /*!
 @brief get value at specified row and column index.  */
-double s2_terrain_get(s2_terrain_t* terrain, int i, int j) {
+double s2_terrain_get(s2_terrain_t* terrain, uint i, uint j) {
 
   /* row index i is y dimension, column index j is x dimension */
-  assert(i >= 0 && i < terrain->rows);
-  assert(j >= 0 && j < terrain->columns);
+  assert(i < terrain->rows);
+  assert(j < terrain->columns);
 
   return terrain->controlPoints[i * terrain->columns + j];
 }
@@ -870,6 +899,9 @@ Follows SAE convention
 double s2_terrain_getZ_default_sae(s2_terrain_t* terrain, s2_vector_t* r_0p,
                                    s2_vector_t* normal) {
 
+  /* @TODO use terrain and vector r_0p to obtain surface normal and elevation */
+  (void)r_0p;
+  (void)terrain;
   normal->x = 0.0;
   normal->y = 0.0;
   normal->z = -1.0;
@@ -882,7 +914,9 @@ Follows SAE convention
 */
 double s2_terrain_getZ_default_iso(s2_terrain_t* terrain, s2_vector_t* r_0p,
                                    s2_vector_t* normal) {
-
+  /* @TODO use terrain and vector r_0p to obtain surface normal and elevation */
+  (void)r_0p;
+  (void)terrain;
   normal->x = 0.0;
   normal->y = 0.0;
   normal->z = 1.0;
@@ -924,6 +958,10 @@ double s2_terrain_getZ_bilinear_sae(s2_terrain_t* terrain, s2_vector_t* r_0p,
     blend(fy, s2_terrain_get(terrain, i0, j0), s2_terrain_get(terrain, i1, j0)),
     blend(fy, s2_terrain_get(terrain, i0, j1),
           s2_terrain_get(terrain, i1, j1)));
+
+  /* the normal is not computed yet */
+  (void)normal;
+
   return z;
 }
 
@@ -963,6 +1001,8 @@ double s2_terrain_getZ_bilinear_iso(s2_terrain_t* terrain, s2_vector_t* r_0p,
     blend(fx, s2_terrain_get(terrain, i0, j1),
           s2_terrain_get(terrain, i1, j1)));
 
+  /* the normal is not computed yet */
+  (void)normal;
   return z;
 }
 
@@ -1236,23 +1276,27 @@ double s2_terrain_getZ_bicubic_iso(s2_terrain_t* terrain, s2_vector_t* r_0p,
 }
 
 /*!
-@brief not implented yet
+@brief not implemented yet
 @TODO
 */
 double s2_terrain_getZ_catmulrom_sae(s2_terrain_t* terrain, s2_vector_t* r_0p,
                                      s2_vector_t* normal) {
-
+  (void)terrain;
+  (void)r_0p;
+  (void)normal;
   double z = 0;
   return z;
 }
 
 /*!
-@brief not implented yet
+@brief not implemented yet
 @TODO
 */
 double s2_terrain_getZ_catmulrom_iso(s2_terrain_t* terrain, s2_vector_t* r_0p,
                                      s2_vector_t* normal) {
-
+  (void)terrain;
+  (void)r_0p;
+  (void)normal;
   double z = 0;
   return z;
 }
@@ -1264,14 +1308,15 @@ double s2_terrain_getZ_catmulrom_iso(s2_terrain_t* terrain, s2_vector_t* r_0p,
 @param y [in] y coordinate
 @param height [out] height at x, y coordinate
 @param normal [out] surface normal at x, y coordinate (in global coordinates)
-This is a place holder function for now. In the future need to add functions to
-load terrain profiles and report values based on terrain.
-The surface normal follows SAE / Aerospace conventions with normal in the "down"
+This is a place holder function for now. In the future need to add functions
+to load terrain profiles and report values based on terrain. The surface
+normal follows SAE / Aerospace conventions with normal in the "down"
 direction, i.e. positive z
 */
 void s2_terrain_getHeightAndSAENormal(s2_context_t* context, s2_vector_t* r_0p,
                                       double* height, s2_vector_t* normal) {
-
+  (void)context;
+  (void)r_0p;
   *height = 0.0;
   normal->x = 0.0;
   normal->y = 0.0;
@@ -1281,18 +1326,19 @@ void s2_terrain_getHeightAndSAENormal(s2_context_t* context, s2_vector_t* r_0p,
 /*!
 @brief gets height and surface normal at specified x,y coordinates
 @param context [in] Shift context data structure containing model data
-@param r_0p vector from reference frame to point p to test, expressed in global
-coordinates
+@param r_0p vector from reference frame to point p to test, expressed in
+global coordinates
 @param height [out] height at x, y coordinate
 @param normal [out] surface normal at x, y coordinate (in global coordinates)
-This is a place holder function for now. In the future need to add functions to
-load terrain profiles and report values based on terrain.
-The surface normal follows ISO convention with normal in the "up" direction,
-i.e. {0, 0, -1}
+This is a place holder function for now. In the future need to add functions
+to load terrain profiles and report values based on terrain. The surface
+normal follows ISO convention with normal in the "up" direction, i.e. {0, 0,
+-1}
 */
 void s2_terrain_getHeightAndISONormal(s2_context_t* context, s2_vector_t* r_0p,
                                       double* height, s2_vector_t* normal) {
-
+  (void)context;
+  (void)r_0p;
   *height = 0.0;
   normal->x = 0.0;
   normal->y = 0.0;
