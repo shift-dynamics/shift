@@ -107,17 +107,17 @@ void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
   s2_pca_jacobi(&M, &v);
 
   /* find component with largest eigenvalue */
-  int maxc = 0;
-  double maxf;
-  double maxe = fabs(s2_mat3x3_get(&M, 0, 0));
-  if((maxf = fabs(s2_mat3x3_get(&M, 1, 1))) > maxe) {
-    maxc = 1;
-    maxe = maxf;
-  }
-  if((maxf = fabs(s2_mat3x3_get(&M, 2, 2))) > maxe) {
-    maxc = 2;
-    maxe = maxf;
-  }
+  // int maxc = 0;
+  // double maxf;
+  // double maxe = fabs(s2_mat3x3_get(&M, 0, 0));
+  // if((maxf = fabs(s2_mat3x3_get(&M, 1, 1))) > maxe) {
+  //   // maxc = 1;
+  //   maxe = maxf;
+  // }
+  // if((maxf = fabs(s2_mat3x3_get(&M, 2, 2))) > maxe) {
+  //   // maxc = 2;
+  //   maxe = maxf;
+  // }
 
   s2_vectorf_t x;
   s2_vectorf_t y;
@@ -154,6 +154,8 @@ void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
 centroid has been updated
 */
 bool s2_ellipsoid_collisionGlobal(s2_ellipsoid_t* a, s2_ellipsoid_t* b) {
+  (void)a;
+  (void)b;
   // s2_vector_t d;
   // s2_subtract_vv(&a->centerGlobal, &b->centerGlobal, &d);
   // double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
@@ -168,6 +170,8 @@ used for this test. Spheres must therefore be in the same "local" coordinate
 system
 */
 bool s2_ellipsoid_collisionLocal(s2_ellipsoid_t* a, s2_ellipsoid_t* b) {
+  (void)a;
+  (void)b;
   // s2_vector_t d;
   // s2_subtract_vv(&a->centerLocal, &b->centerLocal, &d);
   // double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
@@ -196,7 +200,7 @@ updated (if needed) to just encompass the new point p
 void s2_ellipsoid_fromEllipsoidAndPoint(s2_ellipsoid_t* e, s2_vector_t* p) {
   s2_vector_t d;
   s2_subtract_vv(p, &e->dWRTOrigin.T, &d);
-  double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
+  // double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
   // if(dist2 > s->radius * s->radius) {
   //   double dist = sqrt(dist2);
   //   double newRadius = (s->radius + dist) * 0.5;
@@ -246,7 +250,7 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
     If all points inside sphere, we are done.
     Otherwise, enlarge bounding sphere to cover point outside of initial sphere
   */
-    for(int i = 1; i < convexhull->vertexCount; i++) {
+    for(uint i = 1; i < convexhull->vertexCount; i++) {
       s2_vector_t p =
         s2_pca_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
       s2_ellipsoid_fromEllipsoidAndPoint(self, &p);
@@ -264,7 +268,9 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
 s2_vector_t s2_ellipsoid_support(void* collisionobject,
                                  s2_vector_t* direction) {
 
-  s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)collisionobject;
+  (void)collisionobject;
+  (void)direction;
+  // s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)collisionobject;
   // s2_vector_normalize(direction);
   // s2_vector_t temp;
   // s2_product_vk(direction, &sphere->radius, &temp);

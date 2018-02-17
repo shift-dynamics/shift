@@ -69,7 +69,7 @@ void Shift::OrbitalCamera::mouseMoveEvent(QMouseEvent* ev) {
   setOldPoint(ev->pos());
 }
 
-void Shift::OrbitalCamera::mouseReleaseEvent(QMouseEvent* ev) {
+void Shift::OrbitalCamera::mouseReleaseEvent(QMouseEvent*) {
   setMode(OrbitalCameraMode::None);
 }
 

@@ -6823,12 +6823,13 @@ inline void s2_mat3x3_getAxisAngle(s2_mat3x3_t* restrict r,
 
 /*!
 @brief get axis, angle and pitch of screw motion
-from an SE3 displacement
+from an SE3 displacement, do not use, not yet implemented
 @TODO finish / verify this
 */
 inline void s2_displacement_getScrewAxis(s2_displacement_t* restrict d,
                                          s2_screw_t* restrict h) {
 
+  (void)h;
   s2_vector_t rotationAxis;
   double angle;
   s2_mat3x3_getAxisAngle(&d->R, &rotationAxis, &angle);

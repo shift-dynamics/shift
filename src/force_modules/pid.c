@@ -18,9 +18,8 @@ SUCH DAMAGE.
 */
 
 #include "pid.h"
-#include "forcemodule.h"
 #include "../core/joint.h"
-
+#include "forcemodule.h"
 
 s2_pid_t* s2_pid() {
 
@@ -62,10 +61,8 @@ s2_pid_t* s2_pid() {
   return pid;
 }
 
-
-void s2_pid_connectForceModulePointer(
-  s2_forcemodule_t* forceModule,
-  s2_pid_t* pid) {
+void s2_pid_connectForceModulePointer(s2_forcemodule_t* forceModule,
+                                      s2_pid_t* pid) {
 
   forceModule->data = pid;
   forceModule->parameters[0] = pid;
@@ -73,152 +70,125 @@ void s2_pid_connectForceModulePointer(
   forceModule->y = pid->y;
   forceModule->saveHistory = s2_pid_saveHistory;
 
-  if(pid->input.ioType == PID_IO_FRAME &&
-      pid->output.ioType == PID_IO_JOINT) {
+  if(pid->input.ioType == PID_IO_FRAME && pid->output.ioType == PID_IO_JOINT) {
     forceModule->update = s2_pid_updateFromFrameToJoint;
   } else if(pid->input.ioType == PID_IO_JOINT &&
             pid->output.ioType == PID_IO_JOINT) {
     forceModule->update = s2_pid_updateFromJointToJoint;
   } else {
-    fprintf(
-      stderr,
-      "specified combination of input / output not yet supported\n");
+    fprintf(stderr,
+            "specified combination of input / output not yet supported\n");
   }
 }
 
-
-int getVelocity(
-  s2_screw_t* screw,
-  s2_joint_enum_t dof,
-  double* value) {
+int getVelocity(s2_screw_t* screw, s2_joint_enum_t dof, double* value) {
 
   switch(dof) {
     case S2_JOINT_TX: {
       *value = screw->m0;
       return 0;
-    }
-    break;
+    } break;
     case S2_JOINT_TY: {
       *value = screw->m1;
       return 0;
-    }
-    break;
+    } break;
     case S2_JOINT_TZ: {
       *value = screw->m2;
       return 0;
-    }
-    break;
+    } break;
     case S2_JOINT_RX: {
       *value = screw->m3;
       return 0;
-    }
-    break;
+    } break;
     case S2_JOINT_RY: {
       *value = screw->m4;
       return 0;
-    }
-    break;
+    } break;
     case S2_JOINT_RZ: {
       *value = screw->m5;
       return 0;
-    }
-    break;
+    } break;
     default:
       return -1;
   }
 }
 
-
-int getPosition(
-  s2_displacement_t* displacement,
-  s2_joint_enum_t dof,
-  double* value) {
+int getPosition(s2_displacement_t* displacement, s2_joint_enum_t dof,
+                double* value) {
 
   switch(dof) {
     case S2_JOINT_TX: {
       *value = displacement->T.x;
       return 0;
-    }
-    break;
+    } break;
     case S2_JOINT_TY: {
       *value = displacement->T.y;
       return 0;
-    }
-    break;
+    } break;
     case S2_JOINT_TZ: {
       *value = displacement->T.z;
       return 0;
-    }
-    break;
+    } break;
     case S2_JOINT_RX: {
       /*! @TODO rotation of frame currently not implemented */
       *value = 0;
       return -1;
-    }
-    break;
+    } break;
     case S2_JOINT_RY: {
       /*! @TODO rotation of frame currently not implemented */
       *value = 0;
       return -1;
-    }
-    break;
+    } break;
     case S2_JOINT_RZ: {
       /*! @TODO rotation of frame currently not implemented */
       *value = 0;
       return -1;
-    }
-    break;
+    } break;
     default:
       return -1;
   }
 }
-
 
 /*!
 @brief get current set point using current time step
 
 if set point is static, just returns value in setPoint
 */
-double s2_pid_getTarget(
-  s2_pid_t* pid, double t) {
+double s2_pid_getTarget(s2_pid_t* pid, double t) {
 
+  /* suppress compiler warning for unused variable t */
+  (void)t;
   return pid->target;
 }
 
-
-void s2_pid_getTime(
-  s2_context_t* context,
-  double* t,
-  double* dt) {
+void s2_pid_getTime(s2_context_t* context, double* t, double* dt) {
 
   switch(context->modelParameters.integrationType) {
     case S2_NUMERICALINTEGRATOR_ODE113: {
       s2_numericalintegrator_ode113_t* numericalIntegrator =
         (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
       *t = *(numericalIntegrator->work + 92 - 1);
-      *dt = numericalIntegrator->t -
-            *(numericalIntegrator->work + 92 - 1);
-
+      *dt = numericalIntegrator->t - *(numericalIntegrator->work + 92 - 1);
+      break;
     }
-    break;
     case S2_NUMERICALINTEGRATOR_ODE113B: {
       s2_numericalintegrator_ode113b_t* numericalIntegrator =
         (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
       *t = numericalIntegrator->x;
       *dt = numericalIntegrator->x - numericalIntegrator->t;
+      break;
     }
+    default:
+      break;
   }
 }
-
 
 /*!
 @brief update a force in a joint as a function of
 velocity in a given frame
 */
-void s2_pid_updateFromFrameToJoint(
-  s2_context_t* context,
-  void** parameters,
-  double* y) {
+void s2_pid_updateFromFrameToJoint(s2_context_t* context, void** parameters,
+                                   double* y) {
 
   s2_pid_t* pid = (s2_pid_t*)parameters[0];
   s2_screw_t velocityLocal;
@@ -226,31 +196,23 @@ void s2_pid_updateFromFrameToJoint(
   switch(pid->input.coordinateSystem) {
     case S2_COORDINATE_FIXED: {
       if(pid->input.targetType == PID_TARGET_VELOCITY) {
-        getVelocity(
-          pid->input.framePointer->velocityAbsolute,
-          pid->input.dof,
-          &currentValue);
+        getVelocity(pid->input.framePointer->velocityAbsolute, pid->input.dof,
+                    &currentValue);
       } else {
-        getPosition(
-          pid->input.framePointer->dAbsolute,
-          pid->input.dof,
-          &currentValue);
+        getPosition(pid->input.framePointer->dAbsolute, pid->input.dof,
+                    &currentValue);
       }
+      break;
     }
-    break;
     case S2_COORDINATE_LOCAL: {
       if(pid->input.targetType == PID_TARGET_VELOCITY) {
-        s2_screwproduct_dinverses(
-          pid->input.framePointer->dAbsolute,
-          pid->input.framePointer->velocityAbsolute,
-          &velocityLocal);
-        getVelocity(
-          &velocityLocal,
-          pid->input.dof,
-          &currentValue);
+        s2_screwproduct_dinverses(pid->input.framePointer->dAbsolute,
+                                  pid->input.framePointer->velocityAbsolute,
+                                  &velocityLocal);
+        getVelocity(&velocityLocal, pid->input.dof, &currentValue);
       }
+      break;
     }
-    break;
   }
 
   double t;
@@ -272,22 +234,23 @@ void s2_pid_updateFromFrameToJoint(
 
   /* control effort */
   double u =
-    pid->gains.p * pid->error +
-    pid->gains.i * y[0] +
-    pid->gains.d * dedt;
+    pid->gains.p * pid->error + pid->gains.i * y[0] + pid->gains.d * dedt;
 
   // if(context->modelParameters->integrationType == ODE113B) {
   //   s2_numericalintegrator_ode113b_t* numericalIntegrator =
   //     context->numericalIntegrator;
   //   if(numericalIntegrator->iconv == 1 &&
   //     numericalIntegrator->x >=
-  //       numericalIntegrator->tdata[numericalIntegrator->step] + context->modelParameters->timeStep) {
+  //       numericalIntegrator->tdata[numericalIntegrator->step] +
+  //       context->modelParameters->timeStep) {
   //
   //     FILE* debug = s2_context_getDebugPointer(context, 0);
   //     if(pid->input.dof == RZ) {
-  //       fprintf(debug, "wz: %0.9g (rad/s), steering input: %f (N)\n",  currentValue, u);
+  //       fprintf(debug, "wz: %0.9g (rad/s), steering input: %f (N)\n",
+  //       currentValue, u);
   //     } else {
-  //       fprintf(debug, "tx: %0.9g (rad/s), wheel torque: %f (Nm)\n",  currentValue, u);
+  //       fprintf(debug, "tx: %0.9g (rad/s), wheel torque: %f (Nm)\n",
+  //       currentValue, u);
   //     }
   //   }
   // }
@@ -295,32 +258,25 @@ void s2_pid_updateFromFrameToJoint(
   context->f[pid->output.jointPointer->dqIndex] += u;
 }
 
-
 /*!
 @brief update a force in a joint as a function of
 velocity in a given frame
 */
-void s2_pid_updateFromJointToJoint(
-  s2_context_t* context,
-  void** parameters,
-  double* y) {
+void s2_pid_updateFromJointToJoint(s2_context_t* context, void** parameters,
+                                   double* y) {
 
   s2_pid_t* pid = (s2_pid_t*)parameters[0];
 
   double currentValue = 0;
   switch(pid->input.targetType) {
     case PID_TARGET_POSITION: {
-      int qIndex =
-        pid->input.jointPointer->qIndex;
+      int qIndex = pid->input.jointPointer->qIndex;
       currentValue = context->q[qIndex];
-    }
-    break;
+    } break;
     case PID_TARGET_VELOCITY: {
-      int dqIndex =
-        pid->input.jointPointer->dqIndex;
+      int dqIndex = pid->input.jointPointer->dqIndex;
       currentValue = context->dq[dqIndex];
-    }
-    break;
+    } break;
   }
 
   double t;
@@ -342,16 +298,15 @@ void s2_pid_updateFromJointToJoint(
 
   /* control effort */
   double u =
-    pid->gains.p * pid->error +
-    pid->gains.i * y[0] +
-    pid->gains.d * dedt;
+    pid->gains.p * pid->error + pid->gains.i * y[0] + pid->gains.d * dedt;
 
   // if(context->modelParameters->integrationType == ODE113B) {
   //   s2_numericalintegrator_ode113b_t* numericalIntegrator =
   //     context->numericalIntegrator;
   //   if(numericalIntegrator->iconv == 1 &&
   //     numericalIntegrator->x >=
-  //       numericalIntegrator->tdata[numericalIntegrator->step] + context->modelParameters->timeStep) {
+  //       numericalIntegrator->tdata[numericalIntegrator->step] +
+  //       context->modelParameters->timeStep) {
   //
   //     FILE* debug = s2_context_getDebugPointer(context, 0);
   //     switch(pid->input.targetType) {
@@ -375,9 +330,6 @@ void s2_pid_updateFromJointToJoint(
 
   context->f[pid->output.jointPointer->dqIndex] += u;
 }
-
-
-
 
 void s2_pid_saveHistory(void* parameters) {
   s2_pid_t* pid = (s2_pid_t*)parameters;

@@ -127,7 +127,7 @@ void s2_generateGDALSampleTerrain(const char* filename, int, int,
 void s2_generateSampleTerrain(const char* filename, int, int,
                               void (*surface)(double, double, double*));
 
-double s2_terrain_get(s2_terrain_t* terrain, int i, int j);
+double s2_terrain_get(s2_terrain_t* terrain, uint i, uint j);
 
 double s2_terrain_getZ_default_sae(s2_terrain_t* terrain, s2_vector_t* r_0p,
                                    s2_vector_t* normal);

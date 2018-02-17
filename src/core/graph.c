@@ -220,7 +220,7 @@ void s2_context_digraphFrames(s2_context_t* context, const char* fileName) {
   for(int i = 0; i < context->dhvaCount; i++) {
     s2_displacement_t* dParent = context->dhva[i][0];
     double* dPrimitive = context->dhva[i][1];
-    s2_displacement_t* dWRTReference = NULL;
+    // s2_displacement_t* dWRTReference = NULL;
     s2_displacement_t* dChild = NULL;
 
     if(context->dhFunctionPointers[i] == s2_joint_spherical ||
@@ -228,7 +228,7 @@ void s2_context_digraphFrames(s2_context_t* context, const char* fileName) {
        context->dhFunctionPointers[i] == s2_joint_float ||
        context->dhFunctionPointers[i] == s2_joint_floatinverse) {
 
-      dWRTReference = context->dhva[i][2];
+      // dWRTReference = context->dhva[i][2];
       dChild = context->dhva[i][3];
     } else {
       dChild = context->dhva[i][2];

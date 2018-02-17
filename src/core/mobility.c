@@ -103,13 +103,13 @@ void s2_context_printMobility(FILE* f, s2_context_t* context) {
           "----------------------------------------------------------------\n");
 
   for(int i = 0; i < context->dqCount; i++) {
-    bool inSubstructure = false;
+    // bool inSubstructure = false;
     s2_substructure_t* substructure = context->substructures;
     for(int j = 0; j < context->substructureCount; j++, substructure++) {
       if(i >= substructure->dqOffset &&
          i < substructure->dqOffset + substructure->dqCount) {
         s2_substructure_printMobility(f, substructure);
-        inSubstructure = true;
+        // inSubstructure = true;
         break;
       }
     }

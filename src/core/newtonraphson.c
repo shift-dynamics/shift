@@ -324,7 +324,7 @@ int s2_substructure_removeConstraintViolationsFast(
   s2_context_updateDH(context);
   s2_substructure_evaluateConstraints(substructure);
   double initialError = s2_substructure_evaluateConstraintError(substructure);
-  printf("initial error: %f\n", initialError);
+  // printf("initial error: %f\n", initialError);
 
   double qCopy[context->qCount];
   memcpy(qCopy, context->q, context->qCount * sizeof(double));
@@ -417,6 +417,10 @@ specified
 int s2_substructure_incrementSpecifiedCoordinate(
   s2_substructure_t* substructure, int specifiedCoordinateIndex, double value,
   s2_joint_enum_t jointType, s2_move_enum_t moveType) {
+
+  /* currently the joint type is not used, but may be used in the future, for
+  example to set all 3 dof as specified for a spherical joint */
+  (void)jointType;
 
   s2_context_t* context = substructure->context;
   memset(substructure->deltaq, 0, substructure->dqCount * sizeof(double));
