@@ -63,7 +63,7 @@ typedef struct s2_sphere_t s2_sphere_t;
 typedef struct s2_ellipsoid_t s2_ellipsoid_t;
 
 /*!
-@brief star2 context datastructure
+@brief shift context datastructure
 
 This datastructure holds all of the values associated with a model. An empty
 Context data structure can be initialized using the
@@ -73,7 +73,7 @@ s2_LoadJSON function.
 typedef struct s2_context_t {
 
   struct modelParameters {
-    char* version;                   /*!< specify star2 file version number */
+    char* version;                   /*!< specify shift file version number */
     s2_stackstr_t* includeDirectory; /*!< specify directories to search for
                                             external files */
     s2_vector_t*
