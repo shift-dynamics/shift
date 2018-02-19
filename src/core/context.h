@@ -61,6 +61,8 @@ typedef struct s2_pointcloud_t s2_pointcloud_t;
 typedef struct s2_convexhull_t s2_convexhull_t;
 typedef struct s2_sphere_t s2_sphere_t;
 typedef struct s2_ellipsoid_t s2_ellipsoid_t;
+typedef struct s2_collisionobject_t s2_collisionobject_t;
+typedef struct s2_supportmapping_t s2_supportmapping_t;
 
 /*!
 @brief shift context datastructure
@@ -576,6 +578,15 @@ typedef struct s2_context_t {
 
   int ellipsoidCount;
   s2_ellipsoid_t* ellipsoids;
+
+  int collisionObjectCount;
+  s2_collisionobject_t* collisionObjects; /*!< contains pointers to a fixed
+                                             number of collision objects */
+
+  s2_supportmapping_t*
+    supportmappingHead; /*!< head of suportmapping doubly linked list */
+  s2_supportmapping_t*
+    supportmappingTail; /*!< tail of supportmapping doubly linked list */
 
   int materialCount;
   s2_material_t* materials;

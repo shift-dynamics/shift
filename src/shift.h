@@ -42,6 +42,7 @@ extern "C" {
 #include "core/sphere.h"
 #include "core/stack.h"
 #include "core/substructure.h"
+#include "core/supportmapping.h"
 #include "core/terrain.h"
 #include "core/topology.h"
 #include "core/utility.h"
@@ -50,6 +51,7 @@ extern "C" {
 #include "ode/ode113.h"
 #include "ode/ode113b.h"
 
+#include "force_modules/contact.h"
 #include "force_modules/damping.h"
 #include "force_modules/forcemodule.h"
 #include "force_modules/pid.h"

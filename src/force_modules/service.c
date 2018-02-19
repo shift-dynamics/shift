@@ -65,6 +65,10 @@ void s2_context_setForces(s2_context_t* self, double* y) {
   // }
 
   /* service force modules */
+
+  s2_context_sweepAndPrune(self);
+  s2_context_contactDetection(self);
+
   for(int i = 0; i < self->forceModuleCount; i++) {
 
     s2_forcemodule_t* forceModule = self->forceModulePointers[i];
