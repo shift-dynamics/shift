@@ -18,7 +18,20 @@ bool s2_supportmapping_convexhullConvexhull(s2_collisionobject_t* restrict c1,
                                         correct support function is loaded */
   (void)c1;
   (void)c2;
-  /*! @TODO add call to gjk algorithm here */
+
+  /*! @TODO add call to gjk algorithm here
+
+  access extreme vertex support mapping functions for c1 and c2 by calling:
+
+  s2_vector_t searchDirection;
+
+  s2_vector_t extremeVertex1 =
+    s2_collisionobject_support(c1, searchDirection);
+
+  s2_vector_t extremeVertex2 =
+    s2_collisionobject_support(c2, searchDirection);
+  */
+
   return true;
 }
 
@@ -33,11 +46,23 @@ sample the minkowski difference.
 */
 bool s2_supportmapping_sphereSphere(s2_collisionobject_t* restrict c1,
                                     s2_collisionobject_t* restrict c2) {
-  /* use (void) to suppress unused variable compiler warning. Remove this once
+  /* use (void) to suppress compiler warning. Remove this once
                                         correct support function is loaded */
   (void)c1;
   (void)c2;
-  /*! @TODO add call to sphere-sphere test here */
+  /*! @TODO add call to sphere-sphere test here
+
+  access extreme vertex support mapping functions for c1 and c2 by calling:
+
+  s2_vector_t searchDirection;
+
+  s2_vector_t extremeVertex1 =
+    s2_collisionobject_support(c1, searchDirection);
+
+  s2_vector_t extremeVertex2 =
+    s2_collisionobject_support(c2, searchDirection);
+
+  */
   return true;
 }
 
@@ -56,7 +81,19 @@ bool s2_supportmapping_ellipsoidEllipsoid(s2_collisionobject_t* restrict c1,
   correct support function is loaded */
   (void)c1;
   (void)c2;
-  /*! @TODO add call to ellipsoid-ellipsoid test */
+  /*! @TODO add call to ellipsoid-ellipsoid test
+
+  access extreme vertex support mapping functions for c1 and c2 by calling:
+
+  s2_vector_t searchDirection;
+
+  s2_vector_t extremeVertex1 =
+    s2_collisionobject_support(c1, searchDirection);
+
+  s2_vector_t extremeVertex2 =
+    s2_collisionobject_support(c2, searchDirection);
+
+  */
   return true;
 }
 
