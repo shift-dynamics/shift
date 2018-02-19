@@ -146,6 +146,7 @@ add_library(shift_lib STATIC
   ${shift_SOURCE_DIR}/src/core/convexhull.c
   ${shift_SOURCE_DIR}/src/core/collisionobject.c
   ${shift_SOURCE_DIR}/src/core/equation.c
+  ${shift_SOURCE_DIR}/src/core/ellipsoid.c
   ${shift_SOURCE_DIR}/src/core/factor.c
   ${shift_SOURCE_DIR}/src/core/frame.c
   ${shift_SOURCE_DIR}/src/core/graph.c
@@ -165,12 +166,13 @@ add_library(shift_lib STATIC
   ${shift_SOURCE_DIR}/src/core/sensor.c
   ${shift_SOURCE_DIR}/src/core/solve.c
   ${shift_SOURCE_DIR}/src/core/sphere.c
-  ${shift_SOURCE_DIR}/src/core/ellipsoid.c
   ${shift_SOURCE_DIR}/src/core/stack.c
   ${shift_SOURCE_DIR}/src/core/substructure.c
+  ${shift_SOURCE_DIR}/src/core/supportmapping.c
   ${shift_SOURCE_DIR}/src/core/terrain.c
   ${shift_SOURCE_DIR}/src/core/topology.c
   ${shift_SOURCE_DIR}/src/core/utility.c
+  ${shift_SOURCE_DIR}/src/force_modules/contact.c
   ${shift_SOURCE_DIR}/src/force_modules/service.c
   ${shift_SOURCE_DIR}/src/force_modules/tire.c
   ${shift_SOURCE_DIR}/src/force_modules/tire/pac2002.c

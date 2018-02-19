@@ -504,6 +504,12 @@ s2_context_t* s2_context() {
   self->materialCount = 0;
   self->materials = NULL;
 
+  self->collisionObjectCount = 0;
+  self->collisionObjects = NULL;
+
+  self->supportmappingHead = NULL;
+  self->supportmappingTail = NULL;
+
   s2_context_setOmegaN(self, 50);
 
   return self;

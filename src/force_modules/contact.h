@@ -24,4 +24,7 @@ SUCH DAMAGE.
 #ifndef _SHIFT_CONTACT_H_
 #define _SHIFT_CONTACT_H_
 
+void s2_context_sweepAndPrune(s2_context_t*);
+void s2_context_contactDetection(s2_context_t*);
+
 #endif
