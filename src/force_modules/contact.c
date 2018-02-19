@@ -18,3 +18,45 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
+
+#include "contact.h"
+
+/*!
+@brief performs initial sweep and prune pass to identify potentially contacting
+bodies in scene */
+void s2_context_sweepAndPrune(s2_context_t* context) {
+  /* use (void) to suppress unused variable compiler warning, remove later once
+  the sweepAndPrune algorithm has been implemented. This code will add or remove
+  elements in the s2_supportmapping_t doubly linked list, accessible from
+  context->supportmappingHead and context->supportmappingTail */
+  (void)context;
+  return;
+}
+
+/*!
+@brief perform contact detection for potentially contacting bodies identified in
+sweep and prune pass
+*/
+void s2_context_contactDetection(s2_context_t* context) {
+  /* use (void) to suppress unused variable compiler warning, remove later once
+   * the sweepAndPrune algorithm has been implemented */
+  (void)context;
+
+  /*! @TODO level 1 code for identifying contact between two potentially
+  contacting bodies is carried out here. The code will require iterating over
+  the linked list of supportmapping datastructures identified in the
+  sweepAndPrune phase.
+
+  s2_supportmapping_t* head = context->supportmappingHead;
+  while(head) {
+    s2_supportmapping_support(head);
+    head = head->next;
+  }
+
+  // after this step is carried out, the collision variable in each
+  s2_supportmapping_t has been set to true or false and is available to force
+  modules. contact.c only performs contact detection, contact modeling will need
+  to be handled in another force module.
+  */
+  return;
+}
