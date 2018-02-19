@@ -64,6 +64,8 @@ Level 2 code interfaces with Level 3 code by calling::
     s2_vector_t* searchVector;
     s2_vector_t* extremeVertex = s2_collisionobject_support(collisionobject, searchVector);
 
+Look in **supportmapping.c** for additional examples.
+
 
 
 Level 3: Extreme vertex support mapping functions
@@ -71,7 +73,7 @@ Level 3: Extreme vertex support mapping functions
 
 Current status:
 ******************
-Partial code in **src/core/collisionobject.c/.h**, some place holder extreme vertex support mapping functions generated for ellipsoids and convex hulls written, many of these can/will be improved.
+Partial code in **src/core/collisionobject.c/.h**, some place holder extreme vertex support mapping functions generated for ellipsoids and convex hulls written, many of these will need to be further flushed-out / improved.
 
 Functions detailed in:
 *************************
