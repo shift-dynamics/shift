@@ -38,8 +38,8 @@ Contact detection is performed before all other force modules.
 
 
 
-Level 2: Support mapping functions
----------------------------------------------------
+Level 2: Support mapping functions for Minkowski Differences
+----------------------------------------------------------------------
 
 Current status:
 *****************
