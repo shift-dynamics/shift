@@ -1,0 +1,26 @@
+digraph g {
+
+	subgraph cluster_0 {
+    label="Level 1";
+    labeljust=right;
+    s2_context_t -> s2_body_t [style=dashed; dir=none; label="s2_context_sweepAndPrune()"];
+      {rank=same; s2_context_t; s2_body_t; }
+  }
+
+  subgraph cluster_1 {
+    label="Level 2";
+    labeljust=right;
+    s2_supportmapping_t;
+  }
+
+  subgraph cluster_2 {
+    label="Level 3";
+    labeljust=right;
+    s2_collisionobject_t -> s2_sphere_t [label="s2_sphere_support()"];
+    s2_collisionobject_t -> s2_ellipsoid_t [label="s2_ellipsoid_support()"];
+    s2_collisionobject_t -> s2_convexhull_t [label="s2_convexhull_support()"];
+  }
+
+  s2_context_t -> s2_supportmapping_t [label=" s2_context_contactDetection()\n s2_supportmapping_support()"];
+  s2_supportmapping_t -> s2_collisionobject_t [label=" s2_collisionobject_support()"];
+}
