@@ -127,11 +127,19 @@ typedef struct s2_body_t {
   // s2_mat4x4f_t* glReferenceFramef;
   // s2_mat4x4f_t* glModelView;
   // s2_mat4x4f_t* glModelViewProjection;
+
+  int collisionObjectCount;
+  s2_collisionobject_t*
+    collisionObjects; /*!< pointer to one or more s2_collisionobject_t*
+                         datastructures, s2_collisionobject_t is the level 3
+                         interface to all primitive convex geometries */
+  s2_displacement_t** collisionObjectDWRTReference;
+  /*!< specifies the relative transformation from the
+   body reference frame to s2_collisionobject_t frame, NULL if all collision
+   geometry are specified in the body reference frame */
   bool drawEnabled;
   bool isVisible;
   bool collisionObjectDrawEnabled;
-  int collisionObjectCount;
-  s2_collisionobject_t* collisionObjects;
 } s2_body_t;
 
 void s2_body_appendFrame(s2_body_t*, s2_frame_t*);
