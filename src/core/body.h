@@ -45,6 +45,8 @@ typedef struct s2_convexhull_t s2_convexhull_t;
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_collisionobject_t s2_collisionobject_t;
 
+#include "collisionobject.h"
+
 /*!
 @brief Describes properties related to a rigid body
 
@@ -99,14 +101,11 @@ typedef struct s2_body_t {
                               the first instance of this collision geometry, the
                               pointer is set to NULL */
 
-  int frameCount; /*!< count of total number of frames */
-
-  int index; /*!< index in contiguous *run-time* array of Bodies, set
-                  by s2_ProcessTopology */
-
-  int level; /*!< level in the spanning tree, set
-                  by s2_ProcessTopology */
-
+  int frameCount;    /*!< count of total number of frames */
+  int index;         /*!< index in contiguous *run-time* array of Bodies, set
+                          by s2_ProcessTopology */
+  int level;         /*!< level in the spanning tree, set
+                          by s2_ProcessTopology */
   int materialIndex; /*!< offset into context->materials */
   int materialCount; /*!< number of materials assigned to a body */
   bool isVirtual;    /*!< indicates whether the Body is *virtual*. All
@@ -114,29 +113,17 @@ typedef struct s2_body_t {
                           virtual bodies are added to simplify processing
                           kinematics if multiple loops are present in the
                           mechanism */
-
-  s2_inertia_t* inertia; /*!< centroidal Mass and moment of Inertia
-                                properties in origin coordinate system */
-
+  s2_inertia_t* inertia;              /*!< centroidal Mass and moment of Inertia
+                                             properties in origin coordinate system */
   s2_vector_t* centerOfMassWRTOrigin; /*!< vector from body origin to
                                              center of mass */
-
   s2_vector_t* centerOfMassWRTReference; /*!< vector from body reference
                                                 frame to center of mass */
-  // s2_mat4x4_t* glReferenceFrame;
-  // s2_mat4x4f_t* glReferenceFramef;
-  // s2_mat4x4f_t* glModelView;
-  // s2_mat4x4f_t* glModelViewProjection;
-
   int collisionObjectCount;
   s2_collisionobject_t*
     collisionObjects; /*!< pointer to one or more s2_collisionobject_t*
                          datastructures, s2_collisionobject_t is the level 3
                          interface to all primitive convex geometries */
-  s2_displacement_t** collisionObjectDWRTReference;
-  /*!< specifies the relative transformation from the
-   body reference frame to s2_collisionobject_t frame, NULL if all collision
-   geometry are specified in the body reference frame */
   bool drawEnabled;
   bool isVisible;
   bool collisionObjectDrawEnabled;

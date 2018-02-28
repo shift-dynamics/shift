@@ -41,25 +41,22 @@ typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
-typedef struct s2_convexhull_t s2_convexhull_t;
+typedef struct s2_collisionobject_t s2_collisionobject_t;
+typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
 typedef struct s2_context_t s2_context_t;
 
 typedef struct s2_ellipsoid_t {
-  s2_vector_t centerGlobal;
-  s2_displacement_t dWRTOrigin;
-  s2_displacement_t dAbsolute;
   double a;
   double b;
   double c;
-  s2_body_t* parentBody;
 } s2_ellipsoid_t;
 
 s2_ellipsoid_t* s2_ellipsoid_alloc(int);
 
-int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*);
+int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*,
+                 s2_collisionobject_t*);
 
-void s2_ellipsoid_updateCentroid(s2_ellipsoid_t*);
-
-s2_vector_t s2_ellipsoid_support(void*, s2_vector_t*);
+s2_vector_t s2_ellipsoid_support(void*, s2_vector_t*,
+                                 s2_collisionobject_history_t*);
 
 #endif

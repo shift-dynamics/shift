@@ -46,6 +46,7 @@ s2_collisionobject_t* s2_collisionobject_alloc(int count) {
 */
 void s2_collisionobject_init(s2_collisionobject_t* self) {
   self->type = S2_COLLISIONOBJECT_NONE;
+  self->displacementUpdated = false;
   self->support = NULL;
   self->color[0] = 194.f / 255.f;
   self->color[1] = 9.f / 255.f;
@@ -112,8 +113,10 @@ void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
 
   if(!body->collisionGeometryInstanceOf) {
     /* if collision geometry is not an instance, allocate memory for a new
-     * convex hull and push it onto list of convexhull objects */
-    collisionObject->index = context->convexhullCount++;
+    convex hull and push it onto list of convexhull objects
+    @TODO generalize this setup so you can mix different collision objects */
+    collisionObject->index = context->collisionObjectCount++;
+    context->convexhullCount++;
     if(!context->convexhulls) {
       context->convexhulls = malloc(sizeof(s2_convexhull_t));
     } else {
@@ -124,7 +127,7 @@ void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
     printf("loading convex hull at index %d\n", collisionObject->index);
     s2_convexhull_init(&(context->convexhulls[collisionObject->index]));
     s2_convexhull(&(context->convexhulls[collisionObject->index]), context,
-                  body);
+                  body, collisionObject);
     collisionObject->object = &context->convexhulls[collisionObject->index];
   } else {
     /* otherwise, set reference to original instance of collision object */
@@ -155,7 +158,8 @@ void s2_collisionobject_sphere(s2_context_t* context, s2_body_t* body) {
       realloc(context->spheres, context->sphereCount * sizeof(s2_sphere_t));
   }
   if(!body->collisionGeometryInstanceOf) {
-    s2_sphere(&context->spheres[context->sphereCount - 1], context, body);
+    s2_sphere(&context->spheres[context->sphereCount - 1], context, body,
+              collisionObject);
   } else {
     s2_collisionobject_t* instanceOf =
       &body->collisionGeometryInstanceOf->collisionObjects[0];
@@ -182,8 +186,8 @@ void s2_collisionobject_ellipsoid(s2_context_t* context, s2_body_t* body) {
     context->ellipsoids = realloc(
       context->ellipsoids, context->ellipsoidCount * sizeof(s2_ellipsoid_t));
   }
-  s2_ellipsoid(&context->ellipsoids[context->ellipsoidCount - 1], context,
-               body);
+  s2_ellipsoid(&context->ellipsoids[context->ellipsoidCount - 1], context, body,
+               collisionObject);
 }
 
 /*!
@@ -191,6 +195,7 @@ void s2_collisionobject_ellipsoid(s2_context_t* context, s2_body_t* body) {
 support function defined in each primitive collision object
 */
 s2_vector_t s2_collisionobject_support(s2_collisionobject_t* self,
-                                       s2_vector_t* direction) {
-  return self->support((void*)self->object, direction);
+                                       s2_vector_t* direction,
+                                       s2_collisionobject_history_t* history) {
+  return self->support((void*)self->object, direction, history);
 }

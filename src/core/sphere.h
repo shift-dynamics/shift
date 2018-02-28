@@ -43,20 +43,18 @@ typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_convexhull_t s2_convexhull_t;
 typedef struct s2_context_t s2_context_t;
+typedef struct s2_collisionobject_t s2_collisionobject_t;
+typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
 
 typedef struct s2_sphere_t {
-  s2_vector_t centerLocal;
   double radius;
-  s2_body_t* parentBody;
-  bool malloced;
 } s2_sphere_t;
 
 s2_sphere_t* s2_sphere_alloc(int);
 
-int s2_sphere(s2_sphere_t*, s2_context_t*, s2_body_t*);
+int s2_sphere(s2_sphere_t*, s2_context_t*, s2_body_t*, s2_collisionobject_t*);
 
-void s2_sphere_updateCentroid(s2_sphere_t*);
-
-s2_vector_t s2_sphere_support(void*, s2_vector_t*);
+s2_vector_t s2_sphere_support(void*, s2_vector_t*,
+                              s2_collisionobject_history_t*);
 
 #endif

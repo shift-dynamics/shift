@@ -168,7 +168,7 @@ add_library(shift_lib STATIC
   ${shift_SOURCE_DIR}/src/core/sphere.c
   ${shift_SOURCE_DIR}/src/core/stack.c
   ${shift_SOURCE_DIR}/src/core/substructure.c
-  ${shift_SOURCE_DIR}/src/core/supportmapping.c
+  ${shift_SOURCE_DIR}/src/core/simplex.c
   ${shift_SOURCE_DIR}/src/core/terrain.c
   ${shift_SOURCE_DIR}/src/core/topology.c
   ${shift_SOURCE_DIR}/src/core/utility.c
