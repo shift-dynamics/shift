@@ -46,16 +46,14 @@ SUCH DAMAGE.
 #include "stack.h"
 #include "utility.h"
 
-int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*);
+int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*,
+                 s2_collisionobject_t*);
 
 /*!
-@brief constructor for sphere geometry
+@brief constructor for ellipsoid geometry
 */
 s2_ellipsoid_t* s2_ellipsoid_alloc(int count) {
   s2_ellipsoid_t* self = calloc(count, sizeof(s2_ellipsoid_t));
-  for(int i = 0; i < count; i++) {
-    self[i].parentBody = NULL;
-  }
   return self;
 }
 
@@ -91,9 +89,16 @@ double s2_ellipsoid_semiPrincipleAxis(s2_vectorf_t* e,
   return dist * 0.5;
 }
 
+/*!
+@brief finds approximate minimum bounding ellipsoid by performing pca and
+finding maximum vertex along each of the principal axes of ellipsoids
+
+@TODO requires testing / verification
+*/
 void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
                               const float* restrict vertices,
-                              const int vertexCount) {
+                              const int vertexCount,
+                              s2_collisionobject_t* collisionObject) {
 
   /* compute single prevision covariance matrix */
   s2_mat3x3f_t Mf = s2_pca_covariancef(vertices, vertexCount);
@@ -139,79 +144,19 @@ void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
   ellipsoid->c =
     s2_ellipsoid_semiPrincipleAxis(&z, vertices, vertexCount, &center_z);
 
-  ellipsoid->dWRTOrigin.T.x =
+  collisionObject->dWRTReference.T.x =
     (double)((center_x.x + center_y.x + center_z.x) / 3.0);
-  ellipsoid->dWRTOrigin.T.y =
+  collisionObject->dWRTReference.T.y =
     (double)((center_x.y + center_z.y + center_z.y) / 3.0);
-  ellipsoid->dWRTOrigin.T.z =
+  collisionObject->dWRTReference.T.z =
     (double)((center_x.z + center_z.z + center_z.z) / 3.0);
-
-  ellipsoid->dWRTOrigin.R = v;
+  collisionObject->dWRTReference.R = v;
 }
 
 /*!
-@brief test for global collision between two spheres, requires that global
-centroid has been updated
-*/
-bool s2_ellipsoid_collisionGlobal(s2_ellipsoid_t* a, s2_ellipsoid_t* b) {
-  (void)a;
-  (void)b;
-  // s2_vector_t d;
-  // s2_subtract_vv(&a->centerGlobal, &b->centerGlobal, &d);
-  // double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
-  // double radiusSum = a->radius + b->radius;
-  // return dist2 < radiusSum * radiusSum;
-  return true;
-}
+This is the s2_ellipsoid_t constructor.
 
-/*!
-@brief test for local collision between two spheres. The "local" centroid is
-used for this test. Spheres must therefore be in the same "local" coordinate
-system
-*/
-bool s2_ellipsoid_collisionLocal(s2_ellipsoid_t* a, s2_ellipsoid_t* b) {
-  (void)a;
-  (void)b;
-  // s2_vector_t d;
-  // s2_subtract_vv(&a->centerLocal, &b->centerLocal, &d);
-  // double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
-  // double radiusSum = a->radius + b->radius;
-  // return dist2 < radiusSum * radiusSum;
-  return true;
-}
-
-/*!
-@brief update sphere's global centroid
-*/
-void s2_ellipsoid_updateCentroid(s2_ellipsoid_t* self) {
-  if(!self->parentBody) {
-    return;
-  }
-
-  /* transform centroid coordinates to global reference frame */
-  s2_product_dd(self->parentBody->origin->dAbsolute, &self->dWRTOrigin,
-                &self->dAbsolute);
-}
-
-/*!
-@brief create a new sphere from existing sphere and point p. The sphere s is
-updated (if needed) to just encompass the new point p
-*/
-void s2_ellipsoid_fromEllipsoidAndPoint(s2_ellipsoid_t* e, s2_vector_t* p) {
-  s2_vector_t d;
-  s2_subtract_vv(p, &e->dWRTOrigin.T, &d);
-  // double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
-  // if(dist2 > s->radius * s->radius) {
-  //   double dist = sqrt(dist2);
-  //   double newRadius = (s->radius + dist) * 0.5;
-  //   double k = (newRadius - s->radius) / dist;
-  //   s->radius = newRadius;
-  //   s2_axpy_vv(k, &d, &s->centerLocal);
-  // }
-}
-
-/*!
-Find a bounding sphere for a set of M points in
+This function finds a bounding sphere for a set of M points in
 3-dimensional space using Ritter's algorithm. In 3D, the resulting sphere
 is approximately 5% bigger than the optimal minimum radius sphere.
 
@@ -222,7 +167,8 @@ REFERENCES:
 [1] Ritter, J. (1990), 'An efficient bounding sphere', in Graphics Gems,
     A. Glassner, Ed. Academic Press, pp.301303
 */
-int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
+int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
+                 s2_collisionobject_t* collisionObject) {
 
   if(body->materialIndex != -1) {
 
@@ -230,7 +176,7 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
 
     /* generate temporary convex hull */
     s2_convexhull_t* convexhull = s2_convexhull_alloc(1);
-    s2_convexhull(convexhull, context, body);
+    s2_convexhull(convexhull, context, body, collisionObject);
 
     /* degenerate case with one vertex */
     if(convexhull->vertexCount == 1) {
@@ -238,23 +184,24 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
       self->b = 0;
       self->c = 0;
 
-      self->dWRTOrigin.T =
+      collisionObject->dWRTReference.T =
         s2_pca_vectorFromFloatArrayAtIndex(convexhull->vertices, 0);
       return 0;
     }
 
     s2_ellipsoid_eigenSphere(self, convexhull->vertices,
-                             convexhull->vertexCount);
+                             convexhull->vertexCount, collisionObject);
 
-    /* test if all points in bounding eigen sphere
+    /* test if all points in bounding ellipsoid
     If all points inside sphere, we are done.
-    Otherwise, enlarge bounding sphere to cover point outside of initial sphere
-  */
-    for(uint i = 1; i < convexhull->vertexCount; i++) {
-      s2_vector_t p =
-        s2_pca_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
-      s2_ellipsoid_fromEllipsoidAndPoint(self, &p);
-    }
+    Otherwise, enlarge bounding ellipsoid to cover point outside of initial
+    sphere
+    */
+    // for(uint i = 1; i < convexhull->vertexCount; i++) {
+    //   s2_vector_t p =
+    //     s2_pca_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
+    //   s2_ellipsoid_fromEllipsoidAndPoint(self, &p);
+    // }
 
     s2_convexhull_free(convexhull);
     return 0;
@@ -264,12 +211,15 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body) {
 
 /*!
 @brief simple sphere support function
+@TODO this function currently is a stub and does nothing. It needs to be
+populated to return the correct extreme vertex.
 */
-s2_vector_t s2_ellipsoid_support(void* collisionobject,
-                                 s2_vector_t* direction) {
+s2_vector_t s2_ellipsoid_support(void* collisionobject, s2_vector_t* direction,
+                                 s2_collisionobject_history_t* history) {
 
   (void)collisionobject;
   (void)direction;
+  (void)history;
   // s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)collisionobject;
   // s2_vector_normalize(direction);
   // s2_vector_t temp;

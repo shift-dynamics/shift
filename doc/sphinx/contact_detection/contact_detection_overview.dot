@@ -10,7 +10,7 @@ digraph g {
   subgraph cluster_1 {
     label="Level 2";
     labeljust=right;
-    s2_supportmapping_t;
+    s2_simplex_t;
   }
 
   subgraph cluster_2 {
@@ -21,6 +21,6 @@ digraph g {
     s2_collisionobject_t -> s2_convexhull_t [label="s2_convexhull_support()"];
   }
 
-  s2_context_t -> s2_supportmapping_t [label=" s2_context_contactDetection()\n s2_supportmapping_support()"];
-  s2_supportmapping_t -> s2_collisionobject_t [label=" s2_collisionobject_support()"];
+  s2_context_t -> s2_simplex_t [label=" s2_context_contactDetection()\n s2_simplex_support()"];
+  s2_simplex_t -> s2_collisionobject_t [label=" s2_collisionobject_support()"];
 }

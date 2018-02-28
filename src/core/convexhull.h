@@ -40,7 +40,8 @@ typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_context_t s2_context_t;
-
+typedef struct s2_collisionobject_t s2_collisionobject_t;
+typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
 /*!
 @brief convex hull data structure contains vertices and faces in contiguous
 blocks of memory
@@ -60,10 +61,12 @@ void s2_convexhull_init(s2_convexhull_t*);
 
 void s2_convexhull_free(s2_convexhull_t*);
 
-int s2_convexhull(s2_convexhull_t*, s2_context_t*, s2_body_t*);
+int s2_convexhull(s2_convexhull_t*, s2_context_t*, s2_body_t*,
+                  s2_collisionobject_t*);
 
 s2_convexhull_t* s2_convexhull_qhull(s2_body_t*);
 
-s2_vector_t s2_convexhull_basicSupport(void*, s2_vector_t*);
+s2_vector_t s2_convexhull_basicSupport(void*, s2_vector_t*,
+                                       s2_collisionobject_history_t*);
 
 #endif

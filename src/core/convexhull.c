@@ -28,6 +28,7 @@ SUCH DAMAGE.
 #include "collisionobject.h"
 #include "context.h"
 #include "convexhull.h"
+#include "frame.h"
 #include "material.h"
 
 /*!
@@ -224,8 +225,12 @@ Currently, only one convex hull is generated to encompass body using the qhull
 algorithm. Later, this could be modified to fit a number of conformal convex
 hulls with adjustable level of detail using the v-hacd algorithm or similar.
 */
-int s2_convexhull(s2_convexhull_t* self, s2_context_t* context,
-                  s2_body_t* body) {
+int s2_convexhull(s2_convexhull_t* self, s2_context_t* context, s2_body_t* body,
+                  s2_collisionobject_t* collisionObject) {
+
+  collisionObject->referenceFrame = body->origin->dAbsolute;
+  s2_displacement_setIdentity(&collisionObject->dAbsolute);
+  s2_displacement_setIdentity(&collisionObject->dWRTReference);
 
   QHULL_LIB_CHECK
   int exitcode = 0; /* 0 if no error from qhull */
@@ -376,7 +381,12 @@ projection along supplied axis. later to be replaced by dobkin-kirkpatrick
 hierarchy or hash table methods
 */
 s2_vector_t s2_convexhull_basicSupport(void* collisionobject,
-                                       s2_vector_t* direction) {
+                                       s2_vector_t* direction,
+                                       s2_collisionobject_history_t* history) {
+
+  /* @TODO use historical information from a previous call to gjk to start
+  search at new location */
+  (void)history;
 
   s2_convexhull_t* convexhull = (s2_convexhull_t*)collisionobject;
   float max_projection = -FLT_MAX;
