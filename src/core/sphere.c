@@ -35,6 +35,7 @@ SUCH DAMAGE.
 
 #include "assembly.h"
 #include "body.h"
+#include "collisionobject.h"
 #include "context.h"
 #include "convexhull.h"
 #include "frame.h"
@@ -52,10 +53,6 @@ void s2_sphere_approximateMinBoundSphere(s2_body_t*);
 */
 s2_sphere_t* s2_sphere_alloc(int count) {
   s2_sphere_t* self = calloc(count, sizeof(s2_sphere_t));
-  for(int i = 0; i < count; i++) {
-    self[i].parentBody = NULL;
-  }
-  self[0].malloced = true;
   return self;
 }
 
@@ -63,15 +60,13 @@ s2_sphere_t* s2_sphere_alloc(int count) {
 @brief destructor for sphere geometry
 */
 void s2_sphere_free(s2_sphere_t* self) {
-  if(self->malloced) {
-    free(self);
-    self = NULL;
-  }
+  free(self);
 }
 
 void s2_sphere_eigenSphere(s2_sphere_t* restrict s,
                            const float* restrict vertices,
-                           const int vertexCount) {
+                           const int vertexCount,
+                           s2_collisionobject_t* collisionObject) {
 
   /* compute single prevision covariance matrix */
   s2_mat3x3f_t Mf = s2_pca_covariancef(vertices, vertexCount);
@@ -117,64 +112,28 @@ void s2_sphere_eigenSphere(s2_sphere_t* restrict s,
   dist += temp.z * temp.z;
   dist = sqrt(dist);
   s->radius = dist * 0.5;
-  s->centerLocal.x = (min_vertex.x + max_vertex.x) * 0.5;
-  s->centerLocal.y = (min_vertex.y + max_vertex.y) * 0.5;
-  s->centerLocal.z = (min_vertex.z + max_vertex.z) * 0.5;
+
+  collisionObject->dWRTReference.T.x = (min_vertex.x + max_vertex.x) * 0.5;
+  collisionObject->dWRTReference.T.y = (min_vertex.y + max_vertex.y) * 0.5;
+  collisionObject->dWRTReference.T.z = (min_vertex.z + max_vertex.z) * 0.5;
 }
-
-// /*!
-// @brief test for global collision between two spheres, requires that global
-// centroid has been updated
-// */
-// bool s2_sphere_collisionGlobal(s2_sphere_t* a, s2_sphere_t* b) {
-//   s2_vector_t d;
-//   s2_subtract_vv(&a->centerGlobal, &b->centerGlobal, &d);
-//   double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
-//   double radiusSum = a->radius + b->radius;
-//   return dist2 < radiusSum * radiusSum;
-// }
-
-/*!
-@brief test for local collision between two spheres. The "local" centroid is
-used for this test. Spheres must therefore be in the same "local" coordinate
-system
-*/
-bool s2_sphere_collisionLocal(s2_sphere_t* a, s2_sphere_t* b) {
-  s2_vector_t d;
-  s2_subtract_vv(&a->centerLocal, &b->centerLocal, &d);
-  double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
-  double radiusSum = a->radius + b->radius;
-  return dist2 < radiusSum * radiusSum;
-}
-
-// /*!
-// @brief update sphere's global centroid
-// */
-// void s2_sphere_updateCentroid(s2_sphere_t* s) {
-//   if(!s->parentBody) {
-//     return;
-//   }
-//
-//   /* transform centroid coordinates to global reference frame */
-//   s2_product_dv(
-//     s->parentBody->origin->dAbsolute, &s->centerLocal, &s->centerGlobal);
-//
-// }
 
 /*!
 @brief create a new sphere from existing sphere and point p. The sphere s is
 updated (if needed) to just encompass the new point p
 */
-void s2_sphere_fromSphereAndPoint(s2_sphere_t* s, s2_vector_t* p) {
+void s2_sphere_fromSphereAndPoint(s2_sphere_t* s, s2_vector_t* p,
+                                  s2_collisionobject_t* collisionObject) {
   s2_vector_t d;
-  s2_subtract_vv(p, &s->centerLocal, &d);
+
+  s2_subtract_vv(p, &collisionObject->dWRTReference.T, &d);
   double dist2 = d.x * d.x + d.y * d.y + d.z * d.z;
   if(dist2 > s->radius * s->radius) {
     double dist = sqrt(dist2);
     double newRadius = (s->radius + dist) * 0.5;
     double k = (newRadius - s->radius) / dist;
     s->radius = newRadius;
-    s2_axpy_vv(k, &d, &s->centerLocal);
+    s2_axpy_vv(k, &d, &collisionObject->dWRTReference.T);
   }
 }
 
@@ -190,7 +149,8 @@ REFERENCES:
 [1] Ritter, J. (1990), 'An efficient bounding sphere', in Graphics Gems,
     A. Glassner, Ed. Academic Press, pp.301303
 */
-int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body) {
+int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
+              s2_collisionobject_t* collisionObject) {
 
   if(body->materialIndex != -1) {
 
@@ -198,26 +158,27 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body) {
 
     /* generate temporary convex hull */
     s2_convexhull_t* convexhull = s2_convexhull_alloc(1);
-    s2_convexhull(convexhull, context, body);
+    s2_convexhull(convexhull, context, body, collisionObject);
 
     /* degenerate case with one vertex */
     if(convexhull->vertexCount == 1) {
       self->radius = 0;
-      self->centerLocal =
+      collisionObject->dWRTReference.T =
         s2_pca_vectorFromFloatArrayAtIndex(convexhull->vertices, 0);
       return 0;
     }
 
-    s2_sphere_eigenSphere(self, convexhull->vertices, convexhull->vertexCount);
+    s2_sphere_eigenSphere(self, convexhull->vertices, convexhull->vertexCount,
+                          collisionObject);
 
     /* test if all points in bounding eigen sphere
     If all points inside sphere, we are done.
     Otherwise, enlarge bounding sphere to cover point outside of initial sphere
-  */
+    */
     for(uint i = 1; i < convexhull->vertexCount; i++) {
       s2_vector_t p =
         s2_pca_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
-      s2_sphere_fromSphereAndPoint(self, &p);
+      s2_sphere_fromSphereAndPoint(self, &p, collisionObject);
     }
 
     s2_convexhull_free(convexhull);
@@ -229,11 +190,13 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body) {
 /*!
 @brief simple sphere support function
 */
-s2_vector_t s2_sphere_support(void* collisionobject, s2_vector_t* direction) {
+s2_vector_t s2_sphere_support(void* collisionobject, s2_vector_t* direction,
+                              s2_collisionobject_history_t* history) {
 
   /* use of collision object is not implemented yet */
   (void)collisionobject;
   (void)direction;
+  (void)history;
 
   // s2_sphere_t* sphere = (s2_sphere_t*)collisionobject;
   // s2_vector_normalize(direction);

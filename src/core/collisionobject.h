@@ -43,19 +43,45 @@ typedef enum {
 } s2_collisionobject_enum_t;
 
 /*!
+@brief cached information for support mapping queries
+*/
+typedef struct s2_collisionobject_history_t {
+
+  int extremeVertexIndex;    /*!< index of extreme vertex */
+  s2_vector_t extremeVertex; /*!< extreme vertex */
+
+} s2_collisionobject_history_t;
+
+/*!
 @brief generic interface to convex collision geometry
 */
 typedef struct s2_collisionobject_t {
+  bool displacementUpdated; /*!< flag to indicate whether displacement
+                               submatrices need to be updated */
   s2_displacement_t
     dAbsolute; /*!< absolute displacement of collision geometry */
-  s2_collisionobject_enum_t type; /*!< collision object type */
-  void* object;
-  s2_vector_t (*support)(void*, s2_vector_t*); /*!< support function pointer */
-  float color[3];
-  int index;
+  s2_displacement_t dWRTReference; /*!< relative displacement of collision
+                                       geometry with respect to reference
+                                       frame */
+  s2_displacement_t* referenceFrame;
+  void* object; /*!< void pointer to collision geometry, which contains
+                   underlying convex geometry used by s2_collisionobject_support
+                   functions */
+  s2_vector_t (*support)(
+    void*, s2_vector_t*,
+    s2_collisionobject_history_t*); /*!< function pointer to primitive support
+                                       function*/
+
+  int index; /*! unique index of collision geometry, currently not used */
+  s2_collisionobject_enum_t type; /*!< collision object type, used to set up
+                                     s2_collisionobject_t and for debugging
+                                     purposes, generally not necessary to check
+                                     at run-time */
+  float color[3]; /*!< color of collision geometry, for display in GUI only */
 } s2_collisionobject_t;
 
-s2_vector_t s2_collisionobject_support(s2_collisionobject_t*, s2_vector_t*);
+s2_vector_t s2_collisionobject_support(s2_collisionobject_t*, s2_vector_t*,
+                                       s2_collisionobject_history_t*);
 
 s2_collisionobject_t* s2_collisionobject_alloc(int count);
 

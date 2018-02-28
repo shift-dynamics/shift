@@ -6,7 +6,7 @@ Level 1:  Top level contact detection module
 
 Current status:
 *****************
-No code / code stubs written yet.
+Code stubs written in contact.c for `s2_context_sweepAndPrune()` and `s2_context_contactDetection()`
 
 
 Functions detailed in:
@@ -23,40 +23,39 @@ Level 1 sets up and deploys all contact detection events including:
 
 * Provides mechanism for collision events to go in and out of scope (code stub in **contact.c:s2_context_sweepAndPrune**).
 
-* Setup (in preprocessing step) and step through (at runtime) source / destination pointers to evaluate contacts. Code stubs have been written in  **contact.c:s2_context_contactDetection**. The source and destination pointers are stored in a doubly linked list of :code:`s2_supportmapping_t` datastructures, accessible through :code:`context->supportmappingHead` and :code:`supportmappingTail`. Refer to the comments in :code:`s2_context_contactDetection` to see how these would be called.
+* Setup (in preprocessing step) and step through (at runtime) source / destination pointers to evaluate contacts. Code stubs have been written in  **contact.c:s2_context_contactDetection**. The source and destination pointers are stored in a doubly linked list of :code:`s2_simplex_t` datastructures, accessible through :code:`context->simplexHead` and :code:`simplexTail`. Refer to the comments in :code:`s2_context_contactDetection` to see how these would be called.
 
 * Handle contacts as appropriate (feed back forces into simulation or flag gui program to stop NR) or simply print to stdout. No code has been written yet for this step.
 
-Level 1 code interfaces with Level 2 code for each :code:`s2_supportmapping_t` data structure by calling::
+Level 1 code interfaces with Level 2 code for each :code:`s2_simplex_t` data structure by calling::
 
-    s2_supportmapping_t* supportmapping;
-    s2_supportmapping_support(supportmapping);
+    s2_simplex_t* simplex;
+    s2_simplex_support(simplex);
 
-If collision has occured, it will be stored as :code:`true` in the :code:`collision` field of the :code:`s2_supportmapping_t` datastructure (otherwise :code:`false`) and is available for use by other force modules.
+If collision has occured, it will be stored as :code:`true` in the :code:`collision` field of the :code:`s2_simplex_t` datastructure (otherwise :code:`false`) and is available for use by other force modules.
 
 Contact detection is performed before all other force modules.
 
 
-
-Level 2: Support mapping functions for Minkowski Differences
-----------------------------------------------------------------------
+Level 2: Minkowski difference support mapping functions
+---------------------------------------------------------
 
 Current status:
 *****************
-Code stubs have been written in **supportmapping.c/.h**. A support mapping data structure has been defined in :code:`s2_supportmapping_t`; information that should be cached between subsequent calls to the function should be added to the :code:`s2_supportmapping_t` struct as appropriate.
+Code stubs have been written in **simplex.c/.h**. A support mapping data structure has been defined in :code:`s2_simplex_t`; information that should be cached between subsequent calls to the function should be added to the :code:`s2_simplex_t` struct as appropriate.
 
 Functions detailed in:
 ***********************
-* **src/core/supportmapping.c/.h**
+* **src/core/simplex.c/.h**
 * **src/core/gjk.c/.h**
 
 Description:
 ***************
 Level 2 handles events between two convex objects.
 
-**supportmapping.c/.h** provides support mapping functions for two convex objects and contains a struct with data that is cached for a pair of collision objects. Will contain a pointer to two :code:`s2_collisionobject_t` data structures (see below).
+**simplex.c/.h** provides support mapping functions for two convex objects and contains a struct with data that is cached for a pair of collision objects. Will contain a pointer to two :code:`s2_collisionobject_t` data structures (see below).
 
-**gjk.c/.h** contains the core gjk algorithm and calls support mapping functions defined in **supportmapping.c** and stored in :code:`s2_supportmapping_t` and extreme vertex support mapping function pointers set in :code:`s2_collisionobject_t`
+**gjk.c/.h** contains the core gjk algorithm and calls support mapping functions defined in **simplex.c** and stored in :code:`s2_simplex_t` and extreme vertex support mapping function pointers set in :code:`s2_collisionobject_t`
 
 Level 2 code interfaces with Level 3 code by calling::
 
@@ -64,7 +63,7 @@ Level 2 code interfaces with Level 3 code by calling::
     s2_vector_t* searchVector;
     s2_vector_t* extremeVertex = s2_collisionobject_support(collisionobject, searchVector);
 
-Look in **supportmapping.c** for additional examples.
+Look in **simplex.c** for additional examples.
 
 
 
