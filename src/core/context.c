@@ -2,8 +2,8 @@
 @file
 @author Kristopher Wehage
 @brief Utilities to initialize and free a Context datastructure.
-@date 2016
-@copyright Kristopher Wehage 2016
+@date 2018
+@copyright Kristopher Wehage 2018
 
 This function library is used to initialize and free memory for
 data structures defined in context.h
@@ -519,7 +519,6 @@ s2_context_t* s2_context() {
 @brief used to set omegaN for baumgarte constraint stabilization
 */
 void s2_context_setOmegaN(s2_context_t* self, double omegaN) {
-
   self->modelParameters.baumgarteOmegaN = omegaN;
   self->modelParameters.baumgarte2OmegaN = 2 * omegaN;
   self->modelParameters.baumgarteOmegaN2 = omegaN * omegaN;
@@ -530,7 +529,6 @@ void s2_context_setOmegaN(s2_context_t* self, double omegaN) {
 @param context a Context datastructure
 */
 void s2_context_print(FILE* f, s2_context_t* context) {
-
   fprintf(f, "\nModel Parameters:\n");
   fprintf(f, "\ts2_version: %s\n", context->modelParameters.version);
   fprintf(f, "\tgravity: ");
@@ -556,7 +554,6 @@ Joint datastructures
 @param context a Context datastructure
 */
 void s2_context_freeH(s2_context_t* self) {
-
   if(self->h) {
     for(int i = 0; i < self->activeJointCount; i++) {
       s2_joint_t* joint = self->jointPointers[i];
@@ -788,7 +785,6 @@ void s2_clearIndices(s2_assembly_t* assembly) {
   @brief free data related to substructures
 */
 void s2_context_freeSubstructures(s2_context_t* context) {
-
   for(int i = 0; i < context->substructureCount; i++) {
     s2_substructure_t* substructure = context->substructures + i;
     s2_arrayi_free(substructure->pc_12);

@@ -158,7 +158,7 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
 
     /* generate temporary convex hull */
     s2_convexhull_t* convexhull = s2_convexhull_alloc(1);
-    s2_convexhull(convexhull, context, body, collisionObject);
+    s2_convexhull(convexhull, context, body);
 
     /* degenerate case with one vertex */
     if(convexhull->vertexCount == 1) {
