@@ -60,10 +60,12 @@ typedef struct s2_collisionobject_t {
                                submatrices need to be updated */
   s2_displacement_t
     dAbsolute; /*!< absolute displacement of collision geometry */
-  s2_displacement_t dWRTReference; /*!< relative displacement of collision
-                                       geometry with respect to reference
-                                       frame */
-  s2_displacement_t* referenceFrame;
+  s2_displacement_t dWRTReference;   /*!< relative displacement of collision
+                                         geometry with respect to reference
+                                         frame */
+  s2_displacement_t* referenceFrame; /*! pointer to absolute displacement of
+    collision object's reference frame, typically the body reference frame or
+    the body origin */
   void* object; /*!< void pointer to collision geometry, which contains
                    underlying convex geometry used by s2_collisionobject_support
                    functions */
@@ -71,12 +73,12 @@ typedef struct s2_collisionobject_t {
     void*, s2_vector_t*,
     s2_collisionobject_history_t*); /*!< function pointer to primitive support
                                        function*/
-
   int index; /*! unique index of collision geometry, currently not used */
-  s2_collisionobject_enum_t type; /*!< collision object type, used to set up
-                                     s2_collisionobject_t and for debugging
-                                     purposes, generally not necessary to check
-                                     at run-time */
+  s2_collisionobject_enum_t type; /*!< collision object type, used for initial
+                                     set up of a s2_collisionobject_t
+                                     datstructure and for debugging
+                                     purposes, generally it would not be
+                                     necessary to check this enum at run-time */
   float color[3]; /*!< color of collision geometry, for display in GUI only */
 } s2_collisionobject_t;
 

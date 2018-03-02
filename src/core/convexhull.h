@@ -42,6 +42,7 @@ typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_collisionobject_t s2_collisionobject_t;
 typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
+
 /*!
 @brief convex hull data structure contains vertices and faces in contiguous
 blocks of memory
@@ -53,6 +54,7 @@ typedef struct s2_convexhull_t {
   uint faceCount;    /*!< number of faces */
   bool malloced;     /*!< indicates whether the data structure was malloced and
       needs to be freed, false if convexhull is part of another structure */
+  int index;         /*! unique index / id of convex hull */
 } s2_convexhull_t;
 
 s2_convexhull_t* s2_convexhull_alloc(int);
@@ -61,8 +63,7 @@ void s2_convexhull_init(s2_convexhull_t*);
 
 void s2_convexhull_free(s2_convexhull_t*);
 
-int s2_convexhull(s2_convexhull_t*, s2_context_t*, s2_body_t*,
-                  s2_collisionobject_t*);
+int s2_convexhull(s2_convexhull_t*, s2_context_t*, s2_body_t*);
 
 s2_convexhull_t* s2_convexhull_qhull(s2_body_t*);
 
