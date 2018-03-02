@@ -225,12 +225,8 @@ Currently, only one convex hull is generated to encompass body using the qhull
 algorithm. Later, this could be modified to fit a number of conformal convex
 hulls with adjustable level of detail using the v-hacd algorithm or similar.
 */
-int s2_convexhull(s2_convexhull_t* self, s2_context_t* context, s2_body_t* body,
-                  s2_collisionobject_t* collisionObject) {
-
-  collisionObject->referenceFrame = body->origin->dAbsolute;
-  s2_displacement_setIdentity(&collisionObject->dAbsolute);
-  s2_displacement_setIdentity(&collisionObject->dWRTReference);
+int s2_convexhull(s2_convexhull_t* self, s2_context_t* context,
+                  s2_body_t* body) {
 
   QHULL_LIB_CHECK
   int exitcode = 0; /* 0 if no error from qhull */
@@ -262,9 +258,14 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context, s2_body_t* body,
     exitcode = qh_new_qhull(&qh, 3, totalVertexCount, vertices, true,
                             "qhull s Qt", stdout, stderr);
 
-    // if(!exitcode) {
-    //   print_summary(&qh);
-    // }
+    if(exitcode) {
+      fprintf(stderr, "something went wrong in qhull, exitcode: %d\n",
+              exitcode);
+    } else {
+#if _SHIFT_VERBOSE
+      print_summary(&qh);
+#endif
+    }
     s2_convexhull_init(self);
     load_data(self, &qh);
 
@@ -323,9 +324,10 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context, s2_body_t* body,
 //     double* vertices = calloc(3 * totalVertexCount, sizeof(double));
 //
 //     for(size_t i = 0; i < totalVertexCount; i++) {
-//       vertices[i * 3 + 0] = (double)(body->materials[0].vertices[i * 3 + 0]);
-//       vertices[i * 3 + 1] = (double)(body->materials[0].vertices[i * 3 + 1]);
-//       vertices[i * 3 + 2] = (double)(body->materials[0].vertices[i * 3 + 2]);
+//       vertices[i * 3 + 0] = (double)(body->materials[0].vertices[i * 3 +
+//       0]); vertices[i * 3 + 1] = (double)(body->materials[0].vertices[i * 3
+//       + 1]); vertices[i * 3 + 2] = (double)(body->materials[0].vertices[i *
+//       3 + 2]);
 //     }
 //
 //     qhT qh;
@@ -359,8 +361,8 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context, s2_body_t* body,
 //     // printf("freed qh short memory\n");
 //
 //     if(curlong || totlong) {
-//       fprintf(errfile, "qhull internal warning: did not free %d bytes of long
-//       memory (%d pieces)\n", totlong, curlong);
+//       fprintf(errfile, "qhull internal warning: did not free %d bytes of
+//       long memory (%d pieces)\n", totlong, curlong);
 //     }
 //     // printf("freed qh data\n");
 //     // free(vertices);

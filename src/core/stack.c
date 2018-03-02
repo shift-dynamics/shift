@@ -58,7 +58,7 @@ void s2_stack_push(s2_stack_t* stack, int value) {
   stackNode->value = value;
   stackNode->next = NULL;
 
-  if (!stack->head) {
+  if(!stack->head) {
     stack->head = stackNode;
     stack->tail = stackNode;
   } else {
@@ -77,7 +77,7 @@ void s2_stackstr_push(s2_stackstr_t* stack, const char* value) {
   stackNode->value = strdup(value);
   stackNode->next = NULL;
 
-  if (!stack->head) {
+  if(!stack->head) {
     stack->head = stackNode;
     stack->tail = stackNode;
   } else {
@@ -95,7 +95,7 @@ void s2_stack_append(s2_stack_t* stack, int value) {
   s2_stacknode_t* stackNode = malloc(sizeof(s2_stacknode_t));
   stackNode->value = value;
   stackNode->next = NULL;
-  if (!stack->head) {
+  if(!stack->head) {
     stack->head = stackNode;
     stack->tail = stackNode;
   } else {
@@ -113,7 +113,7 @@ void s2_stackstr_append(s2_stackstr_t* stack, const char* value) {
   s2_stackstrnode_t* stackNode = malloc(sizeof(s2_stackstrnode_t));
   stackNode->value = strdup(value);
   stackNode->next = NULL;
-  if (!stack->head) {
+  if(!stack->head) {
     stack->head = stackNode;
     stack->tail = stackNode;
   } else {
@@ -136,13 +136,13 @@ s2_stackstr_t* s2_stackstr_fromString(const char* value) {
 */
 int s2_stack_pop(s2_stack_t* stack) {
 
-  if (!stack->head) {
+  if(!stack->head) {
     return -2;
   }
   stack->count--;
 
   int value = stack->head->value;
-  if (stack->head->next) {
+  if(stack->head->next) {
     s2_stacknode_t* head = stack->head->next;
     free(stack->head);
     stack->head = head;
@@ -163,14 +163,14 @@ int s2_stack_remove(s2_stack_t* stack, s2_stacknode_t* node) {
   bool nodeFound = false;
   s2_stacknode_t* head = stack->head;
   s2_stacknode_t* prev = NULL;
-  while (head) {
-    if (head == node) {
-      if (prev) {
+  while(head) {
+    if(head == node) {
+      if(prev) {
         prev->next = head->next;
       } else {
         stack->head = head->next;
       }
-      if (!head->next) {
+      if(!head->next) {
         stack->tail = prev;
       }
       free(node);
@@ -180,7 +180,7 @@ int s2_stack_remove(s2_stack_t* stack, s2_stacknode_t* node) {
     prev = head;
     head = head->next;
   }
-  if (!nodeFound) {
+  if(!nodeFound) {
     return -1;
   } else {
     stack->count--;
@@ -193,13 +193,13 @@ int s2_stack_remove(s2_stack_t* stack, s2_stacknode_t* node) {
 */
 const char* s2_stackstr_pop(s2_stackstr_t* stack) {
 
-  if (!stack->head) {
+  if(!stack->head) {
     return NULL;
   }
   stack->count--;
 
   const char* value = stack->head->value;
-  if (stack->head->next) {
+  if(stack->head->next) {
     s2_stackstrnode_t* head = stack->head->next;
     free(stack->head);
     stack->head = head;
@@ -217,7 +217,7 @@ const char* s2_stackstr_pop(s2_stackstr_t* stack) {
 void s2_stack_print(FILE* f, s2_stack_t* stack) {
 
   s2_stacknode_t* head = stack->head;
-  while (head) {
+  while(head) {
     fprintf(f, "%d ", head->value);
     head = head->next;
   }
@@ -228,15 +228,15 @@ void s2_stack_print(FILE* f, s2_stack_t* stack) {
 */
 void s2_stackstr_print(FILE* f, s2_stackstr_t* stack) {
 
-  if (stack) {
+  if(stack) {
     s2_stackstrnode_t* head = stack->head;
     fprintf(f, "[");
-    while (head) {
-      if (head->value) {
+    while(head) {
+      if(head->value) {
         fprintf(f, "\"%s\"", head->value);
       }
       head = head->next;
-      if (head) {
+      if(head) {
         fprintf(f, ", ");
       }
     }
@@ -253,10 +253,10 @@ void s2_stackstr_print(FILE* f, s2_stackstr_t* stack) {
 */
 bool s2_stack_in(s2_stack_t* stack, int value) {
 
-  if (stack) {
+  if(stack) {
     s2_stacknode_t* head = stack->head;
-    while (head) {
-      if (value == head->value) {
+    while(head) {
+      if(value == head->value) {
         return true;
       }
       head = head->next;
@@ -272,10 +272,10 @@ bool s2_stack_in(s2_stack_t* stack, int value) {
 */
 bool s2_stackstr_in(s2_stackstr_t* stack, const char* value) {
 
-  if (stack) {
+  if(stack) {
     s2_stackstrnode_t* head = stack->head;
-    while (head) {
-      if (!strcmp(value, head->value)) {
+    while(head) {
+      if(!strcmp(value, head->value)) {
         return true;
       }
       head = head->next;
@@ -293,9 +293,9 @@ void s2_stack_merge(s2_stack_t* stack1, s2_stack_t* stack2) {
   stack1->mergeCount++;
   // printf("merging %d %d\n", stack1->count, stack2->count);
   int value = s2_stack_pop(stack2);
-  while (value != -2) {
+  while(value != -2) {
     // printf("value: %d ", value);
-    if (!s2_stack_in(stack1, value)) {
+    if(!s2_stack_in(stack1, value)) {
       s2_stack_append(stack1, value);
     }
     value = s2_stack_pop(stack2);
@@ -312,9 +312,9 @@ void s2_stackstr_merge(s2_stackstr_t* stack1, s2_stackstr_t* stack2) {
 
   // printf("merging %d %d\n", stack1->count, stack2->count);
   const char* value = s2_stackstr_pop(stack2);
-  while (value) {
+  while(value) {
     // printf("value: %d ", value);
-    if (!s2_stackstr_in(stack1, value)) {
+    if(!s2_stackstr_in(stack1, value)) {
       s2_stackstr_append(stack1, value);
     }
     value = s2_stackstr_pop(stack2);
@@ -328,11 +328,11 @@ void s2_stackstr_merge(s2_stackstr_t* stack1, s2_stackstr_t* stack2) {
 */
 int* s2_stack_toArray(s2_stack_t* stack) {
 
-  if (stack->count > 0) {
+  if(stack->count > 0) {
     int* returnValue = malloc(stack->count * sizeof(int));
     int value = s2_stack_pop(stack);
     int i = 0;
-    while (value != -2) {
+    while(value != -2) {
       returnValue[i++] = value;
       value = s2_stack_pop(stack);
     }
@@ -349,7 +349,7 @@ int* s2_stack_toArray(s2_stack_t* stack) {
 void s2_stack_free(s2_stack_t* stack) {
 
   s2_stacknode_t* head = stack->head;
-  while (head) {
+  while(head) {
     s2_stacknode_t* next = head->next;
     free(head);
     head = next;
@@ -363,7 +363,7 @@ void s2_stack_free(s2_stack_t* stack) {
 void s2_stackstr_free(s2_stackstr_t* stack) {
 
   s2_stackstrnode_t* head = stack->head;
-  while (head) {
+  while(head) {
     s2_stackstrnode_t* next = head->next;
     free(head->value);
     free(head);
@@ -380,15 +380,15 @@ bool s2_stackstr_isEqual(s2_stackstr_t* stack1, s2_stackstr_t* stack2) {
   s2_stackstrnode_t* head1 = stack1->head;
   s2_stackstrnode_t* head2 = stack2->head;
 
-  while (head1 && head2) {
-    if (strcmp(head1->value, head2->value)) {
+  while(head1 && head2) {
+    if(strcmp(head1->value, head2->value)) {
       return false;
     }
     head1 = head1->next;
     head2 = head2->next;
   }
 
-  if (head1 == head2) {
+  if(head1 == head2) {
     return true;
   } else {
     return false;
@@ -402,7 +402,7 @@ s2_stackstr_t* s2_stackstr_copy(s2_stackstr_t* stack1) {
 
   s2_stackstr_t* stack2 = s2_stackstr();
   s2_stackstrnode_t* head1 = stack1->head;
-  while (head1) {
+  while(head1) {
     s2_stackstr_append(stack2, head1->value);
     head1 = head1->next;
   }
@@ -410,7 +410,7 @@ s2_stackstr_t* s2_stackstr_copy(s2_stackstr_t* stack1) {
 }
 
 /*!
-@brief get s2_stackstr_t root/base name
+@brief get s2_stackstr_t root / base name
 */
 char* s2_stackstr_getRoot(s2_stackstr_t* stack) {
 
@@ -424,8 +424,8 @@ char* s2_stackstr_toStr(s2_stackstr_t* stack) {
 
   int charCount = 1;
   s2_stackstrnode_t* head = stack->head;
-  while (head) {
-    if (head->value) {
+  while(head) {
+    if(head->value) {
       charCount += strlen(head->value) + 4;
     }
     head = head->next;
@@ -434,11 +434,11 @@ char* s2_stackstr_toStr(s2_stackstr_t* stack) {
   strcpy(returnVal, "");
   strcat(returnVal, "[");
   head = stack->head;
-  while (head) {
+  while(head) {
     strcat(returnVal, "\"");
     strcat(returnVal, head->value);
     strcat(returnVal, "\"");
-    if (head->next) {
+    if(head->next) {
       strcat(returnVal, ", ");
     }
     head = head->next;
@@ -448,7 +448,7 @@ char* s2_stackstr_toStr(s2_stackstr_t* stack) {
 }
 
 /*
-@brief return the root name of a s2_stack_StackStr datastructure
+@brief return the root name of a s2_stackstr_t datastructure
 */
 char* s2_getRootName(s2_stackstr_t* stack) {
 

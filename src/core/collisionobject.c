@@ -109,13 +109,16 @@ void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
   s2_collisionobject_t* collisionObject = &body->collisionObjects[0];
   collisionObject->type = S2_COLLISIONOBJECT_CONVEXHULL;
   collisionObject->support = s2_convexhull_basicSupport;
+  collisionObject->referenceFrame = body->origin->dAbsolute;
   s2_displacement_setIdentity(&collisionObject->dAbsolute);
+  s2_displacement_setIdentity(&collisionObject->dWRTReference);
+  collisionObject->index = context->collisionObjectCount++;
 
+  printf("loading collision object at index %d\n", collisionObject->index);
+  s2_convexhull_t* convexhull = NULL;
   if(!body->collisionGeometryInstanceOf) {
     /* if collision geometry is not an instance, allocate memory for a new
-    convex hull and push it onto list of convexhull objects
-    @TODO generalize this setup so you can mix different collision objects */
-    collisionObject->index = context->collisionObjectCount++;
+    convex hull and append it to array of convexhull objects */
     context->convexhullCount++;
     if(!context->convexhulls) {
       context->convexhulls = malloc(sizeof(s2_convexhull_t));
@@ -124,19 +127,21 @@ void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
         realloc(context->convexhulls,
                 context->convexhullCount * sizeof(s2_convexhull_t));
     }
-    printf("loading convex hull at index %d\n", collisionObject->index);
-    s2_convexhull_init(&(context->convexhulls[collisionObject->index]));
-    s2_convexhull(&(context->convexhulls[collisionObject->index]), context,
-                  body, collisionObject);
-    collisionObject->object = &context->convexhulls[collisionObject->index];
+    convexhull = context->convexhulls + context->convexhullCount - 1;
+    convexhull->index = context->convexhullCount - 1;
+    s2_convexhull(convexhull, context, body);
   } else {
     /* otherwise, set reference to original instance of collision object */
-    s2_collisionobject_t* instanceOf =
-      &body->collisionGeometryInstanceOf->collisionObjects[0];
-    printf("loaded instance convex hull of index %d\n", instanceOf->index);
-    collisionObject->index = instanceOf->index;
-    collisionObject->object = &context->convexhulls[collisionObject->index];
+    if(!body->collisionGeometryInstanceOf->collisionObjects) {
+      printf("NULL COLLISION OBJECT\n");
+    }
+
+    s2_collisionobject_t* instance =
+      body->collisionGeometryInstanceOf->collisionObjects;
+    convexhull = (s2_convexhull_t*)instance->object;
   }
+  printf("   loaded convex hull at index %d\n", convexhull->index);
+  collisionObject->object = convexhull;
 }
 
 /*!

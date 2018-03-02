@@ -358,7 +358,7 @@ void Shift::Bodies::initializeConvexHulls() {
                                     m_programLine->getPositionAttribute(),
                                     &bufferObjects);
 
-    checkError("bodies: after set attribute locations flat");
+    checkError("bodies: after set attribute locations");
 
     m_convexhullBufferObjects.append(bufferObjects);
     checkError("bodies: after append convex hull buffer objects");
@@ -377,12 +377,12 @@ void Shift::Bodies::setCollisionObjectTransforms(s2_body_t* body) {
 
   for(int i = 0; i < body->collisionObjectCount; i++) {
     s2_collisionobject_t* object = &body->collisionObjects[i];
-
     switch(object->type) {
       case S2_COLLISIONOBJECT_CONVEXHULL: {
-        m_convexhullBufferObjects[object->index].transforms.push_back(
+        s2_convexhull_t* convexhull = (s2_convexhull_t*)object->object;
+        m_convexhullBufferObjects[convexhull->index].transforms.push_back(
           body->origin->dAbsolute);
-        m_convexhullBufferObjects[object->index].bodies.push_back(body);
+        m_convexhullBufferObjects[convexhull->index].bodies.push_back(body);
         break;
       }
       case S2_COLLISIONOBJECT_SPHERE: {
