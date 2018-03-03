@@ -37,7 +37,7 @@ s2_joint_t* s2_joint(const char* jointTypeStr, s2_stackstr_t* name) {
     return NULL;
   }
   joint->jointTypeStr = strdup(jointTypeStr);
-  joint->jointType = s2_getJointType(jointTypeStr);
+  joint->jointType = s2_joint_enumFromChar(jointTypeStr);
 
   joint->name = name;
 
@@ -173,7 +173,7 @@ s2_joint_t* s2_joint(const char* jointTypeStr, s2_stackstr_t* name) {
 @param jointType descriptive name
 @return JOINTTYPE enum
 */
-s2_joint_enum_t s2_getJointType(const char* jointTypeStr) {
+s2_joint_enum_t s2_joint_enumFromChar(const char* jointTypeStr) {
 
   if(!strcmp(jointTypeStr, "Tx")) {
     return S2_JOINT_TX;
@@ -1614,6 +1614,389 @@ void s2_joint_free(s2_joint_t* joint) {
   }
 }
 
+/*! @brief initial displacement for rigid and float joints can be specified in
+five ways:
+
+  1. a 7 x 1 array with x, y, z, translation specified in the first three
+  indices and orientation specified as a quaternion following the q.x, q.y,
+  q.z, q.w convention (vector followed by scalar)
+
+    "initial_displacement": [t.x, t.y, t.z, q.x, q.y, q.z, q.w]
+
+  2. a 4 x 4 Special Euclidian matrix specified in row-major order. Only the
+  first three rows of the matrix will be read.
+
+    "initial_displacement":
+       [[R.xx, R.xy, R.xz, T.x],
+        [R.yx, R.yy, R.yz, T.y],
+        [R.zx, R.zy, R.zz, T.z],
+        [0,    0,    0,    1  ]]
+
+  3. By specifiying rotation and translation separately in a 3x3 rotation
+  matrix and 3x1 translation vector
+
+    "initial_displacement": {
+      "R": [[R.xx, R.xy, R.xz],
+            [R.yx, R.yy, R.yz],
+            [R.zx, R.zy, R.zz]],
+      "T": [T.x, T.y, T.z]
+    }
+
+    or
+
+    "initial_displacement": {
+      "R": [[R.xx, R.xy, R.xz],
+            [R.yx, R.yy, R.yz],
+            [R.zx, R.zy, R.zz]],
+      "t": [T.x, T.y, T.z]
+    }
+
+    or
+
+    "initial_displacement": {
+      "D": [[R.xx, R.xy, R.xz, T.x],
+            [R.yx, R.yy, R.yz, T.y],
+            [R.zx, R.zy, R.zz, T.z],
+            [0,    0,    0,    1  ]]
+    }
+
+  4. By specifying translation and rotation separately in a 3x1 translation
+  vector and a 4x1 quaternion
+
+    "initial_displacement": {
+      "T": [T.x, T.y, T.z],
+      "Q": [q.x, q.y, q.z, q.w]
+    }
+
+    or
+
+    "initial_displacement": {
+      "t": [T.x, T.y, T.z],
+      "q": [q.x, q.y, q.z, q.w]
+    }
+
+  5. By specifying translation as a 3x1 translation vector and rotation as a
+  sequence of euler angles in radians
+
+  "initial_displacement": {
+    "T": [T.x, T.y, T.z],
+    "euler_angles": {
+      "sequence": "XYZ",
+      "angles": [Rx, Ry, Rz]
+    }
+  }
+
+  or
+
+  "initial_displacement": {
+    "t": [T.x, T.y, T.z],
+    "euler_angles": {
+      "sequence": "XYX",
+      "angles": [Rx, Ry, Rx]
+    }
+  }
+*/
+void s2_joint_setInitialDisplacementFloatAndRigid(
+  s2_displacement_t* displacement, json_t* initialDisplacementObject) {
+
+  /* detect case 1 and case2 first */
+  bool isArray = json_is_array(initialDisplacementObject);
+  bool isMatrix = false;
+
+  if(isArray) {
+    isMatrix = json_is_array(json_array_get(initialDisplacementObject, 0));
+    if(isMatrix) {
+      isArray = false;
+    }
+  }
+
+  if(isArray) { /* case 1 */
+
+    for(int i = 0; i < 3; i++) {
+      s2_vector_set(
+        &(displacement->T), i,
+        json_number_value(json_array_get(initialDisplacementObject, i)));
+    }
+    s2_quaternion_t q;
+    for(int i = 0; i < 4; i++) {
+      s2_quaternion_set(
+        &q, i,
+        json_number_value(json_array_get(initialDisplacementObject, i + 3)));
+    }
+    s2_quaternion_normalize(&q);
+    s2_quaternion_toMat3x3(&q, &displacement->R);
+
+  } else if(isMatrix) { /* case 2 */
+
+    for(int i = 0; i < 3; i++) {
+      for(int j = 0; j < 4; j++)
+        s2_displacement_set(
+          displacement, i, j,
+          json_number_value(
+            json_array_get(json_array_get(initialDisplacementObject, i), j)));
+    }
+    s2_gramSchmidt(3, 3, (double*)displacement);
+
+  } else { /* case 3 and 4 */
+
+    bool rotationLoaded = false;
+    bool translationLoaded = false;
+
+    if(!rotationLoaded && !translationLoaded) {
+      json_t* D = json_object_get(initialDisplacementObject, "D");
+      if(D) {
+        for(int i = 0; i < 3; i++) {
+          for(int j = 0; j < 4; j++)
+            s2_displacement_set(
+              displacement, i, j,
+              json_number_value(json_array_get(json_array_get(D, i), j)));
+        }
+        s2_gramSchmidt(3, 3, (double*)displacement);
+        translationLoaded = true;
+        rotationLoaded = true;
+      }
+    }
+
+    if(!translationLoaded) {
+      /* obtain translation vector, accept either "T" or "t" for the field name
+       */
+      json_t* translation = json_object_get(initialDisplacementObject, "T");
+      if(!translation) {
+        translation = json_object_get(initialDisplacementObject, "t");
+      }
+      if(translation) {
+        for(int i = 0; i < 3; i++) {
+          s2_vector_set(&(displacement->T), i,
+                        json_number_value(json_array_get(translation, i)));
+        }
+        translationLoaded = true;
+      }
+    }
+
+    /* obtain rotation matrix, check if the field "R" exists */
+    if(!rotationLoaded) {
+      json_t* rotation = json_object_get(initialDisplacementObject, "R");
+      if(rotation) {
+        for(int i = 0; i < 3; i++) {
+          for(int j = 0; j < 3; j++)
+            s2_displacement_set(displacement, i, j,
+                                json_number_value(json_array_get(
+                                  json_array_get(rotation, i), j)));
+        }
+        s2_gramSchmidt(3, 3, (double*)displacement);
+        rotationLoaded = true;
+      }
+    }
+
+    /* if no rotation matrix was specified, check if the field "Q" or "q" exists
+    to load orientation as a quaternion */
+    if(!rotationLoaded) {
+      json_t* quaternion = json_object_get(initialDisplacementObject, "Q");
+      if(!quaternion) {
+        quaternion = json_object_get(initialDisplacementObject, "q");
+      }
+      if(!quaternion) {
+        quaternion = json_object_get(initialDisplacementObject, "quaternion");
+      }
+      if(quaternion) {
+        s2_quaternion_t q;
+        for(int i = 0; i < 4; i++) {
+          s2_quaternion_set(&q, i,
+                            json_number_value(json_array_get(quaternion, i)));
+        }
+        s2_quaternion_normalize(&q);
+        s2_quaternion_toMat3x3(&q, &displacement->R);
+        rotationLoaded = true;
+      }
+    }
+
+    /* if no rotation matrix or quaternion was specified above, check if the
+    orientation is specified as a sequence of euler angles */
+    if(!rotationLoaded) {
+      json_t* euler_angles =
+        json_object_get(initialDisplacementObject, "euler_angles");
+      if(euler_angles) {
+        s2_axis_enum_t sequence = S2_AXIS_XYZ;
+        json_t* sequenceObject = json_object_get(euler_angles, "sequence");
+        if(sequenceObject) {
+          sequence = s2_axis_enumFromChar(json_string_value(sequenceObject));
+        }
+        /* if a valid sequence of angles is specified, retrieve sequence of
+        rotation angles */
+        if(sequence != S2_AXIS_INVALID) {
+          json_t* anglesObject = json_object_get(euler_angles, "angles");
+          s2_vector_t angles;
+          for(int i = 0; i < 3; i++) {
+            s2_vector_set(&angles, i,
+                          json_real_value(json_array_get(anglesObject, i)));
+          }
+          s2_axis_getMat3x3(&angles, sequence, &displacement->R);
+        }
+      }
+    }
+  }
+}
+
+/*! @brief initial displacement for spherical joints can be specified in
+five ways:
+
+  1. a 4 x 1 array with x, y, z, translation specified in the first three
+  indices and orientation specified as a quaternion following the q.x, q.y,
+  q.z, q.w convention (vector followed by scalar)
+
+    "initial_displacement": [q.x, q.y, q.z, q.w]
+
+  2. a 3 x 3 Special Orthogonal matrix specified in row-major order.
+
+    "initial_displacement":
+       [[R.xx, R.xy, R.xz],
+        [R.yx, R.yy, R.yz],
+        [R.zx, R.zy, R.zz]]
+
+  3. By specifiying rotation as a 3x3 rotation
+  matrix under the "R" field
+
+    "initial_displacement": {
+      "R": [[R.xx, R.xy, R.xz],
+            [R.yx, R.yy, R.yz],
+            [R.zx, R.zy, R.zz]],
+    }
+
+  4. By specifying rotation as a 4x1 quaternion specified under the Q or q
+  field.
+
+    "initial_displacement": {
+      "Q": [q.x, q.y, q.z, q.w]
+    }
+
+    or
+
+    "initial_displacement": {
+      "q": [q.x, q.y, q.z, q.w]
+    }
+
+  5. By specifying rotation as a sequence of euler angles in radians, if no
+  sequence is specified, the default XYZ sequence is used.
+
+  "initial_displacement": {
+    "euler_angles": {
+      "angles": [Rx, Ry, Rz]
+    }
+  }
+
+  or
+
+  "initial_displacement": {
+    "euler_angles": {
+      "sequence": "XYX"
+      "angles": [Rx, Ry, Rx]
+    }
+  }
+*/
+void s2_joint_setInitialDisplacementSpherical(
+  s2_displacement_t* displacement, json_t* initialDisplacementObject) {
+
+  /* detect case 1 and case 2 first */
+  bool rotationLoaded = false;
+  if(!rotationLoaded) {
+    if(json_is_array(initialDisplacementObject)) {
+      if(json_is_array(json_array_get(initialDisplacementObject, 0))) {
+        /* displacement object is a 3x3 matrix, case 2 above */
+        for(int i = 0; i < 3; i++) {
+          for(int j = 0; j < 3; j++)
+            s2_displacement_set(
+              displacement, i, j,
+              json_number_value(json_array_get(
+                json_array_get(initialDisplacementObject, i), j)));
+        }
+        s2_gramSchmidt(3, 3, (double*)displacement);
+      } else {
+        /* displacement object is a 4x1 array, case 1 above */
+        s2_quaternion_t q;
+        for(int i = 0; i < 4; i++) {
+          s2_quaternion_set(
+            &q, i,
+            json_number_value(json_array_get(initialDisplacementObject, i)));
+          s2_quaternion_normalize(&q);
+          s2_quaternion_toMat3x3(&q, &displacement->R);
+        }
+      }
+      rotationLoaded = true;
+    }
+  }
+
+  if(!rotationLoaded) {
+    /* obtain rotation matrix, check if the field "R" exists */
+    json_t* rotation = json_object_get(initialDisplacementObject, "R");
+    if(rotation) {
+      for(int i = 0; i < 3; i++) {
+        for(int j = 0; j < 3; j++)
+          s2_displacement_set(
+            displacement, i, j,
+            json_number_value(json_array_get(json_array_get(rotation, i), j)));
+      }
+      s2_gramSchmidt(3, 3, (double*)displacement);
+      rotationLoaded = true;
+    }
+  }
+
+  /* if no rotation matrix was specified, check if the field "Q" or "q"
+  exists to load orientation as a quaternion */
+  if(!rotationLoaded) {
+    json_t* quaternion = json_object_get(initialDisplacementObject, "Q");
+    if(!quaternion) {
+      quaternion = json_object_get(initialDisplacementObject, "q");
+    }
+    if(!quaternion) {
+      quaternion = json_object_get(initialDisplacementObject, "quaternion");
+    }
+    if(quaternion) {
+      s2_quaternion_t q;
+      for(int i = 0; i < 4; i++) {
+        s2_quaternion_set(&q, i,
+                          json_number_value(json_array_get(quaternion, i)));
+      }
+      s2_quaternion_normalize(&q);
+      s2_quaternion_toMat3x3(&q, &displacement->R);
+      rotationLoaded = true;
+    }
+  }
+
+  /* if no rotation matrix or quaternion was specified above, check if the
+  orientation is specified as a sequence of euler angles */
+  if(!rotationLoaded) {
+    json_t* euler_angles =
+      json_object_get(initialDisplacementObject, "euler_angles");
+    if(euler_angles) {
+      s2_axis_enum_t sequence = S2_AXIS_XYZ;
+      json_t* sequenceObject = json_object_get(euler_angles, "sequence");
+      if(sequenceObject) {
+        sequence = s2_axis_enumFromChar(json_string_value(sequenceObject));
+      }
+      /* if a valid sequence of angles is specified, retrieve sequence of
+      rotation angles */
+      if(sequence != S2_AXIS_INVALID) {
+        json_t* anglesObject = json_object_get(euler_angles, "angles");
+        s2_vector_t angles;
+        for(int i = 0; i < 3; i++) {
+          s2_vector_set(&angles, i,
+                        json_real_value(json_array_get(anglesObject, i)));
+        }
+        s2_axis_getMat3x3(&angles, sequence, &displacement->R);
+      }
+    }
+  }
+
+  /* validate rotation matrix, compute determinant and throw error if not
+   * close to 1 */
+  double det = s2_mat3x3_determinant(&displacement->R);
+  if(fabs(det - 1) > 1e-2) {
+    fprintf(stderr, "error loading general displacement: ");
+    fprintf(stderr, "rotation matrix has determinant: %g\n", det);
+    exit(1);
+  }
+}
+
 /*!
 @brief loads joint from shift json file
 */
@@ -1743,66 +2126,32 @@ int s2_joint_load(s2_context_t* context, s2_assembly_t* assembly,
     }
     case S2_JOINT_RIGID: {
       // printf("loading rigid/float\n");
-      json_t* initialValueObj =
+
+      json_t* initialDisplacementObject =
         json_object_get(jointObject, "initial_displacement");
-      json_t* rotation = json_object_get(initialValueObj, "R");
-      json_t* translation = json_object_get(initialValueObj, "T");
-      if(rotation) {
-        for(int i = 0; i < 3; i++) {
-          for(int j = 0; j < 3; j++)
-            s2_displacement_set(joint->generalDisplacement, i, j,
-                                json_number_value(json_array_get(
-                                  json_array_get(rotation, i), j)));
-        }
-        s2_gramSchmidt(3, 3, (double*)joint->generalDisplacement);
-      }
-      if(translation) {
-        for(int i = 0; i < 3; i++) {
-          s2_vector_set(&(joint->generalDisplacement->T), i,
-                        json_number_value(json_array_get(translation, i)));
-        }
-      }
+      s2_joint_setInitialDisplacementFloatAndRigid(joint->generalDisplacement,
+                                                   initialDisplacementObject);
       break;
     }
     case S2_JOINT_FLOAT: {
-      printf("loading float\n");
-      json_t* initialValueObj =
+      json_t* initialDisplacementObject =
         json_object_get(jointObject, "initial_displacement");
-      json_t* rotation = json_object_get(initialValueObj, "R");
-      json_t* translation = json_object_get(initialValueObj, "T");
-      if(rotation) {
-        for(int i = 0; i < 3; i++) {
-          for(int j = 0; j < 3; j++)
-            s2_displacement_set(joint->generalDisplacement, i, j,
-                                json_number_value(json_array_get(
-                                  json_array_get(rotation, i), j)));
-        }
-      }
-      if(translation) {
-        for(int i = 0; i < 3; i++) {
-          s2_vector_set(&(joint->generalDisplacement->T), i,
-                        json_number_value(json_array_get(translation, i)));
-          joint->initialPrimitiveDisplacement[i] =
-            s2_vector_get(&(joint->generalDisplacement->T), i);
-        }
+      s2_joint_setInitialDisplacementFloatAndRigid(joint->generalDisplacement,
+                                                   initialDisplacementObject);
+      for(int i = 0; i < 3; i++) {
+        joint->initialPrimitiveDisplacement[i] =
+          s2_vector_get(&joint->generalDisplacement->T, i);
       }
       s2_mat3x3_toQuaternion(
-        &(joint->generalDisplacement->R),
+        &joint->generalDisplacement->R,
         (s2_quaternion_t*)(joint->primitiveDisplacement + 3));
       break;
     }
     case S2_JOINT_SPHERICAL: {
-      json_t* initialValueObj =
+      json_t* initialDisplacementObject =
         json_object_get(jointObject, "initial_displacement");
-      json_t* rotation = json_object_get(initialValueObj, "R");
-      if(rotation) {
-        for(int i = 0; i < 3; i++) {
-          for(int j = 0; j < 3; j++)
-            s2_displacement_set(joint->generalDisplacement, i, j,
-                                json_number_value(json_array_get(
-                                  json_array_get(rotation, i), j)));
-        }
-      }
+      s2_joint_setInitialDisplacementSpherical(joint->generalDisplacement,
+                                               initialDisplacementObject);
       s2_mat3x3_toQuaternion(&(joint->generalDisplacement->R),
                              (s2_quaternion_t*)joint->primitiveDisplacement);
       printf("loading spherical: q=");

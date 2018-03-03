@@ -135,7 +135,7 @@ typedef struct s2_joint_t {
 
 s2_joint_t* s2_joint(const char*, s2_stackstr_t*);
 
-s2_joint_enum_t s2_getJointType(const char* jointTypeStr);
+s2_joint_enum_t s2_joint_enumFromChar(const char* jointTypeStr);
 
 void s2_joint_append(s2_assembly_t* assembly, s2_joint_t* joint);
 

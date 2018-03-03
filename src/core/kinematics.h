@@ -162,18 +162,19 @@ typedef struct {
 } s2_screwf_t;
 
 typedef enum {
-  XYZ,
-  YZX,
-  ZXY,
-  XZY,
-  YXZ,
-  ZYX,
-  XYX,
-  XZX,
-  YXY,
-  YZY,
-  ZXZ,
-  ZYZ
+  S2_AXIS_XYZ,
+  S2_AXIS_YZX,
+  S2_AXIS_ZXY,
+  S2_AXIS_XZY,
+  S2_AXIS_YXZ,
+  S2_AXIS_ZYX,
+  S2_AXIS_XYX,
+  S2_AXIS_XZX,
+  S2_AXIS_YXY,
+  S2_AXIS_YZY,
+  S2_AXIS_ZXZ,
+  S2_AXIS_ZYZ,
+  S2_AXIS_INVALID
 } s2_axis_enum_t;
 
 s2_vector_t* s2_vector();
@@ -241,6 +242,8 @@ void s2_mat3x3_setIdentity(s2_mat3x3_t* r);
 
 void s2_vector_set(s2_vector_t* v, int index, double value);
 
+void s2_quaternion_set(s2_quaternion_t* q, int index, double value);
+
 void s2_screw_set(s2_screw_t* s, int index, double value);
 
 double s2_vector_l2norm(s2_vector_t* v);
@@ -275,6 +278,8 @@ void s2_displacementf_set(s2_displacementf_t* D, int row, int column,
                           float value);
 
 double s2_vector_get(s2_vector_t* v, int index);
+
+int s2_vectori_get(s2_vectori_t* v, int index);
 
 double s2_screw_get(s2_screw_t* s, int index);
 
@@ -778,6 +783,8 @@ double catan1pi(double y, double x, double theta);
 void s2_mat3x3_getEulerAngles(s2_mat3x3_t* rin, s2_vector_t* angles,
                               s2_axis_enum_t axisType);
 
+void s2_axis_getMat3x3(s2_vector_t*, s2_axis_enum_t axisType, s2_mat3x3_t*);
+
 double s2_mat3x3_getScalar(s2_mat3x3_t* ri);
 
 float s2_mat3x3f_getScalar(s2_mat3x3f_t* ri);
@@ -802,5 +809,7 @@ void s2_gramSchmidt(int m, int n, double* A);
 bool s2_all_close(int count, double* a1, double* a2);
 
 double s2_mat3x3_determinant(s2_mat3x3_t*);
+
+s2_axis_enum_t s2_axis_enumFromChar(const char*);
 
 #endif
