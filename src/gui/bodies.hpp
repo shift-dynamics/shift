@@ -133,6 +133,10 @@ public:
       free(m_sphereBufferObject.faces);
       m_sphereBufferObject.faces = NULL;
     }
+
+    delete m_sphereBufferObject.vertexBuffer;
+    delete m_sphereBufferObject.vertexNormalBuffer;
+    delete m_sphereBufferObject.ibo;
   };
 
   void initialize();

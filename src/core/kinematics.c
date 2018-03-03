@@ -678,6 +678,14 @@ inline void s2_vector_set(s2_vector_t* restrict v, int index, double value) {
 }
 
 /*!
+@brief set a value of quaternion at specified index
+*/
+inline void s2_quaternion_set(s2_quaternion_t* restrict q, int index,
+                              double value) {
+  ((double*)q)[index] = value;
+}
+
+/*!
 @brief l2 norm of double precision screw
 */
 inline double s2_screw_l2norm(s2_screw_t* restrict v) {
@@ -870,6 +878,19 @@ inline double s2_vector_get(s2_vector_t* restrict v, int index) {
   }
 #endif
   return ((double*)v)[index];
+}
+
+/*!
+@brief get a value of vectori
+*/
+inline int s2_vectori_get(s2_vectori_t* restrict v, int index) {
+#ifdef _SHIFT_BOUNDS_CHECKING
+  if(index > 2 || index < 0) {
+    fprintf(stderr, "s2_vector_set: out of bounds\n");
+    return -INFINITY;
+  }
+#endif
+  return ((int*)v)[index];
 }
 
 /*!
@@ -5800,7 +5821,7 @@ void s2_mat3x3_toQuaternion(s2_mat3x3_t* restrict ri,
 
 /*!
 @brief single precision function to convert s2_mat3x3_t rotation matrix to
-quaternion representation
+single precision quaternion representation
 
 \f$R = \begin{bmatrix}
 e_0^2 + e_1^2-e_2^2-e_3^2 & e_1e_2+e_1e_2-e_0e_3+e_0e_3 &
@@ -6388,6 +6409,67 @@ double catan1pi(double y, double x, double theta) {
 }
 
 /*!
+@brief convert s2_axis_enum_t to a vector of ints
+*/
+s2_vectori_t s2_axis_getVector(s2_axis_enum_t axisType) {
+
+  switch(axisType) {
+    case S2_AXIS_XYZ: {
+      s2_vectori_t axis = {0, 1, 2};
+      return axis;
+    }
+    case S2_AXIS_YZX: {
+      s2_vectori_t axis = {1, 2, 0};
+      return axis;
+    }
+    case S2_AXIS_ZXY: {
+      s2_vectori_t axis = {2, 1, 2};
+      return axis;
+    }
+    case S2_AXIS_XZY: {
+      s2_vectori_t axis = {0, 2, 1};
+      return axis;
+    }
+    case S2_AXIS_YXZ: {
+      s2_vectori_t axis = {1, 0, 2};
+      return axis;
+    }
+    case S2_AXIS_ZYX: {
+      s2_vectori_t axis = {2, 1, 0};
+      return axis;
+    }
+    case S2_AXIS_XYX: {
+      s2_vectori_t axis = {0, 1, 0};
+      return axis;
+    }
+    case S2_AXIS_XZX: {
+      s2_vectori_t axis = {0, 2, 0};
+      return axis;
+    }
+    case S2_AXIS_YXY: {
+      s2_vectori_t axis = {1, 0, 1};
+      return axis;
+    }
+    case S2_AXIS_YZY: {
+      s2_vectori_t axis = {1, 2, 1};
+      return axis;
+    }
+    case S2_AXIS_ZXZ: {
+      s2_vectori_t axis = {2, 0, 2};
+      return axis;
+    }
+    case S2_AXIS_ZYZ: {
+      s2_vectori_t axis = {2, 1, 2};
+      return axis;
+    }
+    default: {
+      s2_vectori_t axis = {0, 1, 2};
+      return axis;
+    }
+  }
+}
+
+/*!
 @brief extract Euler angles from a s2_mat3x3_t rotation matrix
 
 This function decomposes a general direction cosine matrix into three primitive
@@ -6425,83 +6507,14 @@ void s2_mat3x3_getEulerAngles(s2_mat3x3_t* restrict rin,
                               s2_vector_t* restrict angles,
                               s2_axis_enum_t axisType) {
 
-  int axis[3];
-  switch(axisType) {
-    case XYZ: {
-      axis[0] = 0;
-      axis[1] = 1;
-      axis[2] = 2;
-    } break;
-    case YZX: {
-      axis[0] = 1;
-      axis[1] = 2;
-      axis[2] = 0;
-    } break;
-    case ZXY: {
-      axis[0] = 2;
-      axis[1] = 1;
-      axis[2] = 2;
-    } break;
-    case XZY: {
-      axis[0] = 0;
-      axis[1] = 2;
-      axis[2] = 1;
-    } break;
-    case YXZ: {
-      axis[0] = 1;
-      axis[1] = 0;
-      axis[2] = 2;
-    } break;
-    case ZYX: {
-      axis[0] = 2;
-      axis[1] = 1;
-      axis[2] = 0;
-    } break;
-    case XYX: {
-      axis[0] = 0;
-      axis[1] = 1;
-      axis[2] = 0;
-    } break;
-    case XZX: {
-      axis[0] = 0;
-      axis[1] = 2;
-      axis[2] = 0;
-    } break;
-    case YXY: {
-      axis[0] = 1;
-      axis[1] = 0;
-      axis[2] = 1;
-    } break;
-    case YZY: {
-      axis[0] = 1;
-      axis[1] = 2;
-      axis[2] = 1;
-    } break;
-    case ZXZ: {
-      axis[0] = 2;
-      axis[1] = 0;
-      axis[2] = 2;
-    } break;
-    case ZYZ: {
-      axis[0] = 2;
-      axis[1] = 1;
-      axis[2] = 2;
-    } break;
-    default: {
-      axis[0] = 0;
-      axis[1] = 1;
-      axis[2] = 2;
-    }
-  }
-
   const int f[3] = {1, 2, 0};
 
-  /*
-    Short notation for the axis identifiers.
-  */
-  int i = axis[0];
-  int j = axis[1];
-  int k = axis[2];
+  s2_vectori_t axis = s2_axis_getVector(axisType);
+
+  /* Short notation for the axis identifiers. */
+  int i = axis.x;
+  int j = axis.y;
+  int k = axis.z;
 
   /*
     The value of k will be changed in Cases 3 and 4.
@@ -6510,9 +6523,7 @@ void s2_mat3x3_getEulerAngles(s2_mat3x3_t* restrict rin,
   double c;
   double s;
 
-  /*
-    convert column major s2_mat3x3_t matrix to row major
-  */
+  /* convert column major s2_mat3x3_t matrix to row major */
   double ri[3][3] = {{rin->m00, rin->m01, rin->m02},
                      {rin->m10, rin->m11, rin->m12},
                      {rin->m20, rin->m21, rin->m22}};
@@ -6560,6 +6571,42 @@ void s2_mat3x3_getEulerAngles(s2_mat3x3_t* restrict rin,
   }
 }
 
+/*!
+@brief convert sequence of euler angles to mat3x3 rotation matrix
+@param [in] sequence of three angles specified in radians
+@param [in] an s2_axis_enum_t specifying sequence of axes
+@param [out] a 3x3 rotation matrix, results are returned in the rotation matrix
+*/
+void s2_axis_getMat3x3(s2_vector_t* restrict angles, s2_axis_enum_t axisType,
+                       s2_mat3x3_t* restrict R) {
+
+  s2_vectori_t axis = s2_axis_getVector(axisType);
+  s2_mat3x3_t temp;
+  s2_mat3x3_setIdentity(R);
+
+  double dc[2] = {0.0, 0.0};
+  for(int i = 0; i < 3; i++) {
+    double angle = s2_vector_get(angles, i);
+    s2_dc(&angle, dc);
+    s2_mat3x3_setIdentity(&temp);
+    switch(s2_vectori_get(&axis, i)) {
+      case 0: {
+        s2_product_rrx(R, dc, &temp);
+        break;
+      }
+      case 1: {
+        s2_product_rry(R, dc, &temp);
+        break;
+      }
+      case 2: {
+        s2_product_rrz(R, dc, &temp);
+        break;
+      }
+    }
+    s2_mat3x3_copy(&temp, R);
+  }
+}
+
 /*! @brief Extract scalar from a uniformly scaled s2_mat3x3_t matrix
 
 The norm of each column or row of an orthonormal rotation matrix is one.
@@ -6582,10 +6629,10 @@ inline double s2_mat3x3_getScalar(s2_mat3x3_t* restrict ri) {
 // The norm of each column or row of an orthonormal rotation matrix is one.
 //
 // Therefore, to find the scale factor for a rotation matrix that has been
-// <uniformly> scaled, simply find the norm of any row or column of the rotation
-// matrix. Warning, this approach will not work for nonuniform scaling.
-// For nonuniform scaling, one needs to find the eigenvectors using SVD or other
-// means.
+// <uniformly> scaled, simply find the norm of any row or column of the
+// rotation matrix. Warning, this approach will not work for nonuniform
+// scaling. For nonuniform scaling, one needs to find the eigenvectors using
+// SVD or other means.
 //
 // */
 // float s2_mat3x3f_getScalar(
@@ -6842,4 +6889,37 @@ inline double s2_mat3x3_determinant(s2_mat3x3_t* restrict R) {
   return (R->m00 * (R->m11 * R->m22 - R->m21 * R->m12) -
           R->m10 * (R->m01 * R->m22 - R->m21 * R->m02) +
           R->m20 * (R->m01 * R->m12 - R->m11 * R->m02));
+}
+
+/*!
+@brief obtain s2_axis_enum_t from const char*
+*/
+s2_axis_enum_t s2_axis_enumFromChar(const char* sequence) {
+  if(!strcmp(sequence, "XYZ")) {
+    return S2_AXIS_XYZ;
+  } else if(!strcmp(sequence, "YZX")) {
+    return S2_AXIS_YZX;
+  } else if(!strcmp(sequence, "ZXY")) {
+    return S2_AXIS_ZXY;
+  } else if(!strcmp(sequence, "XZY")) {
+    return S2_AXIS_XZY;
+  } else if(!strcmp(sequence, "YXZ")) {
+    return S2_AXIS_YXZ;
+  } else if(!strcmp(sequence, "ZYX")) {
+    return S2_AXIS_ZYX;
+  } else if(!strcmp(sequence, "XYX")) {
+    return S2_AXIS_XYX;
+  } else if(!strcmp(sequence, "XZX")) {
+    return S2_AXIS_XZX;
+  } else if(!strcmp(sequence, "YXY")) {
+    return S2_AXIS_YXY;
+  } else if(!strcmp(sequence, "YZY")) {
+    return S2_AXIS_YZY;
+  } else if(!strcmp(sequence, "ZXZ")) {
+    return S2_AXIS_ZXZ;
+  } else if(!strcmp(sequence, "ZYZ")) {
+    return S2_AXIS_ZYZ;
+  } else {
+    return S2_AXIS_INVALID;
+  }
 }
