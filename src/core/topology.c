@@ -2485,6 +2485,15 @@ void topology_copyUpdateD(s2_context_t* context) {
     //   }
     //   frameHead = frameHead->next;
     // }
+
+    /* update references for collision geometry
+    currently, all collision geometry is specified wrt the origin, this can be
+    modified later to reference geometry relative to reference frame */
+    for(int j = 0; j < childBody->collisionObjectCount; j++) {
+      s2_collisionobject_t* collisionObject =
+        &context->collisionObjects[childBody->collisionObjectOffset + j];
+      collisionObject->referenceFrame = childBody->origin->dAbsolute;
+    }
   }
 }
 

@@ -293,94 +293,11 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context,
   return exitcode;
 }
 
-// /*!
-// @brief Compute single convex hull for s2_body_t datastructure
-// convex hull encompasses all submeshes associated with a body
-//
-// code derived from Qhull template at https://github.com/qhull/qhull
-//
-// Currently, only one convex hull is generated to encompass body using the
-// qhull algorithm. Later, this could be modified to fit a number of conformal
-// convex hulls with adjustable level of detail using the v-hacd algorithm or
-// similar.
-// */
-// s2_convexhull_t* s2_convexhull_qhull(s2_body_t* body) {
-//
-//   QHULL_LIB_CHECK
-//   int exitcode = 0; /* 0 if no error from qhull */
-//   char flags[250];  /* option flags for qhull */
-//
-//   sprintf(flags, "qhull s Qt");
-//
-//   if(body->materials) {
-//
-//     /* initialize memory and set support function */
-//
-//     uint totalVertexCount = 0;
-//     for(uint i = 0; i < body->materialCount; i++) {
-//       totalVertexCount = body->materials[i].vertexCount;
-//     }
-//
-//     double* vertices = calloc(3 * totalVertexCount, sizeof(double));
-//
-//     for(size_t i = 0; i < totalVertexCount; i++) {
-//       vertices[i * 3 + 0] = (double)(body->materials[0].vertices[i * 3 +
-//       0]); vertices[i * 3 + 1] = (double)(body->materials[0].vertices[i * 3
-//       + 1]); vertices[i * 3 + 2] = (double)(body->materials[0].vertices[i *
-//       3 + 2]);
-//     }
-//
-//     qhT qh;
-//     qh_zero(&qh, stdout);
-//     exitcode = qh_new_qhull(
-//                  &qh,
-//                  3,
-//                  totalVertexCount,
-//                  vertices,
-//                  true,
-//                  "qhull s Qt",
-//                  stdout,
-//                  stderr);
-//
-//     // if(!exitcode) {
-//     //   print_summary(&qh);
-//     // }
-//
-//     s2_convexhull_t* convexhull = s2_convexhull_alloc(1);
-//     s2_convexhull(convexhull, body);
-//     load_data(convexhull, &qh);
-//
-//     // printf("freeing memory\n");
-//     int curlong, totlong;     /* memory remaining after qh_memfreeshort */
-//     FILE* errfile = stderr;    /* error messages from qhull code */
-//     qh_freeqhull(&qh, !qh_ALL);      /* free long memory  */
-//     // printf("freed qh long memory\n");
-//
-//     qh_memfreeshort(&qh, &curlong, &totlong);    /* free short memory and
-//     memory allocator */
-//     // printf("freed qh short memory\n");
-//
-//     if(curlong || totlong) {
-//       fprintf(errfile, "qhull internal warning: did not free %d bytes of
-//       long memory (%d pieces)\n", totlong, curlong);
-//     }
-//     // printf("freed qh data\n");
-//     // free(vertices);
-//     if(exitcode) {
-//       return NULL;
-//     } else {
-//       return convexhull;
-//     }
-//   } else {
-//     return NULL;
-//   }
-// }
-
 /*!
-@brief basic support function, performs linear search through indices to find
-maximum projection along specified direction. returns vertex with greatest
-projection along supplied axis. later to be replaced by dobkin-kirkpatrick
-hierarchy or hash table methods
+@brief basic support function, performs naive linear search through indices to
+find maximum projection along specified direction. returns vertex with greatest
+projection along supplied axis. later to be replaced by hill climbing method,
+dobkin-kirkpatrick hierarchy or hash table methods
 */
 s2_vector_t s2_convexhull_basicSupport(void* collisionobjects,
                                        int collisionObjectIndex,
