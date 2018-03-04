@@ -743,7 +743,6 @@ void Shift::Bodies::draw() {
       s2_displacement_t transform;
       s2_displacement_setIdentity(&transform);
 
-      qDebug() << "collisionObjectCount: " << m_context->collisionObjectCount;
       for(int i = 0; i < m_context->collisionObjectCount; i++) {
 
         s2_collisionobject_t* collisionObject = &m_context->collisionObjects[i];
@@ -758,8 +757,6 @@ void Shift::Bodies::draw() {
           s2_vector_t t;
           s2_product_rv(&collisionObject->referenceFrame->R,
                         &collisionObject->dWRTReference.T, &t);
-          printf("collisionObject->referenceFrame->T: ");
-          s2_vector_print(stdout, &collisionObject->referenceFrame->T);
           s2_add_vv(&collisionObject->referenceFrame->T, &t, &transform.T);
           // transform.T = sphere->centerGlobal;
 
