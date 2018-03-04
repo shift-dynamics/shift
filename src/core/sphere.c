@@ -189,12 +189,16 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
 
 /*!
 @brief simple sphere support function
+@TODO this function is currently a stub and does nothing, it needs to
+be populated to return the correct extreme vertex
 */
-s2_vector_t s2_sphere_support(void* collisionobject, s2_vector_t* direction,
+s2_vector_t s2_sphere_support(void* collisionobjects, int collisionObjectIndex,
+                              s2_vector_t* direction,
                               s2_collisionobject_history_t* history) {
 
   /* use of collision object is not implemented yet */
-  (void)collisionobject;
+  (void)collisionobjects;
+  (void)collisionObjectIndex;
   (void)direction;
   (void)history;
 

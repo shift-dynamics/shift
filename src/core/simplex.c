@@ -9,12 +9,13 @@
 @param [in] a second s2_collisionobject_t containing an s2_convexhull_t object
 @return whether the two objects are in contact with one another
 */
-bool s2_simplex_gjk(s2_collisionobject_t* restrict c1,
+bool s2_simplex_gjk(s2_context_t* context, s2_collisionobject_t* restrict c1,
                     s2_collisionobject_history_t* restrict c1History,
                     s2_collisionobject_t* restrict c2,
                     s2_collisionobject_history_t* restrict c2History) {
   /* use (void) to suppress unused variable compiler warning. Remove this once
                                         correct support function is loaded */
+  (void)context;
   (void)c1;
   (void)c1History;
   (void)c2;
@@ -27,10 +28,10 @@ bool s2_simplex_gjk(s2_collisionobject_t* restrict c1,
   s2_vector_t searchDirection;
 
   s2_vector_t extremeVertex1 =
-    s2_collisionobject_support(c1, searchDirection);
+    s2_collisionobject_support(c1, context, searchDirection);
 
   s2_vector_t extremeVertex2 =
-    s2_collisionobject_support(c2, searchDirection);
+    s2_collisionobject_support(c2, context, searchDirection);
   */
 
   return true;
@@ -42,12 +43,14 @@ bool s2_simplex_gjk(s2_collisionobject_t* restrict c1,
 @param [in] a second s2_collisionobject_t containing an s2_sphere_t object
 @return whether the two objects are in contact with one another
 */
-bool s2_simplex_sphereSphere(s2_collisionobject_t* restrict c1,
+bool s2_simplex_sphereSphere(s2_context_t* context,
+                             s2_collisionobject_t* restrict c1,
                              s2_collisionobject_history_t* restrict c1History,
                              s2_collisionobject_t* restrict c2,
                              s2_collisionobject_history_t* restrict c2History) {
   /* use (void) to suppress compiler warning. Remove this once
                                         correct support function is loaded */
+  (void)context;
   (void)c1;
   (void)c1History;
   (void)c2;
@@ -75,13 +78,14 @@ bool s2_simplex_sphereSphere(s2_collisionobject_t* restrict c1,
 @return whether the two objects are in contact with one another
 */
 bool s2_simplex_ellipsoidEllipsoid(
-  s2_collisionobject_t* restrict c1,
+  s2_context_t* context, s2_collisionobject_t* restrict c1,
   s2_collisionobject_history_t* restrict c1History,
   s2_collisionobject_t* restrict c2,
   s2_collisionobject_history_t* restrict c2History) {
 
   /* use (void) to suppress unused variable compiler warning. Remove this once
   correct support function is loaded */
+  (void)context;
   (void)c1;
   (void)c1History;
   (void)c2;
@@ -111,8 +115,8 @@ collisionobjects
 information about a pair of s2_collisionobject_t datastructures and their time
 histories
 */
-void s2_simplex_support(s2_simplex_t* self) {
-  self->collision = self->support(self->objectA, &self->objectAHistory,
+void s2_simplex_support(s2_context_t* context, s2_simplex_t* self) {
+  self->collision = self->support(context, self->objectA, &self->objectAHistory,
                                   self->objectB, &self->objectBHistory);
 }
 
