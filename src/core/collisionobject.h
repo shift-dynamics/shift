@@ -47,8 +47,8 @@ typedef enum {
 */
 typedef struct s2_collisionobject_history_t {
 
-  int extremeVertexIndex;    /*!< index of extreme vertex */
-  s2_vector_t extremeVertex; /*!< extreme vertex */
+  int extremeVertexIndex;       /*!< index of extreme vertex */
+  s2_vector_t extremeVertex[4]; /*!< extreme vertex */
 
 } s2_collisionobject_history_t;
 
