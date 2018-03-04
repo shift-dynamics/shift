@@ -94,9 +94,8 @@ public:
   Bodies(RenderWindow* renderWindow)
     : Geometry(renderWindow)
     , m_shadingType(S2_SHADING_PHONG)
-    , m_drawConvexHullEnabled(false)
+    , m_drawCollisionGeometryEnabled(false)
     , m_drawNormalsEnabled(false)
-    , m_drawBoundingSpheresEnabled(false)
     , m_normalScale(0.2f) {
     m_sphereBufferObject.initialized = false;
     m_sphereBufferObject.Ka[0] = 0.10;
@@ -201,24 +200,20 @@ public slots:
     setDrawStyle(S2_SHADING_WIREFRAME);
   }
 
-  void toggleDrawConvexHulls() {
-    m_drawConvexHullEnabled = !m_drawConvexHullEnabled;
+  void toggleDrawCollisionGeometry() {
+    m_drawCollisionGeometryEnabled = !m_drawCollisionGeometryEnabled;
   }
 
-  void enableDrawConvexHulls() {
-    m_drawConvexHullEnabled = true;
+  void enableDrawCollisionGeometry() {
+    m_drawCollisionGeometryEnabled = true;
   }
 
-  void disableDrawConvexHulls() {
-    m_drawConvexHullEnabled = false;
+  void disableDrawCollisionGeometry() {
+    m_drawCollisionGeometryEnabled = false;
   }
 
   void toggleDrawNormals() {
     m_drawNormalsEnabled = !m_drawNormalsEnabled;
-  }
-
-  void toggleDrawBoundingSpheres() {
-    m_drawBoundingSpheresEnabled = !m_drawBoundingSpheresEnabled;
   }
 
 private:
@@ -233,11 +228,11 @@ private:
 
   s2_shading_enum_t m_shadingType;
 
-  bool m_drawConvexHullEnabled; /*!< toggles display of convex hulls, overrides
-                                   settings in each convex hull */
+  bool m_drawCollisionGeometryEnabled; /*!< toggles display of collision
+                                          geometry (convex hulls, spheres and
+                                          ellipsoids) */
 
   bool m_drawNormalsEnabled;
-  bool m_drawBoundingSpheresEnabled;
 
   float m_normalScale;
 

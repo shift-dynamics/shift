@@ -382,7 +382,8 @@ maximum projection along specified direction. returns vertex with greatest
 projection along supplied axis. later to be replaced by dobkin-kirkpatrick
 hierarchy or hash table methods
 */
-s2_vector_t s2_convexhull_basicSupport(void* collisionobject,
+s2_vector_t s2_convexhull_basicSupport(void* collisionobjects,
+                                       int collisionObjectIndex,
                                        s2_vector_t* direction,
                                        s2_collisionobject_history_t* history) {
 
@@ -390,7 +391,8 @@ s2_vector_t s2_convexhull_basicSupport(void* collisionobject,
   search at new location */
   (void)history;
 
-  s2_convexhull_t* convexhull = (s2_convexhull_t*)collisionobject;
+  s2_convexhull_t* convexhulls = (s2_convexhull_t*)collisionobjects;
+  s2_convexhull_t* convexhull = convexhulls + collisionObjectIndex;
   float max_projection = -FLT_MAX;
   size_t max_index;
   for(size_t i = 0; i < convexhull->vertexCount; i++) {
