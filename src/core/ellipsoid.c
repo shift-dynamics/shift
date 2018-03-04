@@ -214,10 +214,13 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
 @TODO this function currently is a stub and does nothing. It needs to be
 populated to return the correct extreme vertex.
 */
-s2_vector_t s2_ellipsoid_support(void* collisionobject, s2_vector_t* direction,
+s2_vector_t s2_ellipsoid_support(void* collisionobjects,
+                                 int collisionObjectIndex,
+                                 s2_vector_t* direction,
                                  s2_collisionobject_history_t* history) {
 
-  (void)collisionobject;
+  (void)collisionobjects;
+  (void)collisionObjectIndex;
   (void)direction;
   (void)history;
   // s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)collisionobject;

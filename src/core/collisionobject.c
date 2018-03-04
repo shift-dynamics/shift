@@ -59,19 +59,18 @@ void s2_collisionobject_init(s2_collisionobject_t* self) {
 void s2_collisionobject_free(s2_collisionobject_t* collisionObjects,
                              int count) {
   for(int i = 0; i < count; i++) {
-    switch(collisionObjects[i].type) {
-      case S2_COLLISIONOBJECT_CONVEXHULL: {
-        s2_convexhull_free((s2_convexhull_t*)(collisionObjects[i].object));
-      } break;
-      case S2_COLLISIONOBJECT_ELLIPSOID:
-      case S2_COLLISIONOBJECT_SPHERE: {
-        break;
-      }
-      case S2_COLLISIONOBJECT_OBB:
-      case S2_COLLISIONOBJECT_AABB:
-      case S2_COLLISIONOBJECT_NONE:
-        break;
-    }
+    // switch(collisionObjects[i].type) {
+    //   case S2_COLLISIONOBJECT_CONVEXHULL: {
+    //   } break;
+    //   case S2_COLLISIONOBJECT_ELLIPSOID:
+    //   case S2_COLLISIONOBJECT_SPHERE: {
+    //     break;
+    //   }
+    //   case S2_COLLISIONOBJECT_OBB:
+    //   case S2_COLLISIONOBJECT_AABB:
+    //   case S2_COLLISIONOBJECT_NONE:
+    //     break;
+    // }
     collisionObjects[i].support = NULL;
   }
   free(collisionObjects);
@@ -127,21 +126,22 @@ void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
         realloc(context->convexhulls,
                 context->convexhullCount * sizeof(s2_convexhull_t));
     }
-    convexhull = context->convexhulls + context->convexhullCount - 1;
+    convexhull = &context->convexhulls[context->convexhullCount - 1];
     convexhull->index = context->convexhullCount - 1;
     s2_convexhull(convexhull, context, body);
   } else {
-    /* otherwise, set reference to original instance of collision object */
+    /* otherwise, set convexhull pointer to original instance of collision
+     * object */
     if(!body->collisionGeometryInstanceOf->collisionObjects) {
       printf("NULL COLLISION OBJECT\n");
     }
 
     s2_collisionobject_t* instance =
       body->collisionGeometryInstanceOf->collisionObjects;
-    convexhull = (s2_convexhull_t*)instance->object;
+    convexhull = &context->convexhulls[instance->objectIndex];
   }
   printf("   loaded convex hull at index %d\n", convexhull->index);
-  collisionObject->object = convexhull;
+  collisionObject->objectIndex = convexhull->index;
 }
 
 /*!
@@ -168,8 +168,7 @@ void s2_collisionobject_sphere(s2_context_t* context, s2_body_t* body) {
   } else {
     s2_collisionobject_t* instanceOf =
       &body->collisionGeometryInstanceOf->collisionObjects[0];
-    collisionObject->index = instanceOf->index;
-    collisionObject->object = &context->spheres[collisionObject->index];
+    collisionObject->objectIndex = instanceOf->objectIndex;
   }
 }
 
@@ -200,7 +199,30 @@ void s2_collisionobject_ellipsoid(s2_context_t* context, s2_body_t* body) {
 support function defined in each primitive collision object
 */
 s2_vector_t s2_collisionobject_support(s2_collisionobject_t* self,
+                                       s2_context_t* context,
                                        s2_vector_t* direction,
                                        s2_collisionobject_history_t* history) {
-  return self->support((void*)self->object, direction, history);
+  switch(self->type) {
+    case S2_COLLISIONOBJECT_CONVEXHULL: {
+      return self->support(context->convexhulls, self->objectIndex, direction,
+                           history);
+    }
+    case S2_COLLISIONOBJECT_SPHERE: {
+      return self->support(context->spheres, self->objectIndex, direction,
+                           history);
+    }
+    case S2_COLLISIONOBJECT_ELLIPSOID: {
+      return self->support(context->ellipsoids, self->objectIndex, direction,
+                           history);
+    }
+    case S2_COLLISIONOBJECT_AABB: {
+      return self->support(NULL, self->objectIndex, direction, history);
+    }
+    case S2_COLLISIONOBJECT_OBB: {
+      return self->support(NULL, self->objectIndex, direction, history);
+    }
+    case S2_COLLISIONOBJECT_NONE: {
+      return self->support(NULL, self->objectIndex, direction, history);
+    }
+  }
 }

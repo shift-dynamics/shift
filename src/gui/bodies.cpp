@@ -176,14 +176,6 @@ void Shift::Bodies::initializeSphere() {
                                      3 * m_sphereBufferObject.faceCount *
                                        sizeof(GLuint));
 
-  // bufferObjects->vao->bind();
-
-  // uniforms->position_a = program->attributeLocation("position_a");
-  // uniforms->normal_a = program->attributeLocation("normal_a");
-
-  // printf("  uniform position: %d\n", uniforms->position);
-  // printf("  normal position: %d\n", uniforms->normal);
-
   m_sphereBufferObject.vertexBuffer->bind();
 
   m_programPhong->getProgram()->enableAttributeArray(
@@ -376,22 +368,25 @@ assigns transforms to collision buffer objects
 void Shift::Bodies::setCollisionObjectTransforms(s2_body_t* body) {
 
   for(int i = 0; i < body->collisionObjectCount; i++) {
-    s2_collisionobject_t* object = &body->collisionObjects[i];
-    switch(object->type) {
+    s2_collisionobject_t* collisionObject = &body->collisionObjects[i];
+    switch(collisionObject->type) {
       case S2_COLLISIONOBJECT_CONVEXHULL: {
-        s2_convexhull_t* convexhull = (s2_convexhull_t*)object->object;
+        s2_convexhull_t* convexhull =
+          &m_context->convexhulls[collisionObject->objectIndex];
         m_convexhullBufferObjects[convexhull->index].transforms.push_back(
           body->origin->dAbsolute);
         m_convexhullBufferObjects[convexhull->index].bodies.push_back(body);
         break;
       }
       case S2_COLLISIONOBJECT_SPHERE: {
-        m_sphereBufferObject.sphereTransforms.push_back(&object->dAbsolute);
+        m_sphereBufferObject.sphereTransforms.push_back(
+          &collisionObject->dAbsolute);
         m_sphereBufferObject.sphereBodies.push_back(body);
         break;
       }
       case S2_COLLISIONOBJECT_ELLIPSOID: {
-        m_sphereBufferObject.ellipsoidTransforms.push_back(&object->dAbsolute);
+        m_sphereBufferObject.ellipsoidTransforms.push_back(
+          &collisionObject->dAbsolute);
         m_sphereBufferObject.ellipsoidBodies.push_back(body);
         break;
       }
@@ -669,7 +664,7 @@ void Shift::Bodies::draw() {
       } break;
       default: { } break; }
 
-    if(m_drawConvexHullEnabled) {
+    if(m_drawCollisionGeometryEnabled) {
       m_programLine->bind();
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       for(int i = 0; i < m_convexhullBufferObjects.size(); i++) {

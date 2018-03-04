@@ -45,12 +45,13 @@ typedef struct s2_simplex_t {
     objectB; /*!< second collision object to test collision */
   s2_collisionobject_history_t objectAHistory;
   s2_collisionobject_history_t objectBHistory;
-  bool (*support)(s2_collisionobject_t*, s2_collisionobject_history_t*,
-                  s2_collisionobject_t*, s2_collisionobject_history_t*); /*!<
-                                             function pointer to level 2 support
-                                             mapping function, i.e. for two
-                                             convex hulls this is a pointer to
-                                             the gjk algorithm */
+  bool (*support)(s2_context_t*, s2_collisionobject_t*,
+                  s2_collisionobject_history_t*, s2_collisionobject_t*,
+                  s2_collisionobject_history_t*); /*!<
+                      function pointer to level 2 support
+                      mapping function, i.e. for two
+                      convex hulls this is a pointer to
+                      the gjk algorithm */
   s2_vector_t searchDirectionVector; /*!< search direction vector from previous
                                         call to s2_simplex_support stored here
                                       */
@@ -66,7 +67,7 @@ typedef struct s2_simplex_t {
                                        structure in doubly linked list */
 } s2_simplex_t;
 
-void s2_simplex_support(s2_simplex_t*);
+void s2_simplex_support(s2_context_t*, s2_simplex_t*);
 
 s2_simplex_t* s2_simplex_alloc(s2_collisionobject_t*, s2_collisionobject_t*);
 
