@@ -431,7 +431,8 @@ int s2_body_loadCollisionGeometry(
   }
 
   /* check if collision geometry was used in specification of another body
-  Both the filename and collisionobject type must match */
+  Both the filename specifying body geometry and collisionobject type must match
+  */
   printf("loading collision geometry for: %s\n", fileName);
   // s2_body_t* body2 = body;
   body->collisionGeometryInstanceOf = s2_collisionGeometryInUse(
@@ -444,21 +445,24 @@ int s2_body_loadCollisionGeometry(
   switch(collisionObjectType) {
     case S2_COLLISIONOBJECT_CONVEXHULL: {
       s2_collisionobject_convexhull(context, body);
-    } break;
+      break;
+    }
     case S2_COLLISIONOBJECT_ELLIPSOID: {
       s2_collisionobject_ellipsoid(context, body);
-    } break;
+      break;
+    }
     case S2_COLLISIONOBJECT_SPHERE: {
       s2_collisionobject_sphere(context, body);
-    } break;
+      break;
+    }
     case S2_COLLISIONOBJECT_OBB: {
       printf("object aligned bounding boxes not handled yet\n");
       return -1;
-    } break;
+    }
     case S2_COLLISIONOBJECT_AABB: {
       printf("axis aligned bounding boxes not handled yet\n");
       return -1;
-    } break;
+    }
     default:
       break;
   }

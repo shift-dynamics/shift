@@ -61,7 +61,8 @@ Level 2 code interfaces with Level 3 code by calling::
 
     s2_collisionobject_t* collisionobject;
     s2_vector_t* searchVector;
-    s2_vector_t* extremeVertex = s2_collisionobject_support(collisionobject, searchVector);
+    s2_vector_t* extremeVertex =
+      s2_collisionobject_support(collisionobject, context, searchVector);
 
 Look in **simplex.c** for additional examples.
 

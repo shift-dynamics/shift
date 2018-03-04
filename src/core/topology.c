@@ -564,33 +564,33 @@ void topology_processLevels(s2_context_t* context) {
 }
 
 /*!
-@brief if chord loops are present, initialize
-virtual massless bodies for each independent chord loop
-
+@brief if chord loops are present, initialize one
+virtual massless body for each independent chord loop
 */
 void topology_processVirtualBodies(s2_context_t* context) {
 
-  /*
-    clear body indices
-  */
+  /* clear body indices */
   for(int i = 0; i < context->activeJointCount; i++) {
     if(context->bodyPointers[i]) {
       context->bodyPointers[i]->index = -1;
     }
   }
-  /* chord constraint count */
+
+  /* k is chord constraint counter */
   int k = 0;
   for(int i = 0; i < context->activeJointCount; i++) {
 
     /* @TODO need to add a pointer from chord constraint to virtual body */
 
+    /* find index of child body */
     int index;
-
     if(context->jointPointers[i]->sense > 0) {
       index = context->jointPointers[i]->childBodyPointer->index;
     } else {
       index = context->jointPointers[i]->parentBodyPointer->index;
     }
+    s2_stackstr_print(stdout, context->jointPointers[i]->name);
+    printf("index: %d\n", index);
 
     if(index < 0) {
       if(context->jointPointers[i]->sense > 0) {
@@ -608,7 +608,7 @@ void topology_processVirtualBodies(s2_context_t* context) {
       virtualBody->isVirtual = true;
       free(virtualBodyName);
 
-      // printf("chord constraint count: %d\n", k);
+      printf("chord constraint count: %d\n", k);
       context->chordConstraints[k].parentBodyPointer = virtualBody;
       context->chordConstraints[k].parentFramePointer = virtualBody->origin;
 

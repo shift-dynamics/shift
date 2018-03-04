@@ -1,0 +1,3488 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "include_dir": [
+      "."
+    ],
+    "simulation": {
+      "integration_type": "ode113b",
+      "time_span": 100,
+      "time_step": 0.03,
+      "relative_error": 1e-09,
+      "absolute_error": 1e-09
+    }
+  },
+  "fixed": {
+    "frames": [
+      {
+        "name": "overhead_1",
+        "T": [
+          0.0,
+          0.0,
+          -24.0
+        ],
+        "R": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        ]
+      },
+      {
+        "name": "overhead_2",
+        "T": [
+          36.0,
+          36.0,
+          -12.0
+        ],
+        "R": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        ]
+      }
+    ],
+    "lights": [
+      {
+        "name": "overhead_1",
+        "type": "point",
+        "parent": [
+          "fixed",
+          "overhead_1"
+        ],
+        "Ka": [
+          0.2,
+          0.2,
+          0.2
+        ],
+        "Kd": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "Ks": [
+          0.8,
+          0.8,
+          0.8
+        ]
+      },
+      {
+        "name": "overhead_2",
+        "type": "point",
+        "parent": [
+          "fixed",
+          "overhead_2"
+        ],
+        "Ka": [
+          0.2,
+          0.2,
+          0.2
+        ],
+        "Kd": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "Ks": [
+          0.8,
+          0.8,
+          0.8
+        ]
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "collision_test",
+      "active": true,
+      "bodies": [
+        {
+          "name": "body0",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body1",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body2",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body3",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body4",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body5",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body6",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body7",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body8",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body9",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body10",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body11",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body12",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body13",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body14",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body15",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body16",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body17",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body18",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body19",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body20",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body21",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body22",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body23",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body24",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body25",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body26",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body27",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body28",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body29",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body30",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body31",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body32",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body33",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body34",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body35",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body36",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body37",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body38",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body39",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body40",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body41",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body42",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body43",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body44",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body45",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body46",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body47",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "ellipsoid",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body48",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "convex_hull",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "body49",
+          "definition": [
+            "stanford_bunny.obj"
+          ],
+          "collision_geometry": "sphere",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mass": 1.0,
+          "moment_of_inertia": {
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body0",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.4403830974661279,
+                -0.04781429627511899,
+                -0.8965358445359861
+              ],
+              [
+                -0.7689900464920075,
+                -0.4952971842923921,
+                0.40414725983018635
+              ],
+              [
+                -0.4633756962361737,
+                0.8674067628879447,
+                0.1813517902693489
+              ]
+            ],
+            "T": [
+              -4.756280612918847,
+              -7.035072130518937,
+              -1.0259695898644132
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "B",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body1",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.4102439221846648,
+                -0.6696857295209953,
+                0.6190484213585195
+              ],
+              [
+                0.9119750154576648,
+                0.3021619083263887,
+                -0.27748829225310956
+              ],
+              [
+                -0.0012229029130697566,
+                0.678394579011719,
+                0.734696739938308
+              ]
+            ],
+            "T": [
+              5.694788014706763,
+              -0.6574824683467728,
+              -6.524234978987065
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "C",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body2",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.48299645439792616,
+                -0.8567688077739148,
+                0.18072530277937462
+              ],
+              [
+                -0.44085785569755576,
+                0.05961480028898883,
+                -0.8955950126347604
+              ],
+              [
+                0.7565439683909885,
+                -0.5122433851326618,
+                -0.40650699659298173
+              ]
+            ],
+            "T": [
+              -8.196304024686649,
+              6.135982002370316,
+              8.816573679565721
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "D",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body3",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.8895132568549813,
+                -0.4033394498512891,
+                -0.2146705710452722
+              ],
+              [
+                -0.20518683403020527,
+                0.7724163488555975,
+                -0.6010585222432572
+              ],
+              [
+                0.4082456723835595,
+                -0.49060194884880626,
+                -0.7698345268730473
+              ]
+            ],
+            "T": [
+              -4.45961373916369,
+              -9.6515388564127,
+              8.975239675096997
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "E",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body4",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.40274434286181476,
+                0.43475834678047265,
+                0.8054701572358317
+              ],
+              [
+                -0.4355894490419437,
+                0.682922271910124,
+                -0.5864119732853779
+              ],
+              [
+                -0.8050210097731245,
+                -0.5870284068372034,
+                -0.08566693288564786
+              ]
+            ],
+            "T": [
+              5.457924217365875,
+              2.3455723608961563,
+              -8.141666558341827
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "F",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body5",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.435577702857446,
+                -0.8495203684930568,
+                -0.29763603325009486
+              ],
+              [
+                0.7454719536570145,
+                -0.1551137021880502,
+                -0.6482370752312082
+              ],
+              [
+                0.5045231719992895,
+                -0.5042369313219114,
+                0.7008576788527305
+              ]
+            ],
+            "T": [
+              -7.461298888296202,
+              1.6242466700348768,
+              9.126724470053784
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "G",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body6",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.5044978205005518,
+                0.054934503209593324,
+                0.8616635941406068
+              ],
+              [
+                -0.7812704621188822,
+                0.39579550476364617,
+                -0.4826617691815242
+              ],
+              [
+                -0.36755736168758935,
+                -0.9166941249762681,
+                -0.156759264808345
+              ]
+            ],
+            "T": [
+              -0.2720071682212222,
+              -4.914801948378313,
+              4.549504873562459
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "H",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body7",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.4404940115149864,
+                0.6509664689789085,
+                -0.6182294736459645
+              ],
+              [
+                0.8967202197172078,
+                -0.2859728338358392,
+                0.33780524841722326
+              ],
+              [
+                0.0431030552253272,
+                -0.7031800584295822,
+                -0.7097041158519597
+              ]
+            ],
+            "T": [
+              4.185205771951843,
+              -9.051373992335915,
+              -6.842233770629584
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "I",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body8",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.5788211323809509,
+                0.7763024580225721,
+                -0.24964092288193943
+              ],
+              [
+                -0.035567468882176656,
+                -0.281811654054126,
+                -0.9588102767474871
+              ],
+              [
+                -0.8146784960133346,
+                0.5638587458817946,
+                -0.1355074271988831
+              ]
+            ],
+            "T": [
+              -9.411415146041989,
+              7.09421731141375,
+              5.824011305070261
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "J",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body9",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.09239533978488854,
+                0.9929332358064712,
+                0.07447610634912118
+              ],
+              [
+                0.6943037314769915,
+                -0.010632293874003329,
+                -0.719603559457638
+              ],
+              [
+                -0.7137264389408315,
+                0.11819705393057581,
+                -0.690379625133138
+              ]
+            ],
+            "T": [
+              -6.794459720782628,
+              -5.373497157223479,
+              7.675927526331549
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "K",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body10",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.6499829620851099,
+                -0.4345063223366794,
+                -0.6234792737922571
+              ],
+              [
+                0.5676231803265746,
+                0.2679269123392674,
+                -0.7784722826153104
+              ],
+              [
+                0.5052980052949068,
+                -0.8598950084131204,
+                0.07248793245215523
+              ]
+            ],
+            "T": [
+              7.116425887793195,
+              6.271210285051126,
+              1.7814557853909498
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "L",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body11",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.12975878822629722,
+                0.1677267664502884,
+                -0.9772565623694596
+              ],
+              [
+                0.6767452551413952,
+                -0.7353195535258968,
+                -0.03634575416859301
+              ],
+              [
+                -0.7246920149426589,
+                -0.6566375606212351,
+                -0.20892246758006383
+              ]
+            ],
+            "T": [
+              -4.021985527142502,
+              -2.413575394617393,
+              6.022949015863109
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "M",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body12",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.6131769030676736,
+                -0.7601046758999227,
+                0.2150696799165574
+              ],
+              [
+                -0.2257313539466765,
+                0.09230668314098878,
+                0.9698065951997384
+              ],
+              [
+                -0.7570068965271961,
+                -0.6432109746596234,
+                -0.11497913153124872
+              ]
+            ],
+            "T": [
+              -8.48132409102508,
+              -8.610544175936287,
+              -0.34034592362214156
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "N",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body13",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.7458316679416167,
+                0.663252333299512,
+                0.06189883252678615
+              ],
+              [
+                0.597177451229825,
+                -0.6245595306669635,
+                -0.5032936363552726
+              ],
+              [
+                -0.2951511728556681,
+                0.4123369193097024,
+                -0.861895614408211
+              ]
+            ],
+            "T": [
+              -3.6620497836318684,
+              -7.014413037809675,
+              4.641729713598659
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "O",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body14",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.3955092233382209,
+                -0.905251017404347,
+                0.155219360077252
+              ],
+              [
+                -0.9132654183859987,
+                -0.3696627125061215,
+                0.17116002618270165
+              ],
+              [
+                -0.09756397816122403,
+                -0.20945184284462845,
+                -0.9729394614745284
+              ]
+            ],
+            "T": [
+              -7.714392310252418,
+              -4.437702136293183,
+              2.572670747764519
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "P",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body15",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.28336480335912156,
+                -0.7990099435796852,
+                0.5303654384271613
+              ],
+              [
+                -0.9240212508743757,
+                0.0794494472269674,
+                -0.37399533856437783
+              ],
+              [
+                0.2566887534540626,
+                -0.5960460514055252,
+                -0.7608153445180252
+              ]
+            ],
+            "T": [
+              -4.785405691713754,
+              0.4104276572226002,
+              4.503996803704721
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Q",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body16",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.17406240959681812,
+                0.8374814170052498,
+                0.5180030441379938
+              ],
+              [
+                -0.8925503101241082,
+                -0.08804634934609121,
+                0.44226890492570714
+              ],
+              [
+                0.41600026618105385,
+                -0.5393261689717131,
+                0.7321687387478293
+              ]
+            ],
+            "T": [
+              -2.9244144143363187,
+              -6.523447238089899,
+              -0.12675754866789113
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "R",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body17",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.11107384901465703,
+                0.5464620726087265,
+                0.8300854192583099
+              ],
+              [
+                -0.9805692768755851,
+                0.19616217185782836,
+                0.0020725780351247367
+              ],
+              [
+                -0.16169877338050853,
+                -0.8141864685268325,
+                0.5576324068371963
+              ]
+            ],
+            "T": [
+              -7.252365034080277,
+              2.5218677923685444,
+              -6.97107295609086
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "S",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body18",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.0006049978222570362,
+                0.9441239095535983,
+                -0.3295901657921
+              ],
+              [
+                0.15302321246876088,
+                0.3257959127732841,
+                0.9329742331200594
+              ],
+              [
+                0.9882224093914159,
+                -0.04987049858835907,
+                -0.14466997942618565
+              ]
+            ],
+            "T": [
+              6.412292120427722,
+              -0.19772453914058374,
+              5.792603977355903
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "T",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body19",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.7011003528438675,
+                0.6204797501179935,
+                0.3513732700928129
+              ],
+              [
+                -0.1845052846054991,
+                0.6338408714850254,
+                -0.7511348411488762
+              ],
+              [
+                -0.6887786982731452,
+                0.4617906769615602,
+                0.5588678515324852
+              ]
+            ],
+            "T": [
+              -6.1781828286217655,
+              5.060304224800635,
+              1.12317900562455
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "U",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body20",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.9172004951409343,
+                -0.001049818204352293,
+                0.3984245845765078
+              ],
+              [
+                0.3167502736614164,
+                -0.6085232859660381,
+                0.7275772636445651
+              ],
+              [
+                0.24168681355970334,
+                0.7935353226661261,
+                0.5584703893963616
+              ]
+            ],
+            "T": [
+              1.5420488155892613,
+              -5.7585627994193285,
+              -1.2650807908353876
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "V",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body21",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.006787933759864652,
+                -0.08895583529815689,
+                0.9960124413488413
+              ],
+              [
+                0.9915931931341663,
+                -0.12810823785793798,
+                -0.018199415455500852
+              ],
+              [
+                0.12921634294956513,
+                0.9877626935450342,
+                0.08733841053854374
+              ]
+            ],
+            "T": [
+              9.418094295947032,
+              -1.5423205691469093,
+              -9.550335885436752
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "W",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body22",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.30568992931201255,
+                -0.06996019917710383,
+                -0.9495573903921324
+              ],
+              [
+                0.7155826551591016,
+                -0.641001774705819,
+                0.27759356703540655
+              ],
+              [
+                -0.6280884736664627,
+                -0.7643443565272725,
+                -0.14588548211608487
+              ]
+            ],
+            "T": [
+              5.698780932556797,
+              0.5711135488196568,
+              -6.341236422748513
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "X",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body23",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.4764711375374498,
+                0.8451764093075917,
+                0.2421819403747825
+              ],
+              [
+                0.15596420015868273,
+                0.35234510301325433,
+                -0.9227828003660675
+              ],
+              [
+                -0.8652458745134999,
+                -0.4019076579669829,
+                -0.29969953470912114
+              ]
+            ],
+            "T": [
+              2.2060457682619568,
+              -7.400741364590015,
+              -4.92021931735019
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Y",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body24",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.8230274471576513,
+                -0.32488021755466423,
+                0.46591701564419563
+              ],
+              [
+                -0.15423328946721834,
+                0.661629618055664,
+                0.7337972069527366
+              ],
+              [
+                -0.5466606933421141,
+                -0.6757951559112793,
+                0.49443199087596357
+              ]
+            ],
+            "T": [
+              -9.350844535877382,
+              -3.887709924609055,
+              7.487553390214899
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Z",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body25",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.7917900758135824,
+                0.5239190493833629,
+                0.3139702303345885
+              ],
+              [
+                0.05209514199184298,
+                -0.4542364253308731,
+                0.8893567147570651
+              ],
+              [
+                0.6085676396457266,
+                0.7205401443333073,
+                0.33236625638016504
+              ]
+            ],
+            "T": [
+              2.1333415679966645,
+              7.964496057387834,
+              -8.336973787521085
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AA",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body26",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.7413574662310228,
+                0.06497802495977889,
+                0.6679573066715
+              ],
+              [
+                -0.6704134445151451,
+                -0.11705189203388877,
+                -0.7326968458950984
+              ],
+              [
+                0.030576472603236482,
+                -0.9909978359429517,
+                0.13033943562686767
+              ]
+            ],
+            "T": [
+              0.14296383875706908,
+              0.14597767907190295,
+              -9.625593732285495
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AB",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body27",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.3953070406643914,
+                -0.5696712238742456,
+                -0.7205602266922456
+              ],
+              [
+                0.1202734717509949,
+                0.7455996487685286,
+                -0.6554505746043782
+              ],
+              [
+                0.9106407829622634,
+                -0.34576850701859185,
+                -0.22622445482310294
+              ]
+            ],
+            "T": [
+              -7.084094475043967,
+              8.329237963449852,
+              0.6512650296548994
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AC",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body28",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.6577546317540739,
+                0.6023276444148016,
+                -0.45228337707656124
+              ],
+              [
+                -0.3430882302549825,
+                -0.2949749911527396,
+                -0.8917848512140948
+              ],
+              [
+                -0.6705589539082799,
+                0.7417487198291328,
+                0.012630358873594982
+              ]
+            ],
+            "T": [
+              -7.125809550267144,
+              -6.46040809274888,
+              7.2518328835142185
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AD",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body29",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.053666798935745164,
+                0.6747909005313418,
+                -0.7360551034074085
+              ],
+              [
+                0.02647197664742207,
+                0.73589687757603,
+                0.6765759528879428
+              ],
+              [
+                0.9982079488485194,
+                -0.055794499137014175,
+                0.021630180805556565
+              ]
+            ],
+            "T": [
+              -4.081568563476729,
+              -5.4450682371230315,
+              -8.160743456887944
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AE",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body30",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.5342180185131328,
+                -0.22042296223736543,
+                0.8161034410014499
+              ],
+              [
+                0.5619341305439246,
+                0.8138284620653298,
+                -0.14803130500750025
+              ],
+              [
+                -0.6315387095228174,
+                0.5376773679920749,
+                0.5586250140509013
+              ]
+            ],
+            "T": [
+              9.301003520585173,
+              9.52932793807594,
+              0.8408019049371447
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AF",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body31",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.1359083395070767,
+                0.6373033540122066,
+                0.7585336895729953
+              ],
+              [
+                -0.022974390725237992,
+                0.767459204104986,
+                -0.6406859975099701
+              ],
+              [
+                -0.9904549967682699,
+                0.06964772070450881,
+                0.11894576233491239
+              ]
+            ],
+            "T": [
+              -2.9224077808452993,
+              -3.0290421760462145,
+              3.0143637295623726
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AG",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body32",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.7495190259251392,
+                -0.45804882693272975,
+                -0.47792520536353883
+              ],
+              [
+                -0.1371678840241934,
+                0.5988298055968875,
+                -0.7890423534393572
+              ],
+              [
+                0.6476157822108384,
+                0.6569582453050912,
+                0.3860047442157932
+              ]
+            ],
+            "T": [
+              9.810882820220964,
+              6.212674043112642,
+              -5.062584004343629
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AH",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body33",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.47813369722914395,
+                -0.8774240134972722,
+                0.038926444897113305
+              ],
+              [
+                -0.6118420276848631,
+                0.30095836677284316,
+                -0.7314871117305474
+              ],
+              [
+                0.6301091181156362,
+                -0.3735654721836074,
+                -0.6807432241747058
+              ]
+            ],
+            "T": [
+              -4.78405675845893,
+              7.923715520042492,
+              -7.585677219709921
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AI",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body34",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.7216047040748633,
+                -0.027508481682455066,
+                0.6917585810761984
+              ],
+              [
+                -0.14766332280098693,
+                0.9823325541838698,
+                -0.11497084887033787
+              ],
+              [
+                -0.6763743003370255,
+                -0.1851108760341234,
+                -0.7129177858753972
+              ]
+            ],
+            "T": [
+              2.8815658387818033,
+              7.459797675660894,
+              -4.360413404409118
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AJ",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body35",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.4352113066916824,
+                0.5517521776819398,
+                0.7114496840613225
+              ],
+              [
+                -0.19279239253080127,
+                -0.8289942129731821,
+                0.5249758930076922
+              ],
+              [
+                0.8794442631059503,
+                0.09131335762204551,
+                0.4671612770872826
+              ]
+            ],
+            "T": [
+              4.381337062870065,
+              -7.830568717569624,
+              1.639130461450387
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AK",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body36",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.9843423513243347,
+                -0.17056086053942227,
+                -0.044487394184550375
+              ],
+              [
+                -0.16034225269486707,
+                0.9712564245779471,
+                -0.1759298715875073
+              ],
+              [
+                0.07321541770703145,
+                -0.16604201446655986,
+                -0.9833969453083895
+              ]
+            ],
+            "T": [
+              9.82875546428545,
+              4.717103452972751,
+              5.192040425582778
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AL",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body37",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.5578676724710243,
+                -0.4411678355541697,
+                -0.7029613082412225
+              ],
+              [
+                0.7502974774248073,
+                0.6301304812760272,
+                0.19997317804348902
+              ],
+              [
+                0.3547356133541326,
+                -0.6389886676923866,
+                0.6825365390797593
+              ]
+            ],
+            "T": [
+              -1.8479418671168535,
+              5.305324791556895,
+              -4.8108191686582575
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AM",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body38",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.6425142948905663,
+                -0.4777696456791271,
+                -0.5990922687941481
+              ],
+              [
+                0.13592140853462298,
+                0.8404870045901655,
+                -0.524506402074384
+              ],
+              [
+                0.754122504347432,
+                0.2555733960777071,
+                0.6049640383147292
+              ]
+            ],
+            "T": [
+              3.3513416492320083,
+              6.619596283480508,
+              -3.4514079898729104
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AN",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body39",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.8263832155374382,
+                -0.2719123962090498,
+                0.49310691524846373
+              ],
+              [
+                -0.3881722420753521,
+                -0.9094576882284642,
+                0.14902692308550086
+              ],
+              [
+                0.40793760743549673,
+                -0.3145637647759035,
+                -0.8571094132780321
+              ]
+            ],
+            "T": [
+              0.678416876453241,
+              4.014223140903027,
+              -8.293414469213726
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AO",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body40",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.392470109629974,
+                0.8717817858099368,
+                0.29319572128029725
+              ],
+              [
+                -0.17665767713284047,
+                0.3842860026259384,
+                -0.9061546961175041
+              ],
+              [
+                -0.9026401709192126,
+                0.3038433578602875,
+                0.3048277148277694
+              ]
+            ],
+            "T": [
+              -7.526458213924656,
+              7.93681266165142,
+              -4.057007544785383
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AP",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body41",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.7680997407521161,
+                0.5453321875941545,
+                -0.33561226650750714
+              ],
+              [
+                0.5860832106193056,
+                0.8098519482784957,
+                -0.025422275659180926
+              ],
+              [
+                0.25793266269842363,
+                -0.21622355802108753,
+                -0.9416571108795402
+              ]
+            ],
+            "T": [
+              8.552894824829107,
+              9.458504411723524,
+              -7.9404532831840235
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AQ",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body42",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.68411566503288,
+                0.5707473125128631,
+                0.45412912493691077
+              ],
+              [
+                0.5861295915244584,
+                -0.059632503532815476,
+                -0.8080198428638867
+              ],
+              [
+                -0.4340942971244746,
+                0.8189575506592224,
+                -0.37532741895877453
+              ]
+            ],
+            "T": [
+              -3.8919093730914174,
+              -1.815709135998647,
+              3.133371671912041
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AR",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body43",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.2484498043111611,
+                0.7469874499365312,
+                0.6166704503825883
+              ],
+              [
+                0.786335195631207,
+                -0.5272977876196412,
+                0.32192235598520225
+              ],
+              [
+                0.565640923952093,
+                0.4049281328936656,
+                -0.7183895547277066
+              ]
+            ],
+            "T": [
+              9.278336229042555,
+              -7.625283651698076,
+              -4.203799005277993
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AS",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body44",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.6761527242674661,
+                -0.11792523110033679,
+                -0.727262767736405
+              ],
+              [
+                0.6344034212699068,
+                -0.4087415993453244,
+                0.6560964898897598
+              ],
+              [
+                -0.37463287702325504,
+                -0.9049994170354798,
+                -0.2015595758546842
+              ]
+            ],
+            "T": [
+              8.369828276184908,
+              -8.229430500763822,
+              -6.342134631254459
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AT",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body45",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.8278454189669378,
+                0.4109349208270925,
+                -0.38184349299194076
+              ],
+              [
+                0.47446425439652185,
+                0.8760811545707765,
+                -0.08582238580864385
+              ],
+              [
+                0.29925847288825047,
+                -0.2522187571350836,
+                -0.9202337012704034
+              ]
+            ],
+            "T": [
+              3.4543564558522633,
+              -1.2053096869765572,
+              -7.012547892961464
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AU",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body46",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.620797315574107,
+                -0.42070690383287584,
+                -0.6615258075414274
+              ],
+              [
+                -0.14610905545152092,
+                0.8911178413888297,
+                -0.4296057921788033
+              ],
+              [
+                0.7702355723355334,
+                -0.17004321164300612,
+                -0.6146726521353338
+              ]
+            ],
+            "T": [
+              -5.291058176393946,
+              -2.135891750674306,
+              -0.15131565340176856
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AV",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body47",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.15538470934955645,
+                -0.4759425947038789,
+                0.8656409409488978
+              ],
+              [
+                0.7626006689164028,
+                0.6148033135550965,
+                0.2011395172757676
+              ],
+              [
+                -0.6279297825940485,
+                0.6288843551784484,
+                0.45848517527088917
+              ]
+            ],
+            "T": [
+              -2.581771179274477,
+              -6.02011148943713,
+              -9.425340024073115
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AW",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body48",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                -0.5082125591227185,
+                -0.5773761814850764,
+                -0.6390279648056485
+              ],
+              [
+                -0.8148576404079272,
+                0.0821675468128793,
+                0.5738079122141646
+              ],
+              [
+                -0.2787956610472312,
+                0.8123332070674356,
+                -0.5122379721152779
+              ]
+            ],
+            "T": [
+              -1.7599629701277983,
+              9.054879848416657,
+              -3.1346454320274013
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "AX",
+          "body_frame_pairs": [
+            [
+              "fixed",
+              "origin"
+            ],
+            [
+              "body49",
+              "origin"
+            ]
+          ],
+          "type": "float",
+          "initial_displacement": {
+            "R": [
+              [
+                0.47260307465927187,
+                0.03401012685032956,
+                -0.8806188988968083
+              ],
+              [
+                -0.4751938064021948,
+                0.8513775315117142,
+                -0.22214217338005302
+              ],
+              [
+                0.7421840608498651,
+                0.52344972070739,
+                0.41852504072248675
+              ]
+            ],
+            "T": [
+              -1.1421752089995394,
+              -0.3594698189159651,
+              0.49050808007076085
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -66,15 +66,13 @@ typedef struct s2_collisionobject_t {
   s2_displacement_t* referenceFrame; /*! pointer to absolute displacement of
     collision object's reference frame, typically the body reference frame or
     the body origin */
-  void* object; /*!< void pointer to collision geometry, which contains
-                   underlying convex geometry used by s2_collisionobject_support
-                   functions */
   s2_vector_t (*support)(
-    void*, s2_vector_t*,
+    void*, int, s2_vector_t*,
     s2_collisionobject_history_t*); /*!< function pointer to primitive support
                                        function*/
-  int index; /*! unique index of collision geometry, currently not used */
-  s2_collisionobject_enum_t type; /*!< collision object type, used for initial
+  int index;                        /*!< unique index of collision geometry */
+  int objectIndex; /*!< index of underlying convex geometry object */
+  s2_collisionobject_enum_t type; /*!< collision object type, used for  initial
                                      set up of a s2_collisionobject_t
                                      datstructure and for debugging
                                      purposes, generally it would not be
@@ -82,7 +80,8 @@ typedef struct s2_collisionobject_t {
   float color[3]; /*!< color of collision geometry, for display in GUI only */
 } s2_collisionobject_t;
 
-s2_vector_t s2_collisionobject_support(s2_collisionobject_t*, s2_vector_t*,
+s2_vector_t s2_collisionobject_support(s2_collisionobject_t*, s2_context_t*,
+                                       s2_vector_t*,
                                        s2_collisionobject_history_t*);
 
 s2_collisionobject_t* s2_collisionobject_alloc(int count);
