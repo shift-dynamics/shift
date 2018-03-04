@@ -49,6 +49,7 @@ typedef struct s2_ellipsoid_t {
   double a;
   double b;
   double c;
+  int index;
 } s2_ellipsoid_t;
 
 s2_ellipsoid_t* s2_ellipsoid_alloc(int);

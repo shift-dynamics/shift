@@ -61,6 +61,7 @@ typedef struct s2_simplex_t {
                             simplex dimension changes. */
   bool collision;        /*!< indicates whether collision has occurred between
                             collision object data structures */
+  bool success;
   struct s2_simplex_t* next; /*!< pointer to next simplex data
                                        structure in doubly linked list */
   struct s2_simplex_t* prev; /*!< pointer to previous simplex data

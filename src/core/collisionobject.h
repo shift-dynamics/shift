@@ -84,9 +84,9 @@ s2_vector_t s2_collisionobject_support(s2_collisionobject_t*, s2_context_t*,
                                        s2_vector_t*,
                                        s2_collisionobject_history_t*);
 
-s2_collisionobject_t* s2_collisionobject_alloc(int count);
+int s2_collisionobject_alloc(s2_context_t*, int count);
 
-void s2_collisionobject_init(s2_collisionobject_t*);
+void s2_collisionobject_init(s2_collisionobject_t*, int);
 
 void s2_collisionobject_free(s2_collisionobject_t*, int);
 

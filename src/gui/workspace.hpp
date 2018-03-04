@@ -195,9 +195,8 @@ private:
   QAction* m_actionToggleDrawTerrain;
   QAction* m_actionToggleDrawGrid;
   QAction* m_actionToggleDrawShadows;
-  QAction* m_actionToggleDrawConvexHulls;
+  QAction* m_actionToggleDrawCollisionGeometry;
   QAction* m_actionToggleDrawNormals;
-  QAction* m_actionToggleDrawBoundingSpheres;
 
   struct m_sliders {
     QGroupBox* groupBox;
