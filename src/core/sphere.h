@@ -48,6 +48,7 @@ typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
 
 typedef struct s2_sphere_t {
   double radius;
+  int index;
 } s2_sphere_t;
 
 s2_sphere_t* s2_sphere_alloc(int);

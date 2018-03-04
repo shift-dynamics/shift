@@ -86,7 +86,7 @@ s2_body_t* s2_body(s2_stackstr_t* name) {
   // body->glModelView = NULL;
   // body->glModelViewProjection = NULL;
   body->collisionObjectCount = 0;
-  body->collisionObjects = NULL;
+  body->collisionObjectOffset = -1;
   body->drawEnabled = true;
   body->collisionObjectDrawEnabled = true;
   body->name = name;
@@ -368,17 +368,17 @@ s2_body_t* s2_geometryInUse(s2_assembly_t* assembly, s2_body_t* body,
 }
 
 s2_body_t*
-s2_collisionGeometryInUse(s2_assembly_t* assembly, s2_body_t* body,
-                          const char* filename,
+s2_collisionGeometryInUse(s2_context_t* context, s2_assembly_t* assembly,
+                          s2_body_t* body, const char* filename,
                           s2_collisionobject_enum_t collisionObjectType) {
 
   s2_body_t* bodyHead = assembly->bodyHead;
   while(bodyHead) {
     if(body != bodyHead) {
-      if(bodyHead->collisionObjects &&
+      if(bodyHead->collisionObjectCount &&
          s2_stackstr_in(bodyHead->definition, filename) &&
-         bodyHead->collisionObjects[0].type == collisionObjectType) {
-
+         context->collisionObjects[bodyHead->collisionObjectOffset + 0].type ==
+           collisionObjectType) {
         return bodyHead;
       }
     }
@@ -387,7 +387,7 @@ s2_collisionGeometryInUse(s2_assembly_t* assembly, s2_body_t* body,
   s2_assembly_t* subassemblyHead = assembly->subAssemblyHead;
   while(subassemblyHead) {
     s2_body_t* instance = s2_collisionGeometryInUse(
-      subassemblyHead, body, filename, collisionObjectType);
+      context, subassemblyHead, body, filename, collisionObjectType);
     if(instance) {
       return instance;
     }
@@ -436,7 +436,7 @@ int s2_body_loadCollisionGeometry(
   printf("loading collision geometry for: %s\n", fileName);
   // s2_body_t* body2 = body;
   body->collisionGeometryInstanceOf = s2_collisionGeometryInUse(
-    context->assembly, body, fileName, collisionObjectType);
+    context, context->assembly, body, fileName, collisionObjectType);
 
   if(body->collisionGeometryInstanceOf) {
     printf("collision geometry already loaded on body: ");

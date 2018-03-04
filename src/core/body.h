@@ -120,10 +120,10 @@ typedef struct s2_body_t {
   s2_vector_t* centerOfMassWRTReference; /*!< vector from body reference
                                                 frame to center of mass */
   int collisionObjectCount;
-  s2_collisionobject_t*
-    collisionObjects; /*!< pointer to one or more s2_collisionobject_t*
-                         datastructures, s2_collisionobject_t is the level 3
-                         interface to all primitive convex geometries */
+  int collisionObjectOffset; /*!< index to beginning of array of one or more
+                       s2_collisionobject_t* datastructures stored in
+                       s2_context_t datastructure, s2_collisionobject_t is the
+                       level 3 interface to all primitive convex geometries */
   bool drawEnabled;
   bool isVisible;
   bool collisionObjectDrawEnabled;

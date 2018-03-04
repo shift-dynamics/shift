@@ -368,7 +368,8 @@ assigns transforms to collision buffer objects
 void Shift::Bodies::setCollisionObjectTransforms(s2_body_t* body) {
 
   for(int i = 0; i < body->collisionObjectCount; i++) {
-    s2_collisionobject_t* collisionObject = &body->collisionObjects[i];
+    s2_collisionobject_t* collisionObject =
+      &m_context->collisionObjects[body->collisionObjectOffset + i];
     switch(collisionObject->type) {
       case S2_COLLISIONOBJECT_CONVEXHULL: {
         s2_convexhull_t* convexhull =
@@ -665,20 +666,22 @@ void Shift::Bodies::draw() {
       default: { } break; }
 
     if(m_drawCollisionGeometryEnabled) {
+
+      /* draw convex hulls */
       m_programLine->bind();
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      for(int i = 0; i < m_convexhullBufferObjects.size(); i++) {
-        bool drawAnyEnabled = false;
-        for(int j = 0; j < m_convexhullBufferObjects.at(i).bodies.size(); j++) {
 
+      for(int i = 0; i < m_convexhullBufferObjects.size(); i++) {
+        bool drawAnyConvexHullsEnabled = false;
+        for(int j = 0; j < m_convexhullBufferObjects.at(i).bodies.size(); j++) {
           s2_body_t* body = m_convexhullBufferObjects.at(i).bodies.at(j);
           if(body->collisionObjectDrawEnabled) {
-            drawAnyEnabled = true;
+            drawAnyConvexHullsEnabled = true;
             break;
           }
         }
 
-        if(drawAnyEnabled) {
+        if(drawAnyConvexHullsEnabled) {
           m_convexhullBufferObjects.at(i).vao->bind();
           checkError("bodies: after bind vao flat");
 
@@ -695,7 +698,9 @@ void Shift::Bodies::draw() {
             s2_body_t* body = m_convexhullBufferObjects.at(i).bodies.at(j);
 
             if(body->collisionObjectDrawEnabled) {
-              GLfloat* color = body->collisionObjects[0].color;
+              s2_collisionobject_t* collisionObject =
+                &m_context->collisionObjects[body->collisionObjectOffset];
+              GLfloat* color = collisionObject->color;
               m_programLine->setColor(color[0], color[1], color[2], 1.f);
 
               // qDebug() << "color" << color[0] << color[1] << color[2];
@@ -719,57 +724,66 @@ void Shift::Bodies::draw() {
         }
       }
       m_programLine->release();
-    }
 
-    // if(m_drawBoundingSpheresEnabled) {
-    //   m_programPhong->bind();
-    //   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    //   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //   glEnable(GL_BLEND);
-    //   glEnable(GL_CULL_FACE);
-    //
-    //   m_sphere.vao->bind();
-    //   checkError("after bind bounding sphere vao");
-    //
-    //   m_programPhong->setKd(m_sphere.Kd);
-    //   m_programPhong->setKa(m_sphere.Ka);
-    //   m_programPhong->setKs(m_sphere.Ks);
-    //   m_programPhong->setNs(1000.0);
-    //
-    //   s2_displacement_t transform;
-    //   s2_displacement_setIdentity(&transform);
-    //
-    //   for(int i = 0; i < m_context->bodyCount; i++) {
-    //
-    //     s2_sphere_t* sphere = &m_context->boundingSpheres[i];
-    //     for(int i = 0; i < 3; i++) {
-    //       s2_displacement_set(&transform, i, i, sphere->radius);
-    //     }
-    //     transform.T = sphere->centerGlobal;
-    //
-    //     // s2_displacement_print(stdout, &transform);
-    //
-    //     m_programPhong->setTransform(&transform);
-    //     checkError("bounding spheres: after set transform");
-    //
-    //     glDrawElements(
-    //       GL_TRIANGLES,
-    //       3 * m_sphere.faceCount,
-    //       GL_UNSIGNED_INT,
-    //       0);
-    //     checkError("bounding spheres: after draw elements");
-    //   }
-    //
-    //   m_sphere.vao->release();
-    //   glDisable(GL_BLEND);
-    //   m_programPhong->release();
-    // }
-    //
-    // if(m_shadingType == S2_SHADING_WIREFRAME) {
-    //   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    // } else {
-    //   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    // }
+      /* draw bounding spheres */
+      m_programPhong->bind();
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glEnable(GL_BLEND);
+      glEnable(GL_CULL_FACE);
+
+      m_sphereBufferObject.vao->bind();
+      checkError("after bind bounding sphere vao");
+
+      m_programPhong->setKd(m_sphereBufferObject.Kd);
+      m_programPhong->setKa(m_sphereBufferObject.Ka);
+      m_programPhong->setKs(m_sphereBufferObject.Ks);
+      m_programPhong->setNs(1000.0);
+
+      s2_displacement_t transform;
+      s2_displacement_setIdentity(&transform);
+
+      qDebug() << "collisionObjectCount: " << m_context->collisionObjectCount;
+      for(int i = 0; i < m_context->collisionObjectCount; i++) {
+
+        s2_collisionobject_t* collisionObject = &m_context->collisionObjects[i];
+        if(collisionObject->type == S2_COLLISIONOBJECT_SPHERE) {
+
+          s2_sphere_t* sphere =
+            &m_context->spheres[collisionObject->objectIndex];
+          for(int i = 0; i < 3; i++) {
+            s2_displacement_set(&transform, i, i, sphere->radius);
+          }
+
+          s2_vector_t t;
+          s2_product_rv(&collisionObject->referenceFrame->R,
+                        &collisionObject->dWRTReference.T, &t);
+          printf("collisionObject->referenceFrame->T: ");
+          s2_vector_print(stdout, &collisionObject->referenceFrame->T);
+          s2_add_vv(&collisionObject->referenceFrame->T, &t, &transform.T);
+          // transform.T = sphere->centerGlobal;
+
+          // s2_displacement_print(stdout, &transform);
+
+          m_programPhong->setTransform(&transform);
+          checkError("bounding spheres: after set transform");
+
+          glDrawElements(GL_TRIANGLES, 3 * m_sphereBufferObject.faceCount,
+                         GL_UNSIGNED_INT, 0);
+          checkError("bounding spheres: after draw elements");
+        }
+      }
+
+      m_sphereBufferObject.vao->release();
+      glDisable(GL_BLEND);
+      m_programPhong->release();
+
+      if(m_shadingType == S2_SHADING_WIREFRAME) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      } else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      }
+    }
   }
 }
 

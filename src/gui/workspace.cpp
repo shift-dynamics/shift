@@ -1184,11 +1184,11 @@ void Shift::Workspace::initializeMenus() {
   m_actionToggleDrawShadows->setCheckable(true);
   m_actionToggleDrawShadows->setChecked(true);
 
-  m_actionToggleDrawConvexHulls = new QAction("Collision Geometry", this);
-  viewMenu->addAction(m_actionToggleDrawConvexHulls);
-  m_actionToggleDrawConvexHulls->setIcon(QIcon(":/icons/convexhull.png"));
-  m_actionToggleDrawConvexHulls->setCheckable(true);
-  m_actionToggleDrawConvexHulls->setChecked(false);
+  m_actionToggleDrawCollisionGeometry = new QAction("Collision Geometry", this);
+  viewMenu->addAction(m_actionToggleDrawCollisionGeometry);
+  m_actionToggleDrawCollisionGeometry->setIcon(QIcon(":/icons/convexhull.png"));
+  m_actionToggleDrawCollisionGeometry->setCheckable(true);
+  m_actionToggleDrawCollisionGeometry->setChecked(false);
 
   m_actionToggleDrawNormals = new QAction("Normals", this);
   viewMenu->addAction(m_actionToggleDrawNormals);
@@ -1260,8 +1260,9 @@ void Shift::Workspace::initializeMenus() {
   QObject::connect(m_actionToggleDrawShadows, SIGNAL(triggered()),
                    m_renderWindow->getLights(), SLOT(toggleDraw()));
 
-  QObject::connect(m_actionToggleDrawConvexHulls, SIGNAL(triggered()),
-                   m_renderWindow->getBodies(), SLOT(toggleDrawConvexHulls()));
+  QObject::connect(m_actionToggleDrawCollisionGeometry, SIGNAL(triggered()),
+                   m_renderWindow->getBodies(),
+                   SLOT(toggleDrawCollisionGeometry()));
 
   QObject::connect(m_actionToggleDrawNormals, SIGNAL(triggered()),
                    m_renderWindow->getBodies(), SLOT(toggleDrawNormals()));
@@ -1272,8 +1273,8 @@ void Shift::Workspace::initializeMenus() {
   //   m_renderWindow->getBodies(),
   //   SLOT(toggleDrawBoundingSpheres()));
 
-  QObject::connect(m_actionToggleDrawConvexHulls, SIGNAL(triggered()), this,
-                   SLOT(updateDrawState()));
+  QObject::connect(m_actionToggleDrawCollisionGeometry, SIGNAL(triggered()),
+                   this, SLOT(updateDrawState()));
 
   /*
     help menu actions
