@@ -214,16 +214,23 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
 @TODO this function currently is a stub and does nothing. It needs to be
 populated to return the correct extreme vertex.
 */
-s2_vector_t s2_ellipsoid_support(void* collisionobjects,
-                                 int collisionObjectIndex,
-                                 s2_vector_t* direction,
-                                 s2_collisionobject_history_t* history) {
+s2_vector_t s2_ellipsoid_support(void* object,
+                                 s2_collisionobject_t* collisionObject,
+                                 s2_vector_t* directionLocal,
+                                 s2_vector_t* directionGlobal) {
 
-  (void)collisionobjects;
-  (void)collisionObjectIndex;
-  (void)direction;
-  (void)history;
-  // s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)collisionobject;
+  /* access the ellipsoid data structure */
+  s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)object;
+
+  /*! @TODO information required to transform global search direction
+  vector to local search direction vector is stored in s2_collisionobject_t
+  datastructure, for now this function does nothing. Add (void) to suppress
+  unused variable compiler warning. */
+  (void)ellipsoid;
+  (void)collisionObject;
+  (void)directionLocal;
+  (void)directionGlobal;
+
   // s2_vector_normalize(direction);
   // s2_vector_t temp;
   // s2_product_vk(direction, &sphere->radius, &temp);
