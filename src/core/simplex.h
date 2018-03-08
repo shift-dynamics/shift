@@ -45,9 +45,7 @@ typedef struct s2_simplex_t {
     objectB; /*!< second collision object to test collision */
   s2_collisionobject_history_t objectAHistory;
   s2_collisionobject_history_t objectBHistory;
-  bool (*support)(s2_context_t*, s2_collisionobject_t*,
-                  s2_collisionobject_history_t*, s2_collisionobject_t*,
-                  s2_collisionobject_history_t*); /*!<
+  bool (*support)(s2_context_t*, s2_simplex_t*); /*!<
                       function pointer to level 2 support
                       mapping function, i.e. for two
                       convex hulls this is a pointer to
@@ -73,5 +71,18 @@ void s2_simplex_support(s2_context_t*, s2_simplex_t*);
 s2_simplex_t* s2_simplex_alloc(s2_collisionobject_t*, s2_collisionobject_t*);
 
 void s2_simplex_free(s2_simplex_t*);
+
+void simplex0(double sDV[3], double V[13][3], double extremeVertexLocalA[4][3],
+              double extremeVertexLocalB[4][3], int* numberSimplexPoints,
+              int* origin);
+void simplex1(double sDV[3], double V[13][3], double extremeVertexLocalA[4][3],
+              double extremeVertexLocalB[4][3], int* numberSimplexPoints,
+              int* origin);
+void simplex2(double sDV[3], double V[13][3], double extremeVertexLocalA[4][3],
+              double extremeVertexLocalB[4][3], int* numberSimplexPoints,
+              int* origin);
+void simplex3(double sDV[3], double V[13][3], double extremeVertexLocalA[4][3],
+              double extremeVertexLocalB[4][3], int* numberSimplexPoints,
+              int* origin);
 
 #endif
