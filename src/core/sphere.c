@@ -192,15 +192,20 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
 @TODO this function is currently a stub and does nothing, it needs to
 be populated to return the correct extreme vertex
 */
-s2_vector_t s2_sphere_support(void* collisionobjects, int collisionObjectIndex,
-                              s2_vector_t* direction,
-                              s2_collisionobject_history_t* history) {
+s2_vector_t s2_sphere_support(void* object,
+                              s2_collisionobject_t* collisionObject,
+                              s2_vector_t* directionLocal,
+                              s2_vector_t* directionGlobal) {
 
-  /* use of collision object is not implemented yet */
-  (void)collisionobjects;
-  (void)collisionObjectIndex;
-  (void)direction;
-  (void)history;
+  /* access quantities in the s2_sphere_t data structure */
+  s2_sphere_t* sphere = (s2_sphere_t*)object;
+
+  /*! @TODO currently, this function does nothing. Add (void) to suppress
+  unused compiler warning. */
+  (void)sphere;
+  (void)collisionObject;
+  (void)directionLocal;
+  (void)directionGlobal;
 
   // s2_sphere_t* sphere = (s2_sphere_t*)collisionobject;
   // s2_vector_normalize(direction);

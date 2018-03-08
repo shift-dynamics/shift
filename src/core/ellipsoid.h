@@ -57,7 +57,7 @@ s2_ellipsoid_t* s2_ellipsoid_alloc(int);
 int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*,
                  s2_collisionobject_t*);
 
-s2_vector_t s2_ellipsoid_support(void*, int, s2_vector_t*,
-                                 s2_collisionobject_history_t*);
+s2_vector_t s2_ellipsoid_support(void*, s2_collisionobject_t*, s2_vector_t*,
+                                 s2_vector_t*);
 
 #endif

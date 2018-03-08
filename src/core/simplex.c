@@ -9,7 +9,8 @@
 @param [in] a second s2_collisionobject_t containing an s2_convexhull_t object
 @return whether the two objects are in contact with one another
 */
-bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
+bool s2_simplex_gjk(s2_simplex_t* self, s2_collisionobject_t* collisionObject,
+                    s2_vector_t* vec1, s2_vector_t* vec2) {
   /* use (void) to suppress unused variable compiler warning. Remove this once
                                         correct support function is loaded */
   // (void)context;
@@ -126,38 +127,38 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   dAbsoluteA = &objectA->dAbsolute;
   if(!objectA->displacementUpdated) {
     objectA->displacementUpdated = true;
-    s2_displacement_t* dWRTReferenceA;
-    dWRTReferenceA = &objectA->dWRTReference;
-    s2_displacement_t* referenceFrameA;
-    referenceFrameA = objectA->referenceFrame;
-    s2_product_dd(dWRTReferenceA, referenceFrameA, dAbsoluteA);
+    s2_product_dd(&objectA->dWRTReference, objectA->referenceFrame, dAbsoluteA);
     printf("Absolute spatial displacement of hull A reference frame:\n");
     printf("Direction cosine matrix and origin point\n");
-    printf("%g %g %g | %g\n", dAbsoluteA->R.m00, dAbsoluteA->R.m01,
-           dAbsoluteA->R.m02, dAbsoluteA->T.x);
-    printf("%g %g %g | %g\n", dAbsoluteA->R.m10, dAbsoluteA->R.m11,
-           dAbsoluteA->R.m12, dAbsoluteA->T.y);
-    printf("%g %g %g | %g\n", dAbsoluteA->R.m20, dAbsoluteA->R.m21,
-           dAbsoluteA->R.m22, dAbsoluteA->T.z);
+
+    /* @raw915 note, you can use this print function instead of the commented
+     * out code below */
+    s2_displacement_print(stdout, dAbsoluteA);
+    // printf("%g %g %g | %g\n", dAbsoluteA->R.m00, dAbsoluteA->R.m01,
+    //        dAbsoluteA->R.m02, dAbsoluteA->T.x);
+    // printf("%g %g %g | %g\n", dAbsoluteA->R.m10, dAbsoluteA->R.m11,
+    //        dAbsoluteA->R.m12, dAbsoluteA->T.y);
+    // printf("%g %g %g | %g\n", dAbsoluteA->R.m20, dAbsoluteA->R.m21,
+    //        dAbsoluteA->R.m22, dAbsoluteA->T.z);
   }
 
   s2_displacement_t* dAbsoluteB;
   dAbsoluteB = &objectB->dAbsolute;
   if(!objectB->displacementUpdated) {
     objectB->displacementUpdated = true;
-    s2_displacement_t* dWRTReferenceB;
-    dWRTReferenceB = &objectB->dWRTReference;
-    s2_displacement_t* referenceFrameB;
-    referenceFrameB = objectB->referenceFrame;
-    s2_product_dd(dWRTReferenceB, referenceFrameB, dAbsoluteB);
+    s2_product_dd(&objectB->dWRTReference, objectB->referenceFrame, dAbsoluteB);
     printf("Absolute spatial displacement of hull B reference frame:\n");
     printf("Direction cosine matrix and origin point\n");
-    printf("%g %g %g | %g\n", dAbsoluteB->R.m00, dAbsoluteB->R.m01,
-           dAbsoluteB->R.m02, dAbsoluteB->T.x);
-    printf("%g %g %g | %g\n", dAbsoluteB->R.m10, dAbsoluteB->R.m11,
-           dAbsoluteB->R.m12, dAbsoluteB->T.y);
-    printf("%g %g %g | %g\n", dAbsoluteB->R.m20, dAbsoluteB->R.m21,
-           dAbsoluteB->R.m22, dAbsoluteB->T.z);
+    /* @raw915 note, you can use this print function instead of the commented
+     * out code below */
+    s2_displacement_print(stdout, dAbsoluteB);
+
+    // printf("%g %g %g | %g\n", dAbsoluteB->R.m00, dAbsoluteB->R.m01,
+    //        dAbsoluteB->R.m02, dAbsoluteB->T.x);
+    // printf("%g %g %g | %g\n", dAbsoluteB->R.m10, dAbsoluteB->R.m11,
+    //        dAbsoluteB->R.m12, dAbsoluteB->T.y);
+    // printf("%g %g %g | %g\n", dAbsoluteB->R.m20, dAbsoluteB->R.m21,
+    //        dAbsoluteB->R.m22, dAbsoluteB->T.z);
   }
 
   /*
