@@ -5,27 +5,19 @@
 
 /*!
 @brief support mapping function for two convexhull collision objects
-@param [in] a first s2_collisionobject_t containing an s2_convexhull_t object
-@param [in] a second s2_collisionobject_t containing an s2_convexhull_t object
+@param [in] a context data structure containing model definition information
+@param [in] a simplex data structure containing information about two
+collisionobjects
 @return whether the two objects are in contact with one another
 */
-bool s2_simplex_gjk(s2_simplex_t* self, s2_collisionobject_t* collisionObject,
-                    s2_vector_t* vec1, s2_vector_t* vec2) {
+bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   /* use (void) to suppress unused variable compiler warning. Remove this once
                                         correct support function is loaded */
-  // (void)context;
-  // (void)c1;
-  // (void)c1History;
-  // (void)c2;
-  // (void)c2History;
-  s2_collisionobject_t* objectA;
-  objectA = self->objectA;
-  s2_collisionobject_t* objectB;
-  objectB = self->objectB;
-  s2_collisionobject_history_t* objectAHistory;
-  objectAHistory = &self->objectAHistory;
-  s2_collisionobject_history_t* objectBHistory;
-  objectBHistory = &self->objectBHistory;
+  (void)context;
+  s2_collisionobject_t* c1 = self->objectA;
+  s2_collisionobject_t* c2 = self->objectB;
+  (void)c1;
+  (void)c2;
 
   /*! @TODO add call to gjk algorithm here
 
@@ -478,18 +470,14 @@ bool s2_simplex_gjk(s2_simplex_t* self, s2_collisionobject_t* collisionObject,
 @param [in] a second s2_collisionobject_t containing an s2_sphere_t object
 @return whether the two objects are in contact with one another
 */
-bool s2_simplex_sphereSphere(s2_context_t* context,
-                             s2_collisionobject_t* restrict c1,
-                             s2_collisionobject_history_t* restrict c1History,
-                             s2_collisionobject_t* restrict c2,
-                             s2_collisionobject_history_t* restrict c2History) {
+bool s2_simplex_sphereSphere(s2_context_t* context, s2_simplex_t* self) {
   /* use (void) to suppress compiler warning. Remove this once
                                         correct support function is loaded */
   (void)context;
+  s2_collisionobject_t* c1 = self->objectA;
+  s2_collisionobject_t* c2 = self->objectB;
   (void)c1;
-  (void)c1History;
   (void)c2;
-  (void)c2History;
   /*! @TODO add call to sphere-sphere test here
 
   access extreme vertex support mapping functions for c1 and c2 by calling:
@@ -512,19 +500,16 @@ bool s2_simplex_sphereSphere(s2_context_t* context,
 @param [in] a second s2_collisionobject_t containing an s2_ellipsoid_t object
 @return whether the two objects are in contact with one another
 */
-bool s2_simplex_ellipsoidEllipsoid(
-  s2_context_t* context, s2_collisionobject_t* restrict c1,
-  s2_collisionobject_history_t* restrict c1History,
-  s2_collisionobject_t* restrict c2,
-  s2_collisionobject_history_t* restrict c2History) {
+bool s2_simplex_ellipsoidEllipsoid(s2_context_t* context, s2_simplex_t* self) {
 
   /* use (void) to suppress unused variable compiler warning. Remove this once
   correct support function is loaded */
   (void)context;
+  s2_collisionobject_t* c1 = self->objectA;
+  s2_collisionobject_t* c2 = self->objectB;
   (void)c1;
-  (void)c1History;
   (void)c2;
-  (void)c2History;
+
   /*! @TODO add call to ellipsoid-ellipsoid test
 
   access extreme vertex support mapping functions for c1 and c2 by calling:
@@ -551,8 +536,7 @@ information about a pair of s2_collisionobject_t datastructures and their time
 histories
 */
 void s2_simplex_support(s2_context_t* context, s2_simplex_t* self) {
-  self->collision = self->support(context, self->objectA, &self->objectAHistory,
-                                  self->objectB, &self->objectBHistory);
+  self->collision = self->support(context, self);
 }
 
 /*!
