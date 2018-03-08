@@ -56,6 +56,6 @@ s2_sphere_t* s2_sphere_alloc(int);
 int s2_sphere(s2_sphere_t*, s2_context_t*, s2_body_t*, s2_collisionobject_t*);
 
 s2_vector_t s2_sphere_support(void*, s2_collisionobject_t*, s2_vector_t*,
-                              s2_vector_t*);
+                              s2_vector_t*, s2_vector_t*);
 
 #endif

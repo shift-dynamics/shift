@@ -216,20 +216,24 @@ populated to return the correct extreme vertex.
 */
 s2_vector_t s2_ellipsoid_support(void* object,
                                  s2_collisionobject_t* collisionObject,
-                                 s2_vector_t* directionLocal,
-                                 s2_vector_t* directionGlobal) {
+                                 s2_vector_t* direction,
+                                 s2_vector_t* extremeVertexLocal,
+                                 s2_vector_t* extremeVertexGlobal) {
 
   /* access the ellipsoid data structure */
   s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)object;
 
   /*! @TODO information required to transform global search direction
   vector to local search direction vector is stored in s2_collisionobject_t
-  datastructure, for now this function does nothing. Add (void) to suppress
+  datastructure.
+
+  Right now this function does nothing. Adding (void) below to suppress
   unused variable compiler warning. */
   (void)ellipsoid;
   (void)collisionObject;
-  (void)directionLocal;
-  (void)directionGlobal;
+  (void)direction;
+  (void)extremeVertexLocal;
+  (void)extremeVertexGlobal;
 
   // s2_vector_normalize(direction);
   // s2_vector_t temp;
