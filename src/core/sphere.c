@@ -194,18 +194,20 @@ be populated to return the correct extreme vertex
 */
 s2_vector_t s2_sphere_support(void* object,
                               s2_collisionobject_t* collisionObject,
-                              s2_vector_t* directionLocal,
-                              s2_vector_t* directionGlobal) {
+                              s2_vector_t* direction,
+                              s2_vector_t* extremeVertexLocal,
+                              s2_vector_t* extremeVertexGlobal) {
 
   /* access quantities in the s2_sphere_t data structure */
   s2_sphere_t* sphere = (s2_sphere_t*)object;
 
-  /*! @TODO currently, this function does nothing. Add (void) to suppress
+  /*! @TODO currently, this function does nothing. Adding (void) to suppress
   unused compiler warning. */
   (void)sphere;
   (void)collisionObject;
-  (void)directionLocal;
-  (void)directionGlobal;
+  (void)direction;
+  (void)extremeVertexLocal;
+  (void)extremeVertexGlobal;
 
   // s2_sphere_t* sphere = (s2_sphere_t*)collisionobject;
   // s2_vector_normalize(direction);

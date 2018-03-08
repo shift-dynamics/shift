@@ -71,8 +71,8 @@ typedef struct s2_collisionobject_t {
   /*! @} */
 
   s2_vector_t (*support)(void*, s2_collisionobject_t*, s2_vector_t*,
-                         s2_vector_t*); /*!< function pointer to primitive
-                                           support function*/
+                         s2_vector_t*, s2_vector_t*); /*!< function pointer to
+                                           primitive support function*/
   int index;       /*!< unique index of collision geometry */
   int objectIndex; /*!< index of underlying convex geometry object */
   s2_collisionobject_enum_t type; /*!< collision object type, used for  initial
@@ -84,7 +84,8 @@ typedef struct s2_collisionobject_t {
 } s2_collisionobject_t;
 
 s2_vector_t s2_collisionobject_support(s2_collisionobject_t*, s2_context_t*,
-                                       s2_vector_t*, s2_vector_t*);
+                                       s2_vector_t*, s2_vector_t*,
+                                       s2_vector_t*);
 
 int s2_collisionobject_alloc(s2_context_t*, int count);
 
