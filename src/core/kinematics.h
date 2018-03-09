@@ -309,6 +309,10 @@ void s2_vector_copy(s2_vector_t* vi, s2_vector_t* vo);
 
 void s2_vectorf_copy(s2_vectorf_t* vi, s2_vectorf_t* vo);
 
+void s2_vector_swap(s2_vector_t* vi, s2_vector_t* vo);
+
+void s2_vectorf_swap(s2_vectorf_t* vi, s2_vectorf_t* vo);
+
 void s2_vector_invert(s2_vector_t* vi, s2_vector_t* vo);
 
 void s2_vector_invertInPlace(s2_vector_t* vi);
