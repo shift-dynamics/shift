@@ -241,11 +241,10 @@ void s2_collisionobject_ellipsoid(s2_context_t* context, s2_body_t* body) {
 @brief collision object extreme vertex support function, wraps extreme vertex
 support function defined in each primitive collision object
 */
-s2_vector_t s2_collisionobject_support(s2_collisionobject_t* self,
-                                       s2_context_t* context,
-                                       s2_vector_t* direction,
-                                       s2_vector_t* extremeVertexLocal,
-                                       s2_vector_t* extremeVertexGlobal) {
+void s2_collisionobject_support(s2_collisionobject_t* self,
+                                s2_context_t* context, s2_vector_t* direction,
+                                s2_vector_t* extremeVertexLocal,
+                                s2_vector_t* extremeVertexGlobal) {
   switch(self->type) {
     case S2_COLLISIONOBJECT_CONVEXHULL: {
       return self->support(&context->convexhulls[self->objectIndex], self,
