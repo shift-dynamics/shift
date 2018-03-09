@@ -192,11 +192,9 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
 @TODO this function is currently a stub and does nothing, it needs to
 be populated to return the correct extreme vertex
 */
-s2_vector_t s2_sphere_support(void* object,
-                              s2_collisionobject_t* collisionObject,
-                              s2_vector_t* direction,
-                              s2_vector_t* extremeVertexLocal,
-                              s2_vector_t* extremeVertexGlobal) {
+void s2_sphere_support(void* object, s2_collisionobject_t* collisionObject,
+                       s2_vector_t* direction, s2_vector_t* extremeVertexLocal,
+                       s2_vector_t* extremeVertexGlobal) {
 
   /* access quantities in the s2_sphere_t data structure */
   s2_sphere_t* sphere = (s2_sphere_t*)object;
@@ -213,8 +211,8 @@ s2_vector_t s2_sphere_support(void* object,
   // s2_vector_normalize(direction);
   // s2_vector_t temp;
   // s2_product_vk(direction, &sphere->radius, &temp);
-  s2_vector_t max_vector = {0.0, 0.0, 0.0};
+  // s2_vector_t max_vector = {0.0, 0.0, 0.0};
 
   // s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
-  return max_vector;
+  return;
 }
