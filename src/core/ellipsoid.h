@@ -42,7 +42,7 @@ typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_collisionobject_t s2_collisionobject_t;
-typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
+// typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
 typedef struct s2_context_t s2_context_t;
 
 typedef struct s2_ellipsoid_t {
