@@ -302,7 +302,7 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
   extremeVertexLocal->x = a * ct * sp;
   extremeVertexLocal->y = b * st * sp;
   extremeVertexLocal->z = c * cp;
-  printf("Local coordinates of extreme point on convex hull\n");
+  printf("Relative local coordinates of extreme point on convex hull\n");
   s2_vector_print(stdout, extremeVertexLocal);
   // printf("(VL[0]/a)^2+(VL[1]/b)^2+(VL[2]/c)^2 = %g\n",
   //         VL[0]*VL[0]/(a*a)+VL[1]*VL[1]/(b*b)+VL[2]*VL[2]/(c*c));
@@ -325,8 +325,8 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
   Transform coordinates of VL to global coordinate frame when necessary
   and store in VA.
   */
-  s2_product_rv(&dAbsolute->R, extremeVertexLocal, extremeVertexGlobal);
-  printf("Global coordinates of extreme point on convex hull\n");
+  s2_product_dv(dAbsolute, extremeVertexLocal, extremeVertexGlobal);
+  printf("Absolute global coordinates of extreme point on convex hull\n");
   s2_vector_print(stdout, extremeVertexGlobal);
 
   // double r[2];
