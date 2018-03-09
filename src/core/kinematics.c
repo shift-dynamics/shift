@@ -1043,7 +1043,43 @@ inline void s2_vectorf_copy(s2_vectorf_t* restrict vi,
 }
 
 /*!
-@brief Copy a double precision Vector vi into vo.
+@brief Swap double precision Vectors vio1 and vio2.
+
+\f$V_io1 \rightarrow V_io2\f$
+\f$V_io2 \rightarrow V_io1\f$
+
+@param vio1 input/output vector \f$V_io1\f$
+@param vio2 input/output vector \f$V_io2\f$
+*/
+inline void s2_vector_swap(s2_vector_t* restrict vio1,
+                           s2_vector_t* restrict vio2) {
+  s2_vector_t temp;
+  s2_vector_copy(&temp, vio1);
+  s2_vector_copy(vio1, vio2);
+  s2_vector_copy(vio2, &temp);
+}
+
+/*!
+@brief Swap single precision Vectors vio1 and vio2.
+
+
+\f$V_io1 \rightarrow V_io2\f$
+\f$V_io2 \rightarrow V_io1\f$
+
+
+@param vio1 input/output vector \f$V_io1\f$
+@param vio2 input/output vector \f$V_io2\f$
+*/
+inline void s2_vectorf_swap(s2_vectorf_t* restrict vio1,
+                            s2_vectorf_t* restrict vio2) {
+  s2_vectorf_t temp;
+  s2_vectorf_copy(&temp, vio1);
+  s2_vectorf_copy(vio1, vio2);
+  s2_vectorf_copy(vio2, &temp);
+}
+
+/*!
+@brief Copy inverse of double precision Vector vi into vo.
 
 \f$-V_i \rightarrow V_o\f$
 
