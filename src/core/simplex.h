@@ -43,8 +43,8 @@ typedef struct s2_simplex_t {
     objectA; /*!< first collision object to test collision */
   s2_collisionobject_t*
     objectB; /*!< second collision object to test collision */
-  s2_collisionobject_history_t objectAHistory;
-  s2_collisionobject_history_t objectBHistory;
+  // s2_collisionobject_history_t objectAHistory;
+  // s2_collisionobject_history_t objectBHistory;
   bool (*support)(s2_context_t*, s2_simplex_t*); /*!<
                       function pointer to level 2 support
                       mapping function, i.e. for two
