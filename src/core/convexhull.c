@@ -299,11 +299,11 @@ find maximum projection along specified direction. returns vertex with greatest
 projection along supplied axis. later to be replaced by hill climbing method,
 dobkin-kirkpatrick hierarchy or hash table methods
 */
-s2_vector_t s2_convexhull_basicSupport(void* object,
-                                       s2_collisionobject_t* collisionObject,
-                                       s2_vector_t* direction,
-                                       s2_vector_t* extremeVertexLocal,
-                                       s2_vector_t* extremeVertexGlobal) {
+void s2_convexhull_basicSupport(void* object,
+                                s2_collisionobject_t* collisionObject,
+                                s2_vector_t* direction,
+                                s2_vector_t* extremeVertexLocal,
+                                s2_vector_t* extremeVertexGlobal) {
 
   /*! @TODO the information required to compute direction local is available
   in the s2_collisionobject_t data structure */
@@ -333,9 +333,7 @@ s2_vector_t s2_convexhull_basicSupport(void* object,
       max_index = i;
     }
   }
-  s2_vector_t max_vector;
-  max_vector.x = (double)(convexhull->vertices[max_index * 3 + 0]);
-  max_vector.y = (double)(convexhull->vertices[max_index * 3 + 1]);
-  max_vector.z = (double)(convexhull->vertices[max_index * 3 + 2]);
-  return max_vector;
+  extremeVertexLocal->x = (double)(convexhull->vertices[max_index * 3 + 0]);
+  extremeVertexLocal->y = (double)(convexhull->vertices[max_index * 3 + 1]);
+  extremeVertexLocal->z = (double)(convexhull->vertices[max_index * 3 + 2]);
 }
