@@ -41,7 +41,6 @@ typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_collisionobject_t s2_collisionobject_t;
-typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
 
 /*!
 @brief convex hull data structure contains vertices and faces in contiguous
@@ -67,7 +66,7 @@ int s2_convexhull(s2_convexhull_t*, s2_context_t*, s2_body_t*);
 
 s2_convexhull_t* s2_convexhull_qhull(s2_body_t*);
 
-s2_vector_t s2_convexhull_basicSupport(void*, int, s2_vector_t*,
-                                       s2_collisionobject_history_t*);
+void s2_convexhull_basicSupport(void*, s2_collisionobject_t*, s2_vector_t*,
+                                s2_vector_t*, s2_vector_t*);
 
 #endif

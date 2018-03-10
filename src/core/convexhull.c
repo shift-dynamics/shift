@@ -299,17 +299,28 @@ find maximum projection along specified direction. returns vertex with greatest
 projection along supplied axis. later to be replaced by hill climbing method,
 dobkin-kirkpatrick hierarchy or hash table methods
 */
-s2_vector_t s2_convexhull_basicSupport(void* collisionobjects,
-                                       int collisionObjectIndex,
-                                       s2_vector_t* direction,
-                                       s2_collisionobject_history_t* history) {
+void s2_convexhull_basicSupport(void* object,
+                                s2_collisionobject_t* collisionObject,
+                                s2_vector_t* direction,
+                                s2_vector_t* extremeVertexLocal,
+                                s2_vector_t* extremeVertexGlobal) {
 
-  /* @TODO use historical information from a previous call to gjk to start
-  search at new location */
-  (void)history;
+  /*! @TODO the information required to compute direction local is available
+  in the s2_collisionobject_t data structure */
 
-  s2_convexhull_t* convexhulls = (s2_convexhull_t*)collisionobjects;
-  s2_convexhull_t* convexhull = convexhulls + collisionObjectIndex;
+  /*! @TODO historical information which could be used to accelerate lookup of
+  extreme vertex is stored in s2_collisionobject_t data structure */
+
+  /*! @TODO for now the following two fields in the call list are not used.
+  Add (void) to suppress unused compiler warnings. Remove (void) when these
+  variables are used in the code */
+
+  (void)collisionObject;
+  (void)direction;
+  (void)extremeVertexLocal;
+  (void)extremeVertexGlobal;
+
+  s2_convexhull_t* convexhull = (s2_convexhull_t*)object;
   float max_projection = -FLT_MAX;
   size_t max_index;
   for(size_t i = 0; i < convexhull->vertexCount; i++) {
@@ -322,9 +333,7 @@ s2_vector_t s2_convexhull_basicSupport(void* collisionobjects,
       max_index = i;
     }
   }
-  s2_vector_t max_vector;
-  max_vector.x = (double)(convexhull->vertices[max_index * 3 + 0]);
-  max_vector.y = (double)(convexhull->vertices[max_index * 3 + 1]);
-  max_vector.z = (double)(convexhull->vertices[max_index * 3 + 2]);
-  return max_vector;
+  extremeVertexLocal->x = (double)(convexhull->vertices[max_index * 3 + 0]);
+  extremeVertexLocal->y = (double)(convexhull->vertices[max_index * 3 + 1]);
+  extremeVertexLocal->z = (double)(convexhull->vertices[max_index * 3 + 2]);
 }
