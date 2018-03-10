@@ -3,6 +3,20 @@
 #include "collisionobject.h"
 #include "simplex.h"
 
+/* forward declarations of simplex functions */
+void simplex0(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
+              bool* collision, bool* success);
+void simplex1(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
+              bool* collision, bool* success);
+void simplex2(s2_vector_t sDV, s2_vector_t V[13],
+              s2_vector_t extremeVertexLocalA[4],
+              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+              bool* collision, bool* success);
+void simplex3(s2_vector_t sDV, s2_vector_t V[13],
+              s2_vector_t extremeVertexLocalA[4],
+              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+              bool* collision, bool* success);
+
 void s2_restore_ellipsoid_support(s2_vector_t extremeVertexGlobal[4],
                                   s2_displacement_t* dAbsolute,
                                   s2_vector_t extremeVertexLocal[4],
@@ -96,9 +110,7 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   spatialDisplacementHullA and spatialDisplacementHullB contain the spatial
   displacement of the convex hull A and B reference frames.
   */
-
-  s2_displacement_t* dAbsoluteA;
-  dAbsoluteA = &cA->dAbsolute;
+  s2_displacement_t* dAbsoluteA = &cA->dAbsolute;
   if(!cA->displacementUpdated) {
     cA->displacementUpdated = true;
     s2_product_dd(cA->referenceFrame, &cA->dWRTReference, dAbsoluteA);
@@ -107,8 +119,7 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     s2_displacement_print(stdout, dAbsoluteA);
   }
 
-  s2_displacement_t* dAbsoluteB;
-  dAbsoluteB = &cB->dAbsolute;
+  s2_displacement_t* dAbsoluteB = &cB->dAbsolute;
   if(!cB->displacementUpdated) {
     cB->displacementUpdated = true;
     s2_product_dd(cB->referenceFrame, &cB->dWRTReference, dAbsoluteB);
@@ -171,9 +182,9 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   else {
     printf("\n*****Restoring simplex***** with %d vectors.\n",
            self->simplexPointCount);
-    s2_restore_ellipsoid_support(EVA, dAbsoluteA, &cA->extremeVertex,
+    s2_restore_ellipsoid_support(EVA, dAbsoluteA, cA->extremeVertex,
                                  self->simplexPointCount);
-    s2_restore_ellipsoid_support(EVB, dAbsoluteB, &cB->extremeVertex,
+    s2_restore_ellipsoid_support(EVB, dAbsoluteB, cB->extremeVertex,
                                  self->simplexPointCount);
     for(int i = 0; i < self->simplexPointCount; i++) {
       s2_subtract_vv(&EVB[i], &EVA[i], &VW[i]);
@@ -245,16 +256,14 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     switch(self->simplexPointCount) {
       case 1:
         printf("***** entering simplex0 *****\n");
-        simplex0(self->searchDirectionVector, VW, cA->extremeVertex,
-                 cB->extremeVertex, &self->simplexPointCount, &self->collision,
-                 &self->success);
+        simplex0(self->searchDirectionVector, VW, &self->simplexPointCount,
+                 &self->collision, &self->success);
         printf("***** leaving simplex0 *****\n");
         break;
       case 2:
         printf("***** entering simplex1 *****\n");
-        simplex1(self->searchDirectionVector, VW, cA->extremeVertex,
-                 cB->extremeVertex, &self->simplexPointCount, &self->collision,
-                 &self->success);
+        simplex1(self->searchDirectionVector, VW, &self->simplexPointCount,
+                 &self->collision, &self->success);
         printf("***** leaving simplex1 *****\n");
         break;
       case 3:
@@ -447,9 +456,7 @@ of active points determines which simplex function the GJK algorithm must call.
 Thus it keeps track of the running number of active points in the simplex.
 */
 
-void simplex0(s2_vector_t sDV, s2_vector_t V[13],
-              s2_vector_t extremeVertexLocalA[4],
-              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+void simplex0(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
               bool* collision, bool* success) {
   /*
   sDV will contain the next search-direction vector used by support() to
@@ -487,9 +494,7 @@ to the line, in the plane containing the origin, and in the direction of the
 origin. support() then uses this direction vector to locate a third point
 on the convex hull to form a triangle simplex2 convex hull.
 */
-void simplex1(s2_vector_t sDV, s2_vector_t V[13],
-              s2_vector_t extremeVertexLocalA[4],
-              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+void simplex1(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
               bool* collision, bool* success) {
 
   /*
