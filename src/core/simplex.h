@@ -72,21 +72,21 @@ s2_simplex_t* s2_simplex_alloc(s2_collisionobject_t*, s2_collisionobject_t*);
 
 void s2_simplex_free(s2_simplex_t*);
 
-void simplex0(s2_vector_t sDV, s2_vector_t V[13],
-              s2_vector_t extremeVertexLocalA[4],
-              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
-              bool* collision, bool* success);
-void simplex1(s2_vector_t sDV, s2_vector_t V[13],
-              s2_vector_t extremeVertexLocalA[4],
-              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
-              bool* collision, bool* success);
-void simplex2(s2_vector_t sDV, s2_vector_t V[13],
-              s2_vector_t extremeVertexLocalA[4],
-              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
-              bool* collision, bool* success);
-void simplex3(s2_vector_t sDV, s2_vector_t V[13],
-              s2_vector_t extremeVertexLocalA[4],
-              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
-              bool* collision, bool* success);
+// void simplex0(s2_vector_t sDV, s2_vector_t V[13],
+//               s2_vector_t extremeVertexLocalA[4],
+//               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+//               bool* collision, bool* success);
+// void simplex1(s2_vector_t sDV, s2_vector_t V[13],
+//               s2_vector_t extremeVertexLocalA[4],
+//               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+//               bool* collision, bool* success);
+// void simplex2(s2_vector_t sDV, s2_vector_t V[13],
+//               s2_vector_t extremeVertexLocalA[4],
+//               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+//               bool* collision, bool* success);
+// void simplex3(s2_vector_t sDV, s2_vector_t V[13],
+//               s2_vector_t extremeVertexLocalA[4],
+//               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+//               bool* collision, bool* success);
 
 #endif
