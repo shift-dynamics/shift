@@ -214,20 +214,145 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
 @TODO this function currently is a stub and does nothing. It needs to be
 populated to return the correct extreme vertex.
 */
-s2_vector_t s2_ellipsoid_support(void* collisionobjects,
-                                 int collisionObjectIndex,
-                                 s2_vector_t* direction,
-                                 s2_collisionobject_history_t* history) {
+// s2_vector_t s2_ellipsoid_support(void* object,
+//                                  s2_collisionobject_t* collisionObject,
+//                                  s2_vector_t* direction,
+//                                  s2_vector_t* extremeVertexLocal,
+//                                  s2_vector_t* extremeVertexGlobal) {
+//
+//   /* access the ellipsoid data structure */
+//   s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)object;
+//
+//   /*! @TODO information required to transform global search direction
+//   vector to local search direction vector is stored in s2_collisionobject_t
+//   datastructure.
+//
+//   Right now this function does nothing. Adding (void) below to suppress
+//   unused variable compiler warning. */
+//   (void)ellipsoid;
+//   (void)collisionObject;
+//   (void)direction;
+//   (void)extremeVertexLocal;
+//   (void)extremeVertexGlobal;
+//
+//   // s2_vector_normalize(direction);
+//   // s2_vector_t temp;
+//   // s2_product_vk(direction, &sphere->radius, &temp);
+//   s2_vector_t max_vector = {0.0, 0.0, 0.0};
+//   // s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
+//   return max_vector;
+// }
 
-  (void)collisionobjects;
-  (void)collisionObjectIndex;
-  (void)direction;
-  (void)history;
-  // s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)collisionobject;
-  // s2_vector_normalize(direction);
-  // s2_vector_t temp;
-  // s2_product_vk(direction, &sphere->radius, &temp);
-  s2_vector_t max_vector = {0.0, 0.0, 0.0};
-  // s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
-  return max_vector;
+void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
+                          s2_vector_t* searchDirectionVectorGlobal,
+                          s2_vector_t* extremeVertexLocal,
+                          s2_vector_t* extremeVertexGlobal) {
+
+  /* access the ellipsoid data structure */
+  s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)object;
+  s2_displacement_t* dAbsolute = &collisionObject->dAbsolute;
+
+  /*search direction vector local coordinates*/
+  s2_vector_t searchDirectionVectorLocal;
+  s2_product_rvinverse(&dAbsolute->R, searchDirectionVectorGlobal,
+                       &searchDirectionVectorLocal);
+  printf("searchDirectionVectorLocal\n");
+  s2_vector_print(stdout, &searchDirectionVectorLocal);
+
+  double a = ellipsoid->a;
+  double b = ellipsoid->b;
+  double c = ellipsoid->c;
+  printf("a = %g, b = %g, c = %g\n", a, b, c);
+
+  double au = a * searchDirectionVectorLocal.x;
+  double bu = b * searchDirectionVectorLocal.y;
+  double cu = c * searchDirectionVectorLocal.z;
+  printf("au = %g, bu = %g, cu = %g\n", au, bu, cu);
+
+  // double sf;
+  // sf = 2000.0;
+
+  double theta = atan2(bu, au);
+  if(theta < 0.0) {
+    theta = 6.283185307 + theta;
+  }
+
+  // theta = round(sf*theta)/sf;
+
+  double ct = cos(theta);
+  double st = sin(theta);
+  printf("theta = %g, cos(theta) = %g, sin(theta) = %g\n", theta, ct, st);
+
+  double phi;
+  if(fabs(ct) > fabs(st)) {
+    phi = atan2(au, cu * ct);
+  } else {
+    phi = atan2(bu, cu * st);
+  }
+  if(phi < 0.0) {
+    phi = 3.141592654 + phi;
+  }
+
+  // phi = round(sf*phi)/sf;
+
+  double cp = cos(phi);
+  double sp = sin(phi);
+  printf("phi = %g, cos(phi) = %g, sin(phi) = %g\n", phi, cp, sp);
+
+  extremeVertexLocal->x = a * ct * sp;
+  extremeVertexLocal->y = b * st * sp;
+  extremeVertexLocal->z = c * cp;
+  printf("Relative local coordinates of extreme point on convex hull\n");
+  s2_vector_print(stdout, extremeVertexLocal);
+  // printf("(VL[0]/a)^2+(VL[1]/b)^2+(VL[2]/c)^2 = %g\n",
+  //         VL[0]*VL[0]/(a*a)+VL[1]*VL[1]/(b*b)+VL[2]*VL[2]/(c*c));
+
+  // double tvt[3];
+  // tvt[0] = -a*st*sp;
+  // tvt[1] =  b*ct*sp;
+  // tvt[2] =  0.0;
+  // printf("tvt = [%g, %g, %g]\n", tvt[0], tvt[1], tvt[2]);
+  // printf("sDV^T*tvt = %g\n", sDVL[0]*tvt[0]+sDVL[1]*tvt[1]+sDVL[2]*tvt[2]);
+  //
+  // double tvp[3];
+  // tvp[0] =  a*ct*cp;
+  // tvp[1] =  b*st*cp;
+  // tvp[2] = -c*sp;
+  // printf("tvp = [%g, %g, %g]\n", tvp[0], tvp[1], tvp[2]);
+  // printf("sDV^T*tvp = %g\n", sDVL[0]*tvp[0]+sDVL[1]*tvp[1]+sDVL[2]*tvp[2]);
+
+  /*
+  Transform coordinates of VL to global coordinate frame when necessary
+  and store in VA.
+  */
+  s2_product_dv(dAbsolute, extremeVertexLocal, extremeVertexGlobal);
+  printf("Absolute global coordinates of extreme point on convex hull\n");
+  s2_vector_print(stdout, extremeVertexGlobal);
+
+  // double r[2];
+  // double sn[2];
+  // double cs[2];
+  // r[0] = sqrt(au * au + bu * bu);
+  // cs[0] = au / r[0];
+  // sn[0] = bu / r[0];
+  // if(fabs(cs[0]) > fabs(sn[0])) {
+  //   r[1] = sqrt(au * au + cu * cu * cs[0] * cs[0]);
+  //   cs[1] = cu * cs[0] / r[1];
+  //   sn[1] = au / r[1];
+  //   // phi = atan2( au, cu*ct );
+  // } else {
+  //   r[1] = sqrt(bu * bu + cu * cu * sn[0] * sn[0]);
+  //   cs[1] = cu * sn[0] / r[1];
+  //   sn[1] = bu / r[1];
+  //   // phi = atan2( bu, cu*st );
+  // }
+  // printf("cos(theta) = %g, sin(theta) = %g\n", cs[0], sn[0]);
+  // printf("cos(phi) = %g, sin(phi) = %g\n", cs[1], sn[1]);
+  // extremeVertexLocal->x = a * ct * sp;
+  // extremeVertexLocal->y = b * st * sp;
+  // extremeVertexLocal->z = c * cp;
+  // printf("VL: [%g, %g, %g]\n", copysign(a * cs[0] * sn[1], sDV[0]),
+  //        copysign(b * sn[0] * sn[1], sDV[1]), copysign(c * cs[1], sDV[2]));
+
+  return;
 }
