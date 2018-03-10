@@ -43,16 +43,6 @@ typedef enum {
 } s2_collisionobject_enum_t;
 
 /*!
-@brief cached information for support mapping queries
-*/
-typedef struct s2_collisionobject_history_t {
-
-  int extremeVertexIndex;       /*!< index of extreme vertex */
-  s2_vector_t extremeVertex[4]; /*!< extreme vertex */
-
-} s2_collisionobject_history_t;
-
-/*!
 @brief generic interface to convex collision geometry
 */
 typedef struct s2_collisionobject_t {
@@ -66,11 +56,24 @@ typedef struct s2_collisionobject_t {
   s2_displacement_t* referenceFrame; /*! pointer to absolute displacement of
     collision object's reference frame, typically the body reference frame or
     the body origin */
-  s2_vector_t (*support)(
-    void*, int, s2_vector_t*,
-    s2_collisionobject_history_t*); /*!< function pointer to primitive support
-                                       function*/
-  int index;                        /*!< unique index of collision geometry */
+
+  /*! @defgroup history Historical data
+
+    Historical data that is cached between subsequent calls to
+    s2_collisionobject_t's support function
+
+    @{
+  */
+
+  int extremeVertexIndex;       /*!< index of extreme vertex */
+  s2_vector_t extremeVertex[4]; /*!< extreme vertex */
+
+  /*! @} */
+
+  void (*support)(void*, s2_collisionobject_t*, s2_vector_t*, s2_vector_t*,
+                  s2_vector_t*); /*!< function pointer to
+                      primitive support function*/
+  int index;                     /*!< unique index of collision geometry */
   int objectIndex; /*!< index of underlying convex geometry object */
   s2_collisionobject_enum_t type; /*!< collision object type, used for  initial
                                      set up of a s2_collisionobject_t
@@ -80,9 +83,8 @@ typedef struct s2_collisionobject_t {
   float color[3]; /*!< color of collision geometry, for display in GUI only */
 } s2_collisionobject_t;
 
-s2_vector_t s2_collisionobject_support(s2_collisionobject_t*, s2_context_t*,
-                                       s2_vector_t*,
-                                       s2_collisionobject_history_t*);
+void s2_collisionobject_support(s2_collisionobject_t*, s2_context_t*,
+                                s2_vector_t*, s2_vector_t*, s2_vector_t*);
 
 int s2_collisionobject_alloc(s2_context_t*, int count);
 
