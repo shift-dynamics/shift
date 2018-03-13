@@ -68,15 +68,19 @@ void s2_sphere_eigenSphere(s2_sphere_t* restrict s,
                            const int vertexCount,
                            s2_collisionobject_t* collisionObject) {
 
-  /* compute single prevision covariance matrix */
+  /* compute single precision covariance matrix */
   s2_mat3x3f_t Mf = s2_pca_covariancef(vertices, vertexCount);
 
+  /* convert to double precision covariance matrix */
   s2_mat3x3_t M, v;
   for(int i = 0; i < 3; i++) {
     for(int j = 0; j < 3; j++) {
-      s2_mat3x3_set(&M, i, j, s2_mat3x3f_get(&Mf, i, j));
+      s2_mat3x3_set(&M, i, j, (double)s2_mat3x3f_get(&Mf, i, j));
     }
   }
+
+  /* after applying jacobi rotations, M contains the eigenvalues along
+  the diagonal, and the matrix v contains the eigenvectors */
   s2_pca_jacobi(&M, &v);
 
   /* find component with largest eigenvalue */
