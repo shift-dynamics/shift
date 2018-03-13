@@ -725,7 +725,7 @@ void Shift::Bodies::draw() {
       }
       m_programLine->release();
 
-      /* draw bounding spheres */
+      /* draw bounding spheres and ellipsoids */
       m_programPhong->bind();
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -746,28 +746,59 @@ void Shift::Bodies::draw() {
       for(int i = 0; i < m_context->collisionObjectCount; i++) {
 
         s2_collisionobject_t* collisionObject = &m_context->collisionObjects[i];
-        if(collisionObject->type == S2_COLLISIONOBJECT_SPHERE) {
+        switch(collisionObject->type) {
+          case S2_COLLISIONOBJECT_SPHERE: {
 
-          s2_sphere_t* sphere =
-            &m_context->spheres[collisionObject->objectIndex];
-          for(int i = 0; i < 3; i++) {
-            s2_displacement_set(&transform, i, i, sphere->radius);
+            s2_sphere_t* sphere =
+              &m_context->spheres[collisionObject->objectIndex];
+            for(int i = 0; i < 3; i++) {
+              s2_displacement_set(&transform, i, i, sphere->radius);
+            }
+
+            s2_vector_t t;
+            s2_product_rv(&collisionObject->referenceFrame->R,
+                          &collisionObject->dWRTReference.T, &t);
+            s2_add_vv(&collisionObject->referenceFrame->T, &t, &transform.T);
+            // transform.T = sphere->centerGlobal;
+
+            // s2_displacement_print(stdout, &transform);
+
+            m_programPhong->setTransform(&transform);
+            checkError("bounding spheres: after set transform");
+
+            glDrawElements(GL_TRIANGLES, 3 * m_sphereBufferObject.faceCount,
+                           GL_UNSIGNED_INT, 0);
+            checkError("bounding spheres: after draw elements");
+
+            break;
           }
 
-          s2_vector_t t;
-          s2_product_rv(&collisionObject->referenceFrame->R,
-                        &collisionObject->dWRTReference.T, &t);
-          s2_add_vv(&collisionObject->referenceFrame->T, &t, &transform.T);
-          // transform.T = sphere->centerGlobal;
+          case S2_COLLISIONOBJECT_ELLIPSOID: {
 
-          // s2_displacement_print(stdout, &transform);
+            s2_ellipsoid_t* ellipsoid =
+              &m_context->ellipsoids[collisionObject->objectIndex];
 
-          m_programPhong->setTransform(&transform);
-          checkError("bounding spheres: after set transform");
+            s2_mat3x3_t scale;
+            s2_mat3x3_set(&scale, 0, 0, ellipsoid->a);
+            s2_mat3x3_set(&scale, 1, 1, ellipsoid->b);
+            s2_mat3x3_set(&scale, 2, 2, ellipsoid->c);
 
-          glDrawElements(GL_TRIANGLES, 3 * m_sphereBufferObject.faceCount,
-                         GL_UNSIGNED_INT, 0);
-          checkError("bounding spheres: after draw elements");
+            s2_displacement_t dAbsolute;
+            s2_product_dd(collisionObject->referenceFrame,
+                          &collisionObject->dWRTReference, &dAbsolute);
+
+            s2_product_dr(&dAbsolute, &scale, &transform);
+            m_programPhong->setTransform(&transform);
+            checkError("bounding ellipsoids: after set transform");
+
+            glDrawElements(GL_TRIANGLES, 3 * m_sphereBufferObject.faceCount,
+                           GL_UNSIGNED_INT, 0);
+            checkError("bounding ellipsoids: after draw elements");
+
+            break;
+          }
+          default:
+            break;
         }
       }
 

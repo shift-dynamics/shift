@@ -4505,8 +4505,6 @@ inline void s2_product_dr(s2_displacement_t* restrict Di,
 
   s2_product_rr(&Di->R, Ri, &Do->R);
   s2_vector_copy(&Di->T, &Do->T);
-
-  // cblas_dcopy(3, ((double*)Di) + 9, 1, ((double*)Do) + 9, 1);
 }
 
 /*!

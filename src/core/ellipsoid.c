@@ -39,6 +39,7 @@ SUCH DAMAGE.
 #include "context.h"
 #include "convexhull.h"
 #include "ellipsoid.h"
+#include "factor.h"
 #include "frame.h"
 #include "inertia.h"
 #include "material.h"
@@ -106,7 +107,7 @@ void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
   s2_mat3x3_t M, v;
   for(int i = 0; i < 3; i++) {
     for(int j = 0; j < 3; j++) {
-      s2_mat3x3_set(&M, i, j, s2_mat3x3f_get(&Mf, i, j));
+      s2_mat3x3_set(&M, i, j, (double)s2_mat3x3f_get(&Mf, i, j));
     }
   }
   s2_pca_jacobi(&M, &v);
@@ -151,6 +152,195 @@ void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
   collisionObject->dWRTReference.T.z =
     (double)((center_x.z + center_z.z + center_z.z) / 3.0);
   collisionObject->dWRTReference.R = v;
+}
+
+/*!
+@brief compute c = a - b
+*/
+inline void subtract_aa(const double* restrict a, const double* restrict b,
+                        double* restrict c, int count) {
+  for(int i = 0; i < count; i++) {
+    c[i] = a[i] - b[i];
+  }
+}
+
+/*!
+@brief compute the l2 norm of (a - b)
+
+Computes norm(a - b)
+*/
+inline double norm_diff(const double* restrict a, const double* restrict b,
+                        const int count) {
+  double sum_sq = 0;
+  for(int i = 0; i < count; i++) {
+    double diff = a[i] - b[i];
+    sum_sq += diff * diff;
+  }
+  return sqrt(sum_sq);
+}
+
+inline double max_a(const double* restrict a, int* index, const int count) {
+  double max_value = -DBL_MAX;
+  for(int i = 0; i < count; i++) {
+    if(a[i] > max_value) {
+      max_value = a[i];
+      *index = i;
+    }
+  }
+  return max_value;
+}
+
+/*!
+@brief compute the product a * k -> b
+where a and b are n x 1 arrays and k is a scalar
+*/
+inline void product_ak(const double* restrict a, double k, double* restrict b,
+                       const int count) {
+  for(int i = 0; i < count; i++) {
+    b[i] = a[i] * k;
+  }
+}
+
+/*! @brief compute product of Q.transpose * D * Q, where D is a diagonal nxn
+matrix and Q is a column major ordered 4 x n matrix
+
+only the lower triangular portion of X is computed as it is a symmetric matrix
+*/
+inline void product_QDQt(const double* restrict Q, const double* restrict D,
+                         double* restrict X, const int count) {
+  for(int i = 0; i < 4; i++) {       /* row index in Q */
+    for(int j = 0; j < i + 1; j++) { /* column index in Q^T */
+      X[i * 4 + j] = 0;
+      for(int k = 0; k < count; k++) {
+        X[i * 4 + j] += Q[i * count + k] * D[k] * Q[j * count + k];
+      }
+    }
+  }
+}
+
+void print_A(const double* restrict A, const int m, const int n) {
+  for(int i = 0; i < m; i++) {
+    printf("   ");
+    for(int j = 0; j < n; j++) {
+      printf("%g ", A[i * m + j]);
+    }
+    printf("\n");
+  }
+}
+
+/*!
+
+*/
+int product_QtXinvQ(const double* restrict Q, double* restrict X,
+                    double* restrict m, const int vertexCount) {
+
+  /* X is a symmetric 4x4 matrix in row major order, factor using Cholesky
+  factorization */
+  s2_factor_cholesky(X, 4);
+
+  for(int i = 0; i < vertexCount; i++) { /* rows of Q^T */
+  }
+
+  return 0;
+}
+
+/*!
+@brief compute minimum bounding ellipsoid using the Khachiyan Algorithm
+
+Finds the ellipse equation in 'center form':
+(x-c)' * A * (x-c) = 1
+Compute a 3x3 matrix 'A' and a 3 dimensional vector 'c' as the center
+of the ellipse.
+
+Solves the optimization problem:
+minimize log(det(A))
+subject to     (P_i - c)' * A * (P_i - c) <= 1
+
+*/
+int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
+                                          s2_vectorf_t* vertices,
+                                          unsigned int vertexCount,
+                                          s2_collisionobject_t* collisionobject,
+                                          double tolerance) {
+
+  unsigned int count = 0;
+  double error = 1.0;
+
+  /* Q is a 4xn matrix in row major order containing one homogeneous
+  coordinate in each column */
+  double* Q = calloc(4 * vertexCount, sizeof(double));
+  for(int i = 0; i < vertexCount; i++) {
+    Q[0 * vertexCount + i] = (double)(vertices[i].x);
+    Q[1 * vertexCount + i] = (double)(vertices[i].y);
+    Q[2 * vertexCount + i] = (double)(vertices[i].z);
+    Q[3 * vertexCount + i] = 1.0;
+  }
+
+  // u is an nxn diagonal matrix initialized with 1 / vertexCount on the
+  // diagonal
+  double* u = calloc(vertexCount, sizeof(double));
+  double n_inverse = 1.0 / vertexCount;
+  for(int i = 0; i < vertexCount; i++) {
+    u[i] = n_inverse;
+  }
+
+  double* u_new = calloc(vertexCount, sizeof(double));
+
+  double X[16] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  double* m = calloc(vertexCount, sizeof(double));
+
+  while(error > tolerance) {
+    product_QDQt(Q, u, X, vertexCount); // X = Q * diag(u) * Q.transpose();
+    // X = sum_i ( u_i * q_i * q_i')  is a (d+1)x(d+1) matrix
+
+    /* X will be overwritten with its LU factors in this step
+       m the diagonal vector of an nxn matrix*/
+    product_QtXinvQ(Q, X, m,
+                    vertexCount); // M = diag(Q.transpose() * inv(X) * Q);
+
+    int j = 0;
+    double maximum = max_a(m, &j, vertexCount);
+    double step_size =
+      1.0 - (maximum - vertexCount - 1) / ((vertexCount + 1) * (maximum - 1));
+    product_ak(u, 1.0 - step_size, u_new, vertexCount);
+    u_new[j] += step_size;
+
+    error = norm_diff(u_new, u, vertexCount);
+
+    memcpy(u, u_new, vertexCount * sizeof(double));
+    count++;
+  }
+
+  /* compute the matrix A */
+  s2_mat3x3_t A;
+  // A = (1.0 / 3.0) *
+  //     inv(P * diag(u) * P.transpose() - (P * u) * (P * u).transpose());
+
+  /* extract rotation matrix and a b c scalar terms from A */
+  s2_pca_jacobi(&A, &collisionobject->dWRTReference.R);
+  ellipsoid->a = s2_mat3x3_get(&A, 0, 0);
+  ellipsoid->b = s2_mat3x3_get(&A, 1, 1);
+  ellipsoid->c = s2_mat3x3_get(&A, 2, 2);
+
+  /* obtain center of ellipse
+     c = P_(3 x n)* u_(n x 1);
+  */
+  memset(&collisionobject->dWRTReference.T, 0, sizeof(s2_vector_t));
+  for(int i = 0; i < vertexCount; i++) {
+    collisionobject->dWRTReference.T.x += Q[i + 0 * vertexCount] * u[i];
+  }
+  for(int i = 0; i < vertexCount; i++) {
+    collisionobject->dWRTReference.T.y += Q[i + 1 * vertexCount] * u[i];
+  }
+  for(int i = 0; i < vertexCount; i++) {
+    collisionobject->dWRTReference.T.z += Q[i + 2 * vertexCount] * u[i];
+  }
+
+  free(Q);
+  free(u);
+  free(u_new);
+  return 0;
 }
 
 /*!

@@ -251,26 +251,27 @@ inline float s2_pca_squaredDistanceAtIndex(const float* vertices,
   return sq_distance;
 }
 
+/*!
+@brief find extreme points along specified direction
+*/
 void s2_pca_extremePointsAlongDirection(s2_vectorf_t* restrict e,
                                         const float* restrict vertices,
                                         const int vertexCount,
                                         int* restrict imin,
                                         int* restrict imax) {
 
-  float max_projection2 = -FLT_MAX;
-  float min_projection2 = FLT_MAX;
+  float max_projection = -FLT_MAX;
+  float min_projection = FLT_MAX;
   for(int i = 0; i < vertexCount; i++) {
-    float projection2 = 0;
-    projection2 += e->x * vertices[i * 3 + 0];
-    projection2 += e->y * vertices[i * 3 + 1];
-    projection2 += e->z * vertices[i * 3 + 2];
-    if(projection2 > max_projection2) {
+    s2_vectorf_t* v = (s2_vectorf_t*)(&vertices[i * 3]);
+    float projection = s2_dot_vvf(e, v);
+    if(projection > max_projection) {
       *imax = i;
-      max_projection2 = projection2;
+      max_projection = projection;
     }
-    if(projection2 < min_projection2) {
+    if(projection < min_projection) {
       *imin = i;
-      min_projection2 = projection2;
+      min_projection = projection;
     }
   }
 }

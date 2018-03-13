@@ -29,6 +29,7 @@ SUCH DAMAGE.
 #include <cblas.h>
 #endif
 #include "factor.h"
+#include <string.h>
 #include <unistd.h>
 
 inline void s2_iswap(int* a, int* b) {
@@ -691,5 +692,93 @@ void s2_factor_setCMatrix(int rowDim, int colDim, int rank, double* A) {
           A[i * colDim + k] -= A[i * colDim + j] * A[j * colDim + k];
       }
     }
+  }
+}
+
+/*!
+computes the L D L^T decomposition of a symmetric matrix without pivoting
+
+returns the matrix L D L^T in the original matrix A
+*/
+int s2_factor_ldlt(double* restrict D, const int n) {
+  for(int k = 0; k < n; k++) {
+    double pivot_inv = 1.0 / D[k * n + k];
+    for(int j = k + 1; j < n; j++) {
+      D[k * n + j] = D[j * n + k];
+      D[j * n + k] *= pivot_inv;
+    }
+    for(int j = k + 1; j < n; j++) {
+      for(int i = k + 1; i < j + 1; i++) {
+        D[j * n + i] -= D[j * n + k] * D[k * n + i];
+      }
+    }
+  }
+  return 0;
+}
+
+/*!
+verify result of L D L^T decomposition
+*/
+void s2_factor_verify_ldlt(double* restrict A, const int n) {
+  double temp[n * n];
+  memset(temp, 0, n * n * sizeof(double));
+
+  // double b[n];
+
+  /* temp <- L * D * L^T*/
+  for(int i = 0; i < n; i++) { /* rows of temp */
+    temp[i * n + i] = A[i + n * i];
+    for(int j = 0; j < i; j++) { /* columns of temp */
+      temp[j * n + j] += A[i * n + j] * A[i + n * i];
+    }
+  }
+
+  printf("LDL^T:\n");
+  // s2_mat4x4_print(stdout, temp);
+}
+
+int s2_factor_cholesky(double* restrict D, const int n) {
+  for(int k = 0; k < n; k++) {
+    D[k * 4 + k] = sqrt(D[k * 4 + k]);
+    if(fabs(D[k * 4 + k]) < 1e-9) {
+      return -1;
+    }
+    double pivot_inv = 1.0 / D[k * 4 + k];
+    for(int j = k + 1; j < n; j++) {
+      D[j * n + k] *= pivot_inv;
+    }
+    for(int j = k + 1; j < n; j++) {
+      for(int i = k + 1; i < j + 1; i++) {
+        D[j * n + i] -= D[j * n + k] * D[i * n + k];
+      }
+    }
+  }
+  return 0;
+}
+
+/*!
+verify result of cholesky decomposition
+*/
+void s2_factor_verify_cholesky(double* restrict A, const int n) {
+  double B[n * n];
+  memset(B, 0, n * n * sizeof(double));
+
+  /* temp <- L * D * L^T*/
+
+  for(int i = 0; i < n; i++) {       /* row index */
+    for(int j = 0; j < i + 1; j++) { /* column index */
+      for(int k = 0; k < j + 1; k++) {
+        B[i * n + j] += A[i * n + k] * A[j * n + k];
+      }
+    }
+  }
+
+  printf("L * L^T:\n");
+  for(int i = 0; i < n; i++) {
+    printf("  ");
+    for(int j = 0; j < n; j++) {
+      printf("%g ", B[i * n + j]);
+    }
+    printf("\n");
   }
 }

@@ -35,4 +35,8 @@ void s2_factor_setBMatrix(int rank, int colDim, double* A);
 
 void s2_factor_setCMatrix(int rowDim, int colDim, int rank, double* A);
 
+int s2_factor_ldlt(double*, const int);
+void s2_factor_verify_ldlt(double*, const int);
+int s2_factor_cholesky(double*, const int);
+void s2_factor_verify_cholesky(double*, const int);
 #endif
