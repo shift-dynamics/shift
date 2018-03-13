@@ -42,7 +42,6 @@ typedef struct s2_joint_t s2_joint_t;
 typedef struct s2_material_t s2_material_t;
 typedef struct s2_inertia_t s2_inertia_t;
 typedef struct s2_collisionobject_t s2_collisionobject_t;
-// typedef struct s2_collisionobject_history_t s2_collisionobject_history_t;
 typedef struct s2_context_t s2_context_t;
 
 typedef struct s2_ellipsoid_t {
@@ -59,5 +58,9 @@ int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*,
 
 void s2_ellipsoid_support(void*, s2_collisionobject_t*, s2_vector_t*,
                           s2_vector_t*, s2_vector_t*);
+
+void print_A(const double* A, const int m, const int n);
+
+void product_QDQt(const double* Q, const double* D, double* X, const int count);
 
 #endif

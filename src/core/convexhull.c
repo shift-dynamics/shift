@@ -322,7 +322,7 @@ void s2_convexhull_basicSupport(void* object,
 
   s2_convexhull_t* convexhull = (s2_convexhull_t*)object;
   float max_projection = -FLT_MAX;
-  size_t max_index;
+  size_t max_index = 0;
   for(size_t i = 0; i < convexhull->vertexCount; i++) {
     float projection = 0;
     projection += direction->x * convexhull->vertices[i * 3 + 0];
