@@ -61,6 +61,14 @@ void s2_ellipsoid_support(void*, s2_collisionobject_t*, s2_vector_t*,
 
 void print_A(const double* A, const int m, const int n);
 
+void ldlt_forward_substitution(double* L, double* y, double* z);
+
+void cholesky_forward_substitution(double* L, double* y, double* z);
+
+void backward_substitution(double* U, double* y, double* z);
+
 void product_QDQt(const double* Q, const double* D, double* X, const int count);
+
+int product_QtXinvQ(const double*, double*, double*, const int);
 
 #endif

@@ -35,5 +35,33 @@ if __name__ == "__main__":
         [1., 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]])
 
     X = Q * D * Q.transpose()
-    print('Q * D * Q.transpose()')
+    print('X = Q * D * Q.transpose() =')
     print(X)
+
+    print('m = diag(Q.transpose() * inv(X) * Q) =')
+    print(np.diagonal(Q.transpose() * np.linalg.inv(X) * Q))
+
+    print("L:")
+    L = np.matrix([[1.0, 0.0, 0.0, 0.0], [2.0, 1.0, 0.0, 0.0],
+                  [3.0, 4.0, 1.0, 0.0], [5.0, 6.0, 7.0, 1.0]])
+    print(L)
+
+    b = np.matrix([10.0, 20.0, 19.0, 4.0]).transpose()
+    print('b:', b)
+
+    print('L^-1 * b:')
+    print(np.linalg.inv(L) * b)
+
+    # y = np.matrix([[1.], [2.], [3.], [4.]])
+    #
+    # print('y=')
+    # print(y)
+    #
+    # print('L=')
+    # print(L)
+    #
+    # print('y.transpose() * np.linalg.inv(L) = ')
+    # print(y.transpose() * np.linalg.inv(L))
+    #
+    # print('np.linalg.inv(L.transpose()) * y')
+    # print(np.linalg.inv(L.transpose()) * y)

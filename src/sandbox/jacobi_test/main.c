@@ -24,17 +24,17 @@ int main() {
   s2_mat3x3_print(stdout, &v);
 
   printf("L matrix:\n");
-  double L[16] = {5.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0,  0.0,
-                  5.0, 6.0, 3.0, 0.0, 8.0, 9.0, 10.0, 2.0};
-  print_A(L, 4, 4);
-
-  /* printed result for LD should be:
-  [[ 25.  15.  25.  40.]
-   [ 15.  25.  39.  60.]
-   [ 25.  39.  70. 124.]
-   [ 40.  60. 124. 249.]]
-  */
-  s2_factor_verify_cholesky(L, 4);
+  // double L[16] = {5.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0,  0.0,
+  //                 5.0, 6.0, 3.0, 0.0, 8.0, 9.0, 10.0, 2.0};
+  // print_A(L, 4, 4);
+  //
+  // /* printed result for LD should be:
+  // [[ 25.  15.  25.  40.]
+  //  [ 15.  25.  39.  60.]
+  //  [ 25.  39.  70. 124.]
+  //  [ 40.  60. 124. 249.]]
+  // */
+  // s2_factor_verify_cholesky(L, 4);
 
   double B[16] = {25., 15., 25., 40.,  15., 25., 39.,  60.,
                   25., 39., 70., 124., 40., 60., 124., 249.};
@@ -65,7 +65,53 @@ int main() {
 
   product_QDQt(Q, d, X, 11);
 
+  printf("X = \n");
   print_A(X, 4, 4);
+
+  double m[11];
+  product_QtXinvQ(Q, X, m, 11);
+
+  printf("m = \n   ");
+  for(int i = 0; i < 11; i++) {
+    printf("%g ", m[i]);
+  }
+  printf("\n");
+
+  // s2_factor_cholesky(X, 4);
+
+  //
+  // double y[4] = {1.0, 2.0, 3.0, 4.0};
+  // double z[4] = {0.0, 0.0, 0.0, 0.0};
+  // uinv_y(L, y, z);
+  //
+  // printf("L: \n");
+  // print_A(L, 4, 4);
+  // printf("L^-T * y = z: \n  ");
+  // for(int i = 0; i < 4; i++) {
+  //   printf("%g ", z[i]);
+  // }
+  // printf("\n");
+
+  double L[16] = {1.0, 0.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0,
+                  3.0, 4.0, 1.0, 0.0, 5.0, 6.0, 7.0, 1.0};
+  printf("L matrix:\n");
+  print_A(L, 4, 4);
+
+  double b[4] = {10.0, 20.0, 19.0, 4.0};
+  printf("b = \n   ");
+  for(int i = 0; i < 4; i++) {
+    printf("%g ", b[i]);
+  }
+  printf("\n");
+  double y[4] = {0.0, 0.0, 0.0, 0.0};
+
+  ldlt_forward_substitution(L, b, y);
+
+  printf("L^-1 * B = y = \n   ");
+  for(int i = 0; i < 4; i++) {
+    printf("%g ", y[i]);
+  }
+  printf("\n");
 
   return 0;
 }
