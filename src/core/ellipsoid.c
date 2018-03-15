@@ -201,8 +201,8 @@ inline void product_ak(const double* restrict a, double k, double* restrict b,
   }
 }
 
-/*! @brief compute product of Q.transpose * D * Q, where D is a diagonal nxn
-matrix and Q is a column major ordered 4 x n matrix
+/*! @brief compute product of Q * D * Q.transpose, where D is a diagonal nxn
+matrix and Q is a row major ordered 4 x n matrix
 
 only the lower triangular portion of X is computed as it is a symmetric matrix
 */
@@ -213,6 +213,23 @@ inline void product_QDQt(const double* restrict Q, const double* restrict D,
       X[i * 4 + j] = 0;
       for(int k = 0; k < count; k++) {
         X[i * 4 + j] += Q[i * count + k] * D[k] * Q[j * count + k];
+      }
+    }
+  }
+}
+
+/*! @brief compute product of P * D * P' -> X, where D is a diagonal
+nxn matrix and P is a row major ordered 3 x n matrix
+
+only the lower triangular portion of X is computed as it is a symmetric matrix
+*/
+inline void product_PDPt(const double* restrict P, const double* restrict D,
+                         double* restrict X, const int count) {
+  for(int i = 0; i < 3; i++) {       /* row index in Q */
+    for(int j = 0; j < i + 1; j++) { /* column index in Q^T */
+      X[i * 3 + j] = 0;
+      for(int k = 0; k < count; k++) {
+        X[i * 3 + j] += P[i * count + k] * D[k] * P[j * count + k];
       }
     }
   }
@@ -229,16 +246,98 @@ void print_A(const double* restrict A, const int m, const int n) {
 }
 
 /*!
+@brief used to solve a system of equations
 
+L^T * x = y
+
+using backward substitution where L IS NOT unit lower triangular
+
+x = L^-T * y
+
+*/
+inline void backward_substitution(double* U, double* y, double* x) {
+  const int n = 4;
+  x[n - 1] = y[n - 1] / U[(n - 1) * n + (n - 1)];
+  for(int i = n - 2; i > -1; i--) {
+    double t = y[i];
+    for(int j = i + 1; j < n; j++) {
+      t -= U[j * 4 + i] * x[j];
+    }
+    x[i] = t / U[i * 4 + i];
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L * y = b
+
+for y using forward substitution where L IS unit lower triangular
+
+y = L^-1 * b
+
+*/
+inline void ldlt_forward_substitution(double* L, double* b, double* y) {
+  const int n = 4;
+  for(int i = 0; i < n; i++) {
+    y[i] = b[i];
+    for(int j = 0; j < i; j++) {
+      y[i] -= L[i * n + j] * y[j];
+    }
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L * y = b
+
+for y using forward substitution where L IS NOT unit lower triangular
+
+y = L^-1 * b
+
+*/
+inline void cholesky_forward_substitution(double* L, double* b, double* y) {
+  const int n = 4;
+  for(int i = 0; i < n; i++) {
+    double t = b[i];
+    for(int j = 0; j < i; j++) {
+      t -= L[i * n + j] * y[j];
+    }
+    y[i] = t / L[i * n + i];
+  }
+}
+
+/*!
+computes diag(Q^T * inv(X) * Q)
 */
 int product_QtXinvQ(const double* restrict Q, double* restrict X,
                     double* restrict m, const int vertexCount) {
 
-  /* X is a symmetric 4x4 matrix in row major order, factor using Cholesky
-  factorization */
-  s2_factor_cholesky(X, 4);
+  /* X is a symmetric 4x4 matrix in row major order, factor using ldlt
+  factorization, the L and D matrices will be overwritten in X */
+  int status = s2_factor_ldlt(X, 4);
+  if(status) {
+    return -1;
+  }
+
+  double q[4];
+  double x[4] = {0.0, 0.0, 0.0, 0.0};
 
   for(int i = 0; i < vertexCount; i++) { /* rows of Q^T */
+
+    /* copy a row of Q^T to the stack in contiguous memory */
+    for(int j = 0; j < 4; j++) {
+      q[j] = Q[j * vertexCount + i];
+    }
+
+    /* compute quantity q^T * L^-T = x^T, equivalent to solving
+    L^-1 * q = x */
+    ldlt_forward_substitution(X, q, x);
+
+    /* compute term along diagonal of m */
+    m[i] = x[0] * x[0] / X[0 * 4 + 0] + x[1] * x[1] / X[1 * 4 + 1] +
+           x[2] * x[2] / X[2 * 4 + 2] + x[3] * x[3] / X[3 * 4 + 3];
   }
 
   return 0;
@@ -291,51 +390,73 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
   double* m = calloc(vertexCount, sizeof(double));
 
   while(error > tolerance) {
-    product_QDQt(Q, u, X, vertexCount); // X = Q * diag(u) * Q.transpose();
-    // X = sum_i ( u_i * q_i * q_i')  is a (d+1)x(d+1) matrix
 
-    /* X will be overwritten with its LU factors in this step
-       m the diagonal vector of an nxn matrix*/
-    product_QtXinvQ(Q, X, m,
-                    vertexCount); // M = diag(Q.transpose() * inv(X) * Q);
+    /* compute the product Q * diag(u) * Q^T -> X where
+    Q is a 4xn matrix stored in row major order */
+    product_QDQt(Q, u, X, vertexCount);
+
+    /* this step computes the quantity:
+
+    M = diag(Q.transpose() * inv(X) * Q);
+
+    X will be overwritten with its LDLT factors in this step
+    m is the nx1 diagonal vector of an nxn matrix*/
+    product_QtXinvQ(Q, X, m, vertexCount);
 
     int j = 0;
     double maximum = max_a(m, &j, vertexCount);
     double step_size =
       1.0 - (maximum - vertexCount - 1) / ((vertexCount + 1) * (maximum - 1));
+
+    /* this step computes the quantity u_new = (1 - step_size) * u */
     product_ak(u, 1.0 - step_size, u_new, vertexCount);
     u_new[j] += step_size;
 
     error = norm_diff(u_new, u, vertexCount);
 
     memcpy(u, u_new, vertexCount * sizeof(double));
+
     count++;
+    printf(" [%d], error: %g\n", count, error);
   }
-
-  /* compute the matrix A */
-  s2_mat3x3_t A;
-  // A = (1.0 / 3.0) *
-  //     inv(P * diag(u) * P.transpose() - (P * u) * (P * u).transpose());
-
-  /* extract rotation matrix and a b c scalar terms from A */
-  s2_pca_jacobi(&A, &collisionobject->dWRTReference.R);
-  ellipsoid->a = s2_mat3x3_get(&A, 0, 0);
-  ellipsoid->b = s2_mat3x3_get(&A, 1, 1);
-  ellipsoid->c = s2_mat3x3_get(&A, 2, 2);
 
   /* obtain center of ellipse
      c = P_(3 x n)* u_(n x 1);
   */
+  s2_vector_t* c = &collisionobject->dWRTReference.T;
   memset(&collisionobject->dWRTReference.T, 0, sizeof(s2_vector_t));
   for(int i = 0; i < vertexCount; i++) {
-    collisionobject->dWRTReference.T.x += Q[i + 0 * vertexCount] * u[i];
+    c->x += Q[i + 0 * vertexCount] * u[i];
   }
   for(int i = 0; i < vertexCount; i++) {
-    collisionobject->dWRTReference.T.y += Q[i + 1 * vertexCount] * u[i];
+    c->y += Q[i + 1 * vertexCount] * u[i];
   }
   for(int i = 0; i < vertexCount; i++) {
-    collisionobject->dWRTReference.T.z += Q[i + 2 * vertexCount] * u[i];
+    c->z += Q[i + 2 * vertexCount] * u[i];
   }
+
+  /* compute the matrix A which defines an ellipsoid in quadratic form
+
+  where (x - c)' * A * (x - c) = 1
+
+  by solving:
+  A = (1.0 / 3.0) *
+       inv(P * diag(u) * P.transpose() - (P * u) * (P * u).transpose());
+
+  A = (1.0 / 3.0) * inv(P * diag(u) * P.transpose - c * c')
+  */
+
+  s2_mat3x3_t A;
+
+  /* the matrix A can be decomposed into its scalar and rotation components as:
+
+    (x - c)' * R' * S * R (x - c) = 1
+
+  */
+  s2_pca_jacobi(&A, &collisionobject->dWRTReference.R);
+  ellipsoid->a = s2_mat3x3_get(&A, 0, 0);
+  ellipsoid->b = s2_mat3x3_get(&A, 1, 1);
+  ellipsoid->c = s2_mat3x3_get(&A, 2, 2);
 
   free(Q);
   free(u);
