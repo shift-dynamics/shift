@@ -1575,7 +1575,7 @@ while err > tolerance,
     new_u(j) = new_u(j) + step_size;
     count = count + 1;
     err = norm(new_u - u);
-    count, err, maximum, j
+    count, err, maximum, j, step_size
     u = new_u;
 end
 
