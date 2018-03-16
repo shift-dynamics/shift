@@ -233,7 +233,7 @@ void s2_collisionobject_ellipsoid(s2_context_t* context, s2_body_t* body) {
     s2_displacement_copy(&instance->dWRTReference,
                          &collisionObject->dWRTReference);
   }
-  printf("   loaded sphere at index %d\n", ellipsoid->index);
+  printf("   loaded ellipsoid at index %d\n", ellipsoid->index);
   collisionObject->objectIndex = ellipsoid->index;
 }
 

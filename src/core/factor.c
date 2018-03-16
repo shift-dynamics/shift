@@ -29,6 +29,7 @@ SUCH DAMAGE.
 #include <cblas.h>
 #endif
 #include "factor.h"
+#include <string.h>
 #include <unistd.h>
 
 inline void s2_iswap(int* a, int* b) {
@@ -692,4 +693,233 @@ void s2_factor_setCMatrix(int rowDim, int colDim, int rank, double* A) {
       }
     }
   }
+}
+
+/*!
+computes the L D L^T decomposition of a symmetric matrix without pivoting
+
+returns the matrix L D L^T in the original matrix A
+*/
+int s2_factor_ldlt(double* restrict D, const int n) {
+  for(int k = 0; k < n; k++) {
+    double pivot_inv = 1.0 / D[k * n + k];
+    for(int j = k + 1; j < n; j++) {
+      D[k * n + j] = D[j * n + k];
+      D[j * n + k] *= pivot_inv;
+    }
+    for(int j = k + 1; j < n; j++) {
+      for(int i = k + 1; i < j + 1; i++) {
+        D[j * n + i] -= D[j * n + k] * D[k * n + i];
+      }
+    }
+  }
+  return 0;
+}
+
+/*!
+verify result of L D L^T decomposition
+*/
+void s2_factor_verify_ldlt(double* restrict A, const int n) {
+  double temp[n * n];
+  memset(temp, 0, n * n * sizeof(double));
+
+  // double b[n];
+
+  /* temp <- L * D * L^T*/
+  for(int i = 0; i < n; i++) { /* rows of temp */
+    temp[i * n + i] = A[i + n * i];
+    for(int j = 0; j < i; j++) { /* columns of temp */
+      temp[j * n + j] += A[i * n + j] * A[i + n * i];
+    }
+  }
+
+  printf("LDL^T:\n");
+  // s2_mat4x4_print(stdout, temp);
+}
+
+int s2_factor_cholesky(double* restrict D, const int n) {
+  for(int k = 0; k < n; k++) {
+    D[k * 4 + k] = sqrt(D[k * 4 + k]);
+    if(fabs(D[k * 4 + k]) < 1e-9) {
+      return -1;
+    }
+    double pivot_inv = 1.0 / D[k * 4 + k];
+    for(int j = k + 1; j < n; j++) {
+      D[j * n + k] *= pivot_inv;
+    }
+    for(int j = k + 1; j < n; j++) {
+      for(int i = k + 1; i < j + 1; i++) {
+        D[j * n + i] -= D[j * n + k] * D[i * n + k];
+      }
+    }
+  }
+  return 0;
+}
+
+/*!
+verify result of cholesky decomposition
+*/
+void s2_factor_verify_cholesky(double* restrict A, const int n) {
+  double B[n * n];
+  memset(B, 0, n * n * sizeof(double));
+
+  /* temp <- L * D * L^T*/
+
+  for(int i = 0; i < n; i++) {       /* row index */
+    for(int j = 0; j < i + 1; j++) { /* column index */
+      for(int k = 0; k < j + 1; k++) {
+        B[i * n + j] += A[i * n + k] * A[j * n + k];
+      }
+    }
+  }
+
+  printf("L * L^T:\n");
+  for(int i = 0; i < n; i++) {
+    printf("  ");
+    for(int j = 0; j < n; j++) {
+      printf("%g ", B[i * n + j]);
+    }
+    printf("\n");
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L^T * x = y
+
+using backward substitution where L IS unit lower triangular
+
+x = L^-T * y
+
+*/
+inline void s2_factor_ldlt_backwardSubstitution(double* restrict L,
+                                                double* restrict y,
+                                                double* restrict x,
+                                                const int n) {
+  x[n - 1] = y[n - 1];
+  for(int i = n - 2; i > -1; i--) {
+    x[i] = y[i];
+    for(int j = i + 1; j < n; j++) {
+      x[i] -= L[j * n + i] * x[j];
+    }
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L^T * x = y
+
+using backward substitution where L IS NOT unit lower triangular
+
+x = L^-T * y
+
+*/
+inline void s2_factor_cholesky_backwardSubstitution(double* restrict L,
+                                                    double* restrict y,
+                                                    double* restrict x,
+                                                    const int n) {
+  x[n - 1] = y[n - 1] / L[(n - 1) * n + (n - 1)];
+  for(int i = n - 2; i > -1; i--) {
+    double t = y[i];
+    for(int j = i + 1; j < n; j++) {
+      t -= L[j * n + i] * x[j];
+    }
+    x[i] = t / L[i * n + i];
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L * y = b
+
+for y using forward substitution where L IS unit lower triangular
+
+y = L^-1 * b
+
+*/
+inline void s2_factor_ldlt_forwardSubstitution(double* restrict L,
+                                               double* restrict b,
+                                               double* restrict y,
+                                               const int n) {
+  for(int i = 0; i < n; i++) {
+    y[i] = b[i];
+    for(int j = 0; j < i; j++) {
+      y[i] -= L[i * n + j] * y[j];
+    }
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L * y = b
+
+for y using forward substitution where L IS NOT unit lower triangular
+
+y = L^-1 * b
+
+*/
+inline void s2_factor_cholesky_forwardSubstitution(double* restrict L,
+                                                   double* restrict b,
+                                                   double* restrict y,
+                                                   const int n) {
+  for(int i = 0; i < n; i++) {
+    double t = b[i];
+    for(int j = 0; j < i; j++) {
+      t -= L[i * n + j] * y[j];
+    }
+    y[i] = t / L[i * n + i];
+  }
+}
+
+/*!
+@brief solve the system of equations A * x = y where A is a symmetric positive
+definite matrix A
+
+s2_factor_ldlt must be called on A prior to calling this function
+*/
+inline void s2_factor_ldlt_solve(double* restrict A, double* restrict x,
+                                 double* restrict y, const int n) {
+  double b[n];
+  s2_factor_ldlt_forwardSubstitution(A, x, b, n);
+  for(int i = 0; i < n; i++) {
+    b[i] /= A[i * n + i];
+  }
+  s2_factor_ldlt_backwardSubstitution(A, b, y, n);
+}
+
+/*!
+@brief solve the system of equations A * x = y where A is a symmetric positive
+definite matrix A
+
+s2_factor_cholesky must be called on A prior to calling this function
+*/
+inline void s2_factor_cholesky_solve(double* restrict A, double* restrict x,
+                                     double* restrict y, const int n) {
+  double b[n];
+  s2_factor_ldlt_forwardSubstitution(A, x, b, n);
+  s2_factor_ldlt_backwardSubstitution(A, b, y, n);
+}
+
+/*!
+@brief compute matrix inverse of a symmetric positive definite matrix A
+*/
+inline int s2_factor_symmetricMatrixInverse(double* restrict A, const int n) {
+  double A_inverse[n * n];
+  double a[n];
+
+  int status = s2_factor_ldlt(A, n);
+  if(status) {
+    return -1;
+  }
+  for(int i = 0; i < n; i++) {
+    memset(a, 0, n * sizeof(double));
+    a[i] = 1.0;
+    s2_factor_ldlt_solve(A, a, &A_inverse[i * n + 0], n);
+  }
+  memcpy(A, A_inverse, n * n * sizeof(double));
+  return 0;
 }
