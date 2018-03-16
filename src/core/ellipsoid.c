@@ -185,12 +185,12 @@ inline double norm_diff(const double* restrict a, const double* restrict b,
   return sqrt(sum_sq);
 }
 
-inline double max_a(const double* restrict a, int* index, const int count) {
+inline double max_a(const double* restrict a, int* max_index, const int n) {
   double max_value = -DBL_MAX;
-  for(int i = 0; i < count; i++) {
+  for(int i = 0; i < n; i++) {
     if(a[i] > max_value) {
       max_value = a[i];
-      *index = i;
+      *max_index = i;
     }
   }
   return max_value;
@@ -312,7 +312,7 @@ inline void subtract_outerProduct(double* restrict A,
     [cy * cx, cy * cy, cy * cz]
     [cz * cx, cz * cy, cz * cz]
 
-    A is symmetric, so only compute terms on and below diagonal
+    A is symmetric, so only need to compute terms on and below diagonal
   */
 
   A[0 * 3 + 0] -= c->x * c->x;
@@ -348,15 +348,18 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
   /* Q is a 4xn matrix in row major order containing one homogeneous
   coordinate in the last column */
   double* Q = calloc(3 * vertexCount, sizeof(double));
-  for(unsigned int i = 0; i < 3 * vertexCount; i++) {
-    Q[i] = (double)(vertices[i]);
-  }
-  FILE* f = fopen("vertices.dat", "w");
+
   for(unsigned int i = 0; i < vertexCount; i++) {
-    fprintf(f, "%g %g %g;\n", vertices[i * 3 + 0], vertices[i * 3 + 1],
-            vertices[i * 3 + 2]);
+    Q[0 * vertexCount + i] = (double)(vertices[i * 3 + 0]);
+    Q[1 * vertexCount + i] = (double)(vertices[i * 3 + 1]);
+    Q[2 * vertexCount + i] = (double)(vertices[i * 3 + 2]);
   }
-  fclose(f);
+  // FILE* f = fopen("vertices.dat", "w");
+  // for(unsigned int i = 0; i < vertexCount; i++) {
+  //   fprintf(f, "%g %g %g;\n", vertices[i * 3 + 0], vertices[i * 3 + 1],
+  //           vertices[i * 3 + 2]);
+  // }
+  // fclose(f);
 
   // u is an nxn diagonal matrix initialized with 1 / vertexCount on the
   // diagonal
@@ -388,19 +391,25 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
 
     int j = 0;
     double maximum = max_a(m, &j, vertexCount);
-    double step_size = (maximum - 3 - 1) / ((3 + 1) * (maximum - 1));
+    double step_size = (maximum - 4) / (4 * (maximum - 1));
 
-    /* this step computes the quantity u_new = (1 - step_size) * u */
+    /* u_new = (1 - step_size) * u */
     product_ak(u, 1.0 - step_size, u_new, vertexCount);
     u_new[j] += step_size;
 
     error = norm_diff(u_new, u, vertexCount);
 
+    /* u = u_new */
     memcpy(u, u_new, vertexCount * sizeof(double));
 
     count++;
-    printf(" [%d], error: %g, maximum: %g, index: %d\n", count, error, maximum,
-           j);
+    printf(" [%d], error: %g, maximum: %g, index: %d, step_size: %g\n", count,
+           error, maximum, j, step_size);
+  }
+
+  printf("u: \n");
+  for(unsigned int i = 0; i < vertexCount; i++) {
+    printf("  %g\n", u[i]);
   }
 
   /* obtain center of ellipsoid
@@ -434,6 +443,7 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
 
   double A[9];
   memset(A, 0, 9 * sizeof(double));
+
   /* A <- P * diag(u) * P^T */
   product_PDPt(Q, u, A, vertexCount);
   printf("P * diag(u) * P^T :\n");
@@ -469,28 +479,11 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
   ellipsoid->b = 1.0 / sqrt(A[1 * 3 + 1]);
   ellipsoid->c = 1.0 / sqrt(A[2 * 3 + 2]);
 
-  collisionobject->dWRTReference.R.m00 = 0.17764;
-  collisionobject->dWRTReference.R.m01 = -0.75678;
-  collisionobject->dWRTReference.R.m02 = 0.62907;
-  collisionobject->dWRTReference.R.m10 = 0.4217;
-  collisionobject->dWRTReference.R.m11 = -0.51903;
-  collisionobject->dWRTReference.R.m12 = -0.74349;
-  collisionobject->dWRTReference.R.m20 = 0.88916;
-  collisionobject->dWRTReference.R.m21 = 0.39736;
-  collisionobject->dWRTReference.R.m22 = 0.22694;
-
-  c->x = -3.4245e-2;
-  c->y = 1.0314e-1;
-  c->z = -8.5510e-4;
-
-  ellipsoid->a = 1.0 / sqrt(240.215);
-  ellipsoid->b = 1.0 / sqrt(156.966);
-  ellipsoid->c = 1.0 / sqrt(72.814);
-
   printf("a: %g, b: %g, c: %g\n", ellipsoid->a, ellipsoid->b, ellipsoid->c);
   free(Q);
   free(u);
   free(u_new);
+  free(m);
   return 0;
 }
 
