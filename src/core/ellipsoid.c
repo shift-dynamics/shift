@@ -49,6 +49,11 @@ SUCH DAMAGE.
 
 int s2_ellipsoid(s2_ellipsoid_t*, s2_context_t*, s2_body_t*,
                  s2_collisionobject_t*);
+void subtract_outerProduct(double*, const s2_vector_t*);
+double norm_diff(const double* a, const double* b, const int n);
+double max_a(const double* a, int* index, const int count);
+void product_PDPt(const double*, const double*, double*, const int);
+void product_ak(const double*, double, double*, const int);
 
 /*!
 @brief constructor for ellipsoid geometry
@@ -68,98 +73,99 @@ void s2_ellipsoid_free(s2_sphere_t* self) {
   }
 }
 
-double s2_ellipsoid_semiPrincipleAxis(s2_vectorf_t* e,
-                                      const float* restrict vertices,
-                                      int vertexCount, s2_vectorf_t* center) {
+// double s2_ellipsoid_semiPrincipleAxis(s2_vectorf_t* e,
+//                                       const float* restrict vertices,
+//                                       int vertexCount, s2_vectorf_t* center)
+//                                       {
+//
+//   int imin;
+//   int imax;
+//   s2_pca_extremePointsAlongDirection(e, vertices, vertexCount, &imin, &imax);
+//   s2_vector_t min_vertex = s2_pca_vectorFromFloatArrayAtIndex(vertices,
+//   imin); s2_vector_t max_vertex =
+//   s2_pca_vectorFromFloatArrayAtIndex(vertices, imax); s2_vector_t temp;
+//   s2_subtract_vv(&max_vertex, &min_vertex, &temp);
+//   double dist = 0;
+//   dist += temp.x * temp.x;
+//   dist += temp.y * temp.y;
+//   dist += temp.z * temp.z;
+//   dist = sqrt(dist);
+//   center->x = (min_vertex.x + max_vertex.x) * 0.5;
+//   center->y = (min_vertex.y + max_vertex.y) * 0.5;
+//   center->z = (min_vertex.z + max_vertex.z) * 0.5;
+//   return dist * 0.5;
+// }
 
-  int imin;
-  int imax;
-  s2_pca_extremePointsAlongDirection(e, vertices, vertexCount, &imin, &imax);
-  s2_vector_t min_vertex = s2_pca_vectorFromFloatArrayAtIndex(vertices, imin);
-  s2_vector_t max_vertex = s2_pca_vectorFromFloatArrayAtIndex(vertices, imax);
-  s2_vector_t temp;
-  s2_subtract_vv(&max_vertex, &min_vertex, &temp);
-  double dist = 0;
-  dist += temp.x * temp.x;
-  dist += temp.y * temp.y;
-  dist += temp.z * temp.z;
-  dist = sqrt(dist);
-  center->x = (min_vertex.x + max_vertex.x) * 0.5;
-  center->y = (min_vertex.y + max_vertex.y) * 0.5;
-  center->z = (min_vertex.z + max_vertex.z) * 0.5;
-  return dist * 0.5;
-}
-
-/*!
-@brief finds approximate minimum bounding ellipsoid by performing pca and
-finding maximum vertex along each of the principal axes of ellipsoids
-
-@TODO requires testing / verification
-*/
-void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
-                              const float* restrict vertices,
-                              const int vertexCount,
-                              s2_collisionobject_t* collisionObject) {
-
-  /* compute single prevision covariance matrix */
-  s2_mat3x3f_t Mf = s2_pca_covariancef(vertices, vertexCount);
-
-  s2_mat3x3_t M, v;
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      s2_mat3x3_set(&M, i, j, (double)s2_mat3x3f_get(&Mf, i, j));
-    }
-  }
-  s2_pca_jacobi(&M, &v);
-
-  /* find component with largest eigenvalue */
-  // int maxc = 0;
-  // double maxf;
-  // double maxe = fabs(s2_mat3x3_get(&M, 0, 0));
-  // if((maxf = fabs(s2_mat3x3_get(&M, 1, 1))) > maxe) {
-  //   // maxc = 1;
-  //   maxe = maxf;
-  // }
-  // if((maxf = fabs(s2_mat3x3_get(&M, 2, 2))) > maxe) {
-  //   // maxc = 2;
-  //   maxe = maxf;
-  // }
-
-  s2_vectorf_t x;
-  s2_vectorf_t y;
-  s2_vectorf_t z;
-  for(int i = 0; i < 3; i++) {
-    s2_vectorf_set(&x, i, (float)s2_mat3x3_get(&v, i, 0));
-    s2_vectorf_set(&y, i, (float)s2_mat3x3_get(&v, i, 1));
-    s2_vectorf_set(&z, i, (float)s2_mat3x3_get(&v, i, 2));
-  }
-
-  s2_vectorf_t center_x;
-  s2_vectorf_t center_y;
-  s2_vectorf_t center_z;
-
-  ellipsoid->a =
-    s2_ellipsoid_semiPrincipleAxis(&x, vertices, vertexCount, &center_x);
-  ellipsoid->b =
-    s2_ellipsoid_semiPrincipleAxis(&y, vertices, vertexCount, &center_y);
-  ellipsoid->c =
-    s2_ellipsoid_semiPrincipleAxis(&z, vertices, vertexCount, &center_z);
-
-  collisionObject->dWRTReference.T.x =
-    (double)((center_x.x + center_y.x + center_z.x) / 3.0);
-  collisionObject->dWRTReference.T.y =
-    (double)((center_x.y + center_z.y + center_z.y) / 3.0);
-  collisionObject->dWRTReference.T.z =
-    (double)((center_x.z + center_z.z + center_z.z) / 3.0);
-  collisionObject->dWRTReference.R = v;
-}
+// /*!
+// @brief finds approximate minimum bounding ellipsoid by performing pca and
+// finding maximum vertex along each of the principal axes of ellipsoids
+//
+// @TODO requires testing / verification
+// */
+// void s2_ellipsoid_eigenSphere(s2_ellipsoid_t* restrict ellipsoid,
+//                               const float* restrict vertices,
+//                               const int vertexCount,
+//                               s2_collisionobject_t* collisionObject) {
+//
+//   /* compute single prevision covariance matrix */
+//   s2_mat3x3f_t Mf = s2_pca_covariancef(vertices, vertexCount);
+//
+//   s2_mat3x3_t M, v;
+//   for(int i = 0; i < 3; i++) {
+//     for(int j = 0; j < 3; j++) {
+//       s2_mat3x3_set(&M, i, j, (double)s2_mat3x3f_get(&Mf, i, j));
+//     }
+//   }
+//   s2_pca_jacobi(&M, &v);
+//
+//   /* find component with largest eigenvalue */
+//   // int maxc = 0;
+//   // double maxf;
+//   // double maxe = fabs(s2_mat3x3_get(&M, 0, 0));
+//   // if((maxf = fabs(s2_mat3x3_get(&M, 1, 1))) > maxe) {
+//   //   // maxc = 1;
+//   //   maxe = maxf;
+//   // }
+//   // if((maxf = fabs(s2_mat3x3_get(&M, 2, 2))) > maxe) {
+//   //   // maxc = 2;
+//   //   maxe = maxf;
+//   // }
+//
+//   s2_vectorf_t x;
+//   s2_vectorf_t y;
+//   s2_vectorf_t z;
+//   for(int i = 0; i < 3; i++) {
+//     s2_vectorf_set(&x, i, (float)s2_mat3x3_get(&v, i, 0));
+//     s2_vectorf_set(&y, i, (float)s2_mat3x3_get(&v, i, 1));
+//     s2_vectorf_set(&z, i, (float)s2_mat3x3_get(&v, i, 2));
+//   }
+//
+//   s2_vectorf_t center_x;
+//   s2_vectorf_t center_y;
+//   s2_vectorf_t center_z;
+//
+//   ellipsoid->a =
+//     s2_ellipsoid_semiPrincipleAxis(&x, vertices, vertexCount, &center_x);
+//   ellipsoid->b =
+//     s2_ellipsoid_semiPrincipleAxis(&y, vertices, vertexCount, &center_y);
+//   ellipsoid->c =
+//     s2_ellipsoid_semiPrincipleAxis(&z, vertices, vertexCount, &center_z);
+//
+//   collisionObject->dWRTReference.T.x =
+//     (double)((center_x.x + center_y.x + center_z.x) / 3.0);
+//   collisionObject->dWRTReference.T.y =
+//     (double)((center_x.y + center_z.y + center_z.y) / 3.0);
+//   collisionObject->dWRTReference.T.z =
+//     (double)((center_x.z + center_z.z + center_z.z) / 3.0);
+//   collisionObject->dWRTReference.R = v;
+// }
 
 /*!
 @brief compute c = a - b
 */
 inline void subtract_aa(const double* restrict a, const double* restrict b,
-                        double* restrict c, int count) {
-  for(int i = 0; i < count; i++) {
+                        double* restrict c, const int n) {
+  for(int i = 0; i < n; i++) {
     c[i] = a[i] - b[i];
   }
 }
@@ -170,9 +176,9 @@ inline void subtract_aa(const double* restrict a, const double* restrict b,
 Computes norm(a - b)
 */
 inline double norm_diff(const double* restrict a, const double* restrict b,
-                        const int count) {
+                        const int n) {
   double sum_sq = 0;
-  for(int i = 0; i < count; i++) {
+  for(int i = 0; i < n; i++) {
     double diff = a[i] - b[i];
     sum_sq += diff * diff;
   }
@@ -195,41 +201,55 @@ inline double max_a(const double* restrict a, int* index, const int count) {
 where a and b are n x 1 arrays and k is a scalar
 */
 inline void product_ak(const double* restrict a, double k, double* restrict b,
-                       const int count) {
-  for(int i = 0; i < count; i++) {
+                       const int n) {
+  for(int i = 0; i < n; i++) {
     b[i] = a[i] * k;
   }
 }
 
 /*! @brief compute product of Q * D * Q.transpose, where D is a diagonal nxn
-matrix and Q is a row major ordered 4 x n matrix
+matrix and Q is a row major ordered 4 x n matrix with ones in the last row.
+Since the last row of Q consists entirely of ones, this optimized routine
+does not carry out any matrix products with entries in that row
 
 only the lower triangular portion of X is computed as it is a symmetric matrix
 */
 inline void product_QDQt(const double* restrict Q, const double* restrict D,
-                         double* restrict X, const int count) {
-  for(int i = 0; i < 4; i++) {       /* row index in Q */
+                         double* restrict X, const int n) {
+  for(int i = 0; i < 3; i++) {       /* row index in Q */
     for(int j = 0; j < i + 1; j++) { /* column index in Q^T */
       X[i * 4 + j] = 0;
-      for(int k = 0; k < count; k++) {
-        X[i * 4 + j] += Q[i * count + k] * D[k] * Q[j * count + k];
+      for(int k = 0; k < n; k++) {
+        X[i * 4 + j] += Q[i * n + k] * D[k] * Q[j * n + k];
       }
     }
+  }
+  const int i = 3;
+  for(int j = 0; j < i; j++) { /* column index in Q^T */
+    X[i * 4 + j] = 0;
+    for(int k = 0; k < n; k++) {
+      X[i * 4 + j] += D[k] * Q[j * n + k];
+    }
+  }
+  const int j = i;
+  X[i * 4 + j] = 0;
+  for(int k = 0; k < n; k++) {
+    X[i * 4 + j] += D[k];
   }
 }
 
 /*! @brief compute product of P * D * P' -> X, where D is a diagonal
 nxn matrix and P is a row major ordered 3 x n matrix
 
-only the lower triangular portion of X is computed as it is a symmetric matrix
+only the lower triangular portion of X is computed for this symmetric matrix
 */
 inline void product_PDPt(const double* restrict P, const double* restrict D,
-                         double* restrict X, const int count) {
+                         double* restrict X, const int n) {
   for(int i = 0; i < 3; i++) {       /* row index in Q */
     for(int j = 0; j < i + 1; j++) { /* column index in Q^T */
       X[i * 3 + j] = 0;
-      for(int k = 0; k < count; k++) {
-        X[i * 3 + j] += P[i * count + k] * D[k] * P[j * count + k];
+      for(int k = 0; k < n; k++) {
+        X[i * 3 + j] += P[i * n + k] * D[k] * P[j * n + k];
       }
     }
   }
@@ -246,73 +266,10 @@ void print_A(const double* restrict A, const int m, const int n) {
 }
 
 /*!
-@brief used to solve a system of equations
-
-L^T * x = y
-
-using backward substitution where L IS NOT unit lower triangular
-
-x = L^-T * y
-
-*/
-inline void backward_substitution(double* U, double* y, double* x) {
-  const int n = 4;
-  x[n - 1] = y[n - 1] / U[(n - 1) * n + (n - 1)];
-  for(int i = n - 2; i > -1; i--) {
-    double t = y[i];
-    for(int j = i + 1; j < n; j++) {
-      t -= U[j * 4 + i] * x[j];
-    }
-    x[i] = t / U[i * 4 + i];
-  }
-}
-
-/*!
-@brief used to solve a system of equations
-
-L * y = b
-
-for y using forward substitution where L IS unit lower triangular
-
-y = L^-1 * b
-
-*/
-inline void ldlt_forward_substitution(double* L, double* b, double* y) {
-  const int n = 4;
-  for(int i = 0; i < n; i++) {
-    y[i] = b[i];
-    for(int j = 0; j < i; j++) {
-      y[i] -= L[i * n + j] * y[j];
-    }
-  }
-}
-
-/*!
-@brief used to solve a system of equations
-
-L * y = b
-
-for y using forward substitution where L IS NOT unit lower triangular
-
-y = L^-1 * b
-
-*/
-inline void cholesky_forward_substitution(double* L, double* b, double* y) {
-  const int n = 4;
-  for(int i = 0; i < n; i++) {
-    double t = b[i];
-    for(int j = 0; j < i; j++) {
-      t -= L[i * n + j] * y[j];
-    }
-    y[i] = t / L[i * n + i];
-  }
-}
-
-/*!
 computes diag(Q^T * inv(X) * Q)
 */
 int product_QtXinvQ(const double* restrict Q, double* restrict X,
-                    double* restrict m, const int vertexCount) {
+                    double* restrict m, const int n) {
 
   /* X is a symmetric 4x4 matrix in row major order, factor using ldlt
   factorization, the L and D matrices will be overwritten in X */
@@ -321,43 +278,66 @@ int product_QtXinvQ(const double* restrict Q, double* restrict X,
     return -1;
   }
 
-  double q[4];
-  double x[4] = {0.0, 0.0, 0.0, 0.0};
+  double q[4] = {0.0, 0.0, 0.0, 1.0};
+  double y[4] = {0.0, 0.0, 0.0, 0.0};
 
-  for(int i = 0; i < vertexCount; i++) { /* rows of Q^T */
+  for(int i = 0; i < n; i++) { /* rows of Q^T */
 
     /* copy a row of Q^T to the stack in contiguous memory */
-    for(int j = 0; j < 4; j++) {
-      q[j] = Q[j * vertexCount + i];
+    for(int j = 0; j < 3; j++) {
+      q[j] = Q[j * n + i];
     }
 
     /* compute quantity q^T * L^-T = x^T, equivalent to solving
-    L^-1 * q = x */
-    ldlt_forward_substitution(X, q, x);
+    L^-1 * q = y */
+    s2_factor_ldlt_forwardSubstitution(X, q, y, 4);
 
     /* compute term along diagonal of m */
-    m[i] = x[0] * x[0] / X[0 * 4 + 0] + x[1] * x[1] / X[1 * 4 + 1] +
-           x[2] * x[2] / X[2 * 4 + 2] + x[3] * x[3] / X[3 * 4 + 3];
+    m[i] = y[0] * y[0] / X[0 * 4 + 0] + y[1] * y[1] / X[1 * 4 + 1] +
+           y[2] * y[2] / X[2 * 4 + 2] + y[3] * y[3] / X[3 * 4 + 3];
   }
 
   return 0;
 }
 
 /*!
+@computes the matrix operation A <- A - c * c^T
+*/
+inline void subtract_outerProduct(double* restrict A,
+                                  const s2_vector_t* restrict c) {
+
+  /* c * c^T =
+
+    [cx * cx, cx * cy, cx * cz]
+    [cy * cx, cy * cy, cy * cz]
+    [cz * cx, cz * cy, cz * cz]
+
+    A is symmetric, so only compute terms on and below diagonal
+  */
+
+  A[0 * 3 + 0] -= c->x * c->x;
+  A[1 * 3 + 0] -= c->y * c->x;
+  A[1 * 3 + 1] -= c->y * c->y;
+  A[2 * 3 + 0] -= c->z * c->x;
+  A[2 * 3 + 1] -= c->z * c->y;
+  A[2 * 3 + 2] -= c->z * c->z;
+}
+
+/*!
 @brief compute minimum bounding ellipsoid using the Khachiyan Algorithm
 
 Finds the ellipse equation in 'center form':
-(x-c)' * A * (x-c) = 1
+(x-c)^T * A * (x-c) = 1
 Compute a 3x3 matrix 'A' and a 3 dimensional vector 'c' as the center
 of the ellipse.
 
 Solves the optimization problem:
 minimize log(det(A))
-subject to     (P_i - c)' * A * (P_i - c) <= 1
+subject to (P_i - c)^T * A * (P_i - c) <= 1
 
 */
 int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
-                                          s2_vectorf_t* vertices,
+                                          float* restrict vertices,
                                           unsigned int vertexCount,
                                           s2_collisionobject_t* collisionobject,
                                           double tolerance) {
@@ -366,20 +346,23 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
   double error = 1.0;
 
   /* Q is a 4xn matrix in row major order containing one homogeneous
-  coordinate in each column */
-  double* Q = calloc(4 * vertexCount, sizeof(double));
-  for(int i = 0; i < vertexCount; i++) {
-    Q[0 * vertexCount + i] = (double)(vertices[i].x);
-    Q[1 * vertexCount + i] = (double)(vertices[i].y);
-    Q[2 * vertexCount + i] = (double)(vertices[i].z);
-    Q[3 * vertexCount + i] = 1.0;
+  coordinate in the last column */
+  double* Q = calloc(3 * vertexCount, sizeof(double));
+  for(unsigned int i = 0; i < 3 * vertexCount; i++) {
+    Q[i] = (double)(vertices[i]);
   }
+  FILE* f = fopen("vertices.dat", "w");
+  for(unsigned int i = 0; i < vertexCount; i++) {
+    fprintf(f, "%g %g %g;\n", vertices[i * 3 + 0], vertices[i * 3 + 1],
+            vertices[i * 3 + 2]);
+  }
+  fclose(f);
 
   // u is an nxn diagonal matrix initialized with 1 / vertexCount on the
   // diagonal
   double* u = calloc(vertexCount, sizeof(double));
-  double n_inverse = 1.0 / vertexCount;
-  for(int i = 0; i < vertexCount; i++) {
+  const double n_inverse = 1.0 / vertexCount;
+  for(unsigned int i = 0; i < vertexCount; i++) {
     u[i] = n_inverse;
   }
 
@@ -389,7 +372,7 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   double* m = calloc(vertexCount, sizeof(double));
 
-  while(error > tolerance) {
+  while(error > tolerance && count < 10000) {
 
     /* compute the product Q * diag(u) * Q^T -> X where
     Q is a 4xn matrix stored in row major order */
@@ -397,7 +380,7 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
 
     /* this step computes the quantity:
 
-    M = diag(Q.transpose() * inv(X) * Q);
+    M = diag(Q^T * inv(X) * Q);
 
     X will be overwritten with its LDLT factors in this step
     m is the nx1 diagonal vector of an nxn matrix*/
@@ -405,8 +388,7 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
 
     int j = 0;
     double maximum = max_a(m, &j, vertexCount);
-    double step_size =
-      1.0 - (maximum - vertexCount - 1) / ((vertexCount + 1) * (maximum - 1));
+    double step_size = (maximum - 3 - 1) / ((3 + 1) * (maximum - 1));
 
     /* this step computes the quantity u_new = (1 - step_size) * u */
     product_ak(u, 1.0 - step_size, u_new, vertexCount);
@@ -417,47 +399,95 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
     memcpy(u, u_new, vertexCount * sizeof(double));
 
     count++;
-    printf(" [%d], error: %g\n", count, error);
+    printf(" [%d], error: %g, maximum: %g, index: %d\n", count, error, maximum,
+           j);
   }
 
-  /* obtain center of ellipse
+  /* obtain center of ellipsoid
      c = P_(3 x n)* u_(n x 1);
   */
   s2_vector_t* c = &collisionobject->dWRTReference.T;
-  memset(&collisionobject->dWRTReference.T, 0, sizeof(s2_vector_t));
-  for(int i = 0; i < vertexCount; i++) {
-    c->x += Q[i + 0 * vertexCount] * u[i];
+  memset(c, 0, sizeof(s2_vector_t));
+  for(unsigned int i = 0; i < vertexCount; i++) {
+    c->x += Q[0 * vertexCount + i] * u[i];
   }
-  for(int i = 0; i < vertexCount; i++) {
-    c->y += Q[i + 1 * vertexCount] * u[i];
+  for(unsigned int i = 0; i < vertexCount; i++) {
+    c->y += Q[1 * vertexCount + i] * u[i];
   }
-  for(int i = 0; i < vertexCount; i++) {
-    c->z += Q[i + 2 * vertexCount] * u[i];
+  for(unsigned int i = 0; i < vertexCount; i++) {
+    c->z += Q[2 * vertexCount + i] * u[i];
   }
 
-  /* compute the matrix A which defines an ellipsoid in quadratic form
+  printf("c: ");
+  s2_vector_print(stdout, c);
 
-  where (x - c)' * A * (x - c) = 1
+  /* compute the matrix A which defines an ellipsoid in quadric form
+
+  where (x - c)^T * A * (x - c) = 1
 
   by solving:
   A = (1.0 / 3.0) *
-       inv(P * diag(u) * P.transpose() - (P * u) * (P * u).transpose());
+       inv(P * diag(u) * P^T - (P * u) * (P * u)^T);
 
-  A = (1.0 / 3.0) * inv(P * diag(u) * P.transpose - c * c')
+  A = (1.0 / 3.0) * inv(P * diag(u) * P^T - c * c')
   */
 
-  s2_mat3x3_t A;
+  double A[9];
+  memset(A, 0, 9 * sizeof(double));
+  /* A <- P * diag(u) * P^T */
+  product_PDPt(Q, u, A, vertexCount);
+  printf("P * diag(u) * P^T :\n");
+  print_A(A, 3, 3);
 
-  /* the matrix A can be decomposed into its scalar and rotation components as:
+  /* A <- A - c * c^T */
+  subtract_outerProduct(A, c);
+  printf("P * diag(u) * P^T - c * c^T:\n");
+  print_A(A, 3, 3);
 
-    (x - c)' * R' * S * R (x - c) = 1
+  /* A <- A^{-1} */
+  s2_factor_symmetricMatrixInverse(A, 3);
+  printf("inv(P * diag(u) * P^T - c * c^T):\n");
+  print_A(A, 3, 3);
 
+  /* A <- 1 / 3 * A */
+  const double k = 1.0 / 3.0;
+  for(int i = 0; i < 9; i++) {
+    A[i] *= k;
+  }
+  printf("(1 / 3) * inv(P * diag(u) * P^T - c * c^T):\n");
+  print_A(A, 3, 3);
+
+  /* the matrix A can be decomposed into its scalar and rotation components
+    as:
+
+    (x - c)' * R' * S' * S * R (x - c) = 1
   */
-  s2_pca_jacobi(&A, &collisionobject->dWRTReference.R);
-  ellipsoid->a = s2_mat3x3_get(&A, 0, 0);
-  ellipsoid->b = s2_mat3x3_get(&A, 1, 1);
-  ellipsoid->c = s2_mat3x3_get(&A, 2, 2);
+  s2_pca_jacobi((s2_mat3x3_t*)A, &collisionobject->dWRTReference.R);
+  printf("D:\n");
+  print_A(A, 3, 3);
+  ellipsoid->a = 1.0 / sqrt(A[0 * 3 + 0]);
+  ellipsoid->b = 1.0 / sqrt(A[1 * 3 + 1]);
+  ellipsoid->c = 1.0 / sqrt(A[2 * 3 + 2]);
 
+  collisionobject->dWRTReference.R.m00 = 0.17764;
+  collisionobject->dWRTReference.R.m01 = -0.75678;
+  collisionobject->dWRTReference.R.m02 = 0.62907;
+  collisionobject->dWRTReference.R.m10 = 0.4217;
+  collisionobject->dWRTReference.R.m11 = -0.51903;
+  collisionobject->dWRTReference.R.m12 = -0.74349;
+  collisionobject->dWRTReference.R.m20 = 0.88916;
+  collisionobject->dWRTReference.R.m21 = 0.39736;
+  collisionobject->dWRTReference.R.m22 = 0.22694;
+
+  c->x = -3.4245e-2;
+  c->y = 1.0314e-1;
+  c->z = -8.5510e-4;
+
+  ellipsoid->a = 1.0 / sqrt(240.215);
+  ellipsoid->b = 1.0 / sqrt(156.966);
+  ellipsoid->c = 1.0 / sqrt(72.814);
+
+  printf("a: %g, b: %g, c: %g\n", ellipsoid->a, ellipsoid->b, ellipsoid->c);
   free(Q);
   free(u);
   free(u_new);
@@ -467,16 +497,6 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
 /*!
 This is the s2_ellipsoid_t constructor.
 
-This function finds a bounding sphere for a set of M points in
-3-dimensional space using Ritter's algorithm. In 3D, the resulting sphere
-is approximately 5% bigger than the optimal minimum radius sphere.
-
-@param radius and centroid of bounding sphere returned in
-@param convexhull, computing using s2_convexhull() defined in convexhull.h
-
-REFERENCES:
-[1] Ritter, J. (1990), 'An efficient bounding sphere', in Graphics Gems,
-    A. Glassner, Ed. Academic Press, pp.301303
 */
 int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
                  s2_collisionobject_t* collisionObject) {
@@ -500,19 +520,10 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
       return 0;
     }
 
-    s2_ellipsoid_eigenSphere(self, convexhull->vertices,
-                             convexhull->vertexCount, collisionObject);
-
-    /* test if all points in bounding ellipsoid
-    If all points inside sphere, we are done.
-    Otherwise, enlarge bounding ellipsoid to cover point outside of initial
-    sphere
-    */
-    // for(uint i = 1; i < convexhull->vertexCount; i++) {
-    //   s2_vector_t p =
-    //     s2_pca_vectorFromFloatArrayAtIndex(convexhull->vertices, i);
-    //   s2_ellipsoid_fromEllipsoidAndPoint(self, &p);
-    // }
+    const double tolerance = 0.0001;
+    s2_ellipsoid_minimumBoundingEllipsoid(self, convexhull->vertices,
+                                          convexhull->vertexCount,
+                                          collisionObject, tolerance);
 
     s2_convexhull_free(convexhull);
     return 0;
@@ -522,38 +533,7 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
 
 /*!
 @brief simple sphere support function
-@TODO this function currently is a stub and does nothing. It needs to be
-populated to return the correct extreme vertex.
 */
-// s2_vector_t s2_ellipsoid_support(void* object,
-//                                  s2_collisionobject_t* collisionObject,
-//                                  s2_vector_t* direction,
-//                                  s2_vector_t* extremeVertexLocal,
-//                                  s2_vector_t* extremeVertexGlobal) {
-//
-//   /* access the ellipsoid data structure */
-//   s2_ellipsoid_t* ellipsoid = (s2_ellipsoid_t*)object;
-//
-//   /*! @TODO information required to transform global search direction
-//   vector to local search direction vector is stored in s2_collisionobject_t
-//   datastructure.
-//
-//   Right now this function does nothing. Adding (void) below to suppress
-//   unused variable compiler warning. */
-//   (void)ellipsoid;
-//   (void)collisionObject;
-//   (void)direction;
-//   (void)extremeVertexLocal;
-//   (void)extremeVertexGlobal;
-//
-//   // s2_vector_normalize(direction);
-//   // s2_vector_t temp;
-//   // s2_product_vk(direction, &sphere->radius, &temp);
-//   s2_vector_t max_vector = {0.0, 0.0, 0.0};
-//   // s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
-//   return max_vector;
-// }
-
 void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
                           s2_vector_t* searchDirectionVectorGlobal,
                           s2_vector_t* extremeVertexLocal,

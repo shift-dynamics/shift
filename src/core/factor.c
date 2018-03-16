@@ -782,3 +782,144 @@ void s2_factor_verify_cholesky(double* restrict A, const int n) {
     printf("\n");
   }
 }
+
+/*!
+@brief used to solve a system of equations
+
+L^T * x = y
+
+using backward substitution where L IS unit lower triangular
+
+x = L^-T * y
+
+*/
+inline void s2_factor_ldlt_backwardSubstitution(double* restrict L,
+                                                double* restrict y,
+                                                double* restrict x,
+                                                const int n) {
+  x[n - 1] = y[n - 1];
+  for(int i = n - 2; i > -1; i--) {
+    x[i] = y[i];
+    for(int j = i + 1; j < n; j++) {
+      x[i] -= L[j * n + i] * x[j];
+    }
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L^T * x = y
+
+using backward substitution where L IS NOT unit lower triangular
+
+x = L^-T * y
+
+*/
+inline void s2_factor_cholesky_backwardSubstitution(double* restrict L,
+                                                    double* restrict y,
+                                                    double* restrict x,
+                                                    const int n) {
+  x[n - 1] = y[n - 1] / L[(n - 1) * n + (n - 1)];
+  for(int i = n - 2; i > -1; i--) {
+    double t = y[i];
+    for(int j = i + 1; j < n; j++) {
+      t -= L[j * n + i] * x[j];
+    }
+    x[i] = t / L[i * n + i];
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L * y = b
+
+for y using forward substitution where L IS unit lower triangular
+
+y = L^-1 * b
+
+*/
+inline void s2_factor_ldlt_forwardSubstitution(double* restrict L,
+                                               double* restrict b,
+                                               double* restrict y,
+                                               const int n) {
+  for(int i = 0; i < n; i++) {
+    y[i] = b[i];
+    for(int j = 0; j < i; j++) {
+      y[i] -= L[i * n + j] * y[j];
+    }
+  }
+}
+
+/*!
+@brief used to solve a system of equations
+
+L * y = b
+
+for y using forward substitution where L IS NOT unit lower triangular
+
+y = L^-1 * b
+
+*/
+inline void s2_factor_cholesky_forwardSubstitution(double* restrict L,
+                                                   double* restrict b,
+                                                   double* restrict y,
+                                                   const int n) {
+  for(int i = 0; i < n; i++) {
+    double t = b[i];
+    for(int j = 0; j < i; j++) {
+      t -= L[i * n + j] * y[j];
+    }
+    y[i] = t / L[i * n + i];
+  }
+}
+
+/*!
+@brief solve the system of equations A * x = y where A is a symmetric positive
+definite matrix A
+
+s2_factor_ldlt must be called on A prior to calling this function
+*/
+inline void s2_factor_ldlt_solve(double* restrict A, double* restrict x,
+                                 double* restrict y, const int n) {
+  double b[n];
+  s2_factor_ldlt_forwardSubstitution(A, x, b, n);
+  for(int i = 0; i < n; i++) {
+    b[i] /= A[i * n + i];
+  }
+  s2_factor_ldlt_backwardSubstitution(A, b, y, n);
+}
+
+/*!
+@brief solve the system of equations A * x = y where A is a symmetric positive
+definite matrix A
+
+s2_factor_cholesky must be called on A prior to calling this function
+*/
+inline void s2_factor_cholesky_solve(double* restrict A, double* restrict x,
+                                     double* restrict y, const int n) {
+  double b[n];
+  s2_factor_ldlt_forwardSubstitution(A, x, b, n);
+  s2_factor_ldlt_backwardSubstitution(A, b, y, n);
+}
+
+/*!
+@brief compute matrix inverse of a symmetric positive definite matrix A
+*/
+inline int s2_factor_symmetricMatrixInverse(double* restrict A, const int n) {
+  double A_inverse[n * n];
+  double a[n];
+
+  int status = s2_factor_ldlt(A, n);
+  if(status) {
+    return -1;
+  }
+  for(int i = 0; i < n; i++) {
+    memset(a, 0, n * sizeof(double));
+    a[i] = 1.0;
+    s2_factor_ldlt_solve(A, a, &A_inverse[i * n + 0], n);
+  }
+  memcpy(A, A_inverse, n * n * sizeof(double));
+  return 0;
+}

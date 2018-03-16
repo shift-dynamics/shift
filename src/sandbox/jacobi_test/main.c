@@ -8,50 +8,50 @@
 
 int main() {
 
-  s2_mat3x3_t A = {1620.0, -675.0, -30.0, -675.0, 300.0,
-                   60.0,   -30.0,  60.0,  4.0};
-
-  printf("A:\n");
-  s2_mat3x3_print(stdout, &A);
-
-  s2_mat3x3_t v;
-  s2_pca_jacobi(&A, &v);
-
-  printf("\nD:\n");
-  s2_mat3x3_print(stdout, &A);
-
-  printf("\nv:\n");
-  s2_mat3x3_print(stdout, &v);
-
-  printf("L matrix:\n");
-  // double L[16] = {5.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0,  0.0,
-  //                 5.0, 6.0, 3.0, 0.0, 8.0, 9.0, 10.0, 2.0};
-  // print_A(L, 4, 4);
+  // s2_mat3x3_t A = {1620.0, -675.0, -30.0, -675.0, 300.0,
+  //                  60.0,   -30.0,  60.0,  4.0};
   //
-  // /* printed result for LD should be:
-  // [[ 25.  15.  25.  40.]
-  //  [ 15.  25.  39.  60.]
-  //  [ 25.  39.  70. 124.]
-  //  [ 40.  60. 124. 249.]]
-  // */
-  // s2_factor_verify_cholesky(L, 4);
-
-  double B[16] = {25., 15., 25., 40.,  15., 25., 39.,  60.,
-                  25., 39., 70., 124., 40., 60., 124., 249.};
+  // printf("A:\n");
+  // s2_mat3x3_print(stdout, &A);
+  //
+  // s2_mat3x3_t v;
+  // s2_pca_jacobi(&A, &v);
+  //
+  // printf("\nD:\n");
+  // s2_mat3x3_print(stdout, &A);
+  //
+  // printf("\nv:\n");
+  // s2_mat3x3_print(stdout, &v);
+  //
+  // printf("L matrix:\n");
+  // // double L[16] = {5.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0,  0.0,
+  // //                 5.0, 6.0, 3.0, 0.0, 8.0, 9.0, 10.0, 2.0};
+  // // print_A(L, 4, 4);
+  // //
+  // // /* printed result for LD should be:
+  // // [[ 25.  15.  25.  40.]
+  // //  [ 15.  25.  39.  60.]
+  // //  [ 25.  39.  70. 124.]
+  // //  [ 40.  60. 124. 249.]]
+  // // */
+  // // s2_factor_verify_cholesky(L, 4);
+  //
+  // double B[16] = {25., 15., 25., 40.,  15., 25., 39.,  60.,
+  //                 25., 39., 70., 124., 40., 60., 124., 249.};
 
   // double B[16] = {2.0,  0.0,  0.0,   0.0, 6.0,  22.0, 0.0,   0.0,
   //                 10.0, 54.0, 201.0, 0.0, 16.0, 84.0, 366.0, 1163.0};
 
-  printf("B:\n");
-  print_A(B, 4, 4);
-
-  s2_factor_cholesky(B, 4);
-
-  printf("composite B matrix after cholesky\n");
-  print_A(B, 4, 4);
-
-  printf("verify decomposition:\n");
-  s2_factor_verify_cholesky(B, 4);
+  // printf("B:\n");
+  // print_A(B, 4, 4);
+  //
+  // s2_factor_cholesky(B, 4);
+  //
+  // printf("composite B matrix after cholesky\n");
+  // print_A(B, 4, 4);
+  //
+  // printf("verify decomposition:\n");
+  // s2_factor_verify_cholesky(B, 4);
 
   double Q[44] = {4., 3.,  7.,  9.,  11., 16., 12., 15., 17., 19., 13.,
                   7., 13., 23., 17., 9.,  11., 17., 3.,  2.,  5.,  6.,
@@ -98,20 +98,38 @@ int main() {
   print_A(L, 4, 4);
 
   double b[4] = {10.0, 20.0, 19.0, 4.0};
-  printf("b = \n   ");
-  for(int i = 0; i < 4; i++) {
-    printf("%g ", b[i]);
-  }
-  printf("\n");
+  printf("b =  %g %g %g %g\n", b[0], b[1], b[2], b[3]);
+
   double y[4] = {0.0, 0.0, 0.0, 0.0};
 
-  ldlt_forward_substitution(L, b, y);
+  s2_factor_ldlt_forwardSubstitution(L, b, y, 4);
+  printf("L^-1 * b = %g %g %g %g\n", y[0], y[1], y[2], y[3]);
 
-  printf("L^-1 * B = y = \n   ");
-  for(int i = 0; i < 4; i++) {
-    printf("%g ", y[i]);
-  }
-  printf("\n");
+  s2_factor_ldlt_backwardSubstitution(L, b, y, 4);
+  printf("L^-T * b = %g %g %g %g\n", y[0], y[1], y[2], y[3]);
+
+  memset(b, 0, 4 * sizeof(double));
+  memset(y, 0, 4 * sizeof(double));
+
+  double x[4] = {1.0, 2.0, 3.0, 4.0};
+  printf("x = %g %g %g %g\n", x[0], x[1], x[2], x[3]);
+
+  double A[16] = {6.,  12., 18.,  30.,  12., 29., 56.,  90.,
+                  18., 56., 138., 238., 30., 90., 238., 529.};
+
+  s2_factor_ldlt(A, 4);
+
+  printf("A factors: \n");
+  print_A(A, 4, 4);
+
+  s2_factor_ldlt_solve(A, x, y, 4);
+  printf("A^-1 x = %g %g %g %g\n", y[0], y[1], y[2], y[3]);
+
+  double B[16] = {6.,  12., 18.,  30.,  12., 29., 56.,  90.,
+                  18., 56., 138., 238., 30., 90., 238., 529.};
+  s2_factor_symmetricMatrixInverse(B, 4);
+  printf("A^-1 =\n");
+  print_A(B, 4, 4);
 
   return 0;
 }
