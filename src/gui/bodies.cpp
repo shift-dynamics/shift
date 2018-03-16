@@ -741,7 +741,6 @@ void Shift::Bodies::draw() {
       m_programPhong->setNs(1000.0);
 
       s2_displacement_t transform;
-      s2_displacement_setIdentity(&transform);
 
       for(int i = 0; i < m_context->collisionObjectCount; i++) {
 
@@ -749,19 +748,17 @@ void Shift::Bodies::draw() {
         switch(collisionObject->type) {
           case S2_COLLISIONOBJECT_SPHERE: {
 
+            s2_displacement_setIdentity(&transform);
             s2_sphere_t* sphere =
               &m_context->spheres[collisionObject->objectIndex];
             for(int i = 0; i < 3; i++) {
               s2_displacement_set(&transform, i, i, sphere->radius);
             }
 
-            s2_vector_t t;
+            s2_vector_t t = {0.0, 0.0, 0.0};
             s2_product_rv(&collisionObject->referenceFrame->R,
                           &collisionObject->dWRTReference.T, &t);
             s2_add_vv(&collisionObject->referenceFrame->T, &t, &transform.T);
-            // transform.T = sphere->centerGlobal;
-
-            // s2_displacement_print(stdout, &transform);
 
             m_programPhong->setTransform(&transform);
             checkError("bounding spheres: after set transform");
@@ -774,11 +771,12 @@ void Shift::Bodies::draw() {
           }
 
           case S2_COLLISIONOBJECT_ELLIPSOID: {
-
+            s2_displacement_setIdentity(&transform);
             s2_ellipsoid_t* ellipsoid =
               &m_context->ellipsoids[collisionObject->objectIndex];
 
             s2_mat3x3_t scale;
+            memset(&scale, 0, sizeof(s2_mat3x3_t));
             s2_mat3x3_set(&scale, 0, 0, ellipsoid->a);
             s2_mat3x3_set(&scale, 1, 1, ellipsoid->b);
             s2_mat3x3_set(&scale, 2, 2, ellipsoid->c);
@@ -789,11 +787,11 @@ void Shift::Bodies::draw() {
 
             s2_product_dr(&dAbsolute, &scale, &transform);
             m_programPhong->setTransform(&transform);
-            checkError("bounding ellipsoids: after set transform");
+            checkError("bounding ellipsoid: after set transform");
 
             glDrawElements(GL_TRIANGLES, 3 * m_sphereBufferObject.faceCount,
                            GL_UNSIGNED_INT, 0);
-            checkError("bounding ellipsoids: after draw elements");
+            checkError("bounding ellipsoid: after draw elements");
 
             break;
           }

@@ -14,16 +14,6 @@ if __name__ == "__main__":
     # print("D=", D)
     # print("v=", v)
 
-    L = np.matrix([[5.0, 0.0, 0.0, 0.0],
-                   [3.0, 4.0, 0.0, 0.0],
-                   [5.0, 6.0, 3.0, 0.0],
-                   [8.0, 9.0, 10.0, 2.0]])
-    print('L=')
-    print(L)
-
-    print('L * L^T =')
-    print(L * L.transpose())
-
     D = np.matrix(np.diag([i for i in range(1, 12)]))
     print('D =')
     print(D)
@@ -51,6 +41,24 @@ if __name__ == "__main__":
 
     print('L^-1 * b:')
     print(np.linalg.inv(L) * b)
+
+    print('L^-T * b:')
+    print(np.linalg.inv(L.transpose()) * b)
+
+    D = np.matrix([[6.0, 0.0, 0.0, 0.0],
+                   [0.0, 5.0, 0.0, 0.0],
+                   [0.0, 0.0, 4.0, 0.0],
+                   [0.0, 0.0, 0.0, 3.0]])
+
+    A = L * D * L.transpose()
+    print('A=', A)
+
+    x = np.matrix([[1.0], [2.0], [3.0], [4.0]])
+    print('A^-1 x:')
+    print(np.linalg.inv(A) * x)
+
+    print('A^-1:')
+    print(np.linalg.inv(A))
 
     # y = np.matrix([[1.], [2.], [3.], [4.]])
     #
