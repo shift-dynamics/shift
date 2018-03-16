@@ -403,14 +403,15 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
     memcpy(u, u_new, vertexCount * sizeof(double));
 
     count++;
-    printf(" [%d], error: %g, maximum: %g, index: %d, step_size: %g\n", count,
-           error, maximum, j, step_size);
+    // printf(" [%d], error: %g, maximum: %g, index: %d, step_size: %g\n",
+    // count,
+    //        error, maximum, j, step_size);
   }
 
-  printf("u: \n");
-  for(unsigned int i = 0; i < vertexCount; i++) {
-    printf("  %g\n", u[i]);
-  }
+  // printf("u: \n");
+  // for(unsigned int i = 0; i < vertexCount; i++) {
+  //   printf("  %g\n", u[i]);
+  // }
 
   /* obtain center of ellipsoid
      c = P_(3 x n)* u_(n x 1);
@@ -427,8 +428,8 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
     c->z += Q[2 * vertexCount + i] * u[i];
   }
 
-  printf("c: ");
-  s2_vector_print(stdout, c);
+  // printf("c: ");
+  // s2_vector_print(stdout, c);
 
   /* compute the matrix A which defines an ellipsoid in quadric form
 
@@ -446,26 +447,26 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
 
   /* A <- P * diag(u) * P^T */
   product_PDPt(Q, u, A, vertexCount);
-  printf("P * diag(u) * P^T :\n");
-  print_A(A, 3, 3);
+  // printf("P * diag(u) * P^T :\n");
+  // print_A(A, 3, 3);
 
   /* A <- A - c * c^T */
   subtract_outerProduct(A, c);
-  printf("P * diag(u) * P^T - c * c^T:\n");
-  print_A(A, 3, 3);
+  // printf("P * diag(u) * P^T - c * c^T:\n");
+  // print_A(A, 3, 3);
 
   /* A <- A^{-1} */
   s2_factor_symmetricMatrixInverse(A, 3);
-  printf("inv(P * diag(u) * P^T - c * c^T):\n");
-  print_A(A, 3, 3);
+  // printf("inv(P * diag(u) * P^T - c * c^T):\n");
+  // print_A(A, 3, 3);
 
   /* A <- 1 / 3 * A */
   const double k = 1.0 / 3.0;
   for(int i = 0; i < 9; i++) {
     A[i] *= k;
   }
-  printf("(1 / 3) * inv(P * diag(u) * P^T - c * c^T):\n");
-  print_A(A, 3, 3);
+  // printf("(1 / 3) * inv(P * diag(u) * P^T - c * c^T):\n");
+  // print_A(A, 3, 3);
 
   /* the matrix A can be decomposed into its scalar and rotation components
     as:
@@ -473,13 +474,13 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
     (x - c)' * R' * S' * S * R (x - c) = 1
   */
   s2_pca_jacobi((s2_mat3x3_t*)A, &collisionobject->dWRTReference.R);
-  printf("D:\n");
-  print_A(A, 3, 3);
+  // printf("D:\n");
+  // print_A(A, 3, 3);
   ellipsoid->a = 1.0 / sqrt(A[0 * 3 + 0]);
   ellipsoid->b = 1.0 / sqrt(A[1 * 3 + 1]);
   ellipsoid->c = 1.0 / sqrt(A[2 * 3 + 2]);
 
-  printf("a: %g, b: %g, c: %g\n", ellipsoid->a, ellipsoid->b, ellipsoid->c);
+  // printf("a: %g, b: %g, c: %g\n", ellipsoid->a, ellipsoid->b, ellipsoid->c);
   free(Q);
   free(u);
   free(u_new);
