@@ -35,4 +35,28 @@ void s2_factor_setBMatrix(int rank, int colDim, double* A);
 
 void s2_factor_setCMatrix(int rowDim, int colDim, int rank, double* A);
 
+int s2_factor_ldlt(double*, const int);
+
+void s2_factor_ldlt_solve(double*, double*, double*, const int);
+
+void s2_factor_verify_ldlt(double*, const int);
+
+int s2_factor_cholesky(double*, const int);
+
+void s2_factor_cholesky_solve(double*, double*, double*, const int);
+
+void s2_factor_verify_cholesky(double*, const int);
+
+void s2_factor_ldlt_forwardSubstitution(double*, double*, double*, const int);
+
+void s2_factor_cholesky_forwardSubstitution(double*, double*, double*,
+                                            const int);
+
+void s2_factor_ldlt_backwardSubstitution(double*, double*, double*, const int);
+
+void s2_factor_cholesky_backwardSubstitution(double*, double*, double*,
+                                             const int);
+
+int s2_factor_symmetricMatrixInverse(double*, const int);
+
 #endif
