@@ -61,17 +61,13 @@ void s2_kdtree_free(s2_kdtree_t*);
 int s2_kdtree_nnsearch(const s2_kdtree_t*, const s2_vector_t*,
                        double* minimumDistance);
 
-int s2_kdtree_nnsearch_within_radius(const s2_kdtree_t* restrict kdtree,
-                                     const s2_vector_t* restrict vertex,
-                                     double searchRadius,
-                                     double* minimumDistance,
-                                     int* nearestPositions,
-                                     int maxNearestPositions);
+int s2_kdtree_nnsearch_within_radius(
+  const s2_kdtree_t* kdtree, const s2_vector_t* vertex, double searchRadius,
+  double* minimumDistance, int* nearestPositions, int maxNearestPositions);
 
-bool s2_kdtree_intersection_test(const s2_kdtree_t* restrict kdtree,
-                                 const s2_vector_t* restrict point0,
-                                 const s2_vector_t* restrict point1,
-                                 const double t1,
-                                 double* restrict intersectionPoint);
+bool s2_kdtree_intersection_test(const s2_kdtree_t* kdtree,
+                                 const s2_vector_t* point0,
+                                 const s2_vector_t* point1, const double t1,
+                                 double* intersectionPoint);
 
 #endif
