@@ -3,7 +3,7 @@
 @author Kristopher Wehage
 @brief Utilities to initialize, free and operate on an s2_collisionobject_t
 datastructure.
-@copyright Kristopher Wehage 2016-2017
+@copyright Kristopher Wehage 2016-2018
 
 This function library is used to initialize, free and operate on
 data structures defined in collisionobject.h
