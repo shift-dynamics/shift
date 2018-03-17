@@ -427,11 +427,19 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
       return 0;
     }
 
-    const double tolerance = 0.0001;
+    const double tolerance = 0.001;
+
+    clock_t begin = clock();
+
+    /* here, do your time-consuming job */
+
     s2_ellipsoid_minimumBoundingEllipsoid(self, convexhull->vertices,
                                           convexhull->vertexCount,
                                           collisionObject, tolerance);
 
+    clock_t end = clock();
+    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("ellipsoid computed in %g seconds\n", time_spent);
     s2_convexhull_free(convexhull);
     return 0;
   }
