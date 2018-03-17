@@ -39,6 +39,8 @@
 % December 2005
 % UPDATE: Jan 2009
 
+% Convex hull of stanford bunny model
+
 P = [-0.066955 0.160975 -0.056865;
 -0.06221 0.169551 -0.061476;
 -0.072742 0.180568 -0.051639;
@@ -1542,10 +1544,11 @@ P = [-0.066955 0.160975 -0.056865;
 0.038326 0.03872 0.018963;
 0.017228 0.035307 0.039485
 ]
+tic
 
 P = P'
 
-tolerance = 0.0001;
+tolerance = 0.001;
 %%%%%%%%%%%%%%%%%%%%% Solving the Dual problem%%%%%%%%%%%%%%%%%%%%%%%%%%%5
 % ---------------------------------
 % data points
@@ -1571,11 +1574,10 @@ while err > tolerance,
     M = diag(Q' * inv(X) * Q);  % M the diagonal vector of an NxN matrix
     [maximum j] = max(M);
     step_size = (maximum - d -1)/((d+1)*(maximum-1));
-    new_u = (1 - step_size)*u ;
+    new_u = (1 - step_size)*u;
     new_u(j) = new_u(j) + step_size;
     count = count + 1;
     err = norm(new_u - u);
-    count, err, maximum, j, step_size
     u = new_u;
 end
 
@@ -1587,15 +1589,15 @@ end
 % It computes a dxd matrix 'A' and a d dimensional vector 'c' as the center
 % of the ellipse.
 
-u
+u;
 
 U = diag(u);
 
-A = P * U * P'
+A = P * U * P';
 
-A = A - (P * u)*(P*u)'
+A = A - (P * u)*(P*u)';
 
-A = inv(A)
+A = inv(A);
 % the A matrix for the ellipse
 % --------------------------------------------
 A = (1/d) * A
@@ -1606,3 +1608,5 @@ A = (1/d) * A
 % center of the ellipse
 % --------------------------------------------
 c = P * u
+
+toc
