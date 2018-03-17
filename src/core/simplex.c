@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "collisionobject.h"
+#include "context.c"
 #include "simplex.h"
 
 /* forward declarations of simplex functions */
@@ -25,6 +26,20 @@ void s2_restore_ellipsoid_support(s2_vector_t extremeVertexGlobal[4],
   for(int i = 0; i < simplexPointCount; i++) {
     s2_vector_print(stdout, &extremeVertexLocal[i]);
     s2_product_dv(dAbsolute, &extremeVertexLocal[i], &extremeVertexGlobal[i]);
+  }
+}
+
+void s2_simplex_push(s2_context_t* context, s2_simplex_t* simplex) {
+  if(context->simplexHead == NULL) {
+    context->simplexHead = simplex;
+    context->simplexTail = simplex;
+    simplex->next = NULL;
+    simplex->prev = NULL;
+  } else {
+    context->simplexTail->next = simplex;
+    simplex->prev = context->simplexTail;
+    context->simplexTail = simplex;
+    simplex->next = NULL;
   }
 }
 

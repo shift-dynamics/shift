@@ -22,6 +22,25 @@ SUCH DAMAGE.
 #include "contact.h"
 
 /*!
+@brief sets up a basic "sweep" operation to identify 1/2 n^2 potential
+collisions. This basic sweep function need only be called once at initial setup
+and will test each collision object with every other collision object. No
+pruning is performed to reduce unnecessary computation. */
+void s2_context_basicSweep(s2_context_t* context) {
+  /* use (void) to suppress unused variable compiler warning. */
+  (void)context;
+
+  for(int i = 0; i < context->collisionObjectCount; i++) {
+    for(int j = i + 1; j < context->collisionObjectCount; j++) {
+      s2_simplex_t* simplex = s2_simplex_alloc(&context->collisionObjects[i],
+                                               &context->collisionObjects[j]);
+    }
+  }
+
+  return;
+}
+
+/*!
 @brief performs initial sweep and prune pass to identify potentially contacting
 bodies in scene */
 void s2_context_sweepAndPrune(s2_context_t* context) {
@@ -30,6 +49,7 @@ void s2_context_sweepAndPrune(s2_context_t* context) {
   elements in the s2_supportmapping_t doubly linked list, accessible from
   context->supportmappingHead and context->supportmappingTail */
   (void)context;
+
   return;
 }
 
