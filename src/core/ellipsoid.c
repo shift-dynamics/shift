@@ -237,7 +237,14 @@ inline void subtract_outerProduct(double* restrict A,
 }
 
 /*!
-@brief compute minimum bounding ellipsoid using the Khachiyan Algorithm
+@brief compute minimum bounding ellipsoid using the the Khachiyan Algorithm as
+described in:
+
+Moshtagh, Nima. "Minimum volume enclosing ellipsoid." Convex Optimization 111
+(2005): 112.
+
+This implementation has been optimized to avoid computing unecessary
+intermediate matrix products.
 
 Finds the ellipse equation in 'center form':
 (x-c)^T * A * (x-c) = 1

@@ -20,8 +20,8 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-#ifndef _SHIFT_MINKOWSKI_H_
-#define _SHIFT_MINKOWSKI_H_
+#ifndef _SHIFT_SIMPLEX_H_
+#define _SHIFT_SIMPLEX_H_
 
 #include "kinematics.h"
 
@@ -47,7 +47,7 @@ typedef struct s2_simplex_t {
   // s2_collisionobject_history_t objectBHistory;
   bool (*support)(s2_context_t*, s2_simplex_t*); /*!<
                       function pointer to level 2 support
-                      mapping function, i.e. for two
+                      mapping function, e.g. for two
                       convex hulls this is a pointer to
                       the gjk algorithm */
   s2_vector_t searchDirectionVector; /*!< search direction vector from previous
@@ -67,6 +67,10 @@ typedef struct s2_simplex_t {
 } s2_simplex_t;
 
 void s2_simplex_support(s2_context_t*, s2_simplex_t*);
+
+void s2_simplex_push(s2_context_t*, s2_simplex_t*);
+
+void s2_simplex_pop(s2_context_t*, s2_simplex_t*);
 
 s2_simplex_t* s2_simplex_alloc(s2_collisionobject_t*, s2_collisionobject_t*);
 

@@ -55,19 +55,12 @@ void s2_context_setForces(s2_context_t* self, double* y) {
 
   /* suppress compiler warnings for unused t */
   (void)t;
-  // double ramp = 0.1;
-  // double force = 5000;
-  // int jointIndex = 5;
-  // if(t < ramp) {
-  //   context->f[jointIndex] += t * force / ramp;
-  // } else if (t < ramp * 2) {
-  //   context->f[jointIndex] += (ramp * 2 + force / ramp) - t * (force / ramp);
-  // }
 
   /* service force modules */
-
-  s2_context_sweepAndPrune(self);
-  s2_context_contactDetection(self);
+  if(self->modelParameters.contactDetectionEnabled) {
+    s2_context_sweepAndPrune(self);
+    s2_context_contactDetection(self);
+  }
 
   for(int i = 0; i < self->forceModuleCount; i++) {
 

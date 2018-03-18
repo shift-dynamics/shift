@@ -131,6 +131,10 @@ void Shift::Joints::update() {
       }
       s2_context_updateDH(m_context);
       s2_context_updateGLReferenceFrames(m_context);
+
+      if(m_renderWindow->isContactDetectionEnabled()) {
+        s2_context_contactDetection(m_renderWindow->getContext());
+      }
     }
     emit jointChanged();
   }
