@@ -137,6 +137,9 @@ typedef struct s2_context_t {
     int maxIterationCountStep;
     double pivotRatioMultiple;
 
+    bool contactDetectionEnabled; /*!< flag indicating whether contact detection
+    is enabled during simulation. Defaults to false */
+
   } modelParameters;
 
   s2_assembly_t* assembly;
