@@ -22,6 +22,7 @@
 
 #include "../shift.h"
 #include "renderwindow.hpp"
+#include "switch.hpp"
 
 class QSlider;
 
@@ -162,10 +163,11 @@ private slots:
   void setLoadingVisible(bool);
   void writeMobility();
   void drawTerrainToggleActive(bool);
-  void toggleVisibility(QTreeWidgetItem* item, int column);
+  void toggleVisibility(QTreeWidgetItem*, int);
   void updateDrawState();
-  void updateItemDrawState(MyTreeItem* item, bool isVisible,
-                           bool isCategoryEnabled);
+  void updateItemDrawState(MyTreeItem*, bool, bool);
+  void toggleContactDetectionSimulation();
+  void enableContactDetectionSimulation(bool);
 
 private:
   QSize minimumSizeHint() const {
@@ -350,6 +352,7 @@ private:
     QDoubleSpinBox* relativeError;
     QDoubleSpinBox* absoluteError;
     QDoubleSpinBox* omegaN;
+    Switch* contactDetectionSwitch;
     QLabel* title;
 
   } m_modelParametersPanel;

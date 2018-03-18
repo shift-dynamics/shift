@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include "collisionobject.h"
-#include "context.c"
+#include "context.h"
 #include "simplex.h"
 
 /* forward declarations of simplex functions */
@@ -29,6 +29,8 @@ void s2_restore_ellipsoid_support(s2_vector_t extremeVertexGlobal[4],
   }
 }
 
+/*! @brief push a simplex data structure onto end of simplex doubly linked list
+ */
 void s2_simplex_push(s2_context_t* context, s2_simplex_t* simplex) {
   if(context->simplexHead == NULL) {
     context->simplexHead = simplex;
@@ -41,6 +43,27 @@ void s2_simplex_push(s2_context_t* context, s2_simplex_t* simplex) {
     context->simplexTail = simplex;
     simplex->next = NULL;
   }
+}
+
+/*! @brief remove a simplex data structure from a list of simplices */
+void s2_simplex_pop(s2_context_t* context, s2_simplex_t* simplex) {
+  /* test if simplex is at beginning of list */
+  if(simplex->prev) {
+    simplex->prev->next = simplex->next;
+  } else {
+    /* beginning of list: */
+    context->simplexHead = simplex->next;
+  }
+
+  /* test if simplex is at end of list */
+  if(simplex->next) {
+    simplex->next->prev = simplex->prev;
+  } else {
+    /* end of list */
+    context->simplexTail = simplex->prev;
+  }
+  simplex->next = NULL;
+  simplex->prev = NULL;
 }
 
 /*!
@@ -165,7 +188,8 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
 
     /* Use sDV = -self->searchDirectionVector in ConvexHullSupportFunctionA()
      */
-    s2_vector_t sDV;
+    s2_vector_t
+      sDV; /* @raw915 suggest to change this to negativeSearchDirectionVector */
     s2_vector_invert(&self->searchDirectionVector, &sDV);
     /* Local and absolute coordinates of extreme vertex on convex hull A. */
     printf("\n***** Entering ConvexHullSupportFunctionA *****\n");
@@ -173,7 +197,16 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     printf("***** Leaving ConvexHullSupportFunctionA *****\n");
 
     /* Use self->searchDirectionVector in ConvexHullSupportFunctionB()
-       Local and absolute coordinates of extreme vertex on convex hull B. */
+       Local and absolute coordinates of extreme vertex on convex hull B.
+
+       @raw915 are you sure this is what you want?  You are passing the negative
+       of the search direction vector to both A & B support functions. If you
+       want the positive of the search direction vector, then change the line
+       below as:
+
+       cB->support(self, cB, &self->searchDirectionVector,
+       &cB->extremeVertex[0], &EVB[0]);
+       */
     printf("\n***** Entering ConvexHullSupportFunctionB *****\n");
     cB->support(self, cB, &sDV, &cB->extremeVertex[0], &EVB[0]);
     printf("***** Leaving ConvexHullSupportFunctionB *****\n");
