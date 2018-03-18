@@ -84,6 +84,10 @@ public:
 
   bool isInitialized();
 
+  bool isContactDetectionEnabled() {
+    return m_contactDetectionEnabled;
+  }
+
   void clearJoint();
 
   void setJointTarget(s2_joint_t* joint, int qIndex, int dqIndex,
@@ -157,6 +161,8 @@ public slots:
     }
   }
   void setBackgroundColor(float red, float green, float blue);
+  void toggleContactDetection();
+  void enableContactDetection(bool);
 
 signals:
   void mouseLeftPressEvent();
@@ -220,6 +226,8 @@ private:
   bool m_simulationRunning;
   double m_currentSimulationTime;
 
+  bool m_contactDetectionEnabled;
+
   void interpolateCurrentPosition();
 
   /* shader programs */
@@ -262,9 +270,10 @@ signals:
   void mouseOut();
 
 protected:
-  virtual void leaveEvent() {
+  virtual void leaveEvent(QEvent* e) {
     emit mouseOut();
-  };
+    QWidget::leaveEvent(e);
+  }
 
 private:
   RenderWindow* m_renderWindow;

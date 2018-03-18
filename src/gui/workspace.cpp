@@ -697,8 +697,18 @@ void Shift::Workspace::addModelParametersBox() {
   QObject::connect(m_modelParametersPanel.omegaN, SIGNAL(valueChanged(double)),
                    this, SLOT(setOmegaN(double)));
 
+  QLabel* contactDetectionLabel = new QLabel("Enable Contact Detection");
+  modelParametersLayout->addWidget(contactDetectionLabel, 6, 0, 0);
+
+  m_modelParametersPanel.contactDetectionSwitch = new Switch(this);
+  modelParametersLayout->addWidget(
+    m_modelParametersPanel.contactDetectionSwitch, 6, 1, 0);
+  QObject::connect(m_modelParametersPanel.contactDetectionSwitch,
+                   SIGNAL(clicked(bool)), this,
+                   SLOT(enableContactDetectionSimulation(bool)));
+
   QPushButton* runButton = new QPushButton("&Run", this);
-  modelParametersLayout->addWidget(runButton, 6, 0, 1, 2);
+  modelParametersLayout->addWidget(runButton, 7, 0, 1, 2);
   QObject::connect(runButton, SIGNAL(clicked()), this, SLOT(runSimulation()));
 
   QShortcut* runShortcut =
@@ -780,7 +790,8 @@ void Shift::Workspace::initializeLeftPanel() {
   QGroupBox* motionPanelBox = new QGroupBox();
   motionPanelBox->setContentsMargins(QMargins(0, 0, 0, 0));
   QPixmap clapperIconPixMap(":/icons/clapper.png");
-  m_tabwidget->addTab(motionPanelBox, QIcon(clapperIconPixMap), tr("Motion"));
+  m_tabwidget->addTab(motionPanelBox, QIcon(clapperIconPixMap),
+                      tr("Simulation"));
 
   QVBoxLayout* motionPanelLayout = new QVBoxLayout(motionPanelBox);
   motionPanelLayout->setMargin(0);
@@ -917,9 +928,7 @@ void Shift::Workspace::initializeLayout() {
 
   setCentralWidget(mainSplitter);
 
-  /*
-    Signals and Slots
-  */
+  /* Signals and Slots */
 
   // QObject::connect(backgroundColorButton, SIGNAL(clicked()),
   //                  this, SLOT(backgroundColorSelector() ) );
@@ -959,7 +968,7 @@ void Shift::Workspace::initializeLayout() {
 }
 
 /*!
-
+@brief toggle visibility of item in model tree
 */
 void Shift::Workspace::toggleVisibility(QTreeWidgetItem* item, int column) {
   if(column == 1) {
@@ -1107,6 +1116,15 @@ void Shift::Workspace::initializeMenus() {
 #endif
   fileMenu->addAction(actionQuit);
 
+  QMenu* editMenu = menuBar()->addMenu("&Edit");
+
+  /* save dialog */
+  QAction* actionContactDetection =
+    new QAction("Enable contact detection in GUI", this);
+  editMenu->addAction(actionContactDetection);
+  actionContactDetection->setCheckable(true);
+  actionContactDetection->setChecked(false);
+
   QMenu* viewMenu = menuBar()->addMenu("&View");
 
   QActionGroup* perspectiveGroup = new QActionGroup(this);
@@ -1147,12 +1165,6 @@ void Shift::Workspace::initializeMenus() {
   actionSetPhongShaded->setChecked(true);
 
   viewMenu->addSeparator();
-
-  // QAction* actionToggleVertexNormals =
-  //     new QAction("Display Vertex Normals", this);
-  // viewMenu->addAction(actionToggleVertexNormals);
-  // actionToggleVertexNormals->setCheckable(true);
-  // actionToggleVertexNormals->setChecked(false);
 
   QAction* m_actionToggleDrawFrames = new QAction("Frames", this);
   viewMenu->addAction(m_actionToggleDrawFrames);
@@ -1196,13 +1208,6 @@ void Shift::Workspace::initializeMenus() {
   m_actionToggleDrawNormals->setCheckable(true);
   m_actionToggleDrawNormals->setChecked(false);
 
-  // m_actionToggleDrawBoundingSpheres =
-  //   new QAction("Bounding Spheres", this);
-  // viewMenu->addAction(m_actionToggleDrawBoundingSpheres);
-  // m_actionToggleDrawBoundingSpheres->setIcon(QIcon(":/icons/sphere.png"));
-  // m_actionToggleDrawBoundingSpheres->setCheckable(true);
-  // m_actionToggleDrawBoundingSpheres->setChecked(false);
-
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
   QAction* actionAbout = new QAction("About this program ...", this);
@@ -1216,6 +1221,10 @@ void Shift::Workspace::initializeMenus() {
   QObject::connect(actionSave, SIGNAL(triggered()), this, SLOT(saveFile()));
   QObject::connect(actionSaveAs, SIGNAL(triggered()), this, SLOT(saveFileAs()));
   QObject::connect(actionQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
+
+  /* edit menu actions */
+  QObject::connect(actionContactDetection, SIGNAL(triggered(bool)),
+                   m_renderWindow, SLOT(enableContactDetection(bool)));
 
   /* view menu actions */
   QObject::connect(actionSetPerspective, SIGNAL(triggered()), m_renderWindow,
@@ -1267,18 +1276,10 @@ void Shift::Workspace::initializeMenus() {
   QObject::connect(m_actionToggleDrawNormals, SIGNAL(triggered()),
                    m_renderWindow->getBodies(), SLOT(toggleDrawNormals()));
 
-  // QObject::connect(
-  //   m_actionToggleDrawBoundingSpheres,
-  //   SIGNAL(triggered()),
-  //   m_renderWindow->getBodies(),
-  //   SLOT(toggleDrawBoundingSpheres()));
-
   QObject::connect(m_actionToggleDrawCollisionGeometry, SIGNAL(triggered()),
                    this, SLOT(updateDrawState()));
 
-  /*
-    help menu actions
-  */
+  /* help menu actions */
   QObject::connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
   QObject::connect(actionLicense, SIGNAL(triggered()), this, SLOT(license()));
 }
@@ -3502,7 +3503,7 @@ void Shift::Workspace::loadModelParameters() {
     m_modelParametersPanel.relativeError->setValue(
       m_context->modelParameters.relativeError);
 
-    qDebug() << "omega_N" << m_context->modelParameters.baumgarteOmegaN;
+    // qDebug() << "omega_N" << m_context->modelParameters.baumgarteOmegaN;
 
     m_modelParametersPanel.omegaN->setValue(
       m_context->modelParameters.baumgarteOmegaN);
@@ -3512,6 +3513,9 @@ void Shift::Workspace::loadModelParameters() {
 
     m_modelParametersPanel.timeStep->setValue(
       m_context->modelParameters.timeStep);
+
+    m_modelParametersPanel.contactDetectionSwitch->setChecked(
+      m_context->modelParameters.contactDetectionEnabled);
   }
 }
 
@@ -3601,5 +3605,24 @@ void Shift::Workspace::playPauseSimulation() {
       m_renderWindow->setAnimating(true);
       m_renderWindow->startSimulationPlayback(m_playbackPanel.time);
     }
+  }
+}
+
+/*!
+@brief toggle contact detection for simulation
+*/
+void Shift::Workspace::toggleContactDetectionSimulation() {
+  if(m_context) {
+    bool enabled = m_context->modelParameters.contactDetectionEnabled;
+    m_context->modelParameters.contactDetectionEnabled = !enabled;
+  }
+}
+
+/*!
+@brief enable / disable contact detection for simulation
+*/
+void Shift::Workspace::enableContactDetectionSimulation(bool enabled) {
+  if(m_context) {
+    m_context->modelParameters.contactDetectionEnabled = enabled;
   }
 }

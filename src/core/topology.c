@@ -3872,14 +3872,7 @@ void s2_context_setTopology(s2_context_t* context) {
 
   /* update displacements, influence coefficient matrices, velocities
      and accelerations */
-  // fprintf(
-  //   debug,
-  //   "# updating dhva\n");
   s2_context_updateDHVA(context);
-
-  // fprintf(
-  //   debug,
-  //   "# updating dReferenceFrames\n");
 
   topology_setDReferenceFrames(context);
   topology_initializeJointForces(context);
@@ -3920,9 +3913,6 @@ void s2_context_setTopology(s2_context_t* context) {
   /* flatten force modules if present */
   s2_context_flattenForceModules(context);
 
-  // printf("setting bounding spheres:\n");
-  // s2_context_setBoundingSpheres(context);
-  //
-  // printf("updating bounding spheres:\n");
-  // s2_context_updateBoundingSpheres(context);
+  printf("performing basic sweep to setup collision simplices\n");
+  s2_context_basicSweep(context);
 }
