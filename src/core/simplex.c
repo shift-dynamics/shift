@@ -193,22 +193,13 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     s2_vector_invert(&self->searchDirectionVector, &sDV);
     /* Local and absolute coordinates of extreme vertex on convex hull A. */
     printf("\n***** Entering ConvexHullSupportFunctionA *****\n");
-    cA->support(self, cA, &sDV, &cA->extremeVertex[0], &EVA[0]);
+    s2_collisionobject_support(cA, context, &sDV, &cA->extremeVertex[0],
+                               &EVA[0]);
     printf("***** Leaving ConvexHullSupportFunctionA *****\n");
 
-    /* Use self->searchDirectionVector in ConvexHullSupportFunctionB()
-       Local and absolute coordinates of extreme vertex on convex hull B.
-
-       @raw915 are you sure this is what you want?  You are passing the negative
-       of the search direction vector to both A & B support functions. If you
-       want the positive of the search direction vector, then change the line
-       below as:
-
-       cB->support(self, cB, &self->searchDirectionVector,
-       &cB->extremeVertex[0], &EVB[0]);
-       */
     printf("\n***** Entering ConvexHullSupportFunctionB *****\n");
-    cB->support(self, cB, &sDV, &cB->extremeVertex[0], &EVB[0]);
+    s2_collisionobject_support(cB, context, &self->searchDirectionVector,
+                               &cB->extremeVertex[0], &EVB[0]);
     printf("***** Leaving ConvexHullSupportFunctionB *****\n");
     s2_subtract_vv(&EVB[0], &EVA[0], &VW[0]);
   }
@@ -380,13 +371,16 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     s2_vector_invert(&self->searchDirectionVector, &sDV);
     /* Local and absolute coordinates of extreme vertex on convex hull A. */
     printf("\n***** Entering ConvexHullSupportFunctionA *****\n");
-    cA->support(self, cA, &sDV, &cA->extremeVertex[0], &EVA[0]);
+    s2_collisionobject_support(cA, context, &sDV, &cA->extremeVertex[0],
+                               &EVA[0]);
+
     printf("***** Leaving ConvexHullSupportFunctionA *****\n");
 
     /* Use self->searchDirectionVector in ConvexHullSupportFunctionB()
        Local and absolute coordinates of extreme vertex on convex hull B. */
     printf("\n***** Entering ConvexHullSupportFunctionB *****\n");
-    cB->support(self, cB, &sDV, &cB->extremeVertex[0], &EVB[0]);
+    s2_collisionobject_support(cB, context, &sDV, &cB->extremeVertex[0],
+                               &EVB[0]);
     printf("***** Leaving ConvexHullSupportFunctionB *****\n");
     s2_subtract_vv(&EVB[0], &EVA[0], &VW[0]);
 
