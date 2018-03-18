@@ -127,8 +127,10 @@ void load_vertices(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
     i++;
   }
   assert(i == qh->num_vertices);
-  // printf("unique vertices: %d, qh->num_vertices: %d\n", i, qh->num_vertices);
-  // printf("loaded vertices\n");
+  printf("unique vertices: %d, qh->num_vertices: %d, %d\n", i, qh->num_vertices,
+         convexhull->vertexCount);
+
+  printf("loaded vertices\n");
 }
 
 void load_faces(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
@@ -323,7 +325,7 @@ void s2_convexhull_basicSupport(void* object,
   s2_convexhull_t* convexhull = (s2_convexhull_t*)object;
   float max_projection = -FLT_MAX;
   size_t max_index = 0;
-  for(size_t i = 0; i < convexhull->vertexCount; i++) {
+  for(unsigned int i = 0; i < convexhull->vertexCount; i++) {
     float projection = 0;
     projection += direction->x * convexhull->vertices[i * 3 + 0];
     projection += direction->y * convexhull->vertices[i * 3 + 1];
