@@ -247,6 +247,7 @@ void s2_collisionobject_support(s2_collisionobject_t* self,
                                 s2_vector_t* extremeVertexGlobal) {
   switch(self->type) {
     case S2_COLLISIONOBJECT_CONVEXHULL: {
+      printf("self->objectIndex: %d\n", self->objectIndex);
       return self->support(&context->convexhulls[self->objectIndex], self,
                            direction, extremeVertexLocal, extremeVertexGlobal);
     }
