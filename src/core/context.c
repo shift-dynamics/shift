@@ -98,6 +98,7 @@ s2_context_t* s2_context() {
   self->modelParameters.maxIterationCount = 0;
   self->modelParameters.maxIterationCountStep = 0;
 
+  self->modelParameters.contactDetectionEnabled = false;
   self->assembly = s2_assembly();
 
   /*!
@@ -1383,9 +1384,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
     context->modelParameters.baumgarte2OmegaN = 2 * omegaN;
     context->modelParameters.baumgarteOmegaN2 = omegaN * omegaN;
 
-    /*
-      parse time span
-    */
+    /* parse time span */
     json_t* timeSpanObject = json_object_get(simulationObject, "time_span");
     if(timeSpanObject != NULL) {
       context->modelParameters.timeSpan = json_number_value(timeSpanObject);
@@ -1395,9 +1394,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
       context->modelParameters.timeSpan = 1.0;
     }
 
-    /*
-      parse time step
-    */
+    /* parse time step */
     json_t* timeStepObject = json_object_get(simulationObject, "time_step");
     if(timeStepObject != NULL) {
       context->modelParameters.timeStep = json_number_value(timeStepObject);
@@ -1427,9 +1424,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
       }
     }
 
-    /*
-      parse relative error
-    */
+    /* parse relative error */
     json_t* relativeErrorObject =
       json_object_get(simulationObject, "relative_error");
     if(relativeErrorObject != NULL) {
@@ -1441,9 +1436,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
       context->modelParameters.relativeError = 0.0;
     }
 
-    /*
-      parse absolute error
-    */
+    /* parse absolute error */
     json_t* absoluteErrorObject =
       json_object_get(simulationObject, "absolute_error");
     if(absoluteErrorObject != NULL) {
@@ -1455,9 +1448,7 @@ void s2_context_loadModelParameters(s2_context_t* context,
       context->modelParameters.absoluteError = 0.0001;
     }
 
-    /*
-      parse infinity norm multiplier
-    */
+    /* parse infinity norm multiplier */
     json_t* infNormMultiplierObject =
       json_object_get(simulationObject, "infinity_norm_multiplier");
     if(infNormMultiplierObject != NULL) {
@@ -1467,6 +1458,14 @@ void s2_context_loadModelParameters(s2_context_t* context,
       fprintf(stderr, "Warning, no infinity norm multiplier specified in "
                       "file, using 4.\n");
       context->modelParameters.pivotRatioMultiple = 4;
+    }
+
+    /* check if contact detection enabled for simulation */
+    json_t* contactDetectionObject =
+      json_object_get(simulationObject, "contact_detection");
+    if(contactDetectionObject) {
+      context->modelParameters.contactDetectionEnabled =
+        json_boolean_value(contactDetectionObject);
     }
 
   } else {
