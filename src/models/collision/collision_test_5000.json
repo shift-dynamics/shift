@@ -20,7 +20,8 @@
       "time_span": 100,
       "time_step": 0.03,
       "relative_error": 1e-09,
-      "absolute_error": 1e-09
+      "absolute_error": 1e-09,
+      "contact_detection": true
     }
   },
   "fixed": {

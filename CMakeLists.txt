@@ -267,6 +267,7 @@ set(GUI_SOURCES
   ${shift_SOURCE_DIR}/src/gui/pointcloudshaderprogram.cpp
   ${shift_SOURCE_DIR}/src/gui/pointcloud.cpp
   ${shift_SOURCE_DIR}/src/gui/orbitalcamera.cpp
+  ${shift_SOURCE_DIR}/src/gui/switch.cpp
   ${shift_SOURCE_DIR}/src/gui/resources.qrc
 )
 

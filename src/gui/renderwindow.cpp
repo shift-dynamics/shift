@@ -57,6 +57,7 @@ Shift::RenderWindow::RenderWindow()
   , m_pointclouds(NULL)
   , m_initialized(false)
   , m_simulationRunning(false)
+  , m_contactDetectionEnabled(false)
   , m_cameraMode(S2_CAMERA_INTERACTION_ORBITAL) {
 
   setAnimating(true);
@@ -766,4 +767,18 @@ void Shift::RenderWindow::draw() {
   m_terrain->draw();
   m_bodies->draw();
   m_pointclouds->draw();
+}
+
+/*!
+@brief toggle contact detection in GUI
+*/
+void Shift::RenderWindow::toggleContactDetection() {
+  enableContactDetection(!m_contactDetectionEnabled);
+}
+
+/*!
+@brief enable / disable contact detection in the Shift GUI
+*/
+void Shift::RenderWindow::enableContactDetection(bool enabled) {
+  m_contactDetectionEnabled = enabled;
 }
