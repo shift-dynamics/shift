@@ -71,6 +71,11 @@ void s2_context_contactDetection(s2_context_t* context) {
   contacting bodies is carried out here. The code iterates over
   the linked list of simplex datastructures identified in the
   sweepAndPrune or basicSweep phase. */
+
+  for(int i = 0; i < context->collisionObjectCount; i++) {
+    context->collisionObjects[i].displacementUpdated = false;
+  }
+
   s2_simplex_t* head = context->simplexHead;
   while(head) {
     s2_simplex_support(context, head);
