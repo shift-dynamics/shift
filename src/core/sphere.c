@@ -157,7 +157,6 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
               s2_collisionobject_t* collisionObject) {
 
   if(body->materialIndex != -1) {
-
     /* initialize memory and set support function */
 
     /* generate temporary convex hull */
@@ -192,31 +191,36 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
 }
 
 /*!
-@brief simple sphere support function
-@TODO this function is currently a stub and does nothing, it needs to
-be populated to return the correct extreme vertex
+@brief simple sphere extreme vertex support function that populates only the
+extremeVertexGlobal vector. The extremeVertexLocal is unused in this function.
+The function prototype contains both extremeVertexLocal and extremeVertexGlobal
+so that it matches the signature of other extreme vertex support functions.
 */
 void s2_sphere_support(void* object, s2_collisionobject_t* collisionObject,
                        s2_vector_t* direction, s2_vector_t* extremeVertexLocal,
                        s2_vector_t* extremeVertexGlobal) {
 
-  /* access quantities in the s2_sphere_t data structure */
+  /* pointer to access quantities in the s2_sphere_t data structure */
   s2_sphere_t* sphere = (s2_sphere_t*)object;
 
-  /*! @TODO currently, this function does nothing. Adding (void) to suppress
-  unused compiler warning. */
-  (void)sphere;
-  (void)collisionObject;
-  (void)direction;
-  (void)extremeVertexLocal;
+  /* suppress unused variable compiler warnings */
   (void)extremeVertexGlobal;
 
-  // s2_sphere_t* sphere = (s2_sphere_t*)collisionobject;
-  // s2_vector_normalize(direction);
-  // s2_vector_t temp;
-  // s2_product_vk(direction, &sphere->radius, &temp);
-  // s2_vector_t max_vector = {0.0, 0.0, 0.0};
+  /* extremeVertexGlobal <- direction */
+  s2_vector_copy(direction, extremeVertexGlobal);
 
-  // s2_add_vv(&temp, &sphere->centerGlobal, &max_vector);
+  /* this normalization step would not be necessary if the direction
+  vector is already normalized coming into this function. Not
+  making any assumptions here. */
+  s2_vector_normalize(extremeVertexGlobal);
+
+  /* extremeVertexGlobal *= radius */
+  s2_vector_scale(sphere->radius, extremeVertexGlobal);
+
+  /* extremeVertexGlobal += center
+
+  collisionObject->dAbsolute.T must be populated prior to calling this
+  function */
+  s2_addequal_vv(&collisionObject->dAbsolute.T, extremeVertexGlobal);
   return;
 }

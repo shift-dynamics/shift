@@ -1625,28 +1625,6 @@ void s2_context_flattenHierarchy(s2_assembly_t* assembly, s2_context_t* context,
   }
 }
 
-// void s2_context_setBoundingSpheres(s2_context_t* context) {
-//
-//   context->boundingSpheres = calloc(
-//                                context->bodyCount, sizeof(s2_sphere_t));
-//   if(context->boundingSpheres == NULL) {
-//     fprintf(stderr, "failed to allocate memory for bounding spheres\n");
-//     exit(-1);
-//   }
-//   int j = 0;
-//   for(int i = 0; i < context->bodyCount + context->chordConstraintCount; i++)
-//   {
-//     s2_body_t* body = context->bodyPointers[i];
-//     if(!body->isVirtual) {
-//       printf("[%d] ", i);
-//       s2_stackstr_print(stdout, body->name);
-//       s2_sphere_approximateMinBoundSphere(
-//         &context->boundingSpheres[j++],
-//         context->bodyPointers[i]);
-//     }
-//   }
-// }
-
 /*!
 @brief Loads hierarchical json file into s2_context_t data structure
 
@@ -1731,7 +1709,7 @@ s2_context_t* s2_context_loadJSON(json_t* root, const char* filePath) {
 @brief Parse a Shift JSON file and return in "context", an s2_context_t
 datastructure
 
-This function parses a Shift JSON file and returns a n s2_context_t
+This function parses a Shift JSON file and returns an s2_context_t
 data structure. The JSON file is parsed using the Jansson C library.
 
 @param fileName path to Shift JSON file.
@@ -1767,7 +1745,7 @@ s2_context_t* s2_context_load(const char* fileName) {
 }
 
 /*!
-@brief
+@brief compares names in frames to set pointers
 */
 bool s2_connectFramePointer(s2_body_t* body, s2_joint_t* joint,
                             bool searchParent) {
@@ -1797,7 +1775,8 @@ bool s2_connectFramePointer(s2_body_t* body, s2_joint_t* joint,
 }
 
 /*!
-@brief Processes body joint pointers from a flattened list of bodies and joints
+@brief Processes body and joint pointers from a flattened list of bodies and
+joints
 
 The flattened list must be generated using s2_LoadFlattenedBodyJointList
 
@@ -1894,17 +1873,3 @@ void s2_context_setTerrainPointers(s2_context_t* context) {
     }
   }
 }
-
-/*!
-@brief update global centroid of bounding spheres
-*/
-// void s2_context_updateBoundingSpheres(s2_context_t* context) {
-//   for(int i = 0; i < context->bodyCount; i++) {
-//     s2_sphere_updateCentroid(&context->boundingSpheres[i]);
-//     s2_stackstr_print(stdout, context->boundingSpheres[i].parentBody->name);
-//     printf("radius: %f, centerGlobal: ", context->boundingSpheres[i].radius);
-//     s2_vector_print(stdout, &context->boundingSpheres[i].centerGlobal);
-//     printf("centerLocal: ");
-//     s2_vector_print(stdout, &context->boundingSpheres[i].centerLocal);
-//   }
-// }
