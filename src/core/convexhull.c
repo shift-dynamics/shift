@@ -307,20 +307,8 @@ void s2_convexhull_basicSupport(void* object,
                                 s2_vector_t* extremeVertexLocal,
                                 s2_vector_t* extremeVertexGlobal) {
 
-  /*! @TODO the information required to compute direction local is available
-  in the s2_collisionobject_t data structure */
-
   /*! @TODO historical information which could be used to accelerate lookup of
   extreme vertex is stored in s2_collisionobject_t data structure */
-
-  /*! @TODO for now the following two fields in the call list are not used.
-  Add (void) to suppress unused compiler warnings. Remove (void) when these
-  variables are used in the code */
-
-  (void)collisionObject;
-  (void)direction;
-  (void)extremeVertexLocal;
-  (void)extremeVertexGlobal;
 
   s2_convexhull_t* convexhull = (s2_convexhull_t*)object;
   float max_projection = -FLT_MAX;
@@ -338,4 +326,7 @@ void s2_convexhull_basicSupport(void* object,
   extremeVertexLocal->x = (double)(convexhull->vertices[max_index * 3 + 0]);
   extremeVertexLocal->y = (double)(convexhull->vertices[max_index * 3 + 1]);
   extremeVertexLocal->z = (double)(convexhull->vertices[max_index * 3 + 2]);
+
+  s2_product_dv(&collisionObject->dAbsolute, extremeVertexLocal,
+                extremeVertexGlobal);
 }
