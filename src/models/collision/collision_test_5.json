@@ -136,7 +136,7 @@
           "definition": [
             "stanford_bunny.obj"
           ],
-          "collision_geometry": "convex_hull",
+          "collision_geometry": "ellipsoid",
           "center_of_mass": [
             0.0,
             0.0,
@@ -157,7 +157,7 @@
           "definition": [
             "stanford_bunny.obj"
           ],
-          "collision_geometry": "convex_hull",
+          "collision_geometry": "ellipsoid",
           "center_of_mass": [
             0.0,
             0.0,
@@ -178,7 +178,7 @@
           "definition": [
             "stanford_bunny.obj"
           ],
-          "collision_geometry": "sphere",
+          "collision_geometry": "ellipsoid",
           "center_of_mass": [
             0.0,
             0.0,
@@ -220,7 +220,7 @@
           "definition": [
             "stanford_bunny.obj"
           ],
-          "collision_geometry": "sphere",
+          "collision_geometry": "ellipsoid",
           "center_of_mass": [
             0.0,
             0.0,
