@@ -1190,11 +1190,11 @@ s2_simplex_t* s2_simplex_alloc(s2_collisionobject_t* object_a,
   simplex->objectA = object_a;
   simplex->objectB = object_b;
   if(object_a->type == S2_COLLISIONOBJECT_SPHERE &&
-     object_a->type == S2_COLLISIONOBJECT_SPHERE) {
+     object_b->type == S2_COLLISIONOBJECT_SPHERE) {
     simplex->support = s2_simplex_sphereSphere;
-  } else if(object_a->type == S2_COLLISIONOBJECT_ELLIPSOID &&
-            object_a->type == S2_COLLISIONOBJECT_ELLIPSOID) {
-    simplex->support = s2_simplex_ellipsoidEllipsoid;
+    // } else if(object_a->type == S2_COLLISIONOBJECT_ELLIPSOID &&
+    //           object_b->type == S2_COLLISIONOBJECT_ELLIPSOID) {
+    //   simplex->support = s2_simplex_ellipsoidEllipsoid;
   } else {
     simplex->support = s2_simplex_gjk;
   }
