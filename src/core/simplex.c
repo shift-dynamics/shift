@@ -5,15 +5,15 @@
 #include "simplex.h"
 
 /* forward declarations of simplex functions */
-void simplex0(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
+void simplex0(s2_vector_t* sDV, s2_vector_t V[13], int* numberSimplexPoints,
               bool* collision, bool* success);
-void simplex1(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
+void simplex1(s2_vector_t* sDV, s2_vector_t V[13], int* numberSimplexPoints,
               bool* collision, bool* success);
-void simplex2(s2_vector_t sDV, s2_vector_t V[13],
+void simplex2(s2_vector_t* sDV, s2_vector_t V[13],
               s2_vector_t extremeVertexLocalA[4],
               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
               bool* collision, bool* success);
-void simplex3(s2_vector_t sDV, s2_vector_t V[13],
+void simplex3(s2_vector_t* sDV, s2_vector_t V[13],
               s2_vector_t extremeVertexLocalA[4],
               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
               bool* collision, bool* success);
@@ -22,10 +22,15 @@ void s2_restore_ellipsoid_support(s2_vector_t extremeVertexGlobal[4],
                                   s2_displacement_t* dAbsolute,
                                   s2_vector_t extremeVertexLocal[4],
                                   int simplexPointCount) {
-  printf("\n+++++local extreme vertex support matrix+++++\n");
+  printf("extremeVertexLocal support matrix\n");
   for(int i = 0; i < simplexPointCount; i++) {
     s2_vector_print(stdout, &extremeVertexLocal[i]);
+  }
+
+  printf("extremeVertexGlobal support matri\n");
+  for(int i = 0; i < simplexPointCount; i++) {
     s2_product_dv(dAbsolute, &extremeVertexLocal[i], &extremeVertexGlobal[i]);
+    s2_vector_print(stdout, &extremeVertexGlobal[i]);
   }
 }
 
@@ -179,10 +184,12 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   */
 
   if(self->simplexPointCount == 0) {
+    printf("\n+++++Initializing simplex for the first time.\n");
     self->simplexPointCount = 1;
+    printf("simplexPointCount = %d\n", self->simplexPointCount);
+
     s2_subtract_vv(&dAbsoluteA->T, &dAbsoluteB->T,
                    &self->searchDirectionVector);
-    printf("simplexPointCount = %d\n", self->simplexPointCount);
     printf("Initialize searchDirectionVector\n");
     s2_vector_print(stdout, &self->searchDirectionVector);
 
@@ -192,11 +199,14 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
       sDV; /* @raw915 suggest to change this to negativeSearchDirectionVector */
     s2_vector_invert(&self->searchDirectionVector, &sDV);
     /* Local and absolute coordinates of extreme vertex on convex hull A. */
-    printf("\n***** Entering ConvexHullSupportFunctionA *****\n");
+    printf("\n***** Entering ConvexHullSupportFunctionA first time. *****\n");
     s2_collisionobject_support(cA, context, &sDV, &cA->extremeVertex[0],
                                &EVA[0]);
     // cA->support(self, cA, &sDV, &cA->extremeVertex[0], &EVA[0]);
     printf("***** Leaving ConvexHullSupportFunctionA *****\n");
+
+    printf("Extreme vertex on convex hull A\n");
+    s2_vector_print(stdout, &EVA[0]);
 
     /* Use self->searchDirectionVector in ConvexHullSupportFunctionB()
        Local and absolute coordinates of extreme vertex on convex hull B.
@@ -210,13 +220,20 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
        &cB->extremeVertex[0], &EVB[0]);
        */
     // change sign of searchdirection vector.
-    printf("\n***** Entering ConvexHullSupportFunctionB *****\n");
+    printf("\n***** Entering ConvexHullSupportFunctionB first time. *****\n");
     s2_collisionobject_support(cB, context, &self->searchDirectionVector,
-                               &cB->extremeVertex[0], &EVA[0]);
+                               &cB->extremeVertex[0], &EVB[0]);
     // cB->support(self, cB, &self->searchDirectionVector,
     // &cB->extremeVertex[0], &EVB[0]);
     printf("***** Leaving ConvexHullSupportFunctionB *****\n");
+
+    printf("Extreme vertex on convex hull B\n");
+    s2_vector_print(stdout, &EVB[0]);
+
     s2_subtract_vv(&EVB[0], &EVA[0], &VW[0]);
+    printf("First column of the simplex\n");
+    s2_vector_print(stdout, &VW[0]);
+
   }
   /*
   The current simplex is composed of numberSimplexPoints sets of simplex
@@ -234,14 +251,21 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
 
   */
   else {
-    printf("\n*****Restoring simplex***** with %d vectors.\n",
-           self->simplexPointCount);
+    printf("\n***** First GJK iteration at next pose *****\n");
+    printf("Restoring simplex with %d vectors.\n", self->simplexPointCount);
+
+    printf("\nEntering s2_restore_ellipsoid_support for object A\n");
     s2_restore_ellipsoid_support(EVA, dAbsoluteA, cA->extremeVertex,
                                  self->simplexPointCount);
+
+    printf("\nEntering s2_restore_ellipsoid_support for object B\n");
     s2_restore_ellipsoid_support(EVB, dAbsoluteB, cB->extremeVertex,
                                  self->simplexPointCount);
+
+    printf("\nUpdating simplex in absolute coordinates.\n");
     for(int i = 0; i < self->simplexPointCount; i++) {
       s2_subtract_vv(&EVB[i], &EVA[i], &VW[i]);
+      s2_vector_print(stdout, &VW[i]);
     }
   }
 
@@ -269,6 +293,7 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   when the two surfaces were very close to each other, contacting or not.
   */
 
+  printf("\n+++++ Beginning the GJK iterations. +++++\n");
   int numiters = 0;
   while(numiters < 50) {
     numiters++;
@@ -307,29 +332,31 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     in the convex Minkowski hull will be made in simplex3.
     */
 
+    printf("searchDirectionVector before simplex switch.\n");
+    s2_vector_print(stdout, &self->searchDirectionVector);
     switch(self->simplexPointCount) {
       case 1:
         printf("***** entering simplex0 *****\n");
-        simplex0(self->searchDirectionVector, VW, &self->simplexPointCount,
+        simplex0(&self->searchDirectionVector, VW, &self->simplexPointCount,
                  &self->collision, &self->success);
         printf("***** leaving simplex0 *****\n");
         break;
       case 2:
         printf("***** entering simplex1 *****\n");
-        simplex1(self->searchDirectionVector, VW, &self->simplexPointCount,
+        simplex1(&self->searchDirectionVector, VW, &self->simplexPointCount,
                  &self->collision, &self->success);
         printf("***** leaving simplex1 *****\n");
         break;
       case 3:
         printf("***** entering simplex2 *****\n");
-        simplex2(self->searchDirectionVector, VW, cA->extremeVertex,
+        simplex2(&self->searchDirectionVector, VW, cA->extremeVertex,
                  cB->extremeVertex, &self->simplexPointCount, &self->collision,
                  &self->success);
         printf("***** leaving simplex2 *****\n");
         break;
       case 4:
         printf("***** entering simplex3 *****\n");
-        simplex3(self->searchDirectionVector, VW, cA->extremeVertex,
+        simplex3(&self->searchDirectionVector, VW, cA->extremeVertex,
                  cB->extremeVertex, &self->simplexPointCount, &self->collision,
                  &self->success);
         printf("***** leaving simplex3 *****\n");
@@ -348,6 +375,8 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
         printf("Convex hulls are not in contact\n");
       }
       break;
+    } else {
+      printf("No contact detection success yet.\n");
     }
 
     /*
@@ -367,38 +396,48 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     ones.
     */
 
-    printf("\n^^^^^numberSimplexPointsBefore^^^^^ %d\n",
-           self->simplexPointCount);
+    printf("\n^^^^^expanding the simplex^^^^^\n");
 
-    printf("\n+++++simplex support matrix+++\n");
+    printf("Simplex support matrix before expansion\n");
     for(int i = 0; i < self->simplexPointCount; i++) {
       s2_vector_print(stdout, &VW[i]);
     }
 
+    printf("Shifted extreme vertex vectors for object A\n");
     for(int i = self->simplexPointCount; i > 0; i--) {
       s2_vector_copy(&cA->extremeVertex[i - 1], &cA->extremeVertex[i]);
+      s2_vector_print(stdout, &cA->extremeVertex[i]);
+    }
+    printf("Shifted extreme vertex vectors for object B\n");
+    for(int i = self->simplexPointCount; i > 0; i--) {
       s2_vector_copy(&cB->extremeVertex[i - 1], &cB->extremeVertex[i]);
+      s2_vector_print(stdout, &cB->extremeVertex[i]);
     }
 
     /* Use sDV = -self->searchDirectionVector in
      * ConvexHullSupportFunctionA() */
+    printf("searchDirectionVector\n");
+    s2_vector_print(stdout, &self->searchDirectionVector);
     s2_vector_t sDV;
     s2_vector_invert(&self->searchDirectionVector, &sDV);
     /* Local and absolute coordinates of extreme vertex on convex hull A. */
-    printf("\n***** Entering ConvexHullSupportFunctionA *****\n");
+    printf("\n***** Entering ConvexHullSupportFunctionA GJK Iteration *****\n");
     // cA->support(self, cA, &sDV, &cA->extremeVertex[0], &EVA[0]);
     s2_collisionobject_support(cA, context, &sDV, &cA->extremeVertex[0],
                                &EVA[0]);
     printf("***** Leaving ConvexHullSupportFunctionA *****\n");
+    printf("Extreme vertex on convex hull A\n");
+    s2_vector_print(stdout, &EVA[0]);
 
     /* Use self->searchDirectionVector in ConvexHullSupportFunctionB()
        Local and absolute coordinates of extreme vertex on convex hull B. */
-    printf("\n***** Entering ConvexHullSupportFunctionB *****\n");
+    printf("\n***** Entering ConvexHullSupportFunctionB GJK Iteration *****\n");
     // cB->support(self, cB, &sDV, &cB->extremeVertex[0], &EVB[0]);
     s2_collisionobject_support(cB, context, &self->searchDirectionVector,
-                               &cB->extremeVertex[0], &EVA[0]);
+                               &cB->extremeVertex[0], &EVB[0]);
     printf("***** Leaving ConvexHullSupportFunctionB *****\n");
-    s2_subtract_vv(&EVB[0], &EVA[0], &VW[0]);
+    printf("Extreme vertex on convex hull B\n");
+    s2_vector_print(stdout, &EVB[0]);
 
     /*
     The array VW[4][3] contains coordinates of up to four simplex support
@@ -407,8 +446,8 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     make room for the next simplex support vector.
     */
 
+    printf("Shift simplex columns to the right by one.\n");
     for(int i = self->simplexPointCount; i > 0; i--) {
-      s2_vector_copy(&VW[i - 1], &VW[i]);
       s2_vector_copy(&VW[i - 1], &VW[i]);
     }
 
@@ -416,16 +455,17 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
     Subtract the support point on hull A from the support point on hull B
     and insert the new point in the first position of the simplex.
     */
+    printf("Subtract hull A support point from hull B support point and\n");
+    printf("insert into the first column of the expanded simplex.\n");
     s2_subtract_vv(&EVB[0], &EVA[0], &VW[0]);
+    s2_vector_print(stdout, &VW[0]);
+
     /*
     Record the latest insertion into the simplex.
     */
     self->simplexPointCount++;
 
-    printf("\n^^^^^numberSimplexPointsAfter^^^^^ %d\n",
-           self->simplexPointCount);
-
-    printf("\n+++++simplex support matrix+++\n");
+    printf("\n+++++updated simplex support matrix+++++\n");
     for(int i = 0; i < self->simplexPointCount; i++) {
       s2_vector_print(stdout, &VW[i]);
     }
@@ -514,7 +554,7 @@ of active points determines which simplex function the GJK algorithm must call.
 Thus it keeps track of the running number of active points in the simplex.
 */
 
-void simplex0(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
+void simplex0(s2_vector_t* sDV, s2_vector_t V[13], int* numberSimplexPoints,
               bool* collision, bool* success) {
   /*
   sDV will contain the next search-direction vector used by support() to
@@ -525,15 +565,16 @@ void simplex0(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
   origin == 0: The convex hull does not contain the origin.
   origin == 1: The convex hull contains the origin.
   */
-  s2_vector_invert(&V[0], &sDV);
+  s2_vector_invert(&V[0], sDV);
   printf("numberSimplexPoints = %d\n", *numberSimplexPoints);
-  double norm = s2_vector_l2norm(&sDV);
+  double norm = s2_vector_l2norm(sDV);
+  *success = false;
   if(norm < 1e-10) {
     *collision = true;
     *success = true;
   }
   printf("searchDirectionVector:\n");
-  s2_vector_print(stdout, &sDV);
+  s2_vector_print(stdout, sDV);
   printf("success = %s\n", *success ? "true" : "false");
   if(*success) {
     printf("collision = %s\n", *collision ? "true" : "false");
@@ -552,7 +593,7 @@ to the line, in the plane containing the origin, and in the direction of the
 origin. support() then uses this direction vector to locate a third point
 on the convex hull to form a triangle simplex2 convex hull.
 */
-void simplex1(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
+void simplex1(s2_vector_t* sDV, s2_vector_t V[13], int* numberSimplexPoints,
               bool* collision, bool* success) {
 
   /*
@@ -578,13 +619,16 @@ void simplex1(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
   origin == 0: The convex hull does not contain the origin.
   origin == 1: The convex hull contains the origin.
   */
-  if(s2_dot_vv(&V[0], &sDV) < -1e-10) {
+  *success = false;
+  if(s2_dot_vv(&V[0], sDV) < -1e-10) {
     printf("~~~~~ simplex 1: OA•sDV < -1e-10 ~~~~~\n");
     printf("Minkowski hull does not contain Origin.\n");
+    printf("OA = &V[0] = ");
+    s2_vector_print(stdout, &V[0]);
     *success = true;
     *collision = false;
     printf("searchDirectionVector:\n");
-    s2_vector_print(stdout, &sDV);
+    s2_vector_print(stdout, sDV);
     printf("success = %s\n", *success ? "true" : "false");
     printf("collision = %s\n", *collision ? "true" : "false");
     return;
@@ -598,20 +642,20 @@ void simplex1(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
   printf("AB = OB - OA = ");
   s2_vector_print(stdout, &V[2]);
   s2_cross_vv(&V[0], &V[2], &V[3]); // OA X AB
-  s2_cross_vv(&V[3], &V[2], &sDV);  // (OA X AB) X AB
+  s2_cross_vv(&V[3], &V[2], sDV);   // (OA X AB) X AB
   printf("OA X AB = ");
   s2_vector_print(stdout, &V[3]);
   printf("(OA X AB) X AB = ");
-  s2_vector_print(stdout, &sDV);
+  s2_vector_print(stdout, sDV);
   printf("numberSimplexPoints = %d\n", *numberSimplexPoints);
 
-  double norm = s2_vector_l2norm(&sDV);
+  double norm = s2_vector_l2norm(sDV);
   if(norm < 1e-10) {
-    *collision = true;
     *success = true;
+    *collision = true;
   }
   printf("searchDirectionVector:\n");
-  s2_vector_print(stdout, &sDV);
+  s2_vector_print(stdout, sDV);
   printf("success = %s\n", *success ? "true" : "false");
   if(*success) {
     printf("collision = %s\n", *collision ? "true" : "false");
@@ -630,7 +674,7 @@ to the plane of the triangle and in the direction of the origin. support()
 then uses this direction vector to locate a fourth point on the convex hull
 to form a tetrahedron simplex3 convex hull.
 */
-void simplex2(s2_vector_t sDV, s2_vector_t V[13],
+void simplex2(s2_vector_t* sDV, s2_vector_t V[13],
               s2_vector_t extremeVertexLocalA[4],
               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
               bool* collision, bool* success) {
@@ -681,14 +725,16 @@ void simplex2(s2_vector_t sDV, s2_vector_t V[13],
   origin == 0: The convex hull does not contain the origin.
   origin == 1: The convex hull contains the origin.
   */
-
-  if(s2_dot_vv(&V[0], &sDV) < -1e-10) {
+  *success = false;
+  if(s2_dot_vv(&V[0], sDV) < -1e-10) {
     printf("~~~~~ simplex 2: OA•sDV < -1e-10 ~~~~~\n");
     printf("Minkowski hull does not contain Origin.\n");
+    printf("OA = &V[0] = ");
+    s2_vector_print(stdout, &V[0]);
     *success = true;
     *collision = false;
     printf("searchDirectionVector:\n");
-    s2_vector_print(stdout, &sDV);
+    s2_vector_print(stdout, sDV);
     printf("success = %s\n", *success ? "true" : "false");
     printf("collision = %s\n", *collision ? "true" : "false");
     return;
@@ -720,11 +766,11 @@ void simplex2(s2_vector_t sDV, s2_vector_t V[13],
   if(s2_dot_vv(&V[0], &V[7]) < -1e-10) {
     printf("~~~~~ simplex 2: OA•ABn < -1e-10 ~~~~~\n");
     s2_cross_vv(&V[0], &V[3], &V[8]); // OA X AB
-    s2_cross_vv(&V[8], &V[3], &sDV);  // (OA X AB) X AB
+    s2_cross_vv(&V[8], &V[3], sDV);   // (OA X AB) X AB
     printf("OA X AB = ");
     s2_vector_print(stdout, &V[8]);
     printf("searchDirectionVector = (OA X AB) X AB = ");
-    s2_vector_print(stdout, &sDV);
+    s2_vector_print(stdout, sDV);
     (*numberSimplexPoints)--;
     printf("~~~1~~~ numberSimplexPoints = %d\n", *numberSimplexPoints);
     return;
@@ -734,11 +780,11 @@ void simplex2(s2_vector_t sDV, s2_vector_t V[13],
   else if(s2_dot_vv(&V[0], &V[6]) < -1e-10) {
     printf("~~~~~ simplex 2: OA•ACn < -1e-10 ~~~~~\n");
     s2_cross_vv(&V[0], &V[4], &V[8]); // OA X AC
-    s2_cross_vv(&V[8], &V[4], &sDV);  // (OA X AC) X AC
+    s2_cross_vv(&V[8], &V[4], sDV);   // (OA X AC) X AC
     printf("OA X AC = ");
     s2_vector_print(stdout, &V[8]);
     printf("searchDirectionVector = (OA X AC) X AC = ");
-    s2_vector_print(stdout, &sDV);
+    s2_vector_print(stdout, sDV);
     printf("Swap OB and OC\n");
     s2_vector_swap(&V[1], &V[2]); // swap OB and OC
     s2_vector_swap(&extremeVertexLocalA[1], &extremeVertexLocalA[2]);
@@ -751,16 +797,16 @@ void simplex2(s2_vector_t sDV, s2_vector_t V[13],
     double v = -s2_dot_vv(&V[0], &V[5]); // -OA•ABCn
     if(v > 1e-10) {                      // Set search direction to ABCn
       printf("~~~~~ simplex 2: -OA•ABCn > 1e-10 ~~~~~\n");
-      s2_vector_copy(&V[5], &sDV);
+      s2_vector_copy(&V[5], sDV);
       printf("searchDirectionVector = ABCn ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       printf("~~~3~~~ numberSimplexPoints = %d\n", *numberSimplexPoints);
       return;
     } else if(v < -1e-10) { // Set search direction to -ABCn
       printf("~~~~~ simplex 2: -OA•ABCn < -ZERO ~~~~~\n");
-      s2_vector_invert(&V[5], &sDV);
+      s2_vector_invert(&V[5], sDV);
       printf("searchDirectionVector = -ABCn ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       s2_vector_swap(&V[0], &V[1]); // swap OB and OC
       s2_vector_swap(&extremeVertexLocalA[0], &extremeVertexLocalA[1]);
       s2_vector_swap(&extremeVertexLocalB[0], &extremeVertexLocalB[1]);
@@ -770,14 +816,12 @@ void simplex2(s2_vector_t sDV, s2_vector_t V[13],
       return;
     } else {
       printf("~~~5~~~ numberSimplexPoints = %d\n", *numberSimplexPoints);
-      *collision = true;
       *success = true;
+      *collision = true;
       printf("searchDirectionVector:\n");
-      s2_vector_print(stdout, &sDV);
-      printf("success = %s\n", *success ? "true" : "false");
-      if(*success) {
-        printf("collision = %s\n", *collision ? "true" : "false");
-      }
+      s2_vector_print(stdout, sDV);
+      printf("success = true\n");
+      printf("collision = true\n");
       return;
     }
   }
@@ -794,7 +838,7 @@ finds one, it throws out the oldest point and calls simplex3() again.
 If the GJK algorithm finds no more points it reports no intersection and
 terminates.
 */
-void simplex3(s2_vector_t sDV, s2_vector_t V[13],
+void simplex3(s2_vector_t* sDV, s2_vector_t V[13],
               s2_vector_t extremeVertexLocalA[4],
               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
               bool* collision, bool* success) {
@@ -877,13 +921,16 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
   origin == 1: The convex hull contains the origin.
   */
 
-  if(s2_dot_vv(&V[0], &sDV) < -1e-10) {
+  *success = false;
+  if(s2_dot_vv(&V[0], sDV) < -1e-10) {
     printf("~~~~~ simplex 3: OA•sDV < -1e-10 ~~~~~\n");
     printf("Minkowski hull does not contain Origin.\n");
+    printf("OA = &V[0] = ");
+    s2_vector_print(stdout, &V[0]);
     *success = true;
     *collision = false;
     printf("searchDirectionVector:\n");
-    s2_vector_print(stdout, &sDV);
+    s2_vector_print(stdout, sDV);
     printf("success = %s\n", *success ? "true" : "false");
     printf("collision = %s\n", *collision ? "true" : "false");
     return;
@@ -932,11 +979,11 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
       printf("~~~~~ simplex 3: OA•ACn < -ZERO ~~~~~\n");
       printf("OA•ACn O outside edge AC in plane of TABC\n");
       s2_cross_vv(&V[0], &V[5], &V[12]); // OA X AC
-      s2_cross_vv(&V[12], &V[5], &sDV);  //(OA X AC) X AC
+      s2_cross_vv(&V[12], &V[5], sDV);   //(OA X AC) X AC
       printf("OA X AC = ");
       s2_vector_print(stdout, &V[12]);
       printf("searchDirectionVector = (OA X AC) X AC = ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       printf("Swap OB and OC\n");
       s2_vector_swap(&V[1], &V[2]); // swap OB and OC
       s2_vector_swap(&extremeVertexLocalA[1], &extremeVertexLocalA[2]);
@@ -950,20 +997,20 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
       printf("~~~~~ simplex 3: OA•ABn < -1e-10 ~~~~~\n");
       printf("OA•ABn O outside edge AB in plane of TABC\n");
       s2_cross_vv(&V[0], &V[4], &V[12]); // OA X AB
-      s2_cross_vv(&V[12], &V[4], &sDV);  //(OA X AB) X AB
+      s2_cross_vv(&V[12], &V[4], sDV);   //(OA X AB) X AB
       printf("OA X AB = ");
       s2_vector_print(stdout, &V[12]);
       printf("searchDirectionVector = (OA X AB) X AB = ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       // simplex1: [OA, OB]
       (*numberSimplexPoints) -= 2;
       printf("~~~2~~~ numberSimplexPoints = %d\n", *numberSimplexPoints);
       return;
     } else { // ABCn above TABC
       printf("~~~~~ simplex 3: ABCn above TABC ~~~~~\n");
-      s2_vector_copy(&V[7], &sDV);
+      s2_vector_copy(&V[7], sDV);
       printf("searchDirectionVector = ABCn ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       // simplex2: [OA, OB, OC]
       (*numberSimplexPoints)--;
       printf("~~~3~~~ numberSimplexPoints = %d\n", *numberSimplexPoints);
@@ -985,11 +1032,11 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
       printf("~~~~~ simplex 3: OA•ADn < -1e-10~~~~~ \n");
       printf("OA•ADn O outside edge AD in plane of TACD\n");
       s2_cross_vv(&V[0], &V[6], &V[12]); // OA X AD
-      s2_cross_vv(&V[12], &V[6], &sDV);  //(OA X AD) X AD
+      s2_cross_vv(&V[12], &V[6], sDV);   //(OA X AD) X AD
       printf("OA X AD = ");
       s2_vector_print(stdout, &V[12]);
       printf("searchDirectionVector = (OA X AD) X AD = ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       printf("Swap OB and OD\n");
       s2_vector_swap(&V[1], &V[3]); // swap OB and OD
       s2_vector_swap(&extremeVertexLocalA[1], &extremeVertexLocalA[3]);
@@ -1003,11 +1050,11 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
       printf("~~~~~ simplex 3: OA•ACn < -1e-10~~~~~ \n");
       printf("OA•ACn O outside edge AC in plane of TACD\n");
       s2_cross_vv(&V[0], &V[5], &V[12]); // OA X AC
-      s2_cross_vv(&V[12], &V[5], &sDV);  //(OA X AC) X AC
+      s2_cross_vv(&V[12], &V[5], sDV);   //(OA X AC) X AC
       printf("OA X AC = ");
       s2_vector_print(stdout, &V[12]);
       printf("searchDirectionVector = (OA X AC) X AC = ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       printf("Swap OB and OC\n");
       s2_vector_swap(&V[1], &V[2]); // swap OB and OC
       s2_vector_swap(&extremeVertexLocalA[1], &extremeVertexLocalA[2]);
@@ -1018,9 +1065,9 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
       return;
     } else { // ACDn Face of TACD toward O
       printf("~~~~~ simplex 3: ACDn Face of TACD toward O ~~~~~\n");
-      s2_vector_copy(&V[8], &sDV);
+      s2_vector_copy(&V[8], sDV);
       printf("searchDirectionVector = ACDn ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       printf("Swap OB and OC followed by swap OC and OD\n");
       s2_vector_swap(&V[1], &V[2]); // swap OB and OC
       s2_vector_swap(&extremeVertexLocalA[1], &extremeVertexLocalA[2]);
@@ -1049,11 +1096,11 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
       printf("~~~~~ simplex 3: OA•ABn < -1e-10 ~~~~~\n");
       printf("OA•ABn O outside edge AB in plane of TADB\n");
       s2_cross_vv(&V[0], &V[4], &V[12]); // OA X AB
-      s2_cross_vv(&V[12], &V[4], &sDV);  //(OA X AB) X AB
+      s2_cross_vv(&V[12], &V[4], sDV);   //(OA X AB) X AB
       printf("OA X AB = ");
       s2_vector_print(stdout, &V[12]);
       printf("searchDirectionVector = (OA X AB) X AB = ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       // simplex1: [OA, OB]
       (*numberSimplexPoints) -= 2;
       printf("~~~7~~~ numberSimplexPoints = %d\n", *numberSimplexPoints);
@@ -1063,14 +1110,14 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
       printf("~~~~~ simplex 3: OA•ADn < -1e-10 ~~~~~\n");
       printf("OA•ADn O outside edge AD in plane of TADB\n");
       s2_cross_vv(&V[0], &V[6], &V[12]); // OA X AD
-      s2_cross_vv(&V[12], &V[6], &sDV);  //(OA X AD) X AD
+      s2_cross_vv(&V[12], &V[6], sDV);   //(OA X AD) X AD
       s2_vector_swap(&V[1], &V[3]);      // swap OB and OD
       s2_vector_swap(&extremeVertexLocalA[1], &extremeVertexLocalA[3]);
       s2_vector_swap(&extremeVertexLocalB[1], &extremeVertexLocalB[3]);
       printf("OA X AD = ");
       s2_vector_print(stdout, &V[12]);
       printf("searchDirectionVector = (OA X AD) X AD = ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       printf("Swap OB and OD\n");
       // simplex1: [OA, OD]
       (*numberSimplexPoints) -= 2;
@@ -1078,9 +1125,9 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
       return;
     } else { // ADBn Face of TADB toward O
       printf("~~~~~ simplex 3: ADBn Face of TADB toward O ~~~~~\n");
-      s2_vector_copy(&V[9], &sDV);
+      s2_vector_copy(&V[9], sDV);
       printf("searchDirectionVector = ADBn ");
-      s2_vector_print(stdout, &sDV);
+      s2_vector_print(stdout, sDV);
       printf("Swap OB and OD followed by swap OC and OD\n");
       s2_vector_swap(&V[1], &V[3]); // swap OB and OD
       s2_vector_swap(&extremeVertexLocalA[1], &extremeVertexLocalA[3]);
@@ -1095,13 +1142,13 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
     }
   } else {
     printf("~~~10~~~ numberSimplexPoints = %d\n", *numberSimplexPoints);
-    *collision = true;
     *success = true;
+    *collision = true;
     printf("searchDirectionVector:\n");
-    s2_vector_print(stdout, &sDV);
-    printf("success = %s\n", *success ? "true" : "false");
+    s2_vector_print(stdout, sDV);
+    printf("success = true\n");
     if(*success) {
-      printf("collision = %s\n", *collision ? "true" : "false");
+      printf("collision = true\n");
     }
     return;
   }

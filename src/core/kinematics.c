@@ -1054,9 +1054,9 @@ inline void s2_vectorf_copy(s2_vectorf_t* restrict vi,
 inline void s2_vector_swap(s2_vector_t* restrict vio1,
                            s2_vector_t* restrict vio2) {
   s2_vector_t temp;
-  s2_vector_copy(&temp, vio1);
-  s2_vector_copy(vio1, vio2);
-  s2_vector_copy(vio2, &temp);
+  s2_vector_copy(vio1, &temp);
+  s2_vector_copy(vio2, vio1);
+  s2_vector_copy(&temp, vio2);
 }
 
 /*!
@@ -1073,9 +1073,9 @@ inline void s2_vector_swap(s2_vector_t* restrict vio1,
 inline void s2_vectorf_swap(s2_vectorf_t* restrict vio1,
                             s2_vectorf_t* restrict vio2) {
   s2_vectorf_t temp;
-  s2_vectorf_copy(&temp, vio1);
-  s2_vectorf_copy(vio1, vio2);
-  s2_vectorf_copy(vio2, &temp);
+  s2_vectorf_copy(vio1, &temp);
+  s2_vectorf_copy(vio2, vio1);
+  s2_vectorf_copy(&temp, vio2);
 }
 
 /*!
