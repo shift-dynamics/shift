@@ -476,9 +476,9 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
   double b = ellipsoid->b;
   double c = ellipsoid->c;
   /* temp changes until fixed */
-  a = 1.0;
-  b = 2.0;
-  c = 3.0;
+  // a = 1.0;
+  // b = 2.0;
+  // c = 3.0;
   printf("a = %g, b = %g, c = %g\n", a, b, c);
 
   double au = a * searchDirectionVectorLocal.x;
