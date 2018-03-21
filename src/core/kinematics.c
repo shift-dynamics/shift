@@ -1148,8 +1148,8 @@ inline double s2_dot_vv(s2_vector_t* restrict vi0, s2_vector_t* restrict vi1) {
 
   register double sum = 0;
   sum += vi0->x * vi1->x;
-  sum += vi0->x * vi1->y;
-  sum += vi0->z * vi1->y;
+  sum += vi0->y * vi1->y;
+  sum += vi0->z * vi1->z;
   return sum;
 }
 
@@ -1166,8 +1166,8 @@ inline float s2_dot_vvf(s2_vectorf_t* restrict vi0,
 
   register float sum = 0;
   sum += vi0->x * vi1->x;
-  sum += vi0->x * vi1->y;
-  sum += vi0->z * vi1->y;
+  sum += vi0->y * vi1->y;
+  sum += vi0->z * vi1->z;
   return sum;
 }
 
