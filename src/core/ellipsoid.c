@@ -266,7 +266,9 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
   double error = 1.0;
 
   /* Q is a 4xn matrix in row major order containing one homogeneous
-  coordinate in the last column */
+  coordinate in each last column. To avoid unnecessarily multiplying by ones, a
+  custom matrix multiplication function is used and no space is allocated for
+  the ones. */
   double* Q = calloc(3 * vertexCount, sizeof(double));
 
   for(unsigned int i = 0; i < vertexCount; i++) {
@@ -274,12 +276,6 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
     Q[1 * vertexCount + i] = (double)(vertices[i * 3 + 1]);
     Q[2 * vertexCount + i] = (double)(vertices[i * 3 + 2]);
   }
-  // FILE* f = fopen("vertices.dat", "w");
-  // for(unsigned int i = 0; i < vertexCount; i++) {
-  //   fprintf(f, "%g %g %g;\n", vertices[i * 3 + 0], vertices[i * 3 + 1],
-  //           vertices[i * 3 + 2]);
-  // }
-  // fclose(f);
 
   // u is an nxn diagonal matrix initialized with 1 / vertexCount on the
   // diagonal
@@ -435,11 +431,7 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
     }
 
     const double tolerance = 0.001;
-
     clock_t begin = clock();
-
-    /* here, do your time-consuming job */
-
     s2_ellipsoid_minimumBoundingEllipsoid(self, convexhull->vertices,
                                           convexhull->vertexCount,
                                           collisionObject, tolerance);
@@ -454,7 +446,7 @@ int s2_ellipsoid(s2_ellipsoid_t* self, s2_context_t* context, s2_body_t* body,
 }
 
 /*!
-@brief simple sphere support function
+@brief simple ellipsoid support function
 */
 void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
                           s2_vector_t* searchDirectionVectorGlobal,
@@ -487,7 +479,7 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
 
   double theta = atan2(bu, au);
   if(theta < 0.0) {
-    theta = 6.283185307 + theta;
+    theta = 2 * M_PI + theta;
   }
 
   // theta = round(sf*theta)/sf;
@@ -503,7 +495,7 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
     phi = atan2(bu, cu * st);
   }
   if(phi < 0.0) {
-    phi = 3.141592654 + phi;
+    phi = M_PI + phi;
   }
 
   // phi = round(sf*phi)/sf;
