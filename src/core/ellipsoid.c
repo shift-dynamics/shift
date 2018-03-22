@@ -400,7 +400,12 @@ int s2_ellipsoid_minimumBoundingEllipsoid(s2_ellipsoid_t* ellipsoid,
   ellipsoid->b = 1.0 / sqrt(A[1 * 3 + 1]);
   ellipsoid->c = 1.0 / sqrt(A[2 * 3 + 2]);
 
-  // printf("a: %g, b: %g, c: %g\n", ellipsoid->a, ellipsoid->b, ellipsoid->c);
+  printf("Ellipsoid principal-axis dimensions:\n");
+  printf("a: %g, b: %g, c: %g\n", ellipsoid->a, ellipsoid->b, ellipsoid->c);
+
+  printf("Ellipsoid offset shape matrix:\n");
+  s2_displacement_print(stdout, &collisionobject->dWRTReference);
+
   free(Q);
   free(u);
   free(u_new);
@@ -467,24 +472,20 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
 
   /*search direction vector local coordinates*/
   s2_vector_t searchDirectionVectorLocal;
-  s2_product_rvinverse(&dAbsolute->R, searchDirectionVectorGlobal,
+  s2_product_rinversev(&dAbsolute->R, searchDirectionVectorGlobal,
                        &searchDirectionVectorLocal);
-  printf("searchDirectionVectorLocal\n");
-  s2_vector_print(stdout, &searchDirectionVectorLocal);
+  // printf("searchDirectionVectorLocal\n");
+  // s2_vector_print(stdout, &searchDirectionVectorLocal);
 
   double a = ellipsoid->a;
   double b = ellipsoid->b;
   double c = ellipsoid->c;
-  /* temp changes until fixed */
-  // a = 1.0;
-  // b = 2.0;
-  // c = 3.0;
-  printf("a = %g, b = %g, c = %g\n", a, b, c);
+  // printf("a = %g, b = %g, c = %g\n", a, b, c);
 
   double au = a * searchDirectionVectorLocal.x;
   double bu = b * searchDirectionVectorLocal.y;
   double cu = c * searchDirectionVectorLocal.z;
-  printf("au = %g, bu = %g, cu = %g\n", au, bu, cu);
+  // printf("au = %g, bu = %g, cu = %g\n", au, bu, cu);
 
   // double sf;
   // sf = 2000.0;
@@ -498,7 +499,7 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
 
   double ct = cos(theta);
   double st = sin(theta);
-  printf("theta = %g, cos(theta) = %g, sin(theta) = %g\n", theta, ct, st);
+  // printf("theta = %g, cos(theta) = %g, sin(theta) = %g\n", theta, ct, st);
 
   double phi;
   if(fabs(ct) > fabs(st)) {
@@ -514,13 +515,13 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
 
   double cp = cos(phi);
   double sp = sin(phi);
-  printf("phi = %g, cos(phi) = %g, sin(phi) = %g\n", phi, cp, sp);
+  // printf("phi = %g, cos(phi) = %g, sin(phi) = %g\n", phi, cp, sp);
 
   extremeVertexLocal->x = a * ct * sp;
   extremeVertexLocal->y = b * st * sp;
   extremeVertexLocal->z = c * cp;
-  printf("Relative local coordinates of extreme point on convex hull\n");
-  s2_vector_print(stdout, extremeVertexLocal);
+  // printf("Relative local coordinates of extreme point on convex hull\n");
+  // s2_vector_print(stdout, extremeVertexLocal);
   // printf("(VL[0]/a)^2+(VL[1]/b)^2+(VL[2]/c)^2 = %g\n",
   //         VL[0]*VL[0]/(a*a)+VL[1]*VL[1]/(b*b)+VL[2]*VL[2]/(c*c));
 
@@ -543,8 +544,8 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
   and store in VA.
   */
   s2_product_dv(dAbsolute, extremeVertexLocal, extremeVertexGlobal);
-  printf("Absolute global coordinates of extreme point on convex hull\n");
-  s2_vector_print(stdout, extremeVertexGlobal);
+  // printf("Absolute global coordinates of extreme point on convex hull\n");
+  // s2_vector_print(stdout, extremeVertexGlobal);
 
   // double r[2];
   // double sn[2];
