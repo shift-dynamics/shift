@@ -141,6 +141,7 @@ void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
     convexhull = &context->convexhulls[context->convexhullCount - 1];
     convexhull->index = context->convexhullCount - 1;
     s2_convexhull(convexhull, context, body);
+    s2_convexhull_loadVertexNeighbors(convexhull);
   } else {
     /* otherwise, set convexhull pointer to original instance of collision
      * object */
