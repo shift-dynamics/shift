@@ -54,6 +54,8 @@ typedef struct s2_convexhull_t {
   bool malloced;     /*!< indicates whether the data structure was malloced and
       needs to be freed, false if convexhull is part of another structure */
   int index;         /*! unique index / id of convex hull */
+  uint** neighbors;
+  uint* neighborCount;
 } s2_convexhull_t;
 
 s2_convexhull_t* s2_convexhull_alloc(int);
