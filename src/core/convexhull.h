@@ -68,6 +68,8 @@ int s2_convexhull(s2_convexhull_t*, s2_context_t*, s2_body_t*);
 
 s2_convexhull_t* s2_convexhull_qhull(s2_body_t*);
 
+void s2_convexhull_loadVertexNeighbors(s2_convexhull_t*);
+
 void s2_convexhull_basicSupport(void*, s2_collisionobject_t*, s2_vector_t*,
                                 s2_vector_t*, s2_vector_t*);
 

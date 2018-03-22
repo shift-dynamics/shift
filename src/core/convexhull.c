@@ -70,6 +70,8 @@ void s2_convexhull_free(s2_convexhull_t* self) {
     free(self->faces);
     self->faces = NULL;
   }
+  s2_arrayui_free2D(self->neighbors);
+  s2_arrayui_free(self->neighborCount);
   if(self->malloced) {
     free(self);
     self = NULL;
@@ -172,23 +174,32 @@ void append_unique(unsigned int* list, unsigned int* count,
     }
   }
   if(!found) {
-    list[(*count)++] = value;
+    list[*count] = value;
+    (*count)++;
   }
 }
 
+/*!
+@brief find the vertex neighbors for a convex hull, used for hill climbing
+algorithm.
+
+This function must be called explicitly after a convex hull is created. It is
+not called by default when a convex hull is allocated as the neighbor list takes
+a relatively large amount of memory and is not necessary for some use-cases of a
+convex hull such as computing the minimum bounding sphere or ellipsoid.
+*/
 void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* convexhull) {
 
   convexhull->neighborCount = calloc(convexhull->vertexCount, sizeof(uint));
 
   uint** neighborsTemp = s2_arrayui_malloc2D(convexhull->vertexCount, 100);
-  memset(neighborsTemp, 0, convexhull->vertexCount * 100 * sizeof(int));
 
   for(uint i = 0; i < convexhull->faceCount; i++) {
     for(uint j = 0; j < 3; j++) {
-      uint vertex_j = convexhull->faces[i * convexhull->faceCount + j];
+      uint vertex_j = convexhull->faces[i * 3 + j];
       for(uint k = 0; k < 3; k++) {
         if(j != k) {
-          uint vertex_k = convexhull->faces[i * convexhull->faceCount + k];
+          uint vertex_k = convexhull->faces[i * 3 + k];
           append_unique(neighborsTemp[vertex_j],
                         &convexhull->neighborCount[vertex_j], vertex_k);
         }
@@ -227,13 +238,13 @@ void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* convexhull) {
 
   s2_arrayui_free2D(neighborsTemp);
 
-  for(uint i = 0; i < convexhull->vertexCount; i++) {
-    printf("[%d] ", i);
-    for(uint j = 0; j < convexhull->neighborCount[i]; j++) {
-      printf("%d ", convexhull->neighbors[i][j]);
-    }
-    printf("\n");
-  }
+  // for(uint i = 0; i < convexhull->vertexCount; i++) {
+  //   printf("[%d] ", i);
+  //   for(uint j = 0; j < convexhull->neighborCount[i]; j++) {
+  //     printf("%d ", convexhull->neighbors[i][j]);
+  //   }
+  //   printf("\n");
+  // }
 }
 
 /*!
@@ -282,7 +293,6 @@ void load_data(s2_convexhull_t* convexhull, qhT* qh) {
 
   load_vertices(convexhull, qh, p10);
   load_faces(convexhull, qh, p10);
-  // s2_convexhull_loadVertexNeighbors(convexhull);
 
   // printf("freeing p10\n");
   if(p10 != NULL) {
