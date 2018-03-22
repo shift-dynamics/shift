@@ -98,6 +98,7 @@ public:
     , m_drawNormalsEnabled(false)
     , m_normalScale(0.2f) {
     m_sphereBufferObject.initialized = false;
+
     m_sphereBufferObject.Ka[0] = 0.50;
     m_sphereBufferObject.Ka[1] = 0.50;
     m_sphereBufferObject.Ka[2] = 0.50;
