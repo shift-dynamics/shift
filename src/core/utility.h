@@ -43,7 +43,15 @@ double** s2_array_malloc2D(int rows, int columns);
 
 float** s2_arrayf_malloc2D(int rows, int columns);
 
+int** s2_arrayi_malloc2D(int rows, int columns);
+
+unsigned int** s2_arrayui_malloc2D(int rows, int columns);
+
 void s2_array_free2D(double** x);
+
+void s2_arrayui_free2D(unsigned int** x);
+
+void s2_arrayi_free2D(int** x);
 
 void s2_arrayf_free2D(float** x);
 

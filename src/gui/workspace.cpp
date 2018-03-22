@@ -3235,6 +3235,7 @@ void Shift::Workspace::license() {
   QTextBrowser scrollArea;
   QGridLayout* layout = (QGridLayout*)messageBox.layout();
   layout->addWidget(&scrollArea, 0, 0, 1, 1);
+  scrollArea.setOpenExternalLinks(true);
   scrollArea.setText(fileContents);
   scrollArea.setFixedSize(800, 800);
   messageBox.exec();
