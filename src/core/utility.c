@@ -42,23 +42,54 @@ int allocateCount = 0;
 */
 int** s2_arrayi_malloc2D(int rows, int columns) {
 
-  if (rows <= 0) {
+  if(rows <= 0) {
     return NULL;
   }
   int** pRow = malloc(rows * sizeof(int*));
-  if (pRow == NULL) {
+  if(pRow == NULL) {
     fprintf(stderr, "Error: could not allocate array [%d][%d]\n", rows,
             columns);
     return NULL;
   }
 
   pRow[0] = calloc(rows * columns, sizeof(int));
-  if (pRow[0] == NULL) {
+  if(pRow[0] == NULL) {
     fprintf(stderr, "Error: could not allocate array\n");
     return NULL;
   }
 
-  for (int i = 1; i < rows; i++) {
+  for(int i = 1; i < rows; i++) {
+    pRow[i] = pRow[0] + i * columns;
+  }
+  return pRow;
+}
+
+/*!
+@brief Allocates memory for a two dimensional integer array
+
+@param int rows in two dimensional array to allocate
+@param int columns in two dimensional array to allocate
+@return two dimensional integer array
+*/
+unsigned int** s2_arrayui_malloc2D(int rows, int columns) {
+
+  if(rows <= 0) {
+    return NULL;
+  }
+  unsigned int** pRow = malloc(rows * sizeof(unsigned int*));
+  if(pRow == NULL) {
+    fprintf(stderr, "Error: could not allocate array [%d][%d]\n", rows,
+            columns);
+    return NULL;
+  }
+
+  pRow[0] = calloc(rows * columns, sizeof(unsigned int));
+  if(pRow[0] == NULL) {
+    fprintf(stderr, "Error: could not allocate array\n");
+    return NULL;
+  }
+
+  for(int i = 1; i < rows; i++) {
     pRow[i] = pRow[0] + i * columns;
   }
   return pRow;
@@ -70,7 +101,7 @@ int** s2_arrayi_malloc2D(int rows, int columns) {
 */
 void s2_arrayi_free2D(int** x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x[0]);
@@ -84,7 +115,20 @@ void s2_arrayi_free2D(int** x) {
 */
 void s2_arrayi_free(int* x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
+    return;
+  }
+  free(x);
+  x = NULL;
+}
+
+/*!
+@brief Free memory for a one dimensional unsigned integer array
+
+*/
+void s2_arrayui_free(unsigned int* x) {
+
+  if(x == NULL) {
     return;
   }
   free(x);
@@ -97,7 +141,7 @@ void s2_arrayi_free(int* x) {
 */
 void s2_array_free(double* x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x);
@@ -110,7 +154,7 @@ void s2_array_free(double* x) {
 */
 void s2_arrayf_free(float* x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x);
@@ -123,7 +167,7 @@ void s2_arrayf_free(float* x) {
 */
 void s2_arrayb_free(bool* x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x);
@@ -136,7 +180,7 @@ void s2_arrayb_free(bool* x) {
 */
 void s2_arrays_free(s2_screw_t* x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x);
@@ -149,7 +193,7 @@ void s2_arrays_free(s2_screw_t* x) {
 */
 void s2_arrayd_free(s2_displacement_t* x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x);
@@ -165,23 +209,23 @@ void s2_arrayd_free(s2_displacement_t* x) {
 */
 double** s2_array_malloc2D(int rows, int columns) {
 
-  if (rows <= 0) {
+  if(rows <= 0) {
     return NULL;
   }
   double** pRow = malloc(rows * sizeof(double*));
-  if (pRow == NULL) {
+  if(pRow == NULL) {
     fprintf(stderr, "Error: could not allocate array [%d][%d]\n", rows,
             columns);
     return NULL;
   }
 
   pRow[0] = calloc(rows * columns, sizeof(double));
-  if (pRow[0] == NULL) {
+  if(pRow[0] == NULL) {
     fprintf(stderr, "Error: could not allocate array\n");
     return NULL;
   }
 
-  for (int i = 1; i < rows; i++) {
+  for(int i = 1; i < rows; i++) {
     pRow[i] = pRow[0] + i * columns;
   }
   return pRow;
@@ -196,23 +240,23 @@ double** s2_array_malloc2D(int rows, int columns) {
 */
 float** s2_arrayf_malloc2D(int rows, int columns) {
 
-  if (rows <= 0) {
+  if(rows <= 0) {
     return NULL;
   }
   float** pRow = malloc(rows * sizeof(float*));
-  if (pRow == NULL) {
+  if(pRow == NULL) {
     fprintf(stderr, "Error: could not allocate array [%d][%d]\n", rows,
             columns);
     return NULL;
   }
 
   pRow[0] = calloc(rows * columns, sizeof(float));
-  if (pRow[0] == NULL) {
+  if(pRow[0] == NULL) {
     fprintf(stderr, "Error: could not allocate array\n");
     return NULL;
   }
 
-  for (int i = 1; i < rows; i++) {
+  for(int i = 1; i < rows; i++) {
     pRow[i] = pRow[0] + i * columns;
   }
   return pRow;
@@ -224,7 +268,7 @@ float** s2_arrayf_malloc2D(int rows, int columns) {
 */
 void s2_array_free2D(double** x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x[0]);
@@ -237,13 +281,25 @@ void s2_array_free2D(double** x) {
 */
 void s2_arrayf_free2D(float** x) {
 
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x[0]);
   free(x);
 }
 
+/*!
+@brief Frees memory for a two dimensional float array
+
+*/
+void s2_arrayui_free2D(unsigned int** x) {
+
+  if(x == NULL) {
+    return;
+  }
+  free(x[0]);
+  free(x);
+}
 /*!
 @brief Allocates memory for a two dimensional char array
 
@@ -253,23 +309,23 @@ void s2_arrayf_free2D(float** x) {
 */
 char** s2_arrayc_malloc2D(int rows, int columns) {
 
-  if (rows <= 0) {
+  if(rows <= 0) {
     return NULL;
   }
   char** pRow = malloc(rows * sizeof(char*));
-  if (pRow == NULL) {
+  if(pRow == NULL) {
     fprintf(stderr, "Error: could not allocate array [%d][%d]\n", rows,
             columns);
     return NULL;
   }
 
   pRow[0] = calloc(rows * columns, sizeof(char));
-  if (pRow[0] == NULL) {
+  if(pRow[0] == NULL) {
     fprintf(stderr, "Error: could not allocate array\n");
     return NULL;
   }
 
-  for (int i = 1; i < rows; i++) {
+  for(int i = 1; i < rows; i++) {
     pRow[i] = pRow[0] + i * columns;
   }
   return pRow;
@@ -280,7 +336,7 @@ char** s2_arrayc_malloc2D(int rows, int columns) {
 
 */
 void s2_arrayc_free2D(char** x) {
-  if (x == NULL) {
+  if(x == NULL) {
     return;
   }
   free(x[0]);
@@ -295,8 +351,8 @@ void s2_array_rowToColumnMajor(int rowDim, int colDim,
                                double* ColumnMajorMatrix,
                                double* RowMajorMatrix) {
 
-  for (int j = 0; j < colDim; j++) {
-    for (int i = 0; i < rowDim; i++) {
+  for(int j = 0; j < colDim; j++) {
+    for(int i = 0; i < rowDim; i++) {
       ColumnMajorMatrix[colDim * j + i] = RowMajorMatrix[rowDim * i + j];
     }
   }
@@ -310,8 +366,8 @@ void s2_array_columnToRowMajor(int rowDim, int colDim,
                                double* ColumnMajorMatrix,
                                double* RowMajorMatrix) {
 
-  for (int j = 0; j < colDim; j++) {
-    for (int i = 0; i < rowDim; i++) {
+  for(int j = 0; j < colDim; j++) {
+    for(int i = 0; i < rowDim; i++) {
       RowMajorMatrix[rowDim * i + j] = ColumnMajorMatrix[colDim * j + i];
     }
   }
@@ -536,10 +592,10 @@ char* s2_getFilePath(const char* fullName) {
 
   char* temp = strpbrk(fullName, "/");
   char* rootName;
-  if (!temp) {
+  if(!temp) {
     return NULL;
   }
-  while (temp != NULL) {
+  while(temp != NULL) {
     rootName = temp;
     temp = strpbrk(rootName + 1, "/");
   }
@@ -558,10 +614,10 @@ const char* s2_getFileExtension(const char* fullName) {
 
   char* temp = strpbrk(fullName, ".");
   char* rootName;
-  if (!temp) {
+  if(!temp) {
     return fullName;
   }
-  while (temp != NULL) {
+  while(temp != NULL) {
     rootName = temp;
     temp = strpbrk(rootName + 1, ".");
   }
