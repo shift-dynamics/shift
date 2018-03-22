@@ -30,6 +30,7 @@ SUCH DAMAGE.
 #include "convexhull.h"
 #include "frame.h"
 #include "material.h"
+#include "utility.h"
 
 /*!
 @brief convex hull constructor, initializes an empty s2_convexhull_t data
@@ -53,6 +54,8 @@ void s2_convexhull_init(s2_convexhull_t* convexhull) {
   convexhull->faceCount = 0;
   convexhull->vertexCount = 0;
   convexhull->malloced = false;
+  convexhull->neighbors = NULL;
+  convexhull->neighborCount = NULL;
 }
 
 /*!
@@ -114,13 +117,6 @@ void load_vertices(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
   int i = 0;
   FORALLvertices {
     for(int k = 0; k < 3; k++) {
-      // printf(
-      //   "[%d / %d] %d / %d: %f\n",
-      //   p10[qh_pointid(qh, vertex->point)],
-      //   convexhull->vertexCount,
-      //   p10[qh_pointid(qh, vertex->point)] * 3 + k,
-      //   convexhull->vertexCount * 3,
-      //   (GLfloat)vertex->point[k]);
       convexhull->vertices[p10[qh_pointid(qh, vertex->point)] * 3 + k] =
         (GLfloat)vertex->point[k];
     }
@@ -141,8 +137,6 @@ void load_faces(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
   convexhull->faces = calloc(3 * qh->num_facets, sizeof(GLuint));
   convexhull->faceCount = qh->num_facets;
 
-  // printf("\nloading %d faces, %d vertices\n", qh->num_facets,
-  // qh->num_vertices);
   facetT* facet;
   vertexT* vertex;
   vertexT** vertexp;
@@ -153,9 +147,7 @@ void load_faces(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
     FOREACHvertex_(facet->vertices) {
       convexhull->faces[i * 3 + j++] =
         (GLuint)p10[qh_pointid(qh, vertex->point)];
-      // printf("%d ", (GLuint)p10[qh_pointid(qh, vertex->point)]);
     }
-    // printf("\n");
     i++;
   }
 
@@ -164,8 +156,89 @@ void load_faces(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
 }
 
 /*!
-@brief loads linked list of vertices from qhT into a contiguous array stored in
-s2_convexhull_t suitable for loading into a vertex array object
+@brief to list and insert only if not already in the list
+*/
+void append_unique(unsigned int* list, unsigned int* count,
+                   unsigned int value) {
+  const unsigned int max_index = 100;
+  if(*count >= max_index) {
+    fprintf(stderr, "warning, maximum number of neighbors exceeded\n");
+  }
+  bool found = false;
+  for(unsigned int i = 0; i < *count; i++) {
+    if(list[i] == value) {
+      found = true;
+      break;
+    }
+  }
+  if(!found) {
+    list[(*count)++] = value;
+  }
+}
+
+void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* convexhull) {
+
+  convexhull->neighborCount = calloc(convexhull->vertexCount, sizeof(uint));
+
+  uint** neighborsTemp = s2_arrayui_malloc2D(convexhull->vertexCount, 100);
+  memset(neighborsTemp, 0, convexhull->vertexCount * 100 * sizeof(int));
+
+  for(uint i = 0; i < convexhull->faceCount; i++) {
+    for(uint j = 0; j < 3; j++) {
+      uint vertex_j = convexhull->faces[i * convexhull->faceCount + j];
+      for(uint k = 0; k < 3; k++) {
+        if(j != k) {
+          uint vertex_k = convexhull->faces[i * convexhull->faceCount + k];
+          append_unique(neighborsTemp[vertex_j],
+                        &convexhull->neighborCount[vertex_j], vertex_k);
+        }
+      }
+    }
+  }
+
+  uint total_neighbor_count = 0;
+  for(uint i = 0; i < convexhull->vertexCount; i++) {
+    total_neighbor_count += convexhull->neighborCount[i];
+  }
+
+  printf("total number of neighbors: %d\n", total_neighbor_count);
+
+  convexhull->neighbors = malloc(convexhull->vertexCount * sizeof(uint*));
+  if(convexhull->neighbors == NULL) {
+    fprintf(stderr, "Error: could not allocate neighbors list array");
+  }
+
+  convexhull->neighbors[0] = calloc(total_neighbor_count, sizeof(uint));
+  if(convexhull->neighbors[0] == NULL) {
+    fprintf(stderr, "Error: could not allocate neighbors list array");
+  }
+
+  int offset = 0;
+  for(uint i = 1; i < convexhull->vertexCount; i++) {
+    offset += convexhull->neighborCount[i - 1];
+    convexhull->neighbors[i] = convexhull->neighbors[0] + offset;
+  }
+
+  for(uint i = 0; i < convexhull->vertexCount; i++) {
+    for(uint j = 0; j < convexhull->neighborCount[i]; j++) {
+      convexhull->neighbors[i][j] = neighborsTemp[i][j];
+    }
+  }
+
+  s2_arrayui_free2D(neighborsTemp);
+
+  for(uint i = 0; i < convexhull->vertexCount; i++) {
+    printf("[%d] ", i);
+    for(uint j = 0; j < convexhull->neighborCount[i]; j++) {
+      printf("%d ", convexhull->neighbors[i][j]);
+    }
+    printf("\n");
+  }
+}
+
+/*!
+@brief loads linked list of vertices from qhT into a contiguous array stored
+in s2_convexhull_t suitable for loading into a vertex array object
 */
 void load_data(s2_convexhull_t* convexhull, qhT* qh) {
 
@@ -209,6 +282,7 @@ void load_data(s2_convexhull_t* convexhull, qhT* qh) {
 
   load_vertices(convexhull, qh, p10);
   load_faces(convexhull, qh, p10);
+  // s2_convexhull_loadVertexNeighbors(convexhull);
 
   // printf("freeing p10\n");
   if(p10 != NULL) {
@@ -297,9 +371,9 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context,
 
 /*!
 @brief basic support function, performs naive linear search through indices to
-find maximum projection along specified direction. returns vertex with greatest
-projection along supplied axis. later to be replaced by hill climbing method,
-dobkin-kirkpatrick hierarchy or hash table methods
+find maximum projection along specified direction. returns vertex with
+greatest projection along supplied axis. later to be replaced by hill climbing
+method, dobkin-kirkpatrick hierarchy or hash table methods
 */
 void s2_convexhull_basicSupport(void* object,
                                 s2_collisionobject_t* collisionObject,
