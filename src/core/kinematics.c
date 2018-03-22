@@ -1054,9 +1054,9 @@ inline void s2_vectorf_copy(s2_vectorf_t* restrict vi,
 inline void s2_vector_swap(s2_vector_t* restrict vio1,
                            s2_vector_t* restrict vio2) {
   s2_vector_t temp;
-  s2_vector_copy(&temp, vio1);
-  s2_vector_copy(vio1, vio2);
-  s2_vector_copy(vio2, &temp);
+  s2_vector_copy(vio1, &temp);
+  s2_vector_copy(vio2, vio1);
+  s2_vector_copy(&temp, vio2);
 }
 
 /*!
@@ -1073,9 +1073,9 @@ inline void s2_vector_swap(s2_vector_t* restrict vio1,
 inline void s2_vectorf_swap(s2_vectorf_t* restrict vio1,
                             s2_vectorf_t* restrict vio2) {
   s2_vectorf_t temp;
-  s2_vectorf_copy(&temp, vio1);
-  s2_vectorf_copy(vio1, vio2);
-  s2_vectorf_copy(vio2, &temp);
+  s2_vectorf_copy(vio1, &temp);
+  s2_vectorf_copy(vio2, vio1);
+  s2_vectorf_copy(&temp, vio2);
 }
 
 /*!
@@ -1148,8 +1148,8 @@ inline double s2_dot_vv(s2_vector_t* restrict vi0, s2_vector_t* restrict vi1) {
 
   register double sum = 0;
   sum += vi0->x * vi1->x;
-  sum += vi0->x * vi1->y;
-  sum += vi0->z * vi1->y;
+  sum += vi0->y * vi1->y;
+  sum += vi0->z * vi1->z;
   return sum;
 }
 
@@ -1166,8 +1166,8 @@ inline float s2_dot_vvf(s2_vectorf_t* restrict vi0,
 
   register float sum = 0;
   sum += vi0->x * vi1->x;
-  sum += vi0->x * vi1->y;
-  sum += vi0->z * vi1->y;
+  sum += vi0->y * vi1->y;
+  sum += vi0->z * vi1->z;
   return sum;
 }
 
@@ -1243,10 +1243,6 @@ inline void s2_product_vkinverse(s2_vector_t* restrict vi, double* restrict ki,
   vo->y = vi->y * inv;
   vo->z = vi->z * inv;
 
-  // vo->x = vi->x * *ki;
-  // vo->y = vi->y * *ki;
-  // vo->z = vi->z * *ki;
-  //
   // cblas_dcopy(3, (double*)vi, 1, (double*)vo, 1);
   // cblas_dscal(3, 1. / *ki, (double*)vo, 1);
 }
