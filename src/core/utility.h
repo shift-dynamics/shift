@@ -29,6 +29,8 @@ void s2_arrayi_free2D(int** x);
 
 void s2_arrayi_free(int* x);
 
+void s2_arrayui_free(unsigned int* x);
+
 void s2_array_free(double* x);
 
 void s2_arrayf_free(float* x);
