@@ -146,12 +146,12 @@ Find a bounding sphere for a set of M points in
 3-dimensional space using Ritter's algorithm. In 3D, the resulting sphere
 is approximately 5% bigger than the optimal minimum radius sphere.
 
+REFERENCES:
+Ritter, J. (1990), 'An efficient bounding sphere', in Graphics Gems,
+A. Glassner, Ed. Academic Press, pp.301303
+
 @param radius and centroid of bounding sphere returned in
 @param convexhull, computing using s2_convexhull() defined in convexhull.h
-
-REFERENCES:
-[1] Ritter, J. (1990), 'An efficient bounding sphere', in Graphics Gems,
-    A. Glassner, Ed. Academic Press, pp.301303
 */
 int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
               s2_collisionobject_t* collisionObject) {
@@ -174,9 +174,10 @@ int s2_sphere(s2_sphere_t* self, s2_context_t* context, s2_body_t* body,
     s2_sphere_eigenSphere(self, convexhull->vertices, convexhull->vertexCount,
                           collisionObject);
 
-    /* test if all points in bounding eigen sphere
-    If all points inside sphere, we are done.
-    Otherwise, enlarge bounding sphere to cover point outside of initial sphere
+    /* test if all points are inside bounding eigen sphere
+    If all points are inside the sphere, we are done.
+    Otherwise, enlarge bounding sphere to cover any point outside of initial
+    sphere
     */
     for(uint i = 1; i < convexhull->vertexCount; i++) {
       s2_vector_t p =
@@ -204,7 +205,7 @@ void s2_sphere_support(void* object, s2_collisionobject_t* collisionObject,
   s2_sphere_t* sphere = (s2_sphere_t*)object;
 
   /* suppress unused variable compiler warnings */
-  (void)extremeVertexGlobal;
+  (void)extremeVertexLocal;
 
   /* extremeVertexGlobal <- direction */
   s2_vector_copy(direction, extremeVertexGlobal);
