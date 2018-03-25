@@ -106,7 +106,7 @@ public:
     m_sphereBufferObject.Kd[0] = 0.74902;
     m_sphereBufferObject.Kd[1] = 0.74902;
     m_sphereBufferObject.Kd[2] = 0.74902;
-    m_sphereBufferObject.Kd[3] = 0.3;
+    m_sphereBufferObject.Kd[3] = 0.8;
     m_sphereBufferObject.Ks[0] = 1.0;
     m_sphereBufferObject.Ks[1] = 1.0;
     m_sphereBufferObject.Ks[2] = 1.0;
