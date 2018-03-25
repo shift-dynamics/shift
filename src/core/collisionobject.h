@@ -46,16 +46,17 @@ typedef enum {
 @brief generic interface to convex collision geometry
 */
 typedef struct s2_collisionobject_t {
-  bool displacementUpdated; /*!< flag to indicate whether displacement
-                               submatrices need to be updated */
-  s2_displacement_t
-    dAbsolute; /*!< absolute displacement of collision geometry */
-  s2_displacement_t dWRTReference;   /*!< relative displacement of collision
-                                         geometry with respect to reference
-                                         frame */
+  bool displacementUpdated;        /*!< flag to indicate whether convex object
+                                      reference frame displacement matrix needs to be
+                                      updated
+                                    */
+  s2_displacement_t dAbsolute;     /*!< absolute displacement of convex object
+                                                       reference frame */
+  s2_displacement_t dWRTReference; /*!< displacement of convex object reference
+                                      frame relative to its host body origin
+                                      reference frame */
   s2_displacement_t* referenceFrame; /*! pointer to absolute displacement of
-    collision object's reference frame, typically the body reference frame or
-    the body origin */
+    collision object's body reference frame, typically the host body origin */
 
   /*! @defgroup history Historical data
 
@@ -65,15 +66,25 @@ typedef struct s2_collisionobject_t {
     @{
   */
 
-  int extremeVertexIndex;       /*!< index of extreme vertex */
-  s2_vector_t extremeVertex[4]; /*!< extreme vertex */
+  int extremeVertexIndex;            /*!< index of most recent extreme vertex */
+  s2_vector_t extremeVertexLocal[4]; /*!< local coordinates of
+                                        numberSimplexPoints extreme vertices */
+  double theta;
+  double phi;
 
   /*! @} */
+  /*?< example support function declaration
+  void s2_collisionobject_support(s2_collisionobject_t* self,
+                                  s2_context_t* context, s2_vector_t*
+  searchDirectionVector, s2_vector_t* extremeVertexLocal, s2_vector_t*
+  extremeVertexGlobal);
+ */
 
   void (*support)(void*, s2_collisionobject_t*, s2_vector_t*, s2_vector_t*,
                   s2_vector_t*); /*!< function pointer to
                       primitive support function*/
-  int index;                     /*!< unique index of collision geometry */
+
+  int index;       /*!< unique index of collision geometry */
   int objectIndex; /*!< index of underlying convex geometry object */
   s2_collisionobject_enum_t type; /*!< collision object type, used for  initial
                                      set up of a s2_collisionobject_t
