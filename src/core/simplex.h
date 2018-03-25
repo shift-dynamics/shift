@@ -23,13 +23,8 @@ SUCH DAMAGE.
 #ifndef _SHIFT_SIMPLEX_H_
 #define _SHIFT_SIMPLEX_H_
 
-#include "kinematics.h"
-
-/* forward declaration of s2_collisionobject_t */
-typedef struct s2_collisionobject_t s2_collisionobject_t;
-typedef struct s2_simplex_t s2_simplex_t;
-
 #include "collisionobject.h"
+#include "kinematics.h"
 
 /*!
 @brief struct containing information to test for collision between two primitive
@@ -38,13 +33,12 @@ collision objects and record time history. This is a Level 2 datastructure.
 @TODO these structs will need to be created and destroyed in the Level 1
 function: contact.c:sweepAndPrune
 */
+
 typedef struct s2_simplex_t {
   s2_collisionobject_t*
     objectA; /*!< first collision object to test collision */
   s2_collisionobject_t*
     objectB; /*!< second collision object to test collision */
-  // s2_collisionobject_history_t objectAHistory;
-  // s2_collisionobject_history_t objectBHistory;
   bool (*support)(s2_context_t*, s2_simplex_t*); /*!<
                       function pointer to level 2 support
                       mapping function, e.g. for two
@@ -57,9 +51,10 @@ typedef struct s2_simplex_t {
                             comprising the current simplex. It is initialized to
                             0 and subsequently takes on values of 1 to 4 as the
                             simplex dimension changes. */
-  bool collision;        /*!< indicates whether collision has occurred between
-                            collision object data structures */
-  bool success;
+  bool collision;        /*!< indicates whether collision between the tested
+                            pair of objects has occurred (true) or not (false) */
+  bool success;          /*!< indicates whether a collision decision has been
+                            made (true) or not (false) */
   struct s2_simplex_t* next; /*!< pointer to next simplex data
                                        structure in doubly linked list */
   struct s2_simplex_t* prev; /*!< pointer to previous simplex data
@@ -76,21 +71,26 @@ s2_simplex_t* s2_simplex_alloc(s2_collisionobject_t*, s2_collisionobject_t*);
 
 void s2_simplex_free(s2_simplex_t*);
 
-// void simplex0(s2_vector_t sDV, s2_vector_t V[13],
-//               s2_vector_t extremeVertexLocalA[4],
-//               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
-//               bool* collision, bool* success);
-// void simplex1(s2_vector_t sDV, s2_vector_t V[13],
-//               s2_vector_t extremeVertexLocalA[4],
-//               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
-//               bool* collision, bool* success);
-// void simplex2(s2_vector_t sDV, s2_vector_t V[13],
-//               s2_vector_t extremeVertexLocalA[4],
-//               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
-//               bool* collision, bool* success);
-// void simplex3(s2_vector_t sDV, s2_vector_t V[13],
-//               s2_vector_t extremeVertexLocalA[4],
-//               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
-//               bool* collision, bool* success);
+/*?< forward declaration of simplex functions in file simplex.c */
+void simplex0(s2_vector_t* searchDirectionVector,
+              s2_vector_t simplexVectorsAbsolute[13], bool* collision,
+              bool* success);
+void simplex1(s2_vector_t* searchDirectionVector,
+              s2_vector_t simplexVectorsAbsolute[13], bool* collision,
+              bool* success);
+
+/*?< extremeVertexLocalA[4] Saved local coordinates of extreme points or
+vertices computed for collision objectA.extremeVertexLocalB[4] Saved local
+coordinates of extreme points or vertices computed for collision objectB.  */
+void simplex2(s2_vector_t* searchDirectionVector,
+              s2_vector_t simplexVectorsAbsolute[13],
+              s2_vector_t extremeVertexLocalA[4],
+              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+              bool* collision, bool* success);
+void simplex3(s2_vector_t* searchDirectionVector,
+              s2_vector_t simplexVectorsAbsolute[13],
+              s2_vector_t extremeVertexLocalA[4],
+              s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
+              bool* collision, bool* success);
 
 #endif
