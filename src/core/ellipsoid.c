@@ -474,8 +474,8 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
   s2_vector_t searchDirectionVectorLocal;
   s2_product_rinversev(&dAbsolute->R, searchDirectionVectorGlobal,
                        &searchDirectionVectorLocal);
-  // printf("searchDirectionVectorLocal\n");
-  // s2_vector_print(stdout, &searchDirectionVectorLocal);
+  printf("searchDirectionVector: ");
+  s2_vector_print(stdout, searchDirectionVectorGlobal);
 
   double a = ellipsoid->a;
   double b = ellipsoid->b;
@@ -495,6 +495,7 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
     theta = 6.283185307 + theta;
   }
 
+  collisionObject->theta = theta;
   // theta = round(sf*theta)/sf;
 
   double ct = cos(theta);
@@ -510,6 +511,7 @@ void s2_ellipsoid_support(void* object, s2_collisionobject_t* collisionObject,
   if(phi < 0.0) {
     phi = 3.141592654 + phi;
   }
+  collisionObject->phi = phi;
 
   // phi = round(sf*phi)/sf;
 
