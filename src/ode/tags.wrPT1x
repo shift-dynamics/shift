@@ -1,0 +1,125 @@
+s2_context_freeNumericalIntegrator	numericalintegrator.c	/^void s2_context_freeNumericalIntegrator(s2_context_t* context) {$/;"	f
+s2_context_allocNumericalIntegrator	numericalintegrator.c	/^void s2_context_allocNumericalIntegrator(s2_context_t* context) {$/;"	f
+_SHIFT_NUMERICALINTEGRATOR_H_	numericalintegrator.h	22;"	d
+s2_context_t	numericalintegrator.h	/^typedef struct s2_context_t s2_context_t;$/;"	t	typeref:struct:s2_context_t
+S2_NUMERICALINTEGRATOR_ODE113	numericalintegrator.h	/^  S2_NUMERICALINTEGRATOR_ODE113, \/*!< variable time step Adams-Bashforth-Molton,$/;"	e	enum:__anon1
+S2_NUMERICALINTEGRATOR_ODE113B	numericalintegrator.h	/^  S2_NUMERICALINTEGRATOR_ODE113B \/*!< variable time step Adams-Bashforth-Molton,$/;"	e	enum:__anon1
+s2_numericalintegrator_enum_t	numericalintegrator.h	/^} s2_numericalintegrator_enum_t;$/;"	t	typeref:enum:__anon1
+s2_context_allocNumericalIntegrator	numericalintegrator.h	/^void s2_context_allocNumericalIntegrator(s2_context_t*);$/;"	p
+s2_context_freeNumericalIntegrator	numericalintegrator.h	/^void s2_context_freeNumericalIntegrator(s2_context_t*);$/;"	p
+s2_ode113_de	ode113.c	/^void s2_ode113_de($/;"	f
+i4_sign	ode113.c	/^int i4_sign(int i) {$/;"	f
+s2_ode113_intrp	ode113.c	/^void s2_ode113_intrp($/;"	f
+s2_ode113	ode113.c	/^void s2_ode113($/;"	f
+r8_epsilon	ode113.c	/^double r8_epsilon() {$/;"	f
+s2_ode113_step	ode113.c	/^void s2_ode113_step($/;"	f
+timestamp	ode113.c	/^void timestamp(void) {$/;"	f
+TIME_SIZE	ode113.c	1492;"	d	file:
+TIME_SIZE	ode113.c	1506;"	d	file:
+s2_context_allocOde113	ode113.c	/^void s2_context_allocOde113(s2_context_t* context) {$/;"	f
+s2_context_freeOde113	ode113.c	/^void s2_context_freeOde113(s2_context_t* context) {$/;"	f
+s2_context_integrateEquationsOde113	ode113.c	/^void s2_context_integrateEquationsOde113(s2_context_t* context) {$/;"	f
+_SHIFT_ODE113_H_	ode113.h	2;"	d
+s2_stack_t	ode113.h	/^typedef struct s2_stack_t s2_stack_t;$/;"	t	typeref:struct:s2_stack_t
+s2_context_t	ode113.h	/^typedef struct s2_context_t s2_context_t;$/;"	t	typeref:struct:s2_context_t
+s2_numericalintegrator_ode113_t	ode113.h	/^typedef struct s2_numericalintegrator_ode113_t {$/;"	s
+y	ode113.h	/^  double* y;     \/*!< the current solution *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+dy	ode113.h	/^  double* dy;    \/*!< first time derivative of generalized coordinates *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+ydata	ode113.h	/^  double* ydata; \/*!< array to store results from numerical integration *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+stepCount	ode113.h	/^  int stepCount; \/*! number of steps in ydata array, found by tspan \/ tstep *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+outFile	ode113.h	/^  char* outFile; \/*!< filename to write results to *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+neqn	ode113.h	/^  int neqn;      \/*!< number of equations for dynamics *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+neqn2	ode113.h	/^  int neqn2;     \/*!< total number of equations including additional state$/;"	m	struct:s2_numericalintegrator_ode113_t
+t	ode113.h	/^  double t;      \/*!< current value of the independent variable *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+tout	ode113.h	/^  double tout;   \/*!< the desired value of t of simulation output *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+iflag	ode113.h	/^  int iflag;     \/*!<  indicates the status of integration.$/;"	m	struct:s2_numericalintegrator_ode113_t
+work	ode113.h	/^  double* work;  \/*!< work[100 + 21 * neqn] *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+iwork	ode113.h	/^  int* iwork;    \/*!< iwork[5] *\/$/;"	m	struct:s2_numericalintegrator_ode113_t
+iterationCount	ode113.h	/^  int iterationCount;$/;"	m	struct:s2_numericalintegrator_ode113_t
+reconfigurations	ode113.h	/^    reconfigurations; \/*!< records time step indices of a full factor event$/;"	m	struct:s2_numericalintegrator_ode113_t
+s2_numericalintegrator_ode113_t	ode113.h	/^} s2_numericalintegrator_ode113_t;$/;"	t	typeref:struct:s2_numericalintegrator_ode113_t
+s2_ode113	ode113.h	/^void s2_ode113(void f(double t, double y[], double dy[], s2_context_t* context),$/;"	p
+s2_ode113_de	ode113.h	/^void s2_ode113_de($/;"	p
+i4_sign	ode113.h	/^int i4_sign(int i);$/;"	p
+s2_ode113_intrp	ode113.h	/^void s2_ode113_intrp(double x, double y[], double xout, double yout[],$/;"	p
+r8_epsilon	ode113.h	/^double r8_epsilon(void);$/;"	p
+s2_ode113_step	ode113.h	/^void s2_ode113_step(double* x, double y[],$/;"	p
+timestamp	ode113.h	/^void timestamp(void);$/;"	p
+s2_context_allocOde113	ode113.h	/^void s2_context_allocOde113(s2_context_t* context);$/;"	p
+s2_context_freeOde113	ode113.h	/^void s2_context_freeOde113(s2_context_t* context);$/;"	p
+s2_context_integrateEquationsOde113	ode113.h	/^void s2_context_integrateEquationsOde113(s2_context_t* context);$/;"	p
+s2_context_allocOde113b	ode113b.c	/^void s2_context_allocOde113b(s2_context_t* context) {$/;"	f
+s2_context_freeOde113b	ode113b.c	/^void s2_context_freeOde113b(s2_context_t* context) {$/;"	f
+s2_ode113b_fcn	ode113b.c	/^void s2_ode113b_fcn($/;"	f
+s2_ode113b_step	ode113b.c	/^void s2_ode113b_step($/;"	f
+s2_ode113b_de	ode113b.c	/^void s2_ode113b_de($/;"	f
+s2_context_integrateEquationsOde113b	ode113b.c	/^void s2_context_integrateEquationsOde113b(s2_context_t* context) {$/;"	f
+_SHIFT_ODE113B_H_	ode113b.h	2;"	d
+s2_stack_t	ode113b.h	/^typedef struct s2_stack_t s2_stack_t;$/;"	t	typeref:struct:s2_stack_t
+s2_context_t	ode113b.h	/^typedef struct s2_context_t s2_context_t;$/;"	t	typeref:struct:s2_context_t
+s2_numericalintegrator_ode113b_t	ode113b.h	/^typedef struct s2_numericalintegrator_ode113b_t {$/;"	s
+y	ode113b.h	/^  double* y;     \/*!< y is a de copy of the states communicated to the$/;"	m	struct:s2_numericalintegrator_ode113b_t
+dy	ode113b.h	/^  double* dy;    \/*!< This is the array de passes to step to use for$/;"	m	struct:s2_numericalintegrator_ode113b_t
+ydata	ode113b.h	/^  double* ydata; \/*!< array to store results from numerical integration *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+yy	ode113b.h	/^  double* yy;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+dyout	ode113b.h	/^  double* dyout;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+wt	ode113b.h	/^  double* wt;   \/*< This array holds computed weights used to estimate$/;"	m	struct:s2_numericalintegrator_ode113b_t
+p	ode113b.h	/^  double* p;    \/*< This is the array de passes to step to use for$/;"	m	struct:s2_numericalintegrator_ode113b_t
+yerr	ode113b.h	/^  double* yerr; \/*<! Array of estimated integration errors passed$/;"	m	struct:s2_numericalintegrator_ode113b_t
+phi	ode113b.h	/^  double** phi; \/*<! Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+stepCount	ode113b.h	/^  int stepCount; \/*! approximate number of steps in ydata array, found by$/;"	m	struct:s2_numericalintegrator_ode113b_t
+outFile	ode113b.h	/^  char* outFile; \/*!< filename to write results to *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+neqn	ode113b.h	/^  int neqn;      \/*!< number of equations for dynamics *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+neqn2	ode113b.h	/^  int neqn2;     \/*!< total number of equations including additional state$/;"	m	struct:s2_numericalintegrator_ode113b_t
+t	ode113b.h	/^  double t;      \/*!< current value of the independent variable *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+tdata	ode113b.h	/^  double* tdata; \/*!< saved reported values of t, equal to number of entries$/;"	m	struct:s2_numericalintegrator_ode113b_t
+tout	ode113b.h	/^  double tout;   \/*!< the desired value of t of simulation output *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+iflag	ode113b.h	/^  int iflag;     \/*!<  indicates the status of integration.$/;"	m	struct:s2_numericalintegrator_ode113b_t
+newtonRaphsonFailure	ode113b.h	/^  bool newtonRaphsonFailure;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+iterationCount	ode113b.h	/^  int iterationCount;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+reconfigurations	ode113b.h	/^  s2_stack_t* reconfigurations; \/*!< records time step indices of a full$/;"	m	struct:s2_numericalintegrator_ode113b_t
+twou	ode113b.h	/^  double twou;  \/*!< u is based on the machine unit roundoff error. it is the$/;"	m	struct:s2_numericalintegrator_ode113b_t
+fouru	ode113b.h	/^  double fouru; \/*!< u is based on the machine unit roundoff error. it is the$/;"	m	struct:s2_numericalintegrator_ode113b_t
+told	ode113b.h	/^  double told;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+hold	ode113b.h	/^  double hold; \/*!< Previous time stepsize used by de and step *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+h	ode113b.h	/^  double h;    \/*!< the nominal step size indicating direction of integration$/;"	m	struct:s2_numericalintegrator_ode113b_t
+hh	ode113b.h	/^  double hh;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+eps	ode113b.h	/^  double eps;       \/*!< local error tolerance per step, must be variable, not a$/;"	m	struct:s2_numericalintegrator_ode113b_t
+hmax	ode113b.h	/^  double hmax;      \/*!< Maximum allowed integration stepsize. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+x	ode113b.h	/^  double x;         \/*!< Time variable passed by de to and changed by step *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+relerr	ode113b.h	/^  double relerr;    \/*!< relative error *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+abserr	ode113b.h	/^  double abserr;    \/*!< absolute error *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+alpha	ode113b.h	/^  double alpha[13]; \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+beta	ode113b.h	/^  double beta[13];  \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+psi	ode113b.h	/^  double psi[13];   \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+sig	ode113b.h	/^  double sig[14];   \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+w	ode113b.h	/^  double w[14];     \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+v	ode113b.h	/^  double v[13];     \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+g	ode113b.h	/^  double g[14];     \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+gstr	ode113b.h	/^  double gstr[14];  \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+two	ode113b.h	/^  double two[14];   \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+rho	ode113b.h	/^  double rho[14];   \/*!< Internal array used to set up polynomials. *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+stabilityLimits	ode113b.h	/^  double stabilityLimits[17]; \/*!< stability limits, used to set$/;"	m	struct:s2_numericalintegrator_ode113b_t
+safetyFactor	ode113b.h	/^  double safetyFactor;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+ns	ode113b.h	/^  int ns; \/* Internal counter of the number of successful$/;"	m	struct:s2_numericalintegrator_ode113b_t
+ifail	ode113b.h	/^  int ifail;   \/*<! Internal status flag that indicates integrator$/;"	m	struct:s2_numericalintegrator_ode113b_t
+phase1	ode113b.h	/^  bool phase1; \/*<! phase1 is a logical variable. When TRUE all lights$/;"	m	struct:s2_numericalintegrator_ode113b_t
+nornd	ode113b.h	/^  bool nornd;  \/* nornd is a logical variable. When TRUE a reliable$/;"	m	struct:s2_numericalintegrator_ode113b_t
+crash	ode113b.h	/^  bool crash;  \/*!< set to true if no step can be taken *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+start	ode113b.h	/^  bool start;  \/* start is a logical variable. When TRUE this is the$/;"	m	struct:s2_numericalintegrator_ode113b_t
+k	ode113b.h	/^  int k;       \/*!< the appropriate order for the next step *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+kold	ode113b.h	/^  int kold;    \/*!< the order used on the last successful step *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+iconv	ode113b.h	/^  int iconv;   \/*!< Integrator status flag provided to fcn.$/;"	m	struct:s2_numericalintegrator_ode113b_t
+step	ode113b.h	/^  int step;    \/*!< current time step of numerical integration *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+baumgarteOmegaN2	ode113b.h	/^  double baumgarteOmegaN2;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+baumgarte2OmegaN	ode113b.h	/^  double baumgarte2OmegaN;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+smoothingFilter	ode113b.h	/^  double smoothingFilter;$/;"	m	struct:s2_numericalintegrator_ode113b_t
+integralError	ode113b.h	/^  double* integralError; \/*!< integral of error, equal to number of$/;"	m	struct:s2_numericalintegrator_ode113b_t
+integralGain	ode113b.h	/^  double integralGain;   \/*!< integral gain *\/$/;"	m	struct:s2_numericalintegrator_ode113b_t
+s2_numericalintegrator_ode113b_t	ode113b.h	/^} s2_numericalintegrator_ode113b_t;$/;"	t	typeref:struct:s2_numericalintegrator_ode113b_t
+s2_context_allocOde113b	ode113b.h	/^void s2_context_allocOde113b(s2_context_t*);$/;"	p
+s2_context_freeOde113b	ode113b.h	/^void s2_context_freeOde113b(s2_context_t*);$/;"	p
+s2_ode113b_fcn	ode113b.h	/^void s2_ode113b_fcn(double y[], s2_context_t*);$/;"	p
+s2_ode113b_step	ode113b.h	/^void s2_ode113b_step(void f(double y[], s2_context_t* context),$/;"	p
+s2_ode113b_de	ode113b.h	/^void s2_ode113b_de(void f(double y[], s2_context_t* context),$/;"	p
+s2_context_integrateEquationsOde113b	ode113b.h	/^void s2_context_integrateEquationsOde113b(s2_context_t* context);$/;"	p
