@@ -3499,7 +3499,7 @@ void Shift::Workspace::setPlaybackVisible(bool val) {
 /*!
 @brief toggle visibility of loading dialog
 */
-void Shift::Workspace::setLoadingVisible(bool val) {
+void Shift::Workspace::setLoadingVisible(bool) {
   // m_progressBar->setVisible(val);
 }
 
