@@ -23,11 +23,10 @@ SUCH DAMAGE.
 #include <time.h>
 
 #include "../core/context.h"
-#include "../force_modules/forcemodule.h"
 #include "../core/equation.h"
 #include "../core/substructure.h"
+#include "../force_modules/forcemodule.h"
 #include "ode113.h"
-
 
 /*!
   @brief DE carries out the ODE solution algorithm.
@@ -60,9 +59,9 @@ SUCH DAMAGE.
     ISBN: 0716704617,
     LC: QA372.S416.
 
-  @param [in] void F(double T, double Y[], double YP[]) the user-supplied function
-    which accepts input values T and Y[], evaluates the right hand
-    sides of the ODE, and stores the result in YP[].
+  @param [in] void F(double T, double Y[], double YP[]) the user-supplied
+  function which accepts input values T and Y[], evaluates the right hand sides
+  of the ODE, and stores the result in YP[].
 
   @param [in] int NEQN the number of equations.
 
@@ -150,39 +149,12 @@ SUCH DAMAGE.
 */
 void s2_ode113_de(
   void f(double t, double y[], double yp[], s2_context_t* context),
-  s2_context_t* context,
-  int neqn,
-  double y[],
-  double* t,
-  double tout,
-  double relerr,
-  double abserr,
-  int* iflag,
-  double yy[],
-  double wt[],
-  double p[],
-  double yp[],
-  double ypout[],
-  double phi[],
-  double alpha[],
-  double beta[],
-  double sig[],
-  double v[],
-  double w[],
-  double g[],
-  int* phase1,
-  double psi[],
-  double* x,
-  double* h,
-  double* hold,
-  int* start,
-  double* told,
-  double* delsgn,
-  int* ns,
-  int* nornd,
-  int* k,
-  int* kold,
-  int* isnold) {
+  s2_context_t* context, int neqn, double y[], double* t, double tout,
+  double relerr, double abserr, int* iflag, double yy[], double wt[],
+  double p[], double yp[], double ypout[], double phi[], double alpha[],
+  double beta[], double sig[], double v[], double w[], double g[], int* phase1,
+  double psi[], double* x, double* h, double* hold, int* start, double* told,
+  double* delsgn, int* ns, int* nornd, int* k, int* kold, int* isnold) {
 
   double absdel;
   double abseps;
@@ -300,7 +272,7 @@ void s2_ode113_de(
   /*
     If already past the output point, then interpolate and return.
   */
-  for(; ;) {
+  for(;;) {
     if(absdel <= fabs(*x - *t)) {
       s2_ode113_intrp(*x, yy, tout, y, ypout, neqn, *kold, phi, psi);
       *iflag = 2;
@@ -316,7 +288,6 @@ void s2_ode113_de(
     */
     if(isn <= 0 && fabs(tout - *x) < fouru * fabs(*x)) {
       *h = tout - *x;
-
 
       f(*x, yy, yp, context);
       s2_context_saveForceModuleHistory(context);
@@ -368,10 +339,9 @@ void s2_ode113_de(
       wt[l - 1] = releps * fabs(yy[l - 1]) + abseps;
     }
 
-    s2_ode113_step(
-      x, yy, f, context, neqn, h, &eps, wt, start,
-      hold, k, kold, &crash, phi, p, yp, psi,
-      alpha, beta, sig, v, w, g, phase1, ns, nornd);
+    s2_ode113_step(x, yy, f, context, neqn, h, &eps, wt, start, hold, k, kold,
+                   &crash, phi, p, yp, psi, alpha, beta, sig, v, w, g, phase1,
+                   ns, nornd);
 
     /*
       Test for tolerances too small.
@@ -494,16 +464,9 @@ int i4_sign(int i) {
     Input, double PSI[12], contains information about the
     interpolating polynomial.
 */
-void s2_ode113_intrp(
-  double x,
-  double y[],
-  double xout,
-  double yout[],
-  double ypout[],
-  int neqn,
-  int kold,
-  double phi[],
-  double psi[]) {
+void s2_ode113_intrp(double x, double y[], double xout, double yout[],
+                     double ypout[], int neqn, int kold, double phi[],
+                     double psi[]) {
 
   double eta;
   double g[13];
@@ -659,9 +622,9 @@ Discussion:
 
   Parameters:
 
-    Input, void F ( double T, double Y[], double YP[] ), the user-supplied function
-    which accepts input values T and Y[], evaluates the right hand
-    sides of the ODE, and stores the result in YP[].
+    Input, void F ( double T, double Y[], double YP[] ), the user-supplied
+function which accepts input values T and Y[], evaluates the right hand sides of
+the ODE, and stores the result in YP[].
 
     Input, int NEQN, the number of equations.
 
@@ -695,9 +658,8 @@ Discussion:
 
     Input/output, int IWORK[5], workspace.
 */
-void s2_ode113(
-  void f(double t, double y[], double yp[], s2_context_t* context),
-  s2_context_t* context) {
+void s2_ode113(void f(double t, double y[], double yp[], s2_context_t* context),
+               s2_context_t* context) {
 
   const int ialpha = 1;
   const int ibeta = 13;
@@ -734,39 +696,23 @@ void s2_ode113(
   }
 
   s2_ode113_de(
-    f,
-    context,
-    numericalIntegrator->neqn,
-    numericalIntegrator->y,
-    &(numericalIntegrator->t),
-    numericalIntegrator->tout,
+    f, context, numericalIntegrator->neqn, numericalIntegrator->y,
+    &(numericalIntegrator->t), numericalIntegrator->tout,
     context->modelParameters.relativeError,
-    context->modelParameters.absoluteError,
-    &(numericalIntegrator->iflag),
-    numericalIntegrator->work + iyy - 1,
-    numericalIntegrator->work + iwt - 1,
-    numericalIntegrator->work + ip - 1,
-    numericalIntegrator->work + iyp - 1,
+    context->modelParameters.absoluteError, &(numericalIntegrator->iflag),
+    numericalIntegrator->work + iyy - 1, numericalIntegrator->work + iwt - 1,
+    numericalIntegrator->work + ip - 1, numericalIntegrator->work + iyp - 1,
     numericalIntegrator->work + iypout - 1,
     numericalIntegrator->work + iphi - 1,
     numericalIntegrator->work + ialpha - 1,
-    numericalIntegrator->work + ibeta - 1,
-    numericalIntegrator->work + isig - 1,
-    numericalIntegrator->work + iv - 1,
-    numericalIntegrator->work + iw - 1,
-    numericalIntegrator->work + ig - 1,
-    &phase1,
-    numericalIntegrator->work + ipsi - 1,
-    numericalIntegrator->work + ix - 1,
-    numericalIntegrator->work + ih - 1,
-    numericalIntegrator->work + ihold - 1,
-    &start,
-    numericalIntegrator->work + itold - 1,
-    numericalIntegrator->work + idelsn - 1,
-    numericalIntegrator->iwork + 0,
-    &nornd,
-    numericalIntegrator->iwork + 2,
-    numericalIntegrator->iwork + 3,
+    numericalIntegrator->work + ibeta - 1, numericalIntegrator->work + isig - 1,
+    numericalIntegrator->work + iv - 1, numericalIntegrator->work + iw - 1,
+    numericalIntegrator->work + ig - 1, &phase1,
+    numericalIntegrator->work + ipsi - 1, numericalIntegrator->work + ix - 1,
+    numericalIntegrator->work + ih - 1, numericalIntegrator->work + ihold - 1,
+    &start, numericalIntegrator->work + itold - 1,
+    numericalIntegrator->work + idelsn - 1, numericalIntegrator->iwork + 0,
+    &nornd, numericalIntegrator->iwork + 2, numericalIntegrator->iwork + 3,
     numericalIntegrator->iwork + 4);
 
   if(start) {
@@ -788,7 +734,6 @@ void s2_ode113(
   }
   return;
 }
-
 
 /*!
   @brief R8_EPSILON returns the R8 round off unit.
@@ -923,9 +868,9 @@ double r8_epsilon() {
     Input/output, double Y[NEQN], the approximate solution at the
     current value of the independent variable.
 
-    Input, void F ( double T, double Y[], double YP[] ), the user-supplied function
-    which accepts input values T and Y[], evaluates the right hand
-    sides of the ODE, and stores the result in YP[].
+    Input, void F ( double T, double Y[], double YP[] ), the user-supplied
+  function which accepts input values T and Y[], evaluates the right hand sides
+  of the ODE, and stores the result in YP[].
 
     Input, int NEQN, the number of equations.
 
@@ -971,33 +916,15 @@ double r8_epsilon() {
 
     Input/output, int *NORND, ?
 */
-void s2_ode113_step(
-  double* x,
-  double y[],
-  void f(double t, double y[], double yp[], s2_context_t* context),
-  s2_context_t* context,
-  int neqn,
-  double* h,
-  double* eps,
-  double wt[],
-  int* start,
-  double* hold,
-  int* k,
-  int* kold,
-  int* crash,
-  double phi[],
-  double p[],
-  double yp[],
-  double psi[],
-  double alpha[],
-  double beta[],
-  double sig[],
-  double v[],
-  double w[],
-  double g[],
-  int* phase1,
-  int* ns,
-  int* nornd) {
+void s2_ode113_step(double* x, double y[],
+                    void f(double t, double y[], double yp[],
+                           s2_context_t* context),
+                    s2_context_t* context, int neqn, double* h, double* eps,
+                    double wt[], int* start, double* hold, int* k, int* kold,
+                    int* crash, double phi[], double p[], double yp[],
+                    double psi[], double alpha[], double beta[], double sig[],
+                    double v[], double w[], double g[], int* phase1, int* ns,
+                    int* nornd) {
 
   double absh;
   double erk;
@@ -1006,11 +933,9 @@ void s2_ode113_step(
   double erkp1;
   double err;
   double fouru;
-  double gstr[13] = {
-    0.50,    0.0833,  0.0417,  0.0264,  0.0188,
-    0.0143,  0.0114,  0.00936, 0.00789, 0.00679,
-    0.00592, 0.00524, 0.00468
-  };
+  double gstr[13] = {0.50,    0.0833,  0.0417,  0.0264,  0.0188,
+                     0.0143,  0.0114,  0.00936, 0.00789, 0.00679,
+                     0.00592, 0.00524, 0.00468};
   double hnew;
   int i;
   int ifail;
@@ -1031,11 +956,8 @@ void s2_ode113_step(
   double tau;
   double temp1;
   double temp2;
-  double two[13] = {
-    2.0,    4.0,    8.0,  16.0,   32.0,
-    64.0,  128.0,  256.0, 512.0, 1024.0,
-    2048.0, 4096.0, 8192.0
-  };
+  double two[13] = {2.0,   4.0,   8.0,    16.0,   32.0,   64.0,  128.0,
+                    256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0};
   double twou;
   double xold;
 
@@ -1121,7 +1043,7 @@ void s2_ode113_step(
     Compute coefficients of formulas for this step.  Avoid computing
     those quantities not changed when step size is not changed.
   */
-  for(; ;) {
+  for(;;) {
     kp1 = *k + 1;
     kp2 = *k + 2;
     km1 = *k - 1;
@@ -1154,7 +1076,7 @@ void s2_ode113_step(
         beta[i - 1] = beta[i - 2] * psi[i - 2] / temp2;
         temp1 = temp2 + *h;
         alpha[i - 1] = *h / temp1;
-        sig[i] = (double)(i) * alpha[i - 1] * sig[i - 1];
+        sig[i] = (double)(i)*alpha[i - 1] * sig[i - 1];
       }
       psi[*k - 1] = temp1;
 
@@ -1213,7 +1135,7 @@ void s2_ode113_step(
     */
     for(i = nsp1; i <= *k; i++) {
       for(l = 1; l <= neqn; l++) {
-        phi[l - 1 + (i - 1)*neqn] = beta[i - 1] * phi[l - 1 + (i - 1) * neqn];
+        phi[l - 1 + (i - 1) * neqn] = beta[i - 1] * phi[l - 1 + (i - 1) * neqn];
       }
     }
 
@@ -1266,14 +1188,15 @@ void s2_ode113_step(
       if(0 < km2) {
         erkm2 =
           erkm2 +
-          pow(
-            (phi[l + (km1 - 1) * neqn] + yp[l] - phi[l + 0 * neqn]) /
-            wt[l], 2);
+          pow((phi[l + (km1 - 1) * neqn] + yp[l] - phi[l + 0 * neqn]) / wt[l],
+              2);
       }
 
       if(0 <= km2) {
         erkm1 =
-          erkm1 + pow((phi[l + (*k - 1) * neqn] + yp[l] - phi[l + 0 * neqn]) / wt[l], 2);
+          erkm1 +
+          pow((phi[l + (*k - 1) * neqn] + yp[l] - phi[l + 0 * neqn]) / wt[l],
+              2);
       }
       erk = erk + pow((yp[l] - phi[l + 0 * neqn]) / wt[l], 2);
     }
@@ -1372,8 +1295,8 @@ void s2_ode113_step(
   */
   if(!(*nornd)) {
     for(int l = 0; l < neqn; l++) {
-      rho = *h * g[kp1 - 1] *
-            (yp[l] - phi[l + 0 * neqn]) - phi[l + (16 - 1) * neqn];
+      rho = *h * g[kp1 - 1] * (yp[l] - phi[l + 0 * neqn]) -
+            phi[l + (16 - 1) * neqn];
       y[l] = p[l] + rho;
       phi[l + (15 - 1) * neqn] = (y[l] - p[l]) - rho;
     }
@@ -1396,8 +1319,7 @@ void s2_ode113_step(
 
   for(int i = 0; i < *k; i++) {
     for(int l = 0; l < neqn; l++) {
-      phi[l + i * neqn] =
-        phi[l + i * neqn] + phi[l + (kp1 - 1) * neqn];
+      phi[l + i * neqn] = phi[l + i * neqn] + phi[l + (kp1 - 1) * neqn];
     }
   }
 
@@ -1489,7 +1411,7 @@ void s2_ode113_step(
     None
 */
 void timestamp(void) {
-# define TIME_SIZE 40
+#define TIME_SIZE 40
 
   static char time_buffer[TIME_SIZE];
   const struct tm* tm;
@@ -1503,9 +1425,8 @@ void timestamp(void) {
   fprintf(stdout, "%s\n", time_buffer);
 
   return;
-# undef TIME_SIZE
+#undef TIME_SIZE
 }
-
 
 void s2_context_allocOde113(s2_context_t* context) {
 
@@ -1515,12 +1436,10 @@ void s2_context_allocOde113(s2_context_t* context) {
   s2_numericalintegrator_ode113_t* numericalIntegrator =
     (s2_numericalintegrator_ode113_t*)context->numericalIntegrator;
 
-  numericalIntegrator->neqn =
-    context->qCount + context->dqCount;
+  numericalIntegrator->neqn = context->qCount + context->dqCount;
 
   for(int i = 0; i < context->forceModuleCount; i++) {
-    numericalIntegrator->neqn +=
-      context->forceModulePointers[i]->neqn;
+    numericalIntegrator->neqn += context->forceModulePointers[i]->neqn;
   }
 
   /*
@@ -1529,13 +1448,10 @@ void s2_context_allocOde113(s2_context_t* context) {
     y = {q }
         {dq}
   */
-  numericalIntegrator->y =
-    calloc(numericalIntegrator->neqn, sizeof(double));
+  numericalIntegrator->y = calloc(numericalIntegrator->neqn, sizeof(double));
 
-  memcpy(
-    numericalIntegrator->y,
-    context->q,
-    (context->qCount + context->dqCount) * sizeof(double));
+  memcpy(numericalIntegrator->y, context->q,
+         (context->qCount + context->dqCount) * sizeof(double));
 
   /* copy states from force modules */
   int i = context->qCount + context->dqCount;
@@ -1547,28 +1463,24 @@ void s2_context_allocOde113(s2_context_t* context) {
     }
   }
 
-  numericalIntegrator->stepCount = ceil(
-                                     (double)context->modelParameters.timeSpan / (double)context->modelParameters.timeStep) + 1;
+  numericalIntegrator->stepCount =
+    ceil((double)context->modelParameters.timeSpan /
+         (double)context->modelParameters.timeStep) +
+    1;
 
-  numericalIntegrator->ydata =
-    calloc(
-      numericalIntegrator->neqn * numericalIntegrator->stepCount,
-      sizeof(double));
+  numericalIntegrator->ydata = calloc(
+    numericalIntegrator->neqn * numericalIntegrator->stepCount, sizeof(double));
 
-  memcpy(
-    numericalIntegrator->ydata,
-    numericalIntegrator->y,
-    numericalIntegrator->neqn * sizeof(double));
+  memcpy(numericalIntegrator->ydata, numericalIntegrator->y,
+         numericalIntegrator->neqn * sizeof(double));
 
   /* this array does not appear to be necessary since space inside
   the work array is used to hold dy */
-  numericalIntegrator->dy =
-    calloc(numericalIntegrator->neqn, sizeof(double));
+  numericalIntegrator->dy = calloc(numericalIntegrator->neqn, sizeof(double));
 
   numericalIntegrator->work =
     calloc(100 + 21 * numericalIntegrator->neqn, sizeof(double));
-  numericalIntegrator->iwork =
-    calloc(5, sizeof(int));
+  numericalIntegrator->iwork = calloc(5, sizeof(int));
   numericalIntegrator->iflag = -1;
   numericalIntegrator->t = 0;
   numericalIntegrator->tout = 0;
@@ -1578,7 +1490,6 @@ void s2_context_allocOde113(s2_context_t* context) {
 
   numericalIntegrator->reconfigurations = s2_stack();
 }
-
 
 /*!
 @brief free a numerical integrator datastructure for ode113 integration type
@@ -1597,9 +1508,7 @@ void s2_context_freeOde113(s2_context_t* context) {
 
   free(numericalIntegrator);
   context->numericalIntegrator = NULL;
-
 }
-
 
 /*!
 @brief integrate equations using ode113 integration method
@@ -1607,9 +1516,9 @@ void s2_context_freeOde113(s2_context_t* context) {
 void s2_context_integrateEquationsOde113(s2_context_t* context) {
 
   if(context->modelParameters.integrationType !=
-      S2_NUMERICALINTEGRATOR_ODE113) {
+     S2_NUMERICALINTEGRATOR_ODE113) {
     fprintf(stderr, "ERROR: s2_ode113_integrateEquations called with wrong"
-            " enum set in modelParameters\n");
+                    " enum set in modelParameters\n");
   }
 
   s2_numericalintegrator_ode113_t* numericalIntegrator =
@@ -1656,8 +1565,7 @@ void s2_context_integrateEquationsOde113(s2_context_t* context) {
 
   for(int i = 1; i < numericalIntegrator->stepCount; i++) {
 
-    numericalIntegrator->tout =
-      (double)(i) * context->modelParameters.timeStep;
+    numericalIntegrator->tout = (double)(i)*context->modelParameters.timeStep;
     numericalIntegrator->iterationCount = 0;
 
     s2_ode113(s2_equation_fcn, context);
@@ -1667,30 +1575,22 @@ void s2_context_integrateEquationsOde113(s2_context_t* context) {
              numericalIntegrator->iflag);
       switch(numericalIntegrator->iflag) {
         case 3: {
-          printf(
-            "Integration did not reach TOUT "
-            "because the error tolerances were "
-            "too small. But RELERR and ABSERR were "
-            "increased appropriately for continuing\n");
-        }
-        break;
+          printf("Integration did not reach TOUT "
+                 "because the error tolerances were "
+                 "too small. But RELERR and ABSERR were "
+                 "increased appropriately for continuing\n");
+        } break;
         case 4: {
-          printf(
-            "Integration did not reach TOUT because more "
-            "than 500 steps were taken\n");
-        }
-        break;
+          printf("Integration did not reach TOUT because more "
+                 "than 500 steps were taken\n");
+        } break;
         case 5: {
-          printf(
-            "Integration did not reach TOUT because "
-            "the equations appear to be stiff\n");
-        }
-        break;
+          printf("Integration did not reach TOUT because "
+                 "the equations appear to be stiff\n");
+        } break;
         case 6: {
-          printf(
-            "Invalid input parameters (fatal error)\n");
-        }
-        break;
+          printf("Invalid input parameters (fatal error)\n");
+        } break;
         default:
           break;
       }
@@ -1700,11 +1600,9 @@ void s2_context_integrateEquationsOde113(s2_context_t* context) {
     }
 
     if(numericalIntegrator->ydata != NULL) {
-      memcpy(
-        numericalIntegrator->ydata +
-        numericalIntegrator->neqn * i,
-        numericalIntegrator->y,
-        numericalIntegrator->neqn * sizeof(double));
+      memcpy(numericalIntegrator->ydata + numericalIntegrator->neqn * i,
+             numericalIntegrator->y,
+             numericalIntegrator->neqn * sizeof(double));
     }
 
     /* do post processing here, report requested information to user */
@@ -1726,7 +1624,6 @@ void s2_context_integrateEquationsOde113(s2_context_t* context) {
     // for(int j= 0; j < context->constraintEquationCount; j++)
 
     s2_context_writeStates(context, i);
-
   }
 
   if(f != NULL) {
