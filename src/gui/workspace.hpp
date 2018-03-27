@@ -21,6 +21,7 @@
 #include <QtGui>
 
 #include "../shift.h"
+#include "playbackslider.hpp"
 #include "renderwindow.hpp"
 #include "switch.hpp"
 
@@ -46,19 +47,20 @@ enum s2_modeltree_enum_t {
   S2_MODELTREE_ASSEMBLY = 1002,
   S2_MODELTREE_BODY_GROUP = 1003,
   S2_MODELTREE_BODY = 1004,
-  S2_MODELTREE_FRAME = 1005,
-  S2_MODELTREE_JOINT_GROUP = 1006,
-  S2_MODELTREE_JOINT = 1007,
-  S2_MODELTREE_LIGHT_GROUP = 1008,
-  S2_MODELTREE_LIGHT = 1009,
-  S2_MODELTREE_RESTRAINT_GROUP = 1010,
-  S2_MODELTREE_RESTRAINT = 1011,
-  S2_MODELTREE_IO_GROUP = 1012,
-  S2_MODELTREE_IO = 1013,
-  S2_MODELTREE_TERRAIN_GROUP = 1014,
-  S2_MODELTREE_TERRAIN = 1015,
-  S2_MODELTREE_POINTCLOUD_GROUP = 1016,
-  S2_MODELTREE_POINTCLOUD = 1017
+  S2_MODELTREE_FRAME_GROUP = 1005,
+  S2_MODELTREE_FRAME = 1006,
+  S2_MODELTREE_JOINT_GROUP = 1007,
+  S2_MODELTREE_JOINT = 1008,
+  S2_MODELTREE_LIGHT_GROUP = 1009,
+  S2_MODELTREE_LIGHT = 1010,
+  S2_MODELTREE_RESTRAINT_GROUP = 1011,
+  S2_MODELTREE_RESTRAINT = 1012,
+  S2_MODELTREE_IO_GROUP = 1013,
+  S2_MODELTREE_IO = 1014,
+  S2_MODELTREE_TERRAIN_GROUP = 1015,
+  S2_MODELTREE_TERRAIN = 1016,
+  S2_MODELTREE_POINTCLOUD_GROUP = 1017,
+  S2_MODELTREE_POINTCLOUD = 1018
 };
 
 class MyTabWidget : public QTabWidget {
@@ -132,7 +134,7 @@ private slots:
   void setOutputFileName(const QString& str);
   void updateSimulationTimer(double);
   void setPlaybackPaused();
-  void interpModel(int);
+  void interpModel(double);
   void setIntegratorType(int);
 
   // void backgroundColorSelector();
@@ -268,7 +270,7 @@ private:
     QIcon playIcon;
     QIcon pauseIcon;
     QPushButton* playPauseButton;
-    QSlider* slider;
+    PlayBackSlider* slider;
     double time;
     int singleStep;
   } m_playbackPanel;
@@ -396,6 +398,7 @@ private:
   QString m_currentFileName;
   FILE* m_mobilityFile;
   bool m_simulationRunning;
+  bool m_simulationEvaluated;
 
   void populateTree();
   void populateTreeRecursive(s2_assembly_t* assemblyHead,
