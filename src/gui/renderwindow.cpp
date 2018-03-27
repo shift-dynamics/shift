@@ -66,9 +66,9 @@ Shift::RenderWindow::RenderWindow()
     initialize background color
     @TODO move default background color to a config or theme file
   */
-  m_backgroundColor[0] = 0.f / 255.f;
-  m_backgroundColor[1] = 0.f / 255.f;
-  m_backgroundColor[2] = 0.f / 255.f;
+  m_backgroundColor[0] = 249.f / 255.f;
+  m_backgroundColor[1] = 249.f / 255.f;
+  m_backgroundColor[2] = 249.f / 255.f;
   m_backgroundColor[3] = 1.f;
 
   /* set initial normal display color */
