@@ -184,9 +184,10 @@ void append_unique(unsigned int* list, unsigned int* count,
 algorithm.
 
 This function must be called explicitly after a convex hull is created. It is
-not called by default when a convex hull is allocated as the neighbor list takes
-a relatively large amount of memory and is not necessary for some use-cases of a
-convex hull such as computing the minimum bounding sphere or ellipsoid.
+not called by default when a convex hull is allocated because the neighbor list
+takes a relatively large amount of memory and is not necessary for some
+use-cases of a convex hull such as computing the minimum bounding sphere or
+ellipsoid.
 */
 void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* convexhull) {
 
@@ -269,11 +270,9 @@ void load_data(s2_convexhull_t* convexhull, qhT* qh) {
     maxId = fmax(qh_pointid(qh, vertex->point), maxId);
   }
   assert(i == qh->num_vertices);
-  // printf("maxId: %d\n", maxId);
 
   int* p10 = NULL;
   p10 = malloc((maxId + 1) * sizeof(int));
-  // printf("mallocing p10 with size %d\n", maxId);
   if(p10 == NULL) {
     fprintf(stderr, "failed to allocate memory for permutation array\n");
     exit(-1);
@@ -391,9 +390,6 @@ void s2_convexhull_basicSupport(void* object,
                                 s2_vector_t* extremeVertexLocal,
                                 s2_vector_t* extremeVertexGlobal) {
 
-  /*! @TODO historical information which could be used to accelerate lookup of
-  extreme vertex is stored in s2_collisionobject_t data structure */
-
   s2_convexhull_t* convexhull = (s2_convexhull_t*)object;
   float max_projection = -FLT_MAX;
   size_t max_index = 0;
@@ -407,6 +403,66 @@ void s2_convexhull_basicSupport(void* object,
       max_index = i;
     }
   }
+  extremeVertexLocal->x = (double)(convexhull->vertices[max_index * 3 + 0]);
+  extremeVertexLocal->y = (double)(convexhull->vertices[max_index * 3 + 1]);
+  extremeVertexLocal->z = (double)(convexhull->vertices[max_index * 3 + 2]);
+
+  s2_product_dv(&collisionObject->dAbsolute, extremeVertexLocal,
+                extremeVertexGlobal);
+}
+
+/*!
+@brief hill climbing extreme vertex support function, traverses vertices in
+convex hull in the direction of maximum projection to obtain extreme vertex
+*/
+void s2_convexhull_hillClimbingSupport(void* object,
+                                       s2_collisionobject_t* collisionObject,
+                                       s2_vector_t* direction,
+                                       s2_vector_t* extremeVertexLocal,
+                                       s2_vector_t* extremeVertexGlobal) {
+
+  s2_convexhull_t* convexhull = (s2_convexhull_t*)object;
+
+  /*! @TODO pass in historical information to accelerate lookup of extreme
+   * vertex stored in s2_collisionobject_t data structure */
+  size_t max_index = 0;
+  float max_projection = 0;
+  max_projection += direction->x * convexhull->vertices[max_index * 3 + 0];
+  max_projection += direction->y * convexhull->vertices[max_index * 3 + 1];
+  max_projection += direction->z * convexhull->vertices[max_index * 3 + 2];
+
+  /* memset visited to 0 (false) */
+  /* visited[j] = true */
+
+  while(true) {
+    /* visit neighbors of current max_index */
+    bool found = false;
+    for(unsigned int i = 0; i < convexhull->neighborCount[max_index]; i++) {
+      uint j = convexhull->neighbors[max_index][i];
+
+      /* @TODO add code to only visit a vertex if we have not already visited
+      it */
+
+      /* if !visited[j] {
+        visited[j] = true;
+      */
+      float projection = 0;
+      projection += direction->x * convexhull->vertices[j * 3 + 0];
+      projection += direction->y * convexhull->vertices[j * 3 + 1];
+      projection += direction->z * convexhull->vertices[j * 3 + 2];
+
+      if(projection > max_projection) {
+        max_projection = projection;
+        max_index = j;
+        found = true;
+      }
+      /* } */
+    }
+    if(!found) {
+      break;
+    }
+  }
+
   extremeVertexLocal->x = (double)(convexhull->vertices[max_index * 3 + 0]);
   extremeVertexLocal->y = (double)(convexhull->vertices[max_index * 3 + 1]);
   extremeVertexLocal->z = (double)(convexhull->vertices[max_index * 3 + 2]);
