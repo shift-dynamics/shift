@@ -63,6 +63,7 @@ SUCH DAMAGE.
 #include "grid.hpp"
 #include "joints.hpp"
 #include "lights.hpp"
+#include "playbackslider.hpp"
 #include "pointcloud.hpp"
 #include "renderwindow.hpp"
 #include "terrain.hpp"
@@ -81,6 +82,7 @@ Shift::Workspace::Workspace(QWidget* parent)
   m_cursorPositionLabel = new QLabel();
   m_context = NULL;
   m_simulationRunning = false;
+  m_simulationEvaluated = false;
   m_sliders.prismaticRange = 0.2;
   m_sliders.revoluteRange = 0.2;
   initializeLayout();
@@ -98,18 +100,19 @@ Shift::Workspace::~Workspace() {}
   @brief add context-dependent dynamic scene box
 */
 void Shift::Workspace::addDynamicSceneBox() {
-  m_scenePanel.groupBox = new QGroupBox;
-  m_scenePanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
-  QGridLayout* sceneLayout = new QGridLayout(m_scenePanel.groupBox);
-  sceneLayout->setMargin(0);
-  sceneLayout->setContentsMargins(QMargins(0, 0, 0, 0));
-  sceneLayout->setSpacing(0);
-  m_scenePanel.title =
-    new QLabel("Select an object from the treewidget to edit its properties.");
-  m_scenePanel.title->setWordWrap(true);
-  sceneLayout->addWidget(m_scenePanel.title, 0, 0, 0);
-  m_scenePanel.groupBox->setVisible(true);
-  m_dynamicPanelLayout->addWidget(m_scenePanel.groupBox);
+  // m_scenePanel.groupBox = new QGroupBox;
+  // m_scenePanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
+  // QGridLayout* sceneLayout = new QGridLayout(m_scenePanel.groupBox);
+  // sceneLayout->setMargin(0);
+  // sceneLayout->setContentsMargins(QMargins(0, 0, 0, 0));
+  // sceneLayout->setSpacing(0);
+  // m_scenePanel.title =
+  //   new QLabel("Select an object from the treewidget to edit its
+  //   properties.");
+  // m_scenePanel.title->setWordWrap(true);
+  // sceneLayout->addWidget(m_scenePanel.title, 0, 0, 0);
+  // m_scenePanel.groupBox->setVisible(true);
+  // m_dynamicPanelLayout->addWidget(m_scenePanel.groupBox);
 }
 
 /*!
@@ -221,6 +224,8 @@ void Shift::Workspace::addSliders() {
 
   QObject::connect(m_sliders.rz.slider, SIGNAL(sliderReleased()), this,
                    SLOT(recenterRz()));
+
+  m_sliders.groupBox->setVisible(false);
 }
 
 /*!
@@ -408,7 +413,7 @@ void Shift::Workspace::addBodyBox() {
 */
 void Shift::Workspace::addFrameBox() {
   m_framePanel.groupBox = new QGroupBox;
-  m_framePanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
+  // m_framePanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
   QGridLayout* frameLayout = new QGridLayout(m_framePanel.groupBox);
   frameLayout->setMargin(0);
@@ -535,12 +540,12 @@ void Shift::Workspace::addIoBox() {
 */
 void Shift::Workspace::addLightGroupBox() {
   m_lightGroupPanel.groupBox = new QGroupBox;
-  m_lightGroupPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
+  // m_lightGroupPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
   QGridLayout* lightGroupLayout = new QGridLayout(m_lightGroupPanel.groupBox);
-  lightGroupLayout->setMargin(0);
-  lightGroupLayout->setContentsMargins(QMargins(0, 0, 0, 0));
-  lightGroupLayout->setSpacing(0);
+  // lightGroupLayout->setMargin(0);
+  // lightGroupLayout->setContentsMargins(QMargins(0, 0, 0, 0));
+  // lightGroupLayout->setSpacing(0);
 
   m_lightGroupPanel.addLightButton = new QPushButton();
   m_lightGroupPanel.addLightButton->setText("add light");
@@ -559,7 +564,7 @@ void Shift::Workspace::addLightGroupBox() {
 void Shift::Workspace::addLightBox() {
   /* Group box for changing light color */
   m_lightPanel.groupBox = new QGroupBox;
-  m_lightPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
+  // m_lightPanel.groupBox->setContentsMargins(QMargins(0, 0, 0, 0));
 
   QGridLayout* lightColorLayout = new QGridLayout(m_lightPanel.groupBox);
 
@@ -697,7 +702,7 @@ void Shift::Workspace::addModelParametersBox() {
   QObject::connect(m_modelParametersPanel.omegaN, SIGNAL(valueChanged(double)),
                    this, SLOT(setOmegaN(double)));
 
-  QLabel* contactDetectionLabel = new QLabel("Enable Contact Detection");
+  QLabel* contactDetectionLabel = new QLabel("Contact Detection");
   modelParametersLayout->addWidget(contactDetectionLabel, 6, 0, 0);
 
   m_modelParametersPanel.contactDetectionSwitch = new Switch(this);
@@ -722,7 +727,7 @@ void Shift::Workspace::addModelParametersBox() {
 */
 void Shift::Workspace::initializeLeftPanel() {
   m_tabwidget = new MyTabWidget();
-  m_tabwidget->setContentsMargins(QMargins(0, 0, 0, 0));
+  // m_tabwidget->setContentsMargins(QMargins(0, 0, 0, 0));
 
   /* set up scene panel, add to first tab of tab widget */
   QGroupBox* scenePanelBox = new QGroupBox();
@@ -823,13 +828,13 @@ void Shift::Workspace::initializeLayout() {
   /* main window and layout */
   QGroupBox* mainBox = new QGroupBox;
 
-  mainBox->setContentsMargins(QMargins(0, 0, 0, 0));
+  // mainBox->setContentsMargins(QMargins(0, 0, 0, 0));
   // mainBox->layout()->setContentsMargins(QMargins(0, 0, 0, 0));
 
   QVBoxLayout* mainLayout = new QVBoxLayout(mainBox);
-  mainLayout->setContentsMargins(QMargins(0, 0, 0, 0));
-  mainLayout->setMargin(0);
-  mainLayout->setSpacing(0);
+  // mainLayout->setContentsMargins(QMargins(0, 0, 0, 0));
+  // mainLayout->setMargin(0);
+  // mainLayout->setSpacing(0);
 
   /* set up left panel */
   initializeLeftPanel();
@@ -857,61 +862,54 @@ void Shift::Workspace::initializeLayout() {
   rightPanelLayout->addWidget(glwidget);
 
   /* initialize splitter and tab layout */
-
   QSplitter* mainSplitter = new QSplitter();
-  mainSplitter->setContentsMargins(QMargins(0, 0, 0, 0));
   mainSplitter->setHandleWidth(1);
   mainSplitter->setOpaqueResize(true);
   mainSplitter->setCollapsible(1, true);
   mainLayout->addWidget(mainSplitter);
 
-  /* add notification panel */
-  QGroupBox* notificationPanelBox = new QGroupBox();
-  notificationPanelBox->setContentsMargins(QMargins(0, 0, 0, 0));
-  m_notificationPanelLayout = new QGridLayout(notificationPanelBox);
-  m_notificationPanelLayout->setContentsMargins(QMargins(0, 0, 0, 0));
-  m_notificationPanelLayout->setSpacing(0);
-  m_notificationPanelLayout->setMargin(0);
-
+  /* status bar layout */
+  m_statusBar = this->statusBar();
   m_cursorPositionLabel->setContentsMargins(QMargins(0, 0, 0, 0));
-  m_notificationPanelLayout->addWidget(m_cursorPositionLabel, 0, 0);
-  m_notificationPanelLayout->setColumnMinimumWidth(0, 100);
+  m_statusBar->addWidget(m_cursorPositionLabel);
 
-  m_progressBar = new QProgressBar;
-  m_notificationPanelLayout->addWidget(m_progressBar, 0, 2);
-  m_notificationPanelLayout->setColumnMinimumWidth(2, 300);
-  m_progressBar->setVisible(false);
+  // m_progressBar = new QProgressBar;
+  // m_statusBar->addPermanentWidget(m_progressBar, 0);
+  // // m_notificationPanelLayout->setColumnMinimumWidth(2, 300);
+  // m_progressBar->setVisible(true);
+  //
+  // QWidget* statusBarWidget = new QWidget();
+  // QGridLayout* statusBarLayout = new QGridLayout(statusBarWidget);
+  // statusBarLayout->setContentsMargins(QMargins(0, 0, 0, 0));
+  // statusBarLayout->addWidget(m_cursorPositionLabel, 0, 0, 1, 1,
+  //                            Qt::AlignVCenter | Qt::AlignLeft);
+  // statusBarLayout->addWidget(m_progressBar, 0, 1, 1, 1,
+  //                            Qt::AlignVCenter | Qt::AlignRight);
+  // m_statusBar->addWidget(statusBarWidget, 1);
 
-  m_playbackPanel.playIcon = QIcon(":/icons/play_button.png");
-  m_playbackPanel.pauseIcon = QIcon(":/icons/pause_button.png");
-
+  /* playback box */
   m_playbackPanel.groupBox = new QGroupBox();
   QGridLayout* playbackLayout = new QGridLayout(m_playbackPanel.groupBox);
 
+  m_playbackPanel.playIcon = QIcon(":/icons/play_button.png");
+  m_playbackPanel.pauseIcon = QIcon(":/icons/pause_button.png");
   m_playbackPanel.playPauseButton = new QPushButton();
   m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.playIcon);
-
   QObject::connect(m_playbackPanel.playPauseButton, SIGNAL(clicked()), this,
                    SLOT(playPauseSimulation()));
-
   playbackLayout->addWidget(m_playbackPanel.playPauseButton, 0, 0);
 
-  m_playbackPanel.slider = new QSlider(Qt::Horizontal);
-  m_playbackPanel.singleStep = 100;
-  m_playbackPanel.slider->setTickPosition(QSlider::NoTicks);
-  m_playbackPanel.slider->setSingleStep(m_playbackPanel.singleStep);
-  QObject::connect(m_playbackPanel.slider, SIGNAL(valueChanged(int)), this,
-                   SLOT(interpModel(int)));
-
+  m_playbackPanel.slider = new PlayBackSlider(this);
   playbackLayout->addWidget(m_playbackPanel.slider, 0, 1);
-  m_notificationPanelLayout->addWidget(m_playbackPanel.groupBox, 0, 2);
-  m_playbackPanel.groupBox->setVisible(false);
+  playbackLayout->setColumnStretch(1, 2);
 
-  // notificationPanelBox->setFixedHeight(40);
-  // notificationPanelBox->setMaximumHeight(40);
+  m_playbackPanel.singleStep = 1000;
+  QObject::connect(m_playbackPanel.slider, SIGNAL(timeChanged(double)), this,
+                   SLOT(interpModel(double)));
+  //
+  // playbackLayout->addWidget(m_playbackPanel.slider, 0, 1);
 
-  m_notificationPanelLayout->setColumnStretch(0, 2);
-  m_notificationPanelLayout->setColumnStretch(2, 2);
+  m_playbackPanel.groupBox->setVisible(true);
 
   QGroupBox* leftPanelBox = new QGroupBox();
   leftPanelBox->setContentsMargins(QMargins(0, 0, 0, 0));
@@ -920,7 +918,7 @@ void Shift::Workspace::initializeLayout() {
   leftPanelLayout->setMargin(0);
   leftPanelLayout->setSpacing(0);
   leftPanelLayout->addWidget(m_tabwidget);
-  leftPanelLayout->addWidget(notificationPanelBox);
+  leftPanelLayout->addWidget(m_playbackPanel.groupBox);
 
   mainSplitter->addWidget(leftPanelBox);
   mainSplitter->addWidget(glwidget);
@@ -1483,7 +1481,7 @@ void Shift::Workspace::setTx(int val) {
       default:
         break;
     }
-    emit txChanged(0);
+    emit txChanged(val);
   }
 }
 
@@ -1515,18 +1513,17 @@ void Shift::Workspace::setTy(int val) {
           }
         }
         double delq = (double)val * m_sliders.ty.singleStep;
+        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
+                                 S2_JOINT_PRIMITIVE);
         m_sliders.ty.spinBox->blockSignals(true);
         m_sliders.ty.spinBox->setValue(m_context->q[qIndex] + delq);
         m_sliders.ty.spinBox->blockSignals(false);
-
-        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
-                                 S2_JOINT_PRIMITIVE);
         break;
       }
       default:
         break;
     }
-    emit tyChanged(0);
+    emit tyChanged(val);
   }
 }
 
@@ -1558,18 +1555,18 @@ void Shift::Workspace::setTz(int val) {
           }
         }
         double delq = (double)val * m_sliders.tz.singleStep;
+        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
+                                 S2_JOINT_PRIMITIVE);
         m_sliders.tz.spinBox->blockSignals(true);
         m_sliders.tz.spinBox->setValue(m_context->q[qIndex] + delq);
         m_sliders.tz.spinBox->blockSignals(false);
 
-        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
-                                 S2_JOINT_PRIMITIVE);
         break;
       }
       default:
         break;
     }
-    emit tzChanged(0);
+    emit tzChanged(val);
   }
 }
 
@@ -1584,42 +1581,34 @@ void Shift::Workspace::setRx(int val) {
         updateTransform();
         break;
       }
+
       case S2_MODELTREE_JOINT: {
         s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-        double delq = (double)val * m_sliders.rx.singleStep;
+        int qIndex = -1;
+        int dqIndex = -1;
         switch(joint->jointType) {
-          case S2_JOINT_SPHERICAL: {
-            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                     S2_JOINT_SPHERICAL);
-            m_sliders.rx.spinBox->blockSignals(true);
-            m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.rx.spinBox->blockSignals(false);
-            break;
-          }
           case S2_JOINT_FLOAT: {
-            m_renderWindow->setJoint(joint, joint->qIndex + 3,
-                                     joint->dqIndex + 3, delq,
-                                     S2_JOINT_SPHERICAL);
-            m_sliders.rx.spinBox->blockSignals(true);
-            m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex + 3] +
-                                           delq);
-            m_sliders.rx.spinBox->blockSignals(false);
+            qIndex = joint->qIndex + 3;
+            dqIndex = joint->dqIndex + 3;
             break;
           }
           default: {
-            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                     S2_JOINT_PRIMITIVE);
-            m_sliders.rx.spinBox->blockSignals(true);
-            m_sliders.rx.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.rx.spinBox->blockSignals(false);
+            qIndex = joint->qIndex;
+            dqIndex = joint->dqIndex;
             break;
           }
         }
+        double delq = (double)val * m_sliders.rx.singleStep;
+        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
+                                 S2_JOINT_PRIMITIVE);
+        m_sliders.rx.spinBox->blockSignals(true);
+        m_sliders.rx.spinBox->setValue(m_context->q[qIndex] + delq);
+        m_sliders.rx.spinBox->blockSignals(false);
       }
       default:
         break;
     }
-    emit rxChanged(0);
+    emit rxChanged(val);
   }
 }
 
@@ -1635,42 +1624,37 @@ void Shift::Workspace::setRy(int val) {
         break;
       }
       case S2_MODELTREE_JOINT: {
-        /* process a joint */
         s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-        double delq = (double)val * m_sliders.ry.singleStep;
+        int qIndex = -1;
+        int dqIndex = -1;
         switch(joint->jointType) {
           case S2_JOINT_SPHERICAL: {
-            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                     S2_JOINT_SPHERICAL);
-            m_sliders.ry.spinBox->blockSignals(true);
-            m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.ry.spinBox->blockSignals(false);
+            qIndex = joint->qIndex + 1;
+            dqIndex = joint->dqIndex + 1;
             break;
           }
           case S2_JOINT_FLOAT: {
-            m_renderWindow->setJoint(joint, joint->qIndex + 3,
-                                     joint->dqIndex + 3, delq,
-                                     S2_JOINT_SPHERICAL);
-            m_sliders.ry.spinBox->blockSignals(true);
-            m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex + 3] +
-                                           delq);
-            m_sliders.ry.spinBox->blockSignals(false);
+            qIndex = joint->qIndex + 4;
+            dqIndex = joint->dqIndex + 4;
             break;
           }
           default: {
-            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                     S2_JOINT_PRIMITIVE);
-            m_sliders.ry.spinBox->blockSignals(true);
-            m_sliders.ry.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.ry.spinBox->blockSignals(false);
+            qIndex = joint->qIndex;
+            dqIndex = joint->dqIndex;
             break;
           }
         }
+        double delq = (double)val * m_sliders.ry.singleStep;
+        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
+                                 S2_JOINT_PRIMITIVE);
+        m_sliders.ry.spinBox->blockSignals(true);
+        m_sliders.ry.spinBox->setValue(m_context->q[qIndex] + delq);
+        m_sliders.ry.spinBox->blockSignals(false);
       }
       default:
         break;
     }
-    emit ryChanged(0);
+    emit ryChanged(val);
   }
 }
 
@@ -1687,40 +1671,36 @@ void Shift::Workspace::setRz(int val) {
       }
       case S2_MODELTREE_JOINT: {
         s2_joint_t* joint = (s2_joint_t*)m_currentSelectedItem->m_object;
-        double delq = (double)val * m_sliders.rz.singleStep;
+        int qIndex = -1;
+        int dqIndex = -1;
         switch(joint->jointType) {
           case S2_JOINT_SPHERICAL: {
-            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                     S2_JOINT_SPHERICAL);
-            m_sliders.rz.spinBox->blockSignals(true);
-            m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.rz.spinBox->blockSignals(false);
+            qIndex = joint->qIndex + 2;
+            dqIndex = joint->dqIndex + 2;
             break;
           }
           case S2_JOINT_FLOAT: {
-            m_renderWindow->setJoint(joint, joint->qIndex + 3,
-                                     joint->dqIndex + 3, delq,
-                                     S2_JOINT_SPHERICAL);
-            m_sliders.rz.spinBox->blockSignals(true);
-            m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex + 3] +
-                                           delq);
-            m_sliders.rz.spinBox->blockSignals(false);
+            qIndex = joint->qIndex + 5;
+            dqIndex = joint->dqIndex + 5;
             break;
           }
           default: {
-            m_renderWindow->setJoint(joint, joint->qIndex, joint->dqIndex, delq,
-                                     S2_JOINT_PRIMITIVE);
-            m_sliders.rz.spinBox->blockSignals(true);
-            m_sliders.rz.spinBox->setValue(m_context->q[joint->qIndex] + delq);
-            m_sliders.rz.spinBox->blockSignals(false);
+            qIndex = joint->qIndex;
+            dqIndex = joint->dqIndex;
             break;
           }
         }
+        double delq = (double)val * m_sliders.rz.singleStep;
+        m_renderWindow->setJoint(joint, qIndex, dqIndex, delq,
+                                 S2_JOINT_PRIMITIVE);
+        m_sliders.rz.spinBox->blockSignals(true);
+        m_sliders.rz.spinBox->setValue(m_context->q[qIndex] + delq);
+        m_sliders.rz.spinBox->blockSignals(false);
       }
       default:
         break;
     }
-    emit rzChanged(0);
+    emit rzChanged(val);
   }
 }
 
@@ -2090,24 +2070,11 @@ void Shift::Workspace::populateLightColorDropDown(s2_light_t* light) {
 /*!
   @brief used to update the current material, currently not implemented
 
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
   should be accessible only from body pane
 */
 void Shift::Workspace::updateCurrentMaterial(int index) {
   if(m_currentSelectedItem != NULL) {
-    if(m_currentSelectedItem->m_userType == 1004) {
+    if(m_currentSelectedItem->m_userType == S2_MODELTREE_BODY) {
       // s2_body_t* body = (s2_body_t*)m_currentSelectedItem->m_object;
 
       // populate material Dropdown
@@ -2203,12 +2170,14 @@ void Shift::Workspace::getSelectedTreeItem() {
       }
       case S2_MODELTREE_BODY_GROUP: {
         m_bodyGroupPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         break;
       }
       case S2_MODELTREE_BODY: {
         s2_body_t* body = (s2_body_t*)(m_currentSelectedItem->m_object);
         qDebug() << s2_getRootName(body->name);
         m_bodyPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         m_bodyPanel.materialDropDown->clear();
 
         /* populate material dropdown menu */
@@ -2225,7 +2194,6 @@ void Shift::Workspace::getSelectedTreeItem() {
       case S2_MODELTREE_FRAME: {
         s2_frame_t* frame = (s2_frame_t*)(m_currentSelectedItem->m_object);
         qDebug() << s2_getRootName(frame->name);
-
         char number[20];
         sprintf(number, "%2.3f", frame->dAbsolute->R.m00);
         m_framePanel.m00->setText(number);
@@ -2263,11 +2231,13 @@ void Shift::Workspace::getSelectedTreeItem() {
         sprintf(number, "%2.3f", frame->dAbsolute->T.z);
         m_framePanel.m23->setText(number);
 
+        m_sliders.groupBox->setVisible(false);
         m_framePanel.groupBox->setVisible(true);
         break;
       }
       case S2_MODELTREE_JOINT_GROUP: {
         m_jointGroupPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         break;
       }
       case S2_MODELTREE_JOINT: {
@@ -2277,6 +2247,7 @@ void Shift::Workspace::getSelectedTreeItem() {
         updateH();
         clearSliders();
         m_jointPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(true);
 
         switch(joint->jointType) {
           case S2_JOINT_TX: {
@@ -2315,9 +2286,9 @@ void Shift::Workspace::getSelectedTreeItem() {
           case S2_JOINT_SPHERICAL: {
             setSlider(&m_sliders.rx, joint->qIndex, joint->dqIndex,
                       joint->substructurePointer, true);
-            setSlider(&m_sliders.ry, joint->qIndex, joint->dqIndex,
+            setSlider(&m_sliders.ry, joint->qIndex + 1, joint->dqIndex + 1,
                       joint->substructurePointer, true);
-            setSlider(&m_sliders.rz, joint->qIndex, joint->dqIndex,
+            setSlider(&m_sliders.rz, joint->qIndex + 2, joint->dqIndex + 2,
                       joint->substructurePointer, true);
             break;
           }
@@ -2330,9 +2301,9 @@ void Shift::Workspace::getSelectedTreeItem() {
                       joint->substructurePointer, true);
             setSlider(&m_sliders.rx, joint->qIndex + 3, joint->dqIndex + 3,
                       joint->substructurePointer, true);
-            setSlider(&m_sliders.ry, joint->qIndex + 3, joint->dqIndex + 3,
+            setSlider(&m_sliders.ry, joint->qIndex + 4, joint->dqIndex + 4,
                       joint->substructurePointer, true);
-            setSlider(&m_sliders.rz, joint->qIndex + 3, joint->dqIndex + 3,
+            setSlider(&m_sliders.rz, joint->qIndex + 5, joint->dqIndex + 5,
                       joint->substructurePointer, true);
             break;
           }
@@ -2345,16 +2316,19 @@ void Shift::Workspace::getSelectedTreeItem() {
       }
       case S2_MODELTREE_LIGHT_GROUP: {
         m_lightGroupPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         break;
       }
       case S2_MODELTREE_LIGHT: {
         s2_light_t* light = (s2_light_t*)m_currentSelectedItem->m_object;
         m_lightPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         populateLightColorDropDown(light);
         break;
       }
       case S2_MODELTREE_RESTRAINT_GROUP: {
         m_restraintGroupPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         break;
       }
       case S2_MODELTREE_RESTRAINT: {
@@ -2362,16 +2336,19 @@ void Shift::Workspace::getSelectedTreeItem() {
           (s2_restraint_t*)m_currentSelectedItem->m_object;
         qDebug() << s2_getRootName(restraint->name);
         m_restraintPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         break;
       }
       case S2_MODELTREE_IO_GROUP: {
         m_ioGroupPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         break;
       }
       case S2_MODELTREE_IO: {
         s2_io_t* io = (s2_io_t*)m_currentSelectedItem->m_object;
         qDebug() << s2_getRootName(io->name);
         m_ioPanel.groupBox->setVisible(true);
+        m_sliders.groupBox->setVisible(false);
         break;
       }
       default: { break; }
@@ -2385,7 +2362,7 @@ void Shift::Workspace::getSelectedTreeItem() {
 void Shift::Workspace::clearDynamicBox() {
 
   clearSliders();
-  m_scenePanel.groupBox->setVisible(false);
+  // m_scenePanel.groupBox->setVisible(false);
   m_assemblyPanel.groupBox->setVisible(false);
   m_jointGroupPanel.groupBox->setVisible(false);
   m_jointPanel.groupBox->setVisible(false);
@@ -2398,12 +2375,14 @@ void Shift::Workspace::clearDynamicBox() {
   m_ioPanel.groupBox->setVisible(false);
   m_lightGroupPanel.groupBox->setVisible(false);
   m_lightPanel.groupBox->setVisible(false);
+  m_sliders.groupBox->setVisible(false);
 }
 
 /*!
   @brief set visible flag for all slider boxes to false
 */
 void Shift::Workspace::clearSliders() {
+  m_sliders.groupBox->setVisible(true);
   m_sliders.rx.box->setVisible(false);
   m_sliders.ry.box->setVisible(false);
   m_sliders.rz.box->setVisible(false);
@@ -2910,7 +2889,8 @@ void Shift::Workspace::populateTreeRecursive(s2_assembly_t* assemblyHead,
     //   deviceHead = deviceHead->next;
     // }
 
-    MyTreeItem* pointCloudFolder = new MyTreeItem(1016);
+    MyTreeItem* pointCloudFolder =
+      new MyTreeItem(S2_MODELTREE_POINTCLOUD_GROUP);
     pointCloudFolder->setText(0, "pointclouds");
     pointCloudFolder->setExpanded(true);
     pointCloudFolder->setIcon(0, QIcon(":/icons/pointcloud_folder.png"));
@@ -2918,7 +2898,7 @@ void Shift::Workspace::populateTreeRecursive(s2_assembly_t* assemblyHead,
 
     s2_pointcloud_t* pointCloudHead = subAssemblyHead->pointCloudHead;
     while(pointCloudHead) {
-      MyTreeItem* item = new MyTreeItem(1017);
+      MyTreeItem* item = new MyTreeItem(S2_MODELTREE_POINTCLOUD);
       item->setText(0, s2_getRootName(pointCloudHead->name));
       item->setIcon(0, QIcon(":/icons/pointcloud.png"));
       item->setIcon(1, QIcon(":/icons/visible.png"));
@@ -2946,26 +2926,13 @@ void Shift::Workspace::drawTerrainToggleActive(bool active) {
 /*!
   @brief populate model treewidget with s2_context_t data structure
 
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
 */
 void Shift::Workspace::populateTree() {
 
   m_treeWidget->clear();
 
   /* load fixed properties */
-  MyTreeItem* fixed = new MyTreeItem(1002);
+  MyTreeItem* fixed = new MyTreeItem(S2_MODELTREE_ASSEMBLY);
   fixed->setText(0, "fixed");
   fixed->setIcon(0, QIcon(":/icons/anchor.png"));
   fixed->m_object = m_context->assembly;
@@ -2973,14 +2940,15 @@ void Shift::Workspace::populateTree() {
   m_treeWidget->invisibleRootItem()->addChild(fixed);
 
   /* load fixed frames */
-  MyTreeItem* fixedFrames = new MyTreeItem(1014); // frames group
+  MyTreeItem* fixedFrames =
+    new MyTreeItem(S2_MODELTREE_FRAME_GROUP); // frames group
   fixedFrames->setText(0, "frames");
   fixedFrames->setIcon(0, QIcon(":/icons/frame_folder.png"));
   fixed->addChild(fixedFrames);
 
   s2_frame_t* frameHead = m_context->assembly->bodyHead->frameHead;
   while(frameHead) {
-    MyTreeItem* item = new MyTreeItem(1005); // frame
+    MyTreeItem* item = new MyTreeItem(S2_MODELTREE_FRAME); // frame
     item->setText(0, s2_getRootName(frameHead->name));
     item->setIcon(0, QIcon(":/icons/frame.png"));
     item->m_object = frameHead;
@@ -2990,14 +2958,15 @@ void Shift::Workspace::populateTree() {
   fixedFrames->setExpanded(false);
 
   /* load fixed lights */
-  MyTreeItem* fixedLights = new MyTreeItem(1008); // light group
+  MyTreeItem* fixedLights =
+    new MyTreeItem(S2_MODELTREE_LIGHT_GROUP); // light group
   fixedLights->setText(0, "lights");
   fixedLights->setIcon(0, QIcon(":/icons/light_folder.png"));
   fixed->addChild(fixedLights);
 
   s2_light_t* lightHead = m_context->assembly->lightHead;
   while(lightHead) {
-    MyTreeItem* item = new MyTreeItem(1009); // frame
+    MyTreeItem* item = new MyTreeItem(S2_MODELTREE_LIGHT);
     item->setText(0, s2_getRootName(lightHead->name));
     item->setIcon(0, QIcon(":/icons/light.png"));
     item->m_object = lightHead;
@@ -3008,13 +2977,13 @@ void Shift::Workspace::populateTree() {
   fixed->setExpanded(true);
 
   /* load fixed terrains */
-  MyTreeItem* fixedTerrainsFolder = new MyTreeItem(1014);
+  MyTreeItem* fixedTerrainsFolder = new MyTreeItem(S2_MODELTREE_TERRAIN_GROUP);
   fixedTerrainsFolder->setText(0, "terrain");
   fixedTerrainsFolder->setIcon(0, QIcon(":/icons/terrain_folder.png"));
   fixed->addChild(fixedTerrainsFolder);
   for(int i = 0; i < m_context->terrainCount; i++) {
     s2_terrain_t* terrain = m_context->terrains[i];
-    MyTreeItem* item = new MyTreeItem(1015);
+    MyTreeItem* item = new MyTreeItem(S2_MODELTREE_TERRAIN);
     item->setText(0, s2_getRootName(terrain->name));
     item->setIcon(0, QIcon(":/icons/terrain.png"));
     item->m_object = terrain;
@@ -3037,7 +3006,7 @@ void Shift::Workspace::highlightSubstructure(s2_substructure_t* substructure) {
 
   while(*it) {
     MyTreeItem* item = static_cast<MyTreeItem*>(*it);
-    if(item->m_userType == 1007) {
+    if(item->m_userType == S2_MODELTREE_JOINT) {
       s2_joint_t* joint = (s2_joint_t*)item->m_object;
       if(joint->substructurePointer != NULL &&
          joint->substructurePointer == substructure) {
@@ -3063,7 +3032,7 @@ void Shift::Workspace::clearSubstructureHighlight() {
 
   while(*it) {
     MyTreeItem* item = static_cast<MyTreeItem*>(*it);
-    if(item->m_userType == 1007) {
+    if(item->m_userType == S2_MODELTREE_JOINT) {
       QPalette palette = this->palette();
       item->setForeground(0, palette.text());
     }
@@ -3142,73 +3111,73 @@ void Shift::Workspace::updateDrawState() {
   while(*it) {
     MyTreeItem* item = static_cast<MyTreeItem*>(*it);
     switch(item->m_userType) {
-      case 1002: {
+      case S2_MODELTREE_ASSEMBLY: {
         /* assembly */
         // s2_assembly_t* assembly = (s2_assembly_t*)(item->m_object);
       } break;
-      case 1003: {
+      case S2_MODELTREE_BODY_GROUP: {
         /* body folder */
       } break;
-      case 1004: {
+      case S2_MODELTREE_BODY: {
         /* body */
         s2_body_t* body = (s2_body_t*)(item->m_object);
         updateItemDrawState(item, body->isVisible,
                             m_renderWindow->getBodies()->isEnabled());
       } break;
-      case 1005: {
+      case S2_MODELTREE_FRAME: {
         /* frame */
         s2_frame_t* frame = (s2_frame_t*)(item->m_object);
         updateItemDrawState(item, frame->isVisible,
                             m_renderWindow->getFrames()->isEnabled());
       } break;
-      case 1006: {
+      case S2_MODELTREE_JOINT_GROUP: {
         /* joint folder */
 
       } break;
-      case 1007: {
+      case S2_MODELTREE_JOINT: {
         /* joint */
         s2_joint_t* joint = (s2_joint_t*)(item->m_object);
         updateItemDrawState(item, joint->isVisible,
                             m_renderWindow->getJoints()->isEnabled());
       } break;
-      case 1008: {
+      case S2_MODELTREE_LIGHT_GROUP: {
         /* light folder */
 
       } break;
-      case 1009: {
+      case S2_MODELTREE_LIGHT: {
         /* light */
         s2_light_t* light = (s2_light_t*)(item->m_object);
         updateItemDrawState(item, light->isVisible, false);
       } break;
-      case 1010: {
+      case S2_MODELTREE_RESTRAINT_GROUP: {
         /* restraint folder */
 
       } break;
-      case 1011: {
+      case S2_MODELTREE_RESTRAINT: {
         /* restraint */
 
       } break;
-      case 1012: {
+      case S2_MODELTREE_IO_GROUP: {
         /* io folder */
 
       } break;
-      case 1013: {
+      case S2_MODELTREE_IO: {
         /* io */
 
       } break;
-      case 1014: {
+      case S2_MODELTREE_TERRAIN_GROUP: {
         /* terrain folder */
       } break;
-      case 1015: {
+      case S2_MODELTREE_TERRAIN: {
         /* terrain */
         s2_terrain_t* terrain = (s2_terrain_t*)(item->m_object);
         updateItemDrawState(item, terrain->isVisible,
                             m_renderWindow->getTerrain()->isEnabled());
       } break;
-      case 1016: {
+      case S2_MODELTREE_POINTCLOUD_GROUP: {
         /* point cloud folder */
       } break;
-      case 1017: {
+      case S2_MODELTREE_POINTCLOUD: {
         s2_pointcloud_t* pointcloud = (s2_pointcloud_t*)(item->m_object);
         updateItemDrawState(item, pointcloud->isVisible,
                             m_renderWindow->getPointClouds()->isEnabled());
@@ -3374,7 +3343,7 @@ void Shift::Workspace::materialColorSelector() {
 void Shift::Workspace::lightColorSelector() {
   m_renderWindow->setAnimating(false);
   if(m_currentSelectedItem != NULL &&
-     m_currentSelectedItem->m_userType == 1009) {
+     m_currentSelectedItem->m_userType == S2_MODELTREE_LIGHT) {
 
     QColor color = QColorDialog::getColor(Qt::white, this, "Select Color",
                                           QColorDialog::DontUseNativeDialog);
@@ -3489,7 +3458,7 @@ void Shift::Workspace::setOutputFileName(const QString&) {
 void Shift::Workspace::updateSimulationTimer(double t) {
   m_playbackPanel.time = t;
   m_playbackPanel.slider->blockSignals(true);
-  m_playbackPanel.slider->setValue(t * m_playbackPanel.singleStep);
+  m_playbackPanel.slider->setTime(t);
   m_playbackPanel.slider->blockSignals(false);
 }
 
@@ -3505,8 +3474,6 @@ void Shift::Workspace::loadModelParameters() {
 
     m_modelParametersPanel.relativeError->setValue(
       m_context->modelParameters.relativeError);
-
-    // qDebug() << "omega_N" << m_context->modelParameters.baumgarteOmegaN;
 
     m_modelParametersPanel.omegaN->setValue(
       m_context->modelParameters.baumgarteOmegaN);
@@ -3533,7 +3500,7 @@ void Shift::Workspace::setPlaybackVisible(bool val) {
 @brief toggle visibility of loading dialog
 */
 void Shift::Workspace::setLoadingVisible(bool val) {
-  m_progressBar->setVisible(val);
+  // m_progressBar->setVisible(val);
 }
 
 /*!
@@ -3547,8 +3514,7 @@ void Shift::Workspace::setPlaybackPaused() {
 /*!
 @brief interpolate slider position in render window
 */
-void Shift::Workspace::interpModel(int val) {
-  double t = (double)val / (double)m_playbackPanel.singleStep;
+void Shift::Workspace::interpModel(double t) {
   m_renderWindow->stopSimulationPlayback();
   m_renderWindow->interpolateCurrentPosition(t);
   m_playbackPanel.time = t;
@@ -3560,30 +3526,20 @@ void Shift::Workspace::interpModel(int val) {
 void Shift::Workspace::runSimulation() {
   if(m_context != NULL) {
 
-    setPlaybackVisible(false);
-    setLoadingVisible(true);
-
-    printf("\n##initializing equations\n");
     s2_context_initializeEquations(m_context);
-
     m_renderWindow->setAnimating(false);
-
-    printf("\nintegrating equations:\n");
     s2_context_integrateEquations(m_context);
-
-    setLoadingVisible(false);
-    setPlaybackVisible(true);
-
-    m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.pauseIcon);
 
     m_simulationRunning = true;
     m_playbackPanel.time = 0;
-
-    m_playbackPanel.slider->setRange(
-      0.0, m_playbackPanel.singleStep * m_context->modelParameters.timeSpan);
+    m_playbackPanel.slider->setTimeSpan(0.0,
+                                        m_context->modelParameters.timeSpan);
+    m_playbackPanel.slider->setProgress(1000);
+    m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.pauseIcon);
 
     m_renderWindow->setAnimating(true);
-    m_renderWindow->startSimulationPlayback();
+    m_renderWindow->startSimulationPlayback(0);
+    m_simulationEvaluated = true;
   }
 }
 
@@ -3592,21 +3548,20 @@ void Shift::Workspace::runSimulation() {
 */
 void Shift::Workspace::playPauseSimulation() {
   if(m_context != NULL) {
-
-    if(m_simulationRunning) {
-      m_simulationRunning = false;
-      setLoadingVisible(false);
-      setPlaybackVisible(true);
-      m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.playIcon);
-      m_renderWindow->setAnimating(true);
-      m_renderWindow->stopSimulationPlayback();
+    if(!m_simulationEvaluated) {
+      runSimulation();
     } else {
-      m_simulationRunning = true;
-      setLoadingVisible(false);
-      setPlaybackVisible(true);
-      m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.pauseIcon);
-      m_renderWindow->setAnimating(true);
-      m_renderWindow->startSimulationPlayback(m_playbackPanel.time);
+      if(m_simulationRunning) {
+        m_simulationRunning = false;
+        m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.playIcon);
+        m_renderWindow->setAnimating(true);
+        m_renderWindow->stopSimulationPlayback();
+      } else {
+        m_simulationRunning = true;
+        m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.pauseIcon);
+        m_renderWindow->setAnimating(true);
+        m_renderWindow->startSimulationPlayback(m_playbackPanel.time);
+      }
     }
   }
 }
