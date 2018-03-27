@@ -98,18 +98,15 @@ void Shift::OrbitalCamera::updateRotate() {
   temp.rotate(4.0 * angleByDegree, rotAxis);
 
   /*! @TODO if user has clicked on a vertex in model, find rotation center to
-  apply rotation about user-defined position, otherwise, rotate about camera
-  position */
-  // QMatrix4x4 viewToRotCenter;
-  // viewToRotCenter.translate(0, 0, -0.5);
-  // QMatrix4x4 rotCenter = viewToRotCenter * m_view;
-  //
-  // QMatrix4x4 rotCenterToView;
-  // rotCenterToView.translate(0, 0, 0.5);
+  apply rotation about user-defined position, otherwise, rotate camera about a
+  point 1 m in front of camera */
+  QMatrix4x4 viewToRotCenter;
+  viewToRotCenter.translate(0, 0, 1);
+  QMatrix4x4 rotCenter = viewToRotCenter * m_view;
 
-  // m_view = rotCenterToView * temp * rotCenter;
-
-  m_view = temp * m_view;
+  QMatrix4x4 rotCenterToView;
+  rotCenterToView.translate(0, 0, -1);
+  m_view = rotCenterToView * temp * rotCenter;
 }
 
 QVector3D Shift::OrbitalCamera::getVector(int x, int y) {
