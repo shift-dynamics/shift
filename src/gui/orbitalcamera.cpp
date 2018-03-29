@@ -10,10 +10,15 @@ QMatrix4x4 getRotation(QMatrix4x4& mat) {
 }
 
 void Shift::OrbitalCamera::wheelEvent(QWheelEvent* ev) {
-  QVector3D temp =
-    m_view.transposed().column(2).toVector3D() * (ev->delta() / 1000.f);
+  float delta = ev->delta() / 1000.f;
+  QVector3D temp = m_view.transposed().column(2).toVector3D() * delta;
+  m_cameraDistance += delta;
   m_view.translate(temp);
   update();
+}
+
+float Shift::OrbitalCamera::getCameraDistance() {
+  return m_cameraDistance;
 }
 
 void Shift::OrbitalCamera::setLookAt(const QVector3D& pos, const QVector3D& to,
