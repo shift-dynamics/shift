@@ -139,6 +139,7 @@ include_directories(
 ### build static library ###
 add_library(shift_lib STATIC
   ${shift_SOURCE_DIR}/src/core/assembly.c
+  ${shift_SOURCE_DIR}/src/core/bitfield.c
   ${shift_SOURCE_DIR}/src/core/body.c
   ${shift_SOURCE_DIR}/src/core/camera.c
   ${shift_SOURCE_DIR}/src/core/chordconstraint.c
