@@ -1,22 +1,28 @@
 #include <stdlib.h>
 
+#include "bitfield.h"
 #include "collisionobject.h"
 #include "context.h"
 #include "simplex.h"
 
-/* forward declarations of simplex functions */
+/* forward declarations */
 void simplex0(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
               bool* collision, bool* success);
+
 void simplex1(s2_vector_t sDV, s2_vector_t V[13], int* numberSimplexPoints,
               bool* collision, bool* success);
+
 void simplex2(s2_vector_t sDV, s2_vector_t V[13],
               s2_vector_t extremeVertexLocalA[4],
               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
               bool* collision, bool* success);
+
 void simplex3(s2_vector_t sDV, s2_vector_t V[13],
               s2_vector_t extremeVertexLocalA[4],
               s2_vector_t extremeVertexLocalB[4], int* numberSimplexPoints,
               bool* collision, bool* success);
+
+int s2_simplex_hashIndex(int object_a, int object_b);
 
 void s2_restore_ellipsoid_support(s2_vector_t extremeVertexGlobal[4],
                                   s2_displacement_t* dAbsolute,
@@ -32,6 +38,11 @@ void s2_restore_ellipsoid_support(s2_vector_t extremeVertexGlobal[4],
 /*! @brief push a simplex data structure onto end of simplex doubly linked list
  */
 void s2_simplex_push(s2_context_t* context, s2_simplex_t* simplex) {
+
+  int index =
+    s2_simplex_hashIndex(simplex->objectA->index, simplex->objectB->index);
+  s2_bitfield_setTrue(context->simplexExistsBitfield, index);
+
   if(context->simplexHead == NULL) {
     context->simplexHead = simplex;
     context->simplexTail = simplex;
@@ -47,6 +58,11 @@ void s2_simplex_push(s2_context_t* context, s2_simplex_t* simplex) {
 
 /*! @brief remove a simplex data structure from a list of simplices */
 void s2_simplex_pop(s2_context_t* context, s2_simplex_t* simplex) {
+
+  int index =
+    s2_simplex_hashIndex(simplex->objectA->index, simplex->objectB->index);
+  s2_bitfield_setFalse(context->simplexExistsBitfield, index);
+
   /* test if simplex is at beginning of list */
   if(simplex->prev) {
     simplex->prev->next = simplex->next;
@@ -1169,6 +1185,26 @@ time histories
 */
 void s2_simplex_support(s2_context_t* context, s2_simplex_t* self) {
   self->collision = self->support(context, self);
+}
+
+int s2_simplex_hashIndex(int object_a, int object_b) {
+  int i = fmin(object_a, object_b);
+  int j = fmax(object_a, object_b);
+  return (j - 1) * j / 2 + i;
+}
+
+/*!
+@brief detect if simplex has already been appended to array of linked lists
+*/
+bool s2_simplex_exists(s2_context_t* context, s2_collisionobject_t* object_a,
+                       s2_collisionobject_t* object_b) {
+
+  if(object_a->index == object_b->index) {
+    return false;
+  } else {
+    int index = s2_simplex_hashIndex(object_a->index, object_b->index);
+    return s2_bitfield_get(context->simplexExistsBitfield, index);
+  }
 }
 
 /*!
