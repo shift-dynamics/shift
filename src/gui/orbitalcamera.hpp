@@ -22,7 +22,8 @@ enum class OrbitalCameraMode : int {
 class OrbitalCamera {
 
 public:
-  OrbitalCamera(RenderWindow* renderWindow) {
+  OrbitalCamera(RenderWindow* renderWindow)
+    : m_cameraDistance(3.0) {
     m_renderWindow = renderWindow;
     m_view.setToIdentity();
     setLookAt(QVector3D(-2, -2, -2), QVector3D(0.0, 0.0, 0.0),
@@ -32,10 +33,7 @@ public:
   void setLookAt(const QVector3D& pos, const QVector3D& to,
                  const QVector3D& up);
 
-  void setPerspective(float fov, float aspect, float nearClip, float farClip);
-
-  void setOrtho(float left, float right, float bottom, float top,
-                float nearClip, float farClip);
+  float getCameraDistance();
 
   void update();
 
@@ -89,6 +87,8 @@ private:
   QPoint m_newPoint = QPoint(0, 0);
 
   OrbitalCameraMode m_mode = OrbitalCameraMode::None;
+
+  float m_cameraDistance;
 
   RenderWindow* m_renderWindow;
 };

@@ -516,6 +516,7 @@ void Shift::RenderWindow::updateGL() {
       }
       case S2_CAMERA_INTERACTION_ORBITAL: {
         m_view = m_orbitalCamera->getViewMatrix();
+        m_camDistance = m_orbitalCamera->getCameraDistance();
         break;
       }
     }
