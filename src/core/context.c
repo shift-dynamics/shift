@@ -508,6 +508,8 @@ s2_context_t* s2_context() {
   self->collisionObjectCount = 0;
   self->collisionObjects = NULL;
 
+  self->simplexExistsBitfield = NULL;
+  self->simplexExistsBitfieldSize = 0;
   self->simplexHead = NULL;
   self->simplexTail = NULL;
 
