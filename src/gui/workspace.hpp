@@ -391,9 +391,7 @@ private:
   QString getCursorPositionText();
   // virtual void resizeEvent(QResizeEvent* event);
 
-  /*
-    Model utilities
-  */
+  /* Model utilities */
   s2_context_t* m_context;
   QString m_currentFileName;
   FILE* m_mobilityFile;
