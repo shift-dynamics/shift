@@ -585,7 +585,9 @@ typedef struct s2_context_t {
   int collisionObjectCount;
   s2_collisionobject_t* collisionObjects; /*!< contains pointers to a fixed
                                              number of collision objects */
-
+  int simplexExistsBitfieldSize; /*!< size of bitfield (i.e. number of bytes) */
+  char* simplexExistsBitfield;   /*!< bitfield indicating whether a simplex has
+                                      been created for two collision objects */
   s2_simplex_t* simplexHead; /*!< head of suportmapping doubly linked list */
   s2_simplex_t* simplexTail; /*!< tail of simplex doubly linked list */
 
