@@ -2,7 +2,7 @@
 @file
 @brief A collection of functions to feed back forces in a running simulation.
 @author Kristopher Wehage
-@date 2016
+@date 2016-2018
 @version 1.0
 @remark
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
