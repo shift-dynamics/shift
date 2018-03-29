@@ -25,9 +25,18 @@ SUCH DAMAGE.
 @brief sets up a basic "sweep" operation to identify 1/2 n^2 potential
 collisions. This basic sweep function need only be called once at initial setup
 and will set up simplices to test each collision object with every other
-collision object. No pruning is performed here to reduce unnecessary
+collision object. No pruning is performed here which would reduce unnecessary
 computation. */
 void s2_context_basicSweep(s2_context_t* context) {
+
+  /* total bits required to store data: */
+  int n = context->collisionObjectCount;
+  int bits = (n - 1) * n / 2;
+
+  /* total bytes required to store data (with a margin of one byte): */
+  context->simplexExistsBitfieldSize = bits / 8 + 1;
+  context->simplexExistsBitfield =
+    calloc(context->simplexExistsBitfieldSize, sizeof(char));
 
   for(int i = 0; i < context->collisionObjectCount; i++) {
     for(int j = i + 1; j < context->collisionObjectCount; j++) {
@@ -36,7 +45,6 @@ void s2_context_basicSweep(s2_context_t* context) {
       s2_simplex_push(context, simplex);
     }
   }
-
   return;
 }
 
@@ -63,7 +71,6 @@ void s2_context_contactDetection(s2_context_t* context) {
   contacting bodies is carried out here. The code iterates over
   the linked list of simplex datastructures identified in the
   sweepAndPrune or basicSweep phase. */
-
   s2_simplex_t* head = context->simplexHead;
   while(head) {
     s2_simplex_support(context, head);
