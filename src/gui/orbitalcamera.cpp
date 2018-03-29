@@ -89,13 +89,15 @@ void Shift::OrbitalCamera::updateTranslate() {
 }
 
 void Shift::OrbitalCamera::updateRotate() {
-  const QVector3D va = getVector(m_oldPoint.x(), m_oldPoint.y());
-  const QVector3D vb = getVector(m_newPoint.x(), m_newPoint.y());
-  const double angle = std::acos(std::min(1.0f, QVector3D::dotProduct(va, vb)));
-  const QVector3D rotAxis = QVector3D::crossProduct(va, vb);
+  const QVector3D p0 = getVector(m_oldPoint.x(), m_oldPoint.y());
+  const QVector3D p1 = getVector(m_newPoint.x(), m_newPoint.y());
+
+  const double radians =
+    std::acos(std::min(1.0f, QVector3D::dotProduct(p0, p1)));
+  const QVector3D rotAxis = QVector3D::crossProduct(p0, p1);
   QMatrix4x4 temp;
-  double angleByDegree = 180.0 * angle / M_PI;
-  temp.rotate(4.0 * angleByDegree, rotAxis);
+  const double degrees = radians * 180.0 / M_PI;
+  temp.rotate(4.0 * degrees, rotAxis);
 
   /*! @TODO if user has clicked on a vertex in model, find rotation center to
   apply rotation about user-defined position, otherwise, rotate camera about a
@@ -113,11 +115,11 @@ QVector3D Shift::OrbitalCamera::getVector(int x, int y) {
   QVector3D pt(2.0 * x / m_renderWindow->width() - 1.0,
                -2.0 * y / m_renderWindow->height() + 1.0, 0.0);
 
-  const double xySquared = pt.x() * pt.x() + pt.y() * pt.y();
-  if(xySquared) {
-    pt.setZ(std::sqrt(1.0 - xySquared));
+  const double r = pt.x() * pt.x() + pt.y() * pt.y();
+  if(r < 1.0) {
+    pt.setZ(std::sqrt(1.0 - r));
   } else {
-    pt.normalized();
+    pt.normalize();
   }
   return pt;
 }
