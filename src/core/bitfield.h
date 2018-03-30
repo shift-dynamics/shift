@@ -24,12 +24,12 @@ SUCH DAMAGE.
 #ifndef _SHIFT_BITFIELD_H_
 #define _SHIFT_BITFIELD_H_
 
-void s2_bitfield_setTrue(char* a, unsigned int index);
+void s2_bitfield_setTrue(char*, const unsigned int);
 
-void s2_bitfield_setFalse(char* a, unsigned int index);
+void s2_bitfield_setFalse(char*, const unsigned int);
 
-void s2_bitfield_toggle(char* a, unsigned int index);
+void s2_bitfield_toggle(char*, const unsigned int);
 
-bool s2_bitfield_get(char* a, unsigned int index);
+bool s2_bitfield_get(char*, const unsigned int);
 
 #endif
