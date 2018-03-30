@@ -56,6 +56,9 @@ typedef struct s2_convexhull_t {
   int index;         /*! unique index / id of convex hull */
   uint** neighbors;
   uint* neighborCount;
+  int visitedBitfieldSize; /*!< size of bitfield (i.e. number of bytes) */
+  char* visitedBitfield;   /*!< bitfield indicating whether a vertex has
+                                been visited */
 } s2_convexhull_t;
 
 s2_convexhull_t* s2_convexhull_alloc(int);
@@ -72,5 +75,9 @@ void s2_convexhull_loadVertexNeighbors(s2_convexhull_t*);
 
 void s2_convexhull_basicSupport(void*, s2_collisionobject_t*, s2_vector_t*,
                                 s2_vector_t*, s2_vector_t*);
+
+void s2_convexhull_hillClimbingSupport(void*, s2_collisionobject_t*,
+                                       s2_vector_t*, s2_vector_t*,
+                                       s2_vector_t*);
 
 #endif
