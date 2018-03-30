@@ -128,11 +128,6 @@ void load_vertices(s2_convexhull_t* self, qhT* qh, int* p10) {
     i++;
   }
   assert(i == qh->num_vertices);
-  // printf("unique vertices: %d, qh->num_vertices: %d, %d\n", i,
-  // qh->num_vertices,
-  //        self->vertexCount);
-  //
-  // printf("loaded vertices\n");
 }
 
 void load_faces(s2_convexhull_t* self, qhT* qh, int* p10) {
@@ -149,15 +144,12 @@ void load_faces(s2_convexhull_t* self, qhT* qh, int* p10) {
   int i = 0;
   FORALLfacets {
     int j = 0;
-    // printf("   ");
     FOREACHvertex_(facet->vertices) {
       self->faces[i * 3 + j++] = (GLuint)p10[qh_pointid(qh, vertex->point)];
     }
     i++;
   }
-
   assert(i == qh->num_facets);
-  // printf("unique faces: %d, qh->num_facets: %d\n", i, qh->num_facets);
 }
 
 /*!
@@ -216,8 +208,6 @@ void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* self) {
     total_neighbor_count += self->neighborCount[i];
   }
 
-  printf("total number of neighbors: %d\n", total_neighbor_count);
-
   self->neighbors = malloc(self->vertexCount * sizeof(uint*));
   if(self->neighbors == NULL) {
     fprintf(stderr, "Error: could not allocate neighbors list array");
@@ -245,6 +235,7 @@ void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* self) {
   self->visitedBitfieldSize = self->vertexCount / 8 + 1;
   self->visitedBitfield = calloc(self->visitedBitfieldSize, sizeof(char));
 
+  // printf("total number of neighbors: %d\n", total_neighbor_count);
   // for(uint i = 0; i < convexhull->vertexCount; i++) {
   //   printf("[%d] ", i);
   //   for(uint j = 0; j < convexhull->neighborCount[i]; j++) {
@@ -310,7 +301,7 @@ void load_data(s2_convexhull_t* self, qhT* qh) {
 @brief Compute single convex hull for s2_body_t datastructure
 convex hull encompasses all submeshes associated with a body
 
-code derived from Qhull template at https://github.com/qhull/qhull
+code derived from reentrant Qhull template at https://github.com/qhull/qhull
 
 Currently, only one convex hull is generated to encompass body using the qhull
 algorithm. Later, this could be modified to fit a number of conformal convex
@@ -355,22 +346,18 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context,
     } else {
 #if _SHIFT_VERBOSE
       print_summary(&qh);
+      printf("vertex count in qhull: %d\n", self->vertexCount);
 #endif
     }
     s2_convexhull_init(self);
     load_data(self, &qh);
 
-    printf("vertex count in qhull: %d\n", self->vertexCount);
-
-    // printf("freeing memory\n");
     int curlong, totlong;       /* memory remaining after qh_memfreeshort */
     FILE* errfile = stderr;     /* error messages from qhull code */
     qh_freeqhull(&qh, !qh_ALL); /* free long memory  */
-    // printf("freed qh long memory\n");
 
     qh_memfreeshort(&qh, &curlong,
                     &totlong); /* free short memory and memory allocator */
-    // printf("freed qh short memory\n");
 
     if(curlong || totlong) {
       fprintf(errfile,
@@ -378,8 +365,7 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context,
               "(%d pieces)\n",
               totlong, curlong);
     }
-    // printf("freed qh data\n");
-    // free(vertices);
+    free(vertices);
   }
   return exitcode;
 }
