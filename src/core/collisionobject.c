@@ -62,6 +62,7 @@ void s2_collisionobject_init(s2_collisionobject_t* self, int index) {
   self->color[1] = 9.f / 255.f;
   self->color[2] = 226.f / 255.f;
   self->index = index;
+  self->extremeVertexIndex = 0;
 }
 
 /*!
@@ -120,7 +121,7 @@ void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
   s2_collisionobject_t* collisionObject =
     &context->collisionObjects[body->collisionObjectOffset];
   collisionObject->type = S2_COLLISIONOBJECT_CONVEXHULL;
-  collisionObject->support = s2_convexhull_basicSupport;
+  collisionObject->support = s2_convexhull_hillClimbingSupport;
   collisionObject->referenceFrame = body->origin->dAbsolute;
   s2_displacement_setIdentity(&collisionObject->dAbsolute);
   s2_displacement_setIdentity(&collisionObject->dWRTReference);
@@ -144,7 +145,7 @@ void s2_collisionobject_convexhull(s2_context_t* context, s2_body_t* body) {
     s2_convexhull_loadVertexNeighbors(convexhull);
   } else {
     /* otherwise, set convexhull pointer to original instance of collision
-     * object */
+    object */
     if(!body->collisionGeometryInstanceOf->collisionObjectCount) {
       printf("NULL COLLISION OBJECT\n");
     }
