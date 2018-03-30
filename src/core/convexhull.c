@@ -24,6 +24,7 @@ SUCH DAMAGE.
 #include <libqhull_r/libqhull_r.h>
 #include <libqhull_r/qhull_ra.h>
 
+#include "bitfield.h"
 #include "body.h"
 #include "collisionobject.h"
 #include "context.h"
@@ -48,14 +49,16 @@ s2_convexhull_t* s2_convexhull_alloc(int count) {
 /*!
 @brief initialize convex hull
 */
-void s2_convexhull_init(s2_convexhull_t* convexhull) {
-  convexhull->vertices = NULL;
-  convexhull->faces = NULL;
-  convexhull->faceCount = 0;
-  convexhull->vertexCount = 0;
-  convexhull->malloced = false;
-  convexhull->neighbors = NULL;
-  convexhull->neighborCount = NULL;
+void s2_convexhull_init(s2_convexhull_t* self) {
+  self->vertices = NULL;
+  self->faces = NULL;
+  self->faceCount = 0;
+  self->vertexCount = 0;
+  self->malloced = false;
+  self->neighbors = NULL;
+  self->neighborCount = NULL;
+  self->visitedBitfield = NULL;
+  self->visitedBitfieldSize = 0;
 }
 
 /*!
@@ -106,38 +109,39 @@ void print_summary(qhT* qh) {
   }
 }
 
-void load_vertices(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
+void load_vertices(s2_convexhull_t* self, qhT* qh, int* p10) {
 
-  if(convexhull->vertices) {
-    free(convexhull->vertices);
-    convexhull->vertices = NULL;
+  if(self->vertices) {
+    free(self->vertices);
+    self->vertices = NULL;
   }
-  convexhull->vertices = calloc(3 * qh->num_vertices, sizeof(GLfloat));
-  convexhull->vertexCount = qh->num_vertices;
+  self->vertices = calloc(3 * qh->num_vertices, sizeof(GLfloat));
+  self->vertexCount = qh->num_vertices;
 
   vertexT* vertex;
   int i = 0;
   FORALLvertices {
     for(int k = 0; k < 3; k++) {
-      convexhull->vertices[p10[qh_pointid(qh, vertex->point)] * 3 + k] =
+      self->vertices[p10[qh_pointid(qh, vertex->point)] * 3 + k] =
         (GLfloat)vertex->point[k];
     }
     i++;
   }
   assert(i == qh->num_vertices);
-  printf("unique vertices: %d, qh->num_vertices: %d, %d\n", i, qh->num_vertices,
-         convexhull->vertexCount);
-
-  printf("loaded vertices\n");
+  // printf("unique vertices: %d, qh->num_vertices: %d, %d\n", i,
+  // qh->num_vertices,
+  //        self->vertexCount);
+  //
+  // printf("loaded vertices\n");
 }
 
-void load_faces(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
-  if(convexhull->faces) {
-    free(convexhull->faces);
-    convexhull->faces = NULL;
+void load_faces(s2_convexhull_t* self, qhT* qh, int* p10) {
+  if(self->faces) {
+    free(self->faces);
+    self->faces = NULL;
   }
-  convexhull->faces = calloc(3 * qh->num_facets, sizeof(GLuint));
-  convexhull->faceCount = qh->num_facets;
+  self->faces = calloc(3 * qh->num_facets, sizeof(GLuint));
+  self->faceCount = qh->num_facets;
 
   facetT* facet;
   vertexT* vertex;
@@ -147,8 +151,7 @@ void load_faces(s2_convexhull_t* convexhull, qhT* qh, int* p10) {
     int j = 0;
     // printf("   ");
     FOREACHvertex_(facet->vertices) {
-      convexhull->faces[i * 3 + j++] =
-        (GLuint)p10[qh_pointid(qh, vertex->point)];
+      self->faces[i * 3 + j++] = (GLuint)p10[qh_pointid(qh, vertex->point)];
     }
     i++;
   }
@@ -186,58 +189,61 @@ algorithm.
 This function must be called explicitly after a convex hull is created. It is
 not called by default when a convex hull is allocated because the neighbor list
 takes a relatively large amount of memory and is not necessary for some
-use-cases of a convex hull such as computing the minimum bounding sphere or
+use-cases of a convex hull: such as computing the minimum bounding sphere or
 ellipsoid.
 */
-void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* convexhull) {
+void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* self) {
 
-  convexhull->neighborCount = calloc(convexhull->vertexCount, sizeof(uint));
+  self->neighborCount = calloc(self->vertexCount, sizeof(uint));
 
-  uint** neighborsTemp = s2_arrayui_malloc2D(convexhull->vertexCount, 100);
+  uint** neighborsTemp = s2_arrayui_malloc2D(self->vertexCount, 100);
 
-  for(uint i = 0; i < convexhull->faceCount; i++) {
+  for(uint i = 0; i < self->faceCount; i++) {
     for(uint j = 0; j < 3; j++) {
-      uint vertex_j = convexhull->faces[i * 3 + j];
+      uint vertex_j = self->faces[i * 3 + j];
       for(uint k = 0; k < 3; k++) {
         if(j != k) {
-          uint vertex_k = convexhull->faces[i * 3 + k];
-          append_unique(neighborsTemp[vertex_j],
-                        &convexhull->neighborCount[vertex_j], vertex_k);
+          uint vertex_k = self->faces[i * 3 + k];
+          append_unique(neighborsTemp[vertex_j], &self->neighborCount[vertex_j],
+                        vertex_k);
         }
       }
     }
   }
 
   uint total_neighbor_count = 0;
-  for(uint i = 0; i < convexhull->vertexCount; i++) {
-    total_neighbor_count += convexhull->neighborCount[i];
+  for(uint i = 0; i < self->vertexCount; i++) {
+    total_neighbor_count += self->neighborCount[i];
   }
 
   printf("total number of neighbors: %d\n", total_neighbor_count);
 
-  convexhull->neighbors = malloc(convexhull->vertexCount * sizeof(uint*));
-  if(convexhull->neighbors == NULL) {
+  self->neighbors = malloc(self->vertexCount * sizeof(uint*));
+  if(self->neighbors == NULL) {
     fprintf(stderr, "Error: could not allocate neighbors list array");
   }
 
-  convexhull->neighbors[0] = calloc(total_neighbor_count, sizeof(uint));
-  if(convexhull->neighbors[0] == NULL) {
+  self->neighbors[0] = calloc(total_neighbor_count, sizeof(uint));
+  if(self->neighbors[0] == NULL) {
     fprintf(stderr, "Error: could not allocate neighbors list array");
   }
 
   int offset = 0;
-  for(uint i = 1; i < convexhull->vertexCount; i++) {
-    offset += convexhull->neighborCount[i - 1];
-    convexhull->neighbors[i] = convexhull->neighbors[0] + offset;
+  for(uint i = 1; i < self->vertexCount; i++) {
+    offset += self->neighborCount[i - 1];
+    self->neighbors[i] = self->neighbors[0] + offset;
   }
 
-  for(uint i = 0; i < convexhull->vertexCount; i++) {
-    for(uint j = 0; j < convexhull->neighborCount[i]; j++) {
-      convexhull->neighbors[i][j] = neighborsTemp[i][j];
+  for(uint i = 0; i < self->vertexCount; i++) {
+    for(uint j = 0; j < self->neighborCount[i]; j++) {
+      self->neighbors[i][j] = neighborsTemp[i][j];
     }
   }
 
   s2_arrayui_free2D(neighborsTemp);
+
+  self->visitedBitfieldSize = self->vertexCount / 8 + 1;
+  self->visitedBitfield = calloc(self->visitedBitfieldSize, sizeof(char));
 
   // for(uint i = 0; i < convexhull->vertexCount; i++) {
   //   printf("[%d] ", i);
@@ -252,7 +258,7 @@ void s2_convexhull_loadVertexNeighbors(s2_convexhull_t* convexhull) {
 @brief loads linked list of vertices from qhT into a contiguous array stored
 in s2_convexhull_t suitable for loading into a vertex array object
 */
-void load_data(s2_convexhull_t* convexhull, qhT* qh) {
+void load_data(s2_convexhull_t* self, qhT* qh) {
 
   int* p01 = NULL;
   p01 = calloc(qh->num_vertices, sizeof(int));
@@ -290,8 +296,8 @@ void load_data(s2_convexhull_t* convexhull, qhT* qh) {
     p01 = NULL;
   }
 
-  load_vertices(convexhull, qh, p10);
-  load_faces(convexhull, qh, p10);
+  load_vertices(self, qh, p10);
+  load_faces(self, qh, p10);
 
   // printf("freeing p10\n");
   if(p10 != NULL) {
@@ -379,33 +385,40 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context,
 }
 
 /*!
+@brief clear visited flag for all vertices
+*/
+void s2_convexhull_clearVisited(s2_convexhull_t* self) {
+  memset(self->visitedBitfield, 0, self->visitedBitfieldSize);
+}
+
+/*!
 @brief basic support function, performs naive linear search through indices to
 find maximum projection along specified direction. returns vertex with
 greatest projection along supplied axis. later to be replaced by hill climbing
 method, dobkin-kirkpatrick hierarchy or hash table methods
 */
-void s2_convexhull_basicSupport(void* object,
+void s2_convexhull_basicSupport(void* convexhull,
                                 s2_collisionobject_t* collisionObject,
                                 s2_vector_t* direction,
                                 s2_vector_t* extremeVertexLocal,
                                 s2_vector_t* extremeVertexGlobal) {
 
-  s2_convexhull_t* convexhull = (s2_convexhull_t*)object;
+  s2_convexhull_t* self = (s2_convexhull_t*)convexhull;
   float max_projection = -FLT_MAX;
   size_t max_index = 0;
-  for(unsigned int i = 0; i < convexhull->vertexCount; i++) {
+  for(unsigned int i = 0; i < self->vertexCount; i++) {
     float projection = 0;
-    projection += direction->x * convexhull->vertices[i * 3 + 0];
-    projection += direction->y * convexhull->vertices[i * 3 + 1];
-    projection += direction->z * convexhull->vertices[i * 3 + 2];
+    projection += direction->x * self->vertices[i * 3 + 0];
+    projection += direction->y * self->vertices[i * 3 + 1];
+    projection += direction->z * self->vertices[i * 3 + 2];
     if(projection > max_projection) {
       max_projection = projection;
       max_index = i;
     }
   }
-  extremeVertexLocal->x = (double)(convexhull->vertices[max_index * 3 + 0]);
-  extremeVertexLocal->y = (double)(convexhull->vertices[max_index * 3 + 1]);
-  extremeVertexLocal->z = (double)(convexhull->vertices[max_index * 3 + 2]);
+  extremeVertexLocal->x = (double)(self->vertices[max_index * 3 + 0]);
+  extremeVertexLocal->y = (double)(self->vertices[max_index * 3 + 1]);
+  extremeVertexLocal->z = (double)(self->vertices[max_index * 3 + 2]);
 
   s2_product_dv(&collisionObject->dAbsolute, extremeVertexLocal,
                 extremeVertexGlobal);
@@ -415,57 +428,61 @@ void s2_convexhull_basicSupport(void* object,
 @brief hill climbing extreme vertex support function, traverses vertices in
 convex hull in the direction of maximum projection to obtain extreme vertex
 */
-void s2_convexhull_hillClimbingSupport(void* object,
+void s2_convexhull_hillClimbingSupport(void* convexhull,
                                        s2_collisionobject_t* collisionObject,
                                        s2_vector_t* direction,
                                        s2_vector_t* extremeVertexLocal,
                                        s2_vector_t* extremeVertexGlobal) {
 
-  s2_convexhull_t* convexhull = (s2_convexhull_t*)object;
-
-  /*! @TODO pass in historical information to accelerate lookup of extreme
-   * vertex stored in s2_collisionobject_t data structure */
-  size_t max_index = 0;
-  float max_projection = 0;
-  max_projection += direction->x * convexhull->vertices[max_index * 3 + 0];
-  max_projection += direction->y * convexhull->vertices[max_index * 3 + 1];
-  max_projection += direction->z * convexhull->vertices[max_index * 3 + 2];
+  s2_convexhull_t* self = (s2_convexhull_t*)convexhull;
 
   /* memset visited to 0 (false) */
-  /* visited[j] = true */
+  s2_convexhull_clearVisited(self);
+
+  float max_projection = 0;
+  max_projection +=
+    direction->x * self->vertices[collisionObject->extremeVertexIndex * 3 + 0];
+  max_projection +=
+    direction->y * self->vertices[collisionObject->extremeVertexIndex * 3 + 1];
+  max_projection +=
+    direction->z * self->vertices[collisionObject->extremeVertexIndex * 3 + 2];
+  s2_bitfield_setTrue(self->visitedBitfield,
+                      collisionObject->extremeVertexIndex);
 
   while(true) {
     /* visit neighbors of current max_index */
     bool found = false;
-    for(unsigned int i = 0; i < convexhull->neighborCount[max_index]; i++) {
-      uint j = convexhull->neighbors[max_index][i];
+    for(unsigned int i = 0;
+        i < self->neighborCount[collisionObject->extremeVertexIndex]; i++) {
+      uint j = self->neighbors[collisionObject->extremeVertexIndex][i];
 
-      /* @TODO add code to only visit a vertex if we have not already visited
-      it */
+      /* check neighbor j only if it has not already been visited */
+      if(!s2_bitfield_get(self->visitedBitfield, j)) {
+        s2_bitfield_setTrue(self->visitedBitfield, j);
 
-      /* if !visited[j] {
-        visited[j] = true;
-      */
-      float projection = 0;
-      projection += direction->x * convexhull->vertices[j * 3 + 0];
-      projection += direction->y * convexhull->vertices[j * 3 + 1];
-      projection += direction->z * convexhull->vertices[j * 3 + 2];
+        float projection = 0;
+        projection += direction->x * self->vertices[j * 3 + 0];
+        projection += direction->y * self->vertices[j * 3 + 1];
+        projection += direction->z * self->vertices[j * 3 + 2];
 
-      if(projection > max_projection) {
-        max_projection = projection;
-        max_index = j;
-        found = true;
+        if(projection > max_projection) {
+          max_projection = projection;
+          collisionObject->extremeVertexIndex = j;
+          found = true;
+        }
       }
-      /* } */
     }
     if(!found) {
       break;
     }
   }
 
-  extremeVertexLocal->x = (double)(convexhull->vertices[max_index * 3 + 0]);
-  extremeVertexLocal->y = (double)(convexhull->vertices[max_index * 3 + 1]);
-  extremeVertexLocal->z = (double)(convexhull->vertices[max_index * 3 + 2]);
+  extremeVertexLocal->x =
+    (double)(self->vertices[collisionObject->extremeVertexIndex * 3 + 0]);
+  extremeVertexLocal->y =
+    (double)(self->vertices[collisionObject->extremeVertexIndex * 3 + 1]);
+  extremeVertexLocal->z =
+    (double)(self->vertices[collisionObject->extremeVertexIndex * 3 + 2]);
 
   s2_product_dv(&collisionObject->dAbsolute, extremeVertexLocal,
                 extremeVertexGlobal);
