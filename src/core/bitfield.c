@@ -45,7 +45,8 @@ inline void s2_bitfield_toggle(char* restrict a, const unsigned int index) {
   a[index >> 3] ^= 1 << (index & 7);
 }
 
-/*! retrieve boolean value at specified index
+/*!
+@brief retrieve boolean value at specified index
  */
 inline bool s2_bitfield_get(char* restrict a, const unsigned int index) {
   return a[index >> 3] & (1 << (index & 7));
