@@ -50,6 +50,10 @@ typedef struct s2_simplex_t {
                       mapping function, e.g. for two
                       convex hulls this is a pointer to
                       the gjk algorithm */
+  void (*restoreSupport)(s2_vector_t extremeVertexGlobal[4],
+                         s2_displacement_t* dAbsolute,
+                         s2_vector_t extremeVertexLocal[4],
+                         int simplexPointCount);
   s2_vector_t searchDirectionVector; /*!< search direction vector from previous
                                         call to s2_simplex_support stored here
                                       */
