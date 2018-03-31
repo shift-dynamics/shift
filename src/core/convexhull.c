@@ -365,7 +365,7 @@ int s2_convexhull(s2_convexhull_t* self, s2_context_t* context,
               "(%d pieces)\n",
               totlong, curlong);
     }
-    free(vertices);
+    /* the vertices array that was allocated above is freed by qh_freeqhull */
   }
   return exitcode;
 }
@@ -422,7 +422,7 @@ void s2_convexhull_hillClimbingSupport(void* convexhull,
 
   s2_convexhull_t* self = (s2_convexhull_t*)convexhull;
 
-  /* memset visited to 0 (false) */
+  /* memset visited flags to 0 (false) */
   s2_convexhull_clearVisited(self);
 
   float max_projection = 0;
