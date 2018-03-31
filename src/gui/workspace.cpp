@@ -2133,21 +2133,6 @@ void Shift::Workspace::updateH() {
 
 /*!
   @brief gets selected tree item and update dynamic window with parameters
-
-  The following userTypes are used
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
 */
 void Shift::Workspace::getSelectedTreeItem() {
 
@@ -2185,7 +2170,7 @@ void Shift::Workspace::getSelectedTreeItem() {
             i < body->materialIndex + body->materialCount; i++) {
           m_bodyPanel.materialDropDown->addItem(m_context->materials[i].name);
         }
-        if(body->materials != NULL) {
+        if(body->materialIndex != -1) {
           populateMaterialColorDropDown(
             &m_context->materials[body->materialIndex]);
         }
@@ -2745,20 +2730,6 @@ void Shift::Workspace::writeMobility() {
 
 /*!
   @brief populates model tree recursively
-
-  The following userTypes are used
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
 */
 void Shift::Workspace::populateTreeRecursive(s2_assembly_t* assemblyHead,
                                              QTreeWidgetItem* widget) {
@@ -2882,7 +2853,7 @@ void Shift::Workspace::populateTreeRecursive(s2_assembly_t* assemblyHead,
     /*! @TODO load io data structures */
     // Device* deviceHead = subAssemblyHead->deviceHead;
     // while(deviceHead) {
-    //   MyTreeItem* item = new MyTreeItem(1013); /* io */
+    //   MyTreeItem* item = new MyTreeItem(S2_MODELTREE_IO); /* io */
     //   item->setText(0, deviceHead->name);
     //   devices->addChild(item);
     //   devices->m_object = deviceHead;
@@ -3258,27 +3229,11 @@ void Shift::Workspace::saveFileAs() {
 
 /*!
   @brief display color selection dialog to change material color
-
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
-  valid only for body pane (1004)
-
 */
 void Shift::Workspace::materialColorSelector() {
   m_renderWindow->setAnimating(false);
   if(m_currentSelectedItem != NULL &&
-     m_currentSelectedItem->m_userType == 1004) {
+     m_currentSelectedItem->m_userType == S2_MODELTREE_BODY) {
 
     QColor color = QColorDialog::getColor(Qt::white, this, "Select Color",
                                           QColorDialog::DontUseNativeDialog);
@@ -3286,24 +3241,22 @@ void Shift::Workspace::materialColorSelector() {
     if(color.isValid()) {
       s2_body_t* body = (s2_body_t*)m_currentSelectedItem->m_object;
       s2_material_t* material =
-        body->materials + m_bodyPanel.materialDropDown->currentIndex();
+        &m_context->materials[body->materialIndex +
+                              m_bodyPanel.materialDropDown->currentIndex()];
       s2_color_enum_t colorType =
         (s2_color_enum_t)m_bodyPanel.materialColorDropDown->currentIndex();
       switch(colorType) {
         case S2_COLOR_AMBIENT: {
-          qDebug() << "ambient";
           material->GLuniforms.Ka[0] = color.red() / 255.f;
           material->GLuniforms.Ka[1] = color.green() / 255.f;
           material->GLuniforms.Ka[2] = color.blue() / 255.f;
         } break;
         case S2_COLOR_DIFFUSE: {
-          qDebug() << "diffuse";
           material->GLuniforms.Kd[0] = color.red() / 255.f;
           material->GLuniforms.Kd[1] = color.green() / 255.f;
           material->GLuniforms.Kd[2] = color.blue() / 255.f;
         } break;
         case S2_COLOR_SPECULAR: {
-          qDebug() << "specular";
           material->GLuniforms.Ks[0] = color.red() / 255.f;
           material->GLuniforms.Ks[1] = color.green() / 255.f;
           material->GLuniforms.Ks[2] = color.blue() / 255.f;
@@ -3313,10 +3266,6 @@ void Shift::Workspace::materialColorSelector() {
         } break;
       }
       populateMaterialColorDropDown(material);
-
-      // qDebug(
-      //   "ok r:%i g:%i b:%i\n",
-      //   color.red(), color.green(), color.blue());
     }
   }
   m_renderWindow->setAnimating(true);
@@ -3324,21 +3273,6 @@ void Shift::Workspace::materialColorSelector() {
 
 /*!
   @brief light color selector
-
-  * 1002: assembly
-  * 1003: body group
-  * 1004: body
-  * 1005: frame
-  * 1006: joint group
-  * 1007: joint
-  * 1008: light group
-  * 1009: light
-  * 1010: restraint group
-  * 1011: restraint
-  * 1012: io group
-  * 1013: io
-
-  valid only for light pane (1009)
 */
 void Shift::Workspace::lightColorSelector() {
   m_renderWindow->setAnimating(false);

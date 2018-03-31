@@ -88,7 +88,7 @@ typedef struct s2_body_t {
   s2_frame_t* parentFramePointer; /*!< parent frame of body reference frame */
   s2_body_t* next; /*!< Pointer to next Body in linked list datastructure */
 
-  s2_material_t* materials;      /*!< s2_material_t datastructure */
+  // s2_material_t* materials;      /*!< s2_material_t datastructure */
   s2_body_t* geometryInstanceOf; /*!< if this body has identical geometry to
                               another body, this pointer is set to the original
                               body. Otherwise, if this geometry is unique to
