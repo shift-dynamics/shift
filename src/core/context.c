@@ -80,7 +80,7 @@ s2_context_t* s2_context() {
   self->modelParameters.debugFile = NULL;
   self->modelParameters.debugFilePointer = stdout;
 
-  /*! @TODO remove this later once dhva verified */
+  /*! @TODO remove this once dhva verified */
   self->modelParameters.dhvaFilePointer = fopen("dhva.dat", "w");
   if(!self->modelParameters.dhvaFilePointer) {
     fprintf(stderr, "could not open dhva debug file\n");
