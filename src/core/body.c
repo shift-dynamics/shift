@@ -76,7 +76,7 @@ s2_body_t* s2_body(s2_stackstr_t* name) {
   body->next = NULL;
   body->geometryInstanceOf = NULL;
   body->collisionGeometryInstanceOf = NULL;
-  body->materials = NULL;
+  // body->materials = NULL;
   body->materialCount = 0;
   body->materialIndex = -1;
   body->centerOfMassWRTOrigin = s2_vector();
@@ -118,9 +118,9 @@ void s2_body_free(s2_body_t* body) {
         s2_stackstr_free(body->definition);
       }
       s2_inertia_free(body->inertia);
-      if(!body->geometryInstanceOf) {
-        s2_material_free(body->materials, body->materialCount);
-      }
+      // if(!body->geometryInstanceOf) {
+      //   s2_material_free(body->materials, body->materialCount);
+      // }
       free(body->centerOfMassWRTOrigin);
       free(body->centerOfMassWRTReference);
       s2_frame_t* frameHead = body->frameHead;
@@ -521,7 +521,7 @@ int s2_body_loadGeometry(s2_context_t* context, s2_body_t* body) {
   if(body->geometryInstanceOf) {
     body->materialIndex = body->geometryInstanceOf->materialIndex;
     body->materialCount = body->geometryInstanceOf->materialCount;
-    body->materials = body->geometryInstanceOf->materials;
+    // body->materials = body->geometryInstanceOf->materials;
   } else {
     /* check if file exists in all user specified include directories */
     char* fullPathFileName = NULL;
