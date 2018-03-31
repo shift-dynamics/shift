@@ -755,10 +755,26 @@ void Shift::Bodies::draw() {
               s2_displacement_set(&transform, i, i, sphere->radius);
             }
 
-            s2_vector_t t = {0.0, 0.0, 0.0};
-            s2_product_rv(&collisionObject->referenceFrame->R,
-                          &collisionObject->dWRTReference.T, &t);
-            s2_add_vv(&collisionObject->referenceFrame->T, &t, &transform.T);
+            if(m_context->modelParameters.contactDetectionEnabled) {
+              /* if contact detection is enabled, compute the
+              sphere centroid in collisionObject->dAbsolute.T
+              so is available for subsequent reuse */
+              if(!collisionObject->displacementUpdated) {
+                s2_product_rv(&collisionObject->referenceFrame->R,
+                              &collisionObject->dWRTReference.T,
+                              &collisionObject->dAbsolute.T);
+                s2_addequal_vv(&collisionObject->referenceFrame->T,
+                               &collisionObject->dAbsolute.T);
+                collisionObject->displacementUpdated = true;
+              }
+              s2_vector_copy(&collisionObject->dAbsolute.T, &transform.T);
+            } else {
+              /* otherwise, compute sphere centroid and save in transform.T
+              directly without checking displacementUpdated flag */
+              s2_product_rv(&collisionObject->referenceFrame->R,
+                            &collisionObject->dWRTReference.T, &transform.T);
+              s2_addequal_vv(&collisionObject->referenceFrame->T, &transform.T);
+            }
 
             m_programPhong->setTransform(&transform);
             checkError("bounding spheres: after set transform");
