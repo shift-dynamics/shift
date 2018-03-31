@@ -24,10 +24,10 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
 
 int s2_simplex_hashIndex(int object_a, int object_b);
 
-void s2_restore_ellipsoid_support(s2_vector_t extremeVertexGlobal[4],
-                                  s2_displacement_t* dAbsolute,
-                                  s2_vector_t extremeVertexLocal[4],
-                                  int simplexPointCount) {
+void s2_simplex_restoreSupport(s2_vector_t extremeVertexGlobal[4],
+                               s2_displacement_t* dAbsolute,
+                               s2_vector_t extremeVertexLocal[4],
+                               int simplexPointCount) {
   printf("\n+++++local extreme vertex support matrix+++++\n");
   for(int i = 0; i < simplexPointCount; i++) {
     s2_vector_print(stdout, &extremeVertexLocal[i]);
@@ -90,9 +90,7 @@ collisionobjects
 @return whether the two objects are in contact with one another
 */
 bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
-  /* use (void) to suppress unused variable compiler warning. Remove this once
-                                        correct support function is loaded */
-  (void)context;
+
   s2_collisionobject_t* cA = self->objectA;
   s2_collisionobject_t* cB = self->objectB;
 
@@ -136,13 +134,6 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   s2_vector_t EVA[4]; // Absolute coordinates of extreme points on hull A
   s2_vector_t EVB[4]; // Absolute coordinates of extreme points on hull B
   s2_vector_t VW[13]; // Absolute coordinates of intermediate simplex vectors
-
-  /*
-  Absolute direction cosine matrix and position vector of convex hull A and B
-  reference frames.
-  */
-  // double spatialDisplacementHullA[4][3];
-  // double spatialDisplacementHullB[4][3];
 
   /*
   origin = -1 until a surface contact decision has been made
@@ -237,10 +228,10 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   else {
     printf("\n*****Restoring simplex***** with %d vectors.\n",
            self->simplexPointCount);
-    s2_restore_ellipsoid_support(EVA, dAbsoluteA, cA->extremeVertex,
-                                 self->simplexPointCount);
-    s2_restore_ellipsoid_support(EVB, dAbsoluteB, cB->extremeVertex,
-                                 self->simplexPointCount);
+    self->restoreSupport(EVA, dAbsoluteA, cA->extremeVertex,
+                         self->simplexPointCount);
+    self->restoreSupport(EVB, dAbsoluteB, cB->extremeVertex,
+                         self->simplexPointCount);
     for(int i = 0; i < self->simplexPointCount; i++) {
       s2_subtract_vv(&EVB[i], &EVA[i], &VW[i]);
     }
@@ -1114,33 +1105,40 @@ void simplex3(s2_vector_t sDV, s2_vector_t V[13],
 @return whether the two objects are in contact with one another
 */
 bool s2_simplex_sphereSphere(s2_context_t* context, s2_simplex_t* self) {
-  /* use (void) to suppress compiler warning. Remove this once
-                                        correct support function is loaded
-   */
-  (void)context;
+
   s2_collisionobject_t* c1 = self->objectA;
   s2_collisionobject_t* c2 = self->objectB;
-  (void)c1;
-  (void)c2;
-  /*! @TODO add call to sphere-sphere test here
 
-  access extreme vertex support mapping functions for c1 and c2 by
-  calling:
+  s2_sphere_t* s1 = &context->spheres[c1->objectIndex];
+  s2_sphere_t* s2 = &context->spheres[c2->objectIndex];
 
-  s2_vector_t searchDirection;
+  if(!c1->displacementUpdated) {
+    s2_product_rv(&c1->referenceFrame->R, &c1->dWRTReference.T,
+                  &c1->dAbsolute.T);
+    s2_addequal_vv(&c1->referenceFrame->T, &c1->dAbsolute.T);
+    c1->displacementUpdated = true;
+  }
 
-  s2_vector_t extremeVertex1 =
-    s2_collisionobject_support(c1, searchDirection);
+  if(!c2->displacementUpdated) {
+    s2_product_rv(&c2->referenceFrame->R, &c2->dWRTReference.T,
+                  &c2->dAbsolute.T);
+    s2_addequal_vv(&c2->referenceFrame->T, &c2->dAbsolute.T);
+    c2->displacementUpdated = true;
+  }
 
-  s2_vector_t extremeVertex2 =
-    s2_collisionobject_support(c2, searchDirection);
+  double d = s1->radius + s2->radius;
+  s2_vector_t t = {0.0, 0.0, 0.0};
+  s2_subtract_vv(&c1->dAbsolute.T, &c2->dAbsolute.T, &t);
 
-  */
-  return true;
+  if((t.x * t.x + t.y * t.y + t.z * t.z) < (d * d)) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /*!
-@brief support mapping function for two sphere collision objects
+@brief support mapping function for two ellipsoid collision objects
 @param [in] a first s2_collisionobject_t containing an s2_ellipsoid_t
 object
 @param [in] a second s2_collisionobject_t containing an s2_ellipsoid_t
@@ -1217,6 +1215,7 @@ s2_simplex_t* s2_simplex_alloc(s2_collisionobject_t* object_a,
   s2_simplex_t* simplex = calloc(1, sizeof(s2_simplex_t));
   simplex->objectA = object_a;
   simplex->objectB = object_b;
+  simplex->restoreSupport = s2_simplex_restoreSupport;
   if(object_a->type == S2_COLLISIONOBJECT_SPHERE &&
      object_a->type == S2_COLLISIONOBJECT_SPHERE) {
     simplex->support = s2_simplex_sphereSphere;
