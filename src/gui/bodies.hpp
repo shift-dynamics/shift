@@ -98,7 +98,11 @@ public:
     , m_drawNormalsEnabled(false)
     , m_normalScale(0.2f) {
     m_sphereBufferObject.initialized = false;
+<<<<<<< HEAD
 
+=======
+    /* The following three values were 0.1 */
+>>>>>>> 5c3752c4309d61f3e0cbc0a245febbc5b1aef979
     m_sphereBufferObject.Ka[0] = 0.50;
     m_sphereBufferObject.Ka[1] = 0.50;
     m_sphereBufferObject.Ka[2] = 0.50;
