@@ -98,6 +98,7 @@ public:
     , m_drawNormalsEnabled(false)
     , m_normalScale(0.2f) {
     m_sphereBufferObject.initialized = false;
+
     m_sphereBufferObject.Ka[0] = 0.50;
     m_sphereBufferObject.Ka[1] = 0.50;
     m_sphereBufferObject.Ka[2] = 0.50;
@@ -105,7 +106,7 @@ public:
     m_sphereBufferObject.Kd[0] = 0.74902;
     m_sphereBufferObject.Kd[1] = 0.74902;
     m_sphereBufferObject.Kd[2] = 0.74902;
-    m_sphereBufferObject.Kd[3] = 0.3;
+    m_sphereBufferObject.Kd[3] = 0.8;
     m_sphereBufferObject.Ks[0] = 1.0;
     m_sphereBufferObject.Ks[1] = 1.0;
     m_sphereBufferObject.Ks[2] = 1.0;
