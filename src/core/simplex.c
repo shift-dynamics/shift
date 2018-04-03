@@ -7,17 +7,13 @@
 
 #define EPS 1.0e-10
 
-<<<<<<< HEAD
 int s2_simplex_hashIndex(int object_a, int object_b);
 
-=======
->>>>>>> 5c3752c4309d61f3e0cbc0a245febbc5b1aef979
 /*!
 @}
 @name restore_ellipsoid_support
 @{
 */
-<<<<<<< HEAD
 
 /*!
 @brief Coordinates of the most recent simplexPointCount extremeVertexLocal
@@ -45,29 +41,6 @@ void s2_simplex_restoreSupport(s2_vector_t extremeVertexGlobal[4],
 
   printf("extremeVertexGlobal support matri\n");
   for(int i = 0; i < simplexPointCount; i++) {
-=======
-
-/*!
-@brief Coordinates of the most recent simplexPointCount extremeVertexLocal
-vectors are stored prior to completion of the previous mechanism pose. Before
-initializing GJK iteration at the current pose, dAbsolute transforms and
-translates the saved extremeVertexLocal coordinates into extremeVertexGlobal
-coordinates.
-
-\f$extremeVertexGlobal[i] \leftarrow dAbsolute * extremeVertexLocal[i]\f$
-
-@param [out] extremeVertexGlobal vectors
-@param [in] dAbsolute matrix
-@param [in] extremeVertexLocal vectors
-@param [in] simplexPointCount integer
-*/
-
-void s2_restore_ellipsoid_support(s2_vector_t extremeVertexGlobal[4],
-                                  s2_displacement_t* dAbsolute,
-                                  s2_vector_t extremeVertexLocal[4],
-                                  int simplexPointCount) {
-  for(int i = 0; i < simplexPointCount; i++) {
->>>>>>> 5c3752c4309d61f3e0cbc0a245febbc5b1aef979
     s2_product_dv(dAbsolute, &extremeVertexLocal[i], &extremeVertexGlobal[i]);
   }
 }
@@ -128,12 +101,6 @@ collisionobjects
 */
 bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
 
-<<<<<<< HEAD
-=======
-  /*!
-  @param [in] two collision object data structures
-  */
->>>>>>> 5c3752c4309d61f3e0cbc0a245febbc5b1aef979
   s2_collisionobject_t* cA = self->objectA;
   s2_collisionobject_t* cB = self->objectB;
 
@@ -276,22 +243,12 @@ bool s2_simplex_gjk(s2_context_t* context, s2_simplex_t* self) {
   */
   else {
 
-<<<<<<< HEAD
     printf("\n*****Restoring simplex***** with %d vectors.\n",
            self->simplexPointCount);
     self->restoreSupport(extremeVertexAbsoluteA, dAbsoluteA,
                          cA->extremeVertexLocal, self->simplexPointCount);
     self->restoreSupport(extremeVertexAbsoluteB, dAbsoluteB,
                          cB->extremeVertexLocal, self->simplexPointCount);
-=======
-    s2_restore_ellipsoid_support(extremeVertexAbsoluteA, dAbsoluteA,
-                                 cA->extremeVertexLocal,
-                                 self->simplexPointCount);
-
-    s2_restore_ellipsoid_support(extremeVertexAbsoluteB, dAbsoluteB,
-                                 cB->extremeVertexLocal,
-                                 self->simplexPointCount);
->>>>>>> 5c3752c4309d61f3e0cbc0a245febbc5b1aef979
 
     for(int i = 0; i < self->simplexPointCount; i++) {
       s2_subtract_vv(&extremeVertexAbsoluteB[i], &extremeVertexAbsoluteA[i],
