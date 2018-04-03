@@ -75,24 +75,13 @@ s2_simplex_t* s2_simplex_alloc(s2_collisionobject_t*, s2_collisionobject_t*);
 
 void s2_simplex_free(s2_simplex_t*);
 
-<<<<<<< HEAD
 /* forward declaration of simplex functions in file simplex.c */
-=======
-/*?< forward declaration of simplex functions in file simplex.c */
->>>>>>> 5c3752c4309d61f3e0cbc0a245febbc5b1aef979
 void simplex0(s2_vector_t* searchDirectionVector,
               s2_vector_t simplexVectorsAbsolute[13], bool* collision,
               bool* success);
 void simplex1(s2_vector_t* searchDirectionVector,
               s2_vector_t simplexVectorsAbsolute[13], bool* collision,
               bool* success);
-<<<<<<< HEAD
-=======
-
-/*?< extremeVertexLocalA[4] Saved local coordinates of extreme points or
-vertices computed for collision objectA.extremeVertexLocalB[4] Saved local
-coordinates of extreme points or vertices computed for collision objectB.  */
->>>>>>> 5c3752c4309d61f3e0cbc0a245febbc5b1aef979
 void simplex2(s2_vector_t* searchDirectionVector,
               s2_vector_t simplexVectorsAbsolute[13],
               s2_vector_t extremeVertexLocalA[4],
