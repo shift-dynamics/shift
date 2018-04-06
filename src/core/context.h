@@ -64,6 +64,24 @@ typedef struct s2_ellipsoid_t s2_ellipsoid_t;
 typedef struct s2_collisionobject_t s2_collisionobject_t;
 typedef struct s2_simplex_t s2_simplex_t;
 
+typedef struct s2_dhva_t {
+  s2_displacement_t* d; /*!< array of displacements equal
+                               in size to number of frames */
+  double* dc;           //!< direction cosine arrays
+
+  s2_screw_t* h;  /*!< an array of influence coefficient matrices equal to the
+                   6 * number of variables in the datastructure */
+  s2_screw_t* v;  /*!< an array of body velocities equal to the
+                   number of variables in the datastructure */
+  s2_screw_t* aq; /*!< an array of body accelerations equal to the
+                  number of variables in the datastructure */
+  s2_screw_t* vRelative;  /*!< an array of body velocities equal to the
+                   number of variables in the datastructure */
+  s2_screw_t* aqRelative; /*!< an array of body accelerations quadratic in
+                             velocity equal to the number of variables in the
+                             datastructure */
+} s2_dhva_t;
+
 /*!
 @brief shift context datastructure
 
@@ -293,12 +311,13 @@ typedef struct s2_context_t {
 
   s2_light_t** lightPointers; /*!< array of pointers to lights */
 
-  void (**dhFunctionPointers)(void** dhva);
+  void (**dhFunctionPointers)(s2_context_t*, s2_dhva_t*, int*, double* q);
   /*!< function pointers to update displacements
        and influence coefficient matrices in
        spanning tree */
 
-  void (**dhvaFunctionPointers)(void** dhva);
+  void (**dhvaFunctionPointers)(s2_context_t*, s2_dhva_t*, int*, double* q,
+                                double* dq);
   /*!< function pointers to update displacements
       influence coefficient matrices,
       velocities and accelerations in spanning tree */
@@ -308,7 +327,7 @@ typedef struct s2_context_t {
   s2_joint_enum_t* jointTypes; /*!< Array of joint types, equal in length to
                                       joint list */
   int* pcl;           /*!< Parent Child List, used to navigate mechanism
-                                       topology, set automatically by
+                                       topology, set in
                                        s2_ProcessTopology */
   int* pclCompressed; /*!< parent child list, with rigid joints
                            compressed out */
@@ -329,31 +348,19 @@ typedef struct s2_context_t {
   s2_frame_t** originPointers;
   s2_frame_t** referenceFramePointers;
 
-  s2_displacement_t* d;                 /*!< array of displacements equal
-                                               in size to number of frames */
-  s2_displacement_t* dWRTReference;     /*!< array of relative displacements,
-                                               equal in size to number of shape
-                                               matrices + rigid joints*/
-  s2_displacement_t** dReferenceFrames; /*!< absolute displacement of
-                                               reference frames */
-  double* dc;                           //!< direction cosine arrays
-  double** dcq;   /*!< generalized coordinates that have direction cosine terms
-                      associated with them */
-  s2_screw_t* h;  /*!< an array of influence coefficient matrices equal to the
-                   6 * number of variables in the datastructure */
-  s2_screw_t* v;  /*!< an array of body velocities equal to the
-                   number of variables in the datastructure */
-  s2_screw_t* aq; /*!< an array of body accelerations equal to the
-                  number of variables in the datastructure */
-  s2_screw_t* vRelative;  /*!< an array of body velocities equal to the
-                   number of variables in the datastructure */
-  s2_screw_t* aqRelative; /*!< an array of body accelerations equal to the
-                  number of variables in the datastructure */
-  void*** dhva; /*!< pointers to quantities needed by dhFunctionPointers
-                       and dhvaFunctionPointers, set by
-                       topology_ProcessTopology */
-
-  double* q;       /*!< primitive joint displacements */
+  s2_dhva_t dhva;
+  s2_displacement_t* dWRTReference; /*!< array of relative displacements,
+                                           equal in size to number of shape
+                                           matrices + rigid joints*/
+  int** dhvaOffsets;                /*!< integer offsets to quantities needed by
+                                   dhFunctionPointers                and dhvaFunctionPointers,
+                                   set by                topology_ProcessTopology */
+  int* dReferenceFrames; /*!< index of absolute displacements for body
+                              reference frames, integer offsets
+                              in dhvaPointers->d array */
+  int* dcq;  /*!< integer offsets to generalized coordinates that have direction
+             cosine terms associated with them */
+  double* q; /*!< primitive joint displacements */
   double* qCopy;   /*!< copy of primitive joint displacements */
   double* dq;      /*!< primitive joint velocities */
   double* ddq;     /*!< primitive joint accelerations */

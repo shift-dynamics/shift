@@ -1641,11 +1641,16 @@ inline void s2_screwf_invert(s2_screwf_t* restrict si,
 @param *ki a pointer to a scalar
 @param so[6] the results are stored in so[6]
 */
-inline void s2_product_sk(s2_screw_t* restrict si, double* restrict ki,
+inline void s2_product_sk(s2_screw_t* restrict si, const double* ki,
                           s2_screw_t* restrict so) {
 
-  cblas_dcopy(6, (double*)si, 1, (double*)so, 1);
-  cblas_dscal(6, *ki, (double*)so, 1);
+  register double k = *ki;
+  so->m0 = si->m0 * k;
+  so->m1 = si->m1 * k;
+  so->m2 = si->m2 * k;
+  so->m3 = si->m3 * k;
+  so->m4 = si->m4 * k;
+  so->m5 = si->m5 * k;
 }
 
 /*!
@@ -1657,11 +1662,16 @@ inline void s2_product_sk(s2_screw_t* restrict si, double* restrict ki,
 @param *ki a pointer to a scalar
 @param so[6] the results are stored in so[6]
 */
-inline void s2_product_skf(s2_screwf_t* restrict si, float* restrict ki,
+inline void s2_product_skf(s2_screwf_t* restrict si, const float* restrict ki,
                            s2_screwf_t* restrict so) {
 
-  cblas_scopy(6, (float*)si, 1, (float*)so, 1);
-  cblas_sscal(6, *ki, (float*)so, 1);
+  register float k = *ki;
+  so->m0 = si->m0 * k;
+  so->m1 = si->m1 * k;
+  so->m2 = si->m2 * k;
+  so->m3 = si->m3 * k;
+  so->m4 = si->m4 * k;
+  so->m5 = si->m5 * k;
 }
 
 /*!
@@ -1676,8 +1686,12 @@ inline void s2_product_skf(s2_screwf_t* restrict si, float* restrict ki,
 inline void s2_add_ss(s2_screw_t* restrict s1i, s2_screw_t* s2i,
                       s2_screw_t* restrict so) {
 
-  cblas_dcopy(6, (double*)s1i, 1, (double*)so, 1);
-  cblas_daxpy(6, 1, (double*)s2i, 1, (double*)so, 1);
+  so->m0 = s1i->m0 + s2i->m0;
+  so->m1 = s1i->m1 + s2i->m1;
+  so->m2 = s1i->m2 + s2i->m2;
+  so->m3 = s1i->m3 + s2i->m3;
+  so->m4 = s1i->m4 + s2i->m4;
+  so->m5 = s1i->m5 + s2i->m5;
 }
 
 /*!
@@ -1691,7 +1705,12 @@ inline void s2_add_ss(s2_screw_t* restrict s1i, s2_screw_t* s2i,
 */
 inline void s2_addequal_ss(s2_screw_t* restrict s1i, s2_screw_t* restrict s2i) {
 
-  cblas_daxpy(6, 1, (double*)s1i, 1, (double*)s2i, 1);
+  s2i->m0 += s1i->m0;
+  s2i->m1 += s1i->m1;
+  s2i->m2 += s1i->m2;
+  s2i->m3 += s1i->m3;
+  s2i->m4 += s1i->m4;
+  s2i->m5 += s1i->m5;
 }
 
 /*!
@@ -1706,7 +1725,12 @@ inline void s2_addequal_ss(s2_screw_t* restrict s1i, s2_screw_t* restrict s2i) {
 inline void s2_addequal_ssf(s2_screwf_t* restrict s1i,
                             s2_screwf_t* restrict s2i) {
 
-  cblas_saxpy(6, 1, (float*)s1i, 1, (float*)s2i, 1);
+  s2i->m0 += s1i->m0;
+  s2i->m1 += s1i->m1;
+  s2i->m2 += s1i->m2;
+  s2i->m3 += s1i->m3;
+  s2i->m4 += s1i->m4;
+  s2i->m5 += s1i->m5;
 }
 
 /*!
@@ -1721,8 +1745,12 @@ inline void s2_addequal_ssf(s2_screwf_t* restrict s1i,
 inline void s2_add_ssf(s2_screwf_t* restrict s1i, s2_screwf_t* restrict s2i,
                        s2_screwf_t* restrict so) {
 
-  cblas_scopy(6, (float*)s1i, 1, (float*)so, 1);
-  cblas_saxpy(6, 1, (float*)s2i, 1, (float*)so, 1);
+  so->m0 = s1i->m0 + s2i->m0;
+  so->m1 = s1i->m1 + s2i->m1;
+  so->m2 = s1i->m2 + s2i->m2;
+  so->m3 = s1i->m3 + s2i->m3;
+  so->m4 = s1i->m4 + s2i->m4;
+  so->m5 = s1i->m5 + s2i->m5;
 }
 
 /*!
@@ -1738,8 +1766,12 @@ so.
 inline void s2_subtract_ss(s2_screw_t* restrict s1i, s2_screw_t* restrict s2i,
                            s2_screw_t* restrict so) {
 
-  cblas_dcopy(6, (double*)s1i, 1, (double*)so, 1);
-  cblas_daxpy(6, -1.0, (double*)s2i, 1, (double*)so, 1);
+  so->m0 = s1i->m0 - s2i->m0;
+  so->m1 = s1i->m1 - s2i->m1;
+  so->m2 = s1i->m2 - s2i->m2;
+  so->m3 = s1i->m3 - s2i->m3;
+  so->m4 = s1i->m4 - s2i->m4;
+  so->m5 = s1i->m5 - s2i->m5;
 }
 
 /*!
@@ -1756,8 +1788,12 @@ inline void s2_subtract_ssf(s2_screwf_t* restrict s1i,
                             s2_screwf_t* restrict s2i,
                             s2_screwf_t* restrict so) {
 
-  cblas_scopy(6, (float*)s1i, 1, (float*)so, 1);
-  cblas_saxpy(6, -1.0, (float*)s2i, 1, (float*)so, 1);
+  so->m0 = s1i->m0 - s2i->m0;
+  so->m1 = s1i->m1 - s2i->m1;
+  so->m2 = s1i->m2 - s2i->m2;
+  so->m3 = s1i->m3 - s2i->m3;
+  so->m4 = s1i->m4 - s2i->m4;
+  so->m5 = s1i->m5 - s2i->m5;
 }
 
 /*!
@@ -1772,7 +1808,12 @@ inline void s2_subtract_ssf(s2_screwf_t* restrict s1i,
 inline void s2_subtractequal_ss(s2_screw_t* restrict s1i,
                                 s2_screw_t* restrict s2i) {
 
-  cblas_daxpy(6, -1.0, (double*)s1i, 1, (double*)s2i, 1);
+  s2i->m0 -= s1i->m0;
+  s2i->m1 -= s1i->m1;
+  s2i->m2 -= s1i->m2;
+  s2i->m3 -= s1i->m3;
+  s2i->m4 -= s1i->m4;
+  s2i->m5 -= s1i->m5;
 }
 
 /*!
@@ -1787,7 +1828,12 @@ inline void s2_subtractequal_ss(s2_screw_t* restrict s1i,
 inline void s2_subtractequal_ssf(s2_screwf_t* restrict s1i,
                                  s2_screwf_t* restrict s2i) {
 
-  cblas_saxpy(6, -1.0, (float*)s1i, 1, (float*)s2i, 1);
+  s2i->m0 -= s1i->m0;
+  s2i->m1 -= s1i->m1;
+  s2i->m2 -= s1i->m2;
+  s2i->m3 -= s1i->m3;
+  s2i->m4 -= s1i->m4;
+  s2i->m5 -= s1i->m5;
 }
 
 /*!
@@ -1814,7 +1860,9 @@ inline void s2_add_sst(s2_screw_t* restrict si1, s2_screw_t* restrict si2,
                        s2_screw_t* restrict so) {
 
   s2_screw_copy(si1, so);
-  cblas_daxpy(3, 1.0, (double*)si2, 1, (double*)so, 1);
+  so->m0 += si2->m0;
+  so->m1 += si2->m1;
+  so->m2 += si2->m2;
 }
 
 /*!
@@ -1832,7 +1880,9 @@ inline void s2_add_sstf(s2_screwf_t* restrict si1, s2_screwf_t* restrict si2,
                         s2_screwf_t* restrict so) {
 
   s2_screwf_copy(si1, so);
-  cblas_saxpy(3, 1.0, (float*)si2, 1, (float*)so, 1);
+  so->m0 += si2->m0;
+  so->m1 += si2->m1;
+  so->m2 += si2->m2;
 }
 
 /*!
@@ -1854,7 +1904,7 @@ direction cosines.
 @param ro rotation matrix output
 */
 inline void s2_mat3x3_copy(s2_mat3x3_t* restrict ri, s2_mat3x3_t* restrict ro) {
-  cblas_dcopy(9, (double*)ri, 1, (double*)ro, 1);
+  memcpy(ro, ri, sizeof(s2_mat3x3_t));
 }
 
 /*!
@@ -1867,20 +1917,19 @@ inline void s2_mat3x3_copy(s2_mat3x3_t* restrict ri, s2_mat3x3_t* restrict ro) {
 */
 inline void s2_mat3x3f_copy(s2_mat3x3f_t* restrict ri,
                             s2_mat3x3f_t* restrict ro) {
-
-  cblas_scopy(9, (float*)ri, 1, (float*)ro, 1);
+  memcpy(ro, ri, sizeof(s2_mat3x3f_t));
 }
 
 /*!
-@brief Inverts (transposes) a double precision s2_mat3x3_t rotation matrix
+@brief Transposes a double precision s2_mat3x3_t matrix
 
 \f$R_i^T \rightarrow R_o\f$
 
 @param ri rotation matrix to be inverted
 @param ro transposed rotation matrix returned in ro
 */
-inline void s2_mat3x3_invert(s2_mat3x3_t* restrict ri,
-                             s2_mat3x3_t* restrict ro) {
+inline void s2_mat3x3_transpose(s2_mat3x3_t* restrict ri,
+                                s2_mat3x3_t* restrict ro) {
 
   cblas_dcopy(3, (double*)ri, 1, (double*)ro, 3);
   cblas_dcopy(3, ((double*)ri) + 3, 1, ((double*)ro) + 1, 3);
@@ -1898,8 +1947,8 @@ inline void s2_mat3x3_invert(s2_mat3x3_t* restrict ri,
 @param ri rotation matrix to be inverted
 @param ro transposed rotation matrix returned in ro
 */
-inline void s2_mat3x3f_invert(s2_mat3x3f_t* restrict ri,
-                              s2_mat3x3f_t* restrict ro) {
+inline void s2_mat3x3f_transpose(s2_mat3x3f_t* restrict ri,
+                                 s2_mat3x3f_t* restrict ro) {
   cblas_scopy(3, (float*)ri, 1, (float*)ro, 3);
   cblas_scopy(3, ((float*)ri) + 3, 1, (float*)ro + 1, 3);
   cblas_scopy(3, ((float*)ri) + 6, 1, (float*)ro + 2, 3);
@@ -1916,20 +1965,6 @@ vector vi in vo.
 */
 inline void s2_product_rv(s2_mat3x3_t* restrict ri, s2_vector_t* restrict vi,
                           s2_vector_t* restrict vo) {
-
-  // cblas_dgemv(
-  //   CblasColMajor,
-  //   CblasNoTrans,
-  //   3,
-  //   3,
-  //   1.0,
-  //   (double*)ri,
-  //   3,
-  //   (double*)vi,
-  //   1,
-  //   0.0,
-  //   (double*)vo,
-  //   1);
 
   vo->x = ri->m00 * vi->x + ri->m01 * vi->y + ri->m02 * vi->z;
   vo->y = ri->m10 * vi->x + ri->m11 * vi->y + ri->m12 * vi->z;
@@ -2952,7 +2987,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param to a pointer to a vector where result is stored.
 */
-inline void s2_product_rtx(s2_mat3x3_t* restrict ri, double* restrict ti,
+inline void s2_product_rtx(s2_mat3x3_t* restrict ri, const double* restrict ti,
                            s2_vector_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(double));
@@ -2984,7 +3019,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtxf(s2_mat3x3f_t* restrict ri, float* restrict ti,
+inline void s2_product_rtxf(s2_mat3x3f_t* restrict ri, const float* restrict ti,
                             s2_vectorf_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(float));
@@ -3016,7 +3051,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtxinverse(s2_mat3x3_t* restrict ri, double* restrict ti,
+inline void s2_product_rtxinverse(s2_mat3x3_t* restrict ri,
+                                  const double* restrict ti,
                                   s2_vector_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(double));
@@ -3049,7 +3085,7 @@ is equivalent to:
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void s2_product_rtxinversef(s2_mat3x3f_t* restrict ri,
-                                   float* restrict ti,
+                                   const float* restrict ti,
                                    s2_vectorf_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(float));
@@ -3081,7 +3117,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rty(s2_mat3x3_t* restrict ri, double* restrict ti,
+inline void s2_product_rty(s2_mat3x3_t* restrict ri, const double* restrict ti,
                            s2_vector_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(double));
@@ -3113,7 +3149,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtyf(s2_mat3x3f_t* restrict ri, float* restrict ti,
+inline void s2_product_rtyf(s2_mat3x3f_t* restrict ri, const float* restrict ti,
                             s2_vectorf_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(float));
@@ -3145,7 +3181,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtyinverse(s2_mat3x3_t* restrict ri, double* restrict ti,
+inline void s2_product_rtyinverse(s2_mat3x3_t* restrict ri,
+                                  const double* restrict ti,
                                   s2_vector_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(double));
@@ -3178,7 +3215,7 @@ is equivalent to:
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void s2_product_rtyinversef(s2_mat3x3f_t* restrict ri,
-                                   float* restrict ti,
+                                   const float* restrict ti,
                                    s2_vectorf_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(float));
@@ -3210,7 +3247,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtz(s2_mat3x3_t* restrict ri, double* restrict ti,
+inline void s2_product_rtz(s2_mat3x3_t* restrict ri, const double* restrict ti,
                            s2_vector_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(double));
@@ -3242,7 +3279,7 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtzf(s2_mat3x3f_t* restrict ri, float* restrict ti,
+inline void s2_product_rtzf(s2_mat3x3f_t* restrict ri, const float* restrict ti,
                             s2_vectorf_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(float));
@@ -3274,7 +3311,8 @@ is equivalent to:
 @param ti a pointer to a double
 @param ro a pointer to a rotation matrix where the result is stored.
 */
-inline void s2_product_rtzinverse(s2_mat3x3_t* restrict ri, double* restrict ti,
+inline void s2_product_rtzinverse(s2_mat3x3_t* restrict ri,
+                                  const double* restrict ti,
                                   s2_vector_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(double));
@@ -3307,7 +3345,7 @@ is equivalent to:
 @param ro a pointer to a rotation matrix where the result is stored.
 */
 inline void s2_product_rtzinversef(s2_mat3x3f_t* restrict ri,
-                                   float* restrict ti,
+                                   const float* restrict ti,
                                    s2_vectorf_t* restrict to) {
 
   memset(to, 0, 3 * sizeof(float));
@@ -3347,7 +3385,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttx(s2_vector_t* restrict t1i, double* restrict t2i,
+inline void s2_add_ttx(s2_vector_t* restrict t1i, const double* restrict t2i,
                        s2_vector_t* restrict to) {
 
   s2_vector_copy(t1i, to);
@@ -3372,7 +3410,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttxf(s2_vectorf_t* restrict t1i, float* restrict t2i,
+inline void s2_add_ttxf(s2_vectorf_t* restrict t1i, const float* restrict t2i,
                         s2_vectorf_t* restrict to) {
 
   s2_vectorf_copy(t1i, to);
@@ -3398,7 +3436,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttxinverse(s2_vector_t* restrict t1i, double* restrict t2i,
+inline void s2_add_ttxinverse(s2_vector_t* restrict t1i,
+                              const double* restrict t2i,
                               s2_vector_t* restrict to) {
 
   s2_vector_copy(t1i, to);
@@ -3427,7 +3466,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttxinversef(s2_vectorf_t* restrict t1i, float* restrict t2i,
+inline void s2_add_ttxinversef(s2_vectorf_t* restrict t1i,
+                               const float* restrict t2i,
                                s2_vectorf_t* restrict to) {
 
   s2_vectorf_copy(t1i, to);
@@ -3456,7 +3496,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_tty(s2_vector_t* restrict t1i, double* restrict t2i,
+inline void s2_add_tty(s2_vector_t* restrict t1i, const double* restrict t2i,
                        s2_vector_t* restrict to) {
 
   s2_vector_copy(t1i, to);
@@ -3486,7 +3526,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttyf(s2_vectorf_t* restrict t1i, float* restrict t2i,
+inline void s2_add_ttyf(s2_vectorf_t* restrict t1i, const float* restrict t2i,
                         s2_vectorf_t* restrict to) {
 
   s2_vectorf_copy(t1i, to);
@@ -3516,7 +3556,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttyinverse(s2_vector_t* restrict t1i, double* restrict t2i,
+inline void s2_add_ttyinverse(s2_vector_t* restrict t1i,
+                              const double* restrict t2i,
                               s2_vector_t* restrict to) {
 
   s2_vector_copy(t1i, to);
@@ -3546,7 +3587,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttyinversef(s2_vectorf_t* restrict t1i, float* restrict t2i,
+inline void s2_add_ttyinversef(s2_vectorf_t* restrict t1i,
+                               const float* restrict t2i,
                                s2_vectorf_t* restrict to) {
 
   s2_vectorf_copy(t1i, to);
@@ -3576,7 +3618,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttz(s2_vector_t* restrict t1i, double* restrict t2i,
+inline void s2_add_ttz(s2_vector_t* restrict t1i, const double* restrict t2i,
                        s2_vector_t* restrict to) {
 
   s2_vector_copy(t1i, to);
@@ -3606,7 +3648,7 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttzf(s2_vectorf_t* restrict t1i, float* restrict t2i,
+inline void s2_add_ttzf(s2_vectorf_t* restrict t1i, const float* restrict t2i,
                         s2_vectorf_t* restrict to) {
 
   s2_vectorf_copy(t1i, to);
@@ -3636,7 +3678,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttzinverse(s2_vector_t* restrict t1i, double* restrict t2i,
+inline void s2_add_ttzinverse(s2_vector_t* restrict t1i,
+                              const double* restrict t2i,
                               s2_vector_t* restrict to) {
 
   s2_vector_copy(t1i, to);
@@ -3665,7 +3708,8 @@ is equivalent to:
 @param t2i a pointer to a double
 @param to a pointer to a general 3-d translation where the result is stored.
 */
-inline void s2_add_ttzinversef(s2_vectorf_t* restrict t1i, float* restrict t2i,
+inline void s2_add_ttzinversef(s2_vectorf_t* restrict t1i,
+                               const float* restrict t2i,
                                s2_vectorf_t* restrict to) {
 
   s2_vectorf_copy(t1i, to);
@@ -4208,7 +4252,8 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtx(s2_displacement_t* restrict Di, double* restrict ti,
+inline void s2_product_dtx(s2_displacement_t* restrict Di,
+                           const double* restrict ti,
                            s2_displacement_t* restrict Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
@@ -4232,7 +4277,7 @@ Computes the result of a general displacement, followed by a primitive
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
 inline void s2_product_dtxinverse(s2_displacement_t* restrict Di,
-                                  double* restrict ti,
+                                  const double* restrict ti,
                                   s2_displacement_t* restrict Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
@@ -4256,7 +4301,7 @@ Computes the result of a general displacement, followed by a primitive
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
 inline void s2_product_dtxinversef(s2_displacementf_t* restrict Di,
-                                   float* restrict ti,
+                                   const float* restrict ti,
                                    s2_displacementf_t* restrict Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
@@ -4276,7 +4321,8 @@ translation along the y-axis
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dty(s2_displacement_t* restrict Di, double* restrict ti,
+inline void s2_product_dty(s2_displacement_t* restrict Di,
+                           const double* restrict ti,
                            s2_displacement_t* restrict Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
@@ -4296,7 +4342,8 @@ translation along the y-axis
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtyf(s2_displacementf_t* restrict Di, float* restrict ti,
+inline void s2_product_dtyf(s2_displacementf_t* restrict Di,
+                            const float* restrict ti,
                             s2_displacementf_t* restrict Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
@@ -4320,7 +4367,7 @@ Computes the result of a general displacement, followed by a primitive
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
 inline void s2_product_dtyinverse(s2_displacement_t* restrict Di,
-                                  double* restrict ti,
+                                  const double* restrict ti,
                                   s2_displacement_t* restrict Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
@@ -4344,7 +4391,7 @@ Computes the result of a general displacement, followed by a primitive
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
 inline void s2_product_dtyinversef(s2_displacementf_t* restrict Di,
-                                   float* restrict ti,
+                                   const float* restrict ti,
                                    s2_displacementf_t* restrict Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
@@ -4367,7 +4414,8 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtz(s2_displacement_t* restrict Di, double* restrict ti,
+inline void s2_product_dtz(s2_displacement_t* restrict Di,
+                           const double* restrict ti,
                            s2_displacement_t* restrict Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));
@@ -4390,7 +4438,8 @@ Computes the result of a general displacement, followed by a primitive
 @param ti a double representing a primitive 1-d translation
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
-inline void s2_product_dtzf(s2_displacementf_t* restrict Di, float* restrict ti,
+inline void s2_product_dtzf(s2_displacementf_t* restrict Di,
+                            const float* restrict ti,
                             s2_displacementf_t* restrict Do) {
 
   s2_mat3x3f_copy(&(Di->R), &(Do->R));
@@ -4414,7 +4463,7 @@ primitive 1-d translation along the z axis.
 @param Do the results are stored in the general displacement, \f$D_o\f$
 */
 inline void s2_product_dtzinverse(s2_displacement_t* restrict Di,
-                                  double* restrict ti,
+                                  const double* restrict ti,
                                   s2_displacement_t* restrict Do) {
 
   s2_mat3x3_copy(&(Di->R), &(Do->R));

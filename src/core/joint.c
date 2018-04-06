@@ -59,17 +59,14 @@ s2_joint_t* s2_joint(const char* jointTypeStr, s2_stackstr_t* name) {
     case S2_JOINT_TY:
     case S2_JOINT_TZ: {
       joint->dof = 1;
-      joint->initialPrimitiveDisplacement = calloc(1, sizeof(double));
-      joint->initialPrimitiveVelocity = calloc(1, sizeof(double));
+      joint->q_0 = calloc(1, sizeof(double));
+      joint->dq_0 = calloc(1, sizeof(double));
 
-      joint->primitiveDisplacement = calloc(1, sizeof(double));
-      joint->primitiveVelocity = calloc(1, sizeof(double));
+      joint->q = calloc(1, sizeof(double));
+      joint->dq = calloc(1, sizeof(double));
 
       joint->generalDisplacement = NULL;
       joint->directionCosine = NULL;
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = s2_screw();
       break;
@@ -78,74 +75,62 @@ s2_joint_t* s2_joint(const char* jointTypeStr, s2_stackstr_t* name) {
     case S2_JOINT_RY:
     case S2_JOINT_RZ: {
       joint->dof = 1;
-      joint->initialPrimitiveDisplacement = calloc(1, sizeof(double));
-      joint->initialPrimitiveVelocity = calloc(1, sizeof(double));
+      joint->q_0 = calloc(1, sizeof(double));
+      joint->dq_0 = calloc(1, sizeof(double));
 
-      joint->primitiveDisplacement = calloc(1, sizeof(double));
-      joint->primitiveVelocity = calloc(1, sizeof(double));
+      joint->q = calloc(1, sizeof(double));
+      joint->dq = calloc(1, sizeof(double));
 
       joint->generalDisplacement = NULL;
       joint->directionCosine = calloc(2, sizeof(double));
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = s2_screw();
       break;
     }
     case S2_JOINT_RIGID: {
       joint->dof = 0;
-      joint->initialPrimitiveDisplacement = NULL;
-      joint->initialPrimitiveVelocity = NULL;
+      joint->q_0 = NULL;
+      joint->dq_0 = NULL;
 
-      joint->primitiveDisplacement = NULL;
-      joint->primitiveVelocity = NULL;
+      joint->q = NULL;
+      joint->dq = NULL;
       joint->directionCosine = NULL;
 
       joint->generalDisplacement = s2_displacement();
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = NULL;
       break;
     }
     case S2_JOINT_SPHERICAL: {
       joint->dof = 3;
-      joint->initialPrimitiveDisplacement = calloc(4, sizeof(double));
-      joint->initialPrimitiveVelocity = calloc(3, sizeof(double));
+      joint->q_0 = calloc(4, sizeof(double));
+      joint->dq_0 = calloc(3, sizeof(double));
 
-      joint->primitiveDisplacement = calloc(4, sizeof(double));
-      joint->primitiveVelocity = calloc(3, sizeof(double));
+      joint->q = calloc(4, sizeof(double));
+      joint->dq = calloc(3, sizeof(double));
 
       joint->generalDisplacement = s2_displacement();
       joint->directionCosine = NULL;
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = calloc(3, sizeof(s2_screw_t));
       break;
     }
     case S2_JOINT_FLOAT: {
       joint->dof = 6;
-      joint->initialPrimitiveDisplacement = calloc(7, sizeof(double));
-      joint->initialPrimitiveVelocity = calloc(6, sizeof(double));
+      joint->q_0 = calloc(7, sizeof(double));
+      joint->dq_0 = calloc(6, sizeof(double));
 
       /* a float joint has primitive displacement specified as
       translation in the first 3 terms, followed by orientation specified
       as quaternions in the last four terms */
-      joint->primitiveDisplacement = calloc(7, sizeof(double));
+      joint->q = calloc(7, sizeof(double));
 
       /* velocity is specified as translational velocity in the first three
       terms and angular velocity in the last three terms */
-      joint->primitiveVelocity = calloc(6, sizeof(double));
+      joint->dq = calloc(6, sizeof(double));
 
       joint->generalDisplacement = s2_displacement();
       joint->directionCosine = NULL;
-
-      joint->velocityRelative = s2_screw();
-      joint->accelerationQuadraticRelative = s2_screw();
 
       joint->h = calloc(6, sizeof(s2_screw_t));
       break;
@@ -211,11 +196,13 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tx(void** dhva) {
-  s2_displacement_t* dParent = dhva[0];
-  double* dPrimitive = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+void s2_joint_tx(const s2_context_t* restrict context,
+                 s2_dhva_t* restrict dhvaPointers,
+                 const int* restrict dhvaOffsets, const double* restrict q) {
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  const double* dPrimitive = q + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_dtx(dParent, dPrimitive, dChild);
   s2_htx(dChild, h);
@@ -227,41 +214,30 @@ void s2_joint_tx(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-The dhva array contains pointers to the following quantities:
-
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tx_dhva(void** dhva) {
-  s2_joint_tx(dhva);
+void s2_joint_tx_dhva(const s2_context_t* restrict context,
+                      s2_dhva_t* restrict dhvaPointers,
+                      const int* restrict dhvaOffsets, const double* restrict q,
+                      const double* restrict dq) {
+  s2_joint_tx(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_sst(vParent, vRelative, vChild);
-  s2_screwcross_sst(vParent, vRelative, aqRelative);
-  s2_add_sst(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_sst(vParent, &vRelative, vChild);
+  s2_screwcross_sst(vParent, &vRelative, &aqRelative);
+  s2_add_sst(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -269,21 +245,19 @@ void s2_joint_tx_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dPrimitive = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_txinverse(void** dhva) {
+void s2_joint_txinverse(const s2_context_t* restrict context,
+                        s2_dhva_t* restrict dhvaPointers,
+                        const int* restrict dhvaOffsets,
+                        const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dPrimitive = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  const double* dPrimitive = q + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_dtxinverse(dParent, dPrimitive, dChild);
   s2_htxinverse(dChild, h);
@@ -295,40 +269,32 @@ void s2_joint_txinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_txinverse_dhva(void** dhva) {
+void s2_joint_txinverse_dhva(const s2_context_t* restrict context,
+                             s2_dhva_t* restrict dhvaPointers,
+                             const int* restrict dhvaOffsets,
+                             const double* restrict q,
+                             const double* restrict dq) {
 
-  s2_joint_txinverse(dhva);
+  s2_joint_txinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_sst(vParent, vRelative, vChild);
-  s2_screwcross_sst(vParent, vRelative, aqRelative);
-  s2_add_sst(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_sst(vParent, &vRelative, vChild);
+  s2_screwcross_sst(vParent, &vRelative, &aqRelative);
+  s2_add_sst(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -336,21 +302,18 @@ void s2_joint_txinverse_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dPrimitive = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ty(void** dhva) {
+void s2_joint_ty(const s2_context_t* restrict context,
+                 s2_dhva_t* restrict dhvaPointers,
+                 const int* restrict dhvaOffsets, const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dPrimitive = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  const double* dPrimitive = q + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_dty(dParent, dPrimitive, dChild);
   s2_hty(dChild, h);
@@ -362,40 +325,31 @@ void s2_joint_ty(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ty_dhva(void** dhva) {
+void s2_joint_ty_dhva(const s2_context_t* restrict context,
+                      s2_dhva_t* restrict dhvaPointers,
+                      const int* restrict dhvaOffsets, const double* restrict q,
+                      const double* restrict dq) {
 
-  s2_joint_ty(dhva);
+  s2_joint_ty(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_sst(vParent, vRelative, vChild);
-  s2_screwcross_sst(vParent, vRelative, aqRelative);
-  s2_add_sst(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_sst(vParent, &vRelative, vChild);
+  s2_screwcross_sst(vParent, &vRelative, &aqRelative);
+  s2_add_sst(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -403,21 +357,19 @@ void s2_joint_ty_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dPrimitive = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tyinverse(void** dhva) {
+void s2_joint_tyinverse(const s2_context_t* restrict context,
+                        s2_dhva_t* restrict dhvaPointers,
+                        const int* restrict dhvaOffsets,
+                        const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dPrimitive = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  const double* dPrimitive = q + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_dtyinverse(dParent, dPrimitive, dChild);
   s2_htyinverse(dChild, h);
@@ -429,40 +381,32 @@ void s2_joint_tyinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tyinverse_dhva(void** dhva) {
+void s2_joint_tyinverse_dhva(const s2_context_t* restrict context,
+                             s2_dhva_t* restrict dhvaPointers,
+                             const int* restrict dhvaOffsets,
+                             const double* restrict q,
+                             const double* restrict dq) {
 
-  s2_joint_tyinverse(dhva);
+  s2_joint_tyinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_sst(vParent, vRelative, vChild);
-  s2_screwcross_sst(vParent, vRelative, aqRelative);
-  s2_add_sst(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_sst(vParent, &vRelative, vChild);
+  s2_screwcross_sst(vParent, &vRelative, &aqRelative);
+  s2_add_sst(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -470,21 +414,18 @@ void s2_joint_tyinverse_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dPrimitive = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tz(void** dhva) {
+void s2_joint_tz(const s2_context_t* restrict context,
+                 s2_dhva_t* restrict dhvaPointers,
+                 const int* restrict dhvaOffsets, const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dPrimitive = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  const double* dPrimitive = q + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_dtz(dParent, dPrimitive, dChild);
   s2_htz(dChild, h);
@@ -496,40 +437,31 @@ void s2_joint_tz(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tz_dhva(void** dhva) {
+void s2_joint_tz_dhva(const s2_context_t* restrict context,
+                      s2_dhva_t* restrict dhvaPointers,
+                      const int* restrict dhvaOffsets, const double* restrict q,
+                      const double* restrict dq) {
 
-  s2_joint_tz(dhva);
+  s2_joint_tz(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_sst(vParent, vRelative, vChild);
-  s2_screwcross_sst(vParent, vRelative, aqRelative);
-  s2_add_sst(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_sst(vParent, &vRelative, vChild);
+  s2_screwcross_sst(vParent, &vRelative, &aqRelative);
+  s2_add_sst(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -537,21 +469,19 @@ void s2_joint_tz_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dPrimitive = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tzinverse(void** dhva) {
+void s2_joint_tzinverse(const s2_context_t* restrict context,
+                        s2_dhva_t* restrict dhvaPointers,
+                        const int* restrict dhvaOffsets,
+                        const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dPrimitive = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  const double* dPrimitive = q + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_dtzinverse(dParent, dPrimitive, dChild);
   s2_htzinverse(dChild, h);
@@ -563,40 +493,32 @@ void s2_joint_tzinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_tzinverse_dhva(void** dhva) {
+void s2_joint_tzinverse_dhva(const s2_context_t* restrict context,
+                             s2_dhva_t* restrict dhvaPointers,
+                             const int* restrict dhvaOffsets,
+                             const double* restrict q,
+                             const double* restrict dq) {
 
-  s2_joint_tzinverse(dhva);
+  s2_joint_tzinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_sst(vParent, vRelative, vChild);
-  s2_screwcross_sst(vParent, vRelative, aqRelative);
-  s2_add_sst(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_sst(vParent, &vRelative, vChild);
+  s2_screwcross_sst(vParent, &vRelative, &aqRelative);
+  s2_add_sst(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -604,21 +526,19 @@ void s2_joint_tzinverse_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dc = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rx(void** dhva) {
+void s2_joint_rx(const s2_context_t* restrict context,
+                 s2_dhva_t* restrict dhvaPointers,
+                 const int* restrict dhvaOffsets, const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dc = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  (void)q;
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  double* dc = dhvaPointers->dc + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_drx(dParent, dc, dChild);
   s2_hrx(dChild, h);
@@ -630,40 +550,31 @@ void s2_joint_rx(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rx_dhva(void** dhva) {
+void s2_joint_rx_dhva(const s2_context_t* restrict context,
+                      s2_dhva_t* restrict dhvaPointers,
+                      const int* restrict dhvaOffsets, const double* restrict q,
+                      const double* restrict dq) {
 
-  s2_joint_rx(dhva);
+  s2_joint_rx(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -671,21 +582,19 @@ void s2_joint_rx_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dc = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rxinverse(void** dhva) {
+void s2_joint_rxinverse(const s2_context_t* restrict context,
+                        s2_dhva_t* restrict dhvaPointers,
+                        const int* restrict dhvaOffsets,
+                        const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dc = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  double* dc = dhvaPointers->dc + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_drxinverse(dParent, dc, dChild);
   s2_hrxinverse(dChild, h);
@@ -697,40 +606,32 @@ void s2_joint_rxinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rxinverse_dhva(void** dhva) {
+void s2_joint_rxinverse_dhva(const s2_context_t* restrict context,
+                             s2_dhva_t* restrict dhvaPointers,
+                             const int* restrict dhvaOffsets,
+                             const double* restrict q,
+                             const double* restrict dq) {
 
-  s2_joint_rxinverse(dhva);
+  s2_joint_rxinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -738,21 +639,18 @@ void s2_joint_rxinverse_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dc = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ry(void** dhva) {
+void s2_joint_ry(const s2_context_t* restrict context,
+                 s2_dhva_t* restrict dhvaPointers,
+                 const int* restrict dhvaOffsets, const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dc = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  double* dc = dhvaPointers->dc + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_dry(dParent, dc, dChild);
   s2_hry(dChild, h);
@@ -764,40 +662,31 @@ void s2_joint_ry(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ry_dhva(void** dhva) {
+void s2_joint_ry_dhva(const s2_context_t* restrict context,
+                      s2_dhva_t* restrict dhvaPointers,
+                      const int* restrict dhvaOffsets, const double* restrict q,
+                      const double* restrict dq) {
 
-  s2_joint_ry(dhva);
+  s2_joint_ry(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -805,22 +694,20 @@ void s2_joint_ry_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dc = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ryinverse(void** dhva) {
+void s2_joint_ryinverse(const s2_context_t* restrict context,
+                        s2_dhva_t* restrict dhvaPointers,
+                        const int* restrict dhvaOffsets,
+                        const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dc = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-
-  s2_screw_t* h = dhva[3];
+  (void)q;
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  double* dc = dhvaPointers->dc + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_dryinverse(dParent, dc, dChild);
   s2_hryinverse(dChild, h);
@@ -832,40 +719,32 @@ void s2_joint_ryinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_ryinverse_dhva(void** dhva) {
+void s2_joint_ryinverse_dhva(const s2_context_t* restrict context,
+                             s2_dhva_t* restrict dhvaPointers,
+                             const int* restrict dhvaOffsets,
+                             const double* restrict q,
+                             const double* restrict dq) {
 
-  s2_joint_ryinverse(dhva);
+  s2_joint_ryinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -873,21 +752,18 @@ void s2_joint_ryinverse_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dc = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rz(void** dhva) {
+void s2_joint_rz(const s2_context_t* restrict context,
+                 s2_dhva_t* restrict dhvaPointers,
+                 const int* restrict dhvaOffsets, const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  double* dc = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  double* dc = dhvaPointers->dc + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_drz(dParent, dc, dChild);
   s2_hrz(dChild, h);
@@ -899,37 +775,30 @@ void s2_joint_rz(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rz_dhva(void** dhva) {
-  s2_joint_rz(dhva);
+void s2_joint_rz_dhva(const s2_context_t* restrict context,
+                      s2_dhva_t* restrict dhvaPointers,
+                      const int* restrict dhvaOffsets, const double* restrict q,
+                      const double* restrict dq) {
+  s2_joint_rz(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
+
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -937,20 +806,19 @@ void s2_joint_rz_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    double* dc = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-    s2_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rzinverse(void** dhva) {
-  s2_displacement_t* dParent = dhva[0];
-  double* dc = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
-  s2_screw_t* h = dhva[3];
+void s2_joint_rzinverse(const s2_context_t* restrict context,
+                        s2_dhva_t* restrict dhvaPointers,
+                        const int* restrict dhvaOffsets,
+                        const double* restrict q) {
+
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  double* dc = dhvaPointers->dc + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
 
   s2_product_drzinverse(dParent, dc, dChild);
   s2_hrzinverse(dChild, h);
@@ -962,40 +830,32 @@ void s2_joint_rzinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* h = dhva[3];
-
-    s2_screw_t* vParent = dhva[4];
-    double* vPrimitive = dhva[5];
-    s2_screw_t* vRelative = dhva[6];
-    s2_screw_t* vChild = dhva[7];
-
-    s2_screw_t* aqParent = dhva[8];
-    s2_screw_t* aqRelative = dhva[9];
-    s2_screw_t* aqChild = dhva[10];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rzinverse_dhva(void** dhva) {
+void s2_joint_rzinverse_dhva(const s2_context_t* restrict context,
+                             s2_dhva_t* restrict dhvaPointers,
+                             const int* restrict dhvaOffsets,
+                             const double* restrict q,
+                             const double* restrict dq) {
 
-  s2_joint_rzinverse(dhva);
+  s2_joint_rzinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* h = dhva[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[3];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  const double* vPrimitive = dq + dhvaOffsets[5];
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screw_t* vParent = dhva[4];
-  double* vPrimitive = dhva[5];
-  s2_screw_t* vRelative = dhva[6];
-  s2_screw_t* vChild = dhva[7];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
-  s2_screw_t* aqParent = dhva[8];
-  s2_screw_t* aqRelative = dhva[9];
-  s2_screw_t* aqChild = dhva[10];
-
-  s2_product_sk(h, vPrimitive, vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+  s2_product_sk(h, vPrimitive, &vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -1003,39 +863,18 @@ void s2_joint_rzinverse_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    Displacement dChild = dhva[0];
-
-    Displacement dParent = dhva[1];
-
-    Displacement dPrimitive = dhva[2];
-
-    double* dc = dhva[3];
-
-    s2_screw_t* h = dhva[4];
-
-    s2_screw_t* vParent = dhva[5];
-
-    s2_screw_t* vChild = dhva[6];
-
-    double* vPrimitive = dhva[7];
-
-    s2_screw_t* vRelative = dhva[8];
-
-    s2_screw_t* aqChild = dhva[9];
-
-    s2_screw_t* aqParent = dhva[10];
-
-    s2_screw_t* aqRelative = dhva[11];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rigid(void** dhva) {
+void s2_joint_rigid(const s2_context_t* restrict context,
+                    s2_dhva_t* restrict dhvaPointers,
+                    const int* restrict dhvaOffsets, const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  s2_displacement_t* dPrimitive = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
+  (void)q;
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  s2_displacement_t* dPrimitive = context->dWRTReference + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[1];
 
   s2_product_dd(dParent, dPrimitive, dChild);
 }
@@ -1046,23 +885,21 @@ void s2_joint_rigid(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* vParent = dhva[3];
-    s2_screw_t* vChild = dhva[4];
-    s2_screw_t* aqChild = dhva[5];
-    s2_screw_t* aqParent = dhva[6];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rigid_dhva(void** dhva) {
+void s2_joint_rigid_dhva(const s2_context_t* restrict context,
+                         s2_dhva_t* restrict dhvaPointers,
+                         const int* restrict dhvaOffsets,
+                         const double* restrict q, const double* restrict dq) {
 
-  s2_joint_rigid(dhva);
+  s2_joint_rigid(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* vParent = dhva[3];
-  s2_screw_t* vChild = dhva[4];
-  s2_screw_t* aqChild = dhva[5];
-  s2_screw_t* aqParent = dhva[6];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[2];
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[3];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[2];
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[3];
 
   s2_screw_copy(vParent, vChild);
   s2_screw_copy(aqParent, aqChild);
@@ -1073,19 +910,19 @@ void s2_joint_rigid_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-    s2_displacement_t* dPrimitive = dhva[1];
-    s2_displacement_t* dChild = dhva[2];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rigidinverse(void** dhva) {
+void s2_joint_rigidinverse(const s2_context_t* restrict context,
+                           s2_dhva_t* restrict dhvaPointers,
+                           const int* restrict dhvaOffsets,
+                           const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  s2_displacement_t* dPrimitive = dhva[1];
-  s2_displacement_t* dChild = dhva[2];
+  (void)q;
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  s2_displacement_t* dPrimitive = context->dWRTReference + dhvaOffsets[1];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
 
   s2_product_ddinverse(dParent, dPrimitive, dChild);
 }
@@ -1096,73 +933,51 @@ void s2_joint_rigidinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_screw_t* vParent = dhva[3];
-    s2_screw_t* vChild = dhva[4];
-    s2_screw_t* aqChild = dhva[5];
-    s2_screw_t* aqParent = dhva[6];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_rigidinverse_dhva(void** dhva) {
+void s2_joint_rigidinverse_dhva(const s2_context_t* restrict context,
+                                s2_dhva_t* restrict dhvaPointers,
+                                const int* restrict dhvaOffsets,
+                                const double* restrict q,
+                                const double* restrict dq) {
 
-  s2_joint_rigidinverse(dhva);
+  (void)dq;
+  s2_joint_rigidinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screw_t* vParent = dhva[3];
-  s2_screw_t* vChild = dhva[4];
-  s2_screw_t* aqChild = dhva[5];
-  s2_screw_t* aqParent = dhva[6];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[3];
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[4];
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[5];
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[6];
   s2_screw_copy(vParent, vChild);
   s2_screw_copy(aqParent, aqChild);
 }
 
 /*!
-@brief Rigid Joint (dh)
+@brief Float Joint (dh)
 
 Updates displacement and influence coefficient matrices
-
-s2_displacement_t* dParent = dhva[0];
-
-s2_displacement_t* dPrimitive = dhva[1];
-
-s2_displacement_t* dWRTReference = dhva[2];
-
-s2_displacement_t* dChild = dhva[3];
-
-s2_screw_t* h = dhva[4];
-
-s2_screw_t* vParent = dhva[5];
-
-s2_screw_t* vPrimitive = dhva[6];
-
-s2_screw_t* vRelative = dhva[7];
-
-s2_screw_t* vChild = dhva[8];
-
-s2_screw_t* aqParent = dhva[9];
-
-s2_screw_t* aqRelative = dhva[10];
-
-s2_screw_t* aqChild = dhva[11];
 
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_float(void** dhva) {
+void s2_joint_float(const s2_context_t* restrict context,
+                    s2_dhva_t* restrict dhvaPointers,
+                    const int* restrict dhvaOffsets, const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  s2_vector_t* t = dhva[1];
-  s2_quaternion_t* q = (s2_quaternion_t*)(((double*)dhva[1]) + 3);
-  s2_displacement_t* dWRTReference = dhva[2];
-  s2_displacement_t* dChild = dhva[3];
-  s2_screw_t* h = dhva[4];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  s2_vector_t* t = (s2_vector_t*)(q + dhvaOffsets[1]);
+  s2_quaternion_t* quat = (s2_quaternion_t*)(q + dhvaOffsets[1] + 3);
+  s2_displacement_t dWRTReference;
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[4];
 
-  s2_quaternion_toMat3x3(q, &(dWRTReference->R));
-  s2_product_rr(&(dParent->R), &(dWRTReference->R), &(dChild->R));
-  s2_product_rv(&(dParent->R), t, &(dChild->T));
-  cblas_daxpy(3, 1.0, ((double*)dParent) + 9, 1, ((double*)dChild) + 9, 1);
+  s2_quaternion_toMat3x3(quat, &dWRTReference.R);
+  s2_product_rr(&dParent->R, &dWRTReference.R, &dChild->R);
+  s2_product_rv(&dParent->R, t, &dChild->T);
+  s2_addequal_vv(&dParent->T, &dChild->T);
   s2_htx(dChild, h);
   s2_hty(dChild, h + 1);
   s2_htz(dChild, h + 2);
@@ -1177,50 +992,31 @@ void s2_joint_float(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_displacement_t* dParent = dhva[0];
-
-    s2_displacement_t* dPrimitive = dhva[1];
-
-    s2_displacement_t* dWRTReference = dhva[2];
-
-    s2_displacement_t* dChild = dhva[3];
-
-    s2_screw_t* h = dhva[4];
-
-    s2_screw_t* vParent = dhva[5];
-
-    s2_screw_t* vPrimitive = dhva[6];
-
-    s2_screw_t* vRelative = dhva[7];
-
-    s2_screw_t* vChild = dhva[8];
-
-    s2_screw_t* aqParent = dhva[9];
-
-    s2_screw_t* aqRelative = dhva[10];
-
-    s2_screw_t* aqChild = dhva[11];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_float_dhva(void** dhva) {
-  s2_joint_float(dhva);
+void s2_joint_float_dhva(const s2_context_t* restrict context,
+                         s2_dhva_t* restrict dhvaPointers,
+                         const int* restrict dhvaOffsets,
+                         const double* restrict q, const double* restrict dq) {
 
-  s2_displacement_t* dChild = dhva[3];
-  s2_screw_t* vParent = dhva[5];
-  s2_screw_t* vPrimitive = dhva[6];
-  s2_screw_t* vRelative = dhva[7];
-  s2_screw_t* vChild = dhva[8];
-  s2_screw_t* aqParent = dhva[9];
-  s2_screw_t* aqRelative = dhva[10];
-  s2_screw_t* aqChild = dhva[11];
+  s2_joint_float(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_screwproduct_ds(dChild, vPrimitive, vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  s2_screw_t* vPrimitive = (s2_screw_t*)(dq + dhvaOffsets[5]);
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
+
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
+
+  s2_screwproduct_ds(dChild, vPrimitive, &vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -1228,47 +1024,26 @@ void s2_joint_float_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-
-    s2_displacement_t* dPrimitive = dhva[1];
-
-    s2_displacement_t* dWRTReference = dhva[2];
-
-    s2_displacement_t* dChild = dhva[3];
-
-    s2_screw_t* h = dhva[4];
-
-    s2_screw_t* vParent = dhva[5];
-
-    s2_screw_t* vPrimitive = dhva[6];
-
-    s2_screw_t* vRelative = dhva[7];
-
-    s2_screw_t* vChild = dhva[8];
-
-    s2_screw_t* aqParent = dhva[9];
-
-    s2_screw_t* aqRelative = dhva[10];
-
-    s2_screw_t* aqChild = dhva[11];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_floatinverse(void** dhva) {
+void s2_joint_floatinverse(const s2_context_t* restrict context,
+                           s2_dhva_t* restrict dhvaPointers,
+                           const int* restrict dhvaOffsets,
+                           const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  s2_vector_t* t = dhva[1];
-  s2_quaternion_t* q = (s2_quaternion_t*)(((double*)dhva[1]) + 3);
-  s2_displacement_t* dWRTReference = dhva[2];
-  s2_displacement_t* dChild = dhva[3];
-  s2_screw_t* h = dhva[4];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  s2_vector_t* t = (s2_vector_t*)(q + dhvaOffsets[1]);
+  s2_quaternion_t* quat = (s2_quaternion_t*)(q + dhvaOffsets[1] + 3);
+  s2_displacement_t dWRTReference;
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[4];
 
-  s2_quaternion_toMat3x3(q, &(dWRTReference->R));
-  s2_product_rrinverse(&(dParent->R), &(dWRTReference->R), &(dChild->R));
-  s2_product_rvinverse(&(dParent->R), t, &(dChild->T));
-  cblas_daxpy(3, 1.0, ((double*)dParent) + 9, 1, ((double*)dChild) + 9, 1);
+  s2_quaternion_toMat3x3(quat, &dWRTReference.R);
+  s2_product_rrinverse(&dParent->R, &dWRTReference.R, &dChild->R);
+  s2_product_rvinverse(&dParent->R, t, &dChild->T);
+  s2_addequal_vv(&dParent->T, &dChild->T);
   s2_htxinverse(dChild, h);
   s2_htyinverse(dChild, h + 1);
   s2_htzinverse(dChild, h + 2);
@@ -1283,50 +1058,31 @@ void s2_joint_floatinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_displacement_t* dParent = dhva[0];
-
-    s2_displacement_t* dPrimitive = dhva[1];
-
-    s2_displacement_t* dWRTReference = dhva[2];
-
-    s2_displacement_t* dChild = dhva[3];
-
-    s2_screw_t* h = dhva[4];
-
-    s2_screw_t* vParent = dhva[5];
-
-    s2_screw_t* vPrimitive = dhva[6];
-
-    s2_screw_t* vRelative = dhva[7];
-
-    s2_screw_t* vChild = dhva[8];
-
-    s2_screw_t* aqParent = dhva[9];
-
-    s2_screw_t* aqRelative = dhva[10];
-
-    s2_screw_t* aqChild = dhva[11];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_floatinverse_dhva(void** dhva) {
-  s2_joint_floatinverse(dhva);
+void s2_joint_floatinverse_dhva(const s2_context_t* restrict context,
+                                s2_dhva_t* restrict dhvaPointers,
+                                const int* restrict dhvaOffsets,
+                                const double* restrict q,
+                                const double* restrict dq) {
+  s2_joint_floatinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_displacement_t* dChild = dhva[3];
-  s2_screw_t* vParent = dhva[5];
-  s2_screw_t* vPrimitive = dhva[6];
-  s2_screw_t* vRelative = dhva[7];
-  s2_screw_t* vChild = dhva[8];
-  s2_screw_t* aqParent = dhva[9];
-  s2_screw_t* aqRelative = dhva[10];
-  s2_screw_t* aqChild = dhva[11];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  s2_screw_t* vPrimitive = (s2_screw_t*)(dq + dhvaOffsets[5]);
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
 
-  s2_screwproduct_dsinverse(dChild, vPrimitive, vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
+
+  s2_screwproduct_dsinverse(dChild, vPrimitive, &vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -1334,44 +1090,23 @@ void s2_joint_floatinverse_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-
-    s2_displacement_t* dPrimitive = dhva[1];
-
-    s2_displacement_t* dWRTReference = dhva[2];
-
-    s2_displacement_t* dChild = dhva[3];
-
-    s2_screw_t* h = dhva[4];
-
-    s2_screw_t* vParent = dhva[5];
-
-    s2_screw_t* vPrimitive = dhva[6];
-
-    s2_screw_t* vRelative = dhva[7];
-
-    s2_screw_t* vChild = dhva[8];
-
-    s2_screw_t* aqParent = dhva[9];
-
-    s2_screw_t* aqRelative = dhva[10];
-
-    s2_screw_t* aqChild = dhva[11];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_spherical(void** dhva) {
+void s2_joint_spherical(const s2_context_t* restrict context,
+                        s2_dhva_t* restrict dhvaPointers,
+                        const int* restrict dhvaOffsets,
+                        const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  s2_quaternion_t* q = dhva[1];
-  s2_displacement_t* dWRTReference = dhva[2];
-  s2_displacement_t* dChild = dhva[3];
-  s2_screw_t* h = dhva[4];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  s2_quaternion_t* quat = (s2_quaternion_t*)(q + dhvaOffsets[1]);
+  s2_mat3x3_t dWRTReference;
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[4];
 
-  s2_quaternion_toMat3x3(q, &(dWRTReference->R));
-  s2_product_dr(dParent, &(dWRTReference->R), dChild);
+  s2_quaternion_toMat3x3(quat, &dWRTReference);
+  s2_product_dr(dParent, &dWRTReference, dChild);
   s2_vector_copy(&dParent->T, &dChild->T);
 
   s2_hrx(dChild, h);
@@ -1385,55 +1120,36 @@ void s2_joint_spherical(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_displacement_t* dParent = dhva[0];
-
-    s2_displacement_t* dPrimitive = dhva[1];
-
-    s2_displacement_t* dWRTReference = dhva[2];
-
-    s2_displacement_t* dChild = dhva[3];
-
-    s2_screw_t* h = dhva[4];
-
-    s2_screw_t* vParent = dhva[5];
-
-    s2_screw_t* vPrimitive = dhva[6];
-
-    s2_screw_t* vRelative = dhva[7];
-
-    s2_screw_t* vChild = dhva[8];
-
-    s2_screw_t* aqParent = dhva[9];
-
-    s2_screw_t* aqRelative = dhva[10];
-
-    s2_screw_t* aqChild = dhva[11];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 @todo add spherical joint
 */
-void s2_joint_spherical_dhva(void** dhva) {
+void s2_joint_spherical_dhva(const s2_context_t* restrict context,
+                             s2_dhva_t* restrict dhvaPointers,
+                             const int* restrict dhvaOffsets,
+                             const double* restrict q,
+                             const double* restrict dq) {
 
-  s2_joint_spherical(dhva);
+  s2_joint_spherical(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_displacement_t* dChild = dhva[3];
-  s2_screw_t* vParent = dhva[5];
-  s2_vector_t* vPrimitive = dhva[6];
-  s2_screw_t* vRelative = dhva[7];
-  s2_screw_t* vChild = dhva[8];
-  s2_screw_t* aqParent = dhva[9];
-  s2_screw_t* aqRelative = dhva[10];
-  s2_screw_t* aqChild = dhva[11];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  s2_vector_t* vPrimitive = (s2_vector_t*)(dq + dhvaOffsets[5]);
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
+
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
   s2_product_rv(&(dChild->R), vPrimitive,
-                (s2_vector_t*)(((double*)vRelative) + 3));
-  s2_cross_vv(&(dChild->T), (s2_vector_t*)(((double*)vRelative) + 3),
-              (s2_vector_t*)vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+                (s2_vector_t*)(((double*)&vRelative) + 3));
+  s2_cross_vv(&(dChild->T), (s2_vector_t*)(((double*)&vRelative) + 3),
+              (s2_vector_t*)&vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -1441,44 +1157,23 @@ void s2_joint_spherical_dhva(void** dhva) {
 
 Updates displacement and influence coefficient matrices
 
-    s2_displacement_t* dParent = dhva[0];
-
-    s2_displacement_t* dPrimitive = dhva[1];
-
-    s2_displacement_t* dWRTReference = dhva[2];
-
-    s2_displacement_t* dChild = dhva[3];
-
-    s2_screw_t* h = dhva[4];
-
-    s2_screw_t* vParent = dhva[5];
-
-    s2_screw_t* vPrimitive = dhva[6];
-
-    s2_screw_t* vRelative = dhva[7];
-
-    s2_screw_t* vChild = dhva[8];
-
-    s2_screw_t* aqParent = dhva[9];
-
-    s2_screw_t* aqRelative = dhva[10];
-
-    s2_screw_t* aqChild = dhva[11];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_sphericalinverse(void** dhva) {
+void s2_joint_sphericalinverse(const s2_context_t* restrict context,
+                               s2_dhva_t* restrict dhvaPointers,
+                               const int* restrict dhvaOffsets,
+                               const double* restrict q) {
 
-  s2_displacement_t* dParent = dhva[0];
-  s2_quaternion_t* q = dhva[1];
-  s2_displacement_t* dWRTReference = dhva[2];
-  s2_displacement_t* dChild = dhva[3];
-  s2_screw_t* h = dhva[4];
+  s2_displacement_t* dParent = dhvaPointers->d + dhvaOffsets[0];
+  s2_quaternion_t* quat = (s2_quaternion_t*)(q + dhvaOffsets[1]);
+  s2_mat3x3_t dWRTReference;
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[3];
+  s2_screw_t* h = dhvaPointers->h + dhvaOffsets[4];
 
-  s2_quaternion_toMat3x3(q, &(dWRTReference->R));
-  s2_product_drinverse(dParent, &(dWRTReference->R), dChild);
+  s2_quaternion_toMat3x3(quat, &dWRTReference);
+  s2_product_drinverse(dParent, &dWRTReference, dChild);
   s2_vector_copy(&dParent->T, &dChild->T);
 
   s2_hrxinverse(dChild, h);
@@ -1492,54 +1187,35 @@ void s2_joint_sphericalinverse(void** dhva) {
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-    s2_displacement_t* dParent = dhva[0];
-
-    s2_displacement_t* dPrimitive = dhva[1];
-
-    s2_displacement_t* dWRTReference = dhva[2];
-
-    s2_displacement_t* dChild = dhva[3];
-
-    s2_screw_t* h = dhva[4];
-
-    s2_screw_t* vParent = dhva[5];
-
-    s2_screw_t* vPrimitive = dhva[6];
-
-    s2_screw_t* vRelative = dhva[7];
-
-    s2_screw_t* vChild = dhva[8];
-
-    s2_screw_t* aqParent = dhva[9];
-
-    s2_screw_t* aqRelative = dhva[10];
-
-    s2_screw_t* aqChild = dhva[11];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void s2_joint_sphericalinverse_dhva(void** dhva) {
+void s2_joint_sphericalinverse_dhva(const s2_context_t* restrict context,
+                                    s2_dhva_t* restrict dhvaPointers,
+                                    const int* restrict dhvaOffsets,
+                                    const double* restrict q,
+                                    const double* restrict dq) {
 
-  s2_joint_sphericalinverse(dhva);
+  s2_joint_sphericalinverse(context, dhvaPointers, dhvaOffsets, q);
 
-  s2_displacement_t* dChild = dhva[3];
-  s2_screw_t* vParent = dhva[5];
-  s2_vector_t* vPrimitive = dhva[6];
-  s2_screw_t* vRelative = dhva[7];
-  s2_screw_t* vChild = dhva[8];
-  s2_screw_t* aqParent = dhva[9];
-  s2_screw_t* aqRelative = dhva[10];
-  s2_screw_t* aqChild = dhva[11];
+  s2_displacement_t* dChild = dhvaPointers->d + dhvaOffsets[2];
+  s2_screw_t* vParent = dhvaPointers->v + dhvaOffsets[4];
+  s2_vector_t* vPrimitive = (s2_vector_t*)(dq + dhvaOffsets[5]);
+  s2_screw_t vRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* vChild = dhvaPointers->v + dhvaOffsets[6];
+
+  s2_screw_t* aqParent = dhvaPointers->aq + dhvaOffsets[7];
+  s2_screw_t aqRelative = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  s2_screw_t* aqChild = dhvaPointers->aq + dhvaOffsets[8];
 
   s2_product_rvinverse(&(dChild->R), vPrimitive,
-                       (s2_vector_t*)(((double*)vRelative) + 3));
-  s2_cross_vv(&(dChild->T), (s2_vector_t*)(((double*)vRelative) + 3),
-              (s2_vector_t*)vRelative);
-  s2_add_ss(vParent, vRelative, vChild);
-  s2_screwcross_ss(vChild, vRelative, aqRelative);
-  s2_add_ss(aqParent, aqRelative, aqChild);
+                       (s2_vector_t*)(((double*)&vRelative) + 3));
+  s2_cross_vv(&(dChild->T), (s2_vector_t*)(((double*)&vRelative) + 3),
+              (s2_vector_t*)&vRelative);
+  s2_add_ss(vParent, &vRelative, vChild);
+  s2_screwcross_ss(vChild, &vRelative, &aqRelative);
+  s2_add_ss(aqParent, &aqRelative, aqChild);
 }
 
 /*!
@@ -1575,35 +1251,27 @@ void s2_joint_free(s2_joint_t* joint) {
       free(joint->directionCosine);
       joint->directionCosine = NULL;
     }
-    if(joint->velocityRelative) {
-      free(joint->velocityRelative);
-      joint->velocityRelative = NULL;
-    }
-    if(joint->accelerationQuadraticRelative) {
-      free(joint->accelerationQuadraticRelative);
-      joint->accelerationQuadraticRelative = NULL;
-    }
     if(joint->h) {
       free(joint->h);
       joint->h = NULL;
     }
-    if(joint->primitiveVelocity) {
-      free(joint->primitiveVelocity);
-      joint->primitiveVelocity = NULL;
+    if(joint->dq) {
+      free(joint->dq);
+      joint->dq = NULL;
     }
-    if(joint->primitiveDisplacement) {
-      free(joint->primitiveDisplacement);
-      joint->primitiveDisplacement = NULL;
-    }
-
-    if(joint->initialPrimitiveVelocity) {
-      free(joint->initialPrimitiveVelocity);
-      joint->initialPrimitiveVelocity = NULL;
+    if(joint->q) {
+      free(joint->q);
+      joint->q = NULL;
     }
 
-    if(joint->initialPrimitiveDisplacement) {
-      free(joint->initialPrimitiveDisplacement);
-      joint->initialPrimitiveDisplacement = NULL;
+    if(joint->dq_0) {
+      free(joint->dq_0);
+      joint->dq_0 = NULL;
+    }
+
+    if(joint->q_0) {
+      free(joint->q_0);
+      joint->q_0 = NULL;
     }
     if(joint->jointTypeStr) {
       free(joint->jointTypeStr);
@@ -2118,15 +1786,14 @@ int s2_joint_load(s2_context_t* context, s2_assembly_t* assembly,
     case S2_JOINT_RY:
     case S2_JOINT_RZ: {
       // printf("loading primitive\n");
-      joint->initialPrimitiveDisplacement[0] =
+      joint->q_0[0] =
         json_number_value(json_object_get(jointObject, "initial_displacement"));
-      joint->primitiveDisplacement[0] = joint->initialPrimitiveDisplacement[0];
+      joint->q[0] = joint->q_0[0];
       json_t* initialValueVelocity =
         json_object_get(jointObject, "initial_velocity");
       if(!json_is_null(initialValueVelocity))
-        joint->initialPrimitiveVelocity[0] =
-          json_number_value(initialValueVelocity);
-      joint->primitiveVelocity[0] = joint->initialPrimitiveVelocity[0];
+        joint->dq_0[0] = json_number_value(initialValueVelocity);
+      joint->dq[0] = joint->dq_0[0];
       break;
     }
     case S2_JOINT_RIGID: {
@@ -2144,14 +1811,21 @@ int s2_joint_load(s2_context_t* context, s2_assembly_t* assembly,
       s2_joint_setInitialDisplacementFloatAndRigid(joint->generalDisplacement,
                                                    initialDisplacementObject);
       for(int i = 0; i < 3; i++) {
-        joint->initialPrimitiveDisplacement[i] =
-          s2_vector_get(&joint->generalDisplacement->T, i);
+        joint->q_0[i] = s2_vector_get(&joint->generalDisplacement->T, i);
       }
-      s2_mat3x3_toQuaternion(
-        &joint->generalDisplacement->R,
-        (s2_quaternion_t*)(joint->initialPrimitiveDisplacement + 3));
-      memcpy(joint->primitiveDisplacement, joint->initialPrimitiveDisplacement,
-             7 * sizeof(double));
+      s2_mat3x3_toQuaternion(&joint->generalDisplacement->R,
+                             (s2_quaternion_t*)(joint->q_0 + 3));
+      memcpy(joint->q, joint->q_0, 7 * sizeof(double));
+
+      json_t* initialValueVelocity =
+        json_object_get(jointObject, "initial_velocity");
+      if(!json_is_null(initialValueVelocity)) {
+        for(int i = 0; i < 3; i++) {
+          joint->dq_0[i] =
+            json_number_value(json_array_get(initialValueVelocity, i));
+        }
+        memcpy(joint->dq, joint->dq_0, 3 * sizeof(double));
+      }
       break;
     }
     case S2_JOINT_SPHERICAL: {
@@ -2159,16 +1833,24 @@ int s2_joint_load(s2_context_t* context, s2_assembly_t* assembly,
         json_object_get(jointObject, "initial_displacement");
       s2_joint_setInitialDisplacementSpherical(joint->generalDisplacement,
                                                initialDisplacementObject);
-      s2_mat3x3_toQuaternion(
-        &(joint->generalDisplacement->R),
-        (s2_quaternion_t*)joint->initialPrimitiveDisplacement);
-      memcpy(joint->primitiveDisplacement, joint->initialPrimitiveDisplacement,
-             4 * sizeof(double));
+      s2_mat3x3_toQuaternion(&(joint->generalDisplacement->R),
+                             (s2_quaternion_t*)joint->q_0);
+      memcpy(joint->q, joint->q_0, 4 * sizeof(double));
       printf("loading spherical: q=");
       for(int i = 0; i < 4; i++) {
-        printf("%f,", joint->primitiveDisplacement[i]);
+        printf("%f,", joint->q[i]);
       }
       printf("\n");
+
+      json_t* initialValueVelocity =
+        json_object_get(jointObject, "initial_velocity");
+      if(!json_is_null(initialValueVelocity)) {
+        for(int i = 0; i < 6; i++) {
+          joint->dq_0[i] =
+            json_number_value(json_array_get(initialValueVelocity, i));
+        }
+        memcpy(joint->dq, joint->dq_0, 6 * sizeof(double));
+      }
       break;
     }
     case S2_JOINT_PRIMITIVE:
