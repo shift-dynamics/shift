@@ -213,7 +213,7 @@ void topology_setFramesInTree(s2_assembly_t* assembly, s2_context_t* context,
 @brief malloc arrays used to setup runtime arrays
 
 */
-void topology_mallocRunTimeArrays(s2_context_t* context) {
+void s2_context_mallocRunTimeArrays(s2_context_t* self) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 
@@ -229,11 +229,28 @@ void topology_mallocRunTimeArrays(s2_context_t* context) {
   //
   // fprintf(debug, "#  dcCount: %d\n", context->dcCount);
 
-  /*
-    allocate pointer arrays for joints
-  */
-  context->jointPointers =
-    malloc(context->activeJointCount * sizeof(s2_joint_t*));
+  /* integer offsets to absolute displacement for body reference frames in d
+   * array */
+  if(self->dReferenceFrames) {
+    free(self->dReferenceFrames);
+  }
+  self->dReferenceFrames = calloc(self->nonRigidJointCount, sizeof(int));
+
+  /* array of time invariant relative transformations (shape matrices) */
+  if(self->dWRTReference) {
+    free(self->dWRTReference);
+  }
+  self->dWRTReference =
+    calloc(self->activeFrameCount, sizeof(s2_displacement_t));
+
+  if(self->dcq) {
+    free(self->dcq);
+    self->dcq = NULL;
+  }
+  self->dcq = malloc(self->dcCount * sizeof(int));
+
+  /* allocate pointer arrays for joints */
+  self->jointPointers = malloc(self->activeJointCount * sizeof(s2_joint_t*));
 
   /*
     allocate function pointer arrays for joints
@@ -248,148 +265,116 @@ void topology_mallocRunTimeArrays(s2_context_t* context) {
     allocate pointer arrays for bodies/levels, equal to the number
     of activeJoints, this includes virtual bodies
   */
-  context->bodyPointers =
-    malloc(context->activeJointCount * sizeof(s2_body_t*));
+  self->bodyPointers = malloc(self->activeJointCount * sizeof(s2_body_t*));
 
-  context->levels = malloc(context->activeJointCount * sizeof(int));
+  self->levels = malloc(self->activeJointCount * sizeof(int));
 
-  /*
-    allocate memory for descriptive names
-  */
-  context->names = malloc(context->activeFrameCount * sizeof(char**));
+  /* allocate memory for descriptive names */
+  self->names = malloc(self->activeFrameCount * sizeof(char**));
 
-  for(int i = 0; i < context->activeFrameCount; i++) {
-    context->names[i] = NULL;
+  for(int i = 0; i < self->activeFrameCount; i++) {
+    self->names[i] = NULL;
   }
 
-  for(int i = 0; i < context->activeFrameCount; i++) {
-    context->names[i] = malloc(6 * sizeof(char*));
+  for(int i = 0; i < self->activeFrameCount; i++) {
+    self->names[i] = malloc(6 * sizeof(char*));
     for(int j = 0; j < 6; j++) {
-      context->names[i][j] = NULL;
+      self->names[i][j] = NULL;
     }
   }
-  /*
-    allocate pointer array for bodies specified by the user
-  */
-  if(context->nonVirtualBodyPointers) {
-    free(context->nonVirtualBodyPointers);
+  /* allocate pointer array for bodies specified by the user */
+  if(self->nonVirtualBodyPointers) {
+    free(self->nonVirtualBodyPointers);
   }
-  context->nonVirtualBodyPointers =
-    malloc(context->activeBodyCount * sizeof(s2_body_t*));
+  self->nonVirtualBodyPointers =
+    malloc(self->activeBodyCount * sizeof(s2_body_t*));
 
   /*
     allocate memory for frame pointers, equal to context->activeFrameCount
   */
-  if(context->framePointers) {
-    free(context->framePointers);
+  if(self->framePointers) {
+    free(self->framePointers);
   }
-  context->framePointers =
-    malloc(context->activeFrameCount * sizeof(s2_frame_t*));
+  self->framePointers = malloc(self->activeFrameCount * sizeof(s2_frame_t*));
 
-  if(context->isReference) {
-    free(context->isReference);
+  if(self->isReference) {
+    free(self->isReference);
   }
-  context->isReference = malloc(context->activeFrameCount * sizeof(bool));
+  self->isReference = malloc(self->activeFrameCount * sizeof(bool));
 
   /*
     allocate memory for light pointers
   */
-  if(context->lightPointers) {
-    free(context->lightPointers);
+  if(self->lightPointers) {
+    free(self->lightPointers);
   }
-  if(context->activeLightCount > 0) {
-    context->lightPointers =
-      malloc(context->activeLightCount * sizeof(s2_light_t*));
+  if(self->activeLightCount > 0) {
+    self->lightPointers = malloc(self->activeLightCount * sizeof(s2_light_t*));
   } else {
-    context->lightPointers = NULL;
+    self->lightPointers = NULL;
   }
 
   /*
     parent child list
   */
-  if(context->pcl) {
-    free(context->pcl);
+  if(self->pcl) {
+    free(self->pcl);
   }
-  context->pcl = calloc(context->activeJointCount, sizeof(int));
+  self->pcl = calloc(self->activeJointCount, sizeof(int));
 
-  /*
-    allocate memory for properties related to chord constraints
-  */
-  if(context->chordConstraints) {
-    free(context->chordConstraints);
+  /* allocate memory for properties related to chord constraints */
+  if(self->chordConstraints) {
+    free(self->chordConstraints);
   }
-  context->chordConstraints = NULL;
-  if(context->chordConstraintCount > 0) {
-    context->chordConstraints =
-      malloc(context->chordConstraintCount * sizeof(s2_chordconstraint_t));
+  self->chordConstraints = NULL;
+  if(self->chordConstraintCount > 0) {
+    self->chordConstraints =
+      malloc(self->chordConstraintCount * sizeof(s2_chordconstraint_t));
   }
 
-  /*
-    Allocate contiguous memory for quantities required to update spanning tree
-  */
-  s2_array_free(context->q);
-  context->q = calloc(context->qCount + context->dqCount, sizeof(double));
+  /* Allocate memory for system states */
+  s2_array_free(self->q);
+  self->q = calloc(self->qCount + self->dqCount, sizeof(double));
 
   /* q and dq are stored in contiguous memory [q, dq] */
-  context->dq = context->q + context->qCount;
+  self->dq = self->q + self->qCount;
 
-  s2_array_free(context->qCopy);
-  context->qCopy = calloc(context->qCount, sizeof(double));
+  s2_array_free(self->qCopy);
+  self->qCopy = calloc(self->qCount, sizeof(double));
 
-  s2_array_free(context->ddq);
-  context->ddq = calloc(context->dqCount, sizeof(double));
+  s2_array_free(self->ddq);
+  self->ddq = calloc(self->dqCount, sizeof(double));
 
-  s2_array_free(context->dc);
-  context->dc = calloc(2 * context->dcCount, sizeof(double));
+  /* malloc quantities to process frames */
+  self->referenceFramePointers =
+    malloc(self->activeBodyCount * sizeof(s2_frame_t*));
+  self->originPointers = malloc(self->activeBodyCount * sizeof(s2_frame_t*));
+  self->originInTree = malloc(self->activeBodyCount * sizeof(bool));
+  self->glReferenceFramesf = calloc(self->activeBodyCount * 16, sizeof(float));
+}
 
-  if(context->dcq) {
-    free(context->dcq);
-    context->dcq = NULL;
+/*!
+
+*/
+void s2_context_mallocDHVAArrays(s2_context_t* self, s2_dhva_t* dhvaPointers) {
+
+  size_t dhvaSize =
+    2 * self->dcCount * sizeof(double) +                  /* dc */
+    self->activeFrameCount * sizeof(s2_displacement_t) +  /* d */
+    (self->dqCount + 1) * sizeof(s2_screw_t) +            /* h */
+    (self->nonRigidJointCount + 1) * sizeof(s2_screw_t) + /* v */
+    (self->nonRigidJointCount + 1) * sizeof(s2_screw_t);  /* aq */
+
+  if(dhvaPointers->dc) {
+    free(dhvaPointers->dc);
   }
-  context->dcq = malloc(context->dcCount * sizeof(double*));
+  dhvaPointers->dc = malloc(dhvaSize);
+  memset(dhvaPointers->dc, 0, dhvaSize);
 
-  if(context->d) {
-    free(context->d);
-  }
-  context->d = calloc(context->activeFrameCount, sizeof(s2_displacement_t));
-
-  if(context->dWRTReference) {
-    free(context->dWRTReference);
-  }
-  context->dWRTReference =
-    calloc(context->activeFrameCount, sizeof(s2_displacement_t));
-
-  if(context->h) {
-    free(context->h);
-  }
-  context->h = calloc(context->dqCount + 1, sizeof(s2_screw_t));
-
-  if(context->v) {
-    free(context->v);
-  }
-  context->v = calloc(context->nonRigidJointCount + 1, sizeof(s2_screw_t));
-
-  if(context->aq) {
-    free(context->aq);
-  }
-  context->aq = calloc(context->nonRigidJointCount + 1, sizeof(s2_screw_t));
-
-  if(context->dReferenceFrames) {
-    free(context->dReferenceFrames);
-  }
-  context->dReferenceFrames =
-    malloc(context->nonRigidJointCount * sizeof(s2_displacement_t*));
-
-  /*
-      malloc quantities to process frames
-  */
-  context->referenceFramePointers =
-    malloc(context->activeBodyCount * sizeof(s2_frame_t*));
-  context->originPointers =
-    malloc(context->activeBodyCount * sizeof(s2_frame_t*));
-  context->originInTree = malloc(context->activeBodyCount * sizeof(bool));
-  context->glReferenceFramesf =
-    calloc(context->activeBodyCount * 16, sizeof(float));
+  dhvaPointers->d = (s2_displacement_t*)(dhvaPointers->dc + 2 * self->dcCount);
+  dhvaPointers->h = (s2_screw_t*)(dhvaPointers->d + self->activeFrameCount);
+  dhvaPointers->v = dhvaPointers->h + (self->dqCount + 1);
+  dhvaPointers->aq = dhvaPointers->v + (self->nonRigidJointCount + 1);
 }
 
 /*!
@@ -1697,7 +1682,8 @@ void topology_substructureBodyJointReorder(s2_context_t* context) {
 }
 
 /*!
-@brief Sets function pointers for joints based on the type of Joint
+@brief returns appropriate function pointers for a joints based on the type of
+Joint
 
 Using function pointers for joints obviates the need for more complicated
 conditional statements when traversing mechanism topology
@@ -1869,19 +1855,13 @@ int topology_joint_copyUpdate(s2_context_t* context, s2_joint_t* joint) {
       */
 
       /* q */
-      s2_array_copyUpdate(1, &(joint->primitiveDisplacement),
-                          context->q + joint->qIndex);
-
-      /*
-        dqindex
-      */
+      s2_array_copyUpdate(1, &(joint->q), context->q + joint->qIndex);
 
       /* h */
-      s2_screw_copyUpdate(1, &(joint->h), context->h + joint->dqIndex);
+      s2_screw_copyUpdate(1, &(joint->h), context->dhva.h + joint->dqIndex);
 
       /* dq */
-      s2_array_copyUpdate(1, &(joint->primitiveVelocity),
-                          context->dq + joint->dqIndex);
+      s2_array_copyUpdate(1, &(joint->dq), context->dq + joint->dqIndex);
 
     } break;
     case S2_JOINT_RX:
@@ -1893,8 +1873,7 @@ int topology_joint_copyUpdate(s2_context_t* context, s2_joint_t* joint) {
       */
 
       /* q */
-      s2_array_copyUpdate(1, &(joint->primitiveDisplacement),
-                          context->q + joint->qIndex);
+      s2_array_copyUpdate(1, &(joint->q), context->q + joint->qIndex);
 
       /*
         dcIndex
@@ -1902,18 +1881,17 @@ int topology_joint_copyUpdate(s2_context_t* context, s2_joint_t* joint) {
 
       /* dc (direction cosines) */
       s2_array_copyUpdate(2, &(joint->directionCosine),
-                          context->dc + (2 * joint->dcIndex));
+                          context->dhva.dc + (2 * joint->dcIndex));
 
       /*
         dqindex
       */
 
       /* h */
-      s2_screw_copyUpdate(1, &(joint->h), context->h + joint->dqIndex);
+      s2_screw_copyUpdate(1, &(joint->h), context->dhva.h + joint->dqIndex);
 
       /* dq */
-      s2_array_copyUpdate(1, &(joint->primitiveVelocity),
-                          context->dq + joint->dqIndex);
+      s2_array_copyUpdate(1, &(joint->dq), context->dq + joint->dqIndex);
       break;
     }
     case S2_JOINT_RIGID: {
@@ -1923,16 +1901,14 @@ int topology_joint_copyUpdate(s2_context_t* context, s2_joint_t* joint) {
 
       /* process terms that use qindex */
       /* q - 4 terms of a quaternion are copied */
-      s2_array_copyUpdate(4, &(joint->primitiveDisplacement),
-                          context->q + joint->qIndex);
+      s2_array_copyUpdate(4, &(joint->q), context->q + joint->qIndex);
 
       /* process terms that use dqindex */
       /* h */
-      s2_screw_copyUpdate(3, &(joint->h), context->h + joint->dqIndex);
+      s2_screw_copyUpdate(3, &(joint->h), context->dhva.h + joint->dqIndex);
 
       /* dq */
-      s2_array_copyUpdate(3, &(joint->primitiveVelocity),
-                          context->dq + joint->dqIndex);
+      s2_array_copyUpdate(3, &(joint->dq), context->dq + joint->dqIndex);
       break;
     }
     case S2_JOINT_FLOAT: {
@@ -1942,19 +1918,17 @@ int topology_joint_copyUpdate(s2_context_t* context, s2_joint_t* joint) {
       */
 
       /* q - 3 translation terms, followed by 4 rotation terms */
-      s2_array_copyUpdate(7, &(joint->primitiveDisplacement),
-                          context->q + joint->qIndex);
+      s2_array_copyUpdate(7, &(joint->q), context->q + joint->qIndex);
 
       /*
         dqindex
       */
 
       /* h */
-      s2_screw_copyUpdate(6, &(joint->h), context->h + joint->dqIndex);
+      s2_screw_copyUpdate(6, &(joint->h), context->dhva.h + joint->dqIndex);
 
       /* dq */
-      s2_array_copyUpdate(6, &(joint->primitiveVelocity),
-                          context->dq + joint->dqIndex);
+      s2_array_copyUpdate(6, &(joint->dq), context->dq + joint->dqIndex);
       break;
     }
     case S2_JOINT_PRIMITIVE:
@@ -2222,11 +2196,12 @@ void topology_copyUpdateVA(s2_context_t* context) {
 
   /* copyUpdate velocity */
   fixed->velocityAbsolute = s2_screw();
-  s2_screw_copyUpdate(1, &fixed->velocityAbsolute, context->v);
+  s2_screw_copyUpdate(1, &fixed->velocityAbsolute, context->dhva.v);
 
   /* copyUpdate acceleration Quadratic absolute (gamma) */
   fixed->accelerationQuadraticAbsolute = s2_screw();
-  s2_screw_copyUpdate(1, &fixed->accelerationQuadraticAbsolute, context->aq);
+  s2_screw_copyUpdate(1, &fixed->accelerationQuadraticAbsolute,
+                      context->dhva.aq);
 
   /* remaining bodies / frames */
   for(int i = 0; i < context->activeJointCount; i++) {
@@ -2252,12 +2227,12 @@ void topology_copyUpdateVA(s2_context_t* context) {
     } else {
       body->referenceFrame->velocityAbsolute = s2_screw();
       s2_screw_copyUpdate(1, &body->referenceFrame->velocityAbsolute,
-                          context->v + body->referenceFrame->vaIndex);
+                          context->dhva.v + body->referenceFrame->vaIndex);
 
       body->referenceFrame->accelerationQuadraticAbsolute = s2_screw();
       s2_screw_copyUpdate(1,
                           &body->referenceFrame->accelerationQuadraticAbsolute,
-                          context->aq + body->referenceFrame->vaIndex);
+                          context->dhva.aq + body->referenceFrame->vaIndex);
     }
   }
 }
@@ -2289,7 +2264,7 @@ void topology_copyUpdateD(s2_context_t* context) {
     // fprintf(debug, ", isOrigin: %s\n", frameHead->isOrigin ? "true":"false");
 
     s2_displacement_copyUpdate(&(frameHead->dAbsolute),
-                               context->d + frameHead->dIndex);
+                               context->dhva.d + frameHead->dIndex);
     s2_displacement_copy(frameHead->dWRTReference,
                          context->dWRTReference + frameHead->dIndex);
     context->framePointers[frameHead->dIndex] = frameHead;
@@ -2306,8 +2281,8 @@ void topology_copyUpdateD(s2_context_t* context) {
     if(!frameHead->isReference) {
       // fprintf(debug, "[%d] updating dAbsolute for frame:\n",
       // frameHead->dIndex); s2_stackstr_print(debug, frameHead->name);
-      s2_product_dd(context->d, context->dWRTReference + frameHead->dIndex,
-                    context->d + frameHead->dIndex);
+      s2_product_dd(context->dhva.d, context->dWRTReference + frameHead->dIndex,
+                    context->dhva.d + frameHead->dIndex);
       // s2_displacement_print(debug, context->d + frameHead->dIndex);
     }
     frameHead = frameHead->next;
@@ -2404,7 +2379,7 @@ void topology_copyUpdateD(s2_context_t* context) {
         // s2_stackstr_print(debug, frameHead->name);
         // fprintf(debug, "dIndex: %d\n", frameHead->dIndex);
         s2_displacement_copyUpdate(&frameHead->dAbsolute,
-                                   context->d + frameHead->dIndex);
+                                   context->dhva.d + frameHead->dIndex);
 
         // fprintf(
         //   debug,
@@ -2456,7 +2431,7 @@ void topology_copyUpdateD(s2_context_t* context) {
 
         /* copyUpdate dAbsolute */
         s2_displacement_copyUpdate(&frameHead->dAbsolute,
-                                   context->d + frameHead->dIndex);
+                                   context->dhva.d + frameHead->dIndex);
 
         // fprintf(
         //   debug,
@@ -2525,16 +2500,16 @@ void topology_compressRigidJoints(s2_context_t* context) {
       /* perform one time update of frames on bodies that are rigidly fixed to
       ground */
       if(parentBody == context->assembly->bodyHead) {
-        s2_product_dd(context->d + parentFrame->dIndex,
+        s2_product_dd(context->dhva.d + parentFrame->dIndex,
                       context->dWRTReference + childFrame->dIndex,
-                      context->d + childFrame->dIndex);
+                      context->dhva.d + childFrame->dIndex);
 
         s2_frame_t* frameHead = childBody->frameHead;
         while(frameHead) {
           if(!frameHead->isReference) {
-            s2_product_dd(context->d + childFrame->dIndex,
+            s2_product_dd(context->dhva.d + childFrame->dIndex,
                           context->dWRTReference + frameHead->dIndex,
-                          context->d + frameHead->dIndex);
+                          context->dhva.d + frameHead->dIndex);
           }
           frameHead = frameHead->next;
         }
@@ -2562,9 +2537,9 @@ void topology_compressRigidJoints(s2_context_t* context) {
                       context->dWRTReference + childFrame->dIndex, temp);
         s2_displacement_copy(temp, context->dWRTReference + childFrame->dIndex);
       }
-      s2_product_dd(context->d + parentFrame->dIndex,
+      s2_product_dd(context->dhva.d + parentFrame->dIndex,
                     context->dWRTReference + childFrame->dIndex,
-                    context->d + childFrame->dIndex);
+                    context->dhva.d + childFrame->dIndex);
 
       /* collapse other frames on childbody with reference frame */
       s2_frame_t* frameHead = childBody->frameHead;
@@ -2577,7 +2552,7 @@ void topology_compressRigidJoints(s2_context_t* context) {
                                context->dWRTReference + frameHead->dIndex);
           s2_product_dd(parentFrame->dAbsolute,
                         context->dWRTReference + childFrame->dIndex,
-                        context->d + childFrame->dIndex);
+                        context->dhva.d + childFrame->dIndex);
         }
         frameHead = frameHead->next;
       }
@@ -2741,17 +2716,18 @@ void topology_countDHVA(s2_context_t* context) {
     }
   }
 
-  /* allocate source/destination pointers to traverse spanning tree */
+  /* allocate integere arrays to traverse spanning tree */
   if(dhvaCount > 0) {
-    void** dhva = malloc(dhvaCount * sizeof(double*));
-    context->dhva = malloc(operationCount * sizeof(double**));
-    context->dhva[0] = dhva;
+    int* dhvaOffsets = malloc(dhvaCount * sizeof(int));
+    context->dhvaOffsets = malloc(operationCount * sizeof(int*));
+    context->dhvaOffsets[0] = dhvaOffsets;
     context->dhvaCount = operationCount;
+
     /* allocate function pointers to traverse spanning tree. */
     context->dhFunctionPointers = malloc(dhvaCount * sizeof(void*));
     context->dhvaFunctionPointers = malloc(dhvaCount * sizeof(void*));
   } else {
-    context->dhva = NULL;
+    context->dhvaOffsets = NULL;
     context->dhvaCount = 0;
     context->dhFunctionPointers = NULL;
     context->dhvaFunctionPointers = NULL;
@@ -2768,8 +2744,7 @@ void topology_setDReferenceFrames(s2_context_t* context) {
   for(int i = 0; i < context->activeJointCount; i++) {
     if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
       s2_body_t* body = context->bodyPointers[i];
-      context->dReferenceFrames[j++] =
-        context->d + body->referenceFrame->dIndex;
+      context->dReferenceFrames[j++] = body->referenceFrame->dIndex;
     }
   }
 }
@@ -2833,139 +2808,114 @@ void topology_setDHVAPointers(s2_context_t* context) {
       case S2_JOINT_INVALID: {
         break;
       }
-      case S2_JOINT_RX:
-      case S2_JOINT_RY:
-      case S2_JOINT_RZ: {
-        /* direction cosines */
-        context->dcq[joint->dcIndex] = context->q + joint->qIndex;
-
-        /* function pointers */
-        context->dhva[operationCount] = context->dhva[0] + dhvaCount;
-        context->dhFunctionPointers[operationCount] =
-          topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
-                                             true);
-        context->dhvaFunctionPointers[operationCount] =
-          topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
-                                             false);
-        operationCount++;
-
-        /* d - displacements */
-        context->dhva[0][dhvaCount++] = parentFrame->dAbsolute; // dParent [0]
-        context->dhva[0][dhvaCount++] =
-          context->dc + (2 * joint->dcIndex);                  // dc [1]
-        context->dhva[0][dhvaCount++] = childFrame->dAbsolute; // dChild [2]
-
-        /* h - influence coefficient matrices */
-        context->dhva[0][dhvaCount++] = context->h + joint->dqIndex; // h [3]
-
-        /* v - spatial velocity */
-        context->dhva[0][dhvaCount++] =
-          parentBody->referenceFrame->velocityAbsolute; // vParent [4]
-        context->dhva[0][dhvaCount++] =
-          joint->primitiveVelocity; // vPrimitive [5]
-        context->dhva[0][dhvaCount++] =
-          joint->velocityRelative; // vRelative [6]
-        context->dhva[0][dhvaCount++] =
-          childBody->referenceFrame->velocityAbsolute; // vChild [7]
-
-        /* a - spatial acceleration */
-        context->dhva[0][dhvaCount++] =
-          parentBody->referenceFrame->accelerationQuadraticAbsolute;
-        // aqParent [8]
-        context->dhva[0][dhvaCount++] =
-          joint->accelerationQuadraticRelative; // aqRelative [9]
-        context->dhva[0][dhvaCount++] =
-          childBody->referenceFrame->accelerationQuadraticAbsolute;
-        // aqChild [10]
-        break;
-      }
       case S2_JOINT_TX:
       case S2_JOINT_TY:
       case S2_JOINT_TZ: {
+
+        /*
+        Tx, Ty, Tz
+        [0] dParent      offset into dhva.dAbsolute
+        [1] dPrimitive   offset into q
+        [2] dChild       offset into dhva.dAbsolute
+        [3] dqIndex      offset into dhva.h, dq
+        [4] vaParent     offset into dhva.v, dhva.aq
+        [5] vaChild      offset into dhva.v, dhva.aq
+        Total: 6
+        */
+
         /* function pointer */
-        context->dhva[operationCount] = context->dhva[0] + dhvaCount;
+        context->dhvaOffsets[operationCount] =
+          context->dhvaOffsets[0] + dhvaCount;
         context->dhFunctionPointers[operationCount] =
           topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
                                              true);
         context->dhvaFunctionPointers[operationCount] =
           topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
                                              false);
+        context->dhvaOffsets[operationCount][0] = parentFrame->dIndex;
+        context->dhvaOffsets[operationCount][1] = joint->qIndex;
+        context->dhvaOffsets[operationCount][2] = childFrame->dIndex;
+        context->dhvaOffsets[operationCount][3] = joint->dqIndex;
+        context->dhvaOffsets[operationCount][4] =
+          parentBody->referenceFrame->vaIndex;
+        context->dhvaOffsets[operationCount][5] =
+          childBody->referenceFrame->vaIndex;
         operationCount++;
-
-        /* d - displacements */
-        context->dhva[0][dhvaCount++] = parentFrame->dAbsolute; // dParent [0]
-        context->dhva[0][dhvaCount++] =
-          context->q + joint->qIndex;                          // dPrimitive [1]
-        context->dhva[0][dhvaCount++] = childFrame->dAbsolute; // dChild [2]
-
-        /* h - influence coefficient matrices */
-        context->dhva[0][dhvaCount++] = context->h + joint->dqIndex; // h [3]
-
-        /* v - spatial velocity */
-        context->dhva[0][dhvaCount++] =
-          parentBody->referenceFrame->velocityAbsolute; // vParent [4]
-        context->dhva[0][dhvaCount++] =
-          joint->primitiveVelocity; // vPrimitive [5]
-        context->dhva[0][dhvaCount++] =
-          joint->velocityRelative; // vRelative [6]
-        context->dhva[0][dhvaCount++] =
-          childBody->referenceFrame->velocityAbsolute; // vChild [7]
-
-        /* a - spatial acceleration */
-        context->dhva[0][dhvaCount++] =
-          parentBody->referenceFrame->accelerationQuadraticAbsolute;
-        // aqParent [8]
-        context->dhva[0][dhvaCount++] =
-          joint->accelerationQuadraticRelative; // aqRelative [9]
-        context->dhva[0][dhvaCount++] =
-          childBody->referenceFrame->accelerationQuadraticAbsolute;
-        // aqChild [10]
+        dhvaCount += 6;
         break;
       }
+      case S2_JOINT_RX:
+      case S2_JOINT_RY:
+      case S2_JOINT_RZ: {
+
+        /*
+        Rx, Ry, Rz
+        [0] dParent      offset into dhva.dAbsolute
+        [1] dc           offset into dhva.dc
+        [2] dChild       offset into dhva.dAbsolute
+        [3] dqIndex      offset into dhva.h, dq
+        [4] vaParent     offset into dhva.v, dhva.aq
+        [5] vaChild      offset into dhva.v, dhva.aq
+        Total: 6
+        */
+        /* integer offset to angles in q, used to evaluate direction cosines */
+        context->dcq[joint->dcIndex] = joint->qIndex;
+
+        /* function pointers */
+        context->dhvaOffsets[operationCount] =
+          context->dhvaOffsets[0] + dhvaCount;
+        context->dhFunctionPointers[operationCount] =
+          topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
+                                             true);
+        context->dhvaFunctionPointers[operationCount] =
+          topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
+                                             false);
+        context->dhvaOffsets[operationCount][0] = parentFrame->dIndex;
+        context->dhvaOffsets[operationCount][1] = 2 * joint->dcIndex;
+        context->dhvaOffsets[operationCount][2] = childFrame->dIndex;
+        context->dhvaOffsets[operationCount][3] = joint->dqIndex;
+        context->dhvaOffsets[operationCount][4] =
+          parentBody->referenceFrame->vaIndex;
+        context->dhvaOffsets[operationCount][5] =
+          childBody->referenceFrame->vaIndex;
+        operationCount++;
+        dhvaCount += 6;
+        break;
+      }
+
       case S2_JOINT_FLOAT:
       case S2_JOINT_SPHERICAL: {
-        context->dhva[operationCount] = context->dhva[0] + dhvaCount;
+        /*
+        Float, Spherical
+        [0] dParent      offset into dhva.dAbsolute
+        [1] q[4]         offset into q
+        [2] dChild       offset into dhva.dAbsolute
+        [3] dqIndex      offset into dhva.h, dq
+        [4] vParent      offset into dhva.v, dhva.aq
+        [5] vChild       offset into dhva.v, dhva.aq
+        Total: 6
+        */
+        context->dhvaOffsets[operationCount] =
+          context->dhvaOffsets[0] + dhvaCount;
         context->dhFunctionPointers[operationCount] =
           topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
                                              true);
         context->dhvaFunctionPointers[operationCount] =
           topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
                                              false);
+        context->dhvaOffsets[operationCount][0] = parentFrame->dIndex;
+        context->dhvaOffsets[operationCount][1] = joint->qIndex;
+        context->dhvaOffsets[operationCount][2] = childFrame->dIndex;
+        context->dhvaOffsets[operationCount][3] = joint->dqIndex;
+        context->dhvaOffsets[operationCount][4] =
+          parentBody->referenceFrame->vaIndex;
+        context->dhvaOffsets[operationCount][5] =
+          childBody->referenceFrame->vaIndex;
         operationCount++;
-
-        /* d - displacements */
-        context->dhva[0][dhvaCount++] = parentFrame->dAbsolute; // dParent [0]
-        context->dhva[0][dhvaCount++] =
-          context->q + joint->qIndex; // dPrimitive [1]
-        context->dhva[0][dhvaCount++] =
-          context->dWRTReference + childFrame->dIndex; // dWRTReference [2]
-        context->dhva[0][dhvaCount++] = childFrame->dAbsolute; // dChild [3]
-
-        /* h - influence coefficient matrices */
-        context->dhva[0][dhvaCount++] = context->h + joint->dqIndex; // h [4]
-
-        /* v - spatial velocity */
-        context->dhva[0][dhvaCount++] =
-          parentBody->referenceFrame->velocityAbsolute; // vParent [5]
-
-        context->dhva[0][dhvaCount++] =
-          joint->primitiveVelocity; // vPrimitive [6]
-        context->dhva[0][dhvaCount++] =
-          joint->velocityRelative; // vRelative [7]
-        context->dhva[0][dhvaCount++] =
-          childBody->referenceFrame->velocityAbsolute; // vChild [8]
-
-        /* a - spatial acceleration */
-        context->dhva[0][dhvaCount++] =
-          parentBody->referenceFrame->accelerationQuadraticAbsolute;
-        // aqParent [9]
-        context->dhva[0][dhvaCount++] =
-          joint->accelerationQuadraticRelative; // aqRelative [10]
-        context->dhva[0][dhvaCount++] =
-          childBody->referenceFrame->accelerationQuadraticAbsolute;
-        // aqChild [11]
+        dhvaCount += 6;
         break;
       }
+
       case S2_JOINT_RIGID: {
         // fprintf(debug, "setting rigid joint\n");
         // fprintf(debug, "old parent frame: ");
@@ -2988,19 +2938,18 @@ void topology_setDHVAPointers(s2_context_t* context) {
         if(childFrame->inTree &&
            parentFrame != context->assembly->bodyHead->referenceFrame) {
 
-          context->dhva[operationCount] = context->dhva[0] + dhvaCount;
+          context->dhvaOffsets[operationCount] =
+            context->dhvaOffsets[0] + dhvaCount;
           context->dhFunctionPointers[operationCount] =
             topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
                                                true);
           context->dhvaFunctionPointers[operationCount] =
             topology_getJointDHFunctionPointer(joint->sense, joint->jointType,
                                                false);
+          context->dhvaOffsets[operationCount][0] = parentFrame->dIndex;
+          context->dhvaOffsets[operationCount][1] = childFrame->dIndex;
+          dhvaCount += 2;
           operationCount++;
-
-          context->dhva[0][dhvaCount++] = parentFrame->dAbsolute; // dParent [0]
-          context->dhva[0][dhvaCount++] =
-            context->dWRTReference + childFrame->dIndex; // dWRTReference [1]
-          context->dhva[0][dhvaCount++] = childFrame->dAbsolute; // dChild [2]
         }
         break;
       }
@@ -3029,18 +2978,17 @@ void topology_setDHVAPointers(s2_context_t* context) {
         */
         if(!frameHead->isReference && frameHead->inTree) {
 
-          context->dhva[operationCount] = context->dhva[0] + dhvaCount;
+          context->dhvaOffsets[operationCount] =
+            context->dhvaOffsets[0] + dhvaCount;
           context->dhFunctionPointers[operationCount] = s2_joint_rigid;
           context->dhvaFunctionPointers[operationCount] = s2_joint_rigid;
-          operationCount++;
 
           /* d - displacements */
-          context->dhva[0][dhvaCount++] =
-            context->d + referenceFrame->dIndex; // dParent [0]
-          context->dhva[0][dhvaCount++] =
-            context->dWRTReference + frameHead->dIndex; // dWRTReference [1]
-          context->dhva[0][dhvaCount++] =
-            context->d + frameHead->dIndex; // dChild [2]
+          context->dhvaOffsets[operationCount][0] =
+            referenceFrame->dIndex; // dParent [0]
+          context->dhvaOffsets[operationCount][1] = frameHead->dIndex;
+          dhvaCount += 2;
+          operationCount++;
         }
         frameHead = frameHead->next;
       }
@@ -3050,11 +2998,18 @@ void topology_setDHVAPointers(s2_context_t* context) {
 
 /*!
 @brief update direction cosines
+
+@param [in] self a context data structure containing model definition
+@param [in] generalized coordinates containing angles in radians
+@param [out] array of direction cosines (sin \theta, \theta sin) in contiguous
+memory
 */
-void s2_context_updateDC(s2_context_t* self) {
+void s2_context_updateDC(const s2_context_t* restrict self,
+                         s2_dhva_t* restrict dhvaPointers) {
 
   for(int i = 0; i < self->dcCount; i++) {
-    sincos(*self->dcq[i], &self->dc[i * 2], &self->dc[i * 2 + 1]);
+    sincos(*dhvaPointers->dcq[i], &dhvaPointers->dc[i * 2],
+           &dhvaPointers->dc[i * 2 + 1]);
   }
 }
 
@@ -3062,10 +3017,11 @@ void s2_context_updateDC(s2_context_t* self) {
 @brief updates only displacements and influence coefficient matrices
 
 */
-void s2_context_updateDH(s2_context_t* self) {
+void s2_context_updateDH(s2_context_t* restrict self,
+                         s2_dhva_t* restrict dhvaPointers) {
 
   /* update direction cosines */
-  s2_context_updateDC(self);
+  s2_context_updateDC(self, dhvaPointers);
 
   /* update displacements and influence coefficient matrices */
   for(int i = 0; i < self->dhvaCount; i++) {
@@ -3077,10 +3033,11 @@ void s2_context_updateDH(s2_context_t* self) {
 velocities and accelerations
 
 */
-void s2_context_updateDHVA(s2_context_t* self) {
+void s2_context_updateDHVA(s2_context_t* restrict self,
+                           s2_dhva_t* restrict dhvaPointers) {
 
   /* update direction cosines */
-  s2_context_updateDC(self);
+  s2_context_updateDC(self, dhvaPointers);
 
   /* update displacements, influence coefficient matrices,
      velocities and quadratic accelerations */
@@ -3179,16 +3136,18 @@ s2_frame_t* findFrameDIndex(s2_context_t* context, int dIndex) {
 /*! @brief update dhva and print values at all dhva pointer locations
 
 */
-void s2_context_updateDHVADebug(FILE* f, s2_context_t* context, double t) {
+void s2_context_updateDHVADebug(FILE* f, s2_context_t* context,
+                                s2_dhva_t* dhvaPointers, double t) {
 
   /* update direction cosines */
-  s2_context_updateDC(context);
+  s2_context_updateDC(context, dhvaPointers);
 
   /* update displacements, influence coefficient matrices,
      velocities and quadratic accelerations */
   for(int i = 0; i < context->dhvaCount; i++) {
     // printf("i = %d\n", i);
-    (context->dhvaFunctionPointers[i])(context->dhva[i]);
+    (context->dhvaFunctionPointers[i])(context, context->dhva,
+                                       context->dhvaOffsets[i]);
   }
 
   fprintf(f, "\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
