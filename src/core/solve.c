@@ -65,7 +65,7 @@ void s2_equation_fcn(double t, double y[], double dy[], s2_context_t* context) {
   }
   memcpy(context->q, y, (context->qCount + context->dqCount) * sizeof(double));
 
-  s2_context_updateDHVA(context);
+  s2_context_updateDHVA(context, &context->dhva, context->q, context->dq);
   s2_context_evaluateConstraints(context);
   s2_context_setForces(context, y);
   s2_context_setEquations(context);
@@ -545,7 +545,7 @@ void s2_context_evaluateKineticEnergy(s2_context_t* context) {
 
   context->kineticEnergy =
     cblas_ddot(6 * context->nonRigidJointCount, (double*)(context->p), 1,
-               (double*)(context->v + 1), 1) /
+               (double*)(context->dhva.v + 1), 1) /
     2.0;
 }
 

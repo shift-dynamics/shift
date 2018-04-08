@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 
   // printf("\n## creating graph\n");
   // s2_graph_digraph(context, "digraph_bodies.png");
-  s2_context_updateDH(context);
+  s2_context_updateDH(context, &context->dhva, context->q);
   s2_context_digraphFrames(context, "digraph_frames.png");
 
   s2_context_printJacobian(stdout, context);
@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
   //
 
   FILE* dhvaDebug = fopen("dhva_debug.dat", "w");
-  s2_context_updateDHVADebug(dhvaDebug, context, 0);
+  s2_context_updateDHVADebug(dhvaDebug, context, &context->dhva, 0);
   fclose(dhvaDebug);
 
   // fprintf(debug, "\n##initializing equations\n");

@@ -837,11 +837,6 @@ void s2_context_freeRunTimeArrays(s2_context_t* self) {
     self->dhvaFunctionPointers = NULL;
   }
 
-  if(self->dhva) {
-    free(self->dhva[0]);
-    free(self->dhva);
-  }
-
   if(self->q) {
     free(self->q);
     self->q = NULL;

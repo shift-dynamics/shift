@@ -30,19 +30,17 @@ typedef struct s2_body_t s2_body_t;
 
 void s2_context_setTopology(s2_context_t*);
 
-void s2_context_updateDH(s2_context_t*, s2_dhva_t*, const double* q);
+void s2_context_updateDH(const s2_context_t*, s2_dhva_t*, const double* q);
 
-void s2_context_updateDHVA(s2_context_t*, s2_dhva_t*, const double* q,
+void s2_context_updateDHVA(const s2_context_t*, s2_dhva_t*, const double* q,
                            const double* dq);
 
-void s2_context_updateDHVADebug(FILE* f, s2_context_t*, s2_dhva_t*, double t,
-                                const double*, const double*);
+void s2_context_updateDHVADebug(FILE* f, s2_context_t*, s2_dhva_t*, double t);
 
-void s2_context_updateGLReferenceFrames(s2_context_t*, s2_dhva_t*,
-                                        const double*);
+void s2_context_updateGLReferenceFrames(const s2_context_t*, s2_dhva_t*);
 
-s2_body_t* s2_context_findBody(s2_context_t*, s2_displacement_t*);
+s2_body_t* s2_context_findBody(s2_context_t*, int);
 
-s2_frame_t* s2_context_findFrame(s2_context_t*, s2_displacement_t*);
+s2_frame_t* s2_context_findFrame(s2_context_t*, int);
 
 #endif

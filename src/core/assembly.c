@@ -170,10 +170,8 @@ void s2_assembly_printJoints(FILE* f, s2_assembly_t* assembly) {
     fprintf(f, "\t\tchildFrame: ");
     s2_stackstr_print(f, jointHead->childFrame);
     // printf("\t\tchildFramePtr: %p\n", jointHead->childFramePointer);
-    if(jointHead->primitiveDisplacement) {
-
-      fprintf(f, "\t\tprimitiveDisplacement: %0.16f\n",
-              *(jointHead->primitiveDisplacement));
+    if(jointHead->q) {
+      fprintf(f, "\t\tq: %0.16f\n", *(jointHead->q));
     }
     int offset = 0;
     if(jointHead->h) {

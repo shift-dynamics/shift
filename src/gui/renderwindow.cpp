@@ -661,9 +661,8 @@ void Shift::RenderWindow::interpolateCurrentPosition() {
     s2_array_lerp(m_context->qCount + m_context->dqCount, p, ydata + i0 * neqn,
                   ydata + i1 * neqn, m_context->q);
 
-    s2_context_updateDH(m_context);
-    s2_context_updateGLReferenceFrames(m_context);
-    // s2_context_updateBoundingSpheres(m_context);
+    s2_context_updateDH(m_context, &m_context->dhva, m_context->q);
+    s2_context_updateGLReferenceFrames(m_context, &m_context->dhva);
     emit simulationUpdated(t);
   }
 }
@@ -716,8 +715,8 @@ void Shift::RenderWindow::interpolateCurrentPosition(double t) {
     s2_array_lerp(neqn, p, ydata + i0 * neqn, ydata + i1 * neqn, m_context->q);
     // emit simulationUpdated(t);
 
-    s2_context_updateDH(m_context);
-    s2_context_updateGLReferenceFrames(m_context);
+    s2_context_updateDH(m_context, &m_context->dhva, m_context->q);
+    s2_context_updateGLReferenceFrames(m_context, &m_context->dhva);
     // s2_context_updateBoundingSpheres(m_context);
   }
 }

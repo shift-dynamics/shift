@@ -311,13 +311,14 @@ typedef struct s2_context_t {
 
   s2_light_t** lightPointers; /*!< array of pointers to lights */
 
-  void (**dhFunctionPointers)(s2_context_t*, s2_dhva_t*, int*, double* q);
+  void (**dhFunctionPointers)(const s2_context_t*, s2_dhva_t*, const int*,
+                              const double* q);
   /*!< function pointers to update displacements
        and influence coefficient matrices in
        spanning tree */
 
-  void (**dhvaFunctionPointers)(s2_context_t*, s2_dhva_t*, int*, double* q,
-                                double* dq);
+  void (**dhvaFunctionPointers)(const s2_context_t*, s2_dhva_t*, const int*,
+                                const double* q, const double* dq);
   /*!< function pointers to update displacements
       influence coefficient matrices,
       velocities and accelerations in spanning tree */
