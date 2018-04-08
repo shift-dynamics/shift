@@ -24,10 +24,35 @@ SUCH DAMAGE.
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "assembly.h"
 #include "body.h"
 #include "chordconstraint.h"
 #include "context.h"
+#include "frame.h"
 #include "joint.h"
+
+s2_joint_enum_t getJointType(void* f) {
+  if(f == s2_joint_spherical || f == s2_joint_sphericalinverse) {
+    return S2_JOINT_SPHERICAL;
+  } else if(f == s2_joint_tx || f == s2_joint_txinverse) {
+    return S2_JOINT_TX;
+  } else if(f == s2_joint_ty || f == s2_joint_tyinverse) {
+    return S2_JOINT_TY;
+  } else if(f == s2_joint_tz || f == s2_joint_tzinverse) {
+    return S2_JOINT_TZ;
+  } else if(f == s2_joint_rx || f == s2_joint_rxinverse) {
+    return S2_JOINT_RX;
+  } else if(f == s2_joint_ry || f == s2_joint_ryinverse) {
+    return S2_JOINT_RY;
+  } else if(f == s2_joint_rz || f == s2_joint_rzinverse) {
+    return S2_JOINT_RZ;
+  } else if(f == s2_joint_rigid || f == s2_joint_rigidinverse) {
+    return S2_JOINT_RIGID;
+  } else if(f == s2_joint_float || f == s2_joint_floatinverse) {
+    return S2_JOINT_FLOAT;
+  }
+  return S2_JOINT_INVALID;
+}
 
 /*!
 @brief Generate a directed graph using graphviz api library
@@ -156,33 +181,31 @@ void s2_context_digraphBodies(s2_context_t* context, const char* fileName) {
   fclose(DGF);
 }
 
-/*!
-Obtain index of a pointer in the dReferenceFrames array
-*/
-int s2_context_matchDReferenceIndex(s2_context_t* context,
-                                    s2_displacement_t* d) {
+bool s2_context_findReferenceFrame(s2_assembly_t* assembly, int dIndex,
+                                   int* referenceFrameIndex) {
 
-  int match = -1;
-  for(int i = 0; i < context->nonRigidJointCount; i++) {
-    if(context->dReferenceFrames[i] == d) {
-      return i;
+  s2_body_t* bodyHead = assembly->bodyHead;
+  while(bodyHead) {
+    s2_frame_t* frameHead = bodyHead->frameHead;
+    while(frameHead) {
+      if(frameHead->dIndex == dIndex) {
+        *referenceFrameIndex = bodyHead->referenceFrame->dIndex;
+        return true;
+      }
+      frameHead = frameHead->next;
     }
+    bodyHead = bodyHead->next;
   }
-  return match;
-}
 
-/*!
-obtain index of pointer in dAbsolute array
-*/
-int s2_context_matchDIndex(s2_context_t* context, s2_displacement_t* d) {
-
-  int match = -1;
-  for(int i = 0; i < context->activeFrameCount; i++) {
-    if(context->d + i == d) {
-      return i;
+  s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
+  while(subAssemblyHead) {
+    if(s2_context_findReferenceFrame(subAssemblyHead, dIndex,
+                                     referenceFrameIndex)) {
+      return true;
     }
+    subAssemblyHead = subAssemblyHead->next;
   }
-  return match;
+  return false;
 }
 
 /*!
@@ -195,6 +218,8 @@ The graphviz library appears to leak memory
 @param setup a pointer to a Context data structure.
 */
 void s2_context_digraphFrames(s2_context_t* context, const char* fileName) {
+
+  s2_dhva_t* dhva = &context->dhva;
 
   FILE* debug = context->modelParameters.debugFilePointer;
   FILE* DGF;
@@ -218,40 +243,22 @@ void s2_context_digraphFrames(s2_context_t* context, const char* fileName) {
 
   int jointCounter = 0;
   for(int i = 0; i < context->dhvaCount; i++) {
-    s2_displacement_t* dParent = context->dhva[i][0];
-    double* dPrimitive = context->dhva[i][1];
-    // s2_displacement_t* dWRTReference = NULL;
-    s2_displacement_t* dChild = NULL;
 
-    if(context->dhFunctionPointers[i] == s2_joint_spherical ||
-       context->dhFunctionPointers[i] == s2_joint_sphericalinverse ||
-       context->dhFunctionPointers[i] == s2_joint_float ||
-       context->dhFunctionPointers[i] == s2_joint_floatinverse) {
+    int parentIndex = context->dhvaOffsets[i][0];
+    int childIndex = context->dhvaOffsets[i][1];
 
-      // dWRTReference = context->dhva[i][2];
-      dChild = context->dhva[i][3];
-    } else {
-      dChild = context->dhva[i][2];
-    }
+    s2_displacement_t* dParent = dhva->d + parentIndex;
+    s2_displacement_t* dChild = dhva->d + childIndex;
 
-    // s2_screw_t* h = context->dhva[i][4];
-    // s2_screw_t* vParent = context->dhva[i][5];
-    // s2_screw_t* vChild = context->dhva[i][6];
-    // double* vPrimitive = context->dhva[i][7];
-    // s2_screw_t* vRelative = context->dhva[i][8];
-    // s2_screw_t* aqChild = context->dhva[i][9];
-    // s2_screw_t* aqParent = context->dhva[i][10];
-    // s2_screw_t* aqRelative = context->dhva[i][11];
+    int parentReferenceFrameIndex = -1;
+    s2_context_findReferenceFrame(context->assembly, parentIndex,
+                                  &parentReferenceFrameIndex);
+    bool parentIsReference = (parentIndex == parentReferenceFrameIndex);
 
-    int dParentIndex = s2_context_matchDIndex(context, dParent);
-    int parentReferenceFrameIndex =
-      s2_context_matchDReferenceIndex(context, dParent);
-    bool parentIsReference = (parentReferenceFrameIndex > -1);
-
-    int dChildIndex = s2_context_matchDIndex(context, dChild);
-    int childReferenceFrameIndex =
-      s2_context_matchDReferenceIndex(context, dChild);
-    bool childIsReference = (childReferenceFrameIndex > -1);
+    int childReferenceFrameIndex = -1;
+    s2_context_findReferenceFrame(context->assembly, childIndex,
+                                  &childReferenceFrameIndex);
+    bool childIsReference = (childIndex == childReferenceFrameIndex);
 
     fprintf(debug, "\n[%d]\n", i);
     char* parentBodyName = context->names[i][0];
@@ -264,7 +271,7 @@ void s2_context_digraphFrames(s2_context_t* context, const char* fileName) {
             "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
             "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
             "[ 0.00  0.00  0.00  1.00]",
-            dParentIndex, parentReferenceFrameIndex, context->names[i][1],
+            parentIndex, parentReferenceFrameIndex, context->names[i][1],
             dParent->R.m00, dParent->R.m01, dParent->R.m02, dParent->T.x,
             dParent->R.m10, dParent->R.m11, dParent->R.m12, dParent->T.y,
             dParent->R.m20, dParent->R.m21, dParent->R.m22, dParent->T.z);
@@ -279,58 +286,68 @@ void s2_context_digraphFrames(s2_context_t* context, const char* fileName) {
             "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
             "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
             "[ 0.00  0.00  0.00  1.00]",
-            dChildIndex, childReferenceFrameIndex, context->names[i][3],
+            childIndex, childReferenceFrameIndex, context->names[i][3],
             dChild->R.m00, dChild->R.m01, dChild->R.m02, dChild->T.x,
             dChild->R.m10, dChild->R.m11, dChild->R.m12, dChild->T.y,
             dChild->R.m20, dChild->R.m21, dChild->R.m22, dChild->T.z);
     // fprintf(debug, "childFrameName: %s\n", childFrameName);
 
     if(context->dhFunctionPointers[i] == s2_joint_tx) {
-      sprintf(name, "[%d] {%d} Tx(%f)\n", i, jointCounter++, *dPrimitive);
+
+      sprintf(name, "[%d] {%d} Tx(%f)\n", i, jointCounter++,
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_txinverse) {
       sprintf(name, "[%d] {%d} Txinverse(%f)\n", i, jointCounter++,
-              *dPrimitive);
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_ty) {
-      sprintf(name, "[%d] {%d} Ty(%f)\n", i, jointCounter++, *dPrimitive);
+      sprintf(name, "[%d] {%d} Ty(%f)\n", i, jointCounter++,
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_tyinverse) {
       sprintf(name, "[%d] {%d} Tyinverse(%f)\n", i, jointCounter++,
-              *dPrimitive);
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_tz) {
-      sprintf(name, "[%d] {%d} Tz(%f)\n", i, jointCounter++, *dPrimitive);
+      sprintf(name, "[%d] {%d} Tz(%f)\n", i, jointCounter++,
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_tzinverse) {
       sprintf(name, "[%d] {%d} Tzinverse(%f)\n", i, jointCounter++,
-              *dPrimitive);
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_rx) {
-      sprintf(name, "[%d] {%d} Rx(%f)\n", i, jointCounter++, *dPrimitive);
+      sprintf(name, "[%d] {%d} Rx(%f)\n", i, jointCounter++,
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_rxinverse) {
       sprintf(name, "[%d] {%d} Rxinverse(%f)\n", i, jointCounter++,
-              *dPrimitive);
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_ry) {
-      sprintf(name, "[%d] {%d} Ry(%f)\n", i, jointCounter++, *dPrimitive);
+      sprintf(name, "[%d] {%d} Ry(%f)\n", i, jointCounter++,
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_ryinverse) {
       sprintf(name, "[%d] {%d} Ryinverse(%f)\n", i, jointCounter++,
-              *dPrimitive);
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_rz) {
-      sprintf(name, "[%d] {%d} Rz(%f)\n", i, jointCounter++, *dPrimitive);
+      sprintf(name, "[%d] {%d} Rz(%f)\n", i, jointCounter++,
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_rzinverse) {
       sprintf(name, "[%d] {%d} Rzinverse(%f)\n", i, jointCounter++,
-              *dPrimitive);
+              context->q[context->dhvaOffsets[i][2]]);
     } else if(context->dhFunctionPointers[i] == s2_joint_spherical ||
               context->dhFunctionPointers[i] == s2_joint_sphericalinverse) {
-      s2_quaternion_t* q = (s2_quaternion_t*)dPrimitive;
+      s2_quaternion_t* q =
+        (s2_quaternion_t*)&(context->q[context->dhvaOffsets[i][2]]);
       sprintf(name, "[%d] {%d} q: [% 2.2f, % 2.2f, % 2.2f, % 2.2f]", i,
               jointCounter++, q->x, q->y, q->z, q->w);
     } else if(context->dhFunctionPointers[i] == s2_joint_float ||
               context->dhFunctionPointers[i] == s2_joint_floatinverse) {
-      s2_vector_t* t = (s2_vector_t*)(dPrimitive);
-      s2_quaternion_t* q = (s2_quaternion_t*)(dPrimitive + 3);
+      s2_vector_t* t = (s2_vector_t*)&(context->q[context->dhvaOffsets[i][2]]);
+      s2_quaternion_t* q =
+        (s2_quaternion_t*)&(context->q[context->dhvaOffsets[i][2] + 3]);
       sprintf(name,
               "[%d] {%d} t: [% 2.2f, % 2.2f, % 2.2f]\n"
               "     q: [% 2.2f, % 2.2f, % 2.2f, % 2.2f]",
               i, jointCounter++, t->x, t->y, t->z, q->x, q->y, q->z, q->w);
     } else if(context->dhFunctionPointers[i] == s2_joint_rigid ||
               context->dhFunctionPointers[i] == s2_joint_rigidinverse) {
-      s2_displacement_t* dPrimitiveDisp = (s2_displacement_t*)dPrimitive;
+
+      s2_displacement_t* dPrimitiveDisp = context->dhva.d + childIndex;
       sprintf(name,
               "[%d] Rigid\n"
               "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"

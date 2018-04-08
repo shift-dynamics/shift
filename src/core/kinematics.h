@@ -406,9 +406,9 @@ void s2_mat3x3_copy(s2_mat3x3_t* ri, s2_mat3x3_t* ro);
 
 void s2_mat3x3f_copy(s2_mat3x3f_t* ri, s2_mat3x3f_t* ro);
 
-void s2_mat3x3_invert(s2_mat3x3_t* ri, s2_mat3x3_t* ro);
+void s2_mat3x3_transpose(s2_mat3x3_t* ri, s2_mat3x3_t* ro);
 
-void s2_mat3x3f_invert(s2_mat3x3f_t* ri, s2_mat3x3f_t* ro);
+void s2_mat3x3f_transpose(s2_mat3x3f_t* ri, s2_mat3x3f_t* ro);
 
 void s2_product_rv(s2_mat3x3_t* ri, s2_vector_t* vi, s2_vector_t* vo);
 

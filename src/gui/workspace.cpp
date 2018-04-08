@@ -2519,7 +2519,7 @@ void Shift::Workspace::openFileAtLoad() {
                error);
       }
 
-      s2_context_updateDH(m_context);
+      s2_context_updateDH(m_context, &m_context->dhva, m_context->q);
       s2_context_setJacobianPO1(m_context);
 
       s2_context_initializeMobility(m_context);
@@ -2662,7 +2662,7 @@ void Shift::Workspace::openFile() {
       printf("constraint violations after Newton-Raphson at load: %g\n", error);
     }
 
-    s2_context_updateDH(m_context);
+    s2_context_updateDH(m_context, &m_context->dhva, m_context->q);
     s2_context_setJacobianPO1(m_context);
 
     s2_context_initializeMobility(m_context);
@@ -3033,8 +3033,8 @@ void Shift::Workspace::updateTree() {
         s2_joint_t* joint = (s2_joint_t*)item->m_object;
         qDebug() << "updating joint" << s2_getRootName(joint->name)
                  << " dof:" << joint->dof;
-        if(joint->primitiveDisplacement != NULL) {
-          sprintf(numberString, "%0.5f", *(joint->primitiveDisplacement));
+        if(joint->q != NULL) {
+          sprintf(numberString, "%0.5f", *(joint->q));
           (*it)->setText(2, numberString);
         }
         if(joint->dof == 0) {

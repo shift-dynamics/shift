@@ -3738,7 +3738,7 @@ of both a rotation and translation component.
 inline void s2_displacement_invert(s2_displacement_t* restrict Di,
                                    s2_displacement_t* restrict Do) {
 
-  s2_mat3x3_invert(&(Di->R), &(Do->R));
+  s2_mat3x3_transpose(&(Di->R), &(Do->R));
   s2_product_rinversevinverse(&(Di->R), &(Di->T), &(Do->T));
 }
 
@@ -3753,7 +3753,7 @@ inline void s2_displacement_invert(s2_displacement_t* restrict Di,
 inline void s2_displacementf_invert(s2_displacementf_t* restrict Di,
                                     s2_displacementf_t* restrict Do) {
 
-  s2_mat3x3f_invert(&(Di->R), &(Do->R));
+  s2_mat3x3f_transpose(&(Di->R), &(Do->R));
   s2_product_rinversevinversef(&(Di->R), &(Di->T), &(Do->T));
 }
 
@@ -4207,7 +4207,7 @@ inline void s2_product_dinverset(s2_displacement_t* restrict Di,
                                  s2_displacement_t* restrict Do) {
 
   s2_subtract_vv(vi, &(Di->T), &(Do->T));
-  s2_mat3x3_invert(&(Di->R), &(Do->R));
+  s2_mat3x3_transpose(&(Di->R), &(Do->R));
   s2_product_rinversev(&(Di->R), &(Do->T), &(Do->T));
 }
 
@@ -4233,7 +4233,7 @@ inline void s2_product_dinversetf(s2_displacementf_t* restrict Di,
                                   s2_displacementf_t* restrict Do) {
 
   s2_subtract_vvf(vi, &(Di->T), &(Do->T));
-  s2_mat3x3f_invert(&(Di->R), &(Do->R));
+  s2_mat3x3f_transpose(&(Di->R), &(Do->R));
   s2_product_rinversevf(&(Di->R), &(Do->T), &(Do->T));
 }
 
