@@ -374,3 +374,10 @@ void Shift::Lights::getFramebufferStatus() {
     };
   }
 }
+
+/*!
+@brief clear lights data
+*/
+void Shift::Lights::clearContext() {
+  initialize();
+}
