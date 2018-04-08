@@ -108,7 +108,7 @@ void Shift::Joints::update() {
             }
           } break;
         }
-        s2_context_updateGLReferenceFrames(m_context);
+        s2_context_updateGLReferenceFrames(m_context, &m_context->dhva);
 
         // s2_mobility_compute_substructure(
         //   m_joint->substructurePointer);
@@ -129,8 +129,8 @@ void Shift::Joints::update() {
         /* otherwise, update a single value in q array */
         m_context->q[m_qIndex] += m_delq * 1.5;
       }
-      s2_context_updateDH(m_context);
-      s2_context_updateGLReferenceFrames(m_context);
+      s2_context_updateDH(m_context, &m_context->dhva, m_context->q);
+      s2_context_updateGLReferenceFrames(m_context, &m_context->dhva);
 
       if(m_renderWindow->isContactDetectionEnabled()) {
         s2_context_contactDetection(m_renderWindow->getContext());

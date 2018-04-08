@@ -231,7 +231,7 @@ int s2_substructure_removeConstraintViolations(
   //
   // fprintf(stdout, "   qOffset: %d\n", substructure->qOffset);
 
-  s2_context_updateDH(context);
+  s2_context_updateDH(context, &context->dhva, context->q);
   s2_substructure_evaluateConstraints(substructure);
   double initialError = s2_substructure_evaluateConstraintError(substructure);
   fprintf(stdout, "  initial error: %g\n", initialError);
@@ -242,13 +242,13 @@ int s2_substructure_removeConstraintViolations(
     s2_substructure_setJacobianPO1(substructure);
     s2_substructure_newtonRaphsonSolver(substructure);
     s2_substructure_updateq(substructure);
-    s2_context_updateDH(context);
+    s2_context_updateDH(context, &context->dhva, context->q);
     s2_substructure_evaluateConstraints(substructure);
     error = s2_substructure_evaluateConstraintError(substructure);
     ++step;
     fprintf(stdout, "  [%d] error: %g\n", step, error);
   }
-  s2_context_updateDH(context);
+  s2_context_updateDH(context, &context->dhva, context->q);
   s2_substructure_setJacobianBooleanPO2(substructure);
   if(step == maxStep) {
     s2_printNewtonRaphsonError(substructure, initialError, error, qCopy);
@@ -274,7 +274,7 @@ int s2_context_removeConstraintViolations(s2_context_t* self) {
       constraintsSatisfied = false;
     }
   }
-  s2_context_updateGLReferenceFrames(self);
+  s2_context_updateGLReferenceFrames(self, &self->dhva);
   if(constraintsSatisfied) {
     return 0;
   } else {
@@ -321,7 +321,7 @@ int s2_substructure_removeConstraintViolationsFast(
   s2_substructure_t* substructure, bool useTightTolerance) {
 
   s2_context_t* context = substructure->context;
-  s2_context_updateDH(context);
+  s2_context_updateDH(context, &context->dhva, context->q);
   s2_substructure_evaluateConstraints(substructure);
   double initialError = s2_substructure_evaluateConstraintError(substructure);
   // printf("initial error: %f\n", initialError);
@@ -343,7 +343,7 @@ int s2_substructure_removeConstraintViolationsFast(
   while(error > tol && step < maxStep) {
     s2_substructure_newtonRaphsonSolver(substructure);
     s2_substructure_updateq(substructure);
-    s2_context_updateDH(context);
+    s2_context_updateDH(context, &context->dhva, context->q);
     s2_substructure_evaluateConstraints(substructure);
     error = s2_substructure_evaluateConstraintError(substructure);
     step++;
@@ -389,7 +389,7 @@ void s2_substructure_setupNewtonRaphsonSpecifiedCoordinate(
   s2_substructure_t* substructure, int specifiedCoordinateIndex) {
 
   s2_context_t* context = substructure->context;
-  s2_context_updateDH(context);
+  s2_context_updateDH(context, &context->dhva, context->q);
   s2_substructure_setJacobianPO1(substructure);
   s2_substructure_removeConstraintViolationsFast(substructure, true);
   // FILE* debug = context->modelParameters->debugFilePointer;
@@ -438,7 +438,7 @@ int s2_substructure_incrementSpecifiedCoordinate(
       break;
     }
   }
-  s2_context_updateDH(context);
+  s2_context_updateDH(context, &context->dhva, context->q);
   s2_substructure_setJacobianPO1Specified(substructure,
                                           specifiedCoordinateIndex);
   s2_substructure_firstOrderUpdate(substructure);

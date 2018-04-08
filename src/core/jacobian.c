@@ -990,9 +990,9 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
       // printf(
       //   "    processing variable: %d, column: [%d], dqOffset: %d, \n     h:
       //   ", variableIndex, columnIndex, substructure->dqOffset);
-      // s2_screw_print(context->h + variableIndex);
+      // s2_screw_print(context->dhva.h + variableIndex);
 
-      cblas_dcopy(6, (double*)(context->h + variableIndex), 1,
+      cblas_dcopy(6, (double*)(context->dhva.h + variableIndex), 1,
                   substructure->J +
                     (j * 6 * substructure->dqCount + columnIndex),
                   substructure->dqCount);
@@ -1007,9 +1007,9 @@ void s2_substructure_setJacobianPO1(s2_substructure_t* substructure) {
       // printf(
       //   "    processing variable: %d, column: [%d], dqOffset: %d, \n     h:
       //   ", variableIndex, columnIndex, substructure->dqOffset);
-      // s2_screw_print(context->h + variableIndex);
+      // s2_screw_print(context->dhva.h + variableIndex);
 
-      cblas_daxpy(6, -1.0, (double*)(context->h + variableIndex), 1,
+      cblas_daxpy(6, -1.0, (double*)(context->dhva.h + variableIndex), 1,
                   substructure->J +
                     (j * 6 * substructure->dqCount + columnIndex),
                   substructure->dqCount);
@@ -1094,8 +1094,8 @@ void s2_substructure_setJacobianPO1Specified(s2_substructure_t* substructure,
       // printf(
       //   "    processing variable: %d, column: [%d], dqOffset: %d, \n     h:
       //   ", variableIndex, columnIndex, substructure->dqOffset);
-      // s2_screw_print(context->h + variableIndex);
-      cblas_dcopy(6, (double*)(context->h + variableIndex), 1,
+      // s2_screw_print(context->dhva.h + variableIndex);
+      cblas_dcopy(6, (double*)(context->dhva.h + variableIndex), 1,
                   substructure->J +
                     (j * 6 * substructure->dqCount + columnIndex),
                   substructure->dqCount);
@@ -1110,9 +1110,9 @@ void s2_substructure_setJacobianPO1Specified(s2_substructure_t* substructure,
       // printf(
       //   "    processing variable: %d, column: [%d], dqOffset: %d, \n     h:
       //   ", variableIndex, columnIndex, substructure->dqOffset);
-      // s2_screw_print(context->h + variableIndex);
+      // s2_screw_print(context->dhva.h + variableIndex);
 
-      cblas_daxpy(6, -1.0, (double*)(context->h + variableIndex), 1,
+      cblas_daxpy(6, -1.0, (double*)(context->dhva.h + variableIndex), 1,
                   substructure->J +
                     (j * 6 * substructure->dqCount + columnIndex),
                   substructure->dqCount);
@@ -1837,7 +1837,7 @@ void s2_substructure_setJacobianPO2(s2_substructure_t* substructure) {
         int rowIndex_2 = substructure->pr_21[j * 6 + m];
 
         substructure->J[rowIndex_2 * substructure->dqCount + columnIndex_2] =
-          ((double*)(context->h + variableIndex))[m];
+          ((double*)(context->dhva.h + variableIndex))[m];
       }
     }
 
@@ -1854,7 +1854,7 @@ void s2_substructure_setJacobianPO2(s2_substructure_t* substructure) {
         int rowIndex_2 = substructure->pr_21[j * 6 + m];
 
         substructure->J[rowIndex_2 * substructure->dqCount + columnIndex_2] =
-          -((double*)(context->h + variableIndex))[m];
+          -((double*)(context->dhva.h + variableIndex))[m];
       }
     }
   }
@@ -1996,9 +1996,9 @@ void s2_substructure_evaluateConstraints(s2_substructure_t* substructure) {
   s2_context_t* context = substructure->context;
   for(int i = 0; i < substructure->chordConstraintCount; i++) {
     s2_displacement_t* parentFrame =
-      context->d + substructure->constraints[i][3];
+      context->dhva.d + substructure->constraints[i][3];
     s2_displacement_t* childFrame =
-      context->d + substructure->constraints[i][2];
+      context->dhva.d + substructure->constraints[i][2];
     s2_displacement_t temp;
     s2_product_ddinverse(parentFrame, childFrame, &temp);
 
@@ -2028,8 +2028,10 @@ void s2_substructure_evaluateConstraints(s2_substructure_t* substructure) {
 */
 void s2_context_evaluateConstraints(s2_context_t* context) {
   for(int i = 0; i < context->chordConstraintCount; i++) {
-    s2_displacement_t* parentFrame = context->d + context->constraints[i][3];
-    s2_displacement_t* childFrame = context->d + context->constraints[i][2];
+    s2_displacement_t* parentFrame =
+      context->dhva.d + context->constraints[i][3];
+    s2_displacement_t* childFrame =
+      context->dhva.d + context->constraints[i][2];
     s2_displacement_t temp;
     s2_product_ddinverse(parentFrame, childFrame, &temp);
     memcpy(context->cs + i * 6, &temp.T, sizeof(s2_vector_t));
@@ -2263,9 +2265,9 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
         printf(
           "    processing variable: %d, column: [%d], dqOffset: %d, \n     h: ",
           variableIndex, columnIndex, substructure->dqOffset);
-        s2_screw_print(stdout, context->h + variableIndex);
+        s2_screw_print(stdout, context->dhva.h + variableIndex);
 
-        cblas_dcopy(6, (double*)(context->h + variableIndex), 1,
+        cblas_dcopy(6, (double*)(context->dhva.h + variableIndex), 1,
                     substructure->J +
                       (j * 6 * substructure->dqCount + columnIndex),
                     substructure->dqCount);
@@ -2281,9 +2283,9 @@ void s2_context_printJacobian(FILE* f, s2_context_t* context) {
         // printf(
         //   "    processing variable: %d, column: [%d], dqOffset: %d, \n     h:
         //   ", variableIndex, columnIndex, substructure->dqOffset);
-        // s2_screw_print(context->h + variableIndex);
+        // s2_screw_print(context->dhva.h + variableIndex);
 
-        cblas_daxpy(6, -1.0, (double*)(context->h + variableIndex), 1,
+        cblas_daxpy(6, -1.0, (double*)(context->dhva.h + variableIndex), 1,
                     substructure->J +
                       (j * 6 * substructure->dqCount + columnIndex),
                     substructure->dqCount);
@@ -2597,12 +2599,12 @@ int s2_context_infinityNormBCheck(s2_context_t* context) {
              context->qCopy + substructure->qOffset,
              substructure->qCount * sizeof(double));
 
-      s2_context_updateDHVA(context);
+      s2_context_updateDHVA(context, &context->dhva, context->q, context->dq);
       s2_substructure_evaluateConstraints(substructure);
     }
   }
   if(!pass) {
-    s2_context_updateDHVA(context);
+    s2_context_updateDHVA(context, &context->dhva, context->q, context->dq);
     s2_context_setJacobianPO2(context);
     s2_context_factorJacobianPO2(context);
     s2_context_translatePermutations(context);
