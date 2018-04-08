@@ -26,7 +26,7 @@ void Shift::Frames::loadContext() {
 */
 void Shift::Frames::clearContext() {
   m_context = NULL;
-  m_frames.erase(m_frames.begin() + 1, m_frames.end() + 1);
+  m_frames.erase(m_frames.begin() + 1, m_frames.end());
 }
 
 /*!
