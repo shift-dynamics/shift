@@ -266,7 +266,7 @@ void Shift::Workspace::addSlider(double singleStep, SliderHandle* sliderHandle,
 }
 
 /*!
-  @brief add dynamic assembly box
+@brief add dynamic assembly box
 */
 void Shift::Workspace::addAssemblyBox() {
   m_assemblyPanel.groupBox = new QGroupBox;
@@ -286,7 +286,7 @@ void Shift::Workspace::addAssemblyBox() {
 }
 
 /*!
-  @brief add dynamic joint group box
+@brief add dynamic joint group box
 */
 void Shift::Workspace::addJointGroupBox() {
   m_jointGroupPanel.groupBox = new QGroupBox;
@@ -1105,6 +1105,12 @@ void Shift::Workspace::initializeMenus() {
 
   fileMenu->addSeparator();
 
+  QAction* actionClose = new QAction("Close", this);
+  actionClose->setShortcut(QKeySequence::Close);
+  fileMenu->addAction(actionClose);
+
+  fileMenu->addSeparator();
+
   /* add quit dialog */
   QAction* actionQuit = new QAction("Quit", this);
 #ifdef Q_WS_MACX
@@ -1218,6 +1224,7 @@ void Shift::Workspace::initializeMenus() {
   QObject::connect(actionOpen, SIGNAL(triggered()), this, SLOT(openFile()));
   QObject::connect(actionSave, SIGNAL(triggered()), this, SLOT(saveFile()));
   QObject::connect(actionSaveAs, SIGNAL(triggered()), this, SLOT(saveFileAs()));
+  QObject::connect(actionClose, SIGNAL(triggered()), this, SLOT(close()));
   QObject::connect(actionQuit, SIGNAL(triggered()), qApp, SLOT(quit()));
 
   /* edit menu actions */
@@ -3182,7 +3189,7 @@ void Shift::Workspace::license() {
 }
 
 /*!
-  @brief display about dialog
+@brief display about dialog
 */
 void Shift::Workspace::about() {
   QString fileContents;
@@ -3423,6 +3430,16 @@ void Shift::Workspace::loadModelParameters() {
   }
 }
 
+void Shift::Workspace::clearModelParameters() {
+  m_modelParametersPanel.groupBox->setVisible(false);
+  m_modelParametersPanel.absoluteError->setValue(0);
+  m_modelParametersPanel.relativeError->setValue(0);
+  m_modelParametersPanel.omegaN->setValue(0);
+  m_modelParametersPanel.timeSpan->setValue(0);
+  m_modelParametersPanel.timeStep->setValue(0.01);
+  m_modelParametersPanel.contactDetectionSwitch->setChecked(false);
+}
+
 /*!
 @brief toggle visibility of playback box
 */
@@ -3516,5 +3533,26 @@ void Shift::Workspace::toggleContactDetectionSimulation() {
 void Shift::Workspace::enableContactDetectionSimulation(bool enabled) {
   if(m_context) {
     m_context->modelParameters.contactDetectionEnabled = enabled;
+  }
+}
+
+/*!
+@brief close model and release / free resources associated with model
+*/
+void Shift::Workspace::close() {
+  if(m_context) {
+    m_renderWindow->setAnimating(false);
+    m_treeWidget->clear();
+    m_renderWindow->clearContext();
+    clearModelParameters();
+    m_simulationEvaluated = false;
+    m_simulationRunning = false;
+    m_playbackPanel.time = 0;
+    m_playbackPanel.slider->setTimeSpan(0.0, 1.0);
+    m_playbackPanel.slider->setProgress(0);
+    m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.playIcon);
+    s2_context_free(m_context);
+    m_context = NULL;
+    m_renderWindow->setAnimating(true);
   }
 }

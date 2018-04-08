@@ -170,6 +170,7 @@ private slots:
   void updateItemDrawState(MyTreeItem*, bool, bool);
   void toggleContactDetectionSimulation();
   void enableContactDetectionSimulation(bool);
+  void close();
 
 private:
   QSize minimumSizeHint() const {
@@ -387,6 +388,7 @@ private:
   void setSlider(SliderHandle* sliderHandle, int qIndex, int dqIndex,
                  s2_substructure_t* substructure, bool isSpherical);
   void recenterSlider(SliderHandle* sliderHandle);
+  void clearModelParameters();
 
   QString getCursorPositionText();
   // virtual void resizeEvent(QResizeEvent* event);
