@@ -3487,6 +3487,7 @@ void Shift::Workspace::runSimulation() {
                                         m_context->modelParameters.timeSpan);
     m_playbackPanel.slider->setProgress(1000);
     m_playbackPanel.playPauseButton->setIcon(m_playbackPanel.pauseIcon);
+    m_playbackPanel.slider->enable(true);
 
     m_renderWindow->setAnimating(true);
     m_renderWindow->startSimulationPlayback(0);
@@ -3547,6 +3548,7 @@ void Shift::Workspace::close() {
     clearModelParameters();
     m_simulationEvaluated = false;
     m_simulationRunning = false;
+    m_playbackPanel.slider->enable(false);
     m_playbackPanel.time = 0;
     m_playbackPanel.slider->setTimeSpan(0.0, 1.0);
     m_playbackPanel.slider->setProgress(0);

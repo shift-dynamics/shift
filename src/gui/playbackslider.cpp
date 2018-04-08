@@ -17,6 +17,7 @@ Shift::PlayBackSlider::PlayBackSlider(QWidget* parent)
   , m_progressBrush("#979899")
   , m_tMin(0)
   , m_tMax(100)
+  , m_enabled(false)
   , m_anim(new QPropertyAnimation(this, "offset", this)) {
   setOffset(m_height / 2);
   m_y = m_height / 2;
@@ -39,6 +40,7 @@ Shift::PlayBackSlider::PlayBackSlider(const QBrush& positionBrush,
   , m_progressBrush("#979899")
   , m_tMin(0)
   , m_tMax(100)
+  , m_enabled(false)
   , m_anim(new QPropertyAnimation(this, "offset", this)) {
   setOffset(m_height / 2);
   m_y = m_height / 2;
@@ -104,7 +106,7 @@ void Shift::PlayBackSlider::paintEvent(QPaintEvent*) {
 @brief detect if mouse pressed in thumb
 */
 void Shift::PlayBackSlider::mousePressEvent(QMouseEvent* e) {
-  if(e->button() & Qt::LeftButton) {
+  if(e->button() & Qt::LeftButton && m_enabled) {
     int x_min = m_positionOffset - (m_height / 2);
     int x_max = x_min + height();
     if(e->x() > x_min && e->x() <= x_max) {
@@ -115,7 +117,7 @@ void Shift::PlayBackSlider::mousePressEvent(QMouseEvent* e) {
 }
 
 void Shift::PlayBackSlider::mouseReleaseEvent(QMouseEvent* e) {
-  if(e->button() & Qt::LeftButton) {
+  if(e->button() & Qt::LeftButton && m_enabled) {
     m_clicked = false;
     updateOffset();
     update();
@@ -128,7 +130,7 @@ void Shift::PlayBackSlider::mouseReleaseEvent(QMouseEvent* e) {
 current position of thumb to follow mouse
 */
 void Shift::PlayBackSlider::mouseMoveEvent(QMouseEvent* e) {
-  if(m_clicked) {
+  if(m_clicked && m_enabled) {
     int start = height() / 2;
     int end = width() - start;
     int range = end - start;
