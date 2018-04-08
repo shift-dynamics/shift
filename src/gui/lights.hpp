@@ -130,6 +130,8 @@ public:
     return m_depthTexture;
   }
 
+  void clearContext();
+
 private:
   s2_lights_t m_lights;
 
