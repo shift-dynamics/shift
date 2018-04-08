@@ -199,7 +199,7 @@ void Shift::Lights::loadContext() {
 */
 void Shift::Lights::draw() {
 
-  if(m_drawEnabled) {
+  if(m_drawEnabled && m_lights.count) {
 
     glActiveTexture(GL_TEXTURE0);
     checkError("lights: after glActiveTexture");
