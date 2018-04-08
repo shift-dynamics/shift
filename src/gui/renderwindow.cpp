@@ -493,6 +493,8 @@ void Shift::RenderWindow::clearContext() {
     m_bodies->clearContext();
     m_frames->clearContext();
     m_joints->clearContext();
+    m_lights->clearContext();
+    m_terrain->clearContext();
     m_context = NULL;
   }
 }
