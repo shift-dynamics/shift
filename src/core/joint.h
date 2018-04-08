@@ -28,6 +28,7 @@ typedef struct s2_frame_t s2_frame_t;
 typedef struct s2_substructure_t s2_substructure_t;
 typedef struct s2_context_t s2_context_t;
 typedef struct s2_assembly_t s2_assembly_t;
+typedef struct s2_dhva_t s2_dhva_t;
 
 #include "kinematics.h"
 #include "stack.h"
@@ -88,19 +89,18 @@ typedef struct s2_joint_t {
   s2_stackstr_t* childFrame;     //!< descriptive name of child frame
   s2_frame_t* childFramePointer; //!< pointer to child Frame
 
-  double* initialPrimitiveDisplacement; /*!< initial primitive displacement
-                                             specified by user */
-  double* initialPrimitiveVelocity; /*!< initial primitive velocity specified
+  double* q_0;  /*!< initial primitive displacement
+                                              specified by user */
+  double* dq_0; /*!< initial primitive velocity specified
                                          by user */
 
-  double*
-    primitiveDisplacement;   /*!< current primitive displacement in
-                                 model, for spherical joints consists of
-                                 quaternion following x,y,z,w
-                                 convention, for float joints consists of
-                                 x,y,z translation, followed by
-                                 quaternion specified using x,y,z,w convention */
-  double* primitiveVelocity; /*!< current primitive velocity in model */
+  double* q;  /*!< current primitive displacement in
+                                model, for spherical joints consists of
+                                quaternion following x,y,z,w
+                                convention, for float joints consists of
+                                x,y,z translation, followed by
+                                quaternion specified using x,y,z,w convention */
+  double* dq; /*!< current generalized velocity in model */
 
   s2_displacement_t* generalDisplacement; /*!< used for rigid joints and to
                                               set initial conditions for
@@ -108,8 +108,6 @@ typedef struct s2_joint_t {
 
   double* directionCosine; /*!< array of direction cosines */
 
-  s2_screw_t* velocityRelative;
-  s2_screw_t* accelerationQuadraticRelative;
   s2_screw_t* h;
 
   double* mobilityNumber;
@@ -141,85 +139,109 @@ void s2_joint_append(s2_assembly_t* assembly, s2_joint_t* joint);
 
 void s2_joints_print(FILE* f, s2_assembly_t* assembly);
 
-void s2_joint_tx(void** dhva);
+void s2_joint_tx(const s2_context_t*, s2_dhva_t*, const int*, const double*);
 
-void s2_joint_txinverse(void** dhva);
+void s2_joint_txinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                        const double*);
 
-void s2_joint_ty(void** dhva);
+void s2_joint_ty(const s2_context_t*, s2_dhva_t*, const int*, const double*);
 
-void s2_joint_tyinverse(void** dhva);
+void s2_joint_tyinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                        const double*);
 
-void s2_joint_tz(void** dhva);
+void s2_joint_tz(const s2_context_t*, s2_dhva_t*, const int*, const double*);
 
-void s2_joint_tzinverse(void** dhva);
+void s2_joint_tzinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                        const double*);
 
-void s2_joint_tx_dhva(void** dhva);
+void s2_joint_tx_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                      const double*, const double*);
 
-void s2_joint_txinverse_dhva(void** dhva);
+void s2_joint_txinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                             const double*, const double*);
 
-void s2_joint_ty_dhva(void** dhva);
+void s2_joint_ty_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                      const double*, const double*);
 
-void s2_joint_tyinverse_dhva(void** dhva);
+void s2_joint_tyinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                             const double*, const double*);
 
-void s2_joint_tz_dhva(void** dhva);
+void s2_joint_tz_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                      const double*, const double*);
 
-void s2_joint_tzinverse_dhva(void** dhva);
+void s2_joint_tzinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                             const double*, const double*);
 
-void s2_joint_rx(void** dhva);
+void s2_joint_rx(const s2_context_t*, s2_dhva_t*, const int*, const double*);
 
-void s2_joint_rxinverse(void** dhva);
+void s2_joint_rxinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                        const double*);
 
-void s2_joint_ry(void** dhva);
+void s2_joint_ry(const s2_context_t*, s2_dhva_t*, const int*, const double*);
 
-void s2_joint_ryinverse(void** dhva);
+void s2_joint_ryinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                        const double*);
 
-void s2_joint_rz(void** dhva);
+void s2_joint_rz(const s2_context_t*, s2_dhva_t*, const int*, const double*);
 
-void s2_joint_rzinverse(void** dhva);
+void s2_joint_rzinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                        const double*);
 
-void s2_joint_rx_dhva(void** dhva);
+void s2_joint_rx_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                      const double*, const double*);
 
-void s2_joint_rxinverse_dhva(void** dhva);
+void s2_joint_rxinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                             const double*, const double*);
 
-void s2_joint_ry_dhva(void** dhva);
+void s2_joint_ry_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                      const double*, const double*);
 
-void s2_joint_ryinverse_dhva(void** dhva);
+void s2_joint_ryinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                             const double*, const double*);
 
-void s2_joint_rz_dhva(void** dhva);
+void s2_joint_rz_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                      const double*, const double*);
 
-void s2_joint_rzinverse_dhva(void** dhva);
+void s2_joint_rzinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                             const double*, const double*);
 
-void s2_joint_rigid(void** dhva);
+void s2_joint_rigid(const s2_context_t*, s2_dhva_t*, const int*, const double*);
 
-void s2_joint_rigidinverse(void** dhva);
+void s2_joint_rigidinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                           const double*);
 
-void s2_joint_rigid_dhva(void** dhva);
+void s2_joint_rigid_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                         const double*, const double*);
 
-void s2_joint_rigidinverse_dhva(void** dhva);
+void s2_joint_rigidinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                                const double*, const double*);
 
-void s2_joint_spherical(void** dhva);
+void s2_joint_spherical(const s2_context_t*, s2_dhva_t*, const int*,
+                        const double*);
 
-void s2_joint_sphericalinverse(void** dhva);
+void s2_joint_sphericalinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                               const double*);
 
-void s2_joint_spherical_dhva(void** dhva);
+void s2_joint_spherical_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                             const double*, const double*);
 
-void s2_joint_sphericalinverse_dhva(void** dhva);
+void s2_joint_sphericalinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                                    const double*, const double*);
 
-void s2_joint_float(void** dhva);
+void s2_joint_float(const s2_context_t*, s2_dhva_t*, const int*, const double*);
 
-void s2_joint_floatinverse(void** dhva);
+void s2_joint_floatinverse(const s2_context_t*, s2_dhva_t*, const int*,
+                           const double*);
 
-void s2_joint_float_dhva(void** dhva);
+void s2_joint_float_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                         const double*, const double*);
 
-void s2_joint_floatinverse_dhva(void** dhva);
+void s2_joint_floatinverse_dhva(const s2_context_t*, s2_dhva_t*, const int*,
+                                const double*, const double*);
 
-void s2_joint_float(void** dhva);
-
-void s2_joint_floatinverse(void** dhva);
-
-void s2_joint_floatfixed(void** dhva);
-
-void s2_joint_floatfixed_dhva(void** dhva);
+// void s2_joint_floatfixed(const s2_context_t*, s2_dhva_t*, const int*);
+//
+// void s2_joint_floatfixed_dhva(const s2_context_t*, s2_dhva_t*, const int*);
 
 void s2_joint_free(s2_joint_t* joint);
 
