@@ -534,6 +534,7 @@ location.
 */
 int s2_array_copyUpdate(int count, double** oldArray, double* newArray) {
 
+  assert(newArray);
   cblas_dcopy(count, *oldArray, 1, newArray, 1);
   free(*oldArray);
   *oldArray = newArray;

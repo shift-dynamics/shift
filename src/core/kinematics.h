@@ -378,9 +378,9 @@ void s2_screw_invert(s2_screw_t* si, s2_screw_t* so);
 
 void s2_screwf_invert(s2_screwf_t* si, s2_screwf_t* so);
 
-void s2_product_sk(s2_screw_t* si, double* ki, s2_screw_t* so);
+void s2_product_sk(s2_screw_t* si, const double* ki, s2_screw_t* so);
 
-void s2_product_skf(s2_screwf_t* si, float* ki, s2_screwf_t* so);
+void s2_product_skf(s2_screwf_t* si, const float* ki, s2_screwf_t* so);
 
 void s2_add_ss(s2_screw_t* s1i, s2_screw_t* s2i, s2_screw_t* so);
 
@@ -406,9 +406,9 @@ void s2_mat3x3_copy(s2_mat3x3_t* ri, s2_mat3x3_t* ro);
 
 void s2_mat3x3f_copy(s2_mat3x3f_t* ri, s2_mat3x3f_t* ro);
 
-void s2_mat3x3_invert(s2_mat3x3_t* ri, s2_mat3x3_t* ro);
+void s2_mat3x3_transpose(s2_mat3x3_t* ri, s2_mat3x3_t* ro);
 
-void s2_mat3x3f_invert(s2_mat3x3f_t* ri, s2_mat3x3f_t* ro);
+void s2_mat3x3f_transpose(s2_mat3x3f_t* ri, s2_mat3x3f_t* ro);
 
 void s2_product_rv(s2_mat3x3_t* ri, s2_vector_t* vi, s2_vector_t* vo);
 
@@ -480,53 +480,56 @@ void s2_product_rinverser(s2_mat3x3_t* r1i, s2_mat3x3_t* r2i, s2_mat3x3_t* ro);
 void s2_product_rinverserf(s2_mat3x3f_t* r1i, s2_mat3x3f_t* r2i,
                            s2_mat3x3f_t* ro);
 
-void s2_product_rtx(s2_mat3x3_t* ri, double* ti, s2_vector_t* to);
+void s2_product_rtx(s2_mat3x3_t* ri, const double* ti, s2_vector_t* to);
 
-void s2_product_rtxf(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to);
+void s2_product_rtxf(s2_mat3x3f_t* ri, const float* ti, s2_vectorf_t* to);
 
-void s2_product_rtxinverse(s2_mat3x3_t* ri, double* ti, s2_vector_t* to);
+void s2_product_rtxinverse(s2_mat3x3_t* ri, const double* ti, s2_vector_t* to);
 
-void s2_product_rtxinversef(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to);
+void s2_product_rtxinversef(s2_mat3x3f_t* ri, const float* ti,
+                            s2_vectorf_t* to);
 
-void s2_product_rty(s2_mat3x3_t* ri, double* ti, s2_vector_t* to);
+void s2_product_rty(s2_mat3x3_t* ri, const double* ti, s2_vector_t* to);
 
-void s2_product_rtyf(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to);
+void s2_product_rtyf(s2_mat3x3f_t* ri, const float* ti, s2_vectorf_t* to);
 
-void s2_product_rtyinverse(s2_mat3x3_t* ri, double* ti, s2_vector_t* to);
+void s2_product_rtyinverse(s2_mat3x3_t* ri, const double* ti, s2_vector_t* to);
 
-void s2_product_rtyinversef(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to);
+void s2_product_rtyinversef(s2_mat3x3f_t* ri, const float* ti,
+                            s2_vectorf_t* to);
 
-void s2_product_rtz(s2_mat3x3_t* ri, double* ti, s2_vector_t* to);
+void s2_product_rtz(s2_mat3x3_t* ri, const double* ti, s2_vector_t* to);
 
-void s2_product_rtzf(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to);
+void s2_product_rtzf(s2_mat3x3f_t* ri, const float* ti, s2_vectorf_t* to);
 
-void s2_product_rtzinverse(s2_mat3x3_t* ri, double* ti, s2_vector_t* to);
+void s2_product_rtzinverse(s2_mat3x3_t* ri, const double* ti, s2_vector_t* to);
 
-void s2_product_rtzinversef(s2_mat3x3f_t* ri, float* ti, s2_vectorf_t* to);
+void s2_product_rtzinversef(s2_mat3x3f_t* ri, const float* ti,
+                            s2_vectorf_t* to);
 
-void s2_add_ttx(s2_vector_t* t1i, double* t2i, s2_vector_t* to);
+void s2_add_ttx(s2_vector_t* t1i, const double* t2i, s2_vector_t* to);
 
-void s2_add_ttxf(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to);
+void s2_add_ttxf(s2_vectorf_t* t1i, const float* t2i, s2_vectorf_t* to);
 
-void s2_add_ttxinverse(s2_vector_t* t1i, double* t2i, s2_vector_t* to);
+void s2_add_ttxinverse(s2_vector_t* t1i, const double* t2i, s2_vector_t* to);
 
-void s2_add_ttxinversef(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to);
+void s2_add_ttxinversef(s2_vectorf_t* t1i, const float* t2i, s2_vectorf_t* to);
 
-void s2_add_tty(s2_vector_t* t1i, double* t2i, s2_vector_t* to);
+void s2_add_tty(s2_vector_t* t1i, const double* t2i, s2_vector_t* to);
 
-void s2_add_ttyf(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to);
+void s2_add_ttyf(s2_vectorf_t* t1i, const float* t2i, s2_vectorf_t* to);
 
-void s2_add_ttyinverse(s2_vector_t* t1i, double* t2i, s2_vector_t* to);
+void s2_add_ttyinverse(s2_vector_t* t1i, const double* t2i, s2_vector_t* to);
 
-void s2_add_ttyinversef(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to);
+void s2_add_ttyinversef(s2_vectorf_t* t1i, const float* t2i, s2_vectorf_t* to);
 
-void s2_add_ttz(s2_vector_t* t1i, double* t2i, s2_vector_t* to);
+void s2_add_ttz(s2_vector_t* t1i, const double* t2i, s2_vector_t* to);
 
-void s2_add_ttzf(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to);
+void s2_add_ttzf(s2_vectorf_t* t1i, const float* t2i, s2_vectorf_t* to);
 
-void s2_add_ttzinverse(s2_vector_t* t1i, double* t2i, s2_vector_t* to);
+void s2_add_ttzinverse(s2_vector_t* t1i, const double* t2i, s2_vector_t* to);
 
-void s2_add_ttzinversef(s2_vectorf_t* t1i, float* t2i, s2_vectorf_t* to);
+void s2_add_ttzinversef(s2_vectorf_t* t1i, const float* t2i, s2_vectorf_t* to);
 
 void s2_displacement_invert(s2_displacement_t* Di, s2_displacement_t* Do);
 
@@ -589,29 +592,34 @@ void s2_product_dinverset(s2_displacement_t* Di, s2_vector_t* vi,
 void s2_product_dinversetf(s2_displacementf_t* Di, s2_vectorf_t* vi,
                            s2_displacementf_t* Do);
 
-void s2_product_dtx(s2_displacement_t* Di, double* ti, s2_displacement_t* Do);
+void s2_product_dtx(s2_displacement_t* Di, const double* ti,
+                    s2_displacement_t* Do);
 
-void s2_product_dtxinverse(s2_displacement_t* Di, double* ti,
+void s2_product_dtxinverse(s2_displacement_t* Di, const double* ti,
                            s2_displacement_t* Do);
 
-void s2_product_dtxinversef(s2_displacementf_t* Di, float* ti,
+void s2_product_dtxinversef(s2_displacementf_t* Di, const float* ti,
                             s2_displacementf_t* Do);
 
-void s2_product_dty(s2_displacement_t* Di, double* ti, s2_displacement_t* Do);
+void s2_product_dty(s2_displacement_t* Di, const double* ti,
+                    s2_displacement_t* Do);
 
-void s2_product_dtyf(s2_displacementf_t* Di, float* ti, s2_displacementf_t* Do);
+void s2_product_dtyf(s2_displacementf_t* Di, const float* ti,
+                     s2_displacementf_t* Do);
 
-void s2_product_dtyinverse(s2_displacement_t* Di, double* ti,
+void s2_product_dtyinverse(s2_displacement_t* Di, const double* ti,
                            s2_displacement_t* Do);
 
-void s2_product_dtyinversef(s2_displacementf_t* Di, float* ti,
+void s2_product_dtyinversef(s2_displacementf_t* Di, const float* ti,
                             s2_displacementf_t* Do);
 
-void s2_product_dtz(s2_displacement_t* Di, double* ti, s2_displacement_t* Do);
+void s2_product_dtz(s2_displacement_t* Di, const double* ti,
+                    s2_displacement_t* Do);
 
-void s2_product_dtzf(s2_displacementf_t* Di, float* ti, s2_displacementf_t* Do);
+void s2_product_dtzf(s2_displacementf_t* Di, const float* ti,
+                     s2_displacementf_t* Do);
 
-void s2_product_dtzinverse(s2_displacement_t* Di, double* ti,
+void s2_product_dtzinverse(s2_displacement_t* Di, const double* ti,
                            s2_displacement_t* Do);
 
 void s2_product_dr(s2_displacement_t* Di, s2_mat3x3_t* Ri,

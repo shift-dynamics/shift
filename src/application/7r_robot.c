@@ -424,7 +424,7 @@ int main(int argc, char* argv[]) {
   // s2_context_print(debug, context);
 
   /* find current position of end effector */
-  s2_context_updateDH(context);
+  s2_context_updateDH(context, &context->dhva, context->q);
   s2_frame_t* endEffectorFrame =
     s2_context_getFrameByName(context, "body7", "7h_plus");
 
@@ -448,7 +448,7 @@ int main(int argc, char* argv[]) {
   memset(J, 0, context->dqCount * 6 * sizeof(double));
   for(int i = 0; i < 6; i++) {
     for(int j = 0; j < context->dqCount; j++) {
-      J[i * context->dqCount + j] = ((double*)(context->h + j))[i];
+      J[i * context->dqCount + j] = ((double*)(context->dhva.h + j))[i];
     }
   }
 
@@ -462,12 +462,12 @@ int main(int argc, char* argv[]) {
 
   fprintf(debug, "h:\n");
   for(int i = 0; i < context->dqCount; i++) {
-    s2_screw_print(debug, context->h + i);
+    s2_screw_print(debug, context->dhva.h + i);
   }
 
   /* evaluate initial jacobian in po1 */
 
-  double* J_po1 = (double*)context->h;
+  double* J_po1 = (double*)context->dhva.h;
 
   fprintf(debug, "\nverifying jacobian (column major)\n");
   s2_array_print2D(debug, 6, context->dqCount, false, J_po1);
@@ -554,7 +554,7 @@ int main(int argc, char* argv[]) {
   s2_screw_print(debug, &hLocal);
 
   s2_screwproduct_ds(endEffectorFrame->dAbsolute, &hLocal,
-                     &context->h[context->dqCount]);
+                     &context->dhva.h[context->dqCount]);
 
   // for
 

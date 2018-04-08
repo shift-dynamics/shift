@@ -259,7 +259,7 @@ this matrix as mobility numbers in the mn[] array.
 */
 void s2_context_computeMobility(s2_context_t* context) {
 
-  s2_context_updateDH(context);
+  s2_context_updateDH(context, &context->dhva, context->q);
 
   s2_substructure_t* substructure = context->substructures;
   for(int i = 0; i < context->substructureCount; i++, substructure++) {

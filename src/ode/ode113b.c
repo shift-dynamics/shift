@@ -12,8 +12,7 @@ void s2_context_allocOde113b(s2_context_t* context) {
   s2_numericalintegrator_ode113b_t* numericalIntegrator =
     (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
 
-  numericalIntegrator->neqn =
-    context->qCount + context->dqCount;
+  numericalIntegrator->neqn = context->qCount + context->dqCount;
 
   for(int i = 0; i < context->forceModuleCount; i++) {
     numericalIntegrator->neqn += context->forceModulePointers[i]->neqn;
@@ -25,14 +24,11 @@ void s2_context_allocOde113b(s2_context_t* context) {
     y = {q }
         {dq}
   */
-  numericalIntegrator->y =
-    malloc(numericalIntegrator->neqn * sizeof(double));
+  numericalIntegrator->y = malloc(numericalIntegrator->neqn * sizeof(double));
 
   /* copy initial conditions from dynamics */
-  memcpy(
-    numericalIntegrator->y,
-    context->q,
-    (context->qCount + context->dqCount) * sizeof(double));
+  memcpy(numericalIntegrator->y, context->q,
+         (context->qCount + context->dqCount) * sizeof(double));
 
   /* copy initial conditions from force modules */
   int i = context->qCount + context->dqCount;
@@ -49,50 +45,35 @@ void s2_context_allocOde113b(s2_context_t* context) {
     }
   }
 
-
-
-  numericalIntegrator->stepCount = ceil(
-                                     (double)context->modelParameters.timeSpan / (double)context->modelParameters.timeStep) + 1;
-  numericalIntegrator->ydata =
-    calloc(
-      numericalIntegrator->neqn *
-      numericalIntegrator->stepCount,
-      sizeof(double));
+  numericalIntegrator->stepCount =
+    ceil((double)context->modelParameters.timeSpan /
+         (double)context->modelParameters.timeStep) +
+    1;
+  numericalIntegrator->ydata = calloc(
+    numericalIntegrator->neqn * numericalIntegrator->stepCount, sizeof(double));
   numericalIntegrator->tdata =
-    calloc(
-      numericalIntegrator->stepCount,
-      sizeof(double));
-  memcpy(
-    numericalIntegrator->ydata,
-    numericalIntegrator->y,
-    numericalIntegrator->neqn * sizeof(double));
+    calloc(numericalIntegrator->stepCount, sizeof(double));
+  memcpy(numericalIntegrator->ydata, numericalIntegrator->y,
+         numericalIntegrator->neqn * sizeof(double));
 
-  numericalIntegrator->dy =
-    calloc(numericalIntegrator->neqn, sizeof(double));
+  numericalIntegrator->dy = calloc(numericalIntegrator->neqn, sizeof(double));
 
   s2_context_connectForceModules(context);
 
-  numericalIntegrator->yy =
-    calloc(numericalIntegrator->neqn, sizeof(double));
-  memcpy(
-    numericalIntegrator->yy,
-    numericalIntegrator->y,
-    numericalIntegrator->neqn * sizeof(double));
+  numericalIntegrator->yy = calloc(numericalIntegrator->neqn, sizeof(double));
+  memcpy(numericalIntegrator->yy, numericalIntegrator->y,
+         numericalIntegrator->neqn * sizeof(double));
 
   numericalIntegrator->dyout =
     calloc(numericalIntegrator->neqn, sizeof(double));
 
-  numericalIntegrator->wt =
-    calloc(numericalIntegrator->neqn, sizeof(double));
+  numericalIntegrator->wt = calloc(numericalIntegrator->neqn, sizeof(double));
 
-  numericalIntegrator->p =
-    calloc(numericalIntegrator->neqn, sizeof(double));
+  numericalIntegrator->p = calloc(numericalIntegrator->neqn, sizeof(double));
 
-  numericalIntegrator->yerr =
-    calloc(numericalIntegrator->neqn, sizeof(double));
+  numericalIntegrator->yerr = calloc(numericalIntegrator->neqn, sizeof(double));
 
-  numericalIntegrator->phi =
-    s2_array_malloc2D(17, numericalIntegrator->neqn);
+  numericalIntegrator->phi = s2_array_malloc2D(17, numericalIntegrator->neqn);
 
   numericalIntegrator->iflag = 1;
   numericalIntegrator->newtonRaphsonFailure = false;
@@ -190,9 +171,7 @@ void s2_context_allocOde113b(s2_context_t* context) {
 
   numericalIntegrator->integralError =
     calloc(context->chordConstraintCount * 6, sizeof(double));
-
 }
-
 
 /*!
 @brief free memory for ode113b integrator
@@ -217,13 +196,10 @@ void s2_context_freeOde113b(s2_context_t* context) {
   context->numericalIntegrator = NULL;
 }
 
-
 /*!
 @brief solve for current time step
 */
-void s2_ode113b_fcn(
-  double y[],
-  s2_context_t* context) {
+void s2_ode113b_fcn(double y[], s2_context_t* context) {
 
   /*
     copy y to context->q and context->dq
@@ -237,12 +213,9 @@ void s2_ode113b_fcn(
     (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
   numericalIntegrator->iterationCount++;
 
-  memcpy(
-    context->q,
-    y,
-    (context->qCount + context->dqCount) * sizeof(double));
+  memcpy(context->q, y, (context->qCount + context->dqCount) * sizeof(double));
 
-  s2_context_updateDHVA(context);
+  s2_context_updateDHVA(context, &context->dhva, context->q, context->dq);
   s2_context_evaluateConstraints(context);
   s2_context_setForces(context, y);
   s2_context_setEquations(context);
@@ -284,10 +257,8 @@ void s2_ode113b_fcn(
   /*
     copy context->ddq to second half of dy, starting at qCount
   */
-  memcpy(
-    numericalIntegrator->dy + context->qCount,
-    context->ddq,
-    context->dqCount * sizeof(double));
+  memcpy(numericalIntegrator->dy + context->qCount, context->ddq,
+         context->dqCount * sizeof(double));
 
   // printf("time: %0.16g\n", numericalIntegrator->x);
 
@@ -309,26 +280,26 @@ void s2_ode113b_fcn(
 
     omegaN = fmin(omegaN, 1000); /* limit omegaN */
 
-    omegaN = omegaNl + numericalIntegrator->smoothingFilter *
-             (omegaN - omegaNl);
+    omegaN =
+      omegaNl + numericalIntegrator->smoothingFilter * (omegaN - omegaNl);
 
     numericalIntegrator->baumgarte2OmegaN = 2 * omegaN;
     numericalIntegrator->baumgarteOmegaN2 = omegaN * omegaN;
 
     double rhodt = h * numericalIntegrator->integralGain;
     for(int i = 0; i < context->chordConstraintCount * 6; i++) {
-      numericalIntegrator->integralError[i] +=
-        context->cs[i] * rhodt;
+      numericalIntegrator->integralError[i] += context->cs[i] * rhodt;
     }
 
     numericalIntegrator->t = numericalIntegrator->x;
     s2_context_saveForceModuleHistory(context);
 
     if(numericalIntegrator->x >=
-        numericalIntegrator->tdata[numericalIntegrator->step] + context->modelParameters.timeStep) {
-      s2_context_writeStates(
-        context, ++(numericalIntegrator->step));
-      // printf("\tk: %d, h: %0.9g, SL: %f, safetyFactor: %f, omegaN: %f\n", k, h, SL[k], safetyFactor, omegaN);
+       numericalIntegrator->tdata[numericalIntegrator->step] +
+         context->modelParameters.timeStep) {
+      s2_context_writeStates(context, ++(numericalIntegrator->step));
+      // printf("\tk: %d, h: %0.9g, SL: %f, safetyFactor: %f, omegaN: %f\n", k,
+      // h, SL[k], safetyFactor, omegaN);
       numericalIntegrator->iterationCount = 0;
 
       /* write dhva information to dhva debug file */
@@ -339,7 +310,6 @@ void s2_ode113b_fcn(
   numericalIntegrator->iconv = 0;
   return;
 }
-
 
 /*
 @brief Subroutine step integrates a system of first order ordinary
@@ -451,9 +421,8 @@ unsuccessful step --
   just calls the code again.  a restart is neither required nor
   desirable.
 */
-void s2_ode113b_step(
-  void f(double y[], s2_context_t* context),
-  s2_context_t* context) {
+void s2_ode113b_step(void f(double y[], s2_context_t* context),
+                     s2_context_t* context) {
 
   s2_numericalintegrator_ode113b_t* numericalIntegrator =
     (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
@@ -496,7 +465,8 @@ void s2_ode113b_step(
 
   if step size is too small, determine an acceptable one */
   numericalIntegrator->crash = true;
-  numericalIntegrator->h = fmax(numericalIntegrator->h, numericalIntegrator->fouru);
+  numericalIntegrator->h =
+    fmax(numericalIntegrator->h, numericalIntegrator->fouru);
   p5eps = 0.5 * numericalIntegrator->eps;
 
   /*  if error tolerance is too small, increase it to an acceptable value */
@@ -526,14 +496,14 @@ void s2_ode113b_step(
       sum += pow(numericalIntegrator->dy[l] / numericalIntegrator->wt[l], 2);
     }
     sum = sqrt(sum);
-    if(numericalIntegrator->eps < 16.0 * sum * numericalIntegrator->h * numericalIntegrator->h) {
+    if(numericalIntegrator->eps <
+       16.0 * sum * numericalIntegrator->h * numericalIntegrator->h) {
       numericalIntegrator->h = 0.25 * sqrt(numericalIntegrator->eps / sum);
     }
 
     numericalIntegrator->h =
-      fmax(
-        numericalIntegrator->h,
-        numericalIntegrator->fouru * numericalIntegrator->x);
+      fmax(numericalIntegrator->h,
+           numericalIntegrator->fouru * numericalIntegrator->x);
     numericalIntegrator->h =
       fmin(numericalIntegrator->h, numericalIntegrator->hmax);
     numericalIntegrator->hold = 0.0;
@@ -591,9 +561,8 @@ void s2_ode113b_step(
           im1 = i - 1;
           temp2 = numericalIntegrator->psi[im1];
           numericalIntegrator->psi[im1] = temp1;
-          numericalIntegrator->beta[i] =
-            numericalIntegrator->beta[im1] *
-            numericalIntegrator->psi[im1] / temp2;
+          numericalIntegrator->beta[i] = numericalIntegrator->beta[im1] *
+                                         numericalIntegrator->psi[im1] / temp2;
           temp1 = temp2 + numericalIntegrator->h;
           numericalIntegrator->alpha[i] = numericalIntegrator->h / temp1;
           numericalIntegrator->sig[i + 1] =
@@ -616,12 +585,11 @@ void s2_ode113b_step(
             1.0 / (numericalIntegrator->k * kp1);
           nsm2 = numericalIntegrator->ns - 2;
           if(nsm2 >= 1) {
-            for(int j = 1; j <= nsm2; j++)  {
+            for(int j = 1; j <= nsm2; j++) {
               int i = numericalIntegrator->k - j;
               numericalIntegrator->v[i] =
-                numericalIntegrator->v[i] -
-                numericalIntegrator->alpha[j + 1] *
-                numericalIntegrator->v[i + 1];
+                numericalIntegrator->v[i] - numericalIntegrator->alpha[j + 1] *
+                                              numericalIntegrator->v[i + 1];
             }
           }
         }
@@ -639,9 +607,8 @@ void s2_ode113b_step(
       if(kp1 >= nsp2) {
         for(int i = nsp2; i <= kp1; i++) {
           for(iq = 1; iq <= kp2 - i; iq++) {
-            numericalIntegrator->w[iq] -=
-              numericalIntegrator->alpha[i - 1] *
-              numericalIntegrator->w[iq + 1];
+            numericalIntegrator->w[iq] -= numericalIntegrator->alpha[i - 1] *
+                                          numericalIntegrator->w[iq + 1];
           }
           numericalIntegrator->g[i] = numericalIntegrator->w[1];
         }
@@ -661,16 +628,14 @@ void s2_ode113b_step(
       for(int i = nsp1; i <= numericalIntegrator->k; i++) {
         for(int l = 0; l < numericalIntegrator->neqn; l++) {
           numericalIntegrator->phi[i][l] =
-            numericalIntegrator->beta[i] *
-            numericalIntegrator->phi[i][l];
+            numericalIntegrator->beta[i] * numericalIntegrator->phi[i][l];
         }
       }
     }
 
     /*  predict solution and differences */
     for(int l = 0; l < numericalIntegrator->neqn; l++) {
-      numericalIntegrator->phi[kp2][l] =
-        numericalIntegrator->phi[kp1][l];
+      numericalIntegrator->phi[kp2][l] = numericalIntegrator->phi[kp1][l];
       numericalIntegrator->phi[kp1][l] = 0.0;
       numericalIntegrator->p[l] = 0.0;
     }
@@ -679,24 +644,19 @@ void s2_ode113b_step(
       ip1 = i + 1;
       for(int l = 0; l < numericalIntegrator->neqn; l++) {
         numericalIntegrator->p[l] +=
-          numericalIntegrator->g[i] *
-          numericalIntegrator->phi[i][l];
-        numericalIntegrator->phi[i][l] +=
-          numericalIntegrator->phi[ip1][l];
+          numericalIntegrator->g[i] * numericalIntegrator->phi[i][l];
+        numericalIntegrator->phi[i][l] += numericalIntegrator->phi[ip1][l];
       }
     }
     if(numericalIntegrator->nornd) {
       for(int l = 0; l < numericalIntegrator->neqn; l++)
         numericalIntegrator->p[l] =
           numericalIntegrator->yy[l] +
-          numericalIntegrator->h *
-          numericalIntegrator->p[l];
+          numericalIntegrator->h * numericalIntegrator->p[l];
     } else {
       for(int l = 0; l < numericalIntegrator->neqn; l++) {
-        tau =
-          numericalIntegrator->h *
-          numericalIntegrator->p[l] -
-          numericalIntegrator->phi[15][l];
+        tau = numericalIntegrator->h * numericalIntegrator->p[l] -
+              numericalIntegrator->phi[15][l];
         numericalIntegrator->p[l] = numericalIntegrator->yy[l] + tau;
         numericalIntegrator->phi[16][l] =
           (numericalIntegrator->p[l] - numericalIntegrator->yy[l]) - tau;
@@ -718,29 +678,34 @@ void s2_ode113b_step(
         temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
         numericalIntegrator->yerr[l] =
           pow(temp4 / numericalIntegrator->wt[l], 2);
-        erkm2 +=
-          pow(
-            (numericalIntegrator->phi[km1][l] + temp4) / numericalIntegrator->wt[l], 2);
+        erkm2 += pow((numericalIntegrator->phi[km1][l] + temp4) /
+                       numericalIntegrator->wt[l],
+                     2);
         erkm1 +=
-          pow(
-            (numericalIntegrator->phi[numericalIntegrator->k][l] + temp4) / numericalIntegrator->wt[l], 2);
+          pow((numericalIntegrator->phi[numericalIntegrator->k][l] + temp4) /
+                numericalIntegrator->wt[l],
+              2);
         erk += numericalIntegrator->yerr[l];
       }
-      erkm2 =
-        numericalIntegrator->h * numericalIntegrator->sig[km1] * numericalIntegrator->gstr[km2] * sqrt(erkm2);
-      erkm1 =
-        numericalIntegrator->h * numericalIntegrator->sig[numericalIntegrator->k] * numericalIntegrator->gstr[km1] * sqrt(erkm1);
+      erkm2 = numericalIntegrator->h * numericalIntegrator->sig[km1] *
+              numericalIntegrator->gstr[km2] * sqrt(erkm2);
+      erkm1 = numericalIntegrator->h *
+              numericalIntegrator->sig[numericalIntegrator->k] *
+              numericalIntegrator->gstr[km1] * sqrt(erkm1);
     } else if(km1 > 0) {
       for(int l = 0; l < numericalIntegrator->neqn; l++) {
         temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
         numericalIntegrator->yerr[l] =
           pow(temp4 / numericalIntegrator->wt[l], 2);
-        erkm1 += pow(
-                   (numericalIntegrator->phi[numericalIntegrator->k][l] + temp4) / numericalIntegrator->wt[l], 2);
+        erkm1 +=
+          pow((numericalIntegrator->phi[numericalIntegrator->k][l] + temp4) /
+                numericalIntegrator->wt[l],
+              2);
         erk += numericalIntegrator->yerr[l];
       }
-      erkm1 =
-        numericalIntegrator->h * numericalIntegrator->sig[numericalIntegrator->k] * numericalIntegrator->gstr[km1] * sqrt(erkm1);
+      erkm1 = numericalIntegrator->h *
+              numericalIntegrator->sig[numericalIntegrator->k] *
+              numericalIntegrator->gstr[km1] * sqrt(erkm1);
     } else {
       for(int l = 0; l < numericalIntegrator->neqn; l++) {
         temp4 = numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l];
@@ -750,9 +715,8 @@ void s2_ode113b_step(
       }
     }
     temp5 = numericalIntegrator->h * sqrt(erk);
-    err =
-      temp5 * (numericalIntegrator->g[numericalIntegrator->k] -
-               numericalIntegrator->g[kp1]);
+    err = temp5 * (numericalIntegrator->g[numericalIntegrator->k] -
+                   numericalIntegrator->g[kp1]);
     erk = temp5 * numericalIntegrator->sig[kp1] *
           numericalIntegrator->gstr[numericalIntegrator->k];
     knew = numericalIntegrator->k;
@@ -782,7 +746,8 @@ void s2_ode113b_step(
       ip1 = i + 1;
       for(int l = 0; l < numericalIntegrator->neqn; l++) {
         numericalIntegrator->phi[i][l] =
-          (numericalIntegrator->phi[i][l] - numericalIntegrator->phi[ip1][l]) / numericalIntegrator->beta[i];
+          (numericalIntegrator->phi[i][l] - numericalIntegrator->phi[ip1][l]) /
+          numericalIntegrator->beta[i];
       }
     }
 
@@ -806,8 +771,8 @@ void s2_ode113b_step(
 
     numericalIntegrator->k = knew;
     numericalIntegrator->h = temp2 * numericalIntegrator->h;
-    if(
-      numericalIntegrator->h < numericalIntegrator->fouru * numericalIntegrator->x) {
+    if(numericalIntegrator->h <
+       numericalIntegrator->fouru * numericalIntegrator->x) {
       numericalIntegrator->crash = true;
       numericalIntegrator->h =
         numericalIntegrator->fouru * numericalIntegrator->x;
@@ -831,11 +796,13 @@ void s2_ode113b_step(
   if(numericalIntegrator->nornd) {
     for(int l = 0; l < numericalIntegrator->neqn; l++)
       numericalIntegrator->yy[l] =
-        numericalIntegrator->p[l] + temp1 *
-        (numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l]);
+        numericalIntegrator->p[l] +
+        temp1 * (numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l]);
   } else {
     for(int l = 0; l < numericalIntegrator->neqn; l++) {
-      rho = temp1 * (numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l]) - numericalIntegrator->phi[16][l];
+      rho =
+        temp1 * (numericalIntegrator->dy[l] - numericalIntegrator->phi[1][l]) -
+        numericalIntegrator->phi[16][l];
       numericalIntegrator->yy[l] = numericalIntegrator->p[l] + rho;
       numericalIntegrator->phi[15][l] =
         (numericalIntegrator->yy[l] - numericalIntegrator->p[l]) - rho;
@@ -878,7 +845,7 @@ void s2_ode113b_step(
     /* lower order */
     numericalIntegrator->k = km1;
     erk = erkm1;
-  } else if(kp1 <= numericalIntegrator->ns)  {
+  } else if(kp1 <= numericalIntegrator->ns) {
     for(int l = 0; l < numericalIntegrator->neqn; l++) {
       erkp1 +=
         pow(numericalIntegrator->phi[kp2][l] / numericalIntegrator->wt[l], 2);
@@ -908,9 +875,8 @@ void s2_ode113b_step(
   }
 
   hnew = numericalIntegrator->h + numericalIntegrator->h;
-  if(
-    (!numericalIntegrator->phase1) &&
-    (p5eps < erk * numericalIntegrator->two[numericalIntegrator->k + 1])) {
+  if((!numericalIntegrator->phase1) &&
+     (p5eps < erk * numericalIntegrator->two[numericalIntegrator->k + 1])) {
 
     hnew = numericalIntegrator->h;
     if(p5eps < erk) {
@@ -923,7 +889,6 @@ void s2_ode113b_step(
   numericalIntegrator->h = hnew;
   return;
 }
-
 
 /*!
 @brief subroutine de integrates a system of neqn first order ordinary
@@ -1014,9 +979,8 @@ void s2_ode113b_step(
   be changed by the user before continuing.  all other parameters must
   remain unchanged.
 */
-void s2_ode113b_de(
-  void f(double y[], s2_context_t* context),
-  s2_context_t* context) {
+void s2_ode113b_de(void f(double y[], s2_context_t* context),
+                   s2_context_t* context) {
 
   s2_numericalintegrator_ode113b_t* numericalIntegrator =
     (s2_numericalintegrator_ode113b_t*)context->numericalIntegrator;
@@ -1025,31 +989,24 @@ void s2_ode113b_de(
   double abseps;
 
   numericalIntegrator->step = 0;
-  numericalIntegrator->eps =
-    fmax(
-      context->modelParameters.relativeError,
-      context->modelParameters.absoluteError);
+  numericalIntegrator->eps = fmax(context->modelParameters.relativeError,
+                                  context->modelParameters.absoluteError);
 
   /* test for improper parameters */
-  if(
-    numericalIntegrator->neqn < 1 ||
-    context->modelParameters.timeSpan == 0.0 ||
-    context->modelParameters.relativeError < 0.0 ||
-    context->modelParameters.absoluteError < 0.0 ||
-    numericalIntegrator->iflag < 1 ||
-    numericalIntegrator->iflag > 5 ||
-    numericalIntegrator->eps < numericalIntegrator->twou) {
+  if(numericalIntegrator->neqn < 1 ||
+     context->modelParameters.timeSpan == 0.0 ||
+     context->modelParameters.relativeError < 0.0 ||
+     context->modelParameters.absoluteError < 0.0 ||
+     numericalIntegrator->iflag < 1 || numericalIntegrator->iflag > 5 ||
+     numericalIntegrator->eps < numericalIntegrator->twou) {
 
     printf(
-      "neqn=%d, time=%g, timeEnd=%g, relerr=%g, abserr=%g, iflag=%d, eps=%g, " "twou=%g\n",
-      numericalIntegrator->neqn,
-      0.0,
-      context->modelParameters.timeSpan,
+      "neqn=%d, time=%g, timeEnd=%g, relerr=%g, abserr=%g, iflag=%d, eps=%g, "
+      "twou=%g\n",
+      numericalIntegrator->neqn, 0.0, context->modelParameters.timeSpan,
       context->modelParameters.relativeError,
-      context->modelParameters.absoluteError,
-      numericalIntegrator->iflag,
-      numericalIntegrator->eps,
-      numericalIntegrator->twou);
+      context->modelParameters.absoluteError, numericalIntegrator->iflag,
+      numericalIntegrator->eps, numericalIntegrator->twou);
 
     numericalIntegrator->iflag = 6;
     return;
@@ -1070,10 +1027,8 @@ void s2_ode113b_de(
     numericalIntegrator->k = 0;
     numericalIntegrator->kold = 0;
     numericalIntegrator->x = 0.0;
-    memcpy(
-      numericalIntegrator->yy,
-      numericalIntegrator->y,
-      numericalIntegrator->neqn * sizeof(double));
+    memcpy(numericalIntegrator->yy, numericalIntegrator->y,
+           numericalIntegrator->neqn * sizeof(double));
     numericalIntegrator->h = numericalIntegrator->hmax;
 
     for(int i = 0; i < 13; i++) {
@@ -1086,17 +1041,14 @@ void s2_ode113b_de(
     numericalIntegrator->h =
       fmin(numericalIntegrator->h, numericalIntegrator->hmax);
     numericalIntegrator->h =
-      fmin(
-        numericalIntegrator->h,
-        context->modelParameters.timeSpan - numericalIntegrator->x);
+      fmin(numericalIntegrator->h,
+           context->modelParameters.timeSpan - numericalIntegrator->x);
     for(int l = 0; l < numericalIntegrator->neqn; l++) {
       numericalIntegrator->wt[l] =
         releps * fabs(numericalIntegrator->yy[l]) + abseps;
     }
 
-    s2_ode113b_step(
-      f,
-      context);
+    s2_ode113b_step(f, context);
 
     if(numericalIntegrator->newtonRaphsonFailure) {
       fprintf(stderr, "NR Failure\n");
@@ -1109,21 +1061,19 @@ void s2_ode113b_de(
     }
 
     /*  If crash, increase error tolerances and return to
-      calling program. Can call de again to continue integration with larger tolerances.*/
+      calling program. Can call de again to continue integration with larger
+      tolerances.*/
     if(numericalIntegrator->crash) {
       numericalIntegrator->iflag = 3;
       numericalIntegrator->relerr = numericalIntegrator->eps * releps;
       numericalIntegrator->abserr = numericalIntegrator->eps * abseps;
-      memcpy(
-        numericalIntegrator->y,
-        numericalIntegrator->yy,
-        numericalIntegrator->neqn * sizeof(double));
+      memcpy(numericalIntegrator->y, numericalIntegrator->yy,
+             numericalIntegrator->neqn * sizeof(double));
       numericalIntegrator->x = numericalIntegrator->t;
       return;
     } /*End if crash*/
   }   /*End While*/
 }
-
 
 /*!
 @brief placeholder for integrating using ode113b method
@@ -1141,17 +1091,13 @@ void s2_context_integrateEquationsOde113b(s2_context_t* context) {
   @TODO need to add interpolation in graphics for data at irregular time
   interval reporting */
   if(numericalIntegrator->step < numericalIntegrator->stepCount - 1) {
-    for(
-      int i = numericalIntegrator->step;
-      i < numericalIntegrator->stepCount;
-      i++) {
+    for(int i = numericalIntegrator->step; i < numericalIntegrator->stepCount;
+        i++) {
 
-      memcpy(
-        numericalIntegrator->ydata + numericalIntegrator->neqn * i,
-        numericalIntegrator->ydata + numericalIntegrator->neqn *
-        (numericalIntegrator->step - 1),
-        numericalIntegrator->neqn * sizeof(double));
-
+      memcpy(numericalIntegrator->ydata + numericalIntegrator->neqn * i,
+             numericalIntegrator->ydata +
+               numericalIntegrator->neqn * (numericalIntegrator->step - 1),
+             numericalIntegrator->neqn * sizeof(double));
     }
   }
 
