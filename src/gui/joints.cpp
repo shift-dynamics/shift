@@ -141,7 +141,7 @@ void Shift::Joints::update() {
 }
 
 /*!
-  @brief set joint to be incremented
+@brief set joint to be incremented
 */
 void Shift::Joints::set(s2_joint_t* joint, int qIndex, int dqIndex, double delq,
                         s2_joint_enum_t jointType) {
