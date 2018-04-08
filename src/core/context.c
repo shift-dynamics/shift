@@ -276,29 +276,32 @@ s2_context_t* s2_context() {
   self->originPointers = NULL;
   self->referenceFramePointers = NULL;
 
-  self->d = NULL;             /*!< array of displacements equal
-                                           in size to number of frames */
   self->dWRTReference = NULL; /*!< array of relative displacements,
                                            equal in size to number of shape
                                            matrices + rigid joints*/
   self->dReferenceFrames = NULL;
 
-  self->dc = NULL;  //!< direction cosine arrays
-  self->dcq = NULL; /*!< generalized coordinates that have direction cosine
-                      terms associated with them */
-  self->h = NULL;   /*!< an array of influence coefficient matrices equal to the
-                      6 * number of variables in the datastructure */
-  self->v = NULL;   /*!< an array of body velocities equal to the
-                      number of variables in the datastructure */
-  self->aq = NULL;  /*!< an array of body accelerations equal to the
-                     number of variables in the datastructure */
-  self->vRelative = NULL;  /*!< an array of body velocities equal to the
-                     number of variables in the datastructure */
-  self->aqRelative = NULL; /*!< an array of body accelerations equal to the
-                    number of variables in the datastructure */
-  self->dhva = NULL; /*!< pointers to quantities needed by dhFunctionPointers
-                         and dhvaFunctionPointers, set by
-                         topology_ProcessTopology */
+  self->dcq = NULL; /*!< index of generalized coordinates that have
+                      direction cosine terms associated with them */
+
+  self->dhva.dc = NULL; //!< direction cosine arrays
+  self->dhva.d = NULL;  /*!< array of displacements equal
+                                in size to number of frames */
+  self->dhva.h =
+    NULL;                       /*!< an array of influence coefficient matrices
+                                     equal to the 6 * number of variables in the datastructure */
+  self->dhva.v = NULL;          /*!< an array of body velocities equal to the
+                             number of variables in the datastructure */
+  self->dhva.aq = NULL;         /*!< an array of body accelerations equal to the
+                            number of variables in the datastructure */
+  self->dhva.vRelative = NULL;  /*!< an array of body velocities equal to
+                     the number of variables in the datastructure */
+  self->dhva.aqRelative = NULL; /*!< an array of body accelerations
+                    equal to the number of variables in the datastructure */
+  self->dhvaOffsets = NULL;     /*!< pointers to quantities needed by
+                             dhFunctionPointers             and
+                             dhvaFunctionPointers, set by     topology_ProcessTopology
+                           */
 
   self->q = NULL; //!< primitive joint displacements
   self->qCopy = NULL;
@@ -551,25 +554,6 @@ void s2_context_print(FILE* f, s2_context_t* context) {
 }
 
 /*!
-@brief Free influence coefficient matrices, copy values back to their original
-Joint datastructures
-
-@param context a Context datastructure
-*/
-void s2_context_freeH(s2_context_t* self) {
-  if(self->h) {
-    for(int i = 0; i < self->activeJointCount; i++) {
-      s2_joint_t* joint = self->jointPointers[i];
-      if(joint->dqIndex > -1) {
-        s2_screw_copyBack(self->h + joint->dqIndex, &(joint->h));
-      }
-    }
-    free(self->h);
-    self->h = NULL;
-  }
-}
-
-/*!
 @brief Free Displacements, Velocities and Accelerations recursively
 
 Not intended to be called directly, used internally by s2_FreeDVA function
@@ -590,16 +574,16 @@ int s2_context_freeDVARecursive(s2_context_t* self, s2_assembly_t* assembly) {
           reference frame (frameHead).
         */
         if(bodyHead->parentJointPointer->jointType != S2_JOINT_RIGID) {
-          s2_screw_copyBack(self->v + frameHead->vaIndex,
+          s2_screw_copyBack(self->dhva.v + frameHead->vaIndex,
                             &(frameHead->velocityAbsolute));
-          s2_screw_copyBack(self->aq + frameHead->vaIndex,
+          s2_screw_copyBack(self->dhva.aq + frameHead->vaIndex,
                             &(frameHead->accelerationQuadraticAbsolute));
         } else {
           frameHead->velocityAbsolute = s2_screw();
-          s2_screw_copy(self->v + frameHead->vaIndex,
+          s2_screw_copy(self->dhva.v + frameHead->vaIndex,
                         frameHead->velocityAbsolute);
           frameHead->accelerationQuadraticAbsolute = s2_screw();
-          s2_screw_copy(self->aq + frameHead->vaIndex,
+          s2_screw_copy(self->dhva.aq + frameHead->vaIndex,
                         frameHead->accelerationQuadraticAbsolute);
         }
 
@@ -609,7 +593,7 @@ int s2_context_freeDVARecursive(s2_context_t* self, s2_assembly_t* assembly) {
         frameHead = bodyHead->frameHead;
         while(frameHead) {
           if(frameHead->dIndex > -1) {
-            s2_displacement_copyBack(self->d + frameHead->dIndex,
+            s2_displacement_copyBack(self->dhva.d + frameHead->dIndex,
                                      &(frameHead->dAbsolute));
           }
           frameHead = frameHead->next;
@@ -635,14 +619,15 @@ int s2_context_freeDVARecursive(s2_context_t* self, s2_assembly_t* assembly) {
 */
 void s2_context_freeDHVA(s2_context_t* self) {
 
-  if(self->d) {
+  if(self->dhva.dc) {
     s2_frame_t* frameHead = self->assembly->bodyHead->frameHead;
-    s2_screw_copyBack(self->v, &(frameHead->velocityAbsolute));
-    s2_screw_copyBack(self->aq, &(frameHead->accelerationQuadraticAbsolute));
+    s2_screw_copyBack(self->dhva.v, &(frameHead->velocityAbsolute));
+    s2_screw_copyBack(self->dhva.aq,
+                      &(frameHead->accelerationQuadraticAbsolute));
 
     while(frameHead) {
       if(frameHead->dIndex > -1) {
-        s2_displacement_copyBack(self->d + frameHead->dIndex,
+        s2_displacement_copyBack(self->dhva.d + frameHead->dIndex,
                                  &(frameHead->dAbsolute));
       }
       frameHead->index = -1;
@@ -651,23 +636,24 @@ void s2_context_freeDHVA(s2_context_t* self) {
     }
     s2_context_freeDVARecursive(self, self->assembly);
 
-    free(self->d);
-    self->d = NULL;
-  }
-  if(self->dWRTReference) {
-    free(self->dWRTReference);
+    for(int i = 0; i < self->activeJointCount; i++) {
+      s2_joint_t* joint = self->jointPointers[i];
+      if(joint->dqIndex > -1) {
+        s2_screw_copyBack(self->dhva.h + joint->dqIndex, &(joint->h));
+      }
+    }
+
+    free(self->dhva.dc);
+    self->dhva.d = NULL;
+    self->dhva.h = NULL;
+    self->dhva.v = NULL;
+    self->dhva.aq = NULL;
+
+    if(self->dWRTReference) {
+      free(self->dWRTReference);
+    }
     self->dWRTReference = NULL;
   }
-  if(self->v) {
-    free(self->v);
-    self->v = NULL;
-  }
-  if(self->aq) {
-    free(self->aq);
-    self->aq = NULL;
-  }
-
-  s2_context_freeH(self);
 }
 
 /*!
@@ -676,47 +662,43 @@ Joint datastructures, also copies q and dq back to original datastructures
 
 @param context a Context datastructure
 */
-void s2_context_freeDc(s2_context_t* context) {
+void s2_context_copyBackDc(s2_context_t* self) {
 
-  if(context->dc) {
-    for(int i = 0; i < context->activeJointCount; i++) {
-      s2_joint_t* joint = context->jointPointers[i];
+  if(self->dhva.dc) {
+    for(int i = 0; i < self->activeJointCount; i++) {
+      s2_joint_t* joint = self->jointPointers[i];
       switch(joint->jointType) {
         case S2_JOINT_RX:
         case S2_JOINT_RY:
         case S2_JOINT_RZ: {
           joint->directionCosine = malloc(2 * sizeof(double));
-          memcpy(joint->directionCosine, context->dc + 2 * joint->dcIndex,
+          memcpy(joint->directionCosine, self->dhva.dc + 2 * joint->dcIndex,
                  2 * sizeof(double));
           __attribute__((fallthrough));
         }
         case S2_JOINT_TX:
         case S2_JOINT_TY:
         case S2_JOINT_TZ: {
-          joint->primitiveDisplacement = calloc(1, sizeof(double));
-          joint->primitiveDisplacement[0] = context->q[joint->qIndex];
-          joint->primitiveVelocity = calloc(1, sizeof(double));
-          joint->primitiveVelocity[0] = context->dq[joint->dqIndex];
+          joint->q = calloc(1, sizeof(double));
+          joint->q[0] = self->q[joint->qIndex];
+          joint->dq = calloc(1, sizeof(double));
+          joint->dq[0] = self->dq[joint->dqIndex];
         } break;
         case S2_JOINT_RIGID: {
 
         } break;
         case S2_JOINT_SPHERICAL: {
-          joint->primitiveDisplacement = calloc(4, sizeof(double));
-          memcpy(joint->primitiveDisplacement, context->q + joint->qIndex,
-                 4 * sizeof(double));
-          joint->primitiveVelocity = calloc(3, sizeof(double));
-          memcpy(joint->primitiveVelocity, context->dq + joint->dqIndex,
-                 3 * sizeof(double));
+          joint->q = calloc(4, sizeof(double));
+          memcpy(joint->q, self->q + joint->qIndex, 4 * sizeof(double));
+          joint->dq = calloc(3, sizeof(double));
+          memcpy(joint->dq, self->dq + joint->dqIndex, 3 * sizeof(double));
           break;
         }
         case S2_JOINT_FLOAT: {
-          joint->primitiveDisplacement = calloc(7, sizeof(double));
-          memcpy(joint->primitiveDisplacement, context->q + joint->qIndex,
-                 7 * sizeof(double));
-          joint->primitiveVelocity = calloc(6, sizeof(double));
-          memcpy(joint->primitiveVelocity, context->dq + joint->dqIndex,
-                 6 * sizeof(double));
+          joint->q = calloc(7, sizeof(double));
+          memcpy(joint->q, self->q + joint->qIndex, 7 * sizeof(double));
+          joint->dq = calloc(6, sizeof(double));
+          memcpy(joint->dq, self->dq + joint->dqIndex, 6 * sizeof(double));
           break;
         }
         case S2_JOINT_PRIMITIVE:
@@ -725,8 +707,6 @@ void s2_context_freeDc(s2_context_t* context) {
         }
       }
     }
-    free(context->dc);
-    context->dc = NULL;
   }
 }
 
@@ -812,345 +792,338 @@ run time arrays.
 
 @param context an s2_context_t datastructure
 */
-void s2_context_freeRunTimeArrays(s2_context_t* context) {
+void s2_context_freeRunTimeArrays(s2_context_t* self) {
+
+  // printf("Freeing direction cosines, q and dq\n");
+  s2_context_copyBackDc(self);
 
   // copy values by value back out of D,H,V,A before clearing
   // respective arrays
   // printf("Freeing dhva\n");
-  s2_context_freeDHVA(context);
-
-  // printf("Freeing direction cosines\n");
-  s2_context_freeDc(context);
-  //
-  // printf("freed dhva\n");
+  s2_context_freeDHVA(self);
 
   // printf("Freeing virtual bodies\n");
-  for(int i = 0; i < context->activeJointCount; i++) {
-    if(context->bodyPointers[i]->isVirtual) {
-      s2_virtualbody_free(context->bodyPointers[i]);
+  for(int i = 0; i < self->activeJointCount; i++) {
+    if(self->bodyPointers[i]->isVirtual) {
+      s2_virtualbody_free(self->bodyPointers[i]);
     }
   }
 
   // printf("freeing body pointer array\n");
-  if(context->bodyPointers) {
-    free(context->bodyPointers);
-    context->bodyPointers = NULL;
+  if(self->bodyPointers) {
+    free(self->bodyPointers);
+    self->bodyPointers = NULL;
   }
 
   // printf("freeing joint pointer array\n");
-  if(context->jointPointers) {
-    free(context->jointPointers);
-    context->jointPointers = NULL;
+  if(self->jointPointers) {
+    free(self->jointPointers);
+    self->jointPointers = NULL;
   }
 
   // printf("freeing frame pointer array\n");
-  if(context->framePointers) {
-    free(context->framePointers);
-    context->framePointers = NULL;
+  if(self->framePointers) {
+    free(self->framePointers);
+    self->framePointers = NULL;
   }
 
-  if(context->dhFunctionPointers) {
-    free(context->dhFunctionPointers);
-    context->dhFunctionPointers = NULL;
+  if(self->dhFunctionPointers) {
+    free(self->dhFunctionPointers);
+    self->dhFunctionPointers = NULL;
   }
 
-  if(context->dhvaFunctionPointers) {
-    free(context->dhvaFunctionPointers);
-    context->dhvaFunctionPointers = NULL;
+  if(self->dhvaFunctionPointers) {
+    free(self->dhvaFunctionPointers);
+    self->dhvaFunctionPointers = NULL;
   }
 
-  if(context->dhva) {
-    free(context->dhva[0]);
-    free(context->dhva);
-  }
-
-  if(context->q) {
-    free(context->q);
-    context->q = NULL;
-    context->dq = NULL;
+  if(self->q) {
+    free(self->q);
+    self->q = NULL;
+    self->dq = NULL;
   }
 
   // printf("freeing jointTypes array\n");
-  if(context->jointTypes) {
-    free(context->jointTypes);
-    context->jointTypes = NULL;
+  if(self->jointTypes) {
+    free(self->jointTypes);
+    self->jointTypes = NULL;
   }
 
   // printf("freeing parent child list\n");
-  if(context->pcl) {
-    free(context->pcl);
-    context->pcl = NULL;
+  if(self->pcl) {
+    free(self->pcl);
+    self->pcl = NULL;
   }
 
   // printf("freeing levels list\n");
-  if(context->levels) {
-    free(context->levels);
-    context->levels = NULL;
+  if(self->levels) {
+    free(self->levels);
+    self->levels = NULL;
   }
 
   // printf("freeing substructureMembers list\n");
-  if(context->substructureMembers) {
-    for(int i = 0; i < context->substructureCount; i++) {
-      free(context->substructureMembers[i]);
+  if(self->substructureMembers) {
+    for(int i = 0; i < self->substructureCount; i++) {
+      free(self->substructureMembers[i]);
     }
-    free(context->substructureMembers);
-    context->substructureMembers = NULL;
+    free(self->substructureMembers);
+    self->substructureMembers = NULL;
   }
 
-  if(context->substructureMembersCount) {
-    free(context->substructureMembersCount);
-    context->substructureMembersCount = NULL;
+  if(self->substructureMembersCount) {
+    free(self->substructureMembersCount);
+    self->substructureMembersCount = NULL;
   }
 
   // printf("freeing chordConstraints\n");
-  if(context->chordConstraints) {
-    free(context->chordConstraints);
-    context->chordConstraints = NULL;
+  if(self->chordConstraints) {
+    free(self->chordConstraints);
+    self->chordConstraints = NULL;
   }
 
   // printf("freeing isReference\n");
-  if(context->isReference) {
-    free(context->isReference);
-    context->isReference = NULL;
+  if(self->isReference) {
+    free(self->isReference);
+    self->isReference = NULL;
   }
 
   // printf("freeing positiveLoopMembers\n");
-  if(context->positiveLoopMembers) {
-    free(context->positiveLoopMembers[0]);
-    free(context->positiveLoopMembers);
-    context->positiveLoopMembers = NULL;
+  if(self->positiveLoopMembers) {
+    free(self->positiveLoopMembers[0]);
+    free(self->positiveLoopMembers);
+    self->positiveLoopMembers = NULL;
   }
 
   // printf("freeing positiveLoopMembersCount\n");
-  if(context->positiveLoopMembersCount) {
-    free(context->positiveLoopMembersCount);
-    context->positiveLoopMembersCount = NULL;
+  if(self->positiveLoopMembersCount) {
+    free(self->positiveLoopMembersCount);
+    self->positiveLoopMembersCount = NULL;
   }
 
   // printf("freeing negativeLoopMembers\n");
-  if(context->negativeLoopMembers) {
-    free(context->negativeLoopMembers[0]);
-    free(context->negativeLoopMembers);
-    context->negativeLoopMembers = NULL;
+  if(self->negativeLoopMembers) {
+    free(self->negativeLoopMembers[0]);
+    free(self->negativeLoopMembers);
+    self->negativeLoopMembers = NULL;
   }
 
   // printf("freeing negativeLoopMembersCount\n");
-  if(context->negativeLoopMembersCount) {
-    free(context->negativeLoopMembersCount);
-    context->negativeLoopMembersCount = NULL;
+  if(self->negativeLoopMembersCount) {
+    free(self->negativeLoopMembersCount);
+    self->negativeLoopMembersCount = NULL;
   }
 
   // printf("freeing glReferenceFramesf\n");
-  if(context->glReferenceFramesf) {
-    free(context->glReferenceFramesf);
-    context->glReferenceFramesf = NULL;
+  if(self->glReferenceFramesf) {
+    free(self->glReferenceFramesf);
+    self->glReferenceFramesf = NULL;
   }
 
   // printf("freeing glReferenceFrames\n");
-  if(context->glReferenceFrames) {
-    free(context->glReferenceFrames);
-    context->glReferenceFrames = NULL;
+  if(self->glReferenceFrames) {
+    free(self->glReferenceFrames);
+    self->glReferenceFrames = NULL;
   }
 
-  if(context->nonVirtualBodyPointers) {
-    free(context->nonVirtualBodyPointers);
-    context->nonVirtualBodyPointers = NULL;
+  if(self->nonVirtualBodyPointers) {
+    free(self->nonVirtualBodyPointers);
+    self->nonVirtualBodyPointers = NULL;
   }
-  if(context->referenceFramePointers) {
-    free(context->referenceFramePointers);
-    context->referenceFramePointers = NULL;
+  if(self->referenceFramePointers) {
+    free(self->referenceFramePointers);
+    self->referenceFramePointers = NULL;
   }
-  if(context->lightPointers) {
-    free(context->lightPointers);
-    context->lightPointers = NULL;
+  if(self->lightPointers) {
+    free(self->lightPointers);
+    self->lightPointers = NULL;
   }
-  if(context->names) {
-    for(int i = 0; i < context->activeFrameInTreeCount; i++) {
-      if(context->names[i]) {
+  if(self->names) {
+    for(int i = 0; i < self->activeFrameInTreeCount; i++) {
+      if(self->names[i]) {
         for(int j = 0; j < 4; j++) {
-          if(context->names[i][j]) {
-            free(context->names[i][j]);
+          if(self->names[i][j]) {
+            free(self->names[i][j]);
           }
         }
-        free(context->names[i]);
+        free(self->names[i]);
       }
     }
-    free(context->names);
-    context->names = NULL;
+    free(self->names);
+    self->names = NULL;
   }
 
-  s2_arrayi_free(context->substructureLoopCount);
+  s2_arrayi_free(self->substructureLoopCount);
 
-  context->activeBodyCount = 0;
-  context->activeJointCount = 0;
-  context->activeFrameCount = 0;
-  context->chordConstraintCount = 0;
-  context->activeFrameInTreeCount = 0;
-  context->activeIOCount = 0;
-  context->nonRigidJointCount = 0;
-  context->qCount = 0;
-  context->dqCount = 0;
-  context->dcCount = 0;
+  self->activeBodyCount = 0;
+  self->activeJointCount = 0;
+  self->activeFrameCount = 0;
+  self->chordConstraintCount = 0;
+  self->activeFrameInTreeCount = 0;
+  self->activeIOCount = 0;
+  self->nonRigidJointCount = 0;
+  self->qCount = 0;
+  self->dqCount = 0;
+  self->dcCount = 0;
 
-  s2_clearIndices(context->assembly);
+  s2_clearIndices(self->assembly);
 
-  s2_context_freeSubstructures(context);
-  s2_arrayi_free(context->pv_12);
-  s2_arrayi_free(context->pv_21);
-  s2_arrayi_free(context->pv_13);
-  s2_arrayi_free(context->pv_31);
-  s2_arrayi_free(context->pv_32);
-  s2_arrayi_free(context->pv_23);
-  s2_arrayi_free(context->pcl);
-  s2_arrayi_free(context->pclCompressed);
-  s2_arrayi_free(context->pcldq);
-  s2_arrayb_free(context->isRotation);
-  s2_arrayb_free(context->isDependentPO1);
-  s2_arrayb_free(context->isDependentPO3);
+  s2_context_freeSubstructures(self);
+  s2_arrayi_free(self->pv_12);
+  s2_arrayi_free(self->pv_21);
+  s2_arrayi_free(self->pv_13);
+  s2_arrayi_free(self->pv_31);
+  s2_arrayi_free(self->pv_32);
+  s2_arrayi_free(self->pv_23);
+  s2_arrayi_free(self->pcl);
+  s2_arrayi_free(self->pclCompressed);
+  s2_arrayi_free(self->pcldq);
+  s2_arrayb_free(self->isRotation);
+  s2_arrayb_free(self->isDependentPO1);
+  s2_arrayb_free(self->isDependentPO3);
 
-  s2_arrayi_free(context->cb2);
-  s2_arrayi_free(context->cb3_temp);
-  s2_arrayi_free(context->cb3);
-  s2_arrayi_free2D(context->rb3);
-  s2_arrayi_free2D(context->rb3_temp);
-  s2_arrayi_free2D(context->rb2);
-  s2_arrays_free(context->mhProduct);
-  s2_arrayi_free(context->cm);
-  s2_arrayi_free(context->colb);
-  s2_arrayi_free(context->pb_23);
-  s2_arrayi_free(context->pb_32);
-  s2_arrayi_free(context->ijMapping);
-  s2_array_free(context->b3);
-  s2_array_free(context->f);
-  s2_array_free(context->fl);
-  s2_array_free(context->la);
-  s2_arrayi_free(context->i1);
+  s2_arrayi_free(self->cb2);
+  s2_arrayi_free(self->cb3_temp);
+  s2_arrayi_free(self->cb3);
+  s2_arrayi_free2D(self->rb3);
+  s2_arrayi_free2D(self->rb3_temp);
+  s2_arrayi_free2D(self->rb2);
+  s2_arrays_free(self->mhProduct);
+  s2_arrayi_free(self->cm);
+  s2_arrayi_free(self->colb);
+  s2_arrayi_free(self->pb_23);
+  s2_arrayi_free(self->pb_32);
+  s2_arrayi_free(self->ijMapping);
+  s2_array_free(self->b3);
+  s2_array_free(self->f);
+  s2_array_free(self->fl);
+  s2_array_free(self->la);
+  s2_arrayi_free(self->i1);
 
-  s2_arrayi_free(context->i2);
-  s2_arrayi_free(context->i3);
-  s2_arrayi_free(context->i4);
-  s2_arrayi_free(context->i5);
-  s2_arrayi_free(context->i6);
-  s2_arrayi_free(context->i7);
-  s2_arrayi_free(context->i8);
-  s2_arrayi_free(context->j1);
-  s2_arrayi_free(context->j2);
-  s2_arrayi_free(context->j3);
-  s2_arrayi_free(context->j4);
-  s2_arrayi_free(context->j5);
-  s2_arrayi_free(context->j6);
-  s2_arrayi_free(context->p1);
-  s2_arrayi_free(context->p2);
-  s2_arrayi_free(context->p3);
-  s2_arrayi_free(context->n1);
-  s2_arrayi_free(context->n2);
-  s2_arrayi_free(context->n3);
-  if(context->P) {
-    free(context->P);
+  s2_arrayi_free(self->i2);
+  s2_arrayi_free(self->i3);
+  s2_arrayi_free(self->i4);
+  s2_arrayi_free(self->i5);
+  s2_arrayi_free(self->i6);
+  s2_arrayi_free(self->i7);
+  s2_arrayi_free(self->i8);
+  s2_arrayi_free(self->j1);
+  s2_arrayi_free(self->j2);
+  s2_arrayi_free(self->j3);
+  s2_arrayi_free(self->j4);
+  s2_arrayi_free(self->j5);
+  s2_arrayi_free(self->j6);
+  s2_arrayi_free(self->p1);
+  s2_arrayi_free(self->p2);
+  s2_arrayi_free(self->p3);
+  s2_arrayi_free(self->n1);
+  s2_arrayi_free(self->n2);
+  s2_arrayi_free(self->n3);
+  if(self->P) {
+    free(self->P);
   }
-  context->P = NULL;
-  context->p3Start = 0;
-  if(context->inertia) {
-    free(context->inertia);
+  self->P = NULL;
+  self->p3Start = 0;
+  if(self->inertia) {
+    free(self->inertia);
   }
-  context->inertia = NULL;
-  if(context->inertiaP) {
-    free(context->inertiaP);
+  self->inertia = NULL;
+  if(self->inertiaP) {
+    free(self->inertiaP);
   }
-  context->inertiaP = NULL;
-  s2_array_free(context->Ml);
-  s2_array_free(context->Mls);
-  s2_arrayb_free(context->Mlb);
-  s2_arrayb_free(context->Mlbs);
-  s2_arrayb_free(context->hasMass);
-  s2_arrayi_free(context->jointDOF);
-  s2_arrayb_free(context->originInTree);
-  s2_arrayb_free(context->hasMassdq);
-  s2_arrayi_free(context->positiveLoopMembersCompressedCount);
-  s2_arrayi_free(context->negativeLoopMembersCompressedCount);
-  s2_arrayi_free(context->dqLookupCompressed);
-  s2_arrayi_free(context->dqLookup);
-  s2_arrayi_free(context->qLookup);
-  s2_arrayi_free(context->jointLookup);
-  if(context->positiveLoopMembers) {
-    s2_arrayi_free2D(context->positiveLoopMemberOffsets);
+  self->inertiaP = NULL;
+  s2_array_free(self->Ml);
+  s2_array_free(self->Mls);
+  s2_arrayb_free(self->Mlb);
+  s2_arrayb_free(self->Mlbs);
+  s2_arrayb_free(self->hasMass);
+  s2_arrayi_free(self->jointDOF);
+  s2_arrayb_free(self->originInTree);
+  s2_arrayb_free(self->hasMassdq);
+  s2_arrayi_free(self->positiveLoopMembersCompressedCount);
+  s2_arrayi_free(self->negativeLoopMembersCompressedCount);
+  s2_arrayi_free(self->dqLookupCompressed);
+  s2_arrayi_free(self->dqLookup);
+  s2_arrayi_free(self->qLookup);
+  s2_arrayi_free(self->jointLookup);
+  if(self->positiveLoopMembers) {
+    s2_arrayi_free2D(self->positiveLoopMemberOffsets);
   }
-  if(context->negativeLoopMembers) {
-    s2_arrayi_free2D(context->negativeLoopMemberOffsets);
+  if(self->negativeLoopMembers) {
+    s2_arrayi_free2D(self->negativeLoopMemberOffsets);
   }
-  if(context->constraints) {
-    s2_arrayi_free2D(context->constraints);
+  if(self->constraints) {
+    s2_arrayi_free2D(self->constraints);
   }
-  s2_arrays_free(context->g);
-  if(context->dcq) {
-    free(context->dcq);
+  s2_arrays_free(self->g);
+  if(self->dcq) {
+    free(self->dcq);
   }
-  context->dcq = NULL;
-  if(context->originPointers) {
-    free(context->originPointers);
+  self->dcq = NULL;
+  if(self->originPointers) {
+    free(self->originPointers);
   }
-  context->originPointers = NULL;
-  s2_array_free(context->ddq);
-  if(context->dReferenceFrames) {
-    free(context->dReferenceFrames);
+  self->originPointers = NULL;
+  s2_array_free(self->ddq);
+  if(self->dReferenceFrames) {
+    free(self->dReferenceFrames);
   }
-  context->dReferenceFrames = NULL;
-  s2_arrays_free(context->p);
-  s2_array_free(context->gamma_d);
-  if(context->glReferenceFramesf) {
-    free(context->glReferenceFramesf);
+  self->dReferenceFrames = NULL;
+  s2_arrays_free(self->p);
+  s2_array_free(self->gamma_d);
+  if(self->glReferenceFramesf) {
+    free(self->glReferenceFramesf);
   }
-  context->glReferenceFramesf = NULL;
+  self->glReferenceFramesf = NULL;
 }
 
 /*!
 @brief Free frames on the *fixed* inertial reference frame
 @param context a Context datastructure
 */
-void s2_context_freeFixedFrames(s2_context_t* context) {
+void s2_context_freeFixedFrames(s2_context_t* self) {
 
-  s2_body_t* bodyHead = context->assembly->bodyHead;
+  s2_body_t* bodyHead = self->assembly->bodyHead;
   while(bodyHead) {
     s2_body_t* bodyNext = bodyHead->next;
     s2_body_free(bodyHead);
     bodyHead = bodyNext;
   }
 
-  s2_light_t* lightHead = context->assembly->lightHead;
+  s2_light_t* lightHead = self->assembly->lightHead;
   while(lightHead) {
     s2_light_t* lightNext = lightHead->next;
     s2_light_free(lightHead);
     lightHead = lightNext;
   }
 
-  s2_stackstr_free(context->assembly->name);
-  free(context->assembly);
+  s2_stackstr_free(self->assembly->name);
+  free(self->assembly);
 }
 
 /*!
 @brief Free a Context datastructure
 @param context a Context datastructure
 */
-void s2_context_free(s2_context_t* context) {
+void s2_context_free(s2_context_t* self) {
 
-  if(context) {
-    s2_context_freeNumericalIntegrator(context);
-    s2_context_freeModelParameters(context);
-    s2_context_freeRunTimeArrays(context);
+  if(self) {
+    s2_context_freeNumericalIntegrator(self);
+    s2_context_freeModelParameters(self);
+    s2_context_freeRunTimeArrays(self);
 
     // printf("freeing assembly\n");
-    s2_assembly_free(context->assembly);
+    s2_assembly_free(self->assembly);
 
     // printf("freeing fixed frames\n");
-    s2_context_freeFixedFrames(context);
+    s2_context_freeFixedFrames(self);
 
-    s2_arrayi_free(context->qQuaternionIndices);
-    s2_arrayi_free(context->dqQuaternionIndices);
-    s2_arrayi_free(context->qNonQuaternionIndices);
-    s2_arrayi_free(context->dqNonQuaternionIndices);
+    s2_arrayi_free(self->qQuaternionIndices);
+    s2_arrayi_free(self->dqQuaternionIndices);
+    s2_arrayi_free(self->qNonQuaternionIndices);
+    s2_arrayi_free(self->dqNonQuaternionIndices);
 
-    free(context);
-    context = NULL;
+    free(self);
+    self = NULL;
   }
 }
 
@@ -1161,12 +1134,11 @@ void s2_context_free(s2_context_t* context) {
 @param [in] root descriptive frame name as specified in json file
 @return frame pointer, returns NULL if none found
 */
-s2_frame_t* s2_context_getFrameByName(s2_context_t* context,
-                                      const char* bodyName,
+s2_frame_t* s2_context_getFrameByName(s2_context_t* self, const char* bodyName,
                                       const char* frameName) {
 
-  for(int i = 0; i < context->activeJointCount; i++) {
-    s2_body_t* bodyHead = context->bodyPointers[i];
+  for(int i = 0; i < self->activeJointCount; i++) {
+    s2_body_t* bodyHead = self->bodyPointers[i];
     if(!strcmp(bodyName, s2_stackstr_getRoot(bodyHead->name))) {
       s2_frame_t* frameHead = bodyHead->frameHead;
       while(frameHead) {
@@ -1188,11 +1160,10 @@ with root name match searching through all assemblies
 @param [in] root descriptive frame name as specified in json file
 @return frame pointer, returns NULL if none found
 */
-s2_body_t* s2_context_getBodyByName(s2_context_t* context,
-                                    const char* bodyName) {
+s2_body_t* s2_context_getBodyByName(s2_context_t* self, const char* bodyName) {
 
-  for(int i = 0; i < context->activeJointCount; i++) {
-    s2_body_t* bodyHead = context->bodyPointers[i];
+  for(int i = 0; i < self->activeJointCount; i++) {
+    s2_body_t* bodyHead = self->bodyPointers[i];
     if(!strcmp(bodyName, s2_stackstr_getRoot(bodyHead->name))) {
       return bodyHead;
     }
@@ -1204,11 +1175,11 @@ s2_body_t* s2_context_getBodyByName(s2_context_t* context,
 @brief get a pointer to debug file pointer
 
 */
-FILE* s2_context_getDebugPointer(s2_context_t* context, int i) {
+FILE* s2_context_getDebugPointer(s2_context_t* self, int i) {
   if(i == 0) {
-    return context->modelParameters.debugFilePointer;
+    return self->modelParameters.debugFilePointer;
   } else if(i == 1) {
-    return context->modelParameters.dhvaFilePointer;
+    return self->modelParameters.dhvaFilePointer;
   } else {
     return stdout;
   }
@@ -1217,17 +1188,17 @@ FILE* s2_context_getDebugPointer(s2_context_t* context, int i) {
 /*!
 @brief get current simulation time
 */
-double s2_context_getSimulationTime(s2_context_t* context) {
-  if(context->numericalIntegrator) {
-    switch(context->modelParameters.integrationType) {
+double s2_context_getSimulationTime(s2_context_t* self) {
+  if(self->numericalIntegrator) {
+    switch(self->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113: {
         s2_numericalintegrator_ode113_t* numericalIntegrator =
-          context->numericalIntegrator;
+          self->numericalIntegrator;
         return numericalIntegrator->t;
       } break;
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
-          context->numericalIntegrator;
+          self->numericalIntegrator;
         return numericalIntegrator->x;
       } break;
     }
@@ -1238,12 +1209,12 @@ double s2_context_getSimulationTime(s2_context_t* context) {
 /*!
 @brief get current iconv value from numerical integrator
 */
-int s2_context_getIConv(s2_context_t* context) {
-  if(context->numericalIntegrator) {
-    switch(context->modelParameters.integrationType) {
+int s2_context_getIConv(s2_context_t* self) {
+  if(self->numericalIntegrator) {
+    switch(self->modelParameters.integrationType) {
       case S2_NUMERICALINTEGRATOR_ODE113B: {
         s2_numericalintegrator_ode113b_t* numericalIntegrator =
-          context->numericalIntegrator;
+          self->numericalIntegrator;
         return numericalIntegrator->iconv;
       } break;
       default: { return -1; }
@@ -1255,12 +1226,12 @@ int s2_context_getIConv(s2_context_t* context) {
 /*!
 @brief loads fixed frames into an s2_context_t datastructure
 */
-int s2_context_loadFixedFrames(s2_context_t* context, json_t* root) {
+int s2_context_loadFixedFrames(s2_context_t* self, json_t* root) {
 
-  context->assembly->name = s2_stackstr_fromString("fixed");
+  self->assembly->name = s2_stackstr_fromString("fixed");
 
   s2_body_t* fixedBody = s2_body(s2_stackstr_fromString("fixed"));
-  context->assembly->bodyHead = fixedBody;
+  self->assembly->bodyHead = fixedBody;
 
   json_t* fixedObject = json_object_get(root, "fixed");
   if(json_is_object(fixedObject)) {
@@ -1294,7 +1265,7 @@ int s2_context_loadFixedFrames(s2_context_t* context, json_t* root) {
         }
 
         s2_displacement_invert(frame->dWRTOrigin, frame->dWRTOriginInverse);
-        (context->frameCount)++;
+        (self->frameCount)++;
         s2_body_appendFrame(fixedBody, frame);
       }
     }
@@ -1306,32 +1277,32 @@ int s2_context_loadFixedFrames(s2_context_t* context, json_t* root) {
 @brief Load model parameters from a Shift JSON file
 
 */
-void s2_context_loadModelParameters(s2_context_t* context,
+void s2_context_loadModelParameters(s2_context_t* self,
                                     json_t* modelParametersObject,
                                     const char* filePath) {
 
   asprintf(
-    &(context->modelParameters.version), "%s",
+    &(self->modelParameters.version), "%s",
     json_string_value(json_object_get(modelParametersObject, "version")));
 
-  asprintf(&(context->modelParameters.units.angle), "%s",
+  asprintf(&(self->modelParameters.units.angle), "%s",
            json_string_value(json_object_get(
              json_object_get(modelParametersObject, "units"), "angle")));
 
-  asprintf(&(context->modelParameters.units.length), "%s",
+  asprintf(&(self->modelParameters.units.length), "%s",
            json_string_value(json_object_get(
              json_object_get(modelParametersObject, "units"), "length")));
 
-  asprintf(&(context->modelParameters.units.mass), "%s",
+  asprintf(&(self->modelParameters.units.mass), "%s",
            json_string_value(json_object_get(
              json_object_get(modelParametersObject, "units"), "mass")));
 
-  asprintf(&(context->modelParameters.units.time), "%s",
+  asprintf(&(self->modelParameters.units.time), "%s",
            json_string_value(json_object_get(
              json_object_get(modelParametersObject, "units"), "time")));
 
   for(int i = 0; i < 3; i++) {
-    ((double*)(context->modelParameters.gravity))[i] = json_number_value(
+    ((double*)(self->modelParameters.gravity))[i] = json_number_value(
       json_array_get(json_object_get(modelParametersObject, "gravity"), i));
   }
 
@@ -1352,11 +1323,9 @@ void s2_context_loadModelParameters(s2_context_t* context,
     if(integrationObject != NULL) {
       const char* integrationType = json_string_value(integrationObject);
       if(!strcmp(integrationType, "ode113")) {
-        context->modelParameters.integrationType =
-          S2_NUMERICALINTEGRATOR_ODE113;
+        self->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
       } else if(!strcmp(integrationType, "ode113b")) {
-        context->modelParameters.integrationType =
-          S2_NUMERICALINTEGRATOR_ODE113B;
+        self->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113B;
       } else {
         /*
           if other integration types are created in the future, add parser for
@@ -1367,13 +1336,12 @@ void s2_context_loadModelParameters(s2_context_t* context,
           "Warning, an integration type other than ode113 or ode113b was"
           "specified\n"
           "currently the program only supports ode113. Setting to ode113\n");
-        context->modelParameters.integrationType =
-          S2_NUMERICALINTEGRATOR_ODE113;
+        self->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
       };
     } else {
       fprintf(stderr,
               "Warning, no integration type specified. ode113 will be used.\n");
-      context->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
+      self->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
     }
 
     /* load omega N for baumgarte constraint stabilization */
@@ -1382,44 +1350,44 @@ void s2_context_loadModelParameters(s2_context_t* context,
     if(omegaNObject != NULL) {
       omegaN = json_number_value(omegaNObject);
     }
-    context->modelParameters.baumgarteOmegaN = omegaN;
-    context->modelParameters.baumgarte2OmegaN = 2 * omegaN;
-    context->modelParameters.baumgarteOmegaN2 = omegaN * omegaN;
+    self->modelParameters.baumgarteOmegaN = omegaN;
+    self->modelParameters.baumgarte2OmegaN = 2 * omegaN;
+    self->modelParameters.baumgarteOmegaN2 = omegaN * omegaN;
 
     /* parse time span */
     json_t* timeSpanObject = json_object_get(simulationObject, "time_span");
     if(timeSpanObject != NULL) {
-      context->modelParameters.timeSpan = json_number_value(timeSpanObject);
+      self->modelParameters.timeSpan = json_number_value(timeSpanObject);
     } else {
       fprintf(stderr, "Warning, no time span specifed in JSON file, "
                       "using 1 second.\n");
-      context->modelParameters.timeSpan = 1.0;
+      self->modelParameters.timeSpan = 1.0;
     }
 
     /* parse time step */
     json_t* timeStepObject = json_object_get(simulationObject, "time_step");
     if(timeStepObject != NULL) {
-      context->modelParameters.timeStep = json_number_value(timeStepObject);
+      self->modelParameters.timeStep = json_number_value(timeStepObject);
     } else {
       fprintf(stderr, "Warning, no time step specifed in JSON file, "
                       "using 0.0001 seconds.\n");
-      context->modelParameters.timeStep = 0.0001;
+      self->modelParameters.timeStep = 0.0001;
     }
 
     json_t* outFileObject = json_object_get(simulationObject, "out_file");
     if(outFileObject != NULL) {
-      asprintf(&(context->modelParameters.outFile), "%s",
+      asprintf(&(self->modelParameters.outFile), "%s",
                json_string_value(outFileObject));
     }
 
     json_t* debugFileObject = json_object_get(simulationObject, "debug_file");
     if(debugFileObject != NULL) {
       if(strcmp(json_string_value(debugFileObject), "stdout")) {
-        asprintf(&(context->modelParameters.debugFile), "%s",
+        asprintf(&(self->modelParameters.debugFile), "%s",
                  json_string_value(debugFileObject));
-        context->modelParameters.debugFilePointer =
-          fopen(context->modelParameters.debugFile, "w");
-        if(!context->modelParameters.debugFilePointer) {
+        self->modelParameters.debugFilePointer =
+          fopen(self->modelParameters.debugFile, "w");
+        if(!self->modelParameters.debugFilePointer) {
           fprintf(stderr, "unable to open debug file, exiting.\n");
           exit(-1);
         }
@@ -1430,75 +1398,75 @@ void s2_context_loadModelParameters(s2_context_t* context,
     json_t* relativeErrorObject =
       json_object_get(simulationObject, "relative_error");
     if(relativeErrorObject != NULL) {
-      context->modelParameters.relativeError =
+      self->modelParameters.relativeError =
         json_number_value(relativeErrorObject);
     } else {
       fprintf(stderr, "Warning, no relative integration error specifed in JSON "
                       "file, using 0.0 seconds.\n");
-      context->modelParameters.relativeError = 0.0;
+      self->modelParameters.relativeError = 0.0;
     }
 
     /* parse absolute error */
     json_t* absoluteErrorObject =
       json_object_get(simulationObject, "absolute_error");
     if(absoluteErrorObject != NULL) {
-      context->modelParameters.absoluteError =
+      self->modelParameters.absoluteError =
         json_number_value(absoluteErrorObject);
     } else {
       fprintf(stderr, "Warning, no absolute integration error specifed in JSON "
                       "file, using 0.0001 seconds.\n");
-      context->modelParameters.absoluteError = 0.0001;
+      self->modelParameters.absoluteError = 0.0001;
     }
 
     /* parse infinity norm multiplier */
     json_t* infNormMultiplierObject =
       json_object_get(simulationObject, "infinity_norm_multiplier");
     if(infNormMultiplierObject != NULL) {
-      context->modelParameters.pivotRatioMultiple =
+      self->modelParameters.pivotRatioMultiple =
         json_number_value(infNormMultiplierObject);
     } else {
       fprintf(stderr, "Warning, no infinity norm multiplier specified in "
                       "file, using 4.\n");
-      context->modelParameters.pivotRatioMultiple = 4;
+      self->modelParameters.pivotRatioMultiple = 4;
     }
 
     /* check if contact detection enabled for simulation */
     json_t* contactDetectionObject =
       json_object_get(simulationObject, "contact_detection");
     if(contactDetectionObject) {
-      context->modelParameters.contactDetectionEnabled =
+      self->modelParameters.contactDetectionEnabled =
         json_boolean_value(contactDetectionObject);
     }
 
   } else {
     fprintf(stderr, "Warning, no simulation parameters specifed in JSON file, "
                     "using default values\n");
-    context->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
-    context->modelParameters.timeSpan = 1.0;
-    context->modelParameters.timeStep = 0.0001;
-    context->modelParameters.relativeError = 0.0;
-    context->modelParameters.absoluteError = 1e-4;
+    self->modelParameters.integrationType = S2_NUMERICALINTEGRATOR_ODE113;
+    self->modelParameters.timeSpan = 1.0;
+    self->modelParameters.timeStep = 0.0001;
+    self->modelParameters.relativeError = 0.0;
+    self->modelParameters.absoluteError = 1e-4;
   }
 
   // Load include directories
   json_t* includeDirectoryObject =
     json_object_get(modelParametersObject, "include_dir");
 
-  context->modelParameters.includeDirectory = s2_stackstr();
+  self->modelParameters.includeDirectory = s2_stackstr();
   char* fullFilePath = s2_getFilePath(filePath);
   if(fullFilePath) {
-    s2_stackstr_append(context->modelParameters.includeDirectory, fullFilePath);
+    s2_stackstr_append(self->modelParameters.includeDirectory, fullFilePath);
     free(fullFilePath);
   }
   if(json_is_array(includeDirectoryObject)) {
     size_t index;
     json_t* value;
     json_array_foreach(includeDirectoryObject, index, value) {
-      s2_stackstr_append(context->modelParameters.includeDirectory,
+      s2_stackstr_append(self->modelParameters.includeDirectory,
                          json_string_value(value));
     }
   } else if(json_is_string(includeDirectoryObject)) {
-    s2_stackstr_append(context->modelParameters.includeDirectory,
+    s2_stackstr_append(self->modelParameters.includeDirectory,
                        json_string_value(includeDirectoryObject));
   }
 }
@@ -1506,41 +1474,41 @@ void s2_context_loadModelParameters(s2_context_t* context,
 /*!
 @brief free memory associated with modelParameters substructure
 */
-void s2_context_freeModelParameters(s2_context_t* context) {
-  if(context->modelParameters.units.angle) {
-    free(context->modelParameters.units.angle);
-    context->modelParameters.units.angle = NULL;
+void s2_context_freeModelParameters(s2_context_t* self) {
+  if(self->modelParameters.units.angle) {
+    free(self->modelParameters.units.angle);
+    self->modelParameters.units.angle = NULL;
   }
-  if(context->modelParameters.units.length) {
-    free(context->modelParameters.units.length);
-    context->modelParameters.units.length = NULL;
+  if(self->modelParameters.units.length) {
+    free(self->modelParameters.units.length);
+    self->modelParameters.units.length = NULL;
   }
-  if(context->modelParameters.units.mass) {
-    free(context->modelParameters.units.mass);
-    context->modelParameters.units.mass = NULL;
+  if(self->modelParameters.units.mass) {
+    free(self->modelParameters.units.mass);
+    self->modelParameters.units.mass = NULL;
   }
-  if(context->modelParameters.units.time) {
-    free(context->modelParameters.units.time);
-    context->modelParameters.units.time = NULL;
+  if(self->modelParameters.units.time) {
+    free(self->modelParameters.units.time);
+    self->modelParameters.units.time = NULL;
   }
-  if(context->modelParameters.dhvaFilePointer) {
-    fclose(context->modelParameters.dhvaFilePointer);
+  if(self->modelParameters.dhvaFilePointer) {
+    fclose(self->modelParameters.dhvaFilePointer);
   }
-  if(context->modelParameters.debugFilePointer &&
-     context->modelParameters.debugFilePointer != stdout) {
+  if(self->modelParameters.debugFilePointer &&
+     self->modelParameters.debugFilePointer != stdout) {
 
-    fclose(context->modelParameters.debugFilePointer);
+    fclose(self->modelParameters.debugFilePointer);
   }
 
-  if(context->modelParameters.version) {
-    free(context->modelParameters.version);
-    context->modelParameters.version = NULL;
+  if(self->modelParameters.version) {
+    free(self->modelParameters.version);
+    self->modelParameters.version = NULL;
   }
-  s2_stackstr_free(context->modelParameters.includeDirectory);
+  s2_stackstr_free(self->modelParameters.includeDirectory);
 
-  if(context->modelParameters.gravity) {
-    free(context->modelParameters.gravity);
-    context->modelParameters.gravity = NULL;
+  if(self->modelParameters.gravity) {
+    free(self->modelParameters.gravity);
+    self->modelParameters.gravity = NULL;
   }
 }
 
@@ -1551,27 +1519,27 @@ Sets parent frame for a light for a flattened list of lights and frames
 
 @param context a Context datastructure
 */
-void s2_context_setLightPointers(s2_context_t* context) {
+void s2_context_setLightPointers(s2_context_t* self) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
 
   // fprintf(debug, "# processing light pointers\n");
   // fprintf(debug, "%d lights\n", context->lightCount);
-  for(int i = 0; i < context->lightCount; i++) {
+  for(int i = 0; i < self->lightCount; i++) {
     // fprintf(debug, "\n\nprocessing light ");
     // s2_stackstr_print(debug, context->lightPointers[i]->name);
     //
     // fprintf(debug, "\nsearching for ");
     // s2_stackstr_print(debug, context->lightPointers[i]->parentFrame);
 
-    for(int j = 0; j < context->bodyCount; j++) {
-      s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
+    for(int j = 0; j < self->bodyCount; j++) {
+      s2_frame_t* frameHead = self->bodyPointers[j]->frameHead;
       while(frameHead) {
-        if(s2_stackstr_isEqual(context->lightPointers[i]->parentFrame,
+        if(s2_stackstr_isEqual(self->lightPointers[i]->parentFrame,
                                frameHead->name)) {
 
           // fprintf(debug, "\nmatch found!");
-          context->lightPointers[i]->parentFramePointer = frameHead;
+          self->lightPointers[i]->parentFramePointer = frameHead;
         }
         frameHead = frameHead->next;
       }
@@ -1579,11 +1547,11 @@ void s2_context_setLightPointers(s2_context_t* context) {
   }
 }
 
-void s2_context_flattenFixedLights(s2_context_t* context, int* lightCounter) {
+void s2_context_flattenFixedLights(s2_context_t* self, int* lightCounter) {
 
-  s2_light_t* lightHead = context->assembly->lightHead;
+  s2_light_t* lightHead = self->assembly->lightHead;
   while(lightHead) {
-    context->lightPointers[*lightCounter] = lightHead;
+    self->lightPointers[*lightCounter] = lightHead;
     lightHead->index = (*lightCounter);
     (*lightCounter)++;
     lightHead = lightHead->next;
@@ -1595,7 +1563,7 @@ void s2_context_flattenHierarchy(s2_assembly_t* assembly, s2_context_t* context,
                                  int* lightCounter) {
 
   s2_assembly_t* subAssemblyHead = assembly->subAssemblyHead;
-  // if(subAssemblyHead){
+
   while(subAssemblyHead) {
     s2_body_t* bodyHead = subAssemblyHead->bodyHead;
     while(bodyHead) {
@@ -1714,7 +1682,7 @@ datastructure
 This function parses a Shift JSON file and returns an s2_context_t
 data structure. The JSON file is parsed using the Jansson C library.
 
-@param fileName path to Shift JSON file.
+@param [in] fileName path to Shift JSON file.
 @return a context data structure.
 */
 s2_context_t* s2_context_load(const char* fileName) {
@@ -1784,21 +1752,21 @@ The flattened list must be generated using s2_LoadFlattenedBodyJointList
 
 @param context a Context datastructure
 */
-void s2_context_setBodyJointPointers(s2_context_t* context) {
+void s2_context_setBodyJointPointers(s2_context_t* self) {
 
-  for(int i = 0; i < context->jointCount; i++) {
+  for(int i = 0; i < self->jointCount; i++) {
     bool parentFound = false;
-    for(int j = 0; j < context->bodyCount + 1; j++) {
-      if(s2_stackstr_isEqual(context->jointPointers[i]->parentBody,
-                             context->bodyPointers[j]->name)) {
+    for(int j = 0; j < self->bodyCount + 1; j++) {
+      if(s2_stackstr_isEqual(self->jointPointers[i]->parentBody,
+                             self->bodyPointers[j]->name)) {
 
-        context->jointPointers[i]->parentBodyPointer = context->bodyPointers[j];
-        if(!s2_connectFramePointer(context->bodyPointers[j],
-                                   context->jointPointers[i], true)) {
+        self->jointPointers[i]->parentBodyPointer = self->bodyPointers[j];
+        if(!s2_connectFramePointer(self->bodyPointers[j],
+                                   self->jointPointers[i], true)) {
           fprintf(stderr,
                   "Warning, parentFrame not found for joint: %s, frame: %s\n",
-                  context->jointPointers[i]->name->tail->value,
-                  context->jointPointers[i]->parentFrame->tail->value);
+                  self->jointPointers[i]->name->tail->value,
+                  self->jointPointers[i]->parentFrame->tail->value);
         } else {
           parentFound = true;
         }
@@ -1806,17 +1774,17 @@ void s2_context_setBodyJointPointers(s2_context_t* context) {
       }
     }
     bool childFound = false;
-    for(int j = 0; j < context->bodyCount + 1; j++) {
-      if(s2_stackstr_isEqual(context->jointPointers[i]->childBody,
-                             context->bodyPointers[j]->name)) {
+    for(int j = 0; j < self->bodyCount + 1; j++) {
+      if(s2_stackstr_isEqual(self->jointPointers[i]->childBody,
+                             self->bodyPointers[j]->name)) {
 
-        context->jointPointers[i]->childBodyPointer = context->bodyPointers[j];
-        if(!s2_connectFramePointer(context->bodyPointers[j],
-                                   context->jointPointers[i], false)) {
+        self->jointPointers[i]->childBodyPointer = self->bodyPointers[j];
+        if(!s2_connectFramePointer(self->bodyPointers[j],
+                                   self->jointPointers[i], false)) {
           fprintf(stderr,
                   "Warning, parentFrame not found for joint: %s, frame: %s\n",
-                  context->jointPointers[i]->name->tail->value,
-                  context->jointPointers[i]->childFrame->tail->value);
+                  self->jointPointers[i]->name->tail->value,
+                  self->jointPointers[i]->childFrame->tail->value);
         } else {
           childFound = true;
         }
@@ -1826,14 +1794,14 @@ void s2_context_setBodyJointPointers(s2_context_t* context) {
 
     if(!parentFound) {
       fprintf(stderr, "Warning, parentBody not found for joint: %s, body: %s\n",
-              context->jointPointers[i]->name->tail->value,
-              context->jointPointers[i]->childBody->tail->value);
+              self->jointPointers[i]->name->tail->value,
+              self->jointPointers[i]->childBody->tail->value);
     }
 
     if(!childFound) {
       fprintf(stderr, "Warning, childBody not found for joint: %s, body: %s\n",
-              context->jointPointers[i]->name->tail->value,
-              context->jointPointers[i]->childBody->tail->value);
+              self->jointPointers[i]->name->tail->value,
+              self->jointPointers[i]->childBody->tail->value);
     }
   }
 }
@@ -1843,23 +1811,23 @@ void s2_context_setBodyJointPointers(s2_context_t* context) {
 
 @param context an s2_context_t datastructure
 */
-void s2_context_setTerrainPointers(s2_context_t* context) {
+void s2_context_setTerrainPointers(s2_context_t* self) {
 
   // FILE* debug = context->modelParameters->debugFilePointer;
   // fprintf(debug, "# processing elevation map pointers\n");
-  for(int i = 0; i < context->terrainCount; i++) {
+  for(int i = 0; i < self->terrainCount; i++) {
 
-    for(int j = 0; j < context->bodyCount; j++) {
-      s2_frame_t* frameHead = context->bodyPointers[j]->frameHead;
-      if(s2_stackstr_isEqual(context->terrains[i]->parentBody,
-                             context->bodyPointers[j]->name)) {
-        context->terrains[i]->parentBodyPointer = context->bodyPointers[j];
+    for(int j = 0; j < self->bodyCount; j++) {
+      s2_frame_t* frameHead = self->bodyPointers[j]->frameHead;
+      if(s2_stackstr_isEqual(self->terrains[i]->parentBody,
+                             self->bodyPointers[j]->name)) {
+        self->terrains[i]->parentBodyPointer = self->bodyPointers[j];
       }
 
       while(frameHead) {
-        if(s2_stackstr_isEqual(context->terrains[i]->parentFrame,
+        if(s2_stackstr_isEqual(self->terrains[i]->parentFrame,
                                frameHead->name)) {
-          context->terrains[i]->parentFramePointer = frameHead;
+          self->terrains[i]->parentFramePointer = frameHead;
         }
         frameHead = frameHead->next;
       }

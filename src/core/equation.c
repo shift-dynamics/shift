@@ -64,7 +64,7 @@ void s2_context_initializeEquations(s2_context_t* context) {
 
   s2_context_removeConstraintViolations(context);
   s2_context_analyzeJacobian(context);
-  s2_context_updateDHVA(context);
+  s2_context_updateDHVA(context, &context->dhva, context->q, context->dq);
   s2_context_setEquations(context);
   s2_context_memoizeEquations(context);
   s2_context_memoizeRestraints(context);
@@ -83,14 +83,16 @@ void s2_context_initializeEquations(s2_context_t* context) {
 */
 void s2_context_setRHS(s2_context_t* context) {
 
-  s2_context_updateDHVA(context);
+  s2_dhva_t* dhva = &context->dhva;
+
+  s2_context_updateDHVA(context, &context->dhva, context->q, context->dq);
   s2_context_evaluateConstraints(context);
 
   /* g and f are cleared in s2_service_setForces in service.c */
   memset(context->fl, 0, context->dqCount * sizeof(double));
   memset(context->p, 0, context->nonRigidJointCount * sizeof(s2_screw_t));
-  s2_screw_t* aq = context->aq + 1;
-  s2_screw_t* v = context->v + 1;
+  s2_screw_t* aq = dhva->aq + 1;
+  s2_screw_t* v = dhva->v + 1;
 
   /* transform inertias to fixed reference frame, carried out in PO1*/
   memset(context->inertiaP, 0,
@@ -107,7 +109,8 @@ void s2_context_setRHS(s2_context_t* context) {
 #endif
     if(context->hasMass[i]) {
 
-      s2_inertia_transform(context->inertia + i, context->dReferenceFrames[i],
+      s2_inertia_transform(context->inertia + i,
+                           context->dhva.d + context->dReferenceFrames[i],
                            inertiaP + i);
 
 #if _SHIFT_VERBOSE
@@ -115,7 +118,8 @@ void s2_context_setRHS(s2_context_t* context) {
       s2_inertia_print(stdout, context->inertia + i);
 
       printf("absolute displacement:\n");
-      s2_displacement_print(stdout, context->dReferenceFrames[i]);
+      s2_displacement_print(stdout,
+                            context->dhva.d + context->dReferenceFrames[i]);
 
       printf("inertia transformed to fixed reference frame:\n");
       s2_inertia_print(stdout, inertiaP + i);
@@ -290,11 +294,11 @@ void s2_context_setRHS(s2_context_t* context) {
       context->fl[k] = context->f[l];
       if(context->isRotation[l]) {
         /* f_l += h^T * g yields the final f_l*/
-        context->fl[k] += s2_dot_ss(context->h + l, context->g + j);
+        context->fl[k] += s2_dot_ss(dhva->h + l, context->g + j);
       } else {
-        context->fl[k] += context->h[l].m0 * context->g[j].m0;
-        context->fl[k] += context->h[l].m1 * context->g[j].m1;
-        context->fl[k] += context->h[l].m2 * context->g[j].m2;
+        context->fl[k] += dhva->h[l].m0 * context->g[j].m0;
+        context->fl[k] += dhva->h[l].m1 * context->g[j].m1;
+        context->fl[k] += dhva->h[l].m2 * context->g[j].m2;
         // context->fl[k] += cblas_ddot(3, (double*)(context->h + l), 1,
         // (double*)(context->g + j), 1);
       }
@@ -448,10 +452,10 @@ void s2_context_setRHS(s2_context_t* context) {
           */
           context->gamma_d[offset + substructure->pr_21[k * 6 + l]] =
             /* 0 is the index of the velocity of the child (-) side */
-            ((double*)(context->aq +
+            ((double*)(dhva->aq +
                        context->constraints[chordConstraintOffset][0]))[l] -
             /* 1 is the index of the velocity of the parent (+) side */
-            ((double*)(context->aq +
+            ((double*)(dhva->aq +
                        context->constraints[chordConstraintOffset][1]))[l];
         }
       }
@@ -473,9 +477,9 @@ void s2_context_setRHS(s2_context_t* context) {
           constraint stabilization */
           context->gamma_d[offset + substructure->pr_21[k * 6 + l]] -=
             baumgarte2OmegaN *
-            (((double*)(context->v +
+            (((double*)(dhva->v +
                         context->constraints[chordConstraintOffset][1]))[l] -
-             ((double*)(context->v +
+             ((double*)(dhva->v +
                         context->constraints[chordConstraintOffset][0]))[l]);
         }
       }
@@ -753,6 +757,8 @@ void s2_inertia_print2Reference(FILE* f, s2_inertia_t* inertiaReference,
 */
 void s2_context_setMassMatrix(s2_context_t* context) {
 
+  s2_dhva_t* dhva = &context->dhva;
+
   memset(context->mhProduct, 0, context->dqCount * sizeof(s2_screw_t));
   memset(context->Ml, 0, context->Ml_size * sizeof(double));
   memset(context->Mlb, 0, context->Ml_size * sizeof(bool));
@@ -889,38 +895,38 @@ void s2_context_setMassMatrix(s2_context_t* context) {
 
       /* update quantities that are processed for both rotation and
       translation */
-      context->mhProduct[k].m0 += inertiaP[j].m * context->h[k].m0;
-      context->mhProduct[k].m1 += inertiaP[j].m * context->h[k].m1;
-      context->mhProduct[k].m2 += inertiaP[j].m * context->h[k].m2;
+      context->mhProduct[k].m0 += inertiaP[j].m * dhva->h[k].m0;
+      context->mhProduct[k].m1 += inertiaP[j].m * dhva->h[k].m1;
+      context->mhProduct[k].m2 += inertiaP[j].m * dhva->h[k].m2;
 
-      context->mhProduct[k].m4 += inertiaP[j].mt.z * context->h[k].m0;
-      context->mhProduct[k].m5 -= inertiaP[j].mt.y * context->h[k].m0;
+      context->mhProduct[k].m4 += inertiaP[j].mt.z * dhva->h[k].m0;
+      context->mhProduct[k].m5 -= inertiaP[j].mt.y * dhva->h[k].m0;
 
-      context->mhProduct[k].m3 -= inertiaP[j].mt.z * context->h[k].m1;
-      context->mhProduct[k].m5 += inertiaP[j].mt.x * context->h[k].m1;
+      context->mhProduct[k].m3 -= inertiaP[j].mt.z * dhva->h[k].m1;
+      context->mhProduct[k].m5 += inertiaP[j].mt.x * dhva->h[k].m1;
 
-      context->mhProduct[k].m3 += inertiaP[j].mt.y * context->h[k].m2;
-      context->mhProduct[k].m4 -= inertiaP[j].mt.x * context->h[k].m2;
+      context->mhProduct[k].m3 += inertiaP[j].mt.y * dhva->h[k].m2;
+      context->mhProduct[k].m4 -= inertiaP[j].mt.x * dhva->h[k].m2;
 
       /* do stuff just for rotational degrees of freedom */
       if(context->isRotation[k]) {
-        context->mhProduct[k].m1 -= inertiaP[j].mt.z * context->h[k].m3;
-        context->mhProduct[k].m2 += inertiaP[j].mt.y * context->h[k].m3;
-        context->mhProduct[k].m3 += inertiaP[j].Ixx * context->h[k].m3;
-        context->mhProduct[k].m4 += inertiaP[j].Ixy * context->h[k].m3;
-        context->mhProduct[k].m5 += inertiaP[j].Izx * context->h[k].m3;
+        context->mhProduct[k].m1 -= inertiaP[j].mt.z * dhva->h[k].m3;
+        context->mhProduct[k].m2 += inertiaP[j].mt.y * dhva->h[k].m3;
+        context->mhProduct[k].m3 += inertiaP[j].Ixx * dhva->h[k].m3;
+        context->mhProduct[k].m4 += inertiaP[j].Ixy * dhva->h[k].m3;
+        context->mhProduct[k].m5 += inertiaP[j].Izx * dhva->h[k].m3;
 
-        context->mhProduct[k].m0 += inertiaP[j].mt.z * context->h[k].m4;
-        context->mhProduct[k].m2 -= inertiaP[j].mt.x * context->h[k].m4;
-        context->mhProduct[k].m3 += inertiaP[j].Ixy * context->h[k].m4;
-        context->mhProduct[k].m4 += inertiaP[j].Iyy * context->h[k].m4;
-        context->mhProduct[k].m5 += inertiaP[j].Iyz * context->h[k].m4;
+        context->mhProduct[k].m0 += inertiaP[j].mt.z * dhva->h[k].m4;
+        context->mhProduct[k].m2 -= inertiaP[j].mt.x * dhva->h[k].m4;
+        context->mhProduct[k].m3 += inertiaP[j].Ixy * dhva->h[k].m4;
+        context->mhProduct[k].m4 += inertiaP[j].Iyy * dhva->h[k].m4;
+        context->mhProduct[k].m5 += inertiaP[j].Iyz * dhva->h[k].m4;
 
-        context->mhProduct[k].m0 -= inertiaP[j].mt.y * context->h[k].m5;
-        context->mhProduct[k].m1 += inertiaP[j].mt.x * context->h[k].m5;
-        context->mhProduct[k].m3 += inertiaP[j].Izx * context->h[k].m5;
-        context->mhProduct[k].m4 += inertiaP[j].Iyz * context->h[k].m5;
-        context->mhProduct[k].m5 += inertiaP[j].Izz * context->h[k].m5;
+        context->mhProduct[k].m0 -= inertiaP[j].mt.y * dhva->h[k].m5;
+        context->mhProduct[k].m1 += inertiaP[j].mt.x * dhva->h[k].m5;
+        context->mhProduct[k].m3 += inertiaP[j].Izx * dhva->h[k].m5;
+        context->mhProduct[k].m4 += inertiaP[j].Iyz * dhva->h[k].m5;
+        context->mhProduct[k].m5 += inertiaP[j].Izz * dhva->h[k].m5;
       }
     }
   }
@@ -959,11 +965,11 @@ void s2_context_setMassMatrix(s2_context_t* context) {
       context->Mlb[k_3] = true;
 
       if(context->isRotation[j]) {
-        context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, context->h + j);
+        context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, dhva->h + j);
       } else {
-        context->Ml[k_3] += context->mhProduct[j].m0 * context->h[j].m0;
-        context->Ml[k_3] += context->mhProduct[j].m1 * context->h[j].m1;
-        context->Ml[k_3] += context->mhProduct[j].m2 * context->h[j].m2;
+        context->Ml[k_3] += context->mhProduct[j].m0 * dhva->h[j].m0;
+        context->Ml[k_3] += context->mhProduct[j].m1 * dhva->h[j].m1;
+        context->Ml[k_3] += context->mhProduct[j].m2 * dhva->h[j].m2;
       }
 
       int i = context->pcldq[j];
@@ -977,11 +983,11 @@ void s2_context_setMassMatrix(s2_context_t* context) {
         context->Mlb[k_3] = true;
 
         if(context->isRotation[i]) {
-          context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, context->h + i);
+          context->Ml[k_3] += s2_dot_ss(context->mhProduct + j, dhva->h + i);
         } else {
-          context->Ml[k_3] += context->mhProduct[j].m0 * context->h[i].m0;
-          context->Ml[k_3] += context->mhProduct[j].m1 * context->h[i].m1;
-          context->Ml[k_3] += context->mhProduct[j].m2 * context->h[i].m2;
+          context->Ml[k_3] += context->mhProduct[j].m0 * dhva->h[i].m0;
+          context->Ml[k_3] += context->mhProduct[j].m1 * dhva->h[i].m1;
+          context->Ml[k_3] += context->mhProduct[j].m2 * dhva->h[i].m2;
           // context->Ml[k_3] += cblas_ddot(3, (double*)(context->mhProduct +
           // j),
           //                                1, (double*)(context->h + i), 1);
