@@ -74,6 +74,10 @@ public slots:
   void setTime(double);
   void setTimeSpan(double, double);
 
+  void enable(bool enabled) {
+    m_enabled = enabled;
+  }
+
 signals:
 
   void timeChanged(double);
@@ -105,6 +109,7 @@ private:
   QBrush m_brush;
   double m_tMin;
   double m_tMax;
+  bool m_enabled;
   QPropertyAnimation* m_anim = nullptr;
 };
 } // namespace Shift
