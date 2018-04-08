@@ -282,7 +282,7 @@ void Shift::Workspace::addAssemblyBox() {
   assemblyLayout->addWidget(m_assemblyPanel.title, 0, 0, 0);
 
   m_assemblyPanel.groupBox->setVisible(false);
-  m_dynamicPanelLayout->addWidget(m_scenePanel.groupBox);
+  m_dynamicPanelLayout->addWidget(m_assemblyPanel.groupBox);
 }
 
 /*!
