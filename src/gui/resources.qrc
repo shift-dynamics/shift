@@ -13,6 +13,7 @@
     <file alias="point_simple.glsl">shaders/point_simple.glsl</file>
     <file alias="point_phong.glsl">shaders/point_phong.glsl</file>
     <file alias="point_sprite.glsl">shaders/point_sprite.glsl</file>
+    <file alias="cube.glsl">shaders/cube.glsl</file>
   </qresource>
 
   <qresource prefix="/html">
@@ -102,6 +103,14 @@
 
     <file alias="sphere.png">textures/sphere.png</file>
     <file alias="sphere_normal.png">textures/sphere_normal.png</file>
+
+    <file alias="back.png">textures/daylight_skybox/back.png</file>
+    <file alias="bottom.png">textures/daylight_skybox/bottom.png</file>
+    <file alias="front.png">textures/daylight_skybox/front.png</file>
+    <file alias="left.png">textures/daylight_skybox/left.png</file>
+    <file alias="right.png">textures/daylight_skybox/right.png</file>
+    <file alias="top.png">textures/daylight_skybox/top.png</file>
+
   </qresource>
 
 </RCC>

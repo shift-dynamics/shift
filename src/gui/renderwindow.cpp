@@ -7,6 +7,7 @@
 #include "joints.hpp"
 #include "lights.hpp"
 #include "pointcloud.hpp"
+#include "skybox.hpp"
 #include "terrain.hpp"
 
 #include "flatshaderprogram.hpp"
@@ -16,6 +17,7 @@
 #include "pointcloudshaderprogram.hpp"
 #include "shadowshaderprogram.hpp"
 #include "simpleshaderprogram.hpp"
+#include "skyboxshaderprogram.hpp"
 #include "terrainshaderprogram.hpp"
 #include "terrainshadowshaderprogram.hpp"
 
@@ -89,6 +91,7 @@ Shift::RenderWindow::RenderWindow()
   m_lights = new Lights(this);
   m_lights->setBodies(m_bodies);
   m_grid = new Grid(this);
+  m_skybox = new Skybox(this);
   m_pointclouds = new PointCloud(this);
   m_orbitalCamera = new OrbitalCamera(this);
 }
@@ -455,6 +458,9 @@ void Shift::RenderWindow::initialize() {
     m_programNormal = new NormalShaderProgram(this);
     checkError("after initialize normal shader");
 
+    m_programSkybox = new SkyboxShaderProgram(this);
+    checkError("after initialize skybox shader program");
+
     // qDebug() << "setting shader program pointers";
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
@@ -477,6 +483,10 @@ void Shift::RenderWindow::initialize() {
     m_pointclouds->setShader(m_programPointCloud);
     checkError("renderwindow: after set shader pointers");
 
+    m_skybox->setShader(m_programSkybox);
+    m_skybox->initialize();
+
+    m_skybox->enable(true);
     m_grid->enable(true);
 
     m_initialized = true;
@@ -528,7 +538,7 @@ void Shift::RenderWindow::updateGL() {
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     float aspectRatio = (float)width() / (float)height();
     if(m_perspective) {
-      m_projection.perspective(60, aspectRatio, 0.001, 100);
+      m_projection.perspective(45, aspectRatio, 0.001, 1000);
     } else {
       float h = 0.5 * m_camDistance;
       float w = aspectRatio * h;
@@ -763,6 +773,7 @@ void Shift::RenderWindow::render() {
 @brief OpenGL draw function
 */
 void Shift::RenderWindow::draw() {
+  m_skybox->draw();
   m_grid->draw();
   m_frames->draw();
   m_joints->draw();

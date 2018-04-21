@@ -30,6 +30,7 @@ class QOpenGLVertexArrayObject;
 
 namespace Shift {
 
+class Skybox;
 class Bodies;
 class Frames;
 class Grid;
@@ -47,6 +48,7 @@ class ShadowShaderProgram;
 class TerrainShadowShaderProgram;
 class PointCloudShaderProgram;
 class NormalShaderProgram;
+class SkyboxShaderProgram;
 
 enum camera_interaction_enum_t {
   S2_CAMERA_INTERACTION_TURNTABLE,
@@ -213,6 +215,7 @@ private:
   GLfloat m_backgroundColor[4];
   GLfloat m_normalColor[4];
 
+  Skybox* m_skybox;
   Bodies* m_bodies;
   Frames* m_frames;
   Joints* m_joints;
@@ -240,6 +243,7 @@ private:
   FrameShaderProgram* m_programFrame;
   PointCloudShaderProgram* m_programPointCloud;
   NormalShaderProgram* m_programNormal;
+  SkyboxShaderProgram* m_programSkybox;
 
   camera_interaction_enum_t m_cameraMode;
   OrbitalCamera* m_orbitalCamera;

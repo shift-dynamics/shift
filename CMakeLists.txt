@@ -270,6 +270,8 @@ set(GUI_SOURCES
   ${shift_SOURCE_DIR}/src/gui/orbitalcamera.cpp
   ${shift_SOURCE_DIR}/src/gui/switch.cpp
   ${shift_SOURCE_DIR}/src/gui/playbackslider.cpp
+  ${shift_SOURCE_DIR}/src/gui/skybox.cpp
+  ${shift_SOURCE_DIR}/src/gui/skyboxshaderprogram.cpp
   ${shift_SOURCE_DIR}/src/gui/resources.qrc
 )
 
