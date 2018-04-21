@@ -24,4 +24,23 @@ SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct s2_octtree_node_t s2_octtree_node_t;
+
+typedef enum s2_octtree_node_enum_t {
+  S2_OCTTREE_INTERNAL,
+  S2_OCTTREE_LEAF
+} s2_octtree_node_enum_t;
+
+typedef struct s2_octtree_node_t {
+  s2_octtree_node_enum_t nodeType;
+  unsigned int objectID;
+  struct s2_octtree_node_t* childA;
+  struct s2_octtree_node_t* childB;
+} s2_octtree_node_t;
+
+typedef struct s2_octtree_t {
+  unsigned int nodeCount;
+  s2_octtree_node_t* root;
+} s2_octtree_t;
+
 #endif
