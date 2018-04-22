@@ -5,8 +5,8 @@
 void Shift::SkyboxShaderProgram::initialize() {
   if(!m_initialized) {
     addProgram();
-    addVertexShader(":/shaders/cube.glsl");
-    addFragmentShader(":/shaders/cube.glsl");
+    addVertexShader(":/shaders/skybox.glsl");
+    addFragmentShader(":/shaders/skybox.glsl");
     link();
     bind();
 
