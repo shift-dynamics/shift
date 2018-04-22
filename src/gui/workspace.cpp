@@ -66,6 +66,7 @@ SUCH DAMAGE.
 #include "playbackslider.hpp"
 #include "pointcloud.hpp"
 #include "renderwindow.hpp"
+#include "skybox.hpp"
 #include "terrain.hpp"
 #include "workspace.hpp"
 
@@ -1212,6 +1213,12 @@ void Shift::Workspace::initializeMenus() {
   m_actionToggleDrawNormals->setCheckable(true);
   m_actionToggleDrawNormals->setChecked(false);
 
+  m_actionToggleDrawSkybox = new QAction("Skybox", this);
+  viewMenu->addAction(m_actionToggleDrawSkybox);
+  m_actionToggleDrawSkybox->setIcon(QIcon(":/icons/cube.png"));
+  m_actionToggleDrawSkybox->setCheckable(true);
+  m_actionToggleDrawSkybox->setChecked(false);
+
   QMenu* helpMenu = menuBar()->addMenu("&Help");
 
   QAction* actionAbout = new QAction("About this program ...", this);
@@ -1252,6 +1259,9 @@ void Shift::Workspace::initializeMenus() {
 
   QObject::connect(m_actionToggleDrawFrames, SIGNAL(triggered()), this,
                    SLOT(updateDrawState()));
+
+  QObject::connect(m_actionToggleDrawSkybox, SIGNAL(triggered()),
+                   m_renderWindow->getSkybox(), SLOT(toggleDraw()));
 
   QObject::connect(m_actionToggleDrawJoints, SIGNAL(triggered()),
                    m_renderWindow->getJoints(), SLOT(toggleDraw()));

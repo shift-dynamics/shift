@@ -1,43 +1,20 @@
 #ifndef _SHIFT_SKYBOX_HPP_
 #define _SHIFT_SKYBOX_HPP_
 
-#include "../shift.h"
 #include "geometry.hpp"
-#include "lights.hpp"
 #include "openglwindow.hpp"
+#include "renderwindow.hpp"
 
-#include <QFileDialog>
-#include <QHBoxLayout>
-#include <QMainWindow>
-#include <QMatrix4x4>
-#include <QMouseEvent>
-#include <QOpenGLBuffer>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
-#include <QResizeEvent>
-#include <QString>
-#include <QTimer>
-#include <QWheelEvent>
-#include <QWidget>
-#include <QtOpenGL/QGLWidget>
-
-class QOpenGLShaderProgram;
-class QOpenGLBuffer;
-class QOpenGLVertexArrayObject;
-
-struct s2_lights_t;
-struct s2_collisionobject_t;
 
 namespace Shift {
 
-class RenderWindow;
 class SkyboxShaderProgram;
 
 /*!
-@brief used to draw a skybox
+@brief interface to skybox geometry
 */
 class Skybox : public Geometry {
 
@@ -46,25 +23,27 @@ class Skybox : public Geometry {
 public:
   Skybox(RenderWindow* renderWindow)
     : Geometry(renderWindow)
-    , m_initialized(false)
-    , m_drawEnabled(false){};
-
-  ~Skybox(){
-
+    , m_program(NULL)
+    , m_cubeTexture(NULL)
+    , m_vao(NULL) {
+    m_drawEnabled = false;
   };
 
+  ~Skybox() {
+    delete m_cubeTexture;
+    delete m_vao;
+  };
+
+  void draw();
   void initialize();
   void setShader(SkyboxShaderProgram* program) {
     m_program = program;
   }
-  void draw();
 
 private:
+  SkyboxShaderProgram* m_program;
   QOpenGLTexture* m_cubeTexture;
   QOpenGLVertexArrayObject* m_vao;
-  SkyboxShaderProgram* m_program;
-  bool m_initialized;
-  bool m_drawEnabled;
 };
 
 } // namespace Shift
