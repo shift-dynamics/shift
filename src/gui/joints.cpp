@@ -18,7 +18,6 @@ This function should not be called while simulation is running, or while
 simulation is being played back.
 */
 void Shift::Joints::update() {
-
   if(m_active) {
     m_counter++;
 
@@ -145,7 +144,6 @@ void Shift::Joints::update() {
 */
 void Shift::Joints::set(s2_joint_t* joint, int qIndex, int dqIndex, double delq,
                         s2_joint_enum_t jointType) {
-
   m_active = true;
   m_counter = 0;
   m_joint = joint;
@@ -164,7 +162,6 @@ void Shift::Joints::set(s2_joint_t* joint, int qIndex, int dqIndex, double delq,
 */
 void Shift::Joints::setTarget(s2_joint_t* joint, int qIndex, int dqIndex,
                               double targetVal, s2_joint_enum_t jointType) {
-
   m_active = true;
   m_counter = 0;
   m_joint = joint;
@@ -202,7 +199,6 @@ void Shift::Joints::clear() {
 
 */
 void Shift::Joints::draw() {
-
   if(m_drawEnabled && m_context) {
 
     m_program->bindVao();

@@ -13,6 +13,7 @@
     <file alias="point_simple.glsl">shaders/point_simple.glsl</file>
     <file alias="point_phong.glsl">shaders/point_phong.glsl</file>
     <file alias="point_sprite.glsl">shaders/point_sprite.glsl</file>
+    <file alias="skybox.glsl">shaders/skybox.glsl</file>
   </qresource>
 
   <qresource prefix="/html">
@@ -40,6 +41,7 @@
     <file alias="sphere.png">icons/sphere.png</file>
     <file alias="grid.png">icons/grid.png</file>
     <file alias="shadow.png">icons/shadow.png</file>
+    <file alias="cube.png">icons/cube.png</file>
 
     <file alias="body_folder.png">icons/body_folder.png</file>
     <file alias="camera_folder.png">icons/camera_folder.png</file>
@@ -50,7 +52,6 @@
     <file alias="restraint_folder.png">icons/restraint_folder.png</file>
     <file alias="terrain_folder.png">icons/terrain_folder.png</file>
     <file alias="pointcloud_folder.png">icons/pointcloud_folder.png</file>
-
 
     <file alias="play_button.png">icons/play_button.png</file>
     <file alias="pause_button.png">icons/pause_button.png</file>
@@ -102,6 +103,14 @@
 
     <file alias="sphere.png">textures/sphere.png</file>
     <file alias="sphere_normal.png">textures/sphere_normal.png</file>
+
+    <file alias="back.png">textures/daylight_skybox/back.png</file>
+    <file alias="bottom.png">textures/daylight_skybox/bottom.png</file>
+    <file alias="front.png">textures/daylight_skybox/front.png</file>
+    <file alias="left.png">textures/daylight_skybox/left.png</file>
+    <file alias="right.png">textures/daylight_skybox/right.png</file>
+    <file alias="top.png">textures/daylight_skybox/top.png</file>
+
   </qresource>
 
 </RCC>

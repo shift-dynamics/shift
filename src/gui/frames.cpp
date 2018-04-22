@@ -2,15 +2,6 @@
 #include "frameshaderprogram.hpp"
 #include "renderwindow.hpp"
 
-#include <QHBoxLayout>
-#include <QOpenGLBuffer>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLFunctions>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
-#include <QVector>
-#include <QtOpenGL/QGLWidget>
-
 /*!
 @brief load context datastructure
 */

@@ -13,9 +13,7 @@ void Shift::Grid::initialize() {
       m_gridSize++;
     }
 
-    /*
-      set up line segments
-    */
+    /* set up line segments */
     m_material = s2_material_alloc(1);
     m_material->shadingType = S2_SHADING_LINE;
     m_material->GLuniforms.Ns = 10;
@@ -72,12 +70,8 @@ void Shift::Grid::initialize() {
     m_material->faces[gridIndex++] = 1;
     m_material->faces[gridIndex++] = m_gridSize * 2 + 1;
 
-    // qDebug() << "gridIndex final " << gridIndex;
-    // qDebug() << "face count" <<
-    // m_grid->lineBufferObject->material->faceCount;
-
     m_program->bind();
-    checkError("grid: after bind simple shader program in grid initialization");
+    checkError("grid: after bind simple shader program");
 
     /* initialize vao and vbo */
     m_vao = new QOpenGLVertexArrayObject(m_renderWindow);

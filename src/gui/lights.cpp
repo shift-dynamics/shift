@@ -103,7 +103,6 @@ void Shift::Lights::loadContext() {
       qDebug() << "initialized view matrix to:" << m_lights.viewMatrix[i];
 
       /* initialize projection matrix */
-
       QMatrix4x4 projection;
       switch(light->lightType) {
         case S2_LIGHT_POINT: {
