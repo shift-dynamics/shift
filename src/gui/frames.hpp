@@ -6,17 +6,9 @@
 #include "openglwindow.hpp"
 #include "renderwindow.hpp"
 
-#include <QHBoxLayout>
-#include <QMatrix4x4>
-#include <QMouseEvent>
-#include <QOpenGLBuffer>
-#include <QOpenGLDebugLogger>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
-#include <QString>
-#include <QWheelEvent>
-#include <QtOpenGL/QGLWidget>
 
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
@@ -34,7 +26,6 @@ public:
     : Geometry(renderWindow) {
 
     m_scaleFactor = 0.5;
-    // m_frames.append(s2_displacement());
   }
 
   ~Frames() {

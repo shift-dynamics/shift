@@ -7,6 +7,7 @@
 #include "joints.hpp"
 #include "lights.hpp"
 #include "pointcloud.hpp"
+#include "skybox.hpp"
 #include "terrain.hpp"
 
 #include "flatshaderprogram.hpp"
@@ -16,6 +17,7 @@
 #include "pointcloudshaderprogram.hpp"
 #include "shadowshaderprogram.hpp"
 #include "simpleshaderprogram.hpp"
+#include "skyboxshaderprogram.hpp"
 #include "terrainshaderprogram.hpp"
 #include "terrainshadowshaderprogram.hpp"
 
@@ -89,17 +91,23 @@ Shift::RenderWindow::RenderWindow()
   m_lights = new Lights(this);
   m_lights->setBodies(m_bodies);
   m_grid = new Grid(this);
+  m_skybox = new Skybox(this);
   m_pointclouds = new PointCloud(this);
   m_orbitalCamera = new OrbitalCamera(this);
 }
 
 Shift::RenderWindow::~RenderWindow() {
+  delete m_skybox;
   delete m_joints;
   delete m_bodies;
   delete m_frames;
   delete m_terrain;
   delete m_lights;
   delete m_grid;
+}
+
+Shift::Skybox* Shift::RenderWindow::getSkybox() {
+  return m_skybox;
 }
 
 /*!
@@ -421,41 +429,38 @@ void Shift::RenderWindow::initialize() {
   glEnable(GL_DEPTH_TEST);
 
   if(!m_initialized) {
-    // qDebug() << "initializing phong shader";
     m_programPhong = new PhongShaderProgram(this);
     checkError("after initialize phong shader");
 
-    // qDebug() << "initializing flat shader";
     m_programFlat = new FlatShaderProgram(this);
     checkError("after initialize flat shader");
 
-    // qDebug() << "initializing line shader";
     m_programSimple = new SimpleShaderProgram(this);
     checkError("after initialize line shader");
 
-    // qDebug() << "initializing shadow shader";
     m_programShadow = new ShadowShaderProgram(this);
     checkError("after initialize shadow shader");
 
-    // qDebug() << "initializing terrain shader";
     m_programTerrain = new TerrainShaderProgram(this);
     checkError("after initialize terrain shader");
 
-    // qDebug() << "initializing frame shader";
     m_programFrame = new FrameShaderProgram(this);
     checkError("after initialize frame shader");
 
-    // qDebug() << "initializing pointcloud shader";
     m_programPointCloud = new PointCloudShaderProgram(this);
     checkError("after initialize point cloud shader");
 
     m_programTerrainShadow = new TerrainShadowShaderProgram(this);
 
-    // qDebug() << "initializing normal shader";
     m_programNormal = new NormalShaderProgram(this);
     checkError("after initialize normal shader");
 
-    // qDebug() << "setting shader program pointers";
+    m_programSkybox = new SkyboxShaderProgram(this);
+    checkError("after initialize skybox shader program");
+
+    m_skybox->setShader(m_programSkybox);
+    m_skybox->initialize();
+
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
     m_bodies->setLineShader(m_programSimple);
@@ -464,6 +469,7 @@ void Shift::RenderWindow::initialize() {
     m_bodies->setLights(m_lights);
 
     m_frames->setShader(m_programFrame);
+
     m_joints->setShader(m_programFrame);
 
     m_terrain->setShader(m_programTerrain);
@@ -475,7 +481,8 @@ void Shift::RenderWindow::initialize() {
     m_grid->setShader(m_programSimple);
 
     m_pointclouds->setShader(m_programPointCloud);
-    checkError("renderwindow: after set shader pointers");
+
+    checkError("renderwindow: after set shader programs");
 
     m_grid->enable(true);
 
@@ -528,7 +535,7 @@ void Shift::RenderWindow::updateGL() {
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     float aspectRatio = (float)width() / (float)height();
     if(m_perspective) {
-      m_projection.perspective(60, aspectRatio, 0.001, 100);
+      m_projection.perspective(45, aspectRatio, 0.001, 1000);
     } else {
       float h = 0.5 * m_camDistance;
       float w = aspectRatio * h;
@@ -763,6 +770,7 @@ void Shift::RenderWindow::render() {
 @brief OpenGL draw function
 */
 void Shift::RenderWindow::draw() {
+  m_skybox->draw();
   m_grid->draw();
   m_frames->draw();
   m_joints->draw();

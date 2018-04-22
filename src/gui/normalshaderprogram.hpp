@@ -5,28 +5,6 @@
 #include "openglwindow.hpp"
 #include "shaderprogram.hpp"
 
-#include <QFileDialog>
-#include <QHBoxLayout>
-#include <QMainWindow>
-#include <QMatrix4x4>
-#include <QMouseEvent>
-#include <QOpenGLBuffer>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLFunctions>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QResizeEvent>
-#include <QString>
-#include <QTimer>
-#include <QWheelEvent>
-#include <QWidget>
-#include <QtOpenGL/QGLWidget>
-
-class QOpenGLShaderProgram;
-class QOpenGLBuffer;
-class QOpenGLVertexArrayObject;
-
 namespace Shift {
 
 class RenderWindow;
