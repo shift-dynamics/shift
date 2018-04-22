@@ -140,6 +140,8 @@ public:
     return m_pointclouds;
   }
 
+  Skybox* getSkybox();
+
 public slots:
   void updateGL();
   void initialize();
@@ -206,9 +208,7 @@ private:
 
   QPoint m_lastPos;
   float m_camDistance;
-
   bool m_perspective;
-  bool m_drawVertexNormals;
 
   QTimer* m_timer;
 

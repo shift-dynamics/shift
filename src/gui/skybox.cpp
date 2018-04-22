@@ -1,6 +1,15 @@
 #include "skybox.hpp"
 #include "skyboxshaderprogram.hpp"
 
+#include <QHBoxLayout>
+#include <QOpenGLBuffer>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
+#include <QVector>
+#include <QtOpenGL/QGLWidget>
+
 void Shift::Skybox::initialize() {
   m_vao = new QOpenGLVertexArrayObject(this);
   m_vao->create();
@@ -67,7 +76,6 @@ void Shift::Skybox::initialize() {
   m_program->release();
 
   m_initialized = true;
-  m_drawEnabled = true;
 }
 
 void Shift::Skybox::draw() {

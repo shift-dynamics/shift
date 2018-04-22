@@ -97,12 +97,17 @@ Shift::RenderWindow::RenderWindow()
 }
 
 Shift::RenderWindow::~RenderWindow() {
+  delete m_skybox;
   delete m_joints;
   delete m_bodies;
   delete m_frames;
   delete m_terrain;
   delete m_lights;
   delete m_grid;
+}
+
+Shift::Skybox* Shift::RenderWindow::getSkybox() {
+  return m_skybox;
 }
 
 /*!
@@ -424,44 +429,38 @@ void Shift::RenderWindow::initialize() {
   glEnable(GL_DEPTH_TEST);
 
   if(!m_initialized) {
-    // qDebug() << "initializing phong shader";
     m_programPhong = new PhongShaderProgram(this);
     checkError("after initialize phong shader");
 
-    // qDebug() << "initializing flat shader";
     m_programFlat = new FlatShaderProgram(this);
     checkError("after initialize flat shader");
 
-    // qDebug() << "initializing line shader";
     m_programSimple = new SimpleShaderProgram(this);
     checkError("after initialize line shader");
 
-    // qDebug() << "initializing shadow shader";
     m_programShadow = new ShadowShaderProgram(this);
     checkError("after initialize shadow shader");
 
-    // qDebug() << "initializing terrain shader";
     m_programTerrain = new TerrainShaderProgram(this);
     checkError("after initialize terrain shader");
 
-    // qDebug() << "initializing frame shader";
     m_programFrame = new FrameShaderProgram(this);
     checkError("after initialize frame shader");
 
-    // qDebug() << "initializing pointcloud shader";
     m_programPointCloud = new PointCloudShaderProgram(this);
     checkError("after initialize point cloud shader");
 
     m_programTerrainShadow = new TerrainShadowShaderProgram(this);
 
-    // qDebug() << "initializing normal shader";
     m_programNormal = new NormalShaderProgram(this);
     checkError("after initialize normal shader");
 
     m_programSkybox = new SkyboxShaderProgram(this);
     checkError("after initialize skybox shader program");
 
-    // qDebug() << "setting shader program pointers";
+    m_skybox->setShader(m_programSkybox);
+    m_skybox->initialize();
+
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
     m_bodies->setLineShader(m_programSimple);
@@ -470,6 +469,7 @@ void Shift::RenderWindow::initialize() {
     m_bodies->setLights(m_lights);
 
     m_frames->setShader(m_programFrame);
+
     m_joints->setShader(m_programFrame);
 
     m_terrain->setShader(m_programTerrain);
@@ -481,12 +481,9 @@ void Shift::RenderWindow::initialize() {
     m_grid->setShader(m_programSimple);
 
     m_pointclouds->setShader(m_programPointCloud);
-    checkError("renderwindow: after set shader pointers");
 
-    m_skybox->setShader(m_programSkybox);
-    m_skybox->initialize();
+    checkError("renderwindow: after set shader programs");
 
-    m_skybox->enable(true);
     m_grid->enable(true);
 
     m_initialized = true;
