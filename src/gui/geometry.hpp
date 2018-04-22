@@ -6,8 +6,6 @@
 #include <QObject>
 #include <QOpenGLShaderProgram>
 
-class QOpenGLShaderProgram;
-
 namespace Shift {
 
 class RenderWindow;

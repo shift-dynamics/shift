@@ -202,6 +202,7 @@ private:
   QAction* m_actionToggleDrawShadows;
   QAction* m_actionToggleDrawCollisionGeometry;
   QAction* m_actionToggleDrawNormals;
+  QAction* m_actionToggleDrawSkybox;
 
   struct m_sliders {
     QGroupBox* groupBox;

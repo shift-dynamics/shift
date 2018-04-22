@@ -2729,8 +2729,8 @@ body and frame names in context->names array, used for debugging purposes
 */
 void topology_countDHVA(s2_context_t* context) {
 
-  int dhvaCount = 0;
-  int operationCount = 0;
+  unsigned int dhvaCount = 0;
+  unsigned int operationCount = 0;
 
   for(int i = 0; i < context->activeJointCount; i++) {
 
