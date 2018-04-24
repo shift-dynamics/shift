@@ -256,6 +256,9 @@ set(GUI_SOURCES
   ${shift_SOURCE_DIR}/src/gui/grid.cpp
   ${shift_SOURCE_DIR}/src/gui/lights.cpp
   ${shift_SOURCE_DIR}/src/gui/terrain.cpp
+  ${shift_SOURCE_DIR}/src/gui/floor.cpp
+  ${shift_SOURCE_DIR}/src/gui/floorshaderprogram.cpp
+  ${shift_SOURCE_DIR}/src/gui/floorshadowshaderprogram.cpp
   ${shift_SOURCE_DIR}/src/gui/flatshaderprogram.cpp
   ${shift_SOURCE_DIR}/src/gui/frameshaderprogram.cpp
   ${shift_SOURCE_DIR}/src/gui/simpleshaderprogram.cpp
