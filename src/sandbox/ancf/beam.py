@@ -30,6 +30,15 @@ def bezier_patch(p, u, v):
 def width(u):
     return 0.1 + 0.05 * u
 
+def S_beam(u, v, l):
+    s1 = 1 - 3 * u**3 + 2 * u**3
+    s2 = l * (u - 2 * u**2 + u**3)
+    s3 = l * v * (1 - u)
+    s4 = 3 * u**2 - 2 * u**3
+    s5 = l * (-u**2 + u**3)
+    s6 = l * u * v
+
+
 
 if __name__ == "__main__":
     fig = plt.figure()
@@ -67,6 +76,8 @@ if __name__ == "__main__":
     ax.plot(interp[0, :], interp[1, :], interp[2, :], c='b')
     ax.axis('equal')
     plt.show()
+
+    # evaluate mass m
 
     # p00 = np
     #     # draw bezier splines

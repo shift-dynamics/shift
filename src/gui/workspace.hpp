@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QDesktopWidget>
+#include <QDial>
 #include <QGroupBox>
 #include <QLabel>
 #include <QMainWindow>
@@ -206,14 +207,14 @@ private:
 
   struct m_sliders {
     QGroupBox* groupBox;
-
     SliderHandle tx;
     SliderHandle ty;
     SliderHandle tz;
     SliderHandle rx;
     SliderHandle ry;
     SliderHandle rz;
-
+    QDial* rotationGainDial;
+    QDial* translationGainDial;
     float revoluteRange;
     float prismaticRange;
     double* currentSpinBoxValue;
