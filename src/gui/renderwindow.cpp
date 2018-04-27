@@ -1,6 +1,7 @@
 #include "renderwindow.hpp"
 #include "../shift.h"
 #include "bodies.hpp"
+#include "floor.hpp"
 #include "frames.hpp"
 #include "geometry.hpp"
 #include "grid.hpp"
@@ -11,6 +12,8 @@
 #include "terrain.hpp"
 
 #include "flatshaderprogram.hpp"
+#include "floorshaderprogram.hpp"
+#include "floorshadowshaderprogram.hpp"
 #include "frameshaderprogram.hpp"
 #include "normalshaderprogram.hpp"
 #include "phongshaderprogram.hpp"
@@ -84,6 +87,7 @@ Shift::RenderWindow::RenderWindow()
   m_timer->setSingleShot(true);
   connect(m_timer, SIGNAL(timeout()), this, SLOT(stopSimulationPlayback()));
 
+  m_floor = new Floor(this);
   m_joints = new Joints(this);
   m_bodies = new Bodies(this);
   m_frames = new Frames(this);
@@ -429,6 +433,10 @@ void Shift::RenderWindow::initialize() {
   glEnable(GL_DEPTH_TEST);
 
   if(!m_initialized) {
+
+    m_programFloor = new FloorShaderProgram(this);
+    m_programFloorShadow = new FloorShadowShaderProgram(this);
+
     m_programPhong = new PhongShaderProgram(this);
     checkError("after initialize phong shader");
 
@@ -460,6 +468,10 @@ void Shift::RenderWindow::initialize() {
 
     m_skybox->setShader(m_programSkybox);
     m_skybox->initialize();
+
+    m_floor->setShader(m_programFloor);
+    m_floor->setShadowShader(m_programFloorShadow);
+    m_floor->initialize();
 
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
@@ -771,6 +783,7 @@ void Shift::RenderWindow::render() {
 */
 void Shift::RenderWindow::draw() {
   m_skybox->draw();
+  m_floor->draw();
   m_grid->draw();
   m_frames->draw();
   m_joints->draw();

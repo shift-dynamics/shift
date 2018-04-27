@@ -1,5 +1,5 @@
 #version 420 core
-/* floor.glsl */
+/* floor_shadow.glsl */
 
 struct matrices_t {
   mat4 mvp;

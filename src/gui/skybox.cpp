@@ -16,7 +16,7 @@ void Shift::Skybox::initialize() {
 
   m_program->bind();
 
-  // texture stuff
+  /* load textures */
   m_cubeTexture = new QOpenGLTexture(QOpenGLTexture::TargetCubeMap);
   m_cubeTexture->setWrapMode(QOpenGLTexture::ClampToEdge);
   m_cubeTexture->setMinMagFilters(QOpenGLTexture::Linear,
