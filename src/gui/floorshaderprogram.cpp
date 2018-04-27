@@ -118,12 +118,12 @@ void Shift::FloorShaderProgram::setTransform(QMatrix4x4& model) {
 /*!
 @brief set scale factor
 */
-void Shift::FloorShaderProgram::setScale(GLfloat scale_x, GLfloat scale_y) {
-  m_program->setUniformValue(m_floor_tcScale_u, scale_x, scale_y);
+void Shift::FloorShaderProgram::setScale(GLfloat scale) {
+  m_program->setUniformValue(m_floor_tcScale_u, scale);
 }
 
 /*!
-
+@brief bind dummy vertex array object
 */
 void Shift::FloorShaderProgram::bindVao() {
   m_program->bind();
@@ -136,4 +136,51 @@ void Shift::FloorShaderProgram::bindVao() {
 void Shift::FloorShaderProgram::releaseVao() {
   m_vao->release();
   m_program->release();
+}
+
+/*!
+@brief bind diffuse texture
+*/
+void Shift::FloorShaderProgram::bindDiffuseTexture(QOpenGLTexture* tex) {
+  tex->bind(2);
+  m_program->setUniformValue("texture_diffuse_u", 2);
+}
+
+/*!
+@brief bind normal texture
+*/
+void Shift::FloorShaderProgram::bindNormalTexture(QOpenGLTexture* tex) {
+  if(tex) {
+    tex->bind(3);
+    m_program->setUniformValue("texture_normal_u", 3);
+    m_program->setUniformValue(m_floor_enableNormalMap_u, 1);
+  } else {
+    m_program->setUniformValue(m_floor_enableNormalMap_u, 0);
+  }
+}
+
+/*!
+@brief bind specular texture
+*/
+void Shift::FloorShaderProgram::bindSpecularTexture(QOpenGLTexture* tex) {
+  if(tex) {
+    tex->bind(4);
+    m_program->setUniformValue("texture_specular_u", 4);
+    m_program->setUniformValue(m_floor_enableSpecularMap_u, 1);
+  } else {
+    m_program->setUniformValue(m_floor_enableSpecularMap_u, 0);
+  }
+}
+
+/*!
+@brief bind texture for bump mapping
+*/
+void Shift::FloorShaderProgram::bindBumpTexture(QOpenGLTexture* tex) {
+  if(tex) {
+    tex->bind(5);
+    m_program->setUniformValue("texture_bump_u", 5);
+    m_program->setUniformValue(m_floor_enableSpecularMap_u, 1);
+  } else {
+    m_program->setUniformValue(m_floor_enableSpecularMap_u, 0);
+  }
 }

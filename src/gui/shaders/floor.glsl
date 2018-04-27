@@ -38,7 +38,7 @@ struct lights_t {
 uniform lights_t lights_u;
 
 struct floor_t {
-  vec2 tcScale;
+  float tcScale;
   int enableNormalMap;
   int enableSpecularMap;
   int enableBumpMap;
@@ -46,27 +46,27 @@ struct floor_t {
 uniform floor_t floor_u;
 
 #ifdef VERTEX_SHADER
-out vec3 tcFrag;
+out vec2 tcFrag;
 void main() {
   vec3[4] vertices = vec3[4](
     vec3(-1.0, -1.0, 0.0),
     vec3(1.0, -1.0, 0.0),
     vec3(-1.0, 1.0, 0.0),
     vec3(1.0, 1.0, 0.0));
-  vec3[4] tc = vec2[4](
+  vec2[4] tc = vec2[4](
     vec2(0.0, 0.0),
     vec2(1.0, 0.0),
     vec2(0.0, 1.0),
     vec2(1.0, 1.0));
 	tcFrag = floor_u.tcScale * tc[gl_VertexID];
-  gl_Position = mvp_u * vec4(vertices[gl_VertexID], 1.0);
+  gl_Position = matrices_u.mvp * vec4(vertices[gl_VertexID], 1.0);
 }
 #endif
 
 #ifdef FRAGMENT_SHADER
-in vec3 tcFrag;
+in vec2 tcFrag;
 out vec4 color;
 void main() {
-  color = texture(texture_u, tcFrag);
+  color = texture(texture_diffuse_u, tcFrag);
 }
 #endif

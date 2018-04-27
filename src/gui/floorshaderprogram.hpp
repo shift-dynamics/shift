@@ -48,9 +48,13 @@ public:
   void draw();
   void setTransform(s2_displacement_t*);
   void setTransform(QMatrix4x4&);
-  void setScale(GLfloat, GLfloat);
+  void setScale(GLfloat);
   void bindVao();
   void releaseVao();
+  void bindDiffuseTexture(QOpenGLTexture*);
+  void bindNormalTexture(QOpenGLTexture*);
+  void bindSpecularTexture(QOpenGLTexture*);
+  void bindBumpTexture(QOpenGLTexture*);
 
 signals:
 
@@ -60,7 +64,6 @@ private:
   GLint m_texture_shadow_u;
   GLint m_texture_shadowCube_u;
   GLint m_texture_diffuse_u;
-  GLint m_texture_elevation_u;
   GLint m_texture_normal_u;
   GLint m_texture_specular_u;
   GLint m_texture_bump_u;
