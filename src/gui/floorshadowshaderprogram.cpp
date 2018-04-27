@@ -33,13 +33,7 @@ void Shift::FloorShadowShaderProgram::initialize() {
 void Shift::FloorShadowShaderProgram::setTransform(QMatrix4x4& m) {
   QMatrix4x4 v = m_renderWindow->getLights()->getActiveViewMatrix();
   QMatrix4x4 p = m_renderWindow->getLights()->getActiveProjectionMatrix();
-  // QMatrix4x4 v =
-  //   m_renderWindow->getViewMatrix();
-  // QMatrix4x4 p =
-  //   m_renderWindow->getProjectionMatrix();
   QMatrix4x4 mvp = p * v * m;
-  // qDebug() << "setting mvp in terrain shadow program:";
-  // qDebug() << p << v << m << mvp << mv;
   m_program->setUniformValue(m_matrices_mvp_u, mvp);
   checkError("terrain-shadow: after set mvp");
 }
