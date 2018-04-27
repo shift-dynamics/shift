@@ -38,6 +38,7 @@ class Joints;
 class Lights;
 class Terrain;
 class PointCloud;
+class Floor;
 
 class PhongShaderProgram;
 class FlatShaderProgram;
@@ -49,6 +50,8 @@ class TerrainShadowShaderProgram;
 class PointCloudShaderProgram;
 class NormalShaderProgram;
 class SkyboxShaderProgram;
+class FloorShaderProgram;
+class FloorShadowShaderProgram;
 
 enum camera_interaction_enum_t {
   S2_CAMERA_INTERACTION_TURNTABLE,
@@ -215,6 +218,7 @@ private:
   GLfloat m_backgroundColor[4];
   GLfloat m_normalColor[4];
 
+  Floor* m_floor;
   Skybox* m_skybox;
   Bodies* m_bodies;
   Frames* m_frames;
@@ -234,6 +238,8 @@ private:
   void interpolateCurrentPosition();
 
   /* shader programs */
+  FloorShaderProgram* m_programFloor;
+  FloorShadowShaderProgram* m_programFloorShadow;
   ShadowShaderProgram* m_programShadow;
   SimpleShaderProgram* m_programSimple;
   PhongShaderProgram* m_programPhong;

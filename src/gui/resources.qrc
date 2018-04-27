@@ -14,6 +14,8 @@
     <file alias="point_phong.glsl">shaders/point_phong.glsl</file>
     <file alias="point_sprite.glsl">shaders/point_sprite.glsl</file>
     <file alias="skybox.glsl">shaders/skybox.glsl</file>
+    <file alias="floor.glsl">shaders/floor.glsl</file>
+    <file alias="floor_shadow.glsl">shaders/floor_shadow.glsl</file>
   </qresource>
 
   <qresource prefix="/html">
