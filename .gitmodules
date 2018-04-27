@@ -1,9 +1,3 @@
-[submodule "src/third_party/gdal"]
-	path = src/third_party/gdal
-	url = https://github.com/OSGeo/gdal.git
-[submodule "src/third_party/stepcode"]
-	path = src/third_party/stepcode
-	url = https://github.com/stepcode/stepcode.git
-[submodule "src/third_party/v-hacd"]
-	path = src/third_party/v-hacd
-	url = https://github.com/kmammou/v-hacd.git
+[submodule "third_party/shift-core"]
+	path = third_party/shift-core
+	url = git@github.com:shift-dynamics/shift-core.git
