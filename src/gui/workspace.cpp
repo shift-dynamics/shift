@@ -127,13 +127,16 @@ void Shift::Workspace::addSliders() {
 
   QGridLayout* gridLayout = new QGridLayout(m_sliders.groupBox);
   gridLayout->setContentsMargins(QMargins(0, 0, 0, 0));
+  gridLayout->setVerticalSpacing(0);
 
   /* translation sliders */
   QGroupBox* translationSliderGroupBox = new QGroupBox;
   translationSliderGroupBox->setContentsMargins(QMargins(0, 0, 0, 0));
   QVBoxLayout* translationSliderLayout =
     new QVBoxLayout(translationSliderGroupBox);
-  translationSliderLayout->setContentsMargins(QMargins(0, 0, 0, 0));
+  translationSliderLayout->setMargin(0);
+  translationSliderGroupBox->setContentsMargins(QMargins(0, 0, 0, 0));
+  translationSliderLayout->setSpacing(0);
   gridLayout->addWidget(translationSliderGroupBox, 0, 0);
   double singleStep = m_sliders.prismaticRange / 100.0;
   addSlider(singleStep, &m_sliders.tx, translationSliderLayout, "Tx");
@@ -142,8 +145,9 @@ void Shift::Workspace::addSliders() {
   gridLayout->addWidget(translationSliderGroupBox, 0, 0);
 
   /* translation gain */
-  QDial* translationGainDial = new QDial();
-  gridLayout->addWidget(translationGainDial, 0, 1);
+  m_sliders.translationGainDial = new QDial();
+  m_sliders.translationGainDial->setMaximumSize(QSize(60, 60));
+  gridLayout->addWidget(m_sliders.translationGainDial, 0, 1);
 
   /* rotation sliders */
   QGroupBox* rotationSliderGroupBox = new QGroupBox;
@@ -156,8 +160,10 @@ void Shift::Workspace::addSliders() {
   addSlider(singleStep, &m_sliders.ry, rotationSliderLayout, "Ry");
   addSlider(singleStep, &m_sliders.rz, rotationSliderLayout, "Rz");
 
-  QDial* rotationGainDial = new QDial();
-  gridLayout->addWidget(rotationGainDial, 1, 1);
+  /* rotation gain */
+  m_sliders.rotationGainDial = new QDial();
+  m_sliders.rotationGainDial->setMaximumSize(QSize(60, 60));
+  gridLayout->addWidget(m_sliders.rotationGainDial, 1, 1);
 
   m_dynamicPanelLayout->addWidget(m_sliders.groupBox);
 
@@ -249,12 +255,16 @@ void Shift::Workspace::addSlider(double singleStep, SliderHandle* sliderHandle,
   sliderHandle->singleStep = singleStep;
 
   sliderHandle->box = new QGroupBox();
+  // sliderHandle->box->setMargin(0);
+  // ContentsMargins(QMargins(-1, 0, -1, 0));
 
   QGridLayout* sliderLayout = new QGridLayout(sliderHandle->box);
-  // sliderLayout->setContentsMargins(QMargins(0, 0, 0, 0));
+  sliderLayout->setMargin(0);
+  sliderLayout->setVerticalSpacing(0);
+
   QLabel* sliderLabel = new QLabel(label);
   sliderLayout->addWidget(sliderLabel, 0, 0);
-  sliderLayout->setColumnStretch(1, 1);
+  // sliderLayout->setColumnStretch(1, 1);
 
   sliderHandle->spinBox = new QDoubleSpinBox();
   sliderHandle->spinBox->setValue(0);
@@ -263,7 +273,7 @@ void Shift::Workspace::addSlider(double singleStep, SliderHandle* sliderHandle,
   sliderHandle->spinBox->setMaximum(10000000);
   sliderHandle->spinBox->setKeyboardTracking(false);
   sliderHandle->spinBox->setSingleStep(0.01);
-  sliderLayout->addWidget(sliderHandle->spinBox, 0, 1);
+  sliderLayout->addWidget(sliderHandle->spinBox, 0, 3);
 
   sliderHandle->slider = new QSlider(Qt::Horizontal);
   sliderHandle->slider->setRange(-100, 100);
@@ -272,7 +282,7 @@ void Shift::Workspace::addSlider(double singleStep, SliderHandle* sliderHandle,
   sliderHandle->slider->setTickPosition(QSlider::NoTicks);
   // sliderHandle->slider->setContentsMargins(QMargins(0, 0, 0, 0));
   sliderHandle->slider->setValue(0.0 * sliderHandle->singleStep);
-  sliderLayout->addWidget(sliderHandle->slider, 1, 0, 2, 0);
+  sliderLayout->addWidget(sliderHandle->slider, 0, 1, 2, 1);
 
   // sliderHandle->box->setContentsMargins(QMargins(0, 0, 0, 0));
 
