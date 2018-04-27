@@ -1,6 +1,9 @@
 License
 =======
 
+Copyright (c) 2017-2018, Kristopher Wehage
+All rights reserved.
+
 The graphical user interface component of Shift uses the `Qt<https://www.qt.io>`_ windowing framework and is released under a GNU Lesser General Public License (GLGPL).
 
 GNU LESSER GENERAL PUBLIC LICENSE
