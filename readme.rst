@@ -8,7 +8,7 @@ Overview
 
 *Shift* is a general-purpose modeling environment targeted to robotics, automation and vehicle dynamics applications. The software was created and is maintained by Kristopher Wehage, PhD.
 
-Refer to *Shift's* website at `<https://kriswehage.github.io/shift/>`_ for additional information on how to use the software and API.
+Refer to *Shift's* website at `<https://shift-dynamics.io/>`_ for additional information on how to use the software and API.
 
 
 Workflow
