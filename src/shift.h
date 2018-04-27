@@ -1,6 +1,6 @@
 /*!
 Shift: A dynamics engine and visualization tool for automation and robotics
-@author Kristopher Wehage, 2016
+@author Kristopher Wehage, 2018
 
 @copyright Kristopher Wehage
 */
