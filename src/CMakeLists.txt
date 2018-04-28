@@ -1,20 +1,3 @@
-# add_document(
-#   TARGET about
-#   OUTPUT_FILE about.html
-#   SOURCES ${CMAKE_SOURCE_DIR}/readme.rst
-#   PANDOC_DIRECTIVES -t html -s
-#   PRODUCT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/html
-# )
-#
-#
-# add_document(
-#   TARGET license
-#   OUTPUT_FILE license.html
-#   SOURCES ${CMAKE_SOURCE_DIR}/license.rst
-#   PANDOC_DIRECTIVES -t html -s
-#   PRODUCT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/html
-# )
-
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -78,7 +61,7 @@ add_executable(
 )
 
 add_dependencies(shift shiftcore)
-# add_dependencies(shift license about)
+add_dependencies(shift license about)
 qt5_use_modules(shift Core Widgets OpenGL Gui Svg)
 
 target_link_libraries(shift
@@ -87,6 +70,5 @@ target_link_libraries(shift
   ${GLEW_LIBRARIES}
   ${OPENGL_LIBRARIES}
   ${CBLAS_LIBRARIES}
-  ${LIBS})
-
-include_directories(${CMAKE_CURRENT_LIST_DIR})
+  ${LIBS}
+)
