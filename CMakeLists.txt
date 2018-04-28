@@ -33,7 +33,8 @@ set(LIBS
   ${CBLAS_LIBRARIES}
   ${ImageMagick_LIBRARIES}
   ${ImageMagick_MagickWand_LIBRARIES}
-  ${QHULL_LIBRARIES})
+  ${QHULL_LIBRARIES}
+)
 
 include_directories(
   ${GRAPHVIZ_INCLUDE_DIR}
@@ -43,10 +44,7 @@ include_directories(
   ${ImageMagick_INCLUDE_DIRS}
   ${ImageMagick_MagickWand_INCLUDE_DIRS}
   ${QHULL_INCLUDE_DIRS}
-  ${CMAKE_CURRENT_LIST_DIR}/src
 )
-
-INCLUDE(pandocology)
 
 if(APPLE)
   list(APPEND CMAKE_MODULE_PATH "/usr/local/Cellar/qt5/5.7.0/lib/cmake/Qt5Core")
@@ -58,6 +56,24 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/)
 if(APPLE)
   add_definitions(-framework accelerate)
 endif(APPLE)
+
+INCLUDE(pandocology)
+
+add_document(
+  TARGET about
+  OUTPUT_FILE about.html
+  SOURCES readme.rst
+  PANDOC_DIRECTIVES -t html -s
+  PRODUCT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/html"
+)
+
+add_document(
+  TARGET license
+  OUTPUT_FILE license.html
+  SOURCES license.rst
+  PANDOC_DIRECTIVES -t html -s
+  PRODUCT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/html"
+)
 
 include_directories(src)
 include_directories(third_party/shift-core/src)
