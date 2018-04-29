@@ -42,7 +42,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'numfig',
-    'sphinxcontrib.bibtex',
+    # 'sphinxcontrib.bibtex',
     'doxyrest',
     'cpplexer'
 ]

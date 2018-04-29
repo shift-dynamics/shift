@@ -11,6 +11,7 @@ Roadmap
 Currently *Shift* is under heavy development. Contributors are sought, particularly if you are interested in incorporating *Shift* into your research.
 
 Possible development tasks include:
+
 * Flexible body modeling
 * Contact detection and modeling
 * Vulkan/Qt visualization framework
