@@ -17,7 +17,7 @@ Faster than real--time simulation
 
 .. raw:: html
 
-    <video src="_static/excavator.webm" width="640" height="440" controls>
+    <video src="_static/excavator.m4v" width="640" height="440" controls>
     </video>
 
 
@@ -29,7 +29,7 @@ Automatic assembly of complex mechanisms
 
 .. raw:: html
 
-    <video src="_static/vehicle_control_15mps.webm" width="640" height="440" controls>
+    <video src="_static/vehicle_control_15mps.m4v" width="640" height="440" controls>
     </video>
 
 
@@ -41,7 +41,7 @@ Heuristic application of Generalized Coordinate Partitioning
 
 .. raw:: html
 
-    <video src="_static/bricard.webm" width="640" height="440" controls>
+    <video src="_static/bricard.m4v" width="640" height="440" controls>
     </video>
 
 
@@ -53,7 +53,7 @@ Mobility analysis and interactive positioning in a 3D environment
 
 .. raw:: html
 
-    <video src="_static/brake.webm" width="640" height="440" controls>
+    <video src="_static/brake.m4v" width="640" height="440" controls>
     </video>
 
 
@@ -65,7 +65,7 @@ OpenGL rendering
 
 .. raw:: html
 
-    <video src="_static/auto_lod.webm" width="640" height="440" controls>
+    <video src="_static/auto_lod.m4v" width="640" height="440" controls>
     </video>
 
 
