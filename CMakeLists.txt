@@ -22,6 +22,9 @@ find_package(assimp REQUIRED)
 find_package(Qhull REQUIRED)
 find_package(ImageMagick REQUIRED)
 find_package(ImageMagick COMPONENTS MagickWand REQUIRED)
+add_definitions(-DMAGICKCORE_HDRI_ENABLE=1)
+add_definitions(-DMAGICKCORE_QUANTUM_DEPTH=16)
+
 
 set(LIBS
   ${LIBS}
