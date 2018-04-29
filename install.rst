@@ -152,7 +152,7 @@ This section is targeted to developers of *Shift*. Issue the following commands 
 
     mkdir -p doc/html
     cd doc/html
-    git clone git@github.com:kriswehage/shift.git
+    git clone git@github.com:shift-dynamics/shift.git
     git checkout gh-pages
     git branch -d master
 
