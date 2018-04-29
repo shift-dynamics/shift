@@ -30,7 +30,6 @@ public:
   };
 
   ~Skybox() {
-    delete m_cubeTexture;
     delete m_vao;
   };
 
