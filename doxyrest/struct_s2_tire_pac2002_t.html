@@ -1,0 +1,290 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>struct s2_tire_pac2002_t &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="struct scaling_coefficients" href="struct_scaling_coefficients.html" />
+    <link rel="prev" title="struct s2_tire_fiala_t" href="struct_s2_tire_fiala_t.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="struct-s2-tire-pac2002-t">
+<span id="cid-s2-tire-pac2002-t"></span><span id="doxid-structs2-tire-pac2002-t"></span><span id="index-0"></span><h1>struct s2_tire_pac2002_t<a class="headerlink" href="#struct-s2-tire-pac2002-t" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<pre class="highlight overview-code-block literal-block" id="cid-s2-tire-pac2002-t-y">
+<span id="doxid-structs2-tire-pac2002-t-1a48e5b2c3c2160d795574d7b6174ece36"></span><span id="cid-s2-tire-pac2002-t-fmglobal"></span><span id="doxid-structs2-tire-pac2002-t-1abe2f81fc4292fa83c933d0f4aaf351fa"></span><span id="cid-s2-tire-pac2002-t-fmpure"></span><span id="doxid-structs2-tire-pac2002-t-1a56c29d24778656fb85ede86da955473b"></span><span id="cid-s2-tire-pac2002-t-fmpurelast"></span><span id="doxid-structs2-tire-pac2002-t-1a55f4b07e86d7a106784ad21026582023"></span><span id="cid-s2-tire-pac2002-t-fmcombined"></span><span id="doxid-structs2-tire-pac2002-t-1a18514b9b74537bf29c27460e99aa0748"></span><span id="cid-s2-tire-pac2002-t-fmcombinedlast"></span><span id="doxid-structs2-tire-pac2002-t-1a75d8e65cc3b49c865981743b60c9b88d"></span><span id="cid-s2-tire-pac2002-t-incontact"></span><span id="doxid-structs2-tire-pac2002-t-1a5020d41c08464d7e2786905abd911fc0"></span><span id="cid-s2-tire-pac2002-t-wframe"></span><span id="doxid-structs2-tire-pac2002-t-1a4c0e4e6c56fb0d681ce9de7e8290d23a"></span><span id="cid-s2-tire-pac2002-t-camberangle"></span><span id="doxid-structs2-tire-pac2002-t-1aee64c0dda1c4fbef9e198b6b58566b3f"></span><span id="cid-s2-tire-pac2002-t-longitudinalslip"></span><span id="doxid-structs2-tire-pac2002-t-1a0726363a0c351342c391d484c41394e8"></span><span id="cid-s2-tire-pac2002-t-slipangle"></span><span id="doxid-structs2-tire-pac2002-t-1a0100cc34a1da58f36bfc9514a656539e"></span><span id="cid-s2-tire-pac2002-t-omega"></span><span id="doxid-structs2-tire-pac2002-t-1ae586462e11af9443265e08b7d2541459"></span><span id="cid-s2-tire-pac2002-t-c-fy"></span><span id="doxid-structs2-tire-pac2002-t-1a57293ab520df1e1bcb5d81292b256507"></span><span id="cid-s2-tire-pac2002-t-c-fx"></span><span id="doxid-structs2-tire-pac2002-t-1a3082ea1acb3c264d29100257a8908b43"></span><span id="cid-s2-tire-pac2002-t-dfz"></span><span id="doxid-structs2-tire-pac2002-t-1a7728e4d4c2ed9e88be3ca9a9d1e910be"></span><span id="cid-s2-tire-pac2002-t-fz"></span><span id="doxid-structs2-tire-pac2002-t-1ad530d1feb431039f17028326b38b657e"></span><span id="cid-s2-tire-pac2002-t-relaxation"></span><span id="doxid-structs2-tire-pac2002-t-1a8a13955778d2a54cffa8d0d124bd2d76"></span><span id="cid-s2-tire-pac2002-t-bessel"></span><span id="doxid-structs2-tire-pac2002-t-1aab819958f57342275620c4f64dc04302"></span><span id="cid-s2-tire-pac2002-t-zeta"></span><span id="doxid-structs2-tire-pac2002-t-1ababe779ac937f71bfae41f317642a4d9"></span><span id="cid-s2-tire-pac2002-t-purelat"></span><span id="doxid-structs2-tire-pac2002-t-1ad32d4468a76cbca66b8b5432cf6d0302"></span><span id="cid-s2-tire-pac2002-t-purelong"></span><span id="doxid-structs2-tire-pac2002-t-1a227fce1c9e7389cf4dc356ecf518f63a"></span><span id="cid-s2-tire-pac2002-t-combinedtorque"></span><span id="doxid-structs2-tire-pac2002-t-1a51b04a47c703b94449e876732d449ba6"></span><span id="cid-s2-tire-pac2002-t-puretorque"></span><span id="doxid-structs2-tire-pac2002-t-1a65d360b9b30129543ca8b512b06dd436"></span><span id="cid-s2-tire-pac2002-t-combinedlat"></span><span id="doxid-structs2-tire-pac2002-t-1a54e1041f36838cfc44118fa50ba47452"></span><span id="cid-s2-tire-pac2002-t-combinedlong"></span><span id="doxid-structs2-tire-pac2002-t-1a0345fca34b6ff0e140e7c0f403e14617"></span><span id="cid-s2-tire-pac2002-t-thresholds"></span><span id="doxid-structs2-tire-pac2002-t-1aa9e27f1f3707ee5588d06e32bccfc39a"></span><span id="cid-s2-tire-pac2002-t-aligning"></span><span id="doxid-structs2-tire-pac2002-t-1a41de16323761370dacdba2e04e15c359"></span><span id="cid-s2-tire-pac2002-t-rolling"></span><span id="doxid-structs2-tire-pac2002-t-1a6cae18bedf57bcb60fa58a7ff935f51f"></span><span id="cid-s2-tire-pac2002-t-lateral"></span><span id="doxid-structs2-tire-pac2002-t-1adf7cfc90f6ef2012e968db18e2dec810"></span><span id="cid-s2-tire-pac2002-t-overturning"></span><span id="doxid-structs2-tire-pac2002-t-1af9e62b35de6d5d5d5e1052789a91df69"></span><span id="cid-s2-tire-pac2002-t-longitudinal"></span><span id="doxid-structs2-tire-pac2002-t-1a368e000eaf1d482f2efb172011c073b6"></span><span id="cid-s2-tire-pac2002-t-scaling"></span><span id="doxid-structs2-tire-pac2002-t-1a223bd46740243f5af5ac27c45393d334"></span><span id="cid-s2-tire-pac2002-t-vertical-force-range"></span><span id="doxid-structs2-tire-pac2002-t-1a56e38ad6e000578ef0cad15f532cc8eb"></span><span id="cid-s2-tire-pac2002-t-inclination-angle-range"></span><span id="doxid-structs2-tire-pac2002-t-1ae49986344ad2c031facc2b1c0bbbd98b"></span><span id="cid-s2-tire-pac2002-t-slip-angle-range"></span><span id="doxid-structs2-tire-pac2002-t-1aac4f71eff041a949bd7ba9abbd6cd6b3"></span><span id="cid-s2-tire-pac2002-t-long-slip-range"></span><span id="doxid-structs2-tire-pac2002-t-1a8ddd9ce6b9c03ddac56136dd8cc3e4d1"></span><span id="cid-s2-tire-pac2002-t-vertical"></span><span id="doxid-structs2-tire-pac2002-t-1a9b3bf7365a510f2bdd9e26e77aedd859"></span><span id="cid-s2-tire-pac2002-t-shape"></span><span id="doxid-structs2-tire-pac2002-t-1a16a81e76f36b0cd17d429ee00f523ddc"></span><span id="cid-s2-tire-pac2002-t-dimension"></span><span id="doxid-structs2-tire-pac2002-t-1afc94e11f0c67b1dc0541f018284e902a"></span><span id="cid-s2-tire-pac2002-t-model"></span><span id="doxid-structs2-tire-pac2002-t-1a5b5e81e3c777d43aa53b8364efbb8d28"></span><span id="cid-s2-tire-pac2002-t-slips"></span><span id="doxid-structs2-tire-pac2002-t-1a0ac735fc3b65028b93a53d8e7218c918"></span><span id="cid-s2-tire-pac2002-t-usetransientslip"></span><span id="doxid-structs2-tire-pac2002-t-1a6d3ccaa55e83b8fb6ebb42c90377057d"></span><span></span><span class="c1">// fields</span>
+
+<span class="kt">bool</span> <span class="n">useTransientSlip</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_slips.html#doxid-structslips"><span class="std std-ref">slips</span></a><span></span> <span class="n">slips</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_model.html#doxid-structmodel"><span class="std std-ref">model</span></a><span></span> <span class="n">model</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_dimension.html#doxid-structdimension"><span class="std std-ref">dimension</span></a><span></span> <span class="n">dimension</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_shape.html#doxid-structshape"><span class="std std-ref">shape</span></a><span></span> <span class="n">shape</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_vertical.html#doxid-structvertical"><span class="std std-ref">vertical</span></a><span></span> <span class="n">vertical</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_long_slip_range.html#doxid-structlong-slip-range"><span class="std std-ref">long_slip_range</span></a><span></span> <span class="n">long_slip_range</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_slip_angle_range.html#doxid-structslip-angle-range"><span class="std std-ref">slip_angle_range</span></a><span></span> <span class="n">slip_angle_range</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_inclination_angle_range.html#doxid-structinclination-angle-range"><span class="std std-ref">inclination_angle_range</span></a><span></span> <span class="n">inclination_angle_range</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_vertical_force_range.html#doxid-structvertical-force-range"><span class="std std-ref">vertical_force_range</span></a><span></span> <span class="n">vertical_force_range</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_scaling_coefficients.html#doxid-structscaling-coefficients"><span class="std std-ref">scaling_coefficients</span></a><span></span> <span class="n">scaling</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_longitudinal_coefficients.html#doxid-structlongitudinal-coefficients"><span class="std std-ref">longitudinal_coefficients</span></a><span></span> <span class="n">longitudinal</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_overturning_coefficients.html#doxid-structoverturning-coefficients"><span class="std std-ref">overturning_coefficients</span></a><span></span> <span class="n">overturning</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_lateral_coefficients.html#doxid-structlateral-coefficients"><span class="std std-ref">lateral_coefficients</span></a><span></span> <span class="n">lateral</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_rolling_coefficients.html#doxid-structrolling-coefficients"><span class="std std-ref">rolling_coefficients</span></a><span></span> <span class="n">rolling</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_aligning_coefficients.html#doxid-structaligning-coefficients"><span class="std std-ref">aligning_coefficients</span></a><span></span> <span class="n">aligning</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_thresholds.html#doxid-structthresholds"><span class="std std-ref">thresholds</span></a><span></span> <span class="n">thresholds</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_combinedLongCoefs.html#doxid-structcombined-long-coefs"><span class="std std-ref">combinedLongCoefs</span></a><span></span> <span class="n">combinedLong</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_combinedLatCoefs.html#doxid-structcombined-lat-coefs"><span class="std std-ref">combinedLatCoefs</span></a><span></span> <span class="n">combinedLat</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_pureTorqueCoefs.html#doxid-structpure-torque-coefs"><span class="std std-ref">pureTorqueCoefs</span></a><span></span> <span class="n">pureTorque</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_combinedTorqueCoefs.html#doxid-structcombined-torque-coefs"><span class="std std-ref">combinedTorqueCoefs</span></a><span></span> <span class="n">combinedTorque</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_pureLongCoefs.html#doxid-structpure-long-coefs"><span class="std std-ref">pureLongCoefs</span></a><span></span> <span class="n">pureLong</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_pureLatCoefs.html#doxid-structpure-lat-coefs"><span class="std std-ref">pureLatCoefs</span></a><span></span> <span class="n">pureLat</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_zetaCoefs.html#doxid-structzeta-coefs"><span class="std std-ref">zetaCoefs</span></a><span></span> <span class="n">zeta</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_bessel.html#doxid-structbessel"><span class="std std-ref">bessel</span></a><span></span> <span class="n">bessel</span>
+<span class="k">struct</span> <a class="reference internal" href="struct_relaxationL.html#doxid-structrelaxation-l"><span class="std std-ref">relaxationL</span></a><span></span> <span class="n">relaxation</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1ac9d52475e911f107b5724d097531c1f4"><span class="std std-ref">timeLast</span></a><span></span>
+<span class="n">s2_screw_t</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1aad0c78cf0ce734d963f6ab59cfbd6e6e"><span class="std std-ref">force</span></a><span></span>
+<span class="n">s2_stackstr_t</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1a80baacd22282b6f6706b64cc54ac77c3"><span class="std std-ref">wheelBody</span></a><span></span>
+<span class="n">s2_body_t</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1ac1bfde5c448581ef271d36a203312d58"><span class="std std-ref">wheelBodyPointer</span></a><span></span>
+<span class="n">s2_screw_t</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1a5028bdc080a1ba90bba94e92bdc644be"><span class="std std-ref">velocityLocal</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1aa554286a1b21575daefa8de510871d38"><span class="std std-ref">r0</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1a5a2fd89db9798baf7e20f20567775058"><span class="std std-ref">rl</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1ae00678338299528cd4ed1141c00169be"><span class="std std-ref">rEff</span></a><span></span>
+<span class="kt">double</span> <span class="n">Fz</span>
+<span class="kt">double</span> <span class="n">dFz</span>
+<span class="kt">double</span> <span class="n">C_Fx</span>
+<span class="kt">double</span> <span class="n">C_Fy</span>
+<span class="n">s2_vector_t</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1a17c1325ccf3071834430b86401ad8e3c"><span class="std std-ref">wheelNormal</span></a><span></span>
+<span class="n">s2_vector_t</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1a68e1ff35adc4f3b16340b1a546916536"><span class="std std-ref">terrainNormal</span></a><span></span>
+<span class="n">s2_vector_t</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1aabac7a783b9dd0a58dd2f9fb5953ba53"><span class="std std-ref">xDirection</span></a><span></span>
+<span class="n">s2_vector_t</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1ad25ae91ad70d91042938927c2adaafba"><span class="std std-ref">yDirection</span></a><span></span>
+<span class="kt">double</span> <span class="n">omega</span>
+<span class="kt">double</span> <span class="n">slipAngle</span>
+<span class="kt">double</span> <span class="n">longitudinalSlip</span>
+<span class="kt">double</span> <span class="n">camberAngle</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1a62362e6077fc6d15f88cf27e043a7a16"><span class="std std-ref">depth</span></a><span></span>
+<span class="n">s2_displacement_t</span> <span class="n">wFrame</span>
+<span class="n">s2_displacement_t</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1abce24461a494900ec1d2b5c28ae13fba"><span class="std std-ref">contactFrame</span></a><span></span>
+<span class="kt">bool</span> <span class="n">inContact</span>
+<span class="n">s2_screw_t</span> <span class="n">fmCombinedLast</span>
+<span class="n">s2_screw_t</span> <span class="n">fmCombined</span>
+<span class="n">s2_screw_t</span> <span class="n">fmPureLast</span>
+<span class="n">s2_screw_t</span> <span class="n">fmPure</span>
+<span class="n">s2_screw_t</span> <span class="n">fmGlobal</span>
+<span class="kt">double</span> <span class="n">y</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-tire-pac2002-t-1a15d1725861746bd85d14357756a607d1"><span class="std std-ref">dy</span></a>
+</pre>
+</div>
+<div class="section" id="detailed-documentation">
+<span id="details-doxid-structs2-tire-pac2002-t"></span><h2>Detailed Documentation<a class="headerlink" href="#detailed-documentation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="fields">
+<h3>Fields<a class="headerlink" href="#fields" title="Permalink to this headline">¶</a></h3>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-timelast">
+<span id="doxid-structs2-tire-pac2002-t-1ac9d52475e911f107b5724d097531c1f4"></span><span></span><span class="kt">double</span> <span class="n">timeLast</span>
+</pre>
+<p>time of last evaluation</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-force">
+<span id="doxid-structs2-tire-pac2002-t-1aad0c78cf0ce734d963f6ab59cfbd6e6e"></span><span></span><span class="n">s2_screw_t</span> <span class="n">force</span>
+</pre>
+<p>reaction force in w frame</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-wheelbody">
+<span id="doxid-structs2-tire-pac2002-t-1a80baacd22282b6f6706b64cc54ac77c3"></span><span></span><span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span>
+</pre>
+<p>linked list of char arrays representing path to wheel body in assembly hierarchy</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-wheelbodypointer">
+<span id="doxid-structs2-tire-pac2002-t-1ac1bfde5c448581ef271d36a203312d58"></span><span></span><span class="n">s2_body_t</span><span class="o">*</span> <span class="n">wheelBodyPointer</span>
+</pre>
+<p>pointer to wheel body</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-velocitylocal">
+<span id="doxid-structs2-tire-pac2002-t-1a5028bdc080a1ba90bba94e92bdc644be"></span><span></span><span class="n">s2_screw_t</span> <span class="n">velocityLocal</span>
+</pre>
+<p>velocity screw expressed in frame w</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-r0">
+<span id="doxid-structs2-tire-pac2002-t-1aa554286a1b21575daefa8de510871d38"></span><span></span><span class="kt">double</span> <span class="n">r0</span>
+</pre>
+<p>undeformed radius</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-rl">
+<span id="doxid-structs2-tire-pac2002-t-1a5a2fd89db9798baf7e20f20567775058"></span><span></span><span class="kt">double</span> <span class="n">rl</span>
+</pre>
+<p>statically loaded radius</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-reff">
+<span id="doxid-structs2-tire-pac2002-t-1ae00678338299528cd4ed1141c00169be"></span><span></span><span class="kt">double</span> <span class="n">rEff</span>
+</pre>
+<p>effective radius</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-wheelnormal">
+<span id="doxid-structs2-tire-pac2002-t-1a17c1325ccf3071834430b86401ad8e3c"></span><span></span><span class="n">s2_vector_t</span> <span class="n">wheelNormal</span>
+</pre>
+<p>wheel normal expressed in global frame</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-terrainnormal">
+<span id="doxid-structs2-tire-pac2002-t-1a68e1ff35adc4f3b16340b1a546916536"></span><span></span><span class="n">s2_vector_t</span> <span class="n">terrainNormal</span>
+</pre>
+<p>terrain normal at wheel location</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-xdirection">
+<span id="doxid-structs2-tire-pac2002-t-1aabac7a783b9dd0a58dd2f9fb5953ba53"></span><span></span><span class="n">s2_vector_t</span> <span class="n">xDirection</span>
+</pre>
+<p>longitudinal heading in terrain plane</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-ydirection">
+<span id="doxid-structs2-tire-pac2002-t-1ad25ae91ad70d91042938927c2adaafba"></span><span></span><span class="n">s2_vector_t</span> <span class="n">yDirection</span>
+</pre>
+<p>lateral direction in terrain plane</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-depth">
+<span id="doxid-structs2-tire-pac2002-t-1a62362e6077fc6d15f88cf27e043a7a16"></span><span></span><span class="kt">double</span> <span class="n">depth</span>
+</pre>
+<p>penetration depth</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-contactframe">
+<span id="doxid-structs2-tire-pac2002-t-1abce24461a494900ec1d2b5c28ae13fba"></span><span></span><span class="n">s2_displacement_t</span> <span class="n">contactFrame</span>
+</pre>
+<p>frame of contact patch following ISO conventions, forces are computed in w frame</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-t-dy">
+<span id="doxid-structs2-tire-pac2002-t-1a15d1725861746bd85d14357756a607d1"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">dy</span>
+</pre>
+<p>initial states</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="global.html">Global Namespace</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_forcemodule_enum_t.html">enum s2_forcemodule_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_numericalintegrator_enum_t.html">enum s2_numericalintegrator_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_io_enum_t.html">enum s2_pid_io_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_target_enum_t.html">enum s2_pid_target_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_spring_enum_t.html">enum s2_spring_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_aligning_coefficients.html">struct aligning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_bessel.html">struct bessel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLatCoefs.html">struct combinedLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLongCoefs.html">struct combinedLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedTorqueCoefs.html">struct combinedTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_dimension.html">struct dimension</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_inclination_angle_range.html">struct inclination_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_lateral_coefficients.html">struct lateral_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_long_slip_range.html">struct long_slip_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_longitudinal_coefficients.html">struct longitudinal_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_model.html">struct model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_overturning_coefficients.html">struct overturning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLatCoefs.html">struct pureLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLongCoefs.html">struct pureLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureTorqueCoefs.html">struct pureTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_relaxationL.html">struct relaxationL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_rolling_coefficients.html">struct rolling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_damper_t.html">struct s2_damper_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_forcemodule_t.html">struct s2_forcemodule_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_numericalintegrator_ode113_t.html">struct s2_numericalintegrator_ode113_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_numericalintegrator_ode113b_t.html">struct s2_numericalintegrator_ode113b_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_pid_t.html">struct s2_pid_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_spring_t.html">struct s2_spring_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_fiala_t.html">struct s2_tire_fiala_t</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">struct s2_tire_pac2002_t</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detailed-documentation">Detailed Documentation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#fields">Fields</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="struct_scaling_coefficients.html">struct scaling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_shape.html">struct shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slip_angle_range.html">struct slip_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slips.html">struct slips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_thresholds.html">struct thresholds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical.html">struct vertical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical_force_range.html">struct vertical_force_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_zetaCoefs.html">struct zetaCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global.html#detailed-documentation">Detailed Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="global.html">Global Namespace</a><ul>
+      <li>Previous: <a href="struct_s2_tire_fiala_t.html" title="previous chapter">struct s2_tire_fiala_t</a></li>
+      <li>Next: <a href="struct_scaling_coefficients.html" title="next chapter">struct scaling_coefficients</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/doxyrest/struct_s2_tire_pac2002_t.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

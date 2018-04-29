@@ -1,0 +1,388 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>struct s2_numericalintegrator_ode113b_t &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="struct s2_pid_t" href="struct_s2_pid_t.html" />
+    <link rel="prev" title="struct s2_numericalintegrator_ode113_t" href="struct_s2_numericalintegrator_ode113_t.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="struct-s2-numericalintegrator-ode113b-t">
+<span id="cid-s2-numericalintegrator-ode113b-t"></span><span id="doxid-structs2-numericalintegrator-ode113b-t"></span><span id="index-0"></span><h1>struct s2_numericalintegrator_ode113b_t<a class="headerlink" href="#struct-s2-numericalintegrator-ode113b-t" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<pre class="highlight overview-code-block literal-block">
+<span></span><span class="cp">#include</span> <span class="cpf">&lt;ode113b.h&gt;</span>
+</pre>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Attributes associated with numerical integrator. <a class="reference internal" href="#details-doxid-structs2-numericalintegrator-ode113b-t"><span class="std std-ref">More…</span></a></p>
+<pre class="highlight overview-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-smoothingfilter">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1ae9ff65fa3e88fa11c1691733cb2578bd"></span><span id="cid-s2-numericalintegrator-ode113b-t-baumgarte2omegan"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a3040f01a73a4bc4e6de1cdd238ed2f8a"></span><span id="cid-s2-numericalintegrator-ode113b-t-baumgarteomegan2"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a350fff683d7340992799c5a0a2160ebe"></span><span id="cid-s2-numericalintegrator-ode113b-t-start"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a0d492a38d1b1d9da6f6b2fb0fd944a46"></span><span id="cid-s2-numericalintegrator-ode113b-t-nornd"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1ab8c660c563479533d95276a334afb827"></span><span id="cid-s2-numericalintegrator-ode113b-t-phase1"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a292c636a5d208d716b372451ca78ca52"></span><span id="cid-s2-numericalintegrator-ode113b-t-ifail"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a36076ce9e74e53dbc540ba883b8af5bf"></span><span id="cid-s2-numericalintegrator-ode113b-t-ns"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a8a2186c115aeafae77eeefbbde1d0d65"></span><span id="cid-s2-numericalintegrator-ode113b-t-safetyfactor"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1ad2486ce6d1d4279acb25bec2f2c4604c"></span><span id="cid-s2-numericalintegrator-ode113b-t-hh"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1ae4c5235002bb4fd26276268da30ba51d"></span><span id="cid-s2-numericalintegrator-ode113b-t-told"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a4bae5ad1b927c1688f2e0d3c53b5345e"></span><span id="cid-s2-numericalintegrator-ode113b-t-iterationcount"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a2c5b49e19a760f7619bc4517ed4ebcab"></span><span id="cid-s2-numericalintegrator-ode113b-t-newtonraphsonfailure"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1afa9a7982be2589ba8bee8514ad3b5a94"></span><span id="cid-s2-numericalintegrator-ode113b-t-stepcount"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a4ed4fac2033f2f12f9fc82391daf8774"></span><span id="cid-s2-numericalintegrator-ode113b-t-phi"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1aedd35e2d49c80ac61f60ea5221d3bd24"></span><span id="cid-s2-numericalintegrator-ode113b-t-yerr"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1adb0727dfa06ec27e38ca1617f73984cf"></span><span id="cid-s2-numericalintegrator-ode113b-t-p"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a71b955f1144a0befe7ba379c56a9267d"></span><span id="cid-s2-numericalintegrator-ode113b-t-wt"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1aad953bbac01f867ecce73816300935a5"></span><span id="cid-s2-numericalintegrator-ode113b-t-dyout"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1a0dd9ea0ea3f18cd908f74a8a9a00ddb6"></span><span id="cid-s2-numericalintegrator-ode113b-t-yy"></span><span id="doxid-structs2-numericalintegrator-ode113b-t-1ac66c9ebef99a02ba210e252e2baf237d"></span><span></span><span class="c1">// fields</span>
+
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1afae834302e664e9e693c920674e50c99"><span class="std std-ref">y</span></a><span></span>
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a54875c0e1b1c87f58340872741b71423"><span class="std std-ref">dy</span></a><span></span>
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a8ed1f4e3a2cee1ba15fc614bddc3e1ae"><span class="std std-ref">ydata</span></a><span></span>
+<span class="kt">double</span><span class="o">*</span> <span class="n">yy</span>
+<span class="kt">double</span><span class="o">*</span> <span class="n">dyout</span>
+<span class="kt">double</span><span class="o">*</span> <span class="n">wt</span>
+<span class="kt">double</span><span class="o">*</span> <span class="n">p</span>
+<span class="kt">double</span><span class="o">*</span> <span class="n">yerr</span>
+<span class="kt">double</span><span class="o">**</span> <span class="n">phi</span>
+<span class="kt">int</span> <span class="n">stepCount</span>
+<span class="kt">char</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a09b0aca0fa20296138f8ab637e9bd30b"><span class="std std-ref">outFile</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1ac7a2b7656972362f0f1b32d9af224634"><span class="std std-ref">neqn</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1aec50a57817a69b9fe22405152b8da8cc"><span class="std std-ref">neqn2</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a1fc6738295a1a878dbb46c005d139b4f"><span class="std std-ref">t</span></a><span></span>
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a5072db5d422eeff325be81a033f61a33"><span class="std std-ref">tdata</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a929142ee1cc88a48b4f69a1b48379e90"><span class="std std-ref">tout</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a8635b20f6f74be45d0ee0a6cc6d9de86"><span class="std std-ref">iflag</span></a><span></span>
+<span class="kt">bool</span> <span class="n">newtonRaphsonFailure</span>
+<span class="kt">int</span> <span class="n">iterationCount</span>
+<span class="n">s2_stack_t</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a0f31c4b07cbfb6917522b805ec515aaa"><span class="std std-ref">reconfigurations</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a9b2321cac4474e21121999a23c6f121b"><span class="std std-ref">twou</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a0ec5b998f9ccd548e86a94a58517e388"><span class="std std-ref">fouru</span></a><span></span>
+<span class="kt">double</span> <span class="n">told</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a42422580ac8b4e3bf4b3e85d81ff2b26"><span class="std std-ref">hold</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a1d70581ee15f7f2570d6738c2f5dd960"><span class="std std-ref">h</span></a><span></span>
+<span class="kt">double</span> <span class="n">hh</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1ac3717b067d25ee6318dff3289af0169c"><span class="std std-ref">eps</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1ae04862c5bc2c8ae8b3c3d2f2e504da38"><span class="std std-ref">hmax</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1af5efa9ec4d18174722fb61534f24c05e"><span class="std std-ref">x</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a36ca1db3dbc0f5769a95af1838864aa3"><span class="std std-ref">relerr</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a38095f96ffcc82b90d73a8c928483009"><span class="std std-ref">abserr</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a14618342f5ac3d9e11243e378888aee4"><span class="std std-ref">alpha</span></a><span></span> <span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a8ac12d8c978afb7f7b880ff5a4048d37"><span class="std std-ref">beta</span></a><span></span> <span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a5c25fb4a77f566a4d39dc4d27eea1455"><span class="std std-ref">psi</span></a><span></span> <span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a18461ac859fe600441a287cb9ad26f8d"><span class="std std-ref">sig</span></a><span></span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a43b52b119144b4669fd9e8c5f63092a2"><span class="std std-ref">w</span></a><span></span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a724e368f18f791eac418bf1b42fbf4f5"><span class="std std-ref">v</span></a><span></span> <span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1af9fb2ee9ae47b4b12bf4389252799ca8"><span class="std std-ref">g</span></a><span></span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a3aad9d8b3df3a87e149104bbc57f4a33"><span class="std std-ref">gstr</span></a><span></span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1ab3d3fd00469e46ad93bd8bc1f593210d"><span class="std std-ref">two</span></a><span></span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a1505744fa233fc376bdf178d97dc2ae6"><span class="std std-ref">rho</span></a><span></span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a44e7015dab4b10cb0914f62f10b93b63"><span class="std std-ref">stabilityLimits</span></a><span></span> <span class="p">[</span><span class="mi">17</span><span class="p">]</span>
+<span class="kt">double</span> <span class="n">safetyFactor</span>
+<span class="kt">int</span> <span class="n">ns</span>
+<span class="kt">int</span> <span class="n">ifail</span>
+<span class="kt">bool</span> <span class="n">phase1</span>
+<span class="kt">bool</span> <span class="n">nornd</span>
+<span class="kt">bool</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1ac44935d067d4db238eb8f37c2d11dc79"><span class="std std-ref">crash</span></a><span></span>
+<span class="kt">bool</span> <span class="n">start</span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a092b8221aefbc92fce2222eef0d7544b"><span class="std std-ref">k</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a8dfafaafc7c8dea7644a8557bbb35111"><span class="std std-ref">kold</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a9cc9b6e92685ac0d22105ecbeb78cd0f"><span class="std std-ref">iconv</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a908b5de0dcd3faa99088977d05b31b36"><span class="std std-ref">step</span></a><span></span>
+<span class="kt">double</span> <span class="n">baumgarteOmegaN2</span>
+<span class="kt">double</span> <span class="n">baumgarte2OmegaN</span>
+<span class="kt">double</span> <span class="n">smoothingFilter</span>
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a42964737a15ad73d75c8397234a4b231"><span class="std std-ref">integralError</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113b-t-1a2c12a18c1f267e825895d26b0ce65259"><span class="std std-ref">integralGain</span></a>
+</pre>
+</div>
+<div class="section" id="detailed-documentation">
+<span id="details-doxid-structs2-numericalintegrator-ode113b-t"></span><h2>Detailed Documentation<a class="headerlink" href="#detailed-documentation" title="Permalink to this headline">¶</a></h2>
+<p>Attributes associated with numerical integrator.</p>
+<div class="section" id="fields">
+<h3>Fields<a class="headerlink" href="#fields" title="Permalink to this headline">¶</a></h3>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-y">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1afae834302e664e9e693c920674e50c99"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+</pre>
+<p>y is a de copy of the states communicated to the calling program. Calling program provides y as the the initial conditions. de copies y into yy and sends this to step. If step fails to advance solution, de copies latest yy from step back to y and returns this result to calling program for continuation.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-dy">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a54875c0e1b1c87f58340872741b71423"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">dy</span>
+</pre>
+<p>This is the array de passes to step to use for predicted and corrected state derivatives. If successful, step computes dy and returns it to de as dy. If step is unsuccessful, de just ignores dy.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-ydata">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a8ed1f4e3a2cee1ba15fc614bddc3e1ae"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">ydata</span>
+</pre>
+<p>array to store results from numerical integration</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-outfile">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a09b0aca0fa20296138f8ab637e9bd30b"></span><span></span><span class="kt">char</span><span class="o">*</span> <span class="n">outFile</span>
+</pre>
+<p>approximate number of steps in ydata array, found by tspan / tstep filename to write results to</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-neqn">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1ac7a2b7656972362f0f1b32d9af224634"></span><span></span><span class="kt">int</span> <span class="n">neqn</span>
+</pre>
+<p>number of equations for dynamics</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-neqn2">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1aec50a57817a69b9fe22405152b8da8cc"></span><span></span><span class="kt">int</span> <span class="n">neqn2</span>
+</pre>
+<p>total number of equations including additional state variables that must be integrated for force modules</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-t">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a1fc6738295a1a878dbb46c005d139b4f"></span><span></span><span class="kt">double</span> <span class="n">t</span>
+</pre>
+<p>current value of the independent variable</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-tdata">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a5072db5d422eeff325be81a033f61a33"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">tdata</span>
+</pre>
+<p>saved reported values of t, equal to number of entries in ydata / neqn</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-tout">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a929142ee1cc88a48b4f69a1b48379e90"></span><span></span><span class="kt">double</span> <span class="n">tout</span>
+</pre>
+<p>the desired value of t of simulation output</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-iflag">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a8635b20f6f74be45d0ee0a6cc6d9de86"></span><span></span><span class="kt">int</span> <span class="n">iflag</span>
+</pre>
+<p>indicates the status of integration. On input, IFLAG is normally 1 (or -1 in the special case where TOUT is not to be exceeded.) On normal output, IFLAG is 2. Other output values are: 3, integration did not reach TOUT because the error tolerances were too small. But RELERR and ABSERR were increased appropriately for continuing; 4, integration did not reach TOUT because more than 500 steps were taken; 5, integration did not reach TOUT because the equations appear to be stiff; 6, invalid input parameters (fatal error). The value of IFLAG is returned negative when the input value is negative and the integration does not reach TOUT.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-reconfigurations">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a0f31c4b07cbfb6917522b805ec515aaa"></span><span></span><span class="n">s2_stack_t</span><span class="o">*</span> <span class="n">reconfigurations</span>
+</pre>
+<p>records time step indices of a full factor event during a running simulation</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-twou">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a9b2321cac4474e21121999a23c6f121b"></span><span></span><span class="kt">double</span> <span class="n">twou</span>
+</pre>
+<p>u is based on the machine unit roundoff error. it is the smallest positive number such that 1.0+u .gt. 1.0. the user must calculate u and assign twou = 2.0*u and fouru=4.0*u in the following statements before calling the code.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-fouru">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a0ec5b998f9ccd548e86a94a58517e388"></span><span></span><span class="kt">double</span> <span class="n">fouru</span>
+</pre>
+<p>u is based on the machine unit roundoff error. it is the smallest positive number such that 1.0+u .gt. 1.0. the user must calculate u and assign twou = 2.0*u and fouru=4.0*u in the following statements before calling the code.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-hold">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a42422580ac8b4e3bf4b3e85d81ff2b26"></span><span></span><span class="kt">double</span> <span class="n">hold</span>
+</pre>
+<p>Previous time stepsize used by de and step</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-h">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a1d70581ee15f7f2570d6738c2f5dd960"></span><span></span><span class="kt">double</span> <span class="n">h</span>
+</pre>
+<p>the nominal step size indicating direction of integration and maximum size of step. H must be a variable, not a constant</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-eps">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1ac3717b067d25ee6318dff3289af0169c"></span><span></span><span class="kt">double</span> <span class="n">eps</span>
+</pre>
+<p>local error tolerance per step, must be variable, not a constant</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-hmax">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1ae04862c5bc2c8ae8b3c3d2f2e504da38"></span><span></span><span class="kt">double</span> <span class="n">hmax</span>
+</pre>
+<p>Maximum allowed integration stepsize.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-x">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1af5efa9ec4d18174722fb61534f24c05e"></span><span></span><span class="kt">double</span> <span class="n">x</span>
+</pre>
+<p>Time variable passed by de to and changed by step</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-relerr">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a36ca1db3dbc0f5769a95af1838864aa3"></span><span></span><span class="kt">double</span> <span class="n">relerr</span>
+</pre>
+<p>relative error</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-abserr">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a38095f96ffcc82b90d73a8c928483009"></span><span></span><span class="kt">double</span> <span class="n">abserr</span>
+</pre>
+<p>absolute error</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-alpha">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a14618342f5ac3d9e11243e378888aee4"></span><span></span><span class="kt">double</span> <span class="n">alpha</span> <span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-beta">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a8ac12d8c978afb7f7b880ff5a4048d37"></span><span></span><span class="kt">double</span> <span class="n">beta</span> <span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-psi">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a5c25fb4a77f566a4d39dc4d27eea1455"></span><span></span><span class="kt">double</span> <span class="n">psi</span> <span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-sig">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a18461ac859fe600441a287cb9ad26f8d"></span><span></span><span class="kt">double</span> <span class="n">sig</span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-w">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a43b52b119144b4669fd9e8c5f63092a2"></span><span></span><span class="kt">double</span> <span class="n">w</span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-v">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a724e368f18f791eac418bf1b42fbf4f5"></span><span></span><span class="kt">double</span> <span class="n">v</span> <span class="p">[</span><span class="mi">13</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-g">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1af9fb2ee9ae47b4b12bf4389252799ca8"></span><span></span><span class="kt">double</span> <span class="n">g</span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-gstr">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a3aad9d8b3df3a87e149104bbc57f4a33"></span><span></span><span class="kt">double</span> <span class="n">gstr</span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-two">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1ab3d3fd00469e46ad93bd8bc1f593210d"></span><span></span><span class="kt">double</span> <span class="n">two</span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-rho">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a1505744fa233fc376bdf178d97dc2ae6"></span><span></span><span class="kt">double</span> <span class="n">rho</span> <span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+</pre>
+<p>Internal array used to set up polynomials.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-stabilitylimits">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a44e7015dab4b10cb0914f62f10b93b63"></span><span></span><span class="kt">double</span> <span class="n">stabilityLimits</span> <span class="p">[</span><span class="mi">17</span><span class="p">]</span>
+</pre>
+<p>stability limits, used to set adaptive omega_n</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-crash">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1ac44935d067d4db238eb8f37c2d11dc79"></span><span></span><span class="kt">bool</span> <span class="n">crash</span>
+</pre>
+<p>set to true if no step can be taken</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-k">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a092b8221aefbc92fce2222eef0d7544b"></span><span></span><span class="kt">int</span> <span class="n">k</span>
+</pre>
+<p>the appropriate order for the next step</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-kold">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a8dfafaafc7c8dea7644a8557bbb35111"></span><span></span><span class="kt">int</span> <span class="n">kold</span>
+</pre>
+<p>the order used on the last successful step</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-iconv">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a9cc9b6e92685ac0d22105ecbeb78cd0f"></span><span></span><span class="kt">int</span> <span class="n">iconv</span>
+</pre>
+<p>Integrator status flag provided to fcn. iconv = 1 when fcn is called after a successful correction. In this case the states are accurate. iconv = 0 when fcn is called after a prediction following a successful correction. iconv = -1 when fcn is called after a prediction following an unsuccessful correction.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-step">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a908b5de0dcd3faa99088977d05b31b36"></span><span></span><span class="kt">int</span> <span class="n">step</span>
+</pre>
+<p>current time step of numerical integration</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-integralerror">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a42964737a15ad73d75c8397234a4b231"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">integralError</span>
+</pre>
+<p>integral of error, equal to number of constraints</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-integralgain">
+<span id="doxid-structs2-numericalintegrator-ode113b-t-1a2c12a18c1f267e825895d26b0ce65259"></span><span></span><span class="kt">double</span> <span class="n">integralGain</span>
+</pre>
+<p>integral gain</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="global.html">Global Namespace</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_forcemodule_enum_t.html">enum s2_forcemodule_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_numericalintegrator_enum_t.html">enum s2_numericalintegrator_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_io_enum_t.html">enum s2_pid_io_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_target_enum_t.html">enum s2_pid_target_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_spring_enum_t.html">enum s2_spring_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_aligning_coefficients.html">struct aligning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_bessel.html">struct bessel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLatCoefs.html">struct combinedLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLongCoefs.html">struct combinedLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedTorqueCoefs.html">struct combinedTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_dimension.html">struct dimension</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_inclination_angle_range.html">struct inclination_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_lateral_coefficients.html">struct lateral_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_long_slip_range.html">struct long_slip_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_longitudinal_coefficients.html">struct longitudinal_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_model.html">struct model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_overturning_coefficients.html">struct overturning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLatCoefs.html">struct pureLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLongCoefs.html">struct pureLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureTorqueCoefs.html">struct pureTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_relaxationL.html">struct relaxationL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_rolling_coefficients.html">struct rolling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_damper_t.html">struct s2_damper_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_forcemodule_t.html">struct s2_forcemodule_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_numericalintegrator_ode113_t.html">struct s2_numericalintegrator_ode113_t</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">struct s2_numericalintegrator_ode113b_t</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detailed-documentation">Detailed Documentation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#fields">Fields</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_pid_t.html">struct s2_pid_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_spring_t.html">struct s2_spring_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_fiala_t.html">struct s2_tire_fiala_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_pac2002_t.html">struct s2_tire_pac2002_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_scaling_coefficients.html">struct scaling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_shape.html">struct shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slip_angle_range.html">struct slip_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slips.html">struct slips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_thresholds.html">struct thresholds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical.html">struct vertical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical_force_range.html">struct vertical_force_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_zetaCoefs.html">struct zetaCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global.html#detailed-documentation">Detailed Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="global.html">Global Namespace</a><ul>
+      <li>Previous: <a href="struct_s2_numericalintegrator_ode113_t.html" title="previous chapter">struct s2_numericalintegrator_ode113_t</a></li>
+      <li>Next: <a href="struct_s2_pid_t.html" title="next chapter">struct s2_pid_t</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/doxyrest/struct_s2_numericalintegrator_ode113b_t.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

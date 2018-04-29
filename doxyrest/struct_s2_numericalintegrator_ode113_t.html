@@ -1,0 +1,240 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>struct s2_numericalintegrator_ode113_t &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="struct s2_numericalintegrator_ode113b_t" href="struct_s2_numericalintegrator_ode113b_t.html" />
+    <link rel="prev" title="struct s2_forcemodule_t" href="struct_s2_forcemodule_t.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="struct-s2-numericalintegrator-ode113-t">
+<span id="cid-s2-numericalintegrator-ode113-t"></span><span id="doxid-structs2-numericalintegrator-ode113-t"></span><span id="index-0"></span><h1>struct s2_numericalintegrator_ode113_t<a class="headerlink" href="#struct-s2-numericalintegrator-ode113-t" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<pre class="highlight overview-code-block literal-block">
+<span></span><span class="cp">#include</span> <span class="cpf">&lt;ode113.h&gt;</span>
+</pre>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Attributes associated with numerical integrator. <a class="reference internal" href="#details-doxid-structs2-numericalintegrator-ode113-t"><span class="std std-ref">More…</span></a></p>
+<pre class="highlight overview-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-iterationcount">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1abe1e278a4b6513722ce9000386b68bac"></span><span id="cid-s2-numericalintegrator-ode113-t-stepcount"></span><span id="doxid-structs2-numericalintegrator-ode113-t-1aa4d6f9eae6ddbd0d9d113474bc1db35f"></span><span></span><span class="c1">// fields</span>
+
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1a91ad1ab10815034e59e6bc2f98d48a09"><span class="std std-ref">y</span></a><span></span>
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1a150611eb771e3d070b51fd6f26a66c51"><span class="std std-ref">dy</span></a><span></span>
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1ade308206907ce3fe0a680707dd36248a"><span class="std std-ref">ydata</span></a><span></span>
+<span class="kt">int</span> <span class="n">stepCount</span>
+<span class="kt">char</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1abc4024c64efb81b6d6264f4476dcb525"><span class="std std-ref">outFile</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1ad3c209cf13baf8431b69b6f431247147"><span class="std std-ref">neqn</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1a4e3cdbb43614e81ff660de356246bd34"><span class="std std-ref">neqn2</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1a4614e8fcf146fe082bca77f1077b7758"><span class="std std-ref">t</span></a><span></span>
+<span class="kt">double</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1ab9c75168aa7b44c4933254b0c670e6c0"><span class="std std-ref">tout</span></a><span></span>
+<span class="kt">int</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1a0ca662106471204f95a69a5157517462"><span class="std std-ref">iflag</span></a><span></span>
+<span class="kt">double</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1a00c688b309270863b29a8b9e738aa426"><span class="std std-ref">work</span></a><span></span>
+<span class="kt">int</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1aefad9cea2bd2fc3b3d5d80d9f1b7bd9c"><span class="std std-ref">iwork</span></a><span></span>
+<span class="kt">int</span> <span class="n">iterationCount</span>
+<span class="n">s2_stack_t</span><span class="o">*</span> <a class="reference internal" href="#doxid-structs2-numericalintegrator-ode113-t-1a7049134484fad4b46a58738f3ebbf874"><span class="std std-ref">reconfigurations</span></a>
+</pre>
+</div>
+<div class="section" id="detailed-documentation">
+<span id="details-doxid-structs2-numericalintegrator-ode113-t"></span><h2>Detailed Documentation<a class="headerlink" href="#detailed-documentation" title="Permalink to this headline">¶</a></h2>
+<p>Attributes associated with numerical integrator.</p>
+<div class="section" id="fields">
+<h3>Fields<a class="headerlink" href="#fields" title="Permalink to this headline">¶</a></h3>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-y">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1a91ad1ab10815034e59e6bc2f98d48a09"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+</pre>
+<p>the current solution</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-dy">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1a150611eb771e3d070b51fd6f26a66c51"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">dy</span>
+</pre>
+<p>first time derivative of generalized coordinates</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-ydata">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1ade308206907ce3fe0a680707dd36248a"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">ydata</span>
+</pre>
+<p>array to store results from numerical integration</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-outfile">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1abc4024c64efb81b6d6264f4476dcb525"></span><span></span><span class="kt">char</span><span class="o">*</span> <span class="n">outFile</span>
+</pre>
+<p>number of steps in ydata array, found by tspan / tstep filename to write results to</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-neqn">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1ad3c209cf13baf8431b69b6f431247147"></span><span></span><span class="kt">int</span> <span class="n">neqn</span>
+</pre>
+<p>number of equations for dynamics</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-neqn2">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1a4e3cdbb43614e81ff660de356246bd34"></span><span></span><span class="kt">int</span> <span class="n">neqn2</span>
+</pre>
+<p>total number of equations including additional state variables that must be integrated for force modules</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-t">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1a4614e8fcf146fe082bca77f1077b7758"></span><span></span><span class="kt">double</span> <span class="n">t</span>
+</pre>
+<p>current value of the independent variable</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-tout">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1ab9c75168aa7b44c4933254b0c670e6c0"></span><span></span><span class="kt">double</span> <span class="n">tout</span>
+</pre>
+<p>the desired value of t of simulation output</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-iflag">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1a0ca662106471204f95a69a5157517462"></span><span></span><span class="kt">int</span> <span class="n">iflag</span>
+</pre>
+<p>indicates the status of integration. On input, IFLAG is normally 1 (or -1 in the special case where TOUT is not to be exceeded.) On normal output, IFLAG is 2. Other output values are: 3, integration did not reach TOUT because the error tolerances were too small. But RELERR and ABSERR were increased appropriately for continuing; 4, integration did not reach TOUT because more than 500 steps were taken; 5, integration did not reach TOUT because the equations appear to be stiff; 6, invalid input parameters (fatal error). The value of IFLAG is returned negative when the input value is negative and the integration does not reach TOUT.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-work">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1a00c688b309270863b29a8b9e738aa426"></span><span></span><span class="kt">double</span><span class="o">*</span> <span class="n">work</span>
+</pre>
+<p>work[100 + 21 * neqn]</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-iwork">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1aefad9cea2bd2fc3b3d5d80d9f1b7bd9c"></span><span></span><span class="kt">int</span><span class="o">*</span> <span class="n">iwork</span>
+</pre>
+<p>iwork[5]</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-reconfigurations">
+<span id="doxid-structs2-numericalintegrator-ode113-t-1a7049134484fad4b46a58738f3ebbf874"></span><span></span><span class="n">s2_stack_t</span><span class="o">*</span> <span class="n">reconfigurations</span>
+</pre>
+<p>records time step indices of a full factor event during a running simulation</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="global.html">Global Namespace</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_forcemodule_enum_t.html">enum s2_forcemodule_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_numericalintegrator_enum_t.html">enum s2_numericalintegrator_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_io_enum_t.html">enum s2_pid_io_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_target_enum_t.html">enum s2_pid_target_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_spring_enum_t.html">enum s2_spring_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_aligning_coefficients.html">struct aligning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_bessel.html">struct bessel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLatCoefs.html">struct combinedLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLongCoefs.html">struct combinedLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedTorqueCoefs.html">struct combinedTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_dimension.html">struct dimension</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_inclination_angle_range.html">struct inclination_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_lateral_coefficients.html">struct lateral_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_long_slip_range.html">struct long_slip_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_longitudinal_coefficients.html">struct longitudinal_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_model.html">struct model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_overturning_coefficients.html">struct overturning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLatCoefs.html">struct pureLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLongCoefs.html">struct pureLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureTorqueCoefs.html">struct pureTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_relaxationL.html">struct relaxationL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_rolling_coefficients.html">struct rolling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_damper_t.html">struct s2_damper_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_forcemodule_t.html">struct s2_forcemodule_t</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">struct s2_numericalintegrator_ode113_t</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detailed-documentation">Detailed Documentation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#fields">Fields</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_numericalintegrator_ode113b_t.html">struct s2_numericalintegrator_ode113b_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_pid_t.html">struct s2_pid_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_spring_t.html">struct s2_spring_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_fiala_t.html">struct s2_tire_fiala_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_pac2002_t.html">struct s2_tire_pac2002_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_scaling_coefficients.html">struct scaling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_shape.html">struct shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slip_angle_range.html">struct slip_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slips.html">struct slips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_thresholds.html">struct thresholds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical.html">struct vertical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical_force_range.html">struct vertical_force_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_zetaCoefs.html">struct zetaCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global.html#detailed-documentation">Detailed Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="global.html">Global Namespace</a><ul>
+      <li>Previous: <a href="struct_s2_forcemodule_t.html" title="previous chapter">struct s2_forcemodule_t</a></li>
+      <li>Next: <a href="struct_s2_numericalintegrator_ode113b_t.html" title="next chapter">struct s2_numericalintegrator_ode113b_t</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/doxyrest/struct_s2_numericalintegrator_ode113_t.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

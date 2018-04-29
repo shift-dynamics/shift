@@ -1,0 +1,199 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Installation &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="File Format" href="file_format/file_format.html" />
+    <link rel="prev" title="About" href="about.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="acquiring-shift">
+<h2>Acquiring Shift<a class="headerlink" href="#acquiring-shift" title="Permalink to this headline">¶</a></h2>
+<p><em>Shift</em> is accessible through a private github repository located at <a class="reference external" href="https://github.com/kriswehage/shift">https://github.com/kriswehage/shift</a>. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described <a class="reference external" href="https://help.github.com/articles/connecting-to-github-with-ssh/">here</a>. Then clone the project recursively using the following command:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="o">--</span><span class="n">recursive</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">kriswehage</span><span class="o">/</span><span class="n">shift</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+<p>The recursive flag is necessary to initialize the submodules. If you cloned the repository without the recursive flag, you can initialize the submodules later by issuing the command:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">submodule</span> <span class="n">update</span> <span class="o">--</span><span class="n">init</span> <span class="o">--</span><span class="n">recursive</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<p>In addition to the git submodules that are packaged together with <em>Shift</em>, the following additional libraries must be installed on your system.</p>
+<ul class="simple">
+<li><a class="reference external" href="https://cmake.org">Cmake</a></li>
+<li><a class="reference external" href="http://assimp.sourceforge.net">Assimp</a></li>
+<li><a class="reference external" href="http://www.digip.org/jansson/">Jansson</a></li>
+<li><a class="reference external" href="http://www.qt.io/developers/">Qt5</a></li>
+<li><a class="reference external" href="http://www.graphviz.org/">Graphviz</a></li>
+<li><a class="reference external" href="http://www.netlib.org/blas/">Cblas</a></li>
+<li><a class="reference external" href="http://www.imagemagick.org">ImageMagick</a></li>
+<li><a class="reference external" href="http://www.qhull.org">Qhull</a></li>
+<li><a class="reference external" href="http://pandoc.org">pandoc</a></li>
+</ul>
+<div class="section" id="linux">
+<h3>Linux<a class="headerlink" href="#linux" title="Permalink to this headline">¶</a></h3>
+<p>On most Linux distributions the above packages can be installed using the distribution’s package manager.</p>
+<div class="section" id="arch-linux">
+<h4>Arch Linux:<a class="headerlink" href="#arch-linux" title="Permalink to this headline">¶</a></h4>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pacman</span> <span class="o">-</span><span class="n">S</span> <span class="n">cmake</span> <span class="n">assimp</span> <span class="n">jansson</span> <span class="n">qt5</span> <span class="n">graphviz</span> <span class="n">cblas</span> <span class="n">imagemagick</span> <span class="n">pandoc</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ubuntu-debian-based-linux-distributions">
+<h4>Ubuntu / Debian-based Linux Distributions:<a class="headerlink" href="#ubuntu-debian-based-linux-distributions" title="Permalink to this headline">¶</a></h4>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">cmake</span> <span class="n">assimp</span> <span class="n">jansson</span> <span class="n">qt5</span> <span class="n">graphviz</span> <span class="n">cblas</span> <span class="n">libmagickwand</span><span class="o">-</span><span class="n">dev</span> <span class="n">pandoc</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="macintosh">
+<h3>Macintosh<a class="headerlink" href="#macintosh" title="Permalink to this headline">¶</a></h3>
+<p>On a Macintosh, the dependencies can be installed using the <em>brew</em> package manager:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">brew</span> <span class="n">install</span> <span class="n">cmake</span> <span class="n">assimp</span> <span class="n">jansson</span> <span class="n">qt5</span> <span class="n">graphviz</span> <span class="n">imagemagick</span> <span class="n">pandoc</span>
+</pre></div>
+</div>
+<p>The cblas package is already available on a Macintosh using the <em>accelerate</em> framework, the CMakeLists.txt file may need to be modified to bring in this dependency correctly.</p>
+</div>
+<div class="section" id="windows">
+<h3>Windows<a class="headerlink" href="#windows" title="Permalink to this headline">¶</a></h3>
+<p><em>Shift</em> has not been tested on Windows machines.</p>
+</div>
+</div>
+<div class="section" id="building-shift">
+<h2>Building Shift<a class="headerlink" href="#building-shift" title="Permalink to this headline">¶</a></h2>
+<p>From within the top directory of the repository, issue the following commands:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">build</span>
+<span class="n">cd</span> <span class="n">build</span>
+<span class="n">cmake</span> <span class="o">..</span>
+<span class="n">make</span>
+</pre></div>
+</div>
+<p>Executables will be located in ${PROJECT_DIRECTORY}/build/bin</p>
+<p>Where ${PROJECT_DIRECTORY} is the root directory of the git project on your system.</p>
+<p>You can test if the executable works correctly by running the command line interface to the program as:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span>cd ${PROJECT_DIRECTORY}/build/bin
+./shift_cli ../models/excavator/excavator.json
+</pre></div>
+</div>
+<p>Run the graphical user interface component of the program by executing the following command from within the ${PROJECT_DIRECTORY}/build/bin directory:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">shift</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="building-documentation">
+<h2>Building documentation<a class="headerlink" href="#building-documentation" title="Permalink to this headline">¶</a></h2>
+<p>Documentation can be built by issuing the command in the build directory:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">make</span> <span class="n">doc</span>
+</pre></div>
+</div>
+<p>Optional - documentation can be copied to your /share/doc folder by issuing the command:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">make</span> <span class="n">install</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#acquiring-shift">Acquiring Shift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-shift">Building Shift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-documentation">Building documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="doxyrest/global.html">Global Namespace</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="about.html" title="previous chapter">About</a></li>
+      <li>Next: <a href="file_format/file_format.html" title="next chapter">File Format</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/installation.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

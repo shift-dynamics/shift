@@ -1,0 +1,184 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>enum s2_numericalintegrator_enum_t &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="enum s2_pid_io_enum_t" href="enum_s2_pid_io_enum_t.html" />
+    <link rel="prev" title="enum s2_forcemodule_enum_t" href="enum_s2_forcemodule_enum_t.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="enum-s2-numericalintegrator-enum-t">
+<span id="cid-s2-numericalintegrator-enum-t"></span><span id="doxid-numericalintegrator-8h-1af852b2c473abbd9d2bf3556aab33755f"></span><span id="index-0"></span><h1>enum s2_numericalintegrator_enum_t<a class="headerlink" href="#enum-s2-numericalintegrator-enum-t" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Current supported numerical integration types. <a class="reference internal" href="#details-doxid-numericalintegrator-8h-1af852b2c473abbd9d2bf3556aab33755f"><span class="std std-ref">More…</span></a></p>
+<pre class="highlight overview-code-block literal-block">
+<span></span><span class="c1">// enum values</span>
+
+<a class="reference internal" href="#doxid-numericalintegrator-8h-1af852b2c473abbd9d2bf3556aab33755fa8998dafe0a3d8fd2d83235bebc278d6a"><span class="std std-ref">S2_NUMERICALINTEGRATOR_ODE113</span></a><span></span>
+<a class="reference internal" href="#doxid-numericalintegrator-8h-1af852b2c473abbd9d2bf3556aab33755fa5e37869292748edc4a4d34e5f2126848"><span class="std std-ref">S2_NUMERICALINTEGRATOR_ODE113B</span></a>
+</pre>
+</div>
+<div class="section" id="detailed-documentation">
+<span id="details-doxid-numericalintegrator-8h-1af852b2c473abbd9d2bf3556aab33755f"></span><h2>Detailed Documentation<a class="headerlink" href="#detailed-documentation" title="Permalink to this headline">¶</a></h2>
+<p>Current supported numerical integration types.</p>
+<p>Currently only the Adams-Bashforth-Molton variable time step predictor correction numerical integrator is supported</p>
+<div class="section" id="enum-values">
+<h3>Enum Values<a class="headerlink" href="#enum-values" title="Permalink to this headline">¶</a></h3>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-enum-t-s2-numericalintegrator-ode113">
+<span id="doxid-numericalintegrator-8h-1af852b2c473abbd9d2bf3556aab33755fa8998dafe0a3d8fd2d83235bebc278d6a"></span><span></span><span class="n">S2_NUMERICALINTEGRATOR_ODE113</span>
+</pre>
+<p>variable time step Adams-Bashforth-Molton, output is interpolated at user specified time intervals</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-enum-t-s2-numericalintegrator-ode113b">
+<span id="doxid-numericalintegrator-8h-1af852b2c473abbd9d2bf3556aab33755fa5e37869292748edc4a4d34e5f2126848"></span><span></span><span class="n">S2_NUMERICALINTEGRATOR_ODE113B</span>
+</pre>
+<p>variable time step Adams-Bashforth-Molton, output is reported at time interval closest to requested time interval.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="global.html">Global Namespace</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_forcemodule_enum_t.html">enum s2_forcemodule_enum_t</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">enum s2_numericalintegrator_enum_t</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detailed-documentation">Detailed Documentation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#enum-values">Enum Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_io_enum_t.html">enum s2_pid_io_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_target_enum_t.html">enum s2_pid_target_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_spring_enum_t.html">enum s2_spring_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_aligning_coefficients.html">struct aligning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_bessel.html">struct bessel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLatCoefs.html">struct combinedLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLongCoefs.html">struct combinedLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedTorqueCoefs.html">struct combinedTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_dimension.html">struct dimension</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_inclination_angle_range.html">struct inclination_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_lateral_coefficients.html">struct lateral_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_long_slip_range.html">struct long_slip_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_longitudinal_coefficients.html">struct longitudinal_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_model.html">struct model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_overturning_coefficients.html">struct overturning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLatCoefs.html">struct pureLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLongCoefs.html">struct pureLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureTorqueCoefs.html">struct pureTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_relaxationL.html">struct relaxationL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_rolling_coefficients.html">struct rolling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_damper_t.html">struct s2_damper_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_forcemodule_t.html">struct s2_forcemodule_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_numericalintegrator_ode113_t.html">struct s2_numericalintegrator_ode113_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_numericalintegrator_ode113b_t.html">struct s2_numericalintegrator_ode113b_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_pid_t.html">struct s2_pid_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_spring_t.html">struct s2_spring_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_fiala_t.html">struct s2_tire_fiala_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_pac2002_t.html">struct s2_tire_pac2002_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_scaling_coefficients.html">struct scaling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_shape.html">struct shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slip_angle_range.html">struct slip_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slips.html">struct slips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_thresholds.html">struct thresholds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical.html">struct vertical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical_force_range.html">struct vertical_force_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_zetaCoefs.html">struct zetaCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="global.html#detailed-documentation">Detailed Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="global.html">Global Namespace</a><ul>
+      <li>Previous: <a href="enum_s2_forcemodule_enum_t.html" title="previous chapter">enum s2_forcemodule_enum_t</a></li>
+      <li>Next: <a href="enum_s2_pid_io_enum_t.html" title="next chapter">enum s2_pid_io_enum_t</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/doxyrest/enum_s2_numericalintegrator_enum_t.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

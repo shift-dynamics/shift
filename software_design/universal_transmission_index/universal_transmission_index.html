@@ -1,0 +1,171 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Seeking a Universal Transmission Index &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="seeking-a-universal-transmission-index">
+<h1>Seeking a Universal Transmission Index<a class="headerlink" href="#seeking-a-universal-transmission-index" title="Permalink to this headline">¶</a></h1>
+<p>In the first half of this document, a robust, efficient, and general-purpose method was described to automatically set up and solve a system of dynamics equations. The second half of the document focuses on analyzing the transmission performance of general mechanisms described by a user’s body–joint–body representation.  A general, concise and accurate measure of the quality of force transmission is desired in the aid of designing and optimizing mechanisms for a specified motion transmission. To that end, many quantitative measures of transmission quality have been proposed in recent decades. In this section, a brief review of various measures of transmission performance and a discussion of their advantages and disadvantages is provided.</p>
+<div class="section" id="transmission-angle-and-pressure-angle">
+<h2>Transmission Angle and Pressure Angle<a class="headerlink" href="#transmission-angle-and-pressure-angle" title="Permalink to this headline">¶</a></h2>
+<p>One of the earliest developments, the transmission angle, came from Alt <a href="#id1"><span class="problematic" id="id2">:cite:`alt1932uebertraegungswinkel`</span></a> and was later developed in <a href="#id3"><span class="problematic" id="id4">:cite:`hirschhorn1962kinematics,hartenberg1964kinematic,hain1967applied`</span></a>. The pressure angle, a similar performance measure for cam mechanisms, was first introduced by Dyson <a href="#id5"><span class="problematic" id="id6">:cite:`dyson1928principles`</span></a>, and further developed in <a href="#id7"><span class="problematic" id="id8">:cite:`green1955theory,lent1961analysis`</span></a>. The pressure angle reduces to the complement of the transmission angle for planar mechanisms. Tsai and Lee <a href="#id9"><span class="problematic" id="id10">:cite:`tsai1994transmissivity`</span></a> discuss how the transmission and pressure angles are inadequate to characterize transmission in certain configurations. An example is included below:</p>
+<div class="figure align-center" id="four-bar-mechanism">
+<a class="reference internal image-reference" href="software_design/universal_transmission_index/four_bar_mechanism.png"><img alt="software_design/universal_transmission_index/four_bar_mechanism.png" src="software_design/universal_transmission_index/four_bar_mechanism.png" style="width: 300px;" /></a>
+</div>
+</div>
+<div class="section" id="screw-based-methods">
+<h2>Screw-Based Methods<a class="headerlink" href="#screw-based-methods" title="Permalink to this headline">¶</a></h2>
+<p>To address the shortcomings of the transmission angle as a measure of transmission performance, Yuan, Freudenstein and Woo <a href="#id11"><span class="problematic" id="id12">:cite:`freudenstein1971kinematic`</span></a> used Ball’s virtual coefficient <a href="#id13"><span class="problematic" id="id14">:cite:`ball1900`</span></a> between the input link’s Transmission Wrench Screw (TWS) and the output link’s velocity screw as a measure of transmission quality. As the value of Freudenstein et al’s measure of transmission may vary between <span class="math notranslate nohighlight">\(-\infty\)</span> to <span class="math notranslate nohighlight">\(+\infty\)</span>, the measure is not suitable for use as an objective function in the synthesis of mechanisms. Therefore, Sutherland and Roth <a href="#id15"><span class="problematic" id="id16">:cite:`sutherland1973transmission`</span></a> normalized the virtual coefficient by dividing by the maximum possible value of the transmission index. Sutherland and Roth’s “Transmission Index” is formulated in terms of the TWS and output velocity screw’s pitch <span class="math notranslate nohighlight">\(h_t\)</span> and <span class="math notranslate nohighlight">\(h_0\)</span> respectively), the angle <span class="math notranslate nohighlight">\(\theta\)</span> between the screws, and the distance <span class="math notranslate nohighlight">\(\rho\)</span> from the output velocity screw to a characteristic point C on the TWS.</p>
+<div class="math notranslate nohighlight">
+\[\require{cancel}
+TI_{SR}=\left|{\frac{VC}{max(VC)}}\right|=\frac{\left|(h_t+h_0)cos\theta-rsin\theta \right|}{\sqrt{(h_t+h_0)^2+\rho^2}}\]</div>
+<p>Holte et al. <a href="#id17"><span class="problematic" id="id18">:cite:`holte1994force`</span></a> noted that the external loading would affect the force transmission performance of a machine and introduced the joint force index (JFI) method for planar linkages. The joint force index is given as</p>
+<div class="math notranslate nohighlight">
+\[JFI=max\left|\frac{F_{ij}}{F_L}\right|\]</div>
+<p>where <span class="math notranslate nohighlight">\(F_ij\)</span> represents the magnitude of the maximum joint force. As Holte’s method requires computation of forces and applying an external load to the mechanism, the <span class="math notranslate nohighlight">\(JFI\)</span> is not an intrinsic property of a mechanism’s geometry.</p>
+<p>Tsai and Lee <a href="#id19"><span class="problematic" id="id20">:cite:`tsai1994transmissivity`</span></a> noted that the Sutherland–Roth Transmission also has shortcomings, notably that the characteristic point C is undefined when the pitch is infinite or the input link is parallel to the TWS. Therefore, Tsai and Lee modified the transmission index as</p>
+<div class="math notranslate nohighlight" id="equation-eq-tsai-transmission-index">
+<span class="eqno">(1)<a class="headerlink" href="#equation-eq-tsai-transmission-index" title="Permalink to this equation">¶</a></span>\[TI_{TL}=\frac{\left|\mathscr{W}_{TWS}\odot \$_o\right|}{\left|f_{TWS}\cdot v_o\right| + \left|\tau_{TWS}\cdot \omega_o\right|}\]</div>
+<p>And furthermore describe a “manipulability index”, <span class="math notranslate nohighlight">\(MI\)</span>, computed similarly to Eq. ref{eq:tsai_transmission_index}</p>
+<div class="math notranslate nohighlight" id="equation-eq-tsai-transmission-index2">
+<span class="eqno">(2)<a class="headerlink" href="#equation-eq-tsai-transmission-index2" title="Permalink to this equation">¶</a></span>\[MI_{TL}=\frac{\left|\mathscr{W}_{TWS}\odot \$_i\right|}{\left|f_{TWS}\cdot v_i\right| + \left|\tau_{TWS}\cdot \omega_i\right|}\]</div>
+<p>Tsai and Lee define the “Total Transmission Index” as the product between the <span class="math notranslate nohighlight">\(TI_{TL}\)</span> and <span class="math notranslate nohighlight">\(MI_{TL}\)</span>.</p>
+<div class="math notranslate nohighlight" id="equation-eq-total-transmission-index">
+<span class="eqno">(3)<a class="headerlink" href="#equation-eq-total-transmission-index" title="Permalink to this equation">¶</a></span>\[TTI_{TL}=TI_{TL} * MI_{TL}\]</div>
+<p>Note that the velocity ratio of the input screw to output screw provides a measure of the instantaneous mechanical advantage of the system. Tsai and Lee’s <span class="math notranslate nohighlight">\(TTI_{TL}\)</span> provides a normalized mechanical advantage.</p>
+<p>Tsai and Lee’s observation that the total transmission quality should be a function of both the input and output screw’s alignment with the TWS is important. However, their method to normalize <span class="math notranslate nohighlight">\(TTI_{TL}\)</span> is dependent on the coordinate system in which it is computed, and is therefore also not suitable as a general descriptor of transmission quality.</p>
+<p>To address the limitations of Tsai and Lee’s method, Chen and Angeles <a href="#id21"><span class="problematic" id="id22">:cite:`chen2007generalized`</span></a> introduced the Generalized Transmission Index (GTI). Chen and Angeles’ method is also an extension of Ball’s virtual coeffient, but is normalized in a different way.</p>
+</div>
+<div class="section" id="transmission-quality-from-the-jacobian-matrix">
+<h2>Transmission Quality from the Jacobian Matrix<a class="headerlink" href="#transmission-quality-from-the-jacobian-matrix" title="Permalink to this headline">¶</a></h2>
+<p>The measures of transmission quality discussed thus far have been related to the geometric arrangement of adjacent links. Others have sought a more general numerical measure of transmission quality from the Jacobian matrix.</p>
+<p>For example, Denavit et al. <a href="#id23"><span class="problematic" id="id24">:cite:`denavit1965velocity`</span></a> first used the determinant of the Jacobian as a measure of transmission quality. A similar measure was also used by others including Wu et al. <a href="#id25"><span class="problematic" id="id26">:cite:`wu1992new`</span></a>. Methods based on the determinant of a mechanism’s Jacobian matrix are less useful when a mechanism encounters in a singular configuration – i.e. the mechanism is redundantly actuated or has instantaneously lost rank due to alignment of joints or end–of–stroke conditions.</p>
+<p>Ghosal and Roth proposed a “transmission ratio” as</p>
+<div class="math notranslate nohighlight" id="equation-eq-transmission-ratio">
+<span class="eqno">(4)<a class="headerlink" href="#equation-eq-transmission-ratio" title="Permalink to this equation">¶</a></span>\[\frac{\underline{v}^2}{\dot{\phi}^T\dot{\phi}}=(\lambda_1\lambda_2)^{1/2}=(det(J^TJ))^{1/2}=(det([g]))^{1/2}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\lambda_1\)</span> and <span class="math notranslate nohighlight">\(\lambda_2\)</span> are the eigenvalues of <span class="math notranslate nohighlight">\(J^TJ\)</span> and describe the major and minor axes of a velocity ellipse.</p>
+<p>Lee, Duffy and Keller proposed a “quality index” <a href="#id27"><span class="problematic" id="id28">:cite:`lee1999optimum`</span></a> as:</p>
+<div class="math notranslate nohighlight" id="equation-eq-quality-index">
+<span class="eqno">(5)<a class="headerlink" href="#equation-eq-quality-index" title="Permalink to this equation">¶</a></span>\[\lambda=\frac{\left|det J\right|}{\left| det J_m \right|}\]</div>
+<p>where <span class="math notranslate nohighlight">\(J_m\)</span> is the Jacobian computed at a central symmetric configuration and <span class="math notranslate nohighlight">\(J\)</span> is the Jacobian at its present configuration. Lee et al’s method was tailored to a symmetric planar parallel device.</p>
+<p>Zhang <a href="#id29"><span class="problematic" id="id30">:cite:`zhang2000quality`</span></a> proposed an extension of Lee, et al’s method. Zhang’s quality index is given as</p>
+<div class="math notranslate nohighlight" id="equation-eq-zhang-quality-index">
+<span class="eqno">(6)<a class="headerlink" href="#equation-eq-zhang-quality-index" title="Permalink to this equation">¶</a></span>\[\lambda=\sqrt{\frac{det JJ^T}{det J_mJ_m^T}}\]</div>
+<p>Zhang noted that by the Cauchy–Binet theorem, the product <span class="math notranslate nohighlight">\(JJ^T\)</span> is well-defined and square. Zhang also suggested that the <span class="math notranslate nohighlight">\(det JJ^T\)</span> may have a geometrical interpretation. For example, if you consider a matrix as representing a linear transformation, the determinant represents the <em>volume distortion</em> of a region after being transformed.</p>
+</div>
+<div class="section" id="parallel-mechanisms">
+<h2>Parallel mechanisms<a class="headerlink" href="#parallel-mechanisms" title="Permalink to this headline">¶</a></h2>
+<p>The measures of transmission quality discussed thus far have been primarily concerned with serial mechanisms. However, several researchers have investigated transmission quality in parallel mechanisms.</p>
+<p>Lin and Chang <a href="#id31"><span class="problematic" id="id32">:cite:`lin2002force`</span></a> define a Force Transmission Index suitable for planar parallel mechanisms based on an extension of the transmission angle. They extended their analysis for more general parallel mechanisms in <a href="#id33"><span class="problematic" id="id34">:cite:`chang2003force`</span></a>.</p>
+<p>To do: summarize more references.</p>
+</div>
+<div class="section" id="mobility">
+<h2>Mobility<a class="headerlink" href="#mobility" title="Permalink to this headline">¶</a></h2>
+<p>Although not typically used as a measure of transmission quality, the overall mobility of a mechanism (i.e. a mechanism’s degrees of freedom) is also an important design criteria in the synthesis and analysis of mechanisms. A mechanism’s overall mobility, <span class="math notranslate nohighlight">\(M\)</span>, is typically found by the Chebychev-Grübler-Kutzbach mobility formula as:</p>
+<div class="math notranslate nohighlight" id="equation-eq-overall-mobility">
+<span class="eqno">(7)<a class="headerlink" href="#equation-eq-overall-mobility" title="Permalink to this equation">¶</a></span>\[M = 6(N - 1 - j) + \sum_{i=1}^{j}f_i\]</div>
+<p>Where <span class="math notranslate nohighlight">\(f_i\)</span> is the degrees of freedom of joint <span class="math notranslate nohighlight">\(i\)</span>, <span class="math notranslate nohighlight">\(N\)</span> is the number of bodies in the system, including the <em>fixed</em> link. For example, a serial 6DOF robotic manipulator with 6 floating bodies (therefore <span class="math notranslate nohighlight">\(N = n + 1\)</span>) and 6 joints has an overall mobility of <span class="math notranslate nohighlight">\(\sum_{i=1}^jf_i = 6\)</span> using the Chebyshev-Grübler-Kutzbach criteria. If the position of the end-effector is constrained (i.e. by rigidly fixating it to the fixed body), a single loop mechanism is formed with 6 floating bodies and 6 joints.  The overall mobility of this system is zero. A system with an overall mobility of zero is known as a structure. In the numerical path planning of 6DOF robots, it is common to rigidly fix the end effector at its current position, then solve for an incremental change in joint angles to achieve a desired incremental change in end-effector position using Newton-Raphson iteration (as described in <a href="#id35"><span class="problematic" id="id36">:cite:`uicker2013`</span></a>, Chapter 6).</p>
+<p>It is important to note that the overall mobility is not necessarily the same as the instantaneous mobility of the system. As discussed in <span class="xref std std-ref">_generalized_coordinate_partitioning</span>, as joints instantaneously align in the system the number of degrees of freedom may temporarily reduce, which complicates the solution process even for relatively simple mechanical systems. Therefore, generalized coordinate partitioning is used to automatically find the largest non-singular submatrix of <span class="math notranslate nohighlight">\(J\)</span>, <span class="math notranslate nohighlight">\(J_{pd}\)</span>, thereby revealing the matrix rank of <span class="math notranslate nohighlight">\(J\)</span>. The largest non singular submatrix <span class="math notranslate nohighlight">\(J_{pd}\)</span> is then used to solve for dependent variables as a function of the independent variables. Uicker, Ravani and Sheth <a href="#id37"><span class="problematic" id="id38">:cite:`uicker2013`</span></a> provide the equation for instantaneous mobility, <span class="math notranslate nohighlight">\(M_i\)</span> as:</p>
+<div class="math notranslate nohighlight" id="equation-eq-instaneous-mobility1">
+<span class="eqno">(8)<a class="headerlink" href="#equation-eq-instaneous-mobility1" title="Permalink to this equation">¶</a></span>\[M_i = j - rank(J)\]</div>
+<p>Where <span class="math notranslate nohighlight">\(j\)</span> is the number of joints and the rank of J is the dimension of the square submatrix <span class="math notranslate nohighlight">\(J_{pd}\)</span>. An equivalent statement is:</p>
+<div class="math notranslate nohighlight" id="equation-eq-instaneous-mobility2">
+<span class="eqno">(9)<a class="headerlink" href="#equation-eq-instaneous-mobility2" title="Permalink to this equation">¶</a></span>\[M_i = rank(N)\]</div>
+<p>where <span class="math notranslate nohighlight">\(N\)</span> is the <em>right null space</em> of the Jacobian matrix, <span class="math notranslate nohighlight">\(J\)</span>, which will be discussed in more detail in the next section. The next section discusses the connections between the transmission wrench screw, Ball’s virtual coefficient, measures of transmission derived from the Jacobian matrix and the mechanism’s instantaneous mobility.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../doxyrest/global.html">Global Namespace</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../../_sources/software_design/universal_transmission_index/universal_transmission_index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

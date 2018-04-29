@@ -1,0 +1,549 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>The Design of STAR 2.0 &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="the-design-of-star-2-0-a-simulation-tool-for-automation-and-robotics">
+<h1>The Design of STAR 2.0: A Simulation Tool for Automation and Robotics<a class="headerlink" href="#the-design-of-star-2-0-a-simulation-tool-for-automation-and-robotics" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="abstract">
+<h2>Abstract<a class="headerlink" href="#abstract" title="Permalink to this headline">¶</a></h2>
+<p>This section discusses the various file formats and data structures used in a new simulation software package for general purpose world modeling of robotics and manufacturing applications.</p>
+</div>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>Industrial robots are commonly programmed using joysticks, touchpads or <em>teach pendants</em> to position a robot to execute a given task. Another popular programming technique is the <em>lead-by-the-nose</em> method, where a robot’s joints are controlled to go limp, and a user guides the end effector to varying poses, which are recorded for later playback. A disadvantage to these “online” programming techniques on a physical robot is that trying out multiple arrangements of robots and/or workpieces in a manufacturing environment may require relocating heavy equipment, which may be expensive and time consuming.</p>
+<p>First proposed in the early 1980s by Brooks and others <a href="#id1"><span class="problematic" id="id2">:cite:`lozano1984`</span></a>, the field of <em>automatic programming</em> is now finding many applications in industrial automation due to increases in computing power and sensor resolution. In automatic programming, only higher level tasks are assigned to a robot and the path planning and manipulation strategies are coordinated by the robot itself, rather than computed a priori by a human operator. Particularly with large industrial robots, experimental “online” automatic programming algorithms pose risk of injury or damage to factory equipment, to humans in proximity of the workcell and to the robot itself.</p>
+<p>Due to the inherent risks and challenges associated with manual and automatic online robot programming, “offline” model-based programming tools serve an important role in factory planning and robotics design. STAR (A Simulation Tool for Automation and Robotics) <a href="#id3"><span class="problematic" id="id4">:cite:`ravani1988star,hornick1986data,hornick1986computer`</span></a>, was one of the pioneering general purpose world modeling programs to use 3D computer graphics to lay out virtual robots and workcells. The aims of original STAR software were to:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Provide flexibility to accommodate a wide range of robots and workcell configurations.</li>
+<li>Provide tools to add or remove robots and objects from the environment</li>
+<li>Allow the assignment/reassignment of target locations</li>
+<li>Provide the ability to command robot motions in varying coordinate frames</li>
+<li>Allow a robot to interact with objects in its workspace</li>
+<li>Allow modeling multiple devices in parallel</li>
+<li>Display geometric shape information created in an external modeling program.</li>
+</ul>
+</div></blockquote>
+<p>There are presently several software tools that achieve the original objectives of STAR v. 1.0, such as RobotMaster <a href="#id5"><span class="problematic" id="id6">:cite:`robotmaster`</span></a>, Gazebo <a href="#id7"><span class="problematic" id="id8">:cite:`koenig2004`</span></a>, Tecnomatix <a href="#id9"><span class="problematic" id="id10">:cite:`tecnomatix`</span></a> and others. Certainly, there have been many advances in technology since the original version of STAR, including considerable increases in computing capacity, a proliferation of development tools for programming and visualization, and the explosive growth of the world-wide-web (and more recently, the <em>internet of things</em>). With these  developments in mind, the authors are developing a new free and open source version of STAR (version 2.0). This article describes the design of the new STAR 2.0 software.</p>
+</div>
+<div class="section" id="the-aims-of-star-2-0">
+<h2>The Aims of STAR 2.0<a class="headerlink" href="#the-aims-of-star-2-0" title="Permalink to this headline">¶</a></h2>
+<p>In addition to the features outlined above, the aims of STAR 2.0 are summarized below, and described in further detail later in the article:</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Compatibility with modern web technologies</p>
+<blockquote>
+<div><ul class="simple">
+<li>File formats are based on the JSON <a href="#id11"><span class="problematic" id="id12">:cite:`bray2014javascript`</span></a> (Javascript Object Notation) file format designation.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">Numerical efficiency</p>
+<blockquote>
+<div><ul class="simple">
+<li>A built-in physics engine solves a system of dynamics equations using a minimal set of independent generalized coordinates</li>
+<li>A custom vectorized, sparse kinematics library minimizes floating point operations and increases throughput</li>
+<li>A graph partioning algorithm called <em>kinematic substructuring</em> automatically identifies and uncouples non-overlapping, intersecting groups of chord loops <a href="#id13"><span class="problematic" id="id14">:cite:`wehage2015generalized`</span></a> and block diagonalizes the Jacobian matrix, resulting in increased numerical efficiency</li>
+<li>Implements Algorithm Optimizing Processing (AOP) to minimize pointer dereferences</li>
+<li>The core solver is programmed entirely in the C programming language to minimize application overhead (such as for garbage collection)</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">Memory and cache efficiency</p>
+<blockquote>
+<div><ul class="simple">
+<li>Computational quantities are moved into aligned, contiguous memory to minimize cache misses</li>
+<li>Extensive use of memory profiler to ensure no memory leaks</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">Robustness</p>
+<blockquote>
+<div><ul class="simple">
+<li>Automatically sets up and solves dynamic equations even for highly complex, parallel mechanisms using graph theoretic methods</li>
+<li>Automatically identifies optimal generalized coordinates using Generalized Coordinate Partitioning (GCP) <a href="#id15"><span class="problematic" id="id16">:cite:`wehage1982`</span></a></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">Extensibility</p>
+<blockquote>
+<div><ul class="simple">
+<li>An application programming interface (API) in the C programming language is provided</li>
+<li>Compatibility with the Robot Operating System (ROS) <a href="#id17"><span class="problematic" id="id18">:cite:`quigley2009ros`</span></a> message passing interface</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="data-structures">
+<h2>Data Structures<a class="headerlink" href="#data-structures" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="external-file-format">
+<h3>External File Format<a class="headerlink" href="#external-file-format" title="Permalink to this headline">¶</a></h3>
+<p>STAR 2.0’s external file format is designed from the outset to be compatible with web technologies. The ASCII text-based file format is based on the JSON (Javascript Object Notation) specification, a subset of the Javascript programming language <a href="#id19"><span class="problematic" id="id20">:cite:`bray2014javascript`</span></a>. JSON is a lightweight, programming language independent syntax that is faster to process than XML <a href="#id21"><span class="problematic" id="id22">:cite:`nurseitov2009comparison`</span></a>. JSON is a common data exchange format for web services and is a native file format representation in NoSQL databased such as CouchDB and MongoDB.</p>
+<p>The JSON language format has a number of advantages. JSON files are programming language independent - parsers exist in many programming languages. STAR 2.0 uses the Jansson C library for reading/writing JSON files <a href="#id23"><span class="problematic" id="id24">:cite:`jansson`</span></a>. The simple syntax allows users to manually generate their models in a text editor, using STAR 2.0’s C programming API, or interactively using a graphical user interface. Power users can also develop STAR JSON files in a scripted fashion using their preferred programming language. A complete</p>
+<p>A simple double pendulum model, as illustrated in <a class="pageref" href="#double-pendulum">Fig.  1</a> below is used to demonstrate the STAR JSON syntax.</p>
+<div class="figure align-center" id="id49">
+<span id="double-pendulum"></span><img alt="software_design/elements_of_star/double_pendulum.svg" src="software_design/elements_of_star/double_pendulum.svg" /><p class="caption"><span class="caption-text">Figure 1: Double Pendulum Model</span></p>
+</div>
+<p>The accompanying STAR JSON file is shown below:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;model_parameters&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;star_version&quot;</span><span class="p">:</span> <span class="s2">&quot;2.0.1&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;units&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;angle&quot;</span><span class="p">:</span> <span class="s2">&quot;radians&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;length&quot;</span><span class="p">:</span> <span class="s2">&quot;meters&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;mass&quot;</span><span class="p">:</span> <span class="s2">&quot;kilograms&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;time&quot;</span><span class="p">:</span> <span class="s2">&quot;seconds&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;gravity&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="mf">0.0</span><span class="p">,</span>
+      <span class="mf">-9.81</span><span class="p">,</span>
+      <span class="mi">0</span>
+    <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;fixed&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;frames&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;overhead&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;T&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">6.0</span><span class="p">,</span> <span class="mf">-6.0</span><span class="p">,</span> <span class="mf">-6.0</span><span class="p">]</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;lights&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;overhead_1&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;point&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;parent&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;fixed&quot;</span><span class="p">,</span> <span class="s2">&quot;overhead&quot;</span><span class="p">],</span>
+        <span class="nt">&quot;Ka&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">],</span>
+        <span class="nt">&quot;Kd&quot;</span> <span class="p">:</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span>
+        <span class="nt">&quot;Ks&quot;</span> <span class="p">:</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;assembly&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;double_pendulum&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;active&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="nt">&quot;bodies&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;link1&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;body_def&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;link.obj&quot;</span>
+          <span class="p">],</span>
+          <span class="nt">&quot;frames&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;1h_plus&quot;</span><span class="p">:</span> <span class="p">{</span>
+              <span class="nt">&quot;T&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+            <span class="p">}</span>
+          <span class="p">},</span>
+          <span class="nt">&quot;center_of_mass&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+          <span class="nt">&quot;mass&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+          <span class="nt">&quot;moment_of_inertia&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;Izx&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="nt">&quot;Ixx&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="nt">&quot;Ixy&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="nt">&quot;Izz&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="nt">&quot;Iyy&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="nt">&quot;Iyz&quot;</span><span class="p">:</span> <span class="mf">0.0</span>
+          <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="nt">&quot;link2&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;body_def&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;link.obj&quot;</span>
+          <span class="p">],</span>
+          <span class="nt">&quot;center_of_mass&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+          <span class="nt">&quot;mass&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+          <span class="nt">&quot;moment_of_inertia&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;Izx&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="nt">&quot;Ixx&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="nt">&quot;Ixy&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="nt">&quot;Izz&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="nt">&quot;Iyy&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="nt">&quot;Iyz&quot;</span><span class="p">:</span> <span class="mf">0.0</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">},</span>
+      <span class="nt">&quot;joints&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;fixed_to_link1&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;body_frame_pairs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">[</span>
+              <span class="s2">&quot;fixed&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;origin&quot;</span>
+            <span class="p">],</span>
+            <span class="p">[</span>
+              <span class="s2">&quot;link1&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;origin&quot;</span>
+            <span class="p">]</span>
+          <span class="p">],</span>
+          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;Rz&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;initial_displacement&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+          <span class="nt">&quot;initial_velocity&quot;</span><span class="p">:</span> <span class="mf">0.2</span>
+        <span class="p">},</span>
+        <span class="nt">&quot;link1_to_link2&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;body_frame_pairs&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">[</span>
+              <span class="s2">&quot;link1&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;1h_plus&quot;</span>
+            <span class="p">],</span>
+            <span class="p">[</span>
+              <span class="s2">&quot;link2&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;origin&quot;</span>
+            <span class="p">]</span>
+          <span class="p">],</span>
+          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;Rz&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;initial_displacement&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+          <span class="nt">&quot;initial_velocity&quot;</span><span class="p">:</span> <span class="mf">0.0</span>
+        <span class="p">}</span>
+      <span class="p">},</span>
+      <span class="nt">&quot;restraints&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;fixed_to_link1&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;spring&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;joint&quot;</span><span class="p">:</span> <span class="s2">&quot;fixed_to_link1&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;coefficients&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The various aspects of the STAR JSON file are described in detail below:</p>
+<p>The <em>fixed</em> key at the root level of the STAR JSON file represents the fixed inertial reference frame and contains only frames (i.e. coordinate systems) and lights – i.e. no bodies or joints. If no lights are specified, a directional overhead light in the opposite direction of gravity is specified for rendering. If the <em>fixed</em> field is not present, a fixed inertial reference frame with only an “origin” reference frame is loaded.</p>
+<p>Statically positioned <em>lights</em> may be specified by specifying the parent to the name of a frame within the <em>fixed</em> field. Moving lights can be specified by setting the parent frame to a frame on a moving body.</p>
+<p>Each entry under the <em>bodies</em> field contains a unique name and information related to mechanism topology (i.e. shape matrices <a href="#id25"><span class="problematic" id="id26">:cite:`uicker2013`</span></a>) and mass/inertia properties. Body geometry is specified in an external 3D file. STAR 2.0 uses the Assimp Open Asset Import library <a href="#id27"><span class="problematic" id="id28">:cite:`assimploader`</span></a> for loading body geometry which supports loading of a variety of 3D file formats.</p>
+<p>Each entry under the <em>frames</em> field contains a unique name and a shape matrix specified as a 3x3 SO3 rotation matrix and a translation vector from the body origin. Again it is not necessary to specify an “origin” reference frame, as with the fixed inertial reference frame, by default every body contains the “origin”. Therefore, the name “origin” is a reserved keyword that cannot be used as a reference frame name at any level.</p>
+<p>The <em>joints</em> field contains connections between frames. Each joint has a unique name, a type, an initial position and velocity, and a body-frame pair. Currently the following joint types are supported: primitive rotations (i.e. “Rx”, “Ry”, and “Rz”), primitive translations (i.e. “Tx”, “Ty”, and “Tz”), “rigid” connections used to rigidly position two bodies together, and 6DOF “float” joints, which are used to initially position a body that is not explicitly connected to the inertial reference frame. Support for compound joints such as planar, spherical, universal and gears is planned for a later version of STAR.</p>
+<p>Springs, dampers and friction are specified under the <em>restraints</em> field. A restraint has a unique name, a type, knot points, coefficients, and either a joint name (if the restraint is aligned with a joint variable) or a body frame pair. Torsional springs and torsional dampers must must be associated with a joint and its joint variable, but linear springs and dampers may be specified as either associated with a translational joint variable or as a body-frame pair. In the latter case, an additional field for “distance_type” may be specified. If no setting for distance type is set, the program will assume the Euclidian distance between parent and child frames should be used. Otherwise, it is possible to set the distance as aligned with the x, y or z axis of the parent frame as:</p>
+<pre class="highlight literal-block">
+<span></span><span class="s2">&quot;restraint&quot;</span><span class="o">:</span> <span class="p">{</span>
+  <span class="s2">&quot;type&quot;</span><span class="o">:</span> <span class="s2">&quot;spring&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;body_frame_pair&quot;</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">&quot;body1&quot;</span><span class="p">,</span> <span class="s2">&quot;1h_plus&quot;</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">&quot;body2&quot;</span><span class="p">,</span> <span class="s2">&quot;origin&quot;</span><span class="p">]</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;distance_type&quot;</span><span class="o">:</span> <span class="s2">&quot;Tz&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;knot_points&quot;</span><span class="o">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+  <span class="s2">&quot;coefficients&quot;</span><span class="o">:</span> <span class="p">[[</span><span class="mi">2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+<span class="p">}</span>
+</pre>
+<p>A spring, damper or frictional restraint may be set as a piece-wise, nonlinear function of the joint’s displacement or velocity by setting knot points and arrays of coefficients. The number of coefficient arrays must be one greater than the number of knot points. For example, in the above example, the piecewise function evaluates to:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}f(\phi) =  \begin{cases}
+2\phi^2 + 0.5\phi&lt;0 \\
+0 &amp; otherwise
+\end{cases}\end{split}\]</div>
+<p>Such a piecewise discontinuous function might be used as a basis for modeling tire deflection, for example. Support for setting up more complex, user-defined force-modules is planned for a future release of STAR.</p>
+<p>The <em>assemblies</em> field contains any number of bodies and joints. In the double pendulum example, bodies “link1” and “link2” are assigned to the “double_pendulum” assembly. Although the pendulum consists of a single assembly, multiple assemblies could be inserted at the top level and any number of subassemblies can be inserted into other assemblies, nested arbitrarily deep.</p>
+<p>Joints in one assembly can connect bodies in different assemblies/subassemblies by specifying the full path to the body in the assembly hierarchy. The “:” character is used to specify the position within an assembly hierarchy, and is therefore not a valid character to use in a descriptive name. For example,  “factory:workcell1:robot2:body1:frame1”, indicates “frame1” on “body1” in the “robot2” subassembly, which is contained within the “workcell1” subassembly, which is in turn a member of the “factory” main assembly. If no path is specified, the program searches for descriptive names only within the local assembly.</p>
+<p>Organizing models into assemblies is a concept which should be familiar to most users of CAD software. The hierarchical organization structure facilitates model reuse and rapidly building complex models from simpler models. For example, a main assembly might contain an entire factory environment, with a number of subassemblies containing robotic workcells. In turn, each workcell may each contain a number of robots or workpieces specified in their own subassemblies. Additionally, assemblies can be switched on or off to facilitate design sensitivity studies with minimal changes to the file.</p>
+<p>Thus far, discussion has focused on datastructures related to the geometry and topology of a multibody system, much of which can be derived from a user’s CAD software. The missing component necessary for robotics is the ability to interact with the model. In STAR 2.0, this interaction is achieved through a <em>Device</em> datastructure. A <em>Device</em> datastructure contains pointers to one or more joints which the user can read encoder values from or set forces, positions, velocities or accelerations. Any joint that is a member of a device is exposed as an ROS “topic”, to which other ROS nodes can subscribe. Refer to <a href="#id29"><span class="problematic" id="id30">:cite:`quigley2009ros`</span></a> for more details on the Robot Operating System.  Additionally, a Device datastructure contains pointers to one or more sensors for contact, LIDAR, RADAR and cameras, which are attached to Frames on Body datastructures. Similarly, the output of these sensors are made available as ROS “topics”. Note that in the original STAR v 1.0 software, a distinction was made between “Objects” and “Devices”. In STAR 2.0, no such distinction is made. <em>Intelligence</em> is embodied in an object simple by creating one or more Device datastructures, with no modifications to the underlying model and datastructures.</p>
+</div>
+<div class="section" id="internal-data-structures">
+<h3>Internal Data Structures<a class="headerlink" href="#internal-data-structures" title="Permalink to this headline">¶</a></h3>
+<p>When the STAR JSON file is loaded from disk into working memory, it is imported into a linked-list datastructure (also known as a ring datastructure <a href="#id31"><span class="problematic" id="id32">:cite:`hornick1986data`</span></a>). The descriptive names in the body-frame pairings are matched to set the appropriate memory pointers. The linked-list representation is used primarily for programming convenience, as it allows allocating memory for model primitives on an as-needed basis. For example, the linked-list enables a user to interactively add or remove objects from their model. Note that the linked-list representation of the model is not used for computationally intensive/demanding tasks – aspects which are discussed later in the article.</p>
+<p>Models are defined using the following primitives:</p>
+<blockquote>
+<div><ul>
+<li><p class="first">frames (coordinate systems)</p>
+</li>
+<li><p class="first">bodies</p>
+<blockquote>
+<div><ul class="simple">
+<li><em>Frames</em> linked list</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">springs</p>
+</li>
+<li><p class="first">dampers</p>
+</li>
+<li><p class="first">joints</p>
+</li>
+<li><p class="first">sensors</p>
+</li>
+<li><p class="first">devices</p>
+<blockquote>
+<div><ul class="simple">
+<li><em>Sensors</em> linked list</li>
+<li><em>Joints</em> linked list</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">assemblies</p>
+<blockquote>
+<div><ul class="simple">
+<li><em>Restraints</em> linked list</li>
+<li><em>Bodies</em> linked list</li>
+<li><em>Joints</em> linked list</li>
+<li><em>Devices</em> linked list</li>
+<li>“Subassemblies” linked list</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<div class="figure align-center" id="id50">
+<a class="reference internal image-reference" href="software_design/elements_of_star/assembly.png"><img alt="software_design/elements_of_star/assembly.png" src="software_design/elements_of_star/assembly.png" style="width: 400px;" /></a>
+<p class="caption"><span class="caption-text">Figure 2: Schematic of Assembly Datastructure</span></p>
+</div>
+<p>In addition to the data specified in the STAR JSON file, a <em>Body</em> datastructure a reference frame, which may not be the origin of the body. Additionally, the body contains the geometric data loaded from the model geometry defition, such as the vertices, faces, and colors and textures.</p>
+<p>The <em>Frame</em> datastructure contains a SE3 matrix that specifies an orientation and translation relative to a body’s origin <a href="#id33"><span class="problematic" id="id34">:cite:`selig2005geometric`</span></a>.</p>
+<p>In addition to the terms specified in the STAR JSON file, a <em>Joint</em> datastructure contains joint properties necessary for processing the equations of motion, such as the influence coefficient matrices <a href="#id35"><span class="problematic" id="id36">:cite:`murray1994mathematical`</span></a>, current joint position, velocity and acceleration. For more information on the directed graph representation of a multibody system, the reader is referred to <a href="#id37"><span class="problematic" id="id38">:cite:`uicker2013`</span></a>.</p>
+<p>In the C programming language, bodies and joints can be represented using structs and the connections between them as memory pointers:</p>
+<pre class="highlight literal-block">
+<span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">Frame</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">Body</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">Joint</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+  <span class="n">Body</span><span class="o">*</span> <span class="n">parentBody</span><span class="p">;</span>
+  <span class="n">Frame</span><span class="o">*</span> <span class="n">parentFrame</span><span class="p">;</span>
+
+  <span class="n">Body</span><span class="o">*</span> <span class="n">childBody</span><span class="p">;</span>
+  <span class="n">Frame</span><span class="o">*</span> <span class="n">childFrame</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+</div>
+</div>
+<div class="section" id="dual-graphs">
+<h2>Dual Graphs<a class="headerlink" href="#dual-graphs" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="directed-acyclic-graphs-vs-directed-graphs">
+<h3>Directed Acyclic Graphs vs. Directed Graphs<a class="headerlink" href="#directed-acyclic-graphs-vs-directed-graphs" title="Permalink to this headline">¶</a></h3>
+<p>The body-joint-body representation described above will be familiar to most modern CAD users and engineers, whereas concepts like <em>scene graphs</em> or <em>spanning trees</em> are less familiar. However, by building the a multibody system’s <em>topology</em> from bodies and joints, the user has – perhaps unknowingly – generated a directed acyclic graph (DAG) representation of their system with bodies as nodes as joints as edges. For example, consider the hydraulic clamp mechanismm in Fig 2. below.</p>
+<div class="figure align-center" id="id51">
+<a class="reference internal image-reference" href="software_design/elements_of_star/hydraulic_clamp.png"><img alt="software_design/elements_of_star/hydraulic_clamp.png" src="software_design/elements_of_star/hydraulic_clamp.png" style="width: 500px;" /></a>
+<p class="caption"><span class="caption-text">Figure 3: Hydraulic Clamp</span></p>
+</div>
+<p>Its directed acyclic graph is shown in Fig. 3.</p>
+<div class="figure align-center" id="id52">
+<a class="reference internal image-reference" href="software_design/elements_of_star/directed_acyclic_graph.png"><img alt="software_design/elements_of_star/directed_acyclic_graph.png" src="software_design/elements_of_star/directed_acyclic_graph.png" style="width: 300px;" /></a>
+<p class="caption"><span class="caption-text">Figure 4: Directed Acyclic Graph (DAG)</span></p>
+</div>
+<p>While the DAG representation of the mechanism is convenient for the user to visualize the topology, it does not provide a systematic means to update the kinematics and dynamics of the system. For example, there are multiple paths in the DAG to update the position and orientation of bodies 3 and 4.</p>
+<p>To resolve this ambiguity, it is necessary to identify the <em>spanning tree</em> of the mechanism, i.e. the set of graph edges that touch every node exactly once. This process requires identifying the set of arcs and chords of the directed graph as shown in Fig. 4. For a comprehensive discussion automatic methods to obtain the set of arcs and chords of an acyclic directed graph, refer to <a href="#id39"><span class="problematic" id="id40">:cite:`wehage2015generalized,uicker2013`</span></a>.</p>
+<p>In this example, the arcs of the directed graph are shown in black and the chords are shown in blue. Note that the sense of joint B (shown in red) has also been flipped to align with the spanning tree. If the chords of the graph are removed, each body will have a unique parent body and associated joint.</p>
+<div class="figure align-center" id="id53">
+<a class="reference internal image-reference" href="software_design/elements_of_star/directed_acyclic_graph2.png"><img alt="software_design/elements_of_star/directed_acyclic_graph2.png" src="software_design/elements_of_star/directed_acyclic_graph2.png" style="width: 300px;" /></a>
+<p class="caption"><span class="caption-text">Figure 5: Directed Acyclic Graph with Arcs and Chords identified</span></p>
+</div>
+<p>In STAR 2.0, the instructions to update the topology of a multibody system are coded using function pointers. Function pointers are a powerful tool in the C programming language which allow calling specific functions at program run-time based on definitions supplied in a user’s model definition. For example, in STAR 2.0, if a user has specified a joint as a revolute joint about the X-axis, a function pointer to a vectorized, sparse matrix multiplication for a rotation about the x axis is called. Note that this dynamic building of a program from a model definition is sometimes referred to as <em>Automata based programming</em> <a href="#id41"><span class="problematic" id="id42">:cite:`booth1967sequential`</span></a> and is used by other model based programming languages such as the Unified Modeling Language (UML) <a href="#id43"><span class="problematic" id="id44">:cite:`rumbaugh2004unified`</span></a>.</p>
+<p>If a function pointer for each Body and Joint is set in each data structure as:</p>
+<pre class="highlight literal-block">
+<span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">Body</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+  <span class="kt">void</span><span class="o">*</span> <span class="n">bodyFunctionPointer</span><span class="p">(</span><span class="n">Body</span><span class="o">*</span><span class="p">);</span> <span class="c1">// update shape matrices</span>
+
+  <span class="kt">int</span> <span class="n">childCount</span><span class="p">;</span>
+  <span class="n">Joint</span><span class="o">**</span> <span class="n">childJoints</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">Joint</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+  <span class="kt">void</span><span class="o">*</span> <span class="n">jointFunctionPointer</span><span class="p">(</span><span class="n">Joint</span><span class="o">*</span><span class="p">);</span> <span class="c1">// updates influence coefficient</span>
+                                      <span class="c1">// matrices, accelerations,</span>
+                                      <span class="c1">// velocities, relative values across</span>
+                                      <span class="c1">// joints, etc.</span>
+  <span class="n">Body</span><span class="o">*</span> <span class="n">parentBody</span><span class="p">;</span>
+  <span class="n">Frame</span><span class="o">*</span> <span class="n">parentFrame</span><span class="p">;</span>
+
+  <span class="n">Body</span><span class="o">*</span> <span class="n">childBody</span><span class="p">;</span>
+  <span class="n">Frame</span><span class="o">*</span> <span class="n">childFrame</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+<p>Once a function pointer is set for each body and joint based on the number of shape matrices and type of joint, the mechanism topology can be updated using recursion using the following C code.</p>
+<pre class="highlight literal-block">
+<span></span><span class="kt">void</span> <span class="nf">RecursiveTreeTraversal</span><span class="p">(</span><span class="n">Body</span><span class="o">*</span> <span class="n">body</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="n">body</span><span class="o">-&gt;</span><span class="n">bodyFunctionPointer</span><span class="p">(</span><span class="n">body</span><span class="p">);</span> <span class="c1">// update shape matrices</span>
+
+  <span class="c1">// process children</span>
+  <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">body</span><span class="o">-&gt;</span><span class="n">childCount</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">body</span><span class="o">-&gt;</span><span class="n">childJoints</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">jointFunctionPointer</span><span class="p">(</span><span class="n">body</span><span class="o">-&gt;</span><span class="n">childJoint</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="n">RecursiveTreeTraversal</span><span class="p">(</span><span class="n">body</span><span class="o">-&gt;</span><span class="n">childJoint</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">childBody</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// then call the recursive function as</span>
+<span class="n">Body</span><span class="o">*</span> <span class="n">fixed</span><span class="p">;</span>
+<span class="n">RecursiveTreeTraversal</span><span class="p">(</span><span class="n">fixed</span><span class="p">);</span>
+</pre>
+<p>Note, however, that there are a number of disadvantages with this approach:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Chords D and E are not updated. Additional logic is required to process properties related to chord joints</li>
+<li>This approach involves many pointer dereferences that the compiler will not be able to optimize away as there is no way for the compiler to know the body-joint-body sequence ahead of time</li>
+<li>Recursion is memory inefficient and slow</li>
+<li>Traversing a linked list datastructure in fragmented memory is cache-inefficient.</li>
+<li>By removing joints D and E from the graph, the user’s original acyclic representation is lost</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="dual-graph-representation">
+<h3>Dual Graph Representation<a class="headerlink" href="#dual-graph-representation" title="Permalink to this headline">¶</a></h3>
+<p>To address these disadvantates, STAR 2.0 takes a slightly different approach to process and update the system’s topology. In STAR 2.0, the user’s original directed acyclic graph shown in Fig. 2 is maintained, and a second <em>dual</em> directed graph is created. Each time the user adds or removes a body or joint, memory for the second directed graph is freed and a new graph is generated automatically. Instead of removing joints from the user’s original DAG representation, additional massless <em>virtual</em> bodies (shown in octagons) are added and constraints (shown as a dashed blue lines) are imposed as shown in Fig. 5 below.</p>
+<div class="figure align-center" id="id54">
+<a class="reference internal image-reference" href="software_design/elements_of_star/directed_graph.png"><img alt="software_design/elements_of_star/directed_graph.png" src="software_design/elements_of_star/directed_graph.png" style="width: 600px;" /></a>
+<p class="caption"><span class="caption-text">Figure 6: Dual Directed Graph representation</span></p>
+</div>
+<p>An important aspect in this process is that memory is allocated for quantities required to update the mechanism’s topology based on the total number of <em>active</em> bodies, joints and frames in the system. Data are then copied by value from their position in the directed acyclic graph representation to the <em>dual</em> directed graph representation and the memory pointers in each of the bodies and joints are updated to point to the new locations. Quantities required to process the kinematics and dynamics of the system are now stored in contiguous, closely-packed memory in a <em>struct of arrays</em> (SOAs), which serves to minimize cache misses. Note that great care has been taken using a memory profiler to ensure that there are no memory leaks when the second dual directed graph representation is created or freed.</p>
+<p>If STAR detects that the sense of the joint should be flipped in the directed graph representation to align with the spanning tree (as in the above example), the inverse transformation is set automatically in the appropriate position in the function pointer array, so as to maintain the user’s originally defined sense.</p>
+<p>The second <em>dual</em> graph representation is completely transparent to the user. The user can access body and joint parameters through their orginal linked-list Directed Acyclic Graph representation within each assembly using the C-API or through the graphical user interface. The assemblies serve to organize the pointers to bodies, joints, frames, devices and other objects, but are not represented in dual graph. Another advantage to the dual graph representation is that data exists in only one location. As the kinematics and dynamics of the mechanism are updated, there is no need to copy data by value back to a second datastructure. An example mechanism is shown in a screen shot of the STAR 2.0 graphical user interface. The assembly hierarchy, displayed at the left of the viewport, is generated using recursion from the linked-list model representation.</p>
+<div class="figure align-center" id="id55">
+<img alt="software_design/elements_of_star/screenshot.png" src="software_design/elements_of_star/screenshot.png" />
+<p class="caption"><span class="caption-text">Figure 7: Screenshot of STAR 2.0 Program showing hydraulic excavator</span></p>
+</div>
+</div>
+</div>
+<div class="section" id="algorithm-optimizing-processing">
+<h2>Algorithm Optimizing Processing<a class="headerlink" href="#algorithm-optimizing-processing" title="Permalink to this headline">¶</a></h2>
+<p>One well-known method to reduce the overhead associated with traversing the spanning tree is the Parent-Child List <a href="#id45"><span class="problematic" id="id46">:cite:`featherstone2008rigid`</span></a>. See also <a href="#id47"><span class="problematic" id="id48">:cite:`wehage2015generalized`</span></a>. A Parent-Child list is an array equal to the number of nodes in the spanning tree. Bodies are reordered in monotically increasing level order and joints are reordered such that each body’s unique parent joint is found at the corresponding body index. While this technique offers performance advantages over the recursive method described above, there are still a number of pointer dereferences required to find the corresponding frames located on each body, which can be improved.</p>
+<p>In STAR 2.0, the Parent-Child list is used to generate an array of pointers to values in their respective arrays. These pointer arrays are then sent to an array of function pointers, which processes and stores the values in their respective locations. Using this technique, it is not necessary to set a joint’s function pointer within a joint datastructure as above. Instead, an array of function pointers is created in the dual representation as:</p>
+<pre class="highlight literal-block">
+<span></span><span class="kt">int</span> <span class="n">functionPointerCount</span><span class="p">;</span>
+<span class="kt">void</span><span class="o">*</span> <span class="nf">functionPointer</span><span class="p">(</span><span class="kt">double</span><span class="o">**</span> <span class="n">dataPointer</span><span class="p">);</span>
+<span class="kt">double</span><span class="o">***</span> <span class="n">dataPointer</span><span class="p">;</span>
+</pre>
+<p>The logic for traversing the spanning tree is now significantly reduced, as illustrated in the below code:</p>
+<pre class="highlight literal-block">
+<span></span><span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">functionPointerCount</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">functionPointer</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">dataPointer</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="robustness">
+<h2>Robustness<a class="headerlink" href="#robustness" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li>Automatic graph processing methods</li>
+<li>Graph partitioning</li>
+<li>Generalized coordinate partitioning</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="extensibility">
+<h2>Extensibility<a class="headerlink" href="#extensibility" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li>C Programming API</li>
+<li>Access to Joint and Sensor parameters using ROS Message Passing interface</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<p>This article highlighted the following features/advantages to the STAR 2.0 software:</p>
+<ul class="simple">
+<li>The mechanism topology is represented using a universal, ascii text-based file format, which is compatible with web technologies.</li>
+<li>Using a dual graph and algorithm optimizing processing, the logic for traversing the spanning tree is significantly reduced. There are fewer pointer dereferences and recursion is no longer necessary.</li>
+<li>Accessing quantities in contiguous memory is cache efficient.</li>
+<li>The dual graph design allows the user to interactively build a mechanism within the program (which would facilitate applications such as kinematic synthesis and topological optimization).</li>
+<li>The user has handles to body and joint properties through their originally defined acyclic representation. There is no need for a user to understand or set up a directed graph representation as the program generates the directed graph automatically from user’s acyclic graph.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../doxyrest/global.html">Global Namespace</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../../_sources/software_design/elements_of_star/elements_of_star.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

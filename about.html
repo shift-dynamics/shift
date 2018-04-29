@@ -1,0 +1,197 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>About &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="#" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="Shift" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="about">
+<h1>About<a class="headerlink" href="#about" title="Permalink to this headline">¶</a></h1>
+<p><em>Shift</em> is a general-purpose software tool for simulating and visualizing rigid body dynamics of robotic systems. The underlying algorithms are tailored to process complex robotic systems with multiple overlapping kinematic chord loops, but the software is also capable of efficiently modeling simple systems, such as those consisting of serial chains or <em>tree</em> topologies.</p>
+<p>A unique aspect of <em>Shift</em> is its file format, which is based on the JSON (Javascript Object Notation) specification. In a <em>Shift</em> JSON file, the system topology is specified by enumerating a number of bodies and a number of joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled; the software does not burden the user with identifying a <em>spanning tree</em> or identifying closed kinematic loops present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.</p>
+<p>In <em>Shift</em>, model reduction is performed automatically using <em>Generalized Coordinate Partitioning</em> (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as <em>Kinematic Substructures</em> throughout this documentation.</p>
+<div class="section" id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="faster-than-real-time-simulation">
+<h3>Faster than real–time simulation<a class="headerlink" href="#faster-than-real-time-simulation" title="Permalink to this headline">¶</a></h3>
+<video src="_static/excavator.m4v" width="640" height="440" controls>
+</video><p>Most <em>Shift</em> models run many times faster than real–time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real–time without contact detection.</p>
+</div>
+<div class="section" id="automatic-assembly-of-complex-mechanisms">
+<h3>Automatic assembly of complex mechanisms<a class="headerlink" href="#automatic-assembly-of-complex-mechanisms" title="Permalink to this headline">¶</a></h3>
+<video src="_static/vehicle_control_15mps.m4v" width="640" height="440" controls>
+</video><p>The <em>Shift</em> file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user’s input file, even for relatively complex mechanisms such as this model of a vehicle chassis, which runs many times faster than real-time.</p>
+</div>
+<div class="section" id="heuristic-application-of-generalized-coordinate-partitioning">
+<h3>Heuristic application of Generalized Coordinate Partitioning<a class="headerlink" href="#heuristic-application-of-generalized-coordinate-partitioning" title="Permalink to this headline">¶</a></h3>
+<video src="_static/bricard.m4v" width="640" height="440" controls>
+</video><p>Bricard’s paradoxical linkage cannot be parameterized by one independent variable throughout its range of motion. <em>Shift’s</em> heuristic reapplication of Generalized Coordinate Partitioning (GCP) successfully detects when to reapply GCP on an as–needed basis, even for exceptional or paradoxical linkages.</p>
+</div>
+<div class="section" id="mobility-analysis-and-interactive-positioning-in-a-3d-environment">
+<h3>Mobility analysis and interactive positioning in a 3D environment<a class="headerlink" href="#mobility-analysis-and-interactive-positioning-in-a-3d-environment" title="Permalink to this headline">¶</a></h3>
+<video src="_static/brake.m4v" width="640" height="440" controls>
+</video><p>In addition to solving dynamics equations, <em>Shift</em> has tools to analyze each joint’s contribution to overall mechanism mobility, compute mechanical advantages and to interactively position models in a 3D visualization environment.</p>
+</div>
+<div class="section" id="opengl-rendering">
+<h3>OpenGL rendering<a class="headerlink" href="#opengl-rendering" title="Permalink to this headline">¶</a></h3>
+<video src="_static/auto_lod.m4v" width="640" height="440" controls>
+</video><p><em>Shift</em> uses custom GLSL shaders written to implement the Phong lighting model with multiple light sources and dynamic shadow mapping. 3D models are loaded using the Open Asset Import library (Assimp), which supports a variety of 3D model formats. Other visualization techniques are currently in development, such as automatic level of detail rendering of terrain meshes using tesselation control and evaluation shaders.</p>
+</div>
+</div>
+<div class="section" id="software-design">
+<h2>Software Design<a class="headerlink" href="#software-design" title="Permalink to this headline">¶</a></h2>
+<p>The numerical algorithms in <em>Shift</em> are written in the C programming language and compiled as a static library and command line interface. A 3D visualization tool is written in C++ using OpenGL and the Qt windowing framework.</p>
+<p>Additionally, <em>Shift</em> adheres to the following design criteria:</p>
+<blockquote>
+<div><ul class="simple">
+<li>The user interfaces (i.e. the C command line interface or C++ graphical interface) are separated from the core functionality, thereby allowing alternative front-ends to be programmed with no changes to the core code-base.</li>
+<li>The JSON file format is designed to be compatible with modern web technologies.</li>
+<li>Internal and external datastructures allow a representation of assemblies and subassemblies.</li>
+<li>Updating the kinematics and dynamics of a hierarchical assembly representation requires minimal logic and computational overhead.</li>
+<li>The graphical user interface is inspired by modern CAD software. For example, the model tree overview pane at the left of the viewport should be familiar to most engineers.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="workflow">
+<h2>Workflow<a class="headerlink" href="#workflow" title="Permalink to this headline">¶</a></h2>
+<p>When <em>Shift</em> is launched, the system topology is loaded from an external JSON text file. The analysis is split in to the following steps:</p>
+<div class="section" id="preprocessing">
+<h3>Preprocessing<a class="headerlink" href="#preprocessing" title="Permalink to this headline">¶</a></h3>
+<p>The following operations are performed once at the beginning of simulation and need not be called again, unless the mechanism topology changes:</p>
+<ul class="simple">
+<li>The user-defined body-joint-body information is initially loaded into computer working memory as a linked list.</li>
+<li>The topology of the mechanism is analyzed automatically to identify groups of overlapping chord loops, which are referred to as <em>kinematic substructures</em> or as <a class="reference external" href="doxid-structs2__substructure__t">s2_substructure_t</a> in the code.</li>
+<li>Bodies and joints are arranged in level increasing order within each substructure, thereby block-diagonalizing the Jacobian matrix.</li>
+<li>To minimize cache misses, data is copied by value from linked-list representation to a struct-of-arrays data structure in contiguous memory in level-increasing order.</li>
+</ul>
+</div>
+<div class="section" id="run-time-optimization-rto">
+<h3>Run-Time Optimization (RTO)<a class="headerlink" href="#run-time-optimization-rto" title="Permalink to this headline">¶</a></h3>
+<p>The following operations may be called once or periodically during the course of a simulation. The operations are performed again only if generalized coordinate partitioning indicates to use a different split of independent/dependent variables during a running simulation:</p>
+<ul>
+<li><p class="first">Set up source and destination memory pointers to:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Evaluate primary Jacobian matrix in permuted order.</li>
+<li>Evaluate primary constraints (and first and second time derivatives) in permuted order (no need to evaluate secondary constraints).</li>
+<li>Factor the primary Jacobian matrix.</li>
+<li>Precondition the primary constraints (i.e. sparse solve for the <em>B matrix</em> which is used to find part of the right null space of Jacobian).</li>
+<li>Map mass matrix in original order to permuted order.</li>
+<li>Evaluate equations of motion and store the results in unpermuted order.</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div>
+<div class="section" id="run-time-algorithm-rta">
+<h3>Run-Time Algorithm (RTA)<a class="headerlink" href="#run-time-algorithm-rta" title="Permalink to this headline">¶</a></h3>
+<p>During a simulation, the following operations are carried out at every time step. RTA uses only a few primitive functions to set up and sparse solve the equations of motion, stepping through arrays of memory locations without complex logic.</p>
+<ul class="simple">
+<li>Carry out operations set up in Run-Time Optimization step using source and destination memory pointers.</li>
+<li>Monitor ratio of infinity norm of the B matrix associated with each block sub-Jacobian matrix of each substructure. If the infinity norm increases more than 2 times from the initial starting value, the simulation is paused and the Run-Time Optimization step is carried out again to regenerate pointer arrays.</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">About</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#features">Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#software-design">Software Design</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow">Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="doxyrest/global.html">Global Namespace</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter"><em>Shift</em></a></li>
+      <li>Next: <a href="installation.html" title="next chapter">Installation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/about.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

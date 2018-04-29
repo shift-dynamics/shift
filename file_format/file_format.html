@@ -1,0 +1,160 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>File Format &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Contributing" href="../contributing/contributing.html" />
+    <link rel="prev" title="Installation" href="../installation.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="file-format">
+<h1>File Format<a class="headerlink" href="#file-format" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>The <em>Shift</em> file format is based on the JSON (Javascript Object Notation) specification, a subset of the Javascript programming language <a href="#id1"><span class="problematic" id="id2">:cite:`bray2014javascript`</span></a>. JSON is a lightweight, ASCII text-based file format that is programming language independent and faster to process than XML <a href="#id3"><span class="problematic" id="id4">:cite:`nurseitov2009comparison`</span></a> for many use cases. JSON is a common data exchange format for web services and is a native file format representation in NoSQL databases such as CouchDB and MongoDB, and is therefore well-suited for exchange of multibody system topological data over the web. Parsers for JSON exist in many programming languages. In <em>Shift</em>, the Jansson C library for reading/writing JSON files <a href="#id5"><span class="problematic" id="id6">:cite:`jansson`</span></a> is used to facilitate loading JSON files.</p>
+<p>In the file designation, models are specified by listing a number of bodies and joints. The bodies and joints can be arranged in assemblies and subassemblies, nested arbitrarily deep. In this way, the JSON file structure is similar to how models are built within CAD software. At run-time, the <em>spanning-tree</em> of the user’s body-joint-body representation is generated and closed-loops are identified automatically.</p>
+</div>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>A simple double pendulum model, as illustrated in <a class="pageref" href="../software_design/elements_of_star/elements_of_star.html#double-pendulum">Fig.  1</a> below is used to demonstrate the JSON syntax.</p>
+<div class="figure align-center" id="id11">
+<span id="double-pendulum"></span><img alt="../_images/double_pendulum.png" src="../_images/double_pendulum.png" />
+<p class="caption"><span class="caption-text">Figure 1: Double Pendulum Model</span></p>
+</div>
+<p>The accompanying JSON file is shown below:</p>
+<p>The various aspects of the JSON file are described in detail below:</p>
+<p>The <em>fixed</em> key at the root level of the <em>Shift</em> JSON file represents the fixed inertial reference frame and contains only frames (i.e. coordinate systems) and lights – i.e. no bodies or joints. If the <em>fixed</em> field is not present, a fixed inertial reference frame with only an “origin” reference frame is loaded.</p>
+<p>Statically positioned <em>lights</em> may be specified by specifying the parent to the name of a frame within the <em>fixed</em> field. Moving lights can be specified by setting the parent frame to a frame on a moving body. If no lights are specified, a directional overhead light in the opposite direction of gravity is specified for rendering purposes.</p>
+<p>Each entry under the <em>bodies</em> field contains a unique name and information related to mechanism topology (i.e. shape matrices <a href="#id7"><span class="problematic" id="id8">:cite:`uicker2013`</span></a>) and mass/inertia properties. Body geometry is specified in an external 3D file. The Assimp Open Asset Import library <a href="#id9"><span class="problematic" id="id10">:cite:`assimploader`</span></a> is used for loading body geometry and supports loading of a variety of mesh-based 3D file formats.</p>
+<p>Each entry under the <em>frames</em> field contains a unique name and a shape matrix specified as a 3x3 SO3 rotation matrix and a translation vector from the body origin. As with the “fixed” inertial reference frame, it is not necessary to specify an “origin” reference frame, as with the fixed inertial reference frame, by default every body contains the “origin”. Therefore, the name “origin” is a reserved keyword that cannot be used as a reference frame name at any level.</p>
+<p>The <em>joints</em> field contains connections between frames. Each joint has a unique name, a type, an initial position and velocity, and a body-frame pair. Currently the following joint types are supported: primitive rotations (i.e. “Rx”, “Ry”, and “Rz”), primitive translations (i.e. “Tx”, “Ty”, and “Tz”), “rigid” connections used to rigidly position two bodies together, and 6DOF “float” joints, which are used to initially position a body that is not explicitly connected to the inertial reference frame. Support for compound joints such as planar, spherical, universal and gears is planned for a later version of <em>Shift</em>.</p>
+<p>Springs, dampers and friction are specified under the <em>restraints</em> field. A restraint has a unique name, a type, knot points, coefficients, and either a joint name (if the restraint is aligned with a joint variable) or a body-frame pair. Torsional springs and torsional dampers must must be associated with a joint and its joint variable, but linear springs and dampers may be specified as either associated with a translational joint variable or as a body-frame pair. In the latter case, an additional field for “distance_type” may be specified. If no setting for distance type is set, the program will assume the Euclidian distance between parent and child frames should be used. Otherwise, it is possible to set the distance as aligned with the x, y or z axis of the parent frame as:</p>
+<pre class="highlight literal-block">
+<span></span><span class="s2">&quot;restraint&quot;</span><span class="o">:</span> <span class="p">{</span>
+  <span class="s2">&quot;type&quot;</span><span class="o">:</span> <span class="s2">&quot;spring&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;body_frame_pair&quot;</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">[</span><span class="s2">&quot;body1&quot;</span><span class="p">,</span> <span class="s2">&quot;1h_plus&quot;</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">&quot;body2&quot;</span><span class="p">,</span> <span class="s2">&quot;origin&quot;</span><span class="p">]</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;distance_type&quot;</span><span class="o">:</span> <span class="s2">&quot;Tz&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;knot_points&quot;</span><span class="o">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+  <span class="s2">&quot;coefficients&quot;</span><span class="o">:</span> <span class="p">[[</span><span class="mi">2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+<span class="p">}</span>
+</pre>
+<p>A spring, damper or frictional restraint may be set as a piece-wise, nonlinear function of the joint’s displacement or velocity by setting knot points and arrays of coefficients. The number of coefficient arrays must be one greater than the number of knot points. For example, in the above example, the piecewise function evaluates to:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}f(\phi) =  \begin{cases}
+2\phi^2 + 0.5\phi&lt;0 \\
+0 &amp; otherwise
+\end{cases}\end{split}\]</div>
+<p>Piecewise discontinuous functions could be used as a basis for modeling tire deflection, for example. Support for setting up more complex, user-defined force modules is possible, but beyond the scope of the current work.</p>
+<p>The <em>assemblies</em> field contains any number of bodies and joints. In the double pendulum example, bodies “link1” and “link2” are assigned to the “double_pendulum” assembly. Although the pendulum consists of a single assembly, multiple assemblies could be inserted at the top level and any number of subassemblies can be inserted into other assemblies, nested arbitrarily deep.</p>
+<p>Joints in one assembly can connect bodies in different assemblies/subassemblies by specifying the full path to the body in the assembly hierarchy. The “:” character is used to specify the position within an assembly hierarchy, and is therefore not a valid character to use in a descriptive name. For example,  “factory:workcell1:robot2:body1:frame1”, indicates “frame1” on “body1” in the “robot2” subassembly, which is contained within the “workcell1” subassembly, which is in turn a member of the “factory” main assembly. If no path is specified, the program searches for descriptive names only within the local assembly. Note that the sense of the joint need not align with the <em>scene graph</em> of the mechanism. In the present example, the direction of the second joint is oriented in the opposite direction of the model’s root-oriented graph.</p>
+<p>Organizing models into assemblies is a concept which should be familiar to most users of CAD software. The hierarchical organization structure facilitates model reuse and rapidly building complex models from simpler models. For example, a main assembly might contain an entire factory environment, with a number of subassemblies containing robotic workcells. In turn, each workcell may each contain a number of robots or workpieces specified in their own subassemblies. Additionally, assemblies can be switched on or off to facilitate design sensitivity studies with minimal changes to the file.</p>
+<p>For more examples, refer to the <code class="docutils literal notranslate"><span class="pre">{$PROJECT_DIRECTORY}/src/models</span></code> folder.</p>
+</div>
+<div class="section" id="creating-shift-json-files">
+<h2>Creating <em>Shift</em> JSON files<a class="headerlink" href="#creating-shift-json-files" title="Permalink to this headline">¶</a></h2>
+<p>An advantage to the simple syntax used in <em>Shift</em> JSON files is that it allows power users to manually generate their models using a text editor. Alternatively, models can be set up using the C programming API or interactively using a graphical user interface. JSON files could also be set up in a scripted fashion using a variety of programming languages.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">File Format</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-shift-json-files">Creating <em>Shift</em> JSON files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../doxyrest/global.html">Global Namespace</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../installation.html" title="previous chapter">Installation</a></li>
+      <li>Next: <a href="../contributing/contributing.html" title="next chapter">Contributing</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/file_format/file_format.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

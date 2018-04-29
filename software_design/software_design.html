@@ -1,0 +1,285 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Software Design &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="software-design">
+<h1>Software Design<a class="headerlink" href="#software-design" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="internal-data-structures">
+<h2>Internal Data Structures<a class="headerlink" href="#internal-data-structures" title="Permalink to this headline">¶</a></h2>
+<p>When the JSON file is loaded from disk into working memory, it is imported into a linked-list datastructure. The descriptive names in the body-frame pairings are matched to set the appropriate memory pointers. The linked-list representation is used primarily for programming convenience, as it allows allocating memory for model primitives on an as-needed basis. For example, the linked-list enables a user to interactively add or remove objects from their model. Note that the linked-list representation of the model is not used for computationally intensive/demanding tasks – aspects which are discussed later in the article.</p>
+<p>Models are defined using the following primitives:</p>
+<blockquote>
+<div><ul>
+<li><p class="first">frames (coordinate systems)</p>
+</li>
+<li><p class="first">bodies</p>
+<blockquote>
+<div><ul class="simple">
+<li><em>Frames</em> linked list</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">restraints</p>
+</li>
+<li><p class="first">joints</p>
+</li>
+<li><p class="first">assemblies</p>
+<blockquote>
+<div><ul class="simple">
+<li><em>Restraints</em> linked list</li>
+<li><em>Bodies</em> linked list</li>
+<li><em>Joints</em> linked list</li>
+<li><em>Devices</em> linked list</li>
+<li>“Subassemblies” linked list</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<div class="figure align-center" id="id15">
+<a class="reference internal image-reference" href="../_images/assembly.png"><img alt="../_images/assembly.png" src="../_images/assembly.png" style="width: 400px;" /></a>
+<p class="caption"><span class="caption-text">Figure 1: Schematic of Assembly Datastructure</span></p>
+</div>
+<p>In addition to the data specified in the JSON file, a <em>Body</em> datastructure includes a reference frame, which may not be the origin of the body. Additionally, the body contains the geometric data loaded from the model geometry definition, such as the vertices, faces, colors and textures.</p>
+<p>The <em>Frame</em> datastructure contains an SE3 matrix that specifies an orientation and translation relative to a body’s origin <a href="#id1"><span class="problematic" id="id2">:cite:`selig2005geometric`</span></a>.</p>
+<p>In addition to the terms specified in the STAR JSON file, a <em>Joint</em> datastructure contains joint properties necessary for processing the equations of motion, such as the influence coefficient matrices <a href="#id3"><span class="problematic" id="id4">:cite:`murray1994mathematical`</span></a>, current joint position, velocity and accelerations.</p>
+<p>In the C programming language, bodies and joints can be represented using structs and the connections between them as memory pointers:</p>
+<pre class="highlight literal-block">
+<span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">Frame</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">Body</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">Joint</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+  <span class="n">Body</span><span class="o">*</span> <span class="n">parentBody</span><span class="p">;</span>
+  <span class="n">Frame</span><span class="o">*</span> <span class="n">parentFrame</span><span class="p">;</span>
+
+  <span class="n">Body</span><span class="o">*</span> <span class="n">childBody</span><span class="p">;</span>
+  <span class="n">Frame</span><span class="o">*</span> <span class="n">childFrame</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="dual-graphs">
+<h2>Dual Graphs<a class="headerlink" href="#dual-graphs" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="directed-cyclic-graphs-vs-directed-graphs">
+<h3>Directed Cyclic Graphs vs. Directed Graphs<a class="headerlink" href="#directed-cyclic-graphs-vs-directed-graphs" title="Permalink to this headline">¶</a></h3>
+<p>An example is provided to explain the difference between Directed Acyclic Graphs (i.e. the body-joint-body representation familiar to CAD users) and Directed Graphs. Consider the hydraulic clamp mechanismm in Fig 2. below.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../_images/hydraulic_clamp.png"><img alt="../_images/hydraulic_clamp.png" src="../_images/hydraulic_clamp.png" style="width: 300px;" /></a>
+</div>
+<p>Its directed acyclic graph is shown in Fig. 3.</p>
+<div class="figure align-center" id="id16">
+<a class="reference internal image-reference" href="../_images/directed_acyclic_graph.png"><img alt="../_images/directed_acyclic_graph.png" src="../_images/directed_acyclic_graph.png" style="width: 300px;" /></a>
+<p class="caption"><span class="caption-text">Figure 3: Directed Acyclic Graph (DAG)</span></p>
+</div>
+<p>As stated above, the DAG representation of the mechanism is convenient for user representation of topology, but a root-oriented directed graph is necessary to update the system topology. In the present example, there are multiple paths in the DAG to update the position and orientation of bodies 3 and 4.</p>
+<p>To resolve this ambiguity, the root-oriented DG, i.e. <em>spanning tree</em>, of the mechanism, is identified. The spanning tree is the subset of graph edges that touches every node in the DAG representation exactly once. This process requires identifying the set of arcs and chords of the directed graph as shown in Fig. 4. Automatic methods for obtaining the set of arcs and chords in an acyclic graph representation are discussed later in this document (also refer to <a href="#id5"><span class="problematic" id="id6">:cite:`wehage2015generalized,uicker2013`</span></a>).</p>
+<p>In this example, the arcs of the directed graph are shown in black and the chords are shown in blue. Note that the sense of joint B (shown in red) has also been flipped to align with the spanning tree. If the chords of the graph are removed, each body will have a unique parent body and associated joint.</p>
+<div class="figure align-center" id="id17">
+<a class="reference internal image-reference" href="../_images/directed_acyclic_graph2.png"><img alt="../_images/directed_acyclic_graph2.png" src="../_images/directed_acyclic_graph2.png" style="width: 300px;" /></a>
+<p class="caption"><span class="caption-text">Figure 4: Directed Acyclic Graph with Arcs and Chords identified</span></p>
+</div>
+<p>The instructions to update the topology of a multibody system are coded using function pointers. Function pointers are a powerful tool in the C programming language which allow calling specific functions at program run-time based on definitions supplied in a user’s model definition. For example, if a user has specified a joint as a revolute joint about the X-axis, a function pointer for a vectorized, sparse matrix multiplication for a rotation about the x axis is called. A function pointer <em>could</em> be stored in each body and joints as:</p>
+<pre class="highlight literal-block">
+<span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">Body</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+  <span class="kt">void</span><span class="o">*</span> <span class="n">bodyFunctionPointer</span><span class="p">(</span><span class="n">Body</span><span class="o">*</span><span class="p">);</span> <span class="c1">// update shape matrices</span>
+
+  <span class="kt">int</span> <span class="n">childCount</span><span class="p">;</span>
+  <span class="n">Joint</span><span class="o">**</span> <span class="n">childJoints</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">Joint</span> <span class="p">{</span>
+
+  <span class="p">...</span>
+
+  <span class="kt">void</span><span class="o">*</span> <span class="n">jointFunctionPointer</span><span class="p">(</span><span class="n">Joint</span><span class="o">*</span><span class="p">);</span> <span class="c1">// updates influence coefficient</span>
+                                      <span class="c1">// matrices, accelerations,</span>
+                                      <span class="c1">// velocities, relative values across</span>
+                                      <span class="c1">// joints, etc.</span>
+  <span class="n">Body</span><span class="o">*</span> <span class="n">parentBody</span><span class="p">;</span>
+  <span class="n">Frame</span><span class="o">*</span> <span class="n">parentFrame</span><span class="p">;</span>
+
+  <span class="n">Body</span><span class="o">*</span> <span class="n">childBody</span><span class="p">;</span>
+  <span class="n">Frame</span><span class="o">*</span> <span class="n">childFrame</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+<p>Once the spanning tree of the directed graph has been identified, one way to process the system topology with the arcs removed is through recursion:</p>
+<pre class="highlight literal-block">
+<span></span><span class="kt">void</span> <span class="nf">RecursiveTreeTraversal</span><span class="p">(</span><span class="n">Body</span><span class="o">*</span> <span class="n">body</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="n">body</span><span class="o">-&gt;</span><span class="n">bodyFunctionPointer</span><span class="p">(</span><span class="n">body</span><span class="p">);</span> <span class="c1">// update shape matrices</span>
+
+  <span class="c1">// process children</span>
+  <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">body</span><span class="o">-&gt;</span><span class="n">childCount</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">body</span><span class="o">-&gt;</span><span class="n">childJoints</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">jointFunctionPointer</span><span class="p">(</span><span class="n">body</span><span class="o">-&gt;</span><span class="n">childJoint</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="n">RecursiveTreeTraversal</span><span class="p">(</span><span class="n">body</span><span class="o">-&gt;</span><span class="n">childJoint</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">childBody</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// then call the recursive function as</span>
+<span class="n">Body</span><span class="o">*</span> <span class="n">fixed</span><span class="p">;</span>
+<span class="n">RecursiveTreeTraversal</span><span class="p">(</span><span class="n">fixed</span><span class="p">);</span>
+</pre>
+<p>Note, however, that there are a number of disadvantages with this approach:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Chords D and E are not updated. Additional logic is required to process properties related to chord joints</li>
+<li>This approach involves many pointer dereferences that the compiler will not be able to optimize away as there is no way for the compiler to know the body-joint-body sequence ahead of time</li>
+<li>Recursion is memory inefficient and slow</li>
+<li>Traversing a linked list datastructure in fragmented memory is cache-inefficient.</li>
+<li>By removing joints D and E from the graph, the user’s original acyclic representation is lost</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="dual-graph-representation">
+<h3>Dual Graph Representation<a class="headerlink" href="#dual-graph-representation" title="Permalink to this headline">¶</a></h3>
+<p>To address these disadvantates, a different approach to process and update the system’s topology is taken. The user’s original directed acyclic graph shown in Fig. 2 is maintained, and a second <em>dual</em> directed graph is created. Each time the user adds or removes a body or joint, memory for the second directed graph is freed and a new graph is generated automatically. Instead of removing joints from the user’s original DAG representation, additional massless <em>virtual</em> bodies (shown in octagons) are added and constraints (shown as a dashed blue lines) are imposed as shown in Fig. 5 below.</p>
+<div class="figure align-center" id="id18">
+<a class="reference internal image-reference" href="../_images/directed_graph.png"><img alt="../_images/directed_graph.png" src="../_images/directed_graph.png" style="width: 600px;" /></a>
+<p class="caption"><span class="caption-text">Figure 5: Dual Directed Graph representation</span></p>
+</div>
+<p>An important aspect in this process is that memory is allocated for quantities required to update the mechanism’s topology based on the total number of <em>active</em> bodies, joints and frames in the system. Data are then copied by value from their position in the directed acyclic graph representation to the <em>dual</em> directed graph representation and the memory pointers in each of the bodies and joints are updated to point to the new locations. Quantities required to process the kinematics and dynamics of the system are now stored in contiguous, closely-packed memory in a <em>struct of arrays</em> (SOAs) datastructure, which improves data locality and serves to minimize cache misses <a href="#id7"><span class="problematic" id="id8">:cite:`bryant2003computer`</span></a>. Note that care has been taken using a memory profiler to ensure that there are no memory leaks when the second dual directed graph representation is created or destroyed.</p>
+<p>If STAR detects that the sense of the joint should be flipped in the directed graph representation to align with the spanning tree (as in the above example), the inverse transformation is set in the appropriate position in the function pointer array automatically, so as to maintain the user’s originally defined sense.</p>
+<p>The <em>dual</em> graph representation is completely transparent to the user. The user can access body and joint parameters through their orginal linked-list Directed Acyclic Graph representation within each assembly using the C-API or through the graphical user interface. The assemblies serve to organize the pointers to bodies, joints, frames, devices and other objects, but are not represented in the second Directed Graph representation. Another advantage to the dual graph representation is that data exists in only one location. As the kinematics and dynamics of the mechanism are updated, there is no need to copy data by value to a second datastructure.</p>
+<p>As both the DAG and DG are simultaneously present in computer memory, multiple output formats are possible. For example, a user could make changes to the DAG in the GUI and save the updated results back to disk in the JSON file format described above. Alternatively, the second, DG representation of the mechanism could be used to generate a file format that utilitizes the DG representation, such as a  COLLADA or X3D – although writing an export module is beyond the scope of the present work.</p>
+</div>
+</div>
+<div class="section" id="automata-programming">
+<h2>Automata Programming<a class="headerlink" href="#automata-programming" title="Permalink to this headline">¶</a></h2>
+<p>One technique to avoid function recursion is to arrange bodies and joints in monotonically increasing level order within computer memory, a technique originally described in <a href="#id9"><span class="problematic" id="id10">:cite:`serban1997topology`</span></a>. In a multiloop system, once the virtual bodies are added as described above, the number of bodies and joints are equal and traversing the topology is simplified. Using the function pointer method described above, the joint and body function pointers can be called as:</p>
+<pre class="highlight literal-block">
+<span></span><span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
+<span class="n">Body</span><span class="o">**</span> <span class="n">bodyPointers</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">Body</span> <span class="o">*</span><span class="p">));</span>
+<span class="n">Joint</span><span class="o">**</span> <span class="n">joints</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">Joint</span> <span class="o">*</span><span class="p">));</span>
+
+<span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">joints</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">functionPointer</span><span class="p">(</span><span class="n">joints</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span> <span class="c1">// update relative properties</span>
+                                         <span class="c1">// parent joint</span>
+  <span class="n">bodies</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">functionPointer</span><span class="p">(</span><span class="n">body</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>   <span class="c1">// update shape matrices on body</span>
+<span class="p">}</span>
+</pre>
+<p>The above technique obviates the need for recursion, but the logic for processing the system topology can be even further simplified. For brevity, the exact details of each body function pointer are not shown, but note that the function requires updating one or more shape matrices across a body, which requires a number of pointer dereferences and secondary loop constructs to book-keep the operations.</p>
+<p>The approach taken in the present work is to generate a first function pointer array for updating both joints and bodies and a second data pointer array, which indicates the memory addresses where each function pointer should read and write the data to:</p>
+<pre class="highlight literal-block">
+<span></span><span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
+<span class="kt">void</span><span class="o">*</span> <span class="nf">functionPointer</span><span class="p">(</span><span class="kt">double</span><span class="o">**</span> <span class="n">dataPointer</span><span class="p">);</span>
+<span class="kt">double</span><span class="o">***</span> <span class="n">dataPointer</span><span class="p">;</span>
+</pre>
+<p>This method significantly reduces the logic required to traverse the spanning tree, as illustrated in the below code:</p>
+<pre class="highlight literal-block">
+<span></span><span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">functionPointer</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">dataPointer</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre>
+<p>This dynamic building of a program from an external model definition is referred to as <em>Automata based programming</em> <a href="#id11"><span class="problematic" id="id12">:cite:`booth1967sequential`</span></a>. The concept is used by other model based programming languages such as the Unified Modeling Language (UML) <a href="#id13"><span class="problematic" id="id14">:cite:`rumbaugh2004unified`</span></a>, but to the author’s knowledge, the technique has not been applied to the automated simplification of graph traversal of a multibody system, or other applications related to dynamics and trajectory analysis.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../doxyrest/global.html">Global Namespace</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/software_design/software_design.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

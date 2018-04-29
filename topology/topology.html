@@ -1,0 +1,842 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Topology &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="topology">
+<span id="id1"></span><h1>Topology<a class="headerlink" href="#topology" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="graph-theory-for-multibody-systems">
+<h2>Graph Theory for Multibody Systems<a class="headerlink" href="#graph-theory-for-multibody-systems" title="Permalink to this headline">¶</a></h2>
+<p>In this section, a model of a hydraulic excavator is used to illustrate basic concepts from graph theory.</p>
+<div class="figure align-center" id="id35">
+<span id="excavator"></span><a class="reference internal image-reference" href="../_images/excavator.png"><img alt="../_images/excavator.png" src="../_images/excavator.png" style="width: 600px;" /></a>
+<p class="caption"><span class="caption-text">Figure 1: A Hydraulic Excavator</span></p>
+</div>
+<p>The excavator model’s topology can be described as a directed graph with a number of bodies comprising the <em>nodes</em> of the graph, connected by a number of joints as <em>edges</em> of the directed graph.  The excavator model consists of 15 bodies connected by 20 joints, shown in <a class="reference internal" href="#table-1">Table 1</a>. The bodies and joints are listed in an arbitrary, user–defined order. This organization of bodies and joints is similar to how mechanism topology is specified in the Shift JSON file format. The ID is provided here only as an aid in interpreting the following development and need not be included in the JSON file. Note that the zero identifier is reserved for the fixed inertial reference frame.</p>
+<table border="1" class="docutils" id="table-1">
+<colgroup>
+<col width="3%" />
+<col width="27%" />
+<col width="3%" />
+<col width="68%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">ID</th>
+<th class="head">Body Name</th>
+<th class="head">ID</th>
+<th class="head">Joint Name</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>1</td>
+<td>undercarriage</td>
+<td>A</td>
+<td>fixed <span class="math notranslate nohighlight">\(\rightarrow\)</span> undercarriage</td>
+</tr>
+<tr class="row-odd"><td>2</td>
+<td>cabin</td>
+<td>B</td>
+<td>undercarriage <span class="math notranslate nohighlight">\(\rightarrow\)</span> cabin</td>
+</tr>
+<tr class="row-even"><td>3</td>
+<td>boom</td>
+<td>C</td>
+<td>cabin <span class="math notranslate nohighlight">\(\rightarrow\)</span> boom</td>
+</tr>
+<tr class="row-odd"><td>4</td>
+<td>stick</td>
+<td>D</td>
+<td>boom  <span class="math notranslate nohighlight">\(\rightarrow\)</span> stick</td>
+</tr>
+<tr class="row-even"><td>5</td>
+<td>bucket</td>
+<td>E</td>
+<td>stick <span class="math notranslate nohighlight">\(\rightarrow\)</span> bucket</td>
+</tr>
+<tr class="row-odd"><td>6</td>
+<td>bucket linkage 1</td>
+<td>F</td>
+<td>stick <span class="math notranslate nohighlight">\(\rightarrow\)</span> bucket linkage 2</td>
+</tr>
+<tr class="row-even"><td>7</td>
+<td>bucket linkage 2</td>
+<td>G</td>
+<td>bucket <span class="math notranslate nohighlight">\(\rightarrow\)</span> bucket linkage 1</td>
+</tr>
+<tr class="row-odd"><td>8</td>
+<td>boom cylinder 1</td>
+<td>H</td>
+<td>cabin <span class="math notranslate nohighlight">\(\rightarrow\)</span> boom cylinder 1</td>
+</tr>
+<tr class="row-even"><td>9</td>
+<td>boom cylinder 2</td>
+<td>I</td>
+<td>cabin <span class="math notranslate nohighlight">\(\rightarrow\)</span> boom cylinder 2</td>
+</tr>
+<tr class="row-odd"><td>10</td>
+<td>boom rod 1</td>
+<td>J</td>
+<td>boom  <span class="math notranslate nohighlight">\(\rightarrow\)</span> stick cylinder</td>
+</tr>
+<tr class="row-even"><td>11</td>
+<td>boom rod 2</td>
+<td>K</td>
+<td>stick <span class="math notranslate nohighlight">\(\rightarrow\)</span> bucket cylinder</td>
+</tr>
+<tr class="row-odd"><td>12</td>
+<td>stick cylinder</td>
+<td>L</td>
+<td>boom cylinder 1 <span class="math notranslate nohighlight">\(\rightarrow\)</span> boom rod 1</td>
+</tr>
+<tr class="row-even"><td>13</td>
+<td>stick rod</td>
+<td>M</td>
+<td>boom cylinder 2 <span class="math notranslate nohighlight">\(\rightarrow\)</span> boom rod 2</td>
+</tr>
+<tr class="row-odd"><td>14</td>
+<td>bucket cylinder</td>
+<td>N</td>
+<td>stick cylinder <span class="math notranslate nohighlight">\(\rightarrow\)</span> stick rod</td>
+</tr>
+<tr class="row-even"><td>15</td>
+<td>bucket rod</td>
+<td>O</td>
+<td>bucket cylinder <span class="math notranslate nohighlight">\(\rightarrow\)</span> bucket rod</td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td>P</td>
+<td>boom rod 1 <span class="math notranslate nohighlight">\(\rightarrow\)</span> boom</td>
+</tr>
+<tr class="row-even"><td></td>
+<td></td>
+<td>Q</td>
+<td>boom rod 2 <span class="math notranslate nohighlight">\(\rightarrow\)</span> boom</td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td>R</td>
+<td>stick rod <span class="math notranslate nohighlight">\(\rightarrow\)</span> stick</td>
+</tr>
+<tr class="row-even"><td></td>
+<td></td>
+<td>S</td>
+<td>bucket rod <span class="math notranslate nohighlight">\(\rightarrow\)</span> bucket linkage 1</td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td>T</td>
+<td>bucket linkage 1 <span class="math notranslate nohighlight">\(\rightarrow\)</span> bucket linkage 2</td>
+</tr>
+</tbody>
+</table>
+<p>Click <a class="reference external" href="/shift/_static/excavator.json">here</a> to see how the information in <a class="reference internal" href="#table-1">Table 1</a> is encoded in a Shift JSON file.</p>
+<div class="section" id="incidence-matrix">
+<h3>Incidence Matrix<a class="headerlink" href="#incidence-matrix" title="Permalink to this headline">¶</a></h3>
+<p>The incidence matrix, <span class="math notranslate nohighlight">\(\Gamma\)</span>, is an important tool used to describe the connectivity of bodies and joints in a multibody system. From the body–joint–body information in <a class="reference internal" href="#table-1">Table 1</a>, the incidence matrix for the excavator is given in Eq. <a class="reference internal" href="#equation-eq-incidence-matrix">(1)</a>. Zeros are removed from sparse matrices to improve view clarity. Each column corresponds to a unique body and each row corresponds to a joint. The -1 and +1 in each row describe the sense of the joint.</p>
+<p>An entry of row b and column h of <span class="math notranslate nohighlight">\(\Gamma\)</span> is defined as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Gamma (b,h) = \begin{cases}
++1&amp;\text{if joint h is positively incident with body b}\\
+-1&amp; \text{if joint h is negatively incident with body b}\\
+0&amp;\text{if joint h is not incident with body b}
+\end{cases}\end{split}\]</div>
+<p>For example, the -1 and +1 in the first row indicate that joint A is oriented from body 0 (i.e. the fixed inertial reference frame) to body 1 (i.e. the undercarriage.)</p>
+<div class="math notranslate nohighlight" id="equation-eq-incidence-matrix">
+<span class="eqno">(1)<a class="headerlink" href="#equation-eq-incidence-matrix" title="Permalink to this equation">¶</a></span>\[\begin{split}\scriptsize
+\Gamma^T =
+\begin{array}{ll}
+\begin{array}{r|rrrrrrrrrrrrrrr}
+   &amp;  0 &amp; 1  &amp; 2  &amp; 3  &amp; 4  &amp; 5  &amp; 6  &amp; 7  &amp; 8  &amp; 9  &amp; 10  &amp; 11 &amp; 12 &amp; 13 &amp; 14 &amp; 15\\
+   \hline
+A  &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+B  &amp;    &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+C  &amp;    &amp;    &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+D  &amp;    &amp;    &amp;    &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+E  &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+F  &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+G  &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+H  &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+I  &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;  \\
+J  &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;  \\
+K  &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;  \\
+L  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;  \\
+M  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;  \\
+N  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp; 1  &amp;    &amp;  \\
+O  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp; 1\\
+P  &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp;  \\
+Q  &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;  \\
+R  &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;  \\
+S  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1\\
+T  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;
+\end{array}
+\end{array}\end{split}\]</div>
+<p>It is strongly emphasized that these large sparse matrices need never be formed in multibody dynamics code. Ultimately, other more compact representations of topology allow more efficient numerical implementation of kinematics and dynamics. Nevertheless, a description of incidence matrix is provided here as it allows clearly formulating the equations of motion for complex multibody systems in the language of matrices. Later in this document, more compact representations of topology will be introduced.</p>
+</div>
+<div class="section" id="spanning-tree">
+<h3>Spanning Tree<a class="headerlink" href="#spanning-tree" title="Permalink to this headline">¶</a></h3>
+<p>The subset of graph edges containing all nodes, but no loops, is the <em>spanning tree</em>. The spanning tree can be identified from the incidence matrix by permuting Eq. <a class="reference internal" href="#equation-eq-incidence-matrix">(1)</a> to reduced-row echelon form as:</p>
+<div class="math notranslate nohighlight" id="equation-eq-incidence-matrix-no-substructures">
+<span class="eqno">(2)<a class="headerlink" href="#equation-eq-incidence-matrix-no-substructures" title="Permalink to this equation">¶</a></span>\[\begin{split}\scriptsize
+\Gamma^T =
+\begin{array}{r|rrrrrrrrrrrrrrr}
+   &amp; 1  &amp; 2  &amp; 3  &amp; 8  &amp; 9  &amp; 11 &amp; 4  &amp; 10 &amp; 12 &amp; 13 &amp; 7  &amp; 5  &amp; 14 &amp; 6  &amp; 15\\
+   \hline
+A  &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+B  &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+C  &amp;    &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+H  &amp;    &amp; -1 &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+I  &amp;    &amp; -1 &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+Q  &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+D  &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+P  &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+J  &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+R  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;   \\
+F  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;   \\
+E  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;   \\
+K  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;   \\
+T  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp; 1  &amp;   \\
+O  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;  1\\
+\hdashline
+L  &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp;    &amp;    &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+M  &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;  1 &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;   \\
+N  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp; 1  &amp;    &amp;    &amp;    &amp;    &amp;   \\
+G  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; -1 &amp;    &amp; 1  &amp;   \\
+S  &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp;    &amp; 1  &amp; -1
+\end{array}\end{split}\]</div>
+<p>The graph edges above the dashed line in Eq. <a class="reference internal" href="#equation-eq-incidence-matrix-no-substructures">(2)</a> comprise the arcs of the directed graph and form the spanning tree of the mechanism. The arcs represent the row–space of <span class="math notranslate nohighlight">\(\Gamma ^T\)</span>. The remaining edges required to reconnect the spanning tree comprise the chords of the directed graph. Consequently, the number of chords is equal to the number of independent loops in the directed graph <a href="#id2"><span class="problematic" id="id3">:cite:`uicker2013`</span></a>.</p>
+<div class="figure align-center" id="id36">
+<span id="spanningtree"></span><a class="reference internal image-reference" href="../_images/digraph.png"><img alt="../_images/digraph.png" src="../_images/digraph.png" style="width: 600px;" /></a>
+<p class="caption"><span class="caption-text">Figure 2: Spanning tree of hydraulic excavator</span></p>
+</div>
+</div>
+<div class="section" id="path-matrix">
+<h3>Path Matrix<a class="headerlink" href="#path-matrix" title="Permalink to this headline">¶</a></h3>
+<p>The path matrix is another important tool</p>
+</div>
+<div class="section" id="jacobian-matrix-obtained-using-graph-theory">
+<h3>Jacobian Matrix obtained using Graph Theory<a class="headerlink" href="#jacobian-matrix-obtained-using-graph-theory" title="Permalink to this headline">¶</a></h3>
+<p>A corollary to the incidence matrix, the connectivity matrix, is formed by element-wise replacement of the +1 and -1s in <span class="math notranslate nohighlight">\(\Gamma^T\)</span> with positive or negative 6x6 identity matrices. The partial velocity matrix, <span class="math notranslate nohighlight">\(H\)</span>, is a block matrix containing the 6x1 influence coefficient matrices (introduced in the previous section) along the diagonal. The partial velocity matrix provides a mapping of joint velocities to relative velocities across joints.</p>
+<div class="math notranslate nohighlight">
+\[\underline{\mathbf{v}}_{rel} = C \underline{\mathbf{v}}_{abs} = H\dot{\underline{q}}\]</div>
+<p>Once the arcs and chords of the system have been identified, Eq. <a class="reference internal" href="../dynamics/dynamics.html#equation-eq-mapping">(14)</a> can be block partitioned as:</p>
+<div class="math notranslate nohighlight" id="equation-eq-partitioned-mapping">
+<span class="eqno">(3)<a class="headerlink" href="#equation-eq-partitioned-mapping" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{bmatrix}C_{arc}\\C_{chord}\end{bmatrix}\underline{\dot{q}}_{abs} =
+\begin{bmatrix}H_{arc} &amp; 0\\ 0 &amp; H_{chord} \end{bmatrix}
+\begin{Bmatrix}\underline{\dot{q}}_{arc}\\ \underline{\dot{q}}_{chord} \end{Bmatrix}\end{split}\]</div>
+<p>which yields:</p>
+<div class="math notranslate nohighlight" id="equation-eq-partmapping-yield1">
+<span class="eqno">(4)<a class="headerlink" href="#equation-eq-partmapping-yield1" title="Permalink to this equation">¶</a></span>\[\underline{\mathbf{v}}_{abs} = C^{-1}_{arc}H_{arc}\underline{q}_{arc}\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight" id="equation-eq-partmapping-yield2">
+<span class="eqno">(5)<a class="headerlink" href="#equation-eq-partmapping-yield2" title="Permalink to this equation">¶</a></span>\[C_{chord}\underline{\mathbf{v}}_{abs} = H_{chord}\underline{\dot{q}}_{chord}\]</div>
+<p>Substituting Eq. <a class="reference internal" href="#equation-eq-partmapping-yield1">(4)</a> into Eq. <a class="reference internal" href="#equation-eq-partmapping-yield2">(5)</a> and rearranging yields:</p>
+<div class="math notranslate nohighlight" id="equation-eq-constraint-eq1">
+<span class="eqno">(6)<a class="headerlink" href="#equation-eq-constraint-eq1" title="Permalink to this equation">¶</a></span>\[-C_{chord}C^{-1}_{arc}H_{arc}\underline{\dot{q}}_{arc} + H_{chord}\underline{\dot{q}}_{chord} = \underline{0}\]</div>
+<p>Arranging Eq. <a class="reference internal" href="#equation-eq-constraint-eq1">(6)</a> in matrix form yields</p>
+<div class="math notranslate nohighlight" id="equation-eq-jacobian-pre">
+<span class="eqno">(7)<a class="headerlink" href="#equation-eq-jacobian-pre" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{bmatrix}-C_{chord}C^{-1}_{arc}H_{arc} &amp; H_{chord}\end{bmatrix} \begin{Bmatrix} \underline{\dot{q}}_{arc} \\ \underline{\dot{q}}_{chord} \end{Bmatrix} = \underline{0}\end{split}\]</div>
+<p>Equation <a class="reference internal" href="#equation-eq-jacobian-pre">(7)</a> represents the chord-loop velocity constraints for a mechanism, and from it the constraint Jacobian matrix is identified as</p>
+<div class="math notranslate nohighlight" id="equation-eq-jacobian">
+<span class="eqno">(8)<a class="headerlink" href="#equation-eq-jacobian" title="Permalink to this equation">¶</a></span>\[J = \begin{bmatrix}-C_{chord}C^{-1}_{arc}H_{arc} &amp; H_{chord}\end{bmatrix}\]</div>
+<p>Equation <a class="reference internal" href="#equation-eq-jacobian">(8)</a> can be used to find the Jacobian matrix for the excavator model as</p>
+<div class="math notranslate nohighlight" id="equation-eq-jacobian1">
+<span class="eqno">(9)<a class="headerlink" href="#equation-eq-jacobian1" title="Permalink to this equation">¶</a></span>\[\begin{split}\tiny
+J =
+\begin{array}{r|rrrrrrrrrrrrrrrrrrrr}
+    &amp; A &amp; B    &amp; C    &amp; H   &amp; I   &amp;  Q   &amp;  D   &amp; P    &amp;  J   &amp;  R   &amp;  F   &amp;  E   &amp;  K   &amp;  T   &amp;  O   &amp; L   &amp; M &amp; N &amp; G &amp; S\\
+\hline
+i &amp;     &amp;   &amp; -h_C &amp; h_H &amp;     &amp;      &amp;      &amp; -h_P &amp;      &amp;      &amp;      &amp;      &amp;      &amp;      &amp;      &amp; h_L &amp;   &amp;   &amp;   &amp;  \\
+ii &amp;    &amp;      &amp; -h_C   &amp;     &amp; h_I &amp; -h_Q &amp;      &amp;      &amp;      &amp;      &amp;      &amp;      &amp;      &amp;      &amp;      &amp;     &amp; h_M &amp;   &amp;   &amp;  \\
+iii &amp;   &amp;      &amp;      &amp;     &amp;     &amp;      &amp; -h_D &amp;      &amp;  h_J &amp; -h_R &amp;      &amp;      &amp;      &amp;      &amp;      &amp;     &amp;   &amp; h_N &amp;   &amp;  \\
+iv  &amp;   &amp;      &amp;      &amp;     &amp;     &amp;      &amp;      &amp;      &amp;      &amp;      &amp; -h_F &amp;  h_E &amp;      &amp; -h_T &amp;      &amp;     &amp;   &amp;   &amp; h_G &amp;  \\
+v &amp;     &amp;      &amp;      &amp;     &amp;     &amp;      &amp;      &amp;      &amp;      &amp;      &amp; -h_F &amp;      &amp;  h_K &amp; -h_T &amp;  h_O &amp;     &amp;   &amp;   &amp;   &amp; h_S
+\end{array}\end{split}\]</div>
+<p>where the <span class="math notranslate nohighlight">\(h_j\)</span> are <span class="math notranslate nohighlight">\(6\times1\)</span> influence coefficient matrices for each of the respective joints. The block row identifier labels, i through v, correspond to a minimal set of independent kinematic loops in the mechanism. Note that the number of loops is equal to the number of chords in the directed graph.</p>
+</div>
+<div class="section" id="parent-child-list-and-binary-tree">
+<h3>Parent Child List and Binary Tree<a class="headerlink" href="#parent-child-list-and-binary-tree" title="Permalink to this headline">¶</a></h3>
+<p>The spanning tree contains only the subset of user–defined joints that were classified as arcs of the directed graph. A simple modification to Eq. <a class="reference internal" href="#equation-eq-incidence-matrix-no-substructures">(2)</a> effectively converts all user–defined joints to arcs of the directed graph. Cut the child-side Cartesian frame of each chord joint from its embedding body and consider this released frame as a <em>virtual</em>, massless body. Each chord joint will then have its own unique child body and will become an integral part of an expanded spanning tree. This process will have effectively cut open all kinematic loops and replaced all chords by arcs. For each virtual body, six chord–loop constraint equations are then imposed to connect the virtual body back to its original embedding body.</p>
+<p>In the excavator example, the child–side frames of the five chord joints are cut from their embedding bodies and converted into virtual, massless bodies. The virtual bodies are then constrained so that their position, orientation, velocity, and acceleration match the node locations in the respective embedding bodies from which they were cut. With this modification, the chords of the directed graph have been converted to rigid constraints. This simple modification requires no changes to Eq. <a class="reference internal" href="#equation-eq-jacobian1">(9)</a>. When the chord loops are cut, the virtual body number and the original chord’s embedding (positively oriented) body id are recorded for later reuse. <a class="reference internal" href="#table-2">Table 2</a> shows this information for the hydraulic excavator model.</p>
+<span id="table-2"></span><table border="1" class="docutils" id="id37">
+<caption><span class="caption-text">Table 2: Virtual and embedding body id for each kinematic loop</span><a class="headerlink" href="#id37" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">loop id</th>
+<th class="head">virtual body id</th>
+<th class="head">embedding body id</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>i</td>
+<td>16</td>
+<td>10</td>
+</tr>
+<tr class="row-odd"><td>ii</td>
+<td>17</td>
+<td>13</td>
+</tr>
+<tr class="row-even"><td>iii</td>
+<td>18</td>
+<td>13</td>
+</tr>
+<tr class="row-odd"><td>iv</td>
+<td>19</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>v</td>
+<td>20</td>
+<td>6</td>
+</tr>
+</tbody>
+</table>
+<p>A new spanning tree, modified to include the virtual bodies, is shown in Fig. <a class="pageref" href="#spanningtree2">3</a>.</p>
+<div class="figure" id="id38">
+<span id="spanningtree2"></span><img alt="../_images/digraph_w_constraints.png" src="../_images/digraph_w_constraints.png" />
+<p class="caption"><span class="caption-text">Figure 3: Modified spanning tree for hydraulic excavator with chords converted to arcs</span></p>
+</div>
+<p>Here the solid arrows correspond to the joints that form the arcs in the mechanism, and the dashed lines correspond to the new constraints imposed. Virtual, massless bodies are designated by octagons.</p>
+<p>While the incidence matrix in Eq. <a class="reference internal" href="#equation-eq-incidence-matrix-no-substructures">(2)</a> provides all the necessary information for traversing the directed graph, navigating through its many ones and zeros is cumbersome. To avoid this problem the excavator’s graph may also be represented more compactly as a parent–child list and binary tree <a href="#id4"><span class="problematic" id="id5">:cite:`cormen2009introduction`</span></a>. The parent–child list facilitates traversal from any node of the spanning tree upward, toward the root element. The index into the parent–child list, <span class="math notranslate nohighlight">\(P\)</span>, is each body or node’s unique ID number, and the value at that index is the node’s unique parent node ID number.  A binary tree facilitates traversal of the graph from any node of the directed graph away from the root element, towards the leaves of the spanning tree. Two lists, <span class="math notranslate nohighlight">\(L\)</span> and <span class="math notranslate nohighlight">\(R\)</span>, are used to represent the binary tree. The first list, <span class="math notranslate nohighlight">\(L\)</span>, is called the <em>left</em> or <em>descendent</em> list and contains the index of each node’s first descendant node, if present. The second list, <span class="math notranslate nohighlight">\(R\)</span>, is called the <em>right</em> or <em>sibling</em> list and contains the node’s first sibling, if present. Additionally, an <em>index</em> list contains the body indices in original user–defined order. For the excavator model, the four lists are shown in <a class="reference internal" href="#table-2">Table 2</a>.</p>
+<span id="table-3"></span><table border="1" class="docutils" id="id39">
+<caption><span class="caption-text">Table 3: Binary Tree and Parent Child list for excavator</span><a class="headerlink" href="#id39" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">index</th>
+<th class="head">0</th>
+<th class="head">1</th>
+<th class="head">2</th>
+<th class="head">3</th>
+<th class="head">4</th>
+<th class="head">5</th>
+<th class="head">6</th>
+<th class="head">7</th>
+<th class="head">8</th>
+<th class="head">9</th>
+<th class="head">10</th>
+<th class="head">11</th>
+<th class="head">12</th>
+<th class="head">13</th>
+<th class="head">14</th>
+<th class="head">15</th>
+<th class="head">16</th>
+<th class="head">17</th>
+<th class="head">18</th>
+<th class="head">19</th>
+<th class="head">20</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>P</td>
+<td>-1</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>7</td>
+<td>4</td>
+<td>2</td>
+<td>2</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>4</td>
+<td>4</td>
+<td>14</td>
+<td>8</td>
+<td>9</td>
+<td>12</td>
+<td>5</td>
+<td>15</td>
+</tr>
+<tr class="row-odd"><td>L</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>19</td>
+<td>0</td>
+<td>6</td>
+<td>16</td>
+<td>17</td>
+<td>0</td>
+<td>0</td>
+<td>18</td>
+<td>0</td>
+<td>15</td>
+<td>20</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td>R</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>8</td>
+<td>10</td>
+<td>7</td>
+<td>0</td>
+<td>13</td>
+<td>9</td>
+<td>0</td>
+<td>11</td>
+<td>12</td>
+<td>0</td>
+<td>14</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="kinematic-substructuring">
+<h2>Kinematic Substructuring<a class="headerlink" href="#kinematic-substructuring" title="Permalink to this headline">¶</a></h2>
+<p>In the previous section, a compact formulation of the equations of motion was derived and an efficient solution method was discussed. One bottleneck in the solution process is the Gaussian Elimination with Complete Pivoting (GECP) algorithm itself, which is a triple-loop procedure requiring <span class="math notranslate nohighlight">\(r(6mn - 3(m+n)r + 2r^2)/3\)</span> FLOPS, where <span class="math notranslate nohighlight">\(m\)</span> is the number of rows, <span class="math notranslate nohighlight">\(n\)</span> is the number of columns and <span class="math notranslate nohighlight">\(r\)</span> is the rank of the matrix. Furthermore, GECP requires both row and column permutations during factorization, which necessitates non-unit stride vector copies, which is not optimal for memory access. Note that other algorithms have been proposed for the automatic identification of independent and dependent variables, for example, based on Singular Value Decomposition (SVD) <a href="#id6"><span class="problematic" id="id7">:cite:`mani1985,wehage1993`</span></a> or Congruency Transformations <a href="#id8"><span class="problematic" id="id9">:cite:`loduha1995`</span></a>. Note that the run–time of these alternative methods is increased over GECP; for example, SVD requires <span class="math notranslate nohighlight">\(4m^2n+22n^3\)</span> FLOPS using the R-SVD algorithm <a href="#id10"><span class="problematic" id="id11">:cite:`golub1996matrix`</span></a>.</p>
+<p>Although the modified GECP algorithm is more efficient than alternative partitioning strategies, due to its <span class="math notranslate nohighlight">\(\mathcal{O}(n^3)\)</span> complexity and memory access requirements, calling the GECP algorithm should be avoided whenever possible. Certainly, one strategy to improve performance would be to call GECP only once at the beginning of a program’s execution. As kinematic bifurcations are common in even relatively simple mechanisms and the primary system of constraints are subject to change, this approach comes at the expense of robustness and is not recommended. Alternatively, one could conservatively call GECP at every time step—and pay a substantial performance penalty. Other approaches call GECP at regular intervals or use a heuristic method to determine when to repartition the Jacobian matrix. Regardless of the specific method used, the robust numerical solution of dynamic equations may require performing GECP many times in the course of a simulation, and strategies to improve GECP algorithm performance are important.</p>
+<p>Block–diagonalization is a well–known technique for breaking a large system of equations into smaller, more manageable pieces, thereby increasing computational efficiency. Several algorithms exist in the literature to block partition matrices, such as described in <a href="#id12"><span class="problematic" id="id13">:cite:`acer2011recursive,uccar2007partitioning,steward1965partitioning,aykanat2004permuting,cave2014block`</span></a>. However, these methods are generally unsuitable for block partitioning mechanism Jacobian matrices because they involve taking linear combinations of variables in addition to row and column permutations; are designed for special–purpose matrices (i.e. square or hermitian); or do not fully uncouple substructures (i.e. the resulting partitioning scheme has overlap or is in single–bordered, K–way form <a href="#id14"><span class="problematic" id="id15">:cite:`aykanat2004permuting`</span></a>).</p>
+<p>At this point in the analysis, information regarding the system topology required to solve Eq. <a class="reference internal" href="../dynamics/dynamics.html#equation-eq-lagrange-eqn">(11)</a> has been determined. Performing GECP on Eq. <a class="reference internal" href="#equation-eq-jacobian1">(9)</a> would require 9000 FLOPs, assuming the Jacobian matrix has full–row rank (i.e <span class="math notranslate nohighlight">\(m=30\)</span>, <span class="math notranslate nohighlight">\(n=20\)</span> and <span class="math notranslate nohighlight">\(r=15\)</span>). In the following section, it will be shown how kinematic substructures can be <em>automatically</em> identified and uncoupled, allowing for an increase in computational efficiency.</p>
+<p>The kinematic substructuring algorithm requires traversing the directed graph of the mechanism, and the spanning tree is an essential tool for this purpose.</p>
+<div class="section" id="kinematic-substructuring-algorithm">
+<h3>Kinematic Substructuring Algorithm<a class="headerlink" href="#kinematic-substructuring-algorithm" title="Permalink to this headline">¶</a></h3>
+<p>The kinematic substructuring process is divided into the following five steps:</p>
+<div class="section" id="identify-the-level-of-each-node-in-the-spanning-tree">
+<h4>Identify the level of each node in the spanning tree<a class="headerlink" href="#identify-the-level-of-each-node-in-the-spanning-tree" title="Permalink to this headline">¶</a></h4>
+<p>Using the parent–child list and binary tree, the increasing level of each body in the spanning tree, moving away from the fixed inertial reference frame, is identified and stored in a node–level list. The parent–child list allows one to easily determine if node <span class="math notranslate nohighlight">\(k\)</span> is in the kinematic path of node <span class="math notranslate nohighlight">\(j\)</span> using <a class="reference internal" href="#algorithm-1">Algorithm 1</a>:</p>
+<pre class="highlight literal-block" id="algorithm-1">
+<span></span><span class="k">def</span> <span class="nf">inPath</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">P</span><span class="p">):</span>
+  <span class="k">while</span><span class="p">(</span><span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="n">k</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">true</span><span class="p">:</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">P</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">false</span>
+</pre>
+<p>Using an iterative preorder binary tree traversal <a href="#id16"><span class="problematic" id="id17">:cite:`cormen2009introduction`</span></a> and a temporary stack variable, <span class="math notranslate nohighlight">\(S\)</span>, a <span class="math notranslate nohighlight">\(levels\)</span> list can be generated. The <span class="math notranslate nohighlight">\(levels\)</span> list is of equal length to the <span class="math notranslate nohighlight">\(index\)</span> list introduced above. In the following algorithm descriptions, list manipulation is described as follows: <code class="code docutils literal notranslate"><span class="pre">list.pop()</span></code> indicates removing an element from the end of the list, and <code class="code docutils literal notranslate"><span class="pre">list.pop(j)</span></code> indicates removing an element from the list at the specified index, <span class="math notranslate nohighlight">\(j\)</span>. Similarly, <code class="code docutils literal notranslate"><span class="pre">list.append(1)</span></code> indicates appending the value <span class="math notranslate nohighlight">\(1\)</span> to the end of the <span class="math notranslate nohighlight">\(list\)</span>. All pseudocode is described using the C/python programming convention for indexing. Therefore, <code class="code docutils literal notranslate"><span class="pre">list.pop(0)</span></code> indicates removing the first element from the list. Additionally, <code class="code docutils literal notranslate"><span class="pre">list[1:end]</span></code> represents a subset of the <span class="math notranslate nohighlight">\(list\)</span> containing elements from the second value up to and including the last element.</p>
+<pre class="highlight literal-block" id="algorithm-2">
+<span></span><span class="k">def</span> <span class="nf">detectLevels</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+  <span class="n">S</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">k</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">while</span><span class="p">(</span><span class="n">S</span> <span class="ow">or</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">k</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+      <span class="n">levels</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">levels</span><span class="p">[</span><span class="n">P</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="n">R</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">S</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+      <span class="n">k</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">k</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">levels</span>
+</pre>
+<p>The <span class="math notranslate nohighlight">\(levels\)</span> list for the excavator model is shown in <a href="#id46"><span class="problematic" id="id47">`Table 3`_</span></a>.</p>
+<span id="id18"></span><table border="1" class="docutils" id="id40">
+<caption><span class="caption-text">Table 3: Levels list</span><a class="headerlink" href="#id40" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">index</th>
+<th class="head">0</th>
+<th class="head">1</th>
+<th class="head">2</th>
+<th class="head">3</th>
+<th class="head">4</th>
+<th class="head">5</th>
+<th class="head">6</th>
+<th class="head">7</th>
+<th class="head">8</th>
+<th class="head">9</th>
+<th class="head">10</th>
+<th class="head">11</th>
+<th class="head">12</th>
+<th class="head">13</th>
+<th class="head">14</th>
+<th class="head">15</th>
+<th class="head">16</th>
+<th class="head">17</th>
+<th class="head">18</th>
+<th class="head">19</th>
+<th class="head">20</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>levels</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>5</td>
+<td>3</td>
+<td>3</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+<td>5</td>
+<td>5</td>
+<td>6</td>
+<td>4</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="identify-loop-members">
+<h4>Identify loop members<a class="headerlink" href="#identify-loop-members" title="Permalink to this headline">¶</a></h4>
+<p>For each grouping in <a href="#id48"><span class="problematic" id="id49">`Table 3`_</span></a>, each loop’s members can be identified using <a class="reference internal" href="#algorithm-3">Algorithm 3</a> below and stored in the list <span class="math notranslate nohighlight">\(members\)</span>, an initially empty list of lists equal to the number of chord loops, i-v. The first and second while loops are used to decrement each node index in the kinematic path until node indices in the positive and negative branches of the loop are at the same level in the spanning tree. Once the decremented node indices have reached the same level, they will be decremented together by level until the loop’s unique <em>base node</em> is identified. During this process, the node indices are stored in the corresponding list. At the end of the process, the last node index that was pushed to list is removed, as the base node will have been written twice, and the sequence of the nodes is reversed. The final <span class="math notranslate nohighlight">\(members\)</span> list contains each loop’s base node first, followed by the loop members in monotonically increasing level order.</p>
+<pre class="highlight literal-block" id="algorithm-3">
+<span></span><span class="k">def</span> <span class="nf">detectLoopMembers</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="n">loopCount</span><span class="p">,</span> <span class="n">negativeNodes</span><span class="p">,</span> <span class="n">positiveNodes</span><span class="p">):</span>
+  <span class="n">loopMembers</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">loopCount</span><span class="p">)]</span>
+  <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">loopCount</span><span class="p">):</span>
+    <span class="n">negative</span> <span class="o">=</span> <span class="n">negativeNodes</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+    <span class="n">positive</span> <span class="o">=</span> <span class="n">positiveNodes</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+    <span class="n">loopMembers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">negative</span><span class="p">)</span>
+    <span class="n">loopMembers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">positive</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">levels</span><span class="p">[</span><span class="n">positive</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">levels</span><span class="p">[</span><span class="n">negative</span><span class="p">]:</span>
+      <span class="n">positive</span> <span class="o">=</span> <span class="n">P</span><span class="p">[</span><span class="n">positive</span><span class="p">]</span>
+      <span class="n">loopMembers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">positive</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">levels</span><span class="p">[</span><span class="n">negative</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">levels</span><span class="p">[</span><span class="n">positive</span><span class="p">]:</span>
+      <span class="n">negative</span> <span class="o">=</span> <span class="n">P</span><span class="p">[</span><span class="n">negative</span><span class="p">]</span>
+      <span class="n">loopMembers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">negative</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">positive</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">negative</span><span class="p">:</span>
+      <span class="n">negative</span> <span class="o">=</span> <span class="n">P</span><span class="p">[</span><span class="n">negative</span><span class="p">]</span>
+      <span class="n">positive</span> <span class="o">=</span> <span class="n">P</span><span class="p">[</span><span class="n">positive</span><span class="p">]</span>
+      <span class="n">loopMembers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">negative</span><span class="p">)</span>
+      <span class="n">loopMembers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">positive</span><span class="p">)</span>
+    <span class="n">loopMembers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+    <span class="n">loopMembers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">loopMembers</span>
+</pre>
+<div class="figure align-center" id="id41">
+<span id="loopv"></span><img alt="../_images/one_chord_loop.png" src="../_images/one_chord_loop.png" />
+<p class="caption"><span class="caption-text">Figure 4: Loop v members and nodes in kinematic path of loop v’s base node.</span></p>
+</div>
+</div>
+<div class="section" id="order-loops-by-level">
+<h4>Order loops by level<a class="headerlink" href="#order-loops-by-level" title="Permalink to this headline">¶</a></h4>
+<p>At this point the loops are rearranged by sorting their base nodes into monotonically increasing order by level in the spanning trees. After processing by <a class="reference internal" href="#algorithm-2">Algorithm 2</a> and sorting, the loop ordering sequence and loop member lists are shown in <a class="reference internal" href="#table-4">Table 4</a>.</p>
+<span id="table-4"></span><table border="1" class="docutils" id="id42">
+<caption><span class="caption-text">Table 4: Members of each kinematic loop with loops listed in monotonically increasing order by level in the spanning tree. The base node associated with each loop is the first member of each list.</span><a class="headerlink" href="#id42" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">loop ID</th>
+<th class="head">base node</th>
+<th class="head">loop members</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>i</td>
+<td>2</td>
+<td>2, 3, 8, 10, 16</td>
+</tr>
+<tr class="row-odd"><td>ii</td>
+<td>2</td>
+<td>2, 3, 9, 11, 17</td>
+</tr>
+<tr class="row-even"><td>iii</td>
+<td>3</td>
+<td>3, 4, 12, 13, 18</td>
+</tr>
+<tr class="row-odd"><td>iv</td>
+<td>4</td>
+<td>4, 7, 5, 6, 19</td>
+</tr>
+<tr class="row-even"><td>v</td>
+<td>4</td>
+<td>4, 7, 14, 15, 6, 20</td>
+</tr>
+</tbody>
+</table>
+<p>In the excavator example, no reordering of the loops was necessary, as their base nodes were already arranged by monotonically increasing level order.</p>
+</div>
+<div class="section" id="merge-loops-into-kinematic-substructures">
+<h4>Merge loops into kinematic substructures<a class="headerlink" href="#merge-loops-into-kinematic-substructures" title="Permalink to this headline">¶</a></h4>
+<p>Any given mechanism will consist of at least one kinematic substructure, i.e. the entire mechanism. Therefore, the loop–merging process begins by assigning the first loop, i, to the first substructure. Each successive loop is then inspected to determine if it should be added to any of the existing kinematic substructures or if the loop should be assigned to a new substructure.</p>
+<p>A candidate chord–loop will be merged with a kinematic substructure if the substructure and the merge candidate have at least one body and one joint in common. Note, however, that the graph edge (joint) labels are not required for merging. The merging process can be performed using only the parent–child list and loop member assignments. A candidate loop will be merged with a kinematic substructure if the substructure’s base node matches the candidate’s base node or if it is in the candidate base node’s ancestor path, and if the candidate loop and substructure have at least one descendant node in common. The term descendant node refers to any loop member that is not the loop’s base node, i.e. the subset of loop members, <code class="code docutils literal notranslate"><span class="pre">loop[1:end]</span></code>. This applies to kinematic substructures as well, where <code class="code docutils literal notranslate"><span class="pre">loop[1:end]</span></code> is the union of all merged chord-loop bodies, excluding the unique base body at the lowest level in the spanning tree.</p>
+<pre class="highlight literal-block" id="algorithm-4">
+<span></span><span class="k">def</span> <span class="nf">detectSubstructures</span><span class="p">(</span><span class="n">loopMembers</span><span class="p">,</span> <span class="n">P</span><span class="p">):</span>
+  <span class="n">substructures</span> <span class="o">=</span> <span class="p">[[]]</span>
+  <span class="n">substructures</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loopMembers</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+  <span class="k">while</span><span class="p">(</span><span class="n">loopMembers</span><span class="p">):</span>
+    <span class="n">mergeCandidate</span> <span class="o">=</span> <span class="n">loopMembers</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">merge</span> <span class="o">=</span> <span class="n">false</span>
+    <span class="k">for</span> <span class="n">substructure</span> <span class="ow">in</span> <span class="n">substructures</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">inPath</span><span class="p">(</span><span class="n">mergeCandidate</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">loop</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">P</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">mergeCandidate</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="ow">in</span> <span class="n">loop</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">end</span><span class="p">]):</span>
+          <span class="n">substructure</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mergeCandidate</span><span class="p">)</span>
+          <span class="n">merge</span> <span class="o">=</span> <span class="n">true</span>
+          <span class="k">break</span>
+      <span class="k">if</span> <span class="n">merge</span><span class="p">:</span>
+        <span class="k">break</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">merge</span><span class="p">:</span>
+      <span class="n">substructures</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">mergeCandidate</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">substructures</span>
+</pre>
+<p>In the present example, the base node of loop i is found to be in the ancestor path of loop ii’s base node. Inspecting the descendant members of loop ii reveals that node 3 is also a child of loop i, indicating that loop ii should be merged into the first kinematic substructure.</p>
+<p>Moving on to loop iii, an ancestor of loop iii’s base node is found to be the base node of the first kinematic substructure.  However, none of the descendant members of loop iii are members of loops i or ii, and therefore loop iii <em>is not</em> a member of the first kinematic substructure. Thus loop iii is assigned to a second kinematic substructure.</p>
+<p>Loops iv and v are then analyzed. An ancestor of the base node of loop iv is found to be in the kinematic path of the base node of loops i and ii in the first kinematic substructure, however, none of the children of loop iv’s base node is a member of loops i and ii. Therefore, loop iv is not a member of the first substructure. Similarly loop iv is not a member of the second substructure. Thus a third substructure is designated, to which loop iv is assigned. Similarly, loop v is not a member of the first and second substructures. However, one child of loop v’s base node is a member of the third substructure, so loop v is assigned to it. The substructures and their corresponding loops are shown in <a class="reference internal" href="#table-5">Table 5</a>.</p>
+<span id="table-5"></span><table border="1" class="docutils" id="id43">
+<caption><span class="caption-text">Table 5: Kinematic substructures and their corresponding chord–loops</span><a class="headerlink" href="#id43" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">substructure</th>
+<th class="head">loops</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>1</td>
+<td>i, ii</td>
+</tr>
+<tr class="row-odd"><td>2</td>
+<td>iii</td>
+</tr>
+<tr class="row-even"><td>3</td>
+<td>iv, v</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="reorder-bodies-and-joints">
+<h4>Reorder bodies and joints<a class="headerlink" href="#reorder-bodies-and-joints" title="Permalink to this headline">¶</a></h4>
+<p>In this last step the joints are ordered by level in the spanning tree and permuted according to their kinematic substructure assignments, which requires creating a <em>short list</em> of bodies that are either:</p>
+<ul class="simple">
+<li>not a member of any kinematic substructure, or</li>
+<li>are the base node of a kinematic substructure</li>
+</ul>
+<p>In the excavator example, the short list of bodies, ordered by level in the spanning tree becomes: (0) fixed, (1) undercarriage, (2) cabin, (3) boom, and (4) stick. From the bodies list, a short list of joints is also created. Each joint in the joint short list is the parent joint associated with the corresponding body in the body short list. The (0) fixed body has no parent, so the joints in the joint short list for the present example are: A, B, C, and D.</p>
+<p>From the joint short list, an <em>expanded joint list</em> is created. For each joint in the joint short list, perform the following operations:</p>
+<ul class="simple">
+<li>if the joint is not a member of a kinematic substructure, append the joint to the expanded joint list, otherwise:</li>
+<li>append the joint associated with the base node of the kinematic substructure to the expanded joint list only if it has not been appended in a previous step.  Then, append the remaining joints associated with nodes in the kinematic substructure, ordered by level in the spanning tree.</li>
+</ul>
+<p>After the final sorting and expansion operation, the revised Jacobian matrix becomes</p>
+<div class="math notranslate nohighlight" id="equation-eq-jacobian2">
+<span class="eqno">(10)<a class="headerlink" href="#equation-eq-jacobian2" title="Permalink to this equation">¶</a></span>\[\begin{split}\tiny
+J=
+\begin{array}{l|rrrrrrrrrrrrrrrrrrrr}
+    &amp; A &amp; B    &amp; C    &amp; H   &amp; I   &amp;  Q    &amp;P    &amp; L   &amp; M   &amp;  D   &amp;  J   &amp;  R   &amp; N   &amp;  F   &amp;  E   &amp;  K   &amp;  T   &amp;  O   &amp; G   &amp; S\\
+\hline
+i &amp;     &amp;      &amp; -h_C &amp; h_H &amp;     &amp;       &amp;-h_P &amp; h_L &amp;     &amp;      &amp;      &amp;      &amp;     &amp;      &amp;      &amp;      &amp;      &amp;      &amp;     &amp;  \\
+ii &amp;    &amp;      &amp; -h_C &amp;     &amp; h_I &amp; -h_Q  &amp;     &amp;     &amp; h_M &amp;      &amp;      &amp;      &amp;     &amp;      &amp;      &amp;      &amp;      &amp;      &amp;     &amp;  \\
+iii &amp;   &amp;      &amp;      &amp;     &amp;     &amp;       &amp;     &amp;     &amp;     &amp; -h_D &amp;  h_J &amp; -h_R &amp; h_N &amp;      &amp;      &amp;      &amp;      &amp;      &amp;     &amp;  \\
+iv  &amp;   &amp;      &amp;      &amp;     &amp;     &amp;       &amp;     &amp;     &amp;     &amp;      &amp;      &amp;      &amp;     &amp; -h_F &amp;  h_E &amp;      &amp; -h_T &amp;      &amp; h_G &amp;  \\
+v &amp;     &amp;      &amp;      &amp;     &amp;     &amp;       &amp;     &amp;     &amp;     &amp;      &amp;      &amp;      &amp;     &amp; -h_F &amp;      &amp;  h_K &amp; -h_T &amp;  h_O &amp;     &amp; h_S\\
+\end{array}\end{split}\]</div>
+<p>and the block submatrices <span class="math notranslate nohighlight">\(J_1\)</span> – <span class="math notranslate nohighlight">\(J_3\)</span> associated with each kinematic substructure are:</p>
+<div class="math notranslate nohighlight" id="equation-eq-jacobian2-1">
+<span class="eqno">(11)<a class="headerlink" href="#equation-eq-jacobian2-1" title="Permalink to this equation">¶</a></span>\[\begin{split}J_1 = \begin{array}{l|rrrrrrr}
+  &amp; C    &amp; H   &amp; I   &amp;  Q    &amp;P    &amp; L   &amp; M\\
+  \hline
+i &amp;-h_C &amp; h_H &amp;     &amp;       &amp;-h_P &amp; h_L \\
+ii &amp;-h_C &amp;     &amp; h_I &amp; -h_Q  &amp;     &amp;     &amp; h_M
+\end{array}\end{split}\]</div>
+<div class="math notranslate nohighlight" id="equation-eq-jacobian2-2">
+<span class="eqno">(12)<a class="headerlink" href="#equation-eq-jacobian2-2" title="Permalink to this equation">¶</a></span>\[\begin{split}J_2=
+\begin{array}{l|rrrr}
+    &amp; D   &amp;  J   &amp;  R   &amp; N   \\
+    \hline
+    iii &amp;-h_D &amp;  h_J &amp; -h_R &amp; h_N
+\end{array}\end{split}\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight" id="equation-eq-jacobian2-3">
+<span class="eqno">(13)<a class="headerlink" href="#equation-eq-jacobian2-3" title="Permalink to this equation">¶</a></span>\[\begin{split}J_3=
+\begin{array}{l|rrrrrrr}
+    &amp;  F   &amp;  E   &amp;  K   &amp;  T   &amp;  O   &amp; G   &amp; S\\
+    \hline
+iv  &amp;-h_F &amp;  h_E &amp;      &amp; -h_T &amp;      &amp; h_G &amp;  \\
+v &amp;-h_F &amp;      &amp;  h_K &amp; -h_T &amp;  h_O &amp;     &amp; h_S
+\end{array}\end{split}\]</div>
+<p>GECP can then be applied independently to each of the Jacobian submatrices. Assuming that each Jacobian submatrix has full row rank, GECP would require a total of 1008 FLOPs, an approximate order of magnitude reduction in floating point operations. As the operations count is not always a direct measure of numerical efficiency, in the next section a numerical experiment is carried out to compare the kinematic substructuring technique to other methods.</p>
+<p>Although the process for automatically determining kinematic substructures is described in specific context to mechanisms, the substructuring algorithm is a general graph partitioning method that may have applications in other disciplines. To facilitate transposition to other subject areas, note that the Jacobian matrix, <span class="math notranslate nohighlight">\(J\)</span>, is a byproduct of the right null space of the directed graph, <span class="math notranslate nohighlight">\(\Gamma^T\)</span>. The right null space of the directed graph is also referred to as the loop or circuit matrix in the literature. Therefore, the methods described in this section may be adapted to other subjects by replacing any reference to the Jacobian matrix with the more general loop matrix.</p>
+</div>
+</div>
+<div class="section" id="numerical-experiment">
+<h3>Numerical Experiment<a class="headerlink" href="#numerical-experiment" title="Permalink to this headline">¶</a></h3>
+<p>To investigate the numerical efficiency of kinematic substructuring, GECP of the block–diagonalized Jacobian matrix in Eq. <a class="reference internal" href="#equation-eq-jacobian2">(10)</a> is computed using (a) the kinematic substructuring method applied to each of the three block submatrices, <span class="math notranslate nohighlight">\(J_1\)</span>–<span class="math notranslate nohighlight">\(J_3\)</span>, (b) the sparse matrix algebra MA48 factorization algorithm (part of the Harwell Subroutine Library (HSL) <a href="#id19"><span class="problematic" id="id20">:cite:`duff1996design`</span></a> applied only to the nonzero terms of the <span class="math notranslate nohighlight">\(30\times 20\)</span> Jacobian matrix, <span class="math notranslate nohighlight">\(J\)</span> and (c) the full, dense matrix algebra applied to the full <span class="math notranslate nohighlight">\(30\times 20\)</span> Jacobian matrix, <span class="math notranslate nohighlight">\(J\)</span>.</p>
+<p>In sparse matrix methods, only the non–zero terms of the coefficient matrices are stored. Therefore, memory usage and floating point operations required to carry out sparse-matrix algebra is reduced compared to full, dense algebra. Indeed, many large scientific problems, such as the numerical solution of finite element analysis (FEA) equations, would be intractable without the use of sparse-matrix methods. Note, however, that in sparse-matrix methods, the set of instructions to perform the operations is more complicated than full, dense matrix algebra. Furthermore, matrix coefficients may not be stored or accessed in contiguous memory, which may increase cache misses <a href="#id21"><span class="problematic" id="id22">:cite:`toledo1997improving`</span></a>. The use of sparse-matrix algebra is expected to offer little or no benefit when the coefficient matrices are small and/or dense. In contrast to the large, highly sparse equations found in other disciplines, the equations of motion for many multibody systems are typically smaller and moderately sparse. Nonetheless, Gonzalez et al. <a href="#id23"><span class="problematic" id="id24">:cite:`gonzalez2008effect`</span></a> showed that sparse-matrix methods do offer some performance benefit over full, dense matrix algebra, considering the special structure of dynamics equations, even for small to moderate problem sizes.</p>
+<p>Block–diagonalization via kinematic substructuring is essentially a hybrid of full and sparse matrix methods. As discussed in the previous section, full, dense matrix algebra can be applied to each of the Jacobian matrices <span class="math notranslate nohighlight">\(J_1\)</span>–<span class="math notranslate nohighlight">\(J_3\)</span> at a small fraction of the operations required to apply full matrix algebra to the entire Jacobian matrix, <span class="math notranslate nohighlight">\(J\)</span>. Furthermore, these block submatrices are dense, and sparse-matrix algebra is expected to have increased complexity compared to full, dense algebra applied to them individually.</p>
+<p>The HSL MA48 factorization algorithm was chosen as the reference sparse implementation because HSL is well–known for its efficient, well–tested, and high–quality numerical algorithms. HSL subroutines are commonly used in many commercial and research–oriented multibody dynamics solvers <a href="#id25"><span class="problematic" id="id26">:cite:`gonzalez2008effect,hidalgo2011high`</span></a>, and the MA48 algorithm is suitable for nonsymmetric, rectangular matrices.</p>
+<p>The HSL MA48 algorithm consists of three primary components. The first <em>analyze</em> component analyzes the specific structure of a coefficient matrix and generates an initial factorization. The second <em>factorize</em> component is used to compute the factors of a matrix with a known sparsity pattern determined in the <em>analyze</em> phase. In <em>factorize</em>, a <em>fast</em> flag can be set. If the fast flag evaluates to true, the factorization sequence from the previous call to <em>analyze</em> or <em>factorize</em> is used; if the fast flag evaluates to false, the factorization sequence may change. The third component of HSL MA48 is a <em>solve</em> phase, which uses the matrix factors to solve a set of linear equations. For benchmarking purposes, only the first and second components of HSL MA48 are considered.</p>
+<p>The <em>analyze</em> component of HSL MA48 is analogous to block–diagonalization via kinematic substructuring described above. The <em>analyze</em> phase would be called once at the beginning of a simulation for the particular sparsity pattern of the Jacobian matrix. <em>Analyze</em> would not be called again unless a pivot has come too close to zero or the system’s topology has changed. <em>Factorize</em>, with the <em>fast</em> flag set to false, is analogous to gaussian elimination with partial pivoting, and <em>factorize</em>, with the <em>fast</em> flag set to true, is analogous to gaussian elimination without pivoting.</p>
+<p>To compare the efficiency of kinematic substructuring to sparse and full matrix factorization, a computer program was written in the C programming language that closely follows the development of this paper. The bodies and joints of the excavator model are specified in an arbitrary user–defined order in a text file. When the program is launched, the bodies and joints are loaded into computer memory using a linked–list data structure. Bodies and joints are permuted according to the kinematic substructing algorithm using memory pointers. Once the permutation process is complete, quantities are copied to contiguous memory, and Newton–Raphson iteration is applied to eliminate constraint errors, if present. Finally, the spanning tree is traversed to update the terms of either (a) the block diagonal submatrices <span class="math notranslate nohighlight">\(J_1\)</span>–<span class="math notranslate nohighlight">\(J_3\)</span>, (b) a sparse matrix representation of the Jacobian, or (c) the full dense Jacobian matrix, <span class="math notranslate nohighlight">\(J\)</span>. Once the terms are computed, the Jacobian matrix is passed to one of the three algorithms for matrix factorization. The Jacobian update and factorization steps are repeated 10000 times for each method.</p>
+<p>The numerical experiments were carried out on a 6–core AMD Phenom II X6 1090T Processor with 16GB of RAM, running the 64 bit 3.18.6-1 Arch Linux kernel. The program was compiled using the GNU Compiler Collection (GCC) C compiler, version 4.9.2-4. The HSL MA48 algorithm is used in conjunction with the ATLAS (Automatically Tuned Linear Algebra Software) <a href="#id27"><span class="problematic" id="id28">:cite:`whaley05minimizing`</span></a> implementation of BLAS (Basic Linear Algebra Subprograms), whereas the GECP algorithm for full, dense matrix factorization was programmed wholly without the use of BLAS. Refer to reference <a href="#id29"><span class="problematic" id="id30">:cite:`gonzalez2008effect`</span></a> for more details of various BLAS implementations in multibody dynamics.</p>
+<p>Results of the experiment are provided in Fig. <a class="pageref" href="#runtime1">5</a>. Kinematic substructuring provides an approximate <span class="math notranslate nohighlight">\(5\times\)</span> speedup over full, dense matrix algebra. The speedup is not directly proportional to the <span class="math notranslate nohighlight">\(9\times\)</span> reduction in FLOPS due to the increased number of function evaluations. Nonetheless the <span class="math notranslate nohighlight">\(5\times\)</span> speedup represents a considerable savings over full, dense GECP. MA48’s performance was between the two methods. Kinematic substructuring was more than two times faster than MA48, even without the use of BLAS.</p>
+<div class="figure align-center" id="id44">
+<span id="runtime1"></span><img alt="../_images/runtime1.png" src="../_images/runtime1.png" />
+<p class="caption"><span class="caption-text">Figure 5: Run times for 10000 gaussian elimination evaluations with complete row and column pivoting for A: Block–diagonalization via kinematic substructuring, B: Sparse factorization using HSL MA48 algorithm, and C: Full, dense gaussian elimination</span></p>
+</div>
+<p>The results depicted in Fig. <a class="pageref" href="#runtime1">5</a> represent the portion of simulation time required to determine the set of independent and dependent generalized coordinates if GECP were conservatively called at every time step during numerical integration. As discussed in the introduction, GECP need not be called at every time step. If the set of dependent and independent variables remains unchanged between two integration steps, the factorization pivot sequence may be reused. However, it is strongly emphasized that if this approach is taken, for robustness, GECP must be reapplied as the mechanism approaches a bifurcation configuration. In the present example, a heuristic method for monitoring the stability of the choice of dependent and independent variables based on <a href="#id31"><span class="problematic" id="id32">:cite:`mittra1975theuseof`</span></a> is used to determine when to reapply GECP. The ratio of largest to smallest pivots of the largest nonsingular submatrix of <span class="math notranslate nohighlight">\(J\)</span> in full, dense GECP or of the block–diagonal matrices <span class="math notranslate nohighlight">\(J_1\)</span>–<span class="math notranslate nohighlight">\(J_3\)</span> in block–diagonalized GECP is monitored. If the pivot ratio becomes greater than a user–specified threshold obtained from the initial starting value, then GECP is applied again. The logic to check the pivot ratio is not added to the HSL MA48 <em>fast factorization</em> subroutine. Instead, MA48 returns an error when a pivot approaches machine roundoff error during the fast factorization process, which may be used as a basis to call factorization with the <em>fast</em> flag set to false again to determine a new set of dependent and independent variables.</p>
+<div class="figure align-center" id="id45">
+<span id="runtime2"></span><img alt="../_images/runtime2.png" src="../_images/runtime2.png" />
+<p class="caption"><span class="caption-text">Figure 6: Run times for 10000 gaussian elimination evaluations without pivoting for A: Block–diagonalization via kinematic substructuring, B: Sparse <a href="#id33"><span class="problematic" id="id34">``</span></a>fast–factorization’’ using HSL MA48 algorithm, and C: Full, dense gaussian elimination without pivoting</span></p>
+<div class="legend">
+</div>
+</div>
+<p>When the pivot sequence is reused from the initial call to GECP, block–diagonalization via kinematic substructuring is approximately <span class="math notranslate nohighlight">\(7\times\)</span> faster than MA48’s fast factorize routine, even accounting for the additional check on pivot ratios. The factorization and pivot ratio calculation for the entire full, dense Jacobian was also more than twice as fast as sparse factorization with the <em>fast</em> flag set to true.</p>
+<p>The results of Figs. <a class="pageref" href="#runtime1">5</a> and <a class="pageref" href="#runtime2">6</a> indicate that block–diagonalization via kinematic substructuring requires a minimal computational expense to select a set of dependent and independent variables, which is a critical part of a robust solution of dynamics equations. The next section summarizes the role of kinematic substructures in setting up and processing the dynamic equations of motion.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../doxyrest/global.html">Global Namespace</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/topology/topology.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

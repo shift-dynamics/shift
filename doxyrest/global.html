@@ -1,0 +1,1528 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Global Namespace &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="enum s2_forcemodule_enum_t" href="enum_s2_forcemodule_enum_t.html" />
+    <link rel="prev" title="Contributing" href="../contributing/contributing.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="global-namespace">
+<span id="id1"></span><h1>Global Namespace<a class="headerlink" href="#global-namespace" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound" id="index-0">
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<pre class="highlight overview-code-block literal-block" id="cid-s2-ode113b-step">
+<span id="doxid-ode113b-8h-1a0771d9f38f3152af927c16eb5400a972"></span><span id="cid-s2-context-allocode113"></span><span id="doxid-ode113-8h-1a89a71b03e989e682ed4502045c59e529"></span><span id="cid-timestamp"></span><span id="doxid-ode113-8h-1a02d8f81e512334c1e2e5be025c41afa8"></span><span id="cid-s2-ode113-step"></span><span id="doxid-ode113-8h-1a76596de5ad03eec0ee220c97d1ed3094"></span><span id="cid-s2-ode113-de"></span><span id="doxid-ode113-8h-1ae7315a7bfae54317d282dafb04db8b4a"></span><span id="cid-s2-ode113"></span><span id="doxid-ode113-8h-1adcd75d7f65e131700874564af7d23950"></span><span id="cid-s2-pid-savehistory"></span><span id="doxid-pid-8h-1a85e32c1d56debf7f65c542282af661d2"></span><span id="cid-s2-pid-connectforcemodulepointer"></span><span id="doxid-pid-8h-1a185d820d6dcffa61f7e366c2c29de821"></span><span id="cid-s2-pid"></span><span id="doxid-pid-8h-1ac3fcf5ae5ad71668057d00f0ae90c88e"></span><span id="cid-s2-tire-pac2002-updatetransient-2"></span><span id="doxid-tire-2pac2002-8h-1a638d583618f1ac7c30f49fd502052b8a"></span><span id="cid-s2-tire-pac2002-evaluateslips-2"></span><span id="doxid-tire-2pac2002-8h-1ad14ad96c35ae30de74ca5229755b8ed1"></span><span id="cid-s2-tire-pac2002-getslipangle-2"></span><span id="doxid-tire-2pac2002-8h-1a2b23b28368c29fdd8a6e6722aafbd971"></span><span id="cid-s2-tire-pac2002-updatetransient"></span><span id="doxid-pac2002-8h-1a638d583618f1ac7c30f49fd502052b8a"></span><span id="cid-s2-tire-pac2002-evaluateslips"></span><span id="doxid-pac2002-8h-1ad14ad96c35ae30de74ca5229755b8ed1"></span><span id="cid-s2-tire-pac2002-getslipangle"></span><span id="doxid-pac2002-8h-1a2b23b28368c29fdd8a6e6722aafbd971"></span><span id="cid-s2-context-updatetransientforcemodules"></span><span id="doxid-forcemodule-8h-1a41e9009a1a740467d85e1f288c8b29a2"></span><span id="cid-s2-damping-joint"></span><span id="doxid-damping-8h-1a873aba81c508a23704e626d0e0e601fd"></span><span></span><span class="c1">// typedefs</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_damper_t.html#doxid-structs2-damper-t"><span class="std std-ref">s2_damper_t</span></a><span></span> <a class="reference internal" href="#doxid-damping-8h-1ad827256522fc82b2ad4001167238a775"><span class="std std-ref">s2_damper_t</span></a><span></span>
+<span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span> <a class="reference internal" href="#doxid-forcemodule-8h-1a6cfa09e2454a092d1d37c32a584f809a"><span class="std std-ref">s2_forcemodule_t</span></a><span></span>
+<span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_pid_t.html#doxid-structs2-pid-t"><span class="std std-ref">s2_pid_t</span></a><span></span> <a class="reference internal" href="#doxid-pid-8h-1ab0e710f017bf8a44db747a1ada3e6bfc"><span class="std std-ref">s2_pid_t</span></a><span></span>
+<span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_spring_t.html#doxid-structs2-spring-t"><span class="std std-ref">s2_spring_t</span></a><span></span> <a class="reference internal" href="#doxid-stiffness-8h-1a810c566c41ba7f20abc258759f13d3b0"><span class="std std-ref">s2_spring_t</span></a><span></span>
+<span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_numericalintegrator_ode113_t.html#doxid-structs2-numericalintegrator-ode113-t"><span class="std std-ref">s2_numericalintegrator_ode113_t</span></a><span></span> <a class="reference internal" href="#doxid-ode113-8h-1a204cc0f0ebd6f99f35ec1a8fdf2816b5"><span class="std std-ref">s2_numericalintegrator_ode113_t</span></a><span></span>
+<span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_numericalintegrator_ode113b_t.html#doxid-structs2-numericalintegrator-ode113b-t"><span class="std std-ref">s2_numericalintegrator_ode113b_t</span></a><span></span> <a class="reference internal" href="#doxid-ode113b-8h-1a749caa804014e62fb4ab043f25398d97"><span class="std std-ref">s2_numericalintegrator_ode113b_t</span></a><span></span>
+
+<span class="c1">// enums</span>
+
+<span class="k">enum</span> <a class="reference internal" href="enum_s2_forcemodule_enum_t.html#doxid-forcemodule-8h-1aef216ac0fc3d71c6419b69df97ab6091"><span class="std std-ref">s2_forcemodule_enum_t</span></a><span></span>
+<span class="k">enum</span> <a class="reference internal" href="enum_s2_numericalintegrator_enum_t.html#doxid-numericalintegrator-8h-1af852b2c473abbd9d2bf3556aab33755f"><span class="std std-ref">s2_numericalintegrator_enum_t</span></a><span></span>
+<span class="k">enum</span> <a class="reference internal" href="enum_s2_pid_io_enum_t.html#doxid-pid-8h-1a81311461f9fd6d8fa2460aeb85cfcd8f"><span class="std std-ref">s2_pid_io_enum_t</span></a><span></span>
+<span class="k">enum</span> <a class="reference internal" href="enum_s2_pid_target_enum_t.html#doxid-pid-8h-1aa2bf678870fa220e7f7e78cad0d64a87"><span class="std std-ref">s2_pid_target_enum_t</span></a><span></span>
+<span class="k">enum</span> <a class="reference internal" href="enum_s2_spring_enum_t.html#doxid-stiffness-8h-1ae87c61c350fb6f47f850b1edac2f43f6"><span class="std std-ref">s2_spring_enum_t</span></a><span></span>
+
+<span class="c1">// structs</span>
+
+<span class="k">struct</span> <a class="reference internal" href="struct_aligning_coefficients.html#doxid-structaligning-coefficients"><span class="std std-ref">aligning_coefficients</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_bessel.html#doxid-structbessel"><span class="std std-ref">bessel</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_combinedLatCoefs.html#doxid-structcombined-lat-coefs"><span class="std std-ref">combinedLatCoefs</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_combinedLongCoefs.html#doxid-structcombined-long-coefs"><span class="std std-ref">combinedLongCoefs</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_combinedTorqueCoefs.html#doxid-structcombined-torque-coefs"><span class="std std-ref">combinedTorqueCoefs</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_dimension.html#doxid-structdimension"><span class="std std-ref">dimension</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_inclination_angle_range.html#doxid-structinclination-angle-range"><span class="std std-ref">inclination_angle_range</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_lateral_coefficients.html#doxid-structlateral-coefficients"><span class="std std-ref">lateral_coefficients</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_long_slip_range.html#doxid-structlong-slip-range"><span class="std std-ref">long_slip_range</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_longitudinal_coefficients.html#doxid-structlongitudinal-coefficients"><span class="std std-ref">longitudinal_coefficients</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_model.html#doxid-structmodel"><span class="std std-ref">model</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_overturning_coefficients.html#doxid-structoverturning-coefficients"><span class="std std-ref">overturning_coefficients</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_pureLatCoefs.html#doxid-structpure-lat-coefs"><span class="std std-ref">pureLatCoefs</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_pureLongCoefs.html#doxid-structpure-long-coefs"><span class="std std-ref">pureLongCoefs</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_pureTorqueCoefs.html#doxid-structpure-torque-coefs"><span class="std std-ref">pureTorqueCoefs</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_relaxationL.html#doxid-structrelaxation-l"><span class="std std-ref">relaxationL</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_rolling_coefficients.html#doxid-structrolling-coefficients"><span class="std std-ref">rolling_coefficients</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_s2_damper_t.html#doxid-structs2-damper-t"><span class="std std-ref">s2_damper_t</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_s2_numericalintegrator_ode113_t.html#doxid-structs2-numericalintegrator-ode113-t"><span class="std std-ref">s2_numericalintegrator_ode113_t</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_s2_numericalintegrator_ode113b_t.html#doxid-structs2-numericalintegrator-ode113b-t"><span class="std std-ref">s2_numericalintegrator_ode113b_t</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_s2_pid_t.html#doxid-structs2-pid-t"><span class="std std-ref">s2_pid_t</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_s2_spring_t.html#doxid-structs2-spring-t"><span class="std std-ref">s2_spring_t</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_scaling_coefficients.html#doxid-structscaling-coefficients"><span class="std std-ref">scaling_coefficients</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_shape.html#doxid-structshape"><span class="std std-ref">shape</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_slip_angle_range.html#doxid-structslip-angle-range"><span class="std std-ref">slip_angle_range</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_slips.html#doxid-structslips"><span class="std std-ref">slips</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_thresholds.html#doxid-structthresholds"><span class="std std-ref">thresholds</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_vertical.html#doxid-structvertical"><span class="std std-ref">vertical</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_vertical_force_range.html#doxid-structvertical-force-range"><span class="std std-ref">vertical_force_range</span></a><span></span>
+<span class="k">struct</span> <a class="reference internal" href="struct_zetaCoefs.html#doxid-structzeta-coefs"><span class="std std-ref">zetaCoefs</span></a><span></span>
+
+<span class="c1">// global functions</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-contact-8h-1aea526a1aa339c059baf450365e358798"><span class="std std-ref">s2_context_basicSweep</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-contact-8h-1a09906598ec946d4dcb6bfb9f995a2aba"><span class="std std-ref">s2_context_sweepAndPrune</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-contact-8h-1ad296820a87cce60f4e47af0af0a20fb8"><span class="std std-ref">s2_context_contactDetection</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_damping_joint</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_joint_t</span><span class="o">*</span> <span class="n">joint</span>
+    <span class="p">)</span>
+
+<a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span>
+<a class="reference internal" href="#doxid-fiala-8h-1a8658302eeb1bec4475877e8367172394"><span class="std std-ref">s2_tire_fiala</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-fiala-8h-1a3e1a2e637efc322442633553baba498c"><span class="std std-ref">s2_tire_fiala_free</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-fiala-8h-1a322fce69ed2f93ae89452a861d8303ca"><span class="std std-ref">s2_tire_fiala_update</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-fiala-8h-1aef0605aba2e6664ad511704f3adc29fc"><span class="std std-ref">s2_tire_fiala_loadTireDataFile</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span>
+    <span class="p">)</span>
+
+<a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span>
+<a class="reference internal" href="#doxid-tire-2fiala-8h-1a8658302eeb1bec4475877e8367172394"><span class="std std-ref">s2_tire_fiala</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2fiala-8h-1a3e1a2e637efc322442633553baba498c"><span class="std std-ref">s2_tire_fiala_free</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2fiala-8h-1a322fce69ed2f93ae89452a861d8303ca"><span class="std std-ref">s2_tire_fiala_update</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2fiala-8h-1aef0605aba2e6664ad511704f3adc29fc"><span class="std std-ref">s2_tire_fiala_loadTireDataFile</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span>
+    <span class="p">)</span>
+
+<a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span><span class="o">*</span>
+<a class="reference internal" href="#doxid-forcemodule-8h-1a10ba39388d465932d035489090731365"><span class="std std-ref">s2_forcemodule</span></a><span></span> <span class="p">(</span><a class="reference internal" href="enum_s2_forcemodule_enum_t.html#doxid-forcemodule-8h-1aef216ac0fc3d71c6419b69df97ab6091"><span class="std std-ref">s2_forcemodule_enum_t</span></a><span></span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-forcemodule-8h-1a1462d12cabcbd4c2af3cd01be718db08"><span class="std std-ref">s2_context_flattenForceModules</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-forcemodule-8h-1a4a9554e0c66689426792d17240ffe55b"><span class="std std-ref">s2_context_connectForceModules</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_context_updateTransientForceModules</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-forcemodule-8h-1a7a29be11cf9afd14c11f80670658753e"><span class="std std-ref">s2_context_saveForceModuleHistory</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-forcemodule-8h-1aa53d7be6608c3b229cbc7c2dd1b5bd56"><span class="std std-ref">s2_forcemodule_append</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_assembly_t</span><span class="o">*</span> <span class="n">assembly</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span><span class="o">*</span> <span class="n">forceModule</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-forcemodule-8h-1a5bd61c1828561862ae4357cf37cbc2bb"><span class="std std-ref">s2_forcemodule_free</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span><span class="o">*</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-forcemodule-8h-1ac28262f7c2ba16e662ff311b36ba2c09"><span class="std std-ref">s2_forcemodule_load</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_assembly_t</span><span class="o">*</span> <span class="n">assembly</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">prefix</span><span class="p">,</span>
+    <span class="n">json_t</span><span class="o">*</span> <span class="n">forceModuleObject</span>
+    <span class="p">)</span>
+
+<a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a52c64dbbbd2c064b8032d7dcce7a10d2"><span class="std std-ref">s2_tire_pac2002</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">useTransientSlip</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a75e3fa6c00463a48be7638e921500143"><span class="std std-ref">s2_tire_pac2002_free</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a73243b38626d6cb76ca38ee1d00b83f6"><span class="std std-ref">s2_tire_pac2002_update</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_tire_pac2002_getSlipAngle</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a3392f865e9daaa82bbf47793f3a5b8ab"><span class="std std-ref">s2_tire_pac2002_loadTireDataFile</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a5075ecf586909626c01f2df725bc3af4"><span class="std std-ref">s2_tire_pac2002_updateWFrame</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1aeaaea7981cb1d6b432d05f587fd66ec9"><span class="std std-ref">s2_tire_pac2002_calc_Fz</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a215220f8e29bf377a51244a6ca6cced0"><span class="std std-ref">s2_tire_pac2002_updateRelaxationLengths</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a80e0c5ab777c6793a5e1a74a83dfa5c7"><span class="std std-ref">s2_tire_pac2002_updateSlipKinematic</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a3bd2800b93b071b82df4ef3986561110"><span class="std std-ref">s2_tire_pac2002_zeroSlips</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_tire_pac2002_evaluateSlips</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1ac20ea3476c1d1cbf4dc6f6cfcf52e168"><span class="std std-ref">s2_tire_pac2002_evaluateReactions</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">write_violations</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">enforce_threshold</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1ae0239415e4200b821dec893a8bf183b8"><span class="std std-ref">s2_tire_pac2002_slip_from_uv</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">use_besselink</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">bessel_Cx</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">bessel_Cy</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">V_low</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1ae9766ff827292da718194567c723b4eb"><span class="std std-ref">s2_tire_pac2002_pureSlipReactions</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a2e900f40155187ffbb850e80964d17bd"><span class="std std-ref">s2_tire_pac2002_combinedSlipReactions</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a0c87e22d7746b5f7630c920217b6a3aa"><span class="std std-ref">s2_tire_pac2002_Fx_pureLong</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1aab053dca94043c0115b8c86b755608f3"><span class="std std-ref">s2_tire_pac2002_Fy_pureLat</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1aa1f7798f862f1b1af24b410938970577"><span class="std std-ref">s2_tire_pac2002_Mz_pureLat</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_pureSlip</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a75967c7dc5b18d94b56e03beb9d7cbb4"><span class="std std-ref">s2_tire_pac2002_Fx_combined</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_pureSlip</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a5873fda415a72e239ea243bed79405c7"><span class="std std-ref">s2_tire_pac2002_Fy_combined</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_pureSlip</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1ad36b82bb284940522554a8675cbf9e2f"><span class="std std-ref">s2_tire_pac2002_Mz_combined</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha_r</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha_t</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_combined</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_combined</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1a095bb61ec83dc5a79153f55e4d66f56d"><span class="std std-ref">s2_tire_pac2002_calc_Mx</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_combined</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1ae8f86738eda52bbc1d5ea709659c07d7"><span class="std std-ref">s2_tire_pac2002_calc_My</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_combined</span>
+    <span class="p">)</span>
+
+<span class="kt">bool</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1ab7a1630c7e0a24a451236c2cb143dc15"><span class="std std-ref">s2_tire_pac2002_discTerrainContact</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateTransient</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1aad631fb210d174a3be0f80a058b42197"><span class="std std-ref">s2_tire_pac2002_updateVerticalLoad</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pac2002-8h-1ac1c6d29395ad7cec3dd2d9127b6fdbd9"><span class="std std-ref">s2_tire_pac2002_transferForces</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span>
+    <span class="p">)</span>
+
+<a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a52c64dbbbd2c064b8032d7dcce7a10d2"><span class="std std-ref">s2_tire_pac2002</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">useTransientSlip</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a75e3fa6c00463a48be7638e921500143"><span class="std std-ref">s2_tire_pac2002_free</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a73243b38626d6cb76ca38ee1d00b83f6"><span class="std std-ref">s2_tire_pac2002_update</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_tire_pac2002_getSlipAngle</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a3392f865e9daaa82bbf47793f3a5b8ab"><span class="std std-ref">s2_tire_pac2002_loadTireDataFile</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a5075ecf586909626c01f2df725bc3af4"><span class="std std-ref">s2_tire_pac2002_updateWFrame</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1aeaaea7981cb1d6b432d05f587fd66ec9"><span class="std std-ref">s2_tire_pac2002_calc_Fz</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a215220f8e29bf377a51244a6ca6cced0"><span class="std std-ref">s2_tire_pac2002_updateRelaxationLengths</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a80e0c5ab777c6793a5e1a74a83dfa5c7"><span class="std std-ref">s2_tire_pac2002_updateSlipKinematic</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a3bd2800b93b071b82df4ef3986561110"><span class="std std-ref">s2_tire_pac2002_zeroSlips</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_tire_pac2002_evaluateSlips</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1ac20ea3476c1d1cbf4dc6f6cfcf52e168"><span class="std std-ref">s2_tire_pac2002_evaluateReactions</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">write_violations</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">enforce_threshold</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1ae0239415e4200b821dec893a8bf183b8"><span class="std std-ref">s2_tire_pac2002_slip_from_uv</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">use_besselink</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">bessel_Cx</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">bessel_Cy</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">V_low</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1ae9766ff827292da718194567c723b4eb"><span class="std std-ref">s2_tire_pac2002_pureSlipReactions</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a2e900f40155187ffbb850e80964d17bd"><span class="std std-ref">s2_tire_pac2002_combinedSlipReactions</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a0c87e22d7746b5f7630c920217b6a3aa"><span class="std std-ref">s2_tire_pac2002_Fx_pureLong</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1aab053dca94043c0115b8c86b755608f3"><span class="std std-ref">s2_tire_pac2002_Fy_pureLat</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1aa1f7798f862f1b1af24b410938970577"><span class="std std-ref">s2_tire_pac2002_Mz_pureLat</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_pureSlip</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a75967c7dc5b18d94b56e03beb9d7cbb4"><span class="std std-ref">s2_tire_pac2002_Fx_combined</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_pureSlip</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a5873fda415a72e239ea243bed79405c7"><span class="std std-ref">s2_tire_pac2002_Fy_combined</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_pureSlip</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1ad36b82bb284940522554a8675cbf9e2f"><span class="std std-ref">s2_tire_pac2002_Mz_combined</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha_r</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha_t</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_combined</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_combined</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1a095bb61ec83dc5a79153f55e4d66f56d"><span class="std std-ref">s2_tire_pac2002_calc_Mx</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_combined</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1ae8f86738eda52bbc1d5ea709659c07d7"><span class="std std-ref">s2_tire_pac2002_calc_My</span></a><span></span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_combined</span>
+    <span class="p">)</span>
+
+<span class="kt">bool</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1ab7a1630c7e0a24a451236c2cb143dc15"><span class="std std-ref">s2_tire_pac2002_discTerrainContact</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateTransient</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1aad631fb210d174a3be0f80a058b42197"><span class="std std-ref">s2_tire_pac2002_updateVerticalLoad</span></a><span></span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-tire-2pac2002-8h-1ac1c6d29395ad7cec3dd2d9127b6fdbd9"><span class="std std-ref">s2_tire_pac2002_transferForces</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span>
+    <span class="p">)</span>
+
+<a class="reference internal" href="struct_s2_pid_t.html#doxid-structs2-pid-t"><span class="std std-ref">s2_pid_t</span></a><span></span><span class="o">*</span>
+<span class="n">s2_pid</span> <span class="p">()</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pid-8h-1adfefdc1c61c0e5157a09686e27e4d7ab"><span class="std std-ref">s2_pid_updateFromJointToJoint</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-pid-8h-1ac8c49e0c6bef94a9f38dde8182c6e8a0"><span class="std std-ref">s2_pid_updateFromFrameToJoint</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_pid_connectForceModulePointer</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span><span class="o">*</span> <span class="n">forceModule</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_pid_t.html#doxid-structs2-pid-t"><span class="std std-ref">s2_pid_t</span></a><span></span><span class="o">*</span> <span class="n">pid</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_pid_saveHistory</span> <span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">parameters</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-service-8h-1a4649ffbdd2d342c04e7593e7117e324d"><span class="std std-ref">s2_context_setForces</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-stiffness-8h-1ad6dc04dd6bda9c49495fa1ef5f47a210"><span class="std std-ref">s2_stiffness_joint</span></a><span></span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_joint_t</span><span class="o">*</span> <span class="n">joint</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-numericalintegrator-8h-1a29df5ebe204181e4306e96016f270d40"><span class="std std-ref">s2_context_allocNumericalIntegrator</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-numericalintegrator-8h-1a1620d0638a9d85bf09042bec4d331474"><span class="std std-ref">s2_context_freeNumericalIntegrator</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_ode113</span> <span class="p">(</span>
+    <span class="kt">void</span>  <span class="n">f</span> <span class="kt">double</span> <span class="n">t</span><span class="p">,</span> <span class="kt">double</span> <span class="n">y</span><span class="p">[],</span> <span class="kt">double</span> <span class="n">dy</span><span class="p">[],</span> <span class="n">s2_context_t</span> <span class="o">*</span><span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_ode113_de</span> <span class="p">(</span>
+    <span class="kt">void</span>  <span class="n">f</span> <span class="kt">double</span> <span class="n">t</span><span class="p">,</span> <span class="kt">double</span> <span class="n">y</span><span class="p">[],</span> <span class="kt">double</span> <span class="n">dy</span><span class="p">[],</span> <span class="n">s2_context_t</span> <span class="o">*</span><span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">int</span> <span class="n">neqn</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">y</span> <span class="p">[],</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">t</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">tout</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">relerr</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">abserr</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">iflag</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">yy</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">wt</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">p</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">yp</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">ypout</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">phi</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">alpha</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">beta</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">sig</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">v</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">w</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">g</span> <span class="p">[],</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">phase1</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">psi</span> <span class="p">[],</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">x</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">h</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">hold</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">start</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">told</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">delsgn</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">ns</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">nornd</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">k</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">kold</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">isnold</span>
+    <span class="p">)</span>
+
+<span class="kt">int</span>
+<a class="reference internal" href="#doxid-ode113-8h-1a535d66c4385dd7e8c98f78cd4c8b3a2f"><span class="std std-ref">i4_sign</span></a><span></span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-ode113-8h-1ade9963857d52e84c92408c920578c26d"><span class="std std-ref">s2_ode113_intrp</span></a><span></span> <span class="p">(</span>
+    <span class="kt">double</span> <span class="n">x</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">y</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">xout</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">yout</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">ypout</span> <span class="p">[],</span>
+    <span class="kt">int</span> <span class="n">neqn</span><span class="p">,</span>
+    <span class="kt">int</span> <span class="n">kold</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">phi</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">psi</span> <span class="p">[]</span>
+    <span class="p">)</span>
+
+<span class="kt">double</span>
+<a class="reference internal" href="#doxid-ode113-8h-1ab21d05128ddb24988dfbca84c955c6f8"><span class="std std-ref">r8_epsilon</span></a><span></span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_ode113_step</span> <span class="p">(</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">x</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">y</span> <span class="p">[],</span>
+    <span class="kt">void</span>  <span class="n">f</span> <span class="kt">double</span> <span class="n">t</span><span class="p">,</span> <span class="kt">double</span> <span class="n">y</span><span class="p">[],</span> <span class="kt">double</span> <span class="n">dy</span><span class="p">[],</span> <span class="n">s2_context_t</span> <span class="o">*</span><span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">int</span> <span class="n">neqn</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">h</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">eps</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">wt</span> <span class="p">[],</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">start</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">hold</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">k</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">kold</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">crash</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">phi</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">p</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">yp</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">psi</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">alpha</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">beta</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">sig</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">v</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">w</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">g</span> <span class="p">[],</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">phase1</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">ns</span><span class="p">,</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">nornd</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">timestamp</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_context_allocOde113</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-ode113-8h-1a4441054803552b0a25e8aa1d3b787774"><span class="std std-ref">s2_context_freeOde113</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-ode113-8h-1a67844d34b61458283d1060c72a1d7bcd"><span class="std std-ref">s2_context_integrateEquationsOde113</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-ode113b-8h-1a3ec1c16e4555d46ae1a1a4a46e1f33f6"><span class="std std-ref">s2_context_allocOde113b</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-ode113b-8h-1a01f571e7d3e58a4018d465e143d72277"><span class="std std-ref">s2_context_freeOde113b</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-ode113b-8h-1a55e0e1b1dcf8b0236794e961336740b3"><span class="std std-ref">s2_ode113b_fcn</span></a><span></span> <span class="p">(</span>
+    <span class="kt">double</span> <span class="n">y</span> <span class="p">[],</span>
+    <span class="n">s2_context_t</span><span class="o">*</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<span class="n">s2_ode113b_step</span> <span class="p">(</span>
+    <span class="kt">void</span>  <span class="n">f</span> <span class="kt">double</span> <span class="n">y</span><span class="p">[],</span> <span class="n">s2_context_t</span> <span class="o">*</span><span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-ode113b-8h-1a8cc5cb1907a1b5de62e501a7a9ac0096"><span class="std std-ref">s2_ode113b_de</span></a><span></span> <span class="p">(</span>
+    <span class="kt">void</span>  <span class="n">f</span> <span class="kt">double</span> <span class="n">y</span><span class="p">[],</span> <span class="n">s2_context_t</span> <span class="o">*</span><span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span>
+    <span class="p">)</span>
+
+<span class="kt">void</span>
+<a class="reference internal" href="#doxid-ode113b-8h-1aafd0cf36ccbf352667a9892ee5310eb7"><span class="std std-ref">s2_context_integrateEquationsOde113b</span></a><span></span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+
+<span class="c1">// macros</span>
+
+<span class="cp">#define </span><a class="reference internal" href="#doxid-shift-8h-1a7d3083ae70159e2452e54760228608ee"><span class="std std-ref">_SHIFT_H_</span></a>
+</pre>
+</div>
+<div class="section" id="detailed-documentation">
+<span id="details-doxid-global"></span><h2>Detailed Documentation<a class="headerlink" href="#detailed-documentation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="typedefs">
+<h3>Typedefs<a class="headerlink" href="#typedefs" title="Permalink to this headline">¶</a></h3>
+<pre class="highlight title-code-block literal-block" id="cid-s2-damper-t-2">
+<span id="doxid-damping-8h-1ad827256522fc82b2ad4001167238a775"></span><span></span><span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_damper_t.html#doxid-structs2-damper-t"><span class="std std-ref">s2_damper_t</span></a><span></span> <span class="n">s2_damper_t</span>
+</pre>
+<p>damper data structure</p>
+<p>piecewise curves (i.e. splines) are not currently supported</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-forcemodule-t-2">
+<span id="doxid-forcemodule-8h-1a6cfa09e2454a092d1d37c32a584f809a"></span><span></span><span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span> <span class="n">s2_forcemodule_t</span>
+</pre>
+<p>utility to feed back forces into a running simulation</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-pid-t-2">
+<span id="doxid-pid-8h-1ab0e710f017bf8a44db747a1ada3e6bfc"></span><span></span><span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_pid_t.html#doxid-structs2-pid-t"><span class="std std-ref">s2_pid_t</span></a><span></span> <span class="n">s2_pid_t</span>
+</pre>
+<p>initially set up to apply a force in a joint</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-spring-t-2">
+<span id="doxid-stiffness-8h-1a810c566c41ba7f20abc258759f13d3b0"></span><span></span><span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_spring_t.html#doxid-structs2-spring-t"><span class="std std-ref">s2_spring_t</span></a><span></span> <span class="n">s2_spring_t</span>
+</pre>
+<p>spring data structure</p>
+<p>piecewise curves (i.e. splines) are not currently supported</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113-t-2">
+<span id="doxid-ode113-8h-1a204cc0f0ebd6f99f35ec1a8fdf2816b5"></span><span></span><span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_numericalintegrator_ode113_t.html#doxid-structs2-numericalintegrator-ode113-t"><span class="std std-ref">s2_numericalintegrator_ode113_t</span></a><span></span> <span class="n">s2_numericalintegrator_ode113_t</span>
+</pre>
+<p>Attributes associated with numerical integrator.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-numericalintegrator-ode113b-t-2">
+<span id="doxid-ode113b-8h-1a749caa804014e62fb4ab043f25398d97"></span><span></span><span class="k">typedef</span> <span class="k">struct</span> <a class="reference internal" href="struct_s2_numericalintegrator_ode113b_t.html#doxid-structs2-numericalintegrator-ode113b-t"><span class="std std-ref">s2_numericalintegrator_ode113b_t</span></a><span></span> <span class="n">s2_numericalintegrator_ode113b_t</span>
+</pre>
+<p>Attributes associated with numerical integrator.</p>
+</div>
+<div class="section" id="global-functions">
+<h3>Global Functions<a class="headerlink" href="#global-functions" title="Permalink to this headline">¶</a></h3>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-basicsweep">
+<span id="doxid-contact-8h-1aea526a1aa339c059baf450365e358798"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_basicSweep</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+</pre>
+<p>sets up a basic “sweep” operation to identify 1/2 n^2 potential collisions. This basic sweep function need only be called once at initial setup and will set up simplices to test each collision object with every other collision object. No pruning is performed here which would reduce unnecessary computation.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-sweepandprune">
+<span id="doxid-contact-8h-1a09906598ec946d4dcb6bfb9f995a2aba"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_sweepAndPrune</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+</pre>
+<p>performs initial sweep and prune pass to identify potentially contacting bodies in scene</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-contactdetection">
+<span id="doxid-contact-8h-1ad296820a87cce60f4e47af0af0a20fb8"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_contactDetection</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+</pre>
+<p>perform contact detection for potentially contacting bodies identified in sweep and prune pass</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-fiala">
+<span id="doxid-fiala-8h-1a8658302eeb1bec4475877e8367172394"></span><a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span>
+<span class="n">s2_tire_fiala</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span>
+    <span class="p">)</span>
+</pre>
+<p>allocate memory for tire with default parameters</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-fiala-free">
+<span id="doxid-fiala-8h-1a3e1a2e637efc322442633553baba498c"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_fiala_free</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>free memory for <a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a></p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-fiala-update">
+<span id="doxid-fiala-8h-1a322fce69ed2f93ae89452a861d8303ca"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_fiala_update</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+</pre>
+<p>placeholder function to update transient properties associated with fiala tire</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-fiala-loadtiredatafile">
+<span id="doxid-fiala-8h-1aef0605aba2e6664ad511704f3adc29fc"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_fiala_loadTireDataFile</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span>
+    <span class="p">)</span>
+</pre>
+<p>Load a .tir tire specification file.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-fiala-2">
+<span id="doxid-tire-2fiala-8h-1a8658302eeb1bec4475877e8367172394"></span><a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span>
+<span class="n">s2_tire_fiala</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span>
+    <span class="p">)</span>
+</pre>
+<p>allocate memory for tire with default parameters</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-fiala-free-2">
+<span id="doxid-tire-2fiala-8h-1a3e1a2e637efc322442633553baba498c"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_fiala_free</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>free memory for <a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a></p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-fiala-update-2">
+<span id="doxid-tire-2fiala-8h-1a322fce69ed2f93ae89452a861d8303ca"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_fiala_update</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+</pre>
+<p>placeholder function to update transient properties associated with fiala tire</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-fiala-loadtiredatafile-2">
+<span id="doxid-tire-2fiala-8h-1aef0605aba2e6664ad511704f3adc29fc"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_fiala_loadTireDataFile</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_fiala_t.html#doxid-structs2-tire-fiala-t"><span class="std std-ref">s2_tire_fiala_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span>
+    <span class="p">)</span>
+</pre>
+<p>Load a .tir tire specification file.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-forcemodule">
+<span id="doxid-forcemodule-8h-1a10ba39388d465932d035489090731365"></span><a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span><span class="o">*</span>
+<span class="n">s2_forcemodule</span> <span class="p">(</span><a class="reference internal" href="enum_s2_forcemodule_enum_t.html#doxid-forcemodule-8h-1aef216ac0fc3d71c6419b69df97ab6091"><span class="std std-ref">s2_forcemodule_enum_t</span></a><span></span><span class="p">)</span>
+</pre>
+<p>initialize a forcemodule data structure</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-flattenforcemodules">
+<span id="doxid-forcemodule-8h-1a1462d12cabcbd4c2af3cd01be718db08"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_flattenForceModules</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+</pre>
+<p>flatten force modules into array of array of pointers to force modules with static and transient properties</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-connectforcemodules">
+<span id="doxid-forcemodule-8h-1a4a9554e0c66689426792d17240ffe55b"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_connectForceModules</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+</pre>
+<p>connect force module dy array pointer and set yOffset, called after numerical integrator set up</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-saveforcemodulehistory">
+<span id="doxid-forcemodule-8h-1a7a29be11cf9afd14c11f80670658753e"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_saveForceModuleHistory</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+</pre>
+<p>save time histories of force modules</p>
+<p>ode113 does not integrate equations in monotonically time increasing order, any values that need to be saved are set in this function and called in a different location when integrating the equations only when convergence is true</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-forcemodule-append">
+<span id="doxid-forcemodule-8h-1aa53d7be6608c3b229cbc7c2dd1b5bd56"></span><span></span><span class="kt">void</span>
+<span class="n">s2_forcemodule_append</span> <span class="p">(</span>
+    <span class="n">s2_assembly_t</span><span class="o">*</span> <span class="n">assembly</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span><span class="o">*</span> <span class="n">forceModule</span>
+    <span class="p">)</span>
+</pre>
+<p>Append a force module to an Assembly datastructure.</p>
+<p class="rubric">Parameters:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="20%" />
+<col width="80%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>assembly</td>
+<td>an Assembly datastructure to append to</td>
+</tr>
+<tr class="row-even"><td>forcemodule</td>
+<td>a force module datastructure to append</td>
+</tr>
+</tbody>
+</table>
+<pre class="highlight title-code-block literal-block" id="cid-s2-forcemodule-free">
+<span id="doxid-forcemodule-8h-1a5bd61c1828561862ae4357cf37cbc2bb"></span><span></span><span class="kt">void</span>
+<span class="n">s2_forcemodule_free</span> <span class="p">(</span><a class="reference internal" href="struct_s2_forcemodule_t.html#doxid-structs2-forcemodule-t"><span class="std std-ref">s2_forcemodule_t</span></a><span></span><span class="o">*</span><span class="p">)</span>
+</pre>
+<p>initialize a forcemodule data structure</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-forcemodule-load">
+<span id="doxid-forcemodule-8h-1ac28262f7c2ba16e662ff311b36ba2c09"></span><span></span><span class="kt">void</span>
+<span class="n">s2_forcemodule_load</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_assembly_t</span><span class="o">*</span> <span class="n">assembly</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">prefix</span><span class="p">,</span>
+    <span class="n">json_t</span><span class="o">*</span> <span class="n">forceModuleObject</span>
+    <span class="p">)</span>
+</pre>
+<p>load forcemodule properties from json file</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002">
+<span id="doxid-pac2002-8h-1a52c64dbbbd2c064b8032d7dcce7a10d2"></span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span>
+<span class="n">s2_tire_pac2002</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">useTransientSlip</span>
+    <span class="p">)</span>
+</pre>
+<p>allocate memory for tire with default parameters</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-free">
+<span id="doxid-pac2002-8h-1a75e3fa6c00463a48be7638e921500143"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_free</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>free memory for <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a></p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-update">
+<span id="doxid-pac2002-8h-1a73243b38626d6cb76ca38ee1d00b83f6"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_update</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+</pre>
+<p>update slip angle, longtitudinal slip and camber angle, update forces to model</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-loadtiredatafile">
+<span id="doxid-pac2002-8h-1a3392f865e9daaa82bbf47793f3a5b8ab"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_loadTireDataFile</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span>
+    <span class="p">)</span>
+</pre>
+<p>Load a .tir tire specification file.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-updatewframe">
+<span id="doxid-pac2002-8h-1a5075ecf586909626c01f2df725bc3af4"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateWFrame</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>updates wFrame, wheel normal (in iso convention), terrain normal,</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-calc-fz">
+<span id="doxid-pac2002-8h-1aeaaea7981cb1d6b432d05f587fd66ec9"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_calc_Fz</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>calculate Fz using spring - damper model</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-updaterelaxationlengths">
+<span id="doxid-pac2002-8h-1a215220f8e29bf377a51244a6ca6cced0"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateRelaxationLengths</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>compute relaxation lengths</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-updateslipkinematic">
+<span id="doxid-pac2002-8h-1a80e0c5ab777c6793a5e1a74a83dfa5c7"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateSlipKinematic</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>Calculate kinematic slip quantities from the current wheel state.</p>
+<p>Note: when not in contact, all slips are assumed zero, but velocities still set</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-zeroslips">
+<span id="doxid-pac2002-8h-1a3bd2800b93b071b82df4ef3986561110"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_zeroSlips</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>set the tire m_slip vector to all zeros</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-evaluatereactions">
+<span id="doxid-pac2002-8h-1ac20ea3476c1d1cbf4dc6f6cfcf52e168"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_evaluateReactions</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">write_violations</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">enforce_threshold</span>
+    <span class="p">)</span>
+</pre>
+<p>after calculating reactions, enforce limits when forces/moments exceed specified thresholds (except on Fz)</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-slip-from-uv">
+<span id="doxid-pac2002-8h-1ae0239415e4200b821dec893a8bf183b8"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_slip_from_uv</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">use_besselink</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">bessel_Cx</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">bessel_Cy</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">V_low</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate and set the transient slip values (kappaP, alphaP, gammaP) from u, v deflections. optionally turn on/off besselink low velocity damping</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-pureslipreactions">
+<span id="doxid-pac2002-8h-1ae9766ff827292da718194567c723b4eb"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_pureSlipReactions</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>Calculate tire reactions.</p>
+<p>pure slip reactions, if the tire is in contact with the ground, in the TYDEX W-Axis system. calcFx alphaP ~= 0 calcFy and calcMz kappaP ~= 0 NOTE: alphaP, gammaP and kappaP defined with respect to tire side specified from .tir input file. e.g., positive alpha = turn wheel toward vehicle centerline e.g., positive gamma = wheel vertical axis top pointing toward vehicle center</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-combinedslipreactions">
+<span id="doxid-pac2002-8h-1a2e900f40155187ffbb850e80964d17bd"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_combinedSlipReactions</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>calculate combined slip reactions combined slip reactions, if the tire is in contact with the ground MUST call pureSlipReactions() first, as these functions rely on intermediate values</p>
+<p>NOTE: alphaP and gammaP have already been modified for being on the L/R side e.g., positive alpha = turn wheel toward vehicle centerline e.g., positive gamma = wheel vertical axis top pointing toward vehicle center</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-fx-purelong">
+<span id="doxid-pac2002-8h-1a0c87e22d7746b5f7630c920217b6a3aa"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Fx_pureLong</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span>
+    <span class="p">)</span>
+</pre>
+<p>longitudinal force, alpha ~= 0 assign to m_FM.force.x assign m_pureLong, trionometric function calculated constants</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-fy-purelat">
+<span id="doxid-pac2002-8h-1aab053dca94043c0115b8c86b755608f3"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Fy_pureLat</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span>
+    <span class="p">)</span>
+</pre>
+<p>lateral force, kappa ~= 0 assign to m_FM.force.y assign m_pureLong, trionometric function calculated constants</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-mz-purelat">
+<span id="doxid-pac2002-8h-1aa1f7798f862f1b1af24b410938970577"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Mz_pureLat</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_pureSlip</span>
+    <span class="p">)</span>
+</pre>
+<p>aligning moment, kappa ~= 0 assign to m_FM.moment.z assign m_pureLong, trigonometric function calculated constants</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-fx-combined">
+<span id="doxid-pac2002-8h-1a75967c7dc5b18d94b56e03beb9d7cbb4"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Fx_combined</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_pureSlip</span>
+    <span class="p">)</span>
+</pre>
+<p>longitudinal force, combined slip (general case) assign m_FM_combined.force.x assign m_combinedLong</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-fy-combined">
+<span id="doxid-pac2002-8h-1a5873fda415a72e239ea243bed79405c7"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Fy_combined</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_pureSlip</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate lateral force, combined slip (general case) assign m_FM_combined.force.y assign m_combinedLat</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-mz-combined">
+<span id="doxid-pac2002-8h-1ad36b82bb284940522554a8675cbf9e2f"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Mz_combined</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha_r</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha_t</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_combined</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_combined</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate aligning torque, combined slip (gernal case) assign m_FM_combined.moment.z assign m_combinedTorque</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-calc-mx">
+<span id="doxid-pac2002-8h-1a095bb61ec83dc5a79153f55e4d66f56d"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_calc_Mx</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_combined</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate the overturning couple moment assign m_FM.moment.x and m_FM_combined.moment.x</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-calc-my">
+<span id="doxid-pac2002-8h-1ae8f86738eda52bbc1d5ea709659c07d7"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_calc_My</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_combined</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate the rolling resistance moment, assign m_FM.moment.y and m_FM_combined.moment.y</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-discterraincontact">
+<span id="doxid-pac2002-8h-1ab7a1630c7e0a24a451236c2cb143dc15"></span><span></span><span class="kt">bool</span>
+<span class="n">s2_tire_pac2002_discTerrainContact</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>check for contact, set tire-&gt;inContact flag and set penetration depth</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-updateverticalload">
+<span id="doxid-pac2002-8h-1aad631fb210d174a3be0f80a058b42197"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateVerticalLoad</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>Calculate the tire vertical load at the current configuration and update the tire deflection and tire rolling radius.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-transferforces">
+<span id="doxid-pac2002-8h-1ac1c6d29395ad7cec3dd2d9127b6fdbd9"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_transferForces</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span>
+    <span class="p">)</span>
+</pre>
+<p>wrapper function to update for use with force module data structure</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-2">
+<span id="doxid-tire-2pac2002-8h-1a52c64dbbbd2c064b8032d7dcce7a10d2"></span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span>
+<span class="n">s2_tire_pac2002</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span><span class="p">,</span>
+    <span class="n">s2_stackstr_t</span><span class="o">*</span> <span class="n">wheelBody</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">useTransientSlip</span>
+    <span class="p">)</span>
+</pre>
+<p>allocate memory for tire with default parameters</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-free-2">
+<span id="doxid-tire-2pac2002-8h-1a75e3fa6c00463a48be7638e921500143"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_free</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>free memory for <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a></p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-update-2">
+<span id="doxid-tire-2pac2002-8h-1a73243b38626d6cb76ca38ee1d00b83f6"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_update</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+</pre>
+<p>update slip angle, longtitudinal slip and camber angle, update forces to model</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-loadtiredatafile-2">
+<span id="doxid-tire-2pac2002-8h-1a3392f865e9daaa82bbf47793f3a5b8ab"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_loadTireDataFile</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filePath</span>
+    <span class="p">)</span>
+</pre>
+<p>Load a .tir tire specification file.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-updatewframe-2">
+<span id="doxid-tire-2pac2002-8h-1a5075ecf586909626c01f2df725bc3af4"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateWFrame</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>updates wFrame, wheel normal (in iso convention), terrain normal,</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-calc-fz-2">
+<span id="doxid-tire-2pac2002-8h-1aeaaea7981cb1d6b432d05f587fd66ec9"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_calc_Fz</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>calculate Fz using spring - damper model</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-updaterelaxationlengths-2">
+<span id="doxid-tire-2pac2002-8h-1a215220f8e29bf377a51244a6ca6cced0"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateRelaxationLengths</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>compute relaxation lengths</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-updateslipkinematic-2">
+<span id="doxid-tire-2pac2002-8h-1a80e0c5ab777c6793a5e1a74a83dfa5c7"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateSlipKinematic</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>Calculate kinematic slip quantities from the current wheel state.</p>
+<p>Note: when not in contact, all slips are assumed zero, but velocities still set</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-zeroslips-2">
+<span id="doxid-tire-2pac2002-8h-1a3bd2800b93b071b82df4ef3986561110"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_zeroSlips</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>set the tire m_slip vector to all zeros</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-evaluatereactions-2">
+<span id="doxid-tire-2pac2002-8h-1ac20ea3476c1d1cbf4dc6f6cfcf52e168"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_evaluateReactions</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">write_violations</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">enforce_threshold</span>
+    <span class="p">)</span>
+</pre>
+<p>after calculating reactions, enforce limits when forces/moments exceed specified thresholds (except on Fz)</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-slip-from-uv-2">
+<span id="doxid-tire-2pac2002-8h-1ae0239415e4200b821dec893a8bf183b8"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_slip_from_uv</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">bool</span> <span class="n">use_besselink</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">bessel_Cx</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">bessel_Cy</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">V_low</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate and set the transient slip values (kappaP, alphaP, gammaP) from u, v deflections. optionally turn on/off besselink low velocity damping</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-pureslipreactions-2">
+<span id="doxid-tire-2pac2002-8h-1ae9766ff827292da718194567c723b4eb"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_pureSlipReactions</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>Calculate tire reactions.</p>
+<p>pure slip reactions, if the tire is in contact with the ground, in the TYDEX W-Axis system. calcFx alphaP ~= 0 calcFy and calcMz kappaP ~= 0 NOTE: alphaP, gammaP and kappaP defined with respect to tire side specified from .tir input file. e.g., positive alpha = turn wheel toward vehicle centerline e.g., positive gamma = wheel vertical axis top pointing toward vehicle center</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-combinedslipreactions-2">
+<span id="doxid-tire-2pac2002-8h-1a2e900f40155187ffbb850e80964d17bd"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_combinedSlipReactions</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>calculate combined slip reactions combined slip reactions, if the tire is in contact with the ground MUST call pureSlipReactions() first, as these functions rely on intermediate values</p>
+<p>NOTE: alphaP and gammaP have already been modified for being on the L/R side e.g., positive alpha = turn wheel toward vehicle centerline e.g., positive gamma = wheel vertical axis top pointing toward vehicle center</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-fx-purelong-2">
+<span id="doxid-tire-2pac2002-8h-1a0c87e22d7746b5f7630c920217b6a3aa"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Fx_pureLong</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span>
+    <span class="p">)</span>
+</pre>
+<p>longitudinal force, alpha ~= 0 assign to m_FM.force.x assign m_pureLong, trionometric function calculated constants</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-fy-purelat-2">
+<span id="doxid-tire-2pac2002-8h-1aab053dca94043c0115b8c86b755608f3"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Fy_pureLat</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span>
+    <span class="p">)</span>
+</pre>
+<p>lateral force, kappa ~= 0 assign to m_FM.force.y assign m_pureLong, trionometric function calculated constants</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-mz-purelat-2">
+<span id="doxid-tire-2pac2002-8h-1aa1f7798f862f1b1af24b410938970577"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Mz_pureLat</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_pureSlip</span>
+    <span class="p">)</span>
+</pre>
+<p>aligning moment, kappa ~= 0 assign to m_FM.moment.z assign m_pureLong, trigonometric function calculated constants</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-fx-combined-2">
+<span id="doxid-tire-2pac2002-8h-1a75967c7dc5b18d94b56e03beb9d7cbb4"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Fx_combined</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_pureSlip</span>
+    <span class="p">)</span>
+</pre>
+<p>longitudinal force, combined slip (general case) assign m_FM_combined.force.x assign m_combinedLong</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-fy-combined-2">
+<span id="doxid-tire-2pac2002-8h-1a5873fda415a72e239ea243bed79405c7"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Fy_combined</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_pureSlip</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate lateral force, combined slip (general case) assign m_FM_combined.force.y assign m_combinedLat</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-mz-combined-2">
+<span id="doxid-tire-2pac2002-8h-1ad36b82bb284940522554a8675cbf9e2f"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_Mz_combined</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha_r</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">alpha_t</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">kappa</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_combined</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_combined</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate aligning torque, combined slip (gernal case) assign m_FM_combined.moment.z assign m_combinedTorque</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-calc-mx-2">
+<span id="doxid-tire-2pac2002-8h-1a095bb61ec83dc5a79153f55e4d66f56d"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_calc_Mx</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">gamma</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fy_combined</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate the overturning couple moment assign m_FM.moment.x and m_FM_combined.moment.x</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-calc-my-2">
+<span id="doxid-tire-2pac2002-8h-1ae8f86738eda52bbc1d5ea709659c07d7"></span><span></span><span class="kt">double</span>
+<span class="n">s2_tire_pac2002_calc_My</span> <span class="p">(</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">Fx_combined</span>
+    <span class="p">)</span>
+</pre>
+<p>calculate the rolling resistance moment, assign m_FM.moment.y and m_FM_combined.moment.y</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-discterraincontact-2">
+<span id="doxid-tire-2pac2002-8h-1ab7a1630c7e0a24a451236c2cb143dc15"></span><span></span><span class="kt">bool</span>
+<span class="n">s2_tire_pac2002_discTerrainContact</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>check for contact, set tire-&gt;inContact flag and set penetration depth</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-updateverticalload-2">
+<span id="doxid-tire-2pac2002-8h-1aad631fb210d174a3be0f80a058b42197"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_updateVerticalLoad</span> <span class="p">(</span><a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span><span class="p">)</span>
+</pre>
+<p>Calculate the tire vertical load at the current configuration and update the tire deflection and tire rolling radius.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-tire-pac2002-transferforces-2">
+<span id="doxid-tire-2pac2002-8h-1ac1c6d29395ad7cec3dd2d9127b6fdbd9"></span><span></span><span class="kt">void</span>
+<span class="n">s2_tire_pac2002_transferForces</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <a class="reference internal" href="struct_s2_tire_pac2002_t.html#doxid-structs2-tire-pac2002-t"><span class="std std-ref">s2_tire_pac2002_t</span></a><span></span><span class="o">*</span> <span class="n">tire</span>
+    <span class="p">)</span>
+</pre>
+<p>wrapper function to update for use with force module data structure</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-pid-updatefromjointtojoint">
+<span id="doxid-pid-8h-1adfefdc1c61c0e5157a09686e27e4d7ab"></span><span></span><span class="kt">void</span>
+<span class="n">s2_pid_updateFromJointToJoint</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+</pre>
+<p>update a force in a joint as a function of velocity in a given frame</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-pid-updatefromframetojoint">
+<span id="doxid-pid-8h-1ac8c49e0c6bef94a9f38dde8182c6e8a0"></span><span></span><span class="kt">void</span>
+<span class="n">s2_pid_updateFromFrameToJoint</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="kt">void</span><span class="o">**</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span> <span class="n">y</span>
+    <span class="p">)</span>
+</pre>
+<p>update a force in a joint as a function of velocity in a given frame</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-setforces">
+<span id="doxid-service-8h-1a4649ffbdd2d342c04e7593e7117e324d"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_setForces</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span><span class="p">,</span>
+    <span class="kt">double</span><span class="o">*</span>
+    <span class="p">)</span>
+</pre>
+<p>clear and set externally applied forces to model</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-stiffness-joint">
+<span id="doxid-stiffness-8h-1ad6dc04dd6bda9c49495fa1ef5f47a210"></span><span></span><span class="kt">void</span>
+<span class="n">s2_stiffness_joint</span> <span class="p">(</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_joint_t</span><span class="o">*</span> <span class="n">joint</span>
+    <span class="p">)</span>
+</pre>
+<p>sets stiffness within a joint</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-allocnumericalintegrator">
+<span id="doxid-numericalintegrator-8h-1a29df5ebe204181e4306e96016f270d40"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_allocNumericalIntegrator</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+</pre>
+<p>Initialize and allocate memory for numericalIntegrator datastructure.</p>
+<p class="rubric">Returns:</p>
+<p>a numericalIntegrator datastructure</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-freenumericalintegrator">
+<span id="doxid-numericalintegrator-8h-1a1620d0638a9d85bf09042bec4d331474"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_freeNumericalIntegrator</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+</pre>
+<p>Free memory for numericalintegrator datastructure.</p>
+<p class="rubric">Parameters:</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="20%" />
+<col width="80%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>numericalIntegrator</td>
+<td>a numerical integrator datastructure</td>
+</tr>
+</tbody>
+</table>
+<pre class="highlight title-code-block literal-block" id="cid-i4-sign">
+<span id="doxid-ode113-8h-1a535d66c4385dd7e8c98f78cd4c8b3a2f"></span><span></span><span class="kt">int</span>
+<span class="n">i4_sign</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span>
+</pre>
+<p>i4 returns the sign of an I4.</p>
+<p>Licensing:</p>
+<p>This code is distributed under the GNU LGPL license.</p>
+<p>Modified:</p>
+<p>23 October 2007</p>
+<p>Author:</p>
+<p>John Burkardt</p>
+<p>Parameters:</p>
+<p>Input, int I, the integer whose sign is desired.</p>
+<p>Output, int I4_SIGN, the sign of I.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-ode113-intrp">
+<span id="doxid-ode113-8h-1ade9963857d52e84c92408c920578c26d"></span><span></span><span class="kt">void</span>
+<span class="n">s2_ode113_intrp</span> <span class="p">(</span>
+    <span class="kt">double</span> <span class="n">x</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">y</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">xout</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">yout</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">ypout</span> <span class="p">[],</span>
+    <span class="kt">int</span> <span class="n">neqn</span><span class="p">,</span>
+    <span class="kt">int</span> <span class="n">kold</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">phi</span> <span class="p">[],</span>
+    <span class="kt">double</span> <span class="n">psi</span> <span class="p">[]</span>
+    <span class="p">)</span>
+</pre>
+<p>INTRP approximates the solution at XOUT by polynomial interpolation.</p>
+<p>Discussion:</p>
+<p>The methods in STEP approximate the solution near X by a polynomial. This routine approximates the solution at XOUT by evaluating the polynomial there. Information defining this polynomial is passed from STEP, so INTRP cannot be used alone.</p>
+<p>Licensing:</p>
+<p>This code is distributed under the GNU LGPL license.</p>
+<p>Modified:</p>
+<p>01 February 2012</p>
+<p>Author:</p>
+<p>Original FORTRAN77 version by Lawrence Shampine, Marilyn Gordon. C version by John Burkardt.</p>
+<p>Reference:</p>
+<p>Lawrence Shampine, Marilyn Gordon, Computer Solution of Ordinary Differential Equations: The Initial Value Problem, Freeman, 1975, ISBN: 0716704617, LC: QA372.S416.</p>
+<p>Parameters:</p>
+<p>Input, double X, the point where the solution has been computed.</p>
+<p>Input, double Y[NEQN], the computed solution at X.</p>
+<p>Input, double XOUT, the point at which the solution is desired.</p>
+<p>Output, double YOUT[NEQN], the solution at XOUT.</p>
+<p>Output, double YPOUT[NEQN], the derivative of the solution at XOUT.</p>
+<p>Input, int NEQN, the number of equations.</p>
+<p>Input, int KOLD, the order used for the last successful step.</p>
+<p>Input, double PHI[NEQN*16], contains information about the interpolating polynomial.</p>
+<p>Input, double PSI[12], contains information about the interpolating polynomial.</p>
+<pre class="highlight title-code-block literal-block" id="cid-r8-epsilon">
+<span id="doxid-ode113-8h-1ab21d05128ddb24988dfbca84c955c6f8"></span><span></span><span class="kt">double</span>
+<span class="n">r8_epsilon</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+</pre>
+<p>R8_EPSILON returns the R8 round off unit.</p>
+<p>Discussion:</p>
+<p>R8_EPSILON is a number R which is a power of 2 with the property that, to the precision of the computer’s arithmetic, 1 &lt; 1 + R but 1 = ( 1 + R / 2 )</p>
+<p>Licensing:</p>
+<p>This code is distributed under the GNU LGPL license.</p>
+<p>Modified:</p>
+<p>01 September 2012</p>
+<p>Author:</p>
+<p>John Burkardt</p>
+<p>Parameters:</p>
+<p>Output, double R8_EPSILON, the R8 round-off unit.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-freeode113">
+<span id="doxid-ode113-8h-1a4441054803552b0a25e8aa1d3b787774"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_freeOde113</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+</pre>
+<p>free a numerical integrator datastructure for ode113 integration type</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-integrateequationsode113">
+<span id="doxid-ode113-8h-1a67844d34b61458283d1060c72a1d7bcd"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_integrateEquationsOde113</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+</pre>
+<p>integrate equations using ode113 integration method</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-allocode113b">
+<span id="doxid-ode113b-8h-1a3ec1c16e4555d46ae1a1a4a46e1f33f6"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_allocOde113b</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+</pre>
+<p>allocate memory for ode113b numerical integrator</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-freeode113b">
+<span id="doxid-ode113b-8h-1a01f571e7d3e58a4018d465e143d72277"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_freeOde113b</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span><span class="p">)</span>
+</pre>
+<p>free memory for ode113b integrator</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-ode113b-fcn">
+<span id="doxid-ode113b-8h-1a55e0e1b1dcf8b0236794e961336740b3"></span><span></span><span class="kt">void</span>
+<span class="n">s2_ode113b_fcn</span> <span class="p">(</span>
+    <span class="kt">double</span> <span class="n">y</span> <span class="p">[],</span>
+    <span class="n">s2_context_t</span><span class="o">*</span>
+    <span class="p">)</span>
+</pre>
+<p>solve for current time step</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-ode113b-de">
+<span id="doxid-ode113b-8h-1a8cc5cb1907a1b5de62e501a7a9ac0096"></span><span></span><span class="kt">void</span>
+<span class="n">s2_ode113b_de</span> <span class="p">(</span>
+    <span class="kt">void</span>  <span class="n">f</span> <span class="kt">double</span> <span class="n">y</span><span class="p">[],</span> <span class="n">s2_context_t</span> <span class="o">*</span><span class="n">context</span><span class="p">,</span>
+    <span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span>
+    <span class="p">)</span>
+</pre>
+<p>subroutine de integrates a system of neqn first order ordinary differential equations of the form</p>
+<p>dy(i)/dt = f(t,y(1),y(2),…,y(neqn)) y(i) given at t .</p>
+<p>the subroutine integrates from t to tout . on return the parameters in the call list are initialized for continuing the integration. the user has only to define a new value tout and call de again.</p>
+<p>de calls two codes, the integrator step and the interpolation routine intrp . step uses a modified divided difference form of the adams pece formulas and local extrapolation. it adjusts the order and step size to control the local error. normally each call to step advances the solution one step in the direction of tout . though never beyond t + 10*(tout-t), and calls intrp to interpolate the solution at tout . an option is provided to stop the integration at tout but it should be used only if it is impossible to continue the integration beyond tout .</p>
+<p>this code is completely explained and documented in the text, computer solution of ordinary differential equations: the initial value problem by l. f. shampine and m. k. gordon.</p>
+<p>the parameters for de are: f subroutine f(t,y,yp) to evaluate derivatives yp(i)=dy(i)/dt neqn number of equations to be integrated y(*) solution vector at t t independent variable tout point at which solution is desired relerr,abserr relative and absolute error tolerances for local error test. at each step the code requires abs(local error) .le. abs(y)*relerr + abserr for each component of the local error and solution vectors iflag indicates status of integration</p>
+<p>first call to de</p>
+<p>the user must provide storage in his calling program for the array in the call list, y(neqn), declare f in an external statement, supply the subroutine f(t,y,yp) to evaluate dy(i)/dt = yp(i) = f(t,y(1),y(2),…,y(neqn)) and initialize the parameters: neqn number of equations to be integrated y(*) vector of initial conditions t starting point of integration tout point at which solution is desired relerr,abserr relative and absolute local error tolerances iflag +1,-1. indicator to initialize the code. normal input is +1. the user should set iflag=-1 only if it is impossible to continue the integration beyond tout . all parameters except f , neqn and tout may be altered by the code on output so must be variables in the calling program.</p>
+<p>output from de</p>
+<p>neqn unchanged y(*) solution at t t last point reached in integration. normal return has t = tout . tout unchanged relerr,abserr normal return has tolerances unchanged. iflag=3 signals tolerances increased iflag = 2 normal return. integration reached tout = 3 integration did not reach tout because error tolerances too small. relerr , abserr increased appropriately for continuing = 5 integration did not reach tout because equations appear to be stiff = 6 invalid input parameters (fatal error) the value of iflag is returned negative when the input value is negative and the integration does not reach tout , i.e., -3, -4, -5.</p>
+<p>subsequent calls to de</p>
+<p>subroutine de returns with all information needed to continue the integration. if the integration reached tout , the user need only define a new tout and call again. if the integration did not reach tout and the user wants to continue, he just calls again. the output value of iflag is the appropriate input value for subsequent calls. the only situation in which it should be altered is to stop the integration internally at the new tout , i.e., change output iflag=2 to input iflag=-2 . error tolerances may be changed by the user before continuing. all other parameters must remain unchanged.</p>
+<pre class="highlight title-code-block literal-block" id="cid-s2-context-integrateequationsode113b">
+<span id="doxid-ode113b-8h-1aafd0cf36ccbf352667a9892ee5310eb7"></span><span></span><span class="kt">void</span>
+<span class="n">s2_context_integrateEquationsOde113b</span> <span class="p">(</span><span class="n">s2_context_t</span><span class="o">*</span> <span class="n">context</span><span class="p">)</span>
+</pre>
+<p>placeholder for integrating using ode113b method</p>
+</div>
+<div class="section" id="macros">
+<h3>Macros<a class="headerlink" href="#macros" title="Permalink to this headline">¶</a></h3>
+<pre class="highlight title-code-block literal-block" id="cid-shift-h">
+<span id="doxid-shift-8h-1a7d3083ae70159e2452e54760228608ee"></span><span></span><span class="cp">#define _SHIFT_H_</span>
+</pre>
+<p>Shift: A dynamics engine and visualization tool for automation and robotics Kristopher Wehage, 2016</p>
+<p>Kristopher Wehage</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Global Namespace</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_forcemodule_enum_t.html">enum s2_forcemodule_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_numericalintegrator_enum_t.html">enum s2_numericalintegrator_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_io_enum_t.html">enum s2_pid_io_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_pid_target_enum_t.html">enum s2_pid_target_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enum_s2_spring_enum_t.html">enum s2_spring_enum_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_aligning_coefficients.html">struct aligning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_bessel.html">struct bessel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLatCoefs.html">struct combinedLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedLongCoefs.html">struct combinedLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_combinedTorqueCoefs.html">struct combinedTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_dimension.html">struct dimension</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_inclination_angle_range.html">struct inclination_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_lateral_coefficients.html">struct lateral_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_long_slip_range.html">struct long_slip_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_longitudinal_coefficients.html">struct longitudinal_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_model.html">struct model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_overturning_coefficients.html">struct overturning_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLatCoefs.html">struct pureLatCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureLongCoefs.html">struct pureLongCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_pureTorqueCoefs.html">struct pureTorqueCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_relaxationL.html">struct relaxationL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_rolling_coefficients.html">struct rolling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_damper_t.html">struct s2_damper_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_forcemodule_t.html">struct s2_forcemodule_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_numericalintegrator_ode113_t.html">struct s2_numericalintegrator_ode113_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_numericalintegrator_ode113b_t.html">struct s2_numericalintegrator_ode113b_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_pid_t.html">struct s2_pid_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_spring_t.html">struct s2_spring_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_fiala_t.html">struct s2_tire_fiala_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_s2_tire_pac2002_t.html">struct s2_tire_pac2002_t</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_scaling_coefficients.html">struct scaling_coefficients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_shape.html">struct shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slip_angle_range.html">struct slip_angle_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_slips.html">struct slips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_thresholds.html">struct thresholds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical.html">struct vertical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_vertical_force_range.html">struct vertical_force_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_zetaCoefs.html">struct zetaCoefs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detailed-documentation">Detailed Documentation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#typedefs">Typedefs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#global-functions">Global Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#macros">Macros</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../contributing/contributing.html" title="previous chapter">Contributing</a></li>
+      <li>Next: <a href="enum_s2_forcemodule_enum_t.html" title="next chapter">enum s2_forcemodule_enum_t</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/doxyrest/global.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
