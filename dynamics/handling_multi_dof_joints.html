@@ -1,0 +1,194 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Handling MultiDOF Joints &#8212; shift 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="handling-multidof-joints">
+<h1>Handling MultiDOF Joints<a class="headerlink" href="#handling-multidof-joints" title="Permalink to this headline">¶</a></h1>
+<table border="1" class="docutils">
+<colgroup>
+<col width="27%" />
+<col width="33%" />
+<col width="24%" />
+<col width="16%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>variable name</strong></td>
+<td><strong>description</strong></td>
+<td><strong>size</strong></td>
+<td><strong>type</strong></td>
+</tr>
+<tr class="row-even"><td><em>context-&gt;mhProduct</em></td>
+<td>product of <em>inertiaP</em>
+and <em>h</em></td>
+<td>dqCount</td>
+<td>s2_screw_t</td>
+</tr>
+<tr class="row-odd"><td><em>context-&gt;fl</em></td>
+<td>generalized forces</td>
+<td>dqCount</td>
+<td>double</td>
+</tr>
+<tr class="row-even"><td><em>context-&gt;g</em></td>
+<td>externally applied
+forces including gravity</td>
+<td>nonRigidJointCount</td>
+<td>s2_screw_t</td>
+</tr>
+<tr class="row-odd"><td><em>context-&gt;p</em></td>
+<td>spatial momentum</td>
+<td>nonRigidJointCount</td>
+<td>s2_screw_t</td>
+</tr>
+<tr class="row-even"><td><em>context-&gt;gamma_d</em></td>
+<td>constraint error</td>
+<td>dqCount</td>
+<td>s2_screw_t</td>
+</tr>
+<tr class="row-odd"><td><em>context-&gt;inertiaP</em></td>
+<td>spatial inertia in fixed
+inertial frame</td>
+<td>nonRigidJointCount</td>
+<td>s2_inertia_t</td>
+</tr>
+<tr class="row-even"><td><em>context-&gt;inertia</em></td>
+<td>spatial inertia in body
+frame</td>
+<td>nonRigidJointCount</td>
+<td>s2_inertia_t</td>
+</tr>
+<tr class="row-odd"><td><em>context-&gt;h</em></td>
+<td>influence coefficient
+matrices</td>
+<td>dqCount</td>
+<td>s2_screw_t</td>
+</tr>
+<tr class="row-even"><td><em>context-&gt;f</em></td>
+<td>working forces within a
+joint</td>
+<td>dqCount</td>
+<td>double</td>
+</tr>
+<tr class="row-odd"><td><em>context-&gt;la</em></td>
+<td>lagrange multipliers</td>
+<td>dqCount</td>
+<td>double</td>
+</tr>
+<tr class="row-even"><td><em>context-&gt;v</em></td>
+<td>spatial body velocities</td>
+<td>nonRigidJointCount</td>
+<td>s2_screw_t</td>
+</tr>
+<tr class="row-odd"><td><em>context-&gt;aq</em></td>
+<td>quadratic accelerations</td>
+<td>nonRigidJointCount</td>
+<td>s2_screw_t</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="evaluating-rhs">
+<h2>Evaluating RHS<a class="headerlink" href="#evaluating-rhs" title="Permalink to this headline">¶</a></h2>
+<p>Evaluating the RHS involves evaluating the expression:</p>
+<div class="math notranslate nohighlight">
+\[\underline{f}^{\ell} = \underline{f} + H^T * C^{-T} (\underline{g} + \tilde{v}^T(M\underline{v}) – M \underline{\gamma}\]</div>
+<p>which can be broken down into the following steps:</p>
+<ol class="arabic simple">
+<li>Transform inertia to inertiaP</li>
+</ol>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">shift</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../doxyrest/global.html">Global Namespace</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015-2017, Kristopher Wehage.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/dynamics/handling_multi_dof_joints.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

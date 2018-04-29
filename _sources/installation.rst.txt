@@ -6,11 +6,11 @@ Installation
 Acquiring Shift
 ---------------
 
-*Shift* is accessible through a private github repository located at `<https://github.com/kriswehage/shift>`_. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project recursively using the following command:
+*Shift* is accessible through a private github repository located at `<https://github.com/shift-dynamics/shift>`_. You may request access by contacting the authors. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project recursively using the following command:
 
 .. code::
 
-   git clone --recursive git@github.com:kriswehage/shift.git
+   git clone --recursive git@github.com:shift-dynamics/shift.git
 
 The recursive flag is necessary to initialize the submodules. If you cloned the repository without the recursive flag, you can initialize the submodules later by issuing the command:
 
@@ -97,7 +97,7 @@ You can test if the executable works correctly by running the command line inter
 .. code::
 
    cd ${PROJECT_DIRECTORY}/build/bin
-   ./shift_cli ../models/excavator/excavator.json
+   ./shift-cli ../shift-models/excavator/excavator.json
 
 
 Run the graphical user interface component of the program by executing the following command from within the ${PROJECT_DIRECTORY}/build/bin directory:

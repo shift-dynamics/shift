@@ -37,8 +37,8 @@
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="acquiring-shift">
 <h2>Acquiring Shift<a class="headerlink" href="#acquiring-shift" title="Permalink to this headline">¶</a></h2>
-<p><em>Shift</em> is accessible through a private github repository located at <a class="reference external" href="https://github.com/kriswehage/shift">https://github.com/kriswehage/shift</a>. You may request access by contacting the author. Once you have been granted access, you will need to add your ssh key to github following the instructions described <a class="reference external" href="https://help.github.com/articles/connecting-to-github-with-ssh/">here</a>. Then clone the project recursively using the following command:</p>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="o">--</span><span class="n">recursive</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">kriswehage</span><span class="o">/</span><span class="n">shift</span><span class="o">.</span><span class="n">git</span>
+<p><em>Shift</em> is accessible through a private github repository located at <a class="reference external" href="https://github.com/shift-dynamics/shift">https://github.com/shift-dynamics/shift</a>. You may request access by contacting the authors. Once you have been granted access, you will need to add your ssh key to github following the instructions described <a class="reference external" href="https://help.github.com/articles/connecting-to-github-with-ssh/">here</a>. Then clone the project recursively using the following command:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="o">--</span><span class="n">recursive</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">shift</span><span class="o">-</span><span class="n">dynamics</span><span class="o">/</span><span class="n">shift</span><span class="o">.</span><span class="n">git</span>
 </pre></div>
 </div>
 <p>The recursive flag is necessary to initialize the submodules. If you cloned the repository without the recursive flag, you can initialize the submodules later by issuing the command:</p>
@@ -102,7 +102,7 @@
 <p>Where ${PROJECT_DIRECTORY} is the root directory of the git project on your system.</p>
 <p>You can test if the executable works correctly by running the command line interface to the program as:</p>
 <div class="code highlight-default notranslate"><div class="highlight"><pre><span></span>cd ${PROJECT_DIRECTORY}/build/bin
-./shift_cli ../models/excavator/excavator.json
+./shift-cli ../shift-models/excavator/excavator.json
 </pre></div>
 </div>
 <p>Run the graphical user interface component of the program by executing the following command from within the ${PROJECT_DIRECTORY}/build/bin directory:</p>

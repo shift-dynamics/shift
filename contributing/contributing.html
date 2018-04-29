@@ -37,216 +37,17 @@
 <span id="id1"></span><h1>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="roadmap">
 <h2>Roadmap<a class="headerlink" href="#roadmap" title="Permalink to this headline">¶</a></h2>
-<p>Contributors to Shift are sought, particularly if you are interested in incorporating Shift into your research.</p>
-<p>Refer to the <a class="reference external" href="https://github.com/kriswehage/shift/issues">Github issues page</a> for possible development tasks or contact the author if you have other development/research ideas.</p>
+<p>Currently <em>Shift</em> is under heavy development. Contributors are sought, particularly if you are interested in incorporating <em>Shift</em> into your research.</p>
+<p>Possible development tasks include:
+* Flexible body modeling
+* Contact detection and modeling
+* Vulkan/Qt visualization framework
+* Setting up new models and test-cases</p>
+<p>If you are interested to contribute, please register your interest with the authors to obtain access to the <em>Shift</em> git repository. Once you have access to the Github site, refer to the  <a class="reference external" href="https://github.com/shift-dynamics/shift/issues">Github issues page</a> for other possible development tasks or contact the authors with other development/research ideas.</p>
 </div>
-<div class="section" id="coding-style">
-<h2>Coding Style<a class="headerlink" href="#coding-style" title="Permalink to this headline">¶</a></h2>
-<p>This guide describes the coding style used in <em>Shift</em>.</p>
-<div class="figure align-center" id="id2">
-<a class="reference internal image-reference" href="../_images/code_quality.png"><img alt="../_images/code_quality.png" src="../_images/code_quality.png" style="width: 600px;" /></a>
-<p class="caption"><span class="caption-text">Figure 1: credit: xkcd</span></p>
-</div>
-<div class="section" id="comments">
-<h3>Comments<a class="headerlink" href="#comments" title="Permalink to this headline">¶</a></h3>
-<ul>
-<li><p class="first">Use Doxygen style comment blocks for all functions and member functions in
-.c and .cpp files. Members of classes and structs should be documented in the
-corresponding .h or .hpp file. Doxygen style comment blocks should accompany
-every function in the declaration itself, not in the header file. In this way
-the description of how to use the code and the code itself are found in the
-same location and can more easily be maintained. Add [in] and [out] to every
-variable in the call list - note that this is particularly useful for
-subroutines which may change/modify data found at an address specified in one
-of the inputs to the subroutine.</p>
-<p>These comment blocks are intended to convey to other users of your code
-how to use/call the functions and what values are returned.</p>
-</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span>/*!
-  @brief adds two to an integer
-
-  Detailed description here.
-
-  @param bar [in] an integer to add two to.
-  @return output integer.
-*/
-int foo(int bar) {
-  return bar + 2;
-}
-</pre></div>
-</div>
-<ul class="simple">
-<li>Use comment blocks (\* *\) to describe how code works inline with your
-code. Use proper English in your comment blocks. Be succinct,
-but provide sufficient detail so that others can understand what you
-are doing. Do not write comments in all caps. Do not use comment blocks to
-temporarily comment out blocks of code for debugging purposes. The use of
-comment blocks within code conveys that these are intentional messages
-written for the benefit of other developers of the code, not necessarily for
-end-users of the code. Comment blocks may be interspersed anywhere within the
-code – where clarification is deemed necessary.</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="o">*</span> <span class="n">This</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">descriptive</span> <span class="n">comment</span><span class="o">.</span> <span class="o">*</span>\
-
-\<span class="o">*</span> <span class="n">This</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">descriptive</span> <span class="n">comment</span> <span class="n">that</span> <span class="n">spans</span> <span class="n">multiple</span> <span class="n">lines</span><span class="o">.</span> <span class="n">Do</span> <span class="ow">not</span> <span class="n">use</span>
-<span class="n">asterisks</span> <span class="n">at</span> <span class="n">the</span> <span class="n">beginning</span> <span class="n">of</span> <span class="n">each</span> <span class="n">line</span> <span class="n">within</span> <span class="n">a</span> <span class="n">comment</span> <span class="n">block</span><span class="o">.</span> <span class="n">Modern</span>
-<span class="n">interpreters</span> <span class="n">highlight</span> <span class="n">comment</span> <span class="n">blocks</span> <span class="ow">in</span> <span class="n">a</span> <span class="n">different</span> <span class="n">color</span> <span class="n">so</span> <span class="n">it</span> <span class="ow">is</span> <span class="ow">not</span>
-<span class="n">necessary</span> <span class="n">to</span> <span class="n">add</span> <span class="n">the</span> <span class="n">additional</span> <span class="n">asterisks</span> <span class="n">to</span> <span class="n">make</span> <span class="n">the</span> <span class="n">comment</span> <span class="n">block</span> <span class="n">stand</span>
-<span class="n">out</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">rest</span> <span class="n">of</span> <span class="n">the</span> <span class="n">code</span><span class="o">.</span> <span class="n">The</span> <span class="n">use</span> <span class="n">of</span> <span class="n">asterisks</span> <span class="n">at</span> <span class="n">the</span> <span class="n">beginning</span> <span class="n">of</span>
-<span class="n">each</span> <span class="n">line</span> <span class="n">within</span> <span class="n">a</span> <span class="n">comment</span> <span class="n">block</span> <span class="n">makes</span> <span class="n">it</span> <span class="n">more</span> <span class="n">difficult</span> <span class="n">to</span> <span class="n">maintain</span><span class="o">.</span> <span class="n">Use</span>
-<span class="n">an</span> <span class="n">opening</span> <span class="ow">and</span> <span class="n">closing</span> <span class="n">mark</span> <span class="n">only</span><span class="o">.</span> <span class="o">*</span>\
-</pre></div>
-</div>
-<ul class="simple">
-<li>Use the double slash (\) comment to temporarily comment out a block of
-code for debugging purposes. The use of the (\) comment conveys to
-other developers that the commented out block of code is a candidate for
-removal once the program has been verified to work correctly.</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span>\\ <span class="n">someTestFunction</span><span class="p">();</span>
-<span class="n">someOtherFunction</span><span class="p">();</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="indentation-spaces">
-<h3>Indentation / Spaces<a class="headerlink" href="#indentation-spaces" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li>Use two spaces for indentation in C and C++. (Use 4 spaces in Python.)</li>
-<li>Provide spaces after commas and around operators to improve readability.
-For example:</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">someFunction</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">);</span>
-
-<span class="nb">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-
-<span class="k">if</span><span class="p">(</span><span class="n">a</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<ul class="simple">
-<li>Always use brackets {} in for loops, even if it is just a single line. This
-makes it easier to debug or add additional functions to a for loop later. For
-loops should follow the convention:</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span><span class="p">(</span><span class="nb">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<ul class="simple">
-<li>if/else statements should follow the convention:</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="p">(</span><span class="n">a</span> <span class="o">&lt;</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;a &lt; b</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
-<span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;a == b</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
-<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;a &gt; b</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<ul class="simple">
-<li>switch statements follow the convention:</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">switch</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">case</span> <span class="n">CASE1</span><span class="p">:</span> <span class="p">{</span>
-    <span class="n">someFunction</span><span class="p">();</span>
-  <span class="p">}</span> <span class="k">break</span><span class="p">;</span>
-  <span class="n">case</span> <span class="n">CASE2</span><span class="p">:</span> <span class="p">{</span>
-    <span class="n">someOtherFunction</span><span class="p">();</span>
-  <span class="p">}</span> <span class="k">break</span><span class="p">;</span>
-  <span class="n">default</span><span class="p">:</span> <span class="p">{</span>
-    <span class="n">defaultFunction</span><span class="p">();</span>
-  <span class="p">}</span> <span class="k">break</span><span class="p">;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<ul class="simple">
-<li>Pointers follow the convention:</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">double</span><span class="o">*</span> <span class="n">a</span><span class="p">;</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="scope-of-variables">
-<h3>Scope of variables<a class="headerlink" href="#scope-of-variables" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li>Try to reduce the scope of variables as practical. For example, it is
-preferred to declare an integer within a for loop, rather than declaring an
-integer at the beginning of a function and reusing it in multiple for loops.
-Reducing the scope of variables makes no different in execution speed or stack
-allocation and is easier to read and debug. An example of the preferred
-syntax is shown below:</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">testFunction</span><span class="p">()</span> <span class="p">{</span>
-  <span class="k">for</span><span class="p">(</span><span class="nb">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;d &quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
-  <span class="p">}</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
-  <span class="k">for</span><span class="p">(</span><span class="nb">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> &quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
-  <span class="p">}</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li>Use PascalCase for class names</li>
-<li>use mixedCase for member functions.</li>
-<li>preface all member variables with <em>m_</em></li>
-<li>An example .hpp file containing a class:</li>
-</ul>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span>class MyTreeItem : public QTreeWidgetItem {
-  public:
-    MyTreeItem(int type) {
-      m_object = NULL;
-      m_userType = type;
-    }
-    ~MyTreeItem() {}
-    QString m_name; /*!&lt; the name of the tree item*/
-    void* m_object; /*!&lt; pointer to an object associated with this tree item*/
-    int m_userType; /*!&lt; an integer specifying the user type associated
-                         with this tree item: (1002: assembly,
-                         1003: body group, 1004: body, 1005: frame,
-                         1006: joint group, 1007: joint, 1008: light group,
-                         1009: light, 1010: restraint group,
-                         1011: restraint, 1012: io group, 1013: io)*/
-};
-</pre></div>
-</div>
-</div>
-<div class="section" id="other">
-<h3>Other<a class="headerlink" href="#other" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li>Avoid global variables and macros.</li>
-<li>Avoid declaring multiple variables on a single line. Each declaration should
-be on its own line.</li>
-<li>If functions already exist in standard C libraries, it is preferred to use
-those functions over custom functions for the same purpose.</li>
-<li>As possible, full–dense numerical algorithms should be written to take
-advantage of the cblas library for moderate to large sized vectors/matrices.</li>
-<li>Use .cpp and .hpp file extensions for C++ code. Use .c and .h file
-extensions for C code.</li>
-<li>In C, the data structure <em>foo</em> shall have a typedef <cite>s2_foo_t</cite>, where the <cite>s2</cite>
-prefix indicates the <em>shift</em> namespace.</li>
-<li>Each data structure in .c shall have a constructor and destructor with the
-prototypes <cite>s2_foo_t* s2_foo()</cite> and <cite>s2_foo_free(s2_foo_t*)</cite>.</li>
-<li>The <em>member functions</em> (i.e. functions that operate on <cite>s2_foo_t</cite>) shall have
-the prototype <cite>s2_foo_bar(s2_foo_t* foo, &lt;additional arguments&gt;)</cite> where <em>bar</em> is a description of the operation being performed. The function name <em>bar</em> should follow the mixedCase convention with the first letter lowercase.</li>
-</ul>
-</div>
-<div class="section" id="using-artistic-style">
-<h3>Using <em>Artistic Style</em><a class="headerlink" href="#using-artistic-style" title="Permalink to this headline">¶</a></h3>
-<p>The <em>Shift</em> repository contains an <a class="reference external" href="http://astyle.sourceforge.net/astyle.html">Artistic Style</a> configuration file that can be used to auto-format code to follow most of the conventions described above. Artistic Style can be obtained through their website or using your package manager. To run <em>Artistic Style</em> on your code, from the top level directory of the git repository run:</p>
-<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">astyle</span> <span class="o">--</span><span class="n">options</span><span class="o">=.</span><span class="n">astyle</span><span class="o">.</span><span class="n">cfg</span> <span class="o">&lt;</span><span class="n">path_to_file</span><span class="o">&gt;</span>
-</pre></div>
-</div>
-</div>
+<div class="section" id="using-clang-format">
+<h2>Using <em>Clang-Format</em><a class="headerlink" href="#using-clang-format" title="Permalink to this headline">¶</a></h2>
+<p>The <em>Shift</em> repository contains a <a class="reference external" href="https://clang.llvm.org/docs/ClangFormat.html">Clang Format</a> configuration file that can be used to auto-format code to follow <em>Shift</em> coding conventions. If you are using the Atom text editor, you can install the <a class="reference external" href="https://atom.io/packages/clang-format">clang-format package</a> to autoformat code when you save  documents. Plugins are also available for other text editors.</p>
 </div>
 </div>
 
@@ -272,7 +73,7 @@ the prototype <cite>s2_foo_bar(s2_foo_t* foo, &lt;additional arguments&gt;)</cit
 <li class="toctree-l1"><a class="reference internal" href="../file_format/file_format.html">File Format</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#roadmap">Roadmap</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#coding-style">Coding Style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-clang-format">Using <em>Clang-Format</em></a></li>
 </ul>
 </li>
 </ul>
