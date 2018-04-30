@@ -116,22 +116,7 @@ matrices are obtained from the current render window.
 */
 void Shift::TerrainShaderProgram::setTransform(s2_displacement_t* transform) {
   QMatrix4x4 model = displacementToQMatrix4x4(transform);
-  QMatrix4x4 view = m_renderWindow->getViewMatrix();
-  QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
-  QMatrix4x4 mv = view * model;
-  QMatrix4x4 mvp = projection * mv;
-  m_program->setUniformValue(m_matrices_mvp_u, mvp);
-  m_program->setUniformValue(m_matrices_mv_u, mv);
-  m_program->setUniformValue(m_matrices_v_u, view);
-  m_program->setUniformValue(m_matrices_p_u, projection);
-  m_program->setUniformValue(m_matrices_nm_u, mv.normalMatrix());
-  if(m_renderWindow->getLights()->isEnabled()) {
-    m_program->setUniformValueArray(
-      m_lights_shadowMatrix_u,
-      m_renderWindow->getLights()->setShadowMatrix(transform),
-      m_renderWindow->getLights()->getMaxCount());
-    checkError("terrain: after set shadow matrix array");
-  }
+  setTransform(model);
 }
 
 /*!
@@ -153,7 +138,8 @@ void Shift::TerrainShaderProgram::setTransform(QMatrix4x4& model) {
       m_lights_shadowMatrix_u,
       m_renderWindow->getLights()->setShadowMatrix(model),
       m_renderWindow->getLights()->getMaxCount());
-    checkError("terrain: after set shadow matrix array");
+    checkError(
+      "TerrainShaderProgram::setTransform(): after set shadow matrix array");
   }
 }
 

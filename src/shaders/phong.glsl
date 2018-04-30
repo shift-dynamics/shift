@@ -106,28 +106,12 @@ void main() {
   for(int i = 0; i < lights_u.count; i++) {
     vec3 L;
     switch(lights_u.directional[i]) {
-      case 0: {
-        /* 0= point light
-          light.position indicates position of light source
-          used to compute direction of incoming light */
-        vec4 temp = matrices_u.v * vec4(
-          lights_u.position[i].x,
-          lights_u.position[i].y,
-          lights_u.position[i].z,
-          1.0)
-          - matrices_u.mv * positionFrag;
-        L = normalize(temp.xyz);
-        break;
-      }
+      case 0:
       case 1: {
         /* 1 = spot light
           light.position indicates position of light source
           used to compute direction of incoming light */
-        vec4 temp = matrices_u.v * vec4(
-          lights_u.position[i].x,
-          lights_u.position[i].y,
-          lights_u.position[i].z,
-          1.0)
+        vec4 temp = matrices_u.v * vec4(lights_u.position[i], 1.0)
           - matrices_u.mv * positionFrag;
         L = normalize(temp.xyz);
         break;
@@ -136,11 +120,7 @@ void main() {
         /* 2 = directional light
           light.position indicates direction of light source
           used to compute direction of incoming light */
-        vec4 temp = matrices_u.v * vec4(
-          lights_u.position[i].x,
-          lights_u.position[i].y,
-          lights_u.position[i].z,
-          1.0);
+        vec4 temp = matrices_u.v * vec4(lights_u.position[i], 1.0);
         L = normalize(temp.xyz);
         break;
       }
@@ -149,7 +129,6 @@ void main() {
     }
 
     float shadowTest = 1.f;
-    float LdotN =  max(0.0, dot(L, normalFrag));
     if(lights_u.drawShadows == 1) {
       shadowTest = 0.0;
       for(float y = -1.5; y <= 1.5; y += 1.0) {
@@ -187,6 +166,7 @@ void main() {
     }
 
     /* diffuse term */
+    float LdotN =  max(0.0, dot(L, normalFrag));
     color.rgb += material_u.Kd.rgb * lights_u.Kd[i] * LdotN * shadowTest;
 
     /* specular term */

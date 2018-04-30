@@ -7,9 +7,12 @@
 */
 void Shift::FloorShaderProgram::initialize() {
   if(!m_initialized) {
+    checkError("FloorShaderProgram::initialize(): before add vertex shader");
     addProgram();
     addVertexShader(":/shaders/floor.glsl");
+    checkError("FloorShaderProgram::initialize(): after add vertex shader");
     addFragmentShader(":/shaders/floor.glsl");
+    checkError("FloorShaderProgram::initialize(): after add fragment shader");
     link();
     bind();
     checkError("FloorShaderProgram::initialize(): after link program");
@@ -58,20 +61,21 @@ void Shift::FloorShaderProgram::initialize() {
 
     /* light uniform locations */
     m_lights_position_u = m_program->uniformLocation("lights_u.position");
+    m_lights_direction_u = m_program->uniformLocation("lights_u.direction");
+    m_lights_type_u = m_program->uniformLocation("lights_u.type");
     m_lights_Ka_u = m_program->uniformLocation("lights_u.Ka");
     m_lights_Kd_u = m_program->uniformLocation("lights_u.Kd");
     m_lights_Ks_u = m_program->uniformLocation("lights_u.Ks");
-    m_lights_type_u = m_program->uniformLocation("lights_u.type");
     m_lights_count_u = m_program->uniformLocation("lights_u.count");
     m_lights_drawShadows_u = m_program->uniformLocation("lights_u.drawShadows");
     m_lights_shadowMatrix_u =
       m_program->uniformLocation("lights_u.shadowMatrix");
 
     qDebug() << "lights_u.position: " << m_lights_position_u;
+    qDebug() << "lights_u.direction: " << m_lights_direction_u;
     qDebug() << "lights_u.Ka: " << m_lights_Ka_u;
     qDebug() << "lights_u.Kd: " << m_lights_Kd_u;
     qDebug() << "lights_u.Ks: " << m_lights_Ks_u;
-    qDebug() << "lights_u.directional: " << m_lights_type_u;
     qDebug() << "lights_u.count: " << m_lights_count_u;
 
     /* floor specific uniform locations */
@@ -90,7 +94,7 @@ void Shift::FloorShaderProgram::initialize() {
 
     m_vao->release();
     release();
-    checkError("FloorShaderProgram::initialize(): after set uniforms");
+    checkError("FloorShaderProgram::initialize(): after initialize uniforms");
     m_initialized = true;
   }
 }
@@ -111,8 +115,22 @@ matrices are obtained from the current render window.
 void Shift::FloorShaderProgram::setTransform(QMatrix4x4& model) {
   QMatrix4x4 view = m_renderWindow->getViewMatrix();
   QMatrix4x4 projection = m_renderWindow->getProjectionMatrix();
-  QMatrix4x4 mvp = projection * view * model;
+  QMatrix4x4 mv = view * model;
+  QMatrix4x4 mvp = projection * mv;
   m_program->setUniformValue(m_matrices_mvp_u, mvp);
+  m_program->setUniformValue(m_matrices_mv_u, mv);
+  m_program->setUniformValue(m_matrices_v_u, view);
+  m_program->setUniformValue(m_matrices_p_u, projection);
+  m_program->setUniformValue(m_matrices_nm_u, view.normalMatrix());
+  if(m_renderWindow->getLights()->isEnabled()) {
+    m_program->setUniformValueArray(
+      m_lights_shadowMatrix_u,
+      m_renderWindow->getLights()->setShadowMatrix(model),
+      m_renderWindow->getLights()->getMaxCount());
+
+    checkError(
+      "FloorShaderProgram::setTransform(): after set shadow matrix array");
+  }
 }
 
 /*!
@@ -126,7 +144,6 @@ void Shift::FloorShaderProgram::setScale(GLfloat scale) {
 @brief bind dummy vertex array object
 */
 void Shift::FloorShaderProgram::bindVao() {
-  m_program->bind();
   m_vao->bind();
 }
 
@@ -135,7 +152,6 @@ void Shift::FloorShaderProgram::bindVao() {
 */
 void Shift::FloorShaderProgram::releaseVao() {
   m_vao->release();
-  m_program->release();
 }
 
 /*!
@@ -182,5 +198,30 @@ void Shift::FloorShaderProgram::bindBumpTexture(QOpenGLTexture* tex) {
     m_program->setUniformValue(m_floor_enableSpecularMap_u, 1);
   } else {
     m_program->setUniformValue(m_floor_enableSpecularMap_u, 0);
+  }
+}
+
+/*!
+@brief set light uniforms
+*/
+void Shift::FloorShaderProgram::setLights(Lights* lights) {
+  m_program->setUniformValueArray(m_lights_position_u, lights->getPosition(),
+                                  10, 3);
+  checkError("after FloorShaderProgram::setLights - m_lights_position_u");
+  m_program->setUniformValueArray(m_lights_Ka_u, lights->getKa(), 10, 3);
+  checkError("after FloorShaderProgram::setLights - m_lights_Ka_u");
+  m_program->setUniformValueArray(m_lights_Kd_u, lights->getKd(), 10, 3);
+  checkError("after FloorShaderProgram::setLights - m_lights_Kd_u");
+  m_program->setUniformValueArray(m_lights_Ks_u, lights->getKs(), 10, 3);
+  checkError("after FloorShaderProgram::setLights - m_lights_Ks_u");
+  m_program->setUniformValueArray(m_lights_type_u, lights->getType(), 10);
+  checkError("after FloorShaderProgram::setLights - m_lights_direction_u");
+  m_program->setUniformValue(m_lights_count_u, lights->getCount());
+  checkError("after FloorShaderProgram::setLights - m_lights_count_u");
+
+  if(m_renderWindow->getLights()->isEnabled()) {
+    m_program->setUniformValue(m_lights_drawShadows_u, 1);
+  } else {
+    m_program->setUniformValue(m_lights_drawShadows_u, 0);
   }
 }

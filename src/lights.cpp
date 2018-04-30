@@ -1,5 +1,6 @@
 #include "lights.h"
 #include "bodies.h"
+#include "floor.h"
 #include "geometry.h"
 #include "renderwindow.h"
 #include "shadowshaderprogram.h"
@@ -276,6 +277,7 @@ void Shift::Lights::draw() {
       getFramebufferStatus();
       checkError("lights: after glCheckFramebufferStatus");
 
+      m_renderWindow->getFloor()->drawShadows();
       m_renderWindow->getBodies()->drawShadows();
       m_renderWindow->getTerrain()->drawShadows();
     }
@@ -296,13 +298,7 @@ void Shift::Lights::draw() {
 */
 QMatrix4x4* Shift::Lights::setShadowMatrix(s2_displacement_t* transform) {
   QMatrix4x4 model = displacementToQMatrix4x4(transform);
-  QMatrix4x4 bias = QMatrix4x4(0.5f, 0.f, 0.f, 0.5f, 0.f, 0.5f, 0.f, 0.5f, 0.f,
-                               0.f, 0.5f, 0.5f, 0.f, 0.f, 0.f, 1.f);
-  for(int i = 0; i < m_lights.count; i++) {
-    m_lights.shadowMatrix[i] =
-      bias * getProjectionMatrix(i) * getViewMatrix(i) * model;
-  }
-  return m_lights.shadowMatrix;
+  return setShadowMatrix(model);
 }
 
 /*!

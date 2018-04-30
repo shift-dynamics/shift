@@ -1,6 +1,6 @@
 #version 420 core
-
 /* terrain.vert */
+
 layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
 layout (binding = 1) uniform samplerCubeArrayShadow texture_shadowCube_u;
 layout (binding = 2) uniform sampler2D texture_elevation_u;
@@ -241,6 +241,7 @@ in TES_OUT {
   vec3 light_direction_tangentSpace[10]; /* light direction in texture space */
   vec4 shadowCoord[10];
 } fs_in;
+
 out vec4 colorFrag;
 
 float offset_lookup(sampler2DArrayShadow texture_shadow, int index,

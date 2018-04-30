@@ -1,10 +1,7 @@
 #version 330
+/* gouraud.glsl */
 
-/* gouraud.vert */
-
-/*
-  light parameters
-*/
+/* light parameters */
 uniform int lightCount;
 uniform vec3 posLight[10];
 uniform vec3 Ka[10];
@@ -12,15 +9,11 @@ uniform vec3 Kd[10];
 uniform vec3 Ks[10];
 uniform int directional[10];
 
-/*
-  body parameters
-*/
+/* body parameters */
 uniform mat4 mvp, mv, v;
 uniform mat3 nm;
 
-/*
-  material parameters
-*/
+/* material parameters */
 uniform vec3 KaMaterial;
 uniform vec3 KdMaterial;
 uniform vec3 KsMaterial;
