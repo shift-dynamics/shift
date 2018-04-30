@@ -427,15 +427,21 @@ void Shift::RenderWindow::checkError(const QString& prefix) {
 */
 void Shift::RenderWindow::initialize() {
 
+  glEnable(GL_DEPTH_TEST);
+  checkError("after glEnable(GL_DEPTH_TEST)");
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  checkError("after glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)");
   glClearColor(m_backgroundColor[0], m_backgroundColor[1], m_backgroundColor[2],
                1.0f);
-  glEnable(GL_DEPTH_TEST);
+  checkError("after glClearColor");
 
   if(!m_initialized) {
 
     m_programFloor = new FloorShaderProgram(this);
+    checkError("after initialize floor shader");
+
     m_programFloorShadow = new FloorShadowShaderProgram(this);
+    checkError("after initialize floor shadow shader");
 
     m_programPhong = new PhongShaderProgram(this);
     checkError("after initialize phong shader");
@@ -459,6 +465,7 @@ void Shift::RenderWindow::initialize() {
     checkError("after initialize point cloud shader");
 
     m_programTerrainShadow = new TerrainShadowShaderProgram(this);
+    checkError("after initialize terrain shadow shader program");
 
     m_programNormal = new NormalShaderProgram(this);
     checkError("after initialize normal shader");
@@ -468,10 +475,7 @@ void Shift::RenderWindow::initialize() {
 
     m_skybox->setShader(m_programSkybox);
     m_skybox->initialize();
-
-    m_floor->setShader(m_programFloor);
-    m_floor->setShadowShader(m_programFloorShadow);
-    m_floor->initialize();
+    checkError("after skybox initialize");
 
     m_bodies->setPhongShader(m_programPhong);
     m_bodies->setFlatShader(m_programFlat);
@@ -491,16 +495,21 @@ void Shift::RenderWindow::initialize() {
     m_lights->setShader(m_programShadow);
 
     m_grid->setShader(m_programSimple);
+    m_grid->enable(false);
+
+    m_floor->setShader(m_programFloor);
+    m_floor->setShadowShader(m_programFloorShadow);
+    m_floor->setLights(m_lights);
+    m_floor->initialize();
+    checkError("after floor initialize");
 
     m_pointclouds->setShader(m_programPointCloud);
 
     checkError("renderwindow: after set shader programs");
-
-    m_grid->enable(true);
-
     m_initialized = true;
     emit initialized();
   }
+
   updateGL();
 }
 
@@ -783,12 +792,12 @@ void Shift::RenderWindow::render() {
 */
 void Shift::RenderWindow::draw() {
   m_skybox->draw();
-  m_floor->draw();
   m_grid->draw();
   m_frames->draw();
   m_joints->draw();
   m_terrain->draw();
   m_bodies->draw();
+  m_floor->draw();
   m_pointclouds->draw();
 }
 

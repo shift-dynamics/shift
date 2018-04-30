@@ -12,8 +12,8 @@ out vec3 tcFrag;
 void main() {
   vec3[4] vertices = vec3[4](
     vec3(-1.0, -1.0, 0.0),
-    vec3(1.0, -1.0, 0.0),
     vec3(-1.0, 1.0, 0.0),
+    vec3(1.0, -1.0, 0.0),
     vec3(1.0, 1.0, 0.0));
   gl_Position = matrices_u.mvp * vec4(vertices[gl_VertexID], 1.0);
 }

@@ -45,6 +45,9 @@ public:
     m_program = program;
     initialize();
   }
+  void bindVao() {
+    m_vao->bind();
+  }
 
 public slots:
 

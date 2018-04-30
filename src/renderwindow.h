@@ -123,6 +123,10 @@ public:
     return m_bodies;
   }
 
+  Floor* getFloor() {
+    return m_floor;
+  }
+
   Grid* getGrid() {
     return m_grid;
   }

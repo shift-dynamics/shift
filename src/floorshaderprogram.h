@@ -55,6 +55,7 @@ public:
   void bindNormalTexture(QOpenGLTexture*);
   void bindSpecularTexture(QOpenGLTexture*);
   void bindBumpTexture(QOpenGLTexture*);
+  void setLights(Lights*);
 
 signals:
 
@@ -83,10 +84,11 @@ private:
 
   /* light uniform locations */
   GLint m_lights_position_u;
+  GLint m_lights_direction_u;
+  GLint m_lights_type_u;
   GLint m_lights_Ka_u;
   GLint m_lights_Kd_u;
   GLint m_lights_Ks_u;
-  GLint m_lights_type_u;
   GLint m_lights_count_u;
   GLint m_lights_drawShadows_u;
   GLint m_lights_shadowMatrix_u;

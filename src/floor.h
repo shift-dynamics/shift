@@ -4,6 +4,7 @@
 #include "shift.h"
 
 #include "geometry.h"
+#include "lights.h"
 #include "openglwindow.h"
 #include "renderwindow.h"
 
@@ -49,12 +50,17 @@ public:
     m_programShadow = program;
   };
 
+  void setLights(Lights* lights) {
+    m_lights = lights;
+  }
+
 private:
   QOpenGLTexture* m_texture_diffuse = NULL;
   QOpenGLTexture* m_texture_bump = NULL;
   QOpenGLTexture* m_texture_specular = NULL;
   FloorShaderProgram* m_program = NULL;
   FloorShadowShaderProgram* m_programShadow = NULL;
+  Lights* m_lights = NULL;
 };
 } // namespace Shift
 

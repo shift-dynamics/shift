@@ -86,9 +86,10 @@ public:
 };
 
 class Workspace : public QMainWindow {
-  Q_OBJECT // must be included to add qt meta information
+  Q_OBJECT
 
-    public : explicit Workspace(QWidget* parent = 0);
+public:
+  explicit Workspace(QWidget* parent = 0);
   ~Workspace();
 
   RenderWindow* m_renderWindow;
