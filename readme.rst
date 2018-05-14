@@ -1,6 +1,12 @@
 *Shift*
 =======
 
+.. raw:: html
+
+   <embed>
+    <a href='http://104.35.187.125:8090/job/shift-dynamics/job/shift/job/master/'><img src='http://104.35.187.125:8090/buildStatus/icon?job=shift-dynamics/shift/master' alt="Build Status"></a>
+   </embed>
+
 A dynamics engine and visualization tool for automation and robotics.
 
 Overview
