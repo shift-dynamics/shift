@@ -4,6 +4,10 @@
 ====================================================
 A Dynamics Engine and Visualization Tool for Automation and Robotics
 
+.. image:: _static/excavator.png
+    :align: center
+    :alt: Hydraulic excavator
+
 overview
 --------
 .. toctree::

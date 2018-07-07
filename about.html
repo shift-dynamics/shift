@@ -9,7 +9,7 @@
     <title>About &#8212; shift 2.0.0 documentation</title>
     <link rel="stylesheet" href="_static/custom.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
@@ -31,33 +31,35 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="about">
 <h1>About<a class="headerlink" href="#about" title="Permalink to this headline">¶</a></h1>
 <p><em>Shift</em> is a general-purpose software tool for simulating and visualizing rigid body dynamics of robotic systems. The underlying algorithms are tailored to process complex robotic systems with multiple overlapping kinematic chord loops, but the software is also capable of efficiently modeling simple systems, such as those consisting of serial chains or <em>tree</em> topologies.</p>
-<p>A unique aspect of <em>Shift</em> is its file format, which is based on the JSON (Javascript Object Notation) specification. In a <em>Shift</em> JSON file, the system topology is specified by enumerating a number of bodies and a number of joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled; the software does not burden the user with identifying a <em>spanning tree</em> or identifying closed kinematic loops present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.</p>
+<p>A unique aspect of <em>Shift</em> is its file format, which is based on the JSON (Javascript Object Notation) specification. In a <em>Shift</em> JSON file, the system topology is specified by enumerating a number of bodies and joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled; the software does not burden the user with identifying a <em>spanning tree</em> or <em>scene graph</em> or with identifying closed kinematic loops if present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.</p>
 <p>In <em>Shift</em>, model reduction is performed automatically using <em>Generalized Coordinate Partitioning</em> (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as <em>Kinematic Substructures</em> throughout this documentation.</p>
 <div class="section" id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="faster-than-real-time-simulation">
 <h3>Faster than real–time simulation<a class="headerlink" href="#faster-than-real-time-simulation" title="Permalink to this headline">¶</a></h3>
-<video src="_static/excavator.m4v" width="640" height="440" controls>
-</video><p>Most <em>Shift</em> models run many times faster than real–time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real–time without contact detection.</p>
+<video src="_static/vehicle_chassis.webm" width="640" controls>
+</video><p>This simulation of a vehicle chassis uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The model runs many times faster than real-time on a desktop workstation.</p>
 </div>
 <div class="section" id="automatic-assembly-of-complex-mechanisms">
 <h3>Automatic assembly of complex mechanisms<a class="headerlink" href="#automatic-assembly-of-complex-mechanisms" title="Permalink to this headline">¶</a></h3>
-<video src="_static/vehicle_control_15mps.m4v" width="640" height="440" controls>
-</video><p>The <em>Shift</em> file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user’s input file, even for relatively complex mechanisms such as this model of a vehicle chassis, which runs many times faster than real-time.</p>
+<video src="_static/klann_linkage.webm" width="640" controls>
+</video><p>The <em>Shift</em> file format is a simple list of bodies and joints. The spanning tree and overlapping clusters of chord loops (i.e. <em>kinematic substructures</em>) are detected automatically at run-time from the user’s input file.</p>
 </div>
 <div class="section" id="heuristic-application-of-generalized-coordinate-partitioning">
 <h3>Heuristic application of Generalized Coordinate Partitioning<a class="headerlink" href="#heuristic-application-of-generalized-coordinate-partitioning" title="Permalink to this headline">¶</a></h3>
-<video src="_static/bricard.m4v" width="640" height="440" controls>
+<video src="_static/bricard.webm" width="640" controls>
 </video><p>Bricard’s paradoxical linkage cannot be parameterized by one independent variable throughout its range of motion. <em>Shift’s</em> heuristic reapplication of Generalized Coordinate Partitioning (GCP) successfully detects when to reapply GCP on an as–needed basis, even for exceptional or paradoxical linkages.</p>
 </div>
 <div class="section" id="mobility-analysis-and-interactive-positioning-in-a-3d-environment">
 <h3>Mobility analysis and interactive positioning in a 3D environment<a class="headerlink" href="#mobility-analysis-and-interactive-positioning-in-a-3d-environment" title="Permalink to this headline">¶</a></h3>
-<video src="_static/brake.m4v" width="640" height="440" controls>
+<video src="_static/brake.webm" width="640" controls>
 </video><p>In addition to solving dynamics equations, <em>Shift</em> has tools to analyze each joint’s contribution to overall mechanism mobility, compute mechanical advantages and to interactively position models in a 3D visualization environment.</p>
 </div>
 <div class="section" id="opengl-rendering">
@@ -124,6 +126,7 @@
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
@@ -182,8 +185,8 @@
       &copy;2015-2017, Kristopher Wehage.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
       |
       <a href="_sources/about.rst.txt"

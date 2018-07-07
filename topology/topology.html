@@ -9,7 +9,7 @@
     <title>Topology &#8212; shift 2.0.0 documentation</title>
     <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
@@ -29,6 +29,8 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <div class="section" id="topology">
@@ -37,7 +39,7 @@
 <h2>Graph Theory for Multibody Systems<a class="headerlink" href="#graph-theory-for-multibody-systems" title="Permalink to this headline">¶</a></h2>
 <p>In this section, a model of a hydraulic excavator is used to illustrate basic concepts from graph theory.</p>
 <div class="figure align-center" id="id35">
-<span id="excavator"></span><a class="reference internal image-reference" href="../_images/excavator.png"><img alt="../_images/excavator.png" src="../_images/excavator.png" style="width: 600px;" /></a>
+<span id="excavator"></span><a class="reference internal image-reference" href="../_images/excavator1.png"><img alt="../_images/excavator1.png" src="../_images/excavator1.png" style="width: 600px;" /></a>
 <p class="caption"><span class="caption-text">Figure 1: A Hydraulic Excavator</span></p>
 </div>
 <p>The excavator model’s topology can be described as a directed graph with a number of bodies comprising the <em>nodes</em> of the graph, connected by a number of joints as <em>edges</em> of the directed graph.  The excavator model consists of 15 bodies connected by 20 joints, shown in <a class="reference internal" href="#table-1">Table 1</a>. The bodies and joints are listed in an arbitrary, user–defined order. This organization of bodies and joints is similar to how mechanism topology is specified in the Shift JSON file format. The ID is provided here only as an aid in interpreting the following development and need not be included in the JSON file. Note that the zero identifier is reserved for the fixed inertial reference frame.</p>
@@ -776,6 +778,7 @@ v &amp;-h_F &amp;      &amp;  h_K &amp; -h_T &amp;  h_O &amp;     &amp; h_S
 
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
@@ -827,8 +830,8 @@ v &amp;-h_F &amp;      &amp;  h_K &amp; -h_T &amp;  h_O &amp;     &amp; h_S
       &copy;2015-2017, Kristopher Wehage.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
       |
       <a href="../_sources/topology/topology.rst.txt"
