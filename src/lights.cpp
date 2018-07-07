@@ -278,8 +278,8 @@ void Shift::Lights::draw() {
       checkError("lights: after glCheckFramebufferStatus");
 
       m_renderWindow->getFloor()->drawShadows();
-      m_renderWindow->getBodies()->drawShadows();
       m_renderWindow->getTerrain()->drawShadows();
+      m_renderWindow->getBodies()->drawShadows();
     }
 
     glCullFace(GL_BACK);

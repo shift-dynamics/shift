@@ -201,6 +201,7 @@ private:
   QAction* m_actionToggleDrawJoints;
   QAction* m_actionToggleDrawTerrain;
   QAction* m_actionToggleDrawGrid;
+  QAction* m_actionToggleDrawFloor;
   QAction* m_actionToggleDrawShadows;
   QAction* m_actionToggleDrawCollisionGeometry;
   QAction* m_actionToggleDrawNormals;
@@ -216,6 +217,8 @@ private:
     SliderHandle rz;
     QDial* rotationGainDial;
     QDial* translationGainDial;
+    QGroupBox* translationSliderGroupBox;
+    QGroupBox* rotationSliderGroupBox;
     float revoluteRange;
     float prismaticRange;
     double* currentSpinBoxValue;

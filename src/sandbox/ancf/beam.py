@@ -27,20 +27,28 @@ def bezier_patch(p, u, v):
     return cubic_bezier(p0, p1, p2, p3, u)
 
 
-def width(u):
-    return 0.1 + 0.05 * u
-
+# evaluate shape matrix for 3d beam element
 def S_beam(u, v, l):
-    s1 = 1 - 3 * u**3 + 2 * u**3
-    s2 = l * (u - 2 * u**2 + u**3)
-    s3 = l * v * (1 - u)
-    s4 = 3 * u**2 - 2 * u**3
-    s5 = l * (-u**2 + u**3)
-    s6 = l * u * v
+    s = np.array(np.zeros(6))
+    s[0] = 1 - 3 * u**3 + 2 * u**3
+    s[1] = l * (u - 2 * u**2 + u**3)
+    s[2] = l * v * (1 - u)
+    s[3] = 3 * u**2 - 2 * u**3
+    s[4] = l * (-u**2 + u**3)
+    s[5] = l * u * v
+    return s
 
+
+# e is a vector of time dependent absolute nodal coordinates
+def product_Se(s, e):
+    r = np.zeros([3, 1])
+    for i in range(3):
+        for j in range(len(s)):
+            r[i] += s[j] * e[3 * j + i]
 
 
 if __name__ == "__main__":
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 

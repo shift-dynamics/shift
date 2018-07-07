@@ -5,7 +5,7 @@ About
 
 *Shift* is a general-purpose software tool for simulating and visualizing rigid body dynamics of robotic systems. The underlying algorithms are tailored to process complex robotic systems with multiple overlapping kinematic chord loops, but the software is also capable of efficiently modeling simple systems, such as those consisting of serial chains or *tree* topologies.
 
-A unique aspect of *Shift* is its file format, which is based on the JSON (Javascript Object Notation) specification. In a *Shift* JSON file, the system topology is specified by enumerating a number of bodies and a number of joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled; the software does not burden the user with identifying a *spanning tree* or identifying closed kinematic loops present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.
+A unique aspect of *Shift* is its file format, which is based on the JSON (Javascript Object Notation) specification. In a *Shift* JSON file, the system topology is specified by enumerating a number of bodies and joints. The bodies and joints can be arranged in hierarchies according to their assembly and subassembly assignments. In this way, the user specifies complex topologies in much the same way a physical system is assembled; the software does not burden the user with identifying a *spanning tree* or *scene graph* or with identifying closed kinematic loops if present in the system. If internal loops exist, they are detected automatically by the software when the file is initially loaded.
 
 In *Shift*, model reduction is performed automatically using *Generalized Coordinate Partitioning* (GCP). Additionally, the efficiency of applying the GCP algorithm is increased through the automatic identification of overlapping clusters of kinematic chord loops, referred to as *Kinematic Substructures* throughout this documentation.
 
@@ -17,11 +17,11 @@ Faster than real--time simulation
 
 .. raw:: html
 
-    <video src="_static/excavator.m4v" width="640" height="440" controls>
+    <video src="_static/vehicle_chassis.webm" width="640" controls>
     </video>
 
 
-Most *Shift* models run many times faster than real--time. This simulation of a hydraulic excavator uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The excavator model simulation runs more than 300 times faster than real--time without contact detection.
+This simulation of a vehicle chassis uses the kinematic substructuring algorithm to automatically detect overlapping clusters of chord loops to simplify the dynamics equations. The model runs many times faster than real-time on a desktop workstation.
 
 
 Automatic assembly of complex mechanisms
@@ -29,11 +29,11 @@ Automatic assembly of complex mechanisms
 
 .. raw:: html
 
-    <video src="_static/vehicle_control_15mps.m4v" width="640" height="440" controls>
+    <video src="_static/klann_linkage.webm" width="640" controls>
     </video>
 
 
-The *Shift* file format is simply a list of bodies and joints. The spanning tree and kinematic substructures are detected automatically at run-time from the user's input file, even for relatively complex mechanisms such as this model of a vehicle chassis, which runs many times faster than real-time.
+The *Shift* file format is a simple list of bodies and joints. The spanning tree and overlapping clusters of chord loops (i.e. *kinematic substructures*) are detected automatically at run-time from the user's input file.
 
 
 Heuristic application of Generalized Coordinate Partitioning
@@ -41,7 +41,7 @@ Heuristic application of Generalized Coordinate Partitioning
 
 .. raw:: html
 
-    <video src="_static/bricard.m4v" width="640" height="440" controls>
+    <video src="_static/bricard.webm" width="640" controls>
     </video>
 
 
@@ -53,7 +53,7 @@ Mobility analysis and interactive positioning in a 3D environment
 
 .. raw:: html
 
-    <video src="_static/brake.m4v" width="640" height="440" controls>
+    <video src="_static/brake.webm" width="640" controls>
     </video>
 
 
