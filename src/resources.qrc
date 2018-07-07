@@ -42,6 +42,7 @@
     <file alias="normal.png">icons/normal.png</file>
     <file alias="sphere.png">icons/sphere.png</file>
     <file alias="grid.png">icons/grid.png</file>
+    <file alias="floor.png">icons/floor.png</file>
     <file alias="shadow.png">icons/shadow.png</file>
     <file alias="cube.png">icons/cube.png</file>
 

@@ -59,6 +59,7 @@ SUCH DAMAGE.
 #include <vector>
 
 #include "bodies.h"
+#include "floor.h"
 #include "frames.h"
 #include "grid.h"
 #include "joints.h"
@@ -130,19 +131,18 @@ void Shift::Workspace::addSliders() {
   gridLayout->setVerticalSpacing(0);
 
   /* translation sliders */
-  QGroupBox* translationSliderGroupBox = new QGroupBox;
-  translationSliderGroupBox->setContentsMargins(QMargins(0, 0, 0, 0));
+  m_sliders.translationSliderGroupBox = new QGroupBox;
+  m_sliders.translationSliderGroupBox->setContentsMargins(QMargins(0, 0, 0, 0));
   QVBoxLayout* translationSliderLayout =
-    new QVBoxLayout(translationSliderGroupBox);
+    new QVBoxLayout(m_sliders.translationSliderGroupBox);
   translationSliderLayout->setMargin(0);
-  translationSliderGroupBox->setContentsMargins(QMargins(0, 0, 0, 0));
   translationSliderLayout->setSpacing(0);
-  gridLayout->addWidget(translationSliderGroupBox, 0, 0);
+
   double singleStep = m_sliders.prismaticRange / 100.0;
   addSlider(singleStep, &m_sliders.tx, translationSliderLayout, "Tx");
   addSlider(singleStep, &m_sliders.ty, translationSliderLayout, "Ty");
   addSlider(singleStep, &m_sliders.tz, translationSliderLayout, "Tz");
-  gridLayout->addWidget(translationSliderGroupBox, 0, 0);
+  gridLayout->addWidget(m_sliders.translationSliderGroupBox, 0, 0);
 
   /* translation gain */
   m_sliders.translationGainDial = new QDial();
@@ -150,11 +150,12 @@ void Shift::Workspace::addSliders() {
   gridLayout->addWidget(m_sliders.translationGainDial, 0, 1);
 
   /* rotation sliders */
-  QGroupBox* rotationSliderGroupBox = new QGroupBox;
-  rotationSliderGroupBox->setContentsMargins(QMargins(0, 0, 0, 0));
-  QVBoxLayout* rotationSliderLayout = new QVBoxLayout(rotationSliderGroupBox);
+  m_sliders.rotationSliderGroupBox = new QGroupBox;
+  m_sliders.rotationSliderGroupBox->setContentsMargins(QMargins(0, 0, 0, 0));
+  QVBoxLayout* rotationSliderLayout =
+    new QVBoxLayout(m_sliders.rotationSliderGroupBox);
   rotationSliderLayout->setContentsMargins(QMargins(0, 0, 0, 0));
-  gridLayout->addWidget(rotationSliderGroupBox, 1, 0);
+  gridLayout->addWidget(m_sliders.rotationSliderGroupBox, 1, 0);
   singleStep = m_sliders.revoluteRange / 100.0;
   addSlider(singleStep, &m_sliders.rx, rotationSliderLayout, "Rx");
   addSlider(singleStep, &m_sliders.ry, rotationSliderLayout, "Ry");
@@ -1219,6 +1220,12 @@ void Shift::Workspace::initializeMenus() {
   m_actionToggleDrawGrid->setCheckable(true);
   m_actionToggleDrawGrid->setChecked(true);
 
+  m_actionToggleDrawFloor = new QAction("Floor", this);
+  viewMenu->addAction(m_actionToggleDrawFloor);
+  m_actionToggleDrawFloor->setIcon(QIcon(":/icons/floor.png"));
+  m_actionToggleDrawFloor->setCheckable(true);
+  m_actionToggleDrawFloor->setChecked(true);
+
   m_actionToggleDrawShadows = new QAction("Shadows", this);
   viewMenu->addAction(m_actionToggleDrawShadows);
   m_actionToggleDrawShadows->setIcon(QIcon(":/icons/shadow.png"));
@@ -1301,6 +1308,9 @@ void Shift::Workspace::initializeMenus() {
 
   QObject::connect(m_actionToggleDrawGrid, SIGNAL(triggered()),
                    m_renderWindow->getGrid(), SLOT(toggleDraw()));
+
+  QObject::connect(m_actionToggleDrawFloor, SIGNAL(triggered()),
+                   m_renderWindow->getFloor(), SLOT(toggleDraw()));
 
   QObject::connect(m_actionToggleDrawGrid, SIGNAL(triggered()), this,
                    SLOT(updateDrawState()));
@@ -2279,31 +2289,55 @@ void Shift::Workspace::getSelectedTreeItem() {
           case S2_JOINT_TX: {
             setSlider(&m_sliders.tx, joint->qIndex, joint->dqIndex,
                       joint->substructurePointer, false);
+            m_sliders.translationGainDial->setVisible(true);
+            m_sliders.rotationGainDial->setVisible(false);
+            m_sliders.translationSliderGroupBox->setVisible(true);
+            m_sliders.rotationSliderGroupBox->setVisible(false);
             break;
           }
           case S2_JOINT_TY: {
             setSlider(&m_sliders.ty, joint->qIndex, joint->dqIndex,
                       joint->substructurePointer, false);
+            m_sliders.translationGainDial->setVisible(true);
+            m_sliders.rotationGainDial->setVisible(false);
+            m_sliders.translationSliderGroupBox->setVisible(true);
+            m_sliders.rotationSliderGroupBox->setVisible(false);
             break;
           }
           case S2_JOINT_TZ: {
             setSlider(&m_sliders.tz, joint->qIndex, joint->dqIndex,
                       joint->substructurePointer, false);
+            m_sliders.translationGainDial->setVisible(true);
+            m_sliders.rotationGainDial->setVisible(false);
+            m_sliders.translationSliderGroupBox->setVisible(true);
+            m_sliders.rotationSliderGroupBox->setVisible(false);
             break;
           }
           case S2_JOINT_RX: {
             setSlider(&m_sliders.rx, joint->qIndex, joint->dqIndex,
                       joint->substructurePointer, false);
+            m_sliders.translationGainDial->setVisible(false);
+            m_sliders.rotationGainDial->setVisible(true);
+            m_sliders.translationSliderGroupBox->setVisible(false);
+            m_sliders.rotationSliderGroupBox->setVisible(true);
             break;
           }
           case S2_JOINT_RY: {
             setSlider(&m_sliders.ry, joint->qIndex, joint->dqIndex,
                       joint->substructurePointer, false);
+            m_sliders.translationGainDial->setVisible(false);
+            m_sliders.rotationGainDial->setVisible(true);
+            m_sliders.translationSliderGroupBox->setVisible(false);
+            m_sliders.rotationSliderGroupBox->setVisible(true);
             break;
           }
           case S2_JOINT_RZ: {
             setSlider(&m_sliders.rz, joint->qIndex, joint->dqIndex,
                       joint->substructurePointer, false);
+            m_sliders.translationGainDial->setVisible(false);
+            m_sliders.rotationGainDial->setVisible(true);
+            m_sliders.translationSliderGroupBox->setVisible(false);
+            m_sliders.rotationSliderGroupBox->setVisible(true);
             break;
           }
           case S2_JOINT_RIGID: {
@@ -2316,6 +2350,10 @@ void Shift::Workspace::getSelectedTreeItem() {
                       joint->substructurePointer, true);
             setSlider(&m_sliders.rz, joint->qIndex + 2, joint->dqIndex + 2,
                       joint->substructurePointer, true);
+            m_sliders.translationGainDial->setVisible(false);
+            m_sliders.rotationGainDial->setVisible(true);
+            m_sliders.translationSliderGroupBox->setVisible(false);
+            m_sliders.rotationSliderGroupBox->setVisible(true);
             break;
           }
           case S2_JOINT_FLOAT: {
@@ -2331,6 +2369,10 @@ void Shift::Workspace::getSelectedTreeItem() {
                       joint->substructurePointer, true);
             setSlider(&m_sliders.rz, joint->qIndex + 5, joint->dqIndex + 5,
                       joint->substructurePointer, true);
+            m_sliders.translationGainDial->setVisible(true);
+            m_sliders.rotationGainDial->setVisible(true);
+            m_sliders.translationSliderGroupBox->setVisible(true);
+            m_sliders.rotationSliderGroupBox->setVisible(true);
             break;
           }
           case S2_JOINT_INVALID:
