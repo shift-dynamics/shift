@@ -18,6 +18,7 @@ overview
    file_format/file_format
    contributing/contributing
    page_index.rst
+   zreferences
 
 
 .. developer reference
@@ -33,12 +34,12 @@ overview
 ..    zreferences
 
 
-api reference
--------------
+.. api reference
+.. -------------
 
-.. toctree::
+.. .. toctree::
 
-   doxyrest/global.rst
+..    doxyrest/global.rst
 
 
 

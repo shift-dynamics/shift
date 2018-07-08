@@ -13,7 +13,7 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -39,13 +39,13 @@
 <h1>File Format<a class="headerlink" href="#file-format" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p>The <em>Shift</em> file format is based on the JSON (Javascript Object Notation) specification, a subset of the Javascript programming language <a href="#id1"><span class="problematic" id="id2">:cite:`bray2014javascript`</span></a>. JSON is a lightweight, ASCII text-based file format that is programming language independent and faster to process than XML <a href="#id3"><span class="problematic" id="id4">:cite:`nurseitov2009comparison`</span></a> for many use cases. JSON is a common data exchange format for web services and is a native file format representation in NoSQL databases such as CouchDB and MongoDB, and is therefore well-suited for exchange of multibody system topological data over the web. Parsers for JSON exist in many programming languages. In <em>Shift</em>, the Jansson C library for reading/writing JSON files <a href="#id5"><span class="problematic" id="id6">:cite:`jansson`</span></a> is used to facilitate loading JSON files.</p>
+<p>The <em>Shift</em> file format is based on the JSON (Javascript Object Notation) specification, a subset of the Javascript programming language <a class="reference internal" href="../zreferences.html#bray2014javascript" id="id1">[6]</a>. JSON is a lightweight, ASCII text-based file format that is programming language independent and faster to process than XML <a class="reference internal" href="../zreferences.html#nurseitov2009comparison" id="id2">[45]</a> for many use cases. JSON is a common data exchange format for web services and is a native file format representation in NoSQL databases such as CouchDB and MongoDB, and is therefore well-suited for exchange of multibody system topological data over the web. Parsers for JSON exist in many programming languages. In <em>Shift</em>, the Jansson C library for reading/writing JSON files <a class="reference internal" href="../zreferences.html#jansson" id="id3">[33]</a> is used to facilitate loading JSON files.</p>
 <p>In the file designation, models are specified by listing a number of bodies and joints. The bodies and joints can be arranged in assemblies and subassemblies, nested arbitrarily deep. In this way, the JSON file structure is similar to how models are built within CAD software. At run-time, the <em>spanning-tree</em> of the user’s body-joint-body representation is generated and closed-loops are identified automatically.</p>
 </div>
 <div class="section" id="example">
 <h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
 <p>A simple double pendulum model, as illustrated in <a class="pageref" href="../software_design/elements_of_star/elements_of_star.html#double-pendulum">Fig.  1</a> below is used to demonstrate the JSON syntax.</p>
-<div class="figure align-center" id="id11">
+<div class="figure align-center" id="id6">
 <span id="double-pendulum"></span><img alt="../_images/double_pendulum.png" src="../_images/double_pendulum.png" />
 <p class="caption"><span class="caption-text">Figure 1: Double Pendulum Model</span></p>
 </div>
@@ -53,7 +53,7 @@
 <p>The various aspects of the JSON file are described in detail below:</p>
 <p>The <em>fixed</em> key at the root level of the <em>Shift</em> JSON file represents the fixed inertial reference frame and contains only frames (i.e. coordinate systems) and lights – i.e. no bodies or joints. If the <em>fixed</em> field is not present, a fixed inertial reference frame with only an “origin” reference frame is loaded.</p>
 <p>Statically positioned <em>lights</em> may be specified by specifying the parent to the name of a frame within the <em>fixed</em> field. Moving lights can be specified by setting the parent frame to a frame on a moving body. If no lights are specified, a directional overhead light in the opposite direction of gravity is specified for rendering purposes.</p>
-<p>Each entry under the <em>bodies</em> field contains a unique name and information related to mechanism topology (i.e. shape matrices <a href="#id7"><span class="problematic" id="id8">:cite:`uicker2013`</span></a>) and mass/inertia properties. Body geometry is specified in an external 3D file. The Assimp Open Asset Import library <a href="#id9"><span class="problematic" id="id10">:cite:`assimploader`</span></a> is used for loading body geometry and supports loading of a variety of mesh-based 3D file formats.</p>
+<p>Each entry under the <em>bodies</em> field contains a unique name and information related to mechanism topology (i.e. shape matrices <a class="reference internal" href="../zreferences.html#uicker2013" id="id4">[67]</a>) and mass/inertia properties. Body geometry is specified in an external 3D file. The Assimp Open Asset Import library <a class="reference internal" href="../zreferences.html#assimploader" id="id5">[20]</a> is used for loading body geometry and supports loading of a variety of mesh-based 3D file formats.</p>
 <p>Each entry under the <em>frames</em> field contains a unique name and a shape matrix specified as a 3x3 SO3 rotation matrix and a translation vector from the body origin. As with the “fixed” inertial reference frame, it is not necessary to specify an “origin” reference frame, as with the fixed inertial reference frame, by default every body contains the “origin”. Therefore, the name “origin” is a reserved keyword that cannot be used as a reference frame name at any level.</p>
 <p>The <em>joints</em> field contains connections between frames. Each joint has a unique name, a type, an initial position and velocity, and a body-frame pair. Currently the following joint types are supported: primitive rotations (i.e. “Rx”, “Ry”, and “Rz”), primitive translations (i.e. “Tx”, “Ty”, and “Tz”), “rigid” connections used to rigidly position two bodies together, and 6DOF “float” joints, which are used to initially position a body that is not explicitly connected to the inertial reference frame. Support for compound joints such as planar, spherical, universal and gears is planned for a later version of <em>Shift</em>.</p>
 <p>Springs, dampers and friction are specified under the <em>restraints</em> field. A restraint has a unique name, a type, knot points, coefficients, and either a joint name (if the restraint is aligned with a joint variable) or a body-frame pair. Torsional springs and torsional dampers must must be associated with a joint and its joint variable, but linear springs and dampers may be specified as either associated with a translational joint variable or as a body-frame pair. In the latter case, an additional field for “distance_type” may be specified. If no setting for distance type is set, the program will assume the Euclidian distance between parent and child frames should be used. Otherwise, it is possible to set the distance as aligned with the x, y or z axis of the parent frame as:</p>
@@ -114,9 +114,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing/contributing.html">Contributing</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../doxyrest/global.html">Global Namespace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../zreferences.html">References</a></li>
 </ul>
 
 <div class="relations">
@@ -148,7 +146,7 @@
       &copy;2015-2017, Kristopher Wehage.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.0+</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
       |

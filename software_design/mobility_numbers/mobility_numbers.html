@@ -13,7 +13,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -42,7 +42,7 @@
 <div class="figure align-center">
 <a class="reference internal image-reference" href="software_design/mobility_numbers/7h_spatial_linkage.png"><img alt="software_design/mobility_numbers/7h_spatial_linkage.png" src="software_design/mobility_numbers/7h_spatial_linkage.png" style="width: 400px;" /></a>
 </div>
-<p>The definition of the TWS is given in <a href="#id1"><span class="problematic" id="id2">:cite:`yuan1970kinematic,sutherland1973transmission,tsai1994transmissivity`</span></a> and is summarized as follows. For the TWS to be uniquely determined in a three-dimensional, single-loop spatial mechanism, the system of wrenches must be a <em>5-system</em>. As discussed in Section ref{sec:constraint_forces}, each joint effectively constrains relative velocities in the five directions orthogonal to the joint motion; relative motion between bodies is permitted only in the directions aligned with the joint (i.e. only one direction for primitive joints). Forces are dual to velocities; their behavior is similar but opposite that of velocities. If no internal working forces are applied within the joints, then no forces may be transmitted in the direction of the joint’s motion. Therefore, the only forces that are imparted from one joint to the next are those forces in directions orthogonal (i.e. <em>reciprocal</em>) to the orientation of the joint, as shown in Eq. ref{eq:joint_reaction_forces}. A system of five non-redundant joints has one unique velocity screw in which forces may be transmitted.</p>
+<p>The definition of the TWS is given in <a class="reference internal" href="../../zreferences.html#yuan1970kinematic" id="id1">[77]</a><a class="reference internal" href="../../zreferences.html#sutherland1973transmission" id="id2">[62]</a><a class="reference internal" href="../../zreferences.html#tsai1994transmissivity" id="id3">[64]</a> and is summarized as follows. For the TWS to be uniquely determined in a three-dimensional, single-loop spatial mechanism, the system of wrenches must be a <em>5-system</em>. As discussed in Section ref{sec:constraint_forces}, each joint effectively constrains relative velocities in the five directions orthogonal to the joint motion; relative motion between bodies is permitted only in the directions aligned with the joint (i.e. only one direction for primitive joints). Forces are dual to velocities; their behavior is similar but opposite that of velocities. If no internal working forces are applied within the joints, then no forces may be transmitted in the direction of the joint’s motion. Therefore, the only forces that are imparted from one joint to the next are those forces in directions orthogonal (i.e. <em>reciprocal</em>) to the orientation of the joint, as shown in Eq. ref{eq:joint_reaction_forces}. A system of five non-redundant joints has one unique velocity screw in which forces may be transmitted.</p>
 <p>Let the input and output influence coefficient matrices be <span class="math notranslate nohighlight">\(\underline{s}_i\)</span> and <span class="math notranslate nohighlight">\(\underline{s}_o\)</span> respectively. Let the influence coefficient matrices associated with joints 1-5, be <span class="math notranslate nohighlight">\(\underline{s}_1 - \underline{s}_5\)</span>. The jacobian for the entire single loop mechanism in Fig ref{fig:7h_linkage} becomes</p>
 <div class="math notranslate nohighlight">
 \[J = \begin{bmatrix}
@@ -103,7 +103,7 @@ X=\begin{bmatrix}N &amp; I\end{bmatrix}\end{split}\]</div>
 <div class="math notranslate nohighlight" id="equation-eq-vc">
 <span class="eqno">(2)<a class="headerlink" href="#equation-eq-vc" title="Permalink to this equation">¶</a></span>\[VC=\frac{1}{2}\underline{f}^*_{TWS}\cdot\underline{s}_o\]</div>
 <p>Note that, by definition, <span class="math notranslate nohighlight">\(s_o\)</span> is a normalized quantity.</p>
-<p>This is the original formulation for transmission performance proposed by Yuan in <a href="#id3"><span class="problematic" id="id4">:cite:`yuan1970kinematic`</span></a>. The primary difference between this expression and other transmission indices lies in how Equation <span class="xref std std-ref">eq:VC</span> is normalized.</p>
+<p>This is the original formulation for transmission performance proposed by Yuan in <a class="reference internal" href="../../zreferences.html#yuan1970kinematic" id="id4">[77]</a>. The primary difference between this expression and other transmission indices lies in how Equation <span class="xref std std-ref">eq:VC</span> is normalized.</p>
 </div>
 <div class="section" id="mobility-numbers">
 <h2>Mobility Numbers<a class="headerlink" href="#mobility-numbers" title="Permalink to this headline">¶</a></h2>
@@ -148,7 +148,7 @@ R^{-1}
 V^{di}\\
 V^{ii}
 \end{bmatrix}R\end{split}\]</div>
-<p>using Gram-Schmidt orthonormalization, (i.e. QR decomposition) <a href="#id5"><span class="problematic" id="id6">:cite:`golub1996matrix`</span></a> where <span class="math notranslate nohighlight">\(R\)</span> is a transformation matrix and <span class="math notranslate nohighlight">\(V\)</span> is an orthonormal basis. Note that the <span class="math notranslate nohighlight">\(R\)</span> matrix is effectively taking a linear combination of directions along the mechanism’s manifold. The resulting matrix, <span class="math notranslate nohighlight">\(V\)</span>, is analogous to a direction-cosine matrix on the mechanism’s manifold. Each column corresponds to a direction along the manifold and each row corresponds to unique joint variable. Furthermore, <span class="math notranslate nohighlight">\(V\)</span> is partitioned in to <span class="math notranslate nohighlight">\(V_di\)</span>, where each row corresponds to a unique <em>dependent</em> variable, and <span class="math notranslate nohighlight">\(V^{ii}\)</span>, where each row corresponds to a unique <em>independent</em> variable.</p>
+<p>using Gram-Schmidt orthonormalization, (i.e. QR decomposition) <a class="reference internal" href="../../zreferences.html#golub1996matrix" id="id5">[21]</a> where <span class="math notranslate nohighlight">\(R\)</span> is a transformation matrix and <span class="math notranslate nohighlight">\(V\)</span> is an orthonormal basis. Note that the <span class="math notranslate nohighlight">\(R\)</span> matrix is effectively taking a linear combination of directions along the mechanism’s manifold. The resulting matrix, <span class="math notranslate nohighlight">\(V\)</span>, is analogous to a direction-cosine matrix on the mechanism’s manifold. Each column corresponds to a direction along the manifold and each row corresponds to unique joint variable. Furthermore, <span class="math notranslate nohighlight">\(V\)</span> is partitioned in to <span class="math notranslate nohighlight">\(V_di\)</span>, where each row corresponds to a unique <em>dependent</em> variable, and <span class="math notranslate nohighlight">\(V^{ii}\)</span>, where each row corresponds to a unique <em>independent</em> variable.</p>
 <p>The sum of squares of each row (i.e. the L2 norm squared) yields a “mobility number”, i.e., a normalized measure of a joints ability to induce a change in the mechanism’s instantaneous configuration. For example, the mobility number of joint i is found by</p>
 <div class="math notranslate nohighlight">
 \[m_i=\sum_{n=1}^nV_{in}^2\]</div>
@@ -160,7 +160,7 @@ V^{ii}
 </div>
 <div class="section" id="connection-to-singular-value-decomposition">
 <h2>Connection to Singular Value Decomposition<a class="headerlink" href="#connection-to-singular-value-decomposition" title="Permalink to this headline">¶</a></h2>
-<p>Recall that SVD can also be used find the largest nonsingular submatrix of <span class="math notranslate nohighlight">\(J\)</span> <a href="#id7"><span class="problematic" id="id8">:cite:`yang2008simple`</span></a>:</p>
+<p>Recall that SVD can also be used find the largest nonsingular submatrix of <span class="math notranslate nohighlight">\(J\)</span> <a class="reference internal" href="../../zreferences.html#yang2008simple" id="id6">[76]</a>:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}J = U\Sigma V^T =
 \begin{bmatrix}
@@ -241,7 +241,7 @@ V^{iT}
 <div class="section" id="mobility-numbers-for-path-planning">
 <h2>Mobility Numbers for Path Planning<a class="headerlink" href="#mobility-numbers-for-path-planning" title="Permalink to this headline">¶</a></h2>
 <p>In numerical path planning of robotic manipulators, it is common to introduce an artificial rigid connection between the end-effector frame and the fixed inertial reference frame, which effectively introduces one independent kinematic loop. For example, consider the 7 DOF robotic manipulator as shown below. Because of their increased dexterity and ability to avoid bifurcations and singular configurations, 7 and 8 DOF robotic manipulators are finding increased applications in industrial applications.</p>
-<div class="figure align-center" id="id15">
+<div class="figure align-center" id="id10">
 <img alt="software_design/mobility_numbers/robot_arm.png" src="software_design/mobility_numbers/robot_arm.png" />
 <p class="caption"><span class="caption-text">Figure 2: A 7DOF Robot Arm</span></p>
 </div>
@@ -253,7 +253,7 @@ V^{iT}
 <p>One may then solve for an incremental change in joint angles by solving the equation:</p>
 <div class="math notranslate nohighlight" id="equation-eq-incremental-change">
 <span class="eqno">(9)<a class="headerlink" href="#equation-eq-incremental-change" title="Permalink to this equation">¶</a></span>\[\hat{D} = Jd\phi\]</div>
-<p>where <span class="math notranslate nohighlight">\(\hat{D}\)</span> is an incremental change in configuration and <span class="math notranslate nohighlight">\(d\phi\)</span> is an incremental change in joint angles. Refer to <a href="#id9"><span class="problematic" id="id10">:cite:`uicker2013`</span></a>, Chapter 6, for more details. Note that because the Jacobian is not full column rank, there is not a unique solution to the change in joint angles, <span class="math notranslate nohighlight">\(d\phi\)</span> to achieve the desired incremental change in end-effector pose.</p>
+<p>where <span class="math notranslate nohighlight">\(\hat{D}\)</span> is an incremental change in configuration and <span class="math notranslate nohighlight">\(d\phi\)</span> is an incremental change in joint angles. Refer to <a class="reference internal" href="../../zreferences.html#uicker2013" id="id7">[67]</a>, Chapter 6, for more details. Note that because the Jacobian is not full column rank, there is not a unique solution to the change in joint angles, <span class="math notranslate nohighlight">\(d\phi\)</span> to achieve the desired incremental change in end-effector pose.</p>
 <p>After the mechanism topology is traversed to update the position and orientation of the various frames, the Jacobian matrix for the robot in the configuration shown is given as:</p>
 <div class="math notranslate nohighlight" id="equation-eq-robot-jacobian-numbers1">
 <span class="eqno">(10)<a class="headerlink" href="#equation-eq-robot-jacobian-numbers1" title="Permalink to this equation">¶</a></span>\[\begin{split}J = \begin{bmatrix}
@@ -265,7 +265,7 @@ V^{iT}
 0.0000 &amp; -0.0998 &amp; -0.9751 &amp; 0.0585 &amp; 0.9981 &amp; -0.0604&amp;  -0.9775 \\
 \end{bmatrix}\end{split}\]</div>
 <p>With the artificial constraint in place at the end-effector, this Jacobian matrix has a maximum possible rank of 6 and an instantaneous mobility of 1.  The implication of this is that the robot arm has one extra degree of motion available to it, the robot arm can move a linear combination of joints and maintain the pose set by the artificial constraint. Computing mobility numbers for the robot with the artificial constraint imposed is not particularly useful, as the numbers indicate how well a joint is aligned with a direction orthogonal to a possible end-effector motion.</p>
-<p>To account for a desired end-effector motion when computing mechanism mobility, it is necessary to introduce an artificial 1DOF constraint aligned with the desired end-effector trajectory. For this discussion, let us assume that the motion path is parameterized in terms of orientation, position and time. Various interpolation schemes may be used for the purpose, such as spherical interpolation of quaternions <a href="#id11"><span class="problematic" id="id12">:cite:`shoemake1985animating`</span></a> (SLERP) or smooth invariant interpolation of rotations <a href="#id13"><span class="problematic" id="id14">:cite:`park1997smooth`</span></a>.</p>
+<p>To account for a desired end-effector motion when computing mechanism mobility, it is necessary to introduce an artificial 1DOF constraint aligned with the desired end-effector trajectory. For this discussion, let us assume that the motion path is parameterized in terms of orientation, position and time. Various interpolation schemes may be used for the purpose, such as spherical interpolation of quaternions <a class="reference internal" href="../../zreferences.html#shoemake1985animating" id="id8">[58]</a> (SLERP) or smooth invariant interpolation of rotations <a class="reference internal" href="../../zreferences.html#park1997smooth" id="id9">[46]</a>.</p>
 <p>Let the end-effector position be determined by the <span class="math notranslate nohighlight">\(SE(3)\)</span> matrix <span class="math notranslate nohighlight">\(D_{10}\)</span>, which indicates an active transformation from the inertial reference frame, 0, to the end-effector frame at time <span class="math notranslate nohighlight">\(t_1\)</span>. An interpolation scheme will yield an incremental change in end-effector orientation, position and time, described by a second <span class="math notranslate nohighlight">\(SE(3)\)</span> matrix, <span class="math notranslate nohighlight">\(D_{02}\)</span>, and time <span class="math notranslate nohighlight">\(t_2\)</span>. An incremental change in configuration, in the end effector frame, <span class="math notranslate nohighlight">\(D_{21}\)</span> is found as:</p>
 <div class="math notranslate nohighlight" id="equation-eq-end-effector-frame">
 <span class="eqno">(11)<a class="headerlink" href="#equation-eq-end-effector-frame" title="Permalink to this equation">¶</a></span>\[D_{21} = D_{20}D_{10}^{-1}\]</div>
@@ -391,9 +391,7 @@ path
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../file_format/file_format.html">File Format</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../contributing/contributing.html">Contributing</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../doxyrest/global.html">Global Namespace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../zreferences.html">References</a></li>
 </ul>
 
 <div class="relations">
@@ -423,7 +421,7 @@ path
       &copy;2015-2017, Kristopher Wehage.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.0+</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
       |

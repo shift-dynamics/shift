@@ -13,7 +13,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -42,8 +42,8 @@
 <div class="section" id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
 <p>Industrial robots are commonly programmed using joysticks, touchpads or <em>teach pendants</em> to position a robot to execute a given task. Another popular programming technique is the <em>lead-by-the-nose</em> method, where a robot’s joints are controlled to go limp, and a user guides the end effector to varying poses, which are recorded for later playback. A disadvantage to these “online” programming techniques on a physical robot is that trying out multiple arrangements of robots and/or workpieces in a manufacturing environment may require relocating heavy equipment, which may be expensive and time consuming.</p>
-<p>First proposed in the early 1980s by Brooks and others <a href="#id1"><span class="problematic" id="id2">:cite:`lozano1984`</span></a>, the field of <em>automatic programming</em> is now finding many applications in industrial automation due to increases in computing power and sensor resolution. In automatic programming, only higher level tasks are assigned to a robot and the path planning and manipulation strategies are coordinated by the robot itself, rather than computed a priori by a human operator. Particularly with large industrial robots, experimental “online” automatic programming algorithms pose risk of injury or damage to factory equipment, to humans in proximity of the workcell and to the robot itself.</p>
-<p>Due to the inherent risks and challenges associated with manual and automatic online robot programming, “offline” model-based programming tools serve an important role in factory planning and robotics design. STAR (A Simulation Tool for Automation and Robotics) <a href="#id3"><span class="problematic" id="id4">:cite:`ravani1988star,hornick1986data,hornick1986computer`</span></a>, was one of the pioneering general purpose world modeling programs to use 3D computer graphics to lay out virtual robots and workcells. The aims of original STAR software were to:</p>
+<p>First proposed in the early 1980s by Brooks and others <a class="reference internal" href="../../zreferences.html#lozano1984" id="id1">[38]</a>, the field of <em>automatic programming</em> is now finding many applications in industrial automation due to increases in computing power and sensor resolution. In automatic programming, only higher level tasks are assigned to a robot and the path planning and manipulation strategies are coordinated by the robot itself, rather than computed a priori by a human operator. Particularly with large industrial robots, experimental “online” automatic programming algorithms pose risk of injury or damage to factory equipment, to humans in proximity of the workcell and to the robot itself.</p>
+<p>Due to the inherent risks and challenges associated with manual and automatic online robot programming, “offline” model-based programming tools serve an important role in factory planning and robotics design. STAR (A Simulation Tool for Automation and Robotics) <a class="reference internal" href="../../zreferences.html#ravani1988star" id="id2">[49]</a><a class="reference internal" href="../../zreferences.html#hornick1986data" id="id3">[30]</a><a class="reference internal" href="../../zreferences.html#hornick1986computer" id="id4">[29]</a>, was one of the pioneering general purpose world modeling programs to use 3D computer graphics to lay out virtual robots and workcells. The aims of original STAR software were to:</p>
 <blockquote>
 <div><ul class="simple">
 <li>Provide flexibility to accommodate a wide range of robots and workcell configurations.</li>
@@ -55,7 +55,7 @@
 <li>Display geometric shape information created in an external modeling program.</li>
 </ul>
 </div></blockquote>
-<p>There are presently several software tools that achieve the original objectives of STAR v. 1.0, such as RobotMaster <a href="#id5"><span class="problematic" id="id6">:cite:`robotmaster`</span></a>, Gazebo <a href="#id7"><span class="problematic" id="id8">:cite:`koenig2004`</span></a>, Tecnomatix <a href="#id9"><span class="problematic" id="id10">:cite:`tecnomatix`</span></a> and others. Certainly, there have been many advances in technology since the original version of STAR, including considerable increases in computing capacity, a proliferation of development tools for programming and visualization, and the explosive growth of the world-wide-web (and more recently, the <em>internet of things</em>). With these  developments in mind, the authors are developing a new free and open source version of STAR (version 2.0). This article describes the design of the new STAR 2.0 software.</p>
+<p>There are presently several software tools that achieve the original objectives of STAR v. 1.0, such as RobotMaster <a class="reference internal" href="../../zreferences.html#robotmaster" id="id5">[80]</a>, Gazebo <a class="reference internal" href="../../zreferences.html#koenig2004" id="id6">[31]</a>, Tecnomatix <a class="reference internal" href="../../zreferences.html#tecnomatix" id="id7">[59]</a> and others. Certainly, there have been many advances in technology since the original version of STAR, including considerable increases in computing capacity, a proliferation of development tools for programming and visualization, and the explosive growth of the world-wide-web (and more recently, the <em>internet of things</em>). With these  developments in mind, the authors are developing a new free and open source version of STAR (version 2.0). This article describes the design of the new STAR 2.0 software.</p>
 </div>
 <div class="section" id="the-aims-of-star-2-0">
 <h2>The Aims of STAR 2.0<a class="headerlink" href="#the-aims-of-star-2-0" title="Permalink to this headline">¶</a></h2>
@@ -65,7 +65,7 @@
 <li><p class="first">Compatibility with modern web technologies</p>
 <blockquote>
 <div><ul class="simple">
-<li>File formats are based on the JSON <a href="#id11"><span class="problematic" id="id12">:cite:`bray2014javascript`</span></a> (Javascript Object Notation) file format designation.</li>
+<li>File formats are based on the JSON <a class="reference internal" href="../../zreferences.html#bray2014javascript" id="id8">[6]</a> (Javascript Object Notation) file format designation.</li>
 </ul>
 </div></blockquote>
 </li>
@@ -74,7 +74,7 @@
 <div><ul class="simple">
 <li>A built-in physics engine solves a system of dynamics equations using a minimal set of independent generalized coordinates</li>
 <li>A custom vectorized, sparse kinematics library minimizes floating point operations and increases throughput</li>
-<li>A graph partioning algorithm called <em>kinematic substructuring</em> automatically identifies and uncouples non-overlapping, intersecting groups of chord loops <a href="#id13"><span class="problematic" id="id14">:cite:`wehage2015generalized`</span></a> and block diagonalizes the Jacobian matrix, resulting in increased numerical efficiency</li>
+<li>A graph partioning algorithm called <em>kinematic substructuring</em> automatically identifies and uncouples non-overlapping, intersecting groups of chord loops <a class="reference internal" href="../../zreferences.html#wehage2015generalized" id="id9">[69]</a> and block diagonalizes the Jacobian matrix, resulting in increased numerical efficiency</li>
 <li>Implements Algorithm Optimizing Processing (AOP) to minimize pointer dereferences</li>
 <li>The core solver is programmed entirely in the C programming language to minimize application overhead (such as for garbage collection)</li>
 </ul>
@@ -92,7 +92,7 @@
 <blockquote>
 <div><ul class="simple">
 <li>Automatically sets up and solves dynamic equations even for highly complex, parallel mechanisms using graph theoretic methods</li>
-<li>Automatically identifies optimal generalized coordinates using Generalized Coordinate Partitioning (GCP) <a href="#id15"><span class="problematic" id="id16">:cite:`wehage1982`</span></a></li>
+<li>Automatically identifies optimal generalized coordinates using Generalized Coordinate Partitioning (GCP) <a class="reference internal" href="../../zreferences.html#wehage1982" id="id10">[71]</a></li>
 </ul>
 </div></blockquote>
 </li>
@@ -100,7 +100,7 @@
 <blockquote>
 <div><ul class="simple">
 <li>An application programming interface (API) in the C programming language is provided</li>
-<li>Compatibility with the Robot Operating System (ROS) <a href="#id17"><span class="problematic" id="id18">:cite:`quigley2009ros`</span></a> message passing interface</li>
+<li>Compatibility with the Robot Operating System (ROS) <a class="reference internal" href="../../zreferences.html#quigley2009ros" id="id11">[48]</a> message passing interface</li>
 </ul>
 </div></blockquote>
 </li>
@@ -111,10 +111,10 @@
 <h2>Data Structures<a class="headerlink" href="#data-structures" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="external-file-format">
 <h3>External File Format<a class="headerlink" href="#external-file-format" title="Permalink to this headline">¶</a></h3>
-<p>STAR 2.0’s external file format is designed from the outset to be compatible with web technologies. The ASCII text-based file format is based on the JSON (Javascript Object Notation) specification, a subset of the Javascript programming language <a href="#id19"><span class="problematic" id="id20">:cite:`bray2014javascript`</span></a>. JSON is a lightweight, programming language independent syntax that is faster to process than XML <a href="#id21"><span class="problematic" id="id22">:cite:`nurseitov2009comparison`</span></a>. JSON is a common data exchange format for web services and is a native file format representation in NoSQL databased such as CouchDB and MongoDB.</p>
-<p>The JSON language format has a number of advantages. JSON files are programming language independent - parsers exist in many programming languages. STAR 2.0 uses the Jansson C library for reading/writing JSON files <a href="#id23"><span class="problematic" id="id24">:cite:`jansson`</span></a>. The simple syntax allows users to manually generate their models in a text editor, using STAR 2.0’s C programming API, or interactively using a graphical user interface. Power users can also develop STAR JSON files in a scripted fashion using their preferred programming language. A complete</p>
+<p>STAR 2.0’s external file format is designed from the outset to be compatible with web technologies. The ASCII text-based file format is based on the JSON (Javascript Object Notation) specification, a subset of the Javascript programming language <a class="reference internal" href="../../zreferences.html#bray2014javascript" id="id12">[6]</a>. JSON is a lightweight, programming language independent syntax that is faster to process than XML <a class="reference internal" href="../../zreferences.html#nurseitov2009comparison" id="id13">[45]</a>. JSON is a common data exchange format for web services and is a native file format representation in NoSQL databased such as CouchDB and MongoDB.</p>
+<p>The JSON language format has a number of advantages. JSON files are programming language independent - parsers exist in many programming languages. STAR 2.0 uses the Jansson C library for reading/writing JSON files <a class="reference internal" href="../../zreferences.html#jansson" id="id14">[33]</a>. The simple syntax allows users to manually generate their models in a text editor, using STAR 2.0’s C programming API, or interactively using a graphical user interface. Power users can also develop STAR JSON files in a scripted fashion using their preferred programming language. A complete</p>
 <p>A simple double pendulum model, as illustrated in <a class="pageref" href="#double-pendulum">Fig.  1</a> below is used to demonstrate the STAR JSON syntax.</p>
-<div class="figure align-center" id="id49">
+<div class="figure align-center" id="id28">
 <span id="double-pendulum"></span><img alt="software_design/elements_of_star/double_pendulum.svg" src="software_design/elements_of_star/double_pendulum.svg" /><p class="caption"><span class="caption-text">Figure 1: Double Pendulum Model</span></p>
 </div>
 <p>The accompanying STAR JSON file is shown below:</p>
@@ -236,7 +236,7 @@
 <p>The various aspects of the STAR JSON file are described in detail below:</p>
 <p>The <em>fixed</em> key at the root level of the STAR JSON file represents the fixed inertial reference frame and contains only frames (i.e. coordinate systems) and lights – i.e. no bodies or joints. If no lights are specified, a directional overhead light in the opposite direction of gravity is specified for rendering. If the <em>fixed</em> field is not present, a fixed inertial reference frame with only an “origin” reference frame is loaded.</p>
 <p>Statically positioned <em>lights</em> may be specified by specifying the parent to the name of a frame within the <em>fixed</em> field. Moving lights can be specified by setting the parent frame to a frame on a moving body.</p>
-<p>Each entry under the <em>bodies</em> field contains a unique name and information related to mechanism topology (i.e. shape matrices <a href="#id25"><span class="problematic" id="id26">:cite:`uicker2013`</span></a>) and mass/inertia properties. Body geometry is specified in an external 3D file. STAR 2.0 uses the Assimp Open Asset Import library <a href="#id27"><span class="problematic" id="id28">:cite:`assimploader`</span></a> for loading body geometry which supports loading of a variety of 3D file formats.</p>
+<p>Each entry under the <em>bodies</em> field contains a unique name and information related to mechanism topology (i.e. shape matrices <a class="reference internal" href="../../zreferences.html#uicker2013" id="id15">[67]</a>) and mass/inertia properties. Body geometry is specified in an external 3D file. STAR 2.0 uses the Assimp Open Asset Import library <a class="reference internal" href="../../zreferences.html#assimploader" id="id16">[20]</a> for loading body geometry which supports loading of a variety of 3D file formats.</p>
 <p>Each entry under the <em>frames</em> field contains a unique name and a shape matrix specified as a 3x3 SO3 rotation matrix and a translation vector from the body origin. Again it is not necessary to specify an “origin” reference frame, as with the fixed inertial reference frame, by default every body contains the “origin”. Therefore, the name “origin” is a reserved keyword that cannot be used as a reference frame name at any level.</p>
 <p>The <em>joints</em> field contains connections between frames. Each joint has a unique name, a type, an initial position and velocity, and a body-frame pair. Currently the following joint types are supported: primitive rotations (i.e. “Rx”, “Ry”, and “Rz”), primitive translations (i.e. “Tx”, “Ty”, and “Tz”), “rigid” connections used to rigidly position two bodies together, and 6DOF “float” joints, which are used to initially position a body that is not explicitly connected to the inertial reference frame. Support for compound joints such as planar, spherical, universal and gears is planned for a later version of STAR.</p>
 <p>Springs, dampers and friction are specified under the <em>restraints</em> field. A restraint has a unique name, a type, knot points, coefficients, and either a joint name (if the restraint is aligned with a joint variable) or a body frame pair. Torsional springs and torsional dampers must must be associated with a joint and its joint variable, but linear springs and dampers may be specified as either associated with a translational joint variable or as a body-frame pair. In the latter case, an additional field for “distance_type” may be specified. If no setting for distance type is set, the program will assume the Euclidian distance between parent and child frames should be used. Otherwise, it is possible to set the distance as aligned with the x, y or z axis of the parent frame as:</p>
@@ -262,11 +262,11 @@
 <p>The <em>assemblies</em> field contains any number of bodies and joints. In the double pendulum example, bodies “link1” and “link2” are assigned to the “double_pendulum” assembly. Although the pendulum consists of a single assembly, multiple assemblies could be inserted at the top level and any number of subassemblies can be inserted into other assemblies, nested arbitrarily deep.</p>
 <p>Joints in one assembly can connect bodies in different assemblies/subassemblies by specifying the full path to the body in the assembly hierarchy. The “:” character is used to specify the position within an assembly hierarchy, and is therefore not a valid character to use in a descriptive name. For example,  “factory:workcell1:robot2:body1:frame1”, indicates “frame1” on “body1” in the “robot2” subassembly, which is contained within the “workcell1” subassembly, which is in turn a member of the “factory” main assembly. If no path is specified, the program searches for descriptive names only within the local assembly.</p>
 <p>Organizing models into assemblies is a concept which should be familiar to most users of CAD software. The hierarchical organization structure facilitates model reuse and rapidly building complex models from simpler models. For example, a main assembly might contain an entire factory environment, with a number of subassemblies containing robotic workcells. In turn, each workcell may each contain a number of robots or workpieces specified in their own subassemblies. Additionally, assemblies can be switched on or off to facilitate design sensitivity studies with minimal changes to the file.</p>
-<p>Thus far, discussion has focused on datastructures related to the geometry and topology of a multibody system, much of which can be derived from a user’s CAD software. The missing component necessary for robotics is the ability to interact with the model. In STAR 2.0, this interaction is achieved through a <em>Device</em> datastructure. A <em>Device</em> datastructure contains pointers to one or more joints which the user can read encoder values from or set forces, positions, velocities or accelerations. Any joint that is a member of a device is exposed as an ROS “topic”, to which other ROS nodes can subscribe. Refer to <a href="#id29"><span class="problematic" id="id30">:cite:`quigley2009ros`</span></a> for more details on the Robot Operating System.  Additionally, a Device datastructure contains pointers to one or more sensors for contact, LIDAR, RADAR and cameras, which are attached to Frames on Body datastructures. Similarly, the output of these sensors are made available as ROS “topics”. Note that in the original STAR v 1.0 software, a distinction was made between “Objects” and “Devices”. In STAR 2.0, no such distinction is made. <em>Intelligence</em> is embodied in an object simple by creating one or more Device datastructures, with no modifications to the underlying model and datastructures.</p>
+<p>Thus far, discussion has focused on datastructures related to the geometry and topology of a multibody system, much of which can be derived from a user’s CAD software. The missing component necessary for robotics is the ability to interact with the model. In STAR 2.0, this interaction is achieved through a <em>Device</em> datastructure. A <em>Device</em> datastructure contains pointers to one or more joints which the user can read encoder values from or set forces, positions, velocities or accelerations. Any joint that is a member of a device is exposed as an ROS “topic”, to which other ROS nodes can subscribe. Refer to <a class="reference internal" href="../../zreferences.html#quigley2009ros" id="id17">[48]</a> for more details on the Robot Operating System.  Additionally, a Device datastructure contains pointers to one or more sensors for contact, LIDAR, RADAR and cameras, which are attached to Frames on Body datastructures. Similarly, the output of these sensors are made available as ROS “topics”. Note that in the original STAR v 1.0 software, a distinction was made between “Objects” and “Devices”. In STAR 2.0, no such distinction is made. <em>Intelligence</em> is embodied in an object simple by creating one or more Device datastructures, with no modifications to the underlying model and datastructures.</p>
 </div>
 <div class="section" id="internal-data-structures">
 <h3>Internal Data Structures<a class="headerlink" href="#internal-data-structures" title="Permalink to this headline">¶</a></h3>
-<p>When the STAR JSON file is loaded from disk into working memory, it is imported into a linked-list datastructure (also known as a ring datastructure <a href="#id31"><span class="problematic" id="id32">:cite:`hornick1986data`</span></a>). The descriptive names in the body-frame pairings are matched to set the appropriate memory pointers. The linked-list representation is used primarily for programming convenience, as it allows allocating memory for model primitives on an as-needed basis. For example, the linked-list enables a user to interactively add or remove objects from their model. Note that the linked-list representation of the model is not used for computationally intensive/demanding tasks – aspects which are discussed later in the article.</p>
+<p>When the STAR JSON file is loaded from disk into working memory, it is imported into a linked-list datastructure (also known as a ring datastructure <a class="reference internal" href="../../zreferences.html#hornick1986data" id="id18">[30]</a>). The descriptive names in the body-frame pairings are matched to set the appropriate memory pointers. The linked-list representation is used primarily for programming convenience, as it allows allocating memory for model primitives on an as-needed basis. For example, the linked-list enables a user to interactively add or remove objects from their model. Note that the linked-list representation of the model is not used for computationally intensive/demanding tasks – aspects which are discussed later in the article.</p>
 <p>Models are defined using the following primitives:</p>
 <blockquote>
 <div><ul>
@@ -308,13 +308,13 @@
 </li>
 </ul>
 </div></blockquote>
-<div class="figure align-center" id="id50">
+<div class="figure align-center" id="id29">
 <a class="reference internal image-reference" href="software_design/elements_of_star/assembly.png"><img alt="software_design/elements_of_star/assembly.png" src="software_design/elements_of_star/assembly.png" style="width: 400px;" /></a>
 <p class="caption"><span class="caption-text">Figure 2: Schematic of Assembly Datastructure</span></p>
 </div>
 <p>In addition to the data specified in the STAR JSON file, a <em>Body</em> datastructure a reference frame, which may not be the origin of the body. Additionally, the body contains the geometric data loaded from the model geometry defition, such as the vertices, faces, and colors and textures.</p>
-<p>The <em>Frame</em> datastructure contains a SE3 matrix that specifies an orientation and translation relative to a body’s origin <a href="#id33"><span class="problematic" id="id34">:cite:`selig2005geometric`</span></a>.</p>
-<p>In addition to the terms specified in the STAR JSON file, a <em>Joint</em> datastructure contains joint properties necessary for processing the equations of motion, such as the influence coefficient matrices <a href="#id35"><span class="problematic" id="id36">:cite:`murray1994mathematical`</span></a>, current joint position, velocity and acceleration. For more information on the directed graph representation of a multibody system, the reader is referred to <a href="#id37"><span class="problematic" id="id38">:cite:`uicker2013`</span></a>.</p>
+<p>The <em>Frame</em> datastructure contains a SE3 matrix that specifies an orientation and translation relative to a body’s origin <a class="reference internal" href="../../zreferences.html#selig2005geometric" id="id19">[53]</a>.</p>
+<p>In addition to the terms specified in the STAR JSON file, a <em>Joint</em> datastructure contains joint properties necessary for processing the equations of motion, such as the influence coefficient matrices <a class="reference internal" href="../../zreferences.html#murray1994mathematical" id="id20">[43]</a>, current joint position, velocity and acceleration. For more information on the directed graph representation of a multibody system, the reader is referred to <a class="reference internal" href="../../zreferences.html#uicker2013" id="id21">[67]</a>.</p>
 <p>In the C programming language, bodies and joints can be represented using structs and the connections between them as memory pointers:</p>
 <pre class="highlight literal-block">
 <span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">Frame</span> <span class="p">{</span>
@@ -347,23 +347,23 @@
 <div class="section" id="directed-acyclic-graphs-vs-directed-graphs">
 <h3>Directed Acyclic Graphs vs. Directed Graphs<a class="headerlink" href="#directed-acyclic-graphs-vs-directed-graphs" title="Permalink to this headline">¶</a></h3>
 <p>The body-joint-body representation described above will be familiar to most modern CAD users and engineers, whereas concepts like <em>scene graphs</em> or <em>spanning trees</em> are less familiar. However, by building the a multibody system’s <em>topology</em> from bodies and joints, the user has – perhaps unknowingly – generated a directed acyclic graph (DAG) representation of their system with bodies as nodes as joints as edges. For example, consider the hydraulic clamp mechanismm in Fig 2. below.</p>
-<div class="figure align-center" id="id51">
+<div class="figure align-center" id="id30">
 <a class="reference internal image-reference" href="software_design/elements_of_star/hydraulic_clamp.png"><img alt="software_design/elements_of_star/hydraulic_clamp.png" src="software_design/elements_of_star/hydraulic_clamp.png" style="width: 500px;" /></a>
 <p class="caption"><span class="caption-text">Figure 3: Hydraulic Clamp</span></p>
 </div>
 <p>Its directed acyclic graph is shown in Fig. 3.</p>
-<div class="figure align-center" id="id52">
+<div class="figure align-center" id="id31">
 <a class="reference internal image-reference" href="software_design/elements_of_star/directed_acyclic_graph.png"><img alt="software_design/elements_of_star/directed_acyclic_graph.png" src="software_design/elements_of_star/directed_acyclic_graph.png" style="width: 300px;" /></a>
 <p class="caption"><span class="caption-text">Figure 4: Directed Acyclic Graph (DAG)</span></p>
 </div>
 <p>While the DAG representation of the mechanism is convenient for the user to visualize the topology, it does not provide a systematic means to update the kinematics and dynamics of the system. For example, there are multiple paths in the DAG to update the position and orientation of bodies 3 and 4.</p>
-<p>To resolve this ambiguity, it is necessary to identify the <em>spanning tree</em> of the mechanism, i.e. the set of graph edges that touch every node exactly once. This process requires identifying the set of arcs and chords of the directed graph as shown in Fig. 4. For a comprehensive discussion automatic methods to obtain the set of arcs and chords of an acyclic directed graph, refer to <a href="#id39"><span class="problematic" id="id40">:cite:`wehage2015generalized,uicker2013`</span></a>.</p>
+<p>To resolve this ambiguity, it is necessary to identify the <em>spanning tree</em> of the mechanism, i.e. the set of graph edges that touch every node exactly once. This process requires identifying the set of arcs and chords of the directed graph as shown in Fig. 4. For a comprehensive discussion automatic methods to obtain the set of arcs and chords of an acyclic directed graph, refer to <a class="reference internal" href="../../zreferences.html#wehage2015generalized" id="id22">[69]</a><a class="reference internal" href="../../zreferences.html#uicker2013" id="id23">[67]</a>.</p>
 <p>In this example, the arcs of the directed graph are shown in black and the chords are shown in blue. Note that the sense of joint B (shown in red) has also been flipped to align with the spanning tree. If the chords of the graph are removed, each body will have a unique parent body and associated joint.</p>
-<div class="figure align-center" id="id53">
+<div class="figure align-center" id="id32">
 <a class="reference internal image-reference" href="software_design/elements_of_star/directed_acyclic_graph2.png"><img alt="software_design/elements_of_star/directed_acyclic_graph2.png" src="software_design/elements_of_star/directed_acyclic_graph2.png" style="width: 300px;" /></a>
 <p class="caption"><span class="caption-text">Figure 5: Directed Acyclic Graph with Arcs and Chords identified</span></p>
 </div>
-<p>In STAR 2.0, the instructions to update the topology of a multibody system are coded using function pointers. Function pointers are a powerful tool in the C programming language which allow calling specific functions at program run-time based on definitions supplied in a user’s model definition. For example, in STAR 2.0, if a user has specified a joint as a revolute joint about the X-axis, a function pointer to a vectorized, sparse matrix multiplication for a rotation about the x axis is called. Note that this dynamic building of a program from a model definition is sometimes referred to as <em>Automata based programming</em> <a href="#id41"><span class="problematic" id="id42">:cite:`booth1967sequential`</span></a> and is used by other model based programming languages such as the Unified Modeling Language (UML) <a href="#id43"><span class="problematic" id="id44">:cite:`rumbaugh2004unified`</span></a>.</p>
+<p>In STAR 2.0, the instructions to update the topology of a multibody system are coded using function pointers. Function pointers are a powerful tool in the C programming language which allow calling specific functions at program run-time based on definitions supplied in a user’s model definition. For example, in STAR 2.0, if a user has specified a joint as a revolute joint about the X-axis, a function pointer to a vectorized, sparse matrix multiplication for a rotation about the x axis is called. Note that this dynamic building of a program from a model definition is sometimes referred to as <em>Automata based programming</em> <a class="reference internal" href="../../zreferences.html#booth1967sequential" id="id24">[5]</a> and is used by other model based programming languages such as the Unified Modeling Language (UML) <a class="reference internal" href="../../zreferences.html#rumbaugh2004unified" id="id25">[52]</a>.</p>
 <p>If a function pointer for each Body and Joint is set in each data structure as:</p>
 <pre class="highlight literal-block">
 <span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">Body</span> <span class="p">{</span>
@@ -422,14 +422,14 @@
 <div class="section" id="dual-graph-representation">
 <h3>Dual Graph Representation<a class="headerlink" href="#dual-graph-representation" title="Permalink to this headline">¶</a></h3>
 <p>To address these disadvantates, STAR 2.0 takes a slightly different approach to process and update the system’s topology. In STAR 2.0, the user’s original directed acyclic graph shown in Fig. 2 is maintained, and a second <em>dual</em> directed graph is created. Each time the user adds or removes a body or joint, memory for the second directed graph is freed and a new graph is generated automatically. Instead of removing joints from the user’s original DAG representation, additional massless <em>virtual</em> bodies (shown in octagons) are added and constraints (shown as a dashed blue lines) are imposed as shown in Fig. 5 below.</p>
-<div class="figure align-center" id="id54">
+<div class="figure align-center" id="id33">
 <a class="reference internal image-reference" href="software_design/elements_of_star/directed_graph.png"><img alt="software_design/elements_of_star/directed_graph.png" src="software_design/elements_of_star/directed_graph.png" style="width: 600px;" /></a>
 <p class="caption"><span class="caption-text">Figure 6: Dual Directed Graph representation</span></p>
 </div>
 <p>An important aspect in this process is that memory is allocated for quantities required to update the mechanism’s topology based on the total number of <em>active</em> bodies, joints and frames in the system. Data are then copied by value from their position in the directed acyclic graph representation to the <em>dual</em> directed graph representation and the memory pointers in each of the bodies and joints are updated to point to the new locations. Quantities required to process the kinematics and dynamics of the system are now stored in contiguous, closely-packed memory in a <em>struct of arrays</em> (SOAs), which serves to minimize cache misses. Note that great care has been taken using a memory profiler to ensure that there are no memory leaks when the second dual directed graph representation is created or freed.</p>
 <p>If STAR detects that the sense of the joint should be flipped in the directed graph representation to align with the spanning tree (as in the above example), the inverse transformation is set automatically in the appropriate position in the function pointer array, so as to maintain the user’s originally defined sense.</p>
 <p>The second <em>dual</em> graph representation is completely transparent to the user. The user can access body and joint parameters through their orginal linked-list Directed Acyclic Graph representation within each assembly using the C-API or through the graphical user interface. The assemblies serve to organize the pointers to bodies, joints, frames, devices and other objects, but are not represented in dual graph. Another advantage to the dual graph representation is that data exists in only one location. As the kinematics and dynamics of the mechanism are updated, there is no need to copy data by value back to a second datastructure. An example mechanism is shown in a screen shot of the STAR 2.0 graphical user interface. The assembly hierarchy, displayed at the left of the viewport, is generated using recursion from the linked-list model representation.</p>
-<div class="figure align-center" id="id55">
+<div class="figure align-center" id="id34">
 <img alt="software_design/elements_of_star/screenshot.png" src="software_design/elements_of_star/screenshot.png" />
 <p class="caption"><span class="caption-text">Figure 7: Screenshot of STAR 2.0 Program showing hydraulic excavator</span></p>
 </div>
@@ -437,7 +437,7 @@
 </div>
 <div class="section" id="algorithm-optimizing-processing">
 <h2>Algorithm Optimizing Processing<a class="headerlink" href="#algorithm-optimizing-processing" title="Permalink to this headline">¶</a></h2>
-<p>One well-known method to reduce the overhead associated with traversing the spanning tree is the Parent-Child List <a href="#id45"><span class="problematic" id="id46">:cite:`featherstone2008rigid`</span></a>. See also <a href="#id47"><span class="problematic" id="id48">:cite:`wehage2015generalized`</span></a>. A Parent-Child list is an array equal to the number of nodes in the spanning tree. Bodies are reordered in monotically increasing level order and joints are reordered such that each body’s unique parent joint is found at the corresponding body index. While this technique offers performance advantages over the recursive method described above, there are still a number of pointer dereferences required to find the corresponding frames located on each body, which can be improved.</p>
+<p>One well-known method to reduce the overhead associated with traversing the spanning tree is the Parent-Child List <a class="reference internal" href="../../zreferences.html#featherstone2008rigid" id="id26">[18]</a>. See also <a class="reference internal" href="../../zreferences.html#wehage2015generalized" id="id27">[69]</a>. A Parent-Child list is an array equal to the number of nodes in the spanning tree. Bodies are reordered in monotically increasing level order and joints are reordered such that each body’s unique parent joint is found at the corresponding body index. While this technique offers performance advantages over the recursive method described above, there are still a number of pointer dereferences required to find the corresponding frames located on each body, which can be improved.</p>
 <p>In STAR 2.0, the Parent-Child list is used to generate an array of pointers to values in their respective arrays. These pointer arrays are then sent to an array of function pointers, which processes and stores the values in their respective locations. Using this technique, it is not necessary to set a joint’s function pointer within a joint datastructure as above. Instead, an array of function pointers is created in the dual representation as:</p>
 <pre class="highlight literal-block">
 <span></span><span class="kt">int</span> <span class="n">functionPointerCount</span><span class="p">;</span>
@@ -505,9 +505,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../file_format/file_format.html">File Format</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../contributing/contributing.html">Contributing</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../doxyrest/global.html">Global Namespace</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../zreferences.html">References</a></li>
 </ul>
 
 <div class="relations">
@@ -537,7 +535,7 @@
       &copy;2015-2017, Kristopher Wehage.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.0+</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
       |
