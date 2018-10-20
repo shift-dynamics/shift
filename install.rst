@@ -47,6 +47,7 @@ Arch Linux:
 .. code::
 
     pacman -S cmake assimp jansson qt5 graphviz cblas imagemagick qhull pandoc
+    vulkan-icd-loader vulkan-headers vulkan-validation-layers vulkan-tools
 
 
 Ubuntu / Debian-based Linux Distributions:
