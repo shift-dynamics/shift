@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "base.h"
-#include "modelparameters.h"
+#include "shift-core/base.h"
+#include "shift-core/modelparameters.h"
 
 namespace Shift {
 
@@ -16,11 +16,11 @@ class Context : Base {
 public:
   Context(std::string name)
     : Base(name)
-    , m_modelparameters(name) {}
+    , modelparameters_(name) {}
   ~Context() {}
 
 private:
-  ModelParameters m_modelparameters;
+  ModelParameters modelparameters_;
 };
 
 } // namespace Shift

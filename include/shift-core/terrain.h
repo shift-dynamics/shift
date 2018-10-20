@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "base.h"
-#include "body.h"
+#include "shift-core/base.h"
+#include "shift-core/body.h"
 
 namespace Shift {
 

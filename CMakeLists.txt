@@ -14,5 +14,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(include)
 
+add_subdirectory(external)
 add_subdirectory(assets)
 add_subdirectory(src)

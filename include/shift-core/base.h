@@ -14,8 +14,8 @@ class Base {
 
 public:
   Base(std::string name) {
-    m_name = name;
-    m_id = id++;
+    name_ = name;
+    id_ = id++;
   }
   ~Base() {}
 
@@ -24,8 +24,8 @@ public:
   int getId();
 
 private:
-  std::string m_name;
-  int m_id;
+  std::string name_;
+  int id_;
 };
 
 } // namespace Shift
