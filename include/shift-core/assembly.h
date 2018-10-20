@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "base.h"
-#include "body.h"
-#include "joint.h"
+#include "shift-core/base.h"
+#include "shift-core/body.h"
+#include "shift-core/joint.h"
 
 namespace Shift {
 
@@ -21,9 +21,9 @@ public:
   ~Assembly() {}
 
 private:
-  std::vector<Assembly> m_subassemblies;
-  std::vector<Body> m_bodies;
-  std::vector<Joint> m_joints;
+  std::vector<Assembly> subassemblies_;
+  std::vector<Body> bodies_;
+  std::vector<Joint> joints_;
 };
 
 } // namespace Shift

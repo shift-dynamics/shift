@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "solverbase.h"
+#include "shift-core/solverbase.h"
 
 namespace Shift {
 

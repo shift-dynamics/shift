@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "base.h"
+#include "shift-core/base.h"
 
 namespace Shift {
 

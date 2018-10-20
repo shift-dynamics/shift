@@ -17,12 +17,6 @@
 -I/usr/lib64/gcc/x86_64-pc-linux-gnu/7.3.0/../../../../include/c++/7.3.0
 -I/usr/lib64/gcc/x86_64-pc-linux-gnu/7.3.0/../../../../include/c++/7.3.0/x86_64-pc-linux-gnu
 -I/usr/lib64/gcc/x86_64-pc-linux-gnu/7.3.0/../../../../include/c++/7.3.0/backward
--Isrc
--Iapplication
--Iexternal/shift-core/src
--Iexternal/shift-core/src/force_modules
--Iexternal/shift-core/src/force_modules/tire
--Iexternal/shift-core/src/ode
--Iexternal/ksl/src
 -I/usr/include/ImageMagick-7
 -Iinclude
+-Iexternal/ksl/include
