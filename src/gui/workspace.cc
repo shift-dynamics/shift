@@ -2,7 +2,7 @@
 #include <QtWidgets/QTreeWidget>
 
 #include "shift-gui/workspace.h"
-#include "ui_mainwindow.h"
+#include "ui_workspace.h"
 
 namespace Shift {
 

@@ -1,0 +1,42 @@
+digraph original {
+size="12,18";
+
+"(0) fixed" -> "(1) undercarriage" [label=" A"];
+"(1) undercarriage" -> "(2) cabin" [label=" B"];
+"(2) cabin" -> "(8) boom cylinder 1" [label=" H"];
+"(2) cabin" -> "(9) boom cylinder 2" [label=" I"];
+"(3) boom" -> "(10) boom rod 1" [label=" P"];
+"(3) boom" -> "(11) boom rod 2" [label=" Q"];
+"(8) boom cylinder 1" -> "(10) boom rod 1" [label=" L", style=dashed color=blue];
+#"boom rod 1" -> "boom" [disp=01];
+"(2) cabin" -> "(3) boom" [label=" C", weight=100];
+"(9) boom cylinder 2" -> "(11) boom rod 2" [label=" M",style=dashed color=blue];
+"(3) boom" -> "(12) stick cylinder" [label=" J"];
+"(4) stick" -> "(13) stick rod" [label=" R",weight=20];
+"(3) boom" -> "(4) stick" [label=" D",weight=5];
+"(4) stick" -> "(7) bucket linkage 2" [label=" F",weight=10];
+"(4) stick" -> "(5) bucket" [label=" E",weight=10];
+"(4) stick" -> "(14) bucket cylinder" [label=" K"];
+"(7) bucket linkage 2" -> "(6) bucket linkage 1" [label=" T"];
+"(14) bucket cylinder" -> "(15) bucket rod" [label=" O"];
+"(12) stick cylinder" -> "(13) stick rod" [label=" N",style=dashed color=blue,weight=10];
+"(5) bucket" -> "(6) bucket linkage 1" [label=" G",style=dashed color=blue];
+"(15) bucket rod" -> "(6) bucket linkage 1" [label=" S",style=dashed color=blue];
+
+node[shape=none, width=0, height=0, label=""];
+edge[dir=none, penwidth=0];
+"(2) cabin" -> "test";
+"(11) boom rod 2" -> "test2";
+#"(4) stick" -> "(12) stick cylinder"; 
+"(3) boom" -> "(9) boom cylinder 2";
+"(5) bucket" -> "(7) bucket linkage 2";
+"(7) bucket linkage 2"->"(14) bucket cylinder";
+"(14) bucket cylinder" -> "(13) stick rod";
+
+{rank=same; "(0) fixed"};
+{rank=same; "(4) stick", "test2"};
+{rank=same; "(10) boom rod 1", "(11) boom rod 2"}
+{rank=same; "(3) boom", "test", "(9) boom cylinder 2"}
+{rank=same; "(7) bucket linkage 2", "(5) bucket"}
+{rank=same; "(5) bucket", "(7) bucket linkage 2", "(14) bucket cylinder", "(13) stick rod"}
+}

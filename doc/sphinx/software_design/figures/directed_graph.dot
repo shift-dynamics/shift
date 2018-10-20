@@ -1,0 +1,17 @@
+digraph original {
+size="12,18";
+node[fontname="Monoid"];
+edge[fontname="Monoid"];
+"Body 6" -> "Body 3" [label="F"];
+"Body 6" -> "Body 1" [label="A"];
+"Body 6" -> "Body 2" [label="G"];
+"Body 1" -> "virtual Body 2" [label="D"];
+"virtual Body 2" [shape=octagon color=blue fontcolor=blue];
+"virtual Body 1" [shape=octagon color=blue fontcolor=blue];
+"Body 3" -> "Body 4" [label="C"];
+"Body 3" -> "Body 5" [label="B"];
+"Body 2" -> "virtual Body 1" [label="E"];
+{rank=same; "virtual Body 2" -> "Body 4" [dir=none style=dashed color=blue rankdir=LR];}
+{rank=same; "Body 5" -> "virtual Body 1" [dir=none style=dashed color=blue rankdir=LR];}
+{rank=same; "Body 4" -> "Body 5" [penwidth=0 dir=none];}
+}

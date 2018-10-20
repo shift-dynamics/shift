@@ -1,0 +1,3 @@
+[submodule "external/ksl"]
+	path = external/ksl
+	url = git@github.com:shift-dynamics/ksl.git

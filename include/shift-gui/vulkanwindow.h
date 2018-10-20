@@ -1,31 +1,28 @@
 #ifndef VULKAN_WINDOW_H_
 #define VULKAN_WINDOW_H_
 
-
 #include <QVulkanWindow>
 
-class VulkanRenderer : public QVulkanWindowRenderer
-{
+class VulkanRenderer : public QVulkanWindowRenderer {
 public:
-    VulkanRenderer(QVulkanWindow *w);
+  VulkanRenderer(QVulkanWindow* w);
 
-    void initResources() override;
-    void initSwapChainResources() override;
-    void releaseSwapChainResources() override;
-    void releaseResources() override;
+  void initResources() override;
+  void initSwapChainResources() override;
+  void releaseSwapChainResources() override;
+  void releaseResources() override;
 
-    void startNextFrame() override;
+  void startNextFrame() override;
 
 private:
-    QVulkanWindow *m_window;
-    QVulkanDeviceFunctions *m_devFuncs;
-    float m_green = 0;
+  QVulkanWindow* m_window;
+  QVulkanDeviceFunctions* m_devFuncs;
+  float m_green = 0;
 };
 
-class VulkanWindow : public QVulkanWindow
-{
+class VulkanWindow : public QVulkanWindow {
 public:
-    QVulkanWindowRenderer *createRenderer() override;
+  QVulkanWindowRenderer* createRenderer() override;
 };
 
 #endif
