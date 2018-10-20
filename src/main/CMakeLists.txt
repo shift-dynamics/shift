@@ -7,11 +7,18 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+include_directories(${CMAKE_SOURCE_DIR}/include/shift-gui)
+include_directories(${CMAKE_SOURCE_DIR}/include/shift-core)
+
+add_executable(shift-cli shift_cli.cc)
+
+target_link_libraries(shift-cli shift_core)
+
 add_executable(shift shift.cc)
 
-target_link_libraries(shift assets shift_gui shift_core)
-
 qt5_use_modules(shift Core Widgets Gui)
+
+target_link_libraries(shift assets shift_gui shift_core)
 
 target_compile_options(
   shift
@@ -30,6 +37,3 @@ target_compile_options(
 )
 
 target_include_directories(shift PUBLIC ${CMAKE_SOURCE_DIR}/include)
-
-add_executable(shift-cli shift_cli.cc)
-target_link_libraries(shift-cli shift_core)

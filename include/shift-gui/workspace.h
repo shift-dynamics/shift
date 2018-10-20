@@ -13,11 +13,11 @@ class Workspace : public QMainWindow {
   Q_OBJECT
 
 public:
-  explicit Workspace(QWidget *parent = 0);
+  explicit Workspace(QWidget* parent = 0);
   ~Workspace();
 
 private:
-  Ui::MainWindow *ui;
+  Ui::MainWindow* ui_;
 
 private slots:
 };

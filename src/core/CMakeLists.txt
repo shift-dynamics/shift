@@ -24,7 +24,7 @@ set(shift_core_src
 
 include_directories(${CMAKE_SOURCE_DIR}/include/shift-core)
 
-add_library(shift_core ${shift_core_src})
+add_library(shift_core STATIC ${shift_core_src})
 
 qt5_use_modules(shift_core Core Widgets Gui)
 
