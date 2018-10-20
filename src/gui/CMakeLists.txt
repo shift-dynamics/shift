@@ -11,11 +11,11 @@ set(shift_gui_src
   workspace.cc
   workspace.ui
   vulkanwindow.cc
+  ${CMAKE_SOURCE_DIR}/include/shift-gui/workspace.h
+  ${CMAKE_SOURCE_DIR}/include/shift-gui/vulkanwindow.h
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/include/shift-gui)
-
-add_library(shift_gui ${shift_gui_src})
+add_library(shift_gui STATIC ${shift_gui_src})
 
 qt5_use_modules(shift_gui Core Widgets Gui)
 

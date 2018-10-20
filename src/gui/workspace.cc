@@ -8,12 +8,12 @@ namespace Shift {
 
 Workspace::Workspace(QWidget* parent)
   : QMainWindow(parent)
-  , ui(new Ui::MainWindow) {
-  ui->setupUi(this);
+  , ui_(new Ui::MainWindow) {
+  ui_->setupUi(this);
 }
 
 Workspace::~Workspace() {
-  delete ui;
+  delete ui_;
 }
 
 } // namespace Shift

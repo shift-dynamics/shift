@@ -15,9 +15,9 @@ public:
   void startNextFrame() override;
 
 private:
-  QVulkanWindow* m_window;
-  QVulkanDeviceFunctions* m_devFuncs;
-  float m_green = 0;
+  QVulkanWindow* window_;
+  QVulkanDeviceFunctions* devFuncs_;
+  float green_ = 0;
 };
 
 class VulkanWindow : public QVulkanWindow {
