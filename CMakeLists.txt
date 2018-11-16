@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.1.0)
 
 project(shift)
-set (shift_VERSION_MAJOR 1)
-set (shift_VERSION_MINOR 0)
+set(VERSION_MAJOR 0 CACHE STRING "Project major version number.")
+set(VERSION_MINOR 9 CACHE STRING "Project minor version number.")
+set(VERSION_PATCH 0 CACHE STRING "Project patch version number.")
+mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
 
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
@@ -13,6 +15,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(include)
+
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/cmake")
+
+find_package(assimp REQUIRED)
+find_package(jsoncpp REQUIRED)
+find_package(graphviz REQUIRED)
+find_package(cblas)
 
 add_subdirectory(external)
 add_subdirectory(assets)

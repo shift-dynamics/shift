@@ -1,0 +1,22 @@
+<RCC>
+  <qresource prefix="/shaders">
+    <file alias="frame.glsl">${CMAKE_CURRENT_SOURCE_DIR}/frame.glsl</file>
+    <file alias="flat.glsl">${CMAKE_CURRENT_SOURCE_DIR}/flat.glsl</file>
+    <file alias="vertex_normal.glsl">${CMAKE_CURRENT_SOURCE_DIR}/vertex_normal.glsl</file>
+    <file alias="simple.glsl">${CMAKE_CURRENT_SOURCE_DIR}/simple.glsl</file>
+    <file alias="phong.glsl">${CMAKE_CURRENT_SOURCE_DIR}/phong.glsl</file>
+    <file alias="terrain.glsl">${CMAKE_CURRENT_SOURCE_DIR}/terrain.glsl</file>
+    <file alias="shadow_light.glsl">${CMAKE_CURRENT_SOURCE_DIR}/shadow_light.glsl</file>
+    <file alias="terrain_shadow.glsl">${CMAKE_CURRENT_SOURCE_DIR}/terrain_shadow.glsl</file>
+    <file alias="line.glsl">${CMAKE_CURRENT_SOURCE_DIR}/line.glsl</file>
+    <file alias="point_simple.glsl">${CMAKE_CURRENT_SOURCE_DIR}/point_simple.glsl</file>
+    <file alias="point_phong.glsl">${CMAKE_CURRENT_SOURCE_DIR}/point_phong.glsl</file>
+    <file alias="point_sprite.glsl">${CMAKE_CURRENT_SOURCE_DIR}/point_sprite.glsl</file>
+    <file alias="skybox.glsl">${CMAKE_CURRENT_SOURCE_DIR}/skybox.glsl</file>
+    <file alias="floor.glsl">${CMAKE_CURRENT_SOURCE_DIR}/floor.glsl</file>
+    <file alias="floor_shadow.glsl">${CMAKE_CURRENT_SOURCE_DIR}/floor_shadow.glsl</file>
+
+    <file alias="color.vert.spv">${CMAKE_CURRENT_BINARY_DIR}/color_vert.spv</file>
+    <file alias="color.frag.spv">${CMAKE_CURRENT_BINARY_DIR}/color_frag.spv</file>
+  </qresource>
+</RCC>

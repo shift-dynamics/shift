@@ -10,7 +10,6 @@ struct matrices_t {
   mat4 v;
   mat3 nm;
 };
-uniform matrices_t matrices_u;
 
 struct material_t {
   vec4 Ka;
@@ -19,7 +18,6 @@ struct material_t {
   vec4 Ke;
   int Ns;
 };
-uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -31,16 +29,23 @@ struct lights_t {
   int drawShadows;
   mat4 shadowMatrix[10];
 };
-uniform lights_t lights_u;
+
+layout (binding = 2) uniform UniformBlock {
+  matrices_t matrices_u;
+  material_t material_u;
+  lights_t lights_u;
+};
+
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec4 position_a;
 layout (location = 1) in vec3 normal_a;
 
-out vec3 normalFrag;
-out vec4 positionFrag;
-out vec4 shadowCoord[10];
-out vec4 eyeDirectionCameraSpace;
+layout (location = 0) out vec3 normalFrag;
+layout (location = 1) out vec4 positionFrag;
+layout (location = 2) out vec4 eyeDirectionCameraSpace;
+layout (location = 3) out vec4 shadowCoord[10];
+
 
 void main() {
   normalFrag = normalize(matrices_u.nm * normal_a);
@@ -58,10 +63,10 @@ void main() {
 
 
 #ifdef FRAGMENT_SHADER
-in vec4 positionFrag;
-in vec3 normalFrag;
-in vec4 eyeDirectionCameraSpace;
-in vec4 shadowCoord[10];
+layout (location = 0) in vec3 normalFrag;
+layout (location = 1) in vec4 positionFrag;
+layout (location = 2) in vec4 eyeDirectionCameraSpace;
+layout (location = 3) in vec4 shadowCoord[10];
 
 // vec2 poissonDisk[16] = vec2[](
 //    vec2(-0.94201624, -0.39906216),
@@ -82,7 +87,7 @@ in vec4 shadowCoord[10];
 //    vec2(0.14383161, -0.1410079 )
 // );
 
-out vec4 colorFrag;
+layout (location = 0) out vec4 colorFrag;
 
 float offset_lookup(
   sampler2DArrayShadow texture_shadow,

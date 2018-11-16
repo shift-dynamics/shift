@@ -1,4 +1,4 @@
-#version 330
+#version 440
 /* flat.glsl */
 
 struct matrices_t {
@@ -7,7 +7,6 @@ struct matrices_t {
   mat4 v;
   mat3 nm;
 };
-uniform matrices_t matrices_u;
 
 struct material_t {
   vec4 Ka;
@@ -16,7 +15,6 @@ struct material_t {
   vec4 Ke;
   int Ns;
 };
-uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -26,14 +24,18 @@ struct lights_t {
   int directional[10];
   int count;
 };
-uniform lights_t lights_u;
 
+layout(set=0, binding=0) uniform UniformBlock {
+  matrices_t matrices_u;
+  material_t material_u;
+  lights_t lights_u;
+};
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec4 position_a;
 layout (location = 1) in vec3 normal_a;
 
-out vec4 vertexGeom;
+layout(location = 0) out vec4 vertexGeom;
 
 void main() {
   vertexGeom = position_a;
@@ -46,10 +48,10 @@ void main() {
 layout (triangles) in;
 layout (triangle_strip, max_vertices = 3) out;
 
-in vec4 vertexGeom[];
+layout(location = 0) in vec4 vertexGeom[];
 
-out vec4 vertexFrag;
-out vec3 normalFrag;
+layout(location = 0) out vec4 vertexFrag;
+layout(location = 1) out vec3 normalFrag;
 
 void main() {
   vec4 a = vertexGeom[0];
@@ -69,10 +71,10 @@ void main() {
 
 
 #ifdef FRAGMENT_SHADER
-in vec4 vertexFrag;
-in vec3 normalFrag;
+layout(location = 0) in vec4 vertexFrag;
+layout(location = 1) in vec3 normalFrag;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
 

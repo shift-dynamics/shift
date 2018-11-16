@@ -1,13 +1,15 @@
-#version 330
+#version 420
 /* frame.glsl */
 
-uniform mat4 mvp_u;
-uniform float scale_u = 1.f;
+layout (binding = 0) uniform UniformBlock {
+  mat4 mvp_u;
+  float scale_u;
+};
+
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec4 position_a;
-
-flat out vec4 color;
+layout (location = 0) flat out vec4 color;
 
 void main() {
   vec4 position = vec4(scale_u * position_a.xyz, 1.f);
@@ -18,8 +20,8 @@ void main() {
 
 
 #ifdef FRAGMENT_SHADER
-flat in vec4 color;
-out vec4 fragColor;
+layout (location = 0) flat in vec4 color;
+layout (location = 0) out vec4 fragColor;
 
 void main() {
   fragColor = color;

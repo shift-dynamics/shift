@@ -3,8 +3,10 @@
 
 #include <string>
 
+#include "shift-core/assembly.h"
 #include "shift-core/base.h"
 #include "shift-core/modelparameters.h"
+#include "shift-core/terrain.h"
 
 namespace Shift {
 
@@ -16,11 +18,14 @@ class Context : Base {
 public:
   Context(std::string name)
     : Base(name)
-    , modelparameters_(name) {}
+    , model_parameters_(name)
+    , root_assembly_("fixed") {}
   ~Context() {}
 
 private:
-  ModelParameters modelparameters_;
+  ModelParameters model_parameters_;
+  Assembly root_assembly_;
+  std::vector<Terrain> terrains_;
 };
 
 } // namespace Shift

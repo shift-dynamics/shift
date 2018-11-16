@@ -20,3 +20,4 @@
 -I/usr/include/ImageMagick-7
 -Iinclude
 -Iexternal/ksl/include
+-Ibuild/src/gui/shift_gui_autogen/include

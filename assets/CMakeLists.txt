@@ -5,4 +5,8 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt5Core REQUIRED)
 
-add_library(assets assets.qrc)
+add_subdirectory(geometry)
+add_subdirectory(html)
+add_subdirectory(icons)
+add_subdirectory(shaders)
+add_subdirectory(textures)

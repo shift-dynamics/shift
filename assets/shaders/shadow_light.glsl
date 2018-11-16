@@ -1,5 +1,4 @@
 #version 330 core
-
 /* shadow_light.vert */
 
 uniform mat4 mvp_u;
@@ -15,7 +14,7 @@ void main() {
 
 
 #ifdef FRAGMENT_SHADER
-out float fragmentDepth;
+layout (location = 0) out float fragmentDepth;
 
 void main() {
   fragmentDepth = gl_FragCoord.z;

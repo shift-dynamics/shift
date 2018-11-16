@@ -18,7 +18,14 @@ add_executable(shift shift.cc)
 
 qt5_use_modules(shift Core Widgets Gui)
 
-target_link_libraries(shift assets shift_gui shift_core)
+find_library(geometry REQUIRED)
+find_library(html REQUIRED)
+find_library(icons REQUIRED)
+find_library(shaders REQUIRED)
+find_library(textures REQUIRED)
+set(assets geometry html icons shaders textures)
+
+target_link_libraries(shift ${assets} shift_gui shift_core)
 
 target_compile_options(
   shift

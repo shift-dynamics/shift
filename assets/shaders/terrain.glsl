@@ -73,7 +73,7 @@ void main(void) {
 #endif
 
 
-#ifdef TESSELATION_CONTROL_SHADER
+#ifdef TESSELLATION_CONTROL_SHADER
 layout (vertices = 4) out;
 
 in VS_OUT {
@@ -139,7 +139,7 @@ void main(void) {
 #endif
 
 
-#ifdef TESSELATION_EVALUATION_SHADER
+#ifdef TESSELLATION_EVALUATION_SHADER
 layout(quads, fractional_odd_spacing) in;
 in TCS_OUT {
   vec2 tc;
