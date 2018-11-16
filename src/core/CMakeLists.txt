@@ -13,12 +13,15 @@ set(shift_core_src
   body.cc
   context.cc
   frame.cc
+  integrator_ode113.cc
+  integratorbase.cc
   joint.cc
   modelparameters.cc
   pointcloud.cc
   sensor.cc
   solverbase.cc
   sparsesolver.cc
+  substructure.cc
   terrain.cc
 )
 

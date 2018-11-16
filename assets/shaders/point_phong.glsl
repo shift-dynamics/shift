@@ -1,4 +1,4 @@
-#version 330
+#version 420
 #extension GL_ARB_separate_shader_objects : enable
 /* point_phong.glsl */
 
@@ -7,7 +7,6 @@ struct matrices_t {
   mat4 mv;
   mat4 v;
 };
-uniform matrices_t matrices_u;
 
 struct lights_t {
   vec3 position[10];
@@ -19,17 +18,21 @@ struct lights_t {
   int drawShadows; /*!< 0 = false, 1 = true */
   mat4 shadowMatrix[10];
 };
-uniform lights_t lights_u;
 
-uniform vec4 color_u;
-uniform sampler2D texture_normal_u;
+layout(binding = 0) uniform BufferBlock {
+  matrices_t matrices_u;
+  lights_t lights_u;
+  vec4 color_u;
+};
+
+layout(binding = 1) uniform sampler2D texture_normal_u;
 
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec4 position_a;
 layout (location = 1) in vec4 color_a;
 
-out vec4 color;
+layout (location = 0) out vec4 color;
 
 void main() {
   color = color_a;
@@ -40,13 +43,12 @@ void main() {
 
 
 #ifdef FRAGMENT_SHADER
+layout (location = 0) in vec4 color;
 
-in vec4 color;
-
-out vec4 colorFrag;
+layout (location = 0) out vec4 colorFrag;
 
 void main() {
-  vec4 normal = texture2D(texture_normal_u, gl_PointCoord);
+  vec4 normal = texture(texture_normal_u, gl_PointCoord);
   if(normal.a < 0.9) {
     discard;
   }

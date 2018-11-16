@@ -1,12 +1,5 @@
-#version 420 core
+#version 440 core
 /* floor.glsl */
-
-layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
-layout (binding = 1) uniform samplerCubeArrayShadow texture_shadowCube_u;
-layout (binding = 2) uniform sampler2D texture_diffuse_u;
-layout (binding = 3) uniform sampler2D texture_normal_u;
-layout (binding = 4) uniform sampler2D texture_specular_u;
-layout (binding = 5) uniform sampler2D texture_bump_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -14,7 +7,6 @@ struct matrices_t {
   mat4 v;
   mat3 nm;
 };
-uniform matrices_t matrices_u;
 
 struct lights_t {
   vec3 position[10];
@@ -27,7 +19,6 @@ struct lights_t {
   int drawShadows;
   mat4 shadowMatrix[10];
 };
-uniform lights_t lights_u;
 
 struct floor_t {
   float tcScale;
@@ -35,11 +26,23 @@ struct floor_t {
   int enableSpecularMap;
   int enableBumpMap;
 };
-uniform floor_t floor_u;
+
+layout (binding = 0) uniform UniformBlock {
+  matrices_t matrices_u;
+  lights_t lights_u;
+  floor_t floor_u;
+};
+layout (binding = 1) uniform sampler2DArrayShadow texture_shadow_u;
+layout (binding = 2) uniform samplerCubeArrayShadow texture_shadowCube_u;
+layout (binding = 3) uniform sampler2D texture_diffuse_u;
+layout (binding = 4) uniform sampler2D texture_normal_u;
+layout (binding = 5) uniform sampler2D texture_specular_u;
+layout (binding = 6) uniform sampler2D texture_bump_u;
+
 
 #ifdef VERTEX_SHADER
 
-out VS_OUT {
+layout (location = 0) out VS_OUT {
   vec2 tc;
   vec3 normal_cameraSpace;
   vec3 position_cameraSpace;
@@ -60,8 +63,8 @@ void main() {
     vec2(0.0, 1.0),
     vec2(1.0, 1.0));
 
-  vec4 position = vec4(vertices[gl_VertexID], 1.0);
-  vs_out.tc = floor_u.tcScale * tc[gl_VertexID];
+  vec4 position = vec4(vertices[gl_VertexIndex], 1.0);
+  vs_out.tc = floor_u.tcScale * tc[gl_VertexIndex];
 
   vec4 position_cameraSpace = matrices_u.mv * position;
   vec3 normal = vec3(0.0, 0.0, -1.0);
@@ -107,7 +110,7 @@ void main() {
 
 #ifdef FRAGMENT_SHADER
 
-in VS_OUT {
+layout (location = 0) in VS_OUT {
   vec2 tc;
   vec3 normal_cameraSpace;
   vec3 position_cameraSpace;
@@ -116,7 +119,7 @@ in VS_OUT {
   vec4 shadowCoord[10];
 } fs_in;
 
-out vec4 colorFrag;
+layout (location = 0) out vec4 colorFrag;
 
 float offset_lookup(sampler2DArrayShadow texture_shadow, int index,
                     vec4 location, vec2 offset) {
@@ -128,10 +131,9 @@ float offset_lookup(sampler2DArrayShadow texture_shadow, int index,
   );
 }
 
-
 void main() {
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-  vec4 KdMaterial = texture2D(texture_diffuse_u, fs_in.tc);
+  vec4 KdMaterial = texture(texture_diffuse_u, fs_in.tc);
   vec3 KaMaterial = KdMaterial.rgb * 0.2;
   vec3 KsMaterial;
   if(floor_u.enableSpecularMap == 1) {

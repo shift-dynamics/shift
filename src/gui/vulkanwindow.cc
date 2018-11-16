@@ -1,67 +1,73 @@
 #include "shift-gui/vulkanwindow.h"
-#include <QVulkanFunctions>
+#include "shift-gui/vulkanwidget.h"
+#include <QKeyEvent>
+#include <QMouseEvent>
+
+VulkanWindow::VulkanWindow(bool dbg)
+  : m_debug(dbg) {}
 
 QVulkanWindowRenderer* VulkanWindow::createRenderer() {
-  return new VulkanRenderer(this);
+  m_renderer = new Renderer(this, 128);
+  return m_renderer;
 }
 
-VulkanRenderer::VulkanRenderer(QVulkanWindow* w)
-  : window_(w) {}
-
-void VulkanRenderer::initResources() {
-  qDebug("initResources");
-
-  devFuncs_ = window_->vulkanInstance()->deviceFunctions(window_->device());
+void VulkanWindow::addNew() {
+  m_renderer->addNew();
 }
 
-void VulkanRenderer::initSwapChainResources() {
-  qDebug("initSwapChainResources");
+void VulkanWindow::togglePaused() {
+  m_renderer->setAnimating(!m_renderer->animating());
 }
 
-void VulkanRenderer::releaseSwapChainResources() {
-  qDebug("releaseSwapChainResources");
+void VulkanWindow::meshSwitched(bool enable) {
+  m_renderer->setUseLogo(enable);
 }
 
-void VulkanRenderer::releaseResources() {
-  qDebug("releaseResources");
+void VulkanWindow::mousePressEvent(QMouseEvent* e) {
+  m_pressed = true;
+  m_lastPos = e->pos();
 }
 
-void VulkanRenderer::startNextFrame() {
-  green_ += 0.005f;
-  if(green_ > 1.0f) {
-    green_ = 0.0f;
+void VulkanWindow::mouseReleaseEvent(QMouseEvent*) {
+  m_pressed = false;
+}
+
+void VulkanWindow::mouseMoveEvent(QMouseEvent* e) {
+  if(!m_pressed)
+    return;
+
+  int dx = e->pos().x() - m_lastPos.x();
+  int dy = e->pos().y() - m_lastPos.y();
+
+  if(dy)
+    m_renderer->pitch(dy / 10.0f);
+
+  if(dx)
+    m_renderer->yaw(dx / 10.0f);
+
+  m_lastPos = e->pos();
+}
+
+void VulkanWindow::keyPressEvent(QKeyEvent* e) {
+  const float amount = e->modifiers().testFlag(Qt::ShiftModifier) ? 1.0f : 0.1f;
+  switch(e->key()) {
+    case Qt::Key_W:
+      m_renderer->walk(amount);
+      break;
+    case Qt::Key_S:
+      m_renderer->walk(-amount);
+      break;
+    case Qt::Key_A:
+      m_renderer->strafe(-amount);
+      break;
+    case Qt::Key_D:
+      m_renderer->strafe(amount);
+      break;
+    default:
+      break;
   }
+}
 
-  VkClearColorValue clearColor = {{0.0f, green_, 0.0f, 1.0f}};
-  VkClearDepthStencilValue clearDS = {1.0f, 0};
-  VkClearValue clearValues[2];
-  memset(clearValues, 0, sizeof(clearValues));
-  clearValues[0].color = clearColor;
-  clearValues[1].depthStencil = clearDS;
-
-  VkRenderPassBeginInfo rpBeginInfo;
-  memset(&rpBeginInfo, 0, sizeof(rpBeginInfo));
-  rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  rpBeginInfo.renderPass = window_->defaultRenderPass();
-  rpBeginInfo.framebuffer = window_->currentFramebuffer();
-  const QSize sz = window_->swapChainImageSize();
-  rpBeginInfo.renderArea.extent.width = sz.width();
-  rpBeginInfo.renderArea.extent.height = sz.height();
-  rpBeginInfo.clearValueCount = 2;
-  rpBeginInfo.pClearValues = clearValues;
-  VkCommandBuffer cmdBuf = window_->currentCommandBuffer();
-  devFuncs_->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo,
-                                  VK_SUBPASS_CONTENTS_INLINE);
-
-  // Do nothing else. We will just clear to green, changing the component on
-  // every invocation. This also helps verifying the rate to which the thread
-  // is throttled to. (The elapsed time between startNextFrame calls should
-  // typically be around 16 ms. Note that rendering is 2 frames ahead of what
-  // is displayed.)
-
-  devFuncs_->vkCmdEndRenderPass(cmdBuf);
-
-  window_->frameReady();
-  window_->requestUpdate(); // render continuously, throttled by the
-                            // presentation rate
+int VulkanWindow::instanceCount() const {
+  return m_renderer->instanceCount();
 }

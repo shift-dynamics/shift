@@ -7,12 +7,22 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+# Explicitly add header files because CMake is not able to
+# find them in a different directory for qt AUTOMOC
 set(shift_gui_src
   workspace.cc
   workspace.ui
-  vulkanwindow.cc
+  vulkanwidget.cc
+  camera.cc
+  mesh.cc
+  shader.cc
+  trianglerenderer.cc
   ${CMAKE_SOURCE_DIR}/include/shift-gui/workspace.h
-  ${CMAKE_SOURCE_DIR}/include/shift-gui/vulkanwindow.h
+  ${CMAKE_SOURCE_DIR}/include/shift-gui/vulkanwidget.h
+  ${CMAKE_SOURCE_DIR}/include/shift-gui/trianglerenderer.h
+  ${CMAKE_SOURCE_DIR}/include/shift-gui/camera.h
+  ${CMAKE_SOURCE_DIR}/include/shift-gui/mesh.h
+  ${CMAKE_SOURCE_DIR}/include/shift-gui/shader.h
 )
 
 add_library(shift_gui STATIC ${shift_gui_src})

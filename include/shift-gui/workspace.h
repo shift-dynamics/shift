@@ -7,13 +7,15 @@ namespace Ui {
 class MainWindow;
 }
 
+class VulkanWindow;
+
 namespace Shift {
 
 class Workspace : public QMainWindow {
   Q_OBJECT
 
 public:
-  explicit Workspace(QWidget* parent = 0);
+  explicit Workspace(VulkanWindow* vulkanWindow, QWidget* parent = 0);
   ~Workspace();
 
 private:
