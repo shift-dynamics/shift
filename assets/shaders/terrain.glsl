@@ -1,13 +1,5 @@
-#version 420 core
+#version 440 core
 /* terrain.vert */
-
-layout (binding = 0) uniform sampler2DArrayShadow texture_shadow_u;
-layout (binding = 1) uniform samplerCubeArrayShadow texture_shadowCube_u;
-layout (binding = 2) uniform sampler2D texture_elevation_u;
-layout (binding = 3) uniform sampler2D texture_diffuse_u;
-layout (binding = 4) uniform sampler2D texture_normal_u;
-layout (binding = 5) uniform sampler2D texture_specular_u;
-layout (binding = 6) uniform sampler2D texture_bump_u;
 
 struct matrices_t {
   mat4 mvp;
@@ -16,7 +8,6 @@ struct matrices_t {
   mat4 p;
   mat3 nm;
 };
-uniform matrices_t matrices_u;
 
 struct material_t {
   vec4 Kd;
@@ -24,7 +15,6 @@ struct material_t {
   float KsOverKd;
   int Ns;
 };
-uniform material_t material_u;
 
 struct lights_t {
   vec3 position[10];
@@ -37,7 +27,6 @@ struct lights_t {
   int drawShadows; /*!< 0 = false, 1 = true */
   mat4 shadowMatrix[10];
 };
-uniform lights_t lights_u;
 
 struct terrain_t {
   float zMin;
@@ -50,10 +39,23 @@ struct terrain_t {
   int enableSpecularMap;
   int enableBumpMap;
 };
-uniform terrain_t terrain_u;
+
+layout (binding = 0) uniform BufferBlock {
+  matrices_t matrices_u;
+  material_t material_u;
+  lights_t lights_u;
+  terrain_t terrain_u;
+};
+layout (binding = 1) uniform sampler2DArrayShadow texture_shadow_u;
+layout (binding = 2) uniform samplerCubeArrayShadow texture_shadowCube_u;
+layout (binding = 3) uniform sampler2D texture_elevation_u;
+layout (binding = 4) uniform sampler2D texture_diffuse_u;
+layout (binding = 5) uniform sampler2D texture_normal_u;
+layout (binding = 6) uniform sampler2D texture_specular_u;
+layout (binding = 7) uniform sampler2D texture_bump_u;
 
 #ifdef VERTEX_SHADER
-out VS_OUT {
+layout(location = 0) out VS_OUT {
   vec2 tc;
 } vs_out;
 
@@ -65,10 +67,10 @@ void main(void) {
     vec4(1.0, 1.0, 0.0, 1.0));
 
   ivec2 texture_size = textureSize(texture_elevation_u, 0);
-  int x = gl_InstanceID % texture_size.x; // row index into elevation map
-  int y = gl_InstanceID / texture_size.x; // column index into elevation map
-  vs_out.tc = (vertices[gl_VertexID].xy + vec2(x, y)) / texture_size;
-  gl_Position = vertices[gl_VertexID] + vec4(float(x), float(y), 0.0, 0.0);
+  int x = gl_InstanceIndex % texture_size.x; // row index into elevation map
+  int y = gl_InstanceIndex / texture_size.x; // column index into elevation map
+  vs_out.tc = (vertices[gl_VertexIndex].xy + vec2(x, y)) / texture_size;
+  gl_Position = vertices[gl_VertexIndex] + vec4(float(x), float(y), 0.0, 0.0);
 }
 #endif
 
@@ -76,11 +78,11 @@ void main(void) {
 #ifdef TESSELLATION_CONTROL_SHADER
 layout (vertices = 4) out;
 
-in VS_OUT {
+layout(location = 0) in VS_OUT {
   vec2 tc;
 } tcs_in[];
 
-out TCS_OUT {
+layout(location = 0) out TCS_OUT {
   vec2 tc;
 } tcs_out[];
 
@@ -141,11 +143,11 @@ void main(void) {
 
 #ifdef TESSELLATION_EVALUATION_SHADER
 layout(quads, fractional_odd_spacing) in;
-in TCS_OUT {
+layout(location = 0) in TCS_OUT {
   vec2 tc;
 } tes_in[];
 
-out TES_OUT {
+layout(location = 0) out TES_OUT {
   vec2 tc;
   vec3 normal_cameraSpace;
   vec3 position_cameraSpace;
@@ -233,7 +235,7 @@ void main(void) {
 
 
 #ifdef FRAGMENT_SHADER
-in TES_OUT {
+layout(location = 0) in TES_OUT {
   vec2 tc;
   vec3 normal_cameraSpace;
   vec3 position_cameraSpace;
@@ -242,7 +244,7 @@ in TES_OUT {
   vec4 shadowCoord[10];
 } fs_in;
 
-out vec4 colorFrag;
+layout(location = 0) out vec4 colorFrag;
 
 float offset_lookup(sampler2DArrayShadow texture_shadow, int index,
                     vec4 location, vec2 offset) {
@@ -273,7 +275,7 @@ void main(void) {
   vec4 KdMaterial;
   if(terrain_u.enableDiffuseMap == 1) {
     /* get diffuse color from texture */
-    KdMaterial = texture2D(texture_diffuse_u, fs_in.tc);
+    KdMaterial = texture(texture_diffuse_u, fs_in.tc);
   } else {
     /* if no color map supplied, then use uniform material color */
     KdMaterial = material_u.Kd;

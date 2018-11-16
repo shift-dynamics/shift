@@ -1,4 +1,4 @@
-#version 330
+#version 440
 /* vertex_normal.frag */
 
 struct matrices_t {
@@ -7,17 +7,20 @@ struct matrices_t {
   mat4 v;
   mat3 nm;
 };
-uniform matrices_t matrices_u;
-uniform float scale_u;
-uniform vec3 color_u;
+
+layout (binding = 0) uniform BufferBlock {
+  matrices_t matrices_u;
+  float scale_u;
+  vec3 color_u;
+};
 
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec4 position_a;
 layout (location = 1) in vec3 normal_a;
 
-out vec4 position;
-out vec3 normal;
+layout (location = 0) out vec4 position;
+layout (location = 1) out vec3 normal;
 
 void main() {
   position = position_a;
@@ -30,8 +33,8 @@ void main() {
 layout(triangles) in;
 layout(line_strip, max_vertices=6) out;
 
-in vec4 position[];
-in vec3 normal[];
+layout (location = 0) in vec4 position[];
+layout (location = 1) in vec3 normal[];
 
 void main() {
 
@@ -52,7 +55,7 @@ void main() {
 
 
 #ifdef FRAGMENT_SHADER
-out vec4 fragColor;
+layout (location = 0) out vec4 fragColor;
 
 void main() {
   fragColor = vec4(color_u, 1.0);

@@ -21,9 +21,9 @@ public:
   void reset();
 
 private:
-  bool m_maybeRunning = false;
-  QFuture<ShaderData> m_future;
-  ShaderData m_data;
+  bool maybeRunning_ = false;
+  QFuture<ShaderData> future_;
+  ShaderData data_;
 };
 
 #endif

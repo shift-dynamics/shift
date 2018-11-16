@@ -1,4 +1,4 @@
-#version 420 core
+#version 440
 /* terrain_shadow.glsl */
 
 layout (binding = 1) uniform sampler2D texture_elevation_u;
@@ -9,7 +9,6 @@ struct matrices_t {
   mat4 v;
   mat4 p;
 };
-uniform matrices_t matrices_u;
 
 struct terrain_t {
   float zMin;
@@ -17,10 +16,14 @@ struct terrain_t {
   vec2 scale;
   vec2 viewport;
 };
-uniform terrain_t terrain_u;
+
+layout (binding = 2) uniform BufferBlock {
+  matrices_t matrices_u;
+  terrain_t terrain_u;
+};
 
 #ifdef VERTEX_SHADER
-out VS_OUT {
+layout(location = 0) out VS_OUT {
   vec2 tc;
 } vs_out;
 
@@ -32,10 +35,10 @@ void main(void) {
     vec4(1.0, 1.0, 0.0, 1.0));
 
   ivec2 texture_size = textureSize(texture_elevation_u, 0);
-  int x = gl_InstanceID % texture_size.x; // row index into elevation map
-  int y = gl_InstanceID / texture_size.x; // column index into elevation map
-  vs_out.tc = (vertices[gl_VertexID].xy + vec2(x, y)) / texture_size;
-  gl_Position = vertices[gl_VertexID] + vec4(float(x), float(y), 0.0, 0.0);
+  int x = gl_InstanceIndex % texture_size.x; // row index into elevation map
+  int y = gl_InstanceIndex / texture_size.x; // column index into elevation map
+  vs_out.tc = (vertices[gl_VertexIndex].xy + vec2(x, y)) / texture_size;
+  gl_Position = vertices[gl_VertexIndex] + vec4(float(x), float(y), 0.0, 0.0);
 }
 #endif
 
@@ -43,11 +46,11 @@ void main(void) {
 #ifdef TESSELLATION_CONTROL_SHADER
 layout (vertices = 4) out;
 
-in VS_OUT {
+layout (location = 0) in VS_OUT {
   vec2 tc;
 } tcs_in[];
 
-in TCS_OUT {
+layout (location = 0) out TCS_OUT {
   vec2 tc;
 } tcs_out[];
 
@@ -119,11 +122,11 @@ void main(void) {
 
 #ifdef TESSELLATION_EVALUATION_SHADER
 layout(quads, fractional_odd_spacing) in;
-in TCS_OUT {
+layout(location = 0) in TCS_OUT {
   vec2 tc;
 } tes_in[];
 
-out TES_OUT {
+layout(location = 0) out TES_OUT {
   vec3 world_coord;
   vec3 eye_coord;
 } tes_out;
@@ -167,8 +170,8 @@ void main(void) {
 
 
 #ifdef FRAGMENT_SHADER
-in vec4 positionFrag;
-out float fragmentDepth;
+layout(location = 0) in vec4 positionFrag;
+layout(location = 0) out float fragmentDepth;
 
 void main(void) {
   fragmentDepth = gl_FragCoord.z;

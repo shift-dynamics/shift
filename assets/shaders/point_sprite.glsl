@@ -1,4 +1,4 @@
-#version 330
+#version 420
 #extension GL_ARB_separate_shader_objects : enable
 /* point_sprite.vert */
 
@@ -6,14 +6,19 @@ struct matrices_t {
   mat4 mvp;
   mat4 mv;
 };
-uniform matrices_t matrices_u;
-uniform sampler2D texture_sprite_u;
+
+layout (binding = 0)  uniform BufferBlock {
+  matrices_t matrices_u;
+};
+
+layout (binding = 1) uniform sampler2D texture_sprite_u;
 
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec4 position_a;
 layout (location = 1) in vec4 color_a;
-out vec4 color;
+
+layout (location = 0) out vec4 color;
 
 void main() {
   color = color_a;
@@ -24,11 +29,12 @@ void main() {
 
 
 #ifdef FRAGMENT_SHADER
-in vec4 color;
-out vec4 fragColor;
+layout (location = 0) in vec4 color;
+
+layout(location = 0) out vec4 fragColor;
 
 void main() {
-	vec4 texel = texture2D(texture_sprite_u, gl_PointCoord);
+	vec4 texel = texture(texture_sprite_u, gl_PointCoord);
 	if(texel.a < 0.1) {
 		discard;
 	}
