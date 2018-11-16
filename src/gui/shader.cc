@@ -6,8 +6,8 @@
 
 void Shader::load(QVulkanInstance* inst, VkDevice dev, const QString& fn) {
   reset();
-  m_maybeRunning = true;
-  m_future = QtConcurrent::run([inst, dev, fn]() {
+  maybeRunning_ = true;
+  future_ = QtConcurrent::run([inst, dev, fn]() {
     ShaderData sd;
     QFile f(fn);
     if(!f.open(QIODevice::ReadOnly)) {
@@ -31,13 +31,13 @@ void Shader::load(QVulkanInstance* inst, VkDevice dev, const QString& fn) {
 }
 
 ShaderData* Shader::data() {
-  if(m_maybeRunning && !m_data.isValid())
-    m_data = m_future.result();
+  if(maybeRunning_ && !data_.isValid())
+    data_ = future_.result();
 
-  return &m_data;
+  return &data_;
 }
 
 void Shader::reset() {
   *data() = ShaderData();
-  m_maybeRunning = false;
+  maybeRunning_ = false;
 }

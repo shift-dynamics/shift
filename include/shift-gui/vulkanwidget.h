@@ -23,10 +23,10 @@ public slots:
   void onGrabRequested();
 
 private:
-  VulkanWindow* m_window;
-  QTabWidget* m_infoTab;
-  QPlainTextEdit* m_info;
-  QLCDNumber* m_number;
+  VulkanWindow* window_;
+  QTabWidget* infoTab_;
+  QPlainTextEdit* info_;
+  QLCDNumber* number_;
 };
 
 class VulkanRenderer : public TriangleRenderer {

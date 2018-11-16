@@ -7,9 +7,9 @@ void Mesh::load(const QString& fn) {
   qDebug() << "loading string" << fn;
 
   reset();
-  m_maybeRunning = true;
+  maybeRunning_ = true;
 
-  m_future = QtConcurrent::run([fn]() {
+  future_ = QtConcurrent::run([fn]() {
     MeshData md;
     QFile f(fn);
     if(!f.open(QIODevice::ReadOnly)) {
@@ -37,13 +37,13 @@ void Mesh::load(const QString& fn) {
 }
 
 MeshData* Mesh::data() {
-  if(m_maybeRunning && !m_data.isValid())
-    m_data = m_future.result();
+  if(maybeRunning_ && !data_.isValid())
+    data_ = future_.result();
 
-  return &m_data;
+  return &data_;
 }
 
 void Mesh::reset() {
   *data() = MeshData();
-  m_maybeRunning = false;
+  maybeRunning_ = false;
 }

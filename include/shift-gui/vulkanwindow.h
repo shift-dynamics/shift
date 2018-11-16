@@ -12,7 +12,7 @@ public:
   QVulkanWindowRenderer* createRenderer() override;
 
   bool isDebugEnabled() const {
-    return m_debug;
+    return debug_;
   }
   int instanceCount() const;
 
@@ -27,10 +27,10 @@ private:
   void mouseMoveEvent(QMouseEvent*) override;
   void keyPressEvent(QKeyEvent*) override;
 
-  bool m_debug;
-  Renderer* m_renderer;
-  bool m_pressed = false;
-  QPoint m_lastPos;
+  bool debug_;
+  Renderer* renderer_;
+  bool pressed_ = false;
+  QPoint lastPos_;
 };
 
 #endif

@@ -1,14 +1,16 @@
-#version 330
+#version 420
 
-uniform mat4 mvp_u;
-uniform vec4 color_u;
-uniform float scale_u;
+layout (binding = 0) uniform UniformBlock {
+  mat4 mvp_u;
+  vec4 color_u;
+  float scale_u;
+};
 
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec4 position_a;
 
-out vec4 color;
+layout (location = 0) out vec4 color;
 
 void main() {
   color = color_u;
@@ -18,9 +20,9 @@ void main() {
 
 
 #ifdef FRAGMENT_SHADER
-in vec4 color;
+layout (location = 0) in vec4 color;
 
-out vec4 fragColor;
+layout (location = 0) out vec4 fragColor;
 
 void main() {
   fragColor = color;

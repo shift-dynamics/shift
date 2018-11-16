@@ -1,7 +1,9 @@
-#version 330 core
+#version 420 core
 /* shadow_light.vert */
 
-uniform mat4 mvp_u;
+layout (binding = 0) uniform BufferBlock {
+  mat4 mvp_u;
+};
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec4 position_a;
