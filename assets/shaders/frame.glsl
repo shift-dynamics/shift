@@ -1,7 +1,7 @@
 #version 420
 /* frame.glsl */
 
-layout (binding = 0) uniform UniformBlock {
+layout (std140, binding = 0) uniform UniformBlock {
   mat4 mvp_u;
   float scale_u;
 };

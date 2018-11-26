@@ -19,7 +19,7 @@ struct lights_t {
   mat4 shadowMatrix[10];
 };
 
-layout(binding = 0) uniform BufferBlock {
+layout(std140, binding = 0) uniform BufferBlock {
   matrices_t matrices_u;
   lights_t lights_u;
   vec4 color_u;

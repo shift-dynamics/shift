@@ -7,7 +7,7 @@ struct matrices_t {
   mat4 mv;
 };
 
-layout(binding = 0) uniform BufferBlock {
+layout(std140, binding = 0) uniform BufferBlock {
   matrices_t matrices_u;
 };
 

@@ -1,7 +1,7 @@
 #version 420 core
 /* shadow_light.vert */
 
-layout (binding = 0) uniform BufferBlock {
+layout (std140, binding = 0) uniform BufferBlock {
   mat4 mvp_u;
 };
 

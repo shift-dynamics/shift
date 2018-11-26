@@ -1,7 +1,7 @@
 #version 420
 /* line.vert */
 
-layout(binding = 0) uniform UniformBlock {
+layout(std140, binding = 0) uniform UniformBlock {
   uniform mat4 mvp_u;
   uniform vec4 color_u;
   uniform float scale_u;

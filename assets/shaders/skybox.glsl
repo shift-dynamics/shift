@@ -1,7 +1,7 @@
 #version 420 core
 /* cube.glsl */
 
-layout (binding = 0) uniform BufferBlock {
+layout (std140, binding = 0) uniform BufferBlock {
   mat4 view_u;
 };
 layout (binding = 1) uniform samplerCube texture_cube_u;

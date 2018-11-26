@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>1476</width>
     <height>600</height>
    </rect>
   </property>
@@ -32,6 +32,24 @@
     </property>
     <item>
      <widget class="QSplitter" name="splitter">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>16777215</height>
+       </size>
+      </property>
       <property name="autoFillBackground">
        <bool>false</bool>
       </property>
@@ -45,12 +63,24 @@
         </property>
         <item>
          <widget class="QTabWidget" name="tabWidget">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="baseSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="currentIndex">
            <number>0</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="icon">
-            <iconset resource="../assets/resources.qrc">
+            <iconset resource="../../assets/icons/icons.qrc">
              <normaloff>:/icons/scene.png</normaloff>:/icons/scene.png</iconset>
            </attribute>
            <attribute name="title">
@@ -124,7 +154,7 @@
           </widget>
           <widget class="QWidget" name="tab_2">
            <attribute name="icon">
-            <iconset resource="../assets/resources.qrc">
+            <iconset resource="../../assets/icons/icons.qrc">
              <normaloff>:/icons/clapper.png</normaloff>:/icons/clapper.png</iconset>
            </attribute>
            <attribute name="title">
@@ -154,7 +184,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1476</width>
      <height>24</height>
     </rect>
    </property>
@@ -282,7 +312,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../assets/resources.qrc">
+    <iconset resource="../../assets/icons/icons.qrc">
      <normaloff>:/icons/frame.png</normaloff>:/icons/frame.png</iconset>
    </property>
    <property name="text">
@@ -294,7 +324,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../assets/resources.qrc">
+    <iconset resource="../../assets/icons/icons.qrc">
      <normaloff>:/icons/joint.png</normaloff>:/icons/joint.png</iconset>
    </property>
    <property name="text">
@@ -306,7 +336,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../assets/resources.qrc">
+    <iconset resource="../../assets/icons/icons.qrc">
      <normaloff>:/icons/terrain.png</normaloff>:/icons/terrain.png</iconset>
    </property>
    <property name="text">
@@ -318,7 +348,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../assets/resources.qrc">
+    <iconset resource="../../assets/icons/icons.qrc">
      <normaloff>:/icons/grid.png</normaloff>:/icons/grid.png</iconset>
    </property>
    <property name="text">
@@ -330,7 +360,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../assets/resources.qrc">
+    <iconset resource="../../assets/icons/icons.qrc">
      <normaloff>:/icons/floor.png</normaloff>:/icons/floor.png</iconset>
    </property>
    <property name="text">
@@ -355,7 +385,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../assets/resources.qrc">
+    <iconset resource="../../assets/icons/icons.qrc">
      <normaloff>:/icons/convexhull.png</normaloff>:/icons/convexhull.png</iconset>
    </property>
    <property name="text">
@@ -367,7 +397,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../assets/resources.qrc">
+    <iconset resource="../../assets/icons/icons.qrc">
      <normaloff>:/icons/normal.png</normaloff>:/icons/normal.png</iconset>
    </property>
    <property name="text">
@@ -379,7 +409,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../assets/resources.qrc">
+    <iconset resource="../../assets/icons/icons.qrc">
      <normaloff>:/icons/cube.png</normaloff>:/icons/cube.png</iconset>
    </property>
    <property name="text">
@@ -398,7 +428,7 @@
   </action>
  </widget>
  <resources>
-  <include location="../assets/resources.qrc"/>
+  <include location="../../assets/icons/icons.qrc"/>
  </resources>
  <connections/>
 </ui>

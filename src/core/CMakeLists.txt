@@ -19,6 +19,7 @@ set(shift_core_src
   modelparameters.cc
   pointcloud.cc
   sensor.cc
+  serialize.cc
   solverbase.cc
   sparsesolver.cc
   substructure.cc
@@ -55,4 +56,14 @@ target_compile_options(
   -std=c++11
 )
 
-target_include_directories(shift_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(
+  shift_core
+  PUBLIC
+  ${CMAKE_SOURCE_DIR}/include
+)
+
+target_include_directories(
+  shift_core
+  PUBLIC 
+  ${CMAKE_SOURCE_DIR}/external/ksl/include
+)

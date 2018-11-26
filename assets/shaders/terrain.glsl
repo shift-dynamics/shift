@@ -40,7 +40,7 @@ struct terrain_t {
   int enableBumpMap;
 };
 
-layout (binding = 0) uniform BufferBlock {
+layout (std140, binding = 0) uniform BufferBlock {
   matrices_t matrices_u;
   material_t material_u;
   lights_t lights_u;

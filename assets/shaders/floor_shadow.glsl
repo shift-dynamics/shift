@@ -5,7 +5,7 @@ struct matrices_t {
   mat4 mvp;
 };
 
-layout(set=0, binding=0) uniform UniformBlock {
+layout(std140, binding=0) uniform UniformBlock {
   matrices_t matrices_u;
 };
 
