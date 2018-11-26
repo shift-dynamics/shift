@@ -1,6 +1,6 @@
 #version 420
 
-layout (binding = 0) uniform UniformBlock {
+layout (std140, binding = 0) uniform UniformBlock {
   mat4 mvp_u;
   vec4 color_u;
   float scale_u;

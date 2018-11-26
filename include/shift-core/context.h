@@ -21,11 +21,15 @@ public:
     , model_parameters_(name)
     , root_assembly_("fixed") {}
   ~Context() {}
+  void readJSON(const std::string filename);
+  void writeJSON();
+  void writeJSON(const std::string filename);
 
 private:
   ModelParameters model_parameters_;
   Assembly root_assembly_;
   std::vector<Terrain> terrains_;
+  std::string filename_;
 };
 
 } // namespace Shift

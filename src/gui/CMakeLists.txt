@@ -12,13 +12,13 @@ set(CMAKE_AUTORCC ON)
 set(shift_gui_src
   workspace.cc
   workspace.ui
-  vulkanwidget.cc
+  vulkanwindow.cc
   camera.cc
   mesh.cc
   shader.cc
   trianglerenderer.cc
   ${CMAKE_SOURCE_DIR}/include/shift-gui/workspace.h
-  ${CMAKE_SOURCE_DIR}/include/shift-gui/vulkanwidget.h
+  ${CMAKE_SOURCE_DIR}/include/shift-gui/vulkanwindow.h
   ${CMAKE_SOURCE_DIR}/include/shift-gui/trianglerenderer.h
   ${CMAKE_SOURCE_DIR}/include/shift-gui/camera.h
   ${CMAKE_SOURCE_DIR}/include/shift-gui/mesh.h

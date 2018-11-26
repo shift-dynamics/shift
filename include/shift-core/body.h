@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
+#include "ksl/inertia.h"
+
 #include "shift-core/base.h"
 #include "shift-core/frame.h"
-
-#include "ksl/inertia.h"
-#include "ksl/vector.h"
+#include "shift-core/serialize.h"
 
 namespace Shift {
 
@@ -18,13 +18,22 @@ class Joint;
 /*!
 @brief Parameters that describe a Shift::Body
 */
-class Body : Base {
+class Body
+  : public Base
+  , public Serialize {
 
 public:
   Body(std::string name)
-    : Base(name) {}
+    : Base(name) {
+    addJsonKeys();
+  }
+  Body()
+    : Base("") {
+    addJsonKeys();
+  }
   ~Body() {}
 
+  void addJsonKeys();
   std::string getDefinition();
   void setDefinition(std::string);
   void setParentAssembly(Assembly*);
@@ -32,14 +41,17 @@ public:
   Joint* getParentJoint();
   Body* getParentBody();
 
+  void processStuff();
+  void service();
+
 private:
-  std::string definition_; /*!< Path to files that define body geometry,
-                                  i.e. obj and mtl files */
+  std::vector<std::string> definition_; /*!< Path to files that define body
+                                  geometry, i.e. obj and mtl files */
 
   Assembly* assembly_ = NULL; /*!< Pointer to assembly that this body is a
                                   member of. */
 
-  std::vector<Frame> frames_; /*!< head of Frame linked list */
+  std::vector<Frame> frames_; /*!< Frame list */
 
   int referenceFrameIndex_ = -1; /*!< pointer to Body's unique reference
                                     frame, which  may not be the Frame's origin.
@@ -77,27 +89,27 @@ private:
   int level_ = -1; /*!< level in the spanning tree, set
                   by s2_ProcessTopology */
   int materialIndex_ = -1; /*!< offset into context->materials */
-  int materialCount_ = 0;  /*!< number of materials assigned to a body */
+  int meshCount_ = 0;      /*!< number of meshes assigned to a body */
   bool isVirtual_ = false; /*!< indicates whether the Body is *virtual*. All
                        user-defined bodies are not virtual. Massless
                        virtual bodies are added to simplify processing
                        kinematics if multiple loops are present in the
                        mechanism */
   ksl_inertia_t inertia_;  /*!< centroidal Mass and moment of Inertia
-                                            properties expressed in origin
+                                            properties expressed in body origin
                                coordinate system */
   ksl_vec3_t centerOfMassWRTOrigin_;    /*!< vector from body origin to
                                                 center of mass */
   ksl_vec3_t centerOfMassWRTReference_; /*!< vector from body reference
                                                 frame to center of mass */
-  int collisionObjectCount_;
-  int collisionObjectOffset_; /*!< index to beginning of array of one or more
-                       s2_collisionobject_t* datastructures stored in
+  int collisionObjectCount_ = 0;
+  int collisionObjectOffset_ = -1; /*!< index to beginning of array of one or
+                       more s2_collisionobject_t* datastructures stored in
                        s2_context_t datastructure, s2_collisionobject_t is the
                        level 3 interface to all primitive convex geometries */
-  bool drawEnabled_;
-  bool isVisible_;
-  bool collisionObjectDrawEnabled_;
+  bool drawEnabled_ = true;
+  bool isVisible_ = true;
+  bool collisionObjectDrawEnabled_ = false;
 };
 
 } // namespace Shift

@@ -17,7 +17,7 @@ struct terrain_t {
   vec2 viewport;
 };
 
-layout (binding = 2) uniform BufferBlock {
+layout (std140, binding = 2) uniform BufferBlock {
   matrices_t matrices_u;
   terrain_t terrain_u;
 };

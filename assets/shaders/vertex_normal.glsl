@@ -8,7 +8,7 @@ struct matrices_t {
   mat3 nm;
 };
 
-layout (binding = 0) uniform BufferBlock {
+layout (std140, binding = 0) uniform BufferBlock {
   matrices_t matrices_u;
   float scale_u;
   vec3 color_u;

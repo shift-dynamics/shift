@@ -1,73 +1,73 @@
 #include "shift-gui/vulkanwindow.h"
-#include "shift-gui/vulkanwidget.h"
-#include <QKeyEvent>
-#include <QMouseEvent>
 
-VulkanWindow::VulkanWindow(bool dbg)
-  : debug_(dbg) {}
+#include <QApplication>
+#include <QFileDialog>
+#include <QLCDNumber>
+#include <QMessageBox>
+#include <QPlainTextEdit>
+#include <QPushButton>
+#include <QTabWidget>
+#include <QVBoxLayout>
+#include <QVulkanFunctions>
 
 QVulkanWindowRenderer* VulkanWindow::createRenderer() {
-  renderer_ = new Renderer(this, 128);
-  return renderer_;
+  return new VulkanRenderer(this);
 }
 
-void VulkanWindow::addNew() {
-  renderer_->addNew();
+VulkanRenderer::VulkanRenderer(VulkanWindow* w)
+  : TriangleRenderer(w) {}
+
+void VulkanRenderer::initResources() {
+  TriangleRenderer::initResources();
+
+  QVulkanInstance* inst = window_->vulkanInstance();
+  devFuncs_ = inst->deviceFunctions(window_->device());
+
+  QString info;
+  info += QString().sprintf("Number of physical devices: %d\n",
+                            window_->availablePhysicalDevices().count());
+
+  QVulkanFunctions* f = inst->functions();
+  VkPhysicalDeviceProperties props;
+  f->vkGetPhysicalDeviceProperties(window_->physicalDevice(), &props);
+  info += QString().sprintf(
+    "Active physical device name: '%s' version %d.%d.%d\nAPI version "
+    "%d.%d.%d\n",
+    props.deviceName, VK_VERSION_MAJOR(props.driverVersion),
+    VK_VERSION_MINOR(props.driverVersion),
+    VK_VERSION_PATCH(props.driverVersion), VK_VERSION_MAJOR(props.apiVersion),
+    VK_VERSION_MINOR(props.apiVersion), VK_VERSION_PATCH(props.apiVersion));
+
+  info += QStringLiteral("Supported instance layers:\n");
+  for(const QVulkanLayer& layer : inst->supportedLayers())
+    info +=
+      QString().sprintf("    %s v%u\n", layer.name.constData(), layer.version);
+  info += QStringLiteral("Enabled instance layers:\n");
+  for(const QByteArray& layer : inst->layers())
+    info += QString().sprintf("    %s\n", layer.constData());
+
+  info += QStringLiteral("Supported instance extensions:\n");
+  for(const QVulkanExtension& ext : inst->supportedExtensions())
+    info +=
+      QString().sprintf("    %s v%u\n", ext.name.constData(), ext.version);
+  info += QStringLiteral("Enabled instance extensions:\n");
+  for(const QByteArray& ext : inst->extensions())
+    info += QString().sprintf("    %s\n", ext.constData());
+
+  info +=
+    QString().sprintf("Color format: %u\nDepth-stencil format: %u\n",
+                      window_->colorFormat(), window_->depthStencilFormat());
+
+  info += QStringLiteral("Supported sample counts:");
+  const QVector<int> sampleCounts = window_->supportedSampleCounts();
+  for(int count : sampleCounts)
+    info += QLatin1Char(' ') + QString::number(count);
+  info += QLatin1Char('\n');
+
+  emit static_cast<VulkanWindow*>(window_)->vulkanInfoReceived(info);
 }
 
-void VulkanWindow::togglePaused() {
-  renderer_->setAnimating(!renderer_->animating());
-}
-
-void VulkanWindow::meshSwitched(bool enable) {
-  renderer_->setUseLogo(enable);
-}
-
-void VulkanWindow::mousePressEvent(QMouseEvent* e) {
-  pressed_ = true;
-  lastPos_ = e->pos();
-}
-
-void VulkanWindow::mouseReleaseEvent(QMouseEvent*) {
-  pressed_ = false;
-}
-
-void VulkanWindow::mouseMoveEvent(QMouseEvent* e) {
-  if(!pressed_)
-    return;
-
-  int dx = e->pos().x() - lastPos_.x();
-  int dy = e->pos().y() - lastPos_.y();
-
-  if(dy)
-    renderer_->pitch(dy / 10.0f);
-
-  if(dx)
-    renderer_->yaw(dx / 10.0f);
-
-  lastPos_ = e->pos();
-}
-
-void VulkanWindow::keyPressEvent(QKeyEvent* e) {
-  const float amount = e->modifiers().testFlag(Qt::ShiftModifier) ? 1.0f : 0.1f;
-  switch(e->key()) {
-    case Qt::Key_W:
-      renderer_->walk(amount);
-      break;
-    case Qt::Key_S:
-      renderer_->walk(-amount);
-      break;
-    case Qt::Key_A:
-      renderer_->strafe(-amount);
-      break;
-    case Qt::Key_D:
-      renderer_->strafe(amount);
-      break;
-    default:
-      break;
-  }
-}
-
-int VulkanWindow::instanceCount() const {
-  return renderer_->instanceCount();
+void VulkanRenderer::startNextFrame() {
+  TriangleRenderer::startNextFrame();
+  emit static_cast<VulkanWindow*>(window_)->frameQueued(int(rotation_) % 360);
 }

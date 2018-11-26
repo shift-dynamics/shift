@@ -25,7 +25,7 @@ struct lights_t {
   int count;
 };
 
-layout(set=0, binding=0) uniform UniformBlock {
+layout(std140, binding=0) uniform UniformBlock {
   matrices_t matrices_u;
   material_t material_u;
   lights_t lights_u;

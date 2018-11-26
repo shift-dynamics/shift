@@ -27,7 +27,7 @@ struct floor_t {
   int enableBumpMap;
 };
 
-layout (binding = 0) uniform UniformBlock {
+layout (std140, binding = 0) uniform UniformBlock {
   matrices_t matrices_u;
   lights_t lights_u;
   floor_t floor_u;

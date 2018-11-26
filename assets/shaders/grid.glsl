@@ -1,7 +1,7 @@
 #version 450
 /* grid.vert */
 
-layout(binding = 0) uniform UniformBlock {
+layout(std140, binding = 0) uniform UniformBlock {
   uniform mat4 mvp_u;
   uniform vec4 color_u;
 };

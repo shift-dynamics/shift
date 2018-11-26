@@ -30,7 +30,7 @@ struct lights_t {
   mat4 shadowMatrix[10];
 };
 
-layout (binding = 2) uniform UniformBlock {
+layout (std140, binding = 2) uniform UniformBlock {
   matrices_t matrices_u;
   material_t material_u;
   lights_t lights_u;

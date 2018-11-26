@@ -23,9 +23,10 @@ public:
   void setName(std::string);
   int getId();
 
-private:
+protected:
   std::string name_;
   int id_;
+  bool active_;
 };
 
 } // namespace Shift

@@ -1,36 +1,29 @@
-#ifndef VULKANWINDOW_H
-#define VULKANWINDOW_H
+#ifndef _VULKANWIDGET_
+#define _VULKANWIDGET_
 
-#include <QVulkanWindow>
+#include "shift-gui/trianglerenderer.h"
 
-class Renderer;
+#include <QWidget>
+
+class VulkanWindow;
+
+class VulkanRenderer : public TriangleRenderer {
+public:
+  VulkanRenderer(VulkanWindow* w);
+
+  void initResources() override;
+  void startNextFrame() override;
+};
 
 class VulkanWindow : public QVulkanWindow {
-public:
-  VulkanWindow(bool dbg);
+  Q_OBJECT
 
+public:
   QVulkanWindowRenderer* createRenderer() override;
 
-  bool isDebugEnabled() const {
-    return debug_;
-  }
-  int instanceCount() const;
-
-public slots:
-  void addNew();
-  void togglePaused();
-  void meshSwitched(bool enable);
-
-private:
-  void mousePressEvent(QMouseEvent*) override;
-  void mouseReleaseEvent(QMouseEvent*) override;
-  void mouseMoveEvent(QMouseEvent*) override;
-  void keyPressEvent(QKeyEvent*) override;
-
-  bool debug_;
-  Renderer* renderer_;
-  bool pressed_ = false;
-  QPoint lastPos_;
+signals:
+  void vulkanInfoReceived(const QString& text);
+  void frameQueued(int colorValue);
 };
 
 #endif
