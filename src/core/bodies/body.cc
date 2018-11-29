@@ -1,6 +1,6 @@
-#include "shift-core/body.h"
+#include "shift-core/bodies/body.h"
 
-void Shift::Body::addJsonKeys() {
+void Shift::Body::addKeys() {
   addSerialEntry("name", SerialType::STRING, &name_);
   addSerialEntry("active", SerialType::BOOLEAN, &active_);
   addSerialEntry("definition", SerialType::STRING_ARRAY, &definition_);

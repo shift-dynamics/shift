@@ -5,10 +5,10 @@
 #include <vector>
 
 #include "shift-core/base.h"
-#include "shift-core/body.h"
+#include "shift-core/bodies/body.h"
 #include "shift-core/forcemodule.h"
 #include "shift-core/io.h"
-#include "shift-core/joint.h"
+#include "shift-core/joints/joint.h"
 #include "shift-core/light.h"
 #include "shift-core/pointcloud.h"
 #include "shift-core/restraint.h"

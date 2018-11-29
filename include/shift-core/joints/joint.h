@@ -1,0 +1,149 @@
+#ifndef _SHIFT_JOINT_H_
+#define _SHIFT_JOINT_H_
+
+#include <functional>
+#include <map>
+#include <string>
+
+#include "shift-core/base.h"
+#include "shift-core/serialize.h"
+
+#include "ksl/screw.h"
+
+namespace Shift {
+
+class Body;
+class Frame;
+class Substructure;
+class Joint;
+
+/*!
+@brief Abstract Joint base class
+*/
+class Joint
+  : public Base
+  , public Serialize {
+
+public:
+  Joint(std::string name)
+    : Base(name) {
+    addKeys();
+  }
+  Joint()
+    : Base("") {
+    addKeys();
+  }
+  ~Joint() {}
+
+  const std::string& getJointType() {
+    return type_;
+  }
+
+  virtual void updateDH();
+  virtual void updateDHVA();
+
+protected:
+  void addKeys();
+
+  std::string type_; //!< descriptive name of joint type
+
+  int dof_;               //!< number of degrees of freedom
+  int index_;             //!< index in joint array
+  int qIndex_;            //!< index into q array
+  int dqIndex_;           //!< index into dq array
+  int dcIndex_;           //!< index into dc array
+  int indexSubstructure_; //!< local index into substructure
+  int sense_; /*!< indicates whether joint is positively aligned with spanning
+               tree (+1), or negatively aligned with spanning tree (-1).
+               Automatically set by s2_ProcessTopology */
+  int level_; /*!< Indicates Joint's level in the spanning tree,
+                set by ProcessTopology */
+
+  std::vector<std::vector<std::string>> bodyFramePairs_;
+
+  std::vector<std::string> parentBody_; //!< descriptive name of parent Body
+  Body* parentBodyPointer_ = NULL;      //!< pointer to parent Body
+
+  std::vector<std::string> parentFrame_; //!< descriptive name of parent Frame
+  Frame* parentFramePointer_ = NULL;     //!< pointer to parent Frame
+
+  std::vector<std::string> childBody_; //!< descriptive name of child Body
+  Body* childBodyPointer = NULL;       //!< pointer to child Body
+
+  std::vector<std::string> childFrame_; //!< descriptive name of child frame
+  Frame* childFramePointer = NULL;      //!< pointer to child Frame
+
+  double* q_0_ = NULL;  /*!< initial primitive displacement
+                                              specified by user */
+  double* dq_0_ = NULL; /*!< initial primitive velocity specified
+                                         by user */
+
+  double* q_ = NULL;  /*!< current primitive displacement in
+                                model, for spherical joints consists of
+                                quaternion following x,y,z,w
+                                convention, for float joints consists of
+                                x,y,z translation, followed by
+                                quaternion specified using x,y,z,w convention */
+  double* dq_ = NULL; /*!< current generalized velocity in model */
+
+  ksl_screw_t* h_ = NULL;
+
+  double* mobilityNumber_ = NULL;
+  bool independent_ = true; /*!< boolean to indicate whether joint is
+                         independent (true) or dependent (false) as
+                         determined by fullFactor_LU algorithm */
+
+  Joint* parentJoint_ = NULL; /*!< pointer to unique parentJoint */
+
+  Substructure* substructurePointer_ =
+    NULL; /*!< pointer to substructure assignment */
+
+  double* dampingCoefficients_ =
+    NULL; /*!< damping coefficients, c0 + c1*x + c2 * x**2
+        + ... + cn * x**n */
+  int dampingCoefficientCount_ = 0; /*! number of damping coefficients */
+
+  double* stiffnessCoefficients_ = NULL; /*!< spring coefficients, k0 + k1 * x +
+                                   k2 * x**2 + ... + kn * x**n */
+  int stiffnessCoefficientCount_ = 0;    /*!< number of spring coefficients */
+  bool isVisible_ = false;
+};
+
+typedef std::function<Joint*()> jointCreateFunction;
+
+class JointFactory {
+
+public:
+  JointFactory();
+  JointFactory(const JointFactory&) {}
+  JointFactory& operator=(const JointFactory&) {
+    return *this;
+  }
+
+  ~JointFactory() {
+    factoryMap_.clear();
+  }
+
+  static JointFactory* get() {
+    static JointFactory instance;
+    return &instance;
+  }
+
+  static void registerJoint(const std::string& jointName,
+                            jointCreateFunction pfnCreate);
+  static Joint* createJoint(const std::string& jointName);
+
+private:
+  static std::map<std::string, jointCreateFunction> factoryMap_;
+};
+
+class JointRegistration {
+public:
+  JointRegistration(std::string name, jointCreateFunction fcn) {
+    Shift::JointFactory::registerJoint(name, fcn);
+  }
+};
+
+} // namespace Shift
+
+#endif

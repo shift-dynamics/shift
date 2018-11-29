@@ -25,15 +25,15 @@ class Body
 public:
   Body(std::string name)
     : Base(name) {
-    addJsonKeys();
+    addKeys();
   }
   Body()
     : Base("") {
-    addJsonKeys();
+    addKeys();
   }
   ~Body() {}
 
-  void addJsonKeys();
+  void addKeys();
   std::string getDefinition();
   void setDefinition(std::string);
   void setParentAssembly(Assembly*);
