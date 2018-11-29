@@ -226,7 +226,7 @@ void main(void) {
   vec4 KdMaterial;
   if(bezier_u.enableDiffuseMap == 1) {
     /* get diffuse color from texture */
-    KdMaterial = texture2D(texture_diffuse_u, fs_in.tc);
+    KdMaterial = texture(texture_diffuse_u, fs_in.tc);
   } else {
     /* if no color map supplied, then use uniform material color */
     KdMaterial = material_u.Kd;

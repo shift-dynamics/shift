@@ -1,11 +1,10 @@
 #ifndef _SHIFT_TERRAIN_H_
 #define _SHIFT_TERRAIN_H_
 
+#include "shift-core/base.h"
+
 #include <string>
 #include <vector>
-
-#include "shift-core/base.h"
-#include "shift-core/body.h"
 
 namespace Shift {
 

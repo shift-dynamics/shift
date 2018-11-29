@@ -10,12 +10,17 @@ set(CMAKE_AUTORCC ON)
 set(shift_core_src
   assembly.cc
   base.cc
-  body.cc
+  bodies/body.cc
   context.cc
   frame.cc
   integrator_ode113.cc
   integratorbase.cc
-  joint.cc
+  joints/joint.cc
+  joints/floatjoint.cc
+  joints/prismaticjoint.cc
+  joints/rigidjoint.cc
+  joints/sphericaljoint.cc
+  joints/revolutejoint.cc
   modelparameters.cc
   pointcloud.cc
   sensor.cc
@@ -64,6 +69,6 @@ target_include_directories(
 
 target_include_directories(
   shift_core
-  PUBLIC 
+  PUBLIC
   ${CMAKE_SOURCE_DIR}/external/ksl/include
 )
