@@ -4,9 +4,12 @@
 #include <string>
 #include <vector>
 
-#include "ksl/vector.h"
+#include "ksl/vec3.h"
 
 #include "shift-core/base.h"
+#include "shift-core/integrators/integrator.h"
+#include "shift-core/loggers/logger.h"
+#include "shift-core/solvers/solver.h"
 
 namespace Shift {
 
@@ -71,13 +74,9 @@ private:
 
   bool contact_detection_enabled_;
 
-  double time_span_;
-  double time_step_;
-
-  std::string log_file_;
-  std::string debug_file_;
-
-  double pivot_ratio_multiple_;
+  std::vector<Solver::SolverBase> solvers_;
+  std::vector<Integrator::IntegratorBase> integrators_;
+  std::vector<Logger::LoggerBase> loggers_;
 };
 
 } // namespace Shift

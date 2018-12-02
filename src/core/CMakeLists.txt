@@ -10,25 +10,61 @@ set(CMAKE_AUTORCC ON)
 set(shift_core_src
   assembly.cc
   base.cc
-  bodies/body.cc
   context.cc
   frame.cc
-  integrator_ode113.cc
-  integratorbase.cc
-  joints/joint.cc
-  joints/floatjoint.cc
-  joints/prismaticjoint.cc
-  joints/rigidjoint.cc
-  joints/sphericaljoint.cc
-  joints/revolutejoint.cc
   modelparameters.cc
-  pointcloud.cc
-  sensor.cc
   serialize.cc
-  solverbase.cc
-  sparsesolver.cc
   substructure.cc
-  terrain.cc
+
+  behaviors/behavior.cc
+  behaviors/contactdetection.cc
+  behaviors/ik_7dof.cc
+
+  bodies/body.cc
+  bodies/rigid.cc
+  bodies/free.cc
+
+  collisiongeometry/collisiongeometry.cc
+
+  behaviors/behavior.cc
+  behaviors/contactdetection.cc
+  behaviors/ik_7dof.cc
+
+  forcemodules/forcemodule.cc
+  forcemodules/contact.cc
+  forcemodules/pid.cc
+
+  geometry/geometry.cc
+  geometry/ellipsoid.cc
+  geometry/mesh.cc
+  geometry/pointcloud.cc
+  geometry/sphere.cc
+
+  integrators/integrator.cc
+  integrators/ode113.cc
+
+  joints/joint.cc
+  joints/float.cc
+  joints/prismatic.cc
+  joints/rigid.cc
+  joints/spherical.cc
+  joints/revolute.cc
+
+  lights/light.cc
+  lights/directional.cc
+  lights/ies.cc
+  lights/point.cc
+  lights/spot.cc
+
+  sensors/sensor.cc
+  sensors/imu.cc
+  sensors/range.cc
+
+  solvers/solver.cc
+  solvers/rtonca.cc
+
+  terrain/terrain.cc
+  terrain/basic.cc
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/include/shift-core)

@@ -3,7 +3,9 @@
 
 #include <string>
 
-#include "ksl/matrix.h"
+#include "ksl/SE3.h"
+#include "ksl/mat4x4.h"
+#include "ksl/quaternion.h"
 
 #include "shift-core/base.h"
 #include "shift-core/serialize.h"
@@ -20,18 +22,19 @@ class Frame
 public:
   Frame(std::string name)
     : Base(name) {
-    addJsonKeys();
+    addKeys();
   }
   Frame()
     : Base("") {
-    addJsonKeys();
+    addKeys();
   }
   ~Frame() {}
 
 private:
-  void addJsonKeys();
+  void addKeys();
 
-  ksl_SE3_t pose_;
+  ksl_SE3_t pose_ =
+    ksl_SE3(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 };
 
 } // namespace Shift

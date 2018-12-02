@@ -1,25 +1,87 @@
 #ifndef _SHIFT_TERRAIN_H_
 #define _SHIFT_TERRAIN_H_
 
-#include "shift-core/base.h"
-
+#include <functional>
+#include <map>
 #include <string>
-#include <vector>
+
+#include "shift-core/base.h"
+#include "shift-core/serialize.h"
 
 namespace Shift {
 
+namespace Body {
+class BodyBase;
+}
+
+class Frame;
+
+namespace Terrain {
+
 /*!
-@brief Shift Terrain datastructure
+@brief Abstract TerrainBase base class
 */
-class Terrain : Base {
+class TerrainBase
+  : public Base
+  , public Serialize {
 
 public:
-  Terrain(std::string name)
-    : Base(name) {}
-  ~Terrain() {}
+  TerrainBase(std::string name)
+    : Base(name) {
+    addKeys();
+  }
+  TerrainBase()
+    : Base("") {
+    addKeys();
+  }
+  ~TerrainBase() {}
+
+  const std::string& getType() {
+    return type_;
+  }
+
+protected:
+  void addKeys();
+
+  std::string type_; //!< descriptive name of TerrainBase type
+};
+
+class Factory {
+
+public:
+  Factory();
+  Factory(const Factory&) {}
+  Factory& operator=(const Factory&) {
+    return *this;
+  }
+
+  ~Factory() {
+    factoryMap_.clear();
+  }
+
+  typedef std::function<TerrainBase*()> CreateFunction;
+
+  static Factory* get() {
+    static Factory instance;
+    return &instance;
+  }
+
+  static void registerModule(const std::string& TerrainName,
+                             CreateFunction pfnCreate);
+  static TerrainBase* create(const std::string& TerrainName);
 
 private:
+  static std::map<std::string, CreateFunction> factoryMap_;
 };
+
+class Registration {
+public:
+  Registration(std::string name, Factory::CreateFunction fcn) {
+    Factory::registerModule(name, fcn);
+  }
+};
+
+} // namespace Terrain
 
 } // namespace Shift
 

@@ -6,9 +6,10 @@
 #include "shift-core/assembly.h"
 #include "shift-core/base.h"
 #include "shift-core/modelparameters.h"
-#include "shift-core/terrain.h"
 
 namespace Shift {
+
+class Terrain;
 
 /*!
 @brief Shift Assembly datastructure
@@ -28,7 +29,7 @@ public:
 private:
   ModelParameters model_parameters_;
   Assembly root_assembly_;
-  std::vector<Terrain> terrains_;
+  std::vector<Terrain*> terrains_;
   std::string filename_;
 };
 

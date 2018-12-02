@@ -57,7 +57,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget">
-       <layout class="QHBoxLayout" name="horizontalLayout">
+       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -74,6 +74,9 @@
             <width>0</width>
             <height>0</height>
            </size>
+          </property>
+          <property name="tabPosition">
+           <enum>QTabWidget::North</enum>
           </property>
           <property name="currentIndex">
            <number>0</number>
