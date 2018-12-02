@@ -1,24 +1,30 @@
-#ifndef _SHIFT_POINTCLOUD_H_
-#define _SHIFT_POINTCLOUD_H_
+#ifndef _SHIFT_POINTCLOUDGEOMETRY_H_
+#define _SHIFT_POINTCLOUDGEOMETRY_H_
 
-#include <string>
-
-#include "shift-core/base.h"
+#include "shift-core/geometry/geometry.h"
 
 namespace Shift {
 
-/*!
-@brief Shift Assembly datastructure
-*/
-class PointCloud : Base {
+namespace Geometry {
 
+class PointCloud : public GeometryBase {
 public:
+  PointCloud()
+    : GeometryBase() {
+    addKeys();
+  }
   PointCloud(std::string name)
-    : Base(name) {}
+    : GeometryBase(name) {
+    addKeys();
+  }
   ~PointCloud() {}
+  static PointCloud* create();
+  void addKeys();
 
 private:
 };
+
+} // namespace Geometry
 
 } // namespace Shift
 

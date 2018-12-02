@@ -1,40 +1,86 @@
 #ifndef _SHIFT_LIGHT_H_
 #define _SHIFT_LIGHT_H_
 
+#include <functional>
+#include <map>
+#include <string>
+
 #include "shift-core/base.h"
 #include "shift-core/serialize.h"
 
 namespace Shift {
 
-enum class LightType { POINT, SPOT, DIRECTIONAL };
+namespace Body {
+class BodyBase;
+}
+
+class Frame;
+
+namespace Light {
+
 /*!
-@brief Shift Frame class
+@brief Abstract Shift::Light base class
 */
-class Light
+class LightBase
   : public Base
   , public Serialize {
 
 public:
-  Light(std::string name)
+  LightBase(std::string name)
     : Base(name) {
-    addSerialEntry("name", SerialType::STRING, &name_);
-    addSerialEntry("active", SerialType::BOOLEAN, &active_);
-    addSerialEntry("definition", SerialType::STRING, &definition_);
-    addSerialEntry("parent", SerialType::STRING_ARRAY, &parent_);
-    addSerialEntry("Ka", SerialType::DOUBLE_ARRAY, &Ka_, 3);
-    addSerialEntry("Kd", SerialType::DOUBLE_ARRAY, &Kd_, 3);
-    addSerialEntry("Ks", SerialType::DOUBLE_ARRAY, &Ks_, 3);
+    addKeys();
   }
-  ~Light() {}
+  LightBase()
+    : Base("") {
+    addKeys();
+  }
+  ~LightBase() {}
+
+  const std::string& getType() {
+    return type_;
+  }
+
+protected:
+  void addKeys();
+
+  std::string type_; //!< descriptive name of Light type
+};
+
+class Factory {
+
+public:
+  Factory();
+  Factory(const Factory&) {}
+  Factory& operator=(const Factory&) {
+    return *this;
+  }
+
+  ~Factory() {
+    factoryMap_.clear();
+  }
+
+  typedef std::function<LightBase*()> CreateFunction;
+
+  static Factory* get() {
+    static Factory instance;
+    return &instance;
+  }
+
+  static void registerModule(const std::string& name, CreateFunction pfnCreate);
+  static LightBase* create(const std::string& name);
 
 private:
-  std::string definition_;
-  std::vector<std::string> parent_;
-
-  ksl_vec3_t Ka_;
-  ksl_vec3_t Kd_;
-  ksl_vec3_t Ks_;
+  static std::map<std::string, CreateFunction> factoryMap_;
 };
+
+class Registration {
+public:
+  Registration(std::string name, Factory::CreateFunction fcn) {
+    Factory::registerModule(name, fcn);
+  }
+};
+
+} // namespace Light
 
 } // namespace Shift
 

@@ -5,35 +5,58 @@
 #include <vector>
 
 #include "shift-core/base.h"
-#include "shift-core/bodies/body.h"
-#include "shift-core/forcemodule.h"
-#include "shift-core/io.h"
-#include "shift-core/joints/joint.h"
-#include "shift-core/light.h"
-#include "shift-core/pointcloud.h"
-#include "shift-core/restraint.h"
+#include "shift-core/serialize.h"
 
 namespace Shift {
+
+namespace Behavior {
+class BehaviorBase;
+}
+namespace Body {
+class BodyBase;
+}
+namespace Constraint {
+class ConstraintBase;
+}
+namespace ForceModule {
+class ForceModuleBase;
+}
+namespace Joint {
+class JointBase;
+}
+namespace Light {
+class LightBase;
+}
 
 /*!
 @brief Shift Assembly datastructure
 */
-class Assembly : Base {
+class Assembly
+  : public Base
+  , public Serialize {
 
 public:
   Assembly(std::string name)
-    : Base(name) {}
+    : Base(name)
+    , Serialize() {}
+
+  Assembly()
+    : Base("")
+    , Serialize() {}
+
   ~Assembly() {}
 
 private:
+  void addKeys();
+
   std::vector<Assembly> subassemblies_;
-  std::vector<Body> bodies_;
-  std::vector<Joint> joints_;
-  std::vector<Light> lights_;
-  std::vector<Restraint> restraints_;
-  std::vector<Io> io_;
-  std::vector<ForceModule> forcemodules_;
-  std::vector<PointCloud> pointclouds_;
+
+  std::vector<Behavior::BehaviorBase*> behaviors_;
+  std::vector<Body::BodyBase*> bodies_;
+  std::vector<Constraint::ConstraintBase*> constraints_;
+  std::vector<ForceModule::ForceModuleBase*> forcemodules_;
+  std::vector<Joint::JointBase*> joints_;
+  std::vector<Light::LightBase*> lights_;
 };
 
 } // namespace Shift

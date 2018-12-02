@@ -15,25 +15,26 @@ namespace Shift {
 class Body;
 class Frame;
 class Substructure;
-class Joint;
+
+namespace Joint {
 
 /*!
-@brief Abstract Joint base class
+@brief Abstract Shift::Joint base class
 */
-class Joint
+class JointBase
   : public Base
   , public Serialize {
 
 public:
-  Joint(std::string name)
+  JointBase(std::string name)
     : Base(name) {
     addKeys();
   }
-  Joint()
+  JointBase()
     : Base("") {
     addKeys();
   }
-  ~Joint() {}
+  ~JointBase() {}
 
   const std::string& getJointType() {
     return type_;
@@ -93,7 +94,7 @@ protected:
                          independent (true) or dependent (false) as
                          determined by fullFactor_LU algorithm */
 
-  Joint* parentJoint_ = NULL; /*!< pointer to unique parentJoint */
+  JointBase* parentJoint_ = NULL; /*!< pointer to unique parentJoint */
 
   Substructure* substructurePointer_ =
     NULL; /*!< pointer to substructure assignment */
@@ -109,40 +110,41 @@ protected:
   bool isVisible_ = false;
 };
 
-typedef std::function<Joint*()> jointCreateFunction;
-
-class JointFactory {
+class Factory {
 
 public:
-  JointFactory();
-  JointFactory(const JointFactory&) {}
-  JointFactory& operator=(const JointFactory&) {
+  Factory();
+  Factory(const Factory&) {}
+  Factory& operator=(const Factory&) {
     return *this;
   }
 
-  ~JointFactory() {
+  ~Factory() {
     factoryMap_.clear();
   }
 
-  static JointFactory* get() {
-    static JointFactory instance;
+  typedef std::function<JointBase*()> CreateFunction;
+
+  static Factory* get() {
+    static Factory instance;
     return &instance;
   }
 
-  static void registerJoint(const std::string& jointName,
-                            jointCreateFunction pfnCreate);
-  static Joint* createJoint(const std::string& jointName);
+  static void registerModule(const std::string& name, CreateFunction pfnCreate);
+  static JointBase* create(const std::string& name);
 
 private:
-  static std::map<std::string, jointCreateFunction> factoryMap_;
+  static std::map<std::string, CreateFunction> factoryMap_;
 };
 
-class JointRegistration {
+class Registration {
 public:
-  JointRegistration(std::string name, jointCreateFunction fcn) {
-    Shift::JointFactory::registerJoint(name, fcn);
+  Registration(std::string name, Factory::CreateFunction fcn) {
+    Factory::registerModule(name, fcn);
   }
 };
+
+} // namespace Joint
 
 } // namespace Shift
 
