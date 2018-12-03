@@ -1,6 +1,8 @@
 #ifndef _SHIFT_ASSEMBLY_H_
 #define _SHIFT_ASSEMBLY_H_
 
+#include <json/json.h>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -38,13 +40,19 @@ class Assembly
 public:
   Assembly(std::string name)
     : Base(name)
-    , Serialize() {}
+    , Serialize() {
+    addKeys();
+  }
 
   Assembly()
     : Base("")
-    , Serialize() {}
+    , Serialize() {
+    addKeys();
+  }
 
   ~Assembly() {}
+
+  void readJSON(Json::Value& value, bool fixed = false);
 
 private:
   void addKeys();

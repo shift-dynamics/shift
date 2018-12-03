@@ -1,7 +1,8 @@
 #include "shift-core/bodies/rigid.h"
+#include "shift-core/factory.h"
 
-class Shift::Body::Registration registration("rigid",
-                                             Shift::Body::Rigid::create);
+class Shift::Registration<Shift::Body::BodyBase>
+  registration("rigid", Shift::Body::Rigid::create);
 
 void Shift::Body::Rigid::addKeys() {
 

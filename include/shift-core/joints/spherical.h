@@ -26,6 +26,8 @@ public:
     delete dq_0_;
   }
 
+  static Spherical* create();
+
   void addKeys();
   void updateDH();
   void updateDHVA();

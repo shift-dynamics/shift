@@ -1,4 +1,5 @@
 #include "shift-core/geometry/ellipsoid.h"
+#include "shift-core/factory.h"
 
-class Shift::Geometry::Registration
-  registration("ellipsoid", Shift::Geometry::Ellipsoid::create);
+class Shift::Registration<Shift::Geometry::GeometryBase>
+  registration("pid", Shift::Geometry::Ellipsoid::create);

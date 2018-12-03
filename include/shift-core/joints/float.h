@@ -29,6 +29,7 @@ public:
   void addKeys();
   void updateDH();
   void updateDHVA();
+  static Float* create();
 
 private:
 };

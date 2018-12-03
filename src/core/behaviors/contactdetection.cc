@@ -1,9 +1,10 @@
 #include "shift-core/behaviors/contactdetection.h"
+#include "shift-core/factory.h"
 
-class Shift::Behavior::Registration
+class Shift::Registration<Shift::Behavior::BehaviorBase>
   registration("contact_detection", Shift::Behavior::ContactDetection::create);
 
-void Shift::Behavior::BehaviorBase::addKeys() {
+void Shift::Behavior::ContactDetection::addKeys() {
   SerialEntry name("name", SerialType::STRING, &name_);
   name.setRequired(true);
   name.setDescription("User defined descriptive body name.");

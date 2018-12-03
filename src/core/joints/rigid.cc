@@ -1,10 +1,12 @@
 #include "shift-core/joints/rigid.h"
+#include "shift-core/factory.h"
 
-Shift::Joint::Rigid* createRevoluteJoint() {
+Shift::Registration<Shift::Joint::JointBase>
+  registration("revolute", Shift::Joint::Rigid::create);
+
+Shift::Joint::Rigid* Shift::Joint::Rigid::create() {
   return new Shift::Joint::Rigid();
 }
-
-Shift::Joint::Registration registration("rigid", createRevoluteJoint);
 
 void Shift::Joint::Rigid::addKeys() {
   Shift::Joint::JointBase::addKeys();

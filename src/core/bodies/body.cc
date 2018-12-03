@@ -1,10 +1,5 @@
 #include "shift-core/bodies/body.h"
 
-void Shift::Body::Factory::registerModule(const std::string& constraintName,
-                                          CreateFunction pfnCreate) {
-  factoryMap_.insert(std::make_pair(constraintName, pfnCreate));
-}
-
 void Shift::Body::BodyBase::addKeys() {
   SerialEntry name("name", SerialType::STRING, &name_);
   name.setRequired(true);

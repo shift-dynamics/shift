@@ -25,6 +25,8 @@ public:
 
   ~Rigid() {}
 
+  static Rigid* create();
+
   void addKeys();
   void updateDH();
   void updateDHVA();

@@ -1,3 +1,5 @@
 #include "shift-core/bodies/free.h"
+#include "shift-core/factory.h"
 
-class Shift::Body::Registration registration("free", Shift::Body::Free::create);
+class Shift::Registration<Shift::Body::BodyBase>
+  registration("free", Shift::Body::Free::create);

@@ -1,4 +1,5 @@
 #include "shift-core/geometry/pointcloud.h"
+#include "shift-core/factory.h"
 
-class Shift::Geometry::Registration
-  registration("point_cloud", Shift::Geometry::PointCloud::create);
+class Shift::Registration<Shift::Geometry::GeometryBase>
+  registration("pid", Shift::Geometry::PointCloud::create);

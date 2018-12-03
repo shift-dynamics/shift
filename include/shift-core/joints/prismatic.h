@@ -26,6 +26,7 @@ public:
     delete dq_0_;
   }
 
+  static Prismatic* create();
   void addKeys();
   void updateDH();
   void updateDHVA();

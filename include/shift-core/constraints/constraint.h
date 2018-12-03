@@ -61,40 +61,6 @@ protected:
   Frame* childFramePointer = NULL;      //!< pointer to child Frame
 };
 
-class Factory {
-
-public:
-  Factory();
-  Factory(const Factory&) {}
-  Factory& operator=(const Factory&) {
-    return *this;
-  }
-
-  ~Factory() {
-    factoryMap_.clear();
-  }
-
-  typedef std::function<ConstraintBase*()> CreateFunction;
-
-  static Factory* get() {
-    static Factory instance;
-    return &instance;
-  }
-
-  static void registerModule(const std::string& name, CreateFunction pfnCreate);
-  static ConstraintBase* create(const std::string& name);
-
-private:
-  static std::map<std::string, CreateFunction> factoryMap_;
-};
-
-class Registration {
-public:
-  Registration(std::string name, Factory::CreateFunction fcn) {
-    Shift::Factory::registerModule(name, fcn);
-  }
-};
-
 } // namespace Constraint
 
 } // namespace Shift

@@ -1,10 +1,12 @@
 #include "shift-core/joints/float.h"
+#include "shift-core/factory.h"
 
-Shift::Joint::Float* createFloatJoint() {
+class Shift::Registration<Shift::Joint::Float>
+  registration("pid", Shift::Joint::Float::create);
+
+Shift::Joint::Float* Shift::Joint::Float::create() {
   return new Shift::Joint::Float();
 }
-
-Shift::Joint::Registration registration("float", createFloatJoint);
 
 void Shift::Joint::Float::addKeys() {
   Shift::Joint::JointBase::addKeys();
