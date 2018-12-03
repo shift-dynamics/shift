@@ -1,10 +1,12 @@
 #include "shift-core/joints/spherical.h"
+#include "shift-core/factory.h"
 
-Shift::Joint::Spherical* createSphericalJoint() {
+Shift::Registration<Shift::Joint::JointBase>
+  registration("spherical", Shift::Joint::Spherical::create);
+
+Shift::Joint::Spherical* Shift::Joint::Spherical::create() {
   return new Shift::Joint::Spherical();
 }
-
-Shift::Joint::Registration registration("spherical", createSphericalJoint);
 
 void Shift::Joint::Spherical::addKeys() {
   Shift::Joint::JointBase::addKeys();

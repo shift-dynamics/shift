@@ -42,41 +42,6 @@ protected:
   std::string type_; //!< descriptive name of Geometry type
 };
 
-class Factory {
-
-public:
-  Factory();
-  Factory(const Factory&) {}
-  Factory& operator=(const Factory&) {
-    return *this;
-  }
-
-  ~Factory() {
-    factoryMap_.clear();
-  }
-
-  typedef std::function<GeometryBase*()> CreateFunction;
-
-  static Factory* get() {
-    static Factory instance;
-    return &instance;
-  }
-
-  static void registerModule(const std::string& GeometryName,
-                             CreateFunction pfnCreate);
-  static GeometryBase* create(const std::string& GeometryName);
-
-private:
-  static std::map<std::string, CreateFunction> factoryMap_;
-};
-
-class Registration {
-public:
-  Registration(std::string name, Factory::CreateFunction fcn) {
-    Factory::registerModule(name, fcn);
-  }
-};
-
 } // namespace Geometry
 
 } // namespace Shift

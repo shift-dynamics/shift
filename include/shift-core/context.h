@@ -1,6 +1,7 @@
 #ifndef _SHIFT_CONTEXT_H_
 #define _SHIFT_CONTEXT_H_
 
+#include <json/json.h>
 #include <string>
 
 #include "shift-core/assembly.h"
@@ -12,25 +13,26 @@ namespace Shift {
 class Terrain;
 
 /*!
-@brief Shift Assembly datastructure
+@brief Shift Context datastructure
 */
 class Context : Base {
 
 public:
   Context(std::string name)
     : Base(name)
-    , model_parameters_(name)
-    , root_assembly_("fixed") {}
+    , modelParameters_(name)
+    , fixed_("fixed") {}
   ~Context() {}
   void readJSON(const std::string filename);
   void writeJSON();
   void writeJSON(const std::string filename);
 
 private:
-  ModelParameters model_parameters_;
-  Assembly root_assembly_;
+  ModelParameters modelParameters_;
+  Assembly fixed_;
   std::vector<Terrain*> terrains_;
   std::string filename_;
+  Json::Value root_;
 };
 
 } // namespace Shift

@@ -1,4 +1,5 @@
 #include "shift-core/integrators/ode113.h"
+#include "shift-core/factory.h"
 
-class Shift::Integrator::Registration
-  registration("ode113", Shift::Integrator::ODE113::create);
+class Shift::Registration<Shift::Integrator::IntegratorBase>
+  registration("pid", Shift::Integrator::ODE113::create);

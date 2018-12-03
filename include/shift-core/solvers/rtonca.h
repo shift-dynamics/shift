@@ -37,7 +37,7 @@ private:
     "The optimal split of independent and dependent joint variables is "
     "obtained automatically using a heuristic application of Generalized "
     "Coordinate Partitioning (GCP). The equations of motion are solved "
-    "using a custom sparse matrix factor and solve algorithm \n"
+    "using a custom sparse matrix factor and solve algorithm that is \n"
     "tailored to the unique structure of multibody dynamics equations.\n"
     "\n"
     "Key features include:\n"

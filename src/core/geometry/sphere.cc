@@ -1,4 +1,5 @@
 #include "shift-core/geometry/sphere.h"
+#include "shift-core/factory.h"
 
-class Shift::Geometry::Registration
-  registration("sphere", Shift::Geometry::Sphere::create);
+class Shift::Registration<Shift::Geometry::GeometryBase>
+  registration("pid", Shift::Geometry::Sphere::create);

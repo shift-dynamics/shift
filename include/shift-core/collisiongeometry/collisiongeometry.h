@@ -43,41 +43,6 @@ protected:
   std::string type_; //!< descriptive name of CollisionGeometry type
 };
 
-class Factory {
-
-public:
-  Factory();
-  Factory(const Factory&) {}
-  Factory& operator=(const Factory&) {
-    return *this;
-  }
-
-  ~Factory() {
-    factoryMap_.clear();
-  }
-
-  typedef std::function<CollisionGeometryBase*()> CreateFunction;
-
-  static Factory* get() {
-    static Factory instance;
-    return &instance;
-  }
-
-  static void registerModule(const std::string& CollisionGeometryName,
-                             CreateFunction pfnCreate);
-  static CollisionGeometryBase* create(const std::string& name);
-
-private:
-  static std::map<std::string, CreateFunction> factoryMap_;
-};
-
-class Registration {
-public:
-  Registration(std::string name, Factory::CreateFunction fcn) {
-    Factory::registerModule(name, fcn);
-  }
-};
-
 } // namespace CollisionGeometry
 
 } // namespace Shift

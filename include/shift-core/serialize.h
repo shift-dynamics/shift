@@ -1,6 +1,7 @@
 #ifndef _SHIFT_SERIALIZE_H_
 #define _SHIFT_SERIALIZE_H_
 
+#include <json/json.h>
 #include <string>
 #include <vector>
 
@@ -187,6 +188,8 @@ public:
   }
 
   void addSerialEntry(SerialEntry& serialEntry);
+
+  virtual void parseJson(Json::Value);
 
 private:
   std::string keyword_;
