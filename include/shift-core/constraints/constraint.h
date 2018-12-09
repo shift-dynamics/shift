@@ -49,16 +49,26 @@ protected:
   std::vector<std::vector<std::string>> bodyFramePairs_;
 
   std::vector<std::string> parentBody_; //!< descriptive name of parent Body
-  BodyBase* parentBodyPointer_ = NULL;  //!< pointer to parent Body
+  Body::BodyBase* parentBodyPointer_ = NULL; //!< pointer to parent Body
 
   std::vector<std::string> parentFrame_; //!< descriptive name of parent Frame
   Frame* parentFramePointer_ = NULL;     //!< pointer to parent Frame
 
-  std::vector<std::string> childBody_; //!< descriptive name of child Body
-  BodyBase* childBodyPointer = NULL;   //!< pointer to child Body
+  std::vector<std::string> childBody_;     //!< descriptive name of child Body
+  Body::BodyBase* childBodyPointer = NULL; //!< pointer to child Body
 
   std::vector<std::string> childFrame_; //!< descriptive name of child frame
   Frame* childFramePointer = NULL;      //!< pointer to child Frame
+};
+
+class Modules {
+public:
+  void list();
+  static bool initialized();
+
+private:
+  static std::vector<std::string> modules_;
+  static bool initialized_;
 };
 
 } // namespace Constraint

@@ -44,6 +44,11 @@ protected:
   std::string type_; //!< descriptive name of Logger type
 };
 
+class Modules {
+public:
+  static bool initialized();
+};
+
 } // namespace Logger
 
 } // namespace Shift

@@ -1,5 +1,5 @@
-#ifndef _SHIFT_RTONCASOLVER_H_
-#define _SHIFT_RTONCASOLVER_H_
+#ifndef _SHIFT_RNCASOLVER_H_
+#define _SHIFT_RNCASOLVER_H_
 
 #include <string>
 
@@ -12,12 +12,18 @@ namespace Solver {
 /*!
 @brief Abstract base class for Shift::Solver C++ objects
 */
-class RTONCA : SolverBase {
+class RNCA : public SolverBase {
 
 public:
-  RTONCA(std::string name)
-    : SolverBase(name) {}
-  ~RTONCA() {}
+  RNCA(std::string name)
+    : SolverBase(name) {
+    addKeys();
+  }
+  RNCA()
+    : SolverBase("") {
+    addKeys();
+  }
+  ~RNCA() {}
 
   const std::string& getDescription() {
     return description_;
@@ -25,10 +31,14 @@ public:
 
   void addKeys();
 
+  static bool isRegistered() {
+    return registered_;
+  }
+
 private:
   const std::string description_ =
-    "Run-Time Optimized Natural Constraint Algorithm (RTONCA):\n"
-    "The RTONCA algorithm is well suited to set up and solve the equations "
+    "Run-time optimized Natural Constraint Algorithm (RNCA):\n"
+    "The RNCA algorithm is well suited to set up and solve the equations "
     "of motion for complex constrained mechanisms with multiple kinematic "
     "chord loops. Chord loops are identified automatically from the JSON "
     "input file. Overlapping clusters of chord loops (i.e. kinematic "
@@ -66,6 +76,10 @@ private:
     "for complex mechanisms based on kinematic substructuring, Mechanism and "
     "Machine Theory 92:464-483, October 2015 "
     "`<https://doi.org/10.1016/j.mechmachtheory.2015.06.006>`_";
+
+  double infinity_norm_multiplier_ = 2.0;
+  static bool registered_;
+  static RNCA* create();
 };
 
 } // namespace Solver

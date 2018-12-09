@@ -1,73 +1,109 @@
-# Find jsoncpp
+########################################################################
+# Cmake module for finding JsonCpp
 #
-# Find the jsoncpp includes and library
+# The following variabled will be defined:
 #
-# if you nee to add a custom library search path, do it via via CMAKE_PREFIX_PATH
+#  JsonCpp_FOUND
+#  JsonCpp_INCLUDE_DIR
+#  JsonCpp_LIBRARY
 #
-# This module defines
-#  JSONCPP_INCLUDE_DIR, where to find header, etc.
-#  JSONCPP_LIBRARY, the libraries needed to use jsoncpp.
-#  JSONCPP_FOUND, If false, do not try to use jsoncpp.
-#  JSONCPP_INCLUDE_PREFIX, include prefix for jsoncpp.
-#  jsoncpp_lib_static imported library.
 
-# only look in default directories
-find_path(
-	JSONCPP_INCLUDE_DIR
-	NAMES json/json.h jsoncpp/json/json.h
-	DOC "jsoncpp include dir"
+# ----------------------------------------------------------------------
+# Find JsonCpp include path
+# ----------------------------------------------------------------------
+FIND_PATH(JsonCpp_INCLUDE_DIR
+  NAMES
+  	json/json.h
+  PATHS
+  	/usr/local/include
+  	/usr/include
 )
 
-find_library(
-    JSONCPP_LIBRARY
-    NAMES jsoncpp
-    DOC "jsoncpp library"
-)
+# ----------------------------------------------------------------------
+# Find JsonCpp library
+# ----------------------------------------------------------------------
+if(WIN32 AND MSVC)
 
-add_library(jsoncpp_lib_static UNKNOWN IMPORTED)
-set_target_properties(
-	jsoncpp_lib_static
-	PROPERTIES
-	IMPORTED_LOCATION "${JSONCPP_LIBRARY}"
-	INTERFACE_INCLUDE_DIRECTORIES "${JSONCPP_INCLUDE_DIR}"
-)
+  find_library(JsonCpp_DEBUG_LIBRARY
+    NAMES
+      jsoncppd
+    PATHS
+      ${LibSourcey_DEPENDENCIES_BUILD_DIR}/jsoncpp
+      ${LibSourcey_DEPENDENCIES_INSTALL_DIR}/lib
+      #/usr/lib
+      #/usr/local/lib
+    )
 
-# debug library on windows
-# same naming convention as in qt (appending debug library with d)
-# boost is using the same "hack" as us with "optimized" and "debug"
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-	find_library(
-		JSONCPP_LIBRARY_DEBUG
-		NAMES jsoncppd
-		DOC "jsoncpp debug library"
-	)
+  find_library(JsonCpp_RELEASE_LIBRARY
+    NAMES
+      jsoncpp
+    PATHS
+      /usr/lib
+      /usr/local/lib
+    )
 
-	set_target_properties(
-		jsoncpp_lib_static
-		PROPERTIES
-		IMPORTED_LOCATION_DEBUG "${JSONCPP_LIBRARY_DEBUG}"
-	)
-	set(JSONCPP_LIBRARY optimized ${JSONCPP_LIBRARY} debug ${JSONCPP_LIBRARY_DEBUG})
+	message(STATUS "JsonCpp_RELEASE_LIBRARY ${JsonCpp_RELEASE_LIBRARY}")
 
-endif()
+  if(JsonCpp_DEBUG_LIBRARY OR JsonCpp_RELEASE_LIBRARY)
+    if(CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE)
+      if (JsonCpp_RELEASE_LIBRARY)
+        list(APPEND JsonCpp_LIBRARY "optimized" ${JsonCpp_RELEASE_LIBRARY})
+      endif()
+      if (JsonCpp_DEBUG_LIBRARY)
+        list(APPEND JsonCpp_LIBRARY "debug" ${JsonCpp_DEBUG_LIBRARY})
+      endif()
+    else()
+      if (JsonCpp_RELEASE_LIBRARY)
+        list(APPEND JsonCpp_LIBRARY ${JsonCpp_RELEASE_LIBRARY})
+      elseif (JsonCpp_DEBUG_LIBRARY)
+        list(APPEND JsonCpp_LIBRARY ${JsonCpp_DEBUG_LIBRARY})
+      endif()
+    endif()
+    mark_as_advanced(JsonCpp_DEBUG_LIBRARY JsonCpp_RELEASE_LIBRARY)
+  endif()
 
-# find JSONCPP_INCLUDE_PREFIX
-find_path(
-    JSONCPP_INCLUDE_PREFIX
-    NAMES json.h
-    PATH_SUFFIXES jsoncpp/json json
-)
-
-if (${JSONCPP_INCLUDE_PREFIX} MATCHES "jsoncpp")
-    set(JSONCPP_INCLUDE_PREFIX "jsoncpp/json")
 else()
-    set(JSONCPP_INCLUDE_PREFIX "json")
+
+  # TODO: jsoncpp lib names for various systems
+  #set(JsonCpp_LIB_NAMES "jsoncpp")
+
+  #if(CMAKE_COMPILER_IS_GNUCXX)
+  #  # Get the GCC compiler version
+  #  exec_program(${CMAKE_CXX_COMPILER}
+  #               ARGS ${CMAKE_CXX_COMPILER_ARG1} -dumpversion
+  #               OUTPUT_VARIABLE _gcc_COMPILER_VERSION
+  #               OUTPUT_STRIP_TRAILING_WHITESPACE)
+  #
+  #  set(JsonCpp_LIB_NAMES ${JsonCpp_LIB_NAMES} libjson_linux-gcc-${_gcc_COMPILER_VERSION}_libmt.so)
+  #endif()
+
+#libjsoncpp.so
+  find_library(JsonCpp_LIBRARY
+    NAMES
+      jsoncpp
+      libjsoncpp
+    PATHS
+       /usr/lib
+       /usr/local/lib
+    )
+
 endif()
 
+if(JsonCpp_LIBRARY AND JsonCpp_INCLUDE_DIR)
+  set(JsonCpp_FOUND 1)
+  mark_as_advanced(JsonCpp_LIBRARY JsonCpp_INCLUDE_DIR)
+else()
+  set(JsonCpp_FOUND 0)
+endif()
 
+#get_filename_component(JsonCpp_LIBRARY_DIR "${JsonCpp_LIBRARY}" PATH)
+#get_filename_component(JsonCpp_LIBRARY "${JsonCpp_LIBRARY}" NAME)
 
-# handle the QUIETLY and REQUIRED arguments and set JSONCPP_FOUND to TRUE
-# if all listed variables are TRUE, hide their existence from configuration view
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(jsoncpp DEFAULT_MSG JSONCPP_INCLUDE_DIR JSONCPP_LIBRARY)
-mark_as_advanced (JSONCPP_INCLUDE_DIR JSONCPP_LIBRARY)
+# ----------------------------------------------------------------------
+# Display status
+# ----------------------------------------------------------------------
+if(NOT JsonCpp_FOUND)
+   if(JsonCpp_FIND_REQUIRED)
+      message(FATAL_ERROR "JsonCpp was not found. Please build dependencies first, or specify the path manually.")
+   endif()
+endif()

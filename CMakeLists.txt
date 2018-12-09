@@ -23,6 +23,8 @@ find_package(jsoncpp REQUIRED)
 find_package(graphviz REQUIRED)
 find_package(cblas)
 
+message(STATUS "JSONCPP_LIBRARY ${JsonCpp_LIBRARY}")
+
 add_subdirectory(external)
 add_subdirectory(assets)
 add_subdirectory(src)

@@ -1,5 +1,7 @@
 #include "shift-core/frame.h"
 
+#include "ksl/print.h"
+
 void Shift::Frame::addKeys() {
 
   SerialEntry name("name", SerialType::STRING, &name_);
@@ -49,4 +51,8 @@ void Shift::Frame::addKeys() {
   euler_angles.setRequired(false);
   euler_angles.setEulerAnglesMapToMat3x3(true);
   addSerialEntry(euler_angles);
+}
+
+void Shift::Frame::print() {
+  ksl_SE3_print(stdout, &pose_, name_.c_str());
 }

@@ -12,7 +12,12 @@ include_directories(${CMAKE_SOURCE_DIR}/include/shift-core)
 
 add_executable(shift-cli shift_cli.cc)
 
-target_link_libraries(shift-cli shift_core)
+find_library(shift_core REQUIRED)
+find_library(ksl REQUIRED)
+
+message(STATUS "JsonCpp_LIBRARY ${JsonCpp_LIBRARY}")
+
+target_link_libraries(shift-cli shift_core ksl ${JsonCpp_LIBRARY})
 
 add_executable(shift shift.cc)
 
@@ -40,7 +45,7 @@ target_compile_options(
   -Wextra
   -g3
   -O3
-  -std=c++11
+  -std=c++17
 )
 
 target_include_directories(shift PUBLIC ${CMAKE_SOURCE_DIR}/include)

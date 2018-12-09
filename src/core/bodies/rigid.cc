@@ -1,8 +1,9 @@
 #include "shift-core/bodies/rigid.h"
 #include "shift-core/factory.h"
 
-class Shift::Registration<Shift::Body::BodyBase>
-  registration("rigid", Shift::Body::Rigid::create);
+bool Shift::Body::Rigid::registered_ =
+  Shift::Factory<Shift::Body::BodyBase>::get()->registerModule(
+    "rigid", Shift::Body::Rigid::create);
 
 void Shift::Body::Rigid::addKeys() {
 
@@ -19,8 +20,12 @@ void Shift::Body::Rigid::addKeys() {
   SerialEntry inertia("inertia", SerialType::KSL_INERTIA, &inertia_);
   inertia.setRequired(false);
   inertia.setDescription(
-    "Specifies body mass and centroidal moment of inertia "
+    "Specify body mass and centroidal moment of inertia "
     "expressed in the body-fixed coordinate system. Note that if a zero or "
     "very low mass is specified, it may cause problems for some solvers.");
   addSerialEntry(inertia);
+}
+
+Shift::Body::Rigid* Shift::Body::Rigid::create() {
+  return new Shift::Body::Rigid;
 }

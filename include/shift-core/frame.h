@@ -29,6 +29,7 @@ public:
     addKeys();
   }
   ~Frame() {}
+  void print();
 
 private:
   void addKeys();

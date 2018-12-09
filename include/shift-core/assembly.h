@@ -30,6 +30,8 @@ namespace Light {
 class LightBase;
 }
 
+class SerialEntry;
+
 /*!
 @brief Shift Assembly datastructure
 */
@@ -53,6 +55,12 @@ public:
   ~Assembly() {}
 
   void readJSON(Json::Value& value, bool fixed = false);
+  void printBehaviors();
+  void printBodies();
+  void printConstraints();
+  void printForceModules();
+  void printJoints();
+  void print();
 
 private:
   void addKeys();
@@ -64,7 +72,6 @@ private:
   std::vector<Constraint::ConstraintBase*> constraints_;
   std::vector<ForceModule::ForceModuleBase*> forcemodules_;
   std::vector<Joint::JointBase*> joints_;
-  std::vector<Light::LightBase*> lights_;
 };
 
 } // namespace Shift

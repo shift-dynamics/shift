@@ -1,3 +1,16 @@
+#include "shift-core/context.h"
+#include <iostream>
+
 int main(int argc, char* argv[]) {
-  return 0;
+
+  if(argc == 2) {
+    std::cout << "Loading " << argv[1] << std::endl;
+    Shift::Context context;
+    context.readJSON(argv[1]);
+    context.print();
+    return 0;
+  } else {
+    std::cout << "Usage shift-cli <name of file>" << std::endl;
+    return -1;
+  }
 }

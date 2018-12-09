@@ -23,8 +23,12 @@ public:
   }
   ~IK7DOF() {}
   static IK7DOF* create();
+  static bool isRegistered() {
+    return registered_;
+  }
 
 private:
+  static bool registered_;
   void addKeys();
 };
 

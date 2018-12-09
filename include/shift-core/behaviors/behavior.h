@@ -35,12 +35,15 @@ public:
     return type_;
   }
 
-  virtual void readJSON(Json::Value);
-
 protected:
   void addKeys();
 
   std::string type_; //!< descriptive name of Behavior type
+};
+
+class Modules {
+public:
+  static bool initialized();
 };
 
 } // namespace Behavior

@@ -20,8 +20,12 @@ public:
   ~Basic() {}
   static Basic* create();
   void addKeys();
+  static bool isRegistered() {
+    return registered_;
+  }
 
 private:
+  static bool registered_;
 };
 
 } // namespace Terrain

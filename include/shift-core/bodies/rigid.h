@@ -24,6 +24,9 @@ public:
   ~Rigid() {}
   static Rigid* create();
   void addKeys();
+  static bool isRegistered() {
+    return registered_;
+  }
 
 private:
   int referenceFrameIndex_ = -1; /*!< pointer to Body's unique reference
@@ -49,8 +52,8 @@ private:
   int level_ = -1; /*!< level in the spanning tree, set
                   by s2_ProcessTopology */
 
-  bool isVirtual_ = false; /*!< indicates whether the Body is *virtual*. All
-                       user-defined bodies are not virtual. Massless
+  bool isVirtual_ = false; /*!< indicates whether the Body is *virtual*. No
+                       user-defined bodies are virtual. Massless
                        virtual bodies are only added to simplify processing
                        kinematics if multiple loops are present in the
                        mechanism */
@@ -61,6 +64,8 @@ private:
                                                 center of mass */
   ksl_vec3_t centerOfMassWRTReference_; /*!< vector from body reference
                                                 frame to center of mass */
+
+  static bool registered_;
 };
 
 } // namespace Body

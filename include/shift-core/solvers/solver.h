@@ -27,13 +27,9 @@ class SolverBase
 
 public:
   SolverBase(std::string name)
-    : Base(name) {
-    addKeys();
-  }
+    : Base(name) {}
   SolverBase()
-    : Base("") {
-    addKeys();
-  }
+    : Base("") {}
   ~SolverBase() {}
 
   const std::string& getType() {
@@ -44,6 +40,16 @@ protected:
   void addKeys();
 
   std::string type_; //!< descriptive name of Solver type
+};
+
+class Modules {
+public:
+  void list();
+  static bool initialized();
+
+private:
+  static std::vector<std::string> modules_;
+  static bool initialized_;
 };
 
 } // namespace Solver

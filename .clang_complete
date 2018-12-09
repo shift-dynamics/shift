@@ -21,3 +21,4 @@
 -Iinclude
 -Iexternal/ksl/include
 -Ibuild/src/gui/shift_gui_autogen/include
+-std=c++17

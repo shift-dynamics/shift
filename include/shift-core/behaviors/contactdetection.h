@@ -24,7 +24,12 @@ public:
   ~ContactDetection() {}
   static ContactDetection* create();
 
+  static bool isRegistered() {
+    return registered_;
+  }
+
 private:
+  static bool registered_;
   void addKeys();
 };
 

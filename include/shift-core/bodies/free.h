@@ -1,4 +1,5 @@
 #ifndef _SHIFT_FREEBODY_
+#define _SHIFT_FREEBODY_
 
 #include "body.h"
 
@@ -24,7 +25,12 @@ public:
 
   void addKeys();
 
+  static bool isRegistered() {
+    return registered_;
+  }
+
 private:
+  static bool registered_;
 };
 
 } // namespace Body

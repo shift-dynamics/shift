@@ -19,7 +19,7 @@ public:
   }
   ~Base() {}
 
-  std::string getName();
+  const std::string& getName();
   void setName(std::string);
   int getId();
 

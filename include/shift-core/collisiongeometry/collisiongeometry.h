@@ -10,7 +10,9 @@
 
 namespace Shift {
 
-class Body;
+namespace Body {
+class BodyBase;
+}
 class Frame;
 
 namespace CollisionGeometry {
@@ -41,6 +43,11 @@ protected:
   void addKeys();
 
   std::string type_; //!< descriptive name of CollisionGeometry type
+};
+
+class Modules {
+public:
+  static bool initialized();
 };
 
 } // namespace CollisionGeometry

@@ -1,5 +1,12 @@
 #include "shift-core/geometry/mesh.h"
 #include "shift-core/factory.h"
 
-class Shift::Registration<Shift::Geometry::GeometryBase>
-  registration("mesh", Shift::Geometry::Mesh::create);
+bool Shift::Geometry::Mesh::registered_ =
+  Shift::Factory<Shift::Geometry::GeometryBase>::get()->registerModule(
+    "mesh", Shift::Geometry::Mesh::create);
+
+Shift::Geometry::Mesh* Shift::Geometry::Mesh::create() {
+  return new Shift::Geometry::Mesh;
+}
+
+void Shift::Geometry::Mesh::addKeys() {}

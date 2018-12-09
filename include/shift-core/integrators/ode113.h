@@ -26,7 +26,12 @@ public:
   static ODE113* create();
   void addKeys();
 
+  static bool isRegistered() {
+    return registered_;
+  }
+
 private:
+  static bool registered_;
 };
 
 } // namespace Integrator

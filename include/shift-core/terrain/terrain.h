@@ -46,6 +46,11 @@ protected:
   std::string type_; //!< descriptive name of TerrainBase type
 };
 
+class Modules {
+public:
+  static bool initialized();
+};
+
 } // namespace Terrain
 
 } // namespace Shift

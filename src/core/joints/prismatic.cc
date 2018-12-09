@@ -1,11 +1,12 @@
 #include "shift-core/joints/prismatic.h"
 #include "shift-core/factory.h"
 
-class Shift::Registration<Shift::Joint::Prismatic>
-  registration("prismatic", Shift::Joint::Prismatic::create);
+bool Shift::Joint::Prismatic::registered_ =
+  Shift::Factory<Shift::Joint::JointBase>::get()->registerModule(
+    "prismatic", Shift::Joint::Prismatic::create);
 
 Shift::Joint::Prismatic* Shift::Joint::Prismatic::create() {
-  return new Shift::Joint::Prismatic();
+  return new Shift::Joint::Prismatic;
 }
 
 void Shift::Joint::Prismatic::addKeys() {

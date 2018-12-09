@@ -10,8 +10,6 @@
 
 namespace Shift {
 
-class Terrain;
-
 /*!
 @brief Shift Context datastructure
 */
@@ -21,18 +19,27 @@ public:
   Context(std::string name)
     : Base(name)
     , modelParameters_(name)
-    , fixed_("fixed") {}
+    , fixed_("fixed") {
+    initialize();
+  }
+  Context()
+    : Base("")
+    , modelParameters_("")
+    , fixed_("fixed") {
+    initialize();
+  }
   ~Context() {}
   void readJSON(const std::string filename);
   void writeJSON();
   void writeJSON(const std::string filename);
+  void print();
 
 private:
   ModelParameters modelParameters_;
   Assembly fixed_;
-  std::vector<Terrain*> terrains_;
   std::string filename_;
   Json::Value root_;
+  void initialize();
 };
 
 } // namespace Shift
