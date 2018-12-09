@@ -1,1 +1,11 @@
 #include "shift-core/terrain/terrain.h"
+#include "shift-core/terrain/basic.h"
+
+bool Shift::Terrain::Modules::initialized() {
+  if(!Shift::Terrain::Basic::isRegistered()) {
+    return false;
+  }
+  return true;
+}
+
+void Shift::Terrain::TerrainBase::addKeys() {}

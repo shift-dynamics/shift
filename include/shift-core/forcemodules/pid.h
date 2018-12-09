@@ -25,7 +25,12 @@ public:
   static PID* create();
   void addKeys();
 
+  static bool isRegistered() {
+    return registered_;
+  }
+
 private:
+  static bool registered_;
 };
 
 } // namespace ForceModule

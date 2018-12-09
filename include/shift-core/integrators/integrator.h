@@ -36,10 +36,22 @@ public:
     return type_;
   }
 
+  void readJSON(Json::Value);
+
 protected:
   void addKeys();
 
   std::string type_; //!< descriptive name of Integrator type
+};
+
+class Modules {
+public:
+  void list();
+  static bool initialized();
+
+private:
+  static std::vector<std::string> modules_;
+  static bool initialized_;
 };
 
 } // namespace Integrator

@@ -1,6 +1,7 @@
 #ifndef _SHIFT_SERIALIZE_H_
 #define _SHIFT_SERIALIZE_H_
 
+#include <exception>
 #include <json/json.h>
 #include <string>
 #include <vector>
@@ -11,6 +12,7 @@
 #include "ksl/quaternion.h"
 #include "ksl/screw.h"
 #include "ksl/vec3.h"
+#include "ksl/vec4.h"
 
 namespace Shift {
 
@@ -32,116 +34,14 @@ enum class SerialType {
   BOOLEAN
 };
 
+class SerialEntry;
+
 class SerialEntry {
 
 public:
-  SerialEntry(const std::string keyword, const SerialType serialType,
-              void* data, const int rowDim = 1, const int colDim = 1) {
-    keyword_ = keyword;
-    type_ = serialType;
-    data_ = data;
-    rowDim_ = rowDim;
-    colDim_ = colDim;
-  };
-  ~SerialEntry() {
-    switch(type_) {
-      case SerialType::STRING: {
-        std::string* data = static_cast<std::string*>(defaultData_);
-        if(data) {
-          delete data;
-        }
-        break;
-      }
-      case SerialType::STRING_ARRAY: {
-        std::vector<std::string>* data =
-          static_cast<std::vector<std::string>*>(defaultData_);
-        if(data) {
-          delete data;
-        }
-        break;
-      }
-      case SerialType::STRING_2DARRAY: {
-        std::vector<std::vector<std::string>>* data =
-          static_cast<std::vector<std::vector<std::string>>*>(defaultData_);
-        if(data) {
-          delete data;
-        }
-        break;
-      }
-      case SerialType::DOUBLE:
-      case SerialType::DOUBLE_ARRAY: {
-        double* data = static_cast<double*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::KSL_VEC3: {
-        ksl_vec3_t* data = static_cast<ksl_vec3_t*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::KSL_VEC4: {
-        ksl_vec4_t* data = static_cast<ksl_vec4_t*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::KSL_QUATERNION: {
-        ksl_quaternion_t* data = static_cast<ksl_quaternion_t*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::KSL_SCREW: {
-        ksl_screw_t* data = static_cast<ksl_screw_t*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::KSL_COSCREW: {
-        ksl_coscrew_t* data = static_cast<ksl_coscrew_t*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::KSL_INERTIA: {
-        ksl_inertia_t* data = static_cast<ksl_inertia_t*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::KSL_MAT3X3: {
-        ksl_mat3x3_t* data = static_cast<ksl_mat3x3_t*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::KSL_MAT4X4: {
-        ksl_mat4x4_t* data = static_cast<ksl_mat4x4_t*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      case SerialType::BOOLEAN: {
-        bool* data = static_cast<bool*>(defaultData_);
-        if(data) {
-          free(data);
-        }
-        break;
-      }
-      default: { break; }
-    }
-  };
+  SerialEntry(const std::string key, const SerialType serialType, void* data,
+              const int rowDim = 1, const int colDim = 1);
+  ~SerialEntry();
 
   bool isRequired() {
     return required_;
@@ -171,8 +71,8 @@ public:
     quaternionMapsToMat3x3_ = enabled;
   }
 
-  void setMat4x4MapsToMat3x3(bool enabled) {
-    mat4x4MapsToMat3x3_ = enabled;
+  void setMat4x4MapsToSE3(bool enabled) {
+    mat4x4MapsToSE3_ = enabled;
   }
 
   void setVec3MapsToMat3x3(bool enabled) {
@@ -183,30 +83,59 @@ public:
     eulerAnglesMapToMat3x3_ = enabled;
   }
 
+  void setNormalizeQuaternion(bool enabled) {
+    normalizeQuaternion_ = enabled;
+  }
+
+  void setNormalizeMat3x3(bool enabled) {
+    normalizeMat3x3_ = enabled;
+  }
+
   void addValidStringValue(std::string value) {
     validStringValues_.insert(validStringValues_.end(), value);
   }
 
-  void addSerialEntry(SerialEntry& serialEntry);
+  bool isLoadedFromFile() {
+    return loadedFromFile_;
+  }
 
-  virtual void parseJson(Json::Value);
+  void readJSON(Json::Value&);
 
 private:
-  std::string keyword_;
+  std::string key_;
   std::string description_ = "N/A";
   bool required_ = true;
   SerialType type_;
   void* data_ = NULL;
   void* defaultData_ = NULL;
-  int rowDim_ = 1;
-  int colDim_ = 1;
+  int rowDim_ = 1; /*!< -1 indicates dynamic sizing requested */
+  int colDim_ = 1; /*!< -1 indicates dynamic sizing requested */
+
   std::vector<std::string> validStringValues_;
   bool quaternionMapsToMat3x3_ = false;
-  bool mat4x4MapsToMat3x3_ = false;
+  bool mat4x4MapsToSE3_ = false;
   bool vec3MapsToMat3x3_ = false;
   bool loadedFromFile_ = false;
   bool eulerAnglesMapToMat3x3_ = false;
-  std::vector<SerialEntry> serialEntries_;
+  bool normalizeQuaternion_ = true;
+  bool normalizeMat3x3_ = true;
+  ksl_vec3i_t axes_ = {{0, 1, 2}};
+
+  void readJSON_STRING(Json::Value&);
+  void readJSON_STRING_ARRAY(Json::Value&);
+  void readJSON_STRING_2DARRAY(Json::Value&);
+  void readJSON_DOUBLE(Json::Value&);
+  void readJSON_DOUBLE_ARRAY(Json::Value&);
+  void readJSON_KSL_VEC3(Json::Value&);
+  void readJSON_KSL_VEC4(Json::Value&);
+  void readJSON_KSL_QUATERNION(Json::Value&);
+  void readJSON_KSL_SCREW(Json::Value&);
+  void readJSON_KSL_COSCREW(Json::Value&);
+  void readJSON_KSL_INERTIA(Json::Value&);
+  void readJSON_KSL_MAT3X3(Json::Value&);
+  void readJSON_KSL_MAT4X4(Json::Value&);
+  void readJSON_EULERANGLES(Json::Value&);
+  void readJSON_BOOLEAN(Json::Value&);
 };
 
 /*!
@@ -219,8 +148,9 @@ public:
   ~Serialize() {}
 
   void addSerialEntry(SerialEntry& serialEntry);
+  void readJSON(Json::Value&);
 
-private:
+protected:
   std::vector<SerialEntry> serialEntries_;
 };
 

@@ -23,23 +23,25 @@ class GeometryBase
 
 public:
   GeometryBase(std::string name)
-    : Base(name) {
-    addKeys();
-  }
+    : Base(name) {}
   GeometryBase()
-    : Base("") {
-    addKeys();
-  }
+    : Base("") {}
   ~GeometryBase() {}
 
   const std::string& getType() {
     return type_;
   }
 
-protected:
-  void addKeys();
+  // virtual void readJSON(Json::Value);
 
+protected:
+  virtual void addKeys();
   std::string type_; //!< descriptive name of Geometry type
+};
+
+class Modules {
+public:
+  static bool initialized();
 };
 
 } // namespace Geometry

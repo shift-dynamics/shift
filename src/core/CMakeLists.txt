@@ -1,20 +1,14 @@
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5Widgets CONFIG REQUIRED)
-
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-
 set(shift_core_src
+
+  serialize.cc
   assembly.cc
   base.cc
   context.cc
+  factory.cc
   frame.cc
   modelparameters.cc
-  serialize.cc
   substructure.cc
+  units.cc
 
   behaviors/behavior.cc
   behaviors/contactdetection.cc
@@ -23,8 +17,11 @@ set(shift_core_src
   bodies/body.cc
   bodies/rigid.cc
   bodies/free.cc
+  bodies/fixed.cc
 
   collisiongeometry/collisiongeometry.cc
+
+  constraints/constraint.cc
 
   behaviors/behavior.cc
   behaviors/contactdetection.cc
@@ -46,9 +43,9 @@ set(shift_core_src
   joints/joint.cc
   joints/float.cc
   joints/prismatic.cc
+  joints/revolute.cc
   joints/rigid.cc
   joints/spherical.cc
-  joints/revolute.cc
 
   lights/light.cc
   lights/directional.cc
@@ -56,12 +53,16 @@ set(shift_core_src
   lights/point.cc
   lights/spot.cc
 
+  loggers/logger.cc
+  loggers/csv.cc
+  loggers/hdf5.cc
+
   sensors/sensor.cc
   sensors/imu.cc
   sensors/range.cc
 
   solvers/solver.cc
-  solvers/rtonca.cc
+  solvers/rnca.cc
 
   terrain/terrain.cc
   terrain/basic.cc
@@ -70,8 +71,6 @@ set(shift_core_src
 include_directories(${CMAKE_SOURCE_DIR}/include/shift-core)
 
 add_library(shift_core STATIC ${shift_core_src})
-
-qt5_use_modules(shift_core Core Widgets Gui)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
   target_compile_definitions(
@@ -94,17 +93,15 @@ target_compile_options(
   -Wextra
   -g3
   -O3
-  -std=c++11
+  -std=c++17
 )
 
 target_include_directories(
   shift_core
   PUBLIC
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/external/ksl/include
+  ${JSONCPP_INCLUDE_DIR}
 )
 
-target_include_directories(
-  shift_core
-  PUBLIC
-  ${CMAKE_SOURCE_DIR}/external/ksl/include
-)
+target_link_libraries(shift_core ${JsonCpp_LIBRARY})

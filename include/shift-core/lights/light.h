@@ -27,23 +27,30 @@ class LightBase
 
 public:
   LightBase(std::string name)
-    : Base(name) {
-    addKeys();
-  }
+    : Base(name) {}
   LightBase()
-    : Base("") {
-    addKeys();
-  }
+    : Base("") {}
   ~LightBase() {}
 
   const std::string& getType() {
     return type_;
   }
 
+  virtual void readJSON(Json::Value&);
+  virtual void print();
+
 protected:
   void addKeys();
-
+  std::vector<std::string> parent_;
   std::string type_; //!< descriptive name of Light type
+  ksl_vec3_t Ka_ = ksl_vec3(0.2, 0.2, 0.2);
+  ksl_vec3_t Kd_ = ksl_vec3(1.0, 1.0, 1.0);
+  ksl_vec3_t Ks_ = ksl_vec3(1.0, 1.0, 1.0);
+};
+
+class Modules {
+public:
+  static bool initialized();
 };
 
 } // namespace Light

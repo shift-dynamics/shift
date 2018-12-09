@@ -31,8 +31,17 @@ public:
   }
   ~ForceModuleBase() {}
 
-private:
+  void readJSON(Json::Value);
+
+protected:
   void addKeys();
+
+  std::string type_;
+};
+
+class Modules {
+public:
+  static bool initialized();
 };
 
 } // namespace ForceModule

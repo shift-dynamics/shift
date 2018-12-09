@@ -12,7 +12,10 @@
 
 namespace Shift {
 
-class Body;
+namespace Body {
+class BodyBase;
+}
+
 class Frame;
 class Substructure;
 
@@ -27,21 +30,25 @@ class JointBase
 
 public:
   JointBase(std::string name)
-    : Base(name) {
+    : Base(name)
+    , Serialize() {
     addKeys();
   }
   JointBase()
-    : Base("") {
+    : Base("")
+    , Serialize() {
     addKeys();
   }
   ~JointBase() {}
 
-  const std::string& getJointType() {
+  const std::string& getType() {
     return type_;
   }
 
-  virtual void updateDH();
-  virtual void updateDHVA();
+  virtual void updateDH() = 0;
+  virtual void updateDHVA() = 0;
+
+  void readJSON(Json::Value&);
 
 protected:
   void addKeys();
@@ -63,13 +70,13 @@ protected:
   std::vector<std::vector<std::string>> bodyFramePairs_;
 
   std::vector<std::string> parentBody_; //!< descriptive name of parent Body
-  Body* parentBodyPointer_ = NULL;      //!< pointer to parent Body
+  Body::BodyBase* parentBodyPointer_ = NULL; //!< pointer to parent Body
 
   std::vector<std::string> parentFrame_; //!< descriptive name of parent Frame
   Frame* parentFramePointer_ = NULL;     //!< pointer to parent Frame
 
-  std::vector<std::string> childBody_; //!< descriptive name of child Body
-  Body* childBodyPointer = NULL;       //!< pointer to child Body
+  std::vector<std::string> childBody_;     //!< descriptive name of child Body
+  Body::BodyBase* childBodyPointer = NULL; //!< pointer to child Body
 
   std::vector<std::string> childFrame_; //!< descriptive name of child frame
   Frame* childFramePointer = NULL;      //!< pointer to child Frame
@@ -108,6 +115,16 @@ protected:
                                    k2 * x**2 + ... + kn * x**n */
   int stiffnessCoefficientCount_ = 0;    /*!< number of spring coefficients */
   bool isVisible_ = false;
+};
+
+class Modules {
+public:
+  void list();
+  static bool initialized();
+
+private:
+  static std::vector<std::string> modules_;
+  static bool initialized_;
 };
 
 } // namespace Joint

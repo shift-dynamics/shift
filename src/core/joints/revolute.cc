@@ -1,11 +1,12 @@
 #include "shift-core/joints/revolute.h"
 #include "shift-core/factory.h"
 
-Shift::Registration<Shift::Joint::JointBase>
-  registration("revolute", Shift::Joint::Revolute::create);
+bool Shift::Joint::Revolute::registered_ =
+  Shift::Factory<Shift::Joint::JointBase>::get()->registerModule(
+    "revolute", Shift::Joint::Revolute::create);
 
 Shift::Joint::Revolute* Shift::Joint::Revolute::create() {
-  return new Shift::Joint::Revolute();
+  return new Shift::Joint::Revolute;
 }
 
 void Shift::Joint::Revolute::addKeys() {
