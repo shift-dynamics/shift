@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "shift-core/base.h"
@@ -11,6 +12,7 @@
 namespace Shift {
 
 class Frame;
+class Context;
 
 namespace Geometry {
 
@@ -31,10 +33,16 @@ public:
   const std::string& getType() {
     return type_;
   }
+  void setContext(Context* context) {
+    context_ = context;
+  }
 
-  // virtual void readJSON(Json::Value);
+  virtual void load();
+  virtual void connect();
+  virtual void readJSON(Json::Value&);
 
 protected:
+  Context* context_;
   virtual void addKeys();
   std::string type_; //!< descriptive name of Geometry type
 };

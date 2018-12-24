@@ -26,7 +26,7 @@ public:
     delete dq_0_;
   }
 
-  static Prismatic* create();
+  static std::unique_ptr<Prismatic> create();
   void addKeys();
   void updateDH();
   void updateDHVA();

@@ -22,7 +22,7 @@ public:
     addKeys();
   }
   ~Rigid() {}
-  static Rigid* create();
+  static std::unique_ptr<Rigid> create();
   void addKeys();
   static bool isRegistered() {
     return registered_;

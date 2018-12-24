@@ -6,8 +6,8 @@ bool Shift::Logger::CSV::registered_ =
   Shift::Factory<Shift::Logger::LoggerBase>::get()->registerModule(
     "csv", Shift::Logger::CSV::create);
 
-Shift::Logger::CSV* Shift::Logger::CSV::create() {
-  return new Shift::Logger::CSV;
+std::unique_ptr<Shift::Logger::CSV> Shift::Logger::CSV::create() {
+  return std::make_unique<Shift::Logger::CSV>();
 }
 
 void Shift::Logger::CSV::addKeys() {

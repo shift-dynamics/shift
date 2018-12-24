@@ -39,7 +39,7 @@ public:
 private:
   const std::string description_ = "";
   static bool registered_;
-  static HDF5* create();
+  static std::unique_ptr<HDF5> create();
 };
 
 } // namespace Logger

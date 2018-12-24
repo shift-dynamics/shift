@@ -5,8 +5,8 @@ bool Shift::Geometry::Sphere::registered_ =
   Shift::Factory<Shift::Geometry::GeometryBase>::get()->registerModule(
     "sphere", Shift::Geometry::Sphere::create);
 
-Shift::Geometry::Sphere* Shift::Geometry::Sphere::create() {
-  return new Shift::Geometry::Sphere;
+std::unique_ptr<Shift::Geometry::Sphere> Shift::Geometry::Sphere::create() {
+  return std::make_unique<Shift::Geometry::Sphere>();
 }
 
 void Shift::Geometry::Sphere::addKeys() {}

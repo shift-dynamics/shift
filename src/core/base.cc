@@ -4,6 +4,24 @@ const std::string& Shift::Base::getName() {
   return name_;
 }
 
-void Shift::Base::setName(std::string name) {
+void Shift::Base::setName(const std::string& name) {
   name_ = name;
+}
+
+void Shift::Base::setFullyQualifiedName(
+  const std::vector<std::string>& baseName) {
+  fullyQualifiedName_ = baseName;
+  fullyQualifiedName_.push_back(name_);
+}
+
+const std::vector<std::string>& Shift::Base::getFullyQualifiedName() {
+  return fullyQualifiedName_;
+}
+
+bool Shift::Base::isActive() {
+  return active_;
+}
+
+void Shift::Base::setActive(bool active) {
+  active_ = active;
 }

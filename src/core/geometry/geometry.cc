@@ -1,5 +1,5 @@
 #include "shift-core/geometry/geometry.h"
-
+#include "shift-core/context.h"
 #include "shift-core/geometry/ellipsoid.h"
 #include "shift-core/geometry/mesh.h"
 #include "shift-core/geometry/pointcloud.h"
@@ -36,3 +36,14 @@ void Shift::Geometry::GeometryBase::addKeys() {
     "this key to selectively enable or disable portions of the model.");
   addSerialEntry(active);
 }
+
+void Shift::Geometry::GeometryBase::readJSON(Json::Value& value) {
+  Shift::Serialize::readJSON(value);
+  if(context_) {
+    context_->setActive(this);
+  }
+}
+
+void Shift::Geometry::GeometryBase::load() {}
+
+void Shift::Geometry::GeometryBase::connect() {}

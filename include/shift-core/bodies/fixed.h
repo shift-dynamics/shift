@@ -4,6 +4,8 @@
 #include "shift-core/bodies/body.h"
 #include "shift-core/factory.h"
 
+#include <memory>
+
 namespace Shift {
 
 namespace Joint {
@@ -20,7 +22,7 @@ class Fixed : public BodyBase {
 public:
   Fixed()
     : BodyBase() {
-    setName("fixed");
+    // setName("fixed");
     addKeys();
   }
   Fixed(std::string name)
@@ -28,8 +30,8 @@ public:
     addKeys();
   }
   ~Fixed() {}
-  static Fixed* create();
-  void appendTerrain(Terrain::TerrainBase*);
+  static std::unique_ptr<Fixed> create();
+  void appendTerrain(std::unique_ptr<Terrain::TerrainBase>&);
   void readJSON(Json::Value&) override;
   virtual void addKeys() override;
   static bool isRegistered() {
@@ -37,7 +39,7 @@ public:
   }
 
 private:
-  std::vector<Terrain::TerrainBase*> terrain_;
+  std::vector<std::unique_ptr<Terrain::TerrainBase>> terrain_;
   static bool registered_;
 };
 

@@ -8,12 +8,20 @@ bool Shift::Solver::Modules::initialized() {
   return true;
 }
 
-bool Shift::Solver::Modules::initialized_ =
-  Shift::Solver::Modules::initialized();
-
 void Shift::Solver::SolverBase::addKeys() {
   SerialEntry solverType("type", SerialType::STRING, &type_);
   solverType.setRequired(false);
   solverType.setDescription("Solver type");
   addSerialEntry(solverType);
+}
+
+void Shift::Solver::SolverBase::load() {}
+
+void Shift::Solver::SolverBase::connect() {}
+
+void Shift::Solver::SolverBase::readJSON(Json::Value& value) {
+  Shift::Serialize::readJSON(value);
+  if(context_) {
+    // context_->setActive(this);
+  }
 }

@@ -16,6 +16,7 @@ class BodyBase;
 
 class Frame;
 class Substructure;
+class Context;
 
 namespace Constraint {
 
@@ -41,9 +42,18 @@ public:
     return type_;
   }
 
+  void setContext(Context* context) {
+    context_ = context;
+  }
+
+  virtual void load();
+  virtual void connect();
+  virtual void readJSON(Json::Value&);
+
 protected:
   void addKeys();
 
+  Context* context_;
   std::string type_; //!< descriptive name of Constraint type
 
   std::vector<std::vector<std::string>> bodyFramePairs_;

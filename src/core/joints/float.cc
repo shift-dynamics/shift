@@ -5,8 +5,8 @@ bool Shift::Joint::Float::registered_ =
   Shift::Factory<Shift::Joint::JointBase>::get()->registerModule(
     "float", Shift::Joint::Float::create);
 
-Shift::Joint::Float* Shift::Joint::Float::create() {
-  return new Shift::Joint::Float;
+std::unique_ptr<Shift::Joint::Float> Shift::Joint::Float::create() {
+  return std::make_unique<Shift::Joint::Float>();
 }
 
 void Shift::Joint::Float::addKeys() {

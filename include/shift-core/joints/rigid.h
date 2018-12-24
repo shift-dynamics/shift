@@ -25,7 +25,7 @@ public:
 
   ~Rigid() {}
 
-  static Rigid* create();
+  static std::unique_ptr<Rigid> create();
 
   void addKeys();
   void updateDH();

@@ -1,6 +1,8 @@
 #ifndef _SHIFT_PIDFORCEMODULE_H_
 #define _SHIFT_PIDFORCEMODULE_H_
 
+#include <memory>
+
 #include "shift-core/forcemodules/forcemodule.h"
 
 namespace Shift {
@@ -22,7 +24,7 @@ public:
     addKeys();
   }
   ~PID() {}
-  static PID* create();
+  static std::unique_ptr<PID> create();
   void addKeys();
 
   static bool isRegistered() {

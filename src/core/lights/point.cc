@@ -4,8 +4,8 @@ bool Shift::Light::Point::registered_ =
   Shift::Factory<Shift::Light::LightBase>::get()->registerModule(
     "point", Shift::Light::Point::create);
 
-Shift::Light::Point* Shift::Light::Point::create() {
-  return new Shift::Light::Point;
+std::unique_ptr<Shift::Light::Point> Shift::Light::Point::create() {
+  return std::make_unique<Shift::Light::Point>();
 }
 
 void Shift::Light::Point::addKeys() {

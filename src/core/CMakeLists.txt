@@ -8,6 +8,7 @@ set(shift_core_src
   frame.cc
   modelparameters.cc
   substructure.cc
+  topology.cc
   units.cc
 
   behaviors/behavior.cc

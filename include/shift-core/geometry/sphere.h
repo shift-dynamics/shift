@@ -18,7 +18,7 @@ public:
     addKeys();
   }
   ~Sphere() {}
-  static Sphere* create();
+  static std::unique_ptr<Sphere> create();
   void addKeys();
 
   static bool isRegistered() {

@@ -1,6 +1,8 @@
 #ifndef _SHIFT_ELLIPSOIDGEOMETRY_H_
 #define _SHIFT_ELLIPSOIDGEOMETRY_H_
 
+#include <memory>
+
 #include "shift-core/factory.h"
 #include "shift-core/geometry/geometry.h"
 
@@ -19,7 +21,7 @@ public:
     addKeys();
   }
   ~Ellipsoid() {}
-  static Ellipsoid* create();
+  static std::unique_ptr<Ellipsoid> create();
   void addKeys();
   static bool isRegistered() {
     return registered_;

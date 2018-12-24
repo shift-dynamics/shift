@@ -1,6 +1,8 @@
 #ifndef _SHIFT_CONTACTDETECTIONBEHAVIOR_H_
 #define _SHIFT_CONTACTDETECTIONBEHAVIOR_H_
 
+#include <memory>
+
 #include "shift-core/behaviors/behavior.h"
 
 namespace Shift {
@@ -22,7 +24,7 @@ public:
     addKeys();
   }
   ~ContactDetection() {}
-  static ContactDetection* create();
+  static std::unique_ptr<ContactDetection> create();
 
   static bool isRegistered() {
     return registered_;

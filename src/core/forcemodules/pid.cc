@@ -5,8 +5,8 @@ bool Shift::ForceModule::PID::registered_ =
   Shift::Factory<Shift::ForceModule::ForceModuleBase>::get()->registerModule(
     "pid", Shift::ForceModule::PID::create);
 
-Shift::ForceModule::PID* Shift::ForceModule::PID::create() {
-  return new Shift::ForceModule::PID;
+std::unique_ptr<Shift::ForceModule::PID> Shift::ForceModule::PID::create() {
+  return std::make_unique<Shift::ForceModule::PID>();
 }
 
 void Shift::ForceModule::PID::addKeys() {

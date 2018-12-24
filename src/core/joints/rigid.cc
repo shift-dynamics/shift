@@ -5,8 +5,8 @@ bool Shift::Joint::Rigid::registered_ =
   Shift::Factory<Shift::Joint::JointBase>::get()->registerModule(
     "rigid", Shift::Joint::Rigid::create);
 
-Shift::Joint::Rigid* Shift::Joint::Rigid::create() {
-  return new Shift::Joint::Rigid;
+std::unique_ptr<Shift::Joint::Rigid> Shift::Joint::Rigid::create() {
+  return std::make_unique<Shift::Joint::Rigid>();
 }
 
 void Shift::Joint::Rigid::addKeys() {

@@ -5,8 +5,8 @@ bool Shift::Light::Directional::registered_ =
   Shift::Factory<Shift::Light::LightBase>::get()->registerModule(
     "directional", Shift::Light::Directional::create);
 
-Shift::Light::Directional* Shift::Light::Directional::create() {
-  return new Shift::Light::Directional;
+std::unique_ptr<Shift::Light::Directional> Shift::Light::Directional::create() {
+  return std::make_unique<Shift::Light::Directional>();
 }
 
 void Shift::Light::Directional::addKeys() {

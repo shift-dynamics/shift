@@ -1,5 +1,5 @@
 #include "shift-core/lights/light.h"
-
+#include "shift-core/context.h"
 #include "shift-core/lights/directional.h"
 #include "shift-core/lights/ies.h"
 #include "shift-core/lights/point.h"
@@ -25,6 +25,9 @@ bool Shift::Light::Modules::initialized() {
 
 void Shift::Light::LightBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
+  if(context_) {
+    context_->setActive(this);
+  }
 }
 
 void Shift::Light::LightBase::addKeys() {
@@ -88,3 +91,7 @@ void Shift::Light::LightBase::print() {
   ksl_vec3_print(stdout, &Kd_, "  Kd: ");
   ksl_vec3_print(stdout, &Ks_, "  Ks: ");
 }
+
+void Shift::Light::LightBase::load() {}
+
+void Shift::Light::LightBase::connect() {}

@@ -19,7 +19,7 @@ public:
     addKeys();
   }
   ~Point() {}
-  static Point* create();
+  static std::unique_ptr<Point> create();
   void readJSON(Json::Value&);
   virtual void addKeys();
   static bool isRegistered() {

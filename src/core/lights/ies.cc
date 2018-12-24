@@ -4,8 +4,8 @@ bool Shift::Light::IES::registered_ =
   Shift::Factory<Shift::Light::LightBase>::get()->registerModule(
     "ies", Shift::Light::IES::create);
 
-Shift::Light::IES* Shift::Light::IES::create() {
-  return new Shift::Light::IES;
+std::unique_ptr<Shift::Light::IES> Shift::Light::IES::create() {
+  return std::make_unique<Shift::Light::IES>();
 }
 
 void Shift::Light::IES::addKeys() {

@@ -2,6 +2,7 @@
 #define _SHIFT_BASE_H_
 
 #include <string>
+#include <vector>
 
 static int id = 0;
 
@@ -20,13 +21,18 @@ public:
   ~Base() {}
 
   const std::string& getName();
-  void setName(std::string);
+  bool isActive();
+  void setName(const std::string&);
   int getId();
+  void setFullyQualifiedName(const std::vector<std::string>&);
+  const std::vector<std::string>& getFullyQualifiedName();
+  void setActive(bool);
 
 protected:
   std::string name_;
+  std::vector<std::string> fullyQualifiedName_;
   int id_;
-  bool active_;
+  bool active_ = true;
 };
 
 } // namespace Shift

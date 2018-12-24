@@ -79,7 +79,7 @@ private:
 
   double infinity_norm_multiplier_ = 2.0;
   static bool registered_;
-  static RNCA* create();
+  static std::unique_ptr<RNCA> create();
 };
 
 } // namespace Solver

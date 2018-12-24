@@ -5,8 +5,9 @@ bool Shift::Geometry::Ellipsoid::registered_ =
   Shift::Factory<Shift::Geometry::GeometryBase>::get()->registerModule(
     "ellipsoid", Shift::Geometry::Ellipsoid::create);
 
-Shift::Geometry::Ellipsoid* Shift::Geometry::Ellipsoid::create() {
-  return new Shift::Geometry::Ellipsoid;
+std::unique_ptr<Shift::Geometry::Ellipsoid>
+Shift::Geometry::Ellipsoid::create() {
+  return std::make_unique<Shift::Geometry::Ellipsoid>();
 }
 
 void Shift::Geometry::Ellipsoid::addKeys() {}

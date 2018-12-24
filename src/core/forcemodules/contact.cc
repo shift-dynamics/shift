@@ -5,8 +5,9 @@ bool Shift::ForceModule::Contact::registered_ =
   Shift::Factory<Shift::ForceModule::ForceModuleBase>::get()->registerModule(
     "contact", Shift::ForceModule::Contact::create);
 
-Shift::ForceModule::Contact* Shift::ForceModule::Contact::create() {
-  return new Shift::ForceModule::Contact;
+std::unique_ptr<Shift::ForceModule::Contact>
+Shift::ForceModule::Contact::create() {
+  return std::make_unique<Shift::ForceModule::Contact>();
 }
 
 void Shift::ForceModule::Contact::addKeys() {

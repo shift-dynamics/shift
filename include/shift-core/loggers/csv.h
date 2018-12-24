@@ -39,7 +39,7 @@ public:
 private:
   const std::string description_ = "";
   static bool registered_;
-  static CSV* create();
+  static std::unique_ptr<CSV> create();
 };
 
 } // namespace Logger

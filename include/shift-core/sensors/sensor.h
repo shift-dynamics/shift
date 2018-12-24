@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "shift-core/base.h"
@@ -15,6 +16,7 @@ class Body;
 }
 
 class Frame;
+class Context;
 
 namespace Sensor {
 
@@ -39,8 +41,16 @@ public:
   const std::string& getType() {
     return type_;
   }
+  void setContext(Context* context) {
+    context_ = context;
+  }
+
+  virtual void readJSON(Json::Value&);
+  virtual void load();
+  virtual void connect();
 
 protected:
+  Context* context_;
   void addKeys();
 
   std::string type_; //!< descriptive name of Sensor type
@@ -48,12 +58,7 @@ protected:
 
 class Modules {
 public:
-  void list();
   static bool initialized();
-
-private:
-  static std::vector<std::string> modules_;
-  static bool initialized_;
 };
 
 } // namespace Sensor

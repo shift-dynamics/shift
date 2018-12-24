@@ -5,8 +5,8 @@ bool Shift::Joint::Spherical::registered_ =
   Shift::Factory<Shift::Joint::JointBase>::get()->registerModule(
     "spherical", Shift::Joint::Spherical::create);
 
-Shift::Joint::Spherical* Shift::Joint::Spherical::create() {
-  return new Shift::Joint::Spherical;
+std::unique_ptr<Shift::Joint::Spherical> Shift::Joint::Spherical::create() {
+  return std::make_unique<Shift::Joint::Spherical>();
 }
 
 void Shift::Joint::Spherical::addKeys() {

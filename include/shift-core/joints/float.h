@@ -29,7 +29,7 @@ public:
   void addKeys();
   void updateDH();
   void updateDHVA();
-  static Float* create();
+  static std::unique_ptr<Float> create();
 
   static bool isRegistered() {
     return registered_;

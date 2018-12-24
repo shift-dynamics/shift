@@ -1,4 +1,5 @@
 #include "shift-core/forcemodules/forcemodule.h"
+#include "shift-core/context.h"
 #include "shift-core/forcemodules/contact.h"
 #include "shift-core/forcemodules/pid.h"
 
@@ -12,6 +13,15 @@ bool Shift::ForceModule::Modules::initialized() {
   return true;
 }
 
-void Shift::ForceModule::ForceModuleBase::readJSON(Json::Value) {}
+void Shift::ForceModule::ForceModuleBase::readJSON(Json::Value& value) {
+  Serialize::readJSON(value);
+  if(context_) {
+    context_->setActive(this);
+  }
+}
 
 void Shift::ForceModule::ForceModuleBase::addKeys() {}
+
+void Shift::ForceModule::ForceModuleBase::load() {}
+
+void Shift::ForceModule::ForceModuleBase::connect() {}

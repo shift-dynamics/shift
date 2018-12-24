@@ -23,7 +23,7 @@ public:
     addKeys();
   }
   ~ODE113() {}
-  static ODE113* create();
+  static std::unique_ptr<ODE113> create();
   void addKeys();
 
   static bool isRegistered() {

@@ -25,7 +25,7 @@ public:
     delete q_0_;
     delete dq_0_;
   }
-  static Revolute* create();
+  static std::unique_ptr<Revolute> create();
   void addKeys();
   void updateDH();
   void updateDHVA();

@@ -1,4 +1,5 @@
 #include "shift-core/integrators/integrator.h"
+#include "shift-core/context.h"
 #include "shift-core/integrators/ode113.h"
 
 bool Shift::Integrator::Modules::initialized() {
@@ -8,6 +9,15 @@ bool Shift::Integrator::Modules::initialized() {
   return true;
 }
 
-void Shift::Integrator::IntegratorBase::readJSON(Json::Value) {}
+void Shift::Integrator::IntegratorBase::readJSON(Json::Value& value) {
+  Shift::Serialize::readJSON(value);
+  if(context_) {
+    // context_->setActive(this);
+  }
+}
 
 void Shift::Integrator::IntegratorBase::addKeys() {}
+
+void Shift::Integrator::IntegratorBase::load() {}
+
+void Shift::Integrator::IntegratorBase::connect() {}

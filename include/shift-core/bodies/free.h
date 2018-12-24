@@ -3,6 +3,8 @@
 
 #include "body.h"
 
+#include <memory>
+
 namespace Shift {
 
 namespace Body {
@@ -21,7 +23,7 @@ public:
 
   ~Free() {}
 
-  static Free* create();
+  static std::unique_ptr<Free> create();
 
   void addKeys();
 
