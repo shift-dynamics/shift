@@ -19,7 +19,7 @@ public:
     addKeys();
   }
   ~IES() {}
-  static IES* create();
+  static std::unique_ptr<IES> create();
   void readJSON(Json::Value&);
   virtual void addKeys();
   static bool isRegistered() {

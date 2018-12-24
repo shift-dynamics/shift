@@ -5,8 +5,8 @@ bool Shift::Geometry::Mesh::registered_ =
   Shift::Factory<Shift::Geometry::GeometryBase>::get()->registerModule(
     "mesh", Shift::Geometry::Mesh::create);
 
-Shift::Geometry::Mesh* Shift::Geometry::Mesh::create() {
-  return new Shift::Geometry::Mesh;
+std::unique_ptr<Shift::Geometry::Mesh> Shift::Geometry::Mesh::create() {
+  return std::make_unique<Shift::Geometry::Mesh>();
 }
 
 void Shift::Geometry::Mesh::addKeys() {}

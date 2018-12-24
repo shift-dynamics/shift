@@ -4,6 +4,7 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <memory>
 
 #include "shift-core/behaviors/behavior.h"
 #include "shift-core/bodies/body.h"
@@ -34,7 +35,7 @@ public:
     factoryMap_.clear();
   }
 
-  typedef std::function<T*()> CreateFunction;
+  typedef std::function<std::unique_ptr<T>()> CreateFunction;
 
   static Factory<T>* get() {
     static Factory<T> instance;
@@ -57,7 +58,7 @@ public:
     std::cout << std::endl;
   }
 
-  T* create(const std::string& name) {
+  std::unique_ptr<T> create(const std::string& name) {
     /* if valid map does not exist, return null and throw exception */
     try {
       if(auto it = factoryMap_.find(name); it == factoryMap_.end()) {

@@ -5,8 +5,8 @@ bool Shift::Joint::Revolute::registered_ =
   Shift::Factory<Shift::Joint::JointBase>::get()->registerModule(
     "revolute", Shift::Joint::Revolute::create);
 
-Shift::Joint::Revolute* Shift::Joint::Revolute::create() {
-  return new Shift::Joint::Revolute;
+std::unique_ptr<Shift::Joint::Revolute> Shift::Joint::Revolute::create() {
+  return std::make_unique<Shift::Joint::Revolute>();
 }
 
 void Shift::Joint::Revolute::addKeys() {

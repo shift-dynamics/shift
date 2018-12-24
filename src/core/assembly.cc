@@ -2,6 +2,7 @@
 #include "shift-core/behaviors/behavior.h"
 #include "shift-core/bodies/body.h"
 #include "shift-core/bodies/fixed.h"
+#include "shift-core/context.h"
 #include "shift-core/factory.h"
 
 #include <iostream>
@@ -9,8 +10,8 @@
 void Shift::Assembly::printBehaviors() {}
 
 void Shift::Assembly::printBodies() {
-  for(unsigned int i = 0; i < bodies_.size(); i++) {
-    bodies_[i]->print();
+  for(auto& i : bodies_) {
+    i->print();
   }
 }
 
@@ -18,7 +19,11 @@ void Shift::Assembly::printConstraints() {}
 
 void Shift::Assembly::printForceModules() {}
 
-void Shift::Assembly::printJoints() {}
+void Shift::Assembly::printJoints() {
+  for(auto& i : joints_) {
+    i->print();
+  }
+}
 
 void Shift::Assembly::print() {
   std::cout << "assembly: " << name_ << std::endl;
@@ -30,8 +35,8 @@ void Shift::Assembly::print() {
   printJoints();
 
   /* print subassemblies */
-  for(unsigned int i = 0; i < subassemblies_.size(); i++) {
-    subassemblies_[i].print();
+  for(auto& i : subassemblies_) {
+    i->print();
   }
 }
 
@@ -53,117 +58,127 @@ void Shift::Assembly::addKeys() {
 }
 
 void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
-
   if(fixed) {
-    if(value.isMember("fixed")) {
-      setName("fixed");
-    }
-
-    Shift::Body::BodyBase* body =
-      Shift::Factory<Shift::Body::BodyBase>::get()->create("fixed");
+    auto body = Shift::Factory<Shift::Body::BodyBase>::get()->create("fixed");
+    body->setName("fixed");
     try {
+      body->setContext(context_);
       body->readJSON(value["fixed"]);
     } catch(const char* msg) {
       std::cerr << msg << std::endl;
     }
-    bodies_.push_back(body);
+    bodies_.push_back(std::move(body));
   } else {
 
+    try {
+      Shift::Serialize::readJSON(value);
+    } catch(const char* msg) {
+      std::cerr << msg << std::endl;
+    }
+
     if(value["behaviors"] && value["behaviors"].isArray()) {
-      for(unsigned int i = 0; i < value["behaviors"].size(); ++i) {
-        if(value["behaviors"][i].isMember("type") &&
-           value["behaviors"][i]["type"].isString()) {
-          std::string type = value["behaviors"][i]["type"].asString();
-          Behavior::BehaviorBase* behavior =
+      for(auto i : value["behaviors"]) {
+        if(i.isMember("type") && i["type"].isString()) {
+          std::string type = i["type"].asString();
+          auto behavior =
             Shift::Factory<Shift::Behavior::BehaviorBase>::get()->create(type);
           if(behavior) {
             try {
-              behavior->readJSON(value["behaviors"][i]);
+              behavior->setContext(context_);
+              behavior->readJSON(i);
             } catch(const char* msg) {
               std::cerr << msg << std::endl;
             }
-            behaviors_.insert(behaviors_.end(), behavior);
+            // behavior->setContext(context_);
+            // behavior->setAssembly(this);
+            behaviors_.push_back(std::move(behavior));
           }
         }
       }
     }
 
     if(value.isMember("bodies") && value["bodies"].isArray()) {
-      for(unsigned int i = 0; i < value["bodies"].size(); ++i) {
+      for(auto& i : value["bodies"]) {
         std::string bodyType("rigid");
-        if(value["bodies"][i].isMember("type") &&
-           value["bodies"][i]["type"].isString()) {
-          bodyType.assign(value["bodies"][i]["type"].asString());
+        if(i.isMember("type") && i["type"].isString()) {
+          bodyType.assign(i["type"].asString());
         }
-        Shift::Body::BodyBase* body =
+        auto body =
           Shift::Factory<Shift::Body::BodyBase>::get()->create(bodyType);
         if(body) {
           try {
-            body->readJSON(value["bodies"][i]);
+            body->setContext(context_);
+            body->readJSON(i);
+            context_->setActive(body.get());
           } catch(const char* msg) {
             std::cerr << msg << std::endl;
           }
-          bodies_.push_back(body);
+          body->setContext(context_);
+          body->setAssembly(this);
+          bodies_.push_back(std::move(body));
         }
       }
     }
 
     if(value.isMember("constraints") && value["constraints"].isArray()) {
-      for(unsigned int i = 0; i < value["constraints"].size(); ++i) {
-        if(value["constraints"][i].isMember("type") &&
-           value["constraints"][i]["type"].isString()) {
-          std::string constraintType(
-            value["constraints"][i]["type"].asString());
-          Shift::Constraint::ConstraintBase* constraint =
+      for(auto& i : value["constraints"]) {
+        if(i.isMember("type") && i["type"].isString()) {
+          std::string constraintType(i["type"].asString());
+          auto constraint =
             Shift::Factory<Shift::Constraint::ConstraintBase>::get()->create(
               constraintType);
           if(constraint) {
             try {
-              constraint->readJSON(value["constraints"][i]);
+              constraint->setContext(context_);
+              constraint->readJSON(i);
             } catch(const char* msg) {
               std::cerr << msg << std::endl;
             }
-            constraints_.push_back(constraint);
+            // constraint->setContext(context_);
+            // constraint->setAssembly(this);
+            constraints_.push_back(std::move(constraint));
           }
         }
       }
     }
 
     if(value.isMember("force_modules") && value["force_modules"].isArray()) {
-      for(unsigned int i = 0; i < value["force_modules"].size(); ++i) {
-        if(value["force_modules"][i].isMember("type") &&
-           value["force_modules"][i]["type"].isString()) {
-          std::string forceModuleType(
-            value["force_modules"][i]["type"].asString());
-          Shift::ForceModule::ForceModuleBase* forceModule =
+      for(auto& i : value["force_modules"]) {
+        if(i.isMember("type") && i["type"].isString()) {
+          std::string forceModuleType(i["type"].asString());
+          auto forceModule =
             Shift::Factory<Shift::ForceModule::ForceModuleBase>::get()->create(
               forceModuleType);
           if(forceModule) {
             try {
-              forceModule->readJSON(value["force_modules"][i]);
+              forceModule->setContext(context_);
+              forceModule->readJSON(i);
             } catch(const char* msg) {
               std::cerr << msg << std::endl;
             }
-            forcemodules_.push_back(forceModule);
+            // forceModule->setContext(context_);
+            // forceModule->setAssembly(this);
+            forcemodules_.push_back(std::move(forceModule));
           }
         }
       }
     }
 
     if(value.isMember("joints") && value["joints"].isArray()) {
-      for(unsigned int i = 0; i < value["joints"].size(); ++i) {
-        if(value["joints"][i].isMember("type") &&
-           value["joints"][i]["type"].isString()) {
-          std::string jointType(value["joints"][i]["type"].asString());
-          Shift::Joint::JointBase* joint =
+      for(auto& i : value["joints"]) {
+        if(i.isMember("type") && i["type"].isString()) {
+          std::string jointType(i["type"].asString());
+          auto joint =
             Shift::Factory<Shift::Joint::JointBase>::get()->create(jointType);
           if(joint) {
             try {
-              joint->readJSON(value["joints"][i]);
+              joint->setContext(context_);
+              joint->readJSON(i);
             } catch(const char* msg) {
               std::cerr << msg << std::endl;
             }
-            joints_.push_back(joint);
+            joint->setAssembly(this);
+            joints_.push_back(std::move(joint));
           }
         }
       }
@@ -173,10 +188,84 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
   /* read subassemblies */
   if(value.isMember("assemblies") && value["assemblies"].isArray()) {
     std::cout << "reading assemblies" << std::endl;
-    for(unsigned int i = 0; i < value["assemblies"].size(); ++i) {
-      Assembly assembly;
-      assembly.readJSON(value["assemblies"][i]);
-      subassemblies_.push_back(assembly);
+    for(auto& i : value["assemblies"]) {
+      auto assembly = std::make_unique<Assembly>();
+      assembly->setContext(context_);
+      assembly->readJSON(i);
+      subassemblies_.push_back(std::move(assembly));
     }
+  }
+}
+
+void Shift::Assembly::setFullyQualifiedNames(
+  std::vector<std::string>& baseName) {
+  setFullyQualifiedName(baseName);
+  auto assemblyName = getFullyQualifiedName();
+
+  for(auto& i : behaviors_) {
+    i->setFullyQualifiedName(assemblyName);
+  }
+
+  for(auto& i : bodies_) {
+    i->setFullyQualifiedNames(assemblyName);
+  }
+
+  for(auto& i : constraints_) {
+    i->setFullyQualifiedName(assemblyName);
+  }
+
+  for(auto& i : forcemodules_) {
+    i->setFullyQualifiedName(assemblyName);
+  }
+
+  for(auto& i : joints_) {
+    i->setFullyQualifiedName(assemblyName);
+  }
+
+  for(auto& i : subassemblies_) {
+    i->setFullyQualifiedNames(assemblyName);
+  }
+}
+
+void Shift::Assembly::setActiveObjects(bool parentIsActive) {
+  if(active_ && context_ && parentIsActive) {
+    for(auto& i : behaviors_) {
+      context_->setActive(i.get());
+    }
+    for(auto& i : bodies_) {
+      context_->setActive(i.get());
+      i->setActiveObjects(parentIsActive);
+    }
+    for(auto& i : constraints_) {
+      context_->setActive(i.get());
+    }
+    for(auto& i : forcemodules_) {
+      context_->setActive(i.get());
+    }
+    for(auto& i : joints_) {
+      context_->setActive(i.get());
+    }
+  } else {
+    if(context_) {
+      for(auto& i : behaviors_) {
+        context_->removeActive(i.get());
+      }
+      for(auto& i : bodies_) {
+        context_->removeActive(i.get());
+      }
+      for(auto& i : constraints_) {
+        context_->removeActive(i.get());
+      }
+      for(auto& i : forcemodules_) {
+        context_->removeActive(i.get());
+      }
+      for(auto& i : joints_) {
+        context_->removeActive(i.get());
+      }
+    }
+  }
+
+  for(auto& i : subassemblies_) {
+    i->setActiveObjects(parentIsActive && active_);
   }
 }

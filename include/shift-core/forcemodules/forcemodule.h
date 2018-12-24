@@ -9,6 +9,8 @@
 
 namespace Shift {
 
+class Context;
+
 namespace ForceModule {
 
 /*!
@@ -31,9 +33,15 @@ public:
   }
   ~ForceModuleBase() {}
 
-  void readJSON(Json::Value);
+  void readJSON(Json::Value&);
+  virtual void load();
+  virtual void connect();
+  void setContext(Context* context) {
+    context_ = context;
+  }
 
 protected:
+  Context* context_ = NULL;
   void addKeys();
 
   std::string type_;

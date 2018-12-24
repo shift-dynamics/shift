@@ -15,6 +15,7 @@ class BodyBase;
 }
 
 class Frame;
+class Context;
 
 namespace Light {
 
@@ -35,11 +36,17 @@ public:
   const std::string& getType() {
     return type_;
   }
+  void setContext(Context* context) {
+    context_ = context;
+  }
 
   virtual void readJSON(Json::Value&);
   virtual void print();
+  virtual void load();
+  virtual void connect();
 
 protected:
+  Context* context_;
   void addKeys();
   std::vector<std::string> parent_;
   std::string type_; //!< descriptive name of Light type

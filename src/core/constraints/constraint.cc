@@ -1,11 +1,17 @@
 #include "shift-core/constraints/constraint.h"
+#include "shift-core/context.h"
 
 bool Shift::Constraint::Modules::initialized() {
   return true;
 }
 
-// void Shift::Constraint::addKeys() {
-//   addSerialEntry("name", SerialType::STRING, &name_);
-//   addSerialEntry("body_frame_pairs", SerialType::STRING_ARRAY,
-//   &bodyFramePairs_,
-//                  2, 2);
+void Shift::Constraint::ConstraintBase::readJSON(Json::Value& value) {
+  Serialize::readJSON(value);
+  if(context_) {
+    context_->setActive(this);
+  }
+}
+
+void Shift::Constraint::ConstraintBase::load() {}
+
+void Shift::Constraint::ConstraintBase::connect() {}

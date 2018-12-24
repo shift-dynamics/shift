@@ -18,7 +18,7 @@ public:
     addKeys();
   }
   ~PointCloud() {}
-  static PointCloud* create();
+  static std::unique_ptr<PointCloud> create();
   void addKeys();
 
   static bool isRegistered() {

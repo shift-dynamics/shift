@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "shift-core/base.h"
@@ -18,6 +19,8 @@ class BodyBase;
 
 class Frame;
 class Substructure;
+class Context;
+class Assembly;
 
 namespace Joint {
 
@@ -49,12 +52,22 @@ public:
   virtual void updateDHVA() = 0;
 
   void readJSON(Json::Value&);
+  void print();
+  void setContext(Context* context) {
+    context_ = context;
+  }
+  void setAssembly(Assembly* assembly) {
+    assembly_ = assembly;
+  }
+  virtual void load();
+  void connect();
 
 protected:
+  Context* context_ = NULL;
+  Assembly* assembly_ = NULL;
+
   void addKeys();
-
-  std::string type_; //!< descriptive name of joint type
-
+  std::string type_;      //!< descriptive name of joint type
   int dof_;               //!< number of degrees of freedom
   int index_;             //!< index in joint array
   int qIndex_;            //!< index into q array
@@ -63,11 +76,22 @@ protected:
   int indexSubstructure_; //!< local index into substructure
   int sense_; /*!< indicates whether joint is positively aligned with spanning
                tree (+1), or negatively aligned with spanning tree (-1).
-               Automatically set by s2_ProcessTopology */
+               Automatically set by Topology::sort() */
   int level_; /*!< Indicates Joint's level in the spanning tree,
                 set by ProcessTopology */
 
-  std::vector<std::vector<std::string>> bodyFramePairs_;
+  /*
+  [
+    [
+      ["fully", "qualified", "body", "name"], ["frame name"],
+    ],
+    [
+      ["fully", "qualified", "body", "name"], ["frame_name"],
+    ]
+  ]
+  */
+  std::vector<std::vector<std::string>> parent_;
+  std::vector<std::vector<std::string>> child_;
 
   std::vector<std::string> parentBody_; //!< descriptive name of parent Body
   Body::BodyBase* parentBodyPointer_ = NULL; //!< pointer to parent Body
@@ -75,8 +99,8 @@ protected:
   std::vector<std::string> parentFrame_; //!< descriptive name of parent Frame
   Frame* parentFramePointer_ = NULL;     //!< pointer to parent Frame
 
-  std::vector<std::string> childBody_;     //!< descriptive name of child Body
-  Body::BodyBase* childBodyPointer = NULL; //!< pointer to child Body
+  std::vector<std::string> childBody_;      //!< descriptive name of child Body
+  Body::BodyBase* childBodyPointer_ = NULL; //!< pointer to child Body
 
   std::vector<std::string> childFrame_; //!< descriptive name of child frame
   Frame* childFramePointer = NULL;      //!< pointer to child Frame
@@ -119,12 +143,7 @@ protected:
 
 class Modules {
 public:
-  void list();
   static bool initialized();
-
-private:
-  static std::vector<std::string> modules_;
-  static bool initialized_;
 };
 
 } // namespace Joint

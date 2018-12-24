@@ -11,6 +11,8 @@
 
 namespace Shift {
 
+class Context;
+
 namespace Behavior {
 
 /*!
@@ -35,7 +37,15 @@ public:
     return type_;
   }
 
+  virtual void load();
+  virtual void connect();
+  virtual void readJSON(Json::Value&);
+  void setContext(Context* context) {
+    context_ = context;
+  }
+
 protected:
+  Context* context_ = NULL;
   void addKeys();
 
   std::string type_; //!< descriptive name of Behavior type

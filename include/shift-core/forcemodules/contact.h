@@ -1,6 +1,8 @@
 #ifndef _SHIFT_CONTACTFORCEMODULE_H_
 #define _SHIFT_CONTACTFORCEMODULE_H_
 
+#include <memory>
+
 #include "shift-core/forcemodules/forcemodule.h"
 
 namespace Shift {
@@ -22,7 +24,7 @@ public:
     addKeys();
   }
   ~Contact() {}
-  static Contact* create();
+  static std::unique_ptr<Contact> create();
   void addKeys();
 
   static bool isRegistered() {

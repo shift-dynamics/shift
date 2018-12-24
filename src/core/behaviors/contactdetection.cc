@@ -5,8 +5,9 @@ bool Shift::Behavior::ContactDetection::registered_ =
   Shift::Factory<Shift::Behavior::BehaviorBase>::get()->registerModule(
     "contact_detection", Shift::Behavior::ContactDetection::create);
 
-Shift::Behavior::ContactDetection* Shift::Behavior::ContactDetection::create() {
-  return new Shift::Behavior::ContactDetection;
+std::unique_ptr<Shift::Behavior::ContactDetection>
+Shift::Behavior::ContactDetection::create() {
+  return std::make_unique<Shift::Behavior::ContactDetection>();
 }
 
 class Shift::Registration<Shift::Behavior::BehaviorBase>

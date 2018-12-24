@@ -5,24 +5,22 @@
 void Shift::Units::addKeys() {
   SerialEntry mass("mass", SerialType::STRING, &mass_);
   mass.setRequired(true);
-  mass.setDescription("Mass units, default value is kg if not provided.");
+  mass.setDescription("Mass units, defaults to kg if not provided.");
   addSerialEntry(mass);
 
   SerialEntry length("length", SerialType::STRING, &length_);
   length.setRequired(false);
-  length.setDescription(
-    "Length units, default value is meters if not provided.");
+  length.setDescription("Length units, defaults to meters if not provided.");
   addSerialEntry(length);
 
   SerialEntry time("time", SerialType::STRING, &time_);
   time.setRequired(false);
-  time.setDescription("Time units, default value is seconds if not provided.");
+  time.setDescription("Time units, defaults to seconds if not provided.");
   addSerialEntry(time);
 
   SerialEntry angle("angle", SerialType::STRING, &angle_);
   angle.setRequired(false);
-  angle.setDescription(
-    "Angle units, default value is radians if not provided.");
+  angle.setDescription("Angle units, defaults to radians if not provided.");
   addSerialEntry(angle);
 }
 

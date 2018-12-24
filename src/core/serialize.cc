@@ -115,6 +115,8 @@ Shift::SerialEntry::~SerialEntry() {
 
 void Shift::SerialEntry::readJSON(Json::Value& object) {
 
+  // std::cout << "processing: " << key_ << std::endl;
+
   /* check if value exists */
   if(!object.isMember(key_)) {
     if(required_) {
@@ -225,14 +227,14 @@ void Shift::SerialEntry::readJSON_STRING_ARRAY(Json::Value& value) {
 }
 
 void Shift::SerialEntry::readJSON_STRING_2DARRAY(Json::Value& value) {
-  if(!value.isArray()) {
+  if(value.isArray()) {
     for(unsigned int i = 0; i < value.size(); i++) {
       if(rowDim_ > 0 && rowDim_ != (int)value.size()) {
         throw "JSON Parsing error: required key has incorrectly "
               "formatted data; incorrect row dimension found in "
               "STRING_2DARRAY";
       }
-      if(!(value[i].isArray())) {
+      if(!(value[i].isArray()) && !(value[i].isString())) {
         throw "JSON Parsing error: required key has incorrectly formatted "
               "data; expected STRING_2DARRAY";
       }
@@ -242,7 +244,8 @@ void Shift::SerialEntry::readJSON_STRING_2DARRAY(Json::Value& value) {
                 "formatted data; incorrect column dimension found in "
                 "STRING_2DARRAY";
         }
-        if(!(value[i][j].isString())) {
+
+        if(value[i].isArray() && !(value[i][j].isString())) {
           throw "JSON Parsing error: required key has incorrectly "
                 "formatted data; expected STRING_2DARRAY";
         }
@@ -253,8 +256,12 @@ void Shift::SerialEntry::readJSON_STRING_2DARRAY(Json::Value& value) {
     (std::vector<std::vector<std::string>>*)data_;
   for(unsigned int i = 0; i < value.size(); i++) {
     std::vector<std::string> row;
-    for(unsigned int j = 0; j < value[i].size(); j++) {
-      row.push_back(value[i][j].asString());
+    if(value[i].isArray()) {
+      for(unsigned int j = 0; j < value[i].size(); j++) {
+        row.push_back(value[i][j].asString());
+      }
+    } else if(value[i].isString()) {
+      row.push_back(value[i].asString());
     }
     data->push_back(row);
   }
@@ -407,7 +414,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
   }
   ksl_inertia_t* inertia = (ksl_inertia_t*)data_;
 
-  if(value["mass"]) {
+  if(value.isMember("mass")) {
     if(!value["mass"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -416,7 +423,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->mass = value["mass"].asDouble();
   }
 
-  if(value["Ixx"]) {
+  if(value.isMember("Ixx")) {
     if(!value["Ixx"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -425,7 +432,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->Ixx = value["Ixx"].asDouble();
   }
 
-  if(value["Iyy"]) {
+  if(value.isMember("Iyy")) {
     if(!value["Iyy"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -434,7 +441,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->Iyy = value["Iyy"].asDouble();
   }
 
-  if(value["Izz"]) {
+  if(value.isMember("Izz")) {
     if(!value["Izz"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -443,7 +450,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->Izz = value["Izz"].asDouble();
   }
 
-  if(value["Ixy"]) {
+  if(value.isMember("Ixy")) {
     if(!value["Ixy"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -452,7 +459,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->Ixy = value["Ixy"].asDouble();
   }
 
-  if(value["Iyz"]) {
+  if(value.isMember("Iyz")) {
     if(!value["Iyz"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -461,7 +468,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->Iyz = value["Iyz"].asDouble();
   }
 
-  if(value["Izx"]) {
+  if(value.isMember("Izx")) {
     if(!value["Izx"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -470,7 +477,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->Izx = value["Izx"].asDouble();
   }
 
-  if(value["Iyx"]) {
+  if(value.isMember("Iyx")) {
     if(!value["Iyx"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -479,7 +486,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->Iyx = value["Iyx"].asDouble();
   }
 
-  if(value["Izy"]) {
+  if(value.isMember("Izy")) {
     if(!value["Izy"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -488,7 +495,7 @@ void Shift::SerialEntry::readJSON_KSL_INERTIA(Json::Value& value) {
     inertia->Izy = value["Izy"].asDouble();
   }
 
-  if(value["Ixz"]) {
+  if(value.isMember("Ixz")) {
     if(!value["Ixz"].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected KSL_INERTIA";
@@ -579,7 +586,7 @@ void Shift::SerialEntry::readJSON_EULERANGLES(Json::Value& value) {
 
   ksl_axis_enum_t sequence = KSL_AXIS_XYZ;
   ksl_vec3_t angles;
-  if(value["angles"] && value["angles"].size() == 3) {
+  if(value.isMember("angles") && value["angles"].size() == 3) {
     for(int i = 0; i < 3; i++) {
       if(!value["angles"][i].isDouble()) {
         throw "JSON Parsing error: angles object is incorrectly formatted";
@@ -591,7 +598,7 @@ void Shift::SerialEntry::readJSON_EULERANGLES(Json::Value& value) {
     return;
   }
 
-  if(value["axes"]) {
+  if(value.isMember("axes")) {
     if(value["axes"].isArray() && value["axes"].size() == 3) {
       for(int i = 0; i < 3; i++) {
         if(value["angles"][i].isString()) {
@@ -621,8 +628,11 @@ void Shift::SerialEntry::readJSON_EULERANGLES(Json::Value& value) {
       }
     } else {
       throw "JSON Parsing error: \"euler_angles\" axes object is incorrectly "
-            "formatted, expected three integer values {0, 1, 2} or three "
-            "string values {x, y, z}";
+            "formatted, expected three integer values or three "
+            "string values following the format [0, 1, 2] or "
+            "[\"x\", \"y\", \"z\"], where the axes follow one of the twelve "
+            "Euler angle conventions (XYZ, YZX, ZXY, XZY, YXZ, ZYX, XYX, XZX, "
+            "YXY, YZY, ZXZ, or ZYZ).";
       return;
     }
   }
@@ -640,22 +650,21 @@ void Shift::SerialEntry::readJSON_EULERANGLES(Json::Value& value) {
 
 void Shift::SerialEntry::readJSON_BOOLEAN(Json::Value& value) {
 
-  std::cout << value.asString() << std::endl;
   if(!value.isBool()) {
     throw "JSON Parsing error, required key %s has incorrectly formatted "
           "data; expected BOOLEAN";
   }
-  double* data = (double*)data_;
+  bool* data = (bool*)data_;
   *data = value.asBool();
   loadedFromFile_ = true;
 }
 
 void Shift::Serialize::addSerialEntry(Shift::SerialEntry& serialEntry) {
-  serialEntries_.insert(serialEntries_.end(), serialEntry);
+  serialEntries_.push_back(serialEntry);
 }
 
 void Shift::Serialize::readJSON(Json::Value& value) {
-  for(unsigned int i = 0; i < serialEntries_.size(); i++) {
-    serialEntries_[i].readJSON(value);
+  for(auto& i : serialEntries_) {
+    i.readJSON(value);
   }
 }

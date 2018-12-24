@@ -26,6 +26,6 @@ void Shift::Body::Rigid::addKeys() {
   addSerialEntry(inertia);
 }
 
-Shift::Body::Rigid* Shift::Body::Rigid::create() {
-  return new Shift::Body::Rigid;
+std::unique_ptr<Shift::Body::Rigid> Shift::Body::Rigid::create() {
+  return std::make_unique<Shift::Body::Rigid>();
 }

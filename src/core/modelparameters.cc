@@ -6,17 +6,19 @@
 #include "ksl/print.h"
 #include "ksl/vec3.h"
 
-void Shift::ModelParameters::appendSolver(Shift::Solver::SolverBase* solver) {
-  solvers_.push_back(solver);
+void Shift::ModelParameters::appendSolver(
+  std::unique_ptr<Shift::Solver::SolverBase>& solver) {
+  solvers_.push_back(std::move(solver));
 }
 
 void Shift::ModelParameters::appendIntegrator(
-  Shift::Integrator::IntegratorBase* integrator) {
-  integrators_.push_back(integrator);
+  std::unique_ptr<Shift::Integrator::IntegratorBase>& integrator) {
+  integrators_.push_back(std::move(integrator));
 }
 
-void Shift::ModelParameters::appendLogger(Shift::Logger::LoggerBase* logger) {
-  loggers_.push_back(logger);
+void Shift::ModelParameters::appendLogger(
+  std::unique_ptr<Shift::Logger::LoggerBase>& logger) {
+  loggers_.push_back(std::move(logger));
 }
 
 void Shift::ModelParameters::addKeys() {
@@ -63,7 +65,7 @@ void Shift::ModelParameters::readJSON(Json::Value& value) {
         if(value["solver"][i].isMember("type") &&
            value["solver"][i]["type"].isString()) {
           std::string solverType = value["solver"][i]["type"].asString();
-          Shift::Solver::SolverBase* solver =
+          auto solver =
             Shift::Factory<Shift::Solver::SolverBase>::get()->create(
               solverType);
           try {
@@ -78,7 +80,7 @@ void Shift::ModelParameters::readJSON(Json::Value& value) {
       if(value["solver"].isMember("type") &&
          value["solver"]["type"].isString()) {
         std::string solverType = value["solver"]["type"].asString();
-        Shift::Solver::SolverBase* solver =
+        auto solver =
           Shift::Factory<Shift::Solver::SolverBase>::get()->create(solverType);
         try {
           solver->readJSON(value["solver"]);
@@ -89,7 +91,7 @@ void Shift::ModelParameters::readJSON(Json::Value& value) {
       }
     }
   } else {
-    Shift::Solver::SolverBase* solver =
+    auto solver =
       Shift::Factory<Shift::Solver::SolverBase>::get()->create("rnca");
     appendSolver(solver);
   }
@@ -101,7 +103,7 @@ void Shift::ModelParameters::readJSON(Json::Value& value) {
            value["integrator"][i]["type"].isString()) {
           std::string integratorType =
             value["integrator"][i]["type"].asString();
-          Shift::Integrator::IntegratorBase* integrator =
+          auto integrator =
             Shift::Factory<Shift::Integrator::IntegratorBase>::get()->create(
               integratorType);
           integrator->readJSON(value["integrator"][i]);
@@ -112,7 +114,7 @@ void Shift::ModelParameters::readJSON(Json::Value& value) {
       if(value["integrator"].isMember("type") &&
          value["integrator"]["type"].isString()) {
         std::string integratorType = value["integrator"]["type"].asString();
-        Shift::Integrator::IntegratorBase* integrator =
+        auto integrator =
           Shift::Factory<Shift::Integrator::IntegratorBase>::get()->create(
             integratorType);
         integrator->readJSON(value["integrator"]);
@@ -120,7 +122,7 @@ void Shift::ModelParameters::readJSON(Json::Value& value) {
       }
     }
   } else {
-    Shift::Integrator::IntegratorBase* integrator =
+    auto integrator =
       Shift::Factory<Shift::Integrator::IntegratorBase>::get()->create(
         "ode113");
     appendIntegrator(integrator);
@@ -132,7 +134,7 @@ void Shift::ModelParameters::readJSON(Json::Value& value) {
         if(value["logger"][i].isMember("type") &&
            value["logger"][i]["type"].isString()) {
           std::string loggerType = value["logger"][i]["type"].asString();
-          Shift::Logger::LoggerBase* logger =
+          auto logger =
             Shift::Factory<Shift::Logger::LoggerBase>::get()->create(
               loggerType);
           logger->readJSON(value["logger"][i]);
@@ -143,7 +145,7 @@ void Shift::ModelParameters::readJSON(Json::Value& value) {
       if(value["logger"].isMember("type") &&
          value["logger"]["type"].isString()) {
         std::string loggerType = value["logger"]["type"].asString();
-        Shift::Logger::LoggerBase* logger =
+        auto logger =
           Shift::Factory<Shift::Logger::LoggerBase>::get()->create(loggerType);
         logger->readJSON(value["logger"]);
         appendLogger(logger);

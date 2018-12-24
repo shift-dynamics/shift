@@ -5,8 +5,8 @@ bool Shift::Joint::Prismatic::registered_ =
   Shift::Factory<Shift::Joint::JointBase>::get()->registerModule(
     "prismatic", Shift::Joint::Prismatic::create);
 
-Shift::Joint::Prismatic* Shift::Joint::Prismatic::create() {
-  return new Shift::Joint::Prismatic;
+std::unique_ptr<Shift::Joint::Prismatic> Shift::Joint::Prismatic::create() {
+  return std::make_unique<Shift::Joint::Prismatic>();
 }
 
 void Shift::Joint::Prismatic::addKeys() {

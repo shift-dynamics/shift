@@ -26,7 +26,7 @@ public:
     delete dq_0_;
   }
 
-  static Spherical* create();
+  static std::unique_ptr<Spherical> create();
 
   void addKeys();
   void updateDH();

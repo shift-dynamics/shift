@@ -5,8 +5,8 @@ bool Shift::Integrator::ODE113::registered_ =
   Shift::Factory<Shift::Integrator::IntegratorBase>::get()->registerModule(
     "ode113", Shift::Integrator::ODE113::create);
 
-Shift::Integrator::ODE113* Shift::Integrator::ODE113::create() {
-  return new Shift::Integrator::ODE113;
+std::unique_ptr<Shift::Integrator::ODE113> Shift::Integrator::ODE113::create() {
+  return std::make_unique<Shift::Integrator::ODE113>();
 }
 
 void Shift::Integrator::ODE113::addKeys() {}

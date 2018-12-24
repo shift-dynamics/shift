@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "shift-core/base.h"
@@ -14,7 +15,16 @@ namespace Body {
 class BodyBase;
 }
 
+namespace Joint {
+class JointBase;
+}
+
+namespace Constraint {
+class ConstraintBase;
+}
+
 class Frame;
+class Context;
 
 namespace Solver {
 
@@ -35,21 +45,22 @@ public:
   const std::string& getType() {
     return type_;
   }
+  virtual void readJSON(Json::Value&);
+  virtual void load();
+  virtual void connect();
+  void setContext(Context* context) {
+    context_ = context;
+  }
 
 protected:
+  Context* context_;
   void addKeys();
-
   std::string type_; //!< descriptive name of Solver type
 };
 
 class Modules {
 public:
-  void list();
   static bool initialized();
-
-private:
-  static std::vector<std::string> modules_;
-  static bool initialized_;
 };
 
 } // namespace Solver

@@ -5,8 +5,8 @@ bool Shift::Solver::RNCA::registered_ =
   Shift::Factory<Shift::Solver::SolverBase>::get()->registerModule(
     "rnca", Shift::Solver::RNCA::create);
 
-Shift::Solver::RNCA* Shift::Solver::RNCA::create() {
-  return new Shift::Solver::RNCA;
+std::unique_ptr<Shift::Solver::RNCA> Shift::Solver::RNCA::create() {
+  return std::make_unique<Shift::Solver::RNCA>();
 }
 
 void Shift::Solver::RNCA::addKeys() {

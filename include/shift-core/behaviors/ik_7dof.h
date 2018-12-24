@@ -1,6 +1,8 @@
 #ifndef _SHIFT_IK7DOFBEHAVIOR_H_
 #define _SHIFT_IK7DOFBEHAVIOR_H_
 
+#include <memory>
+
 #include "shift-core/behaviors/behavior.h"
 
 namespace Shift {
@@ -22,7 +24,7 @@ public:
     addKeys();
   }
   ~IK7DOF() {}
-  static IK7DOF* create();
+  static std::unique_ptr<IK7DOF> create();
   static bool isRegistered() {
     return registered_;
   }

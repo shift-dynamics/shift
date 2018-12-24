@@ -18,7 +18,7 @@ public:
     addKeys();
   }
   ~Basic() {}
-  static Basic* create();
+  static std::unique_ptr<Basic> create();
   void addKeys();
   static bool isRegistered() {
     return registered_;

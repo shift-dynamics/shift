@@ -53,9 +53,9 @@ public:
 
   void print();
 
-  void appendSolver(Solver::SolverBase*);
-  void appendIntegrator(Integrator::IntegratorBase*);
-  void appendLogger(Logger::LoggerBase*);
+  void appendSolver(std::unique_ptr<Solver::SolverBase>&);
+  void appendIntegrator(std::unique_ptr<Integrator::IntegratorBase>&);
+  void appendLogger(std::unique_ptr<Logger::LoggerBase>&);
 
 private:
   void addKeys();
@@ -67,9 +67,9 @@ private:
   bool contact_detection_enabled_ = false;
   ksl_vec3_t viewport_background_color_ = {{1.0, 1.0, 1.0}};
 
-  std::vector<Solver::SolverBase*> solvers_;
-  std::vector<Integrator::IntegratorBase*> integrators_;
-  std::vector<Logger::LoggerBase*> loggers_;
+  std::vector<std::unique_ptr<Solver::SolverBase>> solvers_;
+  std::vector<std::unique_ptr<Integrator::IntegratorBase>> integrators_;
+  std::vector<std::unique_ptr<Logger::LoggerBase>> loggers_;
   Units units_;
 };
 

@@ -18,7 +18,7 @@ public:
     addKeys();
   }
   ~Mesh() {}
-  static Mesh* create();
+  static std::unique_ptr<Mesh> create();
   void addKeys();
 
   static bool isRegistered() {

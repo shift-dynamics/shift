@@ -33,7 +33,7 @@ public:
 
 private:
   void addKeys();
-
+  std::vector<std::string> fullyQualifiedName_;
   ksl_SE3_t pose_ =
     ksl_SE3(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 };

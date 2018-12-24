@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "shift-core/base.h"
@@ -11,6 +12,7 @@
 namespace Shift {
 
 class Frame;
+class Context;
 
 namespace Integrator {
 
@@ -36,9 +38,15 @@ public:
     return type_;
   }
 
-  void readJSON(Json::Value);
+  void readJSON(Json::Value&);
+  virtual void load();
+  virtual void connect();
+  void setContext(Context* context) {
+    context_ = context;
+  }
 
 protected:
+  Context* context_ = NULL;
   void addKeys();
 
   std::string type_; //!< descriptive name of Integrator type
@@ -46,12 +54,7 @@ protected:
 
 class Modules {
 public:
-  void list();
   static bool initialized();
-
-private:
-  static std::vector<std::string> modules_;
-  static bool initialized_;
 };
 
 } // namespace Integrator

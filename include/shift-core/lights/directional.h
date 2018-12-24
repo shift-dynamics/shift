@@ -19,7 +19,7 @@ public:
     addKeys();
   }
   ~Directional() {}
-  static Directional* create();
+  static std::unique_ptr<Directional> create();
   void readJSON(Json::Value&);
   virtual void addKeys();
   static bool isRegistered() {
