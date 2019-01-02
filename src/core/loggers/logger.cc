@@ -21,7 +21,4 @@ void Shift::Logger::LoggerBase::connect() {}
 
 void Shift::Logger::LoggerBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
-  if(context_) {
-    // context_->setActive(this);
-  }
 }

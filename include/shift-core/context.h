@@ -126,7 +126,7 @@ private:
   std::string indentation_ = "  ";
 
   std::vector<Behavior::BehaviorBase*> activeBehaviors_;
-  std::vector<Body::BodyBase*> activeBodies_;
+  std::vector<Body::BodyBase*> activeBodies_ = {};
   std::vector<CollisionGeometry::CollisionGeometryBase*>
     activeCollisionGeometry_;
   std::vector<Constraint::ConstraintBase*> activeConstraints_;

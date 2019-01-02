@@ -21,7 +21,4 @@ void Shift::Solver::SolverBase::connect() {}
 
 void Shift::Solver::SolverBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
-  if(context_) {
-    // context_->setActive(this);
-  }
 }

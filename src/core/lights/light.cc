@@ -25,9 +25,6 @@ bool Shift::Light::Modules::initialized() {
 
 void Shift::Light::LightBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
-  if(context_) {
-    context_->setActive(this);
-  }
 }
 
 void Shift::Light::LightBase::addKeys() {

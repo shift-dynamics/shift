@@ -13,7 +13,4 @@ void Shift::Terrain::TerrainBase::addKeys() {}
 
 void Shift::Terrain::TerrainBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
-  if(context_) {
-    context_->setActive(this);
-  }
 }

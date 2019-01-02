@@ -40,9 +40,6 @@ void Shift::Joint::JointBase::addKeys() {
 
 void Shift::Joint::JointBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
-  if(context_) {
-    context_->setActive(this);
-  }
 }
 
 void Shift::Joint::JointBase::print() {
@@ -87,42 +84,67 @@ void Shift::Joint::JointBase::load() {
 }
 
 void Shift::Joint::JointBase::connect() {
-  std::cout << "connecting joint: " << name_ << std::endl;
-  if(context_) {
+
+  if(context_ && parent_.size() > 0 && child_.size() > 0) {
     // connect parent
-    std::cout << "conecting parent body / frame" << std::endl;
-    if(parentBody_.size() == 1) {
+
+    if(parent_.at(0).size() == 1 && parent_.at(0).at(0) != "fixed") {
       /* name is not a fully qualified name */
       std::vector<std::string> name = fullyQualifiedName_;
       name.erase(name.end() - 1);
-      name.push_back(parentBody_.at(0));
+      name.push_back(parent_.at(0).at(0));
+      // std::cout << "looking for parent body: [ ";
+      // for(auto& i : name) {
+      //   std::cout << i << " ";
+      // }
+      // std::cout << "]" << std::endl;
       parentBodyPointer_ = context_->getBody(name);
     } else {
       /* name is a fully qualified name */
-      parentBodyPointer_ = context_->getBody(parentBody_);
-    }
-    if(parentBodyPointer_) {
-      std::cout << "parent body: " << parentBodyPointer_->getName()
-                << std::endl;
-    } else {
-      std::cout << "PARENT BODY NOT FOUND!" << std::endl;
+      // std::cout << "looking for parent body: [ ";
+      // for(auto& i : parent_.at(0)) {
+      //   std::cout << i << " ";
+      // }
+      // std::cout << "]" << std::endl;
+      parentBodyPointer_ = context_->getBody(parent_.at(0));
     }
 
-    std::cout << "conecting child body / frame" << std::endl;
-    if(childBody_.size() == 1) {
-      /* name is not a fully qualified name */
+    if(!parentBodyPointer_) {
+      std::cout << "PARENT BODY NOT FOUND!" << std::endl;
+    } else {
+      parentFramePointer_ = parentBodyPointer_->getFrame(parent_.at(1).at(0));
+      if(!parentFramePointer_) {
+        std::cout << "PARENT FRAME NOT FOUND!" << std::endl;
+      }
+    }
+
+    if(child_.at(0).size() == 1 && child_.at(0).at(0) != "fixed") {
+      /* child body name is not a fully qualified name */
       std::vector<std::string> name = fullyQualifiedName_;
       name.erase(name.end() - 1);
-      name.push_back(parentBody_.at(0));
+      name.push_back(child_.at(0).at(0));
+      // std::cout << "looking for child body: [ ";
+      // for(auto& i : name) {
+      //   std::cout << i << " ";
+      // }
+      // std::cout << "]" << std::endl;
       childBodyPointer_ = context_->getBody(name);
     } else {
-      /* name is a fully qualified name */
-      childBodyPointer_ = context_->getBody(childBody_);
+      /* child name is already a fully qualified name */
+      // std::cout << "looking for child body: [ ";
+      // for(auto& i : child_.at(0)) {
+      //   std::cout << i << " ";
+      // }
+      // std::cout << "]" << std::endl;
+      childBodyPointer_ = context_->getBody(child_.at(0));
     }
-    if(childBodyPointer_) {
-      std::cout << "child body: " << childBodyPointer_->getName() << std::endl;
-    } else {
+    if(!childBodyPointer_) {
       std::cout << "CHILD BODY NOT FOUND!" << std::endl;
+    } else {
+      childFramePointer_ = childBodyPointer_->getFrame(child_.at(1).at(0));
+      if(!childFramePointer_) {
+        std::cout << "CHILD FRAME NOT FOUND!" << std::endl;
+      }
     }
   }
 }

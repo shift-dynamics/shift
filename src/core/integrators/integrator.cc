@@ -11,9 +11,6 @@ bool Shift::Integrator::Modules::initialized() {
 
 void Shift::Integrator::IntegratorBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
-  if(context_) {
-    // context_->setActive(this);
-  }
 }
 
 void Shift::Integrator::IntegratorBase::addKeys() {}

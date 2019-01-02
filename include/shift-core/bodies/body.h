@@ -83,6 +83,7 @@ public:
   virtual void connect();
   void setFullyQualifiedNames(std::vector<std::string>&);
   void setActiveObjects(bool);
+  Frame* getFrame(std::string);
 
 protected:
   std::string type_;

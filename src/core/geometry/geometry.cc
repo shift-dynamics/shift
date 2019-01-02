@@ -39,9 +39,6 @@ void Shift::Geometry::GeometryBase::addKeys() {
 
 void Shift::Geometry::GeometryBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
-  if(context_) {
-    context_->setActive(this);
-  }
 }
 
 void Shift::Geometry::GeometryBase::load() {}

@@ -80,30 +80,23 @@ protected:
   int level_; /*!< Indicates Joint's level in the spanning tree,
                 set by ProcessTopology */
 
-  /*
-  [
-    [
-      ["fully", "qualified", "body", "name"], ["frame name"],
-    ],
-    [
-      ["fully", "qualified", "body", "name"], ["frame_name"],
-    ]
-  ]
+  /*!
+  The `parent` descriptive name follows the format:
+
+    ["fully", "qualified", "body_name"], ["frame_name"]
   */
   std::vector<std::vector<std::string>> parent_;
+
+  /*! The `child` descriptive name follows the format:
+
+    ["fully", "qualified", "body_name"], ["frame_name"]
+  */
   std::vector<std::vector<std::string>> child_;
 
-  std::vector<std::string> parentBody_; //!< descriptive name of parent Body
   Body::BodyBase* parentBodyPointer_ = NULL; //!< pointer to parent Body
-
-  std::vector<std::string> parentFrame_; //!< descriptive name of parent Frame
-  Frame* parentFramePointer_ = NULL;     //!< pointer to parent Frame
-
-  std::vector<std::string> childBody_;      //!< descriptive name of child Body
-  Body::BodyBase* childBodyPointer_ = NULL; //!< pointer to child Body
-
-  std::vector<std::string> childFrame_; //!< descriptive name of child frame
-  Frame* childFramePointer = NULL;      //!< pointer to child Frame
+  Frame* parentFramePointer_ = NULL;         //!< pointer to parent Frame
+  Body::BodyBase* childBodyPointer_ = NULL;  //!< pointer to child Body
+  Frame* childFramePointer_ = NULL;          //!< pointer to child Frame
 
   double* q_0_ = NULL;  /*!< initial primitive displacement
                                               specified by user */

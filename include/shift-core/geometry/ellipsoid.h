@@ -1,8 +1,6 @@
 #ifndef _SHIFT_ELLIPSOIDGEOMETRY_H_
 #define _SHIFT_ELLIPSOIDGEOMETRY_H_
 
-#include <memory>
-
 #include "shift-core/factory.h"
 #include "shift-core/geometry/geometry.h"
 
