@@ -109,10 +109,10 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
           try {
             body->setContext(context_);
             body->readJSON(i);
-            context_->setActive(body.get());
           } catch(const char* msg) {
             std::cerr << msg << std::endl;
           }
+          std::cout << "loading body: " << body->getName() << std::endl;
           body->setContext(context_);
           body->setAssembly(this);
           bodies_.push_back(std::move(body));

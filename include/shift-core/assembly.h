@@ -119,7 +119,7 @@ public:
   }
 
 private:
-  Context* context_;
+  Context* context_ = NULL;
   void addKeys();
 
   std::vector<std::unique_ptr<Assembly>> subassemblies_;

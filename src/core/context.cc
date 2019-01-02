@@ -25,8 +25,10 @@ void Shift::Context::readJSON(const std::string& filename) {
   if(root_.isMember("model_parameters")) {
     modelParameters_.readJSON(root_["model_parameters"]);
   }
+  fixed_.setContext(this);
   fixed_.readJSON(root_, true);
   setFullyQualifiedNames();
+  setActiveObjects();
   connect();
   loadData();
 }
@@ -136,10 +138,8 @@ void Shift::Context::appendActive(Shift::Behavior::BehaviorBase* behavior) {
 }
 
 void Shift::Context::appendActive(Shift::Body::BodyBase* body) {
-
   if(body && body->isActive()) {
-    for(auto i : activeBodies_) {
-      std::cout << (*i).getName() << std::endl;
+    for(auto& i : activeBodies_) {
       if(i == body) {
         return;
       }
@@ -331,7 +331,7 @@ void Shift::Context::removeActive(Shift::Terrain::TerrainBase* terrain) {
 }
 
 void Shift::Context::setActive(Shift::Behavior::BehaviorBase* behavior) {
-  if(behavior->isActive()) {
+  if(behavior && behavior->isActive()) {
     appendActive(behavior);
   } else {
     removeActive(behavior);
@@ -339,7 +339,7 @@ void Shift::Context::setActive(Shift::Behavior::BehaviorBase* behavior) {
 }
 
 void Shift::Context::setActive(Shift::Body::BodyBase* body) {
-  if(body->isActive()) {
+  if(body && body->isActive()) {
     appendActive(body);
   } else {
     removeActive(body);
@@ -348,7 +348,7 @@ void Shift::Context::setActive(Shift::Body::BodyBase* body) {
 
 void Shift::Context::setActive(
   Shift::CollisionGeometry::CollisionGeometryBase* geometry) {
-  if(geometry->isActive()) {
+  if(geometry && geometry->isActive()) {
     appendActive(geometry);
   } else {
     removeActive(geometry);
@@ -356,7 +356,7 @@ void Shift::Context::setActive(
 }
 
 void Shift::Context::setActive(Shift::Constraint::ConstraintBase* constraint) {
-  if(constraint->isActive()) {
+  if(constraint && constraint->isActive()) {
     appendActive(constraint);
   } else {
     removeActive(constraint);
@@ -364,7 +364,7 @@ void Shift::Context::setActive(Shift::Constraint::ConstraintBase* constraint) {
 }
 
 void Shift::Context::setActive(Shift::ForceModule::ForceModuleBase* module) {
-  if(module->isActive()) {
+  if(module && module->isActive()) {
     appendActive(module);
   } else {
     removeActive(module);
@@ -372,7 +372,7 @@ void Shift::Context::setActive(Shift::ForceModule::ForceModuleBase* module) {
 }
 
 void Shift::Context::setActive(Shift::Geometry::GeometryBase* geometry) {
-  if(geometry->isActive()) {
+  if(geometry && geometry->isActive()) {
     appendActive(geometry);
   } else {
     removeActive(geometry);
@@ -380,7 +380,7 @@ void Shift::Context::setActive(Shift::Geometry::GeometryBase* geometry) {
 }
 
 void Shift::Context::setActive(Shift::Joint::JointBase* joint) {
-  if(joint->isActive()) {
+  if(joint && joint->isActive()) {
     appendActive(joint);
   } else {
     removeActive(joint);
@@ -388,7 +388,7 @@ void Shift::Context::setActive(Shift::Joint::JointBase* joint) {
 }
 
 void Shift::Context::setActive(Shift::Light::LightBase* light) {
-  if(light->isActive()) {
+  if(light && light->isActive()) {
     appendActive(light);
   } else {
     removeActive(light);
@@ -396,7 +396,7 @@ void Shift::Context::setActive(Shift::Light::LightBase* light) {
 }
 
 void Shift::Context::setActive(Shift::Sensor::SensorBase* sensor) {
-  if(sensor->isActive()) {
+  if(sensor && sensor->isActive()) {
     appendActive(sensor);
   } else {
     removeActive(sensor);
@@ -404,7 +404,7 @@ void Shift::Context::setActive(Shift::Sensor::SensorBase* sensor) {
 }
 
 void Shift::Context::setActive(Shift::Terrain::TerrainBase* terrain) {
-  if(terrain->isActive()) {
+  if(terrain && terrain->isActive()) {
     appendActive(terrain);
   } else {
     removeActive(terrain);
@@ -477,8 +477,18 @@ Shift::Context::getBehavior(std::vector<std::string>& name) {
 
 Shift::Body::BodyBase* Shift::Context::getBody(std::vector<std::string>& name) {
   for(auto& i : activeBodies_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
-                                                name)) {
+
+    if(i && Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
+                                                     name)) {
+      // std::cout << "  [ ";
+      // for(auto& j : i->getFullyQualifiedName()) {
+      //   std::cout << j << " ";
+      // }
+      // std::cout << "], [ ";
+      // for(auto& j : name) {
+      //   std::cout << j << " ";
+      // }
+      // std::cout << "]" << std::endl;
       return i;
     }
   }
@@ -490,6 +500,7 @@ Shift::Context::getCollisionGeometry(std::vector<std::string>& name) {
   for(auto& i : activeCollisionGeometry_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
                                                 name)) {
+
       return i;
     }
   }

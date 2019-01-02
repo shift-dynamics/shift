@@ -186,6 +186,15 @@ void Shift::Body::BodyBase::setActiveObjects(bool parentIsActive) {
   }
 };
 
+Shift::Frame* Shift::Body::BodyBase::getFrame(std::string name) {
+  for(auto& i : frames_) {
+    if(i.getName() == name) {
+      return &i;
+    }
+  }
+  return NULL;
+}
+
 void Shift::Body::BodyBase::load() {}
 
 void Shift::Body::BodyBase::connect() {}

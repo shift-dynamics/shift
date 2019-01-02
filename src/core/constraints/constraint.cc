@@ -7,9 +7,6 @@ bool Shift::Constraint::Modules::initialized() {
 
 void Shift::Constraint::ConstraintBase::readJSON(Json::Value& value) {
   Serialize::readJSON(value);
-  if(context_) {
-    context_->setActive(this);
-  }
 }
 
 void Shift::Constraint::ConstraintBase::load() {}

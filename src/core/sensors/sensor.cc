@@ -11,7 +11,4 @@ void Shift::Sensor::SensorBase::connect() {}
 
 void Shift::Sensor::SensorBase::readJSON(Json::Value& value) {
   Shift::Serialize::readJSON(value);
-  if(context_) {
-    context_->setActive(this);
-  }
 }

@@ -15,9 +15,6 @@ bool Shift::ForceModule::Modules::initialized() {
 
 void Shift::ForceModule::ForceModuleBase::readJSON(Json::Value& value) {
   Serialize::readJSON(value);
-  if(context_) {
-    context_->setActive(this);
-  }
 }
 
 void Shift::ForceModule::ForceModuleBase::addKeys() {}

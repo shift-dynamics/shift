@@ -8,8 +8,8 @@ int main(int argc, char* argv[]) {
     Shift::Context context;
     context.readJSON(argv[1]);
 
-    context.print();
-    context.writeJSON("test.json");
+    // context.print();
+    // context.writeJSON("test.json");
     return 0;
   } else {
     std::cout << "Usage shift-cli <name of file>" << std::endl;
