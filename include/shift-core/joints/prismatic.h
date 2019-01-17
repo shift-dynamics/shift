@@ -28,6 +28,7 @@ public:
 
   static std::unique_ptr<Prismatic> create();
   void addKeys();
+  void updateD();
   void updateDH();
   void updateDHVA();
 

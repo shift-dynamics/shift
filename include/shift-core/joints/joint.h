@@ -48,19 +48,49 @@ public:
     return type_;
   }
 
+  virtual void updateD() = 0;
   virtual void updateDH() = 0;
   virtual void updateDHVA() = 0;
 
   void readJSON(Json::Value&);
+
   void print();
+
   void setContext(Context* context) {
     context_ = context;
   }
+
   void setAssembly(Assembly* assembly) {
     assembly_ = assembly;
   }
+
   virtual void load();
+
   void connect();
+
+  Shift::Body::BodyBase* getParentBody() {
+    return parentBodyPointer_;
+  }
+
+  Shift::Body::BodyBase* getChildBody() {
+    return childBodyPointer_;
+  }
+
+  int getSense() {
+    return sense_;
+  }
+
+  void setSense(int sense) {
+    sense_ = sense;
+  }
+
+  int getLevel() {
+    return level_;
+  }
+
+  void setLevel(int level) {
+    level_ = level;
+  }
 
 protected:
   Context* context_ = NULL;
@@ -74,10 +104,10 @@ protected:
   int dqIndex_;           //!< index into dq array
   int dcIndex_;           //!< index into dc array
   int indexSubstructure_; //!< local index into substructure
-  int sense_; /*!< indicates whether joint is positively aligned with spanning
-               tree (+1), or negatively aligned with spanning tree (-1).
-               Automatically set by Topology::sort() */
-  int level_; /*!< Indicates Joint's level in the spanning tree,
+  int sense_ = 0; /*!< indicates whether joint is positively aligned with
+               spanning tree (+1), or negatively aligned with spanning tree
+               (-1). Automatically set by Topology::sort() */
+  int level_ = 0; /*!< Indicates Joint's level in the spanning tree,
                 set by ProcessTopology */
 
   /*!

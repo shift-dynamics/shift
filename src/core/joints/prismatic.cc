@@ -13,6 +13,8 @@ void Shift::Joint::Prismatic::addKeys() {
   Shift::Joint::JointBase::addKeys();
 }
 
+void Shift::Joint::Prismatic::updateD() {}
+
 void Shift::Joint::Prismatic::updateDH() {}
 
 void Shift::Joint::Prismatic::updateDHVA() {}

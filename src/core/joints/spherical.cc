@@ -13,6 +13,8 @@ void Shift::Joint::Spherical::addKeys() {
   Shift::Joint::JointBase::addKeys();
 }
 
+void Shift::Joint::Spherical::updateD() {}
+
 void Shift::Joint::Spherical::updateDH() {}
 
 void Shift::Joint::Spherical::updateDHVA() {}

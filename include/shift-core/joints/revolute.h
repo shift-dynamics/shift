@@ -27,6 +27,7 @@ public:
   }
   static std::unique_ptr<Revolute> create();
   void addKeys();
+  void updateD();
   void updateDH();
   void updateDHVA();
 

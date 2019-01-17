@@ -2,6 +2,7 @@
 #include "shift-core/bodies/fixed.h"
 #include "shift-core/bodies/free.h"
 #include "shift-core/bodies/rigid.h"
+#include "shift-core/bodies/virtual.h"
 #include "shift-core/context.h"
 #include "shift-core/factory.h"
 #include "shift-core/lights/light.h"
@@ -16,6 +17,9 @@ bool Shift::Body::Modules::initialized() {
     return false;
   }
   if(!Shift::Body::Rigid::isRegistered()) {
+    return false;
+  }
+  if(!Shift::Body::Virtual::isRegistered()) {
     return false;
   }
   return true;

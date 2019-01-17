@@ -28,6 +28,7 @@ public:
   static std::unique_ptr<Rigid> create();
 
   void addKeys();
+  void updateD();
   void updateDH();
   void updateDHVA();
 

@@ -23,7 +23,7 @@ void clearFramesInTree();
 void setFramesInTree();
 
 /* determine number of chord constraints, found by subtracting
-number active bodies from number of active joints, (body cound does not
+number active bodies from number of active joints, (body count does not
 include the massless "fixed" body) */
 // context->chordConstraintCount =
 //   context->activeJointCount - context->activeBodyCount;
@@ -55,7 +55,7 @@ void mallocDHVAArrays();
 /* identify loops and loop members */
 
 /* set level away from fixed body for active bodies and joints */
-void processLevels();
+// void levelOrderSort();
 
 /* add a virtual body for each chord loop */
 void processVirtualBodies();
@@ -122,15 +122,30 @@ void setFixedFrameGravityVector();
 
 // forward kinematics functions
 
-/* update displacements only */
+/*!
+@defgroup forward_kinematics Forward Kinematics
+@{
+*/
+
+/*!
+@brief update displacements only
+*/
 void updateD(Shift::Context&, double* dhva, double* q);
 
-/* update displacements and influence coefficient matrices */
+/*!
+@brief update displacements and influence coefficient matrices
+*/
 void updateDH(Shift::Context&, double* dhva, double* q);
 
-/* update displacements, influence coefficient matrices, velocities
-   and quadratic acceleration terms */
+/*!
+@brief update displacements, influence coefficient matrices, velocities
+and quadratic acceleration terms
+*/
 void updateDHVA(Shift::Context&, double* dhva, double* q, double* dq);
+
+/*!
+@}
+*/
 
 // identify which frames in the d array correspond to body reference frames
 void setDReferenceFrames();

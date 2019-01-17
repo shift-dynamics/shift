@@ -13,6 +13,8 @@ void Shift::Joint::Float::addKeys() {
   Shift::Joint::JointBase::addKeys();
 }
 
+void Shift::Joint::Float::updateD() {}
+
 void Shift::Joint::Float::updateDH() {}
 
 void Shift::Joint::Float::updateDHVA() {}

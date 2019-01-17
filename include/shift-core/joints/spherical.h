@@ -29,6 +29,7 @@ public:
   static std::unique_ptr<Spherical> create();
 
   void addKeys();
+  void updateD();
   void updateDH();
   void updateDHVA();
 

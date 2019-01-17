@@ -117,6 +117,13 @@ public:
   void setContext(Context* context) {
     context_ = context;
   }
+  Body::BodyBase* getBody(unsigned int i) {
+    if(i < bodies_.size()) {
+      return bodies_[i].get();
+    } else {
+      return NULL;
+    }
+  }
 
 private:
   Context* context_ = NULL;
