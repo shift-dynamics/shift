@@ -19,10 +19,12 @@ set(shift_core_src
   bodies/rigid.cc
   bodies/free.cc
   bodies/fixed.cc
+  bodies/virtual.cc
 
   collisiongeometry/collisiongeometry.cc
 
   constraints/constraint.cc
+  constraints/chord.cc
 
   behaviors/behavior.cc
   behaviors/contactdetection.cc

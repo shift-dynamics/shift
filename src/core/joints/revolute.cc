@@ -13,6 +13,8 @@ void Shift::Joint::Revolute::addKeys() {
   Shift::Joint::JointBase::addKeys();
 }
 
+void Shift::Joint::Revolute::updateD() {}
+
 void Shift::Joint::Revolute::updateDH() {}
 
 void Shift::Joint::Revolute::updateDHVA() {}

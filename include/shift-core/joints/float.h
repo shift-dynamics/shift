@@ -27,6 +27,7 @@ public:
   }
 
   void addKeys();
+  void updateD();
   void updateDH();
   void updateDHVA();
   static std::unique_ptr<Float> create();

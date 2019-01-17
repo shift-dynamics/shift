@@ -52,6 +52,7 @@ public:
     initialize();
   }
   ~Context() {}
+
   void readJSON(const std::string&);
   void writeJSON();
   void writeJSON(std::ostream&);
@@ -60,6 +61,15 @@ public:
   void setFullyQualifiedNames();
   void setActiveObjects();
   void printJSON();
+  Body::BodyBase* getFixedBody();
+
+  /*! @brief sort active bodies and joints by level increasing order in spanning
+   * tree
+   */
+  void levelOrderSort();
+
+  /* @brief add a virtual body for each kinematic chord constraint */
+  void processVirtualBodies();
   void appendActive(Behavior::BehaviorBase*);
   void appendActive(Body::BodyBase*);
   void appendActive(CollisionGeometry::CollisionGeometryBase*);
@@ -118,6 +128,7 @@ private:
   void initialize();
   void connect();
   void loadData();
+  unsigned int chordConstraintCount_ = 0;
 
   ModelParameters modelParameters_;
   Assembly fixed_;
@@ -136,6 +147,14 @@ private:
   std::vector<Light::LightBase*> activeLights_;
   std::vector<Sensor::SensorBase*> activeSensors_;
   std::vector<Terrain::TerrainBase*> activeTerrain_;
+
+  /* manage objects automatically created when processing system topology,
+  these objects are not loaded from an external JSON file.*/
+  std::vector<std::unique_ptr<Behavior::BehaviorBase>> behaviors_;
+  std::vector<std::unique_ptr<Body::BodyBase>> bodies_;
+  std::vector<std::unique_ptr<Constraint::ConstraintBase>> constraints_;
+  std::vector<std::unique_ptr<ForceModule::ForceModuleBase>> forcemodules_;
+  std::vector<std::unique_ptr<Joint::JointBase>> joints_;
 };
 
 } // namespace Shift

@@ -13,6 +13,8 @@ void Shift::Joint::Rigid::addKeys() {
   Shift::Joint::JointBase::addKeys();
 }
 
+void Shift::Joint::Rigid::updateD() {}
+
 void Shift::Joint::Rigid::updateDH() {}
 
 void Shift::Joint::Rigid::updateDHVA() {}

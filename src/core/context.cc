@@ -1,5 +1,7 @@
+#include <assert.h>
 #include <fstream>
 #include <iostream>
+#include <queue>
 
 #include <json/json.h>
 
@@ -8,6 +10,7 @@
 #include "shift-core/collisiongeometry/collisiongeometry.h"
 #include "shift-core/constraints/constraint.h"
 #include "shift-core/context.h"
+#include "shift-core/factory.h"
 #include "shift-core/forcemodules/forcemodule.h"
 #include "shift-core/geometry/geometry.h"
 #include "shift-core/integrators/integrator.h"
@@ -647,5 +650,105 @@ void Shift::Context::loadData() {
   }
   for(auto& i : activeTerrain_) {
     i->load();
+  }
+}
+
+Shift::Body::BodyBase* Shift::Context::getFixedBody() {
+  return fixed_.getBody(0);
+}
+
+void Shift::Context::levelOrderSort() {
+
+  std::queue<Shift::Joint::JointBase*> queue;
+  std::vector<Shift::Joint::JointBase*> joints;
+  std::vector<Shift::Body::BodyBase*> bodies;
+
+  /* find joints attached to fixed body */
+  auto it = activeJoints_.begin();
+  while(it != activeJoints_.end()) {
+    if((*it)->getParentBody() == getFixedBody()) {
+      (*it)->setSense(1);
+      (*it)->setLevel(1);
+      queue.push(*it);
+      it = activeJoints_.erase(it);
+    } else if((*it)->getChildBody() == getFixedBody()) {
+      (*it)->setSense(-1);
+      (*it)->setLevel(1);
+      queue.push(*it);
+      it = activeJoints_.erase(it);
+    } else {
+      it++;
+    }
+  }
+
+  while(!queue.empty()) {
+    Shift::Joint::JointBase* joint = queue.front();
+    queue.pop();
+    Shift::Body::BodyBase* body = NULL;
+    if(joint->getSense() == 1) {
+      body = joint->getChildBody();
+    } else if(joint->getSense() == -1) {
+      body = joint->getParentBody();
+    }
+    joints.push_back(joint);
+    assert(body);
+
+    /* find joints attached to joint's child body */
+    it = activeJoints_.begin();
+    while(it != activeJoints_.end()) {
+      if((*it)->getParentBody() == body) {
+        (*it)->setSense(1);
+        (*it)->setLevel(joint->getLevel() + 1);
+        queue.push(*it);
+        it = activeJoints_.erase(it);
+      } else if((*it)->getChildBody() == body) {
+        (*it)->setSense(-1);
+        (*it)->setLevel(joint->getLevel() + 1);
+        queue.push(*it);
+        it = activeJoints_.erase(it);
+      } else {
+        it++;
+      }
+    }
+  }
+
+  /* reorder bodies to follow joint ordering */
+  for(auto joint : joints) {
+    Shift::Body::BodyBase* body = NULL;
+    if(joint->getSense() == 1) {
+      body = joint->getChildBody();
+    } else if(joint->getSense() == -1) {
+      body = joint->getParentBody();
+    }
+    assert(body);
+
+    for(auto it = activeBodies_.begin(); it != activeBodies_.end(); it++) {
+      if((*it) == body) {
+        bodies.push_back(*it);
+        activeBodies_.erase(it);
+        break;
+      }
+    }
+  }
+
+  activeBodies_ = bodies;
+  activeJoints_ = joints;
+}
+
+void Shift::Context::processVirtualBodies() {
+  chordConstraintCount_ = activeJoints_.size() - activeBodies_.size();
+
+  for(unsigned int i = activeBodies_.size(); i < activeJoints_.size(); i++) {
+
+    auto virtualBody =
+      Shift::Factory<Shift::Body::BodyBase>::get()->create("virtual");
+    bodies_.push_back(std::move(virtualBody));
+
+    auto chordConstraint =
+      Shift::Factory<Shift::Constraint::ConstraintBase>::get()->create("chord");
+    constraints_.push_back(std::move(chordConstraint));
+
+    activeBodies_.push_back(virtualBody.get());
+    activeConstraints_.push_back(chordConstraint.get());
   }
 }
