@@ -1,5 +1,5 @@
-#ifndef _SHIFT_UNITS_H_
-#define _SHIFT_UNITS_H_
+#ifndef SHIFT_UNITS_H_
+#define SHIFT_UNITS_H_
 
 #include <json/json.h>
 #include <string>

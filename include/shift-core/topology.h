@@ -1,5 +1,5 @@
-#ifndef _SHIFT_TOPOLOGY_H_
-#define _SHIFT_TOPOLOGY_H_
+#ifndef SHIFT_TOPOLOGY_H_
+#define SHIFT_TOPOLOGY_H_
 
 #include <string>
 #include <vector>
@@ -55,10 +55,10 @@ void mallocDHVAArrays();
 /* identify loops and loop members */
 
 /* set level away from fixed body for active bodies and joints */
-// void levelOrderSort();
+// void levelOrderSort(); // in context.cc
 
 /* add a virtual body for each chord loop */
-void processVirtualBodies();
+// void processVirtualBodies(); // in context.cc
 
 /* update parent child list */
 void processpcl();

@@ -5,21 +5,22 @@
 
 #include <json/json.h>
 
-#include "shift-core/behaviors/behavior.h"
-#include "shift-core/bodies/body.h"
-#include "shift-core/collisiongeometry/collisiongeometry.h"
-#include "shift-core/constraints/constraint.h"
+#include "shift-core/behavior/base.h"
+#include "shift-core/body/base.h"
+#include "shift-core/collisiongeometry/base.h"
+#include "shift-core/constraint/base.h"
+#include "shift-core/constraint/chord.h"
 #include "shift-core/context.h"
 #include "shift-core/factory.h"
-#include "shift-core/forcemodules/forcemodule.h"
-#include "shift-core/geometry/geometry.h"
-#include "shift-core/integrators/integrator.h"
-#include "shift-core/joints/joint.h"
-#include "shift-core/lights/light.h"
-#include "shift-core/loggers/logger.h"
-#include "shift-core/sensors/sensor.h"
-#include "shift-core/solvers/solver.h"
-#include "shift-core/terrain/terrain.h"
+#include "shift-core/forcemodule/base.h"
+#include "shift-core/geometry/base.h"
+#include "shift-core/integrator/base.h"
+#include "shift-core/joint/base.h"
+#include "shift-core/light/base.h"
+#include "shift-core/logger/base.h"
+#include "shift-core/sensor/base.h"
+#include "shift-core/solver/base.h"
+#include "shift-core/terrain/base.h"
 #include "shift-core/topology.h"
 
 void Shift::Context::readJSON(const std::string& filename) {
@@ -129,7 +130,7 @@ void Shift::Context::setActiveObjects() {
   fixed_.setActiveObjects(true);
 }
 
-void Shift::Context::appendActive(Shift::Behavior::BehaviorBase* behavior) {
+void Shift::Context::appendActive(Shift::Behavior::Base* behavior) {
   if(behavior->isActive()) {
     for(auto i : activeBehaviors_) {
       if(i == behavior) {
@@ -140,7 +141,7 @@ void Shift::Context::appendActive(Shift::Behavior::BehaviorBase* behavior) {
   }
 }
 
-void Shift::Context::appendActive(Shift::Body::BodyBase* body) {
+void Shift::Context::appendActive(Shift::Body::Base* body) {
   if(body && body->isActive()) {
     for(auto& i : activeBodies_) {
       if(i == body) {
@@ -151,8 +152,7 @@ void Shift::Context::appendActive(Shift::Body::BodyBase* body) {
   }
 }
 
-void Shift::Context::appendActive(
-  Shift::CollisionGeometry::CollisionGeometryBase* geometry) {
+void Shift::Context::appendActive(Shift::CollisionGeometry::Base* geometry) {
   if(geometry->isActive()) {
     for(auto i : activeCollisionGeometry_) {
       if(i == geometry) {
@@ -163,8 +163,7 @@ void Shift::Context::appendActive(
   }
 }
 
-void Shift::Context::appendActive(
-  Shift::Constraint::ConstraintBase* constraint) {
+void Shift::Context::appendActive(Shift::Constraint::Base* constraint) {
   if(constraint->isActive()) {
     for(auto i : activeConstraints_) {
       if(i == constraint) {
@@ -175,7 +174,7 @@ void Shift::Context::appendActive(
   }
 }
 
-void Shift::Context::appendActive(Shift::ForceModule::ForceModuleBase* module) {
+void Shift::Context::appendActive(Shift::ForceModule::Base* module) {
   if(module->isActive()) {
     for(auto i : activeForceModules_) {
       if(i == module) {
@@ -186,7 +185,7 @@ void Shift::Context::appendActive(Shift::ForceModule::ForceModuleBase* module) {
   }
 }
 
-void Shift::Context::appendActive(Shift::Geometry::GeometryBase* geometry) {
+void Shift::Context::appendActive(Shift::Geometry::Base* geometry) {
   if(geometry->isActive()) {
     for(auto i : activeGeometry_) {
       if(i == geometry) {
@@ -197,7 +196,7 @@ void Shift::Context::appendActive(Shift::Geometry::GeometryBase* geometry) {
   }
 }
 
-void Shift::Context::appendActive(Shift::Joint::JointBase* joint) {
+void Shift::Context::appendActive(Shift::Joint::Base* joint) {
   if(joint->isActive()) {
     for(auto i : activeJoints_) {
       if(i == joint) {
@@ -208,7 +207,7 @@ void Shift::Context::appendActive(Shift::Joint::JointBase* joint) {
   }
 }
 
-void Shift::Context::appendActive(Shift::Light::LightBase* light) {
+void Shift::Context::appendActive(Shift::Light::Base* light) {
   if(light->isActive()) {
     for(auto i : activeLights_) {
       if(i == light) {
@@ -219,7 +218,7 @@ void Shift::Context::appendActive(Shift::Light::LightBase* light) {
   }
 }
 
-void Shift::Context::appendActive(Shift::Sensor::SensorBase* sensor) {
+void Shift::Context::appendActive(Shift::Sensor::Base* sensor) {
   if(sensor->isActive()) {
     for(auto i : activeSensors_) {
       if(i == sensor) {
@@ -230,7 +229,7 @@ void Shift::Context::appendActive(Shift::Sensor::SensorBase* sensor) {
   }
 }
 
-void Shift::Context::appendActive(Shift::Terrain::TerrainBase* terrain) {
+void Shift::Context::appendActive(Shift::Terrain::Base* terrain) {
   if(terrain->isActive()) {
     for(auto i : activeTerrain_) {
       if(i == terrain) {
@@ -241,7 +240,7 @@ void Shift::Context::appendActive(Shift::Terrain::TerrainBase* terrain) {
   }
 }
 
-void Shift::Context::removeActive(Shift::Behavior::BehaviorBase* behavior) {
+void Shift::Context::removeActive(Shift::Behavior::Base* behavior) {
   for(unsigned int i = 0; i < activeBehaviors_.size(); i++) {
     if(activeBehaviors_[i] == behavior) {
       activeBehaviors_.erase(activeBehaviors_.begin() + i);
@@ -250,7 +249,7 @@ void Shift::Context::removeActive(Shift::Behavior::BehaviorBase* behavior) {
   }
 }
 
-void Shift::Context::removeActive(Shift::Body::BodyBase* body) {
+void Shift::Context::removeActive(Shift::Body::Base* body) {
   for(unsigned int i = 0; i < activeBodies_.size(); i++) {
     if(activeBodies_[i] == body) {
       activeBodies_.erase(activeBodies_.begin() + i);
@@ -259,8 +258,7 @@ void Shift::Context::removeActive(Shift::Body::BodyBase* body) {
   }
 }
 
-void Shift::Context::removeActive(
-  Shift::CollisionGeometry::CollisionGeometryBase* geometry) {
+void Shift::Context::removeActive(Shift::CollisionGeometry::Base* geometry) {
   for(unsigned int i = 0; i < activeCollisionGeometry_.size(); i++) {
     if(activeCollisionGeometry_[i] == geometry) {
       activeCollisionGeometry_.erase(activeCollisionGeometry_.begin() + i);
@@ -269,8 +267,7 @@ void Shift::Context::removeActive(
   }
 }
 
-void Shift::Context::removeActive(
-  Shift::Constraint::ConstraintBase* constraint) {
+void Shift::Context::removeActive(Shift::Constraint::Base* constraint) {
   for(unsigned int i = 0; i < activeConstraints_.size(); i++) {
     if(activeConstraints_[i] == constraint) {
       activeConstraints_.erase(activeConstraints_.begin() + i);
@@ -279,7 +276,7 @@ void Shift::Context::removeActive(
   }
 }
 
-void Shift::Context::removeActive(Shift::ForceModule::ForceModuleBase* module) {
+void Shift::Context::removeActive(Shift::ForceModule::Base* module) {
   for(unsigned int i = 0; i < activeForceModules_.size(); i++) {
     if(activeForceModules_[i] == module) {
       activeForceModules_.erase(activeForceModules_.begin() + i);
@@ -288,7 +285,7 @@ void Shift::Context::removeActive(Shift::ForceModule::ForceModuleBase* module) {
   }
 }
 
-void Shift::Context::removeActive(Shift::Geometry::GeometryBase* geometry) {
+void Shift::Context::removeActive(Shift::Geometry::Base* geometry) {
   for(unsigned int i = 0; i < activeGeometry_.size(); i++) {
     if(activeGeometry_[i] == geometry) {
       activeGeometry_.erase(activeGeometry_.begin() + i);
@@ -297,7 +294,7 @@ void Shift::Context::removeActive(Shift::Geometry::GeometryBase* geometry) {
   }
 }
 
-void Shift::Context::removeActive(Shift::Joint::JointBase* joint) {
+void Shift::Context::removeActive(Shift::Joint::Base* joint) {
   for(unsigned int i = 0; i < activeJoints_.size(); i++) {
     if(activeJoints_[i] == joint) {
       activeJoints_.erase(activeJoints_.begin() + i);
@@ -306,7 +303,7 @@ void Shift::Context::removeActive(Shift::Joint::JointBase* joint) {
   }
 }
 
-void Shift::Context::removeActive(Shift::Light::LightBase* light) {
+void Shift::Context::removeActive(Shift::Light::Base* light) {
   for(unsigned int i = 0; i < activeLights_.size(); i++) {
     if(activeLights_[i] == light) {
       activeLights_.erase(activeLights_.begin() + i);
@@ -315,7 +312,7 @@ void Shift::Context::removeActive(Shift::Light::LightBase* light) {
   }
 }
 
-void Shift::Context::removeActive(Shift::Sensor::SensorBase* sensor) {
+void Shift::Context::removeActive(Shift::Sensor::Base* sensor) {
   for(unsigned int i = 0; i < activeSensors_.size(); i++) {
     if(activeSensors_[i] == sensor) {
       activeSensors_.erase(activeSensors_.begin() + i);
@@ -324,7 +321,7 @@ void Shift::Context::removeActive(Shift::Sensor::SensorBase* sensor) {
   }
 }
 
-void Shift::Context::removeActive(Shift::Terrain::TerrainBase* terrain) {
+void Shift::Context::removeActive(Shift::Terrain::Base* terrain) {
   for(unsigned int i = 0; i < activeTerrain_.size(); i++) {
     if(activeTerrain_[i] == terrain) {
       activeTerrain_.erase(activeTerrain_.begin() + i);
@@ -333,7 +330,7 @@ void Shift::Context::removeActive(Shift::Terrain::TerrainBase* terrain) {
   }
 }
 
-void Shift::Context::setActive(Shift::Behavior::BehaviorBase* behavior) {
+void Shift::Context::setActive(Shift::Behavior::Base* behavior) {
   if(behavior && behavior->isActive()) {
     appendActive(behavior);
   } else {
@@ -341,7 +338,7 @@ void Shift::Context::setActive(Shift::Behavior::BehaviorBase* behavior) {
   }
 }
 
-void Shift::Context::setActive(Shift::Body::BodyBase* body) {
+void Shift::Context::setActive(Shift::Body::Base* body) {
   if(body && body->isActive()) {
     appendActive(body);
   } else {
@@ -349,8 +346,7 @@ void Shift::Context::setActive(Shift::Body::BodyBase* body) {
   }
 }
 
-void Shift::Context::setActive(
-  Shift::CollisionGeometry::CollisionGeometryBase* geometry) {
+void Shift::Context::setActive(Shift::CollisionGeometry::Base* geometry) {
   if(geometry && geometry->isActive()) {
     appendActive(geometry);
   } else {
@@ -358,7 +354,7 @@ void Shift::Context::setActive(
   }
 }
 
-void Shift::Context::setActive(Shift::Constraint::ConstraintBase* constraint) {
+void Shift::Context::setActive(Shift::Constraint::Base* constraint) {
   if(constraint && constraint->isActive()) {
     appendActive(constraint);
   } else {
@@ -366,7 +362,7 @@ void Shift::Context::setActive(Shift::Constraint::ConstraintBase* constraint) {
   }
 }
 
-void Shift::Context::setActive(Shift::ForceModule::ForceModuleBase* module) {
+void Shift::Context::setActive(Shift::ForceModule::Base* module) {
   if(module && module->isActive()) {
     appendActive(module);
   } else {
@@ -374,7 +370,7 @@ void Shift::Context::setActive(Shift::ForceModule::ForceModuleBase* module) {
   }
 }
 
-void Shift::Context::setActive(Shift::Geometry::GeometryBase* geometry) {
+void Shift::Context::setActive(Shift::Geometry::Base* geometry) {
   if(geometry && geometry->isActive()) {
     appendActive(geometry);
   } else {
@@ -382,7 +378,7 @@ void Shift::Context::setActive(Shift::Geometry::GeometryBase* geometry) {
   }
 }
 
-void Shift::Context::setActive(Shift::Joint::JointBase* joint) {
+void Shift::Context::setActive(Shift::Joint::Base* joint) {
   if(joint && joint->isActive()) {
     appendActive(joint);
   } else {
@@ -390,7 +386,7 @@ void Shift::Context::setActive(Shift::Joint::JointBase* joint) {
   }
 }
 
-void Shift::Context::setActive(Shift::Light::LightBase* light) {
+void Shift::Context::setActive(Shift::Light::Base* light) {
   if(light && light->isActive()) {
     appendActive(light);
   } else {
@@ -398,7 +394,7 @@ void Shift::Context::setActive(Shift::Light::LightBase* light) {
   }
 }
 
-void Shift::Context::setActive(Shift::Sensor::SensorBase* sensor) {
+void Shift::Context::setActive(Shift::Sensor::Base* sensor) {
   if(sensor && sensor->isActive()) {
     appendActive(sensor);
   } else {
@@ -406,7 +402,7 @@ void Shift::Context::setActive(Shift::Sensor::SensorBase* sensor) {
   }
 }
 
-void Shift::Context::setActive(Shift::Terrain::TerrainBase* terrain) {
+void Shift::Context::setActive(Shift::Terrain::Base* terrain) {
   if(terrain && terrain->isActive()) {
     appendActive(terrain);
   } else {
@@ -467,7 +463,7 @@ void Shift::Context::clearActiveArrays() {
   clearActiveTerrain();
 }
 
-Shift::Behavior::BehaviorBase*
+Shift::Behavior::Base*
 Shift::Context::getBehavior(std::vector<std::string>& name) {
   for(auto& i : activeBehaviors_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
@@ -478,7 +474,7 @@ Shift::Context::getBehavior(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::Body::BodyBase* Shift::Context::getBody(std::vector<std::string>& name) {
+Shift::Body::Base* Shift::Context::getBody(std::vector<std::string>& name) {
   for(auto& i : activeBodies_) {
 
     if(i && Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
@@ -498,7 +494,7 @@ Shift::Body::BodyBase* Shift::Context::getBody(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::CollisionGeometry::CollisionGeometryBase*
+Shift::CollisionGeometry::Base*
 Shift::Context::getCollisionGeometry(std::vector<std::string>& name) {
   for(auto& i : activeCollisionGeometry_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
@@ -510,7 +506,7 @@ Shift::Context::getCollisionGeometry(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::Constraint::ConstraintBase*
+Shift::Constraint::Base*
 Shift::Context::getConstraint(std::vector<std::string>& name) {
   for(auto& i : activeConstraints_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
@@ -521,7 +517,7 @@ Shift::Context::getConstraint(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::ForceModule::ForceModuleBase*
+Shift::ForceModule::Base*
 Shift::Context::getForceModule(std::vector<std::string>& name) {
   for(auto& i : activeForceModules_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
@@ -532,7 +528,7 @@ Shift::Context::getForceModule(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::Geometry::GeometryBase*
+Shift::Geometry::Base*
 Shift::Context::getGeometry(std::vector<std::string>& name) {
   for(auto& i : activeGeometry_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
@@ -543,8 +539,7 @@ Shift::Context::getGeometry(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::Joint::JointBase*
-Shift::Context::getJoint(std::vector<std::string>& name) {
+Shift::Joint::Base* Shift::Context::getJoint(std::vector<std::string>& name) {
   for(auto& i : activeJoints_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
                                                 name)) {
@@ -554,8 +549,7 @@ Shift::Context::getJoint(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::Light::LightBase*
-Shift::Context::getLight(std::vector<std::string>& name) {
+Shift::Light::Base* Shift::Context::getLight(std::vector<std::string>& name) {
   for(auto& i : activeLights_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
                                                 name)) {
@@ -565,8 +559,7 @@ Shift::Context::getLight(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::Sensor::SensorBase*
-Shift::Context::getSensor(std::vector<std::string>& name) {
+Shift::Sensor::Base* Shift::Context::getSensor(std::vector<std::string>& name) {
   for(auto& i : activeSensors_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
                                                 name)) {
@@ -576,7 +569,7 @@ Shift::Context::getSensor(std::vector<std::string>& name) {
   return NULL;
 }
 
-Shift::Terrain::TerrainBase*
+Shift::Terrain::Base*
 Shift::Context::getTerrain(std::vector<std::string>& name) {
   for(auto& i : activeTerrain_) {
     if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
@@ -653,15 +646,15 @@ void Shift::Context::loadData() {
   }
 }
 
-Shift::Body::BodyBase* Shift::Context::getFixedBody() {
+Shift::Body::Base* Shift::Context::getFixedBody() {
   return fixed_.getBody(0);
 }
 
 void Shift::Context::levelOrderSort() {
 
-  std::queue<Shift::Joint::JointBase*> queue;
-  std::vector<Shift::Joint::JointBase*> joints;
-  std::vector<Shift::Body::BodyBase*> bodies;
+  std::queue<Shift::Joint::Base*> queue;
+  std::vector<Shift::Joint::Base*> joints;
+  std::vector<Shift::Body::Base*> bodies;
 
   /* find joints attached to fixed body */
   auto it = activeJoints_.begin();
@@ -682,9 +675,9 @@ void Shift::Context::levelOrderSort() {
   }
 
   while(!queue.empty()) {
-    Shift::Joint::JointBase* joint = queue.front();
+    Shift::Joint::Base* joint = queue.front();
     queue.pop();
-    Shift::Body::BodyBase* body = NULL;
+    Shift::Body::Base* body = NULL;
     if(joint->getSense() == 1) {
       body = joint->getChildBody();
     } else if(joint->getSense() == -1) {
@@ -714,7 +707,7 @@ void Shift::Context::levelOrderSort() {
 
   /* reorder bodies to follow joint ordering */
   for(auto joint : joints) {
-    Shift::Body::BodyBase* body = NULL;
+    Shift::Body::Base* body = NULL;
     if(joint->getSense() == 1) {
       body = joint->getChildBody();
     } else if(joint->getSense() == -1) {
@@ -728,6 +721,8 @@ void Shift::Context::levelOrderSort() {
         activeBodies_.erase(it);
         break;
       }
+      /* if the child body is not found here, then the body has already been
+       * added to the list */
     }
   }
 
@@ -738,17 +733,50 @@ void Shift::Context::levelOrderSort() {
 void Shift::Context::processVirtualBodies() {
   chordConstraintCount_ = activeJoints_.size() - activeBodies_.size();
 
+  int j = 0;
   for(unsigned int i = activeBodies_.size(); i < activeJoints_.size(); i++) {
 
     auto virtualBody =
-      Shift::Factory<Shift::Body::BodyBase>::get()->create("virtual");
-    bodies_.push_back(std::move(virtualBody));
+      Shift::Factory<Shift::Body::Base>::get()->create("virtual");
 
-    auto chordConstraint =
-      Shift::Factory<Shift::Constraint::ConstraintBase>::get()->create("chord");
-    constraints_.push_back(std::move(chordConstraint));
+    auto constraint =
+      Shift::Factory<Shift::Constraint::Base>::get()->create("chord");
 
-    activeBodies_.push_back(virtualBody.get());
-    activeConstraints_.push_back(chordConstraint.get());
+    Shift::Constraint::Chord* chordConstraint =
+      dynamic_cast<Shift::Constraint::Chord*>(constraint.get());
+
+    auto chordJoint = activeJoints_[i];
+
+    std::string virtualBodyName = "_virtualBody[" + std::to_string(j) + "]";
+
+    // chordConstraint->setParentBodyPointer(virtualBody);
+    // chordConstraint->setParentFramePointer(virtualBody->getOrigin());
+    //
+    // if(chordJoint->getSense() > 0) {
+    //   chordConstraint->setChildBodyPointer(chordJoint->getChildBodyPointer());
+    //   chordConstraint->setChildFramePointer(chordJoint->getChildFramePointer());
+    //   chordConstraint->setOriginalParentBodyPointer(
+    //     chordJoint->getParentBodyPointer());
+    //   chordConstraint->setOriginalParentFramePointer(
+    //     chordJoint->getParentFramePointer());
+    // } else {
+    //   chordConstraint->setChildBodyPointer(chordJoint->getParentBodyPointer());
+    //   chordConstraint->setChildFramePointer(
+    //     chordJoint->getParentFramePointer());
+    //   chordConstraint->setOriginalParentBodyPointer(
+    //     chordJoint->getChildBodyPointer());
+    //   chordConstraint->setOriginalParentFramePointer(
+    //     chordJoint->childFramePointer());
+    // }
+    //
+    // context->bodyPointers[i] = virtualBody;
+    // virtualBody->index = i;
+    //
+    // bodies_.push_back(std::move(virtualBody));
+    //
+    // constraints_.push_back(std::move(chordConstraint));
+    //
+    // activeBodies_.push_back(virtualBody.get());
+    // activeConstraints_.push_back(chordConstraint.get());
   }
 }

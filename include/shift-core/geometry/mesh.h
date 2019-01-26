@@ -1,20 +1,20 @@
-#ifndef _SHIFT_MESHGEOMETRY_H_
-#define _SHIFT_MESHGEOMETRY_H_
+#ifndef SHIFT_GEOMETRY_MESH_H_
+#define SHIFT_GEOMETRY_MESH_H_
 
-#include "shift-core/geometry/geometry.h"
+#include "shift-core/geometry/base.h"
 
 namespace Shift {
 
 namespace Geometry {
 
-class Mesh : public GeometryBase {
+class Mesh : public Base {
 public:
   Mesh()
-    : GeometryBase() {
+    : Base() {
     addKeys();
   }
   Mesh(std::string name)
-    : GeometryBase(name) {
+    : Base(name) {
     addKeys();
   }
   ~Mesh() {}

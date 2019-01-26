@@ -1,3 +1,6 @@
+#ifndef SHIFTGUI_TRIANGLERENDERER_H_
+#define SHIFTGUI_TRIANGLERENDERER_H_
+
 #include <QVulkanWindow>
 
 class TriangleRenderer : public QVulkanWindowRenderer {
@@ -33,3 +36,5 @@ protected:
   QMatrix4x4 proj_;
   float rotation_ = 0.0f;
 };
+
+#endif

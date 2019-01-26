@@ -1,5 +1,5 @@
-#ifndef _SHIFT_FRAME_H_
-#define _SHIFT_FRAME_H_
+#ifndef SHIFT_FRAME_H_
+#define SHIFT_FRAME_H_
 
 #include <string>
 

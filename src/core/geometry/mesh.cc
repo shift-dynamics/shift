@@ -2,7 +2,7 @@
 #include "shift-core/factory.h"
 
 bool Shift::Geometry::Mesh::registered_ =
-  Shift::Factory<Shift::Geometry::GeometryBase>::get()->registerModule(
+  Shift::Factory<Shift::Geometry::Base>::get()->registerModule(
     "mesh", Shift::Geometry::Mesh::create);
 
 std::unique_ptr<Shift::Geometry::Mesh> Shift::Geometry::Mesh::create() {

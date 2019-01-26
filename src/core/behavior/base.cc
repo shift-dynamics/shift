@@ -1,0 +1,26 @@
+#include "shift-core/behavior/base.h"
+#include "shift-core/behavior/contactdetection.h"
+#include "shift-core/behavior/ik_7dof.h"
+#include "shift-core/context.h"
+
+bool Shift::Behavior::Modules::initialized() {
+  if(!Shift::Behavior::ContactDetection::isRegistered()) {
+    return false;
+  }
+  if(!Shift::Behavior::IK7DOF::isRegistered()) {
+    return false;
+  }
+  return true;
+}
+
+void Shift::Behavior::Base::readJSON(Json::Value& value) {
+
+  /* iterate over keys */
+  Shift::Serialize::readJSON(value);
+}
+
+void Shift::Behavior::Base::addKeys() {}
+
+void Shift::Behavior::Base::load() {}
+
+void Shift::Behavior::Base::connect() {}

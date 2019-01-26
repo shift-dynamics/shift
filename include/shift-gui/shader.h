@@ -1,5 +1,5 @@
-#ifndef SHADER_H
-#define SHADER_H
+#ifndef SHIFTGUI_SHADER_H_
+#define SHIFTGUI_SHADER_H_
 
 #include <QFuture>
 #include <QVulkanInstance>

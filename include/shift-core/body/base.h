@@ -1,0 +1,110 @@
+#ifndef SHIFT_BODY_BASE_H_
+#define SHIFT_BODY_BASE_H_
+
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "ksl/inertia.h"
+
+#include "shift-core/base.h"
+#include "shift-core/collisiongeometry/base.h"
+#include "shift-core/frame.h"
+#include "shift-core/geometry/base.h"
+#include "shift-core/light/base.h"
+#include "shift-core/serialize.h"
+
+namespace Shift {
+
+namespace Joint {
+class JointBase;
+}
+
+class Assembly;
+
+class Context;
+
+namespace Body {
+
+/*!
+@brief Parameters that describe a Shift::Body
+*/
+class Base
+  : public Shift::Base
+  , public Serialize {
+
+public:
+  Base(std::string name)
+    : Shift::Base(name) {
+    Frame origin("origin");
+    appendFrame(origin);
+  }
+  Base()
+    : Shift::Base("") {
+    Frame origin("origin");
+    appendFrame(origin);
+  }
+  Base(Base&& b)
+    : Shift::Base(b.name_) {
+    for(auto& i : b.lights_) {
+      lights_.push_back(std::move(i));
+    }
+    for(auto& i : b.geometry_) {
+      geometry_.push_back(std::move(i));
+    }
+    for(auto& i : b.collisionGeometry_) {
+      collisionGeometry_.push_back(std::move(i));
+    }
+  }
+  ~Base() {}
+
+  virtual void addKeys();
+
+  const std::string& getType() {
+    return type_;
+  }
+
+  void setAssembly(Assembly* assembly) {
+    assembly_ = assembly;
+  }
+  void setContext(Context* context) {
+    context_ = context;
+  }
+  void appendFrame(Frame&);
+  void appendLight(std::unique_ptr<Light::Base>&);
+  void appendGeometry(std::unique_ptr<Geometry::Base>&);
+  void appendCollisionGeometry(std::unique_ptr<CollisionGeometry::Base>&);
+  Joint::JointBase* getParentJoint();
+  Base* getParentBody();
+  virtual void readJSON(Json::Value&);
+  virtual void print();
+  virtual void load();
+  virtual void connect();
+  void setFullyQualifiedNames(std::vector<std::string>&);
+  void setActiveObjects(bool);
+  Frame* getFrame(std::string);
+  Frame* getOrigin();
+
+protected:
+  std::string type_;
+  Assembly* assembly_ = NULL; /*!< Pointer to assembly that this body is a
+                                  member of. */
+  Context* context_ = NULL;
+  std::vector<Frame> frames_; /*!< Frame list */
+  std::vector<std::unique_ptr<Light::Base>> lights_;
+  std::vector<std::unique_ptr<Geometry::Base>> geometry_;
+  std::vector<std::unique_ptr<CollisionGeometry::Base>> collisionGeometry_;
+  bool drawEnabled_ = true;
+  bool drawCollisionObjectEnabled_ = false;
+};
+
+class Modules {
+public:
+  static bool initialized();
+};
+
+} // namespace Body
+
+} // namespace Shift
+
+#endif

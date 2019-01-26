@@ -1,5 +1,5 @@
-#ifndef _SHIFT_ASSEMBLY_H_
-#define _SHIFT_ASSEMBLY_H_
+#ifndef SHIFT_ASSEMBLY_H_
+#define SHIFT_ASSEMBLY_H_
 
 #include <json/json.h>
 #include <map>
@@ -8,33 +8,33 @@
 #include <vector>
 
 #include "shift-core/base.h"
-#include "shift-core/behaviors/behavior.h"
-#include "shift-core/bodies/body.h"
-#include "shift-core/constraints/constraint.h"
-#include "shift-core/forcemodules/forcemodule.h"
-#include "shift-core/joints/joint.h"
-#include "shift-core/lights/light.h"
+#include "shift-core/behavior/base.h"
+#include "shift-core/body/base.h"
+#include "shift-core/constraint/base.h"
+#include "shift-core/forcemodule/base.h"
+#include "shift-core/joint/base.h"
+#include "shift-core/light/base.h"
 #include "shift-core/serialize.h"
 
 namespace Shift {
 
 namespace Behavior {
-class BehaviorBase;
+class Base;
 }
 namespace Body {
-class BodyBase;
+class Base;
 }
 namespace Constraint {
-class ConstraintBase;
+class Base;
 }
 namespace ForceModule {
-class ForceModuleBase;
+class Base;
 }
 namespace Joint {
-class JointBase;
+class Base;
 }
 namespace Light {
-class LightBase;
+class Base;
 }
 
 class Context;
@@ -117,7 +117,7 @@ public:
   void setContext(Context* context) {
     context_ = context;
   }
-  Body::BodyBase* getBody(unsigned int i) {
+  Body::Base* getBody(unsigned int i) {
     if(i < bodies_.size()) {
       return bodies_[i].get();
     } else {
@@ -131,11 +131,11 @@ private:
 
   std::vector<std::unique_ptr<Assembly>> subassemblies_;
 
-  std::vector<std::unique_ptr<Behavior::BehaviorBase>> behaviors_;
-  std::vector<std::unique_ptr<Body::BodyBase>> bodies_;
-  std::vector<std::unique_ptr<Constraint::ConstraintBase>> constraints_;
-  std::vector<std::unique_ptr<ForceModule::ForceModuleBase>> forcemodules_;
-  std::vector<std::unique_ptr<Joint::JointBase>> joints_;
+  std::vector<std::unique_ptr<Behavior::Base>> behaviors_;
+  std::vector<std::unique_ptr<Body::Base>> bodies_;
+  std::vector<std::unique_ptr<Constraint::Base>> constraints_;
+  std::vector<std::unique_ptr<ForceModule::Base>> forcemodules_;
+  std::vector<std::unique_ptr<Joint::Base>> joints_;
 };
 
 } // namespace Shift

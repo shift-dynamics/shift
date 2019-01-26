@@ -1,5 +1,5 @@
-#ifndef _SHIFT_BASE_H_
-#define _SHIFT_BASE_H_
+#ifndef SHIFT_BASE_H_
+#define SHIFT_BASE_H_
 
 #include <string>
 #include <vector>
