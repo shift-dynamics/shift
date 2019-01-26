@@ -1,12 +1,12 @@
-#ifndef _SHIFT_SUBSTRUCTURE_H_
-#define _SHIFT_SUBSTRUCTURE_H_
+#ifndef SHIFT_SUBSTRUCTURE_H_
+#define SHIFT_SUBSTRUCTURE_H_
 
 #include <string>
 #include <vector>
 
 #include "shift-core/base.h"
-#include "shift-core/body.h"
-#include "shift-core/joint.h"
+#include "shift-core/body/base.h"
+#include "shift-core/joint/base.h"
 
 namespace Shift {
 

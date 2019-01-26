@@ -1,114 +1,106 @@
 #include "shift-core/factory.h"
 
-/* define factoryMap_ specialization for BehaviorBase class */
+/* define factoryMap_ specialization for Base class */
+template <>
+std::map<std::string, Shift::Factory<Shift::Behavior::Base>::CreateFunction>
+  Shift::Factory<Shift::Behavior::Base>::factoryMap_{};
+
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Behavior::Base>;
+
+/* define factoryMap_ specialization for Base class */
+template <>
+std::map<std::string, Shift::Factory<Shift::Body::Base>::CreateFunction>
+  Shift::Factory<Shift::Body::Base>::factoryMap_{};
+
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Body::Base>;
+
+/* define factoryMap_ specialization for Base class */
 template <>
 std::map<std::string,
-         Shift::Factory<Shift::Behavior::BehaviorBase>::CreateFunction>
-  Shift::Factory<Shift::Behavior::BehaviorBase>::factoryMap_{};
+         Shift::Factory<Shift::CollisionGeometry::Base>::CreateFunction>
+  Shift::Factory<Shift::CollisionGeometry::Base>::factoryMap_{};
 
-/* explicit instantiation of BehaviorBase class */
-template class Shift::Factory<Shift::Behavior::BehaviorBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::CollisionGeometry::Base>;
 
-/* define factoryMap_ specialization for BodyBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string, Shift::Factory<Shift::Body::BodyBase>::CreateFunction>
-  Shift::Factory<Shift::Body::BodyBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Constraint::Base>::CreateFunction>
+  Shift::Factory<Shift::Constraint::Base>::factoryMap_{};
 
-/* explicit instantiation of BodyBase class */
-template class Shift::Factory<Shift::Body::BodyBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Constraint::Base>;
 
-/* define factoryMap_ specialization for CollisionGeometryBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string,
-         Shift::Factory<
-           Shift::CollisionGeometry::CollisionGeometryBase>::CreateFunction>
-  Shift::Factory<
-    Shift::CollisionGeometry::CollisionGeometryBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::ForceModule::Base>::CreateFunction>
+  Shift::Factory<Shift::ForceModule::Base>::factoryMap_{};
 
-/* explicit instantiation of CollisionGeometryBase class */
-template class Shift::Factory<Shift::CollisionGeometry::CollisionGeometryBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::ForceModule::Base>;
 
-/* define factoryMap_ specialization for ConstraintBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string,
-         Shift::Factory<Shift::Constraint::ConstraintBase>::CreateFunction>
-  Shift::Factory<Shift::Constraint::ConstraintBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Geometry::Base>::CreateFunction>
+  Shift::Factory<Shift::Geometry::Base>::factoryMap_{};
 
-/* explicit instantiation of ConstraintBase class */
-template class Shift::Factory<Shift::Constraint::ConstraintBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Geometry::Base>;
 
-/* define factoryMap_ specialization for ForceModuleBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string,
-         Shift::Factory<Shift::ForceModule::ForceModuleBase>::CreateFunction>
-  Shift::Factory<Shift::ForceModule::ForceModuleBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Integrator::Base>::CreateFunction>
+  Shift::Factory<Shift::Integrator::Base>::factoryMap_{};
 
-/* explicit instantiation of ForceModuleBase class */
-template class Shift::Factory<Shift::ForceModule::ForceModuleBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Integrator::Base>;
 
-/* define factoryMap_ specialization for GeometryBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string,
-         Shift::Factory<Shift::Geometry::GeometryBase>::CreateFunction>
-  Shift::Factory<Shift::Geometry::GeometryBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Joint::Base>::CreateFunction>
+  Shift::Factory<Shift::Joint::Base>::factoryMap_{};
 
-/* explicit instantiation of GeometryBase class */
-template class Shift::Factory<Shift::Geometry::GeometryBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Joint::Base>;
 
-/* define factoryMap_ specialization for IntegratorBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string,
-         Shift::Factory<Shift::Integrator::IntegratorBase>::CreateFunction>
-  Shift::Factory<Shift::Integrator::IntegratorBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Light::Base>::CreateFunction>
+  Shift::Factory<Shift::Light::Base>::factoryMap_{};
 
-/* explicit instantiation of IntegratorBase class */
-template class Shift::Factory<Shift::Integrator::IntegratorBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Light::Base>;
 
-/* define factoryMap_ specialization for JointBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string, Shift::Factory<Shift::Joint::JointBase>::CreateFunction>
-  Shift::Factory<Shift::Joint::JointBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Logger::Base>::CreateFunction>
+  Shift::Factory<Shift::Logger::Base>::factoryMap_{};
 
-/* explicit instantiation of JointBase class */
-template class Shift::Factory<Shift::Joint::JointBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Logger::Base>;
 
-/* define factoryMap_ specialization for LightBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string, Shift::Factory<Shift::Light::LightBase>::CreateFunction>
-  Shift::Factory<Shift::Light::LightBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Sensor::Base>::CreateFunction>
+  Shift::Factory<Shift::Sensor::Base>::factoryMap_{};
 
-/* explicit instantiation of LightBase class */
-template class Shift::Factory<Shift::Light::LightBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Sensor::Base>;
 
-/* define factoryMap_ specialization for LoggerBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string, Shift::Factory<Shift::Logger::LoggerBase>::CreateFunction>
-  Shift::Factory<Shift::Logger::LoggerBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Solver::Base>::CreateFunction>
+  Shift::Factory<Shift::Solver::Base>::factoryMap_{};
 
-/* explicit instantiation of LoggerBase class */
-template class Shift::Factory<Shift::Logger::LoggerBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Solver::Base>;
 
-/* define factoryMap_ specialization for SensorBase class */
+/* define factoryMap_ specialization for Base class */
 template <>
-std::map<std::string, Shift::Factory<Shift::Sensor::SensorBase>::CreateFunction>
-  Shift::Factory<Shift::Sensor::SensorBase>::factoryMap_{};
+std::map<std::string, Shift::Factory<Shift::Terrain::Base>::CreateFunction>
+  Shift::Factory<Shift::Terrain::Base>::factoryMap_{};
 
-/* explicit instantiation of SensorBase class */
-template class Shift::Factory<Shift::Sensor::SensorBase>;
-
-/* define factoryMap_ specialization for SolverBase class */
-template <>
-std::map<std::string, Shift::Factory<Shift::Solver::SolverBase>::CreateFunction>
-  Shift::Factory<Shift::Solver::SolverBase>::factoryMap_{};
-
-/* explicit instantiation of SolverBase class */
-template class Shift::Factory<Shift::Solver::SolverBase>;
-
-/* define factoryMap_ specialization for TerrainBase class */
-template <>
-std::map<std::string,
-         Shift::Factory<Shift::Terrain::TerrainBase>::CreateFunction>
-  Shift::Factory<Shift::Terrain::TerrainBase>::factoryMap_{};
-
-/* explicit instantiation of TerrainBase class */
-template class Shift::Factory<Shift::Terrain::TerrainBase>;
+/* explicit instantiation of Base class */
+template class Shift::Factory<Shift::Terrain::Base>;

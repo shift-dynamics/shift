@@ -1,5 +1,5 @@
-#ifndef MESH_H
-#define MESH_H
+#ifndef SHIFTGUI_MESH_H_
+#define SHIFTGUI_MESH_H_
 
 #include <QFuture>
 #include <QString>

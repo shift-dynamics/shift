@@ -11,63 +11,63 @@ set(shift_core_src
   topology.cc
   units.cc
 
-  behaviors/behavior.cc
-  behaviors/contactdetection.cc
-  behaviors/ik_7dof.cc
+  behavior/base.cc
+  behavior/contactdetection.cc
+  behavior/ik_7dof.cc
 
-  bodies/body.cc
-  bodies/rigid.cc
-  bodies/free.cc
-  bodies/fixed.cc
-  bodies/virtual.cc
+  body/base.cc
+  body/rigid.cc
+  body/free.cc
+  body/fixed.cc
+  body/virtual.cc
 
-  collisiongeometry/collisiongeometry.cc
+  collisiongeometry/base.cc
 
-  constraints/constraint.cc
-  constraints/chord.cc
+  constraint/base.cc
+  constraint/chord.cc
 
-  behaviors/behavior.cc
-  behaviors/contactdetection.cc
-  behaviors/ik_7dof.cc
+  behavior/base.cc
+  behavior/contactdetection.cc
+  behavior/ik_7dof.cc
 
-  forcemodules/forcemodule.cc
-  forcemodules/contact.cc
-  forcemodules/pid.cc
+  forcemodule/base.cc
+  forcemodule/contact.cc
+  forcemodule/pid.cc
 
-  geometry/geometry.cc
+  geometry/base.cc
   geometry/ellipsoid.cc
   geometry/mesh.cc
   geometry/pointcloud.cc
   geometry/sphere.cc
 
-  integrators/integrator.cc
-  integrators/ode113.cc
+  integrator/base.cc
+  integrator/ode113.cc
 
-  joints/joint.cc
-  joints/float.cc
-  joints/prismatic.cc
-  joints/revolute.cc
-  joints/rigid.cc
-  joints/spherical.cc
+  joint/base.cc
+  joint/float.cc
+  joint/prismatic.cc
+  joint/revolute.cc
+  joint/rigid.cc
+  joint/spherical.cc
 
-  lights/light.cc
-  lights/directional.cc
-  lights/ies.cc
-  lights/point.cc
-  lights/spot.cc
+  light/base.cc
+  light/directional.cc
+  light/ies.cc
+  light/point.cc
+  light/spot.cc
 
-  loggers/logger.cc
-  loggers/csv.cc
-  loggers/hdf5.cc
+  logger/base.cc
+  logger/csv.cc
+  logger/hdf5.cc
 
-  sensors/sensor.cc
-  sensors/imu.cc
-  sensors/range.cc
+  sensor/base.cc
+  sensor/imu.cc
+  sensor/range.cc
 
-  solvers/solver.cc
-  solvers/rnca.cc
+  solver/base.cc
+  solver/rnca.cc
 
-  terrain/terrain.cc
+  terrain/base.cc
   terrain/basic.cc
 )
 

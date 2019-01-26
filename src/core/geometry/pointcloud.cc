@@ -2,7 +2,7 @@
 #include "shift-core/factory.h"
 
 bool Shift::Geometry::PointCloud::registered_ =
-  Shift::Factory<Shift::Geometry::GeometryBase>::get()->registerModule(
+  Shift::Factory<Shift::Geometry::Base>::get()->registerModule(
     "pointcloud", Shift::Geometry::PointCloud::create);
 
 std::unique_ptr<Shift::Geometry::PointCloud>

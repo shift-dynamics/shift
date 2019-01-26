@@ -1,20 +1,20 @@
-#ifndef _SHIFT_BASICTERRAIN_H_
-#define _SHIFT_BASICTERRAIN_H_
+#ifndef SHIFT_TERRAIN_BASIC_H_
+#define SHIFT_TERRAIN_BASIC_H_
 
-#include "terrain.h"
+#include "shift-core/terrain/base.h"
 
 namespace Shift {
 
 namespace Terrain {
 
-class Basic : public TerrainBase {
+class Basic : public Base {
 public:
   Basic()
-    : TerrainBase() {
+    : Base() {
     addKeys();
   }
   Basic(std::string name)
-    : TerrainBase(name) {
+    : Base(name) {
     addKeys();
   }
   ~Basic() {}

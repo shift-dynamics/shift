@@ -1,5 +1,5 @@
-#ifndef SHIFT_WORKSPACE_H_
-#define SHIFT_WORKSPACE_H_
+#ifndef SHIFTGUI_WORKSPACE_H_
+#define SHIFTGUI_WORKSPACE_H_
 
 #include <QtWidgets/QMainWindow>
 

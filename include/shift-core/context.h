@@ -1,5 +1,5 @@
-#ifndef _SHIFT_CONTEXT_H_
-#define _SHIFT_CONTEXT_H_
+#ifndef SHIFT_CONTEXT_H_
+#define SHIFT_CONTEXT_H_
 
 #include <iostream>
 #include <json/json.h>
@@ -13,23 +13,23 @@
 namespace Shift {
 
 namespace Behavior {
-class BehaviorBase;
+class Base;
 }
 
 namespace CollisionGeometry {
-class CollisionGeometryBase;
+class Base;
 }
 
 namespace Geometry {
-class GeometryBase;
+class Base;
 }
 
 namespace Sensor {
-class SensorBase;
+class Base;
 }
 
 namespace Terrain {
-class TerrainBase;
+class Base;
 }
 
 /*!
@@ -61,7 +61,7 @@ public:
   void setFullyQualifiedNames();
   void setActiveObjects();
   void printJSON();
-  Body::BodyBase* getFixedBody();
+  Body::Base* getFixedBody();
 
   /*! @brief sort active bodies and joints by level increasing order in spanning
    * tree
@@ -70,36 +70,36 @@ public:
 
   /* @brief add a virtual body for each kinematic chord constraint */
   void processVirtualBodies();
-  void appendActive(Behavior::BehaviorBase*);
-  void appendActive(Body::BodyBase*);
-  void appendActive(CollisionGeometry::CollisionGeometryBase*);
-  void appendActive(Constraint::ConstraintBase*);
-  void appendActive(ForceModule::ForceModuleBase*);
-  void appendActive(Geometry::GeometryBase*);
-  void appendActive(Joint::JointBase*);
-  void appendActive(Light::LightBase*);
-  void appendActive(Sensor::SensorBase*);
-  void appendActive(Terrain::TerrainBase*);
-  void removeActive(Behavior::BehaviorBase*);
-  void removeActive(Body::BodyBase*);
-  void removeActive(CollisionGeometry::CollisionGeometryBase*);
-  void removeActive(Constraint::ConstraintBase*);
-  void removeActive(ForceModule::ForceModuleBase*);
-  void removeActive(Geometry::GeometryBase*);
-  void removeActive(Joint::JointBase*);
-  void removeActive(Light::LightBase*);
-  void removeActive(Sensor::SensorBase*);
-  void removeActive(Terrain::TerrainBase*);
-  void setActive(Behavior::BehaviorBase*);
-  void setActive(Body::BodyBase*);
-  void setActive(CollisionGeometry::CollisionGeometryBase*);
-  void setActive(Constraint::ConstraintBase*);
-  void setActive(ForceModule::ForceModuleBase*);
-  void setActive(Geometry::GeometryBase*);
-  void setActive(Joint::JointBase*);
-  void setActive(Light::LightBase*);
-  void setActive(Sensor::SensorBase*);
-  void setActive(Terrain::TerrainBase*);
+  void appendActive(Behavior::Base*);
+  void appendActive(Body::Base*);
+  void appendActive(CollisionGeometry::Base*);
+  void appendActive(Constraint::Base*);
+  void appendActive(ForceModule::Base*);
+  void appendActive(Geometry::Base*);
+  void appendActive(Joint::Base*);
+  void appendActive(Light::Base*);
+  void appendActive(Sensor::Base*);
+  void appendActive(Terrain::Base*);
+  void removeActive(Behavior::Base*);
+  void removeActive(Body::Base*);
+  void removeActive(CollisionGeometry::Base*);
+  void removeActive(Constraint::Base*);
+  void removeActive(ForceModule::Base*);
+  void removeActive(Geometry::Base*);
+  void removeActive(Joint::Base*);
+  void removeActive(Light::Base*);
+  void removeActive(Sensor::Base*);
+  void removeActive(Terrain::Base*);
+  void setActive(Behavior::Base*);
+  void setActive(Body::Base*);
+  void setActive(CollisionGeometry::Base*);
+  void setActive(Constraint::Base*);
+  void setActive(ForceModule::Base*);
+  void setActive(Geometry::Base*);
+  void setActive(Joint::Base*);
+  void setActive(Light::Base*);
+  void setActive(Sensor::Base*);
+  void setActive(Terrain::Base*);
   void clearActiveBehavior();
   void clearActiveBodies();
   void clearActiveCollisionGeometry();
@@ -112,17 +112,16 @@ public:
   void clearActiveTerrain();
   void clearActiveArrays();
   void connectActiveObjects();
-  Behavior::BehaviorBase* getBehavior(std::vector<std::string>&);
-  Body::BodyBase* getBody(std::vector<std::string>&);
-  CollisionGeometry::CollisionGeometryBase*
-  getCollisionGeometry(std::vector<std::string>&);
-  Constraint::ConstraintBase* getConstraint(std::vector<std::string>&);
-  ForceModule::ForceModuleBase* getForceModule(std::vector<std::string>&);
-  Geometry::GeometryBase* getGeometry(std::vector<std::string>&);
-  Joint::JointBase* getJoint(std::vector<std::string>&);
-  Light::LightBase* getLight(std::vector<std::string>&);
-  Sensor::SensorBase* getSensor(std::vector<std::string>&);
-  Terrain::TerrainBase* getTerrain(std::vector<std::string>&);
+  Behavior::Base* getBehavior(std::vector<std::string>&);
+  Body::Base* getBody(std::vector<std::string>&);
+  CollisionGeometry::Base* getCollisionGeometry(std::vector<std::string>&);
+  Constraint::Base* getConstraint(std::vector<std::string>&);
+  ForceModule::Base* getForceModule(std::vector<std::string>&);
+  Geometry::Base* getGeometry(std::vector<std::string>&);
+  Joint::Base* getJoint(std::vector<std::string>&);
+  Light::Base* getLight(std::vector<std::string>&);
+  Sensor::Base* getSensor(std::vector<std::string>&);
+  Terrain::Base* getTerrain(std::vector<std::string>&);
 
 private:
   void initialize();
@@ -136,25 +135,24 @@ private:
   Json::Value root_;
   std::string indentation_ = "  ";
 
-  std::vector<Behavior::BehaviorBase*> activeBehaviors_;
-  std::vector<Body::BodyBase*> activeBodies_ = {};
-  std::vector<CollisionGeometry::CollisionGeometryBase*>
-    activeCollisionGeometry_;
-  std::vector<Constraint::ConstraintBase*> activeConstraints_;
-  std::vector<ForceModule::ForceModuleBase*> activeForceModules_;
-  std::vector<Geometry::GeometryBase*> activeGeometry_;
-  std::vector<Joint::JointBase*> activeJoints_;
-  std::vector<Light::LightBase*> activeLights_;
-  std::vector<Sensor::SensorBase*> activeSensors_;
-  std::vector<Terrain::TerrainBase*> activeTerrain_;
+  std::vector<Behavior::Base*> activeBehaviors_;
+  std::vector<Body::Base*> activeBodies_ = {};
+  std::vector<CollisionGeometry::Base*> activeCollisionGeometry_;
+  std::vector<Constraint::Base*> activeConstraints_;
+  std::vector<ForceModule::Base*> activeForceModules_;
+  std::vector<Geometry::Base*> activeGeometry_;
+  std::vector<Joint::Base*> activeJoints_;
+  std::vector<Light::Base*> activeLights_;
+  std::vector<Sensor::Base*> activeSensors_;
+  std::vector<Terrain::Base*> activeTerrain_;
 
   /* manage objects automatically created when processing system topology,
   these objects are not loaded from an external JSON file.*/
-  std::vector<std::unique_ptr<Behavior::BehaviorBase>> behaviors_;
-  std::vector<std::unique_ptr<Body::BodyBase>> bodies_;
-  std::vector<std::unique_ptr<Constraint::ConstraintBase>> constraints_;
-  std::vector<std::unique_ptr<ForceModule::ForceModuleBase>> forcemodules_;
-  std::vector<std::unique_ptr<Joint::JointBase>> joints_;
+  std::vector<std::unique_ptr<Behavior::Base>> behaviors_;
+  std::vector<std::unique_ptr<Body::Base>> bodies_;
+  std::vector<std::unique_ptr<Constraint::Base>> constraints_;
+  std::vector<std::unique_ptr<ForceModule::Base>> forcemodules_;
+  std::vector<std::unique_ptr<Joint::Base>> joints_;
 };
 
 } // namespace Shift

@@ -1,21 +1,21 @@
-#ifndef _SHIFT_ELLIPSOIDGEOMETRY_H_
-#define _SHIFT_ELLIPSOIDGEOMETRY_H_
+#ifndef SHIFT_GEOMETRY_ELLIPSOID_H_
+#define SHIFT_GEOMETRY_ELLIPSOID_H_
 
 #include "shift-core/factory.h"
-#include "shift-core/geometry/geometry.h"
+#include "shift-core/geometry/base.h"
 
 namespace Shift {
 
 namespace Geometry {
 
-class Ellipsoid : public GeometryBase {
+class Ellipsoid : public Base {
 public:
   Ellipsoid()
-    : GeometryBase() {
+    : Base() {
     addKeys();
   }
   Ellipsoid(std::string name)
-    : GeometryBase(name) {
+    : Base(name) {
     addKeys();
   }
   ~Ellipsoid() {}

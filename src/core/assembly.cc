@@ -1,7 +1,7 @@
 #include "shift-core/assembly.h"
-#include "shift-core/behaviors/behavior.h"
-#include "shift-core/bodies/body.h"
-#include "shift-core/bodies/fixed.h"
+#include "shift-core/behavior/base.h"
+#include "shift-core/body/base.h"
+#include "shift-core/body/fixed.h"
 #include "shift-core/context.h"
 #include "shift-core/factory.h"
 
@@ -59,7 +59,7 @@ void Shift::Assembly::addKeys() {
 
 void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
   if(fixed) {
-    auto body = Shift::Factory<Shift::Body::BodyBase>::get()->create("fixed");
+    auto body = Shift::Factory<Shift::Body::Base>::get()->create("fixed");
     body->setName("fixed");
     try {
       body->setContext(context_);
@@ -81,7 +81,7 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
         if(i.isMember("type") && i["type"].isString()) {
           std::string type = i["type"].asString();
           auto behavior =
-            Shift::Factory<Shift::Behavior::BehaviorBase>::get()->create(type);
+            Shift::Factory<Shift::Behavior::Base>::get()->create(type);
           if(behavior) {
             try {
               behavior->setContext(context_);
@@ -103,8 +103,7 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
         if(i.isMember("type") && i["type"].isString()) {
           bodyType.assign(i["type"].asString());
         }
-        auto body =
-          Shift::Factory<Shift::Body::BodyBase>::get()->create(bodyType);
+        auto body = Shift::Factory<Shift::Body::Base>::get()->create(bodyType);
         if(body) {
           try {
             body->setContext(context_);
@@ -125,7 +124,7 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
         if(i.isMember("type") && i["type"].isString()) {
           std::string constraintType(i["type"].asString());
           auto constraint =
-            Shift::Factory<Shift::Constraint::ConstraintBase>::get()->create(
+            Shift::Factory<Shift::Constraint::Base>::get()->create(
               constraintType);
           if(constraint) {
             try {
@@ -147,7 +146,7 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
         if(i.isMember("type") && i["type"].isString()) {
           std::string forceModuleType(i["type"].asString());
           auto forceModule =
-            Shift::Factory<Shift::ForceModule::ForceModuleBase>::get()->create(
+            Shift::Factory<Shift::ForceModule::Base>::get()->create(
               forceModuleType);
           if(forceModule) {
             try {
@@ -169,7 +168,7 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
         if(i.isMember("type") && i["type"].isString()) {
           std::string jointType(i["type"].asString());
           auto joint =
-            Shift::Factory<Shift::Joint::JointBase>::get()->create(jointType);
+            Shift::Factory<Shift::Joint::Base>::get()->create(jointType);
           if(joint) {
             try {
               joint->setContext(context_);

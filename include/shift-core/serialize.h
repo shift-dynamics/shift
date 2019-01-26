@@ -1,5 +1,5 @@
-#ifndef _SHIFT_SERIALIZE_H_
-#define _SHIFT_SERIALIZE_H_
+#ifndef SHIFT_SERIALIZE_H_
+#define SHIFT_SERIALIZE_H_
 
 #include <exception>
 #include <json/json.h>

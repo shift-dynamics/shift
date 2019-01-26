@@ -1,5 +1,5 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#ifndef SHIFTGUI_CAMERA_H_
+#define SHIFTGUI_CAMERA_H_
 
 #include <QMatrix4x4>
 #include <QVector3D>

@@ -1,5 +1,5 @@
-#ifndef _VULKANWIDGET_
-#define _VULKANWIDGET_
+#ifndef SHIFTGUI_VULKANWINDOW_H_
+#define SHIFTGUI_VULKANWINDOW_H_
 
 #include "shift-gui/trianglerenderer.h"
 

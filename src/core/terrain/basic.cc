@@ -2,7 +2,7 @@
 #include "shift-core/factory.h"
 
 bool Shift::Terrain::Basic::registered_ =
-  Shift::Factory<Shift::Terrain::TerrainBase>::get()->registerModule(
+  Shift::Factory<Shift::Terrain::Base>::get()->registerModule(
     "basic", Shift::Terrain::Basic::create);
 
 std::unique_ptr<Shift::Terrain::Basic> Shift::Terrain::Basic::create() {
@@ -10,9 +10,9 @@ std::unique_ptr<Shift::Terrain::Basic> Shift::Terrain::Basic::create() {
 }
 
 void Shift::Terrain::Basic::addKeys() {
-  Shift::Terrain::TerrainBase::addKeys();
+  Shift::Terrain::Base::addKeys();
 }
 
-void Shift::Terrain::TerrainBase::load() {}
+void Shift::Terrain::Base::load() {}
 
-void Shift::Terrain::TerrainBase::connect() {}
+void Shift::Terrain::Base::connect() {}
