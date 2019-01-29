@@ -76,6 +76,14 @@ public:
     return childBodyPointer_;
   }
 
+  Shift::Frame* getParentFrame() {
+    return parentFramePointer_;
+  }
+
+  Shift::Frame* getChildFrame() {
+    return childFramePointer_;
+  }
+
   int getSense() {
     return sense_;
   }

@@ -30,3 +30,24 @@ bool Shift::Topology::matchFullyQualifiedName(
 
   return true;
 }
+
+/*!
+@brief Used to detect if k is in the kinematic path of j
+@param context a Context data structure
+@param j index of body
+@param k index of second body to test
+*/
+bool Shift::Topology::inPath(std::vector<int>& pcl, int j, int k) {
+  if(j == k) {
+    return true;
+  }
+  bool inPath = false;
+  while(j >= -1) {
+    if(j == k) {
+      inPath = true;
+      break;
+    }
+    j = pcl[j];
+  }
+  return inPath;
+}

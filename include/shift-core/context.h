@@ -32,6 +32,10 @@ namespace Terrain {
 class Base;
 }
 
+namespace Constraint {
+class Chord;
+}
+
 /*!
 @brief Shift Context datastructure
 */
@@ -127,13 +131,20 @@ private:
   void initialize();
   void connect();
   void loadData();
-  unsigned int chordConstraintCount_ = 0;
+  void processPCL();
+  void processLoopMembers();
+  void detectSubstructures();
 
   ModelParameters modelParameters_;
   Assembly fixed_;
   std::string filename_;
   Json::Value root_;
   std::string indentation_ = "  ";
+
+  std::vector<int> pcl_;
+  std::vector<std::vector<int>> loopMembers_;
+  std::vector<std::vector<int>> positiveLoopMembers_;
+  std::vector<std::vector<int>> negativeLoopMembers_;
 
   std::vector<Behavior::Base*> activeBehaviors_;
   std::vector<Body::Base*> activeBodies_ = {};
@@ -145,9 +156,10 @@ private:
   std::vector<Light::Base*> activeLights_;
   std::vector<Sensor::Base*> activeSensors_;
   std::vector<Terrain::Base*> activeTerrain_;
+  std::vector<Constraint::Chord*> chordConstraints_;
 
-  /* manage objects automatically created when processing system topology,
-  these objects are not loaded from an external JSON file.*/
+  /* Manage objects that are automatically created when processing system
+   * topology; these objects are not loaded from an external JSON file.*/
   std::vector<std::unique_ptr<Behavior::Base>> behaviors_;
   std::vector<std::unique_ptr<Body::Base>> bodies_;
   std::vector<std::unique_ptr<Constraint::Base>> constraints_;
