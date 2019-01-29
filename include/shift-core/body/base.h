@@ -84,6 +84,18 @@ public:
   void setActiveObjects(bool);
   Frame* getFrame(std::string);
   Frame* getOrigin();
+  int getIndex() {
+    return index_;
+  }
+  void setIndex(int index) {
+    index_ = index;
+  }
+  int getLevel() {
+    return level_;
+  }
+  void setLevel(int level) {
+    level_ = level;
+  }
 
 protected:
   std::string type_;
@@ -96,6 +108,8 @@ protected:
   std::vector<std::unique_ptr<CollisionGeometry::Base>> collisionGeometry_;
   bool drawEnabled_ = true;
   bool drawCollisionObjectEnabled_ = false;
+  int index_ = -1;
+  int level_ = -1;
 };
 
 class Modules {

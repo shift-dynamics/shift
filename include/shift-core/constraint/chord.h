@@ -31,9 +31,18 @@ public:
   static bool isRegistered() {
     return registered_;
   }
+  void setOriginalParentBody(Body::Base* body) {
+    originalParentBodyPointer_ = body;
+  }
+
+  void setOriginalParentFrame(Frame* frame) {
+    originalParentFramePointer_ = frame;
+  }
 
 private:
   static bool registered_;
+  Shift::Body::Base* originalParentBodyPointer_ = NULL;
+  Shift::Frame* originalParentFramePointer_ = NULL;
 };
 
 } // namespace Constraint

@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <queue>
 
 #include <json/json.h>
@@ -34,6 +35,8 @@ void Shift::Context::readJSON(const std::string& filename) {
   setFullyQualifiedNames();
   setActiveObjects();
   connect();
+  levelOrderSort();
+  processVirtualBodies();
   loadData();
 }
 
@@ -652,6 +655,8 @@ Shift::Body::Base* Shift::Context::getFixedBody() {
 
 void Shift::Context::levelOrderSort() {
 
+  std::cout << "level order sort" << std::endl;
+
   std::queue<Shift::Joint::Base*> queue;
   std::vector<Shift::Joint::Base*> joints;
   std::vector<Shift::Body::Base*> bodies;
@@ -659,6 +664,9 @@ void Shift::Context::levelOrderSort() {
   /* find joints attached to fixed body */
   auto it = activeJoints_.begin();
   while(it != activeJoints_.end()) {
+    std::cout << (*it)->getName() << std::endl;
+    assert((*it)->getParentBody() != NULL);
+    assert((*it)->getChildBody() != NULL);
     if((*it)->getParentBody() == getFixedBody()) {
       (*it)->setSense(1);
       (*it)->setLevel(1);
@@ -731,13 +739,12 @@ void Shift::Context::levelOrderSort() {
 }
 
 void Shift::Context::processVirtualBodies() {
-  chordConstraintCount_ = activeJoints_.size() - activeBodies_.size();
+  chordConstraints_.clear();
+  chordConstraints_.resize(activeJoints_.size() - activeBodies_.size());
 
   int j = 0;
-  for(unsigned int i = activeBodies_.size(); i < activeJoints_.size(); i++) {
-
-    auto virtualBody =
-      Shift::Factory<Shift::Body::Base>::get()->create("virtual");
+  for(unsigned int i = activeBodies_.size(); i < activeJoints_.size();
+      i++, j++) {
 
     auto constraint =
       Shift::Factory<Shift::Constraint::Base>::get()->create("chord");
@@ -745,38 +752,311 @@ void Shift::Context::processVirtualBodies() {
     Shift::Constraint::Chord* chordConstraint =
       dynamic_cast<Shift::Constraint::Chord*>(constraint.get());
 
+    auto virtualBody =
+      Shift::Factory<Shift::Body::Base>::get()->create("virtual");
+    virtualBody->setName("_virtualBody[" + std::to_string(j) + "]");
+
+    chordConstraint->setParentBody(virtualBody.get());
+    chordConstraint->setParentFrame(virtualBody->getOrigin());
+
     auto chordJoint = activeJoints_[i];
+    if(chordJoint->getSense() > 0) {
+      chordConstraint->setChildBody(chordJoint->getChildBody());
+      chordConstraint->setChildFrame(chordJoint->getChildFrame());
+      chordConstraint->setOriginalParentBody(chordJoint->getParentBody());
+      chordConstraint->setOriginalParentFrame(chordJoint->getParentFrame());
+    } else {
+      chordConstraint->setChildBody(chordJoint->getParentBody());
+      chordConstraint->setChildFrame(chordJoint->getParentFrame());
+      chordConstraint->setOriginalParentBody(chordJoint->getChildBody());
+      chordConstraint->setOriginalParentFrame(chordJoint->getChildFrame());
+    }
 
-    std::string virtualBodyName = "_virtualBody[" + std::to_string(j) + "]";
+    /* add virtual bodies and chord constraints to active lists */
+    activeBodies_.push_back(virtualBody.get());
+    activeConstraints_.push_back(constraint.get());
+    chordConstraints_.push_back(chordConstraint);
 
-    // chordConstraint->setParentBodyPointer(virtualBody);
-    // chordConstraint->setParentFramePointer(virtualBody->getOrigin());
-    //
-    // if(chordJoint->getSense() > 0) {
-    //   chordConstraint->setChildBodyPointer(chordJoint->getChildBodyPointer());
-    //   chordConstraint->setChildFramePointer(chordJoint->getChildFramePointer());
-    //   chordConstraint->setOriginalParentBodyPointer(
-    //     chordJoint->getParentBodyPointer());
-    //   chordConstraint->setOriginalParentFramePointer(
-    //     chordJoint->getParentFramePointer());
-    // } else {
-    //   chordConstraint->setChildBodyPointer(chordJoint->getParentBodyPointer());
-    //   chordConstraint->setChildFramePointer(
-    //     chordJoint->getParentFramePointer());
-    //   chordConstraint->setOriginalParentBodyPointer(
-    //     chordJoint->getChildBodyPointer());
-    //   chordConstraint->setOriginalParentFramePointer(
-    //     chordJoint->childFramePointer());
+    /* transfer ownership of smart pointers for virtual bodies and chord
+     * constraints to `Context` data structure */
+    bodies_.push_back(std::move(virtualBody));
+    constraints_.push_back(std::move(constraint));
+  }
+}
+
+void Shift::Context::processPCL() {
+  for(unsigned int i = 0; i < activeBodies_.size(); i++) {
+    activeBodies_[i]->setIndex(i);
+  }
+  pcl_.clear();
+  pcl_.resize(activeJoints_.size());
+  for(unsigned int i = 0; i < activeJoints_.size(); i++) {
+    auto joint = activeJoints_[i];
+    if(joint->getSense() == 1) {
+      pcl_[i] = joint->getParentBody()->getIndex();
+    } else if(joint->getSense() == -1) {
+      pcl_[i] = joint->getChildBody()->getIndex();
+    } else {
+      /* if a sense was not assigned, something didn't work correctly */
+      pcl_[i] = -2;
+    }
+  }
+}
+
+void Shift::Context::processLoopMembers() {
+  std::vector<int> levels;
+  levels.resize(activeJoints_.size());
+  for(unsigned int i = 0; i < activeJoints_.size(); i++) {
+    levels[i] = activeJoints_[i]->getLevel();
+  }
+
+  std::vector<std::vector<int>> negativeLoopMembers;
+  std::vector<std::vector<int>> positiveLoopMembers;
+  std::vector<std::vector<int>> loopMembers;
+
+  negativeLoopMembers.resize(chordConstraints_.size());
+  positiveLoopMembers.resize(chordConstraints_.size());
+  loopMembers.resize(chordConstraints_.size());
+
+  for(int i = 0; i < chordConstraints_.size(); i++) {
+    loopMembers[i].clear();
+    negativeLoopMembers[i].clear();
+    positiveLoopMembers[i].clear();
+
+    int positive = chordConstraints_[i]->getParentBody()->getIndex();
+    int negative = chordConstraints_[i]->getChildBody()->getIndex();
+
+    loopMembers[i].push_back(negative);
+    negativeLoopMembers[i].push_back(negative);
+    loopMembers[i].push_back(positive);
+    positiveLoopMembers[i].push_back(positive);
+
+    while(levels[positive] > levels[negative]) {
+      positive = pcl_[positive];
+      loopMembers[i].push_back(positive);
+      positiveLoopMembers[i].push_back(positive);
+    }
+    while(levels[negative] > levels[positive]) {
+      negative = pcl_[negative];
+      loopMembers[i].push_back(negative);
+      negativeLoopMembers[i].push_back(negative);
+    }
+    while(positive != negative) {
+      negative = pcl_[negative];
+      positive = pcl_[positive];
+      loopMembers[i].push_back(positive);
+      positiveLoopMembers[i].push_back(positive);
+      loopMembers[i].push_back(negative);
+      negativeLoopMembers[i].push_back(negative);
+    }
+    loopMembers[i].pop_back();
+    negativeLoopMembers[i].pop_back();
+    positiveLoopMembers[i].pop_back();
+  }
+
+  /* sort loop members in monotonically increasing level order */
+  for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
+    std::vector<std::pair<int, int>> loop;
+    loop.resize(loopMembers[i].size());
+    for(unsigned int j = 0; j < loopMembers[i].size(); j++) {
+      loop[j] = std::make_pair(loopMembers[i][j], levels[loopMembers[i][j]]);
+    }
+    struct ordering {
+      bool operator()(std::pair<int, int> const& a,
+                      std::pair<int, int> const& b) {
+        return a.second < b.second;
+      }
+    };
+    std::sort(loop.begin(), loop.end(), ordering());
+    loopMembers[i].clear();
+    for(auto loopMember : loop) {
+      loopMembers[i].push_back(loopMember.first);
+    }
+  }
+  loopMembers_ = loopMembers;
+
+  /* sort positive and negative loop member lists to follow master loop member
+   * list ordering */
+  negativeLoopMembers_.clear();
+  positiveLoopMembers_.clear();
+  negativeLoopMembers_.resize(chordConstraints_.size());
+  positiveLoopMembers_.resize(chordConstraints_.size());
+  for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
+    negativeLoopMembers_[i].clear();
+    for(auto j : loopMembers_[i]) {
+      if(std::find(negativeLoopMembers[i].begin(), negativeLoopMembers[i].end(),
+                   j) != negativeLoopMembers[i].end()) {
+        negativeLoopMembers_[i].push_back(j);
+      }
+      if(std::find(positiveLoopMembers[i].begin(), positiveLoopMembers[i].end(),
+                   j) != positiveLoopMembers[i].end()) {
+        positiveLoopMembers_[i].push_back(j);
+      }
+    }
+  }
+}
+
+void Shift::Context::detectSubstructures() {
+  if(chordConstraints_.size() > 0) {
+
+    /* contains information about */
+    std::vector<std::vector<int>> substructures;
+
+    /* create stack of all chordConstraint indices */
+    std::list<int> chordConstraints;
+    for(int i = 0; i < chordConstraints_.size(); i++) {
+      chordConstraints.push_back(i);
+    }
+
+    int p_01[chordConstraints_.size()];
+    int currentLoopIndex = 0;
+    int substructureIndex = 0;
+    auto it = chordConstraints.begin();
+
+    while(!chordConstraints.empty()) {
+
+      std::vector<int> substructure;
+      int chordConstraintIndex = chordConstraints.front();
+      chordConstraints.pop_front();
+
+      substructure.push_back(chordConstraintIndex);
+      p_01[currentLoopIndex++] = chordConstraintIndex;
+
+      /* append first substructure to list of substructures */
+      substructures.push_back(substructure);
+
+      int mergeCount = 1;
+      while(mergeCount != 0) {
+        mergeCount = 0;
+        while(!chordConstraints.empty()) {
+          bool merge = false;
+          std::vector<int>* mergeCandidate = &loopMembers_[(*it)];
+
+          /* base node of substructure */
+          int baseNode = loopMembers_[substructure[0]][0];
+
+          if(Shift::Topology::inPath(pcl_, (*mergeCandidate)[0], baseNode)) {
+
+            std::cout << "in path detected" << std::endl;
+
+            for(auto loopIndex : substructure) {
+              for(auto loopMember : loopMembers_[loopIndex]) {
+                for(auto mergeCandidateMember : *mergeCandidate) {
+
+                  // printf("%d, %d\n", loopMember->value,
+                  // mergeCandidateMember->value);
+                  if(loopMember == mergeCandidateMember) {
+                    substructure.push_back(*it);
+
+                    std::cout << "  appending loop " << (*it)
+                              << " to substructure " << substructureIndex
+                              << std::endl;
+                    p_01[currentLoopIndex++] = (*it);
+                    mergeCount++;
+                    merge = true;
+                    break;
+                  }
+                  if(merge) {
+                    break;
+                  }
+                }
+                if(merge) {
+                  break;
+                }
+              }
+              if(merge) {
+                break;
+              }
+            }
+          }
+
+          it++;
+          if(merge) {
+            /* remove chord constraint from list */
+            chordConstraints.pop_front();
+          }
+        }
+      }
+      substructureIndex++;
+    }
+
+    // // fprintf(debug, "Substructures:\n");
+    // s2_queuenode_t* substructureHead = substructures->head;
+    // int i = 0;
+    // while(substructureHead) {
+    //   // fprintf(debug, "[%d] ", i++);
+    //   s2_stacknode_t* loopIndex = substructureHead->value.stack->head;
+    //   while(loopIndex) {
+    //     // fprintf(debug, ": ");
+    //     // s2_stack_print(debug, loopMembers[loopIndex->value]);
+    //     loopIndex = loopIndex->next;
+    //   }
+    //   // fprintf(debug, "\n");
+    //   context->substructureCount++;
+    //   substructureHead = substructureHead->next;
     // }
     //
-    // context->bodyPointers[i] = virtualBody;
-    // virtualBody->index = i;
+    // /*
+    //   allocate memory for substructures
+    // */
+    // // fprintf(debug, "substructure count: %d\n",
+    // context->substructureCount); context->substructureLoopCount =
+    //   malloc(context->substructureCount * sizeof(int));
+    // context->substructureMembers =
+    //   malloc(context->substructureCount * sizeof(int*));
+    // context->substructureMembersCount =
+    //   malloc(context->substructureCount * sizeof(int));
     //
-    // bodies_.push_back(std::move(virtualBody));
+    // /*
+    //   count unique members of each substructure and sort by increasing level
+    //   order
+    // */
+    // substructureHead = substructures->head;
     //
-    // constraints_.push_back(std::move(chordConstraint));
+    // i = 0;
+    // while(substructureHead) {
+    //   s2_stacknode_t* loopIndex = substructureHead->value.stack->head;
+    //   s2_stack_t* stack = loopMembers[loopIndex->value];
+    //   // printf("\n");stack_Print(stack);printf("\n");
+    //   loopIndex = loopIndex->next;
+    //   while(loopIndex) {
+    //     s2_stacknode_t* next = loopIndex->next;
     //
-    // activeBodies_.push_back(virtualBody.get());
-    // activeConstraints_.push_back(chordConstraint.get());
+    //     // printf("count: %d\n", stack->count);
+    //     s2_stack_merge(stack, loopMembers[loopIndex->value]);
+    //
+    //     // printf("\n");
+    //     // printf("count: %d\n", stack->count);
+    //     loopIndex = next;
+    //   }
+    //   // printf("\nprinting stack [%d]: count: %d\n", i, stack->count);
+    //   // stack_Print(stack);
+    //   // printf("\n");
+    //   context->substructureLoopCount[i] = stack->mergeCount + 1;
+    //   context->substructureMembersCount[i] = stack->count;
+    //   context->substructureMembers[i] = s2_stack_toArray(stack);
+    //   i++;
+    //   substructureHead = substructureHead->next;
+    // }
+    //
+    // /*
+    //   release memory for queues, stacks
+    // */
+    // s2_queue_free(substructures);
+    // free(loopMembers);
+    //
+    // // fprintf(debug, "\n## substructures / substructure members:\n");
+    // // for (int i = 0; i < context->substructureCount; i++) {
+    // //   fprintf(debug, "substructure: [%d] ", i);
+    // //   for (int j = 0; j < context->substructureMembersCount[i]; j++) {
+    // //     fprintf(debug, "%d ", context->substructureMembers[i][j]);
+    // //   }
+    // //   fprintf(debug, "\n");
+    // //   fprintf(debug,
+    // //     "number of loops in substructure: %d\n",
+    // //     context->substructureLoopCount[i]);
+    // // }
+    //
+    // topology_reorderLoops(context, p_01);
   }
 }

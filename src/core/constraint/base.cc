@@ -10,6 +10,8 @@ void Shift::Constraint::Base::readJSON(Json::Value& value) {
   Serialize::readJSON(value);
 }
 
+void Shift::Constraint::Base::addKeys() {}
+
 void Shift::Constraint::Base::load() {}
 
 void Shift::Constraint::Base::connect() {}
@@ -24,12 +26,12 @@ void Shift::Constraint::Base::setChildBodyPointer(Body::Base* child) {
   childBody_ = child->getFullyQualifiedName();
 }
 
-void Shift::Constraint::Base::setParentBodyPointer(Frame* parent) {
+void Shift::Constraint::Base::setParentFramePointer(Frame* parent) {
   parentFramePointer_ = parent;
   parentFrame_ = parent->getFullyQualifiedName();
 }
 
-void Shift::Constraint::Base::setChildBodyPointer(Frame* child) {
+void Shift::Constraint::Base::setChildFramePointer(Frame* child) {
   childFramePointer_ = child;
   childFrame_ = child->getFullyQualifiedName();
 }

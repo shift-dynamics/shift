@@ -12,6 +12,8 @@ namespace Topology {
 bool matchFullyQualifiedName(const std::vector<std::string>&,
                              const std::vector<std::string>&);
 
+bool inPath(std::vector<int>& pcl, int j, int k);
+
 void freeRunTimeArrays();
 
 // count active objects (bodies/joints/lights/frames/io)\n");
@@ -61,7 +63,7 @@ void mallocDHVAArrays();
 // void processVirtualBodies(); // in context.cc
 
 /* update parent child list */
-void processpcl();
+// void processpcl();
 
 /* identify members of each kinematic loop */
 // fprintf(

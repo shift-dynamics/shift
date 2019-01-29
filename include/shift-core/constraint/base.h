@@ -50,13 +50,29 @@ public:
   virtual void connect();
   virtual void readJSON(Json::Value&);
 
-  void setParentBodyPointer(Body::Base*);
+  void setParentBody(Body::Base*);
 
-  void setChildBodyPointer(Body::Base*);
+  void setParentFrame(Frame*);
 
-  void setParentBodyPointer(Frame*);
+  void setChildBody(Body::Base*);
 
-  void setChildBodyPointer(Frame*);
+  void setChildFrame(Frame*);
+
+  Body::Base* getParentBody() {
+    return parentBodyPointer_;
+  }
+
+  Frame* getParentFrame() {
+    return parentFramePointer_;
+  }
+
+  Body::Base* getChildBody() {
+    return childBodyPointer_;
+  }
+
+  Frame* getChildFrame() {
+    return childFramePointer_;
+  }
 
 protected:
   void addKeys();
