@@ -911,7 +911,7 @@ void Shift::Context::detectSubstructures() {
     int p_01[chordConstraints_.size()];
     int currentLoopIndex = 0;
     int substructureIndex = 0;
-    auto it = chordConstraints.begin();
+
 
     while(!chordConstraints.empty()) {
 
@@ -925,92 +925,51 @@ void Shift::Context::detectSubstructures() {
       /* append first substructure to list of substructures */
       substructures.push_back(substructure);
 
+      auto it = chordConstraints.begin();
       int mergeCount = 1;
       while(mergeCount != 0) {
         mergeCount = 0;
         while(!chordConstraints.empty()) {
           bool merge = false;
-          std::vector<int>* mergeCandidate = &loopMembers_[(*it)];
-
           /* base node of substructure */
           int baseNode = loopMembers_[substructure[0]][0];
 
-          if(Shift::Topology::inPath(pcl_, (*mergeCandidate)[0], baseNode)) {
-
-            std::cout << "in path detected" << std::endl;
-
+          if(Shift::Topology::inPath(pcl_, loopMembers_[(*it)][0], baseNode)) {
             for(auto loopIndex : substructure) {
               for(auto loopMember : loopMembers_[loopIndex]) {
-                for(auto mergeCandidateMember : *mergeCandidate) {
-
-                  // printf("%d, %d\n", loopMember->value,
-                  // mergeCandidateMember->value);
+                for(auto mergeCandidateMember : loopMembers_[(*it)]) {
                   if(loopMember == mergeCandidateMember) {
                     substructure.push_back(*it);
 
                     std::cout << "  appending loop " << (*it)
                               << " to substructure " << substructureIndex
                               << std::endl;
+
                     p_01[currentLoopIndex++] = (*it);
                     mergeCount++;
                     merge = true;
-                    break;
-                  }
-                  if(merge) {
-                    break;
+                    goto endLoopMerge;
                   }
                 }
-                if(merge) {
-                  break;
-                }
-              }
-              if(merge) {
-                break;
               }
             }
           }
-
-          it++;
+          endLoopMerge:
           if(merge) {
             /* remove chord constraint from list */
-            chordConstraints.pop_front();
+            it = chordConstraints.erase(it);
+          } else {
+            it++;
           }
         }
       }
       substructureIndex++;
     }
 
-    // // fprintf(debug, "Substructures:\n");
-    // s2_queuenode_t* substructureHead = substructures->head;
-    // int i = 0;
-    // while(substructureHead) {
-    //   // fprintf(debug, "[%d] ", i++);
-    //   s2_stacknode_t* loopIndex = substructureHead->value.stack->head;
-    //   while(loopIndex) {
-    //     // fprintf(debug, ": ");
-    //     // s2_stack_print(debug, loopMembers[loopIndex->value]);
-    //     loopIndex = loopIndex->next;
-    //   }
-    //   // fprintf(debug, "\n");
-    //   context->substructureCount++;
-    //   substructureHead = substructureHead->next;
-    // }
-    //
-    // /*
-    //   allocate memory for substructures
-    // */
-    // // fprintf(debug, "substructure count: %d\n",
-    // context->substructureCount); context->substructureLoopCount =
-    //   malloc(context->substructureCount * sizeof(int));
-    // context->substructureMembers =
-    //   malloc(context->substructureCount * sizeof(int*));
-    // context->substructureMembersCount =
-    //   malloc(context->substructureCount * sizeof(int));
-    //
-    // /*
-    //   count unique members of each substructure and sort by increasing level
-    //   order
-    // */
+    /* count unique members of each substructure and sort by increasing level
+    order
+    */
+    
     // substructureHead = substructures->head;
     //
     // i = 0;

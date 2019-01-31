@@ -16,22 +16,22 @@ void Shift::Constraint::Base::load() {}
 
 void Shift::Constraint::Base::connect() {}
 
-void Shift::Constraint::Base::setParentBodyPointer(Body::Base* parent) {
+void Shift::Constraint::Base::setParentBody(Body::Base* parent) {
   parentBodyPointer_ = parent;
   parentBody_ = parent->getFullyQualifiedName();
 }
 
-void Shift::Constraint::Base::setChildBodyPointer(Body::Base* child) {
+void Shift::Constraint::Base::setChildBody(Body::Base* child) {
   childBodyPointer_ = child;
   childBody_ = child->getFullyQualifiedName();
 }
 
-void Shift::Constraint::Base::setParentFramePointer(Frame* parent) {
+void Shift::Constraint::Base::setParentFrame(Frame* parent) {
   parentFramePointer_ = parent;
   parentFrame_ = parent->getFullyQualifiedName();
 }
 
-void Shift::Constraint::Base::setChildFramePointer(Frame* child) {
+void Shift::Constraint::Base::setChildFrame(Frame* child) {
   childFramePointer_ = child;
   childFrame_ = child->getFullyQualifiedName();
 }
