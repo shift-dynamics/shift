@@ -10,8 +10,9 @@ Motivations for moving to C++
 -----------------------------
 
 * Better organization of code
-* Easier for developers to create specializations of *Shift* objects to extend the code. Eventually I will support dynamic loading of user defined specializations so that users can create specializations without touching core code base.
-* Use C++ standard library (as opposed to custom stacks, linked lists and queues programmed in C). Simplifies development and debugging, especially for collaborators.
+* Easier for developers to create specializations of *Shift* objects to extend the code.
+* Support dynamic loading of user defined specializations so that users can create specializations without touching core code base.
+* Use C++ standard library (as opposed to custom stacks, linked lists and queues programmed in C). Simplifies development and debugging for collaborators and new developers.
 * Allows using other C++ libraries directly without having to develop interface to C code.
 
 Things to keep from C code
@@ -24,7 +25,7 @@ The *Shift* C++ refactor effort will follow a similar model. C++ classes will pr
 Layout of objects in *Shift*
 ----------------------------
 
-The layout of data within the *Shift* program follows the hierarchy below. The JSON input files follow a similar structure. See `external/models/bricard/bricard.json` for an example of a JSON file whose syntax has been updated to support the refactoring effort.
+The layout of data within the *Shift* program follows the hierarchy below. The JSON input files follow a similar structure. See ``external/models/bricard/bricard.json`` for an example of a JSON file whose syntax has been updated to support the refactoring effort.
 
 * Context
 
@@ -69,6 +70,32 @@ The layout of data within the *Shift* program follows the hierarchy below. The J
 
           * ...
 
+Changes to submodule layout
+---------------------------
+
+The layout of submodules in the previous version was:
+
+* shift (C++ GUI) - private
+  * shift-core (C command line application and C API) - private
+    * external/ksl (math library) - public
+    * external/libgeotiff (support for loading terrain files from geotiff format) - public
+  * shift-models (collection of *Shift* models) - public
+
+Due to licensing, the GUI was separated from the core code. However, after reconsideration, the ``shift`` and ``shift-gui`` modules will be merged together in the refactor effort to simplify the layout as:
+
+* shift (C++ GUI, C++ Command line interface and C++ API) - private
+  * external/shift-models (collection of models to display core functionality of *Shift* software, later these can be made into unit tests) - public
+  * external/ksl (math library) - public
+  * external/libgeotiff (support for loading terrain files from geotiff format) - public
+
+Other possible C++ submodules to added later:
+
+* stepcode - for loading step CAD files
+* vhacd - variable approximate convex hull decomposition
+* opensubdiv - load subdivision surfaces
+
+Some dependencies are provided as submodules if they are not readily available in package managers or if there is a requirement to lock the API to a specific release.
+
 Use of factory method to create *Shift* objects
 -----------------------------------------------
 
@@ -99,7 +126,7 @@ Terrain                ``Shift::Terrain::Base``            A special type of geo
 
 Specializations
 ***************
-So far, the following specializations of factory objects are part of the *Shift-core* code. Presently, most of these specializations are stubs, but will be filled out as I fill out the . The "created by user" column indicates whether a user of the software can create these modules in a model input file. *No* in this column indicates that these objects are created and used internally by the *Shift* code only.
+So far, the following specializations of factory objects are part of the *Shift-core* code. Presently, most of these specializations are stubs, but will be filled out as I continue moving code from C over to C++. The "created by user" column indicates whether a user of the software can create these modules in a model input file. *No* in this column indicates that these objects are created and used internally by the *Shift* code only.
 
 ``Shift::Body::Base``
 ^^^^^^^^^^^^^^^^^^^^^
