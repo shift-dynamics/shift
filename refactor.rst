@@ -153,8 +153,9 @@ For example, ``Shift::ForceModule::Tire::Fiala`` will inherit from ``Shift::Forc
 
 * `"type"` is a required keyword in JSON file.
 
+
 =================================== ================== ================ ============
-Class                              ``"type"`` keyword  Created by user? Description
+Class                               ``"type"`` keyword Created by user? Description
 ----------------------------------- ------------------ ---------------- ------------
 ``Shift::ForceModule::PID``         ``"pid"``          Yes              Specify a PID controller to match a desired set point for a joint position or velocity in a running simulation.
 ``Shift::ForceModule::Tire::Fiala`` ``"tire_fiala"``   Yes              Fiala tire contact model.
