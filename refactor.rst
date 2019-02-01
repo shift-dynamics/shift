@@ -38,26 +38,36 @@ The layout of data within the *Shift* program follows the hierarchy below. The J
     * Logger
 
   * Assembly
-     * Bodies
-       * Fixed Body
-         * Frames
-         * Lights
-         * Terrains
-     * Assemblies
-       * Assembly
-         * Bodies
-           * Body
-             * Frames
-             * Geometry
-             * Collision Geometry
-         * Lights
-         * Behaviors
-         * Constraint
-         * Joints
-         * Sensors
-         * Force Modules
-         * Assemblies
-           * ...
+
+    * Bodies
+
+      * Fixed Body
+
+        * Frames
+        * Lights
+        * Terrains
+
+    * Assemblies
+
+      * Assembly
+
+        * Bodies
+
+          * Body
+
+            * Frames
+            * Geometry
+            * Collision Geometry
+
+        * Lights
+        * Behaviors
+        * Constraint
+        * Joints
+        * Sensors
+        * Force Modules
+        * Assemblies
+
+          * ...
 
 Use of factory method to create *Shift* objects
 -----------------------------------------------
