@@ -76,14 +76,18 @@ Changes to submodule layout
 The layout of submodules in the previous version was:
 
 * shift (C++ GUI) - private
+
   * shift-core (C command line application and C API) - private
+
     * external/ksl (math library) - public
     * external/libgeotiff (support for loading terrain files from geotiff format) - public
+
   * shift-models (collection of *Shift* models) - public
 
 Due to licensing, the GUI was separated from the core code. However, after reconsideration, the ``shift`` and ``shift-gui`` modules will be merged together in the refactor effort to simplify the layout as:
 
 * shift (C++ GUI, C++ Command line interface and C++ API) - private
+
   * external/shift-models (collection of models to display core functionality of *Shift* software, later these can be made into unit tests) - public
   * external/ksl (math library) - public
   * external/libgeotiff (support for loading terrain files from geotiff format) - public
