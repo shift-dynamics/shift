@@ -291,7 +291,7 @@ The following example is intended for *Shift* developers. *Shift* creates a ``Sh
 
 *Shift* only interfaces with the rigid body specialization through the ``Shift::Body::Base`` base class. This allows other *body* specializations to be created without modifying the core *Shift* code.
 
-The above code creates a ``unique_ptr`` to a ``Shift::Body::Base`` class. Any `unique_ptr` created when loading from the JSON file are managed by the `Assembly` or `Body` class the Object is a member of. Any ``unique_ptr`` created automatically when preprocessing the system topology (for example automatically identifying chord constraints), are managed by the ```Context`` class. Raw pointers to those objects may be used by other *Shift* objects. Use of shared pointers is discouraged as it induces a performance penalty.
+The above code creates a ``unique_ptr`` to a ``Shift::Body::Base`` class. Any ``unique_ptr`` created when loading from the JSON file are managed by the ``Shift::Assembly`` or ``Shift::Body`` class the Object is a member of. Any ``unique_ptr`` created automatically when preprocessing the system topology (for example automatically identifying chord constraints), are managed by the ``Shift::Context`` class. Raw pointers to those objects may be used by other *Shift* objects. Shared pointers are not used due to additional overhead required to manage them.
 
 Note that in general, users of the *Shift* software would never create a *Rigid* body using the above code and needn't concern themselves with these implementation details. Instead, they would specify the system topology in a JSON file. In the example above, the default body ``type`` is ``rigid``. If the user does not specify a ``type`` in the JSON file, it is assumed that the type is rigid and only the keys associated with a ``rigid`` body are processed.
 
@@ -309,12 +309,12 @@ Each body specialization must have a unique keyword identifier. The keyword `rig
 Introspection
 -------------
 
-To provide a form of introspection, all *Shift* objects contain information about what keys in the model definition file map to what member objects in the class. This functionality is provided in the `Serialize` class which is a base class of all *Shift* objects.  At construction, each class calls the `addKeys()` member function which creates a map of keywords to the address of member objects within the class, descriptions of the various objects, information about the type of object and validation. Therefore, all *Shift* objects contain the information necessary to validate and serialize input data. For each supported file format, parsing functions need only be written once. When adding new specializations, it is only necessary to modify the `addKeys()` function to describe what keys in the input file map to what member objects.
+To provide a form of introspection, all *Shift* objects contain information about what keys in the model definition file map to what member objects in the class. This functionality is provided in the ``Shift::Serialize`` class which is a base class for all *Shift* objects.  At construction, each class calls the ``addKeys()`` member function which creates a map of keywords to the address of member objects within the class, descriptions of the various objects, information about the type of object and validation. Therefore, all *Shift* objects contain the information necessary to validate and serialize input data. For each supported file format, parsing functions need only be written once. When adding new specializations, it is only necessary to modify the ``addKeys()`` function to describe what keys in the input file map to what member objects.
 
 Example
 *******
 
-The following code demonstrates how keys are added to the `Shift::Body::Rigid` class.
+The following code demonstrates how keys are added to the ``Shift::Body::Rigid`` class.
 
 .. code-block:: c
 
