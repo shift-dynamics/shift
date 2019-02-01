@@ -116,6 +116,9 @@ public:
   void clearActiveTerrain();
   void clearActiveArrays();
   void connectActiveObjects();
+  std::vector<Shift::Joint::Base*>* getActiveJoints() {
+    return &activeJoints_;
+  }
   Behavior::Base* getBehavior(std::vector<std::string>&);
   Body::Base* getBody(std::vector<std::string>&);
   CollisionGeometry::Base* getCollisionGeometry(std::vector<std::string>&);
@@ -140,6 +143,15 @@ private:
   std::string filename_;
   Json::Value root_;
   std::string indentation_ = "  ";
+
+  class levelOrder {
+  public:
+    std::vector<Shift::Joint::Base*>* joints_;
+    bool operator()(int a,
+                    int b) {
+      return (*joints_)[a]->getLevel() < (*joints_)[b]->getLevel();
+    }
+  };
 
   std::vector<int> pcl_;
   std::vector<std::vector<int>> loopMembers_;
