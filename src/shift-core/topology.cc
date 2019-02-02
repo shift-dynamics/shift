@@ -51,3 +51,25 @@ bool Shift::Topology::inPath(std::vector<int>& pcl, int j, int k) {
   }
   return inPath;
 }
+
+bool Shift::Topology::isSubstructureHead(
+  int bodyIndex, std::vector<std::vector<int>>& substructures) {
+  for(auto substructure : substructures) {
+    if(bodyIndex == substructure[0]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Shift::Topology::isSubstructureMember(
+  int bodyIndex, std::vector<std::vector<int>>& substructures) {
+  for(auto substructure : substructures) {
+    for(auto member : substructure) {
+      if(bodyIndex == member) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
