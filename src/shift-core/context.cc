@@ -3,6 +3,7 @@
 #include <iostream>
 #include <list>
 #include <queue>
+#include <string.h>
 
 #include <json/json.h>
 
@@ -804,13 +805,9 @@ void Shift::Context::processPCL() {
 }
 
 void Shift::Context::processLoopMembers() {
-  std::vector<std::vector<int>> negativeLoopMembers;
-  std::vector<std::vector<int>> positiveLoopMembers;
-  std::vector<std::vector<int>> loopMembers;
-
-  negativeLoopMembers.resize(chordConstraints_.size());
-  positiveLoopMembers.resize(chordConstraints_.size());
-  loopMembers.resize(chordConstraints_.size());
+  std::vector<std::vector<int>> negativeLoopMembers(chordConstraints_.size());
+  std::vector<std::vector<int>> positiveLoopMembers(chordConstraints_.size());
+  std::vector<std::vector<int>> loopMembers(chordConstraints_.size());
 
   for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
     loopMembers[i].clear();
@@ -825,12 +822,14 @@ void Shift::Context::processLoopMembers() {
     loopMembers[i].push_back(positive);
     positiveLoopMembers[i].push_back(positive);
 
-    while(activeJoints_[positive]->getLevel() > activeJoints_[negative]->getLevel()) {
+    while(activeJoints_[positive]->getLevel() >
+          activeJoints_[negative]->getLevel()) {
       positive = pcl_[positive];
       loopMembers[i].push_back(positive);
       positiveLoopMembers[i].push_back(positive);
     }
-    while(activeJoints_[negative]->getLevel() > activeJoints_[positive]->getLevel()) {
+    while(activeJoints_[negative]->getLevel() >
+          activeJoints_[positive]->getLevel()) {
       negative = pcl_[negative];
       loopMembers[i].push_back(negative);
       negativeLoopMembers[i].push_back(negative);
@@ -850,7 +849,7 @@ void Shift::Context::processLoopMembers() {
 
   /* sort loop members in monotonically increasing level order */
   for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
-    std::sort(loopMembers[i].begin(), loopMembers[i].end(), levelOrder());
+    std::sort(loopMembers[i].begin(), loopMembers[i].end(), levelOrder(this));
   }
   loopMembers_ = loopMembers;
 
@@ -878,25 +877,25 @@ void Shift::Context::processLoopMembers() {
 void Shift::Context::detectSubstructures() {
   if(chordConstraints_.size() > 0) {
 
-    /* contains information about */
+    /* contains chord constraint indices */
     std::vector<std::vector<int>> substructures;
 
     /* create stack of all chordConstraint indices */
-    std::list<int> chordConstraints;
+    std::list<int> chordConstraintIndices;
     for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
-      chordConstraints.push_back(i);
+      chordConstraintIndices.push_back(i);
     }
 
-    int p_01[chordConstraints_.size()];
+    /* p_01 is used to permute chord loops here */
+    std::vector<int> p_01(chordConstraints_.size());
     int currentLoopIndex = 0;
     int substructureIndex = 0;
 
-
-    while(!chordConstraints.empty()) {
+    while(!chordConstraintIndices.empty()) {
 
       std::vector<int> substructure;
-      int chordConstraintIndex = chordConstraints.front();
-      chordConstraints.pop_front();
+      int chordConstraintIndex = chordConstraintIndices.front();
+      chordConstraintIndices.pop_front();
 
       substructure.push_back(chordConstraintIndex);
       p_01[currentLoopIndex++] = chordConstraintIndex;
@@ -904,11 +903,11 @@ void Shift::Context::detectSubstructures() {
       /* append first substructure to list of substructures */
       substructures.push_back(substructure);
 
-      auto it = chordConstraints.begin();
+      auto it = chordConstraintIndices.begin();
       int mergeCount = 1;
       while(mergeCount != 0) {
         mergeCount = 0;
-        while(!chordConstraints.empty()) {
+        while(!chordConstraintIndices.empty()) {
           /* base node of substructure */
           int baseNode = loopMembers_[substructure[0]][0];
           if(Shift::Topology::inPath(pcl_, loopMembers_[(*it)][0], baseNode)) {
@@ -917,14 +916,9 @@ void Shift::Context::detectSubstructures() {
                 for(auto mergeCandidateMember : loopMembers_[(*it)]) {
                   if(loopMember == mergeCandidateMember) {
                     substructure.push_back(*it);
-
-                    std::cout << "  appending loop " << (*it)
-                              << " to substructure " << substructureIndex
-                              << std::endl;
-
                     p_01[currentLoopIndex++] = (*it);
                     mergeCount++;
-                    it = chordConstraints.erase(it);
+                    it = chordConstraintIndices.erase(it);
                     goto endLoopMerge;
                   }
                 }
@@ -932,65 +926,168 @@ void Shift::Context::detectSubstructures() {
             }
           }
           it++;
-          endLoopMerge:
-            void(0);
+        endLoopMerge:
+          void(0);
         }
       }
       substructureIndex++;
     }
 
-    /* count unique members of each substructure and sort by increasing level
-    order
-    */
+    /* sort substructure members in monotonically increasing level order */
+    for(auto& substructure : substructures) {
+      std::sort(substructure.begin(), substructure.end(), levelOrder(this));
+    }
 
+    /* reorder loop members to follow substructure ordering */
+    std::vector<std::vector<int>> loopMembers(loopMembers_.size());
+    std::vector<std::vector<int>> negativeLoopMembers(
+      negativeLoopMembers_.size());
+    std::vector<std::vector<int>> positiveLoopMembers(
+      positiveLoopMembers_.size());
+    std::vector<Shift::Constraint::Chord*> chordConstraints(
+      chordConstraints_.size());
 
+    for(unsigned int i = 0; i < chordConstraints.size(); i++) {
+      loopMembers[i] = loopMembers_[p_01[i]];
+      negativeLoopMembers[i] = negativeLoopMembers_[p_01[i]];
+      positiveLoopMembers[i] = positiveLoopMembers_[p_01[i]];
+      chordConstraints[i] = chordConstraints_[p_01[i]];
+    }
 
-    // substructureHead = substructures->head;
-    //
-    // i = 0;
-    // while(substructureHead) {
-    //   s2_stacknode_t* loopIndex = substructureHead->value.stack->head;
-    //   s2_stack_t* stack = loopMembers[loopIndex->value];
-    //   // printf("\n");stack_Print(stack);printf("\n");
-    //   loopIndex = loopIndex->next;
-    //   while(loopIndex) {
-    //     s2_stacknode_t* next = loopIndex->next;
-    //
-    //     // printf("count: %d\n", stack->count);
-    //     s2_stack_merge(stack, loopMembers[loopIndex->value]);
-    //
-    //     // printf("\n");
-    //     // printf("count: %d\n", stack->count);
-    //     loopIndex = next;
-    //   }
-    //   // printf("\nprinting stack [%d]: count: %d\n", i, stack->count);
-    //   // stack_Print(stack);
-    //   // printf("\n");
-    //   context->substructureLoopCount[i] = stack->mergeCount + 1;
-    //   context->substructureMembersCount[i] = stack->count;
-    //   context->substructureMembers[i] = s2_stack_toArray(stack);
-    //   i++;
-    //   substructureHead = substructureHead->next;
-    // }
-    //
-    // /*
-    //   release memory for queues, stacks
-    // */
-    // s2_queue_free(substructures);
-    // free(loopMembers);
-    //
-    // // fprintf(debug, "\n## substructures / substructure members:\n");
-    // // for (int i = 0; i < context->substructureCount; i++) {
-    // //   fprintf(debug, "substructure: [%d] ", i);
-    // //   for (int j = 0; j < context->substructureMembersCount[i]; j++) {
-    // //     fprintf(debug, "%d ", context->substructureMembers[i][j]);
-    // //   }
-    // //   fprintf(debug, "\n");
-    // //   fprintf(debug,
-    // //     "number of loops in substructure: %d\n",
-    // //     context->substructureLoopCount[i]);
-    // // }
-    //
-    // topology_reorderLoops(context, p_01);
+    for(auto& substructure : substructures) {
+      for(unsigned int i = 0; i < substructure.size(); i++) {
+        substructure[i] = p_01[substructure[i]];
+      }
+    }
+
+    loopMembers_ = loopMembers;
+    negativeLoopMembers_ = negativeLoopMembers;
+    positiveLoopMembers_ = positiveLoopMembers;
+    chordConstraints_ = chordConstraints;
+
+    /* sort substructures in monotonically increasing level order by base node
+     */
+    std::sort(substructures.begin(), substructures.end(),
+              substructureLevelOrder(this));
+
+    /* reorder bodies and joints according to substructure assignments */
+
+    /* create a short list of body indices that are either not in any
+       substructure or are the head of a substructure; the short list
+       may contain the fixed body */
+    std::list<int> shortList;
+    for(int i = -1; i < activeJoints_.size(); i++) {
+      if(Shift::Topology::isSubstructureHead(i, substructures) ||
+         !Shift::Topology::isSubstructureMember(i, substructures)) {
+        shortList.push_back(i);
+      }
+    }
+
+    /* expand short list */
+    std::list<int> expandedList;
+    int i = 0;
+    int j = 0;
+
+    int value = shortList.front();
+    shortList.pop_front();
+    while(!shortList.empty()) {
+      if(!(std::find(expandedList.begin(), expandedList.end(), value) !=
+           expandedList.end())) {
+        i++;
+        expandedList.push_back(value);
+      }
+
+      /*
+        if j is head of a substructure, append substructure members only
+        if they are not already in the list,
+
+        check to make sure that j is less than total number of substructures
+
+        multiple substructures may be found at the same level, so we need to
+        increment through all substructures to find all of them
+      */
+      while(j < substructures.size() && value == substructures[j][0]) {
+        for(unsigned int k = 1; k < substructures[j].size(); k++) {
+
+          /* append substructure members only if they are not already in
+          the list */
+          if(!(std::find(expandedList.begin(), expandedList.end(),
+                         substructures[j][k]) != expandedList.end())) {
+            i++;
+            expandedList.push_back(substructures[j][k]);
+          }
+        }
+        j++;
+      }
+
+      value = shortList.front();
+      shortList.pop_front();
+    }
+
+    std::vector<int> expandedArray{std::begin(expandedList),
+                                   std::end(expandedList)};
+
+    /* verify that all joints were added to the expanded array */
+    bool found = true;
+    for(unsigned int i = 0; i < activeJoints_.size(); i++) {
+      found = false;
+      for(auto j : expandedArray) {
+        if(i == j) {
+          found = true;
+        }
+      }
+      if(!found) {
+        std::cerr << " not found! " << activeBodies_[i]->getName();
+      }
+    }
+    assert(found);
+
+    /* reorder bodies, joints and levels */
+    std::vector<Shift::Joint::Base*> activeJoints(activeJoints_.size());
+    std::vector<Shift::Body::Base*> activeBodies(activeBodies_.size());
+
+    j = 0;
+
+    /* initialize permutation arrays to permute bodies and joints from order
+     * originally loaded (p0) to order dictated by kinematic substructuring
+     * algorithm */
+    p_01.clear();
+    p_01.resize(activeJoints_.size());
+    std::vector<int> p_10(activeJoints_.size());
+    memset(&p_01, 0, activeJoints_.size() * sizeof(int));
+
+    for(int i = 0; i < expandedArray.size(); i++) {
+      if(expandedArray[i] != -1) {
+        p_01[j] = expandedArray[i];
+        activeJoints[j] = activeJoints_[expandedArray[i]];
+        activeBodies[j] = activeBodies_[expandedArray[i]];
+        activeBodies[j]->setIndex(j);
+        j++;
+      }
+    }
+    activeJoints_ = activeJoints;
+    activeBodies_ = activeBodies;
+
+    for(int i = 0; i < activeJoints.size(); i++) {
+      p_10[p_01[i]] = i;
+    }
+
+    for(auto& loop : loopMembers_) {
+      for(auto& i : loop) {
+        i = p_10[i];
+      }
+    }
+
+    for(auto& loop : negativeLoopMembers_) {
+      for(auto& i : loop) {
+        i = p_10[i];
+      }
+    }
+
+    for(auto& loop : positiveLoopMembers_) {
+      for(auto& i : loop) {
+        i = p_10[i];
+      }
+    }
   }
 }

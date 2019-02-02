@@ -46,6 +46,8 @@ public:
     : Base(name)
     , modelParameters_(name)
     , fixed_("fixed") {
+    levelOrder(this);
+    substructureLevelOrder(this);
     fixed_.setContext(this);
     initialize();
   }
@@ -53,6 +55,8 @@ public:
     : Base("")
     , modelParameters_("")
     , fixed_("fixed") {
+    levelOrder(this);
+    substructureLevelOrder(this);
     initialize();
   }
   ~Context() {}
@@ -144,12 +148,21 @@ private:
   Json::Value root_;
   std::string indentation_ = "  ";
 
-  class levelOrder {
-  public:
-    std::vector<Shift::Joint::Base*>* joints_;
-    bool operator()(int a,
-                    int b) {
+  struct levelOrder {
+    levelOrder(Context* context)
+      : joints_(context->getActiveJoints()) {}
+    const std::vector<Shift::Joint::Base*>* joints_;
+    bool operator()(const int& a, const int& b) {
       return (*joints_)[a]->getLevel() < (*joints_)[b]->getLevel();
+    }
+  };
+
+  struct substructureLevelOrder {
+    substructureLevelOrder(Context* context)
+      : joints_(context->getActiveJoints()) {}
+    const std::vector<Shift::Joint::Base*>* joints_;
+    bool operator()(const std::vector<int>& a, const std::vector<int>& b) {
+      return (*joints_)[a[0]]->getLevel() < (*joints_)[b[0]]->getLevel();
     }
   };
 
@@ -157,9 +170,11 @@ private:
   std::vector<std::vector<int>> loopMembers_;
   std::vector<std::vector<int>> positiveLoopMembers_;
   std::vector<std::vector<int>> negativeLoopMembers_;
+  std::vector<int> substructures_;
 
   std::vector<Behavior::Base*> activeBehaviors_;
   std::vector<Body::Base*> activeBodies_ = {};
+  std::vector<Body::Base*> activeFreeBodies_ = {};
   std::vector<CollisionGeometry::Base*> activeCollisionGeometry_;
   std::vector<Constraint::Base*> activeConstraints_;
   std::vector<ForceModule::Base*> activeForceModules_;
@@ -177,7 +192,7 @@ private:
   std::vector<std::unique_ptr<Constraint::Base>> constraints_;
   std::vector<std::unique_ptr<ForceModule::Base>> forcemodules_;
   std::vector<std::unique_ptr<Joint::Base>> joints_;
-};
+}; // namespace Shift
 
 } // namespace Shift
 

@@ -14,6 +14,10 @@ bool matchFullyQualifiedName(const std::vector<std::string>&,
 
 bool inPath(std::vector<int>& pcl, int j, int k);
 
+bool isSubstructureHead(int, std::vector<std::vector<int>>&);
+
+bool isSubstructureMember(int, std::vector<std::vector<int>>&);
+
 void freeRunTimeArrays();
 
 // count active objects (bodies/joints/lights/frames/io)\n");
