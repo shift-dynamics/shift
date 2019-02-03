@@ -33,7 +33,7 @@ bool Shift::Topology::matchFullyQualifiedName(
 
 /*!
 @brief Used to detect if k is in the kinematic path of j
-@param context a Context data structure
+@param pcl parent child list
 @param j index of body
 @param k index of second body to test
 */
@@ -52,16 +52,26 @@ bool Shift::Topology::inPath(std::vector<int>& pcl, int j, int k) {
   return inPath;
 }
 
+/*!
+@brief Detect if body/joint k is head of a substructure
+@param k index of body / joint
+@param list of substructure members
+*/
 bool Shift::Topology::isSubstructureHead(
-  int bodyIndex, std::vector<std::vector<int>>& substructures) {
+  int k, std::vector<std::vector<int>>& substructures) {
   for(auto substructure : substructures) {
-    if(bodyIndex == substructure[0]) {
+    if(k == substructure[0]) {
       return true;
     }
   }
   return false;
 }
 
+/*!
+@brief Detect if body/joint k is member of a substructure
+@param k index of body / joint
+@param list of substructure members
+*/
 bool Shift::Topology::isSubstructureMember(
   int bodyIndex, std::vector<std::vector<int>>& substructures) {
   for(auto substructure : substructures) {
