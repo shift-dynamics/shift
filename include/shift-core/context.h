@@ -46,8 +46,6 @@ public:
     : Base(name)
     , modelParameters_(name)
     , fixed_("fixed") {
-    levelOrder(this);
-    substructureLevelOrder(this);
     fixed_.setContext(this);
     initialize();
   }
@@ -55,8 +53,6 @@ public:
     : Base("")
     , modelParameters_("")
     , fixed_("fixed") {
-    levelOrder(this);
-    substructureLevelOrder(this);
     initialize();
   }
   ~Context() {}
@@ -148,6 +144,7 @@ private:
   Json::Value root_;
   std::string indentation_ = "  ";
 
+  /* sort members of a loop in monotonically level increasing order */
   struct levelOrder {
     levelOrder(Context* context)
       : joints_(context->getActiveJoints()) {}
@@ -157,12 +154,31 @@ private:
     }
   };
 
-  struct substructureLevelOrder {
-    substructureLevelOrder(Context* context)
-      : joints_(context->getActiveJoints()) {}
+  /* sort loops within a substructure by level order of base node */
+  struct substructureLoopLevelOrder {
+    substructureLoopLevelOrder(Context* context,
+                               const std::vector<std::vector<int>>& loopMembers)
+      : joints_(context->getActiveJoints())
+      , loopMembers_(loopMembers) {}
     const std::vector<Shift::Joint::Base*>* joints_;
+    const std::vector<std::vector<int>> loopMembers_;
+    bool operator()(const int& a, const int& b) {
+      return (*joints_)[loopMembers_[a][0]]->getLevel() <
+             (*joints_)[loopMembers_[b][0]]->getLevel();
+    }
+  };
+
+  /* sort substructures by level increasing order */
+  struct substructureLevelOrder {
+    substructureLevelOrder(Context* context,
+                           const std::vector<std::vector<int>>& loopMembers)
+      : joints_(context->getActiveJoints())
+      , loopMembers_(loopMembers) {}
+    const std::vector<Shift::Joint::Base*>* joints_;
+    const std::vector<std::vector<int>> loopMembers_;
     bool operator()(const std::vector<int>& a, const std::vector<int>& b) {
-      return (*joints_)[a[0]]->getLevel() < (*joints_)[b[0]]->getLevel();
+      return (*joints_)[loopMembers_[a[0]][0]]->getLevel() <
+             (*joints_)[loopMembers_[b[0]][0]]->getLevel();
     }
   };
 
