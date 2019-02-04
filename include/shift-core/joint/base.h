@@ -133,7 +133,7 @@ protected:
 
   Shift::Body::Base* parentBodyPointer_ = NULL; //!< pointer to parent Body
   Frame* parentFramePointer_ = NULL;            //!< pointer to parent Frame
-  Body::Base* childBodyPointer_ = NULL;         //!< pointer to child Body
+  Shift::Body::Base* childBodyPointer_ = NULL;  //!< pointer to child Body
   Frame* childFramePointer_ = NULL;             //!< pointer to child Frame
 
   double* q_0_ = NULL;  /*!< initial primitive displacement

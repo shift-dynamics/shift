@@ -50,11 +50,11 @@ public:
   virtual void connect();
   virtual void readJSON(Json::Value&);
 
-  void setParentBody(Body::Base*);
+  void setParentBody(Shift::Body::Base*);
 
   void setParentFrame(Frame*);
 
-  void setChildBody(Body::Base*);
+  void setChildBody(Shift::Body::Base*);
 
   void setChildFrame(Frame*);
 
@@ -82,14 +82,14 @@ protected:
 
   std::vector<std::vector<std::string>> bodyFramePairs_;
 
-  std::vector<std::string> parentBody_;  //!< descriptive name of parent Body
-  Body::Base* parentBodyPointer_ = NULL; //!< pointer to parent Body
+  std::vector<std::string> parentBody_; //!< descriptive name of parent Body
+  Shift::Body::Base* parentBodyPointer_ = NULL; //!< pointer to parent Body
 
   std::vector<std::string> parentFrame_; //!< descriptive name of parent Frame
   Frame* parentFramePointer_ = NULL;     //!< pointer to parent Frame
 
-  std::vector<std::string> childBody_;  //!< descriptive name of child Body
-  Body::Base* childBodyPointer_ = NULL; //!< pointer to child Body
+  std::vector<std::string> childBody_; //!< descriptive name of child Body
+  Shift::Body::Base* childBodyPointer_ = NULL; //!< pointer to child Body
 
   std::vector<std::string> childFrame_; //!< descriptive name of child frame
   Frame* childFramePointer_ = NULL;     //!< pointer to child Frame
