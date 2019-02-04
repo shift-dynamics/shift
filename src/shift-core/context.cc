@@ -38,6 +38,9 @@ void Shift::Context::readJSON(const std::string& filename) {
   connect();
   levelOrderSort();
   processVirtualBodies();
+  processPCL();
+  processLoopMembers();
+  // detectSubstructures();
   loadData();
 }
 
@@ -740,9 +743,24 @@ void Shift::Context::levelOrderSort() {
 }
 
 void Shift::Context::processVirtualBodies() {
-  chordConstraints_.clear();
-  chordConstraints_.resize(activeJoints_.size() - activeBodies_.size());
 
+  int i = 0;
+  for(auto joint : activeJoints_) {
+    std::cout << "[" << i++ << "]:" << joint->getName()
+              << " parent: " << joint->getParentBody()->getName()
+              << ", child: " << joint->getChildBody()->getName() << std::endl;
+  }
+
+  std::cout << "processVirtualBodies()" << std::endl;
+
+  i = 0;
+  // int i = 0;
+  for(auto body : activeBodies_) {
+    std::cout << "body[" << i++ << "]: " << body->getName() << std::endl;
+  }
+
+  chordConstraints_.clear();
+  chordConstraints_.reserve(activeJoints_.size() - activeBodies_.size());
   int j = 0;
   for(unsigned int i = activeBodies_.size(); i < activeJoints_.size();
       i++, j++) {
@@ -775,6 +793,11 @@ void Shift::Context::processVirtualBodies() {
 
     /* add virtual bodies and chord constraints to active lists */
     activeBodies_.push_back(virtualBody.get());
+
+    std::cout << "body [" << i << "]: " << activeBodies_[i]->getName()
+              << std::endl;
+    std::cout << "joint [" << i << "]: " << chordJoint->getName() << std::endl;
+
     activeConstraints_.push_back(constraint.get());
     chordConstraints_.push_back(chordConstraint);
 
@@ -788,31 +811,95 @@ void Shift::Context::processVirtualBodies() {
 void Shift::Context::processPCL() {
   for(unsigned int i = 0; i < activeBodies_.size(); i++) {
     activeBodies_[i]->setIndex(i);
+    std::cout << activeBodies_[i]->getName() << ": "
+              << activeBodies_[i]->getIndex() << std::endl;
   }
   pcl_.clear();
   pcl_.resize(activeJoints_.size());
   for(unsigned int i = 0; i < activeJoints_.size(); i++) {
     auto joint = activeJoints_[i];
     if(joint->getSense() == 1) {
-      pcl_[i] = joint->getParentBody()->getIndex();
+      if(joint->getParentBody()) {
+        std::cerr << "ParentBody: " << joint->getParentBody()->getName()
+                  << std::endl;
+        pcl_[i] = joint->getParentBody()->getIndex();
+      } else {
+        std::cerr << "Error: failed to find parent body of joint: "
+                  << joint->getName() << std::endl;
+      }
     } else if(joint->getSense() == -1) {
-      pcl_[i] = joint->getChildBody()->getIndex();
+      if(joint->getChildBody()) {
+        std::cerr << "ParentBody: " << joint->getChildBody()->getName()
+                  << std::endl;
+        pcl_[i] = joint->getChildBody()->getIndex();
+      } else {
+        std::cerr << "Error: failed to find child body of joint: "
+                  << joint->getName() << std::endl;
+      }
     } else {
       /* if a sense was not assigned, something didn't work correctly */
+      std::cerr << "Error: sense was not assigned correctly to joint: "
+                << joint->getName() << std::endl;
       pcl_[i] = -2;
     }
+  }
+
+  std::cout << "pcl: ";
+  for(auto i : pcl_) {
+    std::cout << i << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "parent list: " << std::endl;
+  for(unsigned int i = 0; i < pcl_.size(); i++) {
+    int parentIndex = pcl_[i];
+
+    std::cout << "body[" << i << "]: " << activeBodies_[i]->getName()
+              << ", parent: ";
+    if(parentIndex < 0) {
+      std::cout << "fixed";
+    } else {
+      std::cout << activeBodies_[parentIndex]->getName();
+    }
+    std::cout << ", " << activeJoints_[i]->getName() << std::endl;
   }
 }
 
 void Shift::Context::processLoopMembers() {
+  std::cout << "processLoopMembers()" << std::endl;
+
+  std::vector<std::vector<int>> loopMembers(chordConstraints_.size());
   std::vector<std::vector<int>> negativeLoopMembers(chordConstraints_.size());
   std::vector<std::vector<int>> positiveLoopMembers(chordConstraints_.size());
-  std::vector<std::vector<int>> loopMembers(chordConstraints_.size());
+
+  std::cout << "chordConstraints_.size(): " << chordConstraints_.size()
+            << std::endl;
 
   for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
+    std::cout << "processing chord constraint: " << i << std::endl;
     loopMembers[i].clear();
     negativeLoopMembers[i].clear();
     positiveLoopMembers[i].clear();
+
+    if(chordConstraints_[i] != NULL) {
+      std::cout << "chordConstraint: " << i << " found" << std::endl;
+    }
+
+    if(!chordConstraints_[i]->getParentBody()) {
+      std::cerr << "no parent body for chordConstraint: " << i << std::endl;
+    } else {
+      std::cout << "parent body for chordConstraint[" << i
+                << "]: " << chordConstraints_[i]->getParentBody()->getName()
+                << std::endl;
+    }
+
+    if(!chordConstraints_[i]->getChildBody()) {
+      std::cerr << "no child body for chordConstraint: " << i << std::endl;
+    } else {
+      std::cout << "child body for chordConstraint[" << i
+                << "]: " << chordConstraints_[i]->getChildBody()->getName()
+                << std::endl;
+    }
 
     int positive = chordConstraints_[i]->getParentBody()->getIndex();
     int negative = chordConstraints_[i]->getChildBody()->getIndex();
@@ -847,6 +934,23 @@ void Shift::Context::processLoopMembers() {
     positiveLoopMembers[i].pop_back();
   }
 
+  std::cout << "loop members before sorting:" << std::endl;
+  for(unsigned int i = 0; i < loopMembers.size(); i++) {
+    std::cout << "loop members [" << i << "]: " << std::endl;
+    for(auto member : loopMembers[i]) {
+      std::cout << "  " << activeBodies_[member]->getName() << std::endl;
+    }
+    std::cout << "negative loop members [" << i << "]: " << std::endl;
+    for(auto member : negativeLoopMembers[i]) {
+      std::cout << "  " << activeBodies_[member]->getName() << std::endl;
+    }
+    std::cout << "positive loop members [" << i << "]: " << std::endl;
+    for(auto member : positiveLoopMembers[i]) {
+      std::cout << "  " << activeBodies_[member]->getName() << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
   /* sort loop members in monotonically increasing level order */
   for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
     std::sort(loopMembers[i].begin(), loopMembers[i].end(), levelOrder(this));
@@ -872,9 +976,27 @@ void Shift::Context::processLoopMembers() {
       }
     }
   }
+
+  std::cout << "loop members" << std::endl;
+  for(unsigned int i = 0; i < loopMembers_.size(); i++) {
+    std::cout << "loop members [" << i << "]: " << std::endl;
+    for(auto member : loopMembers_[i]) {
+      std::cout << "  " << activeBodies_[member]->getName() << std::endl;
+    }
+    std::cout << "negative loop members [" << i << "]: " << std::endl;
+    for(auto member : negativeLoopMembers_[i]) {
+      std::cout << "  " << activeBodies_[member]->getName() << std::endl;
+    }
+    std::cout << "positive loop members [" << i << "]: " << std::endl;
+    for(auto member : positiveLoopMembers_[i]) {
+      std::cout << "  " << activeBodies_[member]->getName() << std::endl;
+    }
+    std::cout << std::endl;
+  }
 }
 
 void Shift::Context::detectSubstructures() {
+  std::cout << "detectSubstructures()" << std::endl;
   if(chordConstraints_.size() > 0) {
 
     /* detect substructures */
@@ -913,6 +1035,8 @@ void Shift::Context::detectSubstructures() {
         while(!chordConstraintIndices.empty()) {
           /* base node of substructure */
           int baseNode = loopMembers_[substructure[0]][0];
+          std::cout << "baseNode: " << baseNode << std::endl;
+          std::cout << "loopHead: " << loopMembers_[(*it)][0] << std::endl;
           if(Shift::Topology::inPath(pcl_, loopMembers_[(*it)][0], baseNode)) {
             for(auto loopIndex : substructure) {
               for(auto loopMember : loopMembers_[loopIndex]) {
@@ -930,7 +1054,8 @@ void Shift::Context::detectSubstructures() {
           }
           it++;
         endLoopMerge:
-          void(0);
+          std::cout << "substructure detected" << std::endl;
+          (void)0;
         }
       }
       substructureIndex++;
@@ -1052,7 +1177,7 @@ void Shift::Context::detectSubstructures() {
     for(unsigned int i = 0; i < activeJoints_.size(); i++) {
       found = false;
       for(auto j : expandedArray) {
-        if(i == j) {
+        if((int)i == j) {
           found = true;
         }
       }

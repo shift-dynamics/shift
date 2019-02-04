@@ -48,6 +48,7 @@ bool Shift::Topology::inPath(std::vector<int>& pcl, int j, int k) {
       break;
     }
     j = pcl[j];
+    std::cout << j << std::endl;
   }
   return inPath;
 }

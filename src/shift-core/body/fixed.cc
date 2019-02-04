@@ -23,8 +23,9 @@ void Shift::Body::Fixed::readJSON(Json::Value& value) {
   if(value["terrain"] && value["terrain"].isArray()) {
     for(unsigned int i = 0; i < value["terrain"].size(); i++) {
       std::string terrainType("basic");
-      if(value["terrain"]["type"] && value["terrain"]["type"].isString()) {
-        terrainType.assign(value["terrain"]["type"].asString());
+      if(value["terrain"][i]["type"] &&
+         value["terrain"][i]["type"].isString()) {
+        terrainType.assign(value["terrain"][i]["type"].asString());
       }
       auto terrain =
         Shift::Factory<Shift::Terrain::Base>::get()->create(terrainType);
