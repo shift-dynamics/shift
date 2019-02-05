@@ -687,7 +687,7 @@ void Shift::Context::levelOrderSort() {
   }
 
   while(!queue.empty()) {
-    Shift::Joint::Base* joint = queue.front();
+    auto joint = queue.front();
     queue.pop();
     Shift::Body::Base* body = NULL;
     if(joint->getSense() == 1) {
@@ -698,7 +698,7 @@ void Shift::Context::levelOrderSort() {
     joints.push_back(joint);
     assert(body);
 
-    /* find joints attached to joint's child body */
+    /* find any joints attached to joint's child body */
     it = activeJoints_.begin();
     while(it != activeJoints_.end()) {
       if((*it)->getParentBody() == body) {
@@ -717,29 +717,35 @@ void Shift::Context::levelOrderSort() {
     }
   }
 
+  bodies.clear();
+  //bodies.resize(activeBodies_.size());
+
+  for(unsigned int i = 0; i < activeJoints_.size(); i++) {
   /* reorder bodies to follow joint ordering */
-  for(auto joint : joints) {
+    auto& joint = joints[i];
     Shift::Body::Base* body = NULL;
-    if(joint->getSense() == 1) {
+    if(joint->getSense() > 0) {
       body = joint->getChildBody();
-    } else if(joint->getSense() == -1) {
+    } else {
       body = joint->getParentBody();
     }
     assert(body);
 
     for(auto it = activeBodies_.begin(); it != activeBodies_.end(); it++) {
       if((*it) == body) {
-        bodies.push_back(*it);
+        bodies_.push_back(*it);
         activeBodies_.erase(it);
         break;
       }
-      /* if the child body is not found here, then the body has already been
-       * added to the list */
     }
   }
-
+  
   activeBodies_ = bodies;
   activeJoints_ = joints;
+
+  for(unsigned int i = 0; i < activeJoints_.size(); i++) {
+    std::cout << "[" << i << "] " << activeJoints_[i]->getLevel() << " " << activeJoints_[i]->getName() << std::endl;
+  }
 }
 
 void Shift::Context::processVirtualBodies() {
@@ -862,6 +868,17 @@ void Shift::Context::processPCL() {
       std::cout << activeBodies_[parentIndex]->getName();
     }
     std::cout << ", " << activeJoints_[i]->getName() << std::endl;
+  }
+  
+  std::cout << std::endl << "# body / joint list: " << std::endl;
+  for(unsigned int i = 0; i < activeBodies_.size(); i++) {
+    std::cout << "[" << i << "]" << activeJoints_[i]->getName();
+   if(activeJoints_[i]->getSense() > 0) {
+     std::cout << " +";
+   } else {
+     std::cout << " -";
+   } 
+   std::cout << " " << activeBodies_[i]->getName() << std::endl;
   }
 }
 

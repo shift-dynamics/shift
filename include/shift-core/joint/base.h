@@ -72,17 +72,49 @@ public:
     return parentBodyPointer_;
   }
 
+  Shift::Body::Base* getSystemParentBody() {
+    if(sense > 0) {
+      return parentBodyPointer_;
+    } else {
+      return childBodyPointer_;
+    }
+  }
+
   Shift::Body::Base* getChildBody() {
     return childBodyPointer_;
+  }
+
+  Shift::Body::Base* getSystemChildBody() {
+    if(sense > 0) {
+      return childBodyPointer_;
+    } else {
+      return parentBodyPointer_;	
+    }
   }
 
   Shift::Frame* getParentFrame() {
     return parentFramePointer_;
   }
 
+  Shift::Frame* getSystemParentFrame() {
+    if(sense > 0) {
+      return parentFramePointer_;
+    } else {
+      return childFramePointer_;
+    }
+  }
+
   Shift::Frame* getChildFrame() {
     return childFramePointer_;
   }
+
+  Shift::Frame* getSystemChildFrame() {
+    if(sense > 0) {
+      return childFramePointer_;
+    } else {
+      return parentFramePointer_;
+    }
+  } 
 
   int getSense() {
     return sense_;
