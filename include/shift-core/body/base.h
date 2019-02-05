@@ -17,7 +17,7 @@
 namespace Shift {
 
 namespace Joint {
-class JointBase;
+class Base;
 }
 
 class Assembly;
@@ -74,7 +74,7 @@ public:
   void appendLight(std::unique_ptr<Light::Base>&);
   void appendGeometry(std::unique_ptr<Geometry::Base>&);
   void appendCollisionGeometry(std::unique_ptr<CollisionGeometry::Base>&);
-  Joint::JointBase* getParentJoint();
+
   Base* getParentBody();
   virtual void readJSON(Json::Value&);
   virtual void print();
@@ -84,17 +84,29 @@ public:
   void setActiveObjects(bool);
   Frame* getFrame(std::string);
   Frame* getOrigin();
+
   int getIndex() {
     return index_;
   }
+
   void setIndex(int index) {
     index_ = index;
   }
+
   int getLevel() {
     return level_;
   }
+
   void setLevel(int level) {
     level_ = level;
+  }
+
+  Joint::Base* getParentJoint() {
+    return parentJoint_;
+  }
+
+  void setParentJoint(Joint::Base* parent) {
+    parentJoint_ = parent;
   }
 
 protected:
@@ -110,6 +122,7 @@ protected:
   bool drawCollisionObjectEnabled_ = false;
   int index_ = -1;
   int level_ = -1;
+  Joint::Base* parentJoint_ = NULL;
 };
 
 class Modules {
