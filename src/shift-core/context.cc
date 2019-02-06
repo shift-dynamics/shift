@@ -36,11 +36,36 @@ void Shift::Context::readJSON(const std::string& filename) {
   setFullyQualifiedNames();
   setActiveObjects();
   connect();
+
+  /* set topology */
+
+  /* account for frames added for chord constraints and frames attached to fixed
+   * body
+   */
+  // setFramesInTree();
+  // mallocRunTimeArrays();
+  // mallocDHVAArrays();
   levelOrderSort();
   processVirtualBodies();
   processPCL();
   processLoopMembers();
   detectSubstructures();
+  processPCL();
+  // setReferenceFrames();
+  // setDVAIndex();
+  // copyDVA();
+  // compressRigidJoints();
+  // setParentJointPointers();
+  // countDHVA();
+  // setDHVAPointers();
+  // setFixedFrameGravityVector();
+  // updateDH();
+  // updateDHVA();
+  // setDReferenceFrames();
+  // initializeJointForces();
+  // initializeGLReferenceFrames();
+  // flattenForceModules();
+
   loadData();
 }
 
