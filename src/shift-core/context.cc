@@ -957,14 +957,20 @@ void Shift::Context::detectSubstructures() {
       chordConstraintIndices.push_back(i);
     }
 
+    std::cout << "chord constraint indices: ";
+    for(auto i : chordConstraintIndices) {
+      std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
     /* p_01 is used to permute chord loops here */
     std::vector<int> p_01(chordConstraints_.size());
     std::vector<int> p_10(chordConstraints_.size());
     int currentLoopIndex = 0;
-    int substructureIndex = 0;
 
     while(!chordConstraintIndices.empty()) {
 
+      std::cout << std::endl << "creating substructure: " << substructures.size() << std::endl;
       std::vector<int> substructure;
       int chordConstraintIndex = chordConstraintIndices.front();
       chordConstraintIndices.pop_front();
@@ -973,22 +979,26 @@ void Shift::Context::detectSubstructures() {
       p_01[currentLoopIndex++] = chordConstraintIndex;
 
       /* append first substructure to list of substructures */
-      substructures.push_back(substructure);
-
       auto it = chordConstraintIndices.begin();
       int mergeCount = 1;
       while(mergeCount != 0) {
         mergeCount = 0;
-        while(!chordConstraintIndices.empty()) {
+        while(it != chordConstraintIndices.end()) {
           /* base node of substructure */
           int baseNode = loopMembers_[substructure[0]][0];
           std::cout << "baseNode: " << baseNode << std::endl;
           std::cout << "loopHead: " << loopMembers_[(*it)][0] << std::endl;
           if(Shift::Topology::inPath(pcl_, loopMembers_[(*it)][0], baseNode)) {
+            // std::cout << "  in path!" << std::endl;
             for(auto loopIndex : substructure) {
-              for(auto loopMember : loopMembers_[loopIndex]) {
-                for(auto mergeCandidateMember : loopMembers_[(*it)]) {
-                  if(loopMember == mergeCandidateMember) {
+              for(auto loopMember = loopMembers_[loopIndex].begin() + 1;
+                loopMember < loopMembers_[loopIndex].end();
+                ++loopMember) {
+                for(auto mergeCandidateMember = loopMembers_[(*it)].begin() + 1;
+                  mergeCandidateMember < loopMembers_[(*it)].end();
+                  ++mergeCandidateMember) {
+                  if(*loopMember == *mergeCandidateMember) {
+                    // std::cout << "  appending " << *it << " to substructure " << substructures.size() << std::endl;
                     substructure.push_back(*it);
                     p_01[currentLoopIndex++] = (*it);
                     mergeCount++;
@@ -1001,11 +1011,11 @@ void Shift::Context::detectSubstructures() {
           }
           it++;
         endLoopMerge:
-          std::cout << "substructure detected" << std::endl;
           (void)0;
         }
       }
-      substructureIndex++;
+      substructures.push_back(substructure);
+      // std::cout << "substructure count: " << substructures.size() << std::endl;
     }
 
     /* sort loops of each substructure in monotonically increasing level order
@@ -1014,6 +1024,17 @@ void Shift::Context::detectSubstructures() {
       std::sort(substructure.begin(), substructure.end(),
                 substructureLoopLevelOrder(this, loopMembers_));
     }
+
+    int index = 0;
+    for(auto& substructure : substructures) {
+      std::cout << "[" << index++ << "]: ";
+      for(auto i : substructure) {
+        std::cout << i << " ";
+      }
+      std::cout << std::endl;
+    }
+
+
 
     /* sort substructures in monotonically level increasing order */
     std::sort(substructures.begin(), substructures.end(),
@@ -1036,6 +1057,16 @@ void Shift::Context::detectSubstructures() {
       /* sort substructure members in level increasing order */
       std::sort(substructureMembers[i].begin(), substructureMembers[i].end(),
                 levelOrder(this));
+    }
+
+    std::cout << "substructures:" << std::endl;
+    unsigned int i = 0;
+    for(auto& members : substructureMembers) {
+      std::cout << "  [" << i++ << "]: " << std::endl;
+       for(auto& member : members) {
+         std::cout << member << " ";
+       }
+       std::cout << std::endl;
     }
 
     /* reorder loops */
@@ -1102,9 +1133,10 @@ void Shift::Context::detectSubstructures() {
     int value = shortList.front();
     shortList.pop_front();
     while(!shortList.empty()) {
-      if(!(std::find(expandedList.begin(), expandedList.end(), value) !=
-           expandedList.end())) {
+      if(std::find(expandedList.begin(), expandedList.end(), value) ==
+           expandedList.end()) {
         expandedList.push_back(value);
+        std::cout << "  appending " << value << " to expanded list" << std::endl;
       }
 
       /*
@@ -1117,13 +1149,13 @@ void Shift::Context::detectSubstructures() {
         increment through all substructures to find all of them
       */
       while(j < substructures.size() && value == substructures[j][0]) {
-        for(unsigned int k = 1; k < substructures[j].size(); k++) {
+        for(unsigned int k = 1; k < substructureMembers[j].size(); k++) {
 
           /* append substructure members only if they are not already in
           the list */
-          if(!(std::find(expandedList.begin(), expandedList.end(),
-                         substructures[j][k]) != expandedList.end())) {
-            expandedList.push_back(substructures[j][k]);
+          if(std::find(expandedList.begin(), expandedList.end(),
+                         substructureMembers[j][k]) == expandedList.end()) {
+            expandedList.push_back(substructureMembers[j][k]);
           }
         }
         j++;
