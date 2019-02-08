@@ -8,6 +8,7 @@
 
 #include "shift-core/assembly.h"
 #include "shift-core/base.h"
+#include "shift-core/joint/base.h"
 #include "shift-core/modelparameters.h"
 
 namespace Shift {
@@ -129,6 +130,12 @@ public:
   Light::Base* getLight(std::vector<std::string>&);
   Sensor::Base* getSensor(std::vector<std::string>&);
   Terrain::Base* getTerrain(std::vector<std::string>&);
+  inline const ksl_SE3_t* getDWRTReference() const {
+    return dWRTReference_;
+  }
+  inline const double* getJointData() const {
+    return jointData_;
+  }
 
 private:
   void initialize();
@@ -144,13 +151,18 @@ private:
   Json::Value root_;
   std::string indentation_ = "  ";
 
+  ksl_SE3_t* dWRTReference_ = NULL;
+  double* jointData_ = NULL;
+
   /* sort members of a loop in monotonically level increasing order */
   struct levelOrder {
     levelOrder(Context* context)
       : joints_(context->getActiveJoints()) {}
     const std::vector<Shift::Joint::Base*>* joints_;
     bool operator()(const int& a, const int& b) {
-      return (*joints_)[a]->getLevel() < (*joints_)[b]->getLevel();
+      int a_level = (a == -1) ? 0 : (*joints_)[a]->getLevel();
+      int b_level = (b == -1) ? 0 : (*joints_)[b]->getLevel();
+      return a_level < b_level;
     }
   };
 

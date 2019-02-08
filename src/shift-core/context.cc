@@ -737,8 +737,16 @@ void Shift::Context::processVirtualBodies() {
 
   std::vector<Shift::Body::Base*> bodies(activeJoints_.size());
 
+  std::cout << activeJoints_.size() << std::endl;
+  std::cout << activeBodies_.size() << std::endl;
+  for(auto& body : activeBodies_) {
+    std::cout << "body: " << body->getName() << std::endl;
+  }
+  // assert(activeJoints_.size() >= activeBodies_.size());
+
+  std::cout << activeJoints_.size() - activeBodies_.size() << std::endl;
+
   chordConstraints_.clear();
-  chordConstraints_.reserve(activeJoints_.size() - activeBodies_.size());
   int j = 0;
   for(unsigned int i = 0; i < activeJoints_.size(); i++) {
 

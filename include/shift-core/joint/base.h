@@ -9,6 +9,7 @@
 #include "shift-core/base.h"
 #include "shift-core/serialize.h"
 
+#include "ksl/SE3.h"
 #include "ksl/screw.h"
 
 namespace Shift {
@@ -23,6 +24,18 @@ class Context;
 class Assembly;
 
 namespace Joint {
+
+struct DHVA {
+  ksl_SE3_t* d;    /*!< array of displacements equal
+                        in size to number of frames */
+  double* dc;      /*!< direction cosine arrays */
+  ksl_screw_t* h;  /*!< an array of influence coefficient matrices equal to the
+                        6 * number of variables in the datastructure */
+  ksl_screw_t* v;  /*!< an array of body velocities equal to the
+                        number of variables in the datastructure */
+  ksl_screw_t* aq; /*!< an array of body accelerations equal to the
+                        number of variables in the datastructure */
+};
 
 /*!
 @brief Abstract Shift::Joint base class

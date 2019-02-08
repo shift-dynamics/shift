@@ -7,6 +7,38 @@ namespace Shift {
 
 namespace Joint {
 
+struct DHVA;
+
+void rx_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void rxinv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void ry_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void ryinv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void rz_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void rzinv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void rx_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+             const double*);
+
+void rxinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+                const double*);
+
+void ry_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+             const double*);
+
+void ryinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+                const double*);
+
+void rz_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+             const double*);
+
+void rzinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+                const double*);
+
 class Revolute : public Base {
 public:
   Revolute()
