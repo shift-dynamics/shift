@@ -7,6 +7,18 @@ namespace Shift {
 
 namespace Joint {
 
+struct DHVA;
+
+void spherical_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void sphericalinv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void spherical_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+                    const double*);
+
+void sphericalinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+                       const double*);
+
 class Spherical : public Base {
 public:
   Spherical()
