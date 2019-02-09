@@ -80,6 +80,9 @@ public:
 
 private:
   static bool registered_;
+  ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};
+  double initialDisplacement_ = 0.0;
+  double initialVelocity_ = 0.0;
 };
 
 } // namespace Joint
