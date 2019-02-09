@@ -38,6 +38,15 @@ void rz_dhva(const Shift::Context&, DHVA&, const int*, const double*,
 
 void rzinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
                 const double*);
+void ra_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void rainv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+
+void ra_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+             const double*);
+
+void rainv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+                const double*);
 
 class Revolute : public Base {
 public:
@@ -62,6 +71,12 @@ public:
   void updateD();
   void updateDH();
   void updateDHVA();
+  double getInitialVelocity() {
+    return initialVelocity_;
+  }
+  double getInitialDisplacement() {
+    return initialDisplacement_;
+  }
 
   static bool isRegistered() {
     return registered_;
@@ -69,6 +84,9 @@ public:
 
 private:
   static bool registered_;
+  ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};
+  double initialDisplacement_ = 0.0;
+  double initialVelocity_ = 0.0;
 };
 
 } // namespace Joint
