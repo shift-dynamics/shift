@@ -19,14 +19,14 @@ Updates displacement and influence coefficient matrices
        and accelerations.
 */
 void Shift::Joint::float_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                            const int* __restrict__ offsets,
+                            const Shift::Joint::Offsets& offsets,
                             const double* __restrict__ q) {
-  ksl_SE3_t* dParent = dhva.d + offsets[0];
-  ksl_SE3_t* dChild = dhva.d + offsets[1];
-  ksl_vec3_t* t = (ksl_vec3_t*)(q + offsets[2]);
-  ksl_quaternion_t* quat = (ksl_quaternion_t*)(q + offsets[2] + 3);
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_vec3_t* t = (ksl_vec3_t*)(q + offsets.q);
+  ksl_quaternion_t* quat = (ksl_quaternion_t*)(q + offsets.q + 3);
   ksl_SE3_t temp;
-  ksl_screw_t* h = dhva.h + offsets[3];
+  ksl_screw_t* h = dhva.h + offsets.dq;
 
   ksl_quaternion_toMat3x3(quat, &temp.R);
   ksl_product_drdr(&dParent->R, &temp.R, &dChild->R);
@@ -61,21 +61,21 @@ Total: 6
 */
 void Shift::Joint::float_dhva(const Shift::Context& context,
                               Shift::Joint::DHVA& dhva,
-                              const int* __restrict__ offsets,
+                              const Shift::Joint::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
 
   Shift::Joint::float_dh(context, dhva, offsets, q);
 
-  ksl_SE3_t* dChild = dhva.d + offsets[1];
-  ksl_screw_t* vPrimitive = (ksl_screw_t*)(dq + offsets[3]);
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_screw_t* vPrimitive = (ksl_screw_t*)(dq + offsets.dq);
   ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vParent = dhva.v + offsets[4];
-  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
+  ksl_screw_t* vChild = dhva.v + offsets.child.v;
 
-  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
   ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets[5];
+  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
 
   ksl_product_Ads(dChild, vPrimitive, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -93,14 +93,15 @@ Updates displacement and influence coefficient matrices
        and accelerations.
 */
 void Shift::Joint::floatinv_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                               const int* __restrict__ offsets,
+                               const Shift::Joint::Offsets& offsets,
                                const double* __restrict__ q) {
-  ksl_SE3_t* dParent = dhva.d + offsets[0];
-  ksl_SE3_t* dChild = dhva.d + offsets[1];
-  ksl_vec3_t* t = (ksl_vec3_t*)(q + offsets[2]);
-  ksl_quaternion_t* quat = (ksl_quaternion_t*)(q + offsets[2] + 3);
+
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_vec3_t* t = (ksl_vec3_t*)(q + offsets.q);
+  ksl_quaternion_t* quat = (ksl_quaternion_t*)(q + offsets.q + 3);
   ksl_SE3_t temp;
-  ksl_screw_t* h = dhva.h + offsets[3];
+  ksl_screw_t* h = dhva.h + offsets.dq;
 
   ksl_quaternion_toMat3x3(quat, &temp.R);
   ksl_product_drdrinv(&dParent->R, &temp.R, &dChild->R);
@@ -126,20 +127,20 @@ velocities and accelerations
 */
 void Shift::Joint::floatinv_dhva(const Shift::Context& context,
                                  Shift::Joint::DHVA& dhva,
-                                 const int* __restrict__ offsets,
+                                 const Shift::Joint::Offsets& offsets,
                                  const double* __restrict__ q,
                                  const double* __restrict__ dq) {
   Shift::Joint::floatinv_dh(context, dhva, offsets, q);
 
-  ksl_SE3_t* dChild = dhva.d + offsets[1];
-  ksl_screw_t* vPrimitive = (ksl_screw_t*)(dq + offsets[3]);
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_screw_t* vPrimitive = (ksl_screw_t*)(dq + offsets.dq);
   ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vParent = dhva.v + offsets[4];
-  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
+  ksl_screw_t* vChild = dhva.v + offsets.child.v;
 
-  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
   ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets[5];
+  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
 
   ksl_product_Adsinv(dChild, vPrimitive, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);

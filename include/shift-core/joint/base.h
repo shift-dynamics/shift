@@ -37,10 +37,27 @@ struct DHVA {
                         number of variables in the datastructure */
 };
 
-typedef void (*dh_fptr)(const Shift::Context&, DHVA&, const int*,
+struct Offsets {
+  union {
+    unsigned int dc;
+    unsigned int q;
+  };
+  unsigned int dq;
+  struct {
+    unsigned int d;
+    unsigned int v;
+  } parent;
+  struct {
+    unsigned int d;
+    unsigned int v;
+  } child;
+  unsigned int data;
+};
+
+typedef void (*dh_fptr)(const Shift::Context&, DHVA&, const Offsets&,
                         const double*);
 
-typedef void (*dhva_fptr)(const Shift::Context&, DHVA&, const int*,
+typedef void (*dhva_fptr)(const Shift::Context&, DHVA&, const Offsets&,
                           const double*, const double*);
 
 /*!
