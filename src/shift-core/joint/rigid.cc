@@ -20,12 +20,12 @@ Updates displacement and influence coefficient matrices
        and accelerations.
 */
 void Shift::Joint::rigid_dh(const Shift::Context& context,
-                            Shift::Joint::DHVA& dhvaPointers,
-                            const int* __restrict__ dhvaOffsets,
+                            Shift::Joint::DHVA& dhva,
+                            const int* __restrict__ offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + dhvaOffsets[1];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
+  ksl_SE3_t* dParent = dhva.d + offsets[0];
+  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets[1];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
 
   ksl_product_dd(dParent, dPrimitive, dChild);
 }
@@ -41,12 +41,12 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rigid_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhvaPointers,
-                              const int* __restrict__ dhvaOffsets,
+                              Shift::Joint::DHVA& dhva,
+                              const int* __restrict__ offsets,
                               const double* __restrict__ q,
                               const double* __restrict__) {
 
-  Shift::Joint::rigid_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::rigid_dh(context, dhva, offsets, q);
 }
 
 /*!
@@ -59,12 +59,12 @@ Updates displacement and influence coefficient matrices
        and accelerations.
 */
 void Shift::Joint::rigidinv_dh(const Shift::Context& context,
-                               Shift::Joint::DHVA& dhvaPointers,
-                               const int* __restrict__ dhvaOffsets,
+                               Shift::Joint::DHVA& dhva,
+                               const int* __restrict__ offsets,
                                const double* __restrict__) {
-  ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + dhvaOffsets[1];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[2];
+  ksl_SE3_t* dParent = dhva.d + offsets[0];
+  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets[1];
+  ksl_SE3_t* dChild = dhva.d + offsets[2];
 
   ksl_product_ddinv(dParent, dPrimitive, dChild);
 }
@@ -80,19 +80,37 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rigidinv_dhva(const Shift::Context& context,
-                                 Shift::Joint::DHVA& dhvaPointers,
-                                 const int* __restrict__ dhvaOffsets,
+                                 Shift::Joint::DHVA& dhva,
+                                 const int* __restrict__ offsets,
                                  const double* __restrict__ q,
                                  const double* __restrict__) {
-  Shift::Joint::rigidinv_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::rigidinv_dh(context, dhva, offsets, q);
 }
 
 void Shift::Joint::Rigid::addKeys() {
   Shift::Joint::Base::addKeys();
 }
 
-void Shift::Joint::Rigid::updateD() {}
+void Shift::Joint::Rigid::readJSON(Json::Value& value) {
+  Shift::Joint::Base::readJSON(value);
+  frame_.setNameRequired(false);
+  if(value["initial_displacement"]) {
+    frame_.readJSON(value["initial_displacement"]);
+  }
+}
 
-void Shift::Joint::Rigid::updateDH() {}
+Shift::Joint::dh_fptr Shift::Joint::Rigid::getDH() {
+  if(sense_ >= 0) {
+    return rigid_dh;
+  } else {
+    return rigidinv_dh;
+  }
+}
 
-void Shift::Joint::Rigid::updateDHVA() {}
+Shift::Joint::dhva_fptr Shift::Joint::Rigid::getDHVA() {
+  if(sense_ >= 0) {
+    return rigid_dhva;
+  } else {
+    return rigidinv_dhva;
+  }
+}

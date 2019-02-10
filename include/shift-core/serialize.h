@@ -43,6 +43,14 @@ public:
               const int rowDim = 1, const int colDim = 1);
   ~SerialEntry();
 
+  std::string getKey() {
+    return key_;
+  }
+
+  std::string getDescription() {
+    return description_;
+  }
+
   bool isRequired() {
     return required_;
   }

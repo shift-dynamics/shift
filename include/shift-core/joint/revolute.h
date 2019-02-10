@@ -53,40 +53,41 @@ public:
   Revolute()
     : Base() {
     dof_ = 1;
-    q_0_ = new double[dof_];
-    dq_0_ = new double[dof_];
+    qCount_ = 1;
+    dqCount_ = 1;
+    dcCount_ = 1;
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
   }
   Revolute(std::string name)
     : Base(name) {
     dof_ = 1;
-    q_0_ = new double[dof_];
-    dq_0_ = new double[dof_];
+    qCount_ = 1;
+    dqCount_ = 1;
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
   }
   ~Revolute() {
     delete q_0_;
     delete dq_0_;
   }
   static std::unique_ptr<Revolute> create();
-  void addKeys();
-  void updateD();
-  void updateDH();
-  void updateDHVA();
-  double getInitialVelocity() {
-    return initialVelocity_;
-  }
-  double getInitialDisplacement() {
-    return initialDisplacement_;
-  }
-
   static bool isRegistered() {
     return registered_;
   }
 
+  virtual const double* getData();
+  virtual unsigned int getDataCount();
+
+  void addKeys();
+  dh_fptr getDH();
+  dhva_fptr getDHVA();
+
 private:
+  enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };
   static bool registered_;
   ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};
-  double initialDisplacement_ = 0.0;
-  double initialVelocity_ = 0.0;
+  AxisType getAxisType();
 };
 
 } // namespace Joint

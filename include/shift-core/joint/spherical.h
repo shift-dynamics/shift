@@ -1,6 +1,7 @@
 #ifndef SHIFT_JOINT_SPHERICAL_H_
 #define SHIFT_JOINT_SPHERICAL_H_
 
+#include "shift-core/frame.h"
 #include "shift-core/joint/base.h"
 
 namespace Shift {
@@ -24,14 +25,18 @@ public:
   Spherical()
     : Base() {
     dof_ = 3;
-    q_0_ = new double[dof_ + 1];
-    dq_0_ = new double[dof_];
+    qCount_ = 4;
+    dqCount_ = 3;
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
   }
   Spherical(std::string name)
     : Base(name) {
     dof_ = 3;
-    q_0_ = new double[dof_ + 1];
-    dq_0_ = new double[dof_];
+    qCount_ = 4;
+    dqCount_ = 3;
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
   }
   ~Spherical() {
     delete q_0_;
@@ -39,18 +44,19 @@ public:
   }
 
   static std::unique_ptr<Spherical> create();
-
-  void addKeys();
-  void updateD();
-  void updateDH();
-  void updateDHVA();
-
   static bool isRegistered() {
     return registered_;
   }
 
+  void addKeys();
+  virtual void readJSON(Json::Value&);
+
+  dh_fptr getDH();
+  dhva_fptr getDHVA();
+
 private:
   static bool registered_;
+  Shift::Frame frame_;
 };
 
 } // namespace Joint

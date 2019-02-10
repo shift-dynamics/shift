@@ -1,6 +1,7 @@
 #ifndef SHIFT_JOINT_RIGID_H_
 #define SHIFT_JOINT_RIGID_H_
 
+#include "shift-core/frame.h"
 #include "shift-core/joint/base.h"
 
 namespace Shift {
@@ -22,34 +23,27 @@ void rigidinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
 class Rigid : public Base {
 public:
   Rigid()
-    : Base() {
-    dof_ = 0;
-    q_0_ = NULL;
-    dq_0_ = NULL;
-  }
+    : Base() {}
 
   Rigid(std::string name)
-    : Base(name) {
-    dof_ = 0;
-    q_0_ = NULL;
-    dq_0_ = NULL;
-  }
+    : Base(name) {}
 
   ~Rigid() {}
 
   static std::unique_ptr<Rigid> create();
-
-  void addKeys();
-  void updateD();
-  void updateDH();
-  void updateDHVA();
-
   static bool isRegistered() {
     return registered_;
   }
 
+  void addKeys();
+  virtual void readJSON(Json::Value&);
+
+  dh_fptr getDH();
+  dhva_fptr getDHVA();
+
 private:
   static bool registered_;
+  Shift::Frame frame_;
 };
 
 } // namespace Joint

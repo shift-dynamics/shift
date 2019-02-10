@@ -84,6 +84,9 @@ public:
   void setActiveObjects(bool);
   Frame* getFrame(std::string);
   Frame* getOrigin();
+  unsigned int getFrameCount() {
+    return frames_.size();
+  }
 
   int getIndex() {
     return index_;
@@ -97,6 +100,10 @@ public:
     return level_;
   }
 
+  const std::vector<Shift::Frame>* getFrames() {
+    return &frames_;
+  }
+
   void setLevel(int level) {
     level_ = level;
   }
@@ -105,12 +112,17 @@ public:
     return parentJoint_;
   }
 
-  void setParentJoint(Joint::Base* parent) {
-    parentJoint_ = parent;
+  void setParentJoint(Joint::Base*);
+
+  bool getIsArticulated() {
+    return isArticulated_;
   }
 
 protected:
   std::string type_;
+  bool isArticulated_ = true; /*!< indicates whether body may have joints
+                                 attached to it, i.e. that it is a member of an
+                                 articulated assembly of bodies */
   Assembly* assembly_ = NULL; /*!< Pointer to assembly that this body is a
                                   member of. */
   Context* context_ = NULL;
@@ -123,6 +135,7 @@ protected:
   int index_ = -1;
   int level_ = -1;
   Joint::Base* parentJoint_ = NULL;
+  Shift::Frame* referenceFrame_ = NULL;
 };
 
 class Modules {

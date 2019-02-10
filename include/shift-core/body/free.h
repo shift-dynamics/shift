@@ -14,11 +14,13 @@ public:
   Free()
     : Base() {
     addKeys();
+    isArticulated_ = false;
   }
 
   Free(std::string name)
     : Base(name) {
     addKeys();
+    isArticulated_ = false;
   }
 
   ~Free() {}

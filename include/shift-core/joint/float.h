@@ -1,6 +1,7 @@
 #ifndef SHIFT_JOINT_FLOAT_H_
 #define SHIFT_JOINT_FLOAT_H_
 
+#include "shift-core/frame.h"
 #include "shift-core/joint/base.h"
 
 namespace Shift {
@@ -24,32 +25,38 @@ public:
   Float()
     : Base() {
     dof_ = 6;
-    q_0_ = new double[dof_ + 1];
-    dq_0_ = new double[dof_];
+    qCount_ = 7;
+    dqCount_ = 6;
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
   }
   Float(std::string name)
     : Base(name) {
     dof_ = 6;
-    q_0_ = new double[dof_ + 1];
-    dq_0_ = new double[dof_];
+    qCount_ = 7;
+    dqCount_ = 6;
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
   }
   ~Float() {
     delete q_0_;
     delete dq_0_;
   }
 
-  void addKeys();
-  void updateD();
-  void updateDH();
-  void updateDHVA();
   static std::unique_ptr<Float> create();
-
   static bool isRegistered() {
     return registered_;
   }
 
+  void addKeys();
+  virtual void readJSON(Json::Value&);
+
+  dh_fptr getDH();
+  dhva_fptr getDHVA();
+
 private:
   static bool registered_;
+  Shift::Frame frame_;
 };
 
 } // namespace Joint

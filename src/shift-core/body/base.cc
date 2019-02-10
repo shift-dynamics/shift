@@ -104,6 +104,7 @@ void Shift::Body::Base::readJSON(Json::Value& value) {
 
 void Shift::Body::Base::appendFrame(Frame& frame) {
   frames_.push_back(frame);
+  context_->appendFrame(&frames_.back());
 }
 
 void Shift::Body::Base::appendLight(
@@ -194,6 +195,17 @@ Shift::Frame* Shift::Body::Base::getFrame(std::string name) {
     }
   }
   return NULL;
+}
+
+void Shift::Body::Base::setParentJoint(Shift::Joint::Base* parent) {
+  parentJoint_ = parent;
+  auto referenceFrame = parentJoint_->getSystemChildFrame();
+  for(auto& frame : frames_) {
+    if(&frame == referenceFrame) {
+      frame.setIsReference(true);
+    }
+    frame.setIsReference(false);
+  }
 }
 
 void Shift::Body::Base::load() {}
