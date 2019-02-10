@@ -21,11 +21,11 @@ Updates displacement and influence coefficient matrices
 */
 void Shift::Joint::rigid_dh(const Shift::Context& context,
                             Shift::Joint::DHVA& dhva,
-                            const int* __restrict__ offsets,
+                            const Shift::Joint::Offsets& offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets[0];
-  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets[1];
-  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets.q;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
 
   ksl_product_dd(dParent, dPrimitive, dChild);
 }
@@ -42,7 +42,7 @@ velocities and accelerations
 */
 void Shift::Joint::rigid_dhva(const Shift::Context& context,
                               Shift::Joint::DHVA& dhva,
-                              const int* __restrict__ offsets,
+                              const Shift::Joint::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__) {
 
@@ -60,11 +60,11 @@ Updates displacement and influence coefficient matrices
 */
 void Shift::Joint::rigidinv_dh(const Shift::Context& context,
                                Shift::Joint::DHVA& dhva,
-                               const int* __restrict__ offsets,
+                               const Shift::Joint::Offsets& offsets,
                                const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets[0];
-  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets[1];
-  ksl_SE3_t* dChild = dhva.d + offsets[2];
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets.q;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
 
   ksl_product_ddinv(dParent, dPrimitive, dChild);
 }
@@ -81,7 +81,7 @@ velocities and accelerations
 */
 void Shift::Joint::rigidinv_dhva(const Shift::Context& context,
                                  Shift::Joint::DHVA& dhva,
-                                 const int* __restrict__ offsets,
+                                 const Shift::Joint::Offsets& offsets,
                                  const double* __restrict__ q,
                                  const double* __restrict__) {
   Shift::Joint::rigidinv_dh(context, dhva, offsets, q);

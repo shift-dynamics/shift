@@ -10,14 +10,14 @@ namespace Joint {
 
 struct DHVA;
 
-void rigid_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void rigid_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void rigidinv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void rigidinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void rigid_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void rigid_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
                 const double*);
 
-void rigidinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void rigidinv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
                    const double*);
 
 class Rigid : public Base {

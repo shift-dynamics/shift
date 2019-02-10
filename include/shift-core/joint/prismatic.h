@@ -9,44 +9,44 @@ class Context;
 
 namespace Joint {
 
-void tx_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void tx_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void txinv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void txinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void ty_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void ty_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void tyinv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void tyinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void tz_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void tz_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void tzinv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void tzinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void tx_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void tx_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
              const double*);
 
-void txinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void txinv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
                 const double*);
 
-void ty_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void ty_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
              const double*);
 
-void tyinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void tyinv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
                 const double*);
 
-void tz_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void tz_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
              const double*);
 
-void tzinv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void tzinv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
                 const double*);
 
-void ta_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void ta_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void tainv_dh(const Shift::Context&, DHVA&, const int*, const double*);
+void tainv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
-void ta_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void ta_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
              const double*);
 
-void tainv_dhva(const Shift::Context&, DHVA&, const int*, const double*,
+void tainv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
                 const double*);
 
 class Prismatic : public Base {
@@ -87,7 +87,7 @@ public:
 private:
   static bool registered_;
   enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };
-  ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};
+  ksl_vec3_t axis_ = ksl_vec3(0.0, 0.0, 1.0);
   AxisType getAxisType();
 };
 
