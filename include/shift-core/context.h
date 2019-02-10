@@ -106,7 +106,8 @@ public:
   void setActive(Sensor::Base*);
   void setActive(Terrain::Base*);
   void clearActiveBehavior();
-  void clearActiveBodies();
+  void clearActiveArticulatedBodies();
+  void clearActiveFreeBodies();
   void clearActiveCollisionGeometry();
   void clearActiveConstraints();
   void clearActiveForceModules();
@@ -136,6 +137,9 @@ public:
   inline const double* getJointData() const {
     return jointData_;
   }
+  void appendFrame(Shift::Frame* frame) {
+    frames_.push_back(frame);
+  }
 
 private:
   void initialize();
@@ -144,15 +148,24 @@ private:
   void processPCL();
   void processLoopMembers();
   void detectSubstructures();
+  unsigned int getActiveFrameCount();
+  void processFrames();
+  void allocateRunTimeArrays();
+
+  ksl_SE3_t* dWRTReference_ = NULL;
+  int* dReferenceFrames_ = NULL;
+  double* jointData_ = NULL;
+  int* dcq_ = NULL;
+  double* q_ = NULL;
+  double* dq_ = NULL;
+  double* ddq_ = NULL;
+  ksl_mat4x4f_t* glReferenceFrames_ = NULL;
 
   ModelParameters modelParameters_;
   Assembly fixed_;
   std::string filename_;
   Json::Value root_;
   std::string indentation_ = "  ";
-
-  ksl_SE3_t* dWRTReference_ = NULL;
-  double* jointData_ = NULL;
 
   /* sort members of a loop in monotonically level increasing order */
   struct levelOrder {
@@ -201,7 +214,7 @@ private:
   std::vector<int> substructures_;
 
   std::vector<Behavior::Base*> activeBehaviors_;
-  std::vector<Body::Base*> activeBodies_ = {};
+  std::vector<Body::Base*> activeArticulatedBodies_ = {};
   std::vector<Body::Base*> activeFreeBodies_ = {};
   std::vector<CollisionGeometry::Base*> activeCollisionGeometry_;
   std::vector<Constraint::Base*> activeConstraints_;
@@ -213,6 +226,10 @@ private:
   std::vector<Terrain::Base*> activeTerrain_;
   std::vector<Constraint::Chord*> chordConstraints_;
 
+  std::vector<Shift::Frame*> frames_;
+  std::vector<Shift::Frame*> framesInTree_;
+  std::vector<Shift::Frame*> activeFrames_;
+
   /* Manage objects that are automatically created when processing system
    * topology; these objects are not loaded from an external JSON file.*/
   std::vector<std::unique_ptr<Behavior::Base>> behaviors_;
@@ -220,6 +237,7 @@ private:
   std::vector<std::unique_ptr<Constraint::Base>> constraints_;
   std::vector<std::unique_ptr<ForceModule::Base>> forcemodules_;
   std::vector<std::unique_ptr<Joint::Base>> joints_;
+
 }; // namespace Shift
 
 } // namespace Shift

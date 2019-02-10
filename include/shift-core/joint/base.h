@@ -37,6 +37,12 @@ struct DHVA {
                         number of variables in the datastructure */
 };
 
+typedef void (*dh_fptr)(const Shift::Context&, DHVA&, const int*,
+                        const double*);
+
+typedef void (*dhva_fptr)(const Shift::Context&, DHVA&, const int*,
+                          const double*, const double*);
+
 /*!
 @brief Abstract Shift::Joint base class
 */
@@ -61,11 +67,30 @@ public:
     return type_;
   }
 
-  virtual void updateD() = 0;
-  virtual void updateDH() = 0;
-  virtual void updateDHVA() = 0;
+  unsigned int getdcCount() {
+    return dcCount_;
+  };
 
-  void readJSON(Json::Value&);
+  unsigned int getqCount() {
+    return qCount_;
+  };
+
+  unsigned int getdqCount() {
+    return dqCount_;
+  };
+
+  const double* getq0() {
+    return q_0_;
+  }
+
+  const double* getdq0() {
+    return dq_0_;
+  }
+
+  virtual dh_fptr getDH() = 0;
+  virtual dhva_fptr getDHVA() = 0;
+
+  virtual void readJSON(Json::Value&);
 
   void print();
 
@@ -145,13 +170,27 @@ public:
     level_ = level;
   }
 
+  virtual unsigned int getDataCount() {
+    return dataCount_;
+  }
+
+  virtual const double* getData() {
+    return NULL;
+  }
+
 protected:
   Context* context_ = NULL;
   Assembly* assembly_ = NULL;
 
   void addKeys();
-  std::string type_;      //!< descriptive name of joint type
-  int dof_;               //!< number of degrees of freedom
+  std::string type_;         //!< descriptive name of joint type
+  unsigned int dof_;         //!< number of degrees of freedom
+  unsigned int dcCount_ = 0; /*!< number of direction cosines used by joint, 1
+                                  indicates a (sin, cos) pair */
+  unsigned int qCount_ = 0;  //!< number of generalized coordinates
+  unsigned int dqCount_ = 0; //!< number of generalized coordinate derivatives
+  unsigned int dataCount_ =
+    0;                    //!< additional fixed quantities used to process joint
   int index_;             //!< index in joint array
   int qIndex_;            //!< index into q array
   int dqIndex_;           //!< index into dq array
@@ -166,13 +205,35 @@ protected:
   /*!
   The `parent` descriptive name follows the format:
 
-    ["fully", "qualified", "body_name"], ["frame_name"]
+    [["fully", "qualified", "body_name"], "frame_name"]
+
+  or if the body is in the same assembly as the joint currently being processed
+  it is sufficient to use:
+
+    [["body_name"], "frame_name"]
+
+  To attach a joint to the fixed inertial reference frame, use the following
+  syntax:
+
+    [["fixed"], "frame_name"]
+
   */
   std::vector<std::vector<std::string>> parent_;
 
-  /*! The `child` descriptive name follows the format:
+  /*!
+  The `child` descriptive name follows the format:
 
-    ["fully", "qualified", "body_name"], ["frame_name"]
+    [["fully", "qualified", "body_name"], "frame_name"]
+
+  or if the body is in the same assembly as the joint currently being
+  processed it is sufficient to use:
+
+    [["body_name"], "frame_name"]
+
+  To attach a joint to the fixed inertial reference frame, use the following
+  syntax:
+
+    [["fixed"], "frame_name"]
   */
   std::vector<std::vector<std::string>> child_;
 

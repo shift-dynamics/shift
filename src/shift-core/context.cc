@@ -34,51 +34,97 @@ void Shift::Context::readJSON(const std::string& filename) {
   fixed_.setContext(this);
   fixed_.readJSON(root_, true);
   setFullyQualifiedNames();
+
+  /* process topology */
   setActiveObjects();
   connect();
-
-  /* set topology */
-
-  /* account for frames added for chord constraints and frames attached to fixed
-   * body
-   */
-  // setFramesInTree();
-  // mallocRunTimeArrays();
-  // mallocDHVAArrays();
   levelOrderSort();
   processVirtualBodies();
   processPCL();
   processLoopMembers();
   detectSubstructures();
   processPCL();
-  // setReferenceFrames();
-  // setDVAIndex();
-  // copyDVA();
+  processFrames();
+  allocateRunTimeArrays();
+
   // compressRigidJoints();
   // setParentJointPointers();
   // countDHVA();
   // setDHVAPointers();
+
   // setFixedFrameGravityVector();
+
   // updateDH();
   // updateDHVA();
+
   // setDReferenceFrames();
-  // initializeJointForces();
   // initializeGLReferenceFrames();
-  // flattenForceModules();
 
   loadData();
+
+  // initializeJointForces();
+  // flattenForceModules();
 }
 
-void Shift::Context::writeJSON(std::ostream& ostream) {
-  Json::StreamWriterBuilder builder;
-  builder.settings_["indentation"] = indentation_;
-  builder.settings_["dropNullPlaceholders"] = false;
-  std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-  if(writer != NULL) {
-    writer->write(root_, &ostream);
-    ostream << std::endl;
-  } else {
-    std::cerr << "no writer!" << std::endl;
+void Shift::Context::processFrames() {
+
+  for(auto& frame : frames_) {
+    frame->setIndex(-1);
+    frame->setInTree(false);
+  }
+
+  framesInTree_.clear();
+  activeFrames_.clear();
+
+  auto fixed = getFixedBody();
+  for(auto& frame : *fixed->getFrames()) {
+    framesInTree_.push_back((Shift::Frame*)&frame);
+    activeFrames_.push_back((Shift::Frame*)&frame);
+  }
+
+  /* get frames attached to non-rigid active joints */
+  for(auto& joint : activeJoints_) {
+    /* parent and child frames of a joint are only added to spanning tree if
+     * joint has nonzero degrees of freedom. Rigid joints
+     * are optimized out of the spanning tree */
+    if(joint->getqCount() > 0) {
+      auto parentFrame = joint->getSystemParentFrame();
+      if(std::find(framesInTree_.begin(), framesInTree_.end(), parentFrame) ==
+         framesInTree_.end()) {
+        framesInTree_.push_back(parentFrame);
+      }
+      auto childFrame = joint->getSystemChildFrame();
+      if(std::find(framesInTree_.begin(), framesInTree_.end(), childFrame) ==
+         framesInTree_.end()) {
+        framesInTree_.push_back(childFrame);
+      }
+    }
+  }
+
+  /* get frames associated with chord constraints */
+  for(auto& constraint : chordConstraints_) {
+    if(std::find(framesInTree_.begin(), framesInTree_.end(),
+                 constraint->getParentFrame()) == framesInTree_.end()) {
+      framesInTree_.push_back(constraint->getParentFrame());
+    }
+  }
+
+  for(auto& body : activeArticulatedBodies_) {
+    for(auto& frame : *body->getFrames()) {
+      activeFrames_.push_back((Shift::Frame*)&frame);
+    }
+  }
+
+  unsigned int i = 0;
+  for(auto& frame : framesInTree_) {
+    frame->setIndex(i++);
+    frame->setInTree(true);
+  }
+
+  /* set reference frames */
+  for(auto& joint : activeJoints_) {
+    auto body = joint->getSystemChildBody();
+    body->setParentJoint(joint);
   }
 }
 
@@ -175,12 +221,21 @@ void Shift::Context::appendActive(Shift::Behavior::Base* behavior) {
 
 void Shift::Context::appendActive(Shift::Body::Base* body) {
   if(body && body->isActive()) {
-    for(auto& i : activeBodies_) {
-      if(i == body) {
-        return;
+    if(body->getIsArticulated()) {
+      for(auto& i : activeArticulatedBodies_) {
+        if(i == body) {
+          return;
+        }
       }
+      activeArticulatedBodies_.push_back(body);
+    } else {
+      for(auto& i : activeFreeBodies_) {
+        if(i == body) {
+          return;
+        }
+      }
+      activeFreeBodies_.push_back(body);
     }
-    activeBodies_.push_back(body);
   }
 }
 
@@ -282,10 +337,19 @@ void Shift::Context::removeActive(Shift::Behavior::Base* behavior) {
 }
 
 void Shift::Context::removeActive(Shift::Body::Base* body) {
-  for(unsigned int i = 0; i < activeBodies_.size(); i++) {
-    if(activeBodies_[i] == body) {
-      activeBodies_.erase(activeBodies_.begin() + i);
-      return;
+  if(body->getIsArticulated()) {
+    for(unsigned int i = 0; i < activeArticulatedBodies_.size(); i++) {
+      if(activeArticulatedBodies_[i] == body) {
+        activeArticulatedBodies_.erase(activeArticulatedBodies_.begin() + i);
+        return;
+      }
+    }
+  } else {
+    for(unsigned int i = 0; i < activeFreeBodies_.size(); i++) {
+      if(activeFreeBodies_[i] == body) {
+        activeFreeBodies_.erase(activeFreeBodies_.begin() + i);
+        return;
+      }
     }
   }
 }
@@ -446,8 +510,12 @@ void Shift::Context::clearActiveBehavior() {
   activeBehaviors_.clear();
 }
 
-void Shift::Context::clearActiveBodies() {
-  activeBodies_.clear();
+void Shift::Context::clearActiveArticulatedBodies() {
+  activeArticulatedBodies_.clear();
+}
+
+void Shift::Context::clearActiveFreeBodies() {
+  activeFreeBodies_.clear();
 }
 
 void Shift::Context::clearActiveCollisionGeometry() {
@@ -484,7 +552,8 @@ void Shift::Context::clearActiveTerrain() {
 
 void Shift::Context::clearActiveArrays() {
   clearActiveBehavior();
-  clearActiveBodies();
+  clearActiveArticulatedBodies();
+  clearActiveFreeBodies();
   clearActiveCollisionGeometry();
   clearActiveConstraints();
   clearActiveForceModules();
@@ -497,21 +566,21 @@ void Shift::Context::clearActiveArrays() {
 
 Shift::Behavior::Base*
 Shift::Context::getBehavior(std::vector<std::string>& name) {
-  for(auto& i : activeBehaviors_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
-                                                name)) {
-      return i;
+  for(auto& behavior : activeBehaviors_) {
+    if(Shift::Topology::matchFullyQualifiedName(
+         behavior->getFullyQualifiedName(), name)) {
+      return behavior;
     }
   }
   return NULL;
 }
 
 Shift::Body::Base* Shift::Context::getBody(std::vector<std::string>& name) {
-  for(auto& i : activeBodies_) {
+  for(auto& body : activeArticulatedBodies_) {
 
-    if(i && Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
-                                                     name)) {
-      return i;
+    if(body && Shift::Topology::matchFullyQualifiedName(
+                 body->getFullyQualifiedName(), name)) {
+      return body;
     }
   }
   return NULL;
@@ -519,11 +588,11 @@ Shift::Body::Base* Shift::Context::getBody(std::vector<std::string>& name) {
 
 Shift::CollisionGeometry::Base*
 Shift::Context::getCollisionGeometry(std::vector<std::string>& name) {
-  for(auto& i : activeCollisionGeometry_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
-                                                name)) {
+  for(auto& geometry : activeCollisionGeometry_) {
+    if(Shift::Topology::matchFullyQualifiedName(
+         geometry->getFullyQualifiedName(), name)) {
 
-      return i;
+      return geometry;
     }
   }
   return NULL;
@@ -531,10 +600,10 @@ Shift::Context::getCollisionGeometry(std::vector<std::string>& name) {
 
 Shift::Constraint::Base*
 Shift::Context::getConstraint(std::vector<std::string>& name) {
-  for(auto& i : activeConstraints_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
-                                                name)) {
-      return i;
+  for(auto& constraint : activeConstraints_) {
+    if(Shift::Topology::matchFullyQualifiedName(
+         constraint->getFullyQualifiedName(), name)) {
+      return constraint;
     }
   }
   return NULL;
@@ -542,10 +611,10 @@ Shift::Context::getConstraint(std::vector<std::string>& name) {
 
 Shift::ForceModule::Base*
 Shift::Context::getForceModule(std::vector<std::string>& name) {
-  for(auto& i : activeForceModules_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
+  for(auto& module : activeForceModules_) {
+    if(Shift::Topology::matchFullyQualifiedName(module->getFullyQualifiedName(),
                                                 name)) {
-      return i;
+      return module;
     }
   }
   return NULL;
@@ -553,40 +622,40 @@ Shift::Context::getForceModule(std::vector<std::string>& name) {
 
 Shift::Geometry::Base*
 Shift::Context::getGeometry(std::vector<std::string>& name) {
-  for(auto& i : activeGeometry_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
-                                                name)) {
-      return i;
+  for(auto& geometry : activeGeometry_) {
+    if(Shift::Topology::matchFullyQualifiedName(
+         geometry->getFullyQualifiedName(), name)) {
+      return geometry;
     }
   }
   return NULL;
 }
 
 Shift::Joint::Base* Shift::Context::getJoint(std::vector<std::string>& name) {
-  for(auto& i : activeJoints_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
+  for(auto& joint : activeJoints_) {
+    if(Shift::Topology::matchFullyQualifiedName(joint->getFullyQualifiedName(),
                                                 name)) {
-      return i;
+      return joint;
     }
   }
   return NULL;
 }
 
 Shift::Light::Base* Shift::Context::getLight(std::vector<std::string>& name) {
-  for(auto& i : activeLights_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
+  for(auto& light : activeLights_) {
+    if(Shift::Topology::matchFullyQualifiedName(light->getFullyQualifiedName(),
                                                 name)) {
-      return i;
+      return light;
     }
   }
   return NULL;
 }
 
 Shift::Sensor::Base* Shift::Context::getSensor(std::vector<std::string>& name) {
-  for(auto& i : activeSensors_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
+  for(auto& sensor : activeSensors_) {
+    if(Shift::Topology::matchFullyQualifiedName(sensor->getFullyQualifiedName(),
                                                 name)) {
-      return i;
+      return sensor;
     }
   }
   return NULL;
@@ -594,78 +663,78 @@ Shift::Sensor::Base* Shift::Context::getSensor(std::vector<std::string>& name) {
 
 Shift::Terrain::Base*
 Shift::Context::getTerrain(std::vector<std::string>& name) {
-  for(auto& i : activeTerrain_) {
-    if(Shift::Topology::matchFullyQualifiedName(i->getFullyQualifiedName(),
-                                                name)) {
-      return i;
+  for(auto& terrain : activeTerrain_) {
+    if(Shift::Topology::matchFullyQualifiedName(
+         terrain->getFullyQualifiedName(), name)) {
+      return terrain;
     }
   }
   return NULL;
 }
 
 void Shift::Context::connect() {
-  for(auto& i : activeBehaviors_) {
-    i->connect();
+  for(auto& behavior : activeBehaviors_) {
+    behavior->connect();
   }
-  for(auto& i : activeBodies_) {
-    i->connect();
+  for(auto& body : activeArticulatedBodies_) {
+    body->connect();
   }
-  for(auto& i : activeCollisionGeometry_) {
-    i->connect();
+  for(auto& geometry : activeCollisionGeometry_) {
+    geometry->connect();
   }
-  for(auto& i : activeConstraints_) {
-    i->connect();
+  for(auto& constraint : activeConstraints_) {
+    constraint->connect();
   }
-  for(auto& i : activeForceModules_) {
-    i->connect();
+  for(auto& module : activeForceModules_) {
+    module->connect();
   }
-  for(auto& i : activeGeometry_) {
-    i->connect();
+  for(auto& geometry : activeGeometry_) {
+    geometry->connect();
   }
-  for(auto& i : activeJoints_) {
-    i->connect();
+  for(auto& joint : activeJoints_) {
+    joint->connect();
   }
-  for(auto& i : activeLights_) {
-    i->connect();
+  for(auto& light : activeLights_) {
+    light->connect();
   }
-  for(auto& i : activeSensors_) {
-    i->connect();
+  for(auto& sensor : activeSensors_) {
+    sensor->connect();
   }
-  for(auto& i : activeTerrain_) {
-    i->connect();
+  for(auto& terrain : activeTerrain_) {
+    terrain->connect();
   }
 }
 
 void Shift::Context::loadData() {
-  for(auto& i : activeBehaviors_) {
-    i->load();
+  for(auto& behavior : activeBehaviors_) {
+    behavior->load();
   }
-  for(auto& i : activeBodies_) {
-    i->load();
+  for(auto& body : activeArticulatedBodies_) {
+    body->load();
   }
-  for(auto& i : activeCollisionGeometry_) {
-    i->load();
+  for(auto& geometry : activeCollisionGeometry_) {
+    geometry->load();
   }
-  for(auto& i : activeConstraints_) {
-    i->load();
+  for(auto& constraint : activeConstraints_) {
+    constraint->load();
   }
-  for(auto& i : activeForceModules_) {
-    i->load();
+  for(auto& module : activeForceModules_) {
+    module->load();
   }
-  for(auto& i : activeGeometry_) {
-    i->load();
+  for(auto& geometry : activeGeometry_) {
+    geometry->load();
   }
-  for(auto& i : activeJoints_) {
-    i->load();
+  for(auto& joint : activeJoints_) {
+    joint->load();
   }
-  for(auto& i : activeLights_) {
-    i->load();
+  for(auto& light : activeLights_) {
+    light->load();
   }
-  for(auto& i : activeSensors_) {
-    i->load();
+  for(auto& sensor : activeSensors_) {
+    sensor->load();
   }
-  for(auto& i : activeTerrain_) {
-    i->load();
+  for(auto& terrain : activeTerrain_) {
+    terrain->load();
   }
 }
 
@@ -737,24 +806,16 @@ void Shift::Context::processVirtualBodies() {
 
   std::vector<Shift::Body::Base*> bodies(activeJoints_.size());
 
-  std::cout << activeJoints_.size() << std::endl;
-  std::cout << activeBodies_.size() << std::endl;
-  for(auto& body : activeBodies_) {
-    std::cout << "body: " << body->getName() << std::endl;
-  }
-  // assert(activeJoints_.size() >= activeBodies_.size());
-
-  std::cout << activeJoints_.size() - activeBodies_.size() << std::endl;
-
   chordConstraints_.clear();
   int j = 0;
   for(unsigned int i = 0; i < activeJoints_.size(); i++) {
 
     bool found = false;
     auto body = activeJoints_[i]->getSystemChildBody();
-    for(auto it = activeBodies_.begin(); it < activeBodies_.end(); it++) {
+    for(auto it = activeArticulatedBodies_.begin();
+        it < activeArticulatedBodies_.end(); it++) {
       if(body == (*it)) {
-        activeBodies_.erase(it);
+        activeArticulatedBodies_.erase(it);
         bodies[i] = body;
         found = true;
         break;
@@ -795,12 +856,12 @@ void Shift::Context::processVirtualBodies() {
     }
   }
 
-  activeBodies_ = bodies;
+  activeArticulatedBodies_ = bodies;
 }
 
 void Shift::Context::processPCL() {
-  for(unsigned int i = 0; i < activeBodies_.size(); i++) {
-    activeBodies_[i]->setIndex(i);
+  for(unsigned int i = 0; i < activeArticulatedBodies_.size(); i++) {
+    activeArticulatedBodies_[i]->setIndex(i);
   }
   pcl_.clear();
   pcl_.resize(activeJoints_.size());
@@ -855,18 +916,10 @@ void Shift::Context::processLoopMembers() {
   std::vector<std::vector<int>> negativeLoopMembers(chordConstraints_.size());
   std::vector<std::vector<int>> positiveLoopMembers(chordConstraints_.size());
 
-  // std::cout << "chordConstraints_.size(): " << chordConstraints_.size()
-  //           << std::endl;
-
   for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
-    // std::cout << "processing chord constraint: " << i << std::endl;
     loopMembers[i].clear();
     negativeLoopMembers[i].clear();
     positiveLoopMembers[i].clear();
-
-    // if(chordConstraints_[i] != NULL) {
-    //   std::cout << "chordConstraint: " << i << " found" << std::endl;
-    // }
 
     if(!chordConstraints_[i]->getParentBody()) {
       std::cerr << "no parent body for chordConstraint: " << i << std::endl;
@@ -1185,14 +1238,16 @@ void Shift::Context::detectSubstructures() {
         }
       }
       if(!found) {
-        std::cerr << " not found! " << activeBodies_[i]->getName() << std::endl;
+        std::cerr << " not found! " << activeArticulatedBodies_[i]->getName()
+                  << std::endl;
       }
     }
     assert(found);
 
     /* reorder bodies, joints and levels */
     std::vector<Shift::Joint::Base*> activeJoints(activeJoints_.size());
-    std::vector<Shift::Body::Base*> activeBodies(activeBodies_.size());
+    std::vector<Shift::Body::Base*> activeBodies(
+      activeArticulatedBodies_.size());
 
     /* initialize permutation arrays to permute bodies and joints from order
      * originally loaded (p0) to order dictated by kinematic substructuring
@@ -1207,13 +1262,13 @@ void Shift::Context::detectSubstructures() {
       if(expandedArray[i] != -1) {
         p_01[j] = expandedArray[i];
         activeJoints[j] = activeJoints_[expandedArray[i]];
-        activeBodies[j] = activeBodies_[expandedArray[i]];
+        activeBodies[j] = activeArticulatedBodies_[expandedArray[i]];
         activeBodies[j]->setIndex(j);
         j++;
       }
     }
     activeJoints_ = activeJoints;
-    activeBodies_ = activeBodies;
+    activeArticulatedBodies_ = activeBodies;
 
     for(unsigned int i = 0; i < activeJoints.size(); i++) {
       p_10[p_01[i]] = i;
@@ -1237,4 +1292,26 @@ void Shift::Context::detectSubstructures() {
       }
     }
   }
+}
+
+void Shift::Context::allocateRunTimeArrays() {
+  unsigned int dcCount = 0;
+  unsigned int qCount = 0;
+  unsigned int dqCount = 0;
+  unsigned int dataCount = 0;
+  unsigned int nonRigidJointCount = 0;
+  for(auto& joint : activeJoints_) {
+    dcCount += joint->getdcCount();
+    qCount += joint->getqCount();
+    dqCount += joint->getdqCount();
+    dataCount += joint->getDataCount();
+    if(joint->getqCount() > 0) {
+      nonRigidJointCount++;
+    }
+  }
+
+  // previously mallocRunTimeArrays
+  // - mallocDHVAArrays();
+  // - setDVAIndex();
+  // - copyDVA();
 }

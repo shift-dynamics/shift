@@ -19,14 +19,13 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rx_dh(const Shift::Context&,
-                         Shift::Joint::DHVA& dhvaPointers,
-                         const int* __restrict__ dhvaOffsets,
+void Shift::Joint::rx_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                         const int* __restrict__ offsets,
                          const double* __restrict__) {
-  ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
-  double* dc = dhvaPointers.dc + dhvaOffsets[2];
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
+  ksl_SE3_t* dParent = dhva.d + offsets[0];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  double* dc = dhva.dc + offsets[2];
+  ksl_screw_t* h = dhva.h + offsets[3];
 
   ksl_product_ddrx(dParent, dc, dChild);
   ksl_hsrx(dChild, h);
@@ -43,21 +42,21 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rx_dhva(const Shift::Context& context,
-                           Shift::Joint::DHVA& dhvaPointers,
-                           const int* __restrict__ dhvaOffsets,
+                           Shift::Joint::DHVA& dhva,
+                           const int* __restrict__ offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
 
-  Shift::Joint::rx_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::rx_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const double* vPrimitive = dq + dhvaOffsets[3];
-  ksl_screw_t* vParent = dhvaPointers.v + dhvaOffsets[4];
-  ksl_screw_t vRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* vChild = dhvaPointers.v + dhvaOffsets[5];
-  ksl_screw_t* aqParent = dhvaPointers.aq + dhvaOffsets[4];
-  ksl_screw_t aqRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* aqChild = dhvaPointers.aq + dhvaOffsets[5];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const double* vPrimitive = dq + offsets[3];
+  ksl_screw_t* vParent = dhva.v + offsets[4];
+  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aqChild = dhva.aq + offsets[5];
 
   ksl_product_as(*vPrimitive, h, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -74,14 +73,13 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rxinv_dh(const Shift::Context&,
-                            Shift::Joint::DHVA& dhvaPointers,
-                            const int* __restrict__ dhvaOffsets,
+void Shift::Joint::rxinv_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                            const int* __restrict__ offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
-  double* dc = dhvaPointers.dc + dhvaOffsets[2];
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
+  ksl_SE3_t* dParent = dhva.d + offsets[0];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  double* dc = dhva.dc + offsets[2];
+  ksl_screw_t* h = dhva.h + offsets[3];
 
   ksl_product_ddrxinv(dParent, dc, dChild);
   ksl_hsrxinv(dChild, h);
@@ -98,21 +96,21 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rxinv_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhvaPointers,
-                              const int* __restrict__ dhvaOffsets,
+                              Shift::Joint::DHVA& dhva,
+                              const int* __restrict__ offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
 
-  Shift::Joint::rxinv_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::rxinv_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const double* vPrimitive = dq + dhvaOffsets[3];
-  ksl_screw_t* vParent = dhvaPointers.v + dhvaOffsets[4];
-  ksl_screw_t vRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* vChild = dhvaPointers.v + dhvaOffsets[5];
-  ksl_screw_t* aqParent = dhvaPointers.aq + dhvaOffsets[4];
-  ksl_screw_t aqRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* aqChild = dhvaPointers.aq + dhvaOffsets[5];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const double* vPrimitive = dq + offsets[3];
+  ksl_screw_t* vParent = dhva.v + offsets[4];
+  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aqChild = dhva.aq + offsets[5];
 
   ksl_product_as(*vPrimitive, h, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -129,14 +127,13 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ry_dh(const Shift::Context&,
-                         Shift::Joint::DHVA& dhvaPointers,
-                         const int* __restrict__ dhvaOffsets,
+void Shift::Joint::ry_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                         const int* __restrict__ offsets,
                          const double* __restrict__) {
-  ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
-  double* dc = dhvaPointers.dc + dhvaOffsets[2];
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
+  ksl_SE3_t* dParent = dhva.d + offsets[0];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  double* dc = dhva.dc + offsets[2];
+  ksl_screw_t* h = dhva.h + offsets[3];
 
   ksl_product_ddry(dParent, dc, dChild);
   ksl_hsry(dChild, h);
@@ -153,22 +150,22 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::ry_dhva(const Shift::Context& context,
-                           Shift::Joint::DHVA& dhvaPointers,
-                           const int* __restrict__ dhvaOffsets,
+                           Shift::Joint::DHVA& dhva,
+                           const int* __restrict__ offsets,
 
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
 
-  Shift::Joint::ry_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::ry_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const double* vPrimitive = dq + dhvaOffsets[3];
-  ksl_screw_t* vParent = dhvaPointers.v + dhvaOffsets[4];
-  ksl_screw_t vRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* vChild = dhvaPointers.v + dhvaOffsets[5];
-  ksl_screw_t* aqParent = dhvaPointers.aq + dhvaOffsets[4];
-  ksl_screw_t aqRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* aqChild = dhvaPointers.aq + dhvaOffsets[5];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const double* vPrimitive = dq + offsets[3];
+  ksl_screw_t* vParent = dhva.v + offsets[4];
+  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aqChild = dhva.aq + offsets[5];
 
   ksl_product_as(*vPrimitive, h, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -185,14 +182,13 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ryinv_dh(const Shift::Context&,
-                            Shift::Joint::DHVA& dhvaPointers,
-                            const int* __restrict__ dhvaOffsets,
+void Shift::Joint::ryinv_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                            const int* __restrict__ offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
-  double* dc = dhvaPointers.dc + dhvaOffsets[2];
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
+  ksl_SE3_t* dParent = dhva.d + offsets[0];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  double* dc = dhva.dc + offsets[2];
+  ksl_screw_t* h = dhva.h + offsets[3];
 
   ksl_product_ddryinv(dParent, dc, dChild);
   ksl_hsryinv(dChild, h);
@@ -209,21 +205,21 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::ryinv_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhvaPointers,
-                              const int* __restrict__ dhvaOffsets,
+                              Shift::Joint::DHVA& dhva,
+                              const int* __restrict__ offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
 
-  Shift::Joint::ryinv_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::ryinv_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const double* vPrimitive = dq + dhvaOffsets[3];
-  ksl_screw_t* vParent = dhvaPointers.v + dhvaOffsets[4];
-  ksl_screw_t vRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* vChild = dhvaPointers.v + dhvaOffsets[5];
-  ksl_screw_t* aqParent = dhvaPointers.aq + dhvaOffsets[4];
-  ksl_screw_t aqRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* aqChild = dhvaPointers.aq + dhvaOffsets[5];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const double* vPrimitive = dq + offsets[3];
+  ksl_screw_t* vParent = dhva.v + offsets[4];
+  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aqChild = dhva.aq + offsets[5];
 
   ksl_product_as(*vPrimitive, h, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -240,14 +236,13 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rz_dh(const Shift::Context&,
-                         Shift::Joint::DHVA& dhvaPointers,
-                         const int* __restrict__ dhvaOffsets,
+void Shift::Joint::rz_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                         const int* __restrict__ offsets,
                          const double* __restrict__) {
-  ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
-  double* dc = dhvaPointers.dc + dhvaOffsets[2];
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
+  ksl_SE3_t* dParent = dhva.d + offsets[0];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  double* dc = dhva.dc + offsets[2];
+  ksl_screw_t* h = dhva.h + offsets[3];
 
   ksl_product_ddrz(dParent, dc, dChild);
   ksl_hsrz(dChild, h);
@@ -264,20 +259,20 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rz_dhva(const Shift::Context& context,
-                           Shift::Joint::DHVA& dhvaPointers,
-                           const int* __restrict__ dhvaOffsets,
+                           Shift::Joint::DHVA& dhva,
+                           const int* __restrict__ offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
-  Shift::Joint::rz_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::rz_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const double* vPrimitive = dq + dhvaOffsets[3];
-  ksl_screw_t* vParent = dhvaPointers.v + dhvaOffsets[4];
-  ksl_screw_t vRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* vChild = dhvaPointers.v + dhvaOffsets[5];
-  ksl_screw_t* aqParent = dhvaPointers.aq + dhvaOffsets[4];
-  ksl_screw_t aqRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* aqChild = dhvaPointers.aq + dhvaOffsets[5];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const double* vPrimitive = dq + offsets[3];
+  ksl_screw_t* vParent = dhva.v + offsets[4];
+  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aqChild = dhva.aq + offsets[5];
 
   ksl_product_as(*vPrimitive, h, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -294,14 +289,13 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rzinv_dh(const Shift::Context&,
-                            Shift::Joint::DHVA& dhvaPointers,
-                            const int* __restrict__ dhvaOffsets,
+void Shift::Joint::rzinv_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                            const int* __restrict__ offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
-  double* dc = dhvaPointers.dc + dhvaOffsets[2];
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
+  ksl_SE3_t* dParent = dhva.d + offsets[0];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  double* dc = dhva.dc + offsets[2];
+  ksl_screw_t* h = dhva.h + offsets[3];
 
   ksl_product_ddrzinv(dParent, dc, dChild);
   ksl_hsrzinv(dChild, h);
@@ -318,21 +312,21 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rzinv_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhvaPointers,
-                              const int* __restrict__ dhvaOffsets,
+                              Shift::Joint::DHVA& dhva,
+                              const int* __restrict__ offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
 
-  Shift::Joint::rzinv_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::rzinv_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const double* vPrimitive = dq + dhvaOffsets[3];
-  ksl_screw_t* vParent = dhvaPointers.v + dhvaOffsets[4];
-  ksl_screw_t vRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* vChild = dhvaPointers.v + dhvaOffsets[5];
-  ksl_screw_t* aqParent = dhvaPointers.aq + dhvaOffsets[4];
-  ksl_screw_t aqRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* aqChild = dhvaPointers.aq + dhvaOffsets[5];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const double* vPrimitive = dq + offsets[3];
+  ksl_screw_t* vParent = dhva.v + offsets[4];
+  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aqChild = dhva.aq + offsets[5];
 
   ksl_product_as(*vPrimitive, h, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -349,15 +343,14 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ra_dh(const Shift::Context& context, DHVA& dhvaPointers,
-                         const int* dhvaOffsets, const double*) {
+void Shift::Joint::ra_dh(const Shift::Context& context, DHVA& dhva,
+                         const int* offsets, const double*) {
 
-  const ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
-  const double* dc = dhvaPointers.dc + dhvaOffsets[2];
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const ksl_vec3_t* axis =
-    (ksl_vec3_t*)(context.getJointData() + dhvaOffsets[4]);
+  const ksl_SE3_t* dParent = dhva.d + offsets[0];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  const double* dc = dhva.dc + offsets[2];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets[4]);
   ksl_mat3x3_t temp;
 
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
@@ -375,14 +368,13 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rainv_dh(const Shift::Context& context, DHVA& dhvaPointers,
-                            const int* dhvaOffsets, const double*) {
-  const ksl_SE3_t* dParent = dhvaPointers.d + dhvaOffsets[0];
-  ksl_SE3_t* dChild = dhvaPointers.d + dhvaOffsets[1];
-  const double* dc = dhvaPointers.dc + dhvaOffsets[2];
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const ksl_vec3_t* axis =
-    (ksl_vec3_t*)(context.getJointData() + dhvaOffsets[4]);
+void Shift::Joint::rainv_dh(const Shift::Context& context, DHVA& dhva,
+                            const int* offsets, const double*) {
+  const ksl_SE3_t* dParent = dhva.d + offsets[0];
+  ksl_SE3_t* dChild = dhva.d + offsets[1];
+  const double* dc = dhva.dc + offsets[2];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets[4]);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
 
@@ -402,19 +394,19 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ra_dhva(const Shift::Context& context, DHVA& dhvaPointers,
-                           const int* dhvaOffsets, const double* q,
+void Shift::Joint::ra_dhva(const Shift::Context& context, DHVA& dhva,
+                           const int* offsets, const double* q,
                            const double* dq) {
-  Shift::Joint::ra_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::ra_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const double* vPrimitive = dq + dhvaOffsets[3];
-  ksl_screw_t* vParent = dhvaPointers.v + dhvaOffsets[4];
-  ksl_screw_t vRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* vChild = dhvaPointers.v + dhvaOffsets[5];
-  ksl_screw_t* aqParent = dhvaPointers.aq + dhvaOffsets[4];
-  ksl_screw_t aqRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* aqChild = dhvaPointers.aq + dhvaOffsets[5];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const double* vPrimitive = dq + offsets[3];
+  ksl_screw_t* vParent = dhva.v + offsets[4];
+  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aqChild = dhva.aq + offsets[5];
 
   ksl_product_as(*vPrimitive, h, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -432,19 +424,19 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rainv_dhva(const Shift::Context& context, DHVA& dhvaPointers,
-                              const int* dhvaOffsets, const double* q,
+void Shift::Joint::rainv_dhva(const Shift::Context& context, DHVA& dhva,
+                              const int* offsets, const double* q,
                               const double* dq) {
-  Shift::Joint::rainv_dh(context, dhvaPointers, dhvaOffsets, q);
+  Shift::Joint::rainv_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhvaPointers.h + dhvaOffsets[3];
-  const double* vPrimitive = dq + dhvaOffsets[3];
-  ksl_screw_t* vParent = dhvaPointers.v + dhvaOffsets[4];
-  ksl_screw_t vRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* vChild = dhvaPointers.v + dhvaOffsets[5];
-  ksl_screw_t* aqParent = dhvaPointers.aq + dhvaOffsets[4];
-  ksl_screw_t aqRelative = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-  ksl_screw_t* aqChild = dhvaPointers.aq + dhvaOffsets[5];
+  ksl_screw_t* h = dhva.h + offsets[3];
+  const double* vPrimitive = dq + offsets[3];
+  ksl_screw_t* vParent = dhva.v + offsets[4];
+  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* vChild = dhva.v + offsets[5];
+  ksl_screw_t* aqParent = dhva.aq + offsets[4];
+  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aqChild = dhva.aq + offsets[5];
 
   ksl_product_as(*vPrimitive, h, &vRelative);
   ksl_add_ss(vParent, &vRelative, vChild);
@@ -458,24 +450,117 @@ void Shift::Joint::Revolute::addKeys() {
   SerialEntry axis("axis", SerialType::KSL_VEC3, &axis_);
   axis.setRequired(false);
   axis.setDescription(
-    "Specifies axis of rotation expressed in body frame, defaults to z-axis if "
-    " no axis is provided.");
+    "Axis of rotation expressed in parent body frame, defaults to z-axis if "
+    "no axis is provided.");
   addSerialEntry(axis);
 
-  SerialEntry q0("initial_displacement", SerialType::DOUBLE,
-                 &initialDisplacement_);
+  SerialEntry q0("initial_displacement", SerialType::DOUBLE, &q_0_);
   q0.setRequired(false);
   q0.setDescription("Initial joint displacement.");
   addSerialEntry(q0);
 
-  SerialEntry dq0("initial_velocity", SerialType::DOUBLE, &initialVelocity_);
+  SerialEntry dq0("initial_velocity", SerialType::DOUBLE, &dq_0_);
   dq0.setRequired(false);
   dq0.setDescription("Initial joint velocity.");
   addSerialEntry(dq0);
 }
 
-void Shift::Joint::Revolute::updateD() {}
+Shift::Joint::Revolute::AxisType Shift::Joint::Revolute::getAxisType() {
+  ksl_vec3_t x_axis = ksl_vec3(1.0, 0.0, 0.0);
+  ksl_vec3_t y_axis = ksl_vec3(0.0, 1.0, 0.0);
+  ksl_vec3_t z_axis = ksl_vec3(0.0, 0.0, 1.0);
+  ksl_vec3_normalize(&axis_);
+  if(std::abs(ksl_dot_vv(&x_axis, &axis_) - 1.0) < 1.0e-9) {
+    return X_AXIS;
+  } else if(std::abs(ksl_dot_vv(&y_axis, &axis_) - 1.0) < 1.0e-9) {
+    return Y_AXIS;
+  } else if(std::abs(ksl_dot_vv(&z_axis, &axis_) - 1.0) < 1.0e-9) {
+    return Z_AXIS;
+  } else {
+    return ARBITRARY_AXIS;
+  }
+}
 
-void Shift::Joint::Revolute::updateDH() {}
+const double* Shift::Joint::Revolute::getData() {
+  if(getAxisType() == ARBITRARY_AXIS) {
+    return (double*)&axis_;
+  };
+  return NULL;
+}
 
-void Shift::Joint::Revolute::updateDHVA() {}
+unsigned int Shift::Joint::Revolute::getDataCount() {
+  if(getAxisType() == ARBITRARY_AXIS) {
+    return 3;
+  };
+  return 0;
+}
+
+Shift::Joint::dh_fptr Shift::Joint::Revolute::getDH() {
+  AxisType axis = getAxisType();
+  switch(axis) {
+    case X_AXIS: {
+      if(sense_ >= 0) {
+        return rx_dh;
+      } else {
+        return rxinv_dh;
+      }
+    }
+    case Y_AXIS: {
+      if(sense_ >= 0) {
+        return ry_dh;
+      } else {
+        return ryinv_dh;
+      }
+    }
+    case Z_AXIS: {
+      if(sense_ >= 0) {
+        return rz_dh;
+      } else {
+        return rzinv_dh;
+      }
+    }
+    case ARBITRARY_AXIS: {
+      if(sense_ >= 0) {
+        return ra_dh;
+      } else {
+        return rainv_dh;
+      }
+    }
+  }
+  return rz_dh;
+}
+
+Shift::Joint::dhva_fptr Shift::Joint::Revolute::getDHVA() {
+  AxisType axis = getAxisType();
+  switch(axis) {
+    case X_AXIS: {
+      if(sense_ >= 0) {
+        return rx_dhva;
+      } else {
+        return rxinv_dhva;
+      }
+    }
+    case Y_AXIS: {
+      if(sense_ >= 0) {
+        return ry_dhva;
+      } else {
+        return ryinv_dhva;
+      }
+    }
+    case Z_AXIS: {
+      if(sense_ >= 0) {
+        return rz_dhva;
+      } else {
+        return rzinv_dhva;
+      }
+    }
+    case ARBITRARY_AXIS: {
+      if(sense_ >= 0) {
+        return ra_dhva;
+      } else {
+        return rainv_dhva;
+      }
+    }
+  }
+  return rz_dhva;
+}

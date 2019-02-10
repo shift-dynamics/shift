@@ -54,14 +54,18 @@ public:
   Prismatic()
     : Base() {
     dof_ = 1;
-    q_0_ = new double[dof_];
-    dq_0_ = new double[dof_];
+    qCount_ = 1;
+    dqCount_ = 1;
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
   }
   Prismatic(std::string name)
     : Base(name) {
     dof_ = 1;
-    q_0_ = new double[dof_];
-    dq_0_ = new double[dof_];
+    qCount_ = 1;
+    dqCount_ = 1;
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
   }
   ~Prismatic() {
     delete q_0_;
@@ -69,20 +73,22 @@ public:
   }
 
   static std::unique_ptr<Prismatic> create();
-  void addKeys();
-  void updateD();
-  void updateDH();
-  void updateDHVA();
-
   static bool isRegistered() {
     return registered_;
   }
 
+  virtual const double* getData();
+  virtual unsigned int getDataCount();
+
+  void addKeys();
+  dh_fptr getDH();
+  dhva_fptr getDHVA();
+
 private:
   static bool registered_;
+  enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };
   ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};
-  double initialDisplacement_ = 0.0;
-  double initialVelocity_ = 0.0;
+  AxisType getAxisType();
 };
 
 } // namespace Joint
