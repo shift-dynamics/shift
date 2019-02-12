@@ -2,9 +2,12 @@
 #define SHIFT_JOINT_BASE_H_
 
 #include <functional>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
+
+#include <string.h>
 
 #include "shift-core/base.h"
 #include "shift-core/serialize.h"
@@ -25,33 +28,82 @@ class Assembly;
 
 namespace Joint {
 
+/*!
+@brief Displacements (d), influence coefficient matrices (h), velocities (v) and
+quadratic accelerations (a).
+*/
 struct DHVA {
-  ksl_SE3_t* d;    /*!< array of displacements equal
-                        in size to number of frames */
-  double* dc;      /*!< direction cosine arrays */
-  ksl_screw_t* h;  /*!< an array of influence coefficient matrices equal to the
-                        6 * number of variables in the datastructure */
-  ksl_screw_t* v;  /*!< an array of body velocities equal to the
-                        number of variables in the datastructure */
-  ksl_screw_t* aq; /*!< an array of body accelerations equal to the
-                        number of variables in the datastructure */
+  DHVA() {}
+  DHVA(unsigned int frameCount, unsigned int dcCount, unsigned int dqCount,
+       unsigned int nonRigidJointCount) {
+    size_t dhvaSize = 2 * dcCount * sizeof(double) +                   /* dc */
+                      frameCount * sizeof(ksl_SE3_t) +                 /* d */
+                      (dqCount + 1) * sizeof(ksl_screw_t) +            /* h */
+                      (nonRigidJointCount + 1) * sizeof(ksl_screw_t) + /* v */
+                      (nonRigidJointCount + 1) * sizeof(ksl_screw_t);  /* aq */
+    dc = (double*)malloc(dhvaSize);
+    if(dc == NULL) {
+      std::cerr << "Error: failed to allocate memory for DHVA" << std::endl;
+      exit(-1);
+    }
+    memset(dc, 0, dhvaSize);
+    d = (ksl_SE3_t*)(dc + 2 * dcCount);
+    h = (ksl_screw_t*)(d + frameCount);
+    v = h + (nonRigidJointCount + 1);
+    aq = v + (nonRigidJointCount + 1);
+
+    // increment pointers to h, v, and aq. This allows using the index -1 for
+    // the fixed inertial reference frame
+    h++;
+    v++;
+    aq++;
+  }
+
+  ~DHVA() {
+    if(dc != NULL) {
+      free(dc);
+      dc = NULL;
+      d = NULL;
+      h = NULL;
+      v = NULL;
+      aq = NULL;
+    }
+  }
+
+  DHVA& operator=(DHVA&&) {
+    return *this;
+  }
+
+  double* dc = NULL;     /*!< direction cosine arrays */
+  ksl_SE3_t* d = NULL;   /*!< array of displacements equal
+                              in size to number of frames */
+  ksl_screw_t* h = NULL; /*!< an array of influence coefficient matrices */
+  ksl_screw_t* v =
+    NULL; /*!< an array of body velocities equal to the
+        number of non rigid joints + 1 for the fixed inertial reference frame */
+  ksl_screw_t* aq =
+    NULL; /*!< an array of body accelerations equal to the
+        number of non rigid joints + 1 for the fixed inertial reference frame */
 };
 
+/*!
+@brief Struct that defines offsets into DHVA array.
+*/
 struct Offsets {
   union {
-    unsigned int dc;
-    unsigned int q;
+    unsigned int dc; /*!< offset into direction cosine array */
+    unsigned int q;  /*!< offset into array of generalized coordinates */
   };
-  unsigned int dq;
+  unsigned int dq; /*!< offset into array of generalized velocities */
   struct {
-    unsigned int d;
-    unsigned int v;
+    unsigned int d; /*!< offset for parent body's displacement */
+    unsigned int v; /*!< offset for parent body's velocity */
   } parent;
   struct {
-    unsigned int d;
-    unsigned int v;
+    unsigned int d; /*!< offset for child body's displacement */
+    unsigned int v; /*!< offset for child body's velocity */
   } child;
-  unsigned int data;
+  unsigned int data; /*!< offset into data array */
 };
 
 typedef void (*dh_fptr)(const Shift::Context&, DHVA&, const Offsets&,
@@ -195,24 +247,29 @@ public:
     return NULL;
   }
 
+  virtual ksl_SE3_t getTransform() {
+    ksl_SE3_t temp;
+    ksl_SE3_setIdentity(&temp);
+    return temp;
+  }
+
 protected:
   Context* context_ = NULL;
   Assembly* assembly_ = NULL;
 
   void addKeys();
-  std::string type_;         //!< descriptive name of joint type
-  unsigned int dof_;         //!< number of degrees of freedom
-  unsigned int dcCount_ = 0; /*!< number of direction cosines used by joint, 1
-                                  indicates a (sin, cos) pair */
-  unsigned int qCount_ = 0;  //!< number of generalized coordinates
-  unsigned int dqCount_ = 0; //!< number of generalized coordinate derivatives
-  unsigned int dataCount_ =
-    0;                    //!< additional fixed quantities used to process joint
-  int index_;             //!< index in joint array
-  int qIndex_;            //!< index into q array
-  int dqIndex_;           //!< index into dq array
-  int dcIndex_;           //!< index into dc array
-  int indexSubstructure_; //!< local index into substructure
+  std::string type_;           //!< descriptive name of joint type
+  unsigned int dof_ = 0;       //!< number of degrees of freedom
+  unsigned int dcCount_ = 0;   /*!< number of direction cosines used by joint, 1
+                                    indicates a (sin, cos) pair */
+  unsigned int qCount_ = 0;    //!< number of generalized coordinates
+  unsigned int dqCount_ = 0;   //!< number of generalized coordinate derivatives
+  unsigned int dataCount_ = 0; //!< additional quantities used to process joint
+  int index_;                  //!< index in joint array
+  int qIndex_;                 //!< index into q array
+  int dqIndex_;                //!< index into dq array
+  int dcIndex_;                //!< index into dc array
+  int indexSubstructure_;      //!< local index into substructure
   int sense_ = 0; /*!< indicates whether joint is positively aligned with
                spanning tree (+1), or negatively aligned with spanning tree
                (-1). Automatically set by Topology::sort() */
@@ -224,8 +281,8 @@ protected:
 
     [["fully", "qualified", "body_name"], "frame_name"]
 
-  or if the body is in the same assembly as the joint currently being processed
-  it is sufficient to use:
+  or if the body is in the same assembly as the joint currently being
+  processed it is sufficient to use:
 
     [["body_name"], "frame_name"]
 
@@ -264,16 +321,6 @@ protected:
   double* dq_0_ = NULL; /*!< initial primitive velocity specified
                                          by user */
 
-  double* q_ = NULL;  /*!< current primitive displacement in
-                                model, for spherical joints consists of
-                                quaternion following x,y,z,w
-                                convention, for float joints consists of
-                                x,y,z translation, followed by
-                                quaternion specified using x,y,z,w convention */
-  double* dq_ = NULL; /*!< current generalized velocity in model */
-
-  ksl_screw_t* h_ = NULL;
-
   double* mobilityNumber_ = NULL;
   bool independent_ = true; /*!< boolean to indicate whether joint is
                          independent (true) or dependent (false) as
@@ -284,14 +331,12 @@ protected:
   Substructure* substructurePointer_ =
     NULL; /*!< pointer to substructure assignment */
 
-  double* dampingCoefficients_ =
-    NULL; /*!< damping coefficients, c0 + c1*x + c2 * x**2
-        + ... + cn * x**n */
-  int dampingCoefficientCount_ = 0; /*! number of damping coefficients */
-
-  double* stiffnessCoefficients_ = NULL; /*!< spring coefficients, k0 + k1 * x
-                                   + k2 * x**2 + ... + kn * x**n */
-  int stiffnessCoefficientCount_ = 0;    /*!< number of spring coefficients */
+  std::vector<double>
+    dampingCoefficients_; /*!< damping coefficients, c0 + c1*x + c2 * x**2
++ ... + cn * x**n */
+  std::vector<double>
+    stiffnessCoefficients_; /*!< spring coefficients, k0 + k1 * x
+                 + k2 * x**2 + ... + kn * x**n */
   bool isVisible_ = false;
 };
 

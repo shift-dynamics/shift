@@ -104,7 +104,6 @@ void Shift::Body::Base::readJSON(Json::Value& value) {
 
 void Shift::Body::Base::appendFrame(Frame& frame) {
   frames_.push_back(frame);
-  context_->appendFrame(&frames_.back());
 }
 
 void Shift::Body::Base::appendLight(

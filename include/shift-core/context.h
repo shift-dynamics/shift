@@ -56,8 +56,39 @@ public:
     , fixed_("fixed") {
     initialize();
   }
-  ~Context() {}
+  ~Context() {
+    if(dhvaOffsets_) {
+      delete(dhvaOffsets_);
+    }
 
+    if(dWRTReference_) {
+      free(dWRTReference_);
+    }
+
+    if(dReferenceFrames_) {
+      delete dReferenceFrames_;
+    }
+
+    if(jointData_) {
+      delete jointData_;
+    }
+
+    if(dcq_) {
+      delete dcq_;
+    }
+
+    if(q_) {
+      delete q_;
+    }
+
+    if(ddq_) {
+      delete ddq_;
+    }
+  }
+
+  Context& operator=(Context&&) {
+    return *this;
+  }
   void readJSON(const std::string&);
   void writeJSON();
   void writeJSON(std::ostream&);
@@ -152,6 +183,8 @@ private:
   void processFrames();
   void allocateRunTimeArrays();
 
+  Shift::Joint::Offsets* dhvaOffsets_ = NULL;
+  Shift::Joint::DHVA dhva_;
   ksl_SE3_t* dWRTReference_ = NULL;
   int* dReferenceFrames_ = NULL;
   double* jointData_ = NULL;
@@ -159,7 +192,6 @@ private:
   double* q_ = NULL;
   double* dq_ = NULL;
   double* ddq_ = NULL;
-  ksl_mat4x4f_t* glReferenceFrames_ = NULL;
 
   ModelParameters modelParameters_;
   Assembly fixed_;
@@ -231,7 +263,7 @@ private:
   std::vector<Shift::Frame*> activeFrames_;
 
   /* Manage objects that are automatically created when processing system
-   * topology; these objects are not loaded from an external JSON file.*/
+   * topology; these objects are not loaded from an external file.*/
   std::vector<std::unique_ptr<Behavior::Base>> behaviors_;
   std::vector<std::unique_ptr<Body::Base>> bodies_;
   std::vector<std::unique_ptr<Constraint::Base>> constraints_;

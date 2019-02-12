@@ -41,6 +41,17 @@ public:
   dh_fptr getDH();
   dhva_fptr getDHVA();
 
+  virtual ksl_SE3_t getTransform() {
+    ksl_SE3_t out;
+    const ksl_SE3_t* temp = frame_.getTransform();
+    if(sense_ >= 0) {
+      ksl_SE3_copy(temp, &out);
+    } else {
+      ksl_SE3_inverted(temp, &out);
+    }
+    return out;
+  }
+
 private:
   static bool registered_;
   Shift::Frame frame_;

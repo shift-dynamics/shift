@@ -37,6 +37,8 @@ public:
   Base(std::string name)
     : Shift::Base(name) {
     Frame origin("origin");
+    origin.setIsOrigin(true);
+    origin.setIsReference(true);
     appendFrame(origin);
   }
   Base()
@@ -118,6 +120,16 @@ public:
     return isArticulated_;
   }
 
+  void setVAIndex(int index) {
+    vaIndex_ = index;
+  }
+
+  int getVAIndex() {
+    return vaIndex_;
+  }
+
+  void clearIsReference();
+
 protected:
   std::string type_;
   bool isArticulated_ = true; /*!< indicates whether body may have joints
@@ -134,6 +146,7 @@ protected:
   bool drawCollisionObjectEnabled_ = false;
   int index_ = -1;
   int level_ = -1;
+  int vaIndex_ = -1;
   Joint::Base* parentJoint_ = NULL;
   Shift::Frame* referenceFrame_ = NULL;
 };

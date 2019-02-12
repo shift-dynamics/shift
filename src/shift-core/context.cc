@@ -1310,8 +1310,171 @@ void Shift::Context::allocateRunTimeArrays() {
     }
   }
 
-  // previously mallocRunTimeArrays
-  // - mallocDHVAArrays();
-  // - setDVAIndex();
+  dhva_ = Shift::Joint::DHVA(framesInTree_.size(), dcCount, dqCount,
+                             nonRigidJointCount);
+
+  if(dhvaOffsets_) {
+    delete dhvaOffsets_;
+  }
+  dhvaOffsets_ = new Shift::Joint::Offsets[nonRigidJointCount];
+
+  if(dWRTReference_) {
+    free(dWRTReference_);
+    dWRTReference_ = NULL;
+  }
+  dWRTReference_ = ksl_SE3_alloc(framesInTree_.size());
+
+  if(dReferenceFrames_) {
+    delete dReferenceFrames_;
+    dReferenceFrames_ = NULL;
+  }
+  dReferenceFrames_ = new int[nonRigidJointCount];
+
+  if(jointData_) {
+    delete jointData_;
+    jointData_ = NULL;
+  }
+  jointData_ = new double[dataCount];
+
+  if(dcq_) {
+    delete dcq_;
+    dcq_ = NULL;
+  }
+  dcq_ = new int[dcCount];
+
+  if(q_) {
+    delete q_;
+    q_ = NULL;
+    dq_ = NULL;
+  }
+  q_ = new double[qCount + dqCount];
+  dq_ = q_ + qCount;
+
+  if(ddq_) {
+    delete ddq_;
+    ddq_ = NULL;
+  }
+  ddq_ = new double[dqCount];
+
+  unsigned int i = 0;
+  for(auto& body : activeArticulatedBodies_) {
+    if(body->getParentJoint() && body->getParentJoint()->getqCount() > 0) {
+      body->setVAIndex(i++);
+    } else {
+      body->setVAIndex(-1);
+    }
+  }
+
+  std::vector<bool> framesProcessed;
+  framesProcessed.resize(framesInTree_.size());
+  std::fill(framesProcessed.begin(), framesProcessed.end(), false);
+
+  /* copy relative transformations across rigid joints */
+  for(auto& joint : activeJoints_) {
+    if(joint->getqCount() == 0) {
+      auto childFrame = joint->getSystemChildFrame();
+      if(childFrame->getInTree())
+        dWRTReference_[->getIndex()] = joint->getTransform();
+    }
+  }
+
+  /*
+    copyUpdate remaining frames on body
+
+    if the referenceFrame is the origin, no special handling is
+    necessary, copy by value all dWRTOrigin to correct location
+    in context->dWRTReference array
+  */
+  if(childBody->referenceFrame->isOrigin || childBody->isVirtual) {
+    s2_frame_t* frameHead = childBody->frameHead;
+    while(frameHead) {
+      if(!frameHead->isReference) {
+
+        /* copy dWRT reference */
+        s2_displacement_copy(frameHead->dWRTOrigin,
+                             context->dWRTReference + frameHead->dIndex);
+        // fprintf(
+        //   debug,
+        //   " dWRTReference: [%d/%d]",
+        //   frameHead->dIndex,
+        //   context->activeFrameCount);
+        // s2_stackstr_print(debug, frameHead->name);
+      }
+
+      /* copy and update absolute displacement for all frames, including
+      the reference frame */
+
+      /* copyUpdate dAbsolute */
+      // s2_stackstr_print(debug, frameHead->name);
+      // fprintf(debug, "dIndex: %d\n", frameHead->dIndex);
+      s2_displacement_copyUpdate(&frameHead->dAbsolute,
+                                 context->dhva.d + frameHead->dIndex);
+
+      // fprintf(
+      //   debug,
+      //   " dAbsolute: [%d/%d]",
+      //   frameHead->dIndex,
+      //   context->activeFrameCount);
+      // s2_stackstr_print(debug, frameHead->name);
+      context->framePointers[frameHead->dIndex] = frameHead;
+      context->isReference[frameHead->dIndex] = frameHead->isReference;
+
+      frameHead = frameHead->next;
+    }
+  } else {
+    /*
+      otherwise, it's necessary to compute the displacement with
+      respect to the new reference frame
+    */
+
+    /*
+      verify that D * D^-1 = identity
+    */
+    // s2_displacement_t dTemp = s2_displacement();
+    // printf("rotation / translation WRTOrigin:\n");
+    // s2_displacement_print(
+    //   body->referenceFrame->dWRTOrigin);
+    // printf("rotation / translation WRTOrigininverse:\n");
+    // s2_displacement_print(
+    //   body->referenceFrame->dWRTOriginInverse);
+    // s2_product_dd(
+    //   body->referenceFrame->dWRTOriginInverse,
+    //   body->referenceFrame->dWRTOrigin,
+    //   dTemp);
+    // printf("## verify identify:\n");
+    // s2_displacement_print(dTemp);
+    // free(dTemp);
+
+    s2_frame_t* frameHead = childBody->frameHead;
+    while(frameHead) {
+      context->isReference[frameHead->index] = frameHead->isReference;
+
+      /* copy dWRTReference */
+      if(!frameHead->isReference) {
+        // printf("%d\n", frameHead->dIndex);
+        s2_product_dd(childBody->referenceFrame->dWRTOriginInverse,
+                      frameHead->dWRTOrigin,
+                      context->dWRTReference + frameHead->dIndex);
+      }
+
+      /* copyUpdate dAbsolute */
+      s2_displacement_copyUpdate(&frameHead->dAbsolute,
+                                 context->dhva.d + frameHead->dIndex);
+
+      // fprintf(
+      //   debug,
+      //   " dAbsolute: [%d/%d]",
+      //   frameHead->dIndex,
+      //   context->activeFrameInTreeCount);
+      //
+      // s2_stackstr_print(debug, frameHead->name);
+
+      context->framePointers[frameHead->dIndex] = frameHead;
+      context->isReference[frameHead->dIndex] = frameHead->isReference;
+
+      frameHead = frameHead->next;
+    }
+  }
+
   // - copyDVA();
 }
