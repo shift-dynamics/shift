@@ -50,6 +50,12 @@ public:
   void setIsReference(bool isReference) {
     isReference_ = isReference;
   }
+  bool getIsOrigin() {
+    return isOrigin_;
+  }
+  void setIsOrigin(bool isOrigin) {
+    isOrigin_ = isOrigin;
+  }
 
 private:
   void addKeys();
@@ -59,7 +65,9 @@ private:
   int index_ = -1;           //!< index in context->dWRTReference
   bool inTree_ = false;      //!< indicates whether frame is in spanning tree
   bool isReference_ = false; //<! indicates whether frame is the reference frame
-                             // for the body it is attached to
+  // for the body it is attached to
+  bool isOrigin_ = false; //<! indicates whether frame is origin of rigid body
+                          //it is attached to
 };
 
 } // namespace Shift

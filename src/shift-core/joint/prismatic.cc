@@ -17,11 +17,6 @@ std::unique_ptr<Shift::Joint::Prismatic> Shift::Joint::Prismatic::create() {
 
 Updates displacement and influence coefficient matrices
 
-    ksl_SE3_t* dParent = dhva[0];
-    double* dPrimitive = dhva[1];
-    ksl_SE3_t* dChild = dhva[2];
-    ksl_screw_t* h = dhva[3];
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.

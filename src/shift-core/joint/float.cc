@@ -46,15 +46,6 @@ void Shift::Joint::float_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
 
-Float
-[0] dParent      offset into dhva.dAbsolute
-[1] dChild       offset into dhva.dAbsolute
-[2] q[7]         offset into q
-[3] dqIndex      offset into dhva.h, dq
-[4] vaParent     offset into dhva.v, dhva.aq
-[5] vaChild      offset into dhva.v, dhva.aq
-Total: 6
-
 @param dhva an array of pointers to properties related to
        displacement, influence coefficient matrices, velocities,
        and accelerations.
