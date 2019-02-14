@@ -7,6 +7,8 @@
 #include "shift-core/factory.h"
 #include "shift-core/light/base.h"
 
+#include "ksl/matrix.h"
+
 #include <iostream>
 
 bool Shift::Body::Modules::initialized() {
@@ -200,11 +202,9 @@ void Shift::Body::Base::setParentJoint(Shift::Joint::Base* parent) {
   parentJoint_ = parent;
   auto referenceFrame = parentJoint_->getSystemChildFrame();
   for(auto& frame : frames_) {
-    if(&frame == referenceFrame) {
-      frame.setIsReference(true);
-    }
-    frame.setIsReference(false);
+    frame.setIsReference(&frame == referenceFrame);
   }
+  setDWRTReference();
 }
 
 void Shift::Body::Base::load() {}
@@ -214,3 +214,68 @@ void Shift::Body::Base::connect() {}
 Shift::Frame* Shift::Body::Base::getOrigin() {
   return getFrame("origin");
 }
+
+Shift::Frame* Shift::Body::Base::getReferenceFrame() {
+  for(auto& frame : frames_) {
+    if(frame.getIsReference()) {
+      return &frame;
+    }
+  }
+  return NULL;
+}
+
+void Shift::Body::Base::setDWRTReference() {
+
+  std::cout << "setting dWRTReference for body: " << getName() << std::endl;
+
+  Frame* reference = getReferenceFrame();
+  if(!reference) {
+    std::cerr << "no reference frame found!" << std::endl;
+  }
+
+  ksl_SE3_t dReference;
+  ksl_SE3_setIdentity(&dReference);
+  reference->setDWRTReference(dReference);
+  const ksl_SE3_t* referenceWRTOrigin = reference->getDWRTOrigin();
+  for(auto& frame : frames_) {
+    if(!frame.getIsReference()) {
+      const ksl_SE3_t* dWRTOrigin = frame.getDWRTOrigin();
+      ksl_SE3_t dWRTReference;
+      ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &dWRTReference);
+      frame.setDWRTReference(dWRTReference);
+    }
+  }
+}
+
+void Shift::Body::Base::setDWRTReference(const ksl_SE3_t* dReference) {
+  Frame* reference = getReferenceFrame();
+  reference->setDWRTReference(*dReference);
+  const ksl_SE3_t* referenceWRTOrigin = reference->getDWRTOrigin();
+  for(auto& frame : frames_) {
+    if(!frame.getIsReference()) {
+      const ksl_SE3_t* dWRTOrigin = frame.getDWRTOrigin();
+      ksl_SE3_t temp;
+      ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &temp);
+      ksl_SE3_t dWRTReference;
+      ksl_product_dd(dReference, &temp, &dWRTReference);
+      frame.setDWRTReference(dWRTReference);
+    }
+  }
+}
+
+void Shift::Body::Base::setReferenceFrame(Shift::Frame* referenceFrame) {
+  for(auto& frame : frames_) {
+    frame.setReferenceFrame(referenceFrame);
+  }
+};
+
+void Shift::Body::Base::setReferenceFrame() {
+  auto reference = getReferenceFrame();
+  for(auto& frame : frames_) {
+    if(&frame == reference) {
+      frame.setReferenceFrame(NULL);
+    } else {
+      frame.setReferenceFrame(reference);
+    }
+  }
+};

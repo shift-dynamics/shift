@@ -34,6 +34,7 @@ In addition to the git submodules that are packaged with the *Shift* repository,
 *   `ImageMagick <http://www.imagemagick.org>`_
 *   `Qhull <http://www.qhull.org>`_
 *   `pandoc <http://pandoc.org>`_
+*   `glslang <https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/>`_
 
 
 Linux
@@ -47,7 +48,7 @@ Arch Linux:
 .. code::
 
     pacman -S cmake assimp jansson qt5 graphviz cblas imagemagick qhull pandoc
-    vulkan-icd-loader vulkan-headers vulkan-validation-layers vulkan-tools
+    vulkan-icd-loader vulkan-headers vulkan-validation-layers vulkan-tools glslang sed
 
 
 Ubuntu / Debian-based Linux Distributions:
