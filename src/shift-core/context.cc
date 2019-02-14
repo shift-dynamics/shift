@@ -68,9 +68,8 @@ void Shift::Context::readJSON(const std::string& filename) {
 
 void Shift::Context::processFrames() {
 
-  for(auto& frame : frames_) {
-    frame->setIndex(-1);
-    frame->setInTree(false);
+  for(auto& body : activeArticulatedBodies_) {
+    body->clearInTreeFlags();
   }
 
   framesInTree_.clear();
@@ -127,10 +126,8 @@ void Shift::Context::processFrames() {
     body->setParentJoint(joint);
   }
 
-  std::cout << "compressing rigid joints" << std::endl;
   /* compress rigid joints */
   for(int i = (int)activeJoints_.size() - 1; i >= 0; i--) {
-    std::cout << i << std::endl;
     auto joint = activeJoints_[i];
     auto childBody = joint->getSystemChildBody();
     if(joint->getqCount() == 0) {
@@ -1409,4 +1406,11 @@ void Shift::Context::allocateRunTimeArrays() {
       body->setVAIndex(-1);
     }
   }
+
+  // get operations count
+  int operationCount = 0;
+  for(auto& body : activeArticulatedBodies_) {
+    operationCount += body->getFrameInTreeCount();
+  }
+  std::cout << "operation count: " << operationCount << std::endl;
 }

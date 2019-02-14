@@ -92,6 +92,11 @@ public:
   unsigned int getFrameCount() {
     return frames_.size();
   }
+  /*!
+  return number of frames in spanning tree, context->processFrames must be
+  called to set frames in spanning tree.
+  */
+  unsigned int getFrameInTreeCount();
 
   int getIndex() {
     return index_;
@@ -132,6 +137,8 @@ public:
   }
 
   void setDWRTReference(const ksl_SE3_t*);
+
+  void clearInTreeFlags();
 
 protected:
   void setDWRTReference();

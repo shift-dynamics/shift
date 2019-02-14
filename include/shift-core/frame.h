@@ -50,17 +50,12 @@ public:
     return isReference_;
   }
   void setIsReference(bool isReference) {
-    std::cout << "setting frame " << getName()
-              << " to reference: " << (isReference ? "true" : "false")
-              << std::endl;
     isReference_ = isReference;
   }
   bool getIsOrigin() {
     return isOrigin_;
   }
   void setIsOrigin(bool isOrigin) {
-    std::cout << "setting frame " << getName()
-              << " to origin: " << (isOrigin ? "true" : "false") << std::endl;
     isOrigin_ = isOrigin;
   }
   void setDWRTReference(ksl_SE3_t dReference) {
