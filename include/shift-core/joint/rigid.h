@@ -43,7 +43,7 @@ public:
 
   virtual ksl_SE3_t getTransform() {
     ksl_SE3_t out;
-    const ksl_SE3_t* temp = frame_.getTransform();
+    const ksl_SE3_t* temp = frame_.getDWRTOrigin();
     if(sense_ >= 0) {
       ksl_SE3_copy(temp, &out);
     } else {

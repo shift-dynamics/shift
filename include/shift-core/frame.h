@@ -1,6 +1,7 @@
 #ifndef SHIFT_FRAME_H_
 #define SHIFT_FRAME_H_
 
+#include <iostream>
 #include <string>
 
 #include "ksl/SE3.h"
@@ -31,7 +32,8 @@ public:
   ~Frame() {}
   void print();
   void setNameRequired(bool);
-  const ksl_SE3_t* getTransform();
+  const ksl_SE3_t* getDWRTReference();
+  const ksl_SE3_t* getDWRTOrigin();
   int getIndex() {
     return index_;
   }
@@ -48,26 +50,41 @@ public:
     return isReference_;
   }
   void setIsReference(bool isReference) {
+    std::cout << "setting frame " << getName()
+              << " to reference: " << (isReference ? "true" : "false")
+              << std::endl;
     isReference_ = isReference;
   }
   bool getIsOrigin() {
     return isOrigin_;
   }
   void setIsOrigin(bool isOrigin) {
+    std::cout << "setting frame " << getName()
+              << " to origin: " << (isOrigin ? "true" : "false") << std::endl;
     isOrigin_ = isOrigin;
+  }
+  void setDWRTReference(ksl_SE3_t dReference) {
+    dWRTReference_ = dReference;
+  }
+
+  void setReferenceFrame(Frame* referenceFrame) {
+    referenceFrame_ = referenceFrame;
   }
 
 private:
   void addKeys();
   std::vector<std::string> fullyQualifiedName_;
-  ksl_SE3_t transform_ =
+  ksl_SE3_t dWRTOrigin_ =
+    ksl_SE3(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+  ksl_SE3_t dWRTReference_ =
     ksl_SE3(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
   int index_ = -1;           //!< index in context->dWRTReference
   bool inTree_ = false;      //!< indicates whether frame is in spanning tree
   bool isReference_ = false; //<! indicates whether frame is the reference frame
   // for the body it is attached to
   bool isOrigin_ = false; //<! indicates whether frame is origin of rigid body
-                          //it is attached to
+  // it is attached to
+  Frame* referenceFrame_ = NULL;
 };
 
 } // namespace Shift

@@ -86,6 +86,9 @@ public:
   void setActiveObjects(bool);
   Frame* getFrame(std::string);
   Frame* getOrigin();
+  Frame* getReferenceFrame();
+  void setReferenceFrame(Shift::Frame*);
+  void setReferenceFrame();
   unsigned int getFrameCount() {
     return frames_.size();
   }
@@ -128,9 +131,11 @@ public:
     return vaIndex_;
   }
 
-  void clearIsReference();
+  void setDWRTReference(const ksl_SE3_t*);
 
 protected:
+  void setDWRTReference();
+
   std::string type_;
   bool isArticulated_ = true; /*!< indicates whether body may have joints
                                  attached to it, i.e. that it is a member of an
