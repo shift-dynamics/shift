@@ -226,8 +226,6 @@ Shift::Frame* Shift::Body::Base::getReferenceFrame() {
 
 void Shift::Body::Base::setDWRTReference() {
 
-  std::cout << "setting dWRTReference for body: " << getName() << std::endl;
-
   Frame* reference = getReferenceFrame();
   if(!reference) {
     std::cerr << "no reference frame found!" << std::endl;
@@ -279,3 +277,20 @@ void Shift::Body::Base::setReferenceFrame() {
     }
   }
 };
+
+void Shift::Body::Base::clearInTreeFlags() {
+  for(auto& frame : frames_) {
+    frame.setIndex(-1);
+    frame.setInTree(false);
+  }
+}
+
+unsigned int Shift::Body::Base::getFrameInTreeCount() {
+  unsigned int count = 0;
+  for(auto& frame : frames_) {
+    if(frame.getInTree()) {
+      count++;
+    }
+  }
+  return count;
+}
