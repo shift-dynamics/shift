@@ -56,6 +56,14 @@ Ubuntu / Debian-based Linux Distributions:
 
     apt-get install cmake assimp jansson qt5 graphviz cblas libmagickwand-dev libqhull-dev pandoc
 
+Ubuntu 16.04:
+^^^^^^^^^^^^^
+
+.. code::
+
+   apt-get install cmake libassimp-dev libjansson-dev qt5-default graphviz libatlas-base-dev libmagickwand-dev libqhull-dev pandoc
+
+
 
 Macintosh
 *********
