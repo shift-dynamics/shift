@@ -139,11 +139,11 @@ void Shift::Joint::Base::connect() {
       childBodyPointer_ = context_->getBody(child_.at(0));
     }
     if(!childBodyPointer_) {
-      std::cout << "CHILD BODY NOT FOUND!" << std::endl;
+      std::cerr << "CHILD BODY NOT FOUND!" << std::endl;
     } else {
       childFramePointer_ = childBodyPointer_->getFrame(child_.at(1).at(0));
       if(!childFramePointer_) {
-        std::cout << "CHILD FRAME NOT FOUND!" << std::endl;
+        std::cerr << "CHILD FRAME NOT FOUND!" << std::endl;
       }
     }
   }

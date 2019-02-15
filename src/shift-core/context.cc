@@ -1355,11 +1355,6 @@ void Shift::Context::allocateRunTimeArrays() {
   dhva_ = Shift::Joint::DHVA(framesInTree_.size(), dcCount, dqCount,
                              nonRigidJointCount);
 
-  if(dhvaOffsets_) {
-    delete dhvaOffsets_;
-  }
-  dhvaOffsets_ = new Shift::Joint::Offsets[nonRigidJointCount];
-
   if(dWRTReference_) {
     free(dWRTReference_);
     dWRTReference_ = NULL;
@@ -1372,17 +1367,17 @@ void Shift::Context::allocateRunTimeArrays() {
   }
   dReferenceFrames_ = new int[nonRigidJointCount];
 
-  if(jointData_) {
-    delete jointData_;
-    jointData_ = NULL;
-  }
-  jointData_ = new double[dataCount];
-
   if(dcq_) {
     delete dcq_;
     dcq_ = NULL;
   }
   dcq_ = new int[dcCount];
+
+  if(jointData_) {
+    delete jointData_;
+    jointData_ = NULL;
+  }
+  jointData_ = new double[dataCount];
 
   if(q_) {
     delete q_;
@@ -1412,5 +1407,24 @@ void Shift::Context::allocateRunTimeArrays() {
   for(auto& body : activeArticulatedBodies_) {
     operationCount += body->getFrameInTreeCount();
   }
+
   std::cout << "operation count: " << operationCount << std::endl;
+
+  dhvaOffsets_.clear();
+  dhvaOffsets_.resize(operationCount);
+
+  dh_fptr_.clear();
+  dh_fptr_.resize(operationCount);
+
+  dhva_fptr_.clear();
+  dhva_fptr_.resize(operationCount);
+
+  i = 0;
+  Shift::Joint::Offsets offsets = {{0}};
+  for(auto& joint : activeJoints_) {
+    // if(joint->getqCount()) {
+    //   offsets.
+    //   i++;
+    // }
+  }
 }
