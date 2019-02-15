@@ -57,24 +57,13 @@ public:
     initialize();
   }
   ~Context() {
-    if(dhvaOffsets_) {
-      delete(dhvaOffsets_);
-    }
 
     if(dWRTReference_) {
       free(dWRTReference_);
     }
 
-    if(dReferenceFrames_) {
-      delete dReferenceFrames_;
-    }
-
     if(jointData_) {
       delete jointData_;
-    }
-
-    if(dcq_) {
-      delete dcq_;
     }
 
     if(q_) {
@@ -152,9 +141,28 @@ public:
   std::vector<Shift::Joint::Base*>* getActiveJoints() {
     return &activeJoints_;
   }
+  /*! get Shift::Behavior::Base by its descriptive name specified in model
+   * definition file. This function is intended to be used only to set pointers
+   * in models during initial set up.
+   * It is not recommended to use this function at run-time */
   Behavior::Base* getBehavior(std::vector<std::string>&);
+
+  /*! get Shift::Body::Base by its descriptive name specified in model
+   * definition file. This function is intended to be used only to set pointers
+   * in models during initial set up. It is not recommended to use this function
+   * at run-time */
   Body::Base* getBody(std::vector<std::string>&);
+
+  /*! get Shift::CollisionGeometry::Base by its descriptive name specified in
+   * model definition file. This function is intended to be used only to set
+   * pointers in models during initial set up. It is not recommended to use this
+   * function at run-time */
   CollisionGeometry::Base* getCollisionGeometry(std::vector<std::string>&);
+
+  /*! get Shift::Constraint::Base by its descriptive name specified in model
+   * definition file. This function is intended to be used only to set pointers
+   * in models during initial set up. It is not recommended to use this function
+   * at run-time */
   Constraint::Base* getConstraint(std::vector<std::string>&);
   ForceModule::Base* getForceModule(std::vector<std::string>&);
   Geometry::Base* getGeometry(std::vector<std::string>&);
@@ -183,15 +191,31 @@ private:
   void processFrames();
   void allocateRunTimeArrays();
 
-  Shift::Joint::Offsets* dhvaOffsets_ = NULL;
-  Shift::Joint::DHVA dhva_;
-  ksl_SE3_t* dWRTReference_ = NULL;
-  int* dReferenceFrames_ = NULL;
-  double* jointData_ = NULL;
-  int* dcq_ = NULL;
+  Shift::Joint::DHVA dhva_; /*!< displacements, influence coefficient matrices,
+                               spatial velocities and quadratic accelerations */
+  std::vector<Shift::Joint::Offsets>
+    dhvaOffsets_; /*!< offsets into d,dc,h,v,a and dWRTReference array to update
+                     kinematics */
+  std::vector<Shift::Joint::dh_fptr>
+    dh_fptr_; /*!< function pointers to update displacements and influence
+                 coefficient matrices */
+  std::vector<Shift::Joint::dhva_fptr> dhva_fptr_; /*!< function pointers to
+  update displacements, influence coefficient matrices, velocities and quadratic
+  accelerations */
+  std::vector<int> dReferenceFrames_;              /*!< index of frames in
+framesInTree that are the reference frame for the body */
+  std::vector<int>
+    dcq_; /*!< index of framesInTree that require updating direction cosines */
+
+  ksl_SE3_t* dWRTReference_ = NULL; /*!< relative displacement of a body frame
+                                       with respect to its reference frame */
+  double* jointData_ =
+    NULL; /*!< additional data required to process data across joints */
+
   double* q_ = NULL;
   double* dq_ = NULL;
   double* ddq_ = NULL;
+  double* qCopy_ = NULL;
 
   ModelParameters modelParameters_;
   Assembly fixed_;
@@ -199,7 +223,8 @@ private:
   Json::Value root_;
   std::string indentation_ = "  ";
 
-  /* sort members of a loop in monotonically level increasing order */
+  /*! struct for sorting members of a loop in monotonically level increasing
+   * order */
   struct levelOrder {
     levelOrder(Context* context)
       : joints_(context->getActiveJoints()) {}
@@ -211,7 +236,8 @@ private:
     }
   };
 
-  /* sort loops within a substructure by level order of base node */
+  /*! struct for sorting loops within a substructure by level order of base node
+   */
   struct substructureLoopLevelOrder {
     substructureLoopLevelOrder(Context* context,
                                const std::vector<std::vector<int>>& loopMembers)
@@ -225,7 +251,7 @@ private:
     }
   };
 
-  /* sort substructures by level increasing order */
+  /*! struct for sorting substructures by level increasing order */
   struct substructureLevelOrder {
     substructureLevelOrder(Context* context,
                            const std::vector<std::vector<int>>& loopMembers)
@@ -239,7 +265,7 @@ private:
     }
   };
 
-  std::vector<int> pcl_;
+  std::vector<int> pcl_; /*!< parent child list */
   std::vector<std::vector<int>> loopMembers_;
   std::vector<std::vector<int>> positiveLoopMembers_;
   std::vector<std::vector<int>> negativeLoopMembers_;
