@@ -1,3 +1,12 @@
+find_program(GLSLANG_VALIDATOR NAMES glslangValidator REQUIRED)
+if(NOT GLSLANG_VALIDATOR)
+  message(FATAL_ERROR "Error: `glslangValidator` not found!")
+endif()
+find_program(SED NAMES sed REQUIRED)
+if(NOT SED)
+  message(FATAL_ERROR "Error: `sed` not found!")
+endif()
+
 set(KERNELS
   flat.glsl
   floor_shadow.glsl

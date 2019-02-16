@@ -34,7 +34,7 @@ public:
   void setNameRequired(bool);
   const ksl_SE3_t* getDWRTReference();
   const ksl_SE3_t* getDWRTOrigin();
-  int getIndex() {
+  int getIndex() const {
     return index_;
   }
   void setIndex(int index) {
@@ -43,10 +43,10 @@ public:
   void setInTree(bool inTree) {
     inTree_ = inTree;
   }
-  bool getInTree() {
+  bool getInTree() const {
     return inTree_;
   }
-  bool getIsReference() {
+  bool getIsReference() const {
     return isReference_;
   }
   void setIsReference(bool isReference) {
@@ -64,6 +64,9 @@ public:
 
   void setReferenceFrame(Frame* referenceFrame) {
     referenceFrame_ = referenceFrame;
+  }
+  const Shift::Frame* getReferenceFrame() const {
+    return referenceFrame_;
   }
 
 private:

@@ -1,6 +1,6 @@
 #include "shift-core/base.h"
 
-const std::string& Shift::Base::getName() {
+const std::string& Shift::Base::getName() const {
   return name_;
 }
 
