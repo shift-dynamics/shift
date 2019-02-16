@@ -20,7 +20,7 @@ public:
   }
   ~Base() {}
 
-  const std::string& getName();
+  const std::string& getName() const;
   bool isActive();
   void setName(const std::string&);
   int getId();

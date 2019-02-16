@@ -18,6 +18,7 @@
 #include "shift-core/geometry/base.h"
 #include "shift-core/integrator/base.h"
 #include "shift-core/joint/base.h"
+#include "shift-core/joint/rigid.h"
 #include "shift-core/light/base.h"
 #include "shift-core/logger/base.h"
 #include "shift-core/sensor/base.h"
@@ -1361,17 +1362,11 @@ void Shift::Context::allocateRunTimeArrays() {
   }
   dWRTReference_ = ksl_SE3_alloc(framesInTree_.size());
 
-  if(dReferenceFrames_) {
-    delete dReferenceFrames_;
-    dReferenceFrames_ = NULL;
-  }
-  dReferenceFrames_ = new int[nonRigidJointCount];
+  dReferenceFrames_.clear();
+  dReferenceFrames_.resize(nonRigidJointCount);
 
-  if(dcq_) {
-    delete dcq_;
-    dcq_ = NULL;
-  }
-  dcq_ = new int[dcCount];
+  dcq_.clear();
+  dcq_.resize(dcCount);
 
   if(jointData_) {
     delete jointData_;
@@ -1420,11 +1415,70 @@ void Shift::Context::allocateRunTimeArrays() {
   dhva_fptr_.resize(operationCount);
 
   i = 0;
-  Shift::Joint::Offsets offsets = {{0}};
+  int j = 0;
+  int dcOffset = 0;
+  Shift::Joint::Offsets offsets = Shift::Joint::Offsets();
   for(auto& joint : activeJoints_) {
-    // if(joint->getqCount()) {
-    //   offsets.
-    //   i++;
-    // }
+    if(joint->getqCount()) {
+      if(joint->getdcCount()) {
+        dcq_[j++] = offsets.q;
+        dhvaOffsets_[i].dc = dcOffset;
+        dcOffset += joint->getdcCount();
+      } else {
+        dhvaOffsets_[i].q = offsets.q;
+      }
+      dhvaOffsets_[i].dq = offsets.dq;
+      dhvaOffsets_[i].data = offsets.data;
+      dhvaOffsets_[i].parent.d = joint->getSystemParentFrame()->getIndex();
+      assert(dhvaOffsets_[i].parent.d >= 0);
+      dhvaOffsets_[i].parent.v = joint->getSystemParentBody()->getVAIndex();
+      dhvaOffsets_[i].child.d = joint->getSystemChildFrame()->getIndex();
+      assert(dhvaOffsets_[i].child.d >= 0);
+      dhvaOffsets_[i].child.v = joint->getSystemChildBody()->getVAIndex();
+
+      std::cout << joint->getName() << ": ";
+      std::cout << " parent.v: " << dhvaOffsets_[i].parent.v;
+      std::cout << " parent.d: " << dhvaOffsets_[i].parent.d;
+      std::cout << " child.v: " << dhvaOffsets_[i].child.v;
+      std::cout << " child.d: " << dhvaOffsets_[i].child.d << std::endl;
+
+      offsets.q += joint->getqCount();
+      offsets.dq += joint->getdqCount();
+      offsets.data += joint->getDataCount();
+
+      dWRTReference_[i] = *(joint->getSystemChildFrame()->getDWRTReference());
+
+      dh_fptr_[i] = joint->getDH();
+      dhva_fptr_[i] = joint->getDHVA();
+      i++;
+    }
+    auto childBody = joint->getSystemChildBody();
+    for(auto& frame : *(childBody->getFrames())) {
+      if(frame.getInTree() && !frame.getIsReference()) {
+        dhvaOffsets_[i].q = 0;
+        dhvaOffsets_[i].dq = 0;
+        dhvaOffsets_[i].data = 0;
+        if(frame.getReferenceFrame()) {
+          dhvaOffsets_[i].parent.d = frame.getReferenceFrame()->getIndex();
+        } else {
+          std::cerr << "no reference frame found!!!" << std::endl;
+        }
+        assert(dhvaOffsets_[i].parent.d >= 0);
+        dhvaOffsets_[i].parent.v = 0;
+        dhvaOffsets_[i].child.d = frame.getIndex();
+        assert(dhvaOffsets_[i].child.d >= 0);
+        dhvaOffsets_[i].child.v = 0;
+
+        std::cout << frame.getName() << ": ";
+        std::cout << " parent.v: " << dhvaOffsets_[i].parent.v;
+        std::cout << " parent.d: " << dhvaOffsets_[i].parent.d;
+        std::cout << " child.v: " << dhvaOffsets_[i].child.v;
+        std::cout << " child.d: " << dhvaOffsets_[i].child.d << std::endl;
+
+        dh_fptr_[i] = Shift::Joint::rigid_dh;
+        dhva_fptr_[i] = Shift::Joint::rigid_dhva;
+        i++;
+      }
+    }
   }
 }

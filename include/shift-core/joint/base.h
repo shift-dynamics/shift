@@ -91,19 +91,19 @@ struct DHVA {
 */
 struct Offsets {
   union {
-    unsigned int dc; /*!< offset into direction cosine array */
-    unsigned int q;  /*!< offset into array of generalized coordinates */
+    unsigned int dc;    /*!< offset into direction cosine array */
+    unsigned int q = 0; /*!< offset into array of generalized coordinates */
   };
-  unsigned int dq; /*!< offset into array of generalized velocities */
+  unsigned int dq = 0; /*!< offset into array of generalized velocities */
   struct {
-    unsigned int d; /*!< offset for parent body's displacement */
-    unsigned int v; /*!< offset for parent body's velocity */
+    int d = 0; /*!< offset for parent body's displacement */
+    int v = 0; /*!< offset for parent body's velocity */
   } parent;
   struct {
-    unsigned int d; /*!< offset for child body's displacement */
-    unsigned int v; /*!< offset for child body's velocity */
+    int d = 0; /*!< offset for child body's displacement */
+    int v = 0; /*!< offset for child body's velocity */
   } child;
-  unsigned int data; /*!< offset into data array */
+  unsigned int data = 0; /*!< offset into data array */
 };
 
 typedef void (*dh_fptr)(const Shift::Context&, DHVA&, const Offsets&,
