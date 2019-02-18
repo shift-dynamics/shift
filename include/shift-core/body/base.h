@@ -44,6 +44,8 @@ public:
   Base()
     : Shift::Base("") {
     Frame origin("origin");
+    origin.setIsOrigin(true);
+    origin.setIsReference(true);
     appendFrame(origin);
   }
   Base(Base&& b)
@@ -92,6 +94,7 @@ public:
   unsigned int getFrameCount() {
     return frames_.size();
   }
+
   /*!
   return number of frames in spanning tree, context->processFrames must be
   called to set frames in spanning tree.
@@ -110,8 +113,8 @@ public:
     return level_;
   }
 
-  const std::vector<Shift::Frame>* getFrames() {
-    return &frames_;
+  const std::vector<Shift::Frame>& getFrames() {
+    return frames_;
   }
 
   void setLevel(int level) {
@@ -145,8 +148,8 @@ protected:
 
   std::string type_;
   bool isArticulated_ = true; /*!< indicates whether body may have joints
-                                 attached to it, i.e. that it is a member of an
-                                 articulated assembly of bodies */
+                                 attached to it, i.e. that the body comprises a
+                                 link of an articulated assembly of bodies */
   Assembly* assembly_ = NULL; /*!< Pointer to assembly that this body is a
                                   member of. */
   Context* context_ = NULL;

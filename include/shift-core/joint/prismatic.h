@@ -9,6 +9,22 @@ class Context;
 
 namespace Joint {
 
+void tx_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void txinv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void ty_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void tyinv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void tz_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void tzinv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void ta_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void tainv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
 void tx_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void txinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
@@ -20,6 +36,10 @@ void tyinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 void tz_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void tzinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void ta_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void tainv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void tx_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
              const double*);
@@ -38,10 +58,6 @@ void tz_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
 
 void tzinv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
                 const double*);
-
-void ta_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
-
-void tainv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void ta_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
              const double*);
@@ -81,8 +97,10 @@ public:
   virtual unsigned int getDataCount();
 
   void addKeys();
-  dh_fptr getDH();
-  dhva_fptr getDHVA();
+
+  dh_fptr getDfptr();
+  dh_fptr getDHfptr();
+  dhva_fptr getDHVAfptr();
 
 private:
   static bool registered_;

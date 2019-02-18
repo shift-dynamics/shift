@@ -21,11 +21,11 @@ public:
   ~Base() {}
 
   const std::string& getName() const;
-  bool isActive();
+  bool isActive() const;
   void setName(const std::string&);
-  int getId();
+  int getId() const;
   void setFullyQualifiedName(const std::vector<std::string>&);
-  const std::vector<std::string>& getFullyQualifiedName();
+  const std::vector<std::string>& getFullyQualifiedName() const;
   void setActive(bool);
 
 protected:

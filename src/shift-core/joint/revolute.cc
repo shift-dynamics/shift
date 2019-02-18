@@ -11,6 +11,161 @@ std::unique_ptr<Shift::Joint::Revolute> Shift::Joint::Revolute::create() {
 }
 
 /*!
+@brief Revolute Joint aligned with x-axis (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::rx_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                        const Shift::Joint::Offsets& offsets,
+                        const double* __restrict__) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  double* dc = dhva.dc + offsets.dc;
+
+  ksl_product_ddrx(dParent, dc, dChild);
+}
+
+/*!
+@brief Revolute Joint aligned with x-axis - inv (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::rxinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double* __restrict__) {
+
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  double* dc = dhva.dc + offsets.dc;
+  ksl_product_ddrxinv(dParent, dc, dChild);
+}
+
+/*!
+@brief Revolute Joint aligned with y-axis (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::ry_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                        const Shift::Joint::Offsets& offsets,
+                        const double* __restrict__) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  double* dc = dhva.dc + offsets.dc;
+  ksl_product_ddry(dParent, dc, dChild);
+}
+
+/*!
+@brief Revolute Joint aligned with y-axis - inv (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::ryinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double* __restrict__) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  double* dc = dhva.dc + offsets.dc;
+  ksl_product_ddryinv(dParent, dc, dChild);
+}
+
+/*!
+@brief Revolute Joint aligned with z-axis (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::rz_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                        const Shift::Joint::Offsets& offsets,
+                        const double* __restrict__) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  double* dc = dhva.dc + offsets.dc;
+  ksl_product_ddrz(dParent, dc, dChild);
+}
+
+/*!
+@brief Revolute Joint aligned with z-axis - inv (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::rzinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double* __restrict__) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  double* dc = dhva.dc + offsets.dc;
+  ksl_product_ddrzinv(dParent, dc, dChild);
+}
+
+/*!
+@brief Revolute joint aligned with arbitrary axis (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::ra_d(const Shift::Context& context, DHVA& dhva,
+                        const Shift::Joint::Offsets& offsets, const double*) {
+
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  double* dc = dhva.dc + offsets.dc;
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  ksl_mat3x3_t temp;
+  ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
+  ksl_product_ddr(dParent, &temp, dChild);
+  ksl_vec3_copy(&dParent->t, &dChild->t);
+}
+
+/*!
+@brief Revolute joint aligned with arbitrary axis - inverse (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::rainv_d(const Shift::Context& context, DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double*) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  double* dc = dhva.dc + offsets.dc;
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
+  ksl_mat3x3_t temp;
+  ksl_mat3x3_setFromAxisDC(&temp, &neg_axis, dc);
+  ksl_product_ddr(dParent, &temp, dChild);
+  ksl_vec3_copy(&dParent->t, &dChild->t);
+}
+
+/*!
 @brief Revolute Joint aligned with x-axis (dh)
 
 Updates displacement and influence coefficient matrices
@@ -497,7 +652,42 @@ unsigned int Shift::Joint::Revolute::getDataCount() {
   return 0;
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Revolute::getDH() {
+Shift::Joint::dh_fptr Shift::Joint::Revolute::getDfptr() {
+  AxisType axis = getAxisType();
+  switch(axis) {
+    case X_AXIS: {
+      if(sense_ >= 0) {
+        return rx_d;
+      } else {
+        return rxinv_d;
+      }
+    }
+    case Y_AXIS: {
+      if(sense_ >= 0) {
+        return ry_d;
+      } else {
+        return ryinv_d;
+      }
+    }
+    case Z_AXIS: {
+      if(sense_ >= 0) {
+        return rz_d;
+      } else {
+        return rzinv_d;
+      }
+    }
+    case ARBITRARY_AXIS: {
+      if(sense_ >= 0) {
+        return ra_d;
+      } else {
+        return rainv_d;
+      }
+    }
+  }
+  return rz_d;
+}
+
+Shift::Joint::dh_fptr Shift::Joint::Revolute::getDHfptr() {
   AxisType axis = getAxisType();
   switch(axis) {
     case X_AXIS: {
@@ -532,7 +722,7 @@ Shift::Joint::dh_fptr Shift::Joint::Revolute::getDH() {
   return rz_dh;
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Revolute::getDHVA() {
+Shift::Joint::dhva_fptr Shift::Joint::Revolute::getDHVAfptr() {
   AxisType axis = getAxisType();
   switch(axis) {
     case X_AXIS: {

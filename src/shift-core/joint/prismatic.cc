@@ -11,6 +11,159 @@ bool Shift::Joint::Prismatic::registered_ =
 std::unique_ptr<Shift::Joint::Prismatic> Shift::Joint::Prismatic::create() {
   return std::make_unique<Shift::Joint::Prismatic>();
 }
+/////////////////////////////////
+
+/*!
+@brief Prismatic joint along x-axis (dh)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::tx_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                        const Shift::Joint::Offsets& offsets,
+                        const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  const double* dPrimitive = q + offsets.q;
+  ksl_product_ddtx(dParent, *dPrimitive, dChild);
+}
+
+/*!
+@brief Prismatic Joint aligned with x-axis - inv (dh)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::txinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  const double* dPrimitive = q + offsets.q;
+  ksl_product_ddtxinv(dParent, *dPrimitive, dChild);
+}
+
+/*!
+@brief Prismatic Joint aligned with y-axis (dh)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::ty_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                        const Shift::Joint::Offsets& offsets,
+                        const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  const double* dPrimitive = q + offsets.q;
+  ksl_product_ddty(dParent, *dPrimitive, dChild);
+}
+
+/*!
+@brief Prismatic Joint aligned with y-axis - inv (dh)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::tyinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  const double* dPrimitive = q + offsets.q;
+  ksl_product_ddtyinv(dParent, *dPrimitive, dChild);
+}
+
+/*!
+@brief Prismatic Joint aligned with z-axis (dh)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::tz_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                        const Shift::Joint::Offsets& offsets,
+                        const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  const double* dPrimitive = q + offsets.q;
+  ksl_product_ddtz(dParent, *dPrimitive, dChild);
+}
+
+/*!
+@brief Prismatic Joint aligned with z-axis - inv (dh)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::tzinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  const double* dPrimitive = q + offsets.q;
+  ksl_product_ddtzinv(dParent, *dPrimitive, dChild);
+}
+
+/*!
+@brief Prismatic Joint aligned with arbitrary axis (dh)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::ta_d(const Shift::Context& context, Shift::Joint::DHVA& dhva,
+                        const Shift::Joint::Offsets& offsets,
+                        const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  const double* dPrimitive = q + offsets.q;
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  ksl_vec3_t temp;
+  ksl_product_av(*dPrimitive, axis, &temp);
+  ksl_product_ddt(dParent, &temp, dChild);
+}
+
+/*!
+@brief Prismatic Joint aligned with z-axis - inv (dh)
+
+Updates displacement and influence coefficient matrices
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::tainv_d(const Shift::Context& context,
+                           Shift::Joint::DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double* __restrict__ q) {
+
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  const double* dPrimitive = q + offsets.q;
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  ksl_vec3_t temp;
+  ksl_product_av(*dPrimitive, axis, &temp);
+  ksl_product_ddtinv(dParent, &temp, dChild);
+}
 
 /*!
 @brief Prismatic joint along x-axis (dh)
@@ -501,7 +654,42 @@ unsigned int Shift::Joint::Prismatic::getDataCount() {
   return 0;
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Prismatic::getDH() {
+Shift::Joint::dh_fptr Shift::Joint::Prismatic::getDfptr() {
+  AxisType axis = getAxisType();
+  switch(axis) {
+    case X_AXIS: {
+      if(sense_ >= 0) {
+        return Shift::Joint::tx_d;
+      } else {
+        return Shift::Joint::txinv_d;
+      }
+    }
+    case Y_AXIS: {
+      if(sense_ >= 0) {
+        return Shift::Joint::ty_d;
+      } else {
+        return Shift::Joint::tyinv_d;
+      }
+    }
+    case Z_AXIS: {
+      if(sense_ >= 0) {
+        return Shift::Joint::tz_d;
+      } else {
+        return Shift::Joint::tzinv_d;
+      }
+    }
+    case ARBITRARY_AXIS: {
+      if(sense_ >= 0) {
+        return Shift::Joint::ta_d;
+      } else {
+        return Shift::Joint::tainv_d;
+      }
+    }
+  }
+  return NULL;
+}
+
+Shift::Joint::dh_fptr Shift::Joint::Prismatic::getDHfptr() {
   AxisType axis = getAxisType();
   switch(axis) {
     case X_AXIS: {
@@ -536,7 +724,7 @@ Shift::Joint::dh_fptr Shift::Joint::Prismatic::getDH() {
   return NULL;
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Prismatic::getDHVA() {
+Shift::Joint::dhva_fptr Shift::Joint::Prismatic::getDHVAfptr() {
   AxisType axis = getAxisType();
   switch(axis) {
     case X_AXIS: {

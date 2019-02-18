@@ -10,6 +10,10 @@ namespace Joint {
 
 struct DHVA;
 
+void float_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void floatinv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
 void float_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void floatinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
@@ -51,8 +55,9 @@ public:
   void addKeys();
   virtual void readJSON(Json::Value&);
 
-  dh_fptr getDH();
-  dhva_fptr getDHVA();
+  dh_fptr getDfptr();
+  dh_fptr getDHfptr();
+  dhva_fptr getDHVAfptr();
 
 private:
   static bool registered_;

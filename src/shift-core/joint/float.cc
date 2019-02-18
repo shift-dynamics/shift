@@ -10,6 +10,29 @@ std::unique_ptr<Shift::Joint::Float> Shift::Joint::Float::create() {
 }
 
 /*!
+@brief Float Joint (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::float_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                           const Shift::Joint::Offsets& offsets,
+                           const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_vec3_t* t = (ksl_vec3_t*)(q + offsets.q);
+  ksl_quaternion_t* quat = (ksl_quaternion_t*)(q + offsets.q + 3);
+  ksl_SE3_t temp;
+  ksl_quaternion_toMat3x3(quat, &temp.R);
+  ksl_product_drdr(&dParent->R, &temp.R, &dChild->R);
+  ksl_product_drv(&dParent->R, t, &dChild->t);
+  ksl_xpy_vv(&dParent->t, &dChild->t);
+}
+
+/*!
 @brief Float Joint (dh)
 
 Updates displacement and influence coefficient matrices
@@ -72,6 +95,30 @@ void Shift::Joint::float_dhva(const Shift::Context& context,
   ksl_add_ss(vParent, &vRelative, vChild);
   ksl_cross_ss(vChild, &vRelative, &aqRelative);
   ksl_add_ss(aqParent, &aqRelative, aqChild);
+}
+
+/*!
+@brief Float Joint - inv (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::floatinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                              const Shift::Joint::Offsets& offsets,
+                              const double* __restrict__ q) {
+
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_vec3_t* t = (ksl_vec3_t*)(q + offsets.q);
+  ksl_quaternion_t* quat = (ksl_quaternion_t*)(q + offsets.q + 3);
+  ksl_SE3_t temp;
+  ksl_quaternion_toMat3x3(quat, &temp.R);
+  ksl_product_drdrinv(&dParent->R, &temp.R, &dChild->R);
+  ksl_product_drvinv(&dParent->R, t, &dChild->t);
+  ksl_xpy_vv(&dParent->t, &dChild->t);
 }
 
 /*!
@@ -154,7 +201,15 @@ void Shift::Joint::Float::readJSON(Json::Value& value) {
   ksl_vec3_copy(&temp->t, (ksl_vec3_t*)(&q_0_));
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Float::getDH() {
+Shift::Joint::dh_fptr Shift::Joint::Float::getDfptr() {
+  if(sense_ >= 0) {
+    return float_d;
+  } else {
+    return floatinv_d;
+  }
+}
+
+Shift::Joint::dh_fptr Shift::Joint::Float::getDHfptr() {
   if(sense_ >= 0) {
     return float_dh;
   } else {
@@ -162,7 +217,7 @@ Shift::Joint::dh_fptr Shift::Joint::Float::getDH() {
   }
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Float::getDHVA() {
+Shift::Joint::dhva_fptr Shift::Joint::Float::getDHVAfptr() {
   if(sense_ >= 0) {
     return float_dhva;
   } else {

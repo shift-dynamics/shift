@@ -10,6 +10,28 @@ std::unique_ptr<Shift::Joint::Spherical> Shift::Joint::Spherical::create() {
 }
 
 /*!
+@brief Spherical Joint (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::spherical_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
+                               const Shift::Joint::Offsets& offsets,
+                               const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_quaternion_t* quat = (ksl_quaternion_t*)(q + offsets.q);
+  ksl_mat3x3_t temp;
+
+  ksl_quaternion_toMat3x3(quat, &temp);
+  ksl_product_ddr(dParent, &temp, dChild);
+  ksl_vec3_copy(&dParent->t, &dChild->t);
+}
+
+/*!
 @brief Spherical Joint (dh)
 
 Updates displacement and influence coefficient matrices
@@ -68,6 +90,28 @@ void Shift::Joint::spherical_dhva(const Shift::Context& context,
   ksl_add_ss(vParent, &vRelative, vChild);
   ksl_cross_ss(vChild, &vRelative, &aqRelative);
   ksl_add_ss(aqParent, &aqRelative, aqChild);
+}
+
+/*!
+@brief Spherical Joint - inv (d)
+
+Updates displacements only
+
+@param dhva an array of pointers to properties related to
+       displacement, influence coefficient matrices, velocities,
+       and accelerations.
+*/
+void Shift::Joint::sphericalinv_d(const Shift::Context&,
+                                  Shift::Joint::DHVA& dhva,
+                                  const Shift::Joint::Offsets& offsets,
+                                  const double* __restrict__ q) {
+  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_quaternion_t* quat = (ksl_quaternion_t*)(q + offsets.q);
+  ksl_mat3x3_t temp;
+  ksl_quaternion_toMat3x3(quat, &temp);
+  ksl_product_ddrinv(dParent, &temp, dChild);
+  ksl_vec3_copy(&dParent->t, &dChild->t);
 }
 
 /*!
@@ -145,7 +189,15 @@ void Shift::Joint::Spherical::readJSON(Json::Value& value) {
   ksl_mat3x3_toQuaternion(&temp->R, (ksl_quaternion_t*)&q_0_);
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Spherical::getDH() {
+Shift::Joint::dh_fptr Shift::Joint::Spherical::getDfptr() {
+  if(sense_ >= 0) {
+    return spherical_d;
+  } else {
+    return sphericalinv_d;
+  }
+}
+
+Shift::Joint::dh_fptr Shift::Joint::Spherical::getDHfptr() {
   if(sense_ >= 0) {
     return spherical_dh;
   } else {
@@ -153,7 +205,7 @@ Shift::Joint::dh_fptr Shift::Joint::Spherical::getDH() {
   }
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Spherical::getDHVA() {
+Shift::Joint::dhva_fptr Shift::Joint::Spherical::getDHVAfptr() {
   if(sense_ >= 0) {
     return spherical_dhva;
   } else {

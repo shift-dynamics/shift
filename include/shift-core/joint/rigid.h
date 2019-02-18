@@ -38,8 +38,9 @@ public:
   void addKeys();
   virtual void readJSON(Json::Value&);
 
-  dh_fptr getDH();
-  dhva_fptr getDHVA();
+  dh_fptr getDfptr();
+  dh_fptr getDHfptr();
+  dhva_fptr getDHVAfptr();
 
   virtual ksl_SE3_t getTransform() {
     ksl_SE3_t out;
