@@ -9,6 +9,7 @@
 
 #include "ksl/matrix.h"
 
+#include <assert.h>
 #include <iostream>
 
 bool Shift::Body::Modules::initialized() {
@@ -221,16 +222,13 @@ Shift::Frame* Shift::Body::Base::getReferenceFrame() {
       return &frame;
     }
   }
+  std::cerr << "no reference frame found on body: " << getName() << std::endl;
+  assert(0);
   return NULL;
 }
 
 void Shift::Body::Base::setDWRTReference() {
-
   Frame* reference = getReferenceFrame();
-  if(!reference) {
-    std::cerr << "no reference frame found!" << std::endl;
-  }
-
   ksl_SE3_t dReference;
   ksl_SE3_setIdentity(&dReference);
   reference->setDWRTReference(dReference);
@@ -269,6 +267,7 @@ void Shift::Body::Base::setReferenceFrame(Shift::Frame* referenceFrame) {
 
 void Shift::Body::Base::setReferenceFrame() {
   auto reference = getReferenceFrame();
+
   for(auto& frame : frames_) {
     if(&frame == reference) {
       frame.setReferenceFrame(NULL);

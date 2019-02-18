@@ -14,11 +14,11 @@ void Shift::Base::setFullyQualifiedName(
   fullyQualifiedName_.push_back(name_);
 }
 
-const std::vector<std::string>& Shift::Base::getFullyQualifiedName() {
+const std::vector<std::string>& Shift::Base::getFullyQualifiedName() const {
   return fullyQualifiedName_;
 }
 
-bool Shift::Base::isActive() {
+bool Shift::Base::isActive() const {
   return active_;
 }
 

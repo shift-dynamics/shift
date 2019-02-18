@@ -156,8 +156,9 @@ public:
     return dq_0_;
   }
 
-  virtual dh_fptr getDH() = 0;
-  virtual dhva_fptr getDHVA() = 0;
+  virtual dh_fptr getDfptr() = 0;
+  virtual dh_fptr getDHfptr() = 0;
+  virtual dhva_fptr getDHVAfptr() = 0;
 
   virtual void readJSON(Json::Value&);
 

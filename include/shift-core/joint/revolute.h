@@ -9,6 +9,22 @@ namespace Joint {
 
 struct DHVA;
 
+void rx_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void rxinv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void ry_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void ryinv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void rz_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void rzinv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void ra_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void rainv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
 void rx_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void rxinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
@@ -20,6 +36,10 @@ void ryinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 void rz_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void rzinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void ra_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+
+void rainv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void rx_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
              const double*);
@@ -38,10 +58,6 @@ void rz_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
 
 void rzinv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
                 const double*);
-
-void ra_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
-
-void rainv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
 
 void ra_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
              const double*);
@@ -81,8 +97,10 @@ public:
   virtual unsigned int getDataCount();
 
   void addKeys();
-  dh_fptr getDH();
-  dhva_fptr getDHVA();
+
+  dh_fptr getDfptr();
+  dh_fptr getDHfptr();
+  dhva_fptr getDHVAfptr();
 
 private:
   enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };

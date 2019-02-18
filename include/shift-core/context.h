@@ -179,6 +179,9 @@ public:
   void appendFrame(Shift::Frame* frame) {
     frames_.push_back(frame);
   }
+  void updateD(Shift::Joint::DHVA& dhva, const double* q);
+  void updateDH(Shift::Joint::DHVA& dhva, const double* q);
+  void updateDHVA(Shift::Joint::DHVA& dhva, const double* q, const double* dq);
 
 private:
   void initialize();
@@ -196,14 +199,19 @@ private:
   std::vector<Shift::Joint::Offsets>
     dhvaOffsets_; /*!< offsets into d,dc,h,v,a and dWRTReference array to update
                      kinematics */
+
+  std::vector<Shift::Joint::dh_fptr>
+    d_fptr_; /*!< function pointers to update displacements */
   std::vector<Shift::Joint::dh_fptr>
     dh_fptr_; /*!< function pointers to update displacements and influence
                  coefficient matrices */
   std::vector<Shift::Joint::dhva_fptr> dhva_fptr_; /*!< function pointers to
   update displacements, influence coefficient matrices, velocities and quadratic
   accelerations */
-  std::vector<int> dReferenceFrames_;              /*!< index of frames in
+
+  std::vector<int> dReferenceFrames_; /*!< index of frames in
 framesInTree that are the reference frame for the body */
+
   std::vector<int>
     dcq_; /*!< index of framesInTree that require updating direction cosines */
 
@@ -295,6 +303,11 @@ framesInTree that are the reference frame for the body */
   std::vector<std::unique_ptr<Constraint::Base>> constraints_;
   std::vector<std::unique_ptr<ForceModule::Base>> forcemodules_;
   std::vector<std::unique_ptr<Joint::Base>> joints_;
+
+  void updateDC(Shift::Joint::DHVA& dhva, const double* q);
+  void updateD();
+  void updateDH();
+  void updateDHVA();
 
 }; // namespace Shift
 

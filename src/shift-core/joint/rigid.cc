@@ -99,7 +99,7 @@ void Shift::Joint::Rigid::readJSON(Json::Value& value) {
   }
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Rigid::getDH() {
+Shift::Joint::dh_fptr Shift::Joint::Rigid::getDfptr() {
   if(sense_ >= 0) {
     return rigid_dh;
   } else {
@@ -107,7 +107,15 @@ Shift::Joint::dh_fptr Shift::Joint::Rigid::getDH() {
   }
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Rigid::getDHVA() {
+Shift::Joint::dh_fptr Shift::Joint::Rigid::getDHfptr() {
+  if(sense_ >= 0) {
+    return rigid_dh;
+  } else {
+    return rigidinv_dh;
+  }
+}
+
+Shift::Joint::dhva_fptr Shift::Joint::Rigid::getDHVAfptr() {
   if(sense_ >= 0) {
     return rigid_dhva;
   } else {
