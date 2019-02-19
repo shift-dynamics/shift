@@ -878,6 +878,12 @@ void Shift::Context::processVirtualBodies() {
 
   std::vector<Shift::Body::Base*> bodies(activeJoints_.size());
 
+  // clear all system child body and frame pointers
+  for(auto& joint : activeJoints_) {
+    joint->setSystemChildBody(NULL);
+    joint->setSystemChildFrame(NULL);
+  }
+
   chordConstraints_.clear();
   int j = 0;
   for(unsigned int i = 0; i < activeJoints_.size(); i++) {
@@ -920,6 +926,9 @@ void Shift::Context::processVirtualBodies() {
 
       activeConstraints_.push_back(constraint.get());
       chordConstraints_.push_back(chordConstraint);
+
+      activeJoints_[i]->setSystemChildBody(virtualBody.get());
+      activeJoints_[i]->setSystemChildFrame(virtualBody.get()->getOrigin());
 
       /* transfer ownership of smart pointers for virtual bodies and chord
        * constraints to `Context` data structure */
@@ -1386,6 +1395,10 @@ void Shift::Context::allocateRunTimeArrays() {
   dhva_ = Shift::Joint::DHVA(framesInTree_.size(), dcCount, dqCount,
                              nonRigidJointCount);
 
+  std::cout << "qCount: " << qCount << std::endl;
+  std::cout << "dqCount: " << dqCount << std::endl;
+  std::cout << "dcCount: " << dcCount << std::endl;
+
   if(dWRTReference_) {
     free(dWRTReference_);
     dWRTReference_ = NULL;
@@ -1428,8 +1441,22 @@ void Shift::Context::allocateRunTimeArrays() {
   }
 
   // get operations count
-  int operationCount = 0;
+  int m = 0;
+  int n = 0;
+  unsigned int operationCount = 0;
   for(auto& body : activeArticulatedBodies_) {
+    std::cout << "(" << m++ << "):" << body->getName();
+    std::cout << std::flush;
+    if(body->getParentJoint()) {
+      std::cout << ": " << body->getParentJoint()->getName();
+    }
+    std::cout << std::endl;
+    for(auto& frame : body->getFrames()) {
+      if(frame.getInTree()) {
+        std::cout << "  (" << n++ << "): " << frame.getName() << std::endl;
+      }
+    }
+    std::cout << "  " << body->getFrameInTreeCount() << std::endl;
     operationCount += body->getFrameInTreeCount();
   }
 
@@ -1445,12 +1472,16 @@ void Shift::Context::allocateRunTimeArrays() {
   dhva_fptr_.clear();
   dhva_fptr_.resize(operationCount);
 
+  int k = 0;
   i = 0;
   int j = 0;
   int dcOffset = 0;
   Shift::Joint::Offsets offsets = Shift::Joint::Offsets();
   for(auto& joint : activeJoints_) {
+    std::cout << "(" << k++ << "/" << activeJoints_.size()
+              << "): " << joint->getName() << std::endl;
     if(joint->getqCount()) {
+      assert(i < operationCount);
       if(joint->getdcCount()) {
         dcq_[j++] = offsets.q;
         dhvaOffsets_[i].dc = dcOffset;
@@ -1467,7 +1498,9 @@ void Shift::Context::allocateRunTimeArrays() {
       assert(dhvaOffsets_[i].child.d >= 0);
       dhvaOffsets_[i].child.v = joint->getSystemChildBody()->getVAIndex();
 
-      std::cout << joint->getName() << ": ";
+      assert(joint->getSystemChildFrame()->getInTree());
+      std::cout << "  (" << i << "/" << operationCount << ") "
+                << joint->getSystemChildFrame()->getName() << ": ";
       std::cout << " parent.v: " << dhvaOffsets_[i].parent.v;
       std::cout << " parent.d: " << dhvaOffsets_[i].parent.d;
       std::cout << " child.v: " << dhvaOffsets_[i].child.v;
@@ -1487,6 +1520,8 @@ void Shift::Context::allocateRunTimeArrays() {
     auto childBody = joint->getSystemChildBody();
     for(auto& frame : childBody->getFrames()) {
       if(frame.getInTree() && !frame.getIsReference()) {
+        assert(frame.getInTree());
+        assert(i < operationCount);
         dhvaOffsets_[i].q = 0;
         dhvaOffsets_[i].dq = 0;
         dhvaOffsets_[i].data = 0;
@@ -1504,7 +1539,8 @@ void Shift::Context::allocateRunTimeArrays() {
         assert(dhvaOffsets_[i].child.d >= 0);
         dhvaOffsets_[i].child.v = 0;
 
-        std::cout << frame.getName() << ": ";
+        std::cout << "  (" << i << "/" << operationCount << ") "
+                  << frame.getName() << ": ";
         std::cout << " parent.v: " << dhvaOffsets_[i].parent.v;
         std::cout << " parent.d: " << dhvaOffsets_[i].parent.d;
         std::cout << " child.v: " << dhvaOffsets_[i].child.v;

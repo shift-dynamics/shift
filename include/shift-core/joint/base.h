@@ -36,12 +36,18 @@ struct DHVA {
   DHVA() {}
   DHVA(unsigned int frameCount, unsigned int dcCount, unsigned int dqCount,
        unsigned int nonRigidJointCount) {
+
+    frameCount_ = frameCount;
+    dcCount_ = dcCount;
+    dqCount_ = dqCount;
+    nonRigidJointCount_ = nonRigidJointCount;
+
     size_t dhvaSize = 2 * dcCount * sizeof(double) +                   /* dc */
                       frameCount * sizeof(ksl_SE3_t) +                 /* d */
                       (dqCount + 1) * sizeof(ksl_screw_t) +            /* h */
                       (nonRigidJointCount + 1) * sizeof(ksl_screw_t) + /* v */
                       (nonRigidJointCount + 1) * sizeof(ksl_screw_t);  /* aq */
-    dc = (double*)malloc(dhvaSize);
+    dc = new double[dhvaSize];
     if(dc == NULL) {
       std::cerr << "Error: failed to allocate memory for DHVA" << std::endl;
       exit(-1);
@@ -60,8 +66,9 @@ struct DHVA {
   }
 
   ~DHVA() {
+    std::cout << "destroying DHVA" << std::endl;
     if(dc != NULL) {
-      free(dc);
+      delete[] dc;
       dc = NULL;
       d = NULL;
       h = NULL;
@@ -70,7 +77,42 @@ struct DHVA {
     }
   }
 
-  DHVA& operator=(DHVA&&) {
+  DHVA& operator=(const DHVA& other) {
+
+    std::cout << "copying DHVA" << std::endl;
+    // check for self assignment
+    if(&other == this) {
+      return *this;
+    }
+
+    frameCount_ = other.frameCount_;
+    dcCount_ = other.dcCount_;
+    dqCount_ = other.dqCount_;
+    nonRigidJointCount_ = other.nonRigidJointCount_;
+
+    size_t dhvaSize = 2 * dcCount_ * sizeof(double) +                   /* dc */
+                      frameCount_ * sizeof(ksl_SE3_t) +                 /* d */
+                      (dqCount_ + 1) * sizeof(ksl_screw_t) +            /* h */
+                      (nonRigidJointCount_ + 1) * sizeof(ksl_screw_t) + /* v */
+                      (nonRigidJointCount_ + 1) * sizeof(ksl_screw_t);  /* aq */
+    dc = new double[dhvaSize];
+    if(dc == NULL) {
+      std::cerr << "Error: failed to allocate memory for DHVA" << std::endl;
+      exit(-1);
+    }
+    memset(dc, 0, dhvaSize);
+    d = (ksl_SE3_t*)(dc + 2 * dcCount_);
+    h = (ksl_screw_t*)(d + frameCount_);
+    v = h + (nonRigidJointCount_ + 1);
+    aq = v + (nonRigidJointCount_ + 1);
+
+    // increment pointers to h, v, and aq. This allows using the index -1 for
+    // the fixed inertial reference frame
+    h++;
+    v++;
+    aq++;
+
+    memcpy(dc, other.dc, dhvaSize);
     return *this;
   }
 
@@ -84,6 +126,11 @@ struct DHVA {
   ksl_screw_t* aq =
     NULL; /*!< an array of body accelerations equal to the
         number of non rigid joints + 1 for the fixed inertial reference frame */
+private:
+  unsigned int frameCount_ = 0;
+  unsigned int dcCount_ = 0;
+  unsigned int dqCount_ = 0;
+  unsigned int nonRigidJointCount_ = 0;
 };
 
 /*!
@@ -193,6 +240,9 @@ public:
   }
 
   Shift::Body::Base* getSystemChildBody() {
+    if(systemChildBodyPointer_) {
+      return systemChildBodyPointer_;
+    }
     if(sense_ >= 0) {
       return childBodyPointer_;
     } else {
@@ -217,11 +267,22 @@ public:
   }
 
   Shift::Frame* getSystemChildFrame() {
+    if(systemChildFramePointer_) {
+      return systemChildFramePointer_;
+    }
     if(sense_ >= 0) {
       return childFramePointer_;
     } else {
       return parentFramePointer_;
     }
+  }
+
+  void setSystemChildBody(Shift::Body::Base* body) {
+    systemChildBodyPointer_ = body;
+  }
+
+  void setSystemChildFrame(Shift::Frame* frame) {
+    systemChildFramePointer_ = frame;
   }
 
   int getSense() {
@@ -316,6 +377,10 @@ protected:
   Frame* parentFramePointer_ = NULL;            //!< pointer to parent Frame
   Shift::Body::Base* childBodyPointer_ = NULL;  //!< pointer to child Body
   Frame* childFramePointer_ = NULL;             //!< pointer to child Frame
+  Shift::Body::Base* systemChildBodyPointer_ =
+    NULL; //!< allows pointing to a system defined virtual body
+  Shift::Frame* systemChildFramePointer_ =
+    NULL; //!< allows pointing to a system defined virtual body
 
   double* q_0_ = NULL;  /*!< initial primitive displacement
                                               specified by user */
