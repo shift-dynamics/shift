@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <iostream>
 
 #include "shift-core/context.h"
@@ -140,10 +141,12 @@ void Shift::Joint::Base::connect() {
     }
     if(!childBodyPointer_) {
       std::cerr << "CHILD BODY NOT FOUND!" << std::endl;
+      assert(0);
     } else {
       childFramePointer_ = childBodyPointer_->getFrame(child_.at(1).at(0));
       if(!childFramePointer_) {
         std::cerr << "CHILD FRAME NOT FOUND!" << std::endl;
+        assert(0);
       }
     }
   }
