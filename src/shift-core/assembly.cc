@@ -76,7 +76,7 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
       std::cerr << msg << std::endl;
     }
 
-    if(value["behaviors"] && value["behaviors"].isArray()) {
+    if(value.isMember("behaviors") && value["behaviors"].isArray()) {
       for(auto i : value["behaviors"]) {
         if(i.isMember("type") && i["type"].isString()) {
           std::string type = i["type"].asString();
