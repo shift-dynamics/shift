@@ -44,7 +44,7 @@ public:
 
   bool registerModule(const std::string& name, CreateFunction pfnCreate) {
     /* register module only if name not already taken */
-    if(auto it = factoryMap_.find(name); it == factoryMap_.end()) {
+    if(factoryMap_.find(name) == factoryMap_.end()) {
       factoryMap_[name] = pfnCreate;
       return true;
     }
@@ -61,7 +61,7 @@ public:
   std::unique_ptr<T> create(const std::string& name) {
     /* if valid map does not exist, return null and throw exception */
     try {
-      if(auto it = factoryMap_.find(name); it == factoryMap_.end()) {
+      if(factoryMap_.find(name) == factoryMap_.end()) {
         throw "Error: Module not found:";
       }
     } catch(const char* msg) {
