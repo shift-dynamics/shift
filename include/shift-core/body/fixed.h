@@ -29,7 +29,7 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Fixed() {}
+  virtual ~Fixed() override {}
   static std::unique_ptr<Fixed> create();
   void appendTerrain(std::unique_ptr<Terrain::Base>&);
   void readJSON(Json::Value&) override;

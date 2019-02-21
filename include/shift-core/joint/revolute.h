@@ -84,23 +84,23 @@ public:
     q_0_ = new double[qCount_]();
     dq_0_ = new double[dqCount_]();
   }
-  ~Revolute() {
-    delete q_0_;
-    delete dq_0_;
+  ~Revolute() override {
+    delete[] q_0_;
+    delete[] dq_0_;
   }
   static std::unique_ptr<Revolute> create();
   static bool isRegistered() {
     return registered_;
   }
 
-  virtual const double* getData();
-  virtual unsigned int getDataCount();
+  virtual const double* getData() override;
+  virtual unsigned int getDataCount() override;
 
   void addKeys();
 
-  dh_fptr getDfptr();
-  dh_fptr getDHfptr();
-  dhva_fptr getDHVAfptr();
+  dh_fptr getDfptr() override;
+  dh_fptr getDHfptr() override;
+  dhva_fptr getDHVAfptr() override;
 
 private:
   enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };

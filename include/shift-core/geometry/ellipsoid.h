@@ -18,9 +18,9 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Ellipsoid() {}
+  virtual ~Ellipsoid() override {}
   static std::unique_ptr<Ellipsoid> create();
-  void addKeys();
+  void addKeys() override;
   static bool isRegistered() {
     return registered_;
   }

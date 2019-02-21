@@ -18,7 +18,7 @@ public:
     name_ = name;
     id_ = id++;
   }
-  ~Base() {}
+  virtual ~Base() {}
 
   const std::string& getName() const;
   bool isActive() const;

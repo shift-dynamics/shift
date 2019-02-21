@@ -22,7 +22,7 @@ public:
     : Base("") {
     addKeys();
   }
-  ~ODE113() {}
+  virtual ~ODE113() override {}
   static std::unique_ptr<ODE113> create();
   void addKeys();
 

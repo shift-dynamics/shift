@@ -28,7 +28,7 @@ public:
     : Shift::Base(name) {}
   Base()
     : Shift::Base("") {}
-  ~Base() {}
+  virtual ~Base() {}
 
   const std::string& getType() {
     return type_;

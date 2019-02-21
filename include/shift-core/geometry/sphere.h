@@ -17,9 +17,9 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Sphere() {}
+  virtual ~Sphere() override {}
   static std::unique_ptr<Sphere> create();
-  void addKeys();
+  void addKeys() override;
 
   static bool isRegistered() {
     return registered_;

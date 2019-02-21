@@ -11,7 +11,6 @@ bool Shift::Joint::Prismatic::registered_ =
 std::unique_ptr<Shift::Joint::Prismatic> Shift::Joint::Prismatic::create() {
   return std::make_unique<Shift::Joint::Prismatic>();
 }
-/////////////////////////////////
 
 /*!
 @brief Prismatic joint along x-axis (dh)
@@ -155,7 +154,6 @@ void Shift::Joint::tainv_d(const Shift::Context& context,
                            Shift::Joint::DHVA& dhva,
                            const Shift::Joint::Offsets& offsets,
                            const double* __restrict__ q) {
-
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -254,7 +252,6 @@ void Shift::Joint::txinv_dhva(const Shift::Context& context,
                               const Shift::Joint::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
-
   Shift::Joint::txinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -308,7 +305,6 @@ void Shift::Joint::ty_dhva(const Shift::Context& context,
                            const Shift::Joint::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
-
   Shift::Joint::ty_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -362,7 +358,6 @@ void Shift::Joint::tyinv_dhva(const Shift::Context& context,
                               const Shift::Joint::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
-
   Shift::Joint::tyinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -416,7 +411,6 @@ void Shift::Joint::tz_dhva(const Shift::Context& context,
                            const Shift::Joint::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
-
   Shift::Joint::tz_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -470,7 +464,6 @@ void Shift::Joint::tzinv_dhva(const Shift::Context& context,
                               const Shift::Joint::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
-
   Shift::Joint::tzinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -527,7 +520,6 @@ void Shift::Joint::ta_dhva(const Shift::Context& context,
                            const Shift::Joint::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
-
   Shift::Joint::tz_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -558,7 +550,6 @@ void Shift::Joint::tainv_dh(const Shift::Context& context,
                             Shift::Joint::DHVA& dhva,
                             const Shift::Joint::Offsets& offsets,
                             const double* __restrict__ q) {
-
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -585,7 +576,6 @@ void Shift::Joint::tainv_dhva(const Shift::Context& context,
                               const Shift::Joint::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
-
   Shift::Joint::tzinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -608,9 +598,9 @@ void Shift::Joint::Prismatic::addKeys() {
 
   SerialEntry axis("axis", SerialType::KSL_VEC3, &axis_);
   axis.setRequired(false);
-  axis.setDescription(
-    "Axis of translation expressed in parent body frame, defaults to z-axis if "
-    "no axis is provided.");
+  axis.setDescription("Axis of translation expressed in parent body frame, "
+                      "defaults to z-axis if "
+                      "no axis is provided.");
   addSerialEntry(axis);
 
   SerialEntry q0("initial_displacement", SerialType::DOUBLE, &q_0_);

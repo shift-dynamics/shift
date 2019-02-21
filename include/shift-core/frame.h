@@ -32,8 +32,8 @@ public:
   ~Frame() {}
   void print();
   void setNameRequired(bool);
-  const ksl_SE3_t* getDWRTReference();
-  const ksl_SE3_t* getDWRTOrigin();
+  const ksl_SE3_t* getDWRTReference() const;
+  const ksl_SE3_t* getDWRTOrigin() const;
   int getIndex() const {
     return index_;
   }

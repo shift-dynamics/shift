@@ -56,6 +56,7 @@ void Shift::Context::readJSON(const std::string& filename) {
   // * setDHVAPointers();
   // * setFixedFrameGravityVector();
 
+  updateD();
   updateDH();
   updateDHVA();
 
@@ -1424,12 +1425,14 @@ void Shift::Context::allocateRunTimeArrays() {
   }
   q_ = new double[qCount + dqCount];
   dq_ = q_ + qCount;
+  memset(q_, 0, (qCount + dqCount) * sizeof(double));
 
   if(ddq_) {
     delete ddq_;
     ddq_ = NULL;
   }
   ddq_ = new double[dqCount];
+  memset(ddq_, 0, dqCount * sizeof(double));
 
   unsigned int i = 0;
   for(auto& body : activeArticulatedBodies_) {
@@ -1441,36 +1444,38 @@ void Shift::Context::allocateRunTimeArrays() {
   }
 
   // get operations count
-  int m = 0;
-  int n = 0;
+  // int m = 0;
+  // int n = 0;
   unsigned int operationCount = 0;
   for(auto& body : activeArticulatedBodies_) {
-    std::cout << "(" << m++ << "):" << body->getName();
-    std::cout << std::flush;
-    if(body->getParentJoint()) {
-      std::cout << ": " << body->getParentJoint()->getName();
-    }
-    std::cout << std::endl;
-    for(auto& frame : body->getFrames()) {
-      if(frame.getInTree()) {
-        std::cout << "  (" << n++ << "): " << frame.getName() << std::endl;
-      }
-    }
-    std::cout << "  " << body->getFrameInTreeCount() << std::endl;
+    // std::cout << "(" << m++ << "):" << body->getName();
+    // std::cout << std::flush;
+    // if(body->getParentJoint()) {
+    //   std::cout << ": " << body->getParentJoint()->getName();
+    // }
+    // std::cout << std::endl;
+    // for(auto& frame : body->getFrames()) {
+    //   if(frame.getInTree()) {
+    //     std::cout << "  (" << n++ << "): " << frame.getName() << std::endl;
+    //   }
+    // }
+    // std::cout << "  " << body->getFrameInTreeCount() << std::endl;
     operationCount += body->getFrameInTreeCount();
   }
 
   dhvaOffsets_.clear();
   dhvaOffsets_.resize(operationCount);
 
-  // d_fptr_.clear();
-  // d_fptr_.resize(operationCount);
+  d_fptr_.clear();
+  d_fptr_.resize(operationCount);
 
   dh_fptr_.clear();
   dh_fptr_.resize(operationCount);
 
   dhva_fptr_.clear();
   dhva_fptr_.resize(operationCount);
+
+  std::cout << "operation count: " << operationCount << std::endl;
 
   int k = 0;
   i = 0;
@@ -1512,7 +1517,7 @@ void Shift::Context::allocateRunTimeArrays() {
 
       dWRTReference_[i] = *(joint->getSystemChildFrame()->getDWRTReference());
 
-      // d_fptr_[i] = joint->getDfptr();
+      d_fptr_[i] = joint->getDfptr();
       dh_fptr_[i] = joint->getDHfptr();
       dhva_fptr_[i] = joint->getDHVAfptr();
       i++;
@@ -1546,7 +1551,9 @@ void Shift::Context::allocateRunTimeArrays() {
         std::cout << " child.v: " << dhvaOffsets_[i].child.v;
         std::cout << " child.d: " << dhvaOffsets_[i].child.d << std::endl;
 
-        // d_fptr_[i] = Shift::Joint::rigid_dh;
+        dWRTReference_[i] = *(frame.getDWRTReference());
+
+        d_fptr_[i] = Shift::Joint::rigid_dh;
         dh_fptr_[i] = Shift::Joint::rigid_dh;
         dhva_fptr_[i] = Shift::Joint::rigid_dhva;
         i++;
@@ -1557,10 +1564,7 @@ void Shift::Context::allocateRunTimeArrays() {
 
 void Shift::Context::updateDC(Shift::Joint::DHVA& dhva,
                               const double* __restrict__ q) {
-  std::cout << "updateDC()" << std::endl;
   for(unsigned int i = 0; i < dcq_.size(); i++) {
-    std::cout << "i: " << dcq_[i] << ", dcq_[i]: " << dcq_[i] << std::endl;
-    std::cout << "  q[dcq_[i]]: " << q[dcq_[i]] << std::endl;
     ksl_dc(q[dcq_[i]], dhva.dc + (i * 2));
   }
 }
@@ -1571,9 +1575,8 @@ void Shift::Context::updateD() {
 
 void Shift::Context::updateD(Shift::Joint::DHVA& dhva,
                              const double* __restrict__ q) {
-  std::cout << "updateD()" << std::endl;
   updateDC(dhva, q);
-  for(unsigned int i = 0; d_fptr_.size(); i++) {
+  for(unsigned int i = 0; i < d_fptr_.size(); i++) {
     (d_fptr_[i])(*this, dhva, dhvaOffsets_[i], q);
   }
 }
@@ -1584,9 +1587,14 @@ void Shift::Context::updateDH() {
 
 void Shift::Context::updateDH(Shift::Joint::DHVA& dhva,
                               const double* __restrict__ q) {
-  std::cout << "updateDH()" << std::endl;
   updateDC(dhva, q);
-  for(unsigned int i = 0; dh_fptr_.size(); i++) {
+  for(unsigned int i = 0; i < dh_fptr_.size(); i++) {
+    // std::cout << i << std::flush;
+    // std::cout << ", q/dc: " << dhvaOffsets_[i].q
+    //           << " parent.d: " << dhvaOffsets_[i].parent.d
+    //           << " parent.v: " << dhvaOffsets_[i].parent.v
+    //           << " child.d: " << dhvaOffsets_[i].child.d
+    //           << " child.v: " << dhvaOffsets_[i].child.v << std::endl;
     (dh_fptr_[i])(*this, dhva, dhvaOffsets_[i], q);
   }
 }
@@ -1598,9 +1606,9 @@ void Shift::Context::updateDHVA() {
 void Shift::Context::updateDHVA(Shift::Joint::DHVA& dhva,
                                 const double* __restrict__ q,
                                 const double* __restrict__ dq) {
-  std::cout << "updateDHVA()" << std::endl;
+  // std::cout << "updateDHVA()" << std::endl;
   updateDC(dhva, q);
-  for(unsigned int i = 0; dhva_fptr_.size(); i++) {
+  for(unsigned int i = 0; i < dhva_fptr_.size(); i++) {
     (dhva_fptr_[i])(*this, dhva, dhvaOffsets_[i], q, dq);
   }
 }

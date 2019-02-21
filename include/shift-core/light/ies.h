@@ -18,9 +18,9 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~IES() {}
+  virtual ~IES() override {}
   static std::unique_ptr<IES> create();
-  void readJSON(Json::Value&);
+  void readJSON(Json::Value&) override;
   virtual void addKeys();
   static bool isRegistered() {
     return registered_;

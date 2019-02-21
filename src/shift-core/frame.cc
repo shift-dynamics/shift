@@ -60,11 +60,11 @@ void Shift::Frame::print() {
   ksl_SE3_print(stdout, &dWRTOrigin_, name_.c_str());
 }
 
-const ksl_SE3_t* Shift::Frame::getDWRTOrigin() {
+const ksl_SE3_t* Shift::Frame::getDWRTOrigin() const {
   return &dWRTOrigin_;
 }
 
-const ksl_SE3_t* Shift::Frame::getDWRTReference() {
+const ksl_SE3_t* Shift::Frame::getDWRTReference() const {
   return &dWRTReference_;
 }
 

@@ -19,7 +19,7 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Virtual() {}
+  virtual ~Virtual() override {}
   static std::unique_ptr<Virtual> create();
   static bool isRegistered() {
     return registered_;

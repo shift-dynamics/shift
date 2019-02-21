@@ -28,7 +28,7 @@ public:
   Rigid(std::string name)
     : Base(name) {}
 
-  ~Rigid() {}
+  virtual ~Rigid() override {}
 
   static std::unique_ptr<Rigid> create();
   static bool isRegistered() {
@@ -36,13 +36,13 @@ public:
   }
 
   void addKeys();
-  virtual void readJSON(Json::Value&);
+  virtual void readJSON(Json::Value&) override;
 
-  dh_fptr getDfptr();
-  dh_fptr getDHfptr();
-  dhva_fptr getDHVAfptr();
+  dh_fptr getDfptr() override;
+  dh_fptr getDHfptr() override;
+  dhva_fptr getDHVAfptr() override;
 
-  virtual ksl_SE3_t getTransform() {
+  virtual ksl_SE3_t getTransform() override {
     ksl_SE3_t out;
     const ksl_SE3_t* temp = frame_.getDWRTOrigin();
     if(sense_ >= 0) {

@@ -60,7 +60,7 @@ public:
       collisionGeometry_.push_back(std::move(i));
     }
   }
-  ~Base() {}
+  virtual ~Base() {}
 
   virtual void addKeys();
 

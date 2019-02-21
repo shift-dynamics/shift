@@ -31,7 +31,7 @@ public:
     , Serialize() {
     addKeys();
   }
-  ~Base() {}
+  virtual ~Base() {}
 
   void readJSON(Json::Value&);
   virtual void load();

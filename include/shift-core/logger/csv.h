@@ -22,7 +22,7 @@ public:
     : Base("") {
     addKeys();
   }
-  ~CSV() {}
+  virtual ~CSV() override {}
 
   const std::string& getDescription() {
     return description_;
@@ -34,7 +34,7 @@ public:
     return registered_;
   }
 
-  void readJSON(Json::Value&);
+  void readJSON(Json::Value&) override;
 
 private:
   const std::string description_ = "";

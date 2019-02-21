@@ -66,7 +66,6 @@ struct DHVA {
   }
 
   ~DHVA() {
-    std::cout << "destroying DHVA" << std::endl;
     if(dc != NULL) {
       delete[] dc;
       dc = NULL;
@@ -177,7 +176,7 @@ public:
     , Serialize() {
     addKeys();
   }
-  ~Base() {}
+  virtual ~Base() {}
 
   const std::string& getType() {
     return type_;
@@ -378,9 +377,9 @@ protected:
   Shift::Body::Base* childBodyPointer_ = NULL;  //!< pointer to child Body
   Frame* childFramePointer_ = NULL;             //!< pointer to child Frame
   Shift::Body::Base* systemChildBodyPointer_ =
-    NULL; //!< allows pointing to a system defined virtual body
+    NULL; //!< pointer to a system defined virtual body
   Shift::Frame* systemChildFramePointer_ =
-    NULL; //!< allows pointing to a system defined virtual body
+    NULL; //!< pointer to a system defined virtual body
 
   double* q_0_ = NULL;  /*!< initial primitive displacement
                                               specified by user */

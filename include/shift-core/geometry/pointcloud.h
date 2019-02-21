@@ -17,9 +17,9 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~PointCloud() {}
+  virtual ~PointCloud() override {}
   static std::unique_ptr<PointCloud> create();
-  void addKeys();
+  void addKeys() override;
 
   static bool isRegistered() {
     return registered_;

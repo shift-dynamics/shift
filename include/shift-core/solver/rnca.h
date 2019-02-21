@@ -23,7 +23,7 @@ public:
     : Base("") {
     addKeys();
   }
-  ~RNCA() {}
+  virtual ~RNCA() override {}
 
   const std::string& getDescription() {
     return description_;

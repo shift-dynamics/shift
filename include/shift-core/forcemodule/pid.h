@@ -23,7 +23,7 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~PID() {}
+  virtual ~PID() override {}
   static std::unique_ptr<PID> create();
   void addKeys();
 
