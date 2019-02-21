@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.10.0)
 
 project(shift)
 set(VERSION_MAJOR 1 CACHE STRING "Project major version number.")
@@ -24,8 +24,6 @@ find_package(assimp REQUIRED)
 find_package(jsoncpp REQUIRED)
 find_package(graphviz REQUIRED)
 find_package(cblas)
-
-message(STATUS "JSONCPP_LIBRARY ${JsonCpp_LIBRARY}")
 
 add_subdirectory(external)
 add_subdirectory(assets)
