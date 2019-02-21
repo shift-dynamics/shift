@@ -42,6 +42,8 @@ Linux
 
 On most linux variants, the above packages can be installed using the distribution's package manager.
 
+The Jenkins integration tests currently build and test code with ``gcc`` version 8.2 and ``cmake`` 3.13 on Arch Linux.
+
 Arch Linux:
 ^^^^^^^^^^^
 
@@ -87,18 +89,15 @@ From within the top directory of the repository, issue the following command:
     make
 
 
-Executables will be located in ${PROJECT_DIRECTORY}/build/bin
-
-Where ${PROJECT_DIRECTORY} is the root directory of the git project on your
-system.
+Executables will be located in ``${PROJECT_DIRECTORY}/bin`` where 
+``${PROJECT_DIRECTORY}`` is the root directory of the git project on your system.
 
 You can test if the executable works correctly by running the command line
-interface to the program as:
+interface to the program from within the ``${PROJECT_DIRECTORY}`` as:
 
 .. code::
 
-    cd ${PROJECT_DIRECTORY}/build/bin
-    ./shift_cli ../models/excavator/excavator.json
+    ./bin/shift-cli external/models/excavator/excavator.json
 
 
 Run the graphical user interface component of the program by executing the
@@ -106,7 +105,8 @@ following command from within the ${PROJECT_DIRECTORY}/build/bin directory:
 
 .. code::
 
-    ./shift
+    ./bin/shift
+
 
 To run the gui program with nvidia-gfx-debugger:
 
