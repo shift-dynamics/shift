@@ -23,11 +23,11 @@ public:
     isArticulated_ = false;
   }
 
-  ~Free() {}
+  virtual ~Free() override {}
 
   static std::unique_ptr<Free> create();
 
-  void addKeys();
+  void addKeys() override;
 
   static bool isRegistered() {
     return registered_;

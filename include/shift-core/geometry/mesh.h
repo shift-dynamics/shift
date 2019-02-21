@@ -17,9 +17,9 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Mesh() {}
+  virtual ~Mesh() override {}
   static std::unique_ptr<Mesh> create();
-  void addKeys();
+  void addKeys() override;
 
   static bool isRegistered() {
     return registered_;

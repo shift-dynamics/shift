@@ -23,7 +23,7 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Contact() {}
+  virtual ~Contact() override {}
   static std::unique_ptr<Contact> create();
   void addKeys();
 

@@ -32,7 +32,7 @@ public:
     : Shift::Base("") {
     addKeys();
   }
-  ~Base() {}
+  virtual ~Base() {}
 
   const std::string& getType() {
     return type_;

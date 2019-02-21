@@ -44,9 +44,9 @@ public:
     q_0_ = new double[qCount_]();
     dq_0_ = new double[dqCount_]();
   }
-  ~Spherical() {
-    delete q_0_;
-    delete dq_0_;
+  virtual ~Spherical() override {
+    delete[] q_0_;
+    delete[] dq_0_;
   }
 
   static std::unique_ptr<Spherical> create();
@@ -55,11 +55,11 @@ public:
   }
 
   void addKeys();
-  virtual void readJSON(Json::Value&);
+  virtual void readJSON(Json::Value&) override;
 
-  dh_fptr getDfptr();
-  dh_fptr getDHfptr();
-  dhva_fptr getDHVAfptr();
+  dh_fptr getDfptr() override;
+  dh_fptr getDHfptr() override;
+  dhva_fptr getDHVAfptr() override;
 
 private:
   static bool registered_;

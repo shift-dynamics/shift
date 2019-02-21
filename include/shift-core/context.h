@@ -63,15 +63,15 @@ public:
     }
 
     if(jointData_) {
-      delete jointData_;
+      delete[] jointData_;
     }
 
     if(q_) {
-      delete q_;
+      delete[] q_;
     }
 
     if(ddq_) {
-      delete ddq_;
+      delete[] ddq_;
     }
   }
 

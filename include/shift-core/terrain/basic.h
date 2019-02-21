@@ -17,7 +17,7 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Basic() {}
+  virtual ~Basic() override {}
   static std::unique_ptr<Basic> create();
   void addKeys();
   static bool isRegistered() {

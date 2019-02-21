@@ -43,8 +43,8 @@ public:
     dq_0_ = new double[dqCount_]();
   }
   ~Float() {
-    delete q_0_;
-    delete dq_0_;
+    delete[] q_0_;
+    delete[] dq_0_;
   }
 
   static std::unique_ptr<Float> create();

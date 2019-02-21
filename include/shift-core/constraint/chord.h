@@ -24,7 +24,7 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Chord() {}
+  virtual ~Chord() override {}
   static std::unique_ptr<Chord> create();
   void readJSON(Json::Value&) override;
   virtual void addKeys();

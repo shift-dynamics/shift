@@ -21,9 +21,9 @@ public:
     : Base(name) {
     addKeys();
   }
-  ~Rigid() {}
+  virtual ~Rigid() override {}
   static std::unique_ptr<Rigid> create();
-  void addKeys();
+  void addKeys() override;
   static bool isRegistered() {
     return registered_;
   }
