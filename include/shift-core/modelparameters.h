@@ -37,7 +37,9 @@ public:
   ~ModelParameters() {}
 
   /*! \brief retrieve gravity vector */
-  const ksl_vec3_t& getGravity();
+  const ksl_vec3_t* getGravity() {
+    return &gravity_;
+  }
 
   /*! \brief set gravity vector */
   void setGravity(ksl_vec3_t);

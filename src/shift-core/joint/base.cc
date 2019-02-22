@@ -151,3 +151,15 @@ void Shift::Joint::Base::connect() {
     }
   }
 }
+
+void Shift::Joint::Base::setInitialDisplacement(const double* q) {
+  if(q_0_) {
+    memcpy(q_0_, q, qCount_ * sizeof(double));
+  }
+}
+
+void Shift::Joint::Base::setInitialVelocity(const double* dq) {
+  if(dq_0_) {
+    memcpy(dq_0_, dq, dqCount_ * sizeof(double));
+  }
+}

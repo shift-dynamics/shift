@@ -193,6 +193,9 @@ private:
   unsigned int getActiveFrameCount();
   void processFrames();
   void allocateRunTimeArrays();
+  void setFixedFrameGravityVector();
+  void setToInitialConditions();
+  void setInitialConditionsToCurrentConditions();
 
   Shift::Joint::DHVA dhva_; /*!< displacements, influence coefficient matrices,
                                spatial velocities and quadratic accelerations */
