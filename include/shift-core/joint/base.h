@@ -202,6 +202,9 @@ public:
     return dq_0_;
   }
 
+  void setInitialDisplacement(const double* q);
+  void setInitialVelocity(const double* dq);
+
   virtual dh_fptr getDfptr() = 0;
   virtual dh_fptr getDHfptr() = 0;
   virtual dhva_fptr getDHVAfptr() = 0;

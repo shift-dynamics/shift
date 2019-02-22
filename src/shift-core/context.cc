@@ -26,6 +26,8 @@
 #include "shift-core/terrain/base.h"
 #include "shift-core/topology.h"
 
+#include "ksl/print.h"
+#include "ksl/screw.h"
 #include "ksl/trig.h"
 
 void Shift::Context::readJSON(const std::string& filename) {
@@ -50,11 +52,8 @@ void Shift::Context::readJSON(const std::string& filename) {
   processFrames();
   allocateRunTimeArrays();
 
-  // * compressRigidJoints();
-  // * setParentJointPointers();
-  // * countDHVA();
-  // * setDHVAPointers();
-  // * setFixedFrameGravityVector();
+  setFixedFrameGravityVector();
+  setToInitialConditions();
 
   updateD();
   updateDH();
@@ -1475,8 +1474,6 @@ void Shift::Context::allocateRunTimeArrays() {
   dhva_fptr_.clear();
   dhva_fptr_.resize(operationCount);
 
-  std::cout << "operation count: " << operationCount << std::endl;
-
   int k = 0;
   i = 0;
   int j = 0;
@@ -1504,12 +1501,12 @@ void Shift::Context::allocateRunTimeArrays() {
       dhvaOffsets_[i].child.v = joint->getSystemChildBody()->getVAIndex();
 
       assert(joint->getSystemChildFrame()->getInTree());
-      std::cout << "  (" << i << "/" << operationCount << ") "
-                << joint->getSystemChildFrame()->getName() << ": ";
-      std::cout << " parent.v: " << dhvaOffsets_[i].parent.v;
-      std::cout << " parent.d: " << dhvaOffsets_[i].parent.d;
-      std::cout << " child.v: " << dhvaOffsets_[i].child.v;
-      std::cout << " child.d: " << dhvaOffsets_[i].child.d << std::endl;
+      // std::cout << "  (" << i << "/" << operationCount << ") "
+      //           << joint->getSystemChildFrame()->getName() << ": ";
+      // std::cout << " parent.v: " << dhvaOffsets_[i].parent.v;
+      // std::cout << " parent.d: " << dhvaOffsets_[i].parent.d;
+      // std::cout << " child.v: " << dhvaOffsets_[i].child.v;
+      // std::cout << " child.d: " << dhvaOffsets_[i].child.d << std::endl;
 
       offsets.q += joint->getqCount();
       offsets.dq += joint->getdqCount();
@@ -1589,12 +1586,6 @@ void Shift::Context::updateDH(Shift::Joint::DHVA& dhva,
                               const double* __restrict__ q) {
   updateDC(dhva, q);
   for(unsigned int i = 0; i < dh_fptr_.size(); i++) {
-    // std::cout << i << std::flush;
-    // std::cout << ", q/dc: " << dhvaOffsets_[i].q
-    //           << " parent.d: " << dhvaOffsets_[i].parent.d
-    //           << " parent.v: " << dhvaOffsets_[i].parent.v
-    //           << " child.d: " << dhvaOffsets_[i].child.d
-    //           << " child.v: " << dhvaOffsets_[i].child.v << std::endl;
     (dh_fptr_[i])(*this, dhva, dhvaOffsets_[i], q);
   }
 }
@@ -1606,9 +1597,44 @@ void Shift::Context::updateDHVA() {
 void Shift::Context::updateDHVA(Shift::Joint::DHVA& dhva,
                                 const double* __restrict__ q,
                                 const double* __restrict__ dq) {
-  // std::cout << "updateDHVA()" << std::endl;
   updateDC(dhva, q);
   for(unsigned int i = 0; i < dhva_fptr_.size(); i++) {
     (dhva_fptr_[i])(*this, dhva, dhvaOffsets_[i], q, dq);
+  }
+}
+
+void Shift::Context::setFixedFrameGravityVector() {
+  assert(dhva_.aq);
+  ksl_vec3_inverted(modelParameters_.getGravity(), &dhva_.aq[-1].lin);
+}
+
+void Shift::Context::setToInitialConditions() {
+  assert(q_);
+  assert(dq_);
+  unsigned int qOffset = 0;
+  unsigned int dqOffset = 0;
+  for(auto& joint : activeJoints_) {
+    if(joint->getq0()) {
+      memcpy(q_ + qOffset, joint->getq0(), joint->getqCount() * sizeof(double));
+    }
+    if(joint->getdq0()) {
+      memcpy(dq_ + dqOffset, joint->getdq0(),
+             joint->getdqCount() * sizeof(double));
+    }
+    qOffset += joint->getqCount();
+    dqOffset += joint->getdqCount();
+  }
+}
+
+void Shift::Context::setInitialConditionsToCurrentConditions() {
+  assert(q_);
+  assert(dq_);
+  unsigned int qOffset = 0;
+  unsigned int dqOffset = 0;
+  for(auto& joint : activeJoints_) {
+    joint->setInitialDisplacement(q_ + qOffset);
+    joint->setInitialVelocity(dq_ + dqOffset);
+    qOffset += joint->getqCount();
+    dqOffset += joint->getdqCount();
   }
 }

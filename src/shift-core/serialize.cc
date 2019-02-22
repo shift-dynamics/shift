@@ -649,7 +649,6 @@ void Shift::SerialEntry::readJSON_EULERANGLES(Json::Value& value) {
 }
 
 void Shift::SerialEntry::readJSON_BOOLEAN(Json::Value& value) {
-
   if(!value.isBool()) {
     throw "JSON Parsing error, required key %s has incorrectly formatted "
           "data; expected BOOLEAN";
