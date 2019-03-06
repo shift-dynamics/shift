@@ -7,6 +7,7 @@ set(shift_core_src
   factory.cc
   frame.cc
   modelparameters.cc
+  jacobian.cc
   substructure.cc
   topology.cc
   units.cc

@@ -1171,6 +1171,16 @@ void Shift::Context::detectSubstructures() {
     std::sort(substructures.begin(), substructures.end(),
               substructureLevelOrder(this, loopMembers_));
 
+    int k = 0;
+    for(auto substructure : substructures) {
+      std::cout << "substructure [" << k++ << "]: ";
+      for(auto index : substructure) {
+        std::cout << index << " ";
+      }
+      std::cout << std::endl;
+    }
+    substructureIndices_ = substructures;
+
     std::vector<std::vector<int>> substructureMembers(substructures.size());
     for(unsigned int i = 0; i < substructures.size(); i++) {
       for(auto loopIndex : substructures[i]) {
@@ -1381,19 +1391,19 @@ void Shift::Context::allocateRunTimeArrays() {
   unsigned int qCount = 0;
   unsigned int dqCount = 0;
   unsigned int dataCount = 0;
-  unsigned int nonRigidJointCount = 0;
+  nonRigidJointCount_ = 0;
   for(auto& joint : activeJoints_) {
     dcCount += joint->getdcCount();
     qCount += joint->getqCount();
     dqCount += joint->getdqCount();
     dataCount += joint->getDataCount();
     if(joint->getqCount() > 0) {
-      nonRigidJointCount++;
+      nonRigidJointCount_++;
     }
   }
 
   dhva_ = Shift::Joint::DHVA(framesInTree_.size(), dcCount, dqCount,
-                             nonRigidJointCount);
+                             nonRigidJointCount_);
 
   std::cout << "qCount: " << qCount << std::endl;
   std::cout << "dqCount: " << dqCount << std::endl;
@@ -1406,7 +1416,7 @@ void Shift::Context::allocateRunTimeArrays() {
   dWRTReference_ = ksl_SE3_alloc(framesInTree_.size());
 
   dReferenceFrames_.clear();
-  dReferenceFrames_.resize(nonRigidJointCount);
+  dReferenceFrames_.resize(nonRigidJointCount_);
 
   dcq_.clear();
   dcq_.resize(dcCount);
@@ -1556,6 +1566,10 @@ void Shift::Context::allocateRunTimeArrays() {
         i++;
       }
     }
+  }
+
+  if(substructureIndices_.size() > 0) {
+    jacobian_.initialize();
   }
 }
 

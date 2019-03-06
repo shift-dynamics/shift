@@ -32,10 +32,10 @@ bool Shift::Topology::matchFullyQualifiedName(
 }
 
 /*!
-@brief Used to detect if k is in the kinematic path of j
-@param pcl parent child list
-@param j index of body
-@param k index of second body to test
+\brief Used to detect if k is in the kinematic path of j
+\param pcl parent child list
+\param j index of body
+\param k index of second body to test
 */
 bool Shift::Topology::inPath(std::vector<int>& pcl, int j, int k) {
   if(j == k) {
@@ -53,9 +53,9 @@ bool Shift::Topology::inPath(std::vector<int>& pcl, int j, int k) {
 }
 
 /*!
-@brief Detect if body/joint k is head of a substructure
-@param k index of body / joint
-@param list of substructure members
+\brief Detect if body/joint k is head of a substructure
+\param k index of body / joint
+\param list of substructure members
 */
 bool Shift::Topology::isSubstructureHead(
   int k, std::vector<std::vector<int>>& substructures) {
@@ -68,9 +68,9 @@ bool Shift::Topology::isSubstructureHead(
 }
 
 /*!
-@brief Detect if body/joint k is member of a substructure
-@param k index of body / joint
-@param list of substructure members
+\brief Detect if body/joint k is member of a substructure
+\param k index of body / joint
+\param list of substructure members
 */
 bool Shift::Topology::isSubstructureMember(
   int bodyIndex, std::vector<std::vector<int>>& substructures) {
@@ -82,4 +82,14 @@ bool Shift::Topology::isSubstructureMember(
     }
   }
   return false;
+}
+
+void setInversePermutation(const std::vector<int>& p,
+                           std::vector<int>& pInverse) {
+  if(p.size() != pInverse.size()) {
+    pInverse.resize(p.size());
+  }
+  for(unsigned int i = 0; i < p.size(); i++) {
+    pInverse[p[i]] = i;
+  }
 }

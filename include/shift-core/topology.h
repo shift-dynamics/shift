@@ -24,31 +24,13 @@ bool isSubstructureHead(int, std::vector<std::vector<int>>&);
 bool isSubstructureMember(int, std::vector<std::vector<int>>&);
 
 /*!
-@}
-@defgroup forward_kinematics Forward Kinematics functions
-@{
+\brief set inverse permutation
+\param p forward permutation array
+\param pInverse inverse permutation array
 */
+void setInversePermutation(const std::vector<int>& p,
+                           std::vector<int>& pInverse);
 
-/*!
-@brief update displacements only
-*/
-void updateD(Shift::Context&, Shift::Joint::DHVA& dhva, const double* q);
-
-/*!
-@brief update displacements and influence coefficient matrices
-*/
-void updateDH(Shift::Context&, Shift::Joint::DHVA& dhva, const double* q);
-
-/*!
-@brief update displacements, influence coefficient matrices, velocities
-and quadratic acceleration terms
-*/
-void updateDHVA(Shift::Context&, Shift::Joint::DHVA& dhva, const double* q,
-                const double* dq);
-
-/*!
-@}
-*/
 //
 // // identify which frames in the d array correspond to body reference frames
 // void setDReferenceFrames();
