@@ -50,6 +50,7 @@ protected:
   void addKeys();
 
   std::string type_; //!< descriptive name of Integrator type
+  unsigned int iterationsSinceLastFullFactor_ = 0;
 };
 
 class Modules {
