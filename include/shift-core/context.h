@@ -47,7 +47,7 @@ public:
   Context(std::string name)
     : Base(name)
     , jacobian_(this)
-    , modelParameters_(name)
+    , modelParameters_(this)
     , fixed_("fixed") {
     fixed_.setContext(this);
     initialize();
@@ -55,7 +55,7 @@ public:
   Context()
     : Base("")
     , jacobian_(this)
-    , modelParameters_("")
+    , modelParameters_(this)
     , fixed_("fixed") {
     initialize();
   }
@@ -95,22 +95,6 @@ public:
 
     if(inertia_) {
       free(inertia_);
-    }
-
-    if(hasMass_) {
-      delete[] hasMass_;
-    }
-
-    if(hasMassdq_) {
-      delete[] hasMassdq_;
-    }
-
-    if(jointDOF_) {
-      delete[] jointDOF_;
-    }
-
-    if(jointDOFCompressed_) {
-      delete[] jointDOFCompressed_;
     }
   }
 
@@ -170,6 +154,8 @@ public:
   void clearActiveTerrain();
   void clearActiveArrays();
   void connectActiveObjects();
+  unsigned int getqCount();
+  unsigned int getdqCount();
 
   const std::vector<Shift::Joint::Base*>& getActiveJoints() const {
     return activeJoints_;
@@ -401,10 +387,8 @@ framesInTree that are the reference frame for the body */
     NULL; /*!< spatial body and inertial forces, length equal to dq count */
   ksl_screw_t* k_ = NULL;         /*!< spatial joint reaction forces */
   ksl_inertia_t* inertia_ = NULL; /*!< body fixed spatial  inertia */
-  bool* hasMass_ = NULL;
-  bool* hasMassdq_ = NULL;
-  unsigned int* jointDOF_ = NULL;
-  unsigned int* jointDOFCompressed_ = NULL;
+  std::vector<int> jointDOF_;
+  std::vector<int> jointDOFCompressed_;
 
   Shift::Jacobian jacobian_;
 
@@ -527,6 +511,9 @@ framesInTree that are the reference frame for the body */
   void updateD();
   void updateDH();
   void updateDHVA();
+
+  unsigned int qCount_ = 0;
+  unsigned int dqCount_ = 0;
 
 }; // namespace Shift
 

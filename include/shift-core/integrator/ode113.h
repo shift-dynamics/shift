@@ -29,6 +29,7 @@ public:
   static bool isRegistered() {
     return registered_;
   }
+  virtual void initialize() override{};
 
 private:
   static bool registered_;

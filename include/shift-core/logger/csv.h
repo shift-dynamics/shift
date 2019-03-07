@@ -35,6 +35,7 @@ public:
   }
 
   void readJSON(Json::Value&) override;
+  virtual void initialize() override {}
 
 private:
   const std::string description_ = "";

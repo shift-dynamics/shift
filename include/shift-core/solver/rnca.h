@@ -232,6 +232,8 @@ public:
     return registered_;
   }
 
+  virtual void initialize() override;
+
 private:
   std::vector<bool> hasMass_;
   std::vector<bool> hasMassdq_;
@@ -242,7 +244,7 @@ private:
   double* ddcsq_ =
     NULL; /*!< constraint second derivative and quadratic terms */
 
-  int Ml_size_; /*!< size of Ml array = ((2 + n) * (1 + n)) / 2*/
+  int Ml_size_ = 0; /*!< size of Ml array = ((2 + n) * (1 + n)) / 2*/
 
   double* Ml_ = NULL; /*!< Generalized mass matrix, linear array containing mass
                    matrix terms on and below the diagonal */
@@ -258,9 +260,9 @@ private:
   ksl_inertia_t* inertiaP_ = NULL; /*!< accumulated "projected" inertia
                                 matrices used in solving dynamics equations */
 
-  int nnzm_;  /*!< number of nonzero entries in mass matrix */
-  int nnzms_; /*!< original number of nonzero entries in mass matrix */
-  int nnzb_;  /*!< number of nonzero entries in B matrix */
+  int nnzm_ = 0;  /*!< number of nonzero entries in mass matrix */
+  int nnzms_ = 0; /*!< original number of nonzero entries in mass matrix */
+  int nnzb_ = 0;  /*!< number of nonzero entries in B matrix */
 
   int** rm_ = NULL; /*!< row ranges of M matrix in PO(3) */
   int* cm_ = NULL;  /*!< row ranges of M matrix in PO(3) */
@@ -273,7 +275,7 @@ private:
   int* cb3_temp_ = NULL; /*!< temporary array used to convert cb2 to cb3*/
   int* cb3_ = NULL;      /*!< global col indices of B matrix in PO(3) */
   int* colb_ = NULL;     /*!< local col indices of B matrix in PO(3) */
-  int ncb_;              /*!< number of columns in B matrix */
+  int ncb_ = 0;          /*!< number of columns in B matrix */
 
   int* pb_23_ = NULL; /*!< permutation of linear b matrix from 3 to 2 */
   int* pb_32_ = NULL; /*!< permutation of linear b matrix from 2 to 3 */
@@ -288,10 +290,10 @@ private:
   // double* gas; /*!< Saved copy of original ga */
   double* la_ = NULL; /*!< lagrange multipliers */
 
-  int i1s_; /*!< Points to Mkj or Mjk in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
-  int i2s_; /*!< Points to Mij in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
-  int i6s_; /*!< Points to Mkj or Mjk in Mkj -= Mij*Mik or Mjk -= Mij*Mik */
-  int i8s_; /*!< Points to Mik in Mkj -= Mij*Mik or Mjk -= Mij*Mik */
+  int i1s_ = 0; /*!< Points to Mkj or Mjk in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
+  int i2s_ = 0; /*!< Points to Mij in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
+  int i6s_ = 0; /*!< Points to Mkj or Mjk in Mkj -= Mij*Mik or Mjk -= Mij*Mik */
+  int i8s_ = 0; /*!< Points to Mik in Mkj -= Mij*Mik or Mjk -= Mij*Mik */
 
   /*!< M[i1[l1]] -= M[i2[l1]] * B[i3[l1]]; */
   int* i1_ = NULL;
@@ -337,11 +339,11 @@ private:
   int* n3_ =
     NULL; /*!< increments in m3 to process current independent variable. */
 
-  int startOfWorkInM_; /*!< n(n+1)/2 points to first entry in temporary storage
-                           part of Ml[] */
+  int startOfWorkInM_ = 0; /*!< n(n+1)/2 points to first entry in temporary
+                           storage part of Ml[] */
   double** P_ =
     NULL; /*!< Single array of source and destination memory pointers. */
-  double p3Start_; /*!< start of p3 in P */
+  double p3Start_ = 0; /*!< start of p3 in P */
 
   const std::string description_ =
     "Run-time optimized Natural Constraint Algorithm (RNCA):\n"

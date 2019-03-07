@@ -1386,27 +1386,35 @@ void Shift::Context::detectSubstructures() {
   }
 }
 
+unsigned int Shift::Context::getqCount() {
+  return qCount_;
+}
+
+unsigned int Shift::Context::getdqCount() {
+  return dqCount_;
+}
+
 void Shift::Context::allocateRunTimeArrays() {
   unsigned int dcCount = 0;
-  unsigned int qCount = 0;
-  unsigned int dqCount = 0;
+  unsigned int qCount_ = 0;
+  unsigned int dqCount_ = 0;
   unsigned int dataCount = 0;
   nonRigidJointCount_ = 0;
   for(auto& joint : activeJoints_) {
     dcCount += joint->getdcCount();
-    qCount += joint->getqCount();
-    dqCount += joint->getdqCount();
+    qCount_ += joint->getqCount();
+    dqCount_ += joint->getdqCount();
     dataCount += joint->getDataCount();
     if(joint->getqCount() > 0) {
       nonRigidJointCount_++;
     }
   }
 
-  dhva_ = Shift::Joint::DHVA(framesInTree_.size(), dcCount, dqCount,
+  dhva_ = Shift::Joint::DHVA(framesInTree_.size(), dcCount, dqCount_,
                              nonRigidJointCount_);
 
-  std::cout << "qCount: " << qCount << std::endl;
-  std::cout << "dqCount: " << dqCount << std::endl;
+  std::cout << "qCount: " << qCount_ << std::endl;
+  std::cout << "dqCount: " << dqCount_ << std::endl;
   std::cout << "dcCount: " << dcCount << std::endl;
 
   if(dWRTReference_) {
@@ -1432,16 +1440,16 @@ void Shift::Context::allocateRunTimeArrays() {
     q_ = NULL;
     dq_ = NULL;
   }
-  q_ = new double[qCount + dqCount];
-  dq_ = q_ + qCount;
-  memset(q_, 0, (qCount + dqCount) * sizeof(double));
+  q_ = new double[qCount_ + dqCount_];
+  dq_ = q_ + qCount_;
+  memset(q_, 0, (qCount_ + dqCount_) * sizeof(double));
 
   if(ddq_) {
     delete ddq_;
     ddq_ = NULL;
   }
-  ddq_ = new double[dqCount];
-  memset(ddq_, 0, dqCount * sizeof(double));
+  ddq_ = new double[dqCount_];
+  memset(ddq_, 0, dqCount_ * sizeof(double));
 
   unsigned int i = 0;
   for(auto& body : activeArticulatedBodies_) {
@@ -1568,9 +1576,192 @@ void Shift::Context::allocateRunTimeArrays() {
     }
   }
 
+  jointDOF_.resize(activeJoints_.size());
+  // joint
+  //   if(context->jointDOF) {
+  //     free(context->jointDOF);
+  //   }
+  //   context->jointDOF = calloc(context->activeJointCount, sizeof(int));
+  //   if(context->jointDOFCompressed) {
+  //     free(context->jointDOFCompressed);
+  //   }
+  //   context->jointDOFCompressed =
+  //     calloc(context->nonRigidJointCount, sizeof(int));
+  //
+  //
+  //   for(int i = 0; i < context->activeJointCount; i++) {
+  //     s2_body_t* childBody = context->bodyPointers[i];
+  //
+  //
+  //     if(!(childBody->isVirtual || childBody->inertia == NULL ||
+  //          childBody->inertia->m < 1e-9)) {
+  //       if(context->jointLookup[i] > -1) {
+  //         context->hasMass[context->jointLookup[i]] = true;
+  //         context->hasMassdq[context->dqLookup[i]] = true;
+  //
+  //
+  //         switch(context->jointPointers[i]->jointType) {
+  //           case S2_JOINT_SPHERICAL: {
+  //             context->hasMassdq[context->dqLookup[i] + 1] = true;
+  //             context->hasMassdq[context->dqLookup[i] + 2] = true;
+  //             break;
+  //           }
+  //           case S2_JOINT_FLOAT: {
+  //             context->hasMassdq[context->dqLookup[i] + 1] = true;
+  //             context->hasMassdq[context->dqLookup[i] + 2] = true;
+  //             context->hasMassdq[context->dqLookup[i] + 3] = true;
+  //             context->hasMassdq[context->dqLookup[i] + 4] = true;
+  //             context->hasMassdq[context->dqLookup[i] + 5] = true;
+  //             break;
+  //           }
+  //           default:
+  //             break;
+  //         }
+  //       }
+  //     }
+  //
+  //     switch(context->jointPointers[i]->jointType) {
+  //       case S2_JOINT_RX:
+  //       case S2_JOINT_RY:
+  //       case S2_JOINT_RZ:
+  //       case S2_JOINT_TX:
+  //       case S2_JOINT_TY:
+  //       case S2_JOINT_TZ: {
+  //         context->jointDOF[i] = 1;
+  //         break;
+  //       }
+  //       case S2_JOINT_SPHERICAL: {
+  //         context->jointDOF[i] = 3;
+  //         break;
+  //       }
+  //       case S2_JOINT_FLOAT: {
+  //         context->jointDOF[i] = 6;
+  //         break;
+  //       }
+  //       case S2_JOINT_RIGID: {
+  //         context->jointDOF[i] = 0;
+  //         break;
+  //       }
+  //       default:
+  //         break;
+  //     }
+  //   }
+  //
+  //   /* create compressed parent child list */
+  //   if(context->pclCompressed) {
+  //     free(context->pclCompressed);
+  //   }
+  //   context->pclCompressed = calloc(context->nonRigidJointCount,
+  //   sizeof(int));
+  //
+  //   for(int i = 0; i < context->activeJointCount; i++) {
+  //     if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
+  //       int parent = context->pcl[i];
+  //       while(true) {
+  //         if(parent == -1) {
+  //           break;
+  //         }
+  //         if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
+  //           break;
+  //         }
+  //         parent = context->pcl[parent];
+  //       }
+  //       // printf("i: %d\n", i);
+  //       // printf("parent: %d\n", parent);
+  //       // fprintf(debug, "parent: %d\n", parent);
+  //       if(parent == -1) {
+  //         context->pclCompressed[context->jointLookup[i]] = -1;
+  //       } else {
+  //         context->pclCompressed[context->jointLookup[i]] =
+  //           context->jointLookup[parent];
+  //       }
+  //     }
+  //   }
+  //
+  //   /* create parent child list for dq array */
+  //   if(context->pcldq) {
+  //     free(context->pcldq);
+  //   }
+  //   context->pcldq = calloc(context->dqCount, sizeof(int));
+  //
+  //   for(int i = 0; i < context->activeJointCount; i++) {
+  //     int parentIndex = context->pcl[i];
+  //     int variableIndex = context->dqLookup[i];
+  //     if(variableIndex != -1) {
+  //       if(parentIndex != -1) {
+  //         int jointDofOffset = fmax(context->jointDOF[parentIndex] - 1, 0);
+  //         context->pcldq[variableIndex] =
+  //           context->dqLookup[parentIndex] + jointDofOffset;
+  //       } else {
+  //         context->pcldq[variableIndex] = -1;
+  //       }
+  //     }
+  //     int jointDOF = context->jointDOF[i];
+  //     if(jointDOF > 1) {
+  //       for(int j = 1; j < jointDOF; j++) {
+  //         context->pcldq[variableIndex + j] = variableIndex + j - 1;
+  //       }
+  //     }
+  //   }
+  //
+  //   /* update has mass dq to set true for any variable that has mass
+  //   projected onto it */
+  //   for(int k = context->dqCount - 1; k > -1; k--) {
+  //     int j = context->pcldq[k];
+  //     if(context->hasMassdq[k] && j > -1) {
+  //       context->hasMassdq[j] = true;
+  //     }
+  //   }
+  //
+  //   /* set isRotation */
+  //   if(context->isRotation) {
+  //     free(context->isRotation);
+  //   }
+  //   context->isRotation = calloc(context->dqCount, sizeof(bool));
+  //   for(int i = 0; i < context->activeJointCount; i++) {
+  //     int baseIndex = context->dqLookup[i];
+  //     switch(context->jointPointers[i]->jointType) {
+  //       case S2_JOINT_TX:
+  //       case S2_JOINT_TY:
+  //       case S2_JOINT_TZ:
+  //       case S2_JOINT_RIGID:
+  //       case S2_JOINT_PRIMITIVE:
+  //       case S2_JOINT_INVALID:
+  //         break;
+  //       case S2_JOINT_RX:
+  //       case S2_JOINT_RY:
+  //       case S2_JOINT_RZ: {
+  //         context->isRotation[baseIndex] = true;
+  //         break;
+  //       }
+  //       case S2_JOINT_SPHERICAL: {
+  //         for(int j = 0; j < 3; j++) {
+  //           context->isRotation[baseIndex + j] = true;
+  //         }
+  //         break;
+  //       }
+  //       case S2_JOINT_FLOAT: {
+  //         for(int j = 3; j < 6; j++) {
+  //           context->isRotation[baseIndex + j] = true;
+  //         }
+  //         break;
+  //       }
+  //     }
+  //   }
+  //
+  //   for(int i = 0; i < context->activeJointCount; i++) {
+  //     int compressedJointIndex = context->jointLookup[i];
+  //     if(compressedJointIndex > -1) {
+  //       context->jointDOFCompressed[compressedJointIndex] =
+  //       context->jointDOF[i];
+  //     }
+  //   }
+
   if(substructureIndices_.size() > 0) {
     jacobian_.initialize();
   }
+
+  modelParameters_.initialize();
 }
 
 void Shift::Context::updateDC(Shift::Joint::DHVA& dhva,

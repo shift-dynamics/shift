@@ -44,6 +44,7 @@ public:
   virtual void readJSON(Json::Value&);
   virtual void load();
   virtual void connect();
+  virtual void initialize() = 0;
 
 protected:
   Context* context_;
