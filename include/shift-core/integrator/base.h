@@ -44,6 +44,7 @@ public:
   void setContext(Context* context) {
     context_ = context;
   }
+  virtual void initialize() = 0;
 
 protected:
   Context* context_ = NULL;

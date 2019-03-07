@@ -164,3 +164,18 @@ void Shift::ModelParameters::print() {
   std::cout << "]" << std::endl;
   units_.print();
 }
+
+void Shift::ModelParameters::initialize() {
+  for(auto& solver : solvers_) {
+    solver->setContext(context_);
+    solver->initialize();
+  }
+  for(auto& integrator : integrators_) {
+    integrator->setContext(context_);
+    integrator->initialize();
+  }
+  for(auto& logger : loggers_) {
+    logger->setContext(context_);
+    logger->initialize();
+  }
+}

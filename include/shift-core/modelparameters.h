@@ -16,6 +16,7 @@
 
 namespace Shift {
 
+class Context;
 /*!
 \brief Shift Assembly datastructure
 */
@@ -24,13 +25,9 @@ class ModelParameters
   , public Serialize {
 
 public:
-  ModelParameters(std::string name)
-    : Shift::Base(name) {
-    gravity_ = ksl_vec3(0.0, 0.0, 0.0);
-    addKeys();
-  }
-  ModelParameters()
+  ModelParameters(Shift::Context* context)
     : Shift::Base("") {
+    context_ = context;
     gravity_ = ksl_vec3(0.0, 0.0, 0.0);
     addKeys();
   }
@@ -40,6 +37,9 @@ public:
   const ksl_vec3_t* getGravity() {
     return &gravity_;
   }
+
+  /*! \brief allocate dynamic memory in solvers, integrators and loggers */
+  void initialize();
 
   /*! \brief set gravity vector */
   void setGravity(ksl_vec3_t);
@@ -73,6 +73,7 @@ private:
   std::vector<std::unique_ptr<Integrator::Base>> integrators_;
   std::vector<std::unique_ptr<Logger::Base>> loggers_;
   Units units_;
+  Shift::Context* context_ = NULL;
 };
 
 } // namespace Shift

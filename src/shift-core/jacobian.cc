@@ -163,8 +163,6 @@ void Shift::Jacobian::mallocEquations() {
 
   jacobianSize = 0;
   unsigned int constraintEquationOffset = 0;
-  qOffset = 0;
-  dqOffset = 0;
 
   for(auto& substructure : substructures_) {
 
@@ -181,83 +179,16 @@ void Shift::Jacobian::mallocEquations() {
     constraintEquationOffset += substructure.getConstraintEquationCount();
   }
 
-  //
-  //   if(context->isDependentPO1) {
-  //     free(context->isDependentPO1);
-  //   }
-  //   context->isDependentPO1 = calloc(context->dqCount, sizeof(bool));
-  //
-  //   if(context->isDependentPO3) {
-  //     free(context->isDependentPO3);
-  //   }
-  //   context->isDependentPO3 = calloc(context->dqCount, sizeof(bool));
-  //
-  //   if(context->hasMass) {
-  //     free(context->hasMass);
-  //   }
-  //   context->hasMass = calloc(context->nonRigidJointCount, sizeof(bool));
-  //
-  //   if(context->hasMassdq) {
-  //     free(context->hasMassdq);
-  //   }
-  //   context->hasMassdq = calloc(context->dqCount, sizeof(bool));
-  //
-  //   if(context->gamma_d) {
-  //     free(context->gamma_d);
-  //   }
-  //   context->gamma_d = calloc(context->dqCount, sizeof(double));
-  //
-  //   if(context->pv_12) {
-  //     free(context->pv_12);
-  //   }
-  //   context->pv_12 = calloc(context->dqCount, sizeof(int));
-  //
-  //   if(context->pv_21) {
-  //     free(context->pv_21);
-  //   }
-  //   context->pv_21 = calloc(context->dqCount, sizeof(int));
-  //
-  //   if(context->pv_13) {
-  //     free(context->pv_13);
-  //   }
-  //   context->pv_13 = calloc(context->dqCount, sizeof(int));
-  //
-  //   if(context->pv_31) {
-  //     free(context->pv_31);
-  //   }
-  //   context->pv_31 = calloc(context->dqCount, sizeof(int));
-  //
-  //   if(context->pv_23) {
-  //     free(context->pv_23);
-  //   }
-  //   context->pv_23 = calloc(context->dqCount, sizeof(int));
-  //
-  //   if(context->pv_32) {
-  //     free(context->pv_32);
-  //   }
-  //   context->pv_32 = calloc(context->dqCount, sizeof(int));
-  //
-  //   context->Ml_size = ((context->dqCount + 1) * (context->dqCount + 2)) / 2;
-  //
-  //   if(context->Ml) {
-  //     free(context->Ml);
-  //   }
-  //   context->Ml = calloc(context->Ml_size, sizeof(double));
-  //
-  //   if(context->Mls) {
-  //     free(context->Mls);
-  //   }
-  //   context->Mls = calloc(context->Ml_size, sizeof(double));
-  //
-  //   if(context->Mlb) {
-  //     free(context->Mlb);
-  //   }
-  //   context->Mlb = calloc(context->Ml_size, sizeof(bool));
-  //
-  //   if(context->Mlbs) {
-  //     free(context->Mlbs);
-  //   }
-  //   context->Mlbs = calloc(context->Ml_size, sizeof(bool));
+  isDependentPO1_.resize(dqOffset);
+  isDependentPO3_.resize(dqOffset);
+
+  pv_12_.resize(dqOffset);
+  pv_21_.resize(dqOffset);
+  pv_13_.resize(dqOffset);
+  pv_31_.resize(dqOffset);
+  pv_23_.resize(dqOffset);
+  pv_32_.resize(dqOffset);
+
   //
   //   if(context->jointDOF) {
   //     free(context->jointDOF);
@@ -269,26 +200,10 @@ void Shift::Jacobian::mallocEquations() {
   //   context->jointDOFCompressed =
   //     calloc(context->nonRigidJointCount, sizeof(int));
   //
-  // #if _SHIFT_VERBOSE
-  //   fprintf(debug, "dqCount: %d\n", context->dqCount);
-  // #endif
   //
   //   for(int i = 0; i < context->activeJointCount; i++) {
   //     s2_body_t* childBody = context->bodyPointers[i];
   //
-  // #if _SHIFT_VERBOSE
-  //     int jointIndex = context->jointLookup[i];
-  //     int dqIndex = context->dqLookup[i];
-  //
-  //     printf("\njoint: ");
-  //     s2_stackstr_print(debug, context->jointPointers[i]->name);
-  //
-  //     printf("child body: ");
-  //     s2_stackstr_print(debug, childBody->name);
-  //
-  //     printf("jointIndex: %d\n", jointIndex);
-  //     printf("dqIndex: %d\n", dqIndex);
-  // #endif
   //
   //     if(!(childBody->isVirtual || childBody->inertia == NULL ||
   //          childBody->inertia->m < 1e-9)) {
@@ -296,11 +211,6 @@ void Shift::Jacobian::mallocEquations() {
   //         context->hasMass[context->jointLookup[i]] = true;
   //         context->hasMassdq[context->dqLookup[i]] = true;
   //
-  // #if _SHIFT_VERBOSE
-  //         printf("context->jointLookup[%d]: %d hasMass: true\n", i,
-  //         jointIndex); printf("context->dqLookup[%d]: %d hasMass: true\n", i,
-  //         dqIndex);
-  // #endif
   //
   //         switch(context->jointPointers[i]->jointType) {
   //           case S2_JOINT_SPHERICAL: {
