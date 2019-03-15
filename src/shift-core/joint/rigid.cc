@@ -20,8 +20,8 @@ Updates displacement and influence coefficient matrices
        and accelerations.
 */
 void Shift::Joint::rigid_dh(const Shift::Context& context,
-                            Shift::Joint::DHVA& dhva,
-                            const Shift::Joint::Offsets& offsets,
+                            Shift::Topology::DHVA& dhva,
+                            const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets.q;
@@ -41,8 +41,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rigid_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhva,
-                              const Shift::Joint::Offsets& offsets,
+                              Shift::Topology::DHVA& dhva,
+                              const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__) {
 
@@ -59,8 +59,8 @@ Updates displacement and influence coefficient matrices
        and accelerations.
 */
 void Shift::Joint::rigidinv_dh(const Shift::Context& context,
-                               Shift::Joint::DHVA& dhva,
-                               const Shift::Joint::Offsets& offsets,
+                               Shift::Topology::DHVA& dhva,
+                               const Shift::Topology::Offsets& offsets,
                                const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets.q;
@@ -80,8 +80,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rigidinv_dhva(const Shift::Context& context,
-                                 Shift::Joint::DHVA& dhva,
-                                 const Shift::Joint::Offsets& offsets,
+                                 Shift::Topology::DHVA& dhva,
+                                 const Shift::Topology::Offsets& offsets,
                                  const double* __restrict__ q,
                                  const double* __restrict__) {
   Shift::Joint::rigidinv_dh(context, dhva, offsets, q);
@@ -99,7 +99,7 @@ void Shift::Joint::Rigid::readJSON(Json::Value& value) {
   }
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Rigid::getDfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Rigid::getDfptr() {
   if(sense_ >= 0) {
     return rigid_dh;
   } else {
@@ -107,7 +107,7 @@ Shift::Joint::dh_fptr Shift::Joint::Rigid::getDfptr() {
   }
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Rigid::getDHfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Rigid::getDHfptr() {
   if(sense_ >= 0) {
     return rigid_dh;
   } else {
@@ -115,7 +115,7 @@ Shift::Joint::dh_fptr Shift::Joint::Rigid::getDHfptr() {
   }
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Rigid::getDHVAfptr() {
+Shift::Topology::dhva_fptr Shift::Joint::Rigid::getDHVAfptr() {
   if(sense_ >= 0) {
     return rigid_dhva;
   } else {

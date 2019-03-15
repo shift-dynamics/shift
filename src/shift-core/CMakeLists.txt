@@ -108,4 +108,7 @@ target_include_directories(
   ${JSONCPP_INCLUDE_DIR}
 )
 
-target_link_libraries(shift_core ${JsonCpp_LIBRARY})
+find_library(ksl_LIBRARY ksl ${CMAKE_BINARY_DIR}/external/ksl)
+message(STATUS ${ksl_LIBRARY})
+
+target_link_libraries(shift_core ${JsonCpp_LIBRARY} ${ksl_LIBRARY} ksl)

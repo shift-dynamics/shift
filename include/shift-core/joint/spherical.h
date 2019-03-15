@@ -10,21 +10,23 @@ namespace Joint {
 
 struct DHVA;
 
-void spherical_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+void spherical_d(const Shift::Context&, Topology::DHVA&,
+                 const Topology::Offsets&, const double*);
 
-void sphericalinv_d(const Shift::Context&, DHVA&, const Offsets&,
-                    const double*);
+void sphericalinv_d(const Shift::Context&, Topology::DHVA&,
+                    const Topology::Offsets&, const double*);
 
-void spherical_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+void spherical_dh(const Shift::Context&, Topology::DHVA&,
+                  const Topology::Offsets&, const double*);
 
-void sphericalinv_dh(const Shift::Context&, DHVA&, const Offsets&,
-                     const double*);
+void sphericalinv_dh(const Shift::Context&, Topology::DHVA&,
+                     const Topology::Offsets&, const double*);
 
-void spherical_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
-                    const double*);
+void spherical_dhva(const Shift::Context&, Topology::DHVA&,
+                    const Topology::Offsets&, const double*, const double*);
 
-void sphericalinv_dhva(const Shift::Context&, DHVA&, const Offsets&,
-                       const double*, const double*);
+void sphericalinv_dhva(const Shift::Context&, Topology::DHVA&,
+                       const Topology::Offsets&, const double*, const double*);
 
 class Spherical : public Base {
 public:
@@ -57,9 +59,9 @@ public:
   void addKeys();
   virtual void readJSON(Json::Value&) override;
 
-  dh_fptr getDfptr() override;
-  dh_fptr getDHfptr() override;
-  dhva_fptr getDHVAfptr() override;
+  Topology::dh_fptr getDfptr() override;
+  Topology::dh_fptr getDHfptr() override;
+  Topology::dhva_fptr getDHVAfptr() override;
 
 private:
   static bool registered_;

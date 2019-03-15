@@ -386,7 +386,6 @@ private:
     "Machine Theory 92:464-483, October 2015 "
     "`<https://doi.org/10.1016/j.mechmachtheory.2015.06.006>`_";
 
-  double infinity_norm_multiplier_ = 2.0;
   static bool registered_;
   static std::unique_ptr<RNCA> create();
 };

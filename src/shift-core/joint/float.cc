@@ -18,8 +18,8 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::float_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+void Shift::Joint::float_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                           const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -41,8 +41,8 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::float_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                            const Shift::Joint::Offsets& offsets,
+void Shift::Joint::float_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                            const Shift::Topology::Offsets& offsets,
                             const double* __restrict__ q) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -74,8 +74,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::float_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhva,
-                              const Shift::Joint::Offsets& offsets,
+                              Shift::Topology::DHVA& dhva,
+                              const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
 
@@ -106,8 +106,9 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::floatinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                              const Shift::Joint::Offsets& offsets,
+void Shift::Joint::floatinv_d(const Shift::Context&,
+                              Shift::Topology::DHVA& dhva,
+                              const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q) {
 
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
@@ -130,8 +131,9 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::floatinv_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                               const Shift::Joint::Offsets& offsets,
+void Shift::Joint::floatinv_dh(const Shift::Context&,
+                               Shift::Topology::DHVA& dhva,
+                               const Shift::Topology::Offsets& offsets,
                                const double* __restrict__ q) {
 
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
@@ -164,8 +166,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::floatinv_dhva(const Shift::Context& context,
-                                 Shift::Joint::DHVA& dhva,
-                                 const Shift::Joint::Offsets& offsets,
+                                 Shift::Topology::DHVA& dhva,
+                                 const Shift::Topology::Offsets& offsets,
                                  const double* __restrict__ q,
                                  const double* __restrict__ dq) {
   Shift::Joint::floatinv_dh(context, dhva, offsets, q);
@@ -201,7 +203,7 @@ void Shift::Joint::Float::readJSON(Json::Value& value) {
   ksl_vec3_copy(&temp->t, (ksl_vec3_t*)(&q_0_));
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Float::getDfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Float::getDfptr() {
   if(sense_ >= 0) {
     return float_d;
   } else {
@@ -209,7 +211,7 @@ Shift::Joint::dh_fptr Shift::Joint::Float::getDfptr() {
   }
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Float::getDHfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Float::getDHfptr() {
   if(sense_ >= 0) {
     return float_dh;
   } else {
@@ -217,7 +219,7 @@ Shift::Joint::dh_fptr Shift::Joint::Float::getDHfptr() {
   }
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Float::getDHVAfptr() {
+Shift::Topology::dhva_fptr Shift::Joint::Float::getDHVAfptr() {
   if(sense_ >= 0) {
     return float_dhva;
   } else {

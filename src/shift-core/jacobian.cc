@@ -1,28 +1,20 @@
 #include <assert.h>
+#include <string.h>
 
 #include "shift-core/context.h"
 #include "shift-core/jacobian.h"
-
-static inline double infinityNormB(int rank, int colDim, double* J) {
-  double max = 0;
-  for(int i = 0; i < rank; i++) {
-    for(int j = rank; j < colDim; j++) {
-      max = std::max(max, std::abs(J[i * colDim + j]));
-    }
-  }
-  return max;
-}
+#include "shift-core/topology.h"
 
 void Shift::Jacobian::initialize() {
-  std::cout << "initializing Jacobian" << std::endl;
+  assert(context_);
   setLookup();
   mallocEquations();
   compressLoopMembers();
-  setPO1();
+  setPO1(context_->getDHVA());
   translatePermutations();
   setBooleanPO2();
   evaluateSparsity();
-  setPO2();
+  setPO2(context_->getDHVA());
   factorPO2();
   setBMatrixSparse();
   setConstraintPointers();
@@ -30,18 +22,16 @@ void Shift::Jacobian::initialize() {
 }
 
 void Shift::Jacobian::analyze() {
-  setPO1();
+  setPO1(context_->getDHVA());
   translatePermutations();
   setBooleanPO2();
   evaluateSparsity();
-  setPO2();
+  setPO2(context_->getDHVA());
   factorPO2();
   setBMatrixSparse();
 }
 
 void Shift::Jacobian::setLookup() {
-
-  assert(context_);
 
   jointLookup_.clear();
   jointLookup_.resize(context_->getActiveJointCount());
@@ -54,8 +44,6 @@ void Shift::Jacobian::setLookup() {
 
   dqLookupCompressed_.clear();
   dqLookupCompressed_.resize(context_->getNonRigidJointCount());
-
-  std::cout << "setting lookup" << std::endl;
 
   int jointCount = 0;
   int dqCount = 0;
@@ -141,8 +129,6 @@ void Shift::Jacobian::mallocEquations() {
       }
       chordConstraintCount++;
     }
-    substructures_[i].setqOffset(qOffset);
-    substructures_[i].setdqOffset(dqOffset);
     substructures_[i].setJointOffset(jointOffset);
     qOffset += qCount;
     dqOffset += dqCount;
@@ -188,241 +174,194 @@ void Shift::Jacobian::mallocEquations() {
   pv_31_.resize(dqOffset);
   pv_23_.resize(dqOffset);
   pv_32_.resize(dqOffset);
-
-  //
-  //   if(context->jointDOF) {
-  //     free(context->jointDOF);
-  //   }
-  //   context->jointDOF = calloc(context->activeJointCount, sizeof(int));
-  //   if(context->jointDOFCompressed) {
-  //     free(context->jointDOFCompressed);
-  //   }
-  //   context->jointDOFCompressed =
-  //     calloc(context->nonRigidJointCount, sizeof(int));
-  //
-  //
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     s2_body_t* childBody = context->bodyPointers[i];
-  //
-  //
-  //     if(!(childBody->isVirtual || childBody->inertia == NULL ||
-  //          childBody->inertia->m < 1e-9)) {
-  //       if(context->jointLookup[i] > -1) {
-  //         context->hasMass[context->jointLookup[i]] = true;
-  //         context->hasMassdq[context->dqLookup[i]] = true;
-  //
-  //
-  //         switch(context->jointPointers[i]->jointType) {
-  //           case S2_JOINT_SPHERICAL: {
-  //             context->hasMassdq[context->dqLookup[i] + 1] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 2] = true;
-  //             break;
-  //           }
-  //           case S2_JOINT_FLOAT: {
-  //             context->hasMassdq[context->dqLookup[i] + 1] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 2] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 3] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 4] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 5] = true;
-  //             break;
-  //           }
-  //           default:
-  //             break;
-  //         }
-  //       }
-  //     }
-  //
-  //     switch(context->jointPointers[i]->jointType) {
-  //       case S2_JOINT_RX:
-  //       case S2_JOINT_RY:
-  //       case S2_JOINT_RZ:
-  //       case S2_JOINT_TX:
-  //       case S2_JOINT_TY:
-  //       case S2_JOINT_TZ: {
-  //         context->jointDOF[i] = 1;
-  //         break;
-  //       }
-  //       case S2_JOINT_SPHERICAL: {
-  //         context->jointDOF[i] = 3;
-  //         break;
-  //       }
-  //       case S2_JOINT_FLOAT: {
-  //         context->jointDOF[i] = 6;
-  //         break;
-  //       }
-  //       case S2_JOINT_RIGID: {
-  //         context->jointDOF[i] = 0;
-  //         break;
-  //       }
-  //       default:
-  //         break;
-  //     }
-  //   }
-  //
-  //   /* create compressed parent child list */
-  //   if(context->pclCompressed) {
-  //     free(context->pclCompressed);
-  //   }
-  //   context->pclCompressed = calloc(context->nonRigidJointCount,
-  //   sizeof(int));
-  //
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
-  //       int parent = context->pcl[i];
-  //       while(true) {
-  //         if(parent == -1) {
-  //           break;
-  //         }
-  //         if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
-  //           break;
-  //         }
-  //         parent = context->pcl[parent];
-  //       }
-  //       // printf("i: %d\n", i);
-  //       // printf("parent: %d\n", parent);
-  //       // fprintf(debug, "parent: %d\n", parent);
-  //       if(parent == -1) {
-  //         context->pclCompressed[context->jointLookup[i]] = -1;
-  //       } else {
-  //         context->pclCompressed[context->jointLookup[i]] =
-  //           context->jointLookup[parent];
-  //       }
-  //     }
-  //   }
-  //
-  //   /* create parent child list for dq array */
-  //   if(context->pcldq) {
-  //     free(context->pcldq);
-  //   }
-  //   context->pcldq = calloc(context->dqCount, sizeof(int));
-  //
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     int parentIndex = context->pcl[i];
-  //     int variableIndex = context->dqLookup[i];
-  //     if(variableIndex != -1) {
-  //       if(parentIndex != -1) {
-  //         int jointDofOffset = fmax(context->jointDOF[parentIndex] - 1, 0);
-  //         context->pcldq[variableIndex] =
-  //           context->dqLookup[parentIndex] + jointDofOffset;
-  //       } else {
-  //         context->pcldq[variableIndex] = -1;
-  //       }
-  //     }
-  //     int jointDOF = context->jointDOF[i];
-  //     if(jointDOF > 1) {
-  //       for(int j = 1; j < jointDOF; j++) {
-  //         context->pcldq[variableIndex + j] = variableIndex + j - 1;
-  //       }
-  //     }
-  //   }
-  //
-  //   /* update has mass dq to set true for any variable that has mass
-  //   projected onto it */
-  //   for(int k = context->dqCount - 1; k > -1; k--) {
-  //     int j = context->pcldq[k];
-  //     if(context->hasMassdq[k] && j > -1) {
-  //       context->hasMassdq[j] = true;
-  //     }
-  //   }
-  //
-  //   /* set isRotation */
-  //   if(context->isRotation) {
-  //     free(context->isRotation);
-  //   }
-  //   context->isRotation = calloc(context->dqCount, sizeof(bool));
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     int baseIndex = context->dqLookup[i];
-  //     switch(context->jointPointers[i]->jointType) {
-  //       case S2_JOINT_TX:
-  //       case S2_JOINT_TY:
-  //       case S2_JOINT_TZ:
-  //       case S2_JOINT_RIGID:
-  //       case S2_JOINT_PRIMITIVE:
-  //       case S2_JOINT_INVALID:
-  //         break;
-  //       case S2_JOINT_RX:
-  //       case S2_JOINT_RY:
-  //       case S2_JOINT_RZ: {
-  //         context->isRotation[baseIndex] = true;
-  //         break;
-  //       }
-  //       case S2_JOINT_SPHERICAL: {
-  //         for(int j = 0; j < 3; j++) {
-  //           context->isRotation[baseIndex + j] = true;
-  //         }
-  //         break;
-  //       }
-  //       case S2_JOINT_FLOAT: {
-  //         for(int j = 3; j < 6; j++) {
-  //           context->isRotation[baseIndex + j] = true;
-  //         }
-  //         break;
-  //       }
-  //     }
-  //   }
-  //
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     int compressedJointIndex = context->jointLookup[i];
-  //     if(compressedJointIndex > -1) {
-  //       context->jointDOFCompressed[compressedJointIndex] =
-  //       context->jointDOF[i];
-  //     }
-  //   }
-  //
-  // #if _SHIFT_VERBOSE
-  //   // fprintf(debug, "levels: ");
-  //   // s2_arrayi_print(debug, context->levels, context->activeJointCount);
-  //   fprintf(debug, "jointDOF: ");
-  //   s2_arrayi_print(debug, context->activeJointCount, context->jointDOF);
-  //   fprintf(debug, "jointDOFCompressed: ");
-  //   s2_arrayi_print(debug, context->nonRigidJointCount,
-  //                   context->jointDOFCompressed);
-  //   fprintf(debug, "jointLookup: ");
-  //   s2_arrayi_print(debug, context->activeJointCount, context->jointLookup);
-  //   fprintf(debug, "dqLookup: ");
-  //   s2_arrayi_print(debug, context->activeJointCount, context->dqLookup);
-  //   fprintf(debug, "pcl: ");
-  //   s2_arrayi_print(debug, context->activeJointCount, context->pcl);
-  //   fprintf(debug, "dqLookupCompresed: ");
-  //   s2_arrayi_print(debug, context->nonRigidJointCount,
-  //                   context->dqLookupCompressed);
-  //   fprintf(debug, "pclCompressed: ");
-  //   s2_arrayi_print(debug, context->nonRigidJointCount,
-  //   context->pclCompressed); fprintf(debug, "pcldq: ");
-  //   s2_arrayi_print(debug, context->dqCount, context->pcldq);
-  //   fprintf(debug, "hasMass: ");
-  //   for(int i = 0; i < context->nonRigidJointCount; i++) {
-  //     printf("%d ", context->hasMass[i] ? 1 : 0);
-  //   }
-  //   printf("\n");
-  //   fprintf(debug, "hasMassdq: ");
-  //   for(int i = 0; i < context->dqCount; i++) {
-  //     printf("%d ", context->hasMassdq[i] ? 1 : 0);
-  //   }
-  //   printf("\n");
-  //   printf("isRotation: ");
-  //   for(int i = 0; i < context->dqCount; i++) {
-  //     printf("%d ", context->isRotation[i] ? 1 : 0);
-  //   }
-  //   printf("\n");
-  // #endif
 }
 
-void Shift::Jacobian::compressLoopMembers() {}
+void Shift::Jacobian::compressLoopMembers() {
 
-void Shift::Jacobian::setPO1() {}
+  unsigned int chordConstraintCount = context_->getChordConstraintCount();
 
-void Shift::Jacobian::translatePermutations() {}
+  /* j is local loop index for substructure
+  k is global loop index */
+  int k = 0;
+  auto& positiveLoopMembers = context_->getPositiveLoopMembers();
+  auto& negativeLoopMembers = context_->getNegativeLoopMembers();
+  auto& activeJoints = context_->getActiveJoints();
+  positiveLoopMembersCompressed_.clear();
+  positiveLoopMembersCompressed_.resize(chordConstraintCount);
+  negativeLoopMembersCompressed_.clear();
+  negativeLoopMembersCompressed_.resize(chordConstraintCount);
 
-void Shift::Jacobian::setBooleanPO2() {}
+  /* record offsets in positiveLoopMemberOffsets and
+    negativeLoopMembersOffsets */
+  k = 0; /* loop counter */
+  auto& substructureMembers = context_->getSubstructureMembers();
 
-void Shift::Jacobian::evaluateSparsity() {}
+  unsigned int i = 0;
+  for(auto& substructure : substructures_) {
+    /* set offset into global variable list */
+    unsigned int begin = k;
+    int substructureOffset =
+      std::min(substructureMembers[i][1], substructureMembers[i][2]);
+    substructure.setdqOffset(dqLookup_[substructureOffset], context_->getdq(),
+                             context_->getDeltaq());
+    substructure.setqOffset(qLookup_[substructureOffset], context_->getq());
 
-void Shift::Jacobian::setPO2() {}
+    for(unsigned int j = 0; j < substructure.getChordConstraintCount();
+        j++, k++) {
+      for(auto positiveLoopMember : positiveLoopMembers[k]) {
+        unsigned int dqCount = activeJoints[positiveLoopMember]->getdqCount();
+        int dqOffset = dqLookup_[positiveLoopMember];
+        for(unsigned int m = 0; m < dqCount; m++) {
+          positiveLoopMembersCompressed_[k].push_back(dqOffset++);
+        }
+      }
 
-void Shift::Jacobian::factorPO2() {}
+      for(auto negativeLoopMember : negativeLoopMembers[k]) {
+        unsigned int dqCount = activeJoints[negativeLoopMember]->getdqCount();
+        int dqOffset = dqLookup_[negativeLoopMember];
+        for(unsigned int m = 0; m < dqCount; m++) {
+          negativeLoopMembersCompressed_[k].push_back(dqOffset++);
+        }
+      }
+    }
+    substructure.setPositiveLoopMembersCompressed(
+      positiveLoopMembersCompressed_.begin() + begin,
+      positiveLoopMembersCompressed_.begin() + k);
+    substructure.setNegativeLoopMembersCompressed(
+      negativeLoopMembersCompressed_.begin() + begin,
+      negativeLoopMembersCompressed_.begin() + k);
+    i++;
+  }
+}
 
-void Shift::Jacobian::setBMatrixSparse() {}
+void Shift::Jacobian::setPO1(const Shift::Topology::DHVA& dhva) {
+  for(auto& substructure : substructures_) {
+    substructure.setPO1(dhva);
+  }
+}
+
+void Shift::Jacobian::translatePermutations() {
+  unsigned int dqCount = context_->getdqCount();
+  isDependentPO1_.assign(isDependentPO1_.size(), false);
+  /* initialize permutation arrays */
+  for(unsigned int i = 0; i < dqCount; i++) {
+    pv_12_[i] = i;
+    pv_21_[i] = i;
+    pv_13_[i] = i;
+    pv_31_[i] = i;
+  }
+
+  /* set pv_21 */
+  for(auto& substructure : substructures_) {
+    for(unsigned int j = 0; j < substructure.getdqCount(); j++) {
+      pv_12_[substructure.getdqOffset() + j] =
+        substructure.getpc_12()[j] + substructure.getdqOffset();
+    }
+  }
+
+  Shift::Topology::setInversePermutation(pv_12_, pv_21_);
+
+  /* determine which variables are independent / dependent */
+  for(auto& substructure : substructures_) {
+    for(int j = 0; j < substructure.getRank(); j++) {
+      isDependentPO1_[pv_12_[substructure.getdqOffset() + j]] = true;
+    }
+  }
+
+  /* set p_v_13 */
+  for(auto& substructure : substructures_) {
+    int k = substructure.getdqOffset();
+    for(unsigned int j = substructure.getdqOffset();
+        j < substructure.getdqOffset() + substructure.getdqCount(); j++) {
+      if(!isDependentPO1_[j]) {
+        pv_13_[k++] = j;
+      }
+    }
+  }
+
+  /* set p_v_31 */
+  Shift::Topology::setInversePermutation(pv_13_, pv_31_);
+
+  /* set isDependentPO3 */
+  for(unsigned int i = 0; i < dqCount; i++) {
+    isDependentPO3_[pv_31_[i]] = isDependentPO1_[i];
+  }
+
+  /* set pv_23 */
+  for(unsigned int i = 0; i < dqCount; i++) {
+    pv_23_[i] = pv_21_[pv_13_[i]];
+  }
+
+  /* set pv_32 */
+  Shift::Topology::setInversePermutation(pv_23_, pv_32_);
+}
+
+void Shift::Jacobian::setBooleanPO2() {
+  for(auto& substructure : substructures_) {
+    substructure.setBooleanPO2();
+  }
+}
+
+void Shift::Jacobian::evaluateSparsity() {
+
+  int bOffset = 0;
+  int nnzb = 0; // number of nonzero entries in B matrix
+  int dqCount = 0;
+  for(auto& substructure : substructures_) {
+    substructure.setBOffset(bOffset);
+    nnzb += substructure.getNonZeroElementsInB();
+    bOffset += (substructure.getdqCount() - substructure.getRank()) *
+               substructure.getRank();
+    dqCount += substructure.getdqCount();
+  }
+
+  if(ijMapping_) {
+    delete[] ijMapping_;
+  }
+  ijMapping_ = new int[jacobianSize_]{};
+
+  int jacobianOffset = 0;
+  for(auto& substructure : substructures_) {
+    substructure.setijMapping(ijMapping_ + jacobianOffset);
+    jacobianOffset +=
+      substructure.getdqCount() * substructure.getConstraintEquationCount();
+  }
+
+  if(b3_) {
+    delete[] b3_;
+  }
+  b3_ = new double[bOffset]{};
+
+  if(cb3_) {
+    delete[] cb3_;
+  }
+  cb3_ = new int[bOffset]{};
+
+  ksl_array2Di_free(rb3_);
+  rb3_ = ksl_array2Di_alloc(dqCount, 2);
+
+  for(auto& substructure : substructures_) {
+    substructure.evaluateSparsity(rb3_, cb3_, pv_23_);
+  }
+}
+
+void Shift::Jacobian::setPO2(const Shift::Topology::DHVA& dhva) {
+  for(auto& substructure : substructures_) {
+    substructure.setPO2(dhva);
+  }
+}
+
+void Shift::Jacobian::factorPO2() {
+  for(auto& substructure : substructures_) {
+    substructure.factorPO2();
+  }
+}
+
+void Shift::Jacobian::setBMatrixSparse() {
+  for(auto& substructure : substructures_) {
+    substructure.setBMatrixSparse();
+  }
+}
 
 void Shift::Jacobian::setConstraintPointers() {}
 

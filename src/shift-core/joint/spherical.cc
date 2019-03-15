@@ -18,8 +18,9 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::spherical_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                               const Shift::Joint::Offsets& offsets,
+void Shift::Joint::spherical_d(const Shift::Context&,
+                               Shift::Topology::DHVA& dhva,
+                               const Shift::Topology::Offsets& offsets,
                                const double* __restrict__ q) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -40,8 +41,9 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::spherical_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                                const Shift::Joint::Offsets& offsets,
+void Shift::Joint::spherical_dh(const Shift::Context&,
+                                Shift::Topology::DHVA& dhva,
+                                const Shift::Topology::Offsets& offsets,
                                 const double* __restrict__ q) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -69,8 +71,8 @@ velocities and accelerations
 @todo add spherical joint
 */
 void Shift::Joint::spherical_dhva(const Shift::Context& context,
-                                  Shift::Joint::DHVA& dhva,
-                                  const Shift::Joint::Offsets& offsets,
+                                  Shift::Topology::DHVA& dhva,
+                                  const Shift::Topology::Offsets& offsets,
                                   const double* __restrict__ q,
                                   const double* __restrict__ dq) {
 
@@ -102,8 +104,8 @@ Updates displacements only
        and accelerations.
 */
 void Shift::Joint::sphericalinv_d(const Shift::Context&,
-                                  Shift::Joint::DHVA& dhva,
-                                  const Shift::Joint::Offsets& offsets,
+                                  Shift::Topology::DHVA& dhva,
+                                  const Shift::Topology::Offsets& offsets,
                                   const double* __restrict__ q) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -124,8 +126,8 @@ Updates displacement and influence coefficient matrices
        and accelerations.
 */
 void Shift::Joint::sphericalinv_dh(const Shift::Context&,
-                                   Shift::Joint::DHVA& dhva,
-                                   const Shift::Joint::Offsets& offsets,
+                                   Shift::Topology::DHVA& dhva,
+                                   const Shift::Topology::Offsets& offsets,
                                    const double* __restrict__ q) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -152,8 +154,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::sphericalinv_dhva(const Shift::Context& context,
-                                     Shift::Joint::DHVA& dhva,
-                                     const Shift::Joint::Offsets& offsets,
+                                     Shift::Topology::DHVA& dhva,
+                                     const Shift::Topology::Offsets& offsets,
                                      const double* __restrict__ q,
                                      const double* __restrict__ dq) {
 
@@ -189,7 +191,7 @@ void Shift::Joint::Spherical::readJSON(Json::Value& value) {
   ksl_mat3x3_toQuaternion(&temp->R, (ksl_quaternion_t*)&q_0_);
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Spherical::getDfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Spherical::getDfptr() {
   if(sense_ >= 0) {
     return spherical_d;
   } else {
@@ -197,7 +199,7 @@ Shift::Joint::dh_fptr Shift::Joint::Spherical::getDfptr() {
   }
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Spherical::getDHfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Spherical::getDHfptr() {
   if(sense_ >= 0) {
     return spherical_dh;
   } else {
@@ -205,7 +207,7 @@ Shift::Joint::dh_fptr Shift::Joint::Spherical::getDHfptr() {
   }
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Spherical::getDHVAfptr() {
+Shift::Topology::dhva_fptr Shift::Joint::Spherical::getDHVAfptr() {
   if(sense_ >= 0) {
     return spherical_dhva;
   } else {

@@ -19,8 +19,8 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rx_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                        const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rx_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                        const Shift::Topology::Offsets& offsets,
                         const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -38,8 +38,8 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rxinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rxinv_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                           const Shift::Topology::Offsets& offsets,
                            const double* __restrict__) {
 
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
@@ -57,8 +57,8 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ry_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                        const Shift::Joint::Offsets& offsets,
+void Shift::Joint::ry_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                        const Shift::Topology::Offsets& offsets,
                         const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -75,8 +75,8 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ryinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+void Shift::Joint::ryinv_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                           const Shift::Topology::Offsets& offsets,
                            const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -93,8 +93,8 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rz_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                        const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rz_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                        const Shift::Topology::Offsets& offsets,
                         const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -111,8 +111,8 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rzinv_d(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rzinv_d(const Shift::Context&, Topology::DHVA& dhva,
+                           const Shift::Topology::Offsets& offsets,
                            const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -129,9 +129,9 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ra_d(const Shift::Context& context, DHVA& dhva,
-                        const Shift::Joint::Offsets& offsets, const double*) {
-
+void Shift::Joint::ra_d(const Shift::Context& context, Topology::DHVA& dhva,
+                        const Shift::Topology::Offsets& offsets,
+                        const double*) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
@@ -151,8 +151,8 @@ Updates displacements only
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rainv_d(const Shift::Context& context, DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rainv_d(const Shift::Context& context, Topology::DHVA& dhva,
+                           const Shift::Topology::Offsets& offsets,
                            const double*) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -174,8 +174,8 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rx_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                         const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rx_dh(const Shift::Context&, Topology::DHVA& dhva,
+                         const Shift::Topology::Offsets& offsets,
                          const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -196,9 +196,8 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rx_dhva(const Shift::Context& context,
-                           Shift::Joint::DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rx_dhva(const Shift::Context& context, Topology::DHVA& dhva,
+                           const Topology::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
 
@@ -228,8 +227,8 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rxinv_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                            const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rxinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                            const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
 
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
@@ -252,8 +251,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rxinv_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhva,
-                              const Shift::Joint::Offsets& offsets,
+                              Shift::Topology::DHVA& dhva,
+                              const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
 
@@ -283,8 +282,8 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ry_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                         const Shift::Joint::Offsets& offsets,
+void Shift::Joint::ry_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                         const Shift::Topology::Offsets& offsets,
                          const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -306,8 +305,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::ry_dhva(const Shift::Context& context,
-                           Shift::Joint::DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+                           Shift::Topology::DHVA& dhva,
+                           const Shift::Topology::Offsets& offsets,
 
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
@@ -338,8 +337,8 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ryinv_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                            const Shift::Joint::Offsets& offsets,
+void Shift::Joint::ryinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                            const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -361,8 +360,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::ryinv_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhva,
-                              const Shift::Joint::Offsets& offsets,
+                              Shift::Topology::DHVA& dhva,
+                              const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
 
@@ -392,8 +391,8 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rz_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                         const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rz_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                         const Shift::Topology::Offsets& offsets,
                          const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -415,8 +414,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rz_dhva(const Shift::Context& context,
-                           Shift::Joint::DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+                           Shift::Topology::DHVA& dhva,
+                           const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
   Shift::Joint::rz_dh(context, dhva, offsets, q);
@@ -445,8 +444,8 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rzinv_dh(const Shift::Context&, Shift::Joint::DHVA& dhva,
-                            const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rzinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
+                            const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -468,8 +467,8 @@ velocities and accelerations
        and accelerations.
 */
 void Shift::Joint::rzinv_dhva(const Shift::Context& context,
-                              Shift::Joint::DHVA& dhva,
-                              const Shift::Joint::Offsets& offsets,
+                              Shift::Topology::DHVA& dhva,
+                              const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
 
@@ -499,8 +498,9 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ra_dh(const Shift::Context& context, DHVA& dhva,
-                         const Shift::Joint::Offsets& offsets, const double*) {
+void Shift::Joint::ra_dh(const Shift::Context& context, Topology::DHVA& dhva,
+                         const Shift::Topology::Offsets& offsets,
+                         const double*) {
 
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -524,8 +524,8 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rainv_dh(const Shift::Context& context, DHVA& dhva,
-                            const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rainv_dh(const Shift::Context& context, Topology::DHVA& dhva,
+                            const Shift::Topology::Offsets& offsets,
                             const double*) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -551,8 +551,8 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::ra_dhva(const Shift::Context& context, DHVA& dhva,
-                           const Shift::Joint::Offsets& offsets,
+void Shift::Joint::ra_dhva(const Shift::Context& context, Topology::DHVA& dhva,
+                           const Shift::Topology::Offsets& offsets,
                            const double* q, const double* dq) {
   Shift::Joint::ra_dh(context, dhva, offsets, q);
 
@@ -581,8 +581,9 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void Shift::Joint::rainv_dhva(const Shift::Context& context, DHVA& dhva,
-                              const Shift::Joint::Offsets& offsets,
+void Shift::Joint::rainv_dhva(const Shift::Context& context,
+                              Topology::DHVA& dhva,
+                              const Shift::Topology::Offsets& offsets,
                               const double* q, const double* dq) {
   Shift::Joint::rainv_dh(context, dhva, offsets, q);
 
@@ -652,7 +653,7 @@ unsigned int Shift::Joint::Revolute::getDataCount() {
   return 0;
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Revolute::getDfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Revolute::getDfptr() {
   AxisType axis = getAxisType();
   switch(axis) {
     case X_AXIS: {
@@ -687,7 +688,7 @@ Shift::Joint::dh_fptr Shift::Joint::Revolute::getDfptr() {
   return rz_d;
 }
 
-Shift::Joint::dh_fptr Shift::Joint::Revolute::getDHfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Revolute::getDHfptr() {
   AxisType axis = getAxisType();
   switch(axis) {
     case X_AXIS: {
@@ -722,7 +723,7 @@ Shift::Joint::dh_fptr Shift::Joint::Revolute::getDHfptr() {
   return rz_dh;
 }
 
-Shift::Joint::dhva_fptr Shift::Joint::Revolute::getDHVAfptr() {
+Shift::Topology::dhva_fptr Shift::Joint::Revolute::getDHVAfptr() {
   AxisType axis = getAxisType();
   switch(axis) {
     case X_AXIS: {

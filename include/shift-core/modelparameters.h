@@ -47,6 +47,18 @@ public:
   /*! \brief set gravity vector */
   void setGravity(double, double, double);
 
+  /*! \brief get epsilon used for rank determination in Gaussian Elimination
+   * with complete row and column pivoting */
+  double getEpsilonRankDetermination() const {
+    return epsilonRankDetermination_;
+  }
+
+  /*! \brief get infinity norm multiplier -- used as a heuristic for when to
+   * reapply gaussian elimination with complete row and column pivoting */
+  double getInfinityNormMultiplier() const {
+    return infinityNormMuliplier_;
+  }
+
   void enableContactDetection(bool);
 
   void readJSON(Json::Value&);
@@ -63,11 +75,13 @@ private:
   void addKeys();
 
   std::string version_;
-  std::vector<std::string> include_directories_;
+  std::vector<std::string> includeDirectories_;
   ksl_vec3_t gravity_;
+  double epsilonRankDetermination_ = 1e-9;
+  double infinityNormMuliplier_ = 2.0;
 
-  bool contact_detection_enabled_ = false;
-  ksl_vec3_t viewport_background_color_ = {{1.0, 1.0, 1.0}};
+  bool contactDetectionEnabled_ = false;
+  ksl_vec3_t viewportBackgroundColor_ = {{1.0, 1.0, 1.0}};
 
   std::vector<std::unique_ptr<Solver::Base>> solvers_;
   std::vector<std::unique_ptr<Integrator::Base>> integrators_;

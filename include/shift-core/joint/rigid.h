@@ -10,15 +10,17 @@ namespace Joint {
 
 struct DHVA;
 
-void rigid_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+void rigid_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+              const double*);
 
-void rigidinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+void rigidinv_dh(const Shift::Context&, Topology::DHVA&,
+                 const Topology::Offsets&, const double*);
 
-void rigid_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
-                const double*);
+void rigid_dhva(const Shift::Context&, Topology::DHVA&,
+                const Topology::Offsets&, const double*, const double*);
 
-void rigidinv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
-                   const double*);
+void rigidinv_dhva(const Shift::Context&, Topology::DHVA&,
+                   const Topology::Offsets&, const double*, const double*);
 
 class Rigid : public Base {
 public:
@@ -38,9 +40,9 @@ public:
   void addKeys();
   virtual void readJSON(Json::Value&) override;
 
-  dh_fptr getDfptr() override;
-  dh_fptr getDHfptr() override;
-  dhva_fptr getDHVAfptr() override;
+  Topology::dh_fptr getDfptr() override;
+  Topology::dh_fptr getDHfptr() override;
+  Topology::dhva_fptr getDHVAfptr() override;
 
   virtual ksl_SE3_t getTransform() override {
     ksl_SE3_t out;
