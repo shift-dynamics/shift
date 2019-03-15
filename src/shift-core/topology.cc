@@ -1,4 +1,5 @@
 #include "shift-core/topology.h"
+#include "shift-core/context.h"
 
 bool Shift::Topology::matchFullyQualifiedName(
   const std::vector<std::string>& name1,
@@ -84,8 +85,8 @@ bool Shift::Topology::isSubstructureMember(
   return false;
 }
 
-void setInversePermutation(const std::vector<int>& p,
-                           std::vector<int>& pInverse) {
+void Shift::Topology::setInversePermutation(const std::vector<int>& p,
+                                            std::vector<int>& pInverse) {
   if(p.size() != pInverse.size()) {
     pInverse.resize(p.size());
   }

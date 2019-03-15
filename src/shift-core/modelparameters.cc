@@ -34,21 +34,40 @@ void Shift::ModelParameters::addKeys() {
   addSerialEntry(gravity);
 
   SerialEntry include_directories(
-    "include_directories", SerialType::STRING_ARRAY, &include_directories_);
+    "include_directories", SerialType::STRING_ARRAY, &includeDirectories_);
   include_directories.setRequired(false);
   include_directories.setDescription(
     "External include directories, these directories will be searched when "
     "searching for external files.");
   addSerialEntry(include_directories);
 
-  SerialEntry contact_detection_enabled("enable_contact_detection",
-                                        SerialType::BOOLEAN,
-                                        &contact_detection_enabled_);
+  SerialEntry contact_detection_enabled(
+    "enable_contact_detection", SerialType::BOOLEAN, &contactDetectionEnabled_);
   contact_detection_enabled.setRequired(false);
   contact_detection_enabled.setDescription(
     "Indicate whether contact detection should be performed during "
     "simulation.");
   addSerialEntry(contact_detection_enabled);
+
+  SerialEntry epsilonRankDetermination("epsilon_rank_determination",
+                                       SerialType::DOUBLE,
+                                       &epsilonRankDetermination_);
+  epsilonRankDetermination.setRequired(false);
+  epsilonRankDetermination.setDescription(
+    "Epsilon used to determine rank of Jacobian matrix using Gaussian "
+    "Elimination with Complete Pivoting (GECP).");
+  addSerialEntry(epsilonRankDetermination);
+
+  SerialEntry multiplier("infinity_norm_multiplier", SerialType::DOUBLE,
+                         &infinityNormMuliplier_);
+  multiplier.setRequired(false);
+  multiplier.setDescription(
+    "The infinity norm of each Jacobian matrix's *B* matrix is used as a "
+    "heuristic to determine when to reapply Gaussian elimination with complete "
+    "row and column pivoting on as-needed basis. GECP will be reapplied when "
+    "the infinity norm reaches this multiple of the initial starting value -- "
+    "this setting defaults to 2.0.");
+  addSerialEntry(multiplier);
 }
 
 void Shift::ModelParameters::readJSON(Json::Value& value) {
@@ -155,13 +174,15 @@ void Shift::ModelParameters::print() {
   std::cout << "  version: " << version_ << std::endl;
   ksl_vec3_print(stdout, &gravity_, "  gravity: ");
   std::cout << "  include_directories: [";
-  for(unsigned int i = 0; i < include_directories_.size(); i++) {
-    std::cout << include_directories_[i];
-    if(i != include_directories_.size() - 1) {
+  for(unsigned int i = 0; i < includeDirectories_.size(); i++) {
+    std::cout << includeDirectories_[i];
+    if(i != includeDirectories_.size() - 1) {
       std::cout << ", ";
     }
   }
   std::cout << "]" << std::endl;
+  std::cout << "  epsilonRankDetermination: " << epsilonRankDetermination_
+            << std::endl;
   units_.print();
 }
 

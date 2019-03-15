@@ -11,6 +11,7 @@
 #include "shift-core/jacobian.h"
 #include "shift-core/joint/base.h"
 #include "shift-core/modelparameters.h"
+#include "shift-core/topology.h"
 
 namespace Shift {
 
@@ -75,6 +76,10 @@ public:
 
     if(ddq_) {
       delete[] ddq_;
+    }
+
+    if(deltaq_) {
+      delete[] deltaq_;
     }
 
     if(qCopy_) {
@@ -173,6 +178,11 @@ public:
     return substructureIndices_;
   }
 
+  const std::vector<std::vector<int>>& getSubstructureMembers() const {
+    std::cout << substructureMembers_.size() << std::endl;
+    return substructureMembers_;
+  }
+
   const std::vector<std::vector<int>>& getLoopMembers() const {
     return loopMembers_;
   }
@@ -257,6 +267,10 @@ public:
     return jointData_;
   }
 
+  const Shift::ModelParameters& getModelParameters() {
+    return modelParameters_;
+  }
+
   /*! \brief append frame to Shift::Context's list of frames
    */
   void appendFrame(Shift::Frame* frame) {
@@ -273,22 +287,43 @@ public:
     return activeJoints_.size();
   }
 
+  /*! \brief get count of active chord constraints */
+  unsigned int getChordConstraintCount() {
+    return chordConstraints_.size();
+  }
+
+  double* getdq() {
+    return dq_;
+  }
+
+  double* getq() {
+    return q_;
+  }
+
+  double* getDeltaq() {
+    return deltaq_;
+  }
+
+  const Topology::DHVA& getDHVA() const {
+    return dhva_;
+  }
+
   /*! \brief Update displacements in a Shift::Joint::DHVA data structure using a
    * user-provided array of generalized coordinates. The instructions to update
    * displacements are stored in Shift::Context */
-  void updateD(Shift::Joint::DHVA& dhva, const double* q);
+  void updateD(Topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements and influence coefficient matrices in a
    * Shift::Joint::DHVA data structure using a user-provided array of
    * generalized coordinates. The instructions to update displacements and
    * influence coefficient matrices are stored in Shift::Context */
-  void updateDH(Shift::Joint::DHVA& dhva, const double* q);
+  void updateDH(Topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements, influence coefficient matrices, velocities
    * and quadratic accelerations in a Shift::Joint::DHVA data structure using a
    * user-provided array of generalized coordinates and generalized velocities.
    * The instructions to update DHVA are stored in Shift::Context */
-  void updateDHVA(Shift::Joint::DHVA& dhva, const double* q, const double* dq);
+  void updateDHVA(Topology::DHVA& dhva, const double* q, const double* dq);
 
   /*! \brief set q and dq arrays to intial conditions saved in each joint */
   void setToInitialConditions();
@@ -348,18 +383,19 @@ private:
     return &activeJoints_;
   }
 
-  Shift::Joint::DHVA dhva_; /*!< displacements, influence coefficient matrices,
-                               spatial velocities and quadratic accelerations */
-  std::vector<Shift::Joint::Offsets>
+  Shift::Topology::DHVA
+    dhva_; /*!< displacements, influence coefficient matrices,
+           spatial velocities and quadratic accelerations */
+  std::vector<Topology::Offsets>
     dhvaOffsets_; /*!< offsets into d,dc,h,v,a and dWRTReference array to update
                      kinematics */
 
-  std::vector<Shift::Joint::dh_fptr>
+  std::vector<Topology::dh_fptr>
     d_fptr_; /*!< function pointers to update displacements */
-  std::vector<Shift::Joint::dh_fptr>
+  std::vector<Topology::dh_fptr>
     dh_fptr_; /*!< function pointers to update displacements and influence
                  coefficient matrices */
-  std::vector<Shift::Joint::dhva_fptr> dhva_fptr_; /*!< function pointers to
+  std::vector<Topology::dhva_fptr> dhva_fptr_; /*!< function pointers to
   update displacements, influence coefficient matrices, velocities and quadratic
   accelerations */
 
@@ -379,6 +415,8 @@ framesInTree that are the reference frame for the body */
                           generalized velocities */
   double* ddq_ = NULL; /*!< generalized coordinate second time derivative, or
                           generalized accelerations */
+  double* deltaq_ = NULL;
+
   double* qCopy_ =
     NULL; /*!< copy of q array, used to restore q to a previous state */
   double* f_ = NULL; /*!< Working forces within a joint, such as from friction
@@ -453,6 +491,7 @@ framesInTree that are the reference frame for the body */
   std::vector<std::vector<int>> positiveLoopMembers_;
   std::vector<std::vector<int>> negativeLoopMembers_;
   std::vector<std::vector<int>> substructureIndices_;
+  std::vector<std::vector<int>> substructureMembers_;
 
   /*! \defgroup active_objects Active objects managed by Shift::Context
 
@@ -507,7 +546,7 @@ framesInTree that are the reference frame for the body */
   /*! @} */
 
   /*! \brief Update direction cosines in model */
-  void updateDC(Shift::Joint::DHVA& dhva, const double* q);
+  void updateDC(Topology::DHVA& dhva, const double* q);
   void updateD();
   void updateDH();
   void updateDHVA();

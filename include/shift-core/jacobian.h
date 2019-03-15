@@ -7,6 +7,9 @@
 #include "shift-core/base.h"
 #include "shift-core/serialize.h"
 #include "shift-core/substructure.h"
+#include "shift-core/topology.h"
+
+#include "ksl/memory.h"
 
 namespace Shift {
 
@@ -49,6 +52,21 @@ public:
       delete[] dcs_;
       dcs_ = NULL;
     }
+
+    if(b3_) {
+      delete[] b3_;
+      b3_ = NULL;
+    }
+    if(ijMapping_) {
+      delete[] ijMapping_;
+      ijMapping_ = NULL;
+    }
+    if(cb3_) {
+      delete[] cb3_;
+      cb3_ = NULL;
+    }
+
+    ksl_array2Di_free(rb3_);
   }
 
 public:
@@ -65,13 +83,16 @@ public:
 
 private:
   Shift::Context* context_ = NULL;
-  /*! array to hold entries of Jacobian */
-  double* J_ = NULL;
-  /*! integer array */
-  int* Jxx_ = NULL;
+
+  double* J_ = NULL; /*! array to hold entries of Jacobian */
+  int* Jxx_ = NULL;  /*!< integer array */
   bool* Jb_ = NULL;
   double* cs_ = NULL; /*!< constraints */
   double* dcs_ = NULL;
+  double* b3_ = NULL;
+  int* ijMapping_ = NULL;
+  int** rb3_ = NULL;
+  int* cb3_ = NULL;
 
   unsigned int jacobianSize_ =
     0; /*!< size of all block sub Jacobian matrices */
@@ -93,16 +114,19 @@ private:
   std::vector<int> pv_23_;
   std::vector<int> pv_32_;
 
+  std::vector<std::vector<int>> positiveLoopMembersCompressed_;
+  std::vector<std::vector<int>> negativeLoopMembersCompressed_;
+
   std::vector<Shift::Substructure> substructures_;
 
   void setLookup();
   void mallocEquations();
   void compressLoopMembers();
-  void setPO1();
+  void setPO1(const Shift::Topology::DHVA& dhva);
   void translatePermutations();
   void setBooleanPO2();
   void evaluateSparsity();
-  void setPO2();
+  void setPO2(const Shift::Topology::DHVA& dhva);
   void factorPO2();
   void setBMatrixSparse();
   void setConstraintPointers();

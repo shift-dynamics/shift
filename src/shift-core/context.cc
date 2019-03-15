@@ -59,6 +59,16 @@ void Shift::Context::readJSON(const std::string& filename) {
   updateDH();
   updateDHVA();
 
+  std::cout << "dqCount after updateDH: " << dqCount_ << std::endl;
+  for(unsigned int i = 0; i < dqCount_; i++) {
+    std::cout << "[" << i << "]: ";
+    ksl_screw_print(stdout, dhva_.h + i);
+  }
+
+  if(substructureIndices_.size() > 0) {
+    jacobian_.initialize();
+  }
+
   // setDReferenceFrames();
   // initializeGLReferenceFrames();
 
@@ -1181,34 +1191,35 @@ void Shift::Context::detectSubstructures() {
     }
     substructureIndices_ = substructures;
 
-    std::vector<std::vector<int>> substructureMembers(substructures.size());
+    substructureMembers_.clear();
+    substructureMembers_.resize(substructures.size());
     for(unsigned int i = 0; i < substructures.size(); i++) {
       for(auto loopIndex : substructures[i]) {
         for(auto loopMember : loopMembers_[loopIndex]) {
-          substructureMembers[i].push_back(loopMember);
+          substructureMembers_[i].push_back(loopMember);
         }
       }
 
       /* remove duplicate entries */
-      std::sort(substructureMembers[i].begin(), substructureMembers[i].end());
-      substructureMembers[i].erase(
-        unique(substructureMembers[i].begin(), substructureMembers[i].end()),
-        substructureMembers[i].end());
+      std::sort(substructureMembers_[i].begin(), substructureMembers_[i].end());
+      substructureMembers_[i].erase(
+        unique(substructureMembers_[i].begin(), substructureMembers_[i].end()),
+        substructureMembers_[i].end());
 
       /* sort substructure members in level increasing order */
-      std::sort(substructureMembers[i].begin(), substructureMembers[i].end(),
+      std::sort(substructureMembers_[i].begin(), substructureMembers_[i].end(),
                 levelOrder(this));
     }
 
-    // std::cout << "substructures:" << std::endl;
-    // unsigned int i = 0;
-    // for(auto& members : substructureMembers) {
-    //   std::cout << "  [" << i++ << "]: ";
-    //   for(auto& member : members) {
-    //     std::cout << member << " ";
-    //   }
-    //   std::cout << std::endl;
-    // }
+    std::cout << "substructure members:" << std::endl;
+    unsigned int i = 0;
+    for(auto& members : substructureMembers_) {
+      std::cout << "  [" << i++ << "]: ";
+      for(auto& member : members) {
+        std::cout << member << " ";
+      }
+      std::cout << std::endl;
+    }
 
     /* reorder loops */
 
@@ -1261,8 +1272,8 @@ void Shift::Context::detectSubstructures() {
        may contain the fixed body */
     std::list<int> shortList;
     for(int i = -1; i < (int)activeJoints_.size(); i++) {
-      if(Shift::Topology::isSubstructureHead(i, substructureMembers) ||
-         !Shift::Topology::isSubstructureMember(i, substructureMembers)) {
+      if(Shift::Topology::isSubstructureHead(i, substructureMembers_) ||
+         !Shift::Topology::isSubstructureMember(i, substructureMembers_)) {
         shortList.push_back(i);
       }
     }
@@ -1301,15 +1312,15 @@ void Shift::Context::detectSubstructures() {
         multiple substructures may be found at the same level, so
         increment through all substructures to find all of them
       */
-      while(j < substructureMembers.size() &&
-            value == substructureMembers[j][0]) {
-        for(unsigned int k = 1; k < substructureMembers[j].size(); k++) {
+      while(j < substructureMembers_.size() &&
+            value == substructureMembers_[j][0]) {
+        for(unsigned int k = 1; k < substructureMembers_[j].size(); k++) {
 
           /* append substructure members only if they are not already in
           the list */
           if(std::find(expandedList.begin(), expandedList.end(),
-                       substructureMembers[j][k]) == expandedList.end()) {
-            expandedList.push_back(substructureMembers[j][k]);
+                       substructureMembers_[j][k]) == expandedList.end()) {
+            expandedList.push_back(substructureMembers_[j][k]);
           }
         }
 
@@ -1362,8 +1373,16 @@ void Shift::Context::detectSubstructures() {
     activeJoints_ = activeJoints;
     activeArticulatedBodies_ = activeBodies;
 
-    for(unsigned int i = 0; i < activeJoints.size(); i++) {
-      p_10[p_01[i]] = i;
+    Shift::Topology::setInversePermutation(p_01, p_10);
+
+    std::cout << "substructures - end-1 :" << std::endl;
+    i = 0;
+    for(auto& members : substructureMembers_) {
+      std::cout << "  [" << i++ << "]: ";
+      for(auto& member : members) {
+        std::cout << member << " ";
+      }
+      std::cout << std::endl;
     }
 
     for(auto& loop : loopMembers_) {
@@ -1383,6 +1402,22 @@ void Shift::Context::detectSubstructures() {
         i = p_10[i];
       }
     }
+
+    for(auto& substructure : substructureMembers_) {
+      for(auto& i : substructure) {
+        i = p_10[i];
+      }
+    }
+  }
+
+  std::cout << "substructures:" << std::endl;
+  unsigned int i = 0;
+  for(auto& members : substructureMembers_) {
+    std::cout << "  [" << i++ << "]: ";
+    for(auto& member : members) {
+      std::cout << member << " ";
+    }
+    std::cout << std::endl;
   }
 }
 
@@ -1396,8 +1431,8 @@ unsigned int Shift::Context::getdqCount() {
 
 void Shift::Context::allocateRunTimeArrays() {
   unsigned int dcCount = 0;
-  unsigned int qCount_ = 0;
-  unsigned int dqCount_ = 0;
+  qCount_ = 0;
+  dqCount_ = 0;
   unsigned int dataCount = 0;
   nonRigidJointCount_ = 0;
   for(auto& joint : activeJoints_) {
@@ -1410,8 +1445,8 @@ void Shift::Context::allocateRunTimeArrays() {
     }
   }
 
-  dhva_ = Shift::Joint::DHVA(framesInTree_.size(), dcCount, dqCount_,
-                             nonRigidJointCount_);
+  dhva_ = Shift::Topology::DHVA(framesInTree_.size(), dcCount, dqCount_,
+                                nonRigidJointCount_);
 
   std::cout << "qCount: " << qCount_ << std::endl;
   std::cout << "dqCount: " << dqCount_ << std::endl;
@@ -1436,13 +1471,17 @@ void Shift::Context::allocateRunTimeArrays() {
   jointData_ = new double[dataCount];
 
   if(q_) {
-    delete q_;
+    delete[] q_;
     q_ = NULL;
     dq_ = NULL;
   }
-  q_ = new double[qCount_ + dqCount_];
+  q_ = new double[qCount_ + dqCount_]{};
   dq_ = q_ + qCount_;
-  memset(q_, 0, (qCount_ + dqCount_) * sizeof(double));
+
+  if(deltaq_) {
+    delete[] deltaq_;
+  }
+  deltaq_ = new double[dqCount_];
 
   if(ddq_) {
     delete ddq_;
@@ -1496,7 +1535,7 @@ void Shift::Context::allocateRunTimeArrays() {
   i = 0;
   int j = 0;
   int dcOffset = 0;
-  Shift::Joint::Offsets offsets = Shift::Joint::Offsets();
+  Shift::Topology::Offsets offsets = Shift::Topology::Offsets();
   for(auto& joint : activeJoints_) {
     std::cout << "(" << k++ << "/" << activeJoints_.size()
               << "): " << joint->getName() << std::endl;
@@ -1529,8 +1568,9 @@ void Shift::Context::allocateRunTimeArrays() {
       offsets.q += joint->getqCount();
       offsets.dq += joint->getdqCount();
       offsets.data += joint->getDataCount();
-
+      std::cout << "[" << i << "]:" << std::endl;
       dWRTReference_[i] = *(joint->getSystemChildFrame()->getDWRTReference());
+      ksl_SE3_print(stdout, dWRTReference_ + i);
 
       d_fptr_[i] = joint->getDfptr();
       dh_fptr_[i] = joint->getDHfptr();
@@ -1568,6 +1608,9 @@ void Shift::Context::allocateRunTimeArrays() {
 
         dWRTReference_[i] = *(frame.getDWRTReference());
 
+        std::cout << "[" << i << "]:" << std::endl;
+        ksl_SE3_print(stdout, dWRTReference_ + i);
+
         d_fptr_[i] = Shift::Joint::rigid_dh;
         dh_fptr_[i] = Shift::Joint::rigid_dh;
         dhva_fptr_[i] = Shift::Joint::rigid_dhva;
@@ -1577,194 +1620,10 @@ void Shift::Context::allocateRunTimeArrays() {
   }
 
   jointDOF_.resize(activeJoints_.size());
-  // joint
-  //   if(context->jointDOF) {
-  //     free(context->jointDOF);
-  //   }
-  //   context->jointDOF = calloc(context->activeJointCount, sizeof(int));
-  //   if(context->jointDOFCompressed) {
-  //     free(context->jointDOFCompressed);
-  //   }
-  //   context->jointDOFCompressed =
-  //     calloc(context->nonRigidJointCount, sizeof(int));
-  //
-  //
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     s2_body_t* childBody = context->bodyPointers[i];
-  //
-  //
-  //     if(!(childBody->isVirtual || childBody->inertia == NULL ||
-  //          childBody->inertia->m < 1e-9)) {
-  //       if(context->jointLookup[i] > -1) {
-  //         context->hasMass[context->jointLookup[i]] = true;
-  //         context->hasMassdq[context->dqLookup[i]] = true;
-  //
-  //
-  //         switch(context->jointPointers[i]->jointType) {
-  //           case S2_JOINT_SPHERICAL: {
-  //             context->hasMassdq[context->dqLookup[i] + 1] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 2] = true;
-  //             break;
-  //           }
-  //           case S2_JOINT_FLOAT: {
-  //             context->hasMassdq[context->dqLookup[i] + 1] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 2] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 3] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 4] = true;
-  //             context->hasMassdq[context->dqLookup[i] + 5] = true;
-  //             break;
-  //           }
-  //           default:
-  //             break;
-  //         }
-  //       }
-  //     }
-  //
-  //     switch(context->jointPointers[i]->jointType) {
-  //       case S2_JOINT_RX:
-  //       case S2_JOINT_RY:
-  //       case S2_JOINT_RZ:
-  //       case S2_JOINT_TX:
-  //       case S2_JOINT_TY:
-  //       case S2_JOINT_TZ: {
-  //         context->jointDOF[i] = 1;
-  //         break;
-  //       }
-  //       case S2_JOINT_SPHERICAL: {
-  //         context->jointDOF[i] = 3;
-  //         break;
-  //       }
-  //       case S2_JOINT_FLOAT: {
-  //         context->jointDOF[i] = 6;
-  //         break;
-  //       }
-  //       case S2_JOINT_RIGID: {
-  //         context->jointDOF[i] = 0;
-  //         break;
-  //       }
-  //       default:
-  //         break;
-  //     }
-  //   }
-  //
-  //   /* create compressed parent child list */
-  //   if(context->pclCompressed) {
-  //     free(context->pclCompressed);
-  //   }
-  //   context->pclCompressed = calloc(context->nonRigidJointCount,
-  //   sizeof(int));
-  //
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
-  //       int parent = context->pcl[i];
-  //       while(true) {
-  //         if(parent == -1) {
-  //           break;
-  //         }
-  //         if(context->jointPointers[i]->jointType != S2_JOINT_RIGID) {
-  //           break;
-  //         }
-  //         parent = context->pcl[parent];
-  //       }
-  //       // printf("i: %d\n", i);
-  //       // printf("parent: %d\n", parent);
-  //       // fprintf(debug, "parent: %d\n", parent);
-  //       if(parent == -1) {
-  //         context->pclCompressed[context->jointLookup[i]] = -1;
-  //       } else {
-  //         context->pclCompressed[context->jointLookup[i]] =
-  //           context->jointLookup[parent];
-  //       }
-  //     }
-  //   }
-  //
-  //   /* create parent child list for dq array */
-  //   if(context->pcldq) {
-  //     free(context->pcldq);
-  //   }
-  //   context->pcldq = calloc(context->dqCount, sizeof(int));
-  //
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     int parentIndex = context->pcl[i];
-  //     int variableIndex = context->dqLookup[i];
-  //     if(variableIndex != -1) {
-  //       if(parentIndex != -1) {
-  //         int jointDofOffset = fmax(context->jointDOF[parentIndex] - 1, 0);
-  //         context->pcldq[variableIndex] =
-  //           context->dqLookup[parentIndex] + jointDofOffset;
-  //       } else {
-  //         context->pcldq[variableIndex] = -1;
-  //       }
-  //     }
-  //     int jointDOF = context->jointDOF[i];
-  //     if(jointDOF > 1) {
-  //       for(int j = 1; j < jointDOF; j++) {
-  //         context->pcldq[variableIndex + j] = variableIndex + j - 1;
-  //       }
-  //     }
-  //   }
-  //
-  //   /* update has mass dq to set true for any variable that has mass
-  //   projected onto it */
-  //   for(int k = context->dqCount - 1; k > -1; k--) {
-  //     int j = context->pcldq[k];
-  //     if(context->hasMassdq[k] && j > -1) {
-  //       context->hasMassdq[j] = true;
-  //     }
-  //   }
-  //
-  //   /* set isRotation */
-  //   if(context->isRotation) {
-  //     free(context->isRotation);
-  //   }
-  //   context->isRotation = calloc(context->dqCount, sizeof(bool));
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     int baseIndex = context->dqLookup[i];
-  //     switch(context->jointPointers[i]->jointType) {
-  //       case S2_JOINT_TX:
-  //       case S2_JOINT_TY:
-  //       case S2_JOINT_TZ:
-  //       case S2_JOINT_RIGID:
-  //       case S2_JOINT_PRIMITIVE:
-  //       case S2_JOINT_INVALID:
-  //         break;
-  //       case S2_JOINT_RX:
-  //       case S2_JOINT_RY:
-  //       case S2_JOINT_RZ: {
-  //         context->isRotation[baseIndex] = true;
-  //         break;
-  //       }
-  //       case S2_JOINT_SPHERICAL: {
-  //         for(int j = 0; j < 3; j++) {
-  //           context->isRotation[baseIndex + j] = true;
-  //         }
-  //         break;
-  //       }
-  //       case S2_JOINT_FLOAT: {
-  //         for(int j = 3; j < 6; j++) {
-  //           context->isRotation[baseIndex + j] = true;
-  //         }
-  //         break;
-  //       }
-  //     }
-  //   }
-  //
-  //   for(int i = 0; i < context->activeJointCount; i++) {
-  //     int compressedJointIndex = context->jointLookup[i];
-  //     if(compressedJointIndex > -1) {
-  //       context->jointDOFCompressed[compressedJointIndex] =
-  //       context->jointDOF[i];
-  //     }
-  //   }
-
-  if(substructureIndices_.size() > 0) {
-    jacobian_.initialize();
-  }
-
   modelParameters_.initialize();
 }
 
-void Shift::Context::updateDC(Shift::Joint::DHVA& dhva,
+void Shift::Context::updateDC(Shift::Topology::DHVA& dhva,
                               const double* __restrict__ q) {
   for(unsigned int i = 0; i < dcq_.size(); i++) {
     ksl_dc(q[dcq_[i]], dhva.dc + (i * 2));
@@ -1775,7 +1634,7 @@ void Shift::Context::updateD() {
   updateD(dhva_, q_);
 }
 
-void Shift::Context::updateD(Shift::Joint::DHVA& dhva,
+void Shift::Context::updateD(Shift::Topology::DHVA& dhva,
                              const double* __restrict__ q) {
   updateDC(dhva, q);
   for(unsigned int i = 0; i < d_fptr_.size(); i++) {
@@ -1787,11 +1646,18 @@ void Shift::Context::updateDH() {
   updateDH(dhva_, q_);
 }
 
-void Shift::Context::updateDH(Shift::Joint::DHVA& dhva,
+void Shift::Context::updateDH(Shift::Topology::DHVA& dhva,
                               const double* __restrict__ q) {
   updateDC(dhva, q);
+  std::cout << "updateDH() ";
   for(unsigned int i = 0; i < dh_fptr_.size(); i++) {
+    std::cout << i << " ";
     (dh_fptr_[i])(*this, dhva, dhvaOffsets_[i], q);
+  }
+  std::cout << std::endl;
+  for(unsigned int i = 0; i < framesInTree_.size(); i++) {
+    std::cout << "[" << i << "]: ";
+    ksl_SE3_print(stdout, dhva_.d + i);
   }
 }
 
@@ -1799,7 +1665,7 @@ void Shift::Context::updateDHVA() {
   updateDHVA(dhva_, q_, dq_);
 }
 
-void Shift::Context::updateDHVA(Shift::Joint::DHVA& dhva,
+void Shift::Context::updateDHVA(Shift::Topology::DHVA& dhva,
                                 const double* __restrict__ q,
                                 const double* __restrict__ dq) {
   updateDC(dhva, q);

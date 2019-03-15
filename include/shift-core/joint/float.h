@@ -8,21 +8,23 @@ namespace Shift {
 
 namespace Joint {
 
-struct DHVA;
+void float_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+             const double*);
 
-void float_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+void floatinv_d(const Shift::Context&, Topology::DHVA&,
+                const Topology::Offsets&, const double*);
 
-void floatinv_d(const Shift::Context&, DHVA&, const Offsets&, const double*);
+void float_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+              const double*);
 
-void float_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+void floatinv_dh(const Shift::Context&, Topology::DHVA&,
+                 const Topology::Offsets&, const double*);
 
-void floatinv_dh(const Shift::Context&, DHVA&, const Offsets&, const double*);
+void float_dhva(const Shift::Context&, Topology::DHVA&,
+                const Topology::Offsets&, const double*, const double*);
 
-void float_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
-                const double*);
-
-void floatinv_dhva(const Shift::Context&, DHVA&, const Offsets&, const double*,
-                   const double*);
+void floatinv_dhva(const Shift::Context&, Topology::DHVA&,
+                   const Topology::Offsets&, const double*, const double*);
 
 class Float : public Base {
 public:
@@ -55,9 +57,9 @@ public:
   void addKeys();
   virtual void readJSON(Json::Value&);
 
-  dh_fptr getDfptr();
-  dh_fptr getDHfptr();
-  dhva_fptr getDHVAfptr();
+  Topology::dh_fptr getDfptr();
+  Topology::dh_fptr getDHfptr();
+  Topology::dhva_fptr getDHVAfptr();
 
 private:
   static bool registered_;
