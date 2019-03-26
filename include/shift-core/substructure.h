@@ -122,9 +122,10 @@ public:
   \brief set ij mapping array and initialize to -1
   */
   void setijMapping(int* ijMapping) {
+    assert(ijMapping);
     ijMapping_ = ijMapping;
     for(unsigned int i = 0; i < dqCount_ * constraintEquationCount_; i++) {
-      ijMapping[i] = -1;
+      ijMapping_[i] = -1;
     }
   }
 

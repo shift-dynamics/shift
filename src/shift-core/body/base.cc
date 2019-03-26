@@ -243,9 +243,9 @@ void Shift::Body::Base::setDWRTReference() {
   }
 }
 
-void Shift::Body::Base::setDWRTReference(const ksl_SE3_t* dReference) {
+void Shift::Body::Base::setDWRTReference(ksl_SE3_t dReference) {
   Frame* reference = getReferenceFrame();
-  reference->setDWRTReference(*dReference);
+  reference->setDWRTReference(dReference);
   const ksl_SE3_t* referenceWRTOrigin = reference->getDWRTOrigin();
   for(auto& frame : frames_) {
     if(!frame.getIsReference()) {
@@ -253,7 +253,7 @@ void Shift::Body::Base::setDWRTReference(const ksl_SE3_t* dReference) {
       ksl_SE3_t temp;
       ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &temp);
       ksl_SE3_t dWRTReference;
-      ksl_product_dd(dReference, &temp, &dWRTReference);
+      ksl_product_dd(&dReference, &temp, &dWRTReference);
       frame.setDWRTReference(dWRTReference);
     }
   }

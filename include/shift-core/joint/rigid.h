@@ -25,10 +25,14 @@ void rigidinv_dhva(const Shift::Context&, Topology::DHVA&,
 class Rigid : public Base {
 public:
   Rigid()
-    : Base() {}
+    : Base() {
+    addKeys();
+  }
 
   Rigid(std::string name)
-    : Base(name) {}
+    : Base(name) {
+    addKeys();
+  }
 
   virtual ~Rigid() override {}
 
@@ -37,7 +41,7 @@ public:
     return registered_;
   }
 
-  void addKeys();
+  virtual void addKeys() override;
   virtual void readJSON(Json::Value&) override;
 
   Topology::dh_fptr getDfptr() override;

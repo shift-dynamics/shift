@@ -192,7 +192,7 @@ protected:
   Context* context_ = NULL;
   Assembly* assembly_ = NULL;
 
-  void addKeys();
+  virtual void addKeys();
   std::string type_;           //!< descriptive name of joint type
   unsigned int dof_ = 0;       //!< number of degrees of freedom
   unsigned int dcCount_ = 0;   /*!< number of direction cosines used by joint, 1

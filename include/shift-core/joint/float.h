@@ -54,12 +54,12 @@ public:
     return registered_;
   }
 
-  void addKeys();
-  virtual void readJSON(Json::Value&);
+  virtual void addKeys() override;
+  virtual void readJSON(Json::Value&) override;
 
-  Topology::dh_fptr getDfptr();
-  Topology::dh_fptr getDHfptr();
-  Topology::dhva_fptr getDHVAfptr();
+  Topology::dh_fptr getDfptr() override;
+  Topology::dh_fptr getDHfptr() override;
+  Topology::dhva_fptr getDHVAfptr() override;
 
 private:
   static bool registered_;

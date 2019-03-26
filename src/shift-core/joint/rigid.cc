@@ -23,6 +23,7 @@ void Shift::Joint::rigid_dh(const Shift::Context& context,
                             Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
+  std::cout << "rigid_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets.q;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -62,6 +63,8 @@ void Shift::Joint::rigidinv_dh(const Shift::Context& context,
                                Shift::Topology::DHVA& dhva,
                                const Shift::Topology::Offsets& offsets,
                                const double* __restrict__) {
+
+  std::cout << "rigidinv_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets.q;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -87,9 +90,7 @@ void Shift::Joint::rigidinv_dhva(const Shift::Context& context,
   Shift::Joint::rigidinv_dh(context, dhva, offsets, q);
 }
 
-void Shift::Joint::Rigid::addKeys() {
-  Shift::Joint::Base::addKeys();
-}
+void Shift::Joint::Rigid::addKeys() {}
 
 void Shift::Joint::Rigid::readJSON(Json::Value& value) {
   Shift::Joint::Base::readJSON(value);

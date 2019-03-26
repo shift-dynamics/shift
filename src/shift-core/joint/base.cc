@@ -29,6 +29,7 @@ bool Shift::Joint::Modules::initialized() {
 }
 
 void Shift::Joint::Base::addKeys() {
+  std::cout << "adding keys for base joint" << std::endl;
   SerialEntry name("name", SerialType::STRING, &name_);
   addSerialEntry(name);
   SerialEntry type("type", SerialType::STRING, &type_);

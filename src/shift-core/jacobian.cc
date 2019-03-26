@@ -32,7 +32,6 @@ void Shift::Jacobian::analyze() {
 }
 
 void Shift::Jacobian::setLookup() {
-
   jointLookup_.clear();
   jointLookup_.resize(context_->getActiveJointCount());
 
@@ -109,7 +108,6 @@ void Shift::Jacobian::mallocEquations() {
   unsigned int qOffset = 0;
   unsigned int dqOffset = 0;
   unsigned int jointOffset = 0;
-  unsigned int jacobianSize = 0;
   unsigned int constraintEquationCount = 0;
   for(unsigned int i = 0; i < substructureIndices.size(); i++) {
     substructures_[i].setIndex(i);
@@ -133,7 +131,7 @@ void Shift::Jacobian::mallocEquations() {
     qOffset += qCount;
     dqOffset += dqCount;
     jointOffset += jointCount;
-    jacobianSize += chordConstraintCount * 6 * dqCount;
+    jacobianSize_ += chordConstraintCount * 6 * dqCount;
     constraintEquationCount += 6 * chordConstraintCount;
     substructures_[i].setqCount(qCount);
     substructures_[i].setdqCount(dqCount);
@@ -141,22 +139,22 @@ void Shift::Jacobian::mallocEquations() {
     substructures_[i].setChordConstraintCount(chordConstraintCount);
   }
 
-  J_ = new double[jacobianSize]{};
-  Jxx_ = new int[jacobianSize]{};
-  Jb_ = new bool[jacobianSize]{};
+  J_ = new double[jacobianSize_]{};
+  Jxx_ = new int[jacobianSize_]{};
+  Jb_ = new bool[jacobianSize_]{};
   cs_ = new double[constraintEquationCount]{};
   dcs_ = new double[constraintEquationCount]{};
 
-  jacobianSize = 0;
+  int jacobianOffset = 0;
   unsigned int constraintEquationOffset = 0;
 
   for(auto& substructure : substructures_) {
 
-    substructure.setJ(J_ + jacobianSize);
-    substructure.setJxx(Jxx_ + jacobianSize);
-    substructure.setJb(Jb_ + jacobianSize);
+    substructure.setJ(J_ + jacobianOffset);
+    substructure.setJxx(Jxx_ + jacobianOffset);
+    substructure.setJb(Jb_ + jacobianOffset);
 
-    jacobianSize +=
+    jacobianOffset +=
       substructure.getConstraintEquationCount() * substructure.getdqCount();
 
     substructure.setcs(cs_ + constraintEquationOffset);
@@ -318,7 +316,7 @@ void Shift::Jacobian::evaluateSparsity() {
   if(ijMapping_) {
     delete[] ijMapping_;
   }
-  ijMapping_ = new int[jacobianSize_]{};
+  ijMapping_ = new int[jacobianSize_]();
 
   int jacobianOffset = 0;
   for(auto& substructure : substructures_) {
@@ -330,12 +328,12 @@ void Shift::Jacobian::evaluateSparsity() {
   if(b3_) {
     delete[] b3_;
   }
-  b3_ = new double[bOffset]{};
+  b3_ = new double[bOffset]();
 
   if(cb3_) {
     delete[] cb3_;
   }
-  cb3_ = new int[bOffset]{};
+  cb3_ = new int[bOffset]();
 
   ksl_array2Di_free(rb3_);
   rb3_ = ksl_array2Di_alloc(dqCount, 2);
