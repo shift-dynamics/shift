@@ -94,7 +94,7 @@ void Shift::Context::processFrames() {
     }
   }
 
-  /* process framesInTree */
+  /* identify frames in spanning tree */
   framesInTree_.clear();
   getFixedBody()->clearInTreeFlags();
   for(auto& body : activeArticulatedBodies_) {
@@ -102,17 +102,16 @@ void Shift::Context::processFrames() {
   }
   for(auto& frame : fixed->getFrames()) {
     framesInTree_.push_back((Shift::Frame*)&frame);
-    // std::cout << "pushing frame: " << fixed->getName() << " : "
-    //           << frame.getName() << std::endl;
   }
 
-  /* get frames attached to non-rigid active joints */
+  /* identify frames attached to non-rigid, active joints */
   for(auto& joint : activeJoints_) {
     /* parent and child frames of a joint are only added to spanning tree if
      * joint has nonzero degrees of freedom. Rigid joints
      * are optimized out of the spanning tree */
     if(joint->getqCount() > 0) {
       auto parentFrame = joint->getSystemParentFrame();
+      assert(parentFrame);
       if(std::find(framesInTree_.begin(), framesInTree_.end(), parentFrame) ==
          framesInTree_.end()) {
         // std::cout << "pushing frame: "
@@ -135,11 +134,8 @@ void Shift::Context::processFrames() {
   for(auto& constraint : chordConstraints_) {
     if(std::find(framesInTree_.begin(), framesInTree_.end(),
                  constraint->getParentFrame()) == framesInTree_.end()) {
+      assert(constraint->getParentFrame());
       framesInTree_.push_back(constraint->getParentFrame());
-      // std::cout << "pushing frame: " <<
-      // constraint->getParentBody()->getName()
-      //           << " : " << constraint->getParentFrame()->getName()
-      //           << std::endl;
     }
   }
 
@@ -158,8 +154,10 @@ void Shift::Context::processFrames() {
   }
 
   /* compress rigid joints */
+  std::cout << "compressing rigid joints" << std::endl;
   for(int i = (int)activeJoints_.size() - 1; i >= 0; i--) {
     auto joint = activeJoints_[i];
+    assert(joint->getSystemChildBody());
     auto childBody = joint->getSystemChildBody();
     if(joint->getqCount() == 0) {
       // A0 : upstream parent body, parent frame
@@ -169,15 +167,22 @@ void Shift::Context::processFrames() {
       // C1 : child body, child frame
 
       ksl_SE3_t d_B0_C0;
+      ksl_SE3_setIdentity(&d_B0_C0);
       int j = i;
       Shift::Frame* referenceFrame = childBody->getReferenceFrame();
-      while(j > -1 && joint->getqCount() == 0) {
+      std::cout << "processing frame: " << referenceFrame->getName()
+                << std::endl;
+      while(j > -1 && joint && joint->getqCount() == 0) {
         if(!joint->getSystemParentBody()) {
           std::cerr << "parent body not found for joint " << joint->getName()
                     << "!" << std::endl;
           assert(0);
         }
+        std::cout << "  parent body: "
+                  << joint->getSystemParentBody()->getName() << std::endl;
         referenceFrame = joint->getSystemParentBody()->getReferenceFrame();
+        std::cout << "  reference frame: " << referenceFrame->getName()
+                  << std::endl;
         if(!referenceFrame) {
           std::cerr << "reference frame not found on body: "
                     << childBody->getName() << "!" << std::endl;
@@ -185,15 +190,28 @@ void Shift::Context::processFrames() {
         }
 
         ksl_SE3_t d_A1_B0 = joint->getTransform();
+        ksl_SE3_print(stdout, &d_A1_B0, "  d_A1_B0: ");
+        assert(joint->getSystemParentFrame());
+        std::cout << "  parent frame: "
+                  << joint->getSystemParentFrame()->getName() << std::endl;
         const ksl_SE3_t* d_A0_A1 =
           joint->getSystemParentFrame()->getDWRTReference();
+        ksl_SE3_print(stdout, d_A0_A1, "  d_A0_A1: ");
 
         ksl_SE3_t d_A0_B0;
         ksl_product_dd(d_A0_A1, &d_A1_B0, &d_A0_B0);
 
         ksl_SE3_t temp;
         ksl_product_dd(&d_A0_B0, &d_B0_C0, &temp);
+        ksl_SE3_print(stdout, &temp, "  temp: ");
+
         ksl_SE3_copy(&temp, &d_B0_C0);
+        ksl_SE3_print(stdout, &d_B0_C0, "  d_B0_C0: ");
+
+        ksl_SE3_print(stdout, &temp);
+
+        std::cout << "temp: " << std::endl;
+        ksl_SE3_print(stdout, &d_B0_C0);
 
         j = pcl_[j];
         if(j < 0) {
@@ -202,7 +220,7 @@ void Shift::Context::processFrames() {
           joint = activeJoints_[j];
         }
       }
-      childBody->setDWRTReference(&d_B0_C0);
+      childBody->setDWRTReference(d_B0_C0);
       childBody->setReferenceFrame(referenceFrame);
     } else {
       childBody->setReferenceFrame();
@@ -1375,7 +1393,6 @@ void Shift::Context::detectSubstructures() {
 
     Shift::Topology::setInversePermutation(p_01, p_10);
 
-    std::cout << "substructures - end-1 :" << std::endl;
     i = 0;
     for(auto& members : substructureMembers_) {
       std::cout << "  [" << i++ << "]: ";
@@ -1452,6 +1469,7 @@ void Shift::Context::allocateRunTimeArrays() {
   std::cout << "dqCount: " << dqCount_ << std::endl;
   std::cout << "dcCount: " << dcCount << std::endl;
 
+  std::cout << "dWRTReference_.size(): " << framesInTree_.size() << std::endl;
   if(dWRTReference_) {
     free(dWRTReference_);
     dWRTReference_ = NULL;
@@ -1535,6 +1553,11 @@ void Shift::Context::allocateRunTimeArrays() {
   i = 0;
   int j = 0;
   int dcOffset = 0;
+
+  std::cout << "frame indices: " << std::endl;
+  for(auto& frame : framesInTree_) {
+    std::cout << frame->getIndex() << std::endl;
+  }
   Shift::Topology::Offsets offsets = Shift::Topology::Offsets();
   for(auto& joint : activeJoints_) {
     std::cout << "(" << k++ << "/" << activeJoints_.size()
@@ -1569,7 +1592,8 @@ void Shift::Context::allocateRunTimeArrays() {
       offsets.dq += joint->getdqCount();
       offsets.data += joint->getDataCount();
       std::cout << "[" << i << "]:" << std::endl;
-      dWRTReference_[i] = *(joint->getSystemChildFrame()->getDWRTReference());
+      ksl_SE3_copy(joint->getSystemChildFrame()->getDWRTReference(),
+                   dWRTReference_ + i);
       ksl_SE3_print(stdout, dWRTReference_ + i);
 
       d_fptr_[i] = joint->getDfptr();
@@ -1577,6 +1601,7 @@ void Shift::Context::allocateRunTimeArrays() {
       dhva_fptr_[i] = joint->getDHVAfptr();
       i++;
     }
+
     auto childBody = joint->getSystemChildBody();
     for(auto& frame : childBody->getFrames()) {
       if(frame.getInTree() && !frame.getIsReference()) {
@@ -1606,10 +1631,20 @@ void Shift::Context::allocateRunTimeArrays() {
         std::cout << " child.v: " << dhvaOffsets_[i].child.v;
         std::cout << " child.d: " << dhvaOffsets_[i].child.d << std::endl;
 
-        dWRTReference_[i] = *(frame.getDWRTReference());
+        std::cout << frame.getName() << std::endl;
+        std::cout << "dWRTReference: " << std::endl;
+        // ksl_SE3_print(stdout, frame.getDWRTReference());
+
+        std::cout << "copying...: " << std::endl;
+
+        assert(frame.getDWRTReference());
+        ksl_SE3_print(stdout, frame.getDWRTReference());
+
+        ksl_SE3_copy(frame.getDWRTReference(),
+                     dWRTReference_ + dhvaOffsets_[i].parent.d);
 
         std::cout << "[" << i << "]:" << std::endl;
-        ksl_SE3_print(stdout, dWRTReference_ + i);
+        ksl_SE3_print(stdout, dWRTReference_ + dhvaOffsets_[i].parent.d);
 
         d_fptr_[i] = Shift::Joint::rigid_dh;
         dh_fptr_[i] = Shift::Joint::rigid_dh;
@@ -1649,15 +1684,15 @@ void Shift::Context::updateDH() {
 void Shift::Context::updateDH(Shift::Topology::DHVA& dhva,
                               const double* __restrict__ q) {
   updateDC(dhva, q);
-  std::cout << "updateDH() ";
+  std::cout << "updateDH()" << std::endl;
   for(unsigned int i = 0; i < dh_fptr_.size(); i++) {
-    std::cout << i << " ";
+    std::cout << "  [" << i << "] ";
     (dh_fptr_[i])(*this, dhva, dhvaOffsets_[i], q);
   }
   std::cout << std::endl;
   for(unsigned int i = 0; i < framesInTree_.size(); i++) {
-    std::cout << "[" << i << "]: ";
-    ksl_SE3_print(stdout, dhva_.d + i);
+    std::string name = "[" + std::to_string(i) + "]: ";
+    ksl_SE3_print(stdout, dhva_.d + i, name.c_str());
   }
 }
 
@@ -1680,15 +1715,26 @@ void Shift::Context::setFixedFrameGravityVector() {
 }
 
 void Shift::Context::setToInitialConditions() {
+  std::cout << "setting initial conditions:" << std::endl;
   assert(q_);
   assert(dq_);
   unsigned int qOffset = 0;
   unsigned int dqOffset = 0;
   for(auto& joint : activeJoints_) {
-    if(joint->getq0()) {
+    if(joint->getqCount()) {
+      std::cout << joint->getName() << " " << std::flush;
+      assert(joint->getq0());
+      for(unsigned int i = 0; i < joint->getqCount(); i++) {
+        std::cout << joint->getq0()[i] << " ";
+      }
+      std::cout << std::endl;
       memcpy(q_ + qOffset, joint->getq0(), joint->getqCount() * sizeof(double));
     }
-    if(joint->getdq0()) {
+    if(joint->getdqCount()) {
+      for(unsigned int i = 0; i < joint->getdqCount(); i++) {
+        std::cout << joint->getdq0()[i] << " ";
+      }
+      std::cout << std::endl;
       memcpy(dq_ + dqOffset, joint->getdq0(),
              joint->getdqCount() * sizeof(double));
     }

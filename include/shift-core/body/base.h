@@ -139,7 +139,7 @@ public:
     return vaIndex_;
   }
 
-  void setDWRTReference(const ksl_SE3_t*);
+  void setDWRTReference(ksl_SE3_t);
 
   void clearInTreeFlags();
 

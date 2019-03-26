@@ -87,8 +87,9 @@ public:
     dof_ = 1;
     qCount_ = 1;
     dqCount_ = 1;
-    q_0_ = new double[qCount_];
-    dq_0_ = new double[dqCount_];
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
+    addKeys();
   }
 
   Prismatic(std::string name)
@@ -96,8 +97,9 @@ public:
     dof_ = 1;
     qCount_ = 1;
     dqCount_ = 1;
-    q_0_ = new double[qCount_];
-    dq_0_ = new double[dqCount_];
+    q_0_ = new double[qCount_]();
+    dq_0_ = new double[dqCount_]();
+    addKeys();
   }
 
   virtual ~Prismatic() override {
@@ -113,7 +115,7 @@ public:
   virtual const double* getData() override;
   virtual unsigned int getDataCount() override;
 
-  void addKeys();
+  virtual void addKeys() override;
 
   Topology::dh_fptr getDfptr() override;
   Topology::dh_fptr getDHfptr() override;

@@ -3,6 +3,7 @@
 #include "shift-core/factory.h"
 
 #include "ksl/matrix.h"
+#include "ksl/print.h"
 
 bool Shift::Joint::Prismatic::registered_ =
   Shift::Factory<Shift::Joint::Base>::get()->registerModule(
@@ -24,6 +25,7 @@ Updates displacements only
 void Shift::Joint::tx_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
                         const Shift::Topology::Offsets& offsets,
                         const double* __restrict__ q) {
+  std::cout << "tx_d" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -42,6 +44,7 @@ Updates displacements only
 void Shift::Joint::txinv_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
                            const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q) {
+  std::cout << "tx_d" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -60,6 +63,7 @@ Updates displacements only
 void Shift::Joint::ty_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
                         const Shift::Topology::Offsets& offsets,
                         const double* __restrict__ q) {
+  std::cout << "ty_d" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -78,6 +82,7 @@ Updates displacements only
 void Shift::Joint::tyinv_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
                            const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q) {
+  std::cout << "tyinv_d" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -96,6 +101,7 @@ Updates displacements only
 void Shift::Joint::tz_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
                         const Shift::Topology::Offsets& offsets,
                         const double* __restrict__ q) {
+  std::cout << "tz_d" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -114,6 +120,7 @@ Updates displacements only
 void Shift::Joint::tzinv_d(const Shift::Context&, Shift::Topology::DHVA& dhva,
                            const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q) {
+  std::cout << "tzinv_d" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -133,6 +140,7 @@ void Shift::Joint::ta_d(const Shift::Context& context,
                         Shift::Topology::DHVA& dhva,
                         const Shift::Topology::Offsets& offsets,
                         const double* __restrict__ q) {
+  std::cout << "ta_d" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -155,6 +163,7 @@ void Shift::Joint::tainv_d(const Shift::Context& context,
                            Shift::Topology::DHVA& dhva,
                            const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q) {
+  std::cout << "tainv_d" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -176,6 +185,7 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::tx_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                          const Shift::Topology::Offsets& offsets,
                          const double* __restrict__ q) {
+  std::cout << "tx_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -200,6 +210,7 @@ void Shift::Joint::tx_dhva(const Shift::Context& context,
                            const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
+  std::cout << "tx_dhva, ";
   Shift::Joint::tx_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -229,6 +240,7 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::txinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__ q) {
+  std::cout << "txinv_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -253,6 +265,7 @@ void Shift::Joint::txinv_dhva(const Shift::Context& context,
                               const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
+  std::cout << "txinv_dhva, ";
   Shift::Joint::txinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -282,6 +295,7 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::ty_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                          const Shift::Topology::Offsets& offsets,
                          const double* __restrict__ q) {
+  std::cout << "ty_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -306,6 +320,7 @@ void Shift::Joint::ty_dhva(const Shift::Context& context,
                            const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
+  std::cout << "ty_dhva, ";
   Shift::Joint::ty_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -335,6 +350,7 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::tyinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                             const Topology::Offsets& offsets,
                             const double* __restrict__ q) {
+  std::cout << "tyinv_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -359,6 +375,8 @@ void Shift::Joint::tyinv_dhva(const Shift::Context& context,
                               const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
+  std::cout << "tyinv_dhva, ";
+
   Shift::Joint::tyinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -388,12 +406,19 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::tz_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                          const Shift::Topology::Offsets& offsets,
                          const double* __restrict__ q) {
+  std::cout << "tz_dh" << std::endl;
+
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
   ksl_screw_t* h = dhva.h + offsets.dq;
-
   ksl_product_ddtz(dParent, *dPrimitive, dChild);
+
+  std::cout << "  qOffset: " << offsets.q << std::endl;
+  std::cout << "  dPrimitive: " << *dPrimitive << std::endl;
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "  parent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "  child: ");
+
   ksl_hstz(dChild, h);
 }
 
@@ -412,6 +437,8 @@ void Shift::Joint::tz_dhva(const Shift::Context& context,
                            const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
+  std::cout << "tz_dhva, ";
+
   Shift::Joint::tz_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -441,6 +468,8 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::tzinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__ q) {
+  std::cout << "tzinv_dh" << std::endl;
+
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -465,6 +494,8 @@ void Shift::Joint::tzinv_dhva(const Shift::Context& context,
                               const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
+  std::cout << "tzinv_dhva, ";
+
   Shift::Joint::tzinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -495,6 +526,9 @@ void Shift::Joint::ta_dh(const Shift::Context& context,
                          Shift::Topology::DHVA& dhva,
                          const Shift::Topology::Offsets& offsets,
                          const double* __restrict__ q) {
+
+  std::cout << "ta_dh" << std::endl;
+
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -521,6 +555,9 @@ void Shift::Joint::ta_dhva(const Shift::Context& context,
                            const Shift::Topology::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
+
+  std::cout << "ta_dhva, ";
+
   Shift::Joint::tz_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -551,6 +588,9 @@ void Shift::Joint::tainv_dh(const Shift::Context& context,
                             Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__ q) {
+
+  std::cout << "tainv_dh" << std::endl;
+
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -577,6 +617,8 @@ void Shift::Joint::tainv_dhva(const Shift::Context& context,
                               const Shift::Topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
+  std::cout << "tainv_dhva, ";
+
   Shift::Joint::tzinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
@@ -595,23 +637,24 @@ void Shift::Joint::tainv_dhva(const Shift::Context& context,
 }
 
 void Shift::Joint::Prismatic::addKeys() {
-  Shift::Joint::Base::addKeys();
 
+  std::cout << "adding keys for prismatic joint" << std::endl;
   SerialEntry axis("axis", SerialType::KSL_VEC3, &axis_);
   axis.setRequired(false);
-  axis.setDescription("Axis of translation expressed in parent body frame, "
-                      "defaults to z-axis if "
-                      "no axis is provided.");
+  axis.setDescription("Translation axis expressed in parent body frame, "
+                      "defaults to z-axis if no axis provided.");
   addSerialEntry(axis);
 
-  SerialEntry q0("initial_displacement", SerialType::DOUBLE, &q_0_);
+  SerialEntry q0("initial_displacement", SerialType::DOUBLE, q_0_);
   q0.setRequired(false);
-  q0.setDescription("Initial joint displacement.");
+  q0.setDescription(
+    "Initial joint displacement, defaults to zero if no value provided.");
   addSerialEntry(q0);
 
-  SerialEntry dq0("initial_velocity", SerialType::DOUBLE, &dq_0_);
+  SerialEntry dq0("initial_velocity", SerialType::DOUBLE, dq_0_);
   dq0.setRequired(false);
-  dq0.setDescription("Initial joint velocity.");
+  dq0.setDescription(
+    "Initial joint velocity, defaults to zero if no value provided.");
   addSerialEntry(dq0);
 }
 

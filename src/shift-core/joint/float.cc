@@ -188,9 +188,7 @@ void Shift::Joint::floatinv_dhva(const Shift::Context& context,
   ksl_add_ss(aqParent, &aqRelative, aqChild);
 }
 
-void Shift::Joint::Float::addKeys() {
-  Shift::Joint::Base::addKeys();
-}
+void Shift::Joint::Float::addKeys() {}
 
 void Shift::Joint::Float::readJSON(Json::Value& value) {
   Shift::Joint::Base::readJSON(value);

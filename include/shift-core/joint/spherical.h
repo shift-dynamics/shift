@@ -37,6 +37,7 @@ public:
     dqCount_ = 3;
     q_0_ = new double[qCount_]();
     dq_0_ = new double[dqCount_]();
+    addKeys();
   }
   Spherical(std::string name)
     : Base(name) {
@@ -45,6 +46,7 @@ public:
     dqCount_ = 3;
     q_0_ = new double[qCount_]();
     dq_0_ = new double[dqCount_]();
+    addKeys();
   }
   virtual ~Spherical() override {
     delete[] q_0_;
@@ -56,7 +58,7 @@ public:
     return registered_;
   }
 
-  void addKeys();
+  virtual void addKeys() override;
   virtual void readJSON(Json::Value&) override;
 
   Topology::dh_fptr getDfptr() override;

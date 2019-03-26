@@ -177,9 +177,7 @@ void Shift::Joint::sphericalinv_dhva(const Shift::Context& context,
   ksl_add_ss(aqParent, &aqRelative, aqChild);
 }
 
-void Shift::Joint::Spherical::addKeys() {
-  Shift::Joint::Base::addKeys();
-}
+void Shift::Joint::Spherical::addKeys() {}
 
 void Shift::Joint::Spherical::readJSON(Json::Value& value) {
   Shift::Joint::Base::readJSON(value);
