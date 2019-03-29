@@ -38,7 +38,7 @@ public:
   }
   virtual ~Base() {}
 
-  const std::string& getType() {
+  const std::string& type() {
     return type_;
   }
 
@@ -58,19 +58,19 @@ public:
 
   void setChildFrame(Frame*);
 
-  Body::Base* getParentBody() {
+  Body::Base* parentBody() {
     return parentBodyPointer_;
   }
 
-  Frame* getParentFrame() {
+  Frame* parentFrame() {
     return parentFramePointer_;
   }
 
-  Body::Base* getChildBody() {
+  Body::Base* childBody() {
     return childBodyPointer_;
   }
 
-  Frame* getChildFrame() {
+  Frame* childFrame() {
     return childFramePointer_;
   }
 

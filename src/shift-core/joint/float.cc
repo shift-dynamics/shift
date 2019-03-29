@@ -196,12 +196,12 @@ void Shift::Joint::Float::readJSON(Json::Value& value) {
   if(value["initial_displacement"]) {
     frame_.readJSON(value["initial_displacement"]);
   }
-  const ksl_SE3_t* temp = frame_.getDWRTOrigin();
+  const ksl_SE3_t* temp = frame_.DWRTOrigin();
   ksl_mat3x3_toQuaternion(&temp->R, (ksl_quaternion_t*)(q_0_ + 3));
   ksl_vec3_copy(&temp->t, (ksl_vec3_t*)(q_0_));
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Float::getDfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Float::Dfptr() {
   if(sense_ >= 0) {
     return float_d;
   } else {
@@ -209,7 +209,7 @@ Shift::Topology::dh_fptr Shift::Joint::Float::getDfptr() {
   }
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Float::getDHfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Float::DHfptr() {
   if(sense_ >= 0) {
     return float_dh;
   } else {
@@ -217,7 +217,7 @@ Shift::Topology::dh_fptr Shift::Joint::Float::getDHfptr() {
   }
 }
 
-Shift::Topology::dhva_fptr Shift::Joint::Float::getDHVAfptr() {
+Shift::Topology::dhva_fptr Shift::Joint::Float::DHVAfptr() {
   if(sense_ >= 0) {
     return float_dhva;
   } else {

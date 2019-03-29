@@ -109,20 +109,20 @@ public:
     return registered_;
   }
 
-  virtual const double* getData() override;
-  virtual unsigned int getDataCount() override;
+  virtual const double* data() override;
+  virtual unsigned int dataCount() override;
 
   virtual void addKeys() override;
 
-  Topology::dh_fptr getDfptr() override;
-  Topology::dh_fptr getDHfptr() override;
-  Topology::dhva_fptr getDHVAfptr() override;
+  Topology::dh_fptr Dfptr() override;
+  Topology::dh_fptr DHfptr() override;
+  Topology::dhva_fptr DHVAfptr() override;
 
 private:
   enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };
   static bool registered_;
   ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};
-  AxisType getAxisType();
+  AxisType axisType();
 };
 
 } // namespace Joint

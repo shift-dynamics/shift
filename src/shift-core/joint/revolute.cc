@@ -141,7 +141,7 @@ void Shift::Joint::ra_d(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
   ksl_mat3x3_t temp;
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
   ksl_product_ddr(dParent, &temp, dChild);
@@ -164,7 +164,7 @@ void Shift::Joint::rainv_d(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
   ksl_mat3x3_setFromAxisDC(&temp, &neg_axis, dc);
@@ -531,7 +531,7 @@ void Shift::Joint::ra_dh(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
   ksl_mat3x3_t temp;
 
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
@@ -559,7 +559,7 @@ void Shift::Joint::rainv_dh(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
 
@@ -654,7 +654,7 @@ void Shift::Joint::Revolute::addKeys() {
   addSerialEntry(dq0);
 }
 
-Shift::Joint::Revolute::AxisType Shift::Joint::Revolute::getAxisType() {
+Shift::Joint::Revolute::AxisType Shift::Joint::Revolute::axisType() {
   ksl_vec3_t x_axis = ksl_vec3(1.0, 0.0, 0.0);
   ksl_vec3_t y_axis = ksl_vec3(0.0, 1.0, 0.0);
   ksl_vec3_t z_axis = ksl_vec3(0.0, 0.0, 1.0);
@@ -670,22 +670,22 @@ Shift::Joint::Revolute::AxisType Shift::Joint::Revolute::getAxisType() {
   }
 }
 
-const double* Shift::Joint::Revolute::getData() {
-  if(getAxisType() == ARBITRARY_AXIS) {
+const double* Shift::Joint::Revolute::data() {
+  if(axisType() == ARBITRARY_AXIS) {
     return (double*)&axis_;
   };
   return NULL;
 }
 
-unsigned int Shift::Joint::Revolute::getDataCount() {
-  if(getAxisType() == ARBITRARY_AXIS) {
+unsigned int Shift::Joint::Revolute::dataCount() {
+  if(axisType() == ARBITRARY_AXIS) {
     return 3;
   };
   return 0;
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Revolute::getDfptr() {
-  AxisType axis = getAxisType();
+Shift::Topology::dh_fptr Shift::Joint::Revolute::Dfptr() {
+  AxisType axis = axisType();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -719,8 +719,8 @@ Shift::Topology::dh_fptr Shift::Joint::Revolute::getDfptr() {
   return rz_d;
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Revolute::getDHfptr() {
-  AxisType axis = getAxisType();
+Shift::Topology::dh_fptr Shift::Joint::Revolute::DHfptr() {
+  AxisType axis = axisType();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -754,8 +754,8 @@ Shift::Topology::dh_fptr Shift::Joint::Revolute::getDHfptr() {
   return rz_dh;
 }
 
-Shift::Topology::dhva_fptr Shift::Joint::Revolute::getDHVAfptr() {
-  AxisType axis = getAxisType();
+Shift::Topology::dhva_fptr Shift::Joint::Revolute::DHVAfptr() {
+  AxisType axis = axisType();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {

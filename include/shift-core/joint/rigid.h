@@ -44,13 +44,13 @@ public:
   virtual void addKeys() override;
   virtual void readJSON(Json::Value&) override;
 
-  Topology::dh_fptr getDfptr() override;
-  Topology::dh_fptr getDHfptr() override;
-  Topology::dhva_fptr getDHVAfptr() override;
+  Topology::dh_fptr Dfptr() override;
+  Topology::dh_fptr DHfptr() override;
+  Topology::dhva_fptr DHVAfptr() override;
 
-  virtual ksl_SE3_t getTransform() override {
+  virtual ksl_SE3_t transform() override {
     ksl_SE3_t out;
-    const ksl_SE3_t* temp = frame_.getDWRTOrigin();
+    const ksl_SE3_t* temp = frame_.DWRTOrigin();
     if(sense_ >= 0) {
       ksl_SE3_copy(temp, &out);
     } else {

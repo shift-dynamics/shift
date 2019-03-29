@@ -49,37 +49,37 @@ public:
   }
   virtual ~Base() {}
 
-  const std::string& getType() {
+  const std::string& type() {
     return type_;
   }
 
-  unsigned int getdcCount() {
+  unsigned int dcCount() {
     return dcCount_;
   };
 
-  unsigned int getqCount() {
+  unsigned int qCount() {
     return qCount_;
   };
 
-  unsigned int getdqCount() {
+  unsigned int dqCount() {
     std::cout << name_ << ": " << dqCount_ << std::endl;
     return dqCount_;
   };
 
-  const double* getq0() {
+  const double* q0() {
     return q_0_;
   }
 
-  const double* getdq0() {
+  const double* dq0() {
     return dq_0_;
   }
 
   void setInitialDisplacement(const double* q);
   void setInitialVelocity(const double* dq);
 
-  virtual Topology::dh_fptr getDfptr() = 0;
-  virtual Topology::dh_fptr getDHfptr() = 0;
-  virtual Topology::dhva_fptr getDHVAfptr() = 0;
+  virtual Topology::dh_fptr Dfptr() = 0;
+  virtual Topology::dh_fptr DHfptr() = 0;
+  virtual Topology::dhva_fptr DHVAfptr() = 0;
 
   virtual void readJSON(Json::Value&);
 
@@ -97,11 +97,11 @@ public:
 
   void connect();
 
-  Shift::Body::Base* getParentBody() {
+  Shift::Body::Base* parentBody() {
     return parentBodyPointer_;
   }
 
-  Shift::Body::Base* getSystemParentBody() {
+  Shift::Body::Base* systemParentBody() {
     if(sense_ >= 0) {
       return parentBodyPointer_;
     } else {
@@ -109,11 +109,11 @@ public:
     }
   }
 
-  Shift::Body::Base* getChildBody() {
+  Shift::Body::Base* childBody() {
     return childBodyPointer_;
   }
 
-  Shift::Body::Base* getSystemChildBody() {
+  Shift::Body::Base* systemChildBody() {
     if(systemChildBodyPointer_) {
       return systemChildBodyPointer_;
     }
@@ -124,11 +124,11 @@ public:
     }
   }
 
-  Shift::Frame* getParentFrame() {
+  Shift::Frame* parentFrame() {
     return parentFramePointer_;
   }
 
-  Shift::Frame* getSystemParentFrame() {
+  Shift::Frame* systemParentFrame() {
     if(sense_ >= 0) {
       return parentFramePointer_;
     } else {
@@ -136,11 +136,11 @@ public:
     }
   }
 
-  Shift::Frame* getChildFrame() {
+  Shift::Frame* childFrame() {
     return childFramePointer_;
   }
 
-  Shift::Frame* getSystemChildFrame() {
+  Shift::Frame* systemChildFrame() {
     if(systemChildFramePointer_) {
       return systemChildFramePointer_;
     }
@@ -159,7 +159,7 @@ public:
     systemChildFramePointer_ = frame;
   }
 
-  int getSense() {
+  int sense() {
     return sense_;
   }
 
@@ -175,15 +175,15 @@ public:
     level_ = level;
   }
 
-  virtual unsigned int getDataCount() {
+  virtual unsigned int dataCount() {
     return dataCount_;
   }
 
-  virtual const double* getData() {
+  virtual const double* data() {
     return NULL;
   }
 
-  virtual ksl_SE3_t getTransform() {
+  virtual ksl_SE3_t transform() {
     ksl_SE3_t temp;
     ksl_SE3_setIdentity(&temp);
     return temp;

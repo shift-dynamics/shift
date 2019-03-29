@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-static int id = 0;
+static int id__ = 0;
 
 namespace Shift {
 
@@ -16,16 +16,16 @@ class Base {
 public:
   Base(std::string name) {
     name_ = name;
-    id_ = id++;
+    id_ = id__++;
   }
   virtual ~Base() {}
 
-  const std::string& getName() const;
+  const std::string& name() const;
   bool isActive() const;
   void setName(const std::string&);
-  int getId() const;
+  int id() const;
   void setFullyQualifiedName(const std::vector<std::string>&);
-  const std::vector<std::string>& getFullyQualifiedName() const;
+  const std::vector<std::string>& fullyQualifiedName() const;
   void setActive(bool);
 
 protected:

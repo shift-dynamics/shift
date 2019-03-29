@@ -90,23 +90,23 @@ public:
     index_ = index;
   }
 
-  unsigned int getConstraintEquationCount() {
+  unsigned int constraintEquationCount() {
     return constraintEquationCount_;
   }
 
-  unsigned int getqCount() {
+  unsigned int qCount() {
     return qCount_;
   }
 
-  unsigned int getdqCount() {
+  unsigned int dqCount() {
     return dqCount_;
   }
 
-  unsigned int getdqOffset() {
+  unsigned int dqOffset() {
     return dqOffset_;
   }
 
-  unsigned int getJointCount() {
+  unsigned int jointCount() {
     return jointCount_;
   }
 
@@ -114,7 +114,7 @@ public:
     loopOffset_ = offset;
   }
 
-  int getBOffset() {
+  int bOffset() {
     return bOffset_;
   }
 
@@ -129,7 +129,7 @@ public:
     }
   }
 
-  unsigned int getChordConstraintCount() {
+  unsigned int chordConstraintCount() {
     return chordConstraintCount_;
   }
 
@@ -137,13 +137,11 @@ public:
     bOffset_ = offset;
   }
 
-  int getRank() {
+  int rank() {
     return rank_;
   }
 
   void print();
-
-  int getNonZeroElementsInB();
 
   void setPositiveLoopMembersCompressed(
     std::vector<std::vector<int>>::iterator begin,
@@ -172,19 +170,19 @@ public:
   void evaluateSparsity(int** __restrict__ rb3, int* __restrict__ cb3,
                         std::vector<int>& pv_23);
 
-  const std::vector<int>& getpc_12() const {
+  const std::vector<int>& pc_12() const {
     return pc_12_;
   }
 
-  const std::vector<int>& getpr_12() const {
+  const std::vector<int>& pr_12() const {
     return pr_12_;
   }
 
-  const std::vector<int>& getpc_21() const {
+  const std::vector<int>& pc_21() const {
     return pc_21_;
   }
 
-  const std::vector<int>& getpr_21() const {
+  const std::vector<int>& pr_21() const {
     return pr_21_;
   }
 
