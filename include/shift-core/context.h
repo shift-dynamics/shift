@@ -179,7 +179,6 @@ public:
   }
 
   const std::vector<std::vector<int>>& getSubstructureMembers() const {
-    std::cout << substructureMembers_.size() << std::endl;
     return substructureMembers_;
   }
 

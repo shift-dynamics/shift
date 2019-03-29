@@ -638,7 +638,6 @@ void Shift::Joint::tainv_dhva(const Shift::Context& context,
 
 void Shift::Joint::Prismatic::addKeys() {
 
-  std::cout << "adding keys for prismatic joint" << std::endl;
   SerialEntry axis("axis", SerialType::KSL_VEC3, &axis_);
   axis.setRequired(false);
   axis.setDescription("Translation axis expressed in parent body frame, "

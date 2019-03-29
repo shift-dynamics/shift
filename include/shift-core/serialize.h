@@ -144,6 +144,7 @@ private:
   void readJSON_KSL_MAT4X4(Json::Value&);
   void readJSON_EULERANGLES(Json::Value&);
   void readJSON_BOOLEAN(Json::Value&);
+  void readJSON_POSE(Json::Value&);
 };
 
 /*!
