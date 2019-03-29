@@ -1,6 +1,6 @@
 #include "shift-core/base.h"
 
-const std::string& Shift::Base::getName() const {
+const std::string& Shift::Base::name() const {
   return name_;
 }
 
@@ -14,7 +14,7 @@ void Shift::Base::setFullyQualifiedName(
   fullyQualifiedName_.push_back(name_);
 }
 
-const std::vector<std::string>& Shift::Base::getFullyQualifiedName() const {
+const std::vector<std::string>& Shift::Base::fullyQualifiedName() const {
   return fullyQualifiedName_;
 }
 

@@ -149,7 +149,7 @@ void Shift::Body::Base::print() {
 void Shift::Body::Base::setFullyQualifiedNames(
   std::vector<std::string>& baseName) {
   setFullyQualifiedName(baseName);
-  std::vector<std::string> bodyName = getFullyQualifiedName();
+  std::vector<std::string> bodyName = fullyQualifiedName();
   for(auto& i : frames_) {
     i.setFullyQualifiedName(bodyName);
   }
@@ -192,7 +192,7 @@ void Shift::Body::Base::setActiveObjects(bool parentIsActive) {
 
 Shift::Frame* Shift::Body::Base::getFrame(std::string name) {
   for(auto& i : frames_) {
-    if(i.getName() == name) {
+    if(i.name() == name) {
       return &i;
     }
   }
@@ -201,7 +201,7 @@ Shift::Frame* Shift::Body::Base::getFrame(std::string name) {
 
 void Shift::Body::Base::setParentJoint(Shift::Joint::Base* parent) {
   parentJoint_ = parent;
-  auto referenceFrame = parentJoint_->getSystemChildFrame();
+  auto referenceFrame = parentJoint_->systemChildFrame();
   for(auto& frame : frames_) {
     frame.setIsReference(&frame == referenceFrame);
   }
@@ -212,30 +212,30 @@ void Shift::Body::Base::load() {}
 
 void Shift::Body::Base::connect() {}
 
-Shift::Frame* Shift::Body::Base::getOrigin() {
+Shift::Frame* Shift::Body::Base::origin() {
   return getFrame("origin");
 }
 
-Shift::Frame* Shift::Body::Base::getReferenceFrame() {
+Shift::Frame* Shift::Body::Base::referenceFrame() {
   for(auto& frame : frames_) {
-    if(frame.getIsReference()) {
+    if(frame.isReference()) {
       return &frame;
     }
   }
-  std::cerr << "no reference frame found on body: " << getName() << std::endl;
+  std::cerr << "no reference frame found on body: " << name() << std::endl;
   assert(0);
   return NULL;
 }
 
 void Shift::Body::Base::setDWRTReference() {
-  Frame* reference = getReferenceFrame();
+  Frame* reference = referenceFrame();
   ksl_SE3_t dReference;
   ksl_SE3_setIdentity(&dReference);
   reference->setDWRTReference(dReference);
-  const ksl_SE3_t* referenceWRTOrigin = reference->getDWRTOrigin();
+  const ksl_SE3_t* referenceWRTOrigin = reference->DWRTOrigin();
   for(auto& frame : frames_) {
-    if(!frame.getIsReference()) {
-      const ksl_SE3_t* dWRTOrigin = frame.getDWRTOrigin();
+    if(!frame.isReference()) {
+      const ksl_SE3_t* dWRTOrigin = frame.DWRTOrigin();
       ksl_SE3_t dWRTReference;
       ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &dWRTReference);
       frame.setDWRTReference(dWRTReference);
@@ -244,12 +244,12 @@ void Shift::Body::Base::setDWRTReference() {
 }
 
 void Shift::Body::Base::setDWRTReference(ksl_SE3_t dReference) {
-  Frame* reference = getReferenceFrame();
+  Frame* reference = referenceFrame();
   reference->setDWRTReference(dReference);
-  const ksl_SE3_t* referenceWRTOrigin = reference->getDWRTOrigin();
+  const ksl_SE3_t* referenceWRTOrigin = reference->DWRTOrigin();
   for(auto& frame : frames_) {
-    if(!frame.getIsReference()) {
-      const ksl_SE3_t* dWRTOrigin = frame.getDWRTOrigin();
+    if(!frame.isReference()) {
+      const ksl_SE3_t* dWRTOrigin = frame.DWRTOrigin();
       ksl_SE3_t temp;
       ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &temp);
       ksl_SE3_t dWRTReference;
@@ -266,8 +266,7 @@ void Shift::Body::Base::setReferenceFrame(Shift::Frame* referenceFrame) {
 };
 
 void Shift::Body::Base::setReferenceFrame() {
-  auto reference = getReferenceFrame();
-
+  auto reference = referenceFrame();
   for(auto& frame : frames_) {
     if(&frame == reference) {
       frame.setReferenceFrame(NULL);
@@ -284,10 +283,10 @@ void Shift::Body::Base::clearInTreeFlags() {
   }
 }
 
-unsigned int Shift::Body::Base::getFrameInTreeCount() {
+unsigned int Shift::Body::Base::frameInTreeCount() {
   unsigned int count = 0;
   for(auto& frame : frames_) {
-    if(frame.getInTree()) {
+    if(frame.inTree()) {
       count++;
     }
   }

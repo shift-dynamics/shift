@@ -34,7 +34,7 @@ public:
   ~ModelParameters() {}
 
   /*! \brief retrieve gravity vector */
-  const ksl_vec3_t* getGravity() {
+  const ksl_vec3_t* gravity() const {
     return &gravity_;
   }
 
@@ -49,13 +49,13 @@ public:
 
   /*! \brief get epsilon used for rank determination in Gaussian Elimination
    * with complete row and column pivoting */
-  double getEpsilonRankDetermination() const {
+  double epsilonRankDetermination() const {
     return epsilonRankDetermination_;
   }
 
   /*! \brief get infinity norm multiplier -- used as a heuristic for when to
    * reapply gaussian elimination with complete row and column pivoting */
-  double getInfinityNormMultiplier() const {
+  double infinityNormMultiplier() const {
     return infinityNormMuliplier_;
   }
 

@@ -144,7 +144,7 @@ void Shift::Joint::ta_d(const Shift::Context& context,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddt(dParent, &temp, dChild);
@@ -167,7 +167,7 @@ void Shift::Joint::tainv_d(const Shift::Context& context,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddtinv(dParent, &temp, dChild);
@@ -533,7 +533,7 @@ void Shift::Joint::ta_dh(const Shift::Context& context,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddt(dParent, &temp, dChild);
@@ -595,7 +595,7 @@ void Shift::Joint::tainv_dh(const Shift::Context& context,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.getJointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddtinv(dParent, &temp, dChild);
@@ -657,7 +657,7 @@ void Shift::Joint::Prismatic::addKeys() {
   addSerialEntry(dq0);
 }
 
-Shift::Joint::Prismatic::AxisType Shift::Joint::Prismatic::getAxisType() {
+Shift::Joint::Prismatic::AxisType Shift::Joint::Prismatic::axisType() {
   ksl_vec3_t x_axis = ksl_vec3(1.0, 0.0, 0.0);
   ksl_vec3_t y_axis = ksl_vec3(0.0, 1.0, 0.0);
   ksl_vec3_t z_axis = ksl_vec3(0.0, 0.0, 1.0);
@@ -673,22 +673,22 @@ Shift::Joint::Prismatic::AxisType Shift::Joint::Prismatic::getAxisType() {
   }
 }
 
-const double* Shift::Joint::Prismatic::getData() {
-  if(getAxisType() == ARBITRARY_AXIS) {
+const double* Shift::Joint::Prismatic::data() {
+  if(axisType() == ARBITRARY_AXIS) {
     return (double*)&axis_;
   };
   return NULL;
 }
 
-unsigned int Shift::Joint::Prismatic::getDataCount() {
-  if(getAxisType() == ARBITRARY_AXIS) {
+unsigned int Shift::Joint::Prismatic::dataCount() {
+  if(axisType() == ARBITRARY_AXIS) {
     return 3;
   };
   return 0;
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Prismatic::getDfptr() {
-  AxisType axis = getAxisType();
+Shift::Topology::dh_fptr Shift::Joint::Prismatic::Dfptr() {
+  AxisType axis = axisType();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -722,8 +722,8 @@ Shift::Topology::dh_fptr Shift::Joint::Prismatic::getDfptr() {
   return NULL;
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Prismatic::getDHfptr() {
-  AxisType axis = getAxisType();
+Shift::Topology::dh_fptr Shift::Joint::Prismatic::DHfptr() {
+  AxisType axis = axisType();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -757,8 +757,8 @@ Shift::Topology::dh_fptr Shift::Joint::Prismatic::getDHfptr() {
   return NULL;
 }
 
-Shift::Topology::dhva_fptr Shift::Joint::Prismatic::getDHVAfptr() {
-  AxisType axis = getAxisType();
+Shift::Topology::dhva_fptr Shift::Joint::Prismatic::DHVAfptr() {
+  AxisType axis = axisType();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {

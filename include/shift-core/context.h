@@ -114,7 +114,7 @@ public:
   void setFullyQualifiedNames();
   void setActiveObjects();
   void printJSON();
-  Body::Base* getFixedBody();
+  Body::Base* fixedBody();
 
   void appendActive(Behavior::Base*);
   void appendActive(Body::Base*);
@@ -159,38 +159,38 @@ public:
   void clearActiveTerrain();
   void clearActiveArrays();
   void connectActiveObjects();
-  unsigned int getqCount();
-  unsigned int getdqCount();
+  unsigned int qCount();
+  unsigned int dqCount();
 
-  const std::vector<Shift::Joint::Base*>& getActiveJoints() const {
+  const std::vector<Shift::Joint::Base*>& activeJoints() const {
     return activeJoints_;
   }
 
-  unsigned int getNonRigidJointCount() const {
+  unsigned int nonRigidJointCount() const {
     return nonRigidJointCount_;
   }
 
-  unsigned int getSubstructureCount() const {
+  unsigned int substructureCount() const {
     return substructureIndices_.size();
   }
 
-  const std::vector<std::vector<int>>& getSubstructureIndices() const {
+  const std::vector<std::vector<int>>& substructureIndices() const {
     return substructureIndices_;
   }
 
-  const std::vector<std::vector<int>>& getSubstructureMembers() const {
+  const std::vector<std::vector<int>>& substructureMembers() const {
     return substructureMembers_;
   }
 
-  const std::vector<std::vector<int>>& getLoopMembers() const {
+  const std::vector<std::vector<int>>& loopMembers() const {
     return loopMembers_;
   }
 
-  const std::vector<std::vector<int>>& getPositiveLoopMembers() const {
+  const std::vector<std::vector<int>>& positiveLoopMembers() const {
     return positiveLoopMembers_;
   }
 
-  const std::vector<std::vector<int>>& getNegativeLoopMembers() const {
+  const std::vector<std::vector<int>>& negativeLoopMembers() const {
     return negativeLoopMembers_;
   }
 
@@ -256,17 +256,17 @@ public:
 
   /*! \brief get pointer to dWRTReference, an array of relative transformations
    * to their respective reference frames */
-  inline const ksl_SE3_t* getDWRTReference() const {
+  inline const ksl_SE3_t* DWRTReference() const {
     return dWRTReference_;
   }
 
   /*! \brief get pointer to jointData, an array of additional constant data
    * required to process some joints */
-  inline const double* getJointData() const {
+  inline const double* jointData() const {
     return jointData_;
   }
 
-  const Shift::ModelParameters& getModelParameters() {
+  const Shift::ModelParameters& modelParameters() {
     return modelParameters_;
   }
 
@@ -277,33 +277,33 @@ public:
   }
 
   /*! \brief get count of total number of active frames */
-  unsigned int getActiveFrameCount() {
+  unsigned int activeFrameCount() {
     return activeFrames_.size();
   }
 
   /*! \brief get count of total number of active joints */
-  unsigned int getActiveJointCount() {
+  unsigned int activeJointCount() {
     return activeJoints_.size();
   }
 
   /*! \brief get count of active chord constraints */
-  unsigned int getChordConstraintCount() {
+  unsigned int chordConstraintCount() {
     return chordConstraints_.size();
   }
 
-  double* getdq() {
+  double* dq() {
     return dq_;
   }
 
-  double* getq() {
+  double* q() {
     return q_;
   }
 
-  double* getDeltaq() {
+  double* deltaq() {
     return deltaq_;
   }
 
-  const Topology::DHVA& getDHVA() const {
+  const Topology::DHVA& dhva() const {
     return dhva_;
   }
 
@@ -378,7 +378,7 @@ private:
    * bodies. */
   void setFixedFrameGravityVector();
 
-  const std::vector<Shift::Joint::Base*>* getActiveJointsPtr() {
+  const std::vector<Shift::Joint::Base*>* activeJointsPtr() {
     return &activeJoints_;
   }
 
@@ -445,7 +445,7 @@ framesInTree that are the reference frame for the body */
    * increasing order */
   struct levelOrder {
     levelOrder(Context* context)
-      : joints_(context->getActiveJointsPtr()) {}
+      : joints_(context->activeJointsPtr()) {}
     const std::vector<Shift::Joint::Base*>* joints_;
     bool operator()(const int& a, const int& b) {
       int a_level = (a == -1) ? 0 : (*joints_)[a]->getLevel();
@@ -460,7 +460,7 @@ framesInTree that are the reference frame for the body */
   struct substructureLoopLevelOrder {
     substructureLoopLevelOrder(Context* context,
                                const std::vector<std::vector<int>>& loopMembers)
-      : joints_(context->getActiveJointsPtr())
+      : joints_(context->activeJointsPtr())
       , loopMembers_(loopMembers) {}
     const std::vector<Shift::Joint::Base*>* joints_;
     const std::vector<std::vector<int>> loopMembers_;
@@ -474,7 +474,7 @@ framesInTree that are the reference frame for the body */
   struct substructureLevelOrder {
     substructureLevelOrder(Context* context,
                            const std::vector<std::vector<int>>& loopMembers)
-      : joints_(context->getActiveJointsPtr())
+      : joints_(context->activeJointsPtr())
       , loopMembers_(loopMembers) {}
     const std::vector<Shift::Joint::Base*>* joints_;
     const std::vector<std::vector<int>> loopMembers_;

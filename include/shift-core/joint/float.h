@@ -57,9 +57,9 @@ public:
   virtual void addKeys() override;
   virtual void readJSON(Json::Value&) override;
 
-  Topology::dh_fptr getDfptr() override;
-  Topology::dh_fptr getDHfptr() override;
-  Topology::dhva_fptr getDHVAfptr() override;
+  Topology::dh_fptr Dfptr() override;
+  Topology::dh_fptr DHfptr() override;
+  Topology::dhva_fptr DHVAfptr() override;
 
 private:
   static bool registered_;

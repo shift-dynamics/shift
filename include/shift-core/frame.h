@@ -32,9 +32,9 @@ public:
   ~Frame() {}
   void print();
   void setNameRequired(bool);
-  const ksl_SE3_t* getDWRTReference() const;
-  const ksl_SE3_t* getDWRTOrigin() const;
-  int getIndex() const {
+  const ksl_SE3_t* DWRTReference() const;
+  const ksl_SE3_t* DWRTOrigin() const;
+  int index() const {
     return index_;
   }
   void setIndex(int index) {
@@ -43,16 +43,16 @@ public:
   void setInTree(bool inTree) {
     inTree_ = inTree;
   }
-  bool getInTree() const {
+  bool inTree() const {
     return inTree_;
   }
-  bool getIsReference() const {
+  bool isReference() const {
     return isReference_;
   }
   void setIsReference(bool isReference) {
     isReference_ = isReference;
   }
-  bool getIsOrigin() {
+  bool isOrigin() {
     return isOrigin_;
   }
   void setIsOrigin(bool isOrigin) {
@@ -65,7 +65,7 @@ public:
   void setReferenceFrame(Frame* referenceFrame) {
     referenceFrame_ = referenceFrame;
   }
-  const Shift::Frame* getReferenceFrame() const {
+  const Shift::Frame* referenceFrame() const {
     return referenceFrame_;
   }
 

@@ -185,11 +185,11 @@ void Shift::Joint::Spherical::readJSON(Json::Value& value) {
   if(value["initial_displacement"]) {
     frame_.readJSON(value["initial_displacement"]);
   }
-  const ksl_SE3_t* temp = frame_.getDWRTOrigin();
+  const ksl_SE3_t* temp = frame_.DWRTOrigin();
   ksl_mat3x3_toQuaternion(&temp->R, (ksl_quaternion_t*)q_0_);
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Spherical::getDfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Spherical::Dfptr() {
   if(sense_ >= 0) {
     return spherical_d;
   } else {
@@ -197,7 +197,7 @@ Shift::Topology::dh_fptr Shift::Joint::Spherical::getDfptr() {
   }
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Spherical::getDHfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Spherical::DHfptr() {
   if(sense_ >= 0) {
     return spherical_dh;
   } else {
@@ -205,7 +205,7 @@ Shift::Topology::dh_fptr Shift::Joint::Spherical::getDHfptr() {
   }
 }
 
-Shift::Topology::dhva_fptr Shift::Joint::Spherical::getDHVAfptr() {
+Shift::Topology::dhva_fptr Shift::Joint::Spherical::DHVAfptr() {
   if(sense_ >= 0) {
     return spherical_dhva;
   } else {

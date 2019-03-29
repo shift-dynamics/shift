@@ -64,7 +64,7 @@ public:
 
   virtual void addKeys();
 
-  const std::string& getType() {
+  const std::string& type() {
     return type_;
   }
 
@@ -79,7 +79,7 @@ public:
   void appendGeometry(std::unique_ptr<Geometry::Base>&);
   void appendCollisionGeometry(std::unique_ptr<CollisionGeometry::Base>&);
 
-  Base* getParentBody();
+  Base* parentBody();
   virtual void readJSON(Json::Value&);
   virtual void print();
   virtual void load();
@@ -87,11 +87,11 @@ public:
   void setFullyQualifiedNames(std::vector<std::string>&);
   void setActiveObjects(bool);
   Frame* getFrame(std::string);
-  Frame* getOrigin();
-  Frame* getReferenceFrame();
+  Frame* origin();
+  Frame* referenceFrame();
   void setReferenceFrame(Shift::Frame*);
   void setReferenceFrame();
-  unsigned int getFrameCount() {
+  unsigned int frameCount() {
     return frames_.size();
   }
 
@@ -99,9 +99,9 @@ public:
   return number of frames in spanning tree, context->processFrames must be
   called to set frames in spanning tree.
   */
-  unsigned int getFrameInTreeCount();
+  unsigned int frameInTreeCount();
 
-  int getIndex() {
+  int index() {
     return index_;
   }
 
@@ -109,11 +109,11 @@ public:
     index_ = index;
   }
 
-  int getLevel() {
+  int level() {
     return level_;
   }
 
-  const std::vector<Shift::Frame>& getFrames() {
+  const std::vector<Shift::Frame>& frames() {
     return frames_;
   }
 
@@ -121,13 +121,13 @@ public:
     level_ = level;
   }
 
-  Joint::Base* getParentJoint() {
+  Joint::Base* parentJoint() {
     return parentJoint_;
   }
 
   void setParentJoint(Joint::Base*);
 
-  bool getIsArticulated() {
+  bool isArticulated() {
     return isArticulated_;
   }
 
@@ -135,7 +135,7 @@ public:
     vaIndex_ = index;
   }
 
-  int getVAIndex() {
+  int VAIndex() {
     return vaIndex_;
   }
 

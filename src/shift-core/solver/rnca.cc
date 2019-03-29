@@ -20,9 +20,9 @@ void Shift::Solver::RNCA::addKeys() {
 void Shift::Solver::RNCA::initialize() {
   assert(context_);
 
-  unsigned int dqCount = context_->getdqCount();
+  unsigned int dqCount = context_->dqCount();
 
-  hasMass_.resize(context_->getNonRigidJointCount());
+  hasMass_.resize(context_->nonRigidJointCount());
   hasMassdq_.resize(dqCount);
 
   if(gamma_d_) {

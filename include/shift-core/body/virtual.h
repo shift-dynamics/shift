@@ -29,7 +29,7 @@ public:
     index_ = index;
   }
 
-  int getIndex() {
+  int index() {
     return index_;
   }
 
@@ -41,11 +41,11 @@ public:
     return level_;
   }
 
-  void setReferenceFrameIndex(int index) {
+  void referenceFrameIndex(int index) {
     referenceFrameIndex_ = index;
   }
 
-  int getReferenceFrameIndex() {
+  int referenceFrameIndex() {
     return referenceFrameIndex_;
   }
 
@@ -53,7 +53,7 @@ public:
     parentJointPointer_ = joint;
   }
 
-  Joint::JointBase* getParentJointPointer() {
+  Joint::JointBase* parentJointPointer() {
     return parentJointPointer_;
   }
 
@@ -61,7 +61,7 @@ public:
     parentBodyPointer_ = body;
   }
 
-  BodyBase* getParentBodyPointer() {
+  BodyBase* parentBodyPointer() {
     return parentBodyPointer_;
   }
 
@@ -69,7 +69,7 @@ public:
     parentFramePointer_ = frame;
   }
 
-  Frame* getParentFramePointer() {
+  Frame* parentFramePointer() {
     return parentFramePointer_;
   }
 

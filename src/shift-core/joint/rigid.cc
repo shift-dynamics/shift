@@ -25,7 +25,7 @@ void Shift::Joint::rigid_dh(const Shift::Context& context,
                             const double* __restrict__) {
   std::cout << "rigid_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets.q;
+  const ksl_SE3_t* dPrimitive = context.DWRTReference() + offsets.q;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
 
   ksl_product_dd(dParent, dPrimitive, dChild);
@@ -66,7 +66,7 @@ void Shift::Joint::rigidinv_dh(const Shift::Context& context,
 
   std::cout << "rigidinv_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  const ksl_SE3_t* dPrimitive = context.getDWRTReference() + offsets.q;
+  const ksl_SE3_t* dPrimitive = context.DWRTReference() + offsets.q;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
 
   ksl_product_ddinv(dParent, dPrimitive, dChild);
@@ -100,7 +100,7 @@ void Shift::Joint::Rigid::readJSON(Json::Value& value) {
   }
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Rigid::getDfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Rigid::Dfptr() {
   if(sense_ >= 0) {
     return rigid_dh;
   } else {
@@ -108,7 +108,7 @@ Shift::Topology::dh_fptr Shift::Joint::Rigid::getDfptr() {
   }
 }
 
-Shift::Topology::dh_fptr Shift::Joint::Rigid::getDHfptr() {
+Shift::Topology::dh_fptr Shift::Joint::Rigid::DHfptr() {
   if(sense_ >= 0) {
     return rigid_dh;
   } else {
@@ -116,7 +116,7 @@ Shift::Topology::dh_fptr Shift::Joint::Rigid::getDHfptr() {
   }
 }
 
-Shift::Topology::dhva_fptr Shift::Joint::Rigid::getDHVAfptr() {
+Shift::Topology::dhva_fptr Shift::Joint::Rigid::DHVAfptr() {
   if(sense_ >= 0) {
     return rigid_dhva;
   } else {

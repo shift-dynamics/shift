@@ -197,7 +197,7 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
 void Shift::Assembly::setFullyQualifiedNames(
   std::vector<std::string>& baseName) {
   setFullyQualifiedName(baseName);
-  auto assemblyName = getFullyQualifiedName();
+  auto assemblyName = fullyQualifiedName();
 
   for(auto& i : behaviors_) {
     i->setFullyQualifiedName(assemblyName);

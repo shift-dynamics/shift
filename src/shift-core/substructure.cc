@@ -12,9 +12,8 @@ void Shift::Substructure::setContext(Shift::Context* context) {
   context_ = context;
   assert(context_);
   epsilonRankDetermination_ =
-    context->getModelParameters().getEpsilonRankDetermination();
-  infinityNormMultiplier_ =
-    context->getModelParameters().getInfinityNormMultiplier();
+    context->modelParameters().epsilonRankDetermination();
+  infinityNormMultiplier_ = context->modelParameters().infinityNormMultiplier();
 }
 
 void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
@@ -156,18 +155,6 @@ void Shift::Substructure::setBooleanPO2() {
 
 void Shift::Substructure::factorPO2() {
   ksl_linalg_lu_rmo(rank_, dqCount_, J_);
-}
-
-int Shift::Substructure::getNonZeroElementsInB() {
-  int nnzb = 0;
-  for(int j = 0; j < rank_; j++) {
-    for(unsigned int k = rank_; k < dqCount_; k++) {
-      if(Jb_[j * dqCount_ + k]) {
-        nnzb++;
-      }
-    }
-  }
-  return nnzb;
 }
 
 void Shift::Substructure::setBMatrixSparse(double* __restrict__ b3) {
