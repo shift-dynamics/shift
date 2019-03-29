@@ -1232,9 +1232,9 @@ void Shift::Context::detectSubstructures() {
     std::cout << "substructure members:" << std::endl;
     unsigned int i = 0;
     for(auto& members : substructureMembers_) {
-      std::cout << "  [" << i++ << "]: ";
+      std::cout << "[" << i++ << "]: " << std::endl;
       for(auto& member : members) {
-        std::cout << member << " ";
+        std::cout << "  " << activeJoints_[member]->getName() << std::endl;
       }
       std::cout << std::endl;
     }
@@ -1261,22 +1261,22 @@ void Shift::Context::detectSubstructures() {
     positiveLoopMembers_ = positiveLoopMembers;
     chordConstraints_ = chordConstraints;
 
-    // std::cout << "loop members after sorting:" << std::endl;
-    // for(unsigned int i = 0; i < loopMembers.size(); i++) {
-    //   std::cout << "loop members [" << i << "]: " << std::endl;
-    //   for(auto member : loopMembers[i]) {
-    //     std::cout << "  " << activeBodies_[member]->getName() << std::endl;
-    //   }
-    //   std::cout << "negative loop members [" << i << "]: " << std::endl;
-    //   for(auto member : negativeLoopMembers[i]) {
-    //     std::cout << "  " << activeBodies_[member]->getName() << std::endl;
-    //   }
-    //   std::cout << "positive loop members [" << i << "]: " << std::endl;
-    //   for(auto member : positiveLoopMembers[i]) {
-    //     std::cout << "  " << activeBodies_[member]->getName() << std::endl;
-    //   }
-    //   std::cout << std::endl;
-    // }
+    std::cout << "loop members:" << std::endl;
+    for(unsigned int i = 0; i < loopMembers.size(); i++) {
+      std::cout << "loop members [" << i << "]: " << std::endl;
+      for(auto member : loopMembers[i]) {
+        std::cout << "  " << activeJoints_[member]->getName() << std::endl;
+      }
+      std::cout << "negative loop members [" << i << "]: " << std::endl;
+      for(auto member : negativeLoopMembers[i]) {
+        std::cout << "  " << activeJoints_[member]->getName() << std::endl;
+      }
+      std::cout << "positive loop members [" << i << "]: " << std::endl;
+      for(auto member : positiveLoopMembers[i]) {
+        std::cout << "  " << activeJoints_[member]->getName() << std::endl;
+      }
+      std::cout << std::endl;
+    }
 
     /* substructure body joint reorder */
 
@@ -1427,12 +1427,39 @@ void Shift::Context::detectSubstructures() {
     }
   }
 
-  std::cout << "substructures:" << std::endl;
+  std::cout << std::endl << "substructures after sort:" << std::endl;
   unsigned int i = 0;
   for(auto& members : substructureMembers_) {
     std::cout << "  [" << i++ << "]: ";
     for(auto& member : members) {
       std::cout << member << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "substructure members:" << std::endl;
+  i = 0;
+  for(auto& members : substructureMembers_) {
+    std::cout << "[" << i++ << "]: " << std::endl;
+    for(auto& member : members) {
+      std::cout << "  " << activeJoints_[member]->getName() << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "loop members:" << std::endl;
+  for(unsigned int i = 0; i < loopMembers_.size(); i++) {
+    std::cout << "loop members [" << i << "]: " << std::endl;
+    for(auto member : loopMembers_[i]) {
+      std::cout << "  " << activeJoints_[member]->getName() << std::endl;
+    }
+    std::cout << "negative loop members [" << i << "]: " << std::endl;
+    for(auto member : negativeLoopMembers_[i]) {
+      std::cout << "  " << activeJoints_[member]->getName() << std::endl;
+    }
+    std::cout << "positive loop members [" << i << "]: " << std::endl;
+    for(auto member : positiveLoopMembers_[i]) {
+      std::cout << "  " << activeJoints_[member]->getName() << std::endl;
     }
     std::cout << std::endl;
   }

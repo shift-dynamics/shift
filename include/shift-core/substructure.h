@@ -141,6 +141,8 @@ public:
     return rank_;
   }
 
+  void print();
+
   int getNonZeroElementsInB();
 
   void setPositiveLoopMembersCompressed(
@@ -165,7 +167,7 @@ public:
 
   void factorPO2();
 
-  void setBMatrixSparse();
+  void setBMatrixSparse(double* __restrict__ b3);
 
   void evaluateSparsity(int** __restrict__ rb3, int* __restrict__ cb3,
                         std::vector<int>& pv_23);
@@ -193,7 +195,6 @@ private:
   double* J_ = NULL;
   int* Jxx_ = NULL;
   bool* Jb_ = NULL;
-  double* b3_;
   double* dq_ = NULL;
   double* q_ = NULL;
   double* deltaq_ = NULL;
@@ -210,7 +211,7 @@ private:
   std::vector<std::vector<int>>::iterator negativeLoopMembersCompressedBegin_;
   std::vector<std::vector<int>>::iterator negativeLoopMembersCompressedEnd_;
 
-  Shift::Context* context_;
+  Shift::Context* context_ = NULL;
   unsigned int chordConstraintCount_ = 0;
   unsigned int constraintEquationCount_ = 0;
   unsigned int qCount_ = 0;

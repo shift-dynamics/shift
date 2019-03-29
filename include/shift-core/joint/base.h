@@ -62,6 +62,7 @@ public:
   };
 
   unsigned int getdqCount() {
+    std::cout << name_ << ": " << dqCount_ << std::endl;
     return dqCount_;
   };
 

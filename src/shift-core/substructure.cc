@@ -170,14 +170,10 @@ int Shift::Substructure::getNonZeroElementsInB() {
   return nnzb;
 }
 
-void Shift::Substructure::setBMatrixSparse() {
-
+void Shift::Substructure::setBMatrixSparse(double* __restrict__ b3) {
+  std::cout << "setBMatrixSparse() " << std::endl;
   if(rank_ > 0 && rank_ < (int)dqCount_) {
     infinityNormB_ = 0;
-    // double pivots[rank_];
-    // for(int i = 0; i < rank_; i++) {
-    //   pivots[i] = J_[i * dqCount_ + i];
-    // }
     for(int i = rank_ - 1; i > -1; i--) { /* rows of B */
       for(unsigned int k = rank_; k < dqCount_; k++) {
         // assert(J_[i * dqCount_ + i] == pivots[i]);
@@ -187,11 +183,13 @@ void Shift::Substructure::setBMatrixSparse() {
             save += J_[i * dqCount_ + j] * J_[j * dqCount_ + k];
           }
           int b3Index = ijMapping_[i * dqCount_ + k];
-          b3_[b3Index] = (J_[i * dqCount_ + k] - save) / J_[i * dqCount_ + i];
-          J_[i * dqCount_ + k] = b3_[b3Index];
-          assert(!std::isinf(b3_[b3Index]));
-          assert(!std::isnan(b3_[b3Index]));
-          infinityNormB_ = std::max(infinityNormB_, std::abs(b3_[b3Index]));
+          std::cout << "  b3Index: " << b3Index << std::endl;
+          assert(b3Index > -1);
+          b3[b3Index] = (J_[i * dqCount_ + k] - save) / J_[i * dqCount_ + i];
+          J_[i * dqCount_ + k] = b3[b3Index];
+          assert(!std::isinf(b3[b3Index]));
+          assert(!std::isnan(b3[b3Index]));
+          infinityNormB_ = std::max(infinityNormB_, std::abs(b3[b3Index]));
         }
       }
     }
@@ -217,7 +215,12 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
   int k = bOffset_;
   for(unsigned int i3 = dqCount_ - rank_; i3 < dqCount_; i3++) {
     int i2 = pv_local_23[i3];
+    assert(i2 > -1 && i2 < dqCount_);
     int rb3Index = i3 + dqOffset_;
+    std::cout << "dqCount: " << dqCount_ << " dqOffset:" << dqOffset_
+              << " rb3Index: " << rb3Index << std::endl;
+    assert(rb3Index > 0);
+    assert(rb3);
     rb3[rb3Index][0] = k;
     for(unsigned int j3 = 0; j3 < dqCount_ - rank_; j3++) {
       int j2 = pv_local_23[j3];
@@ -231,8 +234,10 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
   }
 
   /* permute ij mapping temp to po2 */
+  std::cout << "i2: " << std::flush;
   for(unsigned int i3 = dqCount_ - rank_; i3 < dqCount_; i3++) {
     int i2 = pv_local_23[i3];
+    std::cout << i2 << " " << std::flush;
     assert(i2 > -1 && i2 < (int)dqCount_);
     for(unsigned int j3 = 0; j3 < dqCount_ - rank_; j3++) {
       int j2 = pv_local_23[j3];
@@ -240,4 +245,17 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
       ijMapping_[i2 * dqCount_ + j2] = ijMapping_temp_po3[i3 * dqCount_ + j3];
     }
   }
+  std::cout << std::endl;
+}
+
+void Shift::Substructure::print() {
+  std::cout << "Substructure [" << index_ << "]" << std::endl;
+  std::cout << "  members:" << std::endl;
+  std::cout << "  dqCount: " << dqCount_ << std::endl;
+  std::cout << "  rank: " << rank_ << std::endl;
+  std::cout << "  dqOffset: " << dqOffset_ << std::endl;
+  std::cout << "  chordConstraintCount: " << chordConstraintCount_ << std::endl;
+  std::cout << "  constraintEquationCount: " << constraintEquationCount_
+            << std::endl
+            << std::endl;
 }
