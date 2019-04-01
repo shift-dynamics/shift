@@ -53,6 +53,7 @@ void Shift::Body::Base::readJSON(Json::Value& value) {
     for(unsigned int i = 0; i < value["frames"].size(); i++) {
       Frame frame;
       frame.readJSON(value["frames"][i]);
+      frame.setParentBody(this);
       appendFrame(frame);
     }
   }
@@ -232,10 +233,10 @@ void Shift::Body::Base::setDWRTReference() {
   ksl_SE3_t dReference;
   ksl_SE3_setIdentity(&dReference);
   reference->setDWRTReference(dReference);
-  const ksl_SE3_t* referenceWRTOrigin = reference->DWRTOrigin();
+  const ksl_SE3_t* referenceWRTOrigin = reference->dWRTOrigin();
   for(auto& frame : frames_) {
     if(!frame.isReference()) {
-      const ksl_SE3_t* dWRTOrigin = frame.DWRTOrigin();
+      const ksl_SE3_t* dWRTOrigin = frame.dWRTOrigin();
       ksl_SE3_t dWRTReference;
       ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &dWRTReference);
       frame.setDWRTReference(dWRTReference);
@@ -246,10 +247,10 @@ void Shift::Body::Base::setDWRTReference() {
 void Shift::Body::Base::setDWRTReference(ksl_SE3_t dReference) {
   Frame* reference = referenceFrame();
   reference->setDWRTReference(dReference);
-  const ksl_SE3_t* referenceWRTOrigin = reference->DWRTOrigin();
+  const ksl_SE3_t* referenceWRTOrigin = reference->dWRTOrigin();
   for(auto& frame : frames_) {
     if(!frame.isReference()) {
-      const ksl_SE3_t* dWRTOrigin = frame.DWRTOrigin();
+      const ksl_SE3_t* dWRTOrigin = frame.dWRTOrigin();
       ksl_SE3_t temp;
       ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &temp);
       ksl_SE3_t dWRTReference;
@@ -263,6 +264,7 @@ void Shift::Body::Base::setReferenceFrame(Shift::Frame* referenceFrame) {
   for(auto& frame : frames_) {
     frame.setReferenceFrame(referenceFrame);
   }
+  setDWRTReference();
 };
 
 void Shift::Body::Base::setReferenceFrame() {
@@ -274,6 +276,7 @@ void Shift::Body::Base::setReferenceFrame() {
       frame.setReferenceFrame(reference);
     }
   }
+  setDWRTReference();
 };
 
 void Shift::Body::Base::clearInTreeFlags() {

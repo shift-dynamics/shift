@@ -39,6 +39,7 @@ public:
     Frame origin("origin");
     origin.setIsOrigin(true);
     origin.setIsReference(true);
+    origin.setParentBody(this);
     appendFrame(origin);
   }
   Base()
@@ -46,6 +47,7 @@ public:
     Frame origin("origin");
     origin.setIsOrigin(true);
     origin.setIsReference(true);
+    origin.setParentBody(this);
     appendFrame(origin);
   }
   Base(Base&& b)
@@ -113,7 +115,7 @@ public:
     return level_;
   }
 
-  const std::vector<Shift::Frame>& frames() {
+  std::vector<Shift::Frame>& frames() {
     return frames_;
   }
 

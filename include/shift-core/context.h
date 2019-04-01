@@ -378,6 +378,9 @@ private:
    * bodies. */
   void setFixedFrameGravityVector();
 
+  void compressRigidJoints(int i, // current body Index and parent joint index
+                           unsigned int& operationCount);
+
   const std::vector<Shift::Joint::Base*>* activeJointsPtr() {
     return &activeJoints_;
   }

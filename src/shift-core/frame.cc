@@ -60,12 +60,20 @@ void Shift::Frame::print() {
   ksl_SE3_print(stdout, &dWRTOrigin_, name_.c_str());
 }
 
-const ksl_SE3_t* Shift::Frame::DWRTOrigin() const {
+const ksl_SE3_t* Shift::Frame::dWRTOrigin() const {
   return &dWRTOrigin_;
 }
 
-const ksl_SE3_t* Shift::Frame::DWRTReference() const {
+const ksl_SE3_t* Shift::Frame::dWRTReference() const {
   return &dWRTReference_;
+}
+
+const ksl_SE3_t* Shift::Frame::systemDWRTReference() const {
+  if(useSystemReferenceFrame_) {
+    return &systemDWRTReference_;
+  } else {
+    return &dWRTReference_;
+  }
 }
 
 void Shift::Frame::setNameRequired(bool required) {
