@@ -57,12 +57,11 @@ public:
     return dcCount_;
   };
 
-  unsigned int qCount() {
+  unsigned int qCount() const {
     return qCount_;
   };
 
-  unsigned int dqCount() {
-    std::cout << name_ << ": " << dqCount_ << std::endl;
+  unsigned int dqCount() const {
     return dqCount_;
   };
 
@@ -113,7 +112,7 @@ public:
     return childBodyPointer_;
   }
 
-  Shift::Body::Base* systemChildBody() {
+  Shift::Body::Base* systemChildBody() const {
     if(systemChildBodyPointer_) {
       return systemChildBodyPointer_;
     }
@@ -189,6 +188,50 @@ public:
     return temp;
   }
 
+  void setqIndex(int index) {
+    qIndex_ = index;
+  }
+
+  void setdqIndex(int index) {
+    dqIndex_ = index;
+  }
+
+  void setdcIndex(int index) {
+    dcIndex_ = index;
+  }
+
+  int qIndex() const {
+    return qIndex_;
+  }
+
+  int dqIndex() const {
+    return dqIndex_;
+  }
+
+  int dcIndex() const {
+    return dcIndex_;
+  }
+
+  int dataIndex() const {
+    return dataIndex_;
+  }
+
+  void setDataIndex(int index) {
+    dataIndex_ = index;
+  }
+
+  void clearChildJoints() {
+    childJoints_.clear();
+  }
+
+  void pushChildJoint(Shift::Joint::Base* child) {
+    childJoints_.push_back(child);
+  }
+
+  const std::vector<Shift::Joint::Base*>& childJoints() const {
+    return childJoints_;
+  }
+
 protected:
   Context* context_ = NULL;
   Assembly* assembly_ = NULL;
@@ -201,16 +244,17 @@ protected:
   unsigned int qCount_ = 0;    //!< number of generalized coordinates
   unsigned int dqCount_ = 0;   //!< number of generalized coordinate derivatives
   unsigned int dataCount_ = 0; //!< additional quantities used to process joint
-  int index_;                  //!< index in joint array
-  int qIndex_;                 //!< index into q array
-  int dqIndex_;                //!< index into dq array
-  int dcIndex_;                //!< index into dc array
-  int indexSubstructure_;      //!< local index into substructure
+  int index_ = -1;             //!< index in joint array
+  int qIndex_ = -1;            //!< index into q array
+  int dqIndex_ = -1;           //!< index into dq array
+  int dcIndex_ = -1;           //!< index into dc array
+  int indexSubstructure_ = -1; //!< local index into substructure
   int sense_ = 0; /*!< indicates whether joint is positively aligned with
                spanning tree (+1), or negatively aligned with spanning tree
                (-1). Automatically set by Topology::sort() */
   int level_ = 0; /*!< Indicates Joint's level in the spanning tree,
                 set by ProcessTopology */
+  int dataIndex_ = -1;
 
   /*!
   The `parent` descriptive name follows the format:
@@ -255,6 +299,8 @@ protected:
     NULL; //!< pointer to a system defined virtual body
   Shift::Frame* systemChildFramePointer_ =
     NULL; //!< pointer to a system defined virtual body
+
+  std::vector<Shift::Joint::Base*> childJoints_;
 
   double* q_0_ = NULL;  /*!< initial primitive displacement
                                               specified by user */

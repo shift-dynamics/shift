@@ -202,7 +202,7 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
   int k = bOffset_;
   for(unsigned int i3 = dqCount_ - rank_; i3 < dqCount_; i3++) {
     int i2 = pv_local_23[i3];
-    assert(i2 > -1 && i2 < dqCount_);
+    assert(i2 > -1 && i2 < (int)dqCount_);
     int rb3Index = i3 + dqOffset_;
     std::cout << "dqCount: " << dqCount_ << " dqOffset:" << dqOffset_
               << " rb3Index: " << rb3Index << std::endl;

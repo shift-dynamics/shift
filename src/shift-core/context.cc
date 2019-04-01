@@ -109,7 +109,7 @@ void Shift::Context::processFrames() {
     /* parent and child frames of a joint are only added to spanning tree if
      * joint has nonzero degrees of freedom. Rigid joints
      * are optimized out of the spanning tree */
-    if(joint->qCount() > 0) {
+    if(joint->qCount()) {
       auto parentFrame = joint->systemParentFrame();
       assert(parentFrame);
       if(std::find(framesInTree_.begin(), framesInTree_.end(), parentFrame) ==
@@ -145,84 +145,11 @@ void Shift::Context::processFrames() {
     frame->setInTree(true);
   }
 
+  std::cout << "setting reference frame on fixed body" << std::endl;
   fixedBody()->setReferenceFrame();
-
-  /* set reference frames */
   for(auto& joint : activeJoints_) {
     auto body = joint->systemChildBody();
     body->setParentJoint(joint);
-  }
-
-  /* compress rigid joints */
-  std::cout << "compressing rigid joints" << std::endl;
-  for(int i = (int)activeJoints_.size() - 1; i >= 0; i--) {
-    auto joint = activeJoints_[i];
-    assert(joint->systemChildBody());
-    auto childBody = joint->systemChildBody();
-    if(joint->qCount() == 0) {
-      // A0 : upstream parent body, parent frame
-      // B0 : parent body, parent frame
-      // B1 : parent Body, child frame
-      // C0 : child body, parent frame
-      // C1 : child body, child frame
-
-      ksl_SE3_t d_B0_C0;
-      ksl_SE3_setIdentity(&d_B0_C0);
-      int j = i;
-      Shift::Frame* referenceFrame = childBody->referenceFrame();
-      std::cout << "processing frame: " << referenceFrame->name() << std::endl;
-      while(j > -1 && joint && joint->qCount() == 0) {
-        if(!joint->systemParentBody()) {
-          std::cerr << "parent body not found for joint " << joint->name()
-                    << "!" << std::endl;
-          assert(0);
-        }
-        std::cout << "  parent body: " << joint->systemParentBody()->name()
-                  << std::endl;
-        referenceFrame = joint->systemParentBody()->referenceFrame();
-        std::cout << "  reference frame: " << referenceFrame->name()
-                  << std::endl;
-        if(!referenceFrame) {
-          std::cerr << "reference frame not found on body: "
-                    << childBody->name() << "!" << std::endl;
-          assert(0);
-        }
-
-        ksl_SE3_t d_A1_B0 = joint->transform();
-        ksl_SE3_print(stdout, &d_A1_B0, "  d_A1_B0: ");
-        assert(joint->systemParentFrame());
-        std::cout << "  parent frame: " << joint->systemParentFrame()->name()
-                  << std::endl;
-        const ksl_SE3_t* d_A0_A1 = joint->systemParentFrame()->DWRTReference();
-        ksl_SE3_print(stdout, d_A0_A1, "  d_A0_A1: ");
-
-        ksl_SE3_t d_A0_B0;
-        ksl_product_dd(d_A0_A1, &d_A1_B0, &d_A0_B0);
-
-        ksl_SE3_t temp;
-        ksl_product_dd(&d_A0_B0, &d_B0_C0, &temp);
-        ksl_SE3_print(stdout, &temp, "  temp: ");
-
-        ksl_SE3_copy(&temp, &d_B0_C0);
-        ksl_SE3_print(stdout, &d_B0_C0, "  d_B0_C0: ");
-
-        ksl_SE3_print(stdout, &temp);
-
-        std::cout << "temp: " << std::endl;
-        ksl_SE3_print(stdout, &d_B0_C0);
-
-        j = pcl_[j];
-        if(j < 0) {
-          joint = NULL;
-        } else {
-          joint = activeJoints_[j];
-        }
-      }
-      childBody->setDWRTReference(d_B0_C0);
-      childBody->setReferenceFrame(referenceFrame);
-    } else {
-      childBody->setReferenceFrame();
-    }
   }
 }
 
@@ -1470,6 +1397,94 @@ unsigned int Shift::Context::dqCount() {
   return dqCount_;
 }
 
+/*!
+\brief compress any frames on child body attached to parent body by
+series of one or more rigid joints
+*/
+void Shift::Context::compressRigidJoints(
+  int i, // current body Index and parent joint index
+  unsigned int& operationCount) {
+
+  ksl_SE3_t dWRTReference;
+  ksl_SE3_setIdentity(&dWRTReference);
+
+  int j = i;
+  auto parentJoint = activeJoints_[i];
+  // bool rigidConnectionToFixedFrame = false;
+
+  while(!parentJoint->qCount()) { // rigid joint
+
+    std::cout << "rigid joint found at index: [" << j << "]" << std::endl;
+
+    // dWRTReference = dJoint * dWRTReference
+    ksl_SE3_t temp;
+    ksl_SE3_t transform = parentJoint->transform();
+
+    ksl_product_dd(&transform, &dWRTReference, &temp);
+    ksl_SE3_copy(&temp, &dWRTReference);
+
+    // dWRTReference = dWRTReference_parent * dWRTReference
+    // std::cout << parentJoint->systemParentFrame()->name() << std::endl;
+    // ksl_SE3_print(stdout, parentJoint->systemParentFrame()->dWRTReference());
+
+    ksl_product_dd(parentJoint->systemParentFrame()->dWRTReference(),
+                   &dWRTReference, &temp);
+    ksl_SE3_copy(&temp, &dWRTReference);
+
+    j = pcl_[j];
+    if(j == -1) {
+      // rigidConnectionToFixedFrame = true;
+      break;
+    }
+    parentJoint = activeJoints_[j];
+  }
+
+  auto joint = activeJoints_[i];
+  if(!joint->qCount()) {
+    std::cout << "processing joint: " << joint->name() << std::endl;
+    auto parentBody = joint->systemParentBody();
+    auto childBody = activeArticulatedBodies_[i];
+
+    ksl_SE3_print(stdout, &dWRTReference, "dWRTReference_parent: ");
+
+    for(auto& frame : childBody->frames()) {
+      std::cout << childBody->name() << ": " << frame.name() << std::endl;
+
+      // dWRTReference = dWRTReference * dWRTReference_child
+      ksl_SE3_t temp;
+      ksl_product_dd(&dWRTReference, frame.dWRTReference(), &temp);
+
+      ksl_SE3_print(stdout, &dWRTReference, "dWRTReference_frame: ");
+
+      // frame.setSystemDWRTReference(temp);
+      if(frame.inTree() && parentBody != fixedBody()) {
+        std::cout << "intree && parentBody!= fixedBody: processing frame: "
+                  << childBody->name() << ": " << frame.name() << std::endl;
+        ksl_SE3_copy(&temp, dWRTReference_ + frame.index());
+
+        dhvaOffsets_[operationCount].parent.d =
+          parentJoint->parentBody()->referenceFrame()->index();
+        dhvaOffsets_[operationCount].child.d = frame.index();
+
+        d_fptr_[operationCount] = Shift::Joint::rigid_dh;
+        dh_fptr_[operationCount] = Shift::Joint::rigid_dh;
+        dhva_fptr_[operationCount] = Shift::Joint::rigid_dhva;
+        operationCount++;
+      } else if(frame.inTree()) {
+        std::cout << "processing frame: " << childBody->name() << ": "
+                  << frame.name() << std::endl;
+
+        ksl_SE3_print(stdout, frame.dWRTReference());
+        ksl_SE3_copy(&temp, dWRTReference_ + frame.index());
+        ksl_product_dd(dhva_.d +
+                         parentJoint->parentBody()->referenceFrame()->index(),
+                       &temp, dhva_.d + frame.index());
+        ksl_SE3_print(stdout, dhva_.d + frame.index());
+      }
+    }
+  }
+}
+
 void Shift::Context::allocateRunTimeArrays() {
   unsigned int dcCount = 0;
   qCount_ = 0;
@@ -1542,24 +1557,32 @@ void Shift::Context::allocateRunTimeArrays() {
   }
 
   // get operations count
-  // int m = 0;
-  // int n = 0;
   unsigned int operationCount = 0;
-  for(auto& body : activeArticulatedBodies_) {
-    // std::cout << "(" << m++ << "):" << body->name();
-    // std::cout << std::flush;
-    // if(body->parentJoint()) {
-    //   std::cout << ": " << body->parentJoint()->name();
-    // }
-    // std::cout << std::endl;
-    // for(auto& frame : body->frames()) {
-    //   if(frame.getInTree()) {
-    //     std::cout << "  (" << n++ << "): " << frame.name() << std::endl;
-    //   }
-    // }
-    // std::cout << "  " << body->frameInTreeCount() << std::endl;
-    operationCount += body->frameInTreeCount();
+  for(unsigned int i = 0; i < activeJoints_.size(); i++) {
+    int j = i;
+    auto joint = activeJoints_[j];
+    auto parentJoint = joint;
+    bool rigidConnectionToFixedFrame = false;
+    while(!parentJoint->qCount()) { // rigid joint
+      j = pcl_[j];
+      if(j == -1) {
+        std::cout << "rigid connection to fixed frame found: ";
+        std::cout << joint->name() << std::endl;
+        rigidConnectionToFixedFrame = true;
+        break;
+      }
+      parentJoint = activeJoints_[j];
+    }
+
+    if(!rigidConnectionToFixedFrame) {
+      auto body = joint->systemChildBody();
+      operationCount += body->frameInTreeCount();
+      std::cout << body->name() << ": " << body->frameInTreeCount()
+                << std::endl;
+    }
   }
+
+  std::cout << "operationCount: " << operationCount << std::endl;
 
   dhvaOffsets_.clear();
   dhvaOffsets_.resize(operationCount);
@@ -1573,111 +1596,89 @@ void Shift::Context::allocateRunTimeArrays() {
   dhva_fptr_.clear();
   dhva_fptr_.resize(operationCount);
 
-  int k = 0;
-  i = 0;
-  int j = 0;
+  int qOffset = 0;
+  int dqOffset = 0;
   int dcOffset = 0;
-
-  std::cout << "frame indices: " << std::endl;
-  for(auto& frame : framesInTree_) {
-    std::cout << frame->index() << std::endl;
-  }
-  Shift::Topology::Offsets offsets = Shift::Topology::Offsets();
+  int dataOffset = 0;
   for(auto& joint : activeJoints_) {
-    std::cout << "(" << k++ << "/" << activeJoints_.size()
-              << "): " << joint->name() << std::endl;
-    if(joint->qCount()) {
-      assert(i < operationCount);
-      if(joint->dcCount()) {
-        dcq_[j++] = offsets.q;
-        dhvaOffsets_[i].dc = dcOffset;
-        dcOffset += joint->dcCount();
-      } else {
-        dhvaOffsets_[i].q = offsets.q;
-      }
-      dhvaOffsets_[i].dq = offsets.dq;
-      dhvaOffsets_[i].data = offsets.data;
-      dhvaOffsets_[i].parent.d = joint->systemParentFrame()->index();
-      assert(dhvaOffsets_[i].parent.d >= 0);
-      dhvaOffsets_[i].parent.v = joint->systemParentBody()->VAIndex();
-      dhvaOffsets_[i].child.d = joint->systemChildFrame()->index();
-      assert(dhvaOffsets_[i].child.d >= 0);
-      dhvaOffsets_[i].child.v = joint->systemChildBody()->VAIndex();
+    joint->setqIndex(qOffset);
+    joint->setdqIndex(dqOffset);
+    joint->setdcIndex(dcOffset);
+    joint->setDataIndex(dataOffset);
+    qOffset += joint->qCount();
+    dqOffset += joint->dqCount();
+    dcOffset += joint->dcCount();
+    dataOffset += joint->dataCount();
+  }
 
-      assert(joint->systemChildFrame()->inTree());
-      // std::cout << "  (" << i << "/" << operationCount << ") "
-      //           << joint->systemChildFrame()->name() << ": ";
-      // std::cout << " parent.v: " << dhvaOffsets_[i].parent.v;
-      // std::cout << " parent.d: " << dhvaOffsets_[i].parent.d;
-      // std::cout << " child.v: " << dhvaOffsets_[i].child.v;
-      // std::cout << " child.d: " << dhvaOffsets_[i].child.d << std::endl;
-
-      offsets.q += joint->qCount();
-      offsets.dq += joint->dqCount();
-      offsets.data += joint->dataCount();
-      std::cout << "[" << i << "]:" << std::endl;
-      ksl_SE3_copy(joint->systemChildFrame()->DWRTReference(),
-                   dWRTReference_ + i);
-      ksl_SE3_print(stdout, dWRTReference_ + i);
-
-      d_fptr_[i] = joint->Dfptr();
-      dh_fptr_[i] = joint->DHfptr();
-      dhva_fptr_[i] = joint->DHVAfptr();
-      i++;
-    }
-
-    auto childBody = joint->systemChildBody();
-    for(auto& frame : childBody->frames()) {
-      if(frame.inTree() && !frame.isReference()) {
-        assert(frame.inTree());
-        assert(i < operationCount);
-        dhvaOffsets_[i].q = 0;
-        dhvaOffsets_[i].dq = 0;
-        dhvaOffsets_[i].data = 0;
-        if(frame.referenceFrame()) {
-          dhvaOffsets_[i].parent.d = frame.referenceFrame()->index();
-        } else {
-          std::cerr << "no reference frame found for body: "
-                    << childBody->name() << " frame: " << frame.name() << "!"
-                    << std::endl;
-          assert(0);
-        }
-        assert(dhvaOffsets_[i].parent.d >= 0);
-        dhvaOffsets_[i].parent.v = 0;
-        dhvaOffsets_[i].child.d = frame.index();
-        assert(dhvaOffsets_[i].child.d >= 0);
-        dhvaOffsets_[i].child.v = 0;
-
-        std::cout << "  (" << i << "/" << operationCount << ") " << frame.name()
-                  << ": ";
-        std::cout << " parent.v: " << dhvaOffsets_[i].parent.v;
-        std::cout << " parent.d: " << dhvaOffsets_[i].parent.d;
-        std::cout << " child.v: " << dhvaOffsets_[i].child.v;
-        std::cout << " child.d: " << dhvaOffsets_[i].child.d << std::endl;
-
-        std::cout << frame.name() << std::endl;
-        std::cout << "dWRTReference: " << std::endl;
-        // ksl_SE3_print(stdout, frame.DWRTReference());
-
-        std::cout << "copying...: " << std::endl;
-
-        assert(frame.DWRTReference());
-        ksl_SE3_print(stdout, frame.DWRTReference());
-
-        ksl_SE3_copy(frame.DWRTReference(),
-                     dWRTReference_ + dhvaOffsets_[i].parent.d);
-
-        std::cout << "[" << i << "]:" << std::endl;
-        ksl_SE3_print(stdout, dWRTReference_ + dhvaOffsets_[i].parent.d);
-
-        d_fptr_[i] = Shift::Joint::rigid_dh;
-        dh_fptr_[i] = Shift::Joint::rigid_dh;
-        dhva_fptr_[i] = Shift::Joint::rigid_dhva;
-        i++;
-      }
+  /* one time update of frames on fixed body */
+  std::cout << "updating frames on fixed body" << std::endl;
+  for(auto& frame : fixedBody()->frames()) {
+    if(!frame.isReference()) {
+      assert(frame.parentBody());
+      std::cout << "[" << frame.index() << "]: " << frame.parentBody()->name()
+                << ":" << frame.name() << std::endl;
+      ksl_SE3_copy(frame.dWRTReference(), dhva_.d + frame.index());
+      ksl_SE3_copy(frame.dWRTReference(), dWRTReference_ + frame.index());
+      ksl_SE3_print(stdout, dhva_.d + frame.index());
     }
   }
 
+  operationCount = 0;
+  for(unsigned int i = 0; i < activeJoints_.size(); i++) {
+    auto& joint = activeJoints_[i];
+    auto parentBody = joint->systemParentBody();
+    auto parentFrame = joint->systemParentFrame();
+    auto childBody = activeArticulatedBodies_[i];
+    auto childFrame = childBody->referenceFrame();
+
+    if(joint->qCount()) {
+      if(joint->dcCount()) {
+        dcq_[joint->dcIndex()] = joint->qIndex();
+        dhvaOffsets_[operationCount].dc = joint->dcIndex();
+      } else {
+        dhvaOffsets_[operationCount].q = joint->qIndex();
+      }
+      dhvaOffsets_[operationCount].parent.d = parentFrame->index();
+      dhvaOffsets_[operationCount].child.d = childFrame->index();
+      dhvaOffsets_[operationCount].parent.v = parentBody->VAIndex();
+      dhvaOffsets_[operationCount].child.v = childBody->VAIndex();
+      dhvaOffsets_[operationCount].dq = joint->dqIndex();
+      dhvaOffsets_[operationCount].data = joint->dataIndex();
+      d_fptr_[operationCount] = joint->Dfptr();
+      dh_fptr_[operationCount] = joint->DHfptr();
+      dhva_fptr_[operationCount] = joint->DHVAfptr();
+      operationCount++;
+
+      auto referenceFrame = childBody->referenceFrame();
+      std::cout << "referenceFrame: " << referenceFrame->parentBody()->name()
+                << ":" << referenceFrame->name() << std::endl;
+      for(auto& frame : childBody->frames()) {
+        /*!
+          @TODO add logic to detect if transformation has zero entries
+          and use appropriate sparse function evaluation
+          for now, all function pointers are assigned as general SE3
+          displacements
+        */
+        if(!frame.isReference() && frame.inTree()) {
+          d_fptr_[operationCount] = Shift::Joint::rigid_dh;
+          dh_fptr_[operationCount] = Shift::Joint::rigid_dh;
+          dhva_fptr_[operationCount] = Shift::Joint::rigid_dhva;
+          dhvaOffsets_[operationCount].parent.d = referenceFrame->index();
+          dhvaOffsets_[operationCount].child.d = frame.index();
+          std::cout << "  processing child frame[" << frame.index()
+                    << "]: " << frame.name() << std::endl;
+          ksl_SE3_print(stdout, frame.dWRTReference(), "  dWRTReference: ");
+          ksl_SE3_copy(frame.dWRTReference(), dWRTReference_ + frame.index());
+          operationCount++;
+        }
+      }
+    } else {
+      compressRigidJoints(i, operationCount);
+    }
+  }
+
+  std::cout << "operationCount: " << operationCount << std::endl;
   jointDOF_.resize(activeJoints_.size());
   modelParameters_.initialize();
 }
@@ -1714,10 +1715,20 @@ void Shift::Context::updateDH(Shift::Topology::DHVA& dhva,
     (dh_fptr_[i])(*this, dhva, dhvaOffsets_[i], q);
   }
   std::cout << std::endl;
-  for(unsigned int i = 0; i < framesInTree_.size(); i++) {
-    std::string name = "[" + std::to_string(i) + "]: ";
-    ksl_SE3_print(stdout, dhva_.d + i, name.c_str());
+  for(auto& frame : framesInTree_) {
+    std::cout << "[" << frame->index() << "]: " << frame->parentBody()->name()
+              << ": " << frame->name() << std::endl;
+    ksl_SE3_print(stdout, dWRTReference_ + frame->index(),
+                  "    dWRTReference: ");
+    ksl_SE3_print(stdout, dhva_.d + frame->index(), "        dAbsolute: ");
+
+    std::cout << std::endl;
   }
+
+  // for(unsigned int i = 0; i < framesInTree_.size(); i++) {
+  //   std::string name = "[" + std::to_string(i) + "]: ";
+  //   ksl_SE3_print(stdout, dhva_.d + i, name.c_str());
+  // }
 }
 
 void Shift::Context::updateDHVA() {

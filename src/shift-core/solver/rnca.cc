@@ -13,7 +13,6 @@ std::unique_ptr<Shift::Solver::RNCA> Shift::Solver::RNCA::create() {
 }
 
 void Shift::Solver::RNCA::addKeys() {
-
   Shift::Solver::Base::addKeys();
 }
 

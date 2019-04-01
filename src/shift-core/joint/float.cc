@@ -196,7 +196,7 @@ void Shift::Joint::Float::readJSON(Json::Value& value) {
   if(value["initial_displacement"]) {
     frame_.readJSON(value["initial_displacement"]);
   }
-  const ksl_SE3_t* temp = frame_.DWRTOrigin();
+  const ksl_SE3_t* temp = frame_.dWRTOrigin();
   ksl_mat3x3_toQuaternion(&temp->R, (ksl_quaternion_t*)(q_0_ + 3));
   ksl_vec3_copy(&temp->t, (ksl_vec3_t*)(q_0_));
 }
