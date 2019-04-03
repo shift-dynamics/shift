@@ -2,6 +2,8 @@
 #include "shift-core/context.h"
 #include "shift-core/factory.h"
 
+#include "ksl/print.h"
+
 bool Shift::Joint::Revolute::registered_ =
   Shift::Factory<Shift::Joint::Base>::get()->registerModule(
     "revolute", Shift::Joint::Revolute::create);
@@ -184,7 +186,6 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::rx_dh(const Shift::Context&, Topology::DHVA& dhva,
                          const Shift::Topology::Offsets& offsets,
                          const double* __restrict__) {
-  std::cout << "rx_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
@@ -192,6 +193,13 @@ void Shift::Joint::rx_dh(const Shift::Context&, Topology::DHVA& dhva,
 
   ksl_product_ddrx(dParent, dc, dChild);
   ksl_hsrx(dChild, h);
+
+#if 1
+  std::cout << "rx_dh" << std::endl;
+  std::cout << "    dc: " << dc[0] << " " << dc[1] << std::endl;
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "    dParent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "    dChild:  ");
+#endif
 }
 
 /*!
@@ -237,8 +245,6 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::rxinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
-  std::cout << "rxinv_dh" << std::endl;
-
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
@@ -246,6 +252,13 @@ void Shift::Joint::rxinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
 
   ksl_product_ddrxinv(dParent, dc, dChild);
   ksl_hsrxinv(dChild, h);
+
+#if 1
+  std::cout << "rxinv_dh" << std::endl;
+  std::cout << "    dc: " << dc[0] << " " << dc[1] << std::endl;
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "    dParent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "    dChild:  ");
+#endif
 }
 
 /*!
@@ -294,8 +307,6 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::ry_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                          const Shift::Topology::Offsets& offsets,
                          const double* __restrict__) {
-  std::cout << "ry_dh" << std::endl;
-
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
@@ -303,6 +314,13 @@ void Shift::Joint::ry_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
 
   ksl_product_ddry(dParent, dc, dChild);
   ksl_hsry(dChild, h);
+
+#if 1
+  std::cout << "ry_dh" << std::endl;
+  std::cout << "    dc: " << dc[0] << " " << dc[1] << std::endl;
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "    dParent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "    dChild:  ");
+#endif
 }
 
 /*!
@@ -352,7 +370,6 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::ryinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
-  std::cout << "ryinv_dh" << std::endl;
 
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -361,6 +378,12 @@ void Shift::Joint::ryinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
 
   ksl_product_ddryinv(dParent, dc, dChild);
   ksl_hsryinv(dChild, h);
+#if 1
+  std::cout << "ryinv_dh" << std::endl;
+  std::cout << "    dc: " << dc[0] << " " << dc[1] << std::endl;
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "    dParent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "    dChild:  ");
+#endif
 }
 
 /*!
@@ -410,7 +433,6 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::rz_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                          const Shift::Topology::Offsets& offsets,
                          const double* __restrict__) {
-  std::cout << "rz_dh" << std::endl;
 
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
@@ -419,6 +441,13 @@ void Shift::Joint::rz_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
 
   ksl_product_ddrz(dParent, dc, dChild);
   ksl_hsrz(dChild, h);
+
+#if 1
+  std::cout << "rz_dh" << std::endl;
+  std::cout << "    dc: " << dc[0] << " " << dc[1] << std::endl;
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "    dParent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "    dChild:  ");
+#endif
 }
 
 /*!
@@ -468,8 +497,6 @@ void Shift::Joint::rzinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
 
-  std::cout << "rzinv_dh" << std::endl;
-
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
@@ -477,6 +504,13 @@ void Shift::Joint::rzinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
 
   ksl_product_ddrzinv(dParent, dc, dChild);
   ksl_hsrzinv(dChild, h);
+
+#if 1
+  std::cout << "rzinv_dh" << std::endl;
+  std::cout << "    dc: " << dc[0] << " " << dc[1] << std::endl;
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "    dParent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "    dChild:  ");
+#endif
 }
 
 /*!
@@ -538,6 +572,14 @@ void Shift::Joint::ra_dh(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_product_ddr(dParent, &temp, dChild);
   ksl_vec3_copy(&dParent->t, &dChild->t);
   ksl_hsra(dChild, axis, h);
+
+#if 1
+  std::cout << "ra_dh" << std::endl;
+  std::cout << "    dc: " << dc[0] << " " << dc[1] << std::endl;
+  ksl_vec3_print(stdout, axis, "  axis: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "    dParent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "    dChild:  ");
+#endif
 }
 
 /*!
@@ -567,6 +609,14 @@ void Shift::Joint::rainv_dh(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_product_ddr(dParent, &temp, dChild);
   ksl_vec3_copy(&dParent->t, &dChild->t);
   ksl_hsrainv(dChild, axis, h);
+
+#if 1
+  std::cout << "rainv_dh" << std::endl;
+  std::cout << "    dc: " << dc[0] << " " << dc[1] << std::endl;
+  ksl_vec3_print(stdout, axis, "  axis: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.parent.d, "    dParent: ");
+  ksl_SE3_print(stdout, dhva.d + offsets.child.d, "    dChild:  ");
+#endif
 }
 
 /*!
@@ -660,12 +710,19 @@ Shift::Joint::Revolute::AxisType Shift::Joint::Revolute::axisType() {
   ksl_vec3_t z_axis = ksl_vec3(0.0, 0.0, 1.0);
   ksl_vec3_normalize(&axis_);
   if(std::abs(ksl_dot_vv(&x_axis, &axis_) - 1.0) < 1.0e-9) {
+    std::cout << type_ << " X_AXIS ";
+    ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
     return X_AXIS;
   } else if(std::abs(ksl_dot_vv(&y_axis, &axis_) - 1.0) < 1.0e-9) {
+    std::cout << type_ << " Y_AXIS ";
+    ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
     return Y_AXIS;
   } else if(std::abs(ksl_dot_vv(&z_axis, &axis_) - 1.0) < 1.0e-9) {
+    std::cout << type_ << " Z_AXIS ";
+    ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
     return Z_AXIS;
   } else {
+
     return ARBITRARY_AXIS;
   }
 }
@@ -689,33 +746,51 @@ Shift::Topology::dh_fptr Shift::Joint::Revolute::Dfptr() {
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
+        std::cout << type_ << " X_AXIS rx_d ";
+        ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
         return rx_d;
       } else {
+        std::cout << type_ << " X_AXIS rxinv_d ";
+        ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
+
         return rxinv_d;
       }
     }
     case Y_AXIS: {
       if(sense_ >= 0) {
+        std::cout << type_ << " Y_AXIS ry_d ";
+        ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
         return ry_d;
       } else {
+        std::cout << type_ << " Y_AXIS ryinv_d ";
+        ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
         return ryinv_d;
       }
     }
     case Z_AXIS: {
       if(sense_ >= 0) {
+        std::cout << type_ << " Z_AXIS rz_d ";
+        ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
         return rz_d;
       } else {
+        std::cout << type_ << " Z_AXIS rzinv_d ";
+        ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
         return rzinv_d;
       }
     }
     case ARBITRARY_AXIS: {
       if(sense_ >= 0) {
+        std::cout << type_ << " ARBITRARY_AXIS ra_d ";
+        ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
         return ra_d;
       } else {
+        std::cout << type_ << " ARBITRARY_AXIS rainv_d ";
+        ksl_vec3_print(stdout, &axis_, "axis_loaded: ");
         return rainv_d;
       }
     }
   }
+  assert(0);
   return rz_d;
 }
 
@@ -751,6 +826,7 @@ Shift::Topology::dh_fptr Shift::Joint::Revolute::DHfptr() {
       }
     }
   }
+  assert(0);
   return rz_dh;
 }
 
@@ -786,5 +862,6 @@ Shift::Topology::dhva_fptr Shift::Joint::Revolute::DHVAfptr() {
       }
     }
   }
+  assert(0);
   return rz_dhva;
 }
