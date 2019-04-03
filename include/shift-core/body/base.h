@@ -133,11 +133,11 @@ public:
     return isArticulated_;
   }
 
-  void setVAIndex(int index) {
+  void setvaIndex(int index) {
     vaIndex_ = index;
   }
 
-  int VAIndex() {
+  int vaIndex() {
     return vaIndex_;
   }
 

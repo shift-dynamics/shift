@@ -96,6 +96,7 @@ public:
     dof_ = 1;
     qCount_ = 1;
     dqCount_ = 1;
+    dcCount_ = 1;
     q_0_ = new double[qCount_]();
     dq_0_ = new double[dqCount_]();
     addKeys();

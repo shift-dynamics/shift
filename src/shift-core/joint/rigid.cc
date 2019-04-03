@@ -28,6 +28,11 @@ void Shift::Joint::rigid_dh(const Shift::Context& context,
   const ksl_SE3_t* dPrimitive = context.DWRTReference() + offsets.q;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
 
+#if 0
+  // printf("rigid_dh:\n");
+  // ksl_SE3_print
+#endif
+
   ksl_product_dd(dParent, dPrimitive, dChild);
 }
 

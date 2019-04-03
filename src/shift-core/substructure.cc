@@ -46,6 +46,7 @@ void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
   rank_ = ksl_linalg_lu_full_rmo(constraintEquationCount_, dqCount_, J_,
                                  epsilonRankDetermination_, pr_12_.data(),
                                  pc_12_.data());
+  assert(rank_ != -1);
 
   Shift::Topology::setInversePermutation(pr_12_, pr_21_);
   Shift::Topology::setInversePermutation(pc_12_, pc_21_);
@@ -53,11 +54,12 @@ void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
   std::cout << "rank: " << rank_ << std::endl;
   std::cout << "dqCount: " << dqCount_ << std::endl;
 
-  ksl_linalg_lu_setBMatrix_rmo(rank_, dqCount_, J_);
-
-  scaledInitialInfinityNormB_ =
-    infinityNormMultiplier_ *
-    ksl_linalg_lu_infinityNormB_rmo(rank_, dqCount_, J_);
+  if(rank_ < (int)dqCount_) {
+    ksl_linalg_lu_setBMatrix_rmo(rank_, dqCount_, J_);
+    scaledInitialInfinityNormB_ =
+      infinityNormMultiplier_ *
+      ksl_linalg_lu_infinityNormB_rmo(rank_, dqCount_, J_);
+  }
 }
 
 /*!
