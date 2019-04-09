@@ -9,6 +9,7 @@
 
 #include "shift-core/behavior/base.h"
 #include "shift-core/body/base.h"
+#include "shift-core/body/rigid.h"
 #include "shift-core/collisiongeometry/base.h"
 #include "shift-core/constraint/base.h"
 #include "shift-core/constraint/chord.h"
@@ -65,9 +66,12 @@ void Shift::Context::readJSON(const std::string& filename) {
     ksl_screw_print(stdout, dhva_.h + i);
   }
 
+  setLookup();
   if(substructureIndices_.size() > 0) {
     jacobian_.initialize();
   }
+
+  initializeInertia();
 
   // setDReferenceFrames();
   // initializeGLReferenceFrames();
@@ -1805,6 +1809,88 @@ void Shift::Context::setToInitialConditions() {
   }
 }
 
+void Shift::Context::initializeInertia() {
+
+  // FILE* debug = modelParameters->debugFilePointer;
+  /*
+    create a temporary inertia array, equal in length to activeJoints
+    after this list is generated, it will be compressed to an array
+    equal to length of nonRigidJointCount
+  */
+  ksl_inertia_t* inertia_temp = ksl_inertia_alloc(activeJoints_.size());
+
+/* compute each inertia matrix with respect to reference frame on
+   each body */
+#if _SHIFT_VERBOSE
+  printf("inertias before compression, expressed in inertial reference frame "
+         "coordinates:\n");
+#endif
+  for(int i = (int)activeJoints_.size() - 1; i > -1; i--) {
+    auto& body = activeArticulatedBodies_[i];
+    if(body->hasMass()) {
+      inertia_temp[i] = body->inertiaWRTReference();
+#if 0
+      printf("  [%i] ", i);
+      s2_inertia_print(stdout, inertia_temp + i);
+#endif
+    }
+  }
+
+  /* for bodies connected by rigid joints, merge inertias into parent body
+  inertia */
+  for(int i = (int)activeJoints_.size() - 1; i > -1; i--) {
+    /* only perform merge if parent joint type is rigid and
+       the parent body is not the fixed body */
+    if(activeJoints_[i]->qCount() == 0 && pcl_[i] > -1) {
+      auto childBody = activeArticulatedBodies_[i];
+      auto parentBody = activeArticulatedBodies_[pcl_[i]];
+      auto parentFrame = activeJoints_[i]->systemParentFrame();
+      ksl_vec3_t t_ic_i = parentBody->centerOfMassWRTReference();
+      ksl_vec3_t t_jc_j = childBody->centerOfMassWRTReference();
+      ksl_inertia_t parentInertia = parentBody->inertiaWRTReference();
+      ksl_inertia_t childInertia = childBody->inertiaWRTReference();
+
+      ksl_SE3_t D_ij;
+      ksl_SE3_t temp = activeJoints_[i]->transform();
+      if(parentFrame->isReference()) {
+        ksl_SE3_copy(&temp, &D_ij);
+      } else {
+        ksl_product_dd(parentFrame->dWRTReference(), &temp, &D_ij);
+      }
+      // i = parent, j = child;
+      ksl_inertia_merge(&parentInertia, &t_ic_i, &childInertia, &t_jc_j, &D_ij);
+
+      inertia_temp[pcl_[i]] = parentInertia;
+    }
+  }
+
+  /* compress expanded inertia list into compressed list */
+  if(inertia_) {
+    free(inertia_);
+  }
+  inertia_ = ksl_inertia_alloc(nonRigidJointCount_);
+  for(unsigned int i = 0; i < activeJoints_.size(); i++) {
+    int j = jointLookup_[i];
+    if(j != -1) {
+      memcpy(inertia_ + j, inertia_temp + i, sizeof(ksl_inertia_t));
+    }
+  }
+
+#if _SHIFT_VERBOSE
+  printf("inertia:\n");
+  for(int i = 0; i < nonRigidJointCount; i++) {
+    printf("  [%i] ", i);
+    s2_inertia_print(stdout, inertia + i);
+  }
+#endif
+
+  if(inertiaP_) {
+    free(inertiaP_);
+  }
+  inertiaP_ = ksl_inertia_alloc(nonRigidJointCount_ + 1);
+  free(inertia_temp);
+}
+
 void Shift::Context::setInitialConditionsToCurrentConditions() {
   assert(q_);
   assert(dq_);
@@ -1815,5 +1901,45 @@ void Shift::Context::setInitialConditionsToCurrentConditions() {
     joint->setInitialVelocity(dq_ + dqOffset);
     qOffset += joint->qCount();
     dqOffset += joint->dqCount();
+  }
+}
+
+void Shift::Context::setLookup() {
+  jointLookup_.clear();
+  jointLookup_.resize(activeJointCount());
+
+  dqLookup_.clear();
+  dqLookup_.resize(activeJointCount());
+
+  qLookup_.clear();
+  qLookup_.resize(activeJointCount());
+
+  dqLookupCompressed_.clear();
+  dqLookupCompressed_.resize(nonRigidJointCount());
+
+  int jointCount = 0;
+  int dqCount = 0;
+  int qCount = 0;
+  unsigned int i = 0;
+  for(auto& joint : activeJoints()) {
+    if(joint->qCount() > 0) {
+      jointLookup_[i] = jointCount;
+      dqLookup_[i] = dqCount;
+      qLookup_[i] = qCount;
+      jointCount++;
+    } else {
+      jointLookup_[i] = -1;
+      dqLookup_[i] = -1;
+      qLookup_[i] = -1;
+    }
+    i++;
+    dqCount += joint->qCount();
+    qCount += joint->qCount();
+  }
+
+  for(unsigned int j = 0; j < activeJointCount(); j++) {
+    if(jointLookup_[j] > -1) {
+      dqLookupCompressed_[jointLookup_[j]] = dqLookup_[j];
+    }
   }
 }
