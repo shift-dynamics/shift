@@ -7,7 +7,6 @@
 
 void Shift::Jacobian::initialize() {
   assert(context_);
-  setLookup();
   mallocEquations();
   compressLoopMembers();
   setPO1(context_->dhva());
@@ -31,45 +30,45 @@ void Shift::Jacobian::analyze() {
   setBMatrixSparse();
 }
 
-void Shift::Jacobian::setLookup() {
-  jointLookup_.clear();
-  jointLookup_.resize(context_->activeJointCount());
-
-  dqLookup_.clear();
-  dqLookup_.resize(context_->activeJointCount());
-
-  qLookup_.clear();
-  qLookup_.resize(context_->activeJointCount());
-
-  dqLookupCompressed_.clear();
-  dqLookupCompressed_.resize(context_->nonRigidJointCount());
-
-  int jointCount = 0;
-  int dqCount = 0;
-  int qCount = 0;
-  unsigned int i = 0;
-  for(auto& joint : context_->activeJoints()) {
-    if(joint->qCount() > 0) {
-      jointLookup_[i] = jointCount;
-      dqLookup_[i] = dqCount;
-      qLookup_[i] = qCount;
-      jointCount++;
-    } else {
-      jointLookup_[i] = -1;
-      dqLookup_[i] = -1;
-      qLookup_[i] = -1;
-    }
-    i++;
-    dqCount += joint->qCount();
-    qCount += joint->qCount();
-  }
-
-  for(unsigned int j = 0; j < context_->activeJointCount(); j++) {
-    if(jointLookup_[j] > -1) {
-      dqLookupCompressed_[jointLookup_[j]] = dqLookup_[j];
-    }
-  }
-}
+// void Shift::Jacobian::setLookup() {
+//   jointLookup_.clear();
+//   jointLookup_.resize(context_->activeJointCount());
+//
+//   dqLookup_.clear();
+//   dqLookup_.resize(context_->activeJointCount());
+//
+//   qLookup_.clear();
+//   qLookup_.resize(context_->activeJointCount());
+//
+//   dqLookupCompressed_.clear();
+//   dqLookupCompressed_.resize(context_->nonRigidJointCount());
+//
+//   int jointCount = 0;
+//   int dqCount = 0;
+//   int qCount = 0;
+//   unsigned int i = 0;
+//   for(auto& joint : context_->activeJoints()) {
+//     if(joint->qCount() > 0) {
+//       jointLookup_[i] = jointCount;
+//       dqLookup_[i] = dqCount;
+//       qLookup_[i] = qCount;
+//       jointCount++;
+//     } else {
+//       jointLookup_[i] = -1;
+//       dqLookup_[i] = -1;
+//       qLookup_[i] = -1;
+//     }
+//     i++;
+//     dqCount += joint->qCount();
+//     qCount += joint->qCount();
+//   }
+//
+//   for(unsigned int j = 0; j < context_->activeJointCount(); j++) {
+//     if(jointLookup_[j] > -1) {
+//       dqLookupCompressed_[jointLookup_[j]] = dqLookup_[j];
+//     }
+//   }
+// }
 
 void Shift::Jacobian::mallocEquations() {
 
@@ -187,6 +186,8 @@ void Shift::Jacobian::compressLoopMembers() {
   positiveLoopMembersCompressed_.resize(chordConstraintCount);
   negativeLoopMembersCompressed_.clear();
   negativeLoopMembersCompressed_.resize(chordConstraintCount);
+  auto& dqLookup = context_->dqLookup();
+  auto& qLookup = context_->qLookup();
 
   /* record offsets in positiveLoopMemberOffsets and
     negativeLoopMembersOffsets */
@@ -199,14 +200,14 @@ void Shift::Jacobian::compressLoopMembers() {
     unsigned int begin = k;
     int substructureOffset =
       std::min(substructureMembers[i][1], substructureMembers[i][2]);
-    substructure.setdqOffset(dqLookup_[substructureOffset], context_->dq(),
+    substructure.setdqOffset(dqLookup[substructureOffset], context_->dq(),
                              context_->deltaq());
-    substructure.setqOffset(qLookup_[substructureOffset], context_->q());
+    substructure.setqOffset(qLookup[substructureOffset], context_->q());
 
     for(unsigned int j = 0; j < substructure.chordConstraintCount(); j++, k++) {
       for(auto positiveLoopMember : positiveLoopMembers[k]) {
         unsigned int dqCount = activeJoints[positiveLoopMember]->qCount();
-        int dqOffset = dqLookup_[positiveLoopMember];
+        int dqOffset = dqLookup[positiveLoopMember];
         for(unsigned int m = 0; m < dqCount; m++) {
           positiveLoopMembersCompressed_[k].push_back(dqOffset++);
         }
@@ -214,7 +215,7 @@ void Shift::Jacobian::compressLoopMembers() {
 
       for(auto negativeLoopMember : negativeLoopMembers[k]) {
         unsigned int dqCount = activeJoints[negativeLoopMember]->qCount();
-        int dqOffset = dqLookup_[negativeLoopMember];
+        int dqOffset = dqLookup[negativeLoopMember];
         for(unsigned int m = 0; m < dqCount; m++) {
           negativeLoopMembersCompressed_[k].push_back(dqOffset++);
         }

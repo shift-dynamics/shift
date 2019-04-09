@@ -99,10 +99,6 @@ private:
   unsigned int constraintEquationCount_ =
     0; /*!< total number of constraint equations in all block sub-Jacobian
           matrices */
-  std::vector<int> jointLookup_;
-  std::vector<int> dqLookup_;
-  std::vector<int> qLookup_;
-  std::vector<int> dqLookupCompressed_;
 
   std::vector<bool> isDependentPO1_;
   std::vector<bool> isDependentPO3_;

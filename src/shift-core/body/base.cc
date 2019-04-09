@@ -42,6 +42,22 @@ void Shift::Body::Base::addKeys() {
     "be processed when setting up and solving the equations of motion. Use "
     "this key to selectively enable or disable portions of the model.");
   addSerialEntry(active);
+
+  SerialEntry com("center_of_mass", SerialType::KSL_VEC3,
+                  &centerOfMassWRTOrigin_);
+  com.setRequired(false);
+  com.setDescription(
+    "Specifies a vector from the body origin to the body center of mass "
+    "expressed in the body-fixed coordinate system.");
+  addSerialEntry(com);
+
+  SerialEntry inertia("inertia", SerialType::KSL_INERTIA, &inertia_);
+  inertia.setRequired(false);
+  inertia.setDescription(
+    "Specify body mass and centroidal moment of inertia "
+    "expressed in the body-fixed coordinate system. Note that if a zero or "
+    "very low mass is specified, it may cause problems for some solvers.");
+  addSerialEntry(inertia);
 }
 
 void Shift::Body::Base::readJSON(Json::Value& value) {
@@ -278,6 +294,27 @@ void Shift::Body::Base::setReferenceFrame() {
   }
   setDWRTReference();
 };
+
+const ksl_vec3_t Shift::Body::Base::centerOfMassWRTReference() {
+  if(referenceFrame() != origin()) {
+    // D_or // transformation from origin to reference frame
+    // D_ro // transformation from reference frame to origin
+    // t_om_o // vector from origin (o) to center of mass frame (m),
+    // expressed in origin coordinates
+    // t_rm_r // vector from reference frame to center of mass, expressed in
+    // reference frame coordinates
+
+    // t_rm_r = D_ro_ro * t_om_o
+    ksl_vec3_t t_om_o = centerOfMassWRTOrigin_;
+    const ksl_SE3_t* D_or = referenceFrame()->dWRTOrigin();
+    ksl_SE3_t D_ro;
+    ksl_SE3_inverted(D_or, &D_ro);
+    ksl_vec3_t t_rm_r;
+    ksl_product_dv(&D_ro, &t_om_o, &t_rm_r);
+    return t_rm_r;
+  }
+  return centerOfMassWRTOrigin_;
+}
 
 void Shift::Body::Base::clearInTreeFlags() {
   for(auto& frame : frames_) {

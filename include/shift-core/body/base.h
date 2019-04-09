@@ -145,6 +145,23 @@ public:
 
   void clearInTreeFlags();
 
+  virtual const ksl_inertia_t& inertia() const {
+    return inertia_;
+  }
+
+  virtual ksl_inertia_t inertiaWRTReference() {
+    return inertia_;
+  }
+
+  bool hasMass() {
+    if(inertia_.m >= 1e-9) {
+      return true;
+    }
+    return false;
+  }
+
+  const ksl_vec3_t centerOfMassWRTReference();
+
 protected:
   void setDWRTReference();
 
@@ -166,6 +183,14 @@ protected:
   int vaIndex_ = -1;
   Joint::Base* parentJoint_ = NULL;
   Shift::Frame* referenceFrame_ = NULL;
+  ksl_inertia_t inertia_ = {}; /*!< centroidal Mass and moment of Inertia
+                                    properties expressed in body origin
+                                    coordinate system */
+  ksl_vec3_t centerOfMassWRTOrigin_ = {};    /*!< vector from body origin to
+                                                center of mass */
+  ksl_vec3_t centerOfMassWRTReference_ = {}; /*!< vector from body reference
+                                                frame to center of mass */
+  bool isVirtual_ = false;
 };
 
 class Modules {

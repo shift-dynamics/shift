@@ -27,6 +27,7 @@ public:
   static bool isRegistered() {
     return registered_;
   }
+  ksl_inertia_t inertiaWRTReference() override;
 
 private:
   int referenceFrameIndex_ = -1; /*!< pointer to Body's unique reference
@@ -51,19 +52,6 @@ private:
                   by s2_ProcessTopology */
   int level_ = -1; /*!< level in the spanning tree, set
                   by s2_ProcessTopology */
-
-  bool isVirtual_ = false; /*!< indicates whether the Body is *virtual*. No
-                       user-defined bodies are virtual. Massless
-                       virtual bodies are only added to simplify processing
-                       kinematics if multiple loops are present in the
-                       mechanism */
-  ksl_inertia_t inertia_;  /*!< centroidal Mass and moment of Inertia
-                                            properties expressed in body origin
-                               coordinate system */
-  ksl_vec3_t centerOfMassWRTOrigin_;    /*!< vector from body origin to
-                                                center of mass */
-  ksl_vec3_t centerOfMassWRTReference_; /*!< vector from body reference
-                                                frame to center of mass */
 
   static bool registered_;
 };

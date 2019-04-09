@@ -101,6 +101,10 @@ public:
     if(inertia_) {
       free(inertia_);
     }
+
+    if(inertiaP_) {
+      free(inertiaP_);
+    }
   }
 
   Context& operator=(Context&&) {
@@ -161,6 +165,18 @@ public:
   void connectActiveObjects();
   unsigned int qCount();
   unsigned int dqCount();
+
+  const std::vector<int>& dqLookup() {
+    return dqLookup_;
+  }
+
+  const std::vector<int>& qLookup() {
+    return qLookup_;
+  }
+
+  const std::vector<int>& jointLookup() {
+    return jointLookup_;
+  }
 
   const std::vector<Shift::Joint::Base*>& activeJoints() const {
     return activeJoints_;
@@ -381,6 +397,12 @@ private:
   void compressRigidJoints(int i, // current body Index and parent joint index
                            unsigned int& operationCount);
 
+  /*! \brief initialize spatial inertias for articulated bodies
+   */
+  void initializeInertia();
+
+  void setLookup();
+
   const std::vector<Shift::Joint::Base*>* activeJointsPtr() {
     return &activeJoints_;
   }
@@ -389,8 +411,8 @@ private:
     dhva_; /*!< displacements, influence coefficient matrices,
            spatial velocities and quadratic accelerations */
   std::vector<Topology::Offsets>
-    dhvaOffsets_; /*!< offsets into d,dc,h,v,a and dWRTReference array to update
-                     kinematics */
+    dhvaOffsets_; /*!< offsets into d,dc,h,v,a and dWRTReference array to
+                     update kinematics */
 
   std::vector<Topology::dh_fptr>
     d_fptr_; /*!< function pointers to update displacements */
@@ -398,14 +420,14 @@ private:
     dh_fptr_; /*!< function pointers to update displacements and influence
                  coefficient matrices */
   std::vector<Topology::dhva_fptr> dhva_fptr_; /*!< function pointers to
-  update displacements, influence coefficient matrices, velocities and quadratic
-  accelerations */
+  update displacements, influence coefficient matrices, velocities and
+  quadratic accelerations */
 
   std::vector<int> dReferenceFrames_; /*!< index of frames in
 framesInTree that are the reference frame for the body */
 
-  std::vector<int>
-    dcq_; /*!< index of framesInTree that require updating direction cosines */
+  std::vector<int> dcq_; /*!< index of framesInTree that require updating
+                            direction cosines */
 
   ksl_SE3_t* dWRTReference_ = NULL; /*!< relative displacement of a body frame
                                        with respect to its reference frame */
@@ -425,11 +447,15 @@ framesInTree that are the reference frame for the body */
                        or damping */
   ksl_screw_t* g_ =
     NULL; /*!< spatial body and inertial forces, length equal to dq count */
-  ksl_screw_t* k_ = NULL;         /*!< spatial joint reaction forces */
-  ksl_inertia_t* inertia_ = NULL; /*!< body fixed spatial  inertia */
+  ksl_screw_t* k_ = NULL;          /*!< joint reaction forces */
+  ksl_inertia_t* inertia_ = NULL;  /*!< body fixed spatial  inertias */
+  ksl_inertia_t* inertiaP_ = NULL; /*!< projected spatial inertias */
   std::vector<int> jointDOF_;
   std::vector<int> jointDOFCompressed_;
-
+  std::vector<int> jointLookup_;
+  std::vector<int> dqLookup_;
+  std::vector<int> qLookup_;
+  std::vector<int> dqLookupCompressed_;
   Shift::Jacobian jacobian_;
 
   ksl_screw_t spatialMomentum_ = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -535,8 +561,8 @@ framesInTree that are the reference frame for the body */
   /*! \brief System generated constraints */
   std::vector<std::unique_ptr<Constraint::Base>> constraints_;
 
-  /*! \brief A subset of constraints used in model corresponding to constraints
-   * imposed for kinematic chord loops */
+  /*! \brief A subset of constraints used in model corresponding to
+   * constraints imposed for kinematic chord loops */
   std::vector<Constraint::Chord*> chordConstraints_;
 
   /*! \brief System generated force modules */
