@@ -85,7 +85,7 @@ add_subdirectory(third_party)
 add_subdirectory(src)
 add_subdirectory(doc)
 
-file(COPY
-  ${CMAKE_CURRENT_LIST_DIR}/third_party/shift-core/third_party/shift-models
-  DESTINATION
-  ${CMAKE_CURRENT_BINARY_DIR})
+#file(COPY
+#  ${CMAKE_CURRENT_LIST_DIR}/third_party/shift-core/external/shift-models
+#  DESTINATION
+#  ${CMAKE_CURRENT_BINARY_DIR})
