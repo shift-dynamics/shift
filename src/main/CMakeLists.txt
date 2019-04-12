@@ -13,12 +13,10 @@ include_directories(${CMAKE_SOURCE_DIR}/include/shift-core)
 add_executable(shift-cli shift_cli.cc)
 
 find_library(shift_core REQUIRED)
-find_library(ksl_LIBRARY ksl REQUIRED ${CMAKE_BINARY_DIR}/external/ksl)
 
-message(STATUS "KSL_LIBRARY ${ksl_LIBRARY}")
 message(STATUS "JsonCpp_LIBRARY ${JsonCpp_LIBRARY}")
 
-target_link_libraries(shift-cli shift_core ksl ${JsonCpp_LIBRARY} ${ksl_LIBRARY})
+target_link_libraries(shift-cli shift_core ksl ${JsonCpp_LIBRARY})
 
 add_executable(shift shift.cc)
 
