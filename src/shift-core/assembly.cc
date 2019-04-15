@@ -107,12 +107,11 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
         if(body) {
           try {
             body->setContext(context_);
+            body->setAssembly(this);
             body->readJSON(i);
           } catch(const char* msg) {
             std::cerr << msg << std::endl;
           }
-          body->setContext(context_);
-          body->setAssembly(this);
           bodies_.push_back(std::move(body));
         }
       }
@@ -129,11 +128,11 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
             try {
               constraint->setContext(context_);
               constraint->readJSON(i);
+              // constraint->setAssembly(this);
+              context_->setActive(constraint.get());
             } catch(const char* msg) {
               std::cerr << msg << std::endl;
             }
-            // constraint->setContext(context_);
-            // constraint->setAssembly(this);
             constraints_.push_back(std::move(constraint));
           }
         }
@@ -151,11 +150,11 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
             try {
               forceModule->setContext(context_);
               forceModule->readJSON(i);
+              // forceModule->setAssembly(this);
+              context_->setActive(forceModule.get());
             } catch(const char* msg) {
               std::cerr << msg << std::endl;
             }
-            // forceModule->setContext(context_);
-            // forceModule->setAssembly(this);
             forcemodules_.push_back(std::move(forceModule));
           }
         }
@@ -172,10 +171,11 @@ void Shift::Assembly::readJSON(Json::Value& value, bool fixed) {
             try {
               joint->setContext(context_);
               joint->readJSON(i);
+              joint->setAssembly(this);
+              context_->setActive(joint.get());
             } catch(const char* msg) {
               std::cerr << msg << std::endl;
             }
-            joint->setAssembly(this);
             joints_.push_back(std::move(joint));
           }
         }
