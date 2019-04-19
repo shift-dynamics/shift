@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "shift-core/constraint/chord.h"
 #include "shift-core/context.h"
 #include "shift-core/jacobian.h"
 #include "shift-core/topology.h"
@@ -404,6 +405,78 @@ void Shift::Jacobian::setBMatrixSparse() {
   }
 }
 
-void Shift::Jacobian::setConstraintPointers() {}
+void Shift::Jacobian::setConstraintPointers() {
+
+  /* find chord constraint that contains the virtual body */
+  unsigned int k = 0;
+  for(auto& substructure : substructures_) {
+    substructure.clearConstraintOffsets();
+    for(unsigned int i = 0; i < substructure.chordConstraintCount(); i++, k++) {
+      auto chordConstraint = context_->chordConstraints()[k];
+      Shift::Substructure::Constraint constraintOffset;
+      constraintOffset.parent.d = chordConstraint->parentFrame()->index();
+      constraintOffset.parent.v = chordConstraint->parentBody()->vaIndex();
+      constraintOffset.child.d = chordConstraint->childFrame()->index();
+      constraintOffset.child.v = chordConstraint->childBody()->vaIndex();
+      substructure.appendConstraintOffset(constraintOffset);
+    }
+  }
+}
 
 void Shift::Jacobian::setSubstructurePointers() {}
+
+/*!
+@brief This function removes constraints for the entire mechanism
+using a strict error tolerance (context->epsNewtonRaphsonRankDetermination)
+
+@param context [in] an s2_context_t datastructure
+*/
+int Shift::Jacobian::removeConstraintViolations() {
+
+  bool constraintsSatisfied = true;
+  for(auto& substructure : substructures_) {
+    if(substructure.removeConstraintViolations()) {
+      constraintsSatisfied = false;
+    }
+  }
+  // @TODO update GL reference frames once graphics are added back in
+  // context_->updateGLReferenceFrames()
+  return constraintsSatisfied ? 0 : -1;
+}
+
+/*!
+@brief This function advances the solution of a set of constraints
+under user control of one or more of its independent variables. This function
+requires that setJacobianPO1 has been called for every substructure.
+
+@param context [in] an s2_context_t datastructure
+*/
+void Shift::Jacobian::removeConstraintViolationsFast(bool useTightTolerance) {
+  for(auto& substructure : substructures_) {
+    substructure.removeConstraintViolationsFast(useTightTolerance);
+  }
+}
+
+void Shift::Jacobian::initializeMobility() {
+  /* get count of size for single right null space array */
+  unsigned int rightNullSpaceCount = 0;
+  for(auto& substructure : substructures_) {
+    rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();
+  }
+
+  /* allocate memory for rightNullSpace, allows additional storage for null
+     space up to dqCount * dqCount in the event that the null space increases
+     rank from initial starting configuration
+   */
+  if(rightNullSpace_) {
+    delete[] rightNullSpace_;
+  }
+  rightNullSpace_ = new double[rightNullSpaceCount]{};
+  rightNullSpaceCount = 0;
+  for(auto& substructure : substructures_) {
+    substructure.setRightNullSpace(rightNullSpace_ + rightNullSpaceCount);
+    substructure.setMobilityNumbers(context_->mobilityNumbers() +
+                                    substructure.dqOffset());
+    rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();
+  }
+}

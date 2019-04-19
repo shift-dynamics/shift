@@ -65,6 +65,9 @@ public:
       delete[] cb3_;
       cb3_ = NULL;
     }
+    if(rightNullSpace_) {
+      delete[] rightNullSpace_;
+    }
 
     ksl_array2Di_free(rb3_);
   }
@@ -81,6 +84,12 @@ public:
   /*! \brief perform full factor to set mapping from PO1 to PO2 */
   void analyze();
 
+  const std::vector<Shift::Substructure>& substructures() const {
+    return substructures_;
+  }
+
+  void initializeMobility();
+
 private:
   Shift::Context* context_ = NULL;
 
@@ -93,6 +102,7 @@ private:
   int* ijMapping_ = NULL;
   int** rb3_ = NULL;
   int* cb3_ = NULL;
+  double* rightNullSpace_ = NULL;
 
   unsigned int jacobianSize_ =
     0; /*!< size of all block sub Jacobian matrices */
@@ -127,6 +137,8 @@ private:
   void setBMatrixSparse();
   void setConstraintPointers();
   void setSubstructurePointers();
+  int removeConstraintViolations();
+  void removeConstraintViolationsFast(bool);
 };
 
 } // namespace Shift

@@ -90,23 +90,23 @@ public:
     index_ = index;
   }
 
-  unsigned int constraintEquationCount() {
+  unsigned int constraintEquationCount() const {
     return constraintEquationCount_;
   }
 
-  unsigned int qCount() {
+  unsigned int qCount() const {
     return qCount_;
   }
 
-  unsigned int dqCount() {
+  unsigned int dqCount() const {
     return dqCount_;
   }
 
-  unsigned int dqOffset() {
+  unsigned int dqOffset() const {
     return dqOffset_;
   }
 
-  unsigned int jointCount() {
+  unsigned int jointCount() const {
     return jointCount_;
   }
 
@@ -114,8 +114,12 @@ public:
     loopOffset_ = offset;
   }
 
-  int bOffset() {
+  int bOffset() const {
     return bOffset_;
+  }
+
+  void clearConstraintOffsets() {
+    constraints_.clear();
   }
 
   /*!
@@ -186,6 +190,54 @@ public:
     return pr_21_;
   }
 
+  enum MoveType { TARGET, INCREMENT, TARGET_SPHERICAL, INCREMENT_SPHERICAL };
+
+  struct Constraint {
+    struct {
+      int d =
+        0; /*!< offset into dhva.d for constraint's parent body displacement */
+      int v =
+        0; /*!< offset into dhva.v for constraint's parent body velocity */
+    } parent;
+    struct {
+      int d =
+        0; /*!< offset into dhva.d for constraint's child body displacement */
+      int v = 0; /*!< offset into dhva.v for constraint's child body velocity */
+    } child;
+  };
+
+  std::vector<Constraint> constraints_;
+
+  void appendConstraintOffset(Shift::Substructure::Constraint constraint) {
+    constraints_.push_back(constraint);
+  }
+
+  void newtonRaphsonSolver();
+  void updateq();
+  double qError();
+  double constraintError();
+  void firstOrderUpdate();
+  int removeConstraintViolations();
+  int removeConstraintViolationsFast(bool);
+  void printError(double initialError, double finalError, double* qCopy);
+  void incrementSpecifiedCoordinate(Shift::Topology::DHVA& dhva,
+                                    int specifiedCoordinateIndex, double value,
+                                    MoveType moveType);
+  void setBMatrix();
+  void setPO1Specified(const Shift::Topology::DHVA& dhva, int dqIndex);
+  double infinityNormB();
+  void evaluateConstraints(const Shift::Topology::DHVA& dhva);
+  void setRightNullSpace(double* rightNullSpace) {
+    rightNullSpace_ = rightNullSpace;
+  }
+  void setMobilityNumbers(double* mobilityNumbers) {
+    mobilityNumbers_ = mobilityNumbers;
+  }
+  void computeMobility();
+  void copyNullSpace();
+  void setupNewtonRaphsonSpecifiedCoordinate(Shift::Topology::DHVA& dhva,
+                                             int specifiedCoordinateIndex);
+
 private:
   double* cs_ = NULL; /*!< pointer to beginning of constraint array */
   double* dcs_ =
@@ -196,6 +248,8 @@ private:
   double* dq_ = NULL;
   double* q_ = NULL;
   double* deltaq_ = NULL;
+  double* rightNullSpace_ = NULL;
+  double* mobilityNumbers_ = NULL;
   double epsilonRankDetermination_ = 1e-9;
   double infinityNormMultiplier_ = 2.0;
   double scaledInitialInfinityNormB_ =
