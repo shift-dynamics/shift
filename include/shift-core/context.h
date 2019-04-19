@@ -105,6 +105,10 @@ public:
     if(inertiaP_) {
       free(inertiaP_);
     }
+
+    if(mobilityNumbers_) {
+      free(mobilityNumbers_);
+    }
   }
 
   Context& operator=(Context&&) {
@@ -323,6 +327,10 @@ public:
     return dhva_;
   }
 
+  double* mobilityNumbers() {
+    return mobilityNumbers_;
+  }
+
   /*! \brief Update displacements in a Shift::Joint::DHVA data structure using a
    * user-provided array of generalized coordinates. The instructions to update
    * displacements are stored in Shift::Context */
@@ -340,12 +348,20 @@ public:
    * The instructions to update DHVA are stored in Shift::Context */
   void updateDHVA(Topology::DHVA& dhva, const double* q, const double* dq);
 
+  void updateD();
+  void updateDH();
+  void updateDHVA();
+
   /*! \brief set q and dq arrays to intial conditions saved in each joint */
   void setToInitialConditions();
 
   /*! \brief extract current generalized displacements and velocities stored in
    * q and dq arrays and use to override initial conditions stored in joints */
   void setInitialConditionsToCurrentConditions();
+
+  const std::vector<Constraint::Chord*>& chordConstraints() const {
+    return chordConstraints_;
+  }
 
 private:
   /*! \brief Shift::Context initialization function, called in Shift::Context
@@ -571,16 +587,18 @@ framesInTree that are the reference frame for the body */
   /*! \brief System generated joints */
   std::vector<std::unique_ptr<Joint::Base>> joints_;
 
+  double* mobilityNumbers_ = NULL;
+
+  void initializeMobility();
+
   /*! @} */
 
   /*! \brief Update direction cosines in model */
   void updateDC(Topology::DHVA& dhva, const double* q);
-  void updateD();
-  void updateDH();
-  void updateDHVA();
 
   unsigned int qCount_ = 0;
   unsigned int dqCount_ = 0;
+  double mobility_ = 0.0;
 
 }; // namespace Shift
 

@@ -53,6 +53,10 @@ public:
     return epsilonRankDetermination_;
   }
 
+  double epsilsonNewtonRaphson() const {
+    return epsilsonNewtonRaphson_;
+  }
+
   /*! \brief get infinity norm multiplier -- used as a heuristic for when to
    * reapply gaussian elimination with complete row and column pivoting */
   double infinityNormMultiplier() const {
@@ -71,12 +75,17 @@ public:
   void appendIntegrator(std::unique_ptr<Integrator::Base>&);
   void appendLogger(std::unique_ptr<Logger::Base>&);
 
+  FILE* debugFilePointer() const {
+    return debugFilePointer_;
+  }
+
 private:
   void addKeys();
 
   std::string version_;
   std::vector<std::string> includeDirectories_;
   ksl_vec3_t gravity_;
+  double epsilsonNewtonRaphson_ = 1e-7;
   double epsilonRankDetermination_ = 1e-9;
   double infinityNormMuliplier_ = 2.0;
 
@@ -88,6 +97,7 @@ private:
   std::vector<std::unique_ptr<Logger::Base>> loggers_;
   Units units_;
   Shift::Context* context_ = NULL;
+  FILE* debugFilePointer_ = NULL;
 };
 
 } // namespace Shift

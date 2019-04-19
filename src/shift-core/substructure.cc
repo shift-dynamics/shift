@@ -1,5 +1,6 @@
 #include <cfloat>
 #include <cmath>
+#include <stdio.h>
 
 #include "shift-core/context.h"
 #include "shift-core/substructure.h"
@@ -247,4 +248,429 @@ void Shift::Substructure::print() {
   std::cout << "  constraintEquationCount: " << constraintEquationCount_
             << std::endl
             << std::endl;
+}
+
+void Shift::Substructure::firstOrderUpdate() {
+  /* rows in B matrix */
+  for(int i = 0; i < rank_; i++) {
+    /* columns in B matrix */
+    for(unsigned int j = rank_; j < dqCount_; j++) {
+      q_[pc_12_[i]] -= J_[i * dqCount_ + j] * deltaq_[pc_12_[j]];
+    }
+  }
+}
+
+/*!
+@brief update q array
+@param a kinematic substructure to process
+*/
+void Shift::Substructure::updateq() {
+  unsigned int qIndex = qOffset_;
+  unsigned int dqIndex = dqOffset_;
+  for(unsigned int j = 1; j < context_->substructureMembers()[index_].size();
+      j++) {
+    auto joint = context_->activeJoints()[j];
+    auto qCount = joint->qCount();
+    auto dqCount = joint->dqCount();
+    if(qCount == dqCount) {
+      for(unsigned int i = 0; i < qCount; i++) {
+        context_->q()[qIndex++] -= context_->deltaq()[dqIndex++];
+      }
+    } else if(qCount == 4 && dqCount == 3) {
+      // spherical case
+      ksl_subtract_dpiFromq((ksl_vec3_t*)(context_->deltaq() + dqIndex),
+                            (ksl_quaternion_t*)(context_->q() + qIndex));
+      ksl_quaternion_normalize((ksl_quaternion_t*)(context_->q() + qIndex));
+      qIndex += 4;
+      dqIndex += 3;
+
+    } else if(qCount == 7 && dqCount == 6) {
+      // float case
+      context_->q()[qIndex++] -= context_->deltaq()[dqIndex++];
+      context_->q()[qIndex++] -= context_->deltaq()[dqIndex++];
+      context_->q()[qIndex++] -= context_->deltaq()[dqIndex++];
+      ksl_subtract_dpiFromq((ksl_vec3_t*)(context_->deltaq() + dqIndex),
+                            (ksl_quaternion_t*)(context_->q() + qIndex));
+      ksl_quaternion_normalize((ksl_quaternion_t*)(context_->q() + qIndex));
+      qIndex += 4;
+      dqIndex += 3;
+    } else {
+      assert(0);
+    }
+  }
+}
+
+/*!
+@brief computes RMS error in change of delta q for a substructure
+
+error = sqrt(deltaq[] . deltaq[]) / dqCount
+*/
+double Shift::Substructure::qError() {
+#if SHIFT_HAS_BLAS_
+  return sqrt(cblas_ddot(dqCount_, deltaq_, 1, deltaq_, 1)) / dqCount_;
+#else
+  double sum = 0;
+  for(unsigned int i = 0; i < dqCount_; i++) {
+    sum += deltaq_[i] * deltaq_[i];
+  }
+  return sqrt(sum) / dqCount_;
+#endif
+}
+
+/*!
+@brief computes RMS constraint error in a substructure
+
+error = sqrt(cs[] . cs[]) / constraintEquationCount
+*/
+double Shift::Substructure::constraintError() {
+
+#if SHIFT_HAS_BLAS_
+  return sqrt(cblas_ddot(constraintEquationCount_, cs_, 1, cs_, 1)) /
+         constraintEquationCount_;
+#else
+  double sum = 0;
+  for(unsigned int i = 0; i < constraintEquationCount_; i++) {
+    sum += cs_[i] * cs_[i];
+  }
+  return sqrt(sum) / constraintEquationCount_;
+#endif
+}
+
+/*!
+
+*/
+void Shift::Substructure::newtonRaphsonSolver() {
+  memset(deltaq_, 0, dqCount_ * sizeof(double));
+  /* cs <-  L^-1 cs */
+  for(int i = 0; i < rank_; i++) {
+    for(int j = 0; j < i; j++) {
+      cs_[pr_12_[i]] -= J_[i * dqCount_ + j] * cs_[pr_12_[j]];
+    }
+  }
+  /* deltaq <- U^-1 * (L^-1 * cs) */
+  for(int i = rank_ - 1; i > -1; i--) {
+    for(int j = rank_ - 1; j > i; j--) {
+      cs_[pr_12_[i]] -= J_[i * dqCount_ + j] * deltaq_[pc_12_[j]];
+    }
+    deltaq_[pc_12_[i]] = cs_[pr_12_[i]] / J_[i * dqCount_ + i];
+  }
+}
+
+/*!
+\brief evaluate position level constraints for one substructure
+*/
+void Shift::Substructure::evaluateConstraints(
+  const Shift::Topology::DHVA& dhva) {
+
+  assert(constraints_.size() == chordConstraintCount_);
+  for(unsigned int i = 0; i < chordConstraintCount_; i++) {
+    ksl_SE3_t* parentFrame = dhva.d + constraints_[i].parent.d;
+    ksl_SE3_t* childFrame = dhva.d + constraints_[i].child.d;
+    ksl_SE3_t temp;
+    ksl_product_ddinv(parentFrame, childFrame, &temp);
+    memcpy(cs_ + i * 6, &temp.t, sizeof(ksl_vec3_t));
+    double trace = temp.R.m00 + temp.R.m11 + temp.R.m22 - 3;
+    cs_[i * 6 + 3] = 0.5 * (temp.R.m21 - temp.R.m12) + trace;
+    cs_[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20) + trace;
+    cs_[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
+  }
+}
+
+int Shift::Substructure::removeConstraintViolations() {
+  /* Iteratively update x to satisfy constraint equations.
+  dx[colDim] contains changes in x[colDim] for current N-R iteration.
+  error = sqrt(cs[] . cs[]) / constraintEquationCount
+  < eps when converged. */
+  int maxStep = 100;
+  double qCopy[qCount_];
+  memcpy(qCopy, q_, qCount_ * sizeof(double));
+
+  context_->updateDH();
+  evaluateConstraints(context_->dhva());
+  double initialError = constraintError();
+  fprintf(stdout, "  initial error: %g\n", initialError);
+
+  int step = 0;
+  double epsRankDetermination =
+    context_->modelParameters().epsilonRankDetermination();
+  double error = epsRankDetermination + 1;
+  while(error > epsRankDetermination && step < maxStep) {
+    setPO1(context_->dhva());
+    newtonRaphsonSolver();
+    updateq();
+    context_->updateDH();
+    evaluateConstraints(context_->dhva());
+    error = constraintError();
+    ++step;
+    fprintf(stdout, "  [%d] error: %g\n", step, error);
+  }
+  context_->updateDH();
+  setBooleanPO2();
+  if(step == maxStep) {
+    printError(initialError, error, qCopy);
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
+/*!
+@brief This function advances the solution of a set of constraints
+under user control of one or more of its independent variables.
+
+Does not set the jacobian boolean matrix, which is necessary for solving
+the equations of motion.
+*/
+int Shift::Substructure::removeConstraintViolationsFast(
+  bool useTightTolerance) {
+
+  context_->updateDH();
+  evaluateConstraints(context_->dhva());
+  double initialError = constraintError();
+  double qCopy[qCount_];
+  memcpy(qCopy, q_, qCount_ * sizeof(double));
+  const int maxStep = 100;
+  double tol;
+  if(useTightTolerance) {
+    tol = context_->modelParameters().epsilonRankDetermination();
+  } else {
+    tol = context_->modelParameters().epsilsonNewtonRaphson();
+  }
+  setPO2(context_->dhva());
+  factorPO2();
+  evaluateConstraints(context_->dhva());
+  int step = 0;
+  double error = tol + 1;
+  while(error > tol && step < maxStep) {
+    newtonRaphsonSolver();
+    updateq();
+    context_->updateDH();
+    evaluateConstraints(context_->dhva());
+    error = constraintError();
+    step++;
+    // printf("  [%d] error: %g\n", step, error);
+  }
+
+  if(step == maxStep) {
+    printError(initialError, error, qCopy);
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
+void Shift::Substructure::printError(double initialError, double finalError,
+                                     double* qCopy) {
+
+  FILE* f = context_->modelParameters().debugFilePointer();
+  if(!f) {
+    f = stderr;
+  }
+  fprintf(f,
+          "\n\n>>> Error: could not resolve constraint violations for "
+          "substructure [%d]\n",
+          index_);
+  fprintf(f, "initial error: %f, final error: %f\n", initialError, finalError);
+  fprintf(f, "  context->qCount: %d\n", context_->qCount());
+  fprintf(f, "  qCount: %d\n", qCount_);
+  fprintf(f, "  qOffset: %d\n", qOffset_);
+  assert(context_->q() + qOffset_ == q_);
+  fprintf(f, " states before Newton-Raphson:\n   ");
+  ksl_array_print(f, qCount_, qCopy);
+  fprintf(f, " states after Newton-Raphson:\n    ");
+  ksl_array_print(f, qCount_, q_);
+  fprintf(f, " values that have changed:\n       ");
+}
+
+/*!
+@brief drive down constraint violations, then perform an initial full factor
+to set up slider for repositioning mechanism
+
+removes constraint violations and performs a specified
+full factor in PO1, permutations are used for subsequent
+fast factorization
+*/
+void Shift::Substructure::setupNewtonRaphsonSpecifiedCoordinate(
+  Shift::Topology::DHVA& dhva, int specifiedCoordinateIndex) {
+  context_->updateDH();
+  setPO1(context_->dhva());
+  removeConstraintViolationsFast(true);
+  setPO1(context_->dhva());
+  computeMobility();
+  setPO1Specified(dhva, specifiedCoordinateIndex);
+}
+
+/*!
+@brief This function advances the solution of a set of constraints
+under user control of one of its independent variables.
+
+Full factor with a specified coordinate must be called prior to calling this
+function. A lower error tolerance (context->epsNewtonRaphson) is used to
+advance the position of the mechanism for visualization purposes, but a
+higher tolerance (context->epsNewtonRaphsonRankDetermination) is used
+for the purpose of determining the mechanism rank.
+
+@param substructure [in] pointer to substructure to process
+@param specifiedCoordinateIndex [in] global index of coordinate to set as
+specified
+*/
+void Shift::Substructure::incrementSpecifiedCoordinate(
+  Shift::Topology::DHVA& dhva, int specifiedCoordinateIndex, double value,
+  MoveType moveType) {
+
+  /* currently the joint type is not used, but may be used in the future, for
+  example to set all 3 dof as specified for a spherical joint */
+  memset(deltaq_, 0, dqCount_ * sizeof(double));
+  switch(moveType) {
+    case INCREMENT: {
+      context_->deltaq()[specifiedCoordinateIndex] = value;
+      context_->q()[specifiedCoordinateIndex] += value;
+      break;
+    }
+    case TARGET: {
+      context_->deltaq()[specifiedCoordinateIndex] =
+        value - context_->q()[specifiedCoordinateIndex];
+      context_->q()[specifiedCoordinateIndex] = value;
+      break;
+    }
+    default: {
+      std::cerr << "case not handled in incrementSpecifiedCoordinate()"
+                << std::endl;
+    }
+  }
+  context_->updateDH();
+  setPO1Specified(dhva, specifiedCoordinateIndex);
+  firstOrderUpdate();
+  removeConstraintViolationsFast(true);
+  setBMatrix();
+}
+
+/*!
+  @brief wrapper function for ksl_linalg_lu_setBMatrix_rmo for a substructure
+*/
+void Shift::Substructure::setBMatrix() {
+  ksl_linalg_lu_setBMatrix_rmo(rank_, dqCount_, J_);
+}
+
+/*! @brief set initial row-major ordered jacobian in permutation order 1 and
+perform an initial call to GCP using ksl_linalg_lu_full for one substructure
+with a specified independent coordinate
+
+@param context [in] s2_context_t data structure
+@param substructureIndex [in] index of substructure
+@param dqIndex [in] global dqIndex of specified joint
+
+the Jacobian is stored in row-major order
+*/
+void Shift::Substructure::setPO1Specified(const Shift::Topology::DHVA& dhva,
+                                          int dqIndex) {
+
+  memset(J_, 0, dqCount_ * constraintEquationCount_ * sizeof(double));
+
+  /* j is local loop index */
+  int j = 0;
+  for(auto it = positiveLoopMembersCompressedBegin_;
+      it != positiveLoopMembersCompressedEnd_; it++, j++) {
+    for(auto& variableIndex : *it) {
+      std::cout << variableIndex << std::endl;
+      ksl_screw_print(stdout, dhva.h + variableIndex);
+      ksl_screw_copy_rmo(dhva.h + variableIndex, J_, j * 6,
+                         variableIndex - dqOffset_, dqCount_);
+    }
+  }
+
+  j = 0;
+  for(auto it = negativeLoopMembersCompressedBegin_;
+      it != negativeLoopMembersCompressedEnd_; it++, j++) {
+    for(auto& variableIndex : *it) {
+      std::cout << variableIndex << std::endl;
+      ksl_screw_print(stdout, dhva.h + variableIndex);
+      ksl_screw_ncopy_rmo(dhva.h + variableIndex, J_, j * 6,
+                          variableIndex - dqOffset_, dqCount_);
+    }
+  }
+
+  /* convert global index to local index */
+  int localSpecifiedIndex = dqIndex - dqOffset_;
+  assert(localSpecifiedIndex > -1);
+
+  rank_ = ksl_linalg_lu_full_specified_rmo(
+    constraintEquationCount_, dqCount_, J_,
+    context_->modelParameters().epsilonRankDetermination(), pr_12_.data(),
+    pc_12_.data(), localSpecifiedIndex);
+  Topology::setInversePermutation(pr_12_, pr_21_);
+  Topology::setInversePermutation(pc_12_, pc_21_);
+
+  setBMatrix();
+
+  scaledInitialInfinityNormB_ =
+    context_->modelParameters().infinityNormMultiplier() * infinityNormB();
+
+  setBooleanPO2();
+}
+
+double Shift::Substructure::infinityNormB() {
+  return ksl_linalg_lu_infinityNormB_rmo(rank_, dqCount_, J_);
+}
+
+/*!
+@brief vector copy B matrix into null space array
+*/
+void Shift::Substructure::copyNullSpace() {
+  memset(rightNullSpace_, 0, dqCount_ * dqCount_ * sizeof(double));
+  /* dqCount - rank is the column dimension of null space */
+  assert((int)dqCount_ >= rank_ && rank_ != -1);
+  int colDim = dqCount_ - rank_;
+  for(int i = 0; i < rank_; i++) {
+#if SHIFT_HAS_BLAS_
+    cblas_dcopy(colDim, J_ + (i * dqCount_ + rank_), 1,
+                rightNullSpace_ + (pc_12_[i] * colDim), 1);
+#else
+    for(int j = 0; j < colDim; j++) {
+      rightNullSpace_[pc_12_[i] * colDim + j] = J_[i * dqCount_ + rank_ + j];
+    }
+#endif
+  }
+
+  /* set the remaining matrix to identity */
+  unsigned int j = 0;
+  for(unsigned int i = rank_; i < dqCount_; i++) {
+    rightNullSpace_[pc_12_[i] * colDim + j++] = 1.0;
+  }
+}
+
+/* m is row dimension, i iterates over all rows */
+
+/*!
+  @brief minimal version of computing mobility numbers, assumes
+  jacobian of substructre has already been factored using full factor
+  and mobility numbers have been initialized
+
+  this function requires that setPO2, factorPO2 and setBMatrix
+  have been called prior to execution
+*/
+void Shift::Substructure::computeMobility() {
+  if(dqCount_ - rank_ == 0) {
+    printf("zero mobility detected for substructure\n");
+    assert(mobilityNumbers_);
+    memset(mobilityNumbers_, 0, dqCount_ * sizeof(double));
+    return;
+  }
+  copyNullSpace();
+  ksl_linalg_gramSchmidt(rightNullSpace_, dqCount_, dqCount_ - rank_);
+  assert(mobilityNumbers_);
+  assert((int)dqCount_ >= rank_ && rank_ != -1);
+  int n = dqCount_ - rank_;
+  for(unsigned int i = 0; i < dqCount_; i++) {
+#if SHIFT_HAS_BLAS_
+    mobilityNumbers_[i] =
+      cblas_ddot(n, rightNullSpace_ + i * n, 1, rightNullSpace_ + i * n, 1);
+#else
+    mobilityNumbers_[i] = 0;
+    for(int j = 0; j < n; j++) {
+      mobilityNumbers_[i] +=
+        rightNullSpace_[i * n + j] * rightNullSpace_[i * n + j];
+    }
+#endif
+  }
 }
