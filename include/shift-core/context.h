@@ -363,6 +363,8 @@ public:
     return chordConstraints_;
   }
 
+  double globalMobility();
+
 private:
   /*! \brief Shift::Context initialization function, called in Shift::Context
    * constructor */

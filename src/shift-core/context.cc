@@ -5,6 +5,14 @@
 #include <queue>
 #include <string.h>
 
+#ifdef SHIFT_WITH_BLAS_
+#ifdef __APPLE__
+#include <Accelerate/Accelerate.h>
+#else
+#include <cblas.h>
+#endif
+#endif
+
 #include <json/json.h>
 
 #include "shift-core/behavior/base.h"
@@ -70,7 +78,7 @@ void Shift::Context::readJSON(const std::string& filename) {
   if(substructureIndices_.size() > 0) {
     jacobian_.initialize();
   }
-
+  initializeMobility();
   initializeInertia();
 
   // setDReferenceFrames();
@@ -118,17 +126,11 @@ void Shift::Context::processFrames() {
       assert(parentFrame);
       if(std::find(framesInTree_.begin(), framesInTree_.end(), parentFrame) ==
          framesInTree_.end()) {
-        // std::cout << "pushing frame: "
-        //           << joint->systemParentBody()->name() << " : "
-        //           << parentFrame->name() << std::endl;
         framesInTree_.push_back(parentFrame);
       }
       auto childFrame = joint->systemChildFrame();
       if(std::find(framesInTree_.begin(), framesInTree_.end(), childFrame) ==
          framesInTree_.end()) {
-        // std::cout << "pushing frame: " <<
-        // joint->systemChildBody()->name()
-        //           << " : " << childFrame->name() << std::endl;
         framesInTree_.push_back(childFrame);
       }
     }
@@ -947,12 +949,9 @@ void Shift::Context::processPCL() {
 }
 
 void Shift::Context::processLoopMembers() {
-  // std::cout << "processLoopMembers()" << std::endl;
-
   std::vector<std::vector<int>> loopMembers(chordConstraints_.size());
   std::vector<std::vector<int>> negativeLoopMembers(chordConstraints_.size());
   std::vector<std::vector<int>> positiveLoopMembers(chordConstraints_.size());
-
   for(unsigned int i = 0; i < chordConstraints_.size(); i++) {
     loopMembers[i].clear();
     negativeLoopMembers[i].clear();
@@ -1043,22 +1042,12 @@ void Shift::Context::detectSubstructures() {
       chordConstraintIndices.push_back(i);
     }
 
-    // std::cout << "chord constraint indices: ";
-    // for(auto i : chordConstraintIndices) {
-    //   std::cout << i << " ";
-    // }
-    // std::cout << std::endl;
-
     /* p_01 is used to permute chord loops here */
     std::vector<int> p_01(chordConstraints_.size());
     std::vector<int> p_10(chordConstraints_.size());
     int currentLoopIndex = 0;
 
     while(!chordConstraintIndices.empty()) {
-
-      // std::cout << std::endl
-      //           << "creating substructure: " << substructures.size()
-      //           << std::endl;
       std::vector<int> substructure;
       int chordConstraintIndex = chordConstraintIndices.front();
       chordConstraintIndices.pop_front();
@@ -1074,10 +1063,7 @@ void Shift::Context::detectSubstructures() {
         while(it != chordConstraintIndices.end()) {
           /* base node of substructure */
           int baseNode = loopMembers_[substructure[0]][0];
-          // std::cout << "baseNode: " << baseNode << std::endl;
-          // std::cout << "loopHead: " << loopMembers_[(*it)][0] << std::endl;
           if(Shift::Topology::inPath(pcl_, loopMembers_[(*it)][0], baseNode)) {
-            // std::cout << "  in path!" << std::endl;
             for(auto loopIndex : substructure) {
               for(auto loopMember = loopMembers_[loopIndex].begin() + 1;
                   loopMember < loopMembers_[loopIndex].end(); ++loopMember) {
@@ -1085,8 +1071,6 @@ void Shift::Context::detectSubstructures() {
                     mergeCandidateMember < loopMembers_[(*it)].end();
                     ++mergeCandidateMember) {
                   if(*loopMember == *mergeCandidateMember) {
-                    // std::cout << "  appending " << *it << " to substructure "
-                    // << substructures.size() << std::endl;
                     substructure.push_back(*it);
                     p_01[currentLoopIndex++] = (*it);
                     mergeCount++;
@@ -1103,8 +1087,6 @@ void Shift::Context::detectSubstructures() {
         }
       }
       substructures.push_back(substructure);
-      // std::cout << "substructure count: " << substructures.size() <<
-      // std::endl;
     }
 
     /* sort loops of each substructure in monotonically increasing level order
@@ -1113,15 +1095,6 @@ void Shift::Context::detectSubstructures() {
       std::sort(substructure.begin(), substructure.end(),
                 substructureLoopLevelOrder(this, loopMembers_));
     }
-
-    // int index = 0;
-    // for(auto& substructure : substructures) {
-    //   std::cout << "[" << index++ << "]: ";
-    //   for(auto i : substructure) {
-    //     std::cout << i << " ";
-    //   }
-    //   std::cout << std::endl;
-    // }
 
     /* sort substructures in monotonically level increasing order */
     std::sort(substructures.begin(), substructures.end(),
@@ -1224,18 +1197,6 @@ void Shift::Context::detectSubstructures() {
       }
     }
 
-    // std::cout << "short list:" << std::endl;
-    // for(auto member : shortList) {
-    //   if(member == -1) {
-    //     std::cout << "[" << member << "]: "
-    //               << "fixed" << std::endl;
-    //   } else {
-    //     std::cout << "[" << member << "]: " <<
-    //     activeBodies_[member]->name()
-    //               << std::endl;
-    //   }
-    // }
-
     /* expand short list */
     std::list<int> expandedList;
     unsigned int j = 0;
@@ -1261,7 +1222,6 @@ void Shift::Context::detectSubstructures() {
       while(j < substructureMembers_.size() &&
             value == substructureMembers_[j][0]) {
         for(unsigned int k = 1; k < substructureMembers_[j].size(); k++) {
-
           /* append substructure members only if they are not already in
           the list */
           if(std::find(expandedList.begin(), expandedList.end(),
@@ -1269,7 +1229,6 @@ void Shift::Context::detectSubstructures() {
             expandedList.push_back(substructureMembers_[j][k]);
           }
         }
-
         j++;
       }
     }
@@ -1422,19 +1381,12 @@ void Shift::Context::compressRigidJoints(
   // body c
 
   while(!parentJoint->qCount()) { // rigid joint
-
-    std::cout << "rigid joint found at index: [" << j << "]" << std::endl;
-
     // D = D_p1_c0 * D
     ksl_SE3_t temp;
     ksl_SE3_t D_p1_c0 = parentJoint->transform();
     ksl_SE3_print(stdout, &D_p1_c0, "  D_p1_c0: ");
     ksl_product_dd(&D_p1_c0, &D, &temp);
     ksl_SE3_copy(&temp, &D);
-
-    // dWRTReference = dWRTReference_parent * dWRTReference
-    // std::cout << parentJoint->systemParentFrame()->name() << std::endl;
-    // ksl_SE3_print(stdout, parentJoint->systemParentFrame()->dWRTReference());
 
     // D = D_p0_p1 * D_p1_c0
     // D <- D_p0_c0
@@ -1451,14 +1403,14 @@ void Shift::Context::compressRigidJoints(
 
   auto joint = activeJoints_[i];
   if(!joint->qCount()) {
-    std::cout << "processing joint: " << joint->name() << std::endl;
+    // std::cout << "processing joint: " << joint->name() << std::endl;
     auto parentBody = joint->systemParentBody();
     auto childBody = activeArticulatedBodies_[i];
 
     ksl_SE3_print(stdout, &D, "  D_p0_c0: ");
 
     for(auto& frame : childBody->frames()) {
-      std::cout << childBody->name() << ": " << frame.name() << std::endl;
+      // std::cout << childBody->name() << ": " << frame.name() << std::endl;
 
       // dWRTReference = dWRTReference * dWRTReference_child
       ksl_SE3_t D_p0_c1;
@@ -1467,8 +1419,8 @@ void Shift::Context::compressRigidJoints(
       ksl_SE3_print(stdout, &D_p0_c1, "  D_p0_c1: ");
 
       if(frame.inTree() && parentBody != fixedBody()) {
-        std::cout << "intree && parentBody!= fixedBody: processing frame: "
-                  << childBody->name() << ": " << frame.name() << std::endl;
+        // std::cout << "intree && parentBody!= fixedBody: processing frame: "
+        //           << childBody->name() << ": " << frame.name() << std::endl;
 
         ksl_SE3_copy(&D_p0_c1, dWRTReference_ + frame.index());
 
@@ -1482,8 +1434,8 @@ void Shift::Context::compressRigidJoints(
         dhva_fptr_[operationCount] = Shift::Joint::rigid_dhva;
         operationCount++;
       } else if(frame.inTree()) {
-        std::cout << "processing frame: " << childBody->name() << ": "
-                  << frame.name() << std::endl;
+        // std::cout << "processing frame: " << childBody->name() << ": "
+        //           << frame.name() << std::endl;
 
         ksl_SE3_print(stdout, frame.dWRTReference(), "dWRTReference: ");
         ksl_SE3_copy(&D_p0_c1, dWRTReference_ + frame.index());
@@ -1521,9 +1473,9 @@ void Shift::Context::allocateRunTimeArrays() {
   dhva_ = Shift::Topology::DHVA(framesInTree_.size(), dcCount, dqCount_,
                                 nonRigidJointCount_);
 
-  std::cout << "qCount: " << qCount_ << std::endl;
-  std::cout << "dqCount: " << dqCount_ << std::endl;
-  std::cout << "dcCount: " << dcCount << std::endl;
+  // std::cout << "qCount: " << qCount_ << std::endl;
+  // std::cout << "dqCount: " << dqCount_ << std::endl;
+  // std::cout << "dcCount: " << dcCount << std::endl;
 
   std::cout << "dWRTReference_.size(): " << framesInTree_.size() << std::endl;
   if(dWRTReference_) {
@@ -1594,12 +1546,12 @@ void Shift::Context::allocateRunTimeArrays() {
     if(!rigidConnectionToFixedFrame) {
       auto body = joint->systemChildBody();
       operationCount += body->frameInTreeCount();
-      std::cout << body->name() << ": " << body->frameInTreeCount()
-                << std::endl;
+      // std::cout << body->name() << ": " << body->frameInTreeCount()
+      //           << std::endl;
     }
   }
 
-  std::cout << "operationCount: " << operationCount << std::endl;
+  // std::cout << "operationCount: " << operationCount << std::endl;
 
   dhvaOffsets_.clear();
   dhvaOffsets_.resize(operationCount);
@@ -1638,15 +1590,16 @@ void Shift::Context::allocateRunTimeArrays() {
   }
 
   /* one time update of frames on fixed body */
-  std::cout << "updating frames on fixed body" << std::endl;
+  // std::cout << "updating frames on fixed body" << std::endl;
   for(auto& frame : fixedBody()->frames()) {
     if(!frame.isReference()) {
       assert(frame.parentBody());
-      std::cout << "[" << frame.index() << "]: " << frame.parentBody()->name()
-                << ":" << frame.name() << std::endl;
+      // std::cout << "[" << frame.index() << "]: " <<
+      // frame.parentBody()->name()
+      //           << ":" << frame.name() << std::endl;
       ksl_SE3_copy(frame.dWRTReference(), dhva_.d + frame.index());
       ksl_SE3_copy(frame.dWRTReference(), dWRTReference_ + frame.index());
-      ksl_SE3_print(stdout, dhva_.d + frame.index());
+      // ksl_SE3_print(stdout, dhva_.d + frame.index());
     }
   }
 
@@ -1680,8 +1633,8 @@ void Shift::Context::allocateRunTimeArrays() {
       operationCount++;
 
       auto referenceFrame = childBody->referenceFrame();
-      std::cout << "referenceFrame: " << referenceFrame->parentBody()->name()
-                << ":" << referenceFrame->name() << std::endl;
+      // std::cout << "referenceFrame: " << referenceFrame->parentBody()->name()
+      //           << ":" << referenceFrame->name() << std::endl;
       for(auto& frame : childBody->frames()) {
         /*!
           @TODO add logic to detect if transformation has zero entries
@@ -1696,9 +1649,9 @@ void Shift::Context::allocateRunTimeArrays() {
           dhvaOffsets_[operationCount].parent.d = referenceFrame->index();
           dhvaOffsets_[operationCount].child.d = frame.index();
           dhvaOffsets_[operationCount].q = frame.index();
-          std::cout << "  processing child frame[" << frame.index()
-                    << "]: " << frame.name() << std::endl;
-          ksl_SE3_print(stdout, frame.dWRTReference(), "  dWRTReference: ");
+          // std::cout << "  processing child frame[" << frame.index()
+          //           << "]: " << frame.name() << std::endl;
+          // ksl_SE3_print(stdout, frame.dWRTReference(), "  dWRTReference: ");
           ksl_SE3_copy(frame.dWRTReference(), dWRTReference_ + frame.index());
           operationCount++;
         }
@@ -1728,7 +1681,6 @@ void Shift::Context::updateD(Shift::Topology::DHVA& dhva,
                              const double* __restrict__ q) {
   updateDC(dhva, q);
   for(unsigned int i = 0; i < d_fptr_.size(); i++) {
-
     (d_fptr_[i])(*this, dhva, dhvaOffsets_[i], q);
   }
 }
@@ -1740,27 +1692,27 @@ void Shift::Context::updateDH() {
 void Shift::Context::updateDH(Shift::Topology::DHVA& dhva,
                               const double* __restrict__ q) {
   updateDC(dhva, q);
-  std::cout << "updateDH()" << std::endl;
+  // std::cout << "updateDH()" << std::endl;
   for(unsigned int i = 0; i < dh_fptr_.size(); i++) {
-    auto parentFrame = framesInTree_[dhvaOffsets_[i].parent.d];
-    auto childFrame = framesInTree_[dhvaOffsets_[i].child.d];
-    std::cout << "  [" << i
-              << "] dParent: " << parentFrame->parentBody()->name() << ": "
-              << parentFrame->name() << std::endl;
-    std::cout << "        dChild:  " << childFrame->parentBody()->name() << ": "
-              << childFrame->name() << std::endl;
+    // auto parentFrame = framesInTree_[dhvaOffsets_[i].parent.d];
+    // auto childFrame = framesInTree_[dhvaOffsets_[i].child.d];
+    // std::cout << "  [" << i
+    //           << "] dParent: " << parentFrame->parentBody()->name() << ": "
+    //           << parentFrame->name() << std::endl;
+    // std::cout << "        dChild:  " << childFrame->parentBody()->name() <<
+    // ": "
+    //           << childFrame->name() << std::endl;
     (dh_fptr_[i])(*this, dhva, dhvaOffsets_[i], q);
   }
-  std::cout << std::endl;
-  FILE* f = fopen("frames.dat", "w");
-  for(auto& frame : framesInTree_) {
-    fprintf(f, "[%d]: [%s, %s]\n", frame->index(),
-            frame->parentBody()->name().c_str(), frame->name().c_str());
-    // ksl_SE3_print(f, dWRTReference_ + frame->index(), "    dWRTReference: ");
-    ksl_SE3_print(f, dhva_.d + frame->index(), "  ");
-    fprintf(f, "\n");
-  }
-  fclose(f);
+  // std::cout << std::endl;
+  // FILE* f = fopen("frames.dat", "w");
+  // for(auto& frame : framesInTree_) {
+  //   fprintf(f, "[%d]: [%s, %s]\n", frame->index(),
+  //           frame->parentBody()->name().c_str(), frame->name().c_str());
+  //   // ksl_SE3_print(f, dWRTReference_ + frame->index(), "    dWRTReference:
+  //   "); ksl_SE3_print(f, dhva_.d + frame->index(), "  "); fprintf(f, "\n");
+  // }
+  // fclose(f);
 }
 
 void Shift::Context::updateDHVA() {
@@ -1829,10 +1781,10 @@ void Shift::Context::initializeInertia() {
     auto& body = activeArticulatedBodies_[i];
     if(body->hasMass()) {
       inertia_temp[i] = body->inertiaWRTReference();
-#if 0
-      printf("  [%i] ", i);
-      s2_inertia_print(stdout, inertia_temp + i);
-#endif
+      // #if 0
+      //       printf("  [%i] ", i);
+      //       s2_inertia_print(stdout, inertia_temp + i);
+      // #endif
     }
   }
 
@@ -1876,7 +1828,7 @@ void Shift::Context::initializeInertia() {
     }
   }
 
-#if _SHIFT_VERBOSE
+#if SHIFT_VERBOSE_
   printf("inertia:\n");
   for(int i = 0; i < nonRigidJointCount; i++) {
     printf("  [%i] ", i);
@@ -1963,4 +1915,20 @@ void Shift::Context::initializeMobility() {
     mobilityNumbers_[i] = 1.0;
   }
   jacobian_.initializeMobility();
+}
+
+/*!
+  @brief compute global instantaneous mobility, to be called after
+  mobility has been computed within each substructure
+*/
+double Shift::Context::globalMobility() {
+#if SHIFT_WITH_BLAS_
+  mobility_ = cblas_dasum(dqCount_, mobilityNumbers_, 1);
+#else
+  mobility_ = 0;
+  for(unsigned int i = 0; i < dqCount_; i++) {
+    mobility_ += mobilityNumbers_[i];
+  }
+#endif
+  return mobility_;
 }
