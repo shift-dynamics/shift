@@ -18,6 +18,8 @@
 
 namespace Shift {
 
+class Substructure;
+
 namespace Body {
 class Base;
 }
@@ -232,6 +234,18 @@ public:
     return childJoints_;
   }
 
+  void setSubstructure(Substructure* substructure) {
+    substructure_ = substructure;
+  }
+
+  void clearSubstructure() {
+    substructure_ = NULL;
+  }
+
+  const Substructure* substructure() const {
+    return substructure_;
+  }
+
 protected:
   Context* context_ = NULL;
   Assembly* assembly_ = NULL;
@@ -255,6 +269,9 @@ protected:
   int level_ = 0; /*!< Indicates Joint's level in the spanning tree,
                 set by ProcessTopology */
   int dataIndex_ = -1;
+
+  Substructure* substructure_ = NULL; /*!< substructure the joint is
+    a member of, NULL if the joint is not a member of any substructure */
 
   /*!
   The `parent` descriptive name follows the format:

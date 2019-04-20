@@ -2,6 +2,14 @@
 #include <cmath>
 #include <stdio.h>
 
+#ifdef SHIFT_WITH_BLAS_
+#ifdef __APPLE__
+#include <Accelerate/Accelerate.h>
+#else
+#include <cblas.h>
+#endif
+#endif
+
 #include "shift-core/context.h"
 #include "shift-core/substructure.h"
 #include "shift-core/topology.h"
@@ -24,8 +32,6 @@ void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
   for(auto it = positiveLoopMembersCompressedBegin_;
       it != positiveLoopMembersCompressedEnd_; it++, j++) {
     for(auto& variableIndex : *it) {
-      std::cout << variableIndex << std::endl;
-      ksl_screw_print(stdout, dhva.h + variableIndex);
       ksl_screw_copy_rmo(dhva.h + variableIndex, J_, j * 6,
                          variableIndex - dqOffset_, dqCount_);
     }
@@ -35,8 +41,6 @@ void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
   for(auto it = negativeLoopMembersCompressedBegin_;
       it != negativeLoopMembersCompressedEnd_; it++, j++) {
     for(auto& variableIndex : *it) {
-      std::cout << variableIndex << std::endl;
-      ksl_screw_print(stdout, dhva.h + variableIndex);
       ksl_screw_ncopy_rmo(dhva.h + variableIndex, J_, j * 6,
                           variableIndex - dqOffset_, dqCount_);
     }
@@ -161,7 +165,6 @@ void Shift::Substructure::factorPO2() {
 }
 
 void Shift::Substructure::setBMatrixSparse(double* __restrict__ b3) {
-  std::cout << "setBMatrixSparse() " << std::endl;
   if(rank_ > 0 && rank_ < (int)dqCount_) {
     infinityNormB_ = 0;
     for(int i = rank_ - 1; i > -1; i--) { /* rows of B */
@@ -173,7 +176,6 @@ void Shift::Substructure::setBMatrixSparse(double* __restrict__ b3) {
             save += J_[i * dqCount_ + j] * J_[j * dqCount_ + k];
           }
           int b3Index = ijMapping_[i * dqCount_ + k];
-          std::cout << "  b3Index: " << b3Index << std::endl;
           assert(b3Index > -1);
           b3[b3Index] = (J_[i * dqCount_ + k] - save) / J_[i * dqCount_ + i];
           J_[i * dqCount_ + k] = b3[b3Index];
@@ -207,8 +209,6 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
     int i2 = pv_local_23[i3];
     assert(i2 > -1 && i2 < (int)dqCount_);
     int rb3Index = i3 + dqOffset_;
-    std::cout << "dqCount: " << dqCount_ << " dqOffset:" << dqOffset_
-              << " rb3Index: " << rb3Index << std::endl;
     assert(rb3Index > 0);
     assert(rb3);
     rb3[rb3Index][0] = k;
@@ -224,10 +224,8 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
   }
 
   /* permute ij mapping temp to po2 */
-  std::cout << "i2: " << std::flush;
   for(unsigned int i3 = dqCount_ - rank_; i3 < dqCount_; i3++) {
     int i2 = pv_local_23[i3];
-    std::cout << i2 << " " << std::flush;
     assert(i2 > -1 && i2 < (int)dqCount_);
     for(unsigned int j3 = 0; j3 < dqCount_ - rank_; j3++) {
       int j2 = pv_local_23[j3];
@@ -235,7 +233,6 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
       ijMapping_[i2 * dqCount_ + j2] = ijMapping_temp_po3[i3 * dqCount_ + j3];
     }
   }
-  std::cout << std::endl;
 }
 
 void Shift::Substructure::print() {
@@ -306,7 +303,7 @@ void Shift::Substructure::updateq() {
 error = sqrt(deltaq[] . deltaq[]) / dqCount
 */
 double Shift::Substructure::qError() {
-#if SHIFT_HAS_BLAS_
+#if SHIFT_WITH_BLAS_
   return sqrt(cblas_ddot(dqCount_, deltaq_, 1, deltaq_, 1)) / dqCount_;
 #else
   double sum = 0;
@@ -324,7 +321,7 @@ error = sqrt(cs[] . cs[]) / constraintEquationCount
 */
 double Shift::Substructure::constraintError() {
 
-#if SHIFT_HAS_BLAS_
+#if SHIFT_WITH_BLAS_
   return sqrt(cblas_ddot(constraintEquationCount_, cs_, 1, cs_, 1)) /
          constraintEquationCount_;
 #else
@@ -622,7 +619,7 @@ void Shift::Substructure::copyNullSpace() {
   assert((int)dqCount_ >= rank_ && rank_ != -1);
   int colDim = dqCount_ - rank_;
   for(int i = 0; i < rank_; i++) {
-#if SHIFT_HAS_BLAS_
+#if SHIFT_WITH_BLAS_
     cblas_dcopy(colDim, J_ + (i * dqCount_ + rank_), 1,
                 rightNullSpace_ + (pc_12_[i] * colDim), 1);
 #else
@@ -662,7 +659,7 @@ void Shift::Substructure::computeMobility() {
   assert((int)dqCount_ >= rank_ && rank_ != -1);
   int n = dqCount_ - rank_;
   for(unsigned int i = 0; i < dqCount_; i++) {
-#if SHIFT_HAS_BLAS_
+#if SHIFT_WITH_BLAS_
     mobilityNumbers_[i] =
       cblas_ddot(n, rightNullSpace_ + i * n, 1, rightNullSpace_ + i * n, 1);
 #else

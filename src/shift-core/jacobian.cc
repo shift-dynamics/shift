@@ -31,46 +31,6 @@ void Shift::Jacobian::analyze() {
   setBMatrixSparse();
 }
 
-// void Shift::Jacobian::setLookup() {
-//   jointLookup_.clear();
-//   jointLookup_.resize(context_->activeJointCount());
-//
-//   dqLookup_.clear();
-//   dqLookup_.resize(context_->activeJointCount());
-//
-//   qLookup_.clear();
-//   qLookup_.resize(context_->activeJointCount());
-//
-//   dqLookupCompressed_.clear();
-//   dqLookupCompressed_.resize(context_->nonRigidJointCount());
-//
-//   int jointCount = 0;
-//   int dqCount = 0;
-//   int qCount = 0;
-//   unsigned int i = 0;
-//   for(auto& joint : context_->activeJoints()) {
-//     if(joint->qCount() > 0) {
-//       jointLookup_[i] = jointCount;
-//       dqLookup_[i] = dqCount;
-//       qLookup_[i] = qCount;
-//       jointCount++;
-//     } else {
-//       jointLookup_[i] = -1;
-//       dqLookup_[i] = -1;
-//       qLookup_[i] = -1;
-//     }
-//     i++;
-//     dqCount += joint->qCount();
-//     qCount += joint->qCount();
-//   }
-//
-//   for(unsigned int j = 0; j < context_->activeJointCount(); j++) {
-//     if(jointLookup_[j] > -1) {
-//       dqLookupCompressed_[jointLookup_[j]] = dqLookup_[j];
-//     }
-//   }
-// }
-
 void Shift::Jacobian::mallocEquations() {
 
   if(J_) {
@@ -262,17 +222,8 @@ void Shift::Jacobian::translatePermutations() {
     }
   }
 
-  std::cout << "pv_12_: ";
-  for(auto i : pv_12_) {
-    std::cout << i << " ";
-  }
-  std::cout << std::endl;
   Shift::Topology::setInversePermutation(pv_12_, pv_21_);
-  std::cout << "pv_21_: ";
-  for(auto i : pv_21_) {
-    std::cout << i << " ";
-  }
-  std::cout << std::endl;
+
   /* determine which variables are independent / dependent */
   for(auto& substructure : substructures_) {
     std::cout << "substructure.dqOffset: " << substructure.dqOffset()
@@ -282,12 +233,6 @@ void Shift::Jacobian::translatePermutations() {
       isDependentPO1_[pv_12_[substructure.dqOffset() + j]] = true;
     }
   }
-
-  std::cout << "isDependentPO1: ";
-  for(auto i : isDependentPO1_) {
-    std::cout << (i ? "1 " : "0 ");
-  }
-  std::cout << std::endl;
 
   /* set pv_13 */
   for(auto& substructure : substructures_) {
@@ -306,12 +251,6 @@ void Shift::Jacobian::translatePermutations() {
       }
     }
   }
-
-  std::cout << "pv_13_:" << std::endl;
-  for(auto i : pv_13_) {
-    std::cout << i << " ";
-  }
-  std::cout << std::endl;
 
   /* set p_v_31 */
   Shift::Topology::setInversePermutation(pv_13_, pv_31_);
@@ -376,11 +315,6 @@ void Shift::Jacobian::evaluateSparsity() {
   for(auto& substructure : substructures_) {
     substructure.print();
   }
-  std::cout << "pv_23_: ";
-  for(auto i : pv_23_) {
-    std::cout << i << " ";
-  }
-  std::cout << std::endl;
 
   for(auto& substructure : substructures_) {
     substructure.evaluateSparsity(rb3_, cb3_, pv_23_);
@@ -406,8 +340,6 @@ void Shift::Jacobian::setBMatrixSparse() {
 }
 
 void Shift::Jacobian::setConstraintPointers() {
-
-  /* find chord constraint that contains the virtual body */
   unsigned int k = 0;
   for(auto& substructure : substructures_) {
     substructure.clearConstraintOffsets();
@@ -423,7 +355,21 @@ void Shift::Jacobian::setConstraintPointers() {
   }
 }
 
-void Shift::Jacobian::setSubstructurePointers() {}
+void Shift::Jacobian::setSubstructurePointers() {
+  for(auto& joint : context_->activeJoints()) {
+    joint->clearSubstructure();
+  }
+  for(auto& substructure : substructures_) {
+    for(auto& joint : context_->activeJoints()) {
+      if(joint->dqIndex() >= (int)substructure.dqOffset() &&
+         joint->dqIndex() <
+           (int)(substructure.dqOffset() + substructure.dqCount()) &&
+         joint->dqCount() > 0) {
+        joint->setSubstructure(&substructure);
+      }
+    }
+  }
+}
 
 /*!
 @brief This function removes constraints for the entire mechanism
@@ -432,7 +378,6 @@ using a strict error tolerance (context->epsNewtonRaphsonRankDetermination)
 @param context [in] an s2_context_t datastructure
 */
 int Shift::Jacobian::removeConstraintViolations() {
-
   bool constraintsSatisfied = true;
   for(auto& substructure : substructures_) {
     if(substructure.removeConstraintViolations()) {
@@ -449,7 +394,8 @@ int Shift::Jacobian::removeConstraintViolations() {
 under user control of one or more of its independent variables. This function
 requires that setJacobianPO1 has been called for every substructure.
 
-@param context [in] an s2_context_t datastructure
+@param bool useTightTolerance [in] indicates whether to use a tight error
+tolerance for removing constraint violations.
 */
 void Shift::Jacobian::removeConstraintViolationsFast(bool useTightTolerance) {
   for(auto& substructure : substructures_) {
@@ -464,19 +410,21 @@ void Shift::Jacobian::initializeMobility() {
     rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();
   }
 
-  /* allocate memory for rightNullSpace, allows additional storage for null
-     space up to dqCount * dqCount in the event that the null space increases
-     rank from initial starting configuration
-   */
-  if(rightNullSpace_) {
-    delete[] rightNullSpace_;
-  }
-  rightNullSpace_ = new double[rightNullSpaceCount]{};
-  rightNullSpaceCount = 0;
-  for(auto& substructure : substructures_) {
-    substructure.setRightNullSpace(rightNullSpace_ + rightNullSpaceCount);
-    substructure.setMobilityNumbers(context_->mobilityNumbers() +
-                                    substructure.dqOffset());
-    rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();
+  if(rightNullSpaceCount) {
+    /* allocate memory for rightNullSpace, allows additional storage for null
+       space up to dqCount * dqCount in the event that the null space increases
+       rank from initial starting configuration
+     */
+    if(rightNullSpace_) {
+      delete[] rightNullSpace_;
+    }
+    rightNullSpace_ = new double[rightNullSpaceCount]{};
+    rightNullSpaceCount = 0;
+    for(auto& substructure : substructures_) {
+      substructure.setRightNullSpace(rightNullSpace_ + rightNullSpaceCount);
+      substructure.setMobilityNumbers(context_->mobilityNumbers() +
+                                      substructure.dqOffset());
+      rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();
+    }
   }
 }
