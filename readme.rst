@@ -37,7 +37,7 @@ and need not be called again, unless the mechanism topology changes:
     computer working memory as a linked list.
 
 *   The topology of the mechanism is analyzed automatically to identify groups
-    of overlapping chord loops, which are referred to as *kinematic substructures* -- or as *s2_substructure_t* in the code.
+    of overlapping chord loops, which are referred to as *kinematic substructures* -- or as *Shift::Substructure* in the code.
 
 *   Bodies and joints are arranged in level increasing order within each
     substructure, thereby block-diagonalizing the Jacobian matrix.
