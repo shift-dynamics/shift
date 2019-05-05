@@ -169,7 +169,45 @@ bool isSubstructureMember(int, std::vector<std::vector<int>>&);
 void setInversePermutation(const std::vector<int>& p,
                            std::vector<int>& pInverse);
 
-//
+std::string getJointType(dh_fptr f);
+
+std::string getBasename(const std::string& s);
+
+std::string getExtension(std::string& filename);
+
+std::string getFilename(const std::string& filename);
+
+std::string getGraphvizExtension(std::string& extension);
+
+/*!
+\brief generate a directed graph of a mechanism with bodies as graph nodes
+and joints as graph edges and save as a PNG file.
+*/
+int digraph(const Shift::Context& context, std::string fileName);
+
+/*!
+\brief generate a directed graph of a mechanism with frames as graph nodes
+and joints and relative transformations across bodies (i.e. shape matrices) as
+graph edges and save as a PNG file.
+*/
+int digraphFrames(const Shift::Context& context, std::string fileName);
+
+/*!
+\brief generate a directed graph of a mechanism with bodies as graph nodes
+and joints as graph edges and save as a DOT file. This variant does not use the
+graphviz API. The DOT file can be used to generate an image using graphviz tools
+offline.
+*/
+int digraphDOT(const Shift::Context& context, std::string fileName);
+
+/*!
+\brief generate a directed graph of a mechanism with frames as graph nodes
+and joints and relative transformations across bodies (i.e. shape matrices) as
+graph edges and save as a DOT file. This variant does not use the
+graphviz API. The DOT file can be used to generate an image using graphviz tools
+*/
+int digraphFramesDOT(const Shift::Context& context, std::string fileName);
+
 // // identify which frames in the d array correspond to body reference frames
 // void setDReferenceFrames();
 //

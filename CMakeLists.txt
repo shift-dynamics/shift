@@ -23,6 +23,7 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/cmake")
 find_package(assimp REQUIRED)
 find_package(jsoncpp REQUIRED)
 find_package(graphviz REQUIRED)
+find_package(Qhull REQUIRED)
 find_package(cblas)
 
 add_subdirectory(external)

@@ -186,6 +186,18 @@ public:
     return activeJoints_;
   }
 
+  const std::vector<int>& pcl() const {
+    return pcl_;
+  }
+
+  const std::vector<Shift::Body::Base*>& activeArticulatedBodies() const {
+    return activeArticulatedBodies_;
+  }
+
+  const std::vector<Shift::Frame*>& framesInTree() const {
+    return framesInTree_;
+  }
+
   unsigned int nonRigidJointCount() const {
     return nonRigidJointCount_;
   }
@@ -302,12 +314,12 @@ public:
   }
 
   /*! \brief get count of total number of active joints */
-  unsigned int activeJointCount() {
+  unsigned int activeJointCount() const {
     return activeJoints_.size();
   }
 
   /*! \brief get count of active chord constraints */
-  unsigned int chordConstraintCount() {
+  unsigned int chordConstraintCount() const {
     return chordConstraints_.size();
   }
 
@@ -325,6 +337,10 @@ public:
 
   const Topology::DHVA& dhva() const {
     return dhva_;
+  }
+
+  const std::vector<Topology::Offsets>& dhvaOffsets() const {
+    return dhvaOffsets_;
   }
 
   double* mobilityNumbers() {
@@ -364,6 +380,10 @@ public:
   }
 
   double globalMobility();
+
+  int digraph(std::string filename);
+
+  int digraphFrames(std::string filename);
 
 private:
   /*! \brief Shift::Context initialization function, called in Shift::Context

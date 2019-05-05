@@ -98,6 +98,7 @@ target_compile_options(
   -g3
   -O3
   -std=c++17
+  ${GRAPHVIZ_COMPILE_FLAGS}
 )
 
 target_include_directories(
@@ -108,4 +109,10 @@ target_include_directories(
   ${JSONCPP_INCLUDE_DIR}
 )
 
-target_link_libraries(shift_core ${JsonCpp_LIBRARY} ksl)
+target_link_libraries(
+  shift_core 
+  ${JsonCpp_LIBRARY} 
+  ${GRAPHVIZ_GVC_LIBRARY} 
+  ${GRAPHVIZ_CGRAPH_LIBRARY} 
+  ksl
+)

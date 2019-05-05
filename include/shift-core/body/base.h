@@ -160,6 +160,10 @@ public:
     return false;
   }
 
+  bool isVirtual() {
+    return isVirtual_;
+  }
+
   const ksl_vec3_t centerOfMassWRTReference();
 
 protected:
