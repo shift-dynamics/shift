@@ -14,9 +14,12 @@ namespace Body {
 class Virtual : public Base {
 public:
   Virtual()
-    : Base() {}
+    : Base() {
+    isVirtual_ = true;
+  }
   Virtual(std::string name)
     : Base(name) {
+    isVirtual_ = true;
     addKeys();
   }
   virtual ~Virtual() override {}

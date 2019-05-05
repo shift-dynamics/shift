@@ -5,6 +5,9 @@
 #include <queue>
 #include <string.h>
 
+#include <graphviz/cgraph.h>
+#include <graphviz/gvc.h>
+
 #ifdef SHIFT_WITH_BLAS_
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
@@ -85,6 +88,16 @@ void Shift::Context::readJSON(const std::string& filename) {
   // initializeGLReferenceFrames();
 
   loadData();
+
+  std::string graph_filename =
+    Shift::Topology::getBasename(Shift::Topology::getFilename(filename)) +
+    ".png";
+  digraph(graph_filename);
+
+  graph_filename =
+    Shift::Topology::getBasename(Shift::Topology::getFilename(filename)) +
+    "_frames.png";
+  digraphFrames(graph_filename);
 
   // initializeJointForces();
   // flattenForceModules();
@@ -1931,4 +1944,391 @@ double Shift::Context::globalMobility() {
   }
 #endif
   return mobility_;
+}
+
+/*!
+@brief Generate a directed graph using graphviz api library
+
+@param context a pointer to a Shift::Context data structure.
+
+*/
+int Shift::Context::digraph(std::string filename) {
+
+  std::string base_filename = Shift::Topology::getFilename(filename);
+  std::cout << "base_filename: " << base_filename << std::endl;
+  if(base_filename.length() == 0) {
+    std::cerr << "Error: could not resolve filename for: " << filename
+              << std::endl;
+    return -1;
+  };
+
+  std::string extension = Shift::Topology::getExtension(base_filename);
+  if(extension.length() == 0) {
+    std::cerr << "Error: coud not resolve extension for: " << filename
+              << std::endl;
+  }
+
+  std::string gv_ext = Shift::Topology::getGraphvizExtension(extension);
+  if(gv_ext.length() == 0) {
+    std::cerr << "Error: requested extension is not supported by Shift. "
+                 "Supported extensions include: \"gif\", \"jpeg\", \"jpg\", "
+                 "\"png\", \"svg\", \"pdf\" and \"dot\""
+              << std::endl;
+    return -1;
+  }
+
+  char name[1000];
+  GVC_t* gvc = gvContext();
+  Agraph_t* g = agopen(const_cast<char*>("g"), Agdirected, NULL);
+
+  agattr(g, AGNODE, const_cast<char*>("shape"), const_cast<char*>(""));
+  agattr(g, AGEDGE, const_cast<char*>("dir"), const_cast<char*>("arrowtail"));
+  agattr(g, AGEDGE, const_cast<char*>("style"), const_cast<char*>(""));
+  agattr(g, AGEDGE, const_cast<char*>("label"), const_cast<char*>(""));
+  agattr(g, AGNODE, const_cast<char*>("penwidth"), const_cast<char*>(""));
+
+  /* set nodes (bodies) */
+  Agnode_t** nodes = (Agnode_t**)malloc(activeJointCount() * sizeof(Agnode_t*));
+  for(unsigned int i = 0; i < activeJointCount(); i++) {
+    auto bodyName = activeArticulatedBodies()[i]->name();
+    sprintf(name, "[%d] %s", i, const_cast<char*>(bodyName.c_str()));
+    nodes[i] = agnode(g, name, TRUE);
+    if(activeArticulatedBodies()[i]->isVirtual()) {
+      agset(nodes[i], const_cast<char*>("shape"), const_cast<char*>("octagon"));
+    }
+  }
+
+  Agnode_t* fixed = agnode(g, (char*)"[-1] fixed", TRUE);
+  Agedge_t* edge;
+  for(unsigned int i = 0; i < activeJointCount(); i++) {
+    std::string jointName = activeJoints()[i]->name();
+    if(pcl()[i] == -1) {
+      edge =
+        agedge(g, fixed, nodes[i], const_cast<char*>(jointName.c_str()), TRUE);
+    } else {
+      edge = agedge(g, nodes[pcl()[i]], nodes[i],
+                    const_cast<char*>(jointName.c_str()), TRUE);
+    }
+    sprintf(name, "[%d] %s (%s)", i, jointName.c_str(),
+            activeJoints()[i]->type().c_str());
+    agset(edge, const_cast<char*>("label"), name);
+  }
+
+  for(unsigned int i = 0; i < chordConstraintCount(); i++) {
+    int parentIndex = chordConstraints()[i]->parentBody()->index();
+    std::string jointName = chordConstraints()[i]->name();
+    if(parentIndex == -1) {
+      edge =
+        agedge(g, fixed, nodes[chordConstraints()[i]->childBody()->index()],
+               const_cast<char*>(jointName.c_str()), TRUE);
+    } else {
+      // s2_stackstr_toStr(context->jointPointers[i]->name);
+      edge = agedge(g, nodes[parentIndex],
+                    nodes[chordConstraints()[i]->childBody()->index()],
+                    const_cast<char*>(jointName.c_str()), TRUE);
+    }
+    char label[100];
+    sprintf(label, "[%d]", i);
+    agset(edge, const_cast<char*>("label"), label);
+    agset(edge, const_cast<char*>("style"), const_cast<char*>("dashed"));
+    agset(edge, const_cast<char*>("dir"), const_cast<char*>("none"));
+  }
+
+  gvLayout(gvc, g, "dot");
+  gvRenderFilename(gvc, g, const_cast<char*>(gv_ext.c_str()), filename.c_str());
+
+  if(gv_ext != "dot") {
+    std::string basename = Shift::Topology::getBasename(filename);
+    if(basename.length() == 0) {
+      gvFreeLayout(gvc, g);
+      agclose(g);
+      gvFreeContext(gvc);
+      free(nodes);
+      // fclose(DGF);
+      return -1;
+    }
+    basename += ".dot";
+    gvRenderFilename(gvc, g, "dot", const_cast<char*>(basename.c_str()));
+  }
+
+  // cleanup
+  gvFreeLayout(gvc, g);
+  agclose(g);
+  gvFreeContext(gvc);
+  free(nodes);
+  // fclose(DGF);
+  return 0;
+
+  // agclose and gvFreeContext appear to not entirely free memory, it
+  // up to 1MB of memory not properly freed at program termination.
+  // @TODO find fix for this
+}
+
+bool findReferenceFrame(const Shift::Context& context, int dIndex,
+                        int* referenceFrameIndex) {
+  auto& bodies = context.activeArticulatedBodies();
+  for(auto& body : bodies) {
+    int referenceFrame = body->referenceFrame()->index();
+    for(auto& frame : body->frames()) {
+      if(frame.index() == dIndex) {
+        *referenceFrameIndex = referenceFrame;
+      }
+    }
+  }
+  return false;
+}
+
+/*!
+@brief Generate a directed graph using graphviz api library
+
+The graphviz library appears to leak memory
+
+*/
+int Shift::Context::digraphFrames(std::string filename) {
+
+  std::string base_filename = Shift::Topology::getFilename(filename);
+  if(base_filename.length() == 0) {
+    std::cerr << "Error: could not resolve filename for: " << filename
+              << std::endl;
+    return -1;
+  };
+
+  std::string extension = Shift::Topology::getExtension(base_filename);
+  if(extension.length() == 0) {
+    std::cerr << "Error: coud not resolve extension for: " << filename
+              << std::endl;
+  }
+
+  std::string gv_ext = Shift::Topology::getGraphvizExtension(extension);
+  if(gv_ext.length() == 0) {
+    std::cerr << "Error: requested extension is not supported by Shift. "
+                 "Supported extensions include: \"gif\", \"jpeg\", \"jpg\", "
+                 "\"png\", \"svg\", \"pdf\" and \"dot\""
+              << std::endl;
+    return -1;
+  }
+
+  // FILE* DGF;
+  // if((DGF = fopen(filename.c_str(), "w")) == NULL) {
+  //   std::cerr << "Cannot open " << filename << ". No file was generated."
+  //             << std::endl;
+  //   return (-1);
+  // }
+
+  char name[1200];
+  GVC_t* gvc = gvContext();
+
+  /* root graph */
+  Agraph_t* g = agopen(const_cast<char*>("g"), Agdirected, NULL);
+  agattr(g, AGNODE, const_cast<char*>("shape"), const_cast<char*>(""));
+  agattr(g, AGEDGE, const_cast<char*>("dir"), const_cast<char*>("arrowtail"));
+  agattr(g, AGEDGE, const_cast<char*>("style"), const_cast<char*>(""));
+  agattr(g, AGEDGE, const_cast<char*>("label"), const_cast<char*>(""));
+  agattr(g, AGNODE, const_cast<char*>("penwidth"), const_cast<char*>("1"));
+
+  int jointCounter = 0;
+  for(unsigned int i = 0; i < dhvaOffsets().size(); i++) {
+
+    int parentFrameIndex = dhvaOffsets()[i].parent.d;
+    int childFrameIndex = dhvaOffsets()[i].child.d;
+
+    ksl_SE3_t* dParent = dhva_.d + parentFrameIndex;
+    ksl_SE3_t* dChild = dhva_.d + childFrameIndex;
+
+    int parentReferenceFrameIndex = -1;
+    findReferenceFrame(*this, parentFrameIndex, &parentReferenceFrameIndex);
+    bool parentIsReference = (parentFrameIndex == parentReferenceFrameIndex);
+
+    int childReferenceFrameIndex = -1;
+    findReferenceFrame(*this, childFrameIndex, &childReferenceFrameIndex);
+    bool childIsReference = (childFrameIndex == childReferenceFrameIndex);
+
+    std::string parentBodyName =
+      framesInTree()[parentFrameIndex]->parentBody()->name();
+
+    char parentFrameName[1200];
+    sprintf(parentFrameName,
+            "[%d] {%d} %s\n"
+            "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
+            "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
+            "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
+            "[ 0.00  0.00  0.00  1.00]",
+            parentFrameIndex, parentReferenceFrameIndex,
+            framesInTree()[parentFrameIndex]->name().c_str(), dParent->R.m00,
+            dParent->R.m01, dParent->R.m02, dParent->t.x, dParent->R.m10,
+            dParent->R.m11, dParent->R.m12, dParent->t.y, dParent->R.m20,
+            dParent->R.m21, dParent->R.m22, dParent->t.z);
+
+    std::string childBodyName =
+      framesInTree()[childFrameIndex]->parentBody()->name();
+
+    char childFrameName[1200];
+    sprintf(childFrameName,
+            "[%d] {%d} %s\n"
+            "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
+            "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
+            "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
+            "[ 0.00  0.00  0.00  1.00]",
+            childFrameIndex, childReferenceFrameIndex,
+            framesInTree()[childFrameIndex]->name().c_str(), dChild->R.m00,
+            dChild->R.m01, dChild->R.m02, dChild->t.x, dChild->R.m10,
+            dChild->R.m11, dChild->R.m12, dChild->t.y, dChild->R.m20,
+            dChild->R.m21, dChild->R.m22, dChild->t.z);
+
+    std::string jointName = Shift::Topology::getJointType(dh_fptr_[i]);
+
+    if(jointName == "PRISMATIC_TX") {
+      sprintf(name, "[%d] {%d} Tx(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "PRISMATIC_TX_INVERSE") {
+      sprintf(name, "[%d] {%d} Txinverse(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "PRISMATIC_TY") {
+      sprintf(name, "[%d] {%d} Ty(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "PRISMATIC_TY_INVERSE") {
+      sprintf(name, "[%d] {%d} Tyinverse(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "PRISMATIC_TZ") {
+      sprintf(name, "[%d] {%d} Tz(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "PRISMATIC_TZ_INVERSE") {
+      sprintf(name, "[%d] {%d} Tzinverse(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "PRISMATIC_TA") {
+      sprintf(name, "[%d] {%d} Ta(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "PRISMATIC_TA_INVERSE") {
+      sprintf(name, "[%d] {%d} Tainverse(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "REVOLUTE_RX") {
+      sprintf(name, "[%d] {%d} Rx(%f, %f)\n", i, jointCounter++,
+              dhva_.dc[dhvaOffsets_[i].dc], dhva_.dc[dhvaOffsets_[i].dc + 1]);
+
+    } else if(jointName == "REVOLUTE_RX_INVERSE") {
+      sprintf(name, "[%d] {%d} Rxinverse(%f, %f)\n", i, jointCounter++,
+              dhva_.dc[dhvaOffsets_[i].dc], dhva_.dc[dhvaOffsets_[i].dc + 1]);
+
+    } else if(jointName == "REVOLUTE_RY") {
+      sprintf(name, "[%d] {%d} Ry(%f, %f)\n", i, jointCounter++,
+              dhva_.dc[dhvaOffsets_[i].dc], dhva_.dc[dhvaOffsets_[i].dc + 1]);
+
+    } else if(jointName == "REVOLUTE_RY_INVERSE") {
+      sprintf(name, "[%d] {%d} Ryinverse(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "REVOLUTE_RZ") {
+      sprintf(name, "[%d] {%d} Rz(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "REVOLUTE_RZ_INVERSE") {
+      sprintf(name, "[%d] {%d} Rzinverse(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "REVOLUTE_RA") {
+      sprintf(name, "[%d] {%d} Ra(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "REVOLUTE_RA_INVERSE") {
+      sprintf(name, "[%d] {%d} Rainverse(%f)\n", i, jointCounter++,
+              q_[dhvaOffsets_[i].q]);
+
+    } else if(jointName == "SPHERICAL" || jointName == "SPHERICAL_INVERSE") {
+      ksl_quaternion_t* q = (ksl_quaternion_t*)&(q_[dhvaOffsets_[i].q]);
+      sprintf(name, "[%d] {%d} q: [% 2.2f, % 2.2f, % 2.2f, % 2.2f]", i,
+              jointCounter++, q->x, q->y, q->z, q->w);
+
+    } else if(jointName == "FLOAT" || jointName == "FLOAT_INVERSE") {
+      ksl_vec3_t* t = (ksl_vec3_t*)&(q_[dhvaOffsets_[i].q]);
+      ksl_quaternion_t* q = (ksl_quaternion_t*)&(q_[dhvaOffsets_[i].q + 3]);
+      sprintf(name,
+              "[%d] {%d} t: [% 2.2f, % 2.2f, % 2.2f]\n"
+              "     q: [% 2.2f, % 2.2f, % 2.2f, % 2.2f]",
+              i, jointCounter++, t->x, t->y, t->z, q->x, q->y, q->z, q->w);
+    } else if(jointName == "RIGID" || jointName == "RIGID_INVERSE") {
+
+      ksl_SE3_t* dPrimitiveDisp = dhva_.d + dhvaOffsets_[i].child.d;
+      sprintf(name,
+              "[%d] Rigid\n"
+              "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
+              "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
+              "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
+              "[ 0.00  0.00  0.00  1.00]",
+              i, dPrimitiveDisp->R.m00, dPrimitiveDisp->R.m01,
+              dPrimitiveDisp->R.m02, dPrimitiveDisp->t.x, dPrimitiveDisp->R.m10,
+              dPrimitiveDisp->R.m11, dPrimitiveDisp->R.m12, dPrimitiveDisp->t.y,
+              dPrimitiveDisp->R.m20, dPrimitiveDisp->R.m21,
+              dPrimitiveDisp->R.m22, dPrimitiveDisp->t.z);
+    } else {
+      sprintf(name, "joint type not found / unknown");
+    }
+
+    char parentName[400];
+    sprintf(parentName, "cluster_%s", parentBodyName.c_str());
+    Agraph_t* parentBodyGraph = agsubg(g, parentName, TRUE);
+    agset(parentBodyGraph, const_cast<char*>("label"),
+          const_cast<char*>(parentBodyName.c_str()));
+    agset(parentBodyGraph, const_cast<char*>("fillcolor"),
+          const_cast<char*>("lightgrey"));
+    agset(parentBodyGraph, const_cast<char*>("style"),
+          const_cast<char*>("filled"));
+
+    char childName[400];
+    sprintf(childName, "cluster_%s", childBodyName.c_str());
+    Agraph_t* childBodyGraph = agsubg(g, childName, TRUE);
+    agset(childBodyGraph, const_cast<char*>("fillcolor"),
+          const_cast<char*>("lightgrey"));
+    agset(childBodyGraph, const_cast<char*>("style"),
+          const_cast<char*>("filled"));
+    agset(childBodyGraph, const_cast<char*>("label"),
+          const_cast<char*>(childBodyName.c_str()));
+
+    Agnode_t* parentNode = agnode(parentBodyGraph, parentFrameName, TRUE);
+    if(parentIsReference) {
+      agset(parentNode, const_cast<char*>("penwidth"), const_cast<char*>("3"));
+    }
+
+    Agnode_t* childNode = agnode(childBodyGraph, childFrameName, TRUE);
+    if(childIsReference) {
+      agset(childNode, const_cast<char*>("penwidth"), const_cast<char*>("3"));
+    }
+
+    Agedge_t* edge = agedge(g, parentNode, childNode, name, TRUE);
+    agset(edge, const_cast<char*>("label"), name);
+  }
+
+  gvLayout(gvc, g, "dot");
+
+  gvRenderFilename(gvc, g, const_cast<char*>(gv_ext.c_str()), filename.c_str());
+
+  if(gv_ext != "dot") {
+    std::string basename = Shift::Topology::getBasename(filename);
+    if(basename.length() == 0) {
+      gvFreeLayout(gvc, g);
+      agclose(g);
+      gvFreeContext(gvc);
+      // fclose(DGF);
+      std::cerr << "Could not generate .dot file." << std::endl;
+      return -1;
+    }
+    basename += ".dot";
+    gvRenderFilename(gvc, g, "dot", basename.c_str());
+  }
+
+  gvFreeLayout(gvc, g);
+  agclose(g);
+  gvFreeContext(gvc);
+
+  // agclose and gvFreeContext appear to not entirely free memory,
+  // up to 1MB of memory not properly freed at program termination.
+  // fclose(DGF);
+  return 0;
 }
