@@ -19,6 +19,24 @@ void Shift::Jacobian::initialize() {
   setBMatrixSparse();
   setConstraintPointers();
   setSubstructurePointers();
+  // std::cout << "positive loop members: " << std::endl;
+  // for(auto& loop : positiveLoopMembersCompressed_) {
+  //   for(auto i : loop) {
+  //     std::cout << i << " ";
+  //   }
+  //   std::cout << std::endl;
+  // }
+  // std::cout << "negative loop members: " << std::endl;
+  // for(auto& loop : positiveLoopMembersCompressed_) {
+  //   for(auto i : loop) {
+  //     std::cout << i << " ";
+  //   }
+  //   std::cout << std::endl;
+  // }
+
+  if(!removeConstraintViolations()) {
+    std::cerr << "Error: constraints not satisfied." << std::endl;
+  };
 }
 
 void Shift::Jacobian::analyze() {
@@ -89,6 +107,7 @@ void Shift::Jacobian::mallocEquations() {
     substructures_[i].setJointCount(jointCount);
     substructures_[i].setChordConstraintCount(chordConstraintCount);
     substructures_[i].setJointOffset(jointOffset);
+    substructures_[i].setContext(context_);
 
     // theses offsets do not account for joints that are not a member of any
     // substructure
@@ -96,6 +115,7 @@ void Shift::Jacobian::mallocEquations() {
     dqOffset += dqCount;
     jointOffset += jointCount;
     jacobianSize_ += chordConstraintCount * 6 * dqCount;
+    constraintEquationCount += chordConstraintCount * 6;
   }
 
   J_ = new double[jacobianSize_]{};
@@ -158,7 +178,6 @@ void Shift::Jacobian::compressLoopMembers() {
   unsigned int i = 0;
   for(auto& substructure : substructures_) {
     /* set offset into global variable list */
-    unsigned int begin = k;
     int substructureOffset =
       std::min(substructureMembers[i][1], substructureMembers[i][2]);
     substructure.setdqOffset(dqLookup[substructureOffset], context_->dq(),
@@ -182,13 +201,18 @@ void Shift::Jacobian::compressLoopMembers() {
         }
       }
     }
-    substructure.setPositiveLoopMembersCompressed(
-      positiveLoopMembersCompressed_.begin() + begin,
-      positiveLoopMembersCompressed_.begin() + k);
-    substructure.setNegativeLoopMembersCompressed(
-      negativeLoopMembersCompressed_.begin() + begin,
-      negativeLoopMembersCompressed_.begin() + k);
+
     i++;
+  }
+
+  unsigned int j = 0;
+  for(auto& substructure : substructures_) {
+    substructure.setChordConstraintOffset(j);
+    substructure.setPositiveLoopMembersCompressed(
+      &positiveLoopMembersCompressed_);
+    substructure.setNegativeLoopMembersCompressed(
+      &negativeLoopMembersCompressed_);
+    j += substructure.chordConstraintCount();
   }
 }
 
