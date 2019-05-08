@@ -71,11 +71,11 @@ void Shift::Context::readJSON(const std::string& filename) {
   updateDH();
   updateDHVA();
 
-  std::cout << "dqCount after updateDH: " << dqCount_ << std::endl;
-  for(unsigned int i = 0; i < dqCount_; i++) {
-    std::cout << "[" << i << "]: ";
-    ksl_screw_print(stdout, dhva_.h + i);
-  }
+  // std::cout << "dqCount after updateDH: " << dqCount_ << std::endl;
+  // for(unsigned int i = 0; i < dqCount_; i++) {
+  //   std::cout << "[" << i << "]: ";
+  //   ksl_screw_print(stdout, dhva_.h + i);
+  // }
 
   setLookup();
   if(substructureIndices_.size() > 0) {
