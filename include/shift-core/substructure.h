@@ -147,18 +147,18 @@ public:
 
   void print();
 
-  void setPositiveLoopMembersCompressed(
-    std::vector<std::vector<int>>::iterator begin,
-    std::vector<std::vector<int>>::iterator end) {
-    positiveLoopMembersCompressedBegin_ = begin;
-    positiveLoopMembersCompressedEnd_ = end;
+  void setChordConstraintOffset(unsigned int offset) {
+    chordConstraintOffset_ = offset;
   }
 
-  void setNegativeLoopMembersCompressed(
-    std::vector<std::vector<int>>::iterator begin,
-    std::vector<std::vector<int>>::iterator end) {
-    negativeLoopMembersCompressedBegin_ = begin;
-    negativeLoopMembersCompressedEnd_ = end;
+  void
+  setPositiveLoopMembersCompressed(std::vector<std::vector<int>>* members) {
+    positiveLoopMembersCompressed_ = members;
+  }
+
+  void
+  setNegativeLoopMembersCompressed(std::vector<std::vector<int>>* members) {
+    negativeLoopMembersCompressed_ = members;
   }
 
   void setPO1(const Topology::DHVA& dhva);
@@ -257,13 +257,11 @@ private:
   double infinityNormB_ = 0.0; //!< current infinity norm
   int* ijMapping_ = NULL;
 
-  std::vector<std::vector<int>>::iterator positiveLoopMembersCompressedBegin_;
-  std::vector<std::vector<int>>::iterator positiveLoopMembersCompressedEnd_;
-
-  std::vector<std::vector<int>>::iterator negativeLoopMembersCompressedBegin_;
-  std::vector<std::vector<int>>::iterator negativeLoopMembersCompressedEnd_;
+  std::vector<std::vector<int>>* positiveLoopMembersCompressed_ = NULL;
+  std::vector<std::vector<int>>* negativeLoopMembersCompressed_ = NULL;
 
   Shift::Context* context_ = NULL;
+  unsigned int chordConstraintOffset_ = 0;
   unsigned int chordConstraintCount_ = 0;
   unsigned int constraintEquationCount_ = 0;
   unsigned int qCount_ = 0;
