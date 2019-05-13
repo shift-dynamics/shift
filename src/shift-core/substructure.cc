@@ -28,25 +28,25 @@ void Shift::Substructure::setContext(Shift::Context* context) {
 void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
   memset(J_, 0, dqCount_ * constraintEquationCount_ * sizeof(double));
   /* j is local loop index */
-  int j = 0;
-  for(auto it = positiveLoopMembersCompressedBegin_;
-      it != positiveLoopMembersCompressedEnd_; it++, j++) {
-    for(auto& variableIndex : *it) {
+  auto it = positiveLoopMembersCompressed_->begin() + chordConstraintOffset_;
+  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+    for(auto variableIndex : *it) {
+      assert(variableIndex >= 0 && variableIndex - dqOffset_ < dqCount_);
       ksl_screw_copy_rmo(dhva.h + variableIndex, J_, j * 6,
                          variableIndex - dqOffset_, dqCount_);
     }
   }
 
-  j = 0;
-  for(auto it = negativeLoopMembersCompressedBegin_;
-      it != negativeLoopMembersCompressedEnd_; it++, j++) {
-    for(auto& variableIndex : *it) {
+  it = negativeLoopMembersCompressed_->begin() + chordConstraintOffset_;
+  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+    for(auto variableIndex : *it) {
+      assert(variableIndex >= 0 && variableIndex - dqOffset_ < dqCount_);
       ksl_screw_ncopy_rmo(dhva.h + variableIndex, J_, j * 6,
                           variableIndex - dqOffset_, dqCount_);
     }
   }
 
-  ksl_array2D_print(stdout, constraintEquationCount_, dqCount_, J_);
+  // ksl_array2D_print(stdout, constraintEquationCount_, dqCount_, J_);
 
   rank_ = ksl_linalg_lu_full_rmo(constraintEquationCount_, dqCount_, J_,
                                  epsilonRankDetermination_, pr_12_.data(),
@@ -56,8 +56,8 @@ void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
   Shift::Topology::setInversePermutation(pr_12_, pr_21_);
   Shift::Topology::setInversePermutation(pc_12_, pc_21_);
 
-  std::cout << "rank: " << rank_ << std::endl;
-  std::cout << "dqCount: " << dqCount_ << std::endl;
+  // std::cout << "rank: " << rank_ << std::endl;
+  // std::cout << "dqCount: " << dqCount_ << std::endl;
 
   if(rank_ < (int)dqCount_) {
     ksl_linalg_lu_setBMatrix_rmo(rank_, dqCount_, J_);
@@ -74,9 +74,9 @@ for a single substructure
 void Shift::Substructure::setPO2(const Shift::Topology::DHVA& dhva) {
   memset(J_, 0, dqCount_ * constraintEquationCount_ * sizeof(double));
 
-  int j = 0; /* j is local loop index*/
-  for(auto it = positiveLoopMembersCompressedBegin_;
-      it != positiveLoopMembersCompressedEnd_; it++, j++) {
+  /* j is local loop index*/
+  auto it = positiveLoopMembersCompressed_->begin() + chordConstraintOffset_;
+  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
     for(auto& variableIndex : *it) {
       int columnIndex_2 = pc_21_[variableIndex - dqOffset_];
       for(int m = 0; m < 6; m++) {
@@ -86,9 +86,8 @@ void Shift::Substructure::setPO2(const Shift::Topology::DHVA& dhva) {
     }
   }
 
-  j = 0;
-  for(auto it = negativeLoopMembersCompressedBegin_;
-      it != negativeLoopMembersCompressedEnd_; it++, j++) {
+  it = negativeLoopMembersCompressed_->begin() + chordConstraintOffset_;
+  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
     for(auto& variableIndex : *it) {
       int columnIndex_2 = pc_21_[variableIndex - dqOffset_];
       for(int m = 0; m < 6; m++) {
@@ -108,9 +107,8 @@ void Shift::Substructure::setBooleanPO2() {
   memset(Jb_, 0, dqCount_ * constraintEquationCount_ * sizeof(bool));
 
   /* j is local loop index */
-  int j = 0;
-  for(auto it = positiveLoopMembersCompressedBegin_;
-      it != positiveLoopMembersCompressedEnd_; it++, j++) {
+  auto it = positiveLoopMembersCompressed_->begin() + chordConstraintOffset_;
+  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
     for(auto& variableIndex : *it) {
       int columnIndex = pc_21_[variableIndex - dqOffset_];
       for(int m = 0; m < 6; m++) {
@@ -120,9 +118,8 @@ void Shift::Substructure::setBooleanPO2() {
     }
   }
 
-  j = 0;
-  for(auto it = negativeLoopMembersCompressedBegin_;
-      it != negativeLoopMembersCompressedEnd_; it++, j++) {
+  it = negativeLoopMembersCompressed_->begin() + chordConstraintOffset_;
+  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
     for(auto& variableIndex : *it) {
       assert((int)variableIndex - (int)dqOffset_ >= 0);
       int columnIndex = pc_21_[variableIndex - dqOffset_];
@@ -315,25 +312,6 @@ double Shift::Substructure::qError() {
 }
 
 /*!
-@brief computes RMS constraint error in a substructure
-
-error = sqrt(cs[] . cs[]) / constraintEquationCount
-*/
-double Shift::Substructure::constraintError() {
-
-#if SHIFT_WITH_BLAS_
-  return sqrt(cblas_ddot(constraintEquationCount_, cs_, 1, cs_, 1)) /
-         constraintEquationCount_;
-#else
-  double sum = 0;
-  for(unsigned int i = 0; i < constraintEquationCount_; i++) {
-    sum += cs_[i] * cs_[i];
-  }
-  return sqrt(sum) / constraintEquationCount_;
-#endif
-}
-
-/*!
 
 */
 void Shift::Substructure::newtonRaphsonSolver() {
@@ -355,9 +333,10 @@ void Shift::Substructure::newtonRaphsonSolver() {
 
 /*!
 \brief evaluate position level constraints for one substructure
+\return RMS constraint error
 */
-void Shift::Substructure::evaluateConstraints(
-  const Shift::Topology::DHVA& dhva) {
+double
+Shift::Substructure::evaluateConstraints(const Shift::Topology::DHVA& dhva) {
 
   assert(constraints_.size() == chordConstraintCount_);
   for(unsigned int i = 0; i < chordConstraintCount_; i++) {
@@ -371,20 +350,33 @@ void Shift::Substructure::evaluateConstraints(
     cs_[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20) + trace;
     cs_[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
   }
+
+#if SHIFT_WITH_BLAS_
+  return sqrt(cblas_ddot(constraintEquationCount_, cs_, 1, cs_, 1)) /
+         constraintEquationCount_;
+#else
+  double sum = 0;
+  for(unsigned int i = 0; i < constraintEquationCount_; i++) {
+    sum += cs_[i] * cs_[i];
+  }
+  return sqrt(sum) / constraintEquationCount_;
+#endif
 }
 
 int Shift::Substructure::removeConstraintViolations() {
   /* Iteratively update x to satisfy constraint equations.
+
   dx[colDim] contains changes in x[colDim] for current N-R iteration.
-  error = sqrt(cs[] . cs[]) / constraintEquationCount
-  < eps when converged. */
+
+  error = sqrt(cs[] . cs[]) / constraintEquationCount < eps when converged.
+  */
   int maxStep = 100;
   double qCopy[qCount_];
   memcpy(qCopy, q_, qCount_ * sizeof(double));
 
+  assert(context_);
   context_->updateDH();
-  evaluateConstraints(context_->dhva());
-  double initialError = constraintError();
+  double initialError = evaluateConstraints(context_->dhva());
   fprintf(stdout, "  initial error: %g\n", initialError);
 
   int step = 0;
@@ -396,8 +388,7 @@ int Shift::Substructure::removeConstraintViolations() {
     newtonRaphsonSolver();
     updateq();
     context_->updateDH();
-    evaluateConstraints(context_->dhva());
-    error = constraintError();
+    error = evaluateConstraints(context_->dhva());
     ++step;
     fprintf(stdout, "  [%d] error: %g\n", step, error);
   }
@@ -422,8 +413,7 @@ int Shift::Substructure::removeConstraintViolationsFast(
   bool useTightTolerance) {
 
   context_->updateDH();
-  evaluateConstraints(context_->dhva());
-  double initialError = constraintError();
+  double initialError = evaluateConstraints(context_->dhva());
   double qCopy[qCount_];
   memcpy(qCopy, q_, qCount_ * sizeof(double));
   const int maxStep = 100;
@@ -442,8 +432,7 @@ int Shift::Substructure::removeConstraintViolationsFast(
     newtonRaphsonSolver();
     updateq();
     context_->updateDH();
-    evaluateConstraints(context_->dhva());
-    error = constraintError();
+    error = evaluateConstraints(context_->dhva());
     step++;
     // printf("  [%d] error: %g\n", step, error);
   }
@@ -468,7 +457,6 @@ void Shift::Substructure::printError(double initialError, double finalError,
           "substructure [%d]\n",
           index_);
   fprintf(f, "initial error: %f, final error: %f\n", initialError, finalError);
-  fprintf(f, "  context->qCount: %d\n", context_->qCount());
   fprintf(f, "  qCount: %d\n", qCount_);
   fprintf(f, "  qOffset: %d\n", qOffset_);
   assert(context_->q() + qOffset_ == q_);
@@ -476,7 +464,6 @@ void Shift::Substructure::printError(double initialError, double finalError,
   ksl_array_print(f, qCount_, qCopy);
   fprintf(f, " states after Newton-Raphson:\n    ");
   ksl_array_print(f, qCount_, q_);
-  fprintf(f, " values that have changed:\n       ");
 }
 
 /*!
@@ -565,23 +552,21 @@ void Shift::Substructure::setPO1Specified(const Shift::Topology::DHVA& dhva,
   memset(J_, 0, dqCount_ * constraintEquationCount_ * sizeof(double));
 
   /* j is local loop index */
-  int j = 0;
-  for(auto it = positiveLoopMembersCompressedBegin_;
-      it != positiveLoopMembersCompressedEnd_; it++, j++) {
+  auto it = positiveLoopMembersCompressed_->begin() + chordConstraintOffset_;
+  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
     for(auto& variableIndex : *it) {
-      std::cout << variableIndex << std::endl;
-      ksl_screw_print(stdout, dhva.h + variableIndex);
+      // std::cout << variableIndex << std::endl;
+      // ksl_screw_print(stdout, dhva.h + variableIndex);
       ksl_screw_copy_rmo(dhva.h + variableIndex, J_, j * 6,
                          variableIndex - dqOffset_, dqCount_);
     }
   }
 
-  j = 0;
-  for(auto it = negativeLoopMembersCompressedBegin_;
-      it != negativeLoopMembersCompressedEnd_; it++, j++) {
+  it = negativeLoopMembersCompressed_->begin() + chordConstraintOffset_;
+  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
     for(auto& variableIndex : *it) {
-      std::cout << variableIndex << std::endl;
-      ksl_screw_print(stdout, dhva.h + variableIndex);
+      // std::cout << variableIndex << std::endl;
+      // ksl_screw_print(stdout, dhva.h + variableIndex);
       ksl_screw_ncopy_rmo(dhva.h + variableIndex, J_, j * 6,
                           variableIndex - dqOffset_, dqCount_);
     }
