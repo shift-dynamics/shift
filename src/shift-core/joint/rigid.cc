@@ -23,15 +23,9 @@ void Shift::Joint::rigid_dh(const Shift::Context& context,
                             Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__) {
-  std::cout << "rigid_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   const ksl_SE3_t* dPrimitive = context.DWRTReference() + offsets.q;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
-
-#if 0
-  // printf("rigid_dh:\n");
-  // ksl_SE3_print
-#endif
 
   ksl_product_dd(dParent, dPrimitive, dChild);
 }
@@ -68,8 +62,6 @@ void Shift::Joint::rigidinv_dh(const Shift::Context& context,
                                Shift::Topology::DHVA& dhva,
                                const Shift::Topology::Offsets& offsets,
                                const double* __restrict__) {
-
-  std::cout << "rigidinv_dh" << std::endl;
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   const ksl_SE3_t* dPrimitive = context.DWRTReference() + offsets.q;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
