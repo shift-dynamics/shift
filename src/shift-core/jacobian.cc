@@ -34,7 +34,7 @@ void Shift::Jacobian::initialize() {
   //   std::cout << std::endl;
   // }
 
-  if(!removeConstraintViolations()) {
+  if(removeConstraintViolations()) {
     std::cerr << "Error: constraints not satisfied." << std::endl;
   };
 }
