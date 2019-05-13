@@ -215,7 +215,6 @@ public:
   void newtonRaphsonSolver();
   void updateq();
   double qError();
-  double constraintError();
   void firstOrderUpdate();
   int removeConstraintViolations();
   int removeConstraintViolationsFast(bool);
@@ -226,7 +225,7 @@ public:
   void setBMatrix();
   void setPO1Specified(const Shift::Topology::DHVA& dhva, int dqIndex);
   double infinityNormB();
-  void evaluateConstraints(const Shift::Topology::DHVA& dhva);
+  double evaluateConstraints(const Shift::Topology::DHVA& dhva);
   void setRightNullSpace(double* rightNullSpace) {
     rightNullSpace_ = rightNullSpace;
   }
