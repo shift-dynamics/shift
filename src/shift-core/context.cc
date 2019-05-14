@@ -2332,3 +2332,35 @@ int Shift::Context::digraphFrames(std::string filename) {
   // fclose(DGF);
   return 0;
 }
+
+/*!
+@brief computes total gravitational potential energy for system
+
+result is stored in context->gravitationalPotentialEnergy
+
+@return gravitational potential energy
+*/
+double Shift::Context::gravitationalPotentialEnergy() {
+  return ksl_dot_vv(&inertiaP_->mt, modelParameters_.gravity());
+}
+
+/*!
+@brief compute kinetic energy for system
+
+*/
+double Shift::Context::kineticEnergy() {
+  assert(p_);
+  assert(dhva_.v);
+#if SHIFT_WITH_BLAS_
+  return cblas_ddot(6 * nonRigidJointCount_, (double*)(p_), 1,
+                    (double*)(dhva_.v), 1) /
+         2.0;
+#else
+  double sum = 0.0;
+  for(unsigned int i = 0; i < nonRigidJointCount_; i++) {
+    sum += ksl_dot_cs(p_ + i, dhva_.v + i);
+  }
+  return sum;
+
+#endif
+}
