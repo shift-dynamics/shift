@@ -90,6 +90,10 @@ public:
       delete[] f_;
     }
 
+    if(p_) {
+      delete[] p_;
+    }
+
     if(g_) {
       delete[] g_;
     }
@@ -169,6 +173,9 @@ public:
   void connectActiveObjects();
   unsigned int qCount();
   unsigned int dqCount();
+
+  double gravitationalPotentialEnergy();
+  double kineticEnergy();
 
   const std::vector<int>& dqLookup() {
     return dqLookup_;
@@ -483,9 +490,10 @@ framesInTree that are the reference frame for the body */
     NULL; /*!< copy of q array, used to restore q to a previous state */
   double* f_ = NULL; /*!< Working forces within a joint, such as from friction
                        or damping */
-  ksl_screw_t* g_ =
+  ksl_coscrew_t* p_ = NULL; /*< momentum */
+  ksl_coscrew_t* g_ =
     NULL; /*!< spatial body and inertial forces, length equal to dq count */
-  ksl_screw_t* k_ = NULL;          /*!< joint reaction forces */
+  ksl_coscrew_t* k_ = NULL;        /*!< joint reaction forces */
   ksl_inertia_t* inertia_ = NULL;  /*!< body fixed spatial  inertias */
   ksl_inertia_t* inertiaP_ = NULL; /*!< projected spatial inertias */
   std::vector<int> jointDOF_;
@@ -500,7 +508,6 @@ framesInTree that are the reference frame for the body */
   ksl_screw_t barycentricSpatialMomentum_ =
     ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   double kineticEnergy_ = 0.0;
-  double gravitationalPotentialEnergy_ = 0.0;
 
   ModelParameters modelParameters_;
   Assembly fixed_;
