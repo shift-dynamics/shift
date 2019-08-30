@@ -12,8 +12,4 @@ std::unique_ptr<Shift::Constraint::Chord> Shift::Constraint::Chord::create() {
   return std::make_unique<Shift::Constraint::Chord>();
 }
 
-void Shift::Constraint::Chord::addKeys() {}
-
-void Shift::Constraint::Chord::readJSON(Json::Value& value) {
-  Shift::Constraint::Base::readJSON(value);
-}
+void Shift::Constraint::Chord::addParameters() {}

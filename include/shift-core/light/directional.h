@@ -12,16 +12,15 @@ class Directional : public Base {
 public:
   Directional()
     : Base() {
-    addKeys();
+    addParameters();
   }
   Directional(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~Directional() override {}
   static std::unique_ptr<Directional> create();
-  void readJSON(Json::Value&) override;
-  virtual void addKeys();
+  virtual void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }

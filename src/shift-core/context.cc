@@ -42,14 +42,34 @@
 #include "ksl/screw.h"
 #include "ksl/trig.h"
 
-void Shift::Context::readJSON(const std::string& filename) {
+void Shift::Context::addParameters() {
+
+  addParameter("model_parameters", &model_parameters_,
+               "Parameters associated with configuring a Shift simulation.",
+               true);
+
+  addParameter(
+    "assemblies", &assemblies_,
+    "an array of Shift assemblies, where each assembly contains a list of "
+    "bodies, joints, force modules, behaviors, etc.; Each assembly at a given "
+    "level must have a unique name identifier",
+    true);
+}
+
+void Shift::Context::readJSON(const std::string filename) {
   std::ifstream file(filename);
   file >> root_;
-  if(root_.isMember("model_parameters")) {
-    modelParameters_.readJSON(root_["model_parameters"]);
-  }
-  fixed_.setContext(this);
-  fixed_.readJSON(root_, true);
+  try {
+    Shift::Parameter::List::readJSON(root_);
+  } catch(const char* error) {
+    std::cout << "catching error in context.cc" << std::endl;
+    std::cout << error << std::endl;
+  };
+  postLoad(filename);
+}
+
+void Shift::Context::postLoad(const std::string filename) {
+
   setFullyQualifiedNames();
 
   /* process topology */
@@ -109,12 +129,12 @@ void Shift::Context::processFrames() {
   activeFrames_.clear();
   auto fixed = fixedBody();
   for(auto& frame : fixed->frames()) {
-    activeFrames_.push_back((Shift::Frame*)&frame);
+    activeFrames_.push_back(frame.get());
   }
   for(auto& body : activeArticulatedBodies_) {
     for(auto& frame : body->frames()) {
-      if(frame.isActive()) {
-        activeFrames_.push_back((Shift::Frame*)&frame);
+      if(frame->isActive()) {
+        activeFrames_.push_back(frame.get());
       }
     }
   }
@@ -182,7 +202,7 @@ void Shift::Context::writeJSON(const std::string& filename) {
   builder.settings_["indentation"] = indentation_;
   builder.settings_["dropNullPlaceholders"] = false;
   std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-  if(writer != NULL) {
+  if(writer != nullptr) {
     writer->write(root_, &file);
     file << std::endl;
   } else {
@@ -238,18 +258,13 @@ void Shift::Context::initialize() {
   }
 }
 
-void Shift::Context::print() {
-  modelParameters_.print();
-  fixed_.print();
-}
-
 void Shift::Context::setFullyQualifiedNames() {
-  std::vector<std::string> rootName;
-  fixed_.setFullyQualifiedNames(rootName);
+  // std::vector<std::string> rootName;
+  // fixed_.setFullyQualifiedNames(rootName);
 }
 
 void Shift::Context::setActiveObjects() {
-  fixed_.setActiveObjects(true);
+  // fixed_.setActiveObjects(true);
 }
 
 void Shift::Context::appendActive(Shift::Behavior::Base* behavior) {
@@ -616,7 +631,7 @@ Shift::Context::getBehavior(std::vector<std::string>& name) {
       return behavior;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Body::Base* Shift::Context::getBody(std::vector<std::string>& name) {
@@ -627,7 +642,7 @@ Shift::Body::Base* Shift::Context::getBody(std::vector<std::string>& name) {
       return body;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::CollisionGeometry::Base*
@@ -639,7 +654,7 @@ Shift::Context::getCollisionGeometry(std::vector<std::string>& name) {
       return geometry;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Constraint::Base*
@@ -650,7 +665,7 @@ Shift::Context::getConstraint(std::vector<std::string>& name) {
       return constraint;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::ForceModule::Base*
@@ -661,7 +676,7 @@ Shift::Context::getForceModule(std::vector<std::string>& name) {
       return module;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Geometry::Base*
@@ -672,7 +687,7 @@ Shift::Context::getGeometry(std::vector<std::string>& name) {
       return geometry;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Joint::Base* Shift::Context::getJoint(std::vector<std::string>& name) {
@@ -682,7 +697,7 @@ Shift::Joint::Base* Shift::Context::getJoint(std::vector<std::string>& name) {
       return joint;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Light::Base* Shift::Context::getLight(std::vector<std::string>& name) {
@@ -692,7 +707,7 @@ Shift::Light::Base* Shift::Context::getLight(std::vector<std::string>& name) {
       return light;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Sensor::Base* Shift::Context::getSensor(std::vector<std::string>& name) {
@@ -702,7 +717,7 @@ Shift::Sensor::Base* Shift::Context::getSensor(std::vector<std::string>& name) {
       return sensor;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Terrain::Base*
@@ -713,7 +728,7 @@ Shift::Context::getTerrain(std::vector<std::string>& name) {
       return terrain;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 void Shift::Context::connect() {
@@ -782,10 +797,6 @@ void Shift::Context::loadData() {
   }
 }
 
-Shift::Body::Base* Shift::Context::fixedBody() {
-  return fixed_.getBody(0);
-}
-
 void Shift::Context::levelOrderSort() {
 
   std::queue<Shift::Joint::Base*> queue;
@@ -795,8 +806,8 @@ void Shift::Context::levelOrderSort() {
   /* find joints attached to fixed body */
   auto it = activeJoints_.begin();
   while(it != activeJoints_.end()) {
-    assert((*it)->parentBody() != NULL);
-    assert((*it)->childBody() != NULL);
+    assert((*it)->parentBody() != nullptr);
+    assert((*it)->childBody() != nullptr);
     if((*it)->parentBody() == fixedBody()) {
       (*it)->setSense(1);
       (*it)->setLevel(1);
@@ -815,7 +826,7 @@ void Shift::Context::levelOrderSort() {
   while(!queue.empty()) {
     auto joint = queue.front();
     queue.pop();
-    Shift::Body::Base* body = NULL;
+    Shift::Body::Base* body = nullptr;
     if(joint->sense() == 1) {
       body = joint->childBody();
     } else if(joint->sense() == -1) {
@@ -852,8 +863,8 @@ void Shift::Context::processVirtualBodies() {
 
   // clear all system child body and frame pointers
   for(auto& joint : activeJoints_) {
-    joint->setSystemChildBody(NULL);
-    joint->setSystemChildFrame(NULL);
+    joint->setSystemChildBody(nullptr);
+    joint->setSystemChildFrame(nullptr);
   }
 
   chordConstraints_.clear();
@@ -1427,31 +1438,31 @@ void Shift::Context::compressRigidJoints(
 
       // dWRTReference = dWRTReference * dWRTReference_child
       ksl_SE3_t D_p0_c1;
-      ksl_product_dd(&D, frame.dWRTReference(), &D_p0_c1);
+      ksl_product_dd(&D, frame->dWRTReference(), &D_p0_c1);
 
       ksl_SE3_print(stdout, &D_p0_c1, "  D_p0_c1: ");
 
-      if(frame.inTree() && parentBody != fixedBody()) {
+      if(frame->inTree() && parentBody != fixedBody()) {
         // std::cout << "intree && parentBody!= fixedBody: processing frame: "
         //           << childBody->name() << ": " << frame.name() << std::endl;
 
-        ksl_SE3_copy(&D_p0_c1, dWRTReference_ + frame.index());
+        ksl_SE3_copy(&D_p0_c1, dWRTReference_ + frame->index());
 
         dhvaOffsets_[operationCount].parent.d =
           parentJoint->systemParentBody()->referenceFrame()->index();
-        dhvaOffsets_[operationCount].child.d = frame.index();
-        dhvaOffsets_[operationCount].q = frame.index();
+        dhvaOffsets_[operationCount].child.d = frame->index();
+        dhvaOffsets_[operationCount].q = frame->index();
 
         d_fptr_[operationCount] = Shift::Joint::rigid_dh;
         dh_fptr_[operationCount] = Shift::Joint::rigid_dh;
         dhva_fptr_[operationCount] = Shift::Joint::rigid_dhva;
         operationCount++;
-      } else if(frame.inTree()) {
+      } else if(frame->inTree()) {
         // std::cout << "processing frame: " << childBody->name() << ": "
         //           << frame.name() << std::endl;
 
-        ksl_SE3_print(stdout, frame.dWRTReference(), "dWRTReference: ");
-        ksl_SE3_copy(&D_p0_c1, dWRTReference_ + frame.index());
+        ksl_SE3_print(stdout, frame->dWRTReference(), "dWRTReference: ");
+        ksl_SE3_copy(&D_p0_c1, dWRTReference_ + frame->index());
 
         ksl_SE3_print(
           stdout,
@@ -1460,8 +1471,8 @@ void Shift::Context::compressRigidJoints(
 
         ksl_product_dd(
           dhva_.d + parentJoint->systemParentBody()->referenceFrame()->index(),
-          &D_p0_c1, dhva_.d + frame.index());
-        ksl_SE3_print(stdout, dhva_.d + frame.index(), "  dAbsolute: ");
+          &D_p0_c1, dhva_.d + frame->index());
+        ksl_SE3_print(stdout, dhva_.d + frame->index(), "  dAbsolute: ");
       }
     }
   }
@@ -1493,7 +1504,7 @@ void Shift::Context::allocateRunTimeArrays() {
   std::cout << "dWRTReference_.size(): " << framesInTree_.size() << std::endl;
   if(dWRTReference_) {
     free(dWRTReference_);
-    dWRTReference_ = NULL;
+    dWRTReference_ = nullptr;
   }
   dWRTReference_ = ksl_SE3_alloc(framesInTree_.size());
 
@@ -1505,14 +1516,14 @@ void Shift::Context::allocateRunTimeArrays() {
 
   if(jointData_) {
     delete jointData_;
-    jointData_ = NULL;
+    jointData_ = nullptr;
   }
   jointData_ = new double[dataCount];
 
   if(q_) {
     delete[] q_;
-    q_ = NULL;
-    dq_ = NULL;
+    q_ = nullptr;
+    dq_ = nullptr;
   }
   q_ = new double[qCount_ + dqCount_]{};
   dq_ = q_ + qCount_;
@@ -1524,7 +1535,7 @@ void Shift::Context::allocateRunTimeArrays() {
 
   if(ddq_) {
     delete ddq_;
-    ddq_ = NULL;
+    ddq_ = nullptr;
   }
   ddq_ = new double[dqCount_];
   memset(ddq_, 0, dqCount_ * sizeof(double));
@@ -1605,13 +1616,13 @@ void Shift::Context::allocateRunTimeArrays() {
   /* one time update of frames on fixed body */
   // std::cout << "updating frames on fixed body" << std::endl;
   for(auto& frame : fixedBody()->frames()) {
-    if(!frame.isReference()) {
-      assert(frame.parentBody());
+    if(!frame->isReference()) {
+      assert(frame->parentBody());
       // std::cout << "[" << frame.index() << "]: " <<
       // frame.parentBody()->name()
       //           << ":" << frame.name() << std::endl;
-      ksl_SE3_copy(frame.dWRTReference(), dhva_.d + frame.index());
-      ksl_SE3_copy(frame.dWRTReference(), dWRTReference_ + frame.index());
+      ksl_SE3_copy(frame->dWRTReference(), dhva_.d + frame->index());
+      ksl_SE3_copy(frame->dWRTReference(), dWRTReference_ + frame->index());
       // ksl_SE3_print(stdout, dhva_.d + frame.index());
     }
   }
@@ -1655,17 +1666,17 @@ void Shift::Context::allocateRunTimeArrays() {
           for now, all function pointers are assigned as general SE3
           displacements
         */
-        if(!frame.isReference() && frame.inTree()) {
+        if(!frame->isReference() && frame->inTree()) {
           d_fptr_[operationCount] = Shift::Joint::rigid_dh;
           dh_fptr_[operationCount] = Shift::Joint::rigid_dh;
           dhva_fptr_[operationCount] = Shift::Joint::rigid_dhva;
           dhvaOffsets_[operationCount].parent.d = referenceFrame->index();
-          dhvaOffsets_[operationCount].child.d = frame.index();
-          dhvaOffsets_[operationCount].q = frame.index();
+          dhvaOffsets_[operationCount].child.d = frame->index();
+          dhvaOffsets_[operationCount].q = frame->index();
           // std::cout << "  processing child frame[" << frame.index()
           //           << "]: " << frame.name() << std::endl;
           // ksl_SE3_print(stdout, frame.dWRTReference(), "  dWRTReference: ");
-          ksl_SE3_copy(frame.dWRTReference(), dWRTReference_ + frame.index());
+          ksl_SE3_copy(frame->dWRTReference(), dWRTReference_ + frame->index());
           operationCount++;
         }
       }
@@ -1676,7 +1687,7 @@ void Shift::Context::allocateRunTimeArrays() {
 
   std::cout << "operationCount: " << operationCount << std::endl;
   jointDOF_.resize(activeJoints_.size());
-  modelParameters_.initialize();
+  model_parameters_.initialize();
 }
 
 void Shift::Context::updateDC(Shift::Topology::DHVA& dhva,
@@ -1743,7 +1754,7 @@ void Shift::Context::updateDHVA(Shift::Topology::DHVA& dhva,
 
 void Shift::Context::setFixedFrameGravityVector() {
   assert(dhva_.aq);
-  ksl_vec3_inverted(modelParameters_.gravity(), &dhva_.aq[-1].lin);
+  ksl_vec3_inverted(model_parameters_.gravity(), &dhva_.aq[-1].lin);
 }
 
 void Shift::Context::setToInitialConditions() {
@@ -1776,7 +1787,6 @@ void Shift::Context::setToInitialConditions() {
 
 void Shift::Context::initializeInertia() {
 
-  // FILE* debug = modelParameters->debugFilePointer;
   /*
     create a temporary inertia array, equal in length to activeJoints
     after this list is generated, it will be compressed to an array
@@ -1784,20 +1794,12 @@ void Shift::Context::initializeInertia() {
   */
   ksl_inertia_t* inertia_temp = ksl_inertia_alloc(activeJoints_.size());
 
-/* compute each inertia matrix with respect to reference frame on
-   each body */
-#if _SHIFT_VERBOSE
-  printf("inertias before compression, expressed in inertial reference frame "
-         "coordinates:\n");
-#endif
+  /* compute each inertia matrix with respect to reference frame on
+     each body */
   for(int i = (int)activeJoints_.size() - 1; i > -1; i--) {
     auto& body = activeArticulatedBodies_[i];
     if(body->hasMass()) {
       inertia_temp[i] = body->inertiaWRTReference();
-      // #if 0
-      //       printf("  [%i] ", i);
-      //       s2_inertia_print(stdout, inertia_temp + i);
-      // #endif
     }
   }
 
@@ -1979,7 +1981,7 @@ int Shift::Context::digraph(std::string filename) {
 
   char name[1000];
   GVC_t* gvc = gvContext();
-  Agraph_t* g = agopen(const_cast<char*>("g"), Agdirected, NULL);
+  Agraph_t* g = agopen(const_cast<char*>("g"), Agdirected, nullptr);
 
   agattr(g, AGNODE, const_cast<char*>("shape"), const_cast<char*>(""));
   agattr(g, AGEDGE, const_cast<char*>("dir"), const_cast<char*>("arrowtail"));
@@ -2070,7 +2072,7 @@ bool findReferenceFrame(const Shift::Context& context, int dIndex,
   for(auto& body : bodies) {
     int referenceFrame = body->referenceFrame()->index();
     for(auto& frame : body->frames()) {
-      if(frame.index() == dIndex) {
+      if(frame->index() == dIndex) {
         *referenceFrameIndex = referenceFrame;
       }
     }
@@ -2081,7 +2083,7 @@ bool findReferenceFrame(const Shift::Context& context, int dIndex,
 /*!
 @brief Generate a directed graph using graphviz api library
 
-The graphviz library appears to leak memory
+The graphviz library leaks memory
 
 */
 int Shift::Context::digraphFrames(std::string filename) {
@@ -2109,7 +2111,7 @@ int Shift::Context::digraphFrames(std::string filename) {
   }
 
   // FILE* DGF;
-  // if((DGF = fopen(filename.c_str(), "w")) == NULL) {
+  // if((DGF = fopen(filename.c_str(), "w")) == nullptr) {
   //   std::cerr << "Cannot open " << filename << ". No file was generated."
   //             << std::endl;
   //   return (-1);
@@ -2119,7 +2121,7 @@ int Shift::Context::digraphFrames(std::string filename) {
   GVC_t* gvc = gvContext();
 
   /* root graph */
-  Agraph_t* g = agopen(const_cast<char*>("g"), Agdirected, NULL);
+  Agraph_t* g = agopen(const_cast<char*>("g"), Agdirected, nullptr);
   agattr(g, AGNODE, const_cast<char*>("shape"), const_cast<char*>(""));
   agattr(g, AGEDGE, const_cast<char*>("dir"), const_cast<char*>("arrowtail"));
   agattr(g, AGEDGE, const_cast<char*>("style"), const_cast<char*>(""));
@@ -2336,12 +2338,10 @@ int Shift::Context::digraphFrames(std::string filename) {
 /*!
 @brief computes total gravitational potential energy for system
 
-result is stored in context->gravitationalPotentialEnergy
-
 @return gravitational potential energy
 */
 double Shift::Context::gravitationalPotentialEnergy() {
-  return ksl_dot_vv(&inertiaP_->mt, modelParameters_.gravity());
+  return ksl_dot_vv(&inertiaP_->mt, model_parameters_.gravity());
 }
 
 /*!
@@ -2361,6 +2361,5 @@ double Shift::Context::kineticEnergy() {
     sum += ksl_dot_cs(p_ + i, dhva_.v + i);
   }
   return sum;
-
 #endif
 }

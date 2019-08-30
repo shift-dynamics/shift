@@ -9,6 +9,4 @@ void Shift::Sensor::Base::load() {}
 
 void Shift::Sensor::Base::connect() {}
 
-void Shift::Sensor::Base::readJSON(Json::Value& value) {
-  Shift::Serialize::readJSON(value);
-}
+void Shift::Sensor::Base::addParameters() {}

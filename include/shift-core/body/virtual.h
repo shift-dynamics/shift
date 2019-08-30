@@ -20,7 +20,7 @@ public:
   Virtual(std::string name)
     : Base(name) {
     isVirtual_ = true;
-    addKeys();
+    addParameters();
   }
   virtual ~Virtual() override {}
   static std::unique_ptr<Virtual> create();

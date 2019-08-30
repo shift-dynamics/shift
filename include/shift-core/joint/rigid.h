@@ -26,12 +26,12 @@ class Rigid : public Base {
 public:
   Rigid()
     : Base() {
-    addKeys();
+    addParameters();
   }
 
   Rigid(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
 
   virtual ~Rigid() override {}
@@ -41,8 +41,7 @@ public:
     return registered_;
   }
 
-  virtual void addKeys() override;
-  virtual void readJSON(Json::Value&) override;
+  virtual void addParameters() override;
 
   Topology::dh_fptr Dfptr() override;
   Topology::dh_fptr DHfptr() override;

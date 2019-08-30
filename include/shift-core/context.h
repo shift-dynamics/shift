@@ -8,6 +8,7 @@
 
 #include "shift-core/assembly.h"
 #include "shift-core/base.h"
+#include "shift-core/body/fixed.h"
 #include "shift-core/jacobian.h"
 #include "shift-core/joint/base.h"
 #include "shift-core/modelparameters.h"
@@ -42,22 +43,21 @@ class Chord;
 /*!
 @brief Shift Context datastructure
 */
-class Context : Base {
+class Context : public Shift::Body::Fixed {
 
 public:
   Context(std::string name)
-    : Base(name)
+    : Shift::Body::Fixed(name)
     , jacobian_(this)
-    , modelParameters_(this)
-    , fixed_("fixed") {
-    fixed_.setContext(this);
+    , model_parameters_(this) {
+    addParameters();
     initialize();
   }
   Context()
-    : Base("")
+    : Shift::Body::Fixed("fixed")
     , jacobian_(this)
-    , modelParameters_(this)
-    , fixed_("fixed") {
+    , model_parameters_(this) {
+    addParameters();
     initialize();
   }
   ~Context() {
@@ -118,15 +118,22 @@ public:
   Context& operator=(Context&&) {
     return *this;
   }
-  void readJSON(const std::string&);
+  void addParameters() override;
+
+  void readJSON(const std::string);
   void writeJSON();
   void writeJSON(std::ostream&);
   void writeJSON(const std::string&);
-  void print();
+  void printJSON();
+
+  Shift::Body::Base* fixedBody() {
+    return this;
+  }
+
+  void postLoad(const std::string);
+
   void setFullyQualifiedNames();
   void setActiveObjects();
-  void printJSON();
-  Body::Base* fixedBody();
 
   void appendActive(Behavior::Base*);
   void appendActive(Body::Base*);
@@ -306,14 +313,14 @@ public:
   }
 
   const Shift::ModelParameters& modelParameters() {
-    return modelParameters_;
+    return model_parameters_;
   }
 
   /*! \brief append frame to Shift::Context's list of frames
    */
-  void appendFrame(Shift::Frame* frame) {
-    frames_.push_back(frame);
-  }
+  // void appendFrame(Shift::Frame* frame) {
+  //   frames_.push_back(frame);
+  // }
 
   /*! \brief get count of total number of active frames */
   unsigned int activeFrameCount() {
@@ -474,28 +481,29 @@ framesInTree that are the reference frame for the body */
   std::vector<int> dcq_; /*!< index of framesInTree that require updating
                             direction cosines */
 
-  ksl_SE3_t* dWRTReference_ = NULL; /*!< relative displacement of a body frame
-                                       with respect to its reference frame */
+  ksl_SE3_t* dWRTReference_ =
+    nullptr; /*!< relative displacement of a body frame
+             with respect to its reference frame */
   double* jointData_ =
-    NULL; /*!< additional data required to process data across joints */
+    nullptr; /*!< additional data required to process data across joints */
 
-  double* q_ = NULL;   /*!< generalized coordinates */
-  double* dq_ = NULL;  /*!< generalized coordinate first time derivative, or
+  double* q_ = nullptr;   /*!< generalized coordinates */
+  double* dq_ = nullptr;  /*!< generalized coordinate first time derivative, or
                           generalized velocities */
-  double* ddq_ = NULL; /*!< generalized coordinate second time derivative, or
+  double* ddq_ = nullptr; /*!< generalized coordinate second time derivative, or
                           generalized accelerations */
-  double* deltaq_ = NULL;
+  double* deltaq_ = nullptr;
 
   double* qCopy_ =
-    NULL; /*!< copy of q array, used to restore q to a previous state */
-  double* f_ = NULL; /*!< Working forces within a joint, such as from friction
-                       or damping */
-  ksl_coscrew_t* p_ = NULL; /*< momentum */
+    nullptr; /*!< copy of q array, used to restore q to a previous state */
+  double* f_ = nullptr;        /*!< Working forces within a joint, such as from
+                              friction        or damping */
+  ksl_coscrew_t* p_ = nullptr; /*< momentum */
   ksl_coscrew_t* g_ =
-    NULL; /*!< spatial body and inertial forces, length equal to dq count */
-  ksl_coscrew_t* k_ = NULL;        /*!< joint reaction forces */
-  ksl_inertia_t* inertia_ = NULL;  /*!< body fixed spatial  inertias */
-  ksl_inertia_t* inertiaP_ = NULL; /*!< projected spatial inertias */
+    nullptr; /*!< spatial body and inertial forces, length equal to dq count */
+  ksl_coscrew_t* k_ = nullptr;        /*!< joint reaction forces */
+  ksl_inertia_t* inertia_ = nullptr;  /*!< body fixed spatial  inertias */
+  ksl_inertia_t* inertiaP_ = nullptr; /*!< projected spatial inertias */
   std::vector<int> jointDOF_;
   std::vector<int> jointDOFCompressed_;
   std::vector<int> jointLookup_;
@@ -509,11 +517,15 @@ framesInTree that are the reference frame for the body */
     ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   double kineticEnergy_ = 0.0;
 
-  ModelParameters modelParameters_;
-  Assembly fixed_;
   std::string filename_;
   Json::Value root_;
   std::string indentation_ = "  ";
+
+  /*! \brief Parameters used to configure a simulation */
+  ModelParameters model_parameters_;
+
+  /*! \brief User defined terrain attached to fixed inertial reference frame */
+  Shift::Parameter::Array<Shift::Assembly> assemblies_;
 
   /*! \brief struct for sorting members of a loop in monotonically level
    * increasing order */
@@ -572,7 +584,7 @@ framesInTree that are the reference frame for the body */
   active flag is set to true.
 
   @{ */
-  std::vector<Behavior::Base*> activeBehaviors_;
+  std::vector<Behavior::Base*> activeBehaviors_ = {};
   std::vector<Body::Base*> activeArticulatedBodies_ = {};
   std::vector<Body::Base*> activeFreeBodies_ = {};
   std::vector<CollisionGeometry::Base*> activeCollisionGeometry_;
@@ -584,7 +596,6 @@ framesInTree that are the reference frame for the body */
   std::vector<Sensor::Base*> activeSensors_;
   std::vector<Terrain::Base*> activeTerrain_;
 
-  std::vector<Shift::Frame*> frames_;
   std::vector<Shift::Frame*> framesInTree_;
   std::vector<Shift::Frame*> activeFrames_;
 
@@ -606,21 +617,21 @@ framesInTree that are the reference frame for the body */
   /*! \brief System generated constraints */
   std::vector<std::unique_ptr<Constraint::Base>> constraints_;
 
-  /*! \brief A subset of constraints used in model corresponding to
-   * constraints imposed for kinematic chord loops */
-  std::vector<Constraint::Chord*> chordConstraints_;
-
   /*! \brief System generated force modules */
   std::vector<std::unique_ptr<ForceModule::Base>> forcemodules_;
 
   /*! \brief System generated joints */
   std::vector<std::unique_ptr<Joint::Base>> joints_;
 
-  double* mobilityNumbers_ = NULL;
-
-  void initializeMobility();
+  /*! \brief A subset of constraints used in model corresponding to
+   * constraints imposed for kinematic chord loops */
+  std::vector<Constraint::Chord*> chordConstraints_;
 
   /*! @} */
+
+  double* mobilityNumbers_ = nullptr;
+
+  void initializeMobility();
 
   /*! \brief Update direction cosines in model */
   void updateDC(Topology::DHVA& dhva, const double* q);

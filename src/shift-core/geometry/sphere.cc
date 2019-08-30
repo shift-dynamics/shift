@@ -9,4 +9,4 @@ std::unique_ptr<Shift::Geometry::Sphere> Shift::Geometry::Sphere::create() {
   return std::make_unique<Shift::Geometry::Sphere>();
 }
 
-void Shift::Geometry::Sphere::addKeys() {}
+void Shift::Geometry::Sphere::addParameters() {}

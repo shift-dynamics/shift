@@ -9,6 +9,6 @@ std::unique_ptr<Shift::ForceModule::PID> Shift::ForceModule::PID::create() {
   return std::make_unique<Shift::ForceModule::PID>();
 }
 
-void Shift::ForceModule::PID::addKeys() {
-  Shift::ForceModule::Base::addKeys();
+void Shift::ForceModule::PID::addParameters() {
+  Shift::ForceModule::Base::addParameters();
 }

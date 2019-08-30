@@ -10,7 +10,7 @@
 #include "shift-core/base.h"
 #include "shift-core/integrator/base.h"
 #include "shift-core/logger/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 #include "shift-core/solver/base.h"
 #include "shift-core/units.h"
 
@@ -22,14 +22,14 @@ class Context;
 */
 class ModelParameters
   : public Shift::Base
-  , public Serialize {
+  , public Shift::Parameter::List {
 
 public:
   ModelParameters(Shift::Context* context)
     : Shift::Base("") {
     context_ = context;
     gravity_ = ksl_vec3(0.0, 0.0, 0.0);
-    addKeys();
+    addParameters();
   }
   ~ModelParameters() {}
 
@@ -50,54 +50,51 @@ public:
   /*! \brief get epsilon used for rank determination in Gaussian Elimination
    * with complete row and column pivoting */
   double epsilonRankDetermination() const {
-    return epsilonRankDetermination_;
+    return epsilon_rank_determination_;
   }
 
   double epsilsonNewtonRaphson() const {
-    return epsilsonNewtonRaphson_;
+    return epsilson_newton_raphson_;
   }
 
   /*! \brief get infinity norm multiplier -- used as a heuristic for when to
    * reapply gaussian elimination with complete row and column pivoting */
   double infinityNormMultiplier() const {
-    return infinityNormMuliplier_;
+    return infinity_norm_muliplier_;
   }
 
   void enableContactDetection(bool);
 
-  void readJSON(Json::Value&);
-
   void writeJSON(Json::Value&);
-
-  void print();
 
   void appendSolver(std::unique_ptr<Solver::Base>&);
   void appendIntegrator(std::unique_ptr<Integrator::Base>&);
   void appendLogger(std::unique_ptr<Logger::Base>&);
 
   FILE* debugFilePointer() const {
-    return debugFilePointer_;
+    return debug_pointer_;
   }
 
 private:
-  void addKeys();
+  void addParameters();
 
   std::string version_;
-  std::vector<std::string> includeDirectories_;
+  std::vector<std::string> include_directories_;
   ksl_vec3_t gravity_;
-  double epsilsonNewtonRaphson_ = 1e-7;
-  double epsilonRankDetermination_ = 1e-9;
-  double infinityNormMuliplier_ = 2.0;
+  double epsilson_newton_raphson_ = 1e-7;
+  double epsilon_rank_determination_ = 1e-9;
+  double infinity_norm_muliplier_ = 2.0;
 
-  bool contactDetectionEnabled_ = false;
-  ksl_vec3_t viewportBackgroundColor_ = {{1.0, 1.0, 1.0}};
+  bool contact_detection_enabled_ = false;
+  ksl_vec3_t viewport_background_color_ = {{1.0, 1.0, 1.0}};
 
-  std::vector<std::unique_ptr<Solver::Base>> solvers_;
-  std::vector<std::unique_ptr<Integrator::Base>> integrators_;
-  std::vector<std::unique_ptr<Logger::Base>> loggers_;
+  Shift::Parameter::FactoryArray<Solver::Base> solvers_;
+  Shift::Parameter::FactoryArray<Integrator::Base> integrators_;
+  Shift::Parameter::FactoryArray<Logger::Base> loggers_;
   Units units_;
-  Shift::Context* context_ = NULL;
-  FILE* debugFilePointer_ = NULL;
+
+  Shift::Context* context_ = nullptr;
+  FILE* debug_pointer_ = nullptr;
 };
 
 } // namespace Shift

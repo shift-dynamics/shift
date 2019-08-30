@@ -7,7 +7,7 @@
 #include <string>
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -21,16 +21,16 @@ namespace Integrator {
 */
 class Base
   : public Shift::Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Base(std::string name)
     : Shift::Base(name) {
-    addKeys();
+    addParameters();
   }
   Base()
     : Shift::Base("") {
-    addKeys();
+    addParameters();
   }
   virtual ~Base() {}
 
@@ -38,7 +38,12 @@ public:
     return type_;
   }
 
-  void readJSON(Json::Value&);
+  static const std::string arrayKey() {
+    return "integrator";
+  }
+  static const std::string defaultType() {
+    return "";
+  }
   virtual void load();
   virtual void connect();
   void setContext(Context* context) {
@@ -47,11 +52,11 @@ public:
   virtual void initialize() = 0;
 
 protected:
-  Context* context_ = NULL;
-  void addKeys();
+  Context* context_ = nullptr;
+  void addParameters();
 
   std::string type_; //!< descriptive name of Integrator type
-  unsigned int iterationsSinceLastFullFactor_ = 0;
+  unsigned int iterations_since_last_full_factor_ = 0;
 };
 
 class Modules {

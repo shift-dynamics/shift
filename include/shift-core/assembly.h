@@ -14,7 +14,7 @@
 #include "shift-core/forcemodule/base.h"
 #include "shift-core/joint/base.h"
 #include "shift-core/light/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -45,67 +45,23 @@ class SerialEntry;
 */
 class Assembly
   : public Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Assembly(std::string name)
     : Base(name)
-    , Serialize() {
-    addKeys();
+    , Parameter::List() {
+    addParameters();
   }
 
   Assembly()
     : Base("")
-    , Serialize() {
-    addKeys();
-  }
-
-  Assembly(Assembly&& a)
-    : Base(a.name_) {
-    for(auto& i : a.behaviors_) {
-      behaviors_.push_back(std::move(i));
-    }
-    for(auto& i : a.bodies_) {
-      bodies_.push_back(std::move(i));
-    }
-    for(auto& i : a.constraints_) {
-      constraints_.push_back(std::move(i));
-    }
-    for(auto& i : a.forcemodules_) {
-      forcemodules_.push_back(std::move(i));
-    }
-    for(auto& i : a.joints_) {
-      joints_.push_back(std::move(i));
-    }
-  }
-
-  Assembly& operator=(Assembly& a) {
-    // check for self-assignment
-    if(&a == this) {
-      return *this;
-    }
-
-    for(auto& i : a.behaviors_) {
-      behaviors_.push_back(std::move(i));
-    }
-    for(auto& i : a.bodies_) {
-      bodies_.push_back(std::move(i));
-    }
-    for(auto& i : a.constraints_) {
-      constraints_.push_back(std::move(i));
-    }
-    for(auto& i : a.forcemodules_) {
-      forcemodules_.push_back(std::move(i));
-    }
-    for(auto& i : a.joints_) {
-      joints_.push_back(std::move(i));
-    }
-    return *this;
+    , Parameter::List() {
+    addParameters();
   }
 
   ~Assembly() {}
 
-  void readJSON(Json::Value& value, bool fixed = false);
   void printBehaviors();
   void printBodies();
   void printConstraints();
@@ -118,24 +74,23 @@ public:
     context_ = context;
   }
   Body::Base* getBody(unsigned int i) {
-    if(i < bodies_.size()) {
-      return bodies_[i].get();
-    } else {
-      return NULL;
-    }
+    return bodies_.get(i);
+  }
+  static const std::string arrayKey() {
+    return "assemblies";
   }
 
 private:
-  Context* context_ = NULL;
-  void addKeys();
+  Context* context_ = nullptr;
+  void addParameters() override;
 
-  std::vector<std::unique_ptr<Assembly>> subassemblies_;
+  Shift::Parameter::Array<Assembly> assemblies_;
 
-  std::vector<std::unique_ptr<Behavior::Base>> behaviors_;
-  std::vector<std::unique_ptr<Body::Base>> bodies_;
-  std::vector<std::unique_ptr<Constraint::Base>> constraints_;
-  std::vector<std::unique_ptr<ForceModule::Base>> forcemodules_;
-  std::vector<std::unique_ptr<Joint::Base>> joints_;
+  Shift::Parameter::FactoryArray<Body::Base> bodies_;
+  Shift::Parameter::FactoryArray<Behavior::Base> behaviors_;
+  Shift::Parameter::FactoryArray<Constraint::Base> constraints_;
+  Shift::Parameter::FactoryArray<ForceModule::Base> force_modules_;
+  Shift::Parameter::FactoryArray<Joint::Base> joints_;
 };
 
 } // namespace Shift

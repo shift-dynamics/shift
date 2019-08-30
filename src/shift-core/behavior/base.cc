@@ -13,13 +13,7 @@ bool Shift::Behavior::Modules::initialized() {
   return true;
 }
 
-void Shift::Behavior::Base::readJSON(Json::Value& value) {
-
-  /* iterate over keys */
-  Shift::Serialize::readJSON(value);
-}
-
-void Shift::Behavior::Base::addKeys() {}
+void Shift::Behavior::Base::addParameters() {}
 
 void Shift::Behavior::Base::load() {}
 

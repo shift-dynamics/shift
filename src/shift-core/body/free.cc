@@ -9,4 +9,4 @@ std::unique_ptr<Shift::Body::Free> Shift::Body::Free::create() {
   return std::make_unique<Shift::Body::Free>();
 }
 
-void Shift::Body::Free::addKeys() {}
+void Shift::Body::Free::addParameters() {}

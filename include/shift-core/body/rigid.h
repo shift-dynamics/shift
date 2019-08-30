@@ -15,15 +15,15 @@ class Rigid : public Base {
 public:
   Rigid()
     : Base() {
-    addKeys();
+    addParameters();
   }
   Rigid(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~Rigid() override {}
   static std::unique_ptr<Rigid> create();
-  void addKeys() override;
+  void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }

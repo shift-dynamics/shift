@@ -20,26 +20,31 @@ namespace Body {
 
 class Fixed : public Base {
 public:
-  Fixed()
-    : Base() {
-    // setName("fixed");
-    addKeys();
+  Fixed() {
+    name_ = "fixed";
+    addParameters();
   }
-  Fixed(std::string name)
-    : Base(name) {
-    addKeys();
+  Fixed(std::string) {
+    name_ = "fixed";
+    addParameters();
   }
   virtual ~Fixed() override {}
   static std::unique_ptr<Fixed> create();
-  void appendTerrain(std::unique_ptr<Terrain::Base>&);
-  void readJSON(Json::Value&) override;
-  virtual void addKeys() override;
+  virtual void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }
 
 private:
-  std::vector<std::unique_ptr<Terrain::Base>> terrain_;
+  /*! \brief User defined frames attached to fixed inertial reference frame */
+  Shift::Parameter::Array<Shift::Frame> frames_;
+
+  /*! \brief User defined lights attached to fixed inertial reference frame */
+  Shift::Parameter::FactoryArray<Shift::Light::Base> lights_;
+
+  /*! \brief User defined terrain attached to fixed inertial reference frame */
+  Shift::Parameter::FactoryArray<Shift::Terrain::Base> terrain_;
+
   static bool registered_;
 };
 

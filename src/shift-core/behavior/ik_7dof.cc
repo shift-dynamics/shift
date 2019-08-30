@@ -9,6 +9,6 @@ std::unique_ptr<Shift::Behavior::IK7DOF> Shift::Behavior::IK7DOF::create() {
   return std::make_unique<Shift::Behavior::IK7DOF>();
 }
 
-void Shift::Behavior::IK7DOF::addKeys() {
-  Shift::Behavior::Base::addKeys();
+void Shift::Behavior::IK7DOF::addParameters() {
+  Shift::Behavior::Base::addParameters();
 }

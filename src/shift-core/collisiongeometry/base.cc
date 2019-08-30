@@ -17,8 +17,3 @@ bool Shift::CollisionGeometry::Modules::initialized() {
 void Shift::CollisionGeometry::Base::load() {}
 
 void Shift::CollisionGeometry::Base::connect() {}
-
-void Shift::CollisionGeometry::Base::readJSON(Json::Value& value) {
-  /* iterate over keys */
-  Shift::Serialize::readJSON(value);
-}

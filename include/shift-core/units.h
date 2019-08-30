@@ -8,7 +8,7 @@
 #include "ksl/vec3.h"
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -17,18 +17,18 @@ namespace Shift {
 */
 class Units
   : public Base
-  , public Serialize {
+  , public Shift::Parameter::List {
 
 public:
   Units(std::string name)
     : Base(name)
-    , Serialize() {
-    addKeys();
+    , Parameter::List() {
+    addParameters();
   }
   Units()
     : Base("")
-    , Serialize() {
-    addKeys();
+    , Parameter::List() {
+    addParameters();
   }
   ~Units() {}
 
@@ -59,7 +59,7 @@ public:
   void print();
 
 private:
-  void addKeys();
+  void addParameters();
 
   std::string angle_ = "radians";
   std::string length_ = "meters";

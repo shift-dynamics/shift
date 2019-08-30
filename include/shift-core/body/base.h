@@ -12,7 +12,7 @@
 #include "shift-core/frame.h"
 #include "shift-core/geometry/base.h"
 #include "shift-core/light/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -31,40 +31,43 @@ namespace Body {
 */
 class Base
   : public Shift::Base
-  , public Serialize {
+  , public Shift::Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name) {
-    Frame origin("origin");
-    origin.setIsOrigin(true);
-    origin.setIsReference(true);
-    origin.setParentBody(this);
+    : Shift::Base(name)
+    , Shift::Parameter::List() {
+    Frame* origin = new Frame("origin");
+    origin->setIsOrigin(true);
+    origin->setIsReference(true);
+    origin->setParentBody(this);
     appendFrame(origin);
+    addParameters();
   }
   Base()
     : Shift::Base("") {
-    Frame origin("origin");
-    origin.setIsOrigin(true);
-    origin.setIsReference(true);
-    origin.setParentBody(this);
+    Frame* origin = new Frame("origin");
+    origin->setIsOrigin(true);
+    origin->setIsReference(true);
+    origin->setParentBody(this);
     appendFrame(origin);
+    addParameters();
   }
   Base(Base&& b)
     : Shift::Base(b.name_) {
-    for(auto& i : b.lights_) {
-      lights_.push_back(std::move(i));
-    }
-    for(auto& i : b.geometry_) {
-      geometry_.push_back(std::move(i));
-    }
-    for(auto& i : b.collisionGeometry_) {
-      collisionGeometry_.push_back(std::move(i));
-    }
+    // for(auto& i : b.lights_) {
+    //   lights_.push_back(std::move(i));
+    // }
+    // for(auto& i : b.geometry_) {
+    //   geometry_.push_back(std::move(i));
+    // }
+    // for(auto& i : b.collisionGeometry_) {
+    //   collisionGeometry_.push_back(std::move(i));
+    // }
   }
   virtual ~Base() {}
 
-  virtual void addKeys();
+  virtual void addParameters();
 
   const std::string& type() {
     return type_;
@@ -76,14 +79,12 @@ public:
   void setContext(Context* context) {
     context_ = context;
   }
-  void appendFrame(Frame&);
-  void appendLight(std::unique_ptr<Light::Base>&);
-  void appendGeometry(std::unique_ptr<Geometry::Base>&);
-  void appendCollisionGeometry(std::unique_ptr<CollisionGeometry::Base>&);
+  void appendFrame(Frame*);
+  // void appendLight(std::unique_ptr<Light::Base>&);
+  // void appendGeometry(std::unique_ptr<Geometry::Base>&);
+  // void appendCollisionGeometry(std::unique_ptr<CollisionGeometry::Base>&);
 
   Base* parentBody();
-  virtual void readJSON(Json::Value&);
-  virtual void print();
   virtual void load();
   virtual void connect();
   void setFullyQualifiedNames(std::vector<std::string>&);
@@ -95,6 +96,14 @@ public:
   void setReferenceFrame();
   unsigned int frameCount() {
     return frames_.size();
+  }
+
+  static const std::string arrayKey() {
+    return "bodies";
+  }
+
+  static const std::string defaultType() {
+    return "rigid";
   }
 
   /*!
@@ -115,22 +124,22 @@ public:
     return level_;
   }
 
-  std::vector<Shift::Frame>& frames() {
-    return frames_;
+  std::vector<std::unique_ptr<Frame>>& frames() {
+    return frames_.data();
   }
 
   void setLevel(int level) {
     level_ = level;
   }
 
-  Joint::Base* parentJoint() {
-    return parentJoint_;
+  const Joint::Base* parentJoint() {
+    return parent_joint_;
   }
 
   void setParentJoint(Joint::Base*);
 
   bool isArticulated() {
-    return isArticulated_;
+    return is_articulated_;
   }
 
   void setvaIndex(int index) {
@@ -170,29 +179,32 @@ protected:
   void setDWRTReference();
 
   std::string type_;
-  bool isArticulated_ = true; /*!< indicates whether body may have joints
-                                 attached to it, i.e. that the body comprises a
-                                 link of an articulated assembly of bodies */
-  Assembly* assembly_ = NULL; /*!< Pointer to assembly that this body is a
+  bool is_articulated_ = true;   /*!< indicates whether body may have joints
+                                   attached to it, i.e. that the body comprises a
+                                   link of an articulated assembly of bodies */
+  Assembly* assembly_ = nullptr; /*!< Pointer to assembly that this body is a
                                   member of. */
-  Context* context_ = NULL;
-  std::vector<Frame> frames_; /*!< Frame list */
-  std::vector<std::unique_ptr<Light::Base>> lights_;
-  std::vector<std::unique_ptr<Geometry::Base>> geometry_;
-  std::vector<std::unique_ptr<CollisionGeometry::Base>> collisionGeometry_;
-  bool drawEnabled_ = true;
-  bool drawCollisionObjectEnabled_ = false;
+  Context* context_ = nullptr;
+
+  Parameter::Array<Frame> frames_;
+
+  Parameter::FactoryArray<Light::Base> lights_;
+  Parameter::FactoryArray<Geometry::Base> geometry_;
+  Parameter::FactoryArray<CollisionGeometry::Base> collision_geometry_;
+
+  bool draw_enabled_ = true;
+  bool draw_collision_geometry_enabled_ = false;
   int index_ = -1;
   int level_ = -1;
   int vaIndex_ = -1;
-  Joint::Base* parentJoint_ = NULL;
-  Shift::Frame* referenceFrame_ = NULL;
+  Joint::Base* parent_joint_ = nullptr;
+  Shift::Frame* reference_frame_ = nullptr;
   ksl_inertia_t inertia_ = {}; /*!< centroidal Mass and moment of Inertia
                                     properties expressed in body origin
                                     coordinate system */
-  ksl_vec3_t centerOfMassWRTOrigin_ = {};    /*!< vector from body origin to
+  ksl_vec3_t center_of_mass_wrt_origin_ = {};    /*!< vector from body origin to
                                                 center of mass */
-  ksl_vec3_t centerOfMassWRTReference_ = {}; /*!< vector from body reference
+  ksl_vec3_t center_of_mass_wrt_reference_ = {}; /*!< vector from body reference
                                                 frame to center of mass */
   bool isVirtual_ = false;
 };

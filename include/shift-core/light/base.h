@@ -6,7 +6,7 @@
 #include <string>
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -24,7 +24,7 @@ namespace Light {
 */
 class Base
   : public Shift::Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Base(std::string name)
@@ -40,14 +40,18 @@ public:
     context_ = context;
   }
 
-  virtual void readJSON(Json::Value&);
-  virtual void print();
+  static const std::string arrayKey() {
+    return "lights";
+  }
+  static const std::string defaultType() {
+    return "";
+  }
   virtual void load();
   virtual void connect();
 
 protected:
   Context* context_;
-  void addKeys();
+  void addParameters();
   std::vector<std::string> parent_;
   std::string type_; //!< descriptive name of Light type
   ksl_vec3_t Ka_ = ksl_vec3(0.2, 0.2, 0.2);

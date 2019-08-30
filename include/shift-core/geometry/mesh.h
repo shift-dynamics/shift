@@ -11,15 +11,15 @@ class Mesh : public Base {
 public:
   Mesh()
     : Base() {
-    addKeys();
+    addParameters();
   }
   Mesh(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~Mesh() override {}
   static std::unique_ptr<Mesh> create();
-  void addKeys() override;
+  void addParameters() override;
 
   static bool isRegistered() {
     return registered_;

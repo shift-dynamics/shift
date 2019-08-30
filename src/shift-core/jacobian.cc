@@ -19,20 +19,6 @@ void Shift::Jacobian::initialize() {
   setBMatrixSparse();
   setConstraintPointers();
   setSubstructurePointers();
-  // std::cout << "positive loop members: " << std::endl;
-  // for(auto& loop : positiveLoopMembersCompressed_) {
-  //   for(auto i : loop) {
-  //     std::cout << i << " ";
-  //   }
-  //   std::cout << std::endl;
-  // }
-  // std::cout << "negative loop members: " << std::endl;
-  // for(auto& loop : positiveLoopMembersCompressed_) {
-  //   for(auto i : loop) {
-  //     std::cout << i << " ";
-  //   }
-  //   std::cout << std::endl;
-  // }
 
   if(removeConstraintViolations()) {
     std::cerr << "Error: constraints not satisfied." << std::endl;

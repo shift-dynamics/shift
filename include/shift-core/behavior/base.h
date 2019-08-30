@@ -7,7 +7,7 @@
 #include <string>
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -20,16 +20,16 @@ namespace Behavior {
 */
 class Base
   : public Shift::Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Base(std::string name)
     : Shift::Base(name) {
-    addKeys();
+    addParameters();
   }
   Base()
     : Shift::Base("") {
-    addKeys();
+    addParameters();
   }
   ~Base() {}
 
@@ -39,7 +39,16 @@ public:
 
   virtual void load();
   virtual void connect();
-  virtual void readJSON(Json::Value&);
+  virtual void addParameters() override;
+
+  static const std::string arrayKey() {
+    return "behaviors";
+  }
+
+  static const std::string defaultType() {
+    return "";
+  }
+
   void setContext(Context* context) {
     context_ = context;
   }

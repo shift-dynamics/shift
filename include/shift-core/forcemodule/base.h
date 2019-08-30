@@ -5,7 +5,7 @@
 #include <map>
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -18,22 +18,27 @@ namespace ForceModule {
 */
 class Base
   : public Shift::Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Base(std::string name)
     : Shift::Base(name)
-    , Serialize() {
-    addKeys();
+    , Parameter::List() {
+    addParameters();
   }
   Base()
     : Shift::Base("")
-    , Serialize() {
-    addKeys();
+    , Parameter::List() {
+    addParameters();
   }
   virtual ~Base() {}
 
-  void readJSON(Json::Value&);
+  static const std::string arrayKey() {
+    return "force_modules";
+  }
+  static const std::string defaultType() {
+    return "";
+  }
   virtual void load();
   virtual void connect();
   void setContext(Context* context) {
@@ -41,8 +46,8 @@ public:
   }
 
 protected:
-  Context* context_ = NULL;
-  void addKeys();
+  Context* context_ = nullptr;
+  void addParameters() override;
 
   std::string type_;
 };

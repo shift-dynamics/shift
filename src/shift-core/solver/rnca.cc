@@ -12,8 +12,8 @@ std::unique_ptr<Shift::Solver::RNCA> Shift::Solver::RNCA::create() {
   return std::make_unique<Shift::Solver::RNCA>();
 }
 
-void Shift::Solver::RNCA::addKeys() {
-  Shift::Solver::Base::addKeys();
+void Shift::Solver::RNCA::addParameters() {
+  Shift::Solver::Base::addParameters();
 }
 
 void Shift::Solver::RNCA::initialize() {

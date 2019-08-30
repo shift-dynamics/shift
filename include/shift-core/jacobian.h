@@ -5,7 +5,7 @@
 #include <string>
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 #include "shift-core/substructure.h"
 #include "shift-core/topology.h"
 
@@ -20,7 +20,7 @@ class Context;
 */
 class Jacobian
   : public Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Jacobian(Shift::Context* context)
@@ -30,40 +30,40 @@ public:
   ~Jacobian() {
     if(J_) {
       delete[] J_;
-      J_ = NULL;
+      J_ = nullptr;
     }
 
     if(Jxx_) {
       delete[] Jxx_;
-      Jxx_ = NULL;
+      Jxx_ = nullptr;
     }
 
     if(Jb_) {
       delete[] Jb_;
-      Jb_ = NULL;
+      Jb_ = nullptr;
     }
 
     if(cs_) {
       delete[] cs_;
-      cs_ = NULL;
+      cs_ = nullptr;
     }
 
     if(dcs_) {
       delete[] dcs_;
-      dcs_ = NULL;
+      dcs_ = nullptr;
     }
 
     if(b3_) {
       delete[] b3_;
-      b3_ = NULL;
+      b3_ = nullptr;
     }
     if(ijMapping_) {
       delete[] ijMapping_;
-      ijMapping_ = NULL;
+      ijMapping_ = nullptr;
     }
     if(cb3_) {
       delete[] cb3_;
-      cb3_ = NULL;
+      cb3_ = nullptr;
     }
     if(rightNullSpace_) {
       delete[] rightNullSpace_;
@@ -91,18 +91,18 @@ public:
   void initializeMobility();
 
 private:
-  Shift::Context* context_ = NULL;
+  Shift::Context* context_ = nullptr;
 
-  double* J_ = NULL; /*! array to hold entries of Jacobian */
-  int* Jxx_ = NULL;  /*!< integer array */
-  bool* Jb_ = NULL;
-  double* cs_ = NULL; /*!< constraints */
-  double* dcs_ = NULL;
-  double* b3_ = NULL;
-  int* ijMapping_ = NULL;
-  int** rb3_ = NULL;
-  int* cb3_ = NULL;
-  double* rightNullSpace_ = NULL;
+  double* J_ = nullptr; /*! array to hold entries of Jacobian */
+  int* Jxx_ = nullptr;  /*!< integer array */
+  bool* Jb_ = nullptr;
+  double* cs_ = nullptr; /*!< constraints */
+  double* dcs_ = nullptr;
+  double* b3_ = nullptr;
+  int* ijMapping_ = nullptr;
+  int** rb3_ = nullptr;
+  int* cb3_ = nullptr;
+  double* rightNullSpace_ = nullptr;
 
   unsigned int jacobianSize_ =
     0; /*!< size of all block sub Jacobian matrices */

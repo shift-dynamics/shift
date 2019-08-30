@@ -2,62 +2,93 @@
 
 #include "ksl/print.h"
 
-void Shift::Frame::addKeys() {
+void Shift::Frame::addParameters() {
 
-  SerialEntry name("name", SerialType::STRING, &name_);
-  name.setRequired(true);
-  addSerialEntry(name);
+  addParameter("name", &name_, "descriptive frame name", true);
 
-  SerialEntry active("active", SerialType::STRING, &active_);
-  active.setRequired(false);
-  addSerialEntry(active);
+  addParameter(
+    "active", &active_,
+    "indicates whether frame is active, defaults to true if not specified",
+    false);
 
-  SerialEntry R("R", SerialType::KSL_MAT3X3, &(dWRTOrigin_.R));
-  R.setRequired(false);
-  addSerialEntry(R);
+  addParameter(
+    "R", &dWRTOrigin_.R,
+    "specify orientation as a 3x3 rotation matrix in row-major "
+    "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+    "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
+    "orientation. If multiple key-value pairs are specified for orientation, "
+    "only one of the entries will be loaded.",
+    false);
 
-  SerialEntry rotation("rotation", SerialType::KSL_MAT3X3, &(dWRTOrigin_.R));
-  rotation.setRequired(false);
-  addSerialEntry(rotation);
+  addParameter(
+    "rotation", &dWRTOrigin_.R,
+    "specify orientation as a 3x3 rotation matrix in row-major "
+    "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+    "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
+    "orientation. If multiple key-value pairs are specified for orientation, "
+    "only one of the entries will be loaded.",
+    false);
 
-  SerialEntry T("T", SerialType::KSL_VEC3, &(dWRTOrigin_.t));
-  T.setRequired(false);
-  addSerialEntry(T);
+  addParameter(
+    "quaternion", &dWRTOrigin_.R,
+    "specify orientation as a 3x3 rotation matrix in row-major "
+    "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+    "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
+    "orientation. If multiple key-value pairs are specified for orientation, "
+    "only one of the entries will be loaded.",
+    false)
+    .setQuaternionMapsToMat3x3(true);
 
-  SerialEntry t("t", SerialType::KSL_VEC3, &(dWRTOrigin_.t));
-  t.setRequired(false);
-  addSerialEntry(t);
+  addParameter(
+    "Q", &dWRTOrigin_.R,
+    "specify orientation as a 3x3 rotation matrix in row-major "
+    "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+    "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
+    "orientation. If multiple key-value pairs are specified for orientation, "
+    "only one of the entries will be loaded.",
+    false)
+    .setQuaternionMapsToMat3x3(true);
 
-  SerialEntry translation("translation", SerialType::KSL_VEC3,
-                          &(dWRTOrigin_.t));
-  translation.setRequired(false);
-  addSerialEntry(translation);
+  addParameter(
+    "q", &dWRTOrigin_.R,
+    "specify orientation as a 3x3 rotation matrix in row-major "
+    "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+    "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
+    "orientation. If multiple key-value pairs are specified for orientation, "
+    "only one of the entries will be loaded.",
+    false)
+    .setQuaternionMapsToMat3x3(true);
 
-  SerialEntry Q("Q", SerialType::KSL_QUATERNION, &(dWRTOrigin_.R));
-  Q.setRequired(false);
-  Q.setQuaternionMapsToMat3x3(true);
-  addSerialEntry(Q);
+  addParameter(
+    "euler_angles", &dWRTOrigin_.R,
+    "specify orientation as a 3x3 rotation matrix in row-major "
+    "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+    "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
+    "orientation. If multiple key-value pairs are specified for orientation, "
+    "only one of the entries will be loaded.",
+    false)
+    .setEulerAnglesMapToMat3x3(true);
 
-  SerialEntry q("q", SerialType::KSL_QUATERNION, &(dWRTOrigin_.R));
-  q.setRequired(false);
-  q.setQuaternionMapsToMat3x3(true);
-  addSerialEntry(q);
+  addParameter(
+    "translation", &dWRTOrigin_.t,
+    "specify translation vector; the keys 'translation', 'T' and 't' "
+    "may be used to designate translation. If multiple key-value pairs are "
+    "specified for translation, only one of the entries will be loaded.",
+    false);
 
-  SerialEntry quaternion("quaternion", SerialType::KSL_QUATERNION,
-                         &(dWRTOrigin_.R));
-  quaternion.setRequired(false);
-  quaternion.setQuaternionMapsToMat3x3(true);
-  addSerialEntry(quaternion);
+  addParameter(
+    "T", &dWRTOrigin_.t,
+    "specify translation vector; the keys 'translation', 'T' and 't' "
+    "may be used to designate translation. If multiple key-value pairs are "
+    "specified for translation, only one of the entries will be loaded.",
+    false);
 
-  SerialEntry euler_angles("euler_angles", SerialType::EULERANGLES,
-                           &(dWRTOrigin_.R));
-  euler_angles.setRequired(false);
-  euler_angles.setEulerAnglesMapToMat3x3(true);
-  addSerialEntry(euler_angles);
-}
-
-void Shift::Frame::print() {
-  ksl_SE3_print(stdout, &dWRTOrigin_, name_.c_str());
+  addParameter(
+    "t", &dWRTOrigin_.t,
+    "specify translation vector; the keys 'translation', 'T' and 't' "
+    "may be used to designate translation. If multiple key-value pairs are "
+    "specified for translation, only one of the entries will be loaded.",
+    false);
 }
 
 const ksl_SE3_t* Shift::Frame::dWRTOrigin() const {
@@ -76,11 +107,4 @@ const ksl_SE3_t* Shift::Frame::systemDWRTReference() const {
   }
 }
 
-void Shift::Frame::setNameRequired(bool required) {
-  for(auto& entry : serialEntries_) {
-    if(entry.getKey() == "name") {
-      entry.setRequired(required);
-      break;
-    }
-  }
-}
+void Shift::Frame::print() {}

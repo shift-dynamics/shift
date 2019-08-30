@@ -10,4 +10,4 @@ Shift::Geometry::PointCloud::create() {
   return std::make_unique<Shift::Geometry::PointCloud>();
 }
 
-void Shift::Geometry::PointCloud::addKeys() {}
+void Shift::Geometry::PointCloud::addParameters() {}

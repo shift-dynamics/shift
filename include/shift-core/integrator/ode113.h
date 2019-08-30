@@ -16,15 +16,15 @@ class ODE113 : public Base {
 public:
   ODE113(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   ODE113()
     : Base("") {
-    addKeys();
+    addParameters();
   }
   virtual ~ODE113() override {}
   static std::unique_ptr<ODE113> create();
-  void addKeys();
+  void addParameters();
 
   static bool isRegistered() {
     return registered_;

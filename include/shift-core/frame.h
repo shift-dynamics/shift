@@ -9,9 +9,11 @@
 #include "ksl/quaternion.h"
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
+
+class Context;
 
 namespace Body {
 class Base;
@@ -22,23 +24,32 @@ class Base;
 */
 class Frame
   : public Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Frame(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   Frame()
     : Base("") {
-    addKeys();
+    addParameters();
   }
   ~Frame() {}
   void print();
-  void setNameRequired(bool);
+  // void setNameRequired(bool) {
+  //   n
+  // }
   const ksl_SE3_t* dWRTReference() const;
   const ksl_SE3_t* dWRTOrigin() const;
   const ksl_SE3_t* systemDWRTReference() const;
+
+  static const std::string arrayKey() {
+    return "frames";
+  }
+  static const std::string defaultType() {
+    return "";
+  }
 
   int index() const {
     return index_;
@@ -95,8 +106,12 @@ public:
     return referenceFrame_;
   }
 
+  void setContext(Context* context) {
+    context_ = context;
+  }
+
 private:
-  void addKeys();
+  void addParameters() override;
   std::vector<std::string> fullyQualifiedName_;
 
   /*! \brief relative transformation from body origin to current frame
@@ -120,10 +135,11 @@ private:
   // of the body it is attached to
   bool isOrigin_ = false; //<! indicates whether frame is origin of rigid body
   // it is attached to
-  Frame* referenceFrame_ = NULL;
+  Frame* referenceFrame_ = nullptr;
   bool useSystemReferenceFrame_ = false;
 
-  Body::Base* parentBody_ = NULL;
+  Body::Base* parentBody_ = nullptr;
+  Context* context_ = nullptr;
 };
 
 } // namespace Shift

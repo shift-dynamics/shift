@@ -22,7 +22,8 @@
 
 namespace Shift {
 
-template <class T> class Factory {
+template <class T>
+class Factory {
 
 public:
   Factory() {}
@@ -180,7 +181,8 @@ std::map<std::string, Shift::Factory<Shift::Terrain::Base>::CreateFunction>
 /*! indicate that Terrain specialization exists */
 extern template class Shift::Factory<Shift::Terrain::Base>;
 
-template <class T> class Registration {
+template <class T>
+class Registration {
 public:
   Registration(std::string name, typename Factory<T>::CreateFunction fcn) {
     Factory<T>::get()->registerModule(name, fcn);

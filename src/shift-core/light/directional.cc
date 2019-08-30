@@ -9,10 +9,6 @@ std::unique_ptr<Shift::Light::Directional> Shift::Light::Directional::create() {
   return std::make_unique<Shift::Light::Directional>();
 }
 
-void Shift::Light::Directional::addKeys() {
-  Shift::Light::Base::addKeys();
-}
-
-void Shift::Light::Directional::readJSON(Json::Value& value) {
-  Shift::Light::Base::readJSON(value);
+void Shift::Light::Directional::addParameters() {
+  Shift::Light::Base::addParameters();
 }

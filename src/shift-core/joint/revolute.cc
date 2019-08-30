@@ -600,23 +600,15 @@ void Shift::Joint::rainv_dhva(const Shift::Context& context,
   ksl_add_ss(aqParent, &aqRelative, aqChild);
 }
 
-void Shift::Joint::Revolute::addKeys() {
-  SerialEntry axis("axis", SerialType::KSL_VEC3, &axis_);
-  axis.setRequired(false);
-  axis.setDescription(
+void Shift::Joint::Revolute::addParameters() {
+  addParameter(
+    "axis", &axis_,
     "Axis of rotation expressed in parent body frame, defaults to z-axis if "
-    "no axis is provided.");
-  addSerialEntry(axis);
-
-  SerialEntry q0("initial_displacement", SerialType::DOUBLE, q_0_);
-  q0.setRequired(false);
-  q0.setDescription("Initial joint displacement.");
-  addSerialEntry(q0);
-
-  SerialEntry dq0("initial_velocity", SerialType::DOUBLE, dq_0_);
-  dq0.setRequired(false);
-  dq0.setDescription("Initial joint velocity.");
-  addSerialEntry(dq0);
+    "no axis is provided.",
+    false);
+  addParameter("initial_displacement", q_0_, "Initial joint displacement.",
+               false);
+  addParameter("initial_velocity", dq_0_, "Initial joint velocity.", false);
 }
 
 Shift::Joint::Revolute::AxisType Shift::Joint::Revolute::axisType() {

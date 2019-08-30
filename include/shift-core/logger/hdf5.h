@@ -17,11 +17,11 @@ class HDF5 : public Base {
 public:
   HDF5(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   HDF5()
     : Base("") {
-    addKeys();
+    addParameters();
   }
   virtual ~HDF5() override {}
 
@@ -29,13 +29,12 @@ public:
     return description_;
   }
 
-  void addKeys();
+  void addParameters() override;
 
   static bool isRegistered() {
     return registered_;
   }
 
-  void readJSON(Json::Value&) override;
   virtual void initialize() override {}
 
 private:
