@@ -7,7 +7,7 @@
 #include <string>
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -33,7 +33,7 @@ namespace Solver {
 */
 class Base
   : public Shift::Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Base(std::string name)
@@ -45,7 +45,15 @@ public:
   const std::string& getType() {
     return type_;
   }
-  virtual void readJSON(Json::Value&);
+
+  static const std::string arrayKey() {
+    return "force_modules";
+  }
+
+  static const std::string defaultType() {
+    return "";
+  }
+
   virtual void load();
   virtual void connect();
   void setContext(Context* context) {
@@ -55,7 +63,7 @@ public:
 
 protected:
   Context* context_;
-  void addKeys();
+  void addParameters() override;
   std::string type_; //!< descriptive name of Solver type
 };
 

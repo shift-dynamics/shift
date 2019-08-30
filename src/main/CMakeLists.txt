@@ -18,6 +18,25 @@ message(STATUS "JsonCpp_LIBRARY ${JsonCpp_LIBRARY}")
 
 target_link_libraries(shift-cli shift_core ksl ${JsonCpp_LIBRARY})
 
+target_compile_options(
+  shift-cli
+  PRIVATE
+  -march=x86-64
+  -mtune=generic
+  -fstack-protector-strong
+  --param=ssp-buffer-size=4
+  -W
+  -lstdc++
+  -Wall
+  -Wextra
+  -g3
+  -O3
+  -std=c++17
+)
+
+target_include_directories(shift-cli PUBLIC ${CMAKE_SOURCE_DIR}/include)
+
+
 add_executable(shift shift.cc)
 
 qt5_use_modules(shift Core Widgets Gui)

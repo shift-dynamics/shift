@@ -17,11 +17,11 @@ class ContactDetection : public Base {
 public:
   ContactDetection()
     : Base() {
-    addKeys();
+    addParameters();
   }
   ContactDetection(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   ~ContactDetection() {}
   static std::unique_ptr<ContactDetection> create();
@@ -32,7 +32,7 @@ public:
 
 private:
   static bool registered_;
-  void addKeys();
+  void addParameters() override;
 };
 
 } // namespace Behavior

@@ -2,26 +2,19 @@
 
 #include "shift-core/units.h"
 
-void Shift::Units::addKeys() {
-  SerialEntry mass("mass", SerialType::STRING, &mass_);
-  mass.setRequired(true);
-  mass.setDescription("Mass units, defaults to kg if not provided.");
-  addSerialEntry(mass);
+void Shift::Units::addParameters() {
 
-  SerialEntry length("length", SerialType::STRING, &length_);
-  length.setRequired(false);
-  length.setDescription("Length units, defaults to meters if not provided.");
-  addSerialEntry(length);
+  addParameter("mass", &mass_, "Mass units, defaults to kg if not provided.",
+               false);
 
-  SerialEntry time("time", SerialType::STRING, &time_);
-  time.setRequired(false);
-  time.setDescription("Time units, defaults to seconds if not provided.");
-  addSerialEntry(time);
+  addParameter("length", &length_,
+               "Length units, defaults to meters if not provided.", false);
 
-  SerialEntry angle("angle", SerialType::STRING, &angle_);
-  angle.setRequired(false);
-  angle.setDescription("Angle units, defaults to radians if not provided.");
-  addSerialEntry(angle);
+  addParameter("time", &time_,
+               "Time units, defaults to seconds if not provided.", false);
+
+  addParameter("angle", &angle_,
+               "Angle units, defaults to radians if not provided.", false);
 }
 
 void Shift::Units::print() {

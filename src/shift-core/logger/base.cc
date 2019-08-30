@@ -13,12 +13,8 @@ bool Shift::Logger::Modules::initialized() {
   return true;
 }
 
-void Shift::Logger::Base::addKeys() {}
+void Shift::Logger::Base::addParameters() {}
 
 void Shift::Logger::Base::load() {}
 
 void Shift::Logger::Base::connect() {}
-
-void Shift::Logger::Base::readJSON(Json::Value& value) {
-  Shift::Serialize::readJSON(value);
-}

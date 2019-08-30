@@ -9,8 +9,8 @@ std::unique_ptr<Shift::Terrain::Basic> Shift::Terrain::Basic::create() {
   return std::make_unique<Shift::Terrain::Basic>();
 }
 
-void Shift::Terrain::Basic::addKeys() {
-  Shift::Terrain::Base::addKeys();
+void Shift::Terrain::Basic::addParameters() {
+  Shift::Terrain::Base::addParameters();
 }
 
 void Shift::Terrain::Base::load() {}

@@ -23,70 +23,33 @@ bool Shift::Light::Modules::initialized() {
   return true;
 }
 
-void Shift::Light::Base::readJSON(Json::Value& value) {
-  Shift::Serialize::readJSON(value);
-}
-
-void Shift::Light::Base::addKeys() {
-  SerialEntry name("name", SerialType::STRING, &name_);
-  name.setRequired(true);
-  name.setDescription("User defined descriptive light name.");
-  addSerialEntry(name);
-
-  SerialEntry active("active", SerialType::BOOLEAN, &active_);
-  active.setRequired(false);
-  active.setDescription(
+void Shift::Light::Base::addParameters() {
+  addParameter("name", &name_, "User defined descriptive light name.", true);
+  addParameter(
+    "active", &active_,
     "Indicates whether light is active in simulation: If the value is set to "
     "false, the data will be loaded into computer working memory, but will not "
     "be processed when setting up and solving the equations of motion. Use "
-    "this key to selectively enable or disable portions of the model.");
-  addSerialEntry(active);
-
-  SerialEntry lightType("type", SerialType::STRING, &type_);
-  lightType.setRequired(true);
-  lightType.setDescription("Indicates type of light.");
-  addSerialEntry(lightType);
-
-  SerialEntry parent("parent", SerialType::STRING_ARRAY, &parent_);
-  parent.setRequired(true);
-  parent.setDescription(
+    "this key to selectively enable or disable portions of the model.",
+    false);
+  addParameter("type", &type_, "Indicates type of light", true);
+  addParameter(
+    "parent", &parent_,
     "Indicates light's parent body and frame using the syntax [\"Body\", "
-    "\"Frame\"]");
-  addSerialEntry(parent);
-
-  SerialEntry Ka("Ka", SerialType::KSL_VEC3, &Ka_);
-  Ka.setRequired(false);
-  Ka.setDescription("Indicates light's ambient color component in RGB format "
-                    "using values from 0 to 1. ");
-  addSerialEntry(Ka);
-
-  SerialEntry Kd("Ka", SerialType::KSL_VEC3, &Kd_);
-  Kd.setRequired(false);
-  Kd.setDescription("Indicates light's diffuse color component in RGB format "
-                    "using values from 0 to 1. ");
-  addSerialEntry(Kd);
-
-  SerialEntry Ks("Ka", SerialType::KSL_VEC3, &Ks_);
-  Ks.setRequired(false);
-  Ks.setDescription("Indicates light's specular color component in RGB format "
-                    "using values from 0 to 1. ");
-  addSerialEntry(Ks);
-}
-
-void Shift::Light::Base::print() {
-  std::cout << "  name: " << name_ << std::endl;
-  std::cout << "  type: " << type_ << std::endl;
-  std::cout << "  parent: [";
-  for(unsigned int i = 0; i < parent_.size(); i++) {
-    std::cout << parent_[i];
-    if(i != parent_.size() - 1) {
-      std::cout << ", ";
-    }
-  }
-  std::cout << "]" << std::endl;
-  ksl_vec3_print(stdout, &Ka_, "  Ka: ");
-  ksl_vec3_print(stdout, &Kd_, "  Kd: ");
-  ksl_vec3_print(stdout, &Ks_, "  Ks: ");
+    "\"Frame\"]",
+    true);
+  addParameter("Ka", &Ka_,
+               "Indicates light's ambient color component in RGB format "
+               "using values from 0 to 1.",
+               false);
+  addParameter("Kd", &Kd_,
+               "Indicates light's diffuse color component in RGB format "
+               "using values from 0 to 1.",
+               false);
+  addParameter("Ks", &Ks_,
+               "Indicates light's specular color component in RGB format "
+               "using values from 0 to 1.",
+               false);
 }
 
 void Shift::Light::Base::load() {}

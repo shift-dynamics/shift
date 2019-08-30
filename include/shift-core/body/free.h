@@ -13,21 +13,21 @@ class Free : public Base {
 public:
   Free()
     : Base() {
-    addKeys();
-    isArticulated_ = false;
+    addParameters();
+    is_articulated_ = false;
   }
 
   Free(std::string name)
     : Base(name) {
-    addKeys();
-    isArticulated_ = false;
+    addParameters();
+    is_articulated_ = false;
   }
 
   virtual ~Free() override {}
 
   static std::unique_ptr<Free> create();
 
-  void addKeys() override;
+  void addParameters() override;
 
   static bool isRegistered() {
     return registered_;

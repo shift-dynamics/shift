@@ -1,6 +1,5 @@
 set(shift_core_src
 
-  serialize.cc
   assembly.cc
   base.cc
   context.cc
@@ -11,6 +10,7 @@ set(shift_core_src
   substructure.cc
   topology.cc
   units.cc
+  parameter.cc
 
   behavior/base.cc
   behavior/contactdetection.cc
@@ -50,6 +50,8 @@ set(shift_core_src
   joint/revolute.cc
   joint/rigid.cc
   joint/spherical.cc
+
+  kdtree/kdtree.cc
 
   light/base.cc
   light/directional.cc
@@ -110,9 +112,10 @@ target_include_directories(
 )
 
 target_link_libraries(
-  shift_core 
-  ${JsonCpp_LIBRARY} 
-  ${GRAPHVIZ_GVC_LIBRARY} 
-  ${GRAPHVIZ_CGRAPH_LIBRARY} 
+  shift_core
+  ${JsonCpp_LIBRARY}
+  ${GRAPHVIZ_GVC_LIBRARY}
+  ${GRAPHVIZ_CGRAPH_LIBRARY}
+  ${CMAKE_THREAD_LIBS_INIT}
   ksl
 )

@@ -9,11 +9,7 @@ bool Shift::Integrator::Modules::initialized() {
   return true;
 }
 
-void Shift::Integrator::Base::readJSON(Json::Value& value) {
-  Shift::Serialize::readJSON(value);
-}
-
-void Shift::Integrator::Base::addKeys() {}
+void Shift::Integrator::Base::addParameters() {}
 
 void Shift::Integrator::Base::load() {}
 

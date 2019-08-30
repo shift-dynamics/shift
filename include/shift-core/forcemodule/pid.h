@@ -17,15 +17,15 @@ class PID : public Base {
 public:
   PID()
     : Base() {
-    addKeys();
+    addParameters();
   }
   PID(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~PID() override {}
   static std::unique_ptr<PID> create();
-  void addKeys();
+  void addParameters() override;
 
   static bool isRegistered() {
     return registered_;

@@ -10,4 +10,4 @@ Shift::Geometry::Ellipsoid::create() {
   return std::make_unique<Shift::Geometry::Ellipsoid>();
 }
 
-void Shift::Geometry::Ellipsoid::addKeys() {}
+void Shift::Geometry::Ellipsoid::addParameters() {}

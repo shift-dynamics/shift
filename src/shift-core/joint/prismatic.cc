@@ -597,25 +597,21 @@ void Shift::Joint::tainv_dhva(const Shift::Context& context,
   ksl_add_sst(aqParent, &aqRelative, aqChild);
 }
 
-void Shift::Joint::Prismatic::addKeys() {
+void Shift::Joint::Prismatic::addParameters() {
 
-  SerialEntry axis("axis", SerialType::KSL_VEC3, &axis_);
-  axis.setRequired(false);
-  axis.setDescription("Translation axis expressed in parent body frame, "
-                      "defaults to z-axis if no axis provided.");
-  addSerialEntry(axis);
+  addParameter("axis", &axis_,
+               "Translation axis expressed in parent body frame, "
+               "defaults to z-axis if no axis provided.",
+               false);
 
-  SerialEntry q0("initial_displacement", SerialType::DOUBLE, q_0_);
-  q0.setRequired(false);
-  q0.setDescription(
-    "Initial joint displacement, defaults to zero if no value provided.");
-  addSerialEntry(q0);
+  addParameter(
+    "initial_displacement", q_0_,
+    "Initial joint displacement, defaults to zero if no value provided.",
+    false);
 
-  SerialEntry dq0("initial_velocity", SerialType::DOUBLE, dq_0_);
-  dq0.setRequired(false);
-  dq0.setDescription(
-    "Initial joint velocity, defaults to zero if no value provided.");
-  addSerialEntry(dq0);
+  addParameter("initial_velocity", dq_0_,
+               "Initial joint velocity, defaults to zero if no value provided.",
+               false);
 }
 
 Shift::Joint::Prismatic::AxisType Shift::Joint::Prismatic::axisType() {

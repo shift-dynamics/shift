@@ -16,11 +16,11 @@ class CSV : public Base {
 public:
   CSV(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   CSV()
     : Base("") {
-    addKeys();
+    addParameters();
   }
   virtual ~CSV() override {}
 
@@ -28,13 +28,12 @@ public:
     return description_;
   }
 
-  void addKeys();
+  void addParameters() override;
 
   static bool isRegistered() {
     return registered_;
   }
 
-  void readJSON(Json::Value&) override;
   virtual void initialize() override {}
 
 private:

@@ -11,15 +11,15 @@ class PointCloud : public Base {
 public:
   PointCloud()
     : Base() {
-    addKeys();
+    addParameters();
   }
   PointCloud(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~PointCloud() override {}
   static std::unique_ptr<PointCloud> create();
-  void addKeys() override;
+  void addParameters() override;
 
   static bool isRegistered() {
     return registered_;

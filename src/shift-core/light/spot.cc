@@ -8,10 +8,6 @@ std::unique_ptr<Shift::Light::Spot> Shift::Light::Spot::create() {
   return std::make_unique<Shift::Light::Spot>();
 }
 
-void Shift::Light::Spot::addKeys() {
-  Shift::Light::Base::addKeys();
-}
-
-void Shift::Light::Spot::readJSON(Json::Value& value) {
-  Shift::Light::Base::readJSON(value);
+void Shift::Light::Spot::addParameters() {
+  Shift::Light::Base::addParameters();
 }

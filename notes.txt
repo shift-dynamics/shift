@@ -1,0 +1,3 @@
+setFullyQualifiedName
+setActiveObjects (consider changing to setActive)
+removeActive

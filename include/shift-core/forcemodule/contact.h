@@ -17,15 +17,15 @@ class Contact : public Base {
 public:
   Contact()
     : Base() {
-    addKeys();
+    addParameters();
   }
   Contact(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~Contact() override {}
   static std::unique_ptr<Contact> create();
-  void addKeys();
+  void addParameters() override;
 
   static bool isRegistered() {
     return registered_;

@@ -87,15 +87,15 @@ void Shift::Joint::rigidinv_dhva(const Shift::Context& context,
   Shift::Joint::rigidinv_dh(context, dhva, offsets, q);
 }
 
-void Shift::Joint::Rigid::addKeys() {}
+void Shift::Joint::Rigid::addParameters() {}
 
-void Shift::Joint::Rigid::readJSON(Json::Value& value) {
-  Shift::Joint::Base::readJSON(value);
-  frame_.setNameRequired(false);
-  if(value["initial_displacement"]) {
-    frame_.readJSON(value["initial_displacement"]);
-  }
-}
+// void Shift::Joint::Rigid::readJSON(Json::Value& value) {
+//   Shift::Joint::Base::readJSON(value);
+//   // frame_.setNameRequired(false);
+//   if(value["initial_displacement"]) {
+//     frame_.readJSON(value["initial_displacement"]);
+//   }
+// }
 
 Shift::Topology::dh_fptr Shift::Joint::Rigid::Dfptr() {
   if(sense_ >= 0) {

@@ -13,11 +13,7 @@ bool Shift::ForceModule::Modules::initialized() {
   return true;
 }
 
-void Shift::ForceModule::Base::readJSON(Json::Value& value) {
-  Serialize::readJSON(value);
-}
-
-void Shift::ForceModule::Base::addKeys() {}
+void Shift::ForceModule::Base::addParameters() {}
 
 void Shift::ForceModule::Base::load() {}
 

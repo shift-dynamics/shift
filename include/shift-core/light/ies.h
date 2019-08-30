@@ -12,16 +12,15 @@ class IES : public Base {
 public:
   IES()
     : Base() {
-    addKeys();
+    addParameters();
   }
   IES(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~IES() override {}
   static std::unique_ptr<IES> create();
-  void readJSON(Json::Value&) override;
-  virtual void addKeys();
+  virtual void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }

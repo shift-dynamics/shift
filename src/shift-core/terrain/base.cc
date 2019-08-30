@@ -9,8 +9,4 @@ bool Shift::Terrain::Modules::initialized() {
   return true;
 }
 
-void Shift::Terrain::Base::addKeys() {}
-
-void Shift::Terrain::Base::readJSON(Json::Value& value) {
-  Shift::Serialize::readJSON(value);
-}
+void Shift::Terrain::Base::addParameters() {}

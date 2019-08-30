@@ -28,179 +28,80 @@ bool Shift::Body::Modules::initialized() {
   return true;
 }
 
-void Shift::Body::Base::addKeys() {
-  SerialEntry name("name", SerialType::STRING, &name_);
-  name.setRequired(true);
-  name.setDescription("User defined descriptive body name.");
-  addSerialEntry(name);
+void Shift::Body::Base::addParameters() {
 
-  SerialEntry active("active", SerialType::BOOLEAN, &active_);
-  active.setRequired(false);
-  active.setDescription(
+  addParameter("name", &name_,
+               "User defined descriptive body name; must be unique within a "
+               "subassembly (required)",
+               true);
+
+  addParameter(
+    "active", &active_,
     "Indicates whether body is active in simulation: If the value is set to "
     "false, the data will be loaded into computer working memory, but will not "
     "be processed when setting up and solving the equations of motion. Use "
-    "this key to selectively enable or disable portions of the model.");
-  addSerialEntry(active);
+    "this key to selectively enable or disable portions of the model "
+    "(optional, default=true).",
+    false);
 
-  SerialEntry com("center_of_mass", SerialType::KSL_VEC3,
-                  &centerOfMassWRTOrigin_);
-  com.setRequired(false);
-  com.setDescription(
+  addParameter(
+    "center_of_mass", &center_of_mass_wrt_origin_,
     "Specifies a vector from the body origin to the body center of mass "
-    "expressed in the body-fixed coordinate system.");
-  addSerialEntry(com);
+    "expressed in the body-fixed coordinate system. (optional, "
+    "default={0,0,0})",
+    false);
 
-  SerialEntry inertia("inertia", SerialType::KSL_INERTIA, &inertia_);
-  inertia.setRequired(false);
-  inertia.setDescription(
+  addParameter(
+    "inertia", &inertia_,
     "Specify body mass and centroidal moment of inertia "
     "expressed in the body-fixed coordinate system. Note that if a zero or "
-    "very low mass is specified, it may cause problems for some solvers.");
-  addSerialEntry(inertia);
+    "very low mass is specified, it may cause problems for some solvers. "
+    "(optional, default={mass=1,Ixx=1,Iyy=1,Izz=1,Ixy=0,Iyz=0,Izx=0})",
+    false);
 }
 
-void Shift::Body::Base::readJSON(Json::Value& value) {
-
-  /* iterate over keys */
-  Shift::Serialize::readJSON(value);
-
-  if(value.isMember("frames") && value["frames"].isArray()) {
-    for(unsigned int i = 0; i < value["frames"].size(); i++) {
-      Frame frame;
-      frame.readJSON(value["frames"][i]);
-      frame.setParentBody(this);
-      appendFrame(frame);
-    }
-  }
-
-  if(value.isMember("lights") && value["lights"].isArray()) {
-    for(unsigned int i = 0; i < value["lights"].size(); i++) {
-      std::string lightType("point");
-      if(value["lights"][i].isMember("type") &&
-         value["lights"][i]["type"].isString()) {
-        lightType.assign(value["lights"][i]["type"].asString());
-      }
-      auto light = Shift::Factory<Shift::Light::Base>::get()->create(lightType);
-      light->setContext(context_);
-      light->readJSON(value["lights"][i]);
-      lights_.push_back(std::move(light));
-    }
-  }
-
-  if(value.isMember("geometry") && value["geometry"].isArray()) {
-    for(unsigned int i = 0; i < value["geometry"].size(); i++) {
-      std::string geometryType;
-      if(value["geometry"][i].isMember("type") &&
-         value["geometry"][i]["type"].isString()) {
-        geometryType.assign(value["geometry"][i]["type"].asString());
-        auto geometry =
-          Shift::Factory<Shift::Geometry::Base>::get()->create(geometryType);
-        geometry->setContext(context_);
-        geometry->readJSON(value["geometry"][i]);
-        geometry_.push_back(std::move(geometry));
-      }
-    }
-  }
-
-  if(value.isMember("collision_geometry") &&
-     value["collision_geometry"].isArray()) {
-    for(unsigned int i = 0; i < value["collision_geometry"].size(); i++) {
-      std::string geometryType;
-      if(value["collision_geometry"][i].isMember("type") &&
-         value["collision_geometry"][i]["type"].isString()) {
-        geometryType.assign(value["collision_geometry"][i]["type"].asString());
-
-        auto geometry =
-          Shift::Factory<Shift::CollisionGeometry::Base>::get()->create(
-            geometryType);
-        geometry->setContext(context_);
-        geometry->readJSON(value["collision_geometry"][i]);
-        collisionGeometry_.push_back(std::move(geometry));
-      }
-    }
-  }
-}
-
-void Shift::Body::Base::appendFrame(Frame& frame) {
+void Shift::Body::Base::appendFrame(Frame* frame) {
   frames_.push_back(frame);
-}
-
-void Shift::Body::Base::appendLight(
-  std::unique_ptr<Shift::Light::Base>& light) {
-  lights_.push_back(std::move(light));
-}
-
-void Shift::Body::Base::appendGeometry(
-  std::unique_ptr<Shift::Geometry::Base>& geometry) {
-  geometry_.push_back(std::move(geometry));
-}
-
-void Shift::Body::Base::appendCollisionGeometry(
-  std::unique_ptr<Shift::CollisionGeometry::Base>& collisionGeometry) {
-  collisionGeometry_.push_back(std::move(collisionGeometry));
-}
-
-void Shift::Body::Base::print() {
-  std::cout << "body: " << name_ << std::endl;
-  std::cout << "full name: ";
-  for(unsigned int i = 0; i < fullyQualifiedName_.size(); i++) {
-    std::cout << fullyQualifiedName_[i];
-    if(i != fullyQualifiedName_.size() - 1) {
-      std::cout << "::";
-    }
-  }
-  std::cout << std::endl;
-  std::cout << "frames: " << std::endl;
-  for(auto& i : frames_) {
-    i.print();
-  }
-  if(lights_.size() > 0) {
-    std::cout << "lights: " << std::endl;
-    for(auto& i : lights_) {
-      i->print();
-    }
-  }
 }
 
 void Shift::Body::Base::setFullyQualifiedNames(
   std::vector<std::string>& baseName) {
   setFullyQualifiedName(baseName);
   std::vector<std::string> bodyName = fullyQualifiedName();
-  for(auto& i : frames_) {
-    i.setFullyQualifiedName(bodyName);
-  }
-  for(auto& i : lights_) {
+  for(auto& i : frames_.data()) {
     i->setFullyQualifiedName(bodyName);
   }
-  for(auto& i : geometry_) {
+  for(auto& i : lights_.data()) {
     i->setFullyQualifiedName(bodyName);
   }
-  for(auto& i : collisionGeometry_) {
+  for(auto& i : geometry_.data()) {
+    i->setFullyQualifiedName(bodyName);
+  }
+  for(auto& i : collision_geometry_.data()) {
     i->setFullyQualifiedName(bodyName);
   }
 }
 
 void Shift::Body::Base::setActiveObjects(bool parentIsActive) {
   if(active_ && context_ && parentIsActive) {
-    for(auto& i : lights_) {
+    for(auto& i : lights_.data()) {
       context_->setActive(i.get());
     }
-    for(auto& i : geometry_) {
+    for(auto& i : geometry_.data()) {
       context_->setActive(i.get());
     }
-    for(auto& i : collisionGeometry_) {
+    for(auto& i : collision_geometry_.data()) {
       context_->setActive(i.get());
     }
   } else {
     if(context_) {
-      for(auto& i : lights_) {
+      for(auto& i : lights_.data()) {
         context_->removeActive(i.get());
       }
-      for(auto& i : geometry_) {
+      for(auto& i : geometry_.data()) {
         context_->removeActive(i.get());
       }
-      for(auto& i : collisionGeometry_) {
+      for(auto& i : collision_geometry_.data()) {
         context_->removeActive(i.get());
       }
     }
@@ -208,19 +109,19 @@ void Shift::Body::Base::setActiveObjects(bool parentIsActive) {
 };
 
 Shift::Frame* Shift::Body::Base::getFrame(std::string name) {
-  for(auto& i : frames_) {
-    if(i.name() == name) {
-      return &i;
+  for(auto& i : frames_.data()) {
+    if(i->name() == name) {
+      return i.get();
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 void Shift::Body::Base::setParentJoint(Shift::Joint::Base* parent) {
-  parentJoint_ = parent;
-  auto referenceFrame = parentJoint_->systemChildFrame();
-  for(auto& frame : frames_) {
-    frame.setIsReference(&frame == referenceFrame);
+  parent_joint_ = parent;
+  auto referenceFrame = parent_joint_->systemChildFrame();
+  for(auto& frame : frames_.data()) {
+    frame->setIsReference(frame.get() == referenceFrame);
   }
   setDWRTReference();
 }
@@ -234,14 +135,14 @@ Shift::Frame* Shift::Body::Base::origin() {
 }
 
 Shift::Frame* Shift::Body::Base::referenceFrame() {
-  for(auto& frame : frames_) {
-    if(frame.isReference()) {
-      return &frame;
+  for(auto& frame : frames_.data()) {
+    if(frame->isReference()) {
+      return frame.get();
     }
   }
   std::cerr << "no reference frame found on body: " << name() << std::endl;
   assert(0);
-  return NULL;
+  return nullptr;
 }
 
 void Shift::Body::Base::setDWRTReference() {
@@ -250,12 +151,12 @@ void Shift::Body::Base::setDWRTReference() {
   ksl_SE3_setIdentity(&dReference);
   reference->setDWRTReference(dReference);
   const ksl_SE3_t* referenceWRTOrigin = reference->dWRTOrigin();
-  for(auto& frame : frames_) {
-    if(!frame.isReference()) {
-      const ksl_SE3_t* dWRTOrigin = frame.dWRTOrigin();
+  for(auto& frame : frames_.data()) {
+    if(!frame->isReference()) {
+      const ksl_SE3_t* dWRTOrigin = frame->dWRTOrigin();
       ksl_SE3_t dWRTReference;
       ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &dWRTReference);
-      frame.setDWRTReference(dWRTReference);
+      frame->setDWRTReference(dWRTReference);
     }
   }
 }
@@ -264,32 +165,32 @@ void Shift::Body::Base::setDWRTReference(ksl_SE3_t dReference) {
   Frame* reference = referenceFrame();
   reference->setDWRTReference(dReference);
   const ksl_SE3_t* referenceWRTOrigin = reference->dWRTOrigin();
-  for(auto& frame : frames_) {
-    if(!frame.isReference()) {
-      const ksl_SE3_t* dWRTOrigin = frame.dWRTOrigin();
+  for(auto& frame : frames_.data()) {
+    if(!frame->isReference()) {
+      const ksl_SE3_t* dWRTOrigin = frame->dWRTOrigin();
       ksl_SE3_t temp;
       ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &temp);
       ksl_SE3_t dWRTReference;
       ksl_product_dd(&dReference, &temp, &dWRTReference);
-      frame.setDWRTReference(dWRTReference);
+      frame->setDWRTReference(dWRTReference);
     }
   }
 }
 
 void Shift::Body::Base::setReferenceFrame(Shift::Frame* referenceFrame) {
-  for(auto& frame : frames_) {
-    frame.setReferenceFrame(referenceFrame);
+  for(auto& frame : frames_.data()) {
+    frame->setReferenceFrame(referenceFrame);
   }
   setDWRTReference();
 };
 
 void Shift::Body::Base::setReferenceFrame() {
   auto reference = referenceFrame();
-  for(auto& frame : frames_) {
-    if(&frame == reference) {
-      frame.setReferenceFrame(NULL);
+  for(auto& frame : frames_.data()) {
+    if(frame.get() == reference) {
+      frame->setReferenceFrame(nullptr);
     } else {
-      frame.setReferenceFrame(reference);
+      frame->setReferenceFrame(reference);
     }
   }
   setDWRTReference();
@@ -305,7 +206,7 @@ const ksl_vec3_t Shift::Body::Base::centerOfMassWRTReference() {
     // reference frame coordinates
 
     // t_rm_r = D_ro_ro * t_om_o
-    ksl_vec3_t t_om_o = centerOfMassWRTOrigin_;
+    ksl_vec3_t t_om_o = center_of_mass_wrt_origin_;
     const ksl_SE3_t* D_or = referenceFrame()->dWRTOrigin();
     ksl_SE3_t D_ro;
     ksl_SE3_inverted(D_or, &D_ro);
@@ -313,20 +214,20 @@ const ksl_vec3_t Shift::Body::Base::centerOfMassWRTReference() {
     ksl_product_dv(&D_ro, &t_om_o, &t_rm_r);
     return t_rm_r;
   }
-  return centerOfMassWRTOrigin_;
+  return center_of_mass_wrt_origin_;
 }
 
 void Shift::Body::Base::clearInTreeFlags() {
-  for(auto& frame : frames_) {
-    frame.setIndex(-1);
-    frame.setInTree(false);
+  for(auto& frame : frames_.data()) {
+    frame->setIndex(-1);
+    frame->setInTree(false);
   }
 }
 
 unsigned int Shift::Body::Base::frameInTreeCount() {
   unsigned int count = 0;
-  for(auto& frame : frames_) {
-    if(frame.inTree()) {
+  for(auto& frame : frames_.data()) {
+    if(frame->inTree()) {
       count++;
     }
   }

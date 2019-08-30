@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 #include "shift-core/topology.h"
 
 #include "ksl/SE3.h"
@@ -36,18 +36,18 @@ namespace Joint {
 */
 class Base
   : public Shift::Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Base(std::string name)
     : Shift::Base(name)
-    , Serialize() {
-    addKeys();
+    , Parameter::List() {
+    addParameters();
   }
   Base()
     : Shift::Base("")
-    , Serialize() {
-    addKeys();
+    , Parameter::List() {
+    addParameters();
   }
   virtual ~Base() {}
 
@@ -82,9 +82,12 @@ public:
   virtual Topology::dh_fptr DHfptr() = 0;
   virtual Topology::dhva_fptr DHVAfptr() = 0;
 
-  virtual void readJSON(Json::Value&);
-
-  void print();
+  static const std::string arrayKey() {
+    return "joints";
+  }
+  static const std::string defaultType() {
+    return "";
+  }
 
   void setContext(Context* context) {
     context_ = context;
@@ -250,7 +253,7 @@ protected:
   Context* context_ = NULL;
   Assembly* assembly_ = NULL;
 
-  virtual void addKeys();
+  virtual void addParameters();
   std::string type_;           //!< descriptive name of joint type
   unsigned int dof_ = 0;       //!< number of degrees of freedom
   unsigned int dcCount_ = 0;   /*!< number of direction cosines used by joint, 1

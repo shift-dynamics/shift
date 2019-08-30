@@ -17,11 +17,11 @@ class IK7DOF : public Base {
 public:
   IK7DOF()
     : Base() {
-    addKeys();
+    addParameters();
   }
   IK7DOF(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   ~IK7DOF() {}
   static std::unique_ptr<IK7DOF> create();
@@ -31,7 +31,7 @@ public:
 
 private:
   static bool registered_;
-  void addKeys();
+  void addParameters() override;
 };
 
 } // namespace Behavior

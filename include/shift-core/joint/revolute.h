@@ -89,7 +89,7 @@ public:
     dcCount_ = 1;
     q_0_ = new double[qCount_]();
     dq_0_ = new double[dqCount_]();
-    addKeys();
+    addParameters();
   }
   Revolute(std::string name)
     : Base(name) {
@@ -99,7 +99,7 @@ public:
     dcCount_ = 1;
     q_0_ = new double[qCount_]();
     dq_0_ = new double[dqCount_]();
-    addKeys();
+    addParameters();
   }
   ~Revolute() override {
     delete[] q_0_;
@@ -113,7 +113,7 @@ public:
   virtual const double* data() override;
   virtual unsigned int dataCount() override;
 
-  virtual void addKeys() override;
+  virtual void addParameters() override;
 
   Topology::dh_fptr Dfptr() override;
   Topology::dh_fptr DHfptr() override;

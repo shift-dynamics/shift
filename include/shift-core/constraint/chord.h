@@ -18,31 +18,30 @@ class Chord : public Base {
 public:
   Chord()
     : Base() {
-    addKeys();
+    addParameters();
   }
   Chord(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~Chord() override {}
   static std::unique_ptr<Chord> create();
-  void readJSON(Json::Value&) override;
-  virtual void addKeys();
+  virtual void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }
   void setOriginalParentBody(Body::Base* body) {
-    originalParentBodyPointer_ = body;
+    original_parent_body_pointer_ = body;
   }
 
   void setOriginalParentFrame(Frame* frame) {
-    originalParentFramePointer_ = frame;
+    original_parent_frame_pointer_ = frame;
   }
 
 private:
   static bool registered_;
-  Shift::Body::Base* originalParentBodyPointer_ = NULL;
-  Shift::Frame* originalParentFramePointer_ = NULL;
+  Shift::Body::Base* original_parent_body_pointer_ = nullptr;
+  Shift::Frame* original_parent_frame_pointer_ = nullptr;
 };
 
 } // namespace Constraint

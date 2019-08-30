@@ -7,9 +7,8 @@ bool Shift::Body::Rigid::registered_ =
   Shift::Factory<Shift::Body::Base>::get()->registerModule(
     "rigid", Shift::Body::Rigid::create);
 
-void Shift::Body::Rigid::addKeys() {
-
-  Shift::Body::Base::addKeys();
+void Shift::Body::Rigid::addParameters() {
+  Shift::Body::Base::addParameters();
 }
 
 std::unique_ptr<Shift::Body::Rigid> Shift::Body::Rigid::create() {
@@ -25,8 +24,8 @@ ksl_inertia_t Shift::Body::Rigid::inertiaWRTReference() {
     ksl_SE3_t d_cr;
     /* compute displacement from center of mass (c) to reference frame (r)
     D_{ro} * (D(t)_{co})^-1 -> D_{rc} */
-    ksl_product_ddtinv(referenceFrame()->dWRTOrigin(), &centerOfMassWRTOrigin_,
-                       &d_rc);
+    ksl_product_ddtinv(referenceFrame()->dWRTOrigin(),
+                       &center_of_mass_wrt_origin_, &d_rc);
     /* find displacement from reference frame (r) to center of mass (c)
       D_{rc}^-1 -> D_{cr} */
     ksl_SE3_inverted(&d_rc, &d_cr);

@@ -10,10 +10,6 @@ std::unique_ptr<Shift::Logger::CSV> Shift::Logger::CSV::create() {
   return std::make_unique<Shift::Logger::CSV>();
 }
 
-void Shift::Logger::CSV::addKeys() {
-  Shift::Logger::Base::addKeys();
-}
-
-void Shift::Logger::CSV::readJSON(Json::Value& value) {
-  Shift::Logger::Base::readJSON(value);
+void Shift::Logger::CSV::addParameters() {
+  Shift::Logger::Base::addParameters();
 }

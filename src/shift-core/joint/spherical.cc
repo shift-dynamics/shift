@@ -177,17 +177,7 @@ void Shift::Joint::sphericalinv_dhva(const Shift::Context& context,
   ksl_add_ss(aqParent, &aqRelative, aqChild);
 }
 
-void Shift::Joint::Spherical::addKeys() {}
-
-void Shift::Joint::Spherical::readJSON(Json::Value& value) {
-  Shift::Joint::Base::readJSON(value);
-  frame_.setNameRequired(false);
-  if(value["initial_displacement"]) {
-    frame_.readJSON(value["initial_displacement"]);
-  }
-  const ksl_SE3_t* temp = frame_.dWRTOrigin();
-  ksl_mat3x3_toQuaternion(&temp->R, (ksl_quaternion_t*)q_0_);
-}
+void Shift::Joint::Spherical::addParameters() {}
 
 Shift::Topology::dh_fptr Shift::Joint::Spherical::Dfptr() {
   if(sense_ >= 0) {

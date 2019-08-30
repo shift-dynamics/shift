@@ -6,7 +6,7 @@
 #include <string>
 
 #include "shift-core/base.h"
-#include "shift-core/serialize.h"
+#include "shift-core/parameter.h"
 
 namespace Shift {
 
@@ -23,7 +23,7 @@ namespace CollisionGeometry {
 */
 class Base
   : public Shift::Base
-  , public Serialize {
+  , public Parameter::List {
 
 public:
   Base(std::string name)
@@ -46,10 +46,16 @@ public:
 
   virtual void load();
   virtual void connect();
-  virtual void readJSON(Json::Value&);
+  static const std::string arrayKey() {
+    return "collision_geometry";
+  }
+
+  static const std::string defaultType() {
+    return "";
+  }
 
 protected:
-  Context* context_ = NULL;
+  Context* context_ = nullptr;
   void addKeys();
 
   std::string type_; //!< descriptive name of CollisionGeometry type

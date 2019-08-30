@@ -12,16 +12,15 @@ class Spot : public Base {
 public:
   Spot()
     : Base() {
-    addKeys();
+    addParameters();
   }
   Spot(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~Spot() override {}
   static std::unique_ptr<Spot> create();
-  void readJSON(Json::Value&) override;
-  virtual void addKeys();
+  virtual void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }

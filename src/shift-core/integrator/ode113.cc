@@ -9,4 +9,4 @@ std::unique_ptr<Shift::Integrator::ODE113> Shift::Integrator::ODE113::create() {
   return std::make_unique<Shift::Integrator::ODE113>();
 }
 
-void Shift::Integrator::ODE113::addKeys() {}
+void Shift::Integrator::ODE113::addParameters() {}

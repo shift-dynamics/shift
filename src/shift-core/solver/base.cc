@@ -8,17 +8,10 @@ bool Shift::Solver::Modules::initialized() {
   return true;
 }
 
-void Shift::Solver::Base::addKeys() {
-  SerialEntry solverType("type", SerialType::STRING, &type_);
-  solverType.setRequired(false);
-  solverType.setDescription("Solver type");
-  addSerialEntry(solverType);
+void Shift::Solver::Base::addParameters() {
+  addParameter("type", &type_, "Solver type", true);
 }
 
 void Shift::Solver::Base::load() {}
 
 void Shift::Solver::Base::connect() {}
-
-void Shift::Solver::Base::readJSON(Json::Value& value) {
-  Shift::Serialize::readJSON(value);
-}

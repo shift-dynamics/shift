@@ -10,6 +10,6 @@ Shift::ForceModule::Contact::create() {
   return std::make_unique<Shift::ForceModule::Contact>();
 }
 
-void Shift::ForceModule::Contact::addKeys() {
-  Shift::ForceModule::Base::addKeys();
+void Shift::ForceModule::Contact::addParameters() {
+  Shift::ForceModule::Base::addParameters();
 }

@@ -21,24 +21,16 @@ bool Shift::Geometry::Modules::initialized() {
   return true;
 }
 
-void Shift::Geometry::Base::addKeys() {
-  SerialEntry name("name", SerialType::STRING, &name_);
-  name.setRequired(false);
-  name.setDescription("User defined descriptive geometry name.");
-  addSerialEntry(name);
+void Shift::Geometry::Base::addParameters() {
+  addParameter("name", &name_, "User defined descriptive geometry name.", true);
 
-  SerialEntry active("active", SerialType::BOOLEAN, &active_);
-  active.setRequired(false);
-  active.setDescription(
+  addParameter(
+    "active", &active_,
     "Indicates whether geometry is active in simulation: If the value is set "
     "to false, the data will be loaded into computer working memory, but will "
     "not be processed when setting up and solving the equations of motion. Use "
-    "this key to selectively enable or disable portions of the model.");
-  addSerialEntry(active);
-}
-
-void Shift::Geometry::Base::readJSON(Json::Value& value) {
-  Shift::Serialize::readJSON(value);
+    "this key to selectively enable or disable portions of the model.",
+    false);
 }
 
 void Shift::Geometry::Base::load() {}

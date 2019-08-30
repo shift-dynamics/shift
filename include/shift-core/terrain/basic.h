@@ -11,15 +11,15 @@ class Basic : public Base {
 public:
   Basic()
     : Base() {
-    addKeys();
+    addParameters();
   }
   Basic(std::string name)
     : Base(name) {
-    addKeys();
+    addParameters();
   }
   virtual ~Basic() override {}
   static std::unique_ptr<Basic> create();
-  void addKeys();
+  void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }
