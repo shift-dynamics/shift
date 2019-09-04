@@ -40,7 +40,9 @@ public:
     : Shift::Base(name) {}
   Base()
     : Shift::Base("") {}
-  virtual ~Base() {}
+  virtual ~Base() {
+    std::cout << "virtual ~Solver::Base() override: " << name_ << std::endl;
+  }
 
   const std::string& getType() {
     return type_;
@@ -56,14 +58,11 @@ public:
 
   virtual void load();
   virtual void connect();
-  void setContext(Context* context) {
-    context_ = context;
-  }
   virtual void initialize() = 0;
+  virtual void setActiveObjects(bool parent_is_active) override;
 
 protected:
-  Context* context_;
-  void addParameters() override;
+  virtual void addParameters() override;
   std::string type_; //!< descriptive name of Solver type
 };
 

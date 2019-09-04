@@ -20,12 +20,12 @@ public:
   }
   virtual ~IES() override {}
   static std::unique_ptr<IES> create();
-  virtual void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }
 
 private:
+  virtual void addParameters() override;
   static bool registered_;
 };
 

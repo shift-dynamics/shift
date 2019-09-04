@@ -55,3 +55,8 @@ void Shift::Light::Base::addParameters() {
 void Shift::Light::Base::load() {}
 
 void Shift::Light::Base::connect() {}
+
+void Shift::Light::Base::setActiveObjects(bool parent_is_active) {
+  assert(context_);
+  context_->setActive(this, parent_is_active && active_);
+}

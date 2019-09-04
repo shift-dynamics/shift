@@ -10,3 +10,8 @@ bool Shift::Terrain::Modules::initialized() {
 }
 
 void Shift::Terrain::Base::addParameters() {}
+
+void Shift::Terrain::Base::setActiveObjects(bool parent_is_active) {
+  assert(context_);
+  context_->setActive(this, parent_is_active && active_);
+}

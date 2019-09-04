@@ -9,6 +9,12 @@ bool Shift::Integrator::Modules::initialized() {
   return true;
 }
 
+void Shift::Integrator::Base::setActiveObjects(bool parent_is_active) {
+  if(context_) {
+    context_->setActive(this, active_ && parent_is_active);
+  }
+};
+
 void Shift::Integrator::Base::addParameters() {}
 
 void Shift::Integrator::Base::load() {}

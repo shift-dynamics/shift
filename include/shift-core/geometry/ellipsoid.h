@@ -20,12 +20,12 @@ public:
   }
   virtual ~Ellipsoid() override {}
   static std::unique_ptr<Ellipsoid> create();
-  void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }
 
 private:
+  void addParameters() override;
   static bool registered_;
 };
 

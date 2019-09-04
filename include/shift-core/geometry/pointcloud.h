@@ -19,13 +19,13 @@ public:
   }
   virtual ~PointCloud() override {}
   static std::unique_ptr<PointCloud> create();
-  void addParameters() override;
 
   static bool isRegistered() {
     return registered_;
   }
 
 private:
+  void addParameters() override;
   static bool registered_;
 };
 

@@ -9,6 +9,7 @@
 #include "shift-core/assembly.h"
 #include "shift-core/base.h"
 #include "shift-core/body/fixed.h"
+#include "shift-core/factory.h"
 #include "shift-core/jacobian.h"
 #include "shift-core/joint/base.h"
 #include "shift-core/modelparameters.h"
@@ -46,8 +47,9 @@ class Chord;
 class Context : public Shift::Body::Fixed {
 
 public:
-  Context(std::string name)
-    : Shift::Body::Fixed(name)
+  Context(std::string)
+    // : Shift::Parameter::List()
+    : Shift::Body::Fixed("fixed")
     , jacobian_(this)
     , model_parameters_(this) {
     addParameters();
@@ -60,14 +62,14 @@ public:
     addParameters();
     initialize();
   }
-  ~Context() {
+  virtual ~Context() override {
 
-    if(dWRTReference_) {
-      free(dWRTReference_);
+    if(d_wrt_reference_) {
+      free(d_wrt_reference_);
     }
 
-    if(jointData_) {
-      delete[] jointData_;
+    if(joint_data_) {
+      delete[] joint_data_;
     }
 
     if(q_) {
@@ -82,8 +84,8 @@ public:
       delete[] deltaq_;
     }
 
-    if(qCopy_) {
-      delete[] qCopy_;
+    if(q_copy_) {
+      delete[] q_copy_;
     }
 
     if(f_) {
@@ -110,15 +112,16 @@ public:
       free(inertiaP_);
     }
 
-    if(mobilityNumbers_) {
-      free(mobilityNumbers_);
+    if(mobility_numbers_) {
+      free(mobility_numbers_);
     }
+
+    std::cout << "virtual ~Context() override" << std::endl;
   }
 
   Context& operator=(Context&&) {
     return *this;
   }
-  void addParameters() override;
 
   void readJSON(const std::string);
   void writeJSON();
@@ -133,50 +136,23 @@ public:
   void postLoad(const std::string);
 
   void setFullyQualifiedNames();
-  void setActiveObjects();
+  virtual void setActiveObjects(bool) override;
 
-  void appendActive(Behavior::Base*);
-  void appendActive(Body::Base*);
-  void appendActive(CollisionGeometry::Base*);
-  void appendActive(Constraint::Base*);
-  void appendActive(ForceModule::Base*);
-  void appendActive(Geometry::Base*);
-  void appendActive(Joint::Base*);
-  void appendActive(Light::Base*);
-  void appendActive(Sensor::Base*);
-  void appendActive(Terrain::Base*);
-  void removeActive(Behavior::Base*);
-  void removeActive(Body::Base*);
-  void removeActive(CollisionGeometry::Base*);
-  void removeActive(Constraint::Base*);
-  void removeActive(ForceModule::Base*);
-  void removeActive(Geometry::Base*);
-  void removeActive(Joint::Base*);
-  void removeActive(Light::Base*);
-  void removeActive(Sensor::Base*);
-  void removeActive(Terrain::Base*);
-  void setActive(Behavior::Base*);
-  void setActive(Body::Base*);
-  void setActive(CollisionGeometry::Base*);
-  void setActive(Constraint::Base*);
-  void setActive(ForceModule::Base*);
-  void setActive(Geometry::Base*);
-  void setActive(Joint::Base*);
-  void setActive(Light::Base*);
-  void setActive(Sensor::Base*);
-  void setActive(Terrain::Base*);
-  void clearActiveBehavior();
-  void clearActiveArticulatedBodies();
-  void clearActiveFreeBodies();
-  void clearActiveCollisionGeometry();
-  void clearActiveConstraints();
-  void clearActiveForceModules();
-  void clearActiveGeometry();
-  void clearActiveJoints();
-  void clearActiveLights();
-  void clearActiveSensors();
-  void clearActiveTerrain();
-  void clearActiveArrays();
+  void setActive(Behavior::Base*, bool);
+  void setActive(Body::Base*, bool);
+  void setActive(CollisionGeometry::Base*, bool);
+  void setActive(Constraint::Base*, bool);
+  void setActive(ForceModule::Base*, bool);
+  void setActive(Geometry::Base*, bool);
+  void setActive(Joint::Base*, bool);
+  void setActive(Light::Base*, bool);
+  void setActive(Sensor::Base*, bool);
+  void setActive(Terrain::Base*, bool);
+
+  void setActive(Integrator::Base*, bool);
+  void setActive(Solver::Base*, bool);
+  void setActive(Logger::Base*, bool);
+
   void connectActiveObjects();
   unsigned int qCount();
   unsigned int dqCount();
@@ -185,19 +161,19 @@ public:
   double kineticEnergy();
 
   const std::vector<int>& dqLookup() {
-    return dqLookup_;
+    return dq_lookup_;
   }
 
   const std::vector<int>& qLookup() {
-    return qLookup_;
+    return q_lookup_;
   }
 
   const std::vector<int>& jointLookup() {
-    return jointLookup_;
+    return joint_lookup_;
   }
 
   const std::vector<Shift::Joint::Base*>& activeJoints() const {
-    return activeJoints_;
+    return active_joints_;
   }
 
   const std::vector<int>& pcl() const {
@@ -205,111 +181,51 @@ public:
   }
 
   const std::vector<Shift::Body::Base*>& activeArticulatedBodies() const {
-    return activeArticulatedBodies_;
+    return active_articulated_bodies_;
   }
 
   const std::vector<Shift::Frame*>& framesInTree() const {
-    return framesInTree_;
+    return frames_in_tree_;
   }
 
   unsigned int nonRigidJointCount() const {
-    return nonRigidJointCount_;
+    return non_rigid_joint_count_;
   }
 
   unsigned int substructureCount() const {
-    return substructureIndices_.size();
+    return substructure_indices_.size();
   }
 
   const std::vector<std::vector<int>>& substructureIndices() const {
-    return substructureIndices_;
+    return substructure_indices_;
   }
 
   const std::vector<std::vector<int>>& substructureMembers() const {
-    return substructureMembers_;
+    return substructure_members_;
   }
 
   const std::vector<std::vector<int>>& loopMembers() const {
-    return loopMembers_;
+    return loop_members_;
   }
 
   const std::vector<std::vector<int>>& positiveLoopMembers() const {
-    return positiveLoopMembers_;
+    return positive_loop_members_;
   }
 
   const std::vector<std::vector<int>>& negativeLoopMembers() const {
-    return negativeLoopMembers_;
+    return negative_loop_members_;
   }
 
-  /*! \brief get Shift::Behavior::Base by its descriptive name specified in
-   * model definition file. This function is intended to be used only to set
-   * pointers in models during initial set up. It is not recommended to use this
-   * function at run-time */
-  Behavior::Base* getBehavior(std::vector<std::string>&);
-
-  /*! get Shift::Body::Base by its descriptive name specified in model
-   * definition file. This function is intended to be used only to set pointers
-   * in models during initial set up. It is not recommended to use this function
-   * at run-time */
-  Body::Base* getBody(std::vector<std::string>&);
-
-  /*! \brief get Shift::CollisionGeometry::Base by its descriptive name
-   * specified in model definition file. This function is intended to be used
-   * only to set pointers in models during initial set up. It is not recommended
-   * to use this function at run-time */
-  CollisionGeometry::Base* getCollisionGeometry(std::vector<std::string>&);
-
-  /*! \brief get Shift::Constraint::Base by its descriptive name specified in
-   * model definition file. This function is intended to be used only to set
-   * pointers in models during initial set up. It is not recommended to use this
-   * function at run-time */
-  Constraint::Base* getConstraint(std::vector<std::string>&);
-
-  /*!\brief  get Shift::ForceModule::Base by its descriptive name specified in
-   * model definition file. This function is intended to be used only to set
-   * pointers in models during initial set up. It is not recommended to use this
-   * function at run-time */
-  ForceModule::Base* getForceModule(std::vector<std::string>&);
-
-  /*! \brief get Shift::Geometry::Base by its descriptive name specified in
-   * model definition file. This function is intended to be used only to set
-   * pointers in models during initial set up. It is not recommended to use this
-   * function at run-time */
-  Geometry::Base* getGeometry(std::vector<std::string>&);
-
-  /*! \brief get Shift::Joint::Base by its descriptive name specified in model
-   * definition file. This function is intended to be used only to set pointers
-   * in models during initial set up. It is not recommended to use this function
-   * at run-time */
-  Joint::Base* getJoint(std::vector<std::string>&);
-
-  /*! get Shift::Light::Base by its descriptive name specified in model
-   * definition file. This function is intended to be used only to set pointers
-   * in models during initial set up. It is not recommended to use this function
-   * at run-time */
-  Light::Base* getLight(std::vector<std::string>&);
-
-  /*! \brief get Shift::Sensor::Base by its descriptive name specified in model
-   * definition file. This function is intended to be used only to set pointers
-   * in models during initial set up. It is not recommended to use this function
-   * at run-time */
-  Sensor::Base* getSensor(std::vector<std::string>&);
-
-  /*! \brief get Shift::Terrain::Base by its descriptive name specified in model
-   * definition file. This function is intended to be used only to set pointers
-   * in models during initial set up. It is not recommended to use this function
-   * at run-time */
-  Terrain::Base* getTerrain(std::vector<std::string>&);
-
-  /*! \brief get pointer to dWRTReference, an array of relative transformations
-   * to their respective reference frames */
+  /*! \brief get pointer to dWRTReference, an array of relative
+   * transformations to their respective reference frames */
   inline const ksl_SE3_t* DWRTReference() const {
-    return dWRTReference_;
+    return d_wrt_reference_;
   }
 
   /*! \brief get pointer to jointData, an array of additional constant data
    * required to process some joints */
   inline const double* jointData() const {
-    return jointData_;
+    return joint_data_;
   }
 
   const Shift::ModelParameters& modelParameters() {
@@ -324,17 +240,17 @@ public:
 
   /*! \brief get count of total number of active frames */
   unsigned int activeFrameCount() {
-    return activeFrames_.size();
+    return active_frames_.size();
   }
 
   /*! \brief get count of total number of active joints */
   unsigned int activeJointCount() const {
-    return activeJoints_.size();
+    return active_joints_.size();
   }
 
   /*! \brief get count of active chord constraints */
   unsigned int chordConstraintCount() const {
-    return chordConstraints_.size();
+    return chord_constraints_.size();
   }
 
   double* dq() {
@@ -354,16 +270,16 @@ public:
   }
 
   const std::vector<Topology::Offsets>& dhvaOffsets() const {
-    return dhvaOffsets_;
+    return dhva_offsets_;
   }
 
   double* mobilityNumbers() {
-    return mobilityNumbers_;
+    return mobility_numbers_;
   }
 
-  /*! \brief Update displacements in a Shift::Joint::DHVA data structure using a
-   * user-provided array of generalized coordinates. The instructions to update
-   * displacements are stored in Shift::Context */
+  /*! \brief Update displacements in a Shift::Joint::DHVA data structure using
+   * a user-provided array of generalized coordinates. The instructions to
+   * update displacements are stored in Shift::Context */
   void updateD(Topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements and influence coefficient matrices in a
@@ -373,8 +289,9 @@ public:
   void updateDH(Topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements, influence coefficient matrices, velocities
-   * and quadratic accelerations in a Shift::Joint::DHVA data structure using a
-   * user-provided array of generalized coordinates and generalized velocities.
+   * and quadratic accelerations in a Shift::Joint::DHVA data structure using
+   * a user-provided array of generalized coordinates and generalized
+   * velocities.
    * The instructions to update DHVA are stored in Shift::Context */
   void updateDHVA(Topology::DHVA& dhva, const double* q, const double* dq);
 
@@ -385,12 +302,13 @@ public:
   /*! \brief set q and dq arrays to intial conditions saved in each joint */
   void setToInitialConditions();
 
-  /*! \brief extract current generalized displacements and velocities stored in
-   * q and dq arrays and use to override initial conditions stored in joints */
+  /*! \brief extract current generalized displacements and velocities stored
+   * in q and dq arrays and use to override initial conditions stored in
+   * joints */
   void setInitialConditionsToCurrentConditions();
 
   const std::vector<Constraint::Chord*>& chordConstraints() const {
-    return chordConstraints_;
+    return chord_constraints_;
   }
 
   double globalMobility();
@@ -400,20 +318,61 @@ public:
   int digraphFrames(std::string filename);
 
 private:
+  virtual void addParameters() override;
+
+  void appendActive(Behavior::Base*);
+  void appendActive(Body::Base*);
+  void appendActive(CollisionGeometry::Base*);
+  void appendActive(Constraint::Base*);
+  void appendActive(ForceModule::Base*);
+  void appendActive(Geometry::Base*);
+  void appendActive(Joint::Base*);
+  void appendActive(Light::Base*);
+  void appendActive(Sensor::Base*);
+  void appendActive(Terrain::Base*);
+  void appendActive(Solver::Base*);
+  void appendActive(Integrator::Base*);
+  void appendActive(Logger::Base*);
+  void removeActive(Behavior::Base*);
+  void removeActive(Body::Base*);
+  void removeActive(CollisionGeometry::Base*);
+  void removeActive(Constraint::Base*);
+  void removeActive(ForceModule::Base*);
+  void removeActive(Geometry::Base*);
+  void removeActive(Joint::Base*);
+  void removeActive(Light::Base*);
+  void removeActive(Sensor::Base*);
+  void removeActive(Terrain::Base*);
+  void removeActive(Solver::Base*);
+  void removeActive(Integrator::Base*);
+  void removeActive(Logger::Base*);
+  void clearActiveBehavior();
+  void clearActiveArticulatedBodies();
+  void clearActiveFreeBodies();
+  void clearActiveCollisionGeometry();
+  void clearActiveConstraints();
+  void clearActiveForceModules();
+  void clearActiveGeometry();
+  void clearActiveJoints();
+  void clearActiveLights();
+  void clearActiveSensors();
+  void clearActiveTerrain();
+  void clearActiveArrays();
+
   /*! \brief Shift::Context initialization function, called in Shift::Context
    * constructor */
   void initialize();
 
   /*! \brief connect pointers between objects managed by Shift::Context */
-  void connect();
+  void connect() override;
 
   /*! \brief process all Shiift objectss loadData() functions, which loads any
    * additional external data not specified in JSON model definition file from
    * other data sources */
   void loadData();
 
-  /*! \brief sort active bodies and joints by level increasing order in spanning
-   * tree
+  /*! \brief sort active bodies and joints by level increasing order in
+   * spanning tree
    */
   void levelOrderSort();
 
@@ -436,14 +395,14 @@ private:
 
   /*! \brief allocate arrays used at run-time used to process kinematics and
    * store quantities for solving the equations of motion. set up function
-   * pointers required to update displacements, influence coefficient matrices,
-   * velocities and accelerations. */
+   * pointers required to update displacements, influence coefficient
+   * matrices, velocities and accelerations. */
   void allocateRunTimeArrays();
 
-  /*! \brief set -g for the fixed frame in the array of quadratic accelerations.
-   * After updating DHVA, this effectively applies gravitational forces to all
-   * bodies without having to explicitly add gravitational forces to individual
-   * bodies. */
+  /*! \brief set -g for the fixed frame in the array of quadratic
+   * accelerations. After updating DHVA, this effectively applies
+   * gravitational forces to all bodies without having to explicitly add
+   * gravitational forces to individual bodies. */
   void setFixedFrameGravityVector();
 
   void compressRigidJoints(int i, // current body Index and parent joint index
@@ -455,15 +414,19 @@ private:
 
   void setLookup();
 
+  /*! \brief User defined terrain attached to fixed inertial reference frame
+   */
+  Shift::Parameter::Array<Shift::Assembly> assemblies_;
+
   const std::vector<Shift::Joint::Base*>* activeJointsPtr() {
-    return &activeJoints_;
+    return &active_joints_;
   }
 
   Shift::Topology::DHVA
     dhva_; /*!< displacements, influence coefficient matrices,
            spatial velocities and quadratic accelerations */
   std::vector<Topology::Offsets>
-    dhvaOffsets_; /*!< offsets into d,dc,h,v,a and dWRTReference array to
+    dhva_offsets_; /*!< offsets into d,dc,h,v,a and dWRTReference array to
                      update kinematics */
 
   std::vector<Topology::dh_fptr>
@@ -475,47 +438,47 @@ private:
   update displacements, influence coefficient matrices, velocities and
   quadratic accelerations */
 
-  std::vector<int> dReferenceFrames_; /*!< index of frames in
+  std::vector<int> d_reference_frames_; /*!< index of frames in
 framesInTree that are the reference frame for the body */
 
   std::vector<int> dcq_; /*!< index of framesInTree that require updating
                             direction cosines */
 
-  ksl_SE3_t* dWRTReference_ =
+  ksl_SE3_t* d_wrt_reference_ =
     nullptr; /*!< relative displacement of a body frame
              with respect to its reference frame */
-  double* jointData_ =
+  double* joint_data_ =
     nullptr; /*!< additional data required to process data across joints */
 
   double* q_ = nullptr;   /*!< generalized coordinates */
   double* dq_ = nullptr;  /*!< generalized coordinate first time derivative, or
                           generalized velocities */
-  double* ddq_ = nullptr; /*!< generalized coordinate second time derivative, or
-                          generalized accelerations */
+  double* ddq_ = nullptr; /*!< generalized coordinate second time derivative,
+                          or generalized accelerations */
   double* deltaq_ = nullptr;
 
-  double* qCopy_ =
+  double* q_copy_ =
     nullptr; /*!< copy of q array, used to restore q to a previous state */
   double* f_ = nullptr;        /*!< Working forces within a joint, such as from
                               friction        or damping */
   ksl_coscrew_t* p_ = nullptr; /*< momentum */
-  ksl_coscrew_t* g_ =
-    nullptr; /*!< spatial body and inertial forces, length equal to dq count */
-  ksl_coscrew_t* k_ = nullptr;        /*!< joint reaction forces */
+  ksl_coscrew_t* g_ = nullptr; /*!< spatial body and inertial forces, length
+                                  equal to dq count */
+  ksl_coscrew_t* k_ = nullptr; /*!< joint reaction forces */
   ksl_inertia_t* inertia_ = nullptr;  /*!< body fixed spatial  inertias */
   ksl_inertia_t* inertiaP_ = nullptr; /*!< projected spatial inertias */
-  std::vector<int> jointDOF_;
-  std::vector<int> jointDOFCompressed_;
-  std::vector<int> jointLookup_;
-  std::vector<int> dqLookup_;
-  std::vector<int> qLookup_;
-  std::vector<int> dqLookupCompressed_;
+  std::vector<int> joint_dof_;
+  std::vector<int> joint_dof_compressed_;
+  std::vector<int> joint_lookup_;
+  std::vector<int> dq_lookup_;
+  std::vector<int> q_lookup_;
+  std::vector<int> dq_lookup_compressed_;
   Shift::Jacobian jacobian_;
 
-  ksl_screw_t spatialMomentum_ = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t barycentricSpatialMomentum_ =
+  ksl_screw_t spatial_momentum_ = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t barycentric_spatial_momentum_ =
     ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  double kineticEnergy_ = 0.0;
+  double kinetic_energy_ = 0.0;
 
   std::string filename_;
   Json::Value root_;
@@ -523,9 +486,6 @@ framesInTree that are the reference frame for the body */
 
   /*! \brief Parameters used to configure a simulation */
   ModelParameters model_parameters_;
-
-  /*! \brief User defined terrain attached to fixed inertial reference frame */
-  Shift::Parameter::Array<Shift::Assembly> assemblies_;
 
   /*! \brief struct for sorting members of a loop in monotonically level
    * increasing order */
@@ -544,15 +504,15 @@ framesInTree that are the reference frame for the body */
    * base node
    */
   struct substructureLoopLevelOrder {
-    substructureLoopLevelOrder(Context* context,
-                               const std::vector<std::vector<int>>& loopMembers)
+    substructureLoopLevelOrder(
+      Context* context, const std::vector<std::vector<int>>& loop_members)
       : joints_(context->activeJointsPtr())
-      , loopMembers_(loopMembers) {}
+      , loop_members_(loop_members) {}
     const std::vector<Shift::Joint::Base*>* joints_;
-    const std::vector<std::vector<int>> loopMembers_;
+    const std::vector<std::vector<int>> loop_members_;
     bool operator()(const int& a, const int& b) {
-      return (*joints_)[loopMembers_[a][0]]->getLevel() <
-             (*joints_)[loopMembers_[b][0]]->getLevel();
+      return (*joints_)[loop_members_[a][0]]->getLevel() <
+             (*joints_)[loop_members_[b][0]]->getLevel();
     }
   };
 
@@ -570,13 +530,13 @@ framesInTree that are the reference frame for the body */
     }
   };
 
-  unsigned int nonRigidJointCount_ = 0;
+  unsigned int non_rigid_joint_count_ = 0;
   std::vector<int> pcl_; /*!< parent child list */
-  std::vector<std::vector<int>> loopMembers_;
-  std::vector<std::vector<int>> positiveLoopMembers_;
-  std::vector<std::vector<int>> negativeLoopMembers_;
-  std::vector<std::vector<int>> substructureIndices_;
-  std::vector<std::vector<int>> substructureMembers_;
+  std::vector<std::vector<int>> loop_members_;
+  std::vector<std::vector<int>> positive_loop_members_;
+  std::vector<std::vector<int>> negative_loop_members_;
+  std::vector<std::vector<int>> substructure_indices_;
+  std::vector<std::vector<int>> substructure_members_;
 
   /*! \defgroup active_objects Active objects managed by Shift::Context
 
@@ -584,20 +544,24 @@ framesInTree that are the reference frame for the body */
   active flag is set to true.
 
   @{ */
-  std::vector<Behavior::Base*> activeBehaviors_ = {};
-  std::vector<Body::Base*> activeArticulatedBodies_ = {};
-  std::vector<Body::Base*> activeFreeBodies_ = {};
-  std::vector<CollisionGeometry::Base*> activeCollisionGeometry_;
-  std::vector<Constraint::Base*> activeConstraints_;
-  std::vector<ForceModule::Base*> activeForceModules_;
-  std::vector<Geometry::Base*> activeGeometry_;
-  std::vector<Joint::Base*> activeJoints_;
-  std::vector<Light::Base*> activeLights_;
-  std::vector<Sensor::Base*> activeSensors_;
-  std::vector<Terrain::Base*> activeTerrain_;
+  std::vector<Behavior::Base*> active_behaviors_ = {};
+  std::vector<Body::Base*> active_articulated_bodies_ = {};
+  std::vector<Body::Base*> active_free_bodies_ = {};
+  std::vector<CollisionGeometry::Base*> active_collision_geometry_ = {};
+  std::vector<Constraint::Base*> active_constraints_ = {};
+  std::vector<ForceModule::Base*> active_force_modules_ = {};
+  std::vector<Geometry::Base*> active_geometry_ = {};
+  std::vector<Joint::Base*> active_joints_ = {};
+  std::vector<Light::Base*> active_lights_ = {};
+  std::vector<Sensor::Base*> active_sensors_ = {};
+  std::vector<Terrain::Base*> active_terrain_ = {};
 
-  std::vector<Shift::Frame*> framesInTree_;
-  std::vector<Shift::Frame*> activeFrames_;
+  std::vector<Integrator::Base*> active_integrators_ = {};
+  std::vector<Logger::Base*> active_loggers_ = {};
+  std::vector<Solver::Base*> active_solvers_ = {};
+
+  std::vector<Shift::Frame*> frames_in_tree_ = {};
+  std::vector<Shift::Frame*> active_frames_ = {};
 
   /*! @{ */
 
@@ -607,37 +571,36 @@ framesInTree that are the reference frame for the body */
   topology and  are not loaded from an external file.
 
   @{ */
+  /*! \brief System generated bodies */
+  std::vector<std::unique_ptr<Body::Base>> bodies_ = {};
 
   /*! \brief System generated behaviors */
-  std::vector<std::unique_ptr<Behavior::Base>> behaviors_;
-
-  /*! \brief System generated bodies */
-  std::vector<std::unique_ptr<Body::Base>> bodies_;
+  std::vector<std::unique_ptr<Behavior::Base>> behaviors_ = {};
 
   /*! \brief System generated constraints */
-  std::vector<std::unique_ptr<Constraint::Base>> constraints_;
+  std::vector<std::unique_ptr<Constraint::Base>> constraints_ = {};
 
   /*! \brief System generated force modules */
-  std::vector<std::unique_ptr<ForceModule::Base>> forcemodules_;
+  std::vector<std::unique_ptr<ForceModule::Base>> force_modules_ = {};
 
   /*! \brief System generated joints */
-  std::vector<std::unique_ptr<Joint::Base>> joints_;
+  std::vector<std::unique_ptr<Joint::Base>> joints_ = {};
 
   /*! \brief A subset of constraints used in model corresponding to
    * constraints imposed for kinematic chord loops */
-  std::vector<Constraint::Chord*> chordConstraints_;
+  std::vector<Constraint::Chord*> chord_constraints_ = {};
 
   /*! @} */
 
-  double* mobilityNumbers_ = nullptr;
+  double* mobility_numbers_ = nullptr;
 
   void initializeMobility();
 
   /*! \brief Update direction cosines in model */
   void updateDC(Topology::DHVA& dhva, const double* q);
 
-  unsigned int qCount_ = 0;
-  unsigned int dqCount_ = 0;
+  unsigned int q_count_ = 0;
+  unsigned int dq_count_ = 0;
   double mobility_ = 0.0;
 
 }; // namespace Shift

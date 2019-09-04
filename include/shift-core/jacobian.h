@@ -57,16 +57,16 @@ public:
       delete[] b3_;
       b3_ = nullptr;
     }
-    if(ijMapping_) {
-      delete[] ijMapping_;
-      ijMapping_ = nullptr;
+    if(ij_mapping_) {
+      delete[] ij_mapping_;
+      ij_mapping_ = nullptr;
     }
     if(cb3_) {
       delete[] cb3_;
       cb3_ = nullptr;
     }
-    if(rightNullSpace_) {
-      delete[] rightNullSpace_;
+    if(right_null_space_) {
+      delete[] right_null_space_;
     }
 
     ksl_array2Di_free(rb3_);
@@ -91,27 +91,25 @@ public:
   void initializeMobility();
 
 private:
-  Shift::Context* context_ = nullptr;
-
   double* J_ = nullptr; /*! array to hold entries of Jacobian */
   int* Jxx_ = nullptr;  /*!< integer array */
   bool* Jb_ = nullptr;
   double* cs_ = nullptr; /*!< constraints */
   double* dcs_ = nullptr;
   double* b3_ = nullptr;
-  int* ijMapping_ = nullptr;
+  int* ij_mapping_ = nullptr;
   int** rb3_ = nullptr;
   int* cb3_ = nullptr;
-  double* rightNullSpace_ = nullptr;
+  double* right_null_space_ = nullptr;
 
-  unsigned int jacobianSize_ =
+  unsigned int jacobian_size_ =
     0; /*!< size of all block sub Jacobian matrices */
-  unsigned int constraintEquationCount_ =
+  unsigned int constraint_equation_count_ =
     0; /*!< total number of constraint equations in all block sub-Jacobian
           matrices */
 
-  std::vector<bool> isDependentPO1_;
-  std::vector<bool> isDependentPO3_;
+  std::vector<bool> is_dependent_po1_;
+  std::vector<bool> is_dependent_po3_;
 
   std::vector<int> pv_12_;
   std::vector<int> pv_21_;
@@ -120,8 +118,8 @@ private:
   std::vector<int> pv_23_;
   std::vector<int> pv_32_;
 
-  std::vector<std::vector<int>> positiveLoopMembersCompressed_;
-  std::vector<std::vector<int>> negativeLoopMembersCompressed_;
+  std::vector<std::vector<int>> positive_loop_members_compressed_;
+  std::vector<std::vector<int>> negative_loop_members_compressed_;
 
   std::vector<Shift::Substructure> substructures_;
 

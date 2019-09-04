@@ -12,7 +12,7 @@ void Shift::Frame::addParameters() {
     false);
 
   addParameter(
-    "R", &dWRTOrigin_.R,
+    "R", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
     "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
@@ -21,7 +21,7 @@ void Shift::Frame::addParameters() {
     false);
 
   addParameter(
-    "rotation", &dWRTOrigin_.R,
+    "rotation", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
     "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
@@ -30,7 +30,7 @@ void Shift::Frame::addParameters() {
     false);
 
   addParameter(
-    "quaternion", &dWRTOrigin_.R,
+    "quaternion", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
     "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
@@ -40,7 +40,7 @@ void Shift::Frame::addParameters() {
     .setQuaternionMapsToMat3x3(true);
 
   addParameter(
-    "Q", &dWRTOrigin_.R,
+    "Q", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
     "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
@@ -50,7 +50,7 @@ void Shift::Frame::addParameters() {
     .setQuaternionMapsToMat3x3(true);
 
   addParameter(
-    "q", &dWRTOrigin_.R,
+    "q", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
     "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
@@ -60,7 +60,7 @@ void Shift::Frame::addParameters() {
     .setQuaternionMapsToMat3x3(true);
 
   addParameter(
-    "euler_angles", &dWRTOrigin_.R,
+    "euler_angles", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
     "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
@@ -70,21 +70,21 @@ void Shift::Frame::addParameters() {
     .setEulerAnglesMapToMat3x3(true);
 
   addParameter(
-    "translation", &dWRTOrigin_.t,
+    "translation", &d_wrt_origin_.t,
     "specify translation vector; the keys 'translation', 'T' and 't' "
     "may be used to designate translation. If multiple key-value pairs are "
     "specified for translation, only one of the entries will be loaded.",
     false);
 
   addParameter(
-    "T", &dWRTOrigin_.t,
+    "T", &d_wrt_origin_.t,
     "specify translation vector; the keys 'translation', 'T' and 't' "
     "may be used to designate translation. If multiple key-value pairs are "
     "specified for translation, only one of the entries will be loaded.",
     false);
 
   addParameter(
-    "t", &dWRTOrigin_.t,
+    "t", &d_wrt_origin_.t,
     "specify translation vector; the keys 'translation', 'T' and 't' "
     "may be used to designate translation. If multiple key-value pairs are "
     "specified for translation, only one of the entries will be loaded.",
@@ -92,19 +92,17 @@ void Shift::Frame::addParameters() {
 }
 
 const ksl_SE3_t* Shift::Frame::dWRTOrigin() const {
-  return &dWRTOrigin_;
+  return &d_wrt_origin_;
 }
 
 const ksl_SE3_t* Shift::Frame::dWRTReference() const {
-  return &dWRTReference_;
+  return &d_wrt_reference_;
 }
 
 const ksl_SE3_t* Shift::Frame::systemDWRTReference() const {
-  if(useSystemReferenceFrame_) {
-    return &systemDWRTReference_;
+  if(use_system_reference_frame_) {
+    return &system_d_wrt_reference_;
   } else {
-    return &dWRTReference_;
+    return &d_wrt_reference_;
   }
 }
-
-void Shift::Frame::print() {}

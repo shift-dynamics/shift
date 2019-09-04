@@ -47,63 +47,60 @@ void Shift::Joint::Base::connect() {
 
   if(context_ && parent_.size() > 0 && child_.size() > 0) {
     // connect parent
-
-    if(parent_.at(0).size() == 1 && parent_.at(0).at(0) != "fixed") {
-      /* name is not a fully qualified name */
-      std::vector<std::string> name = fully_qualified_name_;
-      name.erase(name.end() - 1);
-      name.push_back(parent_.at(0).at(0));
-      // std::cout << "looking for parent body: [ ";
-      // for(auto& i : name) {
-      //   std::cout << i << " ";
-      // }
-      // std::cout << "]" << std::endl;
-      parentBodyPointer_ = context_->getBody(name);
+    if(parent_.at(0).size() == 1) {
+      if(parent_.at(0).at(0) == "fixed") {
+        parent_body_ptr_ = context_->fixedBody();
+      } else {
+        assert(parent_assembly_);
+        parent_body_ptr_ = (*parent_assembly_)["bodies"][parent_.at(0).at(0)]
+                             .data<Shift::Body::Base*>();
+      }
+    } else if(parent_.at(0).at(0) == "fixed") {
+      assert(context_);
+      parent_body_ptr_ = context_->fixedBody();
     } else {
-      /* name is a fully qualified name */
-      // std::cout << "looking for parent body: [ ";
-      // for(auto& i : parent_.at(0)) {
-      //   std::cout << i << " ";
-      // }
-      // std::cout << "]" << std::endl;
-      parentBodyPointer_ = context_->getBody(parent_.at(0));
+      assert(context_);
+      auto& value = (*context_)[parent_.at(0).at(0)];
+      for(auto it = parent_.at(0).begin() + 1; it <= parent_.at(0).end();
+          it++) {
+        value = value[*it];
+      }
+      parent_body_ptr_ = value.data<Shift::Body::Base*>();
     }
 
-    if(!parentBodyPointer_) {
+    if(!parent_body_ptr_) {
       std::cerr << "PARENT BODY NOT FOUND!" << std::endl;
     } else {
-      parentFramePointer_ = parentBodyPointer_->getFrame(parent_.at(1).at(0));
-      if(!parentFramePointer_) {
+      parent_frame_ptr_ = (*parent_body_ptr_)["frames"][parent_.at(1).at(0)]
+                            .data<Shift::Frame*>();
+      if(!parent_frame_ptr_) {
         std::cerr << "PARENT FRAME NOT FOUND!" << std::endl;
       }
     }
 
-    if(child_.at(0).size() == 1 && child_.at(0).at(0) != "fixed") {
-      /* child body name is not a fully qualified name */
-      std::vector<std::string> name = fully_qualified_name_;
-      name.erase(name.end() - 1);
-      name.push_back(child_.at(0).at(0));
-      // std::cout << "looking for child body: [ ";
-      // for(auto& i : name) {
-      //   std::cout << i << " ";
-      // }
-      // std::cout << "]" << std::endl;
-      childBodyPointer_ = context_->getBody(name);
+    if(child_.at(0).size() == 1) {
+      if(child_.at(0).at(0) == "fixed") {
+        child_body_ptr_ = context_->fixedBody();
+      } else {
+        assert(parent_assembly_);
+        child_body_ptr_ = (*parent_assembly_)["bodies"][child_.at(0).at(0)]
+                            .data<Shift::Body::Base*>();
+      }
     } else {
-      /* child name is already a fully qualified name */
-      // std::cout << "looking for child body: [ ";
-      // for(auto& i : child_.at(0)) {
-      //   std::cout << i << " ";
-      // }
-      // std::cout << "]" << std::endl;
-      childBodyPointer_ = context_->getBody(child_.at(0));
+      assert(context_);
+      auto& value = (*context_)[child_.at(0).at(0)];
+      for(auto it = child_.at(0).begin() + 1; it <= parent_.at(0).end(); it++) {
+        value = value[*it];
+      }
+      child_body_ptr_ = value.data<Shift::Body::Base*>();
     }
-    if(!childBodyPointer_) {
+    if(!child_body_ptr_) {
       std::cerr << "CHILD BODY NOT FOUND!" << std::endl;
       assert(0);
     } else {
-      childFramePointer_ = childBodyPointer_->getFrame(child_.at(1).at(0));
-      if(!childFramePointer_) {
+      child_frame_ptr_ =
+        (*child_body_ptr_)[child_.at(1).at(0)].data<Shift::Frame*>();
+      if(!child_frame_ptr_) {
         std::cerr << "CHILD FRAME NOT FOUND!" << std::endl;
         assert(0);
       }
@@ -113,12 +110,17 @@ void Shift::Joint::Base::connect() {
 
 void Shift::Joint::Base::setInitialDisplacement(const double* q) {
   if(q_0_) {
-    memcpy(q_0_, q, qCount_ * sizeof(double));
+    memcpy(q_0_, q, q_count_ * sizeof(double));
   }
 }
 
 void Shift::Joint::Base::setInitialVelocity(const double* dq) {
   if(dq_0_) {
-    memcpy(dq_0_, dq, dqCount_ * sizeof(double));
+    memcpy(dq_0_, dq, dq_count_ * sizeof(double));
   }
+}
+
+void Shift::Joint::Base::setActiveObjects(bool parent_is_active) {
+  assert(context_);
+  context_->setActive(this, parent_is_active && active_);
 }

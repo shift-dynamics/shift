@@ -27,16 +27,16 @@ public:
   void setContext(Shift::Context*);
 
   void setChordConstraintCount(unsigned int count) {
-    chordConstraintCount_ = count;
-    constraintEquationCount_ = 6 * count;
+    chord_constraint_count_ = count;
+    constraint_equation_count_ = 6 * count;
     pr_12_.clear();
     pr_21_.clear();
-    pr_12_.resize(constraintEquationCount_);
-    pr_21_.resize(constraintEquationCount_);
+    pr_12_.resize(constraint_equation_count_);
+    pr_21_.resize(constraint_equation_count_);
   }
 
   void setqCount(unsigned int count) {
-    qCount_ = count;
+    q_count_ = count;
     pc_12_.clear();
     pc_21_.clear();
     pc_12_.resize(count);
@@ -44,26 +44,26 @@ public:
   }
 
   void setdqCount(unsigned int count) {
-    dqCount_ = count;
+    dq_count_ = count;
   }
 
   void setqOffset(unsigned int offset, double* q) {
-    qOffset_ = offset;
-    q_ = q + qOffset_;
+    q_offset_ = offset;
+    q_ = q + q_offset_;
   }
 
   void setdqOffset(unsigned int offset, double* dq, double* deltaq) {
-    dqOffset_ = offset;
-    dq_ = dq + dqOffset_;
-    deltaq_ = deltaq + dqOffset_;
+    dq_offset_ = offset;
+    dq_ = dq + dq_offset_;
+    deltaq_ = deltaq + dq_offset_;
   }
 
   void setJointCount(unsigned int count) {
-    jointCount_ = count;
+    joint_count_ = count;
   }
 
   void setJointOffset(unsigned int offset) {
-    jointOffset_ = offset;
+    joint_offset_ = offset;
   }
 
   void setcs(double* cs) {
@@ -91,31 +91,31 @@ public:
   }
 
   unsigned int constraintEquationCount() const {
-    return constraintEquationCount_;
+    return constraint_equation_count_;
   }
 
   unsigned int qCount() const {
-    return qCount_;
+    return q_count_;
   }
 
   unsigned int dqCount() const {
-    return dqCount_;
+    return dq_count_;
   }
 
   unsigned int dqOffset() const {
-    return dqOffset_;
+    return dq_offset_;
   }
 
   unsigned int jointCount() const {
-    return jointCount_;
+    return joint_count_;
   }
 
   void setLoopOffset(unsigned int offset) {
-    loopOffset_ = offset;
+    loop_offset_ = offset;
   }
 
   int bOffset() const {
-    return bOffset_;
+    return b_offset_;
   }
 
   void clearConstraintOffsets() {
@@ -125,20 +125,20 @@ public:
   /*!
   \brief set ij mapping array and initialize to -1
   */
-  void setijMapping(int* ijMapping) {
-    assert(ijMapping);
-    ijMapping_ = ijMapping;
-    for(unsigned int i = 0; i < dqCount_ * constraintEquationCount_; i++) {
-      ijMapping_[i] = -1;
+  void setijMapping(int* ij_mapping) {
+    assert(ij_mapping);
+    ij_mapping_ = ij_mapping;
+    for(unsigned int i = 0; i < dq_count_ * constraint_equation_count_; i++) {
+      ij_mapping_[i] = -1;
     }
   }
 
   unsigned int chordConstraintCount() {
-    return chordConstraintCount_;
+    return chord_constraint_count_;
   }
 
   void setBOffset(int offset) {
-    bOffset_ = offset;
+    b_offset_ = offset;
   }
 
   int rank() {
@@ -148,17 +148,17 @@ public:
   void print();
 
   void setChordConstraintOffset(unsigned int offset) {
-    chordConstraintOffset_ = offset;
+    chord_constraint_offset_ = offset;
   }
 
   void
   setPositiveLoopMembersCompressed(std::vector<std::vector<int>>* members) {
-    positiveLoopMembersCompressed_ = members;
+    positive_loop_members_compressed_ = members;
   }
 
   void
   setNegativeLoopMembersCompressed(std::vector<std::vector<int>>* members) {
-    negativeLoopMembersCompressed_ = members;
+    negative_loop_members_compressed_ = members;
   }
 
   void setPO1(const Topology::DHVA& dhva);
@@ -218,65 +218,65 @@ public:
   void firstOrderUpdate();
   int removeConstraintViolations();
   int removeConstraintViolationsFast(bool);
-  void printError(double initialError, double finalError, double* qCopy);
+  void printError(double initial_error, double final_error, double* q_copy);
   void incrementSpecifiedCoordinate(Shift::Topology::DHVA& dhva,
-                                    int specifiedCoordinateIndex, double value,
-                                    MoveType moveType);
+                                    int specified_coordinate_index,
+                                    double value, MoveType move_type);
   void setBMatrix();
-  void setPO1Specified(const Shift::Topology::DHVA& dhva, int dqIndex);
+  void setPO1Specified(const Shift::Topology::DHVA& dhva, int dq_index);
   double infinityNormB();
   double evaluateConstraints(const Shift::Topology::DHVA& dhva);
-  void setRightNullSpace(double* rightNullSpace) {
-    rightNullSpace_ = rightNullSpace;
+  void setRightNullSpace(double* right_null_space) {
+    right_null_space_ = right_null_space;
   }
-  void setMobilityNumbers(double* mobilityNumbers) {
-    mobilityNumbers_ = mobilityNumbers;
+  void setMobilityNumbers(double* mobility_numbers) {
+    mobility_numbers_ = mobility_numbers;
   }
   void computeMobility();
   void copyNullSpace();
   void setupNewtonRaphsonSpecifiedCoordinate(Shift::Topology::DHVA& dhva,
-                                             int specifiedCoordinateIndex);
+                                             int specified_coordinate_index);
 
 private:
-  double* cs_ = NULL; /*!< pointer to beginning of constraint array */
+  double* cs_ = nullptr; /*!< pointer to beginning of constraint array */
   double* dcs_ =
-    NULL; /*!< pointer to beginning of constraint time derivative array */
-  double* J_ = NULL;
-  int* Jxx_ = NULL;
-  bool* Jb_ = NULL;
-  double* dq_ = NULL;
-  double* q_ = NULL;
-  double* deltaq_ = NULL;
-  double* rightNullSpace_ = NULL;
-  double* mobilityNumbers_ = NULL;
-  double epsilonRankDetermination_ = 1e-9;
-  double infinityNormMultiplier_ = 2.0;
-  double scaledInitialInfinityNormB_ =
+    nullptr; /*!< pointer to beginning of constraint time derivative array */
+  double* J_ = nullptr;
+  int* Jxx_ = nullptr;
+  bool* Jb_ = nullptr;
+  double* dq_ = nullptr;
+  double* q_ = nullptr;
+  double* deltaq_ = nullptr;
+  double* right_null_space_ = nullptr;
+  double* mobility_numbers_ = nullptr;
+  double epsilon_rank_determination_ = 1e-9;
+  double infinity_norm_multiplier_ = 2.0;
+  double scaled_initial_infinity_norm_b_ =
     0.0; //<! scaled infinity norm after an initial full factorization
-  double infinityNormB_ = 0.0; //!< current infinity norm
-  int* ijMapping_ = NULL;
+  double infinity_norm_b_ = 0.0; //!< current infinity norm
+  int* ij_mapping_ = nullptr;
 
-  std::vector<std::vector<int>>* positiveLoopMembersCompressed_ = NULL;
-  std::vector<std::vector<int>>* negativeLoopMembersCompressed_ = NULL;
+  std::vector<std::vector<int>>* positive_loop_members_compressed_ = nullptr;
+  std::vector<std::vector<int>>* negative_loop_members_compressed_ = nullptr;
 
-  Shift::Context* context_ = NULL;
-  unsigned int chordConstraintOffset_ = 0;
-  unsigned int chordConstraintCount_ = 0;
-  unsigned int constraintEquationCount_ = 0;
-  unsigned int qCount_ = 0;
-  unsigned int dqCount_ = 0;
-  unsigned int jointCount_ = 0;
-  unsigned int jointOffset_ = 0;
-  unsigned int qOffset_ = 0;
-  unsigned int dqOffset_ = 0;
-  unsigned int loopOffset_ = 0;
+  Shift::Context* context_ = nullptr;
+  unsigned int chord_constraint_offset_ = 0;
+  unsigned int chord_constraint_count_ = 0;
+  unsigned int constraint_equation_count_ = 0;
+  unsigned int q_count_ = 0;
+  unsigned int dq_count_ = 0;
+  unsigned int joint_count_ = 0;
+  unsigned int joint_offset_ = 0;
+  unsigned int q_offset_ = 0;
+  unsigned int dq_offset_ = 0;
+  unsigned int loop_offset_ = 0;
 
   std::vector<int> pr_12_;
   std::vector<int> pc_12_;
   std::vector<int> pr_21_;
   std::vector<int> pc_21_;
 
-  int bOffset_ = 0;
+  int b_offset_ = 0;
   unsigned int index_ = -1;
   int rank_ = -1;
 };

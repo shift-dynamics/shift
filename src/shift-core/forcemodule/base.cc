@@ -12,6 +12,10 @@ bool Shift::ForceModule::Modules::initialized() {
   }
   return true;
 }
+void Shift::ForceModule::Base::setActiveObjects(bool parent_is_active) {
+  assert(context_);
+  context_->setActive(this, parent_is_active && active_);
+}
 
 void Shift::ForceModule::Base::addParameters() {}
 

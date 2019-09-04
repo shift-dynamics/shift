@@ -20,30 +20,31 @@ quadratic accelerations (a).
 */
 struct DHVA {
   DHVA() {}
-  DHVA(unsigned int frameCount, unsigned int dcCount, unsigned int dqCount,
-       unsigned int nonRigidJointCount) {
+  DHVA(unsigned int frame_count, unsigned int dc_count, unsigned int dq_count,
+       unsigned int non_rigid_joint_count) {
 
-    frameCount_ = frameCount;
-    dcCount_ = dcCount;
-    dqCount_ = dqCount;
-    nonRigidJointCount_ = nonRigidJointCount;
+    frame_count_ = frame_count;
+    dc_count_ = dc_count;
+    dq_count_ = dq_count;
+    non_rigid_joint_count_ = non_rigid_joint_count;
 
-    size_t dhvaSize = 2 * dcCount * sizeof(double) +                   /* dc */
-                      frameCount * sizeof(ksl_SE3_t) +                 /* d */
-                      (dqCount + 1) * sizeof(ksl_screw_t) +            /* h */
-                      (nonRigidJointCount + 1) * sizeof(ksl_screw_t) + /* v */
-                      (nonRigidJointCount + 1) * sizeof(ksl_screw_t);  /* aq */
-    dc = new double[dhvaSize];
-    if(dc == NULL) {
+    size_t dhva_size_ =
+      2 * dc_count * sizeof(double) +                     /* dc */
+      frame_count * sizeof(ksl_SE3_t) +                   /* d */
+      (dq_count + 1) * sizeof(ksl_screw_t) +              /* h */
+      (non_rigid_joint_count + 1) * sizeof(ksl_screw_t) + /* v */
+      (non_rigid_joint_count + 1) * sizeof(ksl_screw_t);  /* aq */
+    dc = new double[dhva_size_];
+    if(dc == nullptr) {
       std::cerr << "Error: failed to allocate memory for DHVA" << std::endl;
       exit(-1);
     }
-    memset(dc, 0, dhvaSize);
-    d = (ksl_SE3_t*)(dc + 2 * dcCount);
-    h = (ksl_screw_t*)(d + frameCount);
-    v = h + (nonRigidJointCount + 1);
-    aq = v + (nonRigidJointCount + 1);
-    for(unsigned int i = 0; i < frameCount; i++) {
+    memset(dc, 0, dhva_size_);
+    d = (ksl_SE3_t*)(dc + 2 * dc_count);
+    h = (ksl_screw_t*)(d + frame_count);
+    v = h + (non_rigid_joint_count + 1);
+    aq = v + (non_rigid_joint_count + 1);
+    for(unsigned int i = 0; i < frame_count; i++) {
       ksl_SE3_setIdentity(d + i);
     }
 
@@ -55,13 +56,13 @@ struct DHVA {
   }
 
   ~DHVA() {
-    if(dc != NULL) {
+    if(dc != nullptr) {
       delete[] dc;
-      dc = NULL;
-      d = NULL;
-      h = NULL;
-      v = NULL;
-      aq = NULL;
+      dc = nullptr;
+      d = nullptr;
+      h = nullptr;
+      v = nullptr;
+      aq = nullptr;
     }
   }
 
@@ -73,26 +74,27 @@ struct DHVA {
       return *this;
     }
 
-    frameCount_ = other.frameCount_;
-    dcCount_ = other.dcCount_;
-    dqCount_ = other.dqCount_;
-    nonRigidJointCount_ = other.nonRigidJointCount_;
+    frame_count_ = other.frame_count_;
+    dc_count_ = other.dc_count_;
+    dq_count_ = other.dq_count_;
+    non_rigid_joint_count_ = other.non_rigid_joint_count_;
 
-    size_t dhvaSize = 2 * dcCount_ * sizeof(double) +                   /* dc */
-                      frameCount_ * sizeof(ksl_SE3_t) +                 /* d */
-                      (dqCount_ + 1) * sizeof(ksl_screw_t) +            /* h */
-                      (nonRigidJointCount_ + 1) * sizeof(ksl_screw_t) + /* v */
-                      (nonRigidJointCount_ + 1) * sizeof(ksl_screw_t);  /* aq */
-    dc = new double[dhvaSize];
-    if(dc == NULL) {
+    size_t dhva_size_ =
+      2 * dc_count_ * sizeof(double) +                     /* dc */
+      frame_count_ * sizeof(ksl_SE3_t) +                   /* d */
+      (dq_count_ + 1) * sizeof(ksl_screw_t) +              /* h */
+      (non_rigid_joint_count_ + 1) * sizeof(ksl_screw_t) + /* v */
+      (non_rigid_joint_count_ + 1) * sizeof(ksl_screw_t);  /* aq */
+    dc = new double[dhva_size_];
+    if(dc == nullptr) {
       std::cerr << "Error: failed to allocate memory for DHVA" << std::endl;
       exit(-1);
     }
-    memset(dc, 0, dhvaSize);
-    d = (ksl_SE3_t*)(dc + 2 * dcCount_);
-    h = (ksl_screw_t*)(d + frameCount_);
-    v = h + (nonRigidJointCount_ + 1);
-    aq = v + (nonRigidJointCount_ + 1);
+    memset(dc, 0, dhva_size_);
+    d = (ksl_SE3_t*)(dc + 2 * dc_count_);
+    h = (ksl_screw_t*)(d + frame_count_);
+    v = h + (non_rigid_joint_count_ + 1);
+    aq = v + (non_rigid_joint_count_ + 1);
 
     // increment pointers to h, v, and aq. This allows using the index -1 for
     // the fixed inertial reference frame
@@ -100,25 +102,25 @@ struct DHVA {
     v++;
     aq++;
 
-    memcpy(dc, other.dc, dhvaSize);
+    memcpy(dc, other.dc, dhva_size_);
     return *this;
   }
 
-  double* dc = NULL;     /*!< direction cosine arrays */
-  ksl_SE3_t* d = NULL;   /*!< array of displacements equal
+  double* dc = nullptr;     /*!< direction cosine arrays */
+  ksl_SE3_t* d = nullptr;   /*!< array of displacements equal
                               in size to number of frames */
-  ksl_screw_t* h = NULL; /*!< an array of influence coefficient matrices */
+  ksl_screw_t* h = nullptr; /*!< an array of influence coefficient matrices */
   ksl_screw_t* v =
-    NULL; /*!< an array of body velocities equal to the
+    nullptr; /*!< an array of body velocities equal to the
         number of non rigid joints + 1 for the fixed inertial reference frame */
   ksl_screw_t* aq =
-    NULL; /*!< an array of body accelerations equal to the
+    nullptr; /*!< an array of body accelerations equal to the
         number of non rigid joints + 1 for the fixed inertial reference frame */
 private:
-  unsigned int frameCount_ = 0;
-  unsigned int dcCount_ = 0;
-  unsigned int dqCount_ = 0;
-  unsigned int nonRigidJointCount_ = 0;
+  unsigned int frame_count_ = 0;
+  unsigned int dc_count_ = 0;
+  unsigned int dq_count_ = 0;
+  unsigned int non_rigid_joint_count_ = 0;
 };
 
 /*!

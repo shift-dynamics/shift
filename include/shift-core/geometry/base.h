@@ -28,17 +28,17 @@ public:
     : Shift::Base(name) {}
   Base()
     : Shift::Base("") {}
-  virtual ~Base() {}
+  virtual ~Base() {
+    std::cout << "virtual ~Geometry::Base() override: " << name_ << std::endl;
+  }
 
   const std::string& getType() {
     return type_;
   }
-  void setContext(Context* context) {
-    context_ = context;
-  }
 
   virtual void load();
   virtual void connect();
+  virtual void setActiveObjects(bool) override;
 
   static const std::string arrayKey() {
     return "geometry";
@@ -48,7 +48,6 @@ public:
   }
 
 protected:
-  Context* context_;
   virtual void addParameters() override;
   std::string type_; //!< descriptive name of Geometry type
 };

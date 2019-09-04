@@ -16,11 +16,3 @@ void Shift::Units::addParameters() {
   addParameter("angle", &angle_,
                "Angle units, defaults to radians if not provided.", false);
 }
-
-void Shift::Units::print() {
-  std::cout << "units: " << std::endl;
-  std::cout << "  mass: " << mass_ << std::endl;
-  std::cout << "  length: " << length_ << std::endl;
-  std::cout << "  time: " << time_ << std::endl;
-  std::cout << "  angle: " << angle_ << std::endl;
-}

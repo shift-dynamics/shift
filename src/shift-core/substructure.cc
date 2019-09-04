@@ -20,36 +20,38 @@
 void Shift::Substructure::setContext(Shift::Context* context) {
   context_ = context;
   assert(context_);
-  epsilonRankDetermination_ =
+  epsilon_rank_determination_ =
     context->modelParameters().epsilonRankDetermination();
-  infinityNormMultiplier_ = context->modelParameters().infinityNormMultiplier();
+  infinity_norm_multiplier_ =
+    context->modelParameters().infinityNormMultiplier();
 }
 
 void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
-  memset(J_, 0, dqCount_ * constraintEquationCount_ * sizeof(double));
+  memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
   /* j is local loop index */
-  auto it = positiveLoopMembersCompressed_->begin() + chordConstraintOffset_;
-  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+  auto it =
+    positive_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto variableIndex : *it) {
-      assert(variableIndex >= 0 && variableIndex - dqOffset_ < dqCount_);
+      assert(variableIndex >= 0 && variableIndex - dq_offset_ < dq_count_);
       ksl_screw_copy_rmo(dhva.h + variableIndex, J_, j * 6,
-                         variableIndex - dqOffset_, dqCount_);
+                         variableIndex - dq_offset_, dq_count_);
     }
   }
 
-  it = negativeLoopMembersCompressed_->begin() + chordConstraintOffset_;
-  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+  it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto variableIndex : *it) {
-      assert(variableIndex >= 0 && variableIndex - dqOffset_ < dqCount_);
+      assert(variableIndex >= 0 && variableIndex - dq_offset_ < dq_count_);
       ksl_screw_ncopy_rmo(dhva.h + variableIndex, J_, j * 6,
-                          variableIndex - dqOffset_, dqCount_);
+                          variableIndex - dq_offset_, dq_count_);
     }
   }
 
-  // ksl_array2D_print(stdout, constraintEquationCount_, dqCount_, J_);
+  // ksl_array2D_print(stdout, constraint_equation_count_, dq_count_, J_);
 
-  rank_ = ksl_linalg_lu_full_rmo(constraintEquationCount_, dqCount_, J_,
-                                 epsilonRankDetermination_, pr_12_.data(),
+  rank_ = ksl_linalg_lu_full_rmo(constraint_equation_count_, dq_count_, J_,
+                                 epsilon_rank_determination_, pr_12_.data(),
                                  pc_12_.data());
   assert(rank_ != -1);
 
@@ -57,13 +59,13 @@ void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
   Shift::Topology::setInversePermutation(pc_12_, pc_21_);
 
   // std::cout << "rank: " << rank_ << std::endl;
-  // std::cout << "dqCount: " << dqCount_ << std::endl;
+  // std::cout << "dqCount: " << dq_count_ << std::endl;
 
-  if(rank_ < (int)dqCount_) {
-    ksl_linalg_lu_setBMatrix_rmo(rank_, dqCount_, J_);
-    scaledInitialInfinityNormB_ =
-      infinityNormMultiplier_ *
-      ksl_linalg_lu_infinityNormB_rmo(rank_, dqCount_, J_);
+  if(rank_ < (int)dq_count_) {
+    ksl_linalg_lu_setBMatrix_rmo(rank_, dq_count_, J_);
+    scaled_initial_infinity_norm_b_ =
+      infinity_norm_multiplier_ *
+      ksl_linalg_lu_infinityNormB_rmo(rank_, dq_count_, J_);
   }
 }
 
@@ -72,27 +74,29 @@ void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
 for a single substructure
 */
 void Shift::Substructure::setPO2(const Shift::Topology::DHVA& dhva) {
-  memset(J_, 0, dqCount_ * constraintEquationCount_ * sizeof(double));
+  memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
 
   /* j is local loop index*/
-  auto it = positiveLoopMembersCompressed_->begin() + chordConstraintOffset_;
-  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+  auto it =
+    positive_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variableIndex : *it) {
-      int columnIndex_2 = pc_21_[variableIndex - dqOffset_];
+      int columnIndex_2 = pc_21_[variableIndex - dq_offset_];
       for(int m = 0; m < 6; m++) {
         int rowIndex_2 = pr_21_[j * 6 + m];
-        J_[rowIndex_2 * dqCount_ + columnIndex_2] = dhva.h[variableIndex].at[m];
+        J_[rowIndex_2 * dq_count_ + columnIndex_2] =
+          dhva.h[variableIndex].at[m];
       }
     }
   }
 
-  it = negativeLoopMembersCompressed_->begin() + chordConstraintOffset_;
-  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+  it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variableIndex : *it) {
-      int columnIndex_2 = pc_21_[variableIndex - dqOffset_];
+      int columnIndex_2 = pc_21_[variableIndex - dq_offset_];
       for(int m = 0; m < 6; m++) {
         int rowIndex_2 = pr_21_[j * 6 + m];
-        J_[rowIndex_2 * dqCount_ + columnIndex_2] =
+        J_[rowIndex_2 * dq_count_ + columnIndex_2] =
           -dhva.h[variableIndex].at[m];
       }
     }
@@ -104,28 +108,29 @@ void Shift::Substructure::setPO2(const Shift::Topology::DHVA& dhva) {
 for a single substructure
 */
 void Shift::Substructure::setBooleanPO2() {
-  memset(Jb_, 0, dqCount_ * constraintEquationCount_ * sizeof(bool));
+  memset(Jb_, 0, dq_count_ * constraint_equation_count_ * sizeof(bool));
 
   /* j is local loop index */
-  auto it = positiveLoopMembersCompressed_->begin() + chordConstraintOffset_;
-  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+  auto it =
+    positive_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variableIndex : *it) {
-      int columnIndex = pc_21_[variableIndex - dqOffset_];
+      int columnIndex = pc_21_[variableIndex - dq_offset_];
       for(int m = 0; m < 6; m++) {
         int rowIndex = pr_21_[j * 6 + m];
-        Jb_[rowIndex * dqCount_ + columnIndex] = true;
+        Jb_[rowIndex * dq_count_ + columnIndex] = true;
       }
     }
   }
 
-  it = negativeLoopMembersCompressed_->begin() + chordConstraintOffset_;
-  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+  it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variableIndex : *it) {
-      assert((int)variableIndex - (int)dqOffset_ >= 0);
-      int columnIndex = pc_21_[variableIndex - dqOffset_];
+      assert((int)variableIndex - (int)dq_offset_ >= 0);
+      int columnIndex = pc_21_[variableIndex - dq_offset_];
       for(int m = 0; m < 6; m++) {
         int rowIndex = pr_21_[j * 6 + m];
-        Jb_[rowIndex * dqCount_ + columnIndex] = true;
+        Jb_[rowIndex * dq_count_ + columnIndex] = true;
       }
     }
   }
@@ -133,10 +138,10 @@ void Shift::Substructure::setBooleanPO2() {
   /* Record fills in LU factorization */
   for(int j = 0; j < rank_; j++) {
     for(int k = j + 1; k < rank_; k++) {
-      if(Jb_[k * dqCount_ + j]) {
-        for(unsigned int l = j + 1; l < dqCount_; l++) {
-          if(Jb_[j * dqCount_ + l]) {
-            Jb_[k * dqCount_ + l] = true;
+      if(Jb_[k * dq_count_ + j]) {
+        for(unsigned int l = j + 1; l < dq_count_; l++) {
+          if(Jb_[j * dq_count_ + l]) {
+            Jb_[k * dq_count_ + l] = true;
           }
         }
       }
@@ -146,10 +151,10 @@ void Shift::Substructure::setBooleanPO2() {
   /* Record fills in Boolean B matrix */
   for(int j = rank_ - 1; j > -1; j--) {
     for(int k = rank_ - 1; k > j; k--) {
-      if(Jb_[j * dqCount_ + k]) {
-        for(unsigned int l = rank_; l < dqCount_; l++) {
-          if(Jb_[k * dqCount_ + l]) {
-            Jb_[j * dqCount_ + l] = true;
+      if(Jb_[j * dq_count_ + k]) {
+        for(unsigned int l = rank_; l < dq_count_; l++) {
+          if(Jb_[k * dq_count_ + l]) {
+            Jb_[j * dq_count_ + l] = true;
           }
         }
       }
@@ -158,27 +163,27 @@ void Shift::Substructure::setBooleanPO2() {
 }
 
 void Shift::Substructure::factorPO2() {
-  ksl_linalg_lu_rmo(rank_, dqCount_, J_);
+  ksl_linalg_lu_rmo(rank_, dq_count_, J_);
 }
 
 void Shift::Substructure::setBMatrixSparse(double* __restrict__ b3) {
-  if(rank_ > 0 && rank_ < (int)dqCount_) {
-    infinityNormB_ = 0;
+  if(rank_ > 0 && rank_ < (int)dq_count_) {
+    infinity_norm_b_ = 0;
     for(int i = rank_ - 1; i > -1; i--) { /* rows of B */
-      for(unsigned int k = rank_; k < dqCount_; k++) {
-        // assert(J_[i * dqCount_ + i] == pivots[i]);
-        if(Jb_[i * dqCount_ + k]) {
+      for(unsigned int k = rank_; k < dq_count_; k++) {
+        // assert(J_[i * dq_count_ + i] == pivots[i]);
+        if(Jb_[i * dq_count_ + k]) {
           double save = 0;
           for(int j = rank_ - 1; j > i; j--) {
-            save += J_[i * dqCount_ + j] * J_[j * dqCount_ + k];
+            save += J_[i * dq_count_ + j] * J_[j * dq_count_ + k];
           }
-          int b3Index = ijMapping_[i * dqCount_ + k];
+          int b3Index = ij_mapping_[i * dq_count_ + k];
           assert(b3Index > -1);
-          b3[b3Index] = (J_[i * dqCount_ + k] - save) / J_[i * dqCount_ + i];
-          J_[i * dqCount_ + k] = b3[b3Index];
+          b3[b3Index] = (J_[i * dq_count_ + k] - save) / J_[i * dq_count_ + i];
+          J_[i * dq_count_ + k] = b3[b3Index];
           assert(!std::isinf(b3[b3Index]));
           assert(!std::isnan(b3[b3Index]));
-          infinityNormB_ = std::max(infinityNormB_, std::abs(b3[b3Index]));
+          infinity_norm_b_ = std::max(infinity_norm_b_, std::abs(b3[b3Index]));
         }
       }
     }
@@ -188,32 +193,32 @@ void Shift::Substructure::setBMatrixSparse(double* __restrict__ b3) {
 void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
                                            int* __restrict__ cb3,
                                            std::vector<int>& pv_23) {
-  int ijMapping_temp_po3[dqCount_ * dqCount_];
+  int ij_mapping_temp_po3[dq_count_ * dq_count_];
 
-  for(unsigned int i = 0; i < dqCount_ * dqCount_; i++) {
-    ijMapping_temp_po3[i] = -1;
+  for(unsigned int i = 0; i < dq_count_ * dq_count_; i++) {
+    ij_mapping_temp_po3[i] = -1;
   }
 
   /* generate a local pv_local_23 array */
-  int pv_local_23[dqCount_];
-  for(unsigned int i = 0; i < dqCount_; i++) {
-    pv_local_23[i] = pv_23[i + dqOffset_] - dqOffset_;
+  int pv_local_23[dq_count_];
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    pv_local_23[i] = pv_23[i + dq_offset_] - dq_offset_;
   }
 
   /* set ij mapping temp po3 indices */
-  int k = bOffset_;
-  for(unsigned int i3 = dqCount_ - rank_; i3 < dqCount_; i3++) {
+  int k = b_offset_;
+  for(unsigned int i3 = dq_count_ - rank_; i3 < dq_count_; i3++) {
     int i2 = pv_local_23[i3];
-    assert(i2 > -1 && i2 < (int)dqCount_);
-    int rb3Index = i3 + dqOffset_;
+    assert(i2 > -1 && i2 < (int)dq_count_);
+    int rb3Index = i3 + dq_offset_;
     assert(rb3Index > 0);
     assert(rb3);
     rb3[rb3Index][0] = k;
-    for(unsigned int j3 = 0; j3 < dqCount_ - rank_; j3++) {
+    for(unsigned int j3 = 0; j3 < dq_count_ - rank_; j3++) {
       int j2 = pv_local_23[j3];
-      if(Jb_[i2 * dqCount_ + j2]) {
-        ijMapping_temp_po3[i3 * dqCount_ + j3] = k;
-        cb3[k] = j3 + dqOffset_;
+      if(Jb_[i2 * dq_count_ + j2]) {
+        ij_mapping_temp_po3[i3 * dq_count_ + j3] = k;
+        cb3[k] = j3 + dq_offset_;
         k++;
       }
     }
@@ -221,13 +226,14 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
   }
 
   /* permute ij mapping temp to po2 */
-  for(unsigned int i3 = dqCount_ - rank_; i3 < dqCount_; i3++) {
+  for(unsigned int i3 = dq_count_ - rank_; i3 < dq_count_; i3++) {
     int i2 = pv_local_23[i3];
-    assert(i2 > -1 && i2 < (int)dqCount_);
-    for(unsigned int j3 = 0; j3 < dqCount_ - rank_; j3++) {
+    assert(i2 > -1 && i2 < (int)dq_count_);
+    for(unsigned int j3 = 0; j3 < dq_count_ - rank_; j3++) {
       int j2 = pv_local_23[j3];
-      assert(j2 > -1 && j2 < (int)dqCount_);
-      ijMapping_[i2 * dqCount_ + j2] = ijMapping_temp_po3[i3 * dqCount_ + j3];
+      assert(j2 > -1 && j2 < (int)dq_count_);
+      ij_mapping_[i2 * dq_count_ + j2] =
+        ij_mapping_temp_po3[i3 * dq_count_ + j3];
     }
   }
 }
@@ -235,11 +241,12 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
 void Shift::Substructure::print() {
   std::cout << "Substructure [" << index_ << "]" << std::endl;
   std::cout << "  members:" << std::endl;
-  std::cout << "  dqCount: " << dqCount_ << std::endl;
+  std::cout << "  dqCount: " << dq_count_ << std::endl;
   std::cout << "  rank: " << rank_ << std::endl;
-  std::cout << "  dqOffset: " << dqOffset_ << std::endl;
-  std::cout << "  chordConstraintCount: " << chordConstraintCount_ << std::endl;
-  std::cout << "  constraintEquationCount: " << constraintEquationCount_
+  std::cout << "  dqOffset: " << dq_offset_ << std::endl;
+  std::cout << "  chordConstraintCount: " << chord_constraint_count_
+            << std::endl;
+  std::cout << "  constraintEquationCount: " << constraint_equation_count_
             << std::endl
             << std::endl;
 }
@@ -248,8 +255,8 @@ void Shift::Substructure::firstOrderUpdate() {
   /* rows in B matrix */
   for(int i = 0; i < rank_; i++) {
     /* columns in B matrix */
-    for(unsigned int j = rank_; j < dqCount_; j++) {
-      q_[pc_12_[i]] -= J_[i * dqCount_ + j] * deltaq_[pc_12_[j]];
+    for(unsigned int j = rank_; j < dq_count_; j++) {
+      q_[pc_12_[i]] -= J_[i * dq_count_ + j] * deltaq_[pc_12_[j]];
     }
   }
 }
@@ -259,8 +266,8 @@ void Shift::Substructure::firstOrderUpdate() {
 @param a kinematic substructure to process
 */
 void Shift::Substructure::updateq() {
-  unsigned int qIndex = qOffset_;
-  unsigned int dqIndex = dqOffset_;
+  unsigned int qIndex = q_offset_;
+  unsigned int dqIndex = dq_offset_;
   for(unsigned int j = 1; j < context_->substructureMembers()[index_].size();
       j++) {
     auto joint = context_->activeJoints()[j];
@@ -301,13 +308,13 @@ error = sqrt(deltaq[] . deltaq[]) / dqCount
 */
 double Shift::Substructure::qError() {
 #if SHIFT_WITH_BLAS_
-  return sqrt(cblas_ddot(dqCount_, deltaq_, 1, deltaq_, 1)) / dqCount_;
+  return sqrt(cblas_ddot(dq_count_, deltaq_, 1, deltaq_, 1)) / dq_count_;
 #else
   double sum = 0;
-  for(unsigned int i = 0; i < dqCount_; i++) {
+  for(unsigned int i = 0; i < dq_count_; i++) {
     sum += deltaq_[i] * deltaq_[i];
   }
-  return sqrt(sum) / dqCount_;
+  return sqrt(sum) / dq_count_;
 #endif
 }
 
@@ -315,19 +322,19 @@ double Shift::Substructure::qError() {
 
 */
 void Shift::Substructure::newtonRaphsonSolver() {
-  memset(deltaq_, 0, dqCount_ * sizeof(double));
+  memset(deltaq_, 0, dq_count_ * sizeof(double));
   /* cs <-  L^-1 cs */
   for(int i = 0; i < rank_; i++) {
     for(int j = 0; j < i; j++) {
-      cs_[pr_12_[i]] -= J_[i * dqCount_ + j] * cs_[pr_12_[j]];
+      cs_[pr_12_[i]] -= J_[i * dq_count_ + j] * cs_[pr_12_[j]];
     }
   }
   /* deltaq <- U^-1 * (L^-1 * cs) */
   for(int i = rank_ - 1; i > -1; i--) {
     for(int j = rank_ - 1; j > i; j--) {
-      cs_[pr_12_[i]] -= J_[i * dqCount_ + j] * deltaq_[pc_12_[j]];
+      cs_[pr_12_[i]] -= J_[i * dq_count_ + j] * deltaq_[pc_12_[j]];
     }
-    deltaq_[pc_12_[i]] = cs_[pr_12_[i]] / J_[i * dqCount_ + i];
+    deltaq_[pc_12_[i]] = cs_[pr_12_[i]] / J_[i * dq_count_ + i];
   }
 }
 
@@ -338,8 +345,8 @@ void Shift::Substructure::newtonRaphsonSolver() {
 double
 Shift::Substructure::evaluateConstraints(const Shift::Topology::DHVA& dhva) {
 
-  assert(constraints_.size() == chordConstraintCount_);
-  for(unsigned int i = 0; i < chordConstraintCount_; i++) {
+  assert(constraints_.size() == chord_constraint_count_);
+  for(unsigned int i = 0; i < chord_constraint_count_; i++) {
     ksl_SE3_t* parentFrame = dhva.d + constraints_[i].parent.d;
     ksl_SE3_t* childFrame = dhva.d + constraints_[i].child.d;
     ksl_SE3_t temp;
@@ -352,14 +359,14 @@ Shift::Substructure::evaluateConstraints(const Shift::Topology::DHVA& dhva) {
   }
 
 #if SHIFT_WITH_BLAS_
-  return sqrt(cblas_ddot(constraintEquationCount_, cs_, 1, cs_, 1)) /
-         constraintEquationCount_;
+  return sqrt(cblas_ddot(constraint_equation_count_, cs_, 1, cs_, 1)) /
+         constraint_equation_count_;
 #else
   double sum = 0;
-  for(unsigned int i = 0; i < constraintEquationCount_; i++) {
+  for(unsigned int i = 0; i < constraint_equation_count_; i++) {
     sum += cs_[i] * cs_[i];
   }
-  return sqrt(sum) / constraintEquationCount_;
+  return sqrt(sum) / constraint_equation_count_;
 #endif
 }
 
@@ -371,8 +378,8 @@ int Shift::Substructure::removeConstraintViolations() {
   error = sqrt(cs[] . cs[]) / constraintEquationCount < eps when converged.
   */
   int maxStep = 100;
-  double qCopy[qCount_];
-  memcpy(qCopy, q_, qCount_ * sizeof(double));
+  double qCopy[q_count_];
+  memcpy(qCopy, q_, q_count_ * sizeof(double));
 
   assert(context_);
   context_->updateDH();
@@ -414,8 +421,8 @@ int Shift::Substructure::removeConstraintViolationsFast(
 
   context_->updateDH();
   double initialError = evaluateConstraints(context_->dhva());
-  double qCopy[qCount_];
-  memcpy(qCopy, q_, qCount_ * sizeof(double));
+  double qCopy[q_count_];
+  memcpy(qCopy, q_, q_count_ * sizeof(double));
   const int maxStep = 100;
   double tol;
   if(useTightTolerance) {
@@ -457,13 +464,13 @@ void Shift::Substructure::printError(double initialError, double finalError,
           "substructure [%d]\n",
           index_);
   fprintf(f, "initial error: %f, final error: %f\n", initialError, finalError);
-  fprintf(f, "  qCount: %d\n", qCount_);
-  fprintf(f, "  qOffset: %d\n", qOffset_);
-  assert(context_->q() + qOffset_ == q_);
+  fprintf(f, "  qCount: %d\n", q_count_);
+  fprintf(f, "  qOffset: %d\n", q_offset_);
+  assert(context_->q() + q_offset_ == q_);
   fprintf(f, " states before Newton-Raphson:\n   ");
-  ksl_array_print(f, qCount_, qCopy);
+  ksl_array_print(f, q_count_, qCopy);
   fprintf(f, " states after Newton-Raphson:\n    ");
-  ksl_array_print(f, qCount_, q_);
+  ksl_array_print(f, q_count_, q_);
 }
 
 /*!
@@ -504,7 +511,7 @@ void Shift::Substructure::incrementSpecifiedCoordinate(
 
   /* currently the joint type is not used, but may be used in the future, for
   example to set all 3 dof as specified for a spherical joint */
-  memset(deltaq_, 0, dqCount_ * sizeof(double));
+  memset(deltaq_, 0, dq_count_ * sizeof(double));
   switch(moveType) {
     case INCREMENT: {
       context_->deltaq()[specifiedCoordinateIndex] = value;
@@ -533,7 +540,7 @@ void Shift::Substructure::incrementSpecifiedCoordinate(
   @brief wrapper function for ksl_linalg_lu_setBMatrix_rmo for a substructure
 */
 void Shift::Substructure::setBMatrix() {
-  ksl_linalg_lu_setBMatrix_rmo(rank_, dqCount_, J_);
+  ksl_linalg_lu_setBMatrix_rmo(rank_, dq_count_, J_);
 }
 
 /*! @brief set initial row-major ordered jacobian in permutation order 1 and
@@ -549,35 +556,36 @@ the Jacobian is stored in row-major order
 void Shift::Substructure::setPO1Specified(const Shift::Topology::DHVA& dhva,
                                           int dqIndex) {
 
-  memset(J_, 0, dqCount_ * constraintEquationCount_ * sizeof(double));
+  memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
 
   /* j is local loop index */
-  auto it = positiveLoopMembersCompressed_->begin() + chordConstraintOffset_;
-  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+  auto it =
+    positive_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variableIndex : *it) {
       // std::cout << variableIndex << std::endl;
       // ksl_screw_print(stdout, dhva.h + variableIndex);
       ksl_screw_copy_rmo(dhva.h + variableIndex, J_, j * 6,
-                         variableIndex - dqOffset_, dqCount_);
+                         variableIndex - dq_offset_, dq_count_);
     }
   }
 
-  it = negativeLoopMembersCompressed_->begin() + chordConstraintOffset_;
-  for(unsigned int j = 0; j < chordConstraintCount_; j++, it++) {
+  it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variableIndex : *it) {
       // std::cout << variableIndex << std::endl;
       // ksl_screw_print(stdout, dhva.h + variableIndex);
       ksl_screw_ncopy_rmo(dhva.h + variableIndex, J_, j * 6,
-                          variableIndex - dqOffset_, dqCount_);
+                          variableIndex - dq_offset_, dq_count_);
     }
   }
 
   /* convert global index to local index */
-  int localSpecifiedIndex = dqIndex - dqOffset_;
+  int localSpecifiedIndex = dqIndex - dq_offset_;
   assert(localSpecifiedIndex > -1);
 
   rank_ = ksl_linalg_lu_full_specified_rmo(
-    constraintEquationCount_, dqCount_, J_,
+    constraint_equation_count_, dq_count_, J_,
     context_->modelParameters().epsilonRankDetermination(), pr_12_.data(),
     pc_12_.data(), localSpecifiedIndex);
   Topology::setInversePermutation(pr_12_, pr_21_);
@@ -585,39 +593,39 @@ void Shift::Substructure::setPO1Specified(const Shift::Topology::DHVA& dhva,
 
   setBMatrix();
 
-  scaledInitialInfinityNormB_ =
+  scaled_initial_infinity_norm_b_ =
     context_->modelParameters().infinityNormMultiplier() * infinityNormB();
 
   setBooleanPO2();
 }
 
 double Shift::Substructure::infinityNormB() {
-  return ksl_linalg_lu_infinityNormB_rmo(rank_, dqCount_, J_);
+  return ksl_linalg_lu_infinityNormB_rmo(rank_, dq_count_, J_);
 }
 
 /*!
 @brief vector copy B matrix into null space array
 */
 void Shift::Substructure::copyNullSpace() {
-  memset(rightNullSpace_, 0, dqCount_ * dqCount_ * sizeof(double));
+  memset(right_null_space_, 0, dq_count_ * dq_count_ * sizeof(double));
   /* dqCount - rank is the column dimension of null space */
-  assert((int)dqCount_ >= rank_ && rank_ != -1);
-  int colDim = dqCount_ - rank_;
+  assert((int)dq_count_ >= rank_ && rank_ != -1);
+  int colDim = dq_count_ - rank_;
   for(int i = 0; i < rank_; i++) {
 #if SHIFT_WITH_BLAS_
-    cblas_dcopy(colDim, J_ + (i * dqCount_ + rank_), 1,
-                rightNullSpace_ + (pc_12_[i] * colDim), 1);
+    cblas_dcopy(colDim, J_ + (i * dq_count_ + rank_), 1,
+                right_null_space_ + (pc_12_[i] * colDim), 1);
 #else
     for(int j = 0; j < colDim; j++) {
-      rightNullSpace_[pc_12_[i] * colDim + j] = J_[i * dqCount_ + rank_ + j];
+      right_null_space_[pc_12_[i] * colDim + j] = J_[i * dq_count_ + rank_ + j];
     }
 #endif
   }
 
   /* set the remaining matrix to identity */
   unsigned int j = 0;
-  for(unsigned int i = rank_; i < dqCount_; i++) {
-    rightNullSpace_[pc_12_[i] * colDim + j++] = 1.0;
+  for(unsigned int i = rank_; i < dq_count_; i++) {
+    right_null_space_[pc_12_[i] * colDim + j++] = 1.0;
   }
 }
 
@@ -632,26 +640,26 @@ void Shift::Substructure::copyNullSpace() {
   have been called prior to execution
 */
 void Shift::Substructure::computeMobility() {
-  if(dqCount_ - rank_ == 0) {
+  if(dq_count_ - rank_ == 0) {
     printf("zero mobility detected for substructure\n");
-    assert(mobilityNumbers_);
-    memset(mobilityNumbers_, 0, dqCount_ * sizeof(double));
+    assert(mobility_numbers_);
+    memset(mobility_numbers_, 0, dq_count_ * sizeof(double));
     return;
   }
   copyNullSpace();
-  ksl_linalg_gramSchmidt(rightNullSpace_, dqCount_, dqCount_ - rank_);
-  assert(mobilityNumbers_);
-  assert((int)dqCount_ >= rank_ && rank_ != -1);
-  int n = dqCount_ - rank_;
-  for(unsigned int i = 0; i < dqCount_; i++) {
+  ksl_linalg_gramSchmidt(right_null_space_, dq_count_, dq_count_ - rank_);
+  assert(mobility_numbers_);
+  assert((int)dq_count_ >= rank_ && rank_ != -1);
+  int n = dq_count_ - rank_;
+  for(unsigned int i = 0; i < dq_count_; i++) {
 #if SHIFT_WITH_BLAS_
-    mobilityNumbers_[i] =
-      cblas_ddot(n, rightNullSpace_ + i * n, 1, rightNullSpace_ + i * n, 1);
+    mobility_numbers_[i] =
+      cblas_ddot(n, right_null_space_ + i * n, 1, right_null_space_ + i * n, 1);
 #else
-    mobilityNumbers_[i] = 0;
+    mobility_numbers_[i] = 0;
     for(int j = 0; j < n; j++) {
-      mobilityNumbers_[i] +=
-        rightNullSpace_[i * n + j] * rightNullSpace_[i * n + j];
+      mobility_numbers_[i] +=
+        right_null_space_[i * n + j] * right_null_space_[i * n + j];
     }
 #endif
   }

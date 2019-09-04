@@ -58,53 +58,34 @@ void Shift::Body::Base::addParameters() {
     "very low mass is specified, it may cause problems for some solvers. "
     "(optional, default={mass=1,Ixx=1,Iyy=1,Izz=1,Ixy=0,Iyz=0,Izx=0})",
     false);
+
+  addParameter("frames", &frames_,
+               "Specify a number of body-fixed reference frames. Each frame "
+               "in a body must have a unique name identified and 'origin' is "
+               "a reserved system name that may not be used.",
+               false);
+
+  addParameter("lights", &lights_,
+               "Specify a number of body-fixed lights, used to "
+               "illuminate scene for visualization.",
+               false);
+
+  addParameter("geometry", &geometry_,
+               "Specify a number of body-fixed geometry, used for "
+               "visualization or contact detection. Each geometry "
+               "in a body must have a unique name.",
+               false);
+
+  addParameter("collision_geometry", &collision_geometry_,
+               "Specify a number of body-fixed collision geometries, used for "
+               "contact detection. Each collision geometry "
+               "in a body must have a unique name.",
+               false);
 }
 
-void Shift::Body::Base::appendFrame(Frame* frame) {
-  frames_.push_back(frame);
-}
-
-void Shift::Body::Base::setFullyQualifiedNames(
-  std::vector<std::string>& baseName) {
-  setFullyQualifiedName(baseName);
-  std::vector<std::string> bodyName = fullyQualifiedName();
-  for(auto& i : frames_.data()) {
-    i->setFullyQualifiedName(bodyName);
-  }
-  for(auto& i : lights_.data()) {
-    i->setFullyQualifiedName(bodyName);
-  }
-  for(auto& i : geometry_.data()) {
-    i->setFullyQualifiedName(bodyName);
-  }
-  for(auto& i : collision_geometry_.data()) {
-    i->setFullyQualifiedName(bodyName);
-  }
-}
-
-void Shift::Body::Base::setActiveObjects(bool parentIsActive) {
-  if(active_ && context_ && parentIsActive) {
-    for(auto& i : lights_.data()) {
-      context_->setActive(i.get());
-    }
-    for(auto& i : geometry_.data()) {
-      context_->setActive(i.get());
-    }
-    for(auto& i : collision_geometry_.data()) {
-      context_->setActive(i.get());
-    }
-  } else {
-    if(context_) {
-      for(auto& i : lights_.data()) {
-        context_->removeActive(i.get());
-      }
-      for(auto& i : geometry_.data()) {
-        context_->removeActive(i.get());
-      }
-      for(auto& i : collision_geometry_.data()) {
-        context_->removeActive(i.get());
-      }
-    }
+void Shift::Body::Base::setActiveObjects(bool parent_is_active) {
+  if(context_) {
+    context_->setActive(this, active_ && parent_is_active);
   }
 };
 

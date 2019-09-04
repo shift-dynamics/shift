@@ -28,21 +28,22 @@ class Base
 public:
   Base(std::string name)
     : Shift::Base(name) {
-    addKeys();
+    addParameters();
   }
   Base()
     : Shift::Base("") {
-    addKeys();
+    addParameters();
   }
-  virtual ~Base() {}
+  virtual ~Base() {
+    std::cout << "virtual ~CollisionGeometry::Base() override: " << name_
+              << std::endl;
+  }
 
   const std::string& getType() {
     return type_;
   }
 
-  void setContext(Context* context) {
-    context_ = context;
-  }
+  virtual void setActiveObjects(bool parent_is_active) override;
 
   virtual void load();
   virtual void connect();
@@ -55,8 +56,7 @@ public:
   }
 
 protected:
-  Context* context_ = nullptr;
-  void addKeys();
+  virtual void addParameters() override;
 
   std::string type_; //!< descriptive name of CollisionGeometry type
 };

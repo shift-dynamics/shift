@@ -31,7 +31,9 @@ public:
     : Shift::Base("") {
     addParameters();
   }
-  ~Base() {}
+  virtual ~Base() override {
+    std::cout << "virtual ~Behavior::Base() override: " << name_ << std::endl;
+  }
 
   const std::string& getType() {
     return type_;
@@ -40,6 +42,7 @@ public:
   virtual void load();
   virtual void connect();
   virtual void addParameters() override;
+  virtual void setActiveObjects(bool parent_is_active) override;
 
   static const std::string arrayKey() {
     return "behaviors";

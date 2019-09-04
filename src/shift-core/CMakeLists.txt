@@ -98,7 +98,7 @@ target_compile_options(
   -Wall
   -Wextra
   -g3
-  -O3
+  # -O3
   -std=c++17
   ${GRAPHVIZ_COMPILE_FLAGS}
 )

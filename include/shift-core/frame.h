@@ -28,18 +28,19 @@ class Frame
 
 public:
   Frame(std::string name)
-    : Base(name) {
+    : Base(name)
+    , Parameter::List() {
     addParameters();
   }
   Frame()
-    : Base("") {
+    : Base("")
+    , Parameter::List() {
     addParameters();
   }
-  ~Frame() {}
-  void print();
-  // void setNameRequired(bool) {
-  //   n
-  // }
+  virtual ~Frame() override {
+    std::cout << "virtual ~Frame() override: " << name_ << std::endl;
+  }
+
   const ksl_SE3_t* dWRTReference() const;
   const ksl_SE3_t* dWRTOrigin() const;
   const ksl_SE3_t* systemDWRTReference() const;
@@ -58,88 +59,81 @@ public:
     index_ = index;
   }
   void setInTree(bool inTree) {
-    inTree_ = inTree;
+    in_tree_ = inTree;
   }
   bool inTree() const {
-    return inTree_;
+    return in_tree_;
   }
   bool isReference() const {
-    return isReference_;
+    return is_reference_;
   }
   void setIsReference(bool isReference) {
-    isReference_ = isReference;
+    is_reference_ = isReference;
   }
   bool isOrigin() {
-    return isOrigin_;
+    return is_origin_;
   }
   void setIsOrigin(bool isOrigin) {
-    isOrigin_ = isOrigin;
+    is_origin_ = isOrigin;
   }
   void setDWRTReference(ksl_SE3_t dReference) {
-    dWRTReference_ = dReference;
-    systemDWRTReference_ = dReference;
+    d_wrt_reference_ = dReference;
+    system_d_wrt_reference_ = dReference;
   }
 
   void setSystemDWRTReference(ksl_SE3_t* dReference) {
     if(dReference) {
-      systemDWRTReference_ = *dReference;
-      useSystemReferenceFrame_ = true;
+      system_d_wrt_reference_ = *dReference;
+      use_system_reference_frame_ = true;
     } else {
-      ksl_SE3_copy(&dWRTReference_, &systemDWRTReference_);
-      useSystemReferenceFrame_ = false;
+      ksl_SE3_copy(&d_wrt_reference_, &system_d_wrt_reference_);
+      use_system_reference_frame_ = false;
     }
   }
 
   void setReferenceFrame(Frame* referenceFrame) {
-    referenceFrame_ = referenceFrame;
+    reference_frame_ = referenceFrame;
   }
 
   void setParentBody(Body::Base* body) {
-    parentBody_ = body;
+    parent_body_ = body;
   }
 
   const Body::Base* parentBody() const {
-    return parentBody_;
+    return parent_body_;
   }
 
   const Shift::Frame* referenceFrame() const {
-    return referenceFrame_;
-  }
-
-  void setContext(Context* context) {
-    context_ = context;
+    return reference_frame_;
   }
 
 private:
   void addParameters() override;
-  std::vector<std::string> fullyQualifiedName_;
 
   /*! \brief relative transformation from body origin to current frame
    */
-  ksl_SE3_t dWRTOrigin_ = {
+  ksl_SE3_t d_wrt_origin_ = {
     {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0}};
 
   /*! \brief relative transform from body reference frame to current frame
    */
-  ksl_SE3_t dWRTReference_ = {
+  ksl_SE3_t d_wrt_reference_ = {
     {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0}};
 
   /*! \brief relative transform from reference frame, which may be attached to
    * another body, to current frame
    */
-  ksl_SE3_t systemDWRTReference_ = {
+  ksl_SE3_t system_d_wrt_reference_ = {
     {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0}};
-  int index_ = -1;           //!< index in dWRTReference_ array
-  bool inTree_ = false;      //!< indicates whether frame is in spanning tree
-  bool isReference_ = false; //<! indicates whether frame is the reference frame
+  int index_ = -1;       //!< index in d_wrt_reference_ array
+  bool in_tree_ = false; //!< indicates whether frame is in spanning tree
+  bool is_reference_ =
+    false; //<! indicates whether frame is the reference frame
   // of the body it is attached to
-  bool isOrigin_ = false; //<! indicates whether frame is origin of rigid body
+  bool is_origin_ = false; //<! indicates whether frame is origin of rigid body
   // it is attached to
-  Frame* referenceFrame_ = nullptr;
-  bool useSystemReferenceFrame_ = false;
-
-  Body::Base* parentBody_ = nullptr;
-  Context* context_ = nullptr;
+  Frame* reference_frame_ = nullptr;
+  bool use_system_reference_frame_ = false;
 };
 
 } // namespace Shift

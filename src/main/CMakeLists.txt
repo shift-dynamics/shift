@@ -30,8 +30,9 @@ target_compile_options(
   -Wall
   -Wextra
   -g3
-  -O3
+  # -O3
   -std=c++17
+  # -gdb
 )
 
 target_include_directories(shift-cli PUBLIC ${CMAKE_SOURCE_DIR}/include)

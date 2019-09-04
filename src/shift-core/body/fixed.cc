@@ -16,17 +16,6 @@ void Shift::Body::Fixed::addParameters() {
   removeParameter("center_of_mass");
   removeParameter("active");
 
-  addParameter("frames", &frames_,
-               "reference coordinate frames, attached to the fixed inertial "
-               "reference frame",
-               false);
-
-  addParameter("lights", &lights_,
-               "an array of one or more lights to illuminate scene, if not "
-               "light is specified, a single directional overhead light source "
-               "in the opposite direction of the gravity vector will be added",
-               false);
-
   addParameter("terrain", &terrain_,
                "an array of one or more Shift terrain objects", false);
 }
