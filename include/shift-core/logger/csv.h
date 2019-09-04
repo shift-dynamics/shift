@@ -28,8 +28,6 @@ public:
     return description_;
   }
 
-  void addParameters() override;
-
   static bool isRegistered() {
     return registered_;
   }
@@ -37,6 +35,8 @@ public:
   virtual void initialize() override {}
 
 private:
+  virtual void addParameters() override;
+
   const std::string description_ = "";
   static bool registered_;
   static std::unique_ptr<CSV> create();

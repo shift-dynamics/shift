@@ -36,15 +36,15 @@ public:
     : Shift::Base("") {
     addParameters();
   }
-  virtual ~Base() {}
+  virtual ~Base() override {
+    std::cout << "virtual ~Constraint::Base() override: " << name_ << std::endl;
+  }
 
   const std::string& type() {
     return type_;
   }
 
-  void setContext(Context* context) {
-    context_ = context;
-  }
+  virtual void setActiveObjects(bool parent_is_active) override;
 
   virtual void load();
   virtual void connect();
@@ -66,19 +66,19 @@ public:
   void setChildFrame(Frame*);
 
   Body::Base* parentBody() {
-    return parentBodyPointer_;
+    return parent_body_ptr_;
   }
 
   Frame* parentFrame() {
-    return parentFramePointer_;
+    return parent_frame_ptr_;
   }
 
   Body::Base* childBody() {
-    return childBodyPointer_;
+    return child_body_ptr_;
   }
 
   Frame* childFrame() {
-    return childFramePointer_;
+    return child_frame_ptr_;
   }
 
 protected:
@@ -87,19 +87,19 @@ protected:
   Context* context_;
   std::string type_; //!< descriptive name of Constraint type
 
-  std::vector<std::vector<std::string>> bodyFramePairs_;
+  std::vector<std::vector<std::string>> body_frame_pairs_;
 
-  std::vector<std::string> parentBody_; //!< descriptive name of parent Body
-  Shift::Body::Base* parentBodyPointer_ = nullptr; //!< pointer to parent Body
+  std::vector<std::string> parent_body_; //!< descriptive name of parent Body
+  Shift::Body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
 
-  std::vector<std::string> parentFrame_; //!< descriptive name of parent Frame
-  Frame* parentFramePointer_ = nullptr;  //!< pointer to parent Frame
+  std::vector<std::string> parent_frame_; //!< descriptive name of parent Frame
+  Frame* parent_frame_ptr_ = nullptr;     //!< pointer to parent Frame
 
-  std::vector<std::string> childBody_; //!< descriptive name of child Body
-  Shift::Body::Base* childBodyPointer_ = nullptr; //!< pointer to child Body
+  std::vector<std::string> child_body_; //!< descriptive name of child Body
+  Shift::Body::Base* child_body_ptr_ = nullptr; //!< pointer to child Body
 
-  std::vector<std::string> childFrame_; //!< descriptive name of child frame
-  Frame* childFramePointer_ = nullptr;  //!< pointer to child Frame
+  std::vector<std::string> child_frame_; //!< descriptive name of child frame
+  Frame* child_frame_ptr_ = nullptr;     //!< pointer to child Frame
 };
 
 class Modules {

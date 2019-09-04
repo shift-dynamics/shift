@@ -49,22 +49,26 @@ public:
     , Parameter::List() {
     addParameters();
   }
-  virtual ~Base() {}
+  virtual ~Base() {
+    std::cout << "virtual ~Joint::Base() override: " << name_ << std::endl;
+  }
+
+  void setActiveObjects(bool parent_is_active) override;
 
   const std::string& type() {
     return type_;
   }
 
   unsigned int dcCount() {
-    return dcCount_;
+    return dc_count_;
   };
 
   unsigned int qCount() const {
-    return qCount_;
+    return q_count_;
   };
 
   unsigned int dqCount() const {
-    return dqCount_;
+    return dq_count_;
   };
 
   const double* q0() {
@@ -89,78 +93,70 @@ public:
     return "";
   }
 
-  void setContext(Context* context) {
-    context_ = context;
-  }
-
-  void setAssembly(Assembly* assembly) {
-    assembly_ = assembly;
-  }
-
   virtual void load();
 
   void connect();
 
   Shift::Body::Base* parentBody() {
-    return parentBodyPointer_;
+    return parent_body_ptr_;
   }
 
   Shift::Body::Base* systemParentBody() {
     if(sense_ >= 0) {
-      return parentBodyPointer_;
+      return parent_body_ptr_;
     } else {
-      return childBodyPointer_;
+      return child_body_ptr_;
     }
   }
 
   Shift::Body::Base* childBody() {
-    return childBodyPointer_;
+    return child_body_ptr_;
   }
 
   Shift::Body::Base* systemChildBody() const {
-    if(systemChildBodyPointer_) {
-      return systemChildBodyPointer_;
+    if(system_child_body_ptr_) {
+      return system_child_body_ptr_;
     }
     if(sense_ >= 0) {
-      return childBodyPointer_;
+      return child_body_ptr_;
     } else {
-      return parentBodyPointer_;
+      return parent_body_ptr_;
     }
   }
 
   Shift::Frame* parentFrame() {
-    return parentFramePointer_;
+    return parent_frame_ptr_;
   }
 
   Shift::Frame* systemParentFrame() {
     if(sense_ >= 0) {
-      return parentFramePointer_;
+      return parent_frame_ptr_;
     } else {
-      return childFramePointer_;
+      return child_frame_ptr_;
     }
   }
 
   Shift::Frame* childFrame() {
-    return childFramePointer_;
+    return child_frame_ptr_;
   }
 
   Shift::Frame* systemChildFrame() {
-    if(systemChildFramePointer_) {
-      return systemChildFramePointer_;
+    if(system_child_frame_ptr_) {
+      return system_child_frame_ptr_;
     }
     if(sense_ >= 0) {
-      return childFramePointer_;
+      return child_frame_ptr_;
     } else {
-      return parentFramePointer_;
+      return parent_frame_ptr_;
     }
   }
 
   void setSystemChildBody(Shift::Body::Base* body) {
-    systemChildBodyPointer_ = body;
+    system_child_body_ptr_ = body;
   }
 
   void setSystemChildFrame(Shift::Frame* frame) {
-    systemChildFramePointer_ = frame;
+    system_child_frame_ptr_ = frame;
   }
 
   int sense() {
@@ -180,11 +176,11 @@ public:
   }
 
   virtual unsigned int dataCount() {
-    return dataCount_;
+    return data_count_;
   }
 
   virtual const double* data() {
-    return NULL;
+    return nullptr;
   }
 
   virtual ksl_SE3_t transform() {
@@ -194,47 +190,47 @@ public:
   }
 
   void setqIndex(int index) {
-    qIndex_ = index;
+    q_index_ = index;
   }
 
   void setdqIndex(int index) {
-    dqIndex_ = index;
+    dq_index_ = index;
   }
 
   void setdcIndex(int index) {
-    dcIndex_ = index;
+    dc_index_ = index;
   }
 
   int qIndex() const {
-    return qIndex_;
+    return q_index_;
   }
 
   int dqIndex() const {
-    return dqIndex_;
+    return dq_index_;
   }
 
   int dcIndex() const {
-    return dcIndex_;
+    return dc_index_;
   }
 
   int dataIndex() const {
-    return dataIndex_;
+    return data_index_;
   }
 
   void setDataIndex(int index) {
-    dataIndex_ = index;
+    data_index_ = index;
   }
 
   void clearChildJoints() {
-    childJoints_.clear();
+    child_joints_.clear();
   }
 
   void pushChildJoint(Shift::Joint::Base* child) {
-    childJoints_.push_back(child);
+    child_joints_.push_back(child);
   }
 
   const std::vector<Shift::Joint::Base*>& childJoints() const {
-    return childJoints_;
+    return child_joints_;
   }
 
   void setSubstructure(Substructure* substructure) {
@@ -242,7 +238,7 @@ public:
   }
 
   void clearSubstructure() {
-    substructure_ = NULL;
+    substructure_ = nullptr;
   }
 
   const Substructure* substructure() const {
@@ -250,31 +246,28 @@ public:
   }
 
 protected:
-  Context* context_ = NULL;
-  Assembly* assembly_ = NULL;
-
-  virtual void addParameters();
-  std::string type_;           //!< descriptive name of joint type
-  unsigned int dof_ = 0;       //!< number of degrees of freedom
-  unsigned int dcCount_ = 0;   /*!< number of direction cosines used by joint, 1
-                                    indicates a (sin, cos) pair */
-  unsigned int qCount_ = 0;    //!< number of generalized coordinates
-  unsigned int dqCount_ = 0;   //!< number of generalized coordinate derivatives
-  unsigned int dataCount_ = 0; //!< additional quantities used to process joint
-  int index_ = -1;             //!< index in joint array
-  int qIndex_ = -1;            //!< index into q array
-  int dqIndex_ = -1;           //!< index into dq array
-  int dcIndex_ = -1;           //!< index into dc array
-  int indexSubstructure_ = -1; //!< local index into substructure
+  virtual void addParameters() override;
+  std::string type_;          //!< descriptive name of joint type
+  unsigned int dof_ = 0;      //!< number of degrees of freedom
+  unsigned int dc_count_ = 0; /*!< number of direction cosines used by joint, 1
+                                  indicates a (sin, cos) pair */
+  unsigned int q_count_ = 0;  //!< number of generalized coordinates
+  unsigned int dq_count_ = 0; //!< number of generalized coordinate derivatives
+  unsigned int data_count_ = 0; //!< additional quantities used to process joint
+  int index_ = -1;              //!< index in joint array
+  int q_index_ = -1;            //!< index into q array
+  int dq_index_ = -1;           //!< index into dq array
+  int dc_index_ = -1;           //!< index into dc array
+  int index_substructure_ = -1; //!< local index into substructure
   int sense_ = 0; /*!< indicates whether joint is positively aligned with
                spanning tree (+1), or negatively aligned with spanning tree
                (-1). Automatically set by Topology::sort() */
   int level_ = 0; /*!< Indicates Joint's level in the spanning tree,
                 set by ProcessTopology */
-  int dataIndex_ = -1;
+  int data_index_ = -1;
 
-  Substructure* substructure_ = NULL; /*!< substructure the joint is
-    a member of, NULL if the joint is not a member of any substructure */
+  Substructure* substructure_ = nullptr; /*!< substructure the joint is
+    a member of, nullptr if the joint is not a member of any substructure */
 
   /*!
   The `parent` descriptive name follows the format:
@@ -311,39 +304,39 @@ protected:
   */
   std::vector<std::vector<std::string>> child_;
 
-  Shift::Body::Base* parentBodyPointer_ = NULL; //!< pointer to parent Body
-  Frame* parentFramePointer_ = NULL;            //!< pointer to parent Frame
-  Shift::Body::Base* childBodyPointer_ = NULL;  //!< pointer to child Body
-  Frame* childFramePointer_ = NULL;             //!< pointer to child Frame
-  Shift::Body::Base* systemChildBodyPointer_ =
-    NULL; //!< pointer to a system defined virtual body
-  Shift::Frame* systemChildFramePointer_ =
-    NULL; //!< pointer to a system defined virtual body
+  Shift::Body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
+  Frame* parent_frame_ptr_ = nullptr;            //!< pointer to parent Frame
+  Shift::Body::Base* child_body_ptr_ = nullptr;  //!< pointer to child Body
+  Frame* child_frame_ptr_ = nullptr;             //!< pointer to child Frame
+  Shift::Body::Base* system_child_body_ptr_ =
+    nullptr; //!< pointer to a system defined virtual body
+  Shift::Frame* system_child_frame_ptr_ =
+    nullptr; //!< pointer to a system defined virtual body
 
-  std::vector<Shift::Joint::Base*> childJoints_;
+  std::vector<Shift::Joint::Base*> child_joints_;
 
-  double* q_0_ = NULL;  /*!< initial primitive displacement
+  double* q_0_ = nullptr;  /*!< initial primitive displacement
                                               specified by user */
-  double* dq_0_ = NULL; /*!< initial primitive velocity specified
+  double* dq_0_ = nullptr; /*!< initial primitive velocity specified
                                          by user */
 
-  double* mobilityNumber_ = NULL;
+  double* mobility_number_ = nullptr;
   bool independent_ = true; /*!< boolean to indicate whether joint is
                          independent (true) or dependent (false) as
                          determined by fullFactor_LU algorithm */
 
-  Base* parentJoint_ = NULL; /*!< pointer to unique parentJoint */
+  Base* parent_joint_ = nullptr; /*!< pointer to unique parentJoint */
 
-  Substructure* substructurePointer_ =
-    NULL; /*!< pointer to substructure assignment */
+  Substructure* substructure_ptr_ =
+    nullptr; /*!< pointer to substructure assignment */
 
   std::vector<double>
-    dampingCoefficients_; /*!< damping coefficients, c0 + c1*x + c2 * x**2
+    damping_coefficients_; /*!< damping coefficients, c0 + c1*x + c2 * x**2
 + ... + cn * x**n */
   std::vector<double>
-    stiffnessCoefficients_; /*!< spring coefficients, k0 + k1 * x
+    stiffness_coefficients_; /*!< spring coefficients, k0 + k1 * x
                  + k2 * x**2 + ... + kn * x**n */
-  bool isVisible_ = false;
+  bool visible_ = false;
 };
 
 class Modules {

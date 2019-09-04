@@ -33,7 +33,20 @@ public:
   }
 
   ~Factory() {
-    factoryMap_.clear();
+    int status;
+    std::string type_str = typeid(T).name();
+    char* demangled_name =
+      abi::__cxa_demangle(type_str.c_str(), nullptr, nullptr, &status);
+    if(status == 0) {
+      type_str = demangled_name;
+      std::free(demangled_name);
+      if(type_str.substr(type_str.length() - 1, type_str.length()) ==
+         std::string("*")) {
+        type_str = type_str.substr(0, type_str.length() - 1);
+      }
+    }
+    std::cout << "~Factory(): " << type_str << std::endl;
+    // factory_map_.clear();
   }
 
   typedef std::function<std::unique_ptr<T>()> CreateFunction;
@@ -45,15 +58,15 @@ public:
 
   bool registerModule(const std::string& name, CreateFunction pfnCreate) {
     /* register module only if name not already taken */
-    if(factoryMap_.find(name) == factoryMap_.end()) {
-      factoryMap_[name] = pfnCreate;
+    if(factory_map_.find(name) == factory_map_.end()) {
+      factory_map_[name] = pfnCreate;
       return true;
     }
     return false;
   }
 
   void listModules() {
-    for(const auto& pair : factoryMap_) {
+    for(const auto& pair : factory_map_) {
       std::cout << pair.first << " ";
     }
     std::cout << std::endl;
@@ -62,121 +75,121 @@ public:
   std::unique_ptr<T> create(const std::string& name) {
     /* if valid map does not exist, return null and throw exception */
     try {
-      if(factoryMap_.find(name) == factoryMap_.end()) {
+      if(factory_map_.find(name) == factory_map_.end()) {
         throw "Error: Module not found:";
       }
     } catch(const char* msg) {
       std::cerr << msg << " " << name << " is not registered." << std::endl;
-      return NULL;
+      return nullptr;
     }
-    return factoryMap_[name]();
+    return factory_map_[name]();
   }
 
 private:
-  static std::map<std::string, CreateFunction> factoryMap_;
+  static std::map<std::string, CreateFunction> factory_map_;
 };
 
-/*! indicate that factoryMap_ exists for bodies */
+/*! indicate that factory_map_ exists for bodies */
 template <>
 std::map<std::string, Shift::Factory<Shift::Behavior::Base>::CreateFunction>
-  Shift::Factory<Shift::Behavior::Base>::factoryMap_;
+  Shift::Factory<Shift::Behavior::Base>::factory_map_;
 
 /*! indicate that Behavior specialization exists */
 extern template class Shift::Factory<Shift::Behavior::Base>;
 
-/*! indicate that factoryMap_ exists for bodies */
+/*! indicate that factory_map_ exists for bodies */
 template <>
 std::map<std::string, Shift::Factory<Shift::Body::Base>::CreateFunction>
-  Shift::Factory<Shift::Body::Base>::factoryMap_;
+  Shift::Factory<Shift::Body::Base>::factory_map_;
 
 /*! indicate that Body specialization exists */
 extern template class Shift::Factory<Shift::Body::Base>;
 
-/*! indicate that factoryMap_ exists for CollisionGeometry */
+/*! indicate that factory_map_ exists for CollisionGeometry */
 template <>
 std::map<std::string,
          Shift::Factory<Shift::CollisionGeometry::Base>::CreateFunction>
-  Shift::Factory<Shift::CollisionGeometry::Base>::factoryMap_;
+  Shift::Factory<Shift::CollisionGeometry::Base>::factory_map_;
 
 /*! indicate that CollisionGeometry specialization exists */
 extern template class Shift::Factory<Shift::CollisionGeometry::Base>;
 
-/*! indicate that factoryMap_ exists for Constraint */
+/*! indicate that factory_map_ exists for Constraint */
 template <>
 std::map<std::string, Shift::Factory<Shift::Constraint::Base>::CreateFunction>
-  Shift::Factory<Shift::Constraint::Base>::factoryMap_;
+  Shift::Factory<Shift::Constraint::Base>::factory_map_;
 
 /*! indicate that Constraint specialization exists */
 extern template class Shift::Factory<Shift::Constraint::Base>;
 
-/*! indicate that factoryMap_ exists for ForceModule */
+/*! indicate that factory_map_ exists for ForceModule */
 template <>
 std::map<std::string, Shift::Factory<Shift::ForceModule::Base>::CreateFunction>
-  Shift::Factory<Shift::ForceModule::Base>::factoryMap_;
+  Shift::Factory<Shift::ForceModule::Base>::factory_map_;
 
 /*! indicate that ForceModule specialization exists */
 extern template class Shift::Factory<Shift::ForceModule::Base>;
 
-/*! indicate that factoryMap_ exists for Geometry */
+/*! indicate that factory_map_ exists for Geometry */
 template <>
 std::map<std::string, Shift::Factory<Shift::Geometry::Base>::CreateFunction>
-  Shift::Factory<Shift::Geometry::Base>::factoryMap_;
+  Shift::Factory<Shift::Geometry::Base>::factory_map_;
 
 /*! indicate that Geometry specialization exists */
 extern template class Shift::Factory<Shift::Geometry::Base>;
 
-/*! indicate that factoryMap_ exists for Integrator */
+/*! indicate that factory_map_ exists for Integrator */
 template <>
 std::map<std::string, Shift::Factory<Shift::Integrator::Base>::CreateFunction>
-  Shift::Factory<Shift::Integrator::Base>::factoryMap_;
+  Shift::Factory<Shift::Integrator::Base>::factory_map_;
 
 /*! indicate that Integrator specialization exists */
 extern template class Shift::Factory<Shift::Integrator::Base>;
 
-/*! indicate that factoryMap_ exists for Joint */
+/*! indicate that factory_map_ exists for Joint */
 template <>
 std::map<std::string, Shift::Factory<Shift::Joint::Base>::CreateFunction>
-  Shift::Factory<Shift::Joint::Base>::factoryMap_;
+  Shift::Factory<Shift::Joint::Base>::factory_map_;
 
 /*! indicate that Joint specialization exists */
 extern template class Shift::Factory<Shift::Joint::Base>;
 
-/*! indicate that factoryMap_ exists for Light */
+/*! indicate that factory_map_ exists for Light */
 template <>
 std::map<std::string, Shift::Factory<Shift::Light::Base>::CreateFunction>
-  Shift::Factory<Shift::Light::Base>::factoryMap_;
+  Shift::Factory<Shift::Light::Base>::factory_map_;
 
 /*! indicate that Light specialization exists */
 extern template class Shift::Factory<Shift::Light::Base>;
 
-/*! indicate that factoryMap_ exists for Logger */
+/*! indicate that factory_map_ exists for Logger */
 template <>
 std::map<std::string, Shift::Factory<Shift::Logger::Base>::CreateFunction>
-  Shift::Factory<Shift::Logger::Base>::factoryMap_;
+  Shift::Factory<Shift::Logger::Base>::factory_map_;
 
 /*! indicate that Logger specialization exists */
 extern template class Shift::Factory<Shift::Logger::Base>;
 
-/*! indicate that factoryMap_ exists for Sensor */
+/*! indicate that factory_map_ exists for Sensor */
 template <>
 std::map<std::string, Shift::Factory<Shift::Sensor::Base>::CreateFunction>
-  Shift::Factory<Shift::Sensor::Base>::factoryMap_;
+  Shift::Factory<Shift::Sensor::Base>::factory_map_;
 
 /*! indicate that Sensor specialization exists */
 extern template class Shift::Factory<Shift::Sensor::Base>;
 
-/*! indicate that factoryMap_ exists for Solver */
+/*! indicate that factory_map_ exists for Solver */
 template <>
 std::map<std::string, Shift::Factory<Shift::Solver::Base>::CreateFunction>
-  Shift::Factory<Shift::Solver::Base>::factoryMap_;
+  Shift::Factory<Shift::Solver::Base>::factory_map_;
 
 /*! indicate that Solver specialization exists */
 extern template class Shift::Factory<Shift::Solver::Base>;
 
-/*! indicate that factoryMap_ exists for Terrain */
+/*! indicate that factory_map_ exists for Terrain */
 template <>
 std::map<std::string, Shift::Factory<Shift::Terrain::Base>::CreateFunction>
-  Shift::Factory<Shift::Terrain::Base>::factoryMap_;
+  Shift::Factory<Shift::Terrain::Base>::factory_map_;
 
 /*! indicate that Terrain specialization exists */
 extern template class Shift::Factory<Shift::Terrain::Base>;

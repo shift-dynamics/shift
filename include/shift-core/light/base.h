@@ -31,13 +31,12 @@ public:
     : Shift::Base(name) {}
   Base()
     : Shift::Base("") {}
-  virtual ~Base() {}
+  virtual ~Base() override {
+    std::cout << "virtual ~Light::Base() override: " << name_ << std::endl;
+  }
 
   const std::string& getType() {
     return type_;
-  }
-  void setContext(Context* context) {
-    context_ = context;
   }
 
   static const std::string arrayKey() {
@@ -48,10 +47,10 @@ public:
   }
   virtual void load();
   virtual void connect();
+  void setActiveObjects(bool parent_is_active) override;
 
 protected:
-  Context* context_;
-  void addParameters();
+  virtual void addParameters() override;
   std::vector<std::string> parent_;
   std::string type_; //!< descriptive name of Light type
   ksl_vec3_t Ka_ = ksl_vec3(0.2, 0.2, 0.2);

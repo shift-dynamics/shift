@@ -41,8 +41,6 @@ public:
     return registered_;
   }
 
-  virtual void addParameters() override;
-
   Topology::dh_fptr Dfptr() override;
   Topology::dh_fptr DHfptr() override;
   Topology::dhva_fptr DHVAfptr() override;
@@ -59,6 +57,7 @@ public:
   }
 
 private:
+  virtual void addParameters() override;
   static bool registered_;
   Shift::Frame frame_;
 };

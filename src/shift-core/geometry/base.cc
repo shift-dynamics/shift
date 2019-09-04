@@ -33,6 +33,11 @@ void Shift::Geometry::Base::addParameters() {
     false);
 }
 
+void Shift::Geometry::Base::setActiveObjects(bool parent_is_active) {
+  assert(context_);
+  context_->setActive(this, active_ && parent_is_active);
+};
+
 void Shift::Geometry::Base::load() {}
 
 void Shift::Geometry::Base::connect() {}

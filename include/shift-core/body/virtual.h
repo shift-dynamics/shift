@@ -45,54 +45,53 @@ public:
   }
 
   void referenceFrameIndex(int index) {
-    referenceFrameIndex_ = index;
+    reference_frame_index_ = index;
   }
 
   int referenceFrameIndex() {
-    return referenceFrameIndex_;
+    return reference_frame_index_;
   }
 
   void setParentJointPointer(Joint::JointBase* joint) {
-    parentJointPointer_ = joint;
+    parent_joint_ptr_ = joint;
   }
 
   Joint::JointBase* parentJointPointer() {
-    return parentJointPointer_;
+    return parent_joint_ptr_;
   }
 
   void setParentBodyPointer(BodyBase* body) {
-    parentBodyPointer_ = body;
+    parent_body_ptr_ = body;
   }
 
   BodyBase* parentBodyPointer() {
-    return parentBodyPointer_;
+    return parent_body_ptr_;
   }
 
   void setParentFramePointer(Frame* frame) {
-    parentFramePointer_ = frame;
+    parent_frame_ptr_ = frame;
   }
 
   Frame* parentFramePointer() {
-    return parentFramePointer_;
+    return parent_frame_ptr_;
   }
 
 private:
-  int referenceFrameIndex_ = -1; /*!< pointer to Body's unique reference
+  int reference_frame_index_ = -1; /*!< pointer to Body's unique reference
                                     frame */
 
-  Joint::JointBase* parentJointPointer_ = NULL; /*!< Pointer to Body's unique
-                                                 *parent* Joint datastructure */
+  Joint::JointBase* parent_joint_ptr_ =
+    nullptr; /*!< Pointer to Body's unique
+              *parent* Joint datastructure */
 
-  BodyBase* parentBodyPointer_ = NULL; /*!< A pointer to the unique *parent*
-                                       Body, set by s2_ProcessTopology */
+  BodyBase* parent_body_ptr_ = nullptr; /*!< A pointer to the unique *parent*
+                                       Body*/
 
-  Frame* parentFramePointer_ =
-    NULL; /*!< parent frame of body reference frame */
+  Frame* parent_frame_ptr_ =
+    nullptr; /*!< parent frame of body reference frame */
 
-  int index_ = -1; /*!< index in contiguous *run-time* array of Bodies, set
-                  by s2_ProcessTopology */
-  int level_ = -1; /*!< level in the spanning tree, set
-                  by s2_ProcessTopology */
+  int index_ = -1; /*!< index in contiguous *run-time* array of Bodies */
+  int level_ = -1; /*!< level in the spanning tree */
 
   static bool registered_;
 };

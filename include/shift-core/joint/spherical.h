@@ -33,19 +33,19 @@ public:
   Spherical()
     : Base() {
     dof_ = 3;
-    qCount_ = 4;
-    dqCount_ = 3;
-    q_0_ = new double[qCount_]();
-    dq_0_ = new double[dqCount_]();
+    q_count_ = 4;
+    dq_count_ = 3;
+    q_0_ = new double[q_count_]();
+    dq_0_ = new double[dq_count_]();
     addParameters();
   }
   Spherical(std::string name)
     : Base(name) {
     dof_ = 3;
-    qCount_ = 4;
-    dqCount_ = 3;
-    q_0_ = new double[qCount_]();
-    dq_0_ = new double[dqCount_]();
+    q_count_ = 4;
+    dq_count_ = 3;
+    q_0_ = new double[q_count_]();
+    dq_0_ = new double[dq_count_]();
     addParameters();
   }
   virtual ~Spherical() override {
@@ -58,13 +58,12 @@ public:
     return registered_;
   }
 
-  virtual void addParameters() override;
-
   Topology::dh_fptr Dfptr() override;
   Topology::dh_fptr DHfptr() override;
   Topology::dhva_fptr DHVAfptr() override;
 
 private:
+  virtual void addParameters() override;
   static bool registered_;
   Shift::Frame frame_;
 };

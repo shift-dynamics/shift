@@ -20,15 +20,19 @@ namespace Body {
 
 class Fixed : public Base {
 public:
-  Fixed() {
+  Fixed()
+    : Base() {
     name_ = "fixed";
     addParameters();
   }
-  Fixed(std::string) {
+  Fixed(std::string name)
+    : Base(name) {
     name_ = "fixed";
     addParameters();
   }
-  virtual ~Fixed() override {}
+  virtual ~Fixed() override {
+    std::cout << "virtual ~Body::Fixed() override: " << name_ << std::endl;
+  }
   static std::unique_ptr<Fixed> create();
   virtual void addParameters() override;
   static bool isRegistered() {

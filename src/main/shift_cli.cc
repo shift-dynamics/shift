@@ -8,6 +8,16 @@ int main(int argc, char* argv[]) {
     Shift::Context context;
     context.readJSON(argv[1]);
 
+    // auto& assembly = context["assemblies"][0];
+    // assembly.print();
+    //
+    // auto& bodies = context["assemblies"]["excavator"]["bodies"][0];
+    // bodies.print();
+    context["frames"].print();
+
+    // auto& fixed_frames = context["frames"];
+    // fixed_frames.print();
+
     // context.print();
     // context.writeJSON("test.json");
     return 0;

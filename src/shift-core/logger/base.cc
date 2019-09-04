@@ -18,3 +18,8 @@ void Shift::Logger::Base::addParameters() {}
 void Shift::Logger::Base::load() {}
 
 void Shift::Logger::Base::connect() {}
+
+void Shift::Logger::Base::setActiveObjects(bool parent_is_active) {
+  assert(context_);
+  context_->setActive(this, parent_is_active && active_);
+}

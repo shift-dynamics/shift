@@ -14,6 +14,14 @@ bool Shift::CollisionGeometry::Modules::initialized() {
   return true;
 }
 
+void Shift::CollisionGeometry::Base::addParameters() {}
+
+void Shift::CollisionGeometry::Base::setActiveObjects(bool parent_is_active) {
+  if(context_) {
+    context_->setActive(this, active_ && parent_is_active);
+  }
+};
+
 void Shift::CollisionGeometry::Base::load() {}
 
 void Shift::CollisionGeometry::Base::connect() {}

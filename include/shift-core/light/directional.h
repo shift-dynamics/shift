@@ -20,12 +20,12 @@ public:
   }
   virtual ~Directional() override {}
   static std::unique_ptr<Directional> create();
-  virtual void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }
 
 private:
+  virtual void addParameters() override;
   static bool registered_;
 };
 

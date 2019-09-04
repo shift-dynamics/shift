@@ -226,8 +226,6 @@ public:
     return description_;
   }
 
-  void addParameters() override;
-
   static bool isRegistered() {
     return registered_;
   }
@@ -235,6 +233,7 @@ public:
   virtual void initialize() override;
 
 private:
+  virtual void addParameters() override;
   std::vector<bool> hasMass_;
   std::vector<bool> hasMassdq_;
 

@@ -19,12 +19,12 @@ public:
   }
   virtual ~Basic() override {}
   static std::unique_ptr<Basic> create();
-  void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }
 
 private:
+  virtual void addParameters() override;
   static bool registered_;
 };
 

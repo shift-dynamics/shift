@@ -84,21 +84,21 @@ public:
   Revolute()
     : Base() {
     dof_ = 1;
-    qCount_ = 1;
-    dqCount_ = 1;
-    dcCount_ = 1;
-    q_0_ = new double[qCount_]();
-    dq_0_ = new double[dqCount_]();
+    q_count_ = 1;
+    dq_count_ = 1;
+    dc_count_ = 1;
+    q_0_ = new double[q_count_]();
+    dq_0_ = new double[dq_count_]();
     addParameters();
   }
   Revolute(std::string name)
     : Base(name) {
     dof_ = 1;
-    qCount_ = 1;
-    dqCount_ = 1;
-    dcCount_ = 1;
-    q_0_ = new double[qCount_]();
-    dq_0_ = new double[dqCount_]();
+    q_count_ = 1;
+    dq_count_ = 1;
+    dc_count_ = 1;
+    q_0_ = new double[q_count_]();
+    dq_0_ = new double[dq_count_]();
     addParameters();
   }
   ~Revolute() override {
@@ -113,13 +113,12 @@ public:
   virtual const double* data() override;
   virtual unsigned int dataCount() override;
 
-  virtual void addParameters() override;
-
   Topology::dh_fptr Dfptr() override;
   Topology::dh_fptr DHfptr() override;
   Topology::dhva_fptr DHVAfptr() override;
 
 private:
+  virtual void addParameters() override;
   enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };
   static bool registered_;
   ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};

@@ -60,37 +60,27 @@ public:
     addParameters();
   }
 
-  ~Assembly() {}
-
-  void printBehaviors();
-  void printBodies();
-  void printConstraints();
-  void printForceModules();
-  void printJoints();
-  void print();
-  void setFullyQualifiedNames(std::vector<std::string>&);
-  void setActiveObjects(bool);
-  void setContext(Context* context) {
-    context_ = context;
+  virtual ~Assembly() override {
+    std::cout << "virtual ~Assembly() override:" << name_ << std::endl;
   }
+
   Body::Base* getBody(unsigned int i) {
-    return bodies_.get(i);
+    return bodies_[i].data<Shift::Body::Base*>();
   }
   static const std::string arrayKey() {
     return "assemblies";
   }
 
 private:
-  Context* context_ = nullptr;
   void addParameters() override;
-
-  Shift::Parameter::Array<Assembly> assemblies_;
 
   Shift::Parameter::FactoryArray<Body::Base> bodies_;
   Shift::Parameter::FactoryArray<Behavior::Base> behaviors_;
   Shift::Parameter::FactoryArray<Constraint::Base> constraints_;
   Shift::Parameter::FactoryArray<ForceModule::Base> force_modules_;
   Shift::Parameter::FactoryArray<Joint::Base> joints_;
+
+  Shift::Parameter::Array<Assembly> assemblies_;
 };
 
 } // namespace Shift

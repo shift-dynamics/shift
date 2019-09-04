@@ -37,20 +37,21 @@ public:
   Base(std::string name)
     : Shift::Base(name)
     , Shift::Parameter::List() {
-    Frame* origin = new Frame("origin");
+    auto origin = std::make_unique<Frame>("origin");
     origin->setIsOrigin(true);
     origin->setIsReference(true);
     origin->setParentBody(this);
-    appendFrame(origin);
+    frames_.push_back(std::move(origin));
     addParameters();
   }
   Base()
-    : Shift::Base("") {
-    Frame* origin = new Frame("origin");
+    : Shift::Base("")
+    , Shift::Parameter::List() {
+    auto origin = std::make_unique<Frame>("origin");
     origin->setIsOrigin(true);
     origin->setIsReference(true);
     origin->setParentBody(this);
-    appendFrame(origin);
+    frames_.push_back(std::move(origin));
     addParameters();
   }
   Base(Base&& b)
@@ -65,9 +66,11 @@ public:
     //   collisionGeometry_.push_back(std::move(i));
     // }
   }
-  virtual ~Base() {}
+  virtual ~Base() override {
+    std::cout << "virtual ~Body::Base() override: " << name_ << std::endl;
+  }
 
-  virtual void addParameters();
+  virtual void setActiveObjects(bool parent_is_active) override;
 
   const std::string& type() {
     return type_;
@@ -79,16 +82,10 @@ public:
   void setContext(Context* context) {
     context_ = context;
   }
-  void appendFrame(Frame*);
-  // void appendLight(std::unique_ptr<Light::Base>&);
-  // void appendGeometry(std::unique_ptr<Geometry::Base>&);
-  // void appendCollisionGeometry(std::unique_ptr<CollisionGeometry::Base>&);
 
   Base* parentBody();
   virtual void load();
   virtual void connect();
-  void setFullyQualifiedNames(std::vector<std::string>&);
-  void setActiveObjects(bool);
   Frame* getFrame(std::string);
   Frame* origin();
   Frame* referenceFrame();
@@ -143,11 +140,11 @@ public:
   }
 
   void setvaIndex(int index) {
-    vaIndex_ = index;
+    va_index_ = index;
   }
 
   int vaIndex() {
-    return vaIndex_;
+    return va_index_;
   }
 
   void setDWRTReference(ksl_SE3_t);
@@ -176,6 +173,7 @@ public:
   const ksl_vec3_t centerOfMassWRTReference();
 
 protected:
+  virtual void addParameters() override;
   void setDWRTReference();
 
   std::string type_;
@@ -196,7 +194,7 @@ protected:
   bool draw_collision_geometry_enabled_ = false;
   int index_ = -1;
   int level_ = -1;
-  int vaIndex_ = -1;
+  int va_index_ = -1;
   Joint::Base* parent_joint_ = nullptr;
   Shift::Frame* reference_frame_ = nullptr;
   ksl_inertia_t inertia_ = {}; /*!< centroidal Mass and moment of Inertia

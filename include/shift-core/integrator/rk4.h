@@ -24,7 +24,6 @@ public:
   }
   virtual ~RK4() override {}
   static std::unique_ptr<RK4> create();
-  void addParameters();
 
   static bool isRegistered() {
     return registered_;
@@ -32,6 +31,7 @@ public:
   virtual void initialize() override{};
 
 private:
+  virtual void addParameters() override;
   static bool registered_;
 };
 

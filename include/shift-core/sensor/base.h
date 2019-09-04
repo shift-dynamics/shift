@@ -36,13 +36,12 @@ public:
     : Shift::Base("") {
     addParameters();
   }
-  virtual ~Base() {}
+  virtual ~Base() {
+    std::cout << "virtual ~Sensor::Base() override: " << name_ << std::endl;
+  }
 
   const std::string& getType() {
     return type_;
-  }
-  void setContext(Context* context) {
-    context_ = context;
   }
 
   static const std::string arrayKey() {
@@ -55,11 +54,10 @@ public:
 
   virtual void load();
   virtual void connect();
+  virtual void setActiveObjects(bool parent_is_active) override;
 
 protected:
-  Context* context_;
-  void addParameters() override;
-
+  virtual void addParameters() override;
   std::string type_; //!< descriptive name of Sensor type
 };
 

@@ -20,12 +20,12 @@ public:
   }
   virtual ~Point() override {}
   static std::unique_ptr<Point> create();
-  virtual void addParameters() override;
   static bool isRegistered() {
     return registered_;
   }
 
 private:
+  virtual void addParameters() override;
   static bool registered_;
 };
 

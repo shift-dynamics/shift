@@ -230,7 +230,12 @@ public:
 
   ~KeyValue() {}
 
-  // static std::map<std::type_index, Parameter::Type> parameter_map_;
+  KeyValue& operator[](int index) {
+    return operator[]((unsigned int)(index));
+  }
+
+  KeyValue& operator[](unsigned int index);
+
   virtual KeyValue& operator[](const std::string key_str);
 
   virtual KeyValue& operator[](const char* key_str);
@@ -394,10 +399,22 @@ class List {
 
 public:
   List() {}
-  virtual ~List() {}
-
+  List(Context* context, Assembly* assembly = nullptr,
+       Body::Base* body = nullptr)
+    : context_(context)
+    , parent_assembly_(assembly)
+    , parent_body_(body) {}
+  virtual ~List() {
+    std::cout << "virtual ~List(): " << std::endl;
+  }
+  bool active() {
+    return active_;
+  }
   virtual void addParameters() {}
   void removeParameter(std::string key);
+
+  virtual void setActiveObjects(bool) {}
+
   KeyValue& addParameter(KeyValue parameter);
   KeyValue& addParameter(const std::string key, std::string* data,
                          const std::string description, bool required = true) {
@@ -507,6 +524,18 @@ public:
     return addParameter(key_value);
   }
 
+  void setContext(Context* context) {
+    context_ = context;
+  }
+
+  void setParentAssembly(Assembly* assembly) {
+    parent_assembly_ = assembly;
+  }
+
+  void setParentBody(Body::Base* body) {
+    parent_body_ = body;
+  }
+
   virtual void readJSON(Json::Value&);
 
   virtual KeyValue& operator[](const char* key) {
@@ -528,19 +557,40 @@ public:
   void print() const;
   void print(std::string) const;
 
+  Assembly* parentAssembly() {
+    return parent_assembly_;
+  }
+
+  Body::Base* parentBody() {
+    return parent_body_;
+  }
+
 protected:
   std::map<std::string, Parameter::KeyValue> parameters_;
+  Context* context_ = nullptr;
+  Assembly* parent_assembly_ = nullptr;
+  Body::Base* parent_body_ = nullptr;
+  bool active_ = true;
 };
 
 class ArrayBase {
 public:
   ArrayBase() {}
-  virtual ~ArrayBase() {}
+  virtual ~ArrayBase() {
+    std::cout << "virtual ~ArrayBase()" << std::endl;
+  }
+
+  bool active() {
+    return active_;
+  }
+
+  virtual void setActiveObjects(bool) {}
 
   virtual KeyValue& operator[](const std::string key_str) {
-    for(auto& parameter : parameter_array_) {
-      if(parameter["name"].value<std::string>() == key_str) {
-        return parameter;
+    for(auto& object : objects_) {
+      if(object->operator[]("name").value<std::string>() == key_str) {
+        void_ = KeyValue("key_str", object, "description", true);
+        return void_;
       }
     }
     throw "JSON Parsing error, parameter not found";
@@ -552,11 +602,18 @@ public:
   }
 
   virtual KeyValue& operator[](unsigned int index) {
-    return parameter_array_[index];
+    try {
+      assert(index < objects_.size());
+      auto& object = objects_[index];
+      void_ = KeyValue("key_str", object, "description", true);
+    } catch(const char* msg) {
+      std::cout << msg << std::endl;
+    }
+    return void_;
   }
 
   size_t size() {
-    return parameter_array_.size();
+    return objects_.size();
   }
 
   virtual void readJSON(Json::Value&) {}
@@ -565,11 +622,11 @@ public:
   void print(std::string) const;
 
 private:
-  std::vector<Parameter::KeyValue> parameter_array_;
   KeyValue void_;
 
 protected:
   std::vector<Shift::Parameter::List*> objects_;
+  bool active_ = true;
 };
 
 template <class T>
@@ -584,6 +641,11 @@ public:
   ~Array() {}
 
   virtual void readJSON(Json::Value& value) override;
+  virtual void setActiveObjects(bool parent_is_active) override {
+    for(auto& object : object_specializations_) {
+      object.get()->setActiveObjects(active_ && parent_is_active);
+    }
+  }
 
   T* get(unsigned int i) {
     if(i < objects_.size()) {
@@ -592,12 +654,19 @@ public:
       return nullptr;
     }
   }
-
   std::vector<std::unique_ptr<T>>& data() {
     return object_specializations_;
   }
-
-  void push_back(T* value);
+  void setContext(Context* context) {
+    context_ = context;
+  }
+  void setParentAssembly(Assembly* assembly) {
+    parent_assembly_ = assembly;
+  }
+  void setParentBody(Body::Base* body) {
+    parent_body_ = body;
+  }
+  void push_back(std::unique_ptr<T>);
 
 private:
   Context* context_ = nullptr;
@@ -618,20 +687,34 @@ public:
   ~FactoryArray() {}
 
   virtual void readJSON(Json::Value& value) override;
-
-  T* get(unsigned int i) {
-    if(i < objects_.size()) {
-      return object_specializations_[i].get();
-    } else {
-      return nullptr;
+  virtual void setActiveObjects(bool parent_is_active) override {
+    for(auto& object : object_specializations_) {
+      object.get()->setActiveObjects(active_ && parent_is_active);
     }
   }
+
+  // T* get(unsigned int i) {
+  //   if(i < objects_.size()) {
+  //     return object_specializations_[i].get();
+  //   } else {
+  //     return nullptr;
+  //   }
+  // }
 
   std::vector<std::unique_ptr<T>>& data() {
     return object_specializations_;
   }
 
-  void push_back(T* value);
+  void setContext(Context* context) {
+    context_ = context;
+  }
+  void setParentAssembly(Assembly* assembly) {
+    parent_assembly_ = assembly;
+  }
+  void setParentBody(Body::Base* body) {
+    parent_body_ = body;
+  }
+  void push_back(std::unique_ptr<T>);
 
 private:
   Context* context_ = nullptr;

@@ -68,8 +68,8 @@ void Shift::Jacobian::mallocEquations() {
   substructures_.resize(substructureMembers.size());
 
   // get total size of Jacobian
-  jacobianSize_ = 0;
-  constraintEquationCount_ = 0;
+  jacobian_size_ = 0;
+  constraint_equation_count_ = 0;
   unsigned int qOffset = 0;
   unsigned int dqOffset = 0;
   unsigned int jointOffset = 0;
@@ -100,13 +100,13 @@ void Shift::Jacobian::mallocEquations() {
     qOffset += qCount;
     dqOffset += dqCount;
     jointOffset += jointCount;
-    jacobianSize_ += chordConstraintCount * 6 * dqCount;
+    jacobian_size_ += chordConstraintCount * 6 * dqCount;
     constraintEquationCount += chordConstraintCount * 6;
   }
 
-  J_ = new double[jacobianSize_]{};
-  Jxx_ = new int[jacobianSize_]{};
-  Jb_ = new bool[jacobianSize_]{};
+  J_ = new double[jacobian_size_]{};
+  Jxx_ = new int[jacobian_size_]{};
+  Jb_ = new bool[jacobian_size_]{};
   cs_ = new double[constraintEquationCount]{};
   dcs_ = new double[constraintEquationCount]{};
 
@@ -128,10 +128,10 @@ void Shift::Jacobian::mallocEquations() {
   }
 
   unsigned int dqCount = context_->qCount();
-  isDependentPO1_.resize(dqCount);
-  std::fill(isDependentPO1_.begin(), isDependentPO1_.end(), false);
-  isDependentPO3_.resize(dqCount);
-  std::fill(isDependentPO3_.begin(), isDependentPO3_.end(), false);
+  is_dependent_po1_.resize(dqCount);
+  std::fill(is_dependent_po1_.begin(), is_dependent_po1_.end(), false);
+  is_dependent_po3_.resize(dqCount);
+  std::fill(is_dependent_po3_.begin(), is_dependent_po3_.end(), false);
   pv_12_.resize(dqCount);
   pv_21_.resize(dqCount);
   pv_13_.resize(dqCount);
@@ -149,10 +149,10 @@ void Shift::Jacobian::compressLoopMembers() {
   auto& positiveLoopMembers = context_->positiveLoopMembers();
   auto& negativeLoopMembers = context_->negativeLoopMembers();
   auto& activeJoints = context_->activeJoints();
-  positiveLoopMembersCompressed_.clear();
-  positiveLoopMembersCompressed_.resize(chordConstraintCount);
-  negativeLoopMembersCompressed_.clear();
-  negativeLoopMembersCompressed_.resize(chordConstraintCount);
+  positive_loop_members_compressed_.clear();
+  positive_loop_members_compressed_.resize(chordConstraintCount);
+  negative_loop_members_compressed_.clear();
+  negative_loop_members_compressed_.resize(chordConstraintCount);
   auto& dqLookup = context_->dqLookup();
   auto& qLookup = context_->qLookup();
 
@@ -175,7 +175,7 @@ void Shift::Jacobian::compressLoopMembers() {
         unsigned int dqCount = activeJoints[positiveLoopMember]->qCount();
         int dqOffset = dqLookup[positiveLoopMember];
         for(unsigned int m = 0; m < dqCount; m++) {
-          positiveLoopMembersCompressed_[k].push_back(dqOffset++);
+          positive_loop_members_compressed_[k].push_back(dqOffset++);
         }
       }
 
@@ -183,7 +183,7 @@ void Shift::Jacobian::compressLoopMembers() {
         unsigned int dqCount = activeJoints[negativeLoopMember]->qCount();
         int dqOffset = dqLookup[negativeLoopMember];
         for(unsigned int m = 0; m < dqCount; m++) {
-          negativeLoopMembersCompressed_[k].push_back(dqOffset++);
+          negative_loop_members_compressed_[k].push_back(dqOffset++);
         }
       }
     }
@@ -195,9 +195,9 @@ void Shift::Jacobian::compressLoopMembers() {
   for(auto& substructure : substructures_) {
     substructure.setChordConstraintOffset(j);
     substructure.setPositiveLoopMembersCompressed(
-      &positiveLoopMembersCompressed_);
+      &positive_loop_members_compressed_);
     substructure.setNegativeLoopMembersCompressed(
-      &negativeLoopMembersCompressed_);
+      &negative_loop_members_compressed_);
     j += substructure.chordConstraintCount();
   }
 }
@@ -210,8 +210,8 @@ void Shift::Jacobian::setPO1(const Shift::Topology::DHVA& dhva) {
 
 void Shift::Jacobian::translatePermutations() {
   unsigned int dqCount = context_->qCount();
-  isDependentPO1_.assign(isDependentPO1_.size(), false);
-  isDependentPO3_.assign(isDependentPO3_.size(), false);
+  is_dependent_po1_.assign(is_dependent_po1_.size(), false);
+  is_dependent_po3_.assign(is_dependent_po3_.size(), false);
   /* initialize permutation arrays */
   for(unsigned int i = 0; i < dqCount; i++) {
     pv_12_[i] = i;
@@ -240,7 +240,7 @@ void Shift::Jacobian::translatePermutations() {
               << std::endl;
     std::cout << "rank: " << substructure.rank() << std::endl;
     for(int j = 0; j < substructure.rank(); j++) {
-      isDependentPO1_[pv_12_[substructure.dqOffset() + j]] = true;
+      is_dependent_po1_[pv_12_[substructure.dqOffset() + j]] = true;
     }
   }
 
@@ -249,14 +249,14 @@ void Shift::Jacobian::translatePermutations() {
     int k = substructure.dqOffset();
     for(unsigned int j = substructure.dqOffset();
         j < substructure.dqOffset() + substructure.qCount(); j++) {
-      if(!isDependentPO1_[j]) {
+      if(!is_dependent_po1_[j]) {
         pv_13_[k++] = j;
       }
     }
 
     for(unsigned int j = substructure.dqOffset();
         j < substructure.dqOffset() + substructure.qCount(); j++) {
-      if(isDependentPO1_[j]) {
+      if(is_dependent_po1_[j]) {
         pv_13_[k++] = j;
       }
     }
@@ -267,7 +267,7 @@ void Shift::Jacobian::translatePermutations() {
 
   /* set isDependentPO3 */
   for(unsigned int i = 0; i < dqCount; i++) {
-    isDependentPO3_[pv_31_[i]] = isDependentPO1_[i];
+    is_dependent_po3_[pv_31_[i]] = is_dependent_po1_[i];
   }
 
   /* set pv_23 */
@@ -297,14 +297,14 @@ void Shift::Jacobian::evaluateSparsity() {
       (substructure.qCount() - substructure.rank()) * substructure.rank();
   }
 
-  if(ijMapping_) {
-    delete[] ijMapping_;
+  if(ij_mapping_) {
+    delete[] ij_mapping_;
   }
-  ijMapping_ = new int[jacobianSize_]();
+  ij_mapping_ = new int[jacobian_size_]();
 
   int jacobianOffset = 0;
   for(auto& substructure : substructures_) {
-    substructure.setijMapping(ijMapping_ + jacobianOffset);
+    substructure.setijMapping(ij_mapping_ + jacobianOffset);
     jacobianOffset +=
       substructure.qCount() * substructure.constraintEquationCount();
   }
@@ -425,13 +425,13 @@ void Shift::Jacobian::initializeMobility() {
        space up to dqCount * dqCount in the event that the null space increases
        rank from initial starting configuration
      */
-    if(rightNullSpace_) {
-      delete[] rightNullSpace_;
+    if(right_null_space_) {
+      delete[] right_null_space_;
     }
-    rightNullSpace_ = new double[rightNullSpaceCount]{};
+    right_null_space_ = new double[rightNullSpaceCount]{};
     rightNullSpaceCount = 0;
     for(auto& substructure : substructures_) {
-      substructure.setRightNullSpace(rightNullSpace_ + rightNullSpaceCount);
+      substructure.setRightNullSpace(right_null_space_ + rightNullSpaceCount);
       substructure.setMobilityNumbers(context_->mobilityNumbers() +
                                       substructure.dqOffset());
       rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();

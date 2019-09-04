@@ -31,7 +31,10 @@ public:
     , Parameter::List() {
     addParameters();
   }
-  virtual ~Base() {}
+  virtual ~Base() {
+    std::cout << "virtual ~ForceModule::Base() override: " << name_
+              << std::endl;
+  }
 
   static const std::string arrayKey() {
     return "force_modules";
@@ -41,13 +44,10 @@ public:
   }
   virtual void load();
   virtual void connect();
-  void setContext(Context* context) {
-    context_ = context;
-  }
+  virtual void setActiveObjects(bool parent_is_active) override;
 
 protected:
-  Context* context_ = nullptr;
-  void addParameters() override;
+  virtual void addParameters() override;
 
   std::string type_;
 };

@@ -56,10 +56,8 @@ public:
   /*! \brief set time units */
   void setUnitsTime(const std::string);
 
-  void print();
-
 private:
-  void addParameters();
+  virtual void addParameters() override;
 
   std::string angle_ = "radians";
   std::string length_ = "meters";

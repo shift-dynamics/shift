@@ -32,7 +32,9 @@ public:
     : Shift::Base("") {
     addParameters();
   }
-  virtual ~Base() {}
+  virtual ~Base() override {
+    std::cout << "virtual ~Integrator::Base() override: " << name_ << std::endl;
+  }
 
   const std::string& getType() {
     return type_;
@@ -44,17 +46,14 @@ public:
   static const std::string defaultType() {
     return "";
   }
+  void setActiveObjects(bool parent_is_active) override;
+
   virtual void load();
   virtual void connect();
-  void setContext(Context* context) {
-    context_ = context;
-  }
   virtual void initialize() = 0;
 
 protected:
-  Context* context_ = nullptr;
-  void addParameters();
-
+  virtual void addParameters() override;
   std::string type_; //!< descriptive name of Integrator type
   unsigned int iterations_since_last_full_factor_ = 0;
 };

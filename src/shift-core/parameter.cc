@@ -14,9 +14,9 @@
 Shift::Parameter::KeyValue& Shift::Parameter::KeyValue::
 operator[](const std::string key_str) {
   if(is_list_) {
-    return (*(std::any_cast<Parameter::List*>(data_)))[key_str];
+    return std::any_cast<Parameter::List*>(data_)->operator[](key_str);
   } else if(is_array_) {
-    return (*(std::any_cast<Parameter::ArrayBase*>(data_)))[key_str];
+    return std::any_cast<Parameter::ArrayBase*>(data_)->operator[](key_str);
   } else {
     throw "error: no parameter found";
     return (std::any_cast<List>(data_))[key_str];
@@ -28,11 +28,21 @@ operator[](const char* key_str) {
   return operator[](std::string(key_str));
 }
 
+Shift::Parameter::KeyValue& Shift::Parameter::KeyValue::
+operator[](unsigned int index) {
+  if(is_array_) {
+    return std::any_cast<Parameter::ArrayBase*>(data_)->operator[](index);
+  } else {
+    std::cerr << "error" << std::endl;
+    throw "error: no parameter found";
+    // return (std::any_cast<List>(data_))[key_str];
+  }
+}
+
 void Shift::Parameter::KeyValue::readJSON(Json::Value& object) {
   /* check if value exists */
   if(!object.isMember(key_)) {
     if(required_) {
-      std::cout << key_ << std::endl;
       throw "JSON Parsing error: required key not found";
     } else {
       return;
@@ -638,13 +648,14 @@ void Shift::Parameter::KeyValue::print(std::string prefix) const {
     case Parameter::Type::STRING_2DARRAY: {
       std::cout << prefix << key_ << ": [ " << std::endl;
       for(auto& row : value<std::vector<std::vector<std::string>>>()) {
-        std::cout << prefix << "[ ";
+        std::cout << prefix << "  "
+                  << "[ ";
         for(auto& column : row) {
           std::cout << "\"" << column << "\" ";
         }
         std::cout << "] " << std::endl;
       }
-      std::cout << "]" << std::endl;
+      std::cout << prefix << "]" << std::endl;
       break;
     }
     case Parameter::Type::DOUBLE: {
@@ -714,7 +725,8 @@ void Shift::Parameter::KeyValue::print(std::string prefix) const {
       break;
     }
     case Parameter::Type::BOOLEAN: {
-      std::cout << prefix << key_ << ": " << value<bool>() << std::endl;
+      std::cout << prefix << key_ << ": " << (value<bool>() ? "true" : "false")
+                << std::endl;
       break;
     }
     case Parameter::Type::KSL_SE3: {
@@ -737,11 +749,11 @@ void Shift::Parameter::KeyValue::print(std::string prefix) const {
 }
 
 void Shift::Parameter::List::print(std::string prefix) const {
-  std::cout << prefix << "{";
+  std::cout << prefix << std::endl << prefix << "{" << std::endl;
   for(auto& parameter : parameters_) {
     parameter.second.print(prefix + "  ");
   }
-  std::cout << prefix << "}";
+  std::cout << prefix << "}" << std::endl;
 }
 
 void Shift::Parameter::List::print() const {
@@ -753,7 +765,7 @@ void Shift::Parameter::ArrayBase::print(std::string prefix) const {
   for(auto& parameter : objects_) {
     parameter->print(prefix + "  ");
   }
-  std::cout << prefix << "]";
+  std::cout << prefix << "]" << std::endl;
 }
 
 void Shift::Parameter::ArrayBase::print() const {
@@ -765,14 +777,13 @@ void Shift::Parameter::List::removeParameter(std::string key) {
 }
 
 void Shift::Parameter::List::readJSON(Json::Value& value) {
-  std::cout << "  loading keys: ";
-  for(auto& parameter : parameters_) {
-    std::cout << parameter.first << ", ";
-  }
-  std::cout << std::endl;
+  // std::cout << "  loading keys: ";
+  // for(auto& parameter : parameters_) {
+  //   std::cout << parameter.first << ", ";
+  // }
+  // std::cout << std::endl;
 
   for(auto& parameter : parameters_) {
-    std::cout << "  reading: " << parameter.first << std::endl;
     if(!value.isMember(parameter.first) && parameter.second.required()) {
       std::cout << "  error: " << parameter.first << std::endl;
       throw "JSON parsing error, required key not found";
@@ -788,7 +799,7 @@ void Shift::Parameter::Array<T>::readJSON(Json::Value& value) {
   std::string array_key = T::arrayKey();
   if(value.isMember(array_key) && value[array_key].isArray()) {
     for(auto& i : value[array_key]) {
-      auto object = std::unique_ptr<T>(new T());
+      auto object = std::make_unique<T>();
       if(object) {
         try {
           object->setContext(context_);
@@ -806,16 +817,14 @@ void Shift::Parameter::Array<T>::readJSON(Json::Value& value) {
 }
 
 template <class T>
-void Shift::Parameter::Array<T>::push_back(T* value) {
-  auto object = std::unique_ptr<T>(value);
+void Shift::Parameter::Array<T>::push_back(std::unique_ptr<T> object) {
   object_specializations_.push_back(std::move(object));
   objects_.push_back(dynamic_cast<Shift::Parameter::List*>(
     object_specializations_.back().get()));
 }
 
 template <class T>
-void Shift::Parameter::FactoryArray<T>::push_back(T* value) {
-  auto object = std::unique_ptr<T>(value);
+void Shift::Parameter::FactoryArray<T>::push_back(std::unique_ptr<T> object) {
   object_specializations_.push_back(std::move(object));
   objects_.push_back(dynamic_cast<Shift::Parameter::List*>(
     object_specializations_.back().get()));
@@ -823,7 +832,6 @@ void Shift::Parameter::FactoryArray<T>::push_back(T* value) {
 
 template <class T>
 void Shift::Parameter::FactoryArray<T>::readJSON(Json::Value& value) {
-  std::cout << "reading factory array key: " << T::arrayKey() << std::endl;
   std::string array_key = T::arrayKey();
   if(value.isMember(array_key) && value[array_key].isArray()) {
     for(auto& i : value[array_key]) {
