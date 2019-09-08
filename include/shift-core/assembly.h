@@ -1,11 +1,7 @@
 #ifndef SHIFT_ASSEMBLY_H_
 #define SHIFT_ASSEMBLY_H_
 
-#include <json/json.h>
-#include <map>
-#include <memory>
 #include <string>
-#include <vector>
 
 #include "shift-core/base.h"
 #include "shift-core/behavior/base.h"

@@ -16,8 +16,6 @@
 #endif
 #endif
 
-#include <json/json.h>
-
 #include "shift-core/behavior/base.h"
 #include "shift-core/body/base.h"
 #include "shift-core/body/rigid.h"

@@ -1,9 +1,6 @@
 #ifndef SHIFT_BEHAVIOR_BASE_H_
 #define SHIFT_BEHAVIOR_BASE_H_
 
-#include <functional>
-#include <json/json.h>
-#include <map>
 #include <string>
 
 #include "shift-core/base.h"
@@ -50,14 +47,7 @@ public:
     return "";
   }
 
-  void setContext(Context* context) {
-    context_ = context;
-  }
-
 protected:
-  Context* context_ = NULL;
-  void addKeys();
-
   std::string type_; //!< descriptive name of Behavior type
 };
 

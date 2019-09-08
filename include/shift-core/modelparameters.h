@@ -1,7 +1,6 @@
 #ifndef SHIFT_MODELPARAMETERS_H_
 #define SHIFT_MODELPARAMETERS_H_
 
-#include <json/json.h>
 #include <string>
 #include <vector>
 
@@ -93,7 +92,6 @@ private:
   Shift::Parameter::FactoryArray<Logger::Base> loggers_;
   Units units_;
 
-  Shift::Context* context_ = nullptr;
   FILE* debug_pointer_ = nullptr;
 };
 
