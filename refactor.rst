@@ -351,7 +351,7 @@ Each body specialization must have a unique keyword identifier. The keyword `rig
 Introspection
 -------------
 
-To provide a form of introspection, all *Shift* objects contain information about what keys in the model definition file map to what member objects in the class. This functionality is provided in the ``Shift::Serialize`` class which is a base class for all *Shift* objects.  At construction, each class calls the ``addKeys()`` member function which creates a map of keywords to the address of member objects within the class, descriptions of the various objects, information about the type of object and validation. Therefore, all *Shift* objects contain the information necessary to validate and serialize input data. For each supported file format, parsing functions need only be written once. When adding new specializations, it is only necessary to modify the ``addKeys()`` function to describe what keys in the input file map to what member objects.
+*Shift* provides a means for introspection via named paramters. Shift objects now inherit from the ``Shift::Parameter::List`` class, and arrays of Shift objects now inherit from the ``Shift::Parameter::Array``, ``Shift::Parameter::FactoryArray`` classes. To map keys in a JSON input file to members of a class, populate the ``addParameters()`` function with the key, member variable, description and whether the data is required. During class construction, the ``addParameters()`` function is called to create the mapping. 
 
 Example
 *******
@@ -360,52 +360,51 @@ The following code demonstrates how keys are added to the ``Shift::Body::Rigid``
 
 .. code-block:: c
 
-   void Shift::Body::Rigid::addKeys() {
+  void Shift::Frame::addParameters() {
+    addParameter("name", &name_, "descriptive frame name", true);
 
-     Shift::Body::Base::addKeys();
+    addParameter(
+      "active", &active_,
+      "indicates whether frame is active, defaults to true if not specified",
+      false);
 
-     SerialEntry com("center_of_mass", SerialType::KSL_VEC3,
-                     &centerOfMassWRTOrigin_);
-     com.setRequired(false);
-     com.setDescription(
-       "Specifies a vector from the body origin to the body center of mass "
-       "expressed in the body-fixed coordinate system.");
-     addSerialEntry(com);
+    addParameter(
+      "R", &d_wrt_origin_.R,
+      "specify orientation as a 3x3 rotation matrix in row-major "
+      "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+      "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
+      "orientation. If multiple key-value pairs are specified for orientation, "
+      "only one of the entries will be loaded.",
+      false);
 
-     SerialEntry inertia("inertia", SerialType::KSL_INERTIA, &inertia_);
-     inertia.setRequired(false);
-     inertia.setDescription(
-       "Specify body mass and centroidal moment of inertia "
-       "expressed in the body-fixed coordinate system. Note that if a zero or "
-       "very low mass is specified, it may cause problems for some solvers.");
-     addSerialEntry(inertia);
+    ...
    }
 
 
-When parsing the JSON file, the data under the ``center_of_mass`` key word will be parsed and loaded into the ``centerOfMassWRTOrigin_`` member object. The ``Shift::Body::Base`` class provides additional keywords which are used by every derived body class.
+When parsing a JSON input file, the data under the ``name`` key word will be parsed and loaded into the ``name_`` member object. The type passed to overloaded ``addParameter()`` function is used to determine the appropriate way to parse the JSON file. If the data is incorrectly formatted, an error will be generated. 
 
 At present, the following data types are supported:
 
-* STRING
-* STRING_ARRAY
-* STRING_2DARRAY
-* DOUBLE
-* DOUBLE_ARRAY
-* KSL_VEC3
-* KSL_VEC4
-* KSL_QUATERNION
-* KSL_SCREW
-* KSL_COSCREW
-* KSL_INERTIA
-* KSL_MAT3X3
-* KSL_MAT4X4
-* EULERANGLES
-* BOOLEAN
+* ``std::string``
+* ``std::vector<std::string>``
+* ``std::vector<std::vector<std::string>>``
+* ``double``
+* ``std::vector<double>``
+* ``ksl_vec3_t``
+* ``ksl_vec4_t``
+* ``ksl_quaternion_t``
+* ``ksl_screw_t``
+* ``ksl_coscrew_t``
+* ``ksl_inertia_t``
+* ``ksl_mat3x3_t``
+* ``ksl_mat4x4_t``
+* ``ksl_eulerangles_t``
+* ``bool``
 
 Loading object specializations from JSON files
 **********************************************
 
-In the example for the rigid body above, ``rigid`` is the default keyword which is used if no ``type`` is provided in the input file. Most *Shift* objects do not have a default type, and require that the ``type`` key exist in the JSON file. For example, consider the following definition of a revolute joint in a model input file:
+When loading objects from a JSON file, *Shift* uses the reserved key word "type" to determine what specialization of the base class to use when creating the corresponding object in C++. Some *Shift* objects have a default type. For example, the default type for bodies is ``rigid``. Therefore, if no type is specified, a rigid body will be created. Other objects, such as a joints, do not have a default type, and require the ``type`` key to exist in the JSON file. For example, consider the following definition of a revolute joint in a model input file:
 
 
 .. code-block:: python
@@ -429,14 +428,16 @@ In the example for the rigid body above, ``rigid`` is the default keyword which 
       ...
 
 
-First, the key ``"type"`` is processed to obtain what type of joint specialization the user has specified. The key is then used to generate a specialization of the class (``Shift::Joint::Revolute``). Then the JSON file is parsed by calling the ``readJSON()`` member function. ``readJSON()`` simply steps through and processes each `SerialEntry` datastructure added in the ``addKeys()`` function as described above, which loads data under the remaining keys to objects in the class. Developers of new specializations need only populate the ``addKeys()`` member function, they do not need to write logic to parse model input files.
+The key ``"type"`` is processed to determine the joint specialization the user has specified. The key is then used to generate a specialization of the class (``Shift::Joint::Revolute``). Then the JSON file is parsed by calling the ``readJSON()`` member function. ``readJSON()`` steps through and processes each ``Shift::Parameter::KeyValue`` datastructure within the ``Shift::Parameter::List`` base class. The parameters were added in the ``addParameters()`` function during clas construction as described above. During processing of each ``Shift::Parameter::KeyValue``, the data is mapped from the JSON file to the class member variables using functions in ``parameter.cc``. The primary advantage to this technique is that developers of new specializations need only populate the ``addParameters()`` member function; there is no need to write logic for parsing model input files.
 
-Creating an object specialization is illustrated in the code below. Here, ``value`` represents the first element in the array under ``"joints"``:
+The following code demonstrates how an object specialization is created in *Shift* internal code. This example is provided to describe how the classes are generated internall, but it would never be necessary for a developer of a *Shift* extension (such as a class specialization of a ``Shift::Body::Base`` or ``Shift::Joint::Base``) to write this code. 
 
 .. code-block:: c
 
    #include "shift-core/factory.h"
    #include "shift-core/joint/base.h"
-   std::string jointType(value["type"].asString());
-   auto joint = Shift::Factory<Shift::Joint::Base>::get()->create(jointType);
+
+   std::string joint_type(value["type"].asString());
+   auto joint = Shift::Factory<Shift::Joint::Base>::get()->create(joint_type);
    joint->readJSON(value);
+
