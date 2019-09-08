@@ -1,11 +1,7 @@
 #ifndef SHIFT_UNITS_H_
 #define SHIFT_UNITS_H_
 
-#include <json/json.h>
 #include <string>
-#include <vector>
-
-#include "ksl/vec3.h"
 
 #include "shift-core/base.h"
 #include "shift-core/parameter.h"
