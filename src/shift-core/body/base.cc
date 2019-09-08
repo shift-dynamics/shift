@@ -84,19 +84,9 @@ void Shift::Body::Base::addParameters() {
 }
 
 void Shift::Body::Base::setActiveObjects(bool parent_is_active) {
-  if(context_) {
-    context_->setActive(this, active_ && parent_is_active);
-  }
+  assert(context_);
+  context_->setActive(this, active_ && parent_is_active);
 };
-
-Shift::Frame* Shift::Body::Base::getFrame(std::string name) {
-  for(auto& i : frames_.data()) {
-    if(i->name() == name) {
-      return i.get();
-    }
-  }
-  return nullptr;
-}
 
 void Shift::Body::Base::setParentJoint(Shift::Joint::Base* parent) {
   parent_joint_ = parent;
@@ -112,7 +102,12 @@ void Shift::Body::Base::load() {}
 void Shift::Body::Base::connect() {}
 
 Shift::Frame* Shift::Body::Base::origin() {
-  return getFrame("origin");
+  for(auto& frame : frames_.data()) {
+    if(frame->name() == "origin") {
+      return frame.get();
+    }
+  }
+  return nullptr;
 }
 
 Shift::Frame* Shift::Body::Base::referenceFrame() {

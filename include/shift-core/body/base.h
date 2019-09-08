@@ -66,9 +66,7 @@ public:
     //   collisionGeometry_.push_back(std::move(i));
     // }
   }
-  virtual ~Base() override {
-    std::cout << "virtual ~Body::Base() override: " << name_ << std::endl;
-  }
+  virtual ~Base() override {}
 
   virtual void setActiveObjects(bool parent_is_active) override;
 
@@ -76,17 +74,10 @@ public:
     return type_;
   }
 
-  void setAssembly(Assembly* assembly) {
-    assembly_ = assembly;
-  }
-  void setContext(Context* context) {
-    context_ = context;
-  }
-
   Base* parentBody();
   virtual void load();
   virtual void connect();
-  Frame* getFrame(std::string);
+
   Frame* origin();
   Frame* referenceFrame();
   void setReferenceFrame(Shift::Frame*);
@@ -167,7 +158,7 @@ public:
   }
 
   bool isVirtual() {
-    return isVirtual_;
+    return is_virtual_;
   }
 
   const ksl_vec3_t centerOfMassWRTReference();
@@ -177,13 +168,9 @@ protected:
   void setDWRTReference();
 
   std::string type_;
-  bool is_articulated_ = true;   /*!< indicates whether body may have joints
-                                   attached to it, i.e. that the body comprises a
-                                   link of an articulated assembly of bodies */
-  Assembly* assembly_ = nullptr; /*!< Pointer to assembly that this body is a
-                                  member of. */
-  Context* context_ = nullptr;
-
+  bool is_articulated_ = true; /*!< indicates whether body may have joints
+                                 attached to it, i.e. that the body comprises a
+                                 link of an articulated assembly of bodies */
   Parameter::Array<Frame> frames_;
 
   Parameter::FactoryArray<Light::Base> lights_;
@@ -196,15 +183,18 @@ protected:
   int level_ = -1;
   int va_index_ = -1;
   Joint::Base* parent_joint_ = nullptr;
-  Shift::Frame* reference_frame_ = nullptr;
-  ksl_inertia_t inertia_ = {}; /*!< centroidal Mass and moment of Inertia
-                                    properties expressed in body origin
+  Shift::Frame* reference_frame_ =
+    nullptr; /*!< pointer to unique reference frame on body, in an articulated
+                multibody chain, this is the *proximal* or upstream
+                frame in the spanning tree */
+  ksl_inertia_t inertia_ = {}; /*!< centroidal mass and moment of inertia
+                                    properties expressed in the body's origin
                                     coordinate system */
   ksl_vec3_t center_of_mass_wrt_origin_ = {};    /*!< vector from body origin to
                                                 center of mass */
   ksl_vec3_t center_of_mass_wrt_reference_ = {}; /*!< vector from body reference
                                                 frame to center of mass */
-  bool isVirtual_ = false;
+  bool is_virtual_ = false;
 };
 
 class Modules {

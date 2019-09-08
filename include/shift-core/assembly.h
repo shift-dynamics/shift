@@ -60,13 +60,8 @@ public:
     addParameters();
   }
 
-  virtual ~Assembly() override {
-    std::cout << "virtual ~Assembly() override:" << name_ << std::endl;
-  }
+  virtual ~Assembly() override {}
 
-  Body::Base* getBody(unsigned int i) {
-    return bodies_[i].data<Shift::Body::Base*>();
-  }
   static const std::string arrayKey() {
     return "assemblies";
   }

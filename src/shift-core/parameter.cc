@@ -11,6 +11,212 @@
 #include <typeindex>
 #include <typeinfo>
 
+template <>
+const Shift::Frame& Shift::Parameter::KeyValue::value<Shift::Frame>() const {
+  return *dynamic_cast<Shift::Frame*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Assembly&
+Shift::Parameter::KeyValue::value<Shift::Assembly>() const {
+  return *dynamic_cast<Shift::Assembly*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Behavior::Base&
+Shift::Parameter::KeyValue::value<Shift::Behavior::Base>() const {
+  return *dynamic_cast<Shift::Behavior::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Body::Base&
+Shift::Parameter::KeyValue::value<Shift::Body::Base>() const {
+  return *dynamic_cast<Shift::Body::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::CollisionGeometry::Base&
+Shift::Parameter::KeyValue::value<Shift::CollisionGeometry::Base>() const {
+  return *dynamic_cast<Shift::CollisionGeometry::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Constraint::Base&
+Shift::Parameter::KeyValue::value<Shift::Constraint::Base>() const {
+  return *dynamic_cast<Shift::Constraint::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::ForceModule::Base&
+Shift::Parameter::KeyValue::value<Shift::ForceModule::Base>() const {
+  return *dynamic_cast<Shift::ForceModule::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Geometry::Base&
+Shift::Parameter::KeyValue::value<Shift::Geometry::Base>() const {
+  return *dynamic_cast<Shift::Geometry::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Integrator::Base&
+Shift::Parameter::KeyValue::value<Shift::Integrator::Base>() const {
+  return *dynamic_cast<Shift::Integrator::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Joint::Base&
+Shift::Parameter::KeyValue::value<Shift::Joint::Base>() const {
+  return *dynamic_cast<Shift::Joint::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Light::Base&
+Shift::Parameter::KeyValue::value<Shift::Light::Base>() const {
+  return *dynamic_cast<Shift::Light::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Logger::Base&
+Shift::Parameter::KeyValue::value<Shift::Logger::Base>() const {
+  return *dynamic_cast<Shift::Logger::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Sensor::Base&
+Shift::Parameter::KeyValue::value<Shift::Sensor::Base>() const {
+  return *dynamic_cast<Shift::Sensor::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Solver::Base&
+Shift::Parameter::KeyValue::value<Shift::Solver::Base>() const {
+  return *dynamic_cast<Shift::Solver::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+const Shift::Terrain::Base&
+Shift::Parameter::KeyValue::value<Shift::Terrain::Base>() const {
+  return *dynamic_cast<Shift::Terrain::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Frame* Shift::Parameter::KeyValue::data<Shift::Frame>() const {
+  return dynamic_cast<Shift::Frame*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Assembly* Shift::Parameter::KeyValue::data<Shift::Assembly>() const {
+  return dynamic_cast<Shift::Assembly*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Behavior::Base*
+Shift::Parameter::KeyValue::data<Shift::Behavior::Base>() const {
+  return dynamic_cast<Shift::Behavior::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Body::Base* Shift::Parameter::KeyValue::data<Shift::Body::Base>() const {
+  return dynamic_cast<Shift::Body::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::CollisionGeometry::Base*
+Shift::Parameter::KeyValue::data<Shift::CollisionGeometry::Base>() const {
+  return dynamic_cast<Shift::CollisionGeometry::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Constraint::Base*
+Shift::Parameter::KeyValue::data<Shift::Constraint::Base>() const {
+  return dynamic_cast<Shift::Constraint::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::ForceModule::Base*
+Shift::Parameter::KeyValue::data<Shift::ForceModule::Base>() const {
+  return dynamic_cast<Shift::ForceModule::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Geometry::Base*
+Shift::Parameter::KeyValue::data<Shift::Geometry::Base>() const {
+  return dynamic_cast<Shift::Geometry::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Integrator::Base*
+Shift::Parameter::KeyValue::data<Shift::Integrator::Base>() const {
+  return dynamic_cast<Shift::Integrator::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Joint::Base*
+Shift::Parameter::KeyValue::data<Shift::Joint::Base>() const {
+  return dynamic_cast<Shift::Joint::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Light::Base*
+Shift::Parameter::KeyValue::data<Shift::Light::Base>() const {
+  return dynamic_cast<Shift::Light::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Logger::Base*
+Shift::Parameter::KeyValue::data<Shift::Logger::Base>() const {
+  return dynamic_cast<Shift::Logger::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Sensor::Base*
+Shift::Parameter::KeyValue::data<Shift::Sensor::Base>() const {
+  return dynamic_cast<Shift::Sensor::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Solver::Base*
+Shift::Parameter::KeyValue::data<Shift::Solver::Base>() const {
+  return dynamic_cast<Shift::Solver::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
+template <>
+Shift::Terrain::Base*
+Shift::Parameter::KeyValue::data<Shift::Terrain::Base>() const {
+  return dynamic_cast<Shift::Terrain::Base*>(
+    std::any_cast<Shift::Parameter::List*>(data_));
+}
+
 Shift::Parameter::KeyValue& Shift::Parameter::KeyValue::
 operator[](const std::string key_str) {
   if(is_list_) {
@@ -39,7 +245,17 @@ operator[](unsigned int index) {
   }
 }
 
+void Shift::Parameter::KeyValue::setActiveObjects(bool parent_is_active) {
+  if(is_array_) {
+    std::any_cast<Parameter::ArrayBase*>(data_)->setActiveObjects(
+      parent_is_active);
+  } else if(is_list_) {
+    std::any_cast<Parameter::List*>(data_)->setActiveObjects(parent_is_active);
+  }
+}
+
 void Shift::Parameter::KeyValue::readJSON(Json::Value& object) {
+
   /* check if value exists */
   if(!object.isMember(key_)) {
     if(required_) {
@@ -195,7 +411,8 @@ void Shift::Parameter::KeyValue::readJSON_STRING_2DARRAY(Json::Value& value) {
     } else if(value[i].isString()) {
       row.push_back(value[i].asString());
     }
-    data<std::vector<std::vector<std::string>>*>()->push_back(row);
+    std::any_cast<std::vector<std::vector<std::string>>*>(data_)->push_back(
+      row);
   }
   loaded_from_file_ = true;
 }
@@ -673,55 +890,55 @@ void Shift::Parameter::KeyValue::print(std::string prefix) const {
     case Parameter::Type::KSL_VEC3: {
       prefix += key_;
       prefix += ": ";
-      ksl_vec3_print(stdout, data<ksl_vec3_t*>(), prefix.c_str());
+      ksl_vec3_print(stdout, data<ksl_vec3_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::KSL_VEC4: {
       prefix += key_;
       prefix += ": ";
-      ksl_vec4_print(stdout, data<ksl_vec4_t*>(), prefix.c_str());
+      ksl_vec4_print(stdout, data<ksl_vec4_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::KSL_QUATERNION: {
       prefix += key_;
       prefix += ": ";
-      ksl_quaternion_print(stdout, data<ksl_quaternion_t*>(), prefix.c_str());
+      ksl_quaternion_print(stdout, data<ksl_quaternion_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::KSL_SCREW: {
       prefix += key_;
       prefix += ": ";
-      ksl_screw_print(stdout, data<ksl_screw_t*>(), prefix.c_str());
+      ksl_screw_print(stdout, data<ksl_screw_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::KSL_COSCREW: {
       prefix += key_;
       prefix += ": ";
-      ksl_coscrew_print(stdout, data<ksl_coscrew_t*>(), prefix.c_str());
+      ksl_coscrew_print(stdout, data<ksl_coscrew_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::KSL_INERTIA: {
       prefix += key_;
       prefix += ": ";
-      ksl_inertia_print(stdout, data<ksl_inertia_t*>(), prefix.c_str());
+      ksl_inertia_print(stdout, data<ksl_inertia_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::KSL_MAT3X3: {
       prefix += key_;
       prefix += ": ";
-      ksl_mat3x3_print(stdout, data<ksl_mat3x3_t*>(), prefix.c_str());
+      ksl_mat3x3_print(stdout, data<ksl_mat3x3_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::KSL_MAT4X4: {
       prefix += key_;
       prefix += ": ";
-      ksl_mat4x4_print(stdout, data<ksl_mat4x4_t*>(), prefix.c_str());
+      ksl_mat4x4_print(stdout, data<ksl_mat4x4_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::KSL_EULERANGLES: {
       prefix += key_;
       prefix += ": ";
-      ksl_eulerangles_print(stdout, data<ksl_eulerangles_t*>(), prefix.c_str());
+      ksl_eulerangles_print(stdout, data<ksl_eulerangles_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::BOOLEAN: {
@@ -732,7 +949,7 @@ void Shift::Parameter::KeyValue::print(std::string prefix) const {
     case Parameter::Type::KSL_SE3: {
       prefix += key_;
       prefix += ": ";
-      ksl_SE3_print(stdout, data<ksl_SE3_t*>(), prefix.c_str());
+      ksl_SE3_print(stdout, data<ksl_SE3_t>(), prefix.c_str());
       break;
     }
     case Parameter::Type::PARAMETER_LIST: {
@@ -745,6 +962,18 @@ void Shift::Parameter::KeyValue::print(std::string prefix) const {
       value<Shift::Parameter::ArrayBase>().print(prefix);
       break;
     }
+  }
+}
+
+void Shift::Parameter::KeyValue::setParent(Context* context,
+                                           Assembly* parent_assembly,
+                                           Body::Base* parent_body) {
+  if(is_list_) {
+    std::any_cast<Parameter::List*>(data_)->setParent(context, parent_assembly,
+                                                      parent_body);
+  } else if(is_array_) {
+    std::any_cast<Parameter::ArrayBase*>(data_)->setParent(
+      context, parent_assembly, parent_body);
   }
 }
 
@@ -794,6 +1023,24 @@ void Shift::Parameter::List::readJSON(Json::Value& value) {
   }
 }
 
+void Shift::Parameter::List::setParent(Shift::Context* context,
+                                       Shift::Assembly* parent_assembly,
+                                       Body::Base* parent_body) {
+  context_ = context;
+  parent_assembly_ptr_ = parent_assembly;
+  parent_body_ptr_ = parent_body;
+
+  Shift::Assembly* assembly = nullptr;
+  is_assembly_ ? assembly = dynamic_cast<Shift::Assembly*>(this)
+               : assembly = parent_assembly_ptr_;
+  Shift::Body::Base* body = nullptr;
+  is_body_ ? body = dynamic_cast<Shift::Body::Base*>(this)
+           : body = parent_body_ptr_;
+  for(auto& parameter : parameters_) {
+    parameter.second.setParent(context_, assembly, body);
+  }
+}
+
 template <class T>
 void Shift::Parameter::Array<T>::readJSON(Json::Value& value) {
   std::string array_key = T::arrayKey();
@@ -802,9 +1049,9 @@ void Shift::Parameter::Array<T>::readJSON(Json::Value& value) {
       auto object = std::make_unique<T>();
       if(object) {
         try {
-          object->setContext(context_);
-          // body->setAssembly(this);
           object->readJSON(i);
+          object->setIsBody(array_key == "bodies");
+          object->setIsAssembly(array_key == "assemblies");
         } catch(const char* msg) {
           std::cerr << msg << std::endl;
         }
@@ -846,8 +1093,6 @@ void Shift::Parameter::FactoryArray<T>::readJSON(Json::Value& value) {
         auto object = Shift::Factory<T>::get()->create(objectType);
         if(object) {
           try {
-            object->setContext(context_);
-            // body->setAssembly(this);
             object->readJSON(i);
           } catch(const char* msg) {
             std::cerr << array_key << std::endl;

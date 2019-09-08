@@ -34,10 +34,7 @@ public:
     : Shift::Base("") {
     addParameters();
   }
-  virtual ~Base() {
-    std::cout << "virtual ~CollisionGeometry::Base() override: " << name_
-              << std::endl;
-  }
+  virtual ~Base() {}
 
   const std::string& getType() {
     return type_;

@@ -37,9 +37,7 @@ public:
     , Parameter::List() {
     addParameters();
   }
-  virtual ~Frame() override {
-    std::cout << "virtual ~Frame() override: " << name_ << std::endl;
-  }
+  virtual ~Frame() override {}
 
   const ksl_SE3_t* dWRTReference() const;
   const ksl_SE3_t* dWRTOrigin() const;
@@ -91,16 +89,12 @@ public:
     }
   }
 
-  void setReferenceFrame(Frame* referenceFrame) {
-    reference_frame_ = referenceFrame;
-  }
-
-  void setParentBody(Body::Base* body) {
-    parent_body_ = body;
+  void setReferenceFrame(Frame* reference_frame) {
+    reference_frame_ = reference_frame;
   }
 
   const Body::Base* parentBody() const {
-    return parent_body_;
+    return parent_body_ptr_;
   }
 
   const Shift::Frame* referenceFrame() const {
@@ -108,7 +102,7 @@ public:
   }
 
 private:
-  void addParameters() override;
+  virtual void addParameters() override;
 
   /*! \brief relative transformation from body origin to current frame
    */

@@ -15,11 +15,11 @@ class Virtual : public Base {
 public:
   Virtual()
     : Base() {
-    isVirtual_ = true;
+    is_virtual_ = true;
   }
   Virtual(std::string name)
     : Base(name) {
-    isVirtual_ = true;
+    is_virtual_ = true;
     addParameters();
   }
   virtual ~Virtual() override {}

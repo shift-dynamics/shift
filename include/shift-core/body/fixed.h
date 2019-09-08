@@ -30,9 +30,7 @@ public:
     name_ = "fixed";
     addParameters();
   }
-  virtual ~Fixed() override {
-    std::cout << "virtual ~Body::Fixed() override: " << name_ << std::endl;
-  }
+  virtual ~Fixed() override {}
   static std::unique_ptr<Fixed> create();
   virtual void addParameters() override;
   static bool isRegistered() {

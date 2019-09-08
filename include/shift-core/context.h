@@ -115,15 +115,13 @@ public:
     if(mobility_numbers_) {
       free(mobility_numbers_);
     }
-
-    std::cout << "virtual ~Context() override" << std::endl;
   }
 
   Context& operator=(Context&&) {
     return *this;
   }
 
-  void readJSON(const std::string);
+  void loadJSON(const std::string);
   void writeJSON();
   void writeJSON(std::ostream&);
   void writeJSON(const std::string&);
