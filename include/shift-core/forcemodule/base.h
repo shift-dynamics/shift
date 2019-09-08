@@ -31,10 +31,7 @@ public:
     , Parameter::List() {
     addParameters();
   }
-  virtual ~Base() {
-    std::cout << "virtual ~ForceModule::Base() override: " << name_
-              << std::endl;
-  }
+  virtual ~Base() {}
 
   static const std::string arrayKey() {
     return "force_modules";

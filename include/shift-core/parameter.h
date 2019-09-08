@@ -26,8 +26,57 @@ namespace Shift {
 
 class Context;
 class Assembly;
+class Frame;
+
+namespace Behavior {
+class Base;
+}
 
 namespace Body {
+class Base;
+}
+
+namespace CollisionGeometry {
+class Base;
+}
+
+namespace Constraint {
+class Base;
+}
+
+namespace ForceModule {
+class Base;
+}
+
+namespace Geometry {
+class Base;
+}
+
+namespace Integrator {
+class Base;
+}
+
+namespace Joint {
+class Base;
+}
+
+namespace Light {
+class Base;
+}
+
+namespace Logger {
+class Base;
+}
+
+namespace Sensor {
+class Base;
+}
+
+namespace Solver {
+class Base;
+}
+
+namespace Terrain {
 class Base;
 }
 
@@ -257,8 +306,8 @@ public:
   }
 
   template <typename T>
-  const T data() const {
-    return std::any_cast<T>(data_);
+  T* data() const {
+    return std::any_cast<T*>(data_);
   }
 
   template <typename T>
@@ -285,6 +334,8 @@ public:
     }
     return type_str;
   }
+
+  void setActiveObjects(bool parent_is_active);
 
   KeyValue& setQuaternionMapsToMat3x3(bool enabled) {
     quaternion_maps_to_mat3x3_ = enabled;
@@ -345,6 +396,9 @@ public:
   void print(std::string) const;
   void print() const;
 
+  void setParent(Context* context, Assembly* parent_assembly = nullptr,
+                 Body::Base* parent_body = nullptr);
+
 private:
   std::string key_;
   std::any data_; //!< contains pointer to value
@@ -390,7 +444,7 @@ private:
   void readJSON_EULERANGLES(Json::Value&);
   void readJSON_BOOLEAN(Json::Value&);
   void readJSON_POSE(Json::Value&);
-};
+}; // namespace Parameter
 
 /*!
 @brief Shift Parameter::List class
@@ -402,18 +456,20 @@ public:
   List(Context* context, Assembly* assembly = nullptr,
        Body::Base* body = nullptr)
     : context_(context)
-    , parent_assembly_(assembly)
-    , parent_body_(body) {}
-  virtual ~List() {
-    std::cout << "virtual ~List(): " << std::endl;
-  }
+    , parent_assembly_ptr_(assembly)
+    , parent_body_ptr_(body) {}
+  virtual ~List() {}
   bool active() {
     return active_;
   }
   virtual void addParameters() {}
   void removeParameter(std::string key);
 
-  virtual void setActiveObjects(bool) {}
+  virtual void setActiveObjects(bool parent_is_active) {
+    for(auto& parameter : parameters_) {
+      parameter.second.setActiveObjects(active_ && parent_is_active);
+    }
+  }
 
   KeyValue& addParameter(KeyValue parameter);
   KeyValue& addParameter(const std::string key, std::string* data,
@@ -529,14 +585,17 @@ public:
   }
 
   void setParentAssembly(Assembly* assembly) {
-    parent_assembly_ = assembly;
+    parent_assembly_ptr_ = assembly;
   }
 
   void setParentBody(Body::Base* body) {
-    parent_body_ = body;
+    parent_body_ptr_ = body;
   }
 
   virtual void readJSON(Json::Value&);
+
+  void setParent(Context* context, Assembly* parent_assembly = nullptr,
+                 Body::Base* parent_body = nullptr);
 
   virtual KeyValue& operator[](const char* key) {
     return parameters_[key];
@@ -558,27 +617,40 @@ public:
   void print(std::string) const;
 
   Assembly* parentAssembly() {
-    return parent_assembly_;
+    return parent_assembly_ptr_;
   }
 
   Body::Base* parentBody() {
-    return parent_body_;
+    return parent_body_ptr_;
+  }
+
+  void setIsBody(bool is_body) {
+    is_body_ = is_body;
+  }
+
+  void setIsAssembly(bool is_assembly) {
+    is_assembly_ = is_assembly;
   }
 
 protected:
   std::map<std::string, Parameter::KeyValue> parameters_;
   Context* context_ = nullptr;
-  Assembly* parent_assembly_ = nullptr;
-  Body::Base* parent_body_ = nullptr;
+  Assembly* parent_assembly_ptr_ = nullptr;
+  Body::Base* parent_body_ptr_ = nullptr;
   bool active_ = true;
+  bool is_body_ = false;
+  bool is_assembly_ = false;
 };
 
 class ArrayBase {
 public:
   ArrayBase() {}
-  virtual ~ArrayBase() {
-    std::cout << "virtual ~ArrayBase()" << std::endl;
-  }
+  ArrayBase(Context* context, Assembly* parent_assembly = nullptr,
+            Body::Base* parent_body = nullptr)
+    : context_(context)
+    , parent_assembly_ptr_(parent_assembly)
+    , parent_body_ptr_(parent_body) {}
+  virtual ~ArrayBase() {}
 
   bool active() {
     return active_;
@@ -612,6 +684,13 @@ public:
     return void_;
   }
 
+  virtual void setParent(Context* context, Assembly* parent_assembly = nullptr,
+                         Body::Base* parent_body = nullptr) {
+    context_ = context;
+    parent_assembly_ptr_ = parent_assembly;
+    parent_body_ptr_ = parent_body;
+  }
+
   size_t size() {
     return objects_.size();
   }
@@ -627,6 +706,9 @@ private:
 protected:
   std::vector<Shift::Parameter::List*> objects_;
   bool active_ = true;
+  Context* context_ = nullptr;
+  Assembly* parent_assembly_ptr_ = nullptr;
+  Body::Base* parent_body_ptr_ = nullptr;
 };
 
 template <class T>
@@ -635,9 +717,7 @@ public:
   Array() {}
   Array(Context* context, Assembly* parent_assembly = nullptr,
         Shift::Body::Base* parent_body = nullptr)
-    : context_(context)
-    , parent_assembly_(parent_assembly)
-    , parent_body_(parent_body) {}
+    : ArrayBase(context, parent_assembly, parent_body) {}
   ~Array() {}
 
   virtual void readJSON(Json::Value& value) override;
@@ -657,21 +737,28 @@ public:
   std::vector<std::unique_ptr<T>>& data() {
     return object_specializations_;
   }
+
   void setContext(Context* context) {
     context_ = context;
   }
   void setParentAssembly(Assembly* assembly) {
-    parent_assembly_ = assembly;
+    parent_assembly_ptr_ = assembly;
   }
   void setParentBody(Body::Base* body) {
-    parent_body_ = body;
+    parent_body_ptr_ = body;
   }
   void push_back(std::unique_ptr<T>);
 
+  virtual void setParent(Context* context, Assembly* parent_assembly = nullptr,
+                         Body::Base* parent_body = nullptr) override {
+    Shift::Parameter::ArrayBase::setParent(context, parent_assembly,
+                                           parent_body);
+    for(auto& object : object_specializations_) {
+      object->setParent(context_, parent_assembly_ptr_, parent_body_ptr_);
+    }
+  }
+
 private:
-  Context* context_ = nullptr;
-  Assembly* parent_assembly_ = nullptr;
-  Shift::Body::Base* parent_body_ = nullptr;
   std::vector<std::unique_ptr<T>> object_specializations_;
 };
 
@@ -681,9 +768,7 @@ public:
   FactoryArray() {}
   FactoryArray(Context* context, Assembly* parent_assembly = nullptr,
                Shift::Body::Base* parent_body = nullptr)
-    : context_(context)
-    , parent_assembly_(parent_assembly)
-    , parent_body_(parent_body) {}
+    : ArrayBase(context, parent_assembly, parent_body) {}
   ~FactoryArray() {}
 
   virtual void readJSON(Json::Value& value) override;
@@ -693,14 +778,6 @@ public:
     }
   }
 
-  // T* get(unsigned int i) {
-  //   if(i < objects_.size()) {
-  //     return object_specializations_[i].get();
-  //   } else {
-  //     return nullptr;
-  //   }
-  // }
-
   std::vector<std::unique_ptr<T>>& data() {
     return object_specializations_;
   }
@@ -709,17 +786,24 @@ public:
     context_ = context;
   }
   void setParentAssembly(Assembly* assembly) {
-    parent_assembly_ = assembly;
+    parent_assembly_ptr_ = assembly;
   }
   void setParentBody(Body::Base* body) {
-    parent_body_ = body;
+    parent_body_ptr_ = body;
   }
+
   void push_back(std::unique_ptr<T>);
 
+  virtual void setParent(Context* context, Assembly* parent_assembly = nullptr,
+                         Body::Base* parent_body = nullptr) override {
+    Shift::Parameter::ArrayBase::setParent(context, parent_assembly,
+                                           parent_body);
+    for(auto& object : object_specializations_) {
+      object->setParent(context_, parent_assembly_ptr_, parent_body_ptr_);
+    }
+  }
+
 private:
-  Context* context_ = nullptr;
-  Assembly* parent_assembly_ = nullptr;
-  Shift::Body::Base* parent_body_ = nullptr;
   std::vector<std::unique_ptr<T>> object_specializations_;
 };
 

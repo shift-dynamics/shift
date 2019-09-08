@@ -31,9 +31,7 @@ public:
     : Shift::Base("") {
     addParameters();
   }
-  virtual ~Base() override {
-    std::cout << "virtual ~Behavior::Base() override: " << name_ << std::endl;
-  }
+  virtual ~Base() override {}
 
   const std::string& getType() {
     return type_;

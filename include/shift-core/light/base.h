@@ -31,9 +31,7 @@ public:
     : Shift::Base(name) {}
   Base()
     : Shift::Base("") {}
-  virtual ~Base() override {
-    std::cout << "virtual ~Light::Base() override: " << name_ << std::endl;
-  }
+  virtual ~Base() override {}
 
   const std::string& getType() {
     return type_;

@@ -51,30 +51,55 @@ void Shift::Joint::Base::connect() {
       if(parent_.at(0).at(0) == "fixed") {
         parent_body_ptr_ = context_->fixedBody();
       } else {
-        assert(parent_assembly_);
-        parent_body_ptr_ = (*parent_assembly_)["bodies"][parent_.at(0).at(0)]
-                             .data<Shift::Body::Base*>();
+        assert(parent_assembly_ptr_);
+        try {
+          parent_body_ptr_ =
+            (*parent_assembly_ptr_)["bodies"][parent_.at(0).at(0)]
+              .data<Shift::Body::Base>();
+        } catch(const char* msg) {
+          std::cerr << "Error: could not find parent body for joint: " << name()
+                    << std::endl;
+          std::cerr << msg << std::endl;
+          parent_frame_ptr_ = nullptr;
+          active_ = false;
+        }
       }
     } else if(parent_.at(0).at(0) == "fixed") {
       assert(context_);
       parent_body_ptr_ = context_->fixedBody();
     } else {
       assert(context_);
-      auto& value = (*context_)[parent_.at(0).at(0)];
-      for(auto it = parent_.at(0).begin() + 1; it <= parent_.at(0).end();
-          it++) {
-        value = value[*it];
+      try {
+        auto& value = (*context_)[parent_.at(0).at(0)];
+        for(auto it = parent_.at(0).begin() + 1; it <= parent_.at(0).end();
+            it++) {
+          value = value[*it];
+        }
+        parent_body_ptr_ = value.data<Shift::Body::Base>();
+      } catch(const char* msg) {
+        std::cerr << "Error: could not find parent body for joint: " << name()
+                  << std::endl;
+        std::cerr << msg << std::endl;
+        parent_frame_ptr_ = nullptr;
+        active_ = false;
       }
-      parent_body_ptr_ = value.data<Shift::Body::Base*>();
     }
 
     if(!parent_body_ptr_) {
-      std::cerr << "PARENT BODY NOT FOUND!" << std::endl;
+      std::cerr << "Error: PARENT BODY NOT FOUND!" << std::endl;
     } else {
-      parent_frame_ptr_ = (*parent_body_ptr_)["frames"][parent_.at(1).at(0)]
-                            .data<Shift::Frame*>();
+      try {
+        parent_frame_ptr_ = (*parent_body_ptr_)["frames"][parent_.at(1).at(0)]
+                              .data<Shift::Frame>();
+      } catch(const char* msg) {
+        std::cerr << "Could not find parent frame for joint: " << name()
+                  << std::endl;
+        std::cerr << msg << std::endl;
+        parent_frame_ptr_ = nullptr;
+        active_ = false;
+      }
       if(!parent_frame_ptr_) {
-        std::cerr << "PARENT FRAME NOT FOUND!" << std::endl;
+        std::cerr << "Error: PARENT FRAME NOT FOUND!" << std::endl;
       }
     }
 
@@ -82,9 +107,18 @@ void Shift::Joint::Base::connect() {
       if(child_.at(0).at(0) == "fixed") {
         child_body_ptr_ = context_->fixedBody();
       } else {
-        assert(parent_assembly_);
-        child_body_ptr_ = (*parent_assembly_)["bodies"][child_.at(0).at(0)]
-                            .data<Shift::Body::Base*>();
+        assert(parent_assembly_ptr_);
+        try {
+          child_body_ptr_ =
+            (*parent_assembly_ptr_)["bodies"][child_.at(0).at(0)]
+              .data<Shift::Body::Base>();
+        } catch(const char* msg) {
+          std::cerr << "Could not find child body \"" << child_.at(0).at(0)
+                    << "\" for joint: \"" << name() << "\"" << std::endl;
+          std::cerr << msg << std::endl;
+          parent_frame_ptr_ = nullptr;
+          active_ = false;
+        }
       }
     } else {
       assert(context_);
@@ -92,14 +126,30 @@ void Shift::Joint::Base::connect() {
       for(auto it = child_.at(0).begin() + 1; it <= parent_.at(0).end(); it++) {
         value = value[*it];
       }
-      child_body_ptr_ = value.data<Shift::Body::Base*>();
+      try {
+        child_body_ptr_ = value.data<Shift::Body::Base>();
+      } catch(const char* msg) {
+        std::cerr << "Could not find child body \"" << child_.at(0).at(0)
+                  << "\" for joint: \"" << name() << "\"" << std::endl;
+        std::cerr << msg << std::endl;
+        child_body_ptr_ = nullptr;
+        active_ = false;
+      }
     }
     if(!child_body_ptr_) {
       std::cerr << "CHILD BODY NOT FOUND!" << std::endl;
       assert(0);
     } else {
-      child_frame_ptr_ =
-        (*child_body_ptr_)[child_.at(1).at(0)].data<Shift::Frame*>();
+      try {
+        child_frame_ptr_ =
+          (*child_body_ptr_)["frames"][child_.at(1).at(0)].data<Shift::Frame>();
+      } catch(const char* msg) {
+        std::cerr << "Could not find child frame \"" << child_.at(1).at(0)
+                  << "\" for joint: \"" << name() << "\"" << std::endl;
+        std::cerr << msg << std::endl;
+        child_frame_ptr_ = nullptr;
+        active_ = false;
+      }
       if(!child_frame_ptr_) {
         std::cerr << "CHILD FRAME NOT FOUND!" << std::endl;
         assert(0);

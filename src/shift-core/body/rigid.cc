@@ -18,8 +18,7 @@ std::unique_ptr<Shift::Body::Rigid> Shift::Body::Rigid::create() {
 ksl_inertia_t Shift::Body::Rigid::inertiaWRTReference() {
   ksl_inertia_t inertia_temp{};
 
-  if(!(inertia_.m < 1e-9 || isVirtual_)) {
-
+  if(!(inertia_.m < 1e-9 || is_virtual_)) {
     ksl_SE3_t d_rc;
     ksl_SE3_t d_cr;
     /* compute displacement from center of mass (c) to reference frame (r)

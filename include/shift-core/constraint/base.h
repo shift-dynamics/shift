@@ -36,9 +36,7 @@ public:
     : Shift::Base("") {
     addParameters();
   }
-  virtual ~Base() override {
-    std::cout << "virtual ~Constraint::Base() override: " << name_ << std::endl;
-  }
+  virtual ~Base() override {}
 
   const std::string& type() {
     return type_;
@@ -84,7 +82,6 @@ public:
 protected:
   void addParameters() override;
 
-  Context* context_;
   std::string type_; //!< descriptive name of Constraint type
 
   std::vector<std::vector<std::string>> body_frame_pairs_;

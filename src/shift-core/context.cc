@@ -56,7 +56,7 @@ void Shift::Context::addParameters() {
     true);
 }
 
-void Shift::Context::readJSON(const std::string filename) {
+void Shift::Context::loadJSON(const std::string filename) {
   std::ifstream file(filename);
   file >> root_;
   try {
@@ -65,6 +65,7 @@ void Shift::Context::readJSON(const std::string filename) {
     std::cout << "catching error in context.cc" << std::endl;
     std::cout << error << std::endl;
   };
+  setParent(this);
   postLoad(filename);
 }
 
@@ -260,11 +261,6 @@ void Shift::Context::initialize() {
     exit(-1);
   }
 }
-
-// void Shift::Context::setFullyQualifiedNames() {
-//   // std::vector<std::string> rootName;
-//   // fixed_.setFullyQualifiedNames(rootName);
-// }
 
 void Shift::Context::setActiveObjects(bool) {
   assemblies_.setActiveObjects(true);
@@ -816,9 +812,15 @@ void Shift::Context::levelOrderSort() {
 
 void Shift::Context::processVirtualBodies() {
 
+  std::cout << "Processing virtual bodies" << std::endl;
+  std::cout << "active_articulated_bodies_.size(): "
+            << active_articulated_bodies_.size() << std::endl;
+  // std::cout << "active_bodies_.size(): " << active_bodies_.size() <<
+  // std::endl;
+
   std::vector<Shift::Body::Base*> bodies(active_joints_.size());
 
-  // clear all system child body and frame pointers
+  // clear system child body and frame pointers
   for(auto& joint : active_joints_) {
     joint->setSystemChildBody(nullptr);
     joint->setSystemChildFrame(nullptr);
@@ -950,6 +952,11 @@ void Shift::Context::processLoopMembers() {
 
     int positive = chord_constraints_[i]->parentBody()->index();
     int negative = chord_constraints_[i]->childBody()->index();
+
+    std::cout << "parent body: " << chord_constraints_[i]->parentBody()->name()
+              << ": " << positive << std::endl;
+    std::cout << "child body: " << chord_constraints_[i]->childBody()->name()
+              << ": " << negative << std::endl;
 
     loopMembers[i].push_back(negative);
     negativeLoopMembers[i].push_back(negative);

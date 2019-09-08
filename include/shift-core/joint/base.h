@@ -49,9 +49,7 @@ public:
     , Parameter::List() {
     addParameters();
   }
-  virtual ~Base() {
-    std::cout << "virtual ~Joint::Base() override: " << name_ << std::endl;
-  }
+  virtual ~Base() {}
 
   void setActiveObjects(bool parent_is_active) override;
 

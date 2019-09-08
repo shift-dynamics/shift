@@ -33,20 +33,20 @@ public:
   }
 
   ~Factory() {
-    int status;
-    std::string type_str = typeid(T).name();
-    char* demangled_name =
-      abi::__cxa_demangle(type_str.c_str(), nullptr, nullptr, &status);
-    if(status == 0) {
-      type_str = demangled_name;
-      std::free(demangled_name);
-      if(type_str.substr(type_str.length() - 1, type_str.length()) ==
-         std::string("*")) {
-        type_str = type_str.substr(0, type_str.length() - 1);
-      }
-    }
-    std::cout << "~Factory(): " << type_str << std::endl;
-    // factory_map_.clear();
+    // int status;
+    // std::string type_str = typeid(T).name();
+    // char* demangled_name =
+    //   abi::__cxa_demangle(type_str.c_str(), nullptr, nullptr, &status);
+    // if(status == 0) {
+    //   type_str = demangled_name;
+    //   std::free(demangled_name);
+    //   if(type_str.substr(type_str.length() - 1, type_str.length()) ==
+    //      std::string("*")) {
+    //     type_str = type_str.substr(0, type_str.length() - 1);
+    //   }
+    // }
+    // std::cout << "~Factory(): " << type_str << std::endl;
+    factory_map_.clear();
   }
 
   typedef std::function<std::unique_ptr<T>()> CreateFunction;
