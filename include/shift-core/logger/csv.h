@@ -2,6 +2,8 @@
 #define _SHIFT_LOGGER_CSV_H_
 
 #include "shift-core/logger/base.h"
+
+#include <fstream>
 #include <string>
 
 namespace Shift {
@@ -17,27 +19,33 @@ public:
   CSV(std::string name)
     : Base(name) {
     addParameters();
+    std::cout << "creating CSV logger" << std::endl;
   }
   CSV()
     : Base("") {
     addParameters();
+    std::cout << "creating CSV logger" << std::endl;
   }
   virtual ~CSV() override {}
-
-  const std::string& getDescription() {
-    return description_;
-  }
 
   static bool isRegistered() {
     return registered_;
   }
 
-  virtual void initialize() override {}
+  virtual void initialize() override;
 
 private:
   virtual void addParameters() override;
 
-  const std::string description_ = "";
+  void writeHeader();
+  void writeStates();
+
+  std::string delimiter_ = ",";
+  std::string csv_logfile_ = "simulation.csv";
+  bool timestamp_logfile_ =
+    false; ///!< indicates whether to append current time stamp to log file
+  std::ofstream file_;
+
   static bool registered_;
   static std::unique_ptr<CSV> create();
 };

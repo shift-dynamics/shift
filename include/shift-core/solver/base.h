@@ -47,7 +47,7 @@ public:
   }
 
   static const std::string arrayKey() {
-    return "force_modules";
+    return "solvers";
   }
 
   static const std::string defaultType() {

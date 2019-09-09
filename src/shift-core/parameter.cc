@@ -225,7 +225,7 @@ operator[](const std::string key_str) {
     return std::any_cast<Parameter::ArrayBase*>(data_)->operator[](key_str);
   } else {
     throw "error: no parameter found";
-    return (std::any_cast<List>(data_))[key_str];
+    return std::any_cast<Parameter::List*>(data_)->operator[](key_str);
   }
 }
 
@@ -331,7 +331,8 @@ void Shift::Parameter::KeyValue::readJSON(Json::Value& object) {
       break;
     }
     case Parameter::Type::PARAMETER_LIST: {
-      std::any_cast<Parameter::List*>(data_)->readJSON(object);
+      std::cout << "READING PARAMETER LIST: " << key_ << std::endl;
+      std::any_cast<Parameter::List*>(data_)->readJSON(object[key_]);
       break;
     }
     case Parameter::Type::PARAMETER_ARRAY: {
@@ -1006,11 +1007,11 @@ void Shift::Parameter::List::removeParameter(std::string key) {
 }
 
 void Shift::Parameter::List::readJSON(Json::Value& value) {
-  // std::cout << "  loading keys: ";
-  // for(auto& parameter : parameters_) {
-  //   std::cout << parameter.first << ", ";
-  // }
-  // std::cout << std::endl;
+  std::cout << ": ";
+  for(auto& parameter : parameters_) {
+    std::cout << parameter.first << ", ";
+  }
+  std::cout << std::endl;
 
   for(auto& parameter : parameters_) {
     if(!value.isMember(parameter.first) && parameter.second.required()) {

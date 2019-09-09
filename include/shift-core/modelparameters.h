@@ -27,9 +27,14 @@ public:
   ModelParameters(Shift::Context* context)
     : Shift::Base("") {
     context_ = context;
-    gravity_ = ksl_vec3(0.0, 0.0, 0.0);
     addParameters();
   }
+  
+  ModelParameters()
+    : Shift::Base("") {
+    addParameters();
+  }
+
   ~ModelParameters() {}
 
   /*! \brief retrieve gravity vector */
@@ -64,8 +69,6 @@ public:
 
   void enableContactDetection(bool);
 
-  void writeJSON(Json::Value&);
-
   void appendSolver(std::unique_ptr<Solver::Base>&);
   void appendIntegrator(std::unique_ptr<Integrator::Base>&);
   void appendLogger(std::unique_ptr<Logger::Base>&);
@@ -75,11 +78,11 @@ public:
   }
 
 private:
-  void addParameters();
+  virtual void addParameters() override;
 
   std::string version_;
   std::vector<std::string> include_directories_;
-  ksl_vec3_t gravity_;
+  ksl_vec3_t gravity_ = {{0.0, 0.0, 0.0}};
   double epsilson_newton_raphson_ = 1e-7;
   double epsilon_rank_determination_ = 1e-9;
   double infinity_norm_muliplier_ = 2.0;
