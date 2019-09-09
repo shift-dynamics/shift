@@ -58,7 +58,7 @@ void Shift::Context::loadJSON(const std::string filename) {
   std::ifstream file(filename);
   file >> root_;
   try {
-    Shift::Parameter::List::readJSON(root_);
+    readJSON(root_);
   } catch(const char* error) {
     std::cout << "catching error in context.cc" << std::endl;
     std::cout << error << std::endl;
@@ -69,10 +69,13 @@ void Shift::Context::loadJSON(const std::string filename) {
 
 void Shift::Context::postLoad(const std::string filename) {
 
-  print();
+  (*this).print();
 
   /* process topology */
   setActiveObjects(true);
+
+  std::cout << "active_loggers_.size() " << active_loggers_.size() << std::endl;
+
   connect();
   levelOrderSort();
   processVirtualBodies();

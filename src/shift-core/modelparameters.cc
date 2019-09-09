@@ -7,21 +7,22 @@
 #include "ksl/vec3.h"
 
 void Shift::ModelParameters::appendSolver(
-  std::unique_ptr<Shift::Solver::Base>&) {
-  // solvers_.push_back(std::move(solver));
+  std::unique_ptr<Shift::Solver::Base>& solver) {
+  solvers_.push_back(std::move(solver));
 }
 
 void Shift::ModelParameters::appendIntegrator(
-  std::unique_ptr<Shift::Integrator::Base>&) {
-  // integrators_.push_back(std::move(integrator));
+  std::unique_ptr<Shift::Integrator::Base>& integrator) {
+  integrators_.push_back(std::move(integrator));
 }
 
 void Shift::ModelParameters::appendLogger(
-  std::unique_ptr<Shift::Logger::Base>&) {
-  // loggers_.push_back(std::move(logger));
+  std::unique_ptr<Shift::Logger::Base>& logger) {
+  loggers_.push_back(std::move(logger));
 }
 
 void Shift::ModelParameters::addParameters() {
+
   addParameter("version", &version_, "Shift version string.", false);
 
   addParameter("gravity", &gravity_,
@@ -55,11 +56,11 @@ void Shift::ModelParameters::addParameters() {
 
   addParameter("units", &units_, "Specify units for simulation", false);
 
-  addParameter("solver", &solvers_, "", false);
+  addParameter("solvers", &solvers_, "", false);
 
-  addParameter("integrator", &integrators_, "", false);
+  addParameter("integrators", &integrators_, "", false);
 
-  addParameter("logger", &loggers_, "", false);
+  addParameter("loggers", &loggers_, "", false);
 }
 
 void Shift::ModelParameters::initialize() {

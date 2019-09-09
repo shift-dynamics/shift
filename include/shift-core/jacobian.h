@@ -73,6 +73,8 @@ public:
   }
 
 public:
+  virtual void addParameters() override {};
+
   /*! \brief allocate memory for Jacobian after substructures have been
   identified
 

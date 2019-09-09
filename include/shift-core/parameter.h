@@ -462,7 +462,7 @@ public:
   bool active() {
     return active_;
   }
-  virtual void addParameters() {}
+  virtual void addParameters() = 0;
   void removeParameter(std::string key);
 
   virtual void setActiveObjects(bool parent_is_active) {
