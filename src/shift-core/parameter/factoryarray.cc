@@ -4,7 +4,6 @@
 #include "shift-core/context.h"
 #include "shift-core/factory.h"
 #include "shift-core/frame.h"
-#include "shift-core/parameter.h"
 #include "shift-core/sensor/base.h"
 
 /* define specializations of FactoryArray class */
