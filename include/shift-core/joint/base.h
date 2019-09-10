@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "shift-core/base.h"
-#include "shift-core/parameter.h"
+#include "shift-core/parameter/list.h"
 #include "shift-core/topology.h"
 
 #include "ksl/SE3.h"
@@ -31,7 +31,7 @@ class Assembly;
 
 namespace Joint {
 
-/*!
+/*!%
 @brief Abstract Shift::Joint base class
 */
 class Base

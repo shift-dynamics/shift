@@ -6,7 +6,7 @@
 #include <string>
 
 #include "shift-core/base.h"
-#include "shift-core/parameter.h"
+#include "shift-core/parameter/list.h"
 
 namespace Shift {
 

@@ -12,6 +12,8 @@
 #include <assert.h>
 #include <iostream>
 
+template class Shift::Parameter::FactoryArray<Shift::Behavior::Base>;
+
 bool Shift::Body::Modules::initialized() {
   if(!Shift::Body::Fixed::isRegistered()) {
     return false;

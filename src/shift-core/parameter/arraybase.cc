@@ -1,0 +1,22 @@
+#include "shift-core/parameter/arraybase.h"
+#include "shift-core/parameter/list.h"
+
+void Shift::Parameter::ArrayBase::print(std::string prefix) const {
+  std::cout << prefix << "[";
+  for(auto& parameter : objects_) {
+    parameter->print(prefix + "  ");
+  }
+  std::cout << prefix << "]" << std::endl;
+}
+
+Shift::Parameter::Value& Shift::Parameter::ArrayBase::
+operator[](const std::string key_str) {
+  for(auto& object : objects_) {
+    if(object->operator[]("name").get<std::string>() == key_str) {
+      void_ = Value(object, "description", true);
+      return void_;
+    }
+  }
+  throw "JSON Parsing error, parameter not found";
+  return void_;
+}

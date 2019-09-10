@@ -256,87 +256,86 @@ void Shift::Parameter::KeyValue::setActiveObjects(bool parent_is_active) {
 
 void Shift::Parameter::KeyValue::readJSON(Json::Value& object) {
 
-  /* check if value exists */
-  if(!object.isMember(key_)) {
-    if(required_) {
-      throw "JSON Parsing error: required key not found";
-    } else {
-      return;
-    }
+  if(!object.isObject()) {
+    return;
   }
 
   switch(parameter_type_) {
     case Parameter::Type::STRING: {
-      readJSON_STRING(object[key_]);
+      readJSON_STRING(object);
       break;
     }
     case Parameter::Type::STRING_ARRAY: {
-      readJSON_STRING_ARRAY(object[key_]);
+      readJSON_STRING_ARRAY(object);
       break;
     }
     case Parameter::Type::STRING_2DARRAY: {
-      readJSON_STRING_2DARRAY(object[key_]);
+      readJSON_STRING_2DARRAY(object);
       break;
     }
     case Parameter::Type::DOUBLE: {
-      readJSON_DOUBLE(object[key_]);
+      readJSON_DOUBLE(object);
       break;
     }
     case Parameter::Type::DOUBLE_ARRAY: {
-      readJSON_DOUBLE_ARRAY(object[key_]);
+      readJSON_DOUBLE_ARRAY(object);
       break;
     }
     case Parameter::Type::KSL_VEC3: {
-      readJSON_KSL_VEC3(object[key_]);
+      readJSON_KSL_VEC3(object);
       break;
     }
     case Parameter::Type::KSL_VEC4: {
-      readJSON_KSL_VEC4(object[key_]);
+      readJSON_KSL_VEC4(object);
       break;
     }
     case Parameter::Type::KSL_QUATERNION: {
-      readJSON_KSL_QUATERNION(object[key_]);
+      readJSON_KSL_QUATERNION(object);
       break;
     }
     case Parameter::Type::KSL_SCREW: {
-      readJSON_KSL_SCREW(object[key_]);
+      readJSON_KSL_SCREW(object);
       break;
     }
     case Parameter::Type::KSL_COSCREW: {
-      readJSON_KSL_COSCREW(object[key_]);
+      readJSON_KSL_COSCREW(object);
       break;
     }
     case Parameter::Type::KSL_INERTIA: {
-      readJSON_KSL_INERTIA(object[key_]);
+      readJSON_KSL_INERTIA(object);
       break;
     }
     case Parameter::Type::KSL_MAT3X3: {
-      readJSON_KSL_MAT3X3(object[key_]);
+      readJSON_KSL_MAT3X3(object);
       break;
     }
     case Parameter::Type::KSL_MAT4X4: {
-      readJSON_KSL_MAT4X4(object[key_]);
+      readJSON_KSL_MAT4X4(object);
       break;
     }
     case Parameter::Type::KSL_EULERANGLES: {
-      readJSON_EULERANGLES(object[key_]);
+      readJSON_EULERANGLES(object);
       break;
     }
     case Parameter::Type::BOOLEAN: {
-      readJSON_BOOLEAN(object[key_]);
+      readJSON_BOOLEAN(object);
       break;
     }
     case Parameter::Type::KSL_SE3: {
-      readJSON_POSE(object[key_]);
+      readJSON_POSE(object);
       break;
     }
     case Parameter::Type::PARAMETER_LIST: {
       std::cout << "READING PARAMETER LIST: " << key_ << std::endl;
-      std::any_cast<Parameter::List*>(data_)->readJSON(object[key_]);
+      if(object.isObject()) {
+        std::any_cast<Parameter::List*>(data_)->readJSON(object);
+      }
       break;
     }
     case Parameter::Type::PARAMETER_ARRAY: {
-      std::any_cast<Parameter::ArrayBase*>(data_)->readJSON(object);
+      if(object.isArray()) {
+        std::any_cast<Parameter::ArrayBase*>(data_)->readJSON(object);
+      }
       break;
     }
   }
@@ -1019,7 +1018,7 @@ void Shift::Parameter::List::readJSON(Json::Value& value) {
       throw "JSON parsing error, required key not found";
     }
     if(value.isMember(parameter.first)) {
-      parameter.second.readJSON(value);
+      parameter.second.readJSON(value[parameter.first]);
     }
   }
 }
@@ -1043,23 +1042,20 @@ void Shift::Parameter::List::setParent(Shift::Context* context,
 }
 
 template <class T>
-void Shift::Parameter::Array<T>::readJSON(Json::Value& value) {
-  std::string array_key = T::arrayKey();
-  if(value.isMember(array_key) && value[array_key].isArray()) {
-    for(auto& i : value[array_key]) {
-      auto object = std::make_unique<T>();
-      if(object) {
-        try {
-          object->readJSON(i);
-          object->setIsBody(array_key == "bodies");
-          object->setIsAssembly(array_key == "assemblies");
-        } catch(const char* msg) {
-          std::cerr << msg << std::endl;
-        }
-        object_specializations_.push_back(std::move(object));
-        objects_.push_back(dynamic_cast<Shift::Parameter::List*>(
-          object_specializations_.back().get()));
+void Shift::Parameter::Array<T>::readJSON(Json::Value& json_array) {
+  for(auto& value : json_array) {
+    auto object = std::make_unique<T>();
+    if(object) {
+      try {
+        object->readJSON(value);
+        object->setIsBody(T::arrayKey() == "bodies");
+        object->setIsAssembly(T::arrayKey() == "assemblies");
+      } catch(const char* msg) {
+        std::cerr << msg << std::endl;
       }
+      object_specializations_.push_back(std::move(object));
+      objects_.push_back(dynamic_cast<Shift::Parameter::List*>(
+        object_specializations_.back().get()));
     }
   }
 }
@@ -1079,33 +1075,33 @@ void Shift::Parameter::FactoryArray<T>::push_back(std::unique_ptr<T> object) {
 }
 
 template <class T>
-void Shift::Parameter::FactoryArray<T>::readJSON(Json::Value& value) {
-  std::string array_key = T::arrayKey();
-  if(value.isMember(array_key) && value[array_key].isArray()) {
-    for(auto& i : value[array_key]) {
-      std::string objectType(T::defaultType());
-      if(i.isMember("type") && i["type"].isString()) {
-        objectType.assign(i["type"].asString());
-      }
-      /* if there is no "type" specified in the object and
-      there is no default type available, then skip over this object
-      since Shift does not know which class specialization to use */
-      if(!objectType.empty()) {
-        auto object = Shift::Factory<T>::get()->create(objectType);
-        if(object) {
-          try {
-            object->readJSON(i);
-          } catch(const char* msg) {
-            std::cerr << array_key << std::endl;
-            std::cerr << msg << std::endl;
-          }
-          object_specializations_.push_back(std::move(object));
-          objects_.push_back(dynamic_cast<Shift::Parameter::List*>(
-            object_specializations_.back().get()));
+void Shift::Parameter::FactoryArray<T>::readJSON(Json::Value& json_array) {
+  // std::string array_key = T::arrayKey();
+  // if(value.isMember(array_key) && value[array_key].isArray()) {
+  for(auto& value : json_array) {
+    std::string objectType(T::defaultType());
+    if(value.isMember("type") && value["type"].isString()) {
+      objectType.assign(value["type"].asString());
+    }
+    /* if there is no "type" specified in the object and
+    there is no default type available, then skip over this object
+    since Shift does not know which class specialization to use */
+    if(!objectType.empty()) {
+      auto object = Shift::Factory<T>::get()->create(objectType);
+      if(object) {
+        try {
+          object->readJSON(value);
+        } catch(const char* msg) {
+          std::cerr << T::arrayKey() << std::endl;
+          std::cerr << msg << std::endl;
         }
+        object_specializations_.push_back(std::move(object));
+        objects_.push_back(dynamic_cast<Shift::Parameter::List*>(
+          object_specializations_.back().get()));
       }
     }
   }
+  // }
 }
 
 /* define specializations of Array class */

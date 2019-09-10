@@ -10,7 +10,7 @@
 #include "shift-core/forcemodule/base.h"
 #include "shift-core/joint/base.h"
 #include "shift-core/light/base.h"
-#include "shift-core/parameter.h"
+#include "shift-core/parameter/list.h"
 
 namespace Shift {
 
