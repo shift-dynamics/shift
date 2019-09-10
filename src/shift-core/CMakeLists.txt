@@ -10,7 +10,12 @@ set(shift_core_src
   substructure.cc
   topology.cc
   units.cc
-  parameter.cc
+
+  parameter/value.cc
+  parameter/factoryarray.cc
+  parameter/list.cc
+  parameter/array.cc
+  parameter/arraybase.cc
 
   behavior/base.cc
   behavior/contactdetection.cc

@@ -5,7 +5,7 @@
 #include <string>
 
 #include "shift-core/base.h"
-#include "shift-core/parameter.h"
+#include "shift-core/parameter/list.h"
 #include "shift-core/substructure.h"
 #include "shift-core/topology.h"
 
@@ -73,7 +73,7 @@ public:
   }
 
 public:
-  virtual void addParameters() override {};
+  virtual void addParameters() override{};
 
   /*! \brief allocate memory for Jacobian after substructures have been
   identified

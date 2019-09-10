@@ -9,7 +9,7 @@
 #include "shift-core/base.h"
 #include "shift-core/integrator/base.h"
 #include "shift-core/logger/base.h"
-#include "shift-core/parameter.h"
+#include "shift-core/parameter/list.h"
 #include "shift-core/solver/base.h"
 #include "shift-core/units.h"
 
@@ -29,7 +29,7 @@ public:
     context_ = context;
     addParameters();
   }
-  
+
   ModelParameters()
     : Shift::Base("") {
     addParameters();

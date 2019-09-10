@@ -12,7 +12,9 @@
 #include "shift-core/frame.h"
 #include "shift-core/geometry/base.h"
 #include "shift-core/light/base.h"
-#include "shift-core/parameter.h"
+#include "shift-core/parameter/array.h"
+#include "shift-core/parameter/factoryarray.h"
+#include "shift-core/parameter/list.h"
 
 namespace Shift {
 
