@@ -1,115 +1,114 @@
-*Shift* C++ Refactoring Overview
-================================
+*Shift* 2.0
+===========
 
-Abstract
---------
+Introduction
+------------
 
-This working document describes the various *Shift* data structures, how they are created, how they are specified in a model input file, and how they are arranged within the code in the C++ refactoring effort.
+*Shift* is being rewritten from scratch in version 2.0. The C code is being ported to C++. The layout of dependencies has been simplified. *Shift* data structures have been modularized to simplify code development. Modern C++ programming techniques, such as a factory design pattern, are used to make the code flexible and easily extensible. Additionally, a new mechanism for introspection has been added to enable rapidly populating class member data from a user's input file. This document describes the motivation to move to C++, a new mechanism for introspection via named parameters, and the new *Shift* data structures.
 
 Motivations for moving to C++
 -----------------------------
 
-* Better organization of code
+The C++ programming languages provides the following advantages over C:
+
+* Better organization of code using Object-Oriented Programming (OOP)
 * Easier for developers to create specializations of *Shift* objects to extend the code.
-* Support dynamic loading of user defined specializations so that users can create specializations without touching core code base.
+* Support for dynamic loading of user-defined class specializations. This feature enables power-users to create and load specializations without modifying the core code base.
 * Use C++ standard library (as opposed to custom stacks, linked lists and queues programmed in C). Simplifies development and debugging for collaborators and new developers.
 * Allows using other C++ libraries directly without having to develop interface to C code.
 
-Things to keep from C code
---------------------------
+A primary disadvantage to using C++ OOP is that there is a small cost associated with accessing data within classes, particularly when the classes are stored in fragmented memory. For this reason, to increase cache efficiency, data used in performance critical code is typically stored in a contiguous block of memory (i.e. a struct of arrays or an array of structs). This design pattern is sometimes referred to as Data-Oriented Design (DOD).
 
-In the *Shift* C code, the system topology is analyzed in a preprocessing step, and the instructions to process a model are chained together as a series of function pointers and source and destination memory pointers. Additionally, data that is accessed at run-time is localized in a single block of memory to minimize cache misses.
+In the *Shift* C code, the system topology is analyzed in a preprocessing step, and the instructions to process the model are chained together as a series of function pointers and source and destination memory pointers. Additionally, data that is accessed at run-time is localized in a single block of memory to minimize cache misses.
 
-The *Shift* C++ refactor effort will follow a similar model. C++ classes will primarily be used during preprocessing for convenience, but will not be used extensively at run-time. Any quantities required to process the equations of motion will be stored in the `Shift::Context` data structure in a contiguous block of memory. Function pointers will be used to process the model as in the previous C code. The primary difference is that the function pointers and meta data required to set up the model will be provided by classes during the setup process.
+The C++ version of *Shift* follows a similar model. C++ classes will primarily be used during preprocessing for convenience, but will not be used extensively at run-time. Any quantities required to update the kinematics and process the equations of motion are copied out of the classes into a contiguous block of memory. Function pointers are chained together and stepped through to process the model as in the previous C code. The primary difference is that the function pointers and meta data required to set up the model will be provided by classes to simplify the setup process.
 
-Layout of objects in *Shift*
-----------------------------
+Simplifying dependencies
+------------------------
 
-The layout of data within the *Shift* program follows the hierarchy below. The JSON input files follow a similar structure. See ``external/models/bricard/bricard.json`` for an example of a JSON file whose syntax has been updated to support the refactoring effort.
+In Shift 2.0, the layout of dependencies included as submodules has been updated. The layout of submodules in the previous version was:
 
-* Context
+* shift (C++ GUI) - *private*
 
-  * Model Parameters
+  * shift-core (C command line application and C API) - *private*
 
-    * Solver
-    * Units
-    * Integrator
-    * Gravity
-    * Include Directories
-    * Logger
+    * external/ksl (math library) - *public*
+    * external/libgeotiff (support for loading terrain files from geotiff format) - *public*
 
-  * Assembly
+  * shift-models (collection of *Shift* models) - *public*
 
-    * Bodies
+In the previous version, the GUI and API were separated in two different modules. To facilitate ease of development, the  ``shift`` and ``shift-gui`` modules have now been merged, which simplifies the layout as:
 
-      * Fixed Body
+* shift (C++ GUI, C++ Command line interface and C++ API) - *private*
 
-        * Frames
-        * Lights
-        * Terrains
+  * external/shift-models (collection of models to display core functionality of *Shift* software, later these can be made into unit tests) - *public*
+  * external/ksl (math library) - *public*
+  * external/libgeotiff (support for loading terrain files from geotiff format) - *public*
 
-    * Assemblies
-
-      * Assembly
-
-        * Bodies
-
-          * Body
-
-            * Frames
-            * Geometry
-            * Collision Geometry
-
-        * Lights
-        * Behaviors
-        * Constraint
-        * Joints
-        * Sensors
-        * Force Modules
-        * Assemblies
-
-          * ...
-
-Changes to submodule layout
----------------------------
-
-The layout of submodules in the previous version was:
-
-* shift (C++ GUI) - private
-
-  * shift-core (C command line application and C API) - private
-
-    * external/ksl (math library) - public
-    * external/libgeotiff (support for loading terrain files from geotiff format) - public
-
-  * shift-models (collection of *Shift* models) - public
-
-Due to licensing, the GUI was separated from the core code. However, after reconsideration, the ``shift`` and ``shift-gui`` modules will be merged together in the refactor effort to simplify the layout as:
-
-* shift (C++ GUI, C++ Command line interface and C++ API) - private
-
-  * external/shift-models (collection of models to display core functionality of *Shift* software, later these can be made into unit tests) - public
-  * external/ksl (math library) - public
-  * external/libgeotiff (support for loading terrain files from geotiff format) - public
-
-Other possible C++ submodules to added later:
+Other possible C++ submodules to add later:
 
 * stepcode - for loading step CAD files
 * vhacd - variable approximate convex hull decomposition
 * opensubdiv - load subdivision surfaces
 
-Some dependencies are provided as submodules if they are not readily available in package managers or if there is a requirement to lock the API to a specific release.
+Dependencies are provided as submodules if they are not readily available in package managers or if there is a requirement to lock the API to a specific release.
 
-Use of factory method to create *Shift* objects
------------------------------------------------
+Layout of objects in *Shift*
+----------------------------
 
-Categories of objects created using factory method
-**************************************************
+In *Shift* 2.0, the class hierarchy and json file format have been modified to have a one-to-one correspondence. See ``external/models/bricard/bricard.json`` for an example of an updated JSON file. The primary update to the JSON file is to remove the ``"fixed"`` key word from the root level. The root node of the JSON file now contains any parameters attached to the fixed inertial reference frame. The C data structure hierarchy had an additional assembly and body for the fixed inertial reference frame. The *fixed* assembly has now been removed and the ``Shift::Context`` class is now derived from the ``Shift::Body::Base`` class. The ``Context`` class itself now serves as an interface to the fixed body.
 
-The following objects are created using a templated factory method:
+The layout of classes follows the hierarchy below. For more information on objects created using a factory method, see the next section.
+
+* ``Shift::Context`` (Also serves as interface to Fixed Body which contains one or more fixed inertial reference frame)
+
+  * ``Shift::ModelParameters``
+
+    * Simulation parameters such as
+      * Include directories
+      * Gravity vector
+      * Units
+    * ``Shift::Solver::Base``
+    * ``Shift::Integrator::Base``
+    * ``Shift::Logger::Base``
+
+  * ``Shift::Array<Shift::Frame> frames_`` (static, immobile reference frames attached to fixed body)
+  * ``Shift::FactoryArray<Shift::Light::Base> lights_`` (static, immobile lights attached to fixed inertial reference frame)
+  * ``Shift::FactoryArray<Shift::Terrain::Base> terrain_`` (static immobile terrain data attached to fixed inertial reference frame)
+
+  * ``Shift::Array<Shift::Assembly> assemblies_``:
+
+    * where a ``Shift::Assembly`` class contains:
+
+      * An array of **bodies** created using a factory method: ``Shift::FactoryArray<Shift::Body::Base> bodies_``
+
+        * where each ``Shift::Body::Base`` contains
+
+          * An array of **frames** ``Shift::Array<Shift::Frame> frames_``
+          * An array of **geometry** created using a factory method: ``Shift::FactoryArray<Shift::Geometry::Base> geometry_``
+          * An array of **collision geometry** created using a factory method: ``Shift::FactoryArray<Shift::CollisionGeometry::Base> collision_geometry_``
+
+      * An array of **lights** created using a factory method: ``Shift::FactoryArray<Shift::Lights::Base> lights_``
+      * An array of **behaviors** created using a factory method: ``Shift::FactoryArray<Shift::Behaviors::Base> behaviors_``
+      * An array of **constraints** created using a factory method: ``Shift::FactoryArray<Shift::Constraint::Base> constraints_``
+      * An array of **constraints** created using a factory method: ``Shift::FactoryArray<Shift::Joints::Base>  joints_``
+      * An array of **joints** created using a factory method: ``Shift::FactoryArray<Shift::Sensors::Base> sensors_``
+      * An array of **sensors** created using a factory method: ``Shift::FactoryArray<Shift::ForceModules::Base> force_modules_``
+      * An array of **subassemblies** in ``Shift::Array<Shift::Assembly> assemblies_``. Each assembly in turn may contain more subassemblies, nested arbitrarily deep.
+
+
+Factory design pattern
+----------------------
+
+*Shift* objects are now created using a factory design pattern.
+
+Factory base classes
+********************
+
+*Shift* provides a number of abstract base class types. Each base class specifies an interface that must be populated in a derived class, or *specialization*. The base classes are described in more detail below:
 
 =====================  =================================== ====================
-Description            Base class                         Description
+Description            Base class                          Description
 ---------------------  ----------------------------------- --------------------
 Behavior               ``Shift::Behavior::Base``           Handling events in a simulation.
 Body                   ``Shift::Body::Base``               A simulation object, typically with mass an inertia properties.
@@ -127,10 +126,9 @@ Terrain                ``Shift::Terrain::Base``            A special type of geo
 =====================  =================================== ====================
 
 
-
-Specializations
-***************
-So far, the following specializations of factory objects are part of the *Shift-core* code. Presently, most of these specializations are stubs, but will be filled out as I continue moving code from C over to C++. The "created by user" column indicates whether a user of the software can create these modules in a model input file. *No* in this column indicates that these objects are created and used internally by the *Shift* code only.
+Factory specializations
+***********************
+The following specializations of factory objects are thus far part of the *Shift-core* code. At this time many of the specializations are stubs, but will be filled out as I continue moving code from C over to C++. The "created by user" column indicates whether a user of the software can create these modules in a model input file. *No* in this column indicates that these objects are created and used internally by the *Shift* code only.
 
 ``Shift::Body::Base``
 ^^^^^^^^^^^^^^^^^^^^^
@@ -140,7 +138,7 @@ So far, the following specializations of factory objects are part of the *Shift-
 ======================== ================== ================ ============
 Class                    ``"type"`` keyword Created by user? Description
 ------------------------ ------------------ ---------------- ------------
-``Shift::Body::Fixed``   ``"fixed"``        No               Special body representing the fixed inertial reference frame, used internally by *Shift* code
+``Shift::Body::Fixed``   ``"fixed"``        No               Special body representing the fixed inertial reference frame, used internally by *Shift* code. The ``Shift::Context`` class is derived from this base class.
 ``Shift::Body::Free``    ``"free"``         Yes              Floating body with no joints attached to it.
 ``Shift::Body::Rigid``   ``"rigid"``        Yes              Rigid body, with mass, inertia and geometric properties. Typical body used for modeling articulated multibody systems.
 ``Shift::Body::Virtual`` ``"virtual"``      No               Special body used to set up and solve equations of motion for topologies with closed loops. Created automatically and used internally by *Shift* code.
@@ -333,13 +331,13 @@ The following example is intended for *Shift* developers. *Shift* creates a ``Sh
 
 *Shift* only interfaces with the rigid body specialization through the ``Shift::Body::Base`` base class. This allows other *body* specializations to be created without modifying the core *Shift* code.
 
-The above code creates a ``unique_ptr`` to a ``Shift::Body::Base`` class. Any ``unique_ptr`` created when loading from the JSON file are managed by the ``Shift::Assembly`` or ``Shift::Body`` class the Object is a member of. Any ``unique_ptr`` created automatically when preprocessing the system topology (for example automatically identifying chord constraints), are managed by the ``Shift::Context`` class. Raw pointers to those objects may be used by other *Shift* objects. Shared pointers are not used due to additional overhead required to manage them.
+The above code creates a ``unique_ptr`` to a ``Shift::Body::Base`` class. Any object created when loading from the JSON file are managed by the ``Shift::Assembly`` or ``Shift::Body`` class the object is a member of. Any ``unique_ptr`` created automatically when preprocessing the system topology (for example automatically identifying chord constraints), are managed by the ``Shift::Context`` class. Raw pointers to those objects may be used by other *Shift* objects. Shared pointers are not used due to additional overhead required to manage them.
 
-Note that in general, users of the *Shift* software would never create a *Rigid* body using the above code and needn't concern themselves with these implementation details. Instead, they would specify the system topology in a JSON file. In the example above, the default body ``type`` is ``rigid``. If the user does not specify a ``type`` in the JSON file, it is assumed that the type is rigid and only the keys associated with a ``rigid`` body are processed.
+Note that in general, users of the *Shift* software would never create a *Rigid* body using the above code and needn't concern themselves with these implementation details. Instead, they would specify the system topology in a JSON file and the object would be created automatically when the JSON file is parsed. In the example above, the default body ``type`` is ``rigid``. If the user does not specify a ``type`` in the JSON file, it is assumed that the type is rigid and only the keys associated with a ``rigid`` body are processed.
 
 A specialization can be created by deriving a new class from the ``Shift::Body::Base`` base class. All body objects use the ``Shift::Body::`` name space. The *rigid* specialization class is ``Shift::Body::Rigid``. All other *Shift* objects are similarly name spaced.
 
-Each body specialization must have a unique keyword identifier. The keyword `rigid` cannot be used to define any another body specialization. The `rigid` key word is registered in the `rigid.cc` file as:
+Each body specialization must have a unique keyword identifier. The keyword ``"rigid"`` cannot be used to define any other body specialization. The ``"rigid"`` key word is registered in the ``body/rigid.cc`` file as:
 
 .. code-block:: c
 
@@ -348,13 +346,33 @@ Each body specialization must have a unique keyword identifier. The keyword `rig
      "rigid", Shift::Body::Rigid::create);
 
 
-Introspection
--------------
+Introspection via named parameters
+----------------------------------
 
-*Shift* provides a means for introspection via named paramters. Shift objects now inherit from the ``Shift::Parameter::List`` class, and arrays of Shift objects now inherit from the ``Shift::Parameter::Array``, ``Shift::Parameter::FactoryArray`` classes. To map keys in a JSON input file to members of a class, populate the ``addParameters()`` function with the key, member variable, description and whether the data is required. During class construction, the ``addParameters()`` function is called to create the mapping. 
+*Shift* now provides a mechanism for introspection. *Introspection* gives *Shift* classes an awareness of the type of data contained within them, and has the following advantages:
+
+* **Simplifies adding new parameters**: Adding new parameters to load from a JSON input file is vastly simplified. New parameters can now added using a simple helper function. The appropriate JSON parsing commands are then called automatically based on the type of data passed to the helper function. This eliminates the need for developers of *Shift* objects to write JSON parsing code. All JSON parsing code has now been moved to the ``Shift::Parameter::Value`` class.
+* **Simplifies access to parameters**: *Shift* objects contain a ``std::map`` of their keys and values which can be used to retrieve a type safe constant reference or constant pointer to the underlying data. With this new method to access method, it is no longer necessary to write get and set functions to make data accessible to other classes. The method for accessing data should be familiar to developers who have used a Python dictionary.
+* **Simplifies debugging**: The JSON parsing code is moved to one file in one location, which simplifies debugging the model parsing pipeline. Additionally, ``Shift::Parameter::*`` classes provide a default ``print()`` method, which can be used to print named parameters to verify correct loading of the model.
+* **Flexibility**: The ``Shift::Parameter::Value`` class allows for flexibility in loading objects from JSON files. For example, multiple keys can map to the same object (for example, the keys ``"R"`` and ``"rotation"`` could both map data to a 3x3 rotation matrix internally -- to allow a short-hand notation in the input file) and data can be transformed from one type to another during loading (for example, a quaternion can be transformed to a 3x3 rotation matrix)
+
+Classes to support introspection
+********************************
+
+Named parameters are supported with the addition of new base classes:
+
+* ``Shift::Parameter::Value``: provides a mechanism for type safe conversion and JSON parsing functionality.
+* ``Shift::Parameter::List``: provides a map of keys to a number of ``Shift::Parameter::Value`` objects.
+* ``Shift::Parameter::Array`` an array of non-factory *Shift* objects, such as ``Shift::Assembly`` and ``Shift::Frame`` classes.
+* ``Shift::Parameter::FactoryArray``: an array of factory *Shift* objects, such as ``Shift::Body::Base`` or ``Shift::Joint::Base``.
+
+Adding new named parameters
+***************************
+
+To map keys in a JSON input file to members of a class, populate the ``addParameters()`` function with the key, member variable, description and whether the data is required. During class construction, the ``addParameters()`` function is called to create the mapping.
 
 Example
-*******
+^^^^^^^
 
 The following code demonstrates how keys are added to the ``Shift::Body::Rigid`` class.
 
@@ -373,17 +391,22 @@ The following code demonstrates how keys are added to the ``Shift::Body::Rigid``
       "specify orientation as a 3x3 rotation matrix in row-major "
       "order, defaults to identity if not specified; the keys 'rotation', 'R', "
       "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
-      "orientation. If multiple key-value pairs are specified for orientation, "
-      "only one of the entries will be loaded.",
+      "orientation. If multiple key-value pairs are specified for "
+      "orientation, only one of the entries will be loaded.",
       false);
 
     ...
    }
 
 
-When parsing a JSON input file, the data under the ``name`` key word will be parsed and loaded into the ``name_`` member object. The type passed to overloaded ``addParameter()`` function is used to determine the appropriate way to parse the JSON file. If the data is incorrectly formatted, an error will be generated. 
+When parsing the JSON input file is parsed, the data under the ``name`` key word in the code block above will be parsed and loaded into the ``name_`` member object. The type passed to overloaded ``addParameter()`` function is used to determine the appropriate way to parse the JSON file. In this example,  ``name_`` is a pointer to a string, so a string is expected in the JSON input file. If the data is incorrectly formatted, an exception will be thrown.
 
-At present, the following data types are supported:
+Supported data types
+********************
+
+Presently, *Shift* provides support to load strings, doubles, vectors of strings or doubles, and all data structures used in the kinematic subroutine library (KSL) - the math library used internally by *Shift*.
+
+The following data types are supported:
 
 * ``std::string``
 * ``std::vector<std::string>``
@@ -401,10 +424,13 @@ At present, the following data types are supported:
 * ``ksl_eulerangles_t``
 * ``bool``
 
-Loading object specializations from JSON files
-**********************************************
 
-When loading objects from a JSON file, *Shift* uses the reserved key word "type" to determine what specialization of the base class to use when creating the corresponding object in C++. Some *Shift* objects have a default type. For example, the default type for bodies is ``rigid``. Therefore, if no type is specified, a rigid body will be created. Other objects, such as a joints, do not have a default type, and require the ``type`` key to exist in the JSON file. For example, consider the following definition of a revolute joint in a model input file:
+Loading factory objects from JSON files
+***************************************
+
+When loading objects from a JSON file, *Shift* uses the reserved key word "type" to determine what specialization of the base class to use when creating the corresponding object in C++. The type is then used to create an instance of the object using a factory method.
+
+Some *Shift* objects have a default type. For example, the default type for bodies is ``rigid``. Therefore, if no type is specified, a rigid body will be created. Other objects, such as a joints, do not have a default type, and require the ``type`` key to exist in the JSON file. Consider the following definition of a revolute joint in a model input file:
 
 
 .. code-block:: python
@@ -428,9 +454,9 @@ When loading objects from a JSON file, *Shift* uses the reserved key word "type"
       ...
 
 
-The key ``"type"`` is processed to determine the joint specialization the user has specified. The key is then used to generate a specialization of the class (``Shift::Joint::Revolute``). Then the JSON file is parsed by calling the ``readJSON()`` member function. ``readJSON()`` steps through and processes each ``Shift::Parameter::KeyValue`` datastructure within the ``Shift::Parameter::List`` base class. The parameters were added in the ``addParameters()`` function during clas construction as described above. During processing of each ``Shift::Parameter::KeyValue``, the data is mapped from the JSON file to the class member variables using functions in ``parameter.cc``. The primary advantage to this technique is that developers of new specializations need only populate the ``addParameters()`` member function; there is no need to write logic for parsing model input files.
+The key ``"type"`` is processed to determine the joint specialization the user has specified. The key is then used to generate a specialization of the class (``Shift::Joint::Revolute``). Then the JSON file is parsed by calling the ``readJSON()`` member function for ``Shift::Joint::Revolute``, stepping through each ``Shift::Parameter::Value`` datastructure within its ``Shift::Parameter::List`` base class. The parameters were added in the ``addParameters()`` function during class construction. During processing of each ``Shift::Parameter::Value``, the data is mapped from the JSON file to the class member variables using classes and class member functions defined in the following files. In this way, there is no need for developers of class specializations to write logic for parsing model input files.
 
-The following code demonstrates how an object specialization is created in *Shift* internal code. This example is provided to describe how the classes are generated internall, but it would never be necessary for a developer of a *Shift* extension (such as a class specialization of a ``Shift::Body::Base`` or ``Shift::Joint::Base``) to write this code. 
+The following code demonstrates how an object specialization is created in *Shift* internal code using the factory method. The example is provided to describe how the classes are generated internally, but it would never be necessary for a developer of a *Shift* extension (such as a class specialization of a ``Shift::Body::Base`` or ``Shift::Joint::Base``) to write this code themselves.
 
 .. code-block:: c
 
@@ -441,3 +467,98 @@ The following code demonstrates how an object specialization is created in *Shif
    auto joint = Shift::Factory<Shift::Joint::Base>::get()->create(joint_type);
    joint->readJSON(value);
 
+
+Accessing named parameters
+**************************
+
+Lists
+^^^^^
+
+The ``[]`` operator for the ``Shift::Parameter::List`` class is overloaded to allow lookup by key. This method of accessing a hierarchical data structure should be familiar to developers who have used a Python dictionary.
+
+.. code-block:: c
+
+   context["model_parameters"]["units"]["length"].print();
+
+
+Although the syntax for traversing the hierarchy is identical to a Python dictionary, because C++ is a statically typed language, the ``Shift::Value`` object must be cast to its appropriate type before using its underlying data in code. *Shift* provides a type-safe mechanism to request the underlying value. To access the variable ``"length"`` as a string, use the templated ``get()`` function. The ``get()`` functions performs type-safe conversion of its underlying ``std::any`` data structure to the requested format as:
+
+.. code-block:: c
+
+   const std::string& length = context["model_parameters"]["units"]["length"].get<std::string>();
+
+
+If the requested format does not match the underlying format, an exception will be thrown.
+
+Similarly, it is possible to get a raw pointer to the underlying data as:
+
+.. code-block:: c
+
+   const std::string* length_ptr = context["model_parameters"]["units"]["length"].data<std::string>();
+
+
+For debugging purposes, it is possible to query the type of object as:
+
+.. code-block:: c
+
+    std::cout << context["model_parameters"]["units"]["length"].typeName();
+
+    >>> std::string
+
+
+The ``typeName()`` function returns the *demangled* human-readable name of the underlying type.
+
+Similarly, it is also possible to obtain the value's type id or type index. The below code would typically not be used at run-time, but may be helpful for debugging purposes when developing new *Shift* objects.
+
+.. code-block:: c
+
+   std::string value;
+   std::cout << (std::type_index(typeid(&value)) ==
+                  context["model_parameters"]["units"]["length"].typeIndex()
+                 ? "true"
+                 : "false")
+     << std::endl;
+
+   >>> true
+
+Arrays
+^^^^^^
+
+The ``Shift::Parameter::Array`` and ``Shift::Parameter::Factory`` array classes support lookup by name or by index using the `[]` operator. For example, consider the *Shift* hierarchy below:
+
+.. code:: python
+
+   {
+     "assemblies": [
+       {
+         "name": "my_model",
+         "bodies": [
+           {
+             "name": "first_body"
+             ...
+           },
+           {
+             "name": "second_body"
+             ...
+           }
+         ]
+         ...
+       }
+     ]
+   }
+
+
+In the above example ``...`` indicates that there would be other key-value pairs which are omitted here. If the above file is loaded into a ``Shift::Context`` data structure, the second body can be accessed by its index in the array as:
+
+.. code:: c
+
+   Shift::Body::Base* body =
+     context["assemblies"][0]["bodies"][1].data<Shift::Body::Base>();
+
+
+The above method is similar to traversing a Python dictionary. Additionally, *Shift* provides a mechanism to look up a value by its descriptive ``"name"`` key as:
+
+.. code:: c
+
+   Shift::Body::Base* body =
+     context["assemblies"]["my_model"]["bodies"]["second_body"].data<Shift::Body::Base>();
