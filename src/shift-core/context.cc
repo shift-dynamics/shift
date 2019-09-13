@@ -60,8 +60,8 @@ void Shift::Context::loadJSON(const std::string filename) {
   try {
     readJSON(root_);
   } catch(const char* error) {
-    std::cout << "catching error in context.cc" << std::endl;
-    std::cout << error << std::endl;
+    std::cerr << "catching error in context.cc" << std::endl;
+    std::cerr << error << std::endl;
   };
   setParent(this);
   postLoad(filename);
@@ -69,12 +69,8 @@ void Shift::Context::loadJSON(const std::string filename) {
 
 void Shift::Context::postLoad(const std::string) {
 
-  (*this).print();
-
   /* process topology */
   setActiveObjects(true);
-
-  std::cout << "active_loggers_.size() " << active_loggers_.size() << std::endl;
 
   connect();
   levelOrderSort();
@@ -128,7 +124,7 @@ void Shift::Context::processFrames() {
   auto fixed = fixedBody();
   for(auto& frame : fixed->frames()) {
     assert(frame.get());
-    frame->print();
+    // frame->print();
     active_frames_.push_back(frame.get());
   }
   for(auto& body : active_articulated_bodies_) {
@@ -178,18 +174,18 @@ void Shift::Context::processFrames() {
     }
   }
 
-  std::cout << "frames_in_tree_.size(): " << frames_in_tree_.size()
-            << std::endl;
+  // std::cout << "frames_in_tree_.size(): " << frames_in_tree_.size()
+  //           << std::endl;
   unsigned int i = 0;
   for(auto& frame : frames_in_tree_) {
     assert(frame);
     // (*frame)["name"].print();
-    std::cout << "[" << i << "]: " << frame->name() << std::endl;
+    // std::cout << "[" << i << "]: " << frame->name() << std::endl;
     frame->setIndex(i++);
     frame->setInTree(true);
   }
 
-  std::cout << "setting reference frame on fixed body" << std::endl;
+  // std::cout << "setting reference frame on fixed body" << std::endl;
   fixedBody()->setReferenceFrame();
   for(auto& joint : active_joints_) {
     auto body = joint->systemChildBody();
@@ -264,6 +260,7 @@ void Shift::Context::initialize() {
 }
 
 void Shift::Context::setActiveObjects(bool) {
+  model_parameters_.setActiveObjects(true);
   assemblies_.setActiveObjects(true);
 }
 
@@ -813,9 +810,9 @@ void Shift::Context::levelOrderSort() {
 
 void Shift::Context::processVirtualBodies() {
 
-  std::cout << "Processing virtual bodies" << std::endl;
-  std::cout << "active_articulated_bodies_.size(): "
-            << active_articulated_bodies_.size() << std::endl;
+  // std::cout << "Processing virtual bodies" << std::endl;
+  // std::cout << "active_articulated_bodies_.size(): "
+  //           << active_articulated_bodies_.size() << std::endl;
   // std::cout << "active_bodies_.size(): " << active_bodies_.size() <<
   // std::endl;
 
@@ -954,10 +951,11 @@ void Shift::Context::processLoopMembers() {
     int positive = chord_constraints_[i]->parentBody()->index();
     int negative = chord_constraints_[i]->childBody()->index();
 
-    std::cout << "parent body: " << chord_constraints_[i]->parentBody()->name()
-              << ": " << positive << std::endl;
-    std::cout << "child body: " << chord_constraints_[i]->childBody()->name()
-              << ": " << negative << std::endl;
+    // std::cout << "parent body: " <<
+    // chord_constraints_[i]->parentBody()->name()
+    //           << ": " << positive << std::endl;
+    // std::cout << "child body: " << chord_constraints_[i]->childBody()->name()
+    //           << ": " << negative << std::endl;
 
     loopMembers[i].push_back(negative);
     negativeLoopMembers[i].push_back(negative);
@@ -1090,14 +1088,14 @@ void Shift::Context::detectSubstructures() {
     std::sort(substructures.begin(), substructures.end(),
               substructureLevelOrder(this, loop_members_));
 
-    int k = 0;
-    for(auto substructure : substructures) {
-      std::cout << "substructure [" << k++ << "]: ";
-      for(auto index : substructure) {
-        std::cout << index << " ";
-      }
-      std::cout << std::endl;
-    }
+    // int k = 0;
+    // for(auto substructure : substructures) {
+    //   std::cout << "substructure [" << k++ << "]: ";
+    //   for(auto index : substructure) {
+    //     std::cout << index << " ";
+    //   }
+    //   std::cout << std::endl;
+    // }
     substructure_indices_ = substructures;
 
     substructure_members_.clear();
@@ -1121,15 +1119,15 @@ void Shift::Context::detectSubstructures() {
                 substructure_members_[i].end(), levelOrder(this));
     }
 
-    std::cout << "substructure members:" << std::endl;
-    unsigned int i = 0;
-    for(auto& members : substructure_members_) {
-      std::cout << "[" << i++ << "]: " << std::endl;
-      for(auto& member : members) {
-        std::cout << "  " << active_joints_[member]->name() << std::endl;
-      }
-      std::cout << std::endl;
-    }
+    // std::cout << "substructure members:" << std::endl;
+    // unsigned int i = 0;
+    // for(auto& members : substructure_members_) {
+    //   std::cout << "[" << i++ << "]: " << std::endl;
+    //   for(auto& member : members) {
+    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //   }
+    //   std::cout << std::endl;
+    // }
 
     /* reorder loops */
 
@@ -1153,22 +1151,22 @@ void Shift::Context::detectSubstructures() {
     positive_loop_members_ = positiveLoopMembers;
     chord_constraints_ = chordConstraints;
 
-    std::cout << "loop members:" << std::endl;
-    for(unsigned int i = 0; i < loopMembers.size(); i++) {
-      std::cout << "loop members [" << i << "]: " << std::endl;
-      for(auto member : loopMembers[i]) {
-        std::cout << "  " << active_joints_[member]->name() << std::endl;
-      }
-      std::cout << "negative loop members [" << i << "]: " << std::endl;
-      for(auto member : negativeLoopMembers[i]) {
-        std::cout << "  " << active_joints_[member]->name() << std::endl;
-      }
-      std::cout << "positive loop members [" << i << "]: " << std::endl;
-      for(auto member : positiveLoopMembers[i]) {
-        std::cout << "  " << active_joints_[member]->name() << std::endl;
-      }
-      std::cout << std::endl;
-    }
+    // std::cout << "loop members:" << std::endl;
+    // for(unsigned int i = 0; i < loopMembers.size(); i++) {
+    //   std::cout << "loop members [" << i << "]: " << std::endl;
+    //   for(auto member : loopMembers[i]) {
+    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //   }
+    //   std::cout << "negative loop members [" << i << "]: " << std::endl;
+    //   for(auto member : negativeLoopMembers[i]) {
+    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //   }
+    //   std::cout << "positive loop members [" << i << "]: " << std::endl;
+    //   for(auto member : positiveLoopMembers[i]) {
+    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //   }
+    //   std::cout << std::endl;
+    // }
 
     /* substructure body joint reorder */
 
@@ -1271,14 +1269,14 @@ void Shift::Context::detectSubstructures() {
 
     Shift::Topology::setInversePermutation(p_01, p_10);
 
-    i = 0;
-    for(auto& members : substructure_members_) {
-      std::cout << "  [" << i++ << "]: ";
-      for(auto& member : members) {
-        std::cout << member << " ";
-      }
-      std::cout << std::endl;
-    }
+    // i = 0;
+    // for(auto& members : substructure_members_) {
+    //   std::cout << "  [" << i++ << "]: ";
+    //   for(auto& member : members) {
+    //     std::cout << member << " ";
+    //   }
+    //   std::cout << std::endl;
+    // }
 
     for(auto& loop : loop_members_) {
       for(auto& i : loop) {
@@ -1305,42 +1303,42 @@ void Shift::Context::detectSubstructures() {
     }
   }
 
-  std::cout << std::endl << "substructures after sort:" << std::endl;
-  unsigned int i = 0;
-  for(auto& members : substructure_members_) {
-    std::cout << "  [" << i++ << "]: ";
-    for(auto& member : members) {
-      std::cout << member << " ";
-    }
-    std::cout << std::endl;
-  }
-
-  std::cout << "substructure members:" << std::endl;
-  i = 0;
-  for(auto& members : substructure_members_) {
-    std::cout << "[" << i++ << "]: " << std::endl;
-    for(auto& member : members) {
-      std::cout << "  " << active_joints_[member]->name() << std::endl;
-    }
-    std::cout << std::endl;
-  }
-
-  std::cout << "loop members:" << std::endl;
-  for(unsigned int i = 0; i < loop_members_.size(); i++) {
-    std::cout << "loop members [" << i << "]: " << std::endl;
-    for(auto member : loop_members_[i]) {
-      std::cout << "  " << active_joints_[member]->name() << std::endl;
-    }
-    std::cout << "negative loop members [" << i << "]: " << std::endl;
-    for(auto member : negative_loop_members_[i]) {
-      std::cout << "  " << active_joints_[member]->name() << std::endl;
-    }
-    std::cout << "positive loop members [" << i << "]: " << std::endl;
-    for(auto member : positive_loop_members_[i]) {
-      std::cout << "  " << active_joints_[member]->name() << std::endl;
-    }
-    std::cout << std::endl;
-  }
+  // std::cout << std::endl << "substructures after sort:" << std::endl;
+  // unsigned int i = 0;
+  // for(auto& members : substructure_members_) {
+  //   std::cout << "  [" << i++ << "]: ";
+  //   for(auto& member : members) {
+  //     std::cout << member << " ";
+  //   }
+  //   std::cout << std::endl;
+  // }
+  //
+  // std::cout << "substructure members:" << std::endl;
+  // i = 0;
+  // for(auto& members : substructure_members_) {
+  //   std::cout << "[" << i++ << "]: " << std::endl;
+  //   for(auto& member : members) {
+  //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+  //   }
+  //   std::cout << std::endl;
+  // }
+  //
+  // std::cout << "loop members:" << std::endl;
+  // for(unsigned int i = 0; i < loop_members_.size(); i++) {
+  //   std::cout << "loop members [" << i << "]: " << std::endl;
+  //   for(auto member : loop_members_[i]) {
+  //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+  //   }
+  //   std::cout << "negative loop members [" << i << "]: " << std::endl;
+  //   for(auto member : negative_loop_members_[i]) {
+  //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+  //   }
+  //   std::cout << "positive loop members [" << i << "]: " << std::endl;
+  //   for(auto member : positive_loop_members_[i]) {
+  //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+  //   }
+  //   std::cout << std::endl;
+  // }
 }
 
 unsigned int Shift::Context::qCount() {
@@ -1375,7 +1373,7 @@ void Shift::Context::compressRigidJoints(
     // D = D_p1_c0 * D
     ksl_SE3_t temp;
     ksl_SE3_t D_p1_c0 = parentJoint->transform();
-    ksl_SE3_print(stdout, &D_p1_c0, "  D_p1_c0: ");
+    // ksl_SE3_print(stdout, &D_p1_c0, "  D_p1_c0: ");
     ksl_product_dd(&D_p1_c0, &D, &temp);
     ksl_SE3_copy(&temp, &D);
 
@@ -1398,7 +1396,7 @@ void Shift::Context::compressRigidJoints(
     auto parentBody = joint->systemParentBody();
     auto childBody = active_articulated_bodies_[i];
 
-    ksl_SE3_print(stdout, &D, "  D_p0_c0: ");
+    // ksl_SE3_print(stdout, &D, "  D_p0_c0: ");
 
     for(auto& frame : childBody->frames()) {
       // std::cout << childBody->name() << ": " << frame.name() << std::endl;
@@ -1407,7 +1405,7 @@ void Shift::Context::compressRigidJoints(
       ksl_SE3_t D_p0_c1;
       ksl_product_dd(&D, frame->dWRTReference(), &D_p0_c1);
 
-      ksl_SE3_print(stdout, &D_p0_c1, "  D_p0_c1: ");
+      // ksl_SE3_print(stdout, &D_p0_c1, "  D_p0_c1: ");
 
       if(frame->inTree() && parentBody != fixedBody()) {
         // std::cout << "intree && parentBody!= fixedBody: processing frame: "
@@ -1428,18 +1426,19 @@ void Shift::Context::compressRigidJoints(
         // std::cout << "processing frame: " << childBody->name() << ": "
         //           << frame.name() << std::endl;
 
-        ksl_SE3_print(stdout, frame->dWRTReference(), "d_wrt_reference: ");
+        // ksl_SE3_print(stdout, frame->dWRTReference(), "d_wrt_reference: ");
         ksl_SE3_copy(&D_p0_c1, d_wrt_reference_ + frame->index());
 
-        ksl_SE3_print(
-          stdout,
-          dhva_.d + parentJoint->systemParentBody()->referenceFrame()->index(),
-          "  d_parent: ");
+        // ksl_SE3_print(
+        //   stdout,
+        //   dhva_.d +
+        //   parentJoint->systemParentBody()->referenceFrame()->index(), "
+        //   d_parent: ");
 
         ksl_product_dd(
           dhva_.d + parentJoint->systemParentBody()->referenceFrame()->index(),
           &D_p0_c1, dhva_.d + frame->index());
-        ksl_SE3_print(stdout, dhva_.d + frame->index(), "  dAbsolute: ");
+        // ksl_SE3_print(stdout, dhva_.d + frame->index(), "  dAbsolute: ");
       }
     }
   }
@@ -1468,7 +1467,8 @@ void Shift::Context::allocateRunTimeArrays() {
   // std::cout << "dqCount: " << dqCount_ << std::endl;
   // std::cout << "dcCount: " << dcCount << std::endl;
 
-  std::cout << "dWRTReference_.size(): " << frames_in_tree_.size() << std::endl;
+  // std::cout << "dWRTReference_.size(): " << frames_in_tree_.size() <<
+  // std::endl;
   if(d_wrt_reference_) {
     free(d_wrt_reference_);
     d_wrt_reference_ = nullptr;
@@ -1526,8 +1526,8 @@ void Shift::Context::allocateRunTimeArrays() {
     while(!parentJoint->qCount()) { // rigid joint
       j = pcl_[j];
       if(j == -1) {
-        std::cout << "rigid connection to fixed frame found: ";
-        std::cout << joint->name() << std::endl;
+        // std::cout << "rigid connection to fixed frame found: ";
+        // std::cout << joint->name() << std::endl;
         rigidConnectionToFixedFrame = true;
         break;
       }
@@ -1585,7 +1585,7 @@ void Shift::Context::allocateRunTimeArrays() {
   for(auto& frame : fixedBody()->frames()) {
     frame->setParentBody(fixedBody());
     if(!frame->isReference()) {
-      std::cout << frame->name() << std::endl;
+      // std::cout << frame->name() << std::endl;
       assert(frame->parentBody());
       // std::cout << "[" << frame.index() << "]: " <<
       // frame.parentBody()->name()
@@ -1655,7 +1655,7 @@ void Shift::Context::allocateRunTimeArrays() {
     }
   }
 
-  std::cout << "operationCount: " << operationCount << std::endl;
+  // std::cout << "operationCount: " << operationCount << std::endl;
   joint_dof_.resize(active_joints_.size());
   model_parameters_.initialize();
 }
@@ -1728,26 +1728,27 @@ void Shift::Context::setFixedFrameGravityVector() {
 }
 
 void Shift::Context::setToInitialConditions() {
-  std::cout << "setting initial conditions:" << std::endl;
+  // std::cout << "setting initial conditions:" << std::endl;
   assert(q_);
   assert(dq_);
   unsigned int qOffset = 0;
   unsigned int dqOffset = 0;
   for(auto& joint : active_joints_) {
     if(joint->qCount()) {
-      std::cout << joint->name() << " " << std::flush;
+      // std::cout << joint->name() << " " << std::flush;
       assert(joint->q0());
-      for(unsigned int i = 0; i < joint->qCount(); i++) {
-        std::cout << joint->q0()[i] << " ";
-      }
-      std::cout << std::endl;
+      // for(unsigned int i = 0; i < joint->qCount(); i++) {
+      //   std::cout << joint->q0()[i] << " ";
+      // }
+      // std::cout << std::endl;
       memcpy(q_ + qOffset, joint->q0(), joint->qCount() * sizeof(double));
     }
     if(joint->dqCount()) {
-      for(unsigned int i = 0; i < joint->dqCount(); i++) {
-        std::cout << joint->dq0()[i] << " ";
-      }
-      std::cout << std::endl;
+      // for(unsigned int i = 0; i < joint->dqCount(); i++) {
+      //   std::cout << joint->dq0()[i] << " ";
+      // }
+      // std::cout << std::endl;
+
       memcpy(dq_ + dqOffset, joint->dq0(), joint->dqCount() * sizeof(double));
     }
     qOffset += joint->qCount();

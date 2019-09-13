@@ -1,5 +1,6 @@
 #include "shift-core/context.h"
 #include <iostream>
+#include <typeinfo>
 
 int main(int argc, char* argv[]) {
 
@@ -20,6 +21,13 @@ int main(int argc, char* argv[]) {
 
     // context.print();
     // context.writeJSON("test.json");
+
+    // std::string value;
+    // std::cout << (std::type_index(typeid(&value)) ==
+    //                   context["model_parameters"]["units"]["length"].typeIndex()
+    //                 ? "true"
+    //                 : "false")
+    //           << std::endl;
 
     return 0;
   } else {
