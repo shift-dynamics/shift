@@ -25,6 +25,13 @@ public:
 
 private:
   virtual void addParameters() override;
+  std::string texture_filename_;
+  std::string property_map_filename_;
+  double x_scale_ = 1.0;
+  double y_scale_ = 1.0;
+  std::string coordinate_type_ = "sae";
+  std::string interpolation_type_ = "bilinear";
+
   static bool registered_;
 };
 

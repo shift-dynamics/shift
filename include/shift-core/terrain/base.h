@@ -58,6 +58,8 @@ protected:
   virtual void addParameters() override;
 
   std::string type_; //!< descriptive name of TerrainBase type
+  std::string filename_;
+  std::vector<std::vector<std::string>> parent_;
 };
 
 class Modules {
