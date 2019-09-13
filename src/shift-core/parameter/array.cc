@@ -7,11 +7,11 @@ template class Shift::Parameter::Array<Shift::Frame>;
 
 template <class T>
 void Shift::Parameter::Array<T>::readJSON(Json::Value& json_array) {
-  for(auto& value : json_array) {
+  for(auto& json_value : json_array) {
     auto object = std::make_unique<T>();
     if(object) {
       try {
-        object->readJSON(value);
+        object->readJSON(json_value);
         object->setIsBody(T::arrayKey() == "bodies");
         object->setIsAssembly(T::arrayKey() == "assemblies");
       } catch(const char* msg) {

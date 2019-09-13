@@ -30,12 +30,10 @@ void Shift::Parameter::FactoryArray<T>::push_back(std::unique_ptr<T> object) {
 
 template <class T>
 void Shift::Parameter::FactoryArray<T>::readJSON(Json::Value& json_array) {
-  // std::string array_key = T::arrayKey();
-  // if(value.isMember(array_key) && value[array_key].isArray()) {
-  for(auto& value : json_array) {
+  for(auto& json_value : json_array) {
     std::string object_type(T::defaultType());
-    if(value.isMember("type") && value["type"].isString()) {
-      object_type.assign(value["type"].asString());
+    if(json_value.isMember("type") && json_value["type"].isString()) {
+      object_type.assign(json_value["type"].asString());
     }
     /* if there is no "type" specified in the object and
     there is no default type available, then skip over this object
@@ -44,7 +42,7 @@ void Shift::Parameter::FactoryArray<T>::readJSON(Json::Value& json_array) {
       auto object = Shift::Factory<T>::get()->create(object_type);
       if(object) {
         try {
-          object->readJSON(value);
+          object->readJSON(json_value);
         } catch(const char* msg) {
           std::cerr << T::arrayKey() << std::endl;
           std::cerr << msg << std::endl;

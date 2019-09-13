@@ -185,7 +185,7 @@ public:
   }
 
   void print() const;
-  void print(std::string) const;
+  void print(std::string, bool break_line = true) const;
 
   Assembly* parentAssembly() {
     return parent_assembly_ptr_;

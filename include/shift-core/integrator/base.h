@@ -27,12 +27,10 @@ public:
   Base(std::string name)
     : Shift::Base(name) {
     addParameters();
-    std::cout << "Shift::Integrator::Base()" << std::endl;
   }
   Base()
     : Shift::Base("") {
     addParameters();
-    std::cout << "Shift::Integrator::Base()" << std::endl;
   }
   virtual ~Base() override {}
 

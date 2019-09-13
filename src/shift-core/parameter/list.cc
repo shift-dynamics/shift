@@ -3,12 +3,22 @@
 #include "shift-core/body/base.h"
 #include "shift-core/context.h"
 
-void Shift::Parameter::List::print(std::string prefix) const {
-  std::cout << prefix << std::endl << prefix << "{" << std::endl;
-  for(auto& parameter : parameters_) {
-    parameter.second.print(prefix + "  ");
+void Shift::Parameter::List::print(std::string prefix, bool break_line) const {
+  if(break_line) {
+    std::cout << std::endl << prefix << "{";
+  } else {
+    std::cout << prefix << "{";
   }
-  std::cout << prefix << "}" << std::endl;
+  if(parameters_.empty()) {
+    std::cout << " }" << std::endl;
+  } else {
+    std::cout << std::endl;
+    for(auto& parameter : parameters_) {
+      std::cout << prefix << "  " << parameter.first << ": ";
+      parameter.second.print(prefix + "    ");
+    }
+    std::cout << prefix << "}" << std::endl;
+  }
 }
 
 void Shift::Parameter::List::print() const {
@@ -19,20 +29,14 @@ void Shift::Parameter::List::removeParameter(std::string key) {
   parameters_.erase(key);
 }
 
-void Shift::Parameter::List::readJSON(Json::Value& value) {
-  std::cout << ": ";
+void Shift::Parameter::List::readJSON(Json::Value& json_value) {
   for(auto& parameter : parameters_) {
-    std::cout << parameter.first << ", ";
-  }
-  std::cout << std::endl;
-
-  for(auto& parameter : parameters_) {
-    if(!value.isMember(parameter.first) && parameter.second.required()) {
+    if(!json_value.isMember(parameter.first) && parameter.second.required()) {
       std::cout << "  error: " << parameter.first << std::endl;
       throw "JSON parsing error, required key not found";
     }
-    if(value.isMember(parameter.first)) {
-      parameter.second.readJSON(value[parameter.first]);
+    if(json_value.isMember(parameter.first)) {
+      parameter.second.readJSON(json_value[parameter.first]);
     }
   }
 }
@@ -53,4 +57,11 @@ void Shift::Parameter::List::setParent(Shift::Context* context,
   for(auto& parameter : parameters_) {
     parameter.second.setParent(context_, assembly, body);
   }
+}
+
+Shift::Parameter::Value&
+Shift::Parameter::List::addParameter(const std::string key,
+                                     Shift::Parameter::Value value) {
+  parameters_[key] = value;
+  return parameters_[key];
 }
