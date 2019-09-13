@@ -2,11 +2,18 @@
 #include "shift-core/parameter/list.h"
 
 void Shift::Parameter::ArrayBase::print(std::string prefix) const {
-  std::cout << prefix << "[";
-  for(auto& parameter : objects_) {
-    parameter->print(prefix + "  ");
+  std::cout << "[";
+  if(objects_.empty()) {
+    std::cout << " ]" << std::endl;
+  } else {
+    std::cout << std::endl;
+    for(auto& parameter : objects_) {
+      parameter->print(prefix, false);
+    }
+    prefix.pop_back();
+    prefix.pop_back();
+    std::cout << prefix << "]" << std::endl;
   }
-  std::cout << prefix << "]" << std::endl;
 }
 
 Shift::Parameter::Value& Shift::Parameter::ArrayBase::

@@ -19,12 +19,10 @@ public:
   CSV(std::string name)
     : Base(name) {
     addParameters();
-    std::cout << "creating CSV logger" << std::endl;
   }
   CSV()
     : Base("") {
     addParameters();
-    std::cout << "creating CSV logger" << std::endl;
   }
   virtual ~CSV() override {}
 

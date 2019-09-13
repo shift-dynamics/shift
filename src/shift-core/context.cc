@@ -67,7 +67,7 @@ void Shift::Context::loadJSON(const std::string filename) {
   postLoad(filename);
 }
 
-void Shift::Context::postLoad(const std::string filename) {
+void Shift::Context::postLoad(const std::string) {
 
   (*this).print();
 
