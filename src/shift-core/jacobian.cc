@@ -223,10 +223,10 @@ void Shift::Jacobian::translatePermutations() {
   /* set pv_21 */
   for(auto& substructure : substructures_) {
     for(unsigned int j = 0; j < substructure.qCount(); j++) {
-      std::cout << "substructure.qCount(): " << substructure.qCount()
-                << std::endl;
-      std::cout << "substructure.dqOffset(): " << substructure.dqOffset()
-                << std::endl;
+      // std::cout << "substructure.qCount(): " << substructure.qCount()
+      //           << std::endl;
+      // std::cout << "substructure.dqOffset(): " << substructure.dqOffset()
+      //           << std::endl;
       pv_12_[substructure.dqOffset() + j] =
         substructure.pc_12()[j] + substructure.dqOffset();
     }
@@ -236,9 +236,9 @@ void Shift::Jacobian::translatePermutations() {
 
   /* determine which variables are independent / dependent */
   for(auto& substructure : substructures_) {
-    std::cout << "substructure.dqOffset: " << substructure.dqOffset()
-              << std::endl;
-    std::cout << "rank: " << substructure.rank() << std::endl;
+    // std::cout << "substructure.dqOffset: " << substructure.dqOffset()
+    //           << std::endl;
+    // std::cout << "rank: " << substructure.rank() << std::endl;
     for(int j = 0; j < substructure.rank(); j++) {
       is_dependent_po1_[pv_12_[substructure.dqOffset() + j]] = true;
     }
@@ -322,9 +322,9 @@ void Shift::Jacobian::evaluateSparsity() {
   ksl_array2Di_free(rb3_);
   rb3_ = ksl_array2Di_alloc(dqCount, 2);
 
-  for(auto& substructure : substructures_) {
-    substructure.print();
-  }
+  // for(auto& substructure : substructures_) {
+  //   substructure.print();
+  // }
 
   for(auto& substructure : substructures_) {
     substructure.evaluateSparsity(rb3_, cb3_, pv_23_);

@@ -467,7 +467,6 @@ void Shift::Parameter::Value::readJSON_KSL_VEC3(Json::Value& json_value) {
 }
 
 void Shift::Parameter::Value::readJSON_KSL_VEC4(Json::Value& json_value) {
-  std::cout << json_value << std::endl;
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_VEC4";

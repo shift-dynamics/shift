@@ -384,7 +384,8 @@ int Shift::Substructure::removeConstraintViolations() {
   assert(context_);
   context_->updateDH();
   double initialError = evaluateConstraints(context_->dhva());
-  fprintf(stdout, "  initial error: %g\n", initialError);
+
+  std::cout << std::endl << "initial error: " << initialError << std::endl;
 
   int step = 0;
   double epsRankDetermination =
@@ -397,7 +398,7 @@ int Shift::Substructure::removeConstraintViolations() {
     context_->updateDH();
     error = evaluateConstraints(context_->dhva());
     ++step;
-    fprintf(stdout, "  [%d] error: %g\n", step, error);
+    std::cout << "  [" << step << "] error: " << error << std::endl;
   }
   context_->updateDH();
   setBooleanPO2();

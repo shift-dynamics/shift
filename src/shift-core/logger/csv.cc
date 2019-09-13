@@ -13,7 +13,6 @@ std::unique_ptr<Shift::Logger::CSV> Shift::Logger::CSV::create() {
 
 void Shift::Logger::CSV::addParameters() {
   Shift::Logger::Base::addParameters();
-
   addParameter("delimiter", &delimiter_,
                "delimiter used in csv file, defaults to \",\" if not provided",
                false);
@@ -26,8 +25,6 @@ void Shift::Logger::CSV::addParameters() {
     "indicates to append current data/time to base log file name. Time stamp "
     "will be appended before file extension, defaults to \"false\"",
     false);
-
-  std::cout << "Shift::Logger::CSV::addParameters()" << std::endl;
 }
 
 void Shift::Logger::CSV::initialize() {

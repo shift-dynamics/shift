@@ -226,11 +226,15 @@ public:
     return *std::any_cast<T*>(data_);
   }
 
-  const std::type_info& type_info() {
+  const std::type_info& typeInfo() {
     return data_.type();
   }
 
-  const std::string type_name() {
+  const std::type_index typeIndex() {
+    return std::type_index(data_.type());
+  }
+
+  const std::string typeName() {
     int status;
     std::string type_str = data_.type().name();
     char* demangled_name =

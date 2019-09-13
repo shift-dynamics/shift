@@ -1,6 +1,7 @@
 #ifndef SHIFT_TOPOLOGY_H_
 #define SHIFT_TOPOLOGY_H_
 
+#include <assert.h>
 #include <iostream>
 #include <string.h>
 #include <string>
@@ -68,7 +69,6 @@ struct DHVA {
 
   DHVA& operator=(const DHVA& other) {
 
-    std::cout << "copying DHVA" << std::endl;
     // check for self assignment
     if(&other == this) {
       return *this;
@@ -88,7 +88,7 @@ struct DHVA {
     dc = new double[dhva_size_];
     if(dc == nullptr) {
       std::cerr << "Error: failed to allocate memory for DHVA" << std::endl;
-      exit(-1);
+      assert(0);
     }
     memset(dc, 0, dhva_size_);
     d = (ksl_SE3_t*)(dc + 2 * dc_count_);
