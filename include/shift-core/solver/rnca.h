@@ -222,6 +222,8 @@ public:
     }
   }
 
+  virtual void solve() override;
+
   const std::string& getDescription() {
     return description_;
   }

@@ -58,6 +58,7 @@ public:
   virtual void connect();
   virtual void initialize() = 0;
   virtual void setActiveObjects(bool parent_is_active) override;
+  virtual void solve() = 0;
 
 protected:
   virtual void addParameters() override;

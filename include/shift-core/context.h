@@ -412,6 +412,9 @@ private:
 
   void setLookup();
 
+  void evaluateConstraints();
+  void setForces();
+
   /*! \brief User defined terrain attached to fixed inertial reference frame
    */
   Shift::Parameter::Array<Shift::Assembly> assemblies_;

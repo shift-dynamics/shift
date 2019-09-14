@@ -2341,3 +2341,37 @@ double Shift::Context::kineticEnergy() {
   return sum;
 #endif
 }
+
+void Shift::Context::evaluateConstraints() {}
+
+void Shift::Context::setForces() {}
+
+/* sequence of steps for solving equations of motion
+
+void s2_equation_fcn(double t, double y[], double dy[], s2_context_t* context) {
+
+switch(context->modelParameters.integrationType) {
+  case S2_NUMERICALINTEGRATOR_ODE113: {
+    s2_numericalintegrator_ode113_t* numericalIntegrator =
+      context->numericalIntegrator;
+    numericalIntegrator->iterationCount++;
+  } break;
+  case S2_NUMERICALINTEGRATOR_ODE113B: {
+    s2_numericalintegrator_ode113b_t* numericalIntegrator =
+      context->numericalIntegrator;
+    numericalIntegrator->iterationCount++;
+  } break;
+}
+
+memcpy(context->q, y, (context->qCount + context->dqCount) * sizeof(double));
+
+updateDHVA();
+evaluateConstraints();
+setForces(context, y);
+setEquations();
+factorAndSolve(context);
+dqTody(context, dy);
+memcpy(dy + context->qCount, context->ddq, context->dqCount * sizeof(double));
+
+
+*/
