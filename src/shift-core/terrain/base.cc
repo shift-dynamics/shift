@@ -12,7 +12,7 @@ bool Shift::Terrain::Modules::initialized() {
 void Shift::Terrain::Base::addParameters() {
   addParameter(
     "name", &name_,
-    "terrain descriptive name, each terrain must have a unique name identified",
+    "terrain descriptive name, each terrain must have a unique name identifier",
     true);
   addParameter("parent", &parent_,
                "terrain's parent body / frame, defaults to [[\"fixed\"], "

@@ -33,7 +33,7 @@ void Shift::Terrain::Basic::addParameters() {
     "interpolation_type", &interpolation_type_,
     "specify method to interpolate between control points: acceptable values "
     "are \"bilinear\" and \"bicubic\"; \"bilinear\" sampling is faster, but is "
-    "only C0 continuous. \"bicubic\" sampling is C2 continuous and slower to "
+    "only C0 continuous. \"bicubic\" sampling is C2 continuous but slower to "
     "compute. defaults to \"bilinear\" if not specified.",
     false);
 }
