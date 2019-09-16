@@ -136,7 +136,7 @@ void Shift::Joint::ra_d(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
   ksl_mat3x3_t temp;
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
   ksl_product_ddr(dParent, &temp, dChild);
@@ -158,7 +158,7 @@ void Shift::Joint::rainv_d(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
   ksl_mat3x3_setFromAxisDC(&temp, &neg_axis, dc);
@@ -503,7 +503,7 @@ void Shift::Joint::ra_dh(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
   ksl_mat3x3_t temp;
 
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
@@ -529,7 +529,7 @@ void Shift::Joint::rainv_dh(const Shift::Context& context, Topology::DHVA& dhva,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
 

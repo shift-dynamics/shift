@@ -42,11 +42,20 @@ public:
   virtual void load();
   virtual void connect();
   virtual void setActiveObjects(bool parent_is_active) override;
+  unsigned int equationCount() {
+    return equation_count_;
+  }
+  const std::vector<double>& q0() {
+    return q_0_;
+  }
 
 protected:
-  virtual void addParameters() override;
-
   std::string type_;
+  virtual void addParameters() override;
+  unsigned int equation_count_ = 0;
+  std::vector<double> q_0_; /*!< vector of state initial conditions */
+  double* dq_ =
+    nullptr; /*!< pointer to state time derivatives for transient modules */
 };
 
 class Modules {

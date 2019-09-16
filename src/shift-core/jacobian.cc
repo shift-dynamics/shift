@@ -7,6 +7,7 @@
 #include "shift-core/topology.h"
 
 void Shift::Jacobian::initialize() {
+  newton_raphson_failure_ = false;
   assert(context_);
   mallocEquations();
   compressLoopMembers();
@@ -167,8 +168,8 @@ void Shift::Jacobian::compressLoopMembers() {
     int substructureOffset =
       std::min(substructureMembers[i][1], substructureMembers[i][2]);
     substructure.setdqOffset(dqLookup[substructureOffset], context_->dq(),
-                             context_->deltaq());
-    substructure.setqOffset(qLookup[substructureOffset], context_->q());
+                             context_->deltaq().data());
+    substructure.setqOffset(qLookup[substructureOffset], context_->q().data());
 
     for(unsigned int j = 0; j < substructure.chordConstraintCount(); j++, k++) {
       for(auto positiveLoopMember : positiveLoopMembers[k]) {
@@ -388,15 +389,15 @@ using a strict error tolerance (context->epsNewtonRaphsonRankDetermination)
 @param context [in] an s2_context_t datastructure
 */
 int Shift::Jacobian::removeConstraintViolations() {
-  bool constraintsSatisfied = true;
+  bool newton_raphson_failure_ = false;
   for(auto& substructure : substructures_) {
     if(substructure.removeConstraintViolations()) {
-      constraintsSatisfied = false;
+      newton_raphson_failure_ = true;
     }
   }
   // @TODO update GL reference frames once graphics are added back in
   // context_->updateGLReferenceFrames()
-  return constraintsSatisfied ? 0 : -1;
+  return newton_raphson_failure_ ? -1 : 0;
 }
 
 /*!
@@ -432,9 +433,15 @@ void Shift::Jacobian::initializeMobility() {
     rightNullSpaceCount = 0;
     for(auto& substructure : substructures_) {
       substructure.setRightNullSpace(right_null_space_ + rightNullSpaceCount);
-      substructure.setMobilityNumbers(context_->mobilityNumbers() +
+      substructure.setMobilityNumbers(context_->mobilityNumbers().data() +
                                       substructure.dqOffset());
       rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();
     }
+  }
+}
+
+void Shift::Jacobian::evaluateConstraints() {
+  for(auto& substructure : substructures_) {
+    substructure.evaluateConstraints(context_->dhva());
   }
 }

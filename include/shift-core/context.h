@@ -62,60 +62,7 @@ public:
     addParameters();
     initialize();
   }
-  virtual ~Context() override {
-
-    if(d_wrt_reference_) {
-      free(d_wrt_reference_);
-    }
-
-    if(joint_data_) {
-      delete[] joint_data_;
-    }
-
-    if(q_) {
-      delete[] q_;
-    }
-
-    if(ddq_) {
-      delete[] ddq_;
-    }
-
-    if(deltaq_) {
-      delete[] deltaq_;
-    }
-
-    if(q_copy_) {
-      delete[] q_copy_;
-    }
-
-    if(f_) {
-      delete[] f_;
-    }
-
-    if(p_) {
-      delete[] p_;
-    }
-
-    if(g_) {
-      delete[] g_;
-    }
-
-    if(k_) {
-      delete[] k_;
-    }
-
-    if(inertia_) {
-      free(inertia_);
-    }
-
-    if(inertiaP_) {
-      free(inertiaP_);
-    }
-
-    if(mobility_numbers_) {
-      free(mobility_numbers_);
-    }
-  }
+  virtual ~Context() override {}
 
   Context& operator=(Context&&) {
     return *this;
@@ -174,6 +121,10 @@ public:
     return active_joints_;
   }
 
+  const std::vector<Shift::ForceModule::Base*>& activeForceModules() const {
+    return active_force_modules_;
+  }
+
   const std::vector<int>& pcl() const {
     return pcl_;
   }
@@ -216,13 +167,13 @@ public:
 
   /*! \brief get pointer to dWRTReference, an array of relative
    * transformations to their respective reference frames */
-  inline const ksl_SE3_t* DWRTReference() const {
+  inline const std::vector<ksl_SE3_t>& DWRTReference() const {
     return d_wrt_reference_;
   }
 
   /*! \brief get pointer to jointData, an array of additional constant data
    * required to process some joints */
-  inline const double* jointData() const {
+  inline const std::vector<double>& jointData() const {
     return joint_data_;
   }
 
@@ -251,16 +202,20 @@ public:
     return chord_constraints_.size();
   }
 
+  std::vector<double>& ddq() {
+    return ddq_;
+  }
+
   double* dq() {
     return dq_;
   }
 
-  double* q() {
+  std::vector<double>& q() {
     return q_;
   }
 
-  double* deltaq() {
-    return deltaq_;
+  std::vector<double>& deltaq() {
+    return delta_q_;
   }
 
   const Topology::DHVA& dhva() const {
@@ -271,7 +226,7 @@ public:
     return dhva_offsets_;
   }
 
-  double* mobilityNumbers() {
+  std::vector<double>& mobilityNumbers() {
     return mobility_numbers_;
   }
 
@@ -292,6 +247,24 @@ public:
    * velocities.
    * The instructions to update DHVA are stored in Shift::Context */
   void updateDHVA(Topology::DHVA& dhva, const double* q, const double* dq);
+
+  /*! \brief Update displacements stored in a Shift::Context data structure
+   * using a user-provided array of generalized coordinates. The instructions to
+   * update displacements are stored in Shift::Context */
+  void updateD(const double* q);
+
+  /*! \brief Update displacements and influence coefficient matrices in a
+   * Shift::Context data structure using a user-provided array of
+   * generalized coordinates. The instructions to update displacements and
+   * influence coefficient matrices are stored in Shift::Context */
+  void updateDH(const double* q);
+
+  /*! \brief Update displacements, influence coefficient matrices, velocities
+   * and quadratic accelerations in a Shift::Context data structure using
+   * a user-provided array of generalized coordinates and generalized
+   * velocities.
+   * The instructions to update DHVA are stored in Shift::Context */
+  void updateDHVA(const double* q, const double* dq);
 
   void updateD();
   void updateDH();
@@ -314,6 +287,18 @@ public:
   int digraph(std::string filename);
 
   int digraphFrames(std::string filename);
+
+  unsigned int forceModuleEquationCount();
+
+  void evaluateConstraints();
+
+  void setForces(const double y[]);
+
+  void dqTody(double dy[]) {}
+
+  bool newtonRaphsonFailure() {
+    return jacobian_.newtonRaphsonFailure();
+  }
 
 private:
   virtual void addParameters() override;
@@ -412,9 +397,6 @@ private:
 
   void setLookup();
 
-  void evaluateConstraints();
-  void setForces();
-
   /*! \brief User defined terrain attached to fixed inertial reference frame
    */
   Shift::Parameter::Array<Shift::Assembly> assemblies_;
@@ -444,30 +426,26 @@ framesInTree that are the reference frame for the body */
 
   std::vector<int> dcq_; /*!< index of framesInTree that require updating
                             direction cosines */
+  std::vector<ksl_SE3_t> d_wrt_reference_;
+  std::vector<double> joint_data_;
 
-  ksl_SE3_t* d_wrt_reference_ =
-    nullptr; /*!< relative displacement of a body frame
-             with respect to its reference frame */
-  double* joint_data_ =
-    nullptr; /*!< additional data required to process data across joints */
+  std::vector<double> q_;
+  double* dq_ = nullptr; /*!< generalized coordinate first time derivative, or
+                         generalized velocities */
+  std::vector<double> ddq_;
+  std::vector<double> delta_q_;
 
-  double* q_ = nullptr;   /*!< generalized coordinates */
-  double* dq_ = nullptr;  /*!< generalized coordinate first time derivative, or
-                          generalized velocities */
-  double* ddq_ = nullptr; /*!< generalized coordinate second time derivative,
-                          or generalized accelerations */
-  double* deltaq_ = nullptr;
-
-  double* q_copy_ =
-    nullptr; /*!< copy of q array, used to restore q to a previous state */
-  double* f_ = nullptr;        /*!< Working forces within a joint, such as from
-                              friction        or damping */
-  ksl_coscrew_t* p_ = nullptr; /*< momentum */
-  ksl_coscrew_t* g_ = nullptr; /*!< spatial body and inertial forces, length
-                                  equal to dq count */
-  ksl_coscrew_t* k_ = nullptr; /*!< joint reaction forces */
-  ksl_inertia_t* inertia_ = nullptr;  /*!< body fixed spatial  inertias */
-  ksl_inertia_t* inertiaP_ = nullptr; /*!< projected spatial inertias */
+  std::vector<double> q_copy_;
+  std::vector<double> f_;
+  /*!< Working forces within a joint, such as from
+                        friction        or damping */
+  std::vector<ksl_coscrew_t> p_; /*< momentum */
+  std::vector<ksl_coscrew_t> g_; /*!< spatial body and inertial
+                                  forces, length equal to dq count */
+  std::vector<ksl_coscrew_t> k_;
+  std::vector<ksl_inertia_t> inertia_; /*!< body fixed spatial  inertias */
+  std::vector<ksl_inertia_t>
+    projected_inertia_; /*!< projected spatial inertias */
   std::vector<int> joint_dof_;
   std::vector<int> joint_dof_compressed_;
   std::vector<int> joint_lookup_;
@@ -592,8 +570,7 @@ framesInTree that are the reference frame for the body */
   std::vector<Constraint::Chord*> chord_constraints_ = {};
 
   /*! @} */
-
-  double* mobility_numbers_ = nullptr;
+  std::vector<double> mobility_numbers_;
 
   void initializeMobility();
 

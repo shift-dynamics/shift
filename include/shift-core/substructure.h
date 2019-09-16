@@ -52,10 +52,10 @@ public:
     q_ = q + q_offset_;
   }
 
-  void setdqOffset(unsigned int offset, double* dq, double* deltaq) {
+  void setdqOffset(unsigned int offset, double* dq, double* delta_q) {
     dq_offset_ = offset;
     dq_ = dq + dq_offset_;
-    deltaq_ = deltaq + dq_offset_;
+    delta_q_ = delta_q + dq_offset_;
   }
 
   void setJointCount(unsigned int count) {
@@ -246,7 +246,7 @@ private:
   bool* Jb_ = nullptr;
   double* dq_ = nullptr;
   double* q_ = nullptr;
-  double* deltaq_ = nullptr;
+  double* delta_q_ = nullptr;
   double* right_null_space_ = nullptr;
   double* mobility_numbers_ = nullptr;
   double epsilon_rank_determination_ = 1e-9;

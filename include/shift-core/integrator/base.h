@@ -28,10 +28,12 @@ public:
     : Shift::Base(name) {
     addParameters();
   }
+
   Base()
     : Shift::Base("") {
     addParameters();
   }
+
   virtual ~Base() override {}
 
   const std::string& getType() {
@@ -41,14 +43,17 @@ public:
   static const std::string arrayKey() {
     return "integrators";
   }
+
   static const std::string defaultType() {
     return "";
   }
+
   void setActiveObjects(bool parent_is_active) override;
 
   virtual void load();
   virtual void connect();
   virtual void initialize() = 0;
+  virtual void integrate() = 0;
 
 protected:
   virtual void addParameters() override;

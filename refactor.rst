@@ -13,15 +13,15 @@ The C++ programming languages provides the following advantages over C:
 
 * Better organization of code using Object-Oriented Programming (OOP)
 * Easier for developers to create specializations of *Shift* objects to extend the code.
-* Support for dynamic loading of user-defined class specializations. This feature enables power-users to create and load specializations without modifying the core code base.
-* Use C++ standard library (as opposed to custom stacks, linked lists and queues programmed in C). Simplifies development and debugging for collaborators and new developers.
+* Support for dynamic loading of user-defined class specializations. This feature will enable power-users to create and load specializations without modify or recompile the core code base.
+* Use the C++ standard library data structures instead of custom stacks, linked lists and queues. This change simplifies development and debugging for collaborators and new developers.
 * Allows using other C++ libraries directly without having to develop interface to C code.
 
-A primary disadvantage to using C++ OOP is that there is a small cost associated with accessing data within classes, particularly when the classes are stored in fragmented memory. For this reason, to increase cache efficiency, data used in performance critical code is typically stored in a contiguous block of memory (i.e. a struct of arrays or an array of structs). This design pattern is sometimes referred to as Data-Oriented Design (DOD).
+A primary disadvantage to using C++ OOP is that there is a small cost associated with accessing data within classes, particularly when the classes are stored in fragmented memory. For this reason, to increase cache efficiency, data used in performance critical code should be stored in a contiguous block of memory (i.e. a struct of arrays or an array of structs). This design pattern is sometimes referred to as Data-Oriented Design (DOD).
 
-In the *Shift* C code, the system topology is analyzed in a preprocessing step, and the instructions to process the model are chained together as a series of function pointers and source and destination memory pointers. Additionally, data that is accessed at run-time is localized in a single block of memory to minimize cache misses.
+Previously, in the *Shift* C code, the system topology was analyzed in a preprocessing step, and the instructions to process the model were chained together as a series of function pointers and source and destination memory pointers. Additionally, data that were accessed at run-time were localized in a single block of memory to minimize cache misses.
 
-The C++ version of *Shift* follows a similar model. C++ classes will primarily be used during preprocessing for convenience, but will not be used extensively at run-time. Any quantities required to update the kinematics and process the equations of motion are copied out of the classes into a contiguous block of memory. Function pointers are chained together and stepped through to process the model as in the previous C code. The primary difference is that the function pointers and meta data required to set up the model will be provided by classes to simplify the setup process.
+The C++ version of *Shift* follows a similar model. C++ classes are used primarily during the preprocessing phase for convenience, but are not used extensively at run-time. Any quantities required to update the kinematics and process the equations of motion are copied out of the classes into a contiguous block of memory. Function pointers are chained together and stepped through to process the model as in the previous C code. The primary difference is that the function pointers and meta data required to set up the model are provided by classes to simplify the setup process.
 
 Simplifying dependencies
 ------------------------
@@ -56,7 +56,9 @@ Dependencies are provided as submodules if they are not readily available in pac
 Layout of objects in *Shift*
 ----------------------------
 
-In *Shift* 2.0, the class hierarchy and json file format have been modified to have a one-to-one correspondence. See ``external/models/bricard/bricard.json`` for an example of an updated JSON file. The primary update to the JSON file is to remove the ``"fixed"`` key word from the root level. The root node of the JSON file now contains any parameters attached to the fixed inertial reference frame. The C data structure hierarchy had an additional assembly and body for the fixed inertial reference frame. The *fixed* assembly has now been removed and the ``Shift::Context`` class is now derived from the ``Shift::Body::Base`` class. The ``Context`` class itself now serves as an interface to the fixed body.
+In *Shift* 2.0, the data structure layout hierarchy and json file format have been modified to have a one-to-one correspondence. See ``external/models/bricard/excavator.json`` for an example of an updated JSON file. The primary change to the JSON file format is the removal of the ``"fixed"`` key word from the root level. The ``"fixed"`` key was used for objects that were referenced to the *fixed* inertial reference frame. In the new file format, the root node of the JSON file *is* the fixed inertial reference frame.
+
+The previous C data structure hierarchy had an additional assembly and body for the fixed inertial reference frame, but the JSON file did not have the fixed assembly. To obtain a closer match between the JSON input file and data layout in code, the *fixed* assembly has now been removed and the ``Shift::Context`` class is derived from the ``Shift::Body::Base`` class. Therefore, the ``Context`` class itself now serves as an interface to the fixed body. This change simplifies the JSON file format, parsing of the JSON file, and obtaining references to other objects during preprocessing.
 
 The layout of classes follows the hierarchy below. For more information on objects created using a factory method, see the next section.
 
@@ -68,9 +70,9 @@ The layout of classes follows the hierarchy below. For more information on objec
       * Include directories
       * Gravity vector
       * Units
-    * ``Shift::Solver::Base``
-    * ``Shift::Integrator::Base``
-    * ``Shift::Logger::Base``
+    * ``Shift::Solver::Base`` (one or more methods to set up and solve the equations of motions)
+    * ``Shift::Integrator::Base`` (one or more numerical integrators)
+    * ``Shift::Logger::Base`` (one or more utilities to support logging)
 
   * ``Shift::Array<Shift::Frame> frames_`` (static, immobile reference frames attached to fixed body)
   * ``Shift::FactoryArray<Shift::Light::Base> lights_`` (static, immobile lights attached to fixed inertial reference frame)
@@ -333,7 +335,7 @@ The following example is intended for *Shift* developers. *Shift* creates a ``Sh
 
 The above code creates a ``unique_ptr`` to a ``Shift::Body::Base`` class. Any object created when loading from the JSON file are managed by the ``Shift::Assembly`` or ``Shift::Body`` class the object is a member of. Any ``unique_ptr`` created automatically when preprocessing the system topology (for example automatically identifying chord constraints), are managed by the ``Shift::Context`` class. Raw pointers to those objects may be used by other *Shift* objects. Shared pointers are not used due to additional overhead required to manage them.
 
-Note that in general, users of the *Shift* software would never create a *Rigid* body using the above code and needn't concern themselves with these implementation details. Instead, they would specify the system topology in a JSON file and the object would be created automatically when the JSON file is parsed. In the example above, the default body ``type`` is ``rigid``. If the user does not specify a ``type`` in the JSON file, it is assumed that the type is rigid and only the keys associated with a ``rigid`` body are processed.
+Note that in general, users of the *Shift* software would never create a *Rigid* body using the above code and needn't concern themselves with these implementation details. Instead, they would specify the system topology in a JSON file and the object would be created automatically during parsing. In the example above, the default body ``type`` is ``rigid``. If the user does not specify a ``type`` in the JSON file, it is assumed that the type is rigid and only the keys associated with a ``rigid`` body are processed.
 
 A specialization can be created by deriving a new class from the ``Shift::Body::Base`` base class. All body objects use the ``Shift::Body::`` name space. The *rigid* specialization class is ``Shift::Body::Rigid``. All other *Shift* objects are similarly name spaced.
 
@@ -351,10 +353,10 @@ Introspection via named parameters
 
 *Shift* now provides a mechanism for introspection. *Introspection* gives *Shift* classes an awareness of the type of data contained within them, and has the following advantages:
 
-* **Simplifies adding new parameters**: Adding new parameters to load from a JSON input file is vastly simplified. New parameters can now added using a simple helper function. The appropriate JSON parsing commands are then called automatically based on the type of data passed to the helper function. This eliminates the need for developers of *Shift* objects to write JSON parsing code. All JSON parsing code has now been moved to the ``Shift::Parameter::Value`` class.
+* **Simplifies adding new parameters**: Adding new parameters to load from a JSON input file is vastly simplified. New parameters can now added using a simple helper function. The appropriate JSON parsing commands are then called automatically based on the type of data passed to the helper function. This feature eliminates the need for developers of *Shift* objects to write JSON parsing code. All JSON parsing code has now been moved to the ``Shift::Parameter::Value`` class.
 * **Simplifies access to parameters**: *Shift* objects contain a ``std::map`` of their keys and values which can be used to retrieve a type safe constant reference or constant pointer to the underlying data. With this new method to access method, it is no longer necessary to write get and set functions to make data accessible to other classes. The method for accessing data should be familiar to developers who have used a Python dictionary.
 * **Simplifies debugging**: The JSON parsing code is moved to one file in one location, which simplifies debugging the model parsing pipeline. Additionally, ``Shift::Parameter::*`` classes provide a default ``print()`` method, which can be used to print named parameters to verify correct loading of the model.
-* **Flexibility**: The ``Shift::Parameter::Value`` class allows for flexibility in loading objects from JSON files. For example, multiple keys can map to the same object (for example, the keys ``"R"`` and ``"rotation"`` could both map data to a 3x3 rotation matrix internally -- to allow a short-hand notation in the input file) and data can be transformed from one type to another during loading (for example, a quaternion can be transformed to a 3x3 rotation matrix)
+* **Flexibility**: The ``Shift::Parameter::Value`` class allows for flexibility in loading objects from JSON files. For example, multiple keys can map to the same object (for example, the keys ``"R"`` and ``"rotation"`` could both map data to a 3x3 rotation matrix internally -- to allow an alternative short-hand version of the key in the input file) and data can be transformed from one type to another during loading (for example, a quaternion can be transformed to a 3x3 rotation matrix)
 
 Classes to support introspection
 ********************************
@@ -548,7 +550,7 @@ The ``Shift::Parameter::Array`` and ``Shift::Parameter::Factory`` array classes 
    }
 
 
-In the above example ``...`` indicates that there would be other key-value pairs which are omitted here. If the above file is loaded into a ``Shift::Context`` data structure, the second body can be accessed by its index in the array as:
+In the above example ``...`` indicates that there would be other key-value pairs which are omitted here. After the above file is loaded into a ``Shift::Context`` data structure, the second body can be accessed by its index in the array as:
 
 .. code:: c
 
