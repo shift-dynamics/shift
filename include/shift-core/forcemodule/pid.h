@@ -13,7 +13,7 @@ class JointBase;
 
 namespace ForceModule {
 
-class PID : public Base {
+class PID : public ForceModule::Base {
 public:
   PID()
     : Base() {
@@ -33,6 +33,9 @@ public:
 
 private:
   static bool registered_;
+  double kp_ = 0.0;
+  double ki_ = 0.0;
+  double kd_ = 0.0;
 };
 
 } // namespace ForceModule

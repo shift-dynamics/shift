@@ -30,10 +30,9 @@ public:
   ksl_inertia_t inertiaWRTReference() override;
 
 private:
-  int reference_frame_index_ = -1; /*!< pointer to Body's unique reference
-                                    frame, which  may not be the Frame's origin.
-                                    Assigned automatically by
-                                    s2_ProcessTopology */
+  int reference_frame_index_ =
+    -1; /*!< pointer to Body's unique reference
+         frame, which  may not be the Frame's origin. */
 
   int origin_index_ = -1; /*!< Index of body's unique *origin*
                              coordinate system, which may not be the
@@ -41,18 +40,16 @@ private:
 
   Joint::JointBase* parent_joint_ptr_ =
     nullptr; /*!< Pointer to Body's unique
-              *parent* Joint datastructure */
+              *parent* joint datastructure */
 
   BodyBase* parent_body_ptr_ = nullptr; /*!< A pointer to the unique *parent*
-                                   Body, set by s2_ProcessTopology */
+                                   Body */
 
   Frame* parent_frame_ptr_ =
     nullptr; /*!< parent frame of body reference frame */
 
-  int index_ = -1; /*!< index in contiguous *run-time* array of Bodies, set
-                  by s2_ProcessTopology */
-  int level_ = -1; /*!< level in the spanning tree, set
-                  by s2_ProcessTopology */
+  int index_ = -1; /*!< index in contiguous *run-time* array of bodies */
+  int level_ = -1; /*!< level in the spanning tree */
 
   static bool registered_;
 };

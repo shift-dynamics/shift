@@ -137,7 +137,7 @@ void Shift::Joint::ta_d(const Shift::Context& context,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddt(dParent, &temp, dChild);
@@ -159,7 +159,7 @@ void Shift::Joint::tainv_d(const Shift::Context& context,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddtinv(dParent, &temp, dChild);
@@ -502,7 +502,7 @@ void Shift::Joint::ta_dh(const Shift::Context& context,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddt(dParent, &temp, dChild);
@@ -558,7 +558,7 @@ void Shift::Joint::tainv_dh(const Shift::Context& context,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(context.jointData() + offsets.data);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddtinv(dParent, &temp, dChild);

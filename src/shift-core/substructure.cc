@@ -256,7 +256,7 @@ void Shift::Substructure::firstOrderUpdate() {
   for(int i = 0; i < rank_; i++) {
     /* columns in B matrix */
     for(unsigned int j = rank_; j < dq_count_; j++) {
-      q_[pc_12_[i]] -= J_[i * dq_count_ + j] * deltaq_[pc_12_[j]];
+      q_[pc_12_[i]] -= J_[i * dq_count_ + j] * delta_q_[pc_12_[j]];
     }
   }
 }
@@ -279,9 +279,9 @@ void Shift::Substructure::updateq() {
       }
     } else if(qCount == 4 && dqCount == 3) {
       // spherical case
-      ksl_subtract_dpiFromq((ksl_vec3_t*)(context_->deltaq() + dqIndex),
-                            (ksl_quaternion_t*)(context_->q() + qIndex));
-      ksl_quaternion_normalize((ksl_quaternion_t*)(context_->q() + qIndex));
+      ksl_subtract_dpiFromq((ksl_vec3_t*)(&context_->deltaq()[dqIndex]),
+                            (ksl_quaternion_t*)(&context_->q()[qIndex]));
+      ksl_quaternion_normalize((ksl_quaternion_t*)(&context_->q()[qIndex]));
       qIndex += 4;
       dqIndex += 3;
 
@@ -290,9 +290,9 @@ void Shift::Substructure::updateq() {
       context_->q()[qIndex++] -= context_->deltaq()[dqIndex++];
       context_->q()[qIndex++] -= context_->deltaq()[dqIndex++];
       context_->q()[qIndex++] -= context_->deltaq()[dqIndex++];
-      ksl_subtract_dpiFromq((ksl_vec3_t*)(context_->deltaq() + dqIndex),
-                            (ksl_quaternion_t*)(context_->q() + qIndex));
-      ksl_quaternion_normalize((ksl_quaternion_t*)(context_->q() + qIndex));
+      ksl_subtract_dpiFromq((ksl_vec3_t*)(&context_->deltaq()[dqIndex]),
+                            (ksl_quaternion_t*)(&context_->q()[qIndex]));
+      ksl_quaternion_normalize((ksl_quaternion_t*)(&context_->q()[qIndex]));
       qIndex += 4;
       dqIndex += 3;
     } else {
@@ -308,11 +308,11 @@ error = sqrt(deltaq[] . deltaq[]) / dqCount
 */
 double Shift::Substructure::qError() {
 #if SHIFT_WITH_BLAS_
-  return sqrt(cblas_ddot(dq_count_, deltaq_, 1, deltaq_, 1)) / dq_count_;
+  return sqrt(cblas_ddot(dq_count_, delta_q_, 1, delta_q_, 1)) / dq_count_;
 #else
   double sum = 0;
   for(unsigned int i = 0; i < dq_count_; i++) {
-    sum += deltaq_[i] * deltaq_[i];
+    sum += delta_q_[i] * delta_q_[i];
   }
   return sqrt(sum) / dq_count_;
 #endif
@@ -322,7 +322,7 @@ double Shift::Substructure::qError() {
 
 */
 void Shift::Substructure::newtonRaphsonSolver() {
-  memset(deltaq_, 0, dq_count_ * sizeof(double));
+  memset(delta_q_, 0, dq_count_ * sizeof(double));
   /* cs <-  L^-1 cs */
   for(int i = 0; i < rank_; i++) {
     for(int j = 0; j < i; j++) {
@@ -332,9 +332,9 @@ void Shift::Substructure::newtonRaphsonSolver() {
   /* deltaq <- U^-1 * (L^-1 * cs) */
   for(int i = rank_ - 1; i > -1; i--) {
     for(int j = rank_ - 1; j > i; j--) {
-      cs_[pr_12_[i]] -= J_[i * dq_count_ + j] * deltaq_[pc_12_[j]];
+      cs_[pr_12_[i]] -= J_[i * dq_count_ + j] * delta_q_[pc_12_[j]];
     }
-    deltaq_[pc_12_[i]] = cs_[pr_12_[i]] / J_[i * dq_count_ + i];
+    delta_q_[pc_12_[i]] = cs_[pr_12_[i]] / J_[i * dq_count_ + i];
   }
 }
 
@@ -467,7 +467,7 @@ void Shift::Substructure::printError(double initialError, double finalError,
   fprintf(f, "initial error: %f, final error: %f\n", initialError, finalError);
   fprintf(f, "  qCount: %d\n", q_count_);
   fprintf(f, "  qOffset: %d\n", q_offset_);
-  assert(context_->q() + q_offset_ == q_);
+  assert(context_->q().data() + q_offset_ == q_);
   fprintf(f, " states before Newton-Raphson:\n   ");
   ksl_array_print(f, q_count_, qCopy);
   fprintf(f, " states after Newton-Raphson:\n    ");
@@ -512,7 +512,7 @@ void Shift::Substructure::incrementSpecifiedCoordinate(
 
   /* currently the joint type is not used, but may be used in the future, for
   example to set all 3 dof as specified for a spherical joint */
-  memset(deltaq_, 0, dq_count_ * sizeof(double));
+  memset(delta_q_, 0, dq_count_ * sizeof(double));
   switch(moveType) {
     case INCREMENT: {
       context_->deltaq()[specifiedCoordinateIndex] = value;

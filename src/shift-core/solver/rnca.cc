@@ -19,100 +19,88 @@ void Shift::Solver::RNCA::addParameters() {
 void Shift::Solver::RNCA::initialize() {
   assert(context_);
 
-  unsigned int dqCount = context_->dqCount();
+  q_count_ = context_->qCount();
+  dq_count_ = context_->dqCount();
 
-  hasMass_.resize(context_->nonRigidJointCount());
-  hasMassdq_.resize(dqCount);
+  has_mass_.resize(context_->nonRigidJointCount());
+  std::fill(has_mass_.begin(), has_mass_.end(), false);
 
-  if(gamma_d_) {
-    delete[] gamma_d_;
-    gamma_d_ = NULL;
-  }
-  gamma_d_ = new double[dqCount]{};
+  has_mass_dq_.resize(dq_count_);
+  std::fill(has_mass_dq_.begin(), has_mass_dq_.end(), false);
 
-  Ml_size_ = ((dqCount + 1) * (dqCount + 2)) / 2;
+  gamma_d_.resize(dq_count_);
+  std::fill(gamma_d_.begin(), gamma_d_.end(), 0);
 
-  if(Ml_) {
-    delete[] Ml_;
-    Ml_ = NULL;
-  }
-  Ml_ = new double[Ml_size_]{};
+  Ml_size_ = ((dq_count_ + 1) * (dq_count_ + 2)) / 2;
 
-  if(Mls_) {
-    delete[] Mls_;
-    Mls_ = NULL;
-  }
-  Mls_ = new double[Ml_size_]{};
+  Ml_.resize(Ml_size_);
+  std::fill(Ml_.begin(), Ml_.end(), 0);
 
-  if(Mlb_) {
-    delete[] Mlb_;
-    Mlb_ = NULL;
-  }
-  Mlb_ = new bool[Ml_size_]{};
+  Mls_.resize(Ml_size_);
+  std::fill(Mls_.begin(), Mls_.end(), 0);
 
-  if(Mlbs_) {
-    delete[] Mlbs_;
-    Mlbs_ = NULL;
-  }
-  Mlbs_ = new bool[Ml_size_]{};
+  Mlb_.resize(Ml_size_);
+  std::fill(Mlb_.begin(), Mlb_.end(), false);
+
+  Mlbs_.resize(Ml_size_);
+  std::fill(Mlbs_.begin(), Mlbs_.end(), false);
 }
 
-void Shift::Solver::RNCA::solve() {
+/*! setup and solve the equations of motion given a vector of states y[]
 
-#if 0
-  /*!
-  @brief solve for current time step
+y[] contains the generalized coordinates q[], the first time derivatives dq[],
+and any states required for force modules
+
+y = [q, dq, q_f]
+dy = [dq, ddq, dq_f]
+*/
+void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
+
+  const double* q = y;
+  const double* dq = y + q_count_;
+
+  assert(context_);
+  context_->updateDHVA(q, dq);
+  context_->evaluateConstraints();
+
+  context_->setForces(y);
+
+  setEquations(y);
+
+  /* make a copy of Ml and fl to verify equations of motion, remove this
+  once equations of motion verified */
+  // double Ml[context->dqCount * context->dqCount];
+  // for(int i = 0; i < context->nonRigidJointCount; i++) {
+  //   int istart = i * (i + 1) / 2;
+  //   for(int j = 0; j < i + 1; j++) {
+  //     Ml[i * context->nonRigidJointCount + j] = context->Ml[istart + j];
+  //     if(i != j) {
+  //       Ml[j * context->nonRigidJointCount + i] = context->Ml[istart + j];
+  //     }
+  //   }
+  // }
+
+  /* copy fl to a second array to verify solution of
+  equations of motion, uncomment for debugging */
+  // double fl[context->dqCount];
+  // memcpy(fl, context->fl, context->dqCount * sizeof(double));
+
+  factorAndSolve();
+
+  if(context_->newtonRaphsonFailure()) {
+    return;
+  }
+
+  /* verify that multiplying coefficient matrix with lhs gets back the
+  right hand side, comment out once verified */
+  // s2_solve_verify(context, Ml, fl);
+
+  /* convert angular velocities to time derivative of quaternions
+    copy by value all other dq terms to dy array */
+  context_->dqTody(dy);
+
+  /*
+    copy context->ddq to second half of dy, starting at qCount
   */
-  void s2_ode113b_fcn(double y[]) {
-
-    iteration_count_++;
-
-    assert(context_);
-    memcpy(context->q(), y,
-           (context_->qCount() + context_->dqCount()) * sizeof(double));
-    context_->updateDHVA();
-    context_->evaluateConstraints();
-    context_->setForces(y);
-    context_->setEquations();
-
-    /* make a copy of Ml and fl to verify equations of motion, remove this
-    once equations of motion verified */
-    // double Ml[context->dqCount * context->dqCount];
-    // for(int i = 0; i < context->nonRigidJointCount; i++) {
-    //   int istart = i * (i + 1) / 2;
-    //   for(int j = 0; j < i + 1; j++) {
-    //     Ml[i * context->nonRigidJointCount + j] = context->Ml[istart + j];
-    //     if(i != j) {
-    //       Ml[j * context->nonRigidJointCount + i] = context->Ml[istart + j];
-    //     }
-    //   }
-    // }
-
-    /* copy fl to a second array to verify solution of
-    equations of motion, uncomment for debugging */
-    // double fl[context->dqCount];
-    // memcpy(fl, context->fl, context->dqCount * sizeof(double));
-
-    context_->factorAndSolve();
-
-    if(newton_raphson_failure_) {
-      return;
-    }
-
-    /* verify that multiplying coefficient matrix with lhs gets back the
-    right hand side, comment out once verified */
-    // s2_solve_verify(context, Ml, fl);
-
-    /* convert angular velocities to time derivative of quaternions
-      copy by value all other dq terms to dy array */
-    context_->dqTody(dy_);
-
-    /*
-      copy context->ddq to second half of dy, starting at qCount
-    */
-    memcpy(numericalIntegrator->dy + context->qCount, context->ddq,
-           context->dqCount * sizeof(double));
-
-    // printf("time: %0.16g\n", numericalIntegrator->x);
-#endif
+  memcpy(dy + q_count_, context_->ddq().data(), dq_count_ * sizeof(double));
 }

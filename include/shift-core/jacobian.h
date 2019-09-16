@@ -89,10 +89,17 @@ public:
   const std::vector<Shift::Substructure>& substructures() const {
     return substructures_;
   }
+  void evaluateConstraints();
 
   void initializeMobility();
 
+  bool newtonRaphsonFailure() {
+    return newton_raphson_failure_;
+  }
+
 private:
+  bool newton_raphson_failure_ = false;
+  /* @TODO change these to std::vector */
   double* J_ = nullptr; /*! array to hold entries of Jacobian */
   int* Jxx_ = nullptr;  /*!< integer array */
   bool* Jb_ = nullptr;

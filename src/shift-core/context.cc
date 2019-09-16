@@ -1411,7 +1411,7 @@ void Shift::Context::compressRigidJoints(
         // std::cout << "intree && parentBody!= fixedBody: processing frame: "
         //           << childBody->name() << ": " << frame.name() << std::endl;
 
-        ksl_SE3_copy(&D_p0_c1, d_wrt_reference_ + frame->index());
+        ksl_SE3_copy(&D_p0_c1, &d_wrt_reference_[frame->index()]);
 
         dhva_offsets_[operationCount].parent.d =
           parentJoint->systemParentBody()->referenceFrame()->index();
@@ -1427,7 +1427,7 @@ void Shift::Context::compressRigidJoints(
         //           << frame.name() << std::endl;
 
         // ksl_SE3_print(stdout, frame->dWRTReference(), "d_wrt_reference: ");
-        ksl_SE3_copy(&D_p0_c1, d_wrt_reference_ + frame->index());
+        ksl_SE3_copy(&D_p0_c1, &d_wrt_reference_[frame->index()]);
 
         // ksl_SE3_print(
         //   stdout,
@@ -1469,43 +1469,30 @@ void Shift::Context::allocateRunTimeArrays() {
 
   // std::cout << "dWRTReference_.size(): " << frames_in_tree_.size() <<
   // std::endl;
-  if(d_wrt_reference_) {
-    free(d_wrt_reference_);
-    d_wrt_reference_ = nullptr;
-  }
-  d_wrt_reference_ = ksl_SE3_alloc(frames_in_tree_.size());
+
+  d_wrt_reference_.resize(frames_in_tree_.size());
+  ksl_SE3_t identity =
+    ksl_SE3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+  std::fill(d_wrt_reference_.begin(), d_wrt_reference_.end(), identity);
 
   d_reference_frames_.clear();
   d_reference_frames_.resize(non_rigid_joint_count_);
 
-  dcq_.clear();
   dcq_.resize(dc_count);
+  std::fill(dcq_.begin(), dcq_.end(), 0);
 
-  if(joint_data_) {
-    delete joint_data_;
-    joint_data_ = nullptr;
-  }
-  joint_data_ = new double[data_count];
+  joint_data_.resize(data_count);
+  std::fill(joint_data_.begin(), joint_data_.end(), 0);
 
-  if(q_) {
-    delete[] q_;
-    q_ = nullptr;
-    dq_ = nullptr;
-  }
-  q_ = new double[q_count_ + dq_count_]{};
-  dq_ = q_ + q_count_;
+  q_.resize(q_count_ + dq_count_);
+  std::fill(q_.begin(), q_.end(), 0);
+  dq_ = q_.data() + q_count_;
 
-  if(deltaq_) {
-    delete[] deltaq_;
-  }
-  deltaq_ = new double[dq_count_];
+  delta_q_.resize(dq_count_);
+  std::fill(delta_q_.begin(), delta_q_.end(), 0);
 
-  if(ddq_) {
-    delete ddq_;
-    ddq_ = nullptr;
-  }
-  ddq_ = new double[dq_count_];
-  memset(ddq_, 0, dq_count_ * sizeof(double));
+  ddq_.resize(dq_count_);
+  std::fill(ddq_.begin(), ddq_.end(), 0);
 
   unsigned int i = 0;
   for(auto& body : active_articulated_bodies_) {
@@ -1591,7 +1578,7 @@ void Shift::Context::allocateRunTimeArrays() {
       // frame.parentBody()->name()
       //           << ":" << frame.name() << std::endl;
       ksl_SE3_copy(frame->dWRTReference(), dhva_.d + frame->index());
-      ksl_SE3_copy(frame->dWRTReference(), d_wrt_reference_ + frame->index());
+      ksl_SE3_copy(frame->dWRTReference(), &d_wrt_reference_[frame->index()]);
       // ksl_SE3_print(stdout, dhva_.d + frame.index());
     }
   }
@@ -1646,7 +1633,7 @@ void Shift::Context::allocateRunTimeArrays() {
           //           << "]: " << frame.name() << std::endl;
           // ksl_SE3_print(stdout, frame.dWRTReference(), "  dWRTReference: ");
           ksl_SE3_copy(frame->dWRTReference(),
-                       d_wrt_reference_ + frame->index());
+                       &d_wrt_reference_[frame->index()]);
           operationCount++;
         }
       }
@@ -1668,7 +1655,11 @@ void Shift::Context::updateDC(Shift::Topology::DHVA& dhva,
 }
 
 void Shift::Context::updateD() {
-  updateD(dhva_, q_);
+  updateD(dhva_, q_.data());
+}
+
+void Shift::Context::updateD(const double* q) {
+  updateD(dhva_, q);
 }
 
 void Shift::Context::updateD(Shift::Topology::DHVA& dhva,
@@ -1680,7 +1671,11 @@ void Shift::Context::updateD(Shift::Topology::DHVA& dhva,
 }
 
 void Shift::Context::updateDH() {
-  updateDH(dhva_, q_);
+  updateDH(dhva_, q_.data());
+}
+
+void Shift::Context::updateDH(const double* q) {
+  updateDH(dhva_, q);
 }
 
 void Shift::Context::updateDH(Shift::Topology::DHVA& dhva,
@@ -1710,7 +1705,11 @@ void Shift::Context::updateDH(Shift::Topology::DHVA& dhva,
 }
 
 void Shift::Context::updateDHVA() {
-  updateDHVA(dhva_, q_, dq_);
+  updateDHVA(dhva_, q_.data(), dq_);
+}
+
+void Shift::Context::updateDHVA(const double* q, const double* dq) {
+  updateDHVA(dhva_, q, dq);
 }
 
 void Shift::Context::updateDHVA(Shift::Topology::DHVA& dhva,
@@ -1729,10 +1728,9 @@ void Shift::Context::setFixedFrameGravityVector() {
 
 void Shift::Context::setToInitialConditions() {
   // std::cout << "setting initial conditions:" << std::endl;
-  assert(q_);
   assert(dq_);
-  unsigned int qOffset = 0;
-  unsigned int dqOffset = 0;
+  unsigned int q_offset = 0;
+  unsigned int dq_offset = 0;
   for(auto& joint : active_joints_) {
     if(joint->qCount()) {
       // std::cout << joint->name() << " " << std::flush;
@@ -1741,7 +1739,7 @@ void Shift::Context::setToInitialConditions() {
       //   std::cout << joint->q0()[i] << " ";
       // }
       // std::cout << std::endl;
-      memcpy(q_ + qOffset, joint->q0(), joint->qCount() * sizeof(double));
+      memcpy(&q_[q_offset], joint->q0(), joint->qCount() * sizeof(double));
     }
     if(joint->dqCount()) {
       // for(unsigned int i = 0; i < joint->dqCount(); i++) {
@@ -1749,10 +1747,10 @@ void Shift::Context::setToInitialConditions() {
       // }
       // std::cout << std::endl;
 
-      memcpy(dq_ + dqOffset, joint->dq0(), joint->dqCount() * sizeof(double));
+      memcpy(&dq_[dq_offset], joint->dq0(), joint->dqCount() * sizeof(double));
     }
-    qOffset += joint->qCount();
-    dqOffset += joint->dqCount();
+    q_offset += joint->qCount();
+    dq_offset += joint->dqCount();
   }
 }
 
@@ -1763,7 +1761,7 @@ void Shift::Context::initializeInertia() {
     after this list is generated, it will be compressed to an array
     equal to length of nonRigidJointCount
   */
-  ksl_inertia_t* inertia_temp = ksl_inertia_alloc(active_joints_.size());
+  std::vector<ksl_inertia_t> inertia_temp = {};
 
   /* compute each inertia matrix with respect to reference frame on
      each body */
@@ -1803,14 +1801,11 @@ void Shift::Context::initializeInertia() {
   }
 
   /* compress expanded inertia list into compressed list */
-  if(inertia_) {
-    free(inertia_);
-  }
-  inertia_ = ksl_inertia_alloc(non_rigid_joint_count_);
+  inertia_.resize(non_rigid_joint_count_);
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     int j = joint_lookup_[i];
     if(j != -1) {
-      memcpy(inertia_ + j, inertia_temp + i, sizeof(ksl_inertia_t));
+      memcpy(&inertia_[j], &inertia_temp[i], sizeof(ksl_inertia_t));
     }
   }
 
@@ -1822,20 +1817,15 @@ void Shift::Context::initializeInertia() {
   }
 #endif
 
-  if(inertiaP_) {
-    free(inertiaP_);
-  }
-  inertiaP_ = ksl_inertia_alloc(non_rigid_joint_count_ + 1);
-  free(inertia_temp);
+  projected_inertia_.resize(non_rigid_joint_count_ + 1);
 }
 
 void Shift::Context::setInitialConditionsToCurrentConditions() {
-  assert(q_);
   assert(dq_);
   unsigned int qOffset = 0;
   unsigned int dqOffset = 0;
   for(auto& joint : active_joints_) {
-    joint->setInitialDisplacement(q_ + qOffset);
+    joint->setInitialDisplacement(q_.data() + qOffset);
     joint->setInitialVelocity(dq_ + dqOffset);
     qOffset += joint->qCount();
     dqOffset += joint->dqCount();
@@ -1895,14 +1885,11 @@ this matrix as mobility numbers in the mn[] array.
 */
 void Shift::Context::initializeMobility() {
   mobility_ = 0;
-  ksl_array_free(mobility_numbers_);
   if(dq_count_ > 0) {
-    mobility_numbers_ = (double*)malloc(dq_count_ * sizeof(double));
-    for(unsigned int i = 0; i < dq_count_; i++) {
-      mobility_numbers_[i] = 1.0;
-    }
+    mobility_numbers_.resize(dq_count_);
+    std::fill(mobility_numbers_.begin(), mobility_numbers_.end(), 1.0);
   } else {
-    mobility_numbers_ = nullptr;
+    mobility_numbers_.clear();
   }
   jacobian_.initializeMobility();
 }
@@ -2319,7 +2306,7 @@ int Shift::Context::digraphFrames(std::string filename) {
 @return gravitational potential energy
 */
 double Shift::Context::gravitationalPotentialEnergy() {
-  return ksl_dot_vv(&inertiaP_->mt, model_parameters_.gravity());
+  return ksl_dot_vv(&projected_inertia_[0].mt, model_parameters_.gravity());
 }
 
 /*!
@@ -2327,24 +2314,33 @@ double Shift::Context::gravitationalPotentialEnergy() {
 
 */
 double Shift::Context::kineticEnergy() {
-  assert(p_);
   assert(dhva_.v);
 #if SHIFT_WITH_BLAS_
-  return cblas_ddot(6 * nonRigidJointCount_, (double*)(p_), 1,
-                    (double*)(dhva_.v), 1) /
+  return cblas_ddot(6 * nonRigidJointCount_, (p_.data()), 1, (double*)(dhva_.v),
+                    1) /
          2.0;
 #else
   double sum = 0.0;
   for(unsigned int i = 0; i < non_rigid_joint_count_; i++) {
-    sum += ksl_dot_cs(p_ + i, dhva_.v + i);
+    sum += ksl_dot_cs(&p_[i], dhva_.v + i);
   }
   return sum;
 #endif
 }
 
-void Shift::Context::evaluateConstraints() {}
+unsigned int Shift::Context::forceModuleEquationCount() {
+  unsigned int equation_count = 0;
+  for(auto& force_module : active_force_modules_) {
+    equation_count += force_module->equationCount();
+  }
+  return equation_count;
+}
 
-void Shift::Context::setForces() {}
+void Shift::Context::evaluateConstraints() {
+  jacobian_.evaluateConstraints();
+}
+
+void Shift::Context::setForces(const double y[]) {}
 
 /* sequence of steps for solving equations of motion
 

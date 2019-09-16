@@ -11,4 +11,7 @@ std::unique_ptr<Shift::ForceModule::PID> Shift::ForceModule::PID::create() {
 
 void Shift::ForceModule::PID::addParameters() {
   Shift::ForceModule::Base::addParameters();
+  addParameter("kp", &kp_, "proportional gain", true);
+  addParameter("ki", &ki_, "integral gain", true);
+  addParameter("kd", &kd_, "derivative gain", true);
 }

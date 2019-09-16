@@ -1,3 +1,4 @@
+#include "shift-core/array2d.h"
 #include "shift-core/context.h"
 
 #include <iostream>
@@ -17,6 +18,27 @@ int main(int argc, char* argv[]) {
                     ? "true"
                     : "false")
               << std::endl;
+
+    unsigned int neqn = 10;
+
+    auto y = Shift::Array2d<double>(17, neqn);
+
+    double k = 0;
+    for(unsigned int i = 0; i < 17; i++) {
+      for(unsigned int j = 0; j < neqn; j++) {
+        y[i][j] = k++;
+      }
+    }
+
+    for(unsigned int i = 0; i < 17; i++) {
+      for(unsigned int j = 0; j < neqn; j++) {
+        std::cout << y[i][j] << " ";
+      }
+      std::cout << std::endl;
+    }
+
+    std::cout << "done" << std::endl;
+
     // auto& assembly = context["assemblies"][0];
     // assembly.print();
     //
