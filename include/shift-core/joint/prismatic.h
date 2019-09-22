@@ -79,6 +79,9 @@ void ta_dhva(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
 
 void tainv_dhva(const Shift::Context&, Topology::DHVA&,
                 const Topology::Offsets&, const double*, const double*);
+//
+// void service_force(const Shift::Context&, const Topology::DHVA&, const
+// Topology::Offsets&, double* f);
 
 class Prismatic : public Base {
 public:

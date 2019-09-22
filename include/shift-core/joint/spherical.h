@@ -38,6 +38,9 @@ public:
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
     addParameters();
+    rotation_indices_.push_back(0);
+    rotation_indices_.push_back(1);
+    rotation_indices_.push_back(2);
   }
   Spherical(std::string name)
     : Base(name) {
@@ -47,6 +50,10 @@ public:
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
     addParameters();
+    is_rotation_ = true;
+    rotation_indices_.push_back(0);
+    rotation_indices_.push_back(1);
+    rotation_indices_.push_back(2);
   }
   virtual ~Spherical() override {
     delete[] q_0_;

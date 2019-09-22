@@ -609,6 +609,16 @@ void Shift::Joint::Revolute::addParameters() {
   addParameter("initial_displacement", q_0_, "Initial joint displacement.",
                false);
   addParameter("initial_velocity", dq_0_, "Initial joint velocity.", false);
+  addParameter(
+    "damping_coefficients", &damping_coefficients_,
+    "specify damping coefficients a, where force due to damping is computed as "
+    "a_0 + a_1 * \\dot{x}^1 + a_2 * \\dot{x}^2 + .. a_n * \\dot{x}^n\\",
+    false);
+  addParameter("stiffness_coefficients", &stiffness_coefficients_,
+               "specify damping coefficients a, where force due to stiffness "
+               "is computed as "
+               "a_0 + a_1 * x^1 + a_2 * x^2 + .. a_n * x^n\\",
+               false);
 }
 
 Shift::Joint::Revolute::AxisType Shift::Joint::Revolute::axisType() {

@@ -51,14 +51,7 @@ void Shift::Integrator::ODE113::addParameters() {
                "integral gain used in baumgarte constraint stabilization, "
                "defaults to 1000.0 if not provided",
                false);
-  addParameter("time_span", &time_span_,
-               "time span for numerical integration, defaults to 10 seconds if "
-               "not provided ",
-               false);
-  addParameter("time_step", &time_step_,
-               "time step used for numerical integration, defaults to 0.01 "
-               "seconds if not provided.",
-               false);
+
   addParameter(
     "absolute_error", &absolute_error_,
     "absolute error used in numerical integration, defaults to 0.0001 "
@@ -152,11 +145,13 @@ void Shift::Integrator::ODE113::initialize() {
 }
 
 void Shift::Integrator::ODE113::stepFcn(double y[]) {
-#if 0
-  context_->solve(y[]);
-#endif
+  assert(solver_);
+  solver_->solve(y, dy_.data());
 
   if(iconv_ == 1) {
+    auto& jacobian = context_->jacobian();
+    auto& cs = jacobian.constraints();
+
     h_ = fmax(x_ - t_, hmin_); /* limit next step size */
     double omega_n = stability_limits_[k_] / h_ * safety_factor_;
     omega_n = fmin(omega_n, omega_n_max_); /* limit omega_n */
@@ -165,9 +160,9 @@ void Shift::Integrator::ODE113::stepFcn(double y[]) {
     baumgarte_2_omega_n_ = 2.0 * omega_n;
     baumgarte_omega_n_2_ = omega_n * omega_n;
     double rho_dt = h_ * integral_gain_;
-    for(unsigned int i = 0; i < context_->chordConstraintCount() * 6; i++) {
+    for(unsigned int i = 0; i < context_->constraintEquationCount(); i++) {
       // evaluate integral error
-      // integral_error_[i] += context_->cs[i] * rho_dt;
+      integral_error_[i] += cs[i] * rho_dt;
     }
 
     t_ = x_;
@@ -403,10 +398,10 @@ void Shift::Integrator::ODE113::step() {
   int km1;
   int km2;
   int im1;
-  int iq;
+  unsigned int iq;
   int nsm2;
-  int nsp2;
-  int limit1;
+  unsigned int nsp2;
+  unsigned int limit1;
   int ip1;
   int knew;
 
@@ -539,7 +534,7 @@ void Shift::Integrator::ODE113::step() {
       /*  compute g(*) in the work vector w(*) */
       nsp2 = ns_ + 2;
       if(kp1 >= nsp2) {
-        for(int i = nsp2; i <= kp1; i++) {
+        for(unsigned int i = nsp2; i <= kp1; i++) {
           for(iq = 1; iq <= kp2 - i; iq++) {
             w_[iq] -= alpha_[i - 1] * w_[iq + 1];
           }

@@ -243,6 +243,10 @@ public:
     return substructure_;
   }
 
+  const std::vector<int>& rotationIndices() const {
+    return rotation_indices_;
+  }
+
 protected:
   virtual void addParameters() override;
   std::string type_;          //!< descriptive name of joint type
@@ -267,6 +271,8 @@ protected:
   Substructure* substructure_ = nullptr; /*!< substructure the joint is
     a member of, nullptr if the joint is not a member of any substructure */
 
+  std::vector<int> rotation_indices_;
+  bool is_rotation_ = false;
   /*!
   The `parent` descriptive name follows the format:
 

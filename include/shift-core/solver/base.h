@@ -23,6 +23,10 @@ namespace Constraint {
 class Base;
 }
 
+namespace Integrator {
+class Base;
+}
+
 class Frame;
 class Context;
 
@@ -63,6 +67,7 @@ public:
 protected:
   virtual void addParameters() override;
   std::string type_; //!< descriptive name of Solver type
+  Integrator::Base* integrator_ = nullptr;
 };
 
 class Modules {

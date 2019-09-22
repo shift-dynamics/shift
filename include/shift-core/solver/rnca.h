@@ -24,15 +24,32 @@ public:
     : Base("") {
     addParameters();
   }
-  virtual ~RNCA() override {
-    if(P_) {
-      free(*P_);
-      P_ = nullptr;
-    }
-  }
+  virtual ~RNCA() override {}
 
-  void setEquations(const double y[]) {}
-  void factorAndSolve() {}
+  /*! memoize equations of motion in array of source and destination pointers */
+  void memoize();
+
+  /*! set generalized mass matrix for equations of motion */
+  void setMassMatrix();
+
+  /*! set right hand side of equations of motion - generalized forces and
+  preconditioned quadratic acceleration terms */
+  void setRHS();
+
+  bool setEquations();
+
+  /*! generate mass matrix and right hand side of preconditioned
+  special equations of motion
+   */
+  bool setEquations(const double y[]);
+
+  /*! factor and solve the block-diagonalized preconditioned spatial equations
+   * of motion using run-time optimized natural constraint algorithm
+   * [Ml_ii Ml_id  B_id] {ddq_i} = {fl_i}
+   * [Ml_di Ml_ii  I   ] {ddq_d} = {fl_d}
+   * [B_di 0       0   ] {la_d}  = {ga_d}
+   */
+  void factorAndSolve();
 
   virtual void solve(const double y[], double dy[]) override;
 
@@ -49,6 +66,9 @@ public:
 private:
   virtual void addParameters() override;
 
+  double infinity_norm_muliplier_ = 2.0;
+
+  unsigned int dependent_count_ = 0;
   unsigned int q_count_ = 0;
   unsigned int dq_count_ = 0;
   std::vector<bool> has_mass_;
@@ -69,9 +89,10 @@ private:
     Mlb_; /*!< boolean mass matrix with fills rescorded, equal in size to M */
   std::vector<bool>
     Mlbs_; /*!< original boolean mass matrix, with no fills recorded */
-  std::vector<ksl_screw_t> p_;          /*!< spatial momentum */
-  std::vector<ksl_screw_t> mh_product_; /*!< product of body mass matrix and
+  std::vector<ksl_coscrew_t> p_;          /*!< spatial momentum */
+  std::vector<ksl_coscrew_t> mh_product_; /*!< product of body mass matrix and
                                 influence coefficient matrices in PO(1) */
+  std::vector<ksl_inertia_t> inertia_p_;  /*!< projected spatial inertias */
 
   int nnzm_ = 0;  /*!< number of nonzero entries in mass matrix */
   int nnzms_ = 0; /*!< original number of nonzero entries in mass matrix */
@@ -98,7 +119,7 @@ private:
   std::vector<double> b3_; /*!< Linear array containing terms of preconditioned
                   constraints in PO(3) */
   std::vector<double> fl_; /*!< generalized forces */
-
+  std::vector<ksl_coscrew_t> g_;
   // double* ga; /*!< quadratic acceleration terms */
   // double* gas; /*!< Saved copy of original ga */
   std::vector<double> la_; /*!< lagrange multipliers */
@@ -154,8 +175,8 @@ private:
 
   int start_of_work_in_M_ = 0; /*!< n(n+1)/2 points to first entry in temporary
                            storage part of Ml[] */
-  double** P_ =
-    nullptr; /*!< Single array of source and destination memory pointers. */
+  std::vector<double*> memoized_pointers_;
+
   double p3_start_ = 0; /*!< start of p3 in P */
 
   const std::string description_ =

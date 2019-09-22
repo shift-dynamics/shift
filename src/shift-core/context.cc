@@ -97,6 +97,7 @@ void Shift::Context::postLoad(const std::string) {
   }
   initializeMobility();
   initializeInertia();
+  setQuaternionMap();
 
   // setDReferenceFrames();
   // initializeGLReferenceFrames();
@@ -893,7 +894,7 @@ void Shift::Context::processPCL() {
     } else {
       std::cerr << "Error: failed to find parent body of joint: "
                 << joint->name() << std::endl;
-      assert(1);
+      assert(0);
     }
   }
 
@@ -1524,12 +1525,8 @@ void Shift::Context::allocateRunTimeArrays() {
     if(!rigidConnectionToFixedFrame) {
       auto body = joint->systemChildBody();
       operationCount += body->frameInTreeCount();
-      // std::cout << body->name() << ": " << body->frameInTreeCount()
-      //           << std::endl;
     }
   }
-
-  // std::cout << "operationCount: " << operationCount << std::endl;
 
   dhva_offsets_.clear();
   dhva_offsets_.resize(operationCount);
@@ -1762,6 +1759,9 @@ void Shift::Context::initializeInertia() {
     equal to length of nonRigidJointCount
   */
   std::vector<ksl_inertia_t> inertia_temp = {};
+  inertia_temp.resize(active_joints_.size());
+  std::fill(inertia_temp.begin(), inertia_temp.end(),
+            ksl_inertia(0, {{0, 0, 0}}, 0, 0, 0, 0, 0, 0));
 
   /* compute each inertia matrix with respect to reference frame on
      each body */
@@ -1816,8 +1816,6 @@ void Shift::Context::initializeInertia() {
     s2_inertia_print(stdout, inertia + i);
   }
 #endif
-
-  projected_inertia_.resize(non_rigid_joint_count_ + 1);
 }
 
 void Shift::Context::setInitialConditionsToCurrentConditions() {
@@ -1845,29 +1843,106 @@ void Shift::Context::setLookup() {
   dq_lookup_compressed_.clear();
   dq_lookup_compressed_.resize(nonRigidJointCount());
 
-  int jointCount = 0;
-  int dqCount = 0;
-  int qCount = 0;
+  int joint_count = 0;
+  int dq_count = 0;
+  int q_count = 0;
   unsigned int i = 0;
   for(auto& joint : activeJoints()) {
     if(joint->qCount() > 0) {
-      joint_lookup_[i] = jointCount;
-      dq_lookup_[i] = dqCount;
-      q_lookup_[i] = qCount;
-      jointCount++;
+      joint_lookup_[i] = joint_count;
+      dq_lookup_[i] = dq_count;
+      q_lookup_[i] = q_count;
+      joint_count++;
     } else {
       joint_lookup_[i] = -1;
       dq_lookup_[i] = -1;
       q_lookup_[i] = -1;
     }
     i++;
-    dqCount += joint->qCount();
-    qCount += joint->qCount();
+    dq_count += joint->qCount();
+    q_count += joint->qCount();
   }
 
-  for(unsigned int j = 0; j < activeJointCount(); j++) {
+  for(unsigned int j = 0; j < active_joints_.size(); j++) {
     if(joint_lookup_[j] > -1) {
       dq_lookup_compressed_[joint_lookup_[j]] = dq_lookup_[j];
+    }
+  }
+
+  for(size_t i = 0; i < active_joints_.size(); i++) {
+    joint_dof_[i] = active_joints_[i]->dqCount();
+  }
+
+  joint_dof_compressed_.resize(non_rigid_joint_count_);
+  for(size_t i = 0; i < active_joints_.size(); i++) {
+    int compressed_joint_index = joint_lookup_[i];
+    if(compressed_joint_index > -1) {
+      joint_dof_compressed_[compressed_joint_index] = joint_dof_[i];
+    }
+  }
+
+  pcldq_.resize(dq_count_);
+  for(size_t i = 0; i < active_joints_.size(); i++) {
+    int parent_index = pcl_[i];
+    int variable_index = dq_lookup_[i];
+    if(variable_index != -1) {
+      if(parent_index != -1) {
+        int joint_dof_offset = fmax(joint_dof_[parent_index] - 1, 0);
+        pcldq_[variable_index] = dq_lookup_[parent_index] + joint_dof_offset;
+      } else {
+        pcldq_[variable_index] = -1;
+      }
+    }
+    int dof = joint_dof_[i];
+    if(dof > 1) {
+      for(int j = 1; j < dof; j++) {
+        pcldq_[variable_index + j] = variable_index + j - 1;
+      }
+    }
+  }
+
+  has_mass_.resize(non_rigid_joint_count_);
+  std::fill(has_mass_.begin(), has_mass_.end(), 0);
+  has_mass_dq_.resize(dq_count_);
+  std::fill(has_mass_dq_.begin(), has_mass_dq_.end(), 0);
+  for(size_t i = 0; i < active_articulated_bodies_.size(); i++) {
+    auto& body = active_articulated_bodies_[i];
+    auto& joint = active_joints_[i];
+    int joint_index = joint_lookup_[i];
+    int dq_index = dq_lookup_[i];
+    if(joint_index > -1) {
+      if(body->hasMass()) {
+        has_mass_[joint_index] = true;
+        for(size_t j = 0; j < joint->dqCount(); j++) {
+          has_mass_dq_[dq_index + j] = true;
+        }
+      }
+    }
+  }
+
+  /* update has mass dq to set true for any variable that has mass
+  projected onto it */
+  for(int k = dq_count_ - 1; k > -1; k--) {
+    int j = pcldq_[k];
+    if(has_mass_dq_[k] && j > -1) {
+      has_mass_dq_[j] = true;
+    }
+  }
+
+  for(size_t i = 0; i < active_articulated_bodies_.size(); i++) {
+    int compressed_joint_index = joint_lookup_[i];
+    if(compressed_joint_index > -1) {
+      joint_dof_compressed_[compressed_joint_index] = joint_dof_[i];
+    }
+  }
+
+  is_rotation_.resize(dq_count_);
+  std::fill(is_rotation_.begin(), is_rotation_.end(), 0);
+  for(size_t i = 0; i < active_joints_.size(); i++) {
+    auto& joint = active_joints_[i];
+    int base_index = dq_lookup_[i];
+    for(auto& rotation_index : joint->rotationIndices()) {
+      is_rotation_[base_index + rotation_index] = true;
     }
   }
 }
@@ -2306,7 +2381,8 @@ int Shift::Context::digraphFrames(std::string filename) {
 @return gravitational potential energy
 */
 double Shift::Context::gravitationalPotentialEnergy() {
-  return ksl_dot_vv(&projected_inertia_[0].mt, model_parameters_.gravity());
+  // return ksl_dot_vv(&projected_inertia_[0].mt, model_parameters_.gravity());
+  return 0;
 }
 
 /*!
@@ -2340,34 +2416,52 @@ void Shift::Context::evaluateConstraints() {
   jacobian_.evaluateConstraints();
 }
 
-void Shift::Context::setForces(const double y[]) {}
-
-/* sequence of steps for solving equations of motion
-
-void s2_equation_fcn(double t, double y[], double dy[], s2_context_t* context) {
-
-switch(context->modelParameters.integrationType) {
-  case S2_NUMERICALINTEGRATOR_ODE113: {
-    s2_numericalintegrator_ode113_t* numericalIntegrator =
-      context->numericalIntegrator;
-    numericalIntegrator->iterationCount++;
-  } break;
-  case S2_NUMERICALINTEGRATOR_ODE113B: {
-    s2_numericalintegrator_ode113b_t* numericalIntegrator =
-      context->numericalIntegrator;
-    numericalIntegrator->iterationCount++;
-  } break;
+void Shift::Context::setForces(const double y[]) {
+  (void)y;
+  // @TODO hook up service functions to set body forces and working forces
+  // within joints
 }
 
-memcpy(context->q, y, (context->qCount + context->dqCount) * sizeof(double));
+void Shift::Context::dqTody(double dy[]) {
 
-updateDHVA();
-evaluateConstraints();
-setForces(context, y);
-setEquations();
-factorAndSolve(context);
-dqTody(context, dy);
-memcpy(dy + context->qCount, context->ddq, context->dqCount * sizeof(double));
+  /* convert angular velocities to time derivative of quaternions */
+  for(auto& index : quaternion_indices_) {
+    ksl_omega_to_dquaternion((ksl_vec3_t*)(&dq_[index.dq]),
+                             (ksl_quaternion_t*)(&q_[index.q]),
+                             (ksl_quaternion_t*)(&dy[index.q]));
+  }
 
+  for(auto& index : non_quaternion_indices_) {
+    dy[index.q] = dq_[index.dq];
+  }
 
-*/
+  memcpy(dy + q_count_, ddq_.data(), dq_count_ * sizeof(double));
+}
+
+void Shift::Context::setQuaternionMap() {
+  quaternion_indices_.clear();
+  non_quaternion_indices_.clear();
+  unsigned int q_index = 0;
+  unsigned int dq_index = 0;
+  for(auto& joint : active_joints_) {
+    if(joint->type() == "spherical") {
+      quaternion_indices_.push_back({q_index, dq_index});
+      q_index += 4;
+      dq_index += 3;
+    } else if(joint->type() == "float") {
+      quaternion_indices_.push_back({q_index, dq_index});
+      q_index += 4;
+      dq_index += 3;
+      non_quaternion_indices_.push_back({q_index++, dq_index++});
+      non_quaternion_indices_.push_back({q_index++, dq_index++});
+      non_quaternion_indices_.push_back({q_index++, dq_index++});
+    } else {
+      non_quaternion_indices_.push_back({q_index++, dq_index++});
+    }
+  }
+  for(auto& force_module : active_force_modules_) {
+    for(unsigned int i = 0; i < force_module->equationCount(); i++) {
+      non_quaternion_indices_.push_back({q_index++, dq_index++});
+    }
+  }
+}

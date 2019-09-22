@@ -1,14 +1,15 @@
 #ifndef SHIFT_SUBSTRUCTURE_H_
 #define SHIFT_SUBSTRUCTURE_H_
 
-#include <assert.h>
-#include <string>
-#include <vector>
-
+#include "shift-core/array2d.h"
 #include "shift-core/base.h"
 #include "shift-core/body/base.h"
 #include "shift-core/joint/base.h"
 #include "shift-core/topology.h"
+
+#include <assert.h>
+#include <string>
+#include <vector>
 
 namespace Shift {
 
@@ -82,8 +83,9 @@ public:
     Jxx_ = Jxx;
   }
 
-  void setJb(bool* Jb) {
-    Jb_ = Jb;
+  void setJb() {
+    Jb_.resize(dq_count_ * constraint_equation_count_);
+    std::fill(Jb_.begin(), Jb_.end(), 0);
   }
 
   void setIndex(unsigned int index) {
@@ -133,7 +135,7 @@ public:
     }
   }
 
-  unsigned int chordConstraintCount() {
+  unsigned int chordConstraintCount() const {
     return chord_constraint_count_;
   }
 
@@ -141,7 +143,7 @@ public:
     b_offset_ = offset;
   }
 
-  int rank() {
+  int rank() const {
     return rank_;
   }
 
@@ -171,7 +173,7 @@ public:
 
   void setBMatrixSparse(double* __restrict__ b3);
 
-  void evaluateSparsity(int** __restrict__ rb3, int* __restrict__ cb3,
+  void evaluateSparsity(Shift::Array2d<int>& rb3, std::vector<int>& cb3,
                         std::vector<int>& pv_23);
 
   const std::vector<int>& pc_12() const {
@@ -206,7 +208,9 @@ public:
     } child;
   };
 
-  std::vector<Constraint> constraints_;
+  const std::vector<Constraint>& constraints() const {
+    return constraints_;
+  }
 
   void appendConstraintOffset(Shift::Substructure::Constraint constraint) {
     constraints_.push_back(constraint);
@@ -236,19 +240,42 @@ public:
   void copyNullSpace();
   void setupNewtonRaphsonSpecifiedCoordinate(Shift::Topology::DHVA& dhva,
                                              int specified_coordinate_index);
+  bool infinityNormCheck();
+
+  const double* cs() const {
+    return cs_;
+  }
+  const std::vector<int>& pr12() const {
+    return pr_12_;
+  }
+
+  const std::vector<int>& pc12() const {
+    return pc_12_;
+  }
+
+  const std::vector<int>& pr21() const {
+    return pr_21_;
+  }
+
+  const std::vector<int>& pc21() const {
+    return pc_21_;
+  }
 
 private:
+  std::vector<Constraint> constraints_;
+
   double* cs_ = nullptr; /*!< pointer to beginning of constraint array */
   double* dcs_ =
     nullptr; /*!< pointer to beginning of constraint time derivative array */
   double* J_ = nullptr;
   int* Jxx_ = nullptr;
-  bool* Jb_ = nullptr;
   double* dq_ = nullptr;
   double* q_ = nullptr;
   double* delta_q_ = nullptr;
   double* right_null_space_ = nullptr;
   double* mobility_numbers_ = nullptr;
+  std::vector<bool> Jb_;
+
   double epsilon_rank_determination_ = 1e-9;
   double infinity_norm_multiplier_ = 2.0;
   double scaled_initial_infinity_norm_b_ =

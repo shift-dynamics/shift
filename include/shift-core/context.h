@@ -105,15 +105,23 @@ public:
   double gravitationalPotentialEnergy();
   double kineticEnergy();
 
-  const std::vector<int>& dqLookup() {
+  const std::vector<int>& dqLookup() const {
     return dq_lookup_;
   }
 
-  const std::vector<int>& qLookup() {
+  const std::vector<int>& dqLookupCompressed() const {
+    return dq_lookup_compressed_;
+  }
+
+  const std::vector<bool>& hasMassdq() const {
+    return has_mass_dq_;
+  }
+
+  const std::vector<int>& qLookup() const {
     return q_lookup_;
   }
 
-  const std::vector<int>& jointLookup() {
+  const std::vector<int>& jointLookup() const {
     return joint_lookup_;
   }
 
@@ -127,6 +135,10 @@ public:
 
   const std::vector<int>& pcl() const {
     return pcl_;
+  }
+
+  const std::vector<int>& pclCompressed() const {
+    return pcl_compressed_;
   }
 
   const std::vector<Shift::Body::Base*>& activeArticulatedBodies() const {
@@ -200,6 +212,10 @@ public:
   /*! \brief get count of active chord constraints */
   unsigned int chordConstraintCount() const {
     return chord_constraints_.size();
+  }
+
+  unsigned int constraintEquationCount() const {
+    return chord_constraints_.size() * 6;
   }
 
   std::vector<double>& ddq() {
@@ -294,13 +310,53 @@ public:
 
   void setForces(const double y[]);
 
-  void dqTody(double dy[]) {}
+  /*! copies dq and ddq quantities to dy array using vectors quaternion_indices_
+  and non_quaternion_indices_; for quaternion_indices_, converts angular
+  velocities to time derivative of quaternions */
+  void dqTody(double dy[]);
 
   bool newtonRaphsonFailure() {
     return jacobian_.newtonRaphsonFailure();
   }
 
+  Shift::Jacobian& jacobian() {
+    return jacobian_;
+  }
+
+  const std::vector<int>& dReferenceFrames() const {
+    return d_reference_frames_;
+  }
+
+  const std::vector<ksl_inertia_t>& inertiaArray() const {
+    return inertia_;
+  }
+
+  const std::vector<double>& jointWorkingForces() const {
+    return f_;
+  }
+  const std::vector<bool>& isRotation() const {
+    return is_rotation_;
+  }
+  const std::vector<int>& pcldq() const {
+    return pcldq_;
+  }
+
+  const std::vector<unsigned int>& jointDOFCompressed() const {
+    return joint_dof_compressed_;
+  }
+
 private:
+  struct dqTodyIndex {
+    unsigned int q;
+    unsigned int dq;
+  };
+  std::vector<dqTodyIndex>
+    quaternion_indices_; /*!< contains mapping of dq to dy for quaternions */
+  std::vector<dqTodyIndex>
+    non_quaternion_indices_; /*!< contains mapping of dq to dy for primitive
+                                generalized coordinates, including any
+                                coordinates used by force modules */
+
   virtual void addParameters() override;
 
   void appendActive(Behavior::Base*);
@@ -397,6 +453,11 @@ private:
 
   void setLookup();
 
+  /*! \brief set mapping between positions of generalized coordinates in
+  q to dq
+  */
+  void setQuaternionMap();
+
   /*! \brief User defined terrain attached to fixed inertial reference frame
    */
   Shift::Parameter::Array<Shift::Assembly> assemblies_;
@@ -422,7 +483,7 @@ private:
   quadratic accelerations */
 
   std::vector<int> d_reference_frames_; /*!< index of frames in
-framesInTree that are the reference frame for the body */
+  framesInTree that are the reference frame for the body */
 
   std::vector<int> dcq_; /*!< index of framesInTree that require updating
                             direction cosines */
@@ -443,15 +504,18 @@ framesInTree that are the reference frame for the body */
   std::vector<ksl_coscrew_t> g_; /*!< spatial body and inertial
                                   forces, length equal to dq count */
   std::vector<ksl_coscrew_t> k_;
-  std::vector<ksl_inertia_t> inertia_; /*!< body fixed spatial  inertias */
-  std::vector<ksl_inertia_t>
-    projected_inertia_; /*!< projected spatial inertias */
+  std::vector<ksl_inertia_t> inertia_; /*!< body fixed spatial inertias */
   std::vector<int> joint_dof_;
-  std::vector<int> joint_dof_compressed_;
   std::vector<int> joint_lookup_;
   std::vector<int> dq_lookup_;
   std::vector<int> q_lookup_;
+  std::vector<unsigned int> joint_dof_compressed_;
   std::vector<int> dq_lookup_compressed_;
+  std::vector<int> pcldq_;
+  std::vector<bool> is_rotation_;
+  std::vector<bool> has_mass_;
+  std::vector<bool> has_mass_dq_;
+
   Shift::Jacobian jacobian_;
 
   ksl_screw_t spatial_momentum_ = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -511,6 +575,7 @@ framesInTree that are the reference frame for the body */
 
   unsigned int non_rigid_joint_count_ = 0;
   std::vector<int> pcl_; /*!< parent child list */
+  std::vector<int> pcl_compressed_;
   std::vector<std::vector<int>> loop_members_;
   std::vector<std::vector<int>> positive_loop_members_;
   std::vector<std::vector<int>> negative_loop_members_;
