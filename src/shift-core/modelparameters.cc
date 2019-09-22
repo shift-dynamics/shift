@@ -45,15 +45,6 @@ void Shift::ModelParameters::addParameters() {
     "Elimination with Complete Pivoting (GECP).",
     false);
 
-  addParameter(
-    "infinity_norm_multiplier", &infinity_norm_muliplier_,
-    "The infinity norm of each Jacobian matrix's *B* matrix is used as a "
-    "heuristic to determine when to reapply Gaussian elimination with complete "
-    "row and column pivoting on as-needed basis. GECP will be reapplied when "
-    "the infinity norm reaches this multiple of the initial starting value -- "
-    "this setting defaults to 2.0.",
-    false);
-
   addParameter("units", &units_, "Specify units for simulation", false);
 
   addParameter("solvers", &solvers_, "", false);

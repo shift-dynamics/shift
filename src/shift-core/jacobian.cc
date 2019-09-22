@@ -38,106 +38,92 @@ void Shift::Jacobian::analyze() {
 
 void Shift::Jacobian::mallocEquations() {
 
-  if(J_) {
-    delete[] J_;
-    J_ = NULL;
-  }
-
-  if(Jxx_) {
-    delete[] Jxx_;
-    Jxx_ = NULL;
-  }
-
-  if(Jb_) {
-    delete[] Jb_;
-    Jb_ = NULL;
-  }
-
-  if(cs_) {
-    delete[] cs_;
-    cs_ = NULL;
-  }
-
-  if(dcs_) {
-    delete[] dcs_;
-    dcs_ = NULL;
-  }
-
-  auto substructureMembers = context_->substructureMembers();
-  auto substructureIndices = context_->substructureIndices();
+  auto substructure_members = context_->substructureMembers();
+  auto substructure_indices = context_->substructureIndices();
   substructures_.clear();
-  substructures_.resize(substructureMembers.size());
+  substructures_.resize(substructure_members.size());
 
   // get total size of Jacobian
   jacobian_size_ = 0;
   constraint_equation_count_ = 0;
-  unsigned int qOffset = 0;
-  unsigned int dqOffset = 0;
-  unsigned int jointOffset = 0;
-  unsigned int constraintEquationCount = 0;
-  for(unsigned int i = 0; i < substructureMembers.size(); i++) {
+  unsigned int q_offset = 0;
+  unsigned int dq_offset = 0;
+  unsigned int joint_offset = 0;
+  for(unsigned int i = 0; i < substructure_members.size(); i++) {
     substructures_[i].setIndex(i);
-    unsigned int qCount = 0;
-    unsigned int dqCount = 0;
-    unsigned int jointCount = 0;
-    unsigned int chordConstraintCount = 0;
-    for(unsigned int j = 1; j < substructureMembers[i].size(); j++) {
-      auto joint = context_->activeJoints()[substructureMembers[i][j]];
-      qCount += joint->qCount();
-      dqCount += joint->qCount();
-      jointCount += (joint->qCount() > 0) ? 1 : 0;
+    unsigned int q_count = 0;
+    unsigned int dq_count = 0;
+    unsigned int joint_count = 0;
+    unsigned int chord_constraint_count = 0;
+    for(unsigned int j = 1; j < substructure_members[i].size(); j++) {
+      auto joint = context_->activeJoints()[substructure_members[i][j]];
+      q_count += joint->qCount();
+      dq_count += joint->dqCount();
+      joint_count += (joint->qCount() > 0) ? 1 : 0;
     }
 
-    chordConstraintCount += substructureIndices[i].size();
-    substructures_[i].setqCount(qCount);
-    substructures_[i].setdqCount(dqCount);
-    substructures_[i].setJointCount(jointCount);
-    substructures_[i].setChordConstraintCount(chordConstraintCount);
-    substructures_[i].setJointOffset(jointOffset);
+    chord_constraint_count += substructure_indices[i].size();
+    substructures_[i].setqCount(q_count);
+    substructures_[i].setdqCount(dq_count);
+    substructures_[i].setJointCount(joint_count);
+    substructures_[i].setChordConstraintCount(chord_constraint_count);
+    substructures_[i].setJointOffset(joint_offset);
     substructures_[i].setContext(context_);
 
     // theses offsets do not account for joints that are not a member of any
     // substructure
-    qOffset += qCount;
-    dqOffset += dqCount;
-    jointOffset += jointCount;
-    jacobian_size_ += chordConstraintCount * 6 * dqCount;
-    constraintEquationCount += chordConstraintCount * 6;
+    q_offset += q_count;
+    dq_offset += dq_count;
+    joint_offset += joint_count;
+    jacobian_size_ += chord_constraint_count * 6 * dq_count;
+    constraint_equation_count_ += chord_constraint_count * 6;
   }
 
-  J_ = new double[jacobian_size_]{};
-  Jxx_ = new int[jacobian_size_]{};
-  Jb_ = new bool[jacobian_size_]{};
-  cs_ = new double[constraintEquationCount]{};
-  dcs_ = new double[constraintEquationCount]{};
+  J_.resize(jacobian_size_);
+  std::fill(J_.begin(), J_.end(), 0);
 
-  int jacobianOffset = 0;
-  unsigned int constraintEquationOffset = 0;
+  Js_.resize(jacobian_size_);
+  std::fill(Js_.begin(), Js_.end(), 0);
+
+  Jxx_.resize(jacobian_size_);
+  std::fill(Jxx_.begin(), Jxx_.end(), 0);
+
+  Jb_.resize(jacobian_size_);
+  std::fill(Jb_.begin(), Jb_.end(), 0);
+
+  cs_.resize(constraint_equation_count_);
+  std::fill(cs_.begin(), cs_.end(), 0);
+
+  dcs_.resize(constraint_equation_count_);
+  std::fill(dcs_.begin(), dcs_.end(), 0);
+
+  int jacobian_offset = 0;
+  unsigned int constraint_equation_offset = 0;
 
   for(auto& substructure : substructures_) {
-    substructure.setJ(J_ + jacobianOffset);
-    substructure.setJxx(Jxx_ + jacobianOffset);
-    substructure.setJb(Jb_ + jacobianOffset);
+    substructure.setJ(J_.data() + jacobian_offset);
+    substructure.setJxx(Jxx_.data() + jacobian_offset);
+    substructure.setJb();
 
-    jacobianOffset +=
+    jacobian_offset +=
       substructure.constraintEquationCount() * substructure.qCount();
 
-    substructure.setcs(cs_ + constraintEquationOffset);
-    substructure.setdcs(dcs_ + constraintEquationOffset);
+    substructure.setcs(cs_.data() + constraint_equation_offset);
+    substructure.setdcs(dcs_.data() + constraint_equation_offset);
 
-    constraintEquationOffset += substructure.constraintEquationCount();
+    constraint_equation_offset += substructure.constraintEquationCount();
   }
 
-  unsigned int dqCount = context_->qCount();
-  is_dependent_po1_.resize(dqCount);
+  unsigned int dq_count = context_->dqCount();
+  is_dependent_po1_.resize(dq_count);
   std::fill(is_dependent_po1_.begin(), is_dependent_po1_.end(), false);
-  is_dependent_po3_.resize(dqCount);
+  is_dependent_po3_.resize(dq_count);
   std::fill(is_dependent_po3_.begin(), is_dependent_po3_.end(), false);
-  pv_12_.resize(dqCount);
-  pv_21_.resize(dqCount);
-  pv_13_.resize(dqCount);
-  pv_31_.resize(dqCount);
-  pv_23_.resize(dqCount);
+  pv_12_.resize(dq_count);
+  pv_21_.resize(dq_count);
+  pv_13_.resize(dq_count);
+  pv_31_.resize(dq_count);
+  pv_23_.resize(dq_count);
 }
 
 void Shift::Jacobian::compressLoopMembers() {
@@ -173,7 +159,7 @@ void Shift::Jacobian::compressLoopMembers() {
 
     for(unsigned int j = 0; j < substructure.chordConstraintCount(); j++, k++) {
       for(auto positiveLoopMember : positiveLoopMembers[k]) {
-        unsigned int dqCount = activeJoints[positiveLoopMember]->qCount();
+        unsigned int dqCount = activeJoints[positiveLoopMember]->dqCount();
         int dqOffset = dqLookup[positiveLoopMember];
         for(unsigned int m = 0; m < dqCount; m++) {
           positive_loop_members_compressed_[k].push_back(dqOffset++);
@@ -181,7 +167,7 @@ void Shift::Jacobian::compressLoopMembers() {
       }
 
       for(auto negativeLoopMember : negativeLoopMembers[k]) {
-        unsigned int dqCount = activeJoints[negativeLoopMember]->qCount();
+        unsigned int dqCount = activeJoints[negativeLoopMember]->dqCount();
         int dqOffset = dqLookup[negativeLoopMember];
         for(unsigned int m = 0; m < dqCount; m++) {
           negative_loop_members_compressed_[k].push_back(dqOffset++);
@@ -209,12 +195,18 @@ void Shift::Jacobian::setPO1(const Shift::Topology::DHVA& dhva) {
   }
 }
 
+void Shift::Jacobian::setPO1() {
+  for(auto& substructure : substructures_) {
+    substructure.setPO1(context_->dhva());
+  }
+}
+
 void Shift::Jacobian::translatePermutations() {
-  unsigned int dqCount = context_->qCount();
+  unsigned int dq_count = context_->dqCount();
   is_dependent_po1_.assign(is_dependent_po1_.size(), false);
   is_dependent_po3_.assign(is_dependent_po3_.size(), false);
   /* initialize permutation arrays */
-  for(unsigned int i = 0; i < dqCount; i++) {
+  for(unsigned int i = 0; i < dq_count; i++) {
     pv_12_[i] = i;
     pv_21_[i] = i;
     pv_13_[i] = i;
@@ -267,12 +259,12 @@ void Shift::Jacobian::translatePermutations() {
   Shift::Topology::setInversePermutation(pv_13_, pv_31_);
 
   /* set isDependentPO3 */
-  for(unsigned int i = 0; i < dqCount; i++) {
+  for(unsigned int i = 0; i < dq_count; i++) {
     is_dependent_po3_[pv_31_[i]] = is_dependent_po1_[i];
   }
 
   /* set pv_23 */
-  for(unsigned int i = 0; i < dqCount; i++) {
+  for(unsigned int i = 0; i < dq_count; i++) {
     pv_23_[i] = pv_21_[pv_13_[i]];
   }
 
@@ -288,40 +280,34 @@ void Shift::Jacobian::setBooleanPO2() {
 
 void Shift::Jacobian::evaluateSparsity() {
 
-  int bOffset = 0;
+  int b_offset = 0;
   // int nnzb = 0; // number of nonzero entries in B matrix
-  int dqCount = context_->qCount();
+  int dq_count = context_->dqCount();
   for(auto& substructure : substructures_) {
-    substructure.setBOffset(bOffset);
+    substructure.setBOffset(b_offset);
     // nnzb += substructure.getNonZeroElementsInB();
-    bOffset +=
+    b_offset +=
       (substructure.qCount() - substructure.rank()) * substructure.rank();
   }
 
-  if(ij_mapping_) {
-    delete[] ij_mapping_;
-  }
-  ij_mapping_ = new int[jacobian_size_]();
+  ij_mapping_.resize(jacobian_size_);
+  std::fill(ij_mapping_.begin(), ij_mapping_.end(), 0);
 
-  int jacobianOffset = 0;
+  int jacobian_offset = 0;
   for(auto& substructure : substructures_) {
-    substructure.setijMapping(ij_mapping_ + jacobianOffset);
-    jacobianOffset +=
+    substructure.setijMapping(ij_mapping_.data() + jacobian_offset);
+    jacobian_offset +=
       substructure.qCount() * substructure.constraintEquationCount();
   }
 
-  if(b3_) {
-    delete[] b3_;
-  }
-  b3_ = new double[bOffset]();
+  b3_.resize(b_offset);
+  std::fill(b3_.begin(), b3_.end(), 0);
 
-  if(cb3_) {
-    delete[] cb3_;
-  }
-  cb3_ = new int[bOffset]();
+  cb3_.resize(b_offset);
+  std::fill(cb3_.begin(), cb3_.end(), 0);
 
-  ksl_array2Di_free(rb3_);
-  rb3_ = ksl_array2Di_alloc(dqCount, 2);
+  rb3_.resize(dq_count, 2);
+  rb3_.zero();
 
   // for(auto& substructure : substructures_) {
   //   substructure.print();
@@ -338,6 +324,12 @@ void Shift::Jacobian::setPO2(const Shift::Topology::DHVA& dhva) {
   }
 }
 
+void Shift::Jacobian::setPO2() {
+  for(auto& substructure : substructures_) {
+    substructure.setPO2(context_->dhva());
+  }
+}
+
 void Shift::Jacobian::factorPO2() {
   for(auto& substructure : substructures_) {
     substructure.factorPO2();
@@ -346,7 +338,7 @@ void Shift::Jacobian::factorPO2() {
 
 void Shift::Jacobian::setBMatrixSparse() {
   for(auto& substructure : substructures_) {
-    substructure.setBMatrixSparse(b3_);
+    substructure.setBMatrixSparse(b3_.data());
   }
 }
 
@@ -416,26 +408,26 @@ void Shift::Jacobian::removeConstraintViolationsFast(bool useTightTolerance) {
 
 void Shift::Jacobian::initializeMobility() {
   /* get count of size for single right null space array */
-  unsigned int rightNullSpaceCount = 0;
+  unsigned int right_null_space_count = 0;
   for(auto& substructure : substructures_) {
-    rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();
+    right_null_space_count += substructure.dqCount() * substructure.dqCount();
   }
 
-  if(rightNullSpaceCount) {
+  if(right_null_space_count) {
     /* allocate memory for rightNullSpace, allows additional storage for null
        space up to dqCount * dqCount in the event that the null space increases
        rank from initial starting configuration
      */
-    if(right_null_space_) {
-      delete[] right_null_space_;
-    }
-    right_null_space_ = new double[rightNullSpaceCount]{};
-    rightNullSpaceCount = 0;
+    right_null_space_.resize(right_null_space_count);
+    std::fill(right_null_space_.begin(), right_null_space_.end(), 0);
+
+    right_null_space_count = 0;
     for(auto& substructure : substructures_) {
-      substructure.setRightNullSpace(right_null_space_ + rightNullSpaceCount);
+      substructure.setRightNullSpace(right_null_space_.data() +
+                                     right_null_space_count);
       substructure.setMobilityNumbers(context_->mobilityNumbers().data() +
                                       substructure.dqOffset());
-      rightNullSpaceCount += substructure.dqCount() * substructure.dqCount();
+      right_null_space_count += substructure.dqCount() * substructure.dqCount();
     }
   }
 }
@@ -444,4 +436,13 @@ void Shift::Jacobian::evaluateConstraints() {
   for(auto& substructure : substructures_) {
     substructure.evaluateConstraints(context_->dhva());
   }
+}
+
+bool Shift::Jacobian::infinityNormCheck() {
+  for(auto& substructure : substructures_) {
+    if(substructure.infinityNormCheck()) {
+      return true;
+    }
+  }
+  return false;
 }

@@ -1,10 +1,10 @@
 #ifndef SHIFT_INTEGRATOR_ODE113_H_
 #define SHIFT_INTEGRATOR_ODE113_H_
 
-#include <string>
-
 #include "shift-core/array2d.h"
 #include "shift-core/integrator/base.h"
+
+#include <string>
 
 namespace Shift {
 
@@ -42,9 +42,6 @@ private:
 
   double absolute_error_ = 0.0001;
   double relative_error_ = 0.0;
-  double time_step_ = 0.01; /*!< time step used for reporting intervals */
-  double time_span_ = 10.0; /*!< time span for numerical integration, defaults
-                               to 10 seconds if not provided */
   std::vector<double> y_;  /*!< y is a de copy of the states communicated to the
                      calling program. Calling program provides y as the
                      the initial conditions. de copies y into yy and
@@ -138,14 +135,10 @@ roundoff error  u  which is the smallest positive number such that
   double h_;              /*!< current step size */
   unsigned int step_ = 0; /*!< current step of numerical integration */
   double omega_n_prev_ = 0.0;
-  double baumgarte_2_omega_n_ = 0.0; /*!< 2 * omega_n term, used in baumgarte
-                                   stabilization */
-  double baumgarte_omega_n_2_ =
-    0.0; /*! omega_n^2 term, used in baumgarte stabilization */
+
   double smoothing_filter_ = 0.0001;
-  std::vector<double> integral_error_; /*!< integral error, equal to the
-                                          number of constraints */
-  double integral_gain_ = 1000.0;      /*!< constraint error integral gain */
+
+  double integral_gain_ = 1000.0; /*!< constraint error integral gain */
   double safety_factor_ = 0.005;
   double omega_n_max_ =
     1000.0; /*!< maximum omega_n used in Baumgarte constraint stabilization */

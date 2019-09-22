@@ -1,15 +1,16 @@
 #ifndef SHIFT_JACOBIAN_H_
 #define SHIFT_JACOBIAN_H_
 
-#include <iostream>
-#include <string>
-
+#include "shift-core/array2d.h"
 #include "shift-core/base.h"
 #include "shift-core/parameter/list.h"
 #include "shift-core/substructure.h"
 #include "shift-core/topology.h"
 
 #include "ksl/memory.h"
+
+#include <iostream>
+#include <string>
 
 namespace Shift {
 
@@ -27,50 +28,7 @@ public:
     : Base("") {
     context_ = context;
   }
-  ~Jacobian() {
-    if(J_) {
-      delete[] J_;
-      J_ = nullptr;
-    }
-
-    if(Jxx_) {
-      delete[] Jxx_;
-      Jxx_ = nullptr;
-    }
-
-    if(Jb_) {
-      delete[] Jb_;
-      Jb_ = nullptr;
-    }
-
-    if(cs_) {
-      delete[] cs_;
-      cs_ = nullptr;
-    }
-
-    if(dcs_) {
-      delete[] dcs_;
-      dcs_ = nullptr;
-    }
-
-    if(b3_) {
-      delete[] b3_;
-      b3_ = nullptr;
-    }
-    if(ij_mapping_) {
-      delete[] ij_mapping_;
-      ij_mapping_ = nullptr;
-    }
-    if(cb3_) {
-      delete[] cb3_;
-      cb3_ = nullptr;
-    }
-    if(right_null_space_) {
-      delete[] right_null_space_;
-    }
-
-    ksl_array2Di_free(rb3_);
-  }
+  ~Jacobian() {}
 
 public:
   virtual void addParameters() override{};
@@ -97,19 +55,76 @@ public:
     return newton_raphson_failure_;
   }
 
+  /*! save a copy of the Jacobian to Js for comparison */
+  void save() {
+    memcpy(Js_.data(), J_.data(), J_.size() * sizeof(double));
+  }
+
+  void setPO1(const Shift::Topology::DHVA& dhva);
+  void setPO1();
+  void translatePermutations();
+  void setBooleanPO2();
+  void evaluateSparsity();
+  void setPO2(const Shift::Topology::DHVA& dhva);
+  void setPO2();
+  void factorPO2();
+  void setBMatrixSparse();
+  void setConstraintPointers();
+  void setSubstructurePointers();
+  int removeConstraintViolations();
+  void removeConstraintViolationsFast(bool);
+  const std::vector<bool>& isDependentPO3() const {
+    return is_dependent_po3_;
+  }
+  const std::vector<bool>& isDependentPO1() const {
+    return is_dependent_po1_;
+  }
+  const Shift::Array2d<int>& rb3() const {
+    return rb3_;
+  }
+  const std::vector<int> cb3() const {
+    return cb3_;
+  }
+
+  /*! check if infinity norm of B matrix is greater than a threshold times the
+   * initial starting value
+   * \return bool true if infinity norm is greater than initial starting value
+   */
+  bool infinityNormCheck();
+  const std::vector<double>& b3() const {
+    return b3_;
+  }
+
+  const std::vector<int>& pv31() const {
+    return pv_31_;
+  }
+
+  const std::vector<int>& pv13() const {
+    return pv_13_;
+  }
+
+  const std::vector<int>& pv23() const {
+    return pv_23_;
+  }
+
+  const std::vector<double>& constraints() const {
+    return cs_;
+  }
+
 private:
   bool newton_raphson_failure_ = false;
-  /* @TODO change these to std::vector */
-  double* J_ = nullptr; /*! array to hold entries of Jacobian */
-  int* Jxx_ = nullptr;  /*!< integer array */
-  bool* Jb_ = nullptr;
-  double* cs_ = nullptr; /*!< constraints */
-  double* dcs_ = nullptr;
-  double* b3_ = nullptr;
-  int* ij_mapping_ = nullptr;
-  int** rb3_ = nullptr;
-  int* cb3_ = nullptr;
-  double* right_null_space_ = nullptr;
+
+  std::vector<double> J_;
+  std::vector<double> Js_;
+  std::vector<int> Jxx_;
+  std::vector<bool> Jb_;
+  std::vector<double> cs_;
+  std::vector<double> dcs_;
+  std::vector<double> b3_;
+  std::vector<int> ij_mapping_;
+  Shift::Array2d<int> rb3_;
+  std::vector<int> cb3_;
+  std::vector<double> right_null_space_;
 
   unsigned int jacobian_size_ =
     0; /*!< size of all block sub Jacobian matrices */
@@ -135,17 +150,6 @@ private:
   void setLookup();
   void mallocEquations();
   void compressLoopMembers();
-  void setPO1(const Shift::Topology::DHVA& dhva);
-  void translatePermutations();
-  void setBooleanPO2();
-  void evaluateSparsity();
-  void setPO2(const Shift::Topology::DHVA& dhva);
-  void factorPO2();
-  void setBMatrixSparse();
-  void setConstraintPointers();
-  void setSubstructurePointers();
-  int removeConstraintViolations();
-  void removeConstraintViolationsFast(bool);
 };
 
 } // namespace Shift

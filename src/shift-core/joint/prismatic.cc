@@ -612,6 +612,17 @@ void Shift::Joint::Prismatic::addParameters() {
   addParameter("initial_velocity", dq_0_,
                "Initial joint velocity, defaults to zero if no value provided.",
                false);
+  addParameter(
+    "damping_coefficients", &damping_coefficients_,
+    "specify  polynomial damping coefficients a, where force due to damping is "
+    "computed as: a_0 + a_1 * \\dot{x}^1 + a_2 * \\dot{x}^2 + .. a_n * "
+    "\\dot{x}^n\\",
+    false);
+  addParameter("stiffness_coefficients", &stiffness_coefficients_,
+               "specify polynomial stiffness coefficients a, where force due "
+               "to joint position is computed as: "
+               "a_0 + a_1 * x^1 + a_2 * x^2 + .. a_n * x^n\\",
+               false);
 }
 
 Shift::Joint::Prismatic::AxisType Shift::Joint::Prismatic::axisType() {

@@ -89,6 +89,8 @@ public:
     dc_count_ = 1;
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
+    rotation_indices_.push_back(0);
+    is_rotation_ = true;
     addParameters();
   }
   Revolute(std::string name)
@@ -99,6 +101,8 @@ public:
     dc_count_ = 1;
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
+    rotation_indices_.push_back(0);
+    is_rotation_ = true;
     addParameters();
   }
   ~Revolute() override {

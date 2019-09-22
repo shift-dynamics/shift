@@ -35,6 +35,10 @@ public:
     dq_count_ = 6;
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
+    rotation_indices_.push_back(3);
+    rotation_indices_.push_back(4);
+    rotation_indices_.push_back(5);
+    is_rotation_ = true;
   }
   Float(std::string name)
     : Base(name) {
@@ -43,6 +47,10 @@ public:
     dq_count_ = 6;
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
+    rotation_indices_.push_back(3);
+    rotation_indices_.push_back(4);
+    rotation_indices_.push_back(5);
+    is_rotation_ = true;
   }
   ~Float() {
     delete[] q_0_;

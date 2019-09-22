@@ -108,7 +108,7 @@ void Shift::Substructure::setPO2(const Shift::Topology::DHVA& dhva) {
 for a single substructure
 */
 void Shift::Substructure::setBooleanPO2() {
-  memset(Jb_, 0, dq_count_ * constraint_equation_count_ * sizeof(bool));
+  std::fill(Jb_.begin(), Jb_.end(), 0);
 
   /* j is local loop index */
   auto it =
@@ -190,8 +190,8 @@ void Shift::Substructure::setBMatrixSparse(double* __restrict__ b3) {
   }
 }
 
-void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
-                                           int* __restrict__ cb3,
+void Shift::Substructure::evaluateSparsity(Shift::Array2d<int>& rb3,
+                                           std::vector<int>& cb3,
                                            std::vector<int>& pv_23) {
   int ij_mapping_temp_po3[dq_count_ * dq_count_];
 
@@ -212,7 +212,6 @@ void Shift::Substructure::evaluateSparsity(int** __restrict__ rb3,
     assert(i2 > -1 && i2 < (int)dq_count_);
     int rb3Index = i3 + dq_offset_;
     assert(rb3Index > 0);
-    assert(rb3);
     rb3[rb3Index][0] = k;
     for(unsigned int j3 = 0; j3 < dq_count_ - rank_; j3++) {
       int j2 = pv_local_23[j3];
@@ -344,7 +343,6 @@ void Shift::Substructure::newtonRaphsonSolver() {
 */
 double
 Shift::Substructure::evaluateConstraints(const Shift::Topology::DHVA& dhva) {
-
   assert(constraints_.size() == chord_constraint_count_);
   for(unsigned int i = 0; i < chord_constraint_count_; i++) {
     ksl_SE3_t* parentFrame = dhva.d + constraints_[i].parent.d;
@@ -602,6 +600,10 @@ void Shift::Substructure::setPO1Specified(const Shift::Topology::DHVA& dhva,
 
 double Shift::Substructure::infinityNormB() {
   return ksl_linalg_lu_infinityNormB_rmo(rank_, dq_count_, J_);
+}
+
+bool Shift::Substructure::infinityNormCheck() {
+  return infinity_norm_b_ > scaled_initial_infinity_norm_b_;
 }
 
 /*!
