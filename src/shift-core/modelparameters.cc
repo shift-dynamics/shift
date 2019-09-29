@@ -54,17 +54,4 @@ void Shift::ModelParameters::addParameters() {
   addParameter("loggers", &loggers_, "", false);
 }
 
-void Shift::ModelParameters::initialize() {
-  // for(auto& solver : solvers_) {
-  //   solver->setContext(context_);
-  //   solver->initialize();
-  // }
-  // for(auto& integrator : integrators_) {
-  //   integrator->setContext(context_);
-  //   integrator->initialize();
-  // }
-  // for(auto& logger : loggers_) {
-  //   logger->setContext(context_);
-  //   logger->initialize();
-  // }
-}
+void Shift::ModelParameters::initialize() {}

@@ -31,12 +31,11 @@ public:
   }
 
   virtual void initialize() override;
+  virtual void writeHeader() override;
+  virtual void writeStates(const double t, const double q[]) override;
 
 private:
   virtual void addParameters() override;
-
-  void writeHeader();
-  void writeStates();
 
   std::string delimiter_ = ",";
   std::string csv_logfile_ = "simulation.csv";

@@ -116,6 +116,9 @@ void Shift::Context::postLoad(const std::string) {
 
   // initializeJointForces();
   // flattenForceModules();
+  for(auto& logger : active_loggers_) {
+    logger->initialize();
+  }
 }
 
 void Shift::Context::processFrames() {
@@ -713,6 +716,17 @@ void Shift::Context::connect() {
   }
   for(auto& terrain : active_terrain_) {
     terrain->connect();
+  }
+  for(auto& logger : active_loggers_) {
+    logger->connect();
+  }
+  assert(active_integrators_.size() > 0);
+  assert(active_solvers_.size() > 0);
+  for(auto& integrator : active_integrators_) {
+    integrator->connect();
+  }
+  for(auto& solver : active_solvers_) {
+    solver->connect();
   }
 }
 
@@ -1495,6 +1509,9 @@ void Shift::Context::allocateRunTimeArrays() {
   ddq_.resize(dq_count_);
   std::fill(ddq_.begin(), ddq_.end(), 0);
 
+  f_.resize(dq_count_);
+  std::fill(f_.begin(), f_.end(), 0);
+
   unsigned int i = 0;
   for(auto& body : active_articulated_bodies_) {
     if(body->parentJoint() && body->parentJoint()->qCount() > 0) {
@@ -1641,7 +1658,18 @@ void Shift::Context::allocateRunTimeArrays() {
 
   // std::cout << "operationCount: " << operationCount << std::endl;
   joint_dof_.resize(active_joints_.size());
-  model_parameters_.initialize();
+
+  // std::cout << "d_reference_frames: ";
+  size_t j = 0;
+  for(size_t i = 0; i < active_joints_.size(); i++) {
+    if(active_joints_[i]->dqCount() > 0) {
+      d_reference_frames_[j++] =
+        active_articulated_bodies_[i]->referenceFrame()->index();
+      // std::cout << active_articulated_bodies_[i]->referenceFrame()->index()
+      //           << " ";
+    }
+  }
+  // std::cout << std::endl;
 }
 
 void Shift::Context::updateDC(Shift::Topology::DHVA& dhva,
@@ -1945,6 +1973,30 @@ void Shift::Context::setLookup() {
       is_rotation_[base_index + rotation_index] = true;
     }
   }
+
+  pcl_compressed_.resize(non_rigid_joint_count_);
+  std::fill(pcl_compressed_.begin(), pcl_compressed_.end(), 0);
+
+  for(size_t i = 0; i < active_joints_.size(); i++) {
+    auto& joint = active_joints_[i];
+    if(joint->dqCount() > 0) {
+      int parent = pcl_[i];
+      while(true) {
+        if(parent == -1) {
+          break;
+        }
+        if(active_joints_[parent]->dqCount() > 0) {
+          break;
+        }
+        parent = pcl_[parent];
+      }
+      if(parent == -1) {
+        pcl_compressed_[joint_lookup_[i]] = -1;
+      } else {
+        pcl_compressed_[joint_lookup_[i]] = joint_lookup_[parent];
+      }
+    }
+  }
 }
 
 /*!
@@ -2104,14 +2156,14 @@ int Shift::Context::digraph(std::string filename) {
   // external system call
 }
 
-bool findReferenceFrame(const Shift::Context& context, int dIndex,
-                        int* referenceFrameIndex) {
+bool findReferenceFrame(const Shift::Context& context, int d_index,
+                        int* reference_frame_index) {
   auto& bodies = context.activeArticulatedBodies();
   for(auto& body : bodies) {
-    int referenceFrame = body->referenceFrame()->index();
+    int reference_frame = body->referenceFrame()->index();
     for(auto& frame : body->frames()) {
-      if(frame->index() == dIndex) {
-        *referenceFrameIndex = referenceFrame;
+      if(frame->index() == d_index) {
+        *reference_frame_index = reference_frame;
       }
     }
   }
@@ -2418,6 +2470,8 @@ void Shift::Context::evaluateConstraints() {
 
 void Shift::Context::setForces(const double y[]) {
   (void)y;
+  std::fill(f_.begin(), f_.end(), 0);
+
   // @TODO hook up service functions to set body forces and working forces
   // within joints
 }
@@ -2464,4 +2518,14 @@ void Shift::Context::setQuaternionMap() {
       non_quaternion_indices_.push_back({q_index++, dq_index++});
     }
   }
+}
+
+void Shift::Context::simulate() {
+  if(active_integrators_.size() == 0 || active_solvers_.size() == 0) {
+    throw "Error: no active integrators or solvers have been created";
+  }
+  assert(active_integrators_.size());
+  assert(active_solvers_.size());
+  auto& integrator = active_integrators_[0];
+  integrator->integrate();
 }

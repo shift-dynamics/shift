@@ -27,7 +27,7 @@ void Shift::Jacobian::initialize() {
 }
 
 void Shift::Jacobian::analyze() {
-  setPO1(context_->dhva());
+  setPO1(context_->dhva()); // records initial infinity norm of B
   translatePermutations();
   setBooleanPO2();
   evaluateSparsity();
@@ -441,6 +441,15 @@ void Shift::Jacobian::evaluateConstraints() {
 bool Shift::Jacobian::infinityNormCheck() {
   for(auto& substructure : substructures_) {
     if(substructure.infinityNormCheck()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Shift::Jacobian::infinityNormCheck(double infinity_norm_multiplier) {
+  for(auto& substructure : substructures_) {
+    if(substructure.infinityNormCheck(infinity_norm_multiplier)) {
       return true;
     }
   }

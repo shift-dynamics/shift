@@ -63,7 +63,12 @@ void Shift::Integrator::ODE113::addParameters() {
                false);
 }
 
-void Shift::Integrator::ODE113::connect() {}
+void Shift::Integrator::ODE113::connect() {
+  assert(context_);
+  solver_ =
+    (*context_)["model_parameters"]["solvers"][0].data<Shift::Solver::Base>();
+  assert(solver_);
+}
 
 void Shift::Integrator::ODE113::reset() {
 
@@ -178,6 +183,9 @@ void Shift::Integrator::ODE113::stepFcn(double y[]) {
 
 void Shift::Integrator::ODE113::integrate() {
 
+  reset();
+  solver_->initialize();
+
   step_ = 0;
   eps_ = fmax(relative_error_, absolute_error_);
 
@@ -185,7 +193,9 @@ void Shift::Integrator::ODE113::integrate() {
   if(neqn_ < 1 || time_span_ <= 0.0 || relative_error_ < 0.0 ||
      absolute_error_ < 0.0 || iflag_ < 1 || iflag_ > 5 || eps_ < twou_) {
 
-    printf(
+    std::cerr << "Improper simulation parameters detected:" << std::endl;
+    fprintf(
+      stderr,
       "neqn=%d, time=%g, timeEnd=%g, relerr=%g, abserr=%g, iflag=%d, eps=%g, "
       "twou=%g\n",
       neqn_, 0.0, time_span_, relative_error_, absolute_error_, iflag_, eps_,
@@ -225,7 +235,7 @@ void Shift::Integrator::ODE113::integrate() {
     step();
 
     if(newton_raphson_failure_) {
-      fprintf(stderr, "NR Failure\n");
+      std::cerr << "Newton-Raphson failure, integration stopped" << std::endl;
       return;
     }
 
@@ -261,11 +271,11 @@ void Shift::Integrator::ODE113::integrate() {
   }
 
   if(iflag_ == 3) {
-    fprintf(stderr, "ODE113 was unable to continue.\n");
+    std::cerr << "ODE113 was unable to continue." << std::endl;
   }
 
   if(newton_raphson_failure_) {
-    fprintf(stderr, "Newton Raphson failed, solver stopped\n");
+    std::cerr << "Newton Raphson failed, solver stopped" << std::endl;
   }
 }
 

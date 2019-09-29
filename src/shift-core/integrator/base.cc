@@ -32,4 +32,11 @@ void Shift::Integrator::Base::addParameters() {
 
 void Shift::Integrator::Base::load() {}
 
-void Shift::Integrator::Base::connect() {}
+void Shift::Integrator::Base::connect() {
+  // @TODO in the future, may allow multiple integrators and multiple solvers,
+  // each handling a different part of the model, or allow loading multiple
+  // integrators / solvers, with only one being active at a time. For now, hook
+  // integrator up to first solver
+  solver_ =
+    (*context_)["model_parameters"]["solvers"][0].data<Shift::Solver::Base>();
+}
