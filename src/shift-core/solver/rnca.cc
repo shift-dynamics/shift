@@ -4,6 +4,8 @@
 #include "shift-core/factory.h"
 #include "shift-core/solver/rnca.h"
 
+#include "ksl/print.h"
+
 bool Shift::Solver::RNCA::registered_ =
   Shift::Factory<Shift::Solver::Base>::get()->registerModule(
     "rnca", Shift::Solver::RNCA::create);
@@ -40,6 +42,13 @@ void Shift::Solver::RNCA::initialize() {
   gamma_d_.resize(dq_count_);
   std::fill(gamma_d_.begin(), gamma_d_.end(), 0);
 
+  mh_product_.resize(dq_count_);
+  std::fill(mh_product_.begin(), mh_product_.end(),
+            ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+
+  fl_.resize(dq_count_);
+  std::fill(fl_.begin(), fl_.end(), 0);
+
   Ml_size_ = ((dq_count_ + 1) * (dq_count_ + 2)) / 2;
 
   Ml_.resize(Ml_size_);
@@ -54,24 +63,44 @@ void Shift::Solver::RNCA::initialize() {
   Mlbs_.resize(Ml_size_);
   std::fill(Mlbs_.begin(), Mlbs_.end(), false);
 
+  inertia_p_.resize(context_->nonRigidJointCount() + 1);
+  std::fill(inertia_p_.begin(), inertia_p_.end(),
+            ksl_inertia(0.0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+
+  p_.resize(context_->nonRigidJointCount());
+  std::fill(p_.begin(), p_.end(), ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+
   g_.resize(context_->nonRigidJointCount());
   std::fill(g_.begin(), g_.end(), ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
-  setEquations();
+  la_.resize(context_->dqCount());
+  std::fill(la_.begin(), la_.end(), 0);
+
+  context_->jacobian().removeConstraintViolations();
+  context_->jacobian().analyze();
+  context_->updateDHVA();
+  context_->evaluateConstraints();
+  setEquationsAndRecordFills();
   memoize();
 }
 
 void Shift::Solver::RNCA::memoize() {
+  countOperations();
+  recordOperations();
+  countPointers();
+  recordPointers();
+}
 
+void Shift::Solver::RNCA::countOperations() {
   assert(context_);
   dq_count_ = context_->dqCount();
   auto ddq = context_->ddq();
   const auto& jacobian = context_->jacobian();
   const auto& rb3 = jacobian.rb3();
   const auto& cb3 = jacobian.cb3();
-  const auto& b3 = jacobian.b3();
+  // const auto& b3 = jacobian.b3();
   const auto& is_dependent_po3 = jacobian.isDependentPO3();
-  const auto& pv_13 = jacobian.pv13();
+  // const auto& pv_13 = jacobian.pv13();
 
   // COUNT OPERATIONS BLOCK
   Mlbs_.clear();
@@ -219,7 +248,7 @@ void Shift::Solver::RNCA::memoize() {
       while(unprocessed_dq_count) {
 
         /* Process a coupled variable if any left. */
-        // int k_index_in_B; /*!< points to the current index into b3 */
+        // int k_index_in_B; /*!< points to the current index into b3
         if(coupled_dq_count) {
           coupled_dq_count--;
           k = coupled_list[coupled_dq_count];
@@ -473,14 +502,29 @@ void Shift::Solver::RNCA::memoize() {
   j6_.resize(m3);
 
   // Restore Mlb for subsequent processing.
-  Mlb_.clear();
   Mlb_.assign(Mlbs_.begin(), Mlbs_.end());
+}
+
+void Shift::Solver::RNCA::recordOperations() {
+
+  assert(context_);
+  const auto& jacobian = context_->jacobian();
+  const auto& is_dependent_po3 = jacobian.isDependentPO3();
+  const auto& rb3 = jacobian.rb3();
+  const auto& cb3 = jacobian.cb3();
+
+  int l1 = 0;
+  int l2 = 0;
+  int l3 = 0;
+
+  int m1 = 0;
+  int m2 = 0;
+  int m3 = 0;
 
   // RECORD OPERATIONS BLOCK
-  // int coupled_list[dq_count_];
+  int coupled_list[dq_count_];
   int coupled_index_list[dq_count_];
-
-  // int non_coupled_list[dq_count_];
+  int non_coupled_list[dq_count_];
   int non_coupled_index_list[dq_count_];
   //
   /*! As each dependent variable within a kinematic substructure is eliminated,
@@ -511,8 +555,8 @@ void Shift::Solver::RNCA::memoize() {
       int noncoupled_dq_count = 0;
 
       // Classify all independent variables.
-      for(int k = rb3_[i][0]; k < rb3_[i][1]; k++) {
-        int column_index = cb3_[k];
+      for(int k = rb3[i][0]; k < rb3[i][1]; k++) {
+        int column_index = cb3[k];
 
         // If Mik != 0, variable k is coupled to variable i--add to
         // coupled_list.
@@ -724,13 +768,17 @@ void Shift::Solver::RNCA::memoize() {
       }   // end for (j = i-1; j >=0; j--).
     }     // end if (!depend[i]).
   }       // end for (i = n-1; i >= 0; i--).
+}
 
-  // COUNT POINTER OPERATIONS BLOCK
+void Shift::Solver::RNCA::countPointers() {
+  assert(context_);
+  const auto& jacobian = context_->jacobian();
+  const auto& is_dependent_po3 = jacobian.isDependentPO3();
 
   /* Currently on entry to this function, context_->nd = 0. Normally
   k = context_->nd - 1; The following effectively sets k = context_->nd - 1; */
-  ni = 0;
-  nd = 0;
+  int ni = 0;
+  int nd = 0;
   int k = -1;
 
   /* Currently matrix factoring starts at memoized_pointers_[0].
@@ -870,17 +918,33 @@ void Shift::Solver::RNCA::memoize() {
     }
   }
 
+  memoized_pointers_.clear();
   memoized_pointers_.resize(p3 + p2);
-  p3_start_ = p2;
+  std::fill(memoized_pointers_.begin(), memoized_pointers_.end(), nullptr);
 
-  ni = 0;
-  nd = 0;
-  l1 = 0;
-  l2 = 0;
-  l3 = 0;
-  m1 = 0;
-  m2 = 0;
-  m3 = 0;
+  p3_start_ = p2;
+}
+
+void Shift::Solver::RNCA::recordPointers() {
+  assert(context_);
+  const auto& jacobian = context_->jacobian();
+  const auto& is_dependent_po3 = jacobian.isDependentPO3();
+  // const auto& rb3 = jacobian.rb3();
+  // const auto& cb3 = jacobian.cb3();
+  const auto& b3 = jacobian.b3();
+  // const auto& pv_23 = jacobian.pv23();
+  const auto& pv_13 = jacobian.pv13();
+
+  auto& ddq = context_->ddq();
+
+  int ni = 0;
+  int nd = 0;
+  int l1 = 0;
+  int l2 = 0;
+  int l3 = 0;
+  int m1 = 0;
+  int m2 = 0;
+  int m3 = 0;
 
   /* Currently matrix factoring starts at memoized_pointers_[0].
   Eventually matrix factoring will start at some offset determined by
@@ -888,13 +952,13 @@ void Shift::Solver::RNCA::memoize() {
   memoized_pointers_[0], the first context_->n entries in memoized_pointers_[0]
   point to the diagonal entries in context_->M[], in reverse order.
   Thus p2 starts at dq_count_.*/
-  p2 = dq_count_;
+  int p2 = dq_count_;
 
   /* Subsequently the AOP that sets up memoized_pointers_[0] for matrix
   factorization and solution will determine in advance the total number of
   operations required to factor the matrix and access the L matrix. It will then
   set an offset value for initializing p3. */
-  p3 = p3_start_;
+  int p3 = p3_start_;
 
   for(int i = (int)dq_count_ - 1; i > -1; i--) {
     /* Point to the current diagonal entry in context_->M[] */
@@ -905,7 +969,7 @@ void Shift::Solver::RNCA::memoize() {
         /* M[] -= M[] * B[]; */
         memoized_pointers_[p2++] = &Ml_[i1_[l1]];
         memoized_pointers_[p2++] = &Ml_[i2_[l1]];
-        memoized_pointers_[p2++] = &b3_[i3_[l1]];
+        memoized_pointers_[p2++] = const_cast<double*>(&b3[i3_[l1]]);
         l1++;
       }
       nd++;
@@ -932,7 +996,7 @@ void Shift::Solver::RNCA::memoize() {
   }
 
   dependent_count_ = nd;
-  k = nd - 1;
+  int k = nd - 1;
 
   ni = 0;
   nd = 0;
@@ -1009,12 +1073,17 @@ void Shift::Solver::RNCA::memoize() {
   }
 }
 
-bool Shift::Solver::RNCA::setEquations() {
+void Shift::Solver::RNCA::setEquations() {
   assert(context_);
-  return (setEquations(context_->q().data()));
+  setEquations(context_->q().data());
 }
 
-bool Shift::Solver::RNCA::setEquations(const double y[]) {
+void Shift::Solver::RNCA::setEquationsAndRecordFills() {
+  assert(context_);
+  setEquationsAndRecordFills(context_->q().data());
+}
+
+void Shift::Solver::RNCA::setEquationsAndRecordFills(const double y[]) {
   const double* q = y;
   const double* dq = y + q_count_;
   assert(context_);
@@ -1024,12 +1093,38 @@ bool Shift::Solver::RNCA::setEquations(const double y[]) {
   jacobian.setPO2();
   jacobian.factorPO2();
   jacobian.setBMatrixSparse();
-  if(jacobian.infinityNormCheck()) {
-    return false;
+  if(jacobian.infinityNormCheck(infinity_norm_muliplier_)) {
+    jacobian.analyze();
+    context_->evaluateConstraints();
+    setRHS();
+    setMassMatrixAndRecordFills();
+    memoize();
+  } else {
+    setRHS();
+    setMassMatrixAndRecordFills();
   }
-  setRHS();
-  setMassMatrix();
-  return true;
+}
+
+void Shift::Solver::RNCA::setEquations(const double y[]) {
+  const double* q = y;
+  const double* dq = y + q_count_;
+  assert(context_);
+  auto& jacobian = context_->jacobian();
+  context_->updateDHVA(q, dq);
+  jacobian.save();
+  jacobian.setPO2();
+  jacobian.factorPO2();
+  jacobian.setBMatrixSparse();
+  if(jacobian.infinityNormCheck(infinity_norm_muliplier_)) {
+    jacobian.analyze();
+    context_->evaluateConstraints();
+    setRHS();
+    setMassMatrixAndRecordFills();
+    memoize();
+  } else {
+    setRHS();
+    setMassMatrix();
+  }
 }
 
 void Shift::Solver::RNCA::setRHS() {
@@ -1037,11 +1132,15 @@ void Shift::Solver::RNCA::setRHS() {
   const Topology::DHVA& dhva = context_->dhva();
   unsigned int non_rigid_joint_count = context_->nonRigidJointCount();
   const auto& pcl_compressed = context_->pclCompressed();
+  const auto& has_mass = context_->hasMassArray();
+  const auto& d_reference_frames = context_->dReferenceFrames();
+  const auto& inertia = context_->inertiaArray();
 
   context_->evaluateConstraints();
 
   std::fill(fl_.begin(), fl_.end(), 0);
   std::fill(p_.begin(), p_.end(), ksl_coscrew(0, 0, 0, 0, 0, 0));
+  std::fill(g_.begin(), g_.end(), ksl_coscrew(0, 0, 0, 0, 0, 0));
 
   const ksl_screw_t* aq = dhva.aq;
   const ksl_screw_t* v = dhva.v;
@@ -1051,10 +1150,12 @@ void Shift::Solver::RNCA::setRHS() {
             ksl_inertia(0, {{0, 0, 0}}, 0, 0, 0, 0, 0, 0));
   ksl_inertia_t* inertia_p = inertia_p_.data() + 1;
 
+#ifdef SHIFT_USE_OPENMP_
+#pragma omp parallel for
+#endif
   for(size_t i = 0; i < non_rigid_joint_count; i++) {
-    if(has_mass_[i]) {
-      ksl_inertia_transformed(&context_->inertiaArray()[i],
-                              dhva.d + context_->dReferenceFrames()[i],
+    if(has_mass[i]) {
+      ksl_inertia_transformed(&inertia[i], dhva.d + d_reference_frames[i],
                               &inertia_p[i]);
     }
   }
@@ -1311,6 +1412,7 @@ void Shift::Solver::RNCA::setRHS() {
   }
 }
 
+/*! set mass matrix without setting boolean mass matrix */
 void Shift::Solver::RNCA::setMassMatrix() {
   assert(context_);
   const auto& dhva = context_->dhva();
@@ -1328,11 +1430,142 @@ void Shift::Solver::RNCA::setMassMatrix() {
   std::fill(mh_product_.begin(), mh_product_.end(),
             ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
   std::fill(Ml_.begin(), Ml_.end(), 0);
-  std::fill(inertia_p_.begin(), inertia_p_.end(),
-            ksl_inertia(0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  // std::fill(inertia_p_.begin(), inertia_p_.end(),
+  //           ksl_inertia(0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
   ksl_inertia_t* inertia_p = inertia_p_.data() + 1;
 
-  /*@ @TODO avoid evaluating Mlb at run-time */
+  /* compute ``accumulated'' inertia matrices, project child inertia onto parent
+   */
+  for(int j = non_rigid_joint_count - 1; j > -1; j--) {
+    int i = pcl_compressed[j];
+
+#ifdef SHIFT_WITH_BLAS_
+    cblas_daxpy(10, 1.0, (double*)(inertia_p + j), 1, (double*)(inertia_p + i),
+                1);
+#else
+    inertia_p[i].m += inertia_p[j].m;
+    inertia_p[i].mt.x += inertia_p[j].mt.x;
+    inertia_p[i].mt.y += inertia_p[j].mt.y;
+    inertia_p[i].mt.z += inertia_p[j].mt.z;
+    inertia_p[i].Ixx += inertia_p[j].Ixx;
+    inertia_p[i].Iyy += inertia_p[j].Iyy;
+    inertia_p[i].Izz += inertia_p[j].Izz;
+    inertia_p[i].Ixy += inertia_p[j].Ixy;
+    inertia_p[i].Iyz += inertia_p[j].Iyz;
+    inertia_p[i].Izx += inertia_p[j].Izx;
+#endif
+  }
+
+  /* compute mh product */
+#ifdef _SHIFT_USE_OPENMP
+#pragma omp parallel for
+#endif
+  for(size_t j = 0; j < non_rigid_joint_count; j++) {
+    for(size_t dof = 0; dof < joint_dof_compressed[j]; dof++) {
+      int k = dq_lookup_compressed[j] + dof;
+
+      /* update quantities that are processed for both rotation and
+      translation */
+      mh_product_[k].m0 += inertia_p[j].m * dhva.h[k].m0;
+      mh_product_[k].m1 += inertia_p[j].m * dhva.h[k].m1;
+      mh_product_[k].m2 += inertia_p[j].m * dhva.h[k].m2;
+
+      mh_product_[k].m4 += inertia_p[j].mt.z * dhva.h[k].m0;
+      mh_product_[k].m5 -= inertia_p[j].mt.y * dhva.h[k].m0;
+
+      mh_product_[k].m3 -= inertia_p[j].mt.z * dhva.h[k].m1;
+      mh_product_[k].m5 += inertia_p[j].mt.x * dhva.h[k].m1;
+
+      mh_product_[k].m3 += inertia_p[j].mt.y * dhva.h[k].m2;
+      mh_product_[k].m4 -= inertia_p[j].mt.x * dhva.h[k].m2;
+
+      /* perform extra operations only for generalized coordinates with
+       * rotational degrees of freedom */
+      if(is_rotation[k]) {
+        mh_product_[k].m1 -= inertia_p[j].mt.z * dhva.h[k].m3;
+        mh_product_[k].m2 += inertia_p[j].mt.y * dhva.h[k].m3;
+        mh_product_[k].m3 += inertia_p[j].Ixx * dhva.h[k].m3;
+        mh_product_[k].m4 += inertia_p[j].Ixy * dhva.h[k].m3;
+        mh_product_[k].m5 += inertia_p[j].Izx * dhva.h[k].m3;
+
+        mh_product_[k].m0 += inertia_p[j].mt.z * dhva.h[k].m4;
+        mh_product_[k].m2 -= inertia_p[j].mt.x * dhva.h[k].m4;
+        mh_product_[k].m3 += inertia_p[j].Ixy * dhva.h[k].m4;
+        mh_product_[k].m4 += inertia_p[j].Iyy * dhva.h[k].m4;
+        mh_product_[k].m5 += inertia_p[j].Iyz * dhva.h[k].m4;
+
+        mh_product_[k].m0 -= inertia_p[j].mt.y * dhva.h[k].m5;
+        mh_product_[k].m1 += inertia_p[j].mt.x * dhva.h[k].m5;
+        mh_product_[k].m3 += inertia_p[j].Izx * dhva.h[k].m5;
+        mh_product_[k].m4 += inertia_p[j].Iyz * dhva.h[k].m5;
+        mh_product_[k].m5 += inertia_p[j].Izz * dhva.h[k].m5;
+      }
+    }
+  }
+
+  /* use inverse permutation to save terms computed in PO1 order and
+  store in PO3 */
+  int m_3;
+  int ks_3;
+  int k_3;
+  for(int j = (int)dq_count_ - 1; j > -1; j--) {
+    if(has_mass_dq[j]) {
+      m_3 = pv_31[j];
+      // m_1 = j;
+      // ks_1 = (m_1 * (m_1 + 1)) / 2;
+      ks_3 = (m_3 * (m_3 + 1)) / 2;
+
+      // k_1 = ks_1 + m_1;
+      k_3 = ks_3 + m_3;
+      if(is_rotation[j]) {
+        Ml_[k_3] += ksl_dot_cs(&mh_product_[j], &dhva.h[j]);
+      } else {
+        Ml_[k_3] += mh_product_[j].m0 * dhva.h[j].m0;
+        Ml_[k_3] += mh_product_[j].m1 * dhva.h[j].m1;
+        Ml_[k_3] += mh_product_[j].m2 * dhva.h[j].m2;
+      }
+
+      int i = pcl_dq[j];
+      while(i > -1) {
+        int i_3 = pv_31[i];
+        if(m_3 > i_3) {
+          k_3 = ks_3 + i_3;
+        } else {
+          k_3 = (i_3 * (i_3 + 1)) / 2 + pv_31[j];
+        }
+        if(is_rotation[i]) {
+          Ml_[k_3] += ksl_dot_cs(&mh_product_[j], &dhva.h[i]);
+        } else {
+          Ml_[k_3] += mh_product_[j].m0 * dhva.h[i].m0;
+          Ml_[k_3] += mh_product_[j].m1 * dhva.h[i].m1;
+          Ml_[k_3] += mh_product_[j].m2 * dhva.h[i].m2;
+        }
+        i = pcl_dq[i];
+      }
+    }
+  }
+}
+
+void Shift::Solver::RNCA::setMassMatrixAndRecordFills() {
+  assert(context_);
+  const auto& dhva = context_->dhva();
+  const size_t non_rigid_joint_count = context_->nonRigidJointCount();
+  const auto& pcl_compressed = context_->pclCompressed();
+  const auto& joint_dof_compressed = context_->jointDOFCompressed();
+  const auto& dq_lookup_compressed = context_->dqLookupCompressed();
+  const auto& is_rotation = context_->isRotation();
+  const auto& has_mass_dq = context_->hasMassdq();
+  const auto& pcl_dq = context_->pcldq();
+
+  const auto& jacobian = context_->jacobian();
+  const auto& pv_31 = jacobian.pv31();
+
+  std::fill(mh_product_.begin(), mh_product_.end(),
+            ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  std::fill(Ml_.begin(), Ml_.end(), 0);
+  // std::fill(inertia_p_.begin(), inertia_p_.end(),
+  //           ksl_inertia(0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  ksl_inertia_t* inertia_p = inertia_p_.data() + 1;
   std::fill(Mlb_.begin(), Mlb_.end(), 0);
 
   /* compute ``accumulated'' inertia matrices, project child inertia onto parent
@@ -1436,7 +1669,6 @@ void Shift::Solver::RNCA::setMassMatrix() {
         } else {
           k_3 = (i_3 * (i_3 + 1)) / 2 + pv_31[j];
         }
-        /*! @TODO make version of this function that doesn't set mass matrix */
         Mlb_[k_3] = true;
 
         if(is_rotation[i]) {
@@ -1484,13 +1716,9 @@ void Shift::Solver::RNCA::factorAndSolve() {
       nd++;
     } else {
       /* Invert the pivot: M[i] = 1.0 / M[i]; */
-      if(*(memoized_pointers_[i]) > 1e-6) {
-        *(memoized_pointers_[i]) = 1.0 / *(memoized_pointers_[i]);
-      } else {
-        fprintf(stderr, "error: pivot at index [%d] has the value %0.9g\n", i,
-                *(memoized_pointers_[i]));
-        exit(-1);
-      }
+      assert(*(memoized_pointers_[i]) > 1e-7);
+      *(memoized_pointers_[i]) = 1.0 / *(memoized_pointers_[i]);
+
       /* Copy the nonzero entries in row i of the M[]
          array to the left of the diagonal into the work array and scale the
          entries in row i to L terms. */
@@ -1600,10 +1828,9 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
   assert(context_);
   context_->updateDHVA(q, dq);
   context_->evaluateConstraints();
+  context_->setForces(q);
 
-  context_->setForces(y);
-
-  bool infinity_norm_failure = setEquations(y);
+  setEquations(y);
 
   /* make a copy of Ml and fl to verify equations of motion, remove this
   once equations of motion verified */

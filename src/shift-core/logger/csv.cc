@@ -1,4 +1,5 @@
 #include "shift-core/logger/csv.h"
+#include "shift-core/context.h"
 #include "shift-core/factory.h"
 #include "shift-core/logger/base.h"
 #include "shift-core/utility.h"
@@ -29,14 +30,37 @@ void Shift::Logger::CSV::addParameters() {
 
 void Shift::Logger::CSV::initialize() {
   if(timestamp_logfile_) {
-    csv_logfile_ = Shift::Utility::stripFileExtension(csv_logfile_) +
+    csv_logfile_ = Shift::Utility::stripFileExtension(csv_logfile_) + "-" +
                    Shift::Utility::currentDateTime() +
                    Shift::Utility::getFileExtension(csv_logfile_);
-    std::cout << "logging to: " << csv_logfile_ << std::endl;
   }
   file_.open(csv_logfile_);
+  writeHeader();
 }
 
-void Shift::Logger::CSV::writeHeader() {}
+void Shift::Logger::CSV::writeHeader() {
+  if(log_all_channels_) {
+    assert(context_);
+    file_ << "time" << delimiter_;
+    for(auto& joint : context_->activeJoints()) {
+      for(size_t i = 0; i < joint->qCount(); i++) {
+        file_ << joint->name() << "_q_" << i << delimiter_;
+      }
+    }
+    for(auto& joint : context_->activeJoints()) {
+      for(size_t i = 0; i < joint->dqCount(); i++) {
+        file_ << joint->name() << "_dq_" << i << delimiter_;
+      }
+    }
+  }
+  file_ << "\n";
+}
 
-void Shift::Logger::CSV::writeStates() {}
+void Shift::Logger::CSV::writeStates(const double t, const double q[]) {
+  file_ << t << delimiter_;
+  size_t count = context_->qCount() + context_->dqCount();
+  for(size_t i = 0; i < count; i++) {
+    file_ << q[i] << delimiter_;
+  }
+  file_ << "\n";
+}

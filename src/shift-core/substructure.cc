@@ -63,8 +63,7 @@ void Shift::Substructure::setPO1(const Shift::Topology::DHVA& dhva) {
 
   if(rank_ < (int)dq_count_) {
     ksl_linalg_lu_setBMatrix_rmo(rank_, dq_count_, J_);
-    scaled_initial_infinity_norm_b_ =
-      infinity_norm_multiplier_ *
+    initial_infinity_norm_b_ =
       ksl_linalg_lu_infinityNormB_rmo(rank_, dq_count_, J_);
   }
 }
@@ -592,8 +591,7 @@ void Shift::Substructure::setPO1Specified(const Shift::Topology::DHVA& dhva,
 
   setBMatrix();
 
-  scaled_initial_infinity_norm_b_ =
-    context_->modelParameters().infinityNormMultiplier() * infinityNormB();
+  initial_infinity_norm_b_ = infinityNormB();
 
   setBooleanPO2();
 }
@@ -603,7 +601,12 @@ double Shift::Substructure::infinityNormB() {
 }
 
 bool Shift::Substructure::infinityNormCheck() {
-  return infinity_norm_b_ > scaled_initial_infinity_norm_b_;
+  return infinity_norm_b_ >
+         infinity_norm_multiplier_ * initial_infinity_norm_b_;
+}
+
+bool Shift::Substructure::infinityNormCheck(double infinity_norm_multiplier) {
+  return infinity_norm_b_ > infinity_norm_multiplier * initial_infinity_norm_b_;
 }
 
 /*!

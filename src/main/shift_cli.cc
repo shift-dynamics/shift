@@ -12,6 +12,7 @@ int main(int argc, char* argv[]) {
     Shift::Context context;
     context.loadJSON(argv[1]);
     std::cout << "done" << std::endl;
+    context.simulate();
 
     // auto& assembly = context["assemblies"][0];
     // assembly.print();

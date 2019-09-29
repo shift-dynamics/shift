@@ -30,18 +30,25 @@ public:
   void memoize();
 
   /*! set generalized mass matrix for equations of motion */
+  void setMassMatrixAndRecordFills();
+  void setMassMatrixAndRecordFills(const double y[]);
+
+  /*! set generalized mass matrix for equations of motion without setting /
+   * evaluating the boolean mass matrix Mlb_*/
   void setMassMatrix();
 
   /*! set right hand side of equations of motion - generalized forces and
   preconditioned quadratic acceleration terms */
   void setRHS();
 
-  bool setEquations();
+  void setEquations();
 
   /*! generate mass matrix and right hand side of preconditioned
   special equations of motion
    */
-  bool setEquations(const double y[]);
+  void setEquations(const double y[]);
+  void setEquationsAndRecordFills();
+  void setEquationsAndRecordFills(const double y[]);
 
   /*! factor and solve the block-diagonalized preconditioned spatial equations
    * of motion using run-time optimized natural constraint algorithm
@@ -65,6 +72,10 @@ public:
 
 private:
   virtual void addParameters() override;
+  void countOperations();
+  void recordOperations();
+  void countPointers();
+  void recordPointers();
 
   double infinity_norm_muliplier_ = 2.0;
 
@@ -101,23 +112,24 @@ private:
   Shift::Array2d<int> rm_;
   std::vector<int> cm_; /*!< row ranges of M matrix in PO(3) */
 
-  Shift::Array2d<int> rb2_; /*!< row ranges of B matrix in PO(2) */
-  Shift::Array2d<int>
-    rb3_temp_;              /*!< temporary array used to convert rb2 to rb3 */
-  Shift::Array2d<int> rb3_; /*!< row ranges of B matrix in PO(3) */
+  // Shift::Array2d<int> rb2_; /*!< row ranges of B matrix in PO(2) */
+  // Shift::Array2d<int>
+  //   rb3_temp_; /*!< temporary array used to convert rb2 to rb3 */
+  // // Shift::Array2d<int> rb3_; /*!< row ranges of B matrix in PO(3) */
+  //
+  // std::vector<int> cb2_;      /*!< global col indices of B matrix in PO(2) */
+  // std::vector<int> cb3_temp_; /*!< temporary array used to convert cb2 to
+  // cb3*/ std::vector<int> cb3_;      /*!< global col indices of B matrix in
+  // PO(3) */ std::vector<int> colb_;     /*!< local col indices of B matrix in
+  // PO(3) */ int ncb_ = 0;               /*!< number of columns in B matrix */
+  //
+  // std::vector<int> pb_23_; /*!< permutation of linear b matrix from 3 to 2 */
+  // std::vector<int> pb_32_; /*!< permutation of linear b matrix from 2 to 3 */
 
-  std::vector<int> cb2_;      /*!< global col indices of B matrix in PO(2) */
-  std::vector<int> cb3_temp_; /*!< temporary array used to convert cb2 to cb3*/
-  std::vector<int> cb3_;      /*!< global col indices of B matrix in PO(3) */
-  std::vector<int> colb_;     /*!< local col indices of B matrix in PO(3) */
-  int ncb_ = 0;               /*!< number of columns in B matrix */
-
-  std::vector<int> pb_23_; /*!< permutation of linear b matrix from 3 to 2 */
-  std::vector<int> pb_32_; /*!< permutation of linear b matrix from 2 to 3 */
-
-  std::vector<int> ij_mapping_;
-  std::vector<double> b3_; /*!< Linear array containing terms of preconditioned
-                  constraints in PO(3) */
+  // std::vector<int> ij_mapping_;
+  // std::vector<double> b3_; /*!< Linear array containing terms of
+  // preconditioned
+  //                 constraints in PO(3) */
   std::vector<double> fl_; /*!< generalized forces */
   std::vector<ksl_coscrew_t> g_;
   // double* ga; /*!< quadratic acceleration terms */

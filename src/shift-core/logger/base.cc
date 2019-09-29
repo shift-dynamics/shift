@@ -13,7 +13,12 @@ bool Shift::Logger::Modules::initialized() {
   return true;
 }
 
-void Shift::Logger::Base::addParameters() {}
+void Shift::Logger::Base::addParameters() {
+  addParameter("log_all_channels", &log_all_channels_,
+               "indicates to log all generalized coordinates, defaults to true "
+               "if not specified.",
+               false);
+}
 
 void Shift::Logger::Base::load() {}
 

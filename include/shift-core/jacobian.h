@@ -111,6 +111,8 @@ public:
     return cs_;
   }
 
+  bool infinityNormCheck(const double);
+
 private:
   bool newton_raphson_failure_ = false;
 

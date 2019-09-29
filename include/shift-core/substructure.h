@@ -241,6 +241,7 @@ public:
   void setupNewtonRaphsonSpecifiedCoordinate(Shift::Topology::DHVA& dhva,
                                              int specified_coordinate_index);
   bool infinityNormCheck();
+  bool infinityNormCheck(double);
 
   const double* cs() const {
     return cs_;
@@ -278,7 +279,7 @@ private:
 
   double epsilon_rank_determination_ = 1e-9;
   double infinity_norm_multiplier_ = 2.0;
-  double scaled_initial_infinity_norm_b_ =
+  double initial_infinity_norm_b_ =
     0.0; //<! scaled infinity norm after an initial full factorization
   double infinity_norm_b_ = 0.0; //!< current infinity norm
   int* ij_mapping_ = nullptr;

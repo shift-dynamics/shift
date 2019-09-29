@@ -117,6 +117,10 @@ public:
     return has_mass_dq_;
   }
 
+  const std::vector<bool>& hasMassArray() const {
+    return has_mass_;
+  }
+
   const std::vector<int>& qLookup() const {
     return q_lookup_;
   }
@@ -344,6 +348,8 @@ public:
   const std::vector<unsigned int>& jointDOFCompressed() const {
     return joint_dof_compressed_;
   }
+
+  void simulate();
 
 private:
   struct dqTodyIndex {
