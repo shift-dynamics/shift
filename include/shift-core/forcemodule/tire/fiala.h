@@ -33,17 +33,18 @@ private:
   static bool registered_;
 
   /*! input parameters */
-  double vertical_stiffness_;
-  double vertical_damping_;
-  double rolling_resistance_;
-  double width_;
-  double cslip_;
-  double calpha_;
-  double u_max_;
-  double u_min_;
-  double x_relaxation_length_;
-  double y_relaxation_length_;
+  double vertical_stiffness_ = 310000;
+  double vertical_damping_ = 3100;
+  double rolling_resistance_ = 0.001;
+  double width_ = 0.235;
+  double cslip_ = 1000000;
+  double calpha_ = 45836.6236;
+  double u_max_ = 1.0;
+  double u_min_ = 0.9;
+  double x_relaxation_length_ = 0.05;
+  double y_relaxation_length_ = 0.15;
 
+  /*! internal parameters */
   ksl_coscrew_t force_w_;        /*!< reaction force in w frame */
   ksl_screw_t velocity_local_w_; /*!< velocity screw expressed in frame w*/
 

@@ -31,6 +31,9 @@ public:
     return registered_;
   }
 
+  virtual void service(const double*, double*) override {}
+  virtual void connect() override {}
+
 private:
   static bool registered_;
 };

@@ -5,6 +5,8 @@
 #include "ksl/matrix.h"
 #include "ksl/print.h"
 
+#include <math.h>
+
 bool Shift::Joint::Prismatic::registered_ =
   Shift::Factory<Shift::Joint::Base>::get()->registerModule(
     "prismatic", Shift::Joint::Prismatic::create);
@@ -758,4 +760,26 @@ Shift::Topology::dhva_fptr Shift::Joint::Prismatic::DHVAfptr() {
     }
   }
   return NULL;
+}
+
+void Shift::Joint::Prismatic::service(const double y[], double*) {
+
+  // retrieve joint working forces
+  auto& f = context_->jointWorkingForces();
+
+  // stiffness
+  auto& q = y[q_index_];
+  double temp = 0.0;
+  for(unsigned int i = 0; i < stiffness_coefficients_.size(); i++) {
+    temp += stiffness_coefficients_[i] * std::pow(q, i);
+  }
+  f[dq_index_] -= temp;
+
+  // damping
+  auto& dq = y[context_->qCount() + dq_index_];
+  temp = 0.0;
+  for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
+    temp += damping_coefficients_[i] * std::pow(dq, i);
+  }
+  f[dq_index_] -= temp;
 }

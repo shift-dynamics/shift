@@ -1430,8 +1430,6 @@ void Shift::Solver::RNCA::setMassMatrix() {
   std::fill(mh_product_.begin(), mh_product_.end(),
             ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
   std::fill(Ml_.begin(), Ml_.end(), 0);
-  // std::fill(inertia_p_.begin(), inertia_p_.end(),
-  //           ksl_inertia(0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
   ksl_inertia_t* inertia_p = inertia_p_.data() + 1;
 
   /* compute ``accumulated'' inertia matrices, project child inertia onto parent
@@ -1563,8 +1561,6 @@ void Shift::Solver::RNCA::setMassMatrixAndRecordFills() {
   std::fill(mh_product_.begin(), mh_product_.end(),
             ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
   std::fill(Ml_.begin(), Ml_.end(), 0);
-  // std::fill(inertia_p_.begin(), inertia_p_.end(),
-  //           ksl_inertia(0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
   ksl_inertia_t* inertia_p = inertia_p_.data() + 1;
   std::fill(Mlb_.begin(), Mlb_.end(), 0);
 
@@ -1822,34 +1818,37 @@ dy = [dq, ddq, dq_f]
 */
 void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
 
+  assert(context_);
+  assert(q_count_ = context_->qCount());
+
   const double* q = y;
   const double* dq = y + q_count_;
 
-  assert(context_);
   context_->updateDHVA(q, dq);
   context_->evaluateConstraints();
   context_->setForces(q);
 
   setEquations(y);
 
+#ifdef SHIFT_VERIFY_EQUATIONS_
   /* make a copy of Ml and fl to verify equations of motion, remove this
   once equations of motion verified */
-  // double Ml[dq_count_ * dq_count_];
-  // for(int i = 0; i < context_->nonRigidJointCount; i++) {
-  //   int istart = i * (i + 1) / 2;
-  //   for(int j = 0; j < i + 1; j++) {
-  //     Ml[i * context_->nonRigidJointCount + j] = context_->Ml[istart + j];
-  //     if(i != j) {
-  //       Ml[j * context_->nonRigidJointCount + i] = context_->Ml[istart +
-  //       j];
-  //     }
-  //   }
-  // }
+  double Ml[dq_count_ * dq_count_];
+  for(int i = 0; i < context_->nonRigidJointCount(); i++) {
+    int istart = i * (i + 1) / 2;
+    for(int j = 0; j < i + 1; j++) {
+      Ml[i * context_->nonRigidJointCount() + j] = Ml_[istart + j];
+      if(i != j) {
+        Ml[j * context_->nonRigidJointCount() + i] = Ml_[istart + j];
+      }
+    }
+  }
+#endif
 
   /* copy fl to a second array to verify solution of
   equations of motion, uncomment for debugging */
-  // double fl[dq_count_];
-  // memcpy(fl, context_->fl, dq_count_ * sizeof(double));
+  double fl[dq_count_];
+  memcpy(fl, fl_.data(), dq_count_ * sizeof(double));
 
   factorAndSolve();
 
@@ -1857,11 +1856,13 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
     return;
   }
 
+#ifdef SHIFT_VERIFY_EQUATIONS_
   /* verify that multiplying coefficient matrix with lhs gets back the
   right hand side, comment out once verified */
-  // s2_solve_verify(context, Ml, fl);
+  verify(y, Ml, fl);
+#endif
 
   /* convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array */
-  context_->dqTody(dy);
+  context_->dqTody(y, dy);
 }

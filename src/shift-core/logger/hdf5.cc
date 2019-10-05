@@ -65,7 +65,8 @@ void Shift::Logger::HDF5::writeHeader() {
   }
 }
 
-void Shift::Logger::HDF5::writeStates(const double t, const double q[]) {
+void Shift::Logger::HDF5::writeStates(const double /* t */, const double q[]) {
+
   // size_t q_offset;
   // const auto& q_offsets = context_->qLookupCompressed();
   for(size_t i = 0; i < context_->nonRigidJointCount(); i++) {

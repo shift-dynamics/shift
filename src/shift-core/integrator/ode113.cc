@@ -51,12 +51,10 @@ void Shift::Integrator::ODE113::addParameters() {
                "integral gain used in baumgarte constraint stabilization, "
                "defaults to 1000.0 if not provided",
                false);
-
-  addParameter(
-    "absolute_error", &absolute_error_,
-    "absolute error used in numerical integration, defaults to 0.0001 "
-    "if not provided",
-    false);
+  addParameter("absolute_error", &absolute_error_,
+               "absolute error used in numerical integration, defaults to "
+               "0.0001 if not provided",
+               false);
   addParameter("relative_error", &relative_error_,
                "relative error used in numerical integration, defaults to 0.0 "
                "if not provided",
@@ -153,6 +151,18 @@ void Shift::Integrator::ODE113::stepFcn(double y[]) {
   assert(solver_);
   solver_->solve(y, dy_.data());
 
+  // std::cout << "y: ";
+  // for(size_t i = 0; i < neqn_; i++) {
+  //   std::cout << y[i] << " ";
+  // }
+  // std::cout << std::endl;
+  //
+  // std::cout << "dy: ";
+  // for(size_t i = 0; i < dy_.size(); i++) {
+  //   std::cout << dy_[i] << " ";
+  // }
+  // std::cout << std::endl << std::endl;
+
   if(iconv_ == 1) {
     auto& jacobian = context_->jacobian();
     auto& cs = jacobian.constraints();
@@ -173,7 +183,7 @@ void Shift::Integrator::ODE113::stepFcn(double y[]) {
     t_ = x_;
     if(x_ >= tdata_[step_] + time_step_) {
       // do logging
-      // context_->writeStates(++step_);
+      context_->writeStates(t_, y);
       iteration_count_ = 0;
     }
   }
@@ -210,7 +220,7 @@ void Shift::Integrator::ODE113::integrate() {
   double releps = relative_error_ / eps_;
   double abseps = absolute_error_ / eps_;
 
-  /*  on start and restart also set work variables x and yy[], store the
+  /*  on start and restart, set work variables x and yy[], store the
       direction of integration and initialize the step size               */
   if(iflag_ == 1) {
     start_ = true;
@@ -241,6 +251,7 @@ void Shift::Integrator::ODE113::integrate() {
 
     if(x_ >= time_span_) {
       iflag_ = 2;
+      std::cout << "finish" << std::endl;
       return;
     }
 
@@ -253,6 +264,7 @@ void Shift::Integrator::ODE113::integrate() {
       absolute_error_ = eps_ * abseps;
       memcpy(y_.data(), yy_.data(), neqn_ * sizeof(double));
       x_ = t_;
+      std::cerr << "crash" << std::endl;
       return;
     } /* End if crash*/
   }   /* End While*/
@@ -438,7 +450,7 @@ void Shift::Integrator::ODE113::step() {
 
   if(start_) {
 
-    /* initialize. compute appropriate step size for first step */
+    /* initialize: compute appropriate step size for first step */
     iconv_ = 1;
     stepFcn(yy_.data());
     if(newton_raphson_failure_) {
@@ -476,7 +488,7 @@ void Shift::Integrator::ODE113::step() {
   while(true) {
     iconv_ = 0;
 
-    /*  compute coefficients of formulas for this step. avoid computing
+    /*  compute coefficients of formulas for this step; avoid computing
     those quantities not changed when step size is not changed.  */
     kp1 = k_ + 1;
     kp2 = k_ + 2;
@@ -484,7 +496,7 @@ void Shift::Integrator::ODE113::step() {
     km2 = k_ - 2;
 
     /*  ns is the number of steps taken with size h, including the current
-       one. when k_ < ns_, no coefficients change */
+       one; when k_ < ns_, no coefficients change */
     if(h_ != hold_) {
       ns_ = 0;
     }
@@ -514,14 +526,14 @@ void Shift::Integrator::ODE113::step() {
       psi_[k_] = temp1;
 
       /*  compute coefficients g[]
-          initialize v[] and set w[]. g(2) was initialized at creation */
+          initialize v[] and set w[]. g[2] was initialized at creation */
       if(ns_ <= 1) {
         for(unsigned int iq = 1; iq <= k_; iq++) {
           v_[iq] = 1.0 / (iq * (iq + 1));
           w_[iq] = v_[iq];
         }
       } else {
-        /*  if order was raised, update diagonal part of v(*) */
+        /*  if order was raised, update diagonal part of v[] */
         if(k_ > kold_) {
           v_[k_] = 1.0 / (k_ * kp1);
           nsm2 = ns_ - 2;
@@ -532,7 +544,7 @@ void Shift::Integrator::ODE113::step() {
             }
           }
         }
-        /*  update v(*) and set w(*) */
+        /*  update v[] and set w([] */
         limit1 = kp1 - ns_;
         temp5 = alpha_[ns_];
         for(iq = 1; iq <= limit1; iq++) {
@@ -541,7 +553,7 @@ void Shift::Integrator::ODE113::step() {
         }
         g_[nsp1] = w_[1];
       }
-      /*  compute g(*) in the work vector w(*) */
+      /*  compute g[] in the work vector w[] */
       nsp2 = ns_ + 2;
       if(kp1 >= nsp2) {
         for(unsigned int i = nsp2; i <= kp1; i++) {
@@ -590,7 +602,7 @@ void Shift::Integrator::ODE113::step() {
       }
     }
     xold = x_;
-    x_ = x_ + h_;
+    x_ += h_;
     stepFcn(p_.data());
     if(newton_raphson_failure_) {
       return;
@@ -776,4 +788,9 @@ void Shift::Integrator::ODE113::step() {
   }
   h_ = hnew;
   return;
+}
+
+void Shift::Integrator::ODE113::currentTime(double& time, double& delta_time) {
+  time = x_;
+  delta_time = x_ - t_; // @TODO verify this is correct
 }
