@@ -39,6 +39,7 @@ set(shift_core_src
   forcemodule/base.cc
   forcemodule/contact.cc
   forcemodule/pid.cc
+  forcemodule/tire/fiala.cc
 
   geometry/base.cc
   geometry/ellipsoid.cc

@@ -71,6 +71,8 @@ public:
     return integral_error_;
   }
 
+  virtual void currentTime(double& time, double& delta_time) = 0;
+
 protected:
   virtual void addParameters() override;
   std::string type_; //!< descriptive name of Integrator type

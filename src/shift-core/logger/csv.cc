@@ -56,11 +56,11 @@ void Shift::Logger::CSV::writeHeader() {
   file_ << "\n";
 }
 
-void Shift::Logger::CSV::writeStates(const double t, const double q[]) {
+void Shift::Logger::CSV::writeStates(const double t, const double y[]) {
   file_ << t << delimiter_;
   size_t count = context_->qCount() + context_->dqCount();
   for(size_t i = 0; i < count; i++) {
-    file_ << q[i] << delimiter_;
+    file_ << y[i] << delimiter_;
   }
   file_ << "\n";
 }

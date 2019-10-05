@@ -2476,17 +2476,19 @@ void Shift::Context::setForces(const double y[]) {
   // within joints
 }
 
-void Shift::Context::dqTody(double dy[]) {
+void Shift::Context::dqTody(const double y[], double dy[]) {
 
+  auto q = y;
+  auto dq = y + q_count_;
   /* convert angular velocities to time derivative of quaternions */
   for(auto& index : quaternion_indices_) {
-    ksl_omega_to_dquaternion((ksl_vec3_t*)(&dq_[index.dq]),
-                             (ksl_quaternion_t*)(&q_[index.q]),
+    ksl_omega_to_dquaternion((ksl_vec3_t*)(&dq[index.dq]),
+                             (ksl_quaternion_t*)(&q[index.q]),
                              (ksl_quaternion_t*)(&dy[index.q]));
   }
 
   for(auto& index : non_quaternion_indices_) {
-    dy[index.q] = dq_[index.dq];
+    dy[index.q] = dq[index.dq];
   }
 
   memcpy(dy + q_count_, ddq_.data(), dq_count_ * sizeof(double));
@@ -2528,4 +2530,21 @@ void Shift::Context::simulate() {
   assert(active_solvers_.size());
   auto& integrator = active_integrators_[0];
   integrator->integrate();
+}
+
+void Shift::Context::currentTime(double& time, double& delta_time) {
+  if(active_integrators_.size() == 0) {
+    time = 0.0;
+    delta_time = 0.0;
+    return;
+  } else {
+    auto& integrator = active_integrators_[0];
+    integrator->currentTime(time, delta_time);
+  }
+}
+
+void Shift::Context::writeStates(const double time, const double y[]) {
+  for(auto& logger : active_loggers_) {
+    logger->writeStates(time, y);
+  }
 }

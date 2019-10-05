@@ -33,6 +33,8 @@ public:
   virtual void initialize() override;
   virtual void connect() override;
   virtual void integrate() override;
+  virtual void currentTime(double& time, double& delta_time) override;
+
   virtual void reset();
 
 private:

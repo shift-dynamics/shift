@@ -40,7 +40,8 @@ public:
     return "";
   }
   virtual void load();
-  virtual void connect();
+  virtual void connect() = 0;
+  virtual void service(const double*, double*) = 0;
   virtual void setActiveObjects(bool parent_is_active) override;
   unsigned int equationCount() {
     return equation_count_;

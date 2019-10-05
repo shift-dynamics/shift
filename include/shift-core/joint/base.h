@@ -247,6 +247,8 @@ public:
     return rotation_indices_;
   }
 
+  virtual void service(const double*, double*) {}
+
 protected:
   virtual void addParameters() override;
   std::string type_;          //!< descriptive name of joint type

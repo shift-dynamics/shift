@@ -317,7 +317,7 @@ public:
   /*! copies dq and ddq quantities to dy array using vectors quaternion_indices_
   and non_quaternion_indices_; for quaternion_indices_, converts angular
   velocities to time derivative of quaternions */
-  void dqTody(double dy[]);
+  void dqTody(const double y[], double dy[]);
 
   bool newtonRaphsonFailure() {
     return jacobian_.newtonRaphsonFailure();
@@ -335,12 +335,14 @@ public:
     return inertia_;
   }
 
-  const std::vector<double>& jointWorkingForces() const {
+  std::vector<double>& jointWorkingForces() {
     return f_;
   }
+
   const std::vector<bool>& isRotation() const {
     return is_rotation_;
   }
+
   const std::vector<int>& pcldq() const {
     return pcldq_;
   }
@@ -350,6 +352,14 @@ public:
   }
 
   void simulate();
+
+  /*!
+  retrieve current time in numerical integration and delta_t, the time
+  since the last successful function evaluation
+  */
+  void currentTime(double& time, double& delta_t);
+
+  void writeStates(const double time, const double y[]);
 
 private:
   struct dqTodyIndex {
