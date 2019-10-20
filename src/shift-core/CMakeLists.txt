@@ -1,3 +1,5 @@
+find_package(cblas)
+
 set(shift_core_src
 
   assembly.cc
@@ -107,6 +109,7 @@ target_compile_options(
   # -O3
   -std=c++17
   ${GRAPHVIZ_COMPILE_FLAGS}
+  -DSHIFT_VERIFY_EQUATIONS_=1
 )
 
 target_include_directories(
@@ -123,5 +126,6 @@ target_link_libraries(
   ${GRAPHVIZ_GVC_LIBRARY}
   ${GRAPHVIZ_CGRAPH_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
+  ${CBLAS_LIBRARIES}
   ksl
 )

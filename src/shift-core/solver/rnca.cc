@@ -4,7 +4,12 @@
 #include "shift-core/factory.h"
 #include "shift-core/solver/rnca.h"
 
+#include "ksl/array.h"
 #include "ksl/print.h"
+
+#ifdef SHIFT_VERIFY_EQUATIONS_
+#include <cblas.h>
+#endif
 
 bool Shift::Solver::RNCA::registered_ =
   Shift::Factory<Shift::Solver::Base>::get()->registerModule(
@@ -1834,9 +1839,9 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
   /* make a copy of Ml and fl to verify equations of motion, remove this
   once equations of motion verified */
   double Ml[dq_count_ * dq_count_];
-  for(int i = 0; i < context_->nonRigidJointCount(); i++) {
+  for(unsigned int i = 0; i < context_->nonRigidJointCount(); i++) {
     int istart = i * (i + 1) / 2;
-    for(int j = 0; j < i + 1; j++) {
+    for(unsigned int j = 0; j < i + 1; j++) {
       Ml[i * context_->nonRigidJointCount() + j] = Ml_[istart + j];
       if(i != j) {
         Ml[j * context_->nonRigidJointCount() + i] = Ml_[istart + j];
@@ -1865,4 +1870,281 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
   /* convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array */
   context_->dqTody(y, dy);
+}
+
+bool Shift::Solver::RNCA::verify(const double y[], double Ml[], double fl[]) {
+  bool verified = true;
+
+#ifdef SHIFT_VERIFY_EQUATIONS_
+
+  std::cout << "verifying equations ";
+  // printf("joint names in PO1:\n");
+  // for(int i = 0; i < context->activeJointCount; i++) {
+  //   printf("   [%d] ", i);
+  //   s2_stackstr_print(context->jointPointers[i]->name);
+  // }
+
+  // printf("isDependent in po1:\n");
+  // for(int i = 0; i < context->dqCount; i++) {
+  //   printf("  [%d] %s\n", i, context->isDependentPO1[i] ? "true":"false");
+  // }
+  // printf("\n");
+  //
+  // printf("isDependent in po3:\n");
+  // for(int i = 0; i < context->dqCount; i++) {
+  //   printf("  [%d] %s\n", i, context->isDependentPO3[i] ? "true":"false");
+  // }
+
+  // printf("pv_12: ");
+  // s2_arrayi_print(context->dqCount, context->pv_12);
+  //
+  // printf("pv_21: ");
+  // s2_arrayi_print(context->dqCount, context->pv_21);
+  //
+  // printf("pv_13: ");
+  // s2_arrayi_print(context->dqCount, context->pv_13);
+  //
+  // printf("pv_31: ");
+  // s2_arrayi_print(context->dqCount, context->pv_31);
+  //
+  // printf("pv_32: ");
+  // s2_arrayi_print(context->dqCount, context->pv_32);
+  //
+  // printf("pv_23: ");
+  // s2_arrayi_print(context->dqCount, context->pv_23);
+
+  /* get dim of jacobian */
+  // int rank = 0;
+  // for(int sub = 0; sub < context->substructureCount; sub++) {
+  //   rank += context->substructures[sub].rank;
+  // }
+
+  /* initialize coefficient matrix to zero */
+  // double* Ml =
+  //   calloc(
+  //     context->nonRigidJointCount *
+  //     context->nonRigidJointCount,
+  //     sizeof(double));
+
+  // printf("# updating dhva\n");
+  // s2_updateDHVA(context);
+
+  // printf("# verifying aq terms:\n");
+  // for(int i = 0; i < context->dqCount + 1; i++) {
+  //   printf("   [%d] ", i);
+  //   s2_screw_print(context->aq + i);
+  // }
+
+  // printf("# evaluating constraints\n");
+  // s2_jacobian_evaluateConstraints(context);
+
+  // printf("# evaluating equations\n");
+  // s2_equation_setEquations(context);
+
+  // printf("b3 array after set equation: \n");
+  // s2_array_print(context->nnzb, context->b3);
+
+  // printf("\nMl after set equation: \n");
+  // s2_triang_print(context->dqCount, context->Ml);
+
+  /* copy Ml to full dense array */
+
+  // printf("\nMl (full dense version) after set equation:\n");
+  // s2_array_print2D(context->dqCount, context->dqCount, true, Ml);
+  //
+  // printf("\nfl after set equations: \n   ");
+  // s2_array_print(context->dqCount, context->fl);
+
+  // printf("\n# factoring and solving equations\n");
+  // s2_equation_factorAndSolve(context);
+  //
+  // printf("b3 array after factor / solve equation: ");
+  // s2_array_print(context->nnzb, context->b3);
+  //
+  // printf("\nddq (PO1): \n   ");
+  // s2_array_print(context->dqCount, context->ddq);
+
+  /* copy ddq to PO3 */
+
+  auto& jacobian = context_->jacobian();
+  const auto& pv_13 = jacobian.pv13();
+  const auto& pv_23 = jacobian.pv23();
+  const auto& ddq = context_->ddq();
+
+  double ddq_po3[dq_count_];
+  memset(ddq_po3, 0, dq_count_ * sizeof(double));
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    ddq_po3[i] = ddq[pv_13[i]];
+  }
+
+  // printf("ddq (po1):\n");
+  // for(int i = 0; i < context->dqCount; i++) {
+  //   printf("[%d] %f\n", i, context->ddq[i]);
+  // }
+
+  // printf("context->pv_13:\n");
+  // s2_arrayi_print(context->dqCount, context->pv_13);
+
+  // printf("\nddq (PO3): \n   ");
+  // s2_array_print(context->dqCount, ddq_po3);
+  //
+  // printf("\nla (PO2):\n   ");
+  // s2_array_print(context->dqCount, context->la);
+
+  double la_po3[dq_count_];
+  memset(la_po3, 0, dq_count_ * sizeof(double));
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    la_po3[i] = la_[pv_23[i]];
+  }
+
+  double fl_po3[dq_count_];
+  memset(fl_po3, 0, dq_count_ * sizeof(double));
+  // printf("\nempty fl_po3 array:\n  ");
+  // s2_array_print(context->dqCount, fl_po3);
+  //
+  // printf("\nijMapping arrays:\n");
+  // for(int sub = 0; sub < context->substructureCount; sub++) {
+  //   printf("   substructure [%d]\n", sub);
+  //   s2_substructure_t* substructure = context->substructures + sub;
+  //
+  //   for(int i = 0; i < substructure->constraintEquationCount; i++) {
+  //     printf("   ");
+  //     for(int j = 0; j < substructure->dqCount; j++) {
+  //       printf("%d ", substructure->ijMapping[i * substructure->dqCount +
+  //       j]);
+  //     }
+  //     printf("\n");
+  //   }
+  // }
+
+  cblas_dgemv(CblasRowMajor, CblasNoTrans, dq_count_, dq_count_, 1, Ml,
+              dq_count_, ddq_po3, 1, 0.0, fl_po3, 1);
+
+  // printf("fl_po3 after adding Ml * ddq:\n");
+  // s2_array_print(context->dqCount, fl_po3);
+
+  // printf("\nfl_po3 <- Ml * ddq: \n   ");
+  // s2_array_print(context->dqCount, fl_po3);
+
+  /* set full dense b matrix for each substructure */
+  // s2_jacobian_setBMatrix(context);
+
+  /* print full dense B matrix for each substructure */
+  // printf("full dense b matrix in PO2\n");
+  // for(int i = 0; i < context->substructureCount; i++) {
+  //   s2_substructure_t* substructure = context->substructures + i;
+  //
+  //   printf("substructure [%d]\n", i);
+  //   for(int i = 0; i < substructure->rank; i++) {
+  //     for(int j = substructure->rank; j < substructure->dqCount; j++) {
+  //       printf("%f ", substructure->J[i * substructure->dqCount + j]);
+  //     }
+  //     printf("\n");
+  //   }
+  //   printf("\n");
+  // }
+
+  const auto& rb3 = jacobian.rb3();
+  const auto& cb3 = jacobian.cb3();
+  const auto& b3 = jacobian.b3();
+
+  const auto& is_dependent_po3 = jacobian.isDependentPO3();
+
+  double B[dq_count_ * dq_count_];
+  memset(B, 0, dq_count_ * dq_count_ * sizeof(double));
+  int row = 0;
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    if(is_dependent_po3[i]) {
+      for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+
+        int col = cb3[j];
+        B[i * dq_count_ + col] = b3[j];
+        B[i * dq_count_ + i] = 1.0;
+      }
+      row++;
+    }
+  }
+
+  // printf("\nB matrix:\n");
+  // s2_array_print2D(
+  //   context->dqCount, context->dqCount, true, B);
+
+  // printf("\nij mapping:\n");
+  // for(int i = 0; i < context->substructureCount; i++) {
+  //   s2_substructure_t* substructure = context->substructures + i;
+  //
+  //   for(int i = 0; i < substructure->constraintEquationCount; i++) {
+  //     for(int j = 0; j < substructure->dqCount; j++) {
+  //       printf("%d ", substructure->ijMapping[i * context->dqCount + j]);
+  //     }
+  //     printf("\n");
+  //   }
+  // }
+
+  // printf("\nla_po3: ");
+  // s2_array_print(context->dqCount, la_po3);
+  // s2_array_print(context->dqCount, fl_po3);
+
+  cblas_dgemv(CblasRowMajor, CblasTrans, dq_count_, dq_count_, 1.0, B,
+              dq_count_, la_po3, 1, 1.0, fl_po3, 1);
+
+  // printf("\nfl_po3 <- fl_po3 + B^T * la_po3\n   ");
+  // printf("context->dqCount: %d\n", context->dqCount);
+  // s2_array_print(context->dqCount, fl_po3);
+
+  if(!ksl_allclose(dq_count_, fl_po3, fl)) {
+
+    std::cerr << ">>> Error, equations of motion not solved correctly."
+              << std::endl;
+
+    verified = false;
+    std::cerr << "verification failed" << std::endl;
+
+    std::cerr << "error: context->fl (po3): ";
+    for(unsigned int i = 0; i < dq_count_; i++) {
+      printf("%0.5g, ", fl[i]);
+    }
+    printf("\n");
+
+    // fprintf(debug, "         != fl_po3 (po3): ");
+    // for(int i = 0; i < context->dqCount; i++) {
+    //   fprintf(debug, "%0.5g, ", fl_po3[i]);
+    // }
+    // fprintf(debug, "\n");
+  }
+
+  double gamma_d_po3[dq_count_];
+  memset(gamma_d_po3, 0, dq_count_ * sizeof(double));
+  cblas_dgemv(CblasRowMajor, CblasNoTrans, dq_count_, dq_count_, 1.0, B,
+              dq_count_, ddq_po3, 1, 0.0, gamma_d_po3, 1);
+
+  /* permute gamma_d po3 to po2 */
+  double gamma_d_po2[dq_count_];
+  memset(gamma_d_po2, 0, dq_count_ * sizeof(double));
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    gamma_d_po2[pv_23[i]] = gamma_d_po3[i];
+  }
+
+  if(!ksl_allclose(dq_count_, gamma_d_po2, gamma_d_.data())) {
+
+    std::cerr << ">>> Error, equations of motion not solved correctly."
+              << std::endl;
+
+    verified = false;
+
+    fprintf(stderr, "\nerror: context->gamma_d (po2): \n");
+    for(unsigned int i = 0; i < dq_count_; i++) {
+      fprintf(stderr, "%0.5g, ", gamma_d_[i]);
+    }
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "\n             != gamma_d (po2): \n");
+    for(unsigned int i = 0; i < dq_count_; i++) {
+      fprintf(stderr, "%0.5g, ", gamma_d_po2[i]);
+    }
+    fprintf(stderr, "\n");
+  }
+#endif
+  std::cout << (verified ? "true" : "false") << std::endl;
+  return verified;
 }
