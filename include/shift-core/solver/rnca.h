@@ -76,6 +76,7 @@ private:
   void recordOperations();
   void countPointers();
   void recordPointers();
+  bool verify(const double y[], double Ml[], double fl[]);
 
   double infinity_norm_muliplier_ = 2.0;
 
