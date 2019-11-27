@@ -28,7 +28,7 @@ void Shift::Solver::RNCA::addParameters() {
     "heuristic to determine when to reapply Gaussian elimination with complete "
     "row and column pivoting on as-needed basis. GECP will be reapplied when "
     "the infinity norm reaches this multiple of the initial starting value -- "
-    "this setting defaults to 2.0.",
+    "default: 2.0.",
     false);
 }
 
@@ -37,12 +37,6 @@ void Shift::Solver::RNCA::initialize() {
 
   q_count_ = context_->qCount();
   dq_count_ = context_->dqCount();
-
-  has_mass_.resize(context_->nonRigidJointCount());
-  std::fill(has_mass_.begin(), has_mass_.end(), false);
-
-  has_mass_dq_.resize(dq_count_);
-  std::fill(has_mass_dq_.begin(), has_mass_dq_.end(), false);
 
   gamma_d_.resize(dq_count_);
   std::fill(gamma_d_.begin(), gamma_d_.end(), 0);
@@ -234,7 +228,7 @@ void Shift::Solver::RNCA::countOperations() {
           // non_coupled_index_list[noncoupled_dq_count] = k;
           noncoupled_dq_count++;
         }
-      } // end for(k = kColStartOfRowiInB; k <= kColEndOfRowiInB; k++).
+      }
 
       /*! As each dependent variable within a kinematic substructure is
       eliminated, assignment equations are generated and executed, based on a
@@ -1136,8 +1130,10 @@ void Shift::Solver::RNCA::setRHS() {
 
   const Topology::DHVA& dhva = context_->dhva();
   unsigned int non_rigid_joint_count = context_->nonRigidJointCount();
+  const auto& dq_lookup_compressed = context_->dqLookupCompressed();
   const auto& pcl_compressed = context_->pclCompressed();
   const auto& has_mass = context_->hasMassArray();
+
   const auto& d_reference_frames = context_->dReferenceFrames();
   const auto& inertia = context_->inertiaArray();
 
@@ -1332,7 +1328,7 @@ void Shift::Solver::RNCA::setRHS() {
     for(size_t m = 0; m < joint_dof_compressed[j]; m++) {
 
       /* l = index into dq array in PO1 */
-      int l = joint_dof_compressed[j] + m;
+      int l = dq_lookup_compressed[j] + m;
 
       /* k is index into dq array in PO3 */
       int k = pv_31[l];
@@ -1717,7 +1713,7 @@ void Shift::Solver::RNCA::factorAndSolve() {
       nd++;
     } else {
       /* Invert the pivot: M[i] = 1.0 / M[i]; */
-      assert(*(memoized_pointers_[i]) > 1e-7);
+      assert(fabs(*(memoized_pointers_[i])) > 1e-9);
       *(memoized_pointers_[i]) = 1.0 / *(memoized_pointers_[i]);
 
       /* Copy the nonzero entries in row i of the M[]
@@ -1764,9 +1760,10 @@ void Shift::Solver::RNCA::factorAndSolve() {
       ddq[pv_13[i]] = gamma_d_[pv_23[i]];
       la_[pv_23[i]] = fl_[i];
 
-      if(Mlb_[i4_[i]])
+      if(Mlb_[i4_[i]]) {
         /* Part of x <-- D^{-1} b: la[k] -= M[] * ddq[i]; */
         la_[pv_23[i]] -= *(memoized_pointers_[i]) * ddq[pv_13[i]];
+      }
       // k--;
     } else {
       for(int j = 0; j < p3_[ni]; j++) {
@@ -1848,12 +1845,27 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
       }
     }
   }
+
+  std::cout << "Ml: " << std::endl;
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    for(unsigned int j = 0; j < dq_count_; j++) {
+      std::cout << Ml[i * dq_count_ + j] << " ";
+    }
+    std::cout << std::endl;
+  }
 #endif
 
+#ifdef SHIFT_VERIFY_EQUATIONS_
   /* copy fl to a second array to verify solution of
-  equations of motion, uncomment for debugging */
+  equations of motion */
   double fl[dq_count_];
   memcpy(fl, fl_.data(), dq_count_ * sizeof(double));
+  std::cout << "fl: ";
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    std::cout << fl_[i] << " ";
+  }
+  std::cout << std::endl;
+#endif
 
   factorAndSolve();
 
@@ -1863,21 +1875,40 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
   /* verify that multiplying coefficient matrix with lhs gets back the
-  right hand side, comment out once verified */
+  right hand side */
+  // std::cout << "y: ";
+  // for(unsigned int i = 0; i < dq_count_; i++) {
+  //   std::cout << y[i] << " ";
+  // }
+  // std::cout << std::endl;
   verify(y, Ml, fl);
 #endif
 
   /* convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array */
   context_->dqTody(y, dy);
+
+  std::cout << "y: ";
+  for(size_t i = 0; i < q_count_ + dq_count_; i++) {
+    std::cout << y[i] << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "dy: ";
+  for(size_t i = 0; i < dq_count_ + dq_count_; i++) {
+    std::cout << dy[i] << " ";
+  }
+  std::cout << std::endl;
+  //
+  // exit(1);
 }
 
-bool Shift::Solver::RNCA::verify(const double y[], double Ml[], double fl[]) {
+bool Shift::Solver::RNCA::verify(const double dy[], double Ml[], double fl[]) {
   bool verified = true;
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
 
-  std::cout << "verifying equations ";
+  // std::cout << "verifying equations: ";
   // printf("joint names in PO1:\n");
   // for(int i = 0; i < context->activeJointCount; i++) {
   //   printf("   [%d] ", i);
@@ -1969,6 +2000,7 @@ bool Shift::Solver::RNCA::verify(const double y[], double Ml[], double fl[]) {
   auto& jacobian = context_->jacobian();
   const auto& pv_13 = jacobian.pv13();
   const auto& pv_23 = jacobian.pv23();
+
   const auto& ddq = context_->ddq();
 
   double ddq_po3[dq_count_];
@@ -2105,6 +2137,7 @@ bool Shift::Solver::RNCA::verify(const double y[], double Ml[], double fl[]) {
       printf("%0.5g, ", fl[i]);
     }
     printf("\n");
+    exit(1);
 
     // fprintf(debug, "         != fl_po3 (po3): ");
     // for(int i = 0; i < context->dqCount; i++) {
@@ -2143,8 +2176,9 @@ bool Shift::Solver::RNCA::verify(const double y[], double Ml[], double fl[]) {
       fprintf(stderr, "%0.5g, ", gamma_d_po2[i]);
     }
     fprintf(stderr, "\n");
+    exit(1);
   }
+  // std::cout << "verified: " << (verified ? "true" : "false") << std::endl;
 #endif
-  std::cout << (verified ? "true" : "false") << std::endl;
   return verified;
 }

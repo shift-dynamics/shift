@@ -391,13 +391,25 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::tz_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                          const Shift::Topology::Offsets& offsets,
                          const double* __restrict__ q) {
+
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+
   const double* dPrimitive = q + offsets.q;
+
   ksl_screw_t* h = dhva.h + offsets.dq;
+
   ksl_product_ddtz(dParent, *dPrimitive, dChild);
 
   ksl_hstz(dChild, h);
+
+#if 0
+  std::cout << "tz_dh" << std::endl;
+  ksl_SE3_print(stdout, dParent, "dParent: ");
+  ksl_SE3_print(stdout, dChild, "dChild: ");
+  std::cout << "dPrimitive: " << *dPrimitive << std::endl;
+  ksl_screw_print(stdout, h, "h: ");
+#endif
 }
 
 /*!
@@ -430,6 +442,16 @@ void Shift::Joint::tz_dhva(const Shift::Context& context,
   ksl_add_sst(vParent, &vRelative, vChild);
   ksl_cross_sst(vParent, &vRelative, &aqRelative);
   ksl_add_sst(aqParent, &aqRelative, aqChild);
+
+#if 0
+  std::cout << "vPrimitive: " << *vPrimitive << std::endl;
+  std::cout << "tz_dhva" << std::endl;
+  ksl_screw_print(stdout, h, "h: ");
+  ksl_screw_print(stdout, vParent, "vParent: ");
+  ksl_screw_print(stdout, vChild, "vChild: ");
+  ksl_screw_print(stdout, aqParent, "aqParent: ");
+  ksl_screw_print(stdout, aqChild, "aqChild: ");
+#endif
 }
 
 /*!

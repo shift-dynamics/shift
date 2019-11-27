@@ -112,7 +112,7 @@ roundoff error  u  which is the smallest positive number such that
   double alpha_[13] = {};
   double w_[14] = {};
   double v_[13] = {};
-  double g_[14] = {1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0,
+  double g_[14] = {0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0,
                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   double sig_[14] = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
