@@ -39,10 +39,6 @@ void Shift::Integrator::ODE113::addParameters() {
                "largest internal time step allowed by numerical integrator, "
                "defaults to 0.01 if not provided.",
                false);
-  addParameter("hmax", &hmax_,
-               "smallest internal time step allowed by numerical integrator, "
-               "defaults to 0.000001 if not provided.",
-               false);
   addParameter("omega_n_max", &omega_n_max_,
                "largest value for omega_n used in Baumgarte constraint "
                "stabilization, defaults to 1000.0 if not provided",
@@ -82,10 +78,8 @@ void Shift::Integrator::ODE113::reset() {
   /* copy initial conditions from force modules */
   int i = context_->qCount() + context_->dqCount();
   for(auto& force_module : context_->activeForceModules()) {
-    if(force_module->equationCount() > 0) {
-      for(unsigned int k = 0; k < force_module->equationCount(); k++, i++) {
-        y_[i] = force_module->q0()[k];
-      }
+    for(unsigned int k = 0; k < force_module->equationCount(); k++, i++) {
+      y_[i] = force_module->q0()[k];
     }
   }
 
@@ -137,8 +131,8 @@ void Shift::Integrator::ODE113::reset() {
   memset(w_, 0, 14 * sizeof(double));
   memset(v_, 0, 13 * sizeof(double));
   memset(g_, 0, 14 * sizeof(double));
-  g_[0] = 1.0;
-  g_[1] = 0.5;
+  g_[1] = 1.0;
+  g_[2] = 0.5;
   memset(sig_, 0, 14 * sizeof(double));
   sig_[1] = 1.0;
 }
@@ -221,7 +215,7 @@ void Shift::Integrator::ODE113::integrate() {
   double abseps = absolute_error_ / eps_;
 
   /*  on start and restart, set work variables x and yy[], store the
-      direction of integration and initialize the step size               */
+      direction of integration and initialize the step size */
   if(iflag_ == 1) {
     start_ = true;
     k_ = 0;
@@ -235,10 +229,12 @@ void Shift::Integrator::ODE113::integrate() {
   }
 
   while(true) {
+    std::cout << std::endl;
     /*  limit step size, set weight vector and take a step */
     h_ = fmin(h_, hmax_);
     h_ = fmin(h_, time_span_ - x_);
-    for(unsigned int l = 0; l < neqn_; l++) {
+    std::cout << "h: " << h_ << std::endl;
+    for(size_t l = 0; l < neqn_; l++) {
       wt_[l] = releps * fabs(yy_[l]) + abseps;
     }
 
@@ -415,15 +411,15 @@ void Shift::Integrator::ODE113::step() {
   double hnew;
   double rho;
 
-  unsigned int kp1;
+  int kp1;
   int kp2;
   int km1;
   int km2;
   int im1;
-  unsigned int iq;
+  int iq;
   int nsm2;
-  unsigned int nsp2;
-  unsigned int limit1;
+  int nsp2;
+  int limit1;
   int ip1;
   int knew;
 
@@ -438,7 +434,7 @@ void Shift::Integrator::ODE113::step() {
 
   /*  if error tolerance is too small, increase it to an acceptable value */
   double round = 0.0;
-  for(unsigned int l = 0; l < neqn_; l++) {
+  for(size_t l = 0; l < neqn_; l++) {
     round += pow(yy_[l] / wt_[l], 2);
   }
   round = twou_ * sqrt(round);
@@ -449,15 +445,15 @@ void Shift::Integrator::ODE113::step() {
   crash_ = false;
 
   if(start_) {
-
     /* initialize: compute appropriate step size for first step */
     iconv_ = 1;
     stepFcn(yy_.data());
     if(newton_raphson_failure_) {
+      std::cout << "newton raphson failure" << std::endl;
       return;
     }
     double sum = 0.0;
-    for(unsigned int l = 0; l < neqn_; l++) {
+    for(size_t l = 0; l < neqn_; l++) {
       phi_[1][l] = dy_[l];
       phi_[2][l] = 0.0;
       sum += pow(dy_[l] / wt_[l], 2);
@@ -477,7 +473,7 @@ void Shift::Integrator::ODE113::step() {
     nornd_ = true;
     if(p5eps <= 100.0 * round) {
       nornd_ = false;
-      for(unsigned int l = 0; l < neqn_; l++) {
+      for(size_t l = 0; l < neqn_; l++) {
         phi_[15][l] = 0.0;
       }
     }

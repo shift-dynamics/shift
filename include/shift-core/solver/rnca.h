@@ -83,8 +83,6 @@ private:
   unsigned int dependent_count_ = 0;
   unsigned int q_count_ = 0;
   unsigned int dq_count_ = 0;
-  std::vector<bool> has_mass_;
-  std::vector<bool> has_mass_dq_;
 
   std::vector<double> gamma_d_; /*!< preconditioned constraints */
   std::vector<double> dcs_;     /*!< constraint first derivative */

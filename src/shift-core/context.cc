@@ -92,9 +92,9 @@ void Shift::Context::postLoad(const std::string) {
   updateDHVA();
   setLookup();
 
-  if(substructure_indices_.size() > 0) {
-    jacobian_.initialize();
-  }
+  // if(substructure_indices_.size() > 0) {
+  jacobian_.initialize();
+  // }
   initializeMobility();
   initializeInertia();
   setQuaternionMap();
@@ -2480,6 +2480,7 @@ void Shift::Context::dqTody(const double y[], double dy[]) {
 
   auto q = y;
   auto dq = y + q_count_;
+
   /* convert angular velocities to time derivative of quaternions */
   for(auto& index : quaternion_indices_) {
     ksl_omega_to_dquaternion((ksl_vec3_t*)(&dq[index.dq]),
