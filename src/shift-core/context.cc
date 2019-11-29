@@ -72,7 +72,6 @@ void Shift::Context::postLoad(const std::string) {
 
   /* process topology */
   setActiveObjects(true);
-
   connect();
   levelOrderSort();
   processVirtualBodies();
@@ -80,19 +79,14 @@ void Shift::Context::postLoad(const std::string) {
   processLoopMembers();
   detectSubstructures();
   processPCL();
-
   processFrames();
-
   allocateRunTimeArrays();
-
   setFixedFrameGravityVector();
   setToInitialConditions();
-
   updateD();
   updateDH();
   updateDHVA();
   setLookup();
-
   jacobian_.initialize();
   initializeMobility();
   initializeInertia();
@@ -143,31 +137,36 @@ void Shift::Context::processFrames() {
      * joint has nonzero degrees of freedom. Rigid joints
      * are optimized out of the spanning tree */
     if(joint->qCount()) {
-      auto parentFrame = joint->systemParentFrame();
-      assert(parentFrame);
+      auto parent_frame = joint->systemParentFrame();
+      assert(parent_frame);
       if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
-                   parentFrame) == frames_in_tree_.end()) {
-        frames_in_tree_.push_back(parentFrame);
+                   parent_frame) == frames_in_tree_.end()) {
+        frames_in_tree_.push_back(parent_frame);
       }
-      auto childFrame = joint->systemChildFrame();
+      auto child_frame = joint->systemChildFrame();
+      assert(child_frame);
       if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
-                   childFrame) == frames_in_tree_.end()) {
-        frames_in_tree_.push_back(childFrame);
+                   child_frame) == frames_in_tree_.end()) {
+        frames_in_tree_.push_back(child_frame);
       }
     }
   }
 
-  /* get frames associated with chord constraints */
+  /* identify frames attached to chord constraints */
   for(auto& constraint : chord_constraints_) {
+    auto parent_frame = constraint->parentFrame();
     if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
-                 constraint->parentFrame()) == frames_in_tree_.end()) {
-      assert(constraint->parentFrame());
-      frames_in_tree_.push_back(constraint->parentFrame());
+                 parent_frame) == frames_in_tree_.end()) {
+      frames_in_tree_.push_back(parent_frame);
+    }
+
+    auto child_frame = constraint->childFrame();
+    if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(), child_frame) ==
+       frames_in_tree_.end()) {
+      frames_in_tree_.push_back(child_frame);
     }
   }
 
-  // std::cout << "frames_in_tree_.size(): " << frames_in_tree_.size()
-  //           << std::endl;
   unsigned int i = 0;
   for(auto& frame : frames_in_tree_) {
     assert(frame);
@@ -180,6 +179,16 @@ void Shift::Context::processFrames() {
   for(auto& joint : active_joints_) {
     auto body = joint->systemChildBody();
     body->setParentJoint(joint);
+  }
+
+  // for(auto& frame : fixedBody()->frames()) {
+  //   assert(frame->parentBody());
+  // }
+  for(auto& body : active_articulated_bodies_) {
+    for(auto& frame : body->frames()) {
+      frame->setParentBody(body);
+      assert(frame->parentBody());
+    }
   }
 }
 
@@ -1571,6 +1580,8 @@ void Shift::Context::allocateRunTimeArrays() {
   // std::cout << "updating frames on fixed body" << std::endl;
   for(auto& frame : fixedBody()->frames()) {
     frame->setParentBody(fixedBody());
+    assert(frame->parentBody());
+    // std::cout << frame->parentBody()->name() << std::endl;
     if(!frame->isReference()) {
       // std::cout << frame->name() << std::endl;
       assert(frame->parentBody());
@@ -2244,29 +2255,34 @@ int Shift::Context::digraphFrames(std::string filename) {
 
     char parentFrameName[1200];
     sprintf(parentFrameName,
-            "[%d] {%d} %s\n"
+            "[%d] {%d} %s: %s\n"
             "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
             "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
             "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
             "[ 0.00  0.00  0.00  1.00]",
             parentFrameIndex, parentReferenceFrameIndex,
+            framesInTree()[parentFrameIndex]->parentBody()->name().c_str(),
             framesInTree()[parentFrameIndex]->name().c_str(), dParent->R.m00,
             dParent->R.m01, dParent->R.m02, dParent->t.x, dParent->R.m10,
             dParent->R.m11, dParent->R.m12, dParent->t.y, dParent->R.m20,
             dParent->R.m21, dParent->R.m22, dParent->t.z);
 
+    std::cout << childFrameIndex << std::endl;
+    std::cout << framesInTree()[childFrameIndex]->name() << std::endl;
+    std::cout << framesInTree()[childFrameIndex]->parentBody() << std::endl;
     assert(framesInTree()[childFrameIndex]->parentBody());
     std::string childBodyName =
       framesInTree()[childFrameIndex]->parentBody()->name();
 
     char childFrameName[1200];
     sprintf(childFrameName,
-            "[%d] {%d} %s\n"
+            "[%d] {%d} %s: %s\n"
             "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
             "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
             "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
             "[ 0.00  0.00  0.00  1.00]",
             childFrameIndex, childReferenceFrameIndex,
+            framesInTree()[childFrameIndex]->parentBody()->name().c_str(),
             framesInTree()[childFrameIndex]->name().c_str(), dChild->R.m00,
             dChild->R.m01, dChild->R.m02, dChild->t.x, dChild->R.m10,
             dChild->R.m11, dChild->R.m12, dChild->t.y, dChild->R.m20,

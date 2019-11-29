@@ -1846,6 +1846,7 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
     }
   }
 
+#if 0
   std::cout << "Ml: " << std::endl;
   for(unsigned int i = 0; i < dq_count_; i++) {
     for(unsigned int j = 0; j < dq_count_; j++) {
@@ -1854,17 +1855,20 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
     std::cout << std::endl;
   }
 #endif
+#endif
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
   /* copy fl to a second array to verify solution of
   equations of motion */
   double fl[dq_count_];
   memcpy(fl, fl_.data(), dq_count_ * sizeof(double));
+#if 0
   std::cout << "fl: ";
   for(unsigned int i = 0; i < dq_count_; i++) {
     std::cout << fl_[i] << " ";
   }
   std::cout << std::endl;
+#endif
 #endif
 
   factorAndSolve();
@@ -1888,6 +1892,7 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
     copy by value all other dq terms to dy array */
   context_->dqTody(y, dy);
 
+#if 0
   std::cout << "y: ";
   for(size_t i = 0; i < q_count_ + dq_count_; i++) {
     std::cout << y[i] << " ";
@@ -1899,6 +1904,7 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
     std::cout << dy[i] << " ";
   }
   std::cout << std::endl;
+#endif
   //
   // exit(1);
 }

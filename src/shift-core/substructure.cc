@@ -266,9 +266,11 @@ void Shift::Substructure::firstOrderUpdate() {
 void Shift::Substructure::updateq() {
   unsigned int qIndex = q_offset_;
   unsigned int dqIndex = dq_offset_;
+
   for(unsigned int j = 1; j < context_->substructureMembers()[index_].size();
       j++) {
-    auto joint = context_->activeJoints()[j];
+    int index = context_->substructureMembers()[index_][j];
+    auto joint = context_->activeJoints()[index];
     auto qCount = joint->qCount();
     auto dqCount = joint->dqCount();
     if(qCount == dqCount) {

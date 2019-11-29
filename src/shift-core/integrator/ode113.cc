@@ -229,11 +229,9 @@ void Shift::Integrator::ODE113::integrate() {
   }
 
   while(true) {
-    std::cout << std::endl;
     /*  limit step size, set weight vector and take a step */
     h_ = fmin(h_, hmax_);
     h_ = fmin(h_, time_span_ - x_);
-    std::cout << "h: " << h_ << std::endl;
     for(size_t l = 0; l < neqn_; l++) {
       wt_[l] = releps * fabs(yy_[l]) + abseps;
     }
