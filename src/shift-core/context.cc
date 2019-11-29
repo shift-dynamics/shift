@@ -55,6 +55,7 @@ void Shift::Context::addParameters() {
 }
 
 void Shift::Context::loadJSON(const std::string filename) {
+  filename_ = filename;
   std::ifstream file(filename);
   file >> root_;
   try {
@@ -92,9 +93,7 @@ void Shift::Context::postLoad(const std::string) {
   updateDHVA();
   setLookup();
 
-  // if(substructure_indices_.size() > 0) {
   jacobian_.initialize();
-  // }
   initializeMobility();
   initializeInertia();
   setQuaternionMap();
@@ -103,16 +102,6 @@ void Shift::Context::postLoad(const std::string) {
   // initializeGLReferenceFrames();
 
   loadData();
-
-  // std::string graph_filename =
-  //   Shift::Topology::getBasename(Shift::Topology::getFilename(filename)) +
-  //   ".png";
-  // digraph(graph_filename);
-  //
-  // graph_filename =
-  //   Shift::Topology::getBasename(Shift::Topology::getFilename(filename)) +
-  //   "_frames.png";
-  // digraphFrames(graph_filename);
 
   // initializeJointForces();
   // flattenForceModules();
@@ -128,7 +117,6 @@ void Shift::Context::processFrames() {
   auto fixed = fixedBody();
   for(auto& frame : fixed->frames()) {
     assert(frame.get());
-    // frame->print();
     active_frames_.push_back(frame.get());
   }
   for(auto& body : active_articulated_bodies_) {
@@ -183,8 +171,6 @@ void Shift::Context::processFrames() {
   unsigned int i = 0;
   for(auto& frame : frames_in_tree_) {
     assert(frame);
-    // (*frame)["name"].print();
-    // std::cout << "[" << i << "]: " << frame->name() << std::endl;
     frame->setIndex(i++);
     frame->setInTree(true);
   }
@@ -2046,7 +2032,6 @@ double Shift::Context::globalMobility() {
 int Shift::Context::digraph(std::string filename) {
 
   std::string base_filename = Shift::Topology::getFilename(filename);
-  std::cout << "base_filename: " << base_filename << std::endl;
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename
               << std::endl;
@@ -2059,7 +2044,7 @@ int Shift::Context::digraph(std::string filename) {
               << std::endl;
   }
 
-  std::string gv_ext = Shift::Topology::getGraphvizExtension(extension);
+  std::string gv_ext = Shift::Topology::getValidGraphvizExtension(extension);
   if(gv_ext.length() == 0) {
     std::cerr << "Error: requested extension is not supported by Shift. "
                  "Supported extensions include: \"gif\", \"jpeg\", \"jpg\", "
@@ -2152,8 +2137,21 @@ int Shift::Context::digraph(std::string filename) {
 
   // agclose and gvFreeContext appear to not entirely free memory, it
   // up to 1MB of memory not properly freed at program termination.
-  // @TODO find fix for this or just write to DOT file and call graphviz using
+
+  // @TODO find fix for this or write to DOT file and call graphviz using
   // external system call
+}
+
+int Shift::Context::digraph() {
+  std::string base_filename = Shift::Topology::getFilename(filename_);
+  std::string graph_filename =
+    Shift::Topology::removeExtension(base_filename) + ".png";
+  if(base_filename.length() == 0) {
+    std::cerr << "Error: could not resolve filename for: " << filename_
+              << std::endl;
+    return -1;
+  };
+  return digraph(graph_filename);
 }
 
 bool findReferenceFrame(const Shift::Context& context, int d_index,
@@ -2173,8 +2171,13 @@ bool findReferenceFrame(const Shift::Context& context, int d_index,
 /*!
 @brief Generate a directed graph using graphviz api library
 
-The graphviz library leaks memory
+The graphviz library leaks memory:
 
+agclose and gvFreeContext appear do not entirely free memory,
+up to 1MB of memory is not properly freed at program termination.
+
+@TODO find fix for this or just write to DOT file and call graphviz using
+external system call
 */
 int Shift::Context::digraphFrames(std::string filename) {
 
@@ -2191,7 +2194,7 @@ int Shift::Context::digraphFrames(std::string filename) {
               << std::endl;
   }
 
-  std::string gv_ext = Shift::Topology::getGraphvizExtension(extension);
+  std::string gv_ext = Shift::Topology::getValidGraphvizExtension(extension);
   if(gv_ext.length() == 0) {
     std::cerr << "Error: requested extension is not supported by Shift. "
                  "Supported extensions include: \"gif\", \"jpeg\", \"jpg\", "
@@ -2425,6 +2428,18 @@ int Shift::Context::digraphFrames(std::string filename) {
   // up to 1MB of memory not properly freed at program termination.
   // fclose(DGF);
   return 0;
+}
+
+int Shift::Context::digraphFrames() {
+  std::string base_filename = Shift::Topology::getFilename(filename_);
+  std::string graph_filename =
+    Shift::Topology::removeExtension(base_filename) + ".png";
+  if(base_filename.length() == 0) {
+    std::cerr << "Error: could not resolve filename for: " << filename_
+              << std::endl;
+    return -1;
+  };
+  return digraphFrames(graph_filename);
 }
 
 /*!

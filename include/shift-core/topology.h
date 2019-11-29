@@ -177,22 +177,11 @@ std::string getBasename(const std::string& s);
 
 std::string getExtension(std::string& filename);
 
+std::string removeExtension(std::string& filename);
+
 std::string getFilename(const std::string& filename);
 
-std::string getGraphvizExtension(std::string& extension);
-
-/*!
-\brief generate a directed graph of a mechanism with bodies as graph nodes
-and joints as graph edges and save as a PNG file.
-*/
-int digraph(const Shift::Context& context, std::string fileName);
-
-/*!
-\brief generate a directed graph of a mechanism with frames as graph nodes
-and joints and relative transformations across bodies (i.e. shape matrices) as
-graph edges and save as a PNG file.
-*/
-int digraphFrames(const Shift::Context& context, std::string fileName);
+std::string getValidGraphvizExtension(std::string& extension);
 
 /*!
 \brief generate a directed graph of a mechanism with bodies as graph nodes
