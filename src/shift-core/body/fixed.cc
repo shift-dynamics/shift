@@ -10,7 +10,6 @@ std::unique_ptr<Shift::Body::Fixed> Shift::Body::Fixed::create() {
 }
 
 void Shift::Body::Fixed::addParameters() {
-
   removeParameter("name");
   removeParameter("inertia");
   removeParameter("center_of_mass");

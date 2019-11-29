@@ -20,10 +20,9 @@ void Shift::Jacobian::initialize() {
   setBMatrixSparse();
   setConstraintPointers();
   setSubstructurePointers();
-
   if(removeConstraintViolations()) {
     std::cerr << "Error: constraints not satisfied." << std::endl;
-  };
+  }
 }
 
 void Shift::Jacobian::analyze() {
@@ -37,7 +36,6 @@ void Shift::Jacobian::analyze() {
 }
 
 void Shift::Jacobian::mallocEquations() {
-
   auto substructure_members = context_->substructureMembers();
   auto substructure_indices = context_->substructureIndices();
   substructures_.clear();
@@ -351,8 +349,18 @@ void Shift::Jacobian::setConstraintPointers() {
       Shift::Substructure::Constraint constraintOffset;
       constraintOffset.parent.d = chordConstraint->parentFrame()->index();
       constraintOffset.parent.v = chordConstraint->parentBody()->vaIndex();
+
+      // std::cout << "parent: " << chordConstraint->parentFrame()->name()
+      //           << " d: " << constraintOffset.parent.d
+      //           << " v: " << constraintOffset.parent.v << std::endl;
+
       constraintOffset.child.d = chordConstraint->childFrame()->index();
       constraintOffset.child.v = chordConstraint->childBody()->vaIndex();
+
+      // std::cout << "child: " << chordConstraint->childFrame()->name()
+      //           << " d: " << constraintOffset.child.d
+      //           << " v: " << constraintOffset.child.v << std::endl;
+
       substructure.appendConstraintOffset(constraintOffset);
     }
   }

@@ -43,6 +43,8 @@ public:
     origin->setIsOrigin(true);
     origin->setIsReference(true);
     origin->setParentBody(this);
+    assert(origin->parentBody());
+
     frames_.push_back(std::move(origin));
     addParameters();
   }
@@ -173,6 +175,7 @@ protected:
   bool is_articulated_ = true; /*!< indicates whether body may have joints
                                  attached to it, i.e. that the body comprises a
                                  link of an articulated assembly of bodies */
+
   Parameter::Array<Frame> frames_;
 
   Parameter::FactoryArray<Light::Base> lights_;
