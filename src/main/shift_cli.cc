@@ -1,42 +1,67 @@
-#include "shift-core/array2d.h"
+#include "argagg/argagg.hpp"
 #include "shift-core/context.h"
+#include "version.h"
 
 #include <iostream>
-// #include <typeinfo>
-#include <limits>
 
 int main(int argc, char* argv[]) {
 
-  if(argc == 2) {
-    std::cout << "Loading " << argv[1] << std::endl;
-    Shift::Context context;
-    context.loadJSON(argv[1]);
-    std::cout << "done" << std::endl;
-    context.simulate();
+  argagg::parser argparser{{
+    {"help", {"-h", "--help"}, "shows this help message", 0},
+    {"digraph", {"-d", "--digraph"}, "boolean (default: false)", 0},
+    {"frame_digraph", {"-f", "--frame-digraph"}, "boolean (default: false)", 0},
+    {"input", {"-i", "--input"}, "input filename, required", 1},
+  }};
 
-    // auto& assembly = context["assemblies"][0];
-    // assembly.print();
-    //
-    // auto& bodies = context["assemblies"]["excavator"]["bodies"][0];
-    // bodies.print();
-    // context["frames"].print();
+  argagg::parser_results args;
+  try {
+    args = argparser.parse(argc, argv);
+  } catch(const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
 
-    // auto& fixed_frames = context["frames"];
-    // fixed_frames.print();
+  std::cout << "Shift " << SHIFT_VERSION_MAJOR << "." << SHIFT_VERSION_MINOR
+            << "." << SHIFT_VERSION_PATCH << std::endl;
+  std::cout << "  branch: " << SHIFT_GIT_BRANCH << std::endl;
+  std::cout << "  commit: " << SHIFT_GIT_COMMIT_HASH << std::endl;
+  std::cout << std::endl << "  processing arguments:" << std::endl;
 
-    // context.print();
-    // context.writeJSON("test.json");
+  bool digraph = false;
+  if(args["digraph"]) {
+    digraph = true;
+  }
+  std::cout << "    --digraph " << (digraph ? "true" : "false") << std::endl;
 
-    // std::string value;
-    // std::cout << (std::type_index(typeid(&value)) ==
-    //                   context["model_parameters"]["units"]["length"].typeIndex()
-    //                 ? "true"
-    //                 : "false")
-    //           << std::endl;
+  bool digraph_frames = false;
+  if(args["frame_digraph"]) {
+    digraph_frames = true;
+  }
+  std::cout << "    --digraph-frames " << (digraph_frames ? "true" : "false")
+            << std::endl;
 
-    return 0;
+  std::string filename;
+  if(args["input"]) {
+    filename = args["input"].as<std::string>();
+    std::cout << "    --input " << filename << std::endl;
   } else {
-    std::cout << "Usage shift-cli <name of file>" << std::endl;
+    std::cout << argparser << std::endl;
     return -1;
   }
+
+  Shift::Context context;
+  context.loadJSON(filename);
+
+  if(digraph) {
+    context.digraph();
+    exit(0);
+  }
+
+  if(digraph_frames) {
+    context.digraphFrames();
+    exit(0);
+  }
+
+  context.simulate();
+  return 0;
 }

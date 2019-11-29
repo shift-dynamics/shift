@@ -305,8 +305,10 @@ public:
   double globalMobility();
 
   int digraph(std::string filename);
+  int digraph();
 
   int digraphFrames(std::string filename);
+  int digraphFrames();
 
   unsigned int forceModuleEquationCount();
 

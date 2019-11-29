@@ -449,7 +449,7 @@ Some *Shift* objects have a default type. For example, the default type for bodi
          "distal"
        ],
        "type": "revolute",
-       "axis": "x",
+       "axis": [1, 0, 0],
        "initial_displacement": 0.776,
        "initial_velocity": 0.02623322119
       },
@@ -550,7 +550,7 @@ The ``Shift::Parameter::Array`` and ``Shift::Parameter::Factory`` array classes 
    }
 
 
-In the above example ``...`` indicates that there would be other key-value pairs which are omitted here. After the above file is loaded into a ``Shift::Context`` data structure, the second body can be accessed by its index in the array as:
+In the above example ``...`` indicates that there would be other key-value pairs which are omitted here. After the above file is loaded into a ``Shift::Context`` data structure, the second body in the bodies array can be accessed by its index as:
 
 .. code:: c
 
@@ -558,7 +558,7 @@ In the above example ``...`` indicates that there would be other key-value pairs
      context["assemblies"][0]["bodies"][1].data<Shift::Body::Base>();
 
 
-The above method is similar to traversing a Python dictionary. Additionally, *Shift* provides a mechanism to look up a value by its descriptive ``"name"`` key as:
+The above method is similar to traversing a Python dictionary. It is also possible to look up a value by its descriptive ``"name"`` key as:
 
 .. code:: c
 

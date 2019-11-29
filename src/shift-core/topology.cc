@@ -213,6 +213,18 @@ std::string Shift::Topology::getExtension(std::string& filename) {
   }
 }
 
+std::string Shift::Topology::removeExtension(std::string& filename) {
+  std::string::size_type idx;
+  idx = filename.rfind('.');
+  if(idx != std::string::npos) {
+    std::string extension = filename.substr(0, idx);
+    return extension;
+  } else {
+    // No extension found
+    return ("");
+  }
+}
+
 std::string toLower(std::string& s) {
   std::string out;
   out.resize(s.size());
@@ -220,7 +232,7 @@ std::string toLower(std::string& s) {
   return out;
 }
 
-std::string Shift::Topology::getGraphvizExtension(std::string& extension) {
+std::string Shift::Topology::getValidGraphvizExtension(std::string& extension) {
   std::string ext = toLower(extension);
   if(ext == "gif") {
     return std::string("gif");

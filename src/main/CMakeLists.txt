@@ -35,7 +35,13 @@ target_compile_options(
   # -gdb
 )
 
-target_include_directories(shift-cli PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(
+  shift-cli
+  PUBLIC
+    ${CMAKE_SOURCE_DIR}/include,
+    ${CMAKE_SOURCE_DIR}/external/argagg/include
+    ${CMAKE_BINARY_DIR}
+)
 
 
 add_executable(shift shift.cc)
