@@ -147,6 +147,10 @@ public:
     return rank_;
   }
 
+  unsigned int index() const {
+    return index_;
+  }
+
   void print();
 
   void setChordConstraintOffset(unsigned int offset) {
@@ -208,7 +212,7 @@ public:
     } child;
   };
 
-  const std::vector<Constraint>& constraints() const {
+  const std::vector<Constraint>& constraintIndices() const {
     return constraints_;
   }
 
@@ -240,8 +244,47 @@ public:
   void copyNullSpace();
   void setupNewtonRaphsonSpecifiedCoordinate(Shift::Topology::DHVA& dhva,
                                              int specified_coordinate_index);
-  bool infinityNormCheck();
-  bool infinityNormCheck(double);
+  /*! Obtain pointer to start of substructure block sub jacobian matrix */
+  const double* jacobianMatrix() const {
+    return J_;
+  }
+
+  /*!
+  @brief check pivot ratios in block jacobian matrix associated with
+  substructure and call full factor if pivot ratio has changed a specified
+  threshold from initial starting value
+
+  @param q generalized coordinates
+  @param dq generalized coordinate time derivatives
+
+  @return
+  0: infinity norm check passed
+  1: infinity norm check failed and newton raphson was successfully reapplied to
+  determine the correct rank, the simulation can continue
+  2: infinity norm check failed and newton raphson
+  did not converge, the simulation should terminate
+  */
+  unsigned int infinityNormCheck(double* q, const double* dq);
+
+  /*!
+  @brief check pivot ratios in block jacobian matrix associated with
+  substructure and call full factor if pivot ratio has changed a specified
+  threshold from initial starting value
+
+  @param infinity_norm_multiplier override the default infinity norm multiplier
+  with a custom value
+  @param q generalized coordinates
+  @param dq generalized coordinate time derivatives
+
+  @return
+  0: infinity norm check passed
+  1: infinity norm check failed and newton raphson was successfully reapplied to
+  determine the correct rank, the simulation can continue
+  2: infinity norm check failed and newton raphson
+  did not converge, the simulation should terminate
+  */
+  unsigned int infinityNormCheck(double* q, const double* dq,
+                                 const double infinity_norm_multiplier);
 
   const double* cs() const {
     return cs_;
@@ -262,6 +305,10 @@ public:
     return pc_21_;
   }
 
+  const double* constraints() const {
+    return cs_;
+  }
+
 private:
   std::vector<Constraint> constraints_;
 
@@ -280,7 +327,7 @@ private:
   double epsilon_rank_determination_ = 1e-9;
   double infinity_norm_multiplier_ = 2.0;
   double initial_infinity_norm_b_ =
-    0.0; //<! scaled infinity norm after an initial full factorization
+    0.0; //<! infinity norm after an initial full factorization
   double infinity_norm_b_ = 0.0; //!< current infinity norm
   int* ij_mapping_ = nullptr;
 

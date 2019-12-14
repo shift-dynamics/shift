@@ -47,7 +47,7 @@ public:
   const std::vector<Shift::Substructure>& substructures() const {
     return substructures_;
   }
-  void evaluateConstraints();
+  double evaluateConstraints();
 
   void initializeMobility();
 
@@ -90,7 +90,15 @@ public:
    * initial starting value
    * \return bool true if infinity norm is greater than initial starting value
    */
-  bool infinityNormCheck();
+  unsigned int infinityNormCheck(double time, double* q, const double* dq);
+
+  /*! check if infinity norm of B matrix is greater than a threshold times the
+   * initial starting value
+   * \return bool true if infinity norm is greater than initial starting value
+   */
+  unsigned int infinityNormCheck(double time, double* q, const double* dq,
+                                 const double infinity_norm_multiplier);
+
   const std::vector<double>& b3() const {
     return b3_;
   }
@@ -112,6 +120,15 @@ public:
   }
 
   bool infinityNormCheck(const double);
+
+  struct InfinityNormFailure {
+    double time;
+    std::vector<unsigned int> substructure_index;
+  };
+
+  const std::vector<InfinityNormFailure>& infinityNormFailures() const {
+    return infinity_norm_failures_;
+  }
 
 private:
   bool newton_raphson_failure_ = false;
@@ -152,6 +169,10 @@ private:
   void setLookup();
   void mallocEquations();
   void compressLoopMembers();
+
+  unsigned int iterations_since_last_infinity_norm_failure_ = 0;
+
+  std::vector<InfinityNormFailure> infinity_norm_failures_;
 };
 
 } // namespace Shift

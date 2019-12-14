@@ -438,14 +438,14 @@ void Shift::Parameter::Value::readJSON_DOUBLE_ARRAY(Json::Value& json_value) {
     throw "JSON Parsing error: DOUBLE_ARRAY has incorrect dimension ";
   }
 
+  std::any_cast<std::vector<double>*>(data_)->clear();
   for(unsigned int i = 0; i < json_value.size(); i++) {
-    if(json_value[i].isArray()) {
-    }
     if(!json_value[i].isDouble()) {
       throw "JSON Parsing error: required key has incorrectly formatted "
             "data; expected DOUBLE_ARRAY";
     }
-    (*std::any_cast<std::vector<double>*>(data_))[i] = json_value[i].asDouble();
+    std::any_cast<std::vector<double>*>(data_)->push_back(
+      json_value[i].asDouble());
   }
   loaded_from_file_ = true;
 }

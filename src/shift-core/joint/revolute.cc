@@ -643,7 +643,7 @@ const double* Shift::Joint::Revolute::data() {
   if(axisType() == ARBITRARY_AXIS) {
     return (double*)&axis_;
   };
-  return NULL;
+  return nullptr;
 }
 
 unsigned int Shift::Joint::Revolute::dataCount() {
@@ -761,24 +761,19 @@ Shift::Topology::dhva_fptr Shift::Joint::Revolute::DHVAfptr() {
   return rz_dhva;
 }
 
-void Shift::Joint::Revolute::service(const double y[], double*) {
+void Shift::Joint::Revolute::service(const double y[]) {
 
-  // retrieve joint working forces
   auto& f = context_->jointWorkingForces();
 
   // stiffness
   auto& q = y[q_index_];
-  double temp = 0.0;
   for(unsigned int i = 0; i < stiffness_coefficients_.size(); i++) {
-    temp += stiffness_coefficients_[i] * std::pow(q, i);
+    f[dq_index_] -= stiffness_coefficients_[i] * copysign(std::pow(q, i), q);
   }
-  f[dq_index_] -= temp;
 
   // damping
   auto& dq = y[context_->qCount() + dq_index_];
-  temp = 0.0;
   for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
-    temp += damping_coefficients_[i] * std::pow(dq, i);
+    f[dq_index_] -= damping_coefficients_[i] * copysign(std::pow(dq, i), dq);
   }
-  f[dq_index_] -= temp;
 }

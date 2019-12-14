@@ -23,7 +23,7 @@ void Shift::Solver::RNCA::addParameters() {
   Shift::Solver::Base::addParameters();
 
   addParameter(
-    "infinity_norm_multiplier", &infinity_norm_muliplier_,
+    "infinity_norm_multiplier", &infinity_norm_multiplier_,
     "The infinity norm of each Jacobian matrix's *B* matrix is used as a "
     "heuristic to determine when to reapply Gaussian elimination with complete "
     "row and column pivoting on as-needed basis. GECP will be reapplied when "
@@ -74,6 +74,8 @@ void Shift::Solver::RNCA::initialize() {
 
   la_.resize(context_->dqCount());
   std::fill(la_.begin(), la_.end(), 0);
+
+  infinity_norm_failure_ = false;
 
   context_->jacobian().removeConstraintViolations();
   context_->jacobian().analyze();
@@ -1072,17 +1074,19 @@ void Shift::Solver::RNCA::recordPointers() {
   }
 }
 
-void Shift::Solver::RNCA::setEquations() {
+bool Shift::Solver::RNCA::setEquations() {
   assert(context_);
-  setEquations(context_->q().data());
+  return setEquations(0.0, context_->q().data());
 }
 
-void Shift::Solver::RNCA::setEquationsAndRecordFills() {
+bool Shift::Solver::RNCA::setEquationsAndRecordFills() {
   assert(context_);
-  setEquationsAndRecordFills(context_->q().data());
+  setEquationsAndRecordFills(0.0, context_->q().data());
+  return false;
 }
 
-void Shift::Solver::RNCA::setEquationsAndRecordFills(const double y[]) {
+bool Shift::Solver::RNCA::setEquationsAndRecordFills(const double t,
+                                                     const double y[]) {
   const double* q = y;
   const double* dq = y + q_count_;
   assert(context_);
@@ -1092,9 +1096,17 @@ void Shift::Solver::RNCA::setEquationsAndRecordFills(const double y[]) {
   jacobian.setPO2();
   jacobian.factorPO2();
   jacobian.setBMatrixSparse();
-  if(jacobian.infinityNormCheck(infinity_norm_muliplier_)) {
+  unsigned int infinity_norm_check = jacobian.infinityNormCheck(
+    t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
+  if(infinity_norm_check) {
+    if(infinity_norm_check == 2) {
+      std::cerr << "Newton-raphson failure, exiting simulation." << std::endl;
+      return true;
+    }
+    std::cerr << "Failed infinity norm check, but GECP was successfully "
+                 "reapplied and simulation will attempt to continue"
+              << std::endl;
     jacobian.analyze();
-    context_->evaluateConstraints();
     setRHS();
     setMassMatrixAndRecordFills();
     memoize();
@@ -1102,9 +1114,10 @@ void Shift::Solver::RNCA::setEquationsAndRecordFills(const double y[]) {
     setRHS();
     setMassMatrixAndRecordFills();
   }
+  return false;
 }
 
-void Shift::Solver::RNCA::setEquations(const double y[]) {
+bool Shift::Solver::RNCA::setEquations(const double t, const double y[]) {
   const double* q = y;
   const double* dq = y + q_count_;
   assert(context_);
@@ -1114,9 +1127,17 @@ void Shift::Solver::RNCA::setEquations(const double y[]) {
   jacobian.setPO2();
   jacobian.factorPO2();
   jacobian.setBMatrixSparse();
-  if(jacobian.infinityNormCheck(infinity_norm_muliplier_)) {
+  unsigned int infinity_norm_check = jacobian.infinityNormCheck(
+    t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
+  if(infinity_norm_check) {
+    if(infinity_norm_check == 2) {
+      std::cerr << "Newton-raphson failure, exiting simulation." << std::endl;
+      return true;
+    }
+    std::cerr << "Failed infinity norm check, but GECP was successfully "
+                 "reapplied and simulation will attempt to continue"
+              << std::endl;
     jacobian.analyze();
-    context_->evaluateConstraints();
     setRHS();
     setMassMatrixAndRecordFills();
     memoize();
@@ -1124,6 +1145,7 @@ void Shift::Solver::RNCA::setEquations(const double y[]) {
     setRHS();
     setMassMatrix();
   }
+  return false;
 }
 
 void Shift::Solver::RNCA::setRHS() {
@@ -1315,6 +1337,10 @@ void Shift::Solver::RNCA::setRHS() {
   assert(integrator_);
   const double baumgarte_2_omega_n = integrator_->baumgarte2OmegaN();
   const double baumgarte_omega_n_2 = integrator_->baumgarteOmegaN2();
+
+  std::cout << "baumgarte_2_omega_n: " << baumgarte_2_omega_n << std::endl;
+  std::cout << "baumgarte_omega_n_2: " << baumgarte_omega_n_2 << std::endl;
+
   const auto& integral_constraint_error =
     integrator_->integralConstraintError();
 
@@ -1353,7 +1379,7 @@ void Shift::Solver::RNCA::setRHS() {
     const auto& pr_21 = substructure.pr21();
     int offset = substructure.dqOffset();
     const double* cs = substructure.cs();
-    const auto& constraints = substructure.constraints();
+    const auto& constraints = substructure.constraintIndices();
 
     /* number of constraints to evaluate */
     for(size_t k = 0; k < substructure.chordConstraintCount();
@@ -1411,6 +1437,41 @@ void Shift::Solver::RNCA::setRHS() {
       }
     }
   }
+
+  /* precondition primary constraints in PO(2)
+  \bar{\gamma}_d = U^{-1} L^{-1} \bar{\gamma}_p */
+  for(auto& substructure : jacobian.substructures()) {
+
+    int offset = substructure.dqOffset();
+    const int dq_count = substructure.dqCount();
+    const double* J = substructure.jacobianMatrix();
+    const int rank = substructure.rank();
+
+    /* forward elimination:
+    \bar{\gamma} <- L^{-1} * \bar\{\gamma} */
+    for(int i = 0; i < rank; i++) {
+      for(int j = 0; j < i; j++) {
+        gamma_d_[i + offset] -= J[i * dq_count + j] * gamma_d_[j + offset];
+      }
+    }
+
+    /* back substitution
+    \bar{\gamma} <- U^{-1} * \bar\{\gamma) */
+    for(int i = rank - 1; i > -1; i--) {
+      double save = 0;
+      for(int j = rank - 1; j > i; j--) {
+        save += J[i * dq_count + j] * gamma_d_[j + offset];
+      }
+      gamma_d_[i + offset] =
+        (gamma_d_[i + offset] - save) / J[i * dq_count + i];
+    }
+  }
+
+  std::cout << "gamma_d_: ";
+  for(auto& val : gamma_d_) {
+    std::cout << val << " ";
+  }
+  std::cout << std::endl;
 }
 
 /*! set mass matrix without setting boolean mass matrix */
@@ -1433,7 +1494,8 @@ void Shift::Solver::RNCA::setMassMatrix() {
   std::fill(Ml_.begin(), Ml_.end(), 0);
   ksl_inertia_t* inertia_p = inertia_p_.data() + 1;
 
-  /* compute ``accumulated'' inertia matrices, project child inertia onto parent
+  /* compute ``accumulated'' inertia matrices, project child inertia onto
+   * parent
    */
   for(int j = non_rigid_joint_count - 1; j > -1; j--) {
     int i = pcl_compressed[j];
@@ -1565,7 +1627,8 @@ void Shift::Solver::RNCA::setMassMatrixAndRecordFills() {
   ksl_inertia_t* inertia_p = inertia_p_.data() + 1;
   std::fill(Mlb_.begin(), Mlb_.end(), 0);
 
-  /* compute ``accumulated'' inertia matrices, project child inertia onto parent
+  /* compute ``accumulated'' inertia matrices, project child inertia onto
+   * parent
    */
   for(int j = non_rigid_joint_count - 1; j > -1; j--) {
     int i = pcl_compressed[j];
@@ -1818,7 +1881,7 @@ and any states required for force modules
 y = [q, dq, q_f]
 dy = [dq, ddq, dq_f]
 */
-void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
+bool Shift::Solver::RNCA::solve(const double t, const double y[], double dy[]) {
 
   assert(context_);
   assert(q_count_ = context_->qCount());
@@ -1828,9 +1891,11 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
 
   context_->updateDHVA(q, dq);
   context_->evaluateConstraints();
-  context_->setForces(q);
+  context_->setForces(t, q);
 
-  setEquations(y);
+  if(setEquations(t, y)) {
+    return true;
+  }
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
   /* make a copy of Ml and fl to verify equations of motion, remove this
@@ -1845,16 +1910,6 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
       }
     }
   }
-
-#if 0
-  std::cout << "Ml: " << std::endl;
-  for(unsigned int i = 0; i < dq_count_; i++) {
-    for(unsigned int j = 0; j < dq_count_; j++) {
-      std::cout << Ml[i * dq_count_ + j] << " ";
-    }
-    std::cout << std::endl;
-  }
-#endif
 #endif
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
@@ -1862,30 +1917,34 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
   equations of motion */
   double fl[dq_count_];
   memcpy(fl, fl_.data(), dq_count_ * sizeof(double));
-#if 0
+
+#endif
+#if 1
   std::cout << "fl: ";
   for(unsigned int i = 0; i < dq_count_; i++) {
     std::cout << fl_[i] << " ";
   }
   std::cout << std::endl;
 #endif
-#endif
-
   factorAndSolve();
-
-  if(context_->newtonRaphsonFailure()) {
-    return;
+#if 1
+  std::cout << "fl: ";
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    std::cout << fl_[i] << " ";
   }
+  std::cout << std::endl;
+#endif
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
   /* verify that multiplying coefficient matrix with lhs gets back the
   right hand side */
-  // std::cout << "y: ";
-  // for(unsigned int i = 0; i < dq_count_; i++) {
+  // std::cout << "(" << t << ") ";
+  // std::cout << " y: ";
+  // for(unsigned int i = 0; i < q_count_ + dq_count_; i++) {
   //   std::cout << y[i] << " ";
   // }
   // std::cout << std::endl;
-  verify(y, Ml, fl);
+  verify(t, y, Ml, fl);
 #endif
 
   /* convert angular velocities to time derivative of quaternions
@@ -1905,13 +1964,13 @@ void Shift::Solver::RNCA::solve(const double y[], double dy[]) {
   }
   std::cout << std::endl;
 #endif
-  //
-  // exit(1);
+  return false;
 }
 
-bool Shift::Solver::RNCA::verify(const double dy[], double Ml[], double fl[]) {
+bool Shift::Solver::RNCA::verify(const double t, const double dy[], double Ml[],
+                                 double fl[]) {
   bool verified = true;
-
+  (void)t;
 #ifdef SHIFT_VERIFY_EQUATIONS_
 
   // std::cout << "verifying equations: ";
@@ -2138,11 +2197,25 @@ bool Shift::Solver::RNCA::verify(const double dy[], double Ml[], double fl[]) {
     verified = false;
     std::cerr << "verification failed" << std::endl;
 
-    std::cerr << "error: context->fl (po3): ";
+    std::cerr << "  context->fl (original): ";
     for(unsigned int i = 0; i < dq_count_; i++) {
       printf("%0.5g, ", fl[i]);
     }
+    std::cerr << std::endl << "  context->fl (recovered): ";
+    for(unsigned int i = 0; i < dq_count_; i++) {
+      printf("%0.5g, ", fl_po3[i]);
+    }
     printf("\n");
+
+    auto& jacobian = context_->jacobian();
+    std::cout << "infinity norm failures: " << std::endl;
+    for(auto& infinity_norm_failure : jacobian.infinityNormFailures()) {
+      std::cout << "t: " << infinity_norm_failure.time << " ";
+      for(auto& index : infinity_norm_failure.substructure_index) {
+        std::cout << index << " ";
+      }
+      std::cout << std::endl;
+    }
     exit(1);
 
     // fprintf(debug, "         != fl_po3 (po3): ");

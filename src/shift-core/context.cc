@@ -1494,8 +1494,12 @@ void Shift::Context::allocateRunTimeArrays() {
   joint_data_.resize(data_count);
   std::fill(joint_data_.begin(), joint_data_.end(), 0);
 
+  q_copy_.resize(q_count_);
+  std::fill(q_copy_.begin(), q_copy_.end(), 0);
+
   q_.resize(q_count_ + dq_count_);
   std::fill(q_.begin(), q_.end(), 0);
+
   dq_ = q_.data() + q_count_;
 
   delta_q_.resize(dq_count_);
@@ -2146,10 +2150,10 @@ int Shift::Context::digraph(std::string filename) {
   // fclose(DGF);
   return 0;
 
-  // agclose and gvFreeContext appear to not entirely free memory, it
-  // up to 1MB of memory not properly freed at program termination.
+  // agclose and gvFreeContext do not free their memory;
+  // up to 1MB is not properly freed at program termination.
 
-  // @TODO find fix for this or write to DOT file and call graphviz using
+  // @TODO find fix for memory leak or write to DOT file and call graphviz using
   // external system call
 }
 
@@ -2496,19 +2500,27 @@ unsigned int Shift::Context::forceModuleEquationCount() {
 }
 
 void Shift::Context::evaluateConstraints() {
-  jacobian_.evaluateConstraints();
+  constraint_error_ = jacobian_.evaluateConstraints();
 }
 
-void Shift::Context::setForces(const double y[]) {
-  (void)y;
-  std::fill(f_.begin(), f_.end(), 0);
+double Shift::Context::constraintError() {
+  return constraint_error_;
+}
 
-  // @TODO hook up service functions to set body forces and working forces
-  // within joints
+void Shift::Context::setForces(const double t, const double y[]) {
+  (void)t;
+  std::fill(f_.begin(), f_.end(), 0);
+  for(auto& joint : active_joints_) {
+    joint->service(y);
+  }
+  std::cout << "f_: ";
+  for(auto& force : f_) {
+    std::cout << force << " ";
+  }
+  std::cout << std::endl;
 }
 
 void Shift::Context::dqTody(const double y[], double dy[]) {
-
   auto q = y;
   auto dq = y + q_count_;
 

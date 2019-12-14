@@ -602,13 +602,56 @@ double Shift::Substructure::infinityNormB() {
   return ksl_linalg_lu_infinityNormB_rmo(rank_, dq_count_, J_);
 }
 
-bool Shift::Substructure::infinityNormCheck() {
-  return infinity_norm_b_ >
-         infinity_norm_multiplier_ * initial_infinity_norm_b_;
+unsigned int Shift::Substructure::infinityNormCheck(double* q,
+                                                    const double* dq) {
+  return infinityNormCheck(q, dq, infinity_norm_multiplier_);
 }
 
-bool Shift::Substructure::infinityNormCheck(double infinity_norm_multiplier) {
-  return infinity_norm_b_ > infinity_norm_multiplier * initial_infinity_norm_b_;
+unsigned int
+Shift::Substructure::infinityNormCheck(double* q, const double* dq,
+                                       const double infinity_norm_multiplier) {
+
+  int return_value = 0;
+  const double infinity_norm_b = infinityNormB();
+  bool infinity_norm_fail =
+    infinity_norm_b > (infinity_norm_multiplier * initial_infinity_norm_b_);
+
+  std::cout << infinity_norm_b << " " << initial_infinity_norm_b_ << std::endl;
+
+  if(infinity_norm_fail) {
+
+    return_value++;
+
+    std::cerr << "performing full factor on substructure [" << index_
+              << "]: infinity norm: " << infinity_norm_b << " > "
+              << infinity_norm_b * infinity_norm_multiplier << std::endl;
+
+    double* q_copy = context_->qCopy().data();
+
+    /* backup q array to qCopy */
+    memcpy(q_copy + q_offset_, q + q_offset_, q_count_ * sizeof(double));
+
+    int newton_raphson_failure = removeConstraintViolationsFast(true);
+
+    std::cerr << "e after nr: " << evaluateConstraints(context_->dhva())
+              << std::endl;
+
+    setPO1(context_->dhva());
+    std::cerr << "rank: " << rank_ << std::endl;
+
+    if(newton_raphson_failure) {
+      return_value++;
+      std::cerr << "Newton-Raphson failed!" << std::endl;
+      return return_value;
+    }
+
+    /* restore states */
+    memcpy(q + q_offset_, q_copy + q_offset_, q_count_ * sizeof(double));
+
+    context_->updateDHVA(q, dq);
+    evaluateConstraints(context_->dhva());
+  }
+  return return_value;
 }
 
 /*!

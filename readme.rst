@@ -188,9 +188,9 @@ The layout of classes follows the hierarchy below. For more information on objec
       * An array of **lights** created using a factory method: ``Shift::FactoryArray<Shift::Lights::Base> lights_``
       * An array of **behaviors** created using a factory method: ``Shift::FactoryArray<Shift::Behaviors::Base> behaviors_``
       * An array of **constraints** created using a factory method: ``Shift::FactoryArray<Shift::Constraint::Base> constraints_``
-      * An array of **constraints** created using a factory method: ``Shift::FactoryArray<Shift::Joints::Base>  joints_``
-      * An array of **joints** created using a factory method: ``Shift::FactoryArray<Shift::Sensors::Base> sensors_``
-      * An array of **sensors** created using a factory method: ``Shift::FactoryArray<Shift::ForceModules::Base> force_modules_``
+      * An array of **joints** created using a factory method: ``Shift::FactoryArray<Shift::Joints::Base>  joints_``
+      * An array of **sensors** created using a factory method: ``Shift::FactoryArray<Shift::Sensors::Base> sensors_``
+      * An array of **force modules** created using a factory method: ``Shift::FactoryArray<Shift::ForceModules::Base> force_modules_``
       * An array of **subassemblies** in ``Shift::Array<Shift::Assembly> assemblies_``. Each assembly in turn may contain more subassemblies, nested arbitrarily deep.
 
 
@@ -208,14 +208,14 @@ Factory base classes
 Description            Base class                          Description
 ---------------------  ----------------------------------- --------------------
 Behavior               ``Shift::Behavior::Base``           Handling events in a simulation.
-Body                   ``Shift::Body::Base``               A simulation object, typically with mass an inertia properties.
-Collision geometry     ``Shift::CollisionGeometry::Base``  Simplified geometry used for contact and collision detection.
+Body                   ``Shift::Body::Base``               A simulation object, typically with mass and inertia properties.
+Collision geometry     ``Shift::CollisionGeometry::Base``  Simplified geometry used for collision detection and contact modelling.
 Constraint             ``Shift::Constraint::Base``         A motion constraint imposed between two bodies or within a joint.
-Force module           ``Shift::ForceModule::Base``        Provides a mechanism to feed back forces into a running model.
-Geometry               ``Shift::Geometry::Base``           Body geometry, typically used for display in a 3d graphical environment. Simplified collision geometry may also be generated from body's geometry definition.
+Force module           ``Shift::ForceModule::Base``        A mechanism to feed back forces into a running model.
+Geometry               ``Shift::Geometry::Base``           Body geometry, used for display in a 3d graphical environment. Simplified collision geometry may also be generated from body's geometry definition.
 Integrator             ``Shift::Integrator::Base``         Used to time-step a dynamic simulation.
 Joint                  ``Shift::Joint::Base``              A special type of constraint connecting two bodies.
-Light                  ``Shift::Light::Base``              Specify a light source in a 3d graphical environment.
+Light                  ``Shift::Light::Base``              A light source in a 3d graphical environment.
 Logger                 ``Shift::Logger::Base``             Allows logging simulation data to an external file.
 Sensor                 ``Shift::Sensor::Base``             Captures information about a running simulation. The data can be made available to other *Shift* objects. Cameras, IMUs, range sensors are examples of possible sensors.
 Solver                 ``Shift::Solver::Base``             Sets up and solves the equations of motion at each time step.
@@ -339,7 +339,7 @@ Class                               ``"type"`` keyword Created by user? Descript
 =================================== ================== ================ ============
 Class                               ``"type"`` keyword Created by user? Description
 ----------------------------------- ------------------ ---------------- ------------
-``Shift::Joint::Float``             ``"float"``        Yes              6DOF Floating joint, used to connect an articulated multibody system to the fixed inertial reference frame. Note that if a ``Shift::Body::Rigid`` body will never be connected to an articulated multibody system, the user should instead use a ``Shift::Body::Free`` body, which does not require explicitly adding a joint. The rotational DOF are modeled using quaternions to avoid Gimball lock.
+``Shift::Joint::Float``             ``"float"``        Yes              6DOF Floating joint, used to connect an articulated multibody system to the fixed inertial reference frame. Note that if a ``Shift::Body::Rigid`` body will never be kinematically connected via joints to other bodies, the user should instead use a ``Shift::Body::Free`` body, which does not require explicitly adding a joint or other kinematic constraint. A ``Shift::Body::Free`` body may still interact with other bodies via force modules. In a ``Shift::Joint::Float`` joint, the rotational DOF are modeled using quaternions to avoid Gimball lock.
 ``Shift::Joint::Prismatic``         ``"prismatic"``    Yes              1DOF Translational joint.
 ``Shift::Joint::Revolute``          ``"revolute"``     Yes              1DOF rotational joint.
 ``Shift::Joint::Rigid``             ``"rigid"``        Yes              0DOF Rigid connection between two articulated bodies. Rigid connections between two bodies will be optimized out when solving the equations of motion.

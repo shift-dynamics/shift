@@ -4,11 +4,11 @@
 
 #include <math.h>
 
-const double Shift::Integrator::ODE113::twou_ =
-  std::numeric_limits<double>::epsilon() * 2.0;
+const double Shift::Integrator::ODE113::twou_ = 1.42e-14;
+// std::numeric_limits<double>::epsilon() * 2.0;
 
-const double Shift::Integrator::ODE113::fouru_ =
-  std::numeric_limits<double>::epsilon() * 4.0;
+const double Shift::Integrator::ODE113::fouru_ = 2.84e-14;
+// std::numeric_limits<double>::epsilon() * 4.0;
 
 const double Shift::Integrator::ODE113::gstr_[14] = {
   0.0,    0.5,     0.0833,  0.0417,  0.0264,  0.0188,  0.0143,
@@ -83,7 +83,7 @@ void Shift::Integrator::ODE113::reset() {
     }
   }
 
-  integral_error_.resize(context_->chordConstraintCount() * 6);
+  integral_error_.resize(context_->constraintEquationCount());
   std::fill(integral_error_.begin(), integral_error_.end(), 0);
 
   step_count_ = ceil(time_span_ / time_step_) + 1;
@@ -135,21 +135,24 @@ void Shift::Integrator::ODE113::reset() {
   g_[2] = 0.5;
   memset(sig_, 0, 14 * sizeof(double));
   sig_[1] = 1.0;
+
+  baumgarte_omega_n_ = omega_n_;
+  baumgarte_omega_n_prev_ = omega_n_;
 }
 
 void Shift::Integrator::ODE113::initialize() {
   reset();
 }
 
-void Shift::Integrator::ODE113::stepFcn(double y[]) {
+void Shift::Integrator::ODE113::stepFcn(double t, double y[]) {
   assert(solver_);
-  solver_->solve(y, dy_.data());
+  iteration_count_++;
 
-  // std::cout << "y: ";
-  // for(size_t i = 0; i < neqn_; i++) {
-  //   std::cout << y[i] << " ";
-  // }
-  // std::cout << std::endl;
+  newton_raphson_failure_ = solver_->solve(t, y, dy_.data());
+  if(newton_raphson_failure_) {
+    return;
+  }
+
   //
   // std::cout << "dy: ";
   // for(size_t i = 0; i < dy_.size(); i++) {
@@ -158,23 +161,38 @@ void Shift::Integrator::ODE113::stepFcn(double y[]) {
   // std::cout << std::endl << std::endl;
 
   if(iconv_ == 1) {
+
     auto& jacobian = context_->jacobian();
     auto& cs = jacobian.constraints();
-
     h_ = fmax(x_ - t_, hmin_); /* limit next step size */
-    double omega_n = stability_limits_[k_] / h_ * safety_factor_;
-    omega_n = fmin(omega_n, omega_n_max_); /* limit omega_n */
-    omega_n = omega_n_prev_ + smoothing_filter_ * (omega_n - omega_n_prev_);
-    omega_n_prev_ = omega_n;
-    baumgarte_2_omega_n_ = 2.0 * omega_n;
-    baumgarte_omega_n_2_ = omega_n * omega_n;
+    baumgarte_omega_n_ = stability_limits_[k_] / h_ * safety_factor_;
+    baumgarte_omega_n_ =
+      fmin(baumgarte_omega_n_, omega_n_max_); /* limit omega_n */
+    baumgarte_omega_n_ =
+      baumgarte_omega_n_prev_ +
+      smoothing_filter_ * (baumgarte_omega_n_ - baumgarte_omega_n_prev_);
+    baumgarte_omega_n_prev_ = baumgarte_omega_n_;
     double rho_dt = h_ * integral_gain_;
+
     for(unsigned int i = 0; i < context_->constraintEquationCount(); i++) {
       // evaluate integral error
       integral_error_[i] += cs[i] * rho_dt;
     }
 
     t_ = x_;
+
+    std::cout << "(" << t_ << ") y: ";
+    for(size_t i = 0; i < neqn_; i++) {
+      std::cout << y_[i] << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "dy: ";
+    for(size_t i = 0; i < neqn_; i++) {
+      std::cout << dy_[i] << " ";
+    }
+    std::cout << std::endl;
+
     if(x_ >= tdata_[step_] + time_step_) {
       // do logging
       context_->writeStates(t_, y);
@@ -189,6 +207,7 @@ void Shift::Integrator::ODE113::integrate() {
 
   reset();
   solver_->initialize();
+  context_->writeStates(x_, y_.data());
 
   step_ = 0;
   eps_ = fmax(relative_error_, absolute_error_);
@@ -258,7 +277,6 @@ void Shift::Integrator::ODE113::integrate() {
       absolute_error_ = eps_ * abseps;
       memcpy(y_.data(), yy_.data(), neqn_ * sizeof(double));
       x_ = t_;
-      std::cerr << "crash" << std::endl;
       return;
     } /* End if crash*/
   }   /* End While*/
@@ -445,9 +463,9 @@ void Shift::Integrator::ODE113::step() {
   if(start_) {
     /* initialize: compute appropriate step size for first step */
     iconv_ = 1;
-    stepFcn(yy_.data());
+    stepFcn(x_, yy_.data());
     if(newton_raphson_failure_) {
-      std::cout << "newton raphson failure" << std::endl;
+      std::cerr << "Newton Raphson Failure" << std::endl;
       return;
     }
     double sum = 0.0;
@@ -577,6 +595,7 @@ void Shift::Integrator::ODE113::step() {
       phi_[kp1][l] = 0.0;
       p_[l] = 0.0;
     }
+
     for(unsigned int j = 1; j <= k_; j++) {
       int i = kp1 - j;
       ip1 = i + 1;
@@ -585,9 +604,11 @@ void Shift::Integrator::ODE113::step() {
         phi_[i][l] += phi_[ip1][l];
       }
     }
+
     if(nornd_) {
-      for(unsigned int l = 0; l < neqn_; l++)
+      for(unsigned int l = 0; l < neqn_; l++) {
         p_[l] = yy_[l] + h_ * p_[l];
+      }
     } else {
       for(unsigned int l = 0; l < neqn_; l++) {
         tau = h_ * p_[l] - phi_[15][l];
@@ -595,10 +616,12 @@ void Shift::Integrator::ODE113::step() {
         phi_[16][l] = (p_[l] - yy_[l]) - tau;
       }
     }
+
     xold = x_;
     x_ += h_;
-    stepFcn(p_.data());
+    stepFcn(x_, p_.data());
     if(newton_raphson_failure_) {
+      std::cerr << "Error: Newton-Raphson failure" << std::endl;
       return;
     }
 
@@ -647,7 +670,7 @@ void Shift::Integrator::ODE113::step() {
       break;
     }
 
-    /* the step is unsuccessful. restore  x, phi[][], psi[]. if third
+    /* the step is unsuccessful. restore x, phi[][], psi[]. if third
        consecutive failure, set order to one. if step fails more than three
        times, consider an optimal step size. double error tolerance and
        return if estimated step size is too small for machine precision.
@@ -699,8 +722,9 @@ void Shift::Integrator::ODE113::step() {
   /*  correct and evaluate */
   double temp1 = h_ * g_[kp1];
   if(nornd_) {
-    for(unsigned int l = 0; l < neqn_; l++)
+    for(unsigned int l = 0; l < neqn_; l++) {
       yy_[l] = p_[l] + temp1 * (dy_[l] - phi_[1][l]);
+    }
   } else {
     for(unsigned int l = 0; l < neqn_; l++) {
       rho = temp1 * (dy_[l] - phi_[1][l]) - phi_[16][l];
@@ -710,8 +734,9 @@ void Shift::Integrator::ODE113::step() {
   }
 
   iconv_ = 1;
-  stepFcn(yy_.data());
+  stepFcn(x_, yy_.data());
   if(newton_raphson_failure_) {
+    std::cerr << "Newton Raphson failure" << std::endl;
     return;
   }
 

@@ -16,7 +16,8 @@ void Shift::Integrator::Base::setActiveObjects(bool parent_is_active) {
 };
 
 void Shift::Integrator::Base::addParameters() {
-  addParameter("omega_n", &baumgarte_omega_n_,
+
+  addParameter("omega_n", &omega_n_,
                "characteristic frequency for baumgarte constraint "
                "stabilization, defaults to 200 if not provided.",
                false);

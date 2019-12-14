@@ -122,7 +122,7 @@ public:
   Topology::dh_fptr DHfptr() override;
   Topology::dhva_fptr DHVAfptr() override;
 
-  virtual void service(const double y[], double dy[]) override;
+  virtual void service(const double y[]) override;
 
 private:
   virtual void addParameters() override;

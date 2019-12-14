@@ -8,6 +8,8 @@
 
 void Shift::Jacobian::initialize() {
   newton_raphson_failure_ = false;
+  iterations_since_last_infinity_norm_failure_ = 0;
+  infinity_norm_failures_.clear();
   assert(context_);
   mallocEquations();
   compressLoopMembers();
@@ -214,10 +216,6 @@ void Shift::Jacobian::translatePermutations() {
   /* set pv_21 */
   for(auto& substructure : substructures_) {
     for(unsigned int j = 0; j < substructure.qCount(); j++) {
-      // std::cout << "substructure.qCount(): " << substructure.qCount()
-      //           << std::endl;
-      // std::cout << "substructure.dqOffset(): " << substructure.dqOffset()
-      //           << std::endl;
       pv_12_[substructure.dqOffset() + j] =
         substructure.pc_12()[j] + substructure.dqOffset();
     }
@@ -227,9 +225,6 @@ void Shift::Jacobian::translatePermutations() {
 
   /* determine which variables are independent / dependent */
   for(auto& substructure : substructures_) {
-    // std::cout << "substructure.dqOffset: " << substructure.dqOffset()
-    //           << std::endl;
-    // std::cout << "rank: " << substructure.rank() << std::endl;
     for(int j = 0; j < substructure.rank(); j++) {
       is_dependent_po1_[pv_12_[substructure.dqOffset() + j]] = true;
     }
@@ -440,26 +435,81 @@ void Shift::Jacobian::initializeMobility() {
   }
 }
 
-void Shift::Jacobian::evaluateConstraints() {
+double Shift::Jacobian::evaluateConstraints() {
+  double e = 0;
   for(auto& substructure : substructures_) {
-    substructure.evaluateConstraints(context_->dhva());
+    e += substructure.evaluateConstraints(context_->dhva());
   }
+  return e;
 }
 
-bool Shift::Jacobian::infinityNormCheck() {
+unsigned int Shift::Jacobian::infinityNormCheck(double time, double* q,
+                                                const double* dq) {
+  iterations_since_last_infinity_norm_failure_++;
+
+  bool infinity_norm_pass = true;
+  std::vector<unsigned int> substructure_failure_indices;
   for(auto& substructure : substructures_) {
-    if(substructure.infinityNormCheck()) {
-      return true;
+
+    /* 0: infinity norm check passed
+       1: infinity norm check failed, but newton raphson iteration was
+       successfully applied to determine correct substructure rank. simulation
+       can continue
+       2: infinity norm check failed, and application of newton
+       raphson iteration failed, simulation should terminate.
+    */
+    int return_value = substructure.infinityNormCheck(q, dq);
+    if(return_value == 1) {
+      infinity_norm_pass = false;
+      substructure_failure_indices.push_back(substructure.index());
+    } else if(return_value == 2) {
+      substructure_failure_indices.push_back(substructure.index());
+      infinity_norm_failures_.push_back({time, substructure_failure_indices});
+      return 2;
     }
   }
-  return false;
+
+  if(!infinity_norm_pass) {
+    infinity_norm_failures_.push_back({time, substructure_failure_indices});
+    iterations_since_last_infinity_norm_failure_ = 0;
+    return 1;
+  }
+
+  return 0;
 }
 
-bool Shift::Jacobian::infinityNormCheck(double infinity_norm_multiplier) {
+unsigned int
+Shift::Jacobian::infinityNormCheck(double time, double* q, const double* dq,
+                                   double infinity_norm_multiplier) {
+  iterations_since_last_infinity_norm_failure_++;
+
+  bool infinity_norm_pass = true;
+  std::vector<unsigned int> substructure_failure_indices;
   for(auto& substructure : substructures_) {
-    if(substructure.infinityNormCheck(infinity_norm_multiplier)) {
-      return true;
+    /* 0: infinity norm check passed
+       1: infinity norm check failed, but newton raphson iteration was
+       successfully applied to determine correct substructure rank. simulation
+       can continue
+       2: infinity norm check failed, and application of newton
+       raphson iteration failed, simulation should terminate.
+    */
+    int return_value =
+      substructure.infinityNormCheck(q, dq, infinity_norm_multiplier);
+    if(return_value == 1) {
+      infinity_norm_pass = false;
+      substructure_failure_indices.push_back(substructure.index());
+    } else if(return_value == 2) {
+      substructure_failure_indices.push_back(substructure.index());
+      infinity_norm_failures_.push_back({time, substructure_failure_indices});
+      return 2;
     }
   }
-  return false;
+
+  if(!infinity_norm_pass) {
+    infinity_norm_failures_.push_back({time, substructure_failure_indices});
+    iterations_since_last_infinity_norm_failure_ = 0;
+    return 1;
+  }
+
+  return 0;
 }
