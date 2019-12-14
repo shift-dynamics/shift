@@ -466,8 +466,6 @@ Updates displacement and influence coefficient matrices
 void Shift::Joint::tzinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
                             const Shift::Topology::Offsets& offsets,
                             const double* __restrict__ q) {
-  // std::cout << "tzinv_dh" << std::endl;
-
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
@@ -478,7 +476,7 @@ void Shift::Joint::tzinv_dh(const Shift::Context&, Shift::Topology::DHVA& dhva,
 }
 
 /*!
-@brief Prismatic joint along z-axis - inv (dhva)
+@brief Prismatic joint along z-axis - inverse (dhva)
 
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
@@ -636,17 +634,21 @@ void Shift::Joint::Prismatic::addParameters() {
   addParameter("initial_velocity", dq_0_,
                "Initial joint velocity, defaults to zero if no value provided.",
                false);
+
   addParameter(
     "damping_coefficients", &damping_coefficients_,
     "specify  polynomial damping coefficients a, where force due to damping is "
-    "computed as: a_0 + a_1 * \\dot{x}^1 + a_2 * \\dot{x}^2 + .. a_n * "
+    "computed as: a_0 + a_1 * \\dot{x}^1 + a_2 * \\dot{x}^2 + ... + a_n * "
     "\\dot{x}^n\\",
-    false);
+    false)
+    .setRowDim(-1);
+
   addParameter("stiffness_coefficients", &stiffness_coefficients_,
                "specify polynomial stiffness coefficients a, where force due "
                "to joint position is computed as: "
-               "a_0 + a_1 * x^1 + a_2 * x^2 + .. a_n * x^n\\",
-               false);
+               "a_0 + a_1 * x^1 + a_2 * x^2 + ... + a_n * x^n\\",
+               false)
+    .setRowDim(-1);
 }
 
 Shift::Joint::Prismatic::AxisType Shift::Joint::Prismatic::axisType() {
@@ -669,7 +671,7 @@ const double* Shift::Joint::Prismatic::data() {
   if(axisType() == ARBITRARY_AXIS) {
     return (double*)&axis_;
   };
-  return NULL;
+  return nullptr;
 }
 
 unsigned int Shift::Joint::Prismatic::dataCount() {
@@ -711,7 +713,7 @@ Shift::Topology::dh_fptr Shift::Joint::Prismatic::Dfptr() {
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Topology::dh_fptr Shift::Joint::Prismatic::DHfptr() {
@@ -746,7 +748,7 @@ Shift::Topology::dh_fptr Shift::Joint::Prismatic::DHfptr() {
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 Shift::Topology::dhva_fptr Shift::Joint::Prismatic::DHVAfptr() {
@@ -781,27 +783,31 @@ Shift::Topology::dhva_fptr Shift::Joint::Prismatic::DHVAfptr() {
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
-void Shift::Joint::Prismatic::service(const double y[], double*) {
+void Shift::Joint::Prismatic::service(const double y[]) {
 
-  // retrieve joint working forces
   auto& f = context_->jointWorkingForces();
 
   // stiffness
   auto& q = y[q_index_];
-  double temp = 0.0;
   for(unsigned int i = 0; i < stiffness_coefficients_.size(); i++) {
-    temp += stiffness_coefficients_[i] * std::pow(q, i);
+    // f[dq_index_] -=
+    //   stiffness_coefficients_[i] * copysign(fabs(std::pow(q, i)), q);
+
+    f[dq_index_] -= stiffness_coefficients_[i] * std::pow(q, i);
   }
-  f[dq_index_] -= temp;
+
+  std::cout << "q: " << q << ", f: " << f[dq_index_] << std::endl;
 
   // damping
   auto& dq = y[context_->qCount() + dq_index_];
-  temp = 0.0;
   for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
-    temp += damping_coefficients_[i] * std::pow(dq, i);
+    // f[dq_index_] -=
+    //   damping_coefficients_[i] * copysign(fabs(std::pow(dq, i)), dq);
+    f[dq_index_] -= damping_coefficients_[i] * std::pow(dq, i);
   }
-  f[dq_index_] -= temp;
+
+  std::cout << "dq: " << dq << ", f: " << f[dq_index_] << std::endl;
 }

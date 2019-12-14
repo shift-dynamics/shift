@@ -60,11 +60,11 @@ public:
   virtual void integrate() = 0;
 
   double baumgarteOmegaN2() const {
-    return baumgarte_omega_n_2_;
+    return baumgarte_omega_n_ * baumgarte_omega_n_;
   }
 
   double baumgarte2OmegaN() const {
-    return baumgarte_2_omega_n_;
+    return 2.0 * baumgarte_omega_n_;
   }
 
   const std::vector<double>& integralConstraintError() {
@@ -77,12 +77,15 @@ protected:
   virtual void addParameters() override;
   std::string type_; //!< descriptive name of Integrator type
   unsigned int iterations_since_last_full_factor_ = 0;
-  double baumgarte_omega_n_ = 200.0;
-  double baumgarte_2_omega_n_ = 2.0 * baumgarte_omega_n_; /*!< 2 * omega_n term,
-                                   used in baumgarte stabilization */
-  double baumgarte_omega_n_2_ =
-    baumgarte_omega_n_ *
-    baumgarte_omega_n_; /*! omega_n^2 term, used in baumgarte stabilization */
+
+  double omega_n_ = 200.0; //!< initial omega_n used in Baumgarte stabilization
+                           //!< loaded from config file
+  double baumgarte_omega_n_ =
+    200.0; //!< omega_n used during simulation, may change for integrators that
+           //!< use adaptive stabilization
+  double baumgarte_omega_n_prev_ =
+    200.0; //!< omega_n used in last successful integration step
+
   std::vector<double> integral_error_; /*!< integral error, equal to the
                                           number of constraints */
   double time_step_ = 0.01; /*!< time step used for reporting intervals */

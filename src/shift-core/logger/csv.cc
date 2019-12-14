@@ -52,6 +52,12 @@ void Shift::Logger::CSV::writeHeader() {
         file_ << joint->name() << "_dq_" << i << delimiter_;
       }
     }
+    for(auto& joint : context_->activeJoints()) {
+      for(size_t i = 0; i < joint->dqCount(); i++) {
+        file_ << joint->name() << "_ddq_" << i << delimiter_;
+      }
+    }
+    file_ << "constraint_error" << delimiter_;
   }
   file_ << "\n";
 }
@@ -62,5 +68,9 @@ void Shift::Logger::CSV::writeStates(const double t, const double y[]) {
   for(size_t i = 0; i < count; i++) {
     file_ << y[i] << delimiter_;
   }
+  for(size_t i = 0; i < context_->dqCount(); i++) {
+    file_ << context_->ddq()[i] << delimiter_;
+  }
+  file_ << context_->constraintError() << delimiter_;
   file_ << "\n";
 }

@@ -313,8 +313,9 @@ public:
   unsigned int forceModuleEquationCount();
 
   void evaluateConstraints();
+  double constraintError();
 
-  void setForces(const double y[]);
+  void setForces(const double t, const double y[]);
 
   /*! copies dq and ddq quantities to dy array using vectors quaternion_indices_
   and non_quaternion_indices_; for quaternion_indices_, converts angular
@@ -362,6 +363,10 @@ public:
   void currentTime(double& time, double& delta_t);
 
   void writeStates(const double time, const double y[]);
+
+  std::vector<double>& qCopy() {
+    return q_copy_;
+  }
 
 private:
   struct dqTodyIndex {
@@ -663,6 +668,7 @@ private:
   unsigned int q_count_ = 0;
   unsigned int dq_count_ = 0;
   double mobility_ = 0.0;
+  double constraint_error_ = 0;
 
 }; // namespace Shift
 

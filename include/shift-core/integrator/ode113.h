@@ -40,7 +40,7 @@ public:
 private:
   virtual void addParameters() override;
   void step();
-  void stepFcn(double y[]);
+  void stepFcn(const double t, double y[]);
 
   double absolute_error_ = 0.0001;
   double relative_error_ = 0.0;
@@ -68,7 +68,7 @@ private:
   to de as yy. */
   std::vector<double> yerr_; /*<! Array of estimated integration errors passed
                    to fcn. May be used for debugging purposes. */
-  double hmin_ = 0.000001;   /*!< Minimum step size */
+  double hmin_ = 0.00001;    /*!< Minimum step size */
   double t_ = 0.0;
 
   unsigned int step_count_ = 0;
@@ -78,7 +78,7 @@ private:
                              solutions. It is used to help set the current
                             integration order. */
   int iflag_ = 1;       /*<! Internal status flag that indicates integrator
-                          predition failure. Four failures and the integrator
+                          prediction failure. After four failures, the integrator
                           resets the order k to 1. */
   int ifail_ = 0;
   bool newton_raphson_failure_ = false;
@@ -108,7 +108,6 @@ roundoff error  u  which is the smallest positive number such that
   double hold_ = 0.0;
   double beta_[13] = {};
   double psi_[13] = {}; /*!< Internal array used to set up polynomials. */
-  /*!< array used to help set up polynomials, size: 17 x neqn */
   double alpha_[13] = {};
   double w_[14] = {};
   double v_[13] = {};
@@ -118,8 +117,7 @@ roundoff error  u  which is the smallest positive number such that
   double sig_[14] = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; /*!< Internal array used to
                                                        set up polynomials. */
-  // double rho_[14] = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-  //                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
   Shift::Array2d<double> phi_;
 
   bool crash_ = false;
@@ -136,9 +134,9 @@ roundoff error  u  which is the smallest positive number such that
                             following an unsuccessful correction. */
   double h_;              /*!< current step size */
   unsigned int step_ = 0; /*!< current step of numerical integration */
-  double omega_n_prev_ = 0.0;
 
-  double smoothing_filter_ = 0.0001;
+  double smoothing_filter_ =
+    0.001; //!< smoothing filter used for adaptive Baumgarte stabilization
 
   double integral_gain_ = 1000.0; /*!< constraint error integral gain */
   double safety_factor_ = 0.005;

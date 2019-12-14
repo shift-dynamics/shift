@@ -41,14 +41,14 @@ public:
   preconditioned quadratic acceleration terms */
   void setRHS();
 
-  void setEquations();
+  bool setEquations();
 
   /*! generate mass matrix and right hand side of preconditioned
   special equations of motion
    */
-  void setEquations(const double y[]);
-  void setEquationsAndRecordFills();
-  void setEquationsAndRecordFills(const double y[]);
+  bool setEquations(const double t, const double y[]);
+  bool setEquationsAndRecordFills();
+  bool setEquationsAndRecordFills(const double t, const double y[]);
 
   /*! factor and solve the block-diagonalized preconditioned spatial equations
    * of motion using run-time optimized natural constraint algorithm
@@ -58,7 +58,7 @@ public:
    */
   void factorAndSolve();
 
-  virtual void solve(const double y[], double dy[]) override;
+  virtual bool solve(const double t, const double y[], double dy[]) override;
 
   const std::string& description() {
     return description_;
@@ -76,9 +76,10 @@ private:
   void recordOperations();
   void countPointers();
   void recordPointers();
-  bool verify(const double y[], double Ml[], double fl[]);
+  bool verify(const double t, const double y[], double Ml[], double fl[]);
 
-  double infinity_norm_muliplier_ = 2.0;
+  double infinity_norm_multiplier_ = 2.0;
+  bool infinity_norm_failure_ = false;
 
   unsigned int dependent_count_ = 0;
   unsigned int q_count_ = 0;
