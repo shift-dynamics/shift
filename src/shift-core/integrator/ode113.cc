@@ -162,9 +162,10 @@ void Shift::Integrator::ODE113::stepFcn(double t, double y[]) {
 
   if(iconv_ == 1) {
 
-    auto& jacobian = context_->jacobian();
-    auto& cs = jacobian.constraints();
+    auto& cs = context_->jacobian().constraints();
+
     h_ = fmax(x_ - t_, hmin_); /* limit next step size */
+
     baumgarte_omega_n_ = stability_limits_[k_] / h_ * safety_factor_;
     baumgarte_omega_n_ =
       fmin(baumgarte_omega_n_, omega_n_max_); /* limit omega_n */
@@ -172,6 +173,7 @@ void Shift::Integrator::ODE113::stepFcn(double t, double y[]) {
       baumgarte_omega_n_prev_ +
       smoothing_filter_ * (baumgarte_omega_n_ - baumgarte_omega_n_prev_);
     baumgarte_omega_n_prev_ = baumgarte_omega_n_;
+
     double rho_dt = h_ * integral_gain_;
 
     for(unsigned int i = 0; i < context_->constraintEquationCount(); i++) {
@@ -187,7 +189,7 @@ void Shift::Integrator::ODE113::stepFcn(double t, double y[]) {
     }
     std::cout << std::endl;
 
-    std::cout << "dy: ";
+    std::cout << "(" << t_ << ") dy: ";
     for(size_t i = 0; i < neqn_; i++) {
       std::cout << dy_[i] << " ";
     }
@@ -427,15 +429,14 @@ void Shift::Integrator::ODE113::step() {
   double hnew;
   double rho;
 
-  int kp1;
+  unsigned int kp1;
   int kp2;
   int km1;
   int km2;
   int im1;
-  int iq;
   int nsm2;
-  int nsp2;
-  int limit1;
+  unsigned int nsp2;
+  unsigned int limit1;
   int ip1;
   int knew;
 
@@ -559,7 +560,7 @@ void Shift::Integrator::ODE113::step() {
         /*  update v[] and set w([] */
         limit1 = kp1 - ns_;
         temp5 = alpha_[ns_];
-        for(iq = 1; iq <= limit1; iq++) {
+        for(unsigned int iq = 1; iq <= limit1; iq++) {
           v_[iq] -= temp5 * v_[iq + 1];
           w_[iq] = v_[iq];
         }
@@ -569,7 +570,7 @@ void Shift::Integrator::ODE113::step() {
       nsp2 = ns_ + 2;
       if(kp1 >= nsp2) {
         for(unsigned int i = nsp2; i <= kp1; i++) {
-          for(iq = 1; iq <= kp2 - i; iq++) {
+          for(unsigned int iq = 1; iq <= kp2 - i; iq++) {
             w_[iq] -= alpha_[i - 1] * w_[iq + 1];
           }
           g_[i] = w_[1];
