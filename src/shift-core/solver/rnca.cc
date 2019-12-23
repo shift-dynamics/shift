@@ -1967,8 +1967,8 @@ bool Shift::Solver::RNCA::solve(const double t, const double y[], double dy[]) {
   return false;
 }
 
-bool Shift::Solver::RNCA::verify(const double t, const double dy[], double Ml[],
-                                 double fl[]) {
+bool Shift::Solver::RNCA::verify(const double t, const double* /*dy*/,
+                                 double Ml[], double fl[]) {
   bool verified = true;
   (void)t;
 #ifdef SHIFT_VERIFY_EQUATIONS_
@@ -2162,32 +2162,8 @@ bool Shift::Solver::RNCA::verify(const double t, const double dy[], double Ml[],
     }
   }
 
-  // printf("\nB matrix:\n");
-  // s2_array_print2D(
-  //   context->dqCount, context->dqCount, true, B);
-
-  // printf("\nij mapping:\n");
-  // for(int i = 0; i < context->substructureCount; i++) {
-  //   s2_substructure_t* substructure = context->substructures + i;
-  //
-  //   for(int i = 0; i < substructure->constraintEquationCount; i++) {
-  //     for(int j = 0; j < substructure->dqCount; j++) {
-  //       printf("%d ", substructure->ijMapping[i * context->dqCount + j]);
-  //     }
-  //     printf("\n");
-  //   }
-  // }
-
-  // printf("\nla_po3: ");
-  // s2_array_print(context->dqCount, la_po3);
-  // s2_array_print(context->dqCount, fl_po3);
-
   cblas_dgemv(CblasRowMajor, CblasTrans, dq_count_, dq_count_, 1.0, B,
               dq_count_, la_po3, 1, 1.0, fl_po3, 1);
-
-  // printf("\nfl_po3 <- fl_po3 + B^T * la_po3\n   ");
-  // printf("context->dqCount: %d\n", context->dqCount);
-  // s2_array_print(context->dqCount, fl_po3);
 
   if(!ksl_allclose(dq_count_, fl_po3, fl)) {
 
@@ -2217,12 +2193,6 @@ bool Shift::Solver::RNCA::verify(const double t, const double dy[], double Ml[],
       std::cout << std::endl;
     }
     exit(1);
-
-    // fprintf(debug, "         != fl_po3 (po3): ");
-    // for(int i = 0; i < context->dqCount; i++) {
-    //   fprintf(debug, "%0.5g, ", fl_po3[i]);
-    // }
-    // fprintf(debug, "\n");
   }
 
   double gamma_d_po3[dq_count_];
@@ -2244,7 +2214,7 @@ bool Shift::Solver::RNCA::verify(const double t, const double dy[], double Ml[],
 
     verified = false;
 
-    fprintf(stderr, "\nerror: context->gamma_d (po2): \n");
+    fprintf(stderr, "\nerror: gamma_d (po2): \n");
     for(unsigned int i = 0; i < dq_count_; i++) {
       fprintf(stderr, "%0.5g, ", gamma_d_[i]);
     }

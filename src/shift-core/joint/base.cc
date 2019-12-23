@@ -58,6 +58,7 @@ void Shift::Joint::Base::connect() {
               .data<Shift::Body::Base>();
         } catch(const char* msg) {
           std::cerr << "Error: could not find parent body for joint: " << name()
+                    << ". Loading the simulation will attempt to continue."
                     << std::endl;
           std::cerr << msg << std::endl;
           parent_frame_ptr_ = nullptr;
@@ -78,6 +79,7 @@ void Shift::Joint::Base::connect() {
         parent_body_ptr_ = value.data<Shift::Body::Base>();
       } catch(const char* msg) {
         std::cerr << "Error: could not find parent body for joint: " << name()
+                  << ". Loading the simulation will attempt to continue."
                   << std::endl;
         std::cerr << msg << std::endl;
         parent_frame_ptr_ = nullptr;
