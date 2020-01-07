@@ -315,12 +315,12 @@ public:
   void evaluateConstraints();
   double constraintError();
 
-  void setForces(const double t, const double y[]);
+  void setForces(const double t, const std::vector<double>& y);
 
   /*! copies dq and ddq quantities to dy array using vectors quaternion_indices_
   and non_quaternion_indices_; for quaternion_indices_, converts angular
   velocities to time derivative of quaternions */
-  void dqTody(const double y[], double dy[]);
+  void dqTody(const std::vector<double>& y, std::vector<double>& dy);
 
   bool newtonRaphsonFailure() {
     return jacobian_.newtonRaphsonFailure();
@@ -362,7 +362,7 @@ public:
   */
   void currentTime(double& time, double& delta_t);
 
-  void writeStates(const double time, const double y[]);
+  void writeStates(const double time, const std::vector<double>& y);
 
   std::vector<double>& qCopy() {
     return q_copy_;
