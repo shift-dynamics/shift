@@ -1,11 +1,10 @@
-
 #ifndef SHIFT_PARAMETER_LIST_H_
 #define SHIFT_PARAMETER_LIST_H_
 
+#include "shift-core/parameter/value.h"
+
 #include <map>
 #include <string>
-
-#include "shift-core/parameter/value.h"
 
 namespace Shift {
 
