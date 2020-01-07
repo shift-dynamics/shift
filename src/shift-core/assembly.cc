@@ -4,6 +4,7 @@
 #include "shift-core/body/fixed.h"
 #include "shift-core/context.h"
 #include "shift-core/factory.h"
+#include "shift-core/sensor/base.h"
 
 #include <iostream>
 
