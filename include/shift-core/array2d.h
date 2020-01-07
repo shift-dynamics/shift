@@ -53,7 +53,7 @@ class TriangularArray2d {
 public:
   TriangularArray2d() {}
   TriangularArray2d(int rows)
-    : array_(((2 + rows) + (1 + rows)) / 2)
+    : array_(((2 + rows) * (1 + rows)) / 2)
     , rows_(rows) {}
   ~TriangularArray2d() {}
   T* operator[](unsigned int row) {
@@ -77,7 +77,7 @@ public:
     std::fill(array_.begin(), array_.end(), 0);
   }
   void resize(int rows) {
-    array_.resize(((2 + rows) + (1 + rows)) / 2);
+    array_.resize(((2 + rows) * (1 + rows)) / 2);
     rows_ = rows;
   }
   T* startOfWork() {
