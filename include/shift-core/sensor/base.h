@@ -1,18 +1,18 @@
 #ifndef SHIFT_SENSOR_BASE_H_
 #define SHIFT_SENSOR_BASE_H_
 
+#include "shift-core/base.h"
+#include "shift-core/parameter/list.h"
+
 #include <functional>
 #include <map>
 #include <memory>
 #include <string>
 
-#include "shift-core/base.h"
-#include "shift-core/parameter/list.h"
-
 namespace Shift {
 
 namespace Body {
-class Body;
+class Base;
 }
 
 class Frame;
