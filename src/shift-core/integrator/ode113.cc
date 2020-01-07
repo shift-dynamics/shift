@@ -144,11 +144,11 @@ void Shift::Integrator::ODE113::initialize() {
   reset();
 }
 
-void Shift::Integrator::ODE113::stepFcn(double t, double y[]) {
+void Shift::Integrator::ODE113::stepFcn(double t, std::vector<double>& y) {
   assert(solver_);
   iteration_count_++;
 
-  newton_raphson_failure_ = solver_->solve(t, y, dy_.data());
+  newton_raphson_failure_ = solver_->solve(t, y, dy_);
   if(newton_raphson_failure_) {
     return;
   }
@@ -209,7 +209,7 @@ void Shift::Integrator::ODE113::integrate() {
 
   reset();
   solver_->initialize();
-  context_->writeStates(x_, y_.data());
+  context_->writeStates(x_, y_);
 
   step_ = 0;
   eps_ = fmax(relative_error_, absolute_error_);
@@ -464,7 +464,7 @@ void Shift::Integrator::ODE113::step() {
   if(start_) {
     /* initialize: compute appropriate step size for first step */
     iconv_ = 1;
-    stepFcn(x_, yy_.data());
+    stepFcn(x_, yy_);
     if(newton_raphson_failure_) {
       std::cerr << "Newton Raphson Failure" << std::endl;
       return;
@@ -620,7 +620,7 @@ void Shift::Integrator::ODE113::step() {
 
     xold = x_;
     x_ += h_;
-    stepFcn(x_, p_.data());
+    stepFcn(x_, p_);
     if(newton_raphson_failure_) {
       std::cerr << "Error: Newton-Raphson failure" << std::endl;
       return;
@@ -735,7 +735,7 @@ void Shift::Integrator::ODE113::step() {
   }
 
   iconv_ = 1;
-  stepFcn(x_, yy_.data());
+  stepFcn(x_, yy_);
   if(newton_raphson_failure_) {
     std::cerr << "Newton Raphson failure" << std::endl;
     return;
