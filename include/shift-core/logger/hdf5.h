@@ -51,7 +51,8 @@ public:
 
   virtual void initialize() override;
   virtual void writeHeader() override;
-  virtual void writeStates(const double t, const double q[]) override;
+  virtual void writeStates(const double t,
+                           const std::vector<double>& q) override;
 
 private:
   virtual void addParameters() override;

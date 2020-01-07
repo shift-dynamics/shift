@@ -52,7 +52,7 @@ public:
   virtual void initialize() = 0;
   virtual void setActiveObjects(bool parent_is_active) override;
   virtual void writeHeader() = 0;
-  virtual void writeStates(const double t, const double q[]) = 0;
+  virtual void writeStates(const double t, const std::vector<double>& q) = 0;
 
 protected:
   virtual void addParameters() override;
