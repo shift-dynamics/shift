@@ -11,30 +11,11 @@
 #include "shift-core/joint/base.h"
 #include "shift-core/light/base.h"
 #include "shift-core/parameter/list.h"
+#include "shift-core/sensor/base.h"
 
 namespace Shift {
 
-namespace Behavior {
-class Base;
-}
-namespace Body {
-class Base;
-}
-namespace Constraint {
-class Base;
-}
-namespace ForceModule {
-class Base;
-}
-namespace Joint {
-class Base;
-}
-namespace Light {
-class Base;
-}
-
 class Context;
-class SerialEntry;
 
 /*!
 @brief Shift Assembly datastructure
@@ -70,6 +51,7 @@ private:
   Shift::Parameter::FactoryArray<Constraint::Base> constraints_;
   Shift::Parameter::FactoryArray<ForceModule::Base> force_modules_;
   Shift::Parameter::FactoryArray<Joint::Base> joints_;
+  Shift::Parameter::FactoryArray<Sensor::Base> sensors_;
 
   Shift::Parameter::Array<Assembly> assemblies_;
 };
