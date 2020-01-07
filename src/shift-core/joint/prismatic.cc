@@ -786,12 +786,12 @@ Shift::Topology::dhva_fptr Shift::Joint::Prismatic::DHVAfptr() {
   return nullptr;
 }
 
-void Shift::Joint::Prismatic::service(const double y[]) {
+void Shift::Joint::Prismatic::service(const std::vector<double>& y) {
 
   auto& f = context_->jointWorkingForces();
 
   // stiffness
-  auto& q = y[q_index_];
+  const double q = y[q_index_];
   for(unsigned int i = 0; i < stiffness_coefficients_.size(); i++) {
     // f[dq_index_] -=
     //   stiffness_coefficients_[i] * copysign(fabs(std::pow(q, i)), q);
@@ -802,12 +802,12 @@ void Shift::Joint::Prismatic::service(const double y[]) {
   std::cout << "q: " << q << ", f: " << f[dq_index_] << std::endl;
 
   // damping
-  auto& dq = y[context_->qCount() + dq_index_];
+  const double dq = y[context_->qCount() + dq_index_];
   for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
     // f[dq_index_] -=
     //   damping_coefficients_[i] * copysign(fabs(std::pow(dq, i)), dq);
     f[dq_index_] -= damping_coefficients_[i] * std::pow(dq, i);
   }
 
-  std::cout << "dq: " << dq << ", f: " << f[dq_index_] << std::endl;
+  // std::cout << "dq: " << dq << ", f: " << f[dq_index_] << std::endl;
 }

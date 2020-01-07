@@ -761,19 +761,21 @@ Shift::Topology::dhva_fptr Shift::Joint::Revolute::DHVAfptr() {
   return rz_dhva;
 }
 
-void Shift::Joint::Revolute::service(const double y[]) {
+void Shift::Joint::Revolute::service(const std::vector<double>& y) {
 
-  auto& f = context_->jointWorkingForces();
+  std::vector<double>& f = context_->jointWorkingForces();
 
   // stiffness
-  auto& q = y[q_index_];
+  const double q = y[q_index_];
   for(unsigned int i = 0; i < stiffness_coefficients_.size(); i++) {
-    f[dq_index_] -= stiffness_coefficients_[i] * copysign(std::pow(q, i), q);
+    // f[dq_index_] -= stiffness_coefficients_[i] * copysign(std::pow(q, i), q);
+    f[dq_index_] -= stiffness_coefficients_[i] * std::pow(q, i);
   }
 
   // damping
-  auto& dq = y[context_->qCount() + dq_index_];
+  const double dq = y[context_->qCount() + dq_index_];
   for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
-    f[dq_index_] -= damping_coefficients_[i] * copysign(std::pow(dq, i), dq);
+    // f[dq_index_] -= damping_coefficients_[i] * copysign(std::pow(dq, i), dq);
+    f[dq_index_] -= damping_coefficients_[i] * std::pow(dq, i);
   }
 }
