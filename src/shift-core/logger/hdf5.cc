@@ -65,13 +65,14 @@ void Shift::Logger::HDF5::writeHeader() {
   }
 }
 
-void Shift::Logger::HDF5::writeStates(const double /* t */, const double q[]) {
+void Shift::Logger::HDF5::writeStates(const double /* t */,
+                                      const std::vector<double>& q) {
 
   // size_t q_offset;
   // const auto& q_offsets = context_->qLookupCompressed();
   for(size_t i = 0; i < context_->nonRigidJointCount(); i++) {
 
     hdf5_status_ = H5Dwrite(joint_dataset_ids_[i], H5T_NATIVE_DOUBLE, H5S_ALL,
-                            H5S_ALL, H5P_DEFAULT, q);
+                            H5S_ALL, H5P_DEFAULT, q.data());
   }
 }
