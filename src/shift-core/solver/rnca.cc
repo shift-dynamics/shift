@@ -1920,24 +1920,22 @@ bool Shift::Solver::RNCA::solve(const double t, const std::vector<double>& y,
   double fl[dq_count_];
   memcpy(fl, fl_.data(), dq_count_ * sizeof(double));
 
-#endif
-#if 1
-  std::cout << "fl: ";
-  for(unsigned int i = 0; i < dq_count_; i++) {
-    std::cout << fl_[i] << " ";
-  }
-  std::cout << std::endl;
-#endif
-  factorAndSolve();
-#if 1
-  std::cout << "fl: ";
+  std::cout << "fl (before factor): ";
   for(unsigned int i = 0; i < dq_count_; i++) {
     std::cout << fl_[i] << " ";
   }
   std::cout << std::endl;
 #endif
 
-#ifdef SHIFT_VERIFY_EQUATIONS_
+  factorAndSolve();
+
+#if SHIFT_VERIFY_EQUATIONS_
+  std::cout << "fl (after factor): ";
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    std::cout << fl_[i] << " ";
+  }
+  std::cout << std::endl;
+
   /* verify that multiplying coefficient matrix with lhs gets back the
   right hand side */
   // std::cout << "(" << t << ") ";
@@ -1951,12 +1949,9 @@ bool Shift::Solver::RNCA::solve(const double t, const std::vector<double>& y,
 
   /* convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array */
-  std::cout << "q_count_: " << q_count_ << std::endl;
-  std::cout << " dq_count_: " << dq_count_ << std::endl;
-
   context_->dqTody(y, dy);
 
-#if 0
+#if SHIFT_VERIFY_EQUATIONS_
   std::cout << "y: ";
   for(size_t i = 0; i < q_count_ + dq_count_; i++) {
     std::cout << y[i] << " ";
@@ -1969,6 +1964,7 @@ bool Shift::Solver::RNCA::solve(const double t, const std::vector<double>& y,
   }
   std::cout << std::endl;
 #endif
+
   return false;
 }
 
@@ -1977,6 +1973,7 @@ bool Shift::Solver::RNCA::verify(const double t,
                                  double fl[]) {
   bool verified = true;
   (void)t;
+
 #ifdef SHIFT_VERIFY_EQUATIONS_
 
   // std::cout << "verifying equations: ";
@@ -2067,7 +2064,6 @@ bool Shift::Solver::RNCA::verify(const double t,
   // s2_array_print(context->dqCount, context->ddq);
 
   /* copy ddq to PO3 */
-
   auto& jacobian = context_->jacobian();
   const auto& pv_13 = jacobian.pv13();
   const auto& pv_23 = jacobian.pv23();
@@ -2235,5 +2231,6 @@ bool Shift::Solver::RNCA::verify(const double t,
   }
   // std::cout << "verified: " << (verified ? "true" : "false") << std::endl;
 #endif
+
   return verified;
 }
