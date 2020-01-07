@@ -40,7 +40,7 @@ public:
 private:
   virtual void addParameters() override;
   void step();
-  void stepFcn(const double t, double y[]);
+  void stepFcn(const double t, std::vector<double>& y);
 
   double absolute_error_ = 0.0001;
   double relative_error_ = 0.0;
