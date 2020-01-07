@@ -247,7 +247,7 @@ public:
     return rotation_indices_;
   }
 
-  virtual void service(const double*) {}
+  virtual void service(const std::vector<double>&) {}
 
 protected:
   virtual void addParameters() override;
