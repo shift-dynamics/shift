@@ -1288,27 +1288,36 @@ void Shift::Context::detectSubstructures() {
     //   std::cout << std::endl;
     // }
 
+    // convert loop members from permutation order 0 to 1
     for(auto& loop : loop_members_) {
       for(auto& i : loop) {
-        i = p_10[i];
+        if(i > -1) {
+          i = p_10[i];
+        }
       }
     }
 
     for(auto& loop : negative_loop_members_) {
       for(auto& i : loop) {
-        i = p_10[i];
+        if(i > -1) {
+          i = p_10[i];
+        }
       }
     }
 
     for(auto& loop : positive_loop_members_) {
       for(auto& i : loop) {
-        i = p_10[i];
+        if(i > -1) {
+          i = p_10[i];
+        }
       }
     }
 
     for(auto& substructure : substructure_members_) {
       for(auto& i : substructure) {
-        i = p_10[i];
+        if(i > -1) {
+          i = p_10[i];
+        }
       }
     }
   }
@@ -2507,22 +2516,23 @@ double Shift::Context::constraintError() {
   return constraint_error_;
 }
 
-void Shift::Context::setForces(const double t, const double y[]) {
+void Shift::Context::setForces(const double t, const std::vector<double>& y) {
   (void)t;
   std::fill(f_.begin(), f_.end(), 0);
   for(auto& joint : active_joints_) {
     joint->service(y);
   }
-  std::cout << "f_: ";
-  for(auto& force : f_) {
-    std::cout << force << " ";
-  }
-  std::cout << std::endl;
+  // std::cout << "f_: ";
+  // for(auto& force : f_) {
+  //   std::cout << force << " ";
+  // }
+  // std::cout << std::endl;
 }
 
-void Shift::Context::dqTody(const double y[], double dy[]) {
-  auto q = y;
-  auto dq = y + q_count_;
+void Shift::Context::dqTody(const std::vector<double>& y,
+                            std::vector<double>& dy) {
+  const double* q = y.data();
+  const double* dq = q + q_count_;
 
   /* convert angular velocities to time derivative of quaternions */
   for(auto& index : quaternion_indices_) {
@@ -2532,10 +2542,12 @@ void Shift::Context::dqTody(const double y[], double dy[]) {
   }
 
   for(auto& index : non_quaternion_indices_) {
+    // std::cout << "index.q: " << index.q << "/" << q_count_ << " ";
+    // std::cout << "index.dq: " << index.dq << "/" << dq_count_ << std::endl;
     dy[index.q] = dq[index.dq];
   }
 
-  memcpy(dy + q_count_, ddq_.data(), dq_count_ * sizeof(double));
+  memcpy(dy.data() + q_count_, ddq_.data(), dq_count_ * sizeof(double));
 }
 
 void Shift::Context::setQuaternionMap() {
@@ -2556,9 +2568,13 @@ void Shift::Context::setQuaternionMap() {
       non_quaternion_indices_.push_back({q_index++, dq_index++});
       non_quaternion_indices_.push_back({q_index++, dq_index++});
     } else {
-      non_quaternion_indices_.push_back({q_index++, dq_index++});
+      assert(joint->qCount() == joint->dqCount());
+      for(unsigned int i = 0; i < joint->qCount(); i++) {
+        non_quaternion_indices_.push_back({q_index++, dq_index++});
+      }
     }
   }
+
   for(auto& force_module : active_force_modules_) {
     for(unsigned int i = 0; i < force_module->equationCount(); i++) {
       non_quaternion_indices_.push_back({q_index++, dq_index++});
@@ -2587,7 +2603,8 @@ void Shift::Context::currentTime(double& time, double& delta_time) {
   }
 }
 
-void Shift::Context::writeStates(const double time, const double y[]) {
+void Shift::Context::writeStates(const double time,
+                                 const std::vector<double>& y) {
   for(auto& logger : active_loggers_) {
     logger->writeStates(time, y);
   }
