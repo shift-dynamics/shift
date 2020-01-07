@@ -1076,19 +1076,19 @@ void Shift::Solver::RNCA::recordPointers() {
 
 bool Shift::Solver::RNCA::setEquations() {
   assert(context_);
-  return setEquations(0.0, context_->q().data());
+  return setEquations(0.0, context_->q());
 }
 
 bool Shift::Solver::RNCA::setEquationsAndRecordFills() {
   assert(context_);
-  setEquationsAndRecordFills(0.0, context_->q().data());
+  setEquationsAndRecordFills(0.0, context_->q());
   return false;
 }
 
-bool Shift::Solver::RNCA::setEquationsAndRecordFills(const double t,
-                                                     const double y[]) {
-  const double* q = y;
-  const double* dq = y + q_count_;
+bool Shift::Solver::RNCA::setEquationsAndRecordFills(
+  const double t, const std::vector<double>& y) {
+  const double* q = y.data();
+  const double* dq = q + q_count_;
   assert(context_);
   auto& jacobian = context_->jacobian();
   context_->updateDHVA(q, dq);
@@ -1117,9 +1117,10 @@ bool Shift::Solver::RNCA::setEquationsAndRecordFills(const double t,
   return false;
 }
 
-bool Shift::Solver::RNCA::setEquations(const double t, const double y[]) {
-  const double* q = y;
-  const double* dq = y + q_count_;
+bool Shift::Solver::RNCA::setEquations(const double t,
+                                       const std::vector<double>& y) {
+  const double* q = y.data();
+  const double* dq = q + q_count_;
   assert(context_);
   auto& jacobian = context_->jacobian();
   context_->updateDHVA(q, dq);
@@ -1881,17 +1882,18 @@ and any states required for force modules
 y = [q, dq, q_f]
 dy = [dq, ddq, dq_f]
 */
-bool Shift::Solver::RNCA::solve(const double t, const double y[], double dy[]) {
+bool Shift::Solver::RNCA::solve(const double t, const std::vector<double>& y,
+                                std::vector<double>& dy) {
 
   assert(context_);
-  assert(q_count_ = context_->qCount());
+  assert(q_count_ == context_->qCount());
 
-  const double* q = y;
-  const double* dq = y + q_count_;
+  const double* q = y.data();
+  const double* dq = q + q_count_;
 
   context_->updateDHVA(q, dq);
   context_->evaluateConstraints();
-  context_->setForces(t, q);
+  context_->setForces(t, y);
 
   if(setEquations(t, y)) {
     return true;
@@ -1949,6 +1951,9 @@ bool Shift::Solver::RNCA::solve(const double t, const double y[], double dy[]) {
 
   /* convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array */
+  std::cout << "q_count_: " << q_count_ << std::endl;
+  std::cout << " dq_count_: " << dq_count_ << std::endl;
+
   context_->dqTody(y, dy);
 
 #if 0
@@ -1967,8 +1972,9 @@ bool Shift::Solver::RNCA::solve(const double t, const double y[], double dy[]) {
   return false;
 }
 
-bool Shift::Solver::RNCA::verify(const double t, const double* /*dy*/,
-                                 double Ml[], double fl[]) {
+bool Shift::Solver::RNCA::verify(const double t,
+                                 const std::vector<double>& /*dy*/, double Ml[],
+                                 double fl[]) {
   bool verified = true;
   (void)t;
 #ifdef SHIFT_VERIFY_EQUATIONS_
