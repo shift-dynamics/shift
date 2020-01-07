@@ -62,7 +62,8 @@ public:
   virtual void connect();
   virtual void initialize() = 0;
   virtual void setActiveObjects(bool parent_is_active) override;
-  virtual bool solve(const double t, const double y[], double dy[]) = 0;
+  virtual bool solve(const double t, const std::vector<double>& y,
+                     std::vector<double>& dy) = 0;
 
 protected:
   virtual void addParameters() override;
