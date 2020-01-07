@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
     {"digraph", {"-d", "--digraph"}, "boolean (default: false)", 0},
     {"frame_digraph", {"-f", "--frame-digraph"}, "boolean (default: false)", 0},
     {"input", {"-i", "--input"}, "input filename, required", 1},
+    {"version", {"-v", "--version"}, "show version information", 0},
   }};
 
   argagg::parser_results args;
@@ -21,11 +22,15 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  std::cout << "Shift " << SHIFT_VERSION_MAJOR << "." << SHIFT_VERSION_MINOR
-            << "." << SHIFT_VERSION_PATCH << std::endl;
-  std::cout << "  branch: " << SHIFT_GIT_BRANCH << std::endl;
-  std::cout << "  commit: " << SHIFT_GIT_COMMIT_HASH << std::endl;
-  std::cout << std::endl << "  processing arguments:" << std::endl;
+  if(args["version"]) {
+    std::cout << "Shift " << SHIFT_VERSION_MAJOR << "." << SHIFT_VERSION_MINOR
+              << "." << SHIFT_VERSION_PATCH << std::endl;
+    std::cout << "  branch: " << SHIFT_GIT_BRANCH << std::endl;
+    std::cout << "  commit: " << SHIFT_GIT_COMMIT_HASH << std::endl;
+    return 0;
+  }
+
+  std::cout << "processing arguments:" << std::endl;
 
   bool digraph = false;
   if(args["digraph"]) {
