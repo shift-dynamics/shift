@@ -1490,9 +1490,8 @@ void Shift::Context::allocateRunTimeArrays() {
   // std::endl;
 
   d_wrt_reference_.resize(frames_in_tree_.size());
-  ksl_SE3_t identity =
-    ksl_SE3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
-  std::fill(d_wrt_reference_.begin(), d_wrt_reference_.end(), identity);
+  std::fill(d_wrt_reference_.begin(), d_wrt_reference_.end(),
+            ksl_SE3_identity());
 
   d_reference_frames_.clear();
   d_reference_frames_.resize(non_rigid_joint_count_);
@@ -2269,9 +2268,9 @@ int Shift::Context::digraphFrames(std::string filename) {
     char parentFrameName[1200];
     sprintf(parentFrameName,
             "[%d] {%d} %s: %s\n"
-            "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
-            "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
-            "[% 2.2f % 2.2f % 2.2f % 0.2f]\n"
+            "[% 2.10f % 2.10f % 2.10f % 0.10f]\n"
+            "[% 2.10f % 2.10f % 2.10f % 0.10f]\n"
+            "[% 2.10f % 2.10f % 2.10f % 0.10f]\n"
             "[ 0.00  0.00  0.00  1.00]",
             parentFrameIndex, parentReferenceFrameIndex,
             framesInTree()[parentFrameIndex]->parentBody()->name().c_str(),
@@ -2290,9 +2289,9 @@ int Shift::Context::digraphFrames(std::string filename) {
     char childFrameName[1200];
     sprintf(childFrameName,
             "[%d] {%d} %s: %s\n"
-            "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
-            "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
-            "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
+            "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
+            "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
+            "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
             "[ 0.00  0.00  0.00  1.00]",
             childFrameIndex, childReferenceFrameIndex,
             framesInTree()[childFrameIndex]->parentBody()->name().c_str(),
@@ -2304,68 +2303,68 @@ int Shift::Context::digraphFrames(std::string filename) {
     std::string jointName = Shift::Topology::getJointType(dh_fptr_[i]);
 
     if(jointName == "PRISMATIC_TX") {
-      sprintf(name, "[%d] {%d} Tx(%f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Tx(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "PRISMATIC_TX_INVERSE") {
-      sprintf(name, "[%d] {%d} Txinverse(%f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Txinverse(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "PRISMATIC_TY") {
-      sprintf(name, "[%d] {%d} Ty(%f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Ty(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "PRISMATIC_TY_INVERSE") {
-      sprintf(name, "[%d] {%d} Tyinverse(%f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Tyinverse(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "PRISMATIC_TZ") {
-      sprintf(name, "[%d] {%d} Tz(%f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Tz(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "PRISMATIC_TZ_INVERSE") {
-      sprintf(name, "[%d] {%d} Tzinverse(%f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Tzinverse(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "PRISMATIC_TA") {
-      sprintf(name, "[%d] {%d} Ta(%f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Ta(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "PRISMATIC_TA_INVERSE") {
-      sprintf(name, "[%d] {%d} Tainverse(%f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Tainverse(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "REVOLUTE_RX") {
-      sprintf(name, "[%d] {%d} Rx(%f, %f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Rx(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
     } else if(jointName == "REVOLUTE_RX_INVERSE") {
-      sprintf(name, "[%d] {%d} Rxinverse(%f, %f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Rxinverse(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
     } else if(jointName == "REVOLUTE_RY") {
-      sprintf(name, "[%d] {%d} Ry(%f, %f)\n", i, jointCounter++,
+      sprintf(name, "[%d] {%d} Ry(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
     } else if(jointName == "REVOLUTE_RY_INVERSE") {
-      sprintf(name, "[%d] {%d} Ryinverse(%f)\n", i, jointCounter++,
-              q_[dhva_offsets_[i].q]);
+      sprintf(name, "[%d] {%d} Ryinverse(%0.10f, %0.10f)\n", i, jointCounter++,
+              dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
     } else if(jointName == "REVOLUTE_RZ") {
       sprintf(name, "[%d] {%d} Rz(%f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
     } else if(jointName == "REVOLUTE_RZ_INVERSE") {
-      sprintf(name, "[%d] {%d} Rzinverse(%f)\n", i, jointCounter++,
-              q_[dhva_offsets_[i].q]);
+      sprintf(name, "[%d] {%d} Rzinverse(%0.10f, %0.10f)\n", i, jointCounter++,
+              dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
     } else if(jointName == "REVOLUTE_RA") {
-      sprintf(name, "[%d] {%d} Ra(%f)\n", i, jointCounter++,
-              q_[dhva_offsets_[i].q]);
+      sprintf(name, "[%d] {%d} Ra(%0.10f, %0.10f)\n", i, jointCounter++,
+              dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
     } else if(jointName == "REVOLUTE_RA_INVERSE") {
-      sprintf(name, "[%d] {%d} Rainverse(%f)\n", i, jointCounter++,
-              q_[dhva_offsets_[i].q]);
+      sprintf(name, "[%d] {%d} Rainverse(%0.10f, %0.10f)\n", i, jointCounter++,
+              dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
     } else if(jointName == "SPHERICAL" || jointName == "SPHERICAL_INVERSE") {
       ksl_quaternion_t* q = (ksl_quaternion_t*)&(q_[dhva_offsets_[i].q]);
@@ -2376,23 +2375,22 @@ int Shift::Context::digraphFrames(std::string filename) {
       ksl_vec3_t* t = (ksl_vec3_t*)&(q_[dhva_offsets_[i].q]);
       ksl_quaternion_t* q = (ksl_quaternion_t*)&(q_[dhva_offsets_[i].q + 3]);
       sprintf(name,
-              "[%d] {%d} t: [% 2.2f, % 2.2f, % 2.2f]\n"
-              "     q: [% 2.2f, % 2.2f, % 2.2f, % 2.2f]",
+              "[%d] {%d} t: [% 2.10f, % 2.10f, % 2.10f]\n"
+              "     q: [% 2.10f, % 2.10f, % 2.10f, % 2.10f]",
               i, jointCounter++, t->x, t->y, t->z, q->x, q->y, q->z, q->w);
     } else if(jointName == "RIGID" || jointName == "RIGID_INVERSE") {
-
-      ksl_SE3_t* dPrimitiveDisp = dhva_.d + dhva_offsets_[i].child.d;
+      ksl_SE3_t& dPrimitiveDisp = d_wrt_reference_[dhva_offsets_[i].child.d];
       sprintf(name,
               "[%d] Rigid\n"
-              "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
-              "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
-              "[% 2.2f % 2.2f % 2.2f % 2.2f]\n"
+              "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
+              "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
+              "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
               "[ 0.00  0.00  0.00  1.00]",
-              i, dPrimitiveDisp->R.m00, dPrimitiveDisp->R.m01,
-              dPrimitiveDisp->R.m02, dPrimitiveDisp->t.x, dPrimitiveDisp->R.m10,
-              dPrimitiveDisp->R.m11, dPrimitiveDisp->R.m12, dPrimitiveDisp->t.y,
-              dPrimitiveDisp->R.m20, dPrimitiveDisp->R.m21,
-              dPrimitiveDisp->R.m22, dPrimitiveDisp->t.z);
+              i, dPrimitiveDisp.R.m00, dPrimitiveDisp.R.m01,
+              dPrimitiveDisp.R.m02, dPrimitiveDisp.t.x, dPrimitiveDisp.R.m10,
+              dPrimitiveDisp.R.m11, dPrimitiveDisp.R.m12, dPrimitiveDisp.t.y,
+              dPrimitiveDisp.R.m20, dPrimitiveDisp.R.m21, dPrimitiveDisp.R.m22,
+              dPrimitiveDisp.t.z);
     } else {
       sprintf(name, "joint type not found / unknown");
     }

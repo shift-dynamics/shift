@@ -264,6 +264,7 @@ void Shift::Substructure::firstOrderUpdate() {
 @param a kinematic substructure to process
 */
 void Shift::Substructure::updateq() {
+  std::cout << "updateq()" << std::endl;
   unsigned int qIndex = q_offset_;
   unsigned int dqIndex = dq_offset_;
 
@@ -346,15 +347,44 @@ double
 Shift::Substructure::evaluateConstraints(const Shift::Topology::DHVA& dhva) {
   assert(constraints_.size() == chord_constraint_count_);
   for(unsigned int i = 0; i < chord_constraint_count_; i++) {
-    ksl_SE3_t* parentFrame = dhva.d + constraints_[i].parent.d;
-    ksl_SE3_t* childFrame = dhva.d + constraints_[i].child.d;
+    ksl_SE3_t* parent_frame = dhva.d + constraints_[i].parent.d;
+    ksl_SE3_t* child_frame = dhva.d + constraints_[i].child.d;
     ksl_SE3_t temp;
-    ksl_product_ddinv(parentFrame, childFrame, &temp);
+
+    ksl_product_ddinv(parent_frame, child_frame, &temp);
+
+    ksl_SE3_print(stdout, parent_frame, "parent_frame: ");
+    std::cout << "determinant: " << ksl_mat3x3_determinant(&parent_frame->R)
+              << std::endl
+              << std::endl;
+
+    ksl_SE3_print(stdout, child_frame, "child_frame: ");
+    std::cout << "determinant: " << ksl_mat3x3_determinant(&child_frame->R)
+              << std::endl
+              << std::endl;
+
+    ksl_SE3_print(stdout, &temp, "ddinv: ");
+    std::cout << "determinant: " << ksl_mat3x3_determinant(&temp.R) << std::endl
+              << std::endl;
+
     memcpy(cs_ + i * 6, &temp.t, sizeof(ksl_vec3_t));
-    double trace = temp.R.m00 + temp.R.m11 + temp.R.m22 - 3;
+    double trace = temp.R.m00 + temp.R.m11 + temp.R.m22 - 3.0;
+    std::cout << "trace - 3: " << trace << std::endl;
+
     cs_[i * 6 + 3] = 0.5 * (temp.R.m21 - temp.R.m12) + trace;
     cs_[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20) + trace;
     cs_[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
+
+    std::cout << "cs_: ";
+    for(unsigned int j = 0; j < 6; j++) {
+      std::cout << cs_[i * 6 + j] << " ";
+    }
+    std::cout << std::endl;
+
+    if(fabs(trace) > 1.0e-5) {
+      context_->digraphFrames();
+      exit(1);
+    };
   }
 
 #if SHIFT_WITH_BLAS_

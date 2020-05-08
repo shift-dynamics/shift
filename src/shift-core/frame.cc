@@ -41,8 +41,8 @@ void Shift::Frame::addParameters() {
 
   addParameter(
     "Q", &d_wrt_origin_.R,
-    "specify orientation as a 3x3 rotation matrix in row-major "
-    "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+    "specify orientation as a quaternion, "
+    "defaults to identity if not specified; the keys 'rotation', 'R', "
     "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
     "orientation. If multiple key-value pairs are specified for orientation, "
     "only one of the entries will be loaded.",
@@ -51,8 +51,8 @@ void Shift::Frame::addParameters() {
 
   addParameter(
     "q", &d_wrt_origin_.R,
-    "specify orientation as a 3x3 rotation matrix in row-major "
-    "order, defaults to identity if not specified; the keys 'rotation', 'R', "
+    "specify orientation as a quaternion, "
+    "defaults to identity if not specified; the keys 'rotation', 'R', "
     "'euler_angles', 'quaternion', 'q' or 'Q' can be used to designate an "
     "orientation. If multiple key-value pairs are specified for orientation, "
     "only one of the entries will be loaded.",
