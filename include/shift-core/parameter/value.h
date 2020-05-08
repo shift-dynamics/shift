@@ -110,7 +110,8 @@ public:
     : data_(data)
     , description_(description)
     , required_(required)
-    , parameter_type_(KSL_MAT3X3) {}
+    , parameter_type_(KSL_MAT3X3)
+    , normalize_mat3x3_(true) {}
 
   Value(ksl_mat4x4_t* data, const std::string description, bool required)
     : data_(data)

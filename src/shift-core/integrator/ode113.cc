@@ -162,7 +162,13 @@ void Shift::Integrator::ODE113::stepFcn(double t, std::vector<double>& y) {
 
   if(iconv_ == 1) {
 
-    auto& cs = context_->jacobian().constraints();
+    const std::vector<double>& cs = context_->jacobian().constraints();
+
+    std::cout << "constraints: ";
+    for(auto& c : cs) {
+      std::cout << c << " ";
+    }
+    std::cout << std::endl;
 
     h_ = fmax(x_ - t_, hmin_); /* limit next step size */
 

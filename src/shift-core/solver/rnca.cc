@@ -509,6 +509,7 @@ void Shift::Solver::RNCA::countOperations() {
 void Shift::Solver::RNCA::recordOperations() {
 
   assert(context_);
+
   const auto& jacobian = context_->jacobian();
   const auto& is_dependent_po3 = jacobian.isDependentPO3();
   const auto& rb3 = jacobian.rb3();
@@ -637,7 +638,7 @@ void Shift::Solver::RNCA::recordOperations() {
           i1_[l1] = start_of_row_i_in_M + k;
 
           // Record assignment to Mik.
-          Mlb_[i1_[l1]] = 1;
+          Mlb_[i1_[l1]] = true;
 
           // Mii.
           i2_[l1] = start_of_row_i_in_M + i;
@@ -651,7 +652,7 @@ void Shift::Solver::RNCA::recordOperations() {
           i1_[l1] = start_of_row_k_in_M + k;
 
           // Record assignment to Mkk.
-          Mlb_[i1_[l1]] = 1;
+          Mlb_[i1_[l1]] = true;
 
           // Mik.
           i2_[l1] = start_of_row_i_in_M + k;
@@ -744,7 +745,7 @@ void Shift::Solver::RNCA::recordOperations() {
             if(Mlb_[i8_[l3]]) {
               // Mjk.
               i6_[l3] = start_of_row_j_in_M + k;
-              Mlb_[i6_[l3]] = 1;
+              Mlb_[i6_[l3]] = true;
 
               // Mij.
               i7_[l3] = p;
@@ -1382,11 +1383,25 @@ void Shift::Solver::RNCA::setRHS() {
     const double* cs = substructure.cs();
     const auto& constraints = substructure.constraintIndices();
 
+    std::cout << "pr_21: ";
+    for(auto& i : pr_21) {
+      std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
     /* number of constraints to evaluate */
     for(size_t k = 0; k < substructure.chordConstraintCount();
         k++, chord_constraint_offset++) {
 
+      ksl_screw_print(stdout, &dhva.aq[constraints[k].child.v], "aq child: ");
+      ksl_screw_print(stdout, &dhva.aq[constraints[k].parent.v], "aq parent: ");
+
+      ksl_screw_print(stdout, &dhva.v[constraints[k].child.v], "v child: ");
+      ksl_screw_print(stdout, &dhva.v[constraints[k].parent.v], "v parent: ");
+
       /* set gamma_p */
+
+      // acceleration level
       for(size_t l = 0; l < 6; l++) {
         if(pr_21[k * 6 + l] < substructure.rank()) {
           /*
@@ -1397,27 +1412,35 @@ void Shift::Solver::RNCA::setRHS() {
             pr = p12
           */
           gamma_d_[offset + pr_21[k * 6 + l]] =
-            /* 0 is the index of the velocity of the child (-) side */
-            ((double*)(dhva.aq + constraints[k].child.v))[l] -
-            /* 1 is the index of the velocity of the parent (+) side */
-            ((double*)(dhva.aq + constraints[k].parent.v))[l];
+            dhva.aq[constraints[k].child.v].at[l] -
+            dhva.aq[constraints[k].parent.v].at[l];
         }
       }
 
       /* subtract 2 * omega_n * \dot{phi} from gamma_p */
+
+      // velocity level
       for(int l = 0; l < 6; l++) {
         if(pr_21[k * 6 + l] < substructure.rank()) {
 
           /* -(2 * omega_N) * \dot{\phi} velocity part of baumgarte
           constraint stabilization */
           gamma_d_[offset + pr_21[k * 6 + l]] -=
-            baumgarte_2_omega_n *
-            (((double*)(dhva.v + constraints[k].child.v))[l] -
-             ((double*)(dhva.v + constraints[k].parent.v))[l]);
+            baumgarte_2_omega_n * (dhva.v[constraints[k].child.v].at[l] -
+                                   dhva.v[constraints[k].parent.v].at[l]);
+
+          double v_term =
+            baumgarte_2_omega_n * (dhva.v[constraints[k].child.v].at[l] -
+                                   dhva.v[constraints[k].parent.v].at[l]);
+          std::cout << v_term << " ";
         }
       }
+      std::cout << std::endl;
+      std::cout << "baumgarte_2_omega_n: " << baumgarte_2_omega_n << std::endl;
 
       /* subtract omega_n^2 * \dot{phi} from gamma_p */
+
+      // position level
       for(int l = 0; l < 6; l++) {
         if(pr_21[k * 6 + l] < substructure.rank()) {
 
@@ -1430,6 +1453,8 @@ void Shift::Solver::RNCA::setRHS() {
 
       /* substract integral error term from gamma_p  for adaptive constraint
        * stabilization*/
+
+      // integral gain
       for(int l = 0; l < 6; l++) {
         if(pr_21[k * 6 + l] < substructure.rank()) {
           gamma_d_[offset + pr_21[k * 6 + l]] -=

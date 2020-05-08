@@ -35,7 +35,7 @@ Workspace::Workspace(VulkanWindow* vulkanWindow, QWidget* parent)
   QHBoxLayout* layout = findChild<QHBoxLayout*>("horizontalLayout_2");
   layout->addWidget(container);
 
-  setLayout(layout);
+  // setLayout(layout);
 }
 
 Workspace::~Workspace() {
