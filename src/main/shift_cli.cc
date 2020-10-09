@@ -1,6 +1,6 @@
 #include "argagg/argagg.hpp"
-#include "shift-core/context.h"
-#include "version.h"
+#include "shift/core/context.h"
+#include "shift/version.h"
 
 #include <iostream>
 

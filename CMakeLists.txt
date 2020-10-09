@@ -36,7 +36,7 @@ message(STATUS "Generating in ${CMAKE_BUILD_TYPE} mode.")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(include)

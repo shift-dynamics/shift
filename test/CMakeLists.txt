@@ -9,7 +9,7 @@ add_executable(shift-test
 target_include_directories(shift-test PRIVATE
   ${GTEST_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/external/ksl/include
-  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_BINARY_DIR}/include
 
 )
 
