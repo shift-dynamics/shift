@@ -18,7 +18,7 @@ set(shift_gui_src
 )
 add_library(shift_gui STATIC ${shift_gui_src})
 
-qt5_use_modules(shift_gui Core Widgets Gui)
+target_link_libraries(shift_gui Qt5::Core Qt5::Widgets Qt5::Gui)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
   target_compile_definitions(
