@@ -24,7 +24,7 @@ execute_process(
 
 configure_file(
   ${CMAKE_SOURCE_DIR}/src/version.h.in
-  ${CMAKE_BINARY_DIR}/version.h
+  ${CMAKE_BINARY_DIR}/shift/version.h
 )
 
 include(CTest)
