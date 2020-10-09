@@ -5,23 +5,23 @@
 #include "shift/core/geometry/pointcloud.h"
 #include "shift/core/geometry/sphere.h"
 
-bool Shift::Geometry::Modules::initialized() {
-  if(!Shift::Geometry::Ellipsoid::isRegistered()) {
+bool shift::Geometry::Modules::initialized() {
+  if(!shift::Geometry::Ellipsoid::isRegistered()) {
     return false;
   }
-  if(!Shift::Geometry::Mesh::isRegistered()) {
+  if(!shift::Geometry::Mesh::isRegistered()) {
     return false;
   }
-  if(!Shift::Geometry::PointCloud::isRegistered()) {
+  if(!shift::Geometry::PointCloud::isRegistered()) {
     return false;
   }
-  if(!Shift::Geometry::Sphere::isRegistered()) {
+  if(!shift::Geometry::Sphere::isRegistered()) {
     return false;
   }
   return true;
 }
 
-void Shift::Geometry::Base::addParameters() {
+void shift::Geometry::Base::addParameters() {
   addParameter("name", &name_, "User defined descriptive geometry name.", true);
 
   addParameter(
@@ -33,11 +33,11 @@ void Shift::Geometry::Base::addParameters() {
     false);
 }
 
-void Shift::Geometry::Base::setActiveObjects(bool parent_is_active) {
+void shift::Geometry::Base::setActiveObjects(bool parent_is_active) {
   assert(context_);
   context_->setActive(this, active_ && parent_is_active);
 };
 
-void Shift::Geometry::Base::load() {}
+void shift::Geometry::Base::load() {}
 
-void Shift::Geometry::Base::connect() {}
+void shift::Geometry::Base::connect() {}

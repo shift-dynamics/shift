@@ -3,29 +3,29 @@
 #include "shift/core/integrator/base.h"
 #include "shift/core/solver/rnca.h"
 
-bool Shift::Solver::Modules::initialized() {
-  if(!Shift::Solver::RNCA::isRegistered()) {
+bool shift::Solver::Modules::initialized() {
+  if(!shift::Solver::RNCA::isRegistered()) {
     return false;
   }
   return true;
 }
 
-void Shift::Solver::Base::addParameters() {
+void shift::Solver::Base::addParameters() {
   addParameter("type", &type_, "Solver type", true);
 }
 
-void Shift::Solver::Base::load() {}
+void shift::Solver::Base::load() {}
 
-void Shift::Solver::Base::connect() {
+void shift::Solver::Base::connect() {
   // @TODO in the future, may allow multiple integrators and multiple solvers,
   // each handling a different part of the model, or allow loading multiple
   // integrators / solvers, with only one being active at a time. For now, hook
   // solver up to first integrator
   integrator_ = (*context_)["model_parameters"]["integrators"][0]
-                  .data<Shift::Integrator::Base>();
+                  .data<shift::Integrator::Base>();
 }
 
-void Shift::Solver::Base::setActiveObjects(bool parent_is_active) {
+void shift::Solver::Base::setActiveObjects(bool parent_is_active) {
   assert(context_);
   context_->setActive(this, parent_is_active && active_);
 }

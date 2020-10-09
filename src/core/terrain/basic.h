@@ -3,7 +3,7 @@
 
 #include "shift/core/terrain/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Terrain {
 
@@ -37,6 +37,6 @@ private:
 
 } // namespace Terrain
 
-} // namespace Shift
+} // namespace shift
 
 #endif

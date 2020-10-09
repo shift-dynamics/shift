@@ -16,7 +16,7 @@
 #include "ksl/SE3.h"
 #include "ksl/screw.h"
 
-namespace Shift {
+namespace shift {
 
 class Substructure;
 
@@ -32,20 +32,20 @@ class Assembly;
 namespace Joint {
 
 /*!%
-@brief Abstract Shift::Joint base class
+@brief Abstract shift::Joint base class
 */
 class Base
-  : public Shift::Base
+  : public shift::Base
   , public Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name)
+    : shift::Base(name)
     , Parameter::List() {
     addParameters();
   }
   Base()
-    : Shift::Base("")
+    : shift::Base("")
     , Parameter::List() {
     addParameters();
   }
@@ -95,11 +95,11 @@ public:
 
   void connect();
 
-  Shift::Body::Base* parentBody() {
+  shift::Body::Base* parentBody() {
     return parent_body_ptr_;
   }
 
-  Shift::Body::Base* systemParentBody() {
+  shift::Body::Base* systemParentBody() {
     if(sense_ >= 0) {
       return parent_body_ptr_;
     } else {
@@ -107,11 +107,11 @@ public:
     }
   }
 
-  Shift::Body::Base* childBody() {
+  shift::Body::Base* childBody() {
     return child_body_ptr_;
   }
 
-  Shift::Body::Base* systemChildBody() const {
+  shift::Body::Base* systemChildBody() const {
     if(system_child_body_ptr_) {
       return system_child_body_ptr_;
     }
@@ -122,11 +122,11 @@ public:
     }
   }
 
-  Shift::Frame* parentFrame() {
+  shift::Frame* parentFrame() {
     return parent_frame_ptr_;
   }
 
-  Shift::Frame* systemParentFrame() {
+  shift::Frame* systemParentFrame() {
     if(sense_ >= 0) {
       return parent_frame_ptr_;
     } else {
@@ -134,11 +134,11 @@ public:
     }
   }
 
-  Shift::Frame* childFrame() {
+  shift::Frame* childFrame() {
     return child_frame_ptr_;
   }
 
-  Shift::Frame* systemChildFrame() {
+  shift::Frame* systemChildFrame() {
     if(system_child_frame_ptr_) {
       return system_child_frame_ptr_;
     }
@@ -149,11 +149,11 @@ public:
     }
   }
 
-  void setSystemChildBody(Shift::Body::Base* body) {
+  void setSystemChildBody(shift::Body::Base* body) {
     system_child_body_ptr_ = body;
   }
 
-  void setSystemChildFrame(Shift::Frame* frame) {
+  void setSystemChildFrame(shift::Frame* frame) {
     system_child_frame_ptr_ = frame;
   }
 
@@ -223,11 +223,11 @@ public:
     child_joints_.clear();
   }
 
-  void pushChildJoint(Shift::Joint::Base* child) {
+  void pushChildJoint(shift::Joint::Base* child) {
     child_joints_.push_back(child);
   }
 
-  const std::vector<Shift::Joint::Base*>& childJoints() const {
+  const std::vector<shift::Joint::Base*>& childJoints() const {
     return child_joints_;
   }
 
@@ -310,16 +310,16 @@ protected:
   */
   std::vector<std::vector<std::string>> child_;
 
-  Shift::Body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
+  shift::Body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
   Frame* parent_frame_ptr_ = nullptr;            //!< pointer to parent Frame
-  Shift::Body::Base* child_body_ptr_ = nullptr;  //!< pointer to child Body
+  shift::Body::Base* child_body_ptr_ = nullptr;  //!< pointer to child Body
   Frame* child_frame_ptr_ = nullptr;             //!< pointer to child Frame
-  Shift::Body::Base* system_child_body_ptr_ =
+  shift::Body::Base* system_child_body_ptr_ =
     nullptr; //!< pointer to a system defined virtual body
-  Shift::Frame* system_child_frame_ptr_ =
+  shift::Frame* system_child_frame_ptr_ =
     nullptr; //!< pointer to a system defined virtual body
 
-  std::vector<Shift::Joint::Base*> child_joints_;
+  std::vector<shift::Joint::Base*> child_joints_;
 
   double* q_0_ = nullptr;  /*!< initial primitive displacement
                                               specified by user */
@@ -352,6 +352,6 @@ public:
 
 } // namespace Joint
 
-} // namespace Shift
+} // namespace shift
 
 #endif

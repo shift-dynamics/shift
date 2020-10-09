@@ -9,7 +9,7 @@ class MainWindow;
 
 class VulkanWindow;
 
-namespace Shift {
+namespace shift {
 
 class Workspace : public QMainWindow {
   Q_OBJECT
@@ -24,5 +24,5 @@ private:
 private slots:
 };
 
-} // namespace Shift
+} // namespace shift
 #endif

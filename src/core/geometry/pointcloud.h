@@ -3,7 +3,7 @@
 
 #include "shift/core/geometry/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Geometry {
 
@@ -31,6 +31,6 @@ private:
 
 } // namespace Geometry
 
-} // namespace Shift
+} // namespace shift
 
 #endif

@@ -6,7 +6,7 @@
 #include <map>
 #include <string>
 
-namespace Shift {
+namespace shift {
 
 class Context;
 class Assembly;
@@ -213,5 +213,5 @@ protected:
 };
 
 } // namespace Parameter
-} // namespace Shift
+} // namespace shift
 #endif

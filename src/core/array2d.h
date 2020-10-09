@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-namespace Shift {
+namespace shift {
 
 template <typename T>
 class Array2d {
@@ -98,6 +98,6 @@ private:
   unsigned int rows_ = 0;
 };
 
-} // namespace Shift
+} // namespace shift
 
 #endif

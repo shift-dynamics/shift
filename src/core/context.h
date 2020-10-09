@@ -15,7 +15,7 @@
 #include "shift/core/modelparameters.h"
 #include "shift/core/topology.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Behavior {
 class Base;
@@ -44,19 +44,19 @@ class Chord;
 /*!
 @brief Shift Context datastructure
 */
-class Context : public Shift::Body::Fixed {
+class Context : public shift::Body::Fixed {
 
 public:
   Context(std::string)
-    // : Shift::Parameter::List()
-    : Shift::Body::Fixed("fixed")
+    // : shift::Parameter::List()
+    : shift::Body::Fixed("fixed")
     , jacobian_(this)
     , model_parameters_(this) {
     addParameters();
     initialize();
   }
   Context()
-    : Shift::Body::Fixed("fixed")
+    : shift::Body::Fixed("fixed")
     , jacobian_(this)
     , model_parameters_(this) {
     addParameters();
@@ -74,7 +74,7 @@ public:
   void writeJSON(const std::string&);
   void printJSON();
 
-  Shift::Body::Base* fixedBody() {
+  shift::Body::Base* fixedBody() {
     return this;
   }
 
@@ -129,11 +129,11 @@ public:
     return joint_lookup_;
   }
 
-  const std::vector<Shift::Joint::Base*>& activeJoints() const {
+  const std::vector<shift::Joint::Base*>& activeJoints() const {
     return active_joints_;
   }
 
-  const std::vector<Shift::ForceModule::Base*>& activeForceModules() const {
+  const std::vector<shift::ForceModule::Base*>& activeForceModules() const {
     return active_force_modules_;
   }
 
@@ -145,11 +145,11 @@ public:
     return pcl_compressed_;
   }
 
-  const std::vector<Shift::Body::Base*>& activeArticulatedBodies() const {
+  const std::vector<shift::Body::Base*>& activeArticulatedBodies() const {
     return active_articulated_bodies_;
   }
 
-  const std::vector<Shift::Frame*>& framesInTree() const {
+  const std::vector<shift::Frame*>& framesInTree() const {
     return frames_in_tree_;
   }
 
@@ -193,13 +193,13 @@ public:
     return joint_data_;
   }
 
-  const Shift::ModelParameters& modelParameters() {
+  const shift::ModelParameters& modelParameters() {
     return model_parameters_;
   }
 
-  /*! \brief append frame to Shift::Context's list of frames
+  /*! \brief append frame to shift::Context's list of frames
    */
-  // void appendFrame(Shift::Frame* frame) {
+  // void appendFrame(shift::Frame* frame) {
   //   frames_.push_back(frame);
   // }
 
@@ -250,40 +250,40 @@ public:
     return mobility_numbers_;
   }
 
-  /*! \brief Update displacements in a Shift::Joint::DHVA data structure using
+  /*! \brief Update displacements in a shift::Joint::DHVA data structure using
    * a user-provided array of generalized coordinates. The instructions to
-   * update displacements are stored in Shift::Context */
+   * update displacements are stored in shift::Context */
   void updateD(Topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements and influence coefficient matrices in a
-   * Shift::Joint::DHVA data structure using a user-provided array of
+   * shift::Joint::DHVA data structure using a user-provided array of
    * generalized coordinates. The instructions to update displacements and
-   * influence coefficient matrices are stored in Shift::Context */
+   * influence coefficient matrices are stored in shift::Context */
   void updateDH(Topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements, influence coefficient matrices, velocities
-   * and quadratic accelerations in a Shift::Joint::DHVA data structure using
+   * and quadratic accelerations in a shift::Joint::DHVA data structure using
    * a user-provided array of generalized coordinates and generalized
    * velocities.
-   * The instructions to update DHVA are stored in Shift::Context */
+   * The instructions to update DHVA are stored in shift::Context */
   void updateDHVA(Topology::DHVA& dhva, const double* q, const double* dq);
 
-  /*! \brief Update displacements stored in a Shift::Context data structure
+  /*! \brief Update displacements stored in a shift::Context data structure
    * using a user-provided array of generalized coordinates. The instructions to
-   * update displacements are stored in Shift::Context */
+   * update displacements are stored in shift::Context */
   void updateD(const double* q);
 
   /*! \brief Update displacements and influence coefficient matrices in a
-   * Shift::Context data structure using a user-provided array of
+   * shift::Context data structure using a user-provided array of
    * generalized coordinates. The instructions to update displacements and
-   * influence coefficient matrices are stored in Shift::Context */
+   * influence coefficient matrices are stored in shift::Context */
   void updateDH(const double* q);
 
   /*! \brief Update displacements, influence coefficient matrices, velocities
-   * and quadratic accelerations in a Shift::Context data structure using
+   * and quadratic accelerations in a shift::Context data structure using
    * a user-provided array of generalized coordinates and generalized
    * velocities.
-   * The instructions to update DHVA are stored in Shift::Context */
+   * The instructions to update DHVA are stored in shift::Context */
   void updateDHVA(const double* q, const double* dq);
 
   void updateD();
@@ -326,7 +326,7 @@ public:
     return jacobian_.newtonRaphsonFailure();
   }
 
-  Shift::Jacobian& jacobian() {
+  shift::Jacobian& jacobian() {
     return jacobian_;
   }
 
@@ -421,11 +421,11 @@ private:
   void clearActiveTerrain();
   void clearActiveArrays();
 
-  /*! \brief Shift::Context initialization function, called in Shift::Context
+  /*! \brief shift::Context initialization function, called in shift::Context
    * constructor */
   void initialize();
 
-  /*! \brief connect pointers between objects managed by Shift::Context */
+  /*! \brief connect pointers between objects managed by shift::Context */
   void connect() override;
 
   /*! \brief process all Shiift objectss loadData() functions, which loads any
@@ -483,13 +483,13 @@ private:
 
   /*! \brief User defined terrain attached to fixed inertial reference frame
    */
-  Shift::Parameter::Array<Shift::Assembly> assemblies_;
+  shift::Parameter::Array<shift::Assembly> assemblies_;
 
-  const std::vector<Shift::Joint::Base*>* activeJointsPtr() {
+  const std::vector<shift::Joint::Base*>* activeJointsPtr() {
     return &active_joints_;
   }
 
-  Shift::Topology::DHVA
+  shift::Topology::DHVA
     dhva_; /*!< displacements, influence coefficient matrices,
            spatial velocities and quadratic accelerations */
   std::vector<Topology::Offsets>
@@ -539,7 +539,7 @@ private:
   std::vector<bool> has_mass_;
   std::vector<bool> has_mass_dq_;
 
-  Shift::Jacobian jacobian_;
+  shift::Jacobian jacobian_;
 
   ksl_screw_t spatial_momentum_ = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   ksl_screw_t barycentric_spatial_momentum_ =
@@ -558,7 +558,7 @@ private:
   struct levelOrder {
     levelOrder(Context* context)
       : joints_(context->activeJointsPtr()) {}
-    const std::vector<Shift::Joint::Base*>* joints_;
+    const std::vector<shift::Joint::Base*>* joints_;
     bool operator()(const int& a, const int& b) {
       int a_level = (a == -1) ? 0 : (*joints_)[a]->getLevel();
       int b_level = (b == -1) ? 0 : (*joints_)[b]->getLevel();
@@ -574,7 +574,7 @@ private:
       Context* context, const std::vector<std::vector<int>>& loop_members)
       : joints_(context->activeJointsPtr())
       , loop_members_(loop_members) {}
-    const std::vector<Shift::Joint::Base*>* joints_;
+    const std::vector<shift::Joint::Base*>* joints_;
     const std::vector<std::vector<int>> loop_members_;
     bool operator()(const int& a, const int& b) {
       return (*joints_)[loop_members_[a][0]]->getLevel() <
@@ -588,7 +588,7 @@ private:
                            const std::vector<std::vector<int>>& loopMembers)
       : joints_(context->activeJointsPtr())
       , loopMembers_(loopMembers) {}
-    const std::vector<Shift::Joint::Base*>* joints_;
+    const std::vector<shift::Joint::Base*>* joints_;
     const std::vector<std::vector<int>> loopMembers_;
     bool operator()(const std::vector<int>& a, const std::vector<int>& b) {
       return (*joints_)[loopMembers_[a[0]][0]]->getLevel() <
@@ -605,7 +605,7 @@ private:
   std::vector<std::vector<int>> substructure_indices_;
   std::vector<std::vector<int>> substructure_members_;
 
-  /*! \defgroup active_objects Active objects managed by Shift::Context
+  /*! \defgroup active_objects Active objects managed by shift::Context
 
   The following lists of objects contain pointers to only the objects whose
   active flag is set to true.
@@ -627,12 +627,12 @@ private:
   std::vector<Logger::Base*> active_loggers_ = {};
   std::vector<Solver::Base*> active_solvers_ = {};
 
-  std::vector<Shift::Frame*> frames_in_tree_ = {};
-  std::vector<Shift::Frame*> active_frames_ = {};
+  std::vector<shift::Frame*> frames_in_tree_ = {};
+  std::vector<shift::Frame*> active_frames_ = {};
 
   /*! @{ */
 
-  /*! \defgroup managed_objects Objects managed by Shift::Context
+  /*! \defgroup managed_objects Objects managed by shift::Context
 
   These objects are created automatically when processing system
   topology and  are not loaded from an external file.
@@ -670,8 +670,8 @@ private:
   double mobility_ = 0.0;
   double constraint_error_ = 0;
 
-}; // namespace Shift
+}; // namespace shift
 
-} // namespace Shift
+} // namespace shift
 
 #endif

@@ -5,7 +5,7 @@
 
 #include "shift/core/forcemodule/tire/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace ForceModule {
 
@@ -71,6 +71,6 @@ private:
 
 } // namespace ForceModule
 
-} // namespace Shift
+} // namespace shift
 
 #endif

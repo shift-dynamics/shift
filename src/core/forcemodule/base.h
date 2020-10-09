@@ -7,27 +7,27 @@
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 class Context;
 
 namespace ForceModule {
 
 /*!
-@brief Shift::Frame abstract base class
+@brief shift::Frame abstract base class
 */
 class Base
-  : public Shift::Base
+  : public shift::Base
   , public Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name)
+    : shift::Base(name)
     , Parameter::List() {
     addParameters();
   }
   Base()
-    : Shift::Base("")
+    : shift::Base("")
     , Parameter::List() {
     addParameters();
   }
@@ -66,6 +66,6 @@ public:
 
 } // namespace ForceModule
 
-} // namespace Shift
+} // namespace shift
 
 #endif

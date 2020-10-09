@@ -4,33 +4,33 @@
 
 #include <math.h>
 
-const double Shift::Integrator::ODE113::twou_ = 1.42e-14;
+const double shift::Integrator::ODE113::twou_ = 1.42e-14;
 // std::numeric_limits<double>::epsilon() * 2.0;
 
-const double Shift::Integrator::ODE113::fouru_ = 2.84e-14;
+const double shift::Integrator::ODE113::fouru_ = 2.84e-14;
 // std::numeric_limits<double>::epsilon() * 4.0;
 
-const double Shift::Integrator::ODE113::gstr_[14] = {
+const double shift::Integrator::ODE113::gstr_[14] = {
   0.0,    0.5,     0.0833,  0.0417,  0.0264,  0.0188,  0.0143,
   0.0114, 0.00936, 0.00789, 0.00679, 0.00592, 0.00524, 0.00468};
 
-const double Shift::Integrator::ODE113::two_[14] = {
+const double shift::Integrator::ODE113::two_[14] = {
   0.0,   2.0,   4.0,   8.0,    16.0,   32.0,   64.0,
   128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0};
 
-const double Shift::Integrator::ODE113::stability_limits_[17] = {
+const double shift::Integrator::ODE113::stability_limits_[17] = {
   1.0,  2.0,  2.26, 1.86, 1.4, 1.03, 0.78, 0.58, 0.44,
   0.34, 0.26, 0.21, 0.6,  0.2, 0.2,  0.2,  0.2};
 
-bool Shift::Integrator::ODE113::registered_ =
-  Shift::Factory<Shift::Integrator::Base>::get()->registerModule(
-    "ode113", Shift::Integrator::ODE113::create);
+bool shift::Integrator::ODE113::registered_ =
+  shift::Factory<shift::Integrator::Base>::get()->registerModule(
+    "ode113", shift::Integrator::ODE113::create);
 
-std::unique_ptr<Shift::Integrator::ODE113> Shift::Integrator::ODE113::create() {
-  return std::make_unique<Shift::Integrator::ODE113>();
+std::unique_ptr<shift::Integrator::ODE113> shift::Integrator::ODE113::create() {
+  return std::make_unique<shift::Integrator::ODE113>();
 }
 
-void Shift::Integrator::ODE113::addParameters() {
+void shift::Integrator::ODE113::addParameters() {
   addParameter("safety_factor", &safety_factor_,
                "adjustable safety factor for numerical integration: defaults "
                "to 0.0005 if not provided",
@@ -57,14 +57,14 @@ void Shift::Integrator::ODE113::addParameters() {
                false);
 }
 
-void Shift::Integrator::ODE113::connect() {
+void shift::Integrator::ODE113::connect() {
   assert(context_);
   solver_ =
-    (*context_)["model_parameters"]["solvers"][0].data<Shift::Solver::Base>();
+    (*context_)["model_parameters"]["solvers"][0].data<shift::Solver::Base>();
   assert(solver_);
 }
 
-void Shift::Integrator::ODE113::reset() {
+void shift::Integrator::ODE113::reset() {
 
   neqn_ = context_->qCount() + context_->dqCount() +
           context_->forceModuleEquationCount();
@@ -120,7 +120,7 @@ void Shift::Integrator::ODE113::reset() {
   yerr_.resize(neqn_);
   std::fill(yerr_.begin(), yerr_.end(), 0);
 
-  phi_ = Shift::Array2d<double>(17, neqn_);
+  phi_ = shift::Array2d<double>(17, neqn_);
   phi_.zero();
 
   iteration_count_ = 0;
@@ -140,11 +140,11 @@ void Shift::Integrator::ODE113::reset() {
   baumgarte_omega_n_prev_ = omega_n_;
 }
 
-void Shift::Integrator::ODE113::initialize() {
+void shift::Integrator::ODE113::initialize() {
   reset();
 }
 
-void Shift::Integrator::ODE113::stepFcn(double t, std::vector<double>& y) {
+void shift::Integrator::ODE113::stepFcn(double t, std::vector<double>& y) {
   assert(solver_);
   iteration_count_++;
 
@@ -211,7 +211,7 @@ void Shift::Integrator::ODE113::stepFcn(double t, std::vector<double>& y) {
   return;
 }
 
-void Shift::Integrator::ODE113::integrate() {
+void shift::Integrator::ODE113::integrate() {
 
   reset();
   solver_->initialize();
@@ -421,7 +421,7 @@ unsuccessful step --
   just calls the code again.  a restart is neither required nor
   desirable.
 */
-void Shift::Integrator::ODE113::step() {
+void shift::Integrator::ODE113::step() {
   double temp2;
   double temp4;
   double temp5;
@@ -816,7 +816,7 @@ void Shift::Integrator::ODE113::step() {
   return;
 }
 
-void Shift::Integrator::ODE113::currentTime(double& time, double& delta_time) {
+void shift::Integrator::ODE113::currentTime(double& time, double& delta_time) {
   time = x_;
   delta_time = x_ - t_; // @TODO verify this is correct
 }

@@ -6,7 +6,7 @@
 
 #include <memory>
 
-namespace Shift {
+namespace shift {
 
 namespace Joint {
 class JointBase;
@@ -40,12 +40,12 @@ public:
 
 private:
   static bool registered_;
-  Shift::Body::Base* original_parent_body_pointer_ = nullptr;
-  Shift::Frame* original_parent_frame_pointer_ = nullptr;
+  shift::Body::Base* original_parent_body_pointer_ = nullptr;
+  shift::Frame* original_parent_frame_pointer_ = nullptr;
 };
 
 } // namespace Constraint
 
-} // namespace Shift
+} // namespace shift
 
 #endif

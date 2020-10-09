@@ -4,7 +4,7 @@
 #include "shift/core/factory.h"
 #include "shift/core/light/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Light {
 
@@ -31,6 +31,6 @@ private:
 
 } // namespace Light
 
-} // namespace Shift
+} // namespace shift
 
 #endif

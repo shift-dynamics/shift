@@ -3,7 +3,7 @@
 
 #include "shift/core/parameter/value.h"
 
-namespace Shift {
+namespace shift {
 
 class Context;
 class Assembly;
@@ -74,7 +74,7 @@ private:
   Value void_;
 
 protected:
-  std::vector<Shift::Parameter::List*> objects_;
+  std::vector<shift::Parameter::List*> objects_;
   bool active_ = true;
   Context* context_ = nullptr;
   Assembly* parent_assembly_ptr_ = nullptr;
@@ -82,5 +82,5 @@ protected:
 };
 
 } // namespace Parameter
-} // namespace Shift
+} // namespace shift
 #endif

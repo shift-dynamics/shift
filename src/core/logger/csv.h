@@ -6,12 +6,12 @@
 #include <fstream>
 #include <string>
 
-namespace Shift {
+namespace shift {
 
 namespace Logger {
 
 /*!
-@brief Abstract base class for Shift::Solver C++ objects
+@brief Abstract base class for shift::Solver C++ objects
 */
 class CSV : public Base {
 
@@ -50,6 +50,6 @@ private:
 
 } // namespace Logger
 
-} // namespace Shift
+} // namespace shift
 
 #endif

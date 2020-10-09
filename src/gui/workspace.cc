@@ -11,7 +11,7 @@
 #include <QtCore/QDebug>
 #include <QtWidgets/QTreeWidget>
 
-namespace Shift {
+namespace shift {
 
 Workspace::Workspace(VulkanWindow* vulkanWindow, QWidget* parent)
   : QMainWindow(parent)
@@ -42,4 +42,4 @@ Workspace::~Workspace() {
   delete ui_;
 }
 
-} // namespace Shift
+} // namespace shift

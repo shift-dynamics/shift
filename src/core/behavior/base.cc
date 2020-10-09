@@ -3,24 +3,24 @@
 #include "shift/core/behavior/ik_7dof.h"
 #include "shift/core/context.h"
 
-bool Shift::Behavior::Modules::initialized() {
-  if(!Shift::Behavior::ContactDetection::isRegistered()) {
+bool shift::Behavior::Modules::initialized() {
+  if(!shift::Behavior::ContactDetection::isRegistered()) {
     return false;
   }
-  if(!Shift::Behavior::IK7DOF::isRegistered()) {
+  if(!shift::Behavior::IK7DOF::isRegistered()) {
     return false;
   }
   return true;
 }
 
-void Shift::Behavior::Base::addParameters() {}
+void shift::Behavior::Base::addParameters() {}
 
-void Shift::Behavior::Base::setActiveObjects(bool parent_is_active) {
+void shift::Behavior::Base::setActiveObjects(bool parent_is_active) {
   if(context_) {
     context_->setActive(this, active_ && parent_is_active);
   }
 };
 
-void Shift::Behavior::Base::load() {}
+void shift::Behavior::Base::load() {}
 
-void Shift::Behavior::Base::connect() {}
+void shift::Behavior::Base::connect() {}

@@ -1,0 +1,6 @@
+#ifndef SHIFT_CONFIG_H_
+#define SHIFT_CONFIG_H_
+
+#define SHIFT_ROOT_DIR "@CMAKE_SOURCE_DIR@"
+
+#endif

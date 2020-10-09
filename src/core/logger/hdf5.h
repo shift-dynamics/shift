@@ -6,12 +6,12 @@
 #include <hdf5.h>
 #include <string>
 
-namespace Shift {
+namespace shift {
 
 namespace Logger {
 
 /*!
-@brief Abstract base class for Shift::Solver C++ objects
+@brief Abstract base class for shift::Solver C++ objects
 */
 class HDF5 : public Base {
 
@@ -69,6 +69,6 @@ private:
 
 } // namespace Logger
 
-} // namespace Shift
+} // namespace shift
 
 #endif

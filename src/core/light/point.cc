@@ -1,13 +1,13 @@
 #include "shift/core/light/point.h"
 
-bool Shift::Light::Point::registered_ =
-  Shift::Factory<Shift::Light::Base>::get()->registerModule(
-    "point", Shift::Light::Point::create);
+bool shift::Light::Point::registered_ =
+  shift::Factory<shift::Light::Base>::get()->registerModule(
+    "point", shift::Light::Point::create);
 
-std::unique_ptr<Shift::Light::Point> Shift::Light::Point::create() {
-  return std::make_unique<Shift::Light::Point>();
+std::unique_ptr<shift::Light::Point> shift::Light::Point::create() {
+  return std::make_unique<shift::Light::Point>();
 }
 
-void Shift::Light::Point::addParameters() {
-  Shift::Light::Base::addParameters();
+void shift::Light::Point::addParameters() {
+  shift::Light::Base::addParameters();
 }

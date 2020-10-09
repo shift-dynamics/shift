@@ -1,13 +1,13 @@
 #include "shift/core/geometry/ellipsoid.h"
 #include "shift/core/factory.h"
 
-bool Shift::Geometry::Ellipsoid::registered_ =
-  Shift::Factory<Shift::Geometry::Base>::get()->registerModule(
-    "ellipsoid", Shift::Geometry::Ellipsoid::create);
+bool shift::Geometry::Ellipsoid::registered_ =
+  shift::Factory<shift::Geometry::Base>::get()->registerModule(
+    "ellipsoid", shift::Geometry::Ellipsoid::create);
 
-std::unique_ptr<Shift::Geometry::Ellipsoid>
-Shift::Geometry::Ellipsoid::create() {
-  return std::make_unique<Shift::Geometry::Ellipsoid>();
+std::unique_ptr<shift::Geometry::Ellipsoid>
+shift::Geometry::Ellipsoid::create() {
+  return std::make_unique<shift::Geometry::Ellipsoid>();
 }
 
-void Shift::Geometry::Ellipsoid::addParameters() {}
+void shift::Geometry::Ellipsoid::addParameters() {}

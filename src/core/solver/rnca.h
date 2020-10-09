@@ -6,12 +6,12 @@
 #include "shift/core/array2d.h"
 #include "shift/core/solver/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Solver {
 
 /*!
-@brief Abstract base class for Shift::Solver C++ objects
+@brief Abstract base class for shift::Solver C++ objects
 */
 class RNCA : public Base {
 
@@ -111,13 +111,13 @@ private:
   int nnzms_ = 0; /*!< original number of nonzero entries in mass matrix */
   int nnzb_ = 0;  /*!< number of nonzero entries in B matrix */
 
-  Shift::Array2d<int> rm_;
+  shift::Array2d<int> rm_;
   std::vector<int> cm_; /*!< row ranges of M matrix in PO(3) */
 
-  // Shift::Array2d<int> rb2_; /*!< row ranges of B matrix in PO(2) */
-  // Shift::Array2d<int>
+  // shift::Array2d<int> rb2_; /*!< row ranges of B matrix in PO(2) */
+  // shift::Array2d<int>
   //   rb3_temp_; /*!< temporary array used to convert rb2 to rb3 */
-  // // Shift::Array2d<int> rb3_; /*!< row ranges of B matrix in PO(3) */
+  // // shift::Array2d<int> rb3_; /*!< row ranges of B matrix in PO(3) */
   //
   // std::vector<int> cb2_;      /*!< global col indices of B matrix in PO(2) */
   // std::vector<int> cb3_temp_; /*!< temporary array used to convert cb2 to
@@ -241,6 +241,6 @@ private:
 
 } // namespace Solver
 
-} // namespace Shift
+} // namespace shift
 
 #endif

@@ -9,26 +9,26 @@
 #include "shift/core/joint/rigid.h"
 #include "shift/core/joint/spherical.h"
 
-bool Shift::Joint::Modules::initialized() {
-  if(!Shift::Joint::Float::isRegistered()) {
+bool shift::Joint::Modules::initialized() {
+  if(!shift::Joint::Float::isRegistered()) {
     return false;
   }
-  if(!Shift::Joint::Prismatic::isRegistered()) {
+  if(!shift::Joint::Prismatic::isRegistered()) {
     return false;
   }
-  if(!Shift::Joint::Revolute::isRegistered()) {
+  if(!shift::Joint::Revolute::isRegistered()) {
     return false;
   }
-  if(!Shift::Joint::Rigid::isRegistered()) {
+  if(!shift::Joint::Rigid::isRegistered()) {
     return false;
   }
-  if(!Shift::Joint::Spherical::isRegistered()) {
+  if(!shift::Joint::Spherical::isRegistered()) {
     return false;
   }
   return true;
 }
 
-void Shift::Joint::Base::addParameters() {
+void shift::Joint::Base::addParameters() {
   addParameter("name", &name_, "descriptive joint name", true);
   addParameter("type", &type_, "joint type", true);
   addParameter("parent", &parent_, "parent body/frame pair", true)
@@ -39,11 +39,11 @@ void Shift::Joint::Base::addParameters() {
     .setColumnDim(-1);
 }
 
-void Shift::Joint::Base::load() {
+void shift::Joint::Base::load() {
   // connect();
 }
 
-void Shift::Joint::Base::connect() {
+void shift::Joint::Base::connect() {
 
   if(context_ && parent_.size() > 0 && child_.size() > 0) {
     // connect parent
@@ -55,7 +55,7 @@ void Shift::Joint::Base::connect() {
         try {
           parent_body_ptr_ =
             (*parent_assembly_ptr_)["bodies"][parent_.at(0).at(0)]
-              .data<Shift::Body::Base>();
+              .data<shift::Body::Base>();
         } catch(const char* msg) {
           std::cerr << "Error: could not find parent body for joint: " << name()
                     << ". Loading the simulation will attempt to continue."
@@ -76,7 +76,7 @@ void Shift::Joint::Base::connect() {
             it++) {
           value = value[*it];
         }
-        parent_body_ptr_ = value.data<Shift::Body::Base>();
+        parent_body_ptr_ = value.data<shift::Body::Base>();
       } catch(const char* msg) {
         std::cerr << "Error: could not find parent body for joint: " << name()
                   << ". Loading the simulation will attempt to continue."
@@ -92,7 +92,7 @@ void Shift::Joint::Base::connect() {
     } else {
       try {
         parent_frame_ptr_ = (*parent_body_ptr_)["frames"][parent_.at(1).at(0)]
-                              .data<Shift::Frame>();
+                              .data<shift::Frame>();
       } catch(const char* msg) {
         std::cerr << "Could not find parent frame for joint: " << name()
                   << std::endl;
@@ -113,7 +113,7 @@ void Shift::Joint::Base::connect() {
         try {
           child_body_ptr_ =
             (*parent_assembly_ptr_)["bodies"][child_.at(0).at(0)]
-              .data<Shift::Body::Base>();
+              .data<shift::Body::Base>();
         } catch(const char* msg) {
           std::cerr << "Could not find child body \"" << child_.at(0).at(0)
                     << "\" for joint: \"" << name() << "\"" << std::endl;
@@ -129,7 +129,7 @@ void Shift::Joint::Base::connect() {
         value = value[*it];
       }
       try {
-        child_body_ptr_ = value.data<Shift::Body::Base>();
+        child_body_ptr_ = value.data<shift::Body::Base>();
       } catch(const char* msg) {
         std::cerr << "Could not find child body \"" << child_.at(0).at(0)
                   << "\" for joint: \"" << name() << "\"" << std::endl;
@@ -144,7 +144,7 @@ void Shift::Joint::Base::connect() {
     } else {
       try {
         child_frame_ptr_ =
-          (*child_body_ptr_)["frames"][child_.at(1).at(0)].data<Shift::Frame>();
+          (*child_body_ptr_)["frames"][child_.at(1).at(0)].data<shift::Frame>();
       } catch(const char* msg) {
         std::cerr << "Could not find child frame \"" << child_.at(1).at(0)
                   << "\" for joint: \"" << name() << "\"" << std::endl;
@@ -160,19 +160,19 @@ void Shift::Joint::Base::connect() {
   }
 }
 
-void Shift::Joint::Base::setInitialDisplacement(const double* q) {
+void shift::Joint::Base::setInitialDisplacement(const double* q) {
   if(q_0_) {
     memcpy(q_0_, q, q_count_ * sizeof(double));
   }
 }
 
-void Shift::Joint::Base::setInitialVelocity(const double* dq) {
+void shift::Joint::Base::setInitialVelocity(const double* dq) {
   if(dq_0_) {
     memcpy(dq_0_, dq, dq_count_ * sizeof(double));
   }
 }
 
-void Shift::Joint::Base::setActiveObjects(bool parent_is_active) {
+void shift::Joint::Base::setActiveObjects(bool parent_is_active) {
   assert(context_);
   context_->setActive(this, parent_is_active && active_);
 }

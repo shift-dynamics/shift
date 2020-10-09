@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace Shift {
+namespace shift {
 
 namespace Integrator {
 
@@ -118,7 +118,7 @@ roundoff error  u  which is the smallest positive number such that
                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; /*!< Internal array used to
                                                        set up polynomials. */
 
-  Shift::Array2d<double> phi_;
+  shift::Array2d<double> phi_;
 
   bool crash_ = false;
   bool start_ = false;
@@ -154,6 +154,6 @@ roundoff error  u  which is the smallest positive number such that
 
 } // namespace Integrator
 
-} // namespace Shift
+} // namespace shift
 
 #endif

@@ -2,7 +2,7 @@
 
 #include "ksl/print.h"
 
-void Shift::Frame::addParameters() {
+void shift::Frame::addParameters() {
 
   addParameter("name", &name_, "descriptive frame name", true);
 
@@ -91,15 +91,15 @@ void Shift::Frame::addParameters() {
     false);
 }
 
-const ksl_SE3_t* Shift::Frame::dWRTOrigin() const {
+const ksl_SE3_t* shift::Frame::dWRTOrigin() const {
   return &d_wrt_origin_;
 }
 
-const ksl_SE3_t* Shift::Frame::dWRTReference() const {
+const ksl_SE3_t* shift::Frame::dWRTReference() const {
   return &d_wrt_reference_;
 }
 
-const ksl_SE3_t* Shift::Frame::systemDWRTReference() const {
+const ksl_SE3_t* shift::Frame::systemDWRTReference() const {
   if(use_system_reference_frame_) {
     return &system_d_wrt_reference_;
   } else {

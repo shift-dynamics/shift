@@ -4,16 +4,16 @@
 #include "shift/core/logger/base.h"
 #include "shift/core/utility.h"
 
-bool Shift::Logger::CSV::registered_ =
-  Shift::Factory<Shift::Logger::Base>::get()->registerModule(
-    "csv", Shift::Logger::CSV::create);
+bool shift::Logger::CSV::registered_ =
+  shift::Factory<shift::Logger::Base>::get()->registerModule(
+    "csv", shift::Logger::CSV::create);
 
-std::unique_ptr<Shift::Logger::CSV> Shift::Logger::CSV::create() {
-  return std::make_unique<Shift::Logger::CSV>();
+std::unique_ptr<shift::Logger::CSV> shift::Logger::CSV::create() {
+  return std::make_unique<shift::Logger::CSV>();
 }
 
-void Shift::Logger::CSV::addParameters() {
-  Shift::Logger::Base::addParameters();
+void shift::Logger::CSV::addParameters() {
+  shift::Logger::Base::addParameters();
   addParameter("delimiter", &delimiter_,
                "delimiter used in csv file, defaults to \",\" if not provided",
                false);
@@ -28,17 +28,17 @@ void Shift::Logger::CSV::addParameters() {
     false);
 }
 
-void Shift::Logger::CSV::initialize() {
+void shift::Logger::CSV::initialize() {
   if(timestamp_logfile_) {
-    csv_logfile_ = Shift::Utility::stripFileExtension(csv_logfile_) + "-" +
-                   Shift::Utility::currentDateTime() +
-                   Shift::Utility::getFileExtension(csv_logfile_);
+    csv_logfile_ = shift::Utility::stripFileExtension(csv_logfile_) + "-" +
+                   shift::Utility::currentDateTime() +
+                   shift::Utility::getFileExtension(csv_logfile_);
   }
   file_.open(csv_logfile_);
   writeHeader();
 }
 
-void Shift::Logger::CSV::writeHeader() {
+void shift::Logger::CSV::writeHeader() {
   if(log_all_channels_) {
     assert(context_);
     file_ << "time" << delimiter_;
@@ -62,7 +62,7 @@ void Shift::Logger::CSV::writeHeader() {
   file_ << "\n";
 }
 
-void Shift::Logger::CSV::writeStates(const double t,
+void shift::Logger::CSV::writeStates(const double t,
                                      const std::vector<double>& y) {
   file_ << t << delimiter_;
   size_t count = context_->qCount() + context_->dqCount();

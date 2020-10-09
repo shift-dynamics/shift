@@ -5,7 +5,7 @@
 
 #include "shift/core/behavior/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Joint {
 class JointBase;
@@ -37,6 +37,6 @@ private:
 
 } // namespace Behavior
 
-} // namespace Shift
+} // namespace shift
 
 #endif

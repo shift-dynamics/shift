@@ -3,84 +3,84 @@
 
 #include "shift/core/joint/base.h"
 
-namespace Shift {
+namespace shift {
 
 class Context;
 
 namespace Joint {
 
-void tx_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tx_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
           const double*);
 
-void txinv_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void txinv_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*);
 
-void ty_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ty_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
           const double*);
 
-void tyinv_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tyinv_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*);
 
-void tz_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tz_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
           const double*);
 
-void tzinv_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tzinv_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*);
 
-void ta_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ta_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
           const double*);
 
-void tainv_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tainv_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*);
 
-void tx_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tx_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
            const double*);
 
-void txinv_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void txinv_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
               const double*);
 
-void ty_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ty_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
            const double*);
 
-void tyinv_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tyinv_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
               const double*);
 
-void tz_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tz_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
            const double*);
 
-void tzinv_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tzinv_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
               const double*);
 
-void ta_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ta_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
            const double*);
 
-void tainv_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tainv_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
               const double*);
 
-void tx_dhva(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tx_dhva(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*, const double*);
 
-void txinv_dhva(const Shift::Context&, Topology::DHVA&,
+void txinv_dhva(const shift::Context&, Topology::DHVA&,
                 const Topology::Offsets&, const double*, const double*);
 
-void ty_dhva(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ty_dhva(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*, const double*);
 
-void tyinv_dhva(const Shift::Context&, Topology::DHVA&,
+void tyinv_dhva(const shift::Context&, Topology::DHVA&,
                 const Topology::Offsets&, const double*, const double*);
-void tz_dhva(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void tz_dhva(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*, const double*);
 
-void tzinv_dhva(const Shift::Context&, Topology::DHVA&,
+void tzinv_dhva(const shift::Context&, Topology::DHVA&,
                 const Topology::Offsets&, const double*, const double*);
 
-void ta_dhva(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ta_dhva(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*, const double*);
 
-void tainv_dhva(const Shift::Context&, Topology::DHVA&,
+void tainv_dhva(const shift::Context&, Topology::DHVA&,
                 const Topology::Offsets&, const double*, const double*);
 //
-// void service_force(const Shift::Context&, const Topology::DHVA&, const
+// void service_force(const shift::Context&, const Topology::DHVA&, const
 // Topology::Offsets&, double* f);
 
 class Prismatic : public Base {
@@ -134,6 +134,6 @@ private:
 
 } // namespace Joint
 
-} // namespace Shift
+} // namespace shift
 
 #endif

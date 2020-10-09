@@ -16,7 +16,7 @@
 #include "shift/core/parameter/factoryarray.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Joint {
 class Base;
@@ -29,16 +29,16 @@ class Context;
 namespace Body {
 
 /*!
-@brief Parameters that describe a Shift::Body
+@brief Parameters that describe a shift::Body
 */
 class Base
-  : public Shift::Base
-  , public Shift::Parameter::List {
+  : public shift::Base
+  , public shift::Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name)
-    , Shift::Parameter::List() {
+    : shift::Base(name)
+    , shift::Parameter::List() {
     auto origin = std::make_unique<Frame>("origin");
     origin->setIsOrigin(true);
     origin->setIsReference(true);
@@ -49,8 +49,8 @@ public:
     addParameters();
   }
   Base()
-    : Shift::Base("")
-    , Shift::Parameter::List() {
+    : shift::Base("")
+    , shift::Parameter::List() {
     auto origin = std::make_unique<Frame>("origin");
     origin->setIsOrigin(true);
     origin->setIsReference(true);
@@ -59,7 +59,7 @@ public:
     addParameters();
   }
   Base(Base&& b)
-    : Shift::Base(b.name_) {
+    : shift::Base(b.name_) {
     // for(auto& i : b.lights_) {
     //   lights_.push_back(std::move(i));
     // }
@@ -84,7 +84,7 @@ public:
 
   Frame* origin();
   Frame* referenceFrame();
-  void setReferenceFrame(Shift::Frame*);
+  void setReferenceFrame(shift::Frame*);
   void setReferenceFrame();
   unsigned int frameCount() {
     return frames_.size();
@@ -188,7 +188,7 @@ protected:
   int level_ = -1;
   int va_index_ = -1;
   Joint::Base* parent_joint_ = nullptr;
-  Shift::Frame* reference_frame_ =
+  shift::Frame* reference_frame_ =
     nullptr; /*!< pointer to unique reference frame on body, in an articulated
                 multibody chain, this is the *proximal* or upstream
                 frame in the spanning tree */
@@ -209,6 +209,6 @@ public:
 
 } // namespace Body
 
-} // namespace Shift
+} // namespace shift
 
 #endif

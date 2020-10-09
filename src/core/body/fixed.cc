@@ -1,15 +1,15 @@
 #include "shift/core/body/fixed.h"
 #include "shift/core/factory.h"
 
-bool Shift::Body::Fixed::registered_ =
-  Shift::Factory<Shift::Body::Base>::get()->registerModule(
-    "fixed", Shift::Body::Fixed::create);
+bool shift::Body::Fixed::registered_ =
+  shift::Factory<shift::Body::Base>::get()->registerModule(
+    "fixed", shift::Body::Fixed::create);
 
-std::unique_ptr<Shift::Body::Fixed> Shift::Body::Fixed::create() {
-  return std::make_unique<Shift::Body::Fixed>();
+std::unique_ptr<shift::Body::Fixed> shift::Body::Fixed::create() {
+  return std::make_unique<shift::Body::Fixed>();
 }
 
-void Shift::Body::Fixed::addParameters() {
+void shift::Body::Fixed::addParameters() {
   removeParameter("name");
   removeParameter("inertia");
   removeParameter("center_of_mass");

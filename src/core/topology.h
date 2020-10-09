@@ -10,7 +10,7 @@
 #include "ksl/SE3.h"
 #include "ksl/screw.h"
 
-namespace Shift {
+namespace shift {
 class Context;
 
 namespace Topology {
@@ -143,10 +143,10 @@ struct Offsets {
   unsigned int data = 0; /*!< offset into data array */
 };
 
-typedef void (*dh_fptr)(const Shift::Context&, DHVA&, const Offsets&,
+typedef void (*dh_fptr)(const shift::Context&, DHVA&, const Offsets&,
                         const double*);
 
-typedef void (*dhva_fptr)(const Shift::Context&, DHVA&, const Offsets&,
+typedef void (*dhva_fptr)(const shift::Context&, DHVA&, const Offsets&,
                           const double*, const double*);
 
 /*!
@@ -189,7 +189,7 @@ and joints as graph edges and save as a DOT file. This variant does not use the
 graphviz API. The DOT file can be used to generate an image using graphviz tools
 offline.
 */
-int digraphDOT(const Shift::Context& context, std::string fileName);
+int digraphDOT(const shift::Context& context, std::string fileName);
 
 /*!
 \brief generate a directed graph of a mechanism with frames as graph nodes
@@ -197,7 +197,7 @@ and joints and relative transformations across bodies (i.e. shape matrices) as
 graph edges and save as a DOT file. This variant does not use the
 graphviz API. The DOT file can be used to generate an image using graphviz tools
 */
-int digraphFramesDOT(const Shift::Context& context, std::string fileName);
+int digraphFramesDOT(const shift::Context& context, std::string fileName);
 
 // // identify which frames in the d array correspond to body reference frames
 // void setDReferenceFrames();
@@ -211,7 +211,7 @@ int digraphFramesDOT(const Shift::Context& context, std::string fileName);
 //
 // // plays back operations identified in initializeGLReferenceFrames, updates
 // // any GL frames that weren't processed in updateD, updateDH, or updateDHVA
-// void updateGLReferenceFrames(Shift::Context&, double* dhva);
+// void updateGLReferenceFrames(shift::Context&, double* dhva);
 //
 // // sets up array of force modules, this should be moved from here to
 // context.h void flattenForceModules();
@@ -222,5 +222,5 @@ int digraphFramesDOT(const Shift::Context& context, std::string fileName);
 // void basicSweep();
 
 } // namespace Topology
-} // namespace Shift
+} // namespace shift
 #endif

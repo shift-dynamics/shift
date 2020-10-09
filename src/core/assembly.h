@@ -13,7 +13,7 @@
 #include "shift/core/parameter/list.h"
 #include "shift/core/sensor/base.h"
 
-namespace Shift {
+namespace shift {
 
 class Context;
 
@@ -46,16 +46,16 @@ public:
 private:
   void addParameters() override;
 
-  Shift::Parameter::FactoryArray<Body::Base> bodies_;
-  Shift::Parameter::FactoryArray<Behavior::Base> behaviors_;
-  Shift::Parameter::FactoryArray<Constraint::Base> constraints_;
-  Shift::Parameter::FactoryArray<ForceModule::Base> force_modules_;
-  Shift::Parameter::FactoryArray<Joint::Base> joints_;
-  Shift::Parameter::FactoryArray<Sensor::Base> sensors_;
+  shift::Parameter::FactoryArray<Body::Base> bodies_;
+  shift::Parameter::FactoryArray<Behavior::Base> behaviors_;
+  shift::Parameter::FactoryArray<Constraint::Base> constraints_;
+  shift::Parameter::FactoryArray<ForceModule::Base> force_modules_;
+  shift::Parameter::FactoryArray<Joint::Base> joints_;
+  shift::Parameter::FactoryArray<Sensor::Base> sensors_;
 
-  Shift::Parameter::Array<Assembly> assemblies_;
+  shift::Parameter::Array<Assembly> assemblies_;
 };
 
-} // namespace Shift
+} // namespace shift
 
 #endif

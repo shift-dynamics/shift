@@ -3,28 +3,28 @@
 #include "shift/core/logger/csv.h"
 #include "shift/core/logger/hdf5.h"
 
-bool Shift::Logger::Modules::initialized() {
-  if(!Shift::Logger::CSV::isRegistered()) {
+bool shift::Logger::Modules::initialized() {
+  if(!shift::Logger::CSV::isRegistered()) {
     return false;
   }
-  // if(!Shift::Logger::HDF5::isRegistered()) {
+  // if(!shift::Logger::HDF5::isRegistered()) {
   //   return false;
   // }
   return true;
 }
 
-void Shift::Logger::Base::addParameters() {
+void shift::Logger::Base::addParameters() {
   addParameter("log_all_channels", &log_all_channels_,
                "indicates to log all generalized coordinates, defaults to true "
                "if not specified.",
                false);
 }
 
-void Shift::Logger::Base::load() {}
+void shift::Logger::Base::load() {}
 
-void Shift::Logger::Base::connect() {}
+void shift::Logger::Base::connect() {}
 
-void Shift::Logger::Base::setActiveObjects(bool parent_is_active) {
+void shift::Logger::Base::setActiveObjects(bool parent_is_active) {
   assert(context_);
   context_->setActive(this, parent_is_active && active_);
 }

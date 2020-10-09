@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-void Shift::Assembly::addParameters() {
+void shift::Assembly::addParameters() {
 
   addParameter("name", &name_, "User defined descriptive assembly name.", true);
 

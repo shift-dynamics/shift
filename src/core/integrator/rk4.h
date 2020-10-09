@@ -5,7 +5,7 @@
 
 #include "shift/core/integrator/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Integrator {
 /*!
@@ -56,6 +56,6 @@ private:
 
 } // namespace Integrator
 
-} // namespace Shift
+} // namespace shift
 
 #endif
