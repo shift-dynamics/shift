@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include <iostream>
 
-#include "shift-core/bitfield.h"
+#include "shift/core/bitfield.h"
 
 TEST(BitField, SetTrue) {
   Shift::BitField b = Shift::BitField(37);

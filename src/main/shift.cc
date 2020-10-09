@@ -1,5 +1,5 @@
-#include "shift-gui/vulkanwindow.h"
-#include "shift-gui/workspace.h"
+#include "shift/gui/vulkanwindow.h"
+#include "shift/gui/workspace.h"
 
 #include <QApplication>
 #include <QLibraryInfo>

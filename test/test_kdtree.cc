@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "shift-core/kdtree/kdtree.h"
+#include "shift/core/kdtree/kdtree.h"
 
 TEST(KdTree, VerifyGeneration) {
 
