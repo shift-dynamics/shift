@@ -2,27 +2,27 @@
 #include "shift/core/context.h"
 #include "shift/core/factory.h"
 
-bool Shift::ForceModule::PID::registered_ =
-  Shift::Factory<Shift::ForceModule::Base>::get()->registerModule(
-    "pid", Shift::ForceModule::PID::create);
+bool shift::ForceModule::PID::registered_ =
+  shift::Factory<shift::ForceModule::Base>::get()->registerModule(
+    "pid", shift::ForceModule::PID::create);
 
-std::unique_ptr<Shift::ForceModule::PID> Shift::ForceModule::PID::create() {
-  return std::make_unique<Shift::ForceModule::PID>();
+std::unique_ptr<shift::ForceModule::PID> shift::ForceModule::PID::create() {
+  return std::make_unique<shift::ForceModule::PID>();
 }
 
-void Shift::ForceModule::PID::addParameters() {
-  Shift::ForceModule::Base::addParameters();
+void shift::ForceModule::PID::addParameters() {
+  shift::ForceModule::Base::addParameters();
   addParameter("kp", &kp_, "proportional gain", true);
   addParameter("ki", &ki_, "integral gain", true);
   addParameter("kd", &kd_, "derivative gain", true);
   addParameter("target", &target_, "target", false);
 }
 
-void Shift::ForceModule::PID::setTarget(double target) {
+void shift::ForceModule::PID::setTarget(double target) {
   target_ = target;
 }
 
-void Shift::ForceModule::PID::service(const double y[], double dy[]) {
+void shift::ForceModule::PID::service(const double y[], double dy[]) {
 
   double current_value = 0;
   switch(target_type_) {
@@ -56,4 +56,4 @@ void Shift::ForceModule::PID::service(const double y[], double dy[]) {
   context_->jointWorkingForces()[dq_index_] += u;
 }
 
-void Shift::ForceModule::PID::connect() {}
+void shift::ForceModule::PID::connect() {}

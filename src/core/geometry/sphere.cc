@@ -1,12 +1,12 @@
 #include "shift/core/geometry/sphere.h"
 #include "shift/core/factory.h"
 
-bool Shift::Geometry::Sphere::registered_ =
-  Shift::Factory<Shift::Geometry::Base>::get()->registerModule(
-    "sphere", Shift::Geometry::Sphere::create);
+bool shift::Geometry::Sphere::registered_ =
+  shift::Factory<shift::Geometry::Base>::get()->registerModule(
+    "sphere", shift::Geometry::Sphere::create);
 
-std::unique_ptr<Shift::Geometry::Sphere> Shift::Geometry::Sphere::create() {
-  return std::make_unique<Shift::Geometry::Sphere>();
+std::unique_ptr<shift::Geometry::Sphere> shift::Geometry::Sphere::create() {
+  return std::make_unique<shift::Geometry::Sphere>();
 }
 
-void Shift::Geometry::Sphere::addParameters() {}
+void shift::Geometry::Sphere::addParameters() {}

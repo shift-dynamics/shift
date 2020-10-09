@@ -1,12 +1,12 @@
 #include "shift/core/geometry/mesh.h"
 #include "shift/core/factory.h"
 
-bool Shift::Geometry::Mesh::registered_ =
-  Shift::Factory<Shift::Geometry::Base>::get()->registerModule(
-    "mesh", Shift::Geometry::Mesh::create);
+bool shift::Geometry::Mesh::registered_ =
+  shift::Factory<shift::Geometry::Base>::get()->registerModule(
+    "mesh", shift::Geometry::Mesh::create);
 
-std::unique_ptr<Shift::Geometry::Mesh> Shift::Geometry::Mesh::create() {
-  return std::make_unique<Shift::Geometry::Mesh>();
+std::unique_ptr<shift::Geometry::Mesh> shift::Geometry::Mesh::create() {
+  return std::make_unique<shift::Geometry::Mesh>();
 }
 
-void Shift::Geometry::Mesh::addParameters() {}
+void shift::Geometry::Mesh::addParameters() {}

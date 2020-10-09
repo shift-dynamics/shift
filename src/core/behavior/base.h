@@ -6,26 +6,26 @@
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 class Context;
 
 namespace Behavior {
 
 /*!
-@brief Abstract base class for Shift::Behavior C++ objects
+@brief Abstract base class for shift::Behavior C++ objects
 */
 class Base
-  : public Shift::Base
+  : public shift::Base
   , public Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name) {
+    : shift::Base(name) {
     addParameters();
   }
   Base()
-    : Shift::Base("") {
+    : shift::Base("") {
     addParameters();
   }
   virtual ~Base() override {}
@@ -58,6 +58,6 @@ public:
 
 } // namespace Behavior
 
-} // namespace Shift
+} // namespace shift
 
 #endif

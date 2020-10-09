@@ -3,19 +3,19 @@
 
 #include "ksl/matrix.h"
 
-bool Shift::Body::Rigid::registered_ =
-  Shift::Factory<Shift::Body::Base>::get()->registerModule(
-    "rigid", Shift::Body::Rigid::create);
+bool shift::Body::Rigid::registered_ =
+  shift::Factory<shift::Body::Base>::get()->registerModule(
+    "rigid", shift::Body::Rigid::create);
 
-void Shift::Body::Rigid::addParameters() {
-  Shift::Body::Base::addParameters();
+void shift::Body::Rigid::addParameters() {
+  shift::Body::Base::addParameters();
 }
 
-std::unique_ptr<Shift::Body::Rigid> Shift::Body::Rigid::create() {
-  return std::make_unique<Shift::Body::Rigid>();
+std::unique_ptr<shift::Body::Rigid> shift::Body::Rigid::create() {
+  return std::make_unique<shift::Body::Rigid>();
 }
 
-ksl_inertia_t Shift::Body::Rigid::inertiaWRTReference() {
+ksl_inertia_t shift::Body::Rigid::inertiaWRTReference() {
   ksl_inertia_t inertia_temp{};
 
   if(!(inertia_.m < 1e-9 || is_virtual_)) {

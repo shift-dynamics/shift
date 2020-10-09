@@ -4,22 +4,22 @@
 #include "shift/core/frame.h"
 #include "shift/core/joint/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Joint {
 
 struct DHVA;
 
-void rigid_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rigid_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
               const double*);
 
-void rigidinv_dh(const Shift::Context&, Topology::DHVA&,
+void rigidinv_dh(const shift::Context&, Topology::DHVA&,
                  const Topology::Offsets&, const double*);
 
-void rigid_dhva(const Shift::Context&, Topology::DHVA&,
+void rigid_dhva(const shift::Context&, Topology::DHVA&,
                 const Topology::Offsets&, const double*, const double*);
 
-void rigidinv_dhva(const Shift::Context&, Topology::DHVA&,
+void rigidinv_dhva(const shift::Context&, Topology::DHVA&,
                    const Topology::Offsets&, const double*, const double*);
 
 class Rigid : public Base {
@@ -59,11 +59,11 @@ public:
 private:
   virtual void addParameters() override;
   static bool registered_;
-  Shift::Frame frame_;
+  shift::Frame frame_;
 };
 
 } // namespace Joint
 
-} // namespace Shift
+} // namespace shift
 
 #endif

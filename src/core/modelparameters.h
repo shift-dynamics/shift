@@ -13,25 +13,25 @@
 #include "shift/core/solver/base.h"
 #include "shift/core/units.h"
 
-namespace Shift {
+namespace shift {
 
 class Context;
 /*!
 \brief Shift Assembly datastructure
 */
 class ModelParameters
-  : public Shift::Base
-  , public Shift::Parameter::List {
+  : public shift::Base
+  , public shift::Parameter::List {
 
 public:
-  ModelParameters(Shift::Context* context)
-    : Shift::Base("") {
+  ModelParameters(shift::Context* context)
+    : shift::Base("") {
     context_ = context;
     addParameters();
   }
 
   ModelParameters()
-    : Shift::Base("") {
+    : shift::Base("") {
     addParameters();
   }
 
@@ -90,14 +90,14 @@ private:
   bool contact_detection_enabled_ = false;
   ksl_vec3_t viewport_background_color_ = {{1.0, 1.0, 1.0}};
 
-  Shift::Parameter::FactoryArray<Solver::Base> solvers_;
-  Shift::Parameter::FactoryArray<Integrator::Base> integrators_;
-  Shift::Parameter::FactoryArray<Logger::Base> loggers_;
+  shift::Parameter::FactoryArray<Solver::Base> solvers_;
+  shift::Parameter::FactoryArray<Integrator::Base> integrators_;
+  shift::Parameter::FactoryArray<Logger::Base> loggers_;
   Units units_;
 
   FILE* debug_pointer_ = nullptr;
 };
 
-} // namespace Shift
+} // namespace shift
 
 #endif

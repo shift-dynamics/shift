@@ -3,7 +3,7 @@
 
 #include "shift/core/body/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Joint {
 class JointBase;
@@ -56,6 +56,6 @@ private:
 
 } // namespace Body
 
-} // namespace Shift
+} // namespace shift
 
 #endif

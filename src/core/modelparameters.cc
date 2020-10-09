@@ -6,22 +6,22 @@
 #include "ksl/print.h"
 #include "ksl/vec3.h"
 
-void Shift::ModelParameters::appendSolver(
-  std::unique_ptr<Shift::Solver::Base>& solver) {
+void shift::ModelParameters::appendSolver(
+  std::unique_ptr<shift::Solver::Base>& solver) {
   solvers_.push_back(std::move(solver));
 }
 
-void Shift::ModelParameters::appendIntegrator(
-  std::unique_ptr<Shift::Integrator::Base>& integrator) {
+void shift::ModelParameters::appendIntegrator(
+  std::unique_ptr<shift::Integrator::Base>& integrator) {
   integrators_.push_back(std::move(integrator));
 }
 
-void Shift::ModelParameters::appendLogger(
-  std::unique_ptr<Shift::Logger::Base>& logger) {
+void shift::ModelParameters::appendLogger(
+  std::unique_ptr<shift::Logger::Base>& logger) {
   loggers_.push_back(std::move(logger));
 }
 
-void Shift::ModelParameters::addParameters() {
+void shift::ModelParameters::addParameters() {
 
   addParameter("version", &version_, "Shift version string.", false);
 
@@ -54,4 +54,4 @@ void Shift::ModelParameters::addParameters() {
   addParameter("loggers", &loggers_, "", false);
 }
 
-void Shift::ModelParameters::initialize() {}
+void shift::ModelParameters::initialize() {}

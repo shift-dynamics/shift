@@ -1,15 +1,15 @@
 #include "shift/core/forcemodule/contact.h"
 #include "shift/core/factory.h"
 
-bool Shift::ForceModule::Contact::registered_ =
-  Shift::Factory<Shift::ForceModule::Base>::get()->registerModule(
-    "contact", Shift::ForceModule::Contact::create);
+bool shift::ForceModule::Contact::registered_ =
+  shift::Factory<shift::ForceModule::Base>::get()->registerModule(
+    "contact", shift::ForceModule::Contact::create);
 
-std::unique_ptr<Shift::ForceModule::Contact>
-Shift::ForceModule::Contact::create() {
-  return std::make_unique<Shift::ForceModule::Contact>();
+std::unique_ptr<shift::ForceModule::Contact>
+shift::ForceModule::Contact::create() {
+  return std::make_unique<shift::ForceModule::Contact>();
 }
 
-void Shift::ForceModule::Contact::addParameters() {
-  Shift::ForceModule::Base::addParameters();
+void shift::ForceModule::Contact::addParameters() {
+  shift::ForceModule::Base::addParameters();
 }

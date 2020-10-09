@@ -6,14 +6,14 @@
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 /*!
 \brief Shift Assembly datastructure
 */
 class Units
   : public Base
-  , public Shift::Parameter::List {
+  , public shift::Parameter::List {
 
 public:
   Units(std::string name)
@@ -61,6 +61,6 @@ private:
   std::string time_ = "seconds";
 };
 
-} // namespace Shift
+} // namespace shift
 
 #endif

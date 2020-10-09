@@ -11,7 +11,7 @@
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 class Context;
 
@@ -97,7 +97,7 @@ public:
     return parent_body_ptr_;
   }
 
-  const Shift::Frame* referenceFrame() const {
+  const shift::Frame* referenceFrame() const {
     return reference_frame_;
   }
 
@@ -130,6 +130,6 @@ private:
   bool use_system_reference_frame_ = false;
 };
 
-} // namespace Shift
+} // namespace shift
 
 #endif

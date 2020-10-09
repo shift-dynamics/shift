@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
   VulkanWindow* vulkanWindow = new VulkanWindow;
   vulkanWindow->setVulkanInstance(&inst);
 
-  Shift::Workspace workspace(vulkanWindow);
+  shift::Workspace workspace(vulkanWindow);
   workspace.setMouseTracking(true);
   workspace.showMaximized();
 

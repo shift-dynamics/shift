@@ -9,7 +9,7 @@
 #include <memory>
 #include <string>
 
-namespace Shift {
+namespace shift {
 
 namespace Body {
 class Base;
@@ -21,19 +21,19 @@ class Context;
 namespace Sensor {
 
 /*!
-@brief Abstract Shift::Sensor base class
+@brief Abstract shift::Sensor base class
 */
 class Base
-  : public Shift::Base
+  : public shift::Base
   , public Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name) {
+    : shift::Base(name) {
     addParameters();
   }
   Base()
-    : Shift::Base("") {
+    : shift::Base("") {
     addParameters();
   }
   virtual ~Base() {}
@@ -66,6 +66,6 @@ public:
 
 } // namespace Sensor
 
-} // namespace Shift
+} // namespace shift
 
 #endif

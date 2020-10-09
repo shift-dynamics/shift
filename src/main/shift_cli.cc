@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  Shift::Context context;
+  shift::Context context;
   context.loadJSON(filename);
 
   if(digraph) {

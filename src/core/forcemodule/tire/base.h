@@ -5,7 +5,7 @@
 
 #include "shift/core/forcemodule/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace ForceModule {
 
@@ -36,13 +36,13 @@ private:
   std::vector<std::string> wheel_body_; /*!< fully qualified wheel name */
 
   /*! internal quantities for updating model*/
-  Shift::Body::Base* wheel_body_ptr; /*!< pointer to wheel body */
+  shift::Body::Base* wheel_body_ptr; /*!< pointer to wheel body */
 };
 
 } // namespace Tire
 
 } // namespace ForceModule
 
-} // namespace Shift
+} // namespace shift
 
 #endif

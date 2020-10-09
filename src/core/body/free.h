@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace Shift {
+namespace shift {
 
 namespace Body {
 
@@ -39,6 +39,6 @@ private:
 
 } // namespace Body
 
-} // namespace Shift
+} // namespace shift
 
 #endif

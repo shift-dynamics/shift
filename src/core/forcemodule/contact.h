@@ -5,7 +5,7 @@
 
 #include "shift/core/forcemodule/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Joint {
 class JointBase;
@@ -40,6 +40,6 @@ private:
 
 } // namespace ForceModule
 
-} // namespace Shift
+} // namespace shift
 
 #endif

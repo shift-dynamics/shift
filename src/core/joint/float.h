@@ -4,26 +4,26 @@
 #include "shift/core/frame.h"
 #include "shift/core/joint/base.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Joint {
 
-void float_d(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void float_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
              const double*);
 
-void floatinv_d(const Shift::Context&, Topology::DHVA&,
+void floatinv_d(const shift::Context&, Topology::DHVA&,
                 const Topology::Offsets&, const double*);
 
-void float_dh(const Shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void float_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
               const double*);
 
-void floatinv_dh(const Shift::Context&, Topology::DHVA&,
+void floatinv_dh(const shift::Context&, Topology::DHVA&,
                  const Topology::Offsets&, const double*);
 
-void float_dhva(const Shift::Context&, Topology::DHVA&,
+void float_dhva(const shift::Context&, Topology::DHVA&,
                 const Topology::Offsets&, const double*, const double*);
 
-void floatinv_dhva(const Shift::Context&, Topology::DHVA&,
+void floatinv_dhva(const shift::Context&, Topology::DHVA&,
                    const Topology::Offsets&, const double*, const double*);
 
 class Float : public Base {
@@ -69,11 +69,11 @@ public:
 private:
   virtual void addParameters() override;
   static bool registered_;
-  Shift::Frame frame_;
+  shift::Frame frame_;
 };
 
 } // namespace Joint
 
-} // namespace Shift
+} // namespace shift
 
 #endif

@@ -27,7 +27,7 @@ SUCH DAMAGE.
 #include <stdint.h>
 #include <vector>
 
-namespace Shift {
+namespace shift {
 
 typedef struct KdList KdList;
 
@@ -142,6 +142,6 @@ private:
   KdLists kdlists_;
 };
 
-} // namespace Shift
+} // namespace shift
 
 #endif

@@ -9,7 +9,7 @@
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Body {
 class BodyBase;
@@ -24,16 +24,16 @@ namespace Terrain {
 @brief Abstract TerrainBase base class
 */
 class Base
-  : public Shift::Base
-  , public Shift::Parameter::List {
+  : public shift::Base
+  , public shift::Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name) {
+    : shift::Base(name) {
     addParameters();
   }
   Base()
-    : Shift::Base("") {
+    : shift::Base("") {
     addParameters();
   }
   virtual ~Base() override {}
@@ -69,6 +69,6 @@ public:
 
 } // namespace Terrain
 
-} // namespace Shift
+} // namespace shift
 
 #endif

@@ -9,7 +9,7 @@
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Body {
 class Base;
@@ -36,14 +36,14 @@ namespace Solver {
 @brief Abstract Solver base class
 */
 class Base
-  : public Shift::Base
+  : public shift::Base
   , public Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name) {}
+    : shift::Base(name) {}
   Base()
-    : Shift::Base("") {}
+    : shift::Base("") {}
   virtual ~Base() {}
 
   const std::string& getType() {
@@ -78,6 +78,6 @@ public:
 
 } // namespace Solver
 
-} // namespace Shift
+} // namespace shift
 
 #endif

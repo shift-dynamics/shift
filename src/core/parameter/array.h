@@ -3,15 +3,15 @@
 
 #include "shift/core/parameter/arraybase.h"
 
-namespace Shift {
+namespace shift {
 namespace Parameter {
 
 template <class T>
-class Array : public Shift::Parameter::ArrayBase {
+class Array : public shift::Parameter::ArrayBase {
 public:
   Array() {}
   Array(Context* context, Assembly* parent_assembly = nullptr,
-        Shift::Body::Base* parent_body = nullptr)
+        shift::Body::Base* parent_body = nullptr)
     : ArrayBase(context, parent_assembly, parent_body) {}
   ~Array() {}
 
@@ -47,7 +47,7 @@ public:
 
   virtual void setParent(Context* context, Assembly* parent_assembly = nullptr,
                          Body::Base* parent_body = nullptr) override {
-    Shift::Parameter::ArrayBase::setParent(context, parent_assembly,
+    shift::Parameter::ArrayBase::setParent(context, parent_assembly,
                                            parent_body);
     for(auto& object : object_specializations_) {
       object->setParent(context_, parent_assembly_ptr_, parent_body_ptr_);
@@ -59,5 +59,5 @@ private:
 };
 
 } // namespace Parameter
-} // namespace Shift
+} // namespace shift
 #endif

@@ -22,7 +22,7 @@
 #include <typeindex>
 #include <vector>
 
-namespace Shift {
+namespace shift {
 
 class Context;
 class Assembly;
@@ -362,6 +362,6 @@ private:
 };
 
 } // namespace Parameter
-} // namespace Shift
+} // namespace shift
 
 #endif

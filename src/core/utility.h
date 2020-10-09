@@ -4,7 +4,7 @@
 #include <string>
 #include <time.h>
 
-namespace Shift {
+namespace shift {
 namespace Utility {
 
 const std::string currentDateTime() {
@@ -25,6 +25,6 @@ const std::string getFileExtension(std::string filename) {
 }
 
 } // namespace Utility
-} // namespace Shift
+} // namespace shift
 
 #endif

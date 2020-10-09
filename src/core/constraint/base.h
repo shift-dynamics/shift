@@ -8,7 +8,7 @@
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 namespace Body {
 class Base;
@@ -21,19 +21,19 @@ class Context;
 namespace Constraint {
 
 /*!
-@brief Abstract Shift::Constraint base class
+@brief Abstract shift::Constraint base class
 */
 class Base
-  : public Shift::Base
+  : public shift::Base
   , public Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name) {
+    : shift::Base(name) {
     addParameters();
   }
   Base()
-    : Shift::Base("") {
+    : shift::Base("") {
     addParameters();
   }
   virtual ~Base() override {}
@@ -55,11 +55,11 @@ public:
     return "";
   }
 
-  void setParentBody(Shift::Body::Base*);
+  void setParentBody(shift::Body::Base*);
 
   void setParentFrame(Frame*);
 
-  void setChildBody(Shift::Body::Base*);
+  void setChildBody(shift::Body::Base*);
 
   void setChildFrame(Frame*);
 
@@ -87,13 +87,13 @@ protected:
   std::vector<std::vector<std::string>> body_frame_pairs_;
 
   std::vector<std::string> parent_body_; //!< descriptive name of parent Body
-  Shift::Body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
+  shift::Body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
 
   std::vector<std::string> parent_frame_; //!< descriptive name of parent Frame
   Frame* parent_frame_ptr_ = nullptr;     //!< pointer to parent Frame
 
   std::vector<std::string> child_body_; //!< descriptive name of child Body
-  Shift::Body::Base* child_body_ptr_ = nullptr; //!< pointer to child Body
+  shift::Body::Base* child_body_ptr_ = nullptr; //!< pointer to child Body
 
   std::vector<std::string> child_frame_; //!< descriptive name of child frame
   Frame* child_frame_ptr_ = nullptr;     //!< pointer to child Frame
@@ -111,6 +111,6 @@ private:
 
 } // namespace Constraint
 
-} // namespace Shift
+} // namespace shift
 
 #endif

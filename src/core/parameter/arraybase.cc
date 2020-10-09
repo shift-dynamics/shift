@@ -1,7 +1,7 @@
 #include "shift/core/parameter/arraybase.h"
 #include "shift/core/parameter/list.h"
 
-void Shift::Parameter::ArrayBase::print(std::string prefix) const {
+void shift::Parameter::ArrayBase::print(std::string prefix) const {
   std::cout << "[";
   if(objects_.empty()) {
     std::cout << " ]" << std::endl;
@@ -16,7 +16,7 @@ void Shift::Parameter::ArrayBase::print(std::string prefix) const {
   }
 }
 
-Shift::Parameter::Value& Shift::Parameter::ArrayBase::
+shift::Parameter::Value& shift::Parameter::ArrayBase::
 operator[](const std::string key_str) {
   for(auto& object : objects_) {
     if(object->operator[]("name").get<std::string>() == key_str) {

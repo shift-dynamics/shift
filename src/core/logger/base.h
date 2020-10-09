@@ -9,27 +9,27 @@
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
-namespace Shift {
+namespace shift {
 
 class Context;
 
 namespace Logger {
 
 /*!
-@brief Abstract Shift::Logger base class
+@brief Abstract shift::Logger base class
 */
 class Base
-  : public Shift::Base
+  : public shift::Base
   , public Parameter::List {
 
 public:
   Base(std::string name)
-    : Shift::Base(name) {
+    : shift::Base(name) {
     addParameters();
   }
 
   Base()
-    : Shift::Base("") {
+    : shift::Base("") {
     addParameters();
   }
 
@@ -67,6 +67,6 @@ public:
 
 } // namespace Logger
 
-} // namespace Shift
+} // namespace shift
 
 #endif
