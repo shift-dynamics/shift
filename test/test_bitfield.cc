@@ -4,7 +4,7 @@
 #include "shift/core/bitfield.h"
 
 TEST(BitField, SetTrue) {
-  shift::BitField b = shift::BitField(37);
+  shift::core::BitField b = shift::core::BitField(37);
   b.print();
 
   b.setTrue(3);
