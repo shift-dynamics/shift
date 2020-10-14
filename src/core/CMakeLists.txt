@@ -2,6 +2,9 @@ find_package(cblas)
 
 set(shift_core_src
 
+)
+
+add_library(shift_core STATIC
   assembly.cc
   base.cc
   context.cc
@@ -9,78 +12,26 @@ set(shift_core_src
   frame.cc
   modelparameters.cc
   jacobian.cc
+  kdtree.cc
   substructure.cc
   topology.cc
   units.cc
-
-  parameter/value.cc
-  parameter/factoryarray.cc
-  parameter/list.cc
-  parameter/array.cc
-  parameter/arraybase.cc
-
-  behavior/base.cc
-  behavior/contactdetection.cc
-  behavior/ik_7dof.cc
-
-  body/base.cc
-  body/rigid.cc
-  body/free.cc
-  body/fixed.cc
-  body/virtual.cc
-
-  collisiongeometry/base.cc
-
-  constraint/base.cc
-  constraint/chord.cc
-
-  forcemodule/base.cc
-  forcemodule/contact.cc
-  forcemodule/pid.cc
-  forcemodule/tire/fiala.cc
-
-  geometry/base.cc
-  geometry/ellipsoid.cc
-  geometry/mesh.cc
-  geometry/pointcloud.cc
-  geometry/sphere.cc
-
-  integrator/base.cc
-  integrator/ode113.cc
-
-  joint/base.cc
-  joint/float.cc
-  joint/prismatic.cc
-  joint/revolute.cc
-  joint/rigid.cc
-  joint/spherical.cc
-
-  kdtree/kdtree.cc
-
-  light/base.cc
-  light/directional.cc
-  light/ies.cc
-  light/point.cc
-  light/spot.cc
-
-  logger/base.cc
-  logger/csv.cc
-  logger/hdf5.cc
-
-  sensor/base.cc
-  sensor/imu.cc
-  sensor/range.cc
-
-  solver/base.cc
-  solver/rnca.cc
-
-  terrain/base.cc
-  terrain/basic.cc
 )
 
-include_directories(${CMAKE_BINARY_DIR}/include)
-
-add_library(shift_core STATIC ${shift_core_src})
+add_subdirectory(parameter)
+add_subdirectory(behavior)
+add_subdirectory(body)
+add_subdirectory(collisiongeometry)
+add_subdirectory(constraint)
+add_subdirectory(forcemodule)
+add_subdirectory(geometry)
+add_subdirectory(integrator)
+add_subdirectory(joint)
+add_subdirectory(light)
+add_subdirectory(logger)
+add_subdirectory(sensor)
+add_subdirectory(solver)
+add_subdirectory(terrain)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
   target_compile_definitions(
@@ -111,13 +62,26 @@ target_compile_options(
 target_include_directories(
   shift_core
   PUBLIC
-  ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/external/ksl/include
+  ${CMAKE_BINARY_DIR}/include
   ${JSONCPP_INCLUDE_DIR}
 )
 
 target_link_libraries(
   shift_core
+  shift_core_parameter
+  shift_core_behavior
+  shift_core_body
+  shift_core_collisiongeometry
+  shift_core_constraint
+  shift_core_forcemodule
+  shift_core_geometry
+  shift_core_integrator
+  shift_core_joint
+  shift_core_light
+  shift_core_logger
+  shift_core_sensor
+  shift_core_solver
+  shift_core_terrain
   ${JsonCpp_LIBRARY}
   ${GRAPHVIZ_GVC_LIBRARY}
   ${GRAPHVIZ_CGRAPH_LIBRARY}
