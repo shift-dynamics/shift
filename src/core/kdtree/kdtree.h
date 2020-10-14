@@ -28,6 +28,7 @@ SUCH DAMAGE.
 #include <vector>
 
 namespace shift {
+namespace core {
 
 typedef struct KdList KdList;
 
@@ -110,7 +111,8 @@ typedef struct KdNode {
   int* vertexLocations;
 } KdNode;
 
-template <typename T> class KdTree {
+template <typename T>
+class KdTree {
 public:
   KdTree(std::vector<T>& vertices, unsigned int binSize = 1024);
   ~KdTree() {}
@@ -142,6 +144,7 @@ private:
   KdLists kdlists_;
 };
 
+} // namespace core
 } // namespace shift
 
 #endif

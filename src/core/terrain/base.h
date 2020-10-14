@@ -13,7 +13,7 @@ namespace shift {
 namespace core {
 
 namespace body {
-class BodyBase;
+class Base;
 }
 
 class Frame;

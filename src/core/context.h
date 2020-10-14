@@ -45,19 +45,19 @@ class Chord;
 /*!
 @brief Shift Context datastructure
 */
-class Context : public shift::core::body::Fixed {
+class Context : public body::Fixed {
 
 public:
   Context(std::string)
     // : shift::core::parameter::List()
-    : shift::core::body::Fixed("fixed")
+    : body::Fixed("fixed")
     , jacobian_(this)
     , model_parameters_(this) {
     addParameters();
     initialize();
   }
   Context()
-    : shift::core::body::Fixed("fixed")
+    : body::Fixed("fixed")
     , jacobian_(this)
     , model_parameters_(this) {
     addParameters();
@@ -75,7 +75,7 @@ public:
   void writeJSON(const std::string&);
   void printJSON();
 
-  shift::core::body::Base* fixedBody() {
+  body::Base* fixedBody() {
     return this;
   }
 
@@ -194,7 +194,7 @@ public:
     return joint_data_;
   }
 
-  const shift::core::ModelParameters& modelParameters() {
+  const ModelParameters& modelParameters() {
     return model_parameters_;
   }
 

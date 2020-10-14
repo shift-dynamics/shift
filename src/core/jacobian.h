@@ -25,7 +25,7 @@ class Jacobian
   , public parameter::List {
 
 public:
-  Jacobian(shift::core::Context* context)
+  Jacobian(Context* context)
     : Base("") {
     context_ = context;
   }
@@ -45,7 +45,7 @@ public:
   /*! \brief perform full factor to set mapping from PO1 to PO2 */
   void analyze();
 
-  const std::vector<shift::core::Substructure>& substructures() const {
+  const std::vector<Substructure>& substructures() const {
     return substructures_;
   }
   double evaluateConstraints();
@@ -61,12 +61,12 @@ public:
     memcpy(Js_.data(), J_.data(), J_.size() * sizeof(double));
   }
 
-  void setPO1(const shift::core::topology::DHVA& dhva);
+  void setPO1(const topology::DHVA& dhva);
   void setPO1();
   void translatePermutations();
   void setBooleanPO2();
   void evaluateSparsity();
-  void setPO2(const shift::core::topology::DHVA& dhva);
+  void setPO2(const topology::DHVA& dhva);
   void setPO2();
   void factorPO2();
   void setBMatrixSparse();
@@ -80,7 +80,7 @@ public:
   const std::vector<bool>& isDependentPO1() const {
     return is_dependent_po1_;
   }
-  const shift::core::Array2d<int>& rb3() const {
+  const Array2d<int>& rb3() const {
     return rb3_;
   }
   const std::vector<int> cb3() const {
@@ -142,7 +142,7 @@ private:
   std::vector<double> dcs_;
   std::vector<double> b3_;
   std::vector<int> ij_mapping_;
-  shift::core::Array2d<int> rb3_;
+  Array2d<int> rb3_;
   std::vector<int> cb3_;
   std::vector<double> right_null_space_;
 
@@ -165,7 +165,7 @@ private:
   std::vector<std::vector<int>> positive_loop_members_compressed_;
   std::vector<std::vector<int>> negative_loop_members_compressed_;
 
-  std::vector<shift::core::Substructure> substructures_;
+  std::vector<Substructure> substructures_;
 
   void setLookup();
   void mallocEquations();

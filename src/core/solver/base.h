@@ -24,7 +24,7 @@ namespace constraint {
 class Base;
 }
 
-namespace Integrator {
+namespace integrator {
 class Base;
 }
 
@@ -38,7 +38,7 @@ namespace solver {
 */
 class Base
   : public shift::core::Base
-  , public parameter::List {
+  , public shift::core::parameter::List {
 
 public:
   Base(std::string name)
@@ -69,7 +69,7 @@ public:
 protected:
   virtual void addParameters() override;
   std::string type_; //!< descriptive name of Solver type
-  integrator::Base* integrator_ = nullptr;
+  shift::core::integrator::Base* integrator_ = nullptr;
 };
 
 class Modules {

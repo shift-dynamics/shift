@@ -4,7 +4,7 @@
 #include "shift/core/terrain/base.h"
 
 namespace shift {
-
+namespace core {
 namespace terrain {
 
 class Basic : public Base {
@@ -36,7 +36,7 @@ private:
 };
 
 } // namespace terrain
-
+} // namespace core
 } // namespace shift
 
 #endif

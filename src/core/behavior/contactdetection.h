@@ -37,7 +37,7 @@ private:
 };
 
 } // namespace behavior
-
+}
 } // namespace shift
 
 #endif

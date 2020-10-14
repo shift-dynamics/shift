@@ -6,7 +6,7 @@
 #include <memory>
 
 namespace shift {
-
+namespace core {
 namespace body {
 
 class Free : public Base {
@@ -38,7 +38,7 @@ private:
 };
 
 } // namespace body
-
+}
 } // namespace shift
 
 #endif
