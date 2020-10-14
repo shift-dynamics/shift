@@ -7,29 +7,29 @@
 #include "shift/core/sensor/base.h"
 
 /* define specializations of FactoryArray class */
-template class shift::Parameter::FactoryArray<shift::Behavior::Base>;
-template class shift::Parameter::FactoryArray<shift::Body::Base>;
-template class shift::Parameter::FactoryArray<shift::CollisionGeometry::Base>;
-template class shift::Parameter::FactoryArray<shift::Constraint::Base>;
-template class shift::Parameter::FactoryArray<shift::ForceModule::Base>;
-template class shift::Parameter::FactoryArray<shift::Geometry::Base>;
-template class shift::Parameter::FactoryArray<shift::Integrator::Base>;
-template class shift::Parameter::FactoryArray<shift::Joint::Base>;
-template class shift::Parameter::FactoryArray<shift::Light::Base>;
-template class shift::Parameter::FactoryArray<shift::Logger::Base>;
-template class shift::Parameter::FactoryArray<shift::Sensor::Base>;
-template class shift::Parameter::FactoryArray<shift::Solver::Base>;
-template class shift::Parameter::FactoryArray<shift::Terrain::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::behavior::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::body::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::collisiongeometry::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::constraint::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::forcemodule::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::geometry::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::integrator::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::joint::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::light::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::logger::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::sensor::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::solver::Base>;
+template class shift::core::parameter::FactoryArray<shift::core::terrain::Base>;
 
 template <class T>
-void shift::Parameter::FactoryArray<T>::push_back(std::unique_ptr<T> object) {
+void shift::core::parameter::FactoryArray<T>::push_back(std::unique_ptr<T> object) {
   object_specializations_.push_back(std::move(object));
-  objects_.push_back(dynamic_cast<shift::Parameter::List*>(
+  objects_.push_back(dynamic_cast<shift::core::parameter::List*>(
     object_specializations_.back().get()));
 }
 
 template <class T>
-void shift::Parameter::FactoryArray<T>::readJSON(Json::Value& json_array) {
+void shift::core::parameter::FactoryArray<T>::readJSON(Json::Value& json_array) {
   for(auto& json_value : json_array) {
     std::string object_type(T::defaultType());
     if(json_value.isMember("type") && json_value["type"].isString()) {
@@ -39,7 +39,7 @@ void shift::Parameter::FactoryArray<T>::readJSON(Json::Value& json_array) {
     there is no default type available, then skip over this object
     since Shift does not know which class specialization to use */
     if(!object_type.empty()) {
-      auto object = shift::Factory<T>::get()->create(object_type);
+      auto object = shift::core::Factory<T>::get()->create(object_type);
       if(object) {
         try {
           object->readJSON(json_value);
@@ -48,7 +48,7 @@ void shift::Parameter::FactoryArray<T>::readJSON(Json::Value& json_array) {
           std::cerr << msg << std::endl;
         }
         object_specializations_.push_back(std::move(object));
-        objects_.push_back(dynamic_cast<shift::Parameter::List*>(
+        objects_.push_back(dynamic_cast<shift::core::parameter::List*>(
           object_specializations_.back().get()));
       }
     }

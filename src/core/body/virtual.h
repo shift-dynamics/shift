@@ -5,11 +5,11 @@
 
 namespace shift {
 
-namespace Joint {
+namespace joint {
 class JointBase;
 }
 
-namespace Body {
+namespace body {
 
 class Virtual : public Base {
 public:
@@ -96,7 +96,7 @@ private:
   static bool registered_;
 };
 
-} // namespace Body
+} // namespace body
 
 } // namespace shift
 

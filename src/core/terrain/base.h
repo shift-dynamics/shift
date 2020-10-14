@@ -10,30 +10,31 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
-namespace Body {
+namespace body {
 class BodyBase;
 }
 
 class Frame;
 class Context;
 
-namespace Terrain {
+namespace terrain {
 
 /*!
 @brief Abstract TerrainBase base class
 */
 class Base
-  : public shift::Base
-  , public shift::Parameter::List {
+  : public shift::core::Base
+  , public shift::core::parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name) {
+    : shift::core::Base(name) {
     addParameters();
   }
   Base()
-    : shift::Base("") {
+    : shift::core::Base("") {
     addParameters();
   }
   virtual ~Base() override {}
@@ -67,8 +68,8 @@ public:
   static bool initialized();
 };
 
-} // namespace Terrain
-
+} // namespace terrain
+}
 } // namespace shift
 
 #endif

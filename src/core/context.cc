@@ -40,7 +40,7 @@
 #include "ksl/screw.h"
 #include "ksl/trig.h"
 
-void shift::Context::addParameters() {
+void shift::core::Context::addParameters() {
 
   addParameter("model_parameters", &model_parameters_,
                "Parameters associated with configuring a Shift simulation.",
@@ -54,7 +54,7 @@ void shift::Context::addParameters() {
     true);
 }
 
-void shift::Context::loadJSON(const std::string filename) {
+void shift::core::Context::loadJSON(const std::string filename) {
   filename_ = filename;
   std::ifstream file(filename);
   file >> root_;
@@ -68,7 +68,7 @@ void shift::Context::loadJSON(const std::string filename) {
   postLoad(filename);
 }
 
-void shift::Context::postLoad(const std::string) {
+void shift::core::Context::postLoad(const std::string) {
 
   /* process topology */
   setActiveObjects(true);
@@ -98,13 +98,13 @@ void shift::Context::postLoad(const std::string) {
   loadData();
 
   // initializeJointForces();
-  // flattenForceModules();
+  // flattenforcemodules();
   for(auto& logger : active_loggers_) {
     logger->initialize();
   }
 }
 
-void shift::Context::processFrames() {
+void shift::core::Context::processFrames() {
 
   /* process active frames */
   active_frames_.clear();
@@ -192,11 +192,11 @@ void shift::Context::processFrames() {
   }
 }
 
-void shift::Context::writeJSON() {
+void shift::core::Context::writeJSON() {
   writeJSON(filename_);
 }
 
-void shift::Context::writeJSON(const std::string& filename) {
+void shift::core::Context::writeJSON(const std::string& filename) {
   std::ofstream file(filename);
   Json::StreamWriterBuilder builder;
   builder.settings_["indentation"] = indentation_;
@@ -210,46 +210,46 @@ void shift::Context::writeJSON(const std::string& filename) {
   }
 }
 
-void shift::Context::initialize() {
+void shift::core::Context::initialize() {
 
   try {
-    if(!shift::Behavior::Modules::initialized()) {
+    if(!shift::core::behavior::Modules::initialized()) {
       throw "Behavior modules did not properly initialize";
     }
-    if(!shift::Body::Modules::initialized()) {
+    if(!shift::core::body::Modules::initialized()) {
       throw "Body modules did not properly initialize";
     }
-    if(!shift::CollisionGeometry::Modules::initialized()) {
+    if(!shift::core::collisiongeometry::Modules::initialized()) {
       throw "Collision geometry modules did not properly initialize";
     }
-    if(!shift::Constraint::Modules::initialized()) {
+    if(!shift::core::constraint::Modules::initialized()) {
       throw "Constraint modules did not properly initialize";
     }
-    if(!shift::ForceModule::Modules::initialized()) {
+    if(!shift::core::forcemodule::Modules::initialized()) {
       throw "Force modules did not properly initialize";
     }
-    if(!shift::Geometry::Modules::initialized()) {
+    if(!shift::core::geometry::Modules::initialized()) {
       throw "Geometry modules did not properly initialize";
     }
-    if(!shift::Integrator::Modules::initialized()) {
+    if(!shift::core::integrator::Modules::initialized()) {
       throw "Integrator modules did not properly initialize";
     }
-    if(!shift::Joint::Modules::initialized()) {
+    if(!shift::core::joint::Modules::initialized()) {
       throw "Joint modules did not properly initialize";
     }
-    if(!shift::Light::Modules::initialized()) {
+    if(!shift::core::light::Modules::initialized()) {
       throw "Light modules did not properly initialize";
     }
-    if(!shift::Logger::Modules::initialized()) {
+    if(!shift::core::logger::Modules::initialized()) {
       throw "Logger modules did not properly initialize";
     }
-    if(!shift::Sensor::Modules::initialized()) {
+    if(!shift::core::sensor::Modules::initialized()) {
       throw "Sensor modules did not properly initialize";
     }
-    if(!shift::Solver::Modules::initialized()) {
+    if(!shift::core::solver::Modules::initialized()) {
       throw "Solver modules did not properly initialize";
     }
-    if(!shift::Terrain::Modules::initialized()) {
+    if(!shift::core::terrain::Modules::initialized()) {
       throw "Terrain modules did not properly initialize";
     }
   } catch(const char* msg) {
@@ -258,12 +258,12 @@ void shift::Context::initialize() {
   }
 }
 
-void shift::Context::setActiveObjects(bool) {
+void shift::core::Context::setActiveObjects(bool) {
   model_parameters_.setActiveObjects(true);
   assemblies_.setActiveObjects(true);
 }
 
-void shift::Context::appendActive(shift::Integrator::Base* integrator) {
+void shift::core::Context::appendActive(shift::core::integrator::Base* integrator) {
   if(integrator->active()) {
     for(auto i : active_integrators_) {
       if(i == integrator) {
@@ -274,7 +274,7 @@ void shift::Context::appendActive(shift::Integrator::Base* integrator) {
   }
 }
 
-void shift::Context::appendActive(shift::Logger::Base* logger) {
+void shift::core::Context::appendActive(shift::core::logger::Base* logger) {
   if(logger->active()) {
     for(auto i : active_loggers_) {
       if(i == logger) {
@@ -285,7 +285,7 @@ void shift::Context::appendActive(shift::Logger::Base* logger) {
   }
 }
 
-void shift::Context::appendActive(shift::Solver::Base* solver) {
+void shift::core::Context::appendActive(shift::core::solver::Base* solver) {
   if(solver->active()) {
     for(auto i : active_solvers_) {
       if(i == solver) {
@@ -296,7 +296,7 @@ void shift::Context::appendActive(shift::Solver::Base* solver) {
   }
 }
 
-void shift::Context::appendActive(shift::Behavior::Base* behavior) {
+void shift::core::Context::appendActive(shift::core::behavior::Base* behavior) {
   if(behavior->active()) {
     for(auto i : active_behaviors_) {
       if(i == behavior) {
@@ -307,7 +307,7 @@ void shift::Context::appendActive(shift::Behavior::Base* behavior) {
   }
 }
 
-void shift::Context::appendActive(shift::Body::Base* body) {
+void shift::core::Context::appendActive(shift::core::body::Base* body) {
   if(body && body->active()) {
     if(body->isArticulated()) {
       for(auto& i : active_articulated_bodies_) {
@@ -327,7 +327,7 @@ void shift::Context::appendActive(shift::Body::Base* body) {
   }
 }
 
-void shift::Context::appendActive(shift::CollisionGeometry::Base* geometry) {
+void shift::core::Context::appendActive(shift::core::collisiongeometry::Base* geometry) {
   if(geometry->active()) {
     for(auto i : active_collision_geometry_) {
       if(i == geometry) {
@@ -338,7 +338,7 @@ void shift::Context::appendActive(shift::CollisionGeometry::Base* geometry) {
   }
 }
 
-void shift::Context::appendActive(shift::Constraint::Base* constraint) {
+void shift::core::Context::appendActive(shift::core::constraint::Base* constraint) {
   if(constraint->active()) {
     for(auto i : active_constraints_) {
       if(i == constraint) {
@@ -349,7 +349,7 @@ void shift::Context::appendActive(shift::Constraint::Base* constraint) {
   }
 }
 
-void shift::Context::appendActive(shift::ForceModule::Base* module) {
+void shift::core::Context::appendActive(shift::core::forcemodule::Base* module) {
   if(module->active()) {
     for(auto i : active_force_modules_) {
       if(i == module) {
@@ -360,7 +360,7 @@ void shift::Context::appendActive(shift::ForceModule::Base* module) {
   }
 }
 
-void shift::Context::appendActive(shift::Geometry::Base* geometry) {
+void shift::core::Context::appendActive(shift::core::geometry::Base* geometry) {
   if(geometry->active()) {
     for(auto i : active_geometry_) {
       if(i == geometry) {
@@ -371,7 +371,7 @@ void shift::Context::appendActive(shift::Geometry::Base* geometry) {
   }
 }
 
-void shift::Context::appendActive(shift::Joint::Base* joint) {
+void shift::core::Context::appendActive(shift::core::joint::Base* joint) {
   if(joint->active()) {
     for(auto i : active_joints_) {
       if(i == joint) {
@@ -382,7 +382,7 @@ void shift::Context::appendActive(shift::Joint::Base* joint) {
   }
 }
 
-void shift::Context::appendActive(shift::Light::Base* light) {
+void shift::core::Context::appendActive(shift::core::light::Base* light) {
   if(light->active()) {
     for(auto i : active_lights_) {
       if(i == light) {
@@ -393,7 +393,7 @@ void shift::Context::appendActive(shift::Light::Base* light) {
   }
 }
 
-void shift::Context::appendActive(shift::Sensor::Base* sensor) {
+void shift::core::Context::appendActive(shift::core::sensor::Base* sensor) {
   if(sensor->active()) {
     for(auto i : active_sensors_) {
       if(i == sensor) {
@@ -404,7 +404,7 @@ void shift::Context::appendActive(shift::Sensor::Base* sensor) {
   }
 }
 
-void shift::Context::appendActive(shift::Terrain::Base* terrain) {
+void shift::core::Context::appendActive(shift::core::terrain::Base* terrain) {
   if(terrain->active()) {
     for(auto i : active_terrain_) {
       if(i == terrain) {
@@ -415,7 +415,7 @@ void shift::Context::appendActive(shift::Terrain::Base* terrain) {
   }
 }
 
-void shift::Context::removeActive(shift::Logger::Base* logger) {
+void shift::core::Context::removeActive(shift::core::logger::Base* logger) {
   for(unsigned int i = 0; i < active_loggers_.size(); i++) {
     if(active_loggers_[i] == logger) {
       active_loggers_.erase(active_loggers_.begin() + i);
@@ -424,7 +424,7 @@ void shift::Context::removeActive(shift::Logger::Base* logger) {
   }
 }
 
-void shift::Context::removeActive(shift::Integrator::Base* integrator) {
+void shift::core::Context::removeActive(shift::core::integrator::Base* integrator) {
   for(unsigned int i = 0; i < active_integrators_.size(); i++) {
     if(active_integrators_[i] == integrator) {
       active_integrators_.erase(active_integrators_.begin() + i);
@@ -433,7 +433,7 @@ void shift::Context::removeActive(shift::Integrator::Base* integrator) {
   }
 }
 
-void shift::Context::removeActive(shift::Solver::Base* solver) {
+void shift::core::Context::removeActive(shift::core::solver::Base* solver) {
   for(unsigned int i = 0; i < active_solvers_.size(); i++) {
     if(active_solvers_[i] == solver) {
       active_solvers_.erase(active_solvers_.begin() + i);
@@ -442,7 +442,7 @@ void shift::Context::removeActive(shift::Solver::Base* solver) {
   }
 }
 
-void shift::Context::removeActive(shift::Behavior::Base* behavior) {
+void shift::core::Context::removeActive(shift::core::behavior::Base* behavior) {
   for(unsigned int i = 0; i < active_behaviors_.size(); i++) {
     if(active_behaviors_[i] == behavior) {
       active_behaviors_.erase(active_behaviors_.begin() + i);
@@ -451,7 +451,7 @@ void shift::Context::removeActive(shift::Behavior::Base* behavior) {
   }
 }
 
-void shift::Context::removeActive(shift::Body::Base* body) {
+void shift::core::Context::removeActive(shift::core::body::Base* body) {
   if(body->isArticulated()) {
     for(unsigned int i = 0; i < active_articulated_bodies_.size(); i++) {
       if(active_articulated_bodies_[i] == body) {
@@ -470,7 +470,7 @@ void shift::Context::removeActive(shift::Body::Base* body) {
   }
 }
 
-void shift::Context::removeActive(shift::CollisionGeometry::Base* geometry) {
+void shift::core::Context::removeActive(shift::core::collisiongeometry::Base* geometry) {
   for(unsigned int i = 0; i < active_collision_geometry_.size(); i++) {
     if(active_collision_geometry_[i] == geometry) {
       active_collision_geometry_.erase(active_collision_geometry_.begin() + i);
@@ -479,7 +479,7 @@ void shift::Context::removeActive(shift::CollisionGeometry::Base* geometry) {
   }
 }
 
-void shift::Context::removeActive(shift::Constraint::Base* constraint) {
+void shift::core::Context::removeActive(shift::core::constraint::Base* constraint) {
   for(unsigned int i = 0; i < active_constraints_.size(); i++) {
     if(active_constraints_[i] == constraint) {
       active_constraints_.erase(active_constraints_.begin() + i);
@@ -488,7 +488,7 @@ void shift::Context::removeActive(shift::Constraint::Base* constraint) {
   }
 }
 
-void shift::Context::removeActive(shift::ForceModule::Base* module) {
+void shift::core::Context::removeActive(shift::core::forcemodule::Base* module) {
   for(unsigned int i = 0; i < active_force_modules_.size(); i++) {
     if(active_force_modules_[i] == module) {
       active_force_modules_.erase(active_force_modules_.begin() + i);
@@ -497,7 +497,7 @@ void shift::Context::removeActive(shift::ForceModule::Base* module) {
   }
 }
 
-void shift::Context::removeActive(shift::Geometry::Base* geometry) {
+void shift::core::Context::removeActive(shift::core::geometry::Base* geometry) {
   for(unsigned int i = 0; i < active_geometry_.size(); i++) {
     if(active_geometry_[i] == geometry) {
       active_geometry_.erase(active_geometry_.begin() + i);
@@ -506,7 +506,7 @@ void shift::Context::removeActive(shift::Geometry::Base* geometry) {
   }
 }
 
-void shift::Context::removeActive(shift::Joint::Base* joint) {
+void shift::core::Context::removeActive(shift::core::joint::Base* joint) {
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     if(active_joints_[i] == joint) {
       active_joints_.erase(active_joints_.begin() + i);
@@ -515,7 +515,7 @@ void shift::Context::removeActive(shift::Joint::Base* joint) {
   }
 }
 
-void shift::Context::removeActive(shift::Light::Base* light) {
+void shift::core::Context::removeActive(shift::core::light::Base* light) {
   for(unsigned int i = 0; i < active_lights_.size(); i++) {
     if(active_lights_[i] == light) {
       active_lights_.erase(active_lights_.begin() + i);
@@ -524,7 +524,7 @@ void shift::Context::removeActive(shift::Light::Base* light) {
   }
 }
 
-void shift::Context::removeActive(shift::Sensor::Base* sensor) {
+void shift::core::Context::removeActive(shift::core::sensor::Base* sensor) {
   for(unsigned int i = 0; i < active_sensors_.size(); i++) {
     if(active_sensors_[i] == sensor) {
       active_sensors_.erase(active_sensors_.begin() + i);
@@ -533,7 +533,7 @@ void shift::Context::removeActive(shift::Sensor::Base* sensor) {
   }
 }
 
-void shift::Context::removeActive(shift::Terrain::Base* terrain) {
+void shift::core::Context::removeActive(shift::core::terrain::Base* terrain) {
   for(unsigned int i = 0; i < active_terrain_.size(); i++) {
     if(active_terrain_[i] == terrain) {
       active_terrain_.erase(active_terrain_.begin() + i);
@@ -542,138 +542,138 @@ void shift::Context::removeActive(shift::Terrain::Base* terrain) {
   }
 }
 
-void shift::Context::setActive(shift::Behavior::Base* behavior, bool active) {
+void shift::core::Context::setActive(shift::core::behavior::Base* behavior, bool active) {
   if(behavior) {
     active ? appendActive(behavior) : removeActive(behavior);
   }
 }
 
-void shift::Context::setActive(shift::Body::Base* body, bool active) {
+void shift::core::Context::setActive(shift::core::body::Base* body, bool active) {
   if(body) {
     active ? appendActive(body) : removeActive(body);
   }
 }
 
-void shift::Context::setActive(shift::CollisionGeometry::Base* geometry,
+void shift::core::Context::setActive(shift::core::collisiongeometry::Base* geometry,
                                bool active) {
   if(geometry) {
     active ? appendActive(geometry) : removeActive(geometry);
   }
 }
 
-void shift::Context::setActive(shift::Constraint::Base* constraint,
+void shift::core::Context::setActive(shift::core::constraint::Base* constraint,
                                bool active) {
   if(constraint) {
     active ? appendActive(constraint) : removeActive(constraint);
   }
 }
 
-void shift::Context::setActive(shift::ForceModule::Base* module, bool active) {
+void shift::core::Context::setActive(shift::core::forcemodule::Base* module, bool active) {
   if(module) {
     active ? appendActive(module) : removeActive(module);
   }
 }
 
-void shift::Context::setActive(shift::Geometry::Base* geometry, bool active) {
+void shift::core::Context::setActive(shift::core::geometry::Base* geometry, bool active) {
   if(geometry) {
     active ? appendActive(geometry) : removeActive(geometry);
   }
 }
 
-void shift::Context::setActive(shift::Joint::Base* joint, bool active) {
+void shift::core::Context::setActive(shift::core::joint::Base* joint, bool active) {
   if(joint) {
     active ? appendActive(joint) : removeActive(joint);
   }
 }
 
-void shift::Context::setActive(shift::Light::Base* light, bool active) {
+void shift::core::Context::setActive(shift::core::light::Base* light, bool active) {
   if(light) {
     active ? appendActive(light) : removeActive(light);
   }
 }
 
-void shift::Context::setActive(shift::Sensor::Base* sensor, bool active) {
+void shift::core::Context::setActive(shift::core::sensor::Base* sensor, bool active) {
   if(sensor) {
     active ? appendActive(sensor) : removeActive(sensor);
   }
 }
 
-void shift::Context::setActive(shift::Terrain::Base* terrain, bool active) {
+void shift::core::Context::setActive(shift::core::terrain::Base* terrain, bool active) {
   if(terrain) {
     active ? appendActive(terrain) : removeActive(terrain);
   }
 }
 
-void shift::Context::setActive(shift::Logger::Base* logger, bool active) {
+void shift::core::Context::setActive(shift::core::logger::Base* logger, bool active) {
   if(logger) {
     active ? appendActive(logger) : removeActive(logger);
   }
 }
 
-void shift::Context::setActive(shift::Integrator::Base* integrator,
+void shift::core::Context::setActive(shift::core::integrator::Base* integrator,
                                bool active) {
   if(integrator) {
     active ? appendActive(integrator) : removeActive(integrator);
   }
 }
 
-void shift::Context::setActive(shift::Solver::Base* solver, bool active) {
+void shift::core::Context::setActive(shift::core::solver::Base* solver, bool active) {
   if(solver) {
     active ? appendActive(solver) : removeActive(solver);
   }
 }
 
-void shift::Context::clearActiveBehavior() {
+void shift::core::Context::clearActiveBehavior() {
   active_behaviors_.clear();
 }
 
-void shift::Context::clearActiveArticulatedBodies() {
+void shift::core::Context::clearActiveArticulatedBodies() {
   active_articulated_bodies_.clear();
 }
 
-void shift::Context::clearActiveFreeBodies() {
+void shift::core::Context::clearActiveFreeBodies() {
   active_free_bodies_.clear();
 }
 
-void shift::Context::clearActiveCollisionGeometry() {
+void shift::core::Context::clearActiveCollisionGeometry() {
   active_collision_geometry_.clear();
 }
 
-void shift::Context::clearActiveConstraints() {
+void shift::core::Context::clearActiveConstraints() {
   active_constraints_.clear();
 }
 
-void shift::Context::clearActiveForceModules() {
+void shift::core::Context::clearActiveforcemodules() {
   active_force_modules_.clear();
 }
 
-void shift::Context::clearActiveGeometry() {
+void shift::core::Context::clearActiveGeometry() {
   active_geometry_.clear();
 }
 
-void shift::Context::clearActiveJoints() {
+void shift::core::Context::clearActiveJoints() {
   active_joints_.clear();
 }
 
-void shift::Context::clearActiveLights() {
+void shift::core::Context::clearActiveLights() {
   active_lights_.clear();
 }
 
-void shift::Context::clearActiveSensors() {
+void shift::core::Context::clearActiveSensors() {
   active_sensors_.clear();
 }
 
-void shift::Context::clearActiveTerrain() {
+void shift::core::Context::clearActiveTerrain() {
   active_terrain_.clear();
 }
 
-void shift::Context::clearActiveArrays() {
+void shift::core::Context::clearActiveArrays() {
   clearActiveBehavior();
   clearActiveArticulatedBodies();
   clearActiveFreeBodies();
   clearActiveCollisionGeometry();
   clearActiveConstraints();
-  clearActiveForceModules();
+  clearActiveforcemodules();
   clearActiveGeometry();
   clearActiveJoints();
   clearActiveLights();
@@ -681,7 +681,7 @@ void shift::Context::clearActiveArrays() {
   clearActiveTerrain();
 }
 
-void shift::Context::connect() {
+void shift::core::Context::connect() {
   for(auto& behavior : active_behaviors_) {
     behavior->connect();
   }
@@ -725,7 +725,7 @@ void shift::Context::connect() {
   }
 }
 
-void shift::Context::loadData() {
+void shift::core::Context::loadData() {
   for(auto& behavior : active_behaviors_) {
     behavior->load();
   }
@@ -758,11 +758,11 @@ void shift::Context::loadData() {
   }
 }
 
-void shift::Context::levelOrderSort() {
+void shift::core::Context::levelOrderSort() {
 
-  std::queue<shift::Joint::Base*> queue;
-  std::vector<shift::Joint::Base*> joints;
-  std::vector<shift::Body::Base*> bodies;
+  std::queue<shift::core::joint::Base*> queue;
+  std::vector<shift::core::joint::Base*> joints;
+  std::vector<shift::core::body::Base*> bodies;
 
   /* find joints attached to fixed body */
   auto it = active_joints_.begin();
@@ -787,7 +787,7 @@ void shift::Context::levelOrderSort() {
   while(!queue.empty()) {
     auto joint = queue.front();
     queue.pop();
-    shift::Body::Base* body = nullptr;
+    shift::core::body::Base* body = nullptr;
     if(joint->sense() == 1) {
       body = joint->childBody();
     } else if(joint->sense() == -1) {
@@ -818,7 +818,7 @@ void shift::Context::levelOrderSort() {
   active_joints_ = joints;
 }
 
-void shift::Context::processVirtualBodies() {
+void shift::core::Context::processVirtualBodies() {
 
   // std::cout << "Processing virtual bodies" << std::endl;
   // std::cout << "active_articulated_bodies_.size(): "
@@ -826,7 +826,7 @@ void shift::Context::processVirtualBodies() {
   // std::cout << "active_bodies_.size(): " << active_bodies_.size() <<
   // std::endl;
 
-  std::vector<shift::Body::Base*> bodies(active_joints_.size());
+  std::vector<shift::core::body::Base*> bodies(active_joints_.size());
 
   // clear system child body and frame pointers
   for(auto& joint : active_joints_) {
@@ -852,13 +852,13 @@ void shift::Context::processVirtualBodies() {
 
     if(!found) {
       auto constraint =
-        shift::Factory<shift::Constraint::Base>::get()->create("chord");
+        shift::core::Factory<shift::core::constraint::Base>::get()->create("chord");
 
-      shift::Constraint::Chord* chordConstraint =
-        dynamic_cast<shift::Constraint::Chord*>(constraint.get());
+      shift::core::constraint::Chord* chordConstraint =
+        dynamic_cast<shift::core::constraint::Chord*>(constraint.get());
 
       auto virtualBody =
-        shift::Factory<shift::Body::Base>::get()->create("virtual");
+        shift::core::Factory<shift::core::body::Base>::get()->create("virtual");
       virtualBody->setName("_virtualBody[" + std::to_string(j++) + "]");
 
       chordConstraint->setParentBody(virtualBody.get());
@@ -889,7 +889,7 @@ void shift::Context::processVirtualBodies() {
   active_articulated_bodies_ = bodies;
 }
 
-void shift::Context::processPCL() {
+void shift::core::Context::processPCL() {
   for(unsigned int i = 0; i < active_articulated_bodies_.size(); i++) {
     active_articulated_bodies_[i]->setIndex(i);
   }
@@ -939,7 +939,7 @@ void shift::Context::processPCL() {
   // }
 }
 
-void shift::Context::processLoopMembers() {
+void shift::core::Context::processLoopMembers() {
   std::vector<std::vector<int>> loopMembers(chord_constraints_.size());
   std::vector<std::vector<int>> negativeLoopMembers(chord_constraints_.size());
   std::vector<std::vector<int>> positiveLoopMembers(chord_constraints_.size());
@@ -1024,7 +1024,7 @@ void shift::Context::processLoopMembers() {
   }
 }
 
-void shift::Context::detectSubstructures() {
+void shift::core::Context::detectSubstructures() {
   // std::cout << "detectSubstructures()" << std::endl;
   if(chord_constraints_.size() > 0) {
 
@@ -1060,7 +1060,7 @@ void shift::Context::detectSubstructures() {
         while(it != chordConstraintIndices.end()) {
           /* base node of substructure */
           int baseNode = loop_members_[substructure[0]][0];
-          if(shift::Topology::inPath(pcl_, loop_members_[(*it)][0], baseNode)) {
+          if(shift::core::topology::inPath(pcl_, loop_members_[(*it)][0], baseNode)) {
             for(auto loopIndex : substructure) {
               for(auto loopMember = loop_members_[loopIndex].begin() + 1;
                   loopMember < loop_members_[loopIndex].end(); ++loopMember) {
@@ -1145,7 +1145,7 @@ void shift::Context::detectSubstructures() {
     std::vector<std::vector<int>> loopMembers;
     std::vector<std::vector<int>> negativeLoopMembers;
     std::vector<std::vector<int>> positiveLoopMembers;
-    std::vector<shift::Constraint::Chord*> chordConstraints;
+    std::vector<shift::core::constraint::Chord*> chordConstraints;
 
     for(auto substructure : substructures) {
       for(auto loop : substructure) {
@@ -1190,8 +1190,8 @@ void shift::Context::detectSubstructures() {
        may contain the fixed body */
     std::list<int> shortList;
     for(int i = -1; i < (int)active_joints_.size(); i++) {
-      if(shift::Topology::isSubstructureHead(i, substructure_members_) ||
-         !shift::Topology::isSubstructureMember(i, substructure_members_)) {
+      if(shift::core::topology::isSubstructureHead(i, substructure_members_) ||
+         !shift::core::topology::isSubstructureMember(i, substructure_members_)) {
         shortList.push_back(i);
       }
     }
@@ -1252,8 +1252,8 @@ void shift::Context::detectSubstructures() {
     assert(found);
 
     /* reorder bodies, joints and levels */
-    std::vector<shift::Joint::Base*> activeJoints(active_joints_.size());
-    std::vector<shift::Body::Base*> activeBodies(
+    std::vector<shift::core::joint::Base*> activeJoints(active_joints_.size());
+    std::vector<shift::core::body::Base*> activeBodies(
       active_articulated_bodies_.size());
 
     /* initialize permutation arrays to permute bodies and joints from order
@@ -1277,7 +1277,7 @@ void shift::Context::detectSubstructures() {
     active_joints_ = activeJoints;
     active_articulated_bodies_ = activeBodies;
 
-    shift::Topology::setInversePermutation(p_01, p_10);
+    shift::core::topology::setInversePermutation(p_01, p_10);
 
     // i = 0;
     // for(auto& members : substructure_members_) {
@@ -1360,11 +1360,11 @@ void shift::Context::detectSubstructures() {
   // }
 }
 
-unsigned int shift::Context::qCount() {
+unsigned int shift::core::Context::qCount() {
   return q_count_;
 }
 
-unsigned int shift::Context::dqCount() {
+unsigned int shift::core::Context::dqCount() {
   return dq_count_;
 }
 
@@ -1372,7 +1372,7 @@ unsigned int shift::Context::dqCount() {
 \brief compress any frames on child body attached to parent body by
 series of one or more rigid joints
 */
-void shift::Context::compressRigidJoints(
+void shift::core::Context::compressRigidJoints(
   int i, // current body Index and parent joint index
   unsigned int& operationCount) {
 
@@ -1437,9 +1437,9 @@ void shift::Context::compressRigidJoints(
         dhva_offsets_[operationCount].child.d = frame->index();
         dhva_offsets_[operationCount].q = frame->index();
 
-        d_fptr_[operationCount] = shift::Joint::rigid_dh;
-        dh_fptr_[operationCount] = shift::Joint::rigid_dh;
-        dhva_fptr_[operationCount] = shift::Joint::rigid_dhva;
+        d_fptr_[operationCount] = shift::core::joint::rigid_dh;
+        dh_fptr_[operationCount] = shift::core::joint::rigid_dh;
+        dhva_fptr_[operationCount] = shift::core::joint::rigid_dhva;
         operationCount++;
       } else if(frame->inTree()) {
         // std::cout << "processing frame: " << childBody->name() << ": "
@@ -1463,7 +1463,7 @@ void shift::Context::compressRigidJoints(
   }
 }
 
-void shift::Context::allocateRunTimeArrays() {
+void shift::core::Context::allocateRunTimeArrays() {
   unsigned int dc_count = 0;
   q_count_ = 0;
   dq_count_ = 0;
@@ -1479,7 +1479,7 @@ void shift::Context::allocateRunTimeArrays() {
     }
   }
 
-  dhva_ = shift::Topology::DHVA(frames_in_tree_.size(), dc_count, dq_count_,
+  dhva_ = shift::core::topology::DHVA(frames_in_tree_.size(), dc_count, dq_count_,
                                 non_rigid_joint_count_);
 
   // std::cout << "qCount: " << qCount_ << std::endl;
@@ -1646,9 +1646,9 @@ void shift::Context::allocateRunTimeArrays() {
           displacements
         */
         if(!frame->isReference() && frame->inTree()) {
-          d_fptr_[operationCount] = shift::Joint::rigid_dh;
-          dh_fptr_[operationCount] = shift::Joint::rigid_dh;
-          dhva_fptr_[operationCount] = shift::Joint::rigid_dhva;
+          d_fptr_[operationCount] = shift::core::joint::rigid_dh;
+          dh_fptr_[operationCount] = shift::core::joint::rigid_dh;
+          dhva_fptr_[operationCount] = shift::core::joint::rigid_dhva;
           dhva_offsets_[operationCount].parent.d = referenceFrame->index();
           dhva_offsets_[operationCount].child.d = frame->index();
           dhva_offsets_[operationCount].q = frame->index();
@@ -1681,22 +1681,22 @@ void shift::Context::allocateRunTimeArrays() {
   // std::cout << std::endl;
 }
 
-void shift::Context::updateDC(shift::Topology::DHVA& dhva,
+void shift::core::Context::updateDC(shift::core::topology::DHVA& dhva,
                               const double* __restrict__ q) {
   for(unsigned int i = 0; i < dcq_.size(); i++) {
     ksl_dc(q[dcq_[i]], dhva.dc + (i * 2));
   }
 }
 
-void shift::Context::updateD() {
+void shift::core::Context::updateD() {
   updateD(dhva_, q_.data());
 }
 
-void shift::Context::updateD(const double* q) {
+void shift::core::Context::updateD(const double* q) {
   updateD(dhva_, q);
 }
 
-void shift::Context::updateD(shift::Topology::DHVA& dhva,
+void shift::core::Context::updateD(shift::core::topology::DHVA& dhva,
                              const double* __restrict__ q) {
   updateDC(dhva, q);
   for(unsigned int i = 0; i < d_fptr_.size(); i++) {
@@ -1704,15 +1704,15 @@ void shift::Context::updateD(shift::Topology::DHVA& dhva,
   }
 }
 
-void shift::Context::updateDH() {
+void shift::core::Context::updateDH() {
   updateDH(dhva_, q_.data());
 }
 
-void shift::Context::updateDH(const double* q) {
+void shift::core::Context::updateDH(const double* q) {
   updateDH(dhva_, q);
 }
 
-void shift::Context::updateDH(shift::Topology::DHVA& dhva,
+void shift::core::Context::updateDH(shift::core::topology::DHVA& dhva,
                               const double* __restrict__ q) {
   updateDC(dhva, q);
   // std::cout << "updateDH()" << std::endl;
@@ -1738,15 +1738,15 @@ void shift::Context::updateDH(shift::Topology::DHVA& dhva,
   // fclose(f);
 }
 
-void shift::Context::updateDHVA() {
+void shift::core::Context::updateDHVA() {
   updateDHVA(dhva_, q_.data(), dq_);
 }
 
-void shift::Context::updateDHVA(const double* q, const double* dq) {
+void shift::core::Context::updateDHVA(const double* q, const double* dq) {
   updateDHVA(dhva_, q, dq);
 }
 
-void shift::Context::updateDHVA(shift::Topology::DHVA& dhva,
+void shift::core::Context::updateDHVA(shift::core::topology::DHVA& dhva,
                                 const double* __restrict__ q,
                                 const double* __restrict__ dq) {
   updateDC(dhva, q);
@@ -1755,12 +1755,12 @@ void shift::Context::updateDHVA(shift::Topology::DHVA& dhva,
   }
 }
 
-void shift::Context::setFixedFrameGravityVector() {
+void shift::core::Context::setFixedFrameGravityVector() {
   assert(dhva_.aq);
   ksl_vec3_inverted(model_parameters_.gravity(), &dhva_.aq[-1].lin);
 }
 
-void shift::Context::setToInitialConditions() {
+void shift::core::Context::setToInitialConditions() {
   // std::cout << "setting initial conditions:" << std::endl;
   assert(dq_);
   unsigned int q_offset = 0;
@@ -1788,7 +1788,7 @@ void shift::Context::setToInitialConditions() {
   }
 }
 
-void shift::Context::initializeInertia() {
+void shift::core::Context::initializeInertia() {
 
   /*
     create a temporary inertia array, equal in length to activeJoints
@@ -1855,7 +1855,7 @@ void shift::Context::initializeInertia() {
 #endif
 }
 
-void shift::Context::setInitialConditionsToCurrentConditions() {
+void shift::core::Context::setInitialConditionsToCurrentConditions() {
   assert(dq_);
   unsigned int qOffset = 0;
   unsigned int dqOffset = 0;
@@ -1867,7 +1867,7 @@ void shift::Context::setInitialConditionsToCurrentConditions() {
   }
 }
 
-void shift::Context::setLookup() {
+void shift::core::Context::setLookup() {
   joint_lookup_.clear();
   joint_lookup_.resize(activeJointCount());
 
@@ -2019,7 +2019,7 @@ orthonormalize the columns and return them in the same
 matrix. Finally it returns the square of row norms of
 this matrix as mobility numbers in the mn[] array.
 */
-void shift::Context::initializeMobility() {
+void shift::core::Context::initializeMobility() {
   mobility_ = 0;
   if(dq_count_ > 0) {
     mobility_numbers_.resize(dq_count_);
@@ -2034,7 +2034,7 @@ void shift::Context::initializeMobility() {
   @brief compute global instantaneous mobility, to be called after
   mobility has been computed within each substructure
 */
-double shift::Context::globalMobility() {
+double shift::core::Context::globalMobility() {
 #if SHIFT_WITH_BLAS_
   mobility_ = cblas_dasum(dqCount_, mobilityNumbers_, 1);
 #else
@@ -2049,25 +2049,25 @@ double shift::Context::globalMobility() {
 /*!
 @brief Generate a directed graph using graphviz api library
 
-@param context a pointer to a shift::Context data structure.
+@param context a pointer to a shift::core::Context data structure.
 
 */
-int shift::Context::digraph(std::string filename) {
+int shift::core::Context::digraph(std::string filename) {
 
-  std::string base_filename = shift::Topology::getFilename(filename);
+  std::string base_filename = shift::core::topology::getFilename(filename);
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename
               << std::endl;
     return -1;
   };
 
-  std::string extension = shift::Topology::getExtension(base_filename);
+  std::string extension = shift::core::topology::getExtension(base_filename);
   if(extension.length() == 0) {
     std::cerr << "Error: coud not resolve extension for: " << filename
               << std::endl;
   }
 
-  std::string gv_ext = shift::Topology::getValidGraphvizExtension(extension);
+  std::string gv_ext = shift::core::topology::getValidGraphvizExtension(extension);
   if(gv_ext.length() == 0) {
     std::cerr << "Error: requested extension is not supported by Shift. "
                  "Supported extensions include: \"gif\", \"jpeg\", \"jpg\", "
@@ -2137,7 +2137,7 @@ int shift::Context::digraph(std::string filename) {
   gvRenderFilename(gvc, g, const_cast<char*>(gv_ext.c_str()), filename.c_str());
 
   if(gv_ext != "dot") {
-    std::string basename = shift::Topology::getBasename(filename);
+    std::string basename = shift::core::topology::getBasename(filename);
     if(basename.length() == 0) {
       gvFreeLayout(gvc, g);
       agclose(g);
@@ -2165,10 +2165,10 @@ int shift::Context::digraph(std::string filename) {
   // external system call
 }
 
-int shift::Context::digraph() {
-  std::string base_filename = shift::Topology::getFilename(filename_);
+int shift::core::Context::digraph() {
+  std::string base_filename = shift::core::topology::getFilename(filename_);
   std::string graph_filename =
-    shift::Topology::removeExtension(base_filename) + ".png";
+    shift::core::topology::removeExtension(base_filename) + ".png";
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename_
               << std::endl;
@@ -2177,7 +2177,7 @@ int shift::Context::digraph() {
   return digraph(graph_filename);
 }
 
-bool findReferenceFrame(const shift::Context& context, int d_index,
+bool findReferenceFrame(const shift::core::Context& context, int d_index,
                         int* reference_frame_index) {
   auto& bodies = context.activeArticulatedBodies();
   for(auto& body : bodies) {
@@ -2202,22 +2202,22 @@ up to 1MB of memory is not properly freed at program termination.
 @TODO find fix for this or just write to DOT file and call graphviz using
 external system call
 */
-int shift::Context::digraphFrames(std::string filename) {
+int shift::core::Context::digraphFrames(std::string filename) {
 
-  std::string base_filename = shift::Topology::getFilename(filename);
+  std::string base_filename = shift::core::topology::getFilename(filename);
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename
               << std::endl;
     return -1;
   };
 
-  std::string extension = shift::Topology::getExtension(base_filename);
+  std::string extension = shift::core::topology::getExtension(base_filename);
   if(extension.length() == 0) {
     std::cerr << "Error: coud not resolve extension for: " << filename
               << std::endl;
   }
 
-  std::string gv_ext = shift::Topology::getValidGraphvizExtension(extension);
+  std::string gv_ext = shift::core::topology::getValidGraphvizExtension(extension);
   if(gv_ext.length() == 0) {
     std::cerr << "Error: requested extension is not supported by Shift. "
                  "Supported extensions include: \"gif\", \"jpeg\", \"jpg\", "
@@ -2300,7 +2300,7 @@ int shift::Context::digraphFrames(std::string filename) {
             dChild->R.m11, dChild->R.m12, dChild->t.y, dChild->R.m20,
             dChild->R.m21, dChild->R.m22, dChild->t.z);
 
-    std::string jointName = shift::Topology::getJointType(dh_fptr_[i]);
+    std::string jointName = shift::core::topology::getJointType(dh_fptr_[i]);
 
     if(jointName == "PRISMATIC_TX") {
       sprintf(name, "[%d] {%d} Tx(% 0.10f)\n", i, jointCounter++,
@@ -2434,7 +2434,7 @@ int shift::Context::digraphFrames(std::string filename) {
   gvRenderFilename(gvc, g, const_cast<char*>(gv_ext.c_str()), filename.c_str());
 
   if(gv_ext != "dot") {
-    std::string basename = shift::Topology::getBasename(filename);
+    std::string basename = shift::core::topology::getBasename(filename);
     if(basename.length() == 0) {
       gvFreeLayout(gvc, g);
       agclose(g);
@@ -2457,10 +2457,10 @@ int shift::Context::digraphFrames(std::string filename) {
   return 0;
 }
 
-int shift::Context::digraphFrames() {
-  std::string base_filename = shift::Topology::getFilename(filename_);
+int shift::core::Context::digraphFrames() {
+  std::string base_filename = shift::core::topology::getFilename(filename_);
   std::string graph_filename =
-    shift::Topology::removeExtension(base_filename) + ".png";
+    shift::core::topology::removeExtension(base_filename) + ".png";
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename_
               << std::endl;
@@ -2474,7 +2474,7 @@ int shift::Context::digraphFrames() {
 
 @return gravitational potential energy
 */
-double shift::Context::gravitationalPotentialEnergy() {
+double shift::core::Context::gravitationalPotentialEnergy() {
   // return ksl_dot_vv(&projected_inertia_[0].mt, model_parameters_.gravity());
   return 0;
 }
@@ -2483,7 +2483,7 @@ double shift::Context::gravitationalPotentialEnergy() {
 @brief compute kinetic energy for system
 
 */
-double shift::Context::kineticEnergy() {
+double shift::core::Context::kineticEnergy() {
   assert(dhva_.v);
 #if SHIFT_WITH_BLAS_
   return cblas_ddot(6 * nonRigidJointCount_, (p_.data()), 1, (double*)(dhva_.v),
@@ -2498,7 +2498,7 @@ double shift::Context::kineticEnergy() {
 #endif
 }
 
-unsigned int shift::Context::forceModuleEquationCount() {
+unsigned int shift::core::Context::forceModuleEquationCount() {
   unsigned int equation_count = 0;
   for(auto& force_module : active_force_modules_) {
     equation_count += force_module->equationCount();
@@ -2506,15 +2506,15 @@ unsigned int shift::Context::forceModuleEquationCount() {
   return equation_count;
 }
 
-void shift::Context::evaluateConstraints() {
+void shift::core::Context::evaluateConstraints() {
   constraint_error_ = jacobian_.evaluateConstraints();
 }
 
-double shift::Context::constraintError() {
+double shift::core::Context::constraintError() {
   return constraint_error_;
 }
 
-void shift::Context::setForces(const double t, const std::vector<double>& y) {
+void shift::core::Context::setForces(const double t, const std::vector<double>& y) {
   (void)t;
   std::fill(f_.begin(), f_.end(), 0);
   for(auto& joint : active_joints_) {
@@ -2527,7 +2527,7 @@ void shift::Context::setForces(const double t, const std::vector<double>& y) {
   // std::cout << std::endl;
 }
 
-void shift::Context::dqTody(const std::vector<double>& y,
+void shift::core::Context::dqTody(const std::vector<double>& y,
                             std::vector<double>& dy) {
   const double* q = y.data();
   const double* dq = q + q_count_;
@@ -2548,7 +2548,7 @@ void shift::Context::dqTody(const std::vector<double>& y,
   memcpy(dy.data() + q_count_, ddq_.data(), dq_count_ * sizeof(double));
 }
 
-void shift::Context::setQuaternionMap() {
+void shift::core::Context::setQuaternionMap() {
   quaternion_indices_.clear();
   non_quaternion_indices_.clear();
   unsigned int q_index = 0;
@@ -2580,7 +2580,7 @@ void shift::Context::setQuaternionMap() {
   }
 }
 
-void shift::Context::simulate() {
+void shift::core::Context::simulate() {
   if(active_integrators_.size() == 0 || active_solvers_.size() == 0) {
     throw "Error: no active integrators or solvers have been created";
   }
@@ -2590,7 +2590,7 @@ void shift::Context::simulate() {
   integrator->integrate();
 }
 
-void shift::Context::currentTime(double& time, double& delta_time) {
+void shift::core::Context::currentTime(double& time, double& delta_time) {
   if(active_integrators_.size() == 0) {
     time = 0.0;
     delta_time = 0.0;
@@ -2601,7 +2601,7 @@ void shift::Context::currentTime(double& time, double& delta_time) {
   }
 }
 
-void shift::Context::writeStates(const double time,
+void shift::core::Context::writeStates(const double time,
                                  const std::vector<double>& y) {
   for(auto& logger : active_loggers_) {
     logger->writeStates(time, y);

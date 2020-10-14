@@ -4,16 +4,16 @@
 #include "shift/core/logger/base.h"
 #include "shift/core/utility.h"
 
-bool shift::Logger::CSV::registered_ =
-  shift::Factory<shift::Logger::Base>::get()->registerModule(
-    "csv", shift::Logger::CSV::create);
+bool shift::core::logger::CSV::registered_ =
+  shift::core::Factory<shift::core::logger::Base>::get()->registerModule(
+    "csv", shift::core::logger::CSV::create);
 
-std::unique_ptr<shift::Logger::CSV> shift::Logger::CSV::create() {
-  return std::make_unique<shift::Logger::CSV>();
+std::unique_ptr<shift::core::logger::CSV> shift::core::logger::CSV::create() {
+  return std::make_unique<shift::core::logger::CSV>();
 }
 
-void shift::Logger::CSV::addParameters() {
-  shift::Logger::Base::addParameters();
+void shift::core::logger::CSV::addParameters() {
+  shift::core::logger::Base::addParameters();
   addParameter("delimiter", &delimiter_,
                "delimiter used in csv file, defaults to \",\" if not provided",
                false);
@@ -28,7 +28,7 @@ void shift::Logger::CSV::addParameters() {
     false);
 }
 
-void shift::Logger::CSV::initialize() {
+void shift::core::logger::CSV::initialize() {
   if(timestamp_logfile_) {
     csv_logfile_ = shift::Utility::stripFileExtension(csv_logfile_) + "-" +
                    shift::Utility::currentDateTime() +
@@ -38,7 +38,7 @@ void shift::Logger::CSV::initialize() {
   writeHeader();
 }
 
-void shift::Logger::CSV::writeHeader() {
+void shift::core::logger::CSV::writeHeader() {
   if(log_all_channels_) {
     assert(context_);
     file_ << "time" << delimiter_;
@@ -62,7 +62,7 @@ void shift::Logger::CSV::writeHeader() {
   file_ << "\n";
 }
 
-void shift::Logger::CSV::writeStates(const double t,
+void shift::core::logger::CSV::writeStates(const double t,
                                      const std::vector<double>& y) {
   file_ << t << delimiter_;
   size_t count = context_->qCount() + context_->dqCount();

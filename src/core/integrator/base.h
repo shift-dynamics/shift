@@ -10,31 +10,32 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
 class Frame;
 class Context;
 
-namespace Solver {
+namespace solver {
 class Base;
 }
 
-namespace Integrator {
+namespace integrator {
 
 /*!
 @brief Abstract Integrator base class
 */
 class Base
-  : public shift::Base
-  , public Parameter::List {
+  : public shift::core::Base
+  , public parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name) {
+    : shift::core::Base(name) {
     addParameters();
   }
 
   Base()
-    : shift::Base("") {
+    : shift::core::Base("") {
     addParameters();
   }
 
@@ -91,7 +92,7 @@ protected:
   double time_step_ = 0.01; /*!< time step used for reporting intervals */
   double time_span_ = 10.0; /*!< time span for numerical integration, defaults
                                to 10 seconds if not provided */
-  shift::Solver::Base* solver_ = nullptr;
+  shift::core::solver::Base* solver_ = nullptr;
 };
 
 class Modules {
@@ -100,7 +101,7 @@ public:
 };
 
 } // namespace Integrator
-
+}
 } // namespace shift
 
 #endif

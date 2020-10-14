@@ -36,7 +36,7 @@ SUCH DAMAGE.
 #include "shift/core/joint/rigid.h"
 #include "shift/core/joint/spherical.h"
 
-bool shift::Topology::matchFullyQualifiedName(
+bool shift::core::topology::matchFullyQualifiedName(
   const std::vector<std::string>& name1,
   const std::vector<std::string>& name2) {
 
@@ -73,7 +73,7 @@ bool shift::Topology::matchFullyQualifiedName(
 \param j index of body
 \param k index of second body to test
 */
-bool shift::Topology::inPath(std::vector<int>& pcl, int j, int k) {
+bool shift::core::topology::inPath(std::vector<int>& pcl, int j, int k) {
   if(j == k) {
     return true;
   }
@@ -93,7 +93,7 @@ bool shift::Topology::inPath(std::vector<int>& pcl, int j, int k) {
 \param k index of body / joint
 \param list of substructure members
 */
-bool shift::Topology::isSubstructureHead(
+bool shift::core::topology::isSubstructureHead(
   int k, std::vector<std::vector<int>>& substructures) {
   for(auto substructure : substructures) {
     if(k == substructure[0]) {
@@ -108,7 +108,7 @@ bool shift::Topology::isSubstructureHead(
 \param k index of body / joint
 \param list of substructure members
 */
-bool shift::Topology::isSubstructureMember(
+bool shift::core::topology::isSubstructureMember(
   int bodyIndex, std::vector<std::vector<int>>& substructures) {
   for(auto substructure : substructures) {
     for(auto member : substructure) {
@@ -120,7 +120,7 @@ bool shift::Topology::isSubstructureMember(
   return false;
 }
 
-void shift::Topology::setInversePermutation(const std::vector<int>& p,
+void shift::core::topology::setInversePermutation(const std::vector<int>& p,
                                             std::vector<int>& pInverse) {
   if(p.size() != pInverse.size()) {
     pInverse.resize(p.size());
@@ -130,56 +130,56 @@ void shift::Topology::setInversePermutation(const std::vector<int>& p,
   }
 }
 
-std::string shift::Topology::getJointType(dh_fptr f) {
-  if(f == shift::Joint::spherical_dh) {
+std::string shift::core::topology::getJointType(dh_fptr f) {
+  if(f == shift::core::joint::spherical_dh) {
     return "SPHERICAL";
-  } else if(f == shift::Joint::sphericalinv_dh) {
+  } else if(f == shift::core::joint::sphericalinv_dh) {
     return "SPHERICAL_INVERSE";
-  } else if(f == shift::Joint::tx_dh) {
+  } else if(f == shift::core::joint::tx_dh) {
     return "PRISMATIC_TX";
-  } else if(f == shift::Joint::txinv_dh) {
+  } else if(f == shift::core::joint::txinv_dh) {
     return "PRISMATIC_TX_INVERSE";
-  } else if(f == shift::Joint::ty_dh) {
+  } else if(f == shift::core::joint::ty_dh) {
     return "PRISMATIC_TY";
-  } else if(f == shift::Joint::tyinv_dh) {
+  } else if(f == shift::core::joint::tyinv_dh) {
     return "PRISMATIC_TY_INVERSE";
-  } else if(f == shift::Joint::tz_dh) {
+  } else if(f == shift::core::joint::tz_dh) {
     return "PRISMATIC_TZ";
-  } else if(f == shift::Joint::tzinv_dh) {
+  } else if(f == shift::core::joint::tzinv_dh) {
     return "PRISMATIC_TZ_INVERSE";
-  } else if(f == shift::Joint::ta_dh) {
+  } else if(f == shift::core::joint::ta_dh) {
     return "PRISMATIC_TA";
-  } else if(f == shift::Joint::tainv_dh) {
+  } else if(f == shift::core::joint::tainv_dh) {
     return "PRISMATIC_TA_INVERSE";
-  } else if(f == shift::Joint::rx_dh) {
+  } else if(f == shift::core::joint::rx_dh) {
     return "REVOLUTE_RX";
-  } else if(f == shift::Joint::rxinv_dh) {
+  } else if(f == shift::core::joint::rxinv_dh) {
     return "REVOLUTE_RX_INVERSE";
-  } else if(f == shift::Joint::ry_dh) {
+  } else if(f == shift::core::joint::ry_dh) {
     return "REVOLUTE_RY";
-  } else if(f == shift::Joint::ryinv_dh) {
+  } else if(f == shift::core::joint::ryinv_dh) {
     return "REVOLUTE_RY_INVERSE";
-  } else if(f == shift::Joint::rz_dh) {
+  } else if(f == shift::core::joint::rz_dh) {
     return "REVOLUTE_RZ";
-  } else if(f == shift::Joint::rzinv_dh) {
+  } else if(f == shift::core::joint::rzinv_dh) {
     return "REVOLUTE_RZ_INVERSE";
-  } else if(f == shift::Joint::ra_dh) {
+  } else if(f == shift::core::joint::ra_dh) {
     return "REVOLUTE_RA";
-  } else if(f == shift::Joint::rainv_dh) {
+  } else if(f == shift::core::joint::rainv_dh) {
     return "REVOLUTE_RA_INVERSE";
-  } else if(f == shift::Joint::rigid_dh) {
+  } else if(f == shift::core::joint::rigid_dh) {
     return "RIGID";
-  } else if(f == shift::Joint::rigidinv_dh) {
+  } else if(f == shift::core::joint::rigidinv_dh) {
     return "RIGID_INVERSE";
-  } else if(f == shift::Joint::float_dh) {
+  } else if(f == shift::core::joint::float_dh) {
     return "FLOAT";
-  } else if(f == shift::Joint::floatinv_dh) {
+  } else if(f == shift::core::joint::floatinv_dh) {
     return "FLOAT_INVERSE";
   }
   return "unknown";
 }
 
-std::string shift::Topology::getBasename(const std::string& s) {
+std::string shift::core::topology::getBasename(const std::string& s) {
   size_t i = s.rfind('.', s.length());
   if(i != std::string::npos) {
     return (s.substr(0, i));
@@ -188,7 +188,7 @@ std::string shift::Topology::getBasename(const std::string& s) {
   }
 }
 
-std::string shift::Topology::getFilename(const std::string& s) {
+std::string shift::core::topology::getFilename(const std::string& s) {
   char sep = '/';
 #ifdef _WIN32
   sep = '\\';
@@ -201,7 +201,7 @@ std::string shift::Topology::getFilename(const std::string& s) {
   return s;
 }
 
-std::string shift::Topology::getExtension(std::string& filename) {
+std::string shift::core::topology::getExtension(std::string& filename) {
   std::string::size_type idx;
   idx = filename.rfind('.');
   if(idx != std::string::npos) {
@@ -213,7 +213,7 @@ std::string shift::Topology::getExtension(std::string& filename) {
   }
 }
 
-std::string shift::Topology::removeExtension(std::string& filename) {
+std::string shift::core::topology::removeExtension(std::string& filename) {
   std::string::size_type idx;
   idx = filename.rfind('.');
   if(idx != std::string::npos) {
@@ -232,7 +232,7 @@ std::string toLower(std::string& s) {
   return out;
 }
 
-std::string shift::Topology::getValidGraphvizExtension(std::string& extension) {
+std::string shift::core::topology::getValidGraphvizExtension(std::string& extension) {
   std::string ext = toLower(extension);
   if(ext == "gif") {
     return std::string("gif");
@@ -260,11 +260,11 @@ std::string shift::Topology::getValidGraphvizExtension(std::string& extension) {
 Writes a graphviz dot file for original mechanism after adding virtual bodies
 and converting chords to arcs
 
-@param context pointer to a shift::Context data structure.
+@param context pointer to a shift::core::Context data structure.
 @param filename dot file will be saved to filename
 @return returns -1 on failure, 0 on success
 */
-int shift::Topology::digraphDOT(const shift::Context& context,
+int shift::core::topology::digraphDOT(const shift::core::Context& context,
                                 std::string filename) {
 
   FILE* digraph;

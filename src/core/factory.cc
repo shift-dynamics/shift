@@ -2,105 +2,105 @@
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Behavior::Base>::CreateFunction>
-  shift::Factory<shift::Behavior::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::behavior::Base>::CreateFunction>
+  shift::core::Factory<shift::core::behavior::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Behavior::Base>;
+template class shift::core::Factory<shift::core::behavior::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Body::Base>::CreateFunction>
-  shift::Factory<shift::Body::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::body::Base>::CreateFunction>
+  shift::core::Factory<shift::core::body::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Body::Base>;
+template class shift::core::Factory<shift::core::body::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
 std::map<std::string,
-         shift::Factory<shift::CollisionGeometry::Base>::CreateFunction>
-  shift::Factory<shift::CollisionGeometry::Base>::factory_map_{};
+         shift::core::Factory<shift::core::collisiongeometry::Base>::CreateFunction>
+  shift::core::Factory<shift::core::collisiongeometry::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::CollisionGeometry::Base>;
+template class shift::core::Factory<shift::core::collisiongeometry::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Constraint::Base>::CreateFunction>
-  shift::Factory<shift::Constraint::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::constraint::Base>::CreateFunction>
+  shift::core::Factory<shift::core::constraint::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Constraint::Base>;
+template class shift::core::Factory<shift::core::constraint::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::ForceModule::Base>::CreateFunction>
-  shift::Factory<shift::ForceModule::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::forcemodule::Base>::CreateFunction>
+  shift::core::Factory<shift::core::forcemodule::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::ForceModule::Base>;
+template class shift::core::Factory<shift::core::forcemodule::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Geometry::Base>::CreateFunction>
-  shift::Factory<shift::Geometry::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::geometry::Base>::CreateFunction>
+  shift::core::Factory<shift::core::geometry::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Geometry::Base>;
+template class shift::core::Factory<shift::core::geometry::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Integrator::Base>::CreateFunction>
-  shift::Factory<shift::Integrator::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::integrator::Base>::CreateFunction>
+  shift::core::Factory<shift::core::integrator::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Integrator::Base>;
+template class shift::core::Factory<shift::core::integrator::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Joint::Base>::CreateFunction>
-  shift::Factory<shift::Joint::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::joint::Base>::CreateFunction>
+  shift::core::Factory<shift::core::joint::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Joint::Base>;
+template class shift::core::Factory<shift::core::joint::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Light::Base>::CreateFunction>
-  shift::Factory<shift::Light::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::light::Base>::CreateFunction>
+  shift::core::Factory<shift::core::light::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Light::Base>;
+template class shift::core::Factory<shift::core::light::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Logger::Base>::CreateFunction>
-  shift::Factory<shift::Logger::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::logger::Base>::CreateFunction>
+  shift::core::Factory<shift::core::logger::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Logger::Base>;
+template class shift::core::Factory<shift::core::logger::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Sensor::Base>::CreateFunction>
-  shift::Factory<shift::Sensor::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::sensor::Base>::CreateFunction>
+  shift::core::Factory<shift::core::sensor::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Sensor::Base>;
+template class shift::core::Factory<shift::core::sensor::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Solver::Base>::CreateFunction>
-  shift::Factory<shift::Solver::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::solver::Base>::CreateFunction>
+  shift::core::Factory<shift::core::solver::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Solver::Base>;
+template class shift::core::Factory<shift::core::solver::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::Factory<shift::Terrain::Base>::CreateFunction>
-  shift::Factory<shift::Terrain::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::terrain::Base>::CreateFunction>
+  shift::core::Factory<shift::core::terrain::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::Factory<shift::Terrain::Base>;
+template class shift::core::Factory<shift::core::terrain::Base>;

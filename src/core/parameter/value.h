@@ -23,14 +23,15 @@
 #include <vector>
 
 namespace shift {
+namespace core {
 
 class Context;
 class Assembly;
-namespace Body {
+namespace body {
 class Base;
 }
 
-namespace Parameter {
+namespace parameter {
 class ArrayBase;
 class List;
 
@@ -312,8 +313,9 @@ public:
   void print(std::string) const;
   void print() const;
 
-  void setParent(Context* context, Assembly* parent_assembly = nullptr,
-                 Body::Base* parent_body = nullptr);
+  void setParent(shift::core::Context* context, 
+                 shift::core::Assembly* parent_assembly = nullptr,
+                 shift::core::body::Base* parent_body = nullptr);
 
 private:
   std::any data_; //!< contains pointer to value
@@ -362,6 +364,7 @@ private:
 };
 
 } // namespace Parameter
+}
 } // namespace shift
 
 #endif

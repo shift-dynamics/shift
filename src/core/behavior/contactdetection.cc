@@ -1,19 +1,19 @@
 #include "shift/core/behavior/contactdetection.h"
 #include "shift/core/factory.h"
 
-bool shift::Behavior::ContactDetection::registered_ =
-  shift::Factory<shift::Behavior::Base>::get()->registerModule(
-    "contact_detection", shift::Behavior::ContactDetection::create);
+bool shift::core::behavior::ContactDetection::registered_ =
+  shift::core::Factory<shift::core::behavior::Base>::get()->registerModule(
+    "contact_detection", shift::core::behavior::ContactDetection::create);
 
-std::unique_ptr<shift::Behavior::ContactDetection>
-shift::Behavior::ContactDetection::create() {
-  return std::make_unique<shift::Behavior::ContactDetection>();
+std::unique_ptr<shift::core::behavior::ContactDetection>
+shift::core::behavior::ContactDetection::create() {
+  return std::make_unique<shift::core::behavior::ContactDetection>();
 }
 
-class shift::Registration<shift::Behavior::Base>
-  registration("contact_detection", shift::Behavior::ContactDetection::create);
+class shift::Registration<shift::core::behavior::Base>
+  registration("contact_detection", shift::core::behavior::ContactDetection::create);
 
-void shift::Behavior::ContactDetection::addParameters() {
+void shift::core::behavior::ContactDetection::addParameters() {
 
   addParameter("name", &name_, "User defined descriptive behavior name", true);
   addParameter(

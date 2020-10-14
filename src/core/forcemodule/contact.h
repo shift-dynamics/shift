@@ -6,12 +6,13 @@
 #include "shift/core/forcemodule/base.h"
 
 namespace shift {
+namespace core {
 
-namespace Joint {
+namespace joint {
 class JointBase;
 }
 
-namespace ForceModule {
+namespace forcemodule {
 
 class Contact : public Base {
 public:
@@ -38,8 +39,8 @@ private:
   static bool registered_;
 };
 
-} // namespace ForceModule
-
+} // namespace forcemodule
+}
 } // namespace shift
 
 #endif

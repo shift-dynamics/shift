@@ -5,22 +5,22 @@
 #include "shift/core/joint/base.h"
 
 namespace shift {
-
-namespace Joint {
+namespace core {
+namespace joint {
 
 struct DHVA;
 
-void rigid_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rigid_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
               const double*);
 
-void rigidinv_dh(const shift::Context&, Topology::DHVA&,
-                 const Topology::Offsets&, const double*);
+void rigidinv_dh(const shift::core::Context&, topology::DHVA&,
+                 const topology::Offsets&, const double*);
 
-void rigid_dhva(const shift::Context&, Topology::DHVA&,
-                const Topology::Offsets&, const double*, const double*);
+void rigid_dhva(const shift::core::Context&, topology::DHVA&,
+                const topology::Offsets&, const double*, const double*);
 
-void rigidinv_dhva(const shift::Context&, Topology::DHVA&,
-                   const Topology::Offsets&, const double*, const double*);
+void rigidinv_dhva(const shift::core::Context&, topology::DHVA&,
+                   const topology::Offsets&, const double*, const double*);
 
 class Rigid : public Base {
 public:
@@ -41,9 +41,9 @@ public:
     return registered_;
   }
 
-  Topology::dh_fptr Dfptr() override;
-  Topology::dh_fptr DHfptr() override;
-  Topology::dhva_fptr DHVAfptr() override;
+  topology::dh_fptr Dfptr() override;
+  topology::dh_fptr DHfptr() override;
+  topology::dhva_fptr DHVAfptr() override;
 
   virtual ksl_SE3_t transform() override {
     ksl_SE3_t out;
@@ -59,11 +59,11 @@ public:
 private:
   virtual void addParameters() override;
   static bool registered_;
-  shift::Frame frame_;
+  shift::core::Frame frame_;
 };
 
-} // namespace Joint
-
+} // namespace joint
+}
 } // namespace shift
 
 #endif

@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-void shift::Assembly::addParameters() {
+void shift::core::Assembly::addParameters() {
 
   addParameter("name", &name_, "User defined descriptive assembly name.", true);
 
@@ -38,7 +38,7 @@ void shift::Assembly::addParameters() {
                false);
 
   addParameter("force_modules", &force_modules_,
-               "Specifies an array of Shift 'ForceModule' datastructures for "
+               "Specifies an array of Shift 'forcemodule' datastructures for "
                "feeding forces into a running module; each force module "
                "in the array must have a unique name identifier",
                false);

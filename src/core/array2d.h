@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace shift {
-
+namespace core {
 template <typename T>
 class Array2d {
 public:
@@ -98,6 +98,7 @@ private:
   unsigned int rows_ = 0;
 };
 
+}
 } // namespace shift
 
 #endif

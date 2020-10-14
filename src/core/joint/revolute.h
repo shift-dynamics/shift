@@ -4,80 +4,80 @@
 #include "shift/core/joint/base.h"
 
 namespace shift {
+namespace core {
+namespace joint {
 
-namespace Joint {
-
-void rx_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rx_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
           const double*);
 
-void rxinv_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rxinv_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
              const double*);
 
-void ry_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ry_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
           const double*);
 
-void ryinv_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ryinv_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
              const double*);
 
-void rz_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rz_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
           const double*);
 
-void rzinv_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rzinv_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
              const double*);
 
-void ra_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ra_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
           const double*);
 
-void rainv_d(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rainv_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
              const double*);
 
-void rx_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rx_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
            const double*);
 
-void rxinv_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rxinv_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
               const double*);
 
-void ry_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ry_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
            const double*);
 
-void ryinv_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ryinv_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
               const double*);
 
-void rz_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rz_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
            const double*);
 
-void rzinv_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rzinv_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
               const double*);
 
-void ra_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ra_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
            const double*);
 
-void rainv_dh(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rainv_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
               const double*);
 
-void rx_dhva(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rx_dhva(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
              const double*, const double*);
 
-void rxinv_dhva(const shift::Context&, Topology::DHVA&,
-                const Topology::Offsets&, const double*, const double*);
+void rxinv_dhva(const shift::core::Context&, topology::DHVA&,
+                const topology::Offsets&, const double*, const double*);
 
-void ry_dhva(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ry_dhva(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
              const double*, const double*);
 
-void ryinv_dhva(const shift::Context&, Topology::DHVA&,
-                const Topology::Offsets&, const double*, const double*);
+void ryinv_dhva(const shift::core::Context&, topology::DHVA&,
+                const topology::Offsets&, const double*, const double*);
 
-void rz_dhva(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void rz_dhva(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
              const double*, const double*);
 
-void rzinv_dhva(const shift::Context&, Topology::DHVA&,
-                const Topology::Offsets&, const double*, const double*);
+void rzinv_dhva(const shift::core::Context&, topology::DHVA&,
+                const topology::Offsets&, const double*, const double*);
 
-void ra_dhva(const shift::Context&, Topology::DHVA&, const Topology::Offsets&,
+void ra_dhva(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
              const double*, const double*);
 
-void rainv_dhva(const shift::Context&, Topology::DHVA&,
-                const Topology::Offsets&, const double*, const double*);
+void rainv_dhva(const shift::core::Context&, topology::DHVA&,
+                const topology::Offsets&, const double*, const double*);
 
 class Revolute : public Base {
 public:
@@ -117,9 +117,9 @@ public:
   virtual const double* data() override;
   virtual unsigned int dataCount() override;
 
-  Topology::dh_fptr Dfptr() override;
-  Topology::dh_fptr DHfptr() override;
-  Topology::dhva_fptr DHVAfptr() override;
+  topology::dh_fptr Dfptr() override;
+  topology::dh_fptr DHfptr() override;
+  topology::dhva_fptr DHVAfptr() override;
   virtual void service(const std::vector<double>& y) override;
 
 private:
@@ -130,8 +130,8 @@ private:
   AxisType axisType();
 };
 
-} // namespace Joint
-
+} // namespace joint
+}
 } // namespace shift
 
 #endif

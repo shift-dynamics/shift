@@ -1,12 +1,12 @@
 #include "shift/core/body/free.h"
 #include "shift/core/factory.h"
 
-bool shift::Body::Free::registered_ =
-  shift::Factory<shift::Body::Base>::get()->registerModule(
-    "free", shift::Body::Free::create);
+bool shift::core::body::Free::registered_ =
+  shift::core::Factory<shift::core::body::Base>::get()->registerModule(
+    "free", shift::core::body::Free::create);
 
-std::unique_ptr<shift::Body::Free> shift::Body::Free::create() {
-  return std::make_unique<shift::Body::Free>();
+std::unique_ptr<shift::core::body::Free> shift::core::body::Free::create() {
+  return std::make_unique<shift::core::body::Free>();
 }
 
-void shift::Body::Free::addParameters() {}
+void shift::core::body::Free::addParameters() {}

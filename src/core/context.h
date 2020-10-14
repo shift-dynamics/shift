@@ -16,47 +16,48 @@
 #include "shift/core/topology.h"
 
 namespace shift {
+namespace core {
 
-namespace Behavior {
+namespace behavior {
 class Base;
 }
 
-namespace CollisionGeometry {
+namespace collisiongeometry {
 class Base;
 }
 
-namespace Geometry {
+namespace geometry {
 class Base;
 }
 
-namespace Sensor {
+namespace sensor {
 class Base;
 }
 
-namespace Terrain {
+namespace terrain {
 class Base;
 }
 
-namespace Constraint {
+namespace constraint {
 class Chord;
 }
 
 /*!
 @brief Shift Context datastructure
 */
-class Context : public shift::Body::Fixed {
+class Context : public shift::core::body::Fixed {
 
 public:
   Context(std::string)
-    // : shift::Parameter::List()
-    : shift::Body::Fixed("fixed")
+    // : shift::core::parameter::List()
+    : shift::core::body::Fixed("fixed")
     , jacobian_(this)
     , model_parameters_(this) {
     addParameters();
     initialize();
   }
   Context()
-    : shift::Body::Fixed("fixed")
+    : shift::core::body::Fixed("fixed")
     , jacobian_(this)
     , model_parameters_(this) {
     addParameters();
@@ -74,7 +75,7 @@ public:
   void writeJSON(const std::string&);
   void printJSON();
 
-  shift::Body::Base* fixedBody() {
+  shift::core::body::Base* fixedBody() {
     return this;
   }
 
@@ -83,20 +84,20 @@ public:
   void setFullyQualifiedNames();
   virtual void setActiveObjects(bool) override;
 
-  void setActive(Behavior::Base*, bool);
-  void setActive(Body::Base*, bool);
-  void setActive(CollisionGeometry::Base*, bool);
-  void setActive(Constraint::Base*, bool);
-  void setActive(ForceModule::Base*, bool);
-  void setActive(Geometry::Base*, bool);
-  void setActive(Joint::Base*, bool);
-  void setActive(Light::Base*, bool);
-  void setActive(Sensor::Base*, bool);
-  void setActive(Terrain::Base*, bool);
+  void setActive(behavior::Base*, bool);
+  void setActive(body::Base*, bool);
+  void setActive(collisiongeometry::Base*, bool);
+  void setActive(constraint::Base*, bool);
+  void setActive(forcemodule::Base*, bool);
+  void setActive(geometry::Base*, bool);
+  void setActive(joint::Base*, bool);
+  void setActive(light::Base*, bool);
+  void setActive(sensor::Base*, bool);
+  void setActive(terrain::Base*, bool);
 
-  void setActive(Integrator::Base*, bool);
-  void setActive(Solver::Base*, bool);
-  void setActive(Logger::Base*, bool);
+  void setActive(integrator::Base*, bool);
+  void setActive(solver::Base*, bool);
+  void setActive(logger::Base*, bool);
 
   void connectActiveObjects();
   unsigned int qCount();
@@ -129,11 +130,11 @@ public:
     return joint_lookup_;
   }
 
-  const std::vector<shift::Joint::Base*>& activeJoints() const {
+  const std::vector<shift::core::joint::Base*>& activeJoints() const {
     return active_joints_;
   }
 
-  const std::vector<shift::ForceModule::Base*>& activeForceModules() const {
+  const std::vector<shift::core::forcemodule::Base*>& activeforcemodules() const {
     return active_force_modules_;
   }
 
@@ -145,11 +146,11 @@ public:
     return pcl_compressed_;
   }
 
-  const std::vector<shift::Body::Base*>& activeArticulatedBodies() const {
+  const std::vector<shift::core::body::Base*>& activeArticulatedBodies() const {
     return active_articulated_bodies_;
   }
 
-  const std::vector<shift::Frame*>& framesInTree() const {
+  const std::vector<shift::core::Frame*>& framesInTree() const {
     return frames_in_tree_;
   }
 
@@ -193,13 +194,13 @@ public:
     return joint_data_;
   }
 
-  const shift::ModelParameters& modelParameters() {
+  const shift::core::ModelParameters& modelParameters() {
     return model_parameters_;
   }
 
-  /*! \brief append frame to shift::Context's list of frames
+  /*! \brief append frame to shift::core::Context's list of frames
    */
-  // void appendFrame(shift::Frame* frame) {
+  // void appendFrame(shift::core::Frame* frame) {
   //   frames_.push_back(frame);
   // }
 
@@ -238,11 +239,11 @@ public:
     return delta_q_;
   }
 
-  const Topology::DHVA& dhva() const {
+  const topology::DHVA& dhva() const {
     return dhva_;
   }
 
-  const std::vector<Topology::Offsets>& dhvaOffsets() const {
+  const std::vector<topology::Offsets>& dhvaOffsets() const {
     return dhva_offsets_;
   }
 
@@ -250,40 +251,40 @@ public:
     return mobility_numbers_;
   }
 
-  /*! \brief Update displacements in a shift::Joint::DHVA data structure using
+  /*! \brief Update displacements in a shift::core::joint::DHVA data structure using
    * a user-provided array of generalized coordinates. The instructions to
-   * update displacements are stored in shift::Context */
-  void updateD(Topology::DHVA& dhva, const double* q);
+   * update displacements are stored in shift::core::Context */
+  void updateD(topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements and influence coefficient matrices in a
-   * shift::Joint::DHVA data structure using a user-provided array of
+   * shift::core::joint::DHVA data structure using a user-provided array of
    * generalized coordinates. The instructions to update displacements and
-   * influence coefficient matrices are stored in shift::Context */
-  void updateDH(Topology::DHVA& dhva, const double* q);
+   * influence coefficient matrices are stored in shift::core::Context */
+  void updateDH(topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements, influence coefficient matrices, velocities
-   * and quadratic accelerations in a shift::Joint::DHVA data structure using
+   * and quadratic accelerations in a shift::core::joint::DHVA data structure using
    * a user-provided array of generalized coordinates and generalized
    * velocities.
-   * The instructions to update DHVA are stored in shift::Context */
-  void updateDHVA(Topology::DHVA& dhva, const double* q, const double* dq);
+   * The instructions to update DHVA are stored in shift::core::Context */
+  void updateDHVA(topology::DHVA& dhva, const double* q, const double* dq);
 
-  /*! \brief Update displacements stored in a shift::Context data structure
+  /*! \brief Update displacements stored in a shift::core::Context data structure
    * using a user-provided array of generalized coordinates. The instructions to
-   * update displacements are stored in shift::Context */
+   * update displacements are stored in shift::core::Context */
   void updateD(const double* q);
 
   /*! \brief Update displacements and influence coefficient matrices in a
-   * shift::Context data structure using a user-provided array of
+   * shift::core::Context data structure using a user-provided array of
    * generalized coordinates. The instructions to update displacements and
-   * influence coefficient matrices are stored in shift::Context */
+   * influence coefficient matrices are stored in shift::core::Context */
   void updateDH(const double* q);
 
   /*! \brief Update displacements, influence coefficient matrices, velocities
-   * and quadratic accelerations in a shift::Context data structure using
+   * and quadratic accelerations in a shift::core::Context data structure using
    * a user-provided array of generalized coordinates and generalized
    * velocities.
-   * The instructions to update DHVA are stored in shift::Context */
+   * The instructions to update DHVA are stored in shift::core::Context */
   void updateDHVA(const double* q, const double* dq);
 
   void updateD();
@@ -298,7 +299,7 @@ public:
    * joints */
   void setInitialConditionsToCurrentConditions();
 
-  const std::vector<Constraint::Chord*>& chordConstraints() const {
+  const std::vector<constraint::Chord*>& chordConstraints() const {
     return chord_constraints_;
   }
 
@@ -326,7 +327,7 @@ public:
     return jacobian_.newtonRaphsonFailure();
   }
 
-  shift::Jacobian& jacobian() {
+  shift::core::Jacobian& jacobian() {
     return jacobian_;
   }
 
@@ -382,38 +383,38 @@ private:
 
   virtual void addParameters() override;
 
-  void appendActive(Behavior::Base*);
-  void appendActive(Body::Base*);
-  void appendActive(CollisionGeometry::Base*);
-  void appendActive(Constraint::Base*);
-  void appendActive(ForceModule::Base*);
-  void appendActive(Geometry::Base*);
-  void appendActive(Joint::Base*);
-  void appendActive(Light::Base*);
-  void appendActive(Sensor::Base*);
-  void appendActive(Terrain::Base*);
-  void appendActive(Solver::Base*);
-  void appendActive(Integrator::Base*);
-  void appendActive(Logger::Base*);
-  void removeActive(Behavior::Base*);
-  void removeActive(Body::Base*);
-  void removeActive(CollisionGeometry::Base*);
-  void removeActive(Constraint::Base*);
-  void removeActive(ForceModule::Base*);
-  void removeActive(Geometry::Base*);
-  void removeActive(Joint::Base*);
-  void removeActive(Light::Base*);
-  void removeActive(Sensor::Base*);
-  void removeActive(Terrain::Base*);
-  void removeActive(Solver::Base*);
-  void removeActive(Integrator::Base*);
-  void removeActive(Logger::Base*);
+  void appendActive(behavior::Base*);
+  void appendActive(body::Base*);
+  void appendActive(collisiongeometry::Base*);
+  void appendActive(constraint::Base*);
+  void appendActive(forcemodule::Base*);
+  void appendActive(geometry::Base*);
+  void appendActive(joint::Base*);
+  void appendActive(light::Base*);
+  void appendActive(sensor::Base*);
+  void appendActive(terrain::Base*);
+  void appendActive(solver::Base*);
+  void appendActive(integrator::Base*);
+  void appendActive(logger::Base*);
+  void removeActive(behavior::Base*);
+  void removeActive(body::Base*);
+  void removeActive(collisiongeometry::Base*);
+  void removeActive(constraint::Base*);
+  void removeActive(forcemodule::Base*);
+  void removeActive(geometry::Base*);
+  void removeActive(joint::Base*);
+  void removeActive(light::Base*);
+  void removeActive(sensor::Base*);
+  void removeActive(terrain::Base*);
+  void removeActive(solver::Base*);
+  void removeActive(integrator::Base*);
+  void removeActive(logger::Base*);
   void clearActiveBehavior();
   void clearActiveArticulatedBodies();
   void clearActiveFreeBodies();
   void clearActiveCollisionGeometry();
   void clearActiveConstraints();
-  void clearActiveForceModules();
+  void clearActiveforcemodules();
   void clearActiveGeometry();
   void clearActiveJoints();
   void clearActiveLights();
@@ -421,11 +422,11 @@ private:
   void clearActiveTerrain();
   void clearActiveArrays();
 
-  /*! \brief shift::Context initialization function, called in shift::Context
+  /*! \brief shift::core::Context initialization function, called in shift::core::Context
    * constructor */
   void initialize();
 
-  /*! \brief connect pointers between objects managed by shift::Context */
+  /*! \brief connect pointers between objects managed by shift::core::Context */
   void connect() override;
 
   /*! \brief process all Shiift objectss loadData() functions, which loads any
@@ -483,25 +484,25 @@ private:
 
   /*! \brief User defined terrain attached to fixed inertial reference frame
    */
-  shift::Parameter::Array<shift::Assembly> assemblies_;
+  shift::core::parameter::Array<shift::core::Assembly> assemblies_;
 
-  const std::vector<shift::Joint::Base*>* activeJointsPtr() {
+  const std::vector<shift::core::joint::Base*>* activeJointsPtr() {
     return &active_joints_;
   }
 
-  shift::Topology::DHVA
+  shift::core::topology::DHVA
     dhva_; /*!< displacements, influence coefficient matrices,
            spatial velocities and quadratic accelerations */
-  std::vector<Topology::Offsets>
+  std::vector<topology::Offsets>
     dhva_offsets_; /*!< offsets into d,dc,h,v,a and dWRTReference array to
                      update kinematics */
 
-  std::vector<Topology::dh_fptr>
+  std::vector<topology::dh_fptr>
     d_fptr_; /*!< function pointers to update displacements */
-  std::vector<Topology::dh_fptr>
+  std::vector<topology::dh_fptr>
     dh_fptr_; /*!< function pointers to update displacements and influence
                  coefficient matrices */
-  std::vector<Topology::dhva_fptr> dhva_fptr_; /*!< function pointers to
+  std::vector<topology::dhva_fptr> dhva_fptr_; /*!< function pointers to
   update displacements, influence coefficient matrices, velocities and
   quadratic accelerations */
 
@@ -539,7 +540,7 @@ private:
   std::vector<bool> has_mass_;
   std::vector<bool> has_mass_dq_;
 
-  shift::Jacobian jacobian_;
+  shift::core::Jacobian jacobian_;
 
   ksl_screw_t spatial_momentum_ = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   ksl_screw_t barycentric_spatial_momentum_ =
@@ -558,7 +559,7 @@ private:
   struct levelOrder {
     levelOrder(Context* context)
       : joints_(context->activeJointsPtr()) {}
-    const std::vector<shift::Joint::Base*>* joints_;
+    const std::vector<shift::core::joint::Base*>* joints_;
     bool operator()(const int& a, const int& b) {
       int a_level = (a == -1) ? 0 : (*joints_)[a]->getLevel();
       int b_level = (b == -1) ? 0 : (*joints_)[b]->getLevel();
@@ -574,7 +575,7 @@ private:
       Context* context, const std::vector<std::vector<int>>& loop_members)
       : joints_(context->activeJointsPtr())
       , loop_members_(loop_members) {}
-    const std::vector<shift::Joint::Base*>* joints_;
+    const std::vector<shift::core::joint::Base*>* joints_;
     const std::vector<std::vector<int>> loop_members_;
     bool operator()(const int& a, const int& b) {
       return (*joints_)[loop_members_[a][0]]->getLevel() <
@@ -588,7 +589,7 @@ private:
                            const std::vector<std::vector<int>>& loopMembers)
       : joints_(context->activeJointsPtr())
       , loopMembers_(loopMembers) {}
-    const std::vector<shift::Joint::Base*>* joints_;
+    const std::vector<shift::core::joint::Base*>* joints_;
     const std::vector<std::vector<int>> loopMembers_;
     bool operator()(const std::vector<int>& a, const std::vector<int>& b) {
       return (*joints_)[loopMembers_[a[0]][0]]->getLevel() <
@@ -605,57 +606,57 @@ private:
   std::vector<std::vector<int>> substructure_indices_;
   std::vector<std::vector<int>> substructure_members_;
 
-  /*! \defgroup active_objects Active objects managed by shift::Context
+  /*! \defgroup active_objects Active objects managed by shift::core::Context
 
   The following lists of objects contain pointers to only the objects whose
   active flag is set to true.
 
   @{ */
-  std::vector<Behavior::Base*> active_behaviors_ = {};
-  std::vector<Body::Base*> active_articulated_bodies_ = {};
-  std::vector<Body::Base*> active_free_bodies_ = {};
-  std::vector<CollisionGeometry::Base*> active_collision_geometry_ = {};
-  std::vector<Constraint::Base*> active_constraints_ = {};
-  std::vector<ForceModule::Base*> active_force_modules_ = {};
-  std::vector<Geometry::Base*> active_geometry_ = {};
-  std::vector<Joint::Base*> active_joints_ = {};
-  std::vector<Light::Base*> active_lights_ = {};
-  std::vector<Sensor::Base*> active_sensors_ = {};
-  std::vector<Terrain::Base*> active_terrain_ = {};
+  std::vector<behavior::Base*> active_behaviors_ = {};
+  std::vector<body::Base*> active_articulated_bodies_ = {};
+  std::vector<body::Base*> active_free_bodies_ = {};
+  std::vector<collisiongeometry::Base*> active_collision_geometry_ = {};
+  std::vector<constraint::Base*> active_constraints_ = {};
+  std::vector<forcemodule::Base*> active_force_modules_ = {};
+  std::vector<geometry::Base*> active_geometry_ = {};
+  std::vector<joint::Base*> active_joints_ = {};
+  std::vector<light::Base*> active_lights_ = {};
+  std::vector<sensor::Base*> active_sensors_ = {};
+  std::vector<terrain::Base*> active_terrain_ = {};
 
-  std::vector<Integrator::Base*> active_integrators_ = {};
-  std::vector<Logger::Base*> active_loggers_ = {};
-  std::vector<Solver::Base*> active_solvers_ = {};
+  std::vector<integrator::Base*> active_integrators_ = {};
+  std::vector<logger::Base*> active_loggers_ = {};
+  std::vector<solver::Base*> active_solvers_ = {};
 
-  std::vector<shift::Frame*> frames_in_tree_ = {};
-  std::vector<shift::Frame*> active_frames_ = {};
+  std::vector<shift::core::Frame*> frames_in_tree_ = {};
+  std::vector<shift::core::Frame*> active_frames_ = {};
 
   /*! @{ */
 
-  /*! \defgroup managed_objects Objects managed by shift::Context
+  /*! \defgroup managed_objects Objects managed by shift::core::Context
 
   These objects are created automatically when processing system
   topology and  are not loaded from an external file.
 
   @{ */
   /*! \brief System generated bodies */
-  std::vector<std::unique_ptr<Body::Base>> bodies_ = {};
+  std::vector<std::unique_ptr<body::Base>> bodies_ = {};
 
   /*! \brief System generated behaviors */
-  std::vector<std::unique_ptr<Behavior::Base>> behaviors_ = {};
+  std::vector<std::unique_ptr<behavior::Base>> behaviors_ = {};
 
   /*! \brief System generated constraints */
-  std::vector<std::unique_ptr<Constraint::Base>> constraints_ = {};
+  std::vector<std::unique_ptr<constraint::Base>> constraints_ = {};
 
   /*! \brief System generated force modules */
-  std::vector<std::unique_ptr<ForceModule::Base>> force_modules_ = {};
+  std::vector<std::unique_ptr<forcemodule::Base>> force_modules_ = {};
 
   /*! \brief System generated joints */
-  std::vector<std::unique_ptr<Joint::Base>> joints_ = {};
+  std::vector<std::unique_ptr<joint::Base>> joints_ = {};
 
   /*! \brief A subset of constraints used in model corresponding to
    * constraints imposed for kinematic chord loops */
-  std::vector<Constraint::Chord*> chord_constraints_ = {};
+  std::vector<constraint::Chord*> chord_constraints_ = {};
 
   /*! @} */
   std::vector<double> mobility_numbers_;
@@ -663,15 +664,16 @@ private:
   void initializeMobility();
 
   /*! \brief Update direction cosines in model */
-  void updateDC(Topology::DHVA& dhva, const double* q);
+  void updateDC(topology::DHVA& dhva, const double* q);
 
   unsigned int q_count_ = 0;
   unsigned int dq_count_ = 0;
   double mobility_ = 0.0;
   double constraint_error_ = 0;
 
-}; // namespace shift
+};
 
+}
 } // namespace shift
 
 #endif

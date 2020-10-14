@@ -17,8 +17,9 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
-namespace Joint {
+namespace joint {
 class Base;
 }
 
@@ -26,19 +27,19 @@ class Assembly;
 
 class Context;
 
-namespace Body {
+namespace body {
 
 /*!
 @brief Parameters that describe a shift::Body
 */
 class Base
-  : public shift::Base
-  , public shift::Parameter::List {
+  : public shift::core::Base
+  , public shift::core::parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name)
-    , shift::Parameter::List() {
+    : shift::core::Base(name)
+    , shift::core::parameter::List() {
     auto origin = std::make_unique<Frame>("origin");
     origin->setIsOrigin(true);
     origin->setIsReference(true);
@@ -49,8 +50,8 @@ public:
     addParameters();
   }
   Base()
-    : shift::Base("")
-    , shift::Parameter::List() {
+    : shift::core::Base("")
+    , shift::core::parameter::List() {
     auto origin = std::make_unique<Frame>("origin");
     origin->setIsOrigin(true);
     origin->setIsReference(true);
@@ -59,7 +60,7 @@ public:
     addParameters();
   }
   Base(Base&& b)
-    : shift::Base(b.name_) {
+    : shift::core::Base(b.name_) {
     // for(auto& i : b.lights_) {
     //   lights_.push_back(std::move(i));
     // }
@@ -84,7 +85,7 @@ public:
 
   Frame* origin();
   Frame* referenceFrame();
-  void setReferenceFrame(shift::Frame*);
+  void setReferenceFrame(shift::core::Frame*);
   void setReferenceFrame();
   unsigned int frameCount() {
     return frames_.size();
@@ -124,11 +125,11 @@ public:
     level_ = level;
   }
 
-  const Joint::Base* parentJoint() {
+  const joint::Base* parentJoint() {
     return parent_joint_;
   }
 
-  void setParentJoint(Joint::Base*);
+  void setParentJoint(joint::Base*);
 
   bool isArticulated() {
     return is_articulated_;
@@ -176,19 +177,19 @@ protected:
                                  attached to it, i.e. that the body comprises a
                                  link of an articulated assembly of bodies */
 
-  Parameter::Array<Frame> frames_;
+  parameter::Array<Frame> frames_;
 
-  Parameter::FactoryArray<Light::Base> lights_;
-  Parameter::FactoryArray<Geometry::Base> geometry_;
-  Parameter::FactoryArray<CollisionGeometry::Base> collision_geometry_;
+  parameter::FactoryArray<shift::core::light::Base> lights_;
+  parameter::FactoryArray<geometry::Base> geometry_;
+  parameter::FactoryArray<collisiongeometry::Base> collision_geometry_;
 
   bool draw_enabled_ = true;
   bool draw_collision_geometry_enabled_ = false;
   int index_ = -1;
   int level_ = -1;
   int va_index_ = -1;
-  Joint::Base* parent_joint_ = nullptr;
-  shift::Frame* reference_frame_ =
+  joint::Base* parent_joint_ = nullptr;
+  shift::core::Frame* reference_frame_ =
     nullptr; /*!< pointer to unique reference frame on body, in an articulated
                 multibody chain, this is the *proximal* or upstream
                 frame in the spanning tree */
@@ -207,8 +208,8 @@ public:
   static bool initialized();
 };
 
-} // namespace Body
-
+} // namespace body
+}
 } // namespace shift
 
 #endif

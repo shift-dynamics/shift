@@ -14,24 +14,26 @@
 #include "shift/core/units.h"
 
 namespace shift {
+namespace core {
 
 class Context;
+
 /*!
 \brief Shift Assembly datastructure
 */
 class ModelParameters
-  : public shift::Base
-  , public shift::Parameter::List {
+  : public shift::core::Base
+  , public shift::core::parameter::List {
 
 public:
-  ModelParameters(shift::Context* context)
-    : shift::Base("") {
+  ModelParameters(shift::core::Context* context)
+    : shift::core::Base("") {
     context_ = context;
     addParameters();
   }
 
   ModelParameters()
-    : shift::Base("") {
+    : shift::core::Base("") {
     addParameters();
   }
 
@@ -69,9 +71,9 @@ public:
 
   void enableContactDetection(bool);
 
-  void appendSolver(std::unique_ptr<Solver::Base>&);
-  void appendIntegrator(std::unique_ptr<Integrator::Base>&);
-  void appendLogger(std::unique_ptr<Logger::Base>&);
+  void appendSolver(std::unique_ptr<solver::Base>&);
+  void appendIntegrator(std::unique_ptr<integrator::Base>&);
+  void appendLogger(std::unique_ptr<logger::Base>&);
 
   FILE* debugFilePointer() const {
     return debug_pointer_;
@@ -90,14 +92,15 @@ private:
   bool contact_detection_enabled_ = false;
   ksl_vec3_t viewport_background_color_ = {{1.0, 1.0, 1.0}};
 
-  shift::Parameter::FactoryArray<Solver::Base> solvers_;
-  shift::Parameter::FactoryArray<Integrator::Base> integrators_;
-  shift::Parameter::FactoryArray<Logger::Base> loggers_;
+  shift::core::parameter::FactoryArray<solver::Base> solvers_;
+  shift::core::parameter::FactoryArray<integrator::Base> integrators_;
+  shift::core::parameter::FactoryArray<logger::Base> loggers_;
   Units units_;
 
   FILE* debug_pointer_ = nullptr;
 };
 
+} // namespace core
 } // namespace shift
 
 #endif

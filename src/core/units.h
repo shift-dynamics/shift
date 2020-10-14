@@ -7,23 +7,24 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
 /*!
 \brief Shift Assembly datastructure
 */
 class Units
   : public Base
-  , public shift::Parameter::List {
+  , public shift::core::parameter::List {
 
 public:
   Units(std::string name)
     : Base(name)
-    , Parameter::List() {
+    , parameter::List() {
     addParameters();
   }
   Units()
     : Base("")
-    , Parameter::List() {
+    , parameter::List() {
     addParameters();
   }
   ~Units() {}
@@ -60,7 +61,7 @@ private:
   std::string mass_ = "kilograms";
   std::string time_ = "seconds";
 };
-
+}
 } // namespace shift
 
 #endif

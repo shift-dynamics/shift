@@ -6,12 +6,13 @@
 #include "shift/core/behavior/base.h"
 
 namespace shift {
-
-namespace Joint {
-class JointBase;
+namespace core {
+  
+namespace joint {
+class Base;
 }
 
-namespace Behavior {
+namespace behavior {
 
 class ContactDetection : public Base {
 public:
@@ -35,7 +36,7 @@ private:
   void addParameters() override;
 };
 
-} // namespace Behavior
+} // namespace behavior
 
 } // namespace shift
 

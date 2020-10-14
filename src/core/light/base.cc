@@ -7,23 +7,23 @@
 
 #include "ksl/print.h"
 
-bool shift::Light::Modules::initialized() {
-  if(!shift::Light::Point::isRegistered()) {
+bool shift::core::light::Modules::initialized() {
+  if(!shift::core::light::Point::isRegistered()) {
     return false;
   }
-  if(!shift::Light::Spot::isRegistered()) {
+  if(!shift::core::light::Spot::isRegistered()) {
     return false;
   }
-  if(!shift::Light::Directional::isRegistered()) {
+  if(!shift::core::light::Directional::isRegistered()) {
     return false;
   }
-  if(!shift::Light::IES::isRegistered()) {
+  if(!shift::core::light::IES::isRegistered()) {
     return false;
   }
   return true;
 }
 
-void shift::Light::Base::addParameters() {
+void shift::core::light::Base::addParameters() {
   addParameter("name", &name_, "User defined descriptive light name.", true);
   addParameter(
     "active", &active_,
@@ -52,11 +52,11 @@ void shift::Light::Base::addParameters() {
                false);
 }
 
-void shift::Light::Base::load() {}
+void shift::core::light::Base::load() {}
 
-void shift::Light::Base::connect() {}
+void shift::core::light::Base::connect() {}
 
-void shift::Light::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::light::Base::setActiveObjects(bool parent_is_active) {
   assert(context_);
   context_->setActive(this, parent_is_active && active_);
 }

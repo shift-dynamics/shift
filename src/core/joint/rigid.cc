@@ -2,12 +2,12 @@
 #include "shift/core/context.h"
 #include "shift/core/factory.h"
 
-bool shift::Joint::Rigid::registered_ =
-  shift::Factory<shift::Joint::Base>::get()->registerModule(
-    "rigid", shift::Joint::Rigid::create);
+bool shift::core::joint::Rigid::registered_ =
+  shift::core::Factory<shift::core::joint::Base>::get()->registerModule(
+    "rigid", shift::core::joint::Rigid::create);
 
-std::unique_ptr<shift::Joint::Rigid> shift::Joint::Rigid::create() {
-  return std::make_unique<shift::Joint::Rigid>();
+std::unique_ptr<shift::core::joint::Rigid> shift::core::joint::Rigid::create() {
+  return std::make_unique<shift::core::joint::Rigid>();
 }
 
 /*!
@@ -19,9 +19,9 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void shift::Joint::rigid_dh(const shift::Context& context,
-                            shift::Topology::DHVA& dhva,
-                            const shift::Topology::Offsets& offsets,
+void shift::core::joint::rigid_dh(const shift::core::Context& context,
+                            shift::core::topology::DHVA& dhva,
+                            const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   const ksl_SE3_t* dPrimitive = &context.DWRTReference()[offsets.q];
@@ -40,13 +40,13 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void shift::Joint::rigid_dhva(const shift::Context& context,
-                              shift::Topology::DHVA& dhva,
-                              const shift::Topology::Offsets& offsets,
+void shift::core::joint::rigid_dhva(const shift::core::Context& context,
+                              shift::core::topology::DHVA& dhva,
+                              const shift::core::topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__) {
 
-  shift::Joint::rigid_dh(context, dhva, offsets, q);
+  shift::core::joint::rigid_dh(context, dhva, offsets, q);
 }
 
 /*!
@@ -58,9 +58,9 @@ Updates displacement and influence coefficient matrices
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void shift::Joint::rigidinv_dh(const shift::Context& context,
-                               shift::Topology::DHVA& dhva,
-                               const shift::Topology::Offsets& offsets,
+void shift::core::joint::rigidinv_dh(const shift::core::Context& context,
+                               shift::core::topology::DHVA& dhva,
+                               const shift::core::topology::Offsets& offsets,
                                const double* __restrict__) {
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   const ksl_SE3_t* dPrimitive = &context.DWRTReference()[offsets.q];
@@ -79,25 +79,25 @@ velocities and accelerations
        displacement, influence coefficient matrices, velocities,
        and accelerations.
 */
-void shift::Joint::rigidinv_dhva(const shift::Context& context,
-                                 shift::Topology::DHVA& dhva,
-                                 const shift::Topology::Offsets& offsets,
+void shift::core::joint::rigidinv_dhva(const shift::core::Context& context,
+                                 shift::core::topology::DHVA& dhva,
+                                 const shift::core::topology::Offsets& offsets,
                                  const double* __restrict__ q,
                                  const double* __restrict__) {
-  shift::Joint::rigidinv_dh(context, dhva, offsets, q);
+  shift::core::joint::rigidinv_dh(context, dhva, offsets, q);
 }
 
-void shift::Joint::Rigid::addParameters() {}
+void shift::core::joint::Rigid::addParameters() {}
 
-// void shift::Joint::Rigid::readJSON(Json::Value& value) {
-//   shift::Joint::Base::readJSON(value);
+// void shift::core::joint::Rigid::readJSON(Json::Value& value) {
+//   shift::core::joint::Base::readJSON(value);
 //   // frame_.setNameRequired(false);
 //   if(value["initial_displacement"]) {
 //     frame_.readJSON(value["initial_displacement"]);
 //   }
 // }
 
-shift::Topology::dh_fptr shift::Joint::Rigid::Dfptr() {
+shift::core::topology::dh_fptr shift::core::joint::Rigid::Dfptr() {
   if(sense_ >= 0) {
     return rigid_dh;
   } else {
@@ -105,7 +105,7 @@ shift::Topology::dh_fptr shift::Joint::Rigid::Dfptr() {
   }
 }
 
-shift::Topology::dh_fptr shift::Joint::Rigid::DHfptr() {
+shift::core::topology::dh_fptr shift::core::joint::Rigid::DHfptr() {
   if(sense_ >= 0) {
     return rigid_dh;
   } else {
@@ -113,7 +113,7 @@ shift::Topology::dh_fptr shift::Joint::Rigid::DHfptr() {
   }
 }
 
-shift::Topology::dhva_fptr shift::Joint::Rigid::DHVAfptr() {
+shift::core::topology::dhva_fptr shift::core::joint::Rigid::DHVAfptr() {
   if(sense_ >= 0) {
     return rigid_dhva;
   } else {

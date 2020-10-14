@@ -1,13 +1,13 @@
 #include "shift/core/light/spot.h"
 
-bool shift::Light::Spot::registered_ =
-  shift::Factory<shift::Light::Base>::get()->registerModule(
-    "spot", shift::Light::Spot::create);
+bool shift::core::light::Spot::registered_ =
+  shift::core::Factory<shift::core::light::Base>::get()->registerModule(
+    "spot", shift::core::light::Spot::create);
 
-std::unique_ptr<shift::Light::Spot> shift::Light::Spot::create() {
-  return std::make_unique<shift::Light::Spot>();
+std::unique_ptr<shift::core::light::Spot> shift::core::light::Spot::create() {
+  return std::make_unique<shift::core::light::Spot>();
 }
 
-void shift::Light::Spot::addParameters() {
-  shift::Light::Base::addParameters();
+void shift::core::light::Spot::addParameters() {
+  shift::core::light::Base::addParameters();
 }

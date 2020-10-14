@@ -7,12 +7,13 @@
 #include <memory>
 
 namespace shift {
+namespace core {
 
-namespace Joint {
+namespace joint {
 class JointBase;
 }
 
-namespace Constraint {
+namespace constraint {
 
 class Chord : public Base {
 public:
@@ -30,7 +31,7 @@ public:
   static bool isRegistered() {
     return registered_;
   }
-  void setOriginalParentBody(Body::Base* body) {
+  void setOriginalParentBody(shift::core::body::Base* body) {
     original_parent_body_pointer_ = body;
   }
 
@@ -40,12 +41,12 @@ public:
 
 private:
   static bool registered_;
-  shift::Body::Base* original_parent_body_pointer_ = nullptr;
-  shift::Frame* original_parent_frame_pointer_ = nullptr;
+  shift::core::body::Base* original_parent_body_pointer_ = nullptr;
+  shift::core::Frame* original_parent_frame_pointer_ = nullptr;
 };
 
-} // namespace Constraint
-
+} // namespace constraint
+}
 } // namespace shift
 
 #endif

@@ -5,28 +5,28 @@
 #include "shift/core/joint/base.h"
 
 namespace shift {
-
-namespace Joint {
+namespace core {
+namespace joint {
 
 struct DHVA;
 
-void spherical_d(const shift::Context&, Topology::DHVA&,
-                 const Topology::Offsets&, const double*);
+void spherical_d(const shift::core::Context&, topology::DHVA&,
+                 const topology::Offsets&, const double*);
 
-void sphericalinv_d(const shift::Context&, Topology::DHVA&,
-                    const Topology::Offsets&, const double*);
+void sphericalinv_d(const shift::core::Context&, topology::DHVA&,
+                    const topology::Offsets&, const double*);
 
-void spherical_dh(const shift::Context&, Topology::DHVA&,
-                  const Topology::Offsets&, const double*);
+void spherical_dh(const shift::core::Context&, topology::DHVA&,
+                  const topology::Offsets&, const double*);
 
-void sphericalinv_dh(const shift::Context&, Topology::DHVA&,
-                     const Topology::Offsets&, const double*);
+void sphericalinv_dh(const shift::core::Context&, topology::DHVA&,
+                     const topology::Offsets&, const double*);
 
-void spherical_dhva(const shift::Context&, Topology::DHVA&,
-                    const Topology::Offsets&, const double*, const double*);
+void spherical_dhva(const shift::core::Context&, topology::DHVA&,
+                    const topology::Offsets&, const double*, const double*);
 
-void sphericalinv_dhva(const shift::Context&, Topology::DHVA&,
-                       const Topology::Offsets&, const double*, const double*);
+void sphericalinv_dhva(const shift::core::Context&, topology::DHVA&,
+                       const topology::Offsets&, const double*, const double*);
 
 class Spherical : public Base {
 public:
@@ -65,18 +65,18 @@ public:
     return registered_;
   }
 
-  Topology::dh_fptr Dfptr() override;
-  Topology::dh_fptr DHfptr() override;
-  Topology::dhva_fptr DHVAfptr() override;
+  topology::dh_fptr Dfptr() override;
+  topology::dh_fptr DHfptr() override;
+  topology::dhva_fptr DHVAfptr() override;
 
 private:
   virtual void addParameters() override;
   static bool registered_;
-  shift::Frame frame_;
+  shift::core::Frame frame_;
 };
 
-} // namespace Joint
-
+} // namespace joint
+}
 } // namespace shift
 
 #endif

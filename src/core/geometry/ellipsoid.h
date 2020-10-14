@@ -6,7 +6,7 @@
 
 namespace shift {
 
-namespace Geometry {
+namespace geometry {
 
 class Ellipsoid : public Base {
 public:
@@ -29,7 +29,7 @@ private:
   static bool registered_;
 };
 
-} // namespace Geometry
+} // namespace geometry
 
 } // namespace shift
 

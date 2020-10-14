@@ -6,14 +6,15 @@
 #include "shift/core/forcemodule/base.h"
 
 namespace shift {
+namespace core {
 
-namespace Joint {
+namespace joint {
 class JointBase;
 }
 
-namespace ForceModule {
+namespace forcemodule {
 
-class PID : public ForceModule::Base {
+class PID : public forcemodule::Base {
 public:
   PID()
     : Base() {
@@ -50,8 +51,8 @@ private:
   size_t y_index_ = 0;
 };
 
-} // namespace ForceModule
-
+} // namespace forcemodule
+}
 } // namespace shift
 
 #endif

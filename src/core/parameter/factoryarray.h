@@ -6,15 +6,15 @@
 #include <vector>
 
 namespace shift {
-
-namespace Parameter {
+namespace core {
+namespace parameter {
 
 template <class T>
-class FactoryArray : public shift::Parameter::ArrayBase {
+class FactoryArray : public shift::core::parameter::ArrayBase {
 public:
   FactoryArray() {}
   FactoryArray(Context* context, Assembly* parent_assembly = nullptr,
-               shift::Body::Base* parent_body = nullptr)
+               shift::core::body::Base* parent_body = nullptr)
     : ArrayBase(context, parent_assembly, parent_body) {}
   ~FactoryArray() {}
 
@@ -35,15 +35,15 @@ public:
   void setParentAssembly(Assembly* assembly) {
     parent_assembly_ptr_ = assembly;
   }
-  void setParentBody(Body::Base* body) {
+  void setParentBody(shift::core::body::Base* body) {
     parent_body_ptr_ = body;
   }
 
   void push_back(std::unique_ptr<T>);
 
   virtual void setParent(Context* context, Assembly* parent_assembly = nullptr,
-                         Body::Base* parent_body = nullptr) override {
-    shift::Parameter::ArrayBase::setParent(context, parent_assembly,
+                         shift::core::body::Base* parent_body = nullptr) override {
+    shift::core::parameter::ArrayBase::setParent(context, parent_assembly,
                                            parent_body);
     for(auto& object : object_specializations_) {
       object->setParent(context_, parent_assembly_ptr_, parent_body_ptr_);
@@ -55,5 +55,6 @@ private:
 };
 
 } // namespace Parameter
+}
 } // namespace shift
 #endif

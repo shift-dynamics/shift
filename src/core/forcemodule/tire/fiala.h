@@ -6,10 +6,9 @@
 #include "shift/core/forcemodule/tire/base.h"
 
 namespace shift {
-
-namespace ForceModule {
-
-namespace Tire {
+namespace core {
+namespace forcemodule {
+namespace tire {
 
 class Fiala : public Base {
 public:
@@ -68,8 +67,8 @@ private:
 };
 
 } // namespace Tire
-
-} // namespace ForceModule
+}
+} // namespace forcemodule
 
 } // namespace shift
 

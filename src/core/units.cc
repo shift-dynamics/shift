@@ -2,7 +2,7 @@
 
 #include "shift/core/units.h"
 
-void shift::Units::addParameters() {
+void shift::core::Units::addParameters() {
 
   addParameter("mass", &mass_, "Mass units, defaults to kg if not provided.",
                false);
