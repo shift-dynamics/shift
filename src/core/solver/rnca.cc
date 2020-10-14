@@ -11,16 +11,16 @@
 #include <cblas.h>
 #endif
 
-bool shift::Solver::RNCA::registered_ =
-  shift::Factory<shift::Solver::Base>::get()->registerModule(
-    "rnca", shift::Solver::RNCA::create);
+bool shift::core::solver::RNCA::registered_ =
+  shift::core::Factory<shift::core::solver::Base>::get()->registerModule(
+    "rnca", shift::core::solver::RNCA::create);
 
-std::unique_ptr<shift::Solver::RNCA> shift::Solver::RNCA::create() {
-  return std::make_unique<shift::Solver::RNCA>();
+std::unique_ptr<shift::core::solver::RNCA> shift::core::solver::RNCA::create() {
+  return std::make_unique<shift::core::solver::RNCA>();
 }
 
-void shift::Solver::RNCA::addParameters() {
-  shift::Solver::Base::addParameters();
+void shift::core::solver::RNCA::addParameters() {
+  shift::core::solver::Base::addParameters();
 
   addParameter(
     "infinity_norm_multiplier", &infinity_norm_multiplier_,
@@ -32,7 +32,7 @@ void shift::Solver::RNCA::addParameters() {
     false);
 }
 
-void shift::Solver::RNCA::initialize() {
+void shift::core::solver::RNCA::initialize() {
   assert(context_);
 
   q_count_ = context_->qCount();
@@ -85,14 +85,14 @@ void shift::Solver::RNCA::initialize() {
   memoize();
 }
 
-void shift::Solver::RNCA::memoize() {
+void shift::core::solver::RNCA::memoize() {
   countOperations();
   recordOperations();
   countPointers();
   recordPointers();
 }
 
-void shift::Solver::RNCA::countOperations() {
+void shift::core::solver::RNCA::countOperations() {
   assert(context_);
   dq_count_ = context_->dqCount();
   auto ddq = context_->ddq();
@@ -506,7 +506,7 @@ void shift::Solver::RNCA::countOperations() {
   Mlb_.assign(Mlbs_.begin(), Mlbs_.end());
 }
 
-void shift::Solver::RNCA::recordOperations() {
+void shift::core::solver::RNCA::recordOperations() {
 
   assert(context_);
 
@@ -772,7 +772,7 @@ void shift::Solver::RNCA::recordOperations() {
   }       // end for (i = n-1; i >= 0; i--).
 }
 
-void shift::Solver::RNCA::countPointers() {
+void shift::core::solver::RNCA::countPointers() {
   assert(context_);
   const auto& jacobian = context_->jacobian();
   const auto& is_dependent_po3 = jacobian.isDependentPO3();
@@ -927,7 +927,7 @@ void shift::Solver::RNCA::countPointers() {
   p3_start_ = p2;
 }
 
-void shift::Solver::RNCA::recordPointers() {
+void shift::core::solver::RNCA::recordPointers() {
   assert(context_);
   const auto& jacobian = context_->jacobian();
   const auto& is_dependent_po3 = jacobian.isDependentPO3();
@@ -1075,18 +1075,18 @@ void shift::Solver::RNCA::recordPointers() {
   }
 }
 
-bool shift::Solver::RNCA::setEquations() {
+bool shift::core::solver::RNCA::setEquations() {
   assert(context_);
   return setEquations(0.0, context_->q());
 }
 
-bool shift::Solver::RNCA::setEquationsAndRecordFills() {
+bool shift::core::solver::RNCA::setEquationsAndRecordFills() {
   assert(context_);
   setEquationsAndRecordFills(0.0, context_->q());
   return false;
 }
 
-bool shift::Solver::RNCA::setEquationsAndRecordFills(
+bool shift::core::solver::RNCA::setEquationsAndRecordFills(
   const double t, const std::vector<double>& y) {
   const double* q = y.data();
   const double* dq = q + q_count_;
@@ -1118,7 +1118,7 @@ bool shift::Solver::RNCA::setEquationsAndRecordFills(
   return false;
 }
 
-bool shift::Solver::RNCA::setEquations(const double t,
+bool shift::core::solver::RNCA::setEquations(const double t,
                                        const std::vector<double>& y) {
   const double* q = y.data();
   const double* dq = q + q_count_;
@@ -1150,9 +1150,9 @@ bool shift::Solver::RNCA::setEquations(const double t,
   return false;
 }
 
-void shift::Solver::RNCA::setRHS() {
+void shift::core::solver::RNCA::setRHS() {
 
-  const Topology::DHVA& dhva = context_->dhva();
+  const topology::DHVA& dhva = context_->dhva();
   unsigned int non_rigid_joint_count = context_->nonRigidJointCount();
   const auto& dq_lookup_compressed = context_->dqLookupCompressed();
   const auto& pcl_compressed = context_->pclCompressed();
@@ -1501,7 +1501,7 @@ void shift::Solver::RNCA::setRHS() {
 }
 
 /*! set mass matrix without setting boolean mass matrix */
-void shift::Solver::RNCA::setMassMatrix() {
+void shift::core::solver::RNCA::setMassMatrix() {
   assert(context_);
   const auto& dhva = context_->dhva();
   const size_t non_rigid_joint_count = context_->nonRigidJointCount();
@@ -1633,7 +1633,7 @@ void shift::Solver::RNCA::setMassMatrix() {
   }
 }
 
-void shift::Solver::RNCA::setMassMatrixAndRecordFills() {
+void shift::core::solver::RNCA::setMassMatrixAndRecordFills() {
   assert(context_);
   const auto& dhva = context_->dhva();
   const size_t non_rigid_joint_count = context_->nonRigidJointCount();
@@ -1770,12 +1770,12 @@ void shift::Solver::RNCA::setMassMatrixAndRecordFills() {
   }
 }
 
-void shift::Solver::RNCA::factorAndSolve() {
+void shift::core::solver::RNCA::factorAndSolve() {
 
   assert(context_);
   auto& ddq = context_->ddq();
 
-  shift::Jacobian& jacobian = context_->jacobian();
+  shift::core::Jacobian& jacobian = context_->jacobian();
   const auto& pv_23 = jacobian.pv23();
   const auto& pv_13 = jacobian.pv13();
   const auto& is_dependent_po3 = jacobian.isDependentPO3();
@@ -1907,7 +1907,7 @@ and any states required for force modules
 y = [q, dq, q_f]
 dy = [dq, ddq, dq_f]
 */
-bool shift::Solver::RNCA::solve(const double t, const std::vector<double>& y,
+bool shift::core::solver::RNCA::solve(const double t, const std::vector<double>& y,
                                 std::vector<double>& dy) {
 
   assert(context_);
@@ -1993,7 +1993,7 @@ bool shift::Solver::RNCA::solve(const double t, const std::vector<double>& y,
   return false;
 }
 
-bool shift::Solver::RNCA::verify(const double t,
+bool shift::core::solver::RNCA::verify(const double t,
                                  const std::vector<double>& /*dy*/, double Ml[],
                                  double fl[]) {
   bool verified = true;

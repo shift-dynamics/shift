@@ -9,6 +9,7 @@
 static int id__ = 0;
 
 namespace shift {
+namespace core {
 
 /*!
 @brief Abstract base class for Shift C++ objects
@@ -31,6 +32,7 @@ protected:
   int id_;
 };
 
+}
 } // namespace shift
 
 #endif

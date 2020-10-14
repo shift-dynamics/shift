@@ -6,6 +6,8 @@
 #include <string.h>
 
 namespace shift {
+namespace core {
+
 class BitField {
 
 public:
@@ -72,6 +74,7 @@ private:
   unsigned int count_;
 };
 
+}
 } // namespace shift
 
 #endif

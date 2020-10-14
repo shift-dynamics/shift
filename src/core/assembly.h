@@ -14,6 +14,7 @@
 #include "shift/core/sensor/base.h"
 
 namespace shift {
+namespace core {
 
 class Context;
 
@@ -22,18 +23,18 @@ class Context;
 */
 class Assembly
   : public Base
-  , public Parameter::List {
+  , public parameter::List {
 
 public:
   Assembly(std::string name)
     : Base(name)
-    , Parameter::List() {
+    , parameter::List() {
     addParameters();
   }
 
   Assembly()
     : Base("")
-    , Parameter::List() {
+    , parameter::List() {
     addParameters();
   }
 
@@ -46,16 +47,17 @@ public:
 private:
   void addParameters() override;
 
-  shift::Parameter::FactoryArray<Body::Base> bodies_;
-  shift::Parameter::FactoryArray<Behavior::Base> behaviors_;
-  shift::Parameter::FactoryArray<Constraint::Base> constraints_;
-  shift::Parameter::FactoryArray<ForceModule::Base> force_modules_;
-  shift::Parameter::FactoryArray<Joint::Base> joints_;
-  shift::Parameter::FactoryArray<Sensor::Base> sensors_;
+  shift::core::parameter::FactoryArray<body::Base> bodies_;
+  shift::core::parameter::FactoryArray<behavior::Base> behaviors_;
+  shift::core::parameter::FactoryArray<constraint::Base> constraints_;
+  shift::core::parameter::FactoryArray<forcemodule::Base> force_modules_;
+  shift::core::parameter::FactoryArray<joint::Base> joints_;
+  shift::core::parameter::FactoryArray<sensor::Base> sensors_;
 
-  shift::Parameter::Array<Assembly> assemblies_;
+  shift::core::parameter::Array<Assembly> assemblies_;
 };
 
+}
 } // namespace shift
 
 #endif

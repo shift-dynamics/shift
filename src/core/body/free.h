@@ -7,7 +7,7 @@
 
 namespace shift {
 
-namespace Body {
+namespace body {
 
 class Free : public Base {
 public:
@@ -37,7 +37,7 @@ private:
   static bool registered_;
 };
 
-} // namespace Body
+} // namespace body
 
 } // namespace shift
 

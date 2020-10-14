@@ -6,12 +6,13 @@
 #include "shift/core/behavior/base.h"
 
 namespace shift {
+namespace core {
 
-namespace Joint {
-class JointBase;
+namespace joint {
+class Base;
 }
 
-namespace Behavior {
+namespace behavior {
 
 class IK7DOF : public Base {
 public:
@@ -34,8 +35,8 @@ private:
   void addParameters() override;
 };
 
-} // namespace Behavior
-
+} // namespace behavior
+} 
 } // namespace shift
 
 #endif

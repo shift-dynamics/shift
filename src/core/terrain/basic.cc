@@ -1,16 +1,16 @@
 #include "shift/core/terrain/basic.h"
 #include "shift/core/factory.h"
 
-bool shift::Terrain::Basic::registered_ =
-  shift::Factory<shift::Terrain::Base>::get()->registerModule(
-    "basic", shift::Terrain::Basic::create);
+bool shift::core::terrain::Basic::registered_ =
+  shift::core::Factory<shift::core::terrain::Base>::get()->registerModule(
+    "basic", shift::core::terrain::Basic::create);
 
-std::unique_ptr<shift::Terrain::Basic> shift::Terrain::Basic::create() {
-  return std::make_unique<shift::Terrain::Basic>();
+std::unique_ptr<shift::core::terrain::Basic> shift::core::terrain::Basic::create() {
+  return std::make_unique<shift::core::terrain::Basic>();
 }
 
-void shift::Terrain::Basic::addParameters() {
-  shift::Terrain::Base::addParameters();
+void shift::core::terrain::Basic::addParameters() {
+  shift::core::terrain::Base::addParameters();
   addParameter("texture_filename", &texture_filename_,
                "path to filename that defines terrain texture", false);
   addParameter("property_map_filename", &property_map_filename_,
@@ -38,6 +38,6 @@ void shift::Terrain::Basic::addParameters() {
     false);
 }
 
-void shift::Terrain::Base::load() {}
+void shift::core::terrain::Base::load() {}
 
-void shift::Terrain::Base::connect() {}
+void shift::core::terrain::Base::connect() {}

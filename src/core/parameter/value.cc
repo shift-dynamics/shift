@@ -13,232 +13,232 @@
 
 #include "ksl/print.h"
 
-// if user requests Shift object, up cast Parameter::List to requested
+// if user requests Shift object, up cast parameter::List to requested
 // type
 template <>
-const shift::Frame& shift::Parameter::Value::get<shift::Frame>() const {
-  return *dynamic_cast<shift::Frame*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::Frame& shift::core::parameter::Value::get<shift::core::Frame>() const {
+  return *dynamic_cast<shift::core::Frame*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Assembly& shift::Parameter::Value::get<shift::Assembly>() const {
-  return *dynamic_cast<shift::Assembly*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::Assembly& shift::core::parameter::Value::get<shift::core::Assembly>() const {
+  return *dynamic_cast<shift::core::Assembly*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Behavior::Base&
-shift::Parameter::Value::get<shift::Behavior::Base>() const {
-  return *dynamic_cast<shift::Behavior::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::behavior::Base&
+shift::core::parameter::Value::get<shift::core::behavior::Base>() const {
+  return *dynamic_cast<shift::core::behavior::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Body::Base&
-shift::Parameter::Value::get<shift::Body::Base>() const {
-  return *dynamic_cast<shift::Body::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::body::Base&
+shift::core::parameter::Value::get<shift::core::body::Base>() const {
+  return *dynamic_cast<shift::core::body::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::CollisionGeometry::Base&
-shift::Parameter::Value::get<shift::CollisionGeometry::Base>() const {
-  return *dynamic_cast<shift::CollisionGeometry::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::collisiongeometry::Base&
+shift::core::parameter::Value::get<shift::core::collisiongeometry::Base>() const {
+  return *dynamic_cast<shift::core::collisiongeometry::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Constraint::Base&
-shift::Parameter::Value::get<shift::Constraint::Base>() const {
-  return *dynamic_cast<shift::Constraint::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::constraint::Base&
+shift::core::parameter::Value::get<shift::core::constraint::Base>() const {
+  return *dynamic_cast<shift::core::constraint::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::ForceModule::Base&
-shift::Parameter::Value::get<shift::ForceModule::Base>() const {
-  return *dynamic_cast<shift::ForceModule::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::forcemodule::Base&
+shift::core::parameter::Value::get<shift::core::forcemodule::Base>() const {
+  return *dynamic_cast<shift::core::forcemodule::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Geometry::Base&
-shift::Parameter::Value::get<shift::Geometry::Base>() const {
-  return *dynamic_cast<shift::Geometry::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::geometry::Base&
+shift::core::parameter::Value::get<shift::core::geometry::Base>() const {
+  return *dynamic_cast<shift::core::geometry::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Integrator::Base&
-shift::Parameter::Value::get<shift::Integrator::Base>() const {
-  return *dynamic_cast<shift::Integrator::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::integrator::Base&
+shift::core::parameter::Value::get<shift::core::integrator::Base>() const {
+  return *dynamic_cast<shift::core::integrator::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Joint::Base&
-shift::Parameter::Value::get<shift::Joint::Base>() const {
-  return *dynamic_cast<shift::Joint::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::joint::Base&
+shift::core::parameter::Value::get<shift::core::joint::Base>() const {
+  return *dynamic_cast<shift::core::joint::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Light::Base&
-shift::Parameter::Value::get<shift::Light::Base>() const {
-  return *dynamic_cast<shift::Light::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::light::Base&
+shift::core::parameter::Value::get<shift::core::light::Base>() const {
+  return *dynamic_cast<shift::core::light::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Logger::Base&
-shift::Parameter::Value::get<shift::Logger::Base>() const {
-  return *dynamic_cast<shift::Logger::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::logger::Base&
+shift::core::parameter::Value::get<shift::core::logger::Base>() const {
+  return *dynamic_cast<shift::core::logger::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Sensor::Base&
-shift::Parameter::Value::get<shift::Sensor::Base>() const {
-  return *dynamic_cast<shift::Sensor::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::sensor::Base&
+shift::core::parameter::Value::get<shift::core::sensor::Base>() const {
+  return *dynamic_cast<shift::core::sensor::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Solver::Base&
-shift::Parameter::Value::get<shift::Solver::Base>() const {
-  return *dynamic_cast<shift::Solver::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::solver::Base&
+shift::core::parameter::Value::get<shift::core::solver::Base>() const {
+  return *dynamic_cast<shift::core::solver::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::Terrain::Base&
-shift::Parameter::Value::get<shift::Terrain::Base>() const {
-  return *dynamic_cast<shift::Terrain::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+const shift::core::terrain::Base&
+shift::core::parameter::Value::get<shift::core::terrain::Base>() const {
+  return *dynamic_cast<shift::core::terrain::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Frame* shift::Parameter::Value::data<shift::Frame>() const {
-  return dynamic_cast<shift::Frame*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::Frame* shift::core::parameter::Value::data<shift::core::Frame>() const {
+  return dynamic_cast<shift::core::Frame*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Assembly* shift::Parameter::Value::data<shift::Assembly>() const {
-  return dynamic_cast<shift::Assembly*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::Assembly* shift::core::parameter::Value::data<shift::core::Assembly>() const {
+  return dynamic_cast<shift::core::Assembly*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Behavior::Base*
-shift::Parameter::Value::data<shift::Behavior::Base>() const {
-  return dynamic_cast<shift::Behavior::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::behavior::Base*
+shift::core::parameter::Value::data<shift::core::behavior::Base>() const {
+  return dynamic_cast<shift::core::behavior::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Body::Base* shift::Parameter::Value::data<shift::Body::Base>() const {
-  return dynamic_cast<shift::Body::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::body::Base* shift::core::parameter::Value::data<shift::core::body::Base>() const {
+  return dynamic_cast<shift::core::body::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::CollisionGeometry::Base*
-shift::Parameter::Value::data<shift::CollisionGeometry::Base>() const {
-  return dynamic_cast<shift::CollisionGeometry::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::collisiongeometry::Base*
+shift::core::parameter::Value::data<shift::core::collisiongeometry::Base>() const {
+  return dynamic_cast<shift::core::collisiongeometry::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Constraint::Base*
-shift::Parameter::Value::data<shift::Constraint::Base>() const {
-  return dynamic_cast<shift::Constraint::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::constraint::Base*
+shift::core::parameter::Value::data<shift::core::constraint::Base>() const {
+  return dynamic_cast<shift::core::constraint::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::ForceModule::Base*
-shift::Parameter::Value::data<shift::ForceModule::Base>() const {
-  return dynamic_cast<shift::ForceModule::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::forcemodule::Base*
+shift::core::parameter::Value::data<shift::core::forcemodule::Base>() const {
+  return dynamic_cast<shift::core::forcemodule::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Geometry::Base*
-shift::Parameter::Value::data<shift::Geometry::Base>() const {
-  return dynamic_cast<shift::Geometry::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::geometry::Base*
+shift::core::parameter::Value::data<shift::core::geometry::Base>() const {
+  return dynamic_cast<shift::core::geometry::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Integrator::Base*
-shift::Parameter::Value::data<shift::Integrator::Base>() const {
-  return dynamic_cast<shift::Integrator::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::integrator::Base*
+shift::core::parameter::Value::data<shift::core::integrator::Base>() const {
+  return dynamic_cast<shift::core::integrator::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Joint::Base* shift::Parameter::Value::data<shift::Joint::Base>() const {
-  return dynamic_cast<shift::Joint::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::joint::Base* shift::core::parameter::Value::data<shift::core::joint::Base>() const {
+  return dynamic_cast<shift::core::joint::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Light::Base* shift::Parameter::Value::data<shift::Light::Base>() const {
-  return dynamic_cast<shift::Light::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::light::Base* shift::core::parameter::Value::data<shift::core::light::Base>() const {
+  return dynamic_cast<shift::core::light::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Logger::Base*
-shift::Parameter::Value::data<shift::Logger::Base>() const {
-  return dynamic_cast<shift::Logger::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::logger::Base*
+shift::core::parameter::Value::data<shift::core::logger::Base>() const {
+  return dynamic_cast<shift::core::logger::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Sensor::Base*
-shift::Parameter::Value::data<shift::Sensor::Base>() const {
-  return dynamic_cast<shift::Sensor::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::sensor::Base*
+shift::core::parameter::Value::data<shift::core::sensor::Base>() const {
+  return dynamic_cast<shift::core::sensor::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Solver::Base*
-shift::Parameter::Value::data<shift::Solver::Base>() const {
-  return dynamic_cast<shift::Solver::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::solver::Base*
+shift::core::parameter::Value::data<shift::core::solver::Base>() const {
+  return dynamic_cast<shift::core::solver::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::Terrain::Base*
-shift::Parameter::Value::data<shift::Terrain::Base>() const {
-  return dynamic_cast<shift::Terrain::Base*>(
-    std::any_cast<shift::Parameter::List*>(data_));
+shift::core::terrain::Base*
+shift::core::parameter::Value::data<shift::core::terrain::Base>() const {
+  return dynamic_cast<shift::core::terrain::Base*>(
+    std::any_cast<shift::core::parameter::List*>(data_));
 }
 
-shift::Parameter::Value& shift::Parameter::Value::
+shift::core::parameter::Value& shift::core::parameter::Value::
 operator[](const std::string key_str) {
   if(is_list_) {
-    return std::any_cast<Parameter::List*>(data_)->operator[](key_str);
+    return std::any_cast<parameter::List*>(data_)->operator[](key_str);
   } else if(is_array_) {
-    return std::any_cast<Parameter::ArrayBase*>(data_)->operator[](key_str);
+    return std::any_cast<parameter::ArrayBase*>(data_)->operator[](key_str);
   } else {
     throw "error: no parameter found";
-    return std::any_cast<Parameter::List*>(data_)->operator[](key_str);
+    return std::any_cast<parameter::List*>(data_)->operator[](key_str);
   }
 }
 
-shift::Parameter::Value& shift::Parameter::Value::
+shift::core::parameter::Value& shift::core::parameter::Value::
 operator[](const char* key_str) {
   return operator[](std::string(key_str));
 }
 
-shift::Parameter::Value& shift::Parameter::Value::
+shift::core::parameter::Value& shift::core::parameter::Value::
 operator[](unsigned int index) {
   if(is_array_) {
-    return std::any_cast<Parameter::ArrayBase*>(data_)->operator[](index);
+    return std::any_cast<parameter::ArrayBase*>(data_)->operator[](index);
   } else {
     std::cerr << "error" << std::endl;
     throw "error: no parameter found";
@@ -246,16 +246,16 @@ operator[](unsigned int index) {
   }
 }
 
-void shift::Parameter::Value::setActiveObjects(bool parent_is_active) {
+void shift::core::parameter::Value::setActiveObjects(bool parent_is_active) {
   if(is_array_) {
-    std::any_cast<Parameter::ArrayBase*>(data_)->setActiveObjects(
+    std::any_cast<parameter::ArrayBase*>(data_)->setActiveObjects(
       parent_is_active);
   } else if(is_list_) {
-    std::any_cast<Parameter::List*>(data_)->setActiveObjects(parent_is_active);
+    std::any_cast<parameter::List*>(data_)->setActiveObjects(parent_is_active);
   }
 }
 
-void shift::Parameter::Value::readJSON(Json::Value& object) {
+void shift::core::parameter::Value::readJSON(Json::Value& object) {
   switch(parameter_type_) {
     case STRING: {
       readJSON_STRING(object);
@@ -323,20 +323,20 @@ void shift::Parameter::Value::readJSON(Json::Value& object) {
     }
     case PARAMETER_LIST: {
       if(object.isObject()) {
-        std::any_cast<Parameter::List*>(data_)->readJSON(object);
+        std::any_cast<parameter::List*>(data_)->readJSON(object);
       }
       break;
     }
     case PARAMETER_ARRAY: {
       if(object.isArray()) {
-        std::any_cast<Parameter::ArrayBase*>(data_)->readJSON(object);
+        std::any_cast<parameter::ArrayBase*>(data_)->readJSON(object);
       }
       break;
     }
   }
 }
 
-void shift::Parameter::Value::readJSON_STRING(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_STRING(Json::Value& json_value) {
   if(!json_value.isString()) {
     if(required_) {
       throw "JSON Parsing error: required key has incorrectly formatted data; "
@@ -348,7 +348,7 @@ void shift::Parameter::Value::readJSON_STRING(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_STRING_ARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_STRING_ARRAY(Json::Value& json_value) {
   if(!json_value.isArray()) {
     if(required_) {
       throw "JSON Parsing error: required key has incorrectly formatted "
@@ -370,7 +370,7 @@ void shift::Parameter::Value::readJSON_STRING_ARRAY(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_STRING_2DARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_STRING_2DARRAY(Json::Value& json_value) {
   if(json_value.isArray()) {
     for(unsigned int i = 0; i < json_value.size(); i++) {
       if(row_dim_ > 0 && row_dim_ != (int)json_value.size()) {
@@ -412,7 +412,7 @@ void shift::Parameter::Value::readJSON_STRING_2DARRAY(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_DOUBLE(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_DOUBLE(Json::Value& json_value) {
   if(!json_value.isDouble()) {
     throw "JSON Parsing error, required key has incorrectly formatted "
           "data; expected DOUBLE";
@@ -421,7 +421,7 @@ void shift::Parameter::Value::readJSON_DOUBLE(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_DOUBLE_ARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_DOUBLE_ARRAY(Json::Value& json_value) {
   if(!json_value.isArray()) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected DOUBLE_ARRAY";
@@ -450,7 +450,7 @@ void shift::Parameter::Value::readJSON_DOUBLE_ARRAY(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_KSL_VEC3(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_KSL_VEC3(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 3)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_VEC3";
@@ -466,7 +466,7 @@ void shift::Parameter::Value::readJSON_KSL_VEC3(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_KSL_VEC4(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_KSL_VEC4(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_VEC4";
@@ -483,7 +483,7 @@ void shift::Parameter::Value::readJSON_KSL_VEC4(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_KSL_QUATERNION(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_KSL_QUATERNION(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_QUATERNION";
@@ -514,7 +514,7 @@ void shift::Parameter::Value::readJSON_KSL_QUATERNION(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_KSL_SCREW(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_KSL_SCREW(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 6)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_SCREW";
@@ -532,7 +532,7 @@ void shift::Parameter::Value::readJSON_KSL_SCREW(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_KSL_COSCREW(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_KSL_COSCREW(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 6)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_COSCREW";
@@ -550,7 +550,7 @@ void shift::Parameter::Value::readJSON_KSL_COSCREW(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_KSL_INERTIA(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_KSL_INERTIA(Json::Value& json_value) {
   if(!json_value.isObject()) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_INERTIA";
@@ -651,7 +651,7 @@ void shift::Parameter::Value::readJSON_KSL_INERTIA(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_KSL_MAT3X3(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_KSL_MAT3X3(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 3)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_MAT3X3";
@@ -681,7 +681,7 @@ void shift::Parameter::Value::readJSON_KSL_MAT3X3(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_KSL_MAT4X4(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_KSL_MAT4X4(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_MAT3X3";
@@ -721,7 +721,7 @@ void shift::Parameter::Value::readJSON_KSL_MAT4X4(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_EULERANGLES(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_EULERANGLES(Json::Value& json_value) {
   if(!json_value.isObject()) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_EULERANGLES";
@@ -792,7 +792,7 @@ void shift::Parameter::Value::readJSON_EULERANGLES(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_BOOLEAN(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_BOOLEAN(Json::Value& json_value) {
   if(!json_value.isBool()) {
     throw "JSON Parsing error, required key %s has incorrectly formatted "
           "data; expected BOOLEAN";
@@ -802,7 +802,7 @@ void shift::Parameter::Value::readJSON_BOOLEAN(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::readJSON_POSE(Json::Value& json_value) {
+void shift::core::parameter::Value::readJSON_POSE(Json::Value& json_value) {
   if(!json_value.isObject()) {
     throw "Error: Pose is not a valid object";
     return;
@@ -831,11 +831,11 @@ void shift::Parameter::Value::readJSON_POSE(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::Parameter::Value::print() const {
+void shift::core::parameter::Value::print() const {
   print("");
 }
 
-void shift::Parameter::Value::print(std::string prefix) const {
+void shift::core::parameter::Value::print(std::string prefix) const {
 
   /* check if get exists */
   switch(parameter_type_) {
@@ -926,24 +926,24 @@ void shift::Parameter::Value::print(std::string prefix) const {
       break;
     }
     case PARAMETER_LIST: {
-      get<shift::Parameter::List>().print(prefix);
+      get<shift::core::parameter::List>().print(prefix);
       break;
     }
     case PARAMETER_ARRAY: {
-      get<shift::Parameter::ArrayBase>().print(prefix);
+      get<shift::core::parameter::ArrayBase>().print(prefix);
       break;
     }
   }
 }
 
-void shift::Parameter::Value::setParent(Context* context,
+void shift::core::parameter::Value::setParent(Context* context,
                                         Assembly* parent_assembly,
-                                        Body::Base* parent_body) {
+                                        shift::core::body::Base* parent_body) {
   if(is_list_) {
-    std::any_cast<Parameter::List*>(data_)->setParent(context, parent_assembly,
+    std::any_cast<parameter::List*>(data_)->setParent(context, parent_assembly,
                                                       parent_body);
   } else if(is_array_) {
-    std::any_cast<Parameter::ArrayBase*>(data_)->setParent(
+    std::any_cast<parameter::ArrayBase*>(data_)->setParent(
       context, parent_assembly, parent_body);
   }
 }

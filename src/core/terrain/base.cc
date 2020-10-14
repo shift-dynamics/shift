@@ -2,14 +2,14 @@
 #include "shift/core/context.h"
 #include "shift/core/terrain/basic.h"
 
-bool shift::Terrain::Modules::initialized() {
-  if(!shift::Terrain::Basic::isRegistered()) {
+bool shift::core::terrain::Modules::initialized() {
+  if(!shift::core::terrain::Basic::isRegistered()) {
     return false;
   }
   return true;
 }
 
-void shift::Terrain::Base::addParameters() {
+void shift::core::terrain::Base::addParameters() {
   addParameter(
     "name", &name_,
     "terrain descriptive name, each terrain must have a unique name identifier",
@@ -24,7 +24,7 @@ void shift::Terrain::Base::addParameters() {
                true);
 }
 
-void shift::Terrain::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::terrain::Base::setActiveObjects(bool parent_is_active) {
   assert(context_);
   context_->setActive(this, parent_is_active && active_);
 }

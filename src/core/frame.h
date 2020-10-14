@@ -12,10 +12,11 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
 class Context;
 
-namespace Body {
+namespace body {
 class Base;
 }
 
@@ -24,17 +25,17 @@ class Base;
 */
 class Frame
   : public Base
-  , public Parameter::List {
+  , public parameter::List {
 
 public:
   Frame(std::string name)
     : Base(name)
-    , Parameter::List() {
+    , parameter::List() {
     addParameters();
   }
   Frame()
     : Base("")
-    , Parameter::List() {
+    , parameter::List() {
     addParameters();
   }
   virtual ~Frame() override {}
@@ -93,11 +94,11 @@ public:
     reference_frame_ = reference_frame;
   }
 
-  const Body::Base* parentBody() const {
+  const shift::core::body::Base* parentBody() const {
     return parent_body_ptr_;
   }
 
-  const shift::Frame* referenceFrame() const {
+  const shift::core::Frame* referenceFrame() const {
     return reference_frame_;
   }
 
@@ -130,6 +131,7 @@ private:
   bool use_system_reference_frame_ = false;
 };
 
+}
 } // namespace shift
 
 #endif

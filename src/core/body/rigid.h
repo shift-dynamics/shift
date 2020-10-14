@@ -4,12 +4,13 @@
 #include "shift/core/body/base.h"
 
 namespace shift {
+namespace core {
 
-namespace Joint {
-class JointBase;
+namespace joint {
+class Base;
 }
 
-namespace Body {
+namespace body {
 
 class Rigid : public Base {
 public:
@@ -38,14 +39,14 @@ private:
                              coordinate system, which may not be the
                              reference frame */
 
-  Joint::JointBase* parent_joint_ptr_ =
+  shift::core::joint::Base* parent_joint_ptr_ =
     nullptr; /*!< Pointer to Body's unique
               *parent* joint datastructure */
 
-  BodyBase* parent_body_ptr_ = nullptr; /*!< A pointer to the unique *parent*
+  shift::core::body::Base* parent_body_ptr_ = nullptr; /*!< A pointer to the unique *parent*
                                    Body */
 
-  Frame* parent_frame_ptr_ =
+  shift::core::Frame* parent_frame_ptr_ =
     nullptr; /*!< parent frame of body reference frame */
 
   int index_ = -1; /*!< index in contiguous *run-time* array of bodies */
@@ -54,8 +55,8 @@ private:
   static bool registered_;
 };
 
-} // namespace Body
-
+} // namespace body
+}
 } // namespace shift
 
 #endif

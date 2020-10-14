@@ -1,10 +1,10 @@
 #include "shift/core/body/virtual.h"
 #include "shift/core/factory.h"
 
-bool shift::Body::Virtual::registered_ =
-  shift::Factory<shift::Body::Base>::get()->registerModule(
-    "virtual", shift::Body::Virtual::create);
+bool shift::core::body::Virtual::registered_ =
+  shift::core::Factory<shift::core::body::Base>::get()->registerModule(
+    "virtual", shift::core::body::Virtual::create);
 
-std::unique_ptr<shift::Body::Virtual> shift::Body::Virtual::create() {
-  return std::make_unique<shift::Body::Virtual>();
+std::unique_ptr<shift::core::body::Virtual> shift::core::body::Virtual::create() {
+  return std::make_unique<shift::core::body::Virtual>();
 }

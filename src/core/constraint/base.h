@@ -9,8 +9,9 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
-namespace Body {
+namespace body {
 class Base;
 }
 
@@ -18,22 +19,22 @@ class Frame;
 class Substructure;
 class Context;
 
-namespace Constraint {
+namespace constraint {
 
 /*!
 @brief Abstract shift::Constraint base class
 */
 class Base
-  : public shift::Base
-  , public Parameter::List {
+  : public shift::core::Base
+  , public parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name) {
+    : shift::core::Base(name) {
     addParameters();
   }
   Base()
-    : shift::Base("") {
+    : shift::core::Base("") {
     addParameters();
   }
   virtual ~Base() override {}
@@ -55,23 +56,23 @@ public:
     return "";
   }
 
-  void setParentBody(shift::Body::Base*);
+  void setParentBody(shift::core::body::Base*);
 
   void setParentFrame(Frame*);
 
-  void setChildBody(shift::Body::Base*);
+  void setChildBody(shift::core::body::Base*);
 
   void setChildFrame(Frame*);
 
-  Body::Base* parentBody() {
+  shift::core::body::Base* parentBody() {
     return parent_body_ptr_;
   }
 
-  Frame* parentFrame() {
+  shift::core::Frame* parentFrame() {
     return parent_frame_ptr_;
   }
 
-  Body::Base* childBody() {
+  shift::core::body::Base* childBody() {
     return child_body_ptr_;
   }
 
@@ -87,16 +88,16 @@ protected:
   std::vector<std::vector<std::string>> body_frame_pairs_;
 
   std::vector<std::string> parent_body_; //!< descriptive name of parent Body
-  shift::Body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
+  shift::core::body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
 
   std::vector<std::string> parent_frame_; //!< descriptive name of parent Frame
   Frame* parent_frame_ptr_ = nullptr;     //!< pointer to parent Frame
 
   std::vector<std::string> child_body_; //!< descriptive name of child Body
-  shift::Body::Base* child_body_ptr_ = nullptr; //!< pointer to child Body
+  shift::core::body::Base* child_body_ptr_ = nullptr; //!< pointer to child Body
 
   std::vector<std::string> child_frame_; //!< descriptive name of child frame
-  Frame* child_frame_ptr_ = nullptr;     //!< pointer to child Frame
+  shift::core::Frame* child_frame_ptr_ = nullptr;     //!< pointer to child Frame
 };
 
 class Modules {
@@ -109,8 +110,8 @@ private:
   static bool initialized_;
 };
 
-} // namespace Constraint
-
+} // namespace constraint
+}
 } // namespace shift
 
 #endif

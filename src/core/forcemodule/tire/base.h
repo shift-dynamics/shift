@@ -6,19 +6,18 @@
 #include "shift/core/forcemodule/base.h"
 
 namespace shift {
+namespace core {
+namespace forcemodule {
+namespace tire {
 
-namespace ForceModule {
-
-namespace Tire {
-
-class Base : public ForceModule::Base {
+class Base : public forcemodule::Base {
 public:
   Base()
-    : ForceModule::Base() {
+    : forcemodule::Base() {
     addParameters();
   }
   Base(std::string name)
-    : ForceModule::Base(name) {
+    : forcemodule::Base(name) {
     addParameters();
   }
   virtual ~Base() override {}
@@ -36,13 +35,13 @@ private:
   std::vector<std::string> wheel_body_; /*!< fully qualified wheel name */
 
   /*! internal quantities for updating model*/
-  shift::Body::Base* wheel_body_ptr; /*!< pointer to wheel body */
+  shift::core::body::Base* wheel_body_ptr; /*!< pointer to wheel body */
 };
 
 } // namespace Tire
 
-} // namespace ForceModule
-
+} // namespace forcemodule
+}
 } // namespace shift
 
 #endif

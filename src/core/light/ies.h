@@ -5,8 +5,8 @@
 #include "shift/core/light/base.h"
 
 namespace shift {
-
-namespace Light {
+namespace core {
+namespace light {
 
 class IES : public Base {
 public:
@@ -29,8 +29,8 @@ private:
   static bool registered_;
 };
 
-} // namespace Light
-
+} // namespace light
+}
 } // namespace shift
 
 #endif

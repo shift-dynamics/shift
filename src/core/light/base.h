@@ -9,28 +9,29 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
-namespace Body {
+namespace body {
 class BodyBase;
 }
 
 class Frame;
 class Context;
 
-namespace Light {
+namespace light {
 
 /*!
 @brief Abstract shift::Light base class
 */
 class Base
-  : public shift::Base
-  , public Parameter::List {
+  : public shift::core::Base
+  , public parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name) {}
+    : shift::core::Base(name) {}
   Base()
-    : shift::Base("") {}
+    : shift::core::Base("") {}
   virtual ~Base() override {}
 
   const std::string& getType() {
@@ -61,8 +62,8 @@ public:
   static bool initialized();
 };
 
-} // namespace Light
-
+} // namespace light
+}
 } // namespace shift
 
 #endif

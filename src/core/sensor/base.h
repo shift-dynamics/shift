@@ -10,30 +10,31 @@
 #include <string>
 
 namespace shift {
+namespace core {
 
-namespace Body {
+namespace body {
 class Base;
 }
 
 class Frame;
 class Context;
 
-namespace Sensor {
+namespace sensor {
 
 /*!
 @brief Abstract shift::Sensor base class
 */
 class Base
-  : public shift::Base
-  , public Parameter::List {
+  : public shift::core::Base
+  , public parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name) {
+    : shift::core::Base(name) {
     addParameters();
   }
   Base()
-    : shift::Base("") {
+    : shift::core::Base("") {
     addParameters();
   }
   virtual ~Base() {}
@@ -64,8 +65,8 @@ public:
   static bool initialized();
 };
 
-} // namespace Sensor
-
+} // namespace sensor
+}
 } // namespace shift
 
 #endif

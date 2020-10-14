@@ -4,14 +4,16 @@
 #include "shift/core/parameter/value.h"
 
 namespace shift {
+namespace core {
 
 class Context;
 class Assembly;
-namespace Body {
+
+namespace body {
 class Base;
 }
 
-namespace Parameter {
+namespace parameter {
 
 class List;
 
@@ -22,7 +24,7 @@ class ArrayBase {
 public:
   ArrayBase() {}
   ArrayBase(Context* context, Assembly* parent_assembly = nullptr,
-            Body::Base* parent_body = nullptr)
+            shift::core::body::Base* parent_body = nullptr)
     : context_(context)
     , parent_assembly_ptr_(parent_assembly)
     , parent_body_ptr_(parent_body) {}
@@ -52,7 +54,7 @@ public:
   }
 
   virtual void setParent(Context* context, Assembly* parent_assembly = nullptr,
-                         Body::Base* parent_body = nullptr) {
+                         shift::core::body::Base* parent_body = nullptr) {
     context_ = context;
     parent_assembly_ptr_ = parent_assembly;
     parent_body_ptr_ = parent_body;
@@ -74,13 +76,14 @@ private:
   Value void_;
 
 protected:
-  std::vector<shift::Parameter::List*> objects_;
+  std::vector<shift::core::parameter::List*> objects_;
   bool active_ = true;
   Context* context_ = nullptr;
   Assembly* parent_assembly_ptr_ = nullptr;
-  Body::Base* parent_body_ptr_ = nullptr;
+  shift::core::body::Base* parent_body_ptr_ = nullptr;
 };
 
 } // namespace Parameter
+}
 } // namespace shift
 #endif

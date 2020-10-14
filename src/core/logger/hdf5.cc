@@ -4,16 +4,16 @@
 #include "shift/core/logger/base.h"
 #include "shift/core/utility.h"
 
-bool shift::Logger::HDF5::registered_ =
-  shift::Factory<shift::Logger::Base>::get()->registerModule(
-    "csv", shift::Logger::HDF5::create);
+bool shift::core::logger::HDF5::registered_ =
+  shift::core::Factory<shift::core::logger::Base>::get()->registerModule(
+    "csv", shift::core::logger::HDF5::create);
 
-std::unique_ptr<shift::Logger::HDF5> shift::Logger::HDF5::create() {
-  return std::make_unique<shift::Logger::HDF5>();
+std::unique_ptr<shift::core::logger::HDF5> shift::core::logger::HDF5::create() {
+  return std::make_unique<shift::core::logger::HDF5>();
 }
 
-void shift::Logger::HDF5::addParameters() {
-  shift::Logger::Base::addParameters();
+void shift::core::logger::HDF5::addParameters() {
+  shift::core::logger::Base::addParameters();
   addParameter("hdf5_logfile", &hdf5_logfile_,
                "file to log csv states to, defaults to \"simulation.hdf5\" if "
                "not provided",
@@ -25,7 +25,7 @@ void shift::Logger::HDF5::addParameters() {
     false);
 }
 
-void shift::Logger::HDF5::initialize() {
+void shift::core::logger::HDF5::initialize() {
   if(timestamp_logfile_) {
     hdf5_logfile_ = shift::Utility::stripFileExtension(hdf5_logfile_) + "-" +
                     shift::Utility::currentDateTime() +
@@ -38,7 +38,7 @@ void shift::Logger::HDF5::initialize() {
   writeHeader();
 }
 
-void shift::Logger::HDF5::writeHeader() {
+void shift::core::logger::HDF5::writeHeader() {
   if(log_all_channels_) {
     // for(auto& joint : context_->activeJoints()) {
     //
@@ -65,7 +65,7 @@ void shift::Logger::HDF5::writeHeader() {
   }
 }
 
-void shift::Logger::HDF5::writeStates(const double /* t */,
+void shift::core::logger::HDF5::writeStates(const double /* t */,
                                       const std::vector<double>& q) {
 
   // size_t q_offset;

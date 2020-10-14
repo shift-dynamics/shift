@@ -9,29 +9,30 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
-namespace Body {
+namespace body {
 class Base;
 }
 class Frame;
 class Context;
 
-namespace CollisionGeometry {
+namespace collisiongeometry {
 
 /*!
 @brief Abstract CollisionGeometry base class
 */
 class Base
-  : public shift::Base
-  , public Parameter::List {
+  : public shift::core::Base
+  , public parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name) {
+    : shift::core::Base(name) {
     addParameters();
   }
   Base()
-    : shift::Base("") {
+    : shift::core::Base("") {
     addParameters();
   }
   virtual ~Base() {}
@@ -63,8 +64,8 @@ public:
   static bool initialized();
 };
 
-} // namespace CollisionGeometry
-
+} // namespace collisiongeometry
+}
 } // namespace shift
 
 #endif

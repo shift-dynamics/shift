@@ -1,13 +1,13 @@
 #include "shift/core/light/ies.h"
 
-bool shift::Light::IES::registered_ =
-  shift::Factory<shift::Light::Base>::get()->registerModule(
-    "ies", shift::Light::IES::create);
+bool shift::core::light::IES::registered_ =
+  shift::core::Factory<shift::core::light::Base>::get()->registerModule(
+    "ies", shift::core::light::IES::create);
 
-std::unique_ptr<shift::Light::IES> shift::Light::IES::create() {
-  return std::make_unique<shift::Light::IES>();
+std::unique_ptr<shift::core::light::IES> shift::core::light::IES::create() {
+  return std::make_unique<shift::core::light::IES>();
 }
 
-void shift::Light::IES::addParameters() {
-  shift::Light::Base::addParameters();
+void shift::core::light::IES::addParameters() {
+  shift::core::light::Base::addParameters();
 }

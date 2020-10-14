@@ -5,7 +5,7 @@
 
 namespace shift {
 
-namespace Terrain {
+namespace terrain {
 
 class Basic : public Base {
 public:
@@ -35,7 +35,7 @@ private:
   static bool registered_;
 };
 
-} // namespace Terrain
+} // namespace terrain
 
 } // namespace shift
 

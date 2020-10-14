@@ -10,16 +10,17 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
-namespace Body {
+namespace body {
 class Base;
 }
 
-namespace Joint {
+namespace joint {
 class Base;
 }
 
-namespace Constraint {
+namespace constraint {
 class Base;
 }
 
@@ -30,20 +31,20 @@ class Base;
 class Frame;
 class Context;
 
-namespace Solver {
+namespace solver {
 
 /*!
 @brief Abstract Solver base class
 */
 class Base
-  : public shift::Base
-  , public Parameter::List {
+  : public shift::core::Base
+  , public parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name) {}
+    : shift::core::Base(name) {}
   Base()
-    : shift::Base("") {}
+    : shift::core::Base("") {}
   virtual ~Base() {}
 
   const std::string& getType() {
@@ -68,7 +69,7 @@ public:
 protected:
   virtual void addParameters() override;
   std::string type_; //!< descriptive name of Solver type
-  Integrator::Base* integrator_ = nullptr;
+  integrator::Base* integrator_ = nullptr;
 };
 
 class Modules {
@@ -76,8 +77,8 @@ public:
   static bool initialized();
 };
 
-} // namespace Solver
-
+} // namespace solver
+}
 } // namespace shift
 
 #endif

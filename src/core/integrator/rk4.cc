@@ -4,24 +4,24 @@
 
 #include <math.h>
 
-bool shift::Integrator::RK4::registered_ =
-  shift::Factory<shift::Integrator::Base>::get()->registerModule(
-    "rk4", shift::Integrator::RK4::create);
+bool shift::core::integrator::RK4::registered_ =
+  shift::core::Factory<shift::core::integrator::Base>::get()->registerModule(
+    "rk4", shift::core::integrator::RK4::create);
 
-std::unique_ptr<shift::Integrator::RK4> shift::Integrator::RK4::create() {
-  return std::make_unique<shift::Integrator::RK4>();
+std::unique_ptr<shift::core::integrator::RK4> shift::core::integrator::RK4::create() {
+  return std::make_unique<shift::core::integrator::RK4>();
 }
 
-void shift::Integrator::RK4::addParameters() {}
+void shift::core::integrator::RK4::addParameters() {}
 
-void shift::Integrator::RK4::connect() {
+void shift::core::integrator::RK4::connect() {
   assert(context_);
   solver_ =
-    (*context_)["model_parameters"]["solvers"][0].data<shift::Solver::Base>();
+    (*context_)["model_parameters"]["solvers"][0].data<shift::core::solver::Base>();
   assert(solver_);
 }
 
-void shift::Integrator::RK4::reset() {
+void shift::core::integrator::RK4::reset() {
 
   assert(context_);
   neqn_ = context_->qCount() + context_->dqCount() +
@@ -35,7 +35,7 @@ void shift::Integrator::RK4::reset() {
 
   /* copy initial conditions from force modules */
   int i = context_->qCount() + context_->dqCount();
-  for(auto& force_module : context_->activeForceModules()) {
+  for(auto& force_module : context_->activeforcemodules()) {
     for(unsigned int k = 0; k < force_module->equationCount(); k++, i++) {
       y_[i] = force_module->q0()[k];
     }
@@ -67,11 +67,11 @@ void shift::Integrator::RK4::reset() {
   std::fill(u3_.begin(), u3_.end(), 0);
 }
 
-void shift::Integrator::RK4::initialize() {
+void shift::core::integrator::RK4::initialize() {
   reset();
 }
 
-void shift::Integrator::RK4::integrate() {
+void shift::core::integrator::RK4::integrate() {
   reset();
   solver_->initialize();
 
@@ -130,7 +130,7 @@ void shift::Integrator::RK4::integrate() {
 //    Output, double RK4VEC[M], the fourth-order Runge-Kutta solution estimate
 //    at time T0+DT.
 */
-void shift::Integrator::RK4::step() {
+void shift::core::integrator::RK4::step() {
 
   assert(solver_);
   solver_->solve(y_.data(), dy_.data());

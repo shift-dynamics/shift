@@ -7,16 +7,17 @@
 #include <memory>
 
 namespace shift {
+namespace core {
 
-namespace Joint {
+namespace joint {
 class Base;
 }
 
-namespace Terrain {
+namespace terrain {
 class Base;
 }
 
-namespace Body {
+namespace body {
 
 class Fixed : public Base {
 public:
@@ -39,19 +40,19 @@ public:
 
 private:
   /*! \brief User defined frames attached to fixed inertial reference frame */
-  shift::Parameter::Array<shift::Frame> frames_;
+  shift::core::parameter::Array<shift::core::Frame> frames_;
 
   /*! \brief User defined lights attached to fixed inertial reference frame */
-  shift::Parameter::FactoryArray<shift::Light::Base> lights_;
+  shift::core::parameter::FactoryArray<shift::core::light::Base> lights_;
 
   /*! \brief User defined terrain attached to fixed inertial reference frame */
-  shift::Parameter::FactoryArray<shift::Terrain::Base> terrain_;
+  shift::core::parameter::FactoryArray<shift::core::terrain::Base> terrain_;
 
   static bool registered_;
 };
 
-} // namespace Body
-
+} // namespace body
+}
 } // namespace shift
 
 #endif

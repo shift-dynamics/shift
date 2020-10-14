@@ -7,8 +7,8 @@
 #include <string>
 
 namespace shift {
-
-namespace Logger {
+namespace core {
+namespace logger {
 
 /*!
 @brief Abstract base class for shift::Solver C++ objects
@@ -68,7 +68,7 @@ private:
 };
 
 } // namespace Logger
-
+}
 } // namespace shift
 
 #endif

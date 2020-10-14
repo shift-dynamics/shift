@@ -4,12 +4,12 @@
 
 #include "shift/core/factory.h"
 
-bool shift::Constraint::Chord::registered_ =
-  shift::Factory<shift::Constraint::Base>::get()->registerModule(
-    "chord", shift::Constraint::Chord::create);
+bool shift::core::constraint::Chord::registered_ =
+  shift::core::Factory<shift::core::constraint::Base>::get()->registerModule(
+    "chord", shift::core::constraint::Chord::create);
 
-std::unique_ptr<shift::Constraint::Chord> shift::Constraint::Chord::create() {
-  return std::make_unique<shift::Constraint::Chord>();
+std::unique_ptr<shift::core::constraint::Chord> shift::core::constraint::Chord::create() {
+  return std::make_unique<shift::core::constraint::Chord>();
 }
 
-void shift::Constraint::Chord::addParameters() {}
+void shift::core::constraint::Chord::addParameters() {}

@@ -12,23 +12,23 @@
 #include <assert.h>
 #include <iostream>
 
-bool shift::Body::Modules::initialized() {
-  if(!shift::Body::Fixed::isRegistered()) {
+bool shift::core::body::Modules::initialized() {
+  if(!shift::core::body::Fixed::isRegistered()) {
     return false;
   }
-  if(!shift::Body::Free::isRegistered()) {
+  if(!shift::core::body::Free::isRegistered()) {
     return false;
   }
-  if(!shift::Body::Rigid::isRegistered()) {
+  if(!shift::core::body::Rigid::isRegistered()) {
     return false;
   }
-  if(!shift::Body::Virtual::isRegistered()) {
+  if(!shift::core::body::Virtual::isRegistered()) {
     return false;
   }
   return true;
 }
 
-void shift::Body::Base::addParameters() {
+void shift::core::body::Base::addParameters() {
 
   addParameter("name", &name_,
                "User defined descriptive body name; must be unique within a "
@@ -83,12 +83,12 @@ void shift::Body::Base::addParameters() {
                false);
 }
 
-void shift::Body::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::body::Base::setActiveObjects(bool parent_is_active) {
   assert(context_);
   context_->setActive(this, active_ && parent_is_active);
 };
 
-void shift::Body::Base::setParentJoint(shift::Joint::Base* parent) {
+void shift::core::body::Base::setParentJoint(shift::core::joint::Base* parent) {
   parent_joint_ = parent;
   auto referenceFrame = parent_joint_->systemChildFrame();
   for(auto& frame : frames_.data()) {
@@ -97,11 +97,11 @@ void shift::Body::Base::setParentJoint(shift::Joint::Base* parent) {
   setDWRTReference();
 }
 
-void shift::Body::Base::load() {}
+void shift::core::body::Base::load() {}
 
-void shift::Body::Base::connect() {}
+void shift::core::body::Base::connect() {}
 
-shift::Frame* shift::Body::Base::origin() {
+shift::core::Frame* shift::core::body::Base::origin() {
   for(auto& frame : frames_.data()) {
     if(frame->name() == "origin") {
       return frame.get();
@@ -110,7 +110,7 @@ shift::Frame* shift::Body::Base::origin() {
   return nullptr;
 }
 
-shift::Frame* shift::Body::Base::referenceFrame() {
+shift::core::Frame* shift::core::body::Base::referenceFrame() {
   for(auto& frame : frames_.data()) {
     if(frame->isReference()) {
       return frame.get();
@@ -121,7 +121,7 @@ shift::Frame* shift::Body::Base::referenceFrame() {
   return nullptr;
 }
 
-void shift::Body::Base::setDWRTReference() {
+void shift::core::body::Base::setDWRTReference() {
   Frame* reference = referenceFrame();
   ksl_SE3_t dReference;
   ksl_SE3_setIdentity(&dReference);
@@ -137,7 +137,7 @@ void shift::Body::Base::setDWRTReference() {
   }
 }
 
-void shift::Body::Base::setDWRTReference(ksl_SE3_t dReference) {
+void shift::core::body::Base::setDWRTReference(ksl_SE3_t dReference) {
   Frame* reference = referenceFrame();
   reference->setDWRTReference(dReference);
   const ksl_SE3_t* referenceWRTOrigin = reference->dWRTOrigin();
@@ -153,14 +153,14 @@ void shift::Body::Base::setDWRTReference(ksl_SE3_t dReference) {
   }
 }
 
-void shift::Body::Base::setReferenceFrame(shift::Frame* referenceFrame) {
+void shift::core::body::Base::setReferenceFrame(shift::core::Frame* referenceFrame) {
   for(auto& frame : frames_.data()) {
     frame->setReferenceFrame(referenceFrame);
   }
   setDWRTReference();
 };
 
-void shift::Body::Base::setReferenceFrame() {
+void shift::core::body::Base::setReferenceFrame() {
   auto reference = referenceFrame();
   for(auto& frame : frames_.data()) {
     if(frame.get() == reference) {
@@ -172,7 +172,7 @@ void shift::Body::Base::setReferenceFrame() {
   setDWRTReference();
 };
 
-const ksl_vec3_t shift::Body::Base::centerOfMassWRTReference() {
+const ksl_vec3_t shift::core::body::Base::centerOfMassWRTReference() {
   if(referenceFrame() != origin()) {
     // D_or // transformation from origin to reference frame
     // D_ro // transformation from reference frame to origin
@@ -193,14 +193,14 @@ const ksl_vec3_t shift::Body::Base::centerOfMassWRTReference() {
   return center_of_mass_wrt_origin_;
 }
 
-void shift::Body::Base::clearInTreeFlags() {
+void shift::core::body::Base::clearInTreeFlags() {
   for(auto& frame : frames_.data()) {
     frame->setIndex(-1);
     frame->setInTree(false);
   }
 }
 
-unsigned int shift::Body::Base::frameInTreeCount() {
+unsigned int shift::core::body::Base::frameInTreeCount() {
   unsigned int count = 0;
   for(auto& frame : frames_.data()) {
     if(frame->inTree()) {

@@ -8,27 +8,28 @@
 #include "shift/core/parameter/list.h"
 
 namespace shift {
+namespace core {
 
 class Context;
 
-namespace ForceModule {
+namespace forcemodule {
 
 /*!
-@brief shift::Frame abstract base class
+@brief shift::core::Frame abstract base class
 */
 class Base
-  : public shift::Base
-  , public Parameter::List {
+  : public shift::core::Base
+  , public parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name)
-    , Parameter::List() {
+    : shift::core::Base(name)
+    , parameter::List() {
     addParameters();
   }
   Base()
-    : shift::Base("")
-    , Parameter::List() {
+    : shift::core::Base("")
+    , parameter::List() {
     addParameters();
   }
   virtual ~Base() {}
@@ -64,8 +65,8 @@ public:
   static bool initialized();
 };
 
-} // namespace ForceModule
-
+} // namespace forcemodule
+}
 } // namespace shift
 
 #endif

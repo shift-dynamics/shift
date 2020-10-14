@@ -7,24 +7,25 @@
 #include <string>
 
 namespace shift {
+namespace core {
 
 class Context;
 class Assembly;
-namespace Body {
+namespace body {
 class Base;
 }
 
-namespace Parameter {
+namespace parameter {
 
 /*!
-@brief Shift Parameter::List class
+@brief Shift parameter::List class
 */
 class List {
 
 public:
   List() {}
   List(Context* context, Assembly* assembly = nullptr,
-       Body::Base* body = nullptr)
+       shift::core::body::Base* body = nullptr)
     : context_(context)
     , parent_assembly_ptr_(assembly)
     , parent_body_ptr_(body) {}
@@ -158,14 +159,14 @@ public:
     parent_assembly_ptr_ = assembly;
   }
 
-  void setParentBody(Body::Base* body) {
+  void setParentBody(shift::core::body::Base* body) {
     parent_body_ptr_ = body;
   }
 
   virtual void readJSON(Json::Value&);
 
   void setParent(Context* context, Assembly* parent_assembly = nullptr,
-                 Body::Base* parent_body = nullptr);
+                 shift::core::body::Base* parent_body = nullptr);
 
   virtual Value& operator[](const char* key) {
     return parameters_[key];
@@ -190,7 +191,7 @@ public:
     return parent_assembly_ptr_;
   }
 
-  Body::Base* parentBody() {
+  shift::core::body::Base* parentBody() {
     return parent_body_ptr_;
   }
 
@@ -203,15 +204,16 @@ public:
   }
 
 protected:
-  std::map<std::string, Parameter::Value> parameters_;
+  std::map<std::string, parameter::Value> parameters_;
   Context* context_ = nullptr;
   Assembly* parent_assembly_ptr_ = nullptr;
-  Body::Base* parent_body_ptr_ = nullptr;
+  shift::core::body::Base* parent_body_ptr_ = nullptr;
   bool active_ = true;
   bool is_body_ = false;
   bool is_assembly_ = false;
 };
 
 } // namespace Parameter
+}
 } // namespace shift
 #endif

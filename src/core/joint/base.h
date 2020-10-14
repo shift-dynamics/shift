@@ -17,10 +17,11 @@
 #include "ksl/screw.h"
 
 namespace shift {
+namespace core {
 
 class Substructure;
 
-namespace Body {
+namespace body {
 class Base;
 }
 
@@ -29,24 +30,24 @@ class Substructure;
 class Context;
 class Assembly;
 
-namespace Joint {
+namespace joint {
 
 /*!%
 @brief Abstract shift::Joint base class
 */
 class Base
-  : public shift::Base
-  , public Parameter::List {
+  : public shift::core::Base
+  , public parameter::List {
 
 public:
   Base(std::string name)
-    : shift::Base(name)
-    , Parameter::List() {
+    : shift::core::Base(name)
+    , parameter::List() {
     addParameters();
   }
   Base()
-    : shift::Base("")
-    , Parameter::List() {
+    : shift::core::Base("")
+    , parameter::List() {
     addParameters();
   }
   virtual ~Base() {}
@@ -80,9 +81,9 @@ public:
   void setInitialDisplacement(const double* q);
   void setInitialVelocity(const double* dq);
 
-  virtual Topology::dh_fptr Dfptr() = 0;
-  virtual Topology::dh_fptr DHfptr() = 0;
-  virtual Topology::dhva_fptr DHVAfptr() = 0;
+  virtual topology::dh_fptr Dfptr() = 0;
+  virtual topology::dh_fptr DHfptr() = 0;
+  virtual topology::dhva_fptr DHVAfptr() = 0;
 
   static const std::string arrayKey() {
     return "joints";
@@ -95,11 +96,11 @@ public:
 
   void connect();
 
-  shift::Body::Base* parentBody() {
+  shift::core::body::Base* parentBody() {
     return parent_body_ptr_;
   }
 
-  shift::Body::Base* systemParentBody() {
+  shift::core::body::Base* systemParentBody() {
     if(sense_ >= 0) {
       return parent_body_ptr_;
     } else {
@@ -107,11 +108,11 @@ public:
     }
   }
 
-  shift::Body::Base* childBody() {
+  shift::core::body::Base* childBody() {
     return child_body_ptr_;
   }
 
-  shift::Body::Base* systemChildBody() const {
+  shift::core::body::Base* systemChildBody() const {
     if(system_child_body_ptr_) {
       return system_child_body_ptr_;
     }
@@ -122,11 +123,11 @@ public:
     }
   }
 
-  shift::Frame* parentFrame() {
+  shift::core::Frame* parentFrame() {
     return parent_frame_ptr_;
   }
 
-  shift::Frame* systemParentFrame() {
+  shift::core::Frame* systemParentFrame() {
     if(sense_ >= 0) {
       return parent_frame_ptr_;
     } else {
@@ -134,11 +135,11 @@ public:
     }
   }
 
-  shift::Frame* childFrame() {
+  shift::core::Frame* childFrame() {
     return child_frame_ptr_;
   }
 
-  shift::Frame* systemChildFrame() {
+  shift::core::Frame* systemChildFrame() {
     if(system_child_frame_ptr_) {
       return system_child_frame_ptr_;
     }
@@ -149,11 +150,11 @@ public:
     }
   }
 
-  void setSystemChildBody(shift::Body::Base* body) {
+  void setSystemChildBody(shift::core::body::Base* body) {
     system_child_body_ptr_ = body;
   }
 
-  void setSystemChildFrame(shift::Frame* frame) {
+  void setSystemChildFrame(shift::core::Frame* frame) {
     system_child_frame_ptr_ = frame;
   }
 
@@ -223,11 +224,11 @@ public:
     child_joints_.clear();
   }
 
-  void pushChildJoint(shift::Joint::Base* child) {
+  void pushChildJoint(shift::core::joint::Base* child) {
     child_joints_.push_back(child);
   }
 
-  const std::vector<shift::Joint::Base*>& childJoints() const {
+  const std::vector<shift::core::joint::Base*>& childJoints() const {
     return child_joints_;
   }
 
@@ -265,7 +266,7 @@ protected:
   int index_substructure_ = -1; //!< local index into substructure
   int sense_ = 0; /*!< indicates whether joint is positively aligned with
                spanning tree (+1), or negatively aligned with spanning tree
-               (-1). Automatically set by Topology::sort() */
+               (-1). Automatically set by topology::sort() */
   int level_ = 0; /*!< Indicates Joint's level in the spanning tree,
                 set by ProcessTopology */
   int data_index_ = -1;
@@ -310,16 +311,16 @@ protected:
   */
   std::vector<std::vector<std::string>> child_;
 
-  shift::Body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
+  shift::core::body::Base* parent_body_ptr_ = nullptr; //!< pointer to parent Body
   Frame* parent_frame_ptr_ = nullptr;            //!< pointer to parent Frame
-  shift::Body::Base* child_body_ptr_ = nullptr;  //!< pointer to child Body
+  shift::core::body::Base* child_body_ptr_ = nullptr;  //!< pointer to child Body
   Frame* child_frame_ptr_ = nullptr;             //!< pointer to child Frame
-  shift::Body::Base* system_child_body_ptr_ =
+  shift::core::body::Base* system_child_body_ptr_ =
     nullptr; //!< pointer to a system defined virtual body
-  shift::Frame* system_child_frame_ptr_ =
+  shift::core::Frame* system_child_frame_ptr_ =
     nullptr; //!< pointer to a system defined virtual body
 
-  std::vector<shift::Joint::Base*> child_joints_;
+  std::vector<shift::core::joint::Base*> child_joints_;
 
   double* q_0_ = nullptr;  /*!< initial primitive displacement
                                               specified by user */
@@ -350,8 +351,8 @@ public:
   static bool initialized();
 };
 
-} // namespace Joint
-
+} // namespace joint
+}
 } // namespace shift
 
 #endif

@@ -6,7 +6,7 @@
 #include "shift/core/jacobian.h"
 #include "shift/core/topology.h"
 
-void shift::Jacobian::initialize() {
+void shift::core::Jacobian::initialize() {
   newton_raphson_failure_ = false;
   iterations_since_last_infinity_norm_failure_ = 0;
   infinity_norm_failures_.clear();
@@ -27,7 +27,7 @@ void shift::Jacobian::initialize() {
   }
 }
 
-void shift::Jacobian::analyze() {
+void shift::core::Jacobian::analyze() {
   setPO1(context_->dhva()); // records initial infinity norm of B
   translatePermutations();
   setBooleanPO2();
@@ -37,7 +37,7 @@ void shift::Jacobian::analyze() {
   setBMatrixSparse();
 }
 
-void shift::Jacobian::mallocEquations() {
+void shift::core::Jacobian::mallocEquations() {
   auto substructure_members = context_->substructureMembers();
   auto substructure_indices = context_->substructureIndices();
   substructures_.clear();
@@ -126,7 +126,7 @@ void shift::Jacobian::mallocEquations() {
   pv_23_.resize(dq_count);
 }
 
-void shift::Jacobian::compressLoopMembers() {
+void shift::core::Jacobian::compressLoopMembers() {
 
   unsigned int chordConstraintCount = context_->chordConstraintCount();
 
@@ -189,19 +189,19 @@ void shift::Jacobian::compressLoopMembers() {
   }
 }
 
-void shift::Jacobian::setPO1(const shift::Topology::DHVA& dhva) {
+void shift::core::Jacobian::setPO1(const shift::core::topology::DHVA& dhva) {
   for(auto& substructure : substructures_) {
     substructure.setPO1(dhva);
   }
 }
 
-void shift::Jacobian::setPO1() {
+void shift::core::Jacobian::setPO1() {
   for(auto& substructure : substructures_) {
     substructure.setPO1(context_->dhva());
   }
 }
 
-void shift::Jacobian::translatePermutations() {
+void shift::core::Jacobian::translatePermutations() {
   unsigned int dq_count = context_->dqCount();
   is_dependent_po1_.assign(is_dependent_po1_.size(), false);
   is_dependent_po3_.assign(is_dependent_po3_.size(), false);
@@ -221,7 +221,7 @@ void shift::Jacobian::translatePermutations() {
     }
   }
 
-  shift::Topology::setInversePermutation(pv_12_, pv_21_);
+  shift::core::topology::setInversePermutation(pv_12_, pv_21_);
 
   /* determine which variables are independent / dependent */
   for(auto& substructure : substructures_) {
@@ -249,7 +249,7 @@ void shift::Jacobian::translatePermutations() {
   }
 
   /* set p_v_31 */
-  shift::Topology::setInversePermutation(pv_13_, pv_31_);
+  shift::core::topology::setInversePermutation(pv_13_, pv_31_);
 
   /* set isDependentPO3 */
   for(unsigned int i = 0; i < dq_count; i++) {
@@ -262,16 +262,16 @@ void shift::Jacobian::translatePermutations() {
   }
 
   /* set pv_32 */
-  shift::Topology::setInversePermutation(pv_23_, pv_32_);
+  shift::core::topology::setInversePermutation(pv_23_, pv_32_);
 }
 
-void shift::Jacobian::setBooleanPO2() {
+void shift::core::Jacobian::setBooleanPO2() {
   for(auto& substructure : substructures_) {
     substructure.setBooleanPO2();
   }
 }
 
-void shift::Jacobian::evaluateSparsity() {
+void shift::core::Jacobian::evaluateSparsity() {
 
   int b_offset = 0;
   // int nnzb = 0; // number of nonzero entries in B matrix
@@ -311,37 +311,37 @@ void shift::Jacobian::evaluateSparsity() {
   }
 }
 
-void shift::Jacobian::setPO2(const shift::Topology::DHVA& dhva) {
+void shift::core::Jacobian::setPO2(const shift::core::topology::DHVA& dhva) {
   for(auto& substructure : substructures_) {
     substructure.setPO2(dhva);
   }
 }
 
-void shift::Jacobian::setPO2() {
+void shift::core::Jacobian::setPO2() {
   for(auto& substructure : substructures_) {
     substructure.setPO2(context_->dhva());
   }
 }
 
-void shift::Jacobian::factorPO2() {
+void shift::core::Jacobian::factorPO2() {
   for(auto& substructure : substructures_) {
     substructure.factorPO2();
   }
 }
 
-void shift::Jacobian::setBMatrixSparse() {
+void shift::core::Jacobian::setBMatrixSparse() {
   for(auto& substructure : substructures_) {
     substructure.setBMatrixSparse(b3_.data());
   }
 }
 
-void shift::Jacobian::setConstraintPointers() {
+void shift::core::Jacobian::setConstraintPointers() {
   unsigned int k = 0;
   for(auto& substructure : substructures_) {
     substructure.clearConstraintOffsets();
     for(unsigned int i = 0; i < substructure.chordConstraintCount(); i++, k++) {
       auto chordConstraint = context_->chordConstraints()[k];
-      shift::Substructure::Constraint constraintOffset;
+      shift::core::Substructure::Constraint constraintOffset;
       constraintOffset.parent.d = chordConstraint->parentFrame()->index();
       constraintOffset.parent.v = chordConstraint->parentBody()->vaIndex();
 
@@ -361,7 +361,7 @@ void shift::Jacobian::setConstraintPointers() {
   }
 }
 
-void shift::Jacobian::setSubstructurePointers() {
+void shift::core::Jacobian::setSubstructurePointers() {
   for(auto& joint : context_->activeJoints()) {
     joint->clearSubstructure();
   }
@@ -383,7 +383,7 @@ using a strict error tolerance (context->epsNewtonRaphsonRankDetermination)
 
 @param context [in] an s2_context_t datastructure
 */
-int shift::Jacobian::removeConstraintViolations() {
+int shift::core::Jacobian::removeConstraintViolations() {
   bool newton_raphson_failure_ = false;
   for(auto& substructure : substructures_) {
     if(substructure.removeConstraintViolations()) {
@@ -403,13 +403,13 @@ requires that setJacobianPO1 has been called for every substructure.
 @param bool useTightTolerance [in] indicates whether to use a tight error
 tolerance for removing constraint violations.
 */
-void shift::Jacobian::removeConstraintViolationsFast(bool useTightTolerance) {
+void shift::core::Jacobian::removeConstraintViolationsFast(bool useTightTolerance) {
   for(auto& substructure : substructures_) {
     substructure.removeConstraintViolationsFast(useTightTolerance);
   }
 }
 
-void shift::Jacobian::initializeMobility() {
+void shift::core::Jacobian::initializeMobility() {
   /* get count of size for single right null space array */
   unsigned int right_null_space_count = 0;
   for(auto& substructure : substructures_) {
@@ -435,7 +435,7 @@ void shift::Jacobian::initializeMobility() {
   }
 }
 
-double shift::Jacobian::evaluateConstraints() {
+double shift::core::Jacobian::evaluateConstraints() {
   double e = 0;
   for(auto& substructure : substructures_) {
     e += substructure.evaluateConstraints(context_->dhva());
@@ -443,7 +443,7 @@ double shift::Jacobian::evaluateConstraints() {
   return e;
 }
 
-unsigned int shift::Jacobian::infinityNormCheck(double time, double* q,
+unsigned int shift::core::Jacobian::infinityNormCheck(double time, double* q,
                                                 const double* dq) {
   iterations_since_last_infinity_norm_failure_++;
 
@@ -479,7 +479,7 @@ unsigned int shift::Jacobian::infinityNormCheck(double time, double* q,
 }
 
 unsigned int
-shift::Jacobian::infinityNormCheck(double time, double* q, const double* dq,
+shift::core::Jacobian::infinityNormCheck(double time, double* q, const double* dq,
                                    double infinity_norm_multiplier) {
   iterations_since_last_infinity_norm_failure_++;
 

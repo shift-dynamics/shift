@@ -12,6 +12,7 @@
 #include <vector>
 
 namespace shift {
+namespace core {
 
 class Context;
 
@@ -25,7 +26,7 @@ public:
     : Base("") {}
   ~Substructure() {}
 
-  void setContext(shift::Context*);
+  void setContext(shift::core::Context*);
 
   void setChordConstraintCount(unsigned int count) {
     chord_constraint_count_ = count;
@@ -167,9 +168,9 @@ public:
     negative_loop_members_compressed_ = members;
   }
 
-  void setPO1(const Topology::DHVA& dhva);
+  void setPO1(const topology::DHVA& dhva);
 
-  void setPO2(const Topology::DHVA& dhva);
+  void setPO2(const topology::DHVA& dhva);
 
   void setBooleanPO2();
 
@@ -177,7 +178,7 @@ public:
 
   void setBMatrixSparse(double* __restrict__ b3);
 
-  void evaluateSparsity(shift::Array2d<int>& rb3, std::vector<int>& cb3,
+  void evaluateSparsity(shift::core::Array2d<int>& rb3, std::vector<int>& cb3,
                         std::vector<int>& pv_23);
 
   const std::vector<int>& pc_12() const {
@@ -216,7 +217,7 @@ public:
     return constraints_;
   }
 
-  void appendConstraintOffset(shift::Substructure::Constraint constraint) {
+  void appendConstraintOffset(shift::core::Substructure::Constraint constraint) {
     constraints_.push_back(constraint);
   }
 
@@ -227,13 +228,13 @@ public:
   int removeConstraintViolations();
   int removeConstraintViolationsFast(bool);
   void printError(double initial_error, double final_error, double* q_copy);
-  void incrementSpecifiedCoordinate(shift::Topology::DHVA& dhva,
+  void incrementSpecifiedCoordinate(shift::core::topology::DHVA& dhva,
                                     int specified_coordinate_index,
                                     double value, MoveType move_type);
   void setBMatrix();
-  void setPO1Specified(const shift::Topology::DHVA& dhva, int dq_index);
+  void setPO1Specified(const shift::core::topology::DHVA& dhva, int dq_index);
   double infinityNormB();
-  double evaluateConstraints(const shift::Topology::DHVA& dhva);
+  double evaluateConstraints(const shift::core::topology::DHVA& dhva);
   void setRightNullSpace(double* right_null_space) {
     right_null_space_ = right_null_space;
   }
@@ -242,7 +243,7 @@ public:
   }
   void computeMobility();
   void copyNullSpace();
-  void setupNewtonRaphsonSpecifiedCoordinate(shift::Topology::DHVA& dhva,
+  void setupNewtonRaphsonSpecifiedCoordinate(shift::core::topology::DHVA& dhva,
                                              int specified_coordinate_index);
   /*! Obtain pointer to start of substructure block sub jacobian matrix */
   const double* jacobianMatrix() const {
@@ -334,7 +335,7 @@ private:
   std::vector<std::vector<int>>* positive_loop_members_compressed_ = nullptr;
   std::vector<std::vector<int>>* negative_loop_members_compressed_ = nullptr;
 
-  shift::Context* context_ = nullptr;
+  shift::core::Context* context_ = nullptr;
   unsigned int chord_constraint_offset_ = 0;
   unsigned int chord_constraint_count_ = 0;
   unsigned int constraint_equation_count_ = 0;
@@ -356,6 +357,7 @@ private:
   int rank_ = -1;
 };
 
+}
 } // namespace shift
 
 #endif

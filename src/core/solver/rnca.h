@@ -7,8 +7,8 @@
 #include "shift/core/solver/base.h"
 
 namespace shift {
-
-namespace Solver {
+namespace core {
+namespace solver {
 
 /*!
 @brief Abstract base class for shift::Solver C++ objects
@@ -111,13 +111,13 @@ private:
   int nnzms_ = 0; /*!< original number of nonzero entries in mass matrix */
   int nnzb_ = 0;  /*!< number of nonzero entries in B matrix */
 
-  shift::Array2d<int> rm_;
+  shift::core::Array2d<int> rm_;
   std::vector<int> cm_; /*!< row ranges of M matrix in PO(3) */
 
-  // shift::Array2d<int> rb2_; /*!< row ranges of B matrix in PO(2) */
-  // shift::Array2d<int>
+  // shift::core::Array2d<int> rb2_; /*!< row ranges of B matrix in PO(2) */
+  // shift::core::Array2d<int>
   //   rb3_temp_; /*!< temporary array used to convert rb2 to rb3 */
-  // // shift::Array2d<int> rb3_; /*!< row ranges of B matrix in PO(3) */
+  // // shift::core::Array2d<int> rb3_; /*!< row ranges of B matrix in PO(3) */
   //
   // std::vector<int> cb2_;      /*!< global col indices of B matrix in PO(2) */
   // std::vector<int> cb3_temp_; /*!< temporary array used to convert cb2 to
@@ -239,8 +239,8 @@ private:
   static std::unique_ptr<RNCA> create();
 };
 
-} // namespace Solver
-
+} // namespace solver
+}
 } // namespace shift
 
 #endif
