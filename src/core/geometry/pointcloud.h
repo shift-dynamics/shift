@@ -4,7 +4,7 @@
 #include "shift/core/geometry/base.h"
 
 namespace shift {
-
+namespace core {
 namespace geometry {
 
 class PointCloud : public Base {
@@ -30,7 +30,7 @@ private:
 };
 
 } // namespace geometry
-
+}
 } // namespace shift
 
 #endif

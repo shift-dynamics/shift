@@ -34,9 +34,9 @@ inline void iswap(int* __restrict__ a, int* __restrict__ b) {
   *b = temp;
 }
 
-template <typename T> void shift::KdTree<T>::sort() {}
+template <typename T> void shift::core::KdTree<T>::sort() {}
 
-template <typename T> void shift::KdTree<T>::print() {
+template <typename T> void shift::core::KdTree<T>::print() {
   std::cout << "sorted x vertices from linked list";
   KdSortNode* head = kdlists_.kdlist_.head_[0];
   while(head) {
@@ -72,7 +72,7 @@ template <typename T> void shift::KdTree<T>::print() {
 @brief subdivides kdlist, removes kdnode at median of specified axis where axis
 = level % 3
 */
-int shift::KdList::subdivide(int parentIndex, KdList* below, KdList* above) {
+int shift::core::KdList::subdivide(int parentIndex, KdList* below, KdList* above) {
 
   int axis = this->level % 3;
   unsigned int medianIndex = this->count / 2;
@@ -242,7 +242,7 @@ bool quick_sort_indices(std::vector<int>& indices,
 @brief constructor for double precision KdTree datastructure
 */
 template <typename T>
-shift::KdTree<T>::KdTree(std::vector<T>& vertices, unsigned int binSize) {
+shift::core::KdTree<T>::KdTree(std::vector<T>& vertices, unsigned int binSize) {
 
   vertices_ = vertices;
   binSize_ = binSize;
@@ -253,7 +253,7 @@ shift::KdTree<T>::KdTree(std::vector<T>& vertices, unsigned int binSize) {
     p10_[i].resize(vertices_.size());
   }
 
-  kdlists_ = shift::KdLists(vertices_, p01_, p10_);
+  kdlists_ = shift::core::KdLists(vertices_, p01_, p10_);
   sortVertices();
 
   KdList temp;
@@ -342,7 +342,7 @@ shift::KdTree<T>::KdTree(std::vector<T>& vertices, unsigned int binSize) {
 @brief create and initialize an empty doubly linked list used for
 sorting indices in kdtree
 */
-shift::KdLists::KdLists(std::vector<ksl_vec3_t>& vertices,
+shift::core::KdLists::KdLists(std::vector<ksl_vec3_t>& vertices,
                         std::vector<int> p01[3], std::vector<int> p10[3]) {
 
   nodes_ = new class KdSortNode*[3];
@@ -397,7 +397,7 @@ shift::KdLists::KdLists(std::vector<ksl_vec3_t>& vertices,
 /*!
 @brief remove node from doubly linked list
 */
-void shift::KdList::remove(KdSortNode* node, int axis) {
+void shift::core::KdList::remove(KdSortNode* node, int axis) {
 
   if(node == head_[axis] && node == tail_[axis]) {
     head_[axis] = NULL;
@@ -460,7 +460,7 @@ void* sort_by_axis(void* void_ptr) {
 /*!
   @brief parallel sorts vertices by x, y, and z axes simultaneously
 */
-template <typename T> void shift::KdTree<T>::sortVertices() {
+template <typename T> void shift::core::KdTree<T>::sortVertices() {
 
   pthread_t threads[3];
   sort_by_axis_t data[3];
@@ -500,7 +500,7 @@ inline double squareddistance(const ksl_vec3_t* __restrict__ point1,
 }
 
 template <typename T>
-void shift::KdTree<T>::nearest(const int nodeIndex, const T& point,
+void shift::core::KdTree<T>::nearest(const int nodeIndex, const T& point,
                                int& closest, double& minimumDistance) {
 
   if(nodeIndex == -1) {
@@ -538,7 +538,7 @@ void shift::KdTree<T>::nearest(const int nodeIndex, const T& point,
 @brief nearest neighbor search
 */
 template <typename T>
-int shift::KdTree<T>::nnsearch(const T& vertex, double& minimumDistance) {
+int shift::core::KdTree<T>::nnsearch(const T& vertex, double& minimumDistance) {
 
   minimumDistance = DBL_MAX;
   int closest = -1;

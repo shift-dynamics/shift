@@ -34,10 +34,6 @@ set(shift_core_src
   constraint/base.cc
   constraint/chord.cc
 
-  behavior/base.cc
-  behavior/contactdetection.cc
-  behavior/ik_7dof.cc
-
   forcemodule/base.cc
   forcemodule/contact.cc
   forcemodule/pid.cc

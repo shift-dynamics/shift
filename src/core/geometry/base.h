@@ -22,7 +22,7 @@ namespace geometry {
 */
 class Base
   : public shift::core::Base
-  , public parameter::List {
+  , public shift::core::parameter::List {
 
 public:
   Base(std::string name)

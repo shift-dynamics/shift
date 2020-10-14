@@ -1,15 +1,15 @@
 #include "shift/core/behavior/base.h"
 #include "shift/core/behavior/contactdetection.h"
-#include "shift/core/behavior/ik_7dof.h"
+// #include "shift/core/behavior/ik_7dof.h"
 #include "shift/core/context.h"
 
 bool shift::core::behavior::Modules::initialized() {
   if(!shift::core::behavior::ContactDetection::isRegistered()) {
     return false;
   }
-  if(!shift::core::behavior::IK7DOF::isRegistered()) {
-    return false;
-  }
+//  if(!shift::core::behavior::IK7DOF::isRegistered()) {
+//    return false;
+//  }
   return true;
 }
 

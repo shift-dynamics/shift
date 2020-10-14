@@ -22,18 +22,18 @@ class Context;
 \brief Shift Assembly datastructure
 */
 class ModelParameters
-  : public shift::core::Base
-  , public shift::core::parameter::List {
+  : public Base
+  , public parameter::List {
 
 public:
-  ModelParameters(shift::core::Context* context)
-    : shift::core::Base("") {
+  ModelParameters(Context* context)
+    : Base("") {
     context_ = context;
     addParameters();
   }
 
   ModelParameters()
-    : shift::core::Base("") {
+    : Base("") {
     addParameters();
   }
 
@@ -92,9 +92,9 @@ private:
   bool contact_detection_enabled_ = false;
   ksl_vec3_t viewport_background_color_ = {{1.0, 1.0, 1.0}};
 
-  shift::core::parameter::FactoryArray<solver::Base> solvers_;
-  shift::core::parameter::FactoryArray<integrator::Base> integrators_;
-  shift::core::parameter::FactoryArray<logger::Base> loggers_;
+  parameter::FactoryArray<solver::Base> solvers_;
+  parameter::FactoryArray<integrator::Base> integrators_;
+  parameter::FactoryArray<logger::Base> loggers_;
   Units units_;
 
   FILE* debug_pointer_ = nullptr;

@@ -37,7 +37,7 @@ namespace joint {
 */
 class Base
   : public shift::core::Base
-  , public parameter::List {
+  , public shift::core::parameter::List {
 
 public:
   Base(std::string name)
@@ -123,11 +123,11 @@ public:
     }
   }
 
-  shift::core::Frame* parentFrame() {
+  Frame* parentFrame() {
     return parent_frame_ptr_;
   }
 
-  shift::core::Frame* systemParentFrame() {
+  Frame* systemParentFrame() {
     if(sense_ >= 0) {
       return parent_frame_ptr_;
     } else {

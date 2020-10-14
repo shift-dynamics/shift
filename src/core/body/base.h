@@ -24,7 +24,6 @@ class Base;
 }
 
 class Assembly;
-
 class Context;
 
 namespace body {
@@ -177,11 +176,11 @@ protected:
                                  attached to it, i.e. that the body comprises a
                                  link of an articulated assembly of bodies */
 
-  parameter::Array<Frame> frames_;
+  shift::core::parameter::Array<shift::core::Frame> frames_;
 
-  parameter::FactoryArray<shift::core::light::Base> lights_;
-  parameter::FactoryArray<geometry::Base> geometry_;
-  parameter::FactoryArray<collisiongeometry::Base> collision_geometry_;
+  shift::core::parameter::FactoryArray<shift::core::light::Base> lights_;
+  shift::core::parameter::FactoryArray<shift::core::geometry::Base> geometry_;
+  shift::core::parameter::FactoryArray<shift::core::collisiongeometry::Base> collision_geometry_;
 
   bool draw_enabled_ = true;
   bool draw_collision_geometry_enabled_ = false;

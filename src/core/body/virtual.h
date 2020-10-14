@@ -4,9 +4,10 @@
 #include "shift/core/body/base.h"
 
 namespace shift {
+namespace core {
 
 namespace joint {
-class JointBase;
+class Base;
 }
 
 namespace body {
@@ -52,19 +53,19 @@ public:
     return reference_frame_index_;
   }
 
-  void setParentJointPointer(Joint::JointBase* joint) {
+  void setParentJointPointer(shift::core::joint::Base* joint) {
     parent_joint_ptr_ = joint;
   }
 
-  Joint::JointBase* parentJointPointer() {
+  shift::core::joint::Base* parentJointPointer() {
     return parent_joint_ptr_;
   }
 
-  void setParentBodyPointer(BodyBase* body) {
+  void setParentBodyPointer(Base* body) {
     parent_body_ptr_ = body;
   }
 
-  BodyBase* parentBodyPointer() {
+  Base* parentBodyPointer() {
     return parent_body_ptr_;
   }
 
@@ -80,14 +81,14 @@ private:
   int reference_frame_index_ = -1; /*!< pointer to Body's unique reference
                                     frame */
 
-  Joint::JointBase* parent_joint_ptr_ =
+  shift::core::joint::Base* parent_joint_ptr_ =
     nullptr; /*!< Pointer to Body's unique
               *parent* Joint datastructure */
 
-  BodyBase* parent_body_ptr_ = nullptr; /*!< A pointer to the unique *parent*
+  Base* parent_body_ptr_ = nullptr; /*!< A pointer to the unique *parent*
                                        Body*/
 
-  Frame* parent_frame_ptr_ =
+  shift::core::Frame* parent_frame_ptr_ =
     nullptr; /*!< parent frame of body reference frame */
 
   int index_ = -1; /*!< index in contiguous *run-time* array of Bodies */
@@ -97,7 +98,7 @@ private:
 };
 
 } // namespace body
-
+}
 } // namespace shift
 
 #endif

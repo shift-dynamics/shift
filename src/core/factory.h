@@ -92,108 +92,108 @@ private:
 
 /*! indicate that factory_map_ exists for bodies */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::behavior::Base>::CreateFunction>
-  shift::core::Factory<shift::core::behavior::Base>::factory_map_;
+std::map<std::string, Factory<behavior::Base>::CreateFunction>
+  Factory<behavior::Base>::factory_map_;
 
 /*! indicate that Behavior specialization exists */
-extern template class shift::core::Factory<shift::core::behavior::Base>;
+extern template class Factory<behavior::Base>;
 
 /*! indicate that factory_map_ exists for bodies */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::body::Base>::CreateFunction>
-  shift::core::Factory<shift::core::body::Base>::factory_map_;
+std::map<std::string, Factory<body::Base>::CreateFunction>
+  Factory<body::Base>::factory_map_;
 
 /*! indicate that Body specialization exists */
-extern template class shift::core::Factory<shift::core::body::Base>;
+extern template class Factory<body::Base>;
 
 /*! indicate that factory_map_ exists for CollisionGeometry */
 template <>
 std::map<std::string,
-         shift::core::Factory<shift::core::collisiongeometry::Base>::CreateFunction>
-  shift::core::Factory<shift::core::collisiongeometry::Base>::factory_map_;
+         Factory<collisiongeometry::Base>::CreateFunction>
+  Factory<collisiongeometry::Base>::factory_map_;
 
 /*! indicate that CollisionGeometry specialization exists */
-extern template class shift::core::Factory<shift::core::collisiongeometry::Base>;
+extern template class Factory<collisiongeometry::Base>;
 
 /*! indicate that factory_map_ exists for Constraint */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::constraint::Base>::CreateFunction>
-  shift::core::Factory<shift::core::constraint::Base>::factory_map_;
+std::map<std::string, Factory<constraint::Base>::CreateFunction>
+  Factory<constraint::Base>::factory_map_;
 
 /*! indicate that Constraint specialization exists */
-extern template class shift::core::Factory<shift::core::constraint::Base>;
+extern template class Factory<constraint::Base>;
 
 /*! indicate that factory_map_ exists for forcemodule */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::forcemodule::Base>::CreateFunction>
-  shift::core::Factory<shift::core::forcemodule::Base>::factory_map_;
+std::map<std::string, Factory<forcemodule::Base>::CreateFunction>
+  Factory<forcemodule::Base>::factory_map_;
 
 /*! indicate that forcemodule specialization exists */
-extern template class shift::core::Factory<shift::core::forcemodule::Base>;
+extern template class Factory<forcemodule::Base>;
 
 /*! indicate that factory_map_ exists for Geometry */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::geometry::Base>::CreateFunction>
-  shift::core::Factory<shift::core::geometry::Base>::factory_map_;
+std::map<std::string, Factory<geometry::Base>::CreateFunction>
+  Factory<geometry::Base>::factory_map_;
 
 /*! indicate that Geometry specialization exists */
-extern template class shift::core::Factory<shift::core::geometry::Base>;
+extern template class Factory<geometry::Base>;
 
 /*! indicate that factory_map_ exists for Integrator */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::integrator::Base>::CreateFunction>
-  shift::core::Factory<shift::core::integrator::Base>::factory_map_;
+std::map<std::string, Factory<integrator::Base>::CreateFunction>
+  Factory<integrator::Base>::factory_map_;
 
 /*! indicate that Integrator specialization exists */
-extern template class shift::core::Factory<shift::core::integrator::Base>;
+extern template class Factory<integrator::Base>;
 
 /*! indicate that factory_map_ exists for Joint */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::joint::Base>::CreateFunction>
-  shift::core::Factory<shift::core::joint::Base>::factory_map_;
+std::map<std::string, Factory<joint::Base>::CreateFunction>
+  Factory<joint::Base>::factory_map_;
 
 /*! indicate that Joint specialization exists */
-extern template class shift::core::Factory<shift::core::joint::Base>;
+extern template class Factory<joint::Base>;
 
 /*! indicate that factory_map_ exists for Light */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::light::Base>::CreateFunction>
-  shift::core::Factory<shift::core::light::Base>::factory_map_;
+std::map<std::string, Factory<light::Base>::CreateFunction>
+  Factory<light::Base>::factory_map_;
 
 /*! indicate that Light specialization exists */
-extern template class shift::core::Factory<shift::core::light::Base>;
+extern template class Factory<light::Base>;
 
 /*! indicate that factory_map_ exists for Logger */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::logger::Base>::CreateFunction>
-  shift::core::Factory<shift::core::logger::Base>::factory_map_;
+std::map<std::string, Factory<logger::Base>::CreateFunction>
+  Factory<logger::Base>::factory_map_;
 
 /*! indicate that Logger specialization exists */
-extern template class shift::core::Factory<shift::core::logger::Base>;
+extern template class Factory<logger::Base>;
 
 /*! indicate that factory_map_ exists for Sensor */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::sensor::Base>::CreateFunction>
-  shift::core::Factory<shift::core::sensor::Base>::factory_map_;
+std::map<std::string, Factory<sensor::Base>::CreateFunction>
+  Factory<sensor::Base>::factory_map_;
 
 /*! indicate that Sensor specialization exists */
-extern template class shift::core::Factory<shift::core::sensor::Base>;
+extern template class Factory<sensor::Base>;
 
 /*! indicate that factory_map_ exists for Solver */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::solver::Base>::CreateFunction>
-  shift::core::Factory<shift::core::solver::Base>::factory_map_;
+std::map<std::string, Factory<solver::Base>::CreateFunction>
+  Factory<solver::Base>::factory_map_;
 
 /*! indicate that Solver specialization exists */
-extern template class shift::core::Factory<shift::core::solver::Base>;
+extern template class Factory<solver::Base>;
 
 /*! indicate that factory_map_ exists for Terrain */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::terrain::Base>::CreateFunction>
-  shift::core::Factory<shift::core::terrain::Base>::factory_map_;
+std::map<std::string, Factory<terrain::Base>::CreateFunction>
+  Factory<terrain::Base>::factory_map_;
 
 /*! indicate that Terrain specialization exists */
-extern template class shift::core::Factory<shift::core::terrain::Base>;
+extern template class Factory<terrain::Base>;
 
 template <class T>
 class Registration {

@@ -10,7 +10,7 @@ shift::core::behavior::ContactDetection::create() {
   return std::make_unique<shift::core::behavior::ContactDetection>();
 }
 
-class shift::Registration<shift::core::behavior::Base>
+class shift::core::Registration<shift::core::behavior::Base>
   registration("contact_detection", shift::core::behavior::ContactDetection::create);
 
 void shift::core::behavior::ContactDetection::addParameters() {
