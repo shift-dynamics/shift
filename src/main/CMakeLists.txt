@@ -1,6 +1,4 @@
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5Widgets CONFIG REQUIRED)
+find_package(Qt5 COMPONENTS Core Widgets Gui REQUIRED)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
@@ -29,9 +27,8 @@ target_compile_options(
   -Wall
   -Wextra
   -g3
-  # -O3
+  -O3
   -std=c++17
-  # -gdb
 )
 
 target_include_directories(
