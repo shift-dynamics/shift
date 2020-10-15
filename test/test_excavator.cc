@@ -1,30 +1,20 @@
 #include "gtest/gtest.h"
 #include <iostream>
+#include <string>
 
-#include "shift/core/bitfield.h"
+#include "shift/core/context.h"
+#include "shift/config.h"
 
-TEST(BitField, SetTrue) {
-  Shift::BitField b = Shift::BitField(37);
-  b.print();
+TEST(Excavator, DiffLogs) {
 
-  b.setTrue(3);
-  b.setTrue(13);
-  b.setTrue(21);
+  std::string root_dir(SHIFT_ROOT_DIR);
+  std::string json_file = 
+    root_dir + "/external/models/excavator/excavator.json"; 
+  std::cout << json_file << std::endl;
 
-  b.print();
+  shift::core::Context context;
+  context.loadJSON(json_file);
+  context.digraphFrames();
+  context.simulate();
 
-  EXPECT_TRUE(b.get(3));
-  EXPECT_TRUE(b.get(13));
-  EXPECT_TRUE(b.get(21));
-
-  EXPECT_FALSE(b.get(4));
-  EXPECT_FALSE(b.get(14));
-  EXPECT_FALSE(b.get(22));
-
-  b.setFalse(3);
-  EXPECT_FALSE(b.get(3));
-
-  b.clear();
-  EXPECT_FALSE(b.get(13));
-  EXPECT_FALSE(b.get(21));
 }
