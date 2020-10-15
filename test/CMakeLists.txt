@@ -3,6 +3,7 @@ find_package(GTest REQUIRED)
 add_executable(shift-test
   main.cc
   test_bitfield.cc
+  test_excavator.cc
   # test_kdtree.cc
 )
 
@@ -14,8 +15,23 @@ target_include_directories(shift-test PRIVATE
 )
 
 target_link_libraries(shift-test
-    shift_core
-    ${GTEST_BOTH_LIBRARIES}
+  shift_core
+  ${GTEST_BOTH_LIBRARIES}
+)
+
+target_compile_options(
+  shift-test
+  PRIVATE
+  -march=x86-64
+  -mtune=generic
+  -fstack-protector-strong
+  --param=ssp-buffer-size=4
+  -W
+  -lstdc++
+  -Wall
+  -Wextra
+  -g3
+  -std=c++17
 )
 
 add_test(NAME shift-test

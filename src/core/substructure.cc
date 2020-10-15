@@ -383,6 +383,7 @@ shift::core::Substructure::evaluateConstraints(const shift::core::topology::DHVA
 
     if(fabs(trace) > 1.0e-5) {
       context_->digraphFrames();
+      std::cout << "exiting! here" << std::endl;
       exit(1);
     };
   }
