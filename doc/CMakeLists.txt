@@ -51,22 +51,22 @@ if(BUILD_DOCUMENTATION)
   	)
 
   # running doxyrest to convert doxygen to rst format
-  add_custom_target(doxyrest
-    COMMAND doxyrest ${DOXYREST_CMD_LINE}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-    COMMENT "Generating .rst from Doxygen .xml listing using Doxyrest"
-    VERBATIM)
+  #  add_custom_target(doxyrest
+  #  COMMAND doxyrest ${DOXYREST_CMD_LINE}
+  #  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+  #  COMMENT "Generating .rst from Doxygen .xml listing using Doxyrest"
+  #  VERBATIM)
 
-  add_dependencies(doxyrest doxygen)
+  #add_dependencies(doxyrest doxygen)
 
   # generate sphinx documentation
-  add_custom_target(doc
-    COMMAND make html
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-    COMMENT "Generating API documentation with Sphinx"
-    VERBATIM)
+  # add_custom_target(doc
+  #  COMMAND make html
+  #  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+  #  COMMENT "Generating API documentation with Sphinx"
+  #  VERBATIM)
 
-  add_dependencies(doc doxyrest)
+  # add_dependencies(doc doxyrest)
 
   # optionally install doxygen documentation to /share/doc
   install(

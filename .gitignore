@@ -1,5 +1,7 @@
 build
+builds
 bin
 vgcore*
+CMakeLists.txt.user
 *.dat
 *.csv
