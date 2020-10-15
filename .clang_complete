@@ -22,3 +22,6 @@
 -Iexternal/ksl/include
 -Ibuild/src/gui/shift_gui_autogen/include
 -std=c++17
+-Iexternal/argagg/include
+-Ibuild
+-DSHIFT_VERIFY_EQUATIONS_

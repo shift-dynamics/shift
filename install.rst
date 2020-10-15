@@ -27,7 +27,7 @@ In addition to the git submodules that are packaged with the *Shift* repository,
 
 *   `Cmake <https://cmake.org>`_
 *   `Assimp <http://assimp.sourceforge.net>`_
-*   `Jansson <http://www.digip.org/jansson/>`_
+*   `Jsoncpp <https://github.com/open-source-parsers/jsoncpp/>`_
 *   `Qt5 <http://www.qt.io/developers/>`_
 *   `Graphviz <http://www.graphviz.org/>`_
 *   `Cblas <http://www.netlib.org/blas/>`_
@@ -49,7 +49,7 @@ Arch Linux:
 
 .. code::
 
-    pacman -S cmake assimp jansson qt5 graphviz cblas imagemagick qhull pandoc
+    pacman -S cmake assimp jsoncpp qt5 graphviz cblas imagemagick qhull pandoc
     vulkan-icd-loader vulkan-headers vulkan-validation-layers vulkan-tools glslang sed
 
 
@@ -58,7 +58,7 @@ Ubuntu / Debian-based Linux Distributions:
 
 .. code::
 
-    apt-get install cmake assimp jansson qt5 graphviz cblas libmagickwand-dev libqhull-dev pandoc
+    apt-get install cmake assimp jsoncpp qt5 graphviz cblas libmagickwand-dev libqhull-dev pandoc
 
 
 Macintosh
@@ -68,7 +68,7 @@ On a Macintosh, the dependencies can be installed using the *brew* package manag
 
 .. code::
 
-    brew install cmake assimp jansson qt5 graphviz imagemagick qhull pandoc
+    brew install cmake assimp jsoncpp qt5 graphviz imagemagick qhull pandoc
 
 
 The Cblas package is already available on a Macintosh using the *accelerate*
