@@ -24,4 +24,6 @@
 -std=c++17
 -Iexternal/argagg/include
 -Ibuild
+-Ibuild/include
 -DSHIFT_VERIFY_EQUATIONS_
+
