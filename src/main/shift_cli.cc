@@ -1,18 +1,26 @@
 #include "argagg/argagg.hpp"
-#include "shift/core/context.h"
-#include "shift/version.h"
 
+#include "shift/config.h"
+#include "shift/core/Context.h"
+#include "shift/core/Exception.h"
+
+#include <algorithm>
 #include <iostream>
 
 int main(int argc, char* argv[]) {
 
-  argagg::parser argparser{{
-    {"help", {"-h", "--help"}, "shows this help message", 0},
-    {"digraph", {"-d", "--digraph"}, "boolean (default: false)", 0},
-    {"frame_digraph", {"-f", "--frame-digraph"}, "boolean (default: false)", 0},
-    {"input", {"-i", "--input"}, "input filename, required", 1},
-    {"version", {"-v", "--version"}, "show version information", 0},
-  }};
+  argagg::parser argparser{
+    {{"help", {"-h", "--help"}, "shows this help message", 0},
+     {"digraph", {"-d", "--digraph"}, "boolean (default: false)", 0},
+     {"frame_digraph",
+      {"-f", "--frame-digraph"},
+      "boolean (default: false)",
+      0},
+     {"input", {"-i", "--input"}, "input filename, required", 1},
+     {"no_simulation",
+      {"-n", "--no-simulation"},
+      "validate input file only, do not run simulation (default: false)",
+      0}}};
 
   argagg::parser_results args;
   try {
@@ -22,51 +30,55 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  if(args["version"]) {
-    std::cout << "Shift " << SHIFT_VERSION_MAJOR << "." << SHIFT_VERSION_MINOR
-              << "." << SHIFT_VERSION_PATCH << std::endl;
-    std::cout << "  branch: " << SHIFT_GIT_BRANCH << std::endl;
-    std::cout << "  commit: " << SHIFT_GIT_COMMIT_HASH << std::endl;
-    return 0;
+  std::string executable(argv[0]);
+  size_t last = executable.find_last_of("/\\") + 1;
+  if(last < executable.length()) {
+    executable = executable.substr(last);
   }
+  std::cout << executable << " v" << SHIFT_VERSION_MAJOR << "."
+            << SHIFT_VERSION_MINOR << "." << SHIFT_VERSION_PATCH << " ";
+  std::cout << "branch: " << SHIFT_GIT_BRANCH << " ";
+  std::cout << "commit: " << SHIFT_GIT_COMMIT_HASH << std::endl;
 
   std::cout << "processing arguments:" << std::endl;
 
-  bool digraph = false;
-  if(args["digraph"]) {
-    digraph = true;
+  for(const auto& arg : args.options) {
+    if(arg.first != "help") {
+      std::string temp(arg.first);
+      std::replace(temp.begin(), temp.end(), '_', '-');
+      std::cout << "  --" << temp << ": " << std::flush;
+      try {
+        std::cout << arg.second.as<std::string>() << std::endl;
+      } catch(const std::exception&) {
+        std::cout << (args[arg.first] ? "true" : "false") << std::endl;
+      }
+    }
   }
-  std::cout << "    --digraph " << (digraph ? "true" : "false") << std::endl;
+  std::cout << std::endl;
 
-  bool digraph_frames = false;
-  if(args["frame_digraph"]) {
-    digraph_frames = true;
-  }
-  std::cout << "    --digraph-frames " << (digraph_frames ? "true" : "false")
-            << std::endl;
+  try {
+    shift::core::Context context;
+    context.loadJSON(args["input"].as<std::string>());
 
-  std::string filename;
-  if(args["input"]) {
-    filename = args["input"].as<std::string>();
-    std::cout << "    --input " << filename << std::endl;
-  } else {
-    std::cout << argparser << std::endl;
-    return -1;
-  }
+    if(args["digraph"]) {
+      context.digraph();
+      return EXIT_SUCCESS;
+    }
 
-  shift::core::Context context;
-  context.loadJSON(filename);
-
-  if(digraph) {
-    context.digraph();
-    exit(0);
-  }
-
-  if(digraph_frames) {
-    context.digraphFrames();
-    exit(0);
+    if(args["digraph_frames"]) {
+      context.digraphFrames();
+      return EXIT_SUCCESS;
+    }
+    if(!args["no_simulation"]) {
+      context.simulate();
+    } else {
+      context.print();
+    }
+  } catch(const shift::core::Exception& e) {
+    std::cout << e.what() << std::endl;
+    std::cout << e.backtrace() << std::endl;
+    return EXIT_FAILURE;
   }
 
-  context.simulate();
-  return 0;
+  return EXIT_SUCCESS;
 }

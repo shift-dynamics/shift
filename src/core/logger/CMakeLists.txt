@@ -1,42 +1,34 @@
+set(HDF5_PREFER_PARALLEL true)
+find_package(HDF5 COMPONENTS CXX HL REQUIRED)
+
 add_library(
   shift_core_logger
-  base.cc
-  csv.cc
-  hdf5.cc
+  Base.cc
+  CSV.cc
+  HDF5.cc
 )
 
 target_include_directories(
   shift_core_logger
   PUBLIC
-  ${CMAKE_BINARY_DIR}/include
-  ${JSONCPP_INCLUDE_DIR}
+  ${SHIFT_CORE_INCLUDE_DIRS}
+  ${HDF5_INCLUDE_DIRS}
+  ${HDF5_CXX_INCLUDE_DIRS}
 )
 
 target_compile_options(
   shift_core_logger
   PRIVATE
-  -march=x86-64
-  -mtune=generic
-  -fstack-protector-strong
-  --param=ssp-buffer-size=4
-  -W
-  -lstdc++
-  -Wall
-  -Wextra
-  -g3
-  # -O3
-  -std=c++17
-  ${GRAPHVIZ_COMPILE_FLAGS}
-  -DSHIFT_VERIFY_EQUATIONS_=1
+  ${SHIFT_CORE_COMPILE_FLAGS}
+  ${HDF5_DEFINITIONS}
+  ${HDF5_CXX_DEFINITIONS}
 )
 
 target_link_libraries(
   shift_core_logger
-  shift_core
-  ${JsonCpp_LIBRARY}
-  ${GRAPHVIZ_GVC_LIBRARY}
-  ${GRAPHVIZ_CGRAPH_LIBRARY}
-  ${CMAKE_THREAD_LIBS_INIT}
-  ${CBLAS_LIBRARIES}
-  ksl
+  ${SHIFT_CORE_LIBRARIES}
+  ${HDF5_LIBRARIES}
+  ${HDF5_CXX_LIBRARIES}
+  ${HDF5_HL_LIBRARIES}
+  ${HDF5_CXX_HL_LIBRARIES}
 )
