@@ -27,8 +27,10 @@ target_compile_options(
   -Wall
   -Wextra
   -g3
+  -fpic
   -O3
   -std=c++17
+  -export-dynamic
 )
 
 target_include_directories(

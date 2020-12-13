@@ -1,0 +1,79 @@
+#ifndef SHIFT_JOINT_FLOAT_H_
+#define SHIFT_JOINT_FLOAT_H_
+
+#include "shift/core/Frame.h"
+#include "shift/core/joint/Base.h"
+
+namespace shift {
+namespace core {
+namespace joint {
+
+void float_d(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
+             const double*);
+
+void floatinv_d(const shift::core::Context&, topology::DHVA&,
+                const topology::Offsets&, const double*);
+
+void float_dh(const shift::core::Context&, topology::DHVA&, const topology::Offsets&,
+              const double*);
+
+void floatinv_dh(const shift::core::Context&, topology::DHVA&,
+                 const topology::Offsets&, const double*);
+
+void float_dhva(const shift::core::Context&, topology::DHVA&,
+                const topology::Offsets&, const double*, const double*);
+
+void floatinv_dhva(const shift::core::Context&, topology::DHVA&,
+                   const topology::Offsets&, const double*, const double*);
+
+class Float : public Base {
+public:
+  Float()
+    : Base() {
+    dof_ = 6;
+    q_count_ = 7;
+    dq_count_ = 6;
+    q_0_ = new double[q_count_]();
+    dq_0_ = new double[dq_count_]();
+    rotation_indices_.push_back(3);
+    rotation_indices_.push_back(4);
+    rotation_indices_.push_back(5);
+    is_rotation_ = true;
+  }
+  Float(std::string name)
+    : Base(name) {
+    dof_ = 6;
+    q_count_ = 7;
+    dq_count_ = 6;
+    q_0_ = new double[q_count_]();
+    dq_0_ = new double[dq_count_]();
+    rotation_indices_.push_back(3);
+    rotation_indices_.push_back(4);
+    rotation_indices_.push_back(5);
+    is_rotation_ = true;
+  }
+  ~Float() {
+    delete[] q_0_;
+    delete[] dq_0_;
+  }
+
+  static std::unique_ptr<Float> create();
+  static bool isRegistered() {
+    return registered_;
+  }
+
+  topology::dh_fptr Dfptr() override;
+  topology::dh_fptr DHfptr() override;
+  topology::dhva_fptr DHVAfptr() override;
+
+private:
+  virtual void addParameters() override;
+  static bool registered_;
+  shift::core::Frame frame_;
+};
+
+} // namespace joint
+}
+} // namespace shift
+
+#endif

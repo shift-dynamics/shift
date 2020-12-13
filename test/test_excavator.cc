@@ -2,19 +2,30 @@
 #include <iostream>
 #include <string>
 
-#include "shift/core/context.h"
 #include "shift/config.h"
+#include "shift/core/Context.h"
+#include "shift/core/Exception.h"
 
 TEST(Excavator, DiffLogs) {
 
-  std::string root_dir(SHIFT_ROOT_DIR);
-  std::string json_file = 
-    root_dir + "/external/models/excavator/excavator.json"; 
-  std::cout << json_file << std::endl;
+  try {
+    std::string root_dir(SHIFT_BINARY_DIR);
+    std::string json_file =
+      root_dir + "/_deps/shift-models-src/excavator/excavator.json";
+    shift::core::Context context;
 
-  shift::core::Context context;
-  context.loadJSON(json_file);
-  context.digraphFrames();
-  context.simulate();
+    std::cout << "Loading: " << json_file << std::endl;
+    context.loadJSON(json_file);
 
+    std::cout << "Starting simulation" << std::endl;
+    context.simulate();
+
+  } catch(const shift::core::Exception& e) {
+    std::cout << std::endl
+              << "Caught exception: `" << e.what() << "`" << std::endl;
+    std::cout << e.backtrace() << std::endl;
+    FAIL();
+  }
+
+  SUCCEED();
 }

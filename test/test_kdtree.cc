@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "shift/core/kdtree/kdtree.h"
+#include "shift/core/kdtree/KdTree.h"
 
 TEST(KdTree, VerifyGeneration) {
 
@@ -130,4 +130,5 @@ TEST(KdTree, VerifyGeneration) {
   // for(int i = 0; i < 1000; i++) {
   //   printf("%d %d ", results1[i], results2[i]);
   // }
+  SUCCESS();
 }
