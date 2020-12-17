@@ -4,11 +4,14 @@
 #include <QFuture>
 #include <QVulkanInstance>
 
+namespace shift {
+namespace gui {
+
 struct ShaderData {
   bool isValid() const {
-    return shaderModule != VK_NULL_HANDLE;
+    return shader_module != VK_NULL_HANDLE;
   }
-  VkShaderModule shaderModule = VK_NULL_HANDLE;
+  VkShaderModule shader_module = VK_NULL_HANDLE;
 };
 
 class Shader {
@@ -21,9 +24,12 @@ public:
   void reset();
 
 private:
-  bool maybeRunning_ = false;
+  bool maybe_running_ = false;
   QFuture<ShaderData> future_;
   ShaderData data_;
 };
+
+}
+}
 
 #endif

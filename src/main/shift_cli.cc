@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
       return EXIT_SUCCESS;
     }
 
-    if(args["digraph_frames"]) {
+    if(args["frame_digraph"]) {
       context.digraphFrames();
       return EXIT_SUCCESS;
     }

@@ -9,8 +9,10 @@ namespace core {
 namespace utility {
 
 const std::string currentDateTime();
-const std::string stripFileExtension(std::string);
-const std::string getFileExtension(std::string);
+const std::string stripFileExtension(const std::string&);
+const std::string getFileExtension(const std::string&);
+const std::string getParentPath(const std::string&);
+bool fileExists(const std::string&);
 
 } // namespace utility
 } // namespace core

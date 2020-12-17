@@ -6,13 +6,14 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 set(shift_gui_src
-  ${CMAKE_CURRENT_SOURCE_DIR}/workspace.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/workspace.ui
-  ${CMAKE_CURRENT_SOURCE_DIR}/vulkanwindow.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/camera.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/mesh.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/shader.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/trianglerenderer.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Workspace.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Workspace.ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/OrbitalCamera.cc
+    # ${CMAKE_CURRENT_SOURCE_DIR}/Mesh.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Shader.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/TriangleRenderer.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/VulkanWindow.cc
 )
 add_library(shift_gui STATIC ${shift_gui_src})
 

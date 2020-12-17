@@ -369,6 +369,10 @@ public:
     return q_copy_;
   }
 
+  const std::string filename() {
+    return filename_;
+  }
+
 private:
   struct dqTodyIndex {
     unsigned int q;

@@ -1,5 +1,5 @@
-#include "shift/gui/vulkanwindow.h"
-#include "shift/gui/workspace.h"
+#include "shift/gui/VulkanWindow.h"
+#include "shift/gui/Workspace.h"
 
 #include <QApplication>
 #include <QLibraryInfo>
@@ -38,10 +38,10 @@ int main(int argc, char* argv[]) {
     qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
   }
 
-  VulkanWindow* vulkanWindow = new VulkanWindow;
-  vulkanWindow->setVulkanInstance(&inst);
+  shift::gui::VulkanWindow* vulkan_window = new shift::gui::VulkanWindow;
+  vulkan_window->setVulkanInstance(&inst);
 
-  shift::Workspace workspace(vulkanWindow);
+  shift::gui::Workspace workspace(vulkan_window);
   workspace.setMouseTracking(true);
   workspace.showMaximized();
 
