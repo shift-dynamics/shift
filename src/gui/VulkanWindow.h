@@ -1,9 +1,12 @@
 #ifndef SHIFT_GUI_VULKANWINDOW_H_
 #define SHIFT_GUI_VULKANWINDOW_H_
 
-#include "shift/gui/trianglerenderer.h"
+#include "shift/gui/TriangleRenderer.h"
 
 #include <QWidget>
+
+namespace shift {
+namespace gui {
 
 class VulkanWindow;
 
@@ -25,5 +28,8 @@ signals:
   void vulkanInfoReceived(const QString& text);
   void frameQueued(int colorValue);
 };
+
+}
+}
 
 #endif

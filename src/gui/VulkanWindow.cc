@@ -1,4 +1,4 @@
-#include "shift/gui/vulkanwindow.h"
+#include "shift/gui/VulkanWindow.h"
 
 #include <QApplication>
 #include <QFileDialog>
@@ -10,18 +10,18 @@
 #include <QVBoxLayout>
 #include <QVulkanFunctions>
 
-QVulkanWindowRenderer* VulkanWindow::createRenderer() {
+QVulkanWindowRenderer* shift::gui::VulkanWindow::createRenderer() {
   return new VulkanRenderer(this);
 }
 
-VulkanRenderer::VulkanRenderer(VulkanWindow* w)
+shift::gui::VulkanRenderer::VulkanRenderer(VulkanWindow* w)
   : TriangleRenderer(w) {}
 
-void VulkanRenderer::initResources() {
+void shift::gui::VulkanRenderer::initResources() {
   TriangleRenderer::initResources();
 
   QVulkanInstance* inst = window_->vulkanInstance();
-  devFuncs_ = inst->deviceFunctions(window_->device());
+  funcs_ = inst->deviceFunctions(window_->device());
 
   QString info;
   info += QString().asprintf("Number of physical devices: %d\n",
@@ -67,7 +67,7 @@ void VulkanRenderer::initResources() {
   emit static_cast<VulkanWindow*>(window_)->vulkanInfoReceived(info);
 }
 
-void VulkanRenderer::startNextFrame() {
+void shift::gui::VulkanRenderer::startNextFrame() {
   TriangleRenderer::startNextFrame();
   emit static_cast<VulkanWindow*>(window_)->frameQueued(int(rotation_) % 360);
 }

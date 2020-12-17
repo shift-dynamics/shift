@@ -7,9 +7,10 @@ namespace Ui {
 class MainWindow;
 }
 
-class VulkanWindow;
-
 namespace shift {
+namespace gui {
+
+class VulkanWindow;
 
 class Workspace : public QMainWindow {
   Q_OBJECT
@@ -24,5 +25,7 @@ private:
 private slots:
 };
 
-} // namespace shift
+}
+}
+
 #endif

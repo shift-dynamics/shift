@@ -1,6 +1,6 @@
-#include "shift/gui/workspace.h"
-#include "shift/gui/vulkanwindow.h"
-#include "ui_workspace.h"
+#include "shift/gui/VulkanWindow.h"
+#include "shift/gui/Workspace.h"
+#include "ui_Workspace.h"
 
 #include <QApplication>
 #include <QGuiApplication>
@@ -11,9 +11,8 @@
 #include <QtCore/QDebug>
 #include <QtWidgets/QTreeWidget>
 
-namespace shift {
-
-Workspace::Workspace(VulkanWindow* vulkanWindow, QWidget* parent)
+shift::gui::Workspace::Workspace(shift::gui::VulkanWindow* vulkanWindow,
+                                 QWidget* parent)
   : QMainWindow(parent)
   , ui_(new Ui::MainWindow) {
 
@@ -38,8 +37,7 @@ Workspace::Workspace(VulkanWindow* vulkanWindow, QWidget* parent)
   // setLayout(layout);
 }
 
-Workspace::~Workspace() {
+shift::gui::Workspace::~Workspace() {
   delete ui_;
 }
 
-} // namespace shift

@@ -3,6 +3,9 @@
 
 #include <QVulkanWindow>
 
+namespace shift {
+namespace gui {
+
 class TriangleRenderer : public QVulkanWindowRenderer {
 public:
   TriangleRenderer(QVulkanWindow* w, bool msaa = false);
@@ -18,23 +21,26 @@ protected:
   VkShaderModule createShader(const QString& name);
 
   QVulkanWindow* window_;
-  QVulkanDeviceFunctions* devFuncs_;
+  QVulkanDeviceFunctions* funcs_;
 
-  VkDeviceMemory bufMem_ = VK_NULL_HANDLE;
-  VkBuffer buf_ = VK_NULL_HANDLE;
+  VkDeviceMemory buffer_memory_ = VK_NULL_HANDLE;
+  VkBuffer buffer_ = VK_NULL_HANDLE;
   VkDescriptorBufferInfo
-    uniformBufInfo_[QVulkanWindow::MAX_CONCURRENT_FRAME_COUNT];
+    uniform_buffer_info_[QVulkanWindow::MAX_CONCURRENT_FRAME_COUNT];
 
-  VkDescriptorPool descPool_ = VK_NULL_HANDLE;
-  VkDescriptorSetLayout descSetLayout_ = VK_NULL_HANDLE;
-  VkDescriptorSet descSet_[QVulkanWindow::MAX_CONCURRENT_FRAME_COUNT];
+  VkDescriptorPool descriptor_pool_ = VK_NULL_HANDLE;
+  VkDescriptorSetLayout descriptor_set_layout_ = VK_NULL_HANDLE;
+  VkDescriptorSet descriptor_set_[QVulkanWindow::MAX_CONCURRENT_FRAME_COUNT];
 
-  VkPipelineCache pipelineCache_ = VK_NULL_HANDLE;
-  VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
+  VkPipelineCache pipeline_cache_ = VK_NULL_HANDLE;
+  VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
   VkPipeline pipeline_ = VK_NULL_HANDLE;
 
-  QMatrix4x4 proj_;
+  QMatrix4x4 projection_;
   float rotation_ = 0.0f;
 };
+
+}
+}
 
 #endif

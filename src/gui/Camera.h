@@ -4,6 +4,9 @@
 #include <QMatrix4x4>
 #include <QVector3D>
 
+namespace shift {
+namespace gui {
+
 class Camera {
 public:
   Camera(const QVector3D& pos);
@@ -22,8 +25,11 @@ private:
   QVector3D pos_;
   float yaw_;
   float pitch_;
-  QMatrix4x4 yawMatrix_;
-  QMatrix4x4 pitchMatrix_;
+  QMatrix4x4 yaw_matrix_;
+  QMatrix4x4 pitch_matrix_;
 };
+
+}
+}
 
 #endif
