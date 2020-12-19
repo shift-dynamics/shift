@@ -4,16 +4,19 @@
 layout(constant_id = 0) const int max_transforms_ = 1024;
 layout(constant_id = 1) const int max_lights_ = 16;
 layout(constant_id = 2) const int max_materials_ = 1024;
-layout(constant_id = 3) const int shadow_texture_size = 4096;
+layout(constant_id = 3) const int shadow_texture_size_ = 2048;
+layout(constant_id = 4) const int max_textures_ = 2048;
 
-layout(push_constant) uniform push_constants_ {
+layout(push_constant) uniform PushConstants {
   int index;
-};
+}
+push_constants_;
 
-layout(set = 0, binding = 0) uniform camera_ {
+layout(set = 0, binding = 0) uniform Camera {
   mat4 v;
   mat4 p;
-};
+}
+camera_;
 
 struct Light {
   vec3 position;
@@ -23,14 +26,16 @@ struct Light {
   mat4 shadow_matrix;
 };
 
-layout(set = 0, binding = 1) uniform lights_ {
+layout(set = 0, binding = 1) uniform Lights {
   int count;
   int draw_shadows;
   Light light[max_lights_];
-};
+}
+lights_;
 
-layout(set = 1, binding = 0) uniform sampler2DArrayShadow tex_2D_shadow_;
-layout(set = 1, binding = 1) uniform samplerCubeArrayShadow tex_2D_shadow_cube_;
+layout(set = 1, binding = 0) uniform sampler2DArrayShadow texture_2d_shadow_;
+layout(set = 1,
+       binding = 1) uniform samplerCubeArrayShadow texture_2d_shadow_cube_;
 
 struct Transform {
   mat4 m;
@@ -40,57 +45,57 @@ struct Transform {
   int receive_shadows;
 };
 
-layout(set = 2, binding = 0) uniform transforms_ {
+layout(set = 2, binding = 0) uniform Transforms {
   Transform transform[max_transforms_];
-};
+}
+transforms_;
 
 struct Material {
-  float alpha;
-  uniform vec3 albedo;
+  vec3 albedo;
+  float occlusion;
   float roughness;
   float metalness;
-  float ambient_occlusion;
-  bool has_albedo_map;
-  bool has_metalness_map;
-  bool has_roughness_map;
-  bool has_ambient_occlusion_map;
-  bool has_normal_map;
+  float alpha;
+  int albedo_texture_index;
+  int occlusion_roughness_metalness_texture_index;
+  int normal_texture_index;
 };
 
-layout(set = 2, binding = 1) uniform materials_ {
+layout(set = 2, binding = 1) uniform Materials {
   Material material[max_materials_];
-};
+}
+materials_;
 
-layout(set = 3, binding = 0) uniform sampler2D texture_albedo_;
-layout(set = 3, binding = 1) uniform sampler2D texture_roughness_;
-layout(set = 3, binding = 2) uniform sampler2D texture_metalness_;
-layout(set = 3, binding = 3) uniform sampler2D texture_ambient_occlusion_;
-layout(set = 3, binding = 4) uniform sampler2D texture_normal_;
+layout(set = 3, binding = 0) uniform sampler2D texture_normal_[max_textures_];
+layout(set = 3, binding = 1) uniform sampler2D texture_albedo_[max_textures_];
+layout(set = 3, binding = 2) uniform sampler2D
+  texture_occlusion_roughness_metallic_[max_textures_];
 
 #ifdef VERTEX_SHADER
 layout(location = 0) in vec4 position_;
 layout(location = 1) in vec3 normal_;
-layout(location = 2) in vec2 texture_coords_;
+layout(location = 2) in vec2 uv_;
+layout(location = 3) in vec3 bitangent_;
 
 layout(location = 0) out vec3 normal_frag_;
 layout(location = 1) out vec4 position_frag_;
-layout(location = 2) out vec2 texture_coords_frag_;
+layout(location = 2) out vec2 uv_frag_;
 layout(location = 3) out vec4 eye_direction_camera_space_;
-layout(location = 4) out vec4 shadow_coord_[max_lights_];
-layout(location = 5) out vec3 world_position_;
+layout(location = 4) out vec3 world_position_;
+layout(location = 5) out vec4 shadow_coord_[max_lights_];
 
 void main() {
-  int index = push_constants_.index;
-  normal_frag_ = normalize(transforms_.transform[index].nm * normal_);
+  int index_ = push_constants_.index;
+  normal_frag_ = normalize(transforms_.transform[index_].nm * normal_);
   position_frag_ = position_;
   gl_Position =
-    camera_.p * camera_.v * transforms_.transform[index].m * position_;
+    camera_.p * camera_.v * transforms_.transform[index_].m * position_;
   if(lights_.draw_shadows == 1) {
     for(int i = 0; i < lights_.count; i++) {
       shadow_coord_[i] = lights_.light[i].shadow_matrix * position_;
     }
     eye_direction_camera_space_ =
-      -camera.v * transforms_.transform[index].m * position_;
+      -camera_.v * transforms_.transform[index_].m * position_;
   }
 }
 #endif
@@ -98,12 +103,14 @@ void main() {
 #ifdef FRAGMENT_SHADER
 layout(location = 0) in vec3 normal_frag_;
 layout(location = 1) in vec4 position_frag_;
-layout(location = 2) in vec2 texture_coords_frag_;
+layout(location = 2) in vec2 uv_frag_;
 layout(location = 3) in vec4 eye_direction_camera_space_;
-layout(location = 4) in vec4 shadow_coord_[max_lights_];
-layout(location = 5) in vec4 world_position_;
+layout(location = 4) in vec3 world_position_;
+layout(location = 5) in vec4 shadow_coord_[max_lights_];
 
 layout(location = 0) out vec4 color_frag_;
+
+const float PI = 3.14159265359;
 
 // Poisson disk used for poisson sampling
 // vec2 poissonDisk[16] = vec2[](
@@ -160,46 +167,42 @@ float offset_lookup(sampler2DArrayShadow texture_shadow, int index,
                                       float(index), location.z / location.w));
 }
 
-const float PI = 3.14159265359;
-
 void main() {
-  int index = push_constants_.index;
-  vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+  int index_ = push_constants_.index;
   vec3 V = vec3(0.0, 0.0, 1.0);
-  mat4 mv = camera_.v * transforms_.transform[index].m;
+  mat4 mv = camera_.v * transforms_.transform[index_].m;
 
-  int material_index = transforms_.transform[index].material_index;
+  int material_index = transforms_.transform[index_].material_index;
 
   vec3 albedo;
-  if(materials_.material[material_index].has_albedo_map) {
-    albedo = texture(texture_albedo_, texture_coord_frag_);
-  } else {
+  int albedo_index = materials_.material[material_index].albedo_texture_index;
+  if(albedo_index < 0) {
     albedo = materials_.material[material_index].albedo;
+  } else {
+    albedo = texture(texture_albedo_[albedo_index], uv_frag_).rgb;
   }
 
+  float occlusion;
   float roughness;
-  if(material_.material[material_index].has_roughness_map) {
-    roughness = texture(texture_roughness, texture_coord_frag_).r;
-  } else {
-    roughness = material_.material[material_index].roughness;
-  }
-
   float metalness;
-  if(material_.material[material_index].has_metalness_map) {
-    metalness = texture(texture_metalness_, texture_coord_frag_).r;
+  int orm_index = materials_.material[material_index]
+                    .occlusion_roughness_metalness_texture_index;
+
+  if(orm_index < 0) {
+    occlusion = materials_.material[material_index].occlusion;
+    roughness = materials_.material[material_index].roughness;
+    metalness = materials_.material[material_index].metalness;
   } else {
-    metalicity = material_.material[material_index].metalness;
-  }
-  
-  float ambient_occlusion;
-  if(material_.material[material_index].has_ambient_occlusion_map) {
-    ambient_occlusion = texture(texture_ambient_occlusion, texture_coord_frag_).r;
-  } else {
-    ambient_occlusion = material_.material[material_index].ambient_occlusion;
+    occlusion =
+      texture(texture_occlusion_roughness_metallic_[orm_index], uv_frag_).x;
+    roughness =
+      texture(texture_occlusion_roughness_metallic_[orm_index], uv_frag_).y;
+    metalness =
+      texture(texture_occlusion_roughness_metallic_[orm_index], uv_frag_).z;
   }
 
   vec3 F0 = vec3(0.04);
-  F0 = mix(F0, albedo, metallic);
+  F0 = mix(F0, albedo, metalness);
 
   vec3 Lo = vec3(0.0);
 
@@ -228,12 +231,13 @@ void main() {
 
     float shadow_test = 1.f;
     if(lights_.draw_shadows == 1 &&
-       transforms_.transform[index].draw_shadows == 1) {
+       transforms_.transform[index_].receive_shadows == 1) {
       shadow_test = 0.0;
       for(float y = -1.5; y <= 1.5; y += 1.0) {
         for(float x = -1.5; x <= 1.5; x += 1.0) {
-          shadow_test += offset_lookup(texture_shadow_, i, shadow_coord[i],
-                                       vec2(x, y) / float(shadow_texture_size));
+          shadow_test +=
+            offset_lookup(texture_2d_shadow_, i, shadow_coord_[i],
+                          vec2(x, y) / float(shadow_texture_size_));
         }
       }
       shadow_test /= 16.0;
@@ -265,6 +269,10 @@ void main() {
     }
 
     // begin physical based rendering
+
+    // @TODO detect if material has a normal map and do bump/normal mapping
+    vec3 N = normal_frag_;
+
     L = normalize(L);
     vec3 H = normalize(V + L);
     float dist = length(lights_.light[i].position - world_position_);
@@ -289,10 +297,12 @@ void main() {
     Lo += (kD * albedo / PI + specular) * radiance * NdotL;
   }
 
-  vec3 ambient = vec3(0.03) * albedo * ambient_occlusion;
+  vec3 ambient = vec3(0.03) * albedo * occlusion;
   vec3 color = ambient + Lo;
 
   // tone mapping using extended Reinhard operator
+  // @TODO use Reinhard operator in luminance space
+  // @TODO add whiteness threshold / exposure setting
   color = color / (color + vec3(1.0));
   color = pow(color, vec3(1.0 / 2.2));
 
