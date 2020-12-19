@@ -8,6 +8,7 @@ if(NOT SED)
 endif()
 
 set(KERNELS
+  pbr.glsl
   flat.glsl
   floor_shadow.glsl
   floor.glsl
