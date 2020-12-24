@@ -1,6 +1,0 @@
-[submodule "external/ksl"]
-	path = external/ksl
-	url = git@github.com:shift-dynamics/ksl.git
-[submodule "external/argagg"]
-	path = external/argagg
-	url = https://github.com/vietjtnguyen/argagg.git

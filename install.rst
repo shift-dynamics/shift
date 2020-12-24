@@ -10,14 +10,7 @@ To download the *Shift* repository, you will need to set up your ssh key as desc
 
 .. code::
 
-  git clone --recursive git@github.com:shift-dynamics/shift.git
-
-
-The recursive flag is necessary to initialize the submodules. If you already cloned the repository without the recursive flag, you can initialize the submodules later by issuing the command:
-
-.. code::
-
-  git submodule update --init --recursive
+  git clone git@github.com:shift-dynamics/shift.git
 
 
 Dependencies

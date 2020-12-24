@@ -25,13 +25,21 @@ find_package(Threads REQUIRED)
 find_package(cblas)
 
 include(FetchContent)
+
 FetchContent_Declare(
-    shift-models
-    GIT_REPOSITORY git@github.com:shift-dynamics/shift-models.git
+    ksl
+    GIT_REPOSITORY git@github.com:shift-dynamics/ksl.git
     GIT_TAG master
 )
+FetchContent_MakeAvailable(ksl)
 
-add_subdirectory(external)
+FetchContent_Declare(
+    argagg
+    GIT_REPOSITORY https://github.com/vietjtnguyen/argagg.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(argagg)
+
 add_subdirectory(assets)
 add_subdirectory(src)
 
@@ -40,6 +48,11 @@ if(SHIFT_BUILD_DOCS)
 endif()
 
 if(SHIFT_BUILD_TESTS)
+    FetchContent_Declare(
+      shift-models
+      GIT_REPOSITORY git@github.com:shift-dynamics/shift-models.git
+      GIT_TAG master
+    )
     FetchContent_MakeAvailable(shift-models)
     include(CTest)
     add_subdirectory(test)

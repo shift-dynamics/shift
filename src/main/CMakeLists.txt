@@ -36,7 +36,7 @@ target_compile_options(
 target_include_directories(
   shift-cli
   PUBLIC
-    ${CMAKE_SOURCE_DIR}/external/argagg/include
+    ${argagg_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
 )
 
