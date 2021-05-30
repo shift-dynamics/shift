@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
 
   if(!args.has_option("input")) {
-    std::cerr << "Error: missing required field '-i, --input'" << std::endl;
+    std::cerr << "Error: missing required parameter '-i, --input'" << std::endl;
     return EXIT_FAILURE;
   }
 

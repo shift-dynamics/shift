@@ -433,9 +433,9 @@ int shift::core::Substructure::removeConstraintViolations() {
   context_->updateDH();
   double initial_error = evaluateConstraints(context_->dhva());
 
-  if(print_constraint_error_) {
+  // if(print_constraint_error_) {
     std::cout << std::endl << "initial error: " << initial_error << std::endl;
-  }
+  //}
 
   int step = 0;
   double eps_rank_determination =
@@ -448,13 +448,13 @@ int shift::core::Substructure::removeConstraintViolations() {
     context_->updateDH();
     error = evaluateConstraints(context_->dhva());
     
-    if(print_constraint_error_) {
+    // if(print_constraint_error_) {
       for(size_t j = 0; j < q_count_; j++) {
         std::cout << q_[j] << " ";
       }
       std::cout << std::endl;
       std::cout << "  [" << step << "] error: " << error << std::endl;
-    }
+    // }
     ++step;
   }
   context_->updateDH();

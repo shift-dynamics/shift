@@ -1426,8 +1426,8 @@ void shift::core::solver::RNCA::setRHS() {
           /* -(2 * omega_N) * \dot{\phi} velocity part of baumgarte
           constraint stabilization */
           gamma_d_[offset + pr_21[k * 6 + l]] -=
-            baumgarte_2_omega_n * (dhva.v[constraints[k].child.v].at[l] -
-                                   dhva.v[constraints[k].parent.v].at[l]);
+            baumgarte_2_omega_n * (dhva.v[constraints[k].parent.v].at[l] -
+                                   dhva.v[constraints[k].child.v].at[l]);
 
           double v_term =
             baumgarte_2_omega_n * (dhva.v[constraints[k].child.v].at[l] -
@@ -1455,12 +1455,14 @@ void shift::core::solver::RNCA::setRHS() {
        * stabilization*/
 
       // integral gain
+#if 1
       for(int l = 0; l < 6; l++) {
         if(pr_21[k * 6 + l] < substructure.rank()) {
           gamma_d_[offset + pr_21[k * 6 + l]] -=
-            integral_constraint_error[k * 6 + l];
+            integral_constraint_error[chord_constraint_offset * 6 + l];
         }
       }
+#endif
     }
   }
 

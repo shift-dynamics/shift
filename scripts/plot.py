@@ -18,8 +18,8 @@ if __name__ == "__main__":
     for name in data.dtype.names[1:]:
         if "_q_" in name:
             plt.plot(t, data[name], label=name);
-    plt.legend()
-    ax1.set_ylabel('q (m/rad)')
+    plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
+    ax1.set_ylabel('q (m,rad)')
     plt.ylim(-10, 10)
 
     ax2 = plt.subplot(412, sharex=ax1)
@@ -28,7 +28,6 @@ if __name__ == "__main__":
             plt.plot(t, data[name], label=name);
     plt.ylim(-10, 10)
     ax2.set_ylabel('dq (m/s, rad/s)')
-    plt.legend()
 
     ax3 = plt.subplot(413, sharex=ax2)
     for name in data.dtype.names[1:]:
@@ -36,14 +35,13 @@ if __name__ == "__main__":
             plt.plot(t, data[name], label=name);
     plt.ylim(-20, 20)
     ax3.set_ylabel('ddq (m/s^2, rad/s^2)')
-    plt.legend()
 
     ax4 = plt.subplot(414, sharex=ax3)
     plt.plot(t, data["constraint_error"], label="Constraint error");
-    plt.legend()
-    ax4.set_ylabel('sum of constraint error')
+    ax4.set_ylabel('Sum of constraint error')
     ax4.set_xlabel('time (s)')
 
     fig = plt.gcf()
     fig.set_size_inches(9, 12)
-    plt.savefig('states.png')
+    plt.savefig('states.png', bbox_inches="tight", pad_inches=0.2)
+    plt.show()
