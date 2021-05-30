@@ -1055,10 +1055,8 @@ void shift::core::Context::processLoopMembers() {
 }
 
 void shift::core::Context::detectSubstructures() {
-  // std::cout << "detectSubstructures()" << std::endl;
+  
   if(chord_constraints_.size() > 0) {
-
-    /* detect substructures */
 
     /* contains chord constraint indices */
     std::vector<std::vector<int>> substructures;
@@ -1116,6 +1114,20 @@ void shift::core::Context::detectSubstructures() {
         }
       }
       substructures.push_back(substructure);
+    }
+
+    size_t i = 0;
+    for(auto& joint : active_joints_) {
+      std::cout << "[" << i++ << "]: " << joint->name() << std::endl;
+    }
+   
+    i = 0;
+    for(auto& loop : loop_members_) {
+      std::cout << "[" << i++ << "]: "; 
+      for(auto& member : loop) {
+        std::cout << member << " " << std::endl;
+      }
+      std::cout << std::endl;
     }
 
     /* sort loops of each substructure in monotonically increasing level order
