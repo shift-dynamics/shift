@@ -164,12 +164,6 @@ void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) 
 
     const std::vector<double>& cs = context_->jacobian().constraints();
 
-    std::cout << "constraints: ";
-    for(auto& c : cs) {
-      std::cout << c << " ";
-    }
-    std::cout << std::endl;
-
     h_ = fmax(x_ - t_, hmin_); /* limit next step size */
 
     baumgarte_omega_n_ = stability_limits_[k_] / h_ * safety_factor_;
@@ -182,12 +176,25 @@ void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) 
 
     double rho_dt = h_ * integral_gain_;
 
+    // evaluate integral error
     for(unsigned int i = 0; i < context_->constraintEquationCount(); i++) {
-      // evaluate integral error
       integral_error_[i] += cs[i] * rho_dt;
     }
 
     t_ = x_;
+
+#if 1
+    std::cout << "cs: ";
+    for(auto& c : cs) {
+      std::cout << c << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "integral_error: "; 
+    for(auto& i : integral_error_) {
+      std::cout << i << " "; 
+    }
+    std::cout << std::endl;
 
     std::cout << "(" << t_ << ") y: ";
     for(size_t i = 0; i < neqn_; i++) {
@@ -200,6 +207,7 @@ void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) 
       std::cout << dy_[i] << " ";
     }
     std::cout << std::endl;
+#endif
 
     if(x_ >= tdata_[step_] + time_step_) {
       // do logging
