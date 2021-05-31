@@ -12,20 +12,20 @@ class IES : public Base {
 public:
   IES()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   IES(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~IES() override {}
-  static std::unique_ptr<IES> create();
-  static bool isRegistered() {
+  static std::unique_ptr<IES> Create();
+  static bool is_registered() {
     return registered_;
   }
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
 };
 

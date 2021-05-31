@@ -23,30 +23,31 @@ class Base
 public:
   Base(std::string name)
     : shift::core::Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   Base()
     : shift::core::Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Base() override {}
 
-  const std::string& getType() {
-    return type_;
-  }
-
-  virtual void load();
-  virtual void connect();
-  virtual void addParameters() override;
-  virtual void setActiveObjects(bool parent_is_active) override;
-
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "behaviors";
   }
 
-  static const std::string defaultType() {
+  static const std::string get_default_type() {
     return "";
   }
+
+  const std::string& get_type() {
+    return type_;
+  }
+
+  virtual void set_objects_active(bool parent_is_active) override;
+  
+  virtual void Load();
+  virtual void Connect();
+  virtual void DeclareParameters() override;
 
 protected:
   std::string type_; //!< descriptive name of Behavior type
@@ -54,7 +55,7 @@ protected:
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace behavior

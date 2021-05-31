@@ -8,11 +8,11 @@
 
 #include <iostream>
 
-void shift::core::Assembly::addParameters() {
+void shift::core::Assembly::DeclareParameters() {
 
-  addParameter("name", &name_, "User defined descriptive assembly name.", true);
+  DeclareParameter("name", &name_, "User defined descriptive assembly name.", true);
 
-  addParameter(
+  DeclareParameter(
     "active", &active_,
     "Indicates whether current assembly is active in simulation: if "
     "set to false, the data will be loaded into computer working memory,"
@@ -21,34 +21,34 @@ void shift::core::Assembly::addParameters() {
     "model. Value defaults to 'true' if not provided.",
     false);
 
-  addParameter("assemblies", &assemblies_,
+  DeclareParameter("assemblies", &assemblies_,
                "Specifies an array of Shift assembly datastructures; each "
                "assembly in the array must have a unique name identifier.",
                false);
 
-  addParameter(
+  DeclareParameter(
     "bodies", &bodies_,
     "Specifies an array of Shift 'Body' data structures. Each body in "
     "array must have a unique name identifier.",
     false);
 
-  addParameter("joints", &joints_,
+  DeclareParameter("joints", &joints_,
                "Specifies an array of Shift 'Joint' datastructures; each joint "
                "in the array must have a unique name identifier",
                false);
 
-  addParameter("force_modules", &force_modules_,
+  DeclareParameter("force_modules", &force_modules_,
                "Specifies an array of Shift 'forcemodule' datastructures for "
                "feeding forces into a running module; each force module "
                "in the array must have a unique name identifier",
                false);
 
-  addParameter("behaviors", &behaviors_,
+  DeclareParameter("behaviors", &behaviors_,
                "Specifies an array of Shift 'Behavior' datastructures. Each "
                "behavior in the array must have a unique name identifier",
                false);
 
-  addParameter("constraints", &constraints_,
+  DeclareParameter("constraints", &constraints_,
                "Specifies one or more user-defined constraints in an array of "
                "Shift 'Constraint' datastructures. Each "
                "constraint in the array must have a unique name identifier",

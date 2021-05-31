@@ -21,11 +21,11 @@ public:
   Virtual(std::string name)
     : Base(name) {
     is_virtual_ = true;
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Virtual() override {}
   static std::unique_ptr<Virtual> create();
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 

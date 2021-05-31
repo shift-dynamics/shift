@@ -29,23 +29,23 @@ public:
   Assembly(std::string name)
     : Base(name)
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
 
   Assembly()
     : Base("")
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
 
   virtual ~Assembly() override {}
 
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "assemblies";
   }
 
 private:
-  void addParameters() override;
+  void DeclareParameters() override;
 
   shift::core::parameter::FactoryArray<body::Base> bodies_;
   shift::core::parameter::FactoryArray<behavior::Base> behaviors_;

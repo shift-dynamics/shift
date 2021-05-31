@@ -37,7 +37,7 @@ public:
     dq_count_ = 3;
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
-    addParameters();
+    DeclareParameters();
     rotation_indices_.push_back(0);
     rotation_indices_.push_back(1);
     rotation_indices_.push_back(2);
@@ -49,7 +49,7 @@ public:
     dq_count_ = 3;
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
-    addParameters();
+    DeclareParameters();
     is_rotation_ = true;
     rotation_indices_.push_back(0);
     rotation_indices_.push_back(1);
@@ -61,7 +61,7 @@ public:
   }
 
   static std::unique_ptr<Spherical> create();
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
@@ -70,7 +70,7 @@ public:
   topology::dhva_fptr DHVAfptr() override;
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
   shift::core::Frame frame_;
 };

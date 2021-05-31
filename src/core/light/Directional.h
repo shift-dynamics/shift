@@ -12,20 +12,20 @@ class Directional : public Base {
 public:
   Directional()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Directional(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Directional() override {}
-  static std::unique_ptr<Directional> create();
-  static bool isRegistered() {
+  static std::unique_ptr<Directional> Create();
+  static bool is_registered() {
     return registered_;
   }
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
 };
 

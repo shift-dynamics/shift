@@ -57,7 +57,7 @@ public:
     return &instance;
   }
 
-  bool registerModule(const std::string& name, CreateFunction pfnCreate) {
+  bool RegisterModule(const std::string& name, CreateFunction pfnCreate) {
     /* register module only if name not already taken */
     if(factory_map_.find(name) == factory_map_.end()) {
       factory_map_[name] = pfnCreate;
@@ -66,14 +66,14 @@ public:
     return false;
   }
 
-  void listModules() {
+  void ListModules() {
     for(const auto& pair : factory_map_) {
       std::cout << pair.first << " ";
     }
     std::cout << std::endl;
   }
 
-  std::unique_ptr<T> create(const std::string& name) {
+  std::unique_ptr<T> Create(const std::string& name) {
     /* if valid map does not exist, return null and throw exception */
     try {
       if(factory_map_.find(name) == factory_map_.end()) {
@@ -199,7 +199,7 @@ template <class T>
 class Registration {
 public:
   Registration(std::string name, typename Factory<T>::CreateFunction fcn) {
-    Factory<T>::get()->registerModule(name, fcn);
+    Factory<T>::get()->RegisterModule(name, fcn);
   }
 };
 }

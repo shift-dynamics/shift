@@ -93,7 +93,7 @@ public:
     dq_count_ = 1;
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
-    addParameters();
+    DeclareParameters();
   }
 
   Prismatic(std::string name)
@@ -103,7 +103,7 @@ public:
     dq_count_ = 1;
     q_0_ = new double[q_count_]();
     dq_0_ = new double[dq_count_]();
-    addParameters();
+    DeclareParameters();
   }
 
   virtual ~Prismatic() override {
@@ -111,26 +111,26 @@ public:
     delete[] dq_0_;
   }
 
-  static std::unique_ptr<Prismatic> create();
-  static bool isRegistered() {
+  static std::unique_ptr<Prismatic> Create();
+  static bool is_registered() {
     return registered_;
   }
 
-  virtual const double* data() override;
-  virtual unsigned int dataCount() override;
+  virtual const double* get_data() override;
+  virtual unsigned int get_data_count() override;
 
   topology::dh_fptr Dfptr() override;
   topology::dh_fptr DHfptr() override;
   topology::dhva_fptr DHVAfptr() override;
 
-  virtual void service(const std::vector<double>& y) override;
+  virtual void Service(const std::vector<double>& y) override;
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
   enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };
   ksl_vec3_t axis_ = ksl_vec3(0.0, 0.0, 1.0);
-  AxisType axisType();
+  AxisType get_axis_type();
 };
 
 } // namespace joint

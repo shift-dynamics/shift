@@ -1,9 +1,9 @@
 #include "shift/core/Base.h"
 
-const std::string& shift::core::Base::name() const {
+const std::string& shift::core::Base::get_name() const {
   return name_;
 }
 
-void shift::core::Base::setName(const std::string name) {
+void shift::core::Base::set_name(const std::string name) {
   name_ = name;
 }

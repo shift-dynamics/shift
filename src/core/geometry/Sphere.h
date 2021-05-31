@@ -11,21 +11,21 @@ class Sphere : public Base {
 public:
   Sphere()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Sphere(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Sphere() override {}
   static std::unique_ptr<Sphere> create();
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
 private:
-  void addParameters() override;
+  void DeclareParameters() override;
   static bool registered_;
 };
 

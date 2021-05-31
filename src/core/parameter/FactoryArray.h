@@ -18,37 +18,39 @@ public:
     : ArrayBase(context, parent_assembly, parent_body) {}
   ~FactoryArray() {}
 
-  virtual void readJSON(Json::Value& value) override;
-  virtual void setActiveObjects(bool parent_is_active) override {
+  virtual void set_objects_active(bool parent_is_active) override {
     for(auto& object : object_specializations_) {
-      object.get()->setActiveObjects(active_ && parent_is_active);
+      object.get()->set_objects_active(active_ && parent_is_active);
     }
   }
 
-  std::vector<std::unique_ptr<T>>& data() {
+  std::vector<std::unique_ptr<T>>& get_data() {
     return object_specializations_;
   }
 
-  void setContext(Context* context) {
+  void set_context(Context* context) {
     context_ = context;
   }
-  void setParentAssembly(Assembly* assembly) {
+  
+  void set_parent_assembly(Assembly* assembly) {
     parent_assembly_ptr_ = assembly;
   }
-  void setParentBody(shift::core::body::Base* body) {
+  
+  void set_parent_body(shift::core::body::Base* body) {
     parent_body_ptr_ = body;
   }
 
-  void push_back(std::unique_ptr<T>);
-
-  virtual void setParent(Context* context, Assembly* parent_assembly = nullptr,
+  virtual void set_parent(Context* context, Assembly* parent_assembly = nullptr,
                          shift::core::body::Base* parent_body = nullptr) override {
-    shift::core::parameter::ArrayBase::setParent(context, parent_assembly,
+    shift::core::parameter::ArrayBase::set_parent(context, parent_assembly,
                                            parent_body);
     for(auto& object : object_specializations_) {
-      object->setParent(context_, parent_assembly_ptr_, parent_body_ptr_);
+      object->set_parent(context_, parent_assembly_ptr_, parent_body_ptr_);
     }
   }
+
+  void PushBack(std::unique_ptr<T>);
+  virtual void ReadJSON(Json::Value& value) override;
 
 private:
   std::vector<std::unique_ptr<T>> object_specializations_;

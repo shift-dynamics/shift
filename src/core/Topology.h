@@ -155,34 +155,34 @@ typedef void (*dhva_fptr)(const shift::core::Context&, DHVA&, const Offsets&,
 level-increasing order and identifying loop members
 @{
 */
-bool matchFullyQualifiedName(const std::vector<std::string>&,
+bool MatchFullyQualifiedName(const std::vector<std::string>&,
                              const std::vector<std::string>&);
 
-bool inPath(std::vector<int>& pcl, int j, int k);
+bool InPath(std::vector<int>& pcl, int j, int k);
 
-bool isSubstructureHead(int, std::vector<std::vector<int>>&);
+bool IsSubstructureHead(int, std::vector<std::vector<int>>&);
 
-bool isSubstructureMember(int, std::vector<std::vector<int>>&);
+bool IsSubstructureMember(int, std::vector<std::vector<int>>&);
 
 /*!
 \brief set inverse permutation
 \param p forward permutation array
 \param pInverse inverse permutation array
 */
-void setInversePermutation(const std::vector<int>& p,
+void SetInversePermutation(const std::vector<int>& p,
                            std::vector<int>& pInverse);
 
-std::string getJointType(dh_fptr f);
+std::string GetJointType(dh_fptr f);
 
-std::string getBasename(const std::string& s);
+std::string GetBasename(const std::string& s);
 
-std::string getExtension(std::string& filename);
+std::string GetExtension(std::string& filename);
 
-std::string removeExtension(std::string& filename);
+std::string RemoveExtension(std::string& filename);
 
-std::string getFilename(const std::string& filename);
+std::string GetFilename(const std::string& filename);
 
-std::string getValidGraphvizExtension(std::string& extension);
+std::string GetValidGraphvizExtension(std::string& extension);
 
 /*!
 \brief generate a directed graph of a mechanism with bodies as graph nodes
@@ -190,7 +190,7 @@ and joints as graph edges and save as a DOT file. This variant does not use the
 graphviz API. The DOT file can be used to generate an image using graphviz tools
 offline.
 */
-int digraphDOT(const shift::core::Context& context, std::string fileName);
+int DigraphDOT(const shift::core::Context& context, std::string fileName);
 
 /*!
 \brief generate a directed graph of a mechanism with frames as graph nodes
@@ -198,7 +198,7 @@ and joints and relative transformations across bodies (i.e. shape matrices) as
 graph edges and save as a DOT file. This variant does not use the
 graphviz API. The DOT file can be used to generate an image using graphviz tools
 */
-int digraphFramesDOT(const shift::core::Context& context, std::string fileName);
+int DigraphFramesDOT(const shift::core::Context& context, std::string fileName);
 
 // // identify which frames in the d array correspond to body reference frames
 // void setDReferenceFrames();

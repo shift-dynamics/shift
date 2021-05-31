@@ -9,24 +9,24 @@
 #include <assimp/scene.h>
 
 bool shift::core::geometry::Mesh::registered_ =
-  shift::core::Factory<shift::core::geometry::Base>::get()->registerModule(
-    "mesh", shift::core::geometry::Mesh::create);
+  shift::core::Factory<shift::core::geometry::Base>::get()->RegisterModule(
+    "mesh", shift::core::geometry::Mesh::Create);
 
 std::unique_ptr<shift::core::geometry::Mesh>
-shift::core::geometry::Mesh::create() {
+shift::core::geometry::Mesh::Create() {
   return std::make_unique<shift::core::geometry::Mesh>();
 }
 
-void shift::core::geometry::Mesh::addParameters() {
-  addParameter("filename", &filenames_, "Specify one or more filenames to load",
+void shift::core::geometry::Mesh::DeclareParameters() {
+  DeclareParameter("filename", &filenames_, "Specify one or more filenames to load",
                true);
 }
 
-void shift::core::geometry::Mesh::load() {
+void shift::core::geometry::Mesh::Load() {
 
   assert(context_);
   std::string parent_path =
-    shift::core::utility::getParentPath(context_->filename());
+    shift::core::utility::getParentPath(context_->get_filename());
   const std::vector<std::string> include_directories =
     (*context_)["model_parameters"]["include_directories"]
       .get<std::vector<std::string>>();

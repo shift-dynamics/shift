@@ -22,9 +22,9 @@ public:
     , id_(id__++) {}
   virtual ~Base() {}
 
-  const std::string& name() const;
-  void setName(const std::string);
-  int id() const;
+  const std::string& get_name() const;
+  void set_name(const std::string);
+  int get_id() const;
   bool verify();
 
 protected:

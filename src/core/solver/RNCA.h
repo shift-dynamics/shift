@@ -18,37 +18,45 @@ class RNCA : public Base {
 public:
   RNCA(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   RNCA()
     : Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~RNCA() override {}
 
+  static bool is_registered() {
+    return registered_;
+  }
+
+  const std::string& get_description() {
+    return description_;
+  }
+
   /*! memoize equations of motion in array of source and destination pointers */
-  void memoize();
+  void Memoize();
 
   /*! set generalized mass matrix for equations of motion */
-  void setMassMatrixAndRecordFills();
-  void setMassMatrixAndRecordFills(const double y[]);
+  void SetupMassMatrixAndRecordFills();
+  void SetupMassMatrixAndRecordFills(const double y[]);
 
   /*! set generalized mass matrix for equations of motion without setting /
    * evaluating the boolean mass matrix Mlb_*/
-  void setMassMatrix();
+  void SetupMassMatrix();
 
   /*! set right hand side of equations of motion - generalized forces and
   preconditioned quadratic acceleration terms */
-  void setRHS();
+  void SetupRHS();
 
-  bool setEquations();
+  bool SetupEquations();
 
   /*! generate mass matrix and right hand side of preconditioned
   special equations of motion
    */
-  bool setEquations(const double t, const std::vector<double>& y);
-  bool setEquationsAndRecordFills();
-  bool setEquationsAndRecordFills(const double t, const std::vector<double>& y);
+  bool SetupEquations(const double t, const std::vector<double>& y);
+  bool SetupEquationsAndRecordFills();
+  bool SetupEquationsAndRecordFills(const double t, const std::vector<double>& y);
 
   /*! factor and solve the block-diagonalized preconditioned spatial equations
    * of motion using run-time optimized natural constraint algorithm
@@ -56,28 +64,24 @@ public:
    * [Ml_di Ml_ii  I   ] {ddq_d} = {fl_d}
    * [B_di 0       0   ] {la_d}  = {ga_d}
    */
-  void factorAndSolve();
+  void FactorAndSolve();
 
-  virtual bool solve(const double t, const std::vector<double>& y,
+  virtual bool Solve(const double t, const std::vector<double>& y,
                      std::vector<double>& dy) override;
 
-  const std::string& description() {
-    return description_;
-  }
-
-  static bool isRegistered() {
-    return registered_;
-  }
-
-  virtual void initialize() override;
+  virtual void Initialize() override;
 
 private:
-  virtual void addParameters() override;
-  void countOperations();
-  void recordOperations();
-  void countPointers();
-  void recordPointers();
-  bool verify(const double t, const std::vector<double>& y, double Ml[],
+
+  static bool registered_;
+  static std::unique_ptr<RNCA> Create();
+
+  virtual void DeclareParameters() override;
+  void CountOperations();
+  void RecordOperations();
+  void CountPointers();
+  void RecordPointers();
+  bool Verify(const double t, const std::vector<double>& y, double Ml[],
               double fl[]);
 
   double infinity_norm_multiplier_ = 2.0;
@@ -235,8 +239,6 @@ private:
     "Machine Theory 92:464-483, October 2015 "
     "`<https://doi.org/10.1016/j.mechmachtheory.2015.06.006>`_";
 
-  static bool registered_;
-  static std::unique_ptr<RNCA> create();
 };
 
 } // namespace solver

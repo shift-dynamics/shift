@@ -87,21 +87,21 @@ int main(int argc, char* argv[]) {
 
   try {
     shift::core::Context context;
-    context.loadJSON(args["input"].as<std::string>());
+    context.LoadJSON(args["input"].as<std::string>());
 
     if(args["digraph"]) {
-      context.digraph();
+      context.Digraph();
       return EXIT_SUCCESS;
     }
 
     if(args["frame_digraph"]) {
-      context.digraphFrames();
+      context.DigraphFrames();
       return EXIT_SUCCESS;
     }
     if(args["validate"]) {
-      context.print();
+      context.Print();
     } else {
-      context.simulate();
+      context.Simulate();
     }
   } catch(const shift::core::Exception& e) {
     std::cout << e.what() << std::endl;

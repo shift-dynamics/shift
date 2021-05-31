@@ -12,20 +12,20 @@ class Spot : public Base {
 public:
   Spot()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Spot(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Spot() override {}
-  static std::unique_ptr<Spot> create();
-  static bool isRegistered() {
+  static std::unique_ptr<Spot> Create();
+  static bool is_registered() {
     return registered_;
   }
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
 };
 

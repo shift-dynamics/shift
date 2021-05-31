@@ -3,22 +3,22 @@
 #include "shift/core/forcemodule/Contact.h"
 #include "shift/core/forcemodule/PID.h"
 
-bool shift::core::forcemodule::Modules::initialized() {
-  if(!shift::core::forcemodule::Contact::isRegistered()) {
+bool shift::core::forcemodule::Modules::is_initialized() {
+  if(!shift::core::forcemodule::Contact::is_registered()) {
     return false;
   }
-  if(!shift::core::forcemodule::PID::isRegistered()) {
+  if(!shift::core::forcemodule::PID::is_registered()) {
     return false;
   }
   return true;
 }
-void shift::core::forcemodule::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::forcemodule::Base::set_objects_active(bool parent_is_active) {
   assert(context_);
-  context_->setActive(this, parent_is_active && active_);
+  context_->ActivateObject(this, parent_is_active && active_);
 }
 
-void shift::core::forcemodule::Base::addParameters() {}
+void shift::core::forcemodule::Base::DeclareParameters() {}
 
-void shift::core::forcemodule::Base::load() {}
+void shift::core::forcemodule::Base::Load() {}
 
-void shift::core::forcemodule::Base::connect() {}
+void shift::core::forcemodule::Base::Connect() {}

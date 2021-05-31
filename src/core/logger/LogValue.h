@@ -18,11 +18,11 @@ class LogValue : public Base {
 public:
   HDF5(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   HDF5()
     : Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~HDF5() override {}
 
@@ -30,7 +30,7 @@ public:
     return description_;
   }
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
@@ -40,7 +40,7 @@ public:
                            const std::vector<double>& q) override;
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   const std::string description_ = "";
   static bool registered_;
   static std::unique_ptr<HDF5> create();

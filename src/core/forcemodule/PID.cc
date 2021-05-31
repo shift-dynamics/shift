@@ -3,26 +3,26 @@
 #include "shift/core/Factory.h"
 
 bool shift::core::forcemodule::PID::registered_ =
-  shift::core::Factory<shift::core::forcemodule::Base>::get()->registerModule(
-    "pid", shift::core::forcemodule::PID::create);
+  shift::core::Factory<shift::core::forcemodule::Base>::get()->RegisterModule(
+    "pid", shift::core::forcemodule::PID::Create);
 
-std::unique_ptr<shift::core::forcemodule::PID> shift::core::forcemodule::PID::create() {
+std::unique_ptr<shift::core::forcemodule::PID> shift::core::forcemodule::PID::Create() {
   return std::make_unique<shift::core::forcemodule::PID>();
 }
 
-void shift::core::forcemodule::PID::addParameters() {
-  shift::core::forcemodule::Base::addParameters();
-  addParameter("kp", &kp_, "proportional gain", true);
-  addParameter("ki", &ki_, "integral gain", true);
-  addParameter("kd", &kd_, "derivative gain", true);
-  addParameter("target", &target_, "target", false);
+void shift::core::forcemodule::PID::DeclareParameters() {
+  shift::core::forcemodule::Base::DeclareParameters();
+  DeclareParameter("kp", &kp_, "proportional gain", true);
+  DeclareParameter("ki", &ki_, "integral gain", true);
+  DeclareParameter("kd", &kd_, "derivative gain", true);
+  DeclareParameter("target", &target_, "target", false);
 }
 
-void shift::core::forcemodule::PID::setTarget(double target) {
+void shift::core::forcemodule::PID::set_target(double target) {
   target_ = target;
 }
 
-void shift::core::forcemodule::PID::service(const double y[], double dy[]) {
+void shift::core::forcemodule::PID::Service(const double y[], double dy[]) {
 
   double current_value = 0;
   switch(target_type_) {
@@ -30,16 +30,16 @@ void shift::core::forcemodule::PID::service(const double y[], double dy[]) {
       current_value = y[q_index_];
     } break;
     case VELOCITY: {
-      current_value = y[context_->qCount() + dq_index_];
+      current_value = y[context_->get_q_count() + dq_index_];
     } break;
   }
 
   double t;
   double delta_t;
-  context_->currentTime(t, delta_t);
+  context_->get_current_time(t, delta_t);
 
-  const double* y_f = y + context_->qCount() + context_->dqCount() + y_index_;
-  double* dy_f = dy + context_->qCount() + context_->dqCount() + y_index_;
+  const double* y_f = y + context_->get_q_count() + context_->get_dq_count() + y_index_;
+  double* dy_f = dy + context_->get_q_count() + context_->get_dq_count() + y_index_;
 
   /* calculate current error */
   error_ = target_ - current_value;
@@ -53,7 +53,7 @@ void shift::core::forcemodule::PID::service(const double y[], double dy[]) {
   /* control effort */
   double u = kp_ * error_ + ki_ * y_f[0] + kd_ * de_dt;
 
-  context_->jointWorkingForces()[dq_index_] += u;
+  context_->get_joint_working_forces()[dq_index_] += u;
 }
 
-void shift::core::forcemodule::PID::connect() {}
+void shift::core::forcemodule::PID::Connect() {}

@@ -40,23 +40,23 @@ public:
     : shift::core::Base(name)
     , shift::core::parameter::List() {
     auto origin = std::make_unique<Frame>("origin");
-    origin->setIsOrigin(true);
-    origin->setIsReference(true);
-    origin->setParentBody(this);
-    assert(origin->parentBody());
+    origin->set_is_origin(true);
+    origin->set_is_reference(true);
+    origin->set_parent_body(this);
+    assert(origin->get_parent_body());
 
-    frames_.push_back(std::move(origin));
-    addParameters();
+    frames_.PushBack(std::move(origin));
+    DeclareParameters();
   }
   Base()
     : shift::core::Base("")
     , shift::core::parameter::List() {
     auto origin = std::make_unique<Frame>("origin");
-    origin->setIsOrigin(true);
-    origin->setIsReference(true);
-    origin->setParentBody(this);
-    frames_.push_back(std::move(origin));
-    addParameters();
+    origin->set_is_origin(true);
+    origin->set_is_reference(true);
+    origin->set_parent_body(this);
+    frames_.PushBack(std::move(origin));
+    DeclareParameters();
   }
   Base(Base&& b)
     : shift::core::Base(b.name_) {
@@ -70,106 +70,107 @@ public:
     //   collisionGeometry_.push_back(std::move(i));
     // }
   }
+
   virtual ~Base() override {}
-
-  virtual void setActiveObjects(bool parent_is_active) override;
-
-  const std::string& type() {
-    return type_;
-  }
-
-  Base* parentBody();
-  virtual void load();
-  virtual void connect();
-
-  Frame* origin();
-  Frame* referenceFrame();
-  void setReferenceFrame(shift::core::Frame*);
-  void setReferenceFrame();
-  unsigned int frameCount() {
-    return frames_.size();
-  }
-
-  static const std::string arrayKey() {
+ 
+  static const std::string get_array_key() {
     return "bodies";
   }
 
-  static const std::string defaultType() {
+  static const std::string get_default_type() {
     return "rigid";
+  }
+
+  const std::string& get_type() {
+    return type_;
+  }
+  
+  Base* get_parent_body();
+  Frame* get_origin();
+  Frame* get_reference_frame();
+
+  unsigned int get_frame_count() {
+    return frames_.get_size();
   }
 
   /*!
   return number of frames in spanning tree, context->processFrames must be
   called to set frames in spanning tree.
   */
-  unsigned int frameInTreeCount();
+  unsigned int get_frame_in_tree_count();
 
-  int index() {
+  int get_index() {
     return index_;
   }
 
-  void setIndex(int index) {
-    index_ = index;
-  }
-
-  int level() {
+  int get_level() {
     return level_;
   }
 
-  std::vector<std::unique_ptr<Frame>>& frames() {
-    return frames_.data();
+  std::vector<std::unique_ptr<Frame>>& get_frames() {
+    return frames_.get_data();
   }
 
-  void setLevel(int level) {
-    level_ = level;
-  }
-
-  const joint::Base* parentJoint() {
+  const joint::Base* get_parent_joint() {
     return parent_joint_;
   }
 
-  void setParentJoint(joint::Base*);
-
-  bool isArticulated() {
-    return is_articulated_;
-  }
-
-  void setvaIndex(int index) {
-    va_index_ = index;
-  }
-
-  int vaIndex() {
+  int get_va_index() {
     return va_index_;
   }
 
-  void setDWRTReference(ksl_SE3_t);
-
-  void clearInTreeFlags();
-
-  virtual const ksl_inertia_t& inertia() const {
+  virtual const ksl_inertia_t& get_inertia() const {
     return inertia_;
   }
 
-  virtual ksl_inertia_t inertiaWRTReference() {
+  virtual ksl_inertia_t get_inertia_wrt_reference() {
     return inertia_;
   }
 
-  bool hasMass() {
-    if(inertia_.m >= 1e-9) {
-      return true;
-    }
-    return false;
+  const ksl_vec3_t get_center_of_mass_wrt_reference();
+
+
+  bool has_mass() {
+    return (inertia_.m >= 1e-9);
   }
 
-  bool isVirtual() {
+  bool is_articulated() {
+    return is_articulated_;
+  }
+
+  bool is_virtual() {
     return is_virtual_;
   }
 
-  const ksl_vec3_t centerOfMassWRTReference();
+  virtual void set_objects_active(bool parent_is_active) override;
+
+  void set_reference_frame(shift::core::Frame*);
+
+  void set_index(int index) {
+    index_ = index;
+  }
+
+  void set_level(int level) {
+    level_ = level;
+  }
+
+  void set_parent_joint(joint::Base*);
+
+  void set_va_index(int index) {
+    va_index_ = index;
+  }
+
+  void set_d_wrt_reference(ksl_SE3_t);
+
+  void ClearInTreeFlags();
+  void SetupReferenceFrame();
+  virtual void Load();
+  virtual void Connect();
+
 
 protected:
-  virtual void addParameters() override;
-  void setDWRTReference();
+  virtual void DeclareParameters() override;
+  void set_d_wrt_reference();
 
   std::string type_;
   bool is_articulated_ = true; /*!< indicates whether body may have joints
@@ -204,7 +205,7 @@ protected:
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace body

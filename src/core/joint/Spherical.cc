@@ -2,7 +2,7 @@
 #include "shift/core/Factory.h"
 
 bool shift::core::joint::Spherical::registered_ =
-  shift::core::Factory<shift::core::joint::Base>::get()->registerModule(
+  shift::core::Factory<shift::core::joint::Base>::get()->RegisterModule(
     "spherical", shift::core::joint::Spherical::create);
 
 std::unique_ptr<shift::core::joint::Spherical> shift::core::joint::Spherical::create() {
@@ -177,7 +177,7 @@ void shift::core::joint::sphericalinv_dhva(const shift::core::Context& context,
   ksl_add_ss(aqParent, &aqRelative, aqChild);
 }
 
-void shift::core::joint::Spherical::addParameters() {}
+void shift::core::joint::Spherical::DeclareParameters() {}
 
 shift::core::topology::dh_fptr shift::core::joint::Spherical::Dfptr() {
   if(sense_ >= 0) {

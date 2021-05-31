@@ -12,20 +12,20 @@ class Ellipsoid : public Base {
 public:
   Ellipsoid()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Ellipsoid(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Ellipsoid() override {}
   static std::unique_ptr<Ellipsoid> create();
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
 private:
-  void addParameters() override;
+  void DeclareParameters() override;
   static bool registered_;
 };
 

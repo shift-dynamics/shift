@@ -36,7 +36,7 @@ SUCH DAMAGE.
 #include "shift/core/joint/Rigid.h"
 #include "shift/core/joint/Spherical.h"
 
-bool shift::core::topology::matchFullyQualifiedName(
+bool shift::core::topology::MatchFullyQualifiedName(
   const std::vector<std::string>& name1,
   const std::vector<std::string>& name2) {
 
@@ -73,7 +73,7 @@ bool shift::core::topology::matchFullyQualifiedName(
 \param j index of body
 \param k index of second body to test
 */
-bool shift::core::topology::inPath(std::vector<int>& pcl, int j, int k) {
+bool shift::core::topology::InPath(std::vector<int>& pcl, int j, int k) {
   if(j == k) {
     return true;
   }
@@ -93,7 +93,7 @@ bool shift::core::topology::inPath(std::vector<int>& pcl, int j, int k) {
 \param k index of body / joint
 \param list of substructure members
 */
-bool shift::core::topology::isSubstructureHead(
+bool shift::core::topology::IsSubstructureHead(
   int k, std::vector<std::vector<int>>& substructures) {
   for(auto substructure : substructures) {
     if(k == substructure[0]) {
@@ -108,7 +108,7 @@ bool shift::core::topology::isSubstructureHead(
 \param k index of body / joint
 \param list of substructure members
 */
-bool shift::core::topology::isSubstructureMember(
+bool shift::core::topology::IsSubstructureMember(
   int bodyIndex, std::vector<std::vector<int>>& substructures) {
   for(auto substructure : substructures) {
     for(auto member : substructure) {
@@ -120,7 +120,7 @@ bool shift::core::topology::isSubstructureMember(
   return false;
 }
 
-void shift::core::topology::setInversePermutation(const std::vector<int>& p,
+void shift::core::topology::SetInversePermutation(const std::vector<int>& p,
                                             std::vector<int>& pInverse) {
   if(p.size() != pInverse.size()) {
     pInverse.resize(p.size());
@@ -130,7 +130,7 @@ void shift::core::topology::setInversePermutation(const std::vector<int>& p,
   }
 }
 
-std::string shift::core::topology::getJointType(dh_fptr f) {
+std::string shift::core::topology::GetJointType(dh_fptr f) {
   if(f == shift::core::joint::spherical_dh) {
     return "SPHERICAL";
   } else if(f == shift::core::joint::sphericalinv_dh) {
@@ -179,7 +179,7 @@ std::string shift::core::topology::getJointType(dh_fptr f) {
   return "unknown";
 }
 
-std::string shift::core::topology::getBasename(const std::string& s) {
+std::string shift::core::topology::GetBasename(const std::string& s) {
   size_t i = s.rfind('.', s.length());
   if(i != std::string::npos) {
     return (s.substr(0, i));
@@ -188,7 +188,7 @@ std::string shift::core::topology::getBasename(const std::string& s) {
   }
 }
 
-std::string shift::core::topology::getFilename(const std::string& s) {
+std::string shift::core::topology::GetFilename(const std::string& s) {
   char sep = '/';
 #ifdef _WIN32
   sep = '\\';
@@ -201,7 +201,7 @@ std::string shift::core::topology::getFilename(const std::string& s) {
   return s;
 }
 
-std::string shift::core::topology::getExtension(std::string& filename) {
+std::string shift::core::topology::GetExtension(std::string& filename) {
   std::string::size_type idx;
   idx = filename.rfind('.');
   if(idx != std::string::npos) {
@@ -213,7 +213,7 @@ std::string shift::core::topology::getExtension(std::string& filename) {
   }
 }
 
-std::string shift::core::topology::removeExtension(std::string& filename) {
+std::string shift::core::topology::RemoveExtension(std::string& filename) {
   std::string::size_type idx;
   idx = filename.rfind('.');
   if(idx != std::string::npos) {
@@ -225,15 +225,15 @@ std::string shift::core::topology::removeExtension(std::string& filename) {
   }
 }
 
-std::string toLower(std::string& s) {
+std::string ToLower(std::string& s) {
   std::string out;
   out.resize(s.size());
   std::transform(s.begin(), s.end(), out.begin(), ::tolower);
   return out;
 }
 
-std::string shift::core::topology::getValidGraphvizExtension(std::string& extension) {
-  std::string ext = toLower(extension);
+std::string shift::core::topology::GetValidGraphvizExtension(std::string& extension) {
+  std::string ext = ToLower(extension);
   if(ext == "gif") {
     return std::string("gif");
   } else if(ext == "jpg" || ext == "jpeg") {

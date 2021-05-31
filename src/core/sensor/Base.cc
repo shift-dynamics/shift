@@ -1,17 +1,17 @@
 #include "shift/core/sensor/Base.h"
 #include "shift/core/Context.h"
 
-bool shift::core::sensor::Modules::initialized() {
+bool shift::core::sensor::Modules::is_initialized() {
   return true;
 }
 
-void shift::core::sensor::Base::load() {}
+void shift::core::sensor::Base::Load() {}
 
-void shift::core::sensor::Base::connect() {}
+void shift::core::sensor::Base::Connect() {}
 
-void shift::core::sensor::Base::addParameters() {}
+void shift::core::sensor::Base::DeclareParameters() {}
 
-void shift::core::sensor::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::sensor::Base::set_objects_active(bool parent_is_active) {
   assert(context_);
-  context_->setActive(this, parent_is_active && active_);
+  context_->ActivateObject(this, parent_is_active && active_);
 }

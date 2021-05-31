@@ -18,32 +18,33 @@ class HDF5 : public Base {
 public:
   HDF5(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   HDF5()
     : Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~HDF5() override {}
 
-  const std::string& getDescription() {
-    return description_;
-  }
-
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
-  virtual void initialize() override;
-  virtual void writeHeader() override;
-  virtual void writeStates(const double t,
+  const std::string& get_description() {
+    return description_;
+  }
+
+  virtual void Initialize() override;
+  virtual void WriteHeader() override;
+  virtual void WriteStates(const double t,
                            const std::vector<double>& q) override;
 
 private:
-  virtual void addParameters() override;
-  const std::string description_ = "";
+  static std::unique_ptr<HDF5> Create();
   static bool registered_;
-  static std::unique_ptr<HDF5> create();
+  
+  virtual void DeclareParameters() override;
+  const std::string description_ = "";
   std::string logfile_ = "simulation.h5";
   bool timestamp_logfile_ = false;
 

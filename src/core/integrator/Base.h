@@ -31,51 +31,51 @@ class Base
 public:
   Base(std::string name)
     : shift::core::Base(name) {
-    addParameters();
+    DeclareParameters();
   }
 
   Base()
     : shift::core::Base("") {
-    addParameters();
+    DeclareParameters();
   }
 
   virtual ~Base() override {}
 
-  const std::string& getType() {
-    return type_;
-  }
-
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "integrators";
   }
 
-  static const std::string defaultType() {
+  static const std::string get_default_type() {
     return "";
   }
 
-  void setActiveObjects(bool parent_is_active) override;
+  const std::string& get_type() {
+    return type_;
+  }
 
-  virtual void load();
-  virtual void connect();
-  virtual void initialize() = 0;
-  virtual void integrate() = 0;
-
-  double baumgarteOmegaN2() const {
+  double get_baumgarte_omega_n_2() const {
     return baumgarte_omega_n_ * baumgarte_omega_n_;
   }
 
-  double baumgarte2OmegaN() const {
+  double get_baumgarte_2_omega_n() const {
     return 2.0 * baumgarte_omega_n_;
   }
 
-  const std::vector<double>& integralConstraintError() {
+  const std::vector<double>& get_integral_error() {
     return integral_error_;
   }
 
-  virtual void currentTime(double& time, double& delta_time) = 0;
+  virtual void get_current_time(double& time, double& delta_time) = 0;
+
+  void set_objects_active(bool parent_is_active) override;
+
+  virtual void Load();
+  virtual void Connect();
+  virtual void Initialize() = 0;
+  virtual void Integrate() = 0;
 
 protected:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   std::string type_; //!< descriptive name of Integrator type
   unsigned int iterations_since_last_full_factor_ = 0;
 
@@ -97,7 +97,7 @@ protected:
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace Integrator

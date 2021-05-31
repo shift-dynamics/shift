@@ -29,58 +29,59 @@ public:
   ModelParameters(Context* context)
     : Base("") {
     context_ = context;
-    addParameters();
+    DeclareParameters();
   }
 
   ModelParameters()
     : Base("") {
-    addParameters();
+    DeclareParameters();
   }
 
   ~ModelParameters() {}
 
+  FILE* get_debug_file_pointer() const {
+    return debug_pointer_;
+  }
+
+
   /*! \brief retrieve gravity vector */
-  const ksl_vec3_t* gravity() const {
+  const ksl_vec3_t* get_gravity() const {
     return &gravity_;
   }
 
-  /*! \brief allocate dynamic memory in solvers, integrators and loggers */
-  void initialize();
-
-  /*! \brief set gravity vector */
-  void setGravity(ksl_vec3_t);
-
-  /*! \brief set gravity vector */
-  void setGravity(double, double, double);
-
   /*! \brief get epsilon used for rank determination in Gaussian Elimination
    * with complete row and column pivoting */
-  double epsilonRankDetermination() const {
+  double get_epsilon_rank_determination() const {
     return epsilon_rank_determination_;
   }
 
-  double epsilsonNewtonRaphson() const {
+  double get_epsilon_newton_raphson() const {
     return epsilson_newton_raphson_;
   }
 
   /*! \brief get infinity norm multiplier -- used as a heuristic for when to
    * reapply gaussian elimination with complete row and column pivoting */
-  double infinityNormMultiplier() const {
+  double get_infinity_norm_multiplier() const {
     return infinity_norm_muliplier_;
   }
 
-  void enableContactDetection(bool);
+  /*! \brief set gravity vector */
+  void set_gravity(ksl_vec3_t);
 
-  void appendSolver(std::unique_ptr<solver::Base>&);
-  void appendIntegrator(std::unique_ptr<integrator::Base>&);
-  void appendLogger(std::unique_ptr<logger::Base>&);
+  /*! \brief set gravity vector */
+  void set_gravity(double, double, double);
+  void enable_contact_detection(bool);
 
-  FILE* debugFilePointer() const {
-    return debug_pointer_;
-  }
+  void AppendSolver(std::unique_ptr<solver::Base>&);
+  void AppendIntegrator(std::unique_ptr<integrator::Base>&);
+  void AppendLogger(std::unique_ptr<logger::Base>&);
+
+  /*! \brief allocate dynamic memory in solvers, integrators and loggers */
+  void Initialize();
+
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
 
   std::string version_;
   std::vector<std::string> include_directories_;

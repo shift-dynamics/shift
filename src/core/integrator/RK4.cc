@@ -5,14 +5,14 @@
 #include <math.h>
 
 bool shift::core::integrator::RK4::registered_ =
-  shift::core::Factory<shift::core::integrator::Base>::get()->registerModule(
+  shift::core::Factory<shift::core::integrator::Base>::get()->RegisterModule(
     "rk4", shift::core::integrator::RK4::create);
 
 std::unique_ptr<shift::core::integrator::RK4> shift::core::integrator::RK4::create() {
   return std::make_unique<shift::core::integrator::RK4>();
 }
 
-void shift::core::integrator::RK4::addParameters() {}
+void shift::core::integrator::RK4::DeclareParameters() {}
 
 void shift::core::integrator::RK4::connect() {
   assert(context_);

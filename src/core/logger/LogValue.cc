@@ -5,20 +5,20 @@
 #include "shift/core/utility.h"
 
 bool shift::core::logger::HDF5::registered_ =
-  shift::core::Factory<shift::core::logger::Base>::get()->registerModule(
+  shift::core::Factory<shift::core::logger::Base>::get()->RegisterModule(
     "hdf5", shift::core::logger::HDF5::create);
 
 std::unique_ptr<shift::core::logger::HDF5> shift::core::logger::HDF5::create() {
   return std::make_unique<shift::core::logger::HDF5>();
 }
 
-void shift::core::logger::HDF5::addParameters() {
-  shift::core::logger::Base::addParameters();
-  addParameter("logfile", &logfile_,
+void shift::core::logger::HDF5::DeclareParameters() {
+  shift::core::logger::Base::DeclareParameters();
+  DeclareParameter("logfile", &logfile_,
                "hdf5 log file, defaults to \"simulation.hdf5\" if "
                "not provided",
                false);
-  addParameter(
+  DeclareParameter(
     "timestamp_logfile", &timestamp_logfile_,
     "indicates to append current data/time to base log file name. Time stamp "
     "will be appended before file extension, defaults to \"false\"",

@@ -24,19 +24,22 @@ public:
   Fixed()
     : Base() {
     name_ = "fixed";
-    addParameters();
+    DeclareParameters();
   }
   Fixed(std::string name)
     : Base(name) {
     name_ = "fixed";
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Fixed() override {}
-  static std::unique_ptr<Fixed> create();
-  virtual void addParameters() override;
-  static bool isRegistered() {
+
+  static bool is_registered() {
     return registered_;
   }
+
+  static std::unique_ptr<Fixed> Create();
+
+  virtual void DeclareParameters() override;
 
 private:
   /*! \brief User defined frames attached to fixed inertial reference frame */

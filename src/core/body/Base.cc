@@ -12,30 +12,30 @@
 #include <assert.h>
 #include <iostream>
 
-bool shift::core::body::Modules::initialized() {
-  if(!shift::core::body::Fixed::isRegistered()) {
+bool shift::core::body::Modules::is_initialized() {
+  if(!shift::core::body::Fixed::is_registered()) {
     return false;
   }
-  if(!shift::core::body::Free::isRegistered()) {
+  if(!shift::core::body::Free::is_registered()) {
     return false;
   }
-  if(!shift::core::body::Rigid::isRegistered()) {
+  if(!shift::core::body::Rigid::is_registered()) {
     return false;
   }
-  if(!shift::core::body::Virtual::isRegistered()) {
+  if(!shift::core::body::Virtual::is_registered()) {
     return false;
   }
   return true;
 }
 
-void shift::core::body::Base::addParameters() {
+void shift::core::body::Base::DeclareParameters() {
 
-  addParameter("name", &name_,
+  DeclareParameter("name", &name_,
                "User defined descriptive body name; must be unique within a "
                "subassembly (required)",
                true);
 
-  addParameter(
+  DeclareParameter(
     "active", &active_,
     "Indicates whether body is active in simulation: If the value is set to "
     "false, the data will be loaded into computer working memory, but will not "
@@ -44,14 +44,14 @@ void shift::core::body::Base::addParameters() {
     "(optional, default=true).",
     false);
 
-  addParameter(
+  DeclareParameter(
     "center_of_mass", &center_of_mass_wrt_origin_,
     "Specifies a vector from the body origin to the body center of mass "
     "expressed in the body-fixed coordinate system. (optional, "
     "default={0,0,0})",
     false);
 
-  addParameter(
+  DeclareParameter(
     "inertia", &inertia_,
     "Specify body mass and centroidal moment of inertia "
     "expressed in the body-fixed coordinate system. Note that if a zero or "
@@ -59,126 +59,126 @@ void shift::core::body::Base::addParameters() {
     "(optional, default={mass=1,Ixx=1,Iyy=1,Izz=1,Ixy=0,Iyz=0,Izx=0})",
     false);
 
-  addParameter("frames", &frames_,
+  DeclareParameter("frames", &frames_,
                "Specify a number of body-fixed reference frames. Each frame "
                "in a body must have a unique name identified and 'origin' is "
                "a reserved system name that may not be used.",
                false);
 
-  addParameter("lights", &lights_,
+  DeclareParameter("lights", &lights_,
                "Specify a number of body-fixed lights, used to "
                "illuminate scene for visualization.",
                false);
 
-  addParameter("geometry", &geometry_,
+  DeclareParameter("geometry", &geometry_,
                "Specify a number of body-fixed geometry, used for "
                "visualization or contact detection. Each geometry "
                "in a body must have a unique name.",
                false);
 
-  addParameter("collision_geometry", &collision_geometry_,
+  DeclareParameter("collision_geometry", &collision_geometry_,
                "Specify a number of body-fixed collision geometries, used for "
                "contact detection. Each collision geometry "
                "in a body must have a unique name.",
                false);
 }
 
-void shift::core::body::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::body::Base::set_objects_active(bool parent_is_active) {
   assert(context_);
-  context_->setActive(this, active_ && parent_is_active);
+  context_->ActivateObject(this, active_ && parent_is_active);
 
-  for(auto& geometry : geometry_.data()) {
-    geometry->setActiveObjects(active_ && parent_is_active);
+  for(auto& geometry : geometry_.get_data()) {
+    geometry->set_objects_active(active_ && parent_is_active);
   }
-  for(auto& collision_geometry : collision_geometry_.data()) {
-    collision_geometry->setActiveObjects(active_ && parent_is_active);
+  for(auto& collision_geometry : collision_geometry_.get_data()) {
+    collision_geometry->set_objects_active(active_ && parent_is_active);
   }
 }
 
-void shift::core::body::Base::setParentJoint(shift::core::joint::Base* parent) {
+void shift::core::body::Base::set_parent_joint(shift::core::joint::Base* parent) {
   parent_joint_ = parent;
-  auto referenceFrame = parent_joint_->systemChildFrame();
-  for(auto& frame : frames_.data()) {
-    frame->setIsReference(frame.get() == referenceFrame);
+  auto reference_frame = parent_joint_->get_system_child_frame();
+  for(auto& frame : frames_.get_data()) {
+    frame->set_is_reference(frame.get() == reference_frame);
   }
-  setDWRTReference();
+  set_d_wrt_reference();
 }
 
-void shift::core::body::Base::connect() {}
+void shift::core::body::Base::Connect() {}
 
-shift::core::Frame* shift::core::body::Base::origin() {
-  for(auto& frame : frames_.data()) {
-    if(frame->name() == "origin") {
+shift::core::Frame* shift::core::body::Base::get_origin() {
+  for(auto& frame : frames_.get_data()) {
+    if(frame->get_name() == "origin") {
       return frame.get();
     }
   }
   return nullptr;
 }
 
-shift::core::Frame* shift::core::body::Base::referenceFrame() {
-  for(auto& frame : frames_.data()) {
-    if(frame->isReference()) {
+shift::core::Frame* shift::core::body::Base::get_reference_frame() {
+  for(auto& frame : frames_.get_data()) {
+    if(frame->is_reference()) {
       return frame.get();
     }
   }
-  std::cerr << "no reference frame found on body: " << name() << std::endl;
+  std::cerr << "no reference frame found on body: " << get_name() << std::endl;
   assert(0);
   return nullptr;
 }
 
-void shift::core::body::Base::setDWRTReference() {
-  Frame* reference = referenceFrame();
-  ksl_SE3_t dReference;
-  ksl_SE3_setIdentity(&dReference);
-  reference->setDWRTReference(dReference);
-  const ksl_SE3_t* referenceWRTOrigin = reference->dWRTOrigin();
-  for(auto& frame : frames_.data()) {
-    if(!frame->isReference()) {
-      const ksl_SE3_t* dWRTOrigin = frame->dWRTOrigin();
+void shift::core::body::Base::set_d_wrt_reference() {
+  Frame* reference = get_reference_frame();
+  ksl_SE3_t d_reference;
+  ksl_SE3_setIdentity(&d_reference);
+  reference->set_d_wrt_reference(d_reference);
+  const ksl_SE3_t* referenceWRTOrigin = reference->get_d_wrt_origin();
+  for(auto& frame : frames_.get_data()) {
+    if(!frame->is_reference()) {
+      const ksl_SE3_t* get_d_wrt_origin = frame->get_d_wrt_origin();
       ksl_SE3_t dWRTReference;
-      ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &dWRTReference);
-      frame->setDWRTReference(dWRTReference);
+      ksl_product_dinvd(referenceWRTOrigin, get_d_wrt_origin, &dWRTReference);
+      frame->set_d_wrt_reference(dWRTReference);
     }
   }
 }
 
-void shift::core::body::Base::setDWRTReference(ksl_SE3_t dReference) {
-  Frame* reference = referenceFrame();
-  reference->setDWRTReference(dReference);
-  const ksl_SE3_t* referenceWRTOrigin = reference->dWRTOrigin();
-  for(auto& frame : frames_.data()) {
-    if(!frame->isReference()) {
-      const ksl_SE3_t* dWRTOrigin = frame->dWRTOrigin();
+void shift::core::body::Base::set_d_wrt_reference(ksl_SE3_t d_reference) {
+  Frame* reference = get_reference_frame();
+  reference->set_d_wrt_reference(d_reference);
+  const ksl_SE3_t* referenceWRTOrigin = reference->get_d_wrt_origin();
+  for(auto& frame : frames_.get_data()) {
+    if(!frame->is_reference()) {
+      const ksl_SE3_t* get_d_wrt_origin = frame->get_d_wrt_origin();
       ksl_SE3_t temp;
-      ksl_product_dinvd(referenceWRTOrigin, dWRTOrigin, &temp);
+      ksl_product_dinvd(referenceWRTOrigin, get_d_wrt_origin, &temp);
       ksl_SE3_t dWRTReference;
-      ksl_product_dd(&dReference, &temp, &dWRTReference);
-      frame->setDWRTReference(dWRTReference);
+      ksl_product_dd(&d_reference, &temp, &dWRTReference);
+      frame->set_d_wrt_reference(dWRTReference);
     }
   }
 }
 
-void shift::core::body::Base::setReferenceFrame(shift::core::Frame* referenceFrame) {
-  for(auto& frame : frames_.data()) {
-    frame->setReferenceFrame(referenceFrame);
+void shift::core::body::Base::set_reference_frame(shift::core::Frame* referenceFrame) {
+  for(auto& frame : frames_.get_data()) {
+    frame->set_reference_frame(referenceFrame);
   }
-  setDWRTReference();
+  set_d_wrt_reference();
 };
 
-void shift::core::body::Base::setReferenceFrame() {
-  auto reference = referenceFrame();
-  for(auto& frame : frames_.data()) {
+void shift::core::body::Base::SetupReferenceFrame() {
+  auto reference = get_reference_frame();
+  for(auto& frame : frames_.get_data()) {
     if(frame.get() == reference) {
-      frame->setReferenceFrame(nullptr);
+      frame->set_reference_frame(nullptr);
     } else {
-      frame->setReferenceFrame(reference);
+      frame->set_reference_frame(reference);
     }
   }
-  setDWRTReference();
+  set_d_wrt_reference();
 };
 
-const ksl_vec3_t shift::core::body::Base::centerOfMassWRTReference() {
-  if(referenceFrame() != origin()) {
+const ksl_vec3_t shift::core::body::Base::get_center_of_mass_wrt_reference() {
+  if(get_reference_frame() != get_origin()) {
     // D_or // transformation from origin to reference frame
     // D_ro // transformation from reference frame to origin
     // t_om_o // vector from origin (o) to center of mass frame (m),
@@ -188,7 +188,7 @@ const ksl_vec3_t shift::core::body::Base::centerOfMassWRTReference() {
 
     // t_rm_r = D_ro_ro * t_om_o
     ksl_vec3_t t_om_o = center_of_mass_wrt_origin_;
-    const ksl_SE3_t* D_or = referenceFrame()->dWRTOrigin();
+    const ksl_SE3_t* D_or = get_reference_frame()->get_d_wrt_origin();
     ksl_SE3_t D_ro;
     ksl_SE3_inverted(D_or, &D_ro);
     ksl_vec3_t t_rm_r;
@@ -198,21 +198,21 @@ const ksl_vec3_t shift::core::body::Base::centerOfMassWRTReference() {
   return center_of_mass_wrt_origin_;
 }
 
-void shift::core::body::Base::clearInTreeFlags() {
-  for(auto& frame : frames_.data()) {
-    frame->setIndex(-1);
-    frame->setInTree(false);
+void shift::core::body::Base::ClearInTreeFlags() {
+  for(auto& frame : frames_.get_data()) {
+    frame->set_index(-1);
+    frame->set_in_tree(false);
   }
 }
 
-unsigned int shift::core::body::Base::frameInTreeCount() {
+unsigned int shift::core::body::Base::get_frame_in_tree_count() {
   unsigned int count = 0;
-  for(auto& frame : frames_.data()) {
-    if(frame->inTree()) {
+    for(auto& frame : frames_.get_data()) {
+    if(frame->is_in_tree()) {
       count++;
     }
   }
   return count;
 }
 
-void shift::core::body::Base::load() {}
+void shift::core::body::Base::Load() {}

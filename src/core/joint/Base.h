@@ -43,64 +43,52 @@ public:
   Base(std::string name)
     : shift::core::Base(name)
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
   Base()
     : shift::core::Base("")
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Base() {}
 
-  void setActiveObjects(bool parent_is_active) override;
-
-  const std::string& type() {
-    return type_;
-  }
-
-  unsigned int dcCount() {
-    return dc_count_;
-  };
-
-  unsigned int qCount() const {
-    return q_count_;
-  };
-
-  unsigned int dqCount() const {
-    return dq_count_;
-  };
-
-  const double* q0() {
-    return q_0_;
-  }
-
-  const double* dq0() {
-    return dq_0_;
-  }
-
-  void setInitialDisplacement(const double* q);
-  void setInitialVelocity(const double* dq);
-
-  virtual topology::dh_fptr Dfptr() = 0;
-  virtual topology::dh_fptr DHfptr() = 0;
-  virtual topology::dhva_fptr DHVAfptr() = 0;
-
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "joints";
   }
-  static const std::string defaultType() {
+
+  static const std::string get_default_type() {
     return "";
   }
 
-  virtual void load();
+  const std::string& get_type() {
+    return type_;
+  }
 
-  void connect();
+  unsigned int get_dc_count() {
+    return dc_count_;
+  };
 
-  shift::core::body::Base* parentBody() {
+  unsigned int get_q_count() const {
+    return q_count_;
+  };
+
+  unsigned int get_dq_count() const {
+    return dq_count_;
+  };
+
+  const double* get_q0() {
+    return q_0_;
+  }
+
+  const double* get_dq0() {
+    return dq_0_;
+  }
+
+  shift::core::body::Base* get_parent_body() {
     return parent_body_ptr_;
   }
 
-  shift::core::body::Base* systemParentBody() {
+  shift::core::body::Base* get_system_parent_body() {
     if(sense_ >= 0) {
       return parent_body_ptr_;
     } else {
@@ -108,11 +96,11 @@ public:
     }
   }
 
-  shift::core::body::Base* childBody() {
+  shift::core::body::Base* get_child_body() {
     return child_body_ptr_;
   }
 
-  shift::core::body::Base* systemChildBody() const {
+  shift::core::body::Base* get_system_child_body() const {
     if(system_child_body_ptr_) {
       return system_child_body_ptr_;
     }
@@ -123,11 +111,11 @@ public:
     }
   }
 
-  Frame* parentFrame() {
+  Frame* get_parent_frame() {
     return parent_frame_ptr_;
   }
 
-  Frame* systemParentFrame() {
+  Frame* get_system_parent_frame() {
     if(sense_ >= 0) {
       return parent_frame_ptr_;
     } else {
@@ -135,11 +123,11 @@ public:
     }
   }
 
-  shift::core::Frame* childFrame() {
+  shift::core::Frame* get_child_frame() {
     return child_frame_ptr_;
   }
 
-  shift::core::Frame* systemChildFrame() {
+  shift::core::Frame* get_system_child_frame() {
     if(system_child_frame_ptr_) {
       return system_child_frame_ptr_;
     }
@@ -150,108 +138,119 @@ public:
     }
   }
 
-  void setSystemChildBody(shift::core::body::Base* body) {
-    system_child_body_ptr_ = body;
+  const Substructure* get_substructure() const {
+    return substructure_;
   }
 
-  void setSystemChildFrame(shift::core::Frame* frame) {
-    system_child_frame_ptr_ = frame;
+  const std::vector<int>& get_rotation_indices() const {
+    return rotation_indices_;
   }
 
-  int sense() {
+  int get_sense() {
     return sense_;
   }
 
-  void setSense(int sense) {
-    sense_ = sense;
-  }
-
-  int getLevel() {
+  int get_level() {
     return level_;
   }
 
-  void setLevel(int level) {
-    level_ = level;
-  }
-
-  virtual unsigned int dataCount() {
+  virtual unsigned int get_data_count() {
     return data_count_;
   }
 
-  virtual const double* data() {
+  virtual const double* get_data() {
     return nullptr;
   }
 
-  virtual ksl_SE3_t transform() {
+  virtual ksl_SE3_t get_transform() {
     ksl_SE3_t temp;
     ksl_SE3_setIdentity(&temp);
     return temp;
   }
 
-  void setqIndex(int index) {
-    q_index_ = index;
-  }
-
-  void setdqIndex(int index) {
-    dq_index_ = index;
-  }
-
-  void setdcIndex(int index) {
-    dc_index_ = index;
-  }
-
-  int qIndex() const {
+  int get_q_index() const {
     return q_index_;
   }
 
-  int dqIndex() const {
+  int get_dq_index() const {
     return dq_index_;
   }
 
-  int dcIndex() const {
+  int get_dc_index() const {
     return dc_index_;
   }
 
-  int dataIndex() const {
+  int get_data_index() const {
     return data_index_;
   }
 
-  void setDataIndex(int index) {
-    data_index_ = index;
-  }
-
-  void clearChildJoints() {
-    child_joints_.clear();
-  }
-
-  void pushChildJoint(shift::core::joint::Base* child) {
-    child_joints_.push_back(child);
-  }
-
-  const std::vector<shift::core::joint::Base*>& childJoints() const {
+  const std::vector<shift::core::joint::Base*>& get_child_joints() const {
     return child_joints_;
   }
 
-  void setSubstructure(Substructure* substructure) {
+  void set_objects_active(bool parent_is_active) override;
+  void set_initial_displacement(const double* q);
+  void set_initial_velocity(const double* dq);
+
+  void set_system_child_body(shift::core::body::Base* body) {
+    system_child_body_ptr_ = body;
+  }
+
+  void set_system_child_frame(shift::core::Frame* frame) {
+    system_child_frame_ptr_ = frame;
+  }
+
+  void set_sense(int sense) {
+    sense_ = sense;
+  }
+
+  void set_level(int level) {
+    level_ = level;
+  }
+
+  void set_q_index(int index) {
+    q_index_ = index;
+  }
+
+  void set_dq_index(int index) {
+    dq_index_ = index;
+  }
+
+  void set_dc_index(int index) {
+    dc_index_ = index;
+  }
+
+  void set_data_index(int index) {
+    data_index_ = index;
+  }
+  
+  void set_substructure(Substructure* substructure) {
     substructure_ = substructure;
   }
 
-  void clearSubstructure() {
+  virtual topology::dh_fptr Dfptr() = 0;
+  virtual topology::dh_fptr DHfptr() = 0;
+  virtual topology::dhva_fptr DHVAfptr() = 0;
+  
+  virtual void Load();
+  void Connect();
+
+  void ClearChildJoints() {
+    child_joints_.clear();
+  }
+
+  void PushChildJoint(shift::core::joint::Base* child) {
+    child_joints_.push_back(child);
+  }
+
+  void ClearSubstructure() {
     substructure_ = nullptr;
   }
-
-  const Substructure* substructure() const {
-    return substructure_;
-  }
-
-  const std::vector<int>& rotationIndices() const {
-    return rotation_indices_;
-  }
-
-  virtual void service(const std::vector<double>&) {}
+ 
+  virtual void Service(const std::vector<double>&) {}
 
 protected:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   std::string type_;          //!< descriptive name of joint type
   unsigned int dof_ = 0;      //!< number of degrees of freedom
   unsigned int dc_count_ = 0; /*!< number of direction cosines used by joint, 1
@@ -348,7 +347,7 @@ protected:
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace joint

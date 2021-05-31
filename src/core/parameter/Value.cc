@@ -119,101 +119,101 @@ shift::core::parameter::Value::get<shift::core::terrain::Base>() const {
 }
 
 template <>
-shift::core::Frame* shift::core::parameter::Value::data<shift::core::Frame>() const {
+shift::core::Frame* shift::core::parameter::Value::get_data<shift::core::Frame>() const {
   return dynamic_cast<shift::core::Frame*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::core::Assembly* shift::core::parameter::Value::data<shift::core::Assembly>() const {
+shift::core::Assembly* shift::core::parameter::Value::get_data<shift::core::Assembly>() const {
   return dynamic_cast<shift::core::Assembly*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::behavior::Base*
-shift::core::parameter::Value::data<shift::core::behavior::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::behavior::Base>() const {
   return dynamic_cast<shift::core::behavior::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::core::body::Base* shift::core::parameter::Value::data<shift::core::body::Base>() const {
+shift::core::body::Base* shift::core::parameter::Value::get_data<shift::core::body::Base>() const {
   return dynamic_cast<shift::core::body::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::collisiongeometry::Base*
-shift::core::parameter::Value::data<shift::core::collisiongeometry::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::collisiongeometry::Base>() const {
   return dynamic_cast<shift::core::collisiongeometry::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::constraint::Base*
-shift::core::parameter::Value::data<shift::core::constraint::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::constraint::Base>() const {
   return dynamic_cast<shift::core::constraint::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::forcemodule::Base*
-shift::core::parameter::Value::data<shift::core::forcemodule::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::forcemodule::Base>() const {
   return dynamic_cast<shift::core::forcemodule::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::geometry::Base*
-shift::core::parameter::Value::data<shift::core::geometry::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::geometry::Base>() const {
   return dynamic_cast<shift::core::geometry::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::integrator::Base*
-shift::core::parameter::Value::data<shift::core::integrator::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::integrator::Base>() const {
   return dynamic_cast<shift::core::integrator::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::core::joint::Base* shift::core::parameter::Value::data<shift::core::joint::Base>() const {
+shift::core::joint::Base* shift::core::parameter::Value::get_data<shift::core::joint::Base>() const {
   return dynamic_cast<shift::core::joint::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::core::light::Base* shift::core::parameter::Value::data<shift::core::light::Base>() const {
+shift::core::light::Base* shift::core::parameter::Value::get_data<shift::core::light::Base>() const {
   return dynamic_cast<shift::core::light::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::logger::Base*
-shift::core::parameter::Value::data<shift::core::logger::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::logger::Base>() const {
   return dynamic_cast<shift::core::logger::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::sensor::Base*
-shift::core::parameter::Value::data<shift::core::sensor::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::sensor::Base>() const {
   return dynamic_cast<shift::core::sensor::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::solver::Base*
-shift::core::parameter::Value::data<shift::core::solver::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::solver::Base>() const {
   return dynamic_cast<shift::core::solver::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::terrain::Base*
-shift::core::parameter::Value::data<shift::core::terrain::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::terrain::Base>() const {
   return dynamic_cast<shift::core::terrain::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
@@ -246,97 +246,97 @@ operator[](unsigned int index) {
   }
 }
 
-void shift::core::parameter::Value::setActiveObjects(bool parent_is_active) {
+void shift::core::parameter::Value::set_objects_active(bool parent_is_active) {
   if(is_array_) {
-    std::any_cast<parameter::ArrayBase*>(data_)->setActiveObjects(
+    std::any_cast<parameter::ArrayBase*>(data_)->set_objects_active(
       parent_is_active);
   } else if(is_list_) {
-    std::any_cast<parameter::List*>(data_)->setActiveObjects(parent_is_active);
+    std::any_cast<parameter::List*>(data_)->set_objects_active(parent_is_active);
   }
 }
 
-void shift::core::parameter::Value::readJSON(Json::Value& object) {
+void shift::core::parameter::Value::ReadJSON(Json::Value& object) {
   switch(parameter_type_) {
     case STRING: {
-      readJSON_STRING(object);
+      ReadJSON_STRING(object);
       break;
     }
     case STRING_ARRAY: {
-      readJSON_STRING_ARRAY(object);
+      ReadJSON_STRING_ARRAY(object);
       break;
     }
     case STRING_2DARRAY: {
-      readJSON_STRING_2DARRAY(object);
+      ReadJSON_STRING_2DARRAY(object);
       break;
     }
     case DOUBLE: {
-      readJSON_DOUBLE(object);
+      ReadJSON_DOUBLE(object);
       break;
     }
     case DOUBLE_ARRAY: {
-      readJSON_DOUBLE_ARRAY(object);
+      ReadJSON_DOUBLE_ARRAY(object);
       break;
     }
     case KSL_VEC3: {
-      readJSON_KSL_VEC3(object);
+      ReadJSON_KSL_VEC3(object);
       break;
     }
     case KSL_VEC4: {
-      readJSON_KSL_VEC4(object);
+      ReadJSON_KSL_VEC4(object);
       break;
     }
     case KSL_QUATERNION: {
-      readJSON_KSL_QUATERNION(object);
+      ReadJSON_KSL_QUATERNION(object);
       break;
     }
     case KSL_SCREW: {
-      readJSON_KSL_SCREW(object);
+      ReadJSON_KSL_SCREW(object);
       break;
     }
     case KSL_COSCREW: {
-      readJSON_KSL_COSCREW(object);
+      ReadJSON_KSL_COSCREW(object);
       break;
     }
     case KSL_INERTIA: {
-      readJSON_KSL_INERTIA(object);
+      ReadJSON_KSL_INERTIA(object);
       break;
     }
     case KSL_MAT3X3: {
-      readJSON_KSL_MAT3X3(object);
+      ReadJSON_KSL_MAT3X3(object);
       break;
     }
     case KSL_MAT4X4: {
-      readJSON_KSL_MAT4X4(object);
+      ReadJSON_KSL_MAT4X4(object);
       break;
     }
     case KSL_EULERANGLES: {
-      readJSON_EULERANGLES(object);
+      ReadJSON_EULERANGLES(object);
       break;
     }
     case BOOLEAN: {
-      readJSON_BOOLEAN(object);
+      ReadJSON_BOOLEAN(object);
       break;
     }
     case KSL_SE3: {
-      readJSON_POSE(object);
+      ReadJSON_POSE(object);
       break;
     }
     case PARAMETER_LIST: {
       if(object.isObject()) {
-        std::any_cast<parameter::List*>(data_)->readJSON(object);
+        std::any_cast<parameter::List*>(data_)->ReadJSON(object);
       }
       break;
     }
     case PARAMETER_ARRAY: {
       if(object.isArray()) {
-        std::any_cast<parameter::ArrayBase*>(data_)->readJSON(object);
+        std::any_cast<parameter::ArrayBase*>(data_)->ReadJSON(object);
       }
       break;
     }
   }
 }
 
-void shift::core::parameter::Value::readJSON_STRING(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_STRING(Json::Value& json_value) {
   if(!json_value.isString()) {
     if(required_) {
       throw "JSON Parsing error: required key has incorrectly formatted data; "
@@ -348,7 +348,7 @@ void shift::core::parameter::Value::readJSON_STRING(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_STRING_ARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_STRING_ARRAY(Json::Value& json_value) {
   if(!json_value.isArray()) {
     if(required_) {
       throw "JSON Parsing error: required key has incorrectly formatted "
@@ -370,7 +370,7 @@ void shift::core::parameter::Value::readJSON_STRING_ARRAY(Json::Value& json_valu
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_STRING_2DARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_STRING_2DARRAY(Json::Value& json_value) {
   if(json_value.isArray()) {
     for(unsigned int i = 0; i < json_value.size(); i++) {
       if(row_dim_ > 0 && row_dim_ != (int)json_value.size()) {
@@ -412,7 +412,7 @@ void shift::core::parameter::Value::readJSON_STRING_2DARRAY(Json::Value& json_va
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_DOUBLE(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_DOUBLE(Json::Value& json_value) {
   if(!json_value.isDouble()) {
     throw "JSON Parsing error, required key has incorrectly formatted "
           "data; expected DOUBLE";
@@ -421,7 +421,7 @@ void shift::core::parameter::Value::readJSON_DOUBLE(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_DOUBLE_ARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(Json::Value& json_value) {
   if(!json_value.isArray()) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected DOUBLE_ARRAY";
@@ -450,7 +450,7 @@ void shift::core::parameter::Value::readJSON_DOUBLE_ARRAY(Json::Value& json_valu
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_KSL_VEC3(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_VEC3(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 3)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_VEC3";
@@ -466,7 +466,7 @@ void shift::core::parameter::Value::readJSON_KSL_VEC3(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_KSL_VEC4(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_VEC4(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_VEC4";
@@ -483,7 +483,7 @@ void shift::core::parameter::Value::readJSON_KSL_VEC4(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_KSL_QUATERNION(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_QUATERNION(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_QUATERNION";
@@ -514,7 +514,7 @@ void shift::core::parameter::Value::readJSON_KSL_QUATERNION(Json::Value& json_va
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_KSL_SCREW(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_SCREW(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 6)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_SCREW";
@@ -532,7 +532,7 @@ void shift::core::parameter::Value::readJSON_KSL_SCREW(Json::Value& json_value) 
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_KSL_COSCREW(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_COSCREW(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 6)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_COSCREW";
@@ -550,7 +550,7 @@ void shift::core::parameter::Value::readJSON_KSL_COSCREW(Json::Value& json_value
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_KSL_INERTIA(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value) {
   if(!json_value.isObject()) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_INERTIA";
@@ -651,7 +651,7 @@ void shift::core::parameter::Value::readJSON_KSL_INERTIA(Json::Value& json_value
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_KSL_MAT3X3(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_MAT3X3(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 3)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_MAT3X3";
@@ -681,7 +681,7 @@ void shift::core::parameter::Value::readJSON_KSL_MAT3X3(Json::Value& json_value)
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_KSL_MAT4X4(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_MAT4X4(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_MAT3X3";
@@ -721,7 +721,7 @@ void shift::core::parameter::Value::readJSON_KSL_MAT4X4(Json::Value& json_value)
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_EULERANGLES(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_EULERANGLES(Json::Value& json_value) {
   if(!json_value.isObject()) {
     throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_EULERANGLES";
@@ -792,7 +792,7 @@ void shift::core::parameter::Value::readJSON_EULERANGLES(Json::Value& json_value
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_BOOLEAN(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_BOOLEAN(Json::Value& json_value) {
   if(!json_value.isBool()) {
     throw "JSON Parsing error, required key %s has incorrectly formatted "
           "data; expected BOOLEAN";
@@ -802,40 +802,40 @@ void shift::core::parameter::Value::readJSON_BOOLEAN(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::readJSON_POSE(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_POSE(Json::Value& json_value) {
   if(!json_value.isObject()) {
     throw "Error: Pose is not a valid object";
     return;
   }
 
   if(json_value.isMember("quaternion")) {
-    readJSON_KSL_QUATERNION(json_value["quaternion"]);
+    ReadJSON_KSL_QUATERNION(json_value["quaternion"]);
   } else if(json_value.isMember("q")) {
-    readJSON_KSL_QUATERNION(json_value["q"]);
+    ReadJSON_KSL_QUATERNION(json_value["q"]);
   }
 
   if(json_value.isMember("mat3x3")) {
-    readJSON_KSL_MAT3X3(json_value["mat3x3"]);
+    ReadJSON_KSL_MAT3X3(json_value["mat3x3"]);
   } else if(json_value.isMember("R")) {
-    readJSON_KSL_MAT3X3(json_value["R"]);
+    ReadJSON_KSL_MAT3X3(json_value["R"]);
   }
 
   if(json_value.isMember("mat4x4")) {
-    readJSON_KSL_MAT4X4(json_value["mat4x4"]);
+    ReadJSON_KSL_MAT4X4(json_value["mat4x4"]);
   }
 
   if(json_value.isMember("euler_angles")) {
-    readJSON_EULERANGLES(json_value["euler_angles"]);
+    ReadJSON_EULERANGLES(json_value["euler_angles"]);
   }
 
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::print() const {
-  print("");
+void shift::core::parameter::Value::Print() const {
+  Print("");
 }
 
-void shift::core::parameter::Value::print(std::string prefix) const {
+void shift::core::parameter::Value::Print(std::string prefix) const {
 
   /* check if get exists */
   switch(parameter_type_) {
@@ -877,73 +877,73 @@ void shift::core::parameter::Value::print(std::string prefix) const {
       break;
     }
     case KSL_VEC3: {
-      ksl_vec3_print(stdout, data<ksl_vec3_t>());
+      ksl_vec3_print(stdout, get_data<ksl_vec3_t>());
       break;
     }
     case KSL_VEC4: {
-      ksl_vec4_print(stdout, data<ksl_vec4_t>());
+      ksl_vec4_print(stdout, get_data<ksl_vec4_t>());
       break;
     }
     case KSL_QUATERNION: {
-      ksl_quaternion_print(stdout, data<ksl_quaternion_t>());
+      ksl_quaternion_print(stdout, get_data<ksl_quaternion_t>());
       break;
     }
     case KSL_SCREW: {
-      ksl_screw_print(stdout, data<ksl_screw_t>());
+      ksl_screw_print(stdout, get_data<ksl_screw_t>());
       break;
     }
     case KSL_COSCREW: {
-      ksl_coscrew_print(stdout, data<ksl_coscrew_t>());
+      ksl_coscrew_print(stdout, get_data<ksl_coscrew_t>());
       break;
     }
     case KSL_INERTIA: {
       std::cout << std::endl;
-      ksl_inertia_print(stdout, data<ksl_inertia_t>(), prefix.c_str());
+      ksl_inertia_print(stdout, get_data<ksl_inertia_t>(), prefix.c_str());
       break;
     }
     case KSL_MAT3X3: {
       std::cout << std::endl;
-      ksl_mat3x3_print(stdout, data<ksl_mat3x3_t>(), prefix.c_str());
+      ksl_mat3x3_print(stdout, get_data<ksl_mat3x3_t>(), prefix.c_str());
       break;
     }
     case KSL_MAT4X4: {
       std::cout << std::endl;
-      ksl_mat4x4_print(stdout, data<ksl_mat4x4_t>(), prefix.c_str());
+      ksl_mat4x4_print(stdout, get_data<ksl_mat4x4_t>(), prefix.c_str());
       break;
     }
     case KSL_EULERANGLES: {
       std::cout << std::endl;
-      ksl_eulerangles_print(stdout, data<ksl_eulerangles_t>(), prefix.c_str());
+      ksl_eulerangles_print(stdout, get_data<ksl_eulerangles_t>(), prefix.c_str());
       break;
     }
     case BOOLEAN: {
-      std::cout << (get<bool>() ? "true" : "false") << std::endl;
+      std::cout << (get_data<bool>() ? "true" : "false") << std::endl;
       break;
     }
     case KSL_SE3: {
       std::cout << std::endl;
-      ksl_SE3_print(stdout, data<ksl_SE3_t>(), prefix.c_str());
+      ksl_SE3_print(stdout, get_data<ksl_SE3_t>(), prefix.c_str());
       break;
     }
     case PARAMETER_LIST: {
-      get<shift::core::parameter::List>().print(prefix);
+      get<shift::core::parameter::List>().Print(prefix);
       break;
     }
     case PARAMETER_ARRAY: {
-      get<shift::core::parameter::ArrayBase>().print(prefix);
+      get<shift::core::parameter::ArrayBase>().Print(prefix);
       break;
     }
   }
 }
 
-void shift::core::parameter::Value::setParent(Context* context,
+void shift::core::parameter::Value::set_parent(Context* context,
                                         Assembly* parent_assembly,
                                         shift::core::body::Base* parent_body) {
   if(is_list_) {
-    std::any_cast<parameter::List*>(data_)->setParent(context, parent_assembly,
+    std::any_cast<parameter::List*>(data_)->set_parent(context, parent_assembly,
                                                       parent_body);
   } else if(is_array_) {
-    std::any_cast<parameter::ArrayBase*>(data_)->setParent(
+    std::any_cast<parameter::ArrayBase*>(data_)->set_parent(
       context, parent_assembly, parent_body);
   }
 }

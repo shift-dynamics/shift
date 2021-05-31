@@ -3,10 +3,10 @@
 #include "shift/core/Factory.h"
 
 bool shift::core::joint::Rigid::registered_ =
-  shift::core::Factory<shift::core::joint::Base>::get()->registerModule(
-    "rigid", shift::core::joint::Rigid::create);
+  shift::core::Factory<shift::core::joint::Base>::get()->RegisterModule(
+    "rigid", shift::core::joint::Rigid::Create);
 
-std::unique_ptr<shift::core::joint::Rigid> shift::core::joint::Rigid::create() {
+std::unique_ptr<shift::core::joint::Rigid> shift::core::joint::Rigid::Create() {
   return std::make_unique<shift::core::joint::Rigid>();
 }
 
@@ -23,11 +23,11 @@ void shift::core::joint::rigid_dh(const shift::core::Context& context,
                             shift::core::topology::DHVA& dhva,
                             const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  const ksl_SE3_t* dPrimitive = &context.DWRTReference()[offsets.q];
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  const ksl_SE3_t* d_primitive = &context.get_d_wrt_reference()[offsets.q];
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
 
-  ksl_product_dd(dParent, dPrimitive, dChild);
+  ksl_product_dd(d_parent, d_primitive, d_child);
 }
 
 /*!
@@ -62,11 +62,11 @@ void shift::core::joint::rigidinv_dh(const shift::core::Context& context,
                                shift::core::topology::DHVA& dhva,
                                const shift::core::topology::Offsets& offsets,
                                const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  const ksl_SE3_t* dPrimitive = &context.DWRTReference()[offsets.q];
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  const ksl_SE3_t* d_primitive = &context.get_d_wrt_reference()[offsets.q];
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
 
-  ksl_product_ddinv(dParent, dPrimitive, dChild);
+  ksl_product_ddinv(d_parent, d_primitive, d_child);
 }
 
 /*!
@@ -87,9 +87,9 @@ void shift::core::joint::rigidinv_dhva(const shift::core::Context& context,
   shift::core::joint::rigidinv_dh(context, dhva, offsets, q);
 }
 
-void shift::core::joint::Rigid::addParameters() {}
+void shift::core::joint::Rigid::DeclareParameters() {}
 
-// void shift::core::joint::Rigid::readJSON(Json::Value& value) {
+// void shift::core::joint::Rigid::ReadJSON(Json::Value& value) {
 //   shift::core::joint::Base::readJSON(value);
 //   // frame_.setNameRequired(false);
 //   if(value["initial_displacement"]) {

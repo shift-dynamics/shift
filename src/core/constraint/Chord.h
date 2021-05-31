@@ -19,25 +19,26 @@ class Chord : public Base {
 public:
   Chord()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Chord(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Chord() override {}
-  static std::unique_ptr<Chord> create();
-  virtual void addParameters() override;
-  static bool isRegistered() {
+  static std::unique_ptr<Chord> Create();
+  static bool is_registered() {
     return registered_;
   }
-  void setOriginalParentBody(shift::core::body::Base* body) {
+  void set_original_parent_body(shift::core::body::Base* body) {
     original_parent_body_pointer_ = body;
   }
 
-  void setOriginalParentFrame(Frame* frame) {
+  void set_original_parent_frame(Frame* frame) {
     original_parent_frame_pointer_ = frame;
   }
+
+  virtual void DeclareParameters() override;
 
 private:
   static bool registered_;

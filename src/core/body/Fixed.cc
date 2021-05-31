@@ -2,19 +2,19 @@
 #include "shift/core/Factory.h"
 
 bool shift::core::body::Fixed::registered_ =
-  shift::core::Factory<shift::core::body::Base>::get()->registerModule(
-    "fixed", shift::core::body::Fixed::create);
+  shift::core::Factory<shift::core::body::Base>::get()->RegisterModule(
+    "fixed", shift::core::body::Fixed::Create);
 
-std::unique_ptr<shift::core::body::Fixed> shift::core::body::Fixed::create() {
+std::unique_ptr<shift::core::body::Fixed> shift::core::body::Fixed::Create() {
   return std::make_unique<shift::core::body::Fixed>();
 }
 
-void shift::core::body::Fixed::addParameters() {
-  removeParameter("name");
-  removeParameter("inertia");
-  removeParameter("center_of_mass");
-  removeParameter("active");
+void shift::core::body::Fixed::DeclareParameters() {
+  RemoveParameter("name");
+  RemoveParameter("inertia");
+  RemoveParameter("center_of_mass");
+  RemoveParameter("active");
 
-  addParameter("terrain", &terrain_,
+  DeclareParameter("terrain", &terrain_,
                "an array of one or more Shift terrain objects", false);
 }

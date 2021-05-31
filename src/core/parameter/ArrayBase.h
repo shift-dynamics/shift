@@ -30,12 +30,6 @@ public:
     , parent_body_ptr_(parent_body) {}
   virtual ~ArrayBase() {}
 
-  bool active() {
-    return active_;
-  }
-
-  virtual void setActiveObjects(bool) {}
-
   virtual Value& operator[](const std::string key_str);
 
   virtual Value& operator[](const char* key_str) {
@@ -49,23 +43,29 @@ public:
     return void_;
   }
 
-  virtual void setParent(Context* context, Assembly* parent_assembly = nullptr,
+  size_t get_size() {
+    return objects_.size();
+  }
+
+  bool is_active() {
+    return active_;
+  }
+
+  virtual void set_objects_active(bool) {}
+
+  virtual void set_parent(Context* context, Assembly* parent_assembly = nullptr,
                          shift::core::body::Base* parent_body = nullptr) {
     context_ = context;
     parent_assembly_ptr_ = parent_assembly;
     parent_body_ptr_ = parent_body;
   }
 
-  size_t size() {
-    return objects_.size();
-  }
+  virtual void ReadJSON(Json::Value&) {}
 
-  virtual void readJSON(Json::Value&) {}
+  void Print(std::string prefix) const;
 
-  void print(std::string prefix) const;
-
-  void print() const {
-    print("");
+  void Print() const {
+    Print("");
   }
 
 private:

@@ -41,13 +41,13 @@
 #include "ksl/screw.h"
 #include "ksl/trig.h"
 
-void shift::core::Context::addParameters() {
+void shift::core::Context::DeclareParameters() {
 
-  addParameter("model_parameters", &model_parameters_,
+  DeclareParameter("model_parameters", &model_parameters_,
                "Parameters associated with configuring a Shift simulation.",
                true);
 
-  addParameter(
+  DeclareParameter(
     "assemblies", &assemblies_,
     "an array of Shift assemblies, where each assembly contains a list of "
     "bodies, joints, force modules, behaviors, etc.; Each assembly at a given "
@@ -55,63 +55,63 @@ void shift::core::Context::addParameters() {
     true);
 }
 
-void shift::core::Context::loadJSON(const std::string filename) {
+void shift::core::Context::LoadJSON(const std::string filename) {
   filename_ = filename;
   std::ifstream file(filename);
   file >> root_;
-  readJSON(root_);
-  setParent(this);
-  postLoad(filename);
+  ReadJSON(root_);
+  set_parent(this);
+  PostLoad(filename);
 }
 
-void shift::core::Context::postLoad(const std::string) {
+void shift::core::Context::PostLoad(const std::string) {
 
   /* process topology */
-  setActiveObjects(true);
-  connect();
-  levelOrderSort();
-  processVirtualBodies();
-  processPCL();
-  processLoopMembers();
-  detectSubstructures();
-  processPCL();
-  processFrames();
-  allocateRunTimeArrays();
-  setFixedFrameGravityVector();
-  setToInitialConditions();
-  updateD();
-  updateDH();
-  updateDHVA();
-  setLookup();
-  jacobian_.initialize();
-  initializeMobility();
-  initializeInertia();
-  setQuaternionMap();
+  set_objects_active(true);
+  Connect();
+  LevelOrderSort();
+  ProcessVirtualBodies();
+  ProcessPCL();
+  ProcessLoopMembers();
+  DetectSubstructures();
+  ProcessPCL();
+  ProcessFrames();
+  AllocateRunTimeArrays();
+  SetupFixedFrameGravityVector();
+  SetToInitialConditions();
+  UpdateD();
+  UpdateDH();
+  UpdateDHVA();
+  SetupLookup();
+  jacobian_.Initialize();
+  InitializeMobility();
+  InitializeInertia();
+  SetupQuaternionMap();
 
   // setDReferenceFrames();
   // initializeGLReferenceFrames();
 
-  loadData();
+  LoadData();
 
   // initializeJointForces();
   // flattenforcemodules();
   for(auto& logger : active_loggers_) {
-    logger->initialize();
+    logger->Initialize();
   }
 }
 
-void shift::core::Context::processFrames() {
+void shift::core::Context::ProcessFrames() {
 
   /* process active frames */
   active_frames_.clear();
-  auto fixed = fixedBody();
-  for(auto& frame : fixed->frames()) {
+  auto fixed = get_fixed_body();
+  for(auto& frame : fixed->get_frames()) {
     assert(frame.get());
     active_frames_.push_back(frame.get());
   }
   for(auto& body : active_articulated_bodies_) {
-    for(auto& frame : body->frames()) {
-      if(frame->active()) {
+    for(auto& frame : body->get_frames()) {
+      if(frame->is_active()) {
         active_frames_.push_back(frame.get());
       }
     }
@@ -119,11 +119,11 @@ void shift::core::Context::processFrames() {
 
   /* identify frames in spanning tree */
   frames_in_tree_.clear();
-  fixedBody()->clearInTreeFlags();
+  get_fixed_body()->ClearInTreeFlags();
   for(auto& body : active_articulated_bodies_) {
-    body->clearInTreeFlags();
+    body->ClearInTreeFlags();
   }
-  for(auto& frame : fixed->frames()) {
+  for(auto& frame : fixed->get_frames()) {
     frames_in_tree_.push_back(frame.get());
   }
 
@@ -132,14 +132,14 @@ void shift::core::Context::processFrames() {
     /* parent and child frames of a joint are only added to spanning tree if
      * joint has nonzero degrees of freedom. Rigid joints
      * are optimized out of the spanning tree */
-    if(joint->qCount()) {
-      auto parent_frame = joint->systemParentFrame();
+    if(joint->get_q_count()) {
+      auto parent_frame = joint->get_system_parent_frame();
       assert(parent_frame);
       if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
                    parent_frame) == frames_in_tree_.end()) {
         frames_in_tree_.push_back(parent_frame);
       }
-      auto child_frame = joint->systemChildFrame();
+      auto child_frame = joint->get_system_child_frame();
       assert(child_frame);
       if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
                    child_frame) == frames_in_tree_.end()) {
@@ -150,13 +150,13 @@ void shift::core::Context::processFrames() {
 
   /* identify frames attached to chord constraints */
   for(auto& constraint : chord_constraints_) {
-    auto parent_frame = constraint->parentFrame();
+    auto parent_frame = constraint->get_parent_frame();
     if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
                  parent_frame) == frames_in_tree_.end()) {
       frames_in_tree_.push_back(parent_frame);
     }
 
-    auto child_frame = constraint->childFrame();
+    auto child_frame = constraint->get_child_frame();
     if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(), child_frame) ==
        frames_in_tree_.end()) {
       frames_in_tree_.push_back(child_frame);
@@ -166,33 +166,33 @@ void shift::core::Context::processFrames() {
   unsigned int i = 0;
   for(auto& frame : frames_in_tree_) {
     assert(frame);
-    frame->setIndex(i++);
-    frame->setInTree(true);
+    frame->set_index(i++);
+    frame->set_in_tree(true);
   }
 
   // std::cout << "setting reference frame on fixed body" << std::endl;
-  fixedBody()->setReferenceFrame();
+  get_fixed_body()->SetupReferenceFrame();
   for(auto& joint : active_joints_) {
-    auto body = joint->systemChildBody();
-    body->setParentJoint(joint);
+    auto body = joint->get_system_child_body();
+    body->set_parent_joint(joint);
   }
 
-  // for(auto& frame : fixedBody()->frames()) {
-  //   assert(frame->parentBody());
+  // for(auto& frame : get_fixed_body()->frames()) {
+  //   assert(frame->get_parent_body());
   // }
   for(auto& body : active_articulated_bodies_) {
-    for(auto& frame : body->frames()) {
-      frame->setParentBody(body);
-      assert(frame->parentBody());
+    for(auto& frame : body->get_frames()) {
+      frame->set_parent_body(body);
+      assert(frame->get_parent_body());
     }
   }
 }
 
-void shift::core::Context::writeJSON() {
-  writeJSON(filename_);
+void shift::core::Context::WriteJSON() {
+  WriteJSON(filename_);
 }
 
-void shift::core::Context::writeJSON(const std::string& filename) {
+void shift::core::Context::WriteJSON(const std::string& filename) {
   std::ofstream file(filename);
   Json::StreamWriterBuilder builder;
   builder.settings_["indentation"] = indentation_;
@@ -206,66 +206,66 @@ void shift::core::Context::writeJSON(const std::string& filename) {
   }
 }
 
-void shift::core::Context::initialize() {
+void shift::core::Context::Initialize() {
 
-    if(!shift::core::behavior::Modules::initialized()) {
+    if(!shift::core::behavior::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Behavior modules did not properly initialize");
     }
-    if(!shift::core::body::Modules::initialized()) {
+    if(!shift::core::body::Modules::is_initialized()) {
       throw shift::core::Exception("Body modules did not properly initialize");
     }
-    if(!shift::core::collisiongeometry::Modules::initialized()) {
+    if(!shift::core::collisiongeometry::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Collision geometry modules did not properly initialize");
     }
-    if(!shift::core::constraint::Modules::initialized()) {
+    if(!shift::core::constraint::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Constraint modules did not properly initialize");
     }
-    if(!shift::core::forcemodule::Modules::initialized()) {
+    if(!shift::core::forcemodule::Modules::is_initialized()) {
       throw shift::core::Exception("Force modules did not properly initialize");
     }
-    if(!shift::core::geometry::Modules::initialized()) {
+    if(!shift::core::geometry::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Geometry modules did not properly initialize");
     }
-    if(!shift::core::integrator::Modules::initialized()) {
+    if(!shift::core::integrator::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Integrator modules did not properly initialize");
     }
-    if(!shift::core::joint::Modules::initialized()) {
+    if(!shift::core::joint::Modules::is_initialized()) {
       throw shift::core::Exception("Joint modules did not properly initialize");
     }
-    if(!shift::core::light::Modules::initialized()) {
+    if(!shift::core::light::Modules::is_initialized()) {
       throw shift::core::Exception("Light modules did not properly initialize");
     }
-    if(!shift::core::logger::Modules::initialized()) {
+    if(!shift::core::logger::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Logger modules did not properly initialize");
     }
-    if(!shift::core::sensor::Modules::initialized()) {
+    if(!shift::core::sensor::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Sensor modules did not properly initialize");
     }
-    if(!shift::core::solver::Modules::initialized()) {
+    if(!shift::core::solver::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Solver modules did not properly initialize");
     }
-    if(!shift::core::terrain::Modules::initialized()) {
+    if(!shift::core::terrain::Modules::is_initialized()) {
       throw shift::core::Exception(
         "Terrain modules did not properly initialize");
     }
 }
 
-void shift::core::Context::setActiveObjects(bool) {
-  model_parameters_.setActiveObjects(true);
-  assemblies_.setActiveObjects(true);
+void shift::core::Context::set_objects_active(bool) {
+  model_parameters_.set_objects_active(true);
+  assemblies_.set_objects_active(true);
 }
 
-void shift::core::Context::appendActive(
+void shift::core::Context::AppendActiveObject(
   shift::core::integrator::Base* integrator) {
-  if(integrator->active()) {
+  if(integrator->is_active()) {
     for(auto i : active_integrators_) {
       if(i == integrator) {
         return;
@@ -275,8 +275,8 @@ void shift::core::Context::appendActive(
   }
 }
 
-void shift::core::Context::appendActive(shift::core::logger::Base* logger) {
-  if(logger->active()) {
+void shift::core::Context::AppendActiveObject(shift::core::logger::Base* logger) {
+  if(logger->is_active()) {
     for(auto i : active_loggers_) {
       if(i == logger) {
         return;
@@ -286,8 +286,8 @@ void shift::core::Context::appendActive(shift::core::logger::Base* logger) {
   }
 }
 
-void shift::core::Context::appendActive(shift::core::solver::Base* solver) {
-  if(solver->active()) {
+void shift::core::Context::AppendActiveObject(shift::core::solver::Base* solver) {
+  if(solver->is_active()) {
     for(auto i : active_solvers_) {
       if(i == solver) {
         return;
@@ -297,8 +297,8 @@ void shift::core::Context::appendActive(shift::core::solver::Base* solver) {
   }
 }
 
-void shift::core::Context::appendActive(shift::core::behavior::Base* behavior) {
-  if(behavior->active()) {
+void shift::core::Context::AppendActiveObject(shift::core::behavior::Base* behavior) {
+  if(behavior->is_active()) {
     for(auto i : active_behaviors_) {
       if(i == behavior) {
         return;
@@ -308,9 +308,9 @@ void shift::core::Context::appendActive(shift::core::behavior::Base* behavior) {
   }
 }
 
-void shift::core::Context::appendActive(shift::core::body::Base* body) {
-  if(body && body->active()) {
-    if(body->isArticulated()) {
+void shift::core::Context::AppendActiveObject(shift::core::body::Base* body) {
+  if(body && body->is_active()) {
+    if(body->is_articulated()) {
       for(auto& i : active_articulated_bodies_) {
         if(i == body) {
           return;
@@ -333,9 +333,9 @@ void shift::core::Context::appendActive(shift::core::body::Base* body) {
 
 }
 
-void shift::core::Context::appendActive(
+void shift::core::Context::AppendActiveObject(
   shift::core::collisiongeometry::Base* geometry) {
-  if(geometry->active()) {
+  if(geometry->is_active()) {
     for(auto i : active_collision_geometry_) {
       if(i == geometry) {
         return;
@@ -345,9 +345,9 @@ void shift::core::Context::appendActive(
   }
 }
 
-void shift::core::Context::appendActive(
+void shift::core::Context::AppendActiveObject(
   shift::core::constraint::Base* constraint) {
-  if(constraint->active()) {
+  if(constraint->is_active()) {
     for(auto i : active_constraints_) {
       if(i == constraint) {
         return;
@@ -357,9 +357,9 @@ void shift::core::Context::appendActive(
   }
 }
 
-void shift::core::Context::appendActive(
+void shift::core::Context::AppendActiveObject(
   shift::core::forcemodule::Base* module) {
-  if(module->active()) {
+  if(module->is_active()) {
     for(auto i : active_force_modules_) {
       if(i == module) {
         return;
@@ -369,8 +369,8 @@ void shift::core::Context::appendActive(
   }
 }
 
-void shift::core::Context::appendActive(shift::core::geometry::Base* geometry) {
-  if(geometry->active()) {
+void shift::core::Context::AppendActiveObject(shift::core::geometry::Base* geometry) {
+  if(geometry->is_active()) {
     for(auto i : active_geometry_) {
       if(i == geometry) {
         return;
@@ -380,8 +380,8 @@ void shift::core::Context::appendActive(shift::core::geometry::Base* geometry) {
   }
 }
 
-void shift::core::Context::appendActive(shift::core::joint::Base* joint) {
-  if(joint->active()) {
+void shift::core::Context::AppendActiveObject(shift::core::joint::Base* joint) {
+  if(joint->is_active()) {
     for(auto i : active_joints_) {
       if(i == joint) {
         return;
@@ -391,8 +391,8 @@ void shift::core::Context::appendActive(shift::core::joint::Base* joint) {
   }
 }
 
-void shift::core::Context::appendActive(shift::core::light::Base* light) {
-  if(light->active()) {
+void shift::core::Context::AppendActiveObject(shift::core::light::Base* light) {
+  if(light->is_active()) {
     for(auto i : active_lights_) {
       if(i == light) {
         return;
@@ -402,8 +402,8 @@ void shift::core::Context::appendActive(shift::core::light::Base* light) {
   }
 }
 
-void shift::core::Context::appendActive(shift::core::sensor::Base* sensor) {
-  if(sensor->active()) {
+void shift::core::Context::AppendActiveObject(shift::core::sensor::Base* sensor) {
+  if(sensor->is_active()) {
     for(auto i : active_sensors_) {
       if(i == sensor) {
         return;
@@ -413,8 +413,8 @@ void shift::core::Context::appendActive(shift::core::sensor::Base* sensor) {
   }
 }
 
-void shift::core::Context::appendActive(shift::core::terrain::Base* terrain) {
-  if(terrain->active()) {
+void shift::core::Context::AppendActiveObject(shift::core::terrain::Base* terrain) {
+  if(terrain->is_active()) {
     for(auto i : active_terrain_) {
       if(i == terrain) {
         return;
@@ -424,7 +424,7 @@ void shift::core::Context::appendActive(shift::core::terrain::Base* terrain) {
   }
 }
 
-void shift::core::Context::removeActive(shift::core::logger::Base* logger) {
+void shift::core::Context::RemoveActiveObject(shift::core::logger::Base* logger) {
   for(unsigned int i = 0; i < active_loggers_.size(); i++) {
     if(active_loggers_[i] == logger) {
       active_loggers_.erase(active_loggers_.begin() + i);
@@ -433,7 +433,7 @@ void shift::core::Context::removeActive(shift::core::logger::Base* logger) {
   }
 }
 
-void shift::core::Context::removeActive(
+void shift::core::Context::RemoveActiveObject(
   shift::core::integrator::Base* integrator) {
   for(unsigned int i = 0; i < active_integrators_.size(); i++) {
     if(active_integrators_[i] == integrator) {
@@ -443,7 +443,7 @@ void shift::core::Context::removeActive(
   }
 }
 
-void shift::core::Context::removeActive(shift::core::solver::Base* solver) {
+void shift::core::Context::RemoveActiveObject(shift::core::solver::Base* solver) {
   for(unsigned int i = 0; i < active_solvers_.size(); i++) {
     if(active_solvers_[i] == solver) {
       active_solvers_.erase(active_solvers_.begin() + i);
@@ -452,7 +452,7 @@ void shift::core::Context::removeActive(shift::core::solver::Base* solver) {
   }
 }
 
-void shift::core::Context::removeActive(shift::core::behavior::Base* behavior) {
+void shift::core::Context::RemoveActiveObject(shift::core::behavior::Base* behavior) {
   for(unsigned int i = 0; i < active_behaviors_.size(); i++) {
     if(active_behaviors_[i] == behavior) {
       active_behaviors_.erase(active_behaviors_.begin() + i);
@@ -461,8 +461,8 @@ void shift::core::Context::removeActive(shift::core::behavior::Base* behavior) {
   }
 }
 
-void shift::core::Context::removeActive(shift::core::body::Base* body) {
-  if(body->isArticulated()) {
+void shift::core::Context::RemoveActiveObject(shift::core::body::Base* body) {
+  if(body->is_articulated()) {
     for(unsigned int i = 0; i < active_articulated_bodies_.size(); i++) {
       if(active_articulated_bodies_[i] == body) {
         active_articulated_bodies_.erase(active_articulated_bodies_.begin() +
@@ -480,7 +480,7 @@ void shift::core::Context::removeActive(shift::core::body::Base* body) {
   }
 }
 
-void shift::core::Context::removeActive(
+void shift::core::Context::RemoveActiveObject(
   shift::core::collisiongeometry::Base* geometry) {
   for(unsigned int i = 0; i < active_collision_geometry_.size(); i++) {
     if(active_collision_geometry_[i] == geometry) {
@@ -490,7 +490,7 @@ void shift::core::Context::removeActive(
   }
 }
 
-void shift::core::Context::removeActive(
+void shift::core::Context::RemoveActiveObject(
   shift::core::constraint::Base* constraint) {
   for(unsigned int i = 0; i < active_constraints_.size(); i++) {
     if(active_constraints_[i] == constraint) {
@@ -500,7 +500,7 @@ void shift::core::Context::removeActive(
   }
 }
 
-void shift::core::Context::removeActive(
+void shift::core::Context::RemoveActiveObject(
   shift::core::forcemodule::Base* module) {
   for(unsigned int i = 0; i < active_force_modules_.size(); i++) {
     if(active_force_modules_[i] == module) {
@@ -510,7 +510,7 @@ void shift::core::Context::removeActive(
   }
 }
 
-void shift::core::Context::removeActive(shift::core::geometry::Base* geometry) {
+void shift::core::Context::RemoveActiveObject(shift::core::geometry::Base* geometry) {
   for(unsigned int i = 0; i < active_geometry_.size(); i++) {
     if(active_geometry_[i] == geometry) {
       active_geometry_.erase(active_geometry_.begin() + i);
@@ -519,7 +519,7 @@ void shift::core::Context::removeActive(shift::core::geometry::Base* geometry) {
   }
 }
 
-void shift::core::Context::removeActive(shift::core::joint::Base* joint) {
+void shift::core::Context::RemoveActiveObject(shift::core::joint::Base* joint) {
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     if(active_joints_[i] == joint) {
       active_joints_.erase(active_joints_.begin() + i);
@@ -528,7 +528,7 @@ void shift::core::Context::removeActive(shift::core::joint::Base* joint) {
   }
 }
 
-void shift::core::Context::removeActive(shift::core::light::Base* light) {
+void shift::core::Context::RemoveActiveObject(shift::core::light::Base* light) {
   for(unsigned int i = 0; i < active_lights_.size(); i++) {
     if(active_lights_[i] == light) {
       active_lights_.erase(active_lights_.begin() + i);
@@ -537,7 +537,7 @@ void shift::core::Context::removeActive(shift::core::light::Base* light) {
   }
 }
 
-void shift::core::Context::removeActive(shift::core::sensor::Base* sensor) {
+void shift::core::Context::RemoveActiveObject(shift::core::sensor::Base* sensor) {
   for(unsigned int i = 0; i < active_sensors_.size(); i++) {
     if(active_sensors_[i] == sensor) {
       active_sensors_.erase(active_sensors_.begin() + i);
@@ -546,7 +546,7 @@ void shift::core::Context::removeActive(shift::core::sensor::Base* sensor) {
   }
 }
 
-void shift::core::Context::removeActive(shift::core::terrain::Base* terrain) {
+void shift::core::Context::RemoveActiveObject(shift::core::terrain::Base* terrain) {
   for(unsigned int i = 0; i < active_terrain_.size(); i++) {
     if(active_terrain_[i] == terrain) {
       active_terrain_.erase(active_terrain_.begin() + i);
@@ -555,188 +555,188 @@ void shift::core::Context::removeActive(shift::core::terrain::Base* terrain) {
   }
 }
 
-void shift::core::Context::setActive(shift::core::behavior::Base* behavior,
+void shift::core::Context::ActivateObject(shift::core::behavior::Base* behavior,
                                      bool active) {
   if(behavior) {
-    active ? appendActive(behavior) : removeActive(behavior);
+    active ? AppendActiveObject(behavior) : RemoveActiveObject(behavior);
   }
 }
 
-void shift::core::Context::setActive(shift::core::body::Base* body,
+void shift::core::Context::ActivateObject(shift::core::body::Base* body,
                                      bool active) {
   if(body) {
-    active ? appendActive(body) : removeActive(body);
+    active ? AppendActiveObject(body) : RemoveActiveObject(body);
   }
 }
 
-void shift::core::Context::setActive(
+void shift::core::Context::ActivateObject(
   shift::core::collisiongeometry::Base* geometry, bool active) {
   if(geometry) {
-    active ? appendActive(geometry) : removeActive(geometry);
+    active ? AppendActiveObject(geometry) : RemoveActiveObject(geometry);
   }
 }
 
-void shift::core::Context::setActive(shift::core::constraint::Base* constraint,
+void shift::core::Context::ActivateObject(shift::core::constraint::Base* constraint,
                                      bool active) {
   if(constraint) {
-    active ? appendActive(constraint) : removeActive(constraint);
+    active ? AppendActiveObject(constraint) : RemoveActiveObject(constraint);
   }
 }
 
-void shift::core::Context::setActive(shift::core::forcemodule::Base* module,
+void shift::core::Context::ActivateObject(shift::core::forcemodule::Base* module,
                                      bool active) {
   if(module) {
-    active ? appendActive(module) : removeActive(module);
+    active ? AppendActiveObject(module) : RemoveActiveObject(module);
   }
 }
 
-void shift::core::Context::setActive(shift::core::geometry::Base* geometry,
+void shift::core::Context::ActivateObject(shift::core::geometry::Base* geometry,
                                      bool active) {
   if(geometry) {
-    active ? appendActive(geometry) : removeActive(geometry);
+    active ? AppendActiveObject(geometry) : RemoveActiveObject(geometry);
   }
 }
 
-void shift::core::Context::setActive(shift::core::joint::Base* joint,
+void shift::core::Context::ActivateObject(shift::core::joint::Base* joint,
                                      bool active) {
   if(joint) {
-    active ? appendActive(joint) : removeActive(joint);
+    active ? AppendActiveObject(joint) : RemoveActiveObject(joint);
   }
 }
 
-void shift::core::Context::setActive(shift::core::light::Base* light,
+void shift::core::Context::ActivateObject(shift::core::light::Base* light,
                                      bool active) {
   if(light) {
-    active ? appendActive(light) : removeActive(light);
+    active ? AppendActiveObject(light) : RemoveActiveObject(light);
   }
 }
 
-void shift::core::Context::setActive(shift::core::sensor::Base* sensor,
+void shift::core::Context::ActivateObject(shift::core::sensor::Base* sensor,
                                      bool active) {
   if(sensor) {
-    active ? appendActive(sensor) : removeActive(sensor);
+    active ? AppendActiveObject(sensor) : RemoveActiveObject(sensor);
   }
 }
 
-void shift::core::Context::setActive(shift::core::terrain::Base* terrain,
+void shift::core::Context::ActivateObject(shift::core::terrain::Base* terrain,
                                      bool active) {
   if(terrain) {
-    active ? appendActive(terrain) : removeActive(terrain);
+    active ? AppendActiveObject(terrain) : RemoveActiveObject(terrain);
   }
 }
 
-void shift::core::Context::setActive(shift::core::logger::Base* logger,
+void shift::core::Context::ActivateObject(shift::core::logger::Base* logger,
                                      bool active) {
   if(logger) {
-    active ? appendActive(logger) : removeActive(logger);
+    active ? AppendActiveObject(logger) : RemoveActiveObject(logger);
   }
 }
 
-void shift::core::Context::setActive(shift::core::integrator::Base* integrator,
+void shift::core::Context::ActivateObject(shift::core::integrator::Base* integrator,
                                      bool active) {
   if(integrator) {
-    active ? appendActive(integrator) : removeActive(integrator);
+    active ? AppendActiveObject(integrator) : RemoveActiveObject(integrator);
   }
 }
 
-void shift::core::Context::setActive(shift::core::solver::Base* solver,
+void shift::core::Context::ActivateObject(shift::core::solver::Base* solver,
                                      bool active) {
   if(solver) {
-    active ? appendActive(solver) : removeActive(solver);
+    active ? AppendActiveObject(solver) : RemoveActiveObject(solver);
   }
 }
 
-void shift::core::Context::clearActiveBehavior() {
+void shift::core::Context::ClearActiveBehavior() {
   active_behaviors_.clear();
 }
 
-void shift::core::Context::clearActiveArticulatedBodies() {
+void shift::core::Context::ClearActiveArticulatedBodies() {
   active_articulated_bodies_.clear();
 }
 
-void shift::core::Context::clearActiveFreeBodies() {
+void shift::core::Context::ClearActiveFreeBodies() {
   active_free_bodies_.clear();
 }
 
-void shift::core::Context::clearActiveCollisionGeometry() {
+void shift::core::Context::ClearActiveCollisionGeometry() {
   active_collision_geometry_.clear();
 }
 
-void shift::core::Context::clearActiveConstraints() {
+void shift::core::Context::ClearActiveConstraints() {
   active_constraints_.clear();
 }
 
-void shift::core::Context::clearActiveforcemodules() {
+void shift::core::Context::ClearActiveforcemodules() {
   active_force_modules_.clear();
 }
 
-void shift::core::Context::clearActiveGeometry() {
+void shift::core::Context::ClearActiveGeometry() {
   active_geometry_.clear();
 }
 
-void shift::core::Context::clearActiveJoints() {
+void shift::core::Context::ClearActiveJoints() {
   active_joints_.clear();
 }
 
-void shift::core::Context::clearActiveLights() {
+void shift::core::Context::ClearActiveLights() {
   active_lights_.clear();
 }
 
-void shift::core::Context::clearActiveSensors() {
+void shift::core::Context::ClearActiveSensors() {
   active_sensors_.clear();
 }
 
-void shift::core::Context::clearActiveTerrain() {
+void shift::core::Context::ClearActiveTerrain() {
   active_terrain_.clear();
 }
 
-void shift::core::Context::clearActiveArrays() {
-  clearActiveBehavior();
-  clearActiveArticulatedBodies();
-  clearActiveFreeBodies();
-  clearActiveCollisionGeometry();
-  clearActiveConstraints();
-  clearActiveforcemodules();
-  clearActiveGeometry();
-  clearActiveJoints();
-  clearActiveLights();
-  clearActiveSensors();
-  clearActiveTerrain();
+void shift::core::Context::ClearActiveArrays() {
+  ClearActiveBehavior();
+  ClearActiveArticulatedBodies();
+  ClearActiveFreeBodies();
+  ClearActiveCollisionGeometry();
+  ClearActiveConstraints();
+  ClearActiveforcemodules();
+  ClearActiveGeometry();
+  ClearActiveJoints();
+  ClearActiveLights();
+  ClearActiveSensors();
+  ClearActiveTerrain();
 }
 
-void shift::core::Context::connect() {
+void shift::core::Context::Connect() {
     for(auto& behavior : active_behaviors_) {
-      behavior->connect();
+      behavior->Connect();
     }
     for(auto& body : active_articulated_bodies_) {
-      body->connect();
+      body->Connect();
     }
     for(auto& geometry : active_collision_geometry_) {
-      geometry->connect();
+      geometry->Connect();
     }
     for(auto& constraint : active_constraints_) {
-      constraint->connect();
+      constraint->Connect();
     }
     for(auto& module : active_force_modules_) {
-      module->connect();
+      module->Connect();
     }
     for(auto& geometry : active_geometry_) {
-      geometry->connect();
+      geometry->Connect();
     }
     for(auto& joint : active_joints_) {
-      joint->connect();
+      joint->Connect();
     }
     for(auto& light : active_lights_) {
-      light->connect();
+      light->Connect();
     }
     for(auto& sensor : active_sensors_) {
-      sensor->connect();
+      sensor->Connect();
     }
     for(auto& terrain : active_terrain_) {
-      terrain->connect();
+      terrain->Connect();
     }
     for(auto& logger : active_loggers_) {
-      logger->connect();
+      logger->Connect();
     }
     if(active_integrators_.size() == 0) {
       throw shift::core::Exception(
@@ -747,47 +747,47 @@ void shift::core::Context::connect() {
         "No solvers were specified in the model input file");
     }
     for(auto& integrator : active_integrators_) {
-      integrator->connect();
+      integrator->Connect();
     }
     for(auto& solver : active_solvers_) {
-      solver->connect();
+      solver->Connect();
     }
 }
 
-void shift::core::Context::loadData() {
+void shift::core::Context::LoadData() {
   for(auto& behavior : active_behaviors_) {
-    behavior->load();
+    behavior->Load();
   }
   for(auto& body : active_articulated_bodies_) {
-    body->load();
+    body->Load();
   }
   for(auto& collision_geometry : active_collision_geometry_) {
-    collision_geometry->load();
+    collision_geometry->Load();
   }
   for(auto& constraint : active_constraints_) {
-    constraint->load();
+    constraint->Load();
   }
   for(auto& force_module : active_force_modules_) {
-    force_module->load();
+    force_module->Load();
   }
   for(auto& geometry : active_geometry_) {
-    geometry->load();
+    geometry->Load();
   }
   for(auto& joint : active_joints_) {
-    joint->load();
+    joint->Load();
   }
   for(auto& light : active_lights_) {
-    light->load();
+    light->Load();
   }
   for(auto& sensor : active_sensors_) {
-    sensor->load();
+    sensor->Load();
   }
   for(auto& terrain : active_terrain_) {
-    terrain->load();
+    terrain->Load();
   }
 }
 
-void shift::core::Context::levelOrderSort() {
+void shift::core::Context::LevelOrderSort() {
 
   std::queue<shift::core::joint::Base*> queue;
   std::vector<shift::core::joint::Base*> joints;
@@ -796,16 +796,16 @@ void shift::core::Context::levelOrderSort() {
   /* find joints attached to fixed body */
   auto it = active_joints_.begin();
   while(it != active_joints_.end()) {
-    assert((*it)->parentBody() != nullptr);
-    assert((*it)->childBody() != nullptr);
-    if((*it)->parentBody() == fixedBody()) {
-      (*it)->setSense(1);
-      (*it)->setLevel(1);
+    assert((*it)->get_parent_body() != nullptr);
+    assert((*it)->get_child_body() != nullptr);
+    if((*it)->get_parent_body() == get_fixed_body()) {
+      (*it)->set_sense(1);
+      (*it)->set_level(1);
       queue.push(*it);
       it = active_joints_.erase(it);
-    } else if((*it)->childBody() == fixedBody()) {
-      (*it)->setSense(-1);
-      (*it)->setLevel(1);
+    } else if((*it)->get_child_body() == get_fixed_body()) {
+      (*it)->set_sense(-1);
+      (*it)->set_level(1);
       queue.push(*it);
       it = active_joints_.erase(it);
     } else {
@@ -817,10 +817,10 @@ void shift::core::Context::levelOrderSort() {
     auto joint = queue.front();
     queue.pop();
     shift::core::body::Base* body = nullptr;
-    if(joint->sense() == 1) {
-      body = joint->childBody();
-    } else if(joint->sense() == -1) {
-      body = joint->parentBody();
+    if(joint->get_sense() == 1) {
+      body = joint->get_child_body();
+    } else if(joint->get_sense() == -1) {
+      body = joint->get_parent_body();
     }
     joints.push_back(joint);
     assert(body);
@@ -828,14 +828,14 @@ void shift::core::Context::levelOrderSort() {
     /* find any joints attached to joint's child body */
     it = active_joints_.begin();
     while(it != active_joints_.end()) {
-      if((*it)->parentBody() == body) {
-        (*it)->setSense(1);
-        (*it)->setLevel(joint->getLevel() + 1);
+      if((*it)->get_parent_body() == body) {
+        (*it)->set_sense(1);
+        (*it)->set_level(joint->get_level() + 1);
         queue.push(*it);
         it = active_joints_.erase(it);
-      } else if((*it)->childBody() == body) {
-        (*it)->setSense(-1);
-        (*it)->setLevel(joint->getLevel() + 1);
+      } else if((*it)->get_child_body() == body) {
+        (*it)->set_sense(-1);
+        (*it)->set_level(joint->get_level() + 1);
         queue.push(*it);
         it = active_joints_.erase(it);
       } else {
@@ -847,7 +847,7 @@ void shift::core::Context::levelOrderSort() {
   active_joints_ = joints;
 }
 
-void shift::core::Context::processVirtualBodies() {
+void shift::core::Context::ProcessVirtualBodies() {
 
   // std::cout << "Processing virtual bodies" << std::endl;
   // std::cout << "active_articulated_bodies_.size(): "
@@ -859,8 +859,8 @@ void shift::core::Context::processVirtualBodies() {
 
   // clear system child body and frame pointers
   for(auto& joint : active_joints_) {
-    joint->setSystemChildBody(nullptr);
-    joint->setSystemChildFrame(nullptr);
+    joint->set_system_child_body(nullptr);
+    joint->set_system_child_frame(nullptr);
   }
 
   chord_constraints_.clear();
@@ -868,7 +868,7 @@ void shift::core::Context::processVirtualBodies() {
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
 
     bool found = false;
-    auto body = active_joints_[i]->systemChildBody();
+    auto body = active_joints_[i]->get_system_child_body();
     for(auto it = active_articulated_bodies_.begin();
         it < active_articulated_bodies_.end(); it++) {
       if(body == (*it)) {
@@ -881,37 +881,41 @@ void shift::core::Context::processVirtualBodies() {
 
     if(!found) {
       auto constraint =
-        shift::core::Factory<shift::core::constraint::Base>::get()->create(
+        shift::core::Factory<shift::core::constraint::Base>::get()->Create(
           "chord");
 
-      shift::core::constraint::Chord* chordConstraint =
+      shift::core::constraint::Chord* chord_constraint =
         dynamic_cast<shift::core::constraint::Chord*>(constraint.get());
 
-      auto virtualBody =
-        shift::core::Factory<shift::core::body::Base>::get()->create("virtual");
-      virtualBody->setName("_virtualBody[" + std::to_string(j++) + "]");
+      auto virtual_body =
+        shift::core::Factory<shift::core::body::Base>::get()->Create("virtual");
+      virtual_body->set_name("_virtual_body[" + std::to_string(j++) + "]");
 
-      chordConstraint->setParentBody(virtualBody.get());
-      chordConstraint->setParentFrame(virtualBody->origin());
+      chord_constraint->set_parent_body(virtual_body.get());
+      chord_constraint->set_parent_frame(virtual_body->get_origin());
 
       auto chordJoint = active_joints_[i];
-      chordConstraint->setChildBody(chordJoint->systemChildBody());
-      chordConstraint->setChildFrame(chordJoint->systemChildFrame());
-      chordConstraint->setOriginalParentBody(chordJoint->systemParentBody());
-      chordConstraint->setOriginalParentFrame(chordJoint->systemParentFrame());
+      chord_constraint->set_child_body(
+        chordJoint->get_system_child_body());
+      chord_constraint->set_child_frame(
+        chordJoint->get_system_child_frame());
+      chord_constraint->set_original_parent_body(
+        chordJoint->get_system_parent_body());
+      chord_constraint->set_original_parent_frame(
+        chordJoint->get_system_parent_frame());
 
       /* add virtual bodies and chord constraints to active lists */
-      bodies[i] = virtualBody.get();
+      bodies[i] = virtual_body.get();
 
       active_constraints_.push_back(constraint.get());
-      chord_constraints_.push_back(chordConstraint);
+      chord_constraints_.push_back(chord_constraint);
 
-      active_joints_[i]->setSystemChildBody(virtualBody.get());
-      active_joints_[i]->setSystemChildFrame(virtualBody.get()->origin());
+      active_joints_[i]->set_system_child_body(virtual_body.get());
+      active_joints_[i]->set_system_child_frame(virtual_body.get()->get_origin());
 
       /* transfer ownership of smart pointers for virtual bodies and chord
        * constraints to `Context` data structure */
-      bodies_.push_back(std::move(virtualBody));
+      bodies_.push_back(std::move(virtual_body));
       constraints_.push_back(std::move(constraint));
     }
   }
@@ -919,20 +923,20 @@ void shift::core::Context::processVirtualBodies() {
   active_articulated_bodies_ = bodies;
 }
 
-void shift::core::Context::processPCL() {
+void shift::core::Context::ProcessPCL() {
   for(unsigned int i = 0; i < active_articulated_bodies_.size(); i++) {
-    active_articulated_bodies_[i]->setIndex(i);
+    active_articulated_bodies_[i]->set_index(i);
   }
   pcl_.clear();
   pcl_.resize(active_joints_.size());
     for(unsigned int i = 0; i < active_joints_.size(); i++) {
       auto joint = active_joints_[i];
-      auto parentBody = joint->systemParentBody();
-      if(parentBody) {
-        pcl_[i] = parentBody->index();
+      auto parent_body = joint->get_system_parent_body();
+      if(parent_body) {
+        pcl_[i] = parent_body->get_index();
       } else {
         throw shift::core::Exception("Failed to find parent body of joint: " +
-                                     joint->name());
+                                     joint->get_name());
       }
     }
 
@@ -944,94 +948,94 @@ void shift::core::Context::processPCL() {
 
   // std::cout << "parent list: " << std::endl;
   // for(unsigned int i = 0; i < pcl_.size(); i++) {
-  //   int parentIndex = pcl_[i];
+  //   int parent_index = pcl_[i];
   //
-  //   std::cout << "body[" << i << "]: " << activeBodies_[i]->name()
+  //   std::cout << "body[" << i << "]: " << active_bodies_[i]->get_name()
   //             << ", parent: ";
-  //   if(parentIndex < 0) {
+  //   if(parent_index < 0) {
   //     std::cout << "fixed";
   //   } else {
-  //     std::cout << activeBodies_[parentIndex]->name();
+  //     std::cout << active_bodies_[parent_index]->get_name();
   //   }
-  //   std::cout << ", " << active_joints_[i]->name() << std::endl;
+  //   std::cout << ", " << active_joints_[i]->get_name() << std::endl;
   // }
 
   // std::cout << std::endl << "# body / joint list: " << std::endl;
-  // for(unsigned int i = 0; i < activeBodies_.size(); i++) {
-  //   std::cout << "[" << i << "]" << active_joints_[i]->name();
+  // for(unsigned int i = 0; i < active_bodies_.size(); i++) {
+  //   std::cout << "[" << i << "]" << active_joints_[i]->get_name();
   //   if(active_joints_[i]->sense() > 0) {
   //     std::cout << " +";
   //   } else {
   //     std::cout << " -";
   //   }
-  //   std::cout << " " << activeBodies_[i]->name() << std::endl;
+  //   std::cout << " " << active_bodies_[i]->get_name() << std::endl;
   // }
 }
 
-void shift::core::Context::processLoopMembers() {
-  std::vector<std::vector<int>> loopMembers(chord_constraints_.size());
-  std::vector<std::vector<int>> negativeLoopMembers(chord_constraints_.size());
-  std::vector<std::vector<int>> positiveLoopMembers(chord_constraints_.size());
+void shift::core::Context::ProcessLoopMembers() {
+  std::vector<std::vector<int>> loop_members(chord_constraints_.size());
+  std::vector<std::vector<int>> negative_loop_members(chord_constraints_.size());
+  std::vector<std::vector<int>> positive_loop_members(chord_constraints_.size());
     for(unsigned int i = 0; i < chord_constraints_.size(); i++) {
-      loopMembers[i].clear();
-      negativeLoopMembers[i].clear();
-      positiveLoopMembers[i].clear();
+      loop_members[i].clear();
+      negative_loop_members[i].clear();
+      positive_loop_members[i].clear();
 
-      if(!chord_constraints_[i]->parentBody()) {
+      if(!chord_constraints_[i]->get_parent_body()) {
         throw shift::core::Exception("no parent body for chord constraint: " +
                                      std::to_string(i));
       }
 
-      if(!chord_constraints_[i]->childBody()) {
+      if(!chord_constraints_[i]->get_child_body()) {
         throw shift::core::Exception("no child body for chord constraint: " +
                                      std::to_string(i));
       }
 
-      int positive = chord_constraints_[i]->parentBody()->index();
-      int negative = chord_constraints_[i]->childBody()->index();
+      int positive = chord_constraints_[i]->get_parent_body()->get_index();
+      int negative = chord_constraints_[i]->get_child_body()->get_index();
 
       // std::cout << "parent body: " <<
-      // chord_constraints_[i]->parentBody()->name()
+      // chord_constraints_[i]->get_parent_body()->get_name()
       //           << ": " << positive << std::endl;
       // std::cout << "child body: " <<
-      // chord_constraints_[i]->childBody()->name()
+      // chord_constraints_[i]->child_body()->get_name()
       //           << ": " << negative << std::endl;
 
-      loopMembers[i].push_back(negative);
-      negativeLoopMembers[i].push_back(negative);
-      loopMembers[i].push_back(positive);
-      positiveLoopMembers[i].push_back(positive);
+      loop_members[i].push_back(negative);
+      negative_loop_members[i].push_back(negative);
+      loop_members[i].push_back(positive);
+      positive_loop_members[i].push_back(positive);
 
-      while(active_joints_[positive]->getLevel() >
-            active_joints_[negative]->getLevel()) {
+      while(active_joints_[positive]->get_level() >
+            active_joints_[negative]->get_level()) {
         positive = pcl_[positive];
-        loopMembers[i].push_back(positive);
-        positiveLoopMembers[i].push_back(positive);
+        loop_members[i].push_back(positive);
+        positive_loop_members[i].push_back(positive);
       }
-      while(active_joints_[negative]->getLevel() >
-            active_joints_[positive]->getLevel()) {
+      while(active_joints_[negative]->get_level() >
+            active_joints_[positive]->get_level()) {
         negative = pcl_[negative];
-        loopMembers[i].push_back(negative);
-        negativeLoopMembers[i].push_back(negative);
+        loop_members[i].push_back(negative);
+        negative_loop_members[i].push_back(negative);
       }
       while(positive != negative) {
         negative = pcl_[negative];
         positive = pcl_[positive];
-        loopMembers[i].push_back(positive);
-        positiveLoopMembers[i].push_back(positive);
-        loopMembers[i].push_back(negative);
-        negativeLoopMembers[i].push_back(negative);
+        loop_members[i].push_back(positive);
+        positive_loop_members[i].push_back(positive);
+        loop_members[i].push_back(negative);
+        negative_loop_members[i].push_back(negative);
       }
-      loopMembers[i].pop_back();
-      negativeLoopMembers[i].pop_back();
-      positiveLoopMembers[i].pop_back();
+      loop_members[i].pop_back();
+      negative_loop_members[i].pop_back();
+      positive_loop_members[i].pop_back();
     }
 
   /* sort loop members in monotonically increasing level order */
   for(unsigned int i = 0; i < chord_constraints_.size(); i++) {
-    std::sort(loopMembers[i].begin(), loopMembers[i].end(), levelOrder(this));
+    std::sort(loop_members[i].begin(), loop_members[i].end(), LevelOrder(this));
   }
-  loop_members_ = loopMembers;
+  loop_members_ = loop_members;
 
   /* sort positive and negative loop member lists to follow master loop member
    * list ordering */
@@ -1042,29 +1046,29 @@ void shift::core::Context::processLoopMembers() {
   for(unsigned int i = 0; i < chord_constraints_.size(); i++) {
     negative_loop_members_[i].clear();
     for(auto j : loop_members_[i]) {
-      if(std::find(negativeLoopMembers[i].begin(), negativeLoopMembers[i].end(),
-                   j) != negativeLoopMembers[i].end()) {
+      if(std::find(negative_loop_members[i].begin(), negative_loop_members[i].end(),
+                   j) != negative_loop_members[i].end()) {
         negative_loop_members_[i].push_back(j);
       }
-      if(std::find(positiveLoopMembers[i].begin(), positiveLoopMembers[i].end(),
-                   j) != positiveLoopMembers[i].end()) {
+      if(std::find(positive_loop_members[i].begin(), positive_loop_members[i].end(),
+                   j) != positive_loop_members[i].end()) {
         positive_loop_members_[i].push_back(j);
       }
     }
   }
 }
 
-void shift::core::Context::detectSubstructures() {
+void shift::core::Context::DetectSubstructures() {
   
   if(chord_constraints_.size() > 0) {
 
     /* contains chord constraint indices */
     std::vector<std::vector<int>> substructures;
 
-    /* create stack of all chordConstraint indices */
-    std::list<int> chordConstraintIndices;
+    /* create stack of all chord_constraint indices */
+    std::list<int> chord_constraintIndices;
     for(unsigned int i = 0; i < chord_constraints_.size(); i++) {
-      chordConstraintIndices.push_back(i);
+      chord_constraintIndices.push_back(i);
     }
 
     /* p_01 is used to permute chord loops here */
@@ -1072,23 +1076,23 @@ void shift::core::Context::detectSubstructures() {
     std::vector<int> p_10(chord_constraints_.size());
     int currentLoopIndex = 0;
 
-    while(!chordConstraintIndices.empty()) {
+    while(!chord_constraintIndices.empty()) {
       std::vector<int> substructure;
-      int chordConstraintIndex = chordConstraintIndices.front();
-      chordConstraintIndices.pop_front();
+      int chord_constraintIndex = chord_constraintIndices.front();
+      chord_constraintIndices.pop_front();
 
-      substructure.push_back(chordConstraintIndex);
-      p_01[currentLoopIndex++] = chordConstraintIndex;
+      substructure.push_back(chord_constraintIndex);
+      p_01[currentLoopIndex++] = chord_constraintIndex;
 
       /* append first substructure to list of substructures */
-      auto it = chordConstraintIndices.begin();
+      auto it = chord_constraintIndices.begin();
       int mergeCount = 1;
       while(mergeCount != 0) {
         mergeCount = 0;
-        while(it != chordConstraintIndices.end()) {
+        while(it != chord_constraintIndices.end()) {
           /* base node of substructure */
           int baseNode = loop_members_[substructure[0]][0];
-          if(shift::core::topology::inPath(pcl_, loop_members_[(*it)][0],
+          if(shift::core::topology::InPath(pcl_, loop_members_[(*it)][0],
                                            baseNode)) {
             for(auto loopIndex : substructure) {
               for(auto loopMember = loop_members_[loopIndex].begin() + 1;
@@ -1101,7 +1105,7 @@ void shift::core::Context::detectSubstructures() {
                     substructure.push_back(*it);
                     p_01[currentLoopIndex++] = (*it);
                     mergeCount++;
-                    it = chordConstraintIndices.erase(it);
+                    it = chord_constraintIndices.erase(it);
                     goto endLoopMerge;
                   }
                 }
@@ -1118,7 +1122,7 @@ void shift::core::Context::detectSubstructures() {
 
     size_t i = 0;
     for(auto& joint : active_joints_) {
-      std::cout << "[" << i++ << "]: " << joint->name() << std::endl;
+      std::cout << "[" << i++ << "]: " << joint->get_name() << std::endl;
     }
    
     i = 0;
@@ -1130,16 +1134,18 @@ void shift::core::Context::detectSubstructures() {
       std::cout << std::endl;
     }
 
+    std::cout << "loop level order sort" << std::endl;
     /* sort loops of each substructure in monotonically increasing level order
      */
     for(auto& substructure : substructures) {
       std::sort(substructure.begin(), substructure.end(),
-                substructureLoopLevelOrder(this, loop_members_));
+                SubstructureLoopLevelOrder(this, loop_members_));
     }
 
+    
     /* sort substructures in monotonically level increasing order */
     std::sort(substructures.begin(), substructures.end(),
-              substructureLevelOrder(this, loop_members_));
+              SubstructureLevelOrder(this, loop_members_));
 
     // int k = 0;
     // for(auto substructure : substructures) {
@@ -1169,7 +1175,7 @@ void shift::core::Context::detectSubstructures() {
 
       /* sort substructure members in level increasing order */
       std::sort(substructure_members_[i].begin(),
-                substructure_members_[i].end(), levelOrder(this));
+                substructure_members_[i].end(), LevelOrder(this));
     }
 
     // std::cout << "substructure members:" << std::endl;
@@ -1177,7 +1183,7 @@ void shift::core::Context::detectSubstructures() {
     // for(auto& members : substructure_members_) {
     //   std::cout << "[" << i++ << "]: " << std::endl;
     //   for(auto& member : members) {
-    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
     //   }
     //   std::cout << std::endl;
     // }
@@ -1185,38 +1191,38 @@ void shift::core::Context::detectSubstructures() {
     /* reorder loops */
 
     /* reorder loop members to follow substructure ordering */
-    std::vector<std::vector<int>> loopMembers;
-    std::vector<std::vector<int>> negativeLoopMembers;
-    std::vector<std::vector<int>> positiveLoopMembers;
-    std::vector<shift::core::constraint::Chord*> chordConstraints;
+    std::vector<std::vector<int>> loop_members;
+    std::vector<std::vector<int>> negative_loop_members;
+    std::vector<std::vector<int>> positive_loop_members;
+    std::vector<shift::core::constraint::Chord*> chord_constraints;
 
     for(auto substructure : substructures) {
       for(auto loop : substructure) {
-        loopMembers.push_back(loop_members_[loop]);
-        negativeLoopMembers.push_back(negative_loop_members_[loop]);
-        positiveLoopMembers.push_back(positive_loop_members_[loop]);
-        chordConstraints.push_back(chord_constraints_[loop]);
+        loop_members.push_back(loop_members_[loop]);
+        negative_loop_members.push_back(negative_loop_members_[loop]);
+        positive_loop_members.push_back(positive_loop_members_[loop]);
+        chord_constraints.push_back(chord_constraints_[loop]);
       }
     }
 
-    loop_members_ = loopMembers;
-    negative_loop_members_ = negativeLoopMembers;
-    positive_loop_members_ = positiveLoopMembers;
-    chord_constraints_ = chordConstraints;
+    loop_members_ = loop_members;
+    negative_loop_members_ = negative_loop_members;
+    positive_loop_members_ = positive_loop_members;
+    chord_constraints_ = chord_constraints;
 
     // std::cout << "loop members:" << std::endl;
-    // for(unsigned int i = 0; i < loopMembers.size(); i++) {
+    // for(unsigned int i = 0; i < loop_members.size(); i++) {
     //   std::cout << "loop members [" << i << "]: " << std::endl;
-    //   for(auto member : loopMembers[i]) {
-    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //   for(auto member : loop_members[i]) {
+    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
     //   }
     //   std::cout << "negative loop members [" << i << "]: " << std::endl;
-    //   for(auto member : negativeLoopMembers[i]) {
-    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //   for(auto member : negative_loop_members[i]) {
+    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
     //   }
     //   std::cout << "positive loop members [" << i << "]: " << std::endl;
-    //   for(auto member : positiveLoopMembers[i]) {
-    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //   for(auto member : positive_loop_members[i]) {
+    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
     //   }
     //   std::cout << std::endl;
     // }
@@ -1231,26 +1237,26 @@ void shift::core::Context::detectSubstructures() {
     /* create a short list of indices that are either not in any
        substructure or are the head of a substructure; the short list
        may contain the fixed body */
-    std::list<int> shortList;
+    std::list<int> short_list;
     for(int i = -1; i < (int)active_joints_.size(); i++) {
-      if(shift::core::topology::isSubstructureHead(i, substructure_members_) ||
-         !shift::core::topology::isSubstructureMember(i,
+      if(shift::core::topology::IsSubstructureHead(i, substructure_members_) ||
+         !shift::core::topology::IsSubstructureMember(i,
                                                       substructure_members_)) {
-        shortList.push_back(i);
+        short_list.push_back(i);
       }
     }
 
     /* expand short list */
-    std::list<int> expandedList;
+    std::list<int> expanded_list;
     unsigned int j = 0;
 
-      while(!shortList.empty()) {
-        int value = shortList.front();
-        shortList.pop_front();
+      while(!short_list.empty()) {
+        int value = short_list.front();
+        short_list.pop_front();
 
-        if(std::find(expandedList.begin(), expandedList.end(), value) ==
-           expandedList.end()) {
-          expandedList.push_back(value);
+        if(std::find(expanded_list.begin(), expanded_list.end(), value) ==
+           expanded_list.end()) {
+          expanded_list.push_back(value);
         }
 
         /*
@@ -1267,29 +1273,29 @@ void shift::core::Context::detectSubstructures() {
           for(unsigned int k = 1; k < substructure_members_[j].size(); k++) {
             /* append substructure members only if they are not already in
             the list */
-            if(std::find(expandedList.begin(), expandedList.end(),
-                         substructure_members_[j][k]) == expandedList.end()) {
-              expandedList.push_back(substructure_members_[j][k]);
+            if(std::find(expanded_list.begin(), expanded_list.end(),
+                         substructure_members_[j][k]) == expanded_list.end()) {
+              expanded_list.push_back(substructure_members_[j][k]);
             }
           }
           j++;
         }
       }
 
-      std::vector<int> expandedArray{std::begin(expandedList),
-                                     std::end(expandedList)};
+      std::vector<int> expanded_array{std::begin(expanded_list),
+                                     std::end(expanded_list)};
 
       /* verify that all joints were added to the expanded array */
       bool found = true;
       for(unsigned int i = 0; i < active_joints_.size(); i++) {
         found = false;
-        for(auto j : expandedArray) {
+        for(auto j : expanded_array) {
           if((int)i == j) {
             found = true;
           }
         }
         if(!found) {
-          std::cerr << active_articulated_bodies_[i]->name() << " not found!"
+          std::cerr << active_articulated_bodies_[i]->get_name() << " not found!"
                     << std::endl;
         }
       }
@@ -1298,9 +1304,9 @@ void shift::core::Context::detectSubstructures() {
       }
 
       /* reorder bodies, joints and levels */
-      std::vector<shift::core::joint::Base*> activeJoints(
+      std::vector<shift::core::joint::Base*> active_joints(
         active_joints_.size());
-      std::vector<shift::core::body::Base*> activeBodies(
+      std::vector<shift::core::body::Base*> active_bodies(
         active_articulated_bodies_.size());
 
       /* initialize permutation arrays to permute bodies and joints from order
@@ -1312,19 +1318,19 @@ void shift::core::Context::detectSubstructures() {
       p_10.resize(active_joints_.size());
 
       j = 0;
-      for(unsigned int i = 0; i < expandedArray.size(); i++) {
-        if(expandedArray[i] != -1) {
-          p_01[j] = expandedArray[i];
-          activeJoints[j] = active_joints_[expandedArray[i]];
-          activeBodies[j] = active_articulated_bodies_[expandedArray[i]];
-          activeBodies[j]->setIndex(j);
+      for(unsigned int i = 0; i < expanded_array.size(); i++) {
+        if(expanded_array[i] != -1) {
+          p_01[j] = expanded_array[i];
+          active_joints[j] = active_joints_[expanded_array[i]];
+          active_bodies[j] = active_articulated_bodies_[expanded_array[i]];
+          active_bodies[j]->set_index(j);
           j++;
         }
       }
-      active_joints_ = activeJoints;
-      active_articulated_bodies_ = activeBodies;
+      active_joints_ = active_joints;
+      active_articulated_bodies_ = active_bodies;
 
-      shift::core::topology::setInversePermutation(p_01, p_10);
+      shift::core::topology::SetInversePermutation(p_01, p_10);
 
       // i = 0;
       // for(auto& members : substructure_members_) {
@@ -1383,7 +1389,7 @@ void shift::core::Context::detectSubstructures() {
     // for(auto& members : substructure_members_) {
     //   std::cout << "[" << i++ << "]: " << std::endl;
     //   for(auto& member : members) {
-    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
     //   }
     //   std::cout << std::endl;
     // }
@@ -1392,26 +1398,26 @@ void shift::core::Context::detectSubstructures() {
     // for(unsigned int i = 0; i < loop_members_.size(); i++) {
     //   std::cout << "loop members [" << i << "]: " << std::endl;
     //   for(auto member : loop_members_[i]) {
-    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
     //   }
     //   std::cout << "negative loop members [" << i << "]: " << std::endl;
     //   for(auto member : negative_loop_members_[i]) {
-    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
     //   }
     //   std::cout << "positive loop members [" << i << "]: " << std::endl;
     //   for(auto member : positive_loop_members_[i]) {
-    //     std::cout << "  " << active_joints_[member]->name() << std::endl;
+    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
     //   }
     //   std::cout << std::endl;
     // }
   }
 }
 
-unsigned int shift::core::Context::qCount() {
+unsigned int shift::core::Context::get_q_count() {
   return q_count_;
 }
 
-unsigned int shift::core::Context::dqCount() {
+unsigned int shift::core::Context::get_dq_count() {
   return dq_count_;
 }
 
@@ -1419,15 +1425,15 @@ unsigned int shift::core::Context::dqCount() {
 \brief compress any frames on child body attached to parent body by
 series of one or more rigid joints
 */
-void shift::core::Context::compressRigidJoints(
+void shift::core::Context::CompressRigidJoints(
   int i, // current body Index and parent joint index
-  unsigned int& operationCount) {
+  unsigned int& operation_count) {
 
   ksl_SE3_t D;
   ksl_SE3_setIdentity(&D);
 
   int j = i;
-  auto parentJoint = active_joints_[i];
+  auto parent_joint = active_joints_[i];
 
   // D_p_01: transformation from proximal frame 0 to distal frame 1 on parent
   // body p
@@ -1435,17 +1441,17 @@ void shift::core::Context::compressRigidJoints(
   // D_c_01: transformation from proximal frame 0 to distal frame 1 on child
   // body c
 
-  while(!parentJoint->qCount()) { // rigid joint
+  while(!parent_joint->get_q_count()) { // rigid joint
     // D = D_p1_c0 * D
     ksl_SE3_t temp;
-    ksl_SE3_t D_p1_c0 = parentJoint->transform();
+    ksl_SE3_t D_p1_c0 = parent_joint->get_transform();
     // ksl_SE3_print(stdout, &D_p1_c0, "  D_p1_c0: ");
     ksl_product_dd(&D_p1_c0, &D, &temp);
     ksl_SE3_copy(&temp, &D);
 
     // D = D_p0_p1 * D_p1_c0
     // D <- D_p0_c0
-    ksl_product_dd(parentJoint->systemParentFrame()->dWRTReference(), &D,
+    ksl_product_dd(parent_joint->get_system_parent_frame()->get_d_wrt_reference(), &D,
                    &temp);
     ksl_SE3_copy(&temp, &D);
 
@@ -1453,76 +1459,76 @@ void shift::core::Context::compressRigidJoints(
     if(j == -1) {
       break;
     }
-    parentJoint = active_joints_[j];
+    parent_joint = active_joints_[j];
   }
 
   auto joint = active_joints_[i];
-  if(!joint->qCount()) {
-    // std::cout << "processing joint: " << joint->name() << std::endl;
-    auto parentBody = joint->systemParentBody();
-    auto childBody = active_articulated_bodies_[i];
+  if(!joint->get_q_count()) {
+    // std::cout << "processing joint: " << joint->get_name() << std::endl;
+    auto parent_body = joint->get_system_parent_body();
+    auto child_body = active_articulated_bodies_[i];
 
     // ksl_SE3_print(stdout, &D, "  D_p0_c0: ");
 
-    for(auto& frame : childBody->frames()) {
-      // std::cout << childBody->name() << ": " << frame.name() << std::endl;
+    for(auto& frame : child_body->get_frames()) {
+      // std::cout << child_body->get_name() << ": " << frame.name() << std::endl;
 
       // dWRTReference = dWRTReference * dWRTReference_child
       ksl_SE3_t D_p0_c1;
-      ksl_product_dd(&D, frame->dWRTReference(), &D_p0_c1);
+      ksl_product_dd(&D, frame->get_d_wrt_reference(), &D_p0_c1);
 
       // ksl_SE3_print(stdout, &D_p0_c1, "  D_p0_c1: ");
 
-      if(frame->inTree() && parentBody != fixedBody()) {
-        // std::cout << "intree && parentBody!= fixedBody: processing frame: "
-        //           << childBody->name() << ": " << frame.name() <<
+      if(frame->is_in_tree() && parent_body != get_fixed_body()) {
+        // std::cout << "intree && parent_body!= fixedBody: processing frame: "
+        //           << child_body->get_name() << ": " << frame.name() <<
         //           std::endl;
 
-        ksl_SE3_copy(&D_p0_c1, &d_wrt_reference_[frame->index()]);
+        ksl_SE3_copy(&D_p0_c1, &d_wrt_reference_[frame->get_index()]);
 
-        dhva_offsets_[operationCount].parent.d =
-          parentJoint->systemParentBody()->referenceFrame()->index();
-        dhva_offsets_[operationCount].child.d = frame->index();
-        dhva_offsets_[operationCount].q = frame->index();
+        dhva_offsets_[operation_count].parent.d =
+          parent_joint->get_system_parent_body()->get_reference_frame()->get_index();
+        dhva_offsets_[operation_count].child.d = frame->get_index();
+        dhva_offsets_[operation_count].q = frame->get_index();
 
-        d_fptr_[operationCount] = shift::core::joint::rigid_dh;
-        dh_fptr_[operationCount] = shift::core::joint::rigid_dh;
-        dhva_fptr_[operationCount] = shift::core::joint::rigid_dhva;
-        operationCount++;
-      } else if(frame->inTree()) {
-        // std::cout << "processing frame: " << childBody->name() << ": "
+        d_fptr_[operation_count] = shift::core::joint::rigid_dh;
+        dh_fptr_[operation_count] = shift::core::joint::rigid_dh;
+        dhva_fptr_[operation_count] = shift::core::joint::rigid_dhva;
+        operation_count++;
+      } else if(frame->is_in_tree()) {
+        // std::cout << "processing frame: " << child_body->get_name() << ": "
         //           << frame.name() << std::endl;
 
-        // ksl_SE3_print(stdout, frame->dWRTReference(), "d_wrt_reference: ");
-        ksl_SE3_copy(&D_p0_c1, &d_wrt_reference_[frame->index()]);
+        // ksl_SE3_print(stdout, frame->get_d_wrt_reference(), "d_wrt_reference: ");
+        ksl_SE3_copy(&D_p0_c1, &d_wrt_reference_[frame->get_index()]);
 
         // ksl_SE3_print(
         //   stdout,
         //   dhva_.d +
-        //   parentJoint->systemParentBody()->referenceFrame()->index(), "
+        //   parent_joint->get_system_parent_body()->get_reference_frame()->get_index(), "
         //   d_parent: ");
 
         ksl_product_dd(
-          dhva_.d + parentJoint->systemParentBody()->referenceFrame()->index(),
-          &D_p0_c1, dhva_.d + frame->index());
-        // ksl_SE3_print(stdout, dhva_.d + frame->index(), "  dAbsolute: ");
+          dhva_.d + parent_joint->get_system_parent_body()->get_reference_frame()->get_index(),
+          &D_p0_c1, dhva_.d + frame->get_index());
+        // ksl_SE3_print(stdout, dhva_.d + frame->get_index(), "  dAbsolute: ");
       }
     }
   }
 }
 
-void shift::core::Context::allocateRunTimeArrays() {
+void shift::core::Context::AllocateRunTimeArrays() {
   unsigned int dc_count = 0;
   q_count_ = 0;
   dq_count_ = 0;
   unsigned int data_count = 0;
   non_rigid_joint_count_ = 0;
   for(auto& joint : active_joints_) {
-    dc_count += joint->dcCount();
-    q_count_ += joint->qCount();
-    dq_count_ += joint->dqCount();
-    data_count += joint->dataCount();
-    if(joint->qCount() > 0) {
+    dc_count += joint->get_dc_count();
+    q_count_ += joint->get_q_count();
+    dq_count_ += joint->get_dq_count();
+    data_count += joint->get_data_count();
+    if(joint->get_q_count() > 0) {
       non_rigid_joint_count_++;
     }
   }
@@ -1569,39 +1575,39 @@ void shift::core::Context::allocateRunTimeArrays() {
 
   unsigned int i = 0;
   for(auto& body : active_articulated_bodies_) {
-    if(body->parentJoint() && body->parentJoint()->qCount() > 0) {
-      body->setvaIndex(i++);
+    if(body->get_parent_joint() && body->get_parent_joint()->get_q_count() > 0) {
+      body->set_va_index(i++);
     } else {
-      body->setvaIndex(-1);
+      body->set_va_index(-1);
     }
   }
 
   // get operations count
-  unsigned int operationCount = 0;
+  unsigned int operation_count = 0;
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     int j = i;
     auto joint = active_joints_[j];
-    auto parentJoint = joint;
+    auto parent_joint = joint;
     bool rigidConnectionToFixedFrame = false;
-    while(!parentJoint->qCount()) { // rigid joint
+    while(!parent_joint->get_q_count()) { // rigid joint
       j = pcl_[j];
       if(j == -1) {
         // std::cout << "rigid connection to fixed frame found: ";
-        // std::cout << joint->name() << std::endl;
+        // std::cout << joint->get_name() << std::endl;
         rigidConnectionToFixedFrame = true;
         break;
       }
-      parentJoint = active_joints_[j];
+      parent_joint = active_joints_[j];
     }
 
     if(!rigidConnectionToFixedFrame) {
-      auto body = joint->systemChildBody();
-      operationCount += body->frameInTreeCount();
+      auto body = joint->get_system_child_body();
+      operation_count += body->get_frame_in_tree_count();
     }
   }
 
   dhva_offsets_.clear();
-  dhva_offsets_.resize(operationCount);
+  dhva_offsets_.resize(operation_count);
   for(auto& offset : dhva_offsets_) {
     offset.q = -1;
     offset.dq = -1;
@@ -1613,235 +1619,235 @@ void shift::core::Context::allocateRunTimeArrays() {
   }
 
   d_fptr_.clear();
-  d_fptr_.resize(operationCount);
+  d_fptr_.resize(operation_count);
 
   dh_fptr_.clear();
-  dh_fptr_.resize(operationCount);
+  dh_fptr_.resize(operation_count);
 
   dhva_fptr_.clear();
-  dhva_fptr_.resize(operationCount);
+  dhva_fptr_.resize(operation_count);
 
-  int qOffset = 0;
-  int dqOffset = 0;
-  int dcOffset = 0;
-  int dataOffset = 0;
+  int q_offset = 0;
+  int dq_offset = 0;
+  int dc_offset = 0;
+  int data_offset = 0;
   for(auto& joint : active_joints_) {
-    joint->setqIndex(qOffset);
-    joint->setdqIndex(dqOffset);
-    joint->setdcIndex(dcOffset);
-    joint->setDataIndex(dataOffset);
-    qOffset += joint->qCount();
-    dqOffset += joint->dqCount();
-    dcOffset += joint->dcCount();
-    dataOffset += joint->dataCount();
+    joint->set_q_index(q_offset);
+    joint->set_dq_index(dq_offset);
+    joint->set_dc_index(dc_offset);
+    joint->set_data_index(data_offset);
+    q_offset += joint->get_q_count();
+    dq_offset += joint->get_dq_count();
+    dc_offset += joint->get_dc_count();
+    data_offset += joint->get_data_count();
   }
 
   /* one time update of frames on fixed body */
   // std::cout << "updating frames on fixed body" << std::endl;
-  for(auto& frame : fixedBody()->frames()) {
-    frame->setParentBody(fixedBody());
-    assert(frame->parentBody());
-    // std::cout << frame->parentBody()->name() << std::endl;
-    if(!frame->isReference()) {
-      // std::cout << frame->name() << std::endl;
-      assert(frame->parentBody());
+  for(auto& frame : get_fixed_body()->get_frames()) {
+    frame->set_parent_body(get_fixed_body());
+    assert(frame->get_parent_body());
+    // std::cout << frame->get_parent_body()->get_name() << std::endl;
+    if(!frame->is_reference()) {
+      // std::cout << frame->get_name() << std::endl;
+      assert(frame->get_parent_body());
       // std::cout << "[" << frame.index() << "]: " <<
-      // frame.parentBody()->name()
+      // frame.parent_body()->get_name()
       //           << ":" << frame.name() << std::endl;
-      ksl_SE3_copy(frame->dWRTReference(), dhva_.d + frame->index());
-      ksl_SE3_copy(frame->dWRTReference(), &d_wrt_reference_[frame->index()]);
+      ksl_SE3_copy(frame->get_d_wrt_reference(), dhva_.d + frame->get_index());
+      ksl_SE3_copy(frame->get_d_wrt_reference(), &d_wrt_reference_[frame->get_index()]);
       // ksl_SE3_print(stdout, dhva_.d + frame.index());
     }
   }
 
-  operationCount = 0;
+  operation_count = 0;
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     auto& joint = active_joints_[i];
-    auto parentBody = joint->systemParentBody();
-    auto parentFrame = joint->systemParentFrame();
-    auto childBody = active_articulated_bodies_[i];
-    auto childFrame = childBody->referenceFrame();
+    auto parent_body = joint->get_system_parent_body();
+    auto parent_frame = joint->get_system_parent_frame();
+    auto child_body = active_articulated_bodies_[i];
+    auto child_frame = child_body->get_reference_frame();
 
-    if(joint->qCount()) {
-      if(joint->dcCount()) {
-        dcq_[joint->dcIndex()] = joint->qIndex();
-        dhva_offsets_[operationCount].dc = joint->dcIndex() * 2;
+    if(joint->get_q_count()) {
+      if(joint->get_dc_count()) {
+        dcq_[joint->get_dc_index()] = joint->get_q_index();
+        dhva_offsets_[operation_count].dc = joint->get_dc_index() * 2;
       } else {
-        dhva_offsets_[operationCount].q = joint->qIndex();
+        dhva_offsets_[operation_count].q = joint->get_q_index();
       }
 
-      dhva_offsets_[operationCount].parent.d = parentFrame->index();
-      dhva_offsets_[operationCount].child.d = childFrame->index();
+      dhva_offsets_[operation_count].parent.d = parent_frame->get_index();
+      dhva_offsets_[operation_count].child.d = child_frame->get_index();
 
-      dhva_offsets_[operationCount].parent.v = parentBody->vaIndex();
-      dhva_offsets_[operationCount].child.v = childBody->vaIndex();
-      dhva_offsets_[operationCount].dq = joint->dqIndex();
-      dhva_offsets_[operationCount].data = joint->dataIndex();
+      dhva_offsets_[operation_count].parent.v = parent_body->get_va_index();
+      dhva_offsets_[operation_count].child.v = child_body->get_va_index();
+      dhva_offsets_[operation_count].dq = joint->get_dq_index();
+      dhva_offsets_[operation_count].data = joint->get_data_index();
 
-      d_fptr_[operationCount] = joint->Dfptr();
-      dh_fptr_[operationCount] = joint->DHfptr();
-      dhva_fptr_[operationCount] = joint->DHVAfptr();
-      operationCount++;
+      d_fptr_[operation_count] = joint->Dfptr();
+      dh_fptr_[operation_count] = joint->DHfptr();
+      dhva_fptr_[operation_count] = joint->DHVAfptr();
+      operation_count++;
 
-      auto referenceFrame = childBody->referenceFrame();
+      auto referenceFrame = child_body->get_reference_frame();
       // std::cout << "referenceFrame: " <<
-      // referenceFrame->parentBody()->name()
-      //           << ":" << referenceFrame->name() << std::endl;
-      for(auto& frame : childBody->frames()) {
+      // referenceFrame->get_parent_body()->get_name()
+      //           << ":" << referenceFrame->get_name() << std::endl;
+      for(auto& frame : child_body->get_frames()) {
         /*!
           @TODO add logic to detect if transformation has zero entries
           and use appropriate sparse function evaluation
           for now, all function pointers are assigned as general SE3
           displacements
         */
-        if(!frame->isReference() && frame->inTree()) {
-          d_fptr_[operationCount] = shift::core::joint::rigid_dh;
-          dh_fptr_[operationCount] = shift::core::joint::rigid_dh;
-          dhva_fptr_[operationCount] = shift::core::joint::rigid_dhva;
-          dhva_offsets_[operationCount].parent.d = referenceFrame->index();
-          dhva_offsets_[operationCount].child.d = frame->index();
-          dhva_offsets_[operationCount].q = frame->index();
+        if(!frame->is_reference() && frame->is_in_tree()) {
+          d_fptr_[operation_count] = shift::core::joint::rigid_dh;
+          dh_fptr_[operation_count] = shift::core::joint::rigid_dh;
+          dhva_fptr_[operation_count] = shift::core::joint::rigid_dhva;
+          dhva_offsets_[operation_count].parent.d = referenceFrame->get_index();
+          dhva_offsets_[operation_count].child.d = frame->get_index();
+          dhva_offsets_[operation_count].q = frame->get_index();
           // std::cout << "  processing child frame[" << frame.index()
           //           << "]: " << frame.name() << std::endl;
-          // ksl_SE3_print(stdout, frame.dWRTReference(), "  dWRTReference:
+          // ksl_SE3_print(stdout, frame.get_d_wrt_reference(), "  dWRTReference:
           // ");
-          ksl_SE3_copy(frame->dWRTReference(),
-                       &d_wrt_reference_[frame->index()]);
-          operationCount++;
+          ksl_SE3_copy(frame->get_d_wrt_reference(),
+                       &d_wrt_reference_[frame->get_index()]);
+          operation_count++;
         }
       }
     } else {
-      compressRigidJoints(i, operationCount);
+      CompressRigidJoints(i, operation_count);
     }
   }
 
-  // std::cout << "operationCount: " << operationCount << std::endl;
+  // std::cout << "operation_count: " << operation_count << std::endl;
   joint_dof_.resize(active_joints_.size());
 
   // std::cout << "d_reference_frames: ";
   size_t j = 0;
   for(size_t i = 0; i < active_joints_.size(); i++) {
-    if(active_joints_[i]->dqCount() > 0) {
+    if(active_joints_[i]->get_dq_count() > 0) {
       d_reference_frames_[j++] =
-        active_articulated_bodies_[i]->referenceFrame()->index();
-      // std::cout << active_articulated_bodies_[i]->referenceFrame()->index()
+        active_articulated_bodies_[i]->get_reference_frame()->get_index();
+      // std::cout << active_articulated_bodies_[i]->get_reference_frame()->get_index()
       //           << " ";
     }
   }
   // std::cout << std::endl;
 }
 
-void shift::core::Context::updateDC(shift::core::topology::DHVA& dhva,
+void shift::core::Context::UpdateDC(shift::core::topology::DHVA& dhva,
                                     const double* __restrict__ q) {
   for(unsigned int i = 0; i < dcq_.size(); i++) {
     ksl_dc(q[dcq_[i]], dhva.dc + (i * 2));
   }
 }
 
-void shift::core::Context::updateD() {
-  updateD(dhva_, q_.data());
+void shift::core::Context::UpdateD() {
+  UpdateD(dhva_, q_.data());
 }
 
-void shift::core::Context::updateD(const double* q) {
-  updateD(dhva_, q);
+void shift::core::Context::UpdateD(const double* q) {
+  UpdateD(dhva_, q);
 }
 
-void shift::core::Context::updateD(shift::core::topology::DHVA& dhva,
+void shift::core::Context::UpdateD(shift::core::topology::DHVA& dhva,
                                    const double* __restrict__ q) {
-  updateDC(dhva, q);
+  UpdateDC(dhva, q);
   for(unsigned int i = 0; i < d_fptr_.size(); i++) {
     (d_fptr_[i])(*this, dhva, dhva_offsets_[i], q);
   }
 }
 
-void shift::core::Context::updateDH() {
-  updateDH(dhva_, q_.data());
+void shift::core::Context::UpdateDH() {
+  UpdateDH(dhva_, q_.data());
 }
 
-void shift::core::Context::updateDH(const double* q) {
-  updateDH(dhva_, q);
+void shift::core::Context::UpdateDH(const double* q) {
+  UpdateDH(dhva_, q);
 }
 
-void shift::core::Context::updateDH(shift::core::topology::DHVA& dhva,
+void shift::core::Context::UpdateDH(shift::core::topology::DHVA& dhva,
                                     const double* __restrict__ q) {
-  updateDC(dhva, q);
-  // std::cout << "updateDH()" << std::endl;
+  UpdateDC(dhva, q);
+  // std::cout << "UpdateDH()" << std::endl;
   for(unsigned int i = 0; i < dh_fptr_.size(); i++) {
-    // auto parentFrame = frames_in_tree_[dhva_offsets_[i].parent.d];
-    // auto childFrame = frames_in_tree_[dhva_offsets_[i].child.d];
+    // auto parent_frame = frames_in_tree_[dhva_offsets_[i].parent.d];
+    // auto child_frame = frames_in_tree_[dhva_offsets_[i].child.d];
     // std::cout << "  [" << i
-    //           << "] dParent: " << parentFrame->parentBody()->name() << ": "
-    //           << parentFrame->name() << std::endl;
-    // std::cout << "        dChild:  " << childFrame->parentBody()->name() <<
+    //           << "] dParent: " << parent_frame->get_parent_body()->get_name() << ": "
+    //           << parent_frame->get_name() << std::endl;
+    // std::cout << "        dChild:  " << child_frame->get_parent_body()->get_name() <<
     // ": "
-    //           << childFrame->name() << std::endl;
+    //           << child_frame->get_name() << std::endl;
     (dh_fptr_[i])(*this, dhva, dhva_offsets_[i], q);
   }
   // std::cout << std::endl;
   // FILE* f = fopen("frames.dat", "w");
   // for(auto& frame : frames_in_tree_) {
-  //   fprintf(f, "[%d]: [%s, %s]\n", frame->index(),
-  //           frame->parentBody()->name().c_str(), frame->name().c_str());
-  //   // ksl_SE3_print(f, dWRTReference_ + frame->index(), " dWRTReference:
-  //   "); ksl_SE3_print(f, dhva_.d + frame->index(), "  "); fprintf(f, "\n");
+  //   fprintf(f, "[%d]: [%s, %s]\n", frame->get_index(),
+  //           frame->get_parent_body()->get_name().c_str(), frame->get_name().c_str());
+  //   // ksl_SE3_print(f, dWRTReference_ + frame->get_index(), " dWRTReference:
+  //   "); ksl_SE3_print(f, dhva_.d + frame->get_index(), "  "); fprintf(f, "\n");
   // }
   // fclose(f);
 }
 
-void shift::core::Context::updateDHVA() {
-  updateDHVA(dhva_, q_.data(), dq_);
+void shift::core::Context::UpdateDHVA() {
+  UpdateDHVA(dhva_, q_.data(), dq_);
 }
 
-void shift::core::Context::updateDHVA(const double* q, const double* dq) {
-  updateDHVA(dhva_, q, dq);
+void shift::core::Context::UpdateDHVA(const double* q, const double* dq) {
+  UpdateDHVA(dhva_, q, dq);
 }
 
-void shift::core::Context::updateDHVA(shift::core::topology::DHVA& dhva,
+void shift::core::Context::UpdateDHVA(shift::core::topology::DHVA& dhva,
                                       const double* __restrict__ q,
                                       const double* __restrict__ dq) {
-  updateDC(dhva, q);
+  UpdateDC(dhva, q);
   for(unsigned int i = 0; i < dhva_fptr_.size(); i++) {
     (dhva_fptr_[i])(*this, dhva, dhva_offsets_[i], q, dq);
   }
 }
 
-void shift::core::Context::setFixedFrameGravityVector() {
+void shift::core::Context::SetupFixedFrameGravityVector() {
   assert(dhva_.aq);
-  ksl_vec3_inverted(model_parameters_.gravity(), &dhva_.aq[-1].lin);
+  ksl_vec3_inverted(model_parameters_.get_gravity(), &dhva_.aq[-1].lin);
 }
 
-void shift::core::Context::setToInitialConditions() {
+void shift::core::Context::SetToInitialConditions() {
   // std::cout << "setting initial conditions:" << std::endl;
   assert(dq_);
   unsigned int q_offset = 0;
   unsigned int dq_offset = 0;
   for(auto& joint : active_joints_) {
-    if(joint->qCount()) {
-      // std::cout << joint->name() << " " << std::flush;
-      assert(joint->q0());
-      // for(unsigned int i = 0; i < joint->qCount(); i++) {
-      //   std::cout << joint->q0()[i] << " ";
+    if(joint->get_q_count()) {
+      // std::cout << joint->get_name() << " " << std::flush;
+      assert(joint->get_q0());
+      // for(unsigned int i = 0; i < joint->get_q_count(); i++) {
+      //   std::cout << joint->get_q0()[i] << " ";
       // }
       // std::cout << std::endl;
-      memcpy(&q_[q_offset], joint->q0(), joint->qCount() * sizeof(double));
+      memcpy(&q_[q_offset], joint->get_q0(), joint->get_q_count() * sizeof(double));
     }
-    if(joint->dqCount()) {
-      // for(unsigned int i = 0; i < joint->dqCount(); i++) {
-      //   std::cout << joint->dq0()[i] << " ";
+    if(joint->get_dq_count()) {
+      // for(unsigned int i = 0; i < joint->get_dq_count(); i++) {
+      //   std::cout << joint->get_dq0()[i] << " ";
       // }
       // std::cout << std::endl;
 
-      memcpy(&dq_[dq_offset], joint->dq0(), joint->dqCount() * sizeof(double));
+      memcpy(&dq_[dq_offset], joint->get_dq0(), joint->get_dq_count() * sizeof(double));
     }
-    q_offset += joint->qCount();
-    dq_offset += joint->dqCount();
+    q_offset += joint->get_q_count();
+    dq_offset += joint->get_dq_count();
   }
 }
 
-void shift::core::Context::initializeInertia() {
+void shift::core::Context::InitializeInertia() {
 
   /*
-    create a temporary inertia array, equal in length to activeJoints
+    create a temporary inertia array, equal in length to active_joints
     after this list is generated, it will be compressed to an array
     equal to length of nonRigidJointCount
   */
@@ -1854,8 +1860,8 @@ void shift::core::Context::initializeInertia() {
      each body */
   for(int i = (int)active_joints_.size() - 1; i > -1; i--) {
     auto& body = active_articulated_bodies_[i];
-    if(body->hasMass()) {
-      inertia_temp[i] = body->inertiaWRTReference();
+    if(body->has_mass()) {
+      inertia_temp[i] = body->get_inertia_wrt_reference();
     }
   }
 
@@ -1864,26 +1870,26 @@ void shift::core::Context::initializeInertia() {
   for(int i = (int)active_joints_.size() - 1; i > -1; i--) {
     /* only perform merge if parent joint type is rigid and
        the parent body is not the fixed body */
-    if(active_joints_[i]->qCount() == 0 && pcl_[i] > -1) {
-      auto childBody = active_articulated_bodies_[i];
-      auto parentBody = active_articulated_bodies_[pcl_[i]];
-      auto parentFrame = active_joints_[i]->systemParentFrame();
-      ksl_vec3_t t_ic_i = parentBody->centerOfMassWRTReference();
-      ksl_vec3_t t_jc_j = childBody->centerOfMassWRTReference();
-      ksl_inertia_t parentInertia = parentBody->inertiaWRTReference();
-      ksl_inertia_t childInertia = childBody->inertiaWRTReference();
+    if(active_joints_[i]->get_q_count() == 0 && pcl_[i] > -1) {
+      auto child_body = active_articulated_bodies_[i];
+      auto parent_body = active_articulated_bodies_[pcl_[i]];
+      auto parent_frame = active_joints_[i]->get_system_parent_frame();
+      ksl_vec3_t t_ic_i = parent_body->get_center_of_mass_wrt_reference();
+      ksl_vec3_t t_jc_j = child_body->get_center_of_mass_wrt_reference();
+      ksl_inertia_t parent_inertia = parent_body->get_inertia_wrt_reference();
+      ksl_inertia_t child_inertia = child_body->get_inertia_wrt_reference();
 
       ksl_SE3_t D_ij;
-      ksl_SE3_t temp = active_joints_[i]->transform();
-      if(parentFrame->isReference()) {
+      ksl_SE3_t temp = active_joints_[i]->get_transform();
+      if(parent_frame->is_reference()) {
         ksl_SE3_copy(&temp, &D_ij);
       } else {
-        ksl_product_dd(parentFrame->dWRTReference(), &temp, &D_ij);
+        ksl_product_dd(parent_frame->get_d_wrt_reference(), &temp, &D_ij);
       }
       // i = parent, j = child;
-      ksl_inertia_merge(&parentInertia, &t_ic_i, &childInertia, &t_jc_j, &D_ij);
+      ksl_inertia_merge(&parent_inertia, &t_ic_i, &child_inertia, &t_jc_j, &D_ij);
 
-      inertia_temp[pcl_[i]] = parentInertia;
+      inertia_temp[pcl_[i]] = parent_inertia;
     }
   }
 
@@ -1905,37 +1911,37 @@ void shift::core::Context::initializeInertia() {
 #endif
 }
 
-void shift::core::Context::setInitialConditionsToCurrentConditions() {
+void shift::core::Context::SetInitialConditionsToCurrentConditions() {
   assert(dq_);
-  unsigned int qOffset = 0;
-  unsigned int dqOffset = 0;
+  unsigned int q_offset = 0;
+  unsigned int dq_offset = 0;
   for(auto& joint : active_joints_) {
-    joint->setInitialDisplacement(q_.data() + qOffset);
-    joint->setInitialVelocity(dq_ + dqOffset);
-    qOffset += joint->qCount();
-    dqOffset += joint->dqCount();
+    joint->set_initial_displacement(q_.data() + q_offset);
+    joint->set_initial_velocity(dq_ + dq_offset);
+    q_offset += joint->get_q_count();
+    dq_offset += joint->get_dq_count();
   }
 }
 
-void shift::core::Context::setLookup() {
+void shift::core::Context::SetupLookup() {
   joint_lookup_.clear();
-  joint_lookup_.resize(activeJointCount());
+  joint_lookup_.resize(get_active_joint_count());
 
   dq_lookup_.clear();
-  dq_lookup_.resize(activeJointCount());
+  dq_lookup_.resize(get_active_joint_count());
 
   q_lookup_.clear();
-  q_lookup_.resize(activeJointCount());
+  q_lookup_.resize(get_active_joint_count());
 
   dq_lookup_compressed_.clear();
-  dq_lookup_compressed_.resize(nonRigidJointCount());
+  dq_lookup_compressed_.resize(get_non_rigid_joint_count());
 
   int joint_count = 0;
   int dq_count = 0;
   int q_count = 0;
   unsigned int i = 0;
-  for(auto& joint : activeJoints()) {
-    if(joint->qCount() > 0) {
+  for(auto& joint : get_active_joints()) {
+    if(joint->get_q_count() > 0) {
       joint_lookup_[i] = joint_count;
       dq_lookup_[i] = dq_count;
       q_lookup_[i] = q_count;
@@ -1946,8 +1952,8 @@ void shift::core::Context::setLookup() {
       q_lookup_[i] = -1;
     }
     i++;
-    dq_count += joint->qCount();
-    q_count += joint->qCount();
+    dq_count += joint->get_q_count();
+    q_count += joint->get_q_count();
   }
 
   for(unsigned int j = 0; j < active_joints_.size(); j++) {
@@ -1957,7 +1963,7 @@ void shift::core::Context::setLookup() {
   }
 
   for(size_t i = 0; i < active_joints_.size(); i++) {
-    joint_dof_[i] = active_joints_[i]->dqCount();
+    joint_dof_[i] = active_joints_[i]->get_dq_count();
   }
 
   joint_dof_compressed_.resize(non_rigid_joint_count_);
@@ -1998,9 +2004,9 @@ void shift::core::Context::setLookup() {
     int joint_index = joint_lookup_[i];
     int dq_index = dq_lookup_[i];
     if(joint_index > -1) {
-      if(body->hasMass()) {
+      if(body->has_mass()) {
         has_mass_[joint_index] = true;
-        for(size_t j = 0; j < joint->dqCount(); j++) {
+        for(size_t j = 0; j < joint->get_dq_count(); j++) {
           has_mass_dq_[dq_index + j] = true;
         }
       }
@@ -2028,7 +2034,7 @@ void shift::core::Context::setLookup() {
   for(size_t i = 0; i < active_joints_.size(); i++) {
     auto& joint = active_joints_[i];
     int base_index = dq_lookup_[i];
-    for(auto& rotation_index : joint->rotationIndices()) {
+    for(auto& rotation_index : joint->get_rotation_indices()) {
       is_rotation_[base_index + rotation_index] = true;
     }
   }
@@ -2038,13 +2044,13 @@ void shift::core::Context::setLookup() {
 
   for(size_t i = 0; i < active_joints_.size(); i++) {
     auto& joint = active_joints_[i];
-    if(joint->dqCount() > 0) {
+    if(joint->get_dq_count() > 0) {
       int parent = pcl_[i];
       while(true) {
         if(parent == -1) {
           break;
         }
-        if(active_joints_[parent]->dqCount() > 0) {
+        if(active_joints_[parent]->get_dq_count() > 0) {
           break;
         }
         parent = pcl_[parent];
@@ -2069,7 +2075,7 @@ orthonormalize the columns and return them in the same
 matrix. Finally it returns the square of row norms of
 this matrix as mobility numbers in the mn[] array.
 */
-void shift::core::Context::initializeMobility() {
+void shift::core::Context::InitializeMobility() {
   mobility_ = 0;
   if(dq_count_ > 0) {
     mobility_numbers_.resize(dq_count_);
@@ -2077,14 +2083,14 @@ void shift::core::Context::initializeMobility() {
   } else {
     mobility_numbers_.clear();
   }
-  jacobian_.initializeMobility();
+  jacobian_.InitializeMobility();
 }
 
 /*!
   @brief compute global instantaneous mobility, to be called after
   mobility has been computed within each substructure
 */
-double shift::core::Context::globalMobility() {
+double shift::core::Context::GlobalMobility() {
 #if SHIFT_WITH_BLAS_
   mobility_ = cblas_dasum(dqCount_, mobilityNumbers_, 1);
 #else
@@ -2102,23 +2108,23 @@ double shift::core::Context::globalMobility() {
 @param context a pointer to a shift::core::Context data structure.
 
 */
-int shift::core::Context::digraph(std::string filename) {
+int shift::core::Context::Digraph(std::string filename) {
 
-  std::string base_filename = shift::core::topology::getFilename(filename);
+  std::string base_filename = shift::core::topology::GetFilename(filename);
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename
               << std::endl;
     return -1;
   };
 
-  std::string extension = shift::core::topology::getExtension(base_filename);
+  std::string extension = shift::core::topology::GetExtension(base_filename);
   if(extension.length() == 0) {
     std::cerr << "Error: coud not resolve extension for: " << filename
               << std::endl;
   }
 
   std::string gv_ext =
-    shift::core::topology::getValidGraphvizExtension(extension);
+    shift::core::topology::GetValidGraphvizExtension(extension);
   if(gv_ext.length() == 0) {
     std::cerr << "Error: requested extension is not supported by Shift. "
                  "Supported extensions include: \"gif\", \"jpeg\", \"jpg\", "
@@ -2138,44 +2144,44 @@ int shift::core::Context::digraph(std::string filename) {
   agattr(g, AGNODE, const_cast<char*>("penwidth"), const_cast<char*>(""));
 
   /* set nodes (bodies) */
-  Agnode_t** nodes = (Agnode_t**)malloc(activeJointCount() * sizeof(Agnode_t*));
-  for(unsigned int i = 0; i < activeJointCount(); i++) {
-    auto bodyName = activeArticulatedBodies()[i]->name();
-    sprintf(name, "[%d] %s", i, const_cast<char*>(bodyName.c_str()));
+  Agnode_t** nodes = (Agnode_t**)malloc(get_active_joint_count() * sizeof(Agnode_t*));
+  for(unsigned int i = 0; i < get_active_joint_count(); i++) {
+    auto body_name = get_active_articulated_bodies()[i]->get_name();
+    sprintf(name, "[%d] %s", i, const_cast<char*>(body_name.c_str()));
     nodes[i] = agnode(g, name, TRUE);
-    if(activeArticulatedBodies()[i]->isVirtual()) {
+    if(get_active_articulated_bodies()[i]->is_virtual()) {
       agset(nodes[i], const_cast<char*>("shape"), const_cast<char*>("octagon"));
     }
   }
 
   Agnode_t* fixed = agnode(g, (char*)"[-1] fixed", TRUE);
   Agedge_t* edge;
-  for(unsigned int i = 0; i < activeJointCount(); i++) {
-    std::string jointName = activeJoints()[i]->name();
-    if(pcl()[i] == -1) {
+  for(unsigned int i = 0; i < get_active_joint_count(); i++) {
+    std::string joint_name = get_active_joints()[i]->get_name();
+    if(get_pcl()[i] == -1) {
       edge =
-        agedge(g, fixed, nodes[i], const_cast<char*>(jointName.c_str()), TRUE);
+        agedge(g, fixed, nodes[i], const_cast<char*>(joint_name.c_str()), TRUE);
     } else {
-      edge = agedge(g, nodes[pcl()[i]], nodes[i],
-                    const_cast<char*>(jointName.c_str()), TRUE);
+      edge = agedge(g, nodes[get_pcl()[i]], nodes[i],
+                    const_cast<char*>(joint_name.c_str()), TRUE);
     }
-    sprintf(name, "[%d] %s (%s)", i, jointName.c_str(),
-            activeJoints()[i]->type().c_str());
+    sprintf(name, "[%d] %s (%s)", i, joint_name.c_str(),
+            get_active_joints()[i]->get_type().c_str());
     agset(edge, const_cast<char*>("label"), name);
   }
 
-  for(unsigned int i = 0; i < chordConstraintCount(); i++) {
-    int parentIndex = chordConstraints()[i]->parentBody()->index();
-    std::string jointName = chordConstraints()[i]->name();
-    if(parentIndex == -1) {
+  for(unsigned int i = 0; i < get_chord_constraint_count(); i++) {
+    int parent_index = get_chord_constraints()[i]->get_parent_body()->get_index();
+    std::string joint_name = get_chord_constraints()[i]->get_name();
+    if(parent_index == -1) {
       edge =
-        agedge(g, fixed, nodes[chordConstraints()[i]->childBody()->index()],
-               const_cast<char*>(jointName.c_str()), TRUE);
+        agedge(g, fixed, nodes[get_chord_constraints()[i]->get_child_body()->get_index()],
+               const_cast<char*>(joint_name.c_str()), TRUE);
     } else {
       // s2_stackstr_toStr(context->jointPointers[i]->name);
-      edge = agedge(g, nodes[parentIndex],
-                    nodes[chordConstraints()[i]->childBody()->index()],
-                    const_cast<char*>(jointName.c_str()), TRUE);
+      edge = agedge(g, nodes[parent_index],
+                    nodes[get_chord_constraints()[i]->get_child_body()->get_index()],
+                    const_cast<char*>(joint_name.c_str()), TRUE);
     }
     char label[100];
     sprintf(label, "[%d]", i);
@@ -2188,7 +2194,7 @@ int shift::core::Context::digraph(std::string filename) {
   gvRenderFilename(gvc, g, const_cast<char*>(gv_ext.c_str()), filename.c_str());
 
   if(gv_ext != "dot") {
-    std::string basename = shift::core::topology::getBasename(filename);
+    std::string basename = shift::core::topology::GetBasename(filename);
     if(basename.length() == 0) {
       gvFreeLayout(gvc, g);
       agclose(g);
@@ -2216,25 +2222,25 @@ int shift::core::Context::digraph(std::string filename) {
   // using external system call
 }
 
-int shift::core::Context::digraph() {
-  std::string base_filename = shift::core::topology::getFilename(filename_);
+int shift::core::Context::Digraph() {
+  std::string base_filename = shift::core::topology::GetFilename(filename_);
   std::string graph_filename =
-    shift::core::topology::removeExtension(base_filename) + ".png";
+    shift::core::topology::RemoveExtension(base_filename) + ".png";
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename_
               << std::endl;
     return -1;
   };
-  return digraph(graph_filename);
+  return Digraph(graph_filename);
 }
 
-bool findReferenceFrame(const shift::core::Context& context, int d_index,
+bool FindReferenceFrame(const shift::core::Context& context, int d_index,
                         int* reference_frame_index) {
-  auto& bodies = context.activeArticulatedBodies();
+  auto& bodies = context.get_active_articulated_bodies();
   for(auto& body : bodies) {
-    int reference_frame = body->referenceFrame()->index();
-    for(auto& frame : body->frames()) {
-      if(frame->index() == d_index) {
+    int reference_frame = body->get_reference_frame()->get_index();
+    for(auto& frame : body->get_frames()) {
+      if(frame->get_index() == d_index) {
         *reference_frame_index = reference_frame;
       }
     }
@@ -2253,23 +2259,23 @@ up to 1MB of memory is not properly freed at program termination.
 @TODO find fix for this or just write to DOT file and call graphviz using
 external system call
 */
-int shift::core::Context::digraphFrames(std::string filename) {
+int shift::core::Context::DigraphFrames(std::string filename) {
 
-  std::string base_filename = shift::core::topology::getFilename(filename);
+  std::string base_filename = shift::core::topology::GetFilename(filename);
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename
               << std::endl;
     return -1;
   };
 
-  std::string extension = shift::core::topology::getExtension(base_filename);
+  std::string extension = shift::core::topology::GetExtension(base_filename);
   if(extension.length() == 0) {
     std::cerr << "Error: coud not resolve extension for: " << filename
               << std::endl;
   }
 
   std::string gv_ext =
-    shift::core::topology::getValidGraphvizExtension(extension);
+    shift::core::topology::GetValidGraphvizExtension(extension);
   if(gv_ext.length() == 0) {
     std::cerr << "Error: requested extension is not supported by Shift. "
                  "Supported extensions include: \"gif\", \"jpeg\", \"jpg\", "
@@ -2297,188 +2303,188 @@ int shift::core::Context::digraphFrames(std::string filename) {
   agattr(g, AGNODE, const_cast<char*>("penwidth"), const_cast<char*>("1"));
 
   int jointCounter = 0;
-  for(unsigned int i = 0; i < dhvaOffsets().size(); i++) {
+  for(unsigned int i = 0; i < get_dhva_offsets().size(); i++) {
 
-    int parentFrameIndex = dhvaOffsets()[i].parent.d;
-    int childFrameIndex = dhvaOffsets()[i].child.d;
+    int parent_frame_index = get_dhva_offsets()[i].parent.d;
+    int child_frame_index = get_dhva_offsets()[i].child.d;
 
-    ksl_SE3_t* dParent = dhva_.d + parentFrameIndex;
-    ksl_SE3_t* dChild = dhva_.d + childFrameIndex;
+    ksl_SE3_t* dParent = dhva_.d + parent_frame_index;
+    ksl_SE3_t* dChild = dhva_.d + child_frame_index;
 
-    int parentReferenceFrameIndex = -1;
-    findReferenceFrame(*this, parentFrameIndex, &parentReferenceFrameIndex);
-    bool parentIsReference = (parentFrameIndex == parentReferenceFrameIndex);
+    int parent_reference_frame_index = -1;
+    FindReferenceFrame(*this, parent_frame_index, &parent_reference_frame_index);
+    bool parentIsReference = (parent_frame_index == parent_reference_frame_index);
 
     int childReferenceFrameIndex = -1;
-    findReferenceFrame(*this, childFrameIndex, &childReferenceFrameIndex);
-    bool childIsReference = (childFrameIndex == childReferenceFrameIndex);
+    FindReferenceFrame(*this, child_frame_index, &childReferenceFrameIndex);
+    bool childIsReference = (child_frame_index == childReferenceFrameIndex);
 
-    assert(framesInTree()[parentFrameIndex]->parentBody());
-    std::string parentBodyName =
-      framesInTree()[parentFrameIndex]->parentBody()->name();
+    assert(get_frames_in_tree()[parent_frame_index]->get_parent_body());
+    std::string parent_body_name =
+      get_frames_in_tree()[parent_frame_index]->get_parent_body()->get_name();
 
-    char parentFrameName[1200];
-    sprintf(parentFrameName,
+    char parent_frame_name[1200];
+    sprintf(parent_frame_name,
             "[%d] {%d} %s: %s\n"
             "[% 2.10f % 2.10f % 2.10f % 0.10f]\n"
             "[% 2.10f % 2.10f % 2.10f % 0.10f]\n"
             "[% 2.10f % 2.10f % 2.10f % 0.10f]\n"
             "[ 0.00  0.00  0.00  1.00]",
-            parentFrameIndex, parentReferenceFrameIndex,
-            framesInTree()[parentFrameIndex]->parentBody()->name().c_str(),
-            framesInTree()[parentFrameIndex]->name().c_str(), dParent->R.m00,
+            parent_frame_index, parent_reference_frame_index,
+            get_frames_in_tree()[parent_frame_index]->get_parent_body()->get_name().c_str(),
+            get_frames_in_tree()[parent_frame_index]->get_name().c_str(), dParent->R.m00,
             dParent->R.m01, dParent->R.m02, dParent->t.x, dParent->R.m10,
             dParent->R.m11, dParent->R.m12, dParent->t.y, dParent->R.m20,
             dParent->R.m21, dParent->R.m22, dParent->t.z);
 
-    // std::cout << childFrameIndex << std::endl;
-    // std::cout << framesInTree()[childFrameIndex]->name() << std::endl;
-    // std::cout << framesInTree()[childFrameIndex]->parentBody() <<
+    // std::cout << child_frame_index << std::endl;
+    // std::cout << get_frames_in_tree()[child_frame_index]->get_name() << std::endl;
+    // std::cout << get_frames_in_tree()[child_frame_index]->get_parent_body() <<
     // std::endl;
-    assert(framesInTree()[childFrameIndex]->parentBody());
-    std::string childBodyName =
-      framesInTree()[childFrameIndex]->parentBody()->name();
+    assert(get_frames_in_tree()[child_frame_index]->get_parent_body());
+    std::string child_body_name =
+      get_frames_in_tree()[child_frame_index]->get_parent_body()->get_name();
 
-    char childFrameName[1200];
-    sprintf(childFrameName,
+    char child_frame_name[1200];
+    sprintf(child_frame_name,
             "[%d] {%d} %s: %s\n"
             "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
             "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
             "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
             "[ 0.00  0.00  0.00  1.00]",
-            childFrameIndex, childReferenceFrameIndex,
-            framesInTree()[childFrameIndex]->parentBody()->name().c_str(),
-            framesInTree()[childFrameIndex]->name().c_str(), dChild->R.m00,
+            child_frame_index, childReferenceFrameIndex,
+            get_frames_in_tree()[child_frame_index]->get_parent_body()->get_name().c_str(),
+            get_frames_in_tree()[child_frame_index]->get_name().c_str(), dChild->R.m00,
             dChild->R.m01, dChild->R.m02, dChild->t.x, dChild->R.m10,
             dChild->R.m11, dChild->R.m12, dChild->t.y, dChild->R.m20,
             dChild->R.m21, dChild->R.m22, dChild->t.z);
 
-    std::string jointName = shift::core::topology::getJointType(dh_fptr_[i]);
+    std::string joint_name = shift::core::topology::GetJointType(dh_fptr_[i]);
 
-    if(jointName == "PRISMATIC_TX") {
+    if(joint_name == "PRISMATIC_TX") {
       sprintf(name, "[%d] {%d} Tx(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "PRISMATIC_TX_INVERSE") {
+    } else if(joint_name == "PRISMATIC_TX_INVERSE") {
       sprintf(name, "[%d] {%d} Txinverse(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "PRISMATIC_TY") {
+    } else if(joint_name == "PRISMATIC_TY") {
       sprintf(name, "[%d] {%d} Ty(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "PRISMATIC_TY_INVERSE") {
+    } else if(joint_name == "PRISMATIC_TY_INVERSE") {
       sprintf(name, "[%d] {%d} Tyinverse(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "PRISMATIC_TZ") {
+    } else if(joint_name == "PRISMATIC_TZ") {
       sprintf(name, "[%d] {%d} Tz(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "PRISMATIC_TZ_INVERSE") {
+    } else if(joint_name == "PRISMATIC_TZ_INVERSE") {
       sprintf(name, "[%d] {%d} Tzinverse(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "PRISMATIC_TA") {
+    } else if(joint_name == "PRISMATIC_TA") {
       sprintf(name, "[%d] {%d} Ta(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "PRISMATIC_TA_INVERSE") {
+    } else if(joint_name == "PRISMATIC_TA_INVERSE") {
       sprintf(name, "[%d] {%d} Tainverse(% 0.10f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "REVOLUTE_RX") {
+    } else if(joint_name == "REVOLUTE_RX") {
       sprintf(name, "[%d] {%d} Rx(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
-    } else if(jointName == "REVOLUTE_RX_INVERSE") {
+    } else if(joint_name == "REVOLUTE_RX_INVERSE") {
       sprintf(name, "[%d] {%d} Rxinverse(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
-    } else if(jointName == "REVOLUTE_RY") {
+    } else if(joint_name == "REVOLUTE_RY") {
       sprintf(name, "[%d] {%d} Ry(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
-    } else if(jointName == "REVOLUTE_RY_INVERSE") {
+    } else if(joint_name == "REVOLUTE_RY_INVERSE") {
       sprintf(name, "[%d] {%d} Ryinverse(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
-    } else if(jointName == "REVOLUTE_RZ") {
+    } else if(joint_name == "REVOLUTE_RZ") {
       sprintf(name, "[%d] {%d} Rz(%f)\n", i, jointCounter++,
               q_[dhva_offsets_[i].q]);
 
-    } else if(jointName == "REVOLUTE_RZ_INVERSE") {
+    } else if(joint_name == "REVOLUTE_RZ_INVERSE") {
       sprintf(name, "[%d] {%d} Rzinverse(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
-    } else if(jointName == "REVOLUTE_RA") {
+    } else if(joint_name == "REVOLUTE_RA") {
       sprintf(name, "[%d] {%d} Ra(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
-    } else if(jointName == "REVOLUTE_RA_INVERSE") {
+    } else if(joint_name == "REVOLUTE_RA_INVERSE") {
       sprintf(name, "[%d] {%d} Rainverse(%0.10f, %0.10f)\n", i, jointCounter++,
               dhva_.dc[dhva_offsets_[i].dc], dhva_.dc[dhva_offsets_[i].dc + 1]);
 
-    } else if(jointName == "SPHERICAL" || jointName == "SPHERICAL_INVERSE") {
+    } else if(joint_name == "SPHERICAL" || joint_name == "SPHERICAL_INVERSE") {
       ksl_quaternion_t* q = (ksl_quaternion_t*)&(q_[dhva_offsets_[i].q]);
       sprintf(name, "[%d] {%d} q: [% 2.2f, % 2.2f, % 2.2f, % 2.2f]", i,
               jointCounter++, q->x, q->y, q->z, q->w);
 
-    } else if(jointName == "FLOAT" || jointName == "FLOAT_INVERSE") {
+    } else if(joint_name == "FLOAT" || joint_name == "FLOAT_INVERSE") {
       ksl_vec3_t* t = (ksl_vec3_t*)&(q_[dhva_offsets_[i].q]);
       ksl_quaternion_t* q = (ksl_quaternion_t*)&(q_[dhva_offsets_[i].q + 3]);
       sprintf(name,
               "[%d] {%d} t: [% 2.10f, % 2.10f, % 2.10f]\n"
               "     q: [% 2.10f, % 2.10f, % 2.10f, % 2.10f]",
               i, jointCounter++, t->x, t->y, t->z, q->x, q->y, q->z, q->w);
-    } else if(jointName == "RIGID" || jointName == "RIGID_INVERSE") {
-      ksl_SE3_t& dPrimitiveDisp = d_wrt_reference_[dhva_offsets_[i].child.d];
+    } else if(joint_name == "RIGID" || joint_name == "RIGID_INVERSE") {
+      ksl_SE3_t& d_primitive_disp = d_wrt_reference_[dhva_offsets_[i].child.d];
       sprintf(name,
               "[%d] Rigid\n"
               "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
               "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
               "[% 2.10f % 2.10f % 2.10f % 2.10f]\n"
               "[ 0.00  0.00  0.00  1.00]",
-              i, dPrimitiveDisp.R.m00, dPrimitiveDisp.R.m01,
-              dPrimitiveDisp.R.m02, dPrimitiveDisp.t.x, dPrimitiveDisp.R.m10,
-              dPrimitiveDisp.R.m11, dPrimitiveDisp.R.m12, dPrimitiveDisp.t.y,
-              dPrimitiveDisp.R.m20, dPrimitiveDisp.R.m21, dPrimitiveDisp.R.m22,
-              dPrimitiveDisp.t.z);
+              i, d_primitive_disp.R.m00, d_primitive_disp.R.m01,
+              d_primitive_disp.R.m02, d_primitive_disp.t.x, d_primitive_disp.R.m10,
+              d_primitive_disp.R.m11, d_primitive_disp.R.m12, d_primitive_disp.t.y,
+              d_primitive_disp.R.m20, d_primitive_disp.R.m21, d_primitive_disp.R.m22,
+              d_primitive_disp.t.z);
     } else {
       sprintf(name, "joint type not found / unknown");
     }
 
-    char parentName[400];
-    sprintf(parentName, "cluster_%s", parentBodyName.c_str());
-    Agraph_t* parentBodyGraph = agsubg(g, parentName, TRUE);
-    agset(parentBodyGraph, const_cast<char*>("label"),
-          const_cast<char*>(parentBodyName.c_str()));
-    agset(parentBodyGraph, const_cast<char*>("fillcolor"),
+    char parent_name[400];
+    sprintf(parent_name, "cluster_%s", parent_body_name.c_str());
+    Agraph_t* parent_body_graph = agsubg(g, parent_name, TRUE);
+    agset(parent_body_graph, const_cast<char*>("label"),
+          const_cast<char*>(parent_body_name.c_str()));
+    agset(parent_body_graph, const_cast<char*>("fillcolor"),
           const_cast<char*>("lightgrey"));
-    agset(parentBodyGraph, const_cast<char*>("style"),
+    agset(parent_body_graph, const_cast<char*>("style"),
           const_cast<char*>("filled"));
 
     char childName[400];
-    sprintf(childName, "cluster_%s", childBodyName.c_str());
-    Agraph_t* childBodyGraph = agsubg(g, childName, TRUE);
-    agset(childBodyGraph, const_cast<char*>("fillcolor"),
+    sprintf(childName, "cluster_%s", child_body_name.c_str());
+    Agraph_t* child_body_graph = agsubg(g, childName, TRUE);
+    agset(child_body_graph, const_cast<char*>("fillcolor"),
           const_cast<char*>("lightgrey"));
-    agset(childBodyGraph, const_cast<char*>("style"),
+    agset(child_body_graph, const_cast<char*>("style"),
           const_cast<char*>("filled"));
-    agset(childBodyGraph, const_cast<char*>("label"),
-          const_cast<char*>(childBodyName.c_str()));
+    agset(child_body_graph, const_cast<char*>("label"),
+          const_cast<char*>(child_body_name.c_str()));
 
-    Agnode_t* parentNode = agnode(parentBodyGraph, parentFrameName, TRUE);
+    Agnode_t* parent_node = agnode(parent_body_graph, parent_frame_name, TRUE);
     if(parentIsReference) {
-      agset(parentNode, const_cast<char*>("penwidth"), const_cast<char*>("3"));
+      agset(parent_node, const_cast<char*>("penwidth"), const_cast<char*>("3"));
     }
 
-    Agnode_t* childNode = agnode(childBodyGraph, childFrameName, TRUE);
+    Agnode_t* child_node = agnode(child_body_graph, child_frame_name, TRUE);
     if(childIsReference) {
-      agset(childNode, const_cast<char*>("penwidth"), const_cast<char*>("3"));
+      agset(child_node, const_cast<char*>("penwidth"), const_cast<char*>("3"));
     }
 
-    Agedge_t* edge = agedge(g, parentNode, childNode, name, TRUE);
+    Agedge_t* edge = agedge(g, parent_node, child_node, name, TRUE);
     agset(edge, const_cast<char*>("label"), name);
   }
 
@@ -2487,7 +2493,7 @@ int shift::core::Context::digraphFrames(std::string filename) {
   gvRenderFilename(gvc, g, const_cast<char*>(gv_ext.c_str()), filename.c_str());
 
   if(gv_ext != "dot") {
-    std::string basename = shift::core::topology::getBasename(filename);
+    std::string basename = shift::core::topology::GetBasename(filename);
     if(basename.length() == 0) {
       gvFreeLayout(gvc, g);
       agclose(g);
@@ -2510,16 +2516,16 @@ int shift::core::Context::digraphFrames(std::string filename) {
   return 0;
 }
 
-int shift::core::Context::digraphFrames() {
-  std::string base_filename = shift::core::topology::getFilename(filename_);
+int shift::core::Context::DigraphFrames() {
+  std::string base_filename = shift::core::topology::GetFilename(filename_);
   std::string graph_filename =
-    shift::core::topology::removeExtension(base_filename) + ".png";
+    shift::core::topology::RemoveExtension(base_filename) + ".png";
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename_
               << std::endl;
     return -1;
   };
-  return digraphFrames(graph_filename);
+  return DigraphFrames(graph_filename);
 }
 
 /*!
@@ -2527,7 +2533,7 @@ int shift::core::Context::digraphFrames() {
 
 @return gravitational potential energy
 */
-double shift::core::Context::gravitationalPotentialEnergy() {
+double shift::core::Context::GravitationalPotentialEnergy() {
   // return ksl_dot_vv(&projected_inertia_[0].mt,
   // model_parameters_.gravity());
   return 0;
@@ -2537,10 +2543,10 @@ double shift::core::Context::gravitationalPotentialEnergy() {
 @brief compute kinetic energy for system
 
 */
-double shift::core::Context::kineticEnergy() {
+double shift::core::Context::KineticEnergy() {
   assert(dhva_.v);
 #if SHIFT_WITH_BLAS_
-  return cblas_ddot(6 * nonRigidJointCount_, (p_.data()), 1, (double*)(dhva_.v),
+  return cblas_ddot(6 * non_rigid_joint_count_, (p_.data()), 1, (double*)(dhva_.v),
                     1) /
          2.0;
 #else
@@ -2552,28 +2558,24 @@ double shift::core::Context::kineticEnergy() {
 #endif
 }
 
-unsigned int shift::core::Context::forceModuleEquationCount() {
+unsigned int shift::core::Context::get_force_module_equation_count() {
   unsigned int equation_count = 0;
   for(auto& force_module : active_force_modules_) {
-    equation_count += force_module->equationCount();
+    equation_count += force_module->get_equation_count();
   }
   return equation_count;
 }
 
-void shift::core::Context::evaluateConstraints() {
-  constraint_error_ = jacobian_.evaluateConstraints();
+void shift::core::Context::EvaluateConstraints() {
+  constraint_error_ = jacobian_.EvaluateConstraints();
 }
 
-double shift::core::Context::constraintError() {
-  return constraint_error_;
-}
-
-void shift::core::Context::setForces(const double t,
+void shift::core::Context::SetForces(const double t,
                                      const std::vector<double>& y) {
   (void)t;
   std::fill(f_.begin(), f_.end(), 0);
   for(auto& joint : active_joints_) {
-    joint->service(y);
+    joint->Service(y);
   }
   // std::cout << "f_: ";
   // for(auto& force : f_) {
@@ -2582,7 +2584,7 @@ void shift::core::Context::setForces(const double t,
   // std::cout << std::endl;
 }
 
-void shift::core::Context::dqTody(const std::vector<double>& y,
+void shift::core::Context::ConvertdqTody(const std::vector<double>& y,
                                   std::vector<double>& dy) {
   const double* q = y.data();
   const double* dq = q + q_count_;
@@ -2603,17 +2605,17 @@ void shift::core::Context::dqTody(const std::vector<double>& y,
   memcpy(dy.data() + q_count_, ddq_.data(), dq_count_ * sizeof(double));
 }
 
-void shift::core::Context::setQuaternionMap() {
+void shift::core::Context::SetupQuaternionMap() {
   quaternion_indices_.clear();
   non_quaternion_indices_.clear();
   unsigned int q_index = 0;
   unsigned int dq_index = 0;
   for(auto& joint : active_joints_) {
-    if(joint->type() == "spherical") {
+    if(joint->get_type() == "spherical") {
       quaternion_indices_.push_back({q_index, dq_index});
       q_index += 4;
       dq_index += 3;
-    } else if(joint->type() == "float") {
+    } else if(joint->get_type() == "float") {
       quaternion_indices_.push_back({q_index, dq_index});
       q_index += 4;
       dq_index += 3;
@@ -2621,44 +2623,45 @@ void shift::core::Context::setQuaternionMap() {
       non_quaternion_indices_.push_back({q_index++, dq_index++});
       non_quaternion_indices_.push_back({q_index++, dq_index++});
     } else {
-      assert(joint->qCount() == joint->dqCount());
-      for(unsigned int i = 0; i < joint->qCount(); i++) {
+      assert(joint->get_q_count() == joint->get_dq_count());
+      for(unsigned int i = 0; i < joint->get_q_count(); i++) {
         non_quaternion_indices_.push_back({q_index++, dq_index++});
       }
     }
   }
 
   for(auto& force_module : active_force_modules_) {
-    for(unsigned int i = 0; i < force_module->equationCount(); i++) {
+    for(unsigned int i = 0; i < force_module->get_equation_count(); i++) {
       non_quaternion_indices_.push_back({q_index++, dq_index++});
     }
   }
 }
 
-void shift::core::Context::simulate() {
+void shift::core::Context::Simulate() {
   if(active_integrators_.size() == 0 || active_solvers_.size() == 0) {
-    throw "Error: no active integrators or solvers have been created";
+    throw shift::core::Exception(
+      "Error: no active integrators or solvers have been created");
   }
   assert(active_integrators_.size());
   assert(active_solvers_.size());
   auto& integrator = active_integrators_[0];
-  integrator->integrate();
+  integrator->Integrate();
 }
 
-void shift::core::Context::currentTime(double& time, double& delta_time) {
+void shift::core::Context::get_current_time(double& time, double& delta_time) {
   if(active_integrators_.size() == 0) {
     time = 0.0;
     delta_time = 0.0;
     return;
   } else {
     auto& integrator = active_integrators_[0];
-    integrator->currentTime(time, delta_time);
+    integrator->get_current_time(time, delta_time);
   }
 }
 
-void shift::core::Context::writeStates(const double time,
+void shift::core::Context::WriteStates(const double time,
                                        const std::vector<double>& y) {
   for(auto& logger : active_loggers_) {
-    logger->writeStates(time, y);
+    logger->WriteStates(time, y);
   }
 }

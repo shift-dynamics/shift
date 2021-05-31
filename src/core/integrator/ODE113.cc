@@ -23,67 +23,67 @@ const double shift::core::integrator::ODE113::stability_limits_[17] = {
   0.34, 0.26, 0.21, 0.6,  0.2, 0.2,  0.2,  0.2};
 
 bool shift::core::integrator::ODE113::registered_ =
-  shift::core::Factory<shift::core::integrator::Base>::get()->registerModule(
-    "ode113", shift::core::integrator::ODE113::create);
+  shift::core::Factory<shift::core::integrator::Base>::get()->RegisterModule(
+    "ode113", shift::core::integrator::ODE113::Create);
 
-std::unique_ptr<shift::core::integrator::ODE113> shift::core::integrator::ODE113::create() {
+std::unique_ptr<shift::core::integrator::ODE113> shift::core::integrator::ODE113::Create() {
   return std::make_unique<shift::core::integrator::ODE113>();
 }
 
-void shift::core::integrator::ODE113::addParameters() {
-  addParameter("safety_factor", &safety_factor_,
+void shift::core::integrator::ODE113::DeclareParameters() {
+  DeclareParameter("safety_factor", &safety_factor_,
                "adjustable safety factor for numerical integration: defaults "
                "to 0.0005 if not provided",
                false);
-  addParameter("hmax", &hmax_,
+  DeclareParameter("hmax", &hmax_,
                "largest internal time step allowed by numerical integrator, "
                "defaults to 0.01 if not provided.",
                false);
-  addParameter("omega_n_max", &omega_n_max_,
+  DeclareParameter("omega_n_max", &omega_n_max_,
                "largest value for omega_n used in Baumgarte constraint "
                "stabilization, defaults to 1000.0 if not provided",
                false);
-  addParameter("integral_gain", &integral_gain_,
+  DeclareParameter("integral_gain", &integral_gain_,
                "integral gain used in baumgarte constraint stabilization, "
                "defaults to 1000.0 if not provided",
                false);
-  addParameter("absolute_error", &absolute_error_,
+  DeclareParameter("absolute_error", &absolute_error_,
                "absolute error used in numerical integration, defaults to "
                "0.0001 if not provided",
                false);
-  addParameter("relative_error", &relative_error_,
+  DeclareParameter("relative_error", &relative_error_,
                "relative error used in numerical integration, defaults to 0.0 "
                "if not provided",
                false);
 }
 
-void shift::core::integrator::ODE113::connect() {
+void shift::core::integrator::ODE113::Connect() {
   assert(context_);
   solver_ =
-    (*context_)["model_parameters"]["solvers"][0].data<shift::core::solver::Base>();
+    (*context_)["model_parameters"]["solvers"][0].get_data<shift::core::solver::Base>();
   assert(solver_);
 }
 
-void shift::core::integrator::ODE113::reset() {
+void shift::core::integrator::ODE113::Reset() {
 
-  neqn_ = context_->qCount() + context_->dqCount() +
-          context_->forceModuleEquationCount();
+  neqn_ = context_->get_q_count() + context_->get_dq_count() +
+          context_->get_force_module_equation_count();
   y_.resize(neqn_);
   std::fill(y_.begin(), y_.end(), 0);
 
   /* copy initial conditions from context */
-  memcpy(y_.data(), context_->q().data(),
-         (context_->qCount() + context_->dqCount()) * sizeof(double));
+  memcpy(y_.data(), context_->get_q().data(),
+         (context_->get_q_count() + context_->get_dq_count()) * sizeof(double));
 
   /* copy initial conditions from force modules */
-  int i = context_->qCount() + context_->dqCount();
-  for(auto& force_module : context_->activeforcemodules()) {
-    for(unsigned int k = 0; k < force_module->equationCount(); k++, i++) {
-      y_[i] = force_module->q0()[k];
+  int i = context_->get_q_count() + context_->get_dq_count();
+  for(auto& force_module : context_->get_active_force_modules()) {
+    for(unsigned int k = 0; k < force_module->get_equation_count(); k++, i++) {
+      y_[i] = force_module->get_q0()[k];
     }
   }
 
-  integral_error_.resize(context_->constraintEquationCount());
+  integral_error_.resize(context_->get_constraint_equation_count());
   std::fill(integral_error_.begin(), integral_error_.end(), 0);
 
   step_count_ = ceil(time_span_ / time_step_) + 1;
@@ -140,33 +140,26 @@ void shift::core::integrator::ODE113::reset() {
   baumgarte_omega_n_prev_ = omega_n_;
 }
 
-void shift::core::integrator::ODE113::initialize() {
-  reset();
+void shift::core::integrator::ODE113::Initialize() {
+  Reset();
 }
 
 void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) {
   assert(solver_);
   iteration_count_++;
 
-  newton_raphson_failure_ = solver_->solve(t, y, dy_);
+  newton_raphson_failure_ = solver_->Solve(t, y, dy_);
   if(newton_raphson_failure_) {
     return;
   }
 
-  //
-  // std::cout << "dy: ";
-  // for(size_t i = 0; i < dy_.size(); i++) {
-  //   std::cout << dy_[i] << " ";
-  // }
-  // std::cout << std::endl << std::endl;
-
   if(iconv_ == 1) {
 
-    const std::vector<double>& cs = context_->jacobian().constraints();
+    const std::vector<double>& cs = context_->get_jacobian().get_constraints();
 
-    h_ = fmax(x_ - t_, hmin_); /* limit next step size */
+    double h = fmax(x_ - t_, hmin_); /* limit next step size */
 
-    baumgarte_omega_n_ = stability_limits_[k_] / h_ * safety_factor_;
+    baumgarte_omega_n_ = stability_limits_[k_] / h * safety_factor_;
     baumgarte_omega_n_ =
       fmin(baumgarte_omega_n_, omega_n_max_); /* limit omega_n */
     baumgarte_omega_n_ =
@@ -174,10 +167,10 @@ void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) 
       smoothing_filter_ * (baumgarte_omega_n_ - baumgarte_omega_n_prev_);
     baumgarte_omega_n_prev_ = baumgarte_omega_n_;
 
-    double rho_dt = h_ * integral_gain_;
+    double rho_dt = h * integral_gain_;
 
     // evaluate integral error
-    for(unsigned int i = 0; i < context_->constraintEquationCount(); i++) {
+    for(unsigned int i = 0; i < context_->get_constraint_equation_count(); i++) {
       integral_error_[i] += cs[i] * rho_dt;
     }
 
@@ -211,7 +204,7 @@ void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) 
 
     if(x_ >= tdata_[step_] + time_step_) {
       // do logging
-      context_->writeStates(t_, y);
+      context_->WriteStates(t_, y);
       iteration_count_ = 0;
     }
   }
@@ -219,11 +212,11 @@ void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) 
   return;
 }
 
-void shift::core::integrator::ODE113::integrate() {
+void shift::core::integrator::ODE113::Integrate() {
 
-  reset();
-  solver_->initialize();
-  context_->writeStates(x_, y_);
+  Reset();
+  solver_->Initialize();
+  context_->WriteStates(x_, y_);
 
   step_ = 0;
   eps_ = fmax(relative_error_, absolute_error_);
@@ -824,7 +817,7 @@ void shift::core::integrator::ODE113::step() {
   return;
 }
 
-void shift::core::integrator::ODE113::currentTime(double& time, double& delta_time) {
+void shift::core::integrator::ODE113::get_current_time(double& time, double& delta_time) {
   time = x_;
   delta_time = x_ - t_; // @TODO verify this is correct
 }

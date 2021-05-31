@@ -2,29 +2,26 @@
 #include "shift/core/Context.h"
 #include "shift/core/terrain/Basic.h"
 
-bool shift::core::terrain::Modules::initialized() {
-  if(!shift::core::terrain::Basic::isRegistered()) {
-    return false;
-  }
-  return true;
+bool shift::core::terrain::Modules::is_initialized() {
+  return shift::core::terrain::Basic::is_registered();
 }
 
-void shift::core::terrain::Base::addParameters() {
-  addParameter(
+void shift::core::terrain::Base::DeclareParameters() {
+  DeclareParameter(
     "name", &name_,
     "terrain descriptive name, each terrain must have a unique name identifier",
     true);
-  addParameter("parent", &parent_,
+  DeclareParameter("parent", &parent_,
                "terrain's parent body / frame, defaults to [[\"fixed\"], "
                "[\"origin\"]] if not specified",
                false)
-    .setRowDim(2)
-    .setColumnDim(-1);
-  addParameter("filename", &filename_, "path to filename that defines terrain",
+    .set_row_dim(2)
+    .set_column_dim(-1);
+  DeclareParameter("filename", &filename_, "path to filename that defines terrain",
                true);
 }
 
-void shift::core::terrain::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::terrain::Base::set_objects_active(bool parent_is_active) {
   assert(context_);
-  context_->setActive(this, parent_is_active && active_);
+  context_->ActivateObject(this, parent_is_active && active_);
 }

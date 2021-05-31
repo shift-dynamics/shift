@@ -58,7 +58,7 @@ public:
   }
 
   static std::unique_ptr<Float> create();
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
@@ -67,7 +67,7 @@ public:
   topology::dhva_fptr DHVAfptr() override;
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
   shift::core::Frame frame_;
 };

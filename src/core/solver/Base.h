@@ -47,34 +47,35 @@ public:
     : shift::core::Base("") {}
   virtual ~Base() {}
 
-  const std::string& getType() {
+  const std::string& get_type() {
     return type_;
   }
 
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "solvers";
   }
 
-  static const std::string defaultType() {
+  static const std::string get_default_type() {
     return "";
   }
 
-  virtual void load();
-  virtual void connect();
-  virtual void initialize() = 0;
-  virtual void setActiveObjects(bool parent_is_active) override;
-  virtual bool solve(const double t, const std::vector<double>& y,
+  virtual void set_objects_active(bool parent_is_active) override;
+ 
+  virtual void Load();
+  virtual void Connect();
+  virtual void Initialize() = 0;
+  virtual bool Solve(const double t, const std::vector<double>& y,
                      std::vector<double>& dy) = 0;
 
 protected:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   std::string type_; //!< descriptive name of Solver type
   shift::core::integrator::Base* integrator_ = nullptr;
 };
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace solver

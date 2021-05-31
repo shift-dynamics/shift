@@ -31,58 +31,75 @@ public:
   Frame(std::string name)
     : Base(name)
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
   Frame()
     : Base("")
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Frame() override {}
 
-  const ksl_SE3_t* dWRTReference() const;
-  const ksl_SE3_t* dWRTOrigin() const;
-  const ksl_SE3_t* systemDWRTReference() const;
-
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "frames";
   }
-  static const std::string defaultType() {
+
+  static const std::string get_default_type() {
     return "";
   }
 
-  int index() const {
-    return index_;
-  }
-  void setIndex(int index) {
-    index_ = index;
-  }
-  void setInTree(bool inTree) {
-    in_tree_ = inTree;
-  }
-  bool inTree() const {
+  bool is_in_tree() const {
     return in_tree_;
   }
-  bool isReference() const {
+
+  bool is_reference() const {
     return is_reference_;
   }
-  void setIsReference(bool isReference) {
-    is_reference_ = isReference;
-  }
-  bool isOrigin() {
+
+  bool is_origin() {
     return is_origin_;
   }
-  void setIsOrigin(bool isOrigin) {
-    is_origin_ = isOrigin;
-  }
-  void setDWRTReference(ksl_SE3_t dReference) {
-    d_wrt_reference_ = dReference;
-    system_d_wrt_reference_ = dReference;
+
+  const ksl_SE3_t* get_d_wrt_reference() const;
+  const ksl_SE3_t* get_d_wrt_origin() const;
+  const ksl_SE3_t* get_system_d_wrt_reference() const;
+
+  int get_index() const {
+    return index_;
   }
 
-  void setSystemDWRTReference(ksl_SE3_t* dReference) {
-    if(dReference) {
-      system_d_wrt_reference_ = *dReference;
+  const shift::core::body::Base* get_parent_body() const {
+    return parent_body_ptr_;
+  }
+
+  const shift::core::Frame* get_reference_frame() const {
+    return reference_frame_;
+  }
+
+  void set_index(int index) {
+    index_ = index;
+  }
+
+  void set_in_tree(bool inTree) {
+    in_tree_ = inTree;
+  }
+
+  void set_is_reference(bool isReference) {
+    is_reference_ = isReference;
+  }
+
+  void set_is_origin(bool isOrigin) {
+    is_origin_ = isOrigin;
+  }
+
+  void set_d_wrt_reference(ksl_SE3_t d_wrt_reference) {
+    d_wrt_reference_ = d_wrt_reference;
+    system_d_wrt_reference_ = d_wrt_reference;
+  }
+
+  void set_system_d_wrt_reference(ksl_SE3_t* d_wrt_reference) {
+    if(d_wrt_reference) {
+      system_d_wrt_reference_ = *d_wrt_reference;
       use_system_reference_frame_ = true;
     } else {
       ksl_SE3_copy(&d_wrt_reference_, &system_d_wrt_reference_);
@@ -90,20 +107,12 @@ public:
     }
   }
 
-  void setReferenceFrame(Frame* reference_frame) {
+  void set_reference_frame(Frame* reference_frame) {
     reference_frame_ = reference_frame;
   }
 
-  const shift::core::body::Base* parentBody() const {
-    return parent_body_ptr_;
-  }
-
-  const shift::core::Frame* referenceFrame() const {
-    return reference_frame_;
-  }
-
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
 
   /*! \brief relative transformation from body origin to current frame
    */

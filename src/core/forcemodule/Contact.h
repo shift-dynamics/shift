@@ -18,22 +18,22 @@ class Contact : public Base {
 public:
   Contact()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Contact(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Contact() override {}
-  static std::unique_ptr<Contact> create();
-  void addParameters() override;
+  static std::unique_ptr<Contact> Create();
+  void DeclareParameters() override;
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
-  virtual void service(const double*, double*) override {}
-  virtual void connect() override {}
+  virtual void Service(const double*, double*) override {}
+  virtual void Connect() override {}
 
 private:
   static bool registered_;
