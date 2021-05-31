@@ -1120,6 +1120,7 @@ void shift::core::Context::DetectSubstructures() {
       substructures.push_back(substructure);
     }
 
+#if 0
     size_t i = 0;
     for(auto& joint : active_joints_) {
       std::cout << "[" << i++ << "]: " << joint->get_name() << std::endl;
@@ -1135,6 +1136,8 @@ void shift::core::Context::DetectSubstructures() {
     }
 
     std::cout << "loop level order sort" << std::endl;
+#endif
+
     /* sort loops of each substructure in monotonically increasing level order
      */
     for(auto& substructure : substructures) {
@@ -1178,16 +1181,6 @@ void shift::core::Context::DetectSubstructures() {
                 substructure_members_[i].end(), LevelOrder(this));
     }
 
-    // std::cout << "substructure members:" << std::endl;
-    // unsigned int i = 0;
-    // for(auto& members : substructure_members_) {
-    //   std::cout << "[" << i++ << "]: " << std::endl;
-    //   for(auto& member : members) {
-    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
-    //   }
-    //   std::cout << std::endl;
-    // }
-
     /* reorder loops */
 
     /* reorder loop members to follow substructure ordering */
@@ -1209,23 +1202,6 @@ void shift::core::Context::DetectSubstructures() {
     negative_loop_members_ = negative_loop_members;
     positive_loop_members_ = positive_loop_members;
     chord_constraints_ = chord_constraints;
-
-    // std::cout << "loop members:" << std::endl;
-    // for(unsigned int i = 0; i < loop_members.size(); i++) {
-    //   std::cout << "loop members [" << i << "]: " << std::endl;
-    //   for(auto member : loop_members[i]) {
-    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
-    //   }
-    //   std::cout << "negative loop members [" << i << "]: " << std::endl;
-    //   for(auto member : negative_loop_members[i]) {
-    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
-    //   }
-    //   std::cout << "positive loop members [" << i << "]: " << std::endl;
-    //   for(auto member : positive_loop_members[i]) {
-    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
-    //   }
-    //   std::cout << std::endl;
-    // }
 
     /* substructure body joint reorder */
 
@@ -1373,6 +1349,46 @@ void shift::core::Context::DetectSubstructures() {
           }
         }
       }
+
+#if 1
+    std::cout << "active joints:" << std::endl;
+    for(size_t i = 0; i < active_joints_.size(); i++) {
+      std::cout << "  (" << i << ") " << active_joints_[i]->get_name() << std::endl;
+    }
+
+    std::cout << "substructures:" << std::endl;
+    for(unsigned int i = 0; i < loop_members.size(); i++) {
+      std::cout << "loop members [" << i << "]: " << std::endl;
+      for(auto member : loop_members[i]) {
+        if(member < 0) {
+          std::cout << "  (" << member << ") " << "fixed" << std::endl;
+        } else {
+          std::cout << "  (" << member << ") " << 
+            active_joints_[member]->get_name() << std::endl;
+        }
+      }
+      std::cout << "negative loop members [" << i << "]: " << std::endl;
+      for(auto member : negative_loop_members[i]) {
+        if(member < 0) {
+          std::cout << "  (" << member << ") " << "fixed" << std::endl;
+        } else {
+          std::cout << "  (" << member << ") " << 
+            active_joints_[member]->get_name() << std::endl;
+        }
+      }
+      std::cout << "positive loop members [" << i << "]: " << std::endl;
+      for(auto member : positive_loop_members[i]) {
+        if(member < 0) {
+          std::cout << "  (" << member << ") " << "fixed" << std::endl;
+        } else {
+          std::cout << "  (" << member << ") " << 
+            active_joints_[member]->get_name() << std::endl;
+        }
+      }
+      std::cout << std::endl;
+    }
+#endif
+
 
     // std::cout << std::endl << "substructures after sort:" << std::endl;
     // unsigned int i = 0;
@@ -2109,6 +2125,8 @@ double shift::core::Context::GlobalMobility() {
 
 */
 int shift::core::Context::Digraph(std::string filename) {
+
+  get_jacobian().Print();
 
   std::string base_filename = shift::core::topology::GetFilename(filename);
   if(base_filename.length() == 0) {
