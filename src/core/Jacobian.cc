@@ -41,11 +41,12 @@ void shift::core::Jacobian::Analyze() {
 }
 
 void shift::core::Jacobian::MallocEquations() {
-  auto substructure_members = context_->get_substructure_members();
-  auto substructure_indices = context_->get_substructure_indices();
+  auto& substructure_members = context_->get_substructure_members();
+  auto& substructure_indices = context_->get_substructure_indices();
   substructures_.clear();
   substructures_.resize(substructure_members.size());
 
+  std::cout << "Jacobian: Mallocing equations:" << std::endl;
   // get total size of Jacobian
   jacobian_size_ = 0;
   constraint_equation_count_ = 0;
@@ -53,17 +54,20 @@ void shift::core::Jacobian::MallocEquations() {
   unsigned int dq_offset = 0;
   unsigned int joint_offset = 0;
   for(unsigned int i = 0; i < substructure_members.size(); i++) {
+    std::cout << "substructure [" << i << "]: ";
     substructures_[i].set_index(i);
     unsigned int q_count = 0;
     unsigned int dq_count = 0;
     unsigned int joint_count = 0;
     unsigned int chord_constraint_count = 0;
-    for(unsigned int j = 1; j < substructure_members[i].size(); j++) {
-      auto joint = context_->get_active_joints()[substructure_members[i][j]];
+    for(size_t j = 1; j < substructure_members[i].size(); j++) {
+      auto& joint = context_->get_active_joints()[substructure_members[i][j]];
+      std::cout << joint->get_name()[0] << " ";
       q_count += joint->get_q_count();
       dq_count += joint->get_dq_count();
       joint_count += (joint->get_q_count() > 0) ? 1 : 0;
     }
+    std::cout << std::endl;
 
     chord_constraint_count += substructure_indices[i].size();
     substructures_[i].set_q_count(q_count);
@@ -195,6 +199,28 @@ void shift::core::Jacobian::CompressLoopMembers() {
       &negative_loop_members_compressed_);
     j += substructure.get_chord_constraint_count();
   }
+ 
+  std::cout << "negative loop members compressed:" << std::endl;
+  j = 0;
+  for(auto& loop : negative_loop_members_compressed_) {
+    std::cout << "  [" << j++ << "]: ";
+    for(auto& i : loop) {
+      std::cout << i << " ";
+    }
+    std::cout << std::endl;
+  }
+
+ 
+  std::cout << "positive loop members compressed:" << std::endl;
+  j = 0;
+  for(auto& loop : positive_loop_members_compressed_) {
+    std::cout << "  [" << j++ << "]: ";
+    for(auto& i : loop) {
+      std::cout << i << " ";
+    }
+    std::cout << std::endl;
+  }
+
 }
 
 void shift::core::Jacobian::SetupPO1(const shift::core::topology::DHVA& dhva) {
@@ -213,6 +239,7 @@ void shift::core::Jacobian::TranslatePermutations() {
   unsigned int dq_count = context_->get_dq_count();
   is_dependent_po1_.assign(is_dependent_po1_.size(), false);
   is_dependent_po3_.assign(is_dependent_po3_.size(), false);
+  
   /* initialize permutation arrays */
   for(unsigned int i = 0; i < dq_count; i++) {
     pv_12_[i] = i;
@@ -309,10 +336,6 @@ void shift::core::Jacobian::EvaluateSparsity() {
 
   rb3_.resize(dq_count, 2);
   rb3_.zero();
-
-  // for(auto& substructure : substructures_) {
-  //   substructure.print();
-  // }
 
   for(auto& substructure : substructures_) {
     substructure.EvaluateSparsity(rb3_, cb3_, pv_23_);
