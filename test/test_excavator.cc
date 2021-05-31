@@ -15,10 +15,10 @@ TEST(Excavator, DiffLogs) {
     shift::core::Context context;
 
     std::cout << "Loading: " << json_file << std::endl;
-    context.loadJSON(json_file);
+    context.LoadJSON(json_file);
 
     std::cout << "Starting simulation" << std::endl;
-    context.simulate();
+    context.Simulate();
 
   } catch(const shift::core::Exception& e) {
     std::cout << std::endl

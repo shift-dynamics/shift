@@ -26,18 +26,18 @@ class Rigid : public Base {
 public:
   Rigid()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
 
   Rigid(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
 
   virtual ~Rigid() override {}
 
-  static std::unique_ptr<Rigid> create();
-  static bool isRegistered() {
+  static std::unique_ptr<Rigid> Create();
+  static bool is_registered() {
     return registered_;
   }
 
@@ -45,9 +45,9 @@ public:
   topology::dh_fptr DHfptr() override;
   topology::dhva_fptr DHVAfptr() override;
 
-  virtual ksl_SE3_t transform() override {
+  virtual ksl_SE3_t get_transform() override {
     ksl_SE3_t out;
-    const ksl_SE3_t* temp = frame_.dWRTOrigin();
+    const ksl_SE3_t* temp = frame_.get_d_wrt_origin();
     if(sense_ >= 0) {
       ksl_SE3_copy(temp, &out);
     } else {
@@ -57,7 +57,7 @@ public:
   }
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
   shift::core::Frame frame_;
 };

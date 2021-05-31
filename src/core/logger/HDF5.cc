@@ -5,27 +5,27 @@
 #include "shift/core/utility.h"
 
 bool shift::core::logger::HDF5::registered_ =
-  shift::core::Factory<shift::core::logger::Base>::get()->registerModule(
-    "hdf5", shift::core::logger::HDF5::create);
+  shift::core::Factory<shift::core::logger::Base>::get()->RegisterModule(
+    "hdf5", shift::core::logger::HDF5::Create);
 
-std::unique_ptr<shift::core::logger::HDF5> shift::core::logger::HDF5::create() {
+std::unique_ptr<shift::core::logger::HDF5> shift::core::logger::HDF5::Create() {
   return std::make_unique<shift::core::logger::HDF5>();
 }
 
-void shift::core::logger::HDF5::addParameters() {
-  shift::core::logger::Base::addParameters();
-  addParameter("logfile", &logfile_,
+void shift::core::logger::HDF5::DeclareParameters() {
+  shift::core::logger::Base::DeclareParameters();
+  DeclareParameter("logfile", &logfile_,
                "hdf5 log file, defaults to \"simulation.hdf5\" if "
                "not provided",
                false);
-  addParameter(
+  DeclareParameter(
     "timestamp_logfile", &timestamp_logfile_,
     "indicates to append current data/time to base log file name. Time stamp "
     "will be appended before file extension, defaults to \"false\"",
     false);
 }
 
-void shift::core::logger::HDF5::initialize() {
+void shift::core::logger::HDF5::Initialize() {
   if(timestamp_logfile_) {
     logfile_ = shift::core::utility::stripFileExtension(logfile_) + "-" +
                shift::core::utility::currentDateTime() +
@@ -37,13 +37,13 @@ void shift::core::logger::HDF5::initialize() {
 
   state_meta_data_ = H5::Group(hdf5_file_.createGroup("/state_meta_data"));
 
-  writeHeader();
+  WriteHeader();
 }
 
-void shift::core::logger::HDF5::writeHeader() {
+void shift::core::logger::HDF5::WriteHeader() {
 
   H5::StrType str_datatype(H5::PredType::C_S1, 1024);
-  hsize_t dim = context_->activeJoints().size();
+  hsize_t dim = context_->get_active_joints().size();
   H5::DataSpace space(1, &dim);
 
   const H5std_string q_count_("q_count");
@@ -78,19 +78,19 @@ void shift::core::logger::HDF5::writeHeader() {
   std::vector<Joint> joint_meta_data;
 // joint_meta_data.reserve(context_->activeJoints().size());
   
-  for(auto& joint : context_->activeJoints()) {
+  for(auto& joint : context_->get_active_joints()) {
 
     Joint data = {
-      joint->qCount(),
-      joint->dqCount(),
-      joint->qIndex(),
-      joint->dqIndex(),
+      joint->get_q_count(),
+      joint->get_dq_count(),
+      joint->get_q_index(),
+      joint->get_dq_index(),
       {'\0'},
       {'\0'}
     };
 
-    strcpy(data.name, joint->name().c_str());
-    strcpy(data.fully_qualified_name, joint->name().c_str());
+    strcpy(data.name, joint->get_name().c_str());
+    strcpy(data.fully_qualified_name, joint->get_name().c_str());
 
     joint_meta_data.push_back(data);
   }
@@ -119,7 +119,7 @@ void shift::core::logger::HDF5::writeHeader() {
 #endif
 }
 
-void shift::core::logger::HDF5::writeStates(const double /* t */,
+void shift::core::logger::HDF5::WriteStates(const double /* t */,
                                             const std::vector<double>& q) {
 #if 0
   // size_t q_offset;

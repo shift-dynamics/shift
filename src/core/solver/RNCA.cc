@@ -12,17 +12,17 @@
 #endif
 
 bool shift::core::solver::RNCA::registered_ =
-  shift::core::Factory<shift::core::solver::Base>::get()->registerModule(
-    "rnca", shift::core::solver::RNCA::create);
+  shift::core::Factory<shift::core::solver::Base>::get()->RegisterModule(
+    "rnca", shift::core::solver::RNCA::Create);
 
-std::unique_ptr<shift::core::solver::RNCA> shift::core::solver::RNCA::create() {
+std::unique_ptr<shift::core::solver::RNCA> shift::core::solver::RNCA::Create() {
   return std::make_unique<shift::core::solver::RNCA>();
 }
 
-void shift::core::solver::RNCA::addParameters() {
-  shift::core::solver::Base::addParameters();
+void shift::core::solver::RNCA::DeclareParameters() {
+  shift::core::solver::Base::DeclareParameters();
 
-  addParameter(
+  DeclareParameter(
     "infinity_norm_multiplier", &infinity_norm_multiplier_,
     "The infinity norm of each Jacobian matrix's *B* matrix is used as a "
     "heuristic to determine when to reapply Gaussian elimination with complete "
@@ -32,11 +32,11 @@ void shift::core::solver::RNCA::addParameters() {
     false);
 }
 
-void shift::core::solver::RNCA::initialize() {
+void shift::core::solver::RNCA::Initialize() {
   assert(context_);
 
-  q_count_ = context_->qCount();
-  dq_count_ = context_->dqCount();
+  q_count_ = context_->get_q_count();
+  dq_count_ = context_->get_dq_count();
 
   gamma_d_.resize(dq_count_);
   std::fill(gamma_d_.begin(), gamma_d_.end(), 0);
@@ -62,45 +62,45 @@ void shift::core::solver::RNCA::initialize() {
   Mlbs_.resize(Ml_size_);
   std::fill(Mlbs_.begin(), Mlbs_.end(), false);
 
-  inertia_p_.resize(context_->nonRigidJointCount() + 1);
+  inertia_p_.resize(context_->get_non_rigid_joint_count() + 1);
   std::fill(inertia_p_.begin(), inertia_p_.end(),
             ksl_inertia(0.0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
-  p_.resize(context_->nonRigidJointCount());
+  p_.resize(context_->get_non_rigid_joint_count());
   std::fill(p_.begin(), p_.end(), ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
-  g_.resize(context_->nonRigidJointCount());
+  g_.resize(context_->get_non_rigid_joint_count());
   std::fill(g_.begin(), g_.end(), ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
-  la_.resize(context_->dqCount());
+  la_.resize(context_->get_dq_count());
   std::fill(la_.begin(), la_.end(), 0);
 
   infinity_norm_failure_ = false;
 
-  context_->jacobian().removeConstraintViolations();
-  context_->jacobian().analyze();
-  context_->updateDHVA();
-  context_->evaluateConstraints();
-  setEquationsAndRecordFills();
-  memoize();
+  context_->get_jacobian().RemoveConstraintViolations();
+  context_->get_jacobian().Analyze();
+  context_->UpdateDHVA();
+  context_->EvaluateConstraints();
+  SetupEquationsAndRecordFills();
+  Memoize();
 }
 
-void shift::core::solver::RNCA::memoize() {
-  countOperations();
-  recordOperations();
-  countPointers();
-  recordPointers();
+void shift::core::solver::RNCA::Memoize() {
+  CountOperations();
+  RecordOperations();
+  CountPointers();
+  RecordPointers();
 }
 
-void shift::core::solver::RNCA::countOperations() {
+void shift::core::solver::RNCA::CountOperations() {
   assert(context_);
-  dq_count_ = context_->dqCount();
-  auto ddq = context_->ddq();
-  const auto& jacobian = context_->jacobian();
-  const auto& rb3 = jacobian.rb3();
-  const auto& cb3 = jacobian.cb3();
+  dq_count_ = context_->get_dq_count();
+  auto ddq = context_->get_ddq();
+  const auto& jacobian = context_->get_jacobian();
+  const auto& rb3 = jacobian.get_rb3();
+  const auto& cb3 = jacobian.get_cb3();
   // const auto& b3 = jacobian.b3();
-  const auto& is_dependent_po3 = jacobian.isDependentPO3();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
   // const auto& pv_13 = jacobian.pv13();
 
   // COUNT OPERATIONS BLOCK
@@ -506,14 +506,14 @@ void shift::core::solver::RNCA::countOperations() {
   Mlb_.assign(Mlbs_.begin(), Mlbs_.end());
 }
 
-void shift::core::solver::RNCA::recordOperations() {
+void shift::core::solver::RNCA::RecordOperations() {
 
   assert(context_);
 
-  const auto& jacobian = context_->jacobian();
-  const auto& is_dependent_po3 = jacobian.isDependentPO3();
-  const auto& rb3 = jacobian.rb3();
-  const auto& cb3 = jacobian.cb3();
+  const auto& jacobian = context_->get_jacobian();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
+  const auto& rb3 = jacobian.get_rb3();
+  const auto& cb3 = jacobian.get_cb3();
 
   int l1 = 0;
   int l2 = 0;
@@ -772,10 +772,10 @@ void shift::core::solver::RNCA::recordOperations() {
   }       // end for (i = n-1; i >= 0; i--).
 }
 
-void shift::core::solver::RNCA::countPointers() {
+void shift::core::solver::RNCA::CountPointers() {
   assert(context_);
-  const auto& jacobian = context_->jacobian();
-  const auto& is_dependent_po3 = jacobian.isDependentPO3();
+  const auto& jacobian = context_->get_jacobian();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
 
   /* Currently on entry to this function, context_->nd = 0. Normally
   k = context_->nd - 1; The following effectively sets k = context_->nd - 1; */
@@ -927,17 +927,17 @@ void shift::core::solver::RNCA::countPointers() {
   p3_start_ = p2;
 }
 
-void shift::core::solver::RNCA::recordPointers() {
+void shift::core::solver::RNCA::RecordPointers() {
   assert(context_);
-  const auto& jacobian = context_->jacobian();
-  const auto& is_dependent_po3 = jacobian.isDependentPO3();
+  const auto& jacobian = context_->get_jacobian();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
   // const auto& rb3 = jacobian.rb3();
   // const auto& cb3 = jacobian.cb3();
-  const auto& b3 = jacobian.b3();
+  const auto& b3 = jacobian.get_b3();
   // const auto& pv_23 = jacobian.pv23();
-  const auto& pv_13 = jacobian.pv13();
+  const auto& pv_13 = jacobian.get_pv13();
 
-  auto& ddq = context_->ddq();
+  auto& ddq = context_->get_ddq();
 
   int ni = 0;
   int nd = 0;
@@ -1075,29 +1075,29 @@ void shift::core::solver::RNCA::recordPointers() {
   }
 }
 
-bool shift::core::solver::RNCA::setEquations() {
+bool shift::core::solver::RNCA::SetupEquations() {
   assert(context_);
-  return setEquations(0.0, context_->q());
+  return SetupEquations(0.0, context_->get_q());
 }
 
-bool shift::core::solver::RNCA::setEquationsAndRecordFills() {
+bool shift::core::solver::RNCA::SetupEquationsAndRecordFills() {
   assert(context_);
-  setEquationsAndRecordFills(0.0, context_->q());
+  SetupEquationsAndRecordFills(0.0, context_->get_q());
   return false;
 }
 
-bool shift::core::solver::RNCA::setEquationsAndRecordFills(
+bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
   const double t, const std::vector<double>& y) {
   const double* q = y.data();
   const double* dq = q + q_count_;
   assert(context_);
-  auto& jacobian = context_->jacobian();
-  context_->updateDHVA(q, dq);
-  jacobian.save();
-  jacobian.setPO2();
-  jacobian.factorPO2();
-  jacobian.setBMatrixSparse();
-  unsigned int infinity_norm_check = jacobian.infinityNormCheck(
+  auto& jacobian = context_->get_jacobian();
+  context_->UpdateDHVA(q, dq);
+  jacobian.Save();
+  jacobian.SetupPO2();
+  jacobian.FactorPO2();
+  jacobian.SetupBMatrixSparse();
+  unsigned int infinity_norm_check = jacobian.InfinityNormCheck(
     t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
   if(infinity_norm_check) {
     if(infinity_norm_check == 2) {
@@ -1107,29 +1107,29 @@ bool shift::core::solver::RNCA::setEquationsAndRecordFills(
     std::cerr << "Failed infinity norm check, but GECP was successfully "
                  "reapplied and simulation will attempt to continue"
               << std::endl;
-    jacobian.analyze();
-    setRHS();
-    setMassMatrixAndRecordFills();
-    memoize();
+    jacobian.Analyze();
+    SetupRHS();
+    SetupMassMatrixAndRecordFills();
+    Memoize();
   } else {
-    setRHS();
-    setMassMatrixAndRecordFills();
+    SetupRHS();
+    SetupMassMatrixAndRecordFills();
   }
   return false;
 }
 
-bool shift::core::solver::RNCA::setEquations(const double t,
+bool shift::core::solver::RNCA::SetupEquations(const double t,
                                        const std::vector<double>& y) {
   const double* q = y.data();
   const double* dq = q + q_count_;
   assert(context_);
-  auto& jacobian = context_->jacobian();
-  context_->updateDHVA(q, dq);
-  jacobian.save();
-  jacobian.setPO2();
-  jacobian.factorPO2();
-  jacobian.setBMatrixSparse();
-  unsigned int infinity_norm_check = jacobian.infinityNormCheck(
+  auto& jacobian = context_->get_jacobian();
+  context_->UpdateDHVA(q, dq);
+  jacobian.Save();
+  jacobian.SetupPO2();
+  jacobian.FactorPO2();
+  jacobian.SetupBMatrixSparse();
+  unsigned int infinity_norm_check = jacobian.InfinityNormCheck(
     t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
   if(infinity_norm_check) {
     if(infinity_norm_check == 2) {
@@ -1139,29 +1139,29 @@ bool shift::core::solver::RNCA::setEquations(const double t,
     std::cerr << "Failed infinity norm check, but GECP was successfully "
                  "reapplied and simulation will attempt to continue"
               << std::endl;
-    jacobian.analyze();
-    setRHS();
-    setMassMatrixAndRecordFills();
-    memoize();
+    jacobian.Analyze();
+    SetupRHS();
+    SetupMassMatrixAndRecordFills();
+    Memoize();
   } else {
-    setRHS();
-    setMassMatrix();
+    SetupRHS();
+    SetupMassMatrix();
   }
   return false;
 }
 
-void shift::core::solver::RNCA::setRHS() {
+void shift::core::solver::RNCA::SetupRHS() {
 
-  const topology::DHVA& dhva = context_->dhva();
-  unsigned int non_rigid_joint_count = context_->nonRigidJointCount();
-  const auto& dq_lookup_compressed = context_->dqLookupCompressed();
-  const auto& pcl_compressed = context_->pclCompressed();
-  const auto& has_mass = context_->hasMassArray();
+  const topology::DHVA& dhva = context_->get_dhva();
+  unsigned int non_rigid_joint_count = context_->get_non_rigid_joint_count();
+  const auto& dq_lookup_compressed = context_->get_dq_lookup_compressed();
+  const auto& pcl_compressed = context_->get_pcl_compressed();
+  const auto& has_mass = context_->get_has_mass_array();
 
-  const auto& d_reference_frames = context_->dReferenceFrames();
-  const auto& inertia = context_->inertiaArray();
+  const auto& d_reference_frames = context_->get_d_reference_frames();
+  const auto& inertia = context_->get_inertia_vector();
 
-  context_->evaluateConstraints();
+  context_->EvaluateConstraints();
 
   std::fill(fl_.begin(), fl_.end(), 0);
   std::fill(p_.begin(), p_.end(), ksl_coscrew(0, 0, 0, 0, 0, 0));
@@ -1329,22 +1329,19 @@ void shift::core::solver::RNCA::setRHS() {
     Expand each multi DOF joint to expand the quantity in g with length
     nonRigidJointCount in PO1 to fl of length dqCount in PO3 */
   assert(context_);
-  const auto& f = context_->jointWorkingForces();
-  const auto& joint_dof_compressed = context_->jointDOFCompressed();
-  const auto& is_rotation = context_->isRotation();
+  const auto& f = context_->get_joint_working_forces();
+  const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
+  const auto& is_rotation = context_->get_is_rotation();
 
-  const auto& jacobian = context_->jacobian();
-  const auto& pv_31 = jacobian.pv31();
+  const auto& jacobian = context_->get_jacobian();
+  const auto& pv_31 = jacobian.get_pv31();
 
   assert(integrator_);
-  const double baumgarte_2_omega_n = integrator_->baumgarte2OmegaN();
-  const double baumgarte_omega_n_2 = integrator_->baumgarteOmegaN2();
-
-  std::cout << "baumgarte_2_omega_n: " << baumgarte_2_omega_n << std::endl;
-  std::cout << "baumgarte_omega_n_2: " << baumgarte_omega_n_2 << std::endl;
+  const double baumgarte_2_omega_n = integrator_->get_baumgarte_2_omega_n();
+  const double baumgarte_omega_n_2 = integrator_->get_baumgarte_omega_n_2();
 
   const auto& integral_constraint_error =
-    integrator_->integralConstraintError();
+    integrator_->get_integral_error();
 
 #ifdef SHIFT_USE_OPENMP_
 #pragma omp parallel for
@@ -1375,105 +1372,64 @@ void shift::core::solver::RNCA::setRHS() {
   }
 
   /* evaluate primary constraints (\bar{\gamma}_p) in PO(1), store in PO(2) */
-  int chord_constraint_offset = 0;
-  for(auto& substructure : jacobian.substructures()) {
+  // int chord_constraint_offset = 0;
+  for(auto& substructure : jacobian.get_substructures()) {
 
-    const auto& pr_21 = substructure.pr21();
-    int offset = substructure.dqOffset();
-    const double* cs = substructure.cs();
-    const auto& constraints = substructure.constraintIndices();
+    const auto& pr_21 = substructure.get_pr21();
+    int dq_offset = substructure.get_dq_offset();
+    const double* cs = substructure.get_cs();
+    const auto& constraints = substructure.get_constraint_indices();
 
-    std::cout << "pr_21: ";
-    for(auto& i : pr_21) {
-      std::cout << i << " ";
-    }
-    std::cout << std::endl;
-
-    /* number of constraints to evaluate */
-    for(size_t k = 0; k < substructure.chordConstraintCount();
+    size_t chord_constraint_offset = 0;
+    for(size_t k = 0; k < substructure.get_chord_constraint_count();
         k++, chord_constraint_offset++) {
+
+#if 0
+      std::cout << "pr_21: ";
+      for(auto& i : pr_21) {
+        std::cout << i << " ";
+      }
+      std::cout << std::endl;
 
       ksl_screw_print(stdout, &dhva.aq[constraints[k].child.v], "aq child: ");
       ksl_screw_print(stdout, &dhva.aq[constraints[k].parent.v], "aq parent: ");
 
       ksl_screw_print(stdout, &dhva.v[constraints[k].child.v], "v child: ");
       ksl_screw_print(stdout, &dhva.v[constraints[k].parent.v], "v parent: ");
+#endif
+  
+      std::cout << "dq_offset: " << dq_offset << std::endl;
 
-      /* set gamma_p */
-
-      // acceleration level
       for(size_t l = 0; l < 6; l++) {
-        if(pr_21[k * 6 + l] < substructure.rank()) {
-          /*
-            first constraint is embedded (host) body
-            second is the virtual body (released frame)
+        if(pr_21[k * 6 + l] < substructure.get_rank()) {
+          gamma_d_[dq_offset + pr_21[k * 6 + l]] =
+            
+            (dhva.aq[constraints[k].child.v].at[l] -
+             dhva.aq[constraints[k].parent.v].at[l]) -
 
-            prInverse = pr_21
-            pr = p12
-          */
-          gamma_d_[offset + pr_21[k * 6 + l]] =
-            dhva.aq[constraints[k].child.v].at[l] -
-            dhva.aq[constraints[k].parent.v].at[l];
-        }
-      }
+            /* -(2 * omega_N) * \dot{\phi} velocity part of baumgarte
+            constraint stabilization */
+            (baumgarte_2_omega_n * (dhva.v[constraints[k].parent.v].at[l] -
+                                    dhva.v[constraints[k].child.v].at[l])) -
 
-      /* subtract 2 * omega_n * \dot{phi} from gamma_p */
+            /* subtract omega_n^2 * \dot{phi} from gamma_p */
+            baumgarte_omega_n_2 * cs[k * 6 + l] -
 
-      // velocity level
-      for(int l = 0; l < 6; l++) {
-        if(pr_21[k * 6 + l] < substructure.rank()) {
-
-          /* -(2 * omega_N) * \dot{\phi} velocity part of baumgarte
-          constraint stabilization */
-          gamma_d_[offset + pr_21[k * 6 + l]] -=
-            baumgarte_2_omega_n * (dhva.v[constraints[k].parent.v].at[l] -
-                                   dhva.v[constraints[k].child.v].at[l]);
-
-          double v_term =
-            baumgarte_2_omega_n * (dhva.v[constraints[k].child.v].at[l] -
-                                   dhva.v[constraints[k].parent.v].at[l]);
-          std::cout << v_term << " ";
-        }
-      }
-      std::cout << std::endl;
-      std::cout << "baumgarte_2_omega_n: " << baumgarte_2_omega_n << std::endl;
-
-      /* subtract omega_n^2 * \dot{phi} from gamma_p */
-
-      // position level
-      for(int l = 0; l < 6; l++) {
-        if(pr_21[k * 6 + l] < substructure.rank()) {
-
-          /* -(omega_N^2) * phi, position part of baumgarte
-          constraint stabilization */
-          gamma_d_[offset + pr_21[k * 6 + l]] -=
-            baumgarte_omega_n_2 * cs[k * 6 + l];
-        }
-      }
-
-      /* substract integral error term from gamma_p  for adaptive constraint
-       * stabilization*/
-
-      // integral gain
-#if 1
-      for(int l = 0; l < 6; l++) {
-        if(pr_21[k * 6 + l] < substructure.rank()) {
-          gamma_d_[offset + pr_21[k * 6 + l]] -=
+            // integral error
             integral_constraint_error[chord_constraint_offset * 6 + l];
         }
       }
-#endif
     }
   }
 
   /* precondition primary constraints in PO(2)
   \bar{\gamma}_d = U^{-1} L^{-1} \bar{\gamma}_p */
-  for(auto& substructure : jacobian.substructures()) {
+  for(auto& substructure : jacobian.get_substructures()) {
 
-    int offset = substructure.dqOffset();
-    const int dq_count = substructure.dqCount();
-    const double* J = substructure.jacobianMatrix();
-    const int rank = substructure.rank();
+    int offset = substructure.get_dq_offset();
+    const int dq_count = substructure.get_dq_count();
+    const double* J = substructure.get_jacobian_matrix();
+    const int rank = substructure.get_rank();
 
     /* forward elimination:
     \bar{\gamma} <- L^{-1} * \bar\{\gamma} */
@@ -1503,19 +1459,19 @@ void shift::core::solver::RNCA::setRHS() {
 }
 
 /*! set mass matrix without setting boolean mass matrix */
-void shift::core::solver::RNCA::setMassMatrix() {
+void shift::core::solver::RNCA::SetupMassMatrix() {
   assert(context_);
-  const auto& dhva = context_->dhva();
-  const size_t non_rigid_joint_count = context_->nonRigidJointCount();
-  const auto& pcl_compressed = context_->pclCompressed();
-  const auto& joint_dof_compressed = context_->jointDOFCompressed();
-  const auto& dq_lookup_compressed = context_->dqLookupCompressed();
-  const auto& is_rotation = context_->isRotation();
-  const auto& has_mass_dq = context_->hasMassdq();
-  const auto& pcl_dq = context_->pcldq();
+  const auto& dhva = context_->get_dhva();
+  const size_t non_rigid_joint_count = context_->get_non_rigid_joint_count();
+  const auto& pcl_compressed = context_->get_pcl_compressed();
+  const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
+  const auto& dq_lookup_compressed = context_->get_dq_lookup_compressed();
+  const auto& is_rotation = context_->get_is_rotation();
+  const auto& has_mass_dq = context_->get_has_mass_dq();
+  const auto& pcl_dq = context_->get_pcldq();
 
-  const auto& jacobian = context_->jacobian();
-  const auto& pv_31 = jacobian.pv31();
+  const auto& jacobian = context_->get_jacobian();
+  const auto& pv_31 = jacobian.get_pv31();
 
   std::fill(mh_product_.begin(), mh_product_.end(),
             ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
@@ -1635,19 +1591,19 @@ void shift::core::solver::RNCA::setMassMatrix() {
   }
 }
 
-void shift::core::solver::RNCA::setMassMatrixAndRecordFills() {
+void shift::core::solver::RNCA::SetupMassMatrixAndRecordFills() {
   assert(context_);
-  const auto& dhva = context_->dhva();
-  const size_t non_rigid_joint_count = context_->nonRigidJointCount();
-  const auto& pcl_compressed = context_->pclCompressed();
-  const auto& joint_dof_compressed = context_->jointDOFCompressed();
-  const auto& dq_lookup_compressed = context_->dqLookupCompressed();
-  const auto& is_rotation = context_->isRotation();
-  const auto& has_mass_dq = context_->hasMassdq();
-  const auto& pcl_dq = context_->pcldq();
+  const auto& dhva = context_->get_dhva();
+  const size_t non_rigid_joint_count = context_->get_non_rigid_joint_count();
+  const auto& pcl_compressed = context_->get_pcl_compressed();
+  const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
+  const auto& dq_lookup_compressed = context_->get_dq_lookup_compressed();
+  const auto& is_rotation = context_->get_is_rotation();
+  const auto& has_mass_dq = context_->get_has_mass_dq();
+  const auto& pcl_dq = context_->get_pcldq();
 
-  const auto& jacobian = context_->jacobian();
-  const auto& pv_31 = jacobian.pv31();
+  const auto& jacobian = context_->get_jacobian();
+  const auto& pv_31 = jacobian.get_pv31();
 
   std::fill(mh_product_.begin(), mh_product_.end(),
             ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
@@ -1772,15 +1728,15 @@ void shift::core::solver::RNCA::setMassMatrixAndRecordFills() {
   }
 }
 
-void shift::core::solver::RNCA::factorAndSolve() {
+void shift::core::solver::RNCA::FactorAndSolve() {
 
   assert(context_);
-  auto& ddq = context_->ddq();
+  auto& ddq = context_->get_ddq();
 
-  shift::core::Jacobian& jacobian = context_->jacobian();
-  const auto& pv_23 = jacobian.pv23();
-  const auto& pv_13 = jacobian.pv13();
-  const auto& is_dependent_po3 = jacobian.isDependentPO3();
+  shift::core::Jacobian& jacobian = context_->get_jacobian();
+  const auto& pv_23 = jacobian.get_pv23();
+  const auto& pv_13 = jacobian.get_pv13();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
 
   /* Access entries in P_[] to factor matrix and access L */
   int p2 = dq_count_;
@@ -1909,20 +1865,20 @@ and any states required for force modules
 y = [q, dq, q_f]
 dy = [dq, ddq, dq_f]
 */
-bool shift::core::solver::RNCA::solve(const double t, const std::vector<double>& y,
+bool shift::core::solver::RNCA::Solve(const double t, const std::vector<double>& y,
                                 std::vector<double>& dy) {
 
   assert(context_);
-  assert(q_count_ == context_->qCount());
+  assert(q_count_ == context_->get_q_count());
 
   const double* q = y.data();
   const double* dq = q + q_count_;
 
-  context_->updateDHVA(q, dq);
-  context_->evaluateConstraints();
-  context_->setForces(t, y);
+  context_->UpdateDHVA(q, dq);
+  context_->EvaluateConstraints();
+  context_->SetForces(t, y);
 
-  if(setEquations(t, y)) {
+  if(SetupEquations(t, y)) {
     return true;
   }
 
@@ -1930,12 +1886,12 @@ bool shift::core::solver::RNCA::solve(const double t, const std::vector<double>&
   /* make a copy of Ml and fl to verify equations of motion, remove this
   once equations of motion verified */
   double Ml[dq_count_ * dq_count_];
-  for(unsigned int i = 0; i < context_->nonRigidJointCount(); i++) {
+  for(unsigned int i = 0; i < context_->get_non_rigid_joint_count(); i++) {
     int istart = i * (i + 1) / 2;
     for(unsigned int j = 0; j < i + 1; j++) {
-      Ml[i * context_->nonRigidJointCount() + j] = Ml_[istart + j];
+      Ml[i * context_->get_non_rigid_joint_count() + j] = Ml_[istart + j];
       if(i != j) {
-        Ml[j * context_->nonRigidJointCount() + i] = Ml_[istart + j];
+        Ml[j * context_->get_non_rigid_joint_count() + i] = Ml_[istart + j];
       }
     }
   }
@@ -1954,7 +1910,7 @@ bool shift::core::solver::RNCA::solve(const double t, const std::vector<double>&
   std::cout << std::endl;
 #endif
 
-  factorAndSolve();
+  FactorAndSolve();
 
 #if SHIFT_VERIFY_EQUATIONS_
   std::cout << "fl (after factor): ";
@@ -1971,12 +1927,12 @@ bool shift::core::solver::RNCA::solve(const double t, const std::vector<double>&
   //   std::cout << y[i] << " ";
   // }
   // std::cout << std::endl;
-  verify(t, y, Ml, fl);
+  Verify(t, y, Ml, fl);
 #endif
 
   /* convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array */
-  context_->dqTody(y, dy);
+  context_->ConvertdqTody(y, dy);
 
 #if SHIFT_VERIFY_EQUATIONS_
   std::cout << "y: ";
@@ -1995,7 +1951,7 @@ bool shift::core::solver::RNCA::solve(const double t, const std::vector<double>&
   return false;
 }
 
-bool shift::core::solver::RNCA::verify(const double t,
+bool shift::core::solver::RNCA::Verify(const double t,
                                  const std::vector<double>& /*dy*/, double Ml[],
                                  double fl[]) {
   bool verified = true;
@@ -2091,11 +2047,11 @@ bool shift::core::solver::RNCA::verify(const double t,
   // s2_array_print(context->dqCount, context->ddq);
 
   /* copy ddq to PO3 */
-  auto& jacobian = context_->jacobian();
-  const auto& pv_13 = jacobian.pv13();
-  const auto& pv_23 = jacobian.pv23();
+  auto& jacobian = context_->get_jacobian();
+  const auto& pv_13 = jacobian.get_pv13();
+  const auto& pv_23 = jacobian.get_pv23();
 
-  const auto& ddq = context_->ddq();
+  const auto& ddq = context_->get_ddq();
 
   double ddq_po3[dq_count_];
   memset(ddq_po3, 0, dq_count_ * sizeof(double));
@@ -2170,11 +2126,11 @@ bool shift::core::solver::RNCA::verify(const double t,
   //   printf("\n");
   // }
 
-  const auto& rb3 = jacobian.rb3();
-  const auto& cb3 = jacobian.cb3();
-  const auto& b3 = jacobian.b3();
+  const auto& rb3 = jacobian.get_rb3();
+  const auto& cb3 = jacobian.get_cb3();
+  const auto& b3 = jacobian.get_b3();
 
-  const auto& is_dependent_po3 = jacobian.isDependentPO3();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
 
   double B[dq_count_ * dq_count_];
   memset(B, 0, dq_count_ * dq_count_ * sizeof(double));
@@ -2212,9 +2168,9 @@ bool shift::core::solver::RNCA::verify(const double t,
     }
     printf("\n");
 
-    auto& jacobian = context_->jacobian();
+    auto& jacobian = context_->get_jacobian();
     std::cout << "infinity norm failures: " << std::endl;
-    for(auto& infinity_norm_failure : jacobian.infinityNormFailures()) {
+    for(auto& infinity_norm_failure : jacobian.get_infinity_norm_failures()) {
       std::cout << "t: " << infinity_norm_failure.time << " ";
       for(auto& index : infinity_norm_failure.substructure_index) {
         std::cout << index << " ";

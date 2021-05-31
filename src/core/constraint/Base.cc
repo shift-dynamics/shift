@@ -2,22 +2,22 @@
 #include "shift/core/body/Base.h"
 #include "shift/core/Context.h"
 
-bool shift::core::constraint::Modules::initialized() {
+bool shift::core::constraint::Modules::is_initialized() {
   return true;
 }
 
-void shift::core::constraint::Base::addParameters() {}
+void shift::core::constraint::Base::DeclareParameters() {}
 
-void shift::core::constraint::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::constraint::Base::set_objects_active(bool parent_is_active) {
   assert(context_);
-  context_->setActive(this, active_ && parent_is_active);
+  context_->ActivateObject(this, active_ && parent_is_active);
 };
 
-void shift::core::constraint::Base::load() {}
+void shift::core::constraint::Base::Load() {}
 
-void shift::core::constraint::Base::connect() {}
+void shift::core::constraint::Base::Connect() {}
 
-void shift::core::constraint::Base::setParentBody(shift::core::body::Base* parent) {
+void shift::core::constraint::Base::set_parent_body(shift::core::body::Base* parent) {
   parent_body_ptr_ = parent;
   // if(parent) {
   //   parentBody_ = parent->fullyQualifiedName();
@@ -26,7 +26,7 @@ void shift::core::constraint::Base::setParentBody(shift::core::body::Base* paren
   // }
 }
 
-void shift::core::constraint::Base::setChildBody(shift::core::body::Base* child) {
+void shift::core::constraint::Base::set_child_body(shift::core::body::Base* child) {
   child_body_ptr_ = child;
   // if(child) {
   //   childBody_ = child->fullyQualifiedName();
@@ -35,7 +35,7 @@ void shift::core::constraint::Base::setChildBody(shift::core::body::Base* child)
   // }
 }
 
-void shift::core::constraint::Base::setParentFrame(Frame* parent) {
+void shift::core::constraint::Base::set_parent_frame(Frame* parent) {
   parent_frame_ptr_ = parent;
   // if(parent) {
   //   parentFrame_ = parent->fullyQualifiedName();
@@ -44,7 +44,7 @@ void shift::core::constraint::Base::setParentFrame(Frame* parent) {
   // }
 }
 
-void shift::core::constraint::Base::setChildFrame(Frame* child) {
+void shift::core::constraint::Base::set_child_frame(Frame* child) {
   child_frame_ptr_ = child;
   // if(child) {
   //   childFrame_ = child->fullyQualifiedName();

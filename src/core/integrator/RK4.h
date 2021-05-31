@@ -16,16 +16,16 @@ class RK4 : public Base {
 public:
   RK4(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   RK4()
     : Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~RK4() override {}
   static std::unique_ptr<RK4> create();
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
   virtual void connect() override;
@@ -34,7 +34,7 @@ public:
   virtual void integrate() override;
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
 
   std::vector<double> y_;

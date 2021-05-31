@@ -18,25 +18,28 @@ class CSV : public Base {
 public:
   CSV(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   CSV()
     : Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~CSV() override {}
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
-  virtual void initialize() override;
-  virtual void writeHeader() override;
-  virtual void writeStates(const double t,
+  virtual void Initialize() override;
+  virtual void WriteHeader() override;
+  virtual void WriteStates(const double t,
                            const std::vector<double>& q) override;
 
 private:
-  virtual void addParameters() override;
+  static bool registered_;
+  static std::unique_ptr<CSV> Create();
+
+  virtual void DeclareParameters() override;
 
   std::string delimiter_ = ",";
   std::string csv_logfile_ = "simulation.csv";
@@ -44,8 +47,6 @@ private:
     false; ///!< indicates whether to append current time stamp to log file
   std::ofstream file_;
 
-  static bool registered_;
-  static std::unique_ptr<CSV> create();
 };
 
 } // namespace Logger

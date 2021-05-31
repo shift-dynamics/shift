@@ -14,17 +14,17 @@ class Base : public forcemodule::Base {
 public:
   Base()
     : forcemodule::Base() {
-    addParameters();
+    DeclareParameters();
   }
   Base(std::string name)
     : forcemodule::Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Base() override {}
   static std::unique_ptr<Base> create();
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 

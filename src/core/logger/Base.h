@@ -26,44 +26,45 @@ class Base
 public:
   Base(std::string name)
     : shift::core::Base(name) {
-    addParameters();
+    DeclareParameters();
   }
 
   Base()
     : shift::core::Base("") {
-    addParameters();
+    DeclareParameters();
   }
 
   virtual ~Base() {}
 
-  const std::string& getType() {
+  const std::string& get_type() {
     return type_;
   }
 
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "loggers";
   }
 
-  static const std::string defaultType() {
+  static const std::string get_default_type() {
     return "";
   }
 
-  virtual void load();
-  virtual void connect();
-  virtual void initialize() = 0;
-  virtual void setActiveObjects(bool parent_is_active) override;
-  virtual void writeHeader() = 0;
-  virtual void writeStates(const double t, const std::vector<double>& q) = 0;
+  virtual void set_objects_active(bool parent_is_active) override;
+  
+  virtual void Load();
+  virtual void Connect();
+  virtual void Initialize() = 0;
+  virtual void WriteHeader() = 0;
+  virtual void WriteStates(const double t, const std::vector<double>& q) = 0;
 
 protected:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   bool log_all_channels_ = true;
   std::string type_; //!< descriptive name of Logger type
 };
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace Logger

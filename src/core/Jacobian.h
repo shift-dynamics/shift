@@ -32,7 +32,61 @@ public:
   ~Jacobian() {}
 
 public:
-  virtual void addParameters() override{};
+
+  struct InfinityNormFailure {
+    double time;
+    std::vector<unsigned int> substructure_index;
+  };
+
+  bool get_newton_raphson_failure() {
+    return newton_raphson_failure_;
+  }
+
+  const std::vector<Substructure>& get_substructures() const {
+    return substructures_;
+  }
+
+  const std::vector<bool>& get_is_dependent_po3() const {
+    return is_dependent_po3_;
+  }
+
+  const std::vector<bool>& get_is_dependent_po1() const {
+    return is_dependent_po1_;
+  }
+
+  const Array2d<int>& get_rb3() const {
+    return rb3_;
+  }
+
+  const std::vector<int> get_cb3() const {
+    return cb3_;
+  }
+
+  const std::vector<double>& get_b3() const {
+    return b3_;
+  }
+
+  const std::vector<int>& get_pv31() const {
+    return pv_31_;
+  }
+
+  const std::vector<int>& get_pv13() const {
+    return pv_13_;
+  }
+
+  const std::vector<int>& get_pv23() const {
+    return pv_23_;
+  }
+
+  const std::vector<double>& get_constraints() const {
+    return cs_;
+  }
+ 
+  const std::vector<InfinityNormFailure>& get_infinity_norm_failures() const {
+    return infinity_norm_failures_;
+  }
+
+  virtual void DeclareParameters() override{};
 
   /*! \brief allocate memory for Jacobian after substructures have been
   identified
@@ -40,98 +94,54 @@ public:
   Identifies size of various data structures, allocates memory and performs an
   initial full-factor to determine split of dependent and independent variables
 */
-  void initialize();
+  void Initialize();
 
   /*! \brief perform full factor to set mapping from PO1 to PO2 */
-  void analyze();
+  void Analyze();
 
-  const std::vector<Substructure>& substructures() const {
-    return substructures_;
-  }
-  double evaluateConstraints();
+  double EvaluateConstraints();
 
-  void initializeMobility();
-
-  bool newtonRaphsonFailure() {
-    return newton_raphson_failure_;
-  }
+  void InitializeMobility();
 
   /*! save a copy of the Jacobian to Js for comparison */
-  void save() {
+  void Save() {
     memcpy(Js_.data(), J_.data(), J_.size() * sizeof(double));
   }
 
-  void setPO1(const topology::DHVA& dhva);
-  void setPO1();
-  void translatePermutations();
-  void setBooleanPO2();
-  void evaluateSparsity();
-  void setPO2(const topology::DHVA& dhva);
-  void setPO2();
-  void factorPO2();
-  void setBMatrixSparse();
-  void setConstraintPointers();
-  void setSubstructurePointers();
-  int removeConstraintViolations();
-  void removeConstraintViolationsFast(bool);
-  const std::vector<bool>& isDependentPO3() const {
-    return is_dependent_po3_;
-  }
-  const std::vector<bool>& isDependentPO1() const {
-    return is_dependent_po1_;
-  }
-  const Array2d<int>& rb3() const {
-    return rb3_;
-  }
-  const std::vector<int> cb3() const {
-    return cb3_;
-  }
+  void SetupPO1(const topology::DHVA& dhva);
+  void SetupPO1();
+  void TranslatePermutations();
+  void SetupBooleanPO2();
+  void EvaluateSparsity();
+  void SetupPO2(const topology::DHVA& dhva);
+  void SetupPO2();
+  void FactorPO2();
+  void SetupBMatrixSparse();
+  void SetupConstraintPointers();
+  void SetupSubstructurePointers();
+  int RemoveConstraintViolations();
+  void RemoveConstraintViolationsFast(bool);
+  /*! check if infinity norm of B matrix is greater than a threshold times the
+   * initial starting value
+   * \return bool true if infinity norm is greater than initial starting value
+   */
+  unsigned int InfinityNormCheck(double time, double* q, const double* dq);
 
   /*! check if infinity norm of B matrix is greater than a threshold times the
    * initial starting value
    * \return bool true if infinity norm is greater than initial starting value
    */
-  unsigned int infinityNormCheck(double time, double* q, const double* dq);
-
-  /*! check if infinity norm of B matrix is greater than a threshold times the
-   * initial starting value
-   * \return bool true if infinity norm is greater than initial starting value
-   */
-  unsigned int infinityNormCheck(double time, double* q, const double* dq,
+  unsigned int InfinityNormCheck(double time, double* q, const double* dq,
                                  const double infinity_norm_multiplier);
 
-  const std::vector<double>& b3() const {
-    return b3_;
-  }
-
-  const std::vector<int>& pv31() const {
-    return pv_31_;
-  }
-
-  const std::vector<int>& pv13() const {
-    return pv_13_;
-  }
-
-  const std::vector<int>& pv23() const {
-    return pv_23_;
-  }
-
-  const std::vector<double>& constraints() const {
-    return cs_;
-  }
-
-  bool infinityNormCheck(const double);
-
-  struct InfinityNormFailure {
-    double time;
-    std::vector<unsigned int> substructure_index;
-  };
-
-  const std::vector<InfinityNormFailure>& infinityNormFailures() const {
-    return infinity_norm_failures_;
-  }
+  bool InfinityNormCheck(const double);
 
 private:
+
+  void SetupLookup();
+  void MallocEquations();
+  void CompressLoopMembers();
+
   bool newton_raphson_failure_ = false;
 
   std::vector<double> J_;
@@ -166,10 +176,6 @@ private:
   std::vector<std::vector<int>> negative_loop_members_compressed_;
 
   std::vector<Substructure> substructures_;
-
-  void setLookup();
-  void mallocEquations();
-  void compressLoopMembers();
 
   unsigned int iterations_since_last_infinity_norm_failure_ = 0;
 

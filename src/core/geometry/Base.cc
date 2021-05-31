@@ -5,26 +5,26 @@
 #include "shift/core/geometry/PointCloud.h"
 #include "shift/core/geometry/Sphere.h"
 
-bool shift::core::geometry::Modules::initialized() {
-  if(!shift::core::geometry::Ellipsoid::isRegistered()) {
+bool shift::core::geometry::Modules::is_initialized() {
+  if(!shift::core::geometry::Ellipsoid::is_registered()) {
     return false;
   }
-  if(!shift::core::geometry::Mesh::isRegistered()) {
+  if(!shift::core::geometry::Mesh::is_registered()) {
     return false;
   }
-  if(!shift::core::geometry::PointCloud::isRegistered()) {
+  if(!shift::core::geometry::PointCloud::is_registered()) {
     return false;
   }
-  if(!shift::core::geometry::Sphere::isRegistered()) {
+  if(!shift::core::geometry::Sphere::is_registered()) {
     return false;
   }
   return true;
 }
 
-void shift::core::geometry::Base::addParameters() {
-  addParameter("name", &name_, "User defined descriptive geometry name.", true);
+void shift::core::geometry::Base::DeclareParameters() {
+  DeclareParameter("name", &name_, "User defined descriptive geometry name.", true);
 
-  addParameter(
+  DeclareParameter(
     "active", &active_,
     "Indicates whether geometry is active in simulation: If the value is set "
     "to false, the data will be loaded into computer working memory, but will "
@@ -33,11 +33,11 @@ void shift::core::geometry::Base::addParameters() {
     false);
 }
 
-void shift::core::geometry::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::geometry::Base::set_objects_active(bool parent_is_active) {
   assert(context_);
-  context_->setActive(this, active_ && parent_is_active);
+  context_->ActivateObject(this, active_ && parent_is_active);
 };
 
-void shift::core::geometry::Base::load() {}
+void shift::core::geometry::Base::Load() {}
 
-void shift::core::geometry::Base::connect() {}
+void shift::core::geometry::Base::Connect() {}

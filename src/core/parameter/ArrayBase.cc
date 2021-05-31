@@ -1,14 +1,15 @@
 #include "shift/core/parameter/ArrayBase.h"
 #include "shift/core/parameter/List.h"
+#include "shift/core/Exception.h"
 
-void shift::core::parameter::ArrayBase::print(std::string prefix) const {
+void shift::core::parameter::ArrayBase::Print(std::string prefix) const {
   std::cout << "[";
   if(objects_.empty()) {
     std::cout << " ]" << std::endl;
   } else {
     std::cout << std::endl;
     for(auto& parameter : objects_) {
-      parameter->print(prefix, false);
+      parameter->Print(prefix, false);
     }
     prefix.pop_back();
     prefix.pop_back();
@@ -24,6 +25,7 @@ operator[](const std::string key_str) {
       return void_;
     }
   }
-  throw "JSON Parsing error, parameter not found";
+  throw shift::core::Exception(
+    "JSON Parsing error, parameter '" + key_str + "' not found");
   return void_;
 }

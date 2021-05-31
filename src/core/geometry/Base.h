@@ -31,29 +31,31 @@ public:
     : shift::core::Base("") {}
   virtual ~Base() {}
 
-  const std::string& getType() {
-    return type_;
-  }
-
-  virtual void load();
-  virtual void connect();
-  virtual void setActiveObjects(bool) override;
-
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "geometry";
   }
-  static const std::string defaultType() {
+
+  static const std::string get_default_type() {
     return "";
   }
 
+  const std::string& get_type() {
+    return type_;
+  }
+
+  virtual void set_objects_active(bool) override;
+  
+  virtual void Load();
+  virtual void Connect();
+
 protected:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   std::string type_; //!< descriptive name of Geometry type
 };
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace geometry

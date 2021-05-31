@@ -91,7 +91,7 @@ public:
     dq_0_ = new double[dq_count_]();
     rotation_indices_.push_back(0);
     is_rotation_ = true;
-    addParameters();
+    DeclareParameters();
   }
   Revolute(std::string name)
     : Base(name) {
@@ -103,31 +103,31 @@ public:
     dq_0_ = new double[dq_count_]();
     rotation_indices_.push_back(0);
     is_rotation_ = true;
-    addParameters();
+    DeclareParameters();
   }
   ~Revolute() override {
     delete[] q_0_;
     delete[] dq_0_;
   }
-  static std::unique_ptr<Revolute> create();
-  static bool isRegistered() {
+  static std::unique_ptr<Revolute> Create();
+  static bool is_registered() {
     return registered_;
   }
 
-  virtual const double* data() override;
-  virtual unsigned int dataCount() override;
+  virtual const double* get_data() override;
+  virtual unsigned int get_data_count() override;
 
   topology::dh_fptr Dfptr() override;
   topology::dh_fptr DHfptr() override;
   topology::dhva_fptr DHVAfptr() override;
-  virtual void service(const std::vector<double>& y) override;
+  virtual void Service(const std::vector<double>& y) override;
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };
   static bool registered_;
   ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};
-  AxisType axisType();
+  AxisType get_axis_type();
 };
 
 } // namespace joint

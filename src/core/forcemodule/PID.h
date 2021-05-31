@@ -19,23 +19,26 @@ public:
   PID()
     : Base() {
     equation_count_ = 1;
-    addParameters();
+    DeclareParameters();
   }
   PID(std::string name)
     : Base(name) {
     equation_count_ = 1;
-    addParameters();
+    DeclareParameters();
   }
   virtual ~PID() override {}
-  static std::unique_ptr<PID> create();
-  void addParameters() override;
-  virtual void connect() override;
-  void setTarget(double);
-  virtual void service(const double y[], double dy[]) override;
 
-  static bool isRegistered() {
+  static std::unique_ptr<PID> Create();
+
+  static bool is_registered() {
     return registered_;
   }
+
+  void set_target(double);
+  
+  void DeclareParameters() override;
+  virtual void Connect() override;
+  virtual void Service(const double y[], double dy[]) override;
 
 private:
   enum TargetType { POSITION = 0, VELOCITY } target_type_;

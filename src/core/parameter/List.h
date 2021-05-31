@@ -30,144 +30,7 @@ public:
     , parent_assembly_ptr_(assembly)
     , parent_body_ptr_(body) {}
   virtual ~List() {}
-  bool active() {
-    return active_;
-  }
-  virtual void addParameters() = 0;
-  void removeParameter(std::string key);
-
-  virtual void setActiveObjects(bool parent_is_active) {
-    for(auto& parameter : parameters_) {
-      parameter.second.setActiveObjects(active_ && parent_is_active);
-    }
-  }
-
-  Value& addParameter(const std::string key, Value parameter);
-  Value& addParameter(const std::string key, std::string* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, std::vector<std::string>* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-  Value& addParameter(const std::string key,
-                      std::vector<std::vector<std::string>>* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, double* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, std::vector<double>* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_vec3_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_vec4_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_quaternion_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_screw_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_coscrew_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_inertia_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_mat3x3_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_mat4x4_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_eulerangles_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, bool* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ksl_SE3_t* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, List* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  Value& addParameter(const std::string key, ArrayBase* data,
-                      const std::string description, bool required = true) {
-    Value value(data, description, required);
-    return addParameter(key, value);
-  }
-
-  void setContext(Context* context) {
-    context_ = context;
-  }
-
-  void setParentAssembly(Assembly* assembly) {
-    parent_assembly_ptr_ = assembly;
-  }
-
-  void setParentBody(shift::core::body::Base* body) {
-    parent_body_ptr_ = body;
-  }
-
-  virtual void readJSON(Json::Value&);
-
-  void setParent(Context* context, Assembly* parent_assembly = nullptr,
-                 shift::core::body::Base* parent_body = nullptr);
-
+ 
   virtual Value& operator[](const char* key) {
     return parameters_[key];
   }
@@ -176,32 +39,171 @@ public:
     return parameters_[key];
   }
 
-  bool has_key(const std::string key) const {
-    return parameters_.count(key);
+  bool is_active() {
+    return active_;
   }
-
-  auto& parameters() const {
-    return parameters_;
-  }
-
-  void print() const;
-  void print(std::string, bool break_line = true) const;
-
-  Assembly* parentAssembly() {
+ 
+  Assembly* get_parent_assembly() {
     return parent_assembly_ptr_;
   }
 
-  shift::core::body::Base* parentBody() {
+  shift::core::body::Base* get_parent_body() {
     return parent_body_ptr_;
   }
+ 
+  void set_parent(Context* context, Assembly* parent_assembly = nullptr,
+                 shift::core::body::Base* parent_body = nullptr);
 
-  void setIsBody(bool is_body) {
+  auto& get_parameters() const {
+    return parameters_;
+  }
+ 
+  virtual void set_objects_active(bool parent_is_active) {
+    for(auto& parameter : parameters_) {
+      parameter.second.set_objects_active(active_ && parent_is_active);
+    }
+  }
+ 
+  void set_context(Context* context) {
+    context_ = context;
+  }
+
+  void set_parent_assembly(Assembly* assembly) {
+    parent_assembly_ptr_ = assembly;
+  }
+
+  void set_parent_body(shift::core::body::Base* body) {
+    parent_body_ptr_ = body;
+  }
+
+  void set_is_body(bool is_body) {
     is_body_ = is_body;
   }
 
-  void setIsAssembly(bool is_assembly) {
+  void set_is_assembly(bool is_assembly) {
     is_assembly_ = is_assembly;
   }
+
+  bool HasKey(const std::string key) const {
+    return parameters_.count(key);
+  }
+
+  virtual void DeclareParameters() = 0;
+  void RemoveParameter(std::string key);
+  Value& DeclareParameter(const std::string key, Value parameter);
+  Value& DeclareParameter(const std::string key, std::string* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, std::vector<std::string>* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key,
+                      std::vector<std::vector<std::string>>* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, double* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, std::vector<double>* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_vec3_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_vec4_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_quaternion_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_screw_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_coscrew_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_inertia_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_mat3x3_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_mat4x4_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_eulerangles_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, bool* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ksl_SE3_t* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, List* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, ArrayBase* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  virtual void ReadJSON(Json::Value&);
+
+  void Print() const;
+  void Print(std::string, bool break_line = true) const;
 
 protected:
   std::map<std::string, parameter::Value> parameters_;

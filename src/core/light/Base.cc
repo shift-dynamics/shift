@@ -7,56 +7,56 @@
 
 #include "ksl/print.h"
 
-bool shift::core::light::Modules::initialized() {
-  if(!shift::core::light::Point::isRegistered()) {
+bool shift::core::light::Modules::is_initialized() {
+  if(!shift::core::light::Point::is_registered()) {
     return false;
   }
-  if(!shift::core::light::Spot::isRegistered()) {
+  if(!shift::core::light::Spot::is_registered()) {
     return false;
   }
-  if(!shift::core::light::Directional::isRegistered()) {
+  if(!shift::core::light::Directional::is_registered()) {
     return false;
   }
-  if(!shift::core::light::IES::isRegistered()) {
+  if(!shift::core::light::IES::is_registered()) {
     return false;
   }
   return true;
 }
 
-void shift::core::light::Base::addParameters() {
-  addParameter("name", &name_, "User defined descriptive light name.", true);
-  addParameter(
+void shift::core::light::Base::DeclareParameters() {
+  DeclareParameter("name", &name_, "User defined descriptive light name.", true);
+  DeclareParameter(
     "active", &active_,
     "Indicates whether light is active in simulation: If the value is set to "
     "false, the data will be loaded into computer working memory, but will not "
     "be processed when setting up and solving the equations of motion. Use "
     "this key to selectively enable or disable portions of the model.",
     false);
-  addParameter("type", &type_, "Indicates type of light", true);
-  addParameter(
+  DeclareParameter("type", &type_, "Indicates type of light", true);
+  DeclareParameter(
     "parent", &parent_,
     "Indicates light's parent body and frame using the syntax [\"Body\", "
     "\"Frame\"]",
     true);
-  addParameter("Ka", &Ka_,
+  DeclareParameter("Ka", &Ka_,
                "Indicates light's ambient color component in RGB format "
                "using values from 0 to 1.",
                false);
-  addParameter("Kd", &Kd_,
+  DeclareParameter("Kd", &Kd_,
                "Indicates light's diffuse color component in RGB format "
                "using values from 0 to 1.",
                false);
-  addParameter("Ks", &Ks_,
+  DeclareParameter("Ks", &Ks_,
                "Indicates light's specular color component in RGB format "
                "using values from 0 to 1.",
                false);
 }
 
-void shift::core::light::Base::load() {}
+void shift::core::light::Base::Load() {}
 
-void shift::core::light::Base::connect() {}
+void shift::core::light::Base::Connect() {}
 
-void shift::core::light::Base::setActiveObjects(bool parent_is_active) {
+void shift::core::light::Base::set_objects_active(bool parent_is_active) {
   assert(context_);
-  context_->setActive(this, parent_is_active && active_);
+  context_->ActivateObject(this, parent_is_active && active_);
 }

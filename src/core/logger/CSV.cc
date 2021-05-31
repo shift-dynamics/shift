@@ -5,56 +5,56 @@
 #include "shift/core/utility.h"
 
 bool shift::core::logger::CSV::registered_ =
-  shift::core::Factory<shift::core::logger::Base>::get()->registerModule(
-    "csv", shift::core::logger::CSV::create);
+  shift::core::Factory<shift::core::logger::Base>::get()->RegisterModule(
+    "csv", shift::core::logger::CSV::Create);
 
-std::unique_ptr<shift::core::logger::CSV> shift::core::logger::CSV::create() {
+std::unique_ptr<shift::core::logger::CSV> shift::core::logger::CSV::Create() {
   return std::make_unique<shift::core::logger::CSV>();
 }
 
-void shift::core::logger::CSV::addParameters() {
-  shift::core::logger::Base::addParameters();
-  addParameter("delimiter", &delimiter_,
+void shift::core::logger::CSV::DeclareParameters() {
+  shift::core::logger::Base::DeclareParameters();
+  DeclareParameter("delimiter", &delimiter_,
                "delimiter used in csv file, defaults to \",\" if not provided",
                false);
-  addParameter(
+  DeclareParameter(
     "csv_logfile", &csv_logfile_,
     "file to log csv states to, defaults to \"simulation.csv\" if not provided",
     false);
-  addParameter(
+  DeclareParameter(
     "timestamp_logfile", &timestamp_logfile_,
     "indicates to append current data/time to base log file name. Time stamp "
     "will be appended before file extension, defaults to \"false\"",
     false);
 }
 
-void shift::core::logger::CSV::initialize() {
+void shift::core::logger::CSV::Initialize() {
   if(timestamp_logfile_) {
     csv_logfile_ = shift::core::utility::stripFileExtension(csv_logfile_) + "-" +
                    shift::core::utility::currentDateTime() +
                    shift::core::utility::getFileExtension(csv_logfile_);
   }
   file_.open(csv_logfile_);
-  writeHeader();
+  WriteHeader();
 }
 
-void shift::core::logger::CSV::writeHeader() {
+void shift::core::logger::CSV::WriteHeader() {
   if(log_all_channels_) {
     assert(context_);
     file_ << "time" << delimiter_;
-    for(auto& joint : context_->activeJoints()) {
-      for(size_t i = 0; i < joint->qCount(); i++) {
-        file_ << joint->name() << "_q_" << i << delimiter_;
+    for(auto& joint : context_->get_active_joints()) {
+      for(size_t i = 0; i < joint->get_q_count(); i++) {
+        file_ << joint->get_name() << "_q_" << i << delimiter_;
       }
     }
-    for(auto& joint : context_->activeJoints()) {
-      for(size_t i = 0; i < joint->dqCount(); i++) {
-        file_ << joint->name() << "_dq_" << i << delimiter_;
+    for(auto& joint : context_->get_active_joints()) {
+      for(size_t i = 0; i < joint->get_dq_count(); i++) {
+        file_ << joint->get_name() << "_dq_" << i << delimiter_;
       }
     }
-    for(auto& joint : context_->activeJoints()) {
-      for(size_t i = 0; i < joint->dqCount(); i++) {
-        file_ << joint->name() << "_ddq_" << i << delimiter_;
+    for(auto& joint : context_->get_active_joints()) {
+      for(size_t i = 0; i < joint->get_dq_count(); i++) {
+        file_ << joint->get_name() << "_ddq_" << i << delimiter_;
       }
     }
     file_ << "constraint_error" << delimiter_;
@@ -62,16 +62,16 @@ void shift::core::logger::CSV::writeHeader() {
   file_ << "\n";
 }
 
-void shift::core::logger::CSV::writeStates(const double t,
+void shift::core::logger::CSV::WriteStates(const double t,
                                      const std::vector<double>& y) {
   file_ << t << delimiter_;
-  size_t count = context_->qCount() + context_->dqCount();
+  size_t count = context_->get_q_count() + context_->get_dq_count();
   for(size_t i = 0; i < count; i++) {
     file_ << y[i] << delimiter_;
   }
-  for(size_t i = 0; i < context_->dqCount(); i++) {
-    file_ << context_->ddq()[i] << delimiter_;
+  for(size_t i = 0; i < context_->get_dq_count(); i++) {
+    file_ << context_->get_ddq()[i] << delimiter_;
   }
-  file_ << context_->constraintError() << delimiter_;
+  file_ << context_->get_constraint_error() << delimiter_;
   file_ << "\n";
 }

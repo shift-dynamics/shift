@@ -7,10 +7,10 @@
 #include <math.h>
 
 bool shift::core::joint::Revolute::registered_ =
-  shift::core::Factory<shift::core::joint::Base>::get()->registerModule(
-    "revolute", shift::core::joint::Revolute::create);
+  shift::core::Factory<shift::core::joint::Base>::get()->RegisterModule(
+    "revolute", shift::core::joint::Revolute::Create);
 
-std::unique_ptr<shift::core::joint::Revolute> shift::core::joint::Revolute::create() {
+std::unique_ptr<shift::core::joint::Revolute> shift::core::joint::Revolute::Create() {
   return std::make_unique<shift::core::joint::Revolute>();
 }
 
@@ -26,11 +26,11 @@ Updates displacements only
 void shift::core::joint::rx_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                         const shift::core::topology::Offsets& offsets,
                         const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
 
-  ksl_product_ddrx(dParent, dc, dChild);
+  ksl_product_ddrx(d_parent, dc, d_child);
 }
 
 /*!
@@ -45,10 +45,10 @@ Updates displacements only
 void shift::core::joint::rxinv_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                            const shift::core::topology::Offsets& offsets,
                            const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  ksl_product_ddrxinv(dParent, dc, dChild);
+  ksl_product_ddrxinv(d_parent, dc, d_child);
 }
 
 /*!
@@ -63,10 +63,10 @@ Updates displacements only
 void shift::core::joint::ry_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                         const shift::core::topology::Offsets& offsets,
                         const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  ksl_product_ddry(dParent, dc, dChild);
+  ksl_product_ddry(d_parent, dc, d_child);
 }
 
 /*!
@@ -81,10 +81,10 @@ Updates displacements only
 void shift::core::joint::ryinv_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                            const shift::core::topology::Offsets& offsets,
                            const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  ksl_product_ddryinv(dParent, dc, dChild);
+  ksl_product_ddryinv(d_parent, dc, d_child);
 }
 
 /*!
@@ -99,10 +99,10 @@ Updates displacements only
 void shift::core::joint::rz_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                         const shift::core::topology::Offsets& offsets,
                         const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  ksl_product_ddrz(dParent, dc, dChild);
+  ksl_product_ddrz(d_parent, dc, d_child);
 }
 
 /*!
@@ -117,10 +117,10 @@ Updates displacements only
 void shift::core::joint::rzinv_d(const shift::core::Context&, topology::DHVA& dhva,
                            const shift::core::topology::Offsets& offsets,
                            const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  ksl_product_ddrzinv(dParent, dc, dChild);
+  ksl_product_ddrzinv(d_parent, dc, d_child);
 }
 
 /*!
@@ -135,14 +135,14 @@ Updates displacements only
 void shift::core::joint::ra_d(const shift::core::Context& context, topology::DHVA& dhva,
                         const shift::core::topology::Offsets& offsets,
                         const double*) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_mat3x3_t temp;
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
-  ksl_product_ddr(dParent, &temp, dChild);
-  ksl_vec3_copy(&dParent->t, &dChild->t);
+  ksl_product_ddr(d_parent, &temp, d_child);
+  ksl_vec3_copy(&d_parent->t, &d_child->t);
 }
 
 /*!
@@ -157,15 +157,15 @@ Updates displacements only
 void shift::core::joint::rainv_d(const shift::core::Context& context, topology::DHVA& dhva,
                            const shift::core::topology::Offsets& offsets,
                            const double*) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
   ksl_mat3x3_setFromAxisDC(&temp, &neg_axis, dc);
-  ksl_product_ddr(dParent, &temp, dChild);
-  ksl_vec3_copy(&dParent->t, &dChild->t);
+  ksl_product_ddr(d_parent, &temp, d_child);
+  ksl_vec3_copy(&d_parent->t, &d_child->t);
 }
 
 /*!
@@ -180,13 +180,13 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::rx_dh(const shift::core::Context&, topology::DHVA& dhva,
                          const shift::core::topology::Offsets& offsets,
                          const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
 
-  ksl_product_ddrx(dParent, dc, dChild);
-  ksl_hsrx(dChild, h);
+  ksl_product_ddrx(d_parent, dc, d_child);
+  ksl_hsrx(d_child, h);
 }
 
 /*!
@@ -231,13 +231,13 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::rxinv_dh(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                             const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
 
-  ksl_product_ddrxinv(dParent, dc, dChild);
-  ksl_hsrxinv(dChild, h);
+  ksl_product_ddrxinv(d_parent, dc, d_child);
+  ksl_hsrxinv(d_child, h);
 }
 
 /*!
@@ -284,13 +284,13 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::ry_dh(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                          const shift::core::topology::Offsets& offsets,
                          const double* __restrict__) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
 
-  ksl_product_ddry(dParent, dc, dChild);
-  ksl_hsry(dChild, h);
+  ksl_product_ddry(d_parent, dc, d_child);
+  ksl_hsry(d_child, h);
 }
 
 /*!
@@ -339,13 +339,13 @@ void shift::core::joint::ryinv_dh(const shift::core::Context&, shift::core::topo
                             const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
 
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
 
-  ksl_product_ddryinv(dParent, dc, dChild);
-  ksl_hsryinv(dChild, h);
+  ksl_product_ddryinv(d_parent, dc, d_child);
+  ksl_hsryinv(d_child, h);
 }
 
 /*!
@@ -394,13 +394,13 @@ void shift::core::joint::rz_dh(const shift::core::Context&, shift::core::topolog
                          const shift::core::topology::Offsets& offsets,
                          const double* __restrict__) {
 
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
 
-  ksl_product_ddrz(dParent, dc, dChild);
-  ksl_hsrz(dChild, h);
+  ksl_product_ddrz(d_parent, dc, d_child);
+  ksl_hsrz(d_child, h);
 }
 
 /*!
@@ -448,13 +448,13 @@ void shift::core::joint::rzinv_dh(const shift::core::Context&, shift::core::topo
                             const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
 
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
 
-  ksl_product_ddrzinv(dParent, dc, dChild);
-  ksl_hsrzinv(dChild, h);
+  ksl_product_ddrzinv(d_parent, dc, d_child);
+  ksl_hsrzinv(d_child, h);
 }
 
 /*!
@@ -501,17 +501,17 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::ra_dh(const shift::core::Context& context, topology::DHVA& dhva,
                          const shift::core::topology::Offsets& offsets,
                          const double*) {
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_mat3x3_t temp;
 
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
-  ksl_product_ddr(dParent, &temp, dChild);
-  ksl_vec3_copy(&dParent->t, &dChild->t);
-  ksl_hsra(dChild, axis, h);
+  ksl_product_ddr(d_parent, &temp, d_child);
+  ksl_vec3_copy(&d_parent->t, &d_child->t);
+  ksl_hsra(d_child, axis, h);
 }
 
 /*!
@@ -527,18 +527,18 @@ void shift::core::joint::rainv_dh(const shift::core::Context& context, topology:
                             const shift::core::topology::Offsets& offsets,
                             const double*) {
 
-  ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* dChild = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
   double* dc = dhva.dc + offsets.dc;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
 
   ksl_mat3x3_setFromAxisDC(&temp, &neg_axis, dc);
-  ksl_product_ddr(dParent, &temp, dChild);
-  ksl_vec3_copy(&dParent->t, &dChild->t);
-  ksl_hsrainv(dChild, axis, h);
+  ksl_product_ddr(d_parent, &temp, d_child);
+  ksl_vec3_copy(&d_parent->t, &d_child->t);
+  ksl_hsrainv(d_child, axis, h);
 }
 
 /*!
@@ -602,28 +602,28 @@ void shift::core::joint::rainv_dhva(const shift::core::Context& context,
   ksl_add_ss(aqParent, &aqRelative, aqChild);
 }
 
-void shift::core::joint::Revolute::addParameters() {
-  addParameter(
+void shift::core::joint::Revolute::DeclareParameters() {
+  DeclareParameter(
     "axis", &axis_,
     "Axis of rotation expressed in parent body frame, defaults to z-axis if "
     "no axis is provided.",
     false);
-  addParameter("initial_displacement", q_0_, "Initial joint displacement.",
+  DeclareParameter("initial_displacement", q_0_, "Initial joint displacement.",
                false);
-  addParameter("initial_velocity", dq_0_, "Initial joint velocity.", false);
-  addParameter(
+  DeclareParameter("initial_velocity", dq_0_, "Initial joint velocity.", false);
+  DeclareParameter(
     "damping_coefficients", &damping_coefficients_,
     "specify damping coefficients a, where force due to damping is computed as "
     "a_0 + a_1 * \\dot{x}^1 + a_2 * \\dot{x}^2 + .. a_n * \\dot{x}^n\\",
     false);
-  addParameter("stiffness_coefficients", &stiffness_coefficients_,
+  DeclareParameter("stiffness_coefficients", &stiffness_coefficients_,
                "specify damping coefficients a, where force due to stiffness "
                "is computed as "
                "a_0 + a_1 * x^1 + a_2 * x^2 + .. a_n * x^n\\",
                false);
 }
 
-shift::core::joint::Revolute::AxisType shift::core::joint::Revolute::axisType() {
+shift::core::joint::Revolute::AxisType shift::core::joint::Revolute::get_axis_type() {
   ksl_vec3_t x_axis = ksl_vec3(1.0, 0.0, 0.0);
   ksl_vec3_t y_axis = ksl_vec3(0.0, 1.0, 0.0);
   ksl_vec3_t z_axis = ksl_vec3(0.0, 0.0, 1.0);
@@ -639,22 +639,22 @@ shift::core::joint::Revolute::AxisType shift::core::joint::Revolute::axisType() 
   }
 }
 
-const double* shift::core::joint::Revolute::data() {
-  if(axisType() == ARBITRARY_AXIS) {
+const double* shift::core::joint::Revolute::get_data() {
+  if(get_axis_type() == ARBITRARY_AXIS) {
     return (double*)&axis_;
   };
   return nullptr;
 }
 
-unsigned int shift::core::joint::Revolute::dataCount() {
-  if(axisType() == ARBITRARY_AXIS) {
+unsigned int shift::core::joint::Revolute::get_data_count() {
+  if(get_axis_type() == ARBITRARY_AXIS) {
     return 3;
   };
   return 0;
 }
 
 shift::core::topology::dh_fptr shift::core::joint::Revolute::Dfptr() {
-  AxisType axis = axisType();
+  AxisType axis = get_axis_type();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -690,7 +690,7 @@ shift::core::topology::dh_fptr shift::core::joint::Revolute::Dfptr() {
 }
 
 shift::core::topology::dh_fptr shift::core::joint::Revolute::DHfptr() {
-  AxisType axis = axisType();
+  AxisType axis = get_axis_type();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -726,7 +726,7 @@ shift::core::topology::dh_fptr shift::core::joint::Revolute::DHfptr() {
 }
 
 shift::core::topology::dhva_fptr shift::core::joint::Revolute::DHVAfptr() {
-  AxisType axis = axisType();
+  AxisType axis = get_axis_type();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -761,9 +761,9 @@ shift::core::topology::dhva_fptr shift::core::joint::Revolute::DHVAfptr() {
   return rz_dhva;
 }
 
-void shift::core::joint::Revolute::service(const std::vector<double>& y) {
+void shift::core::joint::Revolute::Service(const std::vector<double>& y) {
 
-  std::vector<double>& f = context_->jointWorkingForces();
+  std::vector<double>& f = context_->get_joint_working_forces();
 
   // stiffness
   const double q = y[q_index_];
@@ -773,7 +773,7 @@ void shift::core::joint::Revolute::service(const std::vector<double>& y) {
   }
 
   // damping
-  const double dq = y[context_->qCount() + dq_index_];
+  const double dq = y[context_->get_q_count() + dq_index_];
   for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
     // f[dq_index_] -= damping_coefficients_[i] * copysign(std::pow(dq, i), dq);
     f[dq_index_] -= damping_coefficients_[i] * std::pow(dq, i);

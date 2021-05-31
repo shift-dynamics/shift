@@ -12,22 +12,24 @@ class Mesh : public Base {
 public:
   Mesh()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Mesh(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Mesh() override {}
-  static std::unique_ptr<Mesh> create();
 
-  static bool isRegistered() {
+  static std::unique_ptr<Mesh> Create();
+
+  static bool is_registered() {
     return registered_;
   }
-  virtual void load() override;
+
+  virtual void Load() override;
 
 private:
-  void addParameters() override;
+  void DeclareParameters() override;
   static bool registered_;
   std::vector<std::string> filenames_;
   shift::gui::ShadingType shading_type_;

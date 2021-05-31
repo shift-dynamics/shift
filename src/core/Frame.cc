@@ -2,16 +2,16 @@
 
 #include "ksl/print.h"
 
-void shift::core::Frame::addParameters() {
+void shift::core::Frame::DeclareParameters() {
 
-  addParameter("name", &name_, "descriptive frame name", true);
+  DeclareParameter("name", &name_, "descriptive frame name", true);
 
-  addParameter(
+  DeclareParameter(
     "active", &active_,
     "indicates whether frame is active, defaults to true if not specified",
     false);
 
-  addParameter(
+  DeclareParameter(
     "R", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
@@ -20,7 +20,7 @@ void shift::core::Frame::addParameters() {
     "only one of the entries will be loaded.",
     false);
 
-  addParameter(
+  DeclareParameter(
     "rotation", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
@@ -29,7 +29,7 @@ void shift::core::Frame::addParameters() {
     "only one of the entries will be loaded.",
     false);
 
-  addParameter(
+  DeclareParameter(
     "quaternion", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
@@ -37,9 +37,9 @@ void shift::core::Frame::addParameters() {
     "orientation. If multiple key-value pairs are specified for orientation, "
     "only one of the entries will be loaded.",
     false)
-    .setQuaternionMapsToMat3x3(true);
+    .set_quaternion_maps_to_mat3x3(true);
 
-  addParameter(
+  DeclareParameter(
     "Q", &d_wrt_origin_.R,
     "specify orientation as a quaternion, "
     "defaults to identity if not specified; the keys 'rotation', 'R', "
@@ -47,9 +47,9 @@ void shift::core::Frame::addParameters() {
     "orientation. If multiple key-value pairs are specified for orientation, "
     "only one of the entries will be loaded.",
     false)
-    .setQuaternionMapsToMat3x3(true);
+    .set_quaternion_maps_to_mat3x3(true);
 
-  addParameter(
+  DeclareParameter(
     "q", &d_wrt_origin_.R,
     "specify orientation as a quaternion, "
     "defaults to identity if not specified; the keys 'rotation', 'R', "
@@ -57,9 +57,9 @@ void shift::core::Frame::addParameters() {
     "orientation. If multiple key-value pairs are specified for orientation, "
     "only one of the entries will be loaded.",
     false)
-    .setQuaternionMapsToMat3x3(true);
+    .set_quaternion_maps_to_mat3x3(true);
 
-  addParameter(
+  DeclareParameter(
     "euler_angles", &d_wrt_origin_.R,
     "specify orientation as a 3x3 rotation matrix in row-major "
     "order, defaults to identity if not specified; the keys 'rotation', 'R', "
@@ -67,23 +67,23 @@ void shift::core::Frame::addParameters() {
     "orientation. If multiple key-value pairs are specified for orientation, "
     "only one of the entries will be loaded.",
     false)
-    .setEulerAnglesMapToMat3x3(true);
+    .set_euler_angles_map_to_mat3x3(true);
 
-  addParameter(
+  DeclareParameter(
     "translation", &d_wrt_origin_.t,
     "specify translation vector; the keys 'translation', 'T' and 't' "
     "may be used to designate translation. If multiple key-value pairs are "
     "specified for translation, only one of the entries will be loaded.",
     false);
 
-  addParameter(
+  DeclareParameter(
     "T", &d_wrt_origin_.t,
     "specify translation vector; the keys 'translation', 'T' and 't' "
     "may be used to designate translation. If multiple key-value pairs are "
     "specified for translation, only one of the entries will be loaded.",
     false);
 
-  addParameter(
+  DeclareParameter(
     "t", &d_wrt_origin_.t,
     "specify translation vector; the keys 'translation', 'T' and 't' "
     "may be used to designate translation. If multiple key-value pairs are "
@@ -91,15 +91,15 @@ void shift::core::Frame::addParameters() {
     false);
 }
 
-const ksl_SE3_t* shift::core::Frame::dWRTOrigin() const {
+const ksl_SE3_t* shift::core::Frame::get_d_wrt_origin() const {
   return &d_wrt_origin_;
 }
 
-const ksl_SE3_t* shift::core::Frame::dWRTReference() const {
+const ksl_SE3_t* shift::core::Frame::get_d_wrt_reference() const {
   return &d_wrt_reference_;
 }
 
-const ksl_SE3_t* shift::core::Frame::systemDWRTReference() const {
+const ksl_SE3_t* shift::core::Frame::get_system_d_wrt_reference() const {
   if(use_system_reference_frame_) {
     return &system_d_wrt_reference_;
   } else {

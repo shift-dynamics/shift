@@ -18,22 +18,22 @@ class ContactDetection : public Base {
 public:
   ContactDetection()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   ContactDetection(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   ~ContactDetection() {}
-  static std::unique_ptr<ContactDetection> create();
+  static std::unique_ptr<ContactDetection> Create();
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 
 private:
   static bool registered_;
-  void addParameters() override;
+  void DeclareParameters() override;
 };
 
 } // namespace behavior

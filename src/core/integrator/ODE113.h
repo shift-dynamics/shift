@@ -18,27 +18,28 @@ class ODE113 : public Base {
 public:
   ODE113(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   ODE113()
     : Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~ODE113() override {}
-  static std::unique_ptr<ODE113> create();
+  static std::unique_ptr<ODE113> Create();
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
-  virtual void initialize() override;
-  virtual void connect() override;
-  virtual void integrate() override;
-  virtual void currentTime(double& time, double& delta_time) override;
 
-  virtual void reset();
+  virtual void get_current_time(double& time, double& delta_time) override;
+  
+  virtual void Initialize() override;
+  virtual void Connect() override;
+  virtual void Integrate() override;
+  virtual void Reset();
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   void step();
   void stepFcn(const double t, std::vector<double>& y);
 

@@ -14,19 +14,20 @@ class Fiala : public Base {
 public:
   Fiala()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Fiala(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Fiala() override {}
-  static std::unique_ptr<Fiala> create();
-  void addParameters() override;
 
-  static bool isRegistered() {
+  static std::unique_ptr<Fiala> Create();
+  static bool is_registered() {
     return registered_;
   }
+
+  void DeclareParameters() override;
 
 private:
   static bool registered_;

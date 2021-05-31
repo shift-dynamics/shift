@@ -2,7 +2,7 @@
 #include "shift/core/Factory.h"
 
 bool shift::core::joint::Float::registered_ =
-  shift::core::Factory<shift::core::joint::Base>::get()->registerModule(
+  shift::core::Factory<shift::core::joint::Base>::get()->RegisterModule(
     "float", shift::core::joint::Float::create);
 
 std::unique_ptr<shift::core::joint::Float> shift::core::joint::Float::create() {
@@ -188,7 +188,7 @@ void shift::core::joint::floatinv_dhva(const shift::core::Context& context,
   ksl_add_ss(aqParent, &aqRelative, aqChild);
 }
 
-void shift::core::joint::Float::addParameters() {}
+void shift::core::joint::Float::DeclareParameters() {}
 
 // void shift::core::joint::Float::readJSON(Json::Value& value) {
 //   shift::core::joint::Base::readJSON(value);

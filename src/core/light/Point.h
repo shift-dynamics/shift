@@ -12,20 +12,20 @@ class Point : public Base {
 public:
   Point()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Point(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Point() override {}
-  static std::unique_ptr<Point> create();
-  static bool isRegistered() {
+  static std::unique_ptr<Point> Create();
+  static bool is_registered() {
     return registered_;
   }
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   static bool registered_;
 };
 

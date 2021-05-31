@@ -2,17 +2,17 @@
 
 #include "shift/core/Units.h"
 
-void shift::core::Units::addParameters() {
+void shift::core::Units::DeclareParameters() {
 
-  addParameter("mass", &mass_, "Mass units, defaults to kg if not provided.",
+  DeclareParameter("mass", &mass_, "Mass units, defaults to kg if not provided.",
                false);
 
-  addParameter("length", &length_,
+  DeclareParameter("length", &length_,
                "Length units, defaults to meters if not provided.", false);
 
-  addParameter("time", &time_,
+  DeclareParameter("time", &time_,
                "Time units, defaults to seconds if not provided.", false);
 
-  addParameter("angle", &angle_,
+  DeclareParameter("angle", &angle_,
                "Angle units, defaults to radians if not provided.", false);
 }

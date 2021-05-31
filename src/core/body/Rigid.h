@@ -16,19 +16,19 @@ class Rigid : public Base {
 public:
   Rigid()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Rigid(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Rigid() override {}
   static std::unique_ptr<Rigid> create();
-  void addParameters() override;
-  static bool isRegistered() {
+  void DeclareParameters() override;
+  static bool is_registered() {
     return registered_;
   }
-  ksl_inertia_t inertiaWRTReference() override;
+  ksl_inertia_t get_inertia_wrt_reference() override;
 
 private:
   int reference_frame_index_ =

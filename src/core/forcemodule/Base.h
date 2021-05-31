@@ -25,35 +25,41 @@ public:
   Base(std::string name)
     : shift::core::Base(name)
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
   Base()
     : shift::core::Base("")
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Base() {}
 
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "force_modules";
   }
-  static const std::string defaultType() {
+  
+  static const std::string get_default_type() {
     return "";
   }
-  virtual void load();
-  virtual void connect() = 0;
-  virtual void service(const double*, double*) = 0;
-  virtual void setActiveObjects(bool parent_is_active) override;
-  unsigned int equationCount() {
+  
+  unsigned int get_equation_count() {
     return equation_count_;
   }
-  const std::vector<double>& q0() {
+
+  const std::vector<double>& get_q0() {
     return q_0_;
   }
 
+  virtual void set_objects_active(bool parent_is_active) override;
+  
+
+  virtual void Load();
+  virtual void Connect() = 0;
+  virtual void Service(const double*, double*) = 0;
+
 protected:
   std::string type_;
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   unsigned int equation_count_ = 0;
   std::vector<double> q_0_; /*!< vector of state initial conditions */
   double* dq_ =
@@ -62,7 +68,7 @@ protected:
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace forcemodule

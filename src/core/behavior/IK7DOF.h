@@ -18,21 +18,22 @@ class IK7DOF : public Base {
 public:
   IK7DOF()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   IK7DOF(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   ~IK7DOF() {}
-  static std::unique_ptr<IK7DOF> create();
-  static bool isRegistered() {
+
+  static std::unique_ptr<IK7DOF> Create();
+  static bool is_registered() {
     return registered_;
   }
 
 private:
   static bool registered_;
-  void addParameters() override;
+  void DeclareParameters() override;
 };
 
 } // namespace behavior

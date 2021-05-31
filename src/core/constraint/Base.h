@@ -31,57 +31,58 @@ class Base
 public:
   Base(std::string name)
     : shift::core::Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   Base()
     : shift::core::Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Base() override {}
 
-  const std::string& type() {
+  const std::string& get_type() {
     return type_;
   }
 
-  virtual void setActiveObjects(bool parent_is_active) override;
-
-  virtual void load();
-  virtual void connect();
-
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "constraints";
   }
 
-  static const std::string defaultType() {
+  static const std::string get_default_type() {
     return "";
   }
 
-  void setParentBody(shift::core::body::Base*);
-
-  void setParentFrame(Frame*);
-
-  void setChildBody(shift::core::body::Base*);
-
-  void setChildFrame(Frame*);
-
-  shift::core::body::Base* parentBody() {
+  shift::core::body::Base* get_parent_body() {
     return parent_body_ptr_;
   }
 
-  shift::core::Frame* parentFrame() {
+  shift::core::Frame* get_parent_frame() {
     return parent_frame_ptr_;
   }
 
-  shift::core::body::Base* childBody() {
+  shift::core::body::Base* get_child_body() {
     return child_body_ptr_;
   }
 
-  Frame* childFrame() {
+  Frame* get_child_frame() {
     return child_frame_ptr_;
   }
 
+  void set_parent_body(shift::core::body::Base*);
+
+  void set_parent_frame(Frame*);
+
+  void set_child_body(shift::core::body::Base*);
+
+  void set_child_frame(Frame*);
+
+  virtual void set_objects_active(bool parent_is_active) override;
+
+  virtual void Load();
+  virtual void Connect();
+
+
 protected:
-  void addParameters() override;
+  void DeclareParameters() override;
 
   std::string type_; //!< descriptive name of Constraint type
 
@@ -103,7 +104,7 @@ protected:
 class Modules {
 public:
   void list();
-  static bool initialized();
+  static bool is_initialized();
 
 private:
   static std::vector<std::string> modules_;

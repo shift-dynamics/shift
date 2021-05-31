@@ -11,20 +11,22 @@ class Basic : public Base {
 public:
   Basic()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Basic(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Basic() override {}
-  static std::unique_ptr<Basic> create();
-  static bool isRegistered() {
+
+  static std::unique_ptr<Basic> Create();
+  
+  static bool is_registered() {
     return registered_;
   }
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   std::string texture_filename_;
   std::string property_map_filename_;
   double x_scale_ = 1.0;

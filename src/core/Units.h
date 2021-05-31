@@ -20,12 +20,12 @@ public:
   Units(std::string name)
     : Base(name)
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
   Units()
     : Base("")
     , parameter::List() {
-    addParameters();
+    DeclareParameters();
   }
   ~Units() {}
 
@@ -54,7 +54,7 @@ public:
   void setUnitsTime(const std::string);
 
 private:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
 
   std::string angle_ = "radians";
   std::string length_ = "meters";

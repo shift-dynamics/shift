@@ -8,10 +8,10 @@
 #include <math.h>
 
 bool shift::core::joint::Prismatic::registered_ =
-  shift::core::Factory<shift::core::joint::Base>::get()->registerModule(
-    "prismatic", shift::core::joint::Prismatic::create);
+  shift::core::Factory<shift::core::joint::Base>::get()->RegisterModule(
+    "prismatic", shift::core::joint::Prismatic::Create);
 
-std::unique_ptr<shift::core::joint::Prismatic> shift::core::joint::Prismatic::create() {
+std::unique_ptr<shift::core::joint::Prismatic> shift::core::joint::Prismatic::Create() {
   return std::make_unique<shift::core::joint::Prismatic>();
 }
 
@@ -139,7 +139,7 @@ void shift::core::joint::ta_d(const shift::core::Context& context,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddt(dParent, &temp, dChild);
@@ -161,7 +161,7 @@ void shift::core::joint::tainv_d(const shift::core::Context& context,
   ksl_SE3_t* dParent = dhva.d + offsets.parent.d;
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddtinv(dParent, &temp, dChild);
@@ -524,7 +524,7 @@ void shift::core::joint::ta_dh(const shift::core::Context& context,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddt(dParent, &temp, dChild);
@@ -580,7 +580,7 @@ void shift::core::joint::tainv_dh(const shift::core::Context& context,
   ksl_SE3_t* dChild = dhva.d + offsets.child.d;
   const double* dPrimitive = q + offsets.q;
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.jointData()[offsets.data]);
+  const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_vec3_t temp;
   ksl_product_av(*dPrimitive, axis, &temp);
   ksl_product_ddtinv(dParent, &temp, dChild);
@@ -619,39 +619,39 @@ void shift::core::joint::tainv_dhva(const shift::core::Context& context,
   ksl_add_sst(aqParent, &aqRelative, aqChild);
 }
 
-void shift::core::joint::Prismatic::addParameters() {
+void shift::core::joint::Prismatic::DeclareParameters() {
 
-  addParameter("axis", &axis_,
+  DeclareParameter("axis", &axis_,
                "Translation axis expressed in parent body frame, "
                "defaults to z-axis if no axis provided.",
                false);
 
-  addParameter(
+  DeclareParameter(
     "initial_displacement", q_0_,
     "Initial joint displacement, defaults to zero if no value provided.",
     false);
 
-  addParameter("initial_velocity", dq_0_,
+  DeclareParameter("initial_velocity", dq_0_,
                "Initial joint velocity, defaults to zero if no value provided.",
                false);
 
-  addParameter(
+  DeclareParameter(
     "damping_coefficients", &damping_coefficients_,
     "specify  polynomial damping coefficients a, where force due to damping is "
     "computed as: a_0 + a_1 * \\dot{x}^1 + a_2 * \\dot{x}^2 + ... + a_n * "
     "\\dot{x}^n\\",
     false)
-    .setRowDim(-1);
+    .set_row_dim(-1);
 
-  addParameter("stiffness_coefficients", &stiffness_coefficients_,
+  DeclareParameter("stiffness_coefficients", &stiffness_coefficients_,
                "specify polynomial stiffness coefficients a, where force due "
                "to joint position is computed as: "
                "a_0 + a_1 * x^1 + a_2 * x^2 + ... + a_n * x^n\\",
                false)
-    .setRowDim(-1);
+    .set_row_dim(-1);
 }
 
-shift::core::joint::Prismatic::AxisType shift::core::joint::Prismatic::axisType() {
+shift::core::joint::Prismatic::AxisType shift::core::joint::Prismatic::get_axis_type() {
   ksl_vec3_t x_axis = ksl_vec3(1.0, 0.0, 0.0);
   ksl_vec3_t y_axis = ksl_vec3(0.0, 1.0, 0.0);
   ksl_vec3_t z_axis = ksl_vec3(0.0, 0.0, 1.0);
@@ -667,22 +667,22 @@ shift::core::joint::Prismatic::AxisType shift::core::joint::Prismatic::axisType(
   }
 }
 
-const double* shift::core::joint::Prismatic::data() {
-  if(axisType() == ARBITRARY_AXIS) {
+const double* shift::core::joint::Prismatic::get_data() {
+  if(get_axis_type() == ARBITRARY_AXIS) {
     return (double*)&axis_;
   };
   return nullptr;
 }
 
-unsigned int shift::core::joint::Prismatic::dataCount() {
-  if(axisType() == ARBITRARY_AXIS) {
+unsigned int shift::core::joint::Prismatic::get_data_count() {
+  if(get_axis_type() == ARBITRARY_AXIS) {
     return 3;
   };
   return 0;
 }
 
 shift::core::topology::dh_fptr shift::core::joint::Prismatic::Dfptr() {
-  AxisType axis = axisType();
+  AxisType axis = get_axis_type();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -717,7 +717,7 @@ shift::core::topology::dh_fptr shift::core::joint::Prismatic::Dfptr() {
 }
 
 shift::core::topology::dh_fptr shift::core::joint::Prismatic::DHfptr() {
-  AxisType axis = axisType();
+  AxisType axis = get_axis_type();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -752,7 +752,7 @@ shift::core::topology::dh_fptr shift::core::joint::Prismatic::DHfptr() {
 }
 
 shift::core::topology::dhva_fptr shift::core::joint::Prismatic::DHVAfptr() {
-  AxisType axis = axisType();
+  AxisType axis = get_axis_type();
   switch(axis) {
     case X_AXIS: {
       if(sense_ >= 0) {
@@ -786,9 +786,9 @@ shift::core::topology::dhva_fptr shift::core::joint::Prismatic::DHVAfptr() {
   return nullptr;
 }
 
-void shift::core::joint::Prismatic::service(const std::vector<double>& y) {
+void shift::core::joint::Prismatic::Service(const std::vector<double>& y) {
 
-  auto& f = context_->jointWorkingForces();
+  auto& f = context_->get_joint_working_forces();
 
   // stiffness
   const double q = y[q_index_];
@@ -799,10 +799,10 @@ void shift::core::joint::Prismatic::service(const std::vector<double>& y) {
     f[dq_index_] -= stiffness_coefficients_[i] * std::pow(q, i);
   }
 
-  std::cout << "q: " << q << ", f: " << f[dq_index_] << std::endl;
+  // std::cout << "q: " << q << ", f: " << f[dq_index_] << std::endl;
 
   // damping
-  const double dq = y[context_->qCount() + dq_index_];
+  const double dq = y[context_->get_q_count() + dq_index_];
   for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
     // f[dq_index_] -=
     //   damping_coefficients_[i] * copysign(fabs(std::pow(dq, i)), dq);

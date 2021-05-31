@@ -2,13 +2,13 @@
 #include "shift/core/light/Base.h"
 
 bool shift::core::light::Directional::registered_ =
-  shift::core::Factory<shift::core::light::Base>::get()->registerModule(
-    "directional", shift::core::light::Directional::create);
+  shift::core::Factory<shift::core::light::Base>::get()->RegisterModule(
+    "directional", shift::core::light::Directional::Create);
 
-std::unique_ptr<shift::core::light::Directional> shift::core::light::Directional::create() {
+std::unique_ptr<shift::core::light::Directional> shift::core::light::Directional::Create() {
   return std::make_unique<shift::core::light::Directional>();
 }
 
-void shift::core::light::Directional::addParameters() {
-  shift::core::light::Base::addParameters();
+void shift::core::light::Directional::DeclareParameters() {
+  shift::core::light::Base::DeclareParameters();
 }

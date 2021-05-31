@@ -3,7 +3,7 @@
 #include "shift/core/body/Base.h"
 #include "shift/core/Context.h"
 
-void shift::core::parameter::List::print(std::string prefix, bool break_line) const {
+void shift::core::parameter::List::Print(std::string prefix, bool break_line) const {
   if(break_line) {
     std::cout << std::endl << prefix << "{";
   } else {
@@ -15,33 +15,33 @@ void shift::core::parameter::List::print(std::string prefix, bool break_line) co
     std::cout << std::endl;
     for(auto& parameter : parameters_) {
       std::cout << prefix << "  " << parameter.first << ": ";
-      parameter.second.print(prefix + "    ");
+      parameter.second.Print(prefix + "    ");
     }
     std::cout << prefix << "}" << std::endl;
   }
 }
 
-void shift::core::parameter::List::print() const {
-  print("");
+void shift::core::parameter::List::Print() const {
+  Print("");
 }
 
-void shift::core::parameter::List::removeParameter(std::string key) {
+void shift::core::parameter::List::RemoveParameter(std::string key) {
   parameters_.erase(key);
 }
 
-void shift::core::parameter::List::readJSON(Json::Value& json_value) {
+void shift::core::parameter::List::ReadJSON(Json::Value& json_value) {
   for(auto& parameter : parameters_) {
-    if(!json_value.isMember(parameter.first) && parameter.second.required()) {
+    if(!json_value.isMember(parameter.first) && parameter.second.is_required()) {
       std::cout << "  error: " << parameter.first << std::endl;
       throw "JSON parsing error, required key not found";
     }
     if(json_value.isMember(parameter.first)) {
-      parameter.second.readJSON(json_value[parameter.first]);
+      parameter.second.ReadJSON(json_value[parameter.first]);
     }
   }
 }
 
-void shift::core::parameter::List::setParent(shift::core::Context* context,
+void shift::core::parameter::List::set_parent(shift::core::Context* context,
                                        shift::core::Assembly* parent_assembly,
                                        shift::core::body::Base* parent_body) {
   context_ = context;
@@ -55,12 +55,12 @@ void shift::core::parameter::List::setParent(shift::core::Context* context,
   is_body_ ? body = dynamic_cast<shift::core::body::Base*>(this)
            : body = parent_body_ptr_;
   for(auto& parameter : parameters_) {
-    parameter.second.setParent(context_, assembly, body);
+    parameter.second.set_parent(context_, assembly, body);
   }
 }
 
 shift::core::parameter::Value&
-shift::core::parameter::List::addParameter(const std::string key,
+shift::core::parameter::List::DeclareParameter(const std::string key,
                                      shift::core::parameter::Value value) {
   parameters_[key] = value;
   return parameters_[key];

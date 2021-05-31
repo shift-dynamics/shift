@@ -31,38 +31,39 @@ class Base
 public:
   Base(std::string name)
     : shift::core::Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   Base()
     : shift::core::Base("") {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Base() {}
 
-  const std::string& getType() {
-    return type_;
-  }
-
-  static const std::string arrayKey() {
+  static const std::string get_array_key() {
     return "sensors";
   }
 
-  static const std::string defaultType() {
+  static const std::string get_default_type() {
     return "";
   }
 
-  virtual void load();
-  virtual void connect();
-  virtual void setActiveObjects(bool parent_is_active) override;
+  const std::string& get_type() {
+    return type_;
+  }
+
+  virtual void set_objects_active(bool parent_is_active) override;
+  
+  virtual void Load();
+  virtual void Connect();
 
 protected:
-  virtual void addParameters() override;
+  virtual void DeclareParameters() override;
   std::string type_; //!< descriptive name of Sensor type
 };
 
 class Modules {
 public:
-  static bool initialized();
+  static bool is_initialized();
 };
 
 } // namespace sensor

@@ -206,20 +206,16 @@ public:
 
   virtual Value& operator[](const char* key_str);
 
-  void setRequired(bool required) {
-    required_ = required;
-  }
-
-  bool required() {
+  bool is_required() {
     return required_;
   }
 
-  const std::string& description() {
+  const std::string& get_description() {
     return description_;
   }
 
   template <typename T>
-  T* data() const {
+  T* get_data() const {
     return std::any_cast<T*>(data_);
   }
 
@@ -228,15 +224,16 @@ public:
     return *std::any_cast<T*>(data_);
   }
 
-  const std::type_info& typeInfo() {
+  const std::type_info& get_type_info() {
     return data_.type();
   }
 
-  const std::type_index typeIndex() {
+
+  const std::type_index get_type_index() {
     return std::type_index(data_.type());
   }
 
-  const std::string typeName() {
+  const std::string get_type_name() {
     int status;
     std::string type_str = data_.type().name();
     char* demangled_name =
@@ -252,70 +249,74 @@ public:
     return type_str;
   }
 
-  void setActiveObjects(bool parent_is_active);
+  void set_required(bool required) {
+    required_ = required;
+  }
 
-  Value& setQuaternionMapsToMat3x3(bool enabled) {
+  void set_objects_active(bool parent_is_active);
+
+  Value& set_quaternion_maps_to_mat3x3(bool enabled) {
     quaternion_maps_to_mat3x3_ = enabled;
     return *this;
   }
 
-  Value& setMat3x3MapsToSE3(bool enabled) {
+  Value& set_mat3x3_maps_to_SE3(bool enabled) {
     mat3x3_maps_to_SE3_ = enabled;
     return *this;
   }
 
-  Value& setMat4x4MapsToSE3(bool enabled) {
+  Value& set_mat4x4_maps_to_SE3(bool enabled) {
     mat4x4_maps_to_SE3_ = enabled;
     return *this;
   }
 
-  Value& setVec3MapsToMat3x3(bool enabled) {
+  Value& set_vec3_maps_to_mat3x3(bool enabled) {
     vec3_maps_to_mat3x3_ = enabled;
     return *this;
   }
 
-  Value& setEulerAnglesMapToMat3x3(bool enabled) {
+  Value& set_euler_angles_map_to_mat3x3(bool enabled) {
     euler_angles_maps_to_mat3x3_ = enabled;
     return *this;
   }
 
-  Value& setNormalizeQuaternion(bool enabled) {
+  Value& set_normalize_quaternion(bool enabled) {
     normalize_quaternion_ = enabled;
     return *this;
   }
 
-  Value& setNormalizeMat3x3(bool enabled) {
+  Value& set_normalize_mat3x3(bool enabled) {
     normalize_mat3x3_ = enabled;
     return *this;
   }
 
-  Value& addValidStringValue(std::string value) {
-    valid_string_values_.insert(valid_string_values_.end(), value);
-    return *this;
-  }
-
-  Value& setCreateDefaultInstanceIfNotSpecified(bool enabled) {
+  Value& set_create_default_instance_if_not_specified(bool enabled) {
     create_default_instance_if_not_specified_ = enabled;
     return *this;
   }
 
-  Value& setRowDim(int row_dim) {
+  Value& set_row_dim(int row_dim) {
     row_dim_ = row_dim;
     return *this;
   }
 
-  Value& setColumnDim(int col_dim) {
+  Value& set_column_dim(int col_dim) {
     col_dim_ = col_dim;
     return *this;
   }
 
-  void readJSON(Json::Value&);
-  void print(std::string) const;
-  void print() const;
-
-  void setParent(shift::core::Context* context, 
+  void set_parent(shift::core::Context* context, 
                  shift::core::Assembly* parent_assembly = nullptr,
                  shift::core::body::Base* parent_body = nullptr);
+
+  Value& AddValidStringValue(std::string value) {
+    valid_string_values_.insert(valid_string_values_.end(), value);
+    return *this;
+  }
+
+  void ReadJSON(Json::Value&);
+  void Print(std::string) const;
+  void Print() const;
 
 private:
   std::any data_; //!< contains pointer to value
@@ -345,22 +346,22 @@ private:
    * value is provided  */
   bool create_default_instance_if_not_specified_ = false;
 
-  void readJSON_STRING(Json::Value&);
-  void readJSON_STRING_ARRAY(Json::Value&);
-  void readJSON_STRING_2DARRAY(Json::Value&);
-  void readJSON_DOUBLE(Json::Value&);
-  void readJSON_DOUBLE_ARRAY(Json::Value&);
-  void readJSON_KSL_VEC3(Json::Value&);
-  void readJSON_KSL_VEC4(Json::Value&);
-  void readJSON_KSL_QUATERNION(Json::Value&);
-  void readJSON_KSL_SCREW(Json::Value&);
-  void readJSON_KSL_COSCREW(Json::Value&);
-  void readJSON_KSL_INERTIA(Json::Value&);
-  void readJSON_KSL_MAT3X3(Json::Value&);
-  void readJSON_KSL_MAT4X4(Json::Value&);
-  void readJSON_EULERANGLES(Json::Value&);
-  void readJSON_BOOLEAN(Json::Value&);
-  void readJSON_POSE(Json::Value&);
+  void ReadJSON_STRING(Json::Value&);
+  void ReadJSON_STRING_ARRAY(Json::Value&);
+  void ReadJSON_STRING_2DARRAY(Json::Value&);
+  void ReadJSON_DOUBLE(Json::Value&);
+  void ReadJSON_DOUBLE_ARRAY(Json::Value&);
+  void ReadJSON_KSL_VEC3(Json::Value&);
+  void ReadJSON_KSL_VEC4(Json::Value&);
+  void ReadJSON_KSL_QUATERNION(Json::Value&);
+  void ReadJSON_KSL_SCREW(Json::Value&);
+  void ReadJSON_KSL_COSCREW(Json::Value&);
+  void ReadJSON_KSL_INERTIA(Json::Value&);
+  void ReadJSON_KSL_MAT3X3(Json::Value&);
+  void ReadJSON_KSL_MAT4X4(Json::Value&);
+  void ReadJSON_EULERANGLES(Json::Value&);
+  void ReadJSON_BOOLEAN(Json::Value&);
+  void ReadJSON_POSE(Json::Value&);
 };
 
 } // namespace Parameter

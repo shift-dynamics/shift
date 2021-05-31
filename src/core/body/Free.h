@@ -13,13 +13,13 @@ class Free : public Base {
 public:
   Free()
     : Base() {
-    addParameters();
+    DeclareParameters();
     is_articulated_ = false;
   }
 
   Free(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
     is_articulated_ = false;
   }
 
@@ -27,9 +27,9 @@ public:
 
   static std::unique_ptr<Free> create();
 
-  void addParameters() override;
+  void DeclareParameters() override;
 
-  static bool isRegistered() {
+  static bool is_registered() {
     return registered_;
   }
 

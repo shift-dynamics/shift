@@ -14,19 +14,21 @@ class Pac2002 : public Base {
 public:
   Pac2002()
     : Base() {
-    addParameters();
+    DeclareParameters();
   }
   Pac2002(std::string name)
     : Base(name) {
-    addParameters();
+    DeclareParameters();
   }
   virtual ~Pac2002() override {}
-  static std::unique_ptr<Pac2002> create();
-  void addParameters() override;
-
-  static bool isRegistered() {
+  
+  static std::unique_ptr<Pac2002> Create();
+  static bool is_registered() {
     return registered_;
   }
+
+
+  void DeclareParameters() override;
 
 private:
   static bool registered_;
