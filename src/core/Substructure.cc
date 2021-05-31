@@ -239,15 +239,33 @@ void shift::core::Substructure::EvaluateSparsity(shift::core::Array2d<int>& rb3,
   }
 }
 
-void shift::core::Substructure::Print() {
+void shift::core::Substructure::Print() const {
   std::cout << "Substructure [" << index_ << "]" << std::endl;
-  std::cout << "  members:" << std::endl;
-  std::cout << "  dqCount: " << dq_count_ << std::endl;
+  std::cout << "  positive_members:" << std::endl;
+  
+  size_t i = 0;
+  for(auto& loop: *positive_loop_members_compressed_) {
+    std::cout << "[" << i++ << "]: ";
+    for(auto& member : loop) {
+      std::cout << member;
+    }
+    std::cout << std::endl;
+  }
+  i = 0;
+  for(auto& loop: *positive_loop_members_compressed_) {
+    std::cout << "[" << i++ << "]: ";
+    for(auto& member : loop) {
+      std::cout << member;
+    }
+    std::cout << std::endl;
+  }
+  
+  std::cout << "  dq_count: " << dq_count_ << std::endl;
   std::cout << "  rank: " << rank_ << std::endl;
-  std::cout << "  dqOffset: " << dq_offset_ << std::endl;
-  std::cout << "  chordConstraintCount: " << chord_constraint_count_
+  std::cout << "  dq_offset: " << dq_offset_ << std::endl;
+  std::cout << "  chord_constraint_count: " << chord_constraint_count_
             << std::endl;
-  std::cout << "  constraintEquationCount: " << constraint_equation_count_
+  std::cout << "  constraint_equation_count: " << constraint_equation_count_
             << std::endl
             << std::endl;
 }

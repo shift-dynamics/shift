@@ -220,7 +220,7 @@ public:
     negative_loop_members_compressed_ = members;
   }
 
-  void Print();
+  void Print() const;
   
   void ClearConstraintOffsets() {
     constraints_.clear();
