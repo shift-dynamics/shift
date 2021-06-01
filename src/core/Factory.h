@@ -19,6 +19,7 @@
 #include "shift/core/sensor/Base.h"
 #include "shift/core/solver/Base.h"
 #include "shift/core/terrain/Base.h"
+#include "shift/core/Exception.h"
 
 namespace shift {
 namespace core {
@@ -77,7 +78,7 @@ public:
     /* if valid map does not exist, return null and throw exception */
     try {
       if(factory_map_.find(name) == factory_map_.end()) {
-        throw "Error: Module not found:";
+        throw "Error: module not found:";
       }
     } catch(const char* msg) {
       std::cerr << msg << " " << name << " is not registered." << std::endl;

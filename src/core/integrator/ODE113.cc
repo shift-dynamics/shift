@@ -102,8 +102,6 @@ void shift::core::integrator::ODE113::Reset() {
   dy_.resize(neqn_);
   std::fill(dy_.begin(), dy_.end(), 0);
 
-  // s2_context_connectforcemodules(context);
-
   yy_.resize(neqn_);
   std::fill(yy_.begin(), yy_.end(), 0);
   memcpy(yy_.data(), y_.data(), neqn_ * sizeof(double));

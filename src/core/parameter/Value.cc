@@ -8,6 +8,7 @@
 #include "shift/core/parameter/ArrayBase.h"
 #include "shift/core/sensor/Base.h"
 #include "shift/core/terrain/Base.h"
+#include "shift/core/Exception.h"
 
 #include "shift/core/Frame.h"
 
@@ -225,7 +226,8 @@ operator[](const std::string key_str) {
   } else if(is_array_) {
     return std::any_cast<parameter::ArrayBase*>(data_)->operator[](key_str);
   } else {
-    throw "error: no parameter found";
+    throw shift::core::Exception(
+      "error: no parameter found for key '" + key_str + "'");
     return std::any_cast<parameter::List*>(data_)->operator[](key_str);
   }
 }
@@ -240,9 +242,8 @@ operator[](unsigned int index) {
   if(is_array_) {
     return std::any_cast<parameter::ArrayBase*>(data_)->operator[](index);
   } else {
-    std::cerr << "error" << std::endl;
-    throw "error: no parameter found";
-    // return (std::any_cast<List>(data_))[key_str];
+   throw shift::core::Exception(
+      "error: no parameter found for index '" + std::to_string(index) + "'");
   }
 }
 
@@ -339,8 +340,9 @@ void shift::core::parameter::Value::ReadJSON(Json::Value& object) {
 void shift::core::parameter::Value::ReadJSON_STRING(Json::Value& json_value) {
   if(!json_value.isString()) {
     if(required_) {
-      throw "JSON Parsing error: required key has incorrectly formatted data; "
-            "expected STRING";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted data; " 
+        "expected STRING");
     }
     return;
   }
@@ -351,15 +353,17 @@ void shift::core::parameter::Value::ReadJSON_STRING(Json::Value& json_value) {
 void shift::core::parameter::Value::ReadJSON_STRING_ARRAY(Json::Value& json_value) {
   if(!json_value.isArray()) {
     if(required_) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected STRING_ARRAY";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected STRING_ARRAY");
     }
     return;
   }
   for(unsigned int i = 0; i < json_value.size(); i++) {
     if(!(json_value[i].isString())) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected STRING_ARRAY";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted " 
+        "data; expected STRING_ARRAY");
     }
   }
 
@@ -374,24 +378,28 @@ void shift::core::parameter::Value::ReadJSON_STRING_2DARRAY(Json::Value& json_va
   if(json_value.isArray()) {
     for(unsigned int i = 0; i < json_value.size(); i++) {
       if(row_dim_ > 0 && row_dim_ != (int)json_value.size()) {
-        throw "JSON Parsing error: required key has incorrectly "
-              "formatted data; incorrect row dimension found in "
-              "STRING_2DARRAY";
+        throw shift::core::Exception(
+          "JSON Parsing error: required key has incorrectly "
+          "formatted data; incorrect row dimension found in "
+          "STRING_2DARRAY");
       }
       if(!(json_value[i].isArray()) && !(json_value[i].isString())) {
-        throw "JSON Parsing error: required key has incorrectly formatted "
-              "data; expected STRING_2DARRAY";
+        throw shift::core::Exception(
+          "JSON Parsing error: required key has incorrectly formatted "
+          "data; expected STRING_2DARRAY");
       }
       for(unsigned int j = 0; j < json_value[i].size(); j++) {
         if(col_dim_ > 0 && col_dim_ != (int)json_value[i].size()) {
-          throw "JSON Parsing error: required key has incorrectly "
-                "formatted data; incorrect column dimension found in "
-                "STRING_2DARRAY";
+          throw shift::core::Exception(
+            "JSON Parsing error: required key has incorrectly "
+            "formatted data; incorrect column dimension found in "
+            "STRING_2DARRAY");
         }
 
         if(json_value[i].isArray() && !(json_value[i][j].isString())) {
-          throw "JSON Parsing error: required key has incorrectly "
-                "formatted data; expected STRING_2DARRAY";
+          throw shift::core::Exception(
+            "JSON Parsing error: required key has incorrectly "
+            "formatted data; expected STRING_2DARRAY");
         }
       }
     }
@@ -414,8 +422,9 @@ void shift::core::parameter::Value::ReadJSON_STRING_2DARRAY(Json::Value& json_va
 
 void shift::core::parameter::Value::ReadJSON_DOUBLE(Json::Value& json_value) {
   if(!json_value.isDouble()) {
-    throw "JSON Parsing error, required key has incorrectly formatted "
-          "data; expected DOUBLE";
+    throw shift::core::Exception(
+      "JSON Parsing error, required key has incorrectly formatted " 
+      "data; expected DOUBLE");
   }
   *std::any_cast<double*>(data_) = json_value.asDouble();
   loaded_from_file_ = true;
@@ -423,26 +432,31 @@ void shift::core::parameter::Value::ReadJSON_DOUBLE(Json::Value& json_value) {
 
 void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(Json::Value& json_value) {
   if(!json_value.isArray()) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected DOUBLE_ARRAY";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted " 
+      "data; expected DOUBLE_ARRAY");
   }
   if(row_dim_ > 0 && row_dim_ != static_cast<int>(json_value.size())) {
-    throw "JSON Parsing error: required key has incorrect number of elements";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrect number of elements");
   }
   if(json_value.size() == 0) {
-    throw "JSON Parsing error: array has zero elements";
+    throw shift::core::Exception(
+      "JSON Parsing error: array has zero elements");
   }
 
   if(row_dim_ > -1 && col_dim_ > -1 &&
      static_cast<int>(json_value.size()) != row_dim_ * col_dim_) {
-    throw "JSON Parsing error: DOUBLE_ARRAY has incorrect dimension ";
+    throw shift::core::Exception(
+      "JSON Parsing error: DOUBLE_ARRAY has incorrect dimension");
   }
 
   std::any_cast<std::vector<double>*>(data_)->clear();
   for(unsigned int i = 0; i < json_value.size(); i++) {
     if(!json_value[i].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected DOUBLE_ARRAY";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted " 
+        "data; expected DOUBLE_ARRAY");
     }
     std::any_cast<std::vector<double>*>(data_)->push_back(
       json_value[i].asDouble());
@@ -452,14 +466,15 @@ void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(Json::Value& json_valu
 
 void shift::core::parameter::Value::ReadJSON_KSL_VEC3(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 3)) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
+    throw "JSON Parsing error: required key has incorrectly formatted " 
           "data; expected KSL_VEC3";
   }
   ksl_vec3_t* data = std::any_cast<ksl_vec3_t*>(data_);
   for(int i = 0; i < 3; i++) {
     if(!json_value[i].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_VEC3";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted " 
+        "data; expected KSL_VEC3");
     }
     data->at[i] = json_value[i].asDouble();
   }
@@ -468,14 +483,16 @@ void shift::core::parameter::Value::ReadJSON_KSL_VEC3(Json::Value& json_value) {
 
 void shift::core::parameter::Value::ReadJSON_KSL_VEC4(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected KSL_VEC4";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted "
+      "data; expected KSL_VEC4");
   }
   ksl_vec4_t* data = std::any_cast<ksl_vec4_t*>(data_);
   for(int i = 0; i < 4; i++) {
     if(!json_value[i].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_VEC4";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_VEC4");
       return;
     }
     data->at[i] = json_value[i].asDouble();
@@ -485,15 +502,17 @@ void shift::core::parameter::Value::ReadJSON_KSL_VEC4(Json::Value& json_value) {
 
 void shift::core::parameter::Value::ReadJSON_KSL_QUATERNION(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected KSL_QUATERNION";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted "
+      "data; expected KSL_QUATERNION");
     return;
   }
   ksl_quaternion_t quaternion;
   for(int i = 0; i < 4; i++) {
     if(!json_value[i].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_QUATERNION";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_QUATERNION");
       return;
     }
     quaternion.at[i] = json_value[i].asDouble();
@@ -516,15 +535,17 @@ void shift::core::parameter::Value::ReadJSON_KSL_QUATERNION(Json::Value& json_va
 
 void shift::core::parameter::Value::ReadJSON_KSL_SCREW(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 6)) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected KSL_SCREW";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted "
+      "data; expected KSL_SCREW");
     return;
   }
   ksl_screw_t* data = std::any_cast<ksl_screw_t*>(data_);
   for(int i = 0; i < 6; i++) {
     if(!json_value[i].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_SCREW";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_SCREW");
       return;
     }
     data->at[i] = json_value[i].asDouble();
@@ -534,15 +555,17 @@ void shift::core::parameter::Value::ReadJSON_KSL_SCREW(Json::Value& json_value) 
 
 void shift::core::parameter::Value::ReadJSON_KSL_COSCREW(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 6)) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected KSL_COSCREW";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted "
+      "data; expected KSL_COSCREW");
     return;
   }
   ksl_coscrew_t* data = std::any_cast<ksl_coscrew_t*>(data_);
   for(int i = 0; i < 6; i++) {
     if(!json_value[i].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_COSCREW";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_COSCREW");
       return;
     }
     data->at[i] = json_value[i].asDouble();
@@ -552,16 +575,18 @@ void shift::core::parameter::Value::ReadJSON_KSL_COSCREW(Json::Value& json_value
 
 void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value) {
   if(!json_value.isObject()) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected KSL_INERTIA";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted "
+      "data; expected KSL_INERTIA");
     return;
   }
   ksl_inertia_t* inertia = std::any_cast<ksl_inertia_t*>(data_);
 
   if(json_value.isMember("mass")) {
     if(!json_value["mass"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->mass = json_value["mass"].asDouble();
@@ -569,8 +594,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Ixx")) {
     if(!json_value["Ixx"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Ixx = json_value["Ixx"].asDouble();
@@ -578,8 +604,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Iyy")) {
     if(!json_value["Iyy"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Iyy = json_value["Iyy"].asDouble();
@@ -587,8 +614,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Izz")) {
     if(!json_value["Izz"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Izz = json_value["Izz"].asDouble();
@@ -596,8 +624,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Ixy")) {
     if(!json_value["Ixy"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Ixy = json_value["Ixy"].asDouble();
@@ -605,8 +634,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Iyz")) {
     if(!json_value["Iyz"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Iyz = json_value["Iyz"].asDouble();
@@ -614,8 +644,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Izx")) {
     if(!json_value["Izx"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Izx = json_value["Izx"].asDouble();
@@ -623,8 +654,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Iyx")) {
     if(!json_value["Iyx"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Iyx = json_value["Iyx"].asDouble();
@@ -632,8 +664,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Izy")) {
     if(!json_value["Izy"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Izy = json_value["Izy"].asDouble();
@@ -641,8 +674,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
   if(json_value.isMember("Ixz")) {
     if(!json_value["Ixz"].isDouble()) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_INERTIA";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_INERTIA");
       return;
     }
     inertia->Ixz = json_value["Ixz"].asDouble();
@@ -653,14 +687,16 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
 
 void shift::core::parameter::Value::ReadJSON_KSL_MAT3X3(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 3)) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected KSL_MAT3X3";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted "
+      "data; expected KSL_MAT3X3");
     return;
   }
   for(int i = 0; i < 3; i++) {
     if(!json_value[i].isArray() || !(json_value[i].size() == 3)) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_MAT3X3";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_MAT3X3");
       return;
     }
   }
@@ -669,8 +705,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_MAT3X3(Json::Value& json_value)
   for(int i = 0; i < 3; i++) {
     for(int j = 0; j < 3; j++) {
       if(!json_value[i][j].isDouble()) {
-        throw "JSON Parsing error: required key has incorrectly formatted "
-              "data; expected KSL_MAT3X3";
+        throw shift::core::Exception(
+          "JSON Parsing error: required key has incorrectly formatted "
+          "data; expected KSL_MAT3X3");
       }
       data->at[j][i] = json_value[i][j].asDouble();
     }
@@ -683,14 +720,16 @@ void shift::core::parameter::Value::ReadJSON_KSL_MAT3X3(Json::Value& json_value)
 
 void shift::core::parameter::Value::ReadJSON_KSL_MAT4X4(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected KSL_MAT3X3";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted "
+      "data; expected KSL_MAT3X3");
     return;
   }
   for(int i = 0; i < 4; i++) {
     if(!json_value[i].isArray() || !(json_value[i].size() == 4)) {
-      throw "JSON Parsing error: required key has incorrectly formatted "
-            "data; expected KSL_MAT3X3";
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted "
+        "data; expected KSL_MAT3X3");
       return;
     }
   }
@@ -700,8 +739,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_MAT4X4(Json::Value& json_value)
   for(int i = 0; i < 3; i++) {
     for(int j = 0; j < 3; j++) {
       if(!json_value[i][j].isDouble()) {
-        throw "JSON Parsing error: required key has incorrectly formatted "
-              "data; expected KSL_MAT3X3";
+        throw shift::core::Exception(
+          "JSON Parsing error: required key has incorrectly formatted "
+          "data; expected KSL_MAT3X3");
       }
       mat4x4.at[j][i] = json_value[i][j].asDouble();
     }
@@ -723,8 +763,9 @@ void shift::core::parameter::Value::ReadJSON_KSL_MAT4X4(Json::Value& json_value)
 
 void shift::core::parameter::Value::ReadJSON_EULERANGLES(Json::Value& json_value) {
   if(!json_value.isObject()) {
-    throw "JSON Parsing error: required key has incorrectly formatted "
-          "data; expected KSL_EULERANGLES";
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted "
+      "data; expected KSL_EULERANGLES");
     return;
   }
 
@@ -733,12 +774,14 @@ void shift::core::parameter::Value::ReadJSON_EULERANGLES(Json::Value& json_value
   if(json_value.isMember("angles") && json_value["angles"].size() == 3) {
     for(int i = 0; i < 3; i++) {
       if(!json_value["angles"][i].isDouble()) {
-        throw "JSON Parsing error: angles object is incorrectly formatted";
+        throw shift::core::Exception(
+          "JSON Parsing error: angles object is incorrectly formatted");
       }
       angles.at[i] = json_value["angles"][i].asDouble();
     }
   } else {
-    throw "JSON Parsing error: \"euler_angles\" object has no key \"angles\"";
+    throw shift::core::Exception(
+      "JSON Parsing error: \"euler_angles\" object has no key \"angles\"");
     return;
   }
 
@@ -756,27 +799,30 @@ void shift::core::parameter::Value::ReadJSON_EULERANGLES(Json::Value& json_value
         } else if(json_value["angles"][i].isInt()) {
           axes_.at[i] = json_value["angles"][i].asInt();
         } else {
-          throw "JSON Parsing error: angles object is incorrectly formatted, "
-                "expected integer gets 0, 1, or 2 - or string gets x, y, "
-                "or z";
+          throw shift::core::Exception(
+            "JSON Parsing error: angles object is incorrectly formatted, "
+            "expected integer gets 0, 1, or 2 - or string gets x, y, "
+            "or z");
           return;
         }
       }
       sequence = ksl_axis_getEulerAngles(axes_);
       if(sequence == KSL_AXIS_INVALID) {
-        throw "JSON Parsing error: \"euler_angles\" axes object is incorrectly "
-              "formatted, expected three integer gets {0, 1, 2} or three "
-              "string gets {x, y, z}";
+        throw shift::core::Exception(
+          "JSON Parsing error: \"euler_angles\" axes object is incorrectly "
+          "formatted, expected three integer gets {0, 1, 2} or three "
+          "string gets {x, y, z}");
         return;
       } else {
       }
     } else {
-      throw "JSON Parsing error: \"euler_angles\" axes object is incorrectly "
-            "formatted, expected three integer gets or three "
-            "string gets following the format [0, 1, 2] or "
-            "[\"x\", \"y\", \"z\"], where the axes follow one of the twelve "
-            "Euler angle conventions (XYZ, YZX, ZXY, XZY, YXZ, ZYX, XYX, XZX, "
-            "YXY, YZY, ZXZ, or ZYZ).";
+      throw shift::core::Exception(
+        "JSON Parsing error: \"euler_angles\" axes object is incorrectly "
+        "formatted, expected three integer gets or three "
+        "string gets following the format [0, 1, 2] or "
+        "[\"x\", \"y\", \"z\"], where the axes follow one of the twelve "
+        "Euler angle conventions (XYZ, YZX, ZXY, XZY, YXZ, ZYX, XYX, XZX, "
+        "YXY, YZY, ZXZ, or ZYZ).");
       return;
     }
   }
@@ -794,8 +840,9 @@ void shift::core::parameter::Value::ReadJSON_EULERANGLES(Json::Value& json_value
 
 void shift::core::parameter::Value::ReadJSON_BOOLEAN(Json::Value& json_value) {
   if(!json_value.isBool()) {
-    throw "JSON Parsing error, required key %s has incorrectly formatted "
-          "data; expected BOOLEAN";
+    throw shift::core::Exception(
+      "JSON Parsing error, required key %s has incorrectly formatted "
+      "data; expected BOOLEAN");
   }
   bool* data = std::any_cast<bool*>(data_);
   *data = json_value.asBool();
@@ -804,7 +851,8 @@ void shift::core::parameter::Value::ReadJSON_BOOLEAN(Json::Value& json_value) {
 
 void shift::core::parameter::Value::ReadJSON_POSE(Json::Value& json_value) {
   if(!json_value.isObject()) {
-    throw "Error: Pose is not a valid object";
+    throw shift::core::Exception(
+      "Error: Pose is not a valid object");
     return;
   }
 
