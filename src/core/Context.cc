@@ -2396,7 +2396,6 @@ int shift::core::Context::Digraph(std::string filename) {
                nodes[get_chord_constraints()[i]->get_child_body()->get_index()],
                const_cast<char*>(joint_name.c_str()), TRUE);
     } else {
-      // s2_stackstr_toStr(context->jointPointers[i]->name);
       edge =
         agedge(g, nodes[parent_index],
                nodes[get_chord_constraints()[i]->get_child_body()->get_index()],
@@ -2419,7 +2418,6 @@ int shift::core::Context::Digraph(std::string filename) {
       agclose(g);
       gvFreeContext(gvc);
       free(nodes);
-      // fclose(DGF);
       return -1;
     }
     basename += ".dot";
@@ -2431,7 +2429,6 @@ int shift::core::Context::Digraph(std::string filename) {
   agclose(g);
   gvFreeContext(gvc);
   free(nodes);
-  // fclose(DGF);
   return 0;
 
   // agclose and gvFreeContext do not free their memory;
