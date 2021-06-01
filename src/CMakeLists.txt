@@ -12,5 +12,9 @@ foreach(include ${shift_includes})
 endforeach()
 
 add_subdirectory(core)
+
+if(SHIFT_BUILD_GRAPHICS)
 add_subdirectory(gui)
+endif()
+
 add_subdirectory(main)

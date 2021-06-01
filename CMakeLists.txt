@@ -6,6 +6,7 @@ project(shift
     LANGUAGES C CXX
 )
 
+option(SHIFT_BUILD_GRAPHICS "Build GUI" ON)
 option(SHIFT_BUILD_TESTS "Build test suite" ON)
 option(SHIFT_BUILD_DOC "Build documentation" ON)
 option(SHIFT_LOG_LEVEL "Logging level")
@@ -82,15 +83,11 @@ ExternalProject_Add(
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
 )
-ExternalProject_Get_Property(argagg SOURCE_DIR)
-message(STATUS ${SOURCE_DIR})
-configure_file(
-    ${SOURCE_DIR}/include/argagg/argagg.hpp
-    ${CMAKE_BINARY_DIR}/include/argagg/argagg.hpp
-    COPYONLY
-)
 
-add_subdirectory(assets)
+if(SHIFT_BUILD_GRAPHICS)
+    add_subdirectory(assets)
+endif()
+
 add_subdirectory(src)
 
 if(SHIFT_BUILD_DOCS)

@@ -1,17 +1,6 @@
-find_package(Qt5 COMPONENTS Core Widgets Gui REQUIRED)
-
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-
 include_directories(${CMAKE_BINARY_DIR}/include)
 
 add_executable(shift-cli shift_cli.cc)
-
-# find_library(shift_core REQUIRED)
-
-message(STATUS "JsonCpp_LIBRARY ${JsonCpp_LIBRARY}")
 
 target_link_libraries(shift-cli shift_core ksl ${JsonCpp_LIBRARY})
 
@@ -33,36 +22,51 @@ target_compile_options(
   -export-dynamic
 )
 
+
+ExternalProject_Get_Property(argagg SOURCE_DIR)
+
 target_include_directories(
   shift-cli
   PUBLIC
-    ${argagg_SOURCE_DIR}/include
-    ${CMAKE_BINARY_DIR}/include
+  ${CMAKE_BINARY_DIR}/include
+  ${SOURCE_DIR}/include/
 )
 
+if(SHIFT_BUILD_GRAPHICS)
+  find_package(Qt5 COMPONENTS Core Widgets Gui REQUIRED)
 
-add_executable(shift shift.cc)
+  set(CMAKE_INCLUDE_CURRENT_DIR ON)
+  set(CMAKE_AUTOMOC ON)
+  set(CMAKE_AUTOUIC ON)
+  set(CMAKE_AUTORCC ON)
 
-target_link_libraries(shift Qt5::Core Qt5::Widgets Qt5::Gui)
+  add_executable(shift shift.cc)
 
-set(assets geometry html icons shaders textures)
+  target_link_libraries(shift Qt5::Core Qt5::Widgets Qt5::Gui)
 
-target_link_libraries(shift ${assets} shift_gui shift_core)
+  set(assets geometry html icons shaders textures)
 
-target_compile_options(
-  shift
-  PRIVATE
-  -march=x86-64
-  -mtune=generic
-  -fstack-protector-strong
-  --param=ssp-buffer-size=4
-  -W
-  -lstdc++
-  -Wall
-  -Wextra
-  -g3
-  -O3
-  -std=c++17
-)
+  target_link_libraries(shift ${assets} shift_gui shift_core)
 
-target_include_directories(shift PUBLIC ${CMAKE_SOURCE_DIR}/include)
+  target_compile_options(
+    shift
+    PRIVATE
+    -march=x86-64
+    -mtune=generic
+    -fstack-protector-strong
+    --param=ssp-buffer-size=4
+    -W
+    -lstdc++
+    -Wall
+    -Wextra
+    -g3
+    -O3
+    -std=c++17
+  )
+
+  target_include_directories(
+    shift
+    PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+  )
+endif()
