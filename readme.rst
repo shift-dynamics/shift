@@ -118,10 +118,25 @@ Previously, in the *Shift* C code, the system topology was analyzed in a preproc
 
 The C++ version of *Shift* follows a similar model. C++ classes are used primarily during the preprocessing phase for convenience, but are not used extensively at run-time. Any quantities required to update the kinematics and process the equations of motion are copied out of the classes into a contiguous block of memory. Function pointers are chained together and stepped through to process the model as in the previous C code. The primary difference is that the function pointers and meta data required to set up the model are provided by classes to simplify the setup process.
 
+Style guide
+-----------
+
+The Google style guide is used for the refactor effort `<https://google.github.io/styleguide/cppguide.html>`_. Some of the highlights are as follows:
+
+* `lower_snake_case` for temporary variables
+* `lower_snake_case_` with trailing underscore for class member variables
+* `lower_snake_case()` for get and set class methods
+* `UpperCamelCase` for struct and class definitions
+* `UpperCamelCase()` for general class methods / functions
+
+
 Simplifying dependencies
 ------------------------
 
-In Shift 2.0, the layout of dependencies included as submodules has been updated. The layout of submodules in the previous version was:
+In Shift 2.0, the layout of dependencies included as submodules has been updated. 
+
+Previous layout
+***************
 
 * shift (C++ GUI) - *private*
 
@@ -132,12 +147,18 @@ In Shift 2.0, the layout of dependencies included as submodules has been updated
 
   * shift-models (collection of *Shift* models) - *public*
 
-In the previous version, the GUI and API were separated in two different modules. To facilitate ease of development, the  ``shift`` and ``shift-gui`` modules have now been merged, which simplifies the layout as:
+In the previous version, the GUI and API were separated in two different modules. 
+
+New layout
+**********
+
+To facilitate ease of development, the  ``shift`` and ``shift-gui`` modules have now been merged, which simplifies the layout as:
 
 * shift (C++ GUI, C++ Command line interface and C++ API) - *private*
 
-  * external/shift-models (collection of models to display core functionality of *Shift* software, later these can be made into unit tests) - *public*
-  * external/ksl (math library) - *public*
+  * shift-models (collection of models to display core functionality of *Shift* software, later these can be made into unit tests) - *public*
+  * ksl (math library) - *public*
+  * argagg (command line argument parser) - *public*
 
 Other possible C++ submodules to add later:
 
@@ -145,7 +166,7 @@ Other possible C++ submodules to add later:
 * vhacd - variable approximate convex hull decomposition
 * opensubdiv - load subdivision surfaces
 
-Dependencies are provided as submodules if they are not readily available in package managers or if there is a requirement to lock the API to a specific release.
+To ease development, submodules are no longer brought in using git submodules. Instead they are brought using cmake's ``FetchContent`` and ``ExternalProject`` features automatically during the cmake configure step.
 
 Layout of objects in *Shift*
 ----------------------------
@@ -420,9 +441,9 @@ The following example is intended for *Shift* developers. *Shift* creates a ``sh
 
 .. code-block:: c
 
-   @include "shift/core/factory.h"
-   @include "shift/core/body/base.h"
-   auto body = shift::core::Factory<shift::core::body::Base>::get()->create("rigid");
+   #include "shift/core/factory.h"
+   #include "shift/core/body/base.h"
+   auto body = shift::core::Factory<shift::core::body::Base>::get()->Create("rigid");
 
 
 *Shift* only interfaces with the rigid body specialization through the ``shift::core::body::Base`` base class. This allows other *body* specializations to be created without modifying the core *Shift* code.
@@ -438,8 +459,8 @@ Each body specialization must have a unique keyword identifier. The keyword ``"r
 .. code-block:: c
 
    bool shift::core::body::Rigid::registered_ =
-   shift::core::Factory<shift::core::body::Base>::get()->registerModule(
-     "rigid", shift::core::body::Rigid::create);
+   shift::core::Factory<shift::core::body::Base>::get()->RegisterModule(
+     "rigid", shift::core::body::Rigid::Create);
 
 
 Introspection via named parameters
@@ -465,7 +486,7 @@ Named parameters are supported with the addition of new base classes:
 Adding new named parameters
 ***************************
 
-To map keys in a JSON input file to members of a class, populate the ``addParameters()`` function with the key, member variable, description and whether the data is required. During class construction, the ``addParameters()`` function is called to create the mapping.
+To map keys in a JSON input file to members of a class, populate the ``DeclareParameters()`` function with the key, member variable, description and whether the data is required. During class construction, the ``DeclareParameters()`` function is called to create the mapping.
 
 Example
 ^^^^^^^
@@ -474,15 +495,15 @@ The following code demonstrates how keys are added to the ``shift::core::body::R
 
 .. code-block:: c
 
-  void Shift::Frame::addParameters() {
-    addParameter("name", &name_, "descriptive frame name", true);
+  void Shift::Frame::DeclareParameters() {
+    DeclareParameter("name", &name_, "descriptive frame name", true);
 
-    addParameter(
+    DeclareParameter(
       "active", &active_,
       "indicates whether frame is active, defaults to true if not specified",
       false);
 
-    addParameter(
+    DeclareParameter(
       "R", &d_wrt_origin_.R,
       "specify orientation as a 3x3 rotation matrix in row-major "
       "order, defaults to identity if not specified; the keys 'rotation', 'R', "
@@ -495,7 +516,7 @@ The following code demonstrates how keys are added to the ``shift::core::body::R
    }
 
 
-When parsing the JSON input file is parsed, the data under the ``name`` key word in the code block above will be parsed and loaded into the ``name_`` member object. The type passed to overloaded ``addParameter()`` function is used to determine the appropriate way to parse the JSON file. In this example,  ``name_`` is a pointer to a string, so a string is expected in the JSON input file. If the data is incorrectly formatted, an exception will be thrown.
+When parsing the JSON input file is parsed, the data under the ``name`` key word in the code block above will be parsed and loaded into the ``name_`` member object. The type passed to overloaded ``DeclareParameter()`` function is used to determine the appropriate way to parse the JSON file. In this example,  ``name_`` is a pointer to a string, so a string is expected in the JSON input file. If the data is incorrectly formatted, an exception will be thrown.
 
 Supported data types
 ********************
@@ -524,9 +545,9 @@ The following data types are supported:
 Loading factory objects from JSON files
 ***************************************
 
-When loading objects from a JSON file, *Shift* uses the reserved key word "type" to determine what specialization of the base class to use when creating the corresponding object in C++. The type is then used to create an instance of the object using a factory method.
+When loading objects from a JSON file, *Shift* uses the reserved key ``"type"`` to determine what specialization of the base class to use when creating the corresponding object in C++. The type is then used to create an instance of the object using a factory method.
 
-Some *Shift* objects have a default type. For example, the default type for bodies is ``rigid``. Therefore, if no type is specified, a rigid body will be created. Other objects, such as a joints, do not have a default type, and require the ``type`` key to exist in the JSON file. Consider the following definition of a revolute joint in a model input file:
+Some *Shift* objects have a default type. For example, the default type for bodies is ``rigid``. Therefore, if no type is specified, a rigid body will be created. Other objects, such as a joints, do not have a default type, and the ``type`` key must exist in the JSON file. Consider the following definition of a revolute joint in a model input file:
 
 
 .. code-block:: python
@@ -550,7 +571,7 @@ Some *Shift* objects have a default type. For example, the default type for bodi
       ...
 
 
-The key ``"type"`` is processed to determine the joint specialization the user has specified. The key is then used to generate a specialization of the class (``shift::core::joint::Revolute``). Then the JSON file is parsed by calling the ``readJSON()`` member function for ``shift::core::joint::Revolute``, stepping through each ``shift::core::parameter::Value`` datastructure within its ``shift::core::parameter::List`` base class. The parameters were added in the ``addParameters()`` function during class construction. During processing of each ``shift::core::parameter::Value``, the data is mapped from the JSON file to the class member variables using classes and class member functions defined in the following files. In this way, there is no need for developers of class specializations to write logic for parsing model input files.
+The key ``"type"`` is processed to determine the joint specialization the user has specified. The key is then used to generate a specialization of the class (``shift::core::joint::Revolute``). Then the JSON file is parsed by calling the ``ReadJSON()`` member function for ``shift::core::joint::Revolute``, stepping through each ``shift::core::parameter::Value`` datastructure within its ``shift::core::parameter::List`` base class. The parameters were added in the ``DeclareParameters()`` function during class construction. During processing of each ``shift::core::parameter::Value``, the data is mapped from the JSON file to the class member variables using classes and class member functions defined in the following files. In this way, there is no need for developers of class specializations to write logic for parsing model input files.
 
 The following code demonstrates how an object specialization is created in *Shift* internal code using the factory method. The example is provided to describe how the classes are generated internally, but it would never be necessary for a developer of a *Shift* extension (such as a class specialization of a ``shift::core::body::Base`` or ``shift::core::joint::Base``) to write this code themselves.
 
@@ -560,8 +581,8 @@ The following code demonstrates how an object specialization is created in *Shif
    @include "shift/core/joint/base.h"
 
    std::string joint_type(value["type"].asString());
-   auto joint = shift::core::Factory<shift::core::joint::Base>::get()->create(joint_type);
-   joint->readJSON(value);
+   auto joint = shift::core::Factory<shift::core::joint::Base>::get()->Create(joint_type);
+   joint->ReadJSON(value);
 
 
 Accessing named parameters
@@ -574,7 +595,7 @@ The ``[]`` operator for the ``shift::core::parameter::List`` class is overloaded
 
 .. code-block:: c
 
-   context["model_parameters"]["units"]["length"].print();
+   context["model_parameters"]["units"]["length"].Print();
 
 
 Although the syntax for traversing the hierarchy is identical to a Python dictionary, because C++ is a statically typed language, the ``Shift::Value`` object must be cast to its appropriate type before using its underlying data in code. *Shift* provides a type-safe mechanism to request the underlying value. To access the variable ``"length"`` as a string, use the templated ``get()`` function. The ``get()`` functions performs type-safe conversion of its underlying ``std::any`` data structure to the requested format as:
@@ -590,19 +611,19 @@ Similarly, it is possible to get a raw pointer to the underlying data as:
 
 .. code-block:: c
 
-   const std::string* length_ptr = context["model_parameters"]["units"]["length"].data<std::string>();
+   const std::string* length_ptr = context["model_parameters"]["units"]["length"].get_data<std::string>();
 
 
 For debugging purposes, it is possible to query the type of object as:
 
 .. code-block:: c
 
-    std::cout << context["model_parameters"]["units"]["length"].typeName();
+    std::cout << context["model_parameters"]["units"]["length"].get_type_name();
 
     >>> std::string
 
 
-The ``typeName()`` function returns the *demangled* human-readable name of the underlying type.
+The ``get_type_name()`` function returns the *demangled* human-readable name of the underlying type.
 
 Similarly, it is also possible to obtain the value's type id or type index. The below code would typically not be used at run-time, but may be helpful for debugging purposes when developing new *Shift* objects.
 
@@ -610,7 +631,7 @@ Similarly, it is also possible to obtain the value's type id or type index. The 
 
    std::string value;
    std::cout << (std::type_index(typeid(&value)) ==
-                  context["model_parameters"]["units"]["length"].typeIndex()
+                  context["model_parameters"]["units"]["length"].get_type_index()
                  ? "true"
                  : "false")
      << std::endl;
@@ -649,7 +670,7 @@ In the above example ``...`` indicates that there would be other key-value pairs
 .. code:: c
 
    shift::core::body::Base* body =
-     context["assemblies"][0]["bodies"][1].data<shift::core::body::Base>();
+     context["assemblies"][0]["bodies"][1].get_data<shift::core::body::Base>();
 
 
 The above method is similar to traversing a Python dictionary. It is also possible to look up a value by its descriptive ``"name"`` key as:
@@ -657,4 +678,4 @@ The above method is similar to traversing a Python dictionary. It is also possib
 .. code:: c
 
    shift::core::body::Base* body =
-     context["assemblies"]["my_model"]["bodies"]["second_body"].data<shift::core::body::Base>();
+     context["assemblies"]["my_model"]["bodies"]["second_body"].get_data<shift::core::body::Base>();
