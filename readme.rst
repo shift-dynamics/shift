@@ -123,11 +123,11 @@ Style guide
 
 The Google style guide is used for the refactor effort `<https://google.github.io/styleguide/cppguide.html>`_. Some of the highlights are as follows:
 
-* `lower_snake_case` for temporary variables
-* `lower_snake_case_` with trailing underscore for class member variables
-* `lower_snake_case()` for get and set class methods
-* `UpperCamelCase` for struct and class definitions
-* `UpperCamelCase()` for general class methods / functions
+* ``lower_snake_case`` for temporary variables
+* ``lower_snake_case_`` with trailing underscore for class member variables
+* ``lower_snake_case()`` for get and set class methods
+* ``UpperCamelCase`` for struct and class definitions
+* ``UpperCamelCase()`` for general class methods / functions
 
 
 Simplifying dependencies
