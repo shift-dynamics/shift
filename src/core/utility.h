@@ -8,11 +8,11 @@ namespace shift {
 namespace core {
 namespace utility {
 
-const std::string currentDateTime();
-const std::string stripFileExtension(const std::string&);
-const std::string getFileExtension(const std::string&);
-const std::string getParentPath(const std::string&);
-bool fileExists(const std::string&);
+const std::string CurrentDateTime();
+const std::string StripFileExtension(const std::string&);
+const std::string GetFileExtension(const std::string&);
+const std::string GetParentPath(const std::string&);
+bool FileExists(const std::string&);
 
 } // namespace utility
 } // namespace core

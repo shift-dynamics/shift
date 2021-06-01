@@ -37,6 +37,8 @@
 #include "shift/core/solver/Base.h"
 #include "shift/core/terrain/Base.h"
 
+#include "shift/core/log.h"
+
 #include "ksl/print.h"
 #include "ksl/screw.h"
 #include "ksl/trig.h"
@@ -209,6 +211,8 @@ void shift::core::Context::WriteJSON(const std::string& filename) {
 }
 
 void shift::core::Context::Initialize() {
+
+  shift::core::log::SetupLogFile();
 
   if(!shift::core::behavior::Modules::is_initialized()) {
     throw shift::core::Exception(

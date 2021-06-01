@@ -30,9 +30,9 @@ void shift::core::logger::CSV::DeclareParameters() {
 
 void shift::core::logger::CSV::Initialize() {
   if(timestamp_logfile_) {
-    csv_logfile_ = shift::core::utility::stripFileExtension(csv_logfile_) + "-" +
-                   shift::core::utility::currentDateTime() +
-                   shift::core::utility::getFileExtension(csv_logfile_);
+    csv_logfile_ = shift::core::utility::StripFileExtension(csv_logfile_) + "_" +
+                   shift::core::utility::CurrentDateTime() +
+                   shift::core::utility::GetFileExtension(csv_logfile_);
   }
   file_.open(csv_logfile_);
   WriteHeader();

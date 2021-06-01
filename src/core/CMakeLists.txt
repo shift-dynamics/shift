@@ -10,6 +10,7 @@ add_library(shift_core STATIC
   Exception.cc
   Factory.cc
   Frame.cc
+  log.cc
   ModelParameters.cc
   Jacobian.cc
   KdTree.cc
