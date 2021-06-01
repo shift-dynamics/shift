@@ -6,7 +6,7 @@ project(shift
     LANGUAGES C CXX
 )
 
-option(SHIFT_BUILD_GRAPHICS "Build GUI" ON)
+option(SHIFT_BUILD_GRAPHICS "Build GUI" OFF)
 option(SHIFT_BUILD_TESTS "Build test suite" ON)
 option(SHIFT_BUILD_DOC "Build documentation" ON)
 option(SHIFT_LOG_LEVEL "Logging level")
