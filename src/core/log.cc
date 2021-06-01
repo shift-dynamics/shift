@@ -35,13 +35,13 @@ void SetupLogFile() {
 }
 
 void SetLogLevel(unsigned int level_) {
-  if(level_ > level) {
+  if(level_ > SHIFT_LOG_LEVEL) {
     SHIFT_WARNING("A log level of " + std::to_string(level_) + 
       " was requested, but this version of Shift was compiled with a log "
-      "level of " + std::to_string(level) + "; you can only filter using a "
-      "lower log level at run-time");
+      "level of " + std::to_string(SHIFT_LOG_LEVEL) + 
+      "; you can only filter using a lower log level at run-time");
   } else {
-    SHIFT_DEBUG("Setting log level to " + std::to_string(level) + "'");
+    SHIFT_DEBUG("Setting log level to " + std::to_string(level_) + "'");
     level = level_;
   }
 }
@@ -67,16 +67,16 @@ void SetLogLevel(const std::string& level_) {
     tmp = 5;
   } else {
     SHIFT_ERROR("Unrecognized logging level '" + level_ + "'; " +
-        "using default value " + std::to_string(level));
+        "using previous value " + std::to_string(level));
   }
       
-  if(tmp > level) {
+  if(tmp > SHIFT_LOG_LEVEL) {
     SHIFT_WARNING("A log level of " + std::to_string(tmp) + 
       " was requested, but this version of Shift was compiled with a log " +
-      "level of " + std::to_string(level) + "; you can only filter using a " +
-      "lower log level at run-time");
+      "level of " + std::to_string(SHIFT_LOG_LEVEL) + 
+      "; you can only filter using a lower log level at run-time");
   } else {
-    SHIFT_DEBUG("Setting log level to " + std::to_string(level) + "'");
+    SHIFT_DEBUG("Setting log level to " + std::to_string(tmp) + "'");
     level = tmp;
   }
 }

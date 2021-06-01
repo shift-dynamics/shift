@@ -20,7 +20,8 @@ int main(int argc, char* argv[]) {
      {"input", {"-i", "--input"}, 
       "shift simulation input file; string, required", 1},
      {"verbosity", {"-v", "--verbosity"}, 
-      "verbosity level ['warning', 'info', 'debug', 'trace']; "
+      "verbosity level ['fatal', 'warning', 'info', 'debug', 'trace'];\n"
+      "                        "
       "string (default: 'info')", 1},
      {"validate",
       {"-V", "--validate"},
