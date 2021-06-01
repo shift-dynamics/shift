@@ -3,6 +3,7 @@
 #include "shift/config.h"
 #include "shift/core/Context.h"
 #include "shift/core/Exception.h"
+#include "shift/core/log.h"
 
 #include <algorithm>
 #include <iostream>
@@ -18,6 +19,9 @@ int main(int argc, char* argv[]) {
       "create a directed frame graph and exit; boolean (default: false)", 0},
      {"input", {"-i", "--input"}, 
       "shift simulation input file; string, required", 1},
+     {"verbosity", {"-v", "--verbosity"}, 
+      "verbosity level ['warning', 'info', 'debug', 'trace']; "
+      "string (default: 'info')", 1},
      {"validate",
       {"-V", "--validate"},
       "validate input file only, do not run simulation (default: false)",
@@ -37,9 +41,26 @@ int main(int argc, char* argv[]) {
     executable = executable.substr(last);
   }
   std::cout << executable << " v" << SHIFT_VERSION_MAJOR << "."
-            << SHIFT_VERSION_MINOR << "." << SHIFT_VERSION_PATCH << " ";
-  std::cout << "branch: " << SHIFT_GIT_BRANCH << " ";
-  std::cout << "commit: " << SHIFT_GIT_COMMIT_HASH << std::endl;
+            << SHIFT_VERSION_MINOR << "." << SHIFT_VERSION_PATCH << ", ";
+  std::cout << "branch: " << SHIFT_GIT_BRANCH << ", ";
+  std::cout << "commit: " << SHIFT_GIT_COMMIT_HASH;
+
+  unsigned int level = shift::core::log::level;
+  std::cout << ", log level: ";
+  if(level == 0) {
+    std::cout << "'fatal'";
+  } else if(level == 1) {
+    std::cout << "'error'";
+  } else if(level == 2) {
+    std::cout << "'warning'";
+  } else if(level == 3) {
+    std::cout << "'info'";
+  } else if(level == 4) {
+    std::cout << "'debug'";
+  } else {
+    std::cout << "'trace'";
+  }
+  std::cout << std::endl;
 
   if(args["help"]) {
     std::cout << std::endl << "usage:" << std::endl;
@@ -85,7 +106,12 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
+  if(args.has_option("verbosity")) {
+    shift::core::log::SetLogLevel(args["verbosity"].as<std::string>());
+  }
+
   try {
+
     shift::core::Context context;
     context.LoadJSON(args["input"].as<std::string>());
 

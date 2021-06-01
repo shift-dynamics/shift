@@ -26,26 +26,26 @@ void shift::core::geometry::Mesh::Load() {
 
   assert(context_);
   std::string parent_path =
-    shift::core::utility::getParentPath(context_->get_filename());
+    shift::core::utility::GetParentPath(context_->get_filename());
   const std::vector<std::string> include_directories =
     (*context_)["model_parameters"]["include_directories"]
       .get<std::vector<std::string>>();
 
   bool found = false;
   for(const auto& str : filenames_) {
-    std::string extension = shift::core::utility::getFileExtension(str);
+    std::string extension = shift::core::utility::GetFileExtension(str);
 
     if(extension == ".obj" || extension == ".gltf") {
 
       bool file_found = false;
       std::string file = parent_path + "/" + str;
-      if(shift::core::utility::fileExists(file)) {
+      if(shift::core::utility::FileExists(file)) {
         file_found = true;
       } else {
         for(auto& directory : include_directories) {
           file = directory + "/" + str;
           std::cout << file << std::endl;
-          if(shift::core::utility::fileExists(file)) {
+          if(shift::core::utility::FileExists(file)) {
             file_found = true;
             break;
           }

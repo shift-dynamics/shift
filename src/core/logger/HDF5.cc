@@ -27,9 +27,9 @@ void shift::core::logger::HDF5::DeclareParameters() {
 
 void shift::core::logger::HDF5::Initialize() {
   if(timestamp_logfile_) {
-    logfile_ = shift::core::utility::stripFileExtension(logfile_) + "-" +
-               shift::core::utility::currentDateTime() +
-               shift::core::utility::getFileExtension(logfile_);
+    logfile_ = shift::core::utility::StripFileExtension(logfile_) + "-" +
+               shift::core::utility::CurrentDateTime() +
+               shift::core::utility::GetFileExtension(logfile_);
   }
 
   const H5std_string h5_filename(logfile_);
