@@ -8,7 +8,7 @@ project(shift
 
 option(SHIFT_BUILD_TESTS "Build test suite" ON)
 option(SHIFT_BUILD_DOC "Build documentation" ON)
-option(SHIFT_LOG_LEVEL "Logging level" 0)
+option(SHIFT_LOG_LEVEL "Logging level")
 
 message(STATUS
   "${PROJECT_NAME} "
@@ -34,15 +34,23 @@ configure_file(
     "${CMAKE_BINARY_DIR}/include/shift/config.h"
 )
 
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
-
+    if(NOT SHIFT_LOG_LEVEL)
+        set(SHIFT_LOG_LEVEL 4) # DEBUG LOGGING
+    endif()
+else()
+    if(NOT SHIFT_LOG_LEVEL)
+        set(SHIFT_LOG_LEVEL 3) # INFO LOGGING
+    endif()
 endif()
 
-message(STATUS "Building ${PROJECT_NAME} in ${CMAKE_BUILD_TYPE} mode.")
+message(STATUS
+    "Building ${PROJECT_NAME} in ${CMAKE_BUILD_TYPE} mode "
+    "and SHIFT_LOG_LEVEL: ${SHIFT_LOG_LEVEL}")
 
 set(CMAKE_CXX_FLAGS "-DSHIFT_LOG_LEVEL=${SHIFT_LOG_LEVEL}")
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "")
