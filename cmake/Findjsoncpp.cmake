@@ -17,6 +17,7 @@ FIND_PATH(JsonCpp_INCLUDE_DIR
   PATHS
   	/usr/local/include
   	/usr/include
+    /usr/include/jsoncpp
 )
 
 # ----------------------------------------------------------------------
