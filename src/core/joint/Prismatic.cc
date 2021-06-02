@@ -796,7 +796,7 @@ void shift::core::joint::Prismatic::Service(const std::vector<double>& y) {
     // f[dq_index_] -=
     //   stiffness_coefficients_[i] * copysign(fabs(std::pow(q, i)), q);
 
-    f[dq_index_] -= stiffness_coefficients_[i] * std::pow(q, i);
+    f[dq_index_] -= stiffness_coefficients_[i] * pow(q, i);
   }
 
   // std::cout << "q: " << q << ", f: " << f[dq_index_] << std::endl;
@@ -806,7 +806,7 @@ void shift::core::joint::Prismatic::Service(const std::vector<double>& y) {
   for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
     // f[dq_index_] -=
     //   damping_coefficients_[i] * copysign(fabs(std::pow(dq, i)), dq);
-    f[dq_index_] -= damping_coefficients_[i] * std::pow(dq, i);
+    f[dq_index_] -= damping_coefficients_[i] * pow(dq, i);
   }
 
   // std::cout << "dq: " << dq << ", f: " << f[dq_index_] << std::endl;

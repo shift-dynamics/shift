@@ -22,5 +22,6 @@ target_compile_options(
 
 target_link_libraries(
   shift_core_joint
+  shift_core
   ${SHIFT_CORE_LIBRARIES}
 )

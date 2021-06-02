@@ -1,25 +1,3 @@
-find_package(cblas)
-
-# set(HDF5_PREFER_PARALLEL true)
-# find_package(HDF5 COMPONENTS CXX HL REQUIRED)
-
-add_library(shift_core STATIC
-  Assembly.cc
-  Base.cc
-  Context.cc
-  Exception.cc
-  Factory.cc
-  Frame.cc
-  log.cc
-  ModelParameters.cc
-  Jacobian.cc
-  KdTree.cc
-  Substructure.cc
-  Topology.cc
-  Units.cc
-  utility.cc
-)
-
 set(
   SHIFT_CORE_COMPILE_FLAGS
   -march=x86-64
@@ -30,7 +8,7 @@ set(
   -lstdc++
   -Wall
   -Wextra
-  -g3
+  # -g3
   # -O3
   -std=c++17
   -DSHIFT_VERIFY_EQUATIONS_=1
@@ -38,26 +16,36 @@ set(
 )
 
 set(
-  SHIFT_CORE_LINK_OPTIONS
-  -Wl,-export-dynamic
-)
-
-set(
-  SHIFT_CORE_INCLUDE_DIRS
-  ${CMAKE_BINARY_DIR}/include
-  ${JSONCPP_INCLUDE_DIR}
-)
-
-set(
   SHIFT_CORE_LIBRARIES
-  shift_core
   ${JsonCpp_LIBRARY}
   ${GRAPHVIZ_GVC_LIBRARY}
   ${GRAPHVIZ_CGRAPH_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
   ${CBLAS_LIBRARIES}
   ksl
-  dl
+)
+
+add_library(shift_core STATIC
+  parameter/ArrayBase.cc
+  parameter/Array.cc
+  parameter/FactoryArray.cc
+  parameter/List.cc
+  parameter/Value.cc
+  behavior/Base.cc
+  Assembly.cc
+  Context.cc
+  ModelParameters.cc
+  Jacobian.cc
+  KdTree.cc
+  Substructure.cc
+  utility.cc
+  log.cc
+  Exception.cc
+  Factory.cc
+  Units.cc
+  Topology.cc
+  Frame.cc
+  Base.cc
 )
 
 add_subdirectory(parameter)
@@ -75,6 +63,13 @@ add_subdirectory(sensor)
 add_subdirectory(solver)
 add_subdirectory(terrain)
 
+
+set(
+  SHIFT_CORE_INCLUDE_DIRS
+  ${CMAKE_BINARY_DIR}/include
+  ${JSONCPP_INCLUDE_DIR}
+)
+
 if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
   target_compile_definitions(
     shift_core
@@ -88,15 +83,22 @@ target_compile_options(
   shift_core
   PRIVATE
   ${SHIFT_CORE_COMPILE_FLAGS}
-  # ${HDF5_DEFINITIONS}
-  # ${HDF5_CXX_DEFINITIONS}
 )
 
-target_link_options(
-  shift_core
-  PUBLIC
-  ${SHIFT_CORE_LINK_OPTIONS}
-)
+# These linker options could be used to dynamically link code,
+# which I am not doing yet. It builds ok in gcc with these options,
+# But clang doesn't like them.
+#
+# set(
+#   SHIFT_CORE_LINK_OPTIONS
+#   -Wl,-export-dynamic
+# )
+#
+# target_link_options(
+#   shift_core
+#   PUBLIC
+#   ${SHIFT_CORE_LINK_OPTIONS}
+# )
 
 target_include_directories(
   shift_core
@@ -105,10 +107,11 @@ target_include_directories(
 )
 
 target_link_libraries(
-  ${SHIFT_CORE_LIBRARIES}
+  shift_core
+  PUBLIC
   shift_core_parameter
-  shift_core_behavior
   shift_core_body
+  shift_core_behavior
   shift_core_collisiongeometry
   shift_core_constraint
   shift_core_forcemodule
@@ -120,8 +123,5 @@ target_link_libraries(
   shift_core_sensor
   shift_core_solver
   shift_core_terrain
-  #  ${HDF5_LIBRARIES}
-  #${HDF5_CXX_LIBRARIES}
-  #${HDF5_HL_LIBRARIES}
-  #${HDF5_CXX_HL_LIBRARIES}
 )
+

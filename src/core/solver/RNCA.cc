@@ -8,7 +8,11 @@
 #include "ksl/print.h"
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
+#ifdef __APPLE__
+#include <Accelerate/Accelerate.h>
+#else
 #include <cblas.h>
+#endif
 #endif
 
 bool shift::core::solver::RNCA::registered_ =

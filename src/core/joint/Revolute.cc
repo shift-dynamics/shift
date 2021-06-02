@@ -768,14 +768,14 @@ void shift::core::joint::Revolute::Service(const std::vector<double>& y) {
   // stiffness
   const double q = y[q_index_];
   for(unsigned int i = 0; i < stiffness_coefficients_.size(); i++) {
-    // f[dq_index_] -= stiffness_coefficients_[i] * copysign(std::pow(q, i), q);
-    f[dq_index_] -= stiffness_coefficients_[i] * std::pow(q, i);
+    // f[dq_index_] -= stiffness_coefficients_[i] * copysign(pow(q, i), q);
+    f[dq_index_] -= stiffness_coefficients_[i] * pow(q, i);
   }
 
   // damping
   const double dq = y[context_->get_q_count() + dq_index_];
   for(unsigned int i = 0; i < damping_coefficients_.size(); i++) {
-    // f[dq_index_] -= damping_coefficients_[i] * copysign(std::pow(dq, i), dq);
-    f[dq_index_] -= damping_coefficients_[i] * std::pow(dq, i);
+    // f[dq_index_] -= damping_coefficients_[i] * copysign(pow(dq, i), dq);
+    f[dq_index_] -= damping_coefficients_[i] * pow(dq, i);
   }
 }

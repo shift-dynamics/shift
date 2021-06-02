@@ -10,7 +10,8 @@ add_library(
 target_include_directories(
   shift_core_parameter
   PUBLIC
-  ${SHIFT_CORE_INDLUDE_DIRS}
+  ${SHIFT_CORE_INCLUDE_DIRS}
+  ${JsonCpp_INCLUDE_DIR}
 )
 
 target_compile_options(
@@ -21,5 +22,7 @@ target_compile_options(
 
 target_link_libraries(
   shift_core_parameter
+  PUBLIC
+  shift_core
   ${SHIFT_CORE_LIBRARIES}
 )

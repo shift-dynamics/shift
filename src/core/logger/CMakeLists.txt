@@ -22,10 +22,12 @@ target_compile_options(
   ${SHIFT_CORE_COMPILE_FLAGS}
   ${HDF5_DEFINITIONS}
   ${HDF5_CXX_DEFINITIONS}
+  -O
 )
 
 target_link_libraries(
   shift_core_logger
+  shift_core
   ${SHIFT_CORE_LIBRARIES}
   ${HDF5_LIBRARIES}
   ${HDF5_CXX_LIBRARIES}
