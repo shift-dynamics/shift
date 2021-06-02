@@ -2320,15 +2320,6 @@ double shift::core::Context::GlobalMobility() {
 */
 int shift::core::Context::Digraph(std::string filename) {
 
-  int k = 0;
-  for(auto& substructure : substructure_members_) {
-    std::cout << "[" << k++ << "]: ";
-    for(auto& i : substructure) {
-      std::cout << active_joints_[i]->get_name()[0] << " ";
-    }
-    std::cout << std::endl;
-  }
-
   std::string base_filename = shift::core::topology::GetFilename(filename);
   if(base_filename.length() == 0) {
     std::cerr << "Error: could not resolve filename for: " << filename
