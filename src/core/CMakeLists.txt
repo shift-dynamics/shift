@@ -22,6 +22,7 @@ set(
   ${CMAKE_THREAD_LIBS_INIT}
   ${CBLAS_LIBRARIES}
   ksl
+  stdc++
 )
 
 add_library(shift_core STATIC
