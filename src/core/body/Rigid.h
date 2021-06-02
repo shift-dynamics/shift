@@ -23,12 +23,42 @@ public:
     DeclareParameters();
   }
   virtual ~Rigid() override {}
-  static std::unique_ptr<Rigid> create();
+  static std::unique_ptr<Rigid> Create();
   void DeclareParameters() override;
   static bool is_registered() {
     return registered_;
   }
+  
   ksl_inertia_t get_inertia_wrt_reference() override;
+  
+  int get_reference_frame_index() {
+    return reference_frame_index_;
+  }
+
+  int get_origin_index() {
+    return origin_index_;
+  }
+
+  shift::core::joint::Base* get_parent_joint() {
+    return parent_joint_ptr_;
+  }
+
+  shift::core::body::Base* get_parent_body() {
+    return parent_body_ptr_;
+  }
+
+  shift::core::Frame* get_parent_frame() {
+    return parent_frame_ptr_;
+  }
+
+  int get_index() {
+    return index_;
+  }
+
+  int get_level() {
+    return level_;
+  }
+
 
 private:
   int reference_frame_index_ =

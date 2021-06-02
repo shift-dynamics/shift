@@ -5,13 +5,13 @@
 
 bool shift::core::body::Rigid::registered_ =
   shift::core::Factory<shift::core::body::Base>::get()->RegisterModule(
-    "rigid", shift::core::body::Rigid::create);
+    "rigid", shift::core::body::Rigid::Create);
 
 void shift::core::body::Rigid::DeclareParameters() {
   shift::core::body::Base::DeclareParameters();
 }
 
-std::unique_ptr<shift::core::body::Rigid> shift::core::body::Rigid::create() {
+std::unique_ptr<shift::core::body::Rigid> shift::core::body::Rigid::Create() {
   return std::make_unique<shift::core::body::Rigid>();
 }
 
