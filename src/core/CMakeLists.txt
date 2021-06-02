@@ -25,12 +25,6 @@ set(
 )
 
 add_library(shift_core STATIC
-  parameter/ArrayBase.cc
-  parameter/Array.cc
-  parameter/FactoryArray.cc
-  parameter/List.cc
-  parameter/Value.cc
-  behavior/Base.cc
   Assembly.cc
   Context.cc
   ModelParameters.cc
@@ -62,11 +56,12 @@ add_subdirectory(sensor)
 add_subdirectory(solver)
 add_subdirectory(terrain)
 
+message(STATUS ${JsonCpp_INCLUDE_DIR})
 
 set(
   SHIFT_CORE_INCLUDE_DIRS
   ${CMAKE_BINARY_DIR}/include
-  ${JSONCPP_INCLUDE_DIR}
+  ${JsonCpp_INCLUDE_DIR}
 )
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
