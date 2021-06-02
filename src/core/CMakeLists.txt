@@ -5,7 +5,6 @@ set(
   -fstack-protector-strong
   --param=ssp-buffer-size=4
   -W
-  -lstdc++
   -Wall
   -Wextra
   # -g3
