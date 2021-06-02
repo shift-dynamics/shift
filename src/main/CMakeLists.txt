@@ -19,7 +19,6 @@ target_compile_options(
   -fpic
   -O3
   -std=c++17
-  -export-dynamic
 )
 
 
