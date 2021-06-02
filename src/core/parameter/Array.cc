@@ -26,3 +26,11 @@ void shift::core::parameter::Array<T>::PushBack(std::unique_ptr<T> object) {
   objects_.push_back(dynamic_cast<shift::core::parameter::List*>(
     object_specializations_.back().get()));
 }
+
+template
+void shift::core::parameter::Array<shift::core::Frame>::PushBack(
+    std::unique_ptr<shift::core::Frame> object);
+
+template
+void shift::core::parameter::Array<shift::core::Assembly>::PushBack(
+    std::unique_ptr<shift::core::Assembly> object);

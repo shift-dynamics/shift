@@ -61,3 +61,29 @@ void shift::core::parameter::FactoryArray<T>::ReadJSON(
     }
   }
 }
+
+template 
+void shift::core::parameter::FactoryArray<shift::core::solver::Base>::PushBack(
+  std::unique_ptr<shift::core::solver::Base> object);
+
+template 
+void shift::core::parameter::FactoryArray<shift::core::solver::Base>::ReadJSON(
+  Json::Value& json_array);
+
+template
+void shift::core::parameter::FactoryArray<shift::core::integrator::Base>::PushBack(
+  std::unique_ptr<shift::core::integrator::Base> object);
+
+template 
+void shift::core::parameter::FactoryArray<shift::core::integrator::Base>::ReadJSON(
+  Json::Value& json_array);
+
+template 
+void shift::core::parameter::FactoryArray<shift::core::logger::Base>::PushBack(
+  std::unique_ptr<shift::core::logger::Base> object);
+
+template 
+void shift::core::parameter::FactoryArray<shift::core::logger::Base>::ReadJSON(
+  Json::Value& json_array);
+
+
