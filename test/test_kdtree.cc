@@ -3,19 +3,19 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "shift/core/kdtree/KdTree.h"
+#include "shift/core/KdTree.h"
 
 TEST(KdTree, VerifyGeneration) {
 
   srand(time(NULL));
 
   /* generating vertices to test kd tree */
-  int vertexCount = 1000000;
+  int vertex_count = 1000000;
   int min_number = -500;
   int max_number = 500;
 
   std::vector<ksl_vec3_t> vertices;
-  vertices.resize(vertexCount);
+  vertices.resize(vertex_count);
 
   for(auto& vertex : vertices) {
     vertex.x = (rand() % (max_number + 1 - min_number) + min_number) / 50.0;
@@ -24,13 +24,13 @@ TEST(KdTree, VerifyGeneration) {
   }
 
   // printf("\noriginal vertices:\n");
-  // for(int i = 0; i < vertexCount; i++) {
+  // for(int i = 0; i < vertex_count; i++) {
   //   printf("  (%f, %f, %f)\n", vertices[i * 3 + 0], vertices[i * 3 + 1],
   //          vertices[i * 3 + 2]);
   // }
-  // printf("generating kdtree with %d vertices\n", vertexCount);
+  // printf("generating kdtree with %d vertices\n", vertex_count);
   clock_t begin = clock();
-  auto kdtree = Shift::KdTree<ksl_vec3_t>(vertices);
+  auto kdtree = shift::core::KdTree<ksl_vec3_t>(vertices);
   clock_t end = clock();
   printf("created kdtree in %f seconds\n",
          (double)(end - begin) / CLOCKS_PER_SEC);
@@ -38,7 +38,7 @@ TEST(KdTree, VerifyGeneration) {
   // printf("splitValues: \n");
   // for(int i = 0; i < kdtree->nodeCount; i++) {
   //   printf(" %f ", kdtree->kdnodes[i].splitValue);
-  //   for(int j = 0; j < kdtree->kdnodes[i].vertexCount; j++) {
+  //   for(int j = 0; j < kdtree->kdnodes[i].vertex_count; j++) {
   //     printf(" %d", kdtree->kdnodes[i].vertexLocations[j]);
   //   }
   //   printf("\n");
@@ -54,7 +54,7 @@ TEST(KdTree, VerifyGeneration) {
   /* perform timings for 1000 linear searches */
   double min_sq_distance = DBL_MAX;
   int minIndex = 0;
-  for(int j = 0; j < vertexCount; j++) {
+  for(int j = 0; j < vertex_count; j++) {
     double squared_distance =
       (point.x - vertices[j].x) * (point.x - vertices[j].x) +
       (point.y - vertices[j].y) * (point.y - vertices[j].y) +
@@ -114,7 +114,7 @@ TEST(KdTree, VerifyGeneration) {
   // }
   //
   // int found = 0;
-  // for(int i = 0; i < vertexCount; i++) {
+  // for(int i = 0; i < vertex_count; i++) {
   //   double squared_distance =
   //     (point.x - vertices[i * 3 + 0]) * (point.x - vertices[i * 3 + 0]) +
   //     (point.y - vertices[i * 3 + 1]) * (point.y - vertices[i * 3 + 1]) +

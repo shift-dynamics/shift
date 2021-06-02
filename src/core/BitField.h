@@ -13,8 +13,8 @@ class BitField {
 public:
   BitField(unsigned int count) {
     count_ = count;
-    fieldSize_ = count / 8 + 1;
-    field_ = new unsigned char[fieldSize_]{};
+    field_size_ = count / 8 + 1;
+    field_ = new unsigned char[field_size_]{};
   };
   ~BitField() {
     if(field_) {
@@ -22,25 +22,22 @@ public:
     }
   };
 
+  void set_bin_size(const unsigned int bin_size) {
+    bin_size_ = bin_size;
+  }
+
   /*!
   @brief sets bit to true at specified index
   */
-  void setTrue(const unsigned int index) {
+  void set_true(const unsigned int index) {
     field_[index >> 3] |= 1 << (index & 7);
   }
 
   /*!
   @brief set bit to false at specified index
   */
-  void setFalse(const unsigned int index) {
+  void set_false(const unsigned int index) {
     field_[index >> 3] &= ~(1 << (index & 7));
-  }
-
-  /*!
-  @brief toggle bit at specified index
-  */
-  void toggle(const unsigned int index) {
-    field_[index >> 3] ^= 1 << (index & 7);
   }
 
   /*!
@@ -51,16 +48,23 @@ public:
   }
 
   /*!
+  @brief toggle bit at specified index
+  */
+  void Toggle(const unsigned int index) {
+    field_[index >> 3] ^= 1 << (index & 7);
+  }
+
+  /*!
   @brief clear bitfield, setting all values to 0 (i.e. false)
   */
-  void clear() {
-    memset(field_, 0, fieldSize_ * sizeof(unsigned char));
+  void Clear() {
+    memset(field_, 0, field_size_ * sizeof(unsigned char));
   }
 
   /*!
   @brief print individual bits of bit field as 0s or 1s for debugging purposes
   */
-  void print() {
+  void Print() {
     for(unsigned int i = 0; i < count_; i++) {
       std::cout << (get(i) ? 1 : 0) << " ";
     }
@@ -68,9 +72,9 @@ public:
   }
 
 private:
-  unsigned int binSize_;
+  unsigned int bin_size_ = 1024;
   unsigned char* field_ = NULL;
-  unsigned int fieldSize_;
+  unsigned int field_size_;
   unsigned int count_;
 };
 

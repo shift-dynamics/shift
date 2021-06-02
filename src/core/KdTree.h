@@ -41,8 +41,8 @@ public:
   KdSortNode(){};
   ~KdSortNode();
 
-  int location = 0;
-  bool isAbove = true;
+  int location_ = 0;
+  bool is_above_ = true;
   KdSortNode* previous = NULL;
   KdSortNode* next = NULL;
   KdSortNode* siblings[2] = {NULL, NULL};
@@ -53,7 +53,7 @@ public:
 */
 typedef struct KdList {
 public:
-  void append(KdSortNode* node, int axis) {
+  void Append(KdSortNode* node, int axis) {
     if(this->head_[axis]) {
       /* if list has at least one element, connect node's previous pointer to
        * tail of list */
@@ -70,14 +70,14 @@ public:
     }
   }
 
-  void remove(class KdSortNode* node, int axis);
-  int subdivide(int parentIndex, KdList* below, KdList* above);
+  void Remove(class KdSortNode* node, int axis);
+  int Subdivide(int parentIndex, KdList* below, KdList* above);
 
   class KdSortNode* head_[3];
   class KdSortNode* tail_[3];
-  uint32_t count = 0;
-  uint32_t level = 0;
-  int32_t parentIndex = 0;
+  uint32_t count_ = 0;
+  uint32_t level_ = 0;
+  int32_t parent_index_ = 0;
 } KdList;
 
 /*!
@@ -104,11 +104,11 @@ private:
 };
 
 typedef struct KdNode {
-  double splitValue;
-  int8_t splitAxis;
+  double split_value;
+  int8_t split_axis;
   uint32_t children[2];
-  uint32_t vertexCount;
-  int* vertexLocations;
+  uint32_t vertex_count;
+  int* vertex_locations;
 } KdNode;
 
 template <typename T>
@@ -117,20 +117,20 @@ public:
   KdTree(std::vector<T>& vertices, unsigned int binSize = 1024);
   ~KdTree() {}
 
-  enum { FLOAT, DOUBLE } precision;
-  void print();
-  void sort();
-  int nnsearch(const T&, double& minimumDistance);
-  int nnsearchWithinRadius(const T&, double searchRadius,
+  enum { FLOAT, DOUBLE } precision_;
+  void Print();
+  void Sort();
+  int Nnsearch(const T&, double& minimumDistance);
+  int NnsearchWithinRadius(const T&, double searchRadius,
                            double& minimumDistance,
                            std::vector<int>& nearestPositions);
-  bool intersectionTest(const T& point0, const T& point1, const double t1,
+  bool IntersectionTest(const T& point0, const T& point1, const double t1,
                         double intersectionPoint);
-  void nearest(const int nodeIndex, const T& point, int& closest,
+  void Nearest(const int nodeIndex, const T& point, int& closest,
                double& minimumDistance);
 
 private:
-  void sortVertices();
+  void SortVertices();
 
   std::vector<KdNode> nodes_;
   std::vector<int> p01_[3];
@@ -138,8 +138,8 @@ private:
 
   std::vector<T> vertices_;
 
-  unsigned int binSize_ = 0;
-  std::vector<int> vertexLocations_;
+  unsigned int bin_size_ = 0;
+  std::vector<int> vertex_locations_;
   BitField visited_;
   KdLists kdlists_;
 };

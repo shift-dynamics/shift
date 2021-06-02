@@ -15,7 +15,6 @@ target_include_directories(shift-test PRIVATE
 target_link_libraries(shift-test
   shift_core
   ${GTEST_BOTH_LIBRARIES}
-  dl
 )
 
 # target_link_options(
