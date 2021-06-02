@@ -18,11 +18,11 @@ target_link_libraries(shift-test
   dl
 )
 
-target_link_options(
-  shift-test
-  PUBLIC
-  -Wl,-export-dynamic
-)
+# target_link_options(
+#   shift-test
+#   PUBLIC
+#   # -Wl,-export-dynamic
+# )
 
 target_compile_options(
   shift-test
