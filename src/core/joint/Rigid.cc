@@ -89,14 +89,6 @@ void shift::core::joint::rigidinv_dhva(const shift::core::Context& context,
 
 void shift::core::joint::Rigid::DeclareParameters() {}
 
-// void shift::core::joint::Rigid::ReadJSON(Json::Value& value) {
-//   shift::core::joint::Base::readJSON(value);
-//   // frame_.setNameRequired(false);
-//   if(value["initial_displacement"]) {
-//     frame_.readJSON(value["initial_displacement"]);
-//   }
-// }
-
 shift::core::topology::dh_fptr shift::core::joint::Rigid::Dfptr() {
   if(sense_ >= 0) {
     return rigid_dh;

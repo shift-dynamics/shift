@@ -2,7 +2,11 @@ include_directories(${CMAKE_BINARY_DIR}/include)
 
 add_executable(shift-cli shift_cli.cc)
 
-target_link_libraries(shift-cli shift_core ksl ${JsonCpp_LIBRARY})
+target_link_libraries(shift-cli
+  shift_core
+  ksl
+  ${JsonCpp_LIBRARY}
+)
 
 target_compile_options(
   shift-cli
@@ -12,7 +16,7 @@ target_compile_options(
   -fstack-protector-strong
   --param=ssp-buffer-size=4
   -W
-  -lstdc++
+  # -lstdc++
   -Wall
   -Wextra
   -g3
