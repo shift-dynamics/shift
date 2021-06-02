@@ -120,7 +120,7 @@ void shift::core::logger::HDF5::WriteHeader() {
 }
 
 void shift::core::logger::HDF5::WriteStates(const double /* t */,
-                                            const std::vector<double>& q) {
+                                            const std::vector<double>& /* q */) {
 #if 0
   // size_t q_offset;
   // const auto& q_offsets = context_->qLookupCompressed();
