@@ -41,27 +41,30 @@ int main(int argc, char* argv[]) {
   if(last < executable.length()) {
     executable = executable.substr(last);
   }
-  std::cout << executable << " v" << SHIFT_VERSION_MAJOR << "."
-            << SHIFT_VERSION_MINOR << "." << SHIFT_VERSION_PATCH << ", ";
-  std::cout << "branch: " << SHIFT_GIT_BRANCH << ", ";
-  std::cout << "commit: " << SHIFT_GIT_COMMIT_HASH;
 
   unsigned int level = shift::core::log::level;
-  std::cout << ", log level: ";
+  std::string level_str;
   if(level == 0) {
-    std::cout << "'fatal'";
+    level_str = "'fatal'";
   } else if(level == 1) {
-    std::cout << "'error'";
+    level_str = "'error'";
   } else if(level == 2) {
-    std::cout << "'warning'";
+    level_str = "'warning'";
   } else if(level == 3) {
-    std::cout << "'info'";
+    level_str = "'info'";
   } else if(level == 4) {
-    std::cout << "'debug'";
+    level_str = "'debug'";
   } else {
-    std::cout << "'trace'";
+    level_str = "'trace'";
   }
-  std::cout << std::endl;
+
+
+  std::cout << executable + " v" << std::to_string(SHIFT_VERSION_MAJOR) << "."
+    << std::to_string(SHIFT_VERSION_MINOR) << "."
+    << std::to_string(SHIFT_VERSION_PATCH) << ", "
+    << "branch: " << SHIFT_GIT_BRANCH << ", "
+    << "commit: " << SHIFT_GIT_COMMIT_HASH << ", "
+    << "log level: " << level_str << std::endl << std::endl;
 
   if(args["help"]) {
     std::cout << std::endl << "usage:" << std::endl;
@@ -110,6 +113,9 @@ int main(int argc, char* argv[]) {
   if(args.has_option("verbosity")) {
     shift::core::log::SetLogLevel(args["verbosity"].as<std::string>());
   }
+
+  // SHIFT_DEBUG("Run-time log level: " + std::to_string(shift::core::log::level));
+  // SHIFT_DEBUG("Compiled log level: " + std::to_string(SHIFT_LOG_LEVEL));
 
   try {
 
