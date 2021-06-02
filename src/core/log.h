@@ -7,6 +7,7 @@
 #include <string>
 #include <time.h>
 #include <iostream>
+#include <fstream>
 #include <sys/stat.h>
 
 #ifndef SHIFT_LOG_LEVEL
@@ -77,7 +78,7 @@
 #define SHIFT_DEBUG(msg) do {} while(0)
 #endif
 
-#if SHIFT_LOG_TRACE > 4
+#if SHIFT_LOG_LEVEL > 4
 #define SHIFT_TRACE(msg) \
   do { \
     if(shift::core::log::level > 4) { \

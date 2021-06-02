@@ -174,16 +174,12 @@ void shift::core::Context::ProcessFrames() {
     frame->set_in_tree(true);
   }
 
-  // std::cout << "setting reference frame on fixed body" << std::endl;
   get_fixed_body()->SetupReferenceFrame();
   for(auto& joint : active_joints_) {
     auto body = joint->get_system_child_body();
     body->set_parent_joint(joint);
   }
 
-  // for(auto& frame : get_fixed_body()->frames()) {
-  //   assert(frame->get_parent_body());
-  // }
   for(auto& body : active_articulated_bodies_) {
     for(auto& frame : body->get_frames()) {
       frame->set_parent_body(body);
@@ -862,12 +858,6 @@ void shift::core::Context::LevelOrderSort() {
 
 void shift::core::Context::ProcessVirtualBodies() {
 
-  // std::cout << "Processing virtual bodies" << std::endl;
-  // std::cout << "active_articulated_bodies_.size(): "
-  //           << active_articulated_bodies_.size() << std::endl;
-  // std::cout << "active_bodies_.size(): " << active_bodies_.size() <<
-  // std::endl;
-
   std::vector<shift::core::body::Base*> bodies(active_joints_.size());
 
   // clear system child body and frame pointers
@@ -952,36 +942,17 @@ void shift::core::Context::ProcessPCL() {
     }
   }
 
-  // std::cout << "pcl: ";
-  // for(auto i : pcl_) {
-  //   std::cout << i << " ";
-  // }
-  // std::cout << std::endl;
 
-  // std::cout << "parent list: " << std::endl;
-  // for(unsigned int i = 0; i < pcl_.size(); i++) {
-  //   int parent_index = pcl_[i];
-  //
-  //   std::cout << "body[" << i << "]: " << active_bodies_[i]->get_name()
-  //             << ", parent: ";
-  //   if(parent_index < 0) {
-  //     std::cout << "fixed";
-  //   } else {
-  //     std::cout << active_bodies_[parent_index]->get_name();
-  //   }
-  //   std::cout << ", " << active_joints_[i]->get_name() << std::endl;
-  // }
-
-  // std::cout << std::endl << "# body / joint list: " << std::endl;
-  // for(unsigned int i = 0; i < active_bodies_.size(); i++) {
-  //   std::cout << "[" << i << "]" << active_joints_[i]->get_name();
-  //   if(active_joints_[i]->sense() > 0) {
-  //     std::cout << " +";
-  //   } else {
-  //     std::cout << " -";
-  //   }
-  //   std::cout << " " << active_bodies_[i]->get_name() << std::endl;
-  // }
+#if SHIFT_LOG_LEVEL > 4
+  {
+    std::stringstream ss;
+    ss << "pcl: ";
+    for(auto i : pcl_) {
+      ss << i << " ";
+    }
+    SHIFT_TRACE(ss.str());
+  }
+#endif
 }
 
 void shift::core::Context::ProcessLoopMembers() {
@@ -1008,12 +979,11 @@ void shift::core::Context::ProcessLoopMembers() {
     int positive = chord_constraints_[i]->get_parent_body()->get_index();
     int negative = chord_constraints_[i]->get_child_body()->get_index();
 
-    // std::cout << "parent body: " <<
-    // chord_constraints_[i]->get_parent_body()->get_name()
-    //           << ": " << positive << std::endl;
-    // std::cout << "child body: " <<
-    // chord_constraints_[i]->child_body()->get_name()
-    //           << ": " << negative << std::endl;
+    SHIFT_TRACE("Procesing chord constranint " + std::to_string(i) + 
+      " with parent body: '" +
+      chord_constraints_[i]->get_parent_body()->get_name() +
+      "' and child body: '" +
+      chord_constraints_[i]->get_child_body()->get_name() + "'");
 
     loop_members[i].push_back(negative);
     negative_loop_members[i].push_back(negative);
@@ -1076,9 +1046,7 @@ void shift::core::Context::ProcessLoopMembers() {
 
 void shift::core::Context::DetectSubstructures() {
 
-  std::cout << "Detecting substructures" << std::endl;
-
-  std::cout << "  Merging chord loops into substructures" << std::endl;
+  SHIFT_TRACE("Merging chord loops into substructures");
 
   if(chord_constraints_.size() > 0) {
 
@@ -1140,85 +1108,83 @@ void shift::core::Context::DetectSubstructures() {
       substructures.push_back(substructure);
     }
 
-#ifdef VERBOSE_
-    std::cout << std::endl << "loop members: " << std::endl;
-    int k = 0;
-    for(auto& loop : loop_members_) {
-      std::cout << "[" << k++ << "]: ";
-      for(auto& member : loop) {
-        if(member < 0) {
-          std::cout << "fixed ";
-        } else {
-          std::cout << active_joints_[member]->get_name()[0] << " ";
-        }
-      } 
-      std::cout << std::endl;
-    }
-
-    std::cout << std::endl <<
-      "Substructure chord loop members:" << std::endl;
-    k = 0;
-    for(auto sub : substructures) {
-      std::cout << "substructure [" << k++ << "]: ";
-      for(auto i : sub) {
-        std::cout << i << " ";
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "loop members: \n";
+      int k = 0;
+      for(auto& loop : loop_members_) {
+        ss << "  [" << k++ << "]: ";
+        for(auto& member : loop) {
+          if(member < 0) {
+            ss << "fixed ";
+          } else {
+            ss << active_joints_[member]->get_name()[0] << " ";
+          }
+        } 
+        ss << std::endl;
       }
-      std::cout << std::endl;
+      SHIFT_TRACE(ss.str());
     }
 #endif
 
-    /* sort loops of each substructure in monotonically increasing level order
-     */
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "Substructure chord loop members:\n";
+      int k = 0;
+      for(auto sub : substructures) {
+        ss << "  substructure [" << k++ << "]: ";
+        for(auto i : sub) {
+          ss << i << " ";
+        }
+        ss << std::endl;
+      }
+      SHIFT_TRACE(ss.str());
+    }
+#endif
+
+    // sort loops of each substructure in monotonically increasing level order
     for(auto& substructure : substructures) {
       std::sort(substructure.begin(), substructure.end(),
                 SubstructureLoopLevelOrder(this, loop_members_));
     }
 
-#ifdef VERBOSE_
-    std::cout << std::endl <<
-      "Substructure members after sorting loops in monotonically level increasing order:" 
-      << std::endl;
-    k = 0;
-    for(auto sub : substructures) {
-      std::cout << "substructure [" << k++ << "]: ";
-      for(auto i : sub) {
-        std::cout << i << " ";
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "Substructure members after sorting loops in monotonically " <<
+        "level increasing order:\n"; 
+      int k = 0;
+      for(auto sub : substructures) {
+        ss << "  substructure [" << k++ << "]: ";
+        for(auto i : sub) {
+          ss << i << " ";
+        }
+        ss << std::endl;
       }
-      std::cout << std::endl;
+      SHIFT_TRACE(ss.str());
     }
-
 #endif
 
-    /* sort substructures in monotonically level increasing order */
+    // sort substructures in monotonically level increasing order
     std::sort(substructures.begin(), substructures.end(),
               SubstructureLevelOrder(this, loop_members_));
 
-#ifdef VERBOSE_
-    std::cout << std::endl <<
-      "Substructure members after sorting loops in monotonically level increasing order:" 
-      << std::endl;
-    k = 0;
-    for(auto& sub : substructures) {
-      std::cout << "substructure [" << k++ << "]: ";
-      for(auto& i : sub) {
-        std::cout << i << " ";
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "Substructures after sorting substructures in monotonically " <<
+        "level increasing order:\n";
+      int k = 0;
+      for(auto& sub : substructures) {
+        ss << "  substructure [" << k++ << "]: ";
+        for(auto& i : sub) {
+          ss << i << " ";
+        }
+        ss << std::endl;
       }
-      std::cout << std::endl;
-    }
-
-#endif
-
-
-
-#ifdef VERBOSE_
-    std::cout << "Substructure chord loop members:" << std::endl;
-    k = 0;
-    for(auto& sub : substructures) {
-      std::cout << "substructure [" << k++ << "]: ";
-      for(auto& i : sub) {
-        std::cout << i << " ";
-      }
-      std::cout << std::endl;
+      SHIFT_TRACE(ss.str());
     }
 #endif
 
@@ -1245,21 +1211,23 @@ void shift::core::Context::DetectSubstructures() {
                 substructure_members_[i].end(), LevelOrder(this));
     }
 
-#ifdef VERBOSE_
-    std::cout << std::endl << 
-      "Substructures after populating from substructures and loop_members array: " << 
-      std::endl;
-    k = 0;
-    for(auto& sub : substructure_members_) {
-      std::cout << "[" << k++ << "]: ";
-      for(auto& i : sub) {
-        if(i < 0) {
-          std::cout << "fixed ";
-        } else {
-          std::cout << active_joints_[i]->get_name()[0] << " ";
-        }
-      } 
-      std::cout << std::endl;
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "Substructure members:\n";
+      int k = 0;
+      for(auto& sub : substructure_members_) {
+        ss << "  [" << k++ << "]: ";
+        for(auto& i : sub) {
+          if(i < 0) {
+            ss << "fixed ";
+          } else {
+            ss << active_joints_[i]->get_name()[0] << " ";
+          }
+        } 
+        ss << std::endl;
+      }
+      SHIFT_TRACE(ss.str());
     }
 #endif
 
@@ -1285,46 +1253,48 @@ void shift::core::Context::DetectSubstructures() {
     positive_loop_members_ = positive_loop_members;
     chord_constraints_ = chord_constraints;
 
-#ifdef VERBOSE_
-    std::cout << std::endl << 
-      "Loops after populating from substructures and loop_members array: " << 
-      std::endl;
-    std::cout << "  all loops:" << std::endl;
-    k = 0;
-    for(auto& loop : loop_members_) {
-      std::cout << "    [" << k++ << "]: ";
-      for(auto& i : loop) {
-        if(i < 0) {
-          std::cout << "fixed ";
-        } else {
-          std::cout << active_joints_[i]->get_name()[0] << " ";
-        }
-      } 
-      std::cout << std::endl;
-    }
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "Loop members:\n";
+      ss << "  all loop members:\n";
+      int k = 0;
+      for(auto& loop : loop_members_) {
+        ss << "    [" << k++ << "]: ";
+        for(auto& i : loop) {
+          if(i < 0) {
+            ss << "fixed ";
+          } else {
+            ss << active_joints_[i]->get_name()[0] << " ";
+          }
+        } 
+        ss << std::endl;
+      }
 
-    std::cout << "  negative loop members:" << std::endl;
-    k = 0;
-    for(auto& loop : negative_loop_members_) {
-      std::cout << "    [" << k++ << "]: ";
-      for(auto& i : loop) {
-        std::cout << active_joints_[i]->get_name()[0] << " ";
-      } 
-      std::cout << std::endl;
-    }
+      ss << "  negative loop members:\n";
+      k = 0;
+      for(auto& loop : negative_loop_members_) {
+        ss << "    [" << k++ << "]: ";
+        for(auto& i : loop) {
+          ss << active_joints_[i]->get_name()[0] << " ";
+        } 
+        ss << std::endl;
+      }
 
-    std::cout << "  positive loop members:" << std::endl;
-    k = 0;
-    for(auto& loop : positive_loop_members_) {
-      std::cout << "    [" << k++ << "]: ";
-      for(auto& i : loop) {
-        if(i < 0) {
-          std::cout << "fixed ";
-        } else {
-          std::cout << active_joints_[i]->get_name()[0] << " ";
-        }
-      } 
-      std::cout << std::endl;
+      ss << "  positive loop members:\n";
+      k = 0;
+      for(auto& loop : positive_loop_members_) {
+        ss << "    [" << k++ << "]: ";
+        for(auto& i : loop) {
+          if(i < 0) {
+            ss << "fixed ";
+          } else {
+            ss << active_joints_[i]->get_name()[0] << " ";
+          }
+        } 
+        ss << std::endl;
+      }
+      SHIFT_TRACE(ss.str());
     }
 #endif
 
@@ -1343,16 +1313,19 @@ void shift::core::Context::DetectSubstructures() {
       }
     }
 
-#ifdef VERBOSE_
-    std::cout << std::endl << "short list:" << std::endl;
-    for(auto& i : short_list) {
-      if(i < 0) {
-        std::cout << "fixed ";
-      } else {
-        std::cout << active_joints_[i]->get_name()[0] << " "; 
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "short list: ";
+      for(auto& i : short_list) {
+        if(i < 0) {
+          ss << "fixed ";
+        } else {
+          ss << active_joints_[i]->get_name()[0] << " "; 
+        }
       }
+      SHIFT_TRACE(ss.str());
     }
-    std::cout << std::endl;
 #endif
 
     /* expand short list */
@@ -1394,16 +1367,19 @@ void shift::core::Context::DetectSubstructures() {
     std::vector<int> expanded_array{std::begin(expanded_list),
                                     std::end(expanded_list)};
 
-#ifdef VERBOSE_
-    std::cout << std::endl << "expanded array:" << std::endl;
-    for(auto& i : expanded_array) {
-      if(i < 0) {
-        std::cout << "fixed ";
-      } else {
-        std::cout << active_joints_[i]->get_name()[0] << " "; 
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "expanded array: ";
+      for(auto& i : expanded_array) {
+        if(i < 0) {
+          ss << "fixed ";
+        } else {
+          ss << active_joints_[i]->get_name()[0] << " "; 
+        }
       }
+      SHIFT_TRACE(ss.str());
     }
-    std::cout << std::endl;
 #endif
 
     /* verify that all joints were added to the expanded array */
@@ -1416,8 +1392,7 @@ void shift::core::Context::DetectSubstructures() {
         }
       }
       if(!found) {
-        std::cerr << active_articulated_bodies_[i]->get_name() << " not found!"
-                  << std::endl;
+        SHIFT_FATAL(active_articulated_bodies_[i]->get_name() + " not found!");
       }
     }
     if(!found) {
@@ -1451,24 +1426,18 @@ void shift::core::Context::DetectSubstructures() {
     active_joints_ = active_joints;
     active_articulated_bodies_ = active_bodies;
 
-#ifdef VERBOSE_
-    std::cout << "reordered joints: ";
-    for(auto& joint : active_joints_) {
-      std::cout << joint->get_name()[0] << " ";
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "reordered joints: ";
+      for(auto& joint : active_joints_) {
+        ss << joint->get_name()[0] << " ";
+      }
+      SHIFT_TRACE(ss.str());
     }
-    std::cout << std::endl;
 #endif
     
     shift::core::topology::SetInversePermutation(p_01, p_10);
-
-    // i = 0;
-    // for(auto& members : substructure_members_) {
-    //   std::cout << "  [" << i++ << "]: ";
-    //   for(auto& member : members) {
-    //     std::cout << member << " ";
-    //   }
-    //   std::cout << std::endl;
-    // }
 
     // convert loop members from permutation order 0 to 1
     for(auto& loop : loop_members_) {
@@ -1503,107 +1472,80 @@ void shift::core::Context::DetectSubstructures() {
       }
     }
 
-#ifdef VERBOSE_
-    std::cout << "active joints: ";
-    for(auto& joint : active_joints_) {
-      std::cout << joint->get_name()[0] << " ";
-    }
-
-    std::cout << std::endl << "substructures:" << std::endl;
-    std::cout << "  all loops:" << std::endl;
-    k = 0;
-    for(auto& loop : loop_members_) {
-      std::cout << "    [" << k++ << "]: ";
-      for(auto& i : loop) {
-        if(i < 0) {
-          std::cout << "fixed ";
-        } else {
-          std::cout << active_joints_[i]->get_name()[0] << " ";
-        }
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss; 
+      ss << "active joints after sorting: ";
+      for(auto& joint : active_joints_) {
+        ss << joint->get_name()[0] << " ";
       }
-      std::cout << std::endl;
+      SHIFT_TRACE(ss.str());
     }
-
-    std::cout << "  negative loops:" << std::endl;
-    k = 0;
-    for(auto& loop : negative_loop_members_) {
-      std::cout << "    [" << k++ << "]: ";
-      for(auto& i : loop) {
-        if(i < 0) {
-          std::cout << "fixed ";
-        } else {
-          std::cout << active_joints_[i]->get_name()[0] << " ";
-        }
-      }
-      std::cout << std::endl;
-    }
-
-    std::cout << "  positive loops:" << std::endl;
-    k = 0;
-    for(auto& loop : positive_loop_members_) {
-      std::cout << "    [" << k++ << "]: ";
-      for(auto& i : loop) {
-        if(i < 0) {
-          std::cout << "fixed ";
-        } else {
-          std::cout << active_joints_[i]->get_name()[0] << " ";
-        }
-      }
-      std::cout << std::endl;
-    }
-
-    std::cout << "  substructures:" << std::endl;
-    k = 0;
-    for(auto& substructure : substructure_members_) {
-      std::cout << "    [" << k++ << "]: ";
-      for(auto& i : substructure) {
-        if(i < 0) {
-          std::cout << "fixed ";
-        } else {
-          std::cout << active_joints_[i]->get_name()[0] << " ";
-        }
-      }
-      std::cout << std::endl;
-    }
-
 #endif
 
-    // std::cout << std::endl << "substructures after sort:" << std::endl;
-    // unsigned int i = 0;
-    // for(auto& members : substructure_members_) {
-    //   std::cout << "  [" << i++ << "]: ";
-    //   for(auto& member : members) {
-    //     std::cout << member << " ";
-    //   }
-    //   std::cout << std::endl;
-    // }
-    //
-    // std::cout << "substructure members:" << std::endl;
-    // i = 0;
-    // for(auto& members : substructure_members_) {
-    //   std::cout << "[" << i++ << "]: " << std::endl;
-    //   for(auto& member : members) {
-    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
-    //   }
-    //   std::cout << std::endl;
-    // }
-    //
-    // std::cout << "loop members:" << std::endl;
-    // for(unsigned int i = 0; i < loop_members_.size(); i++) {
-    //   std::cout << "loop members [" << i << "]: " << std::endl;
-    //   for(auto member : loop_members_[i]) {
-    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
-    //   }
-    //   std::cout << "negative loop members [" << i << "]: " << std::endl;
-    //   for(auto member : negative_loop_members_[i]) {
-    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
-    //   }
-    //   std::cout << "positive loop members [" << i << "]: " << std::endl;
-    //   for(auto member : positive_loop_members_[i]) {
-    //     std::cout << "  " << active_joints_[member]->get_name() << std::endl;
-    //   }
-    //   std::cout << std::endl;
-    // }
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "substructures:\n";
+      ss << "  all loops:\n";
+      int k = 0;
+      for(auto& loop : loop_members_) {
+        ss << "    [" << k++ << "]: ";
+        for(auto& i : loop) {
+          if(i < 0) {
+            ss << "fixed ";
+          } else {
+            ss << active_joints_[i]->get_name()[0] << " ";
+          }
+        }
+        ss << std::endl;
+      }
+
+      ss << "  negative loops:\n";
+      k = 0;
+      for(auto& loop : negative_loop_members_) {
+        ss << "    [" << k++ << "]: ";
+        for(auto& i : loop) {
+          if(i < 0) {
+            ss << "fixed ";
+          } else {
+            ss << active_joints_[i]->get_name()[0] << " ";
+          }
+        }
+        ss << std::endl;
+      }
+
+      ss << "  positive loops:\n"; 
+      k = 0;
+      for(auto& loop : positive_loop_members_) {
+        ss << "    [" << k++ << "]: ";
+        for(auto& i : loop) {
+          if(i < 0) {
+            ss << "fixed ";
+          } else {
+            ss << active_joints_[i]->get_name()[0] << " ";
+          }
+        }
+        ss << std::endl;
+      }
+
+      ss << "  substructures:\n";
+      k = 0;
+      for(auto& substructure : substructure_members_) {
+        ss << "    [" << k++ << "]: ";
+        for(auto& i : substructure) {
+          if(i < 0) {
+            ss << "fixed ";
+          } else {
+            ss << active_joints_[i]->get_name()[0] << " ";
+          }
+        }
+        ss << std::endl;
+      }
+      SHIFT_TRACE(ss.str());
+    }
+#endif
+
   }
 }
 

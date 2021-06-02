@@ -14,6 +14,7 @@
 #include "shift/core/Exception.h"
 #include "shift/core/Substructure.h"
 #include "shift/core/Topology.h"
+#include "shift/core/log.h"
 
 #include "ksl/linalg.h"
 #include "ksl/print.h"
@@ -451,9 +452,8 @@ int shift::core::Substructure::RemoveConstraintViolations() {
   context_->UpdateDH();
   double initial_error = EvaluateConstraints(context_->get_dhva());
 
-  // if(print_constraint_error_) {
-    std::cout << std::endl << "initial error: " << initial_error << std::endl;
-  //}
+  SHIFT_DEBUG("Initial constraint error for substructure " + 
+    std::to_string(index_) + ": "  + std::to_string(initial_error));
 
   int step = 0;
   double eps_rank_determination =
@@ -466,13 +466,7 @@ int shift::core::Substructure::RemoveConstraintViolations() {
     context_->UpdateDH();
     error = EvaluateConstraints(context_->get_dhva());
     
-    // if(print_constraint_error_) {
-      for(size_t j = 0; j < q_count_; j++) {
-        std::cout << q_[j] << " ";
-      }
-      std::cout << std::endl;
-      std::cout << "  [" << step << "] error: " << error << std::endl;
-    // }
+    SHIFT_DEBUG("  [" << step << "] error: " + std::to_string(error));
     ++step;
   }
   context_->UpdateDH();

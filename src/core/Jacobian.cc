@@ -5,6 +5,7 @@
 #include "shift/core/Context.h"
 #include "shift/core/Jacobian.h"
 #include "shift/core/Topology.h"
+#include "shift/core/log.h"
 
 void shift::core::Jacobian::Initialize() {
   newton_raphson_failure_ = false;
@@ -46,15 +47,15 @@ void shift::core::Jacobian::MallocEquations() {
   substructures_.clear();
   substructures_.resize(substructure_members.size());
 
-  std::cout << "Jacobian: Mallocing equations:" << std::endl;
   // get total size of Jacobian
   jacobian_size_ = 0;
   constraint_equation_count_ = 0;
   unsigned int q_offset = 0;
   unsigned int dq_offset = 0;
   unsigned int joint_offset = 0;
+  
+  
   for(unsigned int i = 0; i < substructure_members.size(); i++) {
-    std::cout << "substructure [" << i << "]: ";
     substructures_[i].set_index(i);
     unsigned int q_count = 0;
     unsigned int dq_count = 0;
@@ -62,12 +63,10 @@ void shift::core::Jacobian::MallocEquations() {
     unsigned int chord_constraint_count = 0;
     for(size_t j = 1; j < substructure_members[i].size(); j++) {
       auto& joint = context_->get_active_joints()[substructure_members[i][j]];
-      std::cout << joint->get_name()[0] << " ";
       q_count += joint->get_q_count();
       dq_count += joint->get_dq_count();
       joint_count += (joint->get_q_count() > 0) ? 1 : 0;
     }
-    std::cout << std::endl;
 
     chord_constraint_count += substructure_indices[i].size();
     substructures_[i].set_q_count(q_count);
@@ -199,27 +198,34 @@ void shift::core::Jacobian::CompressLoopMembers() {
       &negative_loop_members_compressed_);
     j += substructure.get_chord_constraint_count();
   }
- 
-  std::cout << "negative loop members compressed:" << std::endl;
-  j = 0;
-  for(auto& loop : negative_loop_members_compressed_) {
-    std::cout << "  [" << j++ << "]: ";
-    for(auto& i : loop) {
-      std::cout << i << " ";
-    }
-    std::cout << std::endl;
-  }
 
- 
-  std::cout << "positive loop members compressed:" << std::endl;
-  j = 0;
-  for(auto& loop : positive_loop_members_compressed_) {
-    std::cout << "  [" << j++ << "]: ";
-    for(auto& i : loop) {
-      std::cout << i << " ";
+#if SHIFT_LOG_LEVEL > 4 
+  {
+    std::stringstream ss;
+    ss << "compressed loop members:\n";
+    ss << "  negative loop members compressed:\n";
+    int j = 0;
+    for(auto& loop : negative_loop_members_compressed_) {
+      ss << "    [" << j++ << "]: ";
+      for(auto& i : loop) {
+        ss << i << " ";
+      }
+      ss << std::endl;
     }
-    std::cout << std::endl;
+
+    ss << "  positive loop members compressed:\n";
+    j = 0;
+    for(auto& loop : positive_loop_members_compressed_) {
+      ss << "   [" << j++ << "]: ";
+      for(auto& i : loop) {
+        ss << i << " ";
+      }
+      ss << std::endl;
+    }
+
+    SHIFT_TRACE(ss.str());
   }
+#endif
 
 }
 
