@@ -1329,10 +1329,10 @@ void shift::core::solver::RNCA::SetupRHS() {
     use the permutation array p_v31 to assign to f_l
 
     at this point the quantity g contains C{-T} (g + \tilde{v}^Tp - m\gamma)
-    which has length nonRigidJointCount and is stored in PO1.
+    which has length non_rigid_joint_count and is stored in PO1.
 
     Expand each multi DOF joint to expand the quantity in g with length
-    nonRigidJointCount in PO1 to fl of length dqCount in PO3 */
+    non_rigid_joint_count in PO1 to fl of length dqCount in PO3 */
   
   assert(context_);
   const auto& f = context_->get_joint_working_forces();
@@ -2068,8 +2068,8 @@ bool shift::core::solver::RNCA::Verify(const double t,
   /* initialize coefficient matrix to zero */
   // double* Ml =
   //   calloc(
-  //     context->nonRigidJointCount *
-  //     context->nonRigidJointCount,
+  //     context->non_rigid_joint_count *
+  //     context->non_rigid_joint_count,
   //     sizeof(double));
 
   // printf("# updating dhva\n");
