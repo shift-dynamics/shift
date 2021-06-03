@@ -1,8 +1,11 @@
 #include <assert.h>
 
+#include <iomanip>
+
 #include "shift/core/Context.h"
 #include "shift/core/Factory.h"
 #include "shift/core/solver/RNCA.h"
+#include "shift/core/log.h"
 
 #include "ksl/array.h"
 #include "ksl/print.h"
@@ -1332,6 +1335,7 @@ void shift::core::solver::RNCA::SetupRHS() {
 
     Expand each multi DOF joint to expand the quantity in g with length
     nonRigidJointCount in PO1 to fl of length dqCount in PO3 */
+  
   assert(context_);
   const auto& f = context_->get_joint_working_forces();
   const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
@@ -1346,6 +1350,24 @@ void shift::core::solver::RNCA::SetupRHS() {
 
   const auto& integral_constraint_error =
     integrator_->get_integral_error();
+
+
+#if SHIFT_LOG_LEVEL > 4
+  {
+    std::stringstream ss;
+    ss << "baumgarte_omega_n: " << (baumgarte_2_omega_n / 2.0);
+    SHIFT_TRACE(ss.str());
+  }
+
+  {
+    std::stringstream ss;
+    ss << "integral constraint error: "; // << integral_constraint_error;
+    for(auto& e : integral_constraint_error) {
+      ss << e << " ";
+    }
+    SHIFT_TRACE(ss.str());
+  }
+#endif
 
 #ifdef SHIFT_USE_OPENMP_
 #pragma omp parallel for
@@ -1375,34 +1397,53 @@ void shift::core::solver::RNCA::SetupRHS() {
     }
   }
 
+  SHIFT_TRACE("Evaluating primary constraints");
+  
   /* evaluate primary constraints (\bar{\gamma}_p) in PO(1), store in PO(2) */
-  // int chord_constraint_offset = 0;
+  size_t chord_constraint_offset = 0;
   for(auto& substructure : jacobian.get_substructures()) {
+
+    SHIFT_TRACE(
+      "Processing substructure: " + std::to_string(substructure.get_index()));
 
     const auto& pr_21 = substructure.get_pr21();
     int dq_offset = substructure.get_dq_offset();
     const double* cs = substructure.get_cs();
     const auto& constraints = substructure.get_constraint_indices();
+    {
+      std::stringstream ss;
+      ss << "dq_offset: " << dq_offset;
+      SHIFT_TRACE(ss.str());
+    }
+ 
+#if SHIFT_LOG_LEVEL > 4
+    {
+        std::stringstream ss;
+        ss << "pr_21: ";
+        for(auto& i : pr_21) {
+           ss << i << " ";
+        }
+        ss << std::endl;
+        SHIFT_TRACE(ss.str());
+    }
+#endif
 
-    size_t chord_constraint_offset = 0;
     for(size_t k = 0; k < substructure.get_chord_constraint_count();
         k++, chord_constraint_offset++) {
 
-#if 0
-      std::cout << "pr_21: ";
-      for(auto& i : pr_21) {
-        std::cout << i << " ";
-      }
-      std::cout << std::endl;
+#if SHIFT_LOG_LEVEL > 4 
+//       {
+//         std::stringstream ss;
+//         ss << "constraint offset: " << chord_constraint_offset << "\n";
+//         ksl_screw_print(ss.rdbuf(), &dhva.aq[constraints[k].child.v], "  aq child: ");
+//         ksl_screw_print((FILE*)ss.rdbuf(), &dhva.aq[constraints[k].parent.v], "  aq parent: ");
+// 
+//         ksl_screw_print((FILE*)ss.rdbuf(), &dhva.v[constraints[k].child.v], "  v child: ");
+//         ksl_screw_print((FILE*)ss.rdbuf(), &dhva.v[constraints[k].parent.v], "  v parent: ");
+//         SHIFT_TRACE(ss.str());
+//       }
 
-      ksl_screw_print(stdout, &dhva.aq[constraints[k].child.v], "aq child: ");
-      ksl_screw_print(stdout, &dhva.aq[constraints[k].parent.v], "aq parent: ");
-
-      ksl_screw_print(stdout, &dhva.v[constraints[k].child.v], "v child: ");
-      ksl_screw_print(stdout, &dhva.v[constraints[k].parent.v], "v parent: ");
 #endif
-  
-      std::cout << "dq_offset: " << dq_offset << std::endl;
 
       for(size_t l = 0; l < 6; l++) {
         if(pr_21[k * 6 + l] < substructure.get_rank()) {
@@ -1455,11 +1496,14 @@ void shift::core::solver::RNCA::SetupRHS() {
     }
   }
 
-  std::cout << "gamma_d_: ";
+#if SHIFT_LOG_LEVEL > 4
+  std::stringstream ss;
+  ss << "gamma_d_: ";
   for(auto& val : gamma_d_) {
-    std::cout << val << " ";
+    ss << val << " ";
   }
-  std::cout << std::endl;
+  SHIFT_TRACE(ss.str());
+#endif
 }
 
 /*! set mass matrix without setting boolean mass matrix */
@@ -1907,21 +1951,31 @@ bool shift::core::solver::RNCA::Solve(const double t, const std::vector<double>&
   double fl[dq_count_];
   memcpy(fl, fl_.data(), dq_count_ * sizeof(double));
 
-  std::cout << "fl (before factor): ";
-  for(unsigned int i = 0; i < dq_count_; i++) {
-    std::cout << fl_[i] << " ";
+#if SHIFT_LOG_LEVEL > 4
+  {
+    std::stringstream ss;
+    ss << "fl (before factor): ";
+    for(unsigned int i = 0; i < dq_count_; i++) {
+      ss << fl_[i] << " ";
+    }
+    SHIFT_TRACE(ss.str());
   }
-  std::cout << std::endl;
+#endif
 #endif
 
   FactorAndSolve();
 
 #if SHIFT_VERIFY_EQUATIONS_
-  std::cout << "fl (after factor): ";
-  for(unsigned int i = 0; i < dq_count_; i++) {
-    std::cout << fl_[i] << " ";
+#if SHIFT_LOG_LEVEL > 4
+  {
+    std::stringstream ss;
+    ss << "fl (after factor): ";
+    for(unsigned int i = 0; i < dq_count_; i++) {
+      ss << fl_[i] << " ";
+    }
+    SHIFT_TRACE(ss.str());
   }
-  std::cout << std::endl;
+#endif
 
   /* verify that multiplying coefficient matrix with lhs gets back the
   right hand side */
@@ -1939,17 +1993,25 @@ bool shift::core::solver::RNCA::Solve(const double t, const std::vector<double>&
   context_->ConvertdqTody(y, dy);
 
 #if SHIFT_VERIFY_EQUATIONS_
-  std::cout << "y: ";
-  for(size_t i = 0; i < q_count_ + dq_count_; i++) {
-    std::cout << y[i] << " ";
+#if SHIFT_LOG_LEVEL > 4
+  {
+    std::stringstream ss;
+    ss << "y: ";
+    for(unsigned int i = 0; i < dq_count_ + dq_count_; i++) {
+      ss << y[i] << " ";
+    }
+    SHIFT_TRACE(ss.str());
   }
-  std::cout << std::endl;
 
-  std::cout << "dy: ";
-  for(size_t i = 0; i < dq_count_ + dq_count_; i++) {
-    std::cout << dy[i] << " ";
+  {
+    std::stringstream ss;
+    ss << "dy: ";
+    for(unsigned int i = 0; i < dq_count_ + dq_count_; i++) {
+      ss << dy[i] << " ";
+    }
+    SHIFT_TRACE(ss.str());
   }
-  std::cout << std::endl;
+#endif
 #endif
 
   return false;
@@ -2156,23 +2218,28 @@ bool shift::core::solver::RNCA::Verify(const double t,
 
   if(!ksl_allclose(dq_count_, fl_po3, fl)) {
 
-    std::cerr << ">>> Error, equations of motion not solved correctly."
-              << std::endl;
+    SHIFT_ERROR("Error, equations of motion not solved correctly.");
 
     verified = false;
-    std::cerr << "verification failed" << std::endl;
 
-    std::cerr << "  context->fl (original): ";
-    for(unsigned int i = 0; i < dq_count_; i++) {
-      printf("%0.5g, ", fl[i]);
+#if SHIFT_LOG_LEVEL > 0
+    {
+      std::stringstream ss;
+      ss << "Verification failed for fl array:\n";
+      ss << "  context->fl (original): ";
+      for(unsigned int i = 0; i < dq_count_; i++) {
+        ss << std::setprecision(5) << fl[i] << " ";
+      }
+      ss << "\n did not match context->fl (recovered): ";
+      for(unsigned int i = 0; i < dq_count_; i++) {
+        ss << std::setprecision(5) << fl_po3[i] << " ";
+      }
+      SHIFT_ERROR(ss.str());
     }
-    std::cerr << std::endl << "  context->fl (recovered): ";
-    for(unsigned int i = 0; i < dq_count_; i++) {
-      printf("%0.5g, ", fl_po3[i]);
-    }
-    printf("\n");
-
+#endif
+   
     auto& jacobian = context_->get_jacobian();
+    
     std::cout << "infinity norm failures: " << std::endl;
     for(auto& infinity_norm_failure : jacobian.get_infinity_norm_failures()) {
       std::cout << "t: " << infinity_norm_failure.time << " ";
@@ -2181,7 +2248,8 @@ bool shift::core::solver::RNCA::Verify(const double t,
       }
       std::cout << std::endl;
     }
-    exit(1);
+    
+    throw shift::core::Exception("Failed to solve equations of motion");
   }
 
   double gamma_d_po3[dq_count_];
@@ -2214,7 +2282,8 @@ bool shift::core::solver::RNCA::Verify(const double t,
       fprintf(stderr, "%0.5g, ", gamma_d_po2[i]);
     }
     fprintf(stderr, "\n");
-    exit(1);
+    
+    throw shift::core::Exception("Failed to solve equations of motion");
   }
   // std::cout << "verified: " << (verified ? "true" : "false") << std::endl;
 #endif
