@@ -35,19 +35,19 @@ void shift::core::Substructure::SetupPO1(
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto variableIndex : *it) {
-      assert(variableIndex >= 0 && variableIndex - dq_offset_ < dq_count_);
-      ksl_screw_copy_rmo(dhva.h + variableIndex, J_, j * 6,
-                         variableIndex - dq_offset_, dq_count_);
+    for(auto variable_index : *it) {
+      assert(variable_index >= 0 && variable_index - dq_offset_ < dq_count_);
+      ksl_screw_copy_rmo(dhva.h + variable_index, J_, j * 6,
+                         variable_index - dq_offset_, dq_count_);
     }
   }
 
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto variableIndex : *it) {
-      assert(variableIndex >= 0 && variableIndex - dq_offset_ < dq_count_);
-      ksl_screw_ncopy_rmo(dhva.h + variableIndex, J_, j * 6,
-                          variableIndex - dq_offset_, dq_count_);
+    for(auto variable_index : *it) {
+      assert(variable_index >= 0 && variable_index - dq_offset_ < dq_count_);
+      ksl_screw_ncopy_rmo(dhva.h + variable_index, J_, j * 6,
+                          variable_index - dq_offset_, dq_count_);
     }
   }
 
@@ -83,24 +83,24 @@ void shift::core::Substructure::SetupPO2(
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variableIndex : *it) {
-      int columnIndex_2 = pc_21_[variableIndex - dq_offset_];
+    for(auto& variable_index : *it) {
+      int columnIndex_2 = pc_21_[variable_index - dq_offset_];
       for(int m = 0; m < 6; m++) {
         int rowIndex_2 = pr_21_[j * 6 + m];
         J_[rowIndex_2 * dq_count_ + columnIndex_2] =
-          dhva.h[variableIndex].at[m];
+          dhva.h[variable_index].at[m];
       }
     }
   }
 
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variableIndex : *it) {
-      int columnIndex_2 = pc_21_[variableIndex - dq_offset_];
+    for(auto& variable_index : *it) {
+      int columnIndex_2 = pc_21_[variable_index - dq_offset_];
       for(int m = 0; m < 6; m++) {
         int rowIndex_2 = pr_21_[j * 6 + m];
         J_[rowIndex_2 * dq_count_ + columnIndex_2] =
-          -dhva.h[variableIndex].at[m];
+          -dhva.h[variable_index].at[m];
       }
     }
   }
@@ -117,8 +117,8 @@ void shift::core::Substructure::SetupBooleanPO2() {
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variableIndex : *it) {
-      int columnIndex = pc_21_[variableIndex - dq_offset_];
+    for(auto& variable_index : *it) {
+      int columnIndex = pc_21_[variable_index - dq_offset_];
       for(int m = 0; m < 6; m++) {
         int rowIndex = pr_21_[j * 6 + m];
         Jb_[rowIndex * dq_count_ + columnIndex] = true;
@@ -128,9 +128,9 @@ void shift::core::Substructure::SetupBooleanPO2() {
 
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variableIndex : *it) {
-      assert((int)variableIndex - (int)dq_offset_ >= 0);
-      int columnIndex = pc_21_[variableIndex - dq_offset_];
+    for(auto& variable_index : *it) {
+      assert((int)variable_index - (int)dq_offset_ >= 0);
+      int columnIndex = pc_21_[variable_index - dq_offset_];
       for(int m = 0; m < 6; m++) {
         int rowIndex = pr_21_[j * 6 + m];
         Jb_[rowIndex * dq_count_ + columnIndex] = true;
@@ -629,21 +629,21 @@ void shift::core::Substructure::SetupPO1Specified(
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variableIndex : *it) {
-      // std::cout << variableIndex << std::endl;
-      // ksl_screw_print(stdout, dhva.h + variableIndex);
-      ksl_screw_copy_rmo(dhva.h + variableIndex, J_, j * 6,
-                         variableIndex - dq_offset_, dq_count_);
+    for(auto& variable_index : *it) {
+      // std::cout << variable_index << std::endl;
+      // ksl_screw_print(stdout, dhva.h + variable_index);
+      ksl_screw_copy_rmo(dhva.h + variable_index, J_, j * 6,
+                         variable_index - dq_offset_, dq_count_);
     }
   }
 
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variableIndex : *it) {
-      // std::cout << variableIndex << std::endl;
-      // ksl_screw_print(stdout, dhva.h + variableIndex);
-      ksl_screw_ncopy_rmo(dhva.h + variableIndex, J_, j * 6,
-                          variableIndex - dq_offset_, dq_count_);
+    for(auto& variable_index : *it) {
+      // std::cout << variable_index << std::endl;
+      // ksl_screw_print(stdout, dhva.h + variable_index);
+      ksl_screw_ncopy_rmo(dhva.h + variable_index, J_, j * 6,
+                          variable_index - dq_offset_, dq_count_);
     }
   }
 

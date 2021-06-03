@@ -1,6 +1,7 @@
 #include "shift/core/integrator/ODE113.h"
 #include "shift/core/Context.h"
 #include "shift/core/Factory.h"
+#include "shift/core/log.h"
 
 #include <math.h>
 
@@ -142,7 +143,7 @@ void shift::core::integrator::ODE113::Initialize() {
   Reset();
 }
 
-void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) {
+void shift::core::integrator::ODE113::StepFunction(double t, std::vector<double>& y) {
   assert(solver_);
   iteration_count_++;
 
@@ -174,30 +175,42 @@ void shift::core::integrator::ODE113::stepFcn(double t, std::vector<double>& y) 
 
     t_ = x_;
 
-#if 1
-    std::cout << "cs: ";
-    for(auto& c : cs) {
-      std::cout << c << " ";
+#if SHIFT_LOG_LEVEL > 4
+    {
+      std::stringstream ss;
+      ss << "cs: ";
+      for(auto& c : cs) {
+        ss << c << " ";
+      }
+      SHIFT_TRACE(ss.str());
     }
-    std::cout << std::endl;
 
-    std::cout << "integral_error: "; 
-    for(auto& i : integral_error_) {
-      std::cout << i << " "; 
+    {
+      std::stringstream ss;
+      ss << "integral_error: "; 
+      for(auto& i : integral_error_) {
+        ss << i << " "; 
+      }
+      SHIFT_TRACE(ss.str());
     }
-    std::cout << std::endl;
 
-    std::cout << "(" << t_ << ") y: ";
-    for(size_t i = 0; i < neqn_; i++) {
-      std::cout << y_[i] << " ";
+    {
+      std::stringstream ss;
+      ss << "(" << t_ << ") y: ";
+      for(size_t i = 0; i < neqn_; i++) {
+        ss << y_[i] << " ";
+      }
+      SHIFT_TRACE(ss.str());
     }
-    std::cout << std::endl;
 
-    std::cout << "(" << t_ << ") dy: ";
-    for(size_t i = 0; i < neqn_; i++) {
-      std::cout << dy_[i] << " ";
+    {
+      std::stringstream ss;
+      ss << "(" << t_ << ") dy: ";
+      for(size_t i = 0; i < neqn_; i++) {
+        ss << dy_[i] << " ";
+      }
+      SHIFT_TRACE(ss.str());
     }
-    std::cout << std::endl;
 #endif
 
     if(x_ >= tdata_[step_] + time_step_) {
@@ -265,13 +278,13 @@ void shift::core::integrator::ODE113::Integrate() {
     step();
 
     if(newton_raphson_failure_) {
-      std::cerr << "Newton-Raphson failure, integration stopped" << std::endl;
+      SHIFT_ERROR("Newton-Raphson failure, integration stopped");
       return;
     }
 
     if(x_ >= time_span_) {
       iflag_ = 2;
-      std::cout << "finish" << std::endl;
+      SHIFT_INFO("Simulation finished");
       return;
     }
 
@@ -302,11 +315,11 @@ void shift::core::integrator::ODE113::Integrate() {
   }
 
   if(iflag_ == 3) {
-    std::cerr << "ODE113 was unable to continue." << std::endl;
+    SHIFT_ERROR("ODE113 was unable to continue.");
   }
 
   if(newton_raphson_failure_) {
-    std::cerr << "Newton Raphson failed, solver stopped" << std::endl;
+    SHIFT_ERROR("Newton Raphson failed, solver stopped");
   }
 }
 
@@ -469,7 +482,7 @@ void shift::core::integrator::ODE113::step() {
   if(start_) {
     /* initialize: compute appropriate step size for first step */
     iconv_ = 1;
-    stepFcn(x_, yy_);
+    StepFunction(x_, yy_);
     if(newton_raphson_failure_) {
       std::cerr << "Newton Raphson Failure" << std::endl;
       return;
@@ -625,7 +638,7 @@ void shift::core::integrator::ODE113::step() {
 
     xold = x_;
     x_ += h_;
-    stepFcn(x_, p_);
+    StepFunction(x_, p_);
     if(newton_raphson_failure_) {
       std::cerr << "Error: Newton-Raphson failure" << std::endl;
       return;
@@ -740,7 +753,7 @@ void shift::core::integrator::ODE113::step() {
   }
 
   iconv_ = 1;
-  stepFcn(x_, yy_);
+  StepFunction(x_, yy_);
   if(newton_raphson_failure_) {
     std::cerr << "Newton Raphson failure" << std::endl;
     return;
