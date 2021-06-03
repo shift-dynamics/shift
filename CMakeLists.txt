@@ -51,8 +51,9 @@ message(STATUS
   "with logging level: ${SHIFT_LOG_LEVEL}"
 )
 
-set(CMAKE_CXX_FLAGS "-DSHIFT_LOG_LEVEL=${SHIFT_LOG_LEVEL}")
-# set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "")
+set(CMAKE_CXX_FLAGS "-g -DSHIFT_LOG_LEVEL=${SHIFT_LOG_LEVEL}")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "")
+set(CMAKE_C_FLAGS_DEBUG "-g -O0" CACHE STRING "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/cmake")
 include_directories(${CMAKE_BINARY_DIR}/include)
@@ -88,7 +89,7 @@ endif()
 
 add_subdirectory(src)
 
-if(SHIFT_BUILD_DOCS)
+if(SHIFT_BUILD_DOC)
     add_subdirectory(doc)
 endif()
 
