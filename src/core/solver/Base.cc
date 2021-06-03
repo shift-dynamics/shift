@@ -25,7 +25,7 @@ void shift::core::solver::Base::Connect() {
                   .get_data<shift::core::integrator::Base>();
 }
 
-void shift::core::solver::Base::set_objects_active(bool parent_is_active) {
+void shift::core::solver::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, parent_is_active && active_);
 }

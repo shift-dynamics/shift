@@ -24,7 +24,7 @@ void shift::core::logger::Base::Load() {}
 
 void shift::core::logger::Base::Connect() {}
 
-void shift::core::logger::Base::set_objects_active(bool parent_is_active) {
+void shift::core::logger::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, parent_is_active && active_);
 }

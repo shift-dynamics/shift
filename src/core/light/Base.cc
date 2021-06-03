@@ -56,7 +56,7 @@ void shift::core::light::Base::Load() {}
 
 void shift::core::light::Base::Connect() {}
 
-void shift::core::light::Base::set_objects_active(bool parent_is_active) {
+void shift::core::light::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, parent_is_active && active_);
 }

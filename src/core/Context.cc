@@ -71,7 +71,7 @@ void shift::core::Context::LoadJSON(const std::string filename) {
 void shift::core::Context::PostLoad(const std::string) {
 
   /* process topology */
-  set_objects_active(true);
+  ActivateObjects(true);
   Connect();
   LevelOrderSort();
   ProcessVirtualBodies();
@@ -256,9 +256,9 @@ void shift::core::Context::Initialize() {
   }
 }
 
-void shift::core::Context::set_objects_active(bool) {
-  model_parameters_.set_objects_active(true);
-  assemblies_.set_objects_active(true);
+void shift::core::Context::ActivateObjects(bool) {
+  model_parameters_.ActivateObjects(true);
+  assemblies_.ActivateObjects(true);
 }
 
 void shift::core::Context::AppendActiveObject(

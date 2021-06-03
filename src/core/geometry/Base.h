@@ -43,7 +43,7 @@ public:
     return type_;
   }
 
-  virtual void set_objects_active(bool) override;
+  virtual void ActivateObjects(bool) override;
   
   virtual void Load();
   virtual void Connect();

@@ -15,7 +15,7 @@ bool shift::core::behavior::Modules::is_initialized() {
 
 void shift::core::behavior::Base::DeclareParameters() {}
 
-void shift::core::behavior::Base::set_objects_active(bool parent_is_active) {
+void shift::core::behavior::Base::ActivateObjects(bool parent_is_active) {
   if(context_) {
     context_->ActivateObject(this, active_ && parent_is_active);
   }

@@ -142,7 +142,7 @@ public:
     return is_virtual_;
   }
 
-  virtual void set_objects_active(bool parent_is_active) override;
+  virtual void ActivateObjects(bool parent_is_active) override;
 
   void set_reference_frame(shift::core::Frame*);
 

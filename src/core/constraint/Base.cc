@@ -8,7 +8,7 @@ bool shift::core::constraint::Modules::is_initialized() {
 
 void shift::core::constraint::Base::DeclareParameters() {}
 
-void shift::core::constraint::Base::set_objects_active(bool parent_is_active) {
+void shift::core::constraint::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, active_ && parent_is_active);
 };

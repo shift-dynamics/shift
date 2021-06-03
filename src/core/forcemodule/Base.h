@@ -50,7 +50,7 @@ public:
     return q_0_;
   }
 
-  virtual void set_objects_active(bool parent_is_active) override;
+  virtual void ActivateObjects(bool parent_is_active) override;
   
 
   virtual void Load();

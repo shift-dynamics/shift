@@ -253,7 +253,7 @@ public:
     required_ = required;
   }
 
-  void set_objects_active(bool parent_is_active);
+  void ActivateObjects(bool parent_is_active);
 
   Value& set_quaternion_maps_to_mat3x3(bool enabled) {
     quaternion_maps_to_mat3x3_ = enabled;

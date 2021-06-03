@@ -51,7 +51,7 @@ public:
     return active_;
   }
 
-  virtual void set_objects_active(bool) {}
+  virtual void ActivateObjects(bool) {}
 
   virtual void set_parent(Context* context, Assembly* parent_assembly = nullptr,
                          shift::core::body::Base* parent_body = nullptr) {

@@ -188,7 +188,7 @@ public:
     return child_joints_;
   }
 
-  void set_objects_active(bool parent_is_active) override;
+  void ActivateObjects(bool parent_is_active) override;
   void set_initial_displacement(const double* q);
   void set_initial_velocity(const double* dq);
 
