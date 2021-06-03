@@ -67,7 +67,7 @@ public:
 
   virtual void get_current_time(double& time, double& delta_time) = 0;
 
-  void set_objects_active(bool parent_is_active) override;
+  void ActivateObjects(bool parent_is_active) override;
 
   virtual void Load();
   virtual void Connect();

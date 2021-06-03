@@ -83,15 +83,15 @@ void shift::core::body::Base::DeclareParameters() {
                false);
 }
 
-void shift::core::body::Base::set_objects_active(bool parent_is_active) {
+void shift::core::body::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, active_ && parent_is_active);
 
   for(auto& geometry : geometry_.get_data()) {
-    geometry->set_objects_active(active_ && parent_is_active);
+    geometry->ActivateObjects(active_ && parent_is_active);
   }
   for(auto& collision_geometry : collision_geometry_.get_data()) {
-    collision_geometry->set_objects_active(active_ && parent_is_active);
+    collision_geometry->ActivateObjects(active_ && parent_is_active);
   }
 }
 

@@ -9,7 +9,7 @@ bool shift::core::integrator::Modules::is_initialized() {
   return true;
 }
 
-void shift::core::integrator::Base::set_objects_active(bool parent_is_active) {
+void shift::core::integrator::Base::ActivateObjects(bool parent_is_active) {
   if(context_) {
     context_->ActivateObject(this, active_ && parent_is_active);
   }

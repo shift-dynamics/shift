@@ -11,7 +11,7 @@ void shift::core::sensor::Base::Connect() {}
 
 void shift::core::sensor::Base::DeclareParameters() {}
 
-void shift::core::sensor::Base::set_objects_active(bool parent_is_active) {
+void shift::core::sensor::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, parent_is_active && active_);
 }

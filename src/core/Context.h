@@ -276,7 +276,7 @@ public:
   */
   void get_current_time(double& time, double& delta_t);
 
-  virtual void set_objects_active(bool) override;
+  virtual void ActivateObjects(bool) override;
   
   void ActivateObject(behavior::Base*, bool);
   void ActivateObject(body::Base*, bool);

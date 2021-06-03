@@ -247,12 +247,12 @@ operator[](unsigned int index) {
   }
 }
 
-void shift::core::parameter::Value::set_objects_active(bool parent_is_active) {
+void shift::core::parameter::Value::ActivateObjects(bool parent_is_active) {
   if(is_array_) {
-    std::any_cast<parameter::ArrayBase*>(data_)->set_objects_active(
+    std::any_cast<parameter::ArrayBase*>(data_)->ActivateObjects(
       parent_is_active);
   } else if(is_list_) {
-    std::any_cast<parameter::List*>(data_)->set_objects_active(parent_is_active);
+    std::any_cast<parameter::List*>(data_)->ActivateObjects(parent_is_active);
   }
 }
 

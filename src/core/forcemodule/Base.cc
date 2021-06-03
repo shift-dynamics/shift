@@ -12,7 +12,7 @@ bool shift::core::forcemodule::Modules::is_initialized() {
   }
   return true;
 }
-void shift::core::forcemodule::Base::set_objects_active(bool parent_is_active) {
+void shift::core::forcemodule::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, parent_is_active && active_);
 }

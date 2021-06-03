@@ -45,7 +45,7 @@ public:
     return type_;
   }
 
-  void set_objects_active(bool parent_is_active) override;
+  void ActivateObjects(bool parent_is_active) override;
   
   virtual void Load();
   virtual void Connect();

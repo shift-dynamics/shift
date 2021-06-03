@@ -33,7 +33,7 @@ void shift::core::geometry::Base::DeclareParameters() {
     false);
 }
 
-void shift::core::geometry::Base::set_objects_active(bool parent_is_active) {
+void shift::core::geometry::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, active_ && parent_is_active);
 };

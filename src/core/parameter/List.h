@@ -58,9 +58,9 @@ public:
     return parameters_;
   }
  
-  virtual void set_objects_active(bool parent_is_active) {
+  virtual void ActivateObjects(bool parent_is_active) {
     for(auto& parameter : parameters_) {
-      parameter.second.set_objects_active(active_ && parent_is_active);
+      parameter.second.ActivateObjects(active_ && parent_is_active);
     }
   }
  

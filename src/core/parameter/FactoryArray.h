@@ -18,9 +18,9 @@ public:
     : ArrayBase(context, parent_assembly, parent_body) {}
   ~FactoryArray() {}
 
-  virtual void set_objects_active(bool parent_is_active) override {
+  virtual void ActivateObjects(bool parent_is_active) override {
     for(auto& object : object_specializations_) {
-      object.get()->set_objects_active(active_ && parent_is_active);
+      object.get()->ActivateObjects(active_ && parent_is_active);
     }
   }
 

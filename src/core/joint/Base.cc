@@ -175,7 +175,7 @@ void shift::core::joint::Base::set_initial_velocity(const double* dq) {
   }
 }
 
-void shift::core::joint::Base::set_objects_active(bool parent_is_active) {
+void shift::core::joint::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, parent_is_active && active_);
 }
