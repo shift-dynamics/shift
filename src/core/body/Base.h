@@ -142,8 +142,6 @@ public:
     return is_virtual_;
   }
 
-  virtual void ActivateObjects(bool parent_is_active) override;
-
   void set_reference_frame(shift::core::Frame*);
 
   void set_index(int index) {
@@ -162,6 +160,7 @@ public:
 
   void set_d_wrt_reference(ksl_SE3_t);
 
+  virtual void ActivateObjects(bool parent_is_active) override;
   void ClearInTreeFlags();
   void SetupReferenceFrame();
   virtual void Load();

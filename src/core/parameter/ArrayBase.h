@@ -51,8 +51,6 @@ public:
     return active_;
   }
 
-  virtual void ActivateObjects(bool) {}
-
   virtual void set_parent(Context* context, Assembly* parent_assembly = nullptr,
                          shift::core::body::Base* parent_body = nullptr) {
     context_ = context;
@@ -60,6 +58,8 @@ public:
     parent_body_ptr_ = parent_body;
   }
 
+  virtual void ActivateObjects(bool) {}
+  
   virtual void ReadJSON(Json::Value&) {}
 
   void Print(std::string prefix) const;

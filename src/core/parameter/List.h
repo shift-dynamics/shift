@@ -58,12 +58,6 @@ public:
     return parameters_;
   }
  
-  virtual void ActivateObjects(bool parent_is_active) {
-    for(auto& parameter : parameters_) {
-      parameter.second.ActivateObjects(active_ && parent_is_active);
-    }
-  }
- 
   void set_context(Context* context) {
     context_ = context;
   }
@@ -84,8 +78,14 @@ public:
     is_assembly_ = is_assembly;
   }
 
-  bool HasKey(const std::string key) const {
+  bool has_key(const std::string key) const {
     return parameters_.count(key);
+  }
+ 
+  virtual void ActivateObjects(bool parent_is_active) {
+    for(auto& parameter : parameters_) {
+      parameter.second.ActivateObjects(active_ && parent_is_active);
+    }
   }
 
   virtual void DeclareParameters() = 0;

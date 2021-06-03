@@ -228,7 +228,6 @@ public:
     return data_.type();
   }
 
-
   const std::type_index get_type_index() {
     return std::type_index(data_.type());
   }
@@ -253,7 +252,6 @@ public:
     required_ = required;
   }
 
-  void ActivateObjects(bool parent_is_active);
 
   Value& set_quaternion_maps_to_mat3x3(bool enabled) {
     quaternion_maps_to_mat3x3_ = enabled;
@@ -314,6 +312,7 @@ public:
     return *this;
   }
 
+  void ActivateObjects(bool parent_is_active);
   void ReadJSON(Json::Value&);
   void Print(std::string) const;
   void Print() const;

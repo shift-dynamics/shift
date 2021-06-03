@@ -5,3 +5,5 @@ vgcore*
 CMakeLists.txt.user
 *.dat
 *.csv
+cscope.out
+

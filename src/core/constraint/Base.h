@@ -76,7 +76,6 @@ public:
   void set_child_frame(Frame*);
 
   virtual void ActivateObjects(bool parent_is_active) override;
-
   virtual void Load();
   virtual void Connect();
 
