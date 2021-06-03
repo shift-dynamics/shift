@@ -6,6 +6,7 @@
 #include "shift/core/Context.h"
 #include "shift/core/Factory.h"
 #include "shift/core/light/Base.h"
+#include "shift/core/Exception.h"
 
 #include "ksl/matrix.h"
 
@@ -101,7 +102,7 @@ void shift::core::body::Base::set_parent_joint(shift::core::joint::Base* parent)
   for(auto& frame : frames_.get_data()) {
     frame->set_is_reference(frame.get() == reference_frame);
   }
-  set_d_wrt_reference();
+  SetupDWrtReference();
 }
 
 void shift::core::body::Base::Connect() {}
@@ -121,39 +122,38 @@ shift::core::Frame* shift::core::body::Base::get_reference_frame() {
       return frame.get();
     }
   }
-  std::cerr << "no reference frame found on body: " << get_name() << std::endl;
-  assert(0);
+  throw shift::core::Exception("No reference frame found for body" + get_name());
   return nullptr;
 }
 
-void shift::core::body::Base::set_d_wrt_reference() {
+void shift::core::body::Base::SetupDWrtReference() {
   Frame* reference = get_reference_frame();
   ksl_SE3_t d_reference;
   ksl_SE3_setIdentity(&d_reference);
   reference->set_d_wrt_reference(d_reference);
-  const ksl_SE3_t* referenceWRTOrigin = reference->get_d_wrt_origin();
+  const ksl_SE3_t* reference_wrt_origin = reference->get_d_wrt_origin();
   for(auto& frame : frames_.get_data()) {
     if(!frame->is_reference()) {
       const ksl_SE3_t* get_d_wrt_origin = frame->get_d_wrt_origin();
-      ksl_SE3_t dWRTReference;
-      ksl_product_dinvd(referenceWRTOrigin, get_d_wrt_origin, &dWRTReference);
-      frame->set_d_wrt_reference(dWRTReference);
+      ksl_SE3_t d_wrt_reference;
+      ksl_product_dinvd(reference_wrt_origin, get_d_wrt_origin, &d_wrt_reference);
+      frame->set_d_wrt_reference(d_wrt_reference);
     }
   }
 }
 
-void shift::core::body::Base::set_d_wrt_reference(ksl_SE3_t d_reference) {
+void shift::core::body::Base::SetupDWrtReference(ksl_SE3_t d_reference) {
   Frame* reference = get_reference_frame();
   reference->set_d_wrt_reference(d_reference);
-  const ksl_SE3_t* referenceWRTOrigin = reference->get_d_wrt_origin();
+  const ksl_SE3_t* reference_wrt_origin = reference->get_d_wrt_origin();
   for(auto& frame : frames_.get_data()) {
     if(!frame->is_reference()) {
       const ksl_SE3_t* get_d_wrt_origin = frame->get_d_wrt_origin();
       ksl_SE3_t temp;
-      ksl_product_dinvd(referenceWRTOrigin, get_d_wrt_origin, &temp);
-      ksl_SE3_t dWRTReference;
-      ksl_product_dd(&d_reference, &temp, &dWRTReference);
-      frame->set_d_wrt_reference(dWRTReference);
+      ksl_product_dinvd(reference_wrt_origin, get_d_wrt_origin, &temp);
+      ksl_SE3_t d_wrt_reference;
+      ksl_product_dd(&d_reference, &temp, &d_wrt_reference);
+      frame->set_d_wrt_reference(d_wrt_reference);
     }
   }
 }
@@ -162,7 +162,7 @@ void shift::core::body::Base::set_reference_frame(shift::core::Frame* referenceF
   for(auto& frame : frames_.get_data()) {
     frame->set_reference_frame(referenceFrame);
   }
-  set_d_wrt_reference();
+  SetupDWrtReference();
 };
 
 void shift::core::body::Base::SetupReferenceFrame() {
@@ -174,7 +174,7 @@ void shift::core::body::Base::SetupReferenceFrame() {
       frame->set_reference_frame(reference);
     }
   }
-  set_d_wrt_reference();
+  SetupDWrtReference();
 };
 
 const ksl_vec3_t shift::core::body::Base::get_center_of_mass_wrt_reference() {
