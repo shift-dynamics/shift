@@ -158,8 +158,7 @@ public:
     va_index_ = index;
   }
 
-  void set_d_wrt_reference(ksl_SE3_t);
-
+  void SetupDWrtReference(ksl_SE3_t);
   virtual void ActivateObjects(bool parent_is_active) override;
   void ClearInTreeFlags();
   void SetupReferenceFrame();
@@ -169,7 +168,7 @@ public:
 
 protected:
   virtual void DeclareParameters() override;
-  void set_d_wrt_reference();
+  void SetupDWrtReference();
 
   std::string type_;
   bool is_articulated_ = true; /*!< indicates whether body may have joints
