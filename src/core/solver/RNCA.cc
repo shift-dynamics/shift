@@ -1108,12 +1108,11 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
     t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
   if(infinity_norm_check) {
     if(infinity_norm_check == 2) {
-      std::cerr << "Newton-raphson failure, exiting simulation." << std::endl;
+      SHIFT_ERROR("Newton-raphson failure, exiting simulation.");
       return true;
     }
-    std::cerr << "Failed infinity norm check, but GECP was successfully "
-                 "reapplied and simulation will attempt to continue"
-              << std::endl;
+    SHIFT_DEBUG("Failed infinity norm check, but GECP was successfully "
+                "reapplied and simulation will attempt to continue");
     jacobian.Analyze();
     SetupRHS();
     SetupMassMatrixAndRecordFills();
@@ -1126,7 +1125,7 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
 }
 
 bool shift::core::solver::RNCA::SetupEquations(const double t,
-                                       const std::vector<double>& y) {
+                                               const std::vector<double>& y) {
   const double* q = y.data();
   const double* dq = q + q_count_;
   assert(context_);
@@ -1140,12 +1139,11 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
     t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
   if(infinity_norm_check) {
     if(infinity_norm_check == 2) {
-      std::cerr << "Newton-raphson failure, exiting simulation." << std::endl;
+      SHIFT_ERROR("Newton-raphson failure, exiting simulation.");
       return true;
     }
-    std::cerr << "Failed infinity norm check, but GECP was successfully "
-                 "reapplied and simulation will attempt to continue"
-              << std::endl;
+    SHIFT_DEBUG("Failed infinity norm check, but GECP was successfully "
+                "reapplied and simulation will attempt to continue");
     jacobian.Analyze();
     SetupRHS();
     SetupMassMatrixAndRecordFills();
@@ -2226,11 +2224,11 @@ bool shift::core::solver::RNCA::Verify(const double t,
     {
       std::stringstream ss;
       ss << "Verification failed for fl array:\n";
-      ss << "  context->fl (original): ";
+      ss << "  fl (original): ";
       for(unsigned int i = 0; i < dq_count_; i++) {
         ss << std::setprecision(5) << fl[i] << " ";
       }
-      ss << "\n did not match context->fl (recovered): ";
+      ss << "\n  != fl (recovered): ";
       for(unsigned int i = 0; i < dq_count_; i++) {
         ss << std::setprecision(5) << fl_po3[i] << " ";
       }
@@ -2240,14 +2238,18 @@ bool shift::core::solver::RNCA::Verify(const double t,
    
     auto& jacobian = context_->get_jacobian();
     
-    std::cout << "infinity norm failures: " << std::endl;
+#if SHIFT_LOG_LEVEL > 0
+    std::stringstream ss;
+    ss << "infinity norm failures:\n";
     for(auto& infinity_norm_failure : jacobian.get_infinity_norm_failures()) {
-      std::cout << "t: " << infinity_norm_failure.time << " ";
+      ss << "t: " << infinity_norm_failure.time << ", substructure indices: ";
       for(auto& index : infinity_norm_failure.substructure_index) {
-        std::cout << index << " ";
+        ss << index << " ";
       }
-      std::cout << std::endl;
+      ss << "\n";
     }
+    SHIFT_ERROR(ss.str());
+#endif
     
     throw shift::core::Exception("Failed to solve equations of motion");
   }
@@ -2271,18 +2273,22 @@ bool shift::core::solver::RNCA::Verify(const double t,
 
     verified = false;
 
-    fprintf(stderr, "\nerror: gamma_d (po2): \n");
-    for(unsigned int i = 0; i < dq_count_; i++) {
-      fprintf(stderr, "%0.5g, ", gamma_d_[i]);
+#if SHIFT_LOG_LEVEL > 0
+    {
+      std::stringstream ss;
+      ss << "Verification failed for gamma_d array:\n";
+      ss << "  gamma_d (original): ";
+      for(unsigned int i = 0; i < dq_count_; i++) {
+        ss << std::setprecision(5) << gamma_d_[i] << " ";
+      }
+      ss << "\n  != gamma_d (recovered): ";
+      for(unsigned int i = 0; i < dq_count_; i++) {
+        ss << std::setprecision(5) << gamma_d_po2[i] << " ";
+      }
+      SHIFT_ERROR(ss.str());
     }
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "\n             != gamma_d (po2): \n");
-    for(unsigned int i = 0; i < dq_count_; i++) {
-      fprintf(stderr, "%0.5g, ", gamma_d_po2[i]);
-    }
-    fprintf(stderr, "\n");
-    
+#endif
+ 
     throw shift::core::Exception("Failed to solve equations of motion");
   }
   // std::cout << "verified: " << (verified ? "true" : "false") << std::endl;
