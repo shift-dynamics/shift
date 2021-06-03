@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+#include "shift/core/log.h"
+#include "shift/core/Exception.h"
+
 #include "ksl/SE3.h"
 #include "ksl/screw.h"
 
@@ -36,10 +39,11 @@ struct DHVA {
       (dq_count + 1) * sizeof(ksl_screw_t) +              /* h */
       (non_rigid_joint_count + 1) * sizeof(ksl_screw_t) + /* v */
       (non_rigid_joint_count + 1) * sizeof(ksl_screw_t);  /* aq */
+    // @TODO convert this to a smart pointer
     dc = new double[dhva_size_];
     if(dc == nullptr) {
-      std::cerr << "Error: failed to allocate memory for DHVA" << std::endl;
-      exit(-1);
+      SHIFT_ERROR("Failed to allocate memory for DHVA");
+      throw shift::core::Exception("Failed to allocate memory for DHVA");
     }
     memset(dc, 0, dhva_size_);
     d = (ksl_SE3_t*)(dc + 2 * dc_count);

@@ -80,16 +80,16 @@ public:
     index_ = index;
   }
 
-  void set_in_tree(bool inTree) {
-    in_tree_ = inTree;
+  void set_in_tree(bool in_tree) {
+    in_tree_ = in_tree;
   }
 
-  void set_is_reference(bool isReference) {
-    is_reference_ = isReference;
+  void set_is_reference(bool is_reference) {
+    is_reference_ = is_reference;
   }
 
-  void set_is_origin(bool isOrigin) {
-    is_origin_ = isOrigin;
+  void set_is_origin(bool is_origin) {
+    is_origin_ = is_origin;
   }
 
   void set_d_wrt_reference(ksl_SE3_t d_wrt_reference) {

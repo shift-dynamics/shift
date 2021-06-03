@@ -16,17 +16,17 @@ namespace logger {
 class LogValue : public Base {
 
 public:
-  HDF5(std::string name)
+  LogValue(std::string name)
     : Base(name) {
     DeclareParameters();
   }
-  HDF5()
+  LogValue()
     : Base("") {
     DeclareParameters();
   }
-  virtual ~HDF5() override {}
+  virtual ~LogValue() override {}
 
-  const std::string& getDescription() {
+  const std::string& get_description() {
     return description_;
   }
 
@@ -34,19 +34,17 @@ public:
     return registered_;
   }
 
-  virtual void initialize() override;
-  virtual void writeHeader() override;
-  virtual void writeStates(const double t,
+  virtual void Initialize()() override;
+  virtual void WriteHeader() override;
+  virtual void WriteStates(const double t,
                            const std::vector<double>& q) override;
 
 private:
   virtual void DeclareParameters() override;
-  const std::string description_ = "";
   static bool registered_;
-  static std::unique_ptr<HDF5> create();
-  std::string logfile_ = "simulation.h5";
+  static std::unique_ptr<LogValue> Create();
   bool timestamp_logfile_ = false;
-
+  const std::string description_ = "";
   H5::H5File hdf5_file_;
   H5::Group state_meta_data_;
   H5::Group generalized_variables_group_;

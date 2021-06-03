@@ -27,7 +27,7 @@ void shift::core::Jacobian::Initialize() {
     substructure.Connect();
   }
   if(RemoveConstraintViolations()) {
-    std::cerr << "Error: constraints not satisfied." << std::endl;
+    SHIFT_ERROR("Error: constraints not satisfied.");
   }
 }
 
@@ -385,7 +385,7 @@ void shift::core::Jacobian::SetupConstraintPointers() {
       constraint_offset.parent.v = 
         chord_constraint->get_parent_body()->get_va_index();
 
-      // std::cout << "parent: " << chordConstraint->parentFrame()->name()
+      // std::cout << "parent: " << chord_constraint->parentFrame()->name()
       //           << " d: " << constraintOffset.parent.d
       //           << " v: " << constraintOffset.parent.v << std::endl;
 
@@ -394,7 +394,7 @@ void shift::core::Jacobian::SetupConstraintPointers() {
       constraint_offset.child.v = 
         chord_constraint->get_child_body()->get_va_index();
 
-      // std::cout << "child: " << chordConstraint->childFrame()->name()
+      // std::cout << "child: " << chord_constraint->childFrame()->name()
       //           << " d: " << constraintOffset.child.d
       //           << " v: " << constraintOffset.child.v << std::endl;
 
@@ -422,8 +422,6 @@ void shift::core::Jacobian::SetupSubstructurePointers() {
 /*!
 @brief This function removes constraints for the entire mechanism
 using a strict error tolerance (context->epsNewtonRaphsonRankDetermination)
-
-@param context [in] an s2_context_t datastructure
 */
 int shift::core::Jacobian::RemoveConstraintViolations() {
   bool newton_raphson_failure_ = false;
@@ -440,14 +438,14 @@ int shift::core::Jacobian::RemoveConstraintViolations() {
 /*!
 @brief This function advances the solution of a set of constraints
 under user control of one or more of its independent variables. This function
-requires that setJacobianPO1 has been called for every substructure.
+requires that SetupJacobianPO1 has been called for every substructure.
 
-@param bool useTightTolerance [in] indicates whether to use a tight error
+@param bool use_tight_tolerance [in] indicates whether to use a tight error
 tolerance for removing constraint violations.
 */
-void shift::core::Jacobian::RemoveConstraintViolationsFast(bool useTightTolerance) {
+void shift::core::Jacobian::RemoveConstraintViolationsFast(bool use_tight_tolerance) {
   for(auto& substructure : substructures_) {
-    substructure.RemoveConstraintViolationsFast(useTightTolerance);
+    substructure.RemoveConstraintViolationsFast(use_tight_tolerance);
   }
 }
 
@@ -459,8 +457,8 @@ void shift::core::Jacobian::InitializeMobility() {
   }
 
   if(right_null_space_count) {
-    /* allocate memory for rightNullSpace, allows additional storage for null
-       space up to dqCount * dqCount in the event that the null space increases
+    /* allocate memory for right_null_space_, allows additional storage for null
+       space up to dq_count * dq_count in the event that the null space increases
        rank from initial starting configuration
      */
     right_null_space_.resize(right_null_space_count);

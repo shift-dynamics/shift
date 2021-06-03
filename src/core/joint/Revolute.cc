@@ -205,18 +205,18 @@ void shift::core::joint::rx_dhva(const shift::core::Context& context, topology::
                            const double* __restrict__ dq) {
   shift::core::joint::rx_dh(context, dhva, offsets, q);
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* vPrimitive = dq + offsets.dq;
-  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
-  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vChild = dhva.v + offsets.child.v;
-  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
-  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
+  const double* v_primitive = dq + offsets.dq;
+  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
+  ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
 
-  ksl_product_as(*vPrimitive, h, &vRelative);
-  ksl_add_ss(vParent, &vRelative, vChild);
-  ksl_cross_ss(vChild, &vRelative, &aqRelative);
-  ksl_add_ss(aqParent, &aqRelative, aqChild);
+  ksl_product_as(*v_primitive, h, &v_relative);
+  ksl_add_ss(v_parent, &v_relative, v_child);
+  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
 /*!
@@ -258,18 +258,18 @@ void shift::core::joint::rxinv_dhva(const shift::core::Context& context,
   shift::core::joint::rxinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* vPrimitive = dq + offsets.dq;
-  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
-  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vChild = dhva.v + offsets.child.v;
-  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
-  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
+  const double* v_primitive = dq + offsets.dq;
+  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
+  ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
 
-  ksl_product_as(*vPrimitive, h, &vRelative);
-  ksl_add_ss(vParent, &vRelative, vChild);
-  ksl_cross_ss(vChild, &vRelative, &aqRelative);
-  ksl_add_ss(aqParent, &aqRelative, aqChild);
+  ksl_product_as(*v_primitive, h, &v_relative);
+  ksl_add_ss(v_parent, &v_relative, v_child);
+  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
 /*!
@@ -312,18 +312,18 @@ void shift::core::joint::ry_dhva(const shift::core::Context& context,
   shift::core::joint::ry_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* vPrimitive = dq + offsets.dq;
-  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
-  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vChild = dhva.v + offsets.child.v;
-  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
-  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
+  const double* v_primitive = dq + offsets.dq;
+  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
+  ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
 
-  ksl_product_as(*vPrimitive, h, &vRelative);
-  ksl_add_ss(vParent, &vRelative, vChild);
-  ksl_cross_ss(vChild, &vRelative, &aqRelative);
-  ksl_add_ss(aqParent, &aqRelative, aqChild);
+  ksl_product_as(*v_primitive, h, &v_relative);
+  ksl_add_ss(v_parent, &v_relative, v_child);
+  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
 /*!
@@ -367,18 +367,18 @@ void shift::core::joint::ryinv_dhva(const shift::core::Context& context,
   shift::core::joint::ryinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* vPrimitive = dq + offsets.dq;
-  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
-  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vChild = dhva.v + offsets.child.v;
-  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
-  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
+  const double* v_primitive = dq + offsets.dq;
+  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
+  ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
 
-  ksl_product_as(*vPrimitive, h, &vRelative);
-  ksl_add_ss(vParent, &vRelative, vChild);
-  ksl_cross_ss(vChild, &vRelative, &aqRelative);
-  ksl_add_ss(aqParent, &aqRelative, aqChild);
+  ksl_product_as(*v_primitive, h, &v_relative);
+  ksl_add_ss(v_parent, &v_relative, v_child);
+  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
 /*!
@@ -421,18 +421,18 @@ void shift::core::joint::rz_dhva(const shift::core::Context& context,
   shift::core::joint::rz_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* vPrimitive = dq + offsets.dq;
-  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
-  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vChild = dhva.v + offsets.child.v;
-  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
-  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
+  const double* v_primitive = dq + offsets.dq;
+  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
+  ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
 
-  ksl_product_as(*vPrimitive, h, &vRelative);
-  ksl_add_ss(vParent, &vRelative, vChild);
-  ksl_cross_ss(vChild, &vRelative, &aqRelative);
-  ksl_add_ss(aqParent, &aqRelative, aqChild);
+  ksl_product_as(*v_primitive, h, &v_relative);
+  ksl_add_ss(v_parent, &v_relative, v_child);
+  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
 /*!
@@ -475,18 +475,18 @@ void shift::core::joint::rzinv_dhva(const shift::core::Context& context,
   shift::core::joint::rzinv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* vPrimitive = dq + offsets.dq;
-  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
-  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vChild = dhva.v + offsets.child.v;
-  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
-  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
+  const double* v_primitive = dq + offsets.dq;
+  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
+  ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
 
-  ksl_product_as(*vPrimitive, h, &vRelative);
-  ksl_add_ss(vParent, &vRelative, vChild);
-  ksl_cross_ss(vChild, &vRelative, &aqRelative);
-  ksl_add_ss(aqParent, &aqRelative, aqChild);
+  ksl_product_as(*v_primitive, h, &v_relative);
+  ksl_add_ss(v_parent, &v_relative, v_child);
+  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
 /*!
@@ -557,18 +557,18 @@ void shift::core::joint::ra_dhva(const shift::core::Context& context, topology::
   shift::core::joint::ra_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* vPrimitive = dq + offsets.dq;
-  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
-  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vChild = dhva.v + offsets.child.v;
-  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
-  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
+  const double* v_primitive = dq + offsets.dq;
+  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
+  ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
 
-  ksl_product_as(*vPrimitive, h, &vRelative);
-  ksl_add_ss(vParent, &vRelative, vChild);
-  ksl_cross_ss(vChild, &vRelative, &aqRelative);
-  ksl_add_ss(aqParent, &aqRelative, aqChild);
+  ksl_product_as(*v_primitive, h, &v_relative);
+  ksl_add_ss(v_parent, &v_relative, v_child);
+  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
 /*!
@@ -588,18 +588,18 @@ void shift::core::joint::rainv_dhva(const shift::core::Context& context,
   shift::core::joint::rainv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* vPrimitive = dq + offsets.dq;
-  ksl_screw_t* vParent = dhva.v + offsets.parent.v;
-  ksl_screw_t vRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* vChild = dhva.v + offsets.child.v;
-  ksl_screw_t* aqParent = dhva.aq + offsets.parent.v;
-  ksl_screw_t aqRelative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aqChild = dhva.aq + offsets.child.v;
+  const double* v_primitive = dq + offsets.dq;
+  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
+  ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
 
-  ksl_product_as(*vPrimitive, h, &vRelative);
-  ksl_add_ss(vParent, &vRelative, vChild);
-  ksl_cross_ss(vChild, &vRelative, &aqRelative);
-  ksl_add_ss(aqParent, &aqRelative, aqChild);
+  ksl_product_as(*v_primitive, h, &v_relative);
+  ksl_add_ss(v_parent, &v_relative, v_child);
+  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
 void shift::core::joint::Revolute::DeclareParameters() {

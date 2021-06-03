@@ -239,7 +239,7 @@ void shift::core::integrator::ODE113::Integrate() {
     std::cerr << "Improper simulation parameters detected:" << std::endl;
     fprintf(
       stderr,
-      "neqn=%d, time=%g, timeEnd=%g, relerr=%g, abserr=%g, iflag=%d, eps=%g, "
+      "neqn=%d, time=%g, time_end=%g, relerr=%g, abserr=%g, iflag=%d, eps=%g, "
       "twou=%g\n",
       neqn_, 0.0, time_span_, relative_error_, absolute_error_, iflag_, eps_,
       twou_);

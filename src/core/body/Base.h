@@ -66,8 +66,8 @@ public:
     // for(auto& i : b.geometry_) {
     //   geometry_.push_back(std::move(i));
     // }
-    // for(auto& i : b.collisionGeometry_) {
-    //   collisionGeometry_.push_back(std::move(i));
+    // for(auto& i : b.collision_geometry_) {
+    //   collision_geometry_.push_back(std::move(i));
     // }
   }
 
@@ -94,7 +94,7 @@ public:
   }
 
   /*!
-  return number of frames in spanning tree, context->processFrames must be
+  return number of frames in spanning tree, context->ProcessFrames must be
   called to set frames in spanning tree.
   */
   unsigned int get_frame_in_tree_count();
