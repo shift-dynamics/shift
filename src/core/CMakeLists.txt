@@ -7,7 +7,7 @@ set(
   -W
   -Wall
   -Wextra
-  # -g3
+  -ggdb3
   # -O3
   -std=c++17
   -DSHIFT_VERIFY_EQUATIONS_=1
