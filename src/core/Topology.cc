@@ -77,15 +77,15 @@ bool shift::core::topology::InPath(std::vector<int>& pcl, int j, int k) {
   if(j == k) {
     return true;
   }
-  bool inPath = false;
+  bool in_path = false;
   while(j >= -1) {
     if(j == k) {
-      inPath = true;
+      in_path = true;
       break;
     }
     j = pcl[j];
   }
-  return inPath;
+  return in_path;
 }
 
 /*!
@@ -121,12 +121,12 @@ bool shift::core::topology::IsSubstructureMember(
 }
 
 void shift::core::topology::SetInversePermutation(const std::vector<int>& p,
-                                            std::vector<int>& pInverse) {
-  if(p.size() != pInverse.size()) {
-    pInverse.resize(p.size());
+                                            std::vector<int>& p_inv) {
+  if(p.size() != p_inv.size()) {
+    p_inv.resize(p.size());
   }
   for(unsigned int i = 0; i < p.size(); i++) {
-    pInverse[p[i]] = i;
+    p_inv[p[i]] = i;
   }
 }
 
@@ -252,67 +252,3 @@ std::string shift::core::topology::GetValidGraphvizExtension(std::string& extens
     return std::string("");
   }
 }
-
-#if 0
-/*!
-@brief Write a graphviz dot file for mechanism after converting chords to arcs
-
-Writes a graphviz dot file for original mechanism after adding virtual bodies
-and converting chords to arcs
-
-@param context pointer to a shift::core::Context data structure.
-@param filename dot file will be saved to filename
-@return returns -1 on failure, 0 on success
-*/
-int shift::core::topology::digraphDOT(const shift::core::Context& context,
-                                std::string filename) {
-
-  FILE* digraph;
-  if((digraph = fopen(filename.c_str(), "w")) == NULL) {
-    std::cerr << "Cannot open file: " << filename << ". No DOT file generated"
-              << std::endl;
-    return -1;
-  }
-  fprintf(digraph, "digraph original {\n");
-  fprintf(digraph, "size=\"7,7\";\n");
-  fprintf(digraph, "{rank=same; \"fixed\"}\n");
-
-// @TODO convert this to new C++ API
-  jointNode* HEAD;
-  if(context->jointHead) {
-    int level = 1;
-    int count = 1;
-    HEAD = context->jointHead;
-    while(count != 0) {
-      count = 0;
-      fprintf(digraph, "{rank=same; ");
-      HEAD = context->jointHead;
-      while(HEAD) {
-        if(HEAD->level == level) {
-          fprintf(digraph, "\"%s\" ", HEAD->bodyTo);
-          count++;
-        }
-        HEAD = HEAD->next;
-      }
-      fprintf(digraph, "}\n");
-      level++;
-    }
-
-    HEAD = context->jointHead;
-    while(HEAD) {
-      fprintf(digraph, "\"%s\" -> \"%s\"\n", HEAD->bodyFrom, HEAD->bodyTo);
-      HEAD = HEAD->next;
-    }
-    chordConstraintNode* HEAD2 = context->chordConstraintHead;
-    while(HEAD2) {
-      fprintf(digraph, "\"%s\" [shape=octagon];\n", HEAD2->bodyFrom);
-      fprintf(digraph, "\"%s\" -> \"%s\" [style=dashed];", HEAD2->bodyFrom,
-              HEAD2->bodyTo);
-      HEAD2 = HEAD2->next;
-    }
-    fprintf(digraph, "\n}\n");
-  }
-  fclose(digraph);
-}
-
-#endif

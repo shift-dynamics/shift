@@ -62,7 +62,7 @@ void shift::core::Substructure::SetupPO1(
   shift::core::topology::SetInversePermutation(pc_12_, pc_21_);
 
   // std::cout << "rank: " << rank_ << std::endl;
-  // std::cout << "dqCount: " << dq_count_ << std::endl;
+  // std::cout << "dq_count: " << dq_count_ << std::endl;
 
   if(rank_ < (int)dq_count_) {
     ksl_linalg_lu_setBMatrix_rmo(rank_, dq_count_, J_);
@@ -84,10 +84,10 @@ void shift::core::Substructure::SetupPO2(
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variable_index : *it) {
-      int columnIndex_2 = pc_21_[variable_index - dq_offset_];
+      int column_index_2 = pc_21_[variable_index - dq_offset_];
       for(int m = 0; m < 6; m++) {
-        int rowIndex_2 = pr_21_[j * 6 + m];
-        J_[rowIndex_2 * dq_count_ + columnIndex_2] =
+        int row_index_2 = pr_21_[j * 6 + m];
+        J_[row_index_2 * dq_count_ + column_index_2] =
           dhva.h[variable_index].at[m];
       }
     }
@@ -96,10 +96,10 @@ void shift::core::Substructure::SetupPO2(
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variable_index : *it) {
-      int columnIndex_2 = pc_21_[variable_index - dq_offset_];
+      int column_index_2 = pc_21_[variable_index - dq_offset_];
       for(int m = 0; m < 6; m++) {
-        int rowIndex_2 = pr_21_[j * 6 + m];
-        J_[rowIndex_2 * dq_count_ + columnIndex_2] =
+        int row_index_2 = pr_21_[j * 6 + m];
+        J_[row_index_2 * dq_count_ + column_index_2] =
           -dhva.h[variable_index].at[m];
       }
     }
@@ -118,10 +118,10 @@ void shift::core::Substructure::SetupBooleanPO2() {
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variable_index : *it) {
-      int columnIndex = pc_21_[variable_index - dq_offset_];
+      int column_index = pc_21_[variable_index - dq_offset_];
       for(int m = 0; m < 6; m++) {
-        int rowIndex = pr_21_[j * 6 + m];
-        Jb_[rowIndex * dq_count_ + columnIndex] = true;
+        int row_index = pr_21_[j * 6 + m];
+        Jb_[row_index * dq_count_ + column_index] = true;
       }
     }
   }
@@ -130,10 +130,10 @@ void shift::core::Substructure::SetupBooleanPO2() {
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto& variable_index : *it) {
       assert((int)variable_index - (int)dq_offset_ >= 0);
-      int columnIndex = pc_21_[variable_index - dq_offset_];
+      int column_index = pc_21_[variable_index - dq_offset_];
       for(int m = 0; m < 6; m++) {
-        int rowIndex = pr_21_[j * 6 + m];
-        Jb_[rowIndex * dq_count_ + columnIndex] = true;
+        int row_index = pr_21_[j * 6 + m];
+        Jb_[row_index * dq_count_ + column_index] = true;
       }
     }
   }
@@ -180,13 +180,13 @@ void shift::core::Substructure::SetupBMatrixSparse(double* __restrict__ b3) {
           for(int j = rank_ - 1; j > i; j--) {
             save += J_[i * dq_count_ + j] * J_[j * dq_count_ + k];
           }
-          int b3Index = ij_mapping_[i * dq_count_ + k];
-          assert(b3Index > -1);
-          b3[b3Index] = (J_[i * dq_count_ + k] - save) / J_[i * dq_count_ + i];
-          J_[i * dq_count_ + k] = b3[b3Index];
-          assert(!std::isinf(b3[b3Index]));
-          assert(!std::isnan(b3[b3Index]));
-          infinity_norm_b_ = std::max(infinity_norm_b_, std::abs(b3[b3Index]));
+          int b3_index = ij_mapping_[i * dq_count_ + k];
+          assert(b3_index > -1);
+          b3[b3_index] = (J_[i * dq_count_ + k] - save) / J_[i * dq_count_ + i];
+          J_[i * dq_count_ + k] = b3[b3_index];
+          assert(!std::isinf(b3[b3_index]));
+          assert(!std::isnan(b3[b3_index]));
+          infinity_norm_b_ = std::max(infinity_norm_b_, std::abs(b3[b3_index]));
         }
       }
     }
@@ -213,9 +213,9 @@ void shift::core::Substructure::EvaluateSparsity(shift::core::Array2d<int>& rb3,
   for(unsigned int i3 = dq_count_ - rank_; i3 < dq_count_; i3++) {
     int i2 = pv_local_23[i3];
     assert(i2 > -1 && i2 < (int)dq_count_);
-    int rb3Index = i3 + dq_offset_;
-    assert(rb3Index > 0);
-    rb3[rb3Index][0] = k;
+    int rb3_index = i3 + dq_offset_;
+    assert(rb3_index > 0);
+    rb3[rb3_index][0] = k;
     for(unsigned int j3 = 0; j3 < dq_count_ - rank_; j3++) {
       int j2 = pv_local_23[j3];
       if(Jb_[i2 * dq_count_ + j2]) {
@@ -224,7 +224,7 @@ void shift::core::Substructure::EvaluateSparsity(shift::core::Array2d<int>& rb3,
         k++;
       }
     }
-    rb3[rb3Index][1] = k;
+    rb3[rb3_index][1] = k;
   }
 
   /* permute ij mapping temp to po2 */
@@ -286,37 +286,37 @@ void shift::core::Substructure::FirstOrderUpdate() {
 @param a kinematic substructure to process
 */
 void shift::core::Substructure::Updateq() {
-  unsigned int qIndex = q_offset_;
-  unsigned int dqIndex = dq_offset_;
+  unsigned int q_index = q_offset_;
+  unsigned int dq_index = dq_offset_;
 
   for(unsigned int j = 1; j < context_->get_substructure_members()[index_].size();
       j++) {
     int index = context_->get_substructure_members()[index_][j];
     auto joint = context_->get_active_joints()[index];
-    auto qCount = joint->get_q_count();
-    auto dqCount = joint->get_dq_count();
-    if(qCount == dqCount) {
-      for(unsigned int i = 0; i < qCount; i++) {
-        context_->get_q()[qIndex++] -= context_->get_delta_q()[dqIndex++];
+    auto q_count = joint->get_q_count();
+    auto dq_count = joint->get_dq_count();
+    if(q_count == dq_count) {
+      for(unsigned int i = 0; i < q_count; i++) {
+        context_->get_q()[q_index++] -= context_->get_delta_q()[dq_index++];
       }
-    } else if(qCount == 4 && dqCount == 3) {
+    } else if(q_count == 4 && dq_count == 3) {
       // spherical case
-      ksl_subtract_dpiFromq((ksl_vec3_t*)(&context_->get_delta_q()[dqIndex]),
-                            (ksl_quaternion_t*)(&context_->get_q()[qIndex]));
-      ksl_quaternion_normalize((ksl_quaternion_t*)(&context_->get_q()[qIndex]));
-      qIndex += 4;
-      dqIndex += 3;
+      ksl_subtract_dpiFromq((ksl_vec3_t*)(&context_->get_delta_q()[dq_index]),
+                            (ksl_quaternion_t*)(&context_->get_q()[q_index]));
+      ksl_quaternion_normalize((ksl_quaternion_t*)(&context_->get_q()[q_index]));
+      q_index += 4;
+      dq_index += 3;
 
-    } else if(qCount == 7 && dqCount == 6) {
+    } else if(q_count == 7 && dq_count == 6) {
       // float case
-      context_->get_q()[qIndex++] -= context_->get_delta_q()[dqIndex++];
-      context_->get_q()[qIndex++] -= context_->get_delta_q()[dqIndex++];
-      context_->get_q()[qIndex++] -= context_->get_delta_q()[dqIndex++];
-      ksl_subtract_dpiFromq((ksl_vec3_t*)(&context_->get_delta_q()[dqIndex]),
-                            (ksl_quaternion_t*)(&context_->get_q()[qIndex]));
-      ksl_quaternion_normalize((ksl_quaternion_t*)(&context_->get_q()[qIndex]));
-      qIndex += 4;
-      dqIndex += 3;
+      context_->get_q()[q_index++] -= context_->get_delta_q()[dq_index++];
+      context_->get_q()[q_index++] -= context_->get_delta_q()[dq_index++];
+      context_->get_q()[q_index++] -= context_->get_delta_q()[dq_index++];
+      ksl_subtract_dpiFromq((ksl_vec3_t*)(&context_->get_delta_q()[dq_index]),
+                            (ksl_quaternion_t*)(&context_->get_q()[q_index]));
+      ksl_quaternion_normalize((ksl_quaternion_t*)(&context_->get_q()[q_index]));
+      q_index += 4;
+      dq_index += 3;
     } else {
       assert(0);
     }
@@ -326,7 +326,7 @@ void shift::core::Substructure::Updateq() {
 /*!
 @brief computes RMS error in change of delta q for a substructure
 
-error = sqrt(deltaq[] . deltaq[]) / dqCount
+error = sqrt(deltaq[] . deltaq[]) / dq_count
 */
 double shift::core::Substructure::ComputeDeltaqError() {
 #if SHIFT_WITH_BLAS_
@@ -440,9 +440,9 @@ int shift::core::Substructure::RemoveConstraintViolations() {
 
   /* Iteratively update x to satisfy constraint equations.
 
-  dx[colDim] contains changes in x[colDim] for current N-R iteration.
+  dx[col_dim] contains changes in x[col_dim] for current N-R iteration.
 
-  error = sqrt(cs[] . cs[]) / constraintEquationCount < eps when converged.
+  error = sqrt(cs[] . cs[]) / constraint_equation_count < eps when converged.
   */
   int max_step = 100;
   double q_copy[q_count_];
@@ -486,15 +486,15 @@ Does not set the jacobian boolean matrix, which is necessary for solving
 the equations of motion.
 */
 int shift::core::Substructure::RemoveConstraintViolationsFast(
-  bool useTightTolerance) {
+  bool use_tight_tolerance) {
 
   context_->UpdateDH();
-  double initialError = EvaluateConstraints(context_->get_dhva());
-  double qCopy[q_count_];
-  memcpy(qCopy, q_, q_count_ * sizeof(double));
-  const int maxStep = 100;
+  double initial_error = EvaluateConstraints(context_->get_dhva());
+  double q_copy[q_count_];
+  memcpy(q_copy, q_, q_count_ * sizeof(double));
+  const int max_step = 100;
   double tol;
-  if(useTightTolerance) {
+  if(use_tight_tolerance) {
     tol = context_->get_model_parameters().get_epsilon_rank_determination();
   } else {
     tol = context_->get_model_parameters().get_epsilon_newton_raphson();
@@ -504,7 +504,7 @@ int shift::core::Substructure::RemoveConstraintViolationsFast(
   EvaluateConstraints(context_->get_dhva());
   int step = 0;
   double error = tol + 1;
-  while(error > tol && step < maxStep) {
+  while(error > tol && step < max_step) {
     NewtonRaphsonSolver();
     Updateq();
     context_->UpdateDH();
@@ -513,15 +513,15 @@ int shift::core::Substructure::RemoveConstraintViolationsFast(
     // printf("  [%d] error: %g\n", step, error);
   }
 
-  if(step == maxStep) {
-    PrintError(initialError, error, qCopy);
+  if(step == max_step) {
+    PrintError(initial_error, error, q_copy);
     throw shift::core::Exception("Failed to remove constraint violations");
   } 
   return 0;
 }
 
-void shift::core::Substructure::PrintError(double initialError,
-                                           double finalError, double* qCopy) {
+void shift::core::Substructure::PrintError(double initial_error,
+                                           double final_error, double* q_copy) {
 
   FILE* f = context_->get_model_parameters().get_debug_file_pointer();
   if(!f) {
@@ -531,12 +531,12 @@ void shift::core::Substructure::PrintError(double initialError,
           "\n\n>>> Error: could not resolve constraint violations for "
           "substructure [%d]\n",
           index_);
-  fprintf(f, "initial error: %f, final error: %f\n", initialError, finalError);
-  fprintf(f, "  qCount: %d\n", q_count_);
-  fprintf(f, "  qOffset: %d\n", q_offset_);
+  fprintf(f, "initial error: %f, final error: %f\n", initial_error, final_error);
+  fprintf(f, "  q_count: %d\n", q_count_);
+  fprintf(f, "  q_offset: %d\n", q_offset_);
   assert(context_->get_q().data() + q_offset_ == q_);
   fprintf(f, " states before Newton-Raphson:\n   ");
-  ksl_array_print(f, q_count_, qCopy);
+  ksl_array_print(f, q_count_, q_copy);
   fprintf(f, " states after Newton-Raphson:\n    ");
   ksl_array_print(f, q_count_, q_);
 }
@@ -575,12 +575,12 @@ specified
 */
 void shift::core::Substructure::IncrementSpecifiedCoordinate(
   shift::core::topology::DHVA& dhva, int specified_coordinate_index, double value,
-  MoveType moveType) {
+  MoveType move_type) {
 
   /* currently the joint type is not used, but may be used in the future, for
   example to set all 3 dof as specified for a spherical joint */
   memset(delta_q_, 0, dq_count_ * sizeof(double));
-  switch(moveType) {
+  switch(move_type) {
     case INCREMENT: {
       context_->get_delta_q()[specified_coordinate_index] = value;
       context_->get_q()[specified_coordinate_index] += value;
@@ -615,13 +615,13 @@ perform an initial call to GCP using ksl_linalg_lu_full for one substructure
 with a specified independent coordinate
 
 @param context [in] s2_context_t data structure
-@param substructureIndex [in] index of substructure
-@param dqIndex [in] global dqIndex of specified joint
+@param substructure_index [in] index of substructure
+@param dq_index [in] global dq_index of specified joint
 
 the Jacobian is stored in row-major order
 */
 void shift::core::Substructure::SetupPO1Specified(
-  const shift::core::topology::DHVA& dhva, int dqIndex) {
+  const shift::core::topology::DHVA& dhva, int dq_index) {
 
   memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
 
@@ -648,13 +648,13 @@ void shift::core::Substructure::SetupPO1Specified(
   }
 
   /* convert global index to local index */
-  int localSpecifiedIndex = dqIndex - dq_offset_;
-  assert(localSpecifiedIndex > -1);
+  int local_specified_index = dq_index - dq_offset_;
+  assert(local_specified_index > -1);
 
   rank_ = ksl_linalg_lu_full_specified_rmo(
     constraint_equation_count_, dq_count_, J_,
     context_->get_model_parameters().get_epsilon_rank_determination(), pr_12_.data(),
-    pc_12_.data(), localSpecifiedIndex);
+    pc_12_.data(), local_specified_index);
   topology::SetInversePermutation(pr_12_, pr_21_);
   topology::SetInversePermutation(pc_12_, pc_21_);
 
@@ -688,26 +688,33 @@ unsigned int shift::core::Substructure::InfinityNormCheck(
 
     return_value++;
 
-    std::cerr << "performing full factor on substructure [" << index_
+#if SHIFT_LOG_LEVEL > 3
+    {
+	std::stringstream ss;
+	ss << "performing full factor on substructure [" << index_
               << "]: infinity norm: " << infinity_norm_b << " > "
-              << infinity_norm_b * infinity_norm_multiplier << std::endl;
+              << infinity_norm_b * infinity_norm_multiplier;
+	SHIFT_DEBUG(ss.str());
+    }
+ #endif
 
     double* q_copy = context_->get_q_copy().data();
 
-    /* backup q array to qCopy */
+    /* backup q array to q_copy */
     memcpy(q_copy + q_offset_, q + q_offset_, q_count_ * sizeof(double));
 
     int newton_raphson_failure = RemoveConstraintViolationsFast(true);
+    double nr_error = EvaluateConstraints(context_->get_dhva());
 
-    std::cerr << "e after nr: " << EvaluateConstraints(context_->get_dhva())
-              << std::endl;
+    SHIFT_DEBUG("Error after newton raphson: " + std::to_string(nr_error));
 
     SetupPO1(context_->get_dhva());
-    std::cerr << "rank: " << rank_ << std::endl;
+
+    SHIFT_DEBUG("rank: " + std::to_string(rank_));
 
     if(newton_raphson_failure) {
       return_value++;
-      std::cerr << "Newton-Raphson failed!" << std::endl;
+      SHIFT_ERROR("Newton-Raphson failed!");
       return return_value;
     }
 
@@ -725,16 +732,16 @@ unsigned int shift::core::Substructure::InfinityNormCheck(
 */
 void shift::core::Substructure::CopyNullSpace() {
   memset(right_null_space_, 0, dq_count_ * dq_count_ * sizeof(double));
-  /* dqCount - rank is the column dimension of null space */
+  /* dq_count - rank is the column dimension of null space */
   assert((int)dq_count_ >= rank_ && rank_ != -1);
-  int colDim = dq_count_ - rank_;
+  int col_dim = dq_count_ - rank_;
   for(int i = 0; i < rank_; i++) {
 #if SHIFT_WITH_BLAS_
-    cblas_dcopy(colDim, J_ + (i * dq_count_ + rank_), 1,
-                right_null_space_ + (pc_12_[i] * colDim), 1);
+    cblas_dcopy(col_dim, J_ + (i * dq_count_ + rank_), 1,
+                right_null_space_ + (pc_12_[i] * col_dim), 1);
 #else
-    for(int j = 0; j < colDim; j++) {
-      right_null_space_[pc_12_[i] * colDim + j] = J_[i * dq_count_ + rank_ + j];
+    for(int j = 0; j < col_dim; j++) {
+      right_null_space_[pc_12_[i] * col_dim + j] = J_[i * dq_count_ + rank_ + j];
     }
 #endif
   }
@@ -742,7 +749,7 @@ void shift::core::Substructure::CopyNullSpace() {
   /* set the remaining matrix to identity */
   unsigned int j = 0;
   for(unsigned int i = rank_; i < dq_count_; i++) {
-    right_null_space_[pc_12_[i] * colDim + j++] = 1.0;
+    right_null_space_[pc_12_[i] * col_dim + j++] = 1.0;
   }
 }
 

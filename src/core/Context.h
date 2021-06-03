@@ -153,13 +153,13 @@ public:
     return negative_loop_members_;
   }
 
-  /*! \brief get pointer to dWRTReference, an array of relative
+  /*! \brief get pointer to d_wrt_reference, a vector of relative
    * transformations to their respective reference frames */
   inline const std::vector<ksl_SE3_t>& get_d_wrt_reference() const {
     return d_wrt_reference_;
   }
 
-  /*! \brief get pointer to jointData, an array of additional constant data
+  /*! \brief get pointer to joint_data, an array of additional constant data
    * required to process some joints */
   inline const std::vector<double>& get_joint_data() const {
     return joint_data_;
@@ -439,7 +439,7 @@ private:
   /*! \brief connect pointers between objects managed by shift::core::Context */
   void Connect() override;
 
-  /*! \brief process all Shift objectss loadData() functions, which loads any
+  /*! \brief recursively process all Shift objects' LoadData() functions, which loads any
    * additional external data not specified in JSON model definition file from
    * other data sources */
   void LoadData();
@@ -593,9 +593,9 @@ private:
   /*! \brief struct for sorting substructures by level increasing order */
   struct SubstructureLevelOrder {
     SubstructureLevelOrder(Context* context,
-                           const std::vector<std::vector<int>>& loopMembers)
+                           const std::vector<std::vector<int>>& loop_members)
       : joints_(context->get_active_joints_ptr())
-      , loop_members_(loopMembers) {}
+      , loop_members_(loop_members) {}
     const std::vector<shift::core::joint::Base*>* joints_;
     const std::vector<std::vector<int>> loop_members_;
     bool operator()(const std::vector<int>& a, const std::vector<int>& b) {

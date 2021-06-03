@@ -29,52 +29,52 @@ public:
     return registered_;
   }
 
-  void setIndex(int index) {
-    index_ = index;
+  Frame* get_parent_frame() {
+    return parent_frame_ptr_;
   }
 
-  int index() {
+  int get_index() {
     return index_;
   }
 
-  void setLevel(int level) {
-    level_ = level;
-  }
-
-  int getLevel() {
+  int get_level() {
     return level_;
   }
 
-  void referenceFrameIndex(int index) {
-    reference_frame_index_ = index;
-  }
-
-  int referenceFrameIndex() {
+  int get_reference_frame_index() {
     return reference_frame_index_;
   }
 
-  void setParentJointPointer(shift::core::joint::Base* joint) {
-    parent_joint_ptr_ = joint;
-  }
-
-  shift::core::joint::Base* parentJointPointer() {
+  shift::core::joint::Base* get_parent_joint() {
     return parent_joint_ptr_;
   }
 
-  void setParentBodyPointer(Base* body) {
-    parent_body_ptr_ = body;
-  }
-
-  Base* parentBodyPointer() {
+  Base* get_parent_body() {
     return parent_body_ptr_;
   }
 
-  void setParentFramePointer(Frame* frame) {
-    parent_frame_ptr_ = frame;
+  void set_index(int index) {
+    index_ = index;
   }
 
-  Frame* parentFramePointer() {
-    return parent_frame_ptr_;
+  void set_level(int level) {
+    level_ = level;
+  }
+
+  void set_reference_frame_index(int index) {
+    reference_frame_index_ = index;
+  }
+
+  void set_parent_joint(shift::core::joint::Base* joint) {
+    parent_joint_ptr_ = joint;
+  }
+
+  void set_parent_body(Base* body) {
+    parent_body_ptr_ = body;
+  }
+
+  void set_parent_frame(Frame* frame) {
+    parent_frame_ptr_ = frame;
   }
 
 private:

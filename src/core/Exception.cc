@@ -20,14 +20,14 @@ shift::core::Exception::Exception(const std::string& message)
 
 const std::string shift::core::Exception::_backtrace(int skip) {
   void* callstack[128];
-  const int nMaxFrames = sizeof(callstack) / sizeof(callstack[0]);
+  const int n_max_frames = sizeof(callstack) / sizeof(callstack[0]);
   char buf[1024];
-  int nFrames = exec_info::backtrace(callstack, nMaxFrames);
-  char** symbols = exec_info::backtrace_symbols(callstack, nFrames);
+  int n_frames = exec_info::backtrace(callstack, n_max_frames);
+  char** symbols = exec_info::backtrace_symbols(callstack, n_frames);
 
   std::ostringstream trace_buf;
   int j = 0;
-  for(int i = skip; i < nFrames; i++) {
+  for(int i = skip; i < n_frames; i++) {
     Dl_info info;
     if(dladdr(callstack[i], &info) && info.dli_sname) {
       char* demangled = nullptr;
@@ -49,7 +49,7 @@ const std::string shift::core::Exception::_backtrace(int skip) {
   }
   free(symbols);
   
-  if(nFrames == nMaxFrames) {
+  if(n_frames == n_max_frames) {
     trace_buf << "[truncated]\n";
   }
   return trace_buf.str();

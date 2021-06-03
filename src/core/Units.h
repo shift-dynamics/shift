@@ -30,36 +30,52 @@ public:
   ~Units() {}
 
   /*! \brief retrieve angle units */
-  const std::string& getUnitsAngle();
+  const std::string& get_units_angle() {
+    return angle_;	  
+  }
 
   /*! \brief retrieve length units */
-  const std::string& getUnitsLength();
+  const std::string& get_units_length() {
+    return length_;
+  }
 
   /*! \brief retrieve mass units */
-  const std::string& getUnitsMass();
+  const std::string& get_units_mass() {
+    return mass_;
+  }
 
   /*! \brief retrieve time units */
-  const std::string& getUnitsTime();
+  const std::string& get_units_time() {
+    return time_;
+  }
 
   /*! \brief set angle units */
-  void setUnitsAngle(const std::string);
+  void set_units_angle(const std::string angle) {
+    angle_ = angle;
+  }
 
   /*! \brief set length units */
-  void setUnitsLength(const std::string);
+  void set_units_length(const std::string length) {
+    length_ = length;
+  }
 
   /*! \brief set mass units */
-  void setUnitsMass(const std::string);
+  void set_units_mass(const std::string mass) {
+    mass_ = mass;
+  }
 
   /*! \brief set time units */
-  void setUnitsTime(const std::string);
+  void set_units_time(const std::string time) {
+    time_ = time;
+  }
 
 private:
   virtual void DeclareParameters() override;
 
-  std::string angle_ = "radians";
-  std::string length_ = "meters";
-  std::string mass_ = "kilograms";
-  std::string time_ = "seconds";
+  std::string angle_ = "radian";
+  std::string length_ = "meter";
+  std::string mass_ = "kilogram";
+  std::string time_ = "second";
 };
 }
 } // namespace shift

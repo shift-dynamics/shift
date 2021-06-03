@@ -19,36 +19,16 @@ void shift::core::constraint::Base::Connect() {}
 
 void shift::core::constraint::Base::set_parent_body(shift::core::body::Base* parent) {
   parent_body_ptr_ = parent;
-  // if(parent) {
-  //   parentBody_ = parent->fullyQualifiedName();
-  // } else {
-  //   parentBody_.clear();
-  // }
 }
 
 void shift::core::constraint::Base::set_child_body(shift::core::body::Base* child) {
   child_body_ptr_ = child;
-  // if(child) {
-  //   childBody_ = child->fullyQualifiedName();
-  // } else {
-  //   childBody_.clear();
-  // }
 }
 
 void shift::core::constraint::Base::set_parent_frame(Frame* parent) {
   parent_frame_ptr_ = parent;
-  // if(parent) {
-  //   parentFrame_ = parent->fullyQualifiedName();
-  // } else {
-  //   parentFrame_.clear();
-  // }
 }
 
 void shift::core::constraint::Base::set_child_frame(Frame* child) {
   child_frame_ptr_ = child;
-  // if(child) {
-  //   childFrame_ = child->fullyQualifiedName();
-  // } else {
-  //   childFrame_.clear();
-  // }
 }

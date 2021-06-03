@@ -1083,11 +1083,11 @@ void shift::core::Context::DetectSubstructures() {
             for(auto loop_index : substructure) {
               for(auto loop_member = loop_members_[loop_index].begin() + 1;
                   loop_member < loop_members_[loop_index].end(); ++loop_member) {
-                for(auto mergeCandidateMember =
+                for(auto merge_candidate_member =
                       loop_members_[(*it)].begin() + 1;
-                    mergeCandidateMember < loop_members_[(*it)].end();
-                    ++mergeCandidateMember) {
-                  if(*loop_member == *mergeCandidateMember) {
+                    merge_candidate_member < loop_members_[(*it)].end();
+                    ++merge_candidate_member) {
+                  if(*loop_member == *merge_candidate_member) {
                     substructure.push_back(*it);
                     p_01[current_loop_index++] = (*it);
                     merge_count++;
@@ -1609,7 +1609,7 @@ void shift::core::Context::CompressRigidJoints(
       // std::cout << child_body->get_name() << ": " << frame.name() <<
       // std::endl;
 
-      // dWRTReference = dWRTReference * dWRTReference_child
+      // d_wrt_reference = d_wrt_reference * d_wrt_reference_child
       ksl_SE3_t D_p0_c1;
       ksl_product_dd(&D, frame->get_d_wrt_reference(), &D_p0_c1);
 
@@ -1651,7 +1651,7 @@ void shift::core::Context::CompressRigidJoints(
                                    ->get_reference_frame()
                                    ->get_index(),
                        &D_p0_c1, dhva_.d + frame->get_index());
-        // ksl_SE3_print(stdout, dhva_.d + frame->get_index(), "  dAbsolute: ");
+        // ksl_SE3_print(stdout, dhva_.d + frame->get_index(), "  d_absolute: ");
       }
     }
   }
@@ -1676,11 +1676,11 @@ void shift::core::Context::AllocateRunTimeArrays() {
   dhva_ = shift::core::topology::DHVA(frames_in_tree_.size(), dc_count,
                                       dq_count_, non_rigid_joint_count_);
 
-  // std::cout << "qCount: " << qCount_ << std::endl;
-  // std::cout << "dqCount: " << dq_count_ << std::endl;
-  // std::cout << "dcCount: " << dcCount << std::endl;
+  // std::cout << "q_count: " << q_count_ << std::endl;
+  // std::cout << "dq_count: " << dq_count_ << std::endl;
+  // std::cout << "dc_count: " << dc_count << std::endl;
 
-  // std::cout << "dWRTReference_.size(): " << frames_in_tree_.size() <<
+  // std::cout << "d_wrt_reference_.size(): " << frames_in_tree_.size() <<
   // std::endl;
 
   d_wrt_reference_.resize(frames_in_tree_.size());
@@ -1851,7 +1851,7 @@ void shift::core::Context::AllocateRunTimeArrays() {
           dhva_offsets_[operation_count].q = frame->get_index();
           // std::cout << "  processing child frame[" << frame.index()
           //           << "]: " << frame.name() << std::endl;
-          // ksl_SE3_print(stdout, frame.get_d_wrt_reference(), " dWRTReference:
+          // ksl_SE3_print(stdout, frame.get_d_wrt_reference(), " d_wrt_reference:
           // ");
           ksl_SE3_copy(frame->get_d_wrt_reference(),
                        &d_wrt_reference_[frame->get_index()]);
@@ -1934,7 +1934,7 @@ void shift::core::Context::UpdateDH(shift::core::topology::DHVA& dhva,
   //   fprintf(f, "[%d]: [%s, %s]\n", frame->get_index(),
   //           frame->get_parent_body()->get_name().c_str(),
   //           frame->get_name().c_str());
-  //   // ksl_SE3_print(f, dWRTReference_ + frame->get_index(), " dWRTReference:
+  //   // ksl_SE3_print(f, d_wrt_reference_ + frame->get_index(), " d_wrt_reference:
   //   "); ksl_SE3_print(f, dhva_.d + frame->get_index(), "  "); fprintf(f,
   //   "\n");
   // }
