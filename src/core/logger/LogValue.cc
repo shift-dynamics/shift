@@ -37,10 +37,10 @@ void shift::core::logger::HDF5::initialize() {
 
   state_meta_data_ = H5::Group(hdf5_file_.createGroup("/state_meta_data"));
 
-  writeHeader();
+  WriteHeader();
 }
 
-void shift::core::logger::HDF5::writeHeader() {
+void shift::core::logger::HDF5::WriteHeader() {
 
   H5::StrType str_datatype(H5::PredType::C_S1, 1024);
   hsize_t dim = context_->activeJoints().size();

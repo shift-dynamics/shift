@@ -194,7 +194,7 @@ and joints as graph edges and save as a DOT file. This variant does not use the
 graphviz API. The DOT file can be used to generate an image using graphviz tools
 offline.
 */
-int DigraphDOT(const shift::core::Context& context, std::string fileName);
+int DigraphDOT(const shift::core::Context& context, std::string file_name);
 
 /*!
 \brief generate a directed graph of a mechanism with frames as graph nodes
@@ -202,7 +202,7 @@ and joints and relative transformations across bodies (i.e. shape matrices) as
 graph edges and save as a DOT file. This variant does not use the
 graphviz API. The DOT file can be used to generate an image using graphviz tools
 */
-int DigraphFramesDOT(const shift::core::Context& context, std::string fileName);
+int DigraphFramesDOT(const shift::core::Context& context, std::string file_name);
 
 // // identify which frames in the d array correspond to body reference frames
 // void setDReferenceFrames();

@@ -507,8 +507,8 @@ void shift::core::KdTree<T>::Nearest(const int node_index, const T& point,
   }
 
   KdNode* node = &nodes_[node_index];
-  bool isLeaf = node->children[0] == 0 && node->children[1] == 0;
-  if(isLeaf) {
+  bool is_leaf = node->children[0] == 0 && node->children[1] == 0;
+  if(is_leaf) {
     // iterate over all vertices in leaf node
     return;
   }
