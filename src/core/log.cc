@@ -52,18 +52,18 @@ void SetLogLevel(const std::string& level_) {
     level_upper.at(i) = std::toupper(level_upper.at(i));
   }
   
-  unsigned int tmp = 5; 
-  if(level_upper == "FATAL") {
+  unsigned int level; 
+  if(level_upper == "FATAL" || level_upper == "0") {
     tmp = 0;
-  } else if(level_upper == "ERROR") {
+  } else if(level_upper == "ERROR" || level_upper == "1") {
     tmp = 1;
-  } else if(level_upper == "WARNING") {
+  } else if (level_upper == "WARNING" || level_upper == "2") {
     tmp = 2;
-  } else if(level_upper == "INFO") {
+  } else if(level_upper == "INFO" || level_upper == "3") {
     tmp = 3;
-  } else if(level_upper == "DEBUG") {
+  } else if(level_upper == "DEBUG" || level_upper == "4") {
     tmp = 4;
-  } else if(level_upper == "TRACE") {
+  } else if(level_upper == "TRACE" || level_upper == "5") {
     tmp = 5;
   } else {
     SHIFT_ERROR("Unrecognized logging level '" + level_ + "'; " +
