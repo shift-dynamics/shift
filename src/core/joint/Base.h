@@ -188,7 +188,6 @@ public:
     return child_joints_;
   }
 
-  void ActivateObjects(bool parent_is_active) override;
   void set_initial_displacement(const double* q);
   void set_initial_velocity(const double* dq);
 
@@ -232,6 +231,7 @@ public:
   virtual topology::dh_fptr DHfptr() = 0;
   virtual topology::dhva_fptr DHVAfptr() = 0;
   
+  void ActivateObjects(bool parent_is_active) override;
   virtual void Load();
   void Connect();
 

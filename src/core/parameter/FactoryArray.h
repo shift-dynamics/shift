@@ -18,12 +18,6 @@ public:
     : ArrayBase(context, parent_assembly, parent_body) {}
   ~FactoryArray() {}
 
-  virtual void ActivateObjects(bool parent_is_active) override {
-    for(auto& object : object_specializations_) {
-      object.get()->ActivateObjects(active_ && parent_is_active);
-    }
-  }
-
   std::vector<std::unique_ptr<T>>& get_data() {
     return object_specializations_;
   }
@@ -46,6 +40,12 @@ public:
                                            parent_body);
     for(auto& object : object_specializations_) {
       object->set_parent(context_, parent_assembly_ptr_, parent_body_ptr_);
+    }
+  }
+
+  virtual void ActivateObjects(bool parent_is_active) override {
+    for(auto& object : object_specializations_) {
+      object.get()->ActivateObjects(active_ && parent_is_active);
     }
   }
 
