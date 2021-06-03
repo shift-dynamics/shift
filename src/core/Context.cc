@@ -2462,7 +2462,7 @@ int shift::core::Context::DigraphFrames(std::string filename) {
 
     int child_reference_frame_index = -1;
     FindReferenceFrame(*this, child_frame_index, &child_reference_frame_index);
-    bool childIsReference = (child_frame_index == child_reference_frame_index);
+    bool child_is_reference = (child_frame_index == child_reference_frame_index);
 
     assert(get_frames_in_tree()[parent_frame_index]->get_parent_body());
     std::string parent_body_name =
@@ -2616,9 +2616,9 @@ int shift::core::Context::DigraphFrames(std::string filename) {
     agset(parent_body_graph, const_cast<char*>("style"),
           const_cast<char*>("filled"));
 
-    char childName[400];
-    sprintf(childName, "cluster_%s", child_body_name.c_str());
-    Agraph_t* child_body_graph = agsubg(g, childName, TRUE);
+    char child_name[400];
+    sprintf(child_name, "cluster_%s", child_body_name.c_str());
+    Agraph_t* child_body_graph = agsubg(g, child_name, TRUE);
     agset(child_body_graph, const_cast<char*>("fillcolor"),
           const_cast<char*>("lightgrey"));
     agset(child_body_graph, const_cast<char*>("style"),
@@ -2632,7 +2632,7 @@ int shift::core::Context::DigraphFrames(std::string filename) {
     }
 
     Agnode_t* child_node = agnode(child_body_graph, child_frame_name, TRUE);
-    if(childIsReference) {
+    if(child_is_reference) {
       agset(child_node, const_cast<char*>("penwidth"), const_cast<char*>("3"));
     }
 

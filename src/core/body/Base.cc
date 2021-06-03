@@ -158,9 +158,9 @@ void shift::core::body::Base::SetupDWrtReference(ksl_SE3_t d_reference) {
   }
 }
 
-void shift::core::body::Base::set_reference_frame(shift::core::Frame* referenceFrame) {
+void shift::core::body::Base::set_reference_frame(shift::core::Frame* reference_frame) {
   for(auto& frame : frames_.get_data()) {
-    frame->set_reference_frame(referenceFrame);
+    frame->set_reference_frame(reference_frame);
   }
   SetupDWrtReference();
 };

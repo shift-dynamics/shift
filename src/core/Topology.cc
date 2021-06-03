@@ -109,10 +109,10 @@ bool shift::core::topology::IsSubstructureHead(
 \param list of substructure members
 */
 bool shift::core::topology::IsSubstructureMember(
-  int bodyIndex, std::vector<std::vector<int>>& substructures) {
+  int body_index, std::vector<std::vector<int>>& substructures) {
   for(auto substructure : substructures) {
     for(auto member : substructure) {
-      if(bodyIndex == member) {
+      if(body_index == member) {
         return true;
       }
     }

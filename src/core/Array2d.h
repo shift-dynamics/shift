@@ -56,34 +56,42 @@ public:
     : array_(((2 + rows) * (1 + rows)) / 2)
     , rows_(rows) {}
   ~TriangularArray2d() {}
+  
   T* operator[](unsigned int row) {
     assert(row < rows_);
     return &array_.data()[row * (row + 1) / 2];
   }
+  
   const T* operator[](unsigned int row) const {
     assert(row < rows_);
     return &array_.data()[row * (row + 1) / 2];
   }
-  T* data() {
+
+  T* get_data() {
     return array_.data();
   }
-  unsigned int rows() {
+
+  T* get_start_of_work() {
+    return &array_.data()[rows_ * (rows_ + 1) / 2];
+  }
+
+  unsigned int get_rows() {
     return rows_;
   }
-  unsigned int columns() {
+
+  unsigned int get_columns() {
     return rows_;
   }
-  void zero() {
+
+  void Zero() {
     std::fill(array_.begin(), array_.end(), 0);
   }
-  void resize(int rows) {
+
+  void Resize(int rows) {
     array_.resize(((2 + rows) * (1 + rows)) / 2);
     rows_ = rows;
   }
-  T* startOfWork() {
-    return &array_.data()[rows_ * (rows_ + 1) / 2];
-  }
-  void print() {
+  void Print() {
     for(size_t i = 0; i < rows_; i++) {
       T* i_start = (*this)[i];
       for(size_t j = 0; j < i + 1; j++) {

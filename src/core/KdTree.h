@@ -71,7 +71,7 @@ public:
   }
 
   void Remove(class KdSortNode* node, int axis);
-  int Subdivide(int parentIndex, KdList* below, KdList* above);
+  int Subdivide(int parent_index, KdList* below, KdList* above);
 
   class KdSortNode* head_[3];
   class KdSortNode* tail_[3];
@@ -100,7 +100,7 @@ public:
   KdList kdlist_;
 
 private:
-  KdSortNode** nodes_ = NULL;
+  KdSortNode** nodes_ = nullptr;
 };
 
 typedef struct KdNode {
@@ -114,20 +114,20 @@ typedef struct KdNode {
 template <typename T>
 class KdTree {
 public:
-  KdTree(std::vector<T>& vertices, unsigned int binSize = 1024);
+  KdTree(std::vector<T>& vertices, unsigned int bin_size = 1024);
   ~KdTree() {}
 
   enum { FLOAT, DOUBLE } precision_;
   void Print();
   void Sort();
-  int Nnsearch(const T&, double& minimumDistance);
-  int NnsearchWithinRadius(const T&, double searchRadius,
-                           double& minimumDistance,
-                           std::vector<int>& nearestPositions);
+  int Nnsearch(const T&, double& minimum_distance);
+  int NnsearchWithinRadius(const T&, double search_radius,
+                           double& minimum_distance,
+                           std::vector<int>& nearest_positions);
   bool IntersectionTest(const T& point0, const T& point1, const double t1,
-                        double intersectionPoint);
-  void Nearest(const int nodeIndex, const T& point, int& closest,
-               double& minimumDistance);
+                        double intersection_point);
+  void Nearest(const int node_index, const T& point, int& closest,
+               double& minimum_distance);
 
 private:
   void SortVertices();
