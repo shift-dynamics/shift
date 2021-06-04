@@ -207,7 +207,7 @@ void shift::core::geometry::Mesh::Load() {
                                        &shininess_strength, &max);
         if(ret1 == AI_SUCCESS) {
           (void)shininess_strength;
-          SHIFT_DEBUG("shininess_strength: " +
+          SHIFT_TRACE("shininess_strength: " +
                       std::to_string(shininess_strength));
         }
 
@@ -216,7 +216,7 @@ void shift::core::geometry::Mesh::Load() {
                                        &reflectivity, &max);
         if(ret1 == AI_SUCCESS) {
           (void)reflectivity;
-          SHIFT_DEBUG("reflectivity: " + std::to_string(reflectivity));
+          SHIFT_TRACE("reflectivity: " + std::to_string(reflectivity));
         }
 
         float refracti = 0.f;
@@ -224,14 +224,14 @@ void shift::core::geometry::Mesh::Load() {
           aiGetMaterialFloatArray(mtl, AI_MATKEY_REFRACTI, &refracti, &max);
         if(ret1 == AI_SUCCESS) {
           (void)refracti;
-          SHIFT_DEBUG("refraction: " + std::to_string(refracti));
+          SHIFT_TRACE("refraction: " + std::to_string(refracti));
         }
 
         aiColor4D reflective;
         ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_REFLECTIVE, &reflective);
         if(ret1 == AI_SUCCESS) {
           (void)reflective;
-          SHIFT_DEBUG("reflective: " + std::to_string(reflective.r) + " " +
+          SHIFT_TRACE("reflective: " + std::to_string(reflective.r) + " " +
                       std::to_string(reflective.g) + " " +
                       std::to_string(reflective.b) + " " +
                       std::to_string(reflective.a));
@@ -245,6 +245,7 @@ void shift::core::geometry::Mesh::Load() {
           // std::cout << "  opacity: " << opacity << std::endl;
         }
         found = true;
+        SHIFT_INFO("Loaded mesh: " + file);
         break;
       }
     }
