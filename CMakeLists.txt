@@ -104,3 +104,15 @@ if(SHIFT_BUILD_TESTS)
     include(CTest)
     add_subdirectory(test)
 endif()
+
+# build cscope database if cscope available
+find_program(CSCOPE NAMES cscope)
+if(CSCOPE)
+    message(STATUS "Found cscope: ${CSCOPE}")
+    add_custom_target(
+        cscope ALL
+        COMMAND find . -path './build*' -prune -false -o -name '*.cc' -o -name '*.h' -o -name '*.c' > .cscope.files
+        COMMAND cscope -q -R -b -i .cscope.files
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    )
+endif()

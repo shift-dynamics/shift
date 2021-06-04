@@ -6,4 +6,6 @@ CMakeLists.txt.user
 *.dat
 *.csv
 cscope.out
-
+cscope.in.out
+cscope.po.out
+.cscope.files
