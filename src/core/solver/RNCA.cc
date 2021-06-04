@@ -4,8 +4,8 @@
 
 #include "shift/core/Context.h"
 #include "shift/core/Factory.h"
-#include "shift/core/solver/RNCA.h"
 #include "shift/core/log.h"
+#include "shift/core/solver/RNCA.h"
 
 #include "ksl/array.h"
 #include "ksl/print.h"
@@ -1333,7 +1333,7 @@ void shift::core::solver::RNCA::SetupRHS() {
 
     Expand each multi DOF joint to expand the quantity in g with length
     non_rigid_joint_count in PO1 to fl of length dqCount in PO3 */
-  
+
   assert(context_);
   const auto& f = context_->get_joint_working_forces();
   const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
@@ -1346,9 +1346,7 @@ void shift::core::solver::RNCA::SetupRHS() {
   const double baumgarte_2_omega_n = integrator_->get_baumgarte_2_omega_n();
   const double baumgarte_omega_n_2 = integrator_->get_baumgarte_omega_n_2();
 
-  const auto& integral_constraint_error =
-    integrator_->get_integral_error();
-
+  const auto& integral_constraint_error = integrator_->get_integral_error();
 
 #if SHIFT_LOG_LEVEL > 4
   {
@@ -1396,70 +1394,74 @@ void shift::core::solver::RNCA::SetupRHS() {
   }
 
   SHIFT_TRACE("Evaluating primary constraints");
-  
+
   /* evaluate primary constraints (\bar{\gamma}_p) in PO(1), store in PO(2) */
   size_t chord_constraint_offset = 0;
   for(auto& substructure : jacobian.get_substructures()) {
 
-    SHIFT_TRACE(
-      "Processing substructure: " + std::to_string(substructure.get_index()));
+    SHIFT_TRACE("Processing substructure: " +
+                std::to_string(substructure.get_index()));
 
     const auto& pr_21 = substructure.get_pr21();
-    int dq_offset = substructure.get_dq_offset();
+    const int dq_offset = substructure.get_dq_offset();
     const double* cs = substructure.get_cs();
-    const auto& constraints = substructure.get_constraint_indices();
+    const auto& constraint_indices = substructure.get_constraint_indices();
+
+#if SHIFT_LOG_LEVEL > 4
     {
       std::stringstream ss;
       ss << "dq_offset: " << dq_offset;
       SHIFT_TRACE(ss.str());
     }
- 
-#if SHIFT_LOG_LEVEL > 4
+
     {
-        std::stringstream ss;
-        ss << "pr_21: ";
-        for(auto& i : pr_21) {
-           ss << i << " ";
-        }
-        ss << std::endl;
-        SHIFT_TRACE(ss.str());
+      std::stringstream ss;
+      ss << "pr_21: ";
+      for(auto& i : pr_21) {
+        ss << i << " ";
+      }
+      ss << std::endl;
+      SHIFT_TRACE(ss.str());
     }
 #endif
 
     for(size_t k = 0; k < substructure.get_chord_constraint_count();
         k++, chord_constraint_offset++) {
 
-#if SHIFT_LOG_LEVEL > 4 
-//       {
-//         std::stringstream ss;
-//         ss << "constraint offset: " << chord_constraint_offset << "\n";
-//         ksl_screw_print(ss.rdbuf(), &dhva.aq[constraints[k].child.v], "  aq child: ");
-//         ksl_screw_print((FILE*)ss.rdbuf(), &dhva.aq[constraints[k].parent.v], "  aq parent: ");
-// 
-//         ksl_screw_print((FILE*)ss.rdbuf(), &dhva.v[constraints[k].child.v], "  v child: ");
-//         ksl_screw_print((FILE*)ss.rdbuf(), &dhva.v[constraints[k].parent.v], "  v parent: ");
-//         SHIFT_TRACE(ss.str());
-//       }
-
-#endif
+      // #if SHIFT_LOG_LEVEL > 4
+      //       {
+      //         std::stringstream ss;
+      //         ss << "constraint offset: " << chord_constraint_offset << "\n";
+      //         ksl_screw_print(ss.rdbuf(), &dhva.aq[constraints[k].child.v], "
+      //         aq child: "); ksl_screw_print((FILE*)ss.rdbuf(),
+      //         &dhva.aq[constraints[k].parent.v], "  aq parent: ");
+      //
+      //         ksl_screw_print((FILE*)ss.rdbuf(),
+      //         &dhva.v[constraints[k].child.v], "  v child: ");
+      //         ksl_screw_print((FILE*)ss.rdbuf(),
+      //         &dhva.v[constraints[k].parent.v], "  v parent: ");
+      //         SHIFT_TRACE(ss.str());
+      //       }
+      // #endif
 
       for(size_t l = 0; l < 6; l++) {
         if(pr_21[k * 6 + l] < substructure.get_rank()) {
           gamma_d_[dq_offset + pr_21[k * 6 + l]] =
-            
-            (dhva.aq[constraints[k].child.v].at[l] -
-             dhva.aq[constraints[k].parent.v].at[l]) -
+
+            (dhva.aq[constraint_indices[k].child.v].at[l] -
+             dhva.aq[constraint_indices[k].parent.v].at[l])
 
             /* -(2 * omega_N) * \dot{\phi} velocity part of baumgarte
             constraint stabilization */
-            (baumgarte_2_omega_n * (dhva.v[constraints[k].parent.v].at[l] -
-                                    dhva.v[constraints[k].child.v].at[l])) -
+            - (baumgarte_2_omega_n *
+             (dhva.v[constraint_indices[k].parent.v].at[l] -
+              dhva.v[constraint_indices[k].child.v].at[l]))
 
             /* subtract omega_n^2 * \dot{phi} from gamma_p */
-            baumgarte_omega_n_2 * cs[k * 6 + l] -
+            - baumgarte_omega_n_2 * cs[k * 6 + l]
 
             // integral error
-            integral_constraint_error[chord_constraint_offset * 6 + l];
+            - integral_constraint_error[chord_constraint_offset * 6 + l];
         }
       }
     }
@@ -1469,7 +1471,7 @@ void shift::core::solver::RNCA::SetupRHS() {
   \bar{\gamma}_d = U^{-1} L^{-1} \bar{\gamma}_p */
   for(auto& substructure : jacobian.get_substructures()) {
 
-    int offset = substructure.get_dq_offset();
+    int dq_offset = substructure.get_dq_offset();
     const int dq_count = substructure.get_dq_count();
     const double* J = substructure.get_jacobian_matrix();
     const int rank = substructure.get_rank();
@@ -1478,7 +1480,7 @@ void shift::core::solver::RNCA::SetupRHS() {
     \bar{\gamma} <- L^{-1} * \bar\{\gamma} */
     for(int i = 0; i < rank; i++) {
       for(int j = 0; j < i; j++) {
-        gamma_d_[i + offset] -= J[i * dq_count + j] * gamma_d_[j + offset];
+        gamma_d_[i + dq_offset] -= J[i * dq_count + j] * gamma_d_[j + dq_offset];
       }
     }
 
@@ -1487,10 +1489,10 @@ void shift::core::solver::RNCA::SetupRHS() {
     for(int i = rank - 1; i > -1; i--) {
       double save = 0;
       for(int j = rank - 1; j > i; j--) {
-        save += J[i * dq_count + j] * gamma_d_[j + offset];
+        save += J[i * dq_count + j] * gamma_d_[j + dq_offset];
       }
-      gamma_d_[i + offset] =
-        (gamma_d_[i + offset] - save) / J[i * dq_count + i];
+      gamma_d_[i + dq_offset] =
+        (gamma_d_[i + dq_offset] - save) / J[i * dq_count + i];
     }
   }
 
@@ -1911,8 +1913,9 @@ and any states required for force modules
 y = [q, dq, q_f]
 dy = [dq, ddq, dq_f]
 */
-bool shift::core::solver::RNCA::Solve(const double t, const std::vector<double>& y,
-                                std::vector<double>& dy) {
+bool shift::core::solver::RNCA::Solve(const double t,
+                                      const std::vector<double>& y,
+                                      std::vector<double>& dy) {
 
   assert(context_);
   assert(q_count_ == context_->get_q_count());
@@ -2016,8 +2019,8 @@ bool shift::core::solver::RNCA::Solve(const double t, const std::vector<double>&
 }
 
 bool shift::core::solver::RNCA::Verify(const double t,
-                                 const std::vector<double>& /*dy*/, double Ml[],
-                                 double fl[]) {
+                                       const std::vector<double>& /*dy*/,
+                                       double Ml[], double fl[]) {
   bool verified = true;
   (void)t;
 
@@ -2235,9 +2238,9 @@ bool shift::core::solver::RNCA::Verify(const double t,
       SHIFT_ERROR(ss.str());
     }
 #endif
-   
+
     auto& jacobian = context_->get_jacobian();
-    
+
 #if SHIFT_LOG_LEVEL > 0
     std::stringstream ss;
     ss << "infinity norm failures:\n";
@@ -2250,7 +2253,7 @@ bool shift::core::solver::RNCA::Verify(const double t,
     }
     SHIFT_ERROR(ss.str());
 #endif
-    
+
     throw shift::core::Exception("Failed to solve equations of motion");
   }
 
@@ -2288,7 +2291,7 @@ bool shift::core::solver::RNCA::Verify(const double t,
       SHIFT_ERROR(ss.str());
     }
 #endif
- 
+
     throw shift::core::Exception("Failed to solve equations of motion");
   }
   // std::cout << "verified: " << (verified ? "true" : "false") << std::endl;

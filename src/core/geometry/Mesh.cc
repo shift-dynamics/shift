@@ -2,7 +2,12 @@
 #include "shift/core/Exception.h"
 #include "shift/core/Factory.h"
 #include "shift/core/geometry/Mesh.h"
+#include "shift/core/log.h"
 #include "shift/core/utility.h"
+
+#ifdef SHIFT_DEBUG
+#include <fenv.h>
+#endif
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -18,8 +23,8 @@ shift::core::geometry::Mesh::Create() {
 }
 
 void shift::core::geometry::Mesh::DeclareParameters() {
-  DeclareParameter("filename", &filenames_, "Specify one or more filenames to load",
-               true);
+  DeclareParameter("filename", &filenames_,
+                   "Specify one or more filenames to load", true);
 }
 
 void shift::core::geometry::Mesh::Load() {
@@ -44,7 +49,6 @@ void shift::core::geometry::Mesh::Load() {
       } else {
         for(auto& directory : include_directories) {
           file = directory + "/" + str;
-          std::cout << file << std::endl;
           if(shift::core::utility::FileExists(file)) {
             file_found = true;
             break;
@@ -58,12 +62,35 @@ void shift::core::geometry::Mesh::Load() {
 
       found = true;
       Assimp::Importer importer;
-      const aiScene* scene = importer.ReadFile(
-        file, aiProcess_CalcTangentSpace | aiProcess_Triangulate |
-               aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+
+// temporarily disable floating point divide by zero exception handling
+// in Assimp loading
+#ifdef SHIFT_DEBUG
+#ifdef __APPLE__
+      // TODO find fedisableexcept equivalent for Apple
+#elif __linux__
+      fedisableexcept(FE_DIVBYZERO);
+#endif
+#endif
+      const aiScene* scene = nullptr;
+      try {
+        scene = importer.ReadFile(
+          file, aiProcess_CalcTangentSpace | aiProcess_Triangulate |
+                  aiProcess_JoinIdenticalVertices | aiProcess_SortByPType);
+      } catch(shift::core::Exception& e) {
+        SHIFT_WARNING(e.what());
+        SHIFT_WARNING("Problem detected loading: " + file);
+      }
+#ifdef SHIFT_DEBUG
+#ifdef __APPLE__
+      // TODO find feenableexcept equivalent for Apple
+#elif __linux__
+      feenableexcept(FE_DIVBYZERO);
+#endif
+#endif
 
       if(!scene) {
-        std::cerr << "Failed importing mesh " << str << std::endl;
+        SHIFT_WARNING("Failed importing mesh: " + file);
         throw shift::core::Exception(importer.GetErrorString());
       }
 
@@ -99,7 +126,8 @@ void shift::core::geometry::Mesh::Load() {
         }
 
         if(scene->mMeshes[i]->mTextureCoords[0]) {
-          mesh_data.texture_coordinates.resize(3 * scene->mMeshes[i]->mNumVertices);
+          mesh_data.texture_coordinates.resize(3 *
+                                               scene->mMeshes[i]->mNumVertices);
           for(size_t j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
             mesh_data.texture_coordinates[3 * j + 0] =
               scene->mMeshes[i]->mTextureCoords[0][j].x;
@@ -133,7 +161,7 @@ void shift::core::geometry::Mesh::Load() {
         if(ret1 == AI_SUCCESS) {
           material_data.opacity = opacity;
         }
-        
+
         aiColor4D diffuse;
         ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
         if(ret1 == AI_SUCCESS) {
@@ -179,8 +207,8 @@ void shift::core::geometry::Mesh::Load() {
                                        &shininess_strength, &max);
         if(ret1 == AI_SUCCESS) {
           (void)shininess_strength;
-          // std::cout << "  shininess_strength: " << shininess_strength
-          //         << std::endl;
+          SHIFT_DEBUG("shininess_strength: " +
+                      std::to_string(shininess_strength));
         }
 
         float reflectivity = 0.f;
@@ -188,7 +216,7 @@ void shift::core::geometry::Mesh::Load() {
                                        &reflectivity, &max);
         if(ret1 == AI_SUCCESS) {
           (void)reflectivity;
-          // std::cout << "  reflectivity: " << reflectivity << std::endl;
+          SHIFT_DEBUG("reflectivity: " + std::to_string(reflectivity));
         }
 
         float refracti = 0.f;
@@ -196,15 +224,17 @@ void shift::core::geometry::Mesh::Load() {
           aiGetMaterialFloatArray(mtl, AI_MATKEY_REFRACTI, &refracti, &max);
         if(ret1 == AI_SUCCESS) {
           (void)refracti;
-          // std::cout << "  refraction: " << refracti << std::endl;
+          SHIFT_DEBUG("refraction: " + std::to_string(refracti));
         }
 
         aiColor4D reflective;
         ret1 = aiGetMaterialColor(mtl, AI_MATKEY_COLOR_REFLECTIVE, &reflective);
         if(ret1 == AI_SUCCESS) {
           (void)reflective;
-          // std::cout << "  reflective: " << reflective.r << " " << reflective.g
-          //          << " " << reflective.b << " " << reflective.a << std::endl;
+          SHIFT_DEBUG("reflective: " + std::to_string(reflective.r) + " " +
+                      std::to_string(reflective.g) + " " +
+                      std::to_string(reflective.b) + " " +
+                      std::to_string(reflective.a));
         }
 
         opacity = 0.f;

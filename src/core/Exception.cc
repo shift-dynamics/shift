@@ -3,6 +3,7 @@
 #include <cxxabi.h> // for __cxa_demangle
 #include <dlfcn.h>  // for dladdr
 #include <exception>
+#include <string>
 
 namespace exec_info {
 #include <execinfo.h> // for backtrace
@@ -17,6 +18,15 @@ shift::core::Exception::Exception(const std::string& message)
   : message_(message) {
   backtrace_ = _backtrace(2);
 }
+
+shift::core::Exception::Exception(const std::string& message, const char* file, int line)
+  : message_(message) {
+  
+  message_ = std::string(file) + ":" + std::to_string(line) + " | " +
+    message_;
+  backtrace_ = _backtrace(2);
+}
+
 
 const std::string shift::core::Exception::_backtrace(int skip) {
   void* callstack[128];

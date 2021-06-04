@@ -1,6 +1,6 @@
-#include "shift/core/integrator/ODE113.h"
 #include "shift/core/Context.h"
 #include "shift/core/Factory.h"
+#include "shift/core/integrator/ODE113.h"
 #include "shift/core/log.h"
 
 #include <math.h>
@@ -23,45 +23,50 @@ const double shift::core::integrator::ODE113::stability_limits_[17] = {
   1.0,  2.0,  2.26, 1.86, 1.4, 1.03, 0.78, 0.58, 0.44,
   0.34, 0.26, 0.21, 0.6,  0.2, 0.2,  0.2,  0.2};
 
+
 bool shift::core::integrator::ODE113::registered_ =
   shift::core::Factory<shift::core::integrator::Base>::get()->RegisterModule(
     "ode113", shift::core::integrator::ODE113::Create);
 
-std::unique_ptr<shift::core::integrator::ODE113> shift::core::integrator::ODE113::Create() {
+std::unique_ptr<shift::core::integrator::ODE113>
+shift::core::integrator::ODE113::Create() {
   return std::make_unique<shift::core::integrator::ODE113>();
 }
 
 void shift::core::integrator::ODE113::DeclareParameters() {
-  DeclareParameter("safety_factor", &safety_factor_,
-               "adjustable safety factor for numerical integration: defaults "
-               "to 0.0005 if not provided",
-               false);
-  DeclareParameter("hmax", &hmax_,
-               "largest internal time step allowed by numerical integrator, "
-               "defaults to 0.01 if not provided.",
-               false);
+  DeclareParameter(
+    "safety_factor", &safety_factor_,
+    "adjustable safety factor for numerical integration: defaults "
+    "to 0.0005 if not provided",
+    false);
+  DeclareParameter(
+    "hmax", &hmax_,
+    "largest internal time step allowed by numerical integrator, "
+    "defaults to 0.01 if not provided.",
+    false);
   DeclareParameter("omega_n_max", &omega_n_max_,
-               "largest value for omega_n used in Baumgarte constraint "
-               "stabilization, defaults to 1000.0 if not provided",
-               false);
+                   "largest value for omega_n used in Baumgarte constraint "
+                   "stabilization, defaults to 1000.0 if not provided",
+                   false);
   DeclareParameter("integral_gain", &integral_gain_,
-               "integral gain used in baumgarte constraint stabilization, "
-               "defaults to 1000.0 if not provided",
-               false);
+                   "integral gain used in baumgarte constraint stabilization, "
+                   "defaults to 1000.0 if not provided",
+                   false);
   DeclareParameter("absolute_error", &absolute_error_,
-               "absolute error used in numerical integration, defaults to "
-               "0.0001 if not provided",
-               false);
-  DeclareParameter("relative_error", &relative_error_,
-               "relative error used in numerical integration, defaults to 0.0 "
-               "if not provided",
-               false);
+                   "absolute error used in numerical integration, defaults to "
+                   "0.0001 if not provided",
+                   false);
+  DeclareParameter(
+    "relative_error", &relative_error_,
+    "relative error used in numerical integration, defaults to 0.0 "
+    "if not provided",
+    false);
 }
 
 void shift::core::integrator::ODE113::Connect() {
   assert(context_);
-  solver_ =
-    (*context_)["model_parameters"]["solvers"][0].get_data<shift::core::solver::Base>();
+  solver_ = (*context_)["model_parameters"]["solvers"][0]
+              .get_data<shift::core::solver::Base>();
   assert(solver_);
 }
 
@@ -143,7 +148,8 @@ void shift::core::integrator::ODE113::Initialize() {
   Reset();
 }
 
-void shift::core::integrator::ODE113::StepFunction(double t, std::vector<double>& y) {
+void shift::core::integrator::ODE113::StepFunction(double t,
+                                                   std::vector<double>& y) {
   assert(solver_);
   iteration_count_++;
 
@@ -169,7 +175,7 @@ void shift::core::integrator::ODE113::StepFunction(double t, std::vector<double>
     double rho_dt = h * integral_gain_;
 
     // evaluate integral error
-    for(unsigned int i = 0; i < context_->get_constraint_equation_count(); i++) {
+    for(unsigned int i = 0; i < cs.size(); i++) {
       integral_error_[i] += cs[i] * rho_dt;
     }
 
@@ -187,9 +193,9 @@ void shift::core::integrator::ODE113::StepFunction(double t, std::vector<double>
 
     {
       std::stringstream ss;
-      ss << "integral_error: "; 
+      ss << "integral_error: ";
       for(auto& i : integral_error_) {
-        ss << i << " "; 
+        ss << i << " ";
       }
       SHIFT_TRACE(ss.str());
     }
@@ -828,7 +834,8 @@ void shift::core::integrator::ODE113::step() {
   return;
 }
 
-void shift::core::integrator::ODE113::get_current_time(double& time, double& delta_time) {
+void shift::core::integrator::ODE113::get_current_time(double& time,
+                                                       double& delta_time) {
   time = x_;
   delta_time = x_ - t_; // @TODO verify this is correct
 }
