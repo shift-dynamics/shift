@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 cmake_policy(SET CMP0048 NEW)
 project(shift
-    VERSION 2.0.0
+    VERSION 0.2.0
     DESCRIPTION "A Dynamics Engine for Automation and Robotics"
     LANGUAGES C CXX
 )
@@ -38,6 +38,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
     if(NOT SHIFT_LOG_LEVEL)
        set(SHIFT_LOG_LEVEL 4) # DEBUG LOGGING
     endif()
+
 else()
     if(NOT SHIFT_LOG_LEVEL)
         set(SHIFT_LOG_LEVEL 3) # INFO LOGGING
@@ -52,7 +53,7 @@ message(STATUS
 )
 
 set(CMAKE_CXX_FLAGS "-g -DSHIFT_LOG_LEVEL=${SHIFT_LOG_LEVEL}")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DSHIFT_DEBUG" CACHE STRING "")
 set(CMAKE_C_FLAGS_DEBUG "-g -O0" CACHE STRING "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/cmake")

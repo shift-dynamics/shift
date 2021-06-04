@@ -5,24 +5,35 @@
 #include "shift/core/Exception.h"
 #include "shift/core/log.h"
 
+#include <fenv.h>
+#include <signal.h>
+
 #include <algorithm>
 #include <iostream>
+#include <memory>
 
 int main(int argc, char* argv[]) {
 
   argagg::parser argparser{
     {{"help", {"-h", "--help"}, "show this help message and exit", 0},
-     {"digraph", {"-d", "--digraph"}, 
-      "create a directed body graph and exit; boolean (default: false)", 0},
+     {"digraph",
+      {"-d", "--digraph"},
+      "create a directed body graph and exit; boolean (default: false)",
+      0},
      {"frame_digraph",
       {"-f", "--frame-digraph"},
-      "create a directed frame graph and exit; boolean (default: false)", 0},
-     {"input", {"-i", "--input"}, 
-      "shift simulation input file; string, required", 1},
-     {"verbosity", {"-v", "--verbosity"}, 
+      "create a directed frame graph and exit; boolean (default: false)",
+      0},
+     {"input",
+      {"-i", "--input"},
+      "shift simulation input file; string, required",
+      1},
+     {"verbosity",
+      {"-v", "--verbosity"},
       "verbosity level ['fatal', 'warning', 'info', 'debug', 'trace'];\n"
       "                        "
-      "string (default: 'info')", 1},
+      "string (default: 'info')",
+      1},
      {"validate",
       {"-V", "--validate"},
       "validate input file only, do not run simulation (default: false)",
@@ -58,13 +69,13 @@ int main(int argc, char* argv[]) {
     level_str = "'trace'";
   }
 
-
   std::cout << executable + " v" << std::to_string(SHIFT_VERSION_MAJOR) << "."
-    << std::to_string(SHIFT_VERSION_MINOR) << "."
-    << std::to_string(SHIFT_VERSION_PATCH) << ", "
-    << "branch: " << SHIFT_GIT_BRANCH << ", "
-    << "commit: " << SHIFT_GIT_COMMIT_HASH << ", "
-    << "log level: " << level_str << std::endl << std::endl;
+            << std::to_string(SHIFT_VERSION_MINOR) << "."
+            << std::to_string(SHIFT_VERSION_PATCH) << ", "
+            << "branch: " << SHIFT_GIT_BRANCH << ", "
+            << "commit: " << SHIFT_GIT_COMMIT_HASH << ", "
+            << "log level: " << level_str << std::endl
+            << std::endl;
 
   if(args["help"]) {
     std::cout << std::endl << "usage:" << std::endl;
@@ -83,7 +94,7 @@ int main(int argc, char* argv[]) {
         str.resize(24, ' ');
         std::cout << str << definition.help << std::endl;
       } else {
-        std::cout << str << std::endl; 
+        std::cout << str << std::endl;
         std::cout << "                        " << definition.help << std::endl;
       }
     }
@@ -114,11 +125,24 @@ int main(int argc, char* argv[]) {
     shift::core::log::SetLogLevel(args["verbosity"].as<std::string>());
   }
 
-  // SHIFT_DEBUG("Run-time log level: " + std::to_string(shift::core::log::level));
-  // SHIFT_DEBUG("Compiled log level: " + std::to_string(SHIFT_LOG_LEVEL));
+#ifdef SHIFT_DEBUG
+#ifdef __APPLE__
+#elif __linux__
+  SHIFT_INFO("Floating point error detection enabled");
+  feenableexcept(FE_DIVBYZERO);
+  std::shared_ptr<void(int)> sigfpe_handler(
+    signal(SIGFPE,
+           [](int) { throw shift::core::Exception("Floating point error"); }),
+    [](__sighandler_t f) { signal(SIGFPE, f); });
+  std::shared_ptr<void(int)> sigsegv_handler(
+    signal(
+      SIGSEGV,
+      [](int) { throw shift::core::Exception("Segmentation fault occurred"); }),
+    [](__sighandler_t f) { signal(SIGSEGV, f); });
+#endif
+#endif
 
   try {
-
     shift::core::Context context;
     context.LoadJSON(args["input"].as<std::string>());
 

@@ -15,7 +15,8 @@ private:
 
 public:
   explicit Exception(const std::string& message);
-
+  explicit Exception(const std::string& message, const char* file, int line);
+  
   const char* what() const noexcept override {
     return message_.c_str();
   }
@@ -24,6 +25,7 @@ public:
     return backtrace_;
   }
 };
+
 
 } // namespace core
 } // namespace shift

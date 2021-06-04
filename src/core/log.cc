@@ -52,7 +52,7 @@ void SetLogLevel(const std::string& level_) {
     level_upper.at(i) = std::toupper(level_upper.at(i));
   }
   
-  unsigned int level; 
+  unsigned int tmp = level; 
   if(level_upper == "FATAL" || level_upper == "0") {
     tmp = 0;
   } else if(level_upper == "ERROR" || level_upper == "1") {
