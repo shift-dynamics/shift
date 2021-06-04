@@ -369,11 +369,11 @@ double shift::core::Substructure::EvaluateConstraints(
   assert(constraints_.size() == chord_constraint_count_);
 
   for(unsigned int i = 0; i < chord_constraint_count_; i++) {
-    ksl_SE3_t* parent_frame = dhva.d + constraints_[i].parent.d;
-    ksl_SE3_t* child_frame = dhva.d + constraints_[i].child.d;
+    ksl_SE3_t* d_parent = dhva.d + constraints_[i].parent.d;
+    ksl_SE3_t* d_child = dhva.d + constraints_[i].child.d;
     ksl_SE3_t temp;
 
-    ksl_product_ddinv(parent_frame, child_frame, &temp);
+    ksl_product_ddinv(d_parent, d_child, &temp);
 
     memcpy(cs_ + i * 6, &temp.t, sizeof(ksl_vec3_t));
     double trace = temp.R.m00 + temp.R.m11 + temp.R.m22 - 3.0;
