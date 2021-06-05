@@ -1,4 +1,4 @@
-# Data Structures
+# Shift objects
 
 ## Organization of Shift data structures
 In *Shift*, the data structure layout hierarchy and json file format have a one-to-one correspondence. Refer to the <https://github.com/shift-dynamics/shift-models/blob/master/excavator/excavator.json> for an example of an updated JSON file.

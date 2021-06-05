@@ -774,7 +774,7 @@ INPUT                  = @doxy_main_page@ \
                          @shift_SOURCE_DIR@/src/gui \
                          @PROJECT_SOURCE_DIR@/README.md \
                          @PROJECT_SOURCE_DIR@/doc/install.md \
-                         @PROJECT_SOURCE_DIR@/doc/data_structures.md \
+                         @PROJECT_SOURCE_DIR@/doc/shift_objects.md \
                          @PROJECT_SOURCE_DIR@/doc/parameters.md \
                          @PROJECT_SOURCE_DIR@/doc/developer_guide.md
 
