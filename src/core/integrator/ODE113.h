@@ -40,7 +40,7 @@ public:
 
 private:
   virtual void DeclareParameters() override;
-  void step();
+  void Step();
   void StepFunction(const double t, std::vector<double>& y);
 
   double absolute_error_ = 0.0001;

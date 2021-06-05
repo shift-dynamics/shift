@@ -281,7 +281,7 @@ void shift::core::integrator::ODE113::Integrate() {
       wt_[l] = releps * fabs(yy_[l]) + abseps;
     }
 
-    step();
+    Step();
 
     if(newton_raphson_failure_) {
       SHIFT_ERROR("Newton-Raphson failure, integration stopped");
@@ -439,7 +439,7 @@ unsuccessful step --
   just calls the code again.  a restart is neither required nor
   desirable.
 */
-void shift::core::integrator::ODE113::step() {
+void shift::core::integrator::ODE113::Step() {
   double temp2;
   double temp4;
   double temp5;
