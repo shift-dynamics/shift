@@ -2686,9 +2686,11 @@ int shift::core::Context::DigraphFrames() {
 @return gravitational potential energy
 */
 double shift::core::Context::GravitationalPotentialEnergy() {
-  // return ksl_dot_vv(&projected_inertia_[0].mt,
-  // model_parameters_.gravity());
-  return 0;
+  double pe = 0.0;
+  for(auto& solver : active_solvers_) {
+    pe += solver->GravitationalPotentialEnergy(dhva_);
+  }
+  return pe;
 }
 
 /*!
@@ -2697,17 +2699,11 @@ double shift::core::Context::GravitationalPotentialEnergy() {
 */
 double shift::core::Context::KineticEnergy() {
   assert(dhva_.v);
-#if SHIFT_WITH_BLAS_
-  return cblas_ddot(6 * non_rigid_joint_count_, (p_.data()), 1,
-                    (double*)(dhva_.v), 1) /
-         2.0;
-#else
-  double sum = 0.0;
-  for(unsigned int i = 0; i < non_rigid_joint_count_; i++) {
-    sum += ksl_dot_cs(&p_[i], dhva_.v + i);
+  double ke = 0.0;
+  for(auto& solver : active_solvers_) {
+    ke += solver->KineticEnergy(dhva_);
   }
-  return sum;
-#endif
+  return ke;
 }
 
 unsigned int shift::core::Context::get_force_module_equation_count() {
