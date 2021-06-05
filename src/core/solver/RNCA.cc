@@ -92,6 +92,27 @@ void shift::core::solver::RNCA::Initialize() {
   Memoize();
 }
 
+  double shift::core::solver::RNCA::GravitationalPotentialEnergy(shift::core::topology::DHVA& dhva) {
+    if(!inertia_p_.empty()) {
+      return -(ksl_dot_vv(&inertia_p_[0].mt, &dhva.aq[-1].lin));
+    } else {
+      return 0.0;
+    }
+  }
+
+  double shift::core::solver::RNCA::KineticEnergy(shift::core::topology::DHVA& dhva) {
+#if SHIFT_WITH_BLAS_
+    return cblas_ddot(6 * non_rigid_joint_count_, (p_.data()), 1,
+                      (double*)(dhva.v - 1), 1) / 2.0;
+#else
+  double sum = 0.0;
+  for(size_t i = 0; i < context_->get_non_rigid_joint_count() + 1; i++) {
+    sum += ksl_dot_cs(&p_[i], dhva.v + i - 1);
+  }
+  return sum;
+#endif
+}
+
 void shift::core::solver::RNCA::Memoize() {
   CountOperations();
   RecordOperations();
@@ -1111,8 +1132,20 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
       SHIFT_ERROR("Newton-raphson failure, exiting simulation.");
       return true;
     }
-    SHIFT_DEBUG("Failed infinity norm check, but GECP was successfully "
-                "reapplied and simulation will attempt to continue");
+
+#if SHIFT_LOG_LEVEL > 3
+    {
+      std::stringstream ss;
+      double t;
+      double dt;
+      context_->get_current_time(t, dt); 
+      ss << "Failed infinity norm check at t = " 
+         << t << ", but GECP was successfully reapplied and simulation " 
+         << "will attempt to continue";
+      SHIFT_DEBUG(ss.str());
+    }
+#endif
+
     jacobian.Analyze();
     SetupRHS();
     SetupMassMatrixAndRecordFills();
@@ -1142,8 +1175,20 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
       SHIFT_ERROR("Newton-raphson failure, exiting simulation.");
       return true;
     }
-    SHIFT_DEBUG("Failed infinity norm check, but GECP was successfully "
-                "reapplied and simulation will attempt to continue");
+
+#if SHIFT_LOG_LEVEL > 3
+    {
+      std::stringstream ss;
+      double t;
+      double dt;
+      context_->get_current_time(t, dt); 
+      ss << "Failed infinity norm check at t = " 
+         << t << ", but GECP was successfully reapplied and simulation " 
+         << "will attempt to continue";
+      SHIFT_DEBUG(ss.str());
+    }
+#endif
+    
     jacobian.Analyze();
     SetupRHS();
     SetupMassMatrixAndRecordFills();

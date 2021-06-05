@@ -530,9 +530,8 @@ private:
   std::vector<double> f_;
   /*!< Working forces within a joint, such as from
                         friction        or damping */
-  std::vector<ksl_coscrew_t> p_; /*< momentum */
-  std::vector<ksl_coscrew_t> g_; /*!< spatial body and inertial
-                                  forces, length equal to dq count */
+  // std::vector<ksl_coscrew_t> g_; /*!< spatial body and inertial
+  //                                 forces, length equal to dq count */
   std::vector<ksl_coscrew_t> k_;
   std::vector<ksl_inertia_t> inertia_; /*!< body fixed spatial inertias */
   std::vector<int> joint_dof_;

@@ -110,6 +110,18 @@ public:
     return DeclareParameter(key, value);
   }
 
+  Value& DeclareParameter(const std::string key, int* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
+  Value& DeclareParameter(const std::string key, std::vector<int>* data,
+                      const std::string description, bool required = true) {
+    Value value(data, description, required);
+    return DeclareParameter(key, value);
+  }
+
   Value& DeclareParameter(const std::string key, double* data,
                       const std::string description, bool required = true) {
     Value value(data, description, required);
@@ -121,6 +133,7 @@ public:
     Value value(data, description, required);
     return DeclareParameter(key, value);
   }
+
 
   Value& DeclareParameter(const std::string key, ksl_vec3_t* data,
                       const std::string description, bool required = true) {

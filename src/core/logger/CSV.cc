@@ -1,8 +1,12 @@
 #include "shift/core/logger/CSV.h"
+
+#include <iomanip>
+
 #include "shift/core/Context.h"
 #include "shift/core/Factory.h"
 #include "shift/core/logger/Base.h"
 #include "shift/core/utility.h"
+
 
 bool shift::core::logger::CSV::registered_ =
   shift::core::Factory<shift::core::logger::Base>::get()->RegisterModule(
@@ -26,6 +30,10 @@ void shift::core::logger::CSV::DeclareParameters() {
     "indicates to append current data/time to base log file name. Time stamp "
     "will be appended before file extension, defaults to \"false\"",
     false);
+  DeclareParameter(
+    "precision", &precision_,
+    "number of digits of precision after decimal point, defaults to 6",
+    false);
 }
 
 void shift::core::logger::CSV::Initialize() {
@@ -41,6 +49,8 @@ void shift::core::logger::CSV::Initialize() {
 void shift::core::logger::CSV::WriteHeader() {
   if(log_all_channels_) {
     assert(context_);
+    int precision = (precision_ >= 0) ? precision_ : 6;
+    file_ << std::setprecision(precision);
     file_ << "time" << delimiter_;
     for(auto& joint : context_->get_active_joints()) {
       for(size_t i = 0; i < joint->get_q_count(); i++) {
@@ -58,6 +68,9 @@ void shift::core::logger::CSV::WriteHeader() {
       }
     }
     file_ << "constraint_error" << delimiter_;
+    file_ << "gravitational_potential_energy" << delimiter_;
+    file_ << "kinetic_energy" << delimiter_;
+    file_ << "total_energy" << delimiter_;
   }
   file_ << "\n";
 }
@@ -73,5 +86,10 @@ void shift::core::logger::CSV::WriteStates(const double t,
     file_ << context_->get_ddq()[i] << delimiter_;
   }
   file_ << context_->get_constraint_error() << delimiter_;
+  double pe = context_->GravitationalPotentialEnergy();
+  double ke = context_->KineticEnergy(); 
+  file_ << pe << delimiter_;
+  file_ << ke << delimiter_;
+  file_ << (pe + ke) << delimiter_;
   file_ << "\n";
 }

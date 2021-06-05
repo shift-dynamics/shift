@@ -682,7 +682,15 @@ unsigned int shift::core::Substructure::InfinityNormCheck(
   bool infinity_norm_fail =
     infinity_norm_b > (infinity_norm_multiplier * initial_infinity_norm_b_);
 
-  std::cout << infinity_norm_b << " " << initial_infinity_norm_b_ << std::endl;
+#if SHIFT_LOG_LEVEL > 4
+  {
+    std::stringstream ss;
+    ss << "Infinity norm check: current infinity norm (" << 
+      infinity_norm_b << "), initial infinity norm (" <<
+      initial_infinity_norm_b_ << ")";
+    SHIFT_TRACE(ss.str());
+  }
+#endif
 
   if(infinity_norm_fail) {
 
