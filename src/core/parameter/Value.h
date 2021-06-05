@@ -59,6 +59,18 @@ public:
     , required_(required)
     , parameter_type_(STRING_2DARRAY) {}
 
+  Value(int* data, const std::string description, bool required)
+    : data_(data)
+    , description_(description)
+    , required_(required)
+    , parameter_type_(INT) {}
+
+  Value(std::vector<int>* data, const std::string description, bool required)
+    : data_(data)
+    , description_(description)
+    , required_(required)
+    , parameter_type_(INT_ARRAY) {}
+
   Value(double* data, const std::string description, bool required)
     : data_(data)
     , description_(description)
@@ -179,6 +191,8 @@ public:
     STRING,
     STRING_ARRAY,
     STRING_2DARRAY,
+    INT, 
+    INT_ARRAY,
     DOUBLE,
     DOUBLE_ARRAY,
     KSL_VEC3,
@@ -348,6 +362,8 @@ private:
   void ReadJSON_STRING(Json::Value&);
   void ReadJSON_STRING_ARRAY(Json::Value&);
   void ReadJSON_STRING_2DARRAY(Json::Value&);
+  void ReadJSON_INT(Json::Value&);
+  void ReadJSON_INT_ARRAY(Json::Value&);
   void ReadJSON_DOUBLE(Json::Value&);
   void ReadJSON_DOUBLE_ARRAY(Json::Value&);
   void ReadJSON_KSL_VEC3(Json::Value&);

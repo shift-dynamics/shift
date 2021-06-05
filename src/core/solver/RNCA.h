@@ -5,6 +5,7 @@
 
 #include "shift/core/Array2d.h"
 #include "shift/core/solver/Base.h"
+#include "shift/core/Topology.h"
 
 namespace shift {
 namespace core {
@@ -33,6 +34,9 @@ public:
   const std::string& get_description() {
     return description_;
   }
+  
+  virtual double GravitationalPotentialEnergy(shift::core::topology::DHVA& dhva) override;
+  virtual double KineticEnergy(shift::core::topology::DHVA& dhva) override;
 
   /*! memoize equations of motion in array of source and destination pointers */
   void Memoize();

@@ -6,8 +6,11 @@
 #include <memory>
 #include <string>
 
+#include "ksl/vec3.h"
+
 #include "shift/core/Base.h"
 #include "shift/core/parameter/List.h"
+#include "shift/core/Topology.h"
 
 namespace shift {
 namespace core {
@@ -60,10 +63,15 @@ public:
   }
 
   virtual void ActivateObjects(bool parent_is_active) override;
- 
   virtual void Load();
   virtual void Connect();
   virtual void Initialize() = 0;
+  virtual double GravitationalPotentialEnergy(shift::core::topology::DHVA&) {
+    return 0.0;
+  }
+  virtual double KineticEnergy(shift::core::topology::DHVA&) {
+    return 0.0;
+  }
   virtual bool Solve(const double t, const std::vector<double>& y,
                      std::vector<double>& dy) = 0;
 

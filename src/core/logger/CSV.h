@@ -41,6 +41,7 @@ private:
 
   virtual void DeclareParameters() override;
 
+  int precision_ = 6;
   std::string delimiter_ = ",";
   std::string csv_logfile_ = "simulation.csv";
   bool timestamp_logfile_ =

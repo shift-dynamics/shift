@@ -274,6 +274,14 @@ void shift::core::parameter::Value::ReadJSON(Json::Value& object) {
       ReadJSON_DOUBLE(object);
       break;
     }
+    case INT: {
+      ReadJSON_INT(object);
+      break;
+    }
+    case INT_ARRAY: {
+      ReadJSON_INT_ARRAY(object);
+      break;
+    }
     case DOUBLE_ARRAY: {
       ReadJSON_DOUBLE_ARRAY(object);
       break;
@@ -416,6 +424,50 @@ void shift::core::parameter::Value::ReadJSON_STRING_2DARRAY(Json::Value& json_va
     }
     std::any_cast<std::vector<std::vector<std::string>>*>(data_)->push_back(
       row);
+  }
+  loaded_from_file_ = true;
+}
+
+void shift::core::parameter::Value::ReadJSON_INT(Json::Value& json_value) {
+  if(!json_value.isInt()) {
+    throw shift::core::Exception(
+      "JSON Parsing error, required key has incorrectly formatted " 
+      "data; expected DOUBLE");
+  }
+  *std::any_cast<int*>(data_) = json_value.asInt();
+  loaded_from_file_ = true;
+}
+
+void shift::core::parameter::Value::ReadJSON_INT_ARRAY(Json::Value& json_value) {
+  if(!json_value.isArray()) {
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrectly formatted " 
+      "data; expected DOUBLE_ARRAY");
+  }
+  if(row_dim_ > 0 && row_dim_ != static_cast<int>(json_value.size())) {
+    throw shift::core::Exception(
+      "JSON Parsing error: required key has incorrect number of elements");
+  }
+  if(json_value.size() == 0) {
+    throw shift::core::Exception(
+      "JSON Parsing error: array has zero elements");
+  }
+
+  if(row_dim_ > -1 && col_dim_ > -1 &&
+     static_cast<int>(json_value.size()) != row_dim_ * col_dim_) {
+    throw shift::core::Exception(
+      "JSON Parsing error: DOUBLE_ARRAY has incorrect dimension");
+  }
+
+  std::any_cast<std::vector<int>*>(data_)->clear();
+  for(unsigned int i = 0; i < json_value.size(); i++) {
+    if(!json_value[i].isInt()) {
+      throw shift::core::Exception(
+        "JSON Parsing error: required key has incorrectly formatted " 
+        "data; expected DOUBLE_ARRAY");
+    }
+    std::any_cast<std::vector<int>*>(data_)->push_back(
+      json_value[i].asInt());
   }
   loaded_from_file_ = true;
 }
@@ -910,6 +962,18 @@ void shift::core::parameter::Value::Print(std::string prefix) const {
         std::cout << "] " << std::endl;
       }
       std::cout << prefix << "]" << std::endl;
+      break;
+    }
+    case INT: {
+      std::cout << get<int>() << std::endl;
+      break;
+    }
+    case INT_ARRAY: {
+      std::cout << "[ ";
+      for(auto& i : get<std::vector<int>>()) {
+        std::cout << i << " ";
+      }
+      std::cout << " ]" << std::endl;
       break;
     }
     case DOUBLE: {
