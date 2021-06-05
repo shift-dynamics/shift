@@ -3,9 +3,9 @@
 
 #include "shift/core/Array2d.h"
 #include "shift/core/Base.h"
-#include "shift/core/parameter/List.h"
 #include "shift/core/Substructure.h"
 #include "shift/core/Topology.h"
+#include "shift/core/parameter/List.h"
 
 #include "ksl/memory.h"
 
@@ -32,7 +32,6 @@ public:
   ~Jacobian() {}
 
 public:
-
   struct InfinityNormFailure {
     double time;
     std::vector<unsigned int> substructure_index;
@@ -81,7 +80,7 @@ public:
   const std::vector<double>& get_constraints() const {
     return cs_;
   }
- 
+
   const std::vector<InfinityNormFailure>& get_infinity_norm_failures() const {
     return infinity_norm_failures_;
   }
@@ -93,7 +92,7 @@ public:
 
   Identifies size of various data structures, allocates memory and performs an
   initial full-factor to determine split of dependent and independent variables
-*/
+  */
   void Initialize();
 
   /*! \brief perform full factor to set mapping from PO1 to PO2 */
@@ -121,6 +120,7 @@ public:
   void SetupSubstructurePointers();
   int RemoveConstraintViolations();
   void RemoveConstraintViolationsFast(bool);
+
   /*! check if infinity norm of B matrix is greater than a threshold times the
    * initial starting value
    * \return bool true if infinity norm is greater than initial starting value
@@ -137,29 +137,33 @@ public:
   bool InfinityNormCheck(const double);
 
 private:
-
   void SetupLookup();
   void MallocEquations();
   void CompressLoopMembers();
 
   bool newton_raphson_failure_ = false;
 
-  std::vector<double> J_;
-  std::vector<double> Js_;
+  std::vector<double> J_;  /*!< a linear vector containing all block submatrices
+                              for each substructure */
+  std::vector<double> Js_; /*!< saved copy of Jacobian matrix */
   std::vector<int> Jxx_;
-  std::vector<bool> Jb_;
-  std::vector<double> cs_;
-  std::vector<double> dcs_;
+  std::vector<bool>
+    Jb_; /*!< boolean array indicating fills, used to set up RNCA algorithm */
+  std::vector<double>
+    cs_; /*!< global array of constraints \f[\underline{e}\f] */
+  std::vector<double>
+    dcs_; /*!< time derivative of constraints \f[\underline{\dot{e}}\f] */
   std::vector<double> b3_;
   std::vector<int> ij_mapping_;
   Array2d<int> rb3_;
   std::vector<int> cb3_;
-  std::vector<double> right_null_space_;
+  std::vector<double>
+    right_null_space_; /*!< right null space of Jacobian matrix */
 
   unsigned int jacobian_size_ =
     0; /*!< size of all block sub Jacobian matrices */
   unsigned int constraint_equation_count_ =
-    0; /*!< total number of constraint equations in all block sub-Jacobian
+    0; /*!< total number of constraint equations for all block sub-Jacobian
           matrices */
 
   std::vector<bool> is_dependent_po1_;
@@ -182,7 +186,7 @@ private:
   std::vector<InfinityNormFailure> infinity_norm_failures_;
 };
 
-}
+} // namespace core
 } // namespace shift
 
 #endif
