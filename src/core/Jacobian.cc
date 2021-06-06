@@ -54,14 +54,14 @@ void shift::core::Jacobian::MallocEquations() {
   unsigned int dq_offset = 0;
   unsigned int joint_offset = 0;
 
-  int i = 0; 
-  for(auto& sub : substructure_members) {
-    std::cout << i++ << ": ";
-    for(auto& v : sub) {
-      std::cout << v << " ";
-    }
-  }
-  std::cout << std::endl;
+  // int i = 0; 
+  // for(auto& sub : substructure_members) {
+  //   std::cout << i++ << ": ";
+  //   for(auto& v : sub) {
+  //     std::cout << v << " ";
+  //   }
+  // }
+  // std::cout << std::endl;
   
   for(unsigned int i = 0; i < substructure_members.size(); i++) {
     // std::cout << "[" << i << "]: " << 
