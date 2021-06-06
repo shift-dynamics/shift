@@ -2149,7 +2149,7 @@ bool shift::core::solver::RNCA::Solve(const double t,
 #if SHIFT_LOG_LEVEL > 4
   {
     std::stringstream ss;
-    ss << "RNCA StatesS\n";
+    ss << "RNCA States\n";
     PrintStates(ss);
     PrintVector("y", y, ss);
     PrintVector("dy", dy, ss);
