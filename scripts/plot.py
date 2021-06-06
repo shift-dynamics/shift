@@ -38,6 +38,7 @@ if __name__ == "__main__":
 
     ax4 = plt.subplot(514, sharex=ax3)
     plt.plot(t, data["constraint_error"], label="Constraint error")
+    ax4.set_yscale('log')
     ax4.set_ylabel('Sum of constraint error')
     ax4.set_xlabel('time (s)')
 
