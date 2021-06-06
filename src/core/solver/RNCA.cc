@@ -92,24 +92,27 @@ void shift::core::solver::RNCA::Initialize() {
   Memoize();
 }
 
-  double shift::core::solver::RNCA::GravitationalPotentialEnergy(shift::core::topology::DHVA& dhva) {
-    if(!inertia_p_.empty()) {
-      return -(ksl_dot_vv(&inertia_p_[0].mt, &dhva.aq[-1].lin));
-    } else {
-      return 0.0;
-    }
+double shift::core::solver::RNCA::GravitationalPotentialEnergy(
+  shift::core::topology::DHVA& dhva) {
+  if(!inertia_p_.empty()) {
+    return ksl_dot_vv(&inertia_p_[0].mt, &dhva.aq[-1].lin);
+  } else {
+    return 0.0;
   }
+}
 
-  double shift::core::solver::RNCA::KineticEnergy(shift::core::topology::DHVA& dhva) {
+double
+shift::core::solver::RNCA::KineticEnergy(shift::core::topology::DHVA& dhva) {
 #if SHIFT_WITH_BLAS_
-    return cblas_ddot(6 * non_rigid_joint_count_, (p_.data()), 1,
-                      (double*)(dhva.v - 1), 1) / 2.0;
+  return cblas_ddot(6 * non_rigid_joint_count_, (double*)(p_.data() + 1), 1,
+                    (double*)(dhva.v), 1) /
+         2.0;
 #else
   double sum = 0.0;
-  for(size_t i = 0; i < context_->get_non_rigid_joint_count() + 1; i++) {
-    sum += ksl_dot_cs(&p_[i], dhva.v + i - 1);
+  for(size_t i = 0; i < context_->get_non_rigid_joint_count(); i++) {
+    sum += ksl_dot_cs(&(p_[i + 1]), &dhva.v[i]);
   }
-  return sum;
+  return sum / 2.0;
 #endif
 }
 
@@ -1138,9 +1141,9 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
       std::stringstream ss;
       double t;
       double dt;
-      context_->get_current_time(t, dt); 
-      ss << "Failed infinity norm check at t = " 
-         << t << ", but GECP was successfully reapplied and simulation " 
+      context_->get_current_time(t, dt);
+      ss << "Failed infinity norm check at t = " << t
+         << ", but GECP was successfully reapplied and simulation "
          << "will attempt to continue";
       SHIFT_DEBUG(ss.str());
     }
@@ -1181,14 +1184,14 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
       std::stringstream ss;
       double t;
       double dt;
-      context_->get_current_time(t, dt); 
-      ss << "Failed infinity norm check at t = " 
-         << t << ", but GECP was successfully reapplied and simulation " 
+      context_->get_current_time(t, dt);
+      ss << "Failed infinity norm check at t = " << t
+         << ", but GECP was successfully reapplied and simulation "
          << "will attempt to continue";
       SHIFT_DEBUG(ss.str());
     }
 #endif
-    
+
     jacobian.Analyze();
     SetupRHS();
     SetupMassMatrixAndRecordFills();
@@ -1440,6 +1443,8 @@ void shift::core::solver::RNCA::SetupRHS() {
 
   SHIFT_TRACE("Evaluating primary constraints");
 
+  const auto& e = jacobian.get_constraints();
+
   /* evaluate primary constraints (\bar{\gamma}_p) in PO(1), store in PO(2) */
   size_t chord_constraint_offset = 0;
   for(auto& substructure : jacobian.get_substructures()) {
@@ -1449,7 +1454,6 @@ void shift::core::solver::RNCA::SetupRHS() {
 
     const auto& pr_21 = substructure.get_pr21();
     const int dq_offset = substructure.get_dq_offset();
-    const double* cs = substructure.get_cs();
     const auto& constraint_indices = substructure.get_constraint_indices();
 
 #if SHIFT_LOG_LEVEL > 4
@@ -1473,21 +1477,8 @@ void shift::core::solver::RNCA::SetupRHS() {
     for(size_t k = 0; k < substructure.get_chord_constraint_count();
         k++, chord_constraint_offset++) {
 
-      // #if SHIFT_LOG_LEVEL > 4
-      //       {
-      //         std::stringstream ss;
-      //         ss << "constraint offset: " << chord_constraint_offset << "\n";
-      //         ksl_screw_print(ss.rdbuf(), &dhva.aq[constraints[k].child.v], "
-      //         aq child: "); ksl_screw_print((FILE*)ss.rdbuf(),
-      //         &dhva.aq[constraints[k].parent.v], "  aq parent: ");
-      //
-      //         ksl_screw_print((FILE*)ss.rdbuf(),
-      //         &dhva.v[constraints[k].child.v], "  v child: ");
-      //         ksl_screw_print((FILE*)ss.rdbuf(),
-      //         &dhva.v[constraints[k].parent.v], "  v parent: ");
-      //         SHIFT_TRACE(ss.str());
-      //       }
-      // #endif
+      // \gamma_p(po2) <- \gamma_p(po2) - 2 * \omega_n \dot{e}
+      //                  - \omega_n^2 * e - K_I * \int{e}
 
       for(size_t l = 0; l < 6; l++) {
         if(pr_21[k * 6 + l] < substructure.get_rank()) {
@@ -1496,14 +1487,14 @@ void shift::core::solver::RNCA::SetupRHS() {
             (dhva.aq[constraint_indices[k].child.v].at[l] -
              dhva.aq[constraint_indices[k].parent.v].at[l])
 
-            /* -(2 * omega_N) * \dot{\phi} velocity part of baumgarte
+            /* -(2 * omega_N) * \dot{e} velocity part of baumgarte
             constraint stabilization */
             - (baumgarte_2_omega_n *
-             (dhva.v[constraint_indices[k].parent.v].at[l] -
-              dhva.v[constraint_indices[k].child.v].at[l]))
+               (dhva.v[constraint_indices[k].parent.v].at[l] -
+                dhva.v[constraint_indices[k].child.v].at[l]))
 
-            /* subtract omega_n^2 * \dot{phi} from gamma_p */
-            - baumgarte_omega_n_2 * cs[k * 6 + l]
+            /* subtract omega_n^2 * \dot{e} from gamma_p */
+            - baumgarte_omega_n_2 * e[chord_constraint_offset * 6 + l]
 
             // integral error
             - integral_constraint_error[chord_constraint_offset * 6 + l];
@@ -1516,6 +1507,9 @@ void shift::core::solver::RNCA::SetupRHS() {
   \bar{\gamma}_d = U^{-1} L^{-1} \bar{\gamma}_p */
   for(auto& substructure : jacobian.get_substructures()) {
 
+    SHIFT_TRACE("substructure: " + std::to_string(substructure.get_index()) +
+                " dq_offset:" + std::to_string(substructure.get_dq_offset()));
+
     int dq_offset = substructure.get_dq_offset();
     const int dq_count = substructure.get_dq_count();
     const double* J = substructure.get_jacobian_matrix();
@@ -1525,7 +1519,8 @@ void shift::core::solver::RNCA::SetupRHS() {
     \bar{\gamma} <- L^{-1} * \bar\{\gamma} */
     for(int i = 0; i < rank; i++) {
       for(int j = 0; j < i; j++) {
-        gamma_d_[i + dq_offset] -= J[i * dq_count + j] * gamma_d_[j + dq_offset];
+        gamma_d_[i + dq_offset] -=
+          J[i * dq_count + j] * gamma_d_[j + dq_offset];
       }
     }
 
