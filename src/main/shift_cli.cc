@@ -20,14 +20,14 @@ int main(int argc, char* argv[]) {
       {"-d", "--digraph"},
       "create a directed body graph and exit; boolean (default: false)",
       0},
-     {"frame_digraph",
-      {"-f", "--frame-digraph"},
-      "create a directed frame graph and exit; boolean (default: false)",
-      0},
      {"input",
       {"-i", "--input"},
       "shift simulation input file; string, required",
       1},
+     {"frame_digraph",
+      {"-f", "--frame-digraph"},
+      "create a directed frame graph and exit; boolean (default: false)",
+      0},
      {"verbosity",
       {"-v", "--verbosity"},
       "verbosity level ['fatal', 'warning', 'info', 'debug', 'trace'];\n"
@@ -116,11 +116,11 @@ int main(int argc, char* argv[]) {
   }
   std::cout << std::endl;
 
-  if(!args.has_option("input")) {
-    std::cerr << "Error: missing required parameter '-i, --input'" << std::endl;
+  if(args.pos.empty()) {
+    std::cerr << "Error: missing required positional argument 'input'" << std::endl;
     return EXIT_FAILURE;
   }
-
+  
   if(args.has_option("verbosity")) {
     shift::core::log::SetLogLevel(args["verbosity"].as<std::string>());
   }
@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
 
   try {
     shift::core::Context context;
-    context.LoadJSON(args["input"].as<std::string>());
+    context.LoadJSON(args.pos[0]);
 
     if(args["digraph"]) {
       context.Digraph();
