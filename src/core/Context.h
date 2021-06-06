@@ -270,10 +270,8 @@ public:
     return constraint_error_;
   }
 
-  /*!
-  retrieve current time in numerical integration and delta_t, the time
-  since the last successful function evaluation
-  */
+  /*! retrieve current time in numerical integration and delta_t, the time
+  since the last successful function evaluation */
   void get_current_time(double& time, double& delta_t);
 
   virtual void ActivateObjects(bool) override;
@@ -302,12 +300,6 @@ public:
   void ConnectActiveObjects();
   double GravitationalPotentialEnergy();
   double KineticEnergy();
-
-  /*! \brief append frame to shift::core::Context's list of frames
-   */
-  // void appendFrame(shift::core::Frame* frame) {
-  //   frames_.push_back(frame);
-  // }
 
   /*! \brief Update displacements in a shift::core::joint::DHVA data structure using
    * a user-provided array of generalized coordinates. The instructions to
@@ -384,8 +376,10 @@ private:
     unsigned int q;
     unsigned int dq;
   };
+  
   std::vector<dqTodyIndex>
     quaternion_indices_; /*!< contains mapping of dq to dy for quaternions */
+  
   std::vector<dqTodyIndex>
     non_quaternion_indices_; /*!< contains mapping of dq to dy for primitive
                                 generalized coordinates, including any
@@ -478,6 +472,7 @@ private:
    * gravitational forces to individual bodies. */
   void SetupFixedFrameGravityVector();
 
+  /*! \brief Collapse rigid joints out of the spanning tree */
   void CompressRigidJoints(int i, // current body Index and parent joint index
                            unsigned int& operationCount);
 
@@ -608,19 +603,13 @@ private:
 
   unsigned int non_rigid_joint_count_ = 0;
   std::vector<int> pcl_; /*!< parent child list */
-  std::vector<int> pcl_compressed_;
+  std::vector<int> pcl_compressed_; /*!< compressed parent child list */
   std::vector<std::vector<int>> loop_members_;
   std::vector<std::vector<int>> positive_loop_members_;
   std::vector<std::vector<int>> negative_loop_members_;
   std::vector<std::vector<int>> substructure_indices_;
   std::vector<std::vector<int>> substructure_members_;
 
-  /*! \defgroup active_objects Active objects managed by shift::core::Context
-
-  The following lists of objects contain pointers to only the objects whose
-  active flag is set to true.
-
-  @{ */
   std::vector<behavior::Base*> active_behaviors_ = {};
   std::vector<body::Base*> active_articulated_bodies_ = {};
   std::vector<body::Base*> active_free_bodies_ = {};
@@ -640,14 +629,6 @@ private:
   std::vector<shift::core::Frame*> frames_in_tree_ = {};
   std::vector<shift::core::Frame*> active_frames_ = {};
 
-  /*! @{ */
-
-  /*! \defgroup managed_objects Objects managed by shift::core::Context
-
-  These objects are created automatically when processing system
-  topology and  are not loaded from an external file.
-
-  @{ */
   /*! \brief System generated bodies */
   std::vector<std::unique_ptr<body::Base>> bodies_ = {};
 
