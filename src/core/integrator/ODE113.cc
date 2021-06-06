@@ -90,26 +90,26 @@ void shift::core::integrator::ODE113::Reset() {
   }
 
   integral_error_.resize(context_->get_constraint_equation_count());
-  std::fill(integral_error_.begin(), integral_error_.end(), 0);
+  std::fill(integral_error_.begin(), integral_error_.end(), 0.0);
 
   step_count_ = ceil(time_span_ / time_step_) + 1;
 
   yy_.resize(neqn_);
-  std::fill(yy_.begin(), yy_.end(), 0);
+  std::fill(yy_.begin(), yy_.end(), 0.0);
 
   ydata_.resize(neqn_ * step_count_);
-  std::fill(ydata_.begin(), ydata_.end(), 0);
+  std::fill(ydata_.begin(), ydata_.end(), 0.0);
 
   tdata_.resize(step_count_);
-  std::fill(tdata_.begin(), tdata_.end(), 0);
+  std::fill(tdata_.begin(), tdata_.end(), 0.0);
 
   memcpy(ydata_.data(), y_.data(), neqn_ * sizeof(double));
 
   dy_.resize(neqn_);
-  std::fill(dy_.begin(), dy_.end(), 0);
+  std::fill(dy_.begin(), dy_.end(), 0.0);
 
   yy_.resize(neqn_);
-  std::fill(yy_.begin(), yy_.end(), 0);
+  std::fill(yy_.begin(), yy_.end(), 0.0);
   memcpy(yy_.data(), y_.data(), neqn_ * sizeof(double));
 
   // dyout_.resize(neqn_);
@@ -160,7 +160,7 @@ void shift::core::integrator::ODE113::StepFunction(double t,
 
   if(iconv_ == 1) {
 
-    const std::vector<double>& cs = context_->get_jacobian().get_constraints();
+    const std::vector<double>& e = context_->get_jacobian().get_constraints();
 
     double h = fmax(x_ - t_, hmin_); /* limit next step size */
 
@@ -172,11 +172,11 @@ void shift::core::integrator::ODE113::StepFunction(double t,
       smoothing_filter_ * (baumgarte_omega_n_ - baumgarte_omega_n_prev_);
     baumgarte_omega_n_prev_ = baumgarte_omega_n_;
 
-    double rho_dt = h * integral_gain_;
+    double rho_dt = (x_ - t_) * integral_gain_;
 
     // evaluate integral error
-    for(unsigned int i = 0; i < cs.size(); i++) {
-      integral_error_[i] += cs[i] * rho_dt;
+    for(size_t i = 0; i < e.size(); i++) {
+      integral_error_[i] += e[i] * rho_dt;
     }
 
     t_ = x_;
@@ -184,9 +184,9 @@ void shift::core::integrator::ODE113::StepFunction(double t,
 #if SHIFT_LOG_LEVEL > 4
     {
       std::stringstream ss;
-      ss << "cs: ";
-      for(auto& c : cs) {
-        ss << c << " ";
+      ss << "e: ";
+      for(auto& i : e) {
+        ss << i << " ";
       }
       SHIFT_TRACE(ss.str());
     }
@@ -290,7 +290,7 @@ void shift::core::integrator::ODE113::Integrate() {
 
     if(x_ >= time_span_) {
       iflag_ = 2;
-      SHIFT_INFO("Simulation finished");
+      SHIFT_INFO("Simulation finished t=" + std::to_string(x_));
       return;
     }
 
