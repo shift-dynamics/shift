@@ -43,8 +43,10 @@ if __name__ == "__main__":
 
     ax5 = plt.subplot(515, sharex=ax4)
     plt.plot(t, data["kinetic_energy"], label="Kinetic energy")
-    plt.plot(t, data["gravitational_potential_energy"], label="Gravitational potential\nenergy")
-    plt.plot(t, data["total_energy"], label="Total energy")
+    plt.plot(t, data["gravitational_potential_energy"],
+             label="Gravitational potential\nenergy")
+    plt.plot(t, [i - data["total_energy"][0] for i in data["total_energy"]],
+             label="Change in total\nenergy energy")
     ax5.set_ylabel('Energy (J)')
     ax5.set_xlabel('time (s)')
     ax5.legend()
