@@ -1,22 +1,3 @@
-/**
-@file
-@author Kristopher Wehage
-@date 2016
-@copyright Kristopher Wehage 2016
-@remark
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-SUCH DAMAGE.
-*/
-
 #include "shift/core/KdTree.h"
 
 #include <float.h>
@@ -417,21 +398,12 @@ void shift::core::KdList::Remove(KdSortNode* node, int axis) {
   }
 }
 
-/*!
-@brief struct to pass data to sort_by_axis function
-*/
-typedef struct sort_by_axis_t {
-  int axis;
-  std::vector<ksl_vec3_t>* vertices;
-  std::vector<int>* p01;
-  std::vector<int>* p10;
-} sort_by_axis_t;
 
 /*!
 @brief sort data by axis
 */
 void* sort_by_axis(void* void_ptr) {
-  sort_by_axis_t* data = (sort_by_axis_t*)void_ptr;
+  shift::core::SortByAxisT* data = (shift::core::SortByAxisT*)void_ptr;
   auto vertices = data->vertices;
   auto p01 = data->p01;
   auto p10 = data->p10;
@@ -462,7 +434,7 @@ void* sort_by_axis(void* void_ptr) {
 template <typename T> void shift::core::KdTree<T>::SortVertices() {
 
   pthread_t threads[3];
-  sort_by_axis_t data[3];
+  shift::core::SortByAxisT data[3];
   for(int i = 0; i < 3; i++) {
     data[i].axis = i;
     data[i].vertices = &vertices_;

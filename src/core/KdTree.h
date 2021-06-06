@@ -29,8 +29,6 @@ SUCH DAMAGE.
 namespace shift {
 namespace core {
 
-typedef struct KdList KdList;
-
 /*!
 @brief doubly linked list used to sort vertices
 */
@@ -50,7 +48,7 @@ public:
 /*!
 @brief contains head and tail of doubly linked KdSortNode list
 */
-typedef struct KdList {
+struct KdList {
 public:
   void Append(KdSortNode* node, int axis) {
     if(this->head_[axis]) {
@@ -77,7 +75,7 @@ public:
   uint32_t count_ = 0;
   uint32_t level_ = 0;
   int32_t parent_index_ = 0;
-} KdList;
+};
 
 /*!
 @brief a container to manage multiple lists
@@ -102,13 +100,13 @@ private:
   KdSortNode** nodes_ = nullptr;
 };
 
-typedef struct KdNode {
+struct KdNode {
   double split_value;
   int8_t split_axis;
   uint32_t children[2];
   uint32_t vertex_count;
   int* vertex_locations;
-} KdNode;
+};
 
 template <typename T>
 class KdTree {
@@ -141,6 +139,13 @@ private:
   std::vector<int> vertex_locations_;
   BitField visited_;
   KdLists kdlists_;
+};
+
+struct SortByAxisT {
+  int axis;
+  std::vector<ksl_vec3_t>* vertices;
+  std::vector<int>* p01;
+  std::vector<int>* p10;
 };
 
 } // namespace core
