@@ -22,10 +22,11 @@ if __name__ == "__main__":
                     if not state[0].strip():
                         break
                     label = state[0].strip()
-                    values = [float(i) for i in state[1].strip().split(" ")]
-                    if label not in data:
-                        data[label] = []
-                    data[label].append(values)
+                    if state[1].strip():
+                        values = [float(i) for i in state[1].strip().split(" ")]
+                        if label not in data:
+                            data[label] = []
+                        data[label].append(values)
 
     for key in data.keys():
         data[key] = np.array(data[key])
@@ -42,12 +43,20 @@ if __name__ == "__main__":
         if key != "t" and key != "Ml_size_":
             print(f"Plotting {key}")
             mod_val = None
+            labels = None
+
             if key in len_12_keys:
                 mod_val = 12
+                labels = ['m00', 'm10', 'm20',
+                          'm01', 'm11', 'm21',
+                          'm02', 'm12', 'm22',
+                          'm03', 'm13', 'm23']
             elif key in len_6_keys:
                 mod_val = 6
+                labels = ['lin.x', 'lin.y', 'lin.z', 'ang.x', 'ang.y', 'ang.z']
             elif key in len_2_keys:
                 mod_val = 2
+                labels = ['s', 'c']
 
             if mod_val:
                 num_subplots = int(data[key].shape[1] / mod_val)
@@ -55,8 +64,10 @@ if __name__ == "__main__":
                     ax = plt.subplot(num_subplots, 1, i + 1)
                     for j in range(mod_val):
                          ax.plot(data["t"][:, 0], data[key][:, i * mod_val + j],
-                              label=key + "_" + str(i))
+                              label=labels[j])
+                    ax.set_ylabel(key + "_" + str(i))
                     ax.set_xlabel("time (s)")
+                ax.legend()
                 plt.gcf().suptitle(key)
             else:
                 ax = plt.subplot(111)
