@@ -92,6 +92,123 @@ void shift::core::solver::RNCA::Initialize() {
   Memoize();
 }
 
+inline void PrintVector(const std::string& label, const std::vector<double>& v,
+                        std::stringstream& ss) {
+  ss << "  " << label << ": ";
+  for(auto& i : v) {
+    ss << i << " ";
+  }
+  ss << "\n";
+}
+
+inline void PrintVector(const std::string& label, const std::vector<int>& v,
+                        std::stringstream& ss) {
+  ss << "  " << label << ": ";
+  for(auto& i : v) {
+    ss << i << " ";
+  }
+  ss << "\n";
+}
+
+inline void PrintVector(const std::string& label, const std::vector<unsigned int>& v,
+                        std::stringstream& ss) {
+  ss << "  " << label << ": ";
+  for(auto& i : v) {
+    ss << i << " ";
+  }
+  ss << "\n";
+}
+
+
+inline void PrintVector(const std::string& label, const std::vector<bool>& v,
+                        std::stringstream& ss) {
+  ss << "  " << label << ": ";
+  for(size_t i = 0; i < v.size(); i++) {
+    ss << v[i] << " ";
+  }
+  ss << "\n";
+}
+
+inline void PrintVector(const std::string& label,
+                        const std::vector<ksl_coscrew_t>& v,
+                        std::stringstream& ss) {
+  ss << "  " << label << ": ";
+  for(auto& val : v) {
+    for(size_t i = 0; i < 6; i++) {
+      ss << val.at[i] << " ";
+    }
+  }
+  ss << "\n";
+}
+
+inline void PrintVector(const std::string& label,
+                        const std::vector<ksl_screw_t>& v,
+                        std::stringstream& ss) {
+  ss << "  " << label << ": ";
+  for(auto& val : v) {
+    for(size_t i = 0; i < 6; i++) {
+      ss << val.at[i] << " ";
+    }
+  }
+  ss << "\n";
+}
+
+inline void PrintVector(const std::string& label,
+                        const std::vector<ksl_inertia_t>& v,
+                        std::stringstream& ss) {
+  ss << "  " << label << ": ";
+  for(auto& val : v) {
+    for(size_t i = 0; i < 10; i++) {
+      ss << val.at[i] << " ";
+    }
+  }
+  ss << "\n";
+}
+
+void shift::core::solver::RNCA::PrintStates(std::stringstream& ss) {
+  double t;
+  double dt;
+  context_->get_current_time(t, dt);
+  ss << "  t: " << t << "\n";
+  ss << "  dt: " << dt << "\n";
+  ss << "  infinity_norm_failure_: " << infinity_norm_failure_ << "\n";
+  ss << "  dependent_count_: " << dependent_count_ << "\n";
+  ss << "  q_count_: " << q_count_ << "\n";
+  ss << "  dq_count_: " << dq_count_ << "\n";
+  PrintVector("gamma_d_", gamma_d_, ss);
+  ss << "  Ml_size_:" << Ml_size_ << "\n";
+  PrintVector("Ml_", Ml_, ss);
+  ss << "  Ml_size_: " << Ml_size_ << "\n";
+  PrintVector("Mls_", Mls_, ss);
+  PrintVector("p_", p_, ss);
+  PrintVector("mh_product_", mh_product_, ss);
+  PrintVector("inertia_p_", inertia_p_, ss);
+  PrintVector("fl_", fl_, ss);
+  PrintVector("g_", g_, ss);
+  PrintVector("la_", la_, ss);
+
+  const auto& f = context_->get_joint_working_forces();
+  const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
+  const auto& is_rotation = context_->get_is_rotation();
+
+  const auto& jacobian = context_->get_jacobian();
+  const auto& pv_31 = jacobian.get_pv31();
+
+  const double baumgarte_2_omega_n = integrator_->get_baumgarte_2_omega_n();
+  const double baumgarte_omega_n_2 = integrator_->get_baumgarte_omega_n_2();
+
+  const auto& integral_constraint_error = integrator_->get_integral_error();
+
+  ss << "  omega_n: " << baumgarte_2_omega_n / 2.0 << "\n";
+  PrintVector("f", f, ss);
+  PrintVector("joint_dof_compressed", joint_dof_compressed, ss);
+  PrintVector("is_rotation", is_rotation, ss);
+  PrintVector("pv_31", pv_31, ss);
+  PrintVector("e", jacobian.get_constraints(), ss);
+  PrintVector("integral_constraint_error", integral_constraint_error, ss);
+
+}
+
 double shift::core::solver::RNCA::GravitationalPotentialEnergy(
   shift::core::topology::DHVA& dhva) {
   if(!inertia_p_.empty()) {
@@ -2032,6 +2149,17 @@ bool shift::core::solver::RNCA::Solve(const double t,
   /* convert angular velocities to time derivative of quaternions
     copy by value all other dq terms to dy array */
   context_->ConvertdqTody(y, dy);
+
+#if SHIFT_LOG_LEVEL > 4
+  {
+    std::stringstream ss;
+    ss << "\n";
+    PrintStates(ss);
+    PrintVector("y", y, ss);
+    PrintVector("dy", dy, ss);
+    SHIFT_TRACE(ss.str());
+  }
+#endif
 
 #if SHIFT_VERIFY_EQUATIONS_
 #if SHIFT_LOG_LEVEL > 4
