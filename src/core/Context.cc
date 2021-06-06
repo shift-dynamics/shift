@@ -1995,11 +1995,9 @@ void shift::core::Context::SetToInitialConditions() {
 
 void shift::core::Context::InitializeInertia() {
 
-  /*
-    create a temporary inertia array, equal in length to active_joints
-    after this list is generated, it will be compressed to an array
-    equal to length of non_rigid_joint_count
-  */
+  /* create a temporary inertia array, equal in length to active_joints
+  after this list is generated, it will be compressed to an array
+  equal to length of non_rigid_joint_count */
   std::vector<ksl_inertia_t> inertia_temp = {};
   inertia_temp.resize(active_joints_.size());
   std::fill(inertia_temp.begin(), inertia_temp.end(),

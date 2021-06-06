@@ -53,9 +53,18 @@ void shift::core::Jacobian::MallocEquations() {
   unsigned int q_offset = 0;
   unsigned int dq_offset = 0;
   unsigned int joint_offset = 0;
-  
+
+  int i = 0; 
+  for(auto& sub : substructure_members) {
+    std::cout << i++ << ": ";
+    for(auto& v : sub) {
+      std::cout << v << " ";
+    }
+  }
+  std::cout << std::endl;
   
   for(unsigned int i = 0; i < substructure_members.size(); i++) {
+    // std::cout << "[" << i << "]: " << 
     substructures_[i].set_index(i);
     unsigned int q_count = 0;
     unsigned int dq_count = 0;
@@ -97,11 +106,11 @@ void shift::core::Jacobian::MallocEquations() {
   Jb_.resize(jacobian_size_);
   std::fill(Jb_.begin(), Jb_.end(), 0);
 
-  cs_.resize(constraint_equation_count_);
-  std::fill(cs_.begin(), cs_.end(), 0);
+  e_.resize(constraint_equation_count_);
+  std::fill(e_.begin(), e_.end(), 0);
 
-  dcs_.resize(constraint_equation_count_);
-  std::fill(dcs_.begin(), dcs_.end(), 0);
+  de_.resize(constraint_equation_count_);
+  std::fill(de_.begin(), de_.end(), 0);
 
   int jacobian_offset = 0;
   unsigned int constraint_equation_offset = 0;
@@ -114,8 +123,8 @@ void shift::core::Jacobian::MallocEquations() {
     jacobian_offset +=
       substructure.get_constraint_equation_count() * substructure.get_q_count();
 
-    substructure.set_cs(cs_.data() + constraint_equation_offset);
-    substructure.set_dcs(dcs_.data() + constraint_equation_offset);
+    substructure.set_cs(e_.data() + constraint_equation_offset);
+    substructure.set_dcs(de_.data() + constraint_equation_offset);
 
     constraint_equation_offset += substructure.get_constraint_equation_count();
   }
@@ -138,7 +147,6 @@ void shift::core::Jacobian::CompressLoopMembers() {
 
   /* j is local loop index for substructure
   k is global loop index */
-  int k = 0;
   auto& positive_loop_members = context_->get_positive_loop_members();
   auto& negative_loop_members = context_->get_negative_loop_members();
   auto& active_joints = context_->get_active_joints();
@@ -151,14 +159,16 @@ void shift::core::Jacobian::CompressLoopMembers() {
 
   /* record offsets in positiveLoopMemberOffsets and
     negative_loop_membersOffsets */
-  k = 0; /* loop counter */
+  int k = 0; /* loop counter */
   auto& substructure_members = context_->get_substructure_members();
 
   unsigned int i = 0;
+  SHIFT_TRACE("substructure [" + std::to_string(substructures_.size()) + "]");
   for(auto& substructure : substructures_) {
     /* set offset into global variable list */
     int substructure_offset =
       std::min(substructure_members[i][1], substructure_members[i][2]);
+    SHIFT_TRACE("dq_offset: " + std::to_string(dq_lookup[substructure_offset]));
     substructure.set_dq_offset(
       dq_lookup[substructure_offset], context_->get_dq(),
       context_->get_delta_q().data());
@@ -455,6 +465,8 @@ void shift::core::Jacobian::InitializeMobility() {
   for(auto& substructure : substructures_) {
     right_null_space_count += substructure.get_dq_count() * substructure.get_dq_count();
   }
+
+  assert(right_null_space_count > 0);
 
   if(right_null_space_count) {
     /* allocate memory for right_null_space_, allows additional storage for null

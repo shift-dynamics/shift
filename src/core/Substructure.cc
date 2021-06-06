@@ -348,15 +348,15 @@ void shift::core::Substructure::NewtonRaphsonSolver() {
   /* cs <-  L^-1 cs */
   for(int i = 0; i < rank_; i++) {
     for(int j = 0; j < i; j++) {
-      cs_[pr_12_[i]] -= J_[i * dq_count_ + j] * cs_[pr_12_[j]];
+      e_[pr_12_[i]] -= J_[i * dq_count_ + j] * e_[pr_12_[j]];
     }
   }
   /* deltaq <- U^-1 * (L^-1 * cs) */
   for(int i = rank_ - 1; i > -1; i--) {
     for(int j = rank_ - 1; j > i; j--) {
-      cs_[pr_12_[i]] -= J_[i * dq_count_ + j] * delta_q_[pc_12_[j]];
+      e_[pr_12_[i]] -= J_[i * dq_count_ + j] * delta_q_[pc_12_[j]];
     }
-    delta_q_[pc_12_[i]] = cs_[pr_12_[i]] / J_[i * dq_count_ + i];
+    delta_q_[pc_12_[i]] = e_[pr_12_[i]] / J_[i * dq_count_ + i];
   }
 }
 
@@ -375,12 +375,12 @@ double shift::core::Substructure::EvaluateConstraints(
 
     ksl_product_ddinv(d_parent, d_child, &temp);
 
-    memcpy(cs_ + i * 6, &temp.t, sizeof(ksl_vec3_t));
+    memcpy(e_ + i * 6, &temp.t, sizeof(ksl_vec3_t));
     double trace = temp.R.m00 + temp.R.m11 + temp.R.m22 - 3.0;
 
-    cs_[i * 6 + 3] = 0.5 * (temp.R.m21 - temp.R.m12) + trace;
-    cs_[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20) + trace;
-    cs_[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
+    e_[i * 6 + 3] = 0.5 * (temp.R.m21 - temp.R.m12) + trace;
+    e_[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20) + trace;
+    e_[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
 
 #if 0
       ksl_SE3_print(stdout, parent_frame, "parent_frame: ");
@@ -399,15 +399,15 @@ double shift::core::Substructure::EvaluateConstraints(
                 << std::endl;
       
       std::cout << "trace - 3: " << trace << std::endl;
-      std::cout << "cs_: ";
+      std::cout << "e_: ";
       for(unsigned int j = 0; j < 6; j++) {
-        std::cout << cs_[i * 6 + j] << " ";
+        std::cout << e_[i * 6 + j] << " ";
       }
       std::cout << std::endl;
 
     double substructure_error = 0.0;
     for(size_t j = 0; j < 6; j++) {
-      substructure_error += cs_[i * 6 + j] * cs_[i * 6 + j];
+      substructure_error += e_[i * 6 + j] * e_[i * 6 + j];
   
     substructure_error = sqrt(substructure_error) / 6.0;
 
@@ -424,12 +424,12 @@ double shift::core::Substructure::EvaluateConstraints(
   }
 
 #if SHIFT_WITH_BLAS_
-  return sqrt(cblas_ddot(constraint_equation_count_, cs_, 1, cs_, 1)) /
+  return sqrt(cblas_ddot(constraint_equation_count_, e_, 1, e_, 1)) /
          constraint_equation_count_;
 #else
   double sum = 0;
   for(unsigned int i = 0; i < constraint_equation_count_; i++) {
-    sum += cs_[i] * cs_[i];
+    sum += e_[i] * e_[i];
   }
   return sqrt(sum) / constraint_equation_count_;
 #endif
