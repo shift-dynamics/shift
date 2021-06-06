@@ -35,13 +35,13 @@ if __name__ == "__main__":
     folder.mkdir(exist_ok=True)
 
     len_12_keys = ["d"]
-    len_6_keys = ["h", "v", "aq", "p_"]
+    len_6_keys = ["h", "v", "aq", "p_", "g_"]
     len_2_keys = ["dc"]
 
     for key in data.keys():
         plt.clf()
         if key != "t" and key != "Ml_size_":
-            print(f"Plotting {key}")
+            print(f"Plotting '{key}'")
             mod_val = None
             labels = None
 
@@ -76,7 +76,29 @@ if __name__ == "__main__":
                             label=key + "_" + str(i))
                     ax.set_xlabel("time (s)")
                     ax.set_title(key)
-                plt.gcf().set_size_inches(9, 7.75)
-                plt.savefig(folder / (key + '.png'))
+
+
+            plt.gcf().set_size_inches(9, 7.75)
+            plt.savefig(folder / (key + '.png'))
+
+            if labels:
+                header = 't,'
+                for i in range(int(data[key].shape[1] / mod_val)):
+                    for j in range(mod_val):
+                        header += key + "-" + str(i) + "-" + labels[j] + ","
+            else:
+                header = 't,'
+                col = data[key].shape[1]
+                if col > 0:
+                    for i in range(col):
+                        header += key + "-" + str(i) + ","
+                else:
+                    header += key + ","
+            np.savetxt(
+                folder / (key + '.csv'),
+                np.concatenate((data["t"], data[key]), axis=1), fmt='%.6f',
+                delimiter=',', newline='\n', header=header, footer='', comments='',
+                encoding=None)
+
             if key in sys.argv[1:]:
                 plt.show()
