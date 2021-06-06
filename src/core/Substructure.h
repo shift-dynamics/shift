@@ -154,12 +154,12 @@ public:
     joint_offset_ = offset;
   }
 
-  void set_cs(double* cs) {
-    e_ = cs;
+  void set_e(double* e) {
+    e_ = e;
   }
 
-  void set_dcs(double* dcs) {
-    de_ = dcs;
+  void set_de(double* de) {
+    de_ = de;
   }
 
   void set_J(double* J) {
