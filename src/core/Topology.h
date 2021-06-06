@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-#include "shift/core/log.h"
 #include "shift/core/Exception.h"
+#include "shift/core/log.h"
 
 #include "ksl/SE3.h"
 #include "ksl/screw.h"
@@ -154,11 +154,6 @@ typedef void (*dh_fptr)(const shift::core::Context&, DHVA&, const Offsets&,
 typedef void (*dhva_fptr)(const shift::core::Context&, DHVA&, const Offsets&,
                           const double*, const double*);
 
-/*!
-@defgroup sorting Utilities to support sorting bodies and joints in
-level-increasing order and identifying loop members
-@{
-*/
 bool MatchFullyQualifiedName(const std::vector<std::string>&,
                              const std::vector<std::string>&);
 
@@ -188,45 +183,7 @@ std::string GetFilename(const std::string& filename);
 
 std::string GetValidGraphvizExtension(std::string& extension);
 
-/*!
-\brief generate a directed graph of a mechanism with bodies as graph nodes
-and joints as graph edges and save as a DOT file. This variant does not use the
-graphviz API. The DOT file can be used to generate an image using graphviz tools
-offline.
-*/
-int DigraphDOT(const shift::core::Context& context, std::string file_name);
-
-/*!
-\brief generate a directed graph of a mechanism with frames as graph nodes
-and joints and relative transformations across bodies (i.e. shape matrices) as
-graph edges and save as a DOT file. This variant does not use the
-graphviz API. The DOT file can be used to generate an image using graphviz tools
-*/
-int DigraphFramesDOT(const shift::core::Context& context, std::string file_name);
-
-// // identify which frames in the d array correspond to body reference frames
-// void setDReferenceFrames();
-//
-// // should be moved to joint's set up function
-// void initializeJointForces();
-//
-// // identify body reference frames that may have been optimized out when
-// // processing forward kinematics and set up operations required to update
-// them void initializeGLReferenceFrames();
-//
-// // plays back operations identified in initializeGLReferenceFrames, updates
-// // any GL frames that weren't processed in updateD, updateDH, or updateDHVA
-// void updateGLReferenceFrames(shift::core::Context&, double* dhva);
-//
-// // sets up array of force modules, this should be moved from here to
-// context.h void flattenforcemodules();
-//
-// // basic sweep to set up collision simplices, this should be moved from here
-// to
-// // collisiongeometry.h or elsewhere.
-// void basicSweep();
-
-} // namespace Topology
-}
+} // namespace topology
+} // namespace core
 } // namespace shift
 #endif

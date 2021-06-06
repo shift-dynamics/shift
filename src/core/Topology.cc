@@ -1,9 +1,7 @@
 /**
 @file
-@brief Utilities to process the topology of a Shift model, including utilities
-to display the model as a directed graph.
+@brief Utilities to process the topology of a Shift model 
 @author Kristopher Wehage
-@copyright Kristopher Wehage 2019
 @remark
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
