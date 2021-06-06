@@ -165,9 +165,18 @@ inline void PrintVector(const std::string& label,
   ss << "\n";
 }
 
+
 void shift::core::solver::RNCA::PrintStates(std::stringstream& ss) {
   double t;
   double dt;
+  const auto& f = context_->get_joint_working_forces();
+  const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
+  const auto& is_rotation = context_->get_is_rotation();
+  const auto& jacobian = context_->get_jacobian();
+  const auto& pv_31 = jacobian.get_pv31();
+  const double baumgarte_2_omega_n = integrator_->get_baumgarte_2_omega_n();
+  const auto& integral_constraint_error = integrator_->get_integral_error();
+
   context_->get_current_time(t, dt);
   ss << "  t: " << t << "\n";
   ss << "  dt: " << dt << "\n";
@@ -186,19 +195,6 @@ void shift::core::solver::RNCA::PrintStates(std::stringstream& ss) {
   PrintVector("fl_", fl_, ss);
   PrintVector("g_", g_, ss);
   PrintVector("la_", la_, ss);
-
-  const auto& f = context_->get_joint_working_forces();
-  const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
-  const auto& is_rotation = context_->get_is_rotation();
-
-  const auto& jacobian = context_->get_jacobian();
-  const auto& pv_31 = jacobian.get_pv31();
-
-  const double baumgarte_2_omega_n = integrator_->get_baumgarte_2_omega_n();
-  const double baumgarte_omega_n_2 = integrator_->get_baumgarte_omega_n_2();
-
-  const auto& integral_constraint_error = integrator_->get_integral_error();
-
   ss << "  omega_n: " << baumgarte_2_omega_n / 2.0 << "\n";
   PrintVector("f", f, ss);
   PrintVector("joint_dof_compressed", joint_dof_compressed, ss);
@@ -206,7 +202,7 @@ void shift::core::solver::RNCA::PrintStates(std::stringstream& ss) {
   PrintVector("pv_31", pv_31, ss);
   PrintVector("e", jacobian.get_constraints(), ss);
   PrintVector("integral_constraint_error", integral_constraint_error, ss);
-
+  context_->get_dhva().Print(ss);
 }
 
 double shift::core::solver::RNCA::GravitationalPotentialEnergy(
@@ -2153,7 +2149,7 @@ bool shift::core::solver::RNCA::Solve(const double t,
 #if SHIFT_LOG_LEVEL > 4
   {
     std::stringstream ss;
-    ss << "\n";
+    ss << "RNCA StatesS\n";
     PrintStates(ss);
     PrintVector("y", y, ss);
     PrintVector("dy", dy, ss);
