@@ -1,5 +1,4 @@
 /**
-@file
 @author Kristopher Wehage
 @date 2016
 @copyright Kristopher Wehage 2016
