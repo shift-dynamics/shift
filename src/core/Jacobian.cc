@@ -474,8 +474,6 @@ void shift::core::Jacobian::InitializeMobility() {
     right_null_space_count += substructure.get_dq_count() * substructure.get_dq_count();
   }
 
-  assert(right_null_space_count > 0);
-
   if(right_null_space_count) {
     /* allocate memory for right_null_space_, allows additional storage for null
        space up to dq_count * dq_count in the event that the null space increases
