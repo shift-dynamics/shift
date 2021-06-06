@@ -2,6 +2,7 @@
 #define SHIFT_SOLVER_RNCA_H_
 
 #include <string>
+#include <sstream>
 
 #include "shift/core/Array2d.h"
 #include "shift/core/solver/Base.h"
@@ -34,7 +35,8 @@ public:
   const std::string& get_description() {
     return description_;
   }
-  
+
+  void PrintStates(std::stringstream&);  
   virtual double GravitationalPotentialEnergy(shift::core::topology::DHVA& dhva) override;
   virtual double KineticEnergy(shift::core::topology::DHVA& dhva) override;
 
@@ -96,10 +98,6 @@ private:
   unsigned int dq_count_ = 0;
 
   std::vector<double> gamma_d_; /*!< preconditioned constraints, this quantity contains both \f$\gamma_p\f$ and \f$\gamma_d\f$ */
-  std::vector<double> dcs_;     /*!< constraint first derivative */
-  std::vector<double> ddcs_;    /*!< constraint second derivative */
-  std::vector<double>
-    ddcsq_; /*!< constraint second derivative and quadratic terms */
 
   int Ml_size_ = 0; /*!< size of Ml array = ((2 + n) * (1 + n)) / 2*/
 
