@@ -121,10 +121,10 @@ void shift::core::Jacobian::MallocEquations() {
     substructure.set_Jb();
 
     jacobian_offset +=
-      substructure.get_constraint_equation_count() * substructure.get_q_count();
+      substructure.get_constraint_equation_count() * substructure.get_dq_count();
 
-    substructure.set_cs(e_.data() + constraint_equation_offset);
-    substructure.set_dcs(de_.data() + constraint_equation_offset);
+    substructure.set_e(e_.data() + constraint_equation_offset);
+    substructure.set_de(de_.data() + constraint_equation_offset);
 
     constraint_equation_offset += substructure.get_constraint_equation_count();
   }
@@ -168,12 +168,20 @@ void shift::core::Jacobian::CompressLoopMembers() {
     /* set offset into global variable list */
     int substructure_offset =
       std::min(substructure_members[i][1], substructure_members[i][2]);
+    
     SHIFT_TRACE("dq_offset: " + std::to_string(dq_lookup[substructure_offset]));
     substructure.set_dq_offset(
       dq_lookup[substructure_offset], context_->get_dq(),
       context_->get_delta_q().data());
+    
+    
+    SHIFT_TRACE("q_offset: " + std::to_string(q_lookup[substructure_offset]));
     substructure.set_q_offset(
       q_lookup[substructure_offset], context_->get_q().data());
+
+    assert(
+      context_->get_q().data() + context_->get_q_count() == 
+      context_->get_dq());
 
     for(unsigned int j = 0; j < substructure.get_chord_constraint_count(); 
         j++, k++) {
