@@ -1,6 +1,6 @@
-# Shift objects
+# Creating shift objects
 
-## Organization of Shift objects
+## Overview
 In *Shift*, the data structure layout hierarchy and json file format have a one-to-one correspondence. Refer to the <https://github.com/shift-dynamics/shift-models/blob/master/excavator/excavator.json> for an example of an updated JSON file.
 
 The root level of the JSON file represents the "fixed" inertial reference frame, represented by the `shift::core::Context` datastructure. Within the `shift::core::Context` datastructure, the layout of classes follows the hierarchy below. For more information on objects created using a factory method, see the next section.
@@ -42,11 +42,7 @@ The root level of the JSON file represents the "fixed" inertial reference frame,
       * An array of **subassemblies** in `Shift::Array<Shift::Assembly> assemblies_`. Each assembly in turn may contain more subassemblies, nested arbitrarily deep.
 
 
-## Factory design pattern
-
-*Shift* objects are created using a factory design pattern with the following base classes.
-
-### Factory base classes
+## Factory base classes
 
 *Shift* provides a number of abstract base class types. Each base class specifies an interface that must be populated in a derived class, or *specialization*. The base classes are described in more detail below:
 
@@ -66,10 +62,10 @@ The root level of the JSON file represents the "fixed" inertial reference frame,
 | Solver     |           `shift::core::solver::Base`     | Sets up and solves the equations of motion at each time step. |
 | Terrain    |           `shift::core::terrain::Base`    | A special type of geometry use to describe a ground surface. |
 
-### Factory specializations
+## Factory specializations
 The following specializations of factory objects are thus far part of the *Shift-core* code. At this time many of the specializations are stubs, but will be filled out as I continue moving code from C over to C++. The "created by user" column indicates whether a user of the software can create these modules in a model input file. *No* in this column indicates that these objects are created and used internally by the *Shift* code only.
 
-#### shift::core::body::Base
+### shift::core::body::Base
 
 * default `"type"` if no keyword provided in JSON file: `"rigid"`
 
@@ -81,7 +77,7 @@ The following specializations of factory objects are thus far part of the *Shift
 | `shift::core::body::Virtual` | `"virtual"`  |    No   |            Special body used to set up and solve equations of motion for topologies with closed loops. Created automatically and used internally by *Shift* code. |
 
 
-#### shift::core::behavior::Base
+### shift::core::behavior::Base
 
 * `"type"` is a required keyword in JSON file.
 
@@ -91,7 +87,7 @@ The following specializations of factory objects are thus far part of the *Shift
 | `shift::core::behavior::IK7DOF`  |         `"ik_7dof"` |          Yes  |            Inverse kinematics for a 7 dof robot arm. |
 
 
-#### shift:core::collisiongeometry::Base
+### shift:core::collisiongeometry::Base
 
 * default `"type"` if no keyword provided in JSON file: `"convex_hull"`
 
@@ -102,7 +98,7 @@ The following specializations of factory objects are thus far part of the *Shift
 | `shift::core::collisiongeometry::Sphere` |  `"sphere"` |  Yes |  Fit a minimum bounding sphere to Geometry, or manually specify sphere center and radius. |
 
 
-#### shift:core::constraint::Base
+### shift:core::constraint::Base
 
 * `"type"` is a required keyword in JSON file.
 
@@ -111,7 +107,7 @@ The following specializations of factory objects are thus far part of the *Shift
 | `shift::core::constraint::Chord` | `"chord"` |  No |  A chord constraint is imposed for each kinematic chord joint in the model. Chord joints are detected automatically by the software and need not be specified by an analyst in the model input file. |
 
 
-#### shift::core::forcemodule::Base
+### shift::core::forcemodule::Base
 
 Some force modules may have additional specialization, such as the tire model.
 For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::core::forcemodule::tire::Base` which will inherit from `shift::core::forcemodule::Base`. This allows sharing some common functionality between different tire models that will be added later. It is also planned for contact (normal forces) and friction (oblique) forces to eventually be namespaced with their own base classes to simplify development of these specializations.
@@ -126,7 +122,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 | `shift::core::forcemodule::Contact` | `"contact"` |  Yes  | Specify contact model used between two or more bodies. |
 
 
-#### shift::core::geometry::Base
+### shift::core::geometry::Base
 
 * default `"type"` if no keyword provided in JSON file: `"mesh"`
 
@@ -139,7 +135,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 | `shift::core::geometry::Sphere` | `"sphere"` | Yes | Sphere used for visualization purposes. |
 
 
-#### shift::core::integrator::Base
+### shift::core::integrator::Base
 
 * default `"type"` if no keyword provided in JSON file: `"ode113"`
 
@@ -150,7 +146,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 
 
 
-#### shift::core::joint::Base
+### shift::core::joint::Base
 
 * `"type"` is a required keyword in JSON file.
 
@@ -164,7 +160,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 | `shift::core::joint::Spherical`  | `"spherical"` | Yes | 3DOF Spherical or ball-joint, modeled using quaternions to avoid Gimball lock. |
 
 
-#### shift::core::light::Base
+### shift::core::light::Base
 
 * `"type"` is a required keyword in JSON file.
 
@@ -177,7 +173,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 | `shift::core::light::Spot` | `"spot"` | Yes |  Specify a spot light source, such as a lamp. |
 
 
-#### shift::core::logger::Base
+### shift::core::logger::Base
 
 * default `"type"` if no keyword provided in JSON file: `"csv"`
 
@@ -189,7 +185,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 
 
 
-#### shift::core::sensor::Base
+### shift::core::sensor::Base
 
 * `"type"` is a required keyword in JSON file.
 
@@ -199,7 +195,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 | `shift::core::logger::Range` | `"range"` | Yes | Model a laser range sensor. |
 
 
-#### shift::core::solver::Base
+### shift::core::solver::Base
 
 * default `"type"` if no keyword provided in JSON file: `"rnca"`
 
@@ -208,7 +204,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 | `shift::core::solver::RNCA` | `"rnca"` | Yes | The run-time optimized natural constraint algorithm (RNCA) is a sparse matrix solver that uses a heuristic application of Generalized Coordinate Partitioning (GCP). |
 
 
-#### shift::core::terrain::Base
+### shift::core::terrain::Base
 
 * default `"type"` if no keyword provided in JSON file: `"basic"`
 
@@ -217,7 +213,7 @@ For example, `shift::core::forcemodule::tire::Fiala` will inherit from `shift::c
 | `shift::core::terrain::Basic` | `"basic"` | Yes | Loads a single digital elevation map (DEM) from a rasterized data file to represent the terrain. |
 
 
-### Example
+## Example
 
 This example illustrates how a `shift::core::body::Rigid` specialization of the `shift::core::body::Base` class is created in the code using the `"rigid"` keyword:
 
