@@ -103,12 +103,12 @@ public:
     return J_;
   }
 
-  const double* get_cs() const {
-    return cs_;
+  const double* get_e() const {
+    return e_;
   }
 
   const double* get_constraints() const {
-    return cs_;
+    return e_;
   }
 
 
@@ -155,11 +155,11 @@ public:
   }
 
   void set_cs(double* cs) {
-    cs_ = cs;
+    e_ = cs;
   }
 
   void set_dcs(double* dcs) {
-    dcs_ = dcs;
+    de_ = dcs;
   }
 
   void set_J(double* J) {
@@ -301,8 +301,8 @@ public:
 private:
   std::vector<Constraint> constraints_;
 
-  double* cs_ = nullptr; /*!< pointer to beginning of constraint array */
-  double* dcs_ =
+  double* e_ = nullptr; /*!< pointer to beginning of constraint array */
+  double* de_ =
     nullptr; /*!< pointer to beginning of constraint time derivative array */
   double* J_ = nullptr;
   int* Jxx_ = nullptr;

@@ -78,7 +78,7 @@ public:
   }
 
   const std::vector<double>& get_constraints() const {
-    return cs_;
+    return e_;
   }
 
   const std::vector<InfinityNormFailure>& get_infinity_norm_failures() const {
@@ -150,9 +150,9 @@ private:
   std::vector<bool>
     Jb_; /*!< boolean array indicating fills, used to set up RNCA algorithm */
   std::vector<double>
-    cs_; /*!< global array of constraints \f[\underline{e}\f] */
+    e_; /*!< global array of constraints \f$\underline{e}\f$ */
   std::vector<double>
-    dcs_; /*!< time derivative of constraints \f[\underline{\dot{e}}\f] */
+    de_; /*!< time derivative of constraints \f$\underline{\dot{e}}\f$ */
   std::vector<double> b3_;
   std::vector<int> ij_mapping_;
   Array2d<int> rb3_;
