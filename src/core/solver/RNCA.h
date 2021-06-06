@@ -95,7 +95,7 @@ private:
   unsigned int q_count_ = 0;
   unsigned int dq_count_ = 0;
 
-  std::vector<double> gamma_d_; /*!< preconditioned constraints */
+  std::vector<double> gamma_d_; /*!< preconditioned constraints, this quantity contains both \f$\gamma_p\f$ and \f$\gamma_d\f$ */
   std::vector<double> dcs_;     /*!< constraint first derivative */
   std::vector<double> ddcs_;    /*!< constraint second derivative */
   std::vector<double>
