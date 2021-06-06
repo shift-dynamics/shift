@@ -20,11 +20,7 @@ int main(int argc, char* argv[]) {
       {"-d", "--digraph"},
       "create a directed body graph and exit; boolean (default: false)",
       0},
-     {"input",
-      {"-i", "--input"},
-      "shift simulation input file; string, required",
-      1},
-     {"frame_digraph",
+      {"frame_digraph",
       {"-f", "--frame-digraph"},
       "create a directed frame graph and exit; boolean (default: false)",
       0},
@@ -78,7 +74,7 @@ int main(int argc, char* argv[]) {
             << std::endl;
 
   if(args["help"]) {
-    std::cout << std::endl << "usage:" << std::endl;
+    std::cout << "usage: shift-cli <input.json>" << std::endl;
     for(const auto& definition : argparser.definitions) {
       std::stringstream s;
       s << "  ";
@@ -101,7 +97,13 @@ int main(int argc, char* argv[]) {
     return EXIT_SUCCESS;
   }
 
+  if(args.pos.empty()) {
+    std::cerr << "Error: missing required positional argument 'input'" << std::endl;
+    return EXIT_FAILURE;
+  }
+ 
   std::cout << "processing arguments:" << std::endl;
+  std::cout << "  input: " << args.pos[0] << std::endl;
   for(const auto& arg : args.options) {
     if(arg.first != "help") {
       std::string temp(arg.first);
@@ -116,11 +118,7 @@ int main(int argc, char* argv[]) {
   }
   std::cout << std::endl;
 
-  if(args.pos.empty()) {
-    std::cerr << "Error: missing required positional argument 'input'" << std::endl;
-    return EXIT_FAILURE;
-  }
-  
+ 
   if(args.has_option("verbosity")) {
     shift::core::log::SetLogLevel(args["verbosity"].as<std::string>());
   }
