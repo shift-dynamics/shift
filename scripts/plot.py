@@ -53,6 +53,6 @@ if __name__ == "__main__":
     ax5.legend()
 
     fig = plt.gcf()
-    fig.set_size_inches(9, 12)
-    plt.savefig('states.png', bbox_inches="tight", pad_inches=0.2)
+    fig.set_size_inches(9, 7.75)
+    plt.savefig('states.png', bbox_inches="tight", pad_inches=0.1)
     plt.show()
