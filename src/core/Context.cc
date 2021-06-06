@@ -977,7 +977,7 @@ void shift::core::Context::ProcessLoopMembers() {
     int positive = chord_constraints_[i]->get_parent_body()->get_index();
     int negative = chord_constraints_[i]->get_child_body()->get_index();
 
-    SHIFT_TRACE("Procesing chord constranint " + std::to_string(i) + 
+    SHIFT_TRACE("Procesing chord constraint " + std::to_string(i) + 
       " with parent body: '" +
       chord_constraints_[i]->get_parent_body()->get_name() +
       "' and child body: '" +
