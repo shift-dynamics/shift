@@ -112,7 +112,7 @@ private:
   std::vector<ksl_coscrew_t> mh_product_; /*!< product of body mass matrix and
                                 influence coefficient matrices in PO(1) */
   std::vector<ksl_inertia_t> inertia_p_;  /*!< projected spatial inertias */
-
+  std::vector<ksl_screw_t> de_; /*!< time derivative of constraint equations */
   int nnzm_ = 0;  /*!< number of nonzero entries in mass matrix */
   int nnzms_ = 0; /*!< original number of nonzero entries in mass matrix */
   int nnzb_ = 0;  /*!< number of nonzero entries in B matrix */
