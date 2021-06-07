@@ -69,7 +69,7 @@ void shift::core::solver::RNCA::Initialize() {
   Mlbs_.resize(Ml_size_);
   std::fill(Mlbs_.begin(), Mlbs_.end(), false);
 
-  inertia_p_.resize(context_->get_non_rigid_joint_count());
+  inertia_p_.resize(context_->get_non_rigid_joint_count() + 1);
   std::fill(inertia_p_.begin(), inertia_p_.end(),
             ksl_inertia(0.0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
