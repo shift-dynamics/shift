@@ -84,6 +84,8 @@ void shift::core::solver::RNCA::Initialize() {
 
   infinity_norm_failure_ = false;
 
+  de_.resize(context_->get_chord_constraint_count());
+
   context_->get_jacobian().RemoveConstraintViolations();
   context_->get_jacobian().Analyze();
   context_->UpdateDHVA();
@@ -200,7 +202,8 @@ void shift::core::solver::RNCA::PrintStates(std::stringstream& ss) {
   PrintVector("is_rotation", is_rotation, ss);
   PrintVector("pv_31", pv_31, ss);
   PrintVector("e", jacobian.get_constraints(), ss);
-  PrintVector("integral_constraint_error", integral_constraint_error, ss);
+  PrintVector("de", de_, ss);
+  PrintVector("integral_error", integral_constraint_error, ss);
   context_->get_dhva().Print(ss);
 }
 
@@ -1505,25 +1508,7 @@ void shift::core::solver::RNCA::SetupRHS() {
   assert(integrator_);
   const double baumgarte_2_omega_n = integrator_->get_baumgarte_2_omega_n();
   const double baumgarte_omega_n_2 = integrator_->get_baumgarte_omega_n_2();
-
   const auto& integral_constraint_error = integrator_->get_integral_error();
-
-#if SHIFT_LOG_LEVEL > 4
-  {
-    std::stringstream ss;
-    ss << "baumgarte_omega_n: " << (baumgarte_2_omega_n / 2.0);
-    SHIFT_TRACE(ss.str());
-  }
-
-  {
-    std::stringstream ss;
-    ss << "integral constraint error: "; // << integral_constraint_error;
-    for(auto& e : integral_constraint_error) {
-      ss << e << " ";
-    }
-    SHIFT_TRACE(ss.str());
-  }
-#endif
 
 #ifdef SHIFT_USE_OPENMP_
 #pragma omp parallel for
@@ -1552,8 +1537,6 @@ void shift::core::solver::RNCA::SetupRHS() {
       }
     }
   }
-
-  SHIFT_TRACE("Evaluating primary constraints");
 
   const auto& e = jacobian.get_constraints();
 
@@ -1589,10 +1572,18 @@ void shift::core::solver::RNCA::SetupRHS() {
     for(size_t k = 0; k < substructure.get_chord_constraint_count();
         k++, chord_constraint_offset++) {
 
-      // \gamma_p(po2) <- \gamma_p(po2) - 2 * \omega_n \dot{e}
-      //                  - \omega_n^2 * e - K_I * \int{e}
 
       for(size_t l = 0; l < 6; l++) {
+
+#if 1
+        // save \dot{e} for TRACE output
+        de_[chord_constraint_offset].at[l] = 
+          dhva.v[constraint_indices[k].parent.v].at[l] -
+          dhva.v[constraint_indices[k].child.v].at[l];
+#endif
+
+       // \gamma_p(po2) <- \gamma_p(po2) - 2 * \omega_n \dot{e}
+       //                  - \omega_n^2 * e - K_I * \int{e}
         if(pr_21[k * 6 + l] < substructure.get_rank()) {
           gamma_d_[dq_offset + pr_21[k * 6 + l]] =
 
@@ -1604,12 +1595,16 @@ void shift::core::solver::RNCA::SetupRHS() {
             - (baumgarte_2_omega_n *
                (dhva.v[constraint_indices[k].parent.v].at[l] -
                 dhva.v[constraint_indices[k].child.v].at[l]))
-
+#if 1
             /* subtract omega_n^2 * \dot{e} from gamma_p */
             - baumgarte_omega_n_2 * e[chord_constraint_offset * 6 + l]
 
             // integral error
             - integral_constraint_error[chord_constraint_offset * 6 + l];
+#else
+          ;
+#endif
+
         }
       }
     }
