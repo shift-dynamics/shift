@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     executable = executable.substr(last);
   }
 
-  unsigned int level = shift::core::log::level;
+  unsigned int level = shift::core::log::stdout_log_level;
   std::string level_str;
   if(level == 0) {
     level_str = "'fatal'";
@@ -121,6 +121,8 @@ int main(int argc, char* argv[]) {
  
   if(args.has_option("verbosity")) {
     shift::core::log::SetLogLevel(args["verbosity"].as<std::string>());
+  } else {
+    shift::core::log::SetLogLevel(std::min(level, (unsigned int)3));
   }
 
 #ifdef SHIFT_DEBUG
