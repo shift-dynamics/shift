@@ -42,8 +42,8 @@ void SetLogLevel(unsigned int level_) {
       "level of " + std::to_string(SHIFT_LOG_LEVEL) + 
       "; you can only filter using a lower log level at run-time");
   } else {
-    SHIFT_DEBUG("Setting log level to " + std::to_string(level_));
     stdout_log_level = level_;
+    SHIFT_DEBUG("Setting log level to " + std::to_string(level_));
   }
 }
 
