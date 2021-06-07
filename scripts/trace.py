@@ -8,6 +8,7 @@ import sys
 if __name__ == "__main__":
 
     filepath = sorted([dir for dir in (Path.home() / '.shift').iterdir()])[-1]
+    print(f"Found {filepath}")
     data = {}
     with filepath.open() as f:
         while True:
@@ -68,7 +69,7 @@ if __name__ == "__main__":
                     ax.set_ylabel(key + "_" + str(i))
                     ax.set_xlabel("time (s)")
                 ax.legend()
-                plt.gcf().suptitle(key)
+                plt.gcf().suptitle(f"{filepath}: {key}")
             else:
                 ax = plt.subplot(111)
                 for i in range(data[key].shape[1]):
@@ -76,7 +77,6 @@ if __name__ == "__main__":
                             label=key + "_" + str(i))
                     ax.set_xlabel("time (s)")
                     ax.set_title(key)
-
 
             plt.gcf().set_size_inches(9, 7.75)
             plt.savefig(folder / (key + '.png'))
