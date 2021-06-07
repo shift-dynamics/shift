@@ -7,7 +7,8 @@ namespace core {
 namespace log {
 
 std::ofstream output_file;
-unsigned int level = SHIFT_LOG_LEVEL;
+unsigned int file_log_level = SHIFT_LOG_LEVEL;
+unsigned int stdout_log_level = SHIFT_LOG_LEVEL;
 
 void SetupLogFile() {
   std::string shift_dir = getenv("HOME") + std::string("/.shift");
@@ -42,7 +43,7 @@ void SetLogLevel(unsigned int level_) {
       "; you can only filter using a lower log level at run-time");
   } else {
     SHIFT_DEBUG("Setting log level to " + std::to_string(level_));
-    level = level_;
+    stdout_log_level = level_;
   }
 }
 
@@ -52,7 +53,7 @@ void SetLogLevel(const std::string& level_) {
     level_upper.at(i) = std::toupper(level_upper.at(i));
   }
   
-  unsigned int tmp = level; 
+  unsigned int tmp = stdout_log_level; 
   if(level_upper == "FATAL" || level_upper == "0") {
     tmp = 0;
   } else if(level_upper == "ERROR" || level_upper == "1") {
@@ -67,7 +68,7 @@ void SetLogLevel(const std::string& level_) {
     tmp = 5;
   } else {
     SHIFT_ERROR("Unrecognized logging level '" + level_ + "'; " +
-        "using previous value " + std::to_string(level));
+        "using previous value " + std::to_string(stdout_log_level));
   }
       
   if(tmp > SHIFT_LOG_LEVEL) {
@@ -77,7 +78,7 @@ void SetLogLevel(const std::string& level_) {
       "; you can only lower run-time log filter level");
   } else {
     SHIFT_DEBUG("Setting log level to " + std::to_string(tmp));
-    level = tmp;
+    stdout_log_level = tmp;
   }
 }
 
