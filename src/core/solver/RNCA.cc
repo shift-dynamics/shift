@@ -69,7 +69,7 @@ void shift::core::solver::RNCA::Initialize() {
   Mlbs_.resize(Ml_size_);
   std::fill(Mlbs_.begin(), Mlbs_.end(), false);
 
-  inertia_p_.resize(context_->get_non_rigid_joint_count() + 1);
+  inertia_p_.resize(context_->get_non_rigid_joint_count());
   std::fill(inertia_p_.begin(), inertia_p_.end(),
             ksl_inertia(0.0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
@@ -185,7 +185,6 @@ void shift::core::solver::RNCA::PrintStates(std::stringstream& ss) {
   ss << "  q_count_: " << q_count_ << "\n";
   ss << "  dq_count_: " << dq_count_ << "\n";
   PrintVector("gamma_d_", gamma_d_, ss);
-  ss << "  Ml_size_:" << Ml_size_ << "\n";
   PrintVector("Ml_", Ml_, ss);
   ss << "  Ml_size_: " << Ml_size_ << "\n";
   PrintVector("Mls_", Mls_, ss);
@@ -217,13 +216,13 @@ double shift::core::solver::RNCA::GravitationalPotentialEnergy(
 double
 shift::core::solver::RNCA::KineticEnergy(shift::core::topology::DHVA& dhva) {
 #if SHIFT_WITH_BLAS_
-  return cblas_ddot(6 * non_rigid_joint_count_, (double*)(p_.data() + 1), 1,
+  return cblas_ddot(6 * non_rigid_joint_count_, (double*)(p_.data()), 1,
                     (double*)(dhva.v), 1) /
          2.0;
 #else
   double sum = 0.0;
   for(size_t i = 0; i < context_->get_non_rigid_joint_count(); i++) {
-    sum += ksl_dot_cs(&(p_[i + 1]), &dhva.v[i]);
+    sum += ksl_dot_cs(&(p_[i]), &dhva.v[i]);
   }
   return sum / 2.0;
 #endif
