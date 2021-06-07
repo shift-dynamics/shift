@@ -94,6 +94,7 @@ if __name__ == "__main__":
                         header += key + "-" + str(i) + ","
                 else:
                     header += key + ","
+
             np.savetxt(
                 folder / (key + '.csv'),
                 np.concatenate((data["t"], data[key]), axis=1), fmt='%.6f',
@@ -102,3 +103,23 @@ if __name__ == "__main__":
 
             if key in sys.argv[1:]:
                 plt.show()
+
+    # if we found integral error, e and de keys overlay them in one plot
+    labels = ['lin.x', 'lin.y', 'lin.z', 'ang.x', 'ang.y', 'ang.z']
+    plt.clf()
+    num_loops = data["e"].shape[1] // 6
+    for i in range(num_loops):
+        plt.clf()
+        for j in range(6):
+            ax = plt.subplot(6, 1, j + 1)
+            for val in ["integral_error", "e", "de"]:
+                ax.set_ylabel(f"chord loop {i}\n{labels[j]}")
+                ax.plot(data["t"][:, 0], data[val][:, i * 6 + j],
+                        label=val)
+        ax.legend()
+        ax.set_xlabel("time (s)")
+        plt.gcf().set_size_inches(9, 7.75)
+        plt.suptitle(f"Constraint error for loop {i} in PO1")
+        plt.savefig(folder / f"constraint_error_{i}.png")
+        if "show_constraints" in sys.argv[1:]:
+            plt.show()
