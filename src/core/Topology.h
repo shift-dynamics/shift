@@ -2,14 +2,15 @@
 #define SHIFT_TOPOLOGY_H_
 
 #include <assert.h>
+
 #include <iostream>
+#include <memory>
 #include <string.h>
 #include <string>
 #include <vector>
 
 #include "shift/core/Exception.h"
 #include "shift/core/log.h"
-#include "shift/core/Exception.h"
 
 #include "ksl/SE3.h"
 #include "ksl/screw.h"
@@ -26,52 +27,65 @@ quadratic accelerations (a).
 */
 struct DHVA {
   DHVA() {}
-  DHVA(unsigned int frame_count, unsigned int dc_count, unsigned int dq_count,
-       unsigned int non_rigid_joint_count) {
+  DHVA(size_t frame_count, size_t dc_count, size_t dq_count,
+       size_t non_rigid_joint_count)
+    : frame_count_(frame_count)
+    , dc_count_(dc_count)
+    , dq_count_(dq_count)
+    , non_rigid_joint_count_(non_rigid_joint_count) {
 
-    frame_count_ = frame_count;
-    dc_count_ = dc_count;
-    dq_count_ = dq_count;
-    non_rigid_joint_count_ = non_rigid_joint_count;
+    Initialize();
+  }
 
-    size_t dhva_size_ =
-      2 * dc_count * sizeof(double) +                     /* dc */
-      frame_count * sizeof(ksl_SE3_t) +                   /* d */
-      (dq_count + 1) * sizeof(ksl_screw_t) +              /* h */
-      (non_rigid_joint_count + 1) * sizeof(ksl_screw_t) + /* v */
-      (non_rigid_joint_count + 1) * sizeof(ksl_screw_t);  /* aq */
-    // @TODO convert this to a smart pointer
-    
-    dc = new double[dhva_size_];
+  ~DHVA() {}
+
+  void Initialize() {
+
+    dhva_size_ = 2 * dc_count_ * sizeof(double) +                     /* dc */
+                 frame_count_ * sizeof(ksl_SE3_t) +                   /* d */
+                 dq_count_ * sizeof(ksl_screw_t) +                    /* h */
+                 (non_rigid_joint_count_ + 1) * sizeof(ksl_screw_t) + /* v */
+                 (non_rigid_joint_count_ + 1) * sizeof(ksl_screw_t);  /* aq */
+
+    data_ = std::unique_ptr<double[]>(new double[dhva_size_]);
+
+    dc = data_.get();
     if(dc == nullptr) {
       SHIFT_ERROR("Failed to allocate memory for DHVA");
       throw shift::core::Exception("Failed to allocate memory for DHVA");
     }
     memset(dc, 0, dhva_size_);
-    d = (ksl_SE3_t*)(dc + 2 * dc_count);
-    h = (ksl_screw_t*)(d + frame_count);
-    v = h + (non_rigid_joint_count + 1);
-    aq = v + (non_rigid_joint_count + 1);
-    for(unsigned int i = 0; i < frame_count; i++) {
+    d = (ksl_SE3_t*)(dc + 2 * dc_count_);
+    h = (ksl_screw_t*)(d + frame_count_);
+    v = h + dq_count_;
+    aq = v + (non_rigid_joint_count_ + 1);
+    for(size_t i = 0; i < frame_count_; i++) {
       ksl_SE3_setIdentity(d + i);
     }
 
-    // increment pointers to h, v, and aq. This allows using the index -1 for
+    // assert memory layout
+    assert((double*)(v + 1) == ((double*)v) + 6);
+
+    // increment pointers to v and aq. This allows using the index -1 for
     // the fixed inertial reference frame
-    h++;
     v++;
     aq++;
   }
 
-  ~DHVA() {
-    if(dc != nullptr) {
-      delete[] dc;
-      dc = nullptr;
-      d = nullptr;
-      h = nullptr;
-      v = nullptr;
-      aq = nullptr;
-    }
+  inline size_t get_frame_count() const {
+    return frame_count_;
+  }
+
+  inline size_t get_dc_count() const {
+    return dc_count_;
+  }
+
+  inline size_t get_dq_count() const {
+    return dq_count_;
+  }
+
+  inline size_t get_non_rigid_joint_count() const {
+    return non_rigid_joint_count_;
   }
 
   DHVA& operator=(const DHVA& other) {
@@ -80,36 +94,11 @@ struct DHVA {
     if(&other == this) {
       return *this;
     }
-
-    frame_count_ = other.frame_count_;
-    dc_count_ = other.dc_count_;
-    dq_count_ = other.dq_count_;
-    non_rigid_joint_count_ = other.non_rigid_joint_count_;
-
-    size_t dhva_size_ =
-      2 * dc_count_ * sizeof(double) +                     /* dc */
-      frame_count_ * sizeof(ksl_SE3_t) +                   /* d */
-      (dq_count_) * sizeof(ksl_screw_t) +              /* h */
-      (non_rigid_joint_count_ + 1) * sizeof(ksl_screw_t) + /* v */
-      (non_rigid_joint_count_ + 1) * sizeof(ksl_screw_t);  /* aq */
-    dc = new double[dhva_size_];
-    if(dc == nullptr) {
-      throw shift::core::Exception(
-        "Error: failed to allocate memory for DHVA");
-      assert(0);
-    }
-    memset(dc, 0, dhva_size_);
-    d = (ksl_SE3_t*)(dc + 2 * dc_count_);
-    h = (ksl_screw_t*)(d + frame_count_);
-    v = h + (non_rigid_joint_count_ + 1);
-    aq = v + (non_rigid_joint_count_ + 1);
-
-    // increment pointers to h, v, and aq. This allows using the index -1 for
-    // the fixed inertial reference frame
-    h++;
-    v++;
-    aq++;
-
+    frame_count_ = other.get_frame_count();
+    dc_count_ = other.get_dc_count();
+    dq_count_ = other.get_dq_count();
+    non_rigid_joint_count_ = other.get_non_rigid_joint_count();
+    Initialize();
     memcpy(dc, other.dc, dhva_size_);
     return *this;
   }
@@ -125,14 +114,14 @@ struct DHVA {
     nullptr; /*!< an array of body accelerations equal to the
         number of non rigid joints + 1 for the fixed inertial reference frame */
 
- inline void Print(std::stringstream& ss) const {
-    
-   ss << "  dc: ";
+  inline void Print(std::stringstream& ss) const {
+
+    ss << "  dc: ";
     for(size_t i = 0; i < 2 * dc_count_; i++) {
       ss << dc[i] << " ";
     }
     ss << "\n";
-  
+
     ss << "  d: ";
     for(size_t i = 0; i < frame_count_; i++) {
       for(size_t j = 0; j < 12; j++) {
@@ -140,7 +129,7 @@ struct DHVA {
       }
     }
     ss << "\n";
-    
+
     ss << "  h: ";
     for(size_t i = 0; i < dq_count_; i++) {
       for(size_t j = 0; j < 6; j++) {
@@ -164,15 +153,15 @@ struct DHVA {
       }
     }
     ss << "\n";
-  
   }
 
 private:
-  std::shared_ptr<double> data;
-  unsigned int frame_count_ = 0;
-  unsigned int dc_count_ = 0;
-  unsigned int dq_count_ = 0;
-  unsigned int non_rigid_joint_count_ = 0;
+  std::unique_ptr<double[]> data_;
+  size_t frame_count_ = 0;
+  size_t dc_count_ = 0;
+  size_t dq_count_ = 0;
+  ssize_t non_rigid_joint_count_ = 0;
+  size_t dhva_size_ = 0;
 };
 
 // ostream& operator<<(ostream& os, const DHVA& dhva)
@@ -186,10 +175,10 @@ private:
 */
 struct Offsets {
   union {
-    unsigned int dc;    /*!< offset into direction cosine array */
-    unsigned int q = 0; /*!< offset into array of generalized coordinates */
+    size_t dc;    /*!< offset into direction cosine array */
+    size_t q = 0; /*!< offset into array of generalized coordinates */
   };
-  unsigned int dq = 0; /*!< offset into array of generalized velocities */
+  size_t dq = 0; /*!< offset into array of generalized velocities */
   struct {
     int d = 0; /*!< offset for parent body's displacement */
     int v = 0; /*!< offset for parent body's velocity */
@@ -198,7 +187,7 @@ struct Offsets {
     int d = 0; /*!< offset for child body's displacement */
     int v = 0; /*!< offset for child body's velocity */
   } child;
-  unsigned int data = 0; /*!< offset into data array */
+  size_t data = 0; /*!< offset into data array */
 };
 
 typedef void (*dh_fptr)(const shift::core::Context&, DHVA&, const Offsets&,
