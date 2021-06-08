@@ -116,6 +116,7 @@ if __name__ == "__main__":
                 ax.set_ylabel(f"chord loop {i}\n{labels[j]}")
                 ax.plot(data["t"][:, 0], data[val][:, i * 6 + j],
                         label=val)
+            # ax.set_yscale("log")
         ax.legend()
         ax.set_xlabel("time (s)")
         plt.gcf().set_size_inches(9, 7.75)
