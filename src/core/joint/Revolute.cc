@@ -26,9 +26,9 @@ Updates displacements only
 void shift::core::joint::rx_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                         const shift::core::topology::Offsets& offsets,
                         const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
 
   ksl_product_ddrx(d_parent, dc, d_child);
 }
@@ -45,9 +45,9 @@ Updates displacements only
 void shift::core::joint::rxinv_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                            const shift::core::topology::Offsets& offsets,
                            const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddrxinv(d_parent, dc, d_child);
 }
 
@@ -63,9 +63,9 @@ Updates displacements only
 void shift::core::joint::ry_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                         const shift::core::topology::Offsets& offsets,
                         const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddry(d_parent, dc, d_child);
 }
 
@@ -81,9 +81,9 @@ Updates displacements only
 void shift::core::joint::ryinv_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                            const shift::core::topology::Offsets& offsets,
                            const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddryinv(d_parent, dc, d_child);
 }
 
@@ -99,9 +99,9 @@ Updates displacements only
 void shift::core::joint::rz_d(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                         const shift::core::topology::Offsets& offsets,
                         const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddrz(d_parent, dc, d_child);
 }
 
@@ -117,9 +117,9 @@ Updates displacements only
 void shift::core::joint::rzinv_d(const shift::core::Context&, topology::DHVA& dhva,
                            const shift::core::topology::Offsets& offsets,
                            const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddrzinv(d_parent, dc, d_child);
 }
 
@@ -135,9 +135,9 @@ Updates displacements only
 void shift::core::joint::ra_d(const shift::core::Context& context, topology::DHVA& dhva,
                         const shift::core::topology::Offsets& offsets,
                         const double*) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
   const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_mat3x3_t temp;
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
@@ -157,9 +157,9 @@ Updates displacements only
 void shift::core::joint::rainv_d(const shift::core::Context& context, topology::DHVA& dhva,
                            const shift::core::topology::Offsets& offsets,
                            const double*) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
   const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
@@ -180,10 +180,10 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::rx_dh(const shift::core::Context&, topology::DHVA& dhva,
                          const shift::core::topology::Offsets& offsets,
                          const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
-  ksl_screw_t* h = dhva.h + offsets.dq;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
+  ksl_screw_t* h = &dhva.h[offsets.dq];
 
   ksl_product_ddrx(d_parent, dc, d_child);
   ksl_hsrx(d_child, h);
@@ -204,14 +204,14 @@ void shift::core::joint::rx_dhva(const shift::core::Context& context, topology::
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
   shift::core::joint::rx_dh(context, dhva, offsets, q);
-  ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* v_primitive = dq + offsets.dq;
-  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t* h = &dhva.h[offsets.dq];
+  const double* v_primitive = &dq[offsets.dq];
+  ksl_screw_t* v_parent = &dhva.v[offsets.parent.v];
   ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* v_child = &dhva.v[offsets.child.v];
   ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
+  ksl_screw_t* aq_child = &dhva.aq[offsets.child.v];
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
@@ -231,10 +231,10 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::rxinv_dh(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                             const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
-  ksl_screw_t* h = dhva.h + offsets.dq;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
+  ksl_screw_t* h = &dhva.h[offsets.dq];
 
   ksl_product_ddrxinv(d_parent, dc, d_child);
   ksl_hsrxinv(d_child, h);
@@ -257,14 +257,14 @@ void shift::core::joint::rxinv_dhva(const shift::core::Context& context,
                               const double* __restrict__ dq) {
   shift::core::joint::rxinv_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* v_primitive = dq + offsets.dq;
-  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t* h = &dhva.h[offsets.dq];
+  const double* v_primitive = &dq[offsets.dq];
+  ksl_screw_t* v_parent = &dhva.v[offsets.parent.v];
   ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* v_child = &dhva.v[offsets.child.v];
   ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
+  ksl_screw_t* aq_child = &dhva.aq[offsets.child.v];
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
@@ -284,10 +284,10 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::ry_dh(const shift::core::Context&, shift::core::topology::DHVA& dhva,
                          const shift::core::topology::Offsets& offsets,
                          const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
-  ksl_screw_t* h = dhva.h + offsets.dq;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
+  ksl_screw_t* h = &dhva.h[offsets.dq];
 
   ksl_product_ddry(d_parent, dc, d_child);
   ksl_hsry(d_child, h);
@@ -311,14 +311,14 @@ void shift::core::joint::ry_dhva(const shift::core::Context& context,
                            const double* __restrict__ dq) {
   shift::core::joint::ry_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* v_primitive = dq + offsets.dq;
-  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t* h = &dhva.h[offsets.dq];
+  const double* v_primitive = &dq[offsets.dq];
+  ksl_screw_t* v_parent = &dhva.v[offsets.parent.v];
   ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* v_child = &dhva.v[offsets.child.v];
   ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
+  ksl_screw_t* aq_child = &dhva.aq[offsets.child.v];
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
@@ -339,10 +339,10 @@ void shift::core::joint::ryinv_dh(const shift::core::Context&, shift::core::topo
                             const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
 
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
-  ksl_screw_t* h = dhva.h + offsets.dq;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
+  ksl_screw_t* h = &dhva.h[offsets.dq];
 
   ksl_product_ddryinv(d_parent, dc, d_child);
   ksl_hsryinv(d_child, h);
@@ -366,14 +366,14 @@ void shift::core::joint::ryinv_dhva(const shift::core::Context& context,
 
   shift::core::joint::ryinv_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* v_primitive = dq + offsets.dq;
-  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t* h = &dhva.h[offsets.dq];
+  const double* v_primitive = &dq[offsets.dq];
+  ksl_screw_t* v_parent = &dhva.v[offsets.parent.v];
   ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* v_child = &dhva.v[offsets.child.v];
   ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
+  ksl_screw_t* aq_child = &dhva.aq[offsets.child.v];
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
@@ -394,10 +394,10 @@ void shift::core::joint::rz_dh(const shift::core::Context&, shift::core::topolog
                          const shift::core::topology::Offsets& offsets,
                          const double* __restrict__) {
 
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
-  ksl_screw_t* h = dhva.h + offsets.dq;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
+  ksl_screw_t* h = &dhva.h[offsets.dq];
 
   ksl_product_ddrz(d_parent, dc, d_child);
   ksl_hsrz(d_child, h);
@@ -420,14 +420,14 @@ void shift::core::joint::rz_dhva(const shift::core::Context& context,
                            const double* __restrict__ dq) {
   shift::core::joint::rz_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* v_primitive = dq + offsets.dq;
-  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t* h = &dhva.h[offsets.dq];
+  const double* v_primitive = &dq[offsets.dq];
+  ksl_screw_t* v_parent = &dhva.v[offsets.parent.v];
   ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* v_child = &dhva.v[offsets.child.v];
   ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
+  ksl_screw_t* aq_child = &dhva.aq[offsets.child.v];
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
@@ -448,10 +448,10 @@ void shift::core::joint::rzinv_dh(const shift::core::Context&, shift::core::topo
                             const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
 
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
-  ksl_screw_t* h = dhva.h + offsets.dq;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
+  ksl_screw_t* h = &dhva.h[offsets.dq];
 
   ksl_product_ddrzinv(d_parent, dc, d_child);
   ksl_hsrzinv(d_child, h);
@@ -474,14 +474,14 @@ void shift::core::joint::rzinv_dhva(const shift::core::Context& context,
                               const double* __restrict__ dq) {
   shift::core::joint::rzinv_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* v_primitive = dq + offsets.dq;
-  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t* h = &dhva.h[offsets.dq];
+  const double* v_primitive = &dq[offsets.dq];
+  ksl_screw_t* v_parent = &dhva.v[offsets.parent.v];
   ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* v_child = &dhva.v[offsets.child.v];
   ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
+  ksl_screw_t* aq_child = &dhva.aq[offsets.child.v];
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
@@ -501,10 +501,10 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::ra_dh(const shift::core::Context& context, topology::DHVA& dhva,
                          const shift::core::topology::Offsets& offsets,
                          const double*) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
-  ksl_screw_t* h = dhva.h + offsets.dq;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
+  ksl_screw_t* h = &dhva.h[offsets.dq];
   const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_mat3x3_t temp;
 
@@ -527,10 +527,10 @@ void shift::core::joint::rainv_dh(const shift::core::Context& context, topology:
                             const shift::core::topology::Offsets& offsets,
                             const double*) {
 
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
-  double* dc = dhva.dc + offsets.dc;
-  ksl_screw_t* h = dhva.h + offsets.dq;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
+  double* dc = &dhva.dc[offsets.dc];
+  ksl_screw_t* h = &dhva.h[offsets.dq];
   const ksl_vec3_t* axis = (ksl_vec3_t*)(&context.get_joint_data()[offsets.data]);
   ksl_vec3_t neg_axis = ksl_vec3(-axis->x, -axis->y, -axis->z);
   ksl_mat3x3_t temp;
@@ -556,14 +556,14 @@ void shift::core::joint::ra_dhva(const shift::core::Context& context, topology::
                            const double* q, const double* dq) {
   shift::core::joint::ra_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* v_primitive = dq + offsets.dq;
-  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t* h = &dhva.h[offsets.dq];
+  const double* v_primitive = &dq[offsets.dq];
+  ksl_screw_t* v_parent = &dhva.v[offsets.parent.v];
   ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* v_child = &dhva.v[offsets.child.v];
   ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
+  ksl_screw_t* aq_child = &dhva.aq[offsets.child.v];
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
@@ -587,14 +587,14 @@ void shift::core::joint::rainv_dhva(const shift::core::Context& context,
                               const double* q, const double* dq) {
   shift::core::joint::rainv_dh(context, dhva, offsets, q);
 
-  ksl_screw_t* h = dhva.h + offsets.dq;
-  const double* v_primitive = dq + offsets.dq;
-  ksl_screw_t* v_parent = dhva.v + offsets.parent.v;
+  ksl_screw_t* h = &dhva.h[offsets.dq];
+  const double* v_primitive = &dq[offsets.dq];
+  ksl_screw_t* v_parent = &dhva.v[offsets.parent.v];
   ksl_screw_t v_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* v_child = dhva.v + offsets.child.v;
+  ksl_screw_t* v_child = &dhva.v[offsets.child.v];
   ksl_screw_t* aq_parent = dhva.aq + offsets.parent.v;
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  ksl_screw_t* aq_child = dhva.aq + offsets.child.v;
+  ksl_screw_t* aq_child = &dhva.aq[offsets.child.v];
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);

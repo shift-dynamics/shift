@@ -403,18 +403,10 @@ void shift::core::Jacobian::SetupConstraintPointers() {
       constraint_offset.parent.v = 
         chord_constraint->get_parent_body()->get_va_index();
 
-      // std::cout << "parent: " << chord_constraint->parentFrame()->name()
-      //           << " d: " << constraintOffset.parent.d
-      //           << " v: " << constraintOffset.parent.v << std::endl;
-
       constraint_offset.child.d = 
         chord_constraint->get_child_frame()->get_index();
       constraint_offset.child.v = 
         chord_constraint->get_child_body()->get_va_index();
-
-      // std::cout << "child: " << chord_constraint->childFrame()->name()
-      //           << " d: " << constraintOffset.child.d
-      //           << " v: " << constraintOffset.child.v << std::endl;
 
       substructure.AppendConstraintOffset(constraint_offset);
     }

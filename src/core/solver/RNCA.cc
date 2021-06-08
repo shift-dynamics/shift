@@ -1348,7 +1348,7 @@ void shift::core::solver::RNCA::SetupRHS() {
 #endif
   for(size_t i = 0; i < non_rigid_joint_count; i++) {
     if(has_mass[i]) {
-      ksl_inertia_transformed(&inertia[i], dhva.d + d_reference_frames[i],
+      ksl_inertia_transformed(&inertia[i], &dhva.d[d_reference_frames[i]],
                               &inertia_p[i]);
     }
   }

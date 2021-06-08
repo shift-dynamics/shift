@@ -41,6 +41,7 @@ struct DHVA {
 
   void Initialize() {
 
+#ifdef SHIFT_WITH_CONTIGUOUS_DHVA
     dhva_size_ = 2 * dc_count_ * sizeof(double) +                     /* dc */
                  frame_count_ * sizeof(ksl_SE3_t) +                   /* d */
                  dq_count_ * sizeof(ksl_screw_t) +                    /* h */
@@ -70,6 +71,27 @@ struct DHVA {
     // the fixed inertial reference frame
     v++;
     aq++;
+
+#else
+
+    dc.resize(2 * dc_count_);
+    std::fill(dc.begin(), dc.end(), 0.0);
+
+    d.resize(frame_count_);
+    std::fill(d.begin(), d.end(), ksl_SE3_identity());
+
+    h.resize(dq_count_);
+    std::fill(h.begin(), h.end(), ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+
+    v_.resize(non_rigid_joint_count_ + 1);
+    std::fill(v_.begin(), v_.end(), ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+    v = v_.data() + 1;
+
+    aq_.resize(non_rigid_joint_count_ + 1);
+    std::fill(aq_.begin(), aq_.end(), ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+    aq = aq_.data() + 1;
+
+#endif
   }
 
   inline size_t get_frame_count() const {
@@ -99,10 +121,21 @@ struct DHVA {
     dq_count_ = other.get_dq_count();
     non_rigid_joint_count_ = other.get_non_rigid_joint_count();
     Initialize();
+
+#ifdef SHIFT_WITH_CONTIGUOUS_DHVA
     memcpy(dc, other.dc, dhva_size_);
+#else
+    d = other.d;
+    h = other.h;
+    v_ = other.v_;
+    v = v_.data() + 1;
+    aq_ = other.aq_;
+    aq = aq_.data() + 1;
+#endif
     return *this;
   }
 
+#ifdef SHIFT_WITH_CONTIGUOUS_DHVA
   double* dc = nullptr;     /*!< direction cosine arrays */
   ksl_SE3_t* d = nullptr;   /*!< array of displacements equal
                               in size to number of frames */
@@ -113,6 +146,13 @@ struct DHVA {
   ksl_screw_t* aq =
     nullptr; /*!< an array of body accelerations equal to the
         number of non rigid joints + 1 for the fixed inertial reference frame */
+#else
+  std::vector<double> dc;
+  std::vector<ksl_SE3_t> d;
+  std::vector<ksl_screw_t> h;
+  ksl_screw_t* v;
+  ksl_screw_t* aq;
+#endif
 
   inline void Print(std::stringstream& ss) const {
 
@@ -156,12 +196,17 @@ struct DHVA {
   }
 
 private:
+#ifdef SHIFT_WITH_CONTIGUOUS_DHVA
   std::unique_ptr<double[]> data_;
-  size_t frame_count_ = 0;
-  size_t dc_count_ = 0;
-  size_t dq_count_ = 0;
-  ssize_t non_rigid_joint_count_ = 0;
-  size_t dhva_size_ = 0;
+#else
+  std::vector<ksl_screw_t> v_;
+  std::vector<ksl_screw_t> aq_;
+#endif
+size_t frame_count_ = 0;
+size_t dc_count_ = 0;
+size_t dq_count_ = 0;
+ssize_t non_rigid_joint_count_ = 0;
+size_t dhva_size_ = 0;
 };
 
 // ostream& operator<<(ostream& os, const DHVA& dhva)
