@@ -23,9 +23,9 @@ void shift::core::joint::rigid_dh(const shift::core::Context& context,
                             shift::core::topology::DHVA& dhva,
                             const shift::core::topology::Offsets& offsets,
                             const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
   const ksl_SE3_t* d_primitive = &context.get_d_wrt_reference()[offsets.q];
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
 
   ksl_product_dd(d_parent, d_primitive, d_child);
 }
@@ -62,9 +62,9 @@ void shift::core::joint::rigidinv_dh(const shift::core::Context& context,
                                shift::core::topology::DHVA& dhva,
                                const shift::core::topology::Offsets& offsets,
                                const double* __restrict__) {
-  ksl_SE3_t* d_parent = dhva.d + offsets.parent.d;
+  ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
   const ksl_SE3_t* d_primitive = &context.get_d_wrt_reference()[offsets.q];
-  ksl_SE3_t* d_child = dhva.d + offsets.child.d;
+  ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
 
   ksl_product_ddinv(d_parent, d_primitive, d_child);
 }
