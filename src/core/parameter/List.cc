@@ -62,6 +62,7 @@ void shift::core::parameter::List::set_parent(shift::core::Context* context,
 shift::core::parameter::Value&
 shift::core::parameter::List::DeclareParameter(const std::string key,
                                      shift::core::parameter::Value value) {
+  value.set_key(key);
   parameters_[key] = value;
   return parameters_[key];
 }

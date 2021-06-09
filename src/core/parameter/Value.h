@@ -53,98 +53,104 @@ public:
     , parameter_type_(STRING_ARRAY) {}
 
   Value(std::vector<std::vector<std::string>>* data,
-        const std::string description, bool required)
+        const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(STRING_2DARRAY) {}
 
-  Value(int* data, const std::string description, bool required)
+  Value(int* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(INT) {}
 
-  Value(std::vector<int>* data, const std::string description, bool required)
+  Value(std::vector<int>* data, const std::string description,
+        bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(INT_ARRAY) {}
 
-  Value(double* data, const std::string description, bool required)
+  Value(double* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(DOUBLE) {}
 
-  Value(std::vector<double>* data, const std::string description, bool required)
+  Value(std::vector<double>* data, const std::string description,
+        bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(DOUBLE_ARRAY) {}
 
-  Value(ksl_vec3_t* data, const std::string description, bool required)
+  Value(ksl_vec3_t* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_VEC3) {}
 
-  Value(ksl_vec4_t* data, const std::string description, bool required)
+  Value(ksl_vec4_t* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_VEC4) {}
 
-  Value(ksl_quaternion_t* data, const std::string description, bool required)
+  Value(ksl_quaternion_t* data, const std::string description,
+        bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_QUATERNION) {}
 
-  Value(ksl_screw_t* data, const std::string description, bool required)
+  Value(ksl_screw_t* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_SCREW) {}
 
-  Value(ksl_coscrew_t* data, const std::string description, bool required)
+  Value(ksl_coscrew_t* data, const std::string description,
+        bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_COSCREW) {}
 
-  Value(ksl_inertia_t* data, const std::string description, bool required)
+  Value(ksl_inertia_t* data, const std::string description,
+        bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_INERTIA) {}
 
-  Value(ksl_mat3x3_t* data, const std::string description, bool required)
+  Value(ksl_mat3x3_t* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_MAT3X3)
     , normalize_mat3x3_(true) {}
 
-  Value(ksl_mat4x4_t* data, const std::string description, bool required)
+  Value(ksl_mat4x4_t* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_MAT4X4) {}
 
-  Value(ksl_eulerangles_t* data, const std::string description, bool required)
+  Value(ksl_eulerangles_t* data, const std::string description,
+        bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(KSL_EULERANGLES) {}
 
-  Value(bool* data, const std::string description, bool required)
+  Value(bool* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
     , parameter_type_(BOOLEAN) {}
 
-  Value(ksl_SE3_t* data, const std::string description, bool required)
+  Value(ksl_SE3_t* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
@@ -157,7 +163,7 @@ public:
     , normalize_quaternion_(true)
     , normalize_mat3x3_(true) {}
 
-  Value(List* data, const std::string description, bool required)
+  Value(List* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
@@ -171,7 +177,7 @@ public:
     , normalize_mat3x3_(false)
     , is_list_(true) {}
 
-  Value(ArrayBase* data, const std::string description, bool required)
+  Value(ArrayBase* data, const std::string description, bool required = true)
     : data_(data)
     , description_(description)
     , required_(required)
@@ -191,7 +197,7 @@ public:
     STRING,
     STRING_ARRAY,
     STRING_2DARRAY,
-    INT, 
+    INT,
     INT_ARRAY,
     DOUBLE,
     DOUBLE_ARRAY,
@@ -209,6 +215,8 @@ public:
     PARAMETER_LIST,
     PARAMETER_ARRAY
   };
+
+  enum LogLevel { NO_LOGGING = 0, SETUP_ONLY = 1, INTERVAL = 3, ALWAYS = 4 };
 
   Value& operator[](int index) {
     return operator[]((unsigned int)(index));
@@ -242,7 +250,7 @@ public:
     return data_.type();
   }
 
-  const std::type_index get_type_index() {
+  inline const std::type_index get_type_index() {
     return std::type_index(data_.type());
   }
 
@@ -262,10 +270,23 @@ public:
     return type_str;
   }
 
-  void set_required(bool required) {
+  inline const std::string get_key() {
+    return key_;
+  }
+  
+  inline void set_required(bool required = true) {
     required_ = required;
   }
 
+  Value& set_log_level(LogLevel log_level) {
+    log_level_ = log_level;
+    return *this;
+  }
+
+  Value& set_load_from_json(bool load) {
+    load_from_json_ = load;
+    return *this;
+  }
 
   Value& set_quaternion_maps_to_mat3x3(bool enabled) {
     quaternion_maps_to_mat3x3_ = enabled;
@@ -317,9 +338,13 @@ public:
     return *this;
   }
 
-  void set_parent(shift::core::Context* context, 
-                 shift::core::Assembly* parent_assembly = nullptr,
-                 shift::core::body::Base* parent_body = nullptr);
+  Value& set_key(const std::string key) {
+    key_ = key;
+    return *this;
+  }
+  void set_parent(shift::core::Context* context,
+                  shift::core::Assembly* parent_assembly = nullptr,
+                  shift::core::body::Base* parent_body = nullptr);
 
   Value& AddValidStringValue(std::string value) {
     valid_string_values_.insert(valid_string_values_.end(), value);
@@ -332,7 +357,13 @@ public:
   void Print() const;
 
 private:
-  std::any data_; //!< contains pointer to value
+  shift::core::Context* context_ = nullptr;
+  std::string key_;
+  LogLevel log_level_ = LogLevel::NO_LOGGING; //!< indicates whether this
+                                              // Value should be logged
+                                              // during simulation
+  bool load_from_json_ = true;                //!< load from json input file
+  std::any data_;                             //!< contains pointer to value
   std::string description_;
   bool required_;
   ValueType parameter_type_;
@@ -379,8 +410,8 @@ private:
   void ReadJSON_POSE(Json::Value&);
 };
 
-} // namespace Parameter
-}
+} // namespace parameter
+} // namespace core
 } // namespace shift
 
 #endif

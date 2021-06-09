@@ -8,12 +8,12 @@
 
 #include "shift/core/Assembly.h"
 #include "shift/core/Base.h"
-#include "shift/core/body/Fixed.h"
 #include "shift/core/Factory.h"
 #include "shift/core/Jacobian.h"
-#include "shift/core/joint/Base.h"
 #include "shift/core/ModelParameters.h"
 #include "shift/core/Topology.h"
+#include "shift/core/body/Fixed.h"
+#include "shift/core/joint/Base.h"
 
 namespace shift {
 namespace core {
@@ -72,7 +72,6 @@ public:
   unsigned int get_q_count();
   unsigned int get_dq_count();
 
-
   body::Base* get_fixed_body() {
     return this;
   }
@@ -105,7 +104,8 @@ public:
     return active_joints_;
   }
 
-  const std::vector<shift::core::forcemodule::Base*>& get_active_force_modules() const {
+  const std::vector<shift::core::forcemodule::Base*>&
+  get_active_force_modules() const {
     return active_force_modules_;
   }
 
@@ -117,7 +117,8 @@ public:
     return pcl_compressed_;
   }
 
-  const std::vector<shift::core::body::Base*>& get_active_articulated_bodies() const {
+  const std::vector<shift::core::body::Base*>&
+  get_active_articulated_bodies() const {
     return active_articulated_bodies_;
   }
 
@@ -221,7 +222,7 @@ public:
   }
 
   unsigned int get_force_module_equation_count();
- 
+
   shift::core::Jacobian& get_jacobian() {
     return jacobian_;
   }
@@ -257,7 +258,7 @@ public:
   const std::string get_filename() {
     return filename_;
   }
- 
+
   const std::vector<shift::core::joint::Base*>* get_active_joints_ptr() {
     return &active_joints_;
   }
@@ -275,7 +276,7 @@ public:
   void get_current_time(double& time, double& delta_t);
 
   virtual void ActivateObjects(bool) override;
-  
+
   void ActivateObject(behavior::Base*, bool);
   void ActivateObject(body::Base*, bool);
   void ActivateObject(collisiongeometry::Base*, bool);
@@ -301,8 +302,8 @@ public:
   double GravitationalPotentialEnergy();
   double KineticEnergy();
 
-  /*! \brief Update displacements in a shift::core::joint::DHVA data structure using
-   * a user-provided array of generalized coordinates. The instructions to
+  /*! \brief Update displacements in a shift::core::joint::DHVA data structure
+   * using a user-provided array of generalized coordinates. The instructions to
    * update displacements are stored in shift::core::Context */
   void UpdateD(topology::DHVA& dhva, const double* q);
 
@@ -313,15 +314,15 @@ public:
   void UpdateDH(topology::DHVA& dhva, const double* q);
 
   /*! \brief Update displacements, influence coefficient matrices, velocities
-   * and quadratic accelerations in a shift::core::joint::DHVA data structure using
-   * a user-provided array of generalized coordinates and generalized
+   * and quadratic accelerations in a shift::core::joint::DHVA data structure
+   * using a user-provided array of generalized coordinates and generalized
    * velocities.
    * The instructions to update DHVA are stored in shift::core::Context */
   void UpdateDHVA(topology::DHVA& dhva, const double* q, const double* dq);
 
-  /*! \brief Update displacements stored in a shift::core::Context data structure
-   * using a user-provided array of generalized coordinates. The instructions to
-   * update displacements are stored in shift::core::Context */
+  /*! \brief Update displacements stored in a shift::core::Context data
+   * structure using a user-provided array of generalized coordinates. The
+   * instructions to update displacements are stored in shift::core::Context */
   void UpdateD(const double* q);
 
   /*! \brief Update displacements and influence coefficient matrices in a
@@ -371,15 +372,19 @@ public:
 
   void WriteStates(const double time, const std::vector<double>& y);
 
+  void RegisterLogValue(shift::core::parameter::Value*);
+
+  void UnregisterLogValue(shift::core::parameter::Value*);
+
 private:
   struct dqTodyIndex {
     unsigned int q;
     unsigned int dq;
   };
-  
+
   std::vector<dqTodyIndex>
     quaternion_indices_; /*!< contains mapping of dq to dy for quaternions */
-  
+
   std::vector<dqTodyIndex>
     non_quaternion_indices_; /*!< contains mapping of dq to dy for primitive
                                 generalized coordinates, including any
@@ -426,16 +431,16 @@ private:
   void ClearActiveTerrain();
   void ClearActiveArrays();
 
-  /*! \brief shift::core::Context initialization function, called in shift::core::Context
-   * constructor */
+  /*! \brief shift::core::Context initialization function, called in
+   * shift::core::Context constructor */
   void Initialize();
 
   /*! \brief connect pointers between objects managed by shift::core::Context */
   void Connect() override;
 
-  /*! \brief recursively process all Shift objects' LoadData() functions, which loads any
-   * additional external data not specified in JSON model definition file from
-   * other data sources */
+  /*! \brief recursively process all Shift objects' LoadData() functions, which
+   * loads any additional external data not specified in JSON model definition
+   * file from other data sources */
   void LoadData();
 
   /*! \brief sort active bodies and joints by level increasing order in
@@ -578,8 +583,10 @@ private:
     const std::vector<shift::core::joint::Base*>* joints_;
     const std::vector<std::vector<int>> loop_members_;
     bool operator()(const int& a, const int& b) {
-      int a_level = (a == -1) ? -1 : (*joints_)[loop_members_[a][0]]->get_level();
-      int b_level = (b == -1) ? -1 : (*joints_)[loop_members_[b][0]]->get_level();
+      int a_level =
+        (a == -1) ? -1 : (*joints_)[loop_members_[a][0]]->get_level();
+      int b_level =
+        (b == -1) ? -1 : (*joints_)[loop_members_[b][0]]->get_level();
       return a_level < b_level;
     }
   };
@@ -593,16 +600,18 @@ private:
     const std::vector<shift::core::joint::Base*>* joints_;
     const std::vector<std::vector<int>> loop_members_;
     bool operator()(const std::vector<int>& a, const std::vector<int>& b) {
-      int a_level = (loop_members_[a[0]][0] == -1) ? 
-        -1 : (*joints_)[loop_members_[a[0]][0]]->get_level();
-      int b_level = (loop_members_[b[0]][0] == -1) ? 
-        -1 : (*joints_)[loop_members_[b[0]][0]]->get_level();
+      int a_level = (loop_members_[a[0]][0] == -1)
+                      ? -1
+                      : (*joints_)[loop_members_[a[0]][0]]->get_level();
+      int b_level = (loop_members_[b[0]][0] == -1)
+                      ? -1
+                      : (*joints_)[loop_members_[b[0]][0]]->get_level();
       return a_level < b_level;
     }
   };
 
   unsigned int non_rigid_joint_count_ = 0;
-  std::vector<int> pcl_; /*!< parent child list */
+  std::vector<int> pcl_;            /*!< parent child list */
   std::vector<int> pcl_compressed_; /*!< compressed parent child list */
   std::vector<std::vector<int>> loop_members_;
   std::vector<std::vector<int>> positive_loop_members_;
@@ -660,10 +669,9 @@ private:
   unsigned int dq_count_ = 0;
   double mobility_ = 0.0;
   double constraint_error_ = 0;
-
 };
 
-}
+} // namespace core
 } // namespace shift
 
 #endif

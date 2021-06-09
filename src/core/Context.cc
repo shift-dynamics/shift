@@ -1,12 +1,7 @@
-#include <assert.h>
-#include <fstream>
-#include <iostream>
-#include <list>
-#include <queue>
-#include <string.h>
+#include "shift/core/Context.h"
 
-#include <graphviz/cgraph.h>
-#include <graphviz/gvc.h>
+#include <assert.h>
+#include <string.h>
 
 #ifdef SHIFT_WITH_BLAS_
 #ifdef __APPLE__
@@ -16,7 +11,15 @@
 #endif
 #endif
 
-#include "shift/core/Context.h"
+#include <graphviz/cgraph.h>
+#include <graphviz/gvc.h>
+
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <queue>
+
 #include "shift/core/Exception.h"
 #include "shift/core/Factory.h"
 #include "shift/core/Topology.h"
@@ -2815,5 +2818,19 @@ void shift::core::Context::WriteStates(const double time,
                                        const std::vector<double>& y) {
   for(auto& logger : active_loggers_) {
     logger->WriteStates(time, y);
+  }
+}
+
+void shift::core::Context::RegisterLogValue(
+  shift::core::parameter::Value* value) {
+  for(auto& logger : active_loggers_) {
+    logger->RegisterLogValue(value);
+  }
+}
+
+void shift::core::Context::UnregisterLogValue(
+  shift::core::parameter::Value* value) {
+  for(auto& logger : active_loggers_) {
+    logger->UnregisterLogValue(value);
   }
 }
