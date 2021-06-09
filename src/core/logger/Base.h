@@ -8,6 +8,7 @@
 
 #include "shift/core/Base.h"
 #include "shift/core/parameter/List.h"
+#include "shift/core/log.h"
 
 namespace shift {
 namespace core {
@@ -55,10 +56,30 @@ public:
   virtual void WriteHeader() = 0;
   virtual void WriteStates(const double t, const std::vector<double>& q) = 0;
 
+  void RegisterLogValue(shift::core::parameter::Value* value) {
+    for(auto& val : log_values_) {
+      if(val == value) {
+        SHIFT_TRACE("Log value " + value->get_key() + " already added");
+        return;
+      } 
+    }
+    log_values_.push_back(value);
+  }
+  
+  void UnregisterLogValue(shift::core::parameter::Value* value) {
+    auto it = std::find(log_values_.begin(), log_values_.end(), value);
+    auto index = std::distance(log_values_.begin(), it);
+    if((size_t)index < log_values_.size()) {
+      log_values_.erase(log_values_.begin() + index);
+    }
+  }
+
 protected:
   virtual void DeclareParameters() override;
   bool log_all_channels_ = true;
   std::string type_; //!< descriptive name of Logger type
+  std::vector<shift::core::parameter::Value*> log_values_;
+  
 };
 
 class Modules {

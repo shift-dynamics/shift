@@ -1,14 +1,14 @@
-#include "shift/core/parameter/Value.h"
 #include "shift/core/Assembly.h"
+#include "shift/core/Exception.h"
+#include "shift/core/ModelParameters.h"
 #include "shift/core/behavior/Base.h"
 #include "shift/core/body/Base.h"
 #include "shift/core/integrator/Base.h"
 #include "shift/core/logger/Base.h"
-#include "shift/core/ModelParameters.h"
 #include "shift/core/parameter/ArrayBase.h"
+#include "shift/core/parameter/Value.h"
 #include "shift/core/sensor/Base.h"
 #include "shift/core/terrain/Base.h"
-#include "shift/core/Exception.h"
 
 #include "shift/core/Frame.h"
 
@@ -17,13 +17,15 @@
 // if user requests Shift object, up cast parameter::List to requested
 // type
 template <>
-const shift::core::Frame& shift::core::parameter::Value::get<shift::core::Frame>() const {
+const shift::core::Frame&
+shift::core::parameter::Value::get<shift::core::Frame>() const {
   return *dynamic_cast<shift::core::Frame*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-const shift::core::Assembly& shift::core::parameter::Value::get<shift::core::Assembly>() const {
+const shift::core::Assembly&
+shift::core::parameter::Value::get<shift::core::Assembly>() const {
   return *dynamic_cast<shift::core::Assembly*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
@@ -44,7 +46,8 @@ shift::core::parameter::Value::get<shift::core::body::Base>() const {
 
 template <>
 const shift::core::collisiongeometry::Base&
-shift::core::parameter::Value::get<shift::core::collisiongeometry::Base>() const {
+shift::core::parameter::Value::get<shift::core::collisiongeometry::Base>()
+  const {
   return *dynamic_cast<shift::core::collisiongeometry::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
@@ -120,13 +123,15 @@ shift::core::parameter::Value::get<shift::core::terrain::Base>() const {
 }
 
 template <>
-shift::core::Frame* shift::core::parameter::Value::get_data<shift::core::Frame>() const {
+shift::core::Frame*
+shift::core::parameter::Value::get_data<shift::core::Frame>() const {
   return dynamic_cast<shift::core::Frame*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::core::Assembly* shift::core::parameter::Value::get_data<shift::core::Assembly>() const {
+shift::core::Assembly*
+shift::core::parameter::Value::get_data<shift::core::Assembly>() const {
   return dynamic_cast<shift::core::Assembly*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
@@ -139,14 +144,16 @@ shift::core::parameter::Value::get_data<shift::core::behavior::Base>() const {
 }
 
 template <>
-shift::core::body::Base* shift::core::parameter::Value::get_data<shift::core::body::Base>() const {
+shift::core::body::Base*
+shift::core::parameter::Value::get_data<shift::core::body::Base>() const {
   return dynamic_cast<shift::core::body::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
 shift::core::collisiongeometry::Base*
-shift::core::parameter::Value::get_data<shift::core::collisiongeometry::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::collisiongeometry::Base>()
+  const {
   return dynamic_cast<shift::core::collisiongeometry::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
@@ -160,7 +167,8 @@ shift::core::parameter::Value::get_data<shift::core::constraint::Base>() const {
 
 template <>
 shift::core::forcemodule::Base*
-shift::core::parameter::Value::get_data<shift::core::forcemodule::Base>() const {
+shift::core::parameter::Value::get_data<shift::core::forcemodule::Base>()
+  const {
   return dynamic_cast<shift::core::forcemodule::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
@@ -180,13 +188,15 @@ shift::core::parameter::Value::get_data<shift::core::integrator::Base>() const {
 }
 
 template <>
-shift::core::joint::Base* shift::core::parameter::Value::get_data<shift::core::joint::Base>() const {
+shift::core::joint::Base*
+shift::core::parameter::Value::get_data<shift::core::joint::Base>() const {
   return dynamic_cast<shift::core::joint::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
 template <>
-shift::core::light::Base* shift::core::parameter::Value::get_data<shift::core::light::Base>() const {
+shift::core::light::Base*
+shift::core::parameter::Value::get_data<shift::core::light::Base>() const {
   return dynamic_cast<shift::core::light::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
@@ -219,31 +229,31 @@ shift::core::parameter::Value::get_data<shift::core::terrain::Base>() const {
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
-shift::core::parameter::Value& shift::core::parameter::Value::
-operator[](const std::string key_str) {
+shift::core::parameter::Value&
+shift::core::parameter::Value::operator[](const std::string key_str) {
   if(is_list_) {
     return std::any_cast<parameter::List*>(data_)->operator[](key_str);
   } else if(is_array_) {
     return std::any_cast<parameter::ArrayBase*>(data_)->operator[](key_str);
   } else {
-    throw shift::core::Exception(
-      "error: no parameter found for key '" + key_str + "'");
+    throw shift::core::Exception("error: no parameter found for key '" +
+                                 key_str + "'");
     return std::any_cast<parameter::List*>(data_)->operator[](key_str);
   }
 }
 
-shift::core::parameter::Value& shift::core::parameter::Value::
-operator[](const char* key_str) {
+shift::core::parameter::Value&
+shift::core::parameter::Value::operator[](const char* key_str) {
   return operator[](std::string(key_str));
 }
 
-shift::core::parameter::Value& shift::core::parameter::Value::
-operator[](unsigned int index) {
+shift::core::parameter::Value&
+shift::core::parameter::Value::operator[](unsigned int index) {
   if(is_array_) {
     return std::any_cast<parameter::ArrayBase*>(data_)->operator[](index);
   } else {
-   throw shift::core::Exception(
-      "error: no parameter found for index '" + std::to_string(index) + "'");
+    throw shift::core::Exception("error: no parameter found for index '" +
+                                 std::to_string(index) + "'");
   }
 }
 
@@ -349,7 +359,7 @@ void shift::core::parameter::Value::ReadJSON_STRING(Json::Value& json_value) {
   if(!json_value.isString()) {
     if(required_) {
       throw shift::core::Exception(
-        "JSON Parsing error: required key has incorrectly formatted data; " 
+        "JSON Parsing error: required key has incorrectly formatted data; "
         "expected STRING");
     }
     return;
@@ -358,7 +368,8 @@ void shift::core::parameter::Value::ReadJSON_STRING(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_STRING_ARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_STRING_ARRAY(
+  Json::Value& json_value) {
   if(!json_value.isArray()) {
     if(required_) {
       throw shift::core::Exception(
@@ -370,7 +381,7 @@ void shift::core::parameter::Value::ReadJSON_STRING_ARRAY(Json::Value& json_valu
   for(unsigned int i = 0; i < json_value.size(); i++) {
     if(!(json_value[i].isString())) {
       throw shift::core::Exception(
-        "JSON Parsing error: required key has incorrectly formatted " 
+        "JSON Parsing error: required key has incorrectly formatted "
         "data; expected STRING_ARRAY");
     }
   }
@@ -382,7 +393,8 @@ void shift::core::parameter::Value::ReadJSON_STRING_ARRAY(Json::Value& json_valu
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_STRING_2DARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_STRING_2DARRAY(
+  Json::Value& json_value) {
   if(json_value.isArray()) {
     for(unsigned int i = 0; i < json_value.size(); i++) {
       if(row_dim_ > 0 && row_dim_ != (int)json_value.size()) {
@@ -431,17 +443,18 @@ void shift::core::parameter::Value::ReadJSON_STRING_2DARRAY(Json::Value& json_va
 void shift::core::parameter::Value::ReadJSON_INT(Json::Value& json_value) {
   if(!json_value.isInt()) {
     throw shift::core::Exception(
-      "JSON Parsing error, required key has incorrectly formatted " 
+      "JSON Parsing error, required key has incorrectly formatted "
       "data; expected DOUBLE");
   }
   *std::any_cast<int*>(data_) = json_value.asInt();
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_INT_ARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_INT_ARRAY(
+  Json::Value& json_value) {
   if(!json_value.isArray()) {
     throw shift::core::Exception(
-      "JSON Parsing error: required key has incorrectly formatted " 
+      "JSON Parsing error: required key has incorrectly formatted "
       "data; expected DOUBLE_ARRAY");
   }
   if(row_dim_ > 0 && row_dim_ != static_cast<int>(json_value.size())) {
@@ -449,8 +462,7 @@ void shift::core::parameter::Value::ReadJSON_INT_ARRAY(Json::Value& json_value) 
       "JSON Parsing error: required key has incorrect number of elements");
   }
   if(json_value.size() == 0) {
-    throw shift::core::Exception(
-      "JSON Parsing error: array has zero elements");
+    throw shift::core::Exception("JSON Parsing error: array has zero elements");
   }
 
   if(row_dim_ > -1 && col_dim_ > -1 &&
@@ -463,11 +475,10 @@ void shift::core::parameter::Value::ReadJSON_INT_ARRAY(Json::Value& json_value) 
   for(unsigned int i = 0; i < json_value.size(); i++) {
     if(!json_value[i].isInt()) {
       throw shift::core::Exception(
-        "JSON Parsing error: required key has incorrectly formatted " 
+        "JSON Parsing error: required key has incorrectly formatted "
         "data; expected DOUBLE_ARRAY");
     }
-    std::any_cast<std::vector<int>*>(data_)->push_back(
-      json_value[i].asInt());
+    std::any_cast<std::vector<int>*>(data_)->push_back(json_value[i].asInt());
   }
   loaded_from_file_ = true;
 }
@@ -475,17 +486,18 @@ void shift::core::parameter::Value::ReadJSON_INT_ARRAY(Json::Value& json_value) 
 void shift::core::parameter::Value::ReadJSON_DOUBLE(Json::Value& json_value) {
   if(!json_value.isDouble()) {
     throw shift::core::Exception(
-      "JSON Parsing error, required key has incorrectly formatted " 
+      "JSON Parsing error, required key has incorrectly formatted "
       "data; expected DOUBLE");
   }
   *std::any_cast<double*>(data_) = json_value.asDouble();
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(
+  Json::Value& json_value) {
   if(!json_value.isArray()) {
     throw shift::core::Exception(
-      "JSON Parsing error: required key has incorrectly formatted " 
+      "JSON Parsing error: required key has incorrectly formatted "
       "data; expected DOUBLE_ARRAY");
   }
   if(row_dim_ > 0 && row_dim_ != static_cast<int>(json_value.size())) {
@@ -493,8 +505,7 @@ void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(Json::Value& json_valu
       "JSON Parsing error: required key has incorrect number of elements");
   }
   if(json_value.size() == 0) {
-    throw shift::core::Exception(
-      "JSON Parsing error: array has zero elements");
+    throw shift::core::Exception("JSON Parsing error: array has zero elements");
   }
 
   if(row_dim_ > -1 && col_dim_ > -1 &&
@@ -507,7 +518,7 @@ void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(Json::Value& json_valu
   for(unsigned int i = 0; i < json_value.size(); i++) {
     if(!json_value[i].isDouble()) {
       throw shift::core::Exception(
-        "JSON Parsing error: required key has incorrectly formatted " 
+        "JSON Parsing error: required key has incorrectly formatted "
         "data; expected DOUBLE_ARRAY");
     }
     std::any_cast<std::vector<double>*>(data_)->push_back(
@@ -518,14 +529,14 @@ void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(Json::Value& json_valu
 
 void shift::core::parameter::Value::ReadJSON_KSL_VEC3(Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 3)) {
-    throw "JSON Parsing error: required key has incorrectly formatted " 
+    throw "JSON Parsing error: required key has incorrectly formatted "
           "data; expected KSL_VEC3";
   }
   ksl_vec3_t* data = std::any_cast<ksl_vec3_t*>(data_);
   for(int i = 0; i < 3; i++) {
     if(!json_value[i].isDouble()) {
       throw shift::core::Exception(
-        "JSON Parsing error: required key has incorrectly formatted " 
+        "JSON Parsing error: required key has incorrectly formatted "
         "data; expected KSL_VEC3");
     }
     data->at[i] = json_value[i].asDouble();
@@ -552,7 +563,8 @@ void shift::core::parameter::Value::ReadJSON_KSL_VEC4(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_KSL_QUATERNION(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_QUATERNION(
+  Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw shift::core::Exception(
       "JSON Parsing error: required key has incorrectly formatted "
@@ -585,7 +597,8 @@ void shift::core::parameter::Value::ReadJSON_KSL_QUATERNION(Json::Value& json_va
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_KSL_SCREW(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_SCREW(
+  Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 6)) {
     throw shift::core::Exception(
       "JSON Parsing error: required key has incorrectly formatted "
@@ -605,7 +618,8 @@ void shift::core::parameter::Value::ReadJSON_KSL_SCREW(Json::Value& json_value) 
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_KSL_COSCREW(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_COSCREW(
+  Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 6)) {
     throw shift::core::Exception(
       "JSON Parsing error: required key has incorrectly formatted "
@@ -625,7 +639,8 @@ void shift::core::parameter::Value::ReadJSON_KSL_COSCREW(Json::Value& json_value
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(
+  Json::Value& json_value) {
   if(!json_value.isObject()) {
     throw shift::core::Exception(
       "JSON Parsing error: required key has incorrectly formatted "
@@ -737,7 +752,8 @@ void shift::core::parameter::Value::ReadJSON_KSL_INERTIA(Json::Value& json_value
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_KSL_MAT3X3(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_MAT3X3(
+  Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 3)) {
     throw shift::core::Exception(
       "JSON Parsing error: required key has incorrectly formatted "
@@ -770,7 +786,8 @@ void shift::core::parameter::Value::ReadJSON_KSL_MAT3X3(Json::Value& json_value)
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_KSL_MAT4X4(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_KSL_MAT4X4(
+  Json::Value& json_value) {
   if(!json_value.isArray() || !(json_value.size() == 4)) {
     throw shift::core::Exception(
       "JSON Parsing error: required key has incorrectly formatted "
@@ -813,7 +830,8 @@ void shift::core::parameter::Value::ReadJSON_KSL_MAT4X4(Json::Value& json_value)
   loaded_from_file_ = true;
 }
 
-void shift::core::parameter::Value::ReadJSON_EULERANGLES(Json::Value& json_value) {
+void shift::core::parameter::Value::ReadJSON_EULERANGLES(
+  Json::Value& json_value) {
   if(!json_value.isObject()) {
     throw shift::core::Exception(
       "JSON Parsing error: required key has incorrectly formatted "
@@ -903,8 +921,7 @@ void shift::core::parameter::Value::ReadJSON_BOOLEAN(Json::Value& json_value) {
 
 void shift::core::parameter::Value::ReadJSON_POSE(Json::Value& json_value) {
   if(!json_value.isObject()) {
-    throw shift::core::Exception(
-      "Error: Pose is not a valid object");
+    throw shift::core::Exception("Error: Pose is not a valid object");
     return;
   }
 
@@ -1025,7 +1042,8 @@ void shift::core::parameter::Value::Print(std::string prefix) const {
     }
     case KSL_EULERANGLES: {
       std::cout << std::endl;
-      ksl_eulerangles_print(stdout, get_data<ksl_eulerangles_t>(), prefix.c_str());
+      ksl_eulerangles_print(stdout, get_data<ksl_eulerangles_t>(),
+                            prefix.c_str());
       break;
     }
     case BOOLEAN: {
@@ -1048,14 +1066,15 @@ void shift::core::parameter::Value::Print(std::string prefix) const {
   }
 }
 
-void shift::core::parameter::Value::set_parent(Context* context,
-                                        Assembly* parent_assembly,
-                                        shift::core::body::Base* parent_body) {
+void shift::core::parameter::Value::set_parent(
+  Context* context, Assembly* parent_assembly,
+  shift::core::body::Base* parent_body) {
   if(is_list_) {
     std::any_cast<parameter::List*>(data_)->set_parent(context, parent_assembly,
-                                                      parent_body);
+                                                       parent_body);
   } else if(is_array_) {
     std::any_cast<parameter::ArrayBase*>(data_)->set_parent(
       context, parent_assembly, parent_body);
   }
+  context_ = context;
 }

@@ -29,8 +29,9 @@ public:
     : context_(context)
     , parent_assembly_ptr_(assembly)
     , parent_body_ptr_(body) {}
+
   virtual ~List() {}
- 
+
   virtual Value& operator[](const char* key) {
     return parameters_[key];
   }
@@ -42,7 +43,7 @@ public:
   bool is_active() {
     return active_;
   }
- 
+
   Assembly* get_parent_assembly() {
     return parent_assembly_ptr_;
   }
@@ -50,14 +51,14 @@ public:
   shift::core::body::Base* get_parent_body() {
     return parent_body_ptr_;
   }
- 
+
   void set_parent(Context* context, Assembly* parent_assembly = nullptr,
-                 shift::core::body::Base* parent_body = nullptr);
+                  shift::core::body::Base* parent_body = nullptr);
 
   auto& get_parameters() const {
     return parameters_;
   }
- 
+
   void set_context(Context* context) {
     context_ = context;
   }
@@ -81,7 +82,7 @@ public:
   bool has_key(const std::string key) const {
     return parameters_.count(key);
   }
- 
+
   virtual void ActivateObjects(bool parent_is_active) {
     for(auto& parameter : parameters_) {
       parameter.second.ActivateObjects(active_ && parent_is_active);
@@ -89,126 +90,144 @@ public:
   }
 
   virtual void DeclareParameters() = 0;
+
   void RemoveParameter(std::string key);
+
   Value& DeclareParameter(const std::string key, Value parameter);
+
   Value& DeclareParameter(const std::string key, std::string* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, std::vector<std::string>* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key,
-                      std::vector<std::vector<std::string>>* data,
-                      const std::string description, bool required = true) {
+                          std::vector<std::vector<std::string>>* data,
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, int* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, std::vector<int>* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, double* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, std::vector<double>* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
-
   Value& DeclareParameter(const std::string key, ksl_vec3_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_vec4_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_quaternion_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_screw_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_coscrew_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_inertia_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_mat3x3_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_mat4x4_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_eulerangles_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
+
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, bool* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ksl_SE3_t* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, List* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
     return DeclareParameter(key, value);
   }
 
   Value& DeclareParameter(const std::string key, ArrayBase* data,
-                      const std::string description, bool required = true) {
+                          const std::string description, bool required = true) {
     Value value(data, description, required);
     return DeclareParameter(key, value);
   }
@@ -217,6 +236,10 @@ public:
 
   void Print() const;
   void Print(std::string, bool break_line = true) const;
+  std::vector<std::string> DescribeHeaders() {
+    std::vector<std::string> headers;
+    return headers;
+  }
 
 protected:
   std::map<std::string, parameter::Value> parameters_;
@@ -228,7 +251,7 @@ protected:
   bool is_assembly_ = false;
 };
 
-} // namespace Parameter
-}
+} // namespace parameter
+} // namespace core
 } // namespace shift
 #endif
