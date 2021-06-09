@@ -519,11 +519,11 @@ private:
                             direction cosines */
   std::vector<ksl_SE3_t> d_wrt_reference_;
   std::vector<double> joint_data_;
-
-  std::vector<double> q_;
+   
+  std::vector<double> q_; /*!< generalized coordinates */
   double* dq_ = nullptr; /*!< generalized coordinate first time derivative, or
                          generalized velocities */
-  std::vector<double> ddq_;
+  std::vector<double> ddq_; /*!< generalized accelerations */
   std::vector<double> delta_q_;
 
   std::vector<double> q_copy_;

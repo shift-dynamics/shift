@@ -1,12 +1,12 @@
 #ifndef SHIFT_SOLVER_RNCA_H_
 #define SHIFT_SOLVER_RNCA_H_
 
-#include <string>
 #include <sstream>
+#include <string>
 
 #include "shift/core/Array2d.h"
-#include "shift/core/solver/Base.h"
 #include "shift/core/Topology.h"
+#include "shift/core/solver/Base.h"
 
 namespace shift {
 namespace core {
@@ -36,8 +36,9 @@ public:
     return description_;
   }
 
-  void PrintStates(std::stringstream&);  
-  virtual double GravitationalPotentialEnergy(shift::core::topology::DHVA& dhva) override;
+  void PrintStates(std::stringstream&);
+  virtual double
+  GravitationalPotentialEnergy(shift::core::topology::DHVA& dhva) override;
   virtual double KineticEnergy(shift::core::topology::DHVA& dhva) override;
 
   /*! memoize equations of motion in array of source and destination pointers */
@@ -62,7 +63,8 @@ public:
    */
   bool SetupEquations(const double t, const std::vector<double>& y);
   bool SetupEquationsAndRecordFills();
-  bool SetupEquationsAndRecordFills(const double t, const std::vector<double>& y);
+  bool SetupEquationsAndRecordFills(const double t,
+                                    const std::vector<double>& y);
 
   /*! factor and solve the block-diagonalized preconditioned spatial equations
    * of motion using run-time optimized natural constraint algorithm
@@ -78,7 +80,6 @@ public:
   virtual void Initialize() override;
 
 private:
-
   static bool registered_;
   static std::unique_ptr<RNCA> Create();
 
@@ -97,7 +98,9 @@ private:
   unsigned int q_count_ = 0;
   unsigned int dq_count_ = 0;
 
-  std::vector<double> gamma_d_; /*!< preconditioned constraints, this quantity contains both \f$\gamma_p\f$ and \f$\gamma_d\f$ */
+  std::vector<double>
+    gamma_d_; /*!< preconditioned constraints, this quantity contains both
+                 \f$\gamma_p\f$ and \f$\gamma_d\f$ */
 
   int Ml_size_ = 0; /*!< size of Ml array = ((2 + n) * (1 + n)) / 2*/
 
@@ -113,7 +116,7 @@ private:
                                 influence coefficient matrices in PO(1) */
   std::vector<ksl_inertia_t> inertia_p_;  /*!< projected spatial inertias */
   std::vector<ksl_screw_t> de_; /*!< time derivative of constraint equations */
-  int nnzm_ = 0;  /*!< number of nonzero entries in mass matrix */
+  int nnzm_ = 0;                /*!< number of nonzero entries in mass matrix */
   int nnzms_ = 0; /*!< original number of nonzero entries in mass matrix */
   int nnzb_ = 0;  /*!< number of nonzero entries in B matrix */
 
@@ -139,9 +142,8 @@ private:
   // preconditioned
   //                 constraints in PO(3) */
   std::vector<double> fl_; /*!< generalized forces */
-  std::vector<ksl_coscrew_t> g_;
-  // double* ga; /*!< quadratic acceleration terms */
-  // double* gas; /*!< Saved copy of original ga */
+  std::vector<ksl_coscrew_t>
+    g_; /*!< externally applied forces TODO: move to Context data structure */
   std::vector<double> la_; /*!< lagrange multipliers */
 
   int i1s_ = 0; /*!< Points to Mkj or Mjk in Mkj -= Mij*Bik or Mjk -= Mij*Bik */
@@ -240,11 +242,10 @@ private:
     "for complex mechanisms based on kinematic substructuring, Mechanism and "
     "Machine Theory 92:464-483, October 2015 "
     "`<https://doi.org/10.1016/j.mechmachtheory.2015.06.006>`_";
-
 };
 
 } // namespace solver
-}
+} // namespace core
 } // namespace shift
 
 #endif
