@@ -17,7 +17,6 @@ find_package(jansson REQUIRED)
 find_package(cblas REQUIRED)
 find_library(M_LIB m REQUIRED)
 find_package(graphviz REQUIRED)
-find_library(stdc++ REQUIRED)
 find_package(assimp REQUIRED)
 find_package(Qhull REQUIRED)
 find_package(ImageMagick REQUIRED)
@@ -52,7 +51,6 @@ include_directories(
 if(APPLE)
   list(APPEND CMAKE_MODULE_PATH "/usr/local/Cellar/qt5/5.7.0/lib/cmake/Qt5Core")
 endif(APPLE)
-find_library(stdc++ REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/)
 
@@ -60,7 +58,7 @@ if(APPLE)
   add_definitions(-framework accelerate)
 endif(APPLE)
 
-INCLUDE(pandocology)
+include(pandocology)
 
 add_document(
   TARGET about
