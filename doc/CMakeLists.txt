@@ -1,7 +1,7 @@
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION
   "Create and install the HTML based API documentation (requires Doxygen, Doxyrest, and Sphinx)"
-  ${DOXYGEN_FOUND})
+  OFF)
 find_program(DOXYREST_BIN doxyrest)
 
 if(BUILD_DOCUMENTATION AND DOXYGEN_FOUND AND DOXYREST_BIN)
