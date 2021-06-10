@@ -1,0 +1,39 @@
+<RCC>
+  <qresource prefix="/icons">
+    <file>scene.png</file>
+    <file>clapper.png</file>
+    <file>anchor.png</file>
+    <file>assembly.png</file>
+    <file>body.png</file>
+    <file>camera.png</file>
+    <file>io.png</file>
+    <file>frame.png</file>
+    <file>joint.png</file>
+    <file>light.png</file>
+    <file>restraint.png</file>
+    <file>terrain.png</file>
+    <file>pointcloud.png</file>
+    <file>convexhull.png</file>
+    <file>normal.png</file>
+    <file>sphere.png</file>
+    <file>grid.png</file>
+    <file>floor.png</file>
+    <file>shadow.png</file>
+    <file>cube.png</file>
+    <file>body_folder.png</file>
+    <file>camera_folder.png</file>
+    <file>io_folder.png</file>
+    <file>frame_folder.png</file>
+    <file>joint_folder.png</file>
+    <file>light_folder.png</file>
+    <file>restraint_folder.png</file>
+    <file>terrain_folder.png</file>
+    <file>pointcloud_folder.png</file>
+    <file>play_button.png</file>
+    <file>pause_button.png</file>
+    <file>visible.png</file>
+    <file>invisible.png</file>
+    <file>visible_grey.png</file>
+    <file>invisible_grey.png</file>
+  </qresource>
+</RCC>

@@ -1,57 +1,122 @@
-include_directories(
-  ${CMAKE_CURRENT_LIST_DIR}
-  ${CMAKE_CURRENT_LIST_DIR}/ode
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules
+set(
+  SHIFT_CORE_COMPILE_FLAGS
+  -march=x86-64
+  -mtune=generic
+  -fstack-protector-strong
+  --param=ssp-buffer-size=4
+  -W
+  -Wall
+  -Wextra
+  -ggdb3
+  # -O3
+  -std=c++17
+  -DSHIFT_VERIFY_EQUATIONS_=1
+  ${GRAPHVIZ_COMPILE_FLAGS}
 )
 
-add_library(shiftcore STATIC
-  ${CMAKE_CURRENT_LIST_DIR}/assembly.c
-  ${CMAKE_CURRENT_LIST_DIR}/bitfield.c
-  ${CMAKE_CURRENT_LIST_DIR}/body.c
-  ${CMAKE_CURRENT_LIST_DIR}/camera.c
-  ${CMAKE_CURRENT_LIST_DIR}/chordconstraint.c
-  ${CMAKE_CURRENT_LIST_DIR}/context.c
-  ${CMAKE_CURRENT_LIST_DIR}/convexhull.c
-  ${CMAKE_CURRENT_LIST_DIR}/collisionobject.c
-  ${CMAKE_CURRENT_LIST_DIR}/equation.c
-  ${CMAKE_CURRENT_LIST_DIR}/ellipsoid.c
-  ${CMAKE_CURRENT_LIST_DIR}/factor.c
-  ${CMAKE_CURRENT_LIST_DIR}/frame.c
-  ${CMAKE_CURRENT_LIST_DIR}/graph.c
-  ${CMAKE_CURRENT_LIST_DIR}/inertia.c
-  ${CMAKE_CURRENT_LIST_DIR}/io.c
-  ${CMAKE_CURRENT_LIST_DIR}/jacobian.c
-  ${CMAKE_CURRENT_LIST_DIR}/joint.c
-  ${CMAKE_CURRENT_LIST_DIR}/kinematics.c
-  ${CMAKE_CURRENT_LIST_DIR}/kdtree.c
-  ${CMAKE_CURRENT_LIST_DIR}/light.c
-  ${CMAKE_CURRENT_LIST_DIR}/material.c
-  ${CMAKE_CURRENT_LIST_DIR}/memoize.c
-  ${CMAKE_CURRENT_LIST_DIR}/mobility.c
-  ${CMAKE_CURRENT_LIST_DIR}/newtonraphson.c
-  ${CMAKE_CURRENT_LIST_DIR}/pca.c
-  ${CMAKE_CURRENT_LIST_DIR}/quadrature.c
-  ${CMAKE_CURRENT_LIST_DIR}/queue.c
-  ${CMAKE_CURRENT_LIST_DIR}/restraint.c
-  ${CMAKE_CURRENT_LIST_DIR}/sensor.c
-  ${CMAKE_CURRENT_LIST_DIR}/solve.c
-  ${CMAKE_CURRENT_LIST_DIR}/sphere.c
-  ${CMAKE_CURRENT_LIST_DIR}/stack.c
-  ${CMAKE_CURRENT_LIST_DIR}/substructure.c
-  ${CMAKE_CURRENT_LIST_DIR}/simplex.c
-  ${CMAKE_CURRENT_LIST_DIR}/terrain.c
-  ${CMAKE_CURRENT_LIST_DIR}/topology.c
-  ${CMAKE_CURRENT_LIST_DIR}/utility.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/contact.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/service.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/tire.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/tire/pac2002.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/tire/fiala.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/stiffness.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/damping.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/forcemodule.c
-  ${CMAKE_CURRENT_LIST_DIR}/force_modules/pid.c
-  ${CMAKE_CURRENT_LIST_DIR}/ode/numericalintegrator.c
-  ${CMAKE_CURRENT_LIST_DIR}/ode/ode113.c
-  ${CMAKE_CURRENT_LIST_DIR}/ode/ode113b.c
+set(
+  SHIFT_CORE_LIBRARIES
+  ${JsonCpp_LIBRARY}
+  ${GRAPHVIZ_GVC_LIBRARY}
+  ${GRAPHVIZ_CGRAPH_LIBRARY}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${CBLAS_LIBRARIES}
+  ksl
+  stdc++
 )
+
+add_library(shift_core STATIC
+  Assembly.cc
+  Context.cc
+  ModelParameters.cc
+  Jacobian.cc
+  KdTree.cc
+  Substructure.cc
+  utility.cc
+  log.cc
+  Exception.cc
+  Factory.cc
+  Units.cc
+  Topology.cc
+  Frame.cc
+  Base.cc
+)
+
+add_subdirectory(parameter)
+add_subdirectory(behavior)
+add_subdirectory(body)
+add_subdirectory(collisiongeometry)
+add_subdirectory(constraint)
+add_subdirectory(forcemodule)
+add_subdirectory(geometry)
+add_subdirectory(integrator)
+add_subdirectory(joint)
+add_subdirectory(light)
+add_subdirectory(logger)
+add_subdirectory(sensor)
+add_subdirectory(solver)
+add_subdirectory(terrain)
+
+message(STATUS ${JsonCpp_INCLUDE_DIR})
+
+set(
+  SHIFT_CORE_INCLUDE_DIRS
+  ${CMAKE_BINARY_DIR}/include
+  ${JsonCpp_INCLUDE_DIR}
+)
+
+if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+  target_compile_definitions(
+    shift_core
+    PRIVATE
+    QT_NO_DEBUG
+  )
+endif()
+
+
+target_compile_options(
+  shift_core
+  PRIVATE
+  ${SHIFT_CORE_COMPILE_FLAGS}
+)
+
+# These linker options could be used to dynamically link code,
+# which I am not doing yet. It builds ok in gcc with these options,
+# But clang doesn't like them.
+#
+# set(
+#   SHIFT_CORE_LINK_OPTIONS
+#   -Wl,-export-dynamic
+# )
+#
+# target_link_options(
+#   shift_core
+#   PUBLIC
+#   ${SHIFT_CORE_LINK_OPTIONS}
+# )
+
+target_include_directories(
+  shift_core
+  PUBLIC
+  ${SHIFT_CORE_INCLUDE_DIRS}
+)
+
+target_link_libraries(
+  shift_core
+  PUBLIC
+  shift_core_parameter
+  shift_core_body
+  shift_core_behavior
+  shift_core_collisiongeometry
+  shift_core_constraint
+  shift_core_forcemodule
+  shift_core_geometry
+  shift_core_integrator
+  shift_core_joint
+  shift_core_light
+  shift_core_logger
+  shift_core_sensor
+  shift_core_solver
+  shift_core_terrain
+)
+

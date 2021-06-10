@@ -1,8 +1,0 @@
-Synopsis
-============
-
-This code demonstrates the instantiation and usage of the s2_terrain_t datastructure. An example elevation map called
-"sinxx+cosyy.tiff" is generated according to a function that is
-hard coded into terrain.c. The resulting elevation map is saved
-in 32 bit grey scale floating point tiff format.  The floating point
-tiff is then read back into computer memory and interpolated using bicubic or bilinear interpolation.

@@ -38,13 +38,13 @@ PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = @VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@
+PROJECT_NUMBER         = @shift_VERSION_MAJOR@.@shift_VERSION_MINOR@.@shift_VERSION_PATCH@
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "A Simulation Tool for Automation and Robotics"
+PROJECT_BRIEF          = "A Dynamics Engine for Automation and Robotics"
 
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
@@ -426,7 +426,7 @@ EXTRACT_ALL            = NO
 # be included in the documentation.
 # The default value is: NO.
 
-EXTRACT_PRIVATE        = NO
+EXTRACT_PRIVATE        = YES
 
 # If the EXTRACT_PACKAGE tag is set to YES, all members with package or internal
 # scope will be included in the documentation.
@@ -438,7 +438,7 @@ EXTRACT_PACKAGE        = NO
 # included in the documentation.
 # The default value is: NO.
 
-EXTRACT_STATIC         = NO
+EXTRACT_STATIC         = YES
 
 # If the EXTRACT_LOCAL_CLASSES tag is set to YES, classes (and structs) defined
 # locally in source files will be included in the documentation. If set to NO,
@@ -770,12 +770,13 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = @doxy_main_page@ \
-                         @PROJECT_SOURCE_DIR@/about.rst \
                          @shift_SOURCE_DIR@/src/core \
-                         @shift_SOURCE_DIR@/src/ode \
                          @shift_SOURCE_DIR@/src/gui \
-                         @shift_SOURCE_DIR@/src/force_modules \
-                         @shift_SOURCE_DIR@/src/shift.h
+                         @PROJECT_SOURCE_DIR@/README.md \
+                         @PROJECT_SOURCE_DIR@/doc/install.md \
+                         @PROJECT_SOURCE_DIR@/doc/shift_objects.md \
+                         @PROJECT_SOURCE_DIR@/doc/parameters.md \
+                         @PROJECT_SOURCE_DIR@/doc/developer_guide.md
 
 
 # This tag can be used to specify the character encoding of the source files
@@ -799,6 +800,7 @@ INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.h \
                          *.c \
                          *.cpp \
+                         *.cc \
                          *.md
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
@@ -915,7 +917,6 @@ FILTER_SOURCE_PATTERNS =
 # is part of the input, its contents will be placed on the main page
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
-
 USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
 
 #---------------------------------------------------------------------------
@@ -1056,7 +1057,7 @@ IGNORE_PREFIX          =
 # If the GENERATE_HTML tag is set to YES, doxygen will generate HTML output
 # The default value is: YES.
 
-GENERATE_HTML          = NO
+GENERATE_HTML          = YES
 
 # The HTML_OUTPUT tag is used to specify where the HTML docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of

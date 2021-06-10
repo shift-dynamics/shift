@@ -1,9 +1,0 @@
-#!/bin/bash
-
-gcc -c -o my_extra.o my_extra.c -std=c11 -g -O3 -Wall -Wextra -DPHF_NO_LIBCXX
-
-gcc -c -o my_main.o my_main.c -std=c11 -g -O3 -Wall -Wextra -DPHF_NO_LIBCXX
-
-g++ -c -o phf.o phf.cc -std=c++11 -fno-rtti -fno-exceptions -O3 -march=native -mtune=native -Wall -Wextra -DPHF_NO_LIBCXX
-
-g++ -o my_main my_main.o my_extra.o phf.o -v -std=c++11 -fno-rtti -fno-exceptions -O3 -march=native -mtune=native -Wall -Wextra -lm
