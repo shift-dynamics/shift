@@ -1,3 +1,0 @@
-[submodule "third_party/shift-core"]
-	path = third_party/shift-core
-	url = git@github.com:shift-dynamics/shift-core.git
