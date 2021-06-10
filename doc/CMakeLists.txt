@@ -1,12 +1,12 @@
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION
   "Create and install the HTML based API documentation (requires Doxygen, Doxyrest, and Sphinx)"
-  ${DOXYGEN_FOUND})
+  OFF)
+find_program(DOXYREST_BIN doxyrest)
 
-if(BUILD_DOCUMENTATION)
-  if(NOT DOXYGEN_FOUND)
-    message(FATAL_ERROR "Doxygen is needed to build the documentation.")
-  endif()
+if(BUILD_DOCUMENTATION AND DOXYGEN_FOUND AND DOXYREST_BIN)
+
+  message(STATUS "Found doxyrest: ${DOXYREST_BIN}")
 
   set(doxyfile_in ${CMAKE_CURRENT_LIST_DIR}/Doxyfile.in)
   set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
@@ -51,7 +51,7 @@ if(BUILD_DOCUMENTATION)
   	)
 
   # running doxyrest to convert doxygen to rst format
-  add_custom_target(doxyrest
+  add_custom_target(${DOXYREST_BIN}
     COMMAND doxyrest ${DOXYREST_CMD_LINE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     COMMENT "Generating .rst from Doxygen .xml listing using Doxyrest"

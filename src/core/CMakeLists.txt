@@ -1,0 +1,57 @@
+include_directories(
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_LIST_DIR}/ode
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules
+)
+
+add_library(shiftcore STATIC
+  ${CMAKE_CURRENT_LIST_DIR}/assembly.c
+  ${CMAKE_CURRENT_LIST_DIR}/bitfield.c
+  ${CMAKE_CURRENT_LIST_DIR}/body.c
+  ${CMAKE_CURRENT_LIST_DIR}/camera.c
+  ${CMAKE_CURRENT_LIST_DIR}/chordconstraint.c
+  ${CMAKE_CURRENT_LIST_DIR}/context.c
+  ${CMAKE_CURRENT_LIST_DIR}/convexhull.c
+  ${CMAKE_CURRENT_LIST_DIR}/collisionobject.c
+  ${CMAKE_CURRENT_LIST_DIR}/equation.c
+  ${CMAKE_CURRENT_LIST_DIR}/ellipsoid.c
+  ${CMAKE_CURRENT_LIST_DIR}/factor.c
+  ${CMAKE_CURRENT_LIST_DIR}/frame.c
+  ${CMAKE_CURRENT_LIST_DIR}/graph.c
+  ${CMAKE_CURRENT_LIST_DIR}/inertia.c
+  ${CMAKE_CURRENT_LIST_DIR}/io.c
+  ${CMAKE_CURRENT_LIST_DIR}/jacobian.c
+  ${CMAKE_CURRENT_LIST_DIR}/joint.c
+  ${CMAKE_CURRENT_LIST_DIR}/kinematics.c
+  ${CMAKE_CURRENT_LIST_DIR}/kdtree.c
+  ${CMAKE_CURRENT_LIST_DIR}/light.c
+  ${CMAKE_CURRENT_LIST_DIR}/material.c
+  ${CMAKE_CURRENT_LIST_DIR}/memoize.c
+  ${CMAKE_CURRENT_LIST_DIR}/mobility.c
+  ${CMAKE_CURRENT_LIST_DIR}/newtonraphson.c
+  ${CMAKE_CURRENT_LIST_DIR}/pca.c
+  ${CMAKE_CURRENT_LIST_DIR}/quadrature.c
+  ${CMAKE_CURRENT_LIST_DIR}/queue.c
+  ${CMAKE_CURRENT_LIST_DIR}/restraint.c
+  ${CMAKE_CURRENT_LIST_DIR}/sensor.c
+  ${CMAKE_CURRENT_LIST_DIR}/solve.c
+  ${CMAKE_CURRENT_LIST_DIR}/sphere.c
+  ${CMAKE_CURRENT_LIST_DIR}/stack.c
+  ${CMAKE_CURRENT_LIST_DIR}/substructure.c
+  ${CMAKE_CURRENT_LIST_DIR}/simplex.c
+  ${CMAKE_CURRENT_LIST_DIR}/terrain.c
+  ${CMAKE_CURRENT_LIST_DIR}/topology.c
+  ${CMAKE_CURRENT_LIST_DIR}/utility.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/contact.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/service.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/tire.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/tire/pac2002.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/tire/fiala.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/stiffness.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/damping.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/forcemodule.c
+  ${CMAKE_CURRENT_LIST_DIR}/force_modules/pid.c
+  ${CMAKE_CURRENT_LIST_DIR}/ode/numericalintegrator.c
+  ${CMAKE_CURRENT_LIST_DIR}/ode/ode113.c
+  ${CMAKE_CURRENT_LIST_DIR}/ode/ode113b.c
+)
