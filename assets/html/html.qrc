@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/html">
+    <file>license.html</file>
+    <file>about.html</file>
+  </qresource>
+</RCC>

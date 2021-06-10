@@ -1,8 +1,0 @@
-#!/bin/bash
-# My first script
-
-gcc -c -o hash_test.o hash_test.c -std=c11 -g -O3 -Wall -Wextra -DPHF_NO_LIBCXX
-
-g++ -c -o phf.o phf.cc -std=c++11 -fno-rtti -fno-exceptions -O3 -march=native -mtune=native -Wall -Wextra -DPHF_NO_LIBCXX
-
-g++ -o hash_test hash_test.o phf.o -std=c++11 -fno-rtti -fno-exceptions -O3 -march=native -mtune=native -Wall -Wextra -lm

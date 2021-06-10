@@ -1,74 +1,46 @@
+find_package(Qt5 COMPONENTS Core Widgets Gui REQUIRED)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(OpenGL REQUIRED)
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5OpenGL REQUIRED)
+set(shift_gui_src
+    ${CMAKE_CURRENT_SOURCE_DIR}/Workspace.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Workspace.ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/OrbitalCamera.cc
+    # ${CMAKE_CURRENT_SOURCE_DIR}/Mesh.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Shader.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/TriangleRenderer.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/VulkanWindow.cc
+)
+add_library(shift_gui STATIC ${shift_gui_src})
 
-remove_definitions(-std=c11)
-add_definitions(-march=x86-64)
-add_definitions(-mtune=generic)
-add_definitions(-fstack-protector-strong)
-add_definitions(-D_REENTRANT)
-add_definitions(-DQT_NO_DEBUG)
-add_definitions(-DQT_OPENGL_LIB)
-add_definitions(-DQT_WIDGETS_LIB)
-add_definitions(-DQT_GUI_LIB)
-add_definitions(-DQT_CORE_LIB)
-add_definitions(--param=ssp-buffer-size=4)
-add_definitions(-W)
-add_definitions(-lstdc++)
-add_definitions(-Wall)
-add_definitions(-Wextra)
-add_definitions(-g3)
+target_link_libraries(shift_gui Qt5::Core Qt5::Widgets Qt5::Gui)
 
-add_executable(
-  shift
-  ${CMAKE_CURRENT_LIST_DIR}/shift_gui.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/workspace.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/openglwindow.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/renderwindow.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/geometry.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/bodies.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/frames.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/joints.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/grid.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/lights.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/terrain.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/floor.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/floorshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/floorshadowshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/flatshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/frameshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/simpleshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/phongshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/shaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/shadowshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/terrainshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/normalshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/terrainshadowshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/pointcloudshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/pointcloud.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/orbitalcamera.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/switch.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/playbackslider.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/skybox.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/skyboxshaderprogram.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/resources.qrc
+if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+  target_compile_definitions(
+    shift_gui
+    PRIVATE
+    QT_NO_DEBUG
+  )
+endif()
+
+target_compile_options(
+  shift_gui
+  PRIVATE
+  -march=x86-64
+  -mtune=generic
+  -fstack-protector-strong
+  --param=ssp-buffer-size=4
+  -W
+  -lstdc++
+  -Wall
+  -Wextra
+  -g3
+  -O3
+  -std=c++11
 )
 
-add_dependencies(shift shiftcore)
-add_dependencies(shift license about)
-qt5_use_modules(shift Core Widgets OpenGL Gui Svg)
-
-target_link_libraries(shift
-  shiftcore
-  stdc++
-  ${GLEW_LIBRARIES}
-  ${OPENGL_LIBRARIES}
-  ${CBLAS_LIBRARIES}
-  ${LIBS}
-)
+target_include_directories(shift_gui PUBLIC ${CMAKE_BINARY_DIR}/include)

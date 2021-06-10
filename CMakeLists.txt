@@ -1,80 +1,118 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.11)
+cmake_policy(SET CMP0048 NEW)
 project(shift
-    VERSION 0.1.0
+    VERSION 0.2.0
     DESCRIPTION "A Dynamics Engine for Automation and Robotics"
     LANGUAGES C CXX
 )
 
-if (DEFINED _SHIFT_VERBOSE)
-  add_definitions(-D_SHIFT_VERBOSE=${_SHIFT_VERBOSE})
-else()
-  add_definitions(-D_SHIFT_VERBOSE=0)
+option(SHIFT_BUILD_GRAPHICS "Build GUI" OFF)
+option(SHIFT_BUILD_TESTS "Build test suite" ON)
+option(SHIFT_BUILD_DOC "Build documentation" ON)
+option(SHIFT_LOG_LEVEL "Logging level")
+
+execute_process(
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE SHIFT_GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+    COMMAND git log -1 --format=%h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE SHIFT_GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+configure_file(
+    "${CMAKE_SOURCE_DIR}/src/config.h.in"
+    "${CMAKE_BINARY_DIR}/include/shift/config.h"
+)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
-find_package(jansson REQUIRED)
-find_package(cblas REQUIRED)
-find_library(M_LIB m REQUIRED)
-find_package(graphviz REQUIRED)
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    if(NOT SHIFT_LOG_LEVEL)
+       set(SHIFT_LOG_LEVEL 4) # DEBUG LOGGING
+    endif()
+
+else()
+    if(NOT SHIFT_LOG_LEVEL)
+        set(SHIFT_LOG_LEVEL 3) # INFO LOGGING
+    endif()
+endif()
+
+message(STATUS
+  "Building ${PROJECT_NAME} "
+  "v${shift_VERSION_MAJOR}.${shift_VERSION_MINOR}.${shift_VERSION_PATCH} "
+  "in ${CMAKE_BUILD_TYPE} mode "
+  "with logging level: ${SHIFT_LOG_LEVEL}"
+)
+
+set(CMAKE_CXX_FLAGS "-g -DSHIFT_LOG_LEVEL=${SHIFT_LOG_LEVEL}")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DSHIFT_DEBUG" CACHE STRING "")
+set(CMAKE_C_FLAGS_DEBUG "-g -O0" CACHE STRING "")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/cmake")
+include_directories(${CMAKE_BINARY_DIR}/include)
+
 find_package(assimp REQUIRED)
+find_package(jsoncpp REQUIRED)
+find_package(graphviz REQUIRED)
 find_package(Qhull REQUIRED)
-find_package(ImageMagick REQUIRED)
-find_package(ImageMagick COMPONENTS MagickWand REQUIRED)
-add_definitions(-DMAGICKCORE_HDRI_ENABLE=1)
-add_definitions(-DMAGICKCORE_QUANTUM_DEPTH=16)
+find_package(Threads REQUIRED)
+find_package(cblas)
 
+include(FetchContent)
+FetchContent_Declare(
+    ksl
+    GIT_REPOSITORY https://github.com/shift-dynamics/ksl.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(ksl)
 
-set(LIBS
-  ${LIBS}
-  ${ASSIMP_LIBRARIES}
-  ${GRAPHVIZ_GVC_LIBRARY}
-  ${GRAPHVIZ_CGRAPH_LIBRARY}
-  ${JANSSON_LIBRARIES}
-  ${M_LIB}
-  ${CBLAS_LIBRARIES}
-  ${ImageMagick_LIBRARIES}
-  ${ImageMagick_MagickWand_LIBRARIES}
-  ${QHULL_LIBRARIES}
+include(ExternalProject)
+ExternalProject_Add(
+    argagg
+    GIT_REPOSITORY https://github.com/vietjtnguyen/argagg.git
+    GIT_TAG master
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
 )
 
-include_directories(
-  ${GRAPHVIZ_INCLUDE_DIR}
-  ${JANSSON_INCLUDE_DIRS}
-  ${CBLAS_INCLUDE_DIRS}
-  ${ASSIMP_INCLUDE_DIRS}
-  ${ImageMagick_INCLUDE_DIRS}
-  ${ImageMagick_MagickWand_INCLUDE_DIRS}
-  ${QHULL_INCLUDE_DIRS}
-)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/)
-
-if(APPLE)
-  add_definitions(-framework accelerate)
-endif(APPLE)
-
-add_definitions(-D_GNU_SOURCE)
-
-include(pandocology)
-
-add_document(
-  TARGET about
-  OUTPUT_FILE about.html
-  SOURCES readme.rst
-  PANDOC_DIRECTIVES -t html -s
-  PRODUCT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/html"
-)
-
-add_document(
-  TARGET license
-  OUTPUT_FILE license.html
-  SOURCES license.rst
-  PANDOC_DIRECTIVES -t html -s
-  PRODUCT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/gui/html"
-)
-
-include_directories(src/core)
-include_directories(src/gui)
+if(SHIFT_BUILD_GRAPHICS)
+    add_subdirectory(assets)
+endif()
 
 add_subdirectory(src)
-add_subdirectory(doc)
+
+if(SHIFT_BUILD_DOC)
+    add_subdirectory(doc)
+endif()
+
+if(SHIFT_BUILD_TESTS)
+    FetchContent_Declare(
+        shift-models
+        GIT_REPOSITORY https://github.com/shift-dynamics/shift-models.git
+        GIT_TAG master
+    )
+    FetchContent_MakeAvailable(shift-models)
+    include(CTest)
+    add_subdirectory(test)
+endif()
+
+# build cscope database if cscope available
+find_program(CSCOPE NAMES cscope)
+if(CSCOPE)
+    message(STATUS "Found cscope: ${CSCOPE}")
+    add_custom_target(
+        cscope ALL
+        COMMAND find . -path './build*' -prune -false -o -name '*.cc' -o -name '*.h' -o -name '*.c' > .cscope.files
+        COMMAND cscope -q -R -b -i .cscope.files
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    )
+endif()
