@@ -98,7 +98,6 @@ public:
   Value& DeclareParameter(const std::string key, std::string* data,
                           const std::string description, bool required = true) {
     Value value(data, description, required);
-
     return DeclareParameter(key, value);
   }
 
