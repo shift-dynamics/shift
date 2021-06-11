@@ -6,6 +6,25 @@
 
 #include <math.h>
 
+
+#if SHIFT_LOG_LEVEL > 4
+#define SHIFT_TRACE_DHVA(type, offsets) \
+do { \
+  std::stringstream ss; \
+  ss << type << "\n"; \
+  ss << "  offsets.parent.d: " << offsets.parent.d << "\n"; \
+  ss << "  offsets.child.d: " << offsets.child.d << "\n"; \
+  ss << "  offsets.parent.v: " << offsets.parent.v << "\n"; \
+  ss << "  offsets.child.v: " << offsets.child.v << "\n"; \
+  ss << "  offsets.dc: " << offsets.dc << "\n"; \
+  SHIFT_TRACE(ss.str()); \
+} while(0)
+#else
+#define SHIFT_TRACE_DHVA(type, offsets) \
+do {} while(0)
+#endif
+
+
 bool shift::core::joint::Revolute::registered_ =
   shift::core::Factory<shift::core::joint::Base>::get()->RegisterModule(
     "revolute", shift::core::joint::Revolute::Create);
@@ -31,6 +50,9 @@ void shift::core::joint::rx_d(const shift::core::Context&, shift::core::topology
   double* dc = &dhva.dc[offsets.dc];
 
   ksl_product_ddrx(d_parent, dc, d_child);
+
+  SHIFT_TRACE_DHVA("rx_d", offsets);
+
 }
 
 /*!
@@ -49,6 +71,8 @@ void shift::core::joint::rxinv_d(const shift::core::Context&, shift::core::topol
   ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
   double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddrxinv(d_parent, dc, d_child);
+
+  SHIFT_TRACE_DHVA("rxinv_d", offsets);
 }
 
 /*!
@@ -67,6 +91,9 @@ void shift::core::joint::ry_d(const shift::core::Context&, shift::core::topology
   ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
   double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddry(d_parent, dc, d_child);
+
+
+  SHIFT_TRACE_DHVA("ry_d", offsets);
 }
 
 /*!
@@ -85,6 +112,8 @@ void shift::core::joint::ryinv_d(const shift::core::Context&, shift::core::topol
   ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
   double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddryinv(d_parent, dc, d_child);
+
+  SHIFT_TRACE_DHVA("ryinv_d", offsets);
 }
 
 /*!
@@ -103,6 +132,9 @@ void shift::core::joint::rz_d(const shift::core::Context&, shift::core::topology
   ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
   double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddrz(d_parent, dc, d_child);
+
+  SHIFT_TRACE_DHVA("rz_d", offsets);
+
 }
 
 /*!
@@ -121,6 +153,9 @@ void shift::core::joint::rzinv_d(const shift::core::Context&, topology::DHVA& dh
   ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
   double* dc = &dhva.dc[offsets.dc];
   ksl_product_ddrzinv(d_parent, dc, d_child);
+
+
+  SHIFT_TRACE_DHVA("rzinv_d", offsets);
 }
 
 /*!
@@ -143,6 +178,8 @@ void shift::core::joint::ra_d(const shift::core::Context& context, topology::DHV
   ksl_mat3x3_setFromAxisDC(&temp, axis, dc);
   ksl_product_ddr(d_parent, &temp, d_child);
   ksl_vec3_copy(&d_parent->t, &d_child->t);
+
+  SHIFT_TRACE_DHVA("ra_d", offsets);
 }
 
 /*!
@@ -166,6 +203,9 @@ void shift::core::joint::rainv_d(const shift::core::Context& context, topology::
   ksl_mat3x3_setFromAxisDC(&temp, &neg_axis, dc);
   ksl_product_ddr(d_parent, &temp, d_child);
   ksl_vec3_copy(&d_parent->t, &d_child->t);
+
+
+  SHIFT_TRACE_DHVA("rainv_d", offsets);
 }
 
 /*!
@@ -180,6 +220,7 @@ Updates displacement and influence coefficient matrices
 void shift::core::joint::rx_dh(const shift::core::Context&, topology::DHVA& dhva,
                          const shift::core::topology::Offsets& offsets,
                          const double* __restrict__) {
+
   ksl_SE3_t* d_parent = &dhva.d[offsets.parent.d];
   ksl_SE3_t* d_child = &dhva.d[offsets.child.d];
   double* dc = &dhva.dc[offsets.dc];
@@ -187,6 +228,8 @@ void shift::core::joint::rx_dh(const shift::core::Context&, topology::DHVA& dhva
 
   ksl_product_ddrx(d_parent, dc, d_child);
   ksl_hsrx(d_child, h);
+
+  SHIFT_TRACE_DHVA("rx_dh", offsets);
 }
 
 /*!
@@ -217,6 +260,9 @@ void shift::core::joint::rx_dhva(const shift::core::Context& context, topology::
   ksl_add_ss(v_parent, &v_relative, v_child);
   ksl_cross_ss(v_child, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
+
+
+  SHIFT_TRACE_DHVA("rx_dhva", offsets);
 }
 
 /*!
@@ -238,6 +284,9 @@ void shift::core::joint::rxinv_dh(const shift::core::Context&, shift::core::topo
 
   ksl_product_ddrxinv(d_parent, dc, d_child);
   ksl_hsrxinv(d_child, h);
+
+
+  SHIFT_TRACE_DHVA("rxinv_dh", offsets);
 }
 
 /*!
@@ -270,6 +319,9 @@ void shift::core::joint::rxinv_dhva(const shift::core::Context& context,
   ksl_add_ss(v_parent, &v_relative, v_child);
   ksl_cross_ss(v_child, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
+
+
+  SHIFT_TRACE_DHVA("rxinv_dhva", offsets);
 }
 
 /*!
@@ -291,6 +343,9 @@ void shift::core::joint::ry_dh(const shift::core::Context&, shift::core::topolog
 
   ksl_product_ddry(d_parent, dc, d_child);
   ksl_hsry(d_child, h);
+
+
+  SHIFT_TRACE_DHVA("ry_dh", offsets);
 }
 
 /*!
@@ -324,6 +379,9 @@ void shift::core::joint::ry_dhva(const shift::core::Context& context,
   ksl_add_ss(v_parent, &v_relative, v_child);
   ksl_cross_ss(v_child, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
+
+
+  SHIFT_TRACE_DHVA("ry_dhva", offsets);
 }
 
 /*!
@@ -346,6 +404,9 @@ void shift::core::joint::ryinv_dh(const shift::core::Context&, shift::core::topo
 
   ksl_product_ddryinv(d_parent, dc, d_child);
   ksl_hsryinv(d_child, h);
+
+
+  SHIFT_TRACE_DHVA("ryinv_dh", offsets);
 }
 
 /*!
@@ -379,6 +440,9 @@ void shift::core::joint::ryinv_dhva(const shift::core::Context& context,
   ksl_add_ss(v_parent, &v_relative, v_child);
   ksl_cross_ss(v_child, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
+
+
+  SHIFT_TRACE_DHVA("ryinv_dhva", offsets);
 }
 
 /*!
@@ -401,6 +465,9 @@ void shift::core::joint::rz_dh(const shift::core::Context&, shift::core::topolog
 
   ksl_product_ddrz(d_parent, dc, d_child);
   ksl_hsrz(d_child, h);
+
+
+  SHIFT_TRACE_DHVA("rz_dh", offsets);
 }
 
 /*!
@@ -433,6 +500,8 @@ void shift::core::joint::rz_dhva(const shift::core::Context& context,
   ksl_add_ss(v_parent, &v_relative, v_child);
   ksl_cross_ss(v_child, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
+
+  SHIFT_TRACE_DHVA("rz_dhva", offsets);
 }
 
 /*!
@@ -455,6 +524,9 @@ void shift::core::joint::rzinv_dh(const shift::core::Context&, shift::core::topo
 
   ksl_product_ddrzinv(d_parent, dc, d_child);
   ksl_hsrzinv(d_child, h);
+
+
+  SHIFT_TRACE_DHVA("rzinv_dh", offsets);
 }
 
 /*!
@@ -487,6 +559,9 @@ void shift::core::joint::rzinv_dhva(const shift::core::Context& context,
   ksl_add_ss(v_parent, &v_relative, v_child);
   ksl_cross_ss(v_child, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
+
+
+  SHIFT_TRACE_DHVA("rzinv_dhva", offsets);
 }
 
 /*!
@@ -512,6 +587,9 @@ void shift::core::joint::ra_dh(const shift::core::Context& context, topology::DH
   ksl_product_ddr(d_parent, &temp, d_child);
   ksl_vec3_copy(&d_parent->t, &d_child->t);
   ksl_hsra(d_child, axis, h);
+
+  SHIFT_TRACE_DHVA("ra_dh", offsets);
+
 }
 
 /*!
@@ -539,6 +617,8 @@ void shift::core::joint::rainv_dh(const shift::core::Context& context, topology:
   ksl_product_ddr(d_parent, &temp, d_child);
   ksl_vec3_copy(&d_parent->t, &d_child->t);
   ksl_hsrainv(d_child, axis, h);
+
+  SHIFT_TRACE_DHVA("rainv_dh", offsets);
 }
 
 /*!
@@ -569,6 +649,8 @@ void shift::core::joint::ra_dhva(const shift::core::Context& context, topology::
   ksl_add_ss(v_parent, &v_relative, v_child);
   ksl_cross_ss(v_child, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
+
+  SHIFT_TRACE_DHVA("ra_dhva", offsets);
 }
 
 /*!
@@ -600,6 +682,8 @@ void shift::core::joint::rainv_dhva(const shift::core::Context& context,
   ksl_add_ss(v_parent, &v_relative, v_child);
   ksl_cross_ss(v_child, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
+
+  SHIFT_TRACE_DHVA("rainv_dhva", offsets);
 }
 
 void shift::core::joint::Revolute::DeclareParameters() {
