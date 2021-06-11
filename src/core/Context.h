@@ -171,95 +171,95 @@ public:
   }
 
   /*! \brief get count of total number of active frames */
-  unsigned int get_active_frame_count() {
+  inline unsigned int get_active_frame_count() {
     return active_frames_.size();
   }
 
   /*! \brief get count of total number of active joints */
-  unsigned int get_active_joint_count() const {
+  inline unsigned int get_active_joint_count() const {
     return active_joints_.size();
   }
 
   /*! \brief get count of active chord constraints */
-  unsigned int get_chord_constraint_count() const {
+  inline unsigned int get_chord_constraint_count() const {
     return chord_constraints_.size();
   }
 
-  unsigned int get_constraint_equation_count() const {
+  inline unsigned int get_constraint_equation_count() const {
     return chord_constraints_.size() * 6;
   }
 
-  std::vector<double>& get_ddq() {
+  inline std::vector<double>& get_ddq() {
     return ddq_;
   }
 
-  double* get_dq() {
+  inline double* get_dq() {
     return dq_;
   }
 
-  std::vector<double>& get_q() {
+  inline std::vector<double>& get_q() {
     return q_;
   }
 
-  std::vector<double>& get_delta_q() {
+  inline std::vector<double>& get_delta_q() {
     return delta_q_;
   }
 
-  const topology::DHVA& get_dhva() const {
+  inline const topology::DHVA& get_dhva() const {
     return dhva_;
   }
 
-  const std::vector<topology::Offsets>& get_dhva_offsets() const {
+  inline const std::vector<topology::Offsets>& get_dhva_offsets() const {
     return dhva_offsets_;
   }
 
-  std::vector<double>& get_mobility_numbers() {
+  inline std::vector<double>& get_mobility_numbers() {
     return mobility_numbers_;
   }
 
-  const std::vector<constraint::Chord*>& get_chord_constraints() const {
+  inline const std::vector<constraint::Chord*>& get_chord_constraints() const {
     return chord_constraints_;
   }
 
   unsigned int get_force_module_equation_count();
 
-  shift::core::Jacobian& get_jacobian() {
+  inline shift::core::Jacobian& get_jacobian() {
     return jacobian_;
   }
 
-  const std::vector<int>& get_d_reference_frames() const {
+  inline const std::vector<int>& get_d_reference_frames() const {
     return d_reference_frames_;
   }
 
-  const std::vector<ksl_inertia_t>& get_inertia_vector() const {
+  inline const std::vector<ksl_inertia_t>& get_inertia_vector() const {
     return inertia_;
   }
 
-  std::vector<double>& get_joint_working_forces() {
+  inline std::vector<double>& get_joint_working_forces() {
     return f_;
   }
 
-  const std::vector<bool>& get_is_rotation() const {
+  inline const std::vector<bool>& get_is_rotation() const {
     return is_rotation_;
   }
 
-  const std::vector<int>& get_pcldq() const {
+  inline const std::vector<int>& get_pcldq() const {
     return pcldq_;
   }
 
-  const std::vector<unsigned int>& get_joint_dof_compressed() const {
+  inline const std::vector<unsigned int>& get_joint_dof_compressed() const {
     return joint_dof_compressed_;
   }
 
-  std::vector<double>& get_q_copy() {
+  inline std::vector<double>& get_q_copy() {
     return q_copy_;
   }
 
-  const std::string get_filename() {
+  inline const std::string get_filename() {
     return filename_;
   }
 
-  const std::vector<shift::core::joint::Base*>* get_active_joints_ptr() {
+  inline const std::vector<shift::core::joint::Base*>* get_active_joints_ptr() {
     return &active_joints_;
   }
 
@@ -267,7 +267,7 @@ public:
     return jacobian_.get_newton_raphson_failure();
   }
 
-  double get_constraint_error() {
+  inline double get_constraint_error() {
     return constraint_error_;
   }
 
@@ -377,6 +377,7 @@ public:
   void UnregisterLogValue(shift::core::parameter::Value*);
 
 private:
+  
   struct dqTodyIndex {
     unsigned int q;
     unsigned int dq;
