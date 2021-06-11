@@ -2793,6 +2793,10 @@ void shift::core::Context::SetupQuaternionMap() {
 }
 
 void shift::core::Context::Simulate() {
+
+  // for(auto& joint : active_joints_) {
+  //   std::cout << joint->get_name() << ": " << joint->get_dq_index() << std::endl;
+  // }
   if(active_integrators_.size() == 0 || active_solvers_.size() == 0) {
     throw shift::core::Exception(
       "Error: no active integrators or solvers have been created");
