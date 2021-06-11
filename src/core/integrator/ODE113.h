@@ -32,7 +32,7 @@ public:
   }
 
   virtual void get_current_time(double& time, double& delta_time) override;
-  
+
   virtual void Initialize() override;
   virtual void Connect() override;
   virtual void Integrate() override;
@@ -143,6 +143,8 @@ roundoff error  u  which is the smallest positive number such that
   double safety_factor_ = 0.005;
   double omega_n_max_ =
     1000.0; /*!< maximum omega_n used in Baumgarte constraint stabilization */
+  double omega_n_min_ =
+    10.0; /*!< minimum omega_n used in Baumgarte constraint stabilization */
   bool phase1_ = false; /*<! phase1 is a logical variable. When TRUE all
                    lights are go and the integrator may increase order and
                        integration stepsize. When false, integrator may
@@ -153,8 +155,8 @@ roundoff error  u  which is the smallest positive number such that
   static bool registered_;
 };
 
-} // namespace Integrator
-}
+} // namespace integrator
+} // namespace core
 } // namespace shift
 
 #endif
