@@ -47,7 +47,7 @@ if __name__ == "__main__":
     plt.plot(t, data["gravitational_potential_energy"],
              label="Gravitational potential\nenergy")
     plt.plot(t, [i - data["total_energy"][0] for i in data["total_energy"]],
-             label="Change in total\nenergy energy")
+             label="Change in\ntotal energy")
     ax5.set_ylabel('Energy (J)')
     ax5.set_xlabel('time (s)')
     ax5.legend()

@@ -48,6 +48,10 @@ void shift::core::integrator::ODE113::DeclareParameters() {
                    "largest value for omega_n used in Baumgarte constraint "
                    "stabilization, defaults to 1000.0 if not provided",
                    false);
+  DeclareParameter("omega_n_min", &omega_n_min_,
+                   "smallest value for omega_n used in Baumgarte constraint "
+                   "stabilization, defaults to 10.0 if not provided",
+                   false);
   DeclareParameter("integral_gain", &integral_gain_,
                    "integral gain used in baumgarte constraint stabilization, "
                    "defaults to 1000.0 if not provided",
@@ -167,6 +171,8 @@ void shift::core::integrator::ODE113::StepFunction(double t,
     baumgarte_omega_n_ = stability_limits_[k_] / h * safety_factor_;
     baumgarte_omega_n_ =
       fmin(baumgarte_omega_n_, omega_n_max_); /* limit omega_n */
+    baumgarte_omega_n_ = 
+      fmax(omega_n_min_, baumgarte_omega_n_);
     baumgarte_omega_n_ =
       baumgarte_omega_n_prev_ +
       smoothing_filter_ * (baumgarte_omega_n_ - baumgarte_omega_n_prev_);
