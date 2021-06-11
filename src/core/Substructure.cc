@@ -34,8 +34,10 @@ void shift::core::Substructure::SetupPO1(
   /* j is local loop index */
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
+  SHIFT_TRACE("positive loop members");
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto variable_index : *it) {
+      SHIFT_TRACE(std::to_string(variable_index));
       assert(variable_index >= 0 && variable_index - dq_offset_ < dq_count_);
       ksl_screw_copy_rmo(&dhva.h[variable_index], J_, j * 6,
                          variable_index - dq_offset_, dq_count_);
@@ -43,19 +45,26 @@ void shift::core::Substructure::SetupPO1(
   }
 
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
+  SHIFT_TRACE("negative loop members");
   for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
     for(auto variable_index : *it) {
+      SHIFT_TRACE(std::to_string(variable_index));
       assert(variable_index >= 0 && variable_index - dq_offset_ < dq_count_);
       ksl_screw_ncopy_rmo(&dhva.h[variable_index], J_, j * 6,
                           variable_index - dq_offset_, dq_count_);
     }
   }
 
-  // ksl_array2D_print(stdout, constraint_equation_count_, dq_count_, J_);
+  SHIFT_TRACE("Jacobian:");
+  ksl_array2D_print(stdout, constraint_equation_count_, dq_count_, J_);
 
   rank_ = ksl_linalg_lu_full_rmo(constraint_equation_count_, dq_count_, J_,
                                  epsilon_rank_determination_, pr_12_.data(),
                                  pc_12_.data());
+  
+  SHIFT_TRACE("Factored Jacobian:");
+  ksl_array2D_print(stdout, constraint_equation_count_, dq_count_, J_);
+  SHIFT_TRACE("Rank: " + std::to_string(rank_));
   assert(rank_ != -1);
 
   shift::core::topology::SetInversePermutation(pr_12_, pr_21_);
@@ -166,6 +175,18 @@ void shift::core::Substructure::SetupBooleanPO2() {
 }
 
 void shift::core::Substructure::FactorPO2() {
+#if SHIFT_LOG_LEVEL > 4
+  {
+    int pr[constraint_equation_count_];
+    int pc[dq_count_];
+    double J_copy[dq_count_ * constraint_equation_count_];
+    memcpy(J_copy, J_, dq_count_ * constraint_equation_count_ * sizeof(double));
+    int rank = ksl_linalg_lu_full_rmo(
+      constraint_equation_count_, dq_count_, J_copy,
+      /*epsilon_rank_determination_*/ 1e-9, pr, pc);
+    assert(rank == rank_);
+  }
+#endif  
   ksl_linalg_lu_rmo(rank_, dq_count_, J_);
 }
 
@@ -346,6 +367,10 @@ double shift::core::Substructure::ComputeDeltaqError() {
 
 */
 void shift::core::Substructure::NewtonRaphsonSolver() {
+
+  assert(
+    context_->get_jacobian().get_constraints().data() + 
+      loop_offset_ * 6 == e_);
   memset(delta_q_, 0, dq_count_ * sizeof(double));
   /* cs <-  L^-1 cs */
   for(int i = 0; i < rank_; i++) {
@@ -384,41 +409,37 @@ double shift::core::Substructure::EvaluateConstraints(
     e_[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
 
 #if 1
-    ksl_SE3_print(stdout, d_parent, "d_parent: ");
-    std::cout << "determinant: " << ksl_mat3x3_determinant(&d_parent->R)
-              << std::endl
-              << std::endl;
-
-    ksl_SE3_print(stdout, d_child, "d_child: ");
-    std::cout << "determinant: " << ksl_mat3x3_determinant(&d_child->R)
-              << std::endl
-              << std::endl;
-
-    ksl_SE3_print(stdout, &temp, "ddinv: ");
-    std::cout << "determinant: " << ksl_mat3x3_determinant(&temp.R) << std::endl
-              << std::endl;
-
-    std::cout << "trace - 3: " << trace << std::endl;
-    std::cout << "e_: ";
-    for(unsigned int j = 0; j < 6; j++) {
-      std::cout << e_[i * 6 + j] << " ";
+    {
+      double tol = 1.0e-12;
+      assert(fabs(ksl_mat3x3_determinant(&d_parent->R) - 1.0) < tol);
+      assert(fabs(ksl_mat3x3_determinant(&d_child->R) - 1.0) < tol);
+      assert(fabs(ksl_mat3x3_determinant(&temp.R) - 1.0) < tol);
     }
-    std::cout << std::endl;
+#endif
 
-    double rms_constraint_error = 0.0;
-    for(size_t j = 0; j < 6; j++) {
-      rms_constraint_error += e_[i * 6 + j] * e_[i * 6 + j];
+#if 0
+    {
+      std::cout << "e_: ";
+      for(unsigned int j = 0; j < 6; j++) {
+        std::cout << e_[i * 6 + j] << " ";
+      }
+      std::cout << std::endl;
+
+      double rms_constraint_error = 0.0;
+      for(size_t j = 0; j < 6; j++) {
+        rms_constraint_error += e_[i * 6 + j] * e_[i * 6 + j];
+      }
+      rms_constraint_error = sqrt(rms_constraint_error) / 6.0;
+      std::cout << "rms constraint error: " << rms_constraint_error << std::endl;
+
+      tol = 1.e-2;
+      if(rms_constraint_error > tol) {
+        context_->DigraphFrames();
+        throw shift::core::Exception(
+          "Simulation failed when constraint error tolerance was exceeded (" +
+          std::to_string(fabs(trace)) + " > " + std::to_string(tol) + ")");
+      }
     }
-    rms_constraint_error = sqrt(rms_constraint_error) / 6.0;
-    std::cout << "rms constraint error: " << rms_constraint_error << std::endl;
-
-    double tol = 1e-2;
-    if(rms_constraint_error > tol) {
-      context_->DigraphFrames();
-      throw shift::core::Exception(
-        "Simulation failed when constraint error tolerance was exceeded (" +
-        std::to_string(fabs(trace)) + " > " + std::to_string(tol) + ")");
-    };
 #endif
   }
 
@@ -443,7 +464,7 @@ int shift::core::Substructure::RemoveConstraintViolations() {
 
   error = sqrt(e[] . e[]) / constraint_equation_count < eps when converged.
   */
-  int max_step = 10000;
+  int max_step = 100;
   double q_copy[q_count_];
   memcpy(q_copy, q_, q_count_ * sizeof(double));
 
@@ -465,7 +486,7 @@ int shift::core::Substructure::RemoveConstraintViolations() {
     context_->UpdateDH();
     error = EvaluateConstraints(context_->get_dhva());
 
-    SHIFT_DEBUG("  [" << step << "] error: " + std::to_string(error));
+    SHIFT_DEBUG("[" << step << "] error: " + std::to_string(error));
     ++step;
   }
   context_->UpdateDH();
