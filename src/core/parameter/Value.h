@@ -11,9 +11,10 @@
 #include "ksl/vec3.h"
 #include "ksl/vec4.h"
 
-#include <any>
 #include <assert.h>
 #include <cxxabi.h>
+
+#include <any>
 #include <exception>
 #include <iostream>
 #include <json/json.h>
@@ -216,7 +217,7 @@ public:
     PARAMETER_ARRAY
   };
 
-  enum LogLevel { NO_LOGGING = 0, SETUP_ONLY = 1, INTERVAL = 3, ALWAYS = 4 };
+  enum LogLevel { NONE = 0, ATTRIBUTE = 1, INTERVAL = 3, ALWAYS = 4 };
 
   Value& operator[](int index) {
     return operator[]((unsigned int)(index));
@@ -273,7 +274,14 @@ public:
   inline const std::string get_key() {
     return key_;
   }
-  
+
+  const std::vector<std::string> get_fully_qualified_name() {
+    // std::list<std::string>(key_);
+    std::vector<std::string> val;
+    return val;
+    // while(
+  }
+
   inline void set_required(bool required = true) {
     required_ = required;
   }
@@ -342,9 +350,14 @@ public:
     key_ = key;
     return *this;
   }
+
   void set_parent(shift::core::Context* context,
                   shift::core::Assembly* parent_assembly = nullptr,
                   shift::core::body::Base* parent_body = nullptr);
+
+  void set_parent(shift::core::parameter::List* parent) {
+    parent_ = parent;
+  }
 
   Value& AddValidStringValue(std::string value) {
     valid_string_values_.insert(valid_string_values_.end(), value);
@@ -359,11 +372,12 @@ public:
 private:
   shift::core::Context* context_ = nullptr;
   std::string key_;
-  LogLevel log_level_ = LogLevel::NO_LOGGING; //!< indicates whether this
-                                              // Value should be logged
-                                              // during simulation
-  bool load_from_json_ = true;                //!< load from json input file
-  std::any data_;                             //!< contains pointer to value
+  shift::core::parameter::List* parent_ = nullptr;
+  LogLevel log_level_ = LogLevel::NONE; //!< indicates whether this
+                                        // Value should be logged
+                                        // during simulation
+  bool load_from_json_ = true;          //!< load from json input file
+  std::any data_;                       //!< contains pointer to value
   std::string description_;
   bool required_;
   ValueType parameter_type_;

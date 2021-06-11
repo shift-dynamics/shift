@@ -1075,6 +1075,13 @@ void shift::core::parameter::Value::set_parent(
   } else if(is_array_) {
     std::any_cast<parameter::ArrayBase*>(data_)->set_parent(
       context, parent_assembly, parent_body);
-  }
+  } 
+  
+  // if(parent_assembly_ptr_) {
+  //   std::cout << parent_assembly_ptr_->get_name() << std::endl;
+  // }
+  // if(parent_body_ptr_) {
+  //   std::cout << parent_body_ptr_->get_name() << std::endl;
+  // }
   context_ = context;
 }

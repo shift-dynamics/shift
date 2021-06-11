@@ -1,9 +1,10 @@
-#include "shift/core/parameter/List.h"
 #include "shift/core/Assembly.h"
-#include "shift/core/body/Base.h"
 #include "shift/core/Context.h"
+#include "shift/core/body/Base.h"
+#include "shift/core/parameter/List.h"
 
-void shift::core::parameter::List::Print(std::string prefix, bool break_line) const {
+void shift::core::parameter::List::Print(std::string prefix,
+                                         bool break_line) const {
   if(break_line) {
     std::cout << std::endl << prefix << "{";
   } else {
@@ -31,7 +32,8 @@ void shift::core::parameter::List::RemoveParameter(std::string key) {
 
 void shift::core::parameter::List::ReadJSON(Json::Value& json_value) {
   for(auto& parameter : parameters_) {
-    if(!json_value.isMember(parameter.first) && parameter.second.is_required()) {
+    if(!json_value.isMember(parameter.first) &&
+       parameter.second.is_required()) {
       std::cout << "  error: " << parameter.first << std::endl;
       throw "JSON parsing error, required key not found";
     }
@@ -41,9 +43,9 @@ void shift::core::parameter::List::ReadJSON(Json::Value& json_value) {
   }
 }
 
-void shift::core::parameter::List::set_parent(shift::core::Context* context,
-                                       shift::core::Assembly* parent_assembly,
-                                       shift::core::body::Base* parent_body) {
+void shift::core::parameter::List::set_parent(
+  shift::core::Context* context, shift::core::Assembly* parent_assembly,
+  shift::core::body::Base* parent_body) {
   context_ = context;
   parent_assembly_ptr_ = parent_assembly;
   parent_body_ptr_ = parent_body;
@@ -59,10 +61,10 @@ void shift::core::parameter::List::set_parent(shift::core::Context* context,
   }
 }
 
-shift::core::parameter::Value&
-shift::core::parameter::List::DeclareParameter(const std::string key,
-                                     shift::core::parameter::Value value) {
+shift::core::parameter::Value& shift::core::parameter::List::DeclareParameter(
+  const std::string key, shift::core::parameter::Value value) {
   value.set_key(key);
+  value.set_parent(this);
   parameters_[key] = value;
   return parameters_[key];
 }
