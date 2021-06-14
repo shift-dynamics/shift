@@ -433,16 +433,16 @@ void shift::core::Jacobian::SetupSubstructurePointers() {
 @brief This function removes constraints for the entire mechanism
 using a strict error tolerance (context->epsNewtonRaphsonRankDetermination)
 */
-int shift::core::Jacobian::RemoveConstraintViolations() {
-  bool newton_raphson_failure_ = false;
+unsigned int shift::core::Jacobian::RemoveConstraintViolations() {
+  unsigned int failure = Jacobian::OK;
   for(auto& substructure : substructures_) {
-    if(substructure.RemoveConstraintViolations()) {
-      newton_raphson_failure_ = true;
-    }
+    failure |= substructure.RemoveConstraintViolations();
   }
   // @TODO update GL reference frames once graphics are added back in
   // context_->updateGLReferenceFrames()
-  return newton_raphson_failure_ ? -1 : 0;
+  newton_raphson_failure_ = 
+    failure & shift::core::Jacobian::Failure::NEWTON_RAPHSON;
+  return failure;
 }
 
 /*!
@@ -494,73 +494,65 @@ double shift::core::Jacobian::EvaluateConstraints() {
   return e;
 }
 
-unsigned int shift::core::Jacobian::InfinityNormCheck(double time, double* q,
-                                                      const double* dq) {
+unsigned int shift::core::Jacobian::CheckCondition(
+    double time, double* q, const double* dq) {
+
   iterations_since_last_infinity_norm_failure_++;
 
-  bool infinity_norm_pass = true;
+  unsigned int failure = shift::core::Jacobian::Failure::OK;
   std::vector<unsigned int> substructure_failure_indices;
   for(auto& substructure : substructures_) {
 
-    /* 0: infinity norm check passed
-       1: infinity norm check failed, but newton raphson iteration was
-       successfully applied to determine correct substructure rank. simulation
-       can continue
-       2: infinity norm check failed, and application of newton
-       raphson iteration failed, simulation should terminate.
-    */
-    int return_value = substructure.InfinityNormCheck(q, dq);
-    if(return_value == 1) {
-      infinity_norm_pass = false;
+    unsigned int substructure_failure = substructure.CheckCondition();
+    if(substructure_failure & (
+        shift::core::Jacobian::Failure::INFINITY_NORM_B | 
+        shift::core::Jacobian::Failure::PIVOT_RATIO)) {
       substructure_failure_indices.push_back(substructure.get_index());
-    } else if(return_value == 2) {
-      substructure_failure_indices.push_back(substructure.get_index());
-      infinity_norm_failures_.push_back({time, substructure_failure_indices});
-      return 2;
     }
+    if(substructure_failure) {
+      substructure_failure |= 
+        substructure.RemoveConstraintViolationsRunTime(q, dq);
+    }
+    failure |= substructure_failure;
   }
 
-  if(!infinity_norm_pass) {
+  if(failure & shift::core::Jacobian::Failure::INFINITY_NORM_B) {
     infinity_norm_failures_.push_back({time, substructure_failure_indices});
     iterations_since_last_infinity_norm_failure_ = 0;
-    return 1;
   }
 
-  return 0;
+  return failure;
 }
 
-unsigned int
-shift::core::Jacobian::InfinityNormCheck(double time, double* q, const double* dq,
-                                   double infinity_norm_multiplier) {
+unsigned int shift::core::Jacobian::CheckCondition(
+    double time, double* q, const double* dq, const double infinity_norm_multiplier) {
+
   iterations_since_last_infinity_norm_failure_++;
 
-  bool infinity_norm_pass = true;
+  unsigned int failure = shift::core::Jacobian::Failure::OK;
   std::vector<unsigned int> substructure_failure_indices;
   for(auto& substructure : substructures_) {
-    /* 0: infinity norm check passed
-       1: infinity norm check failed, but newton raphson iteration was
-       successfully applied to determine correct substructure rank. simulation
-       can continue
-       2: infinity norm check failed, and application of newton
-       raphson iteration failed, simulation should terminate.
-    */
-    int return_value =
-      substructure.InfinityNormCheck(q, dq, infinity_norm_multiplier);
-    if(return_value == 1) {
-      infinity_norm_pass = false;
+
+    unsigned int substructure_failure = 
+      substructure.CheckCondition(infinity_norm_multiplier);
+
+    if(substructure_failure & (
+        shift::core::Jacobian::Failure::INFINITY_NORM_B | 
+        shift::core::Jacobian::Failure::PIVOT_RATIO)) {
       substructure_failure_indices.push_back(substructure.get_index());
-    } else if(return_value == 2) {
-      substructure_failure_indices.push_back(substructure.get_index());
-      infinity_norm_failures_.push_back({time, substructure_failure_indices});
-      return 2;
     }
+    if(substructure_failure) {
+      substructure_failure |= 
+        substructure.RemoveConstraintViolationsRunTime(q, dq);
+    }
+    failure |= substructure_failure;
   }
 
-  if(!infinity_norm_pass) {
+  if(failure & shift::core::Jacobian::Failure::INFINITY_NORM_B) {
     infinity_norm_failures_.push_back({time, substructure_failure_indices});
     iterations_since_last_infinity_norm_failure_ = 0;
-    return 1;
   }
 
-  return 0;
+  return failure;
 }
+

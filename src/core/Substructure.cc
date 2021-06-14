@@ -15,6 +15,7 @@
 #include "shift/core/Substructure.h"
 #include "shift/core/Topology.h"
 #include "shift/core/log.h"
+#include "shift/core/Jacobian.h"
 
 #include "ksl/linalg.h"
 #include "ksl/print.h"
@@ -22,10 +23,15 @@
 void shift::core::Substructure::set_context(shift::core::Context* context) {
   context_ = context;
   assert(context_);
+
   epsilon_rank_determination_ =
-    context_->get_model_parameters().get_epsilon_rank_determination();
+    (*context_)["model_parameters"]["epsilon_rank_determination"].get<double>();
+
   infinity_norm_multiplier_ =
     context_->get_model_parameters().get_infinity_norm_multiplier();
+
+  epsilon_pivot_ratio_ =
+    (*context_)["model_parameters"]["epsilon_pivot_ratio"].get<double>();
 }
 
 void shift::core::Substructure::SetupPO1(
@@ -55,17 +61,17 @@ void shift::core::Substructure::SetupPO1(
     }
   }
 
-  SHIFT_TRACE("Jacobian:");
-  ksl_array2D_print(stdout, constraint_equation_count_, dq_count_, J_);
+  // SHIFT_TRACE("Jacobian:");
+  // ksl_array2D_print(stdout, constraint_equation_count_, dq_count_, J_);
 
   rank_ = ksl_linalg_lu_full_rmo(constraint_equation_count_, dq_count_, J_,
                                  epsilon_rank_determination_, pr_12_.data(),
                                  pc_12_.data());
-  
-  SHIFT_TRACE("Factored Jacobian:");
-  ksl_array2D_print(stdout, constraint_equation_count_, dq_count_, J_);
-  SHIFT_TRACE("Rank: " + std::to_string(rank_));
-  assert(rank_ != -1);
+
+  // SHIFT_TRACE("Factored Jacobian:");
+  // ksl_array2D_print(stdout, constraint_equation_count_, dq_count_, J_);
+  // SHIFT_TRACE("Rank: " + std::to_string(rank_));
+  // assert(rank_ != -1);
 
   shift::core::topology::SetInversePermutation(pr_12_, pr_21_);
   shift::core::topology::SetInversePermutation(pc_12_, pc_21_);
@@ -175,18 +181,6 @@ void shift::core::Substructure::SetupBooleanPO2() {
 }
 
 void shift::core::Substructure::FactorPO2() {
-#if SHIFT_LOG_LEVEL > 4
-  {
-    int pr[constraint_equation_count_];
-    int pc[dq_count_];
-    double J_copy[dq_count_ * constraint_equation_count_];
-    memcpy(J_copy, J_, dq_count_ * constraint_equation_count_ * sizeof(double));
-    int rank = ksl_linalg_lu_full_rmo(
-      constraint_equation_count_, dq_count_, J_copy,
-      /*epsilon_rank_determination_*/ 1e-9, pr, pc);
-    assert(rank == rank_);
-  }
-#endif  
   ksl_linalg_lu_rmo(rank_, dq_count_, J_);
 }
 
@@ -368,9 +362,8 @@ double shift::core::Substructure::ComputeDeltaqError() {
 */
 void shift::core::Substructure::NewtonRaphsonSolver() {
 
-  assert(
-    context_->get_jacobian().get_constraints().data() + 
-      loop_offset_ * 6 == e_);
+  assert(context_->get_jacobian().get_constraints().data() + loop_offset_ * 6 ==
+         e_);
   memset(delta_q_, 0, dq_count_ * sizeof(double));
   /* cs <-  L^-1 cs */
   for(int i = 0; i < rank_; i++) {
@@ -455,7 +448,7 @@ double shift::core::Substructure::EvaluateConstraints(
 #endif
 }
 
-int shift::core::Substructure::RemoveConstraintViolations() {
+unsigned int shift::core::Substructure::RemoveConstraintViolations() {
   assert(context_);
 
   /* Iteratively update x to satisfy constraint equations.
@@ -464,7 +457,7 @@ int shift::core::Substructure::RemoveConstraintViolations() {
 
   error = sqrt(e[] . e[]) / constraint_equation_count < eps when converged.
   */
-  int max_step = 100;
+  int max_step = 1000;
   double q_copy[q_count_];
   memcpy(q_copy, q_, q_count_ * sizeof(double));
 
@@ -492,11 +485,11 @@ int shift::core::Substructure::RemoveConstraintViolations() {
   context_->UpdateDH();
   SetupBooleanPO2();
   if(step == max_step) {
-    context_->DigraphFrames();
     PrintError(initial_error, error, q_copy);
+    context_->DigraphFrames();
     throw shift::core::Exception("Failed to remove constraint violations");
   }
-  return 0;
+  return shift::core::Jacobian::Failure::OK;
 }
 
 /*!
@@ -506,7 +499,7 @@ under user control of one or more of its independent variables.
 Does not set the jacobian boolean matrix, which is necessary for solving
 the equations of motion.
 */
-int shift::core::Substructure::RemoveConstraintViolationsFast(
+unsigned int shift::core::Substructure::RemoveConstraintViolationsFast(
   bool use_tight_tolerance) {
 
   context_->UpdateDH();
@@ -522,6 +515,7 @@ int shift::core::Substructure::RemoveConstraintViolationsFast(
   }
   SetupPO2(context_->get_dhva());
   FactorPO2();
+
   EvaluateConstraints(context_->get_dhva());
   int step = 0;
   double error = tol + 1;
@@ -538,7 +532,7 @@ int shift::core::Substructure::RemoveConstraintViolationsFast(
     PrintError(initial_error, error, q_copy);
     throw shift::core::Exception("Failed to remove constraint violations");
   }
-  return 0;
+  return shift::core::Jacobian::Failure::OK;
 }
 
 void shift::core::Substructure::PrintError(double initial_error,
@@ -692,68 +686,73 @@ double shift::core::Substructure::InfinityNormB() {
   return ksl_linalg_lu_infinityNormB_rmo(rank_, dq_count_, J_);
 }
 
-unsigned int shift::core::Substructure::InfinityNormCheck(double* q,
-                                                          const double* dq) {
-  return InfinityNormCheck(q, dq, infinity_norm_multiplier_);
+double shift::core::Substructure::PivotRatio() {
+  double pivot_min = fabs(J_[0]);
+  double pivot_max = pivot_min;
+  for(ssize_t i = 1; i < rank_; i++) {
+    double pivot = fabs(J_[i * dq_count_ + i]);
+    pivot_min = fmin(pivot_min, pivot);
+    pivot_max = fmax(pivot_max, pivot);
+  }
+  return pivot_min / pivot_max;
 }
 
-unsigned int shift::core::Substructure::InfinityNormCheck(
-  double* q, const double* dq, const double infinity_norm_multiplier) {
+unsigned int shift::core::Substructure::CheckCondition() {
+  return CheckCondition(infinity_norm_multiplier_);
+}
 
-  int return_value = 0;
+unsigned int shift::core::Substructure::CheckCondition(
+  const double infinity_norm_multiplier) {
+
+  unsigned int return_value = shift::core::Jacobian::Failure::OK;
+
   const double infinity_norm_b = InfinityNormB();
-  bool infinity_norm_fail =
-    infinity_norm_b > (infinity_norm_multiplier * initial_infinity_norm_b_);
-
-#if SHIFT_LOG_LEVEL > 4
-  {
-    std::stringstream ss;
-    ss << "Infinity norm check: current infinity norm (" << infinity_norm_b
-       << "), initial infinity norm (" << initial_infinity_norm_b_ << ")";
-    SHIFT_TRACE(ss.str());
+  if(infinity_norm_b > (infinity_norm_multiplier * initial_infinity_norm_b_)) {
+    SHIFT_DEBUG("Infinity norm B check failed with value " +
+                std::to_string(infinity_norm_b));
+    return_value |= shift::core::Jacobian::Failure::INFINITY_NORM_B;
   }
-#endif
 
-  if(infinity_norm_fail) {
-
-    return_value++;
-
-#if SHIFT_LOG_LEVEL > 3
-    {
-      std::stringstream ss;
-      ss << "performing full factor on substructure [" << index_
-         << "]: infinity norm: " << infinity_norm_b << " > "
-         << infinity_norm_b * infinity_norm_multiplier;
-      SHIFT_DEBUG(ss.str());
-    }
-#endif
-
-    double* q_copy = context_->get_q_copy().data();
-
-    /* backup q array to q_copy */
-    memcpy(q_copy + q_offset_, q + q_offset_, q_count_ * sizeof(double));
-
-    int newton_raphson_failure = RemoveConstraintViolationsFast(true);
-    double nr_error = EvaluateConstraints(context_->get_dhva());
-
-    SHIFT_DEBUG("Error after newton raphson: " + std::to_string(nr_error));
-
-    SetupPO1(context_->get_dhva());
-
-    SHIFT_DEBUG("rank: " + std::to_string(rank_));
-
-    if(newton_raphson_failure) {
-      return_value++;
-      SHIFT_ERROR("Newton-Raphson failed!");
-      return return_value;
-    }
-
-    /* restore states */
-    memcpy(q + q_offset_, q_copy + q_offset_, q_count_ * sizeof(double));
-
-    context_->UpdateDHVA(q, dq);
-    EvaluateConstraints(context_->get_dhva());
+  const double pivot_ratio = PivotRatio();
+  double time, dt;
+  context_->get_current_time(time, dt);
+  
+  std::cout << time << " " << pivot_ratio << std::endl;
+  if(pivot_ratio < epsilon_pivot_ratio_) {
+    SHIFT_DEBUG("Pivot ratio check failed with value " +
+                std::to_string(pivot_ratio));
+    return_value |= shift::core::Jacobian::Failure::PIVOT_RATIO;
   }
+  
+  return return_value;
+}
+
+unsigned int shift::core::Substructure::RemoveConstraintViolationsRunTime(
+  double* q, const double* dq) {
+
+  SHIFT_DEBUG(
+    "Performing full factor on substructure [" + std::to_string(index_) + "]"
+  );
+
+  /* backup q array to q_copy */
+  double* q_copy = context_->get_q_copy().data();
+  memcpy(q_copy + q_offset_, q + q_offset_, q_count_ * sizeof(double));
+
+  unsigned int return_value = RemoveConstraintViolations();
+    
+  double nr_error = EvaluateConstraints(context_->get_dhva());
+
+  SHIFT_DEBUG("Error after newton raphson: " + std::to_string(nr_error));
+
+  /* restore states */
+  memcpy(q + q_offset_, q_copy + q_offset_, q_count_ * sizeof(double));
+  
+  context_->UpdateDHVA(q, dq);
+  SetupPO1(context_->get_dhva());
+
+  SHIFT_DEBUG("rank: " + std::to_string(rank_));
+
+  EvaluateConstraints(context_->get_dhva());
   return return_value;
 }
 

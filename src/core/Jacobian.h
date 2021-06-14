@@ -32,6 +32,13 @@ public:
   ~Jacobian() {}
 
 public:
+  enum Failure {
+    OK = 0,
+    INFINITY_NORM_B = 1,
+    PIVOT_RATIO = 2,
+    NEWTON_RAPHSON = 4
+  };
+  
   struct InfinityNormFailure {
     double time;
     std::vector<unsigned int> substructure_index;
@@ -118,23 +125,23 @@ public:
   void SetupBMatrixSparse();
   void SetupConstraintPointers();
   void SetupSubstructurePointers();
-  int RemoveConstraintViolations();
+  unsigned int RemoveConstraintViolations();
   void RemoveConstraintViolationsFast(bool);
 
   /*! check if infinity norm of B matrix is greater than a threshold times the
    * initial starting value
    * \return bool true if infinity norm is greater than initial starting value
    */
-  unsigned int InfinityNormCheck(double time, double* q, const double* dq);
+  unsigned int CheckCondition(double time, double* q, const double* dq);
 
   /*! check if infinity norm of B matrix is greater than a threshold times the
    * initial starting value
    * \return bool true if infinity norm is greater than initial starting value
    */
-  unsigned int InfinityNormCheck(double time, double* q, const double* dq,
+  unsigned int CheckCondition(double time, double* q, const double* dq,
                                  const double infinity_norm_multiplier);
 
-  bool InfinityNormCheck(const double);
+  unsigned int CheckCondition(const double);
 
 private:
   void SetupLookup();
