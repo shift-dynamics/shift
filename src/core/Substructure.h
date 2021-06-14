@@ -3,9 +3,9 @@
 
 #include "shift/core/Array2d.h"
 #include "shift/core/Base.h"
+#include "shift/core/Topology.h"
 #include "shift/core/body/Base.h"
 #include "shift/core/joint/Base.h"
-#include "shift/core/Topology.h"
 
 #include <assert.h>
 #include <string>
@@ -111,7 +111,6 @@ public:
     return e_;
   }
 
-
   void set_context(shift::core::Context*);
 
   void set_chord_constraint_count(unsigned int count) {
@@ -193,7 +192,6 @@ public:
     }
   }
 
-  
   void set_b_offset(int offset) {
     b_offset_ = offset;
   }
@@ -201,7 +199,7 @@ public:
   void set_right_null_space(double* right_null_space) {
     right_null_space_ = right_null_space;
   }
-  
+
   void set_mobility_numbers(double* mobility_numbers) {
     mobility_numbers_ = mobility_numbers;
   }
@@ -221,7 +219,7 @@ public:
   }
 
   void Print() const;
-  
+
   void ClearConstraintOffsets() {
     constraints_.clear();
   }
@@ -237,7 +235,8 @@ public:
   void EvaluateSparsity(shift::core::Array2d<int>& rb3, std::vector<int>& cb3,
                         std::vector<int>& pv_23);
 
-  void AppendConstraintOffset(shift::core::Substructure::Constraint constraint) {
+  void
+  AppendConstraintOffset(shift::core::Substructure::Constraint constraint) {
     constraints_.push_back(constraint);
   }
 
@@ -245,8 +244,9 @@ public:
   void Updateq();
   double ComputeDeltaqError();
   void FirstOrderUpdate();
-  int RemoveConstraintViolations();
-  int RemoveConstraintViolationsFast(bool);
+  unsigned int RemoveConstraintViolations();
+  unsigned int RemoveConstraintViolationsRunTime(double* q, const double* dq);
+  unsigned int RemoveConstraintViolationsFast(bool);
   void PrintError(double initial_error, double final_error, double* q_copy);
   void IncrementSpecifiedCoordinate(shift::core::topology::DHVA& dhva,
                                     int specified_coordinate_index,
@@ -255,6 +255,7 @@ public:
   void SetupBMatrixSparse(double* __restrict__ b3);
   void SetupPO1Specified(const shift::core::topology::DHVA& dhva, int dq_index);
   double InfinityNormB();
+  double PivotRatio();
   double EvaluateConstraints(const shift::core::topology::DHVA& dhva);
   void ComputeMobility();
   void CopyNullSpace();
@@ -274,7 +275,7 @@ public:
   2: infinity norm check failed and newton raphson
   did not converge, the simulation should terminate
   */
-  unsigned int InfinityNormCheck(double* q, const double* dq);
+  unsigned int CheckCondition();
 
   /*!
   @brief check pivot ratios in block jacobian matrix associated with
@@ -293,8 +294,7 @@ public:
   2: infinity norm check failed and newton raphson
   did not converge, the simulation should terminate
   */
-  unsigned int InfinityNormCheck(double* q, const double* dq,
-                                 const double infinity_norm_multiplier);
+  unsigned int CheckCondition(const double infinity_norm_multiplier);
 
   void Connect();
 
@@ -314,6 +314,7 @@ private:
   std::vector<bool> Jb_;
 
   double epsilon_rank_determination_ = 1e-9;
+  double epsilon_pivot_ratio_ = 1e-8;
   double infinity_norm_multiplier_ = 2.0;
   double initial_infinity_norm_b_ =
     0.0; //<! infinity norm after an initial full factorization
@@ -347,7 +348,7 @@ private:
   bool print_constraint_error_ = false;
 };
 
-}
+} // namespace core
 } // namespace shift
 
 #endif
