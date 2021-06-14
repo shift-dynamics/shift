@@ -101,6 +101,10 @@ void shift::core::Context::PostLoad(const std::string) {
 
   // InitializeJointForces();
   // FlattenForceModules();
+  ActivateLoggers();
+}
+
+void shift::core::Context::ActivateLoggers() {
   for(auto& logger : active_loggers_) {
     logger->Initialize();
   }
