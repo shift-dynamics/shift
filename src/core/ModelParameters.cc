@@ -41,8 +41,15 @@ void shift::core::ModelParameters::DeclareParameters() {
 
   DeclareParameter(
     "epsilon_rank_determination", &epsilon_rank_determination_,
-    "Epsilon used to determine rank of Jacobian matrix using Gaussian "
+    "Epsilon used to determine rank of Jacobian matrix in Gaussian "
     "Elimination with Complete Pivoting (GECP).",
+    false);
+
+  DeclareParameter(
+    "epsilon_pivot_ratio", &epsilon_pivot_ratio_,
+    "If the pivot ratio of the Jacobian matrix decreases less than epsilon, "
+    "call Gaussian Elimination with Complete Pivoting (GECP) again, default: " 
+    "1.e-8",
     false);
 
   DeclareParameter(

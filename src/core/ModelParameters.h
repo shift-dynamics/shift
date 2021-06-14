@@ -88,6 +88,7 @@ private:
   ksl_vec3_t gravity_ = {{0.0, 0.0, 0.0}};
   double epsilson_newton_raphson_ = 1e-7;
   double epsilon_rank_determination_ = 1e-9;
+  double epsilon_pivot_ratio_ = 1e-5;
   double infinity_norm_muliplier_ = 2.0;
 
   bool contact_detection_enabled_ = false;
