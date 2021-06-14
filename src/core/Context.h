@@ -392,7 +392,7 @@ private:
                                 coordinates used by force modules */
 
   virtual void DeclareParameters() override;
-
+  void ActivateLoggers();
   void AppendActiveObject(behavior::Base*);
   void AppendActiveObject(body::Base*);
   void AppendActiveObject(collisiongeometry::Base*);

@@ -1243,13 +1243,21 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
   jacobian.SetupPO2();
   jacobian.FactorPO2();
   jacobian.SetupBMatrixSparse();
-  unsigned int infinity_norm_check = jacobian.InfinityNormCheck(
-    t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
-  if(infinity_norm_check) {
-    if(infinity_norm_check == 2) {
+  unsigned int condition_check = 
+    jacobian.CheckCondition(
+      t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
+
+  if(condition_check) {
+
+    if(condition_check & shift::core::Jacobian::Failure::NEWTON_RAPHSON) {
       SHIFT_ERROR("Newton-raphson failure, exiting simulation.");
       return true;
     }
+
+    jacobian.Analyze();
+    SetupRHS();
+    SetupMassMatrixAndRecordFills();
+    Memoize();
 
 #if SHIFT_LOG_LEVEL > 3
     {
@@ -1257,17 +1265,13 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
       double t;
       double dt;
       context_->get_current_time(t, dt);
-      ss << "Failed infinity norm check at t = " << t
+      ss << "Failed infinity norm or pivot ratio check at t = " << t
          << ", but GECP was successfully reapplied and simulation "
          << "will attempt to continue";
       SHIFT_DEBUG(ss.str());
     }
 #endif
 
-    jacobian.Analyze();
-    SetupRHS();
-    SetupMassMatrixAndRecordFills();
-    Memoize();
   } else {
     SetupRHS();
     SetupMassMatrixAndRecordFills();
@@ -1286,10 +1290,12 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
   jacobian.SetupPO2();
   jacobian.FactorPO2();
   jacobian.SetupBMatrixSparse();
-  unsigned int infinity_norm_check = jacobian.InfinityNormCheck(
+  int failure = jacobian.CheckCondition(
     t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
-  if(infinity_norm_check) {
-    if(infinity_norm_check == 2) {
+  
+  if(failure) {
+    
+    if(failure & shift::core::Jacobian::Failure::NEWTON_RAPHSON) {
       SHIFT_ERROR("Newton-raphson failure, exiting simulation.");
       return true;
     }
@@ -1300,7 +1306,14 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
       double t;
       double dt;
       context_->get_current_time(t, dt);
-      ss << "Failed infinity norm check at t = " << t
+      ss << "Failed ";
+      if(failure & shift::core::Jacobian::Failure::INFINITY_NORM_B) {
+        ss << "(infinity norm check) ";
+      }
+      if(failure & shift::core::Jacobian::Failure::PIVOT_RATIO) {
+        ss << "(pivot ratio check) ";
+      }
+      ss << "at t = " << t
          << ", but GECP was successfully reapplied and simulation "
          << "will attempt to continue";
       SHIFT_DEBUG(ss.str());
@@ -2377,7 +2390,8 @@ bool shift::core::solver::RNCA::Verify(const double t,
 
   if(!ksl_allclose(dq_count_, fl_po3, fl)) {
 
-    SHIFT_ERROR("Error, equations of motion not solved correctly.");
+    SHIFT_ERROR("Error, equations of motion not solved correctly at time t = " +
+        std::to_string(t));
 
     verified = false;
 
