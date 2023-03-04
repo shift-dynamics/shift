@@ -3,11 +3,11 @@
 
 #include <memory>
 
-#include "shift/core/forcemodule/tire/base.h"
+#include "shift/core/force_module/tire/base.h"
 
 namespace shift {
 namespace core {
-namespace forcemodule {
+namespace force_module {
 namespace tire {
 
 class Pac2002 : public Base {
@@ -67,7 +67,7 @@ private:
 
 } // namespace Tire
 
-} // namespace forcemodule
+} // namespace force_module
 }
 } // namespace shift
 

@@ -26,10 +26,10 @@
 #include "shift/core/behavior/Base.h"
 #include "shift/core/body/Base.h"
 #include "shift/core/body/Rigid.h"
-#include "shift/core/collisiongeometry/Base.h"
+#include "shift/core/collision_geometry/Base.h"
 #include "shift/core/constraint/Base.h"
 #include "shift/core/constraint/Chord.h"
-#include "shift/core/forcemodule/Base.h"
+#include "shift/core/force_module/Base.h"
 #include "shift/core/geometry/Base.h"
 #include "shift/core/integrator/Base.h"
 #include "shift/core/joint/Base.h"
@@ -223,7 +223,7 @@ void shift::core::Context::Initialize() {
   if(!shift::core::body::Modules::is_initialized()) {
     throw shift::core::Exception("Body modules did not properly initialize");
   }
-  if(!shift::core::collisiongeometry::Modules::is_initialized()) {
+  if(!shift::core::collision_geometry::Modules::is_initialized()) {
     throw shift::core::Exception(
       "Collision geometry modules did not properly initialize");
   }
@@ -231,7 +231,7 @@ void shift::core::Context::Initialize() {
     throw shift::core::Exception(
       "Constraint modules did not properly initialize");
   }
-  if(!shift::core::forcemodule::Modules::is_initialized()) {
+  if(!shift::core::force_module::Modules::is_initialized()) {
     throw shift::core::Exception("Force modules did not properly initialize");
   }
   if(!shift::core::geometry::Modules::is_initialized()) {
@@ -340,7 +340,7 @@ void shift::core::Context::AppendActiveObject(shift::core::body::Base* body) {
 }
 
 void shift::core::Context::AppendActiveObject(
-  shift::core::collisiongeometry::Base* geometry) {
+  shift::core::collision_geometry::Base* geometry) {
   if(geometry->is_active()) {
     for(auto i : active_collision_geometry_) {
       if(i == geometry) {
@@ -364,7 +364,7 @@ void shift::core::Context::AppendActiveObject(
 }
 
 void shift::core::Context::AppendActiveObject(
-  shift::core::forcemodule::Base* module) {
+  shift::core::force_module::Base* module) {
   if(module->is_active()) {
     for(auto i : active_force_modules_) {
       if(i == module) {
@@ -493,7 +493,7 @@ void shift::core::Context::RemoveActiveObject(shift::core::body::Base* body) {
 }
 
 void shift::core::Context::RemoveActiveObject(
-  shift::core::collisiongeometry::Base* geometry) {
+  shift::core::collision_geometry::Base* geometry) {
   for(unsigned int i = 0; i < active_collision_geometry_.size(); i++) {
     if(active_collision_geometry_[i] == geometry) {
       active_collision_geometry_.erase(active_collision_geometry_.begin() + i);
@@ -513,7 +513,7 @@ void shift::core::Context::RemoveActiveObject(
 }
 
 void shift::core::Context::RemoveActiveObject(
-  shift::core::forcemodule::Base* module) {
+  shift::core::force_module::Base* module) {
   for(unsigned int i = 0; i < active_force_modules_.size(); i++) {
     if(active_force_modules_[i] == module) {
       active_force_modules_.erase(active_force_modules_.begin() + i);
@@ -585,7 +585,7 @@ void shift::core::Context::ActivateObject(shift::core::body::Base* body,
 }
 
 void shift::core::Context::ActivateObject(
-  shift::core::collisiongeometry::Base* geometry, bool active) {
+  shift::core::collision_geometry::Base* geometry, bool active) {
   if(geometry) {
     active ? AppendActiveObject(geometry) : RemoveActiveObject(geometry);
   }
@@ -599,7 +599,7 @@ void shift::core::Context::ActivateObject(
 }
 
 void shift::core::Context::ActivateObject(
-  shift::core::forcemodule::Base* module, bool active) {
+  shift::core::force_module::Base* module, bool active) {
   if(module) {
     active ? AppendActiveObject(module) : RemoveActiveObject(module);
   }
@@ -681,7 +681,7 @@ void shift::core::Context::ClearActiveConstraints() {
   active_constraints_.clear();
 }
 
-void shift::core::Context::ClearActiveforcemodules() {
+void shift::core::Context::ClearActiveForceModules() {
   active_force_modules_.clear();
 }
 
@@ -711,7 +711,7 @@ void shift::core::Context::ClearActiveArrays() {
   ClearActiveFreeBodies();
   ClearActiveCollisionGeometry();
   ClearActiveConstraints();
-  ClearActiveforcemodules();
+  ClearActiveForceModules();
   ClearActiveGeometry();
   ClearActiveJoints();
   ClearActiveLights();
@@ -2726,7 +2726,7 @@ unsigned int shift::core::Context::get_force_module_equation_count() {
 }
 
 void shift::core::Context::EvaluateConstraints() {
-  constraint_error_ = jacobian_.EvaluateConstraints();
+  rms_constraint_error_ = jacobian_.EvaluateConstraints();
 }
 
 void shift::core::Context::SetForces(const double t,

@@ -3,21 +3,21 @@
 
 #include <memory>
 
-#include "shift/core/forcemodule/Base.h"
+#include "shift/core/force_module/Base.h"
 
 namespace shift {
 namespace core {
-namespace forcemodule {
+namespace force_module {
 namespace tire {
 
-class Base : public forcemodule::Base {
+class Base : public force_module::Base {
 public:
   Base()
-    : forcemodule::Base() {
+    : force_module::Base() {
     DeclareParameters();
   }
   Base(std::string name)
-    : forcemodule::Base(name) {
+    : force_module::Base(name) {
     DeclareParameters();
   }
   virtual ~Base() override {}
@@ -40,7 +40,7 @@ private:
 
 } // namespace Tire
 
-} // namespace forcemodule
+} // namespace force_module
 }
 } // namespace shift
 

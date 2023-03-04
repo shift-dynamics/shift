@@ -45,10 +45,10 @@ shift::core::parameter::Value::get<shift::core::body::Base>() const {
 }
 
 template <>
-const shift::core::collisiongeometry::Base&
-shift::core::parameter::Value::get<shift::core::collisiongeometry::Base>()
+const shift::core::collision_geometry::Base&
+shift::core::parameter::Value::get<shift::core::collision_geometry::Base>()
   const {
-  return *dynamic_cast<shift::core::collisiongeometry::Base*>(
+  return *dynamic_cast<shift::core::collision_geometry::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
@@ -60,9 +60,9 @@ shift::core::parameter::Value::get<shift::core::constraint::Base>() const {
 }
 
 template <>
-const shift::core::forcemodule::Base&
-shift::core::parameter::Value::get<shift::core::forcemodule::Base>() const {
-  return *dynamic_cast<shift::core::forcemodule::Base*>(
+const shift::core::force_module::Base&
+shift::core::parameter::Value::get<shift::core::force_module::Base>() const {
+  return *dynamic_cast<shift::core::force_module::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
@@ -151,10 +151,10 @@ shift::core::parameter::Value::get_data<shift::core::body::Base>() const {
 }
 
 template <>
-shift::core::collisiongeometry::Base*
-shift::core::parameter::Value::get_data<shift::core::collisiongeometry::Base>()
+shift::core::collision_geometry::Base*
+shift::core::parameter::Value::get_data<shift::core::collision_geometry::Base>()
   const {
-  return dynamic_cast<shift::core::collisiongeometry::Base*>(
+  return dynamic_cast<shift::core::collision_geometry::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
@@ -166,10 +166,10 @@ shift::core::parameter::Value::get_data<shift::core::constraint::Base>() const {
 }
 
 template <>
-shift::core::forcemodule::Base*
-shift::core::parameter::Value::get_data<shift::core::forcemodule::Base>()
+shift::core::force_module::Base*
+shift::core::parameter::Value::get_data<shift::core::force_module::Base>()
   const {
-  return dynamic_cast<shift::core::forcemodule::Base*>(
+  return dynamic_cast<shift::core::force_module::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
