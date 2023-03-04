@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "shift/core/forcemodule/Base.h"
+#include "shift/core/force_module/Base.h"
 
 namespace shift {
 namespace core {
@@ -12,9 +12,9 @@ namespace joint {
 class JointBase;
 }
 
-namespace forcemodule {
+namespace force_module {
 
-class PID : public forcemodule::Base {
+class PID : public force_module::Base {
 public:
   PID()
     : Base() {
@@ -54,7 +54,7 @@ private:
   size_t y_index_ = 0;
 };
 
-} // namespace forcemodule
+} // namespace force_module
 }
 } // namespace shift
 

@@ -42,6 +42,7 @@ void shift::core::logger::CSV::Initialize() {
                    shift::core::utility::CurrentDateTime() +
                    shift::core::utility::GetFileExtension(csv_logfile_);
   }
+  SHIFT_INFO("Creating log file '" + csv_logfile_ + "'");
   file_.open(csv_logfile_);
   WriteHeader();
 }
@@ -67,12 +68,33 @@ void shift::core::logger::CSV::WriteHeader() {
         file_ << joint->get_name() << "_ddq_" << i << delimiter_;
       }
     }
-    file_ << "constraint_error" << delimiter_;
+    file_ << "rms_constraint_error" << delimiter_;
     file_ << "gravitational_potential_energy" << delimiter_;
     file_ << "kinetic_energy" << delimiter_;
     file_ << "total_energy" << delimiter_;
+
+    for(size_t i = 0; i < context_->get_chord_constraint_count(); i++) {
+      file_ << "chord_constraint_" << std::to_string(i) << "_position_error_tx" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_position_error_ty" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_position_error_tz" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_position_error_rx" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_position_error_ry" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_position_error_rz" << delimiter_;
+    }
+
+    for(size_t i = 0; i < context_->get_chord_constraint_count(); i++) {
+      file_ << "chord_constraint_" << std::to_string(i) << "_velocity_error_tx" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_velocity_error_ty" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_velocity_error_tz" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_velocity_error_rx" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_velocity_error_ry" << delimiter_;
+      file_ << "chord_constraint_" << std::to_string(i) << "_velocity_error_rz" << delimiter_;
+    }
+
   }
+
   file_ << "\n";
+
 }
 
 void shift::core::logger::CSV::WriteStates(const double t,
@@ -85,11 +107,21 @@ void shift::core::logger::CSV::WriteStates(const double t,
   for(size_t i = 0; i < context_->get_dq_count(); i++) {
     file_ << context_->get_ddq()[i] << delimiter_;
   }
-  file_ << context_->get_constraint_error() << delimiter_;
+  file_ << context_->get_rms_constraint_error() << delimiter_;
   double pe = context_->GravitationalPotentialEnergy();
   double ke = context_->KineticEnergy(); 
   file_ << pe << delimiter_;
   file_ << ke << delimiter_;
   file_ << (pe + ke) << delimiter_;
+
+  auto& jacobian = context_->get_jacobian();
+  for(auto& e : jacobian.get_constraints()) {
+    file_ << e << delimiter_;
+  }
+  for(auto& de : jacobian.get_de()) {
+    file_ << de << delimiter_;
+  }
+
   file_ << "\n";
+  file_ << std::flush;
 }

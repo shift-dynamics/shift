@@ -1,6 +1,6 @@
-#include "shift/core/forcemodule/tire/Fiala.h"
+#include "shift/core/force_module/tire/Fiala.h"
 
-void shift::core::forcemodule::tire::Fiala::DeclareParameters() {
+void shift::core::force_module::tire::Fiala::DeclareParameters() {
   DeclareParameter("vertical_stiffness", &vertical_stiffness_,
                "vertical stifffness, defaults to 310000 if not provided",
                false);

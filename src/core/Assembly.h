@@ -7,7 +7,7 @@
 #include "shift/core/behavior/Base.h"
 #include "shift/core/body/Base.h"
 #include "shift/core/constraint/Base.h"
-#include "shift/core/forcemodule/Base.h"
+#include "shift/core/force_module/Base.h"
 #include "shift/core/joint/Base.h"
 #include "shift/core/light/Base.h"
 #include "shift/core/parameter/List.h"
@@ -50,7 +50,7 @@ private:
   shift::core::parameter::FactoryArray<body::Base> bodies_;
   shift::core::parameter::FactoryArray<behavior::Base> behaviors_;
   shift::core::parameter::FactoryArray<constraint::Base> constraints_;
-  shift::core::parameter::FactoryArray<forcemodule::Base> force_modules_;
+  shift::core::parameter::FactoryArray<force_module::Base> force_modules_;
   shift::core::parameter::FactoryArray<joint::Base> joints_;
   shift::core::parameter::FactoryArray<sensor::Base> sensors_;
 

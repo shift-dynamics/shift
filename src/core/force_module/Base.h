@@ -12,7 +12,7 @@ namespace core {
 
 class Context;
 
-namespace forcemodule {
+namespace force_module {
 
 /*!
 @brief shift::core::Frame abstract base class
@@ -71,7 +71,7 @@ public:
   static bool is_initialized();
 };
 
-} // namespace forcemodule
+} // namespace force_module
 }
 } // namespace shift
 

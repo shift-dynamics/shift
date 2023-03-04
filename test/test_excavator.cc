@@ -14,11 +14,29 @@ TEST(Excavator, DiffLogs) {
       root_dir + "/_deps/shift-models-src/excavator/excavator.json";
     shift::core::Context context;
 
-    std::cout << "Loading: " << json_file << std::endl;
     context.LoadJSON(json_file);
-
-    std::cout << "Starting simulation" << std::endl;
     context.Simulate();
+
+  } catch(const shift::core::Exception& e) {
+    std::cout << std::endl
+              << "Caught exception: `" << e.what() << "`" << std::endl;
+    std::cout << e.backtrace() << std::endl;
+    FAIL();
+  }
+
+  SUCCEED();
+}
+
+TEST(Excavator, DISABLED_Graphviz) {
+
+  try {
+    std::string root_dir(SHIFT_BINARY_DIR);
+    std::string json_file =
+      root_dir + "/_deps/shift-models-src/excavator/excavator_no_logging.json";
+    shift::core::Context context;
+
+    context.LoadJSON(json_file);
+    context.Digraph("excavator_digraph.png");
 
   } catch(const shift::core::Exception& e) {
     std::cout << std::endl

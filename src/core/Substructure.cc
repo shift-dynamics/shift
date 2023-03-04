@@ -257,21 +257,24 @@ void shift::core::Substructure::EvaluateSparsity(shift::core::Array2d<int>& rb3,
 
 void shift::core::Substructure::Print() const {
   std::cout << "Substructure [" << index_ << "]" << std::endl;
-  std::cout << "  positive_members:" << std::endl;
 
-  size_t i = 0;
-  for(auto& loop : *positive_loop_members_compressed_) {
-    std::cout << "[" << i++ << "]: ";
-    for(auto& member : loop) {
-      std::cout << member;
+  std::cout << "  compressed positive members:" << std::endl;
+  auto it =
+    positive_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
+    std::cout << "  [" + std::to_string(j) + "]:";
+    for(auto& variable_index : *it) {
+      std::cout << " " + std::to_string(variable_index);
     }
     std::cout << std::endl;
   }
-  i = 0;
-  for(auto& loop : *positive_loop_members_compressed_) {
-    std::cout << "[" << i++ << "]: ";
-    for(auto& member : loop) {
-      std::cout << member;
+
+  std::cout << "  compressed negative members:" << std::endl;
+  it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
+    std::cout << "  [" + std::to_string(j) + "]:";
+    for(auto& variable_index : *it) {
+      std::cout << " " + std::to_string(variable_index);
     }
     std::cout << std::endl;
   }
@@ -362,8 +365,8 @@ double shift::core::Substructure::ComputeDeltaqError() {
 */
 void shift::core::Substructure::NewtonRaphsonSolver() {
 
-  assert(context_->get_jacobian().get_constraints().data() + loop_offset_ * 6 ==
-         e_);
+  // assert(context_->get_jacobian().get_constraints().data() + loop_offset_ * 6 ==
+  //       e_);
   memset(delta_q_, 0, dq_count_ * sizeof(double));
   /* cs <-  L^-1 cs */
   for(int i = 0; i < rank_; i++) {
@@ -384,7 +387,7 @@ void shift::core::Substructure::NewtonRaphsonSolver() {
 \brief evaluate position level constraints for one substructure
 \return RMS constraint error
 */
-double shift::core::Substructure::EvaluateConstraints(
+double shift::core::Substructure::EvaluateConstraintsNewtonRaphson(
   const shift::core::topology::DHVA& dhva) {
   assert(constraints_.size() == chord_constraint_count_);
   for(unsigned int i = 0; i < chord_constraint_count_; i++) {
@@ -400,6 +403,80 @@ double shift::core::Substructure::EvaluateConstraints(
     e_[i * 6 + 3] = 0.5 * (temp.R.m21 - temp.R.m12) + trace;
     e_[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20) + trace;
     e_[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01) + trace;
+
+#if 1
+    {
+      double tol = 1.0e-12;
+      assert(fabs(ksl_mat3x3_determinant(&d_parent->R) - 1.0) < tol);
+      assert(fabs(ksl_mat3x3_determinant(&d_child->R) - 1.0) < tol);
+      assert(fabs(ksl_mat3x3_determinant(&temp.R) - 1.0) < tol);
+    }
+#endif
+
+#if 0
+    {
+      std::cout << "e_: ";
+      for(unsigned int j = 0; j < 6; j++) {
+        std::cout << e_[i * 6 + j] << " ";
+      }
+      std::cout << std::endl;
+
+      double rms_constraint_error = 0.0;
+      for(size_t j = 0; j < 6; j++) {
+        rms_constraint_error += e_[i * 6 + j] * e_[i * 6 + j];
+      }
+      rms_constraint_error = sqrt(rms_constraint_error) / 6.0;
+      std::cout << "rms constraint error: " << rms_constraint_error << std::endl;
+
+      tol = 1.e-2;
+      if(rms_constraint_error > tol) {
+        context_->DigraphFrames();
+        throw shift::core::Exception(
+          "Simulation failed when constraint error tolerance was exceeded (" +
+          std::to_string(fabs(trace)) + " > " + std::to_string(tol) + ")");
+      }
+    }
+#endif
+  }
+
+#if SHIFT_WITH_BLAS_
+  return sqrt(cblas_ddot(constraint_equation_count_, e_, 1, e_, 1)) /
+         constraint_equation_count_;
+#else
+  double sum = 0;
+  for(unsigned int i = 0; i < constraint_equation_count_; i++) {
+    sum += e_[i] * e_[i];
+  }
+  return sqrt(sum) / constraint_equation_count_;
+#endif
+
+}
+
+double shift::core::Substructure::EvaluateConstraints(
+  const shift::core::topology::DHVA& dhva) {
+  assert(constraints_.size() == chord_constraint_count_);
+  for(unsigned int i = 0; i < chord_constraint_count_; i++) {
+    const ksl_SE3_t* d_parent = &dhva.d[constraints_[i].parent.d];
+    const ksl_SE3_t* d_child = &dhva.d[constraints_[i].child.d];
+    ksl_SE3_t temp;
+
+    ksl_product_ddinv(d_parent, d_child, &temp);
+
+    //memcpy(e_ + i * 6, &temp.t, sizeof(ksl_vec3_t));
+
+    e_[i * 6 + 0] = temp.t.at[0];
+    e_[i * 6 + 1] = temp.t.at[1];
+    e_[i * 6 + 2] = temp.t.at[2];
+    e_[i * 6 + 3] = 0.5 * (temp.R.m21 - temp.R.m12);
+    e_[i * 6 + 4] = 0.5 * (temp.R.m02 - temp.R.m20);
+    e_[i * 6 + 5] = 0.5 * (temp.R.m10 - temp.R.m01);
+
+    for(size_t j = 0; j < 6; j++) {
+      de_[i * 6 + j] =
+        dhva.v[constraints_[i].parent.v].at[j] -
+        dhva.v[constraints_[i].child.v].at[j];
+    }
+
 
 #if 1
     {
@@ -503,7 +580,7 @@ unsigned int shift::core::Substructure::RemoveConstraintViolationsFast(
   bool use_tight_tolerance) {
 
   context_->UpdateDH();
-  double initial_error = EvaluateConstraints(context_->get_dhva());
+  double initial_error = EvaluateConstraintsNewtonRaphson(context_->get_dhva());
   double q_copy[q_count_];
   memcpy(q_copy, q_, q_count_ * sizeof(double));
   const int max_step = 100;
@@ -516,7 +593,7 @@ unsigned int shift::core::Substructure::RemoveConstraintViolationsFast(
   SetupPO2(context_->get_dhva());
   FactorPO2();
 
-  EvaluateConstraints(context_->get_dhva());
+  EvaluateConstraintsNewtonRaphson(context_->get_dhva());
   int step = 0;
   double error = tol + 1;
   while(error > tol && step < max_step) {
@@ -717,7 +794,7 @@ unsigned int shift::core::Substructure::CheckCondition(
   double time, dt;
   context_->get_current_time(time, dt);
   
-  std::cout << time << " " << pivot_ratio << std::endl;
+  // std::cout << time << " " << pivot_ratio << std::endl;
   if(pivot_ratio < epsilon_pivot_ratio_) {
     SHIFT_DEBUG("Pivot ratio check failed with value " +
                 std::to_string(pivot_ratio));

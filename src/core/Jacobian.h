@@ -88,6 +88,10 @@ public:
     return e_;
   }
 
+  const std::vector<double>& get_de() const {
+    return de_;
+  }
+
   const std::vector<InfinityNormFailure>& get_infinity_norm_failures() const {
     return infinity_norm_failures_;
   }
@@ -106,6 +110,7 @@ public:
   void Analyze();
 
   double EvaluateConstraints();
+  double EvaluateConstraintsNewtonRaphson();
 
   void InitializeMobility();
 

@@ -84,8 +84,6 @@ void shift::core::solver::RNCA::Initialize() {
 
   infinity_norm_failure_ = false;
 
-  de_.resize(context_->get_chord_constraint_count());
-
   context_->get_jacobian().RemoveConstraintViolations();
   context_->get_jacobian().Analyze();
   context_->UpdateDHVA();
@@ -202,7 +200,7 @@ void shift::core::solver::RNCA::PrintStates(std::stringstream& ss) {
   PrintVector("is_rotation", is_rotation, ss);
   PrintVector("pv_31", pv_31, ss);
   PrintVector("e", jacobian.get_constraints(), ss);
-  PrintVector("de", de_, ss);
+  PrintVector("de", jacobian.get_de(), ss);
   PrintVector("integral_error", integral_constraint_error, ss);
   context_->get_dhva().Print(ss);
 }
@@ -1296,7 +1294,7 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
   if(failure) {
     
     if(failure & shift::core::Jacobian::Failure::NEWTON_RAPHSON) {
-      SHIFT_ERROR("Newton-raphson failure, exiting simulation.");
+      SHIFT_ERROR("Newton-raphson failure; exiting simulation.");
       return true;
     }
 
@@ -1552,6 +1550,7 @@ void shift::core::solver::RNCA::SetupRHS() {
   }
 
   const auto& e = jacobian.get_constraints();
+  const auto& de = jacobian.get_de();
 
   /* evaluate primary constraints (\bar{\gamma}_p) in PO(1), store in PO(2) */
   size_t chord_constraint_offset = 0;
@@ -1585,18 +1584,10 @@ void shift::core::solver::RNCA::SetupRHS() {
     for(size_t k = 0; k < substructure.get_chord_constraint_count();
         k++, chord_constraint_offset++) {
 
-
       for(size_t l = 0; l < 6; l++) {
 
-#if 1
-        // save \dot{e} for TRACE output
-        de_[chord_constraint_offset].at[l] = 
-          dhva.v[constraint_indices[k].parent.v].at[l] -
-          dhva.v[constraint_indices[k].child.v].at[l];
-#endif
-
-       // \gamma_p(po2) <- \gamma_p(po2) - 2 * \omega_n \dot{e}
-       //                  - \omega_n^2 * e - K_I * \int{e}
+        // \gamma_p(po2) <- \gamma_p(po2) - 2 * \omega_n \dot{e}
+        //                  - \omega_n^2 * e - K_I * \int{e}
         if(pr_21[k * 6 + l] < substructure.get_rank()) {
           gamma_d_[dq_offset + pr_21[k * 6 + l]] =
 
@@ -1605,18 +1596,13 @@ void shift::core::solver::RNCA::SetupRHS() {
 
             /* -(2 * omega_N) * \dot{e} velocity part of baumgarte
             constraint stabilization */
-            - (baumgarte_2_omega_n *
-               (dhva.v[constraint_indices[k].parent.v].at[l] -
-                dhva.v[constraint_indices[k].child.v].at[l]))
-#if 1
-            /* subtract omega_n^2 * \dot{e} from gamma_p */
+            - baumgarte_2_omega_n * de[chord_constraint_offset * 6 + l]
+
+            /* subtract omega_n^2 * e from gamma_p */
             - baumgarte_omega_n_2 * e[chord_constraint_offset * 6 + l]
 
             // integral error
             - integral_constraint_error[chord_constraint_offset * 6 + l];
-#else
-          ;
-#endif
 
         }
       }

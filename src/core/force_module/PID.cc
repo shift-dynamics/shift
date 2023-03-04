@@ -1,28 +1,28 @@
-#include "shift/core/forcemodule/PID.h"
+#include "shift/core/force_module/PID.h"
 #include "shift/core/Context.h"
 #include "shift/core/Factory.h"
 
-bool shift::core::forcemodule::PID::registered_ =
-  shift::core::Factory<shift::core::forcemodule::Base>::get()->RegisterModule(
-    "pid", shift::core::forcemodule::PID::Create);
+bool shift::core::force_module::PID::registered_ =
+  shift::core::Factory<shift::core::force_module::Base>::get()->RegisterModule(
+    "pid", shift::core::force_module::PID::Create);
 
-std::unique_ptr<shift::core::forcemodule::PID> shift::core::forcemodule::PID::Create() {
-  return std::make_unique<shift::core::forcemodule::PID>();
+std::unique_ptr<shift::core::force_module::PID> shift::core::force_module::PID::Create() {
+  return std::make_unique<shift::core::force_module::PID>();
 }
 
-void shift::core::forcemodule::PID::DeclareParameters() {
-  shift::core::forcemodule::Base::DeclareParameters();
+void shift::core::force_module::PID::DeclareParameters() {
+  shift::core::force_module::Base::DeclareParameters();
   DeclareParameter("kp", &kp_, "proportional gain", true);
   DeclareParameter("ki", &ki_, "integral gain", true);
   DeclareParameter("kd", &kd_, "derivative gain", true);
   DeclareParameter("target", &target_, "target", false);
 }
 
-void shift::core::forcemodule::PID::set_target(double target) {
+void shift::core::force_module::PID::set_target(double target) {
   target_ = target;
 }
 
-void shift::core::forcemodule::PID::Service(const double y[], double dy[]) {
+void shift::core::force_module::PID::Service(const double y[], double dy[]) {
 
   double current_value = 0;
   switch(target_type_) {
@@ -56,4 +56,4 @@ void shift::core::forcemodule::PID::Service(const double y[], double dy[]) {
   context_->get_joint_working_forces()[dq_index_] += u;
 }
 
-void shift::core::forcemodule::PID::Connect() {}
+void shift::core::force_module::PID::Connect() {}
