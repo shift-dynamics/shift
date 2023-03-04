@@ -8,7 +8,7 @@
 #include "ksl/inertia.h"
 
 #include "shift/core/Base.h"
-#include "shift/core/collisiongeometry/Base.h"
+#include "shift/core/collision_geometry/Base.h"
 #include "shift/core/Frame.h"
 #include "shift/core/geometry/Base.h"
 #include "shift/core/light/Base.h"
@@ -179,7 +179,7 @@ protected:
 
   shift::core::parameter::FactoryArray<shift::core::light::Base> lights_;
   shift::core::parameter::FactoryArray<shift::core::geometry::Base> geometry_;
-  shift::core::parameter::FactoryArray<shift::core::collisiongeometry::Base> collision_geometry_;
+  shift::core::parameter::FactoryArray<shift::core::collision_geometry::Base> collision_geometry_;
 
   bool draw_enabled_ = true;
   bool draw_collision_geometry_enabled_ = false;

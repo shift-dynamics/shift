@@ -3,11 +3,11 @@
 
 #include <memory>
 
-#include "shift/core/forcemodule/tire/Base.h"
+#include "shift/core/force_module/tire/Base.h"
 
 namespace shift {
 namespace core {
-namespace forcemodule {
+namespace force_module {
 namespace tire {
 
 class Fiala : public Base {
@@ -69,7 +69,7 @@ private:
 
 } // namespace Tire
 }
-} // namespace forcemodule
+} // namespace force_module
 
 } // namespace shift
 

@@ -45,9 +45,9 @@ add_library(shift_core STATIC
 add_subdirectory(parameter)
 add_subdirectory(behavior)
 add_subdirectory(body)
-add_subdirectory(collisiongeometry)
+add_subdirectory(collision_geometry)
 add_subdirectory(constraint)
-add_subdirectory(forcemodule)
+add_subdirectory(force_module)
 add_subdirectory(geometry)
 add_subdirectory(integrator)
 add_subdirectory(joint)
@@ -107,9 +107,9 @@ target_link_libraries(
   shift_core_parameter
   shift_core_body
   shift_core_behavior
-  shift_core_collisiongeometry
+  shift_core_collision_geometry
   shift_core_constraint
-  shift_core_forcemodule
+  shift_core_force_module
   shift_core_geometry
   shift_core_integrator
   shift_core_joint

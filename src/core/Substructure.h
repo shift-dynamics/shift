@@ -257,6 +257,7 @@ public:
   double InfinityNormB();
   double PivotRatio();
   double EvaluateConstraints(const shift::core::topology::DHVA& dhva);
+  double EvaluateConstraintsNewtonRaphson(const shift::core::topology::DHVA& dhva);
   void ComputeMobility();
   void CopyNullSpace();
   void SetupNewtonRaphsonSpecifiedCoordinate(shift::core::topology::DHVA& dhva,

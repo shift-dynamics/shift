@@ -17,7 +17,7 @@ class Base;
 class Frame;
 class Context;
 
-namespace collisiongeometry {
+namespace collision_geometry {
 
 /*!
 @brief Abstract CollisionGeometry base class
@@ -65,7 +65,7 @@ public:
   static bool is_initialized();
 };
 
-} // namespace collisiongeometry
+} // namespace collision_geometry
 }
 } // namespace shift
 

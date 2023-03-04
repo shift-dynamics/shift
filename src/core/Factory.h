@@ -8,9 +8,9 @@
 
 #include "shift/core/behavior/Base.h"
 #include "shift/core/body/Base.h"
-#include "shift/core/collisiongeometry/Base.h"
+#include "shift/core/collision_geometry/Base.h"
 #include "shift/core/constraint/Base.h"
-#include "shift/core/forcemodule/Base.h"
+#include "shift/core/force_module/Base.h"
 #include "shift/core/geometry/Base.h"
 #include "shift/core/integrator/Base.h"
 #include "shift/core/joint/Base.h"
@@ -110,11 +110,11 @@ extern template class Factory<body::Base>;
 /*! indicate that factory_map_ exists for CollisionGeometry */
 template <>
 std::map<std::string,
-         Factory<collisiongeometry::Base>::CreateFunction>
-  Factory<collisiongeometry::Base>::factory_map_;
+         Factory<collision_geometry::Base>::CreateFunction>
+  Factory<collision_geometry::Base>::factory_map_;
 
 /*! indicate that CollisionGeometry specialization exists */
-extern template class Factory<collisiongeometry::Base>;
+extern template class Factory<collision_geometry::Base>;
 
 /*! indicate that factory_map_ exists for Constraint */
 template <>
@@ -124,13 +124,13 @@ std::map<std::string, Factory<constraint::Base>::CreateFunction>
 /*! indicate that Constraint specialization exists */
 extern template class Factory<constraint::Base>;
 
-/*! indicate that factory_map_ exists for forcemodule */
+/*! indicate that factory_map_ exists for force_module */
 template <>
-std::map<std::string, Factory<forcemodule::Base>::CreateFunction>
-  Factory<forcemodule::Base>::factory_map_;
+std::map<std::string, Factory<force_module::Base>::CreateFunction>
+  Factory<force_module::Base>::factory_map_;
 
-/*! indicate that forcemodule specialization exists */
-extern template class Factory<forcemodule::Base>;
+/*! indicate that force_module specialization exists */
+extern template class Factory<force_module::Base>;
 
 /*! indicate that factory_map_ exists for Geometry */
 template <>

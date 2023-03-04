@@ -38,7 +38,7 @@ void shift::core::Assembly::DeclareParameters() {
                false);
 
   DeclareParameter("force_modules", &force_modules_,
-               "Specifies an array of Shift 'forcemodule' datastructures for "
+               "Specifies an array of Shift 'force_module' datastructures for "
                "feeding forces into a running module; each force module "
                "in the array must have a unique name identifier",
                false);

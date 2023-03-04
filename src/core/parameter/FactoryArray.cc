@@ -12,11 +12,11 @@ template class shift::core::parameter::FactoryArray<
   shift::core::behavior::Base>;
 template class shift::core::parameter::FactoryArray<shift::core::body::Base>;
 template class shift::core::parameter::FactoryArray<
-  shift::core::collisiongeometry::Base>;
+  shift::core::collision_geometry::Base>;
 template class shift::core::parameter::FactoryArray<
   shift::core::constraint::Base>;
 template class shift::core::parameter::FactoryArray<
-  shift::core::forcemodule::Base>;
+  shift::core::force_module::Base>;
 template class shift::core::parameter::FactoryArray<
   shift::core::geometry::Base>;
 template class shift::core::parameter::FactoryArray<

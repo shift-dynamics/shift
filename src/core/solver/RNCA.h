@@ -36,6 +36,11 @@ public:
     return description_;
   }
 
+  /*! @brief get time derivative of constraint equations */
+  const std::vector<ksl_screw_t>& get_de() {
+    return de_;
+  }
+
   void PrintStates(std::stringstream&);
   virtual double
   GravitationalPotentialEnergy(shift::core::topology::DHVA& dhva) override;

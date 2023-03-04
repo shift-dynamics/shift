@@ -22,7 +22,7 @@ namespace behavior {
 class Base;
 }
 
-namespace collisiongeometry {
+namespace collision_geometry {
 class Base;
 }
 
@@ -104,7 +104,7 @@ public:
     return active_joints_;
   }
 
-  const std::vector<shift::core::forcemodule::Base*>&
+  const std::vector<shift::core::force_module::Base*>&
   get_active_force_modules() const {
     return active_force_modules_;
   }
@@ -267,8 +267,8 @@ public:
     return jacobian_.get_newton_raphson_failure();
   }
 
-  inline double get_constraint_error() {
-    return constraint_error_;
+  inline double get_rms_constraint_error() {
+    return rms_constraint_error_;
   }
 
   /*! retrieve current time in numerical integration and delta_t, the time
@@ -279,9 +279,9 @@ public:
 
   void ActivateObject(behavior::Base*, bool);
   void ActivateObject(body::Base*, bool);
-  void ActivateObject(collisiongeometry::Base*, bool);
+  void ActivateObject(collision_geometry::Base*, bool);
   void ActivateObject(constraint::Base*, bool);
-  void ActivateObject(forcemodule::Base*, bool);
+  void ActivateObject(force_module::Base*, bool);
   void ActivateObject(geometry::Base*, bool);
   void ActivateObject(joint::Base*, bool);
   void ActivateObject(light::Base*, bool);
@@ -395,9 +395,9 @@ private:
   void ActivateLoggers();
   void AppendActiveObject(behavior::Base*);
   void AppendActiveObject(body::Base*);
-  void AppendActiveObject(collisiongeometry::Base*);
+  void AppendActiveObject(collision_geometry::Base*);
   void AppendActiveObject(constraint::Base*);
-  void AppendActiveObject(forcemodule::Base*);
+  void AppendActiveObject(force_module::Base*);
   void AppendActiveObject(geometry::Base*);
   void AppendActiveObject(joint::Base*);
   void AppendActiveObject(light::Base*);
@@ -408,9 +408,9 @@ private:
   void AppendActiveObject(logger::Base*);
   void RemoveActiveObject(behavior::Base*);
   void RemoveActiveObject(body::Base*);
-  void RemoveActiveObject(collisiongeometry::Base*);
+  void RemoveActiveObject(collision_geometry::Base*);
   void RemoveActiveObject(constraint::Base*);
-  void RemoveActiveObject(forcemodule::Base*);
+  void RemoveActiveObject(force_module::Base*);
   void RemoveActiveObject(geometry::Base*);
   void RemoveActiveObject(joint::Base*);
   void RemoveActiveObject(light::Base*);
@@ -424,7 +424,7 @@ private:
   void ClearActiveFreeBodies();
   void ClearActiveCollisionGeometry();
   void ClearActiveConstraints();
-  void ClearActiveforcemodules();
+  void ClearActiveForceModules();
   void ClearActiveGeometry();
   void ClearActiveJoints();
   void ClearActiveLights();
@@ -623,9 +623,9 @@ private:
   std::vector<behavior::Base*> active_behaviors_ = {};
   std::vector<body::Base*> active_articulated_bodies_ = {};
   std::vector<body::Base*> active_free_bodies_ = {};
-  std::vector<collisiongeometry::Base*> active_collision_geometry_ = {};
+  std::vector<collision_geometry::Base*> active_collision_geometry_ = {};
   std::vector<constraint::Base*> active_constraints_ = {};
-  std::vector<forcemodule::Base*> active_force_modules_ = {};
+  std::vector<force_module::Base*> active_force_modules_ = {};
   std::vector<geometry::Base*> active_geometry_ = {};
   std::vector<joint::Base*> active_joints_ = {};
   std::vector<light::Base*> active_lights_ = {};
@@ -649,7 +649,7 @@ private:
   std::vector<std::unique_ptr<constraint::Base>> constraints_ = {};
 
   /*! \brief System generated force modules */
-  std::vector<std::unique_ptr<forcemodule::Base>> force_modules_ = {};
+  std::vector<std::unique_ptr<force_module::Base>> force_modules_ = {};
 
   /*! \brief System generated joints */
   std::vector<std::unique_ptr<joint::Base>> joints_ = {};
@@ -669,7 +669,7 @@ private:
   unsigned int q_count_ = 0;
   unsigned int dq_count_ = 0;
   double mobility_ = 0.0;
-  double constraint_error_ = 0;
+  double rms_constraint_error_ = 0;
 };
 
 } // namespace core

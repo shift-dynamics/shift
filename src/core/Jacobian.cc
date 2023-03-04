@@ -25,6 +25,7 @@ void shift::core::Jacobian::Initialize() {
   SetupSubstructurePointers();
   for(auto& substructure : substructures_) {
     substructure.Connect();
+    substructure.Print();
   }
   if(RemoveConstraintViolations()) {
     SHIFT_ERROR("Error: constraints not satisfied.");
@@ -54,17 +55,7 @@ void shift::core::Jacobian::MallocEquations() {
   unsigned int dq_offset = 0;
   unsigned int joint_offset = 0;
 
-  // int i = 0; 
-  // for(auto& sub : substructure_members) {
-  //   std::cout << i++ << ": ";
-  //   for(auto& v : sub) {
-  //     std::cout << v << " ";
-  //   }
-  // }
-  // std::cout << std::endl;
-  
-  for(unsigned int i = 0; i < substructure_members.size(); i++) {
-    // std::cout << "[" << i << "]: " << 
+  for(size_t i = 0; i < substructure_members.size(); i++) {
     substructures_[i].set_index(i);
     unsigned int q_count = 0;
     unsigned int dq_count = 0;
@@ -120,12 +111,11 @@ void shift::core::Jacobian::MallocEquations() {
     substructure.set_Jxx(Jxx_.data() + jacobian_offset);
     substructure.set_Jb();
 
-    jacobian_offset +=
-      substructure.get_constraint_equation_count() * substructure.get_dq_count();
-
     substructure.set_e(e_.data() + constraint_equation_offset);
     substructure.set_de(de_.data() + constraint_equation_offset);
 
+    jacobian_offset +=
+      substructure.get_constraint_equation_count() * substructure.get_dq_count();
     constraint_equation_offset += substructure.get_constraint_equation_count();
   }
 
@@ -139,14 +129,13 @@ void shift::core::Jacobian::MallocEquations() {
   pv_13_.resize(dq_count);
   pv_31_.resize(dq_count);
   pv_23_.resize(dq_count);
+
 }
 
 void shift::core::Jacobian::CompressLoopMembers() {
 
   unsigned int chord_constraint_count = context_->get_chord_constraint_count();
 
-  /* j is local loop index for substructure
-  k is global loop index */
   auto& positive_loop_members = context_->get_positive_loop_members();
   auto& negative_loop_members = context_->get_negative_loop_members();
   auto& active_joints = context_->get_active_joints();
@@ -157,25 +146,26 @@ void shift::core::Jacobian::CompressLoopMembers() {
   auto& dq_lookup = context_->get_dq_lookup();
   auto& q_lookup = context_->get_q_lookup();
 
-  /* record offsets in positiveLoopMemberOffsets and
-    negative_loop_membersOffsets */
-  int k = 0; /* loop counter */
+  int k = 0; // global loop index
+             // j is local loop index for substructure
+  
   auto& substructure_members = context_->get_substructure_members();
 
-  unsigned int i = 0;
-  SHIFT_TRACE("substructure [" + std::to_string(substructures_.size()) + "]");
-  for(auto& substructure : substructures_) {
+  for(size_t i = 0; i < substructures_.size(); i++) {
+    auto& substructure = substructures_[i];
+    
     /* set offset into global variable list */
     int substructure_offset =
       std::min(substructure_members[i][1], substructure_members[i][2]);
     
-    SHIFT_TRACE("dq_offset: " + std::to_string(dq_lookup[substructure_offset]));
+    SHIFT_INFO("substructure: " + std::to_string(i));
+    SHIFT_INFO("substructure_offset: " + std::to_string(substructure_offset));
+    SHIFT_INFO("dq_offset: " + std::to_string(dq_lookup[substructure_offset]));
     substructure.set_dq_offset(
       dq_lookup[substructure_offset], context_->get_dq(),
       context_->get_delta_q().data());
     
-    
-    SHIFT_TRACE("q_offset: " + std::to_string(q_lookup[substructure_offset]));
+    SHIFT_INFO("q_offset: " + std::to_string(q_lookup[substructure_offset]));
     substructure.set_q_offset(
       q_lookup[substructure_offset], context_->get_q().data());
 
@@ -185,6 +175,7 @@ void shift::core::Jacobian::CompressLoopMembers() {
 
     for(unsigned int j = 0; j < substructure.get_chord_constraint_count(); 
         j++, k++) {
+      
       for(auto positive_loop_member : positive_loop_members[k]) {
         unsigned int dq_count = 
           active_joints[positive_loop_member]->get_dq_count();
@@ -203,8 +194,6 @@ void shift::core::Jacobian::CompressLoopMembers() {
         }
       }
     }
-
-    i++;
   }
 
   unsigned int j = 0;
@@ -217,7 +206,7 @@ void shift::core::Jacobian::CompressLoopMembers() {
     j += substructure.get_chord_constraint_count();
   }
 
-#if SHIFT_LOG_LEVEL > 4 
+#if SHIFT_LOG_LEVEL > 1 
   {
     std::stringstream ss;
     ss << "compressed loop members:\n";
@@ -487,9 +476,17 @@ void shift::core::Jacobian::InitializeMobility() {
 }
 
 double shift::core::Jacobian::EvaluateConstraints() {
-  double e = 0;
+  double e = 0.0;
   for(auto& substructure : substructures_) {
     e += substructure.EvaluateConstraints(context_->get_dhva());
+  }
+  return e;
+}
+
+double shift::core::Jacobian::EvaluateConstraintsNewtonRaphson() {
+  double e = 0.0;
+  for(auto& substructure : substructures_) {
+    e += substructure.EvaluateConstraintsNewtonRaphson(context_->get_dhva());
   }
   return e;
 }

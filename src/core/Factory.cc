@@ -19,11 +19,11 @@ template class shift::core::Factory<shift::core::body::Base>;
 /* define factory_map_ specialization for Base class */
 template <>
 std::map<std::string,
-         shift::core::Factory<shift::core::collisiongeometry::Base>::CreateFunction>
-  shift::core::Factory<shift::core::collisiongeometry::Base>::factory_map_{};
+         shift::core::Factory<shift::core::collision_geometry::Base>::CreateFunction>
+  shift::core::Factory<shift::core::collision_geometry::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::core::Factory<shift::core::collisiongeometry::Base>;
+template class shift::core::Factory<shift::core::collision_geometry::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
@@ -35,11 +35,11 @@ template class shift::core::Factory<shift::core::constraint::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
-std::map<std::string, shift::core::Factory<shift::core::forcemodule::Base>::CreateFunction>
-  shift::core::Factory<shift::core::forcemodule::Base>::factory_map_{};
+std::map<std::string, shift::core::Factory<shift::core::force_module::Base>::CreateFunction>
+  shift::core::Factory<shift::core::force_module::Base>::factory_map_{};
 
 /* explicit instantiation of Base class */
-template class shift::core::Factory<shift::core::forcemodule::Base>;
+template class shift::core::Factory<shift::core::force_module::Base>;
 
 /* define factory_map_ specialization for Base class */
 template <>
