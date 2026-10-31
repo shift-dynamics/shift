@@ -945,11 +945,8 @@ void shift::core::solver::RNCA::CountPointers() {
   const auto& jacobian = context_->get_jacobian();
   const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
 
-  /* Currently on entry to this function, context_->nd = 0. Normally
-  k = context_->nd - 1; The following effectively sets k = context_->nd - 1; */
   int ni = 0;
   int nd = 0;
-  int k = -1;
 
   /* Currently matrix factoring starts at memoized_pointers_[0].
   Eventually matrix factoring will start at some offset determined by
@@ -962,12 +959,6 @@ void shift::core::solver::RNCA::CountPointers() {
   /* Count the total number of operations
   required to factor the matrix and access the L matrix. */
   int p3 = 0;
-
-  for(size_t i = 0; i < dq_count_; i++) {
-    if(is_dependent_po3[i]) {
-      k++;
-    }
-  }
 
   /* Factor the matrix */
   for(int i = (int)dq_count_ - 1; i > -1; i--) {
@@ -1005,7 +996,6 @@ void shift::core::solver::RNCA::CountPointers() {
     }
   }
 
-  k = nd - 1;
   nd = 0;
   ni = 0;
 
@@ -1034,12 +1024,9 @@ void shift::core::solver::RNCA::CountPointers() {
       // context_->ddq[i] = g_amma_d[k];
       // context_->la[k] = context_->fl[i];
 
-      if(Mlb_[i4_[i]])
+      // if(Mlb_[i4_[i]])
       // Part of x <-- D^{-1} b: la[k] -= M[] * ddq[i];
       // context_->la[k] -= *(memoized_pointers_[i]) * context_->ddq[i];
-      {
-        k--;
-      }
     } else {
       for(int j = 0; j < p3_[ni]; j++) {
         // Part of b <-- L^{-T} b: Q[] -= M[] * Q[i];
@@ -1053,9 +1040,6 @@ void shift::core::solver::RNCA::CountPointers() {
       ni++;
     }
   }
-
-  /* Reset for indexing forward through context_->la[k] */
-  k = 0;
 
   /* P2 is one past last entry in L. Decrement for reverse direction. */
   // p2--;
@@ -1076,7 +1060,6 @@ void shift::core::solver::RNCA::CountPointers() {
         // *(memoized_pointers_[p3++]);
         p3++;
       }
-      k++;
     } else {
       ni--;
       for(int j = 0; j < p3_[ni]; j++) {
@@ -1166,7 +1149,6 @@ void shift::core::solver::RNCA::RecordPointers() {
   }
 
   dependent_count_ = nd;
-  int k = nd - 1;
 
   ni = 0;
   nd = 0;
@@ -1200,7 +1182,6 @@ void shift::core::solver::RNCA::RecordPointers() {
          la[k] = Q[i];
          if(context_->Mlb[context_->i4[i]]){
            la[k] -= M[] * ddq[i]; */
-      k--;
     } else {
       /* Processing independent variable: b <- L^{-T} b */
       for(int j = 0; j < p3_[ni]; j++) {
@@ -1216,7 +1197,6 @@ void shift::core::solver::RNCA::RecordPointers() {
   }
 
   // Start of Forward Substitution
-  k = 0;
   for(size_t i = 0; i < dq_count_; i++) {
     if(is_dependent_po3[i]) {
       /* Processing dependent variable: x <- L^{-1} x */
@@ -1231,7 +1211,6 @@ void shift::core::solver::RNCA::RecordPointers() {
         /* ddq[i] -= B[] * ddq[]; */
         memoized_pointers_[p3++] = &ddq[pv_13[j1_[m1]]];
       }
-      k++;
     } else {
       /* Processing independent variable x <- L^{-1} x */
       ni--;
@@ -2384,7 +2363,6 @@ bool shift::core::solver::RNCA::Verify(const double t,
 
   std::vector<double> B_dense(dq_count_ * dq_count_, 0.0);
   double* B = B_dense.data();
-  int row = 0;
   for(unsigned int i = 0; i < dq_count_; i++) {
     if(is_dependent_po3[i]) {
       for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
@@ -2393,7 +2371,6 @@ bool shift::core::solver::RNCA::Verify(const double t,
         B[i * dq_count_ + col] = b3[j];
         B[i * dq_count_ + i] = 1.0;
       }
-      row++;
     }
   }
 

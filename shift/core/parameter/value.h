@@ -28,7 +28,44 @@ namespace core {
 
 class Context;
 class Assembly;
+class Frame;
+namespace behavior {
+class Base;
+}
 namespace body {
+class Base;
+}
+namespace collision_geometry {
+class Base;
+}
+namespace constraint {
+class Base;
+}
+namespace force_module {
+class Base;
+}
+namespace geometry {
+class Base;
+}
+namespace integrator {
+class Base;
+}
+namespace joint {
+class Base;
+}
+namespace light {
+class Base;
+}
+namespace logger {
+class Base;
+}
+namespace sensor {
+class Base;
+}
+namespace solver {
+class Base;
+}
+namespace terrain {
 class Base;
 }
 
@@ -423,6 +460,71 @@ private:
   void ReadJSON_BOOLEAN(Json::Value&);
   void ReadJSON_POSE(Json::Value&);
 };
+
+// Lists are stored as List*; these specializations (defined in value.cc)
+// dynamic_cast to the requested type. They must be declared here, before any
+// use: otherwise callers instantiate the generic any_cast versions above,
+// which throw std::bad_any_cast once inlined (-O1 and up).
+template <>
+const Frame& Value::get<Frame>() const;
+template <>
+const Assembly& Value::get<Assembly>() const;
+template <>
+const behavior::Base& Value::get<behavior::Base>() const;
+template <>
+const body::Base& Value::get<body::Base>() const;
+template <>
+const collision_geometry::Base& Value::get<collision_geometry::Base>() const;
+template <>
+const constraint::Base& Value::get<constraint::Base>() const;
+template <>
+const force_module::Base& Value::get<force_module::Base>() const;
+template <>
+const geometry::Base& Value::get<geometry::Base>() const;
+template <>
+const integrator::Base& Value::get<integrator::Base>() const;
+template <>
+const joint::Base& Value::get<joint::Base>() const;
+template <>
+const light::Base& Value::get<light::Base>() const;
+template <>
+const logger::Base& Value::get<logger::Base>() const;
+template <>
+const sensor::Base& Value::get<sensor::Base>() const;
+template <>
+const solver::Base& Value::get<solver::Base>() const;
+template <>
+const terrain::Base& Value::get<terrain::Base>() const;
+template <>
+Frame* Value::get_data<Frame>() const;
+template <>
+Assembly* Value::get_data<Assembly>() const;
+template <>
+behavior::Base* Value::get_data<behavior::Base>() const;
+template <>
+body::Base* Value::get_data<body::Base>() const;
+template <>
+collision_geometry::Base* Value::get_data<collision_geometry::Base>() const;
+template <>
+constraint::Base* Value::get_data<constraint::Base>() const;
+template <>
+force_module::Base* Value::get_data<force_module::Base>() const;
+template <>
+geometry::Base* Value::get_data<geometry::Base>() const;
+template <>
+integrator::Base* Value::get_data<integrator::Base>() const;
+template <>
+joint::Base* Value::get_data<joint::Base>() const;
+template <>
+light::Base* Value::get_data<light::Base>() const;
+template <>
+logger::Base* Value::get_data<logger::Base>() const;
+template <>
+sensor::Base* Value::get_data<sensor::Base>() const;
+template <>
+solver::Base* Value::get_data<solver::Base>() const;
+template <>
+terrain::Base* Value::get_data<terrain::Base>() const;
 
 } // namespace parameter
 } // namespace core

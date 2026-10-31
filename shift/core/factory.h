@@ -88,110 +88,47 @@ public:
   }
 
 private:
-  static std::map<std::string, CreateFunction> factory_map_;
+  /* a member of the function-local instance returned by get(), so it is
+     constructed on first use: Registration objects in other translation
+     units register modules during static initialization */
+  std::map<std::string, CreateFunction> factory_map_;
 };
-
-/*! indicate that factory_map_ exists for bodies */
-template <>
-std::map<std::string, Factory<behavior::Base>::CreateFunction>
-  Factory<behavior::Base>::factory_map_;
 
 /*! indicate that Behavior specialization exists */
 extern template class Factory<behavior::Base>;
 
-/*! indicate that factory_map_ exists for bodies */
-template <>
-std::map<std::string, Factory<body::Base>::CreateFunction>
-  Factory<body::Base>::factory_map_;
-
 /*! indicate that Body specialization exists */
 extern template class Factory<body::Base>;
-
-/*! indicate that factory_map_ exists for CollisionGeometry */
-template <>
-std::map<std::string,
-         Factory<collision_geometry::Base>::CreateFunction>
-  Factory<collision_geometry::Base>::factory_map_;
 
 /*! indicate that CollisionGeometry specialization exists */
 extern template class Factory<collision_geometry::Base>;
 
-/*! indicate that factory_map_ exists for Constraint */
-template <>
-std::map<std::string, Factory<constraint::Base>::CreateFunction>
-  Factory<constraint::Base>::factory_map_;
-
 /*! indicate that Constraint specialization exists */
 extern template class Factory<constraint::Base>;
-
-/*! indicate that factory_map_ exists for force_module */
-template <>
-std::map<std::string, Factory<force_module::Base>::CreateFunction>
-  Factory<force_module::Base>::factory_map_;
 
 /*! indicate that force_module specialization exists */
 extern template class Factory<force_module::Base>;
 
-/*! indicate that factory_map_ exists for Geometry */
-template <>
-std::map<std::string, Factory<geometry::Base>::CreateFunction>
-  Factory<geometry::Base>::factory_map_;
-
 /*! indicate that Geometry specialization exists */
 extern template class Factory<geometry::Base>;
-
-/*! indicate that factory_map_ exists for Integrator */
-template <>
-std::map<std::string, Factory<integrator::Base>::CreateFunction>
-  Factory<integrator::Base>::factory_map_;
 
 /*! indicate that Integrator specialization exists */
 extern template class Factory<integrator::Base>;
 
-/*! indicate that factory_map_ exists for Joint */
-template <>
-std::map<std::string, Factory<joint::Base>::CreateFunction>
-  Factory<joint::Base>::factory_map_;
-
 /*! indicate that Joint specialization exists */
 extern template class Factory<joint::Base>;
-
-/*! indicate that factory_map_ exists for Light */
-template <>
-std::map<std::string, Factory<light::Base>::CreateFunction>
-  Factory<light::Base>::factory_map_;
 
 /*! indicate that Light specialization exists */
 extern template class Factory<light::Base>;
 
-/*! indicate that factory_map_ exists for Logger */
-template <>
-std::map<std::string, Factory<logger::Base>::CreateFunction>
-  Factory<logger::Base>::factory_map_;
-
 /*! indicate that Logger specialization exists */
 extern template class Factory<logger::Base>;
-
-/*! indicate that factory_map_ exists for Sensor */
-template <>
-std::map<std::string, Factory<sensor::Base>::CreateFunction>
-  Factory<sensor::Base>::factory_map_;
 
 /*! indicate that Sensor specialization exists */
 extern template class Factory<sensor::Base>;
 
-/*! indicate that factory_map_ exists for Solver */
-template <>
-std::map<std::string, Factory<solver::Base>::CreateFunction>
-  Factory<solver::Base>::factory_map_;
-
 /*! indicate that Solver specialization exists */
 extern template class Factory<solver::Base>;
-
-/*! indicate that factory_map_ exists for Terrain */
-template <>
-std::map<std::string, Factory<terrain::Base>::CreateFunction>
-  Factory<terrain::Base>::factory_map_;
 
 /*! indicate that Terrain specialization exists */
 extern template class Factory<terrain::Base>;

@@ -7,6 +7,7 @@ project(
     'cpp_std=c++17',
     'warning_level=2',
     'buildtype=debug',
+    'b_ndebug=if-release',
   ],
 )
 
@@ -19,14 +20,17 @@ endif
 
 shift_args = ['-DSHIFT_LOG_LEVEL=@0@'.format(log_level)]
 if get_option('buildtype') == 'debug'
-  shift_args += '-DSHIFT_DEBUG'
+  shift_args += '-DSHIFT_DEBUG_BUILD'
 endif
+cpu = get_option('cpu')
 shift_args += cpp.get_supported_arguments(
-  '-march=x86-64',
-  '-mtune=generic',
+  '-march=' + cpu,
   '-fstack-protector-strong',
   '--param=ssp-buffer-size=4',
 )
+if cpu != 'native'
+  shift_args += cpp.get_supported_arguments('-mtune=generic')
+endif
 add_project_arguments(shift_args, language: 'cpp')
 
 ksl_dep = dependency('ksl')
@@ -68,6 +72,8 @@ endif
 summary(
   {
     'build type': get_option('buildtype'),
+    'cpu': cpu,
+    'lto': get_option('b_lto'),
     'log level': log_level,
     'tests': is_variable('gtest_dep') and gtest_dep.found(),
     'gui': shift_gui_dep.found(),
