@@ -3,10 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
-namespace {
-const QVector3D kWorldUp(0.f, 0.f, -1.f); // +z is down
-constexpr float kElevationLimit = 1.55f;  // just short of +-pi/2
-} // namespace
+static const QVector3D kWorldUp(0.f, 0.f, -1.f); // +z is down
+static constexpr float kElevationLimit = 1.55f;  // just short of +-pi/2
 
 QVector3D shift::gui::Camera::get_forward() const {
   // unit vector from the camera to the target

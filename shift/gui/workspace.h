@@ -35,7 +35,8 @@ class Viewport;
 
 - left panel, Scene tab: model tree (bodies and joints, with joint values and
   mobility numbers) above a context panel for the selected item; selecting a
-  joint shows its influence coefficients and Tx..Rz jog sliders
+  joint shows its influence coefficients and jog sliders (Tx..Rz, or roll,
+  pitch and yaw for the quaternion of a spherical or float joint)
 - left panel, Simulation tab: model parameters and Run
 - below the tabs: play/pause button and playback slider
 - right: 3D viewport
@@ -52,7 +53,10 @@ public:
 
 private:
   /*! one jog slider row for a joint coordinate; the slider is a rate
-   * control that recenters when released, the spin box sets a target value */
+   * control that recenters when released, the spin box sets a target value.
+   * For the quaternion of a spherical or float joint the row instead drives
+   * one of the roll, pitch and yaw angles, R = Rz(yaw) Ry(pitch) Rx(roll),
+   * and q_index is the index of the quaternion [x, y, z, w] */
   struct SliderHandle {
     QGroupBox* box = nullptr;
     QLabel* label = nullptr;
@@ -62,7 +66,10 @@ private:
     double single_step = 0.0;
     int q_index = -1;
     int dq_index = -1;
-    bool enabled = false; /*!< false for quaternion coordinates */
+    int euler_index = -1; /*!< 0 roll, 1 pitch, 2 yaw; -1 joint coordinate */
+    shift::core::joint::Base* joint = nullptr; /*!< joint of a roll, pitch or
+                                                  yaw slider */
+    bool enabled = false;
     shift::core::Substructure* substructure = nullptr;
   };
 
@@ -91,7 +98,7 @@ private:
   void SetSliders(shift::core::joint::Base* joint);
   void SetSlider(SliderHandle& handle, const char* label, int q_index,
                  int dq_index, shift::core::Substructure* substructure,
-                 bool is_quaternion);
+                 int euler_index = -1);
   void RecenterSlider(SliderHandle& handle);
   void PressSlider(SliderHandle& handle);
   void SetTarget(SliderHandle& handle, double value);
@@ -116,6 +123,16 @@ private:
   bool IncrementCoordinate(SliderHandle& handle, double delta);
   bool SetCoordinate(SliderHandle& handle, double value);
   double get_mobility(const SliderHandle& handle);
+
+  /*! \brief the value shown for a slider: its joint coordinate, or the roll,
+   * pitch or yaw angle of its quaternion */
+  double get_shown_value(const SliderHandle& handle);
+  /*! \brief roll, pitch and yaw of the quaternion at q_index of the shown
+   * state, continuous with the angles last shown */
+  void get_shown_roll_pitch_yaw(int q_index, double rpy[3]);
+  /*! \brief set the roll, pitch or yaw angle of a slider's quaternion,
+   * keeping the other two angles */
+  bool SetRollPitchYaw(SliderHandle& handle, double value);
   void UpdateStatus();
 
   Simulation simulation_;
@@ -150,6 +167,7 @@ private:
     QDial* rotation_gain_dial = nullptr;
     float prismatic_range = 0.2f;
     float revolute_range = 0.2f;
+    double rpy_reference[3] = {0.0, 0.0, 0.0}; /*!< roll, pitch, yaw last shown */
   } sliders_;
 
   struct {
@@ -185,6 +203,7 @@ private:
   double playback_time_ = 0.0;
   bool was_computing_ = false;
   SliderHandle* jogging_ = nullptr; /*!< slider currently held */
+  QString jog_error_; /*!< why the last joint move failed, if known */
   TargetMove target_move_;
   bool tree_dirty_ = false;
 };

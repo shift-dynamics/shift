@@ -8,6 +8,9 @@
 #include "shift/gui/playback_slider.h"
 #include "shift/gui/viewport.h"
 
+#include "ksl/mat3x3.h"
+#include "ksl/quaternion.h"
+
 #include <QAction>
 #include <QApplication>
 #include <QDial>
@@ -33,22 +36,20 @@
 #include <cmath>
 #include <exception>
 
-namespace {
 
-constexpr int kBodyItem = QTreeWidgetItem::UserType + 1;
-constexpr int kJointItem = QTreeWidgetItem::UserType + 2;
-constexpr int kTickMilliseconds = 16;
+static constexpr int kBodyItem = QTreeWidgetItem::UserType + 1;
+static constexpr int kJointItem = QTreeWidgetItem::UserType + 2;
+static constexpr int kTickMilliseconds = 16;
 
 /*! gain dial 0..100 maps to a slider rate multiplier of 0.01..100 */
-double DialGain(const QDial* dial) {
+static double DialGain(const QDial* dial) {
   return std::pow(10.0, (dial->value() - 50) / 25.0);
 }
 
-QString Number(double value, int decimals = 4) {
+static QString Number(double value, int decimals = 4) {
   return QString::number(value, 'f', decimals);
 }
 
-} // namespace
 
 shift::gui::Workspace::Workspace(QWidget* parent)
   : QMainWindow(parent) {
@@ -553,14 +554,8 @@ void shift::gui::Workspace::UpdateJointPanel() {
   if(!joint) {
     return;
   }
-  QString details =
+  const QString details =
     QString("type: %1").arg(QString::fromStdString(joint->get_type()));
-  details += joint->get_substructure()
-               ? ", in a kinematic substructure (Newton-Raphson)"
-               : ", unconstrained";
-  if(joint->get_type() == "spherical" || joint->get_type() == "float") {
-    details += "<br>rotations are quaternions and cannot be jogged";
-  }
   joint_panel_.details->setText(details);
 
   // influence coefficients of the joint's first coordinate; they describe
@@ -605,6 +600,8 @@ void shift::gui::Workspace::ClearSliders() {
                      &sliders_.ry, &sliders_.rz}) {
     handle->box->setVisible(false);
     handle->q_index = handle->dq_index = -1;
+    handle->euler_index = -1;
+    handle->joint = nullptr;
     handle->enabled = false;
     handle->substructure = nullptr;
   }
@@ -619,20 +616,37 @@ void shift::gui::Workspace::SetSliders(shift::core::joint::Base* joint) {
   shift::core::Substructure* substructure = joint->get_substructure();
   const std::string& type = joint->get_type();
   if(type == "revolute") {
-    SetSlider(sliders_.rz, "R", q, dq, substructure, false);
+    SetSlider(sliders_.rz, "R", q, dq, substructure);
   } else if(type == "prismatic") {
-    SetSlider(sliders_.tz, "T", q, dq, substructure, false);
-  } else if(type == "spherical") {
-    SetSlider(sliders_.rx, "Rx", q, dq, substructure, true);
-    SetSlider(sliders_.ry, "Ry", q + 1, dq + 1, substructure, true);
-    SetSlider(sliders_.rz, "Rz", q + 2, dq + 2, substructure, true);
-  } else if(type == "float") {
-    SetSlider(sliders_.tx, "Tx", q, dq, substructure, false);
-    SetSlider(sliders_.ty, "Ty", q + 1, dq + 1, substructure, false);
-    SetSlider(sliders_.tz, "Tz", q + 2, dq + 2, substructure, false);
-    SetSlider(sliders_.rx, "Rx", q + 3, dq + 3, substructure, true);
-    SetSlider(sliders_.ry, "Ry", q + 4, dq + 4, substructure, true);
-    SetSlider(sliders_.rz, "Rz", q + 5, dq + 5, substructure, true);
+    SetSlider(sliders_.tz, "T", q, dq, substructure);
+  } else if(type == "spherical" || type == "float") {
+    // q = [quaternion] or [t, quaternion]; the rotation is jogged as roll,
+    // pitch and yaw angles, starting from the angles of the current quaternion
+    const int offset = type == "float" ? 3 : 0;
+    if(type == "float") {
+      SetSlider(sliders_.tx, "Tx", q, dq, substructure);
+      SetSlider(sliders_.ty, "Ty", q + 1, dq + 1, substructure);
+      SetSlider(sliders_.tz, "Tz", q + 2, dq + 2, substructure);
+      if(substructure) {
+        // dq = [v, omega] has v in the child frame, so a translation
+        // coordinate has no single q entry to specify
+        for(auto handle : {&sliders_.tx, &sliders_.ty, &sliders_.tz}) {
+          handle->enabled = false;
+          handle->box->setEnabled(false);
+        }
+      }
+    }
+    for(double& angle : sliders_.rpy_reference) {
+      angle = 0.0;
+    }
+    SetSlider(sliders_.rx, "Roll", q + offset, dq + offset, substructure, 0);
+    SetSlider(sliders_.ry, "Pitch", q + offset, dq + offset + 1, substructure,
+              1);
+    SetSlider(sliders_.rz, "Yaw", q + offset, dq + offset + 2, substructure,
+              2);
+    for(auto handle : {&sliders_.rx, &sliders_.ry, &sliders_.rz}) {
+      handle->joint = joint;
+    }
   } else {
     return;
   }
@@ -650,15 +664,16 @@ void shift::gui::Workspace::SetSliders(shift::core::joint::Base* joint) {
 void shift::gui::Workspace::SetSlider(SliderHandle& handle, const char* label,
                                       int q_index, int dq_index,
                                       shift::core::Substructure* substructure,
-                                      bool is_quaternion) {
+                                      int euler_index) {
   handle.q_index = q_index;
   handle.dq_index = dq_index;
+  handle.euler_index = euler_index;
   handle.substructure = substructure;
-  // Quaternion coordinates cannot be incremented one at a time (as in the
-  // original workspace). Substructure::IncrementSpecifiedCoordinate indexes q
-  // with the dq index, which requires the two to coincide.
-  handle.enabled =
-    !is_quaternion && (!substructure || q_index == dq_index);
+  // in a kinematic loop a joint coordinate is moved with
+  // Substructure::IncrementSpecifiedCoordinate, and roll, pitch and yaw with
+  // Substructure::SetSpecifiedRotation; SetSliders disables the translation
+  // of a float joint in a loop, which has no single q entry
+  handle.enabled = true;
   handle.label->setText(label);
   handle.box->setEnabled(handle.enabled);
   handle.box->setVisible(true);
@@ -673,7 +688,7 @@ void shift::gui::Workspace::RecenterSlider(SliderHandle& handle) {
   handle.slider->setValue(0);
   handle.slider->blockSignals(false);
   handle.spin_box->blockSignals(true);
-  handle.spin_box->setValue(simulation_.get_shown_q(handle.q_index));
+  handle.spin_box->setValue(get_shown_value(handle));
   handle.spin_box->blockSignals(false);
 }
 
@@ -686,10 +701,17 @@ void shift::gui::Workspace::PressSlider(SliderHandle& handle) {
     return;
   }
   if(handle.substructure) {
-    // drive constraint error to zero before applying fast factorization
+    // drive constraint error to zero before applying fast factorization, with
+    // the coordinate (or all three rotation coordinates of a roll, pitch or
+    // yaw slider) specified as independent
     try {
-      handle.substructure->SetupNewtonRaphsonSpecifiedCoordinate(
-        simulation_.get_context()->get_dhva(), handle.dq_index);
+      if(handle.euler_index >= 0) {
+        handle.substructure->SetupNewtonRaphsonSpecifiedRotation(
+          simulation_.get_context()->get_dhva(), handle.joint);
+      } else {
+        handle.substructure->SetupNewtonRaphsonSpecifiedCoordinate(
+          simulation_.get_context()->get_dhva(), handle.dq_index);
+      }
     } catch(std::exception& e) {
       status_label_->setText(QString::fromStdString(e.what()));
       return;
@@ -712,7 +734,7 @@ void shift::gui::Workspace::SetTarget(SliderHandle& handle, double value) {
   jogging_ = nullptr;
   // allow up to 1000 steps for each radian or unit of translation
   const double distance =
-    std::fabs(value - simulation_.get_shown_q(handle.q_index));
+    std::fabs(value - get_shown_value(handle));
   target_move_.handle = &handle;
   target_move_.target = value;
   target_move_.counter = 0;
@@ -720,7 +742,10 @@ void shift::gui::Workspace::SetTarget(SliderHandle& handle, double value) {
 }
 
 double shift::gui::Workspace::get_mobility(const SliderHandle& handle) {
-  if(!handle.substructure) {
+  // a rotation in a loop is checked for admissibility by
+  // Substructure::SetSpecifiedRotation rather than scaled by the mobility of
+  // a single rotation coordinate
+  if(!handle.substructure || handle.euler_index >= 0) {
     return 1.0;
   }
   const auto& mobility = simulation_.get_context()->get_mobility_numbers();
@@ -733,6 +758,9 @@ double shift::gui::Workspace::get_mobility(const SliderHandle& handle) {
 
 bool shift::gui::Workspace::IncrementCoordinate(SliderHandle& handle,
                                                 double delta) {
+  if(handle.euler_index >= 0) {
+    return SetRollPitchYaw(handle, get_shown_value(handle) + delta);
+  }
   shift::core::Context* context = simulation_.get_context();
   try {
     if(handle.substructure) {
@@ -757,6 +785,9 @@ bool shift::gui::Workspace::IncrementCoordinate(SliderHandle& handle,
 
 bool shift::gui::Workspace::SetCoordinate(SliderHandle& handle,
                                           double value) {
+  if(handle.euler_index >= 0) {
+    return SetRollPitchYaw(handle, value);
+  }
   shift::core::Context* context = simulation_.get_context();
   try {
     if(handle.substructure) {
@@ -777,6 +808,94 @@ bool shift::gui::Workspace::SetCoordinate(SliderHandle& handle,
   return true;
 }
 
+double shift::gui::Workspace::get_shown_value(const SliderHandle& handle) {
+  if(handle.euler_index < 0) {
+    return simulation_.get_shown_q(handle.q_index);
+  }
+  double rpy[3];
+  get_shown_roll_pitch_yaw(handle.q_index, rpy);
+  return rpy[handle.euler_index];
+}
+
+void shift::gui::Workspace::get_shown_roll_pitch_yaw(int q_index,
+                                                     double rpy[3]) {
+  // interpolated playback quaternions need not be unit length
+  ksl_quaternion_t quaternion;
+  for(int i = 0; i < 4; i++) {
+    quaternion.at[i] = simulation_.get_shown_q(q_index + i);
+  }
+  ksl_quaternion_normalize(&quaternion);
+  ksl_mat3x3_t r;
+  ksl_quaternion_toMat3x3(&quaternion, &r);
+
+  // R = Rz(yaw) Ry(pitch) Rx(roll) is the ZYX sequence with angles
+  // [yaw, pitch, roll]; the reference keeps the angles continuous
+  ksl_vec3_t reference =
+    ksl_vec3(sliders_.rpy_reference[2], sliders_.rpy_reference[1],
+             sliders_.rpy_reference[0]);
+  ksl_vec3_t angles;
+  ksl_mat3x3_getEulerAnglesWithReference(&r, KSL_AXIS_ZYX, &angles,
+                                         &reference);
+  rpy[0] = angles.at[2];
+  rpy[1] = angles.at[1];
+  rpy[2] = angles.at[0];
+  for(int i = 0; i < 3; i++) {
+    sliders_.rpy_reference[i] = rpy[i];
+  }
+}
+
+bool shift::gui::Workspace::SetRollPitchYaw(SliderHandle& handle,
+                                            double value) {
+  shift::core::Context* context = simulation_.get_context();
+  double rpy[3];
+  get_shown_roll_pitch_yaw(handle.q_index, rpy);
+  rpy[handle.euler_index] = value;
+
+  ksl_vec3_t angles = ksl_vec3(rpy[2], rpy[1], rpy[0]);
+  ksl_mat3x3_t r;
+  ksl_mat3x3_setFromEulerAngles(&r, KSL_AXIS_ZYX, &angles);
+  ksl_quaternion_t quaternion;
+  ksl_mat3x3_toQuaternion(&r, &quaternion);
+
+  if(handle.substructure) {
+    // the dependent coordinates of the loop follow the rotation
+    try {
+      handle.substructure->SetSpecifiedRotation(context->get_dhva(),
+                                                handle.joint, quaternion.at);
+    } catch(std::exception& e) {
+      jog_error_ = QString::fromStdString(e.what());
+      return false;
+    }
+    for(int i = 0; i < 3; i++) {
+      sliders_.rpy_reference[i] = rpy[i];
+    }
+    simulation_.ShowContextState();
+    return true;
+  }
+
+  // q and -q are the same rotation; keep the sign of the current quaternion
+  double* q = &context->get_q()[handle.q_index];
+  double dot = 0.0;
+  for(int i = 0; i < 4; i++) {
+    dot += q[i] * quaternion.at[i];
+  }
+  const double sign = dot < 0.0 ? -1.0 : 1.0;
+  for(int i = 0; i < 4; i++) {
+    q[i] = sign * quaternion.at[i];
+  }
+  try {
+    context->UpdateDH();
+  } catch(std::exception&) {
+    return false;
+  }
+  // continue from the angles as set, rather than as recovered from R
+  for(int i = 0; i < 3; i++) {
+    sliders_.rpy_reference[i] = rpy[i];
+  }
+  simulation_.ShowContextState();
+  return true;
+}
+
 void shift::gui::Workspace::Jog() {
   bool moved = false;
 
@@ -787,26 +906,30 @@ void shift::gui::Workspace::Jog() {
     double delta = h.slider->value() * h.single_step * DialGain(h.gain_dial);
     delta *= h.substructure ? std::pow(get_mobility(h), 1.5) : 1.5;
     if(std::fabs(delta) > 1e-16) {
+      jog_error_.clear();
       if(!IncrementCoordinate(h, delta)) {
-        status_label_->setText("Newton-Raphson failed to converge");
+        status_label_->setText(jog_error_.isEmpty()
+                                 ? "Newton-Raphson failed to converge"
+                                 : jog_error_);
         RecenterSlider(h);
       }
       moved = true;
     }
     h.spin_box->blockSignals(true);
-    h.spin_box->setValue(simulation_.get_shown_q(h.q_index));
+    h.spin_box->setValue(get_shown_value(h));
     h.spin_box->blockSignals(false);
   }
 
   if(target_move_.handle) {
     SliderHandle& h = *target_move_.handle;
     const double remaining =
-      target_move_.target - simulation_.get_shown_q(h.q_index);
+      target_move_.target - get_shown_value(h);
     const double step =
       0.01 * (h.substructure ? std::pow(get_mobility(h), 1.5) : 1.0);
     bool done =
       ++target_move_.counter > target_move_.max_count || step < 1e-16;
     if(!done) {
+      jog_error_.clear();
       bool ok;
       if(std::fabs(remaining) <= step) {
         ok = SetCoordinate(h, target_move_.target);
@@ -815,7 +938,9 @@ void shift::gui::Workspace::Jog() {
         ok = IncrementCoordinate(h, remaining > 0 ? step : -step);
       }
       if(!ok) {
-        status_label_->setText("Newton-Raphson failed to converge");
+        status_label_->setText(jog_error_.isEmpty()
+                                 ? "Newton-Raphson failed to converge"
+                                 : jog_error_);
         done = true;
       }
       moved = true;

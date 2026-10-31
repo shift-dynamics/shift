@@ -5,6 +5,11 @@ layout(local_size_x = 8, local_size_y = 8) in;
 // and one instance per mesh carrying the body pose. World convention: +z is
 // down, so the sky is in the -z direction and the floor is a constant-z
 // plane.
+//
+// One sample per pixel and frame. Besides the progressive mean of the
+// radiance (exact once the view is static), the shader writes the inputs of
+// the SVGF denoiser (svgf_*.comp): the illumination (radiance divided by the
+// albedo of the primary hit) and a G-buffer of the primary hit.
 
 struct RtTriangle {
   vec4 v0, v1, v2; // body coordinates
@@ -28,9 +33,11 @@ struct Instance {
                       // w = 1 / texture scale
   ivec4 offsets;      // x = root node, y = base color, z = metallic
                       // roughness, w = normal texture layer; -1: none
+  mat4 previous_body_to_world; // pose in the previous frame (reprojection)
 };
 
-layout(rgba8, binding = 0) uniform writeonly image2D out_image;
+// illumination of this frame's sample, radiance / albedo (sky: radiance)
+layout(rgba16f, binding = 0) uniform writeonly image2D illumination;
 
 layout(std140, binding = 1) uniform Uniforms {
   mat4 inverse_view;
@@ -42,7 +49,9 @@ layout(std140, binding = 1) uniform Uniforms {
   vec4 sky_horizon;
   vec4 floor_params;  // x = floor z, y = grid spacing, z = enabled, w = extent
   vec4 texture_params; // x = pixel spread angle, y = texture size
-  ivec4 control;      // x = instance count, y = frame index
+  ivec4 control;      // x = instance count, y = sample index (random
+                      // numbers), z = frames accumulated since the view
+                      // last changed
 } u;
 
 layout(std430, binding = 2) readonly buffer Triangles {
@@ -57,10 +66,21 @@ layout(std430, binding = 4) readonly buffer Instances {
   Instance instances[];
 };
 
+// progressive mean of the radiance since the view last changed
 layout(rgba32f, binding = 5) uniform image2D accumulation;
 
 // texture layers of all materials
 layout(binding = 6) uniform sampler2DArray textures;
+
+// G-buffer of the primary hit: world position and instance (-1 sky, with the
+// ray direction in xyz; -2 floor), normal and hit distance, albedo
+layout(rgba32f, binding = 7) uniform writeonly image2D gbuffer_position;
+layout(rgba16f, binding = 8) uniform writeonly image2D gbuffer_normal;
+layout(rgba16f, binding = 9) uniform writeonly image2D gbuffer_albedo;
+// direct sunlight: a delta light with hard shadows, so free of noise apart
+// from the sub-pixel jitter; it bypasses the denoiser's temporal history,
+// which would make moving shadows lag
+layout(rgba16f, binding = 10) uniform writeonly image2D direct_light;
 
 const float PI = 3.14159265358979;
 const float kInfinity = 1e30;
@@ -423,15 +443,13 @@ vec3 SunLight(Surface s, vec3 v, float epsilon) {
   return Brdf(s, v, l) * u.sun_color.rgb * u.sun_direction.w;
 }
 
-vec3 Radiance(vec3 origin, vec3 direction) {
-  Hit hit;
-  if(!Trace(origin, direction, kInfinity, false, hit)) {
-    return Sky(direction, true);
-  }
-  Surface s = GetSurface(origin, direction, hit);
-  float epsilon = 1e-4 * max(hit.t, 1.0);
+// radiance leaving the primary hit s towards the camera, at distance t:
+// returns the indirect part (one bounce) and the direct sunlight in direct
+vec3 Shade(Surface s, vec3 direction, float t, out vec3 direct) {
+  float epsilon = 1e-4 * max(t, 1.0);
   vec3 v = -direction;
-  vec3 color = SunLight(s, v, epsilon);
+  direct = SunLight(s, v, epsilon);
+  vec3 color = vec3(0.0);
 
   // one bounce, sampling either the specular lobe (GGX distributed half
   // vectors) or the diffuse lobe (cosine weighted), in proportion to their
@@ -481,30 +499,67 @@ vec3 Radiance(vec3 origin, vec3 direction) {
   return color;
 }
 
+// radical inverse of i in base b
+float Halton(uint i, uint b) {
+  float f = 1.0;
+  float r = 0.0;
+  while(i > 0u) {
+    f /= float(b);
+    r += f * float(i % b);
+    i /= b;
+  }
+  return r;
+}
+
 void main() {
   ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
-  ivec2 size = imageSize(out_image);
+  ivec2 size = imageSize(illumination);
   if(pixel.x >= size.x || pixel.y >= size.y) {
     return;
   }
-  int frame = u.control.y;
-  seed = Hash(uint(pixel.x + size.x * pixel.y) ^ Hash(uint(frame)));
+  int frame = u.control.z;
+  seed = Hash(uint(pixel.x + size.x * pixel.y) ^ Hash(uint(u.control.y)));
 
-  // jittered primary ray for anti-aliasing
-  vec2 jitter = frame == 0 ? vec2(0.0) : vec2(Random(), Random()) - 0.5;
+  // jittered primary ray for anti-aliasing: one sub-pixel offset per frame
+  // for the whole image, from the Halton (2, 3) sequence. Independent random
+  // offsets per pixel make neighboring pixels along every edge flip sides at
+  // random, a flicker that temporal anti-aliasing cannot settle; a shared
+  // low-discrepancy offset shifts edges coherently and its running mean
+  // converges much faster.
+  uint halton_index = uint(u.control.y) + 1u;
+  vec2 jitter =
+    vec2(Halton(halton_index, 2u), Halton(halton_index, 3u)) - 0.5;
   vec2 ndc = (vec2(pixel) + 0.5 + jitter) / vec2(size) * 2.0 - 1.0;
   vec4 view = u.inverse_projection * vec4(ndc, 1.0, 1.0);
   vec3 direction = normalize((u.inverse_view * vec4(view.xyz / view.w, 0.0)).xyz);
+  vec3 origin = u.camera_position.xyz;
 
-  vec3 color = Radiance(u.camera_position.xyz, direction);
+  vec3 color; // denoised part: indirect light, or the sky
+  vec3 direct = vec3(0.0);
+  vec3 albedo = vec3(1.0);
+  Hit hit;
+  if(Trace(origin, direction, kInfinity, false, hit)) {
+    Surface s = GetSurface(origin, direction, hit);
+    color = Shade(s, direction, hit.t, direct);
+    // demodulation keeps texture detail out of the denoiser's blur; a floor
+    // on the albedo avoids amplifying noise on black surfaces
+    albedo = max(s.albedo, vec3(0.02));
+    imageStore(gbuffer_position, pixel, vec4(s.position, float(hit.instance)));
+    imageStore(gbuffer_normal, pixel, vec4(s.normal, hit.t));
+  } else {
+    color = Sky(direction, true);
+    imageStore(gbuffer_position, pixel, vec4(direction, -1.0));
+    imageStore(gbuffer_normal, pixel, vec4(0.0));
+  }
+  imageStore(illumination, pixel, vec4(color / albedo, 1.0));
+  imageStore(gbuffer_albedo, pixel, vec4(albedo, 1.0));
+  imageStore(direct_light, pixel, vec4(direct, 1.0));
 
-  vec3 mean = color;
+  vec3 radiance = color + direct;
+  vec3 mean = radiance;
   if(frame > 0) {
     vec3 previous = imageLoad(accumulation, pixel).rgb;
-    mean = mix(previous, color, 1.0 / float(frame + 1));
+    mean = mix(previous, radiance, 1.0 / float(frame + 1));
   }
   imageStore(accumulation, pixel, vec4(mean, 1.0));
-
-  vec3 display = mean / (mean + vec3(1.0));
-  imageStore(out_image, pixel, vec4(pow(display, vec3(1.0 / 2.2)), 1.0));
 }

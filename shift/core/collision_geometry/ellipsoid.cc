@@ -24,11 +24,10 @@ void shift::core::collision_geometry::Ellipsoid::DeclareParameters() {
                    false);
 }
 
-namespace {
 
 /*! \brief in place Cholesky factorization of a symmetric positive definite
  * 4x4 matrix in row major order, the lower triangle is overwritten with L */
-bool Cholesky4(double X[16]) {
+static bool Cholesky4(double X[16]) {
   for(int j = 0; j < 4; j++) {
     double d = X[j * 4 + j];
     for(int k = 0; k < j; k++) {
@@ -49,7 +48,6 @@ bool Cholesky4(double X[16]) {
   return true;
 }
 
-} // namespace
 
 /*!
 Khachiyan's algorithm finds the ellipse equation in center form

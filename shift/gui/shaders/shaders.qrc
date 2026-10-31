@@ -8,5 +8,10 @@
     <file>floor.frag.qsb</file>
     <file>blit.frag.qsb</file>
     <file>raytrace.comp.qsb</file>
+    <file>svgf_temporal.comp.qsb</file>
+    <file>svgf_variance.comp.qsb</file>
+    <file>svgf_atrous.comp.qsb</file>
+    <file>svgf_composite.comp.qsb</file>
+    <file>svgf_taa.comp.qsb</file>
   </qresource>
 </RCC>

@@ -2,10 +2,9 @@
 
 #include <algorithm>
 
-namespace {
 
-constexpr int kBinCount = 16;
-constexpr int kMaxLeafSize = 4;
+static constexpr int kBinCount = 16;
+static constexpr int kMaxLeafSize = 4;
 
 struct Box {
   float min[3] = {1e30f, 1e30f, 1e30f};
@@ -36,7 +35,7 @@ struct TriangleInfo {
   float centroid[3];
 };
 
-void BuildNode(std::vector<shift::gui::BvhNode>& nodes,
+static void BuildNode(std::vector<shift::gui::BvhNode>& nodes,
                const std::vector<TriangleInfo>& info, std::vector<int>& order,
                int start, int end) {
   const int node_index = static_cast<int>(nodes.size());
@@ -152,7 +151,6 @@ void BuildNode(std::vector<shift::gui::BvhNode>& nodes,
   BuildNode(nodes, info, order, mid, end);
 }
 
-} // namespace
 
 std::vector<shift::gui::BvhNode>
 shift::gui::BuildBvh(std::vector<RtTriangle>& triangles) {

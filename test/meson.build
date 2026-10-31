@@ -9,6 +9,7 @@ shift_test = executable(
   'test_bitfield.cc',
   'test_examples.cc',
   'test_excavator.cc',
+  'test_specified_coordinates.cc',
   # 'test_kdtree.cc',
   dependencies: [shift_core_dep, gtest_dep],
   implicit_include_directories: false,

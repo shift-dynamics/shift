@@ -33,7 +33,9 @@ rcc = find_program(qt_tool_candidates['rcc'] + ['rcc6', 'rcc'])
 # GLSL -> Qt shader bundles, packed into a resource
 shader_bundles = []
 foreach shader : ['mesh.vert', 'mesh.frag', 'fullscreen.vert', 'sky.frag',
-                  'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp']
+                  'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp',
+                  'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
+                  'svgf_composite.comp', 'svgf_taa.comp']
   shader_bundles += custom_target(
     shader.replace('.', '_') + '_qsb',
     input: 'shaders' / shader,

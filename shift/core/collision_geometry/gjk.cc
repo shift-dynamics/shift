@@ -16,29 +16,28 @@ kept per pair of geometries in a ContactPair.
 #include "shift/core/collision_geometry/base.h"
 #include "shift/core/collision_geometry/sphere.h"
 
-namespace {
 
-constexpr double kEps = 1.0e-10;
-constexpr int kMaxIterations = 50;
+static constexpr double kEps = 1.0e-10;
+static constexpr int kMaxIterations = 50;
 
-inline ksl_vec3_t Sub(const ksl_vec3_t& a, const ksl_vec3_t& b) {
+static inline ksl_vec3_t Sub(const ksl_vec3_t& a, const ksl_vec3_t& b) {
   return {{a.x - b.x, a.y - b.y, a.z - b.z}};
 }
 
-inline ksl_vec3_t Neg(const ksl_vec3_t& a) {
+static inline ksl_vec3_t Neg(const ksl_vec3_t& a) {
   return {{-a.x, -a.y, -a.z}};
 }
 
-inline ksl_vec3_t Cross(const ksl_vec3_t& a, const ksl_vec3_t& b) {
+static inline ksl_vec3_t Cross(const ksl_vec3_t& a, const ksl_vec3_t& b) {
   return {{a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
            a.x * b.y - a.y * b.x}};
 }
 
-inline double Dot(const ksl_vec3_t& a, const ksl_vec3_t& b) {
+static inline double Dot(const ksl_vec3_t& a, const ksl_vec3_t& b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-inline double Norm(const ksl_vec3_t& a) {
+static inline double Norm(const ksl_vec3_t& a) {
   return std::sqrt(Dot(a, a));
 }
 
@@ -48,7 +47,7 @@ the vector OA, which locates the simplex vertex point A relative to the origin
 point O. The next search direction is set to -OA. If the point is within EPS of
 the origin, the objects are in contact.
 */
-void Simplex0(ksl_vec3_t& d, ksl_vec3_t s[13], bool& collision,
+static void Simplex0(ksl_vec3_t& d, ksl_vec3_t s[13], bool& collision,
               bool& success) {
   d = Neg(s[0]);
   if(Norm(d) < kEps) {
@@ -67,7 +66,7 @@ the line, in the plane containing the origin, toward the origin:
 
 s[0] = OA, s[1] = OB, s[2] = AB, s[3] = OA X AB
 */
-void Simplex1(ksl_vec3_t& d, ksl_vec3_t s[13], bool& collision,
+static void Simplex1(ksl_vec3_t& d, ksl_vec3_t s[13], bool& collision,
               bool& success) {
   if(Dot(s[0], d) < -kEps) {
     success = true;
@@ -101,7 +100,7 @@ which the simplex vectors are recovered.
 s[0] = OA, s[1] = OB, s[2] = OC, s[3] = AB, s[4] = AC, s[5] = ABCn,
 s[6] = ACn, s[7] = ABn, s[8] = OA X AB or OA X AC
 */
-void Simplex2(ksl_vec3_t& d, ksl_vec3_t s[13], ksl_vec3_t la[4],
+static void Simplex2(ksl_vec3_t& d, ksl_vec3_t s[13], ksl_vec3_t la[4],
               ksl_vec3_t lb[4], int& count, bool& collision, bool& success) {
   if(Dot(s[0], d) < -kEps) {
     success = true;
@@ -153,7 +152,7 @@ toward A. If it is inside all faces, the objects intersect.
 s[0..3] = OA, OB, OC, OD, s[4..6] = AB, AC, AD, s[7..9] = ABCn, ACDn, ADBn,
 s[10], s[11] = edge normals of the face being tested, s[12] = OA X edge
 */
-void Simplex3(ksl_vec3_t& d, ksl_vec3_t s[13], ksl_vec3_t la[4],
+static void Simplex3(ksl_vec3_t& d, ksl_vec3_t s[13], ksl_vec3_t la[4],
               ksl_vec3_t lb[4], int& count, bool& collision, bool& success) {
   if(Dot(s[0], d) < -kEps) {
     success = true;
@@ -245,7 +244,7 @@ functions rely on (e.g. that the origin is not below the base of a
 tetrahedron) no longer holds, so only the newest point is restored, recomputed
 from its local coordinates at the current poses.
 */
-bool Gjk(shift::core::collision_geometry::ContactPair& p) {
+static bool Gjk(shift::core::collision_geometry::ContactPair& p) {
   auto* A = p.a;
   auto* B = p.b;
   ksl_vec3_t* la = p.extreme_vertex_local_a;
@@ -310,7 +309,6 @@ bool Gjk(shift::core::collision_geometry::ContactPair& p) {
   return false;
 }
 
-} // namespace
 
 bool shift::core::collision_geometry::TestContact(ContactPair& pair) {
   auto sphere_a = dynamic_cast<const Sphere*>(pair.a);
