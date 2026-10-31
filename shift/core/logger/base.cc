@@ -1,0 +1,30 @@
+#include "shift/core/logger/base.h"
+#include "shift/core/context.h"
+#include "shift/core/logger/csv.h"
+#include "shift/core/logger/hdf5.h"
+
+bool shift::core::logger::Modules::is_initialized() {
+  if(!shift::core::logger::CSV::is_registered()) {
+    return false;
+  }
+  if(!shift::core::logger::HDF5::is_registered()) {
+    return false;
+  }
+  return true;
+}
+
+void shift::core::logger::Base::DeclareParameters() {
+  DeclareParameter("log_all_channels", &log_all_channels_,
+               "indicates to log all generalized coordinates, defaults to true "
+               "if not specified.",
+               false);
+}
+
+void shift::core::logger::Base::Load() {}
+
+void shift::core::logger::Base::Connect() {}
+
+void shift::core::logger::Base::ActivateObjects(bool parent_is_active) {
+  assert(context_);
+  context_->ActivateObject(this, parent_is_active && active_);
+}

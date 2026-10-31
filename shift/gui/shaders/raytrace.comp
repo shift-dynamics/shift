@@ -1,0 +1,510 @@
+#version 450
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// Path tracer over a two-level scene: one BVH per mesh in body coordinates,
+// and one instance per mesh carrying the body pose. World convention: +z is
+// down, so the sky is in the -z direction and the floor is a constant-z
+// plane.
+
+struct RtTriangle {
+  vec4 v0, v1, v2; // body coordinates
+  vec4 n0, n1, n2;
+};
+
+struct BvhNode {
+  vec3 box_min;
+  int right_or_first;
+  vec3 box_max;
+  int triangle_count; // < 0: interior node
+};
+
+struct Instance {
+  mat4 body_to_world;
+  mat4 world_to_body;
+  vec4 box_min;       // world space bounds
+  vec4 box_max;
+  vec4 albedo;        // w = normal map scale
+  vec4 material;      // x = metallic, y = roughness, z = triplanar,
+                      // w = 1 / texture scale
+  ivec4 offsets;      // x = root node, y = base color, z = metallic
+                      // roughness, w = normal texture layer; -1: none
+};
+
+layout(rgba8, binding = 0) uniform writeonly image2D out_image;
+
+layout(std140, binding = 1) uniform Uniforms {
+  mat4 inverse_view;
+  mat4 inverse_projection;
+  vec4 camera_position;
+  vec4 sun_direction; // unit vector towards the sun, w = intensity
+  vec4 sun_color;
+  vec4 sky_zenith;
+  vec4 sky_horizon;
+  vec4 floor_params;  // x = floor z, y = grid spacing, z = enabled, w = extent
+  vec4 texture_params; // x = pixel spread angle, y = texture size
+  ivec4 control;      // x = instance count, y = frame index
+} u;
+
+layout(std430, binding = 2) readonly buffer Triangles {
+  RtTriangle triangles[];
+};
+
+layout(std430, binding = 3) readonly buffer Nodes {
+  BvhNode nodes[];
+};
+
+layout(std430, binding = 4) readonly buffer Instances {
+  Instance instances[];
+};
+
+layout(rgba32f, binding = 5) uniform image2D accumulation;
+
+// texture layers of all materials
+layout(binding = 6) uniform sampler2DArray textures;
+
+const float PI = 3.14159265358979;
+const float kInfinity = 1e30;
+
+// ---------------------------------------------------------------------------
+// random numbers
+
+uint seed;
+
+uint Hash(uint x) {
+  x ^= x >> 16u;
+  x *= 0x7feb352du;
+  x ^= x >> 15u;
+  x *= 0x846ca68bu;
+  x ^= x >> 16u;
+  return x;
+}
+
+float Random() {
+  seed = Hash(seed);
+  return float(seed) * (1.0 / 4294967296.0);
+}
+
+// GGX distributed half vector about n, alpha = roughness^2
+vec3 SampleGgx(vec3 n, float alpha) {
+  float phi = 2.0 * PI * Random();
+  float v = Random();
+  float cos_theta = sqrt((1.0 - v) / (1.0 + (alpha * alpha - 1.0) * v));
+  float sin_theta = sqrt(max(1.0 - cos_theta * cos_theta, 0.0));
+  vec3 a = abs(n.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+  vec3 t = normalize(cross(a, n));
+  vec3 b = cross(n, t);
+  return normalize(t * (sin_theta * cos(phi)) + b * (sin_theta * sin(phi)) +
+                   n * cos_theta);
+}
+
+vec3 CosineHemisphere(vec3 n) {
+  float phi = 2.0 * PI * Random();
+  float r2 = Random();
+  float r = sqrt(r2);
+  vec3 a = abs(n.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+  vec3 t = normalize(cross(a, n));
+  vec3 b = cross(n, t);
+  return normalize(t * (r * cos(phi)) + b * (r * sin(phi)) + n * sqrt(1.0 - r2));
+}
+
+// ---------------------------------------------------------------------------
+// environment, keep in sync with sky.frag and floor.frag
+
+// with_sun: false for bounce rays, since the sun is sampled explicitly
+vec3 Sky(vec3 d, bool with_sun) {
+  float altitude = -d.z;
+  vec3 color;
+  if(altitude >= 0.0) {
+    color = mix(u.sky_horizon.rgb, u.sky_zenith.rgb, pow(altitude, 0.5));
+  } else {
+    color = mix(u.sky_horizon.rgb, vec3(0.12, 0.11, 0.10),
+                clamp(-altitude * 4.0, 0.0, 1.0));
+  }
+  if(with_sun) {
+    float s = max(dot(d, u.sun_direction.xyz), 0.0);
+    color += u.sun_color.rgb * (pow(s, 1500.0) * 20.0 + pow(s, 30.0) * 0.15);
+  }
+  return color;
+}
+
+// exact line coverage: jittered samples accumulated over frames filter the
+// lines, so no footprint estimate is needed. Keep widths and colors in sync
+// with floor.frag.
+float GridLine(vec2 uv, float width) {
+  vec2 grid_uv = 1.0 - abs(fract(uv) * 2.0 - 1.0); // 0 on a line
+  return (grid_uv.x < width || grid_uv.y < width) ? 1.0 : 0.0;
+}
+
+vec3 FloorAlbedo(vec2 p, float spacing) {
+  float minor = GridLine(p / spacing, 0.02);
+  float major = GridLine(p / (10.0 * spacing), 0.004);
+  return mix(vec3(0.42, 0.42, 0.40), vec3(0.22, 0.22, 0.22),
+             max(minor * 0.6, major));
+}
+
+// ---------------------------------------------------------------------------
+// intersection
+
+bool BoxHit(vec3 origin, vec3 inverse_direction, vec3 box_min, vec3 box_max,
+            float t_max) {
+  vec3 t0 = (box_min - origin) * inverse_direction;
+  vec3 t1 = (box_max - origin) * inverse_direction;
+  vec3 near = min(t0, t1);
+  vec3 far = max(t0, t1);
+  float t_near = max(max(near.x, near.y), near.z);
+  float t_far = min(min(far.x, far.y), far.z);
+  return t_far >= max(t_near, 0.0) && t_near < t_max;
+}
+
+bool TriangleHit(vec3 origin, vec3 direction, vec3 v0, vec3 v1, vec3 v2,
+                 out float t, out vec2 bary) {
+  vec3 e1 = v1 - v0;
+  vec3 e2 = v2 - v0;
+  vec3 p = cross(direction, e2);
+  float det = dot(e1, p);
+  if(abs(det) < 1e-12) {
+    return false;
+  }
+  float inverse_det = 1.0 / det;
+  vec3 s = origin - v0;
+  float b1 = dot(s, p) * inverse_det;
+  if(b1 < 0.0 || b1 > 1.0) {
+    return false;
+  }
+  vec3 q = cross(s, e1);
+  float b2 = dot(direction, q) * inverse_det;
+  if(b2 < 0.0 || b1 + b2 > 1.0) {
+    return false;
+  }
+  t = dot(e2, q) * inverse_det;
+  bary = vec2(b1, b2);
+  return t > 0.0;
+}
+
+struct Hit {
+  float t;
+  int instance;  // -1: none, -2: floor
+  int triangle;
+  vec2 bary;
+};
+
+// closest hit when any_hit is false, otherwise stops at the first hit
+bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
+           out Hit hit) {
+  hit.t = t_max;
+  hit.instance = -1;
+  hit.triangle = -1;
+  hit.bary = vec2(0.0);
+
+  vec3 inverse_world_direction = 1.0 / direction;
+  int stack[64];
+
+  for(int i = 0; i < u.control.x; i++) {
+    if(!BoxHit(origin, inverse_world_direction, instances[i].box_min.xyz,
+               instances[i].box_max.xyz, hit.t)) {
+      continue;
+    }
+    // rigid transform: the ray parameter t is the same in both frames
+    vec3 o = (instances[i].world_to_body * vec4(origin, 1.0)).xyz;
+    vec3 d = mat3(instances[i].world_to_body) * direction;
+    vec3 inverse_d = 1.0 / d;
+
+    int sp = 0;
+    stack[sp++] = instances[i].offsets.x;
+    while(sp > 0) {
+      int index = stack[--sp];
+      BvhNode node = nodes[index];
+      if(!BoxHit(o, inverse_d, node.box_min, node.box_max, hit.t)) {
+        continue;
+      }
+      if(node.triangle_count >= 0) {
+        for(int j = 0; j < node.triangle_count; j++) {
+          int k = node.right_or_first + j;
+          float t;
+          vec2 bary;
+          if(TriangleHit(o, d, triangles[k].v0.xyz, triangles[k].v1.xyz,
+                         triangles[k].v2.xyz, t, bary) &&
+             t < hit.t) {
+            hit.t = t;
+            hit.instance = i;
+            hit.triangle = k;
+            hit.bary = bary;
+            if(any_hit) {
+              return true;
+            }
+          }
+        }
+      } else if(sp < 62) {
+        stack[sp++] = node.right_or_first;
+        stack[sp++] = index + 1;
+      }
+    }
+  }
+
+  if(u.floor_params.z > 0.5 && direction.z > 1e-6) {
+    float t = (u.floor_params.x - origin.z) / direction.z;
+    if(t > 0.0 && t < hit.t) {
+      hit.t = t;
+      hit.instance = -2;
+    }
+  }
+  return hit.instance != -1;
+}
+
+struct Surface {
+  vec3 position;
+  vec3 normal;
+  vec3 albedo;
+  float metallic;
+  float roughness;
+};
+
+// ---------------------------------------------------------------------------
+// materials, keep in sync with mesh.frag. Without screen space derivatives,
+// texture levels of detail follow from the ray footprint.
+
+vec3 SrgbToLinear(vec3 c) {
+  return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)),
+             step(vec3(0.04045), c));
+}
+
+vec4 SampleLayer(int layer, vec2 p, float lod) {
+  return textureLod(textures, vec3(p, float(layer)), lod);
+}
+
+vec4 SampleTriplanar(int layer, vec3 p, vec3 w, float lod) {
+  return SampleLayer(layer, p.zy, lod) * w.x +
+         SampleLayer(layer, p.xz, lod) * w.y +
+         SampleLayer(layer, p.xy, lod) * w.z;
+}
+
+vec3 TriplanarNormal(int layer, vec3 p, vec3 n, vec3 w, float scale, float lod) {
+  vec3 tx = SampleLayer(layer, p.zy, lod).xyz * 2.0 - 1.0;
+  vec3 ty = SampleLayer(layer, p.xz, lod).xyz * 2.0 - 1.0;
+  vec3 tz = SampleLayer(layer, p.xy, lod).xyz * 2.0 - 1.0;
+  tx.xy *= scale;
+  ty.xy *= scale;
+  tz.xy *= scale;
+  tx = vec3(tx.xy + n.zy, abs(tx.z) * n.x);
+  ty = vec3(ty.xy + n.xz, abs(ty.z) * n.y);
+  tz = vec3(tz.xy + n.xy, abs(tz.z) * n.z);
+  return normalize(tx.zyx * w.x + ty.xzy * w.y + tz.xyz * w.z);
+}
+
+Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
+  Surface s;
+  s.position = origin + direction * hit.t;
+  if(hit.instance == -2) {
+    s.normal = direction.z > 0.0 ? vec3(0.0, 0.0, -1.0) : vec3(0.0, 0.0, 1.0);
+    s.albedo = FloorAlbedo(s.position.xy, u.floor_params.y);
+    s.metallic = 0.0;
+    s.roughness = 0.9;
+    return s;
+  }
+
+  Instance instance = instances[hit.instance];
+  RtTriangle tri = triangles[hit.triangle];
+  float b0 = 1.0 - hit.bary.x - hit.bary.y;
+  vec3 e1 = tri.v1.xyz - tri.v0.xyz;
+  vec3 e2 = tri.v2.xyz - tri.v0.xyz;
+  vec3 face = cross(e1, e2);
+  vec3 nb = tri.n0.xyz * b0 + tri.n1.xyz * hit.bary.x + tri.n2.xyz * hit.bary.y;
+  if(dot(nb, nb) < 1e-12) {
+    nb = face;
+  }
+  nb = normalize(nb);
+  mat3 rotation = mat3(instance.body_to_world);
+  if(dot(rotation * nb, direction) > 0.0) {
+    nb = -nb; // two sided, before normal mapping
+  }
+
+  vec2 uv0 = vec2(tri.v0.w, tri.n0.w);
+  vec2 uv1 = vec2(tri.v1.w, tri.n1.w);
+  vec2 uv2 = vec2(tri.v2.w, tri.n2.w);
+  vec2 uv = uv0 * b0 + uv1 * hit.bary.x + uv2 * hit.bary.y;
+  vec2 d1 = uv1 - uv0;
+  vec2 d2 = uv2 - uv0;
+  float uv_det = d1.x * d2.y - d1.y * d2.x;
+
+  bool triplanar = instance.material.z > 0.5;
+  vec3 p = (instance.world_to_body * vec4(s.position, 1.0)).xyz *
+           instance.material.w;
+  vec3 w = pow(abs(nb), vec3(4.0));
+  w /= w.x + w.y + w.z;
+
+  // level of detail: texels covered by the ray footprint at the hit
+  float texels_per_length =
+    triplanar ? u.texture_params.y * instance.material.w
+              : u.texture_params.y *
+                  sqrt(abs(uv_det) / max(length(face), 1e-20));
+  float lod = log2(max(hit.t * u.texture_params.x * texels_per_length, 1.0));
+
+  s.albedo = instance.albedo.rgb;
+  s.metallic = instance.material.x;
+  s.roughness = instance.material.y;
+  if(instance.offsets.y >= 0) {
+    vec4 t = triplanar ? SampleTriplanar(instance.offsets.y, p, w, lod)
+                       : SampleLayer(instance.offsets.y, uv, lod);
+    s.albedo *= SrgbToLinear(t.rgb);
+  }
+  if(instance.offsets.z >= 0) {
+    vec4 t = triplanar ? SampleTriplanar(instance.offsets.z, p, w, lod)
+                       : SampleLayer(instance.offsets.z, uv, lod);
+    s.roughness *= t.g;
+    s.metallic *= t.b;
+  }
+  if(instance.offsets.w >= 0) {
+    if(triplanar) {
+      nb = TriplanarNormal(instance.offsets.w, p, nb, w, instance.albedo.w,
+                            lod);
+    } else if(abs(uv_det) > 1e-20) {
+      // tangent frame of the triangle from its texture coordinates
+      vec3 tangent = (e1 * d2.y - e2 * d1.y) / uv_det;
+      vec3 bitangent = (e2 * d1.x - e1 * d2.x) / uv_det;
+      tangent = normalize(tangent - nb * dot(nb, tangent));
+      float handedness = dot(cross(nb, tangent), bitangent) < 0.0 ? -1.0 : 1.0;
+      vec3 t = SampleLayer(instance.offsets.w, uv, lod).xyz * 2.0 - 1.0;
+      t.xy *= instance.albedo.w;
+      nb = normalize(mat3(tangent, cross(nb, tangent) * handedness, nb) * t);
+    }
+  }
+  s.normal = normalize(rotation * nb);
+  s.roughness = clamp(s.roughness, 0.05, 1.0);
+  s.metallic = clamp(s.metallic, 0.0, 1.0);
+  return s;
+}
+
+float DistributionGgx(float n_dot_h, float roughness) {
+  float a2 = roughness * roughness * roughness * roughness;
+  float d = n_dot_h * n_dot_h * (a2 - 1.0) + 1.0;
+  return a2 / (PI * d * d);
+}
+
+float GeometrySmith(float n_dot_v, float n_dot_l, float roughness) {
+  float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
+  return n_dot_v / (n_dot_v * (1.0 - k) + k) *
+         n_dot_l / (n_dot_l * (1.0 - k) + k);
+}
+
+// Smith-Schlick visibility with the remapping k = alpha / 2 used for
+// sampled (not analytic) light
+float GeometrySmithIbl(float n_dot_v, float n_dot_l, float roughness) {
+  float k = roughness * roughness / 2.0;
+  return n_dot_v / (n_dot_v * (1.0 - k) + k) *
+         n_dot_l / (n_dot_l * (1.0 - k) + k);
+}
+
+float Luminance(vec3 c) {
+  return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
+vec3 Brdf(Surface s, vec3 v, vec3 l) {
+  vec3 h = normalize(v + l);
+  float n_dot_l = max(dot(s.normal, l), 0.0);
+  float n_dot_v = max(dot(s.normal, v), 1e-4);
+  vec3 f0 = mix(vec3(0.04), s.albedo, s.metallic);
+  vec3 f = f0 + (1.0 - f0) * pow(1.0 - max(dot(h, v), 0.0), 5.0);
+  vec3 specular = DistributionGgx(max(dot(s.normal, h), 0.0), s.roughness) *
+                  GeometrySmith(n_dot_v, n_dot_l, s.roughness) * f /
+                  (4.0 * n_dot_v * n_dot_l + 1e-4);
+  vec3 diffuse = (1.0 - f) * (1.0 - s.metallic) * s.albedo / PI;
+  return (diffuse + specular) * n_dot_l;
+}
+
+vec3 SunLight(Surface s, vec3 v, float epsilon) {
+  vec3 l = u.sun_direction.xyz;
+  if(dot(s.normal, l) <= 0.0) {
+    return vec3(0.0);
+  }
+  Hit shadow;
+  if(Trace(s.position + s.normal * epsilon, l, kInfinity, true, shadow)) {
+    return vec3(0.0);
+  }
+  return Brdf(s, v, l) * u.sun_color.rgb * u.sun_direction.w;
+}
+
+vec3 Radiance(vec3 origin, vec3 direction) {
+  Hit hit;
+  if(!Trace(origin, direction, kInfinity, false, hit)) {
+    return Sky(direction, true);
+  }
+  Surface s = GetSurface(origin, direction, hit);
+  float epsilon = 1e-4 * max(hit.t, 1.0);
+  vec3 v = -direction;
+  vec3 color = SunLight(s, v, epsilon);
+
+  // one bounce, sampling either the specular lobe (GGX distributed half
+  // vectors) or the diffuse lobe (cosine weighted), in proportion to their
+  // estimated reflectance
+  float n_dot_v = max(dot(s.normal, v), 1e-4);
+  vec3 f0 = mix(vec3(0.04), s.albedo, s.metallic);
+  vec3 f_v = f0 + (1.0 - f0) * pow(1.0 - n_dot_v, 5.0);
+  vec3 diffuse_albedo = (1.0 - f_v) * (1.0 - s.metallic) * s.albedo;
+  float specular_weight = Luminance(f_v);
+  float diffuse_weight = Luminance(diffuse_albedo);
+  float p_specular = clamp(
+    specular_weight / max(specular_weight + diffuse_weight, 1e-6), 0.05, 0.95);
+
+  vec3 bounce_direction;
+  vec3 throughput;
+  if(Random() < p_specular) {
+    vec3 h = SampleGgx(s.normal, s.roughness * s.roughness);
+    bounce_direction = reflect(-v, h);
+    float n_dot_l = dot(s.normal, bounce_direction);
+    float v_dot_h = dot(v, h);
+    if(n_dot_l <= 0.0 || v_dot_h <= 0.0) {
+      return color; // sample below the surface
+    }
+    // f cos / pdf, with pdf = D (n.h) / (4 v.h)
+    vec3 f = f0 + (1.0 - f0) * pow(1.0 - v_dot_h, 5.0);
+    float g = GeometrySmithIbl(n_dot_v, n_dot_l, s.roughness);
+    throughput = f * g * v_dot_h /
+                 (n_dot_v * max(dot(s.normal, h), 1e-4) * p_specular);
+  } else {
+    bounce_direction = CosineHemisphere(s.normal);
+    throughput = diffuse_albedo / (1.0 - p_specular);
+  }
+
+  vec3 bounce_origin = s.position + s.normal * epsilon;
+  Hit bounce;
+  vec3 incoming;
+  if(Trace(bounce_origin, bounce_direction, kInfinity, false, bounce)) {
+    Surface b = GetSurface(bounce_origin, bounce_direction, bounce);
+    // second surface: unshadowed sun plus a constant sky term
+    float n_dot_l = max(dot(b.normal, u.sun_direction.xyz), 0.0);
+    incoming = b.albedo * (u.sun_color.rgb * u.sun_direction.w * n_dot_l / PI +
+                           0.3 * u.sky_zenith.rgb);
+  } else {
+    incoming = Sky(bounce_direction, false);
+  }
+  color += incoming * throughput;
+  return color;
+}
+
+void main() {
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(out_image);
+  if(pixel.x >= size.x || pixel.y >= size.y) {
+    return;
+  }
+  int frame = u.control.y;
+  seed = Hash(uint(pixel.x + size.x * pixel.y) ^ Hash(uint(frame)));
+
+  // jittered primary ray for anti-aliasing
+  vec2 jitter = frame == 0 ? vec2(0.0) : vec2(Random(), Random()) - 0.5;
+  vec2 ndc = (vec2(pixel) + 0.5 + jitter) / vec2(size) * 2.0 - 1.0;
+  vec4 view = u.inverse_projection * vec4(ndc, 1.0, 1.0);
+  vec3 direction = normalize((u.inverse_view * vec4(view.xyz / view.w, 0.0)).xyz);
+
+  vec3 color = Radiance(u.camera_position.xyz, direction);
+
+  vec3 mean = color;
+  if(frame > 0) {
+    vec3 previous = imageLoad(accumulation, pixel).rgb;
+    mean = mix(previous, color, 1.0 / float(frame + 1));
+  }
+  imageStore(accumulation, pixel, vec4(mean, 1.0));
+
+  vec3 display = mean / (mean + vec3(1.0));
+  imageStore(out_image, pixel, vec4(pow(display, vec3(1.0 / 2.2)), 1.0));
+}

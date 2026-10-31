@@ -1,0 +1,17 @@
+# Blender MTL File: 'None'
+# Material Count: 1
+
+newmtl 1.003
+Ns 686.274510
+Ka 0.100000 0.100000 0.100000
+Kd 0.15 0.15 0.15
+Ks 0.250980 0.250980 0.250980
+Ni 1.000000
+d 1.0
+illum 2
+Pm 1.0
+Pr 1.6
+map_Kd textures/steel_base_color.png
+map_Pr textures/steel_roughness.png
+norm -bm 0.3 textures/steel_normal.png
+

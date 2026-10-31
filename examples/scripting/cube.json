@@ -1,0 +1,81 @@
+{
+  "model_parameters": {
+    "version": "2.0",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [
+      {
+        "type": "rnca",
+        "infinity_norm_multiplier": 2.0
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 1.0,
+        "time_step": 0.01,
+        "relative_error": 0.0001,
+        "absolute_error": 0.0001,
+        "omega_n": 200
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "cube.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "main_assembly",
+      "bodies": [
+        {
+          "name": "cube",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": ["cube.obj", "cube.mtl"]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izx": 0.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0,
+            "Izz": 1.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A_fixed_to_cube",
+          "type": "prismatic",
+          "parent": [
+            ["fixed"],
+            "origin"
+          ],
+          "child": [
+            ["cube"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        }
+      ],
+      "active": true
+    }
+  ]
+}

@@ -770,8 +770,8 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = @doxy_main_page@ \
-                         @shift_SOURCE_DIR@/src/core \
-                         @shift_SOURCE_DIR@/src/gui \
+                         @shift_SOURCE_DIR@/shift/core \
+                         @shift_SOURCE_DIR@/shift/gui \
                          @PROJECT_SOURCE_DIR@/README.md \
                          @PROJECT_SOURCE_DIR@/doc/install.md \
                          @PROJECT_SOURCE_DIR@/doc/shift_objects.md \
@@ -816,8 +816,8 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = @shift_SOURCE_DIR@/src/deprecated \
-                         @shift_SOURCE_DIR@/src/deprecated
+EXCLUDE                = @shift_SOURCE_DIR@/shift/deprecated \
+                         @shift_SOURCE_DIR@/shift/deprecated
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
