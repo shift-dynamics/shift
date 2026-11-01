@@ -22,6 +22,9 @@ shift_args = ['-DSHIFT_LOG_LEVEL=@0@'.format(log_level)]
 if get_option('buildtype') == 'debug'
   shift_args += '-DSHIFT_DEBUG_BUILD'
 endif
+if get_option('fp_trap')
+  shift_args += '-DSHIFT_FP_TRAP'
+endif
 cpu = get_option('cpu')
 shift_args += cpp.get_supported_arguments(
   '-march=' + cpu,
@@ -75,6 +78,7 @@ summary(
     'cpu': cpu,
     'lto': get_option('b_lto'),
     'log level': log_level,
+    'fp trap': get_option('fp_trap'),
     'tests': is_variable('gtest_dep') and gtest_dep.found(),
     'gui': shift_gui_dep.found(),
   },
