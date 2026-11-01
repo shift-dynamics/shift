@@ -99,7 +99,25 @@
           "definition": "pac2002_235_60R15.tir",
           "wheel_body": "right_rear_wheel",
           "use_transient_slip": false
+        }
+      ],
+      "sensors": [
+        {
+          "type": "frame",
+          "name": "chassis_Tx_velocity",
+          "body_frame_pair": ["chassis", "origin"],
+          "quantity": "velocity",
+          "coordinate_system": "local",
+          "dof": "Tx"
         },
+        {
+          "type": "joint",
+          "name": "L_position",
+          "joint": "L",
+          "quantity": "position"
+        }
+      ],
+      "controllers": [
         {
           "type": "pid",
           "name": "pid_right_front_wheel",
@@ -108,17 +126,8 @@
           "kd": 0.0,
           "target": 25.0,
           "comment": "pid control for right front wheel",
-          "input": {
-            "type": "frame",
-            "coordinate_system": "local",
-            "body_frame_pair": ["chassis", "origin"],
-            "dof": "Tx",
-            "target_type": "velocity"
-          },
-          "output": {
-            "type": "joint",
-            "joint": "AI"
-          }
+          "sensor": "chassis_Tx_velocity",
+          "joint": "AI"
         },
         {
           "type": "pid",
@@ -128,17 +137,8 @@
           "kd": 0.0,
           "target": 25.0,
           "comment": "pid control for left front wheel",
-          "input": {
-            "type": "frame",
-            "coordinate_system": "local",
-            "body_frame_pair": ["chassis", "origin"],
-            "dof": "Tx",
-            "target_type": "velocity"
-          },
-          "output": {
-            "type": "joint",
-            "joint": "AF"
-          }
+          "sensor": "chassis_Tx_velocity",
+          "joint": "AF"
         },
         {
           "type": "pid",
@@ -149,15 +149,8 @@
           "target": 0.02,
           "active": false,
           "comment": "pid control for steering rack",
-          "input": {
-            "type": "joint",
-            "joint": "L",
-            "target_type": "position"
-          },
-          "output": {
-            "type": "joint",
-            "joint": "L"
-          }
+          "sensor": "L_position",
+          "joint": "L"
         }
       ],
       "bodies": [

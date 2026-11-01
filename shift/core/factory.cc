@@ -1,7 +1,7 @@
 #include "shift/core/factory.h"
 
 /* explicit instantiation of Base class */
-template class shift::core::Factory<shift::core::behavior::Base>;
+template class shift::core::Factory<shift::core::controller::Base>;
 
 /* explicit instantiation of Base class */
 template class shift::core::Factory<shift::core::body::Base>;

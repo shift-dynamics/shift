@@ -72,18 +72,14 @@ bool shift::core::topology::MatchFullyQualifiedName(
 \param k index of second body to test
 */
 bool shift::core::topology::InPath(std::vector<int>& pcl, int j, int k) {
-  if(j == k) {
-    return true;
-  }
-  bool in_path = false;
-  while(j >= -1) {
-    if(j == k) {
-      in_path = true;
-      break;
+  /* walk from j toward the fixed body (-1), which has no parent */
+  while(j != k) {
+    if(j < 0) {
+      return false;
     }
     j = pcl[j];
   }
-  return in_path;
+  return true;
 }
 
 /*!

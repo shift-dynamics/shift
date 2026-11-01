@@ -32,6 +32,11 @@ bool shift::core::joint::Modules::is_initialized() {
 void shift::core::joint::Base::DeclareParameters() {
   DeclareParameter("name", &name_, "descriptive joint name", true);
   DeclareParameter("type", &type_, "joint type", true);
+  DeclareParameter("active", &active_,
+                   "whether the joint is part of the simulation (optional, "
+                   "default=true); a joint to an inactive body must be "
+                   "inactive",
+                   false);
   DeclareParameter("parent", &parent_, "parent body/frame pair", true)
     .set_row_dim(2)
     .set_column_dim(-1);

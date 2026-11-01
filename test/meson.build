@@ -29,30 +29,10 @@ example_models = run_command(
 # models known not to run yet; they are expected to fail so the suite stays
 # green, and meson reports an unexpected pass once they are fixed
 known_failures = {
-  # the 'tire' force module is not implemented (no factory registration)
-  'vehicle/tire_fiala.json': 'tire',
-  'vehicle/tire_fiala_control.json': 'tire',
-  'vehicle/tire_fiala_rig.json': 'tire',
-  'vehicle/tire_pac2002.json': 'tire',
-  'vehicle/vehicle.json': 'tire',
-  'vehicle/vehicle_control.json': 'tire',
-  'vehicle/vehicle_control_15mps.json': 'tire',
-  'vehicle/vehicle_control_5mps.json': 'tire',
-  'vehicle/vehicle_control_5mps_float.json': 'tire',
-  'vehicle/vehicle_control_magic.json': 'tire',
-  'vehicle/vehicle_no_front_steering.json': 'tire',
-  'vehicle/vehicle_no_write.json': 'tire',
-  # stale backups of vehicle.json in an old format
-  'vehicle/vehicle_backup.json': 'old format',
-  'vehicle/vehicle_backup2.json': 'old format',
+  # the PAC2002 tire model is not ported yet
+  'vehicle/tire_pac2002.json': 'pac2002',
+  'vehicle/vehicle_control_magic.json': 'pac2002',
 }
-foreach yaw : ['3000', '4500']
-  foreach control : ['0', '2', '4', '6', '8', '10']
-    known_failures += {
-      'vehicle/fiala/tire_fiala_control_@0@_yaw_@1@.json'.format(control, yaw): 'tire',
-    }
-  endforeach
-endforeach
 
 # large stress models, too slow for the regular suite (debug build with
 # SHIFT_VERIFY_EQUATIONS_); run them with `meson test -C build --benchmark`

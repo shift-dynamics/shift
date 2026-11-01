@@ -1,9 +1,9 @@
-#ifndef SHIFT_BEHAVIOR_IK7DOF_H_
-#define SHIFT_BEHAVIOR_IK7DOF_H_
+#ifndef SHIFT_CONTROLLER_IK7DOF_H_
+#define SHIFT_CONTROLLER_IK7DOF_H_
 
 #include <memory>
 
-#include "shift/core/behavior/base.h"
+#include "shift/core/controller/base.h"
 
 namespace shift {
 namespace core {
@@ -12,7 +12,7 @@ namespace joint {
 class Base;
 }
 
-namespace behavior {
+namespace controller {
 
 class IK7DOF : public Base {
 public:
@@ -36,7 +36,7 @@ private:
   void DeclareParameters() override;
 };
 
-} // namespace behavior
+} // namespace controller
 } 
 } // namespace shift
 

@@ -50,20 +50,29 @@ public:
     return q_0_;
   }
 
+  /*! \brief index of the first internal state in the state vector y, see
+   * Context::InitializeAuxiliaryStates */
+  void set_state_offset(size_t offset) {
+    state_offset_ = offset;
+  }
+
   virtual void ActivateObjects(bool parent_is_active) override;
   
 
   virtual void Load();
   virtual void Connect() = 0;
-  virtual void Service(const double*, double*) = 0;
+  /*! \brief add the module's forces to the context and set the time
+   * derivatives of its internal states
+   * \param y [in] state vector [q, dq, auxiliary states]
+   * \param dy [out] state time derivatives */
+  virtual void Service(const double* y, double* dy) = 0;
 
 protected:
   std::string type_;
   virtual void DeclareParameters() override;
   unsigned int equation_count_ = 0;
   std::vector<double> q_0_; /*!< vector of state initial conditions */
-  double* dq_ =
-    nullptr; /*!< pointer to state time derivatives for transient modules */
+  size_t state_offset_ = 0;  /*!< index of the first internal state in y */
 };
 
 class Modules {
