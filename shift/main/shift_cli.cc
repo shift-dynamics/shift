@@ -7,10 +7,55 @@
 
 #include <fenv.h>
 #include <signal.h>
+#include <string.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <iostream>
 #include <memory>
+
+#ifdef __linux__
+/*! \brief Report a fatal signal on stderr, then throw so main() can print the
+ * backtrace and clean up.
+ *
+ * The message is written with write(), which, unlike iostreams or printf,
+ * is safe to call in a signal handler. Throwing out of a signal handler is
+ * reliable only when the code that faulted is compiled with
+ * -fnon-call-exceptions, which the build adds when fp_trap is enabled. */
+static void ThrowFromSignal(const char* message) {
+  const char prefix[] = "\nshift-cli: ";
+  ssize_t ignored = write(STDERR_FILENO, prefix, sizeof(prefix) - 1);
+  ignored = write(STDERR_FILENO, message, strlen(message));
+  ignored = write(STDERR_FILENO, "\n", 1);
+  (void)ignored;
+  throw shift::core::Exception(message);
+}
+
+static void OnSigfpe(int) {
+  // The kernel runs the handler with floating point exceptions masked and
+  // restores the program's settings only if the handler returns. Throwing
+  // skips that, so turn the trap back on or later divisions go untrapped.
+  feenableexcept(FE_DIVBYZERO);
+  ThrowFromSignal("floating point error (division by zero)");
+}
+
+static void OnSigsegv(int) {
+  ThrowFromSignal("segmentation fault");
+}
+
+/*! \brief Install a handler that may throw. SA_NODEFER keeps the signal
+ * unblocked: a handler that exits by throwing never returns, so the signal
+ * would otherwise stay blocked and a second fault would kill the process. */
+static struct sigaction InstallThrowingHandler(int signum,
+                                               void (*handler)(int)) {
+  struct sigaction action = {}, previous = {};
+  action.sa_handler = handler;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_NODEFER;
+  sigaction(signum, &action, &previous);
+  return previous;
+}
+#endif
 
 int main(int argc, char* argv[]) {
 
@@ -132,16 +177,15 @@ int main(int argc, char* argv[]) {
 #ifdef SHIFT_FP_TRAP
   SHIFT_INFO("Floating point error detection enabled");
   feenableexcept(FE_DIVBYZERO);
-  std::shared_ptr<void(int)> sigfpe_handler(
-    signal(SIGFPE,
-           [](int) { throw shift::core::Exception("Floating point error"); }),
-    [](__sighandler_t f) { signal(SIGFPE, f); });
+  const struct sigaction previous_sigfpe =
+    InstallThrowingHandler(SIGFPE, OnSigfpe);
+  std::shared_ptr<void> restore_sigfpe(
+    nullptr, [&](void*) { sigaction(SIGFPE, &previous_sigfpe, nullptr); });
 #endif
-  std::shared_ptr<void(int)> sigsegv_handler(
-    signal(
-      SIGSEGV,
-      [](int) { throw shift::core::Exception("Segmentation fault occurred"); }),
-    [](__sighandler_t f) { signal(SIGSEGV, f); });
+  const struct sigaction previous_sigsegv =
+    InstallThrowingHandler(SIGSEGV, OnSigsegv);
+  std::shared_ptr<void> restore_sigsegv(
+    nullptr, [&](void*) { sigaction(SIGSEGV, &previous_sigsegv, nullptr); });
 #endif
 
   try {
