@@ -1,6 +1,7 @@
 #include "shift/core/force_module/tire/base.h"
 
 #include <cmath>
+#include <vector>
 
 #include "ksl/coscrew.h"
 #include "ksl/screw.h"
@@ -12,6 +13,8 @@
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/frame.h"
+#include "shift/core/log.h"
+#include "shift/core/utility.h"
 
 bool shift::core::force_module::tire::Base::registered_ =
   shift::core::Factory<shift::core::force_module::Base>::get()->RegisterModule(
@@ -24,7 +27,7 @@ shift::core::force_module::tire::Base::Create() {
 
 void shift::core::force_module::tire::Base::DeclareParameters() {
   shift::core::force_module::Base::DeclareParameters();
-  DeclareParameter("tire_type", &tire_type_, "tire model: \"fiala\"", true);
+  DeclareParameter("tire_type", &tire_type_, "tire model: \"fiala\" or \"pac2002\"", true);
   DeclareParameter("wheel_body", &wheel_body_name_,
                    "name of the wheel body, in the same assembly; the wheel "
                    "spins about the y axis of its origin frame",
@@ -59,11 +62,76 @@ void shift::core::force_module::tire::Base::DeclareParameters() {
                    false);
   DeclareParameter("y_relaxation_length", &f.y_relaxation_length,
                    "Fiala: lateral relaxation length, defaults to 0.15", false);
+
+  DeclareParameter("definition", &definition_,
+                   "PAC2002: .tir property file, next to the model file or "
+                   "in an include directory",
+                   false);
+  DeclareParameter("mounted_side", &mounted_side_,
+                   "PAC2002: \"left\" or \"right\"; the tire is mirrored if "
+                   "this differs from TYRESIDE of the property file",
+                   false);
+  DeclareParameter("use_transient_slip", &use_transient_slip_,
+                   "PAC2002: must be false, the model is steady state", false);
+}
+
+std::string shift::core::force_module::tire::Base::FindFile(
+  const std::string& name) const {
+  if(!name.empty() && name[0] == '/') {
+    return name;
+  }
+  const std::string file =
+    shift::core::utility::GetParentPath(context_->get_filename()) + "/" + name;
+  if(shift::core::utility::FileExists(file)) {
+    return file;
+  }
+  for(const auto& directory :
+      (*context_)["model_parameters"]["include_directories"]
+        .get<std::vector<std::string>>()) {
+    const std::string candidate = directory + "/" + name;
+    if(shift::core::utility::FileExists(candidate)) {
+      return candidate;
+    }
+  }
+  throw shift::core::Exception("Tire " + get_name() + ": file " + name +
+                               " not found");
 }
 
 void shift::core::force_module::tire::Base::Load() {
   if(tire_type_ == "fiala") {
     model_ = std::make_unique<Fiala>(fiala_);
+  } else if(tire_type_ == "pac2002") {
+    const std::string prefix = "Tire " + get_name() + ": ";
+    if(definition_.empty()) {
+      throw shift::core::Exception(prefix + "pac2002 requires a definition "
+                                            "(.tir property file)");
+    }
+    if(use_transient_slip_) {
+      throw shift::core::Exception(prefix + "pac2002 is steady state, "
+                                            "use_transient_slip is not "
+                                            "supported");
+    }
+    Pac2002Coefficients coefficients =
+      Pac2002Coefficients::Read(FindFile(definition_));
+    bool mirror = coefficients.mirror;
+    if(!mounted_side_.empty()) {
+      if(mounted_side_ != "left" && mounted_side_ != "right") {
+        throw shift::core::Exception(prefix + "mounted_side must be "
+                                              "\"left\" or \"right\"");
+      }
+      mirror = mirror != ((mounted_side_ == "left") !=
+                          coefficients.measured_left);
+    }
+    if(mirror) {
+      coefficients.Mirror();
+    }
+    if(coefficients.relaxation) {
+      SHIFT_INFO(prefix + "the property file enables relaxation; pac2002 is "
+                          "steady state");
+    }
+    model_ = std::make_unique<Pac2002>(
+      coefficients,
+      ksl_vec3_l2norm(context_->get_model_parameters().get_gravity()));
   } else {
     throw shift::core::Exception("Tire " + get_name() + ": tire_type \"" +
                                  tire_type_ + "\" is not supported");
@@ -177,6 +245,24 @@ void shift::core::force_module::tire::Base::UpdateContact(
                               velocity.lin.y + w_cross_c.y,
                               velocity.lin.z + w_cross_c.z}};
   contact_.vx = ksl_dot_vv(&hub_velocity, &x_direction);
+
+  /* velocity of the contact center: the material velocity at the w frame
+  origin less the spin, (w . a) a x (p - c) */
+  const double spin = ksl_dot_vv(&velocity.ang, &wheel_normal);
+  ksl_vec3_t arm = {{w.t.x - center.x, w.t.y - center.y, w.t.z - center.z}};
+  ksl_vec3_t spin_velocity;
+  ksl_cross_vv(&wheel_normal, &arm, &spin_velocity);
+  ksl_vec3_t center_velocity = {{contact_velocity.x - spin * spin_velocity.x,
+                                 contact_velocity.y - spin * spin_velocity.y,
+                                 contact_velocity.z - spin * spin_velocity.z}};
+  contact_.center_velocity_w = {{ksl_dot_vv(&w.R.v0, &center_velocity),
+                                 ksl_dot_vv(&w.R.v1, &center_velocity),
+                                 ksl_dot_vv(&w.R.v2, &center_velocity)}};
+
+  /* spin axis in the w frame */
+  contact_.spin_axis_w = {{ksl_dot_vv(&w.R.v0, &wheel_normal),
+                           ksl_dot_vv(&w.R.v1, &wheel_normal),
+                           ksl_dot_vv(&w.R.v2, &wheel_normal)}};
 }
 
 void shift::core::force_module::tire::Base::Service(const double* y,

@@ -10,6 +10,7 @@ shift_test = executable(
   'test_examples.cc',
   'test_excavator.cc',
   'test_specified_coordinates.cc',
+  'test_tire_pac2002.cc',
   # 'test_kdtree.cc',
   dependencies: [shift_core_dep, gtest_dep],
   implicit_include_directories: false,
@@ -28,11 +29,7 @@ example_models = run_command(
 
 # models known not to run yet; they are expected to fail so the suite stays
 # green, and meson reports an unexpected pass once they are fixed
-known_failures = {
-  # the PAC2002 tire model is not ported yet
-  'vehicle/tire_pac2002.json': 'pac2002',
-  'vehicle/vehicle_control_magic.json': 'pac2002',
-}
+known_failures = {}
 
 # large stress models, too slow for the regular suite (debug build with
 # SHIFT_VERIFY_EQUATIONS_); run them with `meson test -C build --benchmark`
