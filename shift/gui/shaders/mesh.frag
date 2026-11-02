@@ -5,6 +5,7 @@ layout(location = 1) in vec3 world_normal;
 layout(location = 2) in vec3 body_position;
 layout(location = 3) in vec3 body_normal;
 layout(location = 4) in vec2 uv;
+layout(location = 5) flat in mat3 body_rotation; // body to world
 
 layout(location = 0) out vec4 out_color;
 
@@ -19,13 +20,12 @@ layout(std140, binding = 0) uniform Frame {
   vec4 floor_params;
 } frame;
 
-layout(std140, binding = 1) uniform Instance {
-  mat4 model;
+layout(std140, binding = 1) uniform Material {
   vec4 albedo;        // w = normal map scale
   vec4 material;      // x = metallic, y = roughness, z = triplanar,
                       // w = 1 / texture scale
   ivec4 layers;       // base color, metallic roughness, normal; -1: none
-} instance;
+} mesh;
 
 // image based lighting of the sky, indexed by the z component of a direction
 // (the sky is symmetric about z); see environment.h
@@ -108,32 +108,32 @@ void main() {
     nb = -nb;
   }
 
-  vec3 albedo = instance.albedo.rgb;
-  float metallic = instance.material.x;
-  float roughness = instance.material.y;
-  bool triplanar = instance.material.z > 0.5;
-  vec3 p = body_position * instance.material.w;
+  vec3 albedo = mesh.albedo.rgb;
+  float metallic = mesh.material.x;
+  float roughness = mesh.material.y;
+  bool triplanar = mesh.material.z > 0.5;
+  vec3 p = body_position * mesh.material.w;
   vec3 w = pow(abs(nb), vec3(4.0));
   w /= w.x + w.y + w.z;
 
-  if(instance.layers.x >= 0) {
-    vec4 s = triplanar ? SampleTriplanar(instance.layers.x, p, w)
-                       : SampleLayer(instance.layers.x, uv);
+  if(mesh.layers.x >= 0) {
+    vec4 s = triplanar ? SampleTriplanar(mesh.layers.x, p, w)
+                       : SampleLayer(mesh.layers.x, uv);
     albedo *= SrgbToLinear(s.rgb);
   }
-  if(instance.layers.y >= 0) {
-    vec4 s = triplanar ? SampleTriplanar(instance.layers.y, p, w)
-                       : SampleLayer(instance.layers.y, uv);
+  if(mesh.layers.y >= 0) {
+    vec4 s = triplanar ? SampleTriplanar(mesh.layers.y, p, w)
+                       : SampleLayer(mesh.layers.y, uv);
     roughness *= s.g;
     metallic *= s.b;
   }
-  if(instance.layers.z >= 0) {
+  if(mesh.layers.z >= 0) {
     if(triplanar) {
-      n = normalize(mat3(instance.model) *
-                    TriplanarNormal(instance.layers.z, p, nb, w, instance.albedo.w));
+      n = normalize(body_rotation *
+                    TriplanarNormal(mesh.layers.z, p, nb, w, mesh.albedo.w));
     } else {
-      vec3 t = SampleLayer(instance.layers.z, uv).xyz * 2.0 - 1.0;
-      t.xy *= instance.albedo.w;
+      vec3 t = SampleLayer(mesh.layers.z, uv).xyz * 2.0 - 1.0;
+      t.xy *= mesh.albedo.w;
       n = normalize(CotangentFrame(n, world_position, uv) * t);
     }
   }

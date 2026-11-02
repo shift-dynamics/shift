@@ -8,8 +8,9 @@ void shift::gui::SceneBounds(const Scene& scene, const Poses& poses,
                              QVector3D& box_min, QVector3D& box_max) {
   box_min = QVector3D(1e30f, 1e30f, 1e30f);
   box_max = -box_min;
-  for(const auto& mesh : scene.meshes) {
-    const QMatrix4x4& pose = poses.bodies.at(mesh.body_index);
+  for(const auto& instance : scene.instances) {
+    const SceneMesh& mesh = scene.meshes[instance.mesh_index];
+    const QMatrix4x4& pose = poses.bodies.at(instance.body_index);
     for(int corner = 0; corner < 8; corner++) {
       const QVector3D local((corner & 1) ? mesh.bounds_max.x() : mesh.bounds_min.x(),
                             (corner & 2) ? mesh.bounds_max.y() : mesh.bounds_min.y(),
@@ -21,7 +22,7 @@ void shift::gui::SceneBounds(const Scene& scene, const Poses& poses,
       }
     }
   }
-  if(scene.meshes.empty()) {
+  if(scene.instances.empty()) {
     box_min = QVector3D(-1.f, -1.f, -1.f);
     box_max = QVector3D(1.f, 1.f, 1.f);
   }

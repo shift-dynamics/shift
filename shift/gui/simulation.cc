@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <map>
 #include <set>
 
 
@@ -59,12 +60,11 @@ static void ComputeNormals(shift::gui::SceneMesh& mesh) {
   }
 }
 
-shift::gui::SceneMesh
-MakeSceneMesh(int body_index, const shift::gui::MeshData& data,
+static shift::gui::SceneMesh
+MakeSceneMesh(const shift::gui::MeshData& data,
               const std::vector<shift::gui::MaterialData>& materials,
               shift::gui::TextureLoader& textures) {
   shift::gui::SceneMesh mesh;
-  mesh.body_index = body_index;
 
   const size_t vertex_count = data.vertices.size() / 3;
   const bool has_normals = data.normals.size() == data.vertices.size();
@@ -142,21 +142,38 @@ void shift::gui::Simulation::Load(const std::string& filename) {
     }
   }
 
+  /* meshes that share imported data (the same files, see
+  geometry::Mesh::get_asset) become one SceneMesh each, drawn once per body */
   TextureLoader textures(scene_);
+  std::map<const shift::core::geometry::MeshAsset*, std::vector<int>>
+    asset_meshes;
+  std::vector<std::vector<int>> mesh_bodies;
   for(size_t i = 0; i < bodies_.size(); i++) {
     for(auto& geometry : bodies_[i]->get_geometry()) {
       auto mesh = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
       if(!mesh || !mesh->is_active()) {
         continue;
       }
-      for(const auto& data : mesh->get_mesh_data()) {
-        if(data.faces.empty()) {
-          continue;
+      auto [it, inserted] = asset_meshes.try_emplace(mesh->get_asset());
+      if(inserted) {
+        for(const auto& data : mesh->get_mesh_data()) {
+          if(data.faces.empty()) {
+            continue;
+          }
+          it->second.push_back(static_cast<int>(scene_.meshes.size()));
+          scene_.meshes.push_back(
+            MakeSceneMesh(data, mesh->get_material_data(), textures));
+          mesh_bodies.emplace_back();
         }
-        scene_.meshes.push_back(
-          MakeSceneMesh(static_cast<int>(i), data, mesh->get_material_data(),
-                        textures));
       }
+      for(int mesh_index : it->second) {
+        mesh_bodies[mesh_index].push_back(static_cast<int>(i));
+      }
+    }
+  }
+  for(size_t m = 0; m < mesh_bodies.size(); m++) {
+    for(int body : mesh_bodies[m]) {
+      scene_.instances.push_back({static_cast<int>(m), body});
     }
   }
   scene_.body_count = static_cast<int>(bodies_.size());

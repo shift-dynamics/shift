@@ -35,6 +35,14 @@ static_assert(sizeof(BvhNode) == 32);
  * array and the triangles vector. */
 std::vector<BvhNode> BuildBvh(std::vector<RtTriangle>& triangles);
 
+/*! \brief build a BVH over boxes (the world space boxes of the instances),
+ * split at the median centroid along the widest axis, with one box per leaf:
+ * a leaf has triangle_count = 1 and right_or_first = the box index, so the
+ * boxes keep their order. box_min and box_max hold 4 floats per box (xyz
+ * used). An empty input gives no nodes. */
+std::vector<BvhNode> BuildBoxBvh(const std::vector<float>& box_min,
+                                 const std::vector<float>& box_max);
+
 } // namespace gui
 } // namespace shift
 

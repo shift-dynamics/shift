@@ -185,3 +185,70 @@ shift::gui::BuildBvh(std::vector<RtTriangle>& triangles) {
   triangles.swap(sorted);
   return nodes;
 }
+
+static void BuildBoxNode(std::vector<shift::gui::BvhNode>& nodes,
+                         const std::vector<Box>& boxes,
+                         std::vector<int>& order, int start, int end) {
+  const int node_index = static_cast<int>(nodes.size());
+  nodes.push_back({});
+
+  Box box, centroid_box;
+  for(int i = start; i < end; i++) {
+    const Box& b = boxes[order[i]];
+    box.Grow(b);
+    const float centroid[3] = {0.5f * (b.min[0] + b.max[0]),
+                               0.5f * (b.min[1] + b.max[1]),
+                               0.5f * (b.min[2] + b.max[2])};
+    centroid_box.Grow(centroid);
+  }
+  for(int k = 0; k < 3; k++) {
+    nodes[node_index].box_min[k] = box.min[k];
+    nodes[node_index].box_max[k] = box.max[k];
+  }
+  if(end - start == 1) {
+    nodes[node_index].right_or_first = order[start];
+    nodes[node_index].triangle_count = 1;
+    return;
+  }
+
+  int axis = 0;
+  for(int k = 1; k < 3; k++) {
+    if(centroid_box.max[k] - centroid_box.min[k] >
+       centroid_box.max[axis] - centroid_box.min[axis]) {
+      axis = k;
+    }
+  }
+  const int middle = start + (end - start) / 2;
+  std::nth_element(order.begin() + start, order.begin() + middle,
+                   order.begin() + end, [&](int a, int b) {
+                     return boxes[a].min[axis] + boxes[a].max[axis] <
+                            boxes[b].min[axis] + boxes[b].max[axis];
+                   });
+  // depth first: the left child follows its parent
+  BuildBoxNode(nodes, boxes, order, start, middle);
+  nodes[node_index].right_or_first = static_cast<int>(nodes.size());
+  nodes[node_index].triangle_count = -1;
+  BuildBoxNode(nodes, boxes, order, middle, end);
+}
+
+std::vector<shift::gui::BvhNode>
+shift::gui::BuildBoxBvh(const std::vector<float>& box_min,
+                        const std::vector<float>& box_max) {
+  const int count = static_cast<int>(box_min.size() / 4);
+  std::vector<BvhNode> nodes;
+  if(count == 0) {
+    return nodes;
+  }
+  std::vector<Box> boxes(count);
+  std::vector<int> order(count);
+  for(int i = 0; i < count; i++) {
+    for(int k = 0; k < 3; k++) {
+      boxes[i].min[k] = box_min[4 * i + k];
+      boxes[i].max[k] = box_max[4 * i + k];
+    }
+    order[i] = i;
+  }
+  nodes.reserve(2 * count - 1);
+  BuildBoxNode(nodes, boxes, order, 0, count);
+  return nodes;
+}

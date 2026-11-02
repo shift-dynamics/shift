@@ -2,9 +2,10 @@
 layout(local_size_x = 8, local_size_y = 8) in;
 
 // Path tracer over a two-level scene: one BVH per mesh in body coordinates,
-// and one instance per mesh carrying the body pose. World convention: +z is
-// down, so the sky is in the -z direction and the floor is a constant-z
-// plane.
+// shared by the instances of the mesh, each carrying a body pose, and a BVH
+// over the world space boxes of the instances (one instance per leaf).
+// World convention: +z is down, so the sky is in the -z direction and the
+// floor is a constant-z plane.
 //
 // One sample per pixel and frame. Besides the progressive mean of the
 // radiance (exact once the view is static), the shader writes the inputs of
@@ -64,6 +65,12 @@ layout(std430, binding = 3) readonly buffer Nodes {
 
 layout(std430, binding = 4) readonly buffer Instances {
   Instance instances[];
+};
+
+// BVH over the instances: a leaf has triangle_count 1 and right_or_first =
+// the instance index; node 0 is the root (u.control.x > 0)
+layout(std430, binding = 11) readonly buffer InstanceNodes {
+  BvhNode instance_nodes[];
 };
 
 // progressive mean of the radiance since the view last changed
@@ -218,12 +225,28 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
 
   vec3 inverse_world_direction = 1.0 / direction;
   int stack[64];
+  int instance_stack[64];
+  int isp = 0;
+  if(u.control.x > 0) {
+    instance_stack[isp++] = 0;
+  }
 
-  for(int i = 0; i < u.control.x; i++) {
-    if(!BoxHit(origin, inverse_world_direction, instances[i].box_min.xyz,
-               instances[i].box_max.xyz, hit.t)) {
+  while(isp > 0) {
+    int instance_node_index = instance_stack[--isp];
+    BvhNode instance_node = instance_nodes[instance_node_index];
+    // a leaf's box is the box of its instance
+    if(!BoxHit(origin, inverse_world_direction, instance_node.box_min,
+               instance_node.box_max, hit.t)) {
       continue;
     }
+    if(instance_node.triangle_count < 0) {
+      if(isp < 62) {
+        instance_stack[isp++] = instance_node.right_or_first;
+        instance_stack[isp++] = instance_node_index + 1;
+      }
+      continue;
+    }
+    int i = instance_node.right_or_first;
     // rigid transform: the ray parameter t is the same in both frames
     vec3 o = (instances[i].world_to_body * vec4(origin, 1.0)).xyz;
     vec3 d = mat3(instances[i].world_to_body) * direction;
