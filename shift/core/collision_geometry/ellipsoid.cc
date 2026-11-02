@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "shift/core/collision_geometry/fitting.h"
+#include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/log.h"
 
@@ -22,6 +23,30 @@ void shift::core::collision_geometry::Ellipsoid::DeclareParameters() {
                    "convergence tolerance of the minimum volume bounding "
                    "ellipsoid fit, defaults to 0.001",
                    false);
+  DeclareParameter("semi_axes", &semi_axes_,
+                   "semi axis lengths [a, b, c] along the x, y and z axes of "
+                   "the pose, centered at its origin (the body origin by "
+                   "default); if not given, the ellipsoid is fitted to the "
+                   "body's mesh",
+                   false);
+}
+
+bool shift::core::collision_geometry::Ellipsoid::HasDimensions() const {
+  const auto& a = semi_axes_;
+  if(a.x == 0.0 && a.y == 0.0 && a.z == 0.0) {
+    return false;
+  }
+  if(!(a.x > 0.0 && a.y > 0.0 && a.z > 0.0)) {
+    throw shift::core::Exception("Ellipsoid collision geometry '" + name_ +
+                                 "' needs three positive semi axes");
+  }
+  return true;
+}
+
+void shift::core::collision_geometry::Ellipsoid::SetFromDimensions(
+  const ksl_SE3_t& pose) {
+  d_wrt_body_ = pose;
+  bounding_radius_ = std::max({semi_axes_.x, semi_axes_.y, semi_axes_.z});
 }
 
 

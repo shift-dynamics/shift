@@ -18,6 +18,9 @@ struct ConvexHullData {
   std::vector<ksl_vec3_t> vertices;
   std::vector<unsigned int> faces; //!< three vertex indices per face
   std::vector<std::vector<unsigned int>> neighbors;
+  /*! outward unit normal n and offset o of each face's plane, n . x = o */
+  std::vector<ksl_vec3_t> face_normals;
+  std::vector<double> face_offsets;
 };
 
 /*!
@@ -31,6 +34,11 @@ bool ComputeConvexHull(const std::vector<ksl_vec3_t>& points,
 
 /*! \brief fill the vertex adjacency list of a convex hull from its faces */
 void ComputeVertexNeighbors(ConvexHullData& hull);
+
+/*! \brief fill the face planes of a convex hull, oriented away from the
+ * vertex centroid (an interior point); faces without area get a zero normal
+ * and an infinite offset, so they never separate */
+void ComputeFacePlanes(ConvexHullData& hull);
 
 /*! \brief covariance matrix of a set of points */
 ksl_mat3x3_t Covariance(const std::vector<ksl_vec3_t>& points);

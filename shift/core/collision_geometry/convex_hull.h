@@ -23,10 +23,12 @@ public:
   ConvexHull()
     : Base() {
     type_ = "convex_hull";
+    DeclareParameters();
   }
   ConvexHull(std::string name)
     : Base(name) {
     type_ = "convex_hull";
+    DeclareParameters();
   }
   virtual ~ConvexHull() override {}
 
@@ -45,12 +47,16 @@ public:
                        ksl_vec3_t& global, int& hint) const override;
 
 protected:
+  virtual void DeclareParameters() override;
+  virtual bool HasDimensions() const override;
+  virtual void SetFromDimensions(const ksl_SE3_t& pose) override;
   virtual void Fit(const std::vector<ksl_vec3_t>& vertices,
                    const std::vector<unsigned int>& faces) override;
   virtual void CopyFit(const Base& other) override;
 
 private:
-  static bool registered_;
+    static bool registered_;
+  ksl_vec3_t half_extents_ = {{0.0, 0.0, 0.0}}; //!< of a box, if given
   std::shared_ptr<const ConvexHullData> hull_ =
     std::make_shared<ConvexHullData>();
 };

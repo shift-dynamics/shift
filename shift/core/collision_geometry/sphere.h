@@ -25,10 +25,12 @@ public:
   Sphere()
     : Base() {
     type_ = "sphere";
+    DeclareParameters();
   }
   Sphere(std::string name)
     : Base(name) {
     type_ = "sphere";
+    DeclareParameters();
   }
   virtual ~Sphere() override {}
 
@@ -51,6 +53,9 @@ public:
                        ksl_vec3_t& global, int& hint) const override;
 
 protected:
+  virtual void DeclareParameters() override;
+  virtual bool HasDimensions() const override;
+  virtual void SetFromDimensions(const ksl_SE3_t& pose) override;
   virtual void Fit(const std::vector<ksl_vec3_t>& vertices,
                    const std::vector<unsigned int>& faces) override;
   virtual void CopyFit(const Base& other) override;

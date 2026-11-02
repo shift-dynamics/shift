@@ -22,7 +22,10 @@ bool shift::core::geometry::Modules::is_initialized() {
 }
 
 void shift::core::geometry::Base::DeclareParameters() {
-  DeclareParameter("name", &name_, "User defined descriptive geometry name.", true);
+  DeclareParameter("name", &name_,
+                   "User defined descriptive geometry name, used to refer to "
+                   "the geometry (e.g. in a collision geometry's fit_to).",
+                   false);
 
   DeclareParameter(
     "active", &active_,

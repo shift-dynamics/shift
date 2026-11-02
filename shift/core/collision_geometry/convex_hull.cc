@@ -1,8 +1,10 @@
 #include "shift/core/collision_geometry/convex_hull.h"
+#include "shift/core/collision_geometry/fitting.h"
 
 #include <cmath>
 
 #include "shift/core/factory.h"
+#include "shift/core/exception.h"
 
 bool shift::core::collision_geometry::ConvexHull::registered_ =
   shift::core::Factory<shift::core::collision_geometry::Base>::get()
@@ -14,6 +16,41 @@ shift::core::collision_geometry::ConvexHull::Create() {
   return std::make_unique<shift::core::collision_geometry::ConvexHull>();
 }
 
+void shift::core::collision_geometry::ConvexHull::DeclareParameters() {
+  DeclareParameter("half_extents", &half_extents_,
+                   "half extents [x, y, z] of a box along the axes of the "
+                   "pose, centered at its origin (the body origin by "
+                   "default); if not given, the hull is that of the body's "
+                   "mesh",
+                   false);
+}
+
+bool shift::core::collision_geometry::ConvexHull::HasDimensions() const {
+  const auto& h = half_extents_;
+  if(h.x == 0.0 && h.y == 0.0 && h.z == 0.0) {
+    return false;
+  }
+  if(!(h.x > 0.0 && h.y > 0.0 && h.z > 0.0)) {
+    throw shift::core::Exception("Convex hull collision geometry '" + name_ +
+                                 "' needs three positive half extents");
+  }
+  return true;
+}
+
+void shift::core::collision_geometry::ConvexHull::SetFromDimensions(
+  const ksl_SE3_t& pose) {
+  std::vector<ksl_vec3_t> corners;
+  for(int i = 0; i < 8; i++) {
+    corners.push_back({{(i & 1 ? 1 : -1) * half_extents_.x,
+                        (i & 2 ? 1 : -1) * half_extents_.y,
+                        (i & 4 ? 1 : -1) * half_extents_.z}});
+  }
+  ConvexHullData hull;
+  ComputeConvexHull(corners, hull);
+  Fit(hull.vertices, hull.faces);
+  d_wrt_body_ = pose;
+}
+
 void shift::core::collision_geometry::ConvexHull::Fit(
   const std::vector<ksl_vec3_t>& vertices,
   const std::vector<unsigned int>& faces) {
@@ -21,6 +58,7 @@ void shift::core::collision_geometry::ConvexHull::Fit(
   hull->vertices = vertices;
   hull->faces = faces;
   ComputeVertexNeighbors(*hull);
+  ComputeFacePlanes(*hull);
   bounding_radius_ = 0.0;
   for(const auto& v : vertices) {
     bounding_radius_ = std::max(bounding_radius_, ksl_vec3_l2norm(&v));
