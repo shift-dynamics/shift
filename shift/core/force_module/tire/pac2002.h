@@ -94,7 +94,7 @@ struct Pac2002Coefficients {
   double pcx1 = 0, pdx1 = 0, pdx2 = 0, pdx3 = 0, pex1 = 0, pex2 = 0, pex3 = 0,
          pex4 = 0, pkx1 = 0, pkx2 = 0, pkx3 = 0, phx1 = 0, phx2 = 0, pvx1 = 0,
          pvx2 = 0, rbx1 = 0, rbx2 = 0, rcx1 = 0, rex1 = 0, rex2 = 0, rhx1 = 0,
-         ppx1 = 0, ppx2 = 0, ppx3 = 0, ppx4 = 0;
+         ppx1 = 0, ppx2 = 0, ppx3 = 0, ppx4 = 0, ptx1 = 0, ptx2 = 0, ptx3 = 0;
 
   // [OVERTURNING_COEFFICIENTS]
   double qsx1 = 0, qsx2 = 0, qsx3 = 0, qsx4 = 0, qsx5 = 0, qsx6 = 0, qsx7 = 0,
@@ -106,7 +106,7 @@ struct Pac2002Coefficients {
          pvy1 = 0, pvy2 = 0, pvy3 = 0, pvy4 = 0, rby1 = 0, rby2 = 0, rby3 = 0,
          rcy1 = 0, rey1 = 0, rey2 = 0, rhy1 = 0, rhy2 = 0, rvy1 = 0, rvy2 = 0,
          rvy3 = 0, rvy4 = 0, rvy5 = 0, rvy6 = 0, ppy1 = 0, ppy2 = 0, ppy3 = 0,
-         ppy4 = 0;
+         ppy4 = 0, pty1 = 0, pty2 = 0;
 
   // [ROLLING_COEFFICIENTS]
   double qsy1 = 0, qsy2 = 0, qsy3 = 0, qsy4 = 0, qsy5 = 0, qsy6 = 0, qsy7 = 0,
@@ -129,13 +129,31 @@ struct Pac2002Coefficients {
 };
 
 /*!
-@brief Pacejka 2002 (Magic Formula 5.2) steady state tire model
+@brief Pacejka 2002 (Magic Formula 5.2) tire model
 
 The Magic Formula equations, the normal force and the low speed friction
 blend are those of Project Chrono's ChPac02Tire (see the notice above),
 which only models steady state slip. Below 1 m/s the forces blend into a
-Dahl friction model whose bristle deflections are the two internal states,
-so a vehicle can stand on a slope.
+Dahl friction model whose bristle deflections are the first two internal
+states, so a vehicle can stand on a slope.
+
+With transient slip, the longitudinal slip kappa' and tan(alpha') that
+enter the Magic Formula follow the kinematic slips with the first order
+relaxation of MF 5.2 (states 3 and 4):
+
+  sigma_kappa d(kappa')/dt     = -Vsx - (|Vx| + e) kappa'
+  sigma_alpha d(tan alpha')/dt =  Vsy - (|Vx| + e) tan alpha'
+
+with the relaxation lengths of MF 5.2 (as in OpenTire's PAC2002, eqs. 92
+and 93; MIT license)
+
+  sigma_kappa = Fz (PTX1 + PTX2 dfz) exp(-PTX3 dfz) R0 / Fz0' LSGKP
+  sigma_alpha = PTY1 sin(2 atan(Fz / (PTY2 Fz0'))) (1 - PKY3 |gamma|) R0
+                LFZO LSGAL
+
+e = 0.1 m/s is the speed regularization of the steady state slips, so the
+relaxed slips settle to exactly the steady state slips, and at standstill
+they decay with the time constant sigma / e instead of drifting.
 
 The coefficients of a .tir file are defined in the ISO W axes (x heading, y
 left, z up, tan(alpha) = Vy / |Vx|). The model evaluates the equations in
@@ -152,7 +170,9 @@ Deviations from ChPac02Tire:
  - the camber angle is taken from the wheel (Chrono's is always zero),
    limited to +-3 degrees as in Chrono
  - USE_MODE is decoded as in the .tir file header (+10 relaxation, negative
-   mirroring); relaxation is not modeled
+   mirroring); relaxation is enabled by tire::Base (use_transient_slip)
+ - transient slip, which Chrono does not model (its CalcSigmaK, unused, has
+   exp(+PTX3 dfz); MF 5.2 and OpenTire have exp(-PTX3 dfz))
  - QSY1 and QSY2 are kept when the file has no [TIRE_CONDITIONS]
  - the rolling resistance moment follows the sign of the rolling speed and
    fades in below VXLOW
@@ -167,11 +187,18 @@ class Pac2002 : public Model {
 public:
   /*! \param gravity magnitude of gravity, for the rolling resistance speed
    * scale */
-  Pac2002(const Pac2002Coefficients& coefficients, double gravity);
+  /*! \param transient relax the slips (two more states) */
+  Pac2002(const Pac2002Coefficients& coefficients, double gravity,
+          bool transient = false);
 
   unsigned int get_state_count() const override {
-    return 2;
+    return transient_ ? 4 : 2;
   }
+
+  /*! \brief longitudinal relaxation length at the load fz */
+  double RelaxationLengthKappa(double fz) const;
+  /*! \brief lateral relaxation length at the load fz and camber gamma */
+  double RelaxationLengthAlpha(double fz, double gamma) const;
 
   double get_unloaded_radius() const override {
     return p_.unloaded_radius;
@@ -194,6 +221,7 @@ private:
 
   Pac2002Coefficients p_;
   double gravity_;
+  bool transient_;
   double gamma_limit_;
   double fz0_prime_; //!< scaled nominal load
   double dpi_;       //!< normalized inflation pressure
@@ -206,6 +234,10 @@ private:
   static constexpr double kFrictionBlendEnd = 3.0;
   /*! lower bound of the bristle saturation load, a fraction of FNOMIN */
   static constexpr double kMinBristleLoad = 0.05;
+  /*! speed regularization of the slips, as in Chrono */
+  static constexpr double kSlipSpeedEpsilon = 0.1;
+  /*! lower bound of the relaxation lengths, a fraction of R0 */
+  static constexpr double kMinRelaxationLength = 1e-3;
 };
 
 } // namespace tire

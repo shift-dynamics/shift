@@ -72,7 +72,9 @@ void shift::core::force_module::tire::Base::DeclareParameters() {
                    "this differs from TYRESIDE of the property file",
                    false);
   DeclareParameter("use_transient_slip", &use_transient_slip_,
-                   "PAC2002: must be false, the model is steady state", false);
+                   "PAC2002: relax the slips with the relaxation lengths of "
+                   "the property file (PTX1-3, PTY1-2)",
+                   false);
 }
 
 std::string shift::core::force_module::tire::Base::FindFile(
@@ -106,11 +108,6 @@ void shift::core::force_module::tire::Base::Load() {
       throw shift::core::Exception(prefix + "pac2002 requires a definition "
                                             "(.tir property file)");
     }
-    if(use_transient_slip_) {
-      throw shift::core::Exception(prefix + "pac2002 is steady state, "
-                                            "use_transient_slip is not "
-                                            "supported");
-    }
     Pac2002Coefficients coefficients =
       Pac2002Coefficients::Read(FindFile(definition_));
     bool mirror = coefficients.mirror;
@@ -125,13 +122,16 @@ void shift::core::force_module::tire::Base::Load() {
     if(mirror) {
       coefficients.Mirror();
     }
-    if(coefficients.relaxation) {
-      SHIFT_INFO(prefix + "the property file enables relaxation; pac2002 is "
-                          "steady state");
+    if(coefficients.relaxation != use_transient_slip_) {
+      SHIFT_INFO(prefix + "the property file " +
+                 (coefficients.relaxation ? "enables" : "disables") +
+                 " relaxation; use_transient_slip is " +
+                 (use_transient_slip_ ? "true" : "false"));
     }
     model_ = std::make_unique<Pac2002>(
       coefficients,
-      ksl_vec3_l2norm(context_->get_model_parameters().get_gravity()));
+      ksl_vec3_l2norm(context_->get_model_parameters().get_gravity()),
+      use_transient_slip_);
   } else {
     throw shift::core::Exception("Tire " + get_name() + ": tire_type \"" +
                                  tire_type_ + "\" is not supported");
