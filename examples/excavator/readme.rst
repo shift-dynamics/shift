@@ -10,3 +10,9 @@ The excavator has five independent kinematic chord loops and three non-overlappi
 .. image:: digraph_w_constraints.png
 
 Once the bodies and joints have been reordered according to their substructure assignments, the Jacobian matrix can be block-diagonalized, allowing for an approximate order of magnitude reduction in FLOPs required for applying GCP to this system.
+
+Models
+------
+
+- ``excavator.json``: the excavator with hydraulic cylinders (``hydraulic_cylinder`` force modules) on the boom, stick and bucket. Each cylinder is fed by a proportional valve whose opening follows a dig cycle: the boom lowers, the stick comes in, the bucket curls, then the boom raises while the stick goes out and the bucket dumps.
+- ``excavator_simple.json``: the same mechanism without actuators; the linkage moves freely under gravity.

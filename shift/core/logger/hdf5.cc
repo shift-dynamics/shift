@@ -1,5 +1,8 @@
+#include <cassert>
+
 #include "shift/core/context.h"
 #include "shift/core/factory.h"
+#include "shift/core/force_module/base.h"
 #include "shift/core/logger/base.h"
 #include "shift/core/logger/hdf5.h"
 #include "shift/core/utility.h"
@@ -32,6 +35,7 @@ void shift::core::logger::HDF5::Initialize() {
                shift::core::utility::GetFileExtension(logfile_);
   }
 
+  rows_ = 0;
   const H5std_string h5_filename(logfile_);
   hdf5_file_ = H5::H5File(h5_filename, H5F_ACC_TRUNC);
 
@@ -119,15 +123,89 @@ void shift::core::logger::HDF5::WriteHeader() {
 #endif
 }
 
-void shift::core::logger::HDF5::WriteStates(const double /* t */,
-                                            const std::vector<double>& /* q */) {
-#if 0
-  // size_t q_offset;
-  // const auto& q_offsets = context_->qLookupCompressed();
-  for(size_t i = 0; i < context_->nonRigidJointCount(); i++) {
+shift::core::logger::HDF5::Series shift::core::logger::HDF5::CreateSeries(
+  const H5::Group& group, const std::string& name, hsize_t columns) {
+  Series series;
+  series.columns = columns;
+  const int rank = columns > 0 ? 2 : 1;
+  const hsize_t dims[2] = {0, columns};
+  const hsize_t max_dims[2] = {H5S_UNLIMITED, columns};
+  const hsize_t chunk[2] = {256, columns};
+  H5::DataSpace space(rank, dims, max_dims);
+  H5::DSetCreatPropList properties;
+  properties.setChunk(rank, chunk);
+  series.dataset =
+    group.createDataSet(name, H5::PredType::NATIVE_DOUBLE, space, properties);
+  return series;
+}
 
-    hdf5_status_ = H5Dwrite(joint_dataset_ids_[i], H5T_NATIVE_DOUBLE, H5S_ALL,
-                            H5S_ALL, H5P_DEFAULT, q.data());
+void shift::core::logger::HDF5::Append(Series& series, const double* values) {
+  const int rank = series.columns > 0 ? 2 : 1;
+  const hsize_t dims[2] = {rows_ + 1, series.columns};
+  series.dataset.extend(dims);
+  H5::DataSpace file_space = series.dataset.getSpace();
+  const hsize_t start[2] = {rows_, 0};
+  const hsize_t count[2] = {1, series.columns};
+  file_space.selectHyperslab(H5S_SELECT_SET, count, start);
+  H5::DataSpace memory_space(rank, count);
+  series.dataset.write(values, H5::PredType::NATIVE_DOUBLE, memory_space,
+                       file_space);
+}
+
+void shift::core::logger::HDF5::WriteStates(const double t,
+                                            const std::vector<double>& y) {
+  if(rows_ == 0) {
+    /* the datasets, on the first row, once the model's force modules are
+    connected */
+    H5::Group root = hdf5_file_.openGroup("/");
+    time_ = CreateSeries(root, "time", 0);
+    states_.clear();
+    state_offsets_.clear();
+    state_counts_.clear();
+    if(log_all_channels_) {
+      H5::Group states = hdf5_file_.createGroup("/states");
+      const size_t q_count = context_->get_q_count();
+      const size_t dq_count = context_->get_dq_count();
+      const std::vector<std::pair<std::string, size_t>> blocks = {
+        {"q", q_count}, {"dq", dq_count}};
+      size_t offset = 0;
+      for(const auto& [name, count] : blocks) {
+        if(count > 0) {
+          states_.push_back(CreateSeries(states, name, count));
+          state_offsets_.push_back(offset);
+          state_counts_.push_back(count);
+        }
+        offset += count;
+      }
+      outputs_.clear();
+      H5::Group modules = hdf5_file_.createGroup("/force_modules");
+      for(auto& module : context_->get_active_force_modules()) {
+        const auto names = module->get_output_names();
+        if(names.empty()) {
+          continue;
+        }
+        H5::Group group = modules.createGroup(module->get_name());
+        for(const auto& name : names) {
+          outputs_.push_back(CreateSeries(group, name, 0));
+        }
+      }
+    }
   }
-#endif
+  Append(time_, &t);
+  for(size_t k = 0; k < states_.size(); k++) {
+    Append(states_[k], y.data() + state_offsets_[k]);
+  }
+  if(!outputs_.empty()) {
+    /* the force modules' outputs of y, see Context::WriteStates */
+    output_values_.clear();
+    for(auto& module : context_->get_active_force_modules()) {
+      module->AppendOutputs(output_values_);
+    }
+    assert(output_values_.size() == outputs_.size());
+    for(size_t k = 0; k < outputs_.size(); k++) {
+      Append(outputs_[k], &output_values_[k]);
+    }
+  }
+  rows_++;
+  hdf5_file_.flush(H5F_SCOPE_LOCAL);
 }

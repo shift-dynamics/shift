@@ -43,6 +43,7 @@ private:
 
   int precision_ = 6;
   std::string delimiter_ = ",";
+  std::vector<double> outputs_; //!< force module outputs, reused per row
   std::string csv_logfile_ = "simulation.csv";
   bool timestamp_logfile_ =
     false; ///!< indicates whether to append current time stamp to log file

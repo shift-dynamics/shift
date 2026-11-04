@@ -2957,6 +2957,21 @@ void shift::core::Context::InitializeAuxiliaryStates(double* y_auxiliary) {
   assert(k == get_auxiliary_state_count());
 }
 
+shift::core::body::Base*
+shift::core::Context::FindActiveBody(const std::string& name) {
+  if(name == "fixed") {
+    return get_fixed_body();
+  }
+  for(auto list : {&active_articulated_bodies_, &active_free_bodies_}) {
+    for(auto body : *list) {
+      if(body->get_name() == name) {
+        return body;
+      }
+    }
+  }
+  return nullptr;
+}
+
 int shift::core::Context::GetBodyLoadIndex(const body::Base* body) const {
   if(auto free = dynamic_cast<const body::Free*>(body)) {
     return free->get_free_index() < 0
@@ -3009,7 +3024,7 @@ void shift::core::Context::EvaluateConstraints() {
 void shift::core::Context::SetForces(const double t,
                                      const std::vector<double>& y,
                                      std::vector<double>& dy) {
-  (void)t;
+  force_time_ = t;
   std::fill(f_.begin(), f_.end(), 0);
   body_loads_.resize(non_rigid_joint_count_);
   std::fill(body_loads_.begin(), body_loads_.end(),
@@ -3122,12 +3137,8 @@ void shift::core::Context::SetupQuaternionMap() {
       }
     }
   }
-
-  for(auto& force_module : active_force_modules_) {
-    for(unsigned int i = 0; i < force_module->get_equation_count(); i++) {
-      non_quaternion_indices_.push_back({q_index++, dq_index++});
-    }
-  }
+  /* the internal states of force modules and controllers follow q and dq
+  (see InitializeAuxiliaryStates); the modules set their rates themselves */
 }
 
 void shift::core::Context::Simulate() {
@@ -3171,6 +3182,7 @@ void shift::core::Context::Simulate() {
     }
   };
 
+  HoldInitialStates();
   try {
     integrator->Integrate();
   } catch(...) {
@@ -3178,6 +3190,138 @@ void shift::core::Context::Simulate() {
     throw;
   }
   report_real_time_factor();
+}
+
+/* solve the n x n system A x = b in place by Gaussian elimination with
+partial pivoting; A is row major */
+static void SolveDense(std::vector<double>& A, std::vector<double>& b,
+                       size_t n) {
+  for(size_t c = 0; c < n; c++) {
+    size_t pivot = c;
+    for(size_t r = c + 1; r < n; r++) {
+      if(std::fabs(A[r * n + c]) > std::fabs(A[pivot * n + c])) {
+        pivot = r;
+      }
+    }
+    for(size_t k = 0; k < n; k++) {
+      std::swap(A[c * n + k], A[pivot * n + k]);
+    }
+    std::swap(b[c], b[pivot]);
+    for(size_t r = c + 1; r < n; r++) {
+      const double factor = A[r * n + c] / A[c * n + c];
+      for(size_t k = c; k < n; k++) {
+        A[r * n + k] -= factor * A[c * n + k];
+      }
+      b[r] -= factor * b[c];
+    }
+  }
+  for(size_t c = n; c-- > 0;) {
+    for(size_t k = c + 1; k < n; k++) {
+      b[c] -= A[c * n + k] * b[k];
+    }
+    b[c] /= A[c * n + c];
+  }
+}
+
+void shift::core::Context::HoldInitialStates() {
+  std::vector<force_module::Base*> modules;
+  for(auto& module : active_force_modules_) {
+    if(module->holds()) {
+      modules.push_back(module);
+    }
+  }
+  if(modules.empty()) {
+    return;
+  }
+  const size_t n = modules.size();
+  /* the integrator and solver start as they will in Integrate: the solver
+  corrects the initial coordinates to satisfy the constraints, and reads the
+  integrator's integral of the constraint error */
+  active_integrators_[0]->Initialize();
+  auto& solver = active_solvers_[0];
+  solver->Initialize();
+  std::vector<double> y(get_state_count() + get_auxiliary_state_count(), 0.0);
+  memcpy(y.data(), get_q().data(), get_state_count() * sizeof(double));
+  InitializeAuxiliaryStates(y.data() + get_state_count());
+  std::vector<double> dy(y.size(), 0.0);
+
+  /* the accelerations of the held joints are linear in the forces on them
+  at a given state: a = a0 + S f, column j of S from a unit force on joint
+  j alone */
+  auto accelerations = [&](const std::vector<double>& forces) {
+    for(size_t j = 0; j < n; j++) {
+      modules[j]->set_hold_force(true, forces[j]);
+    }
+    if(solver->Solve(0.0, y, dy)) {
+      throw shift::core::Exception("Holding the initial states: the "
+                                   "equations of motion could not be "
+                                   "solved");
+    }
+    std::vector<double> a(n);
+    for(size_t k = 0; k < n; k++) {
+      a[k] = dy[get_q_count() + modules[k]->get_held_joint()->get_dq_index()];
+    }
+    return a;
+  };
+  const std::vector<double> a0 = accelerations(std::vector<double>(n, 0.0));
+  std::vector<double> S(n * n);
+  for(size_t j = 0; j < n; j++) {
+    std::vector<double> unit(n, 0.0);
+    unit[j] = 1.0;
+    const std::vector<double> a = accelerations(unit);
+    for(size_t k = 0; k < n; k++) {
+      S[k * n + j] = a[k] - a0[k];
+    }
+  }
+
+  /* the least forces with S f = -a0: f = S^T z, (S S^T + e I) z = -a0; the
+  small e lets modules that share a load, such as two cylinders side by
+  side, share it equally */
+  std::vector<double> A(n * n, 0.0);
+  double trace = 0.0;
+  for(size_t r = 0; r < n; r++) {
+    for(size_t c = 0; c < n; c++) {
+      for(size_t k = 0; k < n; k++) {
+        A[r * n + c] += S[r * n + k] * S[c * n + k];
+      }
+    }
+    trace += A[r * n + r];
+  }
+  for(size_t r = 0; r < n; r++) {
+    A[r * n + r] += 1e-12 * trace / n;
+  }
+  std::vector<double> z(a0);
+  for(auto& value : z) {
+    value = -value;
+  }
+  SolveDense(A, z, n);
+  std::vector<double> forces(n, 0.0);
+  for(size_t j = 0; j < n; j++) {
+    for(size_t k = 0; k < n; k++) {
+      forces[j] += S[k * n + j] * z[k];
+    }
+  }
+
+  /* check: the held joints' accelerations with these forces */
+  const std::vector<double> a = accelerations(forces);
+  double residual = 0.0, scale = 0.0;
+  for(size_t k = 0; k < n; k++) {
+    residual = std::max(residual, std::fabs(a[k]));
+    scale = std::max(scale, std::fabs(a0[k]));
+  }
+  if(residual > 1e-6 * scale + 1e-12) {
+    SHIFT_WARNING("Holding the initial states: the held joints keep an "
+                  "acceleration of " + std::to_string(residual) +
+                  " (from " + std::to_string(scale) +
+                  "); they may not all be able to hold the load");
+  }
+  for(size_t j = 0; j < n; j++) {
+    modules[j]->set_hold_force(false, 0.0);
+    modules[j]->Hold(forces[j], y.data());
+    SHIFT_INFO("Force module " + modules[j]->get_name() + " holds joint " +
+               modules[j]->get_held_joint()->get_name() + " with " +
+               std::to_string(forces[j]));
+  }
 }
 
 void shift::core::Context::get_current_time(double& time, double& delta_time) {
@@ -3193,6 +3337,10 @@ void shift::core::Context::get_current_time(double& time, double& delta_time) {
 
 void shift::core::Context::WriteStates(const double time,
                                        const std::vector<double>& y) {
+  /* the force modules' outputs (pressures, forces) of this state */
+  for(auto& force_module : active_force_modules_) {
+    force_module->UpdateOutputs(time, y.data());
+  }
   for(auto& logger : active_loggers_) {
     logger->WriteStates(time, y);
   }
