@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 #include "shift/core/collision_geometry/convex_hull.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
@@ -275,15 +276,14 @@ static void ClosestPointOnEllipsoid(const double e[3], const double y[3],
   }
 }
 
-bool shift::core::collision_geometry::EllipsoidSphereContact(
-  const Ellipsoid& ellipsoid, const Sphere& sphere, AnalyticContact& contact) {
+/*! the point q of an ellipsoid's surface closest to the inertial point p,
+ * the outward normal n there, both in the ellipsoid frame, and the signed
+ * distance of p from the surface, negative inside */
+static void ClosestOnEllipsoid(
+  const shift::core::collision_geometry::Ellipsoid& ellipsoid,
+  const ksl_vec3_t& p, ksl_vec3_t& q, ksl_vec3_t& n, double& distance) {
   const ksl_vec3_t& axes = ellipsoid.get_semi_axes();
-  if(std::min({axes.x, axes.y, axes.z}) <= 0.0) {
-    return false;
-  }
-  contact = AnalyticContact();
-  const ksl_SE3_t& d = ellipsoid.get_d_absolute();
-  const ksl_vec3_t c = ToLocal(d, sphere.get_center());
+  const ksl_vec3_t c = ToLocal(ellipsoid.get_d_absolute(), p);
 
   /* reduce to the first octant with the semi axes in decreasing order */
   int order[3] = {0, 1, 2};
@@ -295,7 +295,6 @@ bool shift::core::collision_geometry::EllipsoidSphereContact(
     y[k] = std::fabs(c.at[order[k]]);
   }
   ClosestPointOnEllipsoid(e, y, x);
-  ksl_vec3_t q;
   double inside = 0.0;
   for(int k = 0; k < 3; k++) {
     const int i = order[k];
@@ -303,12 +302,27 @@ bool shift::core::collision_geometry::EllipsoidSphereContact(
     inside += (c.at[i] / axes.at[i]) * (c.at[i] / axes.at[i]);
   }
   /* the outward normal at q is along the gradient of sum (x_i / a_i)^2 */
-  ksl_vec3_t n = {{q.x / (axes.x * axes.x), q.y / (axes.y * axes.y),
-                   q.z / (axes.z * axes.z)}};
+  n = {{q.x / (axes.x * axes.x), q.y / (axes.y * axes.y),
+        q.z / (axes.z * axes.z)}};
   n = Scale(1.0 / std::sqrt(Dot(n, n)), n);
   const ksl_vec3_t r = Sub(c, q);
-  const double distance = std::sqrt(Dot(r, r));
-  SetSphereContact(d, q, n, inside < 1.0 ? -distance : distance, sphere,
+  distance = std::sqrt(Dot(r, r));
+  if(inside < 1.0) {
+    distance = -distance;
+  }
+}
+
+bool shift::core::collision_geometry::EllipsoidSphereContact(
+  const Ellipsoid& ellipsoid, const Sphere& sphere, AnalyticContact& contact) {
+  const ksl_vec3_t& axes = ellipsoid.get_semi_axes();
+  if(std::min({axes.x, axes.y, axes.z}) <= 0.0) {
+    return false;
+  }
+  contact = AnalyticContact();
+  ksl_vec3_t q, n;
+  double distance;
+  ClosestOnEllipsoid(ellipsoid, sphere.get_center(), q, n, distance);
+  SetSphereContact(ellipsoid.get_d_absolute(), q, n, distance, sphere,
                    contact);
   return true;
 }
@@ -385,9 +399,11 @@ static double MinimizeSeparation(const Sym3& ga, const Sym3& gb,
     const ksl_vec3_t gbn = Multiply(gb, n);
     const double ha = std::sqrt(Dot(n, gan));
     const double hb = std::sqrt(Dot(n, gbn));
-    /* gradient: the support offsets minus r, i.e. point_a - point_b */
+    /* gradient: the support offsets minus r, i.e. point_a - point_b; b may
+    be a point, gb = 0 */
     const ksl_vec3_t gradient =
-      Sub(Add(Scale(1.0 / ha, gan), Scale(1.0 / hb, gbn)), r);
+      Sub(Add(Scale(1.0 / ha, gan), hb > 0.0 ? Scale(1.0 / hb, gbn) : gbn),
+          r);
     const double radial = Dot(gradient, n); // = d(n), degree 1 homogeneous
     const ksl_vec3_t tangent = Sub(gradient, Scale(radial, n));
     if(std::sqrt(Dot(tangent, tangent)) <= 1e-14 * scale) {
@@ -409,8 +425,9 @@ static double MinimizeSeparation(const Sym3& ga, const Sym3& gb,
         H[i][j] =
           Dot(*e[i], Multiply(ga, *e[j])) / ha -
           Dot(*e[i], gan) * Dot(*e[j], gan) / (ha * ha * ha) +
-          Dot(*e[i], Multiply(gb, *e[j])) / hb -
-          Dot(*e[i], gbn) * Dot(*e[j], gbn) / (hb * hb * hb) -
+          (hb > 0.0 ? Dot(*e[i], Multiply(gb, *e[j])) / hb -
+                        Dot(*e[i], gbn) * Dot(*e[j], gbn) / (hb * hb * hb)
+                    : 0.0) -
           (i == j ? radial : 0.0);
       }
     }
@@ -594,4 +611,483 @@ void shift::core::collision_geometry::PlaneContact(const Plane& plane,
   contact.collision = contact.depth > 0.0;
   contact.normal = n;
   contact.point_first = Add(contact.point_second, Scale(contact.depth, n));
+}
+
+static inline ksl_vec3_t Cross(const ksl_vec3_t& a, const ksl_vec3_t& b) {
+  return {{a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
+           a.x * b.y - a.y * b.x}};
+}
+
+/*! faces whose normals have 1 - cos^2 below this, an angle of about 1e-6,
+ * are coplanar: the edge between them is a diagonal of a polygon */
+static constexpr double kCoplanar = 1e-12;
+
+/*! the faces (triangles) of a hull with an outward normal that have the
+ * edge v1 v2 */
+static int EdgeFaces(const shift::core::collision_geometry::ConvexHullData& h,
+                     unsigned int v1, unsigned int v2, int faces[2]) {
+  int count = 0;
+  for(auto f : h.vertex_faces[v1]) {
+    const unsigned int* t = &h.faces[3 * f];
+    if((t[0] == v2 || t[1] == v2 || t[2] == v2) &&
+       Dot(h.face_normals[f], h.face_normals[f]) > 0.0) {
+      if(count < 2) {
+        faces[count] = static_cast<int>(f);
+      }
+      count++;
+    }
+  }
+  return count;
+}
+
+bool shift::core::collision_geometry::ConvexHullEllipsoidContact(
+  const ConvexHull& hull, const Ellipsoid& ellipsoid, const ksl_vec3_t& start,
+  bool nearest, AnalyticContact& contact) {
+  const ksl_vec3_t& axes = ellipsoid.get_semi_axes();
+  const auto& data = hull.get_hull();
+  if(std::min({axes.x, axes.y, axes.z}) <= 0.0 || data.faces.empty() ||
+     data.vertex_faces.size() != data.vertices.size() ||
+     data.neighbors.size() != data.vertices.size() ||
+     data.face_normals.size() * 3 != data.faces.size()) {
+    return false;
+  }
+  contact = AnalyticContact();
+  const ksl_SE3_t& pose = hull.get_d_absolute();
+  std::vector<ksl_vec3_t> w(data.vertices.size());
+  double size = 0.0;
+  for(size_t i = 0; i < w.size(); i++) {
+    ksl_product_dv(&pose, &data.vertices[i], &w[i]);
+    const ksl_vec3_t r = Sub(w[i], pose.t);
+    size = std::max(size, Dot(r, r));
+  }
+  const double scale = std::sqrt(size) + std::max({axes.x, axes.y, axes.z});
+  const double tolerance = 1e-12 * scale;
+  const ksl_vec3_t& c = ellipsoid.get_d_absolute().t;
+  const Sym3 G = ShapeMatrix(ellipsoid);
+  auto normal_of = [&](int f) {
+    return Rotate(pose, data.face_normals[f]);
+  };
+  /* the support point q of the ellipsoid against n, and h_b(-n) + n . c */
+  auto against = [&](const ksl_vec3_t& n, ksl_vec3_t& q) {
+    const ksl_vec3_t g = Multiply(G, n);
+    const double h = std::sqrt(Dot(n, g));
+    q = Sub(c, Scale(1.0 / h, g));
+    return h;
+  };
+
+  /* the least d is set by a feature of the hull, a vertex, an edge or a
+  face (a triangle: the polygons of coplanar triangles are only nearly
+  planar), each with its own smooth problem; the feature solves its problem
+  inside its normal cone, with the support point q of the ellipsoid against
+  n projecting onto it. start, EPA's normal, is close to the least d, so the
+  feature is made of vertices near the extreme along start; each candidate
+  is solved and checked, and the passing one of least d kept, or the one
+  nearest start */
+  const double slack = 1e-9;
+  struct Solution {
+    bool found = false;
+    double depth = HUGE_VAL;
+    double closeness = -HUGE_VAL;
+    ksl_vec3_t n, q, x;
+  };
+  const ksl_vec3_t n0 = Scale(1.0 / std::sqrt(Dot(start, start)), start);
+  Solution best;
+  auto keep = [&](double depth, const ksl_vec3_t& n, const ksl_vec3_t& q,
+                  const ksl_vec3_t& x) {
+    const double closeness = Dot(n, n0);
+    if(!best.found ||
+       (nearest ? closeness > best.closeness : depth < best.depth)) {
+      best.closeness = closeness;
+      best.found = true;
+      best.depth = depth;
+      best.n = n;
+      best.q = q;
+      best.x = x;
+    }
+  };
+  const Sym3 point = {};
+
+  /* a vertex: d_v(n) = h_b(n) - n . (c - v), the separation of the
+  ellipsoid and the point v (see MinimizeSeparation), from start; v must be
+  extreme along n */
+  auto vertex = [&](unsigned int v) {
+    ksl_vec3_t n = n0, q;
+    MinimizeSeparation(G, point, Sub(c, w[v]), scale, n);
+    const double depth = Dot(n, Sub(w[v], c)) + against(n, q);
+    for(unsigned int u : data.neighbors[v]) {
+      if(Dot(Sub(w[u], w[v]), n) > tolerance) {
+        return;
+      }
+    }
+    keep(depth, n, q, w[v]);
+  };
+
+  /* an edge: d(n) = n . (v1 - c) + h_b(n) over its normal cone, the arc
+  from n1 to n2, n = cos t n1 + sin t s with s the unit part of n2 normal to
+  n1, least at roots of its derivative inside (a least end is a face's
+  solution); q must project onto the edge */
+  auto edge = [&](unsigned int v1, unsigned int v2) {
+    int faces[2];
+    if(EdgeFaces(data, v1, v2, faces) != 2) {
+      return;
+    }
+    const ksl_vec3_t n1 = normal_of(faces[0]);
+    const ksl_vec3_t n2 = normal_of(faces[1]);
+    const double k12 = Dot(n1, n2);
+    if(1.0 - k12 * k12 <= kCoplanar) {
+      return; // a diagonal of coplanar faces, solved as a face
+    }
+    const ksl_vec3_t s = Scale(1.0 / std::sqrt(1.0 - k12 * k12),
+                               Sub(n2, Scale(k12, n1)));
+    const double end = std::acos(std::max(-1.0, std::min(1.0, k12)));
+    const ksl_vec3_t a = Sub(w[v1], c);
+    auto at = [&](double t) {
+      return Add(Scale(std::cos(t), n1), Scale(std::sin(t), s));
+    };
+    auto slope = [&](double t) {
+      const ksl_vec3_t m = at(t);
+      const ksl_vec3_t dm = Add(Scale(-std::sin(t), n1), Scale(std::cos(t), s));
+      const ksl_vec3_t g = Multiply(G, m);
+      return Dot(dm, a) + Dot(dm, g) / std::sqrt(Dot(m, g));
+    };
+    /* d may dip inside the arc although it rises from both ends: each
+    local minimum inside, where the slope of samples changes from - to +,
+    by bisection */
+    const ksl_vec3_t e = Sub(w[v2], w[v1]);
+    const int samples = 16;
+    double previous = slope(0.0);
+    for(int k = 1; k <= samples; k++) {
+      double low = end * (k - 1) / samples, high = end * k / samples;
+      const double current = slope(high);
+      const bool dip = previous < 0.0 && current > 0.0;
+      previous = current;
+      if(!dip) {
+        continue;
+      }
+      for(int i = 0; i < 200; i++) {
+        const double middle = 0.5 * (low + high);
+        if(middle <= low || middle >= high) {
+          break;
+        }
+        (slope(middle) < 0.0 ? low : high) = middle;
+      }
+      const ksl_vec3_t n = at(0.5 * (low + high));
+      ksl_vec3_t q;
+      const double depth = Dot(n, a) + against(n, q);
+      const double along = Dot(Sub(q, w[v1]), e) / Dot(e, e);
+      if(along >= -slack && along <= 1.0 + slack) {
+        keep(depth, n, q, Add(w[v1], Scale(along, e)));
+      }
+    }
+  };
+
+  /* a face: n is its normal, and q must project into it (or into a
+  coplanar face across one of its edges) */
+  auto face = [&](unsigned int f) {
+    const unsigned int* t = &data.faces[3 * f];
+    const ksl_vec3_t n = normal_of(static_cast<int>(f));
+    ksl_vec3_t q;
+    const double depth = Dot(n, Sub(w[t[0]], c)) + against(n, q);
+    for(int k = 0; k < 3; k++) {
+      const ksl_vec3_t& p = w[t[k]];
+      ksl_vec3_t side = Cross(Sub(w[t[(k + 1) % 3]], p), n);
+      const double l = std::sqrt(Dot(side, side));
+      if(!(l > 0.0)) {
+        continue;
+      }
+      if(Dot(side, Sub(w[t[(k + 2) % 3]], p)) > 0.0) {
+        side = Scale(-1.0, side); // away from the third vertex
+      }
+      if(Dot(side, Sub(q, p)) / l > tolerance) {
+        return;
+      }
+    }
+    keep(depth, n, q, Add(q, Scale(depth, n)));
+  };
+
+  double extreme = -HUGE_VAL;
+  for(const auto& p : w) {
+    extreme = std::max(extreme, Dot(p, n0));
+  }
+  for(double margin = 1e-4 * scale; margin < 2.0 * scale && !best.found;
+      margin *= 10.0) {
+    std::vector<char> near(w.size(), 0);
+    for(size_t i = 0; i < w.size(); i++) {
+      near[i] = Dot(w[i], n0) >= extreme - margin;
+    }
+    for(size_t f = 0; 3 * f + 2 < data.faces.size(); f++) {
+      const unsigned int* t = &data.faces[3 * f];
+      if(near[t[0]] && near[t[1]] && near[t[2]] &&
+         Dot(data.face_normals[f], data.face_normals[f]) > 0.0) {
+        face(static_cast<unsigned int>(f));
+      }
+    }
+    for(size_t v = 0; v < w.size(); v++) {
+      if(!near[v]) {
+        continue;
+      }
+      vertex(static_cast<unsigned int>(v));
+      for(unsigned int u : data.neighbors[v]) {
+        if(u > v && near[u]) {
+          edge(static_cast<unsigned int>(v), u);
+        }
+      }
+    }
+  }
+  if(!best.found) {
+    return false;
+  }
+  contact.collision = best.depth > 0.0;
+  if(contact.collision) {
+    contact.depth = best.depth;
+    contact.normal = best.n;
+    contact.point_first = best.x;
+    contact.point_second = best.q;
+  }
+  return true;
+}
+
+/*! whether point p of the plane of triangle t (vertices w) projects into
+ * it, within tolerance, for normal n of the plane */
+static bool InTriangle(const std::vector<ksl_vec3_t>& w, const unsigned int* t,
+                       const ksl_vec3_t& n, const ksl_vec3_t& p,
+                       double tolerance) {
+  for(int k = 0; k < 3; k++) {
+    const ksl_vec3_t& a = w[t[k]];
+    ksl_vec3_t side = Cross(Sub(w[t[(k + 1) % 3]], a), n);
+    const double l = std::sqrt(Dot(side, side));
+    if(!(l > 0.0)) {
+      continue;
+    }
+    if(Dot(side, Sub(w[t[(k + 2) % 3]], a)) > 0.0) {
+      side = Scale(-1.0, side); // away from the third vertex
+    }
+    if(Dot(side, Sub(p, a)) / l > tolerance) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*! whether n is in the normal cone of edge v1 v2 of a hull, between the
+ * normals of its two faces; false for a diagonal of coplanar faces */
+static bool InEdgeCone(const shift::core::collision_geometry::ConvexHull& hull,
+                       unsigned int v1, unsigned int v2, const ksl_vec3_t& n) {
+  int faces[2];
+  const auto& data = hull.get_hull();
+  if(EdgeFaces(data, v1, v2, faces) != 2) {
+    return false;
+  }
+  const ksl_vec3_t n1 = Rotate(hull.get_d_absolute(), data.face_normals[faces[0]]);
+  const ksl_vec3_t n2 = Rotate(hull.get_d_absolute(), data.face_normals[faces[1]]);
+  const double k12 = Dot(n1, n2);
+  const double det = 1.0 - k12 * k12;
+  if(det <= kCoplanar) {
+    return false;
+  }
+  const double b1 = Dot(n1, n), b2 = Dot(n2, n);
+  return (b1 - k12 * b2) / det >= -1e-12 && (b2 - k12 * b1) / det >= -1e-12;
+}
+
+/*! the inertial vertices of a hull, transformed when first used */
+struct LazyVertices {
+  const shift::core::collision_geometry::ConvexHull& hull;
+  std::vector<ksl_vec3_t> w;
+  std::vector<char> done;
+  explicit LazyVertices(const shift::core::collision_geometry::ConvexHull& h)
+    : hull(h)
+    , w(h.get_hull().vertices.size())
+    , done(h.get_hull().vertices.size(), 0) {}
+  const ksl_vec3_t& operator()(unsigned int i) {
+    if(!done[i]) {
+      ksl_product_dv(&hull.get_d_absolute(), &hull.get_hull().vertices[i],
+                     &w[i]);
+      done[i] = 1;
+    }
+    return w[i];
+  }
+};
+
+/*! the vertices of a hull within margin of the extreme along d: they are
+ * connected by its edges (a superlevel set of a linear function on a convex
+ * polytope), so they are found by a search from the support vertex */
+static void NearVertices(LazyVertices& w, const ksl_vec3_t& d, double margin,
+                         int& hint, std::vector<unsigned int>& near,
+                         std::vector<char>& is_near) {
+  ksl_vec3_t local, global;
+  w.hull.Support(d, local, global, hint);
+  const auto& neighbors = w.hull.get_hull().neighbors;
+  const double top = Dot(w(static_cast<unsigned int>(hint)), d);
+  is_near.assign(neighbors.size(), 0);
+  near.assign(1, static_cast<unsigned int>(hint));
+  is_near[hint] = 1;
+  for(size_t k = 0; k < near.size(); k++) {
+    for(unsigned int u : neighbors[near[k]]) {
+      if(!is_near[u] && Dot(w(u), d) >= top - margin) {
+        is_near[u] = 1;
+        near.push_back(u);
+      }
+    }
+  }
+}
+
+bool shift::core::collision_geometry::ConvexHullPairContact(
+  const ConvexHull& a, const ConvexHull& b, const ksl_vec3_t& start,
+  int& hint_a, int& hint_b, AnalyticContact& contact) {
+  for(const ConvexHull* hull : {&a, &b}) {
+    const auto& data = hull->get_hull();
+    if(data.faces.empty() || data.vertex_faces.size() != data.vertices.size() ||
+       data.neighbors.size() != data.vertices.size() ||
+       data.face_normals.size() * 3 != data.faces.size()) {
+      return false;
+    }
+  }
+  contact = AnalyticContact();
+  const auto& da = a.get_hull();
+  const auto& db = b.get_hull();
+  LazyVertices wa(a), wb(b);
+  const double size =
+    std::max(a.get_bounding_radius() + b.get_bounding_radius(), 1e-300);
+  const double tolerance = 1e-12 * size;
+  const double slack = 1e-9;
+  const ksl_vec3_t n0 = Scale(1.0 / std::sqrt(Dot(start, start)), start);
+  const ksl_vec3_t m0 = Scale(-1.0, n0);
+
+  struct Solution {
+    bool found = false;
+    double closeness = -HUGE_VAL;
+    double depth = 0.0;
+    ksl_vec3_t n, x, y;
+  };
+  Solution best;
+  auto keep = [&](const ksl_vec3_t& n, double depth, const ksl_vec3_t& x,
+                  const ksl_vec3_t& y) {
+    const double closeness = Dot(n, n0);
+    if(!best.found || closeness > best.closeness) {
+      best = {true, closeness, depth, n, x, y};
+    }
+  };
+
+  /* a face of one hull and the vertices of the other extreme against its
+  normal nf (outward of the first): they must project into the face. For a
+  face of a the normal of the contact is nf, from a to b; for one of b it is
+  -nf */
+  std::vector<unsigned int> support;
+  std::vector<char> in_support;
+  auto face = [&](bool first_is_a, unsigned int f) {
+    const auto& data = first_is_a ? da : db;
+    LazyVertices& wf = first_is_a ? wa : wb;
+    LazyVertices& wo = first_is_a ? wb : wa;
+    const unsigned int* t = &data.faces[3 * f];
+    const ksl_vec3_t nf =
+      Rotate(wf.hull.get_d_absolute(), data.face_normals[f]);
+    if(!(Dot(nf, nf) > 0.0)) {
+      return;
+    }
+    const ksl_vec3_t against = Scale(-1.0, nf);
+    int hint = first_is_a ? hint_b : hint_a;
+    NearVertices(wo, against, tolerance, hint, support, in_support);
+    const double low = Dot(wo(support[0]), against);
+    const double depth = Dot(nf, wf(t[0])) + low;
+    std::vector<ksl_vec3_t> triangle = {wf(t[0]), wf(t[1]), wf(t[2])};
+    const unsigned int local[3] = {0, 1, 2};
+    for(unsigned int i : support) {
+      const ksl_vec3_t& v = wo(i);
+      const ksl_vec3_t p = Add(v, Scale(depth, nf)); // onto the face plane
+      if(!InTriangle(triangle, local, nf, p, tolerance)) {
+        continue;
+      }
+      if(first_is_a) {
+        keep(nf, depth, p, v);
+      } else {
+        keep(against, depth, v, p);
+      }
+    }
+  };
+
+  /* an edge of a and an edge of b: n normal to both, in the normal cone of
+  a's edge, with -n in that of b's, and the closest points of their lines on
+  both segments */
+  auto edges = [&](unsigned int a1, unsigned int a2, unsigned int b1,
+                   unsigned int b2) {
+    const ksl_vec3_t ea = Sub(wa(a2), wa(a1));
+    const ksl_vec3_t eb = Sub(wb(b2), wb(b1));
+    ksl_vec3_t n = Cross(ea, eb);
+    const double l = std::sqrt(Dot(n, n));
+    if(!(l > 1e-9 * std::sqrt(Dot(ea, ea) * Dot(eb, eb)))) {
+      return; // parallel edges: a face's solution
+    }
+    n = Scale(1.0 / l, n);
+    if(!InEdgeCone(a, a1, a2, n)) {
+      n = Scale(-1.0, n);
+      if(!InEdgeCone(a, a1, a2, n)) {
+        return;
+      }
+    }
+    if(!InEdgeCone(b, b1, b2, Scale(-1.0, n))) {
+      return;
+    }
+    /* x = a1 + s ea, y = b1 + t eb with x - y along n */
+    const ksl_vec3_t r = Sub(wa(a1), wb(b1));
+    const double aa = Dot(ea, ea), ab = Dot(ea, eb), bb = Dot(eb, eb);
+    const double ar = Dot(ea, r), br = Dot(eb, r);
+    const double det = aa * bb - ab * ab;
+    const double s = (ab * br - bb * ar) / det;
+    const double t = (aa * br - ab * ar) / det;
+    if(s < -slack || s > 1.0 + slack || t < -slack || t > 1.0 + slack) {
+      return;
+    }
+    const ksl_vec3_t x = Add(wa(a1), Scale(s, ea));
+    const ksl_vec3_t y = Add(wb(b1), Scale(t, eb));
+    keep(n, Dot(n, Sub(x, y)), x, y);
+  };
+
+  std::vector<unsigned int> near_a, near_b;
+  std::vector<char> is_a, is_b;
+  /* the minimum near start, else none (a new contact: EPA's) */
+  for(double margin = 1e-4 * size; margin < 2e-2 * size && !best.found;
+      margin *= 10.0) {
+    NearVertices(wa, n0, margin, hint_a, near_a, is_a);
+    NearVertices(wb, m0, margin, hint_b, near_b, is_b);
+    /* the faces of near vertices, each once from its least vertex */
+    for(int first = 0; first < 2; first++) {
+      const auto& data = first == 0 ? da : db;
+      const auto& near = first == 0 ? near_a : near_b;
+      const auto& is_near = first == 0 ? is_a : is_b;
+      for(unsigned int v : near) {
+        for(auto f : data.vertex_faces[v]) {
+          const unsigned int* t = &data.faces[3 * f];
+          if(is_near[t[0]] && is_near[t[1]] && is_near[t[2]] &&
+             v == std::min({t[0], t[1], t[2]})) {
+            face(first == 0, f);
+          }
+        }
+      }
+    }
+    for(unsigned int a1 : near_a) {
+      for(unsigned int a2 : da.neighbors[a1]) {
+        if(a2 <= a1 || !is_a[a2]) {
+          continue;
+        }
+        for(unsigned int b1 : near_b) {
+          for(unsigned int b2 : db.neighbors[b1]) {
+            if(b2 > b1 && is_b[b2]) {
+              edges(a1, a2, b1, b2);
+            }
+          }
+        }
+      }
+    }
+  }
+  if(!best.found) {
+    return false;
+  }
+  contact.collision = best.depth > 0.0;
+  if(contact.collision) {
+    contact.depth = best.depth;
+    contact.normal = best.n;
+    contact.point_first = best.x;
+    contact.point_second = best.y;
+  }
+  return true;
 }

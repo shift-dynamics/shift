@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "shift/core/body/base.h"
 #include "shift/core/body/fixed.h"
 #include "shift/core/body/free.h"
@@ -9,6 +11,11 @@
 #include "shift/core/exception.h"
 
 #include "ksl/matrix.h"
+#include "ksl/vec3.h"
+#include "shift/core/collision_geometry/fitting.h"
+#include "shift/core/geometry/mass_properties.h"
+#include "shift/core/geometry/mesh.h"
+#include "shift/core/log.h"
 
 #include <assert.h>
 #include <iostream>
@@ -53,6 +60,14 @@ void shift::core::body::Base::DeclareParameters() {
     false);
 
   DeclareParameter(
+    "density", &density_,
+    "Density of the body (mass per volume): if given, the mass, center of "
+    "mass and inertia are computed from the solid bounded by the body's "
+    "meshes (their convex hull where a mesh is not closed), and "
+    "center_of_mass and inertia are not used. (optional)",
+    false);
+
+  DeclareParameter(
     "inertia", &inertia_,
     "Specify body mass and centroidal moment of inertia "
     "expressed in the body-fixed coordinate system. Note that if a zero or "
@@ -93,6 +108,8 @@ void shift::core::body::Base::ActivateObjects(bool parent_is_active) {
   }
   for(auto& collision_geometry : collision_geometry_.get_data()) {
     collision_geometry->ActivateObjects(active_ && parent_is_active);
+  }  for(auto& light : lights_.get_data()) {
+    light->ActivateObjects(active_ && parent_is_active);
   }
 }
 
@@ -216,3 +233,123 @@ unsigned int shift::core::body::Base::get_frame_in_tree_count() {
 }
 
 void shift::core::body::Base::Load() {}
+
+/* the properties of unit density of the solid bounded by meshes, and
+whether they are closed surfaces (otherwise those of the convex hull) */
+static void UnitMassProperties(
+  const std::string& name,
+  const std::vector<const shift::core::geometry::Mesh*>& meshes,
+  shift::core::geometry::MassProperties& properties, bool& closed) {
+  std::vector<ksl_vec3_t> vertices;
+  std::vector<unsigned int> faces;
+  closed = true;
+  for(auto mesh : meshes) {
+    for(const auto& data : mesh->get_mesh_data()) {
+      std::vector<ksl_vec3_t> points;
+      for(size_t i = 0; i + 2 < data.vertices.size(); i += 3) {
+        points.push_back(
+          {{data.vertices[i], data.vertices[i + 1], data.vertices[i + 2]}});
+      }
+      closed = closed && shift::core::geometry::IsClosedSurface(points,
+                                                                 data.faces);
+      const unsigned int offset = static_cast<unsigned int>(vertices.size());
+      vertices.insert(vertices.end(), points.begin(), points.end());
+      for(auto f : data.faces) {
+        faces.push_back(offset + f);
+      }
+    }
+  }
+  if(vertices.empty()) {
+    throw shift::core::Exception("Body '" + name +
+                                 "' gives a density but has no meshes");
+  }
+  if(!closed) {
+    /* holes, e.g. the base of a scanned model, are capped if they are simple
+     * loops */
+    std::vector<ksl_vec3_t> capped_vertices = vertices;
+    std::vector<unsigned int> capped_faces = faces;
+    const int holes =
+      shift::core::geometry::CloseHoles(capped_vertices, capped_faces);
+    if(holes > 0 && shift::core::geometry::IsClosedSurface(capped_vertices,
+                                                           capped_faces)) {
+      SHIFT_INFO("Body '" + name + "': closed " + std::to_string(holes) +
+                 " holes of its meshes to compute its mass properties");
+      vertices.swap(capped_vertices);
+      faces.swap(capped_faces);
+      closed = true;
+    }
+  }
+  if(!closed) {
+    /* the convex hull is closed; orient its triangles outward */
+    shift::core::collision_geometry::ConvexHullData hull;
+    if(!shift::core::collision_geometry::ComputeConvexHull(vertices, hull)) {
+      throw shift::core::Exception("Body '" + name +
+                                   "': the convex hull of its meshes is "
+                                   "degenerate, its volume is zero");
+    }
+    shift::core::collision_geometry::ComputeFacePlanes(hull);
+    for(size_t f = 0; f + 2 < hull.faces.size(); f += 3) {
+      const ksl_vec3_t& p0 = hull.vertices[hull.faces[f]];
+      const ksl_vec3_t& p1 = hull.vertices[hull.faces[f + 1]];
+      const ksl_vec3_t& p2 = hull.vertices[hull.faces[f + 2]];
+      ksl_vec3_t e1, e2, n;
+      ksl_subtract_vv(&p1, &p0, &e1);
+      ksl_subtract_vv(&p2, &p0, &e2);
+      ksl_cross_vv(&e1, &e2, &n);
+      if(ksl_dot_vv(&n, &hull.face_normals[f / 3]) < 0.0) {
+        std::swap(hull.faces[f + 1], hull.faces[f + 2]);
+      }
+    }
+    SHIFT_WARNING("Body '" + name +
+                  "': its meshes are not closed surfaces, its mass "
+                  "properties are those of their convex hull");
+    vertices = hull.vertices;
+    faces = hull.faces;
+  }
+  if(!shift::core::geometry::ComputeMassProperties(vertices, faces,
+                                                   properties)) {
+    throw shift::core::Exception("Body '" + name +
+                                 "': the volume of its meshes is zero");
+  }
+}
+
+void shift::core::body::Base::ComputeMassFromGeometry(MassCache& cache) {
+  if(!(density_ > 0.0)) {
+    return;
+  }
+  std::vector<const shift::core::geometry::Mesh*> meshes;
+  std::vector<const shift::core::geometry::MeshAsset*> key;
+  for(auto& geometry : geometry_.get_data()) {
+    auto mesh = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
+    if(mesh && mesh->is_active()) {
+      meshes.push_back(mesh);
+      key.push_back(mesh->get_asset());
+    }
+  }
+  auto found = cache.find(key);
+  if(found == cache.end()) {
+    std::pair<shift::core::geometry::MassProperties, bool> entry;
+    UnitMassProperties(name_, meshes, entry.first, entry.second);
+    found = cache.emplace(key, entry).first;
+  }
+  const shift::core::geometry::MassProperties& properties =
+    found->second.first;
+  const bool closed = found->second.second;
+  const double m = density_ * properties.volume;
+  inertia_ = ksl_inertia(m, {{0.0, 0.0, 0.0}}, density_ * properties.Ixx,
+                         density_ * properties.Iyy, density_ * properties.Izz,
+                         density_ * properties.Ixy, density_ * properties.Iyz,
+                         density_ * properties.Izx);
+  inertia_.mt = {{0.0, 0.0, 0.0}};
+  center_of_mass_wrt_origin_ = properties.centroid;
+  std::stringstream ss;
+  ss.precision(10);
+  ss << "Body '" << name_ << "' from density " << density_ << ": volume "
+     << properties.volume << ", mass " << m << ", center of mass ["
+     << properties.centroid.x << ", " << properties.centroid.y << ", "
+     << properties.centroid.z << "], inertia [" << inertia_.Ixx << ", "
+     << inertia_.Iyy << ", " << inertia_.Izz << ", " << inertia_.Ixy << ", "
+     << inertia_.Iyz << ", " << inertia_.Izx << "]"
+     << (closed ? "" : " (convex hull)");
+  SHIFT_INFO(ss.str());
+}

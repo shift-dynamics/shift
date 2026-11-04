@@ -19,8 +19,19 @@ struct ConvexHullData {
   std::vector<unsigned int> faces; //!< three vertex indices per face
   std::vector<std::vector<unsigned int>> neighbors;
   /*! outward unit normal n and offset o of each face's plane, n . x = o */
-  std::vector<ksl_vec3_t> face_normals;
+    std::vector<ksl_vec3_t> face_normals;
   std::vector<double> face_offsets;
+  /*! the faces merged into polygons: the triangles of a plane of the hull,
+   * with the vertex indices of each polygon counterclockwise about its
+   * outward normal (see ComputeFacePolygons) */
+  std::vector<std::vector<unsigned int>> polygons;
+    std::vector<ksl_vec3_t> polygon_normals;
+  std::vector<double> polygon_offsets;
+  /*! the polygons around each vertex, so that the face touching along a
+   * direction is found from the support vertex of that direction */
+  std::vector<std::vector<unsigned int>> vertex_polygons;
+  /*! the faces (triangles) around each vertex */
+  std::vector<std::vector<unsigned int>> vertex_faces;
 };
 
 /*!
@@ -39,6 +50,10 @@ void ComputeVertexNeighbors(ConvexHullData& hull);
  * vertex centroid (an interior point); faces without area get a zero normal
  * and an infinite offset, so they never separate */
 void ComputeFacePlanes(ConvexHullData& hull);
+
+/*! \brief merge the triangles of each plane of a convex hull into a polygon,
+ * for the contact manifold of faces in contact; needs the face planes */
+void ComputeFacePolygons(ConvexHullData& hull);
 
 /*! \brief covariance matrix of a set of points */
 ksl_mat3x3_t Covariance(const std::vector<ksl_vec3_t>& points);

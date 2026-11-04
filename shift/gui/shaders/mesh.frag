@@ -1,4 +1,5 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
 
 layout(location = 0) in vec3 world_position;
 layout(location = 1) in vec3 world_normal;
@@ -35,6 +36,10 @@ layout(binding = 4) uniform sampler2D environment_brdf;       // n.v, roughness
 
 // texture layers of all materials
 layout(binding = 5) uniform sampler2DArray textures;
+
+#define LIGHTS_BINDING 8
+#define IES_BINDING 9
+#include "lights.glsl"
 
 const float PI = 3.14159265358979;
 
@@ -99,14 +104,33 @@ mat3 CotangentFrame(vec3 n, vec3 p, vec2 t) {
   return mat3(tangent * scale, bitangent * scale, n);
 }
 
+// light from direction l, with the colors of its diffuse and specular
+// reflection (GGX, Smith-Schlick, Fresnel-Schlick)
+vec3 DirectLight(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic,
+                 float roughness, vec3 diffuse_light, vec3 specular_light) {
+  float n_dot_l = dot(n, l);
+  if(n_dot_l <= 0.0) {
+    return vec3(0.0);
+  }
+  vec3 h = normalize(v + l);
+  float n_dot_v = max(dot(n, v), 1e-4);
+  vec3 f0 = mix(vec3(0.04), albedo, metallic);
+  vec3 f = f0 + (1.0 - f0) * pow(1.0 - max(dot(h, v), 0.0), 5.0);
+  vec3 specular = DistributionGgx(max(dot(n, h), 0.0), roughness) *
+                  GeometrySmith(n_dot_v, n_dot_l, roughness) * f /
+                  (4.0 * n_dot_v * n_dot_l + 1e-4);
+  vec3 diffuse = (1.0 - f) * (1.0 - metallic) * albedo / PI;
+  return (diffuse * diffuse_light + specular * specular_light) * n_dot_l;
+}
+
 void main() {
   vec3 v = normalize(frame.camera_position.xyz - world_position);
   vec3 n = normalize(world_normal);
   vec3 nb = normalize(body_normal);
-  if(dot(n, v) < 0.0) {
-    n = -n; // two sided
-    nb = -nb;
-  }
+  // two sided: seen from behind, the surface is lit as its back face
+  float side = dot(n, v) < 0.0 ? -1.0 : 1.0;
+  n *= side;
+  nb *= side;
 
   vec3 albedo = mesh.albedo.rgb;
   float metallic = mesh.material.x;
@@ -129,8 +153,10 @@ void main() {
   }
   if(mesh.layers.z >= 0) {
     if(triplanar) {
-      n = normalize(body_rotation *
-                    TriplanarNormal(mesh.layers.z, p, nb, w, mesh.albedo.w));
+      // the bumps of the front face; the back face has the opposite normal
+      n = side * normalize(body_rotation *
+                           TriplanarNormal(mesh.layers.z, p, side * nb, w,
+                                           mesh.albedo.w));
     } else {
       vec3 t = SampleLayer(mesh.layers.z, uv).xyz * 2.0 - 1.0;
       t.xy *= mesh.albedo.w;
@@ -139,19 +165,23 @@ void main() {
   }
   roughness = clamp(roughness, 0.05, 1.0);
   metallic = clamp(metallic, 0.0, 1.0);
-  vec3 l = frame.sun_direction.xyz;
-  vec3 h = normalize(v + l);
-  float n_dot_l = max(dot(n, l), 0.0);
   float n_dot_v = max(dot(n, v), 1e-4);
-
   vec3 f0 = mix(vec3(0.04), albedo, metallic);
-  vec3 f = f0 + (1.0 - f0) * pow(1.0 - max(dot(h, v), 0.0), 5.0);
-  vec3 specular = DistributionGgx(max(dot(n, h), 0.0), roughness) *
-                  GeometrySmith(n_dot_v, n_dot_l, roughness) * f /
-                  (4.0 * n_dot_v * n_dot_l + 1e-4);
-  vec3 diffuse = (1.0 - f) * (1.0 - metallic) * albedo / PI;
+
   vec3 sun = frame.sun_color.rgb * frame.sun_direction.w;
-  vec3 color = (diffuse + specular) * sun * n_dot_l;
+  vec3 color = DirectLight(n, v, frame.sun_direction.xyz, albedo, metallic,
+                           roughness, sun, sun);
+  for(int i = 0; i < min(lights.count.x, kMaxLights); i++) {
+    vec3 l;
+    float distance;
+    float factor = LightAt(i, world_position, l, distance);
+    if(factor > 0.0) {
+      color += factor * DirectLight(n, v, l, albedo, metallic, roughness,
+                                    lights.light[i].diffuse.rgb,
+                                    lights.light[i].specular.rgb);
+    }
+  }
+  color += lights.ambient.rgb * (1.0 - metallic) * albedo;
 
   // sky light, split sum approximation
   vec3 r = reflect(-v, n);

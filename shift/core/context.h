@@ -6,6 +6,8 @@
 #include <json/json.h>
 #include <map>
 #include <memory>
+#include <set>
+
 #include <string>
 #include <unordered_map>
 
@@ -22,11 +24,16 @@
 namespace shift {
 namespace core {
 
+namespace body {
+class Free;
+}
+
 namespace controller {
 class Base;
 }
 
 namespace collision_geometry {
+class Plane;
 class Base;
 }
 
@@ -79,6 +86,28 @@ public:
 
   body::Base* get_fixed_body() {
     return this;
+  }
+
+  /*! \brief the active lights, connected to their frames */
+  const std::vector<light::Base*>& get_active_lights() const {
+    return active_lights_;
+  }
+
+  /*! \brief the active terrains, see terrain::Base::Query */
+  const std::vector<terrain::Base*>& get_active_terrain() const {
+    return active_terrain_;
+  }
+
+  /*! \brief collision geometry of the fixed body, given at the top level of
+   * the model, e.g. the floor; see AddDefaultFloor */
+  std::vector<std::unique_ptr<collision_geometry::Base>>&
+  get_fixed_collision_geometry() {
+    return collision_geometry_.get_data();
+  }
+
+  /*! \brief the assemblies at the top level of the model */
+  std::vector<std::unique_ptr<Assembly>>& get_assemblies() {
+    return assemblies_.get_data();
   }
 
   const std::vector<int>& get_dq_lookup() const {
@@ -238,19 +267,37 @@ public:
     return chord_constraints_;
   }
 
+  /*! \brief number of states of the bodies: q, dq and the states of the
+   * free bodies (see body::Free), the leading part of the state vector
+   * y = [q, dq, free body states, auxiliary states] and the size of get_q() */
+  unsigned int get_state_count() const {
+    return q_count_ + dq_count_ + free_state_count_;
+  }
+
+  /*! \brief offset of the free body states in the state vector */
+  unsigned int get_free_state_offset() const {
+    return q_count_ + dq_count_;
+  }
+
+  /*! \brief active free bodies, in the order of their states */
+  const std::vector<body::Free*>& get_free_bodies() const {
+    return free_bodies_;
+  }
+
   /*! \brief number of auxiliary states (internal states of force modules
-   * and controllers) that follow q and dq in the state vector y */
+   * and controllers) that follow the body states in the state vector y */
   unsigned int get_auxiliary_state_count();
 
   /*! \brief assign each active force module and controller its offset in
-   * the state vector y = [q, dq, auxiliary states] and copy its initial
-   * values to y_auxiliary, which points to the first auxiliary state;
-   * called by the integrators when they (re)initialize */
+   * the state vector y = [q, dq, free body states, auxiliary states] and copy
+   * its initial values to y_auxiliary, which points to the first auxiliary
+   * state; called by the integrators when they (re)initialize */
   void InitializeAuxiliaryStates(double* y_auxiliary);
 
   /*! \brief index of the body's group in the body load and velocity arrays:
    * the compressed index of its nearest non-rigid parent joint, -1 for a
-   * body rigidly attached to the fixed body; valid once the topology is
+   * body rigidly attached to the fixed body, and for a free body
+   * non_rigid_joint_count plus its free index; valid once the topology is
    * initialized */
   int GetBodyLoadIndex(const body::Base* body) const;
 
@@ -444,10 +491,16 @@ public:
   }
 
   /*! \brief Pose of a body's origin with respect to the inertial frame,
-   * evaluated from the displacements in dhva (by default the context's own) */
+   * evaluated from the displacements in dhva (by default the context's own),
+   * for a free body from dhva.free */
   ksl_SE3_t get_body_origin_pose(body::Base* body);
   ksl_SE3_t get_body_origin_pose(body::Base* body,
                                  const topology::DHVA& dhva);
+
+  /*! \brief the displacements and velocities of the free bodies in dhva.free
+   * from their generalized coordinates, free_q (kStateCount per body, see
+   * body::Free), e.g. y + get_free_state_offset() */
+  void UpdateFreeDV(topology::DHVA& dhva, const double* free_q) const;
 
   void RegisterLogValue(shift::core::parameter::Value*);
 
@@ -457,20 +510,45 @@ public:
   @brief detect contact between the collision geometry of different bodies at
   the current displacements in dhva
 
-  Updates the collision geometry poses, finds the pairs whose bounding spheres
-  overlap with a sweep and prune pass along x, and tests those pairs with
-  collision_geometry::TestContact. Called from SetForces when contact detection
-  is enabled in the model parameters; the results are available from
-  get_contacts().
+  Updates the collision geometry poses and tests the candidate pairs of the
+  broad phase (see UpdateContactCandidates): those whose bounding spheres
+  overlap, or for a plane, whose bounding sphere reaches the plane, are tested
+  with collision_geometry::TestContact. The poses and the tests of the pairs
+  are computed in parallel (OpenMP; OMP_NUM_THREADS sets the number of
+  threads). Called from SetForces when contact detection is enabled in the
+  model parameters; the results are available from get_contacts().
   */
   void DetectContacts();
 
+  /*! \brief called by the integrators after each accepted step, at the
+   * accepted state y (the state of the last evaluation of the equations of
+   * motion of the step): history that the forces depend on changes here
+   * only, e.g. the contact normals the penetration depths stay near */
+  void AcceptStep(const std::vector<double>& y);
+
   /*! \brief pairs of collision geometry found in contact by the most recent
-   * call to DetectContacts */
-  const std::vector<const collision_geometry::ContactPair*>& get_contacts()
-    const {
+   * call to DetectContacts; a contact force module records its data (see
+   * ContactPair) in them */
+  const std::vector<collision_geometry::ContactPair*>& get_contacts() const {
     return contacts_;
   }
+
+  /*! \brief active collision geometry, loaded or not, available once the
+   * objects are activated */
+  const std::vector<collision_geometry::Base*>&
+  get_active_collision_geometry() const {
+    return active_collision_geometry_;
+  }
+
+  /*! \brief never test the collision geometry of bodies a and b for contact,
+   * e.g. bodies joined by a joint, whose geometry overlaps at the joint.
+   * Bodies in the same rigid group (see GetBodyLoadIndex) are never tested. */
+  void ExcludeContact(const body::Base* a, const body::Base* b);
+
+  /*! \brief give the fixed body a floor, a plane at z = 0 facing up (-z),
+   * with contact switched off, unless the model gives the fixed body a plane;
+   * the viewer draws the floor at the first plane of the fixed body */
+  void AddDefaultFloor();
 
   /*! \brief active collision geometry that was fitted to a mesh and takes part
    * in contact detection */
@@ -496,6 +574,33 @@ public:
 private:
   /*! \brief collect the fitted collision geometry for contact detection */
   void SetupContactDetection();
+
+  /*! \brief collect the active free bodies, check that no joint connects to
+   * one, and set up their inertias */
+  void SetupFreeBodies();
+  /*! \brief the accelerations of the free bodies (dhva_.free.a) from their
+   * loads and gravity, and the time derivatives of their generalized
+   * coordinates at the free body offset of dy. Each body is independent, so
+   * they are computed in parallel. */
+  void EvaluateFreeBodies(const double* y, double* dy);
+
+  /*!
+  @brief the broad phase of contact detection: the candidate pairs
+
+  The bounding sphere of each bounded geometry is enlarged by a margin, a
+  fraction of its radius, and the pairs whose enlarged spheres overlap are
+  candidates: until a geometry moves farther than its margin from where it was
+  at the broad phase, no pair outside the candidates can overlap, so the
+  candidates are kept and DetectContacts only tests them. Each plane (with an
+  unbounded bounding sphere) is a candidate with every bounded geometry, and
+  DetectContacts tests the distance of the bounding sphere from the plane.
+  Pairs that cannot be in contact (the same rigid group, the same body, or
+  excluded) are never candidates.
+  */
+  void UpdateContactCandidates();
+  /*! \brief whether geometries i and j may be in contact: different rigid
+   * groups and bodies, not excluded */
+  bool is_contact_allowed(int i, int j) const;
 
   
   struct dqTodyIndex {
@@ -667,6 +772,12 @@ private:
   /*! external spatial forces on each body group, length
    * non_rigid_joint_count, see AddBodyLoad */
   std::vector<ksl_coscrew_t> body_loads_;
+  /* free bodies: their generalized coordinates follow q and dq, their
+  displacements, velocities and accelerations are in dhva_.free; the load on
+  each */
+  std::vector<body::Free*> free_bodies_ = {};
+  unsigned int free_state_count_ = 0;
+  std::vector<ksl_coscrew_t> free_loads_ = {};
   std::vector<ksl_inertia_t> inertia_; /*!< body fixed spatial inertias */
   std::vector<int> joint_dof_;
   std::vector<int> joint_lookup_;
@@ -770,8 +881,36 @@ private:
    * indices of the geometries in contact_geometry_, with their GJK history */
   std::unordered_map<uint64_t, collision_geometry::ContactPair>
     contact_pairs_ = {};
-  std::vector<const collision_geometry::ContactPair*> contacts_ = {};
+  std::vector<collision_geometry::ContactPair*> contacts_ = {};
+  /*! a candidate pair of the broad phase; a and b index contact_geometry_ */
+  struct ContactCandidate {
+    collision_geometry::ContactPair* pair = nullptr;
+    int a = 0;
+    int b = 0;
+    bool was_in_contact = false; //!< before the most recent test
+  };
+  std::vector<ContactCandidate> contact_candidates_ = {};
+  bool contact_candidates_valid_ = false;
+  /*! bounded geometry (planes excluded) in the order of the sweep along
+   * sweep_axis_ */
   std::vector<int> sweep_order_ = {};
+  int sweep_axis_ = 0;
+  /*! for each geometry in contact_geometry_: its plane if it is one (nullptr
+   * otherwise), the center of its bounding sphere at the last broad phase and
+   * its margin */
+  std::vector<const collision_geometry::Plane*> contact_planes_ = {};
+  std::vector<ksl_vec3_t> broad_phase_centers_ = {};
+  std::vector<double> contact_margins_ = {};
+  /* wall-clock time spent in DetectContacts during Simulate */
+  double contact_detection_seconds_ = 0.0;
+  long contact_detection_calls_ = 0;
+  long broad_phase_calls_ = 0;
+  /*! rigid group of each geometry in contact_geometry_: the body load index
+   * of an articulated body, unique for a free body */
+  std::vector<int> contact_group_ = {};
+  /*! body pairs never tested for contact, ordered by address */
+  std::set<std::pair<const body::Base*, const body::Base*>>
+    excluded_contacts_ = {};
   std::vector<constraint::Base*> active_constraints_ = {};
   std::vector<force_module::Base*> active_force_modules_ = {};
   std::vector<geometry::Base*> active_geometry_ = {};

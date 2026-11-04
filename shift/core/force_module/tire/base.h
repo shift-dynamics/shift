@@ -28,8 +28,10 @@ frame and slip velocities (tire::Contact), evaluates the tire model selected
 by tire_type and applies its force and moment to the wheel body.
 
 The wheel spins about the y axis of the wheel body's origin frame. The
-terrain is flat at z = 0 with the normal +z (SAE, z down), as in the original
-implementation, until terrain modules provide a height and normal query.
+wheel touches the active terrains of the model (terrain::Base::Query), taken
+as the plane tangent to the terrain at the contact point; without terrains
+the ground is flat at z = 0 with the normal +z (SAE, z down), as in the
+original implementation.
 
 JSON:
 \code
@@ -90,7 +92,7 @@ private:
    * directory */
   std::string FindFile(const std::string& name) const;
 
-  /*! \brief contact of the wheel disc with the flat terrain */
+  /*! \brief contact of the wheel disc with the terrain */
   void UpdateContact(const ksl_SE3_t& hub, const ksl_screw_t& velocity);
 
   static bool registered_;

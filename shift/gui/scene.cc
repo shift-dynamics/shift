@@ -28,8 +28,29 @@ void shift::gui::SceneBounds(const Scene& scene, const Poses& poses,
   }
 }
 
+void shift::gui::TextureLoader::AddEmbedded(
+  const std::map<std::string, EmbeddedTexture>& images) {
+  for(const auto& [key, image] : images) {
+    embedded_[key] = &image;
+  }
+}
+
 QImage shift::gui::TextureLoader::Read(const std::string& path) {
-  QImage image(QString::fromStdString(path));
+  QImage image;
+  auto embedded = embedded_.find(path);
+  if(embedded == embedded_.end()) {
+    image.load(QString::fromStdString(path));
+  } else if(embedded->second->height == 0) {
+    // an encoded image file
+    const auto& data = embedded->second->data;
+    image.loadFromData(data.data(), static_cast<int>(data.size()));
+  } else {
+    // B G R A texels, as Qt's ARGB32 on little endian machines
+    const EmbeddedTexture& t = *embedded->second;
+    image = QImage(t.data.data(), int(t.width), int(t.height),
+                   int(4 * t.width), QImage::Format_ARGB32)
+              .copy();
+  }
   if(image.isNull()) {
     qWarning("Cannot read texture %s", path.c_str());
     return image;

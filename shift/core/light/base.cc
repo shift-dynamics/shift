@@ -5,7 +5,9 @@
 #include "shift/core/light/point.h"
 #include "shift/core/light/spot.h"
 
-#include "ksl/print.h"
+#include "shift/core/body/base.h"
+#include "shift/core/frame.h"
+#include "shift/core/log.h"
 
 bool shift::core::light::Modules::is_initialized() {
   if(!shift::core::light::Point::is_registered()) {
@@ -50,11 +52,60 @@ void shift::core::light::Base::DeclareParameters() {
                "Indicates light's specular color component in RGB format "
                "using values from 0 to 1.",
                false);
+  DeclareParameter("intensity", &intensity_,
+               "Factor of the diffuse and specular colors (optional, "
+               "default 1).",
+               false);
+  DeclareParameter("attenuation", &attenuation_,
+               "[c, l, q]: point, spot and IES lights fall off with the "
+               "distance d to the light as 1 / (c + l d + q d^2). Use "
+               "[0, 0, 1] for the inverse square law of a physical light "
+               "(optional, default [1, 0, 0]: no fall off).",
+               false);
 }
 
 void shift::core::light::Base::Load() {}
 
-void shift::core::light::Base::Connect() {}
+void shift::core::light::Base::Connect() {
+  parent_body_ = nullptr;
+  frame_ = nullptr;
+  const std::string prefix = "Light " + get_name() + ": ";
+  if(parent_.size() != 2) {
+    SHIFT_WARNING(prefix + "parent must be [\"body\", \"frame\"]; the "
+                  "light is not drawn");
+    return;
+  }
+  const body::Base* body = nullptr;
+  if(parent_[0] == "fixed") {
+    body = context_->get_fixed_body();
+  } else {
+    for(auto list : {&context_->get_active_articulated_bodies(),
+                     &context_->get_active_free_bodies()}) {
+      for(auto candidate : *list) {
+        if(candidate->get_name() == parent_[0]) {
+          body = candidate;
+        }
+      }
+    }
+  }
+  if(!body) {
+    SHIFT_WARNING(prefix + "body " + parent_[0] + " not found among the "
+                  "active bodies; the light is not drawn");
+    return;
+  }
+  for(auto& frame : const_cast<body::Base*>(body)->get_frames()) {
+    if(frame->get_name() == parent_[1] ||
+       (parent_[1] == "origin" && frame->is_origin())) {
+      frame_ = frame.get();
+    }
+  }
+  if(!frame_) {
+    SHIFT_WARNING(prefix + "frame " + parent_[1] + " not found on body " +
+                  parent_[0] + "; the light is not drawn");
+    return;
+  }
+  parent_body_ = body;
+}
 
 void shift::core::light::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);

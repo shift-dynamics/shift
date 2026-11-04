@@ -119,6 +119,27 @@ public:
     return bounding_radius_;
   }
 
+      /*! \brief whether the geometry takes part in contact detection; geometry
+   * with contact switched off is kept, and can be switched on again */
+  bool is_contact_enabled() const {
+    return contact_;
+  }
+  void set_contact_enabled(bool contact) {
+    contact_ = contact;
+  }
+
+  /*! \brief pose of the geometry with respect to the body origin, as given
+   * by the "pose" parameter */
+  const ksl_SE3_t& get_pose() const {
+    return *pose_.get_d_wrt_origin();
+  }
+
+  /*! \brief name of the contact material, empty for the default material
+   * of the contact force module */
+  const std::string& get_material() const {
+    return material_;
+  }
+
   /*! \brief whether the collision geometry was fitted to any vertices */
   bool is_loaded() const {
     return loaded_;
@@ -149,8 +170,11 @@ protected:
   std::string type_;  //!< descriptive name of CollisionGeometry type
   /*! pose of a geometry given by its dimensions, wrt the body origin */
   shift::core::Frame pose_;
-  /*! names of the body's mesh geometry to fit to, all active meshes if empty */
+    /*! names of the body's mesh geometry to fit to, all active meshes if empty */
   std::vector<std::string> fit_to_;
+    std::string material_; //!< contact material name, see get_material
+  bool contact_ = true;   //!< see is_contact_enabled
+
   ksl_SE3_t d_wrt_body_ = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
   ksl_SE3_t d_absolute_ = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
   double bounding_radius_ = 0.0;

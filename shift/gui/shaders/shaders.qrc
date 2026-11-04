@@ -13,5 +13,8 @@
     <file>svgf_atrous.comp.qsb</file>
     <file>svgf_composite.comp.qsb</file>
     <file>svgf_taa.comp.qsb</file>
+    <file>terrain.vert.qsb</file>
+    <file>terrain.tesc.qsb</file>
+    <file>terrain.tese.qsb</file>
   </qresource>
 </RCC>

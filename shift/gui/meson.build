@@ -9,6 +9,14 @@ endif
 
 qt6 = import('qt6')
 
+# video export encodes in process with the FFmpeg libraries
+ffmpeg_dep = [
+  dependency('libavformat'),
+  dependency('libavcodec', version: '>=61.13'), # avcodec_get_supported_config
+  dependency('libavutil'),
+  dependency('libswscale'),
+]
+
 # The RHI headers live in a versioned private include directory
 qt_include_dir = run_command('pkg-config', '--variable=includedir', 'Qt6Core',
                              check: true).stdout().strip()
@@ -41,6 +49,19 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'fullscreen.vert', 'sky.frag',
     input: 'shaders' / shader,
     output: shader + '.qsb',
     command: [qsb, '--glsl', '310 es,430', '-o', '@OUTPUT@', '@INPUT@'],
+    depend_files: files('shaders/lights.glsl'),
+  )
+endforeach
+
+# terrain tessellation (Vulkan only, so SPIR-V only: GLSL ES 3.1 has no
+# tessellation stages)
+foreach shader : ['terrain.vert', 'terrain.tesc', 'terrain.tese']
+  shader_bundles += custom_target(
+    shader.replace('.', '_') + '_qsb',
+    input: 'shaders' / shader,
+    output: shader + '.qsb',
+    command: [qsb, '-o', '@OUTPUT@', '@INPUT@'],
+    depend_files: files('shaders/terrain_common.glsl'),
   )
 endforeach
 
@@ -74,12 +95,13 @@ shift_gui_lib = static_library(
   'playback_slider.cc',
   'scene.cc',
   'simulation.cc',
+  'video_encoder.cc',
   'viewport.cc',
   'workspace.cc',
   gui_moc,
   include_directories: [shift_inc, rhi_inc],
   implicit_include_directories: false,
-  dependencies: [shift_core_dep, qt6_dep],
+  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep],
 )
 
 # resources are compiled into the executable so their static initializers
@@ -88,5 +110,5 @@ shift_gui_dep = declare_dependency(
   sources: [shader_resources, icon_resources],
   link_with: shift_gui_lib,
   include_directories: [shift_inc, rhi_inc],
-  dependencies: [shift_core_dep, qt6_dep],
+  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep],
 )

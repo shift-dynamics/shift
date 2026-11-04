@@ -1,0 +1,96 @@
+ISO-10303-21;
+HEADER;
+/* A quarter of a cylinder of radius 1 m and height 1 m, from (1,0) to (0,1)
+   in x and y, as a single rational B-spline face (quadratic in u, linear in
+   v) of an open shell, in meters (AP242). Its edges are two rational
+   B-spline arcs and two lines, with pcurves in the parameters (u, v) of the
+   surface: lines, and a linear B-spline. Written by hand for the tests of
+   shift's STEP reader (test/test_step_reader.cc). */
+FILE_DESCRIPTION(('rational B-spline quarter cylinder'),'2;1');
+FILE_NAME('rational_patch.step','2026-11-03T00:00:00',('shift'),(''),'','','');
+FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 1 1 4 }'));
+ENDSEC;
+DATA;
+/* product */
+#1=APPLICATION_CONTEXT('managed model based 3d engineering');
+#2=APPLICATION_PROTOCOL_DEFINITION('international standard','ap242_managed_model_based_3d_engineering',2011,#1);
+#3=PRODUCT_CONTEXT('',#1,'mechanical');
+#4=PRODUCT_DEFINITION_CONTEXT('part definition',#1,'design');
+#5=PRODUCT('patch','patch','',(#3));
+#6=PRODUCT_DEFINITION_FORMATION('','',#5);
+#7=PRODUCT_DEFINITION('design','',#6,#4);
+#8=PRODUCT_DEFINITION_SHAPE('','',#7);
+#9=SHAPE_DEFINITION_REPRESENTATION(#8,#20);
+/* units: meter and radian */
+#10=(LENGTH_UNIT()NAMED_UNIT(*)SI_UNIT($,.METRE.));
+#11=(NAMED_UNIT(*)PLANE_ANGLE_UNIT()SI_UNIT($,.RADIAN.));
+#12=(NAMED_UNIT(*)SI_UNIT($,.STERADIAN.)SOLID_ANGLE_UNIT());
+#13=UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(1.E-07),#10,'distance_accuracy_value','');
+#14=(GEOMETRIC_REPRESENTATION_CONTEXT(3)GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#13))GLOBAL_UNIT_ASSIGNED_CONTEXT((#10,#11,#12))REPRESENTATION_CONTEXT('',''));
+#15=(GEOMETRIC_REPRESENTATION_CONTEXT(2)PARAMETRIC_REPRESENTATION_CONTEXT()REPRESENTATION_CONTEXT('2D SPACE',''));
+/* shape */
+#20=MANIFOLD_SURFACE_SHAPE_REPRESENTATION('patch',(#30,#21),#14);
+#21=AXIS2_PLACEMENT_3D('',#22,#23,#24);
+#22=CARTESIAN_POINT('',(0.,0.,0.));
+#23=DIRECTION('',(0.,0.,1.));
+#24=DIRECTION('',(1.,0.,0.));
+#30=SHELL_BASED_SURFACE_MODEL('patch',(#31));
+#31=OPEN_SHELL('',(#40));
+#40=ADVANCED_FACE('patch',(#41),#50,.T.);
+#41=FACE_OUTER_BOUND('',#42,.T.);
+#42=EDGE_LOOP('',(#43,#44,#45,#46));
+#43=ORIENTED_EDGE('',*,*,#110,.T.);
+#44=ORIENTED_EDGE('',*,*,#111,.T.);
+#45=ORIENTED_EDGE('',*,*,#112,.F.);
+#46=ORIENTED_EDGE('',*,*,#113,.F.);
+/* surface: rows along u of control points along v */
+#50=(BOUNDED_SURFACE()B_SPLINE_SURFACE(2,1,((#60,#63),(#61,#64),(#62,#65)),.UNSPECIFIED.,.F.,.F.,.F.)B_SPLINE_SURFACE_WITH_KNOTS((3,3),(2,2),(0.,1.),(0.,1.),.UNSPECIFIED.)GEOMETRIC_REPRESENTATION_ITEM()RATIONAL_B_SPLINE_SURFACE(((1.,1.),(0.707106781186548,0.707106781186548),(1.,1.)))REPRESENTATION_ITEM('')SURFACE());
+#60=CARTESIAN_POINT('',(1.,0.,0.));
+#61=CARTESIAN_POINT('',(1.,1.,0.));
+#62=CARTESIAN_POINT('',(0.,1.,0.));
+#63=CARTESIAN_POINT('',(1.,0.,1.));
+#64=CARTESIAN_POINT('',(1.,1.,1.));
+#65=CARTESIAN_POINT('',(0.,1.,1.));
+/* vertices A (1,0,0), B (0,1,0), C (0,1,1), D (1,0,1) */
+#70=VERTEX_POINT('',#60);
+#71=VERTEX_POINT('',#62);
+#72=VERTEX_POINT('',#65);
+#73=VERTEX_POINT('',#63);
+/* curves: the arcs at z = 0 and z = 1, and the lines B-C and A-D */
+#80=(BOUNDED_CURVE()B_SPLINE_CURVE(2,(#60,#61,#62),.CIRCULAR_ARC.,.F.,.F.)B_SPLINE_CURVE_WITH_KNOTS((3,3),(0.,1.),.UNSPECIFIED.)CURVE()GEOMETRIC_REPRESENTATION_ITEM()RATIONAL_B_SPLINE_CURVE((1.,0.707106781186548,1.))REPRESENTATION_ITEM(''));
+#81=(BOUNDED_CURVE()B_SPLINE_CURVE(2,(#63,#64,#65),.CIRCULAR_ARC.,.F.,.F.)B_SPLINE_CURVE_WITH_KNOTS((3,3),(0.,1.),.UNSPECIFIED.)CURVE()GEOMETRIC_REPRESENTATION_ITEM()RATIONAL_B_SPLINE_CURVE((1.,0.707106781186548,1.))REPRESENTATION_ITEM(''));
+#82=LINE('',#62,#84);
+#83=LINE('',#60,#84);
+#84=VECTOR('',#23,1.);
+/* pcurves in (u, v) */
+#90=PCURVE('',#50,#91);
+#91=DEFINITIONAL_REPRESENTATION('',(#92),#15);
+#92=LINE('',#100,#103);
+#93=PCURVE('',#50,#94);
+#94=DEFINITIONAL_REPRESENTATION('',(#95),#15);
+#95=B_SPLINE_CURVE_WITH_KNOTS('',1,(#101,#102),.POLYLINE_FORM.,.F.,.F.,(2,2),(0.,1.),.UNSPECIFIED.);
+#96=PCURVE('',#50,#97);
+#97=DEFINITIONAL_REPRESENTATION('',(#98),#15);
+#98=LINE('',#104,#103);
+#99=PCURVE('',#50,#105);
+#105=DEFINITIONAL_REPRESENTATION('',(#106),#15);
+#106=LINE('',#100,#107);
+#100=CARTESIAN_POINT('',(0.,0.));
+#101=CARTESIAN_POINT('',(1.,0.));
+#102=CARTESIAN_POINT('',(1.,1.));
+#104=CARTESIAN_POINT('',(0.,1.));
+#103=VECTOR('',#108,1.);
+#107=VECTOR('',#109,1.);
+#108=DIRECTION('',(1.,0.));
+#109=DIRECTION('',(0.,1.));
+/* edges: A-B (arc at z = 0), B-C, D-C (arc at z = 1), A-D */
+#110=EDGE_CURVE('',#70,#71,#120,.T.);
+#111=EDGE_CURVE('',#71,#72,#121,.T.);
+#112=EDGE_CURVE('',#73,#72,#122,.T.);
+#113=EDGE_CURVE('',#70,#73,#123,.T.);
+#120=SURFACE_CURVE('',#80,(#90),.CURVE_3D.);
+#121=SURFACE_CURVE('',#82,(#93),.CURVE_3D.);
+#122=SURFACE_CURVE('',#81,(#96),.CURVE_3D.);
+#123=SURFACE_CURVE('',#83,(#99),.CURVE_3D.);
+ENDSEC;
+END-ISO-10303-21;

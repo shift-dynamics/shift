@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "shift/gui/mesh_data.h"
+
 namespace shift {
 namespace gui {
 
@@ -39,6 +41,43 @@ struct SceneMesh {
 
   QVector3D bounds_min;
   QVector3D bounds_max;
+
+  /*! the terrain (Scene::terrains) the mesh triangulates, -1 if none: it is
+   * drawn tessellated from the terrain's maps where the device can, and as
+   * this mesh otherwise and by the ray tracer */
+  int terrain = -1;
+};
+
+/*! \brief an elevation map terrain for the tessellation shaders: its
+ * control points, from which the shaders evaluate the same surface as
+ * terrain::Basic::LocalZ (cubic B-spline or bilinear) */
+struct SceneTerrain {
+  int mesh_index = -1; /*!< its SceneMesh, for the material */
+  int width = 0;       /*!< control points along x */
+  int height = 0;      /*!< control points along y */
+  /*! control points as z (down) of the terrain frame, x fastest */
+  std::vector<float> z;
+  float x_scale = 1.f; /*!< spacing of the control points (m) */
+  float y_scale = 1.f;
+  bool bicubic = true;
+  QMatrix4x4 pose; /*!< terrain frame to world */
+};
+
+/*! \brief a light of the model (shift::core::light), attached to a frame
+ * of a body. Spot, directional and IES lights shine along the -z axis of
+ * that frame; an IES light's horizontal angle 0 is its x axis. */
+struct SceneLight {
+  enum Type { kPoint = 0, kSpot = 1, kDirectional = 2, kIes = 3 };
+  Type type = kPoint;
+  int body_index = 0;
+  QMatrix4x4 frame; /*!< light frame with respect to the body origin */
+  QVector3D ambient;  /*!< Ka */
+  QVector3D diffuse;  /*!< Kd times intensity */
+  QVector3D specular; /*!< Ks times intensity */
+  QVector3D attenuation{1.f, 0.f, 0.f}; /*!< c, l, q */
+  float cone_angle = 0.f;       /*!< spot: half angle (rad) */
+  float inner_cone_angle = 0.f; /*!< spot: half angle of full light */
+  int ies_profile = -1;         /*!< IES: index in Scene::ies_profiles */
 };
 
 /*! \brief a mesh drawn with the pose of a body */
@@ -59,6 +98,16 @@ struct Scene {
   int body_count = 0;
   /*! texture images, all kTextureSize square, RGBA8888 */
   std::vector<QImage> texture_layers;
+  std::vector<SceneTerrain> terrains;
+
+  /*! the lights of the model; the viewer draws them in place of its sun */
+  std::vector<SceneLight> lights;
+  /*! IES distributions over kIesVertical vertical angles, 0 (the nadir,
+   * -z of the light frame) to pi, by kIesHorizontal horizontal angles, 0
+   * to 2 pi inclusive, vertical fastest; normalized to a peak of 1 */
+  static constexpr int kIesVertical = 128;
+  static constexpr int kIesHorizontal = 65;
+  std::vector<std::vector<float>> ies_profiles;
 };
 
 /*!
@@ -69,7 +118,12 @@ public:
   explicit TextureLoader(Scene& scene)
     : scene_(scene) {}
 
-  /*! \brief layer holding an image file, -1 if it can't be read */
+  /*! \brief images embedded in mesh files, read by Load in place of files
+   * when a path is one of their keys; they must outlive the loader */
+  void AddEmbedded(const std::map<std::string, EmbeddedTexture>& images);
+
+  /*! \brief layer holding an image file or embedded image, -1 if it can't
+   * be read */
   int Load(const std::string& path);
 
   /*! \brief layer holding metallic (B) and roughness (G), from a packed
@@ -83,6 +137,7 @@ private:
 
   Scene& scene_;
   std::map<std::string, int> layers_;
+  std::map<std::string, const EmbeddedTexture*> embedded_;
 };
 
 /*! \brief body origin poses with respect to the inertial frame at one

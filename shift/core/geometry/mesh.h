@@ -4,6 +4,7 @@
 #include "shift/core/geometry/base.h"
 #include "shift/gui/mesh_data.h"
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -18,6 +19,9 @@ struct MeshAsset {
   std::vector<shift::gui::MeshData> mesh_data;
   /*! materials of all files; MeshData::material_index indexes them */
   std::vector<shift::gui::MaterialData> material_data;
+  /*! images embedded in the files, by the texture map strings of
+   * material_data that name them: "<file>#<name in the file>" */
+  std::map<std::string, shift::gui::EmbeddedTexture> embedded_textures;
 };
 
 class Mesh : public Base {

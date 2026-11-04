@@ -3,15 +3,21 @@
 
 #include "shift/gui/simulation.h"
 
+#include <vector>
+
 #include <QElapsedTimer>
 #include <QMainWindow>
 
+class QAction;
+class QCheckBox;
+class QComboBox;
 class QDial;
 class QDoubleSpinBox;
 class QGroupBox;
 class QLabel;
 class QPushButton;
 class QSlider;
+class QSpinBox;
 class QTabWidget;
 class QTimer;
 class QTreeWidget;
@@ -20,6 +26,13 @@ class QTreeWidgetItem;
 namespace shift {
 namespace core {
 class Substructure;
+namespace collision_geometry {
+class Base;
+}
+namespace body {
+class Base;
+}
+class Assembly;
 namespace joint {
 class Base;
 }
@@ -37,7 +50,8 @@ class Viewport;
   mobility numbers) above a context panel for the selected item; selecting a
   joint shows its influence coefficients and jog sliders (Tx..Rz, or roll,
   pitch and yaw for the quaternion of a spherical or float joint)
-- left panel, Simulation tab: model parameters and Run
+- left panel, Simulation tab: model parameters and Run, and the export of
+  the results as a video
 - below the tabs: play/pause button and playback slider
 - right: 3D viewport
 */
@@ -88,10 +102,17 @@ private:
   void AddSlider(SliderHandle& handle, QLayout* layout, double single_step,
                  QDial* gain_dial);
   QWidget* AddModelParametersBox();
+  QWidget* AddVideoBox();
 
   void OpenDialog();
   void About();
   void PopulateTree();
+  /*! \brief the items of the fixed body: its frames, lights, terrain and
+   * collision geometry such as the floor */
+  void AddFixedItems();
+  void AddAssemblyItem(shift::core::Assembly* assembly,
+                       QTreeWidgetItem* parent);
+  void AddBodyItem(shift::core::body::Base* body, QTreeWidgetItem* parent);
   void UpdateTree();
   void SelectTreeItem();
   void ClearSliders();
@@ -104,12 +125,24 @@ private:
   void SetTarget(SliderHandle& handle, double value);
   void UpdateJointPanel();
   void UpdateBodyPanel();
+  void UpdateGeometryPanel();
+  /*! \brief set the pose of the selected collision geometry, a plane, from
+   * the panel */
+  void ApplyGeometryPose();
+  /*! \brief show the floor of the fixed body, its first plane, in the
+   * viewport */
+  void UpdateFloor();
   void LoadModelParameters();
 
   void RunSimulation();
   void StopSimulation();
   void ResetSimulation();
   void PlayPauseSimulation();
+  /*! \brief render the computed results to a video file, frame by frame,
+   * at the resolution of the video panel */
+  void ExportVideo();
+  /*! \brief show the size of the selected resolution preset */
+  void UpdateVideoSize();
   void SetPlaybackTime(double t);
 
   /*! \brief advance playback and jogging, once per display frame */
@@ -140,8 +173,8 @@ private:
 
   QTabWidget* tab_widget_ = nullptr;
   QTreeWidget* tree_widget_ = nullptr;
-  QTreeWidgetItem* bodies_item_ = nullptr;
-  QTreeWidgetItem* joints_item_ = nullptr;
+  /*! the tree item of each active joint, nullptr if not in the tree */
+  std::vector<QTreeWidgetItem*> joint_items_;
 
   struct {
     QGroupBox* group_box = nullptr;
@@ -157,6 +190,17 @@ private:
     QLabel* m[12] = {};
     int selected_body = -1;
   } body_panel_;
+
+  /* collision geometry of the fixed body; the pose of a plane can be set */
+  struct {
+    QGroupBox* group_box = nullptr;
+    QLabel* title = nullptr;
+    QLabel* details = nullptr;
+    QCheckBox* contact = nullptr;
+    QDoubleSpinBox* translation[3] = {};
+    QDoubleSpinBox* rotation[3] = {}; /*!< roll, pitch, yaw in degrees */
+    shift::core::collision_geometry::Base* selected = nullptr;
+  } geometry_panel_;
 
   struct {
     QGroupBox* group_box = nullptr;
@@ -182,6 +226,18 @@ private:
 
   struct {
     QGroupBox* group_box = nullptr;
+    QComboBox* resolution = nullptr; /*!< presets, viewport or custom */
+    QSpinBox* width = nullptr;
+    QSpinBox* height = nullptr;
+    QSpinBox* frame_rate = nullptr;
+    QDoubleSpinBox* speed = nullptr; /*!< simulated time per video time */
+    QSpinBox* samples = nullptr;     /*!< ray traced frames per video frame */
+    QPushButton* export_button = nullptr;
+    bool exporting = false;
+  } video_panel_;
+
+  struct {
+    QGroupBox* group_box = nullptr;
     QPushButton* play_pause_button = nullptr;
     PlaybackSlider* slider = nullptr;
     QDoubleSpinBox* speed = nullptr;
@@ -189,6 +245,7 @@ private:
     QIcon pause_icon;
   } playback_panel_;
 
+  QAction* floor_action_ = nullptr; /*!< View > Floor */
   QLabel* status_label_ = nullptr;
   QLabel* time_label_ = nullptr;
   QLabel* rate_label_ = nullptr;

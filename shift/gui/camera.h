@@ -41,6 +41,12 @@ public:
 
   /*! \brief scale the distance to the target by factor */
   void Zoom(float factor);
+  /*! \brief move the camera towards (factor < 1) or away from (factor > 1)
+   * a point in view, scaling its distance to the point by factor, without
+   * turning: the point stays at the same place on the screen. The target
+   * moves to the point's depth, so that the clipping planes follow the
+   * distance to the point and later zooms and orbits are about it. */
+  void ZoomTowards(const QVector3D& point, float factor);
 
   /*! \brief place the target at the center of the box and set the distance
    * so the whole box is in view */
@@ -54,6 +60,7 @@ private:
   float fov_y_ = 45.f; /*!< vertical field of view in degrees */
   float distance_min_ = 1e-3f;
   float distance_max_ = 1e4f;
+  float radius_ = 1.f; /*!< radius of the framed box, see Frame */
 };
 
 } // namespace gui

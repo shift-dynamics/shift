@@ -1,4 +1,5 @@
 #include "shift/core/force_module/tire/base.h"
+#include "shift/core/terrain/base.h"
 
 #include <cmath>
 #include <vector>
@@ -179,44 +180,69 @@ void shift::core::force_module::tire::Base::UpdateContact(
   contact_.depth = 0.0;
   const double r0 = model_->get_unloaded_radius();
 
-  /* flat terrain at z = 0, normal +z (into the terrain, z down) */
-  const double terrain_height = 0.0;
-  const ksl_vec3_t terrain_normal = {{0.0, 0.0, 1.0}};
-
   const ksl_vec3_t& center = hub.t;
   const ksl_vec3_t& wheel_normal = hub.R.v1; // spin axis: hub y axis
 
-  /* no contact if the disc center is below the terrain or farther above it
-  than the radius */
-  if(center.z >= terrain_height || center.z <= terrain_height - r0) {
-    return;
-  }
+  /* the terrain is taken as the plane tangent to it at the contact point:
+  a point on it and its normal into the terrain (+z, z down, for the flat
+  ground at z = 0 without terrains). The contact point is not known until the
+  plane is, so the plane is first taken under the wheel center, then under
+  the contact point found with it. */
+  const auto& terrains = context_->get_active_terrain();
+  ksl_vec3_t plane_point = {{center.x, center.y, 0.0}};
+  ksl_vec3_t terrain_normal = {{0.0, 0.0, 1.0}};
+  auto query = [&](const ksl_vec3_t& p) {
+    for(auto terrain : terrains) {
+      if(terrain->Query(p, plane_point, terrain_normal)) {
+        return;
+      }
+    }
+    plane_point = {{p.x, p.y, 0.0}};
+    terrain_normal = {{0.0, 0.0, 1.0}};
+  };
 
-  /* 4: heading in the terrain plane; a horizontal wheel has no contact */
-  ksl_vec3_t x_direction;
-  ksl_cross_vv(&wheel_normal, &terrain_normal, &x_direction);
-  const double sin_tilt = ksl_vec3_l2norm(&x_direction);
-  if(sin_tilt < 0.01) {
-    return;
-  }
+  ksl_vec3_t x_direction, down, lowest;
+  double sin_tilt = 0.0, depth = 0.0;
+  const int passes = terrains.empty() ? 1 : 3;
+  for(int pass = 0; pass < passes; pass++) {
+    query(pass == 0 ? center : lowest);
 
-  /* 6: lowest point of the disc */
-  ksl_vec3_t down;
-  ksl_cross_vv(&x_direction, &wheel_normal, &down);
-  ksl_vec3_t lowest = center;
-  for(int i = 0; i < 3; i++) {
-    lowest.at[i] += r0 / sin_tilt * down.at[i];
+    /* no contact if the disc center is below the terrain or farther above
+    it than the radius */
+    const ksl_vec3_t r = {{center.x - plane_point.x, center.y - plane_point.y,
+                           center.z - plane_point.z}};
+    const double height = -ksl_dot_vv(&r, &terrain_normal); // center above
+    if(height <= 0.0 || height >= r0) {
+      return;
+    }
+
+    /* 4: heading in the terrain plane; a wheel lying flat has no contact */
+    ksl_cross_vv(&wheel_normal, &terrain_normal, &x_direction);
+    sin_tilt = ksl_vec3_l2norm(&x_direction);
+    if(sin_tilt < 0.01) {
+      return;
+    }
+
+    /* 6: lowest point of the disc, toward the terrain */
+    ksl_cross_vv(&x_direction, &wheel_normal, &down);
+    lowest = center;
+    for(int i = 0; i < 3; i++) {
+      lowest.at[i] += r0 / sin_tilt * down.at[i];
+    }
+    const ksl_vec3_t q = {{lowest.x - plane_point.x, lowest.y - plane_point.y,
+                           lowest.z - plane_point.z}};
+    depth = ksl_dot_vv(&q, &terrain_normal);
   }
-  if(lowest.z <= terrain_height) {
+  if(depth <= 0.0) {
     return;
   }
 
   /* 15 */
-  contact_.depth = std::fabs(terrain_height - lowest.z) * terrain_normal.z;
+  contact_.depth = depth;
   contact_.in_contact = true;
 
-  /* 10 - 14: contact frame, x heading, z terrain normal, y = z x x */
-  ksl_cross_vv(&wheel_normal, &terrain_normal, &x_direction);
+  /* 10 - 14: contact frame, x heading, z terrain normal, y = z x x; its
+  origin is the lowest point projected onto the terrain plane */
   ksl_vec3_normalize(&x_direction);
   ksl_vec3_t y_direction;
   ksl_cross_vv(&terrain_normal, &x_direction, &y_direction);
@@ -224,7 +250,8 @@ void shift::core::force_module::tire::Base::UpdateContact(
   w.R.v0 = x_direction;
   w.R.v1 = y_direction;
   w.R.v2 = terrain_normal;
-  w.t = {{lowest.x, lowest.y, terrain_height}};
+  w.t = {{lowest.x - depth * terrain_normal.x, lowest.y - depth * terrain_normal.y,
+          lowest.z - depth * terrain_normal.z}};
 
   /* 16 - 17: velocity of the wheel's material point at the contact point,
   in the w frame; the spatial velocity is referred to the fixed origin, so

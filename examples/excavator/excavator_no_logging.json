@@ -38,12 +38,17 @@
 
   "frames": [
     {
+      // origin of the terrain (its first elevation sample): the terrain,
+      // 12.6 m x 18.9 m, is centered under the undercarriage, and raised
+      // so its highest point under the tracks meets them
+      "name": "terrain",
+      "T": [-6.3, -9.07, -0.011]
+    },
+    {
+      // low from the +x, -y side: 30 degrees above the horizon, so the
+      // terrain relief catches the light
       "name": "overhead_1",
-      "T": [
-        6,
-        -6,
-        -24
-      ],
+      "T": [12, -8, -8.3],
       "R": [
         [
           1,
@@ -63,12 +68,10 @@
       ]
     },
     {
+      // from the opposite side, 45 degrees above the horizon, to fill in
+      // the shadows
       "name": "overhead_2",
-      "T": [
-        -6,
-        -6,
-        -24
-      ],
+      "T": [-9, 9, -12.7],
       "R": [
         [
           1,
@@ -97,11 +100,7 @@
         "fixed",
         "overhead_1"
       ],
-      "Ka": [
-        0.4,
-        0.4,
-        0.4
-      ],
+      "Ka": [0.1, 0.1, 0.1],
       "Kd": [
         0.6,
         0.6,
@@ -120,11 +119,7 @@
         "fixed",
         "overhead_2"
       ],
-      "Ka": [
-        0.6,
-        0.6,
-        0.6
-      ],
+      "Ka": [0.1, 0.1, 0.1],
       "Kd": [
         0.6,
         0.6,
@@ -144,12 +139,15 @@
       "name": "sinxx+cosyy",
       "filename": "sinxx+cosyy.tiff",
       "texture_filename": "cracked_sand.jpg",
+      "normal_map_filename": "textures/cracked_sand_normal.png",
+      "normal_scale": 4,
       "parent": [
         ["fixed"],
-        "origin"
+        "terrain"
       ],
       "x_scale": 0.2,
       "y_scale": 0.3,
+      "z_scale": 0.2,
       "coordinate_type": "sae",
       "interpolation_type": "bicubic"
     }

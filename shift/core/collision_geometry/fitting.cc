@@ -135,6 +135,97 @@ void shift::core::collision_geometry::ComputeFacePlanes(ConvexHullData& hull) {
   }
 }
 
+void shift::core::collision_geometry::ComputeFacePolygons(
+  ConvexHullData& hull) {
+    hull.polygons.clear();
+  hull.polygon_normals.clear();
+  hull.polygon_offsets.clear();
+  hull.vertex_polygons.assign(hull.vertices.size(), {});
+  hull.vertex_faces.assign(hull.vertices.size(), {});
+  for(size_t f = 0; f + 2 < hull.faces.size(); f += 3) {
+    for(int k = 0; k < 3; k++) {
+      hull.vertex_faces[hull.faces[f + k]].push_back(
+        static_cast<unsigned int>(f / 3));
+    }
+  }
+  const size_t count = hull.face_normals.size();
+  std::vector<bool> merged(count, false);
+  for(size_t f = 0; f < count; f++) {
+    if(merged[f] || hull.face_offsets[f] == HUGE_VAL) {
+      continue;
+    }
+    /* on a convex hull, faces with the same outward normal share a plane */
+    const ksl_vec3_t& n = hull.face_normals[f];
+    std::vector<unsigned int> indices;
+    for(size_t g = f; g < count; g++) {
+      if(!merged[g] && hull.face_offsets[g] != HUGE_VAL &&
+         ksl_dot_vv(&n, &hull.face_normals[g]) > 1.0 - 1e-9) {
+        merged[g] = true;
+        for(int k = 0; k < 3; k++) {
+          const unsigned int i = hull.faces[3 * g + k];
+          if(std::find(indices.begin(), indices.end(), i) == indices.end()) {
+            indices.push_back(i);
+          }
+        }
+      }
+    }
+    /* order the vertices counterclockwise about n: the convex hull of their
+    projections onto the plane, by Andrew's monotone chain */
+    const ksl_vec3_t axis =
+      std::fabs(n.x) < 0.6 ? ksl_vec3_t{{1, 0, 0}} : ksl_vec3_t{{0, 1, 0}};
+    ksl_vec3_t u, v;
+    ksl_cross_vv(&n, &axis, &u);
+    const double length = ksl_vec3_l2norm(&u);
+    for(int k = 0; k < 3; k++) {
+      u.at[k] /= length;
+    }
+    ksl_cross_vv(&n, &u, &v); // u x v = n
+    struct Point {
+      double x, y;
+      unsigned int index;
+    };
+    std::vector<Point> points;
+    for(auto i : indices) {
+      points.push_back({ksl_dot_vv(&u, &hull.vertices[i]),
+                        ksl_dot_vv(&v, &hull.vertices[i]), i});
+    }
+    std::sort(points.begin(), points.end(), [](const Point& a, const Point& b) {
+      return a.x < b.x || (a.x == b.x && a.y < b.y);
+    });
+    auto cross = [](const Point& o, const Point& a, const Point& b) {
+      return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    };
+    std::vector<Point> chain(2 * points.size());
+    size_t k = 0;
+    for(size_t i = 0; i < points.size(); i++) {
+      while(k >= 2 && cross(chain[k - 2], chain[k - 1], points[i]) <= 0.0) {
+        k--;
+      }
+      chain[k++] = points[i];
+    }
+    for(size_t i = points.size() - 1, lower = k + 1; i-- > 0;) {
+      while(k >= lower && cross(chain[k - 2], chain[k - 1], points[i]) <= 0.0) {
+        k--;
+      }
+      chain[k++] = points[i];
+    }
+    std::vector<unsigned int> polygon;
+    for(size_t i = 0; i + 1 < k; i++) {
+      polygon.push_back(chain[i].index);
+    }
+    if(polygon.size() < 3) {
+      continue;
+    }
+        for(auto i : polygon) {
+      hull.vertex_polygons[i].push_back(
+        static_cast<unsigned int>(hull.polygons.size()));
+    }
+    hull.polygons.push_back(polygon);
+    hull.polygon_normals.push_back(n);
+    hull.polygon_offsets.push_back(hull.face_offsets[f]);
+  }
+}
+
 ksl_mat3x3_t shift::core::collision_geometry::Covariance(
   const std::vector<ksl_vec3_t>& points) {
   ksl_mat3x3_t covariance = {{{0, 0, 0, 0, 0, 0, 0, 0, 0}}};

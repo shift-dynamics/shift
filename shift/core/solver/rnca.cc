@@ -2192,6 +2192,8 @@ bool shift::core::solver::RNCA::Verify(const double t,
                                        double Ml[], double fl[]) {
   bool verified = true;
   (void)t;
+  (void)Ml;
+  (void)fl;
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
 

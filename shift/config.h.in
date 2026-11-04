@@ -9,5 +9,7 @@
 #define SHIFT_ROOT_DIR "@SHIFT_ROOT_DIR@"
 #define SHIFT_BINARY_DIR "@SHIFT_BINARY_DIR@"
 #define SHIFT_EXAMPLES_DIR "@SHIFT_EXAMPLES_DIR@"
+/* 1 when STEP CAD files can be read (STEPcode, meson option step) */
+#define SHIFT_HAVE_STEP @SHIFT_HAVE_STEP@
 
 #endif

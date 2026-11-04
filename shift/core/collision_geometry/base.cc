@@ -44,6 +44,15 @@ void shift::core::collision_geometry::Base::DeclareParameters() {
     "to identity. Not allowed for geometry fitted to a mesh, which the fit "
     "places.",
     false);
+      DeclareParameter(
+    "contact", &contact_,
+    "whether the geometry takes part in contact detection; defaults to true",
+    false);
+  DeclareParameter(
+    "material", &material_,
+    "name of the contact material, one of the materials of the contact force "
+    "module; defaults to its default material",
+    false);
   DeclareParameter(
     "fit_to", &fit_to_,
     "names of the body's mesh geometry to fit to, when the dimensions are "

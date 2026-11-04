@@ -16,6 +16,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cerrno>
+#include <cmath>
+#include <cstring>
+#include <filesystem>
+#include <omp.h>
 #include <fstream>
 #include <iostream>
 #include <list>
@@ -29,8 +34,10 @@
 #include "shift/core/topology.h"
 #include "shift/core/controller/base.h"
 #include "shift/core/body/base.h"
+#include "shift/core/body/free.h"
 #include "shift/core/body/rigid.h"
 #include "shift/core/collision_geometry/base.h"
+#include "shift/core/collision_geometry/plane.h"
 #include "shift/core/constraint/base.h"
 #include "shift/core/constraint/chord.h"
 #include "shift/core/force_module/base.h"
@@ -66,10 +73,28 @@ void shift::core::Context::DeclareParameters() {
 
 void shift::core::Context::LoadJSON(const std::string filename) {
   filename_ = filename;
+  std::error_code error;
+  if(!std::filesystem::exists(filename, error)) {
+    throw shift::core::Exception("The file '" + filename +
+                                 "' does not exist");
+  }
+  if(!std::filesystem::is_regular_file(filename, error)) {
+    throw shift::core::Exception("'" + filename + "' is not a file");
+  }
   std::ifstream file(filename);
+  if(!file) {
+    throw shift::core::Exception("The file '" + filename +
+                                 "' could not be opened: " +
+                                 std::strerror(errno));
+  }
   file >> root_;
   ReadJSON(root_);
+  AddDefaultFloor();
   set_parent(this);
+  /* collision geometry given at the top level belongs to the fixed body */
+  for(auto& geometry : collision_geometry_.get_data()) {
+    geometry->set_parent_body(this);
+  }
   PostLoad(filename);
 }
 
@@ -85,6 +110,7 @@ void shift::core::Context::PostLoad(const std::string) {
   DetectSubstructures();
   ProcessPCL();
   ProcessFrames();
+  SetupFreeBodies();
   AllocateRunTimeArrays();
   SetupFixedFrameGravityVector();
   SetToInitialConditions();
@@ -269,7 +295,25 @@ void shift::core::Context::Initialize() {
 
 void shift::core::Context::ActivateObjects(bool) {
   model_parameters_.ActivateObjects(true);
+  collision_geometry_.ActivateObjects(true);
   assemblies_.ActivateObjects(true);
+  for(auto& light : get_lights()) {
+    light->ActivateObjects(true);
+  }
+  for(auto& terrain : get_terrain()) {
+    terrain->ActivateObjects(true);
+  }
+}
+
+void shift::core::Context::AddDefaultFloor() {
+  for(auto& geometry : collision_geometry_.get_data()) {
+    if(dynamic_cast<collision_geometry::Plane*>(geometry.get())) {
+      return;
+    }
+  }
+  auto floor = std::make_unique<collision_geometry::Plane>("floor");
+  floor->set_contact_enabled(false);
+  collision_geometry_.PushBack(std::move(floor));
 }
 
 void shift::core::Context::AppendActiveObject(
@@ -800,6 +844,23 @@ void shift::core::Context::LoadData() {
   mesh_assets_.clear();
   for(auto& geometry : active_geometry_) {
     geometry->Load();
+  }
+  /* mass properties from the meshes, now that they are loaded */
+  bool from_density = false;
+  body::Base::MassCache mass_cache;
+  for(auto list : {&active_articulated_bodies_, &active_free_bodies_}) {
+    for(auto body : *list) {
+      if(body->get_density() > 0.0) {
+        body->ComputeMassFromGeometry(mass_cache);
+        from_density = true;
+      }
+    }
+  }
+  if(from_density) {
+    InitializeInertia();
+    for(auto body : free_bodies_) {
+      body->SetupInertia();
+    }
   }
   mesh_assets_.clear();
   for(auto& joint : active_joints_) {
@@ -1602,6 +1663,9 @@ void shift::core::Context::CompressRigidJoints(
 
   int j = i;
   auto parent_joint = active_joints_[i];
+  /* parent body of the topmost rigid joint of the chain: D is the
+  displacement with respect to its reference frame */
+  auto reference_body = parent_joint->get_system_parent_body();
 
   // D_p_01: transformation from proximal frame 0 to distal frame 1 on parent
   // body p
@@ -1623,6 +1687,7 @@ void shift::core::Context::CompressRigidJoints(
       parent_joint->get_system_parent_frame()->get_d_wrt_reference(), &D,
       &temp);
     ksl_SE3_copy(&temp, &D);
+    reference_body = parent_joint->get_system_parent_body();
 
     j = pcl_[j];
     if(j == -1) {
@@ -1634,7 +1699,6 @@ void shift::core::Context::CompressRigidJoints(
   auto joint = active_joints_[i];
   if(!joint->get_q_count()) {
     // std::cout << "processing joint: " << joint->get_name() << std::endl;
-    auto parent_body = joint->get_system_parent_body();
     auto child_body = active_articulated_bodies_[i];
 
     // ksl_SE3_print(stdout, &D, "  D_p0_c0: ");
@@ -1649,7 +1713,7 @@ void shift::core::Context::CompressRigidJoints(
 
       // ksl_SE3_print(stdout, &D_p0_c1, "  D_p0_c1: ");
 
-      if(frame->is_in_tree() && parent_body != get_fixed_body()) {
+      if(frame->is_in_tree() && reference_body != get_fixed_body()) {
         // std::cout << "intree && parent_body!= fixedBody: processing frame: "
         //           << child_body->get_name() << ": " << frame.name() <<
         //           std::endl;
@@ -1657,9 +1721,7 @@ void shift::core::Context::CompressRigidJoints(
         ksl_SE3_copy(&D_p0_c1, &d_wrt_reference_[frame->get_index()]);
 
         dhva_offsets_[operation_count].parent.d =
-          parent_joint->get_system_parent_body()
-            ->get_reference_frame()
-            ->get_index();
+          reference_body->get_reference_frame()->get_index();
         dhva_offsets_[operation_count].child.d = frame->get_index();
         dhva_offsets_[operation_count].q = frame->get_index();
 
@@ -1681,10 +1743,9 @@ void shift::core::Context::CompressRigidJoints(
         //   parent_joint->get_system_parent_body()->get_reference_frame()->get_index(),
         //   " d_parent: ");
 
-        ksl_product_dd(&dhva_.d[parent_joint->get_system_parent_body()
-                                  ->get_reference_frame()
-                                  ->get_index()],
-                       &D_p0_c1, &dhva_.d[frame->get_index()]);
+        ksl_product_dd(
+          &dhva_.d[reference_body->get_reference_frame()->get_index()],
+          &D_p0_c1, &dhva_.d[frame->get_index()]);
         // ksl_SE3_print(stdout, dhva_.d + frame->get_index(), "  d_absolute:
         // ");
       }
@@ -1710,6 +1771,7 @@ void shift::core::Context::AllocateRunTimeArrays() {
 
   dhva_ = shift::core::topology::DHVA(frames_in_tree_.size(), dc_count,
                                       dq_count_, non_rigid_joint_count_);
+  dhva_.free.Resize(free_bodies_.size());
 
   // std::cout << "q_count: " << q_count_ << std::endl;
   // std::cout << "dq_count: " << dq_count_ << std::endl;
@@ -1734,7 +1796,7 @@ void shift::core::Context::AllocateRunTimeArrays() {
   q_copy_.resize(q_count_);
   std::fill(q_copy_.begin(), q_copy_.end(), 0);
 
-  q_.resize(q_count_ + dq_count_);
+  q_.resize(q_count_ + dq_count_ + free_state_count_);
   std::fill(q_.begin(), q_.end(), 0);
 
   dq_ = q_.data() + q_count_;
@@ -1748,11 +1810,16 @@ void shift::core::Context::AllocateRunTimeArrays() {
   f_.resize(dq_count_);
   std::fill(f_.begin(), f_.end(), 0);
 
+  /* bodies are in level increasing order, so the parent of a body attached
+  by a rigid joint has its index already: the body moves with its parent and
+  shares its velocities (-1 is the fixed body) */
   unsigned int i = 0;
   for(auto& body : active_articulated_bodies_) {
-    if(body->get_parent_joint() &&
-       body->get_parent_joint()->get_q_count() > 0) {
+    auto joint = body->get_parent_joint();
+    if(joint && joint->get_q_count() > 0) {
       body->set_va_index(i++);
+    } else if(joint && joint->get_system_parent_body()) {
+      body->set_va_index(joint->get_system_parent_body()->get_va_index());
     } else {
       body->set_va_index(-1);
     }
@@ -1812,6 +1879,12 @@ void shift::core::Context::AllocateRunTimeArrays() {
     joint->set_dq_index(dq_offset);
     joint->set_dc_index(dc_offset);
     joint->set_data_index(data_offset);
+    /* constant data of the joint, e.g. an axis that is not x, y or z, read
+    by its kernels at offsets.data */
+    if(const double* data = joint->get_data()) {
+      std::copy(data, data + joint->get_data_count(),
+                joint_data_.begin() + data_offset);
+    }
     q_offset += joint->get_q_count();
     dq_offset += joint->get_dq_count();
     dc_offset += joint->get_dc_count();
@@ -1982,6 +2055,7 @@ void shift::core::Context::UpdateDH(shift::core::topology::DHVA& dhva,
 
 void shift::core::Context::UpdateDHVA() {
   UpdateDHVA(dhva_, q_.data(), dq_);
+  UpdateFreeDV(dhva_, q_.data() + get_free_state_offset());
 }
 
 void shift::core::Context::UpdateDHVA(const double* q, const double* dq) {
@@ -2000,6 +2074,16 @@ void shift::core::Context::UpdateDHVA(shift::core::topology::DHVA& dhva,
 void shift::core::Context::SetupFixedFrameGravityVector() {
   assert(dhva_.aq);
   ksl_vec3_inverted(model_parameters_.get_gravity(), &dhva_.aq[-1].lin);
+}
+
+/* the generalized coordinates of a free body, see body::Free::kStateCount */
+static void FreeCoordinates(const ksl_SE3_t& d, const ksl_screw_t& v,
+                            double* q) {
+  ksl_vec3_copy(&d.t, reinterpret_cast<ksl_vec3_t*>(q));
+  ksl_mat3x3_toQuaternion(&d.R, reinterpret_cast<ksl_quaternion_t*>(q + 3));
+  for(int i = 0; i < 6; i++) {
+    q[7 + i] = v.at[i];
+  }
 }
 
 void shift::core::Context::SetToInitialConditions() {
@@ -2029,6 +2113,92 @@ void shift::core::Context::SetToInitialConditions() {
     }
     q_offset += joint->get_q_count();
     dq_offset += joint->get_dq_count();
+  }
+  double* free_q = q_.data() + get_free_state_offset();
+  for(auto body : free_bodies_) {
+    FreeCoordinates(body->get_initial_d(), body->get_initial_v(),
+                    free_q + body::Free::kStateCount * body->get_free_index());
+  }
+  UpdateFreeDV(dhva_, free_q);
+}
+
+void shift::core::Context::SetupFreeBodies() {
+  free_bodies_.clear();
+  for(auto body : active_free_bodies_) {
+    if(auto free = dynamic_cast<body::Free*>(body)) {
+      free->set_free_index(static_cast<int>(free_bodies_.size()));
+      if(!(free->get_density() > 0.0)) {
+        free->SetupInertia(); // otherwise in LoadData, from the meshes
+      }
+      free_bodies_.push_back(free);
+    }
+  }
+  for(auto joint : active_joints_) {
+    for(auto body : {joint->get_parent_body(), joint->get_child_body(),
+                     joint->get_system_parent_body(),
+                     joint->get_system_child_body()}) {
+      if(dynamic_cast<body::Free*>(body)) {
+        throw shift::core::Exception(
+          "Joint '" + joint->get_name() + "' connects to free body '" +
+          body->get_name() + "'; a free body may not have joints");
+      }
+    }
+  }
+  free_state_count_ =
+    static_cast<unsigned int>(free_bodies_.size()) * body::Free::kStateCount;
+  free_loads_.assign(free_bodies_.size(), ksl_coscrew(0, 0, 0, 0, 0, 0));
+}
+
+/* free bodies below this count are evaluated by one thread, where starting
+threads costs more than it saves */
+static constexpr int kFreeBodyGrain = 64;
+
+static int FreeBodyThreads(int count) {
+  return std::max(1, std::min(omp_get_max_threads(), count / kFreeBodyGrain));
+}
+
+void shift::core::Context::UpdateFreeDV(topology::DHVA& dhva,
+                                        const double* free_q) const {
+  const int count = static_cast<int>(free_bodies_.size());
+  dhva.free.d.resize(count);
+  dhva.free.v.resize(count);
+  dhva.free.a.resize(count);
+#pragma omp parallel for schedule(static) num_threads(FreeBodyThreads(count))
+  for(int k = 0; k < count; k++) {
+    const double* q = free_q + body::Free::kStateCount * k;
+    ksl_SE3_t& d = dhva.free.d[k];
+    ksl_vec3_copy(reinterpret_cast<const ksl_vec3_t*>(q), &d.t);
+    ksl_quaternion_t quaternion = {{q[3], q[4], q[5], q[6]}};
+    ksl_quaternion_toMat3x3(&quaternion, &d.R); // normalizes the copy
+    ksl_screw_t& v = dhva.free.v[k];
+    for(int i = 0; i < 6; i++) {
+      v.at[i] = q[7 + i];
+    }
+  }
+}
+
+void shift::core::Context::EvaluateFreeBodies(const double* y, double* dy) {
+  const int count = static_cast<int>(free_bodies_.size());
+  const size_t offset = get_free_state_offset();
+  const ksl_vec3_t& gravity = *model_parameters_.get_gravity();
+  topology::DVA& free = dhva_.free;
+#pragma omp parallel for schedule(static) num_threads(FreeBodyThreads(count))
+  for(int k = 0; k < count; k++) {
+    free_bodies_[k]->Evaluate(free.d[k], free.v[k], free_loads_[k], gravity,
+                              free.a[k]);
+    /* the rates of the generalized coordinates: the velocity of the origin
+    v.lin + v.ang x t, the quaternion rate and a */
+    const size_t i = offset + body::Free::kStateCount * k;
+    const ksl_screw_t& v = free.v[k];
+    ksl_vec3_t omega_t;
+    ksl_cross_vv(&v.ang, &free.d[k].t, &omega_t);
+    ksl_add_vv(&v.lin, &omega_t, reinterpret_cast<ksl_vec3_t*>(dy + i));
+    ksl_omega_to_dquaternion(&v.ang,
+                             reinterpret_cast<const ksl_quaternion_t*>(y + i + 3),
+                             reinterpret_cast<ksl_quaternion_t*>(dy + i + 3));
+    for(int j = 0; j < 6; j++) {
+      dy[i + 7 + j] = free.a[k].at[j];
+    }
   }
 }
 
@@ -2099,6 +2269,11 @@ void shift::core::Context::SetInitialConditionsToCurrentConditions() {
     joint->set_initial_velocity(dq_ + dq_offset);
     q_offset += joint->get_q_count();
     dq_offset += joint->get_dq_count();
+  }
+  UpdateFreeDV(dhva_, q_.data() + get_free_state_offset());
+  for(auto body : free_bodies_) {
+    const int k = body->get_free_index();
+    body->set_initial_dv(dhva_.free.d[k], dhva_.free.v[k]);
   }
 }
 
@@ -2765,7 +2940,7 @@ unsigned int shift::core::Context::get_auxiliary_state_count() {
 }
 
 void shift::core::Context::InitializeAuxiliaryStates(double* y_auxiliary) {
-  size_t offset = q_count_ + dq_count_;
+  size_t offset = get_state_count();
   size_t k = 0;
   for(auto& force_module : active_force_modules_) {
     force_module->set_state_offset(offset + k);
@@ -2783,6 +2958,11 @@ void shift::core::Context::InitializeAuxiliaryStates(double* y_auxiliary) {
 }
 
 int shift::core::Context::GetBodyLoadIndex(const body::Base* body) const {
+  if(auto free = dynamic_cast<const body::Free*>(body)) {
+    return free->get_free_index() < 0
+             ? -1
+             : static_cast<int>(non_rigid_joint_count_) + free->get_free_index();
+  }
   for(size_t i = 0; i < active_articulated_bodies_.size(); i++) {
     if(active_articulated_bodies_[i] != body) {
       continue;
@@ -2802,6 +2982,9 @@ ksl_screw_t shift::core::Context::GetBodyVelocity(int load_index) const {
   if(load_index < 0) {
     return ksl_screw(0, 0, 0, 0, 0, 0);
   }
+  if(load_index >= static_cast<int>(non_rigid_joint_count_)) {
+    return dhva_.free.v[load_index - non_rigid_joint_count_];
+  }
   return dhva_.v[load_index];
 }
 
@@ -2810,9 +2993,12 @@ void shift::core::Context::AddBodyLoad(int load_index,
   if(load_index < 0) {
     return;
   }
-  assert(static_cast<size_t>(load_index) < body_loads_.size());
+  ksl_coscrew_t& sum =
+    load_index >= static_cast<int>(non_rigid_joint_count_)
+      ? free_loads_[load_index - non_rigid_joint_count_]
+      : body_loads_[load_index];
   for(int i = 0; i < 6; i++) {
-    body_loads_[load_index].at[i] += load.at[i];
+    sum.at[i] += load.at[i];
   }
 }
 
@@ -2828,6 +3014,9 @@ void shift::core::Context::SetForces(const double t,
   body_loads_.resize(non_rigid_joint_count_);
   std::fill(body_loads_.begin(), body_loads_.end(),
             ksl_coscrew(0, 0, 0, 0, 0, 0));
+  std::fill(free_loads_.begin(), free_loads_.end(),
+            ksl_coscrew(0, 0, 0, 0, 0, 0));
+  UpdateFreeDV(dhva_, y.data() + get_free_state_offset());
   /* contact detection is performed before all other force modules */
   if(model_parameters_.is_contact_detection_enabled()) {
     DetectContacts();
@@ -2846,6 +3035,8 @@ void shift::core::Context::SetForces(const double t,
   for(auto& force_module : active_force_modules_) {
     force_module->Service(y.data(), dy.data());
   }
+  /* the free bodies move under the loads applied above */
+  EvaluateFreeBodies(y.data(), dy.data());
   // std::cout << "f_: ";
   // for(auto& force : f_) {
   //   std::cout << force << " ";
@@ -2953,6 +3144,9 @@ void shift::core::Context::Simulate() {
   auto& integrator = active_integrators_[0];
   SHIFT_INFO("Starting simulation");
   const auto wall_start = std::chrono::steady_clock::now();
+  contact_detection_seconds_ = 0.0;
+  contact_detection_calls_ = 0;
+  broad_phase_calls_ = 0;
 
   /* report simulated time over elapsed wall-clock time, also when the
   integrator stops early, so the report covers the time actually simulated */
@@ -2968,6 +3162,13 @@ void shift::core::Context::Simulate() {
     SHIFT_INFO("Simulated time: " + std::to_string(sim_time) +
                " s, wall-clock time: " + std::to_string(wall_elapsed) +
                " s, real-time factor: " + std::to_string(real_time_factor));
+    if(contact_detection_calls_ > 0) {
+      SHIFT_INFO("Contact detection: " +
+                 std::to_string(contact_detection_seconds_) +
+                 " s wall-clock in " +
+                 std::to_string(contact_detection_calls_) + " calls, " +
+                 std::to_string(broad_phase_calls_) + " broad phases");
+    }
   };
 
   try {
@@ -3007,6 +3208,12 @@ shift::core::Context::get_body_origin_pose(shift::core::body::Base* body) {
 
 ksl_SE3_t shift::core::Context::get_body_origin_pose(
   shift::core::body::Base* body, const shift::core::topology::DHVA& dhva) {
+  if(auto free = dynamic_cast<const body::Free*>(body)) {
+    const int k = free->get_free_index();
+    return k >= 0 && k < static_cast<int>(dhva.free.get_count())
+             ? dhva.free.d[k]
+             : ksl_SE3_identity();
+  }
   // frames in the tree are evaluated directly, including transforms of rigid
   // joints compressed into them by CompressRigidJoints
   const shift::core::Frame* origin = body->get_origin();
@@ -3075,14 +3282,28 @@ void shift::core::Context::SetupContactDetection() {
   contact_geometry_.clear();
   contact_pairs_.clear();
   contacts_.clear();
+  contact_candidates_.clear();
+  contact_candidates_valid_ = false;
   for(auto geometry : active_collision_geometry_) {
     if(geometry->is_loaded()) {
       contact_geometry_.push_back(geometry);
     }
   }
-  sweep_order_.resize(contact_geometry_.size());
-  for(size_t i = 0; i < sweep_order_.size(); i++) {
-    sweep_order_[i] = static_cast<int>(i);
+  const size_t n = contact_geometry_.size();
+  contact_group_.resize(n);
+  contact_planes_.resize(n);
+  broad_phase_centers_.resize(n);
+  contact_margins_.resize(n);
+  sweep_order_.clear();
+  for(size_t i = 0; i < n; i++) {
+    body::Base* body = contact_geometry_[i]->get_parent_body();
+    contact_group_[i] = body->is_articulated() ? GetBodyLoadIndex(body)
+                                               : -2 - static_cast<int>(i);
+    contact_planes_[i] =
+      dynamic_cast<const collision_geometry::Plane*>(contact_geometry_[i]);
+    if(!contact_planes_[i]) {
+      sweep_order_.push_back(static_cast<int>(i));
+    }
   }
   if(!contact_geometry_.empty()) {
     SHIFT_INFO("Contact detection " +
@@ -3094,77 +3315,143 @@ void shift::core::Context::SetupContactDetection() {
   }
 }
 
-void shift::core::Context::DetectContacts() {
-  contacts_.clear();
+void shift::core::Context::ExcludeContact(const body::Base* a,
+                                          const body::Base* b) {
+  excluded_contacts_.insert(std::minmax(a, b));
+  contact_candidates_valid_ = false;
+}
+
+/* the work of contact detection is shared by threads with at least this many
+geometries (poses) or pairs (tests) each, as starting threads costs more than
+it saves for less */
+static constexpr int kParallelGrain = 32;
+
+static int ThreadCount(int work) {
+  return std::max(1, std::min(omp_get_max_threads(), work / kParallelGrain));
+}
+
+/* the margin of a bounding sphere in the broad phase, as a fraction of its
+radius: a larger margin repeats the broad phase less often, with more
+candidates to test */
+static constexpr double kBroadPhaseMargin = 0.25;
+
+static double DistanceSquared(const ksl_vec3_t& a, const ksl_vec3_t& b) {
+  const double dx = a.x - b.x;
+  const double dy = a.y - b.y;
+  const double dz = a.z - b.z;
+  return dx * dx + dy * dy + dz * dz;
+}
+
+bool shift::core::Context::is_contact_allowed(int i, int j) const {
+  const auto a = contact_geometry_[i];
+  const auto b = contact_geometry_[j];
+  if(contact_group_[i] == contact_group_[j] ||
+     a->get_parent_body() == b->get_parent_body()) {
+    return false;
+  }
+  return excluded_contacts_.empty() ||
+         !excluded_contacts_.count(
+           std::minmax<const body::Base*>(a->get_parent_body(),
+                                          b->get_parent_body()));
+}
+
+void shift::core::Context::UpdateContactCandidates() {
+  broad_phase_calls_++;
   const size_t n = contact_geometry_.size();
-  if(n < 2) {
-    return;
-  }
-  for(auto geometry : contact_geometry_) {
-    geometry->UpdatePose(get_body_origin_pose(geometry->get_parent_body()));
-  }
-
-  /* sweep and prune: sort the bounding spheres by their lower bound along x,
-  the order changes little between calls so insertion sort is nearly linear */
-  auto lower = [&](int i) {
+  for(size_t i = 0; i < n; i++) {
     const auto g = contact_geometry_[i];
-    return g->get_d_absolute().t.x - g->get_bounding_radius();
-  };
-  for(size_t i = 1; i < n; i++) {
-    const int index = sweep_order_[i];
-    const double key = lower(index);
-    size_t j = i;
-    while(j > 0 && lower(sweep_order_[j - 1]) > key) {
-      sweep_order_[j] = sweep_order_[j - 1];
-      j--;
-    }
-    sweep_order_[j] = index;
+    broad_phase_centers_[i] = g->get_d_absolute().t;
+    contact_margins_[i] =
+      contact_planes_[i] ? 0.0 : kBroadPhaseMargin * g->get_bounding_radius();
   }
-
-  /* pairs whose bounding spheres no longer overlap go out of scope */
   for(auto& entry : contact_pairs_) {
     entry.second.in_scope = false;
   }
-  for(size_t i = 0; i < n; i++) {
-    const int ia = sweep_order_[i];
-    auto a = contact_geometry_[ia];
-    const ksl_vec3_t& ca = a->get_d_absolute().t;
-    const double upper = ca.x + a->get_bounding_radius();
-    for(size_t j = i + 1; j < n && lower(sweep_order_[j]) <= upper; j++) {
-      const int ib = sweep_order_[j];
-      auto b = contact_geometry_[ib];
-      if(a->get_parent_body() == b->get_parent_body()) {
-        continue;
-      }
-      const ksl_vec3_t& cb = b->get_d_absolute().t;
-      const double dx = ca.x - cb.x;
-      const double dy = ca.y - cb.y;
-      const double dz = ca.z - cb.z;
-      const double r = a->get_bounding_radius() + b->get_bounding_radius();
-      if(dx * dx + dy * dy + dz * dz > r * r) {
-        continue;
-      }
-      const uint64_t lo = static_cast<uint64_t>(std::min(ia, ib));
-      const uint64_t hi = static_cast<uint64_t>(std::max(ia, ib));
-      auto [it, inserted] = contact_pairs_.try_emplace((hi << 32) | lo);
-      auto& pair = it->second;
-      if(inserted) {
-        pair.a = contact_geometry_[lo];
-        pair.b = contact_geometry_[hi];
-      }
-      const bool was_in_contact = pair.collision;
-      pair.in_scope = true;
-      collision_geometry::TestContact(pair);
-      if(pair.collision != was_in_contact) {
-        SHIFT_DEBUG("Collision geometry '" + pair.a->get_name() + "' and '" +
-                    pair.b->get_name() + "' " +
-                    (pair.collision ? "in contact" : "separated"));
-      }
-      if(pair.collision) {
-        contacts_.push_back(&pair);
+  contact_candidates_.clear();
+  auto add = [&](int i, int j) {
+    const uint64_t lo = static_cast<uint64_t>(std::min(i, j));
+    const uint64_t hi = static_cast<uint64_t>(std::max(i, j));
+    auto [it, inserted] = contact_pairs_.try_emplace((hi << 32) | lo);
+    auto& pair = it->second;
+    if(inserted) {
+      pair.a = contact_geometry_[lo];
+      pair.b = contact_geometry_[hi];
+    }
+    pair.in_scope = true;
+    ContactCandidate candidate;
+    candidate.pair = &pair;
+    candidate.a = static_cast<int>(lo);
+    candidate.b = static_cast<int>(hi);
+    contact_candidates_.push_back(candidate);
+  };
+
+  /* planes against all bounded geometry */
+  for(size_t p = 0; p < n; p++) {
+    if(!contact_planes_[p]) {
+      continue;
+    }
+    for(int i : sweep_order_) {
+      if(is_contact_allowed(static_cast<int>(p), i)) {
+        add(static_cast<int>(p), i);
       }
     }
   }
+
+  /* sweep and prune of the enlarged bounding spheres along the axis with the
+  largest spread of their centers; the order changes little between calls,
+  so insertion sort is nearly linear */
+  const size_t count = sweep_order_.size();
+  if(count >= 2) {
+    double sum[3] = {0, 0, 0}, sum2[3] = {0, 0, 0};
+    for(int i : sweep_order_) {
+      for(int k = 0; k < 3; k++) {
+        const double c = broad_phase_centers_[i].at[k];
+        sum[k] += c;
+        sum2[k] += c * c;
+      }
+    }
+    int axis = 0;
+    double spread = -1.0;
+    for(int k = 0; k < 3; k++) {
+      const double variance = sum2[k] / count - std::pow(sum[k] / count, 2);
+      if(variance > spread) {
+        spread = variance;
+        axis = k;
+      }
+    }
+    sweep_axis_ = axis;
+    auto radius = [&](int i) {
+      return contact_geometry_[i]->get_bounding_radius() + contact_margins_[i];
+    };
+    auto lower = [&](int i) {
+      return broad_phase_centers_[i].at[axis] - radius(i);
+    };
+    for(size_t i = 1; i < count; i++) {
+      const int index = sweep_order_[i];
+      const double key = lower(index);
+      size_t j = i;
+      while(j > 0 && lower(sweep_order_[j - 1]) > key) {
+        sweep_order_[j] = sweep_order_[j - 1];
+        j--;
+      }
+      sweep_order_[j] = index;
+    }
+    for(size_t i = 0; i < count; i++) {
+      const int ia = sweep_order_[i];
+      const ksl_vec3_t& ca = broad_phase_centers_[ia];
+      const double ra = radius(ia);
+      const double upper = ca.at[axis] + ra;
+      for(size_t j = i + 1; j < count && lower(sweep_order_[j]) <= upper; j++) {
+        const int ib = sweep_order_[j];
+        const double r = ra + radius(ib);
+        if(DistanceSquared(ca, broad_phase_centers_[ib]) <= r * r &&
+           is_contact_allowed(ia, ib)) {
+          add(ia, ib);
+        }
+      }
+    }
+  }
+
   for(auto it = contact_pairs_.begin(); it != contact_pairs_.end();) {
     if(!it->second.in_scope) {
       if(it->second.collision) {
@@ -3176,4 +3463,96 @@ void shift::core::Context::DetectContacts() {
       ++it;
     }
   }
+  contact_candidates_valid_ = true;
+}
+
+/* the narrow phase of a candidate pair: a cheap test of the bounding spheres
+(or of the bounding sphere against a plane), then TestContact */
+static void TestCandidate(shift::core::collision_geometry::ContactPair& pair,
+                          const shift::core::collision_geometry::Plane* plane_a,
+                          const shift::core::collision_geometry::Plane* plane_b) {
+  const auto a = pair.a;
+  const auto b = pair.b;
+  bool near = a->is_contact_enabled() && b->is_contact_enabled();
+  if(near && (plane_a || plane_b)) {
+    const auto plane = plane_a ? plane_a : plane_b;
+    const auto other = plane_a ? b : a;
+    const ksl_vec3_t n = plane->get_normal();
+    const ksl_vec3_t& q = plane->get_point();
+    const ksl_vec3_t& c = other->get_d_absolute().t;
+    const double height =
+      n.x * (c.x - q.x) + n.y * (c.y - q.y) + n.z * (c.z - q.z);
+    near = height <= other->get_bounding_radius();
+  } else if(near) {
+    const double r = a->get_bounding_radius() + b->get_bounding_radius();
+    near = DistanceSquared(a->get_d_absolute().t, b->get_d_absolute().t) <=
+           r * r;
+  }
+  if(near) {
+    shift::core::collision_geometry::TestContact(pair);
+  } else {
+    pair.collision = false;
+  }
+}
+
+void shift::core::Context::AcceptStep(const std::vector<double>&) {
+  /* the contact normals of the accepted state, the last evaluation of the
+  step */
+  for(auto& entry : contact_pairs_) {
+    auto& pair = entry.second;
+    pair.accepted_normal =
+      pair.collision ? pair.normal : ksl_vec3_t{{0.0, 0.0, 0.0}};
+  }
+}
+
+void shift::core::Context::DetectContacts() {
+  const auto start = std::chrono::steady_clock::now();
+  contacts_.clear();
+  const int n = static_cast<int>(contact_geometry_.size());
+  if(n < 2) {
+    return;
+  }
+#pragma omp parallel for schedule(static) num_threads(ThreadCount(n))
+  for(int i = 0; i < n; i++) {
+    const auto geometry = contact_geometry_[i];
+    geometry->UpdatePose(get_body_origin_pose(geometry->get_parent_body()));
+  }
+
+  /* repeat the broad phase once a geometry leaves its margin */
+  bool moved = !contact_candidates_valid_;
+  for(int i = 0; i < n && !moved; i++) {
+    const double margin = contact_margins_[i];
+    moved = !contact_planes_[i] &&
+            DistanceSquared(contact_geometry_[i]->get_d_absolute().t,
+                            broad_phase_centers_[i]) > margin * margin;
+  }
+  if(moved) {
+    UpdateContactCandidates();
+  }
+
+  const int m = static_cast<int>(contact_candidates_.size());
+#pragma omp parallel for schedule(dynamic, 8) num_threads(ThreadCount(m))
+  for(int k = 0; k < m; k++) {
+    ContactCandidate& candidate = contact_candidates_[k];
+    candidate.was_in_contact = candidate.pair->collision;
+    TestCandidate(*candidate.pair, contact_planes_[candidate.a],
+                  contact_planes_[candidate.b]);
+  }
+
+  /* in the order of the candidates, the same for any number of threads */
+  for(const auto& candidate : contact_candidates_) {
+    auto& pair = *candidate.pair;
+    if(pair.collision != candidate.was_in_contact) {
+      SHIFT_DEBUG("Collision geometry '" + pair.a->get_name() + "' and '" +
+                  pair.b->get_name() + "' " +
+                  (pair.collision ? "in contact" : "separated"));
+    }
+    if(pair.collision) {
+      contacts_.push_back(&pair);
+    }
+  }
+  contact_detection_calls_++;
+  contact_detection_seconds_ +=
+    std::chrono::duration<double>(std::chrono::steady_clock::now() - start)
+      .count();
 }

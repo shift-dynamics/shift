@@ -84,11 +84,11 @@ public:
     return dq_0_;
   }
 
-  shift::core::body::Base* get_parent_body() {
+  shift::core::body::Base* get_parent_body() const {
     return parent_body_ptr_;
   }
 
-  shift::core::body::Base* get_system_parent_body() {
+  shift::core::body::Base* get_system_parent_body() const {
     if(sense_ >= 0) {
       return parent_body_ptr_;
     } else {

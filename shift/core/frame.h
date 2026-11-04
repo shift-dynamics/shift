@@ -92,6 +92,12 @@ public:
     is_origin_ = is_origin;
   }
 
+    /*! \brief set the displacement with respect to the body origin, as given
+   * by the frame's parameters */
+  void set_d_wrt_origin(const ksl_SE3_t& d_wrt_origin) {
+    d_wrt_origin_ = d_wrt_origin;
+  }
+
   void set_d_wrt_reference(ksl_SE3_t d_wrt_reference) {
     d_wrt_reference_ = d_wrt_reference;
     system_d_wrt_reference_ = d_wrt_reference;

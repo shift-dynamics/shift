@@ -15,7 +15,15 @@ struct FialaParameters {
   double vertical_damping = 3100;
   double rolling_resistance = 0.001;
   double width = 0.235;
-  double cslip = 1000000;     //!< longitudinal slip stiffness
+  /*! longitudinal slip stiffness, N per unit slip: about 16 times the
+   * 3 kN load of a car tire. With the relaxation length it sets the
+   * longitudinal stiffness of the carcass, cslip / x_relaxation_length
+   * (1e6 N/m), and so the wheel's spin mode on it,
+   * sqrt(r^2 cslip / (Iyy x_relaxation_length)), about 360 rad/s for a
+   * 21 kg wheel. The 1e6 of the original implementation (2e7 N/m) put
+   * that mode at 1600 rad/s, nearly undamped, and limited the integration
+   * steps of the vehicle models four times as much. */
+  double cslip = 50000;
   double calpha = 45836.6236; //!< cornering stiffness
   double u_max = 1.0;         //!< friction coefficient without sliding
   double u_min = 0.9;         //!< friction coefficient when fully sliding
