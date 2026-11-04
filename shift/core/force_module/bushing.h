@@ -151,6 +151,12 @@ protected:
 
   std::vector<Pair> pairs_;
   std::vector<double> x_, v_, f_;
+  std::vector<double> stiffness_values_; //!< as given, see Matrix
+  std::vector<double> damping_values_;
+  std::string stiffness_file_;
+  std::string damping_file_;
+  std::vector<double> stiffness_; //!< 6 m x 6 m, row major
+  std::vector<double> damping_;
 
 private:
   /*! \brief the full matrix of a parameter: from its values (diagonal or
@@ -163,16 +169,10 @@ private:
   ksl_SE3_t Pose(const Attachment& a) const;
 
   std::vector<std::vector<std::string>> frame_names_;
-  std::vector<double> stiffness_values_;
-  std::vector<double> damping_values_;
-  std::string stiffness_file_;
-  std::string damping_file_;
   std::vector<double> preload_;
   std::string rest_pose_ = "initial";
 
   std::vector<Attachment> attachments_;
-  std::vector<double> stiffness_; //!< 6 m x 6 m, row major
-  std::vector<double> damping_;
   std::vector<ksl_SE3_t> poses_;   //!< of the attachments, last Measure
   std::vector<ksl_mat3x3_t> axes_; //!< rest axes of the pairs in the fixed
                                    //!< frame, last Measure
