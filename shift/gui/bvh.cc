@@ -153,7 +153,8 @@ static void BuildNode(std::vector<shift::gui::BvhNode>& nodes,
 
 
 std::vector<shift::gui::BvhNode>
-shift::gui::BuildBvh(std::vector<RtTriangle>& triangles) {
+shift::gui::BuildBvh(std::vector<RtTriangle>& triangles,
+                     std::vector<int32_t>* tags) {
   std::vector<BvhNode> nodes;
   if(triangles.empty()) {
     return nodes;
@@ -183,6 +184,13 @@ shift::gui::BuildBvh(std::vector<RtTriangle>& triangles) {
     sorted[i] = triangles[order[i]];
   }
   triangles.swap(sorted);
+  if(tags) {
+    std::vector<int32_t> sorted_tags(order.size());
+    for(size_t i = 0; i < order.size(); i++) {
+      sorted_tags[i] = (*tags)[order[i]];
+    }
+    tags->swap(sorted_tags);
+  }
   return nodes;
 }
 

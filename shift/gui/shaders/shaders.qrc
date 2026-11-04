@@ -16,5 +16,10 @@
     <file>terrain.vert.qsb</file>
     <file>terrain.tesc.qsb</file>
     <file>terrain.tese.qsb</file>
+    <file>cad.vert.qsb</file>
+    <file>cad.tesc.qsb</file>
+    <file>cad.tese.qsb</file>
+    <file>cad.frag.qsb</file>
+    <file>cad_triangulate.comp.qsb</file>
   </qresource>
 </RCC>

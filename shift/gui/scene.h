@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "shift/gui/cad_scene.h"
 #include "shift/gui/mesh_data.h"
 
 namespace shift {
@@ -99,6 +100,9 @@ struct Scene {
   /*! texture images, all kTextureSize square, RGBA8888 */
   std::vector<QImage> texture_layers;
   std::vector<SceneTerrain> terrains;
+  /*! CAD geometry, tessellated from its exact surfaces where the device
+   * can; not drawn otherwise, nor ray traced */
+  std::vector<SceneCad> cads;
 
   /*! the lights of the model; the viewer draws them in place of its sun */
   std::vector<SceneLight> lights;

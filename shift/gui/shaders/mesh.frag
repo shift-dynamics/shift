@@ -10,6 +10,20 @@ layout(location = 5) flat in mat3 body_rotation; // body to world
 
 layout(location = 0) out vec4 out_color;
 
+#ifdef CAD
+// compiled as cad.frag for the faces of CAD geometry (cad.tese): uv are the
+// parameters of the face's surface; fragments outside its trims are dropped
+#define CAD_TRIM
+#define CAD_TRIM_ONLY
+#include "cad_common.glsl"
+layout(location = 8) flat in ivec2 cad_face; // face, flags (1: test trims)
+layout(std140, binding = 6) uniform Cad {
+  vec4 tessellation;
+  vec4 edges; // x = half width of edge lines (pixels), y = their darkening,
+              // z = widening of the trims (pixels)
+} cad;
+#endif
+
 layout(std140, binding = 0) uniform Frame {
   mat4 view_projection;
   mat4 inverse_view_projection;
@@ -124,15 +138,44 @@ vec3 DirectLight(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic,
 }
 
 void main() {
+#ifdef CAD
+  // distance from the edges of the face, in pixels, where the patch
+  // crosses them; a little outside still counts, so that adjacent faces
+  // overlap instead of leaving cracks between their tessellations
+  vec2 duv_dx = dFdx(uv);
+  vec2 duv_dy = dFdy(uv);
+  float trim_pixels = 1e30;
+  float edge_pixels = 1e30; // from the edges drawn with lines
+  if((cad_face.y & 1) != 0 &&
+     !InsideTrims(cad_face.x, uv, duv_dx, duv_dy, trim_pixels,
+                  edge_pixels) &&
+     trim_pixels > cad.edges.z) {
+    discard;
+  }
+#endif
   vec3 v = normalize(frame.camera_position.xyz - world_position);
   vec3 n = normalize(world_normal);
   vec3 nb = normalize(body_normal);
   // two sided: seen from behind, the surface is lit as its back face
   float side = dot(n, v) < 0.0 ? -1.0 : 1.0;
+#ifdef CAD
+  // which side is seen, from the triangle drawn: near a silhouette the
+  // surface's normal may turn a little away from the camera on its front
+  vec3 g = cross(dFdx(world_position), dFdy(world_position));
+  if(dot(g, g) > 0.0) {
+    side = dot(n, g) * dot(v, g) < 0.0 ? -1.0 : 1.0;
+  }
+#endif
   n *= side;
   nb *= side;
 
   vec3 albedo = mesh.albedo.rgb;
+#ifdef CAD
+  vec4 face_color = faces[cad_face.x].color;
+  if(face_color.w > 0.5) {
+    albedo = SrgbToLinear(face_color.rgb);
+  }
+#endif
   float metallic = mesh.material.x;
   float roughness = mesh.material.y;
   bool triplanar = mesh.material.z > 0.5;
@@ -195,6 +238,12 @@ void main() {
   color += (1.0 - f_ambient) * (1.0 - metallic) * albedo * irradiance +
            prefiltered * (f0 * brdf.x + brdf.y);
 
+#ifdef CAD
+  // edge lines, half on each face of an edge
+  color *= 1.0 - cad.edges.y *
+                   (1.0 - smoothstep(cad.edges.x, cad.edges.x + 1.0,
+                                     edge_pixels));
+#endif
   color = color / (color + vec3(1.0));
   out_color = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
 }

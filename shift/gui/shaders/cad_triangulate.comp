@@ -1,0 +1,76 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x = 64) in;
+
+// Triangles of CAD patches for ray tracing and picking: each patch's
+// rectangle of (u, v) split into its grid of quads (SceneCad::grids), two
+// triangles each, with their corners on the exact surface of the face, the
+// face's normals and (u, v) at each corner, as raytrace.comp reads them.
+// Run once per model; the viewer reads the triangles back to build their
+// BVH.
+
+#include "cad_common.glsl"
+
+struct RtTriangle {
+  vec4 v0, v1, v2; // body coordinates (scaled), w: u at the corner
+  vec4 n0, n1, n2; // unit normals, w: v at the corner
+};
+
+layout(std140, binding = 0) uniform Params {
+  vec4 scale;     // x: of the geometry (model length units per meter)
+  ivec4 control;  // x: patch count
+} params;
+
+// per patch: quads along u and v, first triangle
+layout(std430, binding = 1) readonly buffer Jobs { ivec4 jobs[]; };
+
+layout(std430, binding = 2) writeonly buffer Triangles {
+  RtTriangle triangles[];
+};
+
+// per triangle: face * 2 + 1 if the patch crosses the face's trims (the
+// ray tracer tests them at hits), face * 2 otherwise
+layout(std430, binding = 3) writeonly buffer TriangleFaces {
+  int triangle_faces[];
+};
+
+// a + (b - a) t, exactly b at t = 1, so patches sharing an edge put its
+// corners at the same (u, v)
+float Lerp(float a, float b, int i, int n) {
+  return i == n ? b : a + (b - a) * float(i) / float(n);
+}
+
+void main() {
+  int index = int(gl_GlobalInvocationID.x);
+  if(index >= params.control.x) {
+    return;
+  }
+  CadPatch p = patches[index];
+  ivec4 job = jobs[index];
+  int nu = job.x, nv = job.y;
+  int k = job.z;
+  int face = p.info.x * 2 + (p.info.y & 1);
+  float scale = params.scale.x;
+  for(int j = 0; j < nv; j++) {
+    float va = Lerp(p.uv.y, p.uv.w, j, nv);
+    float vb = Lerp(p.uv.y, p.uv.w, j + 1, nv);
+    for(int i = 0; i < nu; i++) {
+      float ua = Lerp(p.uv.x, p.uv.z, i, nu);
+      float ub = Lerp(p.uv.x, p.uv.z, i + 1, nu);
+      vec2 uv[4] = vec2[4](vec2(ua, va), vec2(ub, va), vec2(ub, vb),
+                           vec2(ua, vb));
+      vec4 v[4];
+      vec4 n[4];
+      for(int c = 0; c < 4; c++) {
+        vec3 normal;
+        vec3 point = PatchPoint(p, uv[c], normal);
+        v[c] = vec4(point * scale, uv[c].x);
+        n[c] = vec4(normal, uv[c].y);
+      }
+      triangles[k] = RtTriangle(v[0], v[1], v[2], n[0], n[1], n[2]);
+      triangle_faces[k++] = face;
+      triangles[k] = RtTriangle(v[0], v[2], v[3], n[0], n[2], n[3]);
+      triangle_faces[k++] = face;
+    }
+  }
+}

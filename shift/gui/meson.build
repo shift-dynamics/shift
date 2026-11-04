@@ -49,7 +49,7 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'fullscreen.vert', 'sky.frag',
     input: 'shaders' / shader,
     output: shader + '.qsb',
     command: [qsb, '--glsl', '310 es,430', '-o', '@OUTPUT@', '@INPUT@'],
-    depend_files: files('shaders/lights.glsl'),
+    depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl'),
   )
 endforeach
 
@@ -64,6 +64,26 @@ foreach shader : ['terrain.vert', 'terrain.tesc', 'terrain.tese']
     depend_files: files('shaders/terrain_common.glsl'),
   )
 endforeach
+
+# CAD faces, tessellated from their exact surfaces (Vulkan only, as the
+# terrain); cad.frag is mesh.frag with the trim test of CAD faces;
+# cad_triangulate.comp makes their triangles for ray tracing and picking
+foreach shader : ['cad.vert', 'cad.tesc', 'cad.tese', 'cad_triangulate.comp']
+  shader_bundles += custom_target(
+    shader.replace('.', '_') + '_qsb',
+    input: 'shaders' / shader,
+    output: shader + '.qsb',
+    command: [qsb, '-o', '@OUTPUT@', '@INPUT@'],
+    depend_files: files('shaders/cad_common.glsl', 'shaders/cad_uniforms.glsl'),
+  )
+endforeach
+shader_bundles += custom_target(
+  'cad_frag_qsb',
+  input: 'shaders/mesh.frag',
+  output: 'cad.frag.qsb',
+  command: [qsb, '-DCAD', '-o', '@OUTPUT@', '@INPUT@'],
+  depend_files: files('shaders/cad_common.glsl', 'shaders/lights.glsl'),
+)
 
 # rcc resolves the bundle paths relative to the qrc, so it lives next to them
 shader_qrc = configure_file(input: 'shaders/shaders.qrc', output: 'shaders.qrc',
@@ -90,6 +110,7 @@ gui_moc = qt6.compile_moc(
 shift_gui_lib = static_library(
   'shift_gui',
   'bvh.cc',
+  'cad_scene.cc',
   'camera.cc',
   'environment.cc',
   'playback_slider.cc',

@@ -32,8 +32,10 @@ static_assert(sizeof(BvhNode) == 32);
 
 /*! \brief build a binned SAH BVH over triangles, reordering them to match
  * the leaf ranges. Node and triangle indices are relative to the returned
- * array and the triangles vector. */
-std::vector<BvhNode> BuildBvh(std::vector<RtTriangle>& triangles);
+ * array and the triangles vector. tags, if given, has a value per triangle
+ * and is reordered with them. */
+std::vector<BvhNode> BuildBvh(std::vector<RtTriangle>& triangles,
+                              std::vector<int32_t>* tags = nullptr);
 
 /*! \brief build a BVH over boxes (the world space boxes of the instances),
  * split at the median centroid along the widest axis, with one box per leaf:
