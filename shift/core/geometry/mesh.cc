@@ -5,7 +5,7 @@
 #include "shift/core/log.h"
 #include "shift/core/utility.h"
 
-#ifdef SHIFT_DEBUG
+#ifdef SHIFT_DEBUG_BUILD
 #include <fenv.h>
 #endif
 
@@ -48,13 +48,11 @@ void shift::core::geometry::Mesh::DeclareParameters() {
                    false);
 }
 
-namespace {
 
-float SrgbToLinear(float c) {
+static float SrgbToLinear(float c) {
   return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f);
 }
 
-} // namespace
 
 void shift::core::geometry::Mesh::Load() {
 
@@ -106,7 +104,7 @@ void shift::core::geometry::Mesh::Load() {
 
 // temporarily disable floating point divide by zero exception handling
 // in Assimp loading
-#ifdef SHIFT_DEBUG
+#ifdef SHIFT_DEBUG_BUILD
 #ifdef __APPLE__
       // TODO find fedisableexcept equivalent for Apple
 #elif __linux__
@@ -123,7 +121,7 @@ void shift::core::geometry::Mesh::Load() {
         SHIFT_WARNING(e.what());
         SHIFT_WARNING("Problem detected loading: " + file);
       }
-#ifdef SHIFT_DEBUG
+#ifdef SHIFT_DEBUG_BUILD
 #ifdef __APPLE__
       // TODO find feenableexcept equivalent for Apple
 #elif __linux__

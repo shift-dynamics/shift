@@ -3,13 +3,12 @@
 #include <algorithm>
 #include <cmath>
 
-namespace {
 
-constexpr float kPi = 3.14159265358979f;
-constexpr int kSampleCount = 512;
+static constexpr float kPi = 3.14159265358979f;
+static constexpr int kSampleCount = 512;
 
 /*! low discrepancy point i of n in the unit square */
-void Hammersley(int i, int n, float& u, float& v) {
+static void Hammersley(int i, int n, float& u, float& v) {
   unsigned int bits = static_cast<unsigned int>(i);
   bits = (bits << 16u) | (bits >> 16u);
   bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
@@ -21,7 +20,7 @@ void Hammersley(int i, int n, float& u, float& v) {
 }
 
 /*! orthonormal basis (t, b, n) */
-void Basis(const QVector3D& n, QVector3D& t, QVector3D& b) {
+static void Basis(const QVector3D& n, QVector3D& t, QVector3D& b) {
   const QVector3D a =
     std::fabs(n.x()) < 0.9f ? QVector3D(1, 0, 0) : QVector3D(0, 1, 0);
   t = QVector3D::crossProduct(a, n).normalized();
@@ -29,7 +28,7 @@ void Basis(const QVector3D& n, QVector3D& t, QVector3D& b) {
 }
 
 /*! GGX distributed half vector about n, alpha = roughness^2 */
-QVector3D SampleGgx(float u, float v, float alpha, const QVector3D& n) {
+static QVector3D SampleGgx(float u, float v, float alpha, const QVector3D& n) {
   const float phi = 2.f * kPi * u;
   const float cos_theta =
     std::sqrt((1.f - v) / (1.f + (alpha * alpha - 1.f) * v));
@@ -42,7 +41,7 @@ QVector3D SampleGgx(float u, float v, float alpha, const QVector3D& n) {
 }
 
 /*! cosine distributed direction about n */
-QVector3D SampleCosine(float u, float v, const QVector3D& n) {
+static QVector3D SampleCosine(float u, float v, const QVector3D& n) {
   const float phi = 2.f * kPi * u;
   const float r = std::sqrt(v);
   QVector3D t, b;
@@ -54,25 +53,24 @@ QVector3D SampleCosine(float u, float v, const QVector3D& n) {
 
 /*! Smith-Schlick visibility term with the image based lighting remapping
  * k = alpha / 2 */
-float GeometrySmithIbl(float n_dot_v, float n_dot_l, float roughness) {
+static float GeometrySmithIbl(float n_dot_v, float n_dot_l, float roughness) {
   const float k = roughness * roughness / 2.f;
   return n_dot_v / (n_dot_v * (1.f - k) + k) * n_dot_l /
          (n_dot_l * (1.f - k) + k);
 }
 
 /*! a unit direction with z component z */
-QVector3D DirectionWithZ(float z) {
+static QVector3D DirectionWithZ(float z) {
   return QVector3D(std::sqrt(std::max(1.f - z * z, 0.f)), 0.f, z);
 }
 
-void Store(std::vector<float>& table, const QVector3D& value, float w = 1.f) {
+static void Store(std::vector<float>& table, const QVector3D& value, float w = 1.f) {
   table.push_back(value.x());
   table.push_back(value.y());
   table.push_back(value.z());
   table.push_back(w);
 }
 
-} // namespace
 
 QVector3D shift::gui::Sky::Radiance(const QVector3D& d) const {
   const float altitude = -d.z(); // +z is down

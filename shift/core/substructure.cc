@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 #include <stdio.h>
@@ -19,6 +20,7 @@
 
 #include "ksl/linalg.h"
 #include "ksl/matrix.h"
+#include "ksl/quaternion.h"
 #include "ksl/print.h"
 
 void shift::core::Substructure::set_context(shift::core::Context* context) {
@@ -290,14 +292,46 @@ void shift::core::Substructure::Print() const {
             << std::endl;
 }
 
-void shift::core::Substructure::FirstOrderUpdate() {
+void shift::core::Substructure::FirstOrderUpdate(
+  const std::vector<double>& delta_specified) {
+  assert(delta_specified.size() == dq_count_);
+  /* delta q_d = -B delta q_s; delta_q_ is indexed by dq, which differs from
+  the q index past any quaternion joint, so the update is applied through
+  Updateq (q -= delta_q_), which also handles the quaternions */
+  memset(delta_q_, 0, dq_count_ * sizeof(double));
   /* rows in B matrix */
   for(int i = 0; i < rank_; i++) {
+    double sum = 0.0;
     /* columns in B matrix */
     for(unsigned int j = rank_; j < dq_count_; j++) {
-      q_[pc_12_[i]] -= J_[i * dq_count_ + j] * delta_q_[pc_12_[j]];
+      sum += J_[i * dq_count_ + j] * delta_specified[pc_12_[j]];
     }
+    delta_q_[pc_12_[i]] = sum;
   }
+  Updateq();
+}
+
+int shift::core::Substructure::SpecifiedCoordinateQIndex(int dq_index) {
+  for(unsigned int j = 1;
+      j < context_->get_substructure_members()[index_].size(); j++) {
+    int index = context_->get_substructure_members()[index_][j];
+    auto joint = context_->get_active_joints()[index];
+    const int offset = dq_index - joint->get_dq_index();
+    if(offset < 0 || offset >= (int)joint->get_dq_count()) {
+      continue;
+    }
+    if(joint->get_q_count() != joint->get_dq_count() ||
+       joint->get_type() == "float") {
+      throw shift::core::Exception(
+        "Coordinate " + std::to_string(offset) + " of joint " +
+        joint->get_name() +
+        " has no single q entry; use SetSpecifiedRotation for a rotation");
+    }
+    return joint->get_q_index() + offset;
+  }
+  throw shift::core::Exception("Coordinate " + std::to_string(dq_index) +
+                               " is not in substructure " +
+                               std::to_string(index_));
 }
 
 void shift::core::Substructure::SubtractRotation(const double* delta_pi,
@@ -437,6 +471,7 @@ double shift::core::Substructure::EvaluateConstraintsNewtonRaphson(
 #if 1
     {
       double tol = 1.0e-12;
+      (void)tol;
       assert(fabs(ksl_mat3x3_determinant(&d_parent->R) - 1.0) < tol);
       assert(fabs(ksl_mat3x3_determinant(&d_child->R) - 1.0) < tol);
       assert(fabs(ksl_mat3x3_determinant(&temp.R) - 1.0) < tol);
@@ -511,6 +546,7 @@ double shift::core::Substructure::EvaluateConstraints(
 #if 1
     {
       double tol = 1.0e-12;
+      (void)tol;
       assert(fabs(ksl_mat3x3_determinant(&d_parent->R) - 1.0) < tol);
       assert(fabs(ksl_mat3x3_determinant(&d_child->R) - 1.0) < tol);
       assert(fabs(ksl_mat3x3_determinant(&temp.R) - 1.0) < tol);
@@ -633,6 +669,13 @@ unsigned int shift::core::Substructure::RemoveConstraintViolationsFast(
     error = EvaluateConstraints(context_->get_dhva());
     step++;
     // printf("  [%d] error: %g\n", step, error);
+    if(!std::isfinite(error) ||
+       error > 1e6 * std::max(initial_error, tol)) {
+      /* diverging: stop before the coordinates overflow */
+      PrintError(initial_error, error, q_copy);
+      throw shift::core::Exception(
+        "Newton-Raphson diverged while removing constraint violations");
+    }
   }
 
   if(step == max_step) {
@@ -700,19 +743,19 @@ void shift::core::Substructure::IncrementSpecifiedCoordinate(
   shift::core::topology::DHVA& dhva, int specified_coordinate_index,
   double value, MoveType move_type) {
 
-  /* currently the joint type is not used, but may be used in the future, for
-  example to set all 3 dof as specified for a spherical joint */
-  memset(delta_q_, 0, dq_count_ * sizeof(double));
+  /* the specified coordinate is a dq index; its q entry differs past any
+  quaternion joint in the substructure (all three rotation coordinates of a
+  spherical or float joint are moved with SetSpecifiedRotation) */
+  const int q_index = SpecifiedCoordinateQIndex(specified_coordinate_index);
+  double* q = context_->get_q().data();
+  double delta;
   switch(move_type) {
     case INCREMENT: {
-      context_->get_delta_q()[specified_coordinate_index] = value;
-      context_->get_q()[specified_coordinate_index] += value;
+      delta = value;
       break;
     }
     case TARGET: {
-      context_->get_delta_q()[specified_coordinate_index] =
-        value - context_->get_q()[specified_coordinate_index];
-      context_->get_q()[specified_coordinate_index] = value;
+      delta = value - q[q_index];
       break;
     }
     default: {
@@ -720,10 +763,162 @@ void shift::core::Substructure::IncrementSpecifiedCoordinate(
         "Encountered case not handled in IncrementSpecifiedCoordinate()");
     }
   }
+
+  /* back up the substructure coordinates to restore them on failure */
+  std::vector<double> q_copy(q_, q_ + q_count_);
+
+  /* linearize about the current configuration, set the specified coordinate,
+  predict the dependent coordinates to first order and correct them by
+  Newton-Raphson iteration with the specified coordinate fixed */
   context_->UpdateDH();
   SetupPO1Specified(dhva, specified_coordinate_index);
-  FirstOrderUpdate();
+  std::vector<double> delta_specified(dq_count_, 0.0);
+  delta_specified[specified_coordinate_index - dq_offset_] = delta;
+  q[q_index] += delta;
+  FirstOrderUpdate(delta_specified);
+  try {
+    RemoveConstraintViolationsFast(true);
+  } catch(const shift::core::Exception&) {
+    std::copy(q_copy.begin(), q_copy.end(), q_);
+    context_->UpdateDH();
+    SetupPO1Specified(dhva, specified_coordinate_index);
+    throw;
+  }
+  SetupBMatrix();
+}
+
+void shift::core::Substructure::RotationOffsets(
+  shift::core::joint::Base* joint, int& q, int& dq) {
+  if(joint->get_type() == "spherical") {
+    q = joint->get_q_index();
+    dq = joint->get_dq_index();
+  } else if(joint->get_type() == "float") {
+    q = joint->get_q_index() + 3;
+    dq = joint->get_dq_index() + 3;
+  } else {
+    throw shift::core::Exception("Joint " + joint->get_name() +
+                                 " has no quaternion rotation");
+  }
+}
+
+std::vector<int> shift::core::Substructure::RotationIndices(
+  shift::core::joint::Base* joint) {
+  int q, dq;
+  RotationOffsets(joint, q, dq);
+  return {dq, dq + 1, dq + 2};
+}
+
+void shift::core::Substructure::SetupNewtonRaphsonSpecifiedRotation(
+  shift::core::topology::DHVA& dhva, shift::core::joint::Base* joint) {
+  if(joint->get_substructure() != this) {
+    throw shift::core::Exception("Joint " + joint->get_name() +
+                                 " is not in substructure " +
+                                 std::to_string(index_));
+  }
+  context_->UpdateDH();
+  SetupPO1(context_->get_dhva());
   RemoveConstraintViolationsFast(true);
+  SetupPO1(context_->get_dhva());
+  ComputeMobility();
+  SetupPO1Specified(dhva, RotationIndices(joint));
+}
+
+void shift::core::Substructure::SetSpecifiedRotation(
+  shift::core::topology::DHVA& dhva, shift::core::joint::Base* joint,
+  const double* quaternion) {
+  int q_index, dq_index;
+  RotationOffsets(joint, q_index, dq_index);
+  double* q = &context_->get_q()[q_index];
+
+  /* back up the substructure coordinates to restore them on failure */
+  std::vector<double> q_copy(q_, q_ + q_count_);
+
+  /* linearize about the current configuration with the rotation specified */
+  context_->UpdateDH();
+  SetupPO1Specified(dhva, RotationIndices(joint));
+
+  /* target quaternion, with the sign of the current one (q and -q are the
+  same rotation) */
+  ksl_quaternion_t current = *reinterpret_cast<const ksl_quaternion_t*>(q);
+  ksl_quaternion_t target = *reinterpret_cast<const ksl_quaternion_t*>(
+    quaternion);
+  ksl_quaternion_normalize(&target);
+  if(ksl_dot_qq(&current, &target) < 0.0) {
+    for(double& x : target.at) {
+      x = -x;
+    }
+  }
+
+  /* rotation increment in the child frame, R_current^T R_target, as a
+  rotation vector */
+  ksl_quaternion_t relative;
+  ksl_product_qconjq(&current, &target, &relative);
+  const double sin_half = sqrt(relative.x * relative.x +
+                               relative.y * relative.y +
+                               relative.z * relative.z);
+  const double scale =
+    sin_half > 1e-12 ? 2.0 * atan2(sin_half, relative.w) / sin_half : 2.0;
+  ksl_vec3_t delta_pi = ksl_vec3(scale * relative.x, scale * relative.y,
+                                 scale * relative.z);
+  if(joint->get_sense() < 0) {
+    /* dq of an inverse joint is expressed in the original parent frame, see
+    SubtractRotation */
+    ksl_mat3x3_t R;
+    ksl_quaternion_toMat3x3(&current, &R);
+    ksl_vec3_t delta_pi_child = delta_pi;
+    ksl_product_drv(&R, &delta_pi_child, &delta_pi);
+  }
+
+  /* first order update of the dependent coordinates, delta q_d = -B delta
+  pi; Updateq subtracts delta_q_, the specified rotation is set directly */
+  std::vector<double> delta_specified(dq_count_, 0.0);
+  const int local = dq_index - dq_offset_;
+  for(int k = 0; k < 3; k++) {
+    delta_specified[local + k] = delta_pi.at[k];
+  }
+  /* the rotation is possible with the loop closed (to first order) only if
+  the residual rows of the specified factorization, which hold the Schur
+  complement S of the specified columns, vanish for delta pi; otherwise the
+  dependent coordinates cannot absorb it, e.g. the platform of a parallel
+  mechanism whose orientation is fixed by its legs. A reachable target a
+  finite step away leaves a residual of second order, |S dpi| ~ |S| |dpi|^2,
+  so only an O(1) fraction of dpi outside the admissible directions is
+  rejected; S at roundoff level means all directions are admissible */
+  const double delta_pi_norm = ksl_vec3_l2norm(&delta_pi);
+  double residual = 0.0;
+  double schur_norm = 0.0;
+  for(unsigned int i = rank_; i < constraint_equation_count_; i++) {
+    double sum = 0.0;
+    for(unsigned int j = rank_; j < dq_count_; j++) {
+      sum += J_[i * dq_count_ + j] * delta_specified[pc_12_[j]];
+      schur_norm = std::max(schur_norm, std::fabs(J_[i * dq_count_ + j]));
+    }
+    residual = std::max(residual, std::fabs(sum));
+  }
+  const double pivot_scale = rank_ > 0 ? std::fabs(J_[0]) : 1.0;
+  const double epsilon =
+    context_->get_model_parameters().get_epsilon_rank_determination();
+  if(schur_norm > epsilon * pivot_scale &&
+     residual > 0.1 * schur_norm * delta_pi_norm) {
+    throw shift::core::Exception(
+      "The requested rotation of joint " + joint->get_name() +
+      " is not possible with its kinematic loop closed");
+  }
+
+  for(int k = 0; k < 4; k++) {
+    q[k] = target.at[k];
+  }
+  FirstOrderUpdate(delta_specified);
+
+  /* Newton-Raphson iteration on the dependent coordinates */
+  try {
+    RemoveConstraintViolationsFast(true);
+  } catch(const shift::core::Exception&) {
+    std::copy(q_copy.begin(), q_copy.end(), q_);
+    context_->UpdateDH();
+    SetupPO1Specified(dhva, RotationIndices(joint));
+    throw;
+  }
   SetupBMatrix();
 }
 
@@ -746,6 +941,11 @@ the Jacobian is stored in row-major order
 */
 void shift::core::Substructure::SetupPO1Specified(
   const shift::core::topology::DHVA& dhva, int dq_index) {
+  SetupPO1Specified(dhva, std::vector<int>{dq_index});
+}
+
+void shift::core::Substructure::SetupPO1Specified(
+  const shift::core::topology::DHVA& dhva, const std::vector<int>& dq_indices) {
 
   memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
 
@@ -771,14 +971,22 @@ void shift::core::Substructure::SetupPO1Specified(
     }
   }
 
-  /* convert global index to local index */
-  int local_specified_index = dq_index - dq_offset_;
-  assert(local_specified_index > -1);
+  /* convert global indices to local indices */
+  std::vector<int> local_specified_indices;
+  for(int dq_index : dq_indices) {
+    assert(dq_index - (int)dq_offset_ > -1 &&
+           dq_index - (int)dq_offset_ < (int)dq_count_);
+    local_specified_indices.push_back(dq_index - dq_offset_);
+  }
 
-  rank_ = ksl_linalg_lu_full_specified_rmo(
+  rank_ = ksl_linalg_lu_full_multiSpecified_rmo(
     constraint_equation_count_, dq_count_, J_,
     context_->get_model_parameters().get_epsilon_rank_determination(),
-    pr_12_.data(), pc_12_.data(), local_specified_index);
+    pr_12_.data(), pc_12_.data(), (int)local_specified_indices.size(),
+    local_specified_indices.data());
+  if(rank_ < 0) {
+    throw shift::core::Exception("Invalid specified coordinates");
+  }
   topology::SetInversePermutation(pr_12_, pr_21_);
   topology::SetInversePermutation(pc_12_, pc_21_);
 
@@ -848,6 +1056,7 @@ unsigned int shift::core::Substructure::RemoveConstraintViolationsRunTime(
   unsigned int return_value = RemoveConstraintViolations();
     
   double nr_error = EvaluateConstraints(context_->get_dhva());
+  (void)nr_error;
 
   SHIFT_DEBUG("Error after newton raphson: " + std::to_string(nr_error));
 

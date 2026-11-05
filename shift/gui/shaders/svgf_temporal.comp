@@ -1,0 +1,152 @@
+#version 450
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// SVGF temporal accumulation (Schied et al., Spatiotemporal Variance-Guided
+// Filtering, HPG 2017). Each pixel's primary hit is reprojected into the
+// previous frame, through the previous pose of its body for moving bodies,
+// and blended with the history found there. The four bilinear taps are
+// validated individually by instance, normal and distance to the surface's
+// plane, so history is rejected on disocclusions and at silhouettes.
+
+struct Instance { // keep in sync with raytrace.comp
+  mat4 body_to_world;
+  mat4 world_to_body;
+  vec4 box_min;
+  vec4 box_max;
+  vec4 albedo;
+  vec4 material;
+  ivec4 offsets;
+  mat4 previous_body_to_world;
+};
+
+layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
+  mat4 previous_view_projection;
+  vec4 params;   // x = pixel spread angle, y = maximum history length,
+                 // z = history valid, w = a-trous step
+  vec4 blend;    // x = progressive frames, y, z = blend start, end
+  ivec4 control; // x = instance count
+  mat4 view_projection; // current frame
+} u;
+
+layout(std430, binding = 1) readonly buffer Instances {
+  Instance instances[];
+};
+
+layout(rgba16f, binding = 2) uniform readonly image2D current_illumination;
+layout(rgba16f, binding = 3) uniform readonly image2D current_albedo;
+layout(rgba32f, binding = 4) uniform readonly image2D position;
+layout(rgba16f, binding = 5) uniform readonly image2D normal;
+layout(rgba32f, binding = 6) uniform readonly image2D previous_position;
+layout(rgba16f, binding = 7) uniform readonly image2D previous_normal;
+layout(rgba16f, binding = 8) uniform readonly image2D previous_illumination;
+layout(rgba32f, binding = 9) uniform readonly image2D previous_moments;
+layout(rgba16f, binding = 10) uniform readonly image2D previous_albedo;
+// illumination (rgb) and history length (a), luminance moments, albedo
+layout(rgba16f, binding = 11) uniform writeonly image2D history_illumination;
+layout(rgba32f, binding = 12) uniform writeonly image2D history_moments;
+layout(rgba16f, binding = 13) uniform writeonly image2D history_albedo;
+
+float Luminance(vec3 c) {
+  return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
+void main() {
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(position);
+  if(pixel.x >= size.x || pixel.y >= size.y) {
+    return;
+  }
+
+  vec4 g = imageLoad(position, pixel);
+  int id = int(round(g.w));
+  vec3 illumination = imageLoad(current_illumination, pixel).rgb;
+  vec3 albedo = imageLoad(current_albedo, pixel).rgb;
+  float l = Luminance(illumination);
+
+  vec3 out_illumination = illumination;
+  vec2 out_moments = vec2(l, l * l);
+  vec3 out_albedo = albedo;
+  float history_length = 1.0;
+
+  if(id != -1 && u.params.z > 0.5) {
+    vec4 gn = imageLoad(normal, pixel);
+    vec3 n = gn.xyz;
+    float t = gn.w;
+
+    // the hit point and normal in the previous frame
+    vec3 previous_world = g.xyz;
+    vec3 previous_n = n;
+    if(id >= 0) {
+      mat4 to_previous =
+        instances[id].previous_body_to_world * instances[id].world_to_body;
+      previous_world = (to_previous * vec4(g.xyz, 1.0)).xyz;
+      previous_n = normalize(mat3(to_previous) * n);
+    }
+
+    // The hit is the primary ray's jittered sample, up to half a pixel off
+    // the pixel center. Reproject the pixel by the hit's motion only: taking
+    // the hit's previous position as is would resample the history at a
+    // random sub-pixel offset per pixel and frame, a random walk that makes
+    // the image wobble like heat haze even while the view is still.
+    vec4 clip = u.view_projection * vec4(g.xyz, 1.0);
+    vec4 previous_clip = u.previous_view_projection * vec4(previous_world, 1.0);
+    if(clip.w > 0.0 && previous_clip.w > 0.0) {
+      vec2 motion = (previous_clip.xy / previous_clip.w - clip.xy / clip.w) *
+                    0.5 * vec2(size);
+      // pixel centers at integers; snapping removes the rounding error of
+      // previous_body_to_world * world_to_body, so a static view is exact
+      vec2 q = vec2(pixel) + round(motion * 1024.0) / 1024.0;
+      ivec2 base = ivec2(floor(q));
+      vec2 f = q - vec2(base);
+      // the hit may move along the surface by up to a pixel footprint
+      float tolerance = 0.01 * t + 4.0 * u.params.x * t;
+
+      float weight_sum = 0.0;
+      vec3 sum_illumination = vec3(0.0);
+      vec2 sum_moments = vec2(0.0);
+      vec3 sum_albedo = vec3(0.0);
+      float sum_length = 0.0;
+      for(int k = 0; k < 4; k++) {
+        ivec2 o = ivec2(k & 1, k >> 1);
+        ivec2 tap = base + o;
+        if(any(lessThan(tap, ivec2(0))) || any(greaterThanEqual(tap, size))) {
+          continue;
+        }
+        vec4 tap_position = imageLoad(previous_position, tap);
+        if(int(round(tap_position.w)) != id) {
+          continue;
+        }
+        vec3 tap_normal = imageLoad(previous_normal, tap).xyz;
+        if(dot(previous_n, tap_normal) < 0.9) {
+          continue;
+        }
+        if(abs(dot(previous_n, tap_position.xyz - previous_world)) > tolerance) {
+          continue;
+        }
+        float w = (o.x == 1 ? f.x : 1.0 - f.x) * (o.y == 1 ? f.y : 1.0 - f.y);
+        vec4 h = imageLoad(previous_illumination, tap);
+        sum_illumination += w * h.rgb;
+        sum_length += w * h.a;
+        sum_moments += w * imageLoad(previous_moments, tap).xy;
+        sum_albedo += w * imageLoad(previous_albedo, tap).rgb;
+        weight_sum += w;
+      }
+
+      if(weight_sum > 0.01) {
+        float previous_length = sum_length / weight_sum;
+        history_length = min(previous_length + 1.0, u.params.y);
+        // exponential moving average, the cumulative mean for short histories
+        float alpha = 1.0 / history_length;
+        float alpha_moments = max(alpha, 0.2);
+        out_illumination =
+          mix(sum_illumination / weight_sum, illumination, alpha);
+        out_moments = mix(sum_moments / weight_sum, out_moments, alpha_moments);
+        out_albedo = mix(sum_albedo / weight_sum, albedo, alpha);
+      }
+    }
+  }
+
+  imageStore(history_illumination, pixel, vec4(out_illumination, history_length));
+  imageStore(history_moments, pixel, vec4(out_moments, 0.0, 0.0));
+  imageStore(history_albedo, pixel, vec4(out_albedo, 1.0));
+}

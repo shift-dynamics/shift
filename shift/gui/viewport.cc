@@ -17,10 +17,21 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <initializer_list>
+#include <vector>
 
-namespace {
 
-constexpr int kRtMaxFrames = 1024; //!< accumulated samples per pixel
+static constexpr int kRtMaxFrames = 1024; //!< accumulated samples per pixel
+static constexpr int kAtrousIterations = 5;  //!< steps 1, 2, 4, 8, 16
+// maximum SVGF history: short while bodies move (less ghosting), longer when
+// only the camera moves (reprojection is exact for a static scene)
+static constexpr float kHistoryMoving = 12.f;
+static constexpr float kHistoryCamera = 32.f;
+static constexpr float kHistoryStatic = 64.f;
+// a static view blends from the denoised image into the exact progressive
+// mean between these numbers of accumulated frames
+static constexpr float kBlendStart = 4.f;
+static constexpr float kBlendEnd = 256.f;
 
 // uniform and storage buffer layouts, keep in sync with the shaders
 
@@ -65,15 +76,26 @@ struct RtInstance {
   float material[4]; // as in InstanceUniforms
   int32_t offsets[4]; // x = root node, y..w = texture layers as in
                       // InstanceUniforms
+  float previous_body_to_world[16]; // pose in the previous frame
 };
-static_assert(sizeof(RtInstance) == 208);
+static_assert(sizeof(RtInstance) == 272);
 
-const float kSunColor[4] = {1.f, 0.96f, 0.9f, 0.f};
-const float kSunIntensity = 3.f;
-const float kSkyZenith[4] = {0.22f, 0.36f, 0.62f, 0.f};
-const float kSkyHorizon[4] = {0.62f, 0.68f, 0.74f, 0.f};
+struct DenoiseUniforms {
+  float previous_view_projection[16];
+  float params[4]; // x = pixel spread angle, y = maximum history length,
+                   // z = history valid, w = a-trous step
+  float blend[4];  // x = progressive frames, y, z = blend start, end
+  int32_t control[4]; // x = instance count
+  float view_projection[16]; // current frame
+};
+static_assert(sizeof(DenoiseUniforms) == 176);
 
-QShader LoadShader(const char* name) {
+static const float kSunColor[4] = {1.f, 0.96f, 0.9f, 0.f};
+static const float kSunIntensity = 3.f;
+static const float kSkyZenith[4] = {0.22f, 0.36f, 0.62f, 0.f};
+static const float kSkyHorizon[4] = {0.62f, 0.68f, 0.74f, 0.f};
+
+static QShader LoadShader(const char* name) {
   QFile file(QStringLiteral(":/shaders/") + QLatin1String(name));
   if(!file.open(QIODevice::ReadOnly)) {
     qFatal("Cannot open shader resource %s", name);
@@ -86,7 +108,7 @@ QShader LoadShader(const char* name) {
 }
 
 /*! Vulkan instance shared by all viewports, created on first use */
-QVulkanInstance* GetVulkanInstance() {
+static QVulkanInstance* GetVulkanInstance() {
   static QVulkanInstance* instance = [] {
     auto* created = new QVulkanInstance;
     created->setApiVersion(created->supportedApiVersion());
@@ -106,30 +128,33 @@ QVulkanInstance* GetVulkanInstance() {
 }
 
 /*! RGBA16F texture contents from RGBA float values */
-QByteArray ToHalf(const std::vector<float>& values) {
+static QByteArray ToHalf(const std::vector<float>& values) {
   QByteArray data(int(values.size() * sizeof(qfloat16)), Qt::Uninitialized);
   qFloatToFloat16(reinterpret_cast<qfloat16*>(data.data()), values.data(),
                   qsizetype(values.size()));
   return data;
 }
 
-void CopyMatrix(const QMatrix4x4& m, float* out) {
+static void CopyMatrix(const QMatrix4x4& m, float* out) {
   std::memcpy(out, m.constData(), 16 * sizeof(float));
 }
 
-void CopyVector(const QVector3D& v, float w, float* out) {
+static void CopyVector(const QVector3D& v, float w, float* out) {
   out[0] = v.x();
   out[1] = v.y();
   out[2] = v.z();
   out[3] = w;
 }
 
-void CopyArray(const float* in, float* out) {
+static void CopyArray(const float* in, float* out) {
   std::memcpy(out, in, 4 * sizeof(float));
 }
 
 /*! material parameters and texture layers of a mesh, as in InstanceUniforms */
-void CopyMaterial(const shift::gui::SceneMesh& mesh, float* material,
+/*! writes material[4] and the three texture layers layers[0..2] (base
+ * color, metallic roughness, normal); RtInstance passes offsets + 1, so a
+ * fourth layer would overwrite the next field */
+static void CopyMaterial(const shift::gui::SceneMesh& mesh, float* material,
                   int32_t* layers) {
   material[0] = mesh.metallic;
   material[1] = mesh.roughness;
@@ -138,11 +163,10 @@ void CopyMaterial(const shift::gui::SceneMesh& mesh, float* material,
   layers[0] = mesh.base_color_layer;
   layers[1] = mesh.metallic_roughness_layer;
   layers[2] = mesh.normal_layer;
-  layers[3] = -1;
 }
 
 /*! world space box of a body space box under a pose */
-void TransformBox(const QMatrix4x4& pose, const QVector3D& box_min,
+static void TransformBox(const QMatrix4x4& pose, const QVector3D& box_min,
                   const QVector3D& box_max, float* out_min, float* out_max) {
   for(int k = 0; k < 3; k++) {
     out_min[k] = 1e30f;
@@ -161,7 +185,6 @@ void TransformBox(const QMatrix4x4& pose, const QVector3D& box_min,
   out_min[3] = out_max[3] = 0.f;
 }
 
-} // namespace
 
 shift::gui::Viewport::Viewport(QWindow* parent)
   : QWindow(parent) {
@@ -187,12 +210,14 @@ void shift::gui::Viewport::set_simulation(Simulation* simulation) {
 void shift::gui::Viewport::set_render_mode(RenderMode mode) {
   render_mode_ = mode;
   rt_frame_ = 0;
+  rt_history_valid_ = false;
   update();
 }
 
 void shift::gui::Viewport::set_floor_enabled(bool enabled) {
   floor_enabled_ = enabled;
   rt_frame_ = 0;
+  rt_history_valid_ = false;
   update();
 }
 
@@ -334,8 +359,33 @@ void shift::gui::Viewport::ReleaseAll() {
   blit_pipeline_.reset();
   blit_bindings_.reset();
   sampler_.reset();
+  svgf_taa_pipeline_.reset();
+  svgf_composite_pipeline_.reset();
+  svgf_atrous_pipeline_.reset();
+  svgf_variance_pipeline_.reset();
+  svgf_temporal_pipeline_.reset();
   rt_pipeline_.reset();
-  rt_bindings_.reset();
+  for(int p = 0; p < 2; p++) {
+    svgf_taa_bindings_[p].reset();
+    svgf_composite_bindings_[p].reset();
+    rt_taa_[p].reset();
+    svgf_atrous_bindings_[p][0].reset();
+    svgf_atrous_bindings_[p][1].reset();
+    svgf_variance_bindings_[p].reset();
+    svgf_temporal_bindings_[p].reset();
+    rt_bindings_[p].reset();
+    rt_filter_[p].reset();
+    rt_history_albedo_[p].reset();
+    rt_history_moments_[p].reset();
+    rt_history_illumination_[p].reset();
+    rt_normal_[p].reset();
+    rt_position_[p].reset();
+  }
+  rt_color_.reset();
+  rt_direct_.reset();
+  rt_albedo_.reset();
+  rt_illumination_.reset();
+  svgf_ubo_.reset();
   rt_accumulation_.reset();
   rt_output_.reset();
   rt_instance_buffer_.reset();
@@ -352,6 +402,7 @@ void shift::gui::Viewport::ReleaseAll() {
   pipeline_render_pass_ = nullptr;
   output_size_ = QSize();
   scene_dirty_ = simulation_ != nullptr;
+  rt_history_valid_ = false;
 }
 
 void shift::gui::Viewport::CreateDeviceResources() {
@@ -411,22 +462,43 @@ void shift::gui::Viewport::CreateDeviceResources() {
     rt_instance_buffer_.reset(rhi_->newBuffer(
       QRhiBuffer::Static, QRhiBuffer::StorageBuffer, sizeof(RtInstance)));
     rt_instance_buffer_->create();
-    rt_bindings_.reset(rhi_->newShaderResourceBindings());
+    svgf_ubo_stride_ = rhi_->ubufAligned(sizeof(DenoiseUniforms));
+    // slot 0: temporal, variance and composite; 1..: a-trous iterations
+    svgf_ubo_.reset(rhi_->newBuffer(
+      QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer,
+      svgf_ubo_stride_ * quint32(1 + kAtrousIterations)));
+    svgf_ubo_->create();
   }
 }
 
 void shift::gui::Viewport::CreateSizeDependentResources() {
   output_size_ = get_render_target()->pixelSize();
   rt_frame_ = 0;
+  rt_history_valid_ = false;
   if(!ray_tracing_supported_) {
     return;
   }
-  rt_output_.reset(rhi_->newTexture(QRhiTexture::RGBA8, output_size_, 1,
-                                    QRhiTexture::UsedWithLoadStore));
-  rt_output_->create();
-  rt_accumulation_.reset(rhi_->newTexture(QRhiTexture::RGBA32F, output_size_,
-                                          1, QRhiTexture::UsedWithLoadStore));
-  rt_accumulation_->create();
+  auto make_image = [&](QRhiTexture::Format format) {
+    std::unique_ptr<QRhiTexture> texture(rhi_->newTexture(
+      format, output_size_, 1, QRhiTexture::UsedWithLoadStore));
+    texture->create();
+    return texture;
+  };
+  rt_output_ = make_image(QRhiTexture::RGBA8);
+  rt_accumulation_ = make_image(QRhiTexture::RGBA32F);
+  rt_illumination_ = make_image(QRhiTexture::RGBA16F);
+  rt_albedo_ = make_image(QRhiTexture::RGBA16F);
+  rt_direct_ = make_image(QRhiTexture::RGBA16F);
+  rt_color_ = make_image(QRhiTexture::RGBA16F);
+  for(int p = 0; p < 2; p++) {
+    rt_position_[p] = make_image(QRhiTexture::RGBA32F);
+    rt_normal_[p] = make_image(QRhiTexture::RGBA16F);
+    rt_history_illumination_[p] = make_image(QRhiTexture::RGBA16F);
+    rt_history_moments_[p] = make_image(QRhiTexture::RGBA32F);
+    rt_history_albedo_[p] = make_image(QRhiTexture::RGBA16F);
+    rt_filter_[p] = make_image(QRhiTexture::RGBA16F);
+    rt_taa_[p] = make_image(QRhiTexture::RGBA16F);
+  }
   // bindings reference the textures; rebuild them along with the pipelines
   pipeline_render_pass_ = nullptr;
 }
@@ -497,22 +569,84 @@ void shift::gui::Viewport::CreatePipelines() {
   }
 
   const auto compute = Binding::ComputeStage;
-  rt_bindings_->setBindings(
-    {Binding::imageStore(0, compute, rt_output_.get(), 0),
-     Binding::uniformBuffer(1, compute, rt_ubo_.get()),
-     Binding::bufferLoad(2, compute, rt_triangle_buffer_.get()),
-     Binding::bufferLoad(3, compute, rt_node_buffer_.get()),
-     Binding::bufferLoad(4, compute, rt_instance_buffer_.get()),
-     Binding::imageLoadStore(5, compute, rt_accumulation_.get(), 0),
-     Binding::sampledTexture(6, compute, texture_array_.get(),
-                             texture_sampler_.get())});
-  rt_bindings_->create();
+  auto make_bindings = [&](std::initializer_list<Binding> bindings) {
+    std::unique_ptr<QRhiShaderResourceBindings> srb(
+      rhi_->newShaderResourceBindings());
+    srb->setBindings(bindings);
+    srb->create();
+    return srb;
+  };
+  auto load = [&](int binding, const std::unique_ptr<QRhiTexture>& texture) {
+    return Binding::imageLoad(binding, compute, texture.get(), 0);
+  };
+  auto store = [&](int binding, const std::unique_ptr<QRhiTexture>& texture) {
+    return Binding::imageStore(binding, compute, texture.get(), 0);
+  };
+  // slot 0 of the denoiser uniforms
+  const Binding denoise_uniforms = Binding::uniformBuffer(
+    0, compute, svgf_ubo_.get(), 0, sizeof(DenoiseUniforms));
+  const Binding instances =
+    Binding::bufferLoad(1, compute, rt_instance_buffer_.get());
 
-  rt_pipeline_.reset(rhi_->newComputePipeline());
-  rt_pipeline_->setShaderStage(
-    {QRhiShaderStage::Compute, LoadShader("raytrace.comp.qsb")});
-  rt_pipeline_->setShaderResourceBindings(rt_bindings_.get());
-  rt_pipeline_->create();
+  // parity p writes set p of the G-buffer and the history, reading set q
+  for(int p = 0; p < 2; p++) {
+    const int q = 1 - p;
+    rt_bindings_[p] = make_bindings(
+      {store(0, rt_illumination_),
+       Binding::uniformBuffer(1, compute, rt_ubo_.get()),
+       Binding::bufferLoad(2, compute, rt_triangle_buffer_.get()),
+       Binding::bufferLoad(3, compute, rt_node_buffer_.get()),
+       Binding::bufferLoad(4, compute, rt_instance_buffer_.get()),
+       Binding::imageLoadStore(5, compute, rt_accumulation_.get(), 0),
+       Binding::sampledTexture(6, compute, texture_array_.get(),
+                               texture_sampler_.get()),
+       store(7, rt_position_[p]), store(8, rt_normal_[p]),
+       store(9, rt_albedo_), store(10, rt_direct_)});
+    svgf_temporal_bindings_[p] = make_bindings(
+      {denoise_uniforms, instances, load(2, rt_illumination_),
+       load(3, rt_albedo_), load(4, rt_position_[p]), load(5, rt_normal_[p]),
+       load(6, rt_position_[q]), load(7, rt_normal_[q]),
+       load(8, rt_history_illumination_[q]), load(9, rt_history_moments_[q]),
+       load(10, rt_history_albedo_[q]), store(11, rt_history_illumination_[p]),
+       store(12, rt_history_moments_[p]), store(13, rt_history_albedo_[p])});
+    svgf_variance_bindings_[p] = make_bindings(
+      {denoise_uniforms, load(1, rt_position_[p]), load(2, rt_normal_[p]),
+       load(3, rt_history_illumination_[p]), load(4, rt_history_moments_[p]),
+       store(5, rt_filter_[0])});
+    for(int d = 0; d < 2; d++) {
+      svgf_atrous_bindings_[p][d] = make_bindings(
+        {Binding::uniformBufferWithDynamicOffset(0, compute, svgf_ubo_.get(),
+                                                 sizeof(DenoiseUniforms)),
+         load(1, rt_position_[p]), load(2, rt_normal_[p]),
+         load(3, rt_filter_[d]), store(4, rt_filter_[1 - d]),
+         // the first iteration's output becomes the history illumination
+         Binding::imageLoadStore(5, compute,
+                                 rt_history_illumination_[p].get(), 0)});
+    }
+    // an odd number of iterations ends in rt_filter_[1]
+    static_assert(kAtrousIterations % 2 == 1);
+    svgf_composite_bindings_[p] = make_bindings(
+      {denoise_uniforms, load(1, rt_position_[p]), load(2, rt_illumination_),
+       load(3, rt_history_albedo_[p]), load(4, rt_filter_[1]),
+       store(6, rt_color_), load(7, rt_direct_)});
+    svgf_taa_bindings_[p] = make_bindings(
+      {denoise_uniforms, instances, load(2, rt_position_[p]),
+       load(3, rt_color_), load(4, rt_taa_[q]), store(5, rt_taa_[p]),
+       store(6, rt_output_), load(7, rt_accumulation_)});
+  }
+
+  rt_pipeline_.reset(NewComputePipeline("raytrace.comp.qsb",
+                                        rt_bindings_[0].get()));
+  svgf_temporal_pipeline_.reset(NewComputePipeline(
+    "svgf_temporal.comp.qsb", svgf_temporal_bindings_[0].get()));
+  svgf_variance_pipeline_.reset(NewComputePipeline(
+    "svgf_variance.comp.qsb", svgf_variance_bindings_[0].get()));
+  svgf_atrous_pipeline_.reset(NewComputePipeline(
+    "svgf_atrous.comp.qsb", svgf_atrous_bindings_[0][0].get()));
+  svgf_composite_pipeline_.reset(NewComputePipeline(
+    "svgf_composite.comp.qsb", svgf_composite_bindings_[0].get()));
+  svgf_taa_pipeline_.reset(
+    NewComputePipeline("svgf_taa.comp.qsb", svgf_taa_bindings_[0].get()));
 
   blit_bindings_->setBindings({Binding::sampledTexture(
     0, Binding::FragmentStage, rt_output_.get(), sampler_.get())});
@@ -520,6 +654,15 @@ void shift::gui::Viewport::CreatePipelines() {
   blit_pipeline_.reset(make_pipeline("fullscreen.vert.qsb", "blit.frag.qsb",
                                      blit_bindings_.get(), false));
   blit_pipeline_->create();
+}
+
+QRhiComputePipeline* shift::gui::Viewport::NewComputePipeline(
+  const char* shader, QRhiShaderResourceBindings* bindings) {
+  QRhiComputePipeline* pipeline = rhi_->newComputePipeline();
+  pipeline->setShaderStage({QRhiShaderStage::Compute, LoadShader(shader)});
+  pipeline->setShaderResourceBindings(bindings);
+  pipeline->create();
+  return pipeline;
 }
 
 void shift::gui::Viewport::CreateTextureArray(int layer_count, int size) {
@@ -658,6 +801,8 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   CreatePipelines();
   rt_instances_dirty_ = true;
   rt_frame_ = 0;
+  rt_history_valid_ = false;
+  rt_previous_poses_.clear();
 }
 
 void shift::gui::Viewport::render(QRhiCommandBuffer* cb) {
@@ -720,6 +865,7 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       CopyMatrix(poses_.bodies[mesh.body_index], instance.model);
       CopyVector(mesh.albedo, mesh.normal_scale, instance.albedo);
       CopyMaterial(mesh, instance.material, instance.layers);
+      instance.layers[3] = -1; // unused
       batch->updateDynamicBuffer(instance_ubo_.get(),
                                  quint32(i) * instance_stride_,
                                  sizeof(instance), &instance);
@@ -759,6 +905,42 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
   cb->endPass();
 }
 
+bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
+                                           int instance_count) {
+  const Scene& scene = simulation_->get_scene();
+  // without history (new scene, first frame) the previous pose is the
+  // current one
+  if(!rt_history_valid_ ||
+     static_cast<int>(rt_previous_poses_.size()) != instance_count) {
+    rt_previous_poses_.clear();
+  }
+  bool moved = false;
+  std::vector<RtInstance> instances(std::max(instance_count, 1));
+  for(int i = 0; i < instance_count; i++) {
+    const SceneMesh& mesh = scene.meshes[i];
+    const QMatrix4x4& pose = poses_.bodies[mesh.body_index];
+    const QMatrix4x4& previous =
+      rt_previous_poses_.empty() ? pose : rt_previous_poses_[i];
+    moved = moved || previous != pose;
+    CopyMatrix(pose, instances[i].body_to_world);
+    CopyMatrix(pose.inverted(), instances[i].world_to_body);
+    CopyMatrix(previous, instances[i].previous_body_to_world);
+    TransformBox(pose, mesh.bounds_min, mesh.bounds_max, instances[i].box_min,
+                 instances[i].box_max);
+    CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
+    CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
+    instances[i].offsets[0] = rt_roots_[i];
+  }
+  batch->uploadStaticBuffer(rt_instance_buffer_.get(), 0,
+                            quint32(instances.size() * sizeof(RtInstance)),
+                            instances.data());
+  rt_previous_poses_.resize(instance_count);
+  for(int i = 0; i < instance_count; i++) {
+    rt_previous_poses_[i] = poses_.bodies[scene.meshes[i].body_index];
+  }
+  return moved;
+}
+
 void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
                                            QRhiResourceUpdateBatch* batch) {
   const QSize size = get_render_target()->pixelSize();
@@ -768,35 +950,32 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     rhi_->clipSpaceCorrMatrix() * camera_.get_projection_matrix(aspect);
   const QMatrix4x4 view_projection = projection * view;
 
-  // restart accumulation whenever anything in view changes
-  if(view_projection != rt_last_view_projection_) {
+  // restart the progressive mean whenever anything in view changes; the
+  // denoiser's history survives through reprojection
+  const bool camera_moved = view_projection != rt_last_view_projection_;
+  if(camera_moved) {
     rt_last_view_projection_ = view_projection;
     rt_frame_ = 0;
+  }
+  if(!rt_history_valid_) {
+    rt_previous_view_projection_ = view_projection;
   }
 
   const bool have_poses = simulation_ && !poses_.bodies.empty();
   int instance_count = 0;
+  bool bodies_moved = false;
   if(have_poses) {
-    const Scene& scene = simulation_->get_scene();
-    instance_count = static_cast<int>(scene.meshes.size());
-    if(rt_instances_dirty_) {
-      std::vector<RtInstance> instances(std::max(instance_count, 1));
-      for(int i = 0; i < instance_count; i++) {
-        const SceneMesh& mesh = scene.meshes[i];
-        const QMatrix4x4& pose = poses_.bodies[mesh.body_index];
-        CopyMatrix(pose, instances[i].body_to_world);
-        CopyMatrix(pose.inverted(), instances[i].world_to_body);
-        TransformBox(pose, mesh.bounds_min, mesh.bounds_max,
-                     instances[i].box_min, instances[i].box_max);
-        CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
-        CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
-        instances[i].offsets[0] = rt_roots_[i];
-      }
-      batch->uploadStaticBuffer(rt_instance_buffer_.get(), 0,
-                                quint32(instances.size() * sizeof(RtInstance)),
-                                instances.data());
+    instance_count =
+      static_cast<int>(simulation_->get_scene().meshes.size());
+    // after a frame with motion the instances still hold the old previous
+    // poses, so upload once more with previous = current
+    if(rt_instances_dirty_ || rt_instances_moving_) {
+      bodies_moved = UploadInstances(batch, instance_count);
+      rt_instances_moving_ = bodies_moved;
       rt_instances_dirty_ = false;
-      rt_frame_ = 0;
+      if(bodies_moved) {
+        rt_frame_ = 0;
+      }
     }
   }
 
@@ -813,7 +992,8 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
       floor_z_, floor_spacing_, (floor_enabled_ && have_poses) ? 1.f : 0.f,
       floor_extent_};
     CopyArray(floor_params, uniforms.floor_params);
-    // angle subtended by a pixel, to select texture levels of detail
+    // angle subtended by a pixel, to select texture levels of detail and to
+    // scale the denoiser's depth tolerances
     const float spread =
       2.f * std::tan(0.5f * camera_.get_fov_y() * float(M_PI) / 180.f) /
       float(std::max(size.height(), 1));
@@ -821,16 +1001,63 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
       spread, float(texture_array_->pixelSize().width()), 0.f, 0.f};
     CopyArray(texture_params, uniforms.texture_params);
     uniforms.control[0] = instance_count;
-    uniforms.control[1] = rt_frame_;
+    uniforms.control[1] = rt_sample_;
+    uniforms.control[2] = rt_frame_;
     batch->updateDynamicBuffer(rt_ubo_.get(), 0, sizeof(uniforms), &uniforms);
 
-    cb->beginComputePass(batch);
-    cb->setComputePipeline(rt_pipeline_.get());
-    cb->setShaderResources(rt_bindings_.get());
-    cb->dispatch((size.width() + 7) / 8, (size.height() + 7) / 8, 1);
-    cb->endComputePass();
-    batch = nullptr;
+    DenoiseUniforms denoise{};
+    CopyMatrix(rt_previous_view_projection_, denoise.previous_view_projection);
+    CopyMatrix(view_projection, denoise.view_projection);
+    denoise.params[0] = spread;
+    denoise.params[1] = bodies_moved   ? kHistoryMoving
+                        : camera_moved ? kHistoryCamera
+                                       : kHistoryStatic;
+    denoise.params[2] = rt_history_valid_ ? 1.f : 0.f;
+    denoise.blend[0] = float(rt_frame_ + 1);
+    denoise.blend[1] = kBlendStart;
+    denoise.blend[2] = kBlendEnd;
+    denoise.control[0] = instance_count;
+    for(int i = 0; i <= kAtrousIterations; i++) {
+      denoise.params[3] = i == 0 ? 0.f : float(1 << (i - 1));
+      batch->updateDynamicBuffer(svgf_ubo_.get(), quint32(i) * svgf_ubo_stride_,
+                                 sizeof(denoise), &denoise);
+    }
+
+    // separate passes so that QRhi orders each pass's image reads after the
+    // previous pass's writes
+    const int groups_x = (size.width() + 7) / 8;
+    const int groups_y = (size.height() + 7) / 8;
+    auto dispatch = [&](QRhiComputePipeline* pipeline,
+                        QRhiShaderResourceBindings* bindings,
+                        const QRhiCommandBuffer::DynamicOffset* offset) {
+      cb->beginComputePass(batch);
+      batch = nullptr;
+      cb->setComputePipeline(pipeline);
+      cb->setShaderResources(bindings, offset ? 1 : 0, offset);
+      cb->dispatch(groups_x, groups_y, 1);
+      cb->endComputePass();
+    };
+    const int p = rt_parity_;
+    dispatch(rt_pipeline_.get(), rt_bindings_[p].get(), nullptr);
+    dispatch(svgf_temporal_pipeline_.get(), svgf_temporal_bindings_[p].get(),
+             nullptr);
+    dispatch(svgf_variance_pipeline_.get(), svgf_variance_bindings_[p].get(),
+             nullptr);
+    for(int i = 0; i < kAtrousIterations; i++) {
+      const QRhiCommandBuffer::DynamicOffset offset(
+        0, quint32(i + 1) * svgf_ubo_stride_);
+      dispatch(svgf_atrous_pipeline_.get(),
+               svgf_atrous_bindings_[p][i % 2].get(), &offset);
+    }
+    dispatch(svgf_composite_pipeline_.get(),
+             svgf_composite_bindings_[p].get(), nullptr);
+    dispatch(svgf_taa_pipeline_.get(), svgf_taa_bindings_[p].get(), nullptr);
+
+    rt_parity_ = 1 - p;
+    rt_sample_++;
     rt_frame_++;
+    rt_history_valid_ = true;
+    rt_previous_view_projection_ = view_projection;
   }
 
   cb->beginPass(get_render_target(), QColor(0, 0, 0), {1.0f, 0}, batch);

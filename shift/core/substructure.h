@@ -249,8 +249,23 @@ public:
   sense >= 0 and in the original parent frame for inverse joints (sense < 0,
   see ksl_hsrxinv), ksl_subtract_dpiFromq expects the child frame */
   static void SubtractRotation(const double* delta_pi, double* q, int sense);
+  /*! q and dq indices of the rotation (quaternion) of a spherical or float
+  joint; throws for other joint types */
+  static void RotationOffsets(shift::core::joint::Base* joint, int& q, int& dq);
+  /*! global dq indices of the three rotation coordinates of a spherical or
+  float joint */
+  static std::vector<int> RotationIndices(shift::core::joint::Base* joint);
   double ComputeDeltaqError();
-  void FirstOrderUpdate();
+  /*! \brief predict the dependent coordinates to first order, delta q_d =
+  -B delta q_s, for a change delta_specified (local dq indices, zero except at
+  the specified coordinates) already applied to q, and apply it to q through
+  Updateq; the B matrix of a specified factorization (SetupPO1Specified) must
+  be current */
+  void FirstOrderUpdate(const std::vector<double>& delta_specified);
+  /*! \brief the q index of a specified coordinate given by its global dq
+  index; throws for a coordinate without a single q entry (the rotation of a
+  spherical or float joint, or the translation of a float joint) */
+  int SpecifiedCoordinateQIndex(int dq_index);
   unsigned int RemoveConstraintViolations();
   unsigned int RemoveConstraintViolationsRunTime(double* q, const double* dq);
   unsigned int RemoveConstraintViolationsFast(bool);
@@ -261,6 +276,10 @@ public:
   void SetupBMatrix();
   void SetupBMatrixSparse(double* __restrict__ b3);
   void SetupPO1Specified(const shift::core::topology::DHVA& dhva, int dq_index);
+  /*! \brief SetupPO1Specified with several specified coordinates, given by
+   * their global dq indices */
+  void SetupPO1Specified(const shift::core::topology::DHVA& dhva,
+                         const std::vector<int>& dq_indices);
   double InfinityNormB();
   double PivotRatio();
   double EvaluateConstraints(const shift::core::topology::DHVA& dhva);
@@ -269,6 +288,38 @@ public:
   void CopyNullSpace();
   void SetupNewtonRaphsonSpecifiedCoordinate(shift::core::topology::DHVA& dhva,
                                              int specified_coordinate_index);
+
+  /*!
+  @brief drive down constraint violations, then perform an initial full
+  factor with the three rotation coordinates of a spherical or float joint
+  specified as independent, to set up SetSpecifiedRotation
+
+  @param dhva displacements, influence coefficients, velocities and
+  accelerations
+  @param joint a spherical or float joint in this substructure
+  */
+  void SetupNewtonRaphsonSpecifiedRotation(shift::core::topology::DHVA& dhva,
+                                           shift::core::joint::Base* joint);
+
+  /*!
+  @brief move the rotation of a spherical or float joint to a target
+  quaternion while the dependent coordinates of the substructure keep the
+  loop closure constraints satisfied
+
+  All three rotation coordinates of the joint are held independent; the
+  dependent coordinates are predicted to first order, -B dpi, then corrected
+  by Newton-Raphson iteration with the rotation fixed.
+  SetupNewtonRaphsonSpecifiedRotation must be called first. On failure the
+  coordinates of the substructure are restored and an exception is thrown.
+
+  @param dhva displacements, influence coefficients, velocities and
+  accelerations
+  @param joint a spherical or float joint in this substructure
+  @param quaternion target joint quaternion [x, y, z, w], normalized here
+  */
+  void SetSpecifiedRotation(shift::core::topology::DHVA& dhva,
+                            shift::core::joint::Base* joint,
+                            const double* quaternion);
   /*!
   @brief call full factor again if infinity norm of B matrix
   has changed a specified threshold from initial starting value

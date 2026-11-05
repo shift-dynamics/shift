@@ -19,11 +19,10 @@
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 
-namespace {
 
 namespace fs = std::filesystem;
 
-std::vector<std::string> FindExampleModels() {
+static std::vector<std::string> FindExampleModels() {
   std::vector<std::string> models;
   const fs::path root(SHIFT_EXAMPLES_DIR);
   for(const auto& entry : fs::recursive_directory_iterator(root)) {
@@ -35,7 +34,7 @@ std::vector<std::string> FindExampleModels() {
   return models;
 }
 
-std::string TestName(const testing::TestParamInfo<std::string>& info) {
+static std::string TestName(const testing::TestParamInfo<std::string>& info) {
   std::string name = info.param;
   for(char& c : name) {
     if(!std::isalnum(static_cast<unsigned char>(c))) {
@@ -64,7 +63,6 @@ protected:
   fs::path output_dir_;
 };
 
-} // namespace
 
 TEST_P(Model, Simulates) {
   const std::string json_file =

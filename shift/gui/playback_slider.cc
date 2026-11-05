@@ -6,9 +6,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace {
-constexpr int kTicks = 1000;
-}
+static constexpr int kTicks = 1000;
 
 shift::gui::PlaybackSlider::PlaybackSlider(QWidget* parent)
   : QWidget(parent) {

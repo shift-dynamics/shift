@@ -12,15 +12,14 @@
 #include <cstring>
 #include <set>
 
-namespace {
 
-double WallTime() {
+static double WallTime() {
   return std::chrono::duration<double>(
            std::chrono::steady_clock::now().time_since_epoch())
     .count();
 }
 
-QMatrix4x4 ToMatrix(const ksl_SE3_t& d) {
+static QMatrix4x4 ToMatrix(const ksl_SE3_t& d) {
   // ksl_SE3_t is column major: as_array[3 * column + row]
   const double* a = d.as_array;
   return QMatrix4x4(float(a[0]), float(a[3]), float(a[6]), float(a[9]),
@@ -30,7 +29,7 @@ QMatrix4x4 ToMatrix(const ksl_SE3_t& d) {
 }
 
 /*! area weighted vertex normals, for meshes imported without normals */
-void ComputeNormals(shift::gui::SceneMesh& mesh) {
+static void ComputeNormals(shift::gui::SceneMesh& mesh) {
   for(auto& vertex : mesh.vertices) {
     std::fill(vertex.normal, vertex.normal + 3, 0.f);
   }
@@ -113,7 +112,6 @@ MakeSceneMesh(int body_index, const shift::gui::MeshData& data,
   return mesh;
 }
 
-} // namespace
 
 shift::gui::Simulation::~Simulation() {
   JoinWorker();

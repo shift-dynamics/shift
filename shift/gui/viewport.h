@@ -35,8 +35,12 @@ class Simulation;
 
 Two render modes:
 - raster: GGX shading with a hemispherical ambient term
-- ray traced: compute shader path tracer with sun shadows, one diffuse
-  bounce and progressive accumulation while the view is static
+- ray traced: compute shader path tracer with sun shadows and one bounce at
+  one sample per pixel and frame, denoised with SVGF (spatiotemporal
+  variance-guided filtering: temporal reprojection, including moving bodies,
+  and an edge-aware a-trous wavelet filter) and temporal anti-aliasing
+  while the view changes, blending into the exact progressive mean once it
+  is static
 
 Both work directly in shift world coordinates (+z down).
 
@@ -119,6 +123,12 @@ private:
   void UpdateEnvironment();
   void RenderRaster(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
   void RenderRayTraced(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
+  /*! \brief upload the instances (body poses, and the poses of the previous
+   * frame for reprojection); returns true if a body moved */
+  bool UploadInstances(QRhiResourceUpdateBatch* batch, int instance_count);
+  /*! \brief compute pipeline of a shader, laid out as bindings */
+  QRhiComputePipeline* NewComputePipeline(const char* shader,
+                                          QRhiShaderResourceBindings* bindings);
 
   Simulation* simulation_ = nullptr;
   Poses poses_;
@@ -180,15 +190,53 @@ private:
   std::unique_ptr<QRhiBuffer> rt_node_buffer_;
   std::unique_ptr<QRhiBuffer> rt_instance_buffer_;
   std::unique_ptr<QRhiTexture> rt_output_;
-  std::unique_ptr<QRhiTexture> rt_accumulation_;
-  std::unique_ptr<QRhiShaderResourceBindings> rt_bindings_;
+  std::unique_ptr<QRhiTexture> rt_accumulation_; /*!< progressive mean */
   std::unique_ptr<QRhiComputePipeline> rt_pipeline_;
+
+  // SVGF denoiser. The G-buffer and the history alternate between two sets
+  // by frame parity: a frame writes set p and reads the previous frame's set
+  // 1 - p, so each pass has a binding set per parity.
+  std::unique_ptr<QRhiTexture> rt_illumination_; /*!< radiance / albedo */
+  std::unique_ptr<QRhiTexture> rt_albedo_;
+  std::unique_ptr<QRhiTexture> rt_direct_; /*!< sunlight, not denoised */
+  std::unique_ptr<QRhiTexture> rt_position_[2]; /*!< xyz, w = instance */
+  std::unique_ptr<QRhiTexture> rt_normal_[2];   /*!< xyz, w = distance */
+  std::unique_ptr<QRhiTexture> rt_history_illumination_[2]; /*!< w = length */
+  std::unique_ptr<QRhiTexture> rt_history_moments_[2];
+  std::unique_ptr<QRhiTexture> rt_history_albedo_[2];
+  std::unique_ptr<QRhiTexture> rt_filter_[2]; /*!< a-trous ping-pong */
+  std::unique_ptr<QRhiTexture> rt_color_;  /*!< composited, tonemapped */
+  std::unique_ptr<QRhiTexture> rt_taa_[2]; /*!< anti-aliased history */
+  std::unique_ptr<QRhiBuffer> svgf_ubo_; /*!< one slot per pass/iteration */
+  quint32 svgf_ubo_stride_ = 0;
+  std::unique_ptr<QRhiShaderResourceBindings> rt_bindings_[2];
+  std::unique_ptr<QRhiShaderResourceBindings> svgf_temporal_bindings_[2];
+  std::unique_ptr<QRhiShaderResourceBindings> svgf_variance_bindings_[2];
+  /*! [parity][direction], direction 0 filters rt_filter_[0] into [1] */
+  std::unique_ptr<QRhiShaderResourceBindings> svgf_atrous_bindings_[2][2];
+  std::unique_ptr<QRhiShaderResourceBindings> svgf_composite_bindings_[2];
+  std::unique_ptr<QRhiShaderResourceBindings> svgf_taa_bindings_[2];
+  std::unique_ptr<QRhiComputePipeline> svgf_temporal_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> svgf_variance_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> svgf_atrous_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> svgf_composite_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> svgf_taa_pipeline_;
   std::unique_ptr<QRhiSampler> sampler_;
   std::unique_ptr<QRhiShaderResourceBindings> blit_bindings_;
   std::unique_ptr<QRhiGraphicsPipeline> blit_pipeline_;
-  int rt_frame_ = 0;
+  int rt_frame_ = 0;  /*!< frames in the progressive mean */
+  int rt_sample_ = 0; /*!< frames rendered, seeds the random numbers */
+  int rt_parity_ = 0;
   QMatrix4x4 rt_last_view_projection_;
   bool rt_instances_dirty_ = true;
+  /*! false after anything that invalidates the SVGF history (new scene,
+   * resize, floor toggled, switching to ray tracing) */
+  bool rt_history_valid_ = false;
+  QMatrix4x4 rt_previous_view_projection_;
+  std::vector<QMatrix4x4> rt_previous_poses_; /*!< per instance */
+  /*! the last upload had a previous pose different from the current one, so
+   * the instances must be uploaded again with previous = current */
+  bool rt_instances_moving_ = false;
 };
 
 } // namespace gui
