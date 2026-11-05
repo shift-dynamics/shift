@@ -12,8 +12,8 @@ namespace collision_geometry {
 /*!
 @brief capsule collision geometry
 
-A cylinder with a hemisphere on each end: the points within the radius r of
-the segment on the z axis of its frame between z = -h and z = h, centered at
+A cylinder with a hemisphere on each end: the points within the radius \f$r\f$ of
+the segment on the z axis of its frame between \f$z = -h\f$ and \f$z = h\f$, centered at
 the origin of the frame. Given by its radius and the half length of the
 segment (with the optional pose), or fitted to the body's mesh: along the
 principal axis of greatest spread of the vertices, enclosing them.

@@ -33,6 +33,7 @@ subdir('terrain')
 core_deps = [
   ksl_dep,
   jsoncpp_dep,
+  yaml_dep,
   assimp_dep,
   gvc_dep,
   cgraph_dep,

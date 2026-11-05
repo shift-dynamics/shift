@@ -24,7 +24,7 @@ are updated and before the force modules.
 
 A controller may have internal states (e.g. the integral of a PID
 controller), which are integrated along with the generalized coordinates:
-y = [q, dq, auxiliary states], where the auxiliary states of all force
+\f$\underline{y} = [\underline{q}, \underline{\dot{q}}, \text{auxiliary states}]\f$, where the auxiliary states of all force
 modules and controllers follow the generalized velocities, see
 Context::InitializeAuxiliaryStates.
 */

@@ -30,14 +30,16 @@ struct Frame {
   Vec3 z{0.0, 0.0, 1.0};
 };
 
-/*! @brief rigid transformation of coordinates: p' = rotation p + translation
- * (rotation row-major) */
+/*! @brief rigid transformation of coordinates:
+ * \f$\underline{p}' = R \underline{p} + \underline{t}\f$ (rotation \f$R\f$
+ * row-major, translation \f$\underline{t}\f$) */
 struct Transform {
   std::array<double, 9> rotation{1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
   Vec3 translation{0.0, 0.0, 0.0};
 
   Vec3 Apply(const Vec3& p) const;
-  /*! this transformation after b: (this * b)(p) = this(b(p)) */
+  /*! this transformation after b: \f$(\text{this} \cdot b)(\underline{p}) =
+   * \text{this}(b(\underline{p}))\f$ */
   Transform operator*(const Transform& b) const;
   Transform Inverse() const;
   /*! the transformation of coordinates in frame f to those of its parent */
@@ -48,9 +50,9 @@ struct Transform {
 @brief non-uniform rational B-spline curve in D dimensions
 
 knots is the full knot vector (each knot repeated by its multiplicity), of
-points.size() + degree + 1 values. weights is empty for a non-rational curve.
-The curve is defined for parameters from knots[degree] to
-knots[points.size()].
+\f$n + p + 1\f$ values for \f$n\f$ = points.size() points and degree \f$p\f$.
+weights is empty for a non-rational curve. The curve is defined for parameters
+from knots[degree] to knots[points.size()].
 */
 template <int D>
 struct NurbsCurve {
@@ -90,11 +92,13 @@ struct NurbsSurface {
 @brief curve in D dimensions (3 for the curves of edges, 2 for curves in the
 parameters of a surface)
 
-- line: p(t) = origin + t direction (direction is not of unit length: its
-  length is the distance per unit parameter)
-- conic (circle or ellipse): p(t) = origin + a cos t + b sin t, t in radians;
-  a and b are the semi-axes of a circle or ellipse in 3D, and remain
-  conjugate semi-diameters when a curve in a surface's parameters is scaled
+- line: \f$\underline{p}(t) = \underline{o} + t \, \underline{d}\f$ with
+  \f$\underline{o}\f$ the origin and \f$\underline{d}\f$ the direction (not of
+  unit length: its length is the distance per unit parameter)
+- conic (circle or ellipse):
+  \f$\underline{p}(t) = \underline{o} + \underline{a} \cos t + \underline{b} \sin t\f$,
+  \f$t\f$ in radians; \f$\underline{a}\f$ and \f$\underline{b}\f$ are the
+  semi-axes of a circle or ellipse in 3D, and remain conjugate semi-diameters when a curve in a surface's parameters is scaled
   by different factors along each parameter
 - nurbs: see NurbsCurve
 */
@@ -114,17 +118,23 @@ using Curve2 = Curve<2>;
 using Curve3 = Curve<3>;
 
 /*!
-@brief surface of a face, with its parameters (u, v)
+@brief surface of a face, with its parameters \f$(u, v)\f$
 
-In the coordinates of the frame position (o, x, y, z), with lengths in
-meters and angles in radians:
+In the coordinates of the frame position
+\f$(\underline{o}, \underline{x}, \underline{y}, \underline{z})\f$, with lengths
+in meters and angles in radians, and \f$r\f$ the radius:
 
-- plane: p = o + u x + v y
-- cylinder: p = o + radius (cos u x + sin u y) + v z
-- cone: p = o + (radius + v tan semi_angle) (cos u x + sin u y) + v z
-- sphere: p = o + radius cos v (cos u x + sin u y) + radius sin v z
-- torus: p = o + (radius + minor_radius cos v) (cos u x + sin u y)
-  + minor_radius sin v z
+- plane: \f$\underline{p} = \underline{o} + u \underline{x} + v \underline{y}\f$
+- cylinder:
+  \f$\underline{p} = \underline{o} + r (\cos u \, \underline{x} + \sin u \, \underline{y}) + v \underline{z}\f$
+- cone:
+  \f$\underline{p} = \underline{o} + (r + v \tan\alpha) (\cos u \, \underline{x} + \sin u \, \underline{y}) + v \underline{z}\f$,
+  with \f$\alpha\f$ the semi_angle
+- sphere:
+  \f$\underline{p} = \underline{o} + r \cos v (\cos u \, \underline{x} + \sin u \, \underline{y}) + r \sin v \, \underline{z}\f$
+- torus:
+  \f$\underline{p} = \underline{o} + (r + r_m \cos v) (\cos u \, \underline{x} + \sin u \, \underline{y}) + r_m \sin v \, \underline{z}\f$,
+  with \f$r_m\f$ the minor_radius
 - nurbs: see NurbsSurface
 - revolution: the curve (curves[curve]) at parameter v, turned by the angle
   u about the axis through position.origin along position.z

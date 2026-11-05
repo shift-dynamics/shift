@@ -17,9 +17,9 @@ struct FialaParameters {
   double width = 0.235;
   /*! longitudinal slip stiffness, N per unit slip: about 16 times the
    * 3 kN load of a car tire. With the relaxation length it sets the
-   * longitudinal stiffness of the carcass, cslip / x_relaxation_length
+   * longitudinal stiffness of the carcass, \f$c_{slip} / x_{relaxation}\f$
    * (1e6 N/m), and so the wheel's spin mode on it,
-   * sqrt(r^2 cslip / (Iyy x_relaxation_length)), about 360 rad/s for a
+   * \f$\sqrt{r^2 c_{slip} / (i_{yy} \, x_{relaxation})}\f$, about 360 rad/s for a
    * 21 kg wheel. The 1e6 of the original implementation (2e7 N/m) put
    * that mode at 1600 rad/s, nearly undamped, and limited the integration
    * steps of the vehicle models four times as much. */
@@ -38,15 +38,20 @@ Ported from the C implementation of Shift (2016). The normal force is a
 spring and damper on the penetration of the wheel disc. The longitudinal
 slip and the slip angle are internal states with first order relaxation:
 
-  sigma_x d(kappa)/dt = -(|Vx| kappa + Vsx)
-  sigma_y d(alpha)/dt = Vsy - |Vx| tan(alpha)
+\f[
+\begin{aligned}
+\sigma_x \dot{\kappa} &= -(|v_x| \kappa + v_{sx}) \\
+\sigma_y \dot{\alpha} &= v_{sy} - |v_x| \tan\alpha
+\end{aligned}
+\f]
 
-where Vsx, Vsy are the slip velocities of the contact point and Vx the hub
-velocity along the heading. The friction coefficient falls from u_max to
-u_min with the combined slip. Fx is linear in kappa up to the critical slip
-and saturates beyond it; Fy and the aligning moment Mz follow the Fiala
-expressions up to the critical slip angle; My is rolling resistance.
-Axes as in tire::Contact (SAE, z down; Fz < 0 pushes the wheel up).
+where \f$v_{sx}, v_{sy}\f$ are the slip velocities of the contact point and
+\f$v_x\f$ the hub velocity along the heading. The friction coefficient falls
+from u_max to u_min with the combined slip. \f$f_x\f$ is linear in
+\f$\kappa\f$ up to the critical slip and saturates beyond it; \f$f_y\f$ and the
+aligning moment \f$m_z\f$ follow the Fiala expressions up to the critical slip
+angle; \f$m_y\f$ is rolling resistance. Axes as in tire::Contact (SAE, z down;
+\f$f_z < 0\f$ pushes the wheel up).
 */
 class Fiala : public Model {
 public:

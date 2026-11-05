@@ -754,7 +754,7 @@ bool shift::gui::Workspace::AdvanceImage() {
 
 void shift::gui::Workspace::OpenDialog() {
   const QString filename = QFileDialog::getOpenFileName(
-    this, "Open model", QString(), "Shift models (*.json);;All files (*)");
+    this, "Open model", QString(), "Shift models (*.json *.yaml *.yml);;All files (*)");
   if(!filename.isEmpty()) {
     Open(filename);
   }

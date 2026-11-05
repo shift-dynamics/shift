@@ -24,7 +24,7 @@ the contact points.
 Fills pair.depth, pair.normal (unit, from a to b: moving b by depth * normal
 separates the geometries), pair.point_a (the point of a deepest inside b),
 pair.point_b (the point of b deepest inside a), so that
-point_a - point_b = depth * normal, and their coordinates in each geometry's
+\f$\text{point\_a} - \text{point\_b} = \mathrm{depth} \cdot \underline{n}\f$, and their coordinates in each geometry's
 reference frame. On a flat Minkowski difference (touching geometries) the
 depth is zero.
 

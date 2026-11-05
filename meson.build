@@ -43,6 +43,7 @@ add_project_arguments(shift_args, language: 'cpp')
 
 ksl_dep = dependency('ksl')
 jsoncpp_dep = dependency('jsoncpp')
+yaml_dep = dependency('yaml-cpp') # model files in YAML
 assimp_dep = dependency('assimp')
 gvc_dep = dependency('libgvc')
 cgraph_dep = dependency('libcgraph')

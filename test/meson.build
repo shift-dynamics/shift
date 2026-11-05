@@ -34,8 +34,11 @@ test_sources = [
   'test_terramechanics.cc',
   'test_schedule.cc',
   'test_lead_screw.cc',
+  'test_yaml.cc',
   'test_gear_mesh.cc',
   'test_journal_bearing.cc',
+  'test_stick_slip.cc',
+  'test_powertrain.cc',
 ]
 test_deps = [shift_core_dep, gtest_dep]
 
@@ -61,7 +64,8 @@ test('shift-test', shift_test, args: ['--gtest_filter=-Examples/*'],
 # one meson test per model in examples/ (test_examples.cc discovers the same
 # files at run time); re-run `meson setup --reconfigure` after adding a model
 example_models = run_command(
-  find_program('find'), shift_examples_dir, '-name', '*.json',
+  find_program('find'), shift_examples_dir, '(', '-name', '*.json', '-o',
+  '-name', '*.yaml', '-o', '-name', '*.yml', ')',
   check: true,
 ).stdout().strip().split('\n')
 

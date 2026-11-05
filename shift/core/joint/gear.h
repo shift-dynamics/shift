@@ -31,11 +31,11 @@ void gearinv_dhva(const shift::core::Context&, topology::DHVA&,
 The parent frame is at the center of the parent gear, with its z axis along
 the gear axis. The child frame is at the center of the child gear, a
 separation distance away, in the x-y plane of the parent frame. The one
-coordinate q is the angle of the line of centers, measured from the x axis of
-the parent frame; as q increases the child gear rolls around the parent gear
-without slipping, turning relative to the parent frame by (1 + ratio) * q
-about its axis, ratio being the radius of the parent gear over that of the
-child gear.
+coordinate \f$q\f$ is the angle of the line of centers, measured from the x axis
+of the parent frame; as \f$q\f$ increases the child gear rolls around the parent
+gear without slipping, turning relative to the parent frame by
+\f$(1 + n) q\f$ about its axis, the ratio \f$n\f$ being the radius of the parent
+gear over that of the child gear.
 */
 class Gear : public Base {
 public:

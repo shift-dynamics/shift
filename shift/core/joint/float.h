@@ -30,14 +30,20 @@ void floatinv_dhva(const shift::core::Context&, topology::DHVA&,
 @brief pose of the traversal child of an inverse float joint
 
 An inverse float joint is traversed from the joint's child (traversal parent
-P) to the joint's parent (traversal child C). q = [t, quaternion] keeps the
-meaning it has for a forward float joint: the pose of the joint's child with
-respect to the joint's parent, t expressed in the joint parent frame, so
+P) to the joint's parent (traversal child C). \f$\underline{q} = [\underline{t},
+\text{quaternion}]\f$ keeps the meaning it has for a forward float joint: the
+pose of the joint's child with respect to the joint's parent,
+\f$\underline{t}\f$ expressed in the joint parent frame, so
 
-  R_C = R_P R^T,  t_C = t_P - R_C t
+\f[
+R_C = R_P R^T, \quad
+\underline{t}_C = \underline{t}_P - R_C \underline{t}
+\f]
 
-dq = [v, omega] is expressed in the joint parent frame (C), v = dt/dt and
-dR/dt R^T = [omega] (see Context::ConvertdqTody and Substructure::Updateq).
+\f$\underline{\dot{q}} = [\underline{v}, \underline{\omega}]\f$ is expressed in the joint
+parent frame (C), \f$\underline{v} = \dot{\underline{t}}\f$ and
+\f$\dot{R} R^T = \tilde{\omega}\f$ (see Context::ConvertdqTody and
+Substructure::Updateq).
 
 @param d_parent displacement of the traversal parent P
 @param q the joint's generalized coordinates [t, quaternion]
@@ -49,8 +55,12 @@ void floatinv_pose(const ksl_SE3_t* d_parent, const double* q,
 /*!
 @brief influence coefficients of an inverse float joint
 
-Translation moves C along its own axes, h = [-a_k, 0]; rotation turns C about
-the origin of P, h = [t_P x -a_k, -a_k], with a_k = R_C e_k.
+Translation moves C along its own axes,
+\f$\mathbf{\underline{h}} = \begin{Bmatrix} -\underline{a}_k \\ \underline{0}
+\end{Bmatrix}\f$; rotation turns C about the origin of P,
+\f$\mathbf{\underline{h}} = \begin{Bmatrix} \underline{t}_P \times
+(-\underline{a}_k) \\ -\underline{a}_k \end{Bmatrix}\f$, with
+\f$\underline{a}_k = R_C \underline{e}_k\f$.
 
 @param d_parent displacement of the traversal parent P
 @param d_child displacement of the traversal child C
@@ -104,7 +114,7 @@ public:
   topology::dhva_fptr DHVAfptr() override;
 
   /*! \brief reads the joint, then sets the initial joint coordinates
-   * q_0 = [t, quaternion] from the initial displacement */
+   * \f$\underline{q}_0 = [\underline{t}, \text{quaternion}]\f$ from the initial displacement */
   virtual void ReadJSON(Json::Value&) override;
 
 private:

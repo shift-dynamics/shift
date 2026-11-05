@@ -71,6 +71,7 @@ Keys of every force module:
    lead-screw
    gear-mesh
    journal-bearing
+   powertrain
 
 .. list-table::
    :header-rows: 1

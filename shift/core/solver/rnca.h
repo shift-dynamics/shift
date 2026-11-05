@@ -73,9 +73,17 @@ public:
 
   /*! factor and solve the block-diagonalized preconditioned spatial equations
    * of motion using run-time optimized natural constraint algorithm
-   * [Ml_ii Ml_id  B_id] {ddq_i} = {fl_i}
-   * [Ml_di Ml_ii  I   ] {ddq_d} = {fl_d}
-   * [B_di 0       0   ] {la_d}  = {ga_d}
+   * \f[
+   * \begin{bmatrix}
+   *   M^{\ell}_{ii} & M^{\ell}_{id} & B_{di}^T \\
+   *   M^{\ell}_{di} & M^{\ell}_{dd} & I \\
+   *   B_{di} & I & 0
+   * \end{bmatrix}
+   * \begin{Bmatrix} \underline{\ddot{q}}_i \\ \underline{\ddot{q}}_d \\
+   * \underline{\lambda}^d \end{Bmatrix} =
+   * \begin{Bmatrix} \underline{f}^{\ell}_i \\ \underline{f}^{\ell}_d \\
+   * \underline{\gamma}^d \end{Bmatrix}
+   * \f]
    */
   void FactorAndSolve();
 
@@ -105,9 +113,9 @@ private:
 
   std::vector<double>
     gamma_d_; /*!< preconditioned constraints, this quantity contains both
-                 \f$\gamma_p\f$ and \f$\gamma_d\f$ */
+                 \f$\gamma^p\f$ and \f$\gamma^d\f$ */
 
-  int Ml_size_ = 0; /*!< size of Ml array = ((2 + n) * (1 + n)) / 2*/
+  int Ml_size_ = 0; /*!< size of Ml array = \f$(2 + n)(1 + n) / 2\f$ */
 
   std::vector<double> Ml_; /*!< Generalized mass matrix, linear array containing
                     mass  matrix terms on and below the diagonal */

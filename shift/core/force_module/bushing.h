@@ -27,28 +27,35 @@ damping matrices of their relative displacements and velocities
 
 Two frames, I on one body and J on another, are joined as by a bushing whose
 stiffness and damping have been measured or computed by finite elements:
-every direction of motion may load every other. A group of n frames joins
-each of its n (n - 1) / 2 pairs, with one set of matrices over all the
+every direction of motion may load every other. A group of \f$n\f$ frames joins
+each of its \f$n (n - 1) / 2\f$ pairs, with one set of matrices over all the
 pairs, as for a simplified flexible structure.
 
-For each pair (i, j), i < j, in the order (0, 1), (0, 2), ..., (0, n - 1),
-(1, 2), ..., the six relative coordinates are those of frame j relative to
-frame i, measured from the rest pose of the pair and expressed in the rest
+For each pair \f$(i, j)\f$, \f$i < j\f$, in the order \f$(0, 1), (0, 2), \ldots,
+(0, n - 1), (1, 2), \ldots\f$, the six relative coordinates are those of frame
+\f$j\f$ relative to frame \f$i\f$, measured from the rest pose of the pair and expressed in the rest
 pose's axes (the axes of frame i moved by the rest pose):
 
-  x = [dx, dy, dz, rx, ry, rz]
+\f[
+\underline{x} = \begin{Bmatrix} \underline{d} \\ \underline{r} \end{Bmatrix}
+\f]
 
-where d is the displacement of the origin of j and r the rotation vector
-(axis times angle, radians) of its rotation. Their rates are the velocity of
-the origin of j relative to the point of i's body there, and the angular
-velocity of j relative to i, in the same axes.
+where \f$\underline{d}\f$ is the displacement of the origin of \f$j\f$ and
+\f$\underline{r}\f$ the rotation vector (axis times angle, radians) of its
+rotation. Their rates are the velocity of the origin of \f$j\f$ relative to the
+point of \f$i\f$'s body there, and the angular velocity of \f$j\f$ relative to
+\f$i\f$, in the same axes.
 
-The force and moment on frame j, at its origin and in the same axes, is
+The force and moment \f$\underline{f}\f$ on frame \f$j\f$, at its origin and in
+the same axes, is
 
-  f = -K x - C dx/dt + preload
+\f[
+\underline{f} = -K \underline{x} - C \dot{\underline{x}} +
+  \underline{f}_{preload}
+\f]
 
-and the opposite force and moment act on frame i's body at the same point.
-K and C are 6 m x 6 m for m pairs, in the order of the pairs, so the forces
+and the opposite force and moment act on frame \f$i\f$'s body at the same point.
+\f$K\f$ and \f$C\f$ are \f$6m \times 6m\f$ for \f$m\f$ pairs, in the order of the pairs, so the forces
 of a pair may depend on the motion of every pair. The rotation vector makes
 the coordinates exact for any rotation, but a constant matrix describes the
 bushing best for small rotations, as measured stiffness does.
@@ -63,15 +70,15 @@ JSON:
 
 - frames: [body, frame] of each frame, two or more; "fixed" is the fixed
   body.
-- stiffness, damping (optional, default zero): 6 m numbers for a diagonal
-  matrix, or (6 m)^2 numbers for the full matrix, row by row, in N/m, N m/rad,
+- stiffness, damping (optional, default zero): \f$6m\f$ numbers for a diagonal
+  matrix, or \f$(6m)^2\f$ numbers for the full matrix, row by row, in N/m, N m/rad,
   N s/m and N m s/rad (or the model's units); the force row of a pair times
   its displacement column, and so on.
-- stiffness_file, damping_file (optional): the full matrix as text, (6 m)^2
+- stiffness_file, damping_file (optional): the full matrix as text, \f$(6m)^2\f$
   numbers separated by blanks, commas or line breaks, row by row, next to
   the model file or in an include directory; in place of stiffness or
   damping.
-- preload (optional): 6 m numbers, the force and moment of each pair at
+- preload (optional): \f$6m\f$ numbers, the force and moment of each pair at
   rest.
 - rest_pose (optional): "initial" (default), the relative poses of the
   frames as the model starts, or "frames", where the frames of each pair
@@ -141,7 +148,7 @@ protected:
    * a derived module in dy unless it is null */
   void Compute(const double* y, double* dy);
   /*! \brief add forces of a derived module to f_, and set the rates of its
-   * states, if dy is not null; after f_ = -K x - C v + preload */
+   * states, if dy is not null; after \f$\underline{f} = -K \underline{x} - C \underline{v} + \underline{f}_{preload}\f$ */
   virtual void AddForces(const double* y, double* dy) {
     (void)y;
     (void)dy;

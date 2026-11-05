@@ -16,26 +16,33 @@ namespace force_module {
 frequency of the motion
 
 Rubber stiffens and its damping falls as the motion grows faster. The mount
-is a bushing (see Bushing: the same frames, relative coordinates x and rates
-v, rest pose, static stiffness K, damping C and preload) with, in parallel,
-a hardening term and spring-damper pairs in series (Maxwell elements) on
-each coordinate:
+is a bushing (see Bushing: the same frames, relative coordinates \f$\underline{x}\f$ and rates
+\f$\underline{v}\f$, rest pose, static stiffness \f$K\f$, damping \f$C\f$ and
+preload) with, in parallel, a hardening term and spring-damper pairs in series
+(Maxwell elements) on each coordinate:
 
-  f = -K x - C v + preload - k3 x^3 - sum over elements k_e s_e
+\f[
+\underline{f} = -K \underline{x} - C \underline{v} + \underline{f}_{preload} -
+  k_3 \underline{x}^3 - \sum_e k_e \underline{s}_e
+\f]
 
-Each element is a spring of stiffness k_e in series with a damper of
-coefficient c_e; s_e is the stretch of its spring, one state variable, with
+Each element is a spring of stiffness \f$k_e\f$ in series with a damper of
+coefficient \f$c_e\f$; \f$\underline{s}_e\f$ is the stretch of its spring, one
+state variable, with
 
-  ds_e/dt = v - s_e / tau_e,  tau_e = c_e / k_e.
+\f[
+\dot{\underline{s}}_e = \underline{v} - \underline{s}_e / \tau_e, \quad
+\tau_e = c_e / k_e.
+\f]
 
 Slow motion relaxes the springs through their dampers, leaving the static
-stiffness; motion much faster than 1 / tau_e loads the springs, adding k_e
-to the stiffness. In between, an element damps the most, near the frequency
-1 / (2 pi tau_e). Several elements with time constants spread over the
-frequencies of interest fit measured dynamic stiffness and loss angle (a
-Prony series). The springs start relaxed, s_e = 0. For the rotations the
-rate v is the relative angular velocity, which is the rate of the rotation
-vector for small rotations.
+stiffness; motion much faster than \f$1 / \tau_e\f$ loads the springs, adding
+\f$k_e\f$ to the stiffness. In between, an element damps the most, near the
+frequency \f$1 / (2 \pi \tau_e)\f$. Several elements with time constants spread
+over the frequencies of interest fit measured dynamic stiffness and loss angle
+(a Prony series). The springs start relaxed, \f$\underline{s}_e = 0\f$. For the
+rotations the rate \f$\underline{v}\f$ is the relative angular velocity, which is
+the rate of the rotation vector for small rotations.
 
 JSON:
 \code
@@ -52,9 +59,9 @@ JSON:
 
 - frames, stiffness, damping, stiffness_file, damping_file, preload,
   rest_pose: as for Bushing.
-- cubic_stiffness (optional): 6 m numbers, k3 of each coordinate, N/m^3 or
-  N m/rad^3.
-- maxwell_stiffness, maxwell_damping (optional): 6 m numbers for each
+- cubic_stiffness (optional): \f$6m\f$ numbers, \f$k_3\f$ of each coordinate, N/m\f$^3\f$ or
+  N m/rad\f$^3\f$.
+- maxwell_stiffness, maxwell_damping (optional): \f$6m\f$ numbers for each
   element, element by element: the k_e and c_e of every coordinate of the
   first element, then of the second, and so on. A zero stiffness leaves the
   coordinate without that element.

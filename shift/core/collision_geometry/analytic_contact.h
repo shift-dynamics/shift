@@ -18,10 +18,10 @@ class Sphere;
 pairs that need no search over a Minkowski difference (GJK and EPA)
 
 All quantities are in the inertial frame. normal is the unit normal from the
-first shape to the second: moving the second by depth * normal separates
+first shape to the second: moving the second by \f$\mathrm{depth} \cdot \underline{n}\f$ separates
 them. point_first is the point of the first shape deepest inside the second,
-point_second that of the second inside the first, and point_first -
-point_second = depth * normal.
+point_second that of the second inside the first, and
+\f$\text{point\_first} - \text{point\_second} = \mathrm{depth} \cdot \underline{n}\f$.
 */
 struct AnalyticContact {
   bool collision = false;
@@ -65,13 +65,18 @@ bool EllipsoidSphereContact(const Ellipsoid& ellipsoid, const Sphere& sphere,
 /*!
 @brief a convex hull (first) and an ellipsoid (second), exact
 
-The penetration depth is the least, over unit directions n, of the
-translation of the ellipsoid along n that separates the shapes,
+The penetration depth is the least, over unit directions \f$\underline{n}\f$,
+of the translation of the ellipsoid along \f$\underline{n}\f$ that separates
+the shapes,
 
-  d(n) = max_v n . (v - c) + sqrt(n^T G n),
+\f[
+d(\underline{n}) = \max_{\underline{v}} \underline{n} \cdot
+  (\underline{v} - \underline{c}) + \sqrt{\underline{n}^T G \underline{n}},
+\f]
 
-with v the hull's vertices, c the ellipsoid's center and G = R diag(a^2) R^T
-its shape matrix. d is the largest of smooth functions, one per vertex, so
+with \f$\underline{v}\f$ the hull's vertices, \f$\underline{c}\f$ the
+ellipsoid's center and \f$G = R \, \mathrm{diag}(\underline{a}^2) R^T\f$ its
+shape matrix. \f$d\f$ is the largest of smooth functions, one per vertex, so
 its least value is set by a feature of the hull, the vertices whose
 functions are largest there:
 
@@ -109,8 +114,9 @@ bool ConvexHullEllipsoidContact(const ConvexHull& hull,
 @brief two convex hulls, the local minimum of the penetration depth nearest
 a normal, exact
 
-The translation of b along a unit direction n that separates the hulls,
-d(n) = h_a(n) + h_b(-n), is least at a face of their Minkowski difference
+The translation of b along a unit direction \f$\underline{n}\f$ that
+separates the hulls,
+\f$d(\underline{n}) = h_a(\underline{n}) + h_b(-\underline{n})\f$, is least at a face of their Minkowski difference
 whose foot point from the origin lies inside it, one of
 
 - a face of a and a vertex of b: n is the face's normal, and the vertex,
@@ -143,24 +149,35 @@ bool ConvexHullPairContact(const ConvexHull& a, const ConvexHull& b,
 /*!
 @brief two ellipsoids, by the Perram-Wertheim contact function
 
-With the shape matrices G = R diag(a^2) R^T of the ellipsoids, r = c_b - c_a
-and M(l) = (1 - l) G_a + l G_b, the function
+With the shape matrices \f$G = R \, \mathrm{diag}(\underline{a}^2) R^T\f$ of the
+ellipsoids, \f$\underline{r} = \underline{c}_b - \underline{c}_a\f$ and
+\f$M(\ell) = (1 - \ell) G_a + \ell G_b\f$, the function
 
-  F(l) = l (1 - l) r^T M(l)^-1 r,   0 <= l <= 1
+\f[
+f(\ell) = \ell (1 - \ell) \underline{r}^T M(\ell)^{-1} \underline{r},
+\quad 0 \le \ell \le 1
+\f]
 
 is concave, and its maximum is the square of the factor by which both
 ellipsoids must be scaled about their centers to just touch: they overlap if
-max F < 1. The maximum is found from the root of F', which is decreasing, by
-safeguarded regula falsi. At the maximum, M^-1 r is the common normal of the
-scaled ellipsoids at their contact point.
+\f$\max f < 1\f$. The maximum is found from the root of
+\f$f'\f$, which is decreasing, by safeguarded regula falsi. At the maximum,
+\f$M^{-1} \underline{r}\f$ is the common normal of the scaled ellipsoids at
+their contact point.
 
-F measures the overlap as a scale factor rather than a distance. For the
-penetration depth, the separating distance along a unit direction n,
+\f$f\f$ measures the overlap as a scale factor rather than a distance. For the
+penetration depth, the separating distance along a unit direction
+\f$\underline{n}\f$,
 
-  d(n) = h_a(n) + h_b(n) - n . r,   h(n) = sqrt(n^T G n),
+\f[
+d(\underline{n}) = h_a(\underline{n}) + h_b(\underline{n}) -
+  \underline{n} \cdot \underline{r}, \quad
+h(\underline{n}) = \sqrt{\underline{n}^T G \underline{n}},
+\f]
 
-(the translation along n that separates the ellipsoids) is minimized by
-Newton's method on the unit sphere. d(n) is the distance from r to the
+(the translation along \f$\underline{n}\f$ that separates the ellipsoids) is
+minimized by Newton's method on the unit sphere. \f$d(\underline{n})\f$ is the
+distance from \f$\underline{r}\f$ to the
 boundary of the Minkowski difference, which for deep overlaps has several
 local minima (one on each side of r), so the minimization starts from the
 Perram-Wertheim normal, from the principal axes of both ellipsoids and from

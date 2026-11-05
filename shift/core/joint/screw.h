@@ -26,8 +26,8 @@ void screwinv_dhva(const shift::core::Context&, topology::DHVA&,
                    const topology::Offsets&, const double*, const double*);
 
 /*!
-@brief Screw joint: one coordinate, the angle q turned about an axis, with the
-child advancing along the axis by pitch * q.
+@brief Screw joint: one coordinate, the angle \f$q\f$ turned about an axis, with
+the child advancing along the axis by \f$\mathrm{pitch} \cdot q\f$.
 */
 class Screw : public Base {
 public:

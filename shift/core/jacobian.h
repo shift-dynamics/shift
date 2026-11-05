@@ -168,7 +168,7 @@ private:
   std::vector<double>
     e_; /*!< global array of constraints \f$\underline{e}\f$ */
   std::vector<double>
-    de_; /*!< time derivative of constraints \f$\underline{\dot{e}}\f$ */
+    de_; /*!< time derivative of constraints \f$\dot{\underline{e}}\f$ */
   std::vector<double> b3_;
   std::vector<int> ij_mapping_;
   Array2d<int> rb3_;

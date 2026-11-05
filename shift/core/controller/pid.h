@@ -22,11 +22,17 @@ namespace controller {
 @brief PID controller acting on a joint
 
 Reads a scalar signal from a sensor and adds the control effort
-u = kp e + ki int(e) dt + kd de/dt, with error e = target - signal, to the
-working force of a joint (a force for prismatic, a torque for revolute
-joints). The integral of the error is an internal state. The derivative term
-uses the analytical rate of the sensor signal (de/dt = -d signal/dt), so it
-requires a sensor that provides one, e.g. a position sensor.
+
+\f[
+u = k_p \, e + k_i \int e \, \mathrm{d}t + k_d \, \dot{e},
+\f]
+
+with the error \f$e = \mathrm{target} - \mathrm{signal}\f$ and the gains
+\f$k_p\f$, \f$k_i\f$ and \f$k_d\f$ (kp, ki and kd), to the working force of a
+joint (a force for prismatic, a torque for revolute joints). The integral of
+the error is an internal state. The derivative term uses the analytical rate
+of the sensor signal (\f$\dot{e} = -\dot{\mathrm{signal}}\f$), so it requires a
+sensor that provides one, e.g. a position sensor.
 
 JSON:
 \code

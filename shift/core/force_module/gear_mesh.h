@@ -31,60 +31,66 @@ constraint, so the gears can also carry the dynamics of their shafts and
 bearings.
 
 The teeth touch along the line of action, which passes through the pitch
-point P on the line between the centers and makes the pressure angle phi with
-the common tangent of the pitch circles. Driving one way, the flank on one
+point P on the line between the centers and makes the pressure angle
+\f$\phi\f$ with the common tangent of the pitch circles. Driving one way, the flank on one
 side of the teeth is in contact; driving the other, the flank on the other
 side, and the line of action is the reflection of the first in the line of
 centers. The module keeps the two as separate contacts, "plus" and "minus",
 which push but never pull:
 
-- the tangential displacement E_t of the pitch point of gear 1 relative to
+- the tangential displacement \f$\delta_t\f$ of the pitch point of gear 1 relative to
   that of gear 2, the integral of the relative velocity of P as part of each
   body along the tangent of the pitch circles (a state variable of the
   module). It is zero at the start, the gears meshing midway through the
   backlash;
-- the approach of the centers, d0 - d, from their distance d and its value d0
-  at the start;
+- the approach of the centers, \f$d_0 - d\f$, from their distance \f$d\f$ and
+  its value \f$d_0\f$ at the start;
 - the compression of each flank along its line of action,
-
-      e+ = cos(phi) E_t + sin(phi) (d0 - d) + p(x) - cos(phi) b / 2,
-      e- = -cos(phi) E_t + sin(phi) (d0 - d) + p(x) - cos(phi) b / 2,
-
-  with the circumferential backlash b at the pitch circle and the error p(x)
-  of the profile, the extra thickness of the teeth, at the position of the
-  mesh x;
+  \f[
+  \begin{aligned}
+  e_+ &= \cos\phi \, \delta_t + \sin\phi \, (d_0 - d) + p(x) - \cos\phi \, b / 2 \\
+  e_- &= -\cos\phi \, \delta_t + \sin\phi \, (d_0 - d) + p(x) - \cos\phi \, b / 2,
+  \end{aligned}
+  \f]
+  with the circumferential backlash \f$b\f$ at the pitch circle and the error
+  \f$p(x)\f$ of the profile, the extra thickness of the teeth, at the position
+  of the mesh \f$x\f$;
 - the force along each line of action,
-
-      F = k(x) pos(e) + c s(e) de/dt,
-
-  where pos(e) is e for e > 0 and zero otherwise, made smooth over the small
-  length `smoothing`, s(e) is its slope (1 once the flank touches, 0 before),
-  k(x) is the stiffness of the mesh and c the damping. The force pushes gear 2
-  along the tangent, +/- F cos(phi), and apart from gear 1 along the line of
-  centers, F sin(phi), and the opposite on gear 1, at the pitch point;
-- x is the position in the mesh, the fraction of a tooth pitch that gear 1 has
-  turned since a pair of teeth met (the module integrates gear 1's rotation as
-  a state variable): x = z_1 theta_1 / 2 pi, taken modulo 1, plus the
-  `initial_phase`.
+  \f[
+  f = k(x) \, \mathrm{pos}(e) + c \, s(e) \, \dot{e},
+  \f]
+  where \f$\mathrm{pos}(e)\f$ is \f$e\f$ for \f$e > 0\f$ and zero otherwise, made
+  smooth over the small length `smoothing`, \f$s(e)\f$ is its slope (1 once the
+  flank touches, 0 before), \f$k(x)\f$ is the stiffness of the mesh and \f$c\f$
+  the damping. The force pushes gear 2 along the tangent,
+  \f$\pm f \cos\phi\f$, and apart from gear 1 along the line of centers,
+  \f$f \sin\phi\f$, and the opposite on gear 1, at the pitch point;
+- \f$x\f$ is the position in the mesh, the fraction of a tooth pitch that gear 1
+  has turned since a pair of teeth met (the module integrates gear 1's rotation
+  as a state variable): \f$x = z_1 \theta_1 / 2 \pi\f$, taken modulo 1, plus the
+  `initial_phase`, with \f$z_1\f$ the number of teeth of gear 1.
 
 *The stiffness of the mesh.* Teeth in contact are springs, and the number of
-pairs in contact changes as the gears turn: with the contact ratio epsilon
-between 1 and 2, two pairs share the load for the fraction epsilon - 1 of the
-mesh and one pair for the rest (Kahraman and Singh, 1990; the load sharing of
-teeth in contact is Elkholy's, 1985). With tooth_stiffness k_t for one pair,
+pairs in contact changes as the gears turn: with the contact ratio \f$\varepsilon\f$
+between 1 and 2, two pairs share the load for the fraction
+\f$\varepsilon - 1\f$ of the mesh and one pair for the rest (Kahraman and
+Singh, 1990; the load sharing of teeth in contact is Elkholy's, 1985). With
+tooth_stiffness \f$k_t\f$ for one pair,
 
-    k(x) = k_t (1 + D(x)),
+\f[
+k(x) = k_t (1 + m(x)),
+\f]
 
-where D is 1 while two pairs are in contact and 0 while one is, changing
+where \f$m\f$ is 1 while two pairs are in contact and 0 while one is, changing
 over a smooth ramp (a fraction `ramp` of the mesh) at each change, so that
 the force has no jump and the variable step integrator sees none. The mean
-stiffness over the mesh is k_t epsilon. A table of the stiffness against x
-over [0, 1] (stiffness_table), such as one computed for the actual teeth,
+stiffness over the mesh is \f$k_t \varepsilon\f$. A table of the stiffness against \f$x\f$
+over \f$[0, 1]\f$ (stiffness_table), such as one computed for the actual teeth,
 replaces this.
 
-*Gear whine.* The varying stiffness and the errors p(x) of the profile
-excite the transmission error E_t at the mesh frequency z_1 omega_1 / 2 pi and
-its harmonics, which is the vibration heard as the whine of gears.
+*Gear whine.* The varying stiffness and the errors \f$p(x)\f$ of the profile
+excite the transmission error \f$\delta_t\f$ at the mesh frequency
+\f$z_1 \omega_1 / 2 \pi\f$ and its harmonics, which is the vibration heard as the whine of gears.
 
 JSON:
 \code
@@ -111,8 +117,8 @@ JSON:
 - smoothing (optional, default 1e-7 m): the length over which a flank starts to
   load.
 
-Outputs: transmission_error (E_t), mesh_force (the net tangential force on the
-pitch circles, (F+ - F-) cos(phi)), force_plus, force_minus, stiffness and
+Outputs: transmission_error (\f$\delta_t\f$), mesh_force (the net tangential
+force on the pitch circles, \f$(f_+ - f_-) \cos\phi\f$), force_plus, force_minus, stiffness and
 phase.
 */
 class GearMesh : public Base {
@@ -140,8 +146,8 @@ public:
   void UpdateOutputs(double t, const double* y) override;
   void AppendOutputs(std::vector<double>& values) const override;
 
-  /*! \brief the number of pairs of teeth in contact, D(x) + 1, smooth: 2
-   * for the fraction contact_ratio - 1 of the mesh, centered on x = 0, and 1
+  /*! \brief the number of pairs of teeth in contact, \f$m(x) + 1\f$, smooth: 2
+   * for the fraction contact_ratio - 1 of the mesh, centered on \f$x = 0\f$, and 1
    * otherwise, changing over the fraction ramp of the mesh */
   static double PairsInContact(double x, double contact_ratio, double ramp);
 

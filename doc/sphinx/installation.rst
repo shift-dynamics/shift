@@ -25,7 +25,8 @@ C++17 compiler and these libraries:
 ========================= =================================================
 library                   used for
 ========================= =================================================
-jsoncpp                   reading model files
+jsoncpp                   reading model files in JSON
+yaml-cpp                  reading model files in YAML
 assimp                    loading meshes (OBJ, glTF, ...)
 graphviz (libgvc)         drawing the body and frame graphs
 hdf5 (C++)                the HDF5 logger

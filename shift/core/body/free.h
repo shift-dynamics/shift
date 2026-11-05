@@ -16,26 +16,47 @@ A free body has no joints: none may connect to it. It moves under the loads
 applied to it (e.g. contact forces) and gravity, by the Newton-Euler
 equations in the fixed frame,
 
-  f = M a + V x* (M V),
+\f[
+\mathbf{\underline{f}}^* = M \dot{\mathbf{\underline{v}}} + [ad]^* M \mathbf{\underline{v}},
+\f]
 
-with V the spatial velocity of the body and a = dV/dt its spatial
-acceleration, both referred to the fixed origin and in fixed coordinates
-([linear, angular], as ksl_screw_t), f the load on the body referred to the
-fixed origin ([force, moment], as ksl_coscrew_t) and M the spatial inertia
-about the fixed origin (ksl_inertia_transformed of the centroidal inertia).
-The linear part of V is the velocity of the material point of the body at
-the fixed origin: a point p of the body moves with V.lin + V.ang x p.
+with \f$\mathbf{\underline{v}}\f$ the spatial velocity of the body and
+\f$\dot{\mathbf{\underline{v}}}\f$ its spatial acceleration, both referred
+to the fixed origin and in fixed coordinates ([linear, angular], as
+ksl_screw_t), \f$\mathbf{\underline{f}}^*\f$ the load on the body referred
+to the fixed origin ([force, moment], as ksl_coscrew_t) and \f$M\f$ the
+spatial inertia about the fixed origin (ksl_inertia_transformed of the
+centroidal inertia). The linear part \f$\underline{v}\f$ of
+\f$\mathbf{\underline{v}}\f$ is the velocity of the material point of the
+body at the fixed origin: a point \f$\underline{p}\f$ of the body moves with
+\f$\underline{v} + \underline{\omega} \times \underline{p}\f$, with
+\f$\underline{\omega}\f$ the angular part.
 
-M is never factored. It is the centroidal inertia shifted from the center of
-mass c to the fixed origin, and the centroidal inertia is block diagonal,
-m E and I_c, so a = M^-1 f is (Featherstone, 2008, 2.13):
+\f$M\f$ is never factored. It is the centroidal inertia shifted from the
+center of mass \f$\underline{c}\f$ to the fixed origin, and the centroidal
+inertia is block diagonal, \f$m E\f$ and \f$I_c\f$, so
+\f$\dot{\mathbf{\underline{v}}} = M^{-1} \mathbf{\underline{f}}^*\f$ is
+(Featherstone, 2008, 2.13), with the force \f$\underline{f}\f$ and moment
+\f$\underline{n}\f$ of the load, and \f$\underline{a}\f$ and
+\f$\underline{\alpha}\f$ the linear and angular parts of the acceleration:
 
-  shift the load to c:     f_c.lin = f.lin, f_c.ang = f.ang - c x f.lin
-  centroidal inverse:      a_c.lin = f_c.lin / m, a.ang = I_c^-1 f_c.ang
-  shift the motion to O:   a.lin = a_c.lin - a.ang x c
+\f[
+\begin{aligned}
+\text{shift the load to } \underline{c}: &\quad
+  \underline{f}_c = \underline{f}, \quad
+  \underline{n}_c = \underline{n} - \underline{c} \times \underline{f} \\
+\text{centroidal inverse}: &\quad
+  \underline{a}_c = \underline{f}_c / m, \quad
+  \underline{\alpha} = I_c^{-1} \underline{n}_c \\
+\text{shift the motion to the origin}: &\quad
+  \underline{a} = \underline{a}_c - \underline{\alpha} \times \underline{c}
+\end{aligned}
+\f]
 
-with I_c^-1 = R I_b^-1 R^T from the inverse of the body frame centroidal
-inertia I_b, inverted once. Gravity g adds [g, 0] to a.
+with \f$I_c^{-1} = R I_b^{-1} R^T\f$ from the inverse of the body frame
+centroidal inertia \f$I_b\f$, inverted once. Gravity \f$\underline{g}\f$
+adds \f$\begin{Bmatrix}\underline{g}\\\underline{0}\end{Bmatrix}\f$ to
+\f$\dot{\mathbf{\underline{v}}}\f$.
 
 Its displacement d (of the origin), v and a are kept in the free part of
 the DHVA (topology::DVA); a free body has no joint, so no influence
