@@ -14,7 +14,7 @@ the model, a ``name``, and the keys of its type:
 
    "force_modules": [
      {"type": "bushing", "name": "front_bushing",
-      "frames": [["fixed", "front_mount"], ["control_arm", "front"]],
+      "frames": [["fixed", "front_mount"], ["left_control_arm", "front"]],
       "stiffness": [3e6, 3e6, 3e6, 1500, 3000, 3000],
       "damping": [5000, 5000, 5000, 58, 100, 100]}
    ]

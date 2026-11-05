@@ -31,8 +31,8 @@ Force modules, sensors and controllers
           :width: 220px
           :alt: bushing
      - :source:`examples/force_modules/bushing.json`
-     - :doc:`../force-modules/bushing`: a wheel and hub on a suspension
-       control arm that pivots on two bushings and hangs from a coil-over strut
+     - :doc:`../force-modules/bushing`: the front left suspension of the
+       vehicle model, with its control arm on two bushings
    * - .. image:: ../images/examples/rubber_mount.jpg
           :width: 220px
           :alt: rubber_mount
