@@ -11,7 +11,11 @@ jobs:
     name: docs
     runs-on: ubuntu-24.04
     steps:
+      # the images and videos are stored in Git LFS: without lfs: true the
+      # checkout holds their small pointer files and the site shows nothing
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - uses: actions/setup-python@v5
         with:
