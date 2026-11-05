@@ -1,0 +1,12 @@
+V8 Engine (v8_engine.obj, v8_engine.mtl)
+
+This work is based on "V8 Engine"
+(https://sketchfab.com/3d-models/v8-engine-7a957b5f9f954fe5b24e685f5e22046f)
+by Tahminayeasminmony (https://sketchfab.com/Tahminayeasminmony) licensed
+under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+Changes: each of the 47 parts was reduced to about 2% of its triangles (2.2
+million to 59 thousand), the engine was turned to the axes of shift (x
+forward along the crankshaft, z down) and centered on its block, and the
+white material was made a dark grey. See scripts/prepare_v8_engine.py. The
+source model is commercially usable with this credit.

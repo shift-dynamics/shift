@@ -1,0 +1,15 @@
+core_src += files(
+  'analytic_contact.cc',
+  'base.cc',
+  'cad.cc',
+  'cad_contact.cc',
+  'convex_hull.cc',
+  'ellipsoid.cc',
+  'epa.cc',
+  'fitting.cc',
+  'gjk.cc',
+  'hertz.cc',
+  'manifold.cc',
+  'plane.cc',
+  'sphere.cc',
+)

@@ -1,0 +1,28 @@
+# Doxygen XML of the core sources for the API reference (breathe). Run by
+# conf.py with SHIFT_ROOT (the repository root) and SHIFT_DOXYGEN_OUT (the
+# output directory) set.
+PROJECT_NAME           = Shift
+OUTPUT_DIRECTORY       = $(SHIFT_DOXYGEN_OUT)
+INPUT                  = $(SHIFT_ROOT)/shift/core
+FILE_PATTERNS          = *.h
+RECURSIVE              = YES
+STRIP_FROM_PATH        = $(SHIFT_ROOT)
+STRIP_FROM_INC_PATH    = $(SHIFT_ROOT)
+FULL_PATH_NAMES        = YES
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+HIDE_UNDOC_MEMBERS     = YES
+HIDE_UNDOC_CLASSES     = NO
+JAVADOC_AUTOBRIEF      = NO
+MARKDOWN_SUPPORT       = NO
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+XML_PROGRAMLISTING     = NO
+QUIET                  = YES
+WARNINGS               = NO
+WARN_IF_UNDOCUMENTED   = NO
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO

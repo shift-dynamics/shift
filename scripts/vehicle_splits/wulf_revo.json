@@ -1,0 +1,63 @@
+{
+  "comment": "bodies of examples/wulf_revo/wulf_revo.json from the Wulf Revo Rallyecar glTF (see examples/wulf_revo/readme.rst), for ../split_vehicle_gltf.py",
+  "scale": 1.0,
+  "axes": [
+    [0, -1, 0],
+    [-1, 0, 0],
+    [0, 0, -1]
+  ],
+  "max_texture_size": 1024,
+  "image_format": "JPEG",
+  "default": "chassis",
+  "mirror": [
+    "right_",
+    "left_"
+  ],
+  "bodies": {
+    "chassis": [0.0, 0.0, 0.0],
+    "right_rear_wheel": [-1.452, 0.88, -0.37],
+    "left_rear_wheel": [-1.452, -0.88, -0.37],
+    "right_front_wheel": [1.446, 0.88, -0.37],
+    "left_front_wheel": [1.446, -0.88, -0.37],
+    "right_rear_upright": [-1.452, 0.88, -0.37],
+    "left_rear_upright": [-1.452, -0.88, -0.37],
+    "right_front_upright": [1.446, 0.88, -0.37],
+    "left_front_upright": [1.446, -0.88, -0.37],
+    "right_rear_upper_arm": [-1.475, 0.354, -0.533],
+    "left_rear_upper_arm": [-1.475, -0.354, -0.533],
+    "right_front_upper_arm": [1.4395, 0.375, -0.533],
+    "left_front_upper_arm": [1.4395, -0.375, -0.533],
+    "right_rear_lower_arm": [-1.4845, 0.362, -0.353],
+    "left_rear_lower_arm": [-1.4845, -0.362, -0.353],
+    "right_front_lower_arm": [1.4145, 0.362, -0.3525],
+    "left_front_lower_arm": [1.4145, -0.362, -0.3525],
+    "right_rear_shock_upper": [-1.441, 0.553, -1.003],
+    "left_rear_shock_upper": [-1.441, -0.553, -1.003],
+    "right_front_shock_upper": [1.454, 0.553, -1.003],
+    "left_front_shock_upper": [1.454, -0.553, -1.003],
+    "right_rear_shock_lower": [-1.45, 0.643, -0.597],
+    "left_rear_shock_lower": [-1.45, -0.643, -0.597],
+    "right_front_shock_lower": [1.445, 0.643, -0.594],
+    "left_front_shock_lower": [1.445, -0.643, -0.594]
+  },
+  "rules": [
+    {"body": "right_rear_wheel", "mesh": "Rims_Rims|Revo_Discs", "box": [-1.9, -1.0, 0.6, 1.2, -0.8, 0.1]},
+    {"body": "right_front_wheel", "mesh": "Rims_Rims|Revo_Discs", "box": [1.0, 1.9, 0.6, 1.2, -0.8, 0.1]},
+    {"body": "right_rear_upright", "mesh": "Revo_Klotz", "box": [-1.8, -1.1, 0.8, 1.06, -0.7, -0.1]},
+    {"body": "right_front_upright", "mesh": "Revo_Klotz", "box": [1.1, 1.8, 0.8, 1.06, -0.7, -0.1]},
+    {"body": "right_rear_upright", "mesh": "Revo_UnderbodyMetal", "box": [-1.57, -1.33, 0.83, 0.95, -0.56, -0.22]},
+    {"body": "right_front_upright", "mesh": "Revo_UnderbodyMetal", "box": [1.32, 1.57, 0.83, 0.95, -0.56, -0.22]},
+    {"body": "right_rear_shock_upper", "mesh": "Revo_Springs", "box": [-1.55, -1.35, 0.48, 0.72, -1.05, -0.55]},
+    {"body": "right_front_shock_upper", "mesh": "Revo_Springs", "box": [1.35, 1.55, 0.48, 0.72, -1.05, -0.55]},
+    {"body": "right_rear_shock_lower", "mesh": "Revo_UnderbodyMetal", "box": [-1.55, -1.35, 0.56, 0.72, -0.64, -0.565]},
+    {"body": "right_front_shock_lower", "mesh": "Revo_UnderbodyMetal", "box": [1.35, 1.55, 0.56, 0.72, -0.64, -0.565]},
+    {"body": "right_rear_shock_upper", "mesh": "Revo_UnderbodyMetal", "box": [-1.55, -1.35, 0.48, 0.72, -1.07, -0.58]},
+    {"body": "right_front_shock_upper", "mesh": "Revo_UnderbodyMetal", "box": [1.35, 1.55, 0.48, 0.72, -1.07, -0.58]},
+    {"body": "right_rear_upper_arm", "mesh": "Revo_UnderbodyMetal", "box": [-1.79, -1.12, 0.32, 0.86, -0.58, -0.47]},
+    {"body": "right_front_upper_arm", "mesh": "Revo_UnderbodyMetal", "box": [1.11, 1.79, 0.32, 0.86, -0.58, -0.47]},
+    {"body": "right_rear_lower_arm", "mesh": "Revo_UnderbodyMetal", "box": [-1.79, -1.12, 0.32, 0.86, -0.4, -0.23]},
+    {"body": "right_front_lower_arm", "mesh": "Revo_UnderbodyMetal", "box": [1.11, 1.79, 0.32, 0.86, -0.4, -0.23]},
+    {"body": "right_rear_upright", "mesh": "Revo_UnderbodyMetal", "box": [-1.57, -1.33, 0.25, 0.95, -0.5, -0.3]},
+    {"body": "right_front_upright", "mesh": "Revo_UnderbodyMetal", "box": [1.32, 1.57, 0.25, 0.95, -0.5, -0.3]}
+  ]
+}

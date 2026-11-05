@@ -1,0 +1,5 @@
+# rubber: color (linear), metalness Pm, roughness Pr
+newmtl None
+Kd 0.015 0.015 0.015
+Pm 0.0
+Pr 0.9

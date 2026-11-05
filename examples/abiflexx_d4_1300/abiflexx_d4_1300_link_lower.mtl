@@ -1,0 +1,15 @@
+# Free SolidWorks .OBJ Exporter v2.0
+# num_materials: 2
+
+newmtl 1
+Kd 0.02 0.02 0.02
+Pm 0.0
+Pr 0.6
+norm -bm 0.2 qrc:/textures/steel_normal.png
+
+newmtl 2
+Kd 0.91 0.92 0.92
+Pm 1.0
+Pr 0.35
+norm -bm 0.3 qrc:/textures/steel_normal.png
+

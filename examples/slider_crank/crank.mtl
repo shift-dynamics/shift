@@ -1,0 +1,8 @@
+# steel: color (linear), metalness Pm, roughness Pr
+newmtl 1
+Kd 0.6 0.6 0.6
+Pm 1.0
+Pr 1.0
+map_Kd qrc:/textures/steel_base_color.png
+map_Pr qrc:/textures/steel_roughness.png
+norm qrc:/textures/steel_normal.png

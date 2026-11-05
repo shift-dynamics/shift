@@ -1,0 +1,184 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 10.0,
+        "time_step": 0.01,
+        "relative_error": 0.0,
+        "absolute_error": 1e-06,
+        "omega_n": 50.0
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "tire_fiala.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "overhead_1",
+      "T": [6.0, -6.0, -6.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    },
+    {
+      "name": "overhead_2",
+      "T": [-6.0, -6.0, -6.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    }
+  ],
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": ["fixed", "overhead_1"],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [0.6, 0.6, 0.6],
+      "Ks": [0.2, 0.2, 0.2]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": ["fixed", "overhead_2"],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [0.6, 0.6, 0.6],
+      "Ks": [0.2, 0.2, 0.2]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "tire",
+      "active": true,
+      "force_modules": [
+        {
+          "type": "tire",
+          "name": "tire",
+          "tire_type": "fiala",
+          "wheel_body": "tire"
+        }
+      ],
+      "sensors": [
+        {
+          "type": "frame",
+          "name": "1_Tx_velocity",
+          "body_frame_pair": ["1", "origin"],
+          "quantity": "velocity",
+          "coordinate_system": "local",
+          "dof": "Tx"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "pid",
+          "kp": 500.0,
+          "ki": 300.0,
+          "kd": 0.0,
+          "target": 20.0,
+          "sensor": "1_Tx_velocity",
+          "joint": "A"
+        }
+      ],
+      "bodies": [
+        {
+          "name": "1"
+        },
+        {
+          "name": "2",
+          "comment": "2 degrees yaw",
+          "frames": [
+            {
+              "name": "2+",
+              "R": [[0.99939, -0.0349, 0.0], [0.0349, 0.99939, 0.0], [0.0, 0.0, 1.0]]
+            }
+          ]
+        },
+        {
+          "name": "tire",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["left_wheel.obj", "left_wheel.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 20.1,
+            "Ixx": 0.578,
+            "Iyy": 0.931,
+            "Izz": 0.578,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A",
+          "type": "prismatic",
+          "parent": [
+            ["fixed"],
+            "origin"
+          ],
+          "child": [
+            ["1"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 20.0
+        },
+        {
+          "name": "B",
+          "type": "prismatic",
+          "parent": [
+            ["1"],
+            "origin"
+          ],
+          "child": [
+            ["2"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": -0.344,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [-3000.0]
+        },
+        {
+          "name": "C",
+          "type": "revolute",
+          "parent": [
+            ["2"],
+            "2+"
+          ],
+          "child": [
+            ["tire"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": -58.1,
+          "damping_coefficients": [0.0, 0.1]
+        }
+      ]
+    }
+  ]
+}

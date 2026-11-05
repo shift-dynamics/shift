@@ -1,0 +1,3673 @@
+{
+  "comment": "A track loop of 44 links (examples/cad/track_link.step) around the drive sprocket (sprocket.step) and the idler (idler.step), resting on the ground, the sprocket driven at 1 rad/s by a PID controller: contact on the exact STEP surfaces. The wheels, 5 track rollers (track_roller.step) and a carrier roller (carrier_roller.step) are on the track frame of half of a 20 t excavator (10000 kg), free to move forward, up and down and to pitch, so the sprocket drives it along the ground. The contacts wear (Archard), and the track module logs the sag of the top spans, the misguide of the links and the side force on the flanges. A benchmark, not run in the regular tests. x forward, y to the right, z down: the axles along y, the idler in front of the sprocket. Written by scripts/make_track_step.py.",
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "enable_contact_detection": true,
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "relative_error": 1e-06,
+        "absolute_error": 1e-09,
+        "time_span": 2.0,
+        "time_step": 0.01
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "frame_start",
+      "T": [
+        0.0,
+        0.0,
+        -0.413900161749654
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "track",
+      "bodies": [
+        {
+          "name": "sprocket",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "sprocket.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 130.7,
+            "Ixx": 3.8,
+            "Iyy": 3.8,
+            "Izz": 7.5,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "idler",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "idler.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 111.19582330092,
+            "Ixx": 2.678375085994,
+            "Iyy": 2.678375085994,
+            "Izz": 5.29003267800745,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "ground",
+          "geometry": [],
+          "collision_geometry": [
+            {
+              "name": "ground",
+              "type": "plane",
+              "normal": [
+                0.0,
+                0.0,
+                -1.0
+              ],
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "roller1",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_roller.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 76.2582975069283,
+            "Ixx": 0.911922329680844,
+            "Iyy": 0.911922329680844,
+            "Izz": 0.403387515431617,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "roller2",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_roller.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 76.2582975069283,
+            "Ixx": 0.911922329680844,
+            "Iyy": 0.911922329680844,
+            "Izz": 0.403387515431617,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "roller3",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_roller.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 76.2582975069283,
+            "Ixx": 0.911922329680844,
+            "Iyy": 0.911922329680844,
+            "Izz": 0.403387515431617,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "roller4",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_roller.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 76.2582975069283,
+            "Ixx": 0.911922329680844,
+            "Iyy": 0.911922329680844,
+            "Izz": 0.403387515431617,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "roller5",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_roller.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 76.2582975069283,
+            "Ixx": 0.911922329680844,
+            "Iyy": 0.911922329680844,
+            "Izz": 0.403387515431617,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "carrier1",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "carrier_roller.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 37.6975724626773,
+            "Ixx": 0.42711859558979,
+            "Iyy": 0.42711859558979,
+            "Izz": 0.104257795831822,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "frame",
+          "frames": [
+            {
+              "name": "sprocket_axle",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "idler_axle",
+              "T": [
+                3.18182877515281,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "roller1_axle",
+              "T": [
+                0.5,
+                0.0,
+                0.170900161749654
+              ],
+              "R": [
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "roller2_axle",
+              "T": [
+                1.0579571937882,
+                0.0,
+                0.170900161749654
+              ],
+              "R": [
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "roller3_axle",
+              "T": [
+                1.6159143875764,
+                0.0,
+                0.170900161749654
+              ],
+              "R": [
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "roller4_axle",
+              "T": [
+                2.17387158136461,
+                0.0,
+                0.170900161749654
+              ],
+              "R": [
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "roller5_axle",
+              "T": [
+                2.73182877515281,
+                0.0,
+                0.170900161749654
+              ],
+              "R": [
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "carrier1_axle",
+              "T": [
+                1.5909143875764,
+                0.0,
+                -0.200900161749654
+              ],
+              "R": [
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            }
+          ],
+          "geometry": [],
+          "center_of_mass": [
+            1.5909143875764,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 10000.0,
+            "Ixx": 5000.0,
+            "Iyy": 8436.69529532535,
+            "Izz": 8436.69529532535,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "carriage_x",
+          "geometry": [],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.01,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "carriage_z",
+          "geometry": [],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.01,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link1",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link2",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link3",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link4",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link5",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link6",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link7",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link8",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link9",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link10",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link11",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link12",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link13",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link14",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link15",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link16",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link17",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link18",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link19",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link20",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link21",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link22",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link23",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link24",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link25",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link26",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link27",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link28",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link29",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link30",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link31",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link32",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link33",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link34",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link35",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link36",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link37",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link38",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link39",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link40",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link41",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link42",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link43",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link44",
+          "frames": [
+            {
+              "name": "pin",
+              "T": [
+                0.19,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "track_link.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0974,
+            0.0,
+            0.0359
+          ],
+          "inertia": {
+            "mass": 38.06,
+            "Ixx": 0.75,
+            "Iyy": 0.15,
+            "Izz": 0.8,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "sprocket_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "frame"
+            ],
+            "sprocket_axle"
+          ],
+          "child": [
+            [
+              "sprocket"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "initial_displacement": 0.0747998250854713
+        },
+        {
+          "name": "idler_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "frame"
+            ],
+            "idler_axle"
+          ],
+          "child": [
+            [
+              "idler"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "ground_joint",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "ground"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "link1_joint",
+          "type": "float",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "link1"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              -0.0240856124235954,
+              0.0,
+              -0.735300323499308
+            ],
+            "R": [
+              [
+                -0.930873748644204,
+                0.0,
+                -0.365341024366395
+              ],
+              [
+                0.0,
+                1.0,
+                0.0
+              ],
+              [
+                0.365341024366395,
+                0.0,
+                -0.930873748644204
+              ]
+            ]
+          }
+        },
+        {
+          "name": "slide_x",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "frame_start"
+          ],
+          "child": [
+            [
+              "carriage_x"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "slide_z",
+          "type": "prismatic",
+          "parent": [
+            [
+              "carriage_x"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "carriage_z"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "pitch",
+          "type": "revolute",
+          "parent": [
+            [
+              "carriage_z"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "frame"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "roller1_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "frame"
+            ],
+            "roller1_axle"
+          ],
+          "child": [
+            [
+              "roller1"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "roller2_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "frame"
+            ],
+            "roller2_axle"
+          ],
+          "child": [
+            [
+              "roller2"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "roller3_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "frame"
+            ],
+            "roller3_axle"
+          ],
+          "child": [
+            [
+              "roller3"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "roller4_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "frame"
+            ],
+            "roller4_axle"
+          ],
+          "child": [
+            [
+              "roller4"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "roller5_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "frame"
+            ],
+            "roller5_axle"
+          ],
+          "child": [
+            [
+              "roller5"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "carrier1_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "frame"
+            ],
+            "carrier1_axle"
+          ],
+          "child": [
+            [
+              "carrier1"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "link2_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link1"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link2"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.59839860068377
+        },
+        {
+          "name": "link3_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link2"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link3"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.598398600683771
+        },
+        {
+          "name": "link4_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link3"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link4"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.59839860068377
+        },
+        {
+          "name": "link5_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link4"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link5"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.59839860068377
+        },
+        {
+          "name": "link6_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link5"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link6"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.373999125427356
+        },
+        {
+          "name": "link7_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link6"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link7"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link8_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link7"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link8"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link9_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link8"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link9"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link10_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link9"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link10"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link11_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link10"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link11"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link12_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link11"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link12"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link13_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link12"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link13"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link14_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link13"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link14"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link15_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link14"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link15"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link16_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link15"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link16"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link17_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link16"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link17"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link18_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link17"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link18"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link19_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link18"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link19"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link20_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link19"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link20"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link21_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link20"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link21"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link22_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link21"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link22"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link23_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link22"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link23"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.373999125427356
+        },
+        {
+          "name": "link24_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link23"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link24"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.598398600683771
+        },
+        {
+          "name": "link25_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link24"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link25"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.59839860068377
+        },
+        {
+          "name": "link26_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link25"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link26"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.598398600683769
+        },
+        {
+          "name": "link27_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link26"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link27"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.598398600683771
+        },
+        {
+          "name": "link28_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link27"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link28"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.373999125427356
+        },
+        {
+          "name": "link29_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link28"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link29"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link30_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link29"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link30"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link31_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link30"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link31"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link32_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link31"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link32"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link33_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link32"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link33"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link34_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link33"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link34"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link35_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link34"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link35"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link36_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link35"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link36"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link37_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link36"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link37"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link38_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link37"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link38"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link39_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link38"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link39"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link40_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link39"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link40"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link41_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link40"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link41"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link42_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link41"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link42"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link43_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link42"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link43"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "link44_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link43"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link44"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.0
+        },
+        {
+          "name": "closing_joint",
+          "type": "revolute",
+          "parent": [
+            [
+              "link44"
+            ],
+            "pin"
+          ],
+          "child": [
+            [
+              "link1"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "initial_displacement": 0.373999125427356
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "sprocket_speed",
+          "joint": "sprocket_joint",
+          "quantity": "velocity"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "sprocket_drive",
+          "kp": 500.0,
+          "ki": 1000.0,
+          "kd": 0.0,
+          "target": 1.0,
+          "sensor": "sprocket_speed",
+          "joint": "sprocket_joint"
+        }
+      ],
+      "force_modules": [
+        {
+          "name": "contact",
+          "type": "contact",
+          "materials": [
+            {
+              "name": "steel",
+              "youngs_modulus": 2000000000.0,
+              "poisson_ratio": 0.3,
+              "restitution": 0.3,
+              "friction": 0.3,
+              "wear_coefficient": 2e-14
+            }
+          ]
+        },
+        {
+          "name": "track",
+          "type": "track",
+          "frame": "frame",
+          "links": [
+            "link1",
+            "link2",
+            "link3",
+            "link4",
+            "link5",
+            "link6",
+            "link7",
+            "link8",
+            "link9",
+            "link10",
+            "link11",
+            "link12",
+            "link13",
+            "link14",
+            "link15",
+            "link16",
+            "link17",
+            "link18",
+            "link19",
+            "link20",
+            "link21",
+            "link22",
+            "link23",
+            "link24",
+            "link25",
+            "link26",
+            "link27",
+            "link28",
+            "link29",
+            "link30",
+            "link31",
+            "link32",
+            "link33",
+            "link34",
+            "link35",
+            "link36",
+            "link37",
+            "link38",
+            "link39",
+            "link40",
+            "link41",
+            "link42",
+            "link43",
+            "link44"
+          ],
+          "guides": [
+            "roller1",
+            "roller2",
+            "roller3",
+            "roller4",
+            "roller5",
+            "carrier1"
+          ],
+          "up": [
+            0.0,
+            0.0,
+            -1.0
+          ],
+          "lateral": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "spans": [
+            {
+              "name": "front",
+              "supports": [
+                "idler",
+                "carrier1"
+              ],
+              "radii": [
+                0.322301381781902,
+                0.1205
+              ]
+            },
+            {
+              "name": "rear",
+              "supports": [
+                "carrier1",
+                "sprocket"
+              ],
+              "radii": [
+                0.1205,
+                0.322301381781902
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

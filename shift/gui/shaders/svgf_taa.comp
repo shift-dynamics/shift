@@ -1,0 +1,155 @@
+#version 450
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// Temporal anti-aliasing of the composited (tonemapped) image: the pixel's
+// color in the previous frame, found through the motion of its primary hit
+// (moving bodies through their previous pose) and resampled with a
+// Catmull-Rom filter, is clamped to the color range of the current 3x3
+// neighborhood (variance clipping in YCoCg) and blended with the current
+// color. This removes the residual flicker of the denoiser and resolves the
+// sub-pixel jitter of the primary rays at edges; the clamp rejects stale
+// history.
+//
+// Once the view stops changing, the history maps one to one onto the image
+// and cannot be stale, so the clamp is dropped and the blend becomes a
+// cumulative mean: the image settles instead of flickering at a constant
+// level, as an exponential average with a fixed weight would. The result is
+// then blended into the exact progressive mean of the radiance.
+
+struct Instance { // keep in sync with raytrace.comp
+  mat4 body_to_world;
+  mat4 world_to_body;
+  vec4 box_min;
+  vec4 box_max;
+  vec4 albedo;
+  vec4 material;
+  ivec4 offsets;
+  mat4 previous_body_to_world;
+};
+
+layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
+  mat4 previous_view_projection;
+  vec4 params;   // x = pixel spread angle, y = maximum history length,
+                 // z = history valid, w = a-trous step
+  vec4 blend;    // x = progressive frames, y, z = blend start, end
+  ivec4 control; // x = instance count
+  mat4 view_projection; // current frame
+} u;
+
+layout(std430, binding = 1) readonly buffer Instances {
+  Instance instances[];
+};
+
+layout(rgba32f, binding = 2) uniform readonly image2D position;
+layout(rgba16f, binding = 3) uniform readonly image2D current_color;
+layout(rgba16f, binding = 4) uniform readonly image2D previous_color;
+layout(rgba16f, binding = 5) uniform writeonly image2D history_color;
+layout(rgba8, binding = 6) uniform writeonly image2D out_image;
+layout(rgba32f, binding = 7) uniform readonly image2D accumulation;
+
+// while the view changes, an exponential history of ~10 frames; the
+// cumulative mean of a static view starts from it
+const float kHistoryFrames = 10.0;
+const float kClipGamma = 1.25;    // neighborhood range in standard deviations
+
+vec3 ToYCoCg(vec3 c) {
+  return vec3(0.25 * c.r + 0.5 * c.g + 0.25 * c.b, 0.5 * c.r - 0.5 * c.b,
+              -0.25 * c.r + 0.5 * c.g - 0.25 * c.b);
+}
+
+vec3 FromYCoCg(vec3 c) {
+  return vec3(c.x + c.y - c.z, c.x + c.z, c.x - c.y - c.z);
+}
+
+// window coordinates (pixel centers at +0.5) of a point or, w = 0, direction
+bool Project(mat4 m, vec4 p, ivec2 size, out vec2 window) {
+  vec4 clip = m * p;
+  window = (clip.xy / clip.w * 0.5 + 0.5) * vec2(size);
+  return clip.w > 1e-6;
+}
+
+// Catmull-Rom resampling of the previous color at window coordinate c
+vec3 SampleHistory(vec2 c, ivec2 size) {
+  vec2 q = c - 0.5;
+  ivec2 base = ivec2(floor(q));
+  vec2 f = q - vec2(base);
+  vec2 w[4] = vec2[](f * (-0.5 + f * (1.0 - 0.5 * f)),
+                     1.0 + f * f * (-2.5 + 1.5 * f),
+                     f * (0.5 + f * (2.0 - 1.5 * f)),
+                     f * f * (-0.5 + 0.5 * f));
+  vec3 sum = vec3(0.0);
+  float weight_sum = 0.0;
+  for(int j = 0; j < 4; j++) {
+    for(int i = 0; i < 4; i++) {
+      ivec2 tap = clamp(base + ivec2(i - 1, j - 1), ivec2(0), size - 1);
+      float weight = w[i].x * w[j].y;
+      sum += weight * imageLoad(previous_color, tap).rgb;
+      weight_sum += weight;
+    }
+  }
+  return sum / weight_sum;
+}
+
+void main() {
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(current_color);
+  if(pixel.x >= size.x || pixel.y >= size.y) {
+    return;
+  }
+
+  vec3 current = imageLoad(current_color, pixel).rgb;
+  vec3 result = current;
+  // frames since the view last changed, 1 for a changing view
+  float frames = u.blend.x;
+
+  if(u.params.z > 0.5) {
+    vec4 g = imageLoad(position, pixel);
+    int id = int(round(g.w));
+    vec4 point = id == -1 ? vec4(g.xyz, 0.0) : vec4(g.xyz, 1.0);
+    vec4 previous_point = point;
+    if(id >= 0) {
+      previous_point = instances[id].previous_body_to_world *
+                       (instances[id].world_to_body * point);
+    }
+    // the motion of the hit, independent of the sample's sub-pixel jitter
+    vec2 window, previous_window;
+    bool visible = Project(u.view_projection, point, size, window) &&
+                   Project(u.previous_view_projection, previous_point, size,
+                           previous_window);
+    vec2 c = vec2(pixel) + 0.5 + (previous_window - window);
+    if(visible && all(greaterThanEqual(c, vec2(0.0))) &&
+       all(lessThan(c, vec2(size)))) {
+      vec3 m1 = vec3(0.0);
+      vec3 m2 = vec3(0.0);
+      vec3 lo = vec3(1e9);
+      vec3 hi = vec3(-1e9);
+      for(int dy = -1; dy <= 1; dy++) {
+        for(int dx = -1; dx <= 1; dx++) {
+          ivec2 tap = clamp(pixel + ivec2(dx, dy), ivec2(0), size - 1);
+          vec3 y = ToYCoCg(imageLoad(current_color, tap).rgb);
+          m1 += y;
+          m2 += y * y;
+          lo = min(lo, y);
+          hi = max(hi, y);
+        }
+      }
+      m1 /= 9.0;
+      m2 /= 9.0;
+      vec3 sigma = sqrt(max(m2 - m1 * m1, vec3(0.0)));
+      lo = max(lo, m1 - kClipGamma * sigma);
+      hi = min(hi, m1 + kClipGamma * sigma);
+      vec3 history = SampleHistory(c, size);
+      if(frames < 1.5) {
+        history = FromYCoCg(clamp(ToYCoCg(history), lo, hi));
+      }
+      result = mix(history, current, 1.0 / (frames + kHistoryFrames - 1.0));
+    }
+  }
+  result = max(result, vec3(0.0));
+  imageStore(history_color, pixel, vec4(result, 1.0));
+
+  vec3 mean = imageLoad(accumulation, pixel).rgb;
+  float k = clamp((frames - u.blend.y) / (u.blend.z - u.blend.y), 0.0, 1.0);
+  vec3 display = mix(result, mean / (mean + vec3(1.0)), k);
+  imageStore(out_image, pixel, vec4(pow(display, vec3(1.0 / 2.2)), 1.0));
+}

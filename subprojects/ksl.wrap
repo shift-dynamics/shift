@@ -1,0 +1,6 @@
+[wrap-git]
+url = /home/kristopher/Projects/dynamics/ksl
+revision = master
+
+[provide]
+dependency_names = ksl

@@ -1,0 +1,6 @@
+# aluminium: color (linear), metalness Pm, roughness Pr
+newmtl 1
+Kd 0.91 0.92 0.92
+Pm 1.0
+Pr 0.35
+norm -bm 0.3 qrc:/textures/steel_normal.png

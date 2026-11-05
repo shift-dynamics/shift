@@ -1,0 +1,15 @@
+# written by make_meshes.py
+newmtl steel
+Kd 0.6 0.6 0.6
+Pm 1.0
+Pr 1.0
+map_Kd qrc:/textures/steel_base_color.png
+map_Pr qrc:/textures/steel_roughness.png
+norm qrc:/textures/steel_normal.png
+
+newmtl black
+Kd 0.02 0.02 0.02
+Pm 0.0
+Pr 0.6
+norm -bm 0.2 qrc:/textures/steel_normal.png
+

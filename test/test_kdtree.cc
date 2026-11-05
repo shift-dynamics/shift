@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "shift/core/KdTree.h"
+#include "shift/core/kd_tree.h"
 
 TEST(KdTree, VerifyGeneration) {
 
-  srand(time(NULL));
+  srand(12345); // fixed, so the test is deterministic
 
   /* generating vertices to test kd tree */
   int vertex_count = 1000000;

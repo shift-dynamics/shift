@@ -1,0 +1,184 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "mass": "kilograms",
+      "length": "meters",
+      "angle": "radians",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 10.0,
+        "time_step": 0.01,
+        "relative_error": 0.0,
+        "absolute_error": 1e-06,
+        "omega_n": 50.0
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "tire_fiala.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "frames": [
+    {
+      "T": [6.0, -6.0, -6.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+      "name": "overhead_1"
+    },
+    {
+      "T": [-6.0, -6.0, -6.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+      "name": "overhead_2"
+    }
+  ],
+  "lights": [
+    {
+      "Ka": [0.1, 0.1, 0.1],
+      "type": "point",
+      "name": "overhead_1",
+      "Kd": [0.6, 0.6, 0.6],
+      "parent": ["fixed", "overhead_1"],
+      "Ks": [0.2, 0.2, 0.2]
+    },
+    {
+      "Ka": [0.1, 0.1, 0.1],
+      "type": "point",
+      "name": "overhead_2",
+      "Kd": [0.6, 0.6, 0.6],
+      "parent": ["fixed", "overhead_2"],
+      "Ks": [0.2, 0.2, 0.2]
+    }
+  ],
+  "assemblies": [
+    {
+      "joints": [
+        {
+          "name": "A",
+          "type": "prismatic",
+          "parent": [
+            ["fixed"],
+            "origin"
+          ],
+          "child": [
+            ["1"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 20.0
+        },
+        {
+          "name": "B",
+          "type": "prismatic",
+          "parent": [
+            ["1"],
+            "origin"
+          ],
+          "child": [
+            ["2"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": -0.344,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [-4500.0]
+        },
+        {
+          "name": "C",
+          "type": "revolute",
+          "parent": [
+            ["2"],
+            "2+"
+          ],
+          "child": [
+            ["tire"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": -58.1,
+          "damping_coefficients": [0.0, 0.1]
+        }
+      ],
+      "active": true,
+      "force_modules": [
+        {
+          "wheel_body": "tire",
+          "tire_type": "fiala",
+          "type": "tire",
+          "name": "tire"
+        }
+      ],
+      "sensors": [
+        {
+          "type": "frame",
+          "name": "1_Tx_velocity",
+          "body_frame_pair": ["1", "origin"],
+          "quantity": "velocity",
+          "coordinate_system": "local",
+          "dof": "Tx"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "pid",
+          "kp": 500.0,
+          "ki": 300.0,
+          "kd": 0.0,
+          "target": 20.0,
+          "sensor": "1_Tx_velocity",
+          "joint": "A"
+        }
+      ],
+      "bodies": [
+        {
+          "name": "1"
+        },
+        {
+          "name": "2",
+          "comment": "2 degrees yaw",
+          "frames": [
+            {
+              "R": [[1.0, -0.0, 0], [0.0, 1.0, 0], [0.0, 0.0, 1.0]],
+              "name": "2+"
+            }
+          ]
+        },
+        {
+          "name": "tire",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": ["../left_wheel.obj", "../left_wheel.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 20.1,
+            "Ixx": 0.578,
+            "Iyy": 0.931,
+            "Izz": 0.578,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "name": "tire"
+    }
+  ]
+}

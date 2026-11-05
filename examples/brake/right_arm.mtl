@@ -1,0 +1,6 @@
+# dark grey: color (linear), metalness Pm, roughness Pr
+newmtl None
+Kd 0.02 0.02 0.02
+Pm 0.0
+Pr 0.6
+norm -bm 0.2 qrc:/textures/steel_normal.png

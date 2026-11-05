@@ -1,0 +1,17 @@
+core_src += files(
+  'base.cc',
+  'beam.cc',
+  'belt.cc',
+  'bushing.cc',
+  'contact.cc',
+  'hydraulic_cylinder.cc',
+  'rubber_mount.cc',
+  'soil.cc',
+  'table.cc',
+  'track.cc',
+  'track_soil.cc',
+  'tire/base.cc',
+  'tire/bekker_wong.cc',
+  'tire/fiala.cc',
+  'tire/pac2002.cc',
+)

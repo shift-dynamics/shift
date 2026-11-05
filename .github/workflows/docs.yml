@@ -1,0 +1,54 @@
+name: docs
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  docs:
+    name: docs
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends doxygen
+          # pinned to the versions the docs were last built and checked with
+          pip install sphinx==9.1.0 breathe==5.1.0 sphinxcontrib-bibtex==2.7.0
+
+      # sphinx-build directly: the site needs only the sources, not a
+      # configured build with all of Shift's libraries; conf.py runs doxygen
+      - name: Build
+        run: |
+          sphinx-build -b html -q doc/sphinx build/doc/html
+          touch build/doc/html/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/doc/html
+
+  deploy-pages:
+    name: deploy pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: docs
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

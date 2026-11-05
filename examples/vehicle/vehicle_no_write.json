@@ -1,0 +1,1471 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [
+      {
+        "type": "rnca",
+        "infinity_norm_multiplier": 2.0
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 10.0,
+        "time_step": 1.0,
+        "relative_error": 0.0001,
+        "absolute_error": 0.0001,
+        "omega_n": 80.0
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "overhead_1",
+      "T": [6.0, -6.0, -6.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    },
+    {
+      "name": "overhead_2",
+      "T": [-6.0, -6.0, -6.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    }
+  ],
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": ["fixed", "overhead_1"],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [0.6, 0.6, 0.6],
+      "Ks": [0.2, 0.2, 0.2]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": ["fixed", "overhead_2"],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [0.6, 0.6, 0.6],
+      "Ks": [0.2, 0.2, 0.2]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "vehicle",
+      "active": true,
+      "force_modules": [
+        {
+          "type": "tire",
+          "name": "force_module_left_front_wheel",
+          "tire_type": "fiala",
+          "wheel_body": "left_front_wheel"
+        },
+        {
+          "type": "tire",
+          "name": "force_module_right_front_wheel",
+          "tire_type": "fiala",
+          "wheel_body": "right_front_wheel"
+        },
+        {
+          "type": "tire",
+          "name": "force_module_left_rear_wheel",
+          "tire_type": "fiala",
+          "wheel_body": "left_rear_wheel"
+        },
+        {
+          "type": "tire",
+          "name": "force_module_right_rear_wheel",
+          "tire_type": "fiala",
+          "wheel_body": "right_rear_wheel"
+        }
+      ],
+      "bodies": [
+        {
+          "name": "1"
+        },
+        {
+          "name": "2"
+        },
+        {
+          "name": "3"
+        },
+        {
+          "name": "4"
+        },
+        {
+          "name": "5"
+        },
+        {
+          "name": "6"
+        },
+        {
+          "name": "7"
+        },
+        {
+          "name": "8"
+        },
+        {
+          "name": "9"
+        },
+        {
+          "name": "10"
+        },
+        {
+          "name": "11"
+        },
+        {
+          "name": "12"
+        },
+        {
+          "name": "13"
+        },
+        {
+          "name": "14"
+        },
+        {
+          "name": "15"
+        },
+        {
+          "name": "16"
+        },
+        {
+          "name": "17"
+        },
+        {
+          "name": "18"
+        },
+        {
+          "name": "19"
+        },
+        {
+          "name": "20"
+        },
+        {
+          "name": "21"
+        },
+        {
+          "name": "22"
+        },
+        {
+          "name": "23"
+        },
+        {
+          "name": "24"
+        },
+        {
+          "name": "25"
+        },
+        {
+          "name": "chassis",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["frame.obj", "frame.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "left_control_arm",
+              "T": [1.3995, -0.36504347, 0]
+            },
+            {
+              "name": "right_control_arm",
+              "T": [1.3995, 0.36504347, 0]
+            },
+            {
+              "name": "left_front_shock",
+              "T": [1.3656916, -0.63812603, -0.65544695]
+            },
+            {
+              "name": "right_front_shock",
+              "T": [1.3656916, 0.63812603, -0.65544695]
+            },
+            {
+              "name": "steering_rack",
+              "T": [1.13144964, 0.0, -0.05988315]
+            },
+            {
+              "name": "left_trailing_arm",
+              "R": [[-0.5, -0.8660254037844387, 0], [0.8660254037844387, -0.5, 0], [0, 0, 1]],
+              "T": [-1.05670201, -0.48986, 0]
+            },
+            {
+              "name": "left_rear_shock",
+              "R": [[-0.5, -0.8660254037844387, 0], [0.8660254037844387, -0.5, 0], [0, 0, 1]],
+              "T": [-1.18001585, -0.57627416, -0.37]
+            },
+            {
+              "name": "right_trailing_arm",
+              "R": [[0.5, -0.8660254037844387, 0], [0.8660254037844387, 0.5, 0], [0, 0, 1]],
+              "T": [-1.05670201, 0.48986, 0]
+            },
+            {
+              "name": "right_rear_shock",
+              "R": [[0.5, -0.8660254037844387, 0], [0.8660254037844387, 0.5, 0], [0, 0, 1]],
+              "T": [-1.18001585, 0.57627416, -0.37]
+            }
+          ],
+          "center_of_mass": [0.3, 0.0, -0.2],
+          "inertia": {
+            "mass": 1120.0,
+            "Ixx": 318.6,
+            "Iyy": 1879.1,
+            "Izz": 1907.1,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_control_arm",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["left_control_arm.obj", "left_control_arm.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "left_steering_knuckle",
+              "T": [0.0, -0.4, -0.045]
+            }
+          ],
+          "center_of_mass": [0.0, -0.16, 0.0],
+          "inertia": {
+            "mass": 3.26,
+            "Ixx": 0.06,
+            "Iyy": 0.02,
+            "Izz": 0.08,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_control_arm",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["right_control_arm.obj", "right_control_arm.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "right_steering_knuckle",
+              "T": [0.0, 0.4, -0.045]
+            }
+          ],
+          "center_of_mass": [0.0, 0.16, 0.0],
+          "inertia": {
+            "mass": 3.26,
+            "Ixx": 0.06,
+            "Iyy": 0.02,
+            "Izz": 0.08,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_trailing_arm",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["left_trailing_arm.obj", "left_trailing_arm.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "chassis",
+              "R": [[-0.5, -0.8660254037844387, 0], [0.8660254037844387, -0.5, 0], [0, 0, 1]],
+              "T": [0.33774991, 0.3246, 0.0762]
+            },
+            {
+              "name": "left_rear_shock",
+              "R": [[-0.5, -0.8660254037844387, 0], [0.8660254037844387, -0.5, 0], [0, 0, 1]],
+              "T": [0.15472432, 0.20160962, 0.0612]
+            }
+          ],
+          "center_of_mass": [0.1259797, 0.1770484, 0.0386536],
+          "inertia": {
+            "mass": 8.8,
+            "Ixx": 0.0992352,
+            "Iyy": 0.1555096,
+            "Izz": 0.2252995,
+            "Ixy": 0.0803346,
+            "Iyz": 0.0209317,
+            "Izx": 0.0316554
+          }
+        },
+        {
+          "name": "right_trailing_arm",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["right_trailing_arm.obj", "right_trailing_arm.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "chassis",
+              "R": [[0.5, -0.8660254037844386, 0], [0.8660254037844386, 0.5, 0], [0, 0, 1.0]],
+              "T": [0.33774991, -0.3246, 0.0762]
+            },
+            {
+              "name": "right_rear_shock",
+              "R": [[0.5, -0.8660254037844386, 0], [0.8660254037844386, 0.5, 0], [0, 0, 1.0]],
+              "T": [0.1259797, -0.1770484, 0.0386536]
+            }
+          ],
+          "center_of_mass": [0.1259797, -0.1770484, 0.0386536],
+          "inertia": {
+            "mass": 8.8,
+            "Ixx": 0.0992351,
+            "Iyy": 0.1555096,
+            "Izz": 0.2252995,
+            "Ixy": -0.0803346,
+            "Iyz": -0.0209317,
+            "Izx": 0.0316553
+          }
+        },
+        {
+          "name": "left_steering_knuckle",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["left_steering_knuckle.obj", "left_steering_knuckle.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "left_control_arm",
+              "T": [0.00458474, 0.0493726, 0.08988315]
+            },
+            {
+              "name": "left_front_shock",
+              "R": [
+                [0.9987001, 0.0, -0.05097157],
+                [-0.00222335, 0.99904822, -0.04356269],
+                [0.05092305, 0.04361939, 0.99774956]
+              ],
+              "T": [-0.01853028, 0.17016597, -0.36328334]
+            },
+            {
+              "name": "steering_link",
+              "T": [-0.16, 0.04597126, 0.0]
+            }
+          ],
+          "center_of_mass": [-0.01228854, 0.11535104, -0.14868992],
+          "inertia": {
+            "mass": 4.98,
+            "Ixx": 0.14226262,
+            "Iyy": 0.13116225,
+            "Izz": 0.03028881,
+            "Ixy": -0.00050248,
+            "Iyz": -0.03824889,
+            "Izx": 0.00169927
+          }
+        },
+        {
+          "name": "right_steering_knuckle",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["right_steering_knuckle.obj", "right_steering_knuckle.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "right_control_arm",
+              "T": [0.00458474, -0.0493726, 0.08988315]
+            },
+            {
+              "name": "right_front_shock",
+              "R": [
+                [0.9987001, 0.0, -0.05097157],
+                [0.00222335, 0.99904822, 0.04356269],
+                [0.05092305, -0.04361939, 0.99774956]
+              ],
+              "T": [-0.01853028, -0.17016597, -0.36328334]
+            },
+            {
+              "name": "steering_link",
+              "T": [-0.16, -0.04597126, 0.0]
+            }
+          ],
+          "center_of_mass": [-0.01228854, -0.11535104, -0.14868992],
+          "inertia": {
+            "mass": 4.98,
+            "Ixx": 0.14226172,
+            "Iyy": 0.13116152,
+            "Izz": 0.03028882,
+            "Ixy": 0.00050257,
+            "Iyz": 0.03824865,
+            "Izx": 0.0016995
+          }
+        },
+        {
+          "name": "left_front_shock",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["front_shock.obj", "front_shock.mtl"]
+            }
+          ],
+          "center_of_mass": [-0.00062577, 0.0, 0.09521074],
+          "inertia": {
+            "mass": 1.92,
+            "Ixx": 0.01342201,
+            "Iyy": 0.01342954,
+            "Izz": 0.00982893,
+            "Ixy": 0.0,
+            "Iyz": 0.00021181,
+            "Izx": -1.995e-05
+          }
+        },
+        {
+          "name": "right_front_shock",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["front_shock.obj", "front_shock.mtl"]
+            }
+          ],
+          "center_of_mass": [-0.00062577, 0.0, 0.09521074],
+          "inertia": {
+            "mass": 1.92,
+            "Ixx": 0.01342201,
+            "Iyy": 0.01342954,
+            "Izz": 0.00982893,
+            "Ixy": 0.0,
+            "Iyz": 0.00021181,
+            "Izx": -1.995e-05
+          }
+        },
+        {
+          "name": "left_front_wheel",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["left_wheel.obj", "left_wheel.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 21.2,
+            "Ixx": 0.578,
+            "Iyy": 0.931,
+            "Izz": 0.578,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_rear_wheel",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["left_wheel.obj", "left_wheel.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 21.2,
+            "Ixx": 0.578,
+            "Iyy": 0.931,
+            "Izz": 0.578,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_wheel",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["right_wheel.obj", "right_wheel.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 21.2,
+            "Ixx": 0.578,
+            "Iyy": 0.931,
+            "Izz": 0.578,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_rear_wheel",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["right_wheel.obj", "right_wheel.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 21.2,
+            "Ixx": 0.578,
+            "Iyy": 0.931,
+            "Izz": 0.578,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "steering_rack",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["steering_rack.obj", "steering_rack.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "left_steering_link",
+              "T": [0, -0.36615484, -0.03]
+            },
+            {
+              "name": "right_steering_link",
+              "T": [0, 0.36615484, -0.03]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, -0.00150251],
+          "inertia": {
+            "mass": 2.66,
+            "Ixx": 0.15677535,
+            "Iyy": 0.00031485,
+            "Izz": 0.1566895,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_rear_shock_lower",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["rear_shock_lower.obj", "rear_shock_lower.mtl"]
+            }
+          ],
+          "center_of_mass": [-0.0003811, 0.0002667, 0.1175362],
+          "inertia": {
+            "mass": 0.98,
+            "Ixx": 0.0061323,
+            "Iyy": 0.0061213,
+            "Izz": 0.0029685,
+            "Ixy": 9.4e-06,
+            "Iyz": 0.0001841,
+            "Izx": 3.03e-05
+          }
+        },
+        {
+          "name": "right_rear_shock_lower",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["rear_shock_lower.obj", "rear_shock_lower.mtl"]
+            }
+          ],
+          "center_of_mass": [-0.0003811, 0.0002667, 0.1175362],
+          "inertia": {
+            "mass": 0.98,
+            "Ixx": 0.0061323,
+            "Iyy": 0.0061213,
+            "Izz": 0.0029685,
+            "Ixy": 9.4e-06,
+            "Iyz": 0.0001841,
+            "Izx": 3.03e-05
+          }
+        },
+        {
+          "name": "left_rear_shock_upper",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["rear_shock_upper.obj", "rear_shock_upper.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0965],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.0052513,
+            "Iyy": 0.0201197,
+            "Izz": 0.0021725,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_rear_shock_upper",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["rear_shock_upper.obj", "rear_shock_upper.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0965],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.0052513,
+            "Iyy": 0.0201197,
+            "Izz": 0.0021725,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_steering_link",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["steering_link.obj", "steering_link.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "right_steering_knuckle",
+              "T": [0, 0.42, 0]
+            }
+          ],
+          "center_of_mass": [0.0, 0.21, 0.0],
+          "inertia": {
+            "mass": 1.52,
+            "Ixx": 0.02887,
+            "Iyy": 0.00014675,
+            "Izz": 0.02891548,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_steering_link",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+              "filename": ["steering_link.obj", "steering_link.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "steering_rack",
+              "T": [0, 0.42, 0]
+            }
+          ],
+          "center_of_mass": [0.0, 0.21, 0.0],
+          "inertia": {
+            "mass": 1.52,
+            "Ixx": 0.02887,
+            "Iyy": 0.00014675,
+            "Izz": 0.02891548,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A",
+          "type": "prismatic",
+          "parent": [
+            ["fixed"],
+            "origin"
+          ],
+          "child": [
+            ["1"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 5.0
+        },
+        {
+          "name": "B",
+          "type": "prismatic",
+          "parent": [
+            ["1"],
+            "origin"
+          ],
+          "child": [
+            ["2"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "C",
+          "type": "prismatic",
+          "parent": [
+            ["2"],
+            "origin"
+          ],
+          "child": [
+            ["3"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": -0.28,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "D",
+          "type": "revolute",
+          "parent": [
+            ["3"],
+            "origin"
+          ],
+          "child": [
+            ["4"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "E",
+          "type": "revolute",
+          "parent": [
+            ["4"],
+            "origin"
+          ],
+          "child": [
+            ["5"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "F",
+          "type": "revolute",
+          "parent": [
+            ["5"],
+            "origin"
+          ],
+          "child": [
+            ["chassis"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "G",
+          "type": "revolute",
+          "parent": [
+            ["chassis"],
+            "right_trailing_arm"
+          ],
+          "child": [
+            ["right_trailing_arm"],
+            "chassis"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "H",
+          "type": "revolute",
+          "parent": [
+            ["23"],
+            "origin"
+          ],
+          "child": [
+            ["right_rear_shock_upper"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "I",
+          "type": "revolute",
+          "parent": [
+            ["chassis"],
+            "right_control_arm"
+          ],
+          "child": [
+            ["right_control_arm"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.148,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "J",
+          "type": "revolute",
+          "parent": [
+            ["chassis"],
+            "right_front_shock"
+          ],
+          "child": [
+            ["10"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "K",
+          "type": "revolute",
+          "parent": [
+            ["chassis"],
+            "left_front_shock"
+          ],
+          "child": [
+            ["8"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "L",
+          "type": "prismatic",
+          "parent": [
+            ["chassis"],
+            "steering_rack"
+          ],
+          "child": [
+            ["steering_rack"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [0.0, 10000.0],
+          "damping_coefficients": [0.0, 2000.0]
+        },
+        {
+          "name": "M",
+          "type": "revolute",
+          "parent": [
+            ["chassis"],
+            "left_control_arm"
+          ],
+          "child": [
+            ["left_control_arm"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": -0.148,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "N",
+          "type": "revolute",
+          "parent": [
+            ["25"],
+            "origin"
+          ],
+          "child": [
+            ["left_rear_shock_upper"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "O",
+          "type": "revolute",
+          "parent": [
+            ["chassis"],
+            "left_trailing_arm"
+          ],
+          "child": [
+            ["left_trailing_arm"],
+            "chassis"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "P",
+          "type": "prismatic",
+          "parent": [
+            ["15"],
+            "origin"
+          ],
+          "child": [
+            ["left_rear_shock_lower"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.3618,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [-42953.0, 117039.0],
+          "damping_coefficients": [0, 12125.0]
+        },
+        {
+          "name": "Q",
+          "type": "revolute",
+          "parent": [
+            ["24"],
+            "origin"
+          ],
+          "child": [
+            ["left_rear_shock_lower"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "R",
+          "type": "revolute",
+          "parent": [
+            ["left_trailing_arm"],
+            "origin"
+          ],
+          "child": [
+            ["left_rear_wheel"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "S",
+          "type": "revolute",
+          "parent": [
+            ["right_trailing_arm"],
+            "origin"
+          ],
+          "child": [
+            ["right_rear_wheel"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "T",
+          "type": "revolute",
+          "parent": [
+            ["22"],
+            "origin"
+          ],
+          "child": [
+            ["right_rear_shock_lower"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "U",
+          "type": "prismatic",
+          "parent": [
+            ["17"],
+            "origin"
+          ],
+          "child": [
+            ["right_rear_shock_lower"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.3618,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [-42953.0, 117039.0],
+          "damping_coefficients": [0, 12125.0]
+        },
+        {
+          "name": "V",
+          "type": "revolute",
+          "parent": [
+            ["left_control_arm"],
+            "left_steering_knuckle"
+          ],
+          "child": [
+            ["6"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.148,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "W",
+          "type": "revolute",
+          "parent": [
+            ["6"],
+            "origin"
+          ],
+          "child": [
+            ["7"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "X",
+          "type": "revolute",
+          "parent": [
+            ["7"],
+            "origin"
+          ],
+          "child": [
+            ["left_steering_knuckle"],
+            "left_control_arm"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "Y",
+          "type": "revolute",
+          "parent": [
+            ["8"],
+            "origin"
+          ],
+          "child": [
+            ["9"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "Z",
+          "type": "revolute",
+          "parent": [
+            ["9"],
+            "origin"
+          ],
+          "child": [
+            ["left_front_shock"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AA",
+          "type": "revolute",
+          "parent": [
+            ["10"],
+            "origin"
+          ],
+          "child": [
+            ["11"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AB",
+          "type": "revolute",
+          "parent": [
+            ["11"],
+            "origin"
+          ],
+          "child": [
+            ["right_front_shock"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AC",
+          "type": "revolute",
+          "parent": [
+            ["right_control_arm"],
+            "right_steering_knuckle"
+          ],
+          "child": [
+            ["12"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": -0.148,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AD",
+          "type": "revolute",
+          "parent": [
+            ["12"],
+            "origin"
+          ],
+          "child": [
+            ["13"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AE",
+          "type": "revolute",
+          "parent": [
+            ["13"],
+            "origin"
+          ],
+          "child": [
+            ["right_steering_knuckle"],
+            "right_control_arm"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AF",
+          "type": "revolute",
+          "parent": [
+            ["left_steering_knuckle"],
+            "origin"
+          ],
+          "child": [
+            ["left_front_wheel"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AG",
+          "active": true,
+          "type": "prismatic",
+          "parent": [
+            ["left_front_shock"],
+            "origin"
+          ],
+          "child": [
+            ["left_steering_knuckle"],
+            "left_front_shock"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.216,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [-15580.0, 58500.0],
+          "damping_coefficients": [0, 6000.0]
+        },
+        {
+          "name": "AH",
+          "active": true,
+          "type": "prismatic",
+          "parent": [
+            ["right_front_shock"],
+            "origin"
+          ],
+          "child": [
+            ["right_steering_knuckle"],
+            "right_front_shock"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.216,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [-15580.0, 58500.0],
+          "damping_coefficients": [0, 6000.0]
+        },
+        {
+          "name": "AI",
+          "type": "revolute",
+          "parent": [
+            ["right_steering_knuckle"],
+            "origin"
+          ],
+          "child": [
+            ["right_front_wheel"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AJ",
+          "active": true,
+          "type": "revolute",
+          "parent": [
+            ["left_steering_knuckle"],
+            "steering_link"
+          ],
+          "child": [
+            ["14"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AK",
+          "type": "revolute",
+          "parent": [
+            ["left_rear_shock_upper"],
+            "origin"
+          ],
+          "child": [
+            ["15"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AL",
+          "active": true,
+          "type": "revolute",
+          "parent": [
+            ["14"],
+            "origin"
+          ],
+          "child": [
+            ["left_steering_link"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.295,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AM",
+          "active": true,
+          "type": "revolute",
+          "parent": [
+            ["right_steering_knuckle"],
+            "steering_link"
+          ],
+          "child": [
+            ["16"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AN",
+          "type": "revolute",
+          "parent": [
+            ["right_rear_shock_upper"],
+            "origin"
+          ],
+          "child": [
+            ["17"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AO",
+          "active": true,
+          "type": "revolute",
+          "parent": [
+            ["16"],
+            "origin"
+          ],
+          "child": [
+            ["right_steering_link"],
+            "right_steering_knuckle"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": -0.295,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AP",
+          "active": true,
+          "type": "revolute",
+          "parent": [
+            ["18"],
+            "origin"
+          ],
+          "child": [
+            ["left_steering_link"],
+            "steering_rack"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.295,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AQ",
+          "type": "revolute",
+          "parent": [
+            ["19"],
+            "origin"
+          ],
+          "child": [
+            ["18"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AR",
+          "type": "revolute",
+          "parent": [
+            ["steering_rack"],
+            "left_steering_link"
+          ],
+          "child": [
+            ["19"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AS",
+          "active": true,
+          "type": "revolute",
+          "parent": [
+            ["20"],
+            "origin"
+          ],
+          "child": [
+            ["right_steering_link"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": -0.295,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AT",
+          "type": "revolute",
+          "parent": [
+            ["21"],
+            "origin"
+          ],
+          "child": [
+            ["20"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AU",
+          "type": "revolute",
+          "parent": [
+            ["steering_rack"],
+            "right_steering_link"
+          ],
+          "child": [
+            ["21"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AV",
+          "type": "revolute",
+          "parent": [
+            ["right_trailing_arm"],
+            "right_rear_shock"
+          ],
+          "child": [
+            ["22"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AW",
+          "type": "revolute",
+          "parent": [
+            ["chassis"],
+            "right_rear_shock"
+          ],
+          "child": [
+            ["23"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AX",
+          "type": "revolute",
+          "parent": [
+            ["left_trailing_arm"],
+            "left_rear_shock"
+          ],
+          "child": [
+            ["24"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "AY",
+          "type": "revolute",
+          "parent": [
+            ["chassis"],
+            "left_rear_shock"
+          ],
+          "child": [
+            ["25"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        }
+      ]
+    }
+  ]
+}

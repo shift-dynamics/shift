@@ -1,0 +1,79 @@
+{
+  // An engine on two rubber mounts, one front and one rear: each mount has the static
+  // stiffness of a bushing, a hardening term on its vertical motion, and
+  // two Maxwell elements (a spring and damper in series) on every
+  // coordinate, so the mount is stiffer and damps more for the fast motion
+  // of the knock than for the slow sag. The stretch of each Maxwell spring
+  // is a state variable.
+  "model_parameters": {
+    "version": "0.2.0",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    // z points down: gravity acts along +z
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 3.0, "time_step": 0.005,
+                     "relative_error": 1e-06, "absolute_error": 1e-08}],
+    "loggers": [{"type": "csv", "csv_logfile": "rubber_mount.csv",
+                 "timestamp_logfile": false}]
+  },
+  // the mounts on the fixed frame, below the engine's front and rear
+  "frames": [{"name": "front_mount", "T": [0.3, 0, 0.2]},
+             {"name": "rear_mount", "T": [-0.3, 0, 0.2]}],
+  "assemblies": [
+    {
+      "name": "engine_on_rubber_mounts",
+      "bodies": [
+        {
+          "name": "engine",
+          // drawn as a V8 engine with its transmission (59 thousand triangles;
+          // V8 Engine by Tahminayeasminmony, CC-BY-4.0, see
+          // meshes/v8_engine_license.txt), its origin at the center of the block
+          "geometry": [{"type": "mesh", "filename": ["meshes/v8_engine.obj"]}],
+          "frames": [{"name": "front", "T": [0.3, 0, 0.2]},
+                     {"name": "rear", "T": [-0.3, 0, 0.2]}],
+          "center_of_mass": [0, 0, 0],
+          "inertia": {"mass": 150, "Ixx": 8, "Iyy": 10, "Izz": 6,
+                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+        }
+      ],
+      "joints": [
+        {
+          // the engine is free to move in every direction: a float joint
+          // places it, and the mounts alone hold it up
+          "name": "float", "type": "float",
+          "parent": [["fixed"], "origin"], "child": [["engine"], "origin"],
+          // it starts with a knock: down and rolling
+          "initial_velocity": [0, 0, 0.3, 0.5, 0, 0]
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "rubber_mount", "name": "front_mount",
+          "frames": [["fixed", "front_mount"], ["engine", "front"]],
+          "stiffness": [1.5e5, 1.5e5, 3e5, 1.5e3, 1.5e3, 1.5e3],
+          "damping": [100, 100, 200, 1, 1, 1],
+          // N/m^3: the mount stiffens as it is squeezed
+          "cubic_stiffness": [0, 0, 2e10, 0, 0, 0],
+          // two elements, time constants c/k of 10 ms and 1 ms
+          "maxwell_stiffness": [5e4, 5e4, 1e5, 500, 500, 500,
+                                5e4, 5e4, 1e5, 500, 500, 500],
+          "maxwell_damping": [500, 500, 1000, 5, 5, 5,
+                              50, 50, 100, 0.5, 0.5, 0.5]
+        },
+        {
+          "type": "rubber_mount", "name": "rear_mount",
+          "frames": [["fixed", "rear_mount"], ["engine", "rear"]],
+          "stiffness": [1.5e5, 1.5e5, 3e5, 1.5e3, 1.5e3, 1.5e3],
+          "damping": [100, 100, 200, 1, 1, 1],
+          "cubic_stiffness": [0, 0, 2e10, 0, 0, 0],
+          "maxwell_stiffness": [5e4, 5e4, 1e5, 500, 500, 500,
+                                5e4, 5e4, 1e5, 500, 500, 500],
+          "maxwell_damping": [500, 500, 1000, 5, 5, 5,
+                              50, 50, 100, 0.5, 0.5, 0.5]
+        }
+      ]
+    }
+  ]
+}

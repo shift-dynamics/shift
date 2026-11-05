@@ -1,0 +1,418 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 1.0,
+        "time_step": 0.0001,
+        "relative_error": 0.0,
+        "absolute_error": 0.0001,
+        "omega_n": 20.0
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "overhead_1",
+      "T": [6.0, -6.0, -12.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]]
+    },
+    {
+      "name": "overhead_2",
+      "T": [-6.0, 6.0, -12.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]]
+    }
+  ],
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": ["fixed", "overhead_1"],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [0.6, 0.6, 0.6],
+      "Ks": [0.2, 0.2, 0.2]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": ["fixed", "overhead_2"],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [0.6, 0.6, 0.6],
+      "Ks": [0.2, 0.2, 0.2]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "brake",
+      "active": true,
+      "bodies": [
+        {
+          "name": "1_bridge",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
+              "filename": ["bridge.obj", "bridge.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "right_arm_attachment",
+              "T": [2.74954542, 1.73, 1.2]
+            },
+            {
+              "name": "left_arm_attachment",
+              "T": [0.0, 1.73, 0.0]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 2.0,
+            "Izx": 0.0,
+            "Ixx": 1.0,
+            "Ixy": 0.0,
+            "Izz": 1.0,
+            "Iyy": 1.0,
+            "Iyz": 0.0
+          }
+        },
+        {
+          "name": "2_left_arm",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
+              "filename": ["left_arm.obj", "left_arm.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "upper_cable_holder_attachment",
+              "T": [-4.05042589, 0.35, -2.50921836]
+            },
+            {
+              "name": "screw_attachment",
+              "T": [1.64968853, 0.35, 0.71995217]
+            },
+            {
+              "name": "left_pad_attachment",
+              "T": [-1.28954542, 1.0, 4.5]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "3_right_arm",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
+              "filename": ["right_arm.obj", "right_arm.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "lower_cable_holder_attachment",
+              "T": [-7.14074547, 0.75, 0.47928029]
+            },
+            {
+              "name": "right_pad_attachment",
+              "T": [-1.46, 1.0, 3.3]
+            },
+            {
+              "name": "screw_attachment",
+              "T": [0, 0.35, 0],
+              "R": [
+                [0.9165151374181633, 0, -0.40000000360420673],
+                [0, 1, 0],
+                [0.40000000360420673, 0, 0.9165151374181633]
+              ]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 2.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "4_upper_cable_holder",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
+              "filename": ["upper_cable_holder.obj", "upper_cable_holder.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 2.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "5_lower_cable_holder",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
+              "filename": ["lower_cable_holder.obj", "lower_cable_holder.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "upper_cable_attachment",
+              "T": [0, -0.4, 0]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 2.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "6_massless_body_1",
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 0.0,
+            "Ixx": 0.0,
+            "Iyy": 0.0,
+            "Izz": 0.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "7_massless_body_2",
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 0.0,
+            "Ixx": 0.0,
+            "Iyy": 0.0,
+            "Izz": 0.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "8_massless_body_3",
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {
+            "mass": 0.0,
+            "Ixx": 0.0,
+            "Iyy": 0.0,
+            "Izz": 0.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A_fixed_to_bridge",
+          "type": "rigid",
+          "parent": [
+            ["fixed"],
+            "origin"
+          ],
+          "child": [
+            ["1_bridge"],
+            "origin"
+          ],
+          "initial_displacement": {
+            "R": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+            "T": [0, 0, 2]
+          },
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "B_bridge_to_left_arm",
+          "type": "revolute",
+          "parent": [
+            ["1_bridge"],
+            "left_arm_attachment"
+          ],
+          "child": [
+            ["2_left_arm"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "C_bridge_to_right_arm",
+          "type": "revolute",
+          "parent": [
+            ["1_bridge"],
+            "right_arm_attachment"
+          ],
+          "child": [
+            ["3_right_arm"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "D_left_arm_to_upper_cable_holder",
+          "type": "revolute",
+          "parent": [
+            ["2_left_arm"],
+            "upper_cable_holder_attachment"
+          ],
+          "child": [
+            ["4_upper_cable_holder"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": -0.08118008,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "E_left_arm_to_massless_body_2",
+          "type": "revolute",
+          "parent": [
+            ["2_left_arm"],
+            "left_pad_attachment"
+          ],
+          "child": [
+            ["7_massless_body_2"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "F_left_arm_to_massless_body_1",
+          "type": "revolute",
+          "parent": [
+            ["2_left_arm"],
+            "screw_attachment"
+          ],
+          "child": [
+            ["6_massless_body_1"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": -0.41151685,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "G_right_arm_to_massless_body_1",
+          "type": "prismatic",
+          "parent": [
+            ["3_right_arm"],
+            "screw_attachment"
+          ],
+          "child": [
+            ["6_massless_body_1"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": -1.2,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "H_right_arm_to_lower_cable_holder",
+          "type": "revolute",
+          "parent": [
+            ["3_right_arm"],
+            "lower_cable_holder_attachment"
+          ],
+          "child": [
+            ["5_lower_cable_holder"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": -0.08118008,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "I_upper_cable_holder_to_lower_cable_holder",
+          "type": "prismatic",
+          "parent": [
+            ["4_upper_cable_holder"],
+            "origin"
+          ],
+          "child": [
+            ["5_lower_cable_holder"],
+            "upper_cable_attachment"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 4.20233818,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "J_right_arm_to_massless_body_3",
+          "type": "revolute",
+          "parent": [
+            ["3_right_arm"],
+            "right_pad_attachment"
+          ],
+          "child": [
+            ["8_massless_body_3"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "K_massless_body_2_to_massless_body_3",
+          "type": "prismatic",
+          "parent": [
+            ["7_massless_body_2"],
+            "origin"
+          ],
+          "child": [
+            ["8_massless_body_3"],
+            "origin"
+          ],
+          "axis": [1, 0, 0],
+          "initial_displacement": 2.57909083,
+          "initial_velocity": 0.0
+        }
+      ]
+    }
+  ]
+}

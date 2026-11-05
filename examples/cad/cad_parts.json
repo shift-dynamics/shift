@@ -1,0 +1,473 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "include_directories": [
+      "."
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 20,
+        "time_step": 0.02,
+        "relative_error": 1e-09,
+        "absolute_error": 1e-09
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "box_mm",
+      "T": [
+        -0.12,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ]
+      ]
+    },
+    {
+      "name": "cylinder_inch",
+      "T": [
+        -0.06,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ]
+      ]
+    },
+    {
+      "name": "cone_apex",
+      "T": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ]
+      ]
+    },
+    {
+      "name": "tube_dome",
+      "T": [
+        0.06,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ]
+      ]
+    },
+    {
+      "name": "rational_patch",
+      "T": [
+        0.12,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ]
+      ]
+    },
+    {
+      "name": "assembly_mm",
+      "T": [
+        0.18,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ]
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "parts",
+      "active": true,
+      "bodies": [
+        {
+          "name": "box_mm",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "box_mm.step"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.1,
+            "Ixx": 1e-05,
+            "Iyy": 1e-05,
+            "Izz": 1e-05,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "cylinder_inch",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "cylinder_inch.step"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.1,
+            "Ixx": 1e-05,
+            "Iyy": 1e-05,
+            "Izz": 1e-05,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "cone_apex",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "cone_apex.step"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.1,
+            "Ixx": 1e-05,
+            "Iyy": 1e-05,
+            "Izz": 1e-05,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "tube_dome",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "tube_dome.step"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.1,
+            "Ixx": 1e-05,
+            "Iyy": 1e-05,
+            "Izz": 1e-05,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "rational_patch",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "rational_patch.step",
+              "scale": 0.03
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.1,
+            "Ixx": 1e-05,
+            "Iyy": 1e-05,
+            "Izz": 1e-05,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "assembly_mm",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "assembly_mm.step",
+              "scale": 0.25
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.1,
+            "Ixx": 1e-05,
+            "Iyy": 1e-05,
+            "Izz": 1e-05,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "spin_box_mm",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "box_mm"
+          ],
+          "child": [
+            [
+              "box_mm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.5
+        },
+        {
+          "name": "spin_cylinder_inch",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "cylinder_inch"
+          ],
+          "child": [
+            [
+              "cylinder_inch"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.5
+        },
+        {
+          "name": "spin_cone_apex",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "cone_apex"
+          ],
+          "child": [
+            [
+              "cone_apex"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.5
+        },
+        {
+          "name": "spin_tube_dome",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "tube_dome"
+          ],
+          "child": [
+            [
+              "tube_dome"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.5
+        },
+        {
+          "name": "spin_rational_patch",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "rational_patch"
+          ],
+          "child": [
+            [
+              "rational_patch"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.5
+        },
+        {
+          "name": "spin_assembly_mm",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "assembly_mm"
+          ],
+          "child": [
+            [
+              "assembly_mm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.5
+        }
+      ]
+    }
+  ]
+}

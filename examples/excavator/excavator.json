@@ -1,0 +1,1199 @@
+{
+  "model_parameters": {
+    "version": "2.0.0",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0,
+      0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "solvers": [
+      {
+        "type": "rnca",
+        "infinity_norm_multiplier": 2.0
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 7.0,
+        "time_step": 0.03,
+        "relative_error": 0.0001,
+        "absolute_error": 0.0001,
+        "omega_n": 50.0,
+        // "integral_gain": 1000.0,
+        // "omega_n_max": 1000.0
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "excavator.csv",
+        "timestamp_logfile": false
+      },
+      {
+        "type": "hdf5",
+        "logfile": "excavator.h5",
+        "timestamp_logfile": true
+      }
+    ]
+  },
+
+  "frames": [
+    {
+      // origin of the terrain (its first elevation sample): the terrain,
+      // 12.6 m x 18.9 m, is centered under the undercarriage, and raised
+      // so its highest point under the tracks meets them
+      "name": "terrain",
+      "T": [-6.3, -9.07, -0.011]
+    },
+    {
+      // low from the +x, -y side: 30 degrees above the horizon, so the
+      // terrain relief catches the light
+      "name": "overhead_1",
+      "T": [12, -8, -8.3],
+      "R": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ]
+    },
+    {
+      // from the opposite side, 45 degrees above the horizon, to fill in
+      // the shadows
+      "name": "overhead_2",
+      "T": [-9, 9, -12.7],
+      "R": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ]
+    }
+  ],
+
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_1"
+      ],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_2"
+      ],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    }
+  ],
+
+  "terrain": [
+    {
+      "type": "basic",
+      "name": "sinxx+cosyy",
+      "filename": "sinxx+cosyy.tiff",
+      "texture_filename": "qrc:/textures/cracked_sand.jpg",
+      "normal_map_filename": "qrc:/textures/cracked_sand_normal.png",
+      "normal_scale": 4,
+      "parent": [
+        ["fixed"],
+        "terrain"
+      ],
+      "x_scale": 0.2,
+      "y_scale": 0.3,
+      "z_scale": 0.2,
+      "coordinate_type": "sae",
+      "interpolation_type": "bicubic"
+    }
+  ],
+
+  "assemblies": [
+    {
+      "name": "excavator",
+      "active": true,
+      // mass properties of a 30 t class excavator (the boom and stick match
+      // a Cat 330 with its 6.15 m reach boom and 3.2 m stick): the boom,
+      // stick and boom cylinders weigh as published for that machine; the
+      // upper structure includes its 6.7 t counterweight, and the
+      // undercarriage, bucket and other cylinders are estimates, for an
+      // operating weight of about 31 t. Each body's center of mass and
+      // centroidal inertia are those of a uniform solid of the body's mesh
+      // (the convex hull where a mesh is not closed), computed by shift from
+      // density = mass / volume
+      "bodies": [
+        {
+          "name": "undercarriage",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "undercarriage.obj",
+                "undercarriage.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "1h_plus",
+              "T": [
+                0,
+                -0.46293,
+                1.1065
+              ]
+            }
+          ],
+          "center_of_mass": [0, -0.372355, 0.494238],
+          "inertia": {
+            "mass": 11000,
+            "Ixx": 18526.6, "Iyy": 9287.22, "Izz": 25650.6,
+            "Ixy": 0, "Iyz": -17.9553, "Izx": 0
+          }
+        },
+        {
+          "name": "cabin",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "cabin.obj",
+                "cabin.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "2h_plus",
+              "T": [
+                0,
+                0.06301,
+                0.99231
+              ]
+            },
+            {
+              "name": "2h_plus2",
+              "T": [
+                0.36,
+                -0.63966,
+                0.52644
+              ]
+            },
+            {
+              "name": "2h_plus3",
+              "T": [
+                -0.36,
+                -0.63966,
+                0.52644
+              ]
+            }
+          ],
+          "center_of_mass": [0.0841451, 0.697477, 0.968],
+          "inertia": {
+            "mass": 13200,
+            "Ixx": 18710.2, "Iyy": 13393.9, "Izz": 24412.8,
+            "Ixy": 1462.48, "Iyz": 906.753, "Izx": -466.526
+          }
+        },
+        {
+          "name": "boom",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "boom.obj",
+                "boom.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "3h_plus1",
+              "T": [
+                0,
+                -6.14894,
+                -0.0035
+              ]
+            },
+            {
+              "name": "3h_plus2",
+              "T": [
+                0,
+                -3.46784,
+                1.21717
+              ]
+            },
+            {
+              "name": "3h_minus1",
+              "T": [
+                0.36,
+                -2.59808,
+                0.97439
+              ]
+            },
+            {
+              "name": "3h_minus2",
+              "T": [
+                -0.36,
+                -2.59808,
+                0.97439
+              ]
+            }
+          ],
+          "center_of_mass": [0, -2.52792, 0.541865],
+          "inertia": {
+            "mass": 2310,
+            "Ixx": 6670.63, "Iyy": 352.507, "Izz": 6457.07,
+            "Ixy": 0, "Iyz": 161.823, "Izx": 0
+          }
+        },
+        {
+          "name": "stick",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "stick.obj",
+                "stick.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "4h_plus",
+              "T": [
+                0,
+                -2.47627,
+                -1.73469
+              ]
+            },
+            {
+              "name": "4h_plus2",
+              "T": [
+                0,
+                -2.138111,
+                -1.47233
+              ]
+            },
+            {
+              "name": "4h_plus3",
+              "T": [
+                0,
+                -0.57319,
+                0.29466
+              ]
+            },
+            {
+              "name": "4h_minus",
+              "T": [
+                0,
+                0.55952,
+                0.63445
+              ]
+            }
+          ],
+          "center_of_mass": [0, -0.90316, -0.430832],
+          "inertia": {
+            "mass": 1470,
+            "Ixx": 1611.62, "Iyy": 680.955, "Izz": 975.696,
+            "Ixy": 0, "Iyz": -739.382, "Izx": 0
+          }
+        },
+        {
+          "name": "bucket",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "bucket.obj",
+                "bucket.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "5h_plus",
+              "T": [
+                0,
+                -0.01542,
+                0.4601835
+              ]
+            }
+          ],
+          "center_of_mass": [0, -0.742547, 0.27876],
+          "inertia": {
+            "mass": 1300,
+            "Ixx": 373.534, "Iyy": 416.166, "Izz": 631.135,
+            "Ixy": 0, "Iyz": -38.8313, "Izx": 0
+          }
+        },
+        {
+          "name": "bucket_linkage_2",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "bucket_linkage_2.obj",
+                "bucket_linkage_2.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "6h_plus",
+              "T": [
+                0,
+                0,
+                -0.62
+              ]
+            }
+          ],
+          "center_of_mass": [0, 0, -0.271411],
+          "inertia": {
+            "mass": 110,
+            "Ixx": 6.31863, "Iyy": 11.0505, "Izz": 5.10297,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        },
+        {
+          "name": "bucket_linkage_1",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "bucket_linkage_1.obj",
+                "bucket_linkage_1.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "7h_plus",
+              "T": [
+                0,
+                0.55,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [0, 0.140274, -0.00076754],
+          "inertia": {
+            "mass": 150,
+            "Ixx": 5.88808, "Iyy": 2.56804, "Izz": 7.66828,
+            "Ixy": 8.49535e-06, "Iyz": 0.0147947, "Izx": 0
+          }
+        },
+        {
+          "name": "boom_cylinder_1",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "cylinder.obj",
+                "cylinder.mtl"
+              ]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0, 0.626797, 0],
+          "inertia": {
+            "mass": 160,
+            "Ixx": 34.7382, "Iyy": 0.570854, "Izz": 34.7074,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        },
+        {
+          "name": "boom_cylinder_2",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "cylinder.obj",
+                "cylinder.mtl"
+              ]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0, 0.626797, 0],
+          "inertia": {
+            "mass": 160,
+            "Ixx": 34.7382, "Iyy": 0.570854, "Izz": 34.7074,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        },
+        {
+          "name": "boom_rod_1",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "rod.obj",
+                "rod.mtl"
+              ]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0, -0.566134, 0],
+          "inertia": {
+            "mass": 85,
+            "Ixx": 16.9483, "Iyy": 0.361906, "Izz": 16.8697,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        },
+        {
+          "name": "boom_rod_2",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "rod.obj",
+                "rod.mtl"
+              ]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0, -0.566134, 0],
+          "inertia": {
+            "mass": 85,
+            "Ixx": 16.9483, "Iyy": 0.361906, "Izz": 16.8697,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        },
+        {
+          "name": "stick_cylinder",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "cylinder.obj",
+                "cylinder.mtl"
+              ]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0, 0.626797, 0],
+          "inertia": {
+            "mass": 230,
+            "Ixx": 49.9361, "Iyy": 0.820603, "Izz": 49.8919,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        },
+        {
+          "name": "stick_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "rod.obj",
+                "rod.mtl"
+              ]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0, -0.566134, 0],
+          "inertia": {
+            "mass": 120,
+            "Ixx": 23.927, "Iyy": 0.510926, "Izz": 23.816,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        },
+        {
+          "name": "bucket_cylinder",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "cylinder.obj",
+                "cylinder.mtl"
+              ]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0, 0.626797, 0],
+          "inertia": {
+            "mass": 160,
+            "Ixx": 34.7382, "Iyy": 0.570854, "Izz": 34.7074,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        },
+        {
+          "name": "bucket_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "rod.obj",
+                "rod.mtl"
+              ]
+            }
+          ],
+          "frames": null,
+          "center_of_mass": [0, -0.566134, 0],
+          "inertia": {
+            "mass": 90,
+            "Ixx": 17.9453, "Iyy": 0.383194, "Izz": 17.862,
+            "Ixy": 0, "Iyz": 0, "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A_fixed_to_undercarriage",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "undercarriage"
+            ],
+            "origin"
+          ],
+          "type": "rigid",
+          "initial_displacement": {
+            "R": [
+              [
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                0,
+                -1
+              ]
+            ],
+            "T": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "name": "B_undercarriage_to_cabin",
+          "parent": [
+            [
+              "undercarriage"
+            ],
+            "1h_plus"
+          ],
+          "child": [
+            [
+              "cabin"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0,
+          "initial_velocity": 0.2
+        },
+        {
+          "name": "C_cabin_to_boom",
+          "parent": [
+            [
+              "cabin"
+            ],
+            "2h_plus"
+          ],
+          "child": [
+            [
+              "boom"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": -0.3,
+          "initial_velocity": 0
+        },
+        {
+          "name": "D_boom_to_stick",
+          "parent": [
+            [
+              "boom"
+            ],
+            "3h_plus1"
+          ],
+          "child": [
+            [
+              "stick"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 0.1,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "E_stick_to_bucket",
+          "parent": [
+            [
+              "stick"
+            ],
+            "4h_plus"
+          ],
+          "child": [
+            [
+              "bucket"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 1,
+          "initial_velocity": 0
+        },
+        {
+          "name": "F_stick_to_bucket_linkage_2",
+          "parent": [
+            [
+              "stick"
+            ],
+            "4h_plus2"
+          ],
+          "child": [
+            [
+              "bucket_linkage_2"
+            ],
+            "6h_plus"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 0.8,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "G_bucket_to_bucket_linkage_1",
+          "parent": [
+            [
+              "bucket"
+            ],
+            "5h_plus"
+          ],
+          "child": [
+            [
+              "bucket_linkage_1"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 0.1,
+          "initial_velocity": 0
+        },
+        {
+          "name": "H_cabin_to_boom_cylinder_1",
+          "parent": [
+            [
+              "cabin"
+            ],
+            "2h_plus2"
+          ],
+          "child": [
+            [
+              "boom_cylinder_1"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 2.18,
+          "initial_velocity": 0
+        },
+        {
+          "name": "I_cabin_to_boom_cylinder_2",
+          "parent": [
+            [
+              "cabin"
+            ],
+            "2h_plus3"
+          ],
+          "child": [
+            [
+              "boom_cylinder_2"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 2.18,
+          "initial_velocity": 0
+        },
+        {
+          "name": "J_boom_to_stick_cylinder",
+          "parent": [
+            [
+              "boom"
+            ],
+            "3h_plus2"
+          ],
+          "child": [
+            [
+              "stick_cylinder"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 3.4,
+          "initial_velocity": 0
+        },
+        {
+          "name": "K_stick_to_bucket_cylinder",
+          "parent": [
+            [
+              "stick"
+            ],
+            "4h_plus3"
+          ],
+          "child": [
+            [
+              "bucket_cylinder"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 3.7,
+          "initial_velocity": 0
+        },
+        {
+          "name": "L_boom_cylinder_1_to_boom_rod_1",
+          "parent": [
+            [
+              "boom_cylinder_1"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "boom_rod_1"
+            ],
+            "origin"
+          ],
+          "type": "prismatic",
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 2.65,
+          "initial_velocity": 0
+        },
+        {
+          "name": "M_boom_cylinder_2_to_boom_rod_2",
+          "parent": [
+            [
+              "boom_cylinder_2"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "boom_rod_2"
+            ],
+            "origin"
+          ],
+          "type": "prismatic",
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 2.65,
+          "initial_velocity": 0
+        },
+        {
+          "name": "N_stick_cylinder_to_stick_rod",
+          "parent": [
+            [
+              "stick_cylinder"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "stick_rod"
+            ],
+            "origin"
+          ],
+          "type": "prismatic",
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 2.3,
+          "initial_velocity": 0
+        },
+        {
+          "name": "O_bucket_cylinder_to_bucket_rod",
+          "parent": [
+            [
+              "bucket_cylinder"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "bucket_rod"
+            ],
+            "origin"
+          ],
+          "type": "prismatic",
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 2.4,
+          "initial_velocity": 0
+        },
+        {
+          "name": "P_boom_rod_1_to_boom",
+          "parent": [
+            [
+              "boom_rod_1"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "boom"
+            ],
+            "3h_minus1"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 3.8,
+          "initial_velocity": 0
+        },
+        {
+          "name": "Q_boom_rod_2_to_boom",
+          "parent": [
+            [
+              "boom_rod_2"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "boom"
+            ],
+            "3h_minus2"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 3.8,
+          "initial_velocity": 0
+        },
+        {
+          "name": "R_stick_rod_to_stick",
+          "parent": [
+            [
+              "stick_rod"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "stick"
+            ],
+            "4h_minus"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 3,
+          "initial_velocity": 0
+        },
+        {
+          "name": "S_bucket_rod_to_bucket_linkage_1",
+          "parent": [
+            [
+              "bucket_rod"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "bucket_linkage_1"
+            ],
+            "7h_plus"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": -2.6,
+          "initial_velocity": 0
+        },
+        {
+          "name": "T_bucket_linkage_1_to_bucket_linkage_2",
+          "parent": [
+            [
+              "bucket_linkage_1"
+            ],
+            "7h_plus"
+          ],
+          "child": [
+            [
+              "bucket_linkage_2"
+            ],
+            "origin"
+          ],
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": -0.1,
+          "initial_velocity": 0
+        }
+      ],
+      // double-acting cylinders on the prismatic joints between barrels
+      // and rods, each fed by a proportional valve from a 30 MPa supply,
+      // returning to a tank line at 0.5 MPa (gauge) back pressure;
+      // the joint coordinate is the pin to pin length. Each command is the
+      // valve opening (-1 retracts, 1 extends) against time, [t0, u0, ...].
+      // "hold" starts each cylinder with the pressures that hold the arm
+      // still in its starting pose (the side without load at the tank
+      // pressure)
+      "force_modules": [
+        {
+          // boom cylinders, one each side, 140 mm bore, 100 mm rod, 1.95 m pin to pin when retracted with 1.3 m of stroke; the boom lowers, holds, then raises
+          "type": "hydraulic_cylinder",
+          "name": "boom_cylinder_1",
+          "joint": "L_boom_cylinder_1_to_boom_rod_1",
+          "retracted_position": 1.95,
+          "stroke": 1.3,
+          "bore_diameter": 0.14,
+          "rod_diameter": 0.1,
+          "direction": 1,
+          "supply_pressure": 30e6,
+          "tank_pressure": 0.5e6,
+          "relief_pressure": 34e6,
+          "rated_pressure_drop": 10e6,
+          "friction": 2e4,
+          "end_stop_stiffness": 5e7,
+          "end_stop_damping": 5,
+          "rated_flow": 0.0044,
+          "hold": true,
+          "command": [0, 0, 0.2, 0, 0.5, -0.4, 1.8, -0.4, 2.1, 0, 4.4, 0, 4.7, 0.8, 6.3, 0.8, 6.6, 0]
+        },
+        {
+          // the other boom cylinder, on the same valve command
+          "type": "hydraulic_cylinder",
+          "name": "boom_cylinder_2",
+          "joint": "M_boom_cylinder_2_to_boom_rod_2",
+          "retracted_position": 1.95,
+          "stroke": 1.3,
+          "bore_diameter": 0.14,
+          "rod_diameter": 0.1,
+          "direction": 1,
+          "supply_pressure": 30e6,
+          "tank_pressure": 0.5e6,
+          "relief_pressure": 34e6,
+          "rated_pressure_drop": 10e6,
+          "friction": 2e4,
+          "end_stop_stiffness": 5e7,
+          "end_stop_damping": 5,
+          "rated_flow": 0.0044,
+          "hold": true,
+          "command": [0, 0, 0.2, 0, 0.5, -0.4, 1.8, -0.4, 2.1, 0, 4.4, 0, 4.7, 0.8, 6.3, 0.8, 6.6, 0]
+        },
+        {
+          // stick cylinder, 150 mm bore, 105 mm rod, 1.55 m stroke: the stick comes in through the dig, then goes out
+          "type": "hydraulic_cylinder",
+          "name": "stick_cylinder",
+          "joint": "N_stick_cylinder_to_stick_rod",
+          "retracted_position": 2.05,
+          "stroke": 1.55,
+          "bore_diameter": 0.15,
+          "rod_diameter": 0.105,
+          "direction": 1,
+          "supply_pressure": 30e6,
+          "tank_pressure": 0.5e6,
+          "relief_pressure": 34e6,
+          "rated_pressure_drop": 10e6,
+          "friction": 2e4,
+          "end_stop_stiffness": 5e7,
+          "end_stop_damping": 5,
+          "rated_flow": 0.0046,
+          "hold": true,
+          "command": [0, 0, 1.0, 0, 1.3, 0.8, 3.7, 0.8, 4.0, 0, 5.0, 0, 5.3, -0.6, 7.0, -0.6]
+        },
+        {
+          // bucket cylinder, 135 mm bore, 95 mm rod, 1.15 m stroke: the bucket curls to fill, then dumps
+          "type": "hydraulic_cylinder",
+          "name": "bucket_cylinder",
+          "joint": "O_bucket_cylinder_to_bucket_rod",
+          "retracted_position": 1.75,
+          "stroke": 1.15,
+          "bore_diameter": 0.135,
+          "rod_diameter": 0.095,
+          "direction": 1,
+          "supply_pressure": 30e6,
+          "tank_pressure": 0.5e6,
+          "relief_pressure": 34e6,
+          "rated_pressure_drop": 10e6,
+          "friction": 2e4,
+          "end_stop_stiffness": 5e7,
+          "end_stop_damping": 5,
+          "rated_flow": 0.0032,
+          "hold": true,
+          "command": [0, 0, 2.5, 0, 2.8, 1, 4.2, 1, 4.5, 0, 5.6, 0, 5.9, -1, 7.0, -1]
+        }
+      ]
+    }
+  ]
+}

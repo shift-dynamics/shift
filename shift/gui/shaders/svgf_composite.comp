@@ -1,0 +1,42 @@
+#version 450
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// Denoised ray traced image: the denoised indirect illumination remodulated
+// by the temporally accumulated albedo (anti-aliased texture and floor grid
+// detail), plus the current frame's direct sunlight, tonemapped. Temporal
+// anti-aliasing follows, which also blends in the exact progressive mean and
+// applies gamma.
+
+layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
+  mat4 previous_view_projection;
+  vec4 params;   // x = pixel spread angle, y = maximum history length,
+                 // z = history valid, w = a-trous step
+  vec4 blend;    // x = progressive frames, y, z = blend start, end
+  ivec4 control; // x = instance count
+  mat4 view_projection; // current frame
+} u;
+
+layout(rgba32f, binding = 1) uniform readonly image2D position;
+layout(rgba16f, binding = 2) uniform readonly image2D current_illumination;
+layout(rgba16f, binding = 3) uniform readonly image2D history_albedo;
+layout(rgba16f, binding = 4) uniform readonly image2D filtered;
+layout(rgba16f, binding = 6) uniform writeonly image2D out_color;
+layout(rgba16f, binding = 7) uniform readonly image2D direct_light;
+
+void main() {
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(out_color);
+  if(pixel.x >= size.x || pixel.y >= size.y) {
+    return;
+  }
+
+  vec3 denoised;
+  if(int(round(imageLoad(position, pixel).w)) == -1) {
+    denoised = imageLoad(current_illumination, pixel).rgb; // sky radiance
+  } else {
+    denoised = imageLoad(filtered, pixel).rgb *
+                 imageLoad(history_albedo, pixel).rgb +
+               imageLoad(direct_light, pixel).rgb;
+  }
+  imageStore(out_color, pixel, vec4(denoised / (denoised + vec3(1.0)), 1.0));
+}

@@ -6,11 +6,11 @@
 set pagination off
 set logging file callgraph.txt
 set logging on
-rbreak Context.cc:.*
-rbreak Jacobian.cc:.*
-rbreak RNCA.cc:.*
-rbreak ODE113.cc:.*
-rbreak Substructure.cc:.*
+rbreak context.cc:.*
+rbreak jacobian.cc:.*
+rbreak rnca.cc:.*
+rbreak ode113.cc:.*
+rbreak substructure.cc:.*
 command 1-1000
   backtrace
   continue

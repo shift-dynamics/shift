@@ -1,0 +1,77 @@
+#version 450
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// SVGF variance estimation: the temporal variance of the luminance from its
+// accumulated moments, or, for histories shorter than four frames (just
+// disoccluded), a spatial estimate over a 7x7 edge-aware neighborhood, which
+// also replaces the illumination. Output: illumination (rgb), variance (a).
+
+layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
+  mat4 previous_view_projection;
+  vec4 params;   // x = pixel spread angle, y = maximum history length,
+                 // z = history valid, w = a-trous step
+  vec4 blend;    // x = progressive frames, y, z = blend start, end
+  ivec4 control; // x = instance count
+  mat4 view_projection; // current frame
+} u;
+
+layout(rgba32f, binding = 1) uniform readonly image2D position;
+layout(rgba16f, binding = 2) uniform readonly image2D normal;
+layout(rgba16f, binding = 3) uniform readonly image2D history_illumination;
+layout(rgba32f, binding = 4) uniform readonly image2D history_moments;
+layout(rgba16f, binding = 5) uniform writeonly image2D filtered;
+
+void main() {
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(position);
+  if(pixel.x >= size.x || pixel.y >= size.y) {
+    return;
+  }
+
+  vec4 g = imageLoad(position, pixel);
+  vec4 h = imageLoad(history_illumination, pixel);
+  if(int(round(g.w)) == -1) {
+    imageStore(filtered, pixel, vec4(h.rgb, 0.0)); // sky
+    return;
+  }
+  float history_length = h.a;
+  if(history_length >= 4.0) {
+    vec2 m = imageLoad(history_moments, pixel).xy;
+    imageStore(filtered, pixel, vec4(h.rgb, max(m.y - m.x * m.x, 0.0)));
+    return;
+  }
+
+  vec4 gn = imageLoad(normal, pixel);
+  vec3 n = gn.xyz;
+  float footprint = u.params.x * gn.w; // world size of a pixel at the hit
+  float weight_sum = 0.0;
+  vec3 sum_illumination = vec3(0.0);
+  vec2 sum_moments = vec2(0.0);
+  for(int dy = -3; dy <= 3; dy++) {
+    for(int dx = -3; dx <= 3; dx++) {
+      ivec2 tap = pixel + ivec2(dx, dy);
+      if(any(lessThan(tap, ivec2(0))) || any(greaterThanEqual(tap, size))) {
+        continue;
+      }
+      vec4 tap_position = imageLoad(position, tap);
+      if(int(round(tap_position.w)) == -1) {
+        continue;
+      }
+      vec3 tap_normal = imageLoad(normal, tap).xyz;
+      float distance = length(vec2(dx, dy));
+      float w_n = pow(max(dot(n, tap_normal), 0.0), 128.0);
+      float w_z = exp(-abs(dot(n, tap_position.xyz - g.xyz)) /
+                      (footprint * distance + 1e-6));
+      float w = (dx == 0 && dy == 0) ? 1.0 : w_n * w_z;
+      sum_illumination += w * imageLoad(history_illumination, tap).rgb;
+      sum_moments += w * imageLoad(history_moments, tap).xy;
+      weight_sum += w;
+    }
+  }
+  sum_illumination /= weight_sum;
+  sum_moments /= weight_sum;
+  // short histories: boost the variance so the spatial filter blurs more
+  float variance =
+    max(sum_moments.y - sum_moments.x * sum_moments.x, 0.0) * 4.0 / history_length;
+  imageStore(filtered, pixel, vec4(sum_illumination, variance));
+}
