@@ -64,6 +64,14 @@ public:
     return q_0_;
   }
 
+  /*! \brief whether the controller is evaluated before the other controllers
+   * (and the force modules), as a source of values that they read in the same
+   * evaluation: a schedule. Those that do are evaluated in the order of the
+   * model file, then the others in theirs. */
+  virtual bool runs_first() const {
+    return false;
+  }
+
   /*! \brief index of the first internal state in the state vector y */
   void set_state_offset(size_t offset) {
     state_offset_ = offset;

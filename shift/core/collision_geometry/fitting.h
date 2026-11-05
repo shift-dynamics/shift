@@ -66,6 +66,17 @@ corresponding eigenvectors; V is a proper rotation (det(V) = 1).
 */
 void Jacobi(ksl_mat3x3_t& A, ksl_mat3x3_t& V);
 
+/*!
+@brief the frame of a shape with an axis (a cylinder or a capsule) around
+points: its z axis is the direction of greatest spread of the points, and its
+origin is the center of their bounding box along the three axes
+
+On return, low and high are the extents of the points along z about the
+origin, and radius is the greatest distance of a point from the axis.
+*/
+void FitAxis(const std::vector<ksl_vec3_t>& points, ksl_SE3_t& frame,
+             double& low, double& high, double& radius);
+
 } // namespace collision_geometry
 } // namespace core
 } // namespace shift

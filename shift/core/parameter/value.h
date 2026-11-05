@@ -269,6 +269,17 @@ public:
   bool is_required() {
     return required_;
   }
+  ValueType get_value_type() const {
+    return parameter_type_;
+  }
+  /*! \brief whether the value is an object with parameters of its own (a
+   * list), or a collection of named objects (an array) */
+  bool is_list() const {
+    return is_list_;
+  }
+  bool is_array() const {
+    return is_array_;
+  }
 
   const std::string& get_description() {
     return description_;
@@ -331,6 +342,18 @@ public:
   Value& set_load_from_json(bool load) {
     load_from_json_ = load;
     return *this;
+  }
+  /*! \brief mark the parameter as one that may be changed while the model
+   * runs (by a schedule controller, a script or the viewer): the module reads
+   * it each time it evaluates its forces, and does not compute anything from
+   * it only when it loads. A parameter is not changeable at run time unless
+   * its module says so. */
+  Value& set_runtime(bool runtime = true) {
+    runtime_ = runtime;
+    return *this;
+  }
+  bool is_runtime() const {
+    return runtime_;
   }
 
   Value& set_quaternion_maps_to_mat3x3(bool enabled) {
@@ -414,6 +437,7 @@ private:
                                         // Value should be logged
                                         // during simulation
   bool load_from_json_ = true;          //!< load from json input file
+  bool runtime_ = false;                //!< may be changed as the model runs
   std::any data_;                       //!< contains pointer to value
   std::string description_;
   bool required_;

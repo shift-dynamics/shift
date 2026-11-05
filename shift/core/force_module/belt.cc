@@ -44,9 +44,12 @@ void shift::core::force_module::Belt::DeclareParameters() {
                    false);
   DeclareParameter("friction_coefficient", &friction_coefficient_,
                    "friction coefficient of the belt on each pulley; "
-                   "optional, without it the belt does not slip",
+                   "optional, without it the belt does not slip; the "
+                   "values can be changed as the model runs (not to "
+                   "negative values)",
                    false)
-    .set_row_dim(-1);
+    .set_row_dim(-1)
+    .set_runtime();
   DeclareParameter("slip_damping", &slip_damping_,
                    "with friction_coefficient: force difference per unit "
                    "slip speed beyond the friction limit",

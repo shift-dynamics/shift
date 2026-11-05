@@ -1,0 +1,192 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 0.5,
+        "time_step": 0.0001,
+        "relative_error": 1e-07,
+        "absolute_error": 1e-10
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "gear_mesh.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "axis_2",
+      "T": [
+        0.15,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "gearbox",
+      "comment": "A spur gear pair: a 20 tooth pinion of 50 mm pitch radius drives a wheel of 100 mm pitch radius, loaded by a viscous torque of 0.2 N m s on the wheel. The pinion is held at 100 rad/s by a PID controller. Teeth of 3e8 N/m with a contact ratio of 1.6 (two pairs in contact for 0.6 of the mesh, one for the rest), 20 degree pressure angle, 20 um of backlash and a profile error of 0.5 um once a mesh. The mesh force ripples at the mesh frequency, 20 x 100 / 2 pi = 318 Hz, and its harmonics (the whine of gears); the transmission error is logged.",
+      "bodies": [
+        {
+          "name": "pinion",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 0.01,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "wheel",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 2.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 0.08,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "pinion_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "pinion"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "wheel_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "axis_2"
+          ],
+          "child": [
+            [
+              "wheel"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "damping_coefficients": [
+            0,
+            0.2
+          ]
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "pinion_speed",
+          "joint": "pinion_bearing",
+          "quantity": "velocity"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "drive",
+          "kp": 5.0,
+          "ki": 200.0,
+          "kd": 0.0,
+          "target": 100.0,
+          "sensor": "pinion_speed",
+          "joint": "pinion_bearing"
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "gear_mesh",
+          "name": "mesh",
+          "gear_1": [
+            "pinion",
+            "origin"
+          ],
+          "gear_2": [
+            "wheel",
+            "origin"
+          ],
+          "pitch_radius_1": 0.05,
+          "pitch_radius_2": 0.1,
+          "teeth_1": 20,
+          "pressure_angle": 0.349,
+          "tooth_stiffness": 300000000.0,
+          "contact_ratio": 1.6,
+          "ramp": 0.1,
+          "damping": 12000.0,
+          "backlash": 2e-05,
+          "profile_error": [
+            0,
+            0,
+            0.25,
+            5e-07,
+            0.5,
+            0,
+            0.75,
+            -5e-07,
+            1,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}

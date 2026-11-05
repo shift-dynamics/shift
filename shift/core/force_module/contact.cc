@@ -5,7 +5,9 @@
 
 #include "shift/core/body/base.h"
 #include "shift/core/body/free.h"
+#include "shift/core/collision_geometry/capsule.h"
 #include "shift/core/collision_geometry/convex_hull.h"
+#include "shift/core/collision_geometry/cylinder.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/gjk.h"
 #include "shift/core/collision_geometry/hertz.h"
@@ -42,7 +44,7 @@ void shift::core::force_module::ContactMaterial::DeclareParameters() {
                    true);
   DeclareParameter("youngs_modulus", &youngs_modulus,
                    "Young's modulus, for Hertz contact of curved surfaces "
-                   "(spheres, ellipsoids, planes)",
+                   "(spheres, ellipsoids, cylinders, capsules, planes)",
                    false);
   DeclareParameter("poisson_ratio", &poisson_ratio,
                    "Poisson's ratio, for Hertz contact; defaults to 0.3",
@@ -299,7 +301,7 @@ void shift::core::force_module::Contact::Load() {
          law.modulus <= 0.0) {
         throw shift::core::Exception(
           description + ": Hertz contact of " + names +
-          " (spheres, ellipsoids, planes) needs the youngs_modulus of both "
+          " (spheres, ellipsoids, cylinders, capsules, planes) needs the youngs_modulus of both "
           "materials");
       }
     }
@@ -348,6 +350,17 @@ static bool Curvature(const shift::core::collision_geometry::Base* geometry,
       sum += local.at[k] * local.at[k] / (a2 * a2);
     }
     curvature = 1.0 / (s.x * s.y * s.z * sum);
+    return true;
+  }
+  /* a cylinder or a capsule against a shape other than a plane: Hertz
+  contact at its deepest point as if round, of its radius (against a plane
+  its contact is a line, see ComputeManifold) */
+  if(auto cylinder = dynamic_cast<const Cylinder*>(geometry)) {
+    curvature = 1.0 / cylinder->get_radius();
+    return true;
+  }
+  if(auto capsule = dynamic_cast<const Capsule*>(geometry)) {
+    curvature = 1.0 / capsule->get_radius();
     return true;
   }
   if(dynamic_cast<const Plane*>(geometry)) {

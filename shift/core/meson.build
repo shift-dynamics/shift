@@ -6,7 +6,6 @@ core_src = files(
   'factory.cc',
   'frame.cc',
   'jacobian.cc',
-  'kd_tree.cc',
   'log.cc',
   'model_parameters.cc',
   'substructure.cc',

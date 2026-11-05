@@ -45,7 +45,8 @@ void shift::core::force_module::HydraulicCylinder::DeclareParameters() {
                    "1.5e9 Pa",
                    false);
   DeclareParameter("supply_pressure", &supply_pressure_,
-                   "pressure at the valve's supply port", true);
+                   "pressure at the valve's supply port", true)
+    .set_runtime();
   DeclareParameter("relief_pressure", &relief_pressure_,
                    "opening pressure of the relief valves", true);
   DeclareParameter("tank_pressure", &tank_pressure_,
@@ -63,11 +64,12 @@ void shift::core::force_module::HydraulicCylinder::DeclareParameters() {
                    "pressure drop below which the valve flow is laminar; "
                    "optional, default 5 % of rated_pressure_drop",
                    false);
-  DeclareParameter("command", &command_points_,
-                   "valve opening, -1 to 1, against time: [t0, u0, t1, u1, "
-                   "...]; optional",
+  DeclareParameter("command", &command_,
+                   "valve opening, -1 to 1; optional, default 0 (closed); "
+                   "changed as the model runs by a schedule controller or "
+                   "set_command",
                    false)
-    .set_row_dim(-1);
+    .set_runtime();
   DeclareParameter("relief_flow_gain", &relief_flow_gain_,
                    "relief flow per unit pressure over the relief pressure; "
                    "optional, default rated_flow / (0.1 relief_pressure)",
@@ -79,18 +81,22 @@ void shift::core::force_module::HydraulicCylinder::DeclareParameters() {
   DeclareParameter("leakage", &leakage_,
                    "flow past the piston per unit pressure difference; "
                    "optional, default 0",
-                   false);
+                   false)
+    .set_runtime();
   DeclareParameter("friction", &friction_,
                    "viscous friction of the seals; optional, default 0",
-                   false);
+                   false)
+    .set_runtime();
   DeclareParameter("end_stop_stiffness", &end_stop_stiffness_,
                    "stiffness of the stops at the ends of the stroke; "
                    "optional, default 0 (no stops)",
-                   false);
+                   false)
+    .set_runtime();
   DeclareParameter("end_stop_damping", &end_stop_damping_,
                    "Hunt-Crossley damping of the stops, per unit "
                    "penetration rate; optional, default 0",
-                   false);
+                   false)
+    .set_runtime();
   DeclareParameter("hold", &hold_,
                    "start with the pressures that hold the cylinder still, "
                    "in place of initial_pressures; optional, default false",
@@ -161,11 +167,6 @@ void shift::core::force_module::HydraulicCylinder::Load() {
   if(makeup_flow_gain_ < 0.0) {
     makeup_flow_gain_ = rated_flow_ / 1e6;
   }
-  command_table_ = command_points_.empty()
-                     ? Table()
-                     : Table::FromPairs(command_points_,
-                                        Table::Extrapolation::kHold,
-                                        prefix + "command");
   if(hold_ && !initial_pressures_.empty()) {
     throw shift::core::Exception(prefix + "give hold or initial_pressures, "
                                  "not both");
@@ -208,18 +209,17 @@ void shift::core::force_module::HydraulicCylinder::Service(const double* y,
       hold_force_;
     return;
   }
-  Evaluate(context_->get_force_time(), y, dy);
+  Evaluate(y, dy);
   context_->get_joint_working_forces()[joint_->get_dq_index()] +=
     direction_ * force_;
 }
 
 void shift::core::force_module::HydraulicCylinder::UpdateOutputs(
-  double t, const double* y) {
-  Evaluate(t, y, nullptr);
+  double, const double* y) {
+  Evaluate(y, nullptr);
 }
 
-void shift::core::force_module::HydraulicCylinder::Evaluate(double t,
-                                                            const double* y,
+void shift::core::force_module::HydraulicCylinder::Evaluate(const double* y,
                                                             double* dy) {
   assert(joint_ && context_);
   const double q = y[joint_->get_q_index()];
@@ -231,10 +231,7 @@ void shift::core::force_module::HydraulicCylinder::Evaluate(double t,
   extension_ = x;
 
   /* the valve: u > 0 connects supply to head and rod to tank */
-  double u = command_table_.empty()
-               ? command_
-               : command_table_.Evaluate(t);
-  u = std::clamp(u, -1.0, 1.0);
+  const double u = std::clamp(command_, -1.0, 1.0);
   opening_ = u;
   if(u >= 0.0) {
     q_head_ = u * EdgeFlow(supply_pressure_ - p_head_);
@@ -301,7 +298,7 @@ void shift::core::force_module::HydraulicCylinder::Hold(double force,
   friction and the stops at the initial state */
   std::vector<double> state(y, y + state_offset_ + 2);
   state[state_offset_] = state[state_offset_ + 1] = 0.0;
-  Evaluate(0.0, state.data(), nullptr);
+  Evaluate(state.data(), nullptr);
   const double pressures = direction_ * force - force_;
   if(pressures >= tank_pressure_ * (area_head_ - area_rod_)) {
     q_0_ = {(pressures + tank_pressure_ * area_rod_) / area_head_,

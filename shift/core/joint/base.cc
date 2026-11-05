@@ -5,9 +5,11 @@
 #include "shift/core/exception.h"
 #include "shift/core/joint/base.h"
 #include "shift/core/joint/float.h"
+#include "shift/core/joint/gear.h"
 #include "shift/core/joint/prismatic.h"
 #include "shift/core/joint/revolute.h"
 #include "shift/core/joint/rigid.h"
+#include "shift/core/joint/screw.h"
 #include "shift/core/joint/spherical.h"
 
 bool shift::core::joint::Modules::is_initialized() {
@@ -24,6 +26,12 @@ bool shift::core::joint::Modules::is_initialized() {
     return false;
   }
   if(!shift::core::joint::Spherical::is_registered()) {
+    return false;
+  }
+  if(!shift::core::joint::Screw::is_registered()) {
+    return false;
+  }
+  if(!shift::core::joint::Gear::is_registered()) {
     return false;
   }
   return true;

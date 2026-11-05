@@ -54,9 +54,15 @@ protected:
                    const std::vector<unsigned int>& faces) override;
   virtual void CopyFit(const Base& other) override;
 
-private:
-    static bool registered_;
+  /*! \brief set the hull from its vertices and faces (the part of Fit that
+   * does not depend on the type, so a box can fit its own way) */
+  void SetHull(const std::vector<ksl_vec3_t>& vertices,
+               const std::vector<unsigned int>& faces);
+
   ksl_vec3_t half_extents_ = {{0.0, 0.0, 0.0}}; //!< of a box, if given
+
+private:
+  static bool registered_;
   std::shared_ptr<const ConvexHullData> hull_ =
     std::make_shared<ConvexHullData>();
 };

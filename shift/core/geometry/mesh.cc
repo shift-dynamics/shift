@@ -49,9 +49,12 @@ void shift::core::geometry::Mesh::DeclareParameters() {
                    false);
   DeclareParameter("scale", &scale_,
                    "scale factors of the mesh about its origin: [s], or "
-                   "[sx, sy, sz] along its x, y and z axes, all positive; "
-                   "defaults to [1]. Applied before the mesh is placed on the "
-                   "body, e.g. [0.001] for a mesh drawn in millimeters",
+                   "[sx, sy, sz] along its x, y and z axes, none zero; a "
+                   "negative factor mirrors the mesh across the plane "
+                   "perpendicular to that axis. Defaults to [1]. Applied "
+                   "before the mesh is placed on the body, e.g. [0.001] for "
+                   "a mesh drawn in millimeters, or [1, 1, -1] for the "
+                   "mirror image of a mesh in its x-y plane",
                    false)
     .set_row_dim(-1);
 }
@@ -87,8 +90,8 @@ void shift::core::geometry::Mesh::Load() {
   for(int k = 0; k < 3; k++) {
     scale_xyz_[k] =
       scale_.empty() ? 1.0 : scale_.size() == 1 ? scale_[0] : scale_[k];
-    if(!(scale_xyz_[k] > 0.0)) {
-      throw shift::core::Exception("Mesh scale factors must be positive");
+    if(!(std::fabs(scale_xyz_[k]) > 0.0)) {
+      throw shift::core::Exception("Mesh scale factors must not be zero");
     }
   }
 
@@ -235,7 +238,9 @@ void shift::core::geometry::Mesh::Import(const std::string& file,
         mesh_data.bitangents[3 * j + 2] = scene->mMeshes[i]->mBitangents[j].z;
       }
     }
-    if(scale_xyz_[0] != scale_xyz_[1] || scale_xyz_[1] != scale_xyz_[2]) {
+    const bool mirrored = scale_xyz_[0] * scale_xyz_[1] * scale_xyz_[2] < 0.0;
+    if(mirrored || scale_xyz_[0] != scale_xyz_[1] ||
+       scale_xyz_[1] != scale_xyz_[2]) {
       // under a scale S, directions in the surface (tangents) go to S t and
       // normals to S^-1 n, each normalized again
       ScaleDirections(mesh_data.normals, false);
@@ -261,6 +266,10 @@ void shift::core::geometry::Mesh::Import(const std::string& file,
       mesh_data.faces[3 * j + 0] = scene->mMeshes[i]->mFaces[j].mIndices[0];
       mesh_data.faces[3 * j + 1] = scene->mMeshes[i]->mFaces[j].mIndices[1];
       mesh_data.faces[3 * j + 2] = scene->mMeshes[i]->mFaces[j].mIndices[2];
+      if(mirrored) {
+        // a mirror reverses the winding of the faces
+        std::swap(mesh_data.faces[3 * j + 1], mesh_data.faces[3 * j + 2]);
+      }
     }
 
     mesh_data.material_index =

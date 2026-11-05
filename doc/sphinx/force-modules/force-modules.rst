@@ -68,6 +68,9 @@ Keys of every force module:
    beam
    belt
    hydraulic-cylinder
+   lead-screw
+   gear-mesh
+   journal-bearing
 
 .. list-table::
    :header-rows: 1

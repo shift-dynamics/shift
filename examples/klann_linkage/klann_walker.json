@@ -1,0 +1,5590 @@
+{
+  // A walker of eight Klann legs (written by make_klann_walker.py from
+  // klann_linkage.json): four legs on each side of a chassis that is free to
+  // move, each leg in its own plane, the right legs mirror images of the left,
+  // with the cranks of four legs fixed to each of two shafts, a front and a
+  // rear one, which PID controllers drive. Only the tip of each leg, a cylinder, has contact, and
+  // only with the ground plane.
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0,
+      0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "enable_contact_detection": true,
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 10.0,
+        "time_step": 0.02,
+        "relative_error": 1e-05,
+        "absolute_error": 1e-05
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "klann_walker.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "overhead_1",
+      "T": [
+        6.0,
+        -6.0,
+        -6.0
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "T": [
+        -6.0,
+        6.0,
+        -6.0
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_1"
+      ],
+      "Ka": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_2"
+      ],
+      "Ka": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    }
+  ],
+  "collision_geometry": [
+    {
+      "name": "ground",
+      "type": "plane",
+      "normal": [
+        0,
+        0,
+        -1
+      ],
+      "offset": -1.9,
+      "material": "ground"
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "klann_walker",
+      "bodies": [
+        {
+          "name": "chassis",
+          "frames": [
+            {
+              "name": "f_shaft",
+              "T": [
+                0.7,
+                0.0,
+                0.9
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "fl1_second_rocker",
+              "T": [
+                1.29,
+                -0.35,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "fl1_first_rocker",
+              "T": [
+                0.9329999999999999,
+                -0.25,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "fl2_second_rocker",
+              "T": [
+                1.29,
+                -0.65,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "fl2_first_rocker",
+              "T": [
+                0.9329999999999999,
+                -0.75,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "fr1_second_rocker",
+              "T": [
+                1.29,
+                0.35,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "fr1_first_rocker",
+              "T": [
+                0.9329999999999999,
+                0.25,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "fr2_second_rocker",
+              "T": [
+                1.29,
+                0.65,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "fr2_first_rocker",
+              "T": [
+                0.9329999999999999,
+                0.75,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "f_top_bar",
+              "T": [
+                0.9329999999999999,
+                0.0,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "b_shaft",
+              "T": [
+                -0.7,
+                0.0,
+                0.9
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "bl1_second_rocker",
+              "T": [
+                -1.29,
+                -0.35,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "bl1_first_rocker",
+              "T": [
+                -0.9329999999999999,
+                -0.25,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "bl2_second_rocker",
+              "T": [
+                -1.29,
+                -0.65,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "bl2_first_rocker",
+              "T": [
+                -0.9329999999999999,
+                -0.75,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "br1_second_rocker",
+              "T": [
+                -1.29,
+                0.35,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "br1_first_rocker",
+              "T": [
+                -0.9329999999999999,
+                0.25,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "br2_second_rocker",
+              "T": [
+                -1.29,
+                0.65,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "br2_first_rocker",
+              "T": [
+                -0.9329999999999999,
+                0.75,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "b_top_bar",
+              "T": [
+                -0.9329999999999999,
+                0.0,
+                0.28400000000000003
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "c_shaft",
+              "T": [
+                0.0,
+                0.0,
+                0.9
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "ifl_gear",
+              "T": [
+                0.35,
+                -0.6,
+                0.9
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "ibl_gear",
+              "T": [
+                -0.35,
+                -0.6,
+                0.9
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "ifr_gear",
+              "T": [
+                0.35,
+                0.6,
+                0.9
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "ibr_gear",
+              "T": [
+                -0.35,
+                0.6,
+                0.9
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "l_plate",
+              "T": [
+                0.0,
+                -0.49999999999999994,
+                0.0
+              ]
+            },
+            {
+              "name": "r_plate",
+              "T": [
+                0.0,
+                0.49999999999999994,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.4
+          ],
+          "inertia": {
+            "mass": 30.0,
+            "Ixx": 29.0,
+            "Iyy": 50.0,
+            "Izz": 29.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fl1_first_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "first_rocker_arm.obj",
+                "first_rocker_arm.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "first_rocker_arm_distal",
+              "T": [
+                0.5176,
+                0.0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.24,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.54,
+            "Ixx": 0.0,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": 0.01,
+            "Iyz": 0.0,
+            "Izx": 0.01
+          }
+        },
+        {
+          "name": "ibr_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_idle.obj",
+                "walker_gear_idle.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh_in",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "name": "mesh_out",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "ifr_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_idle.obj",
+                "walker_gear_idle.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh_in",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "mesh_out",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "ibl_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_idle.obj",
+                "walker_gear_idle.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh_in",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "name": "mesh_out",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "ifl_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_idle.obj",
+                "walker_gear_idle.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh_in",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "mesh_out",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fl1_leg",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "leg.obj",
+                "leg.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "leg_distal_1",
+              "T": [
+                -0.8966114,
+                0,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.35,
+            0.83,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.66,
+            "Ixx": 0.58,
+            "Iyy": 0.25999999999999995,
+            "Izz": 0.7,
+            "Ixy": 0.25999999999999995,
+            "Iyz": 0.030000000000000002,
+            "Izx": 0.01
+          },
+          "collision_geometry": [
+            {
+              "name": "fl1_foot",
+              "type": "cylinder",
+              "radius": 0.05,
+              "half_length": 0.05,
+              "pose": {
+                "T": [
+                  -1.63,
+                  -0.42,
+                  0.05
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "fl1_connecting_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "connecting_rod.obj",
+                "connecting_rod.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "connecting_rod_distal_1",
+              "T": [
+                -0.59,
+                0,
+                0
+              ]
+            },
+            {
+              "name": "connecting_rod_distal_2",
+              "T": [
+                -1.099,
+                0.116,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.56,
+            -0.03,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.43,
+            "Ixx": 0.0,
+            "Iyy": 0.19,
+            "Izz": 0.19,
+            "Ixy": -0.01,
+            "Iyz": 0.0,
+            "Izx": 0.01
+          }
+        },
+        {
+          "name": "fl1_second_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "second_rocker_arm.obj",
+                "second_rocker_arm.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "second_rocker_arm_distal",
+              "T": [
+                0.3206244,
+                0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.16,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.13999999999999999,
+            "Ixx": 0.0,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fl1_crank",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "crank.obj",
+                "crank.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crank_distal",
+              "T": [
+                0.268,
+                0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.13,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.12,
+            "Ixx": 0.0016,
+            "Iyy": 0.0016,
+            "Izz": 0.003,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fl2_first_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "first_rocker_arm.obj",
+                "first_rocker_arm.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "first_rocker_arm_distal",
+              "T": [
+                0.5176,
+                0.0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.24,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.54,
+            "Ixx": 0.0,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": 0.01,
+            "Iyz": 0.0,
+            "Izx": 0.01
+          }
+        },
+        {
+          "name": "fl2_leg",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "leg.obj",
+                "leg.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "leg_distal_1",
+              "T": [
+                -0.8966114,
+                0,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.35,
+            0.83,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.66,
+            "Ixx": 0.58,
+            "Iyy": 0.25999999999999995,
+            "Izz": 0.7,
+            "Ixy": 0.25999999999999995,
+            "Iyz": 0.030000000000000002,
+            "Izx": 0.01
+          },
+          "collision_geometry": [
+            {
+              "name": "fl2_foot",
+              "type": "cylinder",
+              "radius": 0.05,
+              "half_length": 0.05,
+              "pose": {
+                "T": [
+                  -1.63,
+                  -0.42,
+                  0.05
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "fl2_connecting_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "connecting_rod.obj",
+                "connecting_rod.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "connecting_rod_distal_1",
+              "T": [
+                -0.59,
+                0,
+                0
+              ]
+            },
+            {
+              "name": "connecting_rod_distal_2",
+              "T": [
+                -1.099,
+                0.116,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.56,
+            -0.03,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.43,
+            "Ixx": 0.0,
+            "Iyy": 0.19,
+            "Izz": 0.19,
+            "Ixy": -0.01,
+            "Iyz": 0.0,
+            "Izx": 0.01
+          }
+        },
+        {
+          "name": "fl2_second_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "second_rocker_arm.obj",
+                "second_rocker_arm.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "second_rocker_arm_distal",
+              "T": [
+                0.3206244,
+                0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.16,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.13999999999999999,
+            "Ixx": 0.0,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fl2_crank",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "crank.obj",
+                "crank.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crank_distal",
+              "T": [
+                0.268,
+                0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.13,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.12,
+            "Ixx": 0.0016,
+            "Iyy": 0.0016,
+            "Izz": 0.003,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fr1_first_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "first_rocker_arm.obj",
+                "first_rocker_arm.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "first_rocker_arm_distal",
+              "T": [
+                0.5176,
+                0.0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.24,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.54,
+            "Ixx": 0.0,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": 0.01,
+            "Iyz": -0.0,
+            "Izx": -0.01
+          }
+        },
+        {
+          "name": "fr1_leg",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "leg.obj",
+                "leg.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "leg_distal_1",
+              "T": [
+                -0.8966114,
+                0,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.35,
+            0.83,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.66,
+            "Ixx": 0.58,
+            "Iyy": 0.25999999999999995,
+            "Izz": 0.7,
+            "Ixy": 0.25999999999999995,
+            "Iyz": -0.030000000000000002,
+            "Izx": -0.01
+          },
+          "collision_geometry": [
+            {
+              "name": "fr1_foot",
+              "type": "cylinder",
+              "radius": 0.05,
+              "half_length": 0.05,
+              "pose": {
+                "T": [
+                  -1.63,
+                  -0.42,
+                  -0.05
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "fr1_connecting_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "connecting_rod.obj",
+                "connecting_rod.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "connecting_rod_distal_1",
+              "T": [
+                -0.59,
+                0,
+                0
+              ]
+            },
+            {
+              "name": "connecting_rod_distal_2",
+              "T": [
+                -1.099,
+                0.116,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.56,
+            -0.03,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.43,
+            "Ixx": 0.0,
+            "Iyy": 0.19,
+            "Izz": 0.19,
+            "Ixy": -0.01,
+            "Iyz": -0.0,
+            "Izx": -0.01
+          }
+        },
+        {
+          "name": "fr1_second_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "second_rocker_arm.obj",
+                "second_rocker_arm.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "second_rocker_arm_distal",
+              "T": [
+                0.3206244,
+                0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.16,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.13999999999999999,
+            "Ixx": 0.0,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": -0.0,
+            "Izx": -0.0
+          }
+        },
+        {
+          "name": "fr1_crank",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "crank.obj",
+                "crank.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crank_distal",
+              "T": [
+                0.268,
+                0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.13,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.12,
+            "Ixx": 0.0016,
+            "Iyy": 0.0016,
+            "Izz": 0.003,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fr2_first_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "first_rocker_arm.obj",
+                "first_rocker_arm.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "first_rocker_arm_distal",
+              "T": [
+                0.5176,
+                0.0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.24,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.54,
+            "Ixx": 0.0,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": 0.01,
+            "Iyz": -0.0,
+            "Izx": -0.01
+          }
+        },
+        {
+          "name": "fr2_leg",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "leg.obj",
+                "leg.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "leg_distal_1",
+              "T": [
+                -0.8966114,
+                0,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.35,
+            0.83,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.66,
+            "Ixx": 0.58,
+            "Iyy": 0.25999999999999995,
+            "Izz": 0.7,
+            "Ixy": 0.25999999999999995,
+            "Iyz": -0.030000000000000002,
+            "Izx": -0.01
+          },
+          "collision_geometry": [
+            {
+              "name": "fr2_foot",
+              "type": "cylinder",
+              "radius": 0.05,
+              "half_length": 0.05,
+              "pose": {
+                "T": [
+                  -1.63,
+                  -0.42,
+                  -0.05
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "fr2_connecting_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "connecting_rod.obj",
+                "connecting_rod.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "connecting_rod_distal_1",
+              "T": [
+                -0.59,
+                0,
+                0
+              ]
+            },
+            {
+              "name": "connecting_rod_distal_2",
+              "T": [
+                -1.099,
+                0.116,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.56,
+            -0.03,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.43,
+            "Ixx": 0.0,
+            "Iyy": 0.19,
+            "Izz": 0.19,
+            "Ixy": -0.01,
+            "Iyz": -0.0,
+            "Izx": -0.01
+          }
+        },
+        {
+          "name": "fr2_second_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "second_rocker_arm.obj",
+                "second_rocker_arm.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "second_rocker_arm_distal",
+              "T": [
+                0.3206244,
+                0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.16,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.13999999999999999,
+            "Ixx": 0.0,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": -0.0,
+            "Izx": -0.0
+          }
+        },
+        {
+          "name": "fr2_crank",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "crank.obj",
+                "crank.mtl"
+              ],
+              "scale": [
+                1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crank_distal",
+              "T": [
+                0.268,
+                0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.13,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.12,
+            "Ixx": 0.0016,
+            "Iyy": 0.0016,
+            "Izz": 0.003,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "f_shaft",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                1.3
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "fl1_crank",
+              "T": [
+                0.0,
+                0.0,
+                0.35
+              ],
+              "R": [
+                [
+                  -0.9247541147399065,
+                  0.38056514195550256,
+                  0.0
+                ],
+                [
+                  -0.38056514195550256,
+                  -0.9247541147399065,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "fl2_crank",
+              "T": [
+                0.0,
+                0.0,
+                0.65
+              ],
+              "R": [
+                [
+                  0.9244465654909234,
+                  -0.3813116147615174,
+                  0.0
+                ],
+                [
+                  0.3813116147615174,
+                  0.9244465654909234,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "fr1_crank",
+              "T": [
+                0.0,
+                0.0,
+                -0.35
+              ],
+              "R": [
+                [
+                  -0.9247541147399065,
+                  0.38056514195550256,
+                  0.0
+                ],
+                [
+                  -0.38056514195550256,
+                  -0.9247541147399065,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "fr2_crank",
+              "T": [
+                0.0,
+                0.0,
+                -0.65
+              ],
+              "R": [
+                [
+                  0.9244465654909234,
+                  -0.3813116147615174,
+                  0.0
+                ],
+                [
+                  0.3813116147615174,
+                  0.9244465654909234,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "fl_gear",
+              "T": [
+                0.0,
+                0.0,
+                0.6
+              ]
+            },
+            {
+              "name": "fr_gear",
+              "T": [
+                0.0,
+                0.0,
+                -0.6
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 1.5,
+            "Iyy": 1.5,
+            "Izz": 0.002,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "f_top_bar",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                1.7
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 1.5,
+            "Iyy": 1.5,
+            "Izz": 0.002,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fl_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_drive.obj",
+                "walker_gear_drive.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fr_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_drive.obj",
+                "walker_gear_drive.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "bl1_first_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "first_rocker_arm.obj",
+                "first_rocker_arm.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "first_rocker_arm_distal",
+              "T": [
+                -0.5176,
+                0.0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.24,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.54,
+            "Ixx": 0.0,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": -0.01,
+            "Iyz": 0.0,
+            "Izx": -0.01
+          }
+        },
+        {
+          "name": "bl1_leg",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "leg.obj",
+                "leg.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "leg_distal_1",
+              "T": [
+                0.8966114,
+                0,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.35,
+            0.83,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.66,
+            "Ixx": 0.58,
+            "Iyy": 0.25999999999999995,
+            "Izz": 0.7,
+            "Ixy": -0.25999999999999995,
+            "Iyz": 0.030000000000000002,
+            "Izx": -0.01
+          },
+          "collision_geometry": [
+            {
+              "name": "bl1_foot",
+              "type": "cylinder",
+              "radius": 0.05,
+              "half_length": 0.05,
+              "pose": {
+                "T": [
+                  1.63,
+                  -0.42,
+                  0.05
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "bl1_connecting_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "connecting_rod.obj",
+                "connecting_rod.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "connecting_rod_distal_1",
+              "T": [
+                0.59,
+                0,
+                0
+              ]
+            },
+            {
+              "name": "connecting_rod_distal_2",
+              "T": [
+                1.099,
+                0.116,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.56,
+            -0.03,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.43,
+            "Ixx": 0.0,
+            "Iyy": 0.19,
+            "Izz": 0.19,
+            "Ixy": 0.01,
+            "Iyz": 0.0,
+            "Izx": -0.01
+          }
+        },
+        {
+          "name": "bl1_second_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "second_rocker_arm.obj",
+                "second_rocker_arm.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "second_rocker_arm_distal",
+              "T": [
+                -0.3206244,
+                0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.16,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.13999999999999999,
+            "Ixx": 0.0,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": -0.0
+          }
+        },
+        {
+          "name": "bl1_crank",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "crank.obj",
+                "crank.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crank_distal",
+              "T": [
+                -0.268,
+                0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.13,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.12,
+            "Ixx": 0.0016,
+            "Iyy": 0.0016,
+            "Izz": 0.003,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "bl2_first_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "first_rocker_arm.obj",
+                "first_rocker_arm.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "first_rocker_arm_distal",
+              "T": [
+                -0.5176,
+                0.0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.24,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.54,
+            "Ixx": 0.0,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": -0.01,
+            "Iyz": 0.0,
+            "Izx": -0.01
+          }
+        },
+        {
+          "name": "bl2_leg",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "leg.obj",
+                "leg.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "leg_distal_1",
+              "T": [
+                0.8966114,
+                0,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.35,
+            0.83,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.66,
+            "Ixx": 0.58,
+            "Iyy": 0.25999999999999995,
+            "Izz": 0.7,
+            "Ixy": -0.25999999999999995,
+            "Iyz": 0.030000000000000002,
+            "Izx": -0.01
+          },
+          "collision_geometry": [
+            {
+              "name": "bl2_foot",
+              "type": "cylinder",
+              "radius": 0.05,
+              "half_length": 0.05,
+              "pose": {
+                "T": [
+                  1.63,
+                  -0.42,
+                  0.05
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "bl2_connecting_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "connecting_rod.obj",
+                "connecting_rod.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "connecting_rod_distal_1",
+              "T": [
+                0.59,
+                0,
+                0
+              ]
+            },
+            {
+              "name": "connecting_rod_distal_2",
+              "T": [
+                1.099,
+                0.116,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.56,
+            -0.03,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.43,
+            "Ixx": 0.0,
+            "Iyy": 0.19,
+            "Izz": 0.19,
+            "Ixy": 0.01,
+            "Iyz": 0.0,
+            "Izx": -0.01
+          }
+        },
+        {
+          "name": "bl2_second_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "second_rocker_arm.obj",
+                "second_rocker_arm.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "second_rocker_arm_distal",
+              "T": [
+                -0.3206244,
+                0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.16,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.13999999999999999,
+            "Ixx": 0.0,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": -0.0
+          }
+        },
+        {
+          "name": "bl2_crank",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "crank.obj",
+                "crank.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crank_distal",
+              "T": [
+                -0.268,
+                0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.13,
+            0.0,
+            0.05
+          ],
+          "inertia": {
+            "mass": 0.12,
+            "Ixx": 0.0016,
+            "Iyy": 0.0016,
+            "Izz": 0.003,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "br1_first_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "first_rocker_arm.obj",
+                "first_rocker_arm.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "first_rocker_arm_distal",
+              "T": [
+                -0.5176,
+                0.0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.24,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.54,
+            "Ixx": 0.0,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": -0.01,
+            "Iyz": -0.0,
+            "Izx": 0.01
+          }
+        },
+        {
+          "name": "br1_leg",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "leg.obj",
+                "leg.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "leg_distal_1",
+              "T": [
+                0.8966114,
+                0,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.35,
+            0.83,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.66,
+            "Ixx": 0.58,
+            "Iyy": 0.25999999999999995,
+            "Izz": 0.7,
+            "Ixy": -0.25999999999999995,
+            "Iyz": -0.030000000000000002,
+            "Izx": 0.01
+          },
+          "collision_geometry": [
+            {
+              "name": "br1_foot",
+              "type": "cylinder",
+              "radius": 0.05,
+              "half_length": 0.05,
+              "pose": {
+                "T": [
+                  1.63,
+                  -0.42,
+                  -0.05
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "br1_connecting_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "connecting_rod.obj",
+                "connecting_rod.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "connecting_rod_distal_1",
+              "T": [
+                0.59,
+                0,
+                0
+              ]
+            },
+            {
+              "name": "connecting_rod_distal_2",
+              "T": [
+                1.099,
+                0.116,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.56,
+            -0.03,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.43,
+            "Ixx": 0.0,
+            "Iyy": 0.19,
+            "Izz": 0.19,
+            "Ixy": 0.01,
+            "Iyz": -0.0,
+            "Izx": 0.01
+          }
+        },
+        {
+          "name": "br1_second_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "second_rocker_arm.obj",
+                "second_rocker_arm.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "second_rocker_arm_distal",
+              "T": [
+                -0.3206244,
+                0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.16,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.13999999999999999,
+            "Ixx": 0.0,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": -0.0,
+            "Iyz": -0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "br1_crank",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "crank.obj",
+                "crank.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crank_distal",
+              "T": [
+                -0.268,
+                0,
+                0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.13,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.12,
+            "Ixx": 0.0016,
+            "Iyy": 0.0016,
+            "Izz": 0.003,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "br2_first_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "first_rocker_arm.obj",
+                "first_rocker_arm.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "first_rocker_arm_distal",
+              "T": [
+                -0.5176,
+                0.0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.24,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.54,
+            "Ixx": 0.0,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": -0.01,
+            "Iyz": -0.0,
+            "Izx": 0.01
+          }
+        },
+        {
+          "name": "br2_leg",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "leg.obj",
+                "leg.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "leg_distal_1",
+              "T": [
+                0.8966114,
+                0,
+                0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.35,
+            0.83,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.66,
+            "Ixx": 0.58,
+            "Iyy": 0.25999999999999995,
+            "Izz": 0.7,
+            "Ixy": -0.25999999999999995,
+            "Iyz": -0.030000000000000002,
+            "Izx": 0.01
+          },
+          "collision_geometry": [
+            {
+              "name": "br2_foot",
+              "type": "cylinder",
+              "radius": 0.05,
+              "half_length": 0.05,
+              "pose": {
+                "T": [
+                  1.63,
+                  -0.42,
+                  -0.05
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "br2_connecting_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "connecting_rod.obj",
+                "connecting_rod.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "connecting_rod_distal_1",
+              "T": [
+                0.59,
+                0,
+                0
+              ]
+            },
+            {
+              "name": "connecting_rod_distal_2",
+              "T": [
+                1.099,
+                0.116,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.56,
+            -0.03,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.43,
+            "Ixx": 0.0,
+            "Iyy": 0.19,
+            "Izz": 0.19,
+            "Ixy": 0.01,
+            "Iyz": -0.0,
+            "Izx": 0.01
+          }
+        },
+        {
+          "name": "br2_second_rocker_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "second_rocker_arm.obj",
+                "second_rocker_arm.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "second_rocker_arm_distal",
+              "T": [
+                -0.3206244,
+                0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.16,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.13999999999999999,
+            "Ixx": 0.0,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": -0.0,
+            "Iyz": -0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "br2_crank",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4,
+              "filename": [
+                "crank.obj",
+                "crank.mtl"
+              ],
+              "scale": [
+                -1,
+                1,
+                -1
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crank_distal",
+              "T": [
+                -0.268,
+                0,
+                -0.1
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.13,
+            0.0,
+            -0.05
+          ],
+          "inertia": {
+            "mass": 0.12,
+            "Ixx": 0.0016,
+            "Iyy": 0.0016,
+            "Izz": 0.003,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "b_shaft",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                1.3
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "bl1_crank",
+              "T": [
+                0.0,
+                0.0,
+                0.35
+              ],
+              "R": [
+                [
+                  0.9244465654909234,
+                  0.3813116147615174,
+                  0.0
+                ],
+                [
+                  -0.3813116147615174,
+                  0.9244465654909234,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "bl2_crank",
+              "T": [
+                0.0,
+                0.0,
+                0.65
+              ],
+              "R": [
+                [
+                  -0.9247541147399065,
+                  -0.38056514195550256,
+                  0.0
+                ],
+                [
+                  0.38056514195550256,
+                  -0.9247541147399065,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "br1_crank",
+              "T": [
+                0.0,
+                0.0,
+                -0.35
+              ],
+              "R": [
+                [
+                  0.9244465654909234,
+                  0.3813116147615174,
+                  0.0
+                ],
+                [
+                  -0.3813116147615174,
+                  0.9244465654909234,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "br2_crank",
+              "T": [
+                0.0,
+                0.0,
+                -0.65
+              ],
+              "R": [
+                [
+                  -0.9247541147399065,
+                  -0.38056514195550256,
+                  0.0
+                ],
+                [
+                  0.38056514195550256,
+                  -0.9247541147399065,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "bl_gear",
+              "T": [
+                0.0,
+                0.0,
+                0.6
+              ]
+            },
+            {
+              "name": "br_gear",
+              "T": [
+                0.0,
+                0.0,
+                -0.6
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 1.5,
+            "Iyy": 1.5,
+            "Izz": 0.002,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "b_top_bar",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                1.7
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 1.5,
+            "Iyy": 1.5,
+            "Izz": 0.002,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "bl_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_drive.obj",
+                "walker_gear_drive.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "br_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_drive.obj",
+                "walker_gear_drive.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "c_shaft",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                1.3
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "cl_gear",
+              "T": [
+                0.0,
+                0.0,
+                0.6
+              ]
+            },
+            {
+              "name": "cr_gear",
+              "T": [
+                0.0,
+                0.0,
+                -0.6
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 1.5,
+            "Iyy": 1.5,
+            "Izz": 0.002,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "cl_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_drive.obj",
+                "walker_gear_drive.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh_front",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "mesh_rear",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "cr_gear",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "walker_gear_drive.obj",
+                "walker_gear_drive.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "mesh_front",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ]
+            },
+            {
+              "name": "mesh_rear",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.539380400258999,
+            "Ixx": 0.013068698189698797,
+            "Iyy": 0.013068698189698797,
+            "Izz": 0.023571762378965928,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "l_plate",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "trapezoid_plate.obj",
+                "trapezoid_plate.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.556696753811813
+          ],
+          "inertia": {
+            "mass": 7.069900182380027,
+            "Ixx": 0.5430056165373164,
+            "Iyy": 3.068882012359877,
+            "Izz": 2.537659562793194,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "r_plate",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "trapezoid_plate.obj",
+                "trapezoid_plate.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.556696753811813
+          ],
+          "inertia": {
+            "mass": 7.069900182380027,
+            "Ixx": 0.5430056165373164,
+            "Iyy": 3.068882012359877,
+            "Izz": 2.537659562793194,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "chassis_float",
+          "type": "float",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "chassis"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              0.0,
+              0.0,
+              0.2
+            ]
+          }
+        },
+        {
+          "name": "fl1_a_fixed_to_crank",
+          "type": "rigid",
+          "parent": [
+            [
+              "f_shaft"
+            ],
+            "fl1_crank"
+          ],
+          "child": [
+            [
+              "fl1_crank"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "fl1_b_fixed_to_second_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fl1_second_rocker"
+          ],
+          "child": [
+            [
+              "fl1_second_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.3624,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl1_c_fixed_to_first_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fl1_first_rocker"
+          ],
+          "child": [
+            [
+              "fl1_first_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.4979,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl1_d_crank_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "fl1_crank"
+            ],
+            "crank_distal"
+          ],
+          "child": [
+            [
+              "fl1_connecting_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.4919,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl1_e_second_rocker_arm_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "fl1_second_rocker_arm"
+            ],
+            "second_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "fl1_connecting_rod"
+            ],
+            "connecting_rod_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 3.6615,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl1_f_first_rocker_arm_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "fl1_first_rocker_arm"
+            ],
+            "first_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "fl1_leg"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 4.5717,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl1_g_connecting_rod_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "fl1_connecting_rod"
+            ],
+            "connecting_rod_distal_2"
+          ],
+          "child": [
+            [
+              "fl1_leg"
+            ],
+            "leg_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.0458,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl2_a_fixed_to_crank",
+          "type": "rigid",
+          "parent": [
+            [
+              "f_shaft"
+            ],
+            "fl2_crank"
+          ],
+          "child": [
+            [
+              "fl2_crank"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "fl2_b_fixed_to_second_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fl2_second_rocker"
+          ],
+          "child": [
+            [
+              "fl2_second_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.6592,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl2_c_fixed_to_first_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fl2_first_rocker"
+          ],
+          "child": [
+            [
+              "fl2_first_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.4779,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl2_d_crank_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "fl2_crank"
+            ],
+            "crank_distal"
+          ],
+          "child": [
+            [
+              "fl2_connecting_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.2521,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl2_e_second_rocker_arm_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "fl2_second_rocker_arm"
+            ],
+            "second_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "fl2_connecting_rod"
+            ],
+            "connecting_rod_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 5.7631,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl2_f_first_rocker_arm_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "fl2_first_rocker_arm"
+            ],
+            "first_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "fl2_leg"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 5.1328,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fl2_g_connecting_rod_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "fl2_connecting_rod"
+            ],
+            "connecting_rod_distal_2"
+          ],
+          "child": [
+            [
+              "fl2_leg"
+            ],
+            "leg_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.1884,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr1_a_fixed_to_crank",
+          "type": "rigid",
+          "parent": [
+            [
+              "f_shaft"
+            ],
+            "fr1_crank"
+          ],
+          "child": [
+            [
+              "fr1_crank"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "fr1_b_fixed_to_second_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fr1_second_rocker"
+          ],
+          "child": [
+            [
+              "fr1_second_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.3624,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr1_c_fixed_to_first_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fr1_first_rocker"
+          ],
+          "child": [
+            [
+              "fr1_first_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.4979,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr1_d_crank_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "fr1_crank"
+            ],
+            "crank_distal"
+          ],
+          "child": [
+            [
+              "fr1_connecting_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.4919,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr1_e_second_rocker_arm_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "fr1_second_rocker_arm"
+            ],
+            "second_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "fr1_connecting_rod"
+            ],
+            "connecting_rod_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 3.6615,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr1_f_first_rocker_arm_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "fr1_first_rocker_arm"
+            ],
+            "first_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "fr1_leg"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 4.5717,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr1_g_connecting_rod_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "fr1_connecting_rod"
+            ],
+            "connecting_rod_distal_2"
+          ],
+          "child": [
+            [
+              "fr1_leg"
+            ],
+            "leg_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.0458,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr2_a_fixed_to_crank",
+          "type": "rigid",
+          "parent": [
+            [
+              "f_shaft"
+            ],
+            "fr2_crank"
+          ],
+          "child": [
+            [
+              "fr2_crank"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "fr2_b_fixed_to_second_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fr2_second_rocker"
+          ],
+          "child": [
+            [
+              "fr2_second_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.6592,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr2_c_fixed_to_first_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fr2_first_rocker"
+          ],
+          "child": [
+            [
+              "fr2_first_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.4779,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr2_d_crank_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "fr2_crank"
+            ],
+            "crank_distal"
+          ],
+          "child": [
+            [
+              "fr2_connecting_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.2521,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr2_e_second_rocker_arm_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "fr2_second_rocker_arm"
+            ],
+            "second_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "fr2_connecting_rod"
+            ],
+            "connecting_rod_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 5.7631,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr2_f_first_rocker_arm_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "fr2_first_rocker_arm"
+            ],
+            "first_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "fr2_leg"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 5.1328,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "fr2_g_connecting_rod_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "fr2_connecting_rod"
+            ],
+            "connecting_rod_distal_2"
+          ],
+          "child": [
+            [
+              "fr2_leg"
+            ],
+            "leg_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.1884,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "f_shaft_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "f_shaft"
+          ],
+          "child": [
+            [
+              "f_shaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "f_top_bar_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "f_top_bar"
+          ],
+          "child": [
+            [
+              "f_top_bar"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "fl_gear_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "f_shaft"
+            ],
+            "fl_gear"
+          ],
+          "child": [
+            [
+              "fl_gear"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "fr_gear_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "f_shaft"
+            ],
+            "fr_gear"
+          ],
+          "child": [
+            [
+              "fr_gear"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "bl1_a_fixed_to_crank",
+          "type": "rigid",
+          "parent": [
+            [
+              "b_shaft"
+            ],
+            "bl1_crank"
+          ],
+          "child": [
+            [
+              "bl1_crank"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "bl1_b_fixed_to_second_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "bl1_second_rocker"
+          ],
+          "child": [
+            [
+              "bl1_second_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.6592,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl1_c_fixed_to_first_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "bl1_first_rocker"
+          ],
+          "child": [
+            [
+              "bl1_first_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.4779,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl1_d_crank_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "bl1_crank"
+            ],
+            "crank_distal"
+          ],
+          "child": [
+            [
+              "bl1_connecting_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.2521,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl1_e_second_rocker_arm_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "bl1_second_rocker_arm"
+            ],
+            "second_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "bl1_connecting_rod"
+            ],
+            "connecting_rod_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -5.7631,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl1_f_first_rocker_arm_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "bl1_first_rocker_arm"
+            ],
+            "first_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "bl1_leg"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -5.1328,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl1_g_connecting_rod_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "bl1_connecting_rod"
+            ],
+            "connecting_rod_distal_2"
+          ],
+          "child": [
+            [
+              "bl1_leg"
+            ],
+            "leg_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.1884,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl2_a_fixed_to_crank",
+          "type": "rigid",
+          "parent": [
+            [
+              "b_shaft"
+            ],
+            "bl2_crank"
+          ],
+          "child": [
+            [
+              "bl2_crank"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "bl2_b_fixed_to_second_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "bl2_second_rocker"
+          ],
+          "child": [
+            [
+              "bl2_second_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.3624,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl2_c_fixed_to_first_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "bl2_first_rocker"
+          ],
+          "child": [
+            [
+              "bl2_first_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.4979,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl2_d_crank_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "bl2_crank"
+            ],
+            "crank_distal"
+          ],
+          "child": [
+            [
+              "bl2_connecting_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.4919,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl2_e_second_rocker_arm_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "bl2_second_rocker_arm"
+            ],
+            "second_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "bl2_connecting_rod"
+            ],
+            "connecting_rod_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -3.6615,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl2_f_first_rocker_arm_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "bl2_first_rocker_arm"
+            ],
+            "first_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "bl2_leg"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -4.5717,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "bl2_g_connecting_rod_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "bl2_connecting_rod"
+            ],
+            "connecting_rod_distal_2"
+          ],
+          "child": [
+            [
+              "bl2_leg"
+            ],
+            "leg_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.0458,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br1_a_fixed_to_crank",
+          "type": "rigid",
+          "parent": [
+            [
+              "b_shaft"
+            ],
+            "br1_crank"
+          ],
+          "child": [
+            [
+              "br1_crank"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "br1_b_fixed_to_second_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "br1_second_rocker"
+          ],
+          "child": [
+            [
+              "br1_second_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.6592,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br1_c_fixed_to_first_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "br1_first_rocker"
+          ],
+          "child": [
+            [
+              "br1_first_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.4779,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br1_d_crank_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "br1_crank"
+            ],
+            "crank_distal"
+          ],
+          "child": [
+            [
+              "br1_connecting_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.2521,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br1_e_second_rocker_arm_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "br1_second_rocker_arm"
+            ],
+            "second_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "br1_connecting_rod"
+            ],
+            "connecting_rod_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -5.7631,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br1_f_first_rocker_arm_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "br1_first_rocker_arm"
+            ],
+            "first_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "br1_leg"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -5.1328,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br1_g_connecting_rod_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "br1_connecting_rod"
+            ],
+            "connecting_rod_distal_2"
+          ],
+          "child": [
+            [
+              "br1_leg"
+            ],
+            "leg_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.1884,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br2_a_fixed_to_crank",
+          "type": "rigid",
+          "parent": [
+            [
+              "b_shaft"
+            ],
+            "br2_crank"
+          ],
+          "child": [
+            [
+              "br2_crank"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "br2_b_fixed_to_second_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "br2_second_rocker"
+          ],
+          "child": [
+            [
+              "br2_second_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.3624,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br2_c_fixed_to_first_rocker_arm",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "br2_first_rocker"
+          ],
+          "child": [
+            [
+              "br2_first_rocker_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.4979,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br2_d_crank_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "br2_crank"
+            ],
+            "crank_distal"
+          ],
+          "child": [
+            [
+              "br2_connecting_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.4919,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br2_e_second_rocker_arm_to_connecting_rod",
+          "type": "revolute",
+          "parent": [
+            [
+              "br2_second_rocker_arm"
+            ],
+            "second_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "br2_connecting_rod"
+            ],
+            "connecting_rod_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -3.6615,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br2_f_first_rocker_arm_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "br2_first_rocker_arm"
+            ],
+            "first_rocker_arm_distal"
+          ],
+          "child": [
+            [
+              "br2_leg"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -4.5717,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "br2_g_connecting_rod_to_leg",
+          "type": "revolute",
+          "parent": [
+            [
+              "br2_connecting_rod"
+            ],
+            "connecting_rod_distal_2"
+          ],
+          "child": [
+            [
+              "br2_leg"
+            ],
+            "leg_distal_1"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.0458,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "b_shaft_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "b_shaft"
+          ],
+          "child": [
+            [
+              "b_shaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "b_top_bar_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "b_top_bar"
+          ],
+          "child": [
+            [
+              "b_top_bar"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "bl_gear_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "b_shaft"
+            ],
+            "bl_gear"
+          ],
+          "child": [
+            [
+              "bl_gear"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "br_gear_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "b_shaft"
+            ],
+            "br_gear"
+          ],
+          "child": [
+            [
+              "br_gear"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "c_shaft_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "c_shaft"
+          ],
+          "child": [
+            [
+              "c_shaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "cl_gear_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "c_shaft"
+            ],
+            "cl_gear"
+          ],
+          "child": [
+            [
+              "cl_gear"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "cr_gear_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "c_shaft"
+            ],
+            "cr_gear"
+          ],
+          "child": [
+            [
+              "cr_gear"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "ifl_gear_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "ifl_gear"
+          ],
+          "child": [
+            [
+              "ifl_gear"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "cl_gear_to_ifl_gear",
+          "type": "gear",
+          "separation": 0.35000000000000003,
+          "gear_ratio": 1.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "parent": [
+            [
+              "cl_gear"
+            ],
+            "mesh_front"
+          ],
+          "child": [
+            [
+              "ifl_gear"
+            ],
+            "mesh_in"
+          ]
+        },
+        {
+          "name": "ifl_gear_to_fl_gear",
+          "type": "gear",
+          "separation": 0.35000000000000003,
+          "gear_ratio": 1.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "parent": [
+            [
+              "ifl_gear"
+            ],
+            "mesh_out"
+          ],
+          "child": [
+            [
+              "fl_gear"
+            ],
+            "mesh"
+          ]
+        },
+        {
+          "name": "ibl_gear_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "ibl_gear"
+          ],
+          "child": [
+            [
+              "ibl_gear"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "cl_gear_to_ibl_gear",
+          "type": "gear",
+          "separation": 0.35000000000000003,
+          "gear_ratio": 1.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "parent": [
+            [
+              "cl_gear"
+            ],
+            "mesh_rear"
+          ],
+          "child": [
+            [
+              "ibl_gear"
+            ],
+            "mesh_in"
+          ]
+        },
+        {
+          "name": "ibl_gear_to_bl_gear",
+          "type": "gear",
+          "separation": 0.35000000000000003,
+          "gear_ratio": 1.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "parent": [
+            [
+              "ibl_gear"
+            ],
+            "mesh_out"
+          ],
+          "child": [
+            [
+              "bl_gear"
+            ],
+            "mesh"
+          ]
+        },
+        {
+          "name": "ifr_gear_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "ifr_gear"
+          ],
+          "child": [
+            [
+              "ifr_gear"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "cr_gear_to_ifr_gear",
+          "type": "gear",
+          "separation": 0.35000000000000003,
+          "gear_ratio": 1.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "parent": [
+            [
+              "cr_gear"
+            ],
+            "mesh_front"
+          ],
+          "child": [
+            [
+              "ifr_gear"
+            ],
+            "mesh_in"
+          ]
+        },
+        {
+          "name": "ifr_gear_to_fr_gear",
+          "type": "gear",
+          "separation": 0.35000000000000003,
+          "gear_ratio": 1.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "parent": [
+            [
+              "ifr_gear"
+            ],
+            "mesh_out"
+          ],
+          "child": [
+            [
+              "fr_gear"
+            ],
+            "mesh"
+          ]
+        },
+        {
+          "name": "ibr_gear_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "ibr_gear"
+          ],
+          "child": [
+            [
+              "ibr_gear"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "cr_gear_to_ibr_gear",
+          "type": "gear",
+          "separation": 0.35000000000000003,
+          "gear_ratio": 1.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "parent": [
+            [
+              "cr_gear"
+            ],
+            "mesh_rear"
+          ],
+          "child": [
+            [
+              "ibr_gear"
+            ],
+            "mesh_in"
+          ]
+        },
+        {
+          "name": "ibr_gear_to_br_gear",
+          "type": "gear",
+          "separation": 0.35000000000000003,
+          "gear_ratio": 1.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "parent": [
+            [
+              "ibr_gear"
+            ],
+            "mesh_out"
+          ],
+          "child": [
+            [
+              "br_gear"
+            ],
+            "mesh"
+          ]
+        },
+        {
+          "name": "l_plate_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "l_plate"
+          ],
+          "child": [
+            [
+              "l_plate"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "r_plate_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "r_plate"
+          ],
+          "child": [
+            [
+              "r_plate"
+            ],
+            "origin"
+          ]
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "c_shaft_speed",
+          "joint": "c_shaft_bearing",
+          "quantity": "velocity"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "c_shaft_drive",
+          "kp": 3000.0,
+          "ki": 6000.0,
+          "kd": 0.0,
+          "target": -3.0,
+          "sensor": "c_shaft_speed",
+          "joint": "c_shaft_bearing"
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "contact",
+          "name": "contact",
+          "damping_depth": 0.001,
+          "materials": [
+            {
+              "name": "foot",
+              "youngs_modulus": 2000000.0,
+              "poisson_ratio": 0.45,
+              "damping": 12000.0,
+              "friction": 0.9,
+              "contact_stiffness": 100000.0
+            },
+            {
+              "name": "ground",
+              "youngs_modulus": 50000000.0,
+              "poisson_ratio": 0.3,
+              "damping": 1000000000.0,
+              "friction": 0.9,
+              "contact_stiffness": 1000000.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

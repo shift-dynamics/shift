@@ -1,0 +1,207 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 1.0,
+        "time_step": 0.0005,
+        "relative_error": 1e-07,
+        "absolute_error": 1e-10
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "journal_bearing.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "bearing_axis",
+      "T": [
+        0,
+        0,
+        0
+      ],
+      "R": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "rotor",
+      "comment": "A 10 kg shaft turning at 100 rad/s in a plain journal bearing of 25 mm radius, 25 mm long, with a radial clearance of 50 um and oil of 5 mPa s, its axis horizontal (the bearing's frame is turned so that its z axis is along the shaft). Released concentric, the shaft sinks and settles where the oil film carries its weight: an eccentricity ratio of about 0.6, with the journal displaced to one side of the load line (the attitude angle of the short bearing, tan(phi) = pi sqrt(1 - e^2) / (4 e)). The eccentricity ratio, the minimum film thickness, the peak film pressure, the friction torque and the oil flow are logged.",
+      "bodies": [
+        {
+          "name": "carriage_x",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 0.001,
+            "Ixx": 1e-06,
+            "Iyy": 1e-06,
+            "Izz": 1e-06,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "carriage_y",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 0.001,
+            "Ixx": 1e-06,
+            "Iyy": 1e-06,
+            "Izz": 1e-06,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "shaft",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 10.0,
+            "Ixx": 0.1,
+            "Iyy": 0.1,
+            "Izz": 1000.0,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "slide_x",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "bearing_axis"
+          ],
+          "child": [
+            [
+              "carriage_x"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "slide_y",
+          "type": "prismatic",
+          "parent": [
+            [
+              "carriage_x"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "carriage_y"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "name": "spin",
+          "type": "revolute",
+          "parent": [
+            [
+              "carriage_y"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "shaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_velocity": 100.0
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "journal_bearing",
+          "name": "bearing",
+          "journal": [
+            "shaft",
+            "origin"
+          ],
+          "bearing": [
+            "fixed",
+            "bearing_axis"
+          ],
+          "radius": 0.025,
+          "length": 0.025,
+          "clearance": 5e-05,
+          "viscosity": 0.005
+        }
+      ]
+    }
+  ]
+}

@@ -30,7 +30,9 @@ SUCH DAMAGE.
 
 #include "shift/core/joint/float.h"
 #include "shift/core/joint/prismatic.h"
+#include "shift/core/joint/gear.h"
 #include "shift/core/joint/revolute.h"
+#include "shift/core/joint/screw.h"
 #include "shift/core/joint/rigid.h"
 #include "shift/core/joint/spherical.h"
 
@@ -161,6 +163,14 @@ std::string shift::core::topology::GetJointType(dh_fptr f) {
     return "REVOLUTE_RA";
   } else if(f == shift::core::joint::rainv_dh) {
     return "REVOLUTE_RA_INVERSE";
+  } else if(f == shift::core::joint::screw_dh) {
+    return "SCREW";
+  } else if(f == shift::core::joint::screwinv_dh) {
+    return "SCREW_INVERSE";
+  } else if(f == shift::core::joint::gear_dh) {
+    return "GEAR";
+  } else if(f == shift::core::joint::gearinv_dh) {
+    return "GEAR_INVERSE";
   } else if(f == shift::core::joint::rigid_dh) {
     return "RIGID";
   } else if(f == shift::core::joint::rigidinv_dh) {

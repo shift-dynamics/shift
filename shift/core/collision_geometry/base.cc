@@ -1,8 +1,11 @@
 #include "shift/core/collision_geometry/base.h"
 
 #include "shift/core/body/base.h"
+#include "shift/core/collision_geometry/box.h"
 #include "shift/core/collision_geometry/cad.h"
+#include "shift/core/collision_geometry/capsule.h"
 #include "shift/core/collision_geometry/convex_hull.h"
+#include "shift/core/collision_geometry/cylinder.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/fitting.h"
 #include "shift/core/collision_geometry/plane.h"
@@ -14,6 +17,15 @@
 
 bool shift::core::collision_geometry::Modules::is_initialized() {
   if(!shift::core::collision_geometry::ConvexHull::is_registered()) {
+    return false;
+  }
+  if(!shift::core::collision_geometry::Box::is_registered()) {
+    return false;
+  }
+  if(!shift::core::collision_geometry::Capsule::is_registered()) {
+    return false;
+  }
+  if(!shift::core::collision_geometry::Cylinder::is_registered()) {
     return false;
   }
   if(!shift::core::collision_geometry::Ellipsoid::is_registered()) {

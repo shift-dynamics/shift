@@ -18,14 +18,15 @@ shift::core::controller::PID::Create() {
 
 void shift::core::controller::PID::DeclareParameters() {
   shift::core::controller::Base::DeclareParameters();
-  DeclareParameter("kp", &kp_, "proportional gain", true);
-  DeclareParameter("ki", &ki_, "integral gain", false);
+  DeclareParameter("kp", &kp_, "proportional gain", true).set_runtime();
+  DeclareParameter("ki", &ki_, "integral gain", false).set_runtime();
   DeclareParameter("kd", &kd_,
                    "derivative gain, requires a sensor that provides the rate "
                    "of its signal (e.g. a position)",
                    false);
   DeclareParameter("target", &target_, "target value of the sensor signal",
-                   false);
+                   false)
+    .set_runtime();
   DeclareParameter("sensor", &sensor_name_,
                    "name of the input sensor, in the same assembly", true);
   DeclareParameter("joint", &joint_name_,

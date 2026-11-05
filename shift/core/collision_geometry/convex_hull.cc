@@ -47,11 +47,17 @@ void shift::core::collision_geometry::ConvexHull::SetFromDimensions(
   }
   ConvexHullData hull;
   ComputeConvexHull(corners, hull);
-  Fit(hull.vertices, hull.faces);
+  SetHull(hull.vertices, hull.faces);
   d_wrt_body_ = pose;
 }
 
 void shift::core::collision_geometry::ConvexHull::Fit(
+  const std::vector<ksl_vec3_t>& vertices,
+  const std::vector<unsigned int>& faces) {
+  SetHull(vertices, faces);
+}
+
+void shift::core::collision_geometry::ConvexHull::SetHull(
   const std::vector<ksl_vec3_t>& vertices,
   const std::vector<unsigned int>& faces) {
   auto hull = std::make_shared<ConvexHullData>();

@@ -1141,7 +1141,7 @@ void shift::gui::Workspace::SetSliders(shift::core::joint::Base* joint) {
   const int dq = joint->get_dq_index();
   shift::core::Substructure* substructure = joint->get_substructure();
   const std::string& type = joint->get_type();
-  if(type == "revolute") {
+  if(type == "revolute" || type == "screw" || type == "gear") {
     SetSlider(sliders_.rz, "R", q, dq, substructure);
   } else if(type == "prismatic") {
     SetSlider(sliders_.tz, "T", q, dq, substructure);

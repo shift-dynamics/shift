@@ -2,9 +2,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <tuple>
 #include <vector>
 
+#include "shift/core/collision_geometry/capsule.h"
 #include "shift/core/collision_geometry/convex_hull.h"
+#include "shift/core/collision_geometry/cylinder.h"
 #include "shift/core/collision_geometry/plane.h"
 
 /* a point of a hull's local frame in the inertial frame, R v + t */
@@ -396,12 +399,125 @@ static void HullHullManifold(const shift::core::collision_geometry::ConvexHull& 
   }
 }
 
+
+/*
+A cylinder or a capsule on a plane touches along a line, the lowest generator
+of the cylinder or the segment of the capsule, so a single deepest point
+cannot carry its load as it tilts or rolls: the point would jump to an end.
+The surface point at station s of the axis, c + s a, with the unit plane
+normal n (out of the plane), offset along it o and g = n . a, is deepest at
+  depth(s) = o - n . c - s g + r_eff
+with r_eff = r for a capsule (the lowest point of the sphere swept along the
+segment) and r_eff = r sqrt(1 - g^2) for a cylinder (the lowest point of its
+circle), linear in s. Hertz line contact, F = pi/4 E* d per unit of length
+(see force_module::Contact), integrates in closed form over the stations in
+|s| <= h where the depth is positive: a trapezoid of length L between the
+depths d_1 and d_2 at its ends, equal to a point of length L with the mean
+depth (d_1 + d_2) / 2 at the centroid of the trapezoid, which moves along the
+line as the shape tilts, so the contact force is continuous in the state and
+gives the restoring moment.
+Station and depth: a point of the line carries a length, as the points of
+CAD geometry do (ContactPoint::length).
+*/
+static void PlaneLineManifold(const shift::core::collision_geometry::Plane& plane,
+                              const ksl_vec3_t& center, const ksl_vec3_t& axis,
+                              double half_length, double radius, bool capsule,
+                              bool plane_is_a,
+                              shift::core::collision_geometry::ContactPair& pair) {
+  const ksl_vec3_t n = plane.get_normal();
+  const double level = ksl_dot_vv(&n, &plane.get_point());
+  const double g = ksl_dot_vv(&n, &axis);
+  const double across = std::sqrt(std::max(1.0 - g * g, 0.0));
+  const double r_eff = capsule ? radius : radius * across;
+  const double d0 = level - ksl_dot_vv(&n, &center) + r_eff; // depth at s = 0
+  /* the stations s1 to s2 with positive depth d0 - g s */
+  double s1 = -half_length, s2 = half_length;
+  if(g > 0.0) {
+    s2 = std::min(s2, d0 / g);
+  } else if(g < 0.0) {
+    s1 = std::max(s1, d0 / g);
+  } else if(!(d0 > 0.0)) {
+    return;
+  }
+  const double length = s2 - s1;
+  if(!(length > 0.0)) {
+    return;
+  }
+  const double d1 = d0 - g * s1;
+  const double d2 = d0 - g * s2;
+  const double sum = d1 + d2;
+  /* the centroid of the trapezoid, from s1 */
+  const double s_c = s1 + (sum > 0.0 ? length * (d1 + 2.0 * d2) / (3.0 * sum)
+                                      : 0.5 * length);
+  /* the lowest point of the surface at the station: below the axis point
+  along -n for a capsule, along the part of -n across the axis for a
+  cylinder (any direction across the axis where n is along it) */
+  ksl_vec3_t down = {{-n.x, -n.y, -n.z}};
+  if(!capsule) {
+    for(int k = 0; k < 3; k++) {
+      down.at[k] = -(n.at[k] - g * axis.at[k]);
+    }
+    if(across > 1e-12) {
+      for(int k = 0; k < 3; k++) {
+        down.at[k] /= across;
+      }
+    } else {
+      const ksl_vec3_t e = std::fabs(axis.x) < 0.9
+                             ? ksl_vec3_t{{1.0, 0.0, 0.0}}
+                             : ksl_vec3_t{{0.0, 1.0, 0.0}};
+      ksl_vec3_t perpendicular;
+      ksl_cross_vv(&axis, &e, &perpendicular);
+      const double norm = ksl_vec3_l2norm(&perpendicular);
+      for(int k = 0; k < 3; k++) {
+        down.at[k] = perpendicular.at[k] / norm;
+      }
+    }
+  }
+  shift::core::collision_geometry::ContactPoint point;
+  point.depth = 0.5 * sum;
+  point.length = length;
+  ksl_vec3_t on_shape, on_plane;
+  for(int k = 0; k < 3; k++) {
+    on_shape.at[k] = center.at[k] + s_c * axis.at[k] + radius * down.at[k];
+    on_plane.at[k] = on_shape.at[k] + point.depth * n.at[k];
+  }
+  point.point_a = plane_is_a ? on_plane : on_shape;
+  point.point_b = plane_is_a ? on_shape : on_plane;
+  point.normal = plane_is_a ? n : ksl_vec3_t{{-n.x, -n.y, -n.z}};
+  pair.manifold.push_back(point);
+  pair.point_laws = true;
+}
+
 void shift::core::collision_geometry::ComputeManifold(ContactPair& pair) {
   pair.manifold.clear();
   auto plane_a = dynamic_cast<const Plane*>(pair.a);
   auto plane_b = dynamic_cast<const Plane*>(pair.b);
   auto hull_a = dynamic_cast<const ConvexHull*>(pair.a);
   auto hull_b = dynamic_cast<const ConvexHull*>(pair.b);
+  /* a cylinder or a capsule on a plane: a line, which has no points where
+  the depth is zero to rounding */
+  bool line = false;
+  for(auto [plane, other, plane_is_a] :
+      {std::tuple{plane_a, pair.b, true}, std::tuple{plane_b, pair.a, false}}) {
+    if(!plane) {
+      continue;
+    }
+    line = line || dynamic_cast<const Cylinder*>(other) ||
+           dynamic_cast<const Capsule*>(other);
+    if(auto cylinder = dynamic_cast<const Cylinder*>(other)) {
+      PlaneLineManifold(*plane, cylinder->get_d_absolute().t,
+                        cylinder->get_axis(), cylinder->get_half_length(),
+                        cylinder->get_radius(), false, plane_is_a, pair);
+    } else if(auto capsule = dynamic_cast<const Capsule*>(other)) {
+      PlaneLineManifold(*plane, capsule->get_d_absolute().t,
+                        capsule->get_axis(), capsule->get_half_length(),
+                        capsule->get_radius(), true, plane_is_a, pair);
+    }
+  }
+  if(line) {
+    pair.point_laws = true;
+    return;
+  }
   if(plane_a && hull_b) {
     PlaneHullManifold(*plane_a, *hull_b, true, pair.hint_b, pair);
   } else if(plane_b && hull_a) {

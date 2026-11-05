@@ -40,7 +40,9 @@ double_pendulum     pendulum/double_pendulum.json                1.0
 slider_crank        slider_crank/slider_crank.json               0.5
 bricard             bricard/bricard.json                         1.0
 klann_linkage       klann_linkage/klann_linkage.json             1.0  --view 20,70
+klann_walker        klann_linkage/klann_walker.json              1.0  --view 50,22
 sarrus              sarrus/sarrus.json                           1.0
+screw_and_gear      joints/screw_and_gear.json                   2.3  --view 270,10
 brake               brake/brake.json                             0    --view 60,40
 abiflexx_d4_1300    abiflexx_d4_1300/abiflexx_d4_1300.json       0.5
 kuka_iiwa           kuka_lbr_iiwa_14_r820/kuka_iiwa.json         0    --view 40,20
