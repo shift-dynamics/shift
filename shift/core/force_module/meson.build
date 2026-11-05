@@ -1,5 +1,7 @@
 core_src += files(
   'base.cc',
+  'beam.cc',
+  'belt.cc',
   'bushing.cc',
   'contact.cc',
   'hydraulic_cylinder.cc',

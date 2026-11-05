@@ -20,6 +20,8 @@ test_sources = [
   'test_joint_axis.cc',
   'test_rigid_joint.cc',
   'test_light.cc',
+  'test_beam.cc',
+  'test_belt.cc',
   'test_bushing.cc',
   'test_hydraulic_cylinder.cc',
   'test_rubber_mount.cc',
