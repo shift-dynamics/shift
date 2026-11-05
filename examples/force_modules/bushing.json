@@ -1,19 +1,20 @@
 {
-  // A suspension corner on its control arm: the hub and wheel (42 kg) are
-  // on an A-shaped arm that pivots on two bushings at its inboard end, one
-  // in front of the other on the pivot axis (the x axis). A bushing is a
-  // stiff rubber sleeve: it holds the arm against every motion but a little
-  // twist about the pivot axis, which is what the arm swings on. A coil-over
-  // strut (a spring and damper) hangs the arm from the fixed frame above its
-  // outboard end and carries the weight, as the spring of a vehicle does;
-  // the bushings only add their twist stiffness to it. The arm starts with
-  // a bump and rings down.
+  // The front left corner of the vehicle model (examples/vehicle): its lower
+  // control arm, steering knuckle, McPherson strut, tie rod and wheel, on the
+  // fixed frame in place of the chassis. The arm does not pivot on a revolute
+  // joint but on two bushings, one in front of the other on the pivot axis
+  // (the x axis): a bushing is a stiff rubber sleeve, so it holds the arm
+  // against every motion but a little twist about that axis, which is what the
+  // arm swings on. The strut's spring and damper carry the weight, and the
+  // bushings only add their twist stiffness to it. The arm starts with a bump
+  // and rings down.
   "model_parameters": {
     "version": "0.2.0",
     "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
               "time": "seconds"},
     // z points down: gravity acts along +z
     "gravity": [0.0, 0.0, 9.81],
+    // the meshes (../vehicle/) are those of the vehicle model
     "include_directories": ["."],
     "solvers": [{"type": "rnca"}],
     "integrators": [{"type": "ode113", "time_span": 2.0, "time_step": 0.005,
@@ -21,102 +22,129 @@
     "loggers": [{"type": "csv", "csv_logfile": "bushing.csv",
                  "timestamp_logfile": false}]
   },
-  // the pivot axis of the arm, 0.3 m above the ground, with a mounting
-  // point for each bushing on the fixed frame, 0.15 m either side
-  "frames": [{"name": "pivot_home", "T": [0, 0, -0.3]},
-             {"name": "front_mount", "T": [0.15, 0, -0.3]},
-             {"name": "rear_mount", "T": [-0.15, 0, -0.3]},
-             // the top of the strut, 0.5 m above the outboard end of the arm
-             {"name": "strut_top", "T": [0, -0.45, -0.8]}],
+  // The frames on the fixed body (the chassis of the vehicle), with the
+  // pivot of the arm 0.28 m above the ground. The pivot axis of the arm
+  // (arm_pivot, and the two bushing mounts 0.12 m either side) is tilted
+  // 0.148 rad, the angle of the arm in the vehicle at rest.
+  "frames": [
+    {"name": "arm_pivot", "R": [[1, 0, 0], [0, 0.989067976, 0.147460293], [0, -0.147460293, 0.989067976]], "T": [0, 0, -0.28]},
+    {"name": "front_mount", "R": [[1, 0, 0], [0, 0.989067976, 0.147460293], [0, -0.147460293, 0.989067976]], "T": [0.12, 0, -0.28]},
+    {"name": "rear_mount", "R": [[1, 0, 0], [0, 0.989067976, 0.147460293], [0, -0.147460293, 0.989067976]], "T": [-0.12, 0, -0.28]},
+    // the top of the strut and the end of the tie rod on the steering rack
+    {"name": "left_front_shock", "T": [-0.0338083, -0.27308, -0.935447]},
+    {"name": "tie_rod", "T": [-0.26805, -0.00111, -0.36988]}
+  ],
   "assemblies": [
     {
-      "name": "suspension_corner",
+      "name": "front_left_suspension",
       "bodies": [
         {
-          "name": "control_arm",
-          // the arm, its hub and the wheel, drawn from meshes/control_arm.obj
-          // (made by meshes/make_meshes.py); the origin of the body is on
-          // the pivot axis, midway between the bushings
-          "geometry": [{"type": "mesh", "filename": ["meshes/control_arm.obj"],
-                        "texture_mapping": "triplanar",
-                        "texture_scale": 0.2}],
-          "frames": [{"name": "front", "T": [0.15, 0, 0]},
-                     {"name": "rear", "T": [-0.15, 0, 0]},
-                     // where the strut attaches, over the wheel
-                     {"name": "strut", "T": [0, -0.45, 0]}],
-          // the wheel (25 kg), hub and knuckle (7 kg) and the arm (10 kg):
-          // their center of mass is 0.45 m out from the pivot axis
-          "center_of_mass": [0, -0.45, 0],
-          "inertia": {"mass": 42, "Ixx": 0.8, "Iyy": 1.4, "Izz": 0.8,
-                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+          // the lower control arm; its origin is on the pivot axis, with the knuckle ball joint 0.4 m out
+          "name": "left_control_arm",
+          "geometry": [{"type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+                      "filename": ["../vehicle/left_control_arm.obj", "../vehicle/left_control_arm.mtl"]}],
+          "frames": [{"name": "front", "T": [0.12, 0, 0]},
+                     {"name": "rear", "T": [-0.12, 0, 0]},
+                     {"name": "left_steering_knuckle", "T": [0.0, -0.4, -0.045]}],
+          "center_of_mass": [0.0, -0.16, 0.0],
+          "inertia": {"mass": 3.26, "Ixx": 0.06, "Iyy": 0.02, "Izz": 0.08, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
         },
         {
-          // the housing of the strut, hanging from its top (origin)
-          "name": "strut_housing",
-          "geometry": [{"type": "mesh",
-                        "filename": ["meshes/tube_zp_aluminium.obj"],
-                        "scale": [0.03, 0.03, 0.3]}],
-          "center_of_mass": [0, 0, 0.15],
-          "inertia": {"mass": 3, "Ixx": 0.02, "Iyy": 0.02, "Izz": 0.001,
-                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+          // the steering knuckle and hub
+          "name": "left_steering_knuckle",
+          "geometry": [{"type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+                      "filename": ["../vehicle/left_steering_knuckle.obj", "../vehicle/left_steering_knuckle.mtl"]}],
+          "frames": [{"name": "left_control_arm", "T": [0.00458474, 0.0493726, 0.08988315]},
+                     {"name": "left_front_shock", "R": [[0.9987001, 0.0, -0.05097157], [-0.00222335, 0.99904822, -0.04356269], [0.05092305, 0.04361939, 0.99774956]], "T": [-0.01853028, 0.17016597, -0.36328334]},
+                     {"name": "steering_link", "T": [-0.16, 0.04597126, 0.0]}],
+          "center_of_mass": [-0.01228854, 0.11535104, -0.14868992],
+          "inertia": {"mass": 4.98, "Ixx": 0.14226262, "Iyy": 0.13116225, "Izz": 0.03028881, "Ixy": -0.00050248, "Iyz": -0.03824889, "Izx": 0.00169927}
         },
         {
-          // the rod, standing up from its end on the arm (origin)
-          "name": "strut_rod",
-          "geometry": [{"type": "mesh",
-                        "filename": ["meshes/tube_zn_steel.obj"],
-                        "scale": [0.015, 0.015, 0.3]}],
-          "center_of_mass": [0, 0, -0.15],
-          "inertia": {"mass": 2, "Ixx": 0.015, "Iyy": 0.015, "Izz": 0.0002,
-                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+          // the wheel and tire (21.2 kg)
+          "name": "left_front_wheel",
+          "geometry": [{"type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+                      "filename": ["../vehicle/left_wheel.obj", "../vehicle/left_wheel.mtl"]}],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {"mass": 21.2, "Ixx": 0.578, "Iyy": 0.931, "Izz": 0.578, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
         },
-        // massless: joins the two revolutes of the universal joint on the top
-        {"name": "strut_gimbal"}
+        {
+          // the upper half of the strut (the damper housing)
+          "name": "left_front_shock",
+          "geometry": [{"type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+                      "filename": ["../vehicle/front_shock.obj", "../vehicle/front_shock.mtl"]}],
+          "center_of_mass": [-0.00062577, 0.0, 0.09521074],
+          "inertia": {"mass": 1.92, "Ixx": 0.01342201, "Iyy": 0.01342954, "Izz": 0.00982893, "Ixy": 0.0, "Iyz": 0.00021181, "Izx": -1.995e-05}
+        },
+        {
+          // the tie rod, from the knuckle to the steering rack
+          "name": "left_steering_link",
+          "geometry": [{"type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
+                      "filename": ["../vehicle/steering_link.obj", "../vehicle/steering_link.mtl"]}],
+          "frames": [{"name": "steering_rack", "T": [0, 0.42, 0]}],
+          "center_of_mass": [0.0, 0.21, 0.0],
+          "inertia": {"mass": 1.52, "Ixx": 0.02887, "Iyy": 0.00014675, "Izz": 0.02891548, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
+        },
+        // massless bodies that join the revolutes of the universal joints
+        {"name": "6"},
+        {"name": "7"},
+        {"name": "8"},
+        {"name": "9"},
+        {"name": "14"},
+        {"name": "18"},
+        {"name": "19"}
       ],
       "joints": [
         {
-          // the arm is free to move in every direction: a float joint places
-          // it, and the bushings alone hold it
+          // the arm is free to move on its bushings: a float joint places it
           "name": "float", "type": "float",
-          "parent": [["fixed"], "pivot_home"], "child": [["control_arm"], "origin"],
-          // the bump: the wheel moves up at 0.14 m/s
-          "initial_velocity": [0, 0, 0, 0.3, 0, 0]
+          "parent": [["fixed"], "arm_pivot"], "child": [["left_control_arm"], "origin"],
+          // the bump: the wheel moves up at about 0.3 m/s
+          "initial_velocity": [0, 0, 0, 0.8, 0, 0]
         },
+        // the knuckle on the end of the arm: a ball joint, as three revolutes about the knuckle
+        {"name": "V", "type": "revolute", "parent": [["left_control_arm"], "left_steering_knuckle"], "child": [["6"], "origin"],
+         "axis": [1, 0, 0], "initial_displacement": 0.148},
+        {"name": "W", "type": "revolute", "parent": [["6"], "origin"], "child": [["7"], "origin"],
+         "axis": [0, 1, 0], "initial_displacement": 0.0},
+        {"name": "X", "type": "revolute", "parent": [["7"], "origin"], "child": [["left_steering_knuckle"], "left_control_arm"],
+         "axis": [0, 0, 1], "initial_displacement": 0.0},
+        // the top of the strut on the fixed frame: a universal joint
+        {"name": "K", "type": "revolute", "parent": [["fixed"], "left_front_shock"], "child": [["8"], "origin"],
+         "axis": [1, 0, 0], "initial_displacement": 0.0},
+        {"name": "Y", "type": "revolute", "parent": [["8"], "origin"], "child": [["9"], "origin"],
+         "axis": [0, 1, 0], "initial_displacement": 0.0},
+        {"name": "Z", "type": "revolute", "parent": [["9"], "origin"], "child": [["left_front_shock"], "origin"],
+         "axis": [0, 0, 1], "initial_displacement": 0.0},
         {
-          // the top of the strut is a universal joint (two revolutes: about
-          // the x axis, then the y axis), so the strut can lean as the arm swings
-          "name": "strut_top_x", "type": "revolute",
-          "parent": [["fixed"], "strut_top"], "child": [["strut_gimbal"], "origin"],
-          "axis": [1, 0, 0]
+          // the spring and damper of the strut: force = -(a0 + a1 q) - b1 qdot, with q
+          // its length. The spring (58.5 kN/m) is set to hold the weight of the
+          // wheel and suspension, so the bushings carry no load at the start
+          "name": "AG", "type": "prismatic",
+          "parent": [["left_front_shock"], "origin"], "child": [["left_steering_knuckle"], "left_front_shock"],
+          "axis": [0, 0, 1], "initial_displacement": 0.216,
+          "stiffness_coefficients": [-10540, 58500.0],
+          "damping_coefficients": [0, 400]
         },
-        {
-          "name": "strut_top_y", "type": "revolute",
-          "parent": [["strut_gimbal"], "origin"],
-          "child": [["strut_housing"], "origin"],
-          "axis": [0, 1, 0]
-        },
-        {
-          // the spring and damper: a prismatic joint along the strut. The
-          // force is -(a0 + a1 q) - b1 qdot, with q the length of the strut
-          // (0.5 m at the start). The spring of 20 kN/m is free at 0.4794 m,
-          // so at 0.5 m it pulls the arm up with m g = 412.02 N, the weight
-          "name": "strut", "type": "prismatic",
-          "parent": [["strut_housing"], "origin"],
-          "child": [["strut_rod"], "origin"],
-          "axis": [0, 0, 1], "initial_displacement": 0.5,
-          "stiffness_coefficients": [-9587.98, 20000],
-          "damping_coefficients": [0, 600]
-        },
-        {
-          // the bottom of the strut is a ball joint on the arm
-          "name": "strut_bottom", "type": "spherical",
-          "parent": [["strut_rod"], "origin"], "child": [["control_arm"], "strut"]
-        }
+        // the wheel spins on the knuckle
+        {"name": "AF", "type": "revolute", "parent": [["left_steering_knuckle"], "origin"], "child": [["left_front_wheel"], "origin"],
+         "axis": [0, 1, 0], "initial_displacement": 0.0},
+        // the tie rod: a universal joint at the knuckle, another at the steering rack (held straight ahead)
+        {"name": "AJ", "type": "revolute", "parent": [["left_steering_knuckle"], "steering_link"], "child": [["14"], "origin"],
+         "axis": [1, 0, 0], "initial_displacement": 0.0},
+        {"name": "AL", "type": "revolute", "parent": [["14"], "origin"], "child": [["left_steering_link"], "origin"],
+         "axis": [0, 0, 1], "initial_displacement": 0.295},
+        {"name": "AR", "type": "revolute", "parent": [["fixed"], "tie_rod"], "child": [["19"], "origin"],
+         "axis": [1, 0, 0], "initial_displacement": 0.0},
+        {"name": "AQ", "type": "revolute", "parent": [["19"], "origin"], "child": [["18"], "origin"],
+         "axis": [0, 1, 0], "initial_displacement": 0.0},
+        {"name": "AP", "type": "revolute", "parent": [["18"], "origin"], "child": [["left_steering_link"], "steering_rack"],
+         "axis": [0, 0, 1], "initial_displacement": 0.295}
       ],
       "force_modules": [
         {
           "type": "bushing", "name": "front_bushing",
-          "frames": [["fixed", "front_mount"], ["control_arm", "front"]],
+          "frames": [["fixed", "front_mount"], ["left_control_arm", "front"]],
           // [x, y, z, rx, ry, rz]: N/m and N m/rad, N s/m and N m s/rad.
           // Stiff against every motion but the twist (rx) about the pivot axis
           "stiffness": [3e6, 3e6, 3e6, 1500, 3000, 3000],
@@ -124,7 +152,7 @@
         },
         {
           "type": "bushing", "name": "rear_bushing",
-          "frames": [["fixed", "rear_mount"], ["control_arm", "rear"]],
+          "frames": [["fixed", "rear_mount"], ["left_control_arm", "rear"]],
           "stiffness": [3e6, 3e6, 3e6, 1500, 3000, 3000],
           "damping": [5000, 5000, 5000, 58, 100, 100]
         }

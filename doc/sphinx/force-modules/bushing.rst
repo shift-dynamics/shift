@@ -71,23 +71,22 @@ Example
 
 .. figure:: ../images/examples/bushing.jpg
    :width: 60%
-   :alt: bushing.json: a wheel and hub on a control arm that pivots on two bushings and hangs from a coil-over strut
+   :alt: bushing.json: the front left suspension of the vehicle model, with its control arm on two bushings
 
-   bushing.json: a wheel and hub on a control arm that pivots on two bushings and hangs from a coil-over strut
+   bushing.json: the front left suspension of the vehicle model, with its control arm on two bushings
 
-:source:`examples/force_modules/bushing.json`: a suspension corner, with a
-wheel and hub (42 kg in all, 0.45 m out from the pivot axis) on an A-shaped
-control arm that pivots on two bushings at its inboard end, on the x axis.
-The bushings are stiff in every direction but the twist about that axis, so
-the arm swings on them. A coil-over strut carries the weight, as in a
-vehicle: a universal joint on the fixed frame, 0.5 m above the outboard end
-of the arm, a prismatic joint with a spring (20 kN/m) and a damper
-(600 N s/m), and a ball joint on the arm. Its spring is stretched to pull
-with :math:`m g` = 412 N, so the bushings carry no load at the start. The
-arm starts with a bump, 0.3 rad/s, and the wheel rises 2.6 mm, then rings
-down at about 3.8 Hz and is still within 0.2 s. It settles 0.56 mm below its
-start, with a twist of 1.25 mrad in the bushings, under the 20 N of the
-weight of the strut that the arm carries: the spring and the bushings share
-that load as springs in parallel, at the wheel
-:math:`k_s + 2 k_{rx}/L^2` = 34.8 kN/m.
+:source:`examples/force_modules/bushing.json`: the front left suspension of
+the :doc:`vehicle model <../examples/examples>` (its lower control arm,
+steering knuckle, McPherson strut, tie rod and wheel, with their meshes and
+mass properties), on the fixed frame in place of the chassis. The control
+arm does not pivot on a revolute joint but on two bushings, 0.12 m either
+side of its pivot on the x axis. The bushings are stiff in every direction
+but the twist about that axis, so the arm swings on them. The strut's
+spring (58.5 kN/m, a prismatic joint with a spring and damper) carries the
+weight of the wheel and suspension, so the bushings carry no load at the
+start; its damper is 400 N s/m, a lighter damping than the vehicle's, which
+has the body above it. The arm starts with a bump, 0.8 rad/s, and the wheel
+rises 4 mm, then rings down at about 7.7 Hz and is still within 0.2 s. The
+bushings and the spring act in parallel, so the twist of the bushings (10
+mrad at the peak) adds to the stiffness of the strut at the wheel.
 Tests: :source:`test/test_bushing.cc`.

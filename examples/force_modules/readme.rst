@@ -3,11 +3,11 @@ Force modules
 
 Small models, each showing one force module:
 
-* ``bushing.json``: a wheel and hub on a suspension control arm that pivots
-  on two bushings, hung from a coil-over strut (a spring and damper) that
-  carries the weight. The bushings are stiff in every direction but the
-  twist about the pivot axis; after a bump the arm rings down at 3.8 Hz and
-  settles within 0.2 s.
+* ``bushing.json``: the front left suspension of the vehicle model (control
+  arm, knuckle, strut, tie rod and wheel) with its control arm on two
+  bushings instead of a revolute joint. The bushings are stiff in every
+  direction but the twist about the pivot axis, and the strut carries the
+  weight; after a bump the arm rings down at 7.7 Hz and settles within 0.2 s.
 * ``rubber_mount.json``: an engine on two rubber mounts, with a hardening
   term and two Maxwell elements on each coordinate, settling 1.95 mm down.
 * ``beam.json``: a steel tube 2 m long, clamped at one end with a 10 kg
