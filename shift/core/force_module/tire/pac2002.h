@@ -43,6 +43,17 @@ namespace core {
 namespace force_module {
 namespace tire {
 
+/*! \brief dimension of a value of a .tir file, for its unit conversion */
+enum class Dimension {
+  kNone, //!< dimensionless, e.g. the Magic Formula coefficients
+  kLength,
+  kForce,
+  kSpeed,
+  kStiffness, //!< force / length
+  kDamping,   //!< force / speed
+  kPressure,
+};
+
 /*! \brief Magic Formula 5.2 (PAC2002) coefficients, as named in a .tir
  * property file (lower case); defaults are those of an absent key */
 struct Pac2002Coefficients {
@@ -108,7 +119,8 @@ struct Pac2002Coefficients {
          qhz1 = 0, qhz2 = 0, qhz3 = 0, qhz4 = 0, qpz1 = 0, qpz2 = 0, ssz1 = 0,
          ssz2 = 0, ssz3 = 0, ssz4 = 0;
 
-  /*! \brief read a .tir property file (TNO/Adams format, SI units) */
+  /*! \brief read a .tir property file (TNO/Adams format); the dimensioned
+   * values are converted from the units of its [UNITS] section to SI */
   static Pac2002Coefficients Read(const std::string& filename);
 
   /*! \brief flip the asymmetric coefficients: the characteristics of the
@@ -146,6 +158,9 @@ Deviations from ChPac02Tire:
    fades in below VXLOW
  - the bristle saturation load is at least 5% of FNOMIN, so the Dahl
    equation stays non-stiff for the explicit integrators as the load vanishes
+ - units: Chrono's factors for kN, KPOUND_FORCE and KPOUND_MASS are
+   inverted, and it does not convert VXLOW and LONGVL; here every
+   dimensioned value read is converted
  - deflection and bottoming load curves are not supported
 */
 class Pac2002 : public Model {

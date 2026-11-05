@@ -74,6 +74,7 @@
           "tire_type": "pac2002",
           "definition": "pac2002_235_60R15.tir",
           "wheel_body": "left_front_wheel",
+          "mounted_side": "left",
           "use_transient_slip": false
         },
         {
@@ -82,6 +83,7 @@
           "tire_type": "pac2002",
           "definition": "pac2002_235_60R15.tir",
           "wheel_body": "right_front_wheel",
+          "mounted_side": "right",
           "use_transient_slip": false
         },
         {
@@ -90,6 +92,7 @@
           "tire_type": "pac2002",
           "definition": "pac2002_235_60R15.tir",
           "wheel_body": "left_rear_wheel",
+          "mounted_side": "left",
           "use_transient_slip": false
         },
         {
@@ -98,6 +101,7 @@
           "tire_type": "pac2002",
           "definition": "pac2002_235_60R15.tir",
           "wheel_body": "right_rear_wheel",
+          "mounted_side": "right",
           "use_transient_slip": false
         }
       ],

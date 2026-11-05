@@ -4,9 +4,15 @@ frame of tire::Contact (x heading, y right, z down) */
 #include "gtest/gtest.h"
 
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <regex>
+#include <sstream>
 #include <string>
 
 #include "shift/config.h"
+#include "shift/core/exception.h"
 #include "shift/core/force_module/tire/pac2002.h"
 
 #include "ksl/coscrew.h"
@@ -116,4 +122,69 @@ TEST_F(TirePac2002, MirroredTireIsSymmetric) {
   EXPECT_NEAR(m.lin.z, f.lin.z, 1e-9 * std::fabs(f.lin.z));
   EXPECT_NEAR(m.ang.x, -f.ang.x, 1e-9 * std::fabs(f.ang.x) + 1e-9);
   EXPECT_NEAR(m.ang.z, -f.ang.z, 1e-9 * std::fabs(f.ang.z) + 1e-9);
+}
+
+TEST_F(TirePac2002, ConvertsUnitsToSI) {
+  // rewrite the SI file in millimeters, kilonewtons and milliseconds, with
+  // its dimensioned values scaled to match; the coefficients read the same
+  std::ifstream in(std::string(SHIFT_EXAMPLES_DIR) +
+                   "/vehicle/pac2002_235_60R15.tir");
+  std::stringstream text;
+  text << in.rdbuf();
+  std::string tir = text.str();
+
+  const double mm = 1e3, kn = 1e-3, ms = 1e3; // SI value to file value
+  const std::map<std::string, double> scale = {
+    {"UNLOADED_RADIUS", mm},           {"WIDTH", mm},
+    {"VERTICAL_STIFFNESS", kn / mm},   {"VERTICAL_DAMPING", kn / (mm / ms)},
+    {"FNOMIN", kn},                    {"VXLOW", mm / ms},
+    {"LONGVL", mm / ms}};
+  for(const auto& [key, factor] : scale) {
+    const std::regex line("^(" + key + "\\s*=\\s*)([-+0-9.eE]+)",
+                          std::regex::multiline);
+    std::smatch match;
+    ASSERT_TRUE(std::regex_search(tir, match, line)) << key;
+    std::ostringstream value;
+    value.precision(17);
+    value << std::stod(match[2]) * factor;
+    tir.replace(match.position(2), match.length(2), value.str());
+  }
+  for(const auto& [quantity, unit] :
+      std::map<std::string, std::string>{{"LENGTH", "'mm'"},
+                                         {"FORCE", "'kN'"},
+                                         {"TIME", "'millisecond'"}}) {
+    const std::regex line("^(" + quantity + "\\s*=\\s*)'[^']*'",
+                          std::regex::multiline);
+    ASSERT_TRUE(std::regex_search(tir, line)) << quantity;
+    tir = std::regex_replace(tir, line, "$1" + unit);
+  }
+
+  const std::filesystem::path file =
+    std::filesystem::path(SHIFT_BINARY_DIR) / "test" / "pac2002_mm_kn_ms.tir";
+  std::filesystem::create_directories(file.parent_path());
+  std::ofstream(file) << tir;
+  const Pac2002Coefficients p = Pac2002Coefficients::Read(file.string());
+
+  const auto& si = coefficients_;
+  EXPECT_NEAR(p.unloaded_radius, si.unloaded_radius, 1e-12);
+  EXPECT_NEAR(p.width, si.width, 1e-12);
+  EXPECT_NEAR(p.vertical_stiffness, si.vertical_stiffness,
+              1e-9 * si.vertical_stiffness);
+  EXPECT_NEAR(p.vertical_damping, si.vertical_damping,
+              1e-9 * si.vertical_damping);
+  EXPECT_NEAR(p.fnomin, si.fnomin, 1e-9 * si.fnomin);
+  EXPECT_NEAR(p.vxlow, si.vxlow, 1e-12);
+  EXPECT_NEAR(p.longvl, si.longvl, 1e-12);
+  EXPECT_NEAR(p.qfz1, si.qfz1, 1e-9 * si.qfz1);
+  // dimensionless coefficients are not scaled
+  EXPECT_EQ(p.pky1, si.pky1);
+  EXPECT_EQ(p.pkx1, si.pkx1);
+}
+
+TEST_F(TirePac2002, RejectsUnknownUnit) {
+  const std::filesystem::path file =
+    std::filesystem::path(SHIFT_BINARY_DIR) / "test" / "pac2002_cubit.tir";
+  std::filesystem::create_directories(file.parent_path());
+  std::ofstream(file) << "[UNITS]\nLENGTH = 'cubit'\n";
+  EXPECT_THROW(Pac2002Coefficients::Read(file.string()), shift::core::Exception);
 }

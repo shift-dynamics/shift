@@ -93,22 +93,61 @@ shift::core::force_module::tire::Pac2002Coefficients::Read(
     }
   }
 
-  /* units: SI only */
-  const std::map<std::string, std::vector<std::string>> si = {
-    {"LENGTH", {"METER", "M"}},
-    {"FORCE", {"NEWTON", "N"}},
-    {"ANGLE", {"RADIAN", "RADIANS", "RAD"}},
-    {"MASS", {"KG", "KILOGRAM"}},
-    {"TIME", {"SECOND", "SEC", "S"}},
-    {"PRESSURE", {"PASCAL", "PA"}}};
-  for(const auto& [key, names] : si) {
-    const std::string* unit = find("[UNITS]", key);
-    if(unit && std::find(names.begin(), names.end(), Word(*unit)) ==
-                 names.end()) {
-      throw shift::core::Exception(prefix + "unit " + key + " = " + *unit +
-                                   " is not supported, SI units only");
+  /* [UNITS]: factors to SI of the units of the dimensioned values (the
+  Magic Formula coefficients are dimensionless); SI if absent */
+  using Factors = std::map<std::string, double>;
+  static const std::map<std::string, Factors> kUnits = {
+    {"LENGTH",
+     {{"METER", 1.0}, {"M", 1.0}, {"MILLIMETER", 1e-3}, {"MM", 1e-3},
+      {"CENTIMETER", 1e-2}, {"CM", 1e-2}, {"KILOMETER", 1e3}, {"KM", 1e3},
+      {"INCH", 0.0254}, {"IN", 0.0254}, {"FOOT", 0.3048}, {"FT", 0.3048},
+      {"MILE", 1609.344}}},
+    {"FORCE",
+     {{"NEWTON", 1.0}, {"N", 1.0}, {"KNEWTON", 1e3}, {"KN", 1e3},
+      {"MILLINEWTON", 1e-3}, {"DYNE", 1e-5}, {"KG_FORCE", 9.80665},
+      {"POUND_FORCE", 4.4482216152605}, {"LBF", 4.4482216152605},
+      {"KPOUND_FORCE", 4448.2216152605}, {"OUNCE_FORCE", 0.27801385095378}}},
+    {"ANGLE",
+     {{"RADIAN", 1.0}, {"RADIANS", 1.0}, {"RAD", 1.0},
+      {"DEGREE", M_PI / 180.0}, {"DEGREES", M_PI / 180.0},
+      {"DEG", M_PI / 180.0}}},
+    {"MASS",
+     {{"KG", 1.0}, {"KILOGRAM", 1.0}, {"GRAM", 1e-3}, {"G", 1e-3},
+      {"MEGAGRAM", 1e3}, {"TONNE", 1e3}, {"POUND_MASS", 0.45359237},
+      {"LBM", 0.45359237}, {"KPOUND_MASS", 453.59237},
+      {"OUNCE_MASS", 0.028349523125}, {"SLUG", 14.593902937}}},
+    {"TIME",
+     {{"SECOND", 1.0}, {"SEC", 1.0}, {"S", 1.0}, {"MILLISECOND", 1e-3},
+      {"MILLI", 1e-3}, {"MS", 1e-3}, {"MINUTE", 60.0}, {"MIN", 60.0},
+      {"HOUR", 3600.0}}},
+    {"PRESSURE",
+     {{"PASCAL", 1.0}, {"PA", 1.0}, {"KPASCAL", 1e3}, {"KPA", 1e3},
+      {"MPASCAL", 1e6}, {"MPA", 1e6}, {"BAR", 1e5}, {"PSI", 6894.757293168},
+      {"KSI", 6894757.293168}}}};
+  Factors unit = {{"LENGTH", 1.0}, {"FORCE", 1.0}, {"ANGLE", 1.0},
+                  {"MASS", 1.0}, {"TIME", 1.0}, {"PRESSURE", 1.0}};
+  for(const auto& [quantity, names] : kUnits) {
+    if(const std::string* name = find("[UNITS]", quantity)) {
+      auto factor = names.find(Word(*name));
+      if(factor == names.end()) {
+        throw shift::core::Exception(prefix + "unknown " + quantity +
+                                     " unit " + *name);
+      }
+      unit[quantity] = factor->second;
     }
   }
+  /* factor to SI by the dimension of a value */
+  const double length = unit["LENGTH"];
+  const double force = unit["FORCE"];
+  const double speed = length / unit["TIME"];
+  const std::map<Dimension, double> to_si = {
+    {Dimension::kNone, 1.0},
+    {Dimension::kLength, length},
+    {Dimension::kForce, force},
+    {Dimension::kSpeed, speed},
+    {Dimension::kStiffness, force / length},
+    {Dimension::kDamping, force / speed},
+    {Dimension::kPressure, unit["PRESSURE"]}};
 
   Pac2002Coefficients p;
 
@@ -142,22 +181,30 @@ shift::core::force_module::tire::Pac2002Coefficients::Read(
     const char* section;
     const char* key;
     Member member;
+    Dimension dimension = Dimension::kNone;
   };
   static const Entry kEntries[] = {
-    {"[MODEL]", "VXLOW", &Pac2002Coefficients::vxlow},
-    {"[MODEL]", "LONGVL", &Pac2002Coefficients::longvl},
-    {"[DIMENSION]", "UNLOADED_RADIUS", &Pac2002Coefficients::unloaded_radius},
-    {"[DIMENSION]", "WIDTH", &Pac2002Coefficients::width},
+    {"[MODEL]", "VXLOW", &Pac2002Coefficients::vxlow, Dimension::kSpeed},
+    {"[MODEL]", "LONGVL", &Pac2002Coefficients::longvl,
+     Dimension::kSpeed},
+    {"[DIMENSION]", "UNLOADED_RADIUS", &Pac2002Coefficients::unloaded_radius,
+     Dimension::kLength},
+    {"[DIMENSION]", "WIDTH", &Pac2002Coefficients::width,
+     Dimension::kLength},
     {"[VERTICAL]", "VERTICAL_STIFFNESS",
-     &Pac2002Coefficients::vertical_stiffness},
-    {"[VERTICAL]", "VERTICAL_DAMPING", &Pac2002Coefficients::vertical_damping},
-    {"[VERTICAL]", "FNOMIN", &Pac2002Coefficients::fnomin},
+     &Pac2002Coefficients::vertical_stiffness, Dimension::kStiffness},
+    {"[VERTICAL]", "VERTICAL_DAMPING", &Pac2002Coefficients::vertical_damping,
+     Dimension::kDamping},
+    {"[VERTICAL]", "FNOMIN", &Pac2002Coefficients::fnomin,
+     Dimension::kForce},
     {"[VERTICAL]", "QFZ1", &Pac2002Coefficients::qfz1},
     {"[VERTICAL]", "QFZ2", &Pac2002Coefficients::qfz2},
     {"[VERTICAL]", "QFZ3", &Pac2002Coefficients::qfz3},
     {"[VERTICAL]", "QPFZ1", &Pac2002Coefficients::qpfz1},
-    {"[TIRE_CONDITIONS]", "IP", &Pac2002Coefficients::ip},
-    {"[TIRE_CONDITIONS]", "IP_NOM", &Pac2002Coefficients::ip_nom},
+    {"[TIRE_CONDITIONS]", "IP", &Pac2002Coefficients::ip,
+     Dimension::kPressure},
+    {"[TIRE_CONDITIONS]", "IP_NOM", &Pac2002Coefficients::ip_nom,
+     Dimension::kPressure},
 #define S(k, m) {"[SCALING_COEFFICIENTS]", k, &Pac2002Coefficients::m}
     S("LFZO", lfzo), S("LCX", lcx), S("LMUX", lmux), S("LEX", lex),
     S("LKX", lkx), S("LHX", lhx), S("LVX", lvx), S("LGAX", lgax),
@@ -211,7 +258,7 @@ shift::core::force_module::tire::Pac2002Coefficients::Read(
   for(const Entry& entry : kEntries) {
     if(const std::string* value = find(entry.section, entry.key)) {
       try {
-        p.*(entry.member) = std::stod(*value);
+        p.*(entry.member) = std::stod(*value) * to_si.at(entry.dimension);
       } catch(const std::exception&) {
         throw shift::core::Exception(prefix + entry.key + " = '" + *value +
                                      "' is not a number");
