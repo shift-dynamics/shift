@@ -71,7 +71,7 @@
           "type": "tire",
           "name": "tire",
           "tire_type": "pac2002",
-          "use_transient_slip": false,
+          "use_transient_slip": true,
           "wheel_body": "tire",
           "definition": "pac2002_235_60R15.tir"
         }

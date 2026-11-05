@@ -222,7 +222,7 @@ shift::core::force_module::tire::Pac2002Coefficients::Read(
     X("PHX2", phx2), X("PVX1", pvx1), X("PVX2", pvx2), X("RBX1", rbx1),
     X("RBX2", rbx2), X("RCX1", rcx1), X("REX1", rex1), X("REX2", rex2),
     X("RHX1", rhx1), X("PPX1", ppx1), X("PPX2", ppx2), X("PPX3", ppx3),
-    X("PPX4", ppx4),
+    X("PPX4", ppx4), X("PTX1", ptx1), X("PTX2", ptx2), X("PTX3", ptx3),
 #undef X
 #define O(k, m) {"[OVERTURNING_COEFFICIENTS]", k, &Pac2002Coefficients::m}
     O("QSX1", qsx1), O("QSX2", qsx2), O("QSX3", qsx3), O("QSX4", qsx4),
@@ -239,6 +239,7 @@ shift::core::force_module::tire::Pac2002Coefficients::Read(
     Y("RHY1", rhy1), Y("RHY2", rhy2), Y("RVY1", rvy1), Y("RVY2", rvy2),
     Y("RVY3", rvy3), Y("RVY4", rvy4), Y("RVY5", rvy5), Y("RVY6", rvy6),
     Y("PPY1", ppy1), Y("PPY2", ppy2), Y("PPY3", ppy3), Y("PPY4", ppy4),
+    Y("PTY1", pty1), Y("PTY2", pty2),
 #undef Y
 #define R(k, m) {"[ROLLING_COEFFICIENTS]", k, &Pac2002Coefficients::m}
     R("QSY1", qsy1), R("QSY2", qsy2), R("QSY3", qsy3), R("QSY4", qsy4),
@@ -318,13 +319,36 @@ double shift::core::force_module::tire::Pac2002::SineStep(double x, double x1,
 }
 
 shift::core::force_module::tire::Pac2002::Pac2002(
-  const Pac2002Coefficients& coefficients, double gravity)
+  const Pac2002Coefficients& coefficients, double gravity, bool transient)
   : p_(coefficients)
   , gravity_(gravity)
+  , transient_(transient)
   , gamma_limit_(3.0 * M_PI / 180.0) {
   fz0_prime_ = p_.fnomin * p_.lfzo;
   const double pi0_prime = p_.ip_nom * p_.lip;
   dpi_ = (p_.ip - pi0_prime) / pi0_prime;
+  if(transient_ && (p_.ptx1 <= 0.0 || p_.pty1 <= 0.0 || p_.pty2 == 0.0)) {
+    throw shift::core::Exception(
+      "Pac2002: transient slip requires PTX1 > 0, PTY1 > 0 and PTY2 != 0");
+  }
+}
+
+double shift::core::force_module::tire::Pac2002::RelaxationLengthKappa(
+  double fz) const {
+  const double dfz = (fz - fz0_prime_) / fz0_prime_;
+  const double r0 = p_.unloaded_radius;
+  const double sigma = fz * (p_.ptx1 + p_.ptx2 * dfz) *
+                       std::exp(-p_.ptx3 * dfz) * r0 / fz0_prime_ * p_.lsgkp;
+  return std::max(sigma, kMinRelaxationLength * r0);
+}
+
+double shift::core::force_module::tire::Pac2002::RelaxationLengthAlpha(
+  double fz, double gamma) const {
+  const double r0 = p_.unloaded_radius;
+  const double sigma =
+    p_.pty1 * std::sin(2.0 * std::atan(fz / (p_.pty2 * fz0_prime_))) *
+    (1.0 - p_.pky3 * std::fabs(gamma)) * r0 * p_.lfzo * p_.lsgal;
+  return std::max(sigma, kMinRelaxationLength * r0);
 }
 
 double shift::core::force_module::tire::Pac2002::NormalStiffnessForce(
@@ -565,6 +589,11 @@ void shift::core::force_module::tire::Pac2002::Evaluate(
   const double bry = states[1];
   state_rates[0] = -100.0 * brx;
   state_rates[1] = -100.0 * bry;
+  if(transient_) {
+    // out of contact the relaxed slips decay; overwritten below in contact
+    state_rates[2] = -100.0 * states[2];
+    state_rates[3] = -100.0 * states[3];
+  }
   if(!contact.in_contact) {
     return;
   }
@@ -595,10 +624,19 @@ void shift::core::force_module::tire::Pac2002::Evaluate(
   const double abs_vx = std::abs(vx);
   const double vsx = vx - omega * r_eff;
   const double vsy = vy;
-  const double epsilon = 0.1;
-  const double kappa = std::clamp(-vsx / (abs_vx + epsilon), -1.0, 1.0);
-  const double alpha = std::clamp(std::atan2(vsy, abs_vx + epsilon),
-                                  -M_PI_2 + 0.01, M_PI_2 - 0.01);
+  const double vx_reg = abs_vx + kSlipSpeedEpsilon;
+  double kappa = std::clamp(-vsx / vx_reg, -1.0, 1.0);
+  double alpha =
+    std::clamp(std::atan2(vsy, vx_reg), -M_PI_2 + 0.01, M_PI_2 - 0.01);
+  if(transient_) {
+    /* first order relaxation of kappa' and tan(alpha'); their steady state
+    is the unclamped kinematic slips -Vsx / vx_reg and Vsy / vx_reg */
+    state_rates[2] = (-vsx - vx_reg * states[2]) / RelaxationLengthKappa(Fz);
+    state_rates[3] =
+      (vsy - vx_reg * states[3]) / RelaxationLengthAlpha(Fz, gamma);
+    kappa = std::clamp(states[2], -1.0, 1.0);
+    alpha = std::clamp(std::atan(states[3]), -M_PI_2 + 0.01, M_PI_2 - 0.01);
+  }
 
   double Fx = 0, Fy = 0, Mx = 0, My = 0, Mz = 0;
   switch(p_.use_mode) {

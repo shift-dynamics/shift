@@ -33,6 +33,20 @@ protected:
   ksl_coscrew_t Evaluate(double vx, double vy, double slip = 0.0,
                          double camber = 0.0) {
     Pac2002 model(coefficients_, 9.81);
+    double states[2] = {0.0, 0.0};
+    double rates[2];
+    return Evaluate(model, MakeContact(vx, vy, slip, camber), states, rates);
+  }
+
+  ksl_coscrew_t Evaluate(Pac2002& model, const Contact& contact,
+                         const double* states, double* rates) {
+    ksl_coscrew_t force;
+    model.Evaluate(contact, states, rates, &force);
+    return force;
+  }
+
+  Contact MakeContact(double vx, double vy, double slip = 0.0,
+                      double camber = 0.0) const {
     const double r0 = coefficients_.unloaded_radius;
     Contact contact;
     contact.in_contact = true;
@@ -43,11 +57,20 @@ protected:
     contact.vx = vx;
     /* SAE: forward rolling spins negatively about the hub y axis */
     contact.omega = -vx / r_eff * (1.0 + slip);
-    double states[2] = {0.0, 0.0};
-    double rates[2];
-    ksl_coscrew_t force;
-    model.Evaluate(contact, states, rates, &force);
-    return force;
+    return contact;
+  }
+
+  /* the relaxed slips at which a transient model is in equilibrium: the
+  steady state slips kappa = -Vsx / (|Vx| + e), tan(alpha) = Vsy / (|Vx| + e)
+  in the ISO axes */
+  void SteadySlips(const Contact& contact, double* states) const {
+    const double r0 = coefficients_.unloaded_radius;
+    const double r_eff = (2.0 * r0 + (r0 - contact.depth)) / 3.0;
+    const double vx = contact.center_velocity_w.x;
+    const double vx_reg = std::fabs(vx) + 0.1;
+    const double vsx = vx - (-contact.omega) * r_eff;
+    states[2] = -vsx / vx_reg;
+    states[3] = -contact.center_velocity_w.y / vx_reg;
   }
 
   Pac2002Coefficients coefficients_;
@@ -187,4 +210,58 @@ TEST_F(TirePac2002, RejectsUnknownUnit) {
   std::filesystem::create_directories(file.parent_path());
   std::ofstream(file) << "[UNITS]\nLENGTH = 'cubit'\n";
   EXPECT_THROW(Pac2002Coefficients::Read(file.string()), shift::core::Exception);
+}
+
+TEST_F(TirePac2002, RelaxedSlipsInEquilibriumMatchSteadyState) {
+  // at the steady state slips the transient model has no rates and the
+  // forces of the steady state model
+  Pac2002 steady(coefficients_, 9.81);
+  Pac2002 transient(coefficients_, 9.81, true);
+  ASSERT_EQ(transient.get_state_count(), 4u);
+  const Contact contact = MakeContact(20.0, 0.4, 0.03, 0.01);
+  double steady_states[2] = {0.0, 0.0}, steady_rates[2];
+  const ksl_coscrew_t f =
+    Evaluate(steady, contact, steady_states, steady_rates);
+  double states[4] = {0.0, 0.0, 0.0, 0.0}, rates[4];
+  SteadySlips(contact, states);
+  const ksl_coscrew_t t = Evaluate(transient, contact, states, rates);
+  EXPECT_NEAR(rates[2], 0.0, 1e-9);
+  EXPECT_NEAR(rates[3], 0.0, 1e-9);
+  const double tol = 1e-9 * coefficients_.fnomin;
+  EXPECT_NEAR(t.lin.x, f.lin.x, tol);
+  EXPECT_NEAR(t.lin.y, f.lin.y, tol);
+  EXPECT_NEAR(t.lin.z, f.lin.z, tol);
+  EXPECT_NEAR(t.ang.x, f.ang.x, tol);
+  EXPECT_NEAR(t.ang.y, f.ang.y, tol);
+  EXPECT_NEAR(t.ang.z, f.ang.z, tol);
+}
+
+TEST_F(TirePac2002, RelaxedSlipsLagKinematicSlips) {
+  // from zero relaxed slips a step in slip produces no slip force at first,
+  // and the relaxed slips move toward the kinematic slips with the time
+  // constant sigma / Vx
+  Pac2002 transient(coefficients_, 9.81, true);
+  const Contact contact = MakeContact(20.0, 0.4, 0.03);
+  double states[4] = {0.0, 0.0, 0.0, 0.0}, rates[4];
+  const ksl_coscrew_t t = Evaluate(transient, contact, states, rates);
+  EXPECT_LT(std::fabs(t.lin.y), 0.05 * coefficients_.fnomin);
+  double target[4];
+  SteadySlips(contact, target);
+  const double fz = coefficients_.fnomin;
+  const double sigma_kappa = transient.RelaxationLengthKappa(fz);
+  const double sigma_alpha = transient.RelaxationLengthAlpha(fz, 0.0);
+  EXPECT_GT(target[2], 0.0); // driving
+  EXPECT_LT(target[3], 0.0); // sliding right: alpha < 0 in ISO
+  EXPECT_NEAR(rates[2], 20.1 * target[2] / sigma_kappa,
+              1e-6 * std::fabs(rates[2]));
+  EXPECT_NEAR(rates[3], 20.1 * target[3] / sigma_alpha,
+              1e-6 * std::fabs(rates[3]));
+  // relaxation lengths at the nominal load: PTX1 R0 and PTY1 sin(2 atan(1 /
+  // PTY2)) R0
+  const double r0 = coefficients_.unloaded_radius;
+  EXPECT_NEAR(sigma_kappa, coefficients_.ptx1 * r0, 1e-12);
+  EXPECT_NEAR(sigma_alpha,
+              coefficients_.pty1 *
+                std::sin(2.0 * std::atan(1.0 / coefficients_.pty2)) * r0,
+              1e-12);
 }

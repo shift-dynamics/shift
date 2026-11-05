@@ -16,11 +16,11 @@
 
 #define SHIFT_FATAL(msg)                                                       \
   do {                                                                         \
-    std::string prefix = std::string("[FATAL  ] ") + __FILE__ + ":" +          \
-                         std::to_string(__LINE__) + " | ";                     \
-    std::cerr << std::string("\033[1;31m") + prefix + msg +                    \
+    std::string shift_log_prefix_ = std::string("[FATAL  ] ") + __FILE__ +     \
+                                    ":" + std::to_string(__LINE__) + " | ";    \
+    std::cerr << std::string("\033[1;31m") + shift_log_prefix_ + msg +         \
                    std::string("\033[0m\n");                                   \
-    shift::core::log::output_file << prefix << msg << "\n";                    \
+    shift::core::log::output_file << shift_log_prefix_ << msg << "\n";         \
   } while(0)
 
 #if SHIFT_LOG_LEVEL > 0
@@ -28,14 +28,14 @@
   do {                                                                         \
     if(shift::core::log::stdout_log_level > 0 ||                               \
        shift::core::log::file_log_level > 0) {                                 \
-      std::string prefix = std::string("[ERROR  ] ") + __FILE__ + ":" +        \
-                           std::to_string(__LINE__) + " | ";                   \
+      std::string shift_log_prefix_ = std::string("[ERROR  ] ") + __FILE__ +   \
+                                      ":" + std::to_string(__LINE__) + " | ";  \
       if(shift::core::log::stdout_log_level > 0) {                             \
-        std::cerr << std::string("\033[1;31m") + prefix + msg +                \
+        std::cerr << std::string("\033[1;31m") + shift_log_prefix_ + msg +     \
                        std::string("\033[0m\n");                               \
       }                                                                        \
       if(shift::core::log::file_log_level > 0) {                               \
-        shift::core::log::output_file << prefix << msg << "\n";                \
+        shift::core::log::output_file << shift_log_prefix_ << msg << "\n";     \
       }                                                                        \
     }                                                                          \
   } while(0)
@@ -50,14 +50,14 @@
   do {                                                                         \
     if(shift::core::log::stdout_log_level > 1 ||                               \
        shift::core::log::file_log_level > 1) {                                 \
-      std::string prefix = std::string("[WARNING] ") + __FILE__ + ":" +        \
-                           std::to_string(__LINE__) + " | ";                   \
+      std::string shift_log_prefix_ = std::string("[WARNING] ") + __FILE__ +   \
+                                      ":" + std::to_string(__LINE__) + " | ";  \
       if(shift::core::log::stdout_log_level > 1) {                             \
-        std::cerr << std::string("\033[1;33m") + prefix + msg +                \
+        std::cerr << std::string("\033[1;33m") + shift_log_prefix_ + msg +     \
                        std::string("\033[0m\n");                               \
       }                                                                        \
       if(shift::core::log::file_log_level > 1) {                               \
-        shift::core::log::output_file << prefix << msg << "\n";                \
+        shift::core::log::output_file << shift_log_prefix_ << msg << "\n";     \
       }                                                                        \
     }                                                                          \
   } while(0)
@@ -72,14 +72,14 @@
   do {                                                                         \
     if(shift::core::log::stdout_log_level > 2 ||                               \
        shift::core::log::file_log_level > 2) {                                 \
-      std::string prefix = std::string("[INFO   ] ") + __FILE__ + ":" +        \
-                           std::to_string(__LINE__) + " | ";                   \
+      std::string shift_log_prefix_ = std::string("[INFO   ] ") + __FILE__ +   \
+                                      ":" + std::to_string(__LINE__) + " | ";  \
       if(shift::core::log::stdout_log_level > 2) {                             \
-        std::cerr << std::string("\033[1;37m") + prefix + msg +                \
+        std::cerr << std::string("\033[1;37m") + shift_log_prefix_ + msg +     \
                        std::string("\033[0m\n");                               \
       }                                                                        \
       if(shift::core::log::file_log_level > 2) {                               \
-        shift::core::log::output_file << prefix << msg << "\n";                \
+        shift::core::log::output_file << shift_log_prefix_ << msg << "\n";     \
       }                                                                        \
     }                                                                          \
   } while(0)
@@ -94,14 +94,14 @@
   do {                                                                         \
     if(shift::core::log::stdout_log_level > 3 ||                               \
        shift::core::log::file_log_level > 3) {                                 \
-      std::string prefix = std::string("[DEBUG  ] ") + __FILE__ + ":" +        \
-                           std::to_string(__LINE__) + " | ";                   \
+      std::string shift_log_prefix_ = std::string("[DEBUG  ] ") + __FILE__ +   \
+                                      ":" + std::to_string(__LINE__) + " | ";  \
       if(shift::core::log::stdout_log_level > 3) {                             \
-        std::cerr << std::string("\033[37m") + prefix + msg +                  \
+        std::cerr << std::string("\033[37m") + shift_log_prefix_ + msg +       \
                        std::string("\033[0m\n");                               \
       }                                                                        \
       if(shift::core::log::file_log_level > 3) {                               \
-        shift::core::log::output_file << prefix << msg << "\n";                \
+        shift::core::log::output_file << shift_log_prefix_ << msg << "\n";     \
       }                                                                        \
     }                                                                          \
   } while(0)
@@ -116,14 +116,14 @@
   do {                                                                         \
     if(shift::core::log::stdout_log_level > 4 ||                               \
        shift::core::log::file_log_level > 4) {                                 \
-      std::string prefix = std::string("[TRACE  ] ") + __FILE__ + ":" +        \
-                           std::to_string(__LINE__) + " | ";                   \
+      std::string shift_log_prefix_ = std::string("[TRACE  ] ") + __FILE__ +   \
+                                      ":" + std::to_string(__LINE__) + " | ";  \
       if(shift::core::log::stdout_log_level > 4) {                             \
-        std::cerr << std::string("\033[36m") + prefix + msg +                  \
+        std::cerr << std::string("\033[36m") + shift_log_prefix_ + msg +       \
                        std::string("\033[0m\n");                               \
       }                                                                        \
       if(shift::core::log::file_log_level > 4) {                               \
-        shift::core::log::output_file << prefix << msg << "\n";                \
+        shift::core::log::output_file << shift_log_prefix_ << msg << "\n";     \
       }                                                                        \
     }                                                                          \
   } while(0)

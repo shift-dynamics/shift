@@ -43,8 +43,9 @@ x_relaxation_length, y_relaxation_length.
 PAC2002 parameters: definition (required), the .tir property file, found
 next to the model file or in model_parameters/include_directories;
 mounted_side (optional), "left" or "right": mirrors the tire if it differs
-from TYRESIDE of the property file; use_transient_slip (optional) must be
-false, the model is steady state (see Pac2002).
+from TYRESIDE of the property file; use_transient_slip (optional, default
+false) relaxes the slips with the relaxation lengths of the property file
+(see Pac2002).
 \code
 {"type": "tire", "name": "left_front", "tire_type": "pac2002",
  "definition": "pac2002_235_60R15.tir", "wheel_body": "left_front_wheel"}
