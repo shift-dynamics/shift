@@ -14,7 +14,7 @@ namespace tire {
 Axis convention (SAE, matching the fixed frame of the vehicle models, whose
 z axis points down): the contact frame w has its origin at the contact point
 on the terrain surface, x along the wheel heading in the terrain plane, z
-along the terrain normal pointing into the terrain (down) and y = z x x.
+along the terrain normal pointing into the terrain (down) and \f$\underline{y} = \underline{z} \times \underline{x}\f$.
 Forces and moments are computed in the w frame and act on the wheel at the
 w frame origin.
 */

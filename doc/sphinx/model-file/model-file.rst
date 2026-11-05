@@ -10,6 +10,16 @@ program, and each key a parameter of it. The tables on this page list
 every key, and are generated from the source code, where each object
 declares its keys, so they show what this version of *Shift* reads.
 
+A model may be written in JSON or in YAML: a file ending in ``.json`` is read
+as JSON, and one ending in ``.yaml`` or ``.yml`` as YAML. The organization of
+the file is the same in both, with the same keys and values, so everything on
+this page applies to either. ``examples/pendulum/pendulum.json`` and
+``examples/pendulum/pendulum.yaml`` are the same model. In YAML, mappings are
+the objects and sequences the arrays; an unquoted ``true``, ``false``,
+``null``, number (``12``, ``1.5``, ``1e-3``) is read as that type, and a
+quoted value is always text. Anchors, aliases and the merge key ``<<`` can
+share values between objects, and comments start with ``#``.
+
 Comments are allowed: ``//`` starts a comment that runs to the end of the
 line. A key that is not required may be left out; its default is given in
 its description. Arrays of objects (bodies, joints, force modules, ...)

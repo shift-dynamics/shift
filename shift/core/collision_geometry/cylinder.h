@@ -13,7 +13,7 @@ namespace collision_geometry {
 @brief cylinder collision geometry
 
 A right circular cylinder with its axis along the z axis of its frame and its
-center at the origin of the frame: of radius r, between z = -h and z = h.
+center at the origin of the frame: of radius \f$r\f$, between \f$z = -h\f$ and \f$z = h\f$.
 Given by its radius and half length (with the optional pose), or fitted to the
 body's mesh: along the principal axis of greatest spread of the vertices,
 enclosing them.

@@ -24,45 +24,56 @@ rotation of one into the push of the other, with the friction of the thread
 
 The screw and the nut are two bodies, each with a frame whose z axis is the
 axis of the thread. The thread keeps them to the motion of a screw: the
-screw, turned by the angle theta about the axis relative to the nut, advances
-along it by (lead / 2 pi) theta, for a right-handed thread. The module makes
+screw, turned by the angle \f$\theta\f$ about the axis relative to the nut,
+advances along it by \f$\frac{\mathrm{lead}}{2 \pi} \theta\f$, for a
+right-handed thread. The module makes
 the thread an elastic contact, so that the bodies can be free in the
 rotation and the advance (the joint of a model is then a revolute joint and a
 prismatic joint in series, or other joints), and the load the thread carries
 and the friction on it follow:
 
 - the advance beyond that of the ideal screw is the deflection
-  delta = s - (lead / 2 pi) theta, with s the relative advance along the axis
-  (zero at the start; the thread is unloaded then);
-- the flank of the thread has the lead angle lambda, tan(lambda) = lead /
-  (2 pi mean_radius), along the axis' and the circle's directions, and the
-  half angle alpha of the thread in a plane through the axis (0 for a square
-  thread, 14.5 degrees for an Acme thread). The deflection moves the flanks
-  together along the normal by delta cos(alpha) cos(lambda), and the normal
-  force of the contact is
-      N = (stiffness) delta cos(alpha) cos(lambda) + (damping) d(delta)/dt cos(alpha) cos(lambda),
-  with its radial part (sin(alpha) N) cancelling around the thread. Its
-  axial part N cos(alpha) cos(lambda) acts on the screw along the axis, and
-  its circular part gives the torque on it about the axis, (lead / 2 pi)
-  times the axial part: the screw is driven by torque and delivers axial force
-  as the ideal screw does;
+  \f$\delta = s - \frac{\mathrm{lead}}{2 \pi} \theta\f$, with \f$s\f$ the
+  relative advance along the axis (zero at the start; the thread is unloaded
+  then);
+- the flank of the thread has the lead angle \f$\lambda\f$,
+  \f$\tan\lambda = \mathrm{lead} / (2 \pi r_m)\f$ with \f$r_m\f$ the mean_radius,
+  along the axis' and the circle's directions, and the half angle \f$\alpha\f$
+  of the thread in a plane through the axis (0 for a square thread, 14.5
+  degrees for an Acme thread). The deflection moves the flanks together along
+  the normal by \f$\delta \cos\alpha \cos\lambda\f$, and the normal force of
+  the contact is
+  \f[
+  n = (k \delta + c \dot{\delta}) \cos\alpha \cos\lambda,
+  \f]
+  with the stiffness \f$k\f$ and the damping \f$c\f$ of the thread, and its radial
+  part (\f$n \sin\alpha\f$) cancelling around the thread. Its axial part
+  \f$n \cos\alpha \cos\lambda\f$ acts on the screw along the axis, and its
+  circular part gives the torque on it about the axis,
+  \f$\mathrm{lead} / 2 \pi\f$ times the axial part: the screw is driven by
+  torque and delivers axial force as the ideal screw does;
 - friction opposes the sliding of the flank over the other, which is along the
-  thread, with the speed v = sqrt((r omega)^2 + (ds/dt)^2) for the angular
-  speed omega and the advance speed ds/dt of the screw relative to the nut:
-  the friction force is mu |N| v / sqrt(v^2 + slip_speed^2), the smooth
+  thread, with the speed
+  \f$v = \sqrt{(r \omega)^2 + \dot{s}^2}\f$ for the angular speed
+  \f$\omega\f$ and the advance speed \f$\dot{s}\f$ of the screw relative to the
+  nut: the friction force is
+  \f$\mu |n| v / \sqrt{v^2 + v_0^2}\f$, with \f$v_0\f$ the slip_speed, the smooth
   form of Coulomb friction, along the sliding. Its axial and circular parts
   loads the screw as the thread's sliding does: they add to the axial force
   and torque. The friction is the loss of the screw: the torque to drive it
   exceeds that of the ideal screw.
 
-In steady motion, the torque to raise (drive against) an axial load F is the
-well known
+In steady motion, the torque to raise (drive against) an axial load \f$f\f$ is
+the well known
 
-    T = F r (tan(lambda) + mu sec(alpha)) / (1 - mu sec(alpha) tan(lambda)),
+\f[
+\tau = f r \, \frac{\tan\lambda + \mu \sec\alpha}{1 - \mu \sec\alpha \tan\lambda},
+\f]
 
-and to lower it, F r (mu sec(alpha) - tan(lambda)) / (1 + mu sec(alpha)
-tan(lambda)), which is negative (the load turns the screw) if mu sec(alpha) <
-tan(lambda): the screw is not self-locking (Budynas and Nisbett, Shigley's
+and to lower it,
+\f$f r \, \frac{\mu \sec\alpha - \tan\lambda}{1 + \mu \sec\alpha \tan\lambda}\f$,
+which is negative (the load turns the screw) if
+\f$\mu \sec\alpha < \tan\lambda\f$: the screw is not self-locking (Budynas and Nisbett, Shigley's
 Mechanical Engineering Design, power screws). The module gives these in
 steady motion, as the tests check, and what they leave out: the elastic
 deflection of the thread, the damping and the backlash.
@@ -129,10 +140,11 @@ public:
   void UpdateOutputs(double t, const double* y) override;
   void AppendOutputs(std::vector<double>& values) const override;
 
-  /*! \brief the lead angle of the thread, atan(lead / (2 pi mean_radius)) */
+  /*! \brief the lead angle of the thread,
+   * \f$\arctan(\mathrm{lead} / (2 \pi r_m))\f$ */
   double get_lead_angle() const;
-  /*! \brief whether the thread holds a load when it is not driven, mu
-   * sec(alpha) >= tan(lambda) */
+  /*! \brief whether the thread holds a load when it is not driven,
+   * \f$\mu \sec\alpha \ge \tan\lambda\f$ */
   bool is_self_locking() const;
 
   double get_axial_force() const {

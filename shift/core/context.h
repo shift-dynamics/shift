@@ -273,7 +273,8 @@ public:
 
   /*! \brief number of states of the bodies: q, dq and the states of the
    * free bodies (see body::Free), the leading part of the state vector
-   * y = [q, dq, free body states, auxiliary states] and the size of get_q() */
+   * \f$\underline{y} = [\underline{q}, \underline{\dot{q}}, \text{free body states}, \text{auxiliary states}]\f$
+   * and the size of get_q() */
   unsigned int get_state_count() const {
     return q_count_ + dq_count_ + free_state_count_;
   }
@@ -293,7 +294,8 @@ public:
   unsigned int get_auxiliary_state_count();
 
   /*! \brief assign each active force module and controller its offset in
-   * the state vector y = [q, dq, free body states, auxiliary states] and copy
+   * the state vector \f$\underline{y} = [\underline{q}, \underline{\dot{q}}, \text{free body states},
+   * \text{auxiliary states}]\f$ and copy
    * its initial values to y_auxiliary, which points to the first auxiliary
    * state; called by the integrators when they (re)initialize */
   void InitializeAuxiliaryStates(double* y_auxiliary);
@@ -476,12 +478,13 @@ public:
     return force_time_;
   }
 
-  /*! copies dq and ddq quantities to dy array using vectors quaternion_indices_
-  and non_quaternion_indices_; for quaternion_indices_, converts angular
-  velocities to time derivative of quaternions. Spherical and float joint
-  velocities (joint sense >= 0) are expressed in the child frame, so they are
-  rotated into the parent frame by the joint rotation R(q) first; for float
-  joints the translational velocity is likewise rotated, dt/dt = R(q) v.
+  /*! copies \f$\underline{\dot{q}}\f$ and \f$\underline{\ddot{q}}\f$ quantities to dy array using
+  vectors quaternion_indices_ and non_quaternion_indices_; for
+  quaternion_indices_, converts angular velocities to time derivative of
+  quaternions. Spherical and float joint velocities (joint sense >= 0) are
+  expressed in the child frame, so they are rotated into the parent frame by
+  the joint rotation \f$R(\underline{q})\f$ first; for float joints the translational
+  velocity is likewise rotated, \f$\dot{\underline{t}} = R(\underline{q}) \underline{v}\f$.
   Inverse joints (sense < 0) express velocities in the original parent frame
   and are copied directly */
   void ConvertdqTody(const std::vector<double>& y, std::vector<double>& dy);

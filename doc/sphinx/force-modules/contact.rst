@@ -103,6 +103,77 @@ Friction and restitution of a pair combine by ``friction_combine`` and
 ``restitution_combine`` (the geometric mean by default) unless the pair is
 listed in ``pairs``.
 
+Stick-slip friction
+^^^^^^^^^^^^^^^^^^^
+
+Regularized Coulomb friction cannot hold a body at rest: it gives the friction
+that a load needs only at a sliding speed that makes it, so a box on a slope
+creeps down it, at a fraction of ``friction_velocity``. A pair of collision
+geometries listed in ``stick_slip`` has friction that holds, by the bristle model
+of Canudas de Wit, Olsson, Åström and Lischinsky :cite:`canudas1995` (the LuGre
+model), at each point of its contact. The bristles at a point are a deflection
+:math:`z` in the tangent plane, a tiny stretch of the surface between the two
+bodies, that grows as they slide over each other and saturates:
+
+.. math::
+
+   \dot z = u - \sigma_0\,\frac{|u|}{g(|u|)}\,z, \qquad
+   g(|u|) = \mu_c + (\mu_s - \mu_c)\,e^{-(|u|/v_s)^2}
+
+for the sliding velocity :math:`u` at the point, and the friction force on body
+b is
+
+.. math::
+
+   F_t = -F\,(\sigma_0 z + \sigma_1 \dot z + \sigma_2 u)
+
+for the normal force :math:`F` at the point. The parameters are the stiffness
+:math:`\sigma_0` of the bristles (``bristle_stiffness``, in 1/m: the sliding at
+which the friction of a body at rest reaches a friction coefficient of 1), their
+damping :math:`\sigma_1` (``bristle_damping``), a viscous friction
+:math:`\sigma_2` (``viscous_friction``), the coefficient :math:`\mu_c` of the pair
+(the Coulomb friction of the materials, ``friction`` of the pair, from the
+materials or ``pairs``), the static friction :math:`\mu_s` (``static_friction``, at
+least :math:`\mu_c`, default :math:`\mu_c`) and the Stribeck velocity :math:`v_s`
+(``stribeck_velocity``), the sliding speed over which the friction falls from
+static to Coulomb.
+
+At rest the bristles hold: the deflection settles where :math:`\sigma_0 z` carries
+the tangential load, so a load of a fraction :math:`f` of the normal force gives
+:math:`z = f/\sigma_0`, and the body moves by that and no more, up to
+:math:`\mu_s F`. Beyond it the body slides, with friction that falls from
+:math:`\mu_s` to :math:`\mu_c` as it speeds up, and the force is a smooth function
+of the state throughout.
+
+The deflections of a pair are states of the module, three numbers for each of
+``points`` slots (default 8), the k-th point of the contact (in the order the
+contact finds them) having the k-th. A point that is not in contact relaxes to
+zero over ``release_time``. A box on its face has four points, a line of contact
+of a CAD part up to about ten. The module logs, for each pair, the output
+``stick_<a>_<b>``: the largest :math:`|z|\sigma_0/\mu_s` of its points, which is 1
+at the limit of holding.
+
+The bristles are stiff: they relax with a time constant :math:`g/(\sigma_0|u|)` at
+the sliding speed :math:`|u|`, and the variable step integrator has to resolve
+it. A stiffer :math:`\sigma_0` holds closer, with less travel, and takes smaller
+steps while the body slides; a body that is suddenly loaded moves
+:math:`f/\sigma_0` while the load comes on, and a Stribeck velocity smaller than
+the speed it gains in that travel gives the friction no time to hold. Choose
+:math:`\sigma_0` so that :math:`\mu_c/\sigma_0` is small against the sizes of the
+motion.
+
+.. code:: javascript
+
+   "stick_slip": [
+     {"geometry_a": "ground", "geometry_b": "box", "bristle_stiffness": 2000,
+      "static_friction": 0.6, "stribeck_velocity": 0.05}
+   ]
+
+Each entry of ``stick_slip``:
+
+.. shift-parameters:: shift/core/force_module/contact.cc
+   :function: StickSlipPair::DeclareParameters
+
 JSON
 ----
 
@@ -162,5 +233,8 @@ Examples
   ``collision_test_ee.json``, ``collision_test_ps.json``, ...), and piles
   of 5 to 5000 bodies (``collision_test_5.json``, ...; the large ones are
   benchmarks).
+* :source:`examples/collision/stick_slip.json`: a box on a slope held by the
+  bristles of its four corners, where regularized Coulomb friction would let it
+  creep.
 * Tests: :source:`test/test_contact_force.cc`,
-  :source:`test/test_contact_geometry.cc`.
+  :source:`test/test_contact_geometry.cc` and :source:`test/test_stick_slip.cc`.

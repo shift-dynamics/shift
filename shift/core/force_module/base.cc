@@ -10,6 +10,7 @@
 #include "shift/core/force_module/gear_mesh.h"
 #include "shift/core/force_module/journal_bearing.h"
 #include "shift/core/force_module/lead_screw.h"
+#include "shift/core/force_module/powertrain.h"
 #include "shift/core/force_module/track.h"
 #include "shift/core/force_module/track_soil.h"
 
@@ -42,6 +43,9 @@ bool shift::core::force_module::Modules::is_initialized() {
     return false;
   }
   if(!shift::core::force_module::LeadScrew::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::Powertrain::is_registered()) {
     return false;
   }
   if(!shift::core::force_module::Track::is_registered()) {

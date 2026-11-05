@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
             << std::endl;
 
   if(args["help"]) {
-    std::cout << "usage: shift-cli <input.json>" << std::endl;
+    std::cout << "usage: shift-cli <input.json | input.yaml>" << std::endl;
     for(const auto& definition : argparser.definitions) {
       std::stringstream s;
       s << "  ";

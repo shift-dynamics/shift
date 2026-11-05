@@ -68,7 +68,7 @@ public:
   virtual void Load();
   virtual void Connect();
 
-  /*! \brief measure the signal from the state vector y = [q, dq, ...] and the
+  /*! \brief measure the signal from the state vector \f$\underline{y} = [\underline{q}, \underline{\dot{q}}, \ldots]\f$ and the
    * kinematics in the context, which are up to date with y */
   virtual void Update(const double* y) = 0;
 

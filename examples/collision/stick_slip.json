@@ -1,0 +1,221 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "enable_contact_detection": true,
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "relative_error": 1e-07,
+        "absolute_error": 1e-10,
+        "time_span": 2.0,
+        "time_step": 0.001
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "stick_slip.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "incline",
+      "comment": "A 10 kg box on a plane that rises at a slope of 0.35 (19.3 degrees), friction coefficient 0.5 (static 0.6). The friction needed to hold it is 0.35 of its load, less than the limit, and the box holds: the bristles of its four corners deflect by 0.35 / sigma_0 = 0.18 mm and carry the weight along the slope. Delete the stick_slip entry and the regularized Coulomb friction of the contact module lets it creep down the slope at about 10 mm/s. The logged output stick_ground_box is the deflection of the bristles over the limit of holding: 0.35 / 0.6 = 0.58.",
+      "bodies": [
+        {
+          "name": "ground",
+          "geometry": [],
+          "collision_geometry": [
+            {
+              "name": "ground",
+              "type": "plane",
+              "material": "surface"
+            }
+          ],
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "box",
+          "geometry": [],
+          "collision_geometry": [
+            {
+              "name": "box",
+              "type": "convex_hull",
+              "half_extents": [
+                0.1,
+                0.1,
+                0.1
+              ],
+              "material": "block"
+            }
+          ],
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 10.0,
+            "Ixx": 0.067,
+            "Iyy": 0.067,
+            "Izz": 0.067,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "ground_joint",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "ground"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              0,
+              0,
+              0
+            ],
+            "R": [
+              [
+                0.9438583563660174,
+                0,
+                0.33035042472810605
+              ],
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                -0.33035042472810605,
+                0,
+                0.9438583563660174
+              ]
+            ]
+          }
+        },
+        {
+          "name": "box_joint",
+          "type": "float",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "box"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              -0.032882102606440894,
+              0,
+              -0.09394886458983115
+            ],
+            "R": [
+              [
+                0.9438583563660174,
+                0,
+                0.33035042472810605
+              ],
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                -0.33035042472810605,
+                0,
+                0.9438583563660174
+              ]
+            ]
+          },
+          "initial_velocity": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "force_modules": [
+        {
+          "name": "contact",
+          "type": "contact",
+          "friction_velocity": 0.01,
+          "stick_slip": [
+            {
+              "geometry_a": "ground",
+              "geometry_b": "box",
+              "bristle_stiffness": 2000,
+              "static_friction": 0.6,
+              "stribeck_velocity": 0.05
+            }
+          ],
+          "materials": [
+            {
+              "name": "surface",
+              "restitution": 0.1,
+              "friction": 0.5,
+              "contact_stiffness": 100000.0
+            },
+            {
+              "name": "block",
+              "restitution": 0.1,
+              "friction": 0.5,
+              "contact_stiffness": 100000.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

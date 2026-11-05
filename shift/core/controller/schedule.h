@@ -15,8 +15,8 @@ namespace controller {
 /*!
 @brief changes parameters of other components as a function of time
 
-A schedule gives a value at each of its control points, [t0, v0, t1, v1,
-...], and sets the parameters it targets to the value at the time of each
+A schedule gives a value at each of its control points,
+\f$[t_0, v_0, t_1, v_1, \ldots]\f$, and sets the parameters it targets to the value at the time of each
 evaluation of the equations of motion, before the other controllers and the
 force modules that read them, wherever it is in the model file. Before the first point and after the last it holds
 that point's value. The value between points follows interpolation:

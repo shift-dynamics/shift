@@ -106,9 +106,9 @@ public:
   void Connect() override;
   void Service(const double* y, double* dy) override;
 
-  /*! \brief Bekker-Wong: sinkage, slip, drawbar_pull (F_x), load (-F_z),
+  /*! \brief Bekker-Wong: sinkage, slip, drawbar_pull (\f$f_x\f$), load (\f$-f_z\f$),
    * shear_torque (BekkerWong::get_shear_torque), camber
-   * (BekkerWong::get_camber) and side_force (F_y), of the last force
+   * (BekkerWong::get_camber) and side_force (\f$f_y\f$), of the last force
    * evaluation; the other tire models have no outputs */
   std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;

@@ -4,4 +4,5 @@ core_src += files(
   'list.cc',
   'array.cc',
   'array_base.cc',
+  'yaml.cc',
 )

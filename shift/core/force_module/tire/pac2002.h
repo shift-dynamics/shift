@@ -137,28 +137,40 @@ which only models steady state slip. Below 1 m/s the forces blend into a
 Dahl friction model whose bristle deflections are the first two internal
 states, so a vehicle can stand on a slope.
 
-With transient slip, the longitudinal slip kappa' and tan(alpha') that
-enter the Magic Formula follow the kinematic slips with the first order
+With transient slip, the longitudinal slip \f$\kappa'\f$ and \f$\tan\alpha'\f$
+that enter the Magic Formula follow the kinematic slips with the first order
 relaxation of MF 5.2 (states 3 and 4):
 
-  sigma_kappa d(kappa')/dt     = -Vsx - (|Vx| + e) kappa'
-  sigma_alpha d(tan alpha')/dt =  Vsy - (|Vx| + e) tan alpha'
+\f[
+\begin{aligned}
+\sigma_\kappa \dot{\kappa}' &= -v_{sx} - (|v_x| + \epsilon) \kappa' \\
+\sigma_\alpha \frac{\mathrm{d}}{\mathrm{d}t} \tan\alpha' &=
+  v_{sy} - (|v_x| + \epsilon) \tan\alpha'
+\end{aligned}
+\f]
 
 with the relaxation lengths of MF 5.2 (as in OpenTire's PAC2002, eqs. 92
 and 93; MIT license)
 
-  sigma_kappa = Fz (PTX1 + PTX2 dfz) exp(-PTX3 dfz) R0 / Fz0' LSGKP
-  sigma_alpha = PTY1 sin(2 atan(Fz / (PTY2 Fz0'))) (1 - PKY3 |gamma|) R0
-                LFZO LSGAL
+\f[
+\begin{aligned}
+\sigma_\kappa &= f_z (\mathrm{PTX1} + \mathrm{PTX2} \, df_z)
+  e^{-\mathrm{PTX3} \, df_z} \frac{r_0}{f_{z0}'} \mathrm{LSGKP} \\
+\sigma_\alpha &= \mathrm{PTY1} \sin\left(2 \arctan
+  \frac{f_z}{\mathrm{PTY2} \, f_{z0}'}\right)
+  (1 - \mathrm{PKY3} |\gamma|) r_0 \, \mathrm{LFZO} \, \mathrm{LSGAL}
+\end{aligned}
+\f]
 
-e = 0.1 m/s is the speed regularization of the steady state slips, so the
-relaxed slips settle to exactly the steady state slips, and at standstill
-they decay with the time constant sigma / e instead of drifting.
+\f$\epsilon = 0.1\f$ m/s is the speed regularization of the steady state slips,
+so the relaxed slips settle to exactly the steady state slips, and at
+standstill they decay with the time constant \f$\sigma / \epsilon\f$ instead of
+drifting.
 
 The coefficients of a .tir file are defined in the ISO W axes (x heading, y
-left, z up, tan(alpha) = Vy / |Vx|). The model evaluates the equations in
+left, z up, \f$\tan\alpha = v_y / |v_x|\f$). The model evaluates the equations in
 those axes and rotates the result to the SAE axes of tire::Contact (x
-heading, y right, z down): (x, y, z) -> (x, -y, -z).
+heading, y right, z down): \f$(x, y, z) \rightarrow (x, -y, -z)\f$.
 
 Deviations from ChPac02Tire:
  - the slip velocities are those of the contact center C moving with the
@@ -172,7 +184,8 @@ Deviations from ChPac02Tire:
  - USE_MODE is decoded as in the .tir file header (+10 relaxation, negative
    mirroring); relaxation is enabled by tire::Base (use_transient_slip)
  - transient slip, which Chrono does not model (its CalcSigmaK, unused, has
-   exp(+PTX3 dfz); MF 5.2 and OpenTire have exp(-PTX3 dfz))
+   \f$\exp(+\mathrm{PTX3} \, df_z)\f$; MF 5.2 and OpenTire have
+   \f$\exp(-\mathrm{PTX3} \, df_z)\f$)
  - QSY1 and QSY2 are kept when the file has no [TIRE_CONDITIONS]
  - the rolling resistance moment follows the sign of the rolling speed and
    fades in below VXLOW

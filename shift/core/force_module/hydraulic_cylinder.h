@@ -25,35 +25,44 @@ annulus) are two state variables. Each changes with the flow into its side
 less the rate its volume grows, over the side's compliance (Merritt,
 Hydraulic Control Systems, 1967):
 
-  dp_h/dt = B / V_h (Q_h - A_h dx/dt - Q_l + Q_rh)
-  dp_r/dt = B / V_r (Q_r + A_r dx/dt + Q_l + Q_rr)
+\f[
+\begin{aligned}
+\dot{p}_h &= \frac{b}{v_h} (q_h - a_h \dot{x} - q_l + q_{rh}) \\
+\dot{p}_r &= \frac{b}{v_r} (q_r + a_r \dot{x} + q_l + q_{rr})
+\end{aligned}
+\f]
 
-where x is the extension of the cylinder from fully retracted, A_h and A_r
-the head and annulus areas, V_h = V_h0 + A_h x and V_r = V_r0 + A_r (stroke
-- x) the volumes of oil on each side, B the bulk modulus of the oil, and Q_l
+where \f$x\f$ is the extension of the cylinder from fully retracted,
+\f$a_h\f$ and \f$a_r\f$ the head and annulus areas,
+\f$v_h = v_{h0} + a_h x\f$ and \f$v_r = v_{r0} + a_r (\mathrm{stroke} - x)\f$ the
+volumes of oil on each side, \f$b\f$ the bulk modulus of the oil, and \f$q_l\f$
 the leakage past the piston from head to rod side.
 
-The valve opening u, from -1 to 1, connects the supply to the head side and
+The valve opening \f$u\f$, from -1 to 1, connects the supply to the head side and
 the rod side to the tank for u > 0 (extending), and the other way for u < 0.
 The flow through each open edge is that of an orifice, in proportion to the
 opening and to the square root of the pressure drop,
 
-  Q = |u| Q_rated sqrt(dp / dp_rated),
+\f[
+q = |u| \, q_{rated} \sqrt{\Delta p / \Delta p_{rated}},
+\f]
 
 with the square root made smooth near zero drop, where the flow becomes
 laminar. A relief valve on each side lets oil out to the tank above the
 relief pressure, and a makeup (anti-cavitation) check valve lets oil in
 from the tank below the tank pressure; both open smoothly over a small band
-of pressure (Q_rh, Q_rr). All flows are continuous functions of the state,
+of pressure (\f$q_{rh}, q_{rr}\f$). All flows are continuous functions of the state,
 so the variable step integrators see no jumps.
 
 The force of the cylinder, along the extension,
 
-  F = p_h A_h - p_r A_r - c dx/dt - F_stop,
+\f[
+f = p_h a_h - p_r a_r - c \dot{x} - f_{stop},
+\f]
 
-is applied to the joint. F_stop holds the piston at the ends of its stroke:
-k d (1 + e dd/dt) for a penetration d past an end, never pulling (Hunt and
-Crossley's contact force).
+is applied to the joint. \f$f_{stop}\f$ holds the piston at the ends of its
+stroke: \f$k d (1 + e \dot{d})\f$ for a penetration \f$d\f$ past an end, never
+pulling (Hunt and Crossley's contact force).
 
 JSON:
 \code

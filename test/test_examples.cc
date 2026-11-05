@@ -26,7 +26,9 @@ static std::vector<std::string> FindExampleModels() {
   std::vector<std::string> models;
   const fs::path root(SHIFT_EXAMPLES_DIR);
   for(const auto& entry : fs::recursive_directory_iterator(root)) {
-    if(entry.is_regular_file() && entry.path().extension() == ".json") {
+    const std::string extension = entry.path().extension().string();
+    if(entry.is_regular_file() &&
+       (extension == ".json" || extension == ".yaml" || extension == ".yml")) {
       models.push_back(fs::relative(entry.path(), root).generic_string());
     }
   }

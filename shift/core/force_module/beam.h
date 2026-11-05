@@ -15,30 +15,35 @@ namespace force_module {
 @brief A straight, uniform, elastic beam between frames on two bodies
 
 The beam runs from the origin of frame A, along A's x axis, to the origin of
-frame B, which must lie on that axis as the model starts; its length L is
-the distance between them, and the axes of its cross section are A's y and
+frame B, which must lie on that axis as the model starts; its length
+\f$l\f$ is the distance between them, and the axes of its cross section are A's y and
 z. The beam is straight and unloaded as the model starts.
 
 The forces are those of a linear beam element (Euler-Bernoulli): end B moves
 relative to end A as the tip of a beam clamped at A, and the force and moment
 on B that hold it there are
 
-  tension         F_x = EA/L u
-  bending in x-y  F_y = 12 E I_z / L^3 v - 6 E I_z / L^2 r_z,
-                  M_z = -6 E I_z / L^2 v + 4 E I_z / L r_z
-  bending in x-z  F_z = 12 E I_y / L^3 w + 6 E I_y / L^2 r_y,
-                  M_y =  6 E I_y / L^2 w + 4 E I_y / L r_y
-  torsion         M_x = G J / L r_x
+\f[
+\begin{aligned}
+\text{tension} &: & f_x &= \frac{e a}{l} u \\
+\text{bending in x-y} &: & f_y &= \frac{12 e i_z}{l^3} v - \frac{6 e i_z}{l^2} r_z, &
+  m_z &= -\frac{6 e i_z}{l^2} v + \frac{4 e i_z}{l} r_z \\
+\text{bending in x-z} &: & f_z &= \frac{12 e i_y}{l^3} w + \frac{6 e i_y}{l^2} r_y, &
+  m_y &= \frac{6 e i_y}{l^2} w + \frac{4 e i_y}{l} r_y \\
+\text{torsion} &: & m_x &= \frac{g j}{l} r_x
+\end{aligned}
+\f]
 
-with (u, v, w) the displacement of B and (r_x, r_y, r_z) its rotation
-relative to A, in A's axes. The beam applies the opposite, restoring forces
+with \f$(u, v, w)\f$ the displacement of B and \f$(r_x, r_y, r_z)\f$ its
+rotation relative to A, in A's axes. The beam applies the opposite, restoring forces
 to B and the equal and opposite load to A, so the two bodies are in
 equilibrium with the beam. The relative motion is measured as for Bushing,
 so the beam suits deflections that are small relative to its length; a
 chain of beams on light bodies gives a simple flexible link.
 
-Damping proportional to the stiffness, C = damping K, makes each mode decay
-with a damping ratio of damping x (its angular frequency) / 2.
+Damping proportional to the stiffness, \f$C = \mathrm{damping} \, K\f$, makes
+each mode decay with a damping ratio of \f$\mathrm{damping} \cdot \omega / 2\f$,
+with \f$\omega\f$ its angular frequency.
 
 JSON:
 \code
@@ -50,7 +55,7 @@ JSON:
 \endcode
 
 - frames: [body, frame] of ends A and B.
-- young_modulus; shear_modulus, or poisson_ratio for G = E / (2 (1 + nu)).
+- young_modulus; shear_modulus, or poisson_ratio for \f$g = e / (2 (1 + \nu))\f$.
 - section: "circle" (diameter), "tube" (diameter, inner_diameter),
   "rectangle" (width along y, height along z) or "general" (default:
   area, second moments Iy and Iz about the y and z axes, and torsion

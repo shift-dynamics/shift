@@ -8,6 +8,7 @@ core_src += files(
   'hydraulic_cylinder.cc',
   'journal_bearing.cc',
   'lead_screw.cc',
+  'powertrain.cc',
   'rubber_mount.cc',
   'soil.cc',
   'table.cc',

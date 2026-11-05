@@ -26,46 +26,65 @@ friction torque
 
 The journal and the bearing are two bodies, each with a frame at the center of
 its circle, whose z axis is the axis of the bearing (the axes are parallel).
-The shaft runs in the clearance c (the radial clearance, bearing radius less
-journal radius) with the eccentricity e = (journal center - bearing center)
-perpendicular to the axis, the eccentricity ratio epsilon = |e| / c and the
-film thickness h = c (1 + epsilon cos(theta)), with theta measured round the
-bearing from the thickest part of the film.
+The shaft runs in the clearance \f$c\f$ (the radial clearance, bearing radius
+less journal radius) with the eccentricity
+\f$\underline{e}\f$ = (journal center - bearing center) perpendicular to the
+axis, the eccentricity ratio \f$\epsilon = |\underline{e}| / c\f$ and the film
+thickness \f$h = c (1 + \epsilon \cos\theta)\f$, with \f$\theta\f$ measured round
+the bearing from the thickest part of the film.
 
 The pressure in the film follows from the Reynolds equation of a narrow
 (short) bearing, in which the flow along the axis dominates the flow round the
 bearing (Ocvirk's short bearing theory; for a ratio of length to diameter up to
-about 0.5, and as an approximation to about 1). With the oil of viscosity mu,
-the rotation speeds omega_j and omega_b of the journal and the bearing about the
-axis, the rate epsilon' of the eccentricity ratio and the velocity of the
-journal center across the line of centers e_t = e . u_2, with u_1 along the
-line of centers, u_2 = a x u_1 across it (a the axis):
+about 0.5, and as an approximation to about 1). With the oil of viscosity \f$\mu\f$,
+the rotation speeds \f$\omega_j\f$ and \f$\omega_b\f$ of the journal and the
+bearing about the axis, the rate \f$\dot{\epsilon}\f$ of the eccentricity ratio
+and the velocity of the journal center across the line of centers
+\f$e_t = \underline{e} \cdot \underline{u}_2\f$, with \f$\underline{u}_1\f$ along
+the line of centers, \f$\underline{u}_2 = \underline{a} \times \underline{u}_1\f$
+across it (\f$\underline{a}\f$ the axis):
 
-    p = 3 mu (L^2/4 - z^2) (s sin(theta) - q cos(theta)) / (c^2 (1 + epsilon cos(theta))^3)
+\f[
+p = \frac{3 \mu (l^2/4 - z^2) (s \sin\theta - q \cos\theta)}
+  {c^2 (1 + \epsilon \cos\theta)^3}
+\f]
 
-with s = epsilon (omega_j + omega_b) - 2 e_t / c, which is epsilon times the
-effective rotation omega_j + omega_b - 2 phi' of the oil about the line of
-centers (phi' the speed of the line of centers about the axis), q = 2 epsilon'
-(the squeeze), z along the axis from the middle of the bearing and L its length.
-Where the pressure would be negative the oil cavitates and the pressure is
-zero (the "pi film" of a half Sommerfeld solution, with the film from
-theta_0 = atan2(q, s) for half a turn round the bearing). The force on the
-journal is the pressure integrated over it:
+with \f$s = \epsilon (\omega_j + \omega_b) - 2 e_t / c\f$, which is \f$\epsilon\f$
+times the effective rotation \f$\omega_j + \omega_b - 2 \dot{\varphi}\f$ of the oil
+about the line of centers (\f$\dot{\varphi}\f$ the speed of the line of centers
+about the axis), \f$q = 2 \dot{\epsilon}\f$ (the squeeze), \f$z\f$ along the axis
+from the middle of the bearing and \f$l\f$ its length. Where the pressure would
+be negative the oil cavitates and the pressure is zero (the "pi film" of a half
+Sommerfeld solution, with the film from \f$\theta_0 = \mathrm{atan2}(q, s)\f$ for
+half a turn round the bearing). The force on the journal is the pressure
+integrated over it:
 
-    F = (mu R L^3 / (2 c^2)) (I_1 u_1 + I_2 u_2),
-    I_1 = integral of (s sin(theta) - q cos(theta)) cos(theta) / (1 + epsilon cos(theta))^3,
-    I_2 = integral of (s sin(theta) - q cos(theta)) sin(theta) / (1 + epsilon cos(theta))^3,
+\f[
+\begin{aligned}
+\underline{f} &= \frac{\mu r l^3}{2 c^2} (i_1 \underline{u}_1 + i_2 \underline{u}_2) \\
+i_1 &= \int \frac{(s \sin\theta - q \cos\theta) \cos\theta}{(1 + \epsilon \cos\theta)^3} \, \mathrm{d}\theta \\
+i_2 &= \int \frac{(s \sin\theta - q \cos\theta) \sin\theta}{(1 + \epsilon \cos\theta)^3} \, \mathrm{d}\theta
+\end{aligned}
+\f]
 
 over the film, which the module integrates by quadrature (with Sommerfeld's
-substitution, which makes the integrands smooth even for large epsilon). In
-steady running (epsilon' = 0, e_t = 0) these are the classical results
-    F . u_1 = - mu R L^3 omega epsilon^2 / (c^2 (1 - epsilon^2)^2) (the film
-pushes the journal back to the center),
-    F . u_2 = mu R L^3 omega pi epsilon / (4 c^2 (1 - epsilon^2)^(3/2)),
-whose ratio is the attitude angle of the short bearing, tan(phi) = pi
-sqrt(1 - epsilon^2) / (4 epsilon), and whose size is the load that the bearing
-carries, W = mu R L^3 omega epsilon sqrt(16 epsilon^2 + pi^2 (1 - epsilon^2))
-/ (4 c^2 (1 - epsilon^2)^2). The component across the line of centers is the
+substitution, which makes the integrands smooth even for large \f$\epsilon\f$).
+In steady running (\f$\dot{\epsilon} = 0\f$, \f$e_t = 0\f$) these are the
+classical results
+
+\f[
+\begin{aligned}
+\underline{f} \cdot \underline{u}_1 &= -\frac{\mu r l^3 \omega \epsilon^2}{c^2 (1 - \epsilon^2)^2}
+  \quad \text{(the film pushes the journal back to the center)} \\
+\underline{f} \cdot \underline{u}_2 &= \frac{\mu r l^3 \omega \pi \epsilon}{4 c^2 (1 - \epsilon^2)^{3/2}}
+\end{aligned}
+\f]
+
+whose ratio is the attitude angle of the short bearing,
+\f$\tan\phi = \pi \sqrt{1 - \epsilon^2} / (4 \epsilon)\f$, and whose size is the
+load that the bearing carries,
+\f$w = \frac{\mu r l^3 \omega \epsilon \sqrt{16 \epsilon^2 + \pi^2 (1 - \epsilon^2)}}{4 c^2 (1 - \epsilon^2)^2}\f$.
+The component across the line of centers is the
 cross-coupling of the film, which drives the oil whirl of lightly loaded
 shafts; the module has it, and the damping of the squeeze, in its force.
 
@@ -73,14 +92,17 @@ The friction torque on the journal is that of the shear of the oil and of its
 pressure gradient (Petroff's formula with the eccentricity, and the work of the
 pressure force):
 
-    T = -2 pi mu R^3 L (omega_j - omega_b) / (c sqrt(1 - epsilon^2)) + (c epsilon / 2) F . (-u_2),
+\f[
+\tau = -\frac{2 \pi \mu r^3 l (\omega_j - \omega_b)}{c \sqrt{1 - \epsilon^2}} +
+  \frac{c \epsilon}{2} \underline{f} \cdot (-\underline{u}_2),
+\f]
 
 where the shear of the oil is taken round the whole bearing, the cavitated
 half filled with oil for the shear.
 
 The eccentricity ratio is limited to 0.995 in the film (smoothly beyond 0.9),
 where the film's force is large but finite; give wall_stiffness for contact of
-the journal with the bearing at e > c.
+the journal with the bearing at \f$|\underline{e}| > c\f$.
 
 Not in the module: the inertia of the oil, thermal effects (the viscosity can be
 changed as the model runs, see the schedule controller), misalignment, the

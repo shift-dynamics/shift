@@ -18,7 +18,8 @@ struct ConvexHullData {
   std::vector<ksl_vec3_t> vertices;
   std::vector<unsigned int> faces; //!< three vertex indices per face
   std::vector<std::vector<unsigned int>> neighbors;
-  /*! outward unit normal n and offset o of each face's plane, n . x = o */
+  /*! outward unit normal \f$\underline{n}\f$ and offset \f$o\f$ of each face's
+   * plane, \f$\underline{n} \cdot \underline{x} = o\f$ */
     std::vector<ksl_vec3_t> face_normals;
   std::vector<double> face_offsets;
   /*! the faces merged into polygons: the triangles of a plane of the hull,

@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cerrno>
+#include <cctype>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
@@ -25,9 +26,11 @@
 #include <iostream>
 #include <list>
 #include <queue>
+#include <sstream>
 
 #include "ksl/matrix.h"
 #include "ksl/quaternion.h"
+#include "shift/core/parameter/yaml.h"
 
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
@@ -87,7 +90,22 @@ void shift::core::Context::LoadJSON(const std::string filename) {
                                  "' could not be opened: " +
                                  std::strerror(errno));
   }
-  file >> root_;
+  std::string extension = std::filesystem::path(filename).extension().string();
+  for(char& c : extension) {
+    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  }
+  if(extension == ".yaml" || extension == ".yml") {
+    /* the same structure as JSON, in YAML */
+    std::stringstream text;
+    text << file.rdbuf();
+    root_ = shift::core::parameter::YamlToJson(text.str());
+    if(!root_.isObject()) {
+      throw shift::core::Exception("The file '" + filename +
+                                   "' must hold a mapping at its top level");
+    }
+  } else {
+    file >> root_;
+  }
   ReadJSON(root_);
   AddDefaultFloor();
   set_parent(this);

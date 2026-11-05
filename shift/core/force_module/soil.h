@@ -13,13 +13,22 @@ namespace force_module {
 /*!
 @brief properties of a soil for terramechanics, in SI units
 
-Bekker's pressure-sinkage law gives the pressure under a plate of width b
-(its smaller dimension) sunk by z:
-  p = (k_c / b + k_phi) z^n
+Bekker's pressure-sinkage law gives the pressure under a plate of width
+\f$b\f$ (its smaller dimension) sunk by \f$z\f$:
+
+\f[
+p = \left( \frac{k_c}{b} + k_\phi \right) z^n
+\f]
+
 and the Mohr-Coulomb law with the Janosi-Hanamoto shear curve the shear
-stress after a shear displacement j:
-  tau = (cohesion + p tan(friction_angle)) (1 - exp(-j / shear_modulus))
-The unit weight and the friction angle give the earth pressure on the
+stress after a shear displacement \f$j\f$:
+
+\f[
+\tau = (c + p \tan\phi) \left(1 - e^{-j / k_j}\right)
+\f]
+
+with the cohesion \f$c\f$, the friction angle \f$\phi\f$ and the shear
+modulus \f$k_j\f$. The unit weight and the friction angle give the earth pressure on the
 faces of grousers and shoes (Rankine's passive pressure).
 */
 struct SoilProperties {
@@ -31,16 +40,18 @@ struct SoilProperties {
   double shear_modulus = 0.01; //!< Janosi-Hanamoto K, m
   double unit_weight = 16000.0; //!< weight per volume, N/m^3
 
-  /*! \brief Bekker's pressure under a plate of width b at sinkage z */
+  /*! \brief Bekker's pressure under a plate of width \f$b\f$ at sinkage
+   * \f$z\f$ */
   double Pressure(double b, double z) const;
 
   /*! \brief Rankine's passive earth-pressure coefficient,
-   * tan^2(pi/4 + friction_angle/2) */
+   * \f$\tan^2(\pi/4 + \phi/2)\f$, with \f$\phi\f$ the friction_angle */
   double PassiveCoefficient() const;
 
   /*! \brief the passive force per width on a vertical face embedded to
-   * depth h (Rankine, with cohesion):
-   * 1/2 unit_weight h^2 Kp + 2 cohesion h sqrt(Kp) */
+   * depth \f$h\f$ (Rankine, with cohesion):
+   * \f$\frac{1}{2} \gamma h^2 \kappa_p + 2 c h \sqrt{\kappa_p}\f$, with the unit_weight
+   * \f$\gamma\f$, the cohesion \f$c\f$ and the coefficient \f$\kappa_p\f$ */
   double PassiveForce(double h) const;
 };
 

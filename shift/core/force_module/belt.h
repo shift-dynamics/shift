@@ -34,10 +34,13 @@ loop, so the pulleys must be listed counterclockwise. A negative radius puts
 a pulley outside the loop, as an idler running on the back of the belt.
 
 Between pulleys the belt is a straight span along the common tangent of the
-two pulleys. A span's tension follows from its stretch e, its length L less
+two pulleys. A span's tension follows from its stretch \f$e\f$, its length \f$l\f$ less
 the unstretched length of the belt between its ends:
 
-  T = EA e / (L - e) + damping EA / (L - e) de/dt,   T >= 0
+\f[
+\tau = \frac{k_a \, e}{l - e} + \mathrm{damping} \frac{k_a}{l - e} \dot{e},
+\quad \tau \ge 0
+\f]
 
 and a span that would be in compression is slack and carries no force; the
 change from slack to taut is smoothed over slack_band. The tension pulls the
@@ -47,10 +50,11 @@ carries no bending, and its mass is not modelled.
 On each pulley the belt is held without slipping, as a toothed belt; the
 unstretched length of a span then follows from the turns of the pulleys at
 its ends. For a friction belt, friction_coefficient lets the belt slip:
-on a pulley of wrap angle phi, the friction holds tensions with a ratio up
-to exp(mu phi) (the capstan equation), and the belt slides over the pulley
-at the speed (|T_out - T_in| - T_slack (exp(mu phi) - 1)) / slip_damping in
-the direction of the larger tension once the difference exceeds that.
+on a pulley of wrap angle \f$\phi\f$, the friction holds tensions with a
+ratio up to \f$\exp(\mu \phi)\f$ (the capstan equation), and the belt slides
+over the pulley at the speed
+\f$(|\tau_{out} - \tau_{in}| - \tau_{slack} (\exp(\mu \phi) - 1)) / \mathrm{slip\_damping}\f$
+in the direction of the larger tension once the difference exceeds that.
 
 The module's states are the turn of each pulley relative to the line from
 the first pulley's centre to the second's, and, with friction, the length of
@@ -70,7 +74,8 @@ JSON:
   the first pulley's z axis.
 - radii: the radius of each pulley at the belt's pitch line; negative for a
   pulley outside the loop.
-- axial_stiffness: EA of the belt, force per unit strain.
+- axial_stiffness: \f$k_a\f$, the product of the modulus and the area of the
+  belt, force per unit strain.
 - damping (optional, default 0): stiffness-proportional damping of the
   stretch, seconds.
 - pretension (optional, default 0): the tension of every span as the model

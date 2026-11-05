@@ -12,15 +12,17 @@ namespace collision_geometry {
 /*!
 @brief half space collision geometry, e.g. the ground
 
-The solid side is behind the plane: the points x of the pose frame (the body
-frame unless a "pose" is given) with normal . x <= offset. normal points out of the solid, into free space; with
+The solid side is behind the plane: the points \f$\underline{x}\f$ of the pose frame
+(the body frame unless a "pose" is given) with
+\f$\underline{n} \cdot \underline{x} \le o\f$, for the normal \f$\underline{n}\f$
+and the offset \f$o\f$. normal points out of the solid, into free space; with
 shift's z axis down, flat ground through the body origin has normal
 [0, 0, -1] and offset 0. The plane is given by its parameters rather than
 fitted to the body's mesh. Attach it to a body joined to the fixed frame by a
 rigid joint.
 
 The collision geometry reference frame has the orientation of the pose, with
-its origin on the plane at offset * normal in the pose.
+its origin on the plane at \f$o \, \underline{n}\f$ in the pose.
 
 Contact of a plane with another shape is found from the other shape's
 support point against the normal, its point deepest in the half space (see

@@ -24,7 +24,7 @@ class Cad;
 namespace collision_geometry {
 
 /*! \brief transformation of a point of a STEP file (meters) to the frame of
- * a collision geometry (model length units): p' = d (scale p) */
+ * a collision geometry (model length units): \f$\underline{p}' = d \, (\text{scale} \cdot \underline{p})\f$ */
 struct CadPlacement {
   ksl_SE3_t d = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
   double scale = 1.0;
@@ -141,9 +141,10 @@ struct CadContactShape {
    * (its outward normal turning away from the solid) */
   double MeanCurvature(int face, const cad::Vec2& uv) const;
   /*! curvature of a face at (u, v) in the directions of the orthonormal
-   * tangents t1 and t2 (frame of the geometry): c = (c11, c12, c22), the
-   * curvature in direction t being t^T c t, positive where convex; zero on
-   * a plane */
+   * tangents \f$\underline{t}_1\f$ and \f$\underline{t}_2\f$ (frame of the
+   * geometry): \f$c = (c_{11}, c_{12}, c_{22})\f$, the curvature in direction
+   * \f$\underline{t}\f$ being \f$\underline{t}^T c \, \underline{t}\f$, positive
+   * where convex; zero on a plane */
   void Curvature(int face, const cad::Vec2& uv, const ksl_vec3_t& t1,
                  const ksl_vec3_t& t2, double c[3]) const;
   /*! (u, v) of the point of a face's surface nearest p, in the frame of the
@@ -153,8 +154,9 @@ struct CadContactShape {
   /*! whether (u, v) is inside the face's trims, with periodic parameters
    * taken in any period */
   bool Inside(int face, const cad::Vec2& uv) const;
-  /*! the pieces [t0, t1] of the segment from a to b in (u, v), a + t (b - a)
-   * with t in [0, 1], that are inside the face's trims; the segment is taken
+  /*! the pieces \f$[t_0, t_1]\f$ of the segment from a to b in \f$(u, v)\f$,
+   * \f$\underline{a} + t (\underline{b} - \underline{a})\f$ with
+   * \f$t \in [0, 1]\f$, that are inside the face's trims; the segment is taken
    * in the period of periodic parameters nearest the face */
   std::vector<std::array<double, 2>> Clip(int face, const cad::Vec2& a,
                                           const cad::Vec2& b) const;

@@ -73,6 +73,44 @@ void shift::core::force_module::ContactMaterialPair::DeclareParameters() {
                    "contact stiffness of the pair, for convex hulls", false);
 }
 
+void shift::core::force_module::StickSlipPair::DeclareParameters() {
+  DeclareParameter("geometry_a", &geometry_a,
+                   "name of a collision geometry of the pair", true);
+  DeclareParameter("geometry_b", &geometry_b,
+                   "name of the other collision geometry of the pair", true);
+  DeclareParameter("bristle_stiffness", &bristle_stiffness,
+                   "sigma_0, the stiffness of the bristles per unit of normal "
+                   "force (1/m): the sliding at which the friction of a body "
+                   "at rest reaches the friction coefficient",
+                   true);
+  DeclareParameter("bristle_damping", &bristle_damping,
+                   "sigma_1, the damping of the bristles per unit of normal "
+                   "force (s/m); optional, default 0",
+                   false);
+  DeclareParameter("viscous_friction", &viscous_friction,
+                   "sigma_2, friction in proportion to the sliding speed, per "
+                   "unit of normal force (s/m); optional, default 0",
+                   false);
+  DeclareParameter("static_friction", &static_friction,
+                   "mu_s, the friction coefficient of a body at rest, at "
+                   "least that of the pair; optional, default the friction "
+                   "of the pair",
+                   false);
+  DeclareParameter("stribeck_velocity", &stribeck_velocity,
+                   "sliding speed over which the friction falls from the "
+                   "static to the Coulomb; optional, default 0.01",
+                   false);
+  DeclareParameter("points", &points,
+                   "number of contact points that hold their own bristles "
+                   "(the k-th point of the contact has the k-th); optional, "
+                   "default 8",
+                   false);
+  DeclareParameter("release_time", &release_time,
+                   "time over which the bristles of a point out of contact "
+                   "relax to zero; optional, default 0.01",
+                   false);
+}
+
 void shift::core::force_module::Contact::DeclareParameters() {
   shift::core::force_module::Base::DeclareParameters();
   DeclareParameter("materials", &materials_,
@@ -80,6 +118,11 @@ void shift::core::force_module::Contact::DeclareParameters() {
   DeclareParameter("pairs", &pairs_,
                    "properties of pairs of materials that override those "
                    "combined from the two materials",
+                   false);
+  DeclareParameter("stick_slip", &stick_slip_,
+                   "pairs of collision geometry whose friction holds at "
+                   "rest (the bristle model of stick and slip), instead of "
+                   "the regularized Coulomb friction of the others",
                    false);
   DeclareParameter("default_material", &default_material_,
                    "material of collision geometry that names none; defaults "
@@ -307,6 +350,70 @@ void shift::core::force_module::Contact::Load() {
     }
   }
 
+  /* the pairs with stick-slip friction, each with its states after the wear */
+  bristles_.clear();
+  bristle_index_.clear();
+  {
+    std::unordered_map<std::string, collision_geometry::Base*> by_name;
+    for(auto geometry : context_->get_active_collision_geometry()) {
+      if(geometry->is_contact_enabled()) {
+        by_name[geometry->get_name()] = geometry;
+      }
+    }
+    for(const auto& s : stick_slip_.get_data()) {
+      const std::string pair_name = s->geometry_a + "_" + s->geometry_b;
+      auto a = by_name.find(s->geometry_a);
+      auto b = by_name.find(s->geometry_b);
+      if(a == by_name.end() || b == by_name.end() || a->second == b->second) {
+        throw shift::core::Exception(
+          description + ": stick_slip of '" + s->geometry_a + "' and '" +
+          s->geometry_b + "' needs two different collision geometries that "
+                          "are enabled for contact");
+      }
+      if(bristle_index_.count({a->second, b->second})) {
+        throw shift::core::Exception(description + ": stick_slip lists '" +
+                                     s->geometry_a + "' and '" +
+                                     s->geometry_b + "' twice");
+      }
+      Bristles bristles;
+      bristles.name = pair_name;
+      bristles.sigma_0 = s->bristle_stiffness;
+      bristles.sigma_1 = s->bristle_damping;
+      bristles.sigma_2 = s->viscous_friction;
+      bristles.mu_coulomb = laws_[Find(a->second).material * count +
+                                  Find(b->second).material]
+                              .friction;
+      bristles.mu_static =
+        s->static_friction < 0.0 ? bristles.mu_coulomb : s->static_friction;
+      bristles.velocity = s->stribeck_velocity;
+      bristles.release_time = s->release_time;
+      bristles.points = s->points;
+      if(!(bristles.sigma_0 > 0.0) || bristles.sigma_1 < 0.0 ||
+         bristles.sigma_2 < 0.0 || !(bristles.velocity > 0.0) ||
+         !(bristles.release_time > 0.0) || bristles.points < 1) {
+        throw shift::core::Exception(
+          description + ": stick_slip of '" + s->geometry_a + "' and '" +
+          s->geometry_b + "': bristle_stiffness, stribeck_velocity and "
+          "release_time must be positive, bristle_damping and viscous_friction "
+          "not negative, points at least 1");
+      }
+      if(bristles.mu_static < bristles.mu_coulomb) {
+        throw shift::core::Exception(
+          description + ": stick_slip of '" + s->geometry_a + "' and '" +
+          s->geometry_b + "': static_friction is less than the friction (" +
+          std::to_string(bristles.mu_coulomb) + ") of the pair");
+      }
+      bristles.offset = q_0_.size();
+      q_0_.resize(q_0_.size() + 3 * bristles.points, 0.0);
+      const int index = static_cast<int>(bristles_.size());
+      bristle_index_[{a->second, b->second}] = index;
+      bristle_index_[{b->second, a->second}] = index;
+      bristles_.push_back(bristles);
+    }
+    equation_count_ = static_cast<unsigned int>(q_0_.size());
+    stick_ratios_.assign(bristles_.size(), 0.0);
+  }
+
   /* geometry of jointed bodies overlaps at the joint */
   if(exclude_jointed_bodies_) {
     for(auto joint : context_->get_active_joints()) {
@@ -405,23 +512,47 @@ shift::core::force_module::Contact::get_output_names() const {
   for(const auto& name : wear_names_) {
     names.push_back("wear_" + name);
   }
+  for(const auto& bristles : bristles_) {
+    names.push_back("stick_" + bristles.name);
+  }
   return names;
 }
 
 void shift::core::force_module::Contact::UpdateOutputs(double,
                                                        const double* y) {
   worn_.assign(y + state_offset_, y + state_offset_ + wear_names_.size());
+  /* how near each pair is to the limit of holding: the largest bristle
+  deflection, |z| sigma_0 / mu_s */
+  stick_ratios_.assign(bristles_.size(), 0.0);
+  for(size_t i = 0; i < bristles_.size(); i++) {
+    const Bristles& b = bristles_[i];
+    for(int k = 0; k < b.points; k++) {
+      const double* z = y + state_offset_ + b.offset + 3 * k;
+      const double size = std::sqrt(z[0] * z[0] + z[1] * z[1] + z[2] * z[2]);
+      stick_ratios_[i] = std::max(stick_ratios_[i], size * b.sigma_0 / b.mu_static);
+    }
+  }
 }
 
 void shift::core::force_module::Contact::AppendOutputs(
   std::vector<double>& values) const {
   values.insert(values.end(), worn_.begin(), worn_.end());
   values.resize(values.size() + wear_names_.size() - worn_.size(), 0.0);
+  values.insert(values.end(), stick_ratios_.begin(), stick_ratios_.end());
 }
 
-void shift::core::force_module::Contact::Service(const double*, double* dy) {
+void shift::core::force_module::Contact::Service(const double* y,
+                                                 double* dy) {
   for(size_t i = 0; i < wear_names_.size(); i++) {
     dy[state_offset_ + i] = 0.0;
+  }
+  /* the bristles of a point that is not in contact relax to zero; those of
+  the points that are get their rates below */
+  for(const auto& b : bristles_) {
+    for(int i = 0; i < 3 * b.points; i++) {
+      dy[state_offset_ + b.offset + i] =
+        -y[state_offset_ + b.offset + i] / b.release_time;
+    }
   }
   if(group_mass_.empty()) {
     for(auto body : context_->get_active_articulated_bodies()) {
@@ -464,12 +595,22 @@ void shift::core::force_module::Contact::Service(const double*, double* dy) {
       return !(mass > 0.0) || std::isinf(mass) ? 0.0 : mass;
     };
 
+    /* the bristles of the pair, if its friction holds at rest */
+    const Bristles* bristles = nullptr;
+    if(!bristle_index_.empty()) {
+      auto found = bristle_index_.find({pair->a, pair->b});
+      if(found != bristle_index_.end()) {
+        bristles = &bristles_[found->second];
+      }
+    }
+
     ksl_vec3_t p;
     /* the force of a point of contact, with normal n, F = K d^e plus
-    damping c, ramped up over damping_depth */
+    damping c, ramped up over damping_depth; slot is the point's place in
+    the contact, whose bristles hold its friction */
     auto apply = [&](const collision_geometry::ContactPoint& c,
                      const ksl_vec3_t& n, double stiffness, double exponent,
-                     double damping) {
+                     double damping, int slot) {
       const ksl_vec3_t relative = relative_velocity(c, p);
       const double along = ksl_dot_vv(&relative, &n);
       /* IMPACT of Adams: the damping ramps up over damping_depth by STEP,
@@ -500,9 +641,39 @@ void shift::core::force_module::Contact::Service(const double*, double* dy) {
             speed;
         }
       }
+      ksl_vec3_t tangential;
+      for(int k = 0; k < 3; k++) {
+        tangential.at[k] = -friction * sliding.at[k];
+      }
+      if(bristles && slot < bristles->points) {
+        /* the bristle model (LuGre): the friction force on b is
+        -F (sigma_0 z + sigma_1 dz/dt + sigma_2 u) for the deflection z in
+        the tangent plane, with the rate u - sigma_0 |u| z / g(|u|) */
+        const double* state = y + state_offset_ + bristles->offset + 3 * slot;
+        ksl_vec3_t z = {{state[0], state[1], state[2]}};
+        const double z_normal = ksl_dot_vv(&z, &n);
+        for(int k = 0; k < 3; k++) {
+          z.at[k] -= z_normal * n.at[k];
+        }
+        const double g =
+          bristles->mu_coulomb +
+          (bristles->mu_static - bristles->mu_coulomb) *
+            std::exp(-(speed / bristles->velocity) * (speed / bristles->velocity));
+        for(int k = 0; k < 3; k++) {
+          const double rate = sliding.at[k] - bristles->sigma_0 * speed *
+                                                z.at[k] / g;
+          tangential.at[k] = -normal * (bristles->sigma_0 * z.at[k] +
+                                        bristles->sigma_1 * rate +
+                                        bristles->sigma_2 * sliding.at[k]);
+          /* the part of z along the normal, of a tangent plane that has
+          turned, relaxes */
+          dy[state_offset_ + bristles->offset + 3 * slot + k] =
+            rate - z_normal * n.at[k] / bristles->release_time;
+        }
+      }
       ksl_coscrew_t load;
       for(int k = 0; k < 3; k++) {
-        load.lin.at[k] = normal * n.at[k] - friction * sliding.at[k];
+        load.lin.at[k] = normal * n.at[k] + tangential.at[k];
         pair->force.at[k] += load.lin.at[k];
       }
       ksl_cross_vv(&p, &load.lin, &load.ang);
@@ -531,10 +702,11 @@ void shift::core::force_module::Contact::Service(const double*, double* dy) {
         law.damping >= 0.0
           ? law.damping
           : 2.0 * law.damping_ratio * std::sqrt(total * effective_mass());
+      int slot = 0;
       for(const auto& c : pair->manifold) {
         const double linear = point_law(c, stiffness, exponent);
         apply(c, c.normal, stiffness, exponent,
-              total > 0.0 ? damping * linear / total : 0.0);
+              total > 0.0 ? damping * linear / total : 0.0, slot++);
       }
       continue;
     }
@@ -578,10 +750,11 @@ void shift::core::force_module::Contact::Service(const double*, double* dy) {
       deepest.depth = pair->depth;
       deepest.point_a = pair->point_a;
       deepest.point_b = pair->point_b;
-      apply(deepest, n, stiffness, exponent, damping);
+      apply(deepest, n, stiffness, exponent, damping, 0);
     } else {
+      int slot = 0;
       for(const auto& c : pair->manifold) {
-        apply(c, n, stiffness, exponent, damping);
+        apply(c, n, stiffness, exponent, damping, slot++);
       }
     }
   }

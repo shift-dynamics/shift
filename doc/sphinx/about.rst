@@ -5,13 +5,14 @@ About
 =====
 
 *Shift* is a general-purpose multibody dynamics engine and visualization
-tool for robotics, automation and vehicle dynamics. A model is a JSON file
-that lists bodies and the joints between them, arranged in assemblies and
-subassemblies much as a machine is assembled in CAD software. *Shift* finds
-the kinematic structure of the model itself: the spanning tree, the closed
-loops, and the groups of loops that share bodies. It then integrates the
+tool for robotics, automation and vehicle dynamics. The input to the tool 
+is a file with a model definition specified in a YAML or JSON format. The
+file contains a list of bodies and joints connecting them, arranged in assemblies and
+subassemblies much as a machine is represented in CAD software. *Shift* automatically
+finds the kinematic structure of the model, including the spanning tree, closed
+loops, and clusters of overlapping loops. It then sets up and integrates the
 equations of motion, with force modules (contact, tires, bushings,
-hydraulic cylinders, belts, ...), sensors and controllers acting on the
+hydraulic cylinders, belts, etc.), sensors and controllers acting on the
 model as it runs.
 
 *Shift* is written in C++ on top of the Kinematics Subroutine Library
@@ -22,18 +23,22 @@ How it works
 ------------
 
 A model with closed kinematic loops has more joint coordinates than degrees
-of freedom: the loops constrain them. *Shift* keeps every joint coordinate
-and splits them into an *independent* set, which the integrator advances,
-and a *dependent* set, which follows from the loop closure equations
-(*generalized coordinate partitioning*, GCP). The equations of motion are
-solved in this split form,
+of freedom; the loops constrain them. *Shift* keeps every joint coordinate
+and splits them into an *independent* set and a *dependent* set, chosen so
+that the loop closure equations can be solved for the dependent coordinates
+in terms of the independent ones (*generalized coordinate partitioning*,
+GCP). The integrator advances all of the coordinates and velocities, of both
+sets; at each evaluation the accelerations of both sets are found by solving
+the equations of motion in this split form,
 
 .. math::
 
    \begin{bmatrix} M_{ii} & M_{id} & B_{di}^T \\ M_{di} & M_{dd} & I \\
-   B_{di} & 0 & 0 \end{bmatrix}
-   \begin{Bmatrix} \ddot{q}_i \\ \ddot{q}_d \\ \lambda_d \end{Bmatrix} =
-   \begin{Bmatrix} f_i \\ f_d \\ \gamma_d \end{Bmatrix}
+   B_{di} & I & 0 \end{bmatrix}
+   \begin{Bmatrix} \underline{\ddot{q}}_i \\ \underline{\ddot{q}}_d \\
+   \underline{\lambda}_d \end{Bmatrix} =
+   \begin{Bmatrix} \underline{f}_i \\ \underline{f}_d \\
+   \underline{\gamma}_d \end{Bmatrix}
 
 by the run-time optimized natural constraint algorithm (RNCA).
 
@@ -47,14 +52,15 @@ block is factored on its own. The work is split into three stages:
   sorted from the base outward, and their data is copied into contiguous
   arrays in that order, so that the run-time loops walk through memory in
   sequence.
-* **Run-time optimization**, now and then: the partition of each
+* **Run-time optimization**, as-needed periodically during a simulation: 
+  the partition of independent and dependent variables for each
   substructure is chosen by LU decomposition with complete pivoting, and
   lists of source and destination addresses are set up for evaluating the
   Jacobian and the constraints, mapping the mass matrix and solving the
   equations of motion in the partitioned order.
 * **Run-time algorithm**, every step: the address lists are followed with a
   few simple operations. The size of each substructure's *B* matrix (its
-  infinity norm) is watched; when it has grown by a set factor from its
+  infinity norm) is monitored; when it has grown by a set factor from its
   value at the last partition (``infinity_norm_multiplier`` of the
   ``rnca`` solver), the partition has become poorly conditioned and the
   run-time optimization is repeated.

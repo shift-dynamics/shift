@@ -3,6 +3,7 @@
 ## Dependencies
 * graphviz
 * jsoncpp
+* yaml-cpp
 * assimp
 * hdf5
 * cblas

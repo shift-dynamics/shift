@@ -1,6 +1,7 @@
 #include "shift/core/parameter/array.h"
 #include "shift/core/assembly.h"
 #include "shift/core/force_module/contact.h"
+#include "shift/core/force_module/powertrain.h"
 #include "shift/core/force_module/track.h"
 
 /* define specializations of Array class */
@@ -10,6 +11,12 @@ template class shift::core::parameter::Array<
   shift::core::force_module::ContactMaterial>;
 template class shift::core::parameter::Array<
   shift::core::force_module::ContactMaterialPair>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::PowertrainAxle>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::PowertrainBrake>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::StickSlipPair>;
 template class shift::core::parameter::Array<
   shift::core::force_module::TrackSpan>;
 

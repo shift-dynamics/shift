@@ -27,8 +27,8 @@ convex hull in contact through a face, or an edge, gets several points:
   contact force does not jump when clipping splits a vertex in two. Faces
   are not chosen but blended: every reference face nearly aligned with the
   normal, and against each every incident face nearly opposed to it, weighs
-  exp((c - c_best) / kFaceBlend), normalized to sum to 1, of the cosine c of
-  its angle and that of the best; the points of each clipped pair of faces
+  \f$\exp((c - c_{best}) / \text{kFaceBlend})\f$, normalized to sum to 1, of
+  the cosine \f$c\f$ of its angle and that of the best; the points of each clipped pair of faces
   are scaled by the product of their weights (kFaceBlend is small, so only
   nearly exactly tied faces are blended), and coincident points are
   merged. As two faces become equally aligned the manifold passes from one

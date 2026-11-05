@@ -35,8 +35,8 @@ Colors, as RGB from 0 to 1:
 - Ka: ambient color, added to the light from the sky on every surface.
 
 intensity multiplies Kd and Ks. Point, spot and IES lights fall off with
-the distance d to the light as 1 / (c + l d + q d^2), with attenuation
-[c, l, q]; the default [1, 0, 0] does not fall off.
+the distance \f$d\f$ to the light as \f$1 / (c + l d + q d^2)\f$, with
+attenuation \f$[c, l, q]\f$; the default \f$[1, 0, 0]\f$ does not fall off.
 
 The viewer draws the lights of a model in place of its default sun.
 */
@@ -88,7 +88,8 @@ public:
   double get_intensity() const {
     return intensity_;
   }
-  /*! \brief [c, l, q]: the light falls off as 1 / (c + l d + q d^2) */
+  /*! \brief \f$[c, l, q]\f$: the light falls off as
+   * \f$1 / (c + l d + q d^2)\f$ */
   const ksl_vec3_t& get_attenuation() const {
     return attenuation_;
   }
