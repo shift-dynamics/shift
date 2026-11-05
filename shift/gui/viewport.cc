@@ -46,13 +46,19 @@ struct FrameUniforms {
   float floor_params[4];
 };
 
-struct InstanceUniforms {
-  float model[16];
+/*! per mesh, at a dynamic offset */
+struct MaterialUniforms {
   float albedo[4];   // w = normal map scale
   float material[4]; // x = metallic, y = roughness, z = triplanar,
                      // w = 1 / texture scale
   int32_t layers[4]; // base color, metallic roughness, normal; -1: none
 };
+
+/*! per instance vertex attributes: the body origin pose, column major */
+struct InstanceAttributes {
+  float model[16];
+};
+static_assert(sizeof(InstanceAttributes) == 64);
 
 struct RtUniforms {
   float inverse_view[16];
@@ -73,9 +79,9 @@ struct RtInstance {
   float box_min[4];
   float box_max[4];
   float albedo[4];
-  float material[4]; // as in InstanceUniforms
+  float material[4]; // as in MaterialUniforms
   int32_t offsets[4]; // x = root node, y..w = texture layers as in
-                      // InstanceUniforms
+                      // MaterialUniforms
   float previous_body_to_world[16]; // pose in the previous frame
 };
 static_assert(sizeof(RtInstance) == 272);
@@ -150,8 +156,8 @@ static void CopyArray(const float* in, float* out) {
   std::memcpy(out, in, 4 * sizeof(float));
 }
 
-/*! material parameters and texture layers of a mesh, as in InstanceUniforms */
-/*! writes material[4] and the three texture layers layers[0..2] (base
+/*! material parameters and texture layers of a mesh, as in MaterialUniforms;
+ * writes material[4] and the three texture layers layers[0..2] (base
  * color, metallic roughness, normal); RtInstance passes offsets + 1, so a
  * fourth layer would overwrite the next field */
 static void CopyMaterial(const shift::gui::SceneMesh& mesh, float* material,
@@ -388,6 +394,7 @@ void shift::gui::Viewport::ReleaseAll() {
   svgf_ubo_.reset();
   rt_accumulation_.reset();
   rt_output_.reset();
+  rt_instance_node_buffer_.reset();
   rt_instance_buffer_.reset();
   rt_node_buffer_.reset();
   rt_triangle_buffer_.reset();
@@ -396,7 +403,8 @@ void shift::gui::Viewport::ReleaseAll() {
   sky_pipeline_.reset();
   mesh_pipeline_.reset();
   raster_bindings_.reset();
-  instance_ubo_.reset();
+  instance_buffer_.reset();
+  material_ubo_.reset();
   frame_ubo_.reset();
   gpu_meshes_.clear();
   pipeline_render_pass_ = nullptr;
@@ -406,15 +414,15 @@ void shift::gui::Viewport::ReleaseAll() {
 }
 
 void shift::gui::Viewport::CreateDeviceResources() {
-  instance_stride_ = rhi_->ubufAligned(sizeof(InstanceUniforms));
+  material_stride_ = rhi_->ubufAligned(sizeof(MaterialUniforms));
 
   frame_ubo_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
                                    QRhiBuffer::UniformBuffer,
                                    sizeof(FrameUniforms)));
   frame_ubo_->create();
-  instance_ubo_.reset(rhi_->newBuffer(
-    QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, instance_stride_));
-  instance_ubo_->create();
+  material_ubo_.reset(rhi_->newBuffer(
+    QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, material_stride_));
+  material_ubo_->create();
 
   raster_bindings_.reset(rhi_->newShaderResourceBindings());
 
@@ -462,6 +470,9 @@ void shift::gui::Viewport::CreateDeviceResources() {
     rt_instance_buffer_.reset(rhi_->newBuffer(
       QRhiBuffer::Static, QRhiBuffer::StorageBuffer, sizeof(RtInstance)));
     rt_instance_buffer_->create();
+    rt_instance_node_buffer_.reset(rhi_->newBuffer(
+      QRhiBuffer::Static, QRhiBuffer::StorageBuffer, sizeof(BvhNode)));
+    rt_instance_node_buffer_->create();
     svgf_ubo_stride_ = rhi_->ubufAligned(sizeof(DenoiseUniforms));
     // slot 0: temporal, variance and composite; 1..: a-trous iterations
     svgf_ubo_.reset(rhi_->newBuffer(
@@ -510,7 +521,7 @@ void shift::gui::Viewport::CreatePipelines() {
   raster_bindings_->setBindings(
     {Binding::uniformBuffer(0, vertex_fragment, frame_ubo_.get()),
      Binding::uniformBufferWithDynamicOffset(
-       1, vertex_fragment, instance_ubo_.get(), sizeof(InstanceUniforms)),
+       1, vertex_fragment, material_ubo_.get(), sizeof(MaterialUniforms)),
      Binding::sampledTexture(2, Binding::FragmentStage,
                              environment_specular_.get(),
                              linear_sampler_.get()),
@@ -544,15 +555,24 @@ void shift::gui::Viewport::CreatePipelines() {
 
   mesh_pipeline_.reset(make_pipeline("mesh.vert.qsb", "mesh.frag.qsb",
                                      raster_bindings_.get(), true));
+  // binding 0: mesh vertices; binding 1: the pose of each instance, as the
+  // four columns of a matrix
   QRhiVertexInputLayout layout;
-  layout.setBindings({QRhiVertexInputBinding(sizeof(Vertex))});
+  layout.setBindings(
+    {QRhiVertexInputBinding(sizeof(Vertex)),
+     QRhiVertexInputBinding(sizeof(InstanceAttributes),
+                            QRhiVertexInputBinding::PerInstance)});
   layout.setAttributes(
     {QRhiVertexInputAttribute(0, 0, QRhiVertexInputAttribute::Float3,
                               offsetof(Vertex, position)),
      QRhiVertexInputAttribute(0, 1, QRhiVertexInputAttribute::Float3,
                               offsetof(Vertex, normal)),
      QRhiVertexInputAttribute(0, 2, QRhiVertexInputAttribute::Float2,
-                              offsetof(Vertex, uv))});
+                              offsetof(Vertex, uv)),
+     QRhiVertexInputAttribute(1, 3, QRhiVertexInputAttribute::Float4, 0),
+     QRhiVertexInputAttribute(1, 4, QRhiVertexInputAttribute::Float4, 16),
+     QRhiVertexInputAttribute(1, 5, QRhiVertexInputAttribute::Float4, 32),
+     QRhiVertexInputAttribute(1, 6, QRhiVertexInputAttribute::Float4, 48)});
   mesh_pipeline_->setVertexInputLayout(layout);
   mesh_pipeline_->create();
 
@@ -601,7 +621,8 @@ void shift::gui::Viewport::CreatePipelines() {
        Binding::sampledTexture(6, compute, texture_array_.get(),
                                texture_sampler_.get()),
        store(7, rt_position_[p]), store(8, rt_normal_[p]),
-       store(9, rt_albedo_), store(10, rt_direct_)});
+       store(9, rt_albedo_), store(10, rt_direct_),
+       Binding::bufferLoad(11, compute, rt_instance_node_buffer_.get())});
     svgf_temporal_bindings_[p] = make_bindings(
       {denoise_uniforms, instances, load(2, rt_illumination_),
        load(3, rt_albedo_), load(4, rt_position_[p]), load(5, rt_normal_[p]),
@@ -718,6 +739,14 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     gpu.index_count = quint32(mesh.indices.size());
     gpu_meshes_.push_back(std::move(gpu));
   }
+  // the instances of a mesh are contiguous (Scene::instances)
+  for(size_t i = 0; i < scene.instances.size(); i++) {
+    GpuMesh& gpu = gpu_meshes_[scene.instances[i].mesh_index];
+    if(gpu.instance_count == 0) {
+      gpu.first_instance = quint32(i);
+    }
+    gpu.instance_count++;
+  }
 
   // texture layers; without any, a placeholder layer keeps the bindings valid
   if(scene.texture_layers.empty()) {
@@ -737,15 +766,21 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     batch->generateMips(texture_array_.get());
   }
 
-  const quint32 instance_count = quint32(std::max<size_t>(scene.meshes.size(), 1));
-  instance_ubo_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
+  const quint32 mesh_count = quint32(std::max<size_t>(scene.meshes.size(), 1));
+  material_ubo_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
                                       QRhiBuffer::UniformBuffer,
-                                      instance_stride_ * instance_count));
-  instance_ubo_->create();
+                                      material_stride_ * mesh_count));
+  material_ubo_->create();
+  const quint32 instance_count =
+    quint32(std::max<size_t>(scene.instances.size(), 1));
+  instance_buffer_.reset(
+    rhi_->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer,
+                    instance_count * sizeof(InstanceAttributes)));
+  instance_buffer_->create();
 
   if(ray_tracing_supported_) {
-    // one BVH per mesh in body coordinates, concatenated with absolute node
-    // and triangle indices
+    // one BVH per mesh in body coordinates, shared by its instances and
+    // concatenated with absolute node and triangle indices
     for(const auto& mesh : scene.meshes) {
       std::vector<RtTriangle> triangles(mesh.indices.size() / 3);
       for(size_t i = 0; i < triangles.size(); i++) {
@@ -791,6 +826,11 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
       rhi_->newBuffer(QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
                       quint32(instance_count * sizeof(RtInstance))));
     rt_instance_buffer_->create();
+    // one leaf per instance: 2 n - 1 nodes
+    rt_instance_node_buffer_.reset(rhi_->newBuffer(
+      QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
+      quint32((2 * instance_count - 1) * sizeof(BvhNode))));
+    rt_instance_node_buffer_->create();
     batch->uploadStaticBuffer(rt_triangle_buffer_.get(), rt_triangles_.data());
     batch->uploadStaticBuffer(rt_node_buffer_.get(), rt_nodes_.data());
     // the GPU copies are all that is needed from here on
@@ -861,14 +901,24 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     const Scene& scene = simulation_->get_scene();
     for(size_t i = 0; i < scene.meshes.size(); i++) {
       const SceneMesh& mesh = scene.meshes[i];
-      InstanceUniforms instance{};
-      CopyMatrix(poses_.bodies[mesh.body_index], instance.model);
-      CopyVector(mesh.albedo, mesh.normal_scale, instance.albedo);
-      CopyMaterial(mesh, instance.material, instance.layers);
-      instance.layers[3] = -1; // unused
-      batch->updateDynamicBuffer(instance_ubo_.get(),
-                                 quint32(i) * instance_stride_,
-                                 sizeof(instance), &instance);
+      MaterialUniforms material{};
+      CopyVector(mesh.albedo, mesh.normal_scale, material.albedo);
+      CopyMaterial(mesh, material.material, material.layers);
+      material.layers[3] = -1; // unused
+      batch->updateDynamicBuffer(material_ubo_.get(),
+                                 quint32(i) * material_stride_,
+                                 sizeof(material), &material);
+    }
+    std::vector<InstanceAttributes> instances(scene.instances.size());
+    for(size_t i = 0; i < instances.size(); i++) {
+      CopyMatrix(poses_.bodies[scene.instances[i].body_index],
+                 instances[i].model);
+    }
+    if(!instances.empty()) {
+      batch->updateDynamicBuffer(
+        instance_buffer_.get(), 0,
+        quint32(instances.size() * sizeof(InstanceAttributes)),
+        instances.data());
     }
   }
 
@@ -884,15 +934,22 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
   if(have_poses) {
     cb->setGraphicsPipeline(mesh_pipeline_.get());
     cb->setViewport(viewport);
+    // one instanced draw per mesh
     for(size_t i = 0; i < gpu_meshes_.size(); i++) {
+      const GpuMesh& gpu = gpu_meshes_[i];
+      if(gpu.instance_count == 0) {
+        continue;
+      }
       const QRhiCommandBuffer::DynamicOffset offset(
-        1, quint32(i) * instance_stride_);
+        1, quint32(i) * material_stride_);
       cb->setShaderResources(raster_bindings_.get(), 1, &offset);
-      const QRhiCommandBuffer::VertexInput input(gpu_meshes_[i].vertices.get(),
-                                                 0);
-      cb->setVertexInput(0, 1, &input, gpu_meshes_[i].indices.get(), 0,
+      const QRhiCommandBuffer::VertexInput inputs[2] = {
+        {gpu.vertices.get(), 0},
+        {instance_buffer_.get(),
+         gpu.first_instance * quint32(sizeof(InstanceAttributes))}};
+      cb->setVertexInput(0, 2, inputs, gpu.indices.get(), 0,
                          QRhiCommandBuffer::IndexUInt32);
-      cb->drawIndexed(gpu_meshes_[i].index_count);
+      cb->drawIndexed(gpu.index_count, gpu.instance_count);
     }
   }
 
@@ -917,8 +974,9 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
   bool moved = false;
   std::vector<RtInstance> instances(std::max(instance_count, 1));
   for(int i = 0; i < instance_count; i++) {
-    const SceneMesh& mesh = scene.meshes[i];
-    const QMatrix4x4& pose = poses_.bodies[mesh.body_index];
+    const SceneInstance& instance = scene.instances[i];
+    const SceneMesh& mesh = scene.meshes[instance.mesh_index];
+    const QMatrix4x4& pose = poses_.bodies[instance.body_index];
     const QMatrix4x4& previous =
       rt_previous_poses_.empty() ? pose : rt_previous_poses_[i];
     moved = moved || previous != pose;
@@ -929,14 +987,27 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
                  instances[i].box_max);
     CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
     CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
-    instances[i].offsets[0] = rt_roots_[i];
+    instances[i].offsets[0] = rt_roots_[instance.mesh_index];
   }
   batch->uploadStaticBuffer(rt_instance_buffer_.get(), 0,
                             quint32(instances.size() * sizeof(RtInstance)),
                             instances.data());
+  // the BVH over the instances' world boxes; the shader skips it without
+  // instances
+  std::vector<float> box_min(4 * instance_count), box_max(4 * instance_count);
+  for(int i = 0; i < instance_count; i++) {
+    std::copy(instances[i].box_min, instances[i].box_min + 4, &box_min[4 * i]);
+    std::copy(instances[i].box_max, instances[i].box_max + 4, &box_max[4 * i]);
+  }
+  const std::vector<BvhNode> instance_nodes = BuildBoxBvh(box_min, box_max);
+  if(!instance_nodes.empty()) {
+    batch->uploadStaticBuffer(
+      rt_instance_node_buffer_.get(), 0,
+      quint32(instance_nodes.size() * sizeof(BvhNode)), instance_nodes.data());
+  }
   rt_previous_poses_.resize(instance_count);
   for(int i = 0; i < instance_count; i++) {
-    rt_previous_poses_[i] = poses_.bodies[scene.meshes[i].body_index];
+    rt_previous_poses_[i] = poses_.bodies[scene.instances[i].body_index];
   }
   return moved;
 }
@@ -966,7 +1037,7 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
   bool bodies_moved = false;
   if(have_poses) {
     instance_count =
-      static_cast<int>(simulation_->get_scene().meshes.size());
+      static_cast<int>(simulation_->get_scene().instances.size());
     // after a frame with motion the instances still hold the old previous
     // poses, so upload once more with previous = current
     if(rt_instances_dirty_ || rt_instances_moving_) {

@@ -19,10 +19,9 @@ struct Vertex {
   float uv[2];
 };
 
-/*! \brief triangle mesh in body (origin frame) coordinates, drawn with the
- * pose of body `body_index` */
+/*! \brief triangle mesh in body (origin frame) coordinates with its
+ * material, uploaded once and drawn for each of its SceneInstance */
 struct SceneMesh {
-  int body_index = 0;
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
   QVector3D albedo{0.6f, 0.6f, 0.6f};
@@ -42,12 +41,21 @@ struct SceneMesh {
   QVector3D bounds_max;
 };
 
+/*! \brief a mesh drawn with the pose of a body */
+struct SceneInstance {
+  int mesh_index = 0; /*!< in Scene::meshes */
+  int body_index = 0;
+};
+
 /*! \brief renderable content of a model, in shift world coordinates (+z
- * down) */
+ * down). Bodies that load the same mesh files share one SceneMesh and are
+ * drawn as instances of it. */
 struct Scene {
   static constexpr int kTextureSize = 1024;
 
   std::vector<SceneMesh> meshes;
+  /*! grouped by mesh: the instances of a mesh are contiguous */
+  std::vector<SceneInstance> instances;
   int body_count = 0;
   /*! texture images, all kTextureSize square, RGBA8888 */
   std::vector<QImage> texture_layers;

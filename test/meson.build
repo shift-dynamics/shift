@@ -3,16 +3,28 @@ if not gtest_dep.found()
   subdir_done()
 endif
 
-shift_test = executable(
-  'shift-test',
+test_sources = [
   'main.cc',
   'test_bitfield.cc',
   'test_examples.cc',
   'test_excavator.cc',
   'test_specified_coordinates.cc',
+  'test_mesh_sharing.cc',
   'test_tire_pac2002.cc',
   # 'test_kdtree.cc',
-  dependencies: [shift_core_dep, gtest_dep],
+]
+test_deps = [shift_core_dep, gtest_dep]
+
+# tests of the viewer library, when it is built (option gui)
+if not is_disabler(shift_gui_dep)
+  test_sources += ['test_instance_bvh.cc']
+  test_deps += [shift_gui_dep]
+endif
+
+shift_test = executable(
+  'shift-test',
+  test_sources,
+  dependencies: test_deps,
   implicit_include_directories: false,
 )
 

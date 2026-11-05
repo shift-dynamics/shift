@@ -32,6 +32,7 @@ class Base;
 
 namespace geometry {
 class Base;
+struct MeshAsset;
 }
 
 namespace sensor {
@@ -484,6 +485,14 @@ public:
   void AddCollisionGeometryPrototype(const std::string& key,
                                      collision_geometry::Base* geometry);
 
+  /*! \brief mesh data already imported under key, so that bodies with the
+   * same mesh files share one copy, or nullptr. The cache is filled while
+   * the geometry loads and emptied afterwards; the meshes keep their data. */
+  std::shared_ptr<const geometry::MeshAsset>
+  FindMeshAsset(const std::string& key) const;
+  void AddMeshAsset(const std::string& key,
+                    std::shared_ptr<const geometry::MeshAsset> asset);
+
 private:
   /*! \brief collect the fitted collision geometry for contact detection */
   void SetupContactDetection();
@@ -755,6 +764,8 @@ private:
   std::vector<collision_geometry::Base*> contact_geometry_ = {};
   std::map<std::string, collision_geometry::Base*>
     collision_geometry_prototypes_ = {};
+  std::map<std::string, std::shared_ptr<const geometry::MeshAsset>>
+    mesh_assets_ = {};
   /*! \brief candidate pairs from the sweep and prune pass, keyed by the
    * indices of the geometries in contact_geometry_, with their GJK history */
   std::unordered_map<uint64_t, collision_geometry::ContactPair>

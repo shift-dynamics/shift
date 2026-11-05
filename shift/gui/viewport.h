@@ -103,6 +103,9 @@ private:
     std::unique_ptr<QRhiBuffer> vertices;
     std::unique_ptr<QRhiBuffer> indices;
     uint32_t index_count = 0;
+    /*! range of Scene::instances drawn with this mesh */
+    uint32_t first_instance = 0;
+    uint32_t instance_count = 0;
   };
 
   void InitializeRhi();
@@ -161,8 +164,10 @@ private:
   // raster
   std::vector<GpuMesh> gpu_meshes_;
   std::unique_ptr<QRhiBuffer> frame_ubo_;
-  std::unique_ptr<QRhiBuffer> instance_ubo_;
-  quint32 instance_stride_ = 0;
+  std::unique_ptr<QRhiBuffer> material_ubo_; /*!< per mesh */
+  quint32 material_stride_ = 0;
+  /*! per instance vertex attributes (poses), in Scene::instances order */
+  std::unique_ptr<QRhiBuffer> instance_buffer_;
   std::unique_ptr<QRhiShaderResourceBindings> raster_bindings_;
   std::unique_ptr<QRhiGraphicsPipeline> mesh_pipeline_;
   std::unique_ptr<QRhiGraphicsPipeline> sky_pipeline_;
@@ -189,6 +194,8 @@ private:
   std::unique_ptr<QRhiBuffer> rt_triangle_buffer_;
   std::unique_ptr<QRhiBuffer> rt_node_buffer_;
   std::unique_ptr<QRhiBuffer> rt_instance_buffer_;
+  /*! BVH over the world space boxes of the instances, rebuilt with them */
+  std::unique_ptr<QRhiBuffer> rt_instance_node_buffer_;
   std::unique_ptr<QRhiTexture> rt_output_;
   std::unique_ptr<QRhiTexture> rt_accumulation_; /*!< progressive mean */
   std::unique_ptr<QRhiComputePipeline> rt_pipeline_;

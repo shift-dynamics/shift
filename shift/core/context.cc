@@ -797,9 +797,11 @@ void shift::core::Context::LoadData() {
   for(auto& force_module : active_force_modules_) {
     force_module->Load();
   }
+  mesh_assets_.clear();
   for(auto& geometry : active_geometry_) {
     geometry->Load();
   }
+  mesh_assets_.clear();
   for(auto& joint : active_joints_) {
     joint->Load();
   }
@@ -3055,6 +3057,18 @@ shift::core::Context::FindCollisionGeometryPrototype(
 void shift::core::Context::AddCollisionGeometryPrototype(
   const std::string& key, shift::core::collision_geometry::Base* geometry) {
   collision_geometry_prototypes_.emplace(key, geometry);
+}
+
+std::shared_ptr<const shift::core::geometry::MeshAsset>
+shift::core::Context::FindMeshAsset(const std::string& key) const {
+  auto it = mesh_assets_.find(key);
+  return it == mesh_assets_.end() ? nullptr : it->second;
+}
+
+void shift::core::Context::AddMeshAsset(
+  const std::string& key,
+  std::shared_ptr<const shift::core::geometry::MeshAsset> asset) {
+  mesh_assets_.emplace(key, std::move(asset));
 }
 
 void shift::core::Context::SetupContactDetection() {
