@@ -3,4 +3,5 @@ core_src += files(
   'contact.cc',
   'tire/base.cc',
   'tire/fiala.cc',
+  'tire/pac2002.cc',
 )

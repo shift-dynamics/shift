@@ -25,6 +25,10 @@ struct Contact {
   /*! velocity of the material point of the wheel at the contact point, in
    * the w frame (the slip velocities in x and y) */
   ksl_vec3_t contact_velocity_w;
+  /*! velocity of the contact center C, the w frame origin moving with the
+   * wheel carrier (the wheel without its spin), in the w frame */
+  ksl_vec3_t center_velocity_w;
+  ksl_vec3_t spin_axis_w;    //!< wheel spin axis (hub y axis), in the w frame
   double vx = 0.0;    //!< hub velocity along the w frame x axis
   double omega = 0.0; //!< wheel spin rate about the wheel axis
 };
