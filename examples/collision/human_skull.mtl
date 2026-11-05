@@ -1,0 +1,5 @@
+# bone: color (linear), metalness Pm, roughness Pr
+newmtl bone
+Kd 0.62 0.52 0.36
+Pm 0.0
+Pr 0.55

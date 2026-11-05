@@ -181,7 +181,7 @@
           "name": "chassis",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["frame.obj", "frame.mtl"]
             }
           ],
@@ -242,7 +242,7 @@
           "name": "left_control_arm",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["left_control_arm.obj", "left_control_arm.mtl"]
             }
           ],
@@ -267,7 +267,7 @@
           "name": "right_control_arm",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["right_control_arm.obj", "right_control_arm.mtl"]
             }
           ],
@@ -292,7 +292,7 @@
           "name": "left_trailing_arm",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["left_trailing_arm.obj", "left_trailing_arm.mtl"]
             }
           ],
@@ -323,7 +323,7 @@
           "name": "right_trailing_arm",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["right_trailing_arm.obj", "right_trailing_arm.mtl"]
             }
           ],
@@ -354,7 +354,7 @@
           "name": "left_steering_knuckle",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["left_steering_knuckle.obj", "left_steering_knuckle.mtl"]
             }
           ],
@@ -392,7 +392,7 @@
           "name": "right_steering_knuckle",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["right_steering_knuckle.obj", "right_steering_knuckle.mtl"]
             }
           ],
@@ -430,7 +430,7 @@
           "name": "left_front_shock",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["front_shock.obj", "front_shock.mtl"]
             }
           ],
@@ -449,7 +449,7 @@
           "name": "right_front_shock",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["front_shock.obj", "front_shock.mtl"]
             }
           ],
@@ -468,7 +468,7 @@
           "name": "left_front_wheel",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["left_wheel.obj", "left_wheel.mtl"]
             }
           ],
@@ -487,7 +487,7 @@
           "name": "left_rear_wheel",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["left_wheel.obj", "left_wheel.mtl"]
             }
           ],
@@ -506,7 +506,7 @@
           "name": "right_front_wheel",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["right_wheel.obj", "right_wheel.mtl"]
             }
           ],
@@ -525,7 +525,7 @@
           "name": "right_rear_wheel",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["right_wheel.obj", "right_wheel.mtl"]
             }
           ],
@@ -545,7 +545,7 @@
           "active": false,
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["steering_rack.obj", "steering_rack.mtl"]
             }
           ],
@@ -574,7 +574,7 @@
           "name": "left_rear_shock_lower",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["rear_shock_lower.obj", "rear_shock_lower.mtl"]
             }
           ],
@@ -593,7 +593,7 @@
           "name": "right_rear_shock_lower",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["rear_shock_lower.obj", "rear_shock_lower.mtl"]
             }
           ],
@@ -612,7 +612,7 @@
           "name": "left_rear_shock_upper",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["rear_shock_upper.obj", "rear_shock_upper.mtl"]
             }
           ],
@@ -631,7 +631,7 @@
           "name": "right_rear_shock_upper",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["rear_shock_upper.obj", "rear_shock_upper.mtl"]
             }
           ],
@@ -651,7 +651,7 @@
           "active": false,
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["steering_link.obj", "steering_link.mtl"]
             }
           ],
@@ -677,7 +677,7 @@
           "active": false,
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["steering_link.obj", "steering_link.mtl"]
             }
           ],

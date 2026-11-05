@@ -331,8 +331,49 @@ void shift::gui::Viewport::FrameScene() {
   update();
 }
 
+void shift::gui::Viewport::set_view(float azimuth, float elevation) {
+  camera_.set_direction(azimuth, elevation);
+  FrameScene();
+}
+
+void shift::gui::Viewport::UpdatePoses() {
+  if(simulation_ && simulation_->TakePoses(poses_)) {
+    rt_instances_dirty_ = true;
+    LowerFloorBelowModel();
+  }
+}
+
+void shift::gui::Viewport::set_floor_below_model(float z) {
+  PlaceFloor(QVector3D(0.f, 0.f, z), QVector3D(0.f, 0.f, -1.f));
+  floor_below_model_ = true;
+  LowerFloorBelowModel();
+}
+
+void shift::gui::Viewport::LowerFloorBelowModel() {
+  if(!floor_below_model_ || !simulation_ || poses_.bodies.empty()) {
+    return;
+  }
+  QVector3D box_min, box_max;
+  SceneBounds(simulation_->get_scene(), poses_, box_min, box_max);
+  // +z is down: the lowest point has the largest z; leave a small gap so
+  // the floor does not touch the model
+  const float gap = 0.01f * (box_max - box_min).length();
+  const float level = box_max.z() + gap;
+  if(level > floor_origin_.z()) {
+    PlaceFloor(QVector3D(0.5f * (box_min.x() + box_max.x()),
+                        0.5f * (box_min.y() + box_max.y()), level),
+               QVector3D(0.f, 0.f, -1.f));
+  }
+}
+
 void shift::gui::Viewport::set_floor(const QVector3D& point,
                                      const QVector3D& normal) {
+  floor_below_model_ = false;
+  PlaceFloor(point, normal);
+}
+
+void shift::gui::Viewport::PlaceFloor(const QVector3D& point,
+                                      const QVector3D& normal) {
   floor_origin_ = point;
   floor_normal_ = normal.normalized();
   // in-plane axes: the x axis projected onto the plane, so a level floor
@@ -1482,9 +1523,7 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
 
 void shift::gui::Viewport::render(QRhiCommandBuffer* cb) {
   frame_count_++;
-  if(simulation_ && simulation_->TakePoses(poses_)) {
-    rt_instances_dirty_ = true;
-  }
+  UpdatePoses();
 
   QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
   if(environment_dirty_) {

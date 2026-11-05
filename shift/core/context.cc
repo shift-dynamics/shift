@@ -1700,6 +1700,10 @@ void shift::core::Context::CompressRigidJoints(
   if(!joint->get_q_count()) {
     // std::cout << "processing joint: " << joint->get_name() << std::endl;
     auto child_body = active_articulated_bodies_[i];
+    /* its frames that are not in the tree, e.g. the origin of a body with
+    no joints below it, are placed from this (get_body_origin_pose) */
+    rigid_placements_[child_body] = {
+      reference_body->get_reference_frame()->get_index(), D};
 
     // ksl_SE3_print(stdout, &D, "  D_p0_c0: ");
 
@@ -1911,6 +1915,7 @@ void shift::core::Context::AllocateRunTimeArrays() {
   }
 
   operation_count = 0;
+  rigid_placements_.clear();
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     auto& joint = active_joints_[i];
     auto parent_body = joint->get_system_parent_body();
@@ -3377,10 +3382,21 @@ ksl_SE3_t shift::core::Context::get_body_origin_pose(
       return d_origin;
     }
   }
-  const shift::core::Frame* reference = body->get_reference_frame();
+  /* a body attached by rigid joints: placed by the chain's displacement
+  from the body above it, which its own reference frame, not in the tree,
+  does not hold */
   ksl_SE3_t d_reference = ksl_SE3_identity();
-  if(reference->get_index() >= 0) {
-    d_reference = dhva.d[reference->get_index()];
+  auto placement = rigid_placements_.find(body);
+  if(placement != rigid_placements_.end()) {
+    const int above = placement->second.first;
+    const ksl_SE3_t d_above =
+      above >= 0 ? dhva.d[above] : ksl_SE3_identity();
+    ksl_product_dd(&d_above, &placement->second.second, &d_reference);
+  } else {
+    const shift::core::Frame* reference = body->get_reference_frame();
+    if(reference->get_index() >= 0) {
+      d_reference = dhva.d[reference->get_index()];
+    }
   }
   ksl_SE3_t d_origin;
   ksl_product_dd(&d_reference, body->get_origin()->get_d_wrt_reference(),

@@ -1,6 +1,7 @@
 #include "shift/core/collision_geometry/base.h"
 
 #include "shift/core/body/base.h"
+#include "shift/core/collision_geometry/cad.h"
 #include "shift/core/collision_geometry/convex_hull.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/fitting.h"
@@ -22,6 +23,9 @@ bool shift::core::collision_geometry::Modules::is_initialized() {
     return false;
   }
   if(!shift::core::collision_geometry::Plane::is_registered()) {
+    return false;
+  }
+  if(!shift::core::collision_geometry::Cad::is_registered()) {
     return false;
   }
   return true;

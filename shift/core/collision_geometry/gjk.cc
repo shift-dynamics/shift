@@ -15,6 +15,7 @@ kept per pair of geometries in a ContactPair.
 
 #include "ksl/matrix.h"
 #include "shift/core/collision_geometry/base.h"
+#include "shift/core/collision_geometry/cad.h"
 #include "shift/core/collision_geometry/convex_hull.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/epa.h"
@@ -460,10 +461,46 @@ static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair)
   return pair.collision;
 }
 
+/* the curvature of a geometry other than CAD geometry at its deepest point,
+for the Hertz contact of CAD geometry with it: 1/radius of a sphere, 0 for
+anything else (its point touches an edge of the CAD geometry's hull) */
+static double OtherCurvature(const shift::core::collision_geometry::Base* g) {
+  if(auto sphere = dynamic_cast<const shift::core::collision_geometry::Sphere*>(g)) {
+    return 1.0 / sphere->get_radius();
+  }
+  return 0.0;
+}
+
 bool shift::core::collision_geometry::TestContact(ContactPair& pair) {
   pair.manifold.clear();
-  if(TestDeepestPoint(pair)) {
-    ComputeManifold(pair);
+  pair.point_laws = false;
+  auto cad_a = dynamic_cast<const Cad*>(pair.a);
+  auto cad_b = dynamic_cast<const Cad*>(pair.b);
+  if(cad_a && cad_b) {
+    return CadCadContact(pair);
   }
+  if((cad_a || cad_b) && (dynamic_cast<const Plane*>(pair.a) ||
+                          dynamic_cast<const Plane*>(pair.b))) {
+    return CadPlaneContact(pair);
+  }
+  if(!TestDeepestPoint(pair)) {
+    return pair.collision;
+  }
+  if(cad_a || cad_b) {
+    /* the convex hull of CAD geometry with other shapes: its deepest point,
+    Hertz contact of an edge of the CAD geometry */
+    const Cad& cad = cad_a ? *cad_a : *cad_b;
+    ContactPoint c;
+    c.depth = pair.depth;
+    c.point_a = pair.point_a;
+    c.point_b = pair.point_b;
+    c.normal = pair.normal;
+    c.curvature =
+      1.0 / cad.get_edge_radius() + OtherCurvature(cad_a ? pair.b : pair.a);
+    pair.manifold.push_back(c);
+    pair.point_laws = true;
+    return pair.collision;
+  }
+  ComputeManifold(pair);
   return pair.collision;
 }

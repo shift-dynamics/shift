@@ -67,11 +67,18 @@ private:
   void DeclareParameters() override;
   /*! \brief import one file, appending its meshes and materials */
   void Import(const std::string& file, MeshAsset& asset) const;
+  /*! \brief directions d (x, y, z per vertex) under the scale: tangents
+   * multiplied by it, normals divided by it, then normalized */
+  void ScaleDirections(std::vector<float>& d, bool tangent) const;
   static bool registered_;
   std::vector<std::string> filenames_;
   std::string color_space_ = "linear";
   std::string texture_mapping_ = "uv";
   double texture_scale_ = 1.0;
+  /*! scale factors of the mesh along its x, y and z axes, from "scale" (one
+   * factor for all three, or three; none is 1) */
+  std::vector<double> scale_;
+  double scale_xyz_[3] = {1.0, 1.0, 1.0};
   shift::gui::ShadingType shading_type_;
   /*! never null: empty until loaded */
   std::shared_ptr<const MeshAsset> asset_ = std::make_shared<MeshAsset>();

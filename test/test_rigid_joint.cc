@@ -153,3 +153,103 @@ TEST(RigidJoint, LoopClosesOntoRigidlyAttachedBody) {
   EXPECT_NEAR(upper.t.y - base.t.y, 0.5, 1e-6);
   EXPECT_NEAR(upper.t.z - base.t.z, -0.85, 1e-6);
 }
+
+/* Bodies with no children, attached by a rigid joint with a displacement:
+to the fixed body's origin, to a rotated global frame, and to a moving arm.
+Their origins are in no other joint, so their poses come from the rigid
+joints alone: Rz(pi/2) about the joint and its translation, after the
+parent frame. */
+TEST(RigidJoint, LeafBodyTakesTheJointDisplacement) {
+  const double w = 2.0, t = 0.25;
+  const std::string path = testing::TempDir() + "/rigid_joint_leaf.json";
+  const char* displacement =
+    R"({"T": [0.1, 0.2, 0.3], "R": [[0, -1, 0], [1, 0, 0], [0, 0, 1]]})";
+  const char* inertia = R"("center_of_mass": [0, 0, 0],
+    "inertia": {"mass": 1.0, "Ixx": 0.1, "Iyy": 0.1, "Izz": 0.1,
+                "Ixy": 0, "Iyz": 0, "Izx": 0}})";
+  {
+    std::ofstream file(path);
+    file.precision(17);
+    file << R"({"model_parameters": {"version": "0.2",
+  "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+            "time": "seconds"},
+  "gravity": [0.0, 0.0, 0.0], "include_directories": ["."],
+  "solvers": [{"type": "rnca"}],
+  "integrators": [{"type": "ode113", "time_span": )"
+         << t << R"(, "time_step": 0.01, "relative_error": 1e-10,
+                   "absolute_error": 1e-10}]},
+ "frames": [{"name": "turned", "T": [1.0, 0.0, 0.0],
+             "R": [[1, 0, 0], [0, 0, -1], [0, 1, 0]]}],
+ "assemblies": [{"name": "a",
+  "bodies": [
+   {"name": "arm", "geometry": [], "center_of_mass": [0.5, 0, 0],
+    "frames": [{"name": "tip", "T": [1.0, 0.0, 0.0]}],
+    "inertia": {"mass": 2.0, "Ixx": 0.2, "Iyy": 0.2, "Izz": 0.2,
+                "Ixy": 0, "Iyz": 0, "Izx": 0}},
+   {"name": "on_fixed", "geometry": [], )"
+         << inertia << R"(,
+   {"name": "on_frame", "geometry": [], )"
+         << inertia << R"(,
+   {"name": "on_arm", "geometry": [], )"
+         << inertia << R"(],
+  "joints": [
+   {"name": "J1", "type": "revolute", "axis": [0, 0, 1],
+    "initial_velocity": )"
+         << w << R"(,
+    "parent": [["fixed"], "origin"], "child": [["arm"], "origin"]},
+   {"name": "J2", "type": "rigid", "initial_displacement": )"
+         << displacement << R"(,
+    "parent": [["fixed"], "origin"], "child": [["on_fixed"], "origin"]},
+   {"name": "J3", "type": "rigid", "initial_displacement": )"
+         << displacement << R"(,
+    "parent": [["fixed"], "turned"], "child": [["on_frame"], "origin"]},
+   {"name": "J4", "type": "rigid", "initial_displacement": )"
+         << displacement << R"(,
+    "parent": [["arm"], "tip"], "child": [["on_arm"], "origin"]}]}]}
+)";
+  }
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.Simulate();
+
+  /* the expected pose: frame (rotation f, translation p) after the joint */
+  auto expect = [&](const std::string& name, const double f[3][3],
+                    const double p[3]) {
+    SCOPED_TRACE(name);
+    const double r[3][3] = {{0, -1, 0}, {1, 0, 0}, {0, 0, 1}};
+    const double s[3] = {0.1, 0.2, 0.3};
+    bool found = false;
+    for(auto body : context.get_active_articulated_bodies()) {
+      if(body->get_name() != name) {
+        continue;
+      }
+      found = true;
+      const ksl_SE3_t pose = context.get_body_origin_pose(body);
+      for(int i = 0; i < 3; i++) {
+        double t_i = p[i];
+        for(int k = 0; k < 3; k++) {
+          t_i += f[i][k] * s[k];
+          double r_ik = 0.0;
+          for(int m = 0; m < 3; m++) {
+            r_ik += f[i][m] * r[m][k];
+          }
+          // column-major: row i, column k
+          EXPECT_NEAR(pose.R.at[k][i], r_ik, 1e-8) << i << " " << k;
+        }
+        EXPECT_NEAR(pose.t.at[i], t_i, 1e-8) << i;
+      }
+    }
+    EXPECT_TRUE(found);
+  };
+  const double identity[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+  const double zero[3] = {0, 0, 0};
+  expect("on_fixed", identity, zero);
+  const double turned[3][3] = {{1, 0, 0}, {0, 0, -1}, {0, 1, 0}};
+  const double turned_p[3] = {1.0, 0.0, 0.0};
+  expect("on_frame", turned, turned_p);
+  const double c = std::cos(w * t), s = std::sin(w * t);
+  const double arm[3][3] = {{c, -s, 0}, {s, c, 0}, {0, 0, 1}};
+  const double tip[3] = {c, s, 0.0};
+  expect("on_arm", arm, tip);
+}

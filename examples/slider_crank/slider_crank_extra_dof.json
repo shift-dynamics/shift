@@ -77,7 +77,7 @@
           "name": "crank",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["crank.obj", "crank.mtl"]
             }
           ],
@@ -102,7 +102,7 @@
           "name": "connecting_rod",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["connecting_rod.obj", "connecting_rod.mtl"]
             }
           ],
@@ -127,7 +127,7 @@
           "name": "piston",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["piston.obj", "piston.mtl"]
             }
           ],

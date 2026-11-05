@@ -32,6 +32,9 @@ public:
     return fov_y_;
   }
 
+  /*! \brief look at the target from azimuth and elevation, in radians */
+  void set_direction(float azimuth, float elevation);
+
   /*! \brief rotate about the target; arguments in radians */
   void Orbit(float delta_azimuth, float delta_elevation);
 

@@ -23,6 +23,21 @@ struct ContactPoint {
   /*! share of the contact law carried by the point (see ComputeManifold): 1
    * for a single point or a vertex of a hull on a plane */
   double weight = 1.0;
+  /*! @defgroup point_law Contact law of the point, for pairs whose points
+   * each have their own (ContactPair::point_laws, CAD geometry) */
+  /*! @{ */
+  /*! unit normal from a to b at the point, inertial frame */
+  ksl_vec3_t normal = {{1.0, 0.0, 0.0}};
+  /*! the sum of the mean curvatures of the two surfaces at the point
+   * (positive where convex), for Hertz contact at the point */
+  double curvature = 0.0;
+  /*! ratio of the larger to the smaller principal curvature of the gap
+   * between the surfaces at the point, 1 where it is round (see
+   * HertzEllipseFactor) */
+  double curvature_ratio = 1.0;
+  /*! length of a line of contact carried by the point; 0 for a point */
+  double length = 0.0;
+  /*! @} */
 };
 
 struct ContactPair {
@@ -46,6 +61,9 @@ struct ContactPair {
   ksl_vec3_t point_local_b = {{0.0, 0.0, 0.0}}; //!< point_b, frame of b
   /*! false if the penetration depth search hit its iteration limit */
   bool depth_converged = true;
+  /*! the points of the manifold each have their own normal and contact law
+   * (ContactPoint::normal, curvature and length), as for CAD geometry */
+  bool point_laws = false;
   /*! the contact manifold, at least the deepest point (above): for a convex
    * hull on a plane, its vertices below the plane; for two convex hulls, the
    * incident face clipped by the reference face (see manifold.h) */

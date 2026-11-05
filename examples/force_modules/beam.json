@@ -1,0 +1,119 @@
+{
+  // A steel tube 2 m long, 40 mm across with 3 mm walls, clamped at the
+  // origin of the fixed frame and carrying a 10 kg mass at its tip, as a
+  // chain of four beam elements between bodies at its nodes. Each node
+  // carries the mass of half of each element next to it. Released straight,
+  // the tube swings down under its weight and vibrates about its static
+  // deflection: the tip drops by P L^3 / (3 E I) = 22 mm under the 10 kg
+  // mass, plus 6 mm under the tube's own weight, and swings between 0 and
+  // twice that. Damping proportional to stiffness (damping, in seconds)
+  // damps the fast modes strongly and this slow one hardly at all.
+  "model_parameters": {
+    "version": "0.2.0",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    // z points down: gravity acts along +z
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 1.0, "time_step": 0.005,
+                     "relative_error": 1e-06, "absolute_error": 1e-08}],
+    "loggers": [{"type": "csv", "csv_logfile": "beam.csv",
+                 "timestamp_logfile": false}]
+  },
+  "frames": [{"name": "node_1_home", "T": [0.5, 0, 0]},
+             {"name": "node_2_home", "T": [1.0, 0, 0]},
+             {"name": "node_3_home", "T": [1.5, 0, 0]},
+             {"name": "node_4_home", "T": [2.0, 0, 0]}],
+  "assemblies": [
+    {
+      "name": "cantilever",
+      "bodies": [
+        {
+          "name": "node_1",
+          // the tube of the element that ends at this node
+          "geometry": [{"type": "mesh", "filename": ["meshes/tube_x_blue.obj"],
+                        "scale": [0.5, 0.02, 0.02], "texture_mapping": "triplanar",
+                        "texture_scale": 0.2}],
+          "center_of_mass": [0, 0, 0],
+          "inertia": {"mass": 1.37, "Ixx": 0.001, "Iyy": 0.0285, "Izz": 0.0285,
+                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+        },
+        {
+          "name": "node_2",
+          // the tube of the element that ends at this node
+          "geometry": [{"type": "mesh", "filename": ["meshes/tube_x_blue.obj"],
+                        "scale": [0.5, 0.02, 0.02], "texture_mapping": "triplanar",
+                        "texture_scale": 0.2}],
+          "center_of_mass": [0, 0, 0],
+          "inertia": {"mass": 1.37, "Ixx": 0.001, "Iyy": 0.0285, "Izz": 0.0285,
+                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+        },
+        {
+          "name": "node_3",
+          // the tube of the element that ends at this node
+          "geometry": [{"type": "mesh", "filename": ["meshes/tube_x_blue.obj"],
+                        "scale": [0.5, 0.02, 0.02], "texture_mapping": "triplanar",
+                        "texture_scale": 0.2}],
+          "center_of_mass": [0, 0, 0],
+          "inertia": {"mass": 1.37, "Ixx": 0.001, "Iyy": 0.0285, "Izz": 0.0285,
+                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+        },
+        {
+          "name": "node_4",
+          // the tube of the last element, and the 10 kg tip mass
+          "geometry": [{"type": "mesh", "filename": ["meshes/tube_x_blue.obj"],
+                        "scale": [0.5, 0.02, 0.02],
+                        "texture_mapping": "triplanar", "texture_scale": 0.2},
+                       {"type": "mesh", "filename": ["meshes/box_black.obj"],
+                        "scale": [0.11]}],
+          "center_of_mass": [0, 0, 0],
+          "inertia": {"mass": 11.37, "Ixx": 0.001, "Iyy": 0.0385, "Izz": 0.0385,
+                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+        }
+      ],
+      "joints": [
+        {"name": "float_1", "type": "float",
+         "parent": [["fixed"], "node_1_home"], "child": [["node_1"], "origin"]},
+        {"name": "float_2", "type": "float",
+         "parent": [["fixed"], "node_2_home"], "child": [["node_2"], "origin"]},
+        {"name": "float_3", "type": "float",
+         "parent": [["fixed"], "node_3_home"], "child": [["node_3"], "origin"]},
+        {"name": "float_4", "type": "float",
+         "parent": [["fixed"], "node_4_home"], "child": [["node_4"], "origin"]}
+      ],
+      // each element runs along the x axis of its first frame, here the
+      // fixed x axis, to its second frame
+      "force_modules": [
+        {
+          "type": "beam", "name": "element_1",
+          "frames": [["fixed", "origin"], ["node_1", "origin"]],
+          "young_modulus": 2e11, "poisson_ratio": 0.3,
+          "section": "tube", "diameter": 0.04, "inner_diameter": 0.034,
+          "damping": 1e-4
+        },
+        {
+          "type": "beam", "name": "element_2",
+          "frames": [["node_1", "origin"], ["node_2", "origin"]],
+          "young_modulus": 2e11, "poisson_ratio": 0.3,
+          "section": "tube", "diameter": 0.04, "inner_diameter": 0.034,
+          "damping": 1e-4
+        },
+        {
+          "type": "beam", "name": "element_3",
+          "frames": [["node_2", "origin"], ["node_3", "origin"]],
+          "young_modulus": 2e11, "poisson_ratio": 0.3,
+          "section": "tube", "diameter": 0.04, "inner_diameter": 0.034,
+          "damping": 1e-4
+        },
+        {
+          "type": "beam", "name": "element_4",
+          "frames": [["node_3", "origin"], ["node_4", "origin"]],
+          "young_modulus": 2e11, "poisson_ratio": 0.3,
+          "section": "tube", "diameter": 0.04, "inner_diameter": 0.034,
+          "damping": 1e-4
+        }
+      ]
+    }
+  ]
+}

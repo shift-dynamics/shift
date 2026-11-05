@@ -77,8 +77,24 @@ public:
    * solid), in the inertial frame */
   void set_floor(const QVector3D& point, const QVector3D& normal);
 
+  /*! \brief place a level floor at height z (+z down) that only marks the
+   * ground: it is lowered whenever a pose shown reaches below it, so the
+   * model never passes through it. For a floor plane without contact, e.g.
+   * the default floor of a model without a ground plane. */
+  void set_floor_below_model(float z);
+
   /*! \brief frame the camera on the current poses */
   void FrameScene();
+  /*! \brief look from azimuth and elevation (radians, see Camera) and frame
+   * the camera on the current poses */
+  void set_view(float azimuth, float elevation);
+  /*! \brief take the shown poses of the simulation, if they changed */
+  void UpdatePoses();
+  /*! \brief with set_floor_below_model, lower the floor below the poses
+   * shown if they reach below it */
+  void LowerFloorBelowModel();
+  /*! \brief move the floor, see set_floor */
+  void PlaceFloor(const QVector3D& point, const QVector3D& normal);
 
   /*! \brief the poses currently drawn */
   void get_poses(Poses& poses) const {
@@ -208,6 +224,7 @@ private:
   QVector3D floor_u_{1.f, 0.f, 0.f};
   QVector3D floor_v_{0.f, -1.f, 0.f};
   QVector3D floor_normal_{0.f, 0.f, -1.f}; // up, +z is down
+  bool floor_below_model_ = false; /*!< see set_floor_below_model */
   float floor_spacing_ = 1.f;
   float floor_extent_ = 100.f;
 

@@ -1,0 +1,278 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 1.0,
+        "time_step": 0.01,
+        "relative_error": 1e-06,
+        "absolute_error": 1e-09
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "wheel_test_bed_camber.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "test_bed",
+      "comment": "The wheel test bed with the wheel's axle tilted 10 degrees out of the terrain plane (camber), +y end low. The top of the wheel leans towards +y, and the soil pushes the wheel that way: the side force of the output is the camber thrust, about the load times tan(camber), less the shear and the bulldozing of the side that digs in. A single-wheel test bed: the small plain rigid wheel of P.G. Kumar and S. Jayalekshmi (J. Theoretical and Applied Mechanics 57(3), 2019), 160 mm by 32 mm under 52.2 N, on their TRI-1 lunar soil simulant. They measured 2.66 mm of sinkage, but Bekker's law with the moduli they give for the soil carries only a third of the weight at that sinkage, and the wheel sinks about 11 mm here. The carriage is held at 0.05 m/s and the wheel at -0.78125 rad/s, 20% slip, by PI controllers; the hanger, with the wheel, is free to sink. Ground at z = 0, z down.",
+      "bodies": [
+        {
+          "name": "carriage",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 10.0,
+            "Ixx": 0.1,
+            "Iyy": 0.1,
+            "Izz": 0.1,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "hanger",
+          "comment": "with the wheel, 52.2 N",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 4.3211,
+            "Ixx": 0.01,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "carrier",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.1,
+            "Ixx": 0.001,
+            "Iyy": 0.001,
+            "Izz": 0.001,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "wheel",
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.001685,
+            "Iyy": 0.0032,
+            "Izz": 0.001685,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "carriage"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.05
+        },
+        {
+          "name": "sink",
+          "type": "prismatic",
+          "parent": [
+            [
+              "carriage"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "hanger"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.078,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "camber",
+          "type": "rigid",
+          "parent": [
+            [
+              "hanger"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "carrier"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              0,
+              0,
+              0
+            ],
+            "R": [
+              [
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0.984807753012,
+                -0.173648177667
+              ],
+              [
+                0,
+                0.173648177667,
+                0.984807753012
+              ]
+            ]
+          }
+        },
+        {
+          "name": "spin",
+          "type": "revolute",
+          "parent": [
+            [
+              "carrier"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "wheel"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": -0.78125
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "carriage_speed",
+          "joint": "slide",
+          "quantity": "velocity"
+        },
+        {
+          "type": "joint",
+          "name": "wheel_speed",
+          "joint": "spin",
+          "quantity": "velocity"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "carriage_drive",
+          "kp": 2000.0,
+          "ki": 20000.0,
+          "kd": 0.0,
+          "target": 0.05,
+          "sensor": "carriage_speed",
+          "joint": "slide"
+        },
+        {
+          "type": "pid",
+          "name": "wheel_drive",
+          "kp": 5.0,
+          "ki": 500.0,
+          "kd": 0.0,
+          "target": -0.78125,
+          "sensor": "wheel_speed",
+          "joint": "spin"
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "tire",
+          "name": "wheel",
+          "tire_type": "bekker_wong",
+          "wheel_body": "wheel",
+          "unloaded_radius": 0.08,
+          "width": 0.032,
+          "soil": {
+            "name": "tri1_lunar_simulant"
+          },
+          "soil_damping": 300.0
+        }
+      ]
+    }
+  ]
+}

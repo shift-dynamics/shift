@@ -56,6 +56,9 @@ public:
   const CadAsset* get_asset() const {
     return asset_.get();
   }
+  std::shared_ptr<const CadAsset> get_shared_asset() const {
+    return asset_;
+  }
 
   /*! \brief model length units per meter */
   double get_scale() const {

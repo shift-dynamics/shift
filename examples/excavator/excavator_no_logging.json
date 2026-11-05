@@ -138,8 +138,8 @@
       "type": "basic",
       "name": "sinxx+cosyy",
       "filename": "sinxx+cosyy.tiff",
-      "texture_filename": "cracked_sand.jpg",
-      "normal_map_filename": "textures/cracked_sand_normal.png",
+      "texture_filename": "qrc:/textures/cracked_sand.jpg",
+      "normal_map_filename": "qrc:/textures/cracked_sand_normal.png",
       "normal_scale": 4,
       "parent": [
         ["fixed"],

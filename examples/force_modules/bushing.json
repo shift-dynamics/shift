@@ -1,0 +1,134 @@
+{
+  // A suspension corner on its control arm: the hub and wheel (42 kg) are
+  // on an A-shaped arm that pivots on two bushings at its inboard end, one
+  // in front of the other on the pivot axis (the x axis). A bushing is a
+  // stiff rubber sleeve: it holds the arm against every motion but a little
+  // twist about the pivot axis, which is what the arm swings on. A coil-over
+  // strut (a spring and damper) hangs the arm from the fixed frame above its
+  // outboard end and carries the weight, as the spring of a vehicle does;
+  // the bushings only add their twist stiffness to it. The arm starts with
+  // a bump and rings down.
+  "model_parameters": {
+    "version": "0.2.0",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    // z points down: gravity acts along +z
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 2.0, "time_step": 0.005,
+                     "relative_error": 1e-06, "absolute_error": 1e-08}],
+    "loggers": [{"type": "csv", "csv_logfile": "bushing.csv",
+                 "timestamp_logfile": false}]
+  },
+  // the pivot axis of the arm, 0.3 m above the ground, with a mounting
+  // point for each bushing on the fixed frame, 0.15 m either side
+  "frames": [{"name": "pivot_home", "T": [0, 0, -0.3]},
+             {"name": "front_mount", "T": [0.15, 0, -0.3]},
+             {"name": "rear_mount", "T": [-0.15, 0, -0.3]},
+             // the top of the strut, 0.5 m above the outboard end of the arm
+             {"name": "strut_top", "T": [0, -0.45, -0.8]}],
+  "assemblies": [
+    {
+      "name": "suspension_corner",
+      "bodies": [
+        {
+          "name": "control_arm",
+          // the arm, its hub and the wheel, drawn from meshes/control_arm.obj
+          // (made by meshes/make_meshes.py); the origin of the body is on
+          // the pivot axis, midway between the bushings
+          "geometry": [{"type": "mesh", "filename": ["meshes/control_arm.obj"],
+                        "texture_mapping": "triplanar",
+                        "texture_scale": 0.2}],
+          "frames": [{"name": "front", "T": [0.15, 0, 0]},
+                     {"name": "rear", "T": [-0.15, 0, 0]},
+                     // where the strut attaches, over the wheel
+                     {"name": "strut", "T": [0, -0.45, 0]}],
+          // the wheel (25 kg), hub and knuckle (7 kg) and the arm (10 kg):
+          // their center of mass is 0.45 m out from the pivot axis
+          "center_of_mass": [0, -0.45, 0],
+          "inertia": {"mass": 42, "Ixx": 0.8, "Iyy": 1.4, "Izz": 0.8,
+                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+        },
+        {
+          // the housing of the strut, hanging from its top (origin)
+          "name": "strut_housing",
+          "geometry": [{"type": "mesh",
+                        "filename": ["meshes/tube_zp_aluminium.obj"],
+                        "scale": [0.03, 0.03, 0.3]}],
+          "center_of_mass": [0, 0, 0.15],
+          "inertia": {"mass": 3, "Ixx": 0.02, "Iyy": 0.02, "Izz": 0.001,
+                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+        },
+        {
+          // the rod, standing up from its end on the arm (origin)
+          "name": "strut_rod",
+          "geometry": [{"type": "mesh",
+                        "filename": ["meshes/tube_zn_steel.obj"],
+                        "scale": [0.015, 0.015, 0.3]}],
+          "center_of_mass": [0, 0, -0.15],
+          "inertia": {"mass": 2, "Ixx": 0.015, "Iyy": 0.015, "Izz": 0.0002,
+                      "Ixy": 0, "Iyz": 0, "Izx": 0}
+        },
+        // massless: joins the two revolutes of the universal joint on the top
+        {"name": "strut_gimbal"}
+      ],
+      "joints": [
+        {
+          // the arm is free to move in every direction: a float joint places
+          // it, and the bushings alone hold it
+          "name": "float", "type": "float",
+          "parent": [["fixed"], "pivot_home"], "child": [["control_arm"], "origin"],
+          // the bump: the wheel moves up at 0.14 m/s
+          "initial_velocity": [0, 0, 0, 0.3, 0, 0]
+        },
+        {
+          // the top of the strut is a universal joint (two revolutes: about
+          // the x axis, then the y axis), so the strut can lean as the arm swings
+          "name": "strut_top_x", "type": "revolute",
+          "parent": [["fixed"], "strut_top"], "child": [["strut_gimbal"], "origin"],
+          "axis": [1, 0, 0]
+        },
+        {
+          "name": "strut_top_y", "type": "revolute",
+          "parent": [["strut_gimbal"], "origin"],
+          "child": [["strut_housing"], "origin"],
+          "axis": [0, 1, 0]
+        },
+        {
+          // the spring and damper: a prismatic joint along the strut. The
+          // force is -(a0 + a1 q) - b1 qdot, with q the length of the strut
+          // (0.5 m at the start). The spring of 20 kN/m is free at 0.4794 m,
+          // so at 0.5 m it pulls the arm up with m g = 412.02 N, the weight
+          "name": "strut", "type": "prismatic",
+          "parent": [["strut_housing"], "origin"],
+          "child": [["strut_rod"], "origin"],
+          "axis": [0, 0, 1], "initial_displacement": 0.5,
+          "stiffness_coefficients": [-9587.98, 20000],
+          "damping_coefficients": [0, 600]
+        },
+        {
+          // the bottom of the strut is a ball joint on the arm
+          "name": "strut_bottom", "type": "spherical",
+          "parent": [["strut_rod"], "origin"], "child": [["control_arm"], "strut"]
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "bushing", "name": "front_bushing",
+          "frames": [["fixed", "front_mount"], ["control_arm", "front"]],
+          // [x, y, z, rx, ry, rz]: N/m and N m/rad, N s/m and N m s/rad.
+          // Stiff against every motion but the twist (rx) about the pivot axis
+          "stiffness": [3e6, 3e6, 3e6, 1500, 3000, 3000],
+          "damping": [5000, 5000, 5000, 58, 100, 100]
+        },
+        {
+          "type": "bushing", "name": "rear_bushing",
+          "frames": [["fixed", "rear_mount"], ["control_arm", "rear"]],
+          "stiffness": [3e6, 3e6, 3e6, 1500, 3000, 3000],
+          "damping": [5000, 5000, 5000, 58, 100, 100]
+        }
+      ]
+    }
+  ]
+}

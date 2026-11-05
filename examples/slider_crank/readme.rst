@@ -1,7 +1,7 @@
 Slider crank
 ============
 
-This directory contains the *Shift* `JSON <http://shift-dynamics.io/file_format/file_format.html>`_ model definition file for the well-known slider-crank mechanism.
+This directory contains the *Shift* `JSON <https://shift-dynamics.github.io/shift/model-file/model-file.html>`_ model definition file for the well-known slider-crank mechanism.
 
 .. image:: slider_crank.png
 

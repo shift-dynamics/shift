@@ -7,6 +7,7 @@
 
 #include <QElapsedTimer>
 #include <QMainWindow>
+#include <QSize>
 
 class QAction;
 class QCheckBox;
@@ -62,8 +63,28 @@ public:
   explicit Workspace(QWidget* parent = nullptr);
   ~Workspace() override;
 
-  /*! \brief load a model JSON file, reporting errors in a dialog */
-  bool Open(const QString& filename);
+  /*! \brief load a model JSON file, reporting errors in a dialog, or in
+   * error if it is given (e.g. when rendering an image without a user) */
+  bool Open(const QString& filename, QString* error = nullptr);
+
+  /*! What SaveImage renders */
+  struct ImageRequest {
+    QString filename;          /*!< image file; the format from its suffix */
+    double time = 0.0;         /*!< simulated time shown */
+    QSize size{1200, 800};     /*!< pixels */
+    bool set_view = false;     /*!< use azimuth and elevation */
+    float azimuth = 0.6f;      /*!< radians, see Camera */
+    float elevation = 0.35f;   /*!< radians, see Camera */
+    bool hide_floor = false;   /*!< hide the floor even if the model shows
+                                * it (a model with a terrain hides it) */
+    int samples = 0;           /*!< ray traced frames; 0 renders raster */
+  };
+
+  /*! \brief render the open model at request.time to an image file and
+   * quit the application with exit status 0, or 1 on failure. Simulates
+   * up to request.time first if it is after the start. Returns at once;
+   * the work is done from the event loop once the viewport can render. */
+  void SaveImage(const ImageRequest& request);
 
 private:
   /*! one jog slider row for a joint coordinate; the slider is a rate
@@ -144,6 +165,9 @@ private:
   /*! \brief show the size of the selected resolution preset */
   void UpdateVideoSize();
   void SetPlaybackTime(double t);
+  /*! \brief one step of SaveImage: wait for the viewport and the results,
+   * then render; returns true when done */
+  bool AdvanceImage();
 
   /*! \brief advance playback and jogging, once per display frame */
   void Tick();
@@ -263,6 +287,8 @@ private:
   QString jog_error_; /*!< why the last joint move failed, if known */
   TargetMove target_move_;
   bool tree_dirty_ = false;
+  ImageRequest image_request_;
+  QTimer* image_timer_ = nullptr;
 };
 
 } // namespace gui

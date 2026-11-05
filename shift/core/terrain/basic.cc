@@ -27,7 +27,10 @@ std::unique_ptr<shift::core::terrain::Basic> shift::core::terrain::Basic::Create
 void shift::core::terrain::Basic::DeclareParameters() {
   shift::core::terrain::Base::DeclareParameters();
   DeclareParameter("texture_filename", &texture_filename_,
-               "path to filename that defines terrain texture", false);
+               "image drawn on the terrain: a file next to the model or in "
+               "an include directory, or a texture built into the viewer, "
+               "e.g. qrc:/textures/asphalt.jpg; optional",
+               false);
   DeclareParameter("property_map_filename", &property_map_filename_,
                "path to filename that defines terrain texture", false);
   DeclareParameter("x_scale", &x_scale_,
@@ -48,7 +51,8 @@ void shift::core::terrain::Basic::DeclareParameters() {
   DeclareParameter("normal_map_filename", &normal_map_filename_,
                "path to a tangent space normal map of the texture (as a "
                "bump map: it changes how light falls on the surface, not "
-               "its shape), tiled like the texture; optional",
+               "its shape), tiled like the texture: a file, or a built-in "
+               "texture such as qrc:/textures/asphalt_normal.jpg; optional",
                false);
   DeclareParameter("normal_scale", &normal_scale_,
                "strength of the normal map: its slopes are multiplied by "
@@ -77,6 +81,9 @@ void shift::core::terrain::Base::Connect() {}
 
 std::string shift::core::terrain::Basic::FindFile(const std::string& name) const {
   if(!name.empty() && name[0] == '/') {
+    return name;
+  }
+  if(shift::core::utility::IsResourcePath(name)) {
     return name;
   }
   const std::string file =

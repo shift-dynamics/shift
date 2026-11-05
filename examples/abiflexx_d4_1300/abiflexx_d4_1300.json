@@ -71,7 +71,7 @@
           "name": "base",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_base.obj", "abiflexx_d4_1300_base.mtl"]
             }
           ],
@@ -107,7 +107,7 @@
           "name": "link_upper_1",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_upper.obj", "abiflexx_d4_1300_link_upper.mtl"]
             }
           ],
@@ -137,7 +137,7 @@
           "name": "link_upper_2",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_upper.obj", "abiflexx_d4_1300_link_upper.mtl"]
             }
           ],
@@ -167,7 +167,7 @@
           "name": "link_upper_3",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_upper.obj", "abiflexx_d4_1300_link_upper.mtl"]
             }
           ],
@@ -197,7 +197,7 @@
           "name": "link_lower_1",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_lower.obj", "abiflexx_d4_1300_link_lower.mtl"]
             }
           ],
@@ -222,7 +222,7 @@
           "name": "link_lower_2",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_lower.obj", "abiflexx_d4_1300_link_lower.mtl"]
             }
           ],
@@ -247,7 +247,7 @@
           "name": "link_lower_3",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_lower.obj", "abiflexx_d4_1300_link_lower.mtl"]
             }
           ],
@@ -272,7 +272,7 @@
           "name": "link_lower_4",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_lower.obj", "abiflexx_d4_1300_link_lower.mtl"]
             }
           ],
@@ -297,7 +297,7 @@
           "name": "link_lower_5",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_lower.obj", "abiflexx_d4_1300_link_lower.mtl"]
             }
           ],
@@ -322,7 +322,7 @@
           "name": "link_lower_6",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_link_lower.obj", "abiflexx_d4_1300_link_lower.mtl"]
             }
           ],
@@ -347,7 +347,7 @@
           "name": "end_effector",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.3,
               "filename": ["abiflexx_d4_1300_end_effector.obj", "abiflexx_d4_1300_end_effector.mtl"]
             }
           ],

@@ -71,7 +71,7 @@
           "name": "base",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["base.obj", "base.mtl"]
             }
           ],
@@ -106,7 +106,7 @@
           "name": "top",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["base.obj", "base.mtl"]
             }
           ],
@@ -142,7 +142,7 @@
           "name": "link1",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link.obj", "link.mtl"]
             }
           ],
@@ -167,7 +167,7 @@
           "name": "link2",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link.obj", "link.mtl"]
             }
           ],
@@ -192,7 +192,7 @@
           "name": "link3",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link.obj", "link.mtl"]
             }
           ],
@@ -217,7 +217,7 @@
           "name": "link4",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link.obj", "link.mtl"]
             }
           ],
@@ -242,7 +242,7 @@
           "name": "link5",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link.obj", "link.mtl"]
             }
           ],
@@ -267,7 +267,7 @@
           "name": "link6",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link.obj", "link.mtl"]
             }
           ],

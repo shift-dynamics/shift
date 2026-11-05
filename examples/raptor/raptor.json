@@ -1,0 +1,3027 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "solvers": [
+      {
+        "type": "rnca",
+        "infinity_norm_multiplier": 2.0
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 10.0,
+        "time_step": 0.02,
+        "relative_error": 0.0001,
+        "absolute_error": 0.0001,
+        "omega_n": 50.0
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "overhead_1",
+      "T": [
+        8.0,
+        -8.0,
+        -8.0
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "T": [
+        -8.0,
+        -8.0,
+        -8.0
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_1"
+      ],
+      "Ka": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_2"
+      ],
+      "Ka": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "raptor",
+      "active": true,
+      "force_modules": [
+        {
+          "type": "tire",
+          "name": "right_front_tire",
+          "tire_type": "fiala",
+          "wheel_body": "right_front_wheel",
+          "unloaded_radius": 0.394,
+          "width": 0.32,
+          "vertical_stiffness": 300000.0,
+          "vertical_damping": 3000.0
+        },
+        {
+          "type": "tire",
+          "name": "right_rear_tire",
+          "tire_type": "fiala",
+          "wheel_body": "right_rear_wheel",
+          "unloaded_radius": 0.394,
+          "width": 0.32,
+          "vertical_stiffness": 300000.0,
+          "vertical_damping": 3000.0
+        },
+        {
+          "type": "tire",
+          "name": "left_front_tire",
+          "tire_type": "fiala",
+          "wheel_body": "left_front_wheel",
+          "unloaded_radius": 0.394,
+          "width": 0.32,
+          "vertical_stiffness": 300000.0,
+          "vertical_damping": 3000.0
+        },
+        {
+          "type": "tire",
+          "name": "left_rear_tire",
+          "tire_type": "fiala",
+          "wheel_body": "left_rear_wheel",
+          "unloaded_radius": 0.394,
+          "width": 0.32,
+          "vertical_stiffness": 300000.0,
+          "vertical_damping": 3000.0
+        }
+      ],
+      "sensors": [
+        {
+          "type": "frame",
+          "name": "chassis_Tx_velocity",
+          "body_frame_pair": [
+            "chassis",
+            "origin"
+          ],
+          "quantity": "velocity",
+          "coordinate_system": "local",
+          "dof": "Tx"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "right_rear_drive",
+          "kp": -100.0,
+          "ki": -400.0,
+          "kd": 0.0,
+          "target": 15.0,
+          "comment": "rear wheel drive: wheel torque to hold the speed",
+          "sensor": "chassis_Tx_velocity",
+          "joint": "right_rear_hub"
+        },
+        {
+          "type": "pid",
+          "name": "left_rear_drive",
+          "kp": -100.0,
+          "ki": -400.0,
+          "kd": 0.0,
+          "target": 15.0,
+          "comment": "rear wheel drive: wheel torque to hold the speed",
+          "sensor": "chassis_Tx_velocity",
+          "joint": "left_rear_hub"
+        }
+      ],
+      "bodies": [
+        {
+          "name": "chassis",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "chassis.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "steering_rack",
+              "T": [
+                2.15,
+                0.0,
+                -0.445
+              ]
+            },
+            {
+              "name": "right_front_lower_arm",
+              "T": [
+                2.072,
+                0.373,
+                -0.408
+              ]
+            },
+            {
+              "name": "right_front_upper_arm",
+              "T": [
+                2.0335,
+                0.474,
+                -0.834
+              ]
+            },
+            {
+              "name": "right_front_coil_over",
+              "T": [
+                2.024,
+                0.504,
+                -0.928
+              ]
+            },
+            {
+              "name": "right_front_halfshaft",
+              "T": [
+                1.999,
+                0.411,
+                -0.492
+              ]
+            },
+            {
+              "name": "right_rear_lower_link",
+              "T": [
+                -0.676,
+                0.543,
+                -0.339
+              ]
+            },
+            {
+              "name": "right_rear_upper_link",
+              "T": [
+                -0.824,
+                0.543,
+                -0.453
+              ]
+            },
+            {
+              "name": "right_rear_coil_over",
+              "T": [
+                -1.352,
+                0.675,
+                -0.766
+              ]
+            },
+            {
+              "name": "left_front_lower_arm",
+              "T": [
+                2.072,
+                -0.373,
+                -0.408
+              ]
+            },
+            {
+              "name": "left_front_upper_arm",
+              "T": [
+                2.0335,
+                -0.474,
+                -0.834
+              ]
+            },
+            {
+              "name": "left_front_coil_over",
+              "T": [
+                2.024,
+                -0.504,
+                -0.928
+              ]
+            },
+            {
+              "name": "left_front_halfshaft",
+              "T": [
+                1.999,
+                -0.411,
+                -0.492
+              ]
+            },
+            {
+              "name": "left_rear_lower_link",
+              "T": [
+                -0.676,
+                -0.543,
+                -0.339
+              ]
+            },
+            {
+              "name": "left_rear_upper_link",
+              "T": [
+                -0.824,
+                -0.543,
+                -0.453
+              ]
+            },
+            {
+              "name": "left_rear_coil_over",
+              "T": [
+                -1.352,
+                -0.675,
+                -0.766
+              ]
+            },
+            {
+              "name": "rear_axle",
+              "T": [
+                -1.683,
+                0.0,
+                -0.463
+              ]
+            },
+            {
+              "name": "panhard_rod",
+              "T": [
+                -1.888,
+                0.433,
+                -0.433
+              ]
+            },
+            {
+              "name": "prop_shaft",
+              "T": [
+                0.393,
+                0.034,
+                -0.551
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.42,
+            0.0,
+            -0.85
+          ],
+          "comment": "estimated: frame, body, engine and transmission",
+          "inertia": {
+            "mass": 2150.0,
+            "Ixx": 1100.0,
+            "Iyy": 5000.0,
+            "Izz": 5300.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v1"
+        },
+        {
+          "name": "v2"
+        },
+        {
+          "name": "v3"
+        },
+        {
+          "name": "v4"
+        },
+        {
+          "name": "v5"
+        },
+        {
+          "name": "steering_rack",
+          "geometry": [],
+          "frames": [
+            {
+              "name": "right_front_tie_rod",
+              "T": [
+                0.0,
+                0.381,
+                0.0
+              ]
+            },
+            {
+              "name": "left_front_tie_rod",
+              "T": [
+                0.0,
+                -0.381,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 0.15,
+            "Iyy": 0.002,
+            "Izz": 0.15,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_wheel",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_front_wheel.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 50.0,
+            "Ixx": 2.7,
+            "Iyy": 4.5,
+            "Izz": 2.7,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_knuckle",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_front_knuckle.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "hub",
+              "T": [
+                0.0,
+                0.136,
+                0.0
+              ]
+            },
+            {
+              "name": "lower_ball_joint",
+              "T": [
+                0.058,
+                0.075,
+                0.163
+              ]
+            },
+            {
+              "name": "upper_ball_joint",
+              "T": [
+                -0.042,
+                -0.055,
+                -0.353
+              ]
+            },
+            {
+              "name": "tie_rod",
+              "T": [
+                0.13,
+                0.075,
+                0.028
+              ]
+            },
+            {
+              "name": "halfshaft",
+              "T": [
+                0.0,
+                -0.04,
+                -0.003
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.05,
+            0.0
+          ],
+          "inertia": {
+            "mass": 22.0,
+            "Ixx": 0.35,
+            "Iyy": 0.3,
+            "Izz": 0.2,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_lower_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_front_lower_arm.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "ball_joint",
+              "T": [
+                0.003,
+                0.502,
+                0.098
+              ]
+            },
+            {
+              "name": "coil_over",
+              "T": [
+                0.022,
+                0.327,
+                0.031
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.25,
+            0.02
+          ],
+          "inertia": {
+            "mass": 14.0,
+            "Ixx": 0.35,
+            "Iyy": 0.25,
+            "Izz": 0.5,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_upper_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_front_upper_arm.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "ball_joint",
+              "T": [
+                -0.0585,
+                0.271,
+                0.008
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.15,
+            0.0
+          ],
+          "inertia": {
+            "mass": 6.0,
+            "Ixx": 0.06,
+            "Iyy": 0.06,
+            "Izz": 0.1,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_halfshaft",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_front_halfshaft.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.009,
+            0.1745,
+            0.008
+          ],
+          "inertia": {
+            "mass": 9.0,
+            "Ixx": 0.1,
+            "Iyy": 0.01,
+            "Izz": 0.1,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_tie_rod",
+          "geometry": [],
+          "frames": [
+            {
+              "name": "outer",
+              "T": [
+                -0.003,
+                0.494,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.0015,
+            0.247,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.5,
+            "Ixx": 0.03,
+            "Iyy": 0.0005,
+            "Izz": 0.03,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_coil_over_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_front_coil_over.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.021,
+            0.0588,
+            0.1653
+          ],
+          "inertia": {
+            "mass": 6.0,
+            "Ixx": 0.05,
+            "Iyy": 0.05,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_front_coil_over_lower",
+          "geometry": [],
+          "center_of_mass": [
+            -0.014,
+            -0.0392,
+            -0.1102
+          ],
+          "inertia": {
+            "mass": 4.0,
+            "Ixx": 0.03,
+            "Iyy": 0.03,
+            "Izz": 0.005,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v6"
+        },
+        {
+          "name": "v7"
+        },
+        {
+          "name": "right_front_halfshaft_slide",
+          "geometry": [],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.001,
+            "Iyy": 0.001,
+            "Izz": 0.001,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v8"
+        },
+        {
+          "name": "right_rear_wheel",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_rear_wheel.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 50.0,
+            "Ixx": 2.7,
+            "Iyy": 4.5,
+            "Izz": 2.7,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_rear_lower_link",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_rear_lower_link.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "rear",
+              "T": [
+                -0.925,
+                -0.05,
+                -0.016
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.4625,
+            -0.025,
+            -0.008
+          ],
+          "inertia": {
+            "mass": 7.0,
+            "Ixx": 0.01,
+            "Iyy": 0.45,
+            "Izz": 0.45,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v9"
+        },
+        {
+          "name": "right_rear_upper_link",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_rear_upper_link.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "rear",
+              "T": [
+                -0.862,
+                0.03,
+                -0.132
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.431,
+            0.015,
+            -0.066
+          ],
+          "inertia": {
+            "mass": 6.0,
+            "Ixx": 0.01,
+            "Iyy": 0.45,
+            "Izz": 0.45,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v10"
+        },
+        {
+          "name": "right_rear_upper_link_slide",
+          "geometry": [],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.5,
+            "Ixx": 0.001,
+            "Iyy": 0.001,
+            "Izz": 0.001,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_rear_coil_over_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_rear_coil_upper.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.0849,
+            0.0057,
+            0.1395
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 0.05,
+            "Iyy": 0.05,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_rear_coil_over_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "right_rear_coil_lower.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0566,
+            -0.0038,
+            -0.093
+          ],
+          "inertia": {
+            "mass": 4.0,
+            "Ixx": 0.03,
+            "Iyy": 0.03,
+            "Izz": 0.005,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v11"
+        },
+        {
+          "name": "left_front_wheel",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_front_wheel.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 50.0,
+            "Ixx": 2.7,
+            "Iyy": 4.5,
+            "Izz": 2.7,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_front_knuckle",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_front_knuckle.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "hub",
+              "T": [
+                0.0,
+                -0.136,
+                0.0
+              ]
+            },
+            {
+              "name": "lower_ball_joint",
+              "T": [
+                0.058,
+                -0.075,
+                0.163
+              ]
+            },
+            {
+              "name": "upper_ball_joint",
+              "T": [
+                -0.042,
+                0.055,
+                -0.353
+              ]
+            },
+            {
+              "name": "tie_rod",
+              "T": [
+                0.13,
+                -0.075,
+                0.028
+              ]
+            },
+            {
+              "name": "halfshaft",
+              "T": [
+                0.0,
+                0.04,
+                -0.003
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            -0.05,
+            0.0
+          ],
+          "inertia": {
+            "mass": 22.0,
+            "Ixx": 0.35,
+            "Iyy": 0.3,
+            "Izz": 0.2,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_front_lower_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_front_lower_arm.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "ball_joint",
+              "T": [
+                0.003,
+                -0.502,
+                0.098
+              ]
+            },
+            {
+              "name": "coil_over",
+              "T": [
+                0.022,
+                -0.327,
+                0.031
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            -0.25,
+            0.02
+          ],
+          "inertia": {
+            "mass": 14.0,
+            "Ixx": 0.35,
+            "Iyy": 0.25,
+            "Izz": 0.5,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_front_upper_arm",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_front_upper_arm.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "ball_joint",
+              "T": [
+                -0.0585,
+                -0.271,
+                0.008
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            -0.15,
+            0.0
+          ],
+          "inertia": {
+            "mass": 6.0,
+            "Ixx": 0.06,
+            "Iyy": 0.06,
+            "Izz": 0.1,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_front_halfshaft",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_front_halfshaft.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.009,
+            -0.1745,
+            0.008
+          ],
+          "inertia": {
+            "mass": 9.0,
+            "Ixx": 0.1,
+            "Iyy": 0.01,
+            "Izz": 0.1,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_front_tie_rod",
+          "geometry": [],
+          "frames": [
+            {
+              "name": "outer",
+              "T": [
+                -0.003,
+                -0.494,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.0015,
+            -0.247,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.5,
+            "Ixx": 0.03,
+            "Iyy": 0.0005,
+            "Izz": 0.03,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_front_coil_over_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_front_coil_over.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.021,
+            -0.0588,
+            0.1653
+          ],
+          "inertia": {
+            "mass": 6.0,
+            "Ixx": 0.05,
+            "Iyy": 0.05,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_front_coil_over_lower",
+          "geometry": [],
+          "center_of_mass": [
+            -0.014,
+            0.0392,
+            -0.1102
+          ],
+          "inertia": {
+            "mass": 4.0,
+            "Ixx": 0.03,
+            "Iyy": 0.03,
+            "Izz": 0.005,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v12"
+        },
+        {
+          "name": "v13"
+        },
+        {
+          "name": "left_front_halfshaft_slide",
+          "geometry": [],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.001,
+            "Iyy": 0.001,
+            "Izz": 0.001,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v14"
+        },
+        {
+          "name": "left_rear_wheel",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_rear_wheel.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 50.0,
+            "Ixx": 2.7,
+            "Iyy": 4.5,
+            "Izz": 2.7,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_rear_lower_link",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_rear_lower_link.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "rear",
+              "T": [
+                -0.925,
+                0.05,
+                -0.016
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.4625,
+            0.025,
+            -0.008
+          ],
+          "inertia": {
+            "mass": 7.0,
+            "Ixx": 0.01,
+            "Iyy": 0.45,
+            "Izz": 0.45,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v15"
+        },
+        {
+          "name": "left_rear_upper_link",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_rear_upper_link.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "rear",
+              "T": [
+                -0.862,
+                -0.03,
+                -0.132
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.431,
+            -0.015,
+            -0.066
+          ],
+          "inertia": {
+            "mass": 6.0,
+            "Ixx": 0.01,
+            "Iyy": 0.45,
+            "Izz": 0.45,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v16"
+        },
+        {
+          "name": "left_rear_upper_link_slide",
+          "geometry": [],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.5,
+            "Ixx": 0.001,
+            "Iyy": 0.001,
+            "Izz": 0.001,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_rear_coil_over_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_rear_coil_upper.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.0849,
+            -0.0057,
+            0.1395
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 0.05,
+            "Iyy": 0.05,
+            "Izz": 0.01,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_rear_coil_over_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "left_rear_coil_lower.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0566,
+            0.0038,
+            -0.093
+          ],
+          "inertia": {
+            "mass": 4.0,
+            "Ixx": 0.03,
+            "Iyy": 0.03,
+            "Izz": 0.005,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v17"
+        },
+        {
+          "name": "rear_axle",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "rear_axle.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "right_rear_hub",
+              "T": [
+                0.0,
+                0.936,
+                0.0
+              ]
+            },
+            {
+              "name": "right_rear_lower_link",
+              "T": [
+                0.082,
+                0.493,
+                0.108
+              ]
+            },
+            {
+              "name": "right_rear_upper_link",
+              "T": [
+                -0.003,
+                0.573,
+                -0.122
+              ]
+            },
+            {
+              "name": "right_rear_coil_over",
+              "T": [
+                0.048,
+                0.694,
+                0.162
+              ]
+            },
+            {
+              "name": "left_rear_hub",
+              "T": [
+                0.0,
+                -0.936,
+                0.0
+              ]
+            },
+            {
+              "name": "left_rear_lower_link",
+              "T": [
+                0.082,
+                -0.493,
+                0.108
+              ]
+            },
+            {
+              "name": "left_rear_upper_link",
+              "T": [
+                -0.003,
+                -0.573,
+                -0.122
+              ]
+            },
+            {
+              "name": "left_rear_coil_over",
+              "T": [
+                0.048,
+                -0.694,
+                0.162
+              ]
+            },
+            {
+              "name": "panhard_rod",
+              "T": [
+                -0.159,
+                -0.394,
+                0.007
+              ]
+            },
+            {
+              "name": "prop_shaft",
+              "T": [
+                0.383,
+                0.03,
+                0.011
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.03,
+            0.0,
+            0.0
+          ],
+          "comment": "estimated: housing, differential, shafts, brakes",
+          "inertia": {
+            "mass": 190.0,
+            "Ixx": 55.0,
+            "Iyy": 10.0,
+            "Izz": 55.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "panhard_rod",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "panhard_rod.glb"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "axle",
+              "T": [
+                0.046,
+                -0.827,
+                -0.023
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.023,
+            -0.4135,
+            -0.0115
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 0.0005,
+            "Iyy": 0.3,
+            "Izz": 0.3,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v18"
+        },
+        {
+          "name": "prop_shaft",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "prop_shaft.glb"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            -0.8465,
+            -0.002,
+            0.0495
+          ],
+          "inertia": {
+            "mass": 15.0,
+            "Ixx": 0.01,
+            "Iyy": 3.6,
+            "Izz": 3.6,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "v19"
+        },
+        {
+          "name": "prop_shaft_slide",
+          "geometry": [],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.001,
+            "Iyy": 0.001,
+            "Izz": 0.001,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "chassis_x",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "v1"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 15.0
+        },
+        {
+          "name": "chassis_y",
+          "type": "prismatic",
+          "parent": [
+            [
+              "v1"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "v2"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0,
+          "initial_velocity": 0
+        },
+        {
+          "name": "chassis_z",
+          "type": "prismatic",
+          "parent": [
+            [
+              "v2"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "v3"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.1,
+          "initial_velocity": 0
+        },
+        {
+          "name": "chassis_X",
+          "type": "revolute",
+          "parent": [
+            [
+              "v3"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "v4"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 0,
+          "initial_velocity": 0
+        },
+        {
+          "name": "chassis_Y",
+          "type": "revolute",
+          "parent": [
+            [
+              "v4"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "v5"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0,
+          "initial_velocity": 0
+        },
+        {
+          "name": "chassis_Z",
+          "type": "revolute",
+          "parent": [
+            [
+              "v5"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "chassis"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0,
+          "initial_velocity": 0
+        },
+        {
+          "name": "rack_slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "steering_rack"
+          ],
+          "child": [
+            [
+              "steering_rack"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [
+            0.0,
+            300000.0
+          ],
+          "damping_coefficients": [
+            0.0,
+            6000.0
+          ]
+        },
+        {
+          "name": "right_front_lower_arm_pivot",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "right_front_lower_arm"
+          ],
+          "child": [
+            [
+              "right_front_lower_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "right_front_upper_arm_pivot",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "right_front_upper_arm"
+          ],
+          "child": [
+            [
+              "right_front_upper_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.990148533,
+            0.0,
+            -0.140021005
+          ]
+        },
+        {
+          "name": "right_front_lower_ball_joint",
+          "type": "spherical",
+          "parent": [
+            [
+              "right_front_lower_arm"
+            ],
+            "ball_joint"
+          ],
+          "child": [
+            [
+              "right_front_knuckle"
+            ],
+            "lower_ball_joint"
+          ]
+        },
+        {
+          "name": "right_front_upper_ball_joint",
+          "type": "spherical",
+          "parent": [
+            [
+              "right_front_upper_arm"
+            ],
+            "ball_joint"
+          ],
+          "child": [
+            [
+              "right_front_knuckle"
+            ],
+            "upper_ball_joint"
+          ]
+        },
+        {
+          "name": "right_front_hub",
+          "type": "revolute",
+          "parent": [
+            [
+              "right_front_knuckle"
+            ],
+            "hub"
+          ],
+          "child": [
+            [
+              "right_front_wheel"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": -38.0711,
+          "damping_coefficients": [
+            0.0,
+            0.5
+          ]
+        },
+        {
+          "name": "right_front_coil_over_top_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "right_front_coil_over"
+          ],
+          "child": [
+            [
+              "v6"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "right_front_coil_over_top_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v6"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_front_coil_over_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.942166704,
+            -0.335144599
+          ]
+        },
+        {
+          "name": "right_front_coil_over",
+          "type": "prismatic",
+          "parent": [
+            [
+              "right_front_coil_over_upper"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_front_coil_over_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.118846186,
+            0.332769321,
+            0.935489264
+          ],
+          "initial_displacement": 0.588997,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [
+            -80491.6,
+            118000.0
+          ],
+          "damping_coefficients": [
+            0.0,
+            10000.0
+          ]
+        },
+        {
+          "name": "right_front_coil_over_bottom",
+          "type": "spherical",
+          "parent": [
+            [
+              "right_front_coil_over_lower"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_front_lower_arm"
+            ],
+            "coil_over"
+          ]
+        },
+        {
+          "name": "right_front_halfshaft_inner_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "right_front_halfshaft"
+          ],
+          "child": [
+            [
+              "v7"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "right_front_halfshaft_inner_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v7"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_front_halfshaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.045797169,
+            -0.998950759
+          ]
+        },
+        {
+          "name": "right_front_halfshaft_slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "right_front_halfshaft"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_front_halfshaft_slide"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.051453569,
+            0.997627537,
+            0.045736506
+          ],
+          "initial_displacement": 0.34983,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "right_front_halfshaft_outer",
+          "type": "spherical",
+          "parent": [
+            [
+              "right_front_halfshaft_slide"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_front_knuckle"
+            ],
+            "halfshaft"
+          ]
+        },
+        {
+          "name": "right_front_tie_rod_inner",
+          "type": "spherical",
+          "parent": [
+            [
+              "steering_rack"
+            ],
+            "right_front_tie_rod"
+          ],
+          "child": [
+            [
+              "right_front_tie_rod"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "right_front_tie_rod_outer_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "right_front_tie_rod"
+            ],
+            "outer"
+          ],
+          "child": [
+            [
+              "v8"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "right_front_tie_rod_outer_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v8"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_front_knuckle"
+            ],
+            "tie_rod"
+          ],
+          "axis": [
+            0.999981561,
+            0.006072763,
+            0.0
+          ]
+        },
+        {
+          "name": "right_rear_hub",
+          "type": "revolute",
+          "parent": [
+            [
+              "rear_axle"
+            ],
+            "right_rear_hub"
+          ],
+          "child": [
+            [
+              "right_rear_wheel"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": -38.0711,
+          "damping_coefficients": [
+            0.0,
+            0.5
+          ]
+        },
+        {
+          "name": "right_rear_lower_link_front_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "right_rear_lower_link"
+          ],
+          "child": [
+            [
+              "v9"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "right_rear_lower_link_front_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v9"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_rear_lower_link"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.01729471,
+            0.0,
+            -0.999850435
+          ]
+        },
+        {
+          "name": "right_rear_lower_link_rear",
+          "type": "spherical",
+          "parent": [
+            [
+              "right_rear_lower_link"
+            ],
+            "rear"
+          ],
+          "child": [
+            [
+              "rear_axle"
+            ],
+            "right_rear_lower_link"
+          ]
+        },
+        {
+          "name": "right_rear_upper_link_inner_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "right_rear_upper_link"
+          ],
+          "child": [
+            [
+              "v10"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "right_rear_upper_link_inner_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v10"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_rear_upper_link"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.151367786,
+            0.0,
+            -0.988477513
+          ]
+        },
+        {
+          "name": "right_rear_upper_link_slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "right_rear_upper_link"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_rear_upper_link_slide"
+            ],
+            "origin"
+          ],
+          "axis": [
+            -0.987893109,
+            0.034381431,
+            -0.151278295
+          ],
+          "initial_displacement": 0.872564,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [
+            -1745128.1,
+            2000000.0
+          ],
+          "damping_coefficients": [
+            0.0,
+            3000.0
+          ]
+        },
+        {
+          "name": "right_rear_upper_link_rear",
+          "type": "spherical",
+          "parent": [
+            [
+              "right_rear_upper_link_slide"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "rear_axle"
+            ],
+            "right_rear_upper_link"
+          ]
+        },
+        {
+          "name": "right_rear_coil_over_top_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "right_rear_coil_over"
+          ],
+          "child": [
+            [
+              "v11"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "right_rear_coil_over_top_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v11"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_rear_coil_over_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            -0.854234028,
+            0.0,
+            -0.519888666
+          ]
+        },
+        {
+          "name": "right_rear_coil_over",
+          "type": "prismatic",
+          "parent": [
+            [
+              "right_rear_coil_over_upper"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "right_rear_coil_over_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            -0.519572265,
+            0.034882944,
+            0.853714145
+          ],
+          "initial_displacement": 0.544679,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [
+            -36192.0,
+            56000.0
+          ],
+          "damping_coefficients": [
+            0.0,
+            4200.0
+          ]
+        },
+        {
+          "name": "right_rear_coil_over_bottom",
+          "type": "spherical",
+          "parent": [
+            [
+              "right_rear_coil_over_lower"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "rear_axle"
+            ],
+            "right_rear_coil_over"
+          ]
+        },
+        {
+          "name": "left_front_lower_arm_pivot",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "left_front_lower_arm"
+          ],
+          "child": [
+            [
+              "left_front_lower_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "left_front_upper_arm_pivot",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "left_front_upper_arm"
+          ],
+          "child": [
+            [
+              "left_front_upper_arm"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.990148533,
+            0.0,
+            -0.140021005
+          ]
+        },
+        {
+          "name": "left_front_lower_ball_joint",
+          "type": "spherical",
+          "parent": [
+            [
+              "left_front_lower_arm"
+            ],
+            "ball_joint"
+          ],
+          "child": [
+            [
+              "left_front_knuckle"
+            ],
+            "lower_ball_joint"
+          ]
+        },
+        {
+          "name": "left_front_upper_ball_joint",
+          "type": "spherical",
+          "parent": [
+            [
+              "left_front_upper_arm"
+            ],
+            "ball_joint"
+          ],
+          "child": [
+            [
+              "left_front_knuckle"
+            ],
+            "upper_ball_joint"
+          ]
+        },
+        {
+          "name": "left_front_hub",
+          "type": "revolute",
+          "parent": [
+            [
+              "left_front_knuckle"
+            ],
+            "hub"
+          ],
+          "child": [
+            [
+              "left_front_wheel"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": -38.0711,
+          "damping_coefficients": [
+            0.0,
+            0.5
+          ]
+        },
+        {
+          "name": "left_front_coil_over_top_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "left_front_coil_over"
+          ],
+          "child": [
+            [
+              "v12"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "left_front_coil_over_top_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v12"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_front_coil_over_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.942166704,
+            0.335144599
+          ]
+        },
+        {
+          "name": "left_front_coil_over",
+          "type": "prismatic",
+          "parent": [
+            [
+              "left_front_coil_over_upper"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_front_coil_over_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.118846186,
+            -0.332769321,
+            0.935489264
+          ],
+          "initial_displacement": 0.588997,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [
+            -80491.6,
+            118000.0
+          ],
+          "damping_coefficients": [
+            0.0,
+            10000.0
+          ]
+        },
+        {
+          "name": "left_front_coil_over_bottom",
+          "type": "spherical",
+          "parent": [
+            [
+              "left_front_coil_over_lower"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_front_lower_arm"
+            ],
+            "coil_over"
+          ]
+        },
+        {
+          "name": "left_front_halfshaft_inner_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "left_front_halfshaft"
+          ],
+          "child": [
+            [
+              "v13"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "left_front_halfshaft_inner_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v13"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_front_halfshaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.045797169,
+            0.998950759
+          ]
+        },
+        {
+          "name": "left_front_halfshaft_slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "left_front_halfshaft"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_front_halfshaft_slide"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.051453569,
+            -0.997627537,
+            0.045736506
+          ],
+          "initial_displacement": 0.34983,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "left_front_halfshaft_outer",
+          "type": "spherical",
+          "parent": [
+            [
+              "left_front_halfshaft_slide"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_front_knuckle"
+            ],
+            "halfshaft"
+          ]
+        },
+        {
+          "name": "left_front_tie_rod_inner",
+          "type": "spherical",
+          "parent": [
+            [
+              "steering_rack"
+            ],
+            "left_front_tie_rod"
+          ],
+          "child": [
+            [
+              "left_front_tie_rod"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "left_front_tie_rod_outer_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "left_front_tie_rod"
+            ],
+            "outer"
+          ],
+          "child": [
+            [
+              "v14"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "left_front_tie_rod_outer_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v14"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_front_knuckle"
+            ],
+            "tie_rod"
+          ],
+          "axis": [
+            -0.999981561,
+            0.006072763,
+            0.0
+          ]
+        },
+        {
+          "name": "left_rear_hub",
+          "type": "revolute",
+          "parent": [
+            [
+              "rear_axle"
+            ],
+            "left_rear_hub"
+          ],
+          "child": [
+            [
+              "left_rear_wheel"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": -38.0711,
+          "damping_coefficients": [
+            0.0,
+            0.5
+          ]
+        },
+        {
+          "name": "left_rear_lower_link_front_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "left_rear_lower_link"
+          ],
+          "child": [
+            [
+              "v15"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "left_rear_lower_link_front_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v15"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_rear_lower_link"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.01729471,
+            0.0,
+            -0.999850435
+          ]
+        },
+        {
+          "name": "left_rear_lower_link_rear",
+          "type": "spherical",
+          "parent": [
+            [
+              "left_rear_lower_link"
+            ],
+            "rear"
+          ],
+          "child": [
+            [
+              "rear_axle"
+            ],
+            "left_rear_lower_link"
+          ]
+        },
+        {
+          "name": "left_rear_upper_link_inner_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "left_rear_upper_link"
+          ],
+          "child": [
+            [
+              "v16"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "left_rear_upper_link_inner_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v16"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_rear_upper_link"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.151367786,
+            0.0,
+            -0.988477513
+          ]
+        },
+        {
+          "name": "left_rear_upper_link_slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "left_rear_upper_link"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_rear_upper_link_slide"
+            ],
+            "origin"
+          ],
+          "axis": [
+            -0.987893109,
+            -0.034381431,
+            -0.151278295
+          ],
+          "initial_displacement": 0.872564,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [
+            -1745128.1,
+            2000000.0
+          ],
+          "damping_coefficients": [
+            0.0,
+            3000.0
+          ]
+        },
+        {
+          "name": "left_rear_upper_link_rear",
+          "type": "spherical",
+          "parent": [
+            [
+              "left_rear_upper_link_slide"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "rear_axle"
+            ],
+            "left_rear_upper_link"
+          ]
+        },
+        {
+          "name": "left_rear_coil_over_top_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "left_rear_coil_over"
+          ],
+          "child": [
+            [
+              "v17"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "left_rear_coil_over_top_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v17"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_rear_coil_over_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            -0.854234028,
+            0.0,
+            -0.519888666
+          ]
+        },
+        {
+          "name": "left_rear_coil_over",
+          "type": "prismatic",
+          "parent": [
+            [
+              "left_rear_coil_over_upper"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "left_rear_coil_over_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            -0.519572265,
+            -0.034882944,
+            0.853714145
+          ],
+          "initial_displacement": 0.544679,
+          "initial_velocity": 0.0,
+          "stiffness_coefficients": [
+            -36192.0,
+            56000.0
+          ],
+          "damping_coefficients": [
+            0.0,
+            4200.0
+          ]
+        },
+        {
+          "name": "left_rear_coil_over_bottom",
+          "type": "spherical",
+          "parent": [
+            [
+              "left_rear_coil_over_lower"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "rear_axle"
+            ],
+            "left_rear_coil_over"
+          ]
+        },
+        {
+          "name": "panhard_rod_frame_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "panhard_rod"
+          ],
+          "child": [
+            [
+              "v18"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "panhard_rod_frame_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v18"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "panhard_rod"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            -0.027800617,
+            0.999613488
+          ]
+        },
+        {
+          "name": "panhard_rod_axle",
+          "type": "spherical",
+          "parent": [
+            [
+              "panhard_rod"
+            ],
+            "axle"
+          ],
+          "child": [
+            [
+              "rear_axle"
+            ],
+            "panhard_rod"
+          ]
+        },
+        {
+          "name": "prop_shaft_inner_1",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "prop_shaft"
+          ],
+          "child": [
+            [
+              "v19"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "prop_shaft_inner_2",
+          "type": "revolute",
+          "parent": [
+            [
+              "v19"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "prop_shaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            -0.058376356,
+            0.0,
+            -0.998294646
+          ]
+        },
+        {
+          "name": "prop_shaft_slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "prop_shaft"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "prop_shaft_slide"
+            ],
+            "origin"
+          ],
+          "axis": [
+            -0.99829187,
+            -0.002358634,
+            0.058376193
+          ],
+          "initial_displacement": 1.695897,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "prop_shaft_rear",
+          "type": "spherical",
+          "parent": [
+            [
+              "prop_shaft_slide"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "rear_axle"
+            ],
+            "prop_shaft"
+          ]
+        }
+      ]
+    }
+  ]
+}

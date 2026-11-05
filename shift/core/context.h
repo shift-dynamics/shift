@@ -898,6 +898,12 @@ private:
   std::unordered_map<uint64_t, collision_geometry::ContactPair>
     contact_pairs_ = {};
   std::vector<collision_geometry::ContactPair*> contacts_ = {};
+  /*! \brief placement of a body attached by a chain of rigid joints (see
+   * CompressRigidJoints): the index of the reference frame of the body above
+   * the chain, and the displacement of the body's reference frame with
+   * respect to it */
+  std::unordered_map<const body::Base*, std::pair<int, ksl_SE3_t>>
+    rigid_placements_ = {};
   /*! a candidate pair of the broad phase; a and b index contact_geometry_ */
   struct ContactCandidate {
     collision_geometry::ContactPair* pair = nullptr;

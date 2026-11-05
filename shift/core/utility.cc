@@ -28,3 +28,7 @@ bool shift::core::utility::FileExists(const std::string& filename) {
   std::ifstream f(filename.c_str());
   return f.good();
 }
+
+bool shift::core::utility::IsResourcePath(const std::string& path) {
+  return path.rfind("qrc:/", 0) == 0;
+}

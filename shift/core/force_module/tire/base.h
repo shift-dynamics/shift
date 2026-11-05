@@ -3,8 +3,11 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "shift/core/force_module/base.h"
+#include "shift/core/force_module/soil.h"
+#include "shift/core/force_module/tire/bekker_wong.h"
 #include "shift/core/force_module/tire/fiala.h"
 #include "shift/core/force_module/tire/model.h"
 #include "shift/core/force_module/tire/pac2002.h"
@@ -52,6 +55,17 @@ false) relaxes the slips with the relaxation lengths of the property file
 {"type": "tire", "name": "left_front", "tire_type": "pac2002",
  "definition": "pac2002_235_60R15.tir", "wheel_body": "left_front_wheel"}
 \endcode
+
+Bekker-Wong (a rigid wheel on soft soil, see BekkerWong) parameters:
+unloaded_radius and width, as for Fiala; soil (required, see Soil);
+soil_damping, max_stress_angle (c1), max_stress_slip (c2), rebound,
+grouser_height, stations, strips, bulldozing, slip_speed (all optional).
+The wheel may be cambered and slip sideways.
+\code
+{"type": "tire", "name": "wheel", "tire_type": "bekker_wong",
+ "wheel_body": "wheel", "unloaded_radius": 0.08, "width": 0.032,
+ "soil": {"name": "tri1_lunar_simulant"}}
+\endcode
 */
 class Base : public force_module::Base {
 public:
@@ -77,6 +91,11 @@ public:
     return contact_;
   }
 
+  /*! \brief the tire model */
+  const Model* get_model() const {
+    return model_.get();
+  }
+
   /*! \brief force and moment on the wheel in the contact frame */
   const ksl_coscrew_t& get_force_w() const {
     return force_w_;
@@ -86,6 +105,14 @@ public:
   void Load() override;
   void Connect() override;
   void Service(const double* y, double* dy) override;
+
+  /*! \brief Bekker-Wong: sinkage, slip, drawbar_pull (F_x), load (-F_z),
+   * shear_torque (BekkerWong::get_shear_torque), camber
+   * (BekkerWong::get_camber) and side_force (F_y), of the last force
+   * evaluation; the other tire models have no outputs */
+  std::vector<std::string> get_output_names() const override;
+  void UpdateOutputs(double t, const double* y) override;
+  void AppendOutputs(std::vector<double>& values) const override;
 
 private:
   /*! \brief path of a file next to the model file or in an include
@@ -100,6 +127,8 @@ private:
   std::string tire_type_;
   std::string wheel_body_name_; //!< wheel body, in the same assembly
   FialaParameters fiala_;
+  BekkerWongParameters bekker_wong_;
+  Soil soil_;
   std::string definition_;   //!< PAC2002 .tir file
   std::string mounted_side_; //!< PAC2002: "left", "right" or empty
   bool use_transient_slip_ = false;
@@ -111,6 +140,7 @@ private:
 
   Contact contact_;
   ksl_coscrew_t force_w_;
+  std::vector<double> outputs_;
 };
 
 } // namespace tire

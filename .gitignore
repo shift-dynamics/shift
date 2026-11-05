@@ -11,3 +11,4 @@ cscope.po.out
 .cscope.files
 subprojects/*/
 !subprojects/packagefiles/
+__pycache__/
