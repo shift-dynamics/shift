@@ -75,25 +75,13 @@ void shift::core::light::Base::Connect() {
                   "light is not drawn");
     return;
   }
-  const body::Base* body = nullptr;
-  if(parent_[0] == "fixed") {
-    body = context_->get_fixed_body();
-  } else {
-    for(auto list : {&context_->get_active_articulated_bodies(),
-                     &context_->get_active_free_bodies()}) {
-      for(auto candidate : *list) {
-        if(candidate->get_name() == parent_[0]) {
-          body = candidate;
-        }
-      }
-    }
-  }
+  body::Base* body = context_->FindActiveBody(parent_[0]);
   if(!body) {
     SHIFT_WARNING(prefix + "body " + parent_[0] + " not found among the "
                   "active bodies; the light is not drawn");
     return;
   }
-  for(auto& frame : const_cast<body::Base*>(body)->get_frames()) {
+  for(auto& frame : body->get_frames()) {
     if(frame->get_name() == parent_[1] ||
        (parent_[1] == "origin" && frame->is_origin())) {
       frame_ = frame.get();

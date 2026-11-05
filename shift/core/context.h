@@ -88,6 +88,10 @@ public:
     return this;
   }
 
+  /*! \brief the body named name: "fixed" for the fixed body, or an active
+   * articulated or free body; null if there is none */
+  body::Base* FindActiveBody(const std::string& name);
+
   /*! \brief the active lights, connected to their frames */
   const std::vector<light::Base*>& get_active_lights() const {
     return active_lights_;
@@ -466,6 +470,11 @@ public:
    * modules set the time derivatives of their internal states in dy. */
   void SetForces(const double t, const std::vector<double>& y,
                  std::vector<double>& dy);
+  /*! \brief the time t of the state being evaluated by SetForces, for
+   * modules whose inputs are functions of time */
+  double get_force_time() const {
+    return force_time_;
+  }
 
   /*! copies dq and ddq quantities to dy array using vectors quaternion_indices_
   and non_quaternion_indices_; for quaternion_indices_, converts angular
@@ -478,6 +487,13 @@ public:
   void ConvertdqTody(const std::vector<double>& y, std::vector<double>& dy);
 
   void Simulate();
+
+  /*! \brief set the initial internal states of the force modules that hold
+   * their joints still (force_module::Base::holds): finds the forces on the
+   * held joints that give them zero acceleration at the initial state, the
+   * least such forces where several share a load, and hands them to the
+   * modules; Simulate calls it before integrating */
+  void HoldInitialStates();
 
   void WriteStates(const double time, const std::vector<double>& y);
 
@@ -957,6 +973,7 @@ private:
   unsigned int dq_count_ = 0;
   double mobility_ = 0.0;
   double rms_constraint_error_ = 0;
+  double force_time_ = 0; /*!< t of the last SetForces */
 };
 
 } // namespace core
