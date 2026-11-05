@@ -1,0 +1,860 @@
+// The screw and gear joints, for inspection (written by
+// make_screw_and_gear.py).
+//
+// Gear train: four spur gears on fixed axes, of 16, 24, 12 and 36 teeth. Each
+// turns on a revolute joint, and a gear joint between each pair in mesh closes
+// a loop: it makes the child gear roll on the parent without slipping, so
+// the teeth of the meshes mesh at every instant, and the train has one degree
+// of freedom. Gear a is given a speed; b turns the other way at 2/3 of its
+// speed, c at 4/3, d at 4/9. The red marks turn with the gears.
+//
+// Screws: a rod with a right-handed thread and one with a left-handed thread,
+// each on a screw joint to a nut in a bracket, with a handle. Both turn at
+// 5 rad/s about the x axis. The pitch of a screw joint is the advance per
+// radian: 0.08 m per turn / 2 pi. The right-handed rod advances along +x
+// (toward the handle's side), the left-handed rod, with the pitch of opposite
+// sign, along -x.
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0,
+      0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 8.0,
+        "time_step": 0.02,
+        "relative_error": 1e-08,
+        "absolute_error": 1e-08
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "overhead_1",
+      "T": [
+        6.0,
+        -6.0,
+        -6.0
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "T": [
+        -6.0,
+        6.0,
+        -6.0
+      ]
+    },
+    {
+      "name": "gear_a_axis",
+      "T": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "gear_b_axis",
+      "T": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "gear_c_axis",
+      "T": [
+        0.76,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "gear_d_axis",
+      "T": [
+        1.24,
+        0.0,
+        0.0
+      ],
+      "R": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "board",
+      "T": [
+        0.72,
+        0.033,
+        0.0
+      ],
+      "R": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "screw_right",
+      "T": [
+        0.7,
+        0.0,
+        0.85
+      ],
+      "R": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "screw_left",
+      "T": [
+        0.7,
+        0.0,
+        1.3
+      ],
+      "R": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "bracket",
+      "T": [
+        0.7749999999999999,
+        0.0,
+        1.075
+      ],
+      "R": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_1"
+      ],
+      "Ka": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_2"
+      ],
+      "Ka": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "screw_and_gear",
+      "bodies": [
+        {
+          "name": "gear_a",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "gear_a.obj",
+                "gear_a.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 25.253378386616195,
+            "Ixx": 0.16498873879255918,
+            "Iyy": 0.16498873879255918,
+            "Izz": 0.3232432433486873,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "gear_b",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "gear_b.obj",
+                "gear_b.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 56.82010136988644,
+            "Ixx": 0.8257854732423495,
+            "Iyy": 0.8257854732423495,
+            "Izz": 1.6364189194527294,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "gear_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "gear_c.obj",
+                "gear_c.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 14.20502534247161,
+            "Ixx": 0.05303209461189401,
+            "Iyy": 0.05303209461189401,
+            "Izz": 0.10227618246579559,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "gear_d",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "gear_d.obj",
+                "gear_d.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 127.84522808224447,
+            "Ixx": 4.159231420275686,
+            "Iyy": 4.159231420275686,
+            "Izz": 8.284370779729441,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "board",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/box_black.obj"
+              ],
+              "scale": [
+                2.0599999999999996,
+                1.02,
+                0.02
+              ],
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 10.0,
+            "Ixx": 2.5003333333333333,
+            "Iyy": 2.5003333333333333,
+            "Izz": 5.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "nut_right",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "nut.obj",
+                "nut.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 2.0,
+            "Ixx": 0.005716666666666666,
+            "Iyy": 0.005716666666666666,
+            "Izz": 0.0081,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "rod_right",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "rod_right.obj",
+                "rod_right.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            -0.436
+          ],
+          "inertia": {
+            "mass": 50.0,
+            "Ixx": 6.7,
+            "Iyy": 6.7,
+            "Izz": 0.1,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "nut_left",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "nut.obj",
+                "nut.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 2.0,
+            "Ixx": 0.005716666666666666,
+            "Iyy": 0.005716666666666666,
+            "Izz": 0.0081,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "rod_left",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "rod_left.obj",
+                "rod_left.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.436
+          ],
+          "inertia": {
+            "mass": 50.0,
+            "Ixx": 6.7,
+            "Iyy": 6.7,
+            "Izz": 0.1,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "bracket",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/box_black.obj"
+              ],
+              "scale": [
+                0.5,
+                0.9,
+                0.03
+              ],
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.4
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 10.0,
+            "Ixx": 0.62575,
+            "Iyy": 0.62575,
+            "Izz": 1.25,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "gear_a_bearing",
+          "type": "revolute",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 1.5,
+          "parent": [
+            [
+              "fixed"
+            ],
+            "gear_a_axis"
+          ],
+          "child": [
+            [
+              "gear_a"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "gear_b_bearing",
+          "type": "revolute",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": -1.0,
+          "parent": [
+            [
+              "fixed"
+            ],
+            "gear_b_axis"
+          ],
+          "child": [
+            [
+              "gear_b"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "gear_c_bearing",
+          "type": "revolute",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 2.0,
+          "parent": [
+            [
+              "fixed"
+            ],
+            "gear_c_axis"
+          ],
+          "child": [
+            [
+              "gear_c"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "gear_d_bearing",
+          "type": "revolute",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": -0.6666666666666666,
+          "parent": [
+            [
+              "fixed"
+            ],
+            "gear_d_axis"
+          ],
+          "child": [
+            [
+              "gear_d"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "gear_a_to_gear_b",
+          "type": "gear",
+          "separation": 0.4,
+          "gear_ratio": 0.6666666666666666,
+          "initial_displacement": 0.0,
+          "initial_velocity": -1.5,
+          "parent": [
+            [
+              "gear_a"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "gear_b"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "gear_b_to_gear_c",
+          "type": "gear",
+          "separation": 0.36,
+          "gear_ratio": 2.0,
+          "initial_displacement": 0.0,
+          "initial_velocity": 1.0,
+          "parent": [
+            [
+              "gear_b"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "gear_c"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "gear_c_to_gear_d",
+          "type": "gear",
+          "separation": 0.48,
+          "gear_ratio": 0.3333333333333333,
+          "initial_displacement": 0.0,
+          "initial_velocity": -2.0,
+          "parent": [
+            [
+              "gear_c"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "gear_d"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "board_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "board"
+          ],
+          "child": [
+            [
+              "board"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "nut_right_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "screw_right"
+          ],
+          "child": [
+            [
+              "nut_right"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "screw_right",
+          "type": "screw",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "pitch": 0.012732395447351628,
+          "initial_displacement": 0.0,
+          "initial_velocity": 5.0,
+          "parent": [
+            [
+              "fixed"
+            ],
+            "screw_right"
+          ],
+          "child": [
+            [
+              "rod_right"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "nut_left_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "screw_left"
+          ],
+          "child": [
+            [
+              "nut_left"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "screw_left",
+          "type": "screw",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "pitch": -0.012732395447351628,
+          "initial_displacement": 0.0,
+          "initial_velocity": 5.0,
+          "parent": [
+            [
+              "fixed"
+            ],
+            "screw_left"
+          ],
+          "child": [
+            [
+              "rod_left"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "bracket_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "bracket"
+          ],
+          "child": [
+            [
+              "bracket"
+            ],
+            "origin"
+          ]
+        }
+      ]
+    }
+  ]
+}

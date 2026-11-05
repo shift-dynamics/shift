@@ -27,7 +27,8 @@ void shift::core::force_module::TrackSoil::DeclareParameters() {
   DeclareParameter("shoe_center", &center_,
                    "center of the plane of the grousers' tips, in each "
                    "shoe body's coordinates",
-                   true);
+                   true)
+    .set_runtime();
   DeclareParameter("shoe_normal", &normal_,
                    "out of the shoe, into the soil, in its body's "
                    "coordinates; defaults to [0, 0, 1]",
@@ -42,7 +43,8 @@ void shift::core::force_module::TrackSoil::DeclareParameters() {
                    "defaults to 0 (a flat shoe)", false);
   DeclareParameter("ground", &ground_,
                    "the ground's z (z down, soil below); defaults to 0",
-                   false);
+                   false)
+    .set_runtime();
   DeclareParameter("stations_along", &stations_along_,
                    "stations of each shoe along the track; defaults to 3",
                    false);
@@ -52,7 +54,8 @@ void shift::core::force_module::TrackSoil::DeclareParameters() {
   DeclareParameter("unloading_ratio", &unloading_ratio_,
                    "plastic over elastic sinkage: the soil springs back by "
                    "z_p / unloading_ratio; defaults to 10",
-                   false);
+                   false)
+    .set_runtime();
   DeclareParameter("plastic_time", &plastic_time_,
                    "time for the plastic sinkage to follow the sinkage; "
                    "defaults to 0.01",

@@ -1,0 +1,164 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 2.0,
+        "time_step": 0.005,
+        "relative_error": 1e-06,
+        "absolute_error": 1e-09
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "lead_screw.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "jack",
+      "comment": "A screw jack: a 500 kg load hangs on an Acme screw (8 mm lead, 15 mm mean radius, 14.5 degree thread, friction 0.12) in a fixed nut, z down. A PID controller turns the screw at 20 rad/s to raise it. The thread's torque and axial force are logged: in steady motion the torque is the one of power screw theory, T = F r (tan(lambda) + mu sec(alpha)) / (1 - mu sec(alpha) tan(lambda)), 15.6 N m for the 501 kg that hang on it.",
+      "bodies": [
+        {
+          "name": "carriage",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.01,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "screw",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 500.0,
+            "Ixx": 5.0,
+            "Iyy": 5.0,
+            "Izz": 0.05,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "carriage"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "spin",
+          "type": "revolute",
+          "parent": [
+            [
+              "carriage"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "screw"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "spin_speed",
+          "joint": "spin",
+          "quantity": "velocity"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "drive",
+          "kp": 20.0,
+          "ki": 200.0,
+          "kd": 0.0,
+          "target": -20.0,
+          "sensor": "spin_speed",
+          "joint": "spin"
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "lead_screw",
+          "name": "thread",
+          "screw": [
+            "screw",
+            "origin"
+          ],
+          "nut": [
+            "fixed",
+            "origin"
+          ],
+          "lead": 0.008,
+          "mean_radius": 0.015,
+          "thread_angle": 0.2531,
+          "friction": 0.12,
+          "stiffness": 500000000.0,
+          "damping": 50000.0,
+          "slip_speed": 0.001
+        }
+      ]
+    }
+  ]
+}

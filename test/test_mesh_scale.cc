@@ -131,3 +131,44 @@ TEST(MeshScale, RejectsInvalidFactors) {
     std::remove((testing::TempDir() + "/mesh_scale_bad.obj").c_str());
   }
 }
+
+TEST(MeshScale, NegativeFactorMirrorsTheMesh) {
+  // the triangle mirrored across the y-z plane: vertices (-1, 0, 0),
+  // (0, 1, 0), (0, 1, 1) and the normal (-1, 1, 0) / sqrt(2); the winding is
+  // reversed so the face normal from the vertices still agrees with it
+  shift::core::Context context;
+  auto mesh =
+    LoadScaledTriangle(context, "mesh_scale_mirror", R"(, "scale": [-1, 1, 1])");
+  ASSERT_NE(mesh, nullptr);
+  const auto& data = mesh->get_mesh_data().at(0);
+  ASSERT_EQ(data.vertices.size(), 9u);
+  double sum[3] = {0, 0, 0};
+  for(int j = 0; j < 3; j++) {
+    for(int k = 0; k < 3; k++) {
+      sum[k] += data.vertices[3 * j + k];
+    }
+  }
+  EXPECT_NEAR(sum[0], -1.0, 1e-6);
+  EXPECT_NEAR(sum[1], 2.0, 1e-6);
+  EXPECT_NEAR(sum[2], 1.0, 1e-6);
+  for(int j = 0; j < 3; j++) {
+    EXPECT_NEAR(data.normals[3 * j + 0], -1.0 / std::sqrt(2.0), 1e-6);
+    EXPECT_NEAR(data.normals[3 * j + 1], 1.0 / std::sqrt(2.0), 1e-6);
+    EXPECT_NEAR(data.normals[3 * j + 2], 0.0, 1e-6);
+  }
+  // the face normal from the winding of the vertices is along the normal
+  ASSERT_EQ(data.faces.size(), 3u);
+  double p[3][3];
+  for(int j = 0; j < 3; j++) {
+    for(int k = 0; k < 3; k++) {
+      p[j][k] = data.vertices[3 * data.faces[j] + k];
+    }
+  }
+  const double u[3] = {p[1][0] - p[0][0], p[1][1] - p[0][1], p[1][2] - p[0][2]};
+  const double v[3] = {p[2][0] - p[0][0], p[2][1] - p[0][1], p[2][2] - p[0][2]};
+  const double face[3] = {u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2],
+                          u[0] * v[1] - u[1] * v[0]};
+  EXPECT_GT(face[0] * data.normals[0] + face[1] * data.normals[1] +
+              face[2] * data.normals[2],
+            0.0);
+}

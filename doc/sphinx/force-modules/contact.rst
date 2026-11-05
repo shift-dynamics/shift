@@ -36,14 +36,46 @@ depends on the state only. The stiffness depends on the shapes:
   :math:`e = 3/2`, with :math:`1/E^* = (1-\nu_a^2)/E_a + (1-\nu_b^2)/E_b`
   from the materials' ``youngs_modulus`` and ``poisson_ratio`` and
   :math:`1/R^*` the sum of the curvatures at the contact points.
-* **Convex hulls**: a linear spring, :math:`K = k`, :math:`e = 1`, at each
+* **Cylinders and capsules on a plane**: Hertz line contact
+  :cite:`johnson1985`, :math:`F = \tfrac{\pi}{4} E^* L d` at depth
+  :math:`d` over a length :math:`L` of the line (see below), :math:`e = 1`.
+  Against any other shape they touch as if round, with Hertz contact of the
+  radius of the cylinder or capsule at the deepest point.
+* **Boxes and convex hulls**: a linear spring, :math:`K = k`, :math:`e = 1`, at each
   point of the contact patch, with ``contact_stiffness`` the stiffness of
   one point (a box resting on its face stands on four of them). The
   stiffnesses of two materials combine in series.
+  A box is a convex hull of eight corners (``"type": "box"``, with
+  ``half_extents``), so a face resting on a plane or on another hull stands
+  on its corners.
 * **CAD geometry**: each point found on the exact surfaces has its own
   normal and law: Hertz contact where two curved surfaces touch, and, along
   a line of contact (parallel cylinders, a cylinder on a plane), stations
   of Hertz line contact, :math:`K = \tfrac{\pi}{4} E^* L`, :math:`e = 1`.
+
+A cylinder or a capsule on a plane touches along a line, the lowest
+generator of the cylinder or the segment of the capsule, and a single
+deepest point could not carry its load as it tilts or rolls. At the station
+:math:`s` of its axis, between :math:`-h` and :math:`h`, its lowest point is
+at the depth
+
+.. math::
+
+   d(s) = o - \underline{n}\cdot\underline{c} - s\, g + r_\mathrm{eff},
+   \qquad g = \underline{n}\cdot\underline{a}
+
+with :math:`\underline{n}` the unit normal of the plane, :math:`o` its
+offset, :math:`\underline{c}` and :math:`\underline{a}` the center and axis
+of the shape, :math:`r_\mathrm{eff} = r` for a capsule (the lowest point of
+the sphere swept along its segment) and :math:`r\sqrt{1 - g^2}` for a
+cylinder (the lowest point of its circle). The depth is linear in :math:`s`, so
+Hertz line contact integrates in closed form over the stations where it is
+positive: a trapezoid of length :math:`L`, equal to one point carrying that
+length with the mean depth, at the centroid of the trapezoid. The point
+moves along the line as the shape tilts, so the force is continuous in the
+state and gives the restoring moment. A cylinder standing on a flat end is
+carried by its rim, as by a line of zero length that grows with the depth:
+use a box or a convex hull for flat faces.
 
 The damping :math:`c` is given as ``damping``, or follows from the
 coefficient of restitution :math:`r` as the damping of a mass on a linear

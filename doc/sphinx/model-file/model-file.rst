@@ -169,7 +169,9 @@ A body is drawn with the meshes in its ``geometry`` list: OBJ files (with
 their MTL material files) or glTF files, placed in the body's axes. These
 meshes draw the body (and give ``density`` its volume); contact uses the
 body's collision geometry instead (see :doc:`../force-modules/contact`). ``scale`` sizes a mesh, so one mesh of a
-unit box or cylinder can draw parts of any size:
+unit box or cylinder can draw parts of any size, and a negative factor
+mirrors it (``[1, 1, -1]`` is the mirror image of a part across its x-y
+plane, as for the right hand part of a left hand one):
 
 .. code:: javascript
 
@@ -240,6 +242,45 @@ quaternion.
 
 .. shift-parameters:: shift/core/joint/spherical.cc
 
+``"type": "screw"``: a screw, one coordinate: the angle :math:`q` turned about
+``axis`` (in the parent frame), with the child advancing along the axis by
+``pitch`` :math:`\cdot q`. The pitch is the advance per radian, so a thread
+that advances :math:`L` per turn has a pitch of :math:`L / 2\pi`; a positive
+pitch is a right-handed screw, and a pitch of zero is a revolute joint. The
+joint's force acts on the angle :math:`q`; a force :math:`F` along the axis
+on the child does the work of a torque :math:`F \cdot` ``pitch`` on the
+coordinate.
+
+.. shift-parameters:: shift/core/joint/screw.cc
+
+``"type": "gear"``: a gear rolling on a gear of the parent, without
+slipping. The parent frame is at the center of the parent gear, with its z
+axis along the gear axis. The child frame is at the center of the child gear,
+``separation`` away from it in the x-y plane of the parent frame. The
+coordinate :math:`q` is the angle of the line of centers from the x axis of
+the parent frame. As it grows, the child gear rolls around the parent gear
+and turns about its own axis, relative to the parent frame, by
+:math:`(1 + n) q`, where the ``gear_ratio`` :math:`n` is the radius of the
+parent gear over the radius of the child gear, which is also the ratio of
+their numbers of teeth. The ``separation`` of a pair of external gears is the
+sum of their pitch radii. A gear inside a ring has a negative ratio and a
+separation equal to the difference of the radii. For a parent gear that is
+fixed, the joint is a planetary gear (the carrier is the line of centers).
+
+.. shift-parameters:: shift/core/joint/gear.cc
+
+:source:`examples/joints/screw_and_gear.json` shows both: four gears
+with involute teeth in a train, each meshed pair joined by a gear joint that
+closes a loop (the teeth mesh at every instant), and a right-handed and a
+left-handed threaded rod turning through nuts on screw joints, which advance
+in opposite directions. It is written by
+:source:`examples/joints/make_screw_and_gear.py`, which makes the meshes.
+
+Both coordinates are angles; give the two joints as for a revolute joint
+(``initial_displacement`` and ``initial_velocity`` are in radians and radians
+per second). A joint that closes a loop may be a screw or a gear joint like
+any other.
+
 ``"type": "float"``: six degrees of freedom, three translations and three
 rotations, for a body that is not otherwise joined, or is held only by
 force modules.
@@ -294,11 +335,20 @@ collision geometry is fitted to the body's meshes (``fit_to``).
                           ellipsoid around the meshes
 ``convex_hull``           the convex hull of the meshes, or a box of
                           ``half_extents``
+``box``                   a box of ``half_extents``, or the smallest box
+                          around the meshes along their principal axes
+``cylinder``              a cylinder of ``radius`` and ``half_length`` along
+                          the z axis of its ``pose``, or the smallest around
+                          the meshes
+``capsule``               a cylinder with a hemisphere on each end: the
+                          points within ``radius`` of a segment of
+                          ``half_length`` along the z axis of its ``pose``,
+                          or the smallest around the meshes
 ``plane``                 a half space, for floors and walls
 ``cad``                   the exact surfaces of the body's CAD geometry
 ========================= ===============================================
 
-.. shift-parameters:: shift/core/collision_geometry/sphere.cc shift/core/collision_geometry/ellipsoid.cc shift/core/collision_geometry/convex_hull.cc shift/core/collision_geometry/plane.cc shift/core/collision_geometry/cad.cc
+.. shift-parameters:: shift/core/collision_geometry/sphere.cc shift/core/collision_geometry/ellipsoid.cc shift/core/collision_geometry/convex_hull.cc shift/core/collision_geometry/cylinder.cc shift/core/collision_geometry/capsule.cc shift/core/collision_geometry/plane.cc shift/core/collision_geometry/cad.cc
 
 Terrain
 -------

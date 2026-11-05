@@ -333,3 +333,50 @@ void shift::core::collision_geometry::Jacobi(ksl_mat3x3_t& A, ksl_mat3x3_t& V) {
     }
   }
 }
+
+void shift::core::collision_geometry::FitAxis(
+  const std::vector<ksl_vec3_t>& points, ksl_SE3_t& frame, double& low,
+  double& high, double& radius) {
+  ksl_mat3x3_t covariance = Covariance(points);
+  ksl_mat3x3_t eigenvectors;
+  Jacobi(covariance, eigenvectors);
+  int axis = 0;
+  for(int i = 1; i < 3; i++) {
+    if(std::fabs(covariance.at[i][i]) > std::fabs(covariance.at[axis][axis])) {
+      axis = i;
+    }
+  }
+  /* z along the axis, x and y the other eigenvectors, right handed */
+  const ksl_vec3_t z = eigenvectors.v[axis];
+  const ksl_vec3_t x = eigenvectors.v[(axis + 1) % 3];
+  const ksl_vec3_t y = {{z.y * x.z - z.z * x.y, z.z * x.x - z.x * x.z,
+                         z.x * x.y - z.y * x.x}};
+  frame.R.v[0] = x;
+  frame.R.v[1] = y;
+  frame.R.v[2] = z;
+  double lo[3] = {HUGE_VAL, HUGE_VAL, HUGE_VAL};
+  double hi[3] = {-HUGE_VAL, -HUGE_VAL, -HUGE_VAL};
+  for(const auto& p : points) {
+    for(int i = 0; i < 3; i++) {
+      const double u = ksl_dot_vv(&frame.R.v[i], &p);
+      lo[i] = std::min(lo[i], u);
+      hi[i] = std::max(hi[i], u);
+    }
+  }
+  double middle[3];
+  frame.t = {{0.0, 0.0, 0.0}};
+  for(int i = 0; i < 3; i++) {
+    middle[i] = 0.5 * (lo[i] + hi[i]);
+    for(int k = 0; k < 3; k++) {
+      frame.t.at[k] += middle[i] * frame.R.v[i].at[k];
+    }
+  }
+  low = lo[2] - middle[2];
+  high = hi[2] - middle[2];
+  radius = 0.0;
+  for(const auto& p : points) {
+    const double u = ksl_dot_vv(&frame.R.v[0], &p) - middle[0];
+    const double v = ksl_dot_vv(&frame.R.v[1], &p) - middle[1];
+    radius = std::max(radius, std::sqrt(u * u + v * v));
+  }
+}

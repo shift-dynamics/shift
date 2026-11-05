@@ -1,6 +1,5 @@
-/* Hydraulic cylinder force module (force_module::HydraulicCylinder) and the
-monotone table it reads its valve command from (force_module::Table): a
-held load, the speed of an open valve, and the relief valve */
+/* Hydraulic cylinder force module (force_module::HydraulicCylinder): a held
+load, the speed of an open valve, and the relief valve */
 
 #include <algorithm>
 #include <cmath>
@@ -239,7 +238,7 @@ TEST(HydraulicCylinder, OpenValveExtendsAtTheOrificeSpeed) {
   parameters << R"("retracted_position": -0.1, "supply_pressure": )" << supply
              << R"(, "relief_pressure": 20e6, "rated_flow": )" << rated_flow
              << R"(, "rated_pressure_drop": )" << rated_drop
-             << R"(, "friction": )" << friction << R"(, "command": [0, 1])";
+             << R"(, "friction": )" << friction << R"(, "command": 1)";
   LoadCylinder(context, "cylinder_speed", "[1, 0, 0]", parameters.str(), 0.5);
   auto cylinder = FindCylinder(context);
   ASSERT_NE(cylinder, nullptr);
@@ -280,7 +279,7 @@ TEST(HydraulicCylinder, ReliefValveLimitsThePressure) {
              << R"(, "relief_pressure": )" << relief
              << R"(, "rated_flow": 4.5e-5, "friction": 1e4,
                    "end_stop_stiffness": 1e8, "end_stop_damping": 10,
-                   "command": [0, 1])";
+                   "command": 1)";
   LoadCylinder(context, "cylinder_relief", "[1, 0, 0]", parameters.str(), 1.0);
   auto cylinder = FindCylinder(context);
   ASSERT_NE(cylinder, nullptr);
@@ -321,7 +320,7 @@ TEST(HydraulicCylinder, LoggersRecordTheOutputs) {
                R"("direction": -1, "retracted_position": 0.25,
                   "supply_pressure": 10e6, "relief_pressure": 20e6,
                   "rated_flow": 5e-5, "friction": 7e4,
-                  "command": [0, 0, 0.1, 0.5])",
+                  "command": 0.5)",
                0.3,
                R"({"type": "csv", "csv_logfile": ")" + csv +
                  R"(", "precision": 12},

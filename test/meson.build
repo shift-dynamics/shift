@@ -14,10 +14,12 @@ test_sources = [
   'test_free_body.cc',
   'test_mass_properties.cc',
   'test_contact_geometry.cc',
+  'test_contact_primitives.cc',
   'test_mesh_sharing.cc',
   'test_tire_pac2002.cc',
   'test_terrain.cc',
   'test_joint_axis.cc',
+  'test_screw_gear_joints.cc',
   'test_rigid_joint.cc',
   'test_light.cc',
   'test_beam.cc',
@@ -30,7 +32,10 @@ test_sources = [
   'test_cad_repair.cc',
   'test_cad_contact.cc',
   'test_terramechanics.cc',
-  # 'test_kdtree.cc',
+  'test_schedule.cc',
+  'test_lead_screw.cc',
+  'test_gear_mesh.cc',
+  'test_journal_bearing.cc',
 ]
 test_deps = [shift_core_dep, gtest_dep]
 

@@ -43,9 +43,9 @@ with the square root made smooth near zero pressure drop, where the flow
 becomes laminar. A relief valve on each side lets oil out to the tank above
 the relief pressure, and a makeup (anti-cavitation) valve lets oil in from
 the tank below the tank pressure; both open smoothly over a small band of
-pressure. ``command`` gives the opening against time as a table
-:math:`[t_0, u_0, t_1, u_1, \dots]`, a monotone cubic through the points
-:cite:`fritsch1980` that holds the end values.
+pressure. ``command`` is the valve opening, a number from -1 to 1 (default 0,
+closed). To open and close the valve as the model runs, a ``schedule``
+controller (see :ref:`controllers`) sets ``command`` from control points in time.
 
 Force
 -----
@@ -87,10 +87,17 @@ JSON
      "relief_pressure": 34e6, "rated_pressure_drop": 10e6,
      "rated_flow": 0.0044, "friction": 2e4,
      "end_stop_stiffness": 5e7, "end_stop_damping": 5,
-     "hold": true,
-     // valve opening against time: [t0, u0, t1, u1, ...]
-     "command": [0, 0, 0.2, 0, 0.5, -0.4, 1.8, -0.4, 2.1, 0]
+     "hold": true
    }
+
+with the valve opening against time from a schedule controller in the same
+assembly:
+
+.. code:: javascript
+
+   {"type": "schedule", "name": "boom_valve", "interpolation": "cubic",
+    "points": [0, 0, 0.2, 0, 0.5, -0.4, 1.8, -0.4, 2.1, 0],
+    "targets": ["force_modules/boom_cylinder/command"]}
 
 .. shift-parameters:: shift/core/force_module/hydraulic_cylinder.cc
    :exclude: name, type, active
@@ -116,8 +123,8 @@ Example
 
 :source:`examples/excavator/excavator.json`: a 30 t class excavator (the
 geometry and weights of a Cat 330) with two boom cylinders, a stick
-cylinder and a bucket cylinder, all starting held. Their valve commands
-lower the boom, dig with the stick and bucket, and raise the load; the CSV
+cylinder and a bucket cylinder, all starting held. Their valve commands, from
+three schedule controllers, lower the boom, dig with the stick and bucket, and raise the load; the CSV
 and HDF5 logs record each cylinder's pressures, force and flows.
 :source:`examples/excavator/excavator_simple.json` is the linkage alone,
 without cylinders and with placeholder masses, moving freely under

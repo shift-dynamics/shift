@@ -360,7 +360,17 @@ void shift::core::Context::AppendActiveObject(
         return;
       }
     }
-    active_controllers_.push_back(controller);
+    /* controllers that run first, in the order they come, go before the
+    others, which keep theirs */
+    if(controller->runs_first()) {
+      auto position = active_controllers_.begin();
+      while(position != active_controllers_.end() && (*position)->runs_first()) {
+        ++position;
+      }
+      active_controllers_.insert(position, controller);
+    } else {
+      active_controllers_.push_back(controller);
+    }
   }
 }
 

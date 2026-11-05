@@ -1,0 +1,10 @@
+newmtl steel
+Kd 0.75 0.3 0.04
+Pm 0.6
+Pr 0.4
+
+newmtl mark
+Kd 0.85 0.05 0.03
+Pm 0.0
+Pr 0.5
+

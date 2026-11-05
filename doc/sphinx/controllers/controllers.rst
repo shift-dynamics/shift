@@ -8,7 +8,8 @@ A controller reads signals from :ref:`sensors` and drives actuators, for
 example a PID controller that applies a torque to a joint to hold a measured
 speed. Controllers are listed in the ``controllers`` array of an assembly
 and are evaluated each time the equations of motion are set up, after the
-sensors are updated and before the force modules. A controller may have
+sensors are updated and before the force modules (a schedule, below, before
+the other controllers too). A controller may have
 internal states, such as the integral of a PID controller's error, which are
 integrated with the joint coordinates.
 
@@ -62,6 +63,210 @@ Examples
 * :source:`examples/vehicle/vehicle_control.json` and its variants: speed
   control of a car through its front wheels, with a steering rack position
   controller that these models leave inactive.
+
+.. _schedule:
+
+Schedule
+--------
+
+``"type": "schedule"`` changes parameters of other components as the model
+runs, following a list of control points in time: the opening of a valve, the
+target speed of a PID controller, the friction of a belt, the height of the
+ground. It reads no sensor and applies no force itself; it sets numbers, which
+the other components then use in their own calculations. Use it where a model
+needs an input that changes in time, such as a valve command or a speed
+profile, without writing a script.
+
+.. code:: javascript
+
+   "controllers": [
+     {"type": "schedule", "name": "boom_valve", "interpolation": "cubic",
+      "points": [0, 0, 0.2, 0, 0.5, -0.4, 1.8, -0.4, 2.1, 0],
+      "targets": ["force_modules/boom_cylinder_1/command",
+                  "force_modules/boom_cylinder_2/command"]}
+   ]
+
+Control points
+^^^^^^^^^^^^^^
+
+``points`` is a list of pairs :math:`[t_0, v_0, t_1, v_1, \dots]`: a time and
+the value that the schedule has at that time. The times must increase. Before
+the first point the schedule holds the first value, and after the last it
+holds the last, so a schedule with one point sets a constant.
+
+Interpolation
+^^^^^^^^^^^^^
+
+``interpolation`` says what the value does between the points. The default is
+``"linear"``.
+
+``"linear"``
+   Straight lines between the points. The value is continuous, but its rate of
+   change jumps at each point.
+
+``"cubic"``
+   A cubic curve in each interval, with the slope at each point chosen so that
+   the curve never overshoots the points: it rises where the points rise and
+   is level where they are level (the monotone cubic of Fritsch and Carlson
+   :cite:`fritsch1980`). Both the value and its rate of change are continuous,
+   so it is the gentlest input for the solver and for the machine.
+
+``"step"``
+   The value of the last point passed, so that the value jumps at each point.
+   A jump in a force or a command is a jump in the equations of motion, and
+   the integrator takes small steps around it to find it. If a smooth change
+   is acceptable, give ``transition_time``: each jump is then made over that
+   time as a smooth cubic from the old value to the new one. It must be shorter
+   than the time between any two points. The default is 0, a true jump.
+
+For example, with the points :math:`[0, 0, 1, 2, 3, 2, 4, 10]` (the value
+rises to 2 at time 1, stays there until time 3, and rises to 10 at time 4) the
+values are:
+
+.. list-table::
+   :header-rows: 1
+
+   * - time
+     - -1
+     - 0
+     - 0.5
+     - 1
+     - 2
+     - 3
+     - 3.5
+     - 4
+     - 5
+   * - ``linear``
+     - 0
+     - 0
+     - 1
+     - 2
+     - 2
+     - 2
+     - 6
+     - 10
+     - 10
+   * - ``cubic``
+     - 0
+     - 0
+     - 1.333
+     - 2
+     - 2
+     - 2
+     - 4.667
+     - 10
+     - 10
+   * - ``step``
+     - 0
+     - 0
+     - 0
+     - 2
+     - 2
+     - 2
+     - 2
+     - 10
+     - 10
+
+The cubic stays at 2 from time 1 to time 3, where the points are level, while
+a curve through the points that was free to swing (a spline) would dip and rise
+between them.
+
+Targets
+^^^^^^^
+
+``targets`` lists the parameters to set, each by its path from the assembly
+that holds the schedule. The path is made of the keys of the model file:
+
+.. list-table::
+   :header-rows: 1
+
+   * - to set
+     - path
+   * - a parameter of a force module
+     - ``"force_modules/<name>/<parameter>"``
+   * - a parameter of a controller
+     - ``"controllers/<name>/<parameter>"``
+   * - an entry of a list of numbers (the second friction coefficient of a belt)
+     - ``"force_modules/belt/friction_coefficient/1"``
+   * - an entry of a vector (the third entry of a vector with three)
+     - ``"force_modules/soil/shoe_center/2"``
+   * - a parameter of an assembly inside this one
+     - ``"assemblies/<name>/force_modules/<name>/<parameter>"``
+
+Entries are counted from 0. One schedule can set several targets to the same
+value, as for the two cylinders of a boom on one valve. A target must be a number,
+an entry of a list of numbers, or an entry of a vector.
+
+A schedule can set only parameters that their component reads at every step.
+Many components compute values from their parameters only when the model
+loads (the matrices of a bushing, the soil of a tire), and changing those
+later would have no effect, so they are not allowed: the model does not load, and
+the message names the target and says that it cannot be changed while the
+model runs. The same happens for a path that does not exist, a list or
+vector without its index, an index that is out of range, and a path that
+ends at an object and not at a number. The parameters that can be changed as
+the model runs are marked so in the list of parameters of their component:
+
+.. list-table::
+   :header-rows: 1
+
+   * - component
+     - parameters
+   * - PID controller
+     - ``kp``, ``ki``, ``target``
+   * - hydraulic cylinder
+     - ``command``, ``supply_pressure``, ``leakage``, ``friction``,
+       ``end_stop_stiffness``, ``end_stop_damping``
+   * - belt
+     - ``friction_coefficient``
+   * - track soil
+     - ``ground``, ``shoe_center``, ``unloading_ratio``
+
+A schedule does not check that a value is one that its component accepts (a
+negative friction coefficient, for example); the schedule's points are the
+user's responsibility.
+
+When it is evaluated
+^^^^^^^^^^^^^^^^^^^^
+
+A schedule sets its targets every time the equations of motion are evaluated,
+with the time of that evaluation, and does so before all other controllers and
+the force modules, wherever it is in the file. A PID controller or a force module
+that reads a scheduled parameter therefore always uses the value for the
+time it is evaluating, and not the value from the step before. The value is
+not recorded in the logs by the schedule; log the quantity that depends on it
+(the ``opening`` of a hydraulic cylinder, for instance), or read the
+parameter's value from the component.
+
+Examples
+^^^^^^^^
+
+A valve that opens fully for one second, 2 s into the run, with the opening
+and closing made smooth:
+
+.. code:: javascript
+
+   {"type": "schedule", "name": "valve_pulse", "interpolation": "cubic",
+    "points": [0, 0, 2, 0, 2.3, 1, 3.3, 1, 3.6, 0],
+    "targets": ["force_modules/cylinder/command"]}
+
+A speed target for a PID controller that starts at 20 and changes in two
+steps, to 40 at time 5 and to 30 at time 10, each made over a tenth of a
+second:
+
+.. code:: javascript
+
+   {"type": "schedule", "name": "speed_profile", "interpolation": "step",
+    "transition_time": 0.1, "points": [0, 20, 5, 40, 10, 30],
+    "targets": ["controllers/speed_control/target"]}
+
+Keys of ``schedule``:
+
+.. shift-parameters:: shift/core/controller/schedule.cc
+   :exclude: name, type, active
+
+:source:`examples/excavator/excavator.json` drives the valves of its four
+cylinders with three schedules. Tests: :source:`test/test_schedule.cc`.
 
 Inverse kinematics
 ------------------

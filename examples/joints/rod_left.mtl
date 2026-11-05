@@ -1,0 +1,10 @@
+newmtl steel
+Kd 0.62 0.62 0.64
+Pm 1.0
+Pr 0.35
+
+newmtl handle
+Kd 0.75 0.08 0.05
+Pm 0.0
+Pr 0.5
+

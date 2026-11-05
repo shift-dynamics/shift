@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "shift/core/force_module/base.h"
-#include "shift/core/force_module/table.h"
 
 namespace shift {
 namespace core {
@@ -64,7 +63,7 @@ JSON:
  "bore_diameter": 0.14, "rod_diameter": 0.1,
  "supply_pressure": 30e6, "relief_pressure": 33e6,
  "rated_flow": 3e-3,
- "command": [0, 0, 1, 0, 1.5, 1, 4, 1, 4.5, 0],
+ "command": 0,
  "end_stop_stiffness": 1e8, "end_stop_damping": 5}
 \endcode
 
@@ -84,9 +83,12 @@ JSON:
   rated_pressure_drop (optional, default 5e5 Pa) across it.
 - transition_pressure (optional, default 5 % of rated_pressure_drop): the
   pressure drop below which the flow through the valve becomes laminar.
-- command (optional): the valve opening against time, [t0, u0, t1, u1,
-  ...], a smooth curve through the points held at the ends; without it the
-  opening is set by set_command (default 0, closed).
+- command (optional, default 0, closed): the valve opening, -1 to 1. It
+  can be changed as the model runs: by set_command, or by a schedule
+  controller (see controller::Schedule) that follows control points in time,
+  such as "force_modules/boom_cylinder/command". supply_pressure, leakage,
+  friction, end_stop_stiffness and end_stop_damping can also be changed as the
+  model runs.
 - relief_flow_gain (optional, default rated_flow / (0.1 relief_pressure)):
   the flow out of the relief valves per pascal over the relief pressure;
   makeup_flow_gain (optional, default rated_flow / 1e6 Pa): the flow in
@@ -147,7 +149,7 @@ public:
   void UpdateOutputs(double t, const double* y) override;
   void AppendOutputs(std::vector<double>& values) const override;
 
-  /*! \brief the valve opening when there is no command table, -1 to 1 */
+  /*! \brief the valve opening, -1 to 1 (the parameter command) */
   void set_command(double u) {
     command_ = u;
   }
@@ -193,7 +195,7 @@ private:
   virtual void DeclareParameters() override;
   /*! \brief the pressures, flows and force at time t for the state y, and
    * the pressure rates in dy unless it is null */
-  void Evaluate(double t, const double* y, double* dy);
+  void Evaluate(const double* y, double* dy);
   /*! \brief the flow through an open valve edge for the pressure drop dp,
    * per unit opening */
   double EdgeFlow(double dp) const;
@@ -214,7 +216,6 @@ private:
   double rated_flow_ = 0.0;
   double rated_pressure_drop_ = 5e5;
   double transition_pressure_ = -1.0;
-  std::vector<double> command_points_;
   double relief_flow_gain_ = -1.0;
   double makeup_flow_gain_ = -1.0;
   double leakage_ = 0.0;
@@ -227,7 +228,6 @@ private:
   double hold_force_ = 0.0; //!< generalized force on the joint, while active
 
   joint::Base* joint_ = nullptr;
-  Table command_table_;
   double command_ = 0.0;
   double area_head_ = 0.0;
   double area_rod_ = 0.0;

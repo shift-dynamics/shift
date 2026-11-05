@@ -40,6 +40,13 @@ public:
     return parameters_[key];
   }
 
+  /*! \brief the parameter of the key, or nullptr if there is none; unlike
+   * operator[], it does not add one */
+  Value* Find(const std::string& key) {
+    auto it = parameters_.find(key);
+    return it == parameters_.end() ? nullptr : &it->second;
+  }
+
   bool is_active() {
     return active_;
   }
