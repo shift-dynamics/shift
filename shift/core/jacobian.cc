@@ -51,8 +51,6 @@ void shift::core::Jacobian::MallocEquations() {
   // get total size of Jacobian
   jacobian_size_ = 0;
   constraint_equation_count_ = 0;
-  unsigned int q_offset = 0;
-  unsigned int dq_offset = 0;
   unsigned int joint_offset = 0;
 
   for(size_t i = 0; i < substructure_members.size(); i++) {
@@ -76,10 +74,8 @@ void shift::core::Jacobian::MallocEquations() {
     substructures_[i].set_joint_offset(joint_offset);
     substructures_[i].set_context(context_);
 
-    // theses offsets do not account for joints that are not a member of any
+    // this offset does not account for joints that are not a member of any
     // substructure
-    q_offset += q_count;
-    dq_offset += dq_count;
     joint_offset += joint_count;
     jacobian_size_ += chord_constraint_count * 6 * dq_count;
     constraint_equation_count_ += chord_constraint_count * 6;

@@ -6,3 +6,5 @@ option('docs', type: 'feature', value: 'auto',
        description: 'Add the doxygen documentation target')
 option('gui', type: 'feature', value: 'auto',
        description: 'Build the Qt 6 / Vulkan viewer (shift)')
+option('cpu', type: 'string', value: 'x86-64',
+       description: 'Target CPU passed to -march: x86-64 for portable binaries, native to optimize for the build machine (any -march value works)')

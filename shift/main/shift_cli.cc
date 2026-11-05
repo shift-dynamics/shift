@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
     shift::core::log::SetLogLevel(std::min(level, (unsigned int)3));
   }
 
-#ifdef SHIFT_DEBUG
+#ifdef SHIFT_DEBUG_BUILD
 #ifdef __APPLE__
 #elif __linux__
   SHIFT_INFO("Floating point error detection enabled");

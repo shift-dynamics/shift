@@ -34,6 +34,21 @@ meson subprojects update ksl
 meson compile -C build
 ```
 
+### Optimized build
+The default build is a debug build (`-O0`). For simulation work, keep a separate
+release build next to it:
+```bash
+meson setup build-release --buildtype=release -Dcpu=native
+meson compile -C build-release
+meson test -C build-release
+```
+
+A release build is 4-8x faster than the debug build and disables `assert`
+(`b_ndebug=if-release`). `-Dcpu` sets `-march`: the default `x86-64` produces
+portable binaries, while `native` targets the build machine. Link-time
+optimization is available with `-Db_lto=true`, but it made no measurable
+difference on the example models.
+
 ### Configuring Shift log levels
 You can enable additional logging output changing the `SHIFT_LOG_LEVEL` compile flag as:
 ```bash

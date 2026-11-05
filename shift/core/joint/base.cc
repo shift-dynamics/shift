@@ -74,12 +74,12 @@ void shift::core::joint::Base::Connect() {
     } else {
       assert(context_);
       try {
-        auto& value = (*context_)[parent_.at(0).at(0)];
-        for(auto it = parent_.at(0).begin() + 1; it <= parent_.at(0).end();
+        auto* value = &(*context_)[parent_.at(0).at(0)];
+        for(auto it = parent_.at(0).begin() + 1; it != parent_.at(0).end();
             it++) {
-          value = value[*it];
+          value = &(*value)[*it];
         }
-        parent_body_ptr_ = value.get_data<shift::core::body::Base>();
+        parent_body_ptr_ = value->get_data<shift::core::body::Base>();
       } catch(const char* msg) {
         std::cerr << "Error: could not find parent body for joint: " << get_name()
                   << ". Loading the simulation will attempt to continue."
@@ -127,12 +127,12 @@ void shift::core::joint::Base::Connect() {
       }
     } else {
       assert(context_);
-      auto& value = (*context_)[child_.at(0).at(0)];
-      for(auto it = child_.at(0).begin() + 1; it <= parent_.at(0).end(); it++) {
-        value = value[*it];
+      auto* value = &(*context_)[child_.at(0).at(0)];
+      for(auto it = child_.at(0).begin() + 1; it != child_.at(0).end(); it++) {
+        value = &(*value)[*it];
       }
       try {
-        child_body_ptr_ = value.get_data<shift::core::body::Base>();
+        child_body_ptr_ = value->get_data<shift::core::body::Base>();
       } catch(const char* msg) {
         std::cerr << "Could not find child body \"" << child_.at(0).at(0)
                   << "\" for joint: \"" << get_name() << "\"" << std::endl;
