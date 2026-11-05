@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "shift/core/collision_geometry/fitting.h"
+#include "shift/core/exception.h"
 #include "shift/core/factory.h"
 
 bool shift::core::collision_geometry::Sphere::registered_ =
@@ -12,6 +13,28 @@ bool shift::core::collision_geometry::Sphere::registered_ =
 std::unique_ptr<shift::core::collision_geometry::Sphere>
 shift::core::collision_geometry::Sphere::Create() {
   return std::make_unique<shift::core::collision_geometry::Sphere>();
+}
+
+void shift::core::collision_geometry::Sphere::DeclareParameters() {
+  DeclareParameter("radius", &radius_,
+                   "radius of the sphere, centered at the origin of the pose "
+                   "(the body origin by default); if not given, the sphere is "
+                   "fitted to the body's mesh",
+                   false);
+}
+
+bool shift::core::collision_geometry::Sphere::HasDimensions() const {
+  if(radius_ < 0.0) {
+    throw shift::core::Exception("Sphere collision geometry '" + name_ +
+                                 "' has a negative radius");
+  }
+  return radius_ > 0.0;
+}
+
+void shift::core::collision_geometry::Sphere::SetFromDimensions(
+  const ksl_SE3_t& pose) {
+  d_wrt_body_ = pose;
+  bounding_radius_ = radius_;
 }
 
 void shift::core::collision_geometry::Sphere::Fit(

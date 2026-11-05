@@ -9,6 +9,8 @@ test_sources = [
   'test_examples.cc',
   'test_excavator.cc',
   'test_specified_coordinates.cc',
+  'test_collision_geometry_input.cc',
+  'test_contact_geometry.cc',
   'test_mesh_sharing.cc',
   'test_tire_pac2002.cc',
   # 'test_kdtree.cc',

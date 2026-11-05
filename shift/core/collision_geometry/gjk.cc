@@ -10,10 +10,16 @@ kept per pair of geometries in a ContactPair.
 #include "shift/core/collision_geometry/gjk.h"
 
 #include <cmath>
+#include <tuple>
 #include <utility>
 
 #include "ksl/matrix.h"
 #include "shift/core/collision_geometry/base.h"
+#include "shift/core/collision_geometry/convex_hull.h"
+#include "shift/core/collision_geometry/ellipsoid.h"
+#include "shift/core/collision_geometry/epa.h"
+#include "shift/core/collision_geometry/plane.h"
+#include "shift/core/collision_geometry/analytic_contact.h"
 #include "shift/core/collision_geometry/sphere.h"
 
 
@@ -310,15 +316,98 @@ static bool Gjk(shift::core::collision_geometry::ContactPair& p) {
 }
 
 
+/*! contact data of a pair from a contact computed with the pair's geometry
+ * first_is_a ? a : b as the first shape */
+static void Assign(shift::core::collision_geometry::ContactPair& pair,
+                   const shift::core::collision_geometry::AnalyticContact& c,
+                   bool first_is_a) {
+  pair.success = true;
+  pair.collision = c.collision;
+  if(!c.collision) {
+    return;
+  }
+  pair.depth = c.depth;
+  pair.depth_converged = true;
+  pair.normal = first_is_a ? c.normal : Neg(c.normal);
+  pair.point_a = first_is_a ? c.point_first : c.point_second;
+  pair.point_b = first_is_a ? c.point_second : c.point_first;
+  /* coordinates in each geometry frame, R^T (p - t) */
+  for(auto [g, p, local] :
+      {std::tuple{pair.a, &pair.point_a, &pair.point_local_a},
+       std::tuple{pair.b, &pair.point_b, &pair.point_local_b}}) {
+    const ksl_SE3_t& d = g->get_d_absolute();
+    const ksl_vec3_t r = Sub(*p, d.t);
+    for(int i = 0; i < 3; i++) {
+      local->at[i] = Dot(d.R.v[i], r);
+    }
+  }
+}
+
 bool shift::core::collision_geometry::TestContact(ContactPair& pair) {
+  /* pairs with a closed form or one dimensional contact: a plane with
+  anything, a sphere with a sphere, a convex hull or an ellipsoid, and two
+  ellipsoids */
+  AnalyticContact contact;
+  if(auto plane = dynamic_cast<const Plane*>(pair.a)) {
+    PlaneContact(*plane, *pair.b, contact);
+    Assign(pair, contact, true);
+    return pair.collision;
+  }
+  if(auto plane = dynamic_cast<const Plane*>(pair.b)) {
+    PlaneContact(*plane, *pair.a, contact);
+    Assign(pair, contact, false);
+    return pair.collision;
+  }
   auto sphere_a = dynamic_cast<const Sphere*>(pair.a);
   auto sphere_b = dynamic_cast<const Sphere*>(pair.b);
   if(sphere_a && sphere_b) {
-    const ksl_vec3_t t = Sub(sphere_a->get_center(), sphere_b->get_center());
-    const double r = sphere_a->get_radius() + sphere_b->get_radius();
-    pair.success = true;
-    pair.collision = Dot(t, t) < r * r;
+    const ksl_vec3_t& ca = sphere_a->get_center();
+    const ksl_vec3_t& cb = sphere_b->get_center();
+    const ksl_vec3_t t = Sub(cb, ca);
+    const double ra = sphere_a->get_radius();
+    const double rb = sphere_b->get_radius();
+    const double distance = Norm(t);
+    contact.collision = distance < ra + rb;
+    if(contact.collision) {
+      contact.depth = ra + rb - distance;
+      contact.normal = distance > 0.0
+                         ? ksl_vec3_t{{t.x / distance, t.y / distance,
+                                       t.z / distance}}
+                         : ksl_vec3_t{{1.0, 0.0, 0.0}};
+      const ksl_vec3_t& n = contact.normal;
+      contact.point_first = {{ca.x + ra * n.x, ca.y + ra * n.y,
+                              ca.z + ra * n.z}};
+      contact.point_second = {{cb.x - rb * n.x, cb.y - rb * n.y,
+                               cb.z - rb * n.z}};
+    }
+    Assign(pair, contact, true);
     return pair.collision;
   }
-  return Gjk(pair);
+  if(sphere_a || sphere_b) {
+    const Sphere& sphere = sphere_a ? *sphere_a : *sphere_b;
+    const Base* other = sphere_a ? pair.b : pair.a;
+    bool handled = false;
+    if(auto hull = dynamic_cast<const ConvexHull*>(other)) {
+      handled = ConvexHullSphereContact(*hull, sphere, contact);
+    } else if(auto ellipsoid = dynamic_cast<const Ellipsoid*>(other)) {
+      handled = EllipsoidSphereContact(*ellipsoid, sphere, contact);
+    }
+    if(handled) {
+      Assign(pair, contact, sphere_b != nullptr); // the shape is first
+      return pair.collision;
+    }
+  }
+  auto ellipsoid_a = dynamic_cast<const Ellipsoid*>(pair.a);
+  auto ellipsoid_b = dynamic_cast<const Ellipsoid*>(pair.b);
+  if(ellipsoid_a && ellipsoid_b &&
+     EllipsoidEllipsoidContact(*ellipsoid_a, *ellipsoid_b, contact)) {
+    Assign(pair, contact, true);
+    return pair.collision;
+  }
+  /* convex hulls with hulls or ellipsoids: GJK, and EPA for the contact
+  data */
+  if(Gjk(pair)) {
+    ComputePenetration(pair);
+  }
+  return pair.collision;
 }

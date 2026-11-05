@@ -6,6 +6,7 @@
 
 #include "ksl/SE3.h"
 #include "shift/core/base.h"
+#include "shift/core/frame.h"
 #include "shift/core/parameter/list.h"
 
 namespace shift {
@@ -14,7 +15,6 @@ namespace core {
 namespace body {
 class Base;
 }
-class Frame;
 class Context;
 
 namespace collision_geometry {
@@ -22,15 +22,23 @@ namespace collision_geometry {
 /*!
 @brief Abstract CollisionGeometry base class
 
-A collision geometry is a convex primitive attached to a body. It is fitted to
-the vertices of the body's mesh geometry when the model is loaded, and is used
-by the contact detection in Context::DetectContacts. Each type implements an
-extreme vertex support function, used by the GJK algorithm in gjk.h.
+A collision geometry is a convex primitive attached to a body, used by the
+contact detection in Context::DetectContacts. Each type implements an extreme
+vertex support function, used by the GJK algorithm in gjk.h. It is given in one
+of two ways when the model is loaded:
+
+- by its dimensions (the radius of a sphere, the semi axes of an ellipsoid,
+  the half extents of a box shaped convex hull), placed by the optional "pose"
+  with respect to the body origin; no mesh is used.
+- otherwise, fitted to the convex hull of the vertices of the body's meshes:
+  all of its active meshes, or those named in "fit_to". A mesh named in
+  fit_to may be inactive, which makes it a collision mesh that is not drawn.
+  The fit places the geometry, so "pose" must not be given.
 
 The collision geometry reference frame is located with respect to the body
-origin by d_wrt_body_, which each type sets when fitting itself: the center of
-a sphere, the center and principal axes of an ellipsoid, or the body origin for
-a convex hull.
+origin by d_wrt_body_: the pose of a geometry given by its dimensions, or for
+a fitted one the center of a sphere, the center and principal axes of an
+ellipsoid, or the body origin for a convex hull.
 */
 class Base
   : public shift::core::Base
@@ -61,10 +69,16 @@ public:
 
   virtual void ActivateObjects(bool parent_is_active) override;
 
-  /*! \brief fit the collision geometry to the vertices of the parent body's
-   * mesh geometry; requires the mesh geometry to be loaded first */
+  /*! \brief set the collision geometry from its dimensions, or fit it to the
+   * vertices of the parent body's meshes; requires the active mesh geometry
+   * to be loaded first */
   virtual void Load();
   virtual void Connect();
+
+  /*! \brief fit the collision geometry to points in the body origin frame:
+   * to their convex hull, or to all of them if the hull is degenerate (as
+   * Load does with the mesh vertices) */
+  void FitToPoints(const std::vector<ksl_vec3_t>& points);
 
   /*! \brief update the absolute displacement of the collision geometry
    * reference frame from the absolute displacement of the body origin */
@@ -113,6 +127,15 @@ public:
 protected:
   virtual void DeclareParameters() override;
 
+  /*! \brief whether the dimensions of the geometry were given, so it is not
+   * fitted to a mesh; throws if they are invalid */
+  virtual bool HasDimensions() const {
+    return false;
+  }
+  /*! \brief set the geometry from its dimensions in the frame pose, given
+   * with respect to the body origin; sets d_wrt_body_ and bounding_radius_ */
+  virtual void SetFromDimensions(const ksl_SE3_t&) {}
+
   /*! \brief fit the collision geometry to the vertices of the convex hull of
    * the body's mesh; faces index into vertices, and are empty if the hull is
    * degenerate (vertices then holds all mesh vertices) */
@@ -124,6 +147,10 @@ protected:
   virtual void CopyFit(const Base& other) = 0;
 
   std::string type_;  //!< descriptive name of CollisionGeometry type
+  /*! pose of a geometry given by its dimensions, wrt the body origin */
+  shift::core::Frame pose_;
+  /*! names of the body's mesh geometry to fit to, all active meshes if empty */
+  std::vector<std::string> fit_to_;
   ksl_SE3_t d_wrt_body_ = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
   ksl_SE3_t d_absolute_ = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
   double bounding_radius_ = 0.0;

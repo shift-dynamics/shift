@@ -92,6 +92,49 @@ void shift::core::collision_geometry::ComputeVertexNeighbors(
   }
 }
 
+void shift::core::collision_geometry::ComputeFacePlanes(ConvexHullData& hull) {
+  hull.face_normals.clear();
+  hull.face_offsets.clear();
+  if(hull.vertices.empty()) {
+    return;
+  }
+  ksl_vec3_t centroid = {{0, 0, 0}};
+  for(const auto& v : hull.vertices) {
+    for(int k = 0; k < 3; k++) {
+      centroid.at[k] += v.at[k] / hull.vertices.size();
+    }
+  }
+  for(size_t f = 0; f + 2 < hull.faces.size(); f += 3) {
+    const ksl_vec3_t& v0 = hull.vertices[hull.faces[f]];
+    const ksl_vec3_t& v1 = hull.vertices[hull.faces[f + 1]];
+    const ksl_vec3_t& v2 = hull.vertices[hull.faces[f + 2]];
+    ksl_vec3_t e1, e2, n;
+    for(int k = 0; k < 3; k++) {
+      e1.at[k] = v1.at[k] - v0.at[k];
+      e2.at[k] = v2.at[k] - v0.at[k];
+    }
+    ksl_cross_vv(&e1, &e2, &n);
+    const double length = ksl_vec3_l2norm(&n);
+    if(length <= 0.0) {
+      hull.face_normals.push_back({{0, 0, 0}});
+      hull.face_offsets.push_back(HUGE_VAL);
+      continue;
+    }
+    for(int k = 0; k < 3; k++) {
+      n.at[k] /= length;
+    }
+    double offset = ksl_dot_vv(&n, &v0);
+    if(offset < ksl_dot_vv(&n, &centroid)) {
+      for(int k = 0; k < 3; k++) {
+        n.at[k] = -n.at[k];
+      }
+      offset = -offset;
+    }
+    hull.face_normals.push_back(n);
+    hull.face_offsets.push_back(offset);
+  }
+}
+
 ksl_mat3x3_t shift::core::collision_geometry::Covariance(
   const std::vector<ksl_vec3_t>& points) {
   ksl_mat3x3_t covariance = {{{0, 0, 0, 0, 0, 0, 0, 0, 0}}};

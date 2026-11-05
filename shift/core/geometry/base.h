@@ -26,9 +26,13 @@ class Base
 
 public:
   Base(std::string name)
-    : shift::core::Base(name) {}
+    : shift::core::Base(name) {
+    DeclareParameters();
+  }
   Base()
-    : shift::core::Base("") {}
+    : shift::core::Base("") {
+    DeclareParameters();
+  }
   virtual ~Base() {}
 
   static const std::string get_array_key() {
