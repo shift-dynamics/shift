@@ -5,7 +5,7 @@
 #include "shift/core/log.h"
 #include "shift/core/utility.h"
 
-#ifdef SHIFT_DEBUG_BUILD
+#ifdef SHIFT_FP_TRAP
 #include <fenv.h>
 #endif
 
@@ -104,11 +104,11 @@ void shift::core::geometry::Mesh::Load() {
 
 // temporarily disable floating point divide by zero exception handling
 // in Assimp loading
-#ifdef SHIFT_DEBUG_BUILD
+#ifdef SHIFT_FP_TRAP
 #ifdef __APPLE__
       // TODO find fedisableexcept equivalent for Apple
 #elif __linux__
-      fedisableexcept(FE_DIVBYZERO);
+      const int enabled_fe = fedisableexcept(FE_DIVBYZERO);
 #endif
 #endif
       const aiScene* scene = nullptr;
@@ -121,11 +121,14 @@ void shift::core::geometry::Mesh::Load() {
         SHIFT_WARNING(e.what());
         SHIFT_WARNING("Problem detected loading: " + file);
       }
-#ifdef SHIFT_DEBUG_BUILD
+#ifdef SHIFT_FP_TRAP
 #ifdef __APPLE__
       // TODO find feenableexcept equivalent for Apple
 #elif __linux__
-      feenableexcept(FE_DIVBYZERO);
+      // restore the trap only if it was enabled on entry
+      if(enabled_fe != -1) {
+        feenableexcept(enabled_fe & FE_DIVBYZERO);
+      }
 #endif
 #endif
 

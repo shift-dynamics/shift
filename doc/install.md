@@ -49,6 +49,13 @@ portable binaries, while `native` targets the build machine. Link-time
 optimization is available with `-Db_lto=true`, but it made no measurable
 difference on the example models.
 
+shift-cli traps floating point division by zero (`SIGFPE` is turned into an
+exception) in every build type. For maximum simulation speed you can turn the
+trap off:
+```bash
+meson configure build-release -Dfp_trap=false
+```
+
 ### Configuring Shift log levels
 You can enable additional logging output changing the `SHIFT_LOG_LEVEL` compile flag as:
 ```bash

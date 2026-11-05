@@ -125,21 +125,23 @@ int main(int argc, char* argv[]) {
     shift::core::log::SetLogLevel(std::min(level, (unsigned int)3));
   }
 
-#ifdef SHIFT_DEBUG_BUILD
 #ifdef __APPLE__
 #elif __linux__
+  // Trap floating point division by zero. On by default; configure with
+  // -Dfp_trap=false to drop it for maximum simulation speed.
+#ifdef SHIFT_FP_TRAP
   SHIFT_INFO("Floating point error detection enabled");
   feenableexcept(FE_DIVBYZERO);
   std::shared_ptr<void(int)> sigfpe_handler(
     signal(SIGFPE,
            [](int) { throw shift::core::Exception("Floating point error"); }),
     [](__sighandler_t f) { signal(SIGFPE, f); });
+#endif
   std::shared_ptr<void(int)> sigsegv_handler(
     signal(
       SIGSEGV,
       [](int) { throw shift::core::Exception("Segmentation fault occurred"); }),
     [](__sighandler_t f) { signal(SIGSEGV, f); });
-#endif
 #endif
 
   try {
