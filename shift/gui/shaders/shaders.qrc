@@ -1,0 +1,12 @@
+<RCC>
+  <qresource prefix="/shaders">
+    <file>mesh.vert.qsb</file>
+    <file>mesh.frag.qsb</file>
+    <file>fullscreen.vert.qsb</file>
+    <file>sky.frag.qsb</file>
+    <file>floor.vert.qsb</file>
+    <file>floor.frag.qsb</file>
+    <file>blit.frag.qsb</file>
+    <file>raytrace.comp.qsb</file>
+  </qresource>
+</RCC>

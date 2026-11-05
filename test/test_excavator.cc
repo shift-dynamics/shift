@@ -3,15 +3,14 @@
 #include <string>
 
 #include "shift/config.h"
-#include "shift/core/Context.h"
-#include "shift/core/Exception.h"
+#include "shift/core/context.h"
+#include "shift/core/exception.h"
 
 TEST(Excavator, DiffLogs) {
 
   try {
-    std::string root_dir(SHIFT_BINARY_DIR);
-    std::string json_file =
-      root_dir + "/_deps/shift-models-src/excavator/excavator.json";
+    std::string examples_dir(SHIFT_EXAMPLES_DIR);
+    std::string json_file = examples_dir + "/excavator/excavator.json";
     shift::core::Context context;
 
     context.LoadJSON(json_file);
@@ -30,9 +29,8 @@ TEST(Excavator, DiffLogs) {
 TEST(Excavator, DISABLED_Graphviz) {
 
   try {
-    std::string root_dir(SHIFT_BINARY_DIR);
-    std::string json_file =
-      root_dir + "/_deps/shift-models-src/excavator/excavator_no_logging.json";
+    std::string examples_dir(SHIFT_EXAMPLES_DIR);
+    std::string json_file = examples_dir + "/excavator/excavator_no_logging.json";
     shift::core::Context context;
 
     context.LoadJSON(json_file);

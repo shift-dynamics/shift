@@ -1,7 +1,7 @@
 # Creating shift objects
 
 ## Overview
-In *Shift*, the data structure layout hierarchy and json file format have a one-to-one correspondence. Refer to the <https://github.com/shift-dynamics/shift-models/blob/master/excavator/excavator.json> for an example of an updated JSON file.
+In *Shift*, the data structure layout hierarchy and json file format have a one-to-one correspondence. Refer to `examples/excavator/excavator.json` for an example of an updated JSON file.
 
 The root level of the JSON file represents the "fixed" inertial reference frame, represented by the `shift::core::Context` datastructure. Within the `shift::core::Context` datastructure, the layout of classes follows the hierarchy below. For more information on objects created using a factory method, see the next section.
 
