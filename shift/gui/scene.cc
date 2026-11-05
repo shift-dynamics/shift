@@ -22,7 +22,26 @@ void shift::gui::SceneBounds(const Scene& scene, const Poses& poses,
       }
     }
   }
-  if(scene.instances.empty()) {
+  for(const auto& cad : scene.cads) {
+    if(cad.patches.empty()) {
+      continue;
+    }
+    for(int body : cad.bodies) {
+      const QMatrix4x4& pose = poses.bodies.at(body);
+      for(int corner = 0; corner < 8; corner++) {
+        const QVector3D local(
+          (corner & 1) ? cad.bounds_max.x() : cad.bounds_min.x(),
+          (corner & 2) ? cad.bounds_max.y() : cad.bounds_min.y(),
+          (corner & 4) ? cad.bounds_max.z() : cad.bounds_min.z());
+        const QVector3D world = pose.map(local);
+        for(int k = 0; k < 3; k++) {
+          box_min[k] = std::min(box_min[k], world[k]);
+          box_max[k] = std::max(box_max[k], world[k]);
+        }
+      }
+    }
+  }
+  if(box_min.x() > box_max.x()) {
     box_min = QVector3D(-1.f, -1.f, -1.f);
     box_max = QVector3D(1.f, 1.f, 1.f);
   }

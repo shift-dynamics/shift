@@ -3,6 +3,7 @@
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/body/base.h"
+#include "shift/core/geometry/cad.h"
 #include "shift/core/geometry/mesh.h"
 #include "shift/core/integrator/base.h"
 #include "shift/core/light/ies.h"
@@ -331,6 +332,27 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   for(size_t m = 0; m < mesh_bodies.size(); m++) {
     for(int body : mesh_bodies[m]) {
       scene_.instances.push_back({static_cast<int>(m), body});
+    }
+  }
+  /* CAD geometry: one SceneCad per file read (geometry::Cad::get_asset)
+  and scale, drawn once per body */
+  std::map<std::pair<const shift::core::geometry::CadAsset*, double>, int>
+    asset_cads;
+  for(size_t i = 0; i < bodies_.size(); i++) {
+    for(auto& geometry : bodies_[i]->get_geometry()) {
+      auto cad = dynamic_cast<shift::core::geometry::Cad*>(geometry.get());
+      if(!cad || !cad->is_active() || !cad->get_asset()) {
+        continue;
+      }
+      const auto key = std::make_pair(cad->get_asset(), cad->get_scale());
+      auto [it, inserted] = asset_cads.try_emplace(key, 0);
+      if(inserted) {
+        it->second = static_cast<int>(scene_.cads.size());
+        scene_.cads.push_back(MakeSceneCad(cad->get_asset()->model,
+                                           cad->get_asset()->bodies,
+                                           cad->get_scale()));
+      }
+      scene_.cads[it->second].bodies.push_back(static_cast<int>(i));
     }
   }
   /* terrains, on the fixed body (body 0) */

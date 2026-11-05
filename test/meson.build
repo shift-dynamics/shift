@@ -29,7 +29,8 @@ test_deps = [shift_core_dep, gtest_dep]
 # tests of the viewer library, when it is built (option gui)
 if not is_disabler(shift_gui_dep)
   test_sources += ['test_instance_bvh.cc', 'test_video_encoder.cc',
-                   'test_embedded_texture.cc', 'test_camera.cc']
+                   'test_embedded_texture.cc', 'test_camera.cc',
+                   'test_cad_scene.cc']
   test_deps += [shift_gui_dep]
 endif
 

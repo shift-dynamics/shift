@@ -1,4 +1,5 @@
 #include "shift/core/geometry/base.h"
+#include "shift/core/geometry/cad.h"
 #include "shift/core/context.h"
 #include "shift/core/geometry/ellipsoid.h"
 #include "shift/core/geometry/mesh.h"
@@ -6,6 +7,9 @@
 #include "shift/core/geometry/sphere.h"
 
 bool shift::core::geometry::Modules::is_initialized() {
+  if(!shift::core::geometry::Cad::is_registered()) {
+    return false;
+  }
   if(!shift::core::geometry::Ellipsoid::is_registered()) {
     return false;
   }

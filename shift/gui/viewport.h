@@ -148,6 +148,21 @@ private:
     int patches_y = 1;
   };
 
+  /*! CAD geometry (SceneCad) for the tessellation pipeline: its records
+   * in storage buffers, and the poses of the bodies drawn with it */
+  struct GpuCad {
+    std::unique_ptr<QRhiBuffer> faces;
+    std::unique_ptr<QRhiBuffer> curves;
+    std::unique_ptr<QRhiBuffer> patches;
+    std::unique_ptr<QRhiBuffer> points;
+    std::unique_ptr<QRhiBuffer> knots;
+    std::unique_ptr<QRhiBuffer> segments;
+    std::unique_ptr<QRhiBuffer> trim_index;
+    std::unique_ptr<QRhiBuffer> instances; /*!< poses times the scale */
+    std::unique_ptr<QRhiShaderResourceBindings> bindings;
+    int cad_index = 0; /*!< in Scene::cads */
+  };
+
   void InitializeRhi();
   void ReleaseRhi();
   void RenderFrame();
@@ -235,6 +250,11 @@ private:
   std::vector<GpuTerrain> gpu_terrains_;
   std::unique_ptr<QRhiGraphicsPipeline> terrain_pipeline_;
 
+  // CAD geometry, tessellated on the GPU from its exact surfaces
+  std::vector<GpuCad> gpu_cads_;
+  std::unique_ptr<QRhiBuffer> cad_ubo_; /*!< CadUniforms */
+  std::unique_ptr<QRhiGraphicsPipeline> cad_pipeline_;
+
   // image based lighting tables of the sky (see environment.h)
   std::unique_ptr<QRhiTexture> environment_specular_;
   std::unique_ptr<QRhiTexture> environment_irradiance_;
@@ -247,18 +267,35 @@ private:
   std::unique_ptr<QRhiTexture> texture_array_;
   std::unique_ptr<QRhiSampler> texture_sampler_;
 
+  // triangles of the CAD geometry for ray tracing and picking, per
+  // SceneCad, made on the GPU (cad_triangulate.comp) when a scene is set and
+  // read back: body coordinates (scaled), and per triangle its face (see
+  // raytrace.comp's triangle_faces)
+  std::vector<std::vector<RtTriangle>> cad_triangles_;
+  std::vector<std::vector<int32_t>> cad_triangle_faces_;
+  bool cad_triangles_dirty_ = false;
+  /*! \brief makes cad_triangles_ in a frame of its own, outside any other */
+  void TriangulateCad();
+
   // ray tracing
   bool ray_tracing_supported_ = false;
   std::vector<RtTriangle> rt_triangles_;
+  std::vector<int32_t> rt_triangle_faces_; /*!< -1 for meshes' triangles */
   std::vector<BvhNode> rt_nodes_;
-  std::vector<int> rt_roots_; /*!< root node of each mesh BVH */
+  /*! root node of each mesh BVH, then of each SceneCad's */
+  std::vector<int> rt_roots_;
+  /*! what ray tracing instances: the meshes' (Scene::instances), then the
+   * CAD geometry's, mesh_index meshes.size() + its index in Scene::cads */
+  std::vector<SceneInstance> rt_instance_list_;
 
   // picking: the point of the scene meshes under the cursor, found on the
   // CPU with one BVH per mesh (those of ray tracing when it is supported,
   // else built on the first pick), for zooming towards it
   std::vector<RtTriangle> pick_triangles_;
+  std::vector<int32_t> pick_triangle_faces_;
   std::vector<BvhNode> pick_nodes_;
   std::vector<int> pick_roots_; /*!< root node of each mesh BVH */
+  CadTrimTables pick_cad_trims_;
   bool pick_built_ = false;
   void BuildPickBvh();
   /*! \brief the nearest point of the scene meshes under a point of the
@@ -266,6 +303,10 @@ private:
   bool Pick(const QPointF& pixel, QVector3D& point);
   std::unique_ptr<QRhiBuffer> rt_ubo_;
   std::unique_ptr<QRhiBuffer> rt_triangle_buffer_;
+  std::unique_ptr<QRhiBuffer> rt_triangle_face_buffer_;
+  std::unique_ptr<QRhiBuffer> rt_cad_face_buffer_;
+  std::unique_ptr<QRhiBuffer> rt_cad_segment_buffer_;
+  std::unique_ptr<QRhiBuffer> rt_cad_trim_index_buffer_;
   std::unique_ptr<QRhiBuffer> rt_node_buffer_;
   std::unique_ptr<QRhiBuffer> rt_instance_buffer_;
   /*! BVH over the world space boxes of the instances, rebuilt with them */

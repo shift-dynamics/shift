@@ -65,6 +65,22 @@ static constexpr int kTerrainPatchCells = 4;
 static constexpr float kTerrainMaximumLevel = 64.f;
 static constexpr float kTerrainPixelsPerEdge = 6.f;
 
+/*! CAD tessellation and edges, see cad_uniforms.glsl */
+struct CadUniforms {
+  float tessellation[4]; // pixels per unit angle, pixels per triangle edge,
+                         // maximum level, largest distance from the surface
+                         // (pixels)
+  float edges[4];        // half width of edge lines (pixels), darkening,
+                         // widening of the trims (pixels)
+};
+static_assert(sizeof(CadUniforms) == 32);
+static constexpr float kCadPixelsPerEdge = 12.f;
+static constexpr float kCadMaximumLevel = 64.f;
+static constexpr float kCadSagittaPixels = 0.2f;
+static constexpr float kCadEdgeHalfWidth = 0.5f;
+static constexpr float kCadEdgeDarkening = 0.6f;
+static constexpr float kCadTrimWidening = 0.5f;
+
 /*! the lights of the model, see lights.glsl */
 struct LightData {
   float position[4];    // xyz: world position, w: type (SceneLight::Type)
@@ -280,6 +296,9 @@ shift::gui::Viewport::~Viewport() {
 void shift::gui::Viewport::set_simulation(Simulation* simulation) {
   simulation_ = simulation;
   poses_ = Poses();
+  cad_triangles_.clear();
+  cad_triangle_faces_.clear();
+  cad_triangles_dirty_ = simulation_ != nullptr;
   if(simulation_) {
     simulation_->TakePoses(poses_);
   }
@@ -444,6 +463,9 @@ bool shift::gui::Viewport::RenderOffscreen(int samples,
   if(!rhi_ || !offscreen_target_) {
     return false;
   }
+  if(cad_triangles_dirty_) {
+    TriangulateCad();
+  }
   if(render_mode_ != RenderMode::kRayTraced || !ray_tracing_supported_) {
     samples = 1;
   }
@@ -538,6 +560,9 @@ void shift::gui::Viewport::RenderFrame() {
     }
   }
 
+  if(cad_triangles_dirty_) {
+    TriangulateCad(); // in a frame of its own, before the scene's upload
+  }
   const QRhi::FrameOpResult result = rhi_->beginFrame(swapchain_.get());
   if(result == QRhi::FrameOpSwapChainOutOfDate) {
     swapchain_ready_ = false;
@@ -567,6 +592,9 @@ void shift::gui::Viewport::initialize() {
 }
 
 void shift::gui::Viewport::ReleaseAll() {
+  cad_pipeline_.reset();
+  gpu_cads_.clear();
+  cad_ubo_.reset();
   terrain_pipeline_.reset();
   gpu_terrains_.clear();
   ies_texture_.reset();
@@ -612,6 +640,10 @@ void shift::gui::Viewport::ReleaseAll() {
   rt_instance_node_buffer_.reset();
   rt_instance_buffer_.reset();
   rt_node_buffer_.reset();
+  rt_cad_trim_index_buffer_.reset();
+  rt_cad_segment_buffer_.reset();
+  rt_cad_face_buffer_.reset();
+  rt_triangle_face_buffer_.reset();
   rt_triangle_buffer_.reset();
   rt_ubo_.reset();
   floor_pipeline_.reset();
@@ -687,6 +719,12 @@ void shift::gui::Viewport::CreateDeviceResources() {
     rt_triangle_buffer_.reset(rhi_->newBuffer(
       QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer, sizeof(RtTriangle)));
     rt_triangle_buffer_->create();
+    for(auto* buffer : {&rt_triangle_face_buffer_, &rt_cad_face_buffer_,
+                        &rt_cad_segment_buffer_, &rt_cad_trim_index_buffer_}) {
+      buffer->reset(rhi_->newBuffer(QRhiBuffer::Immutable,
+                                    QRhiBuffer::StorageBuffer, 16));
+      (*buffer)->create();
+    }
     rt_node_buffer_.reset(rhi_->newBuffer(
       QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer, sizeof(BvhNode)));
     rt_node_buffer_->create();
@@ -867,6 +905,76 @@ void shift::gui::Viewport::CreatePipelines() {
     }
   }
 
+  // CAD geometry: the bindings of the meshes, with the records of its faces
+  // for the tessellation stages and its trims for the fragment stage
+  cad_pipeline_.reset();
+  if(tessellation_supported_ && !gpu_cads_.empty()) {
+    const auto tessellation =
+      Binding::TessellationControlStage | Binding::TessellationEvaluationStage;
+    const auto all = vertex_fragment | tessellation;
+    for(auto& gpu : gpu_cads_) {
+      gpu.bindings.reset(rhi_->newShaderResourceBindings());
+      gpu.bindings->setBindings(
+        {Binding::uniformBuffer(0, all, frame_ubo_.get()),
+         Binding::uniformBufferWithDynamicOffset(
+           1, vertex_fragment, material_ubo_.get(), sizeof(MaterialUniforms)),
+         Binding::sampledTexture(2, Binding::FragmentStage,
+                                 environment_specular_.get(),
+                                 linear_sampler_.get()),
+         Binding::sampledTexture(3, Binding::FragmentStage,
+                                 environment_irradiance_.get(),
+                                 linear_sampler_.get()),
+         Binding::sampledTexture(4, Binding::FragmentStage,
+                                 environment_brdf_.get(),
+                                 linear_sampler_.get()),
+         Binding::sampledTexture(5, Binding::FragmentStage,
+                                 texture_array_.get(), texture_sampler_.get()),
+         Binding::uniformBuffer(6, Binding::FragmentStage | tessellation,
+                                cad_ubo_.get()),
+         Binding::uniformBuffer(8, Binding::FragmentStage, lights_ubo_.get()),
+         Binding::sampledTexture(9, Binding::FragmentStage,
+                                 ies_texture_.get(), linear_sampler_.get()),
+         Binding::bufferLoad(10, all, gpu.faces.get()),
+         Binding::bufferLoad(11, all, gpu.curves.get()),
+         Binding::bufferLoad(12, all, gpu.patches.get()),
+         Binding::bufferLoad(13, all, gpu.points.get()),
+         Binding::bufferLoad(14, all, gpu.knots.get()),
+         Binding::bufferLoad(15, Binding::FragmentStage, gpu.segments.get()),
+         Binding::bufferLoad(16, Binding::FragmentStage,
+                             gpu.trim_index.get())});
+      gpu.bindings->create();
+    }
+    cad_pipeline_.reset(rhi_->newGraphicsPipeline());
+    cad_pipeline_->setShaderStages(
+      {{QRhiShaderStage::Vertex, LoadShader("cad.vert.qsb")},
+       {QRhiShaderStage::TessellationControl, LoadShader("cad.tesc.qsb")},
+       {QRhiShaderStage::TessellationEvaluation, LoadShader("cad.tese.qsb")},
+       {QRhiShaderStage::Fragment, LoadShader("cad.frag.qsb")}});
+    cad_pipeline_->setShaderResourceBindings(gpu_cads_[0].bindings.get());
+    cad_pipeline_->setRenderPassDescriptor(pipeline_render_pass_);
+    cad_pipeline_->setTopology(QRhiGraphicsPipeline::Patches);
+    cad_pipeline_->setPatchControlPointCount(4);
+    cad_pipeline_->setCullMode(QRhiGraphicsPipeline::None);
+    cad_pipeline_->setDepthTest(true);
+    cad_pipeline_->setDepthWrite(true);
+    cad_pipeline_->setDepthOp(QRhiGraphicsPipeline::LessOrEqual);
+    // the pose of each body drawn, per instance, as in mesh.vert
+    QRhiVertexInputLayout layout;
+    layout.setBindings({QRhiVertexInputBinding(
+      sizeof(InstanceAttributes), QRhiVertexInputBinding::PerInstance)});
+    layout.setAttributes(
+      {QRhiVertexInputAttribute(0, 3, QRhiVertexInputAttribute::Float4, 0),
+       QRhiVertexInputAttribute(0, 4, QRhiVertexInputAttribute::Float4, 16),
+       QRhiVertexInputAttribute(0, 5, QRhiVertexInputAttribute::Float4, 32),
+       QRhiVertexInputAttribute(0, 6, QRhiVertexInputAttribute::Float4, 48)});
+    cad_pipeline_->setVertexInputLayout(layout);
+    if(!cad_pipeline_->create()) {
+      qWarning("Cannot create the CAD tessellation pipeline; CAD geometry is "
+               "not drawn");
+      cad_pipeline_.reset();
+    }
+  }
+
   if(!ray_tracing_supported_) {
     return;
   }
@@ -908,7 +1016,11 @@ void shift::gui::Viewport::CreatePipelines() {
        Binding::bufferLoad(11, compute, rt_instance_node_buffer_.get()),
        Binding::uniformBuffer(12, compute, lights_ubo_.get()),
        Binding::sampledTexture(13, compute, ies_texture_.get(),
-                               linear_sampler_.get())});
+                               linear_sampler_.get()),
+       Binding::bufferLoad(14, compute, rt_triangle_face_buffer_.get()),
+       Binding::bufferLoad(15, compute, rt_cad_face_buffer_.get()),
+       Binding::bufferLoad(16, compute, rt_cad_segment_buffer_.get()),
+       Binding::bufferLoad(17, compute, rt_cad_trim_index_buffer_.get())});
     svgf_temporal_bindings_[p] = make_bindings(
       {denoise_uniforms, instances, load(2, rt_illumination_),
        load(3, rt_albedo_), load(4, rt_position_[p]), load(5, rt_normal_[p]),
@@ -999,13 +1111,57 @@ void shift::gui::Viewport::UploadEnvironment(QRhiResourceUpdateBatch* batch) {
   environment_dirty_ = false;
 }
 
+/* the instances of ray tracing and picking: the meshes' instances, then one
+per body of each SceneCad, with mesh_index meshes.size() + its index */
+static std::vector<shift::gui::SceneInstance>
+RtInstanceList(const shift::gui::Scene& scene) {
+  std::vector<shift::gui::SceneInstance> list = scene.instances;
+  for(size_t c = 0; c < scene.cads.size(); c++) {
+    for(int body : scene.cads[c].bodies) {
+      list.push_back({static_cast<int>(scene.meshes.size() + c), body});
+    }
+  }
+  return list;
+}
+
 /* one BVH per mesh in body coordinates, shared by its instances and
-concatenated with absolute node and triangle indices; roots holds the root
-node of each mesh */
-static void BuildMeshBvhs(const shift::gui::Scene& scene,
-                          std::vector<shift::gui::RtTriangle>& all_triangles,
-                          std::vector<shift::gui::BvhNode>& all_nodes,
-                          std::vector<int>& roots) {
+concatenated with absolute node and triangle indices, then one per SceneCad
+from its triangles (cad_faces: their faces, made global with the face_base
+of trims); roots holds the root node of each, faces the face of each
+triangle (-1 for a mesh's) */
+static void BuildMeshBvhs(
+  const shift::gui::Scene& scene,
+  const std::vector<std::vector<shift::gui::RtTriangle>>& cad_triangles,
+  const std::vector<std::vector<int32_t>>& cad_faces,
+  const shift::gui::CadTrimTables& trims,
+  std::vector<shift::gui::RtTriangle>& all_triangles,
+  std::vector<int32_t>& all_faces, std::vector<shift::gui::BvhNode>& all_nodes,
+  std::vector<int>& roots) {
+  auto append = [&](std::vector<shift::gui::RtTriangle>& triangles,
+                    std::vector<int32_t>& faces) {
+    std::vector<shift::gui::BvhNode> nodes =
+      shift::gui::BuildBvh(triangles, &faces);
+    if(nodes.empty()) {
+      // a leaf without triangles that no ray enters, so the root is its own
+      shift::gui::BvhNode empty{};
+      for(int k = 0; k < 3; k++) {
+        empty.box_min[k] = 1e30f;
+        empty.box_max[k] = -1e30f;
+      }
+      nodes.push_back(empty);
+    }
+    const int node_offset = static_cast<int>(all_nodes.size());
+    const int triangle_offset = static_cast<int>(all_triangles.size());
+    for(auto& node : nodes) {
+      node.right_or_first +=
+        node.triangle_count < 0 ? node_offset : triangle_offset;
+    }
+    roots.push_back(node_offset);
+    all_nodes.insert(all_nodes.end(), nodes.begin(), nodes.end());
+    all_triangles.insert(all_triangles.end(), triangles.begin(),
+                         triangles.end());
+    all_faces.insert(all_faces.end(), faces.begin(), faces.end());
+  };
   for(const auto& mesh : scene.meshes) {
     std::vector<shift::gui::RtTriangle> triangles(mesh.indices.size() / 3);
     for(size_t i = 0; i < triangles.size(); i++) {
@@ -1020,17 +1176,20 @@ static void BuildMeshBvhs(const shift::gui::Scene& scene,
         normals[j][3] = v.uv[1];
       }
     }
-    std::vector<shift::gui::BvhNode> nodes = shift::gui::BuildBvh(triangles);
-    const int node_offset = static_cast<int>(all_nodes.size());
-    const int triangle_offset = static_cast<int>(all_triangles.size());
-    for(auto& node : nodes) {
-      node.right_or_first +=
-        node.triangle_count < 0 ? node_offset : triangle_offset;
+    std::vector<int32_t> faces(triangles.size(), -1);
+    append(triangles, faces);
+  }
+  for(size_t c = 0; c < scene.cads.size(); c++) {
+    std::vector<shift::gui::RtTriangle> triangles;
+    std::vector<int32_t> faces;
+    if(c < cad_triangles.size() && c < cad_faces.size()) {
+      triangles = cad_triangles[c];
+      faces = cad_faces[c];
+      for(int32_t& f : faces) {
+        f = 2 * ((f >> 1) + trims.face_base[c]) + (f & 1);
+      }
     }
-    roots.push_back(node_offset);
-    all_nodes.insert(all_nodes.end(), nodes.begin(), nodes.end());
-    all_triangles.insert(all_triangles.end(), triangles.begin(),
-                         triangles.end());
+    append(triangles, faces);
   }
 }
 
@@ -1055,7 +1214,7 @@ static bool RayHitsBox(const QVector3D& o, const QVector3D& inverse_d,
 it is hit at 0 < t < t_max */
 static bool RayHitsTriangle(const QVector3D& o, const QVector3D& d,
                             const shift::gui::RtTriangle& triangle, float t_max,
-                            float& t) {
+                            float& t, float& b1_out, float& b2_out) {
   const QVector3D v0(triangle.v0[0], triangle.v0[1], triangle.v0[2]);
   const QVector3D e1 =
     QVector3D(triangle.v1[0], triangle.v1[1], triangle.v1[2]) - v0;
@@ -1082,6 +1241,8 @@ static bool RayHitsTriangle(const QVector3D& o, const QVector3D& d,
     return false;
   }
   t = hit;
+  b1_out = b1;
+  b2_out = b2;
   return true;
 }
 
@@ -1089,11 +1250,15 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   scene_dirty_ = false;
   gpu_meshes_.clear();
   rt_triangles_.clear();
+  rt_triangle_faces_.clear();
   rt_nodes_.clear();
   rt_roots_.clear();
+  rt_instance_list_.clear();
   pick_triangles_.clear();
+  pick_triangle_faces_.clear();
   pick_nodes_.clear();
   pick_roots_.clear();
+  pick_cad_trims_ = CadTrimTables();
   pick_built_ = false;
   if(!simulation_) {
     return;
@@ -1150,6 +1315,50 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     }
   }
 
+  // CAD geometry, evaluated by the tessellation shaders
+  gpu_cads_.clear();
+  if(tessellation_supported_) {
+    auto storage = [&](const void* data, size_t bytes) {
+      // a buffer may not be empty: at least one record of 16 bytes
+      std::unique_ptr<QRhiBuffer> b(
+        rhi_->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer,
+                        quint32(std::max<size_t>(bytes, 16))));
+      b->create();
+      if(bytes > 0) {
+        batch->uploadStaticBuffer(b.get(), 0, quint32(bytes), data);
+      }
+      return b;
+    };
+    for(size_t c = 0; c < scene.cads.size(); c++) {
+      const SceneCad& cad = scene.cads[c];
+      if(cad.patches.empty() || cad.bodies.empty()) {
+        continue;
+      }
+      GpuCad gpu;
+      gpu.cad_index = static_cast<int>(c);
+      gpu.faces = storage(cad.faces.data(), cad.faces.size() * sizeof(CadGpuFace));
+      gpu.curves =
+        storage(cad.curves.data(), cad.curves.size() * sizeof(CadGpuCurve));
+      gpu.patches =
+        storage(cad.patches.data(), cad.patches.size() * sizeof(CadGpuPatch));
+      gpu.points = storage(cad.points.data(), cad.points.size() * sizeof(float));
+      gpu.knots = storage(cad.knots.data(), cad.knots.size() * sizeof(float));
+      gpu.segments =
+        storage(cad.segments.data(), cad.segments.size() * sizeof(float));
+      gpu.trim_index = storage(cad.trim_index.data(),
+                               cad.trim_index.size() * sizeof(int32_t));
+      gpu.instances.reset(rhi_->newBuffer(
+        QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer,
+        quint32(cad.bodies.size() * sizeof(InstanceAttributes))));
+      gpu.instances->create();
+      gpu_cads_.push_back(std::move(gpu));
+    }
+    cad_ubo_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
+                                   QRhiBuffer::UniformBuffer,
+                                   sizeof(CadUniforms)));
+    cad_ubo_->create();
+  }
+
   // texture layers; without any, a placeholder layer keeps the bindings valid
   if(scene.texture_layers.empty()) {
     CreateTextureArray(1, 1);
@@ -1185,7 +1394,9 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
                                     ToHalf(values))}));
   }
 
-  const quint32 mesh_count = quint32(std::max<size_t>(scene.meshes.size(), 1));
+  // materials of the meshes, then of the CAD geometry
+  const quint32 mesh_count = quint32(
+    std::max<size_t>(scene.meshes.size() + scene.cads.size(), 1));
   material_ubo_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
                                       QRhiBuffer::UniformBuffer,
                                       material_stride_ * mesh_count));
@@ -1197,12 +1408,36 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
                     instance_count * sizeof(InstanceAttributes)));
   instance_buffer_->create();
 
+  rt_instance_list_ = RtInstanceList(scene);
   if(ray_tracing_supported_) {
-    BuildMeshBvhs(scene, rt_triangles_, rt_nodes_, rt_roots_);
+    CadTrimTables trims = MergeCadTrims(scene.cads);
+    BuildMeshBvhs(scene, cad_triangles_, cad_triangle_faces_, trims,
+                  rt_triangles_, rt_triangle_faces_, rt_nodes_, rt_roots_);
     if(rt_triangles_.empty()) {
       rt_triangles_.resize(1);
+      rt_triangle_faces_.assign(1, -1);
       rt_nodes_.resize(1);
     }
+    // the faces of the CAD triangles and their trims; storage buffers may
+    // not be empty
+    auto storage = [&](std::unique_ptr<QRhiBuffer>& buffer, const void* data,
+                       size_t bytes) {
+      buffer.reset(rhi_->newBuffer(QRhiBuffer::Immutable,
+                                   QRhiBuffer::StorageBuffer,
+                                   quint32(std::max<size_t>(bytes, 16))));
+      buffer->create();
+      if(bytes > 0) {
+        batch->uploadStaticBuffer(buffer.get(), 0, quint32(bytes), data);
+      }
+    };
+    storage(rt_triangle_face_buffer_, rt_triangle_faces_.data(),
+            rt_triangle_faces_.size() * sizeof(int32_t));
+    storage(rt_cad_face_buffer_, trims.faces.data(),
+            trims.faces.size() * sizeof(CadGpuFace));
+    storage(rt_cad_segment_buffer_, trims.segments.data(),
+            trims.segments.size() * sizeof(float));
+    storage(rt_cad_trim_index_buffer_, trims.trim_index.data(),
+            trims.trim_index.size() * sizeof(int32_t));
 
     rt_triangle_buffer_.reset(rhi_->newBuffer(
       QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer,
@@ -1212,24 +1447,29 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
       rhi_->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer,
                       quint32(rt_nodes_.size() * sizeof(BvhNode))));
     rt_node_buffer_->create();
+    const quint32 rt_instance_count =
+      quint32(std::max<size_t>(rt_instance_list_.size(), 1));
     rt_instance_buffer_.reset(
       rhi_->newBuffer(QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
-                      quint32(instance_count * sizeof(RtInstance))));
+                      quint32(rt_instance_count * sizeof(RtInstance))));
     rt_instance_buffer_->create();
     // one leaf per instance: 2 n - 1 nodes
     rt_instance_node_buffer_.reset(rhi_->newBuffer(
       QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
-      quint32((2 * instance_count - 1) * sizeof(BvhNode))));
+      quint32((2 * rt_instance_count - 1) * sizeof(BvhNode))));
     rt_instance_node_buffer_->create();
     batch->uploadStaticBuffer(rt_triangle_buffer_.get(), rt_triangles_.data());
     batch->uploadStaticBuffer(rt_node_buffer_.get(), rt_nodes_.data());
     // the GPU copies are all that ray tracing needs from here on; picking
     // keeps the CPU copies
     pick_triangles_ = std::move(rt_triangles_);
+    pick_triangle_faces_ = std::move(rt_triangle_faces_);
     pick_nodes_ = std::move(rt_nodes_);
     pick_roots_ = rt_roots_;
+    pick_cad_trims_ = std::move(trims);
     pick_built_ = true;
     rt_triangles_ = std::vector<RtTriangle>();
+    rt_triangle_faces_ = std::vector<int32_t>();
     rt_nodes_ = std::vector<BvhNode>();
   }
 
@@ -1330,6 +1570,47 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     }
   }
 
+  // CAD geometry: materials, the poses of its bodies, tessellation density
+  const bool draw_cad = cad_pipeline_ && have_poses;
+  if(draw_cad) {
+    const Scene& scene = simulation_->get_scene();
+    for(const auto& gpu : gpu_cads_) {
+      const SceneCad& cad = scene.cads[gpu.cad_index];
+      MaterialUniforms material{};
+      CopyVector(cad.albedo, 1.f, material.albedo);
+      material.material[0] = cad.metallic;
+      material.material[1] = cad.roughness;
+      material.material[3] = 1.f;
+      material.layers[0] = material.layers[1] = material.layers[2] = -1;
+      material.layers[3] = -1;
+      batch->updateDynamicBuffer(
+        material_ubo_.get(),
+        quint32(scene.meshes.size() + gpu.cad_index) * material_stride_,
+        sizeof(material), &material);
+      std::vector<InstanceAttributes> instances(cad.bodies.size());
+      for(size_t i = 0; i < instances.size(); i++) {
+        QMatrix4x4 pose = poses_.bodies[cad.bodies[i]];
+        pose.scale(cad.scale);
+        CopyMatrix(pose, instances[i].model);
+      }
+      batch->updateDynamicBuffer(
+        gpu.instances.get(), 0,
+        quint32(instances.size() * sizeof(InstanceAttributes)),
+        instances.data());
+    }
+    const QMatrix4x4 projection = camera_.get_projection_matrix(aspect);
+    CadUniforms u{};
+    u.tessellation[0] =
+      0.5f * float(size.height()) * std::fabs(projection(1, 1));
+    u.tessellation[1] = kCadPixelsPerEdge;
+    u.tessellation[2] = kCadMaximumLevel;
+    u.tessellation[3] = kCadSagittaPixels;
+    u.edges[0] = kCadEdgeHalfWidth;
+    u.edges[1] = kCadEdgeDarkening;
+    u.edges[2] = kCadTrimWidening;
+    batch->updateDynamicBuffer(cad_ubo_.get(), 0, sizeof(u), &u);
+  }
+
   // terrains: pose, size and the tessellation density for this view
   const bool tessellate = terrain_pipeline_ && have_poses;
   if(tessellate) {
@@ -1404,6 +1685,21 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     }
   }
 
+  if(draw_cad) {
+    const Scene& scene = simulation_->get_scene();
+    cb->setGraphicsPipeline(cad_pipeline_.get());
+    cb->setViewport(viewport);
+    for(const auto& gpu : gpu_cads_) {
+      const SceneCad& cad = scene.cads[gpu.cad_index];
+      const QRhiCommandBuffer::DynamicOffset offset(
+        1, quint32(scene.meshes.size() + gpu.cad_index) * material_stride_);
+      cb->setShaderResources(gpu.bindings.get(), 1, &offset);
+      const QRhiCommandBuffer::VertexInput input(gpu.instances.get(), 0);
+      cb->setVertexInput(0, 1, &input);
+      cb->draw(quint32(4 * cad.patches.size()), quint32(cad.bodies.size()));
+    }
+  }
+
   if(floor_enabled_ && have_poses) {
     cb->setGraphicsPipeline(floor_pipeline_.get());
     cb->setViewport(viewport);
@@ -1424,9 +1720,9 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
   }
   bool moved = false;
   std::vector<RtInstance> instances(std::max(instance_count, 1));
+  const int mesh_count = static_cast<int>(scene.meshes.size());
   for(int i = 0; i < instance_count; i++) {
-    const SceneInstance& instance = scene.instances[i];
-    const SceneMesh& mesh = scene.meshes[instance.mesh_index];
+    const SceneInstance& instance = rt_instance_list_[i];
     const QMatrix4x4& pose = poses_.bodies[instance.body_index];
     const QMatrix4x4& previous =
       rt_previous_poses_.empty() ? pose : rt_previous_poses_[i];
@@ -1434,10 +1730,25 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
     CopyMatrix(pose, instances[i].body_to_world);
     CopyMatrix(pose.inverted(), instances[i].world_to_body);
     CopyMatrix(previous, instances[i].previous_body_to_world);
-    TransformBox(pose, mesh.bounds_min, mesh.bounds_max, instances[i].box_min,
-                 instances[i].box_max);
-    CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
-    CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
+    if(instance.mesh_index < mesh_count) {
+      const SceneMesh& mesh = scene.meshes[instance.mesh_index];
+      TransformBox(pose, mesh.bounds_min, mesh.bounds_max,
+                   instances[i].box_min, instances[i].box_max);
+      CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
+      CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
+    } else {
+      // CAD geometry: its triangles are scaled, its faces may have colors
+      const SceneCad& cad = scene.cads[instance.mesh_index - mesh_count];
+      TransformBox(pose, cad.bounds_min, cad.bounds_max, instances[i].box_min,
+                   instances[i].box_max);
+      CopyVector(cad.albedo, 1.f, instances[i].albedo);
+      instances[i].material[0] = cad.metallic;
+      instances[i].material[1] = cad.roughness;
+      instances[i].material[2] = 0.f;
+      instances[i].material[3] = 1.f;
+      instances[i].offsets[1] = instances[i].offsets[2] =
+        instances[i].offsets[3] = -1;
+    }
     instances[i].offsets[0] = rt_roots_[instance.mesh_index];
   }
   batch->uploadStaticBuffer(rt_instance_buffer_.get(), 0,
@@ -1458,7 +1769,7 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
   }
   rt_previous_poses_.resize(instance_count);
   for(int i = 0; i < instance_count; i++) {
-    rt_previous_poses_[i] = poses_.bodies[scene.instances[i].body_index];
+    rt_previous_poses_[i] = poses_.bodies[rt_instance_list_[i].body_index];
   }
   return moved;
 }
@@ -1487,8 +1798,7 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
   int instance_count = 0;
   bool bodies_moved = false;
   if(have_poses) {
-    instance_count =
-      static_cast<int>(simulation_->get_scene().instances.size());
+    instance_count = static_cast<int>(rt_instance_list_.size());
     // after a frame with motion the instances still hold the old previous
     // poses, so upload once more with previous = current
     if(rt_instances_dirty_ || rt_instances_moving_) {
@@ -1639,12 +1949,160 @@ void shift::gui::Viewport::wheelEvent(QWheelEvent* event) {
   update();
 }
 
+void shift::gui::Viewport::TriangulateCad() {
+  cad_triangles_dirty_ = false;
+  cad_triangles_.clear();
+  cad_triangle_faces_.clear();
+  if(!rhi_ || !simulation_ || !rhi_->isFeatureSupported(QRhi::Compute)) {
+    return;
+  }
+  const Scene& scene = simulation_->get_scene();
+  cad_triangles_.resize(scene.cads.size());
+  cad_triangle_faces_.resize(scene.cads.size());
+
+  struct Params {
+    float scale[4];
+    int32_t control[4];
+  };
+  using Binding = QRhiShaderResourceBinding;
+  const auto compute = Binding::ComputeStage;
+  std::unique_ptr<QRhiComputePipeline> pipeline;
+  for(size_t c = 0; c < scene.cads.size(); c++) {
+    const SceneCad& cad = scene.cads[c];
+    const size_t patch_count = cad.patches.size();
+    const size_t triangle_count =
+      cad.first_triangles.empty() ? 0 : size_t(cad.first_triangles.back());
+    if(patch_count == 0 || triangle_count == 0) {
+      continue;
+    }
+    // storage buffers are addressed with 32 bit sizes, and a dispatch has at
+    // most 65535 groups of 64 patches
+    if(triangle_count * sizeof(RtTriangle) >= (size_t(1) << 31) ||
+       patch_count > 64 * size_t(65535)) {
+      qWarning("CAD geometry has too many triangles to ray trace (%zu)",
+               triangle_count);
+      continue;
+    }
+    std::vector<int32_t> jobs(4 * patch_count, 0);
+    for(size_t p = 0; p < patch_count; p++) {
+      jobs[4 * p + 0] = cad.grids[2 * p];
+      jobs[4 * p + 1] = cad.grids[2 * p + 1];
+      jobs[4 * p + 2] = cad.first_triangles[p];
+    }
+
+    QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
+    std::vector<std::unique_ptr<QRhiBuffer>> inputs;
+    auto input = [&](const void* data, size_t bytes) {
+      std::unique_ptr<QRhiBuffer> b(
+        rhi_->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer,
+                        quint32(std::max<size_t>(bytes, 16))));
+      b->create();
+      if(bytes > 0) {
+        batch->uploadStaticBuffer(b.get(), 0, quint32(bytes), data);
+      }
+      inputs.push_back(std::move(b));
+      return inputs.back().get();
+    };
+    QRhiBuffer* faces =
+      input(cad.faces.data(), cad.faces.size() * sizeof(CadGpuFace));
+    QRhiBuffer* curves =
+      input(cad.curves.data(), cad.curves.size() * sizeof(CadGpuCurve));
+    QRhiBuffer* patches =
+      input(cad.patches.data(), patch_count * sizeof(CadGpuPatch));
+    QRhiBuffer* points =
+      input(cad.points.data(), cad.points.size() * sizeof(float));
+    QRhiBuffer* knots =
+      input(cad.knots.data(), cad.knots.size() * sizeof(float));
+    QRhiBuffer* job_buffer = input(jobs.data(), jobs.size() * sizeof(int32_t));
+    // the outputs are read back, so not Dynamic
+    std::unique_ptr<QRhiBuffer> triangles(rhi_->newBuffer(
+      QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
+      quint32(triangle_count * sizeof(RtTriangle))));
+    triangles->create();
+    std::unique_ptr<QRhiBuffer> triangle_faces(rhi_->newBuffer(
+      QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
+      quint32(std::max<size_t>(triangle_count * sizeof(int32_t), 16))));
+    triangle_faces->create();
+    std::unique_ptr<QRhiBuffer> params_buffer(rhi_->newBuffer(
+      QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(Params)));
+    params_buffer->create();
+    Params params{{cad.scale, 0.f, 0.f, 0.f},
+                  {static_cast<int32_t>(patch_count), 0, 0, 0}};
+    batch->updateDynamicBuffer(params_buffer.get(), 0, sizeof(params),
+                               &params);
+
+    std::unique_ptr<QRhiShaderResourceBindings> bindings(
+      rhi_->newShaderResourceBindings());
+    bindings->setBindings(
+      {Binding::uniformBuffer(0, compute, params_buffer.get()),
+       Binding::bufferLoad(1, compute, job_buffer),
+       Binding::bufferStore(2, compute, triangles.get()),
+       Binding::bufferStore(3, compute, triangle_faces.get()),
+       Binding::bufferLoad(10, compute, faces),
+       Binding::bufferLoad(11, compute, curves),
+       Binding::bufferLoad(12, compute, patches),
+       Binding::bufferLoad(13, compute, points),
+       Binding::bufferLoad(14, compute, knots)});
+    bindings->create();
+    if(!pipeline) {
+      pipeline.reset(rhi_->newComputePipeline());
+      pipeline->setShaderStage(
+        {QRhiShaderStage::Compute, LoadShader("cad_triangulate.comp.qsb")});
+      pipeline->setShaderResourceBindings(bindings.get());
+      if(!pipeline->create()) {
+        qWarning("Cannot create the CAD triangulation pipeline; CAD geometry "
+                 "is not ray traced");
+        batch->release();
+        return;
+      }
+    }
+
+    QRhiCommandBuffer* cb = nullptr;
+    if(rhi_->beginOffscreenFrame(&cb) != QRhi::FrameOpSuccess) {
+      batch->release();
+      return;
+    }
+    cb->beginComputePass(batch);
+    cb->setComputePipeline(pipeline.get());
+    cb->setShaderResources(bindings.get());
+    cb->dispatch(int((patch_count + 63) / 64), 1, 1);
+    QRhiReadbackResult triangles_read, faces_read;
+    QRhiResourceUpdateBatch* readback = rhi_->nextResourceUpdateBatch();
+    readback->readBackBuffer(triangles.get(), 0,
+                             quint32(triangle_count * sizeof(RtTriangle)),
+                             &triangles_read);
+    readback->readBackBuffer(triangle_faces.get(), 0,
+                             quint32(triangle_count * sizeof(int32_t)),
+                             &faces_read);
+    cb->endComputePass(readback);
+    // waits for the GPU, so the readbacks are complete
+    if(rhi_->endOffscreenFrame() != QRhi::FrameOpSuccess ||
+       size_t(triangles_read.data.size()) <
+         triangle_count * sizeof(RtTriangle) ||
+       size_t(faces_read.data.size()) < triangle_count * sizeof(int32_t)) {
+      qWarning("Cannot read back the triangles of CAD geometry");
+      continue;
+    }
+    cad_triangles_[c].resize(triangle_count);
+    std::memcpy(cad_triangles_[c].data(), triangles_read.data.constData(),
+                triangle_count * sizeof(RtTriangle));
+    cad_triangle_faces_[c].resize(triangle_count);
+    std::memcpy(cad_triangle_faces_[c].data(), faces_read.data.constData(),
+                triangle_count * sizeof(int32_t));
+  }
+}
+
 void shift::gui::Viewport::BuildPickBvh() {
   pick_triangles_.clear();
+  pick_triangle_faces_.clear();
   pick_nodes_.clear();
   pick_roots_.clear();
+  pick_cad_trims_ = CadTrimTables();
   if(simulation_) {
-    BuildMeshBvhs(simulation_->get_scene(), pick_triangles_, pick_nodes_,
+    const Scene& scene = simulation_->get_scene();
+    pick_cad_trims_ = MergeCadTrims(scene.cads);
+    BuildMeshBvhs(scene, cad_triangles_, cad_triangle_faces_, pick_cad_trims_,
+                  pick_triangles_, pick_triangle_faces_, pick_nodes_,
                   pick_roots_);
   }
   pick_built_ = true;
@@ -1674,7 +2132,7 @@ bool shift::gui::Viewport::Pick(const QPointF& pixel, QVector3D& point) {
   const Scene& scene = simulation_->get_scene();
   float t_best = std::numeric_limits<float>::max();
   std::vector<int> stack;
-  for(const auto& instance : scene.instances) {
+  for(const auto& instance : RtInstanceList(scene)) {
     if(instance.mesh_index >= static_cast<int>(pick_roots_.size()) ||
        instance.body_index >= static_cast<int>(poses_.bodies.size())) {
       continue;
@@ -1698,11 +2156,25 @@ bool shift::gui::Viewport::Pick(const QPointF& pixel, QVector3D& point) {
         stack.push_back(index + 1); // the left child follows its parent
       } else {
         for(int i = 0; i < node.triangle_count; i++) {
-          float t;
-          if(RayHitsTriangle(o, d, pick_triangles_[node.right_or_first + i],
-                             t_best, t)) {
-            t_best = t;
+          const int k = node.right_or_first + i;
+          const RtTriangle& triangle = pick_triangles_[k];
+          float t, b1, b2;
+          if(!RayHitsTriangle(o, d, triangle, t_best, t, b1, b2)) {
+            continue;
           }
+          // a CAD face's triangle sticking out of its trims
+          const int32_t face = pick_triangle_faces_[k];
+          if(face >= 0 && (face & 1) != 0) {
+            const float b0 = 1.f - b1 - b2;
+            const float u =
+              b0 * triangle.v0[3] + b1 * triangle.v1[3] + b2 * triangle.v2[3];
+            const float v =
+              b0 * triangle.n0[3] + b1 * triangle.n1[3] + b2 * triangle.n2[3];
+            if(!CadInside(pick_cad_trims_, face >> 1, u, v)) {
+              continue;
+            }
+          }
+          t_best = t;
         }
       }
     }
