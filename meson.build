@@ -23,7 +23,9 @@ if get_option('buildtype') == 'debug'
   shift_args += '-DSHIFT_DEBUG_BUILD'
 endif
 if get_option('fp_trap')
-  shift_args += '-DSHIFT_FP_TRAP'
+  # -fnon-call-exceptions lets the SIGFPE/SIGSEGV handlers in shift-cli throw
+  # a C++ exception out of the instruction that faulted
+  shift_args += ['-DSHIFT_FP_TRAP', '-fnon-call-exceptions']
 endif
 cpu = get_option('cpu')
 shift_args += cpp.get_supported_arguments(
