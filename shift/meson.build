@@ -26,6 +26,7 @@ shift_config_h = configure_file(
     'SHIFT_ROOT_DIR': meson.project_source_root(),
     'SHIFT_BINARY_DIR': meson.project_build_root(),
     'SHIFT_EXAMPLES_DIR': shift_examples_dir,
+    'SHIFT_HAVE_STEP': step_dep.found() ? 1 : 0,
   },
 )
 

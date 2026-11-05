@@ -1,8 +1,9 @@
 #ifndef SHIFT_GUI_MESHDATA_H_
 #define SHIFT_GUI_MESHDATA_H_
 
-#include <vector>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace shift {
 namespace gui {
@@ -27,6 +28,16 @@ namespace gui {
     int material_index = -1;
  };
 
+  /*! \brief an image stored in a mesh file (e.g. a .glb), not in a file of
+   * its own */
+  struct EmbeddedTexture {
+    /*! encoded image file (PNG, JPEG, ...) if height is 0, else width x
+     * height texels of 4 bytes, B G R A */
+    std::vector<uint8_t> data;
+    unsigned int width = 0;
+    unsigned int height = 0;
+  };
+
   struct MaterialData {
     float Ka[3] = {0.2, 0.2, 0.2};
     float Kd[3] = {0.6, 0.6, 0.6};
@@ -37,7 +48,8 @@ namespace gui {
     float metalness = 0.0;
     float roughness = -1.0; /*!< GGX roughness, < 0 if not specified */
 
-    // texture maps, absolute paths, empty if none. Values from textures are
+    // texture maps, absolute paths or keys of embedded textures (see
+    // geometry::MeshAsset), empty if none. Values from textures are
     // multiplied by the factors above, as in glTF.
     std::string base_color_map;         /*!< sRGB encoded */
     std::string metallic_roughness_map; /*!< glTF packing: G roughness,

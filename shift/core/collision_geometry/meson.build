@@ -6,6 +6,7 @@ core_src += files(
   'epa.cc',
   'fitting.cc',
   'gjk.cc',
+  'manifold.cc',
   'plane.cc',
   'sphere.cc',
 )

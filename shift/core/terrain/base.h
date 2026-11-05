@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+#include "ksl/types.h"
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
 
@@ -22,7 +23,10 @@ class Context;
 namespace terrain {
 
 /*!
-@brief Abstract TerrainBase base class
+@brief Abstract terrain: a surface attached to a frame of the fixed body
+
+Terrains are queried for the surface under a point (see Query), e.g. by the
+tire force modules.
 */
 class Base
   : public shift::core::Base
@@ -52,9 +56,21 @@ public:
   }
 
   virtual void ActivateObjects(bool parent_is_active) override;
-  
+
   virtual void Load();
   virtual void Connect();
+
+  /*! \brief the surface point on the line through point along the z axis
+   * of the terrain frame, and the unit surface normal pointing into the
+   * terrain there, both in the inertial frame. Returns false if the
+   * terrain has no surface there. */
+  virtual bool Query(const ksl_vec3_t& point, ksl_vec3_t& surface,
+                     ksl_vec3_t& normal) const {
+    (void)point;
+    (void)surface;
+    (void)normal;
+    return false;
+  }
 
 protected:
   virtual void DeclareParameters() override;

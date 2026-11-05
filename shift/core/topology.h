@@ -23,8 +23,32 @@ class Context;
 namespace topology {
 
 /*!
+@brief Displacements (d), velocities (v) and accelerations (a) of the free
+bodies (body::Free), in the order of Context::get_free_bodies()
+
+A free body has no joint, so no influence coefficients. The displacement is
+that of the body origin in the fixed frame; v and a are spatial, in fixed
+coordinates and referred to the fixed origin.
+*/
+struct DVA {
+  std::vector<ksl_SE3_t> d;
+  std::vector<ksl_screw_t> v;
+  std::vector<ksl_screw_t> a;
+
+  void Resize(size_t count) {
+    d.assign(count, ksl_SE3_identity());
+    v.assign(count, ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+    a.assign(count, ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  }
+  size_t get_count() const {
+    return d.size();
+  }
+};
+
+/*!
 @brief Displacements (d), influence coefficient matrices (h), velocities (v) and
-quadratic accelerations (a).
+quadratic accelerations (a), and the displacements, velocities and
+accelerations of the free bodies (free).
 */
 struct DHVA {
   DHVA() {}
@@ -133,6 +157,7 @@ struct DHVA {
     aq_ = other.aq_;
     aq = aq_.data() + 1;
 #endif
+    free = other.free;
     return *this;
   }
 
@@ -154,6 +179,7 @@ struct DHVA {
   ksl_screw_t* v;
   ksl_screw_t* aq;
 #endif
+  DVA free; /*!< the free bodies, outside the kinematic tree */
 
   inline void Print(std::stringstream& ss) const {
 

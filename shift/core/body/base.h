@@ -1,6 +1,7 @@
 #ifndef SHIFT_BODY_BASE_H_
 #define SHIFT_BODY_BASE_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -11,6 +12,7 @@
 #include "shift/core/collision_geometry/base.h"
 #include "shift/core/frame.h"
 #include "shift/core/geometry/base.h"
+#include "shift/core/geometry/mass_properties.h"
 #include "shift/core/light/base.h"
 #include "shift/core/parameter/array.h"
 #include "shift/core/parameter/factory_array.h"
@@ -21,6 +23,10 @@ namespace core {
 
 namespace joint {
 class Base;
+}
+
+namespace geometry {
+struct MeshAsset;
 }
 
 class Assembly;
@@ -111,6 +117,10 @@ public:
     return frames_.get_data();
   }
 
+  std::vector<std::unique_ptr<light::Base>>& get_lights() {
+    return lights_.get_data();
+  }
+
   std::vector<std::unique_ptr<shift::core::geometry::Base>>& get_geometry() {
     return geometry_.get_data();
   }
@@ -133,6 +143,23 @@ public:
 
   const ksl_vec3_t get_center_of_mass_wrt_reference();
 
+
+  /*! \brief density of the body, 0 unless given: then its mass, center of
+   * mass and inertia follow from the volume of its meshes */
+  double get_density() const {
+    return density_;
+  }
+
+  /*! \brief set the mass, center of mass and centroidal inertia from the
+   * density and the solid bounded by the body's active meshes, once they are
+   * loaded; a mesh that is not a closed surface is replaced by its convex
+   * hull. Throws if the body has no meshes. The properties of unit density
+   * are cached by the meshes' assets, so bodies with the same meshes compute
+   * them once. */
+  using MassCache =
+    std::map<std::vector<const shift::core::geometry::MeshAsset*>,
+             std::pair<shift::core::geometry::MassProperties, bool>>;
+  void ComputeMassFromGeometry(MassCache& cache);
 
   bool has_mass() {
     return (inertia_.m >= 1e-9);
@@ -203,6 +230,7 @@ protected:
   ksl_vec3_t center_of_mass_wrt_reference_ = {}; /*!< vector from body reference
                                                 frame to center of mass */
   bool is_virtual_ = false;
+  double density_ = 0.0;
 };
 
 class Modules {

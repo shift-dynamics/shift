@@ -63,6 +63,84 @@ bool EllipsoidSphereContact(const Ellipsoid& ellipsoid, const Sphere& sphere,
                             AnalyticContact& contact);
 
 /*!
+@brief a convex hull (first) and an ellipsoid (second), exact
+
+The penetration depth is the least, over unit directions n, of the
+translation of the ellipsoid along n that separates the shapes,
+
+  d(n) = max_v n . (v - c) + sqrt(n^T G n),
+
+with v the hull's vertices, c the ellipsoid's center and G = R diag(a^2) R^T
+its shape matrix. d is the largest of smooth functions, one per vertex, so
+its least value is set by a feature of the hull, the vertices whose
+functions are largest there:
+
+- a vertex v: n is the inward normal of the ellipsoid at a point nearest to
+  v, the least d_v by Newton's method on the unit sphere from the walk's
+  current normal (see EllipsoidEllipsoidContact, with b a point)
+- an edge: the least d over the normals of the edge, a function of one
+  angle, from the root of its derivative by bisection
+- a face (a triangle; the polygons of coplanar triangles are only nearly
+  planar): its normal
+
+Each candidate feature is solved for its own least d inside its normal cone,
+where the support point q of the ellipsoid against n projects onto the
+feature; the candidates are the vertices within a margin of the extreme along
+start (an estimate of the normal, e.g. EPA's), and the edges and faces made
+of them, the margin growing until one passes. Deep overlaps have several
+local minima: of the passing ones, the least d is kept, or, if nearest, the
+one whose normal is nearest start, so that a pair keeps the minimum of its
+last accepted step (see ContactPair::accepted_normal) instead of jumping to
+another of nearly equal depth. With start fixed, the result depends on the
+poses only, and is smooth where the feature does not change, unlike the
+result of EPA, whose normal on a curved surface is only as good as the
+square root of its tolerance.
+point_first is on the feature and point_second is q.
+
+@return false if no candidate passes or the hull has no faces, so the pair
+must be handled otherwise
+*/
+bool ConvexHullEllipsoidContact(const ConvexHull& hull,
+                                const Ellipsoid& ellipsoid,
+                                const ksl_vec3_t& start, bool nearest,
+                                AnalyticContact& contact);
+
+/*!
+@brief two convex hulls, the local minimum of the penetration depth nearest
+a normal, exact
+
+The translation of b along a unit direction n that separates the hulls,
+d(n) = h_a(n) + h_b(-n), is least at a face of their Minkowski difference
+whose foot point from the origin lies inside it, one of
+
+- a face of a and a vertex of b: n is the face's normal, and the vertex,
+  moved by d n, is inside the face
+- a vertex of a and a face of b: n is minus the face's normal, likewise
+- an edge of a and an edge of b: n is normal to both, in the normal cone of
+  a's edge with -n in that of b's, and the closest points of their lines are
+  on both edges
+
+For deep overlaps, d has several local minima, of nearly equal depth when
+the hulls are nested or stacked, and the deepest point jumps between them as
+the poses change. The candidates are made of the vertices of a within a
+margin of the extreme along start, and of b against it (the margin growing
+until one passes, to 1e-2 of the hulls' size: start is a step old), and the
+passing one whose normal is nearest start is
+kept: from the normal of a pair's last accepted step (see
+ContactPair::accepted_normal), the minimum it was in while it lasts. The
+near vertices are found by a search over the hull's edges from the support
+vertex (hint_a and hint_b, updated), so only the hulls' vertices near the
+contact are transformed. The result is exact (no tolerance), a function of
+the poses for a fixed start.
+
+@return false if no candidate passes or a hull has no faces, so the pair
+must be handled otherwise (EPA)
+*/
+bool ConvexHullPairContact(const ConvexHull& a, const ConvexHull& b,
+                           const ksl_vec3_t& start, int& hint_a, int& hint_b,
+                           AnalyticContact& contact);
+
+/*!
 @brief two ellipsoids, by the Perram-Wertheim contact function
 
 With the shape matrices G = R diag(a^2) R^T of the ellipsoids, r = c_b - c_a

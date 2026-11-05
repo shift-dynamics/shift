@@ -58,7 +58,8 @@ void shift::core::collision_geometry::ConvexHull::Fit(
   hull->vertices = vertices;
   hull->faces = faces;
   ComputeVertexNeighbors(*hull);
-  ComputeFacePlanes(*hull);
+    ComputeFacePlanes(*hull);
+  ComputeFacePolygons(*hull);
   bounding_radius_ = 0.0;
   for(const auto& v : vertices) {
     bounding_radius_ = std::max(bounding_radius_, ksl_vec3_l2norm(&v));

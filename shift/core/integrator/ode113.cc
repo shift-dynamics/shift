@@ -79,19 +79,18 @@ void shift::core::integrator::ODE113::Connect() {
 
 void shift::core::integrator::ODE113::Reset() {
 
-  neqn_ = context_->get_q_count() + context_->get_dq_count() +
-          context_->get_auxiliary_state_count();
+  neqn_ = context_->get_state_count() + context_->get_auxiliary_state_count();
   y_.resize(neqn_);
   std::fill(y_.begin(), y_.end(), 0);
 
   /* copy initial conditions from context */
   memcpy(y_.data(), context_->get_q().data(),
-         (context_->get_q_count() + context_->get_dq_count()) * sizeof(double));
+         context_->get_state_count() * sizeof(double));
 
   /* assign state offsets and copy initial conditions of the internal
   states of force modules and controllers */
   context_->InitializeAuxiliaryStates(
-    y_.data() + context_->get_q_count() + context_->get_dq_count());
+    y_.data() + context_->get_state_count());
 
   integral_error_.resize(context_->get_constraint_equation_count());
   std::fill(integral_error_.begin(), integral_error_.end(), 0.0);
@@ -171,6 +170,9 @@ void shift::core::integrator::ODE113::StepFunction(double t,
   }
 
   if(iconv_ == 1) {
+    /* the evaluation at the corrected solution of an accepted step, or at
+     * the initial state when starting */
+    context_->AcceptStep(y);
 
     const std::vector<double>& e = context_->get_jacobian().get_constraints();
 

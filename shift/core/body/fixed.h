@@ -41,6 +41,10 @@ public:
 
   virtual void DeclareParameters() override;
 
+  std::vector<std::unique_ptr<terrain::Base>>& get_terrain() {
+    return terrain_.get_data();
+  }
+
 private:
   /*! \brief User defined frames attached to fixed inertial reference frame */
   shift::core::parameter::Array<shift::core::Frame> frames_;

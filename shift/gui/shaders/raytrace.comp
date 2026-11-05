@@ -1,11 +1,12 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
 layout(local_size_x = 8, local_size_y = 8) in;
 
 // Path tracer over a two-level scene: one BVH per mesh in body coordinates,
 // shared by the instances of the mesh, each carrying a body pose, and a BVH
 // over the world space boxes of the instances (one instance per leaf).
 // World convention: +z is down, so the sky is in the -z direction and the
-// floor is a constant-z plane.
+// floor is a plane, given by its frame.
 //
 // One sample per pixel and frame. Besides the progressive mean of the
 // radiance (exact once the view is static), the shader writes the inputs of
@@ -48,11 +49,13 @@ layout(std140, binding = 1) uniform Uniforms {
   vec4 sun_color;
   vec4 sky_zenith;
   vec4 sky_horizon;
-  vec4 floor_params;  // x = floor z, y = grid spacing, z = enabled, w = extent
+    vec4 floor_params;  // y = grid spacing, z = enabled, w = extent
   vec4 texture_params; // x = pixel spread angle, y = texture size
-  ivec4 control;      // x = instance count, y = sample index (random
+    ivec4 control;      // x = instance count, y = sample index (random
                       // numbers), z = frames accumulated since the view
                       // last changed
+  mat4 floor_frame;   // columns: in-plane axes, normal up (out of the
+                      // solid), origin
 } u;
 
 layout(std430, binding = 2) readonly buffer Triangles {
@@ -88,6 +91,11 @@ layout(rgba16f, binding = 9) uniform writeonly image2D gbuffer_albedo;
 // from the sub-pixel jitter; it bypasses the denoiser's temporal history,
 // which would make moving shadows lag
 layout(rgba16f, binding = 10) uniform writeonly image2D direct_light;
+
+// the lights of the model, sampled like the sun, with shadows
+#define LIGHTS_BINDING 12
+#define IES_BINDING 13
+#include "lights.glsl"
 
 const float PI = 3.14159265358979;
 const float kInfinity = 1e30;
@@ -284,8 +292,11 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
     }
   }
 
-  if(u.floor_params.z > 0.5 && direction.z > 1e-6) {
-    float t = (u.floor_params.x - origin.z) / direction.z;
+    // the floor is hit from above, its free side
+  float toward_floor = dot(direction, u.floor_frame[2].xyz);
+  if(u.floor_params.z > 0.5 && toward_floor < -1e-6) {
+    float t = dot(u.floor_frame[3].xyz - origin, u.floor_frame[2].xyz) /
+              toward_floor;
     if(t > 0.0 && t < hit.t) {
       hit.t = t;
       hit.instance = -2;
@@ -338,8 +349,11 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   Surface s;
   s.position = origin + direction * hit.t;
   if(hit.instance == -2) {
-    s.normal = direction.z > 0.0 ? vec3(0.0, 0.0, -1.0) : vec3(0.0, 0.0, 1.0);
-    s.albedo = FloorAlbedo(s.position.xy, u.floor_params.y);
+        s.normal = u.floor_frame[2].xyz;
+    vec3 on_floor = s.position - u.floor_frame[3].xyz;
+    s.albedo = FloorAlbedo(vec2(dot(on_floor, u.floor_frame[0].xyz),
+                                dot(on_floor, u.floor_frame[1].xyz)),
+                           u.floor_params.y);
     s.metallic = 0.0;
     s.roughness = 0.9;
     return s;
@@ -357,9 +371,10 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   }
   nb = normalize(nb);
   mat3 rotation = mat3(instance.body_to_world);
-  if(dot(rotation * nb, direction) > 0.0) {
-    nb = -nb; // two sided, before normal mapping
-  }
+  // two sided: seen from behind, the surface is lit as its back face, whose
+  // normal (normal mapped too) is the opposite of the front face's
+  float side = dot(rotation * nb, direction) > 0.0 ? -1.0 : 1.0;
+  nb *= side;
 
   vec2 uv0 = vec2(tri.v0.w, tri.n0.w);
   vec2 uv1 = vec2(tri.v1.w, tri.n1.w);
@@ -398,17 +413,20 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   }
   if(instance.offsets.w >= 0) {
     if(triplanar) {
-      nb = TriplanarNormal(instance.offsets.w, p, nb, w, instance.albedo.w,
-                            lod);
+      nb = side * TriplanarNormal(instance.offsets.w, p, side * nb, w,
+                                  instance.albedo.w, lod);
     } else if(abs(uv_det) > 1e-20) {
       // tangent frame of the triangle from its texture coordinates
       vec3 tangent = (e1 * d2.y - e2 * d1.y) / uv_det;
       vec3 bitangent = (e2 * d1.x - e1 * d2.x) / uv_det;
-      tangent = normalize(tangent - nb * dot(nb, tangent));
-      float handedness = dot(cross(nb, tangent), bitangent) < 0.0 ? -1.0 : 1.0;
+      vec3 front = side * nb;
+      tangent = normalize(tangent - front * dot(front, tangent));
+      float handedness =
+        dot(cross(front, tangent), bitangent) < 0.0 ? -1.0 : 1.0;
       vec3 t = SampleLayer(instance.offsets.w, uv, lod).xyz * 2.0 - 1.0;
       t.xy *= instance.albedo.w;
-      nb = normalize(mat3(tangent, cross(nb, tangent) * handedness, nb) * t);
+      nb = side * normalize(mat3(tangent, cross(front, tangent) * handedness,
+                                 front) * t);
     }
   }
   s.normal = normalize(rotation * nb);
@@ -441,7 +459,10 @@ float Luminance(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
 
-vec3 Brdf(Surface s, vec3 v, vec3 l) {
+// reflection of light from l towards v, with the colors of its diffuse and
+// specular parts
+vec3 Brdf(Surface s, vec3 v, vec3 l, vec3 diffuse_light,
+          vec3 specular_light) {
   vec3 h = normalize(v + l);
   float n_dot_l = max(dot(s.normal, l), 0.0);
   float n_dot_v = max(dot(s.normal, v), 1e-4);
@@ -451,7 +472,7 @@ vec3 Brdf(Surface s, vec3 v, vec3 l) {
                   GeometrySmith(n_dot_v, n_dot_l, s.roughness) * f /
                   (4.0 * n_dot_v * n_dot_l + 1e-4);
   vec3 diffuse = (1.0 - f) * (1.0 - s.metallic) * s.albedo / PI;
-  return (diffuse + specular) * n_dot_l;
+  return (diffuse * diffuse_light + specular * specular_light) * n_dot_l;
 }
 
 vec3 SunLight(Surface s, vec3 v, float epsilon) {
@@ -463,7 +484,44 @@ vec3 SunLight(Surface s, vec3 v, float epsilon) {
   if(Trace(s.position + s.normal * epsilon, l, kInfinity, true, shadow)) {
     return vec3(0.0);
   }
-  return Brdf(s, v, l) * u.sun_color.rgb * u.sun_direction.w;
+  vec3 sun = u.sun_color.rgb * u.sun_direction.w;
+  return Brdf(s, v, l, sun, sun);
+}
+
+// the lights of the model at s, with a shadow ray each, and their ambient
+// light
+vec3 ModelLights(Surface s, vec3 v, float epsilon) {
+  vec3 color = lights.ambient.rgb * (1.0 - s.metallic) * s.albedo;
+  for(int i = 0; i < min(lights.count.x, kMaxLights); i++) {
+    vec3 l;
+    float distance;
+    float factor = LightAt(i, s.position, l, distance);
+    if(factor <= 0.0 || dot(s.normal, l) <= 0.0) {
+      continue;
+    }
+    Hit shadow;
+    vec3 origin = s.position + s.normal * epsilon;
+    if(Trace(origin, l, min(distance, kInfinity) - 2.0 * epsilon, true,
+             shadow)) {
+      continue;
+    }
+    color += factor * Brdf(s, v, l, lights.light[i].diffuse.rgb,
+                           lights.light[i].specular.rgb);
+  }
+  return color;
+}
+
+// the lights of the model at a bounce surface, diffuse and unshadowed
+vec3 ModelLightsDiffuse(vec3 position, vec3 normal) {
+  vec3 color = lights.ambient.rgb;
+  for(int i = 0; i < min(lights.count.x, kMaxLights); i++) {
+    vec3 l;
+    float distance;
+    float factor = LightAt(i, position, l, distance);
+    color += factor * lights.light[i].diffuse.rgb *
+             max(dot(normal, l), 0.0) / PI;
+  }
+  return color;
 }
 
 // radiance leaving the primary hit s towards the camera, at distance t:
@@ -471,7 +529,7 @@ vec3 SunLight(Surface s, vec3 v, float epsilon) {
 vec3 Shade(Surface s, vec3 direction, float t, out vec3 direct) {
   float epsilon = 1e-4 * max(t, 1.0);
   vec3 v = -direction;
-  direct = SunLight(s, v, epsilon);
+  direct = SunLight(s, v, epsilon) + ModelLights(s, v, epsilon);
   vec3 color = vec3(0.0);
 
   // one bounce, sampling either the specular lobe (GGX distributed half
@@ -514,7 +572,8 @@ vec3 Shade(Surface s, vec3 direction, float t, out vec3 direct) {
     // second surface: unshadowed sun plus a constant sky term
     float n_dot_l = max(dot(b.normal, u.sun_direction.xyz), 0.0);
     incoming = b.albedo * (u.sun_color.rgb * u.sun_direction.w * n_dot_l / PI +
-                           0.3 * u.sky_zenith.rgb);
+                           0.3 * u.sky_zenith.rgb +
+                           ModelLightsDiffuse(b.position, b.normal));
   } else {
     incoming = Sky(bounce_direction, false);
   }

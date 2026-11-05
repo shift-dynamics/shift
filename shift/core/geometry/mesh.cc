@@ -351,8 +351,26 @@ void shift::core::geometry::Mesh::Import(const std::string& file,
       if(name.empty()) {
         return "";
       }
+      // images inside the file: "*<index>", or the name of an image
+      // stored in the file (glTF binary buffers)
+      if(const aiTexture* embedded = scene->GetEmbeddedTexture(name.c_str())) {
+        const std::string key = file + "#" + name;
+        if(!asset.embedded_textures.count(key)) {
+          shift::gui::EmbeddedTexture& image = asset.embedded_textures[key];
+          image.width = embedded->mWidth;
+          image.height = embedded->mHeight;
+          const size_t bytes =
+            embedded->mHeight == 0
+              ? size_t(embedded->mWidth)
+              : size_t(embedded->mWidth) * embedded->mHeight * 4;
+          const auto* begin =
+            reinterpret_cast<const uint8_t*>(embedded->pcData);
+          image.data.assign(begin, begin + bytes);
+        }
+        return key;
+      }
       if(name[0] == '*') {
-        SHIFT_WARNING("Embedded textures are not supported: " + file);
+        SHIFT_WARNING("Embedded texture " + name + " not found: " + file);
         return "";
       }
       std::replace(name.begin(), name.end(), '\\', '/');

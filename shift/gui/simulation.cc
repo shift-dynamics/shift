@@ -5,6 +5,11 @@
 #include "shift/core/body/base.h"
 #include "shift/core/geometry/mesh.h"
 #include "shift/core/integrator/base.h"
+#include "shift/core/light/ies.h"
+#include "shift/core/light/spot.h"
+#include "shift/core/terrain/basic.h"
+
+#include <QGenericMatrix>
 
 #include <algorithm>
 #include <chrono>
@@ -79,8 +84,14 @@ MakeSceneMesh(const shift::gui::MeshData& data,
       mesh.bounds_min[k] = std::min(mesh.bounds_min[k], data.vertices[3 * i + k]);
       mesh.bounds_max[k] = std::max(mesh.bounds_max[k], data.vertices[3 * i + k]);
     }
-    for(int k = 0; k < 2; k++) {
-      mesh.vertices[i].uv[k] = has_uvs ? data.texture_coordinates[3 * i + k] : 0.f;
+    /* assimp gives texture coordinates with v = 0 at the bottom of the image
+    (OpenGL); the texture layers are uploaded with the top row of the image at
+    v = 0 */
+    if(has_uvs) {
+      mesh.vertices[i].uv[0] = data.texture_coordinates[3 * i + 0];
+      mesh.vertices[i].uv[1] = 1.f - data.texture_coordinates[3 * i + 1];
+    } else {
+      mesh.vertices[i].uv[0] = mesh.vertices[i].uv[1] = 0.f;
     }
   }
   mesh.indices.assign(data.faces.begin(), data.faces.end());
@@ -112,6 +123,151 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   return mesh;
 }
 
+
+/* a terrain: its control points for the tessellation shaders, and a
+triangle mesh of the surface (terrain::Basic::LocalZ) in world coordinates,
+for the ray tracer and devices without tessellation */
+static void AddTerrain(const shift::core::terrain::Basic& terrain,
+                       shift::gui::TextureLoader& textures,
+                       shift::gui::Scene& scene) {
+  constexpr int kMaximumMeshSamples = 513; // per side
+  const double x_extent = terrain.get_x_extent();
+  const double y_extent = terrain.get_y_extent();
+  if(!(x_extent > 0.0) || !(y_extent > 0.0)) {
+    return;
+  }
+  shift::gui::SceneTerrain t;
+  t.width = static_cast<int>(terrain.get_x_samples());
+  t.height = static_cast<int>(terrain.get_y_samples());
+  t.z.assign(terrain.get_control_points().begin(),
+             terrain.get_control_points().end());
+  t.x_scale = float(terrain.get_x_scale());
+  t.y_scale = float(terrain.get_y_scale());
+  t.bicubic = terrain.is_bicubic();
+  const auto& d = terrain.get_pose();
+  QMatrix4x4 pose;
+  for(int r = 0; r < 3; r++) {
+    pose(r, 0) = float(d.R.v0.at[r]);
+    pose(r, 1) = float(d.R.v1.at[r]);
+    pose(r, 2) = float(d.R.v2.at[r]);
+    pose(r, 3) = float(d.t.at[r]);
+  }
+  t.pose = pose;
+
+  /* the mesh, in world coordinates */
+  shift::gui::SceneMesh mesh;
+  mesh.albedo = QVector3D(0.42f, 0.38f, 0.33f); // dry earth
+  mesh.roughness = 0.95f;
+  mesh.base_color_layer = textures.Load(terrain.get_texture_path());
+  if(mesh.base_color_layer >= 0) {
+    mesh.albedo = QVector3D(1.f, 1.f, 1.f);
+  }
+  mesh.normal_layer = textures.Load(terrain.get_normal_map_path());
+  mesh.normal_scale = float(terrain.get_normal_scale());
+  mesh.triplanar = true; // along the world axes: the mesh is on the fixed body
+  mesh.texture_scale = float(terrain.get_texture_scale());
+  /* twice the resolution of the control points, at most
+  kMaximumMeshSamples a side */
+  const int mesh_x = std::clamp(2 * (t.width - 1) + 1, 2, kMaximumMeshSamples);
+  const int mesh_y = std::clamp(2 * (t.height - 1) + 1, 2, kMaximumMeshSamples);
+  const QMatrix3x3 rotation = pose.normalMatrix();
+  mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
+  mesh.bounds_max = -mesh.bounds_min;
+  for(int j = 0; j < mesh_y; j++) {
+    const double y = y_extent * j / (mesh_y - 1);
+    for(int i = 0; i < mesh_x; i++) {
+      const double x = x_extent * i / (mesh_x - 1);
+      double z_x, z_y;
+      const double z = terrain.LocalZ(x, y, z_x, z_y);
+      /* outward, up: (z_x, z_y, -1) normalized */
+      const double length = std::sqrt(z_x * z_x + z_y * z_y + 1.0);
+      const float n[3] = {float(z_x / length), float(z_y / length),
+                          float(-1.0 / length)};
+      const QVector3D world = pose.map(QVector3D(float(x), float(y), float(z)));
+      shift::gui::Vertex v;
+      for(int a = 0; a < 3; a++) {
+        v.position[a] = world[a];
+        v.normal[a] = rotation(a, 0) * n[0] + rotation(a, 1) * n[1] +
+                      rotation(a, 2) * n[2];
+        mesh.bounds_min[a] = std::min(mesh.bounds_min[a], world[a]);
+        mesh.bounds_max[a] = std::max(mesh.bounds_max[a], world[a]);
+      }
+      v.uv[0] = float(x);
+      v.uv[1] = float(y);
+      mesh.vertices.push_back(v);
+    }
+  }
+  const uint32_t nx = uint32_t(mesh_x);
+  for(uint32_t j = 0; j + 1 < uint32_t(mesh_y); j++) {
+    for(uint32_t i = 0; i + 1 < nx; i++) {
+      const uint32_t a = j * nx + i, b = a + 1, c = a + nx, e = c + 1;
+      mesh.indices.insert(mesh.indices.end(), {a, b, e, a, e, c});
+    }
+  }
+  t.mesh_index = static_cast<int>(scene.meshes.size());
+  mesh.terrain = static_cast<int>(scene.terrains.size());
+  scene.meshes.push_back(std::move(mesh));
+  scene.instances.push_back({t.mesh_index, 0});
+  scene.terrains.push_back(std::move(t));
+}
+
+/* a light of the model, if its frame is on one of the bodies drawn */
+static void AddLight(const shift::core::light::Base& light,
+                     const std::vector<shift::core::body::Base*>& bodies,
+                     shift::gui::Scene& scene) {
+  using shift::gui::Scene;
+  using shift::gui::SceneLight;
+  if(!light.get_frame()) {
+    return; // Connect warned
+  }
+  const auto body = std::find(bodies.begin(), bodies.end(),
+                              light.get_parent_body());
+  if(body == bodies.end()) {
+    return;
+  }
+  SceneLight l;
+  const std::string& type = light.get_type();
+  if(type == "point") {
+    l.type = SceneLight::kPoint;
+  } else if(type == "spot") {
+    l.type = SceneLight::kSpot;
+  } else if(type == "directional") {
+    l.type = SceneLight::kDirectional;
+  } else if(type == "ies") {
+    l.type = SceneLight::kIes;
+  } else {
+    return;
+  }
+  l.body_index = static_cast<int>(body - bodies.begin());
+  l.frame = ToMatrix(*light.get_frame()->get_d_wrt_origin());
+  auto color = [](const ksl_vec3_t& c, double factor) {
+    return QVector3D(float(c.x * factor), float(c.y * factor),
+                     float(c.z * factor));
+  };
+  l.ambient = color(light.get_Ka(), 1.0);
+  l.diffuse = color(light.get_Kd(), light.get_intensity());
+  l.specular = color(light.get_Ks(), light.get_intensity());
+  l.attenuation = color(light.get_attenuation(), 1.0);
+  if(auto spot = dynamic_cast<const shift::core::light::Spot*>(&light)) {
+    l.cone_angle = float(spot->get_cone_angle());
+    l.inner_cone_angle = float(spot->get_inner_cone_angle());
+  }
+  if(auto ies = dynamic_cast<const shift::core::light::IES*>(&light)) {
+    std::vector<float> profile(size_t(Scene::kIesVertical) *
+                               Scene::kIesHorizontal);
+    for(int h = 0; h < Scene::kIesHorizontal; h++) {
+      const double horizontal = 2.0 * M_PI * h / (Scene::kIesHorizontal - 1);
+      for(int v = 0; v < Scene::kIesVertical; v++) {
+        const double vertical = M_PI * v / (Scene::kIesVertical - 1);
+        profile[size_t(h) * Scene::kIesVertical + v] =
+          float(ies->Distribution(vertical, horizontal));
+      }
+    }
+    l.ies_profile = static_cast<int>(scene.ies_profiles.size());
+    scene.ies_profiles.push_back(std::move(profile));
+  }
+  scene.lights.push_back(l);
+}
 
 shift::gui::Simulation::~Simulation() {
   JoinWorker();
@@ -156,6 +312,7 @@ void shift::gui::Simulation::Load(const std::string& filename) {
       }
       auto [it, inserted] = asset_meshes.try_emplace(mesh->get_asset());
       if(inserted) {
+        textures.AddEmbedded(mesh->get_asset()->embedded_textures);
         for(const auto& data : mesh->get_mesh_data()) {
           if(data.faces.empty()) {
             continue;
@@ -176,9 +333,19 @@ void shift::gui::Simulation::Load(const std::string& filename) {
       scene_.instances.push_back({static_cast<int>(m), body});
     }
   }
+  /* terrains, on the fixed body (body 0) */
+  for(auto terrain : context_->get_active_terrain()) {
+    if(auto basic = dynamic_cast<shift::core::terrain::Basic*>(terrain)) {
+      AddTerrain(*basic, textures, scene_);
+    }
+  }
+  /* lights, on the bodies of their frames */
+  for(auto light : context_->get_active_lights()) {
+    AddLight(*light, bodies_, scene_);
+  }
   scene_.body_count = static_cast<int>(bodies_.size());
 
-  state_size_ = context_->get_q_count() + context_->get_dq_count();
+  state_size_ = context_->get_state_count();
   StoreInitialState();
   playback_dhva_ = context_->get_dhva();
   interpolated_.assign(state_size_, 0.0);
@@ -192,7 +359,8 @@ void shift::gui::Simulation::Load(const std::string& filename) {
 }
 
 void shift::gui::Simulation::StoreInitialState() {
-  // the integrators copy q and dq as one contiguous block starting at q
+  // the integrators copy q, dq and the free body states as one contiguous
+  // block starting at q
   const double* q = context_->get_q().data();
   initial_state_.assign(q, q + state_size_);
 }
@@ -379,6 +547,8 @@ void shift::gui::Simulation::ShowTime(double t) {
   // the worker owns the context DHVA while computing; evaluate the
   // displacements into a separate buffer
   context_->UpdateD(playback_dhva_, interpolated_.data());
+  context_->UpdateFreeDV(playback_dhva_, interpolated_.data() +
+                                           context_->get_free_state_offset());
   UpdatePoses(playback_dhva_);
 }
 

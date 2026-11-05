@@ -53,9 +53,20 @@ public:
    * parameters */
   void SetPlane(const ksl_vec3_t& normal, double offset);
 
+  /*! \brief set the pose of the plane with respect to the body origin, as
+   * the "pose" parameter does; the normal and offset are kept */
+  void set_pose(const ksl_SE3_t& pose);
+
   /*! \brief unit normal out of the solid, in the inertial frame, valid after
    * UpdatePose */
   ksl_vec3_t get_normal() const;
+
+  /*! \brief unit normal out of the solid and a point on the plane, in the
+   * body frame */
+  ksl_vec3_t get_normal_wrt_body() const;
+  const ksl_vec3_t& get_point_wrt_body() const {
+    return d_wrt_body_.t;
+  }
 
   /*! \brief point on the plane, in the inertial frame, valid after
    * UpdatePose */

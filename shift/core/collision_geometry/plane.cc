@@ -44,7 +44,7 @@ void shift::core::collision_geometry::Plane::SetPlane(const ksl_vec3_t& normal,
   }
   normal_ = normal;
   offset_ = offset;
-    for(int k = 0; k < 3; k++) {
+  for(int k = 0; k < 3; k++) {
     unit_normal_.at[k] = normal.at[k] / length;
   }
   /* the frame has the orientation of the pose, its origin on the plane at
@@ -59,6 +59,24 @@ void shift::core::collision_geometry::Plane::SetPlane(const ksl_vec3_t& normal,
   }
   bounding_radius_ = HUGE_VAL;
   loaded_ = true;
+}
+
+void shift::core::collision_geometry::Plane::set_pose(const ksl_SE3_t& pose) {
+  pose_.set_d_wrt_origin(pose);
+  SetPlane(normal_, offset_);
+  /* contact detection updates the absolute displacement from the body pose;
+  until then it is that of a plane of the fixed body, which does not move */
+  d_absolute_ = d_wrt_body_;
+}
+
+ksl_vec3_t shift::core::collision_geometry::Plane::get_normal_wrt_body() const {
+  ksl_vec3_t n = {{0.0, 0.0, 0.0}};
+  for(int i = 0; i < 3; i++) {
+    for(int k = 0; k < 3; k++) {
+      n.at[k] += unit_normal_.at[i] * d_wrt_body_.R.v[i].at[k];
+    }
+  }
+  return n;
 }
 
 ksl_vec3_t shift::core::collision_geometry::Plane::get_normal() const {

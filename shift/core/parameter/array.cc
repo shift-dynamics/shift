@@ -1,9 +1,14 @@
 #include "shift/core/parameter/array.h"
 #include "shift/core/assembly.h"
+#include "shift/core/force_module/contact.h"
 
 /* define specializations of Array class */
 template class shift::core::parameter::Array<shift::core::Assembly>;
 template class shift::core::parameter::Array<shift::core::Frame>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::ContactMaterial>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::ContactMaterialPair>;
 
 template <class T>
 void shift::core::parameter::Array<T>::ReadJSON(Json::Value& json_array) {

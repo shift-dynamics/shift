@@ -8,6 +8,10 @@ namespace shift {
 namespace core {
 namespace light {
 
+/*!
+@brief A light from far away, shining along the -z axis of its frame; the
+position of the frame does not matter
+*/
 class Directional : public Base {
 public:
   Directional()

@@ -12,14 +12,19 @@ illum 2
 Pm 0.0
 Pr 0.4
 
+# windows: tinted glass, as the Window material of the Raptor
+# (shift-models/raptor): nearly black with a faint violet tint, smooth and
+# reflective (metallic, roughness 0), 46% opaque
 newmtl 2
-Ns 98.039216
+Ns 1000.000000
 Ka 0.100000 0.100000 0.000000
-Kd 0.321255 0.321255 0.321255
+Kd 0.003654 0.000000 0.004638
 Ks 0.501961 0.501961 0.501961
-Ni 1.000000
-d 0.9
+Ni 1.500000
+d 0.461716
 illum 2
+Pm 1.0
+Pr 0.0
 
 newmtl 3
 Ns 686.274510

@@ -18,6 +18,7 @@ kept per pair of geometries in a ContactPair.
 #include "shift/core/collision_geometry/convex_hull.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/epa.h"
+#include "shift/core/collision_geometry/manifold.h"
 #include "shift/core/collision_geometry/plane.h"
 #include "shift/core/collision_geometry/analytic_contact.h"
 #include "shift/core/collision_geometry/sphere.h"
@@ -343,7 +344,9 @@ static void Assign(shift::core::collision_geometry::ContactPair& pair,
   }
 }
 
-bool shift::core::collision_geometry::TestContact(ContactPair& pair) {
+/* the contact of a pair and its deepest point */
+static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair) {
+  using namespace shift::core::collision_geometry;
   /* pairs with a closed form or one dimensional contact: a plane with
   anything, a sphere with a sphere, a convex hull or an ellipsoid, and two
   ellipsoids */
@@ -404,10 +407,63 @@ bool shift::core::collision_geometry::TestContact(ContactPair& pair) {
     Assign(pair, contact, true);
     return pair.collision;
   }
-  /* convex hulls with hulls or ellipsoids: GJK, and EPA for the contact
-  data */
+  /* a convex hull and an ellipsoid: GJK, EPA for a first normal, then the
+  exact contact of the hull feature near it */
+  auto hull_a = dynamic_cast<const ConvexHull*>(pair.a);
+  auto hull_b = dynamic_cast<const ConvexHull*>(pair.b);
+  if((hull_a && ellipsoid_b) || (hull_b && ellipsoid_a)) {
+    const bool hull_first = hull_a != nullptr;
+    const ConvexHull& hull = hull_first ? *hull_a : *hull_b;
+    const Ellipsoid& ellipsoid = hull_first ? *ellipsoid_b : *ellipsoid_a;
+    if(!Gjk(pair)) {
+      return pair.collision;
+    }
+    /* the minimum of the last accepted step, while it lasts, so the normal
+    does not jump between minima of nearly equal depth */
+    const ksl_vec3_t& kept = pair.accepted_normal;
+    if(Dot(kept, kept) > 0.0 &&
+       ConvexHullEllipsoidContact(hull, ellipsoid,
+                                  hull_first ? kept : Neg(kept), true,
+                                  contact)) {
+      Assign(pair, contact, hull_first);
+      return pair.collision;
+    }
+    ComputePenetration(pair);
+    if(pair.collision &&
+       ConvexHullEllipsoidContact(hull, ellipsoid,
+                                  hull_first ? pair.normal : Neg(pair.normal),
+                                  false, contact)) {
+      Assign(pair, contact, hull_first);
+    }
+    return pair.collision;
+  }
+  /* two convex hulls: GJK, then the minimum of the last accepted step
+  while it lasts, and EPA for a new contact */
+  if(hull_a && hull_b) {
+    if(!Gjk(pair)) {
+      return pair.collision;
+    }
+    const ksl_vec3_t& kept = pair.accepted_normal;
+    if(Dot(kept, kept) > 0.0 &&
+       ConvexHullPairContact(*hull_a, *hull_b, kept, pair.hint_a,
+                             pair.hint_b, contact)) {
+      Assign(pair, contact, true);
+      return pair.collision;
+    }
+    ComputePenetration(pair);
+    return pair.collision;
+  }
+  /* anything else: GJK, and EPA for the contact data */
   if(Gjk(pair)) {
     ComputePenetration(pair);
+  }
+  return pair.collision;
+}
+
+bool shift::core::collision_geometry::TestContact(ContactPair& pair) {
+  pair.manifold.clear();
+  if(TestDeepestPoint(pair)) {
+    ComputeManifold(pair);
   }
   return pair.collision;
 }

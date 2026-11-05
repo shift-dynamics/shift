@@ -106,7 +106,7 @@ void shift::core::joint::tz_d(const shift::core::Context&, shift::core::topology
 }
 
 /*!
-@brief Prismatic Joint aligned with z-axis - inv (dh)
+@brief Prismatic Joint aligned with z-axis - inv (d)
 
 Updates displacements only
 
@@ -146,7 +146,7 @@ void shift::core::joint::ta_d(const shift::core::Context& context,
 }
 
 /*!
-@brief Prismatic Joint aligned with z-axis - inv (dh)
+@brief Prismatic Joint aligned with arbitrary axis - inv (d)
 
 Updates displacement and influence coefficient matrices
 
@@ -532,7 +532,7 @@ void shift::core::joint::ta_dh(const shift::core::Context& context,
 }
 
 /*!
-@brief Prismatic joint along z-axis (dhva)
+@brief Prismatic joint along arbitrary axis (dhva)
 
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
@@ -546,7 +546,7 @@ void shift::core::joint::ta_dhva(const shift::core::Context& context,
                            const shift::core::topology::Offsets& offsets,
                            const double* __restrict__ q,
                            const double* __restrict__ dq) {
-  shift::core::joint::tz_dh(context, dhva, offsets, q);
+  shift::core::joint::ta_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = &dhva.h[offsets.dq];
   const double* v_primitive = dq + offsets.dq;
@@ -564,7 +564,7 @@ void shift::core::joint::ta_dhva(const shift::core::Context& context,
 }
 
 /*!
-@brief Prismatic Joint aligned with z-axis - inv (dh)
+@brief Prismatic Joint aligned with arbitrary axis - inv (dh)
 
 Updates displacement and influence coefficient matrices
 
@@ -588,7 +588,7 @@ void shift::core::joint::tainv_dh(const shift::core::Context& context,
 }
 
 /*!
-@brief Prismatic joint along z-axis - inv (dhva)
+@brief Prismatic joint along arbitrary axis - inv (dhva)
 
 Updates displacement and influence coefficient matrices,
 velocities and accelerations
@@ -602,7 +602,7 @@ void shift::core::joint::tainv_dhva(const shift::core::Context& context,
                               const shift::core::topology::Offsets& offsets,
                               const double* __restrict__ q,
                               const double* __restrict__ dq) {
-  shift::core::joint::tzinv_dh(context, dhva, offsets, q);
+  shift::core::joint::tainv_dh(context, dhva, offsets, q);
 
   ksl_screw_t* h = &dhva.h[offsets.dq];
   const double* v_primitive = &dq[offsets.dq];

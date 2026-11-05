@@ -8,6 +8,9 @@ namespace shift {
 namespace core {
 namespace light {
 
+/*!
+@brief A light shining equally in all directions from the origin of its frame
+*/
 class Point : public Base {
 public:
   Point()

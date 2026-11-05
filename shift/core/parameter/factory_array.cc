@@ -89,3 +89,7 @@ void shift::core::parameter::FactoryArray<shift::core::logger::Base>::ReadJSON(
   Json::Value& json_array);
 
 
+
+template void shift::core::parameter::FactoryArray<
+  shift::core::collision_geometry::Base>::
+  PushBack(std::unique_ptr<shift::core::collision_geometry::Base> object);

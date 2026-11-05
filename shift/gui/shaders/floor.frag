@@ -1,6 +1,8 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
 
 layout(location = 0) in vec3 world_position;
+layout(location = 1) in vec2 plane_position;
 layout(location = 0) out vec4 out_color;
 
 layout(std140, binding = 0) uniform Frame {
@@ -11,8 +13,13 @@ layout(std140, binding = 0) uniform Frame {
   vec4 sun_color;
   vec4 sky_zenith;
   vec4 sky_horizon;
-  vec4 floor_params;
+    vec4 floor_params;
+  mat4 floor_frame;
 } frame;
+
+#define LIGHTS_BINDING 8
+#define IES_BINDING 9
+#include "lights.glsl"
 
 const vec3 kFloorColor = vec3(0.42, 0.42, 0.40);
 const vec3 kLineColor = vec3(0.22, 0.22, 0.22);
@@ -43,12 +50,19 @@ vec3 FloorAlbedo(vec2 p, float spacing) {
 }
 
 void main() {
-  vec2 p = world_position.xy;
-  vec3 albedo = FloorAlbedo(p, frame.floor_params.y);
-  vec3 n = vec3(0.0, 0.0, -1.0); // floor faces up (-z)
+    vec3 albedo = FloorAlbedo(plane_position, frame.floor_params.y);
+  vec3 n = frame.floor_frame[2].xyz; // up, out of the solid
   float n_dot_l = max(dot(n, frame.sun_direction.xyz), 0.0);
   vec3 color = albedo / 3.14159265 * frame.sun_color.rgb * frame.sun_direction.w * n_dot_l +
                albedo * frame.sky_zenith.rgb;
+  for(int i = 0; i < min(lights.count.x, kMaxLights); i++) {
+    vec3 l;
+    float distance;
+    float factor = LightAt(i, world_position, l, distance);
+    color += albedo / 3.14159265 * lights.light[i].diffuse.rgb * factor *
+             max(dot(n, l), 0.0);
+  }
+  color += albedo * lights.ambient.rgb;
 
   // fade into the horizon
   vec3 to_point = world_position - frame.camera_position.xyz;

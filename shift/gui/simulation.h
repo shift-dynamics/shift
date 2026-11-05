@@ -131,6 +131,7 @@ private:
   void Work();
   void Observe(double time, const std::vector<double>& y);
   void ClearResults();
+  /*! \brief poses of the bodies from the displacements in dhva */
   void UpdatePoses(const shift::core::topology::DHVA& dhva);
   void StoreInitialState();
 

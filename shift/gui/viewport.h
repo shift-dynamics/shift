@@ -8,6 +8,7 @@
 #include <QPoint>
 #include <QWindow>
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -24,6 +25,7 @@ class QRhiResourceUpdateBatch;
 class QRhiSampler;
 class QRhiShaderResourceBindings;
 class QRhiTexture;
+class QRhiTextureRenderTarget;
 
 namespace shift {
 namespace gui {
@@ -34,7 +36,11 @@ class Simulation;
 @brief 3D view of a simulation, rendered with Qt RHI (Vulkan)
 
 Two render modes:
-- raster: GGX shading with a hemispherical ambient term
+- raster: GGX shading with a hemispherical ambient term. Terrains are
+  tessellated on the GPU (terrain.tesc, terrain.tese): each patch is divided
+  by the size of its edges on screen, and the generated vertices are placed
+  on the surface evaluated from the terrain's control points, the cubic
+  B-spline of the physics (terrain::Basic).
 - ray traced: compute shader path tracer with sun shadows and one bounce at
   one sample per pixel and frame, denoised with SVGF (spatiotemporal
   variance-guided filtering: temporal reprojection, including moving bodies,
@@ -67,6 +73,9 @@ public:
   }
 
   void set_floor_enabled(bool enabled);
+  /*! \brief place the floor: a point on it and its normal, up (out of the
+   * solid), in the inertial frame */
+  void set_floor(const QVector3D& point, const QVector3D& normal);
 
   /*! \brief frame the camera on the current poses */
   void FrameScene();
@@ -83,6 +92,26 @@ public:
   void update() {
     requestUpdate();
   }
+
+  /*! @name Offscreen rendering, e.g. the frames of a video
+
+  Between BeginOffscreen and EndOffscreen the viewport renders into an image
+  of its own size instead of the window, which is not updated meanwhile. */
+  /*! @{ */
+  /*! \brief render offscreen at size (pixels); returns false, with a
+   * message in error, if the device cannot */
+  bool BeginOffscreen(const QSize& size, QString& error);
+  /*! \brief render the poses shown and read the image back: RGBA, 8 bits
+   * per channel, top row first, 4 width bytes per row. Ray traced, samples
+   * frames of the same poses are rendered, so the progressive mean
+   * converges; raster takes one. */
+  bool RenderOffscreen(int samples, std::vector<uint8_t>& rgba);
+  /*! \brief render to the window again */
+  void EndOffscreen();
+  bool is_offscreen() const {
+    return offscreen_target_ != nullptr;
+  }
+  /*! @} */
 
   /*! \brief false if the device has no compute support */
   bool is_ray_tracing_supported() const {
@@ -108,6 +137,17 @@ private:
     uint32_t instance_count = 0;
   };
 
+  /*! the control points of a terrain (SceneTerrain) for the tessellation
+   * pipeline */
+  struct GpuTerrain {
+    std::unique_ptr<QRhiTexture> control_points; /*!< R32F */
+    std::unique_ptr<QRhiBuffer> uniforms;
+    std::unique_ptr<QRhiShaderResourceBindings> bindings;
+    int terrain_index = 0; /*!< in Scene::terrains */
+    int patches_x = 1;
+    int patches_y = 1;
+  };
+
   void InitializeRhi();
   void ReleaseRhi();
   void RenderFrame();
@@ -124,6 +164,11 @@ private:
   void UploadEnvironment(QRhiResourceUpdateBatch* batch);
   void CreateTextureArray(int layer_count, int size);
   void UpdateEnvironment();
+  /*! \brief the floor's axes and origin, a column major 4x4 matrix */
+  void CopyFloorFrame(float out[16]) const;
+  /*! \brief uploads the lights of the model in the current poses; false
+   * if it has none, and the sun lights the scene */
+  bool UpdateLights(QRhiResourceUpdateBatch* batch);
   void RenderRaster(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
   void RenderRayTraced(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
   /*! \brief upload the instances (body poses, and the poses of the previous
@@ -144,7 +189,10 @@ private:
 
   // environment, in world coordinates
   QVector3D sun_direction_;
-  float floor_z_ = 0.f;
+  QVector3D floor_origin_{0.f, 0.f, 0.f};
+  QVector3D floor_u_{1.f, 0.f, 0.f};
+  QVector3D floor_v_{0.f, -1.f, 0.f};
+  QVector3D floor_normal_{0.f, 0.f, -1.f}; // up, +z is down
   float floor_spacing_ = 1.f;
   float floor_extent_ = 100.f;
 
@@ -161,10 +209,19 @@ private:
   QRhiRenderPassDescriptor* pipeline_render_pass_ = nullptr;
   QSize output_size_;
 
+  // offscreen rendering (BeginOffscreen)
+  std::unique_ptr<QRhiTexture> offscreen_texture_;
+  std::unique_ptr<QRhiRenderBuffer> offscreen_depth_;
+  std::unique_ptr<QRhiTextureRenderTarget> offscreen_target_;
+  std::unique_ptr<QRhiRenderPassDescriptor> offscreen_render_pass_;
+
   // raster
   std::vector<GpuMesh> gpu_meshes_;
   std::unique_ptr<QRhiBuffer> frame_ubo_;
   std::unique_ptr<QRhiBuffer> material_ubo_; /*!< per mesh */
+  std::unique_ptr<QRhiBuffer> lights_ubo_; /*!< LightUniforms */
+  /*! IES distributions of the lights, R16F: see Scene::ies_profiles */
+  std::unique_ptr<QRhiTexture> ies_texture_;
   quint32 material_stride_ = 0;
   /*! per instance vertex attributes (poses), in Scene::instances order */
   std::unique_ptr<QRhiBuffer> instance_buffer_;
@@ -172,6 +229,11 @@ private:
   std::unique_ptr<QRhiGraphicsPipeline> mesh_pipeline_;
   std::unique_ptr<QRhiGraphicsPipeline> sky_pipeline_;
   std::unique_ptr<QRhiGraphicsPipeline> floor_pipeline_;
+
+  // terrains, tessellated on the GPU from their control points
+  bool tessellation_supported_ = false;
+  std::vector<GpuTerrain> gpu_terrains_;
+  std::unique_ptr<QRhiGraphicsPipeline> terrain_pipeline_;
 
   // image based lighting tables of the sky (see environment.h)
   std::unique_ptr<QRhiTexture> environment_specular_;
@@ -190,6 +252,18 @@ private:
   std::vector<RtTriangle> rt_triangles_;
   std::vector<BvhNode> rt_nodes_;
   std::vector<int> rt_roots_; /*!< root node of each mesh BVH */
+
+  // picking: the point of the scene meshes under the cursor, found on the
+  // CPU with one BVH per mesh (those of ray tracing when it is supported,
+  // else built on the first pick), for zooming towards it
+  std::vector<RtTriangle> pick_triangles_;
+  std::vector<BvhNode> pick_nodes_;
+  std::vector<int> pick_roots_; /*!< root node of each mesh BVH */
+  bool pick_built_ = false;
+  void BuildPickBvh();
+  /*! \brief the nearest point of the scene meshes under a point of the
+   * window (logical pixels), false if none */
+  bool Pick(const QPointF& pixel, QVector3D& point);
   std::unique_ptr<QRhiBuffer> rt_ubo_;
   std::unique_ptr<QRhiBuffer> rt_triangle_buffer_;
   std::unique_ptr<QRhiBuffer> rt_node_buffer_;

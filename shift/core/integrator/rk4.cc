@@ -37,19 +37,18 @@ void shift::core::integrator::RK4::Connect() {
 
 void shift::core::integrator::RK4::Reset() {
 
-  neqn_ = context_->get_q_count() + context_->get_dq_count() +
-          context_->get_auxiliary_state_count();
+  neqn_ = context_->get_state_count() + context_->get_auxiliary_state_count();
   y_.resize(neqn_);
   std::fill(y_.begin(), y_.end(), 0.0);
 
   /* copy initial conditions from context */
   memcpy(y_.data(), context_->get_q().data(),
-         (context_->get_q_count() + context_->get_dq_count()) * sizeof(double));
+         context_->get_state_count() * sizeof(double));
 
   /* assign state offsets and copy initial conditions of the internal
   states of force modules and controllers */
   context_->InitializeAuxiliaryStates(
-    y_.data() + context_->get_q_count() + context_->get_dq_count());
+    y_.data() + context_->get_state_count());
 
   integral_error_.resize(context_->get_constraint_equation_count());
   std::fill(integral_error_.begin(), integral_error_.end(), 0.0);
@@ -147,6 +146,7 @@ void shift::core::integrator::RK4::Integrate() {
     const double t_report = fmin(report * time_step_, time_span_);
     while(t_report - t_ > 1e-12 * fmax(1.0, t_report)) {
       Step(fmin(h_, t_report - t_));
+      context_->AcceptStep(y_);
     }
     context_->WriteStates(t_, y_);
     ReportProgress(t_);

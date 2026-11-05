@@ -17,6 +17,7 @@ core_src = files(
 
 subdir('controller')
 subdir('body')
+subdir('cad')
 subdir('collision_geometry')
 subdir('constraint')
 subdir('force_module')
@@ -39,7 +40,10 @@ core_deps = [
   hdf5_dep,
   cblas_dep,
   threads_dep,
+  openmp_dep,
   qhull_dep,
+  tiff_dep,
+  step_dep,
 ]
 
 # all of src/core is one library; modules register themselves with the
@@ -51,7 +55,6 @@ shift_core = static_library(
   shift_config_h,
   include_directories: shift_inc,
   implicit_include_directories: false,
-  cpp_args: ['-DSHIFT_VERIFY_EQUATIONS_=1'],
   dependencies: core_deps,
 )
 

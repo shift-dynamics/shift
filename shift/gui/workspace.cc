@@ -1,11 +1,17 @@
 #include "shift/gui/workspace.h"
 
+#include "shift/core/assembly.h"
+#include "shift/core/collision_geometry/plane.h"
 #include "shift/core/context.h"
 #include "shift/core/substructure.h"
 #include "shift/core/body/base.h"
+#include "shift/core/body/fixed.h"
 #include "shift/core/body/virtual.h"
 #include "shift/core/joint/base.h"
+#include "shift/core/light/base.h"
+#include "shift/core/terrain/base.h"
 #include "shift/gui/playback_slider.h"
+#include "shift/gui/video_encoder.h"
 #include "shift/gui/viewport.h"
 
 #include "ksl/mat3x3.h"
@@ -13,6 +19,8 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QCheckBox>
+#include <QComboBox>
 #include <QDial>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -23,9 +31,11 @@
 #include <QLabel>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QProgressDialog>
 #include <QPushButton>
 #include <QShortcut>
 #include <QSlider>
+#include <QSpinBox>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -33,12 +43,15 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
+#include <algorithm>
 #include <cmath>
 #include <exception>
+#include <stdexcept>
 
 
 static constexpr int kBodyItem = QTreeWidgetItem::UserType + 1;
 static constexpr int kJointItem = QTreeWidgetItem::UserType + 2;
+static constexpr int kGeometryItem = QTreeWidgetItem::UserType + 3;
 static constexpr int kTickMilliseconds = 16;
 
 /*! gain dial 0..100 maps to a slider rate multiplier of 0.01..100 */
@@ -95,6 +108,7 @@ void shift::gui::Workspace::InitializeMenus() {
   floor->setCheckable(true);
   floor->setChecked(true);
   connect(floor, &QAction::toggled, viewport_, &Viewport::set_floor_enabled);
+  floor_action_ = floor;
   view_menu->addSeparator();
   QAction* frame = view_menu->addAction("&Frame model");
   frame->setShortcut(Qt::Key_F);
@@ -165,6 +179,56 @@ void shift::gui::Workspace::InitializeLeftPanel() {
   body_panel_.group_box->setVisible(false);
   dynamic_layout->addWidget(body_panel_.group_box);
 
+  // collision geometry panel
+  auto& geometry = geometry_panel_;
+  geometry.group_box = new QGroupBox;
+  auto* geometry_layout = new QGridLayout(geometry.group_box);
+  geometry.title = new QLabel;
+  geometry.title->setStyleSheet("font-weight: bold");
+  geometry_layout->addWidget(geometry.title, 0, 0, 1, 4);
+  geometry.details = new QLabel;
+  geometry.details->setWordWrap(true);
+  geometry_layout->addWidget(geometry.details, 1, 0, 1, 4);
+  geometry.contact = new QCheckBox("contact");
+  geometry.contact->setToolTip(
+    "test this geometry for contact; a default floor starts without contact");
+  geometry_layout->addWidget(geometry.contact, 2, 0, 1, 4);
+  connect(geometry.contact, &QCheckBox::toggled, this, [this](bool checked) {
+    if(geometry_panel_.selected && !simulation_.is_computing()) {
+      geometry_panel_.selected->set_contact_enabled(checked);
+    }
+  });
+  geometry_layout->addWidget(new QLabel("pose: translation"), 3, 0, 1, 4);
+  const char* translation_names[3] = {"x", "y", "z"};
+  const char* rotation_names[3] = {"roll", "pitch", "yaw"};
+  for(int i = 0; i < 3; i++) {
+    geometry_layout->addWidget(new QLabel(translation_names[i]), 4, i);
+    geometry.translation[i] = new QDoubleSpinBox;
+    geometry.translation[i]->setRange(-1e6, 1e6);
+    geometry.translation[i]->setDecimals(4);
+    geometry.translation[i]->setSingleStep(0.01);
+    geometry_layout->addWidget(geometry.translation[i], 5, i);
+  }
+  geometry_layout->addWidget(new QLabel("pose: rotation (degrees)"), 6, 0, 1,
+                             4);
+  for(int i = 0; i < 3; i++) {
+    geometry_layout->addWidget(new QLabel(rotation_names[i]), 7, i);
+    geometry.rotation[i] = new QDoubleSpinBox;
+    geometry.rotation[i]->setRange(-180.0, 180.0);
+    geometry.rotation[i]->setDecimals(2);
+    geometry.rotation[i]->setSingleStep(1.0);
+    geometry.rotation[i]->setWrapping(true);
+    geometry_layout->addWidget(geometry.rotation[i], 8, i);
+  }
+  for(int i = 0; i < 3; i++) {
+    for(auto spin_box : {geometry.translation[i], geometry.rotation[i]}) {
+      connect(spin_box, &QDoubleSpinBox::valueChanged, this,
+              &Workspace::ApplyGeometryPose);
+    }
+  }
+  geometry.group_box->setVisible(false);
+  dynamic_layout->addWidget(geometry.group_box);
+
   dynamic_layout->addStretch();
   scene_splitter->addWidget(dynamic_box);
 
@@ -173,6 +237,7 @@ void shift::gui::Workspace::InitializeLeftPanel() {
   auto* simulation_layout = new QVBoxLayout(simulation_box);
   simulation_layout->setContentsMargins(0, 0, 0, 0);
   simulation_layout->addWidget(AddModelParametersBox());
+  simulation_layout->addWidget(AddVideoBox());
   simulation_layout->addStretch();
   tab_widget_->addTab(simulation_box, QIcon(":/icons/clapper.png"),
                       "Simulation");
@@ -324,6 +389,179 @@ QWidget* shift::gui::Workspace::AddModelParametersBox() {
   return panel.group_box;
 }
 
+QWidget* shift::gui::Workspace::AddVideoBox() {
+  auto& panel = video_panel_;
+  panel.group_box = new QGroupBox("Video");
+  auto* layout = new QGridLayout(panel.group_box);
+
+  layout->addWidget(new QLabel("Resolution"), 0, 0);
+  panel.resolution = new QComboBox;
+  panel.resolution->addItem("1280 × 720 (720p)", QSize(1280, 720));
+  panel.resolution->addItem("1920 × 1080 (1080p)", QSize(1920, 1080));
+  panel.resolution->addItem("2560 × 1440 (1440p)", QSize(2560, 1440));
+  panel.resolution->addItem("3840 × 2160 (4K)", QSize(3840, 2160));
+  panel.resolution->addItem("Viewport", QSize());
+  panel.resolution->addItem("Custom", QSize(-1, -1));
+  panel.resolution->setCurrentIndex(1);
+  layout->addWidget(panel.resolution, 0, 1, 1, 3);
+
+  /* 4:2:0 video needs an even width and height */
+  auto make_size = [](int value) {
+    auto* spin_box = new QSpinBox;
+    spin_box->setRange(16, 16384);
+    spin_box->setSingleStep(2);
+    spin_box->setValue(value);
+    spin_box->setSuffix(" px");
+    return spin_box;
+  };
+  layout->addWidget(new QLabel("Size"), 1, 0);
+  panel.width = make_size(1920);
+  layout->addWidget(panel.width, 1, 1);
+  layout->addWidget(new QLabel("×"), 1, 2);
+  panel.height = make_size(1080);
+  layout->addWidget(panel.height, 1, 3);
+  connect(panel.resolution, &QComboBox::currentIndexChanged, this,
+          &Workspace::UpdateVideoSize);
+
+  layout->addWidget(new QLabel("Frame Rate"), 2, 0);
+  panel.frame_rate = new QSpinBox;
+  panel.frame_rate->setRange(1, 240);
+  panel.frame_rate->setValue(30);
+  panel.frame_rate->setSuffix(" fps");
+  layout->addWidget(panel.frame_rate, 2, 1, 1, 3);
+
+  layout->addWidget(new QLabel("Speed"), 3, 0);
+  panel.speed = new QDoubleSpinBox;
+  panel.speed->setRange(0.001, 1000.0);
+  panel.speed->setDecimals(3);
+  panel.speed->setValue(1.0);
+  panel.speed->setSuffix("×");
+  panel.speed->setToolTip(
+    "simulated time per second of video: 1 is real time, 0.1 slow motion");
+  layout->addWidget(panel.speed, 3, 1, 1, 3);
+
+  layout->addWidget(new QLabel("Ray Traced Samples"), 4, 0);
+  panel.samples = new QSpinBox;
+  panel.samples->setRange(1, 1024);
+  panel.samples->setValue(16);
+  panel.samples->setToolTip(
+    "ray traced frames rendered and averaged for each video frame; the "
+    "raster renderer takes one");
+  layout->addWidget(panel.samples, 4, 1, 1, 3);
+
+  panel.export_button = new QPushButton("Export Video…");
+  panel.export_button->setToolTip(
+    "render the computed results to a video file (.mp4, .mkv, .mov, .webm)");
+  layout->addWidget(panel.export_button, 5, 0, 1, 4);
+  connect(panel.export_button, &QPushButton::clicked, this,
+          &Workspace::ExportVideo);
+
+  UpdateVideoSize();
+  panel.group_box->setVisible(false);
+  return panel.group_box;
+}
+
+void shift::gui::Workspace::UpdateVideoSize() {
+  auto& panel = video_panel_;
+  QSize size = panel.resolution->currentData().toSize();
+  const bool custom = size == QSize(-1, -1);
+  if(size.isEmpty() && !custom) { // the viewport's pixels, rounded down to even
+    const QSize pixels = viewport_ ? viewport_->size() * viewport_->devicePixelRatio()
+                                   : QSize(1920, 1080);
+    size = QSize(std::max(16, pixels.width() & ~1),
+                 std::max(16, pixels.height() & ~1));
+  }
+  if(!custom) {
+    panel.width->setValue(size.width());
+    panel.height->setValue(size.height());
+  }
+  panel.width->setEnabled(custom);
+  panel.height->setEnabled(custom);
+}
+
+void shift::gui::Workspace::ExportVideo() {
+  auto& panel = video_panel_;
+  if(!simulation_.has_results() || simulation_.is_computing() ||
+     panel.exporting) {
+    return;
+  }
+  UpdateVideoSize(); // the viewport may have been resized
+  const QSize size(panel.width->value() & ~1, panel.height->value() & ~1);
+  const int frame_rate = panel.frame_rate->value();
+  const double speed = panel.speed->value();
+  const double end = simulation_.get_computed_time();
+  const int frames = static_cast<int>(std::floor(end / speed * frame_rate + 1e-9)) + 1;
+
+  const QString base = QFileInfo(QString::fromStdString(simulation_.get_filename()))
+                         .completeBaseName();
+  QString filename = QFileDialog::getSaveFileName(
+    this, "Export Video", base + ".mp4",
+    "Video (*.mp4 *.mkv *.mov *.webm *.avi);;All files (*)");
+  if(filename.isEmpty()) {
+    return;
+  }
+  if(QFileInfo(filename).suffix().isEmpty()) {
+    filename += ".mp4";
+  }
+
+  playing_ = false;
+  playback_panel_.play_pause_button->setIcon(playback_panel_.play_icon);
+  QString error;
+  if(!viewport_->BeginOffscreen(size, error)) {
+    QMessageBox::warning(this, "Export failed", "Could not render the video: " + error);
+    return;
+  }
+  panel.exporting = true;
+  panel.export_button->setEnabled(false);
+
+  QProgressDialog progress(QString("Rendering %1 × %2 video…")
+                             .arg(size.width())
+                             .arg(size.height()),
+                           "Cancel", 0, frames, this);
+  progress.setWindowModality(Qt::WindowModal);
+  progress.setMinimumDuration(0);
+  bool cancelled = false;
+  VideoEncoder encoder;
+  std::vector<uint8_t> rgba;
+  try {
+    encoder.Open(filename.toStdString(), size.width(), size.height(),
+                 frame_rate);
+    for(int i = 0; i < frames; i++) {
+      progress.setValue(i); // processes events, e.g. Cancel
+      if(progress.wasCanceled()) {
+        cancelled = true;
+        break;
+      }
+      simulation_.ShowTime(std::min(i * speed / frame_rate, end));
+      if(!viewport_->RenderOffscreen(panel.samples->value(), rgba)) {
+        throw std::runtime_error("could not render frame " + std::to_string(i));
+      }
+      encoder.Write(rgba.data(), 4 * size.width());
+    }
+    encoder.Close();
+  } catch(const std::exception& e) {
+    error = e.what();
+  }
+  progress.setValue(frames);
+  viewport_->EndOffscreen();
+  simulation_.ShowTime(playback_time_);
+  viewport_->update();
+  panel.exporting = false;
+  UpdateStatus();
+
+  if(!error.isEmpty()) {
+    QMessageBox::warning(this, "Export failed",
+                         QString("Could not write %1:\n%2").arg(filename, error));
+  } else if(cancelled) {
+    status_label_->setText("Video export cancelled; the frames rendered were saved");
+  } else {
+    status_label_->setText(QString("Saved %1 frames to %2 (%3)")
+                             .arg(frames)
+                             .arg(filename)
+                             .arg(QString::fromStdString(encoder.get_encoder_name())));
+  }
+}
+
 void shift::gui::Workspace::InitializeLayout() {
   InitializeLeftPanel();
 
@@ -397,7 +635,8 @@ bool shift::gui::Workspace::Open(const QString& filename) {
   target_move_ = TargetMove();
   ClearSliders();
   tree_widget_->clear();
-  bodies_item_ = joints_item_ = nullptr;
+  joint_items_.clear();
+  geometry_panel_.selected = nullptr;
 
   std::string error;
   try {
@@ -411,6 +650,7 @@ bool shift::gui::Workspace::Open(const QString& filename) {
                           QString("Could not load %1:\n%2")
                             .arg(filename, QString::fromStdString(error)));
     model_parameters_panel_.group_box->setVisible(false);
+    video_panel_.group_box->setVisible(false);
     UpdateStatus();
     return false;
   }
@@ -424,6 +664,9 @@ bool shift::gui::Workspace::Open(const QString& filename) {
   playback_panel_.slider->Enable(false);
   playback_panel_.play_pause_button->setIcon(playback_panel_.play_icon);
   viewport_->set_simulation(&simulation_);
+  UpdateFloor();
+  // the floor plane would cut through a terrain
+  floor_action_->setChecked(simulation_.get_scene().terrains.empty());
   setWindowTitle(QString("Shift — %1").arg(QFileInfo(filename).fileName()));
   UpdateStatus();
   return true;
@@ -448,6 +691,7 @@ void shift::gui::Workspace::About() {
 void shift::gui::Workspace::LoadModelParameters() {
   auto& panel = model_parameters_panel_;
   panel.group_box->setVisible(true);
+  video_panel_.group_box->setVisible(true);
   panel.integrator_type->setText(
     QString::fromStdString(simulation_.get_integrator_type()));
   panel.time_span->blockSignals(true);
@@ -460,47 +704,154 @@ void shift::gui::Workspace::LoadModelParameters() {
 
 // -------------------------------------------------------------- model tree
 
+/* the tree follows the layout of the model file: the fixed body, with what
+is attached to it, above the assemblies with their bodies, joints and nested
+assemblies */
 void shift::gui::Workspace::PopulateTree() {
   tree_widget_->clear();
-  bodies_item_ = new QTreeWidgetItem(tree_widget_, {"Bodies"});
-  bodies_item_->setIcon(0, QIcon(":/icons/body_folder.png"));
-  const auto& bodies = simulation_.get_bodies();
-  for(size_t i = 0; i < bodies.size(); i++) {
-    // virtual bodies are massless helpers generated for joints
-    if(dynamic_cast<shift::core::body::Virtual*>(bodies[i])) {
-      continue;
-    }
-    auto* item = new QTreeWidgetItem(
-      bodies_item_, {QString::fromStdString(bodies[i]->get_name())},
-      kBodyItem);
-    item->setIcon(0, QIcon(":/icons/body.png"));
-    item->setData(0, Qt::UserRole, int(i));
-  }
-
-  joints_item_ = new QTreeWidgetItem(tree_widget_, {"Joints"});
-  joints_item_->setIcon(0, QIcon(":/icons/joint_folder.png"));
-  const auto& joints = simulation_.get_context()->get_active_joints();
-  for(size_t i = 0; i < joints.size(); i++) {
-    auto* item = new QTreeWidgetItem(
-      joints_item_,
-      {QString::fromStdString(joints[i]->get_name() + " (" +
-                              joints[i]->get_type() + ")")},
-      kJointItem);
-    item->setIcon(0, QIcon(":/icons/joint.png"));
-    item->setData(0, Qt::UserRole, int(i));
+  joint_items_.assign(simulation_.get_context()->get_active_joints().size(),
+                      nullptr);
+  AddFixedItems();
+  for(auto& assembly : simulation_.get_context()->get_assemblies()) {
+    AddAssemblyItem(assembly.get(), nullptr);
   }
   tree_widget_->expandAll();
   UpdateTree();
 }
 
+static QTreeWidgetItem* NewItem(QTreeWidgetItem* parent, QTreeWidget* tree,
+                                const std::string& text, const char* icon,
+                                int type = QTreeWidgetItem::Type) {
+  QTreeWidgetItem* item =
+    parent ? new QTreeWidgetItem(parent, {QString::fromStdString(text)}, type)
+           : new QTreeWidgetItem(tree, {QString::fromStdString(text)}, type);
+  item->setIcon(0, QIcon(icon));
+  return item;
+}
+
+static const char* GeometryIcon(const std::string& type) {
+  if(type == "plane") {
+    return ":/icons/floor.png";
+  }
+  if(type == "sphere" || type == "ellipsoid") {
+    return ":/icons/sphere.png";
+  }
+  return ":/icons/convexhull.png";
+}
+
+void shift::gui::Workspace::AddFixedItems() {
+  shift::core::Context* context = simulation_.get_context();
+  // the fixed body is the first body of the simulation
+  QTreeWidgetItem* fixed =
+    NewItem(nullptr, tree_widget_, "fixed", ":/icons/anchor.png", kBodyItem);
+  fixed->setData(0, Qt::UserRole, 0);
+
+  auto& frames = context->get_frames();
+  if(!frames.empty()) {
+    QTreeWidgetItem* folder =
+      NewItem(fixed, nullptr, "frames", ":/icons/frame_folder.png");
+    for(auto& frame : frames) {
+      NewItem(folder, nullptr, frame->get_name(), ":/icons/frame.png");
+    }
+  }
+  auto& lights = context->get_lights();
+  if(!lights.empty()) {
+    QTreeWidgetItem* folder =
+      NewItem(fixed, nullptr, "lights", ":/icons/light_folder.png");
+    for(auto& light : lights) {
+      NewItem(folder, nullptr, light->get_name(), ":/icons/light.png");
+    }
+  }
+  auto& terrain = context->get_terrain();
+  if(!terrain.empty()) {
+    QTreeWidgetItem* folder =
+      NewItem(fixed, nullptr, "terrain", ":/icons/terrain_folder.png");
+    for(auto& patch : terrain) {
+      NewItem(folder, nullptr, patch->get_name(), ":/icons/terrain.png");
+    }
+  }
+  // collision geometry, such as the floor, directly under the fixed body
+  auto& geometry = context->get_fixed_collision_geometry();
+  for(size_t i = 0; i < geometry.size(); i++) {
+    QTreeWidgetItem* item =
+      NewItem(fixed, nullptr, geometry[i]->get_name(),
+              GeometryIcon(geometry[i]->get_type()), kGeometryItem);
+    item->setData(0, Qt::UserRole, int(i));
+  }
+}
+
+void shift::gui::Workspace::AddAssemblyItem(shift::core::Assembly* assembly,
+                                            QTreeWidgetItem* parent) {
+  const std::string name =
+    assembly->get_name().empty() ? "assembly" : assembly->get_name();
+  QTreeWidgetItem* item =
+    NewItem(parent, tree_widget_, name, ":/icons/assembly.png");
+
+  if(!assembly->get_bodies().empty()) {
+    QTreeWidgetItem* folder =
+      NewItem(item, nullptr, "bodies", ":/icons/body_folder.png");
+    for(auto& body : assembly->get_bodies()) {
+      AddBodyItem(body.get(), folder);
+    }
+    if(folder->childCount() == 0) {
+      delete folder;
+    }
+  }
+
+  const auto& active = simulation_.get_context()->get_active_joints();
+  if(!assembly->get_joints().empty()) {
+    QTreeWidgetItem* folder =
+      NewItem(item, nullptr, "joints", ":/icons/joint_folder.png");
+    for(auto& joint : assembly->get_joints()) {
+      auto found = std::find(active.begin(), active.end(), joint.get());
+      if(found == active.end()) {
+        continue; // inactive
+      }
+      const int index = static_cast<int>(found - active.begin());
+      QTreeWidgetItem* joint_item =
+        NewItem(folder, nullptr,
+                joint->get_name() + " (" + joint->get_type() + ")",
+                ":/icons/joint.png", kJointItem);
+      joint_item->setData(0, Qt::UserRole, index);
+      joint_items_[index] = joint_item;
+    }
+    if(folder->childCount() == 0) {
+      delete folder;
+    }
+  }
+
+  for(auto& nested : assembly->get_assemblies()) {
+    AddAssemblyItem(nested.get(), item);
+  }
+}
+
+void shift::gui::Workspace::AddBodyItem(shift::core::body::Base* body,
+                                        QTreeWidgetItem* parent) {
+  // virtual bodies are massless helpers generated for joints
+  if(dynamic_cast<shift::core::body::Virtual*>(body)) {
+    return;
+  }
+  const auto& bodies = simulation_.get_bodies();
+  auto found = std::find(bodies.begin(), bodies.end(), body);
+  if(found == bodies.end()) {
+    return; // inactive
+  }
+  QTreeWidgetItem* item = NewItem(parent, nullptr, body->get_name(),
+                                  ":/icons/body.png", kBodyItem);
+  item->setData(0, Qt::UserRole, static_cast<int>(found - bodies.begin()));
+}
+
 void shift::gui::Workspace::UpdateTree() {
-  if(!joints_item_ || !simulation_.is_loaded()) {
+  if(joint_items_.empty() || !simulation_.is_loaded()) {
     return;
   }
   const auto& joints = simulation_.get_context()->get_active_joints();
   const auto& mobility = simulation_.get_context()->get_mobility_numbers();
-  for(int i = 0; i < joints_item_->childCount(); i++) {
-    QTreeWidgetItem* item = joints_item_->child(i);
+  for(size_t i = 0; i < joint_items_.size() && i < joints.size(); i++) {
+    QTreeWidgetItem* item = joint_items_[i];
+    if(!item) {
+      continue;
+    }
     shift::core::joint::Base* joint = joints[i];
     if(joint->get_dq_count() == 1) {
       item->setText(1, Number(simulation_.get_shown_q(joint->get_q_index())));
@@ -521,8 +872,10 @@ void shift::gui::Workspace::UpdateTree() {
 void shift::gui::Workspace::SelectTreeItem() {
   joint_panel_.group_box->setVisible(false);
   body_panel_.group_box->setVisible(false);
+  geometry_panel_.group_box->setVisible(false);
   joint_panel_.selected_joint = nullptr;
   body_panel_.selected_body = -1;
+  geometry_panel_.selected = nullptr;
   ClearSliders();
 
   const auto items = tree_widget_->selectedItems();
@@ -546,6 +899,91 @@ void shift::gui::Workspace::SelectTreeItem() {
       simulation_.get_bodies()[index]->get_name()));
     body_panel_.group_box->setVisible(true);
     UpdateBodyPanel();
+  } else if(item->type() == kGeometryItem) {
+    auto& geometry = simulation_.get_context()->get_fixed_collision_geometry();
+    if(index >= 0 && index < static_cast<int>(geometry.size())) {
+      geometry_panel_.selected = geometry[index].get();
+      geometry_panel_.group_box->setVisible(true);
+      UpdateGeometryPanel();
+    }
+  }
+}
+
+void shift::gui::Workspace::UpdateGeometryPanel() {
+  auto& panel = geometry_panel_;
+  shift::core::collision_geometry::Base* geometry = panel.selected;
+  if(!geometry) {
+    return;
+  }
+  panel.title->setText(QString::fromStdString(geometry->get_name()));
+  QString details =
+    QString("type: %1").arg(QString::fromStdString(geometry->get_type()));
+  if(!geometry->get_material().empty()) {
+    details +=
+      QString(", material: %1")
+        .arg(QString::fromStdString(geometry->get_material()));
+  }
+  const bool plane =
+    dynamic_cast<shift::core::collision_geometry::Plane*>(geometry) != nullptr;
+  if(plane) {
+    details += "\npose of the plane in the fixed frame; its normal (in the "
+               "pose) points out of the solid";
+  }
+  panel.details->setText(details);
+
+  // show the values without applying them back
+  panel.contact->blockSignals(true);
+  panel.contact->setChecked(geometry->is_contact_enabled());
+  panel.contact->blockSignals(false);
+  const ksl_SE3_t& pose = geometry->get_pose();
+  ksl_vec3_t angles; // yaw, pitch, roll
+  ksl_mat3x3_getEulerAnglesWithReference(&pose.R, KSL_AXIS_ZYX, &angles, NULL);
+  for(int i = 0; i < 3; i++) {
+    panel.translation[i]->blockSignals(true);
+    panel.translation[i]->setValue(pose.t.at[i]);
+    panel.translation[i]->blockSignals(false);
+    panel.translation[i]->setEnabled(plane);
+    panel.rotation[i]->blockSignals(true);
+    panel.rotation[i]->setValue(angles.at[2 - i] * 180.0 / M_PI);
+    panel.rotation[i]->blockSignals(false);
+    panel.rotation[i]->setEnabled(plane);
+  }
+}
+
+void shift::gui::Workspace::ApplyGeometryPose() {
+  auto& panel = geometry_panel_;
+  auto plane =
+    dynamic_cast<shift::core::collision_geometry::Plane*>(panel.selected);
+  if(!plane || simulation_.is_computing()) {
+    return;
+  }
+  ksl_SE3_t pose;
+  for(int i = 0; i < 3; i++) {
+    pose.t.at[i] = panel.translation[i]->value();
+  }
+  ksl_vec3_t angles = ksl_vec3(panel.rotation[2]->value() * M_PI / 180.0,
+                               panel.rotation[1]->value() * M_PI / 180.0,
+                               panel.rotation[0]->value() * M_PI / 180.0);
+  ksl_mat3x3_setFromEulerAngles(&pose.R, KSL_AXIS_ZYX, &angles);
+  plane->set_pose(pose);
+  UpdateFloor();
+}
+
+void shift::gui::Workspace::UpdateFloor() {
+  if(!simulation_.is_loaded()) {
+    return;
+  }
+  for(auto& geometry :
+      simulation_.get_context()->get_fixed_collision_geometry()) {
+    auto plane =
+      dynamic_cast<shift::core::collision_geometry::Plane*>(geometry.get());
+    if(plane) {
+      // the fixed body's frame is the inertial frame
+      const ksl_vec3_t n = plane->get_normal_wrt_body();
+      const ksl_vec3_t& p = plane->get_point_wrt_body();
+      viewport_->set_floor(QVector3D(p.x, p.y, p.z), QVector3D(n.x, n.y, n.z));
+      return;
+    }
   }
 }
 
@@ -1115,7 +1553,11 @@ void shift::gui::Workspace::UpdateStatus() {
   panel.reset_button->setEnabled(loaded);
   panel.time_span->setEnabled(!computing);
   panel.time_step->setEnabled(!computing);
+  video_panel_.export_button->setEnabled(loaded && !computing &&
+                                         simulation_.has_results() &&
+                                         !video_panel_.exporting);
   sliders_.group_box->setEnabled(!computing);
+  geometry_panel_.group_box->setEnabled(!computing);
 
   if(loaded) {
     time_label_->setText(QString("t = %1 s, computed %2 / %3 s")

@@ -44,6 +44,20 @@ public:
     return "assemblies";
   }
 
+  std::vector<std::unique_ptr<body::Base>>& get_bodies() {
+    return bodies_.get_data();
+  }
+  std::vector<std::unique_ptr<joint::Base>>& get_joints() {
+    return joints_.get_data();
+  }
+  std::vector<std::unique_ptr<force_module::Base>>& get_force_modules() {
+    return force_modules_.get_data();
+  }
+  /*! \brief the assemblies nested in this one */
+  std::vector<std::unique_ptr<Assembly>>& get_assemblies() {
+    return assemblies_.get_data();
+  }
+
 private:
   void DeclareParameters() override;
 

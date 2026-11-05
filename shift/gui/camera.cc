@@ -33,7 +33,13 @@ QMatrix4x4 shift::gui::Camera::get_view_matrix() const {
 
 QMatrix4x4 shift::gui::Camera::get_projection_matrix(float aspect) const {
   QMatrix4x4 projection;
-  projection.perspective(fov_y_, aspect, distance_ * 0.01f, distance_ * 100.f);
+  // the near plane follows the distance to the target, which zooming keeps
+  // on the surface in view (ZoomTowards); the far plane reaches past the
+  // framed box, so that the rest of the model stays in view up close
+  const float near_plane = distance_ * 0.01f;
+  const float far_plane =
+    std::max(distance_ * 100.f, distance_ + 4.f * radius_);
+  projection.perspective(fov_y_, aspect, near_plane, far_plane);
   return projection;
 }
 
@@ -55,11 +61,29 @@ void shift::gui::Camera::Zoom(float factor) {
   distance_ = std::clamp(distance_ * factor, distance_min_, distance_max_);
 }
 
+void shift::gui::Camera::ZoomTowards(const QVector3D& point, float factor) {
+  const QVector3D forward = get_forward();
+  const QVector3D position = get_position();
+  // depth of the point along the view direction, after the move
+  const float depth = QVector3D::dotProduct(point - position, forward);
+  if(!(depth > 0.f)) {
+    Zoom(factor);
+    return;
+  }
+  const float new_depth =
+    std::clamp(depth * factor, distance_min_, distance_max_);
+  const QVector3D new_position =
+    point + (position - point) * (new_depth / depth);
+  distance_ = new_depth;
+  target_ = new_position + forward * new_depth;
+}
+
 void shift::gui::Camera::Frame(const QVector3D& box_min,
                                const QVector3D& box_max) {
   target_ = 0.5f * (box_min + box_max);
   const float radius = std::max(0.5f * (box_max - box_min).length(), 1e-3f);
   distance_ = radius / std::sin(0.5f * fov_y_ * float(M_PI) / 180.f);
-  distance_min_ = radius * 1e-3f;
+  distance_min_ = radius * 1e-4f;
   distance_max_ = radius * 1e3f;
+  radius_ = radius;
 }
