@@ -64,7 +64,7 @@
           "name": "bridge",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
               "filename": ["bridge.obj", "bridge.mtl"]
             }
           ],
@@ -93,7 +93,7 @@
           "name": "left arm",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
               "filename": ["left_arm.obj", "left_arm.mtl"]
             }
           ],
@@ -126,7 +126,7 @@
           "name": "right arm",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
               "filename": ["right_arm.obj", "right_arm.mtl"]
             }
           ],
@@ -164,7 +164,7 @@
           "name": "upper cable holder",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
               "filename": ["upper_cable_holder.obj", "upper_cable_holder.mtl"]
             }
           ],
@@ -183,7 +183,7 @@
           "name": "lower cable holder",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 1.5,
               "filename": ["lower_cable_holder.obj", "lower_cable_holder.mtl"]
             }
           ],

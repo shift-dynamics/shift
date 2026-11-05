@@ -1,11 +1,12 @@
-.. only:: html
+.. .. only:: html
 
     .. title:: References
 
 
-.. only:: html
+.. .. only:: html
 
    .. rubric:: References
+
 
 .. only:: html
 
@@ -13,6 +14,5 @@
     ==========
 
 
-.. bibliography:: ../bibliography.bib
+.. bibliography::
     :cited:
-    :style: plain

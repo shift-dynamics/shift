@@ -47,6 +47,13 @@ void shift::core::geometry::Mesh::DeclareParameters() {
                    "size of one texture tile for triplanar mapping, in model "
                    "length units, defaults to 1",
                    false);
+  DeclareParameter("scale", &scale_,
+                   "scale factors of the mesh about its origin: [s], or "
+                   "[sx, sy, sz] along its x, y and z axes, all positive; "
+                   "defaults to [1]. Applied before the mesh is placed on the "
+                   "body, e.g. [0.001] for a mesh drawn in millimeters",
+                   false)
+    .set_row_dim(-1);
 }
 
 
@@ -73,6 +80,16 @@ void shift::core::geometry::Mesh::Load() {
   }
   if(texture_scale_ <= 0.0) {
     throw shift::core::Exception("Mesh texture_scale must be positive");
+  }
+  if(!scale_.empty() && scale_.size() != 1 && scale_.size() != 3) {
+    throw shift::core::Exception("Mesh scale takes one factor or three");
+  }
+  for(int k = 0; k < 3; k++) {
+    scale_xyz_[k] =
+      scale_.empty() ? 1.0 : scale_.size() == 1 ? scale_[0] : scale_[k];
+    if(!(scale_xyz_[k] > 0.0)) {
+      throw shift::core::Exception("Mesh scale factors must be positive");
+    }
   }
 
   // resolve the supported files: next to the model file, else in the
@@ -102,7 +119,8 @@ void shift::core::geometry::Mesh::Load() {
   // many bodies of one part
   std::ostringstream key;
   key.precision(17);
-  key << color_space_ << "|" << texture_mapping_ << "|" << texture_scale_;
+  key << color_space_ << "|" << texture_mapping_ << "|" << texture_scale_
+      << "|" << scale_xyz_[0] << "," << scale_xyz_[1] << "," << scale_xyz_[2];
   for(const auto& file : files) {
     key << "|" << file;
   }
@@ -116,6 +134,24 @@ void shift::core::geometry::Mesh::Load() {
   }
   asset_ = asset;
   context_->AddMeshAsset(key.str(), std::move(asset));
+}
+
+void shift::core::geometry::Mesh::ScaleDirections(std::vector<float>& d,
+                                                  bool tangent) const {
+  for(size_t j = 0; j + 2 < d.size(); j += 3) {
+    double length = 0.0;
+    double v[3];
+    for(int k = 0; k < 3; k++) {
+      v[k] = tangent ? d[j + k] * scale_xyz_[k] : d[j + k] / scale_xyz_[k];
+      length += v[k] * v[k];
+    }
+    length = std::sqrt(length);
+    if(length > 0.0) {
+      for(int k = 0; k < 3; k++) {
+        d[j + k] = static_cast<float>(v[k] / length);
+      }
+    }
+  }
 }
 
 void shift::core::geometry::Mesh::Import(const std::string& file,
@@ -167,9 +203,12 @@ void shift::core::geometry::Mesh::Import(const std::string& file,
 
     mesh_data.vertices.resize(3 * scene->mMeshes[i]->mNumVertices);
     for(size_t j = 0; j < scene->mMeshes[i]->mNumVertices; j++) {
-      mesh_data.vertices[3 * j + 0] = scene->mMeshes[i]->mVertices[j].x;
-      mesh_data.vertices[3 * j + 1] = scene->mMeshes[i]->mVertices[j].y;
-      mesh_data.vertices[3 * j + 2] = scene->mMeshes[i]->mVertices[j].z;
+      mesh_data.vertices[3 * j + 0] =
+        scale_xyz_[0] * scene->mMeshes[i]->mVertices[j].x;
+      mesh_data.vertices[3 * j + 1] =
+        scale_xyz_[1] * scene->mMeshes[i]->mVertices[j].y;
+      mesh_data.vertices[3 * j + 2] =
+        scale_xyz_[2] * scene->mMeshes[i]->mVertices[j].z;
     }
 
     if(scene->mMeshes[i]->HasNormals()) {
@@ -195,6 +234,13 @@ void shift::core::geometry::Mesh::Import(const std::string& file,
         mesh_data.bitangents[3 * j + 1] = scene->mMeshes[i]->mBitangents[j].y;
         mesh_data.bitangents[3 * j + 2] = scene->mMeshes[i]->mBitangents[j].z;
       }
+    }
+    if(scale_xyz_[0] != scale_xyz_[1] || scale_xyz_[1] != scale_xyz_[2]) {
+      // under a scale S, directions in the surface (tangents) go to S t and
+      // normals to S^-1 n, each normalized again
+      ScaleDirections(mesh_data.normals, false);
+      ScaleDirections(mesh_data.tangents, true);
+      ScaleDirections(mesh_data.bitangents, true);
     }
 
     if(scene->mMeshes[i]->mTextureCoords[0]) {
@@ -372,6 +418,10 @@ void shift::core::geometry::Mesh::Import(const std::string& file,
       if(name[0] == '*') {
         SHIFT_WARNING("Embedded texture " + name + " not found: " + file);
         return "";
+      }
+      // a texture built into the viewer, e.g. qrc:/textures/steel_normal.png
+      if(shift::core::utility::IsResourcePath(name)) {
+        return name;
       }
       std::replace(name.begin(), name.end(), '\\', '/');
       if(name[0] != '/') {

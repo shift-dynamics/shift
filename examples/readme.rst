@@ -1,9 +1,9 @@
 Shift
 -----
 
-Presently, *Shift* is in active development and not available to the general public. If you are interested to help develop *Shift* or have ideas to incorporate *Shift* into your research, please contact the authors. For more information, refer to http://shift-dynamics.io/about.html.
+Presently, *Shift* is in active development and not available to the general public. If you are interested to help develop *Shift* or have ideas to incorporate *Shift* into your research, please contact the authors. For more information, refer to https://shift-dynamics.github.io/shift/about.html.
 
-This repository contains a number of models defined using the *Shift* `JSON <http://shift-dynamics.io/file_format/file_format.html>`_ syntax that demonstrate some  capabilities of the software. Refer to the *readme.rst* files within each directory for a description of each model.
+This repository contains a number of models defined using the *Shift* `JSON <https://shift-dynamics.github.io/shift/model-file/model-file.html>`_ syntax that demonstrate some  capabilities of the software. Refer to the *readme.rst* files within each directory for a description of each model.
 
 * `Abiflexx D4 delta robot <https://github.com/shift-dynamics/shift-models/tree/master/abiflexx_d4_1300>`_
 * `Bicycle caliper brake <https://github.com/shift-dynamics/shift-models/tree/master/brake>`_

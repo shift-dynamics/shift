@@ -7,6 +7,8 @@
 #include "shift/core/force_module/hydraulic_cylinder.h"
 #include "shift/core/force_module/rubber_mount.h"
 #include "shift/core/force_module/tire/base.h"
+#include "shift/core/force_module/track.h"
+#include "shift/core/force_module/track_soil.h"
 
 bool shift::core::force_module::Modules::is_initialized() {
   if(!shift::core::force_module::Contact::is_registered()) {
@@ -28,6 +30,12 @@ bool shift::core::force_module::Modules::is_initialized() {
     return false;
   }
   if(!shift::core::force_module::RubberMount::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::Track::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::TrackSoil::is_registered()) {
     return false;
   }
   return true;

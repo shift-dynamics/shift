@@ -62,6 +62,10 @@ public:
     state_offset_ = offset;
   }
 
+  size_t get_state_offset() const {
+    return state_offset_;
+  }
+
   virtual void ActivateObjects(bool parent_is_active) override;
   
 
@@ -95,7 +99,7 @@ public:
   }
 
   /*! \brief names of the module's output values (such as pressures or
-   * forces), which loggers record as columns named <module>_<output> */
+   * forces), which loggers record as columns named \<module\>_\<output\> */
   virtual std::vector<std::string> get_output_names() const {
     return {};
   }

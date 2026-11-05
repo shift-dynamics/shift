@@ -1,0 +1,112 @@
+{
+  // An engine's accessory drive: a ribbed belt from the crankshaft pulley
+  // around the alternator and the water pump, with a spring-loaded idler on
+  // its back as the tensioner. A PID controller brings the crankshaft up to
+  // 80 rad/s against the drag of the accessories, measuring its speed with
+  // a joint sensor. The pulleys turn about the fixed z axis, and the belt
+  // runs counterclockwise about it: crank, alternator, pump, idler.
+  "model_parameters": {
+    "version": "0.2.0",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    // z points down: gravity acts along +z, along the pulleys' axes
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 3.0, "time_step": 0.005,
+                     "relative_error": 1e-6, "absolute_error": 1e-8}],
+    "loggers": [{"type": "csv", "csv_logfile": "belt.csv",
+                 "timestamp_logfile": false}]
+  },
+  "frames": [{"name": "alternator_home", "T": [0.35, 0.05, 0]},
+             {"name": "pump_home", "T": [0.15, 0.3, 0]},
+             // the tensioner slides along x, into the belt
+             {"name": "tensioner_home", "T": [-0.01, 0.15, 0]}],
+  "assemblies": [
+    {
+      "name": "accessory_drive",
+      "bodies": [
+        {"name": "crank",
+         "geometry": [{"type": "mesh", "filename": ["meshes/cylinder_z_black.obj"],
+                       "scale": [0.08, 0.08, 0.025], "texture_mapping": "triplanar",
+                       "texture_scale": 0.05}],
+         "center_of_mass": [0, 0, 0],
+         "inertia": {"mass": 3, "Ixx": 0.01, "Iyy": 0.01, "Izz": 0.02,
+                     "Ixy": 0, "Iyz": 0, "Izx": 0}},
+        {"name": "alternator",
+         "geometry": [{"type": "mesh", "filename": ["meshes/cylinder_z_blue.obj"],
+                       "scale": [0.03, 0.03, 0.025], "texture_mapping": "triplanar",
+                       "texture_scale": 0.05}],
+         "center_of_mass": [0, 0, 0],
+         "inertia": {"mass": 2, "Ixx": 0.002, "Iyy": 0.002, "Izz": 0.003,
+                     "Ixy": 0, "Iyz": 0, "Izx": 0}},
+        {"name": "pump",
+         "geometry": [{"type": "mesh", "filename": ["meshes/cylinder_z_aluminium.obj"],
+                       "scale": [0.05, 0.05, 0.025], "texture_mapping": "triplanar",
+                       "texture_scale": 0.05}],
+         "center_of_mass": [0, 0, 0],
+         "inertia": {"mass": 1, "Ixx": 0.001, "Iyy": 0.001, "Izz": 0.001,
+                     "Ixy": 0, "Iyz": 0, "Izx": 0}},
+        {"name": "tensioner",
+         "geometry": [{"type": "mesh", "filename": ["meshes/box_black.obj"],
+                       "scale": [0.09, 0.03, 0.012], "texture_mapping": "triplanar",
+                       "texture_scale": 0.05}],
+         "center_of_mass": [0, 0, 0],
+         "inertia": {"mass": 0.5, "Ixx": 0.001, "Iyy": 0.001, "Izz": 0.001,
+                     "Ixy": 0, "Iyz": 0, "Izx": 0}},
+        {"name": "idler",
+         "geometry": [{"type": "mesh", "filename": ["meshes/cylinder_z_steel.obj"],
+                       "scale": [0.03, 0.03, 0.025], "texture_mapping": "triplanar",
+                       "texture_scale": 0.05}],
+         "center_of_mass": [0, 0, 0],
+         "inertia": {"mass": 0.2, "Ixx": 0.0001, "Iyy": 0.0001,
+                     "Izz": 0.0002, "Ixy": 0, "Iyz": 0, "Izx": 0}}
+      ],
+      "joints": [
+        {"name": "crank_bearing", "type": "revolute", "axis": [0, 0, 1],
+         "parent": [["fixed"], "origin"], "child": [["crank"], "origin"]},
+        // viscous drag of the alternator and the pump, N m s/rad
+        {"name": "alternator_bearing", "type": "revolute", "axis": [0, 0, 1],
+         "parent": [["fixed"], "alternator_home"],
+         "child": [["alternator"], "origin"],
+         "damping_coefficients": [0, 0.002]},
+        {"name": "pump_bearing", "type": "revolute", "axis": [0, 0, 1],
+         "parent": [["fixed"], "pump_home"], "child": [["pump"], "origin"],
+         "damping_coefficients": [0, 0.004]},
+        // the tensioner's spring pushes the idler into the belt with 50 N
+        // at its starting place (the joint force is -(a0 + a1 x))
+        {"name": "tensioner_slide", "type": "prismatic", "axis": [1, 0, 0],
+         "parent": [["fixed"], "tensioner_home"],
+         "child": [["tensioner"], "origin"],
+         "stiffness_coefficients": [-50, 2e4],
+         "damping_coefficients": [0, 100]},
+        {"name": "idler_bearing", "type": "revolute", "axis": [0, 0, 1],
+         "parent": [["tensioner"], "origin"], "child": [["idler"], "origin"]}
+      ],
+      "sensors": [
+        {"type": "joint", "name": "crank_speed", "joint": "crank_bearing",
+         "quantity": "velocity"}
+      ],
+      "controllers": [
+        {"type": "pid", "name": "speed_control", "kp": 0.5, "ki": 1.0,
+         "kd": 0, "target": 80, "sensor": "crank_speed",
+         "joint": "crank_bearing"}
+      ],
+      "force_modules": [
+        {
+          "type": "belt", "name": "belt",
+          "frames": [["crank", "origin"], ["alternator", "origin"],
+                     ["pump", "origin"], ["idler", "origin"]],
+          // the idler runs on the back of the belt, outside the loop
+          "radii": [0.08, 0.03, 0.05, -0.03],
+          // EA of the belt, N; stiffness-proportional damping, s
+          "axial_stiffness": 1e5, "damping": 1e-3,
+          "pretension": 300,
+          // the belt may slip on any pulley beyond the capstan limit
+          "friction_coefficient": [0.5, 0.5, 0.5, 0.5],
+          "slip_damping": 200
+        }
+      ]
+    }
+  ]
+}

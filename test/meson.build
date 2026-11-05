@@ -22,11 +22,14 @@ test_sources = [
   'test_light.cc',
   'test_beam.cc',
   'test_belt.cc',
+  'test_mesh_scale.cc',
   'test_bushing.cc',
   'test_hydraulic_cylinder.cc',
   'test_rubber_mount.cc',
   'test_step_reader.cc',
   'test_cad_repair.cc',
+  'test_cad_contact.cc',
+  'test_terramechanics.cc',
   # 'test_kdtree.cc',
 ]
 test_deps = [shift_core_dep, gtest_dep]
@@ -74,6 +77,8 @@ stress_models = [
   'collision/collision_test_skull_500.json',
   'collision/collision_test_skull_5000.json',
   'collision/collision_test_skull_500_free.json',
+  'cad/track_frame.json',
+  'cad/track_loop.json',
 ]
 
 foreach model_path : example_models

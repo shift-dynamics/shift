@@ -28,7 +28,7 @@ shift::core::force_module::tire::Base::Create() {
 
 void shift::core::force_module::tire::Base::DeclareParameters() {
   shift::core::force_module::Base::DeclareParameters();
-  DeclareParameter("tire_type", &tire_type_, "tire model: \"fiala\" or \"pac2002\"", true);
+  DeclareParameter("tire_type", &tire_type_, "tire model: \"fiala\", \"pac2002\" or \"bekker_wong\"", true);
   DeclareParameter("wheel_body", &wheel_body_name_,
                    "name of the wheel body, in the same assembly; the wheel "
                    "spins about the y axis of its origin frame",
@@ -36,7 +36,9 @@ void shift::core::force_module::tire::Base::DeclareParameters() {
 
   FialaParameters& f = fiala_;
   DeclareParameter("unloaded_radius", &f.unloaded_radius,
-                   "Fiala: unloaded radius, defaults to 0.344", false);
+                   "Fiala and Bekker-Wong: unloaded radius, defaults to "
+                   "0.344",
+                   false);
   DeclareParameter("vertical_stiffness", &f.vertical_stiffness,
                    "Fiala: vertical stiffness, defaults to 310000", false);
   DeclareParameter("vertical_damping", &f.vertical_damping,
@@ -44,7 +46,8 @@ void shift::core::force_module::tire::Base::DeclareParameters() {
   DeclareParameter("rolling_resistance", &f.rolling_resistance,
                    "Fiala: rolling resistance coefficient, defaults to 0.001",
                    false);
-  DeclareParameter("width", &f.width, "Fiala: tire width, defaults to 0.235",
+  DeclareParameter("width", &f.width,
+                   "Fiala and Bekker-Wong: tire width, defaults to 0.235",
                    false);
   DeclareParameter("cslip", &f.cslip,
                    "Fiala: longitudinal slip stiffness, defaults to 1000000",
@@ -63,6 +66,45 @@ void shift::core::force_module::tire::Base::DeclareParameters() {
                    false);
   DeclareParameter("y_relaxation_length", &f.y_relaxation_length,
                    "Fiala: lateral relaxation length, defaults to 0.15", false);
+
+  BekkerWongParameters& w = bekker_wong_;
+  DeclareParameter("soil", &soil_,
+                   "Bekker-Wong: the soil (see force_module::Soil)", false);
+  DeclareParameter("soil_damping", &w.vertical_damping,
+                   "Bekker-Wong: damping of the load on the normal velocity "
+                   "of the contact point, defaults to 0",
+                   false);
+  DeclareParameter("max_stress_angle", &w.c1,
+                   "Bekker-Wong: c1 of the angle of greatest normal stress "
+                   "theta_m = (c1 + c2 slip) theta_1, defaults to 0.4",
+                   false);
+  DeclareParameter("max_stress_slip", &w.c2,
+                   "Bekker-Wong: c2 of theta_m, defaults to 0.3", false);
+  DeclareParameter("rebound", &w.rebound,
+                   "Bekker-Wong: rear sinkage over the front sinkage, "
+                   "defaults to 0",
+                   false);
+  DeclareParameter("grouser_height", &w.grouser_height,
+                   "Bekker-Wong: height of the lugs, for the shear, "
+                   "defaults to 0",
+                   false);
+  DeclareParameter("stations", &w.stations,
+                   "Bekker-Wong: quadrature points in each of the two "
+                   "zones of the rim, defaults to 16",
+                   false);
+  DeclareParameter("strips", &w.strips,
+                   "Bekker-Wong: quadrature points across the width of a "
+                   "cambered wheel, defaults to 5",
+                   false);
+  DeclareParameter("bulldozing", &w.bulldozing,
+                   "Bekker-Wong: the passive pressure of the soil on the "
+                   "sides of the wheel, where they push it, defaults to "
+                   "true",
+                   false);
+  DeclareParameter("slip_speed", &w.slip_speed,
+                   "Bekker-Wong: speed that smooths the slip at "
+                   "standstill, defaults to 0.01",
+                   false);
 
   DeclareParameter("definition", &definition_,
                    "PAC2002: .tir property file, next to the model file or "
@@ -133,6 +175,12 @@ void shift::core::force_module::tire::Base::Load() {
       coefficients,
       ksl_vec3_l2norm(context_->get_model_parameters().get_gravity()),
       use_transient_slip_);
+  } else if(tire_type_ == "bekker_wong") {
+    BekkerWongParameters parameters = bekker_wong_;
+    parameters.radius = fiala_.unloaded_radius;
+    parameters.width = fiala_.width;
+    parameters.soil = soil_.Resolve("Tire " + get_name());
+    model_ = std::make_unique<BekkerWong>(parameters);
   } else {
     throw shift::core::Exception("Tire " + get_name() + ": tire_type \"" +
                                  tire_type_ + "\" is not supported");
@@ -233,7 +281,12 @@ void shift::core::force_module::tire::Base::UpdateContact(
                            lowest.z - plane_point.z}};
     depth = ksl_dot_vv(&q, &terrain_normal);
   }
-  if(depth <= 0.0) {
+  /* a cambered wheel touches the terrain with the lower edge of its tread
+  first: the middle of the rim is up to half the width times the tilt of the
+  axle out of the terrain plane above it */
+  const double margin = model_->get_half_width() *
+                        std::fabs(ksl_dot_vv(&wheel_normal, &terrain_normal));
+  if(depth + margin <= 0.0) {
     return;
   }
 
@@ -286,6 +339,14 @@ void shift::core::force_module::tire::Base::UpdateContact(
                                  ksl_dot_vv(&w.R.v1, &center_velocity),
                                  ksl_dot_vv(&w.R.v2, &center_velocity)}};
 
+  /* hub velocity and angular velocity of the wheel in the w frame */
+  contact_.hub_velocity_w = {{ksl_dot_vv(&w.R.v0, &hub_velocity),
+                              ksl_dot_vv(&w.R.v1, &hub_velocity),
+                              ksl_dot_vv(&w.R.v2, &hub_velocity)}};
+  contact_.angular_velocity_w = {{ksl_dot_vv(&w.R.v0, &velocity.ang),
+                                  ksl_dot_vv(&w.R.v1, &velocity.ang),
+                                  ksl_dot_vv(&w.R.v2, &velocity.ang)}};
+
   /* spin axis in the w frame */
   contact_.spin_axis_w = {{ksl_dot_vv(&w.R.v0, &wheel_normal),
                            ksl_dot_vv(&w.R.v1, &wheel_normal),
@@ -328,4 +389,32 @@ void shift::core::force_module::tire::Base::Service(const double* y,
     load.ang.at[i] += p_cross_f.at[i];
   }
   context_->AddBodyLoad(load_index_, load);
+}
+
+std::vector<std::string>
+shift::core::force_module::tire::Base::get_output_names() const {
+  if(tire_type_ != "bekker_wong") {
+    return {};
+  }
+  return {"sinkage",    "slip",   "drawbar_pull", "load",
+          "shear_torque", "camber", "side_force"};
+}
+
+void shift::core::force_module::tire::Base::UpdateOutputs(double,
+                                                          const double*) {
+  outputs_.clear();
+  const auto* wheel = dynamic_cast<const BekkerWong*>(model_.get());
+  if(wheel == nullptr) {
+    return;
+  }
+  const bool touching = contact_.in_contact;
+  outputs_ = {touching ? contact_.depth : 0.0, wheel->get_slip(),
+              touching ? force_w_.lin.x : 0.0,
+              touching ? -force_w_.lin.z : 0.0, wheel->get_shear_torque(),
+              wheel->get_camber(), touching ? force_w_.lin.y : 0.0};
+}
+
+void shift::core::force_module::tire::Base::AppendOutputs(
+  std::vector<double>& values) const {
+  values.insert(values.end(), outputs_.begin(), outputs_.end());
 }

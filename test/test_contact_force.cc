@@ -229,6 +229,39 @@ TEST(ContactForce, SlidingBallRolls) {
   EXPECT_NEAR(Height(context, drop), 0.0, 1e-3);
 }
 
+TEST(ContactForce, ArchardWear) {
+  // a ball sliding at 1 m/s without friction keeps its speed; each of the
+  // two materials wears K / H F |u| per unit time, which over 1 s on
+  // average carries its weight, m g: K / H m g |u| t
+  Drop drop;
+  drop.height = 0.0;
+  drop.velocity = "[1.0, 0, 0, 0, 0, 0]";
+  drop.time_span = 1.0;
+  drop.restitution = 0.2;
+  drop.friction = 0.0;
+  drop.damping = R"(, "wear_coefficient": 1e-9)";
+  shift::core::Context context;
+  RunDrop(context, "wear", drop);
+  const shift::core::force_module::Base* contact = nullptr;
+  for(auto module : context.get_active_force_modules()) {
+    if(module->get_name() == "contact") {
+      contact = module;
+    }
+  }
+  ASSERT_NE(contact, nullptr);
+  const auto names = contact->get_output_names();
+  std::vector<double> worn;
+  contact->AppendOutputs(worn);
+  ASSERT_EQ(names.size(), 2u);
+  ASSERT_EQ(worn.size(), 2u);
+  for(size_t i = 0; i < names.size(); i++) {
+    SCOPED_TRACE(names[i]);
+    EXPECT_TRUE(names[i] == "wear_ball" || names[i] == "wear_ground");
+    EXPECT_NEAR(worn[i], 1e-9 * kGravity, 1e-2 * 1e-9 * kGravity);
+  }
+  EXPECT_NEAR(Velocity(context).x, 1.0, 1e-9);
+}
+
 TEST(ContactForce, HullLinearSpring) {
   // a box on its face rests on a spring at each of its four bottom corners,
   // the stiffnesses of the materials in series (1/k = 2/1e5): 4 k d = m g

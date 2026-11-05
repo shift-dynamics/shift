@@ -1,0 +1,5 @@
+# dark grey glaze: color (linear), metalness Pm, roughness Pr
+newmtl bunny
+Kd 0.03 0.03 0.03
+Pm 0.0
+Pr 0.3

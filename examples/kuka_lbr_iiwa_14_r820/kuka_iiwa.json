@@ -65,6 +65,7 @@
           "geometry": [
             {
               "type": "mesh",
+              "color_space": "srgb",
               "filename": ["lbr_iiwa_14_r820_part_1.obj", "lbr_iiwa_14_r820_part_1.mtl"]
             }
           ],
@@ -90,6 +91,7 @@
           "geometry": [
             {
               "type": "mesh",
+              "color_space": "srgb",
               "filename": ["lbr_iiwa_14_r820_part_2.obj", "lbr_iiwa_14_r820_part_2.mtl"]
             }
           ],
@@ -115,6 +117,7 @@
           "geometry": [
             {
               "type": "mesh",
+              "color_space": "srgb",
               "filename": ["lbr_iiwa_14_r820_part_3.obj", "lbr_iiwa_14_r820_part_3.mtl"]
             }
           ],
@@ -140,6 +143,7 @@
           "geometry": [
             {
               "type": "mesh",
+              "color_space": "srgb",
               "filename": ["lbr_iiwa_14_r820_part_4.obj", "lbr_iiwa_14_r820_part_4.mtl"]
             }
           ],
@@ -165,6 +169,7 @@
           "geometry": [
             {
               "type": "mesh",
+              "color_space": "srgb",
               "filename": ["lbr_iiwa_14_r820_part_5.obj", "lbr_iiwa_14_r820_part_5.mtl"]
             }
           ],
@@ -190,6 +195,7 @@
           "geometry": [
             {
               "type": "mesh",
+              "color_space": "srgb",
               "filename": ["lbr_iiwa_14_r820_part_6.obj", "lbr_iiwa_14_r820_part_6.mtl"]
             }
           ],
@@ -215,6 +221,7 @@
           "geometry": [
             {
               "type": "mesh",
+              "color_space": "srgb",
               "filename": ["lbr_iiwa_14_r820_part_7.obj", "lbr_iiwa_14_r820_part_7.mtl"]
             }
           ],
@@ -240,6 +247,7 @@
           "geometry": [
             {
               "type": "mesh",
+              "color_space": "srgb",
               "filename": ["lbr_iiwa_14_r820_part_8.obj", "lbr_iiwa_14_r820_part_8.mtl"]
             }
           ],
@@ -304,7 +312,7 @@
             "origin"
           ],
           "axis": [0, 1, 0],
-          "initial_displacement": 0.0,
+          "initial_displacement": 0.7,
           "initial_velocity": 0.0
         },
         {
@@ -334,7 +342,7 @@
             "4_distal"
           ],
           "axis": [0, 1, 0],
-          "initial_displacement": 0.0,
+          "initial_displacement": -1.1,
           "initial_velocity": 0.0
         },
         {
@@ -364,7 +372,7 @@
             "origin"
           ],
           "axis": [0, 1, 0],
-          "initial_displacement": 0.0,
+          "initial_displacement": 0.9,
           "initial_velocity": 0.0
         },
         {

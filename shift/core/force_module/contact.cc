@@ -8,6 +8,7 @@
 #include "shift/core/collision_geometry/convex_hull.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/gjk.h"
+#include "shift/core/collision_geometry/hertz.h"
 #include "shift/core/collision_geometry/plane.h"
 #include "shift/core/collision_geometry/sphere.h"
 #include "shift/core/context.h"
@@ -49,6 +50,11 @@ void shift::core::force_module::ContactMaterial::DeclareParameters() {
   DeclareParameter("contact_stiffness", &contact_stiffness,
                    "force per penetration depth, for contact with convex "
                    "hulls (a linear spring)",
+                   false);
+  DeclareParameter("wear_coefficient", &wear_coefficient,
+                   "Archard's wear coefficient over the hardness, K / H: the "
+                   "volume worn per normal force and sliding distance (1/Pa "
+                   "in SI units); 0 (the default) for no wear",
                    false);
 }
 
@@ -171,13 +177,27 @@ void shift::core::force_module::Contact::Load() {
   std::vector<bool> hull(count, false), curved(count, false),
     plane(count, false);
   geometry_.clear();
+  wear_names_.clear();
+  q_0_.clear();
   for(auto geometry : context_->get_active_collision_geometry()) {
     Geometry g;
     g.material = geometry->get_material().empty()
                    ? default_material
                    : index_of(geometry->get_material());
     g.load_index = context_->GetBodyLoadIndex(geometry->get_parent_body());
-        geometry_[geometry] = g;
+    if(materials[g.material]->wear_coefficient < 0.0) {
+      throw shift::core::Exception(description + ": material '" +
+                                   materials[g.material]->name +
+                                   "' has a negative wear_coefficient");
+    }
+    if(materials[g.material]->wear_coefficient > 0.0 &&
+       geometry->is_contact_enabled()) {
+      g.wear = static_cast<int>(wear_names_.size());
+      wear_names_.push_back(geometry->get_name());
+      q_0_.push_back(0.0); // worn volume
+    }
+    geometry_[geometry] = g;
+    equation_count_ = static_cast<unsigned int>(q_0_.size());
     if(!geometry->is_contact_enabled()) {
       continue; // e.g. the default floor; it gets no force if switched on
                 // without the properties its contact law needs
@@ -352,7 +372,44 @@ double shift::core::force_module::Contact::GroupMass(int load_index) const {
   return found == group_mass_.end() ? 0.0 : found->second;
 }
 
-void shift::core::force_module::Contact::Service(const double*, double*) {
+double shift::core::force_module::Contact::PointLaw(
+  const collision_geometry::ContactPoint& c, double modulus, double depth,
+  double& stiffness, double& exponent) {
+  if(c.length > 0.0) {
+    stiffness = 0.25 * M_PI * modulus * c.length;
+    exponent = 1.0;
+    return stiffness;
+  }
+  stiffness = 4.0 / 3.0 * modulus / std::sqrt(std::max(c.curvature, 1e-12)) *
+              collision_geometry::HertzEllipseFactor(c.curvature_ratio);
+  exponent = 1.5;
+  return 1.5 * stiffness * std::sqrt(depth); // linearized
+}
+
+std::vector<std::string>
+shift::core::force_module::Contact::get_output_names() const {
+  std::vector<std::string> names;
+  for(const auto& name : wear_names_) {
+    names.push_back("wear_" + name);
+  }
+  return names;
+}
+
+void shift::core::force_module::Contact::UpdateOutputs(double,
+                                                       const double* y) {
+  worn_.assign(y + state_offset_, y + state_offset_ + wear_names_.size());
+}
+
+void shift::core::force_module::Contact::AppendOutputs(
+  std::vector<double>& values) const {
+  values.insert(values.end(), worn_.begin(), worn_.end());
+  values.resize(values.size() + wear_names_.size() - worn_.size(), 0.0);
+}
+
+void shift::core::force_module::Contact::Service(const double*, double* dy) {
+  for(size_t i = 0; i < wear_names_.size(); i++) {
+    dy[state_offset_ + i] = 0.0;
+  }
   if(group_mass_.empty()) {
     for(auto body : context_->get_active_articulated_bodies()) {
       group_mass_[context_->GetBodyLoadIndex(body)] += body->get_inertia().m;
@@ -369,28 +426,8 @@ void shift::core::force_module::Contact::Service(const double*, double*) {
     const Geometry& b = Find(pair->b);
     const Law& law = laws_[a.material * count + b.material];
     pair->force = {{0.0, 0.0, 0.0}};
-    const ksl_vec3_t& n = pair->normal;
     const ksl_screw_t velocity_a = context_->GetBodyVelocity(a.load_index);
     const ksl_screw_t velocity_b = context_->GetBodyVelocity(b.load_index);
-
-    /* stiffness and exponent of the contact law: Hertz at the deepest point
-    of curved surfaces, a linear spring at each point of the manifold of a
-    convex hull */
-    double stiffness, exponent;
-    double curvature_a, curvature_b;
-    const bool hertz = Curvature(pair->a, pair->point_local_a, curvature_a) &&
-                       Curvature(pair->b, pair->point_local_b, curvature_b);
-    if(hertz) {
-      const double curvature = curvature_a + curvature_b;
-      if(!(curvature > 0.0)) {
-        continue; // two planes
-      }
-      stiffness = 4.0 / 3.0 * law.modulus / std::sqrt(curvature);
-      exponent = 1.5;
-    } else {
-      stiffness = law.stiffness;
-      exponent = 1.0;
-    }
 
     /* velocity of b relative to a at the midpoint of a contact point */
     auto relative_velocity = [&](const collision_geometry::ContactPoint& c,
@@ -403,33 +440,23 @@ void shift::core::force_module::Contact::Service(const double*, double*) {
       return ksl_vec3_t{{vb.x - va.x, vb.y - va.y, vb.z - va.z}};
     };
 
-    /* the largest damping coefficient, given or from the restitution with
-    the pair's effective mass */
-    double damping = law.damping;
-    if(damping < 0.0) {
+    /* the effective mass of the pair, for the damping of its restitution;
+    0 if neither group moves or one has no mass */
+    auto effective_mass = [&]() {
       const double m_a = GroupMass(a.load_index);
       const double m_b = GroupMass(b.load_index);
       const double mass = std::isinf(m_a)   ? m_b
                           : std::isinf(m_b) ? m_a
                                             : m_a * m_b / (m_a + m_b);
-      if(!(mass > 0.0) || std::isinf(mass)) {
-        damping = 0.0; // neither group moves, or one has no mass
-      } else if(hertz) {
-        const double linear = 1.5 * stiffness * std::sqrt(damping_depth_);
-        damping = 2.0 * law.damping_ratio * std::sqrt(linear * mass);
-      } else {
-        damping = 2.0 * law.damping_ratio * std::sqrt(4.0 * stiffness * mass) /
-                  4.0;
-      }
-    }
+      return !(mass > 0.0) || std::isinf(mass) ? 0.0 : mass;
+    };
 
-    collision_geometry::ContactPoint deepest;
-    deepest.depth = pair->depth;
-    deepest.point_a = pair->point_a;
-    deepest.point_b = pair->point_b;
     ksl_vec3_t p;
-
-    auto apply = [&](const collision_geometry::ContactPoint& c) {
+    /* the force of a point of contact, with normal n, F = K d^e plus
+    damping c, ramped up over damping_depth */
+    auto apply = [&](const collision_geometry::ContactPoint& c,
+                     const ksl_vec3_t& n, double stiffness, double exponent,
+                     double damping) {
       const ksl_vec3_t relative = relative_velocity(c, p);
       const double along = ksl_dot_vv(&relative, &n);
       /* IMPACT of Adams: the damping ramps up over damping_depth by STEP,
@@ -451,6 +478,15 @@ void shift::core::force_module::Contact::Service(const double*, double*) {
         law.friction * normal /
         std::sqrt(ksl_dot_vv(&sliding, &sliding) +
                   friction_velocity_ * friction_velocity_);
+      /* Archard wear of each geometry whose material wears */
+      const double speed = std::sqrt(ksl_dot_vv(&sliding, &sliding));
+      for(const Geometry* g : {&a, &b}) {
+        if(g->wear >= 0) {
+          dy[state_offset_ + g->wear] +=
+            materials_.get_data()[g->material]->wear_coefficient * normal *
+            speed;
+        }
+      }
       ksl_coscrew_t load;
       for(int k = 0; k < 3; k++) {
         load.lin.at[k] = normal * n.at[k] - friction * sliding.at[k];
@@ -463,11 +499,76 @@ void shift::core::force_module::Contact::Service(const double*, double*) {
       }
       context_->AddBodyLoad(a.load_index, load);
     };
+
+    /* points with their own laws (CAD geometry): a line of contact,
+    K = pi/4 E* L and e = 1 for the length L the point carries; Hertz at
+    a point (see PointLaw). The damping of the restitution is that of the
+    pair's linearized stiffness, shared by the points in proportion to
+    theirs */
+    if(pair->point_laws) {
+      auto point_law = [&](const collision_geometry::ContactPoint& c,
+                           double& stiffness, double& exponent) {
+        return PointLaw(c, law.modulus, damping_depth_, stiffness, exponent);
+      };
+      double stiffness, exponent, total = 0.0;
+      for(const auto& c : pair->manifold) {
+        total += c.weight * point_law(c, stiffness, exponent);
+      }
+      const double damping =
+        law.damping >= 0.0
+          ? law.damping
+          : 2.0 * law.damping_ratio * std::sqrt(total * effective_mass());
+      for(const auto& c : pair->manifold) {
+        const double linear = point_law(c, stiffness, exponent);
+        apply(c, c.normal, stiffness, exponent,
+              total > 0.0 ? damping * linear / total : 0.0);
+      }
+      continue;
+    }
+
+    /* stiffness and exponent of the contact law: Hertz at the deepest point
+    of curved surfaces, a linear spring at each point of the manifold of a
+    convex hull */
+    const ksl_vec3_t& n = pair->normal;
+    double stiffness, exponent;
+    double curvature_a, curvature_b;
+    const bool hertz = Curvature(pair->a, pair->point_local_a, curvature_a) &&
+                       Curvature(pair->b, pair->point_local_b, curvature_b);
     if(hertz) {
-      apply(deepest);
+      const double curvature = curvature_a + curvature_b;
+      if(!(curvature > 0.0)) {
+        continue; // two planes
+      }
+      stiffness = 4.0 / 3.0 * law.modulus / std::sqrt(curvature);
+      exponent = 1.5;
+    } else {
+      stiffness = law.stiffness;
+      exponent = 1.0;
+    }
+
+    /* the largest damping coefficient, given or from the restitution with
+    the pair's effective mass */
+    double damping = law.damping;
+    if(damping < 0.0) {
+      const double mass = effective_mass();
+      if(hertz) {
+        const double linear = 1.5 * stiffness * std::sqrt(damping_depth_);
+        damping = 2.0 * law.damping_ratio * std::sqrt(linear * mass);
+      } else {
+        damping = 2.0 * law.damping_ratio * std::sqrt(4.0 * stiffness * mass) /
+                  4.0;
+      }
+    }
+
+    if(hertz) {
+      collision_geometry::ContactPoint deepest;
+      deepest.depth = pair->depth;
+      deepest.point_a = pair->point_a;
+      deepest.point_b = pair->point_b;
+      apply(deepest, n, stiffness, exponent, damping);
     } else {
       for(const auto& c : pair->manifold) {
-        apply(c);
+        apply(c, n, stiffness, exponent, damping);
       }
     }
   }

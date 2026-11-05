@@ -1,123 +1,127 @@
+.. _installation:
 .. title:: Installation
 
 Installation
 ============
 
-Acquiring Shift
----------------
+Getting the source
+------------------
 
-*Shift* is accessible through a private github repository located at `<https://github.com/shift-dynamics/shift>`_. You may request access by contacting the authors. Once you have been granted access, you will need to add your ssh key to github following the instructions described `here <https://help.github.com/articles/connecting-to-github-with-ssh/>`_. Then clone the project recursively using the following command:
+.. code:: bash
 
-.. code::
+   git clone git@github.com:shift-dynamics/shift.git
+   cd shift
 
-   git clone --recursive git@github.com:shift-dynamics/shift.git
-
-The recursive flag is necessary to initialize the submodules. If you cloned the repository without the recursive flag, you can initialize the submodules later by issuing the command:
-
-.. code::
-
-   git submodule update --init --recursive
-
+*KSL* and the command line parser argagg are meson subprojects
+(``subprojects/*.wrap``); meson fetches them the first time the build is
+set up.
 
 Dependencies
 ------------
 
-In addition to the git submodules that are packaged together with *Shift*, the following additional libraries must be installed on your system.
+*Shift* builds with `meson <https://mesonbuild.com>`_ and ninja and needs a
+C++17 compiler and these libraries:
 
-*   `Cmake <https://cmake.org>`_
-*   `Assimp <http://assimp.sourceforge.net>`_
-*   `Jansson <http://www.digip.org/jansson/>`_
-*   `Qt5 <http://www.qt.io/developers/>`_
-*   `Graphviz <http://www.graphviz.org/>`_
-*   `Cblas <http://www.netlib.org/blas/>`_
-*   `ImageMagick <http://www.imagemagick.org>`_
-*   `Qhull <http://www.qhull.org>`_
-*   `pandoc <http://pandoc.org>`_
+========================= =================================================
+library                   used for
+========================= =================================================
+jsoncpp                   reading model files
+assimp                    loading meshes (OBJ, glTF, ...)
+graphviz (libgvc)         drawing the body and frame graphs
+hdf5 (C++)                the HDF5 logger
+cblas                     dense linear algebra
+qhull                     convex hulls for collision geometry
+libtiff                   terrain elevation maps
+OpenMP, threads
+STEPcode (optional)       reading STEP CAD files (meson option ``step``)
+Qt 6.7+, ffmpeg libraries the 3D viewer ``shift`` (meson option ``gui``)
+GoogleTest                the test suite (meson option ``tests``)
+doxygen, Sphinx, breathe, this documentation (meson option ``docs``)
+sphinxcontrib-bibtex
+========================= =================================================
 
+Building
+--------
 
-Linux
-*****
+.. code:: bash
 
-On most Linux distributions the above packages can be installed using the distribution's package manager.
+   meson setup build
+   meson compile -C build
+   meson test -C build
 
-Arch Linux:
-^^^^^^^^^^^
+This builds ``build/shift/main/shift-cli``, the viewer
+``build/shift/main/shift`` when Qt 6 is found, and the test suite
+``build/test/shift-test``. ``meson test`` runs the unit tests and simulates
+every model in ``examples/``, except for a few long collision models that
+are kept as benchmarks (``meson test -C build --benchmark``).
 
-.. code::
+``build/`` is a debug build (``-O0``, with asserts). For simulation work,
+keep an optimized build next to it, which is 4–8 times faster:
 
-   pacman -S cmake assimp jansson qt5 graphviz cblas imagemagick pandoc
+.. code:: bash
 
+   meson setup build-release --buildtype=release -Dcpu=native
+   meson compile -C build-release
 
-Ubuntu / Debian-based Linux Distributions:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Options
+-------
 
-.. code::
+Set options with ``meson configure build -D<option>=<value>``:
 
-   apt-get install cmake assimp jansson qt5 graphviz cblas libmagickwand-dev pandoc
+==================== ========= =================================================
+option               default   purpose
+==================== ========= =================================================
+``tests``            auto      build the GoogleTest suite
+``docs``             auto      add the ``docs`` target (this site)
+``gui``              auto      build the Qt 6 viewer ``shift``
+``step``             auto      read STEP files with STEPcode
+``log_level``        -1        5 trace, 4 debug, 3 info, 2 warning, 1 error;
+                               -1 is 4 in debug builds and 3 otherwise
+``cpu``              x86-64    passed to ``-march``; ``native`` optimizes for
+                               the build machine (the binaries may not run on
+                               older processors)
+``fp_trap``          true      ``shift-cli`` stops on a floating point
+                               division by zero in every build type;
+                               ``false`` for the last bit of speed
+``verify_equations`` false     check every solution of the equations of
+                               motion against the assembled equations (slow;
+                               for debugging the solver)
+==================== ========= =================================================
 
+Running a model
+---------------
 
-Macintosh
-*********
+.. code:: bash
 
-On a Macintosh, the dependencies can be installed using the *brew* package manager:
+   cd examples/pendulum
+   ../../build/shift/main/shift-cli pendulum.json
 
-.. code::
+``shift-cli --help`` lists the options: ``-d`` writes the graph of bodies
+and joints and exits, ``-f`` the graph of frames, ``-V`` only checks the
+model file, and ``-v`` sets how much is printed. Files the model refers to
+(meshes, terrain, tire property files) are found next to the model file or
+in its ``include_directories``; log files are written to the current
+directory.
 
-  brew install cmake assimp jansson qt5 graphviz imagemagick pandoc
+To watch it run, open the model in the viewer:
 
+.. code:: bash
 
-The cblas package is already available on a Macintosh using the *accelerate* framework, the CMakeLists.txt file may need to be modified to bring in this dependency correctly.
+   ../../build/shift/main/shift pendulum.json
 
+Building this documentation
+---------------------------
 
-Windows
-*******
+.. code:: bash
 
-*Shift* has not been tested on Windows machines.
+   meson compile -C build docs     # -> build/doc/html/index.html
 
+or, without a configured build directory,
 
-Building Shift
---------------------
+.. code:: bash
 
-From within the top directory of the repository, issue the following commands:
+   sphinx-build -b html doc/sphinx build/doc/html
 
-.. code::
-
-   mkdir build
-   cd build
-   cmake ..
-   make
-
-
-Executables will be located in ${PROJECT_DIRECTORY}/build/bin
-
-Where ${PROJECT_DIRECTORY} is the root directory of the git project on your system.
-
-You can test if the executable works correctly by running the command line interface to the program as:
-
-.. code::
-
-   cd ${PROJECT_DIRECTORY}/build/bin
-   ./shift-cli ../shift-models/excavator/excavator.json
-
-
-Run the graphical user interface component of the program by executing the following command from within the ${PROJECT_DIRECTORY}/build/bin directory:
-
-.. code::
-
-   ./shift
-
-Building documentation
-----------------------
-
-Documentation can be built by issuing the command in the build directory:
-
-.. code::
-
-   make doc
-
-
-Optional - documentation can be copied to your /share/doc folder by issuing the command:
-
-.. code::
-
-   make install
+Either way doxygen reads the headers for the :ref:`api`. The site is
+published to GitHub Pages by the ``docs`` workflow
+(``.github/workflows/docs.yml``) on every push to ``master``.

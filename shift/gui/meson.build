@@ -101,6 +101,16 @@ icon_resources = qt6.compile_resources(
   sources: files('../../assets/icons/icons.qrc'),
 )
 
+# textures, pages and geometry any model can name, e.g.
+# "texture_filename": "qrc:/textures/asphalt.jpg"
+asset_resources = []
+foreach asset : ['textures', 'html', 'geometry']
+  asset_resources += qt6.compile_resources(
+    name: asset,
+    sources: files('../../assets' / asset / asset + '.qrc'),
+  )
+endforeach
+
 gui_moc = qt6.compile_moc(
   headers: ['playback_slider.h', 'viewport.h', 'workspace.h'],
   include_directories: shift_inc,
@@ -128,7 +138,7 @@ shift_gui_lib = static_library(
 # resources are compiled into the executable so their static initializers
 # are not dropped by the linker
 shift_gui_dep = declare_dependency(
-  sources: [shader_resources, icon_resources],
+  sources: [shader_resources, icon_resources, asset_resources],
   link_with: shift_gui_lib,
   include_directories: [shift_inc, rhi_inc],
   dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep],

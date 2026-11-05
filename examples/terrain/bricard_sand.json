@@ -79,7 +79,7 @@
       "type": "basic",
       "name": "sinxx+cosyy",
       "filename": "sinxx+cosyy.tiff",
-      "texture_filename": "cracked_sand.jpg",
+      "texture_filename": "qrc:/textures/cracked_sand.jpg",
       "parent": [
         ["fixed"],
         "terrain"
@@ -96,10 +96,26 @@
       "active": true,
       "bodies": [
         {
+          // the first link, the ground link: fixed to the ground at the
+          // pivot of joint F, which closes the loop
+          "name": "1",
+          "geometry": [
+            {
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
+              "filename": ["link1.obj", "link1.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, -0.75, 0.0],
+          "inertia": {
+            "mass": 1.0, "Ixx": 0.1875, "Iyy": 0.1875, "Izz": 0.01,
+            "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0
+          }
+        },
+        {
           "name": "2",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link1.obj", "link1.mtl"]
             }
           ],
@@ -125,7 +141,7 @@
           "name": "3",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link1.obj", "link1.mtl"]
             }
           ],
@@ -151,7 +167,7 @@
           "name": "4",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link1.obj", "link1.mtl"]
             }
           ],
@@ -177,7 +193,7 @@
           "name": "5",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link1.obj", "link1.mtl"]
             }
           ],
@@ -203,7 +219,7 @@
           "name": "6",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.4,
               "filename": ["link2.obj", "link2.mtl"]
             }
           ],
@@ -316,6 +332,12 @@
           "axis": [1, 0, 0],
           "initial_displacement": -2.0,
           "initial_velocity": 0.1
+        },
+        {
+          "name": "ground_link",
+          "type": "rigid",
+          "parent": [["fixed"], "origin"],
+          "child": [["1"], "origin"]
         }
       ]
     }

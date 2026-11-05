@@ -28,6 +28,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
+#include <QImage>
 #include <QLabel>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -45,6 +46,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <exception>
 #include <stdexcept>
 
@@ -627,7 +629,8 @@ void shift::gui::Workspace::InitializeLayout() {
 
 // -------------------------------------------------------------- model file
 
-bool shift::gui::Workspace::Open(const QString& filename) {
+bool shift::gui::Workspace::Open(const QString& filename,
+                                 QString* error_message) {
   QApplication::setOverrideCursor(Qt::WaitCursor);
   viewport_->set_simulation(nullptr);
   playing_ = false;
@@ -646,9 +649,13 @@ bool shift::gui::Workspace::Open(const QString& filename) {
   }
   QApplication::restoreOverrideCursor();
   if(!error.empty()) {
-    QMessageBox::critical(this, "Open failed",
-                          QString("Could not load %1:\n%2")
-                            .arg(filename, QString::fromStdString(error)));
+    const QString message = QString("Could not load %1:\n%2")
+                              .arg(filename, QString::fromStdString(error));
+    if(error_message) {
+      *error_message = message;
+    } else {
+      QMessageBox::critical(this, "Open failed", message);
+    }
     model_parameters_panel_.group_box->setVisible(false);
     video_panel_.group_box->setVisible(false);
     UpdateStatus();
@@ -672,6 +679,79 @@ bool shift::gui::Workspace::Open(const QString& filename) {
   return true;
 }
 
+void shift::gui::Workspace::SaveImage(const ImageRequest& request) {
+  image_request_ = request;
+  if(request.hide_floor) {
+    floor_action_->setChecked(false);
+  }
+  if(request.samples > 0) {
+    viewport_->set_render_mode(Viewport::RenderMode::kRayTraced);
+  }
+  if(request.time > 0.0 && simulation_.is_loaded()) {
+    simulation_.set_end_time(request.time);
+    simulation_.Run();
+  }
+  image_timer_ = new QTimer(this);
+  connect(image_timer_, &QTimer::timeout, this, [this]() {
+    if(AdvanceImage()) {
+      image_timer_->stop();
+    }
+  });
+  image_timer_->start(50);
+}
+
+bool shift::gui::Workspace::AdvanceImage() {
+  const ImageRequest& request = image_request_;
+  auto fail = [](const QString& message) {
+    std::fprintf(stderr, "shift: %s\n", message.toLocal8Bit().constData());
+    QCoreApplication::exit(1);
+    return true;
+  };
+  if(!simulation_.is_loaded()) {
+    return fail("no model loaded");
+  }
+  if(request.time > 0.0) {
+    if(simulation_.is_computing() &&
+       simulation_.get_computed_time() < request.time) {
+      return false;
+    }
+    simulation_.Stop();
+    if(!simulation_.get_error().empty()) {
+      return fail(QString::fromStdString(simulation_.get_error()));
+    }
+    if(simulation_.get_computed_time() < request.time - 1e-9) {
+      return fail(QString("the simulation stopped at t = %1 s")
+                    .arg(simulation_.get_computed_time()));
+    }
+  }
+  QString error;
+  if(!viewport_->BeginOffscreen(request.size, error)) {
+    return false; // the window is not exposed yet
+  }
+  simulation_.ShowTime(request.time);
+  viewport_->UpdatePoses();
+  if(request.set_view) {
+    viewport_->set_view(request.azimuth, request.elevation);
+  } else {
+    viewport_->FrameScene();
+  }
+  std::vector<uint8_t> rgba;
+  const bool rendered = viewport_->RenderOffscreen(request.samples, rgba);
+  viewport_->EndOffscreen();
+  if(!rendered) {
+    return fail("could not render the image");
+  }
+  QImage image(rgba.data(), request.size.width(), request.size.height(),
+               4 * request.size.width(), QImage::Format_RGBA8888);
+  if(!image.convertToFormat(QImage::Format_RGB888).save(request.filename)) {
+    return fail("could not write " + request.filename);
+  }
+  std::printf("shift: saved %s at t = %g s\n",
+              request.filename.toLocal8Bit().constData(), request.time);
+  QCoreApplication::exit(0);
+  return true;
+}
+
 void shift::gui::Workspace::OpenDialog() {
   const QString filename = QFileDialog::getOpenFileName(
     this, "Open model", QString(), "Shift models (*.json);;All files (*)");
@@ -685,7 +765,7 @@ void shift::gui::Workspace::About() {
     this, "About Shift",
     "<b>Shift</b> multibody dynamics<br>"
     "Kristopher Wehage<br>"
-    "<a href=\"http://shift-dynamics.io/\">shift-dynamics.io</a>");
+    "<a href=\"https://shift-dynamics.github.io/shift/\">shift-dynamics.github.io/shift</a>");
 }
 
 void shift::gui::Workspace::LoadModelParameters() {
@@ -981,7 +1061,15 @@ void shift::gui::Workspace::UpdateFloor() {
       // the fixed body's frame is the inertial frame
       const ksl_vec3_t n = plane->get_normal_wrt_body();
       const ksl_vec3_t& p = plane->get_point_wrt_body();
-      viewport_->set_floor(QVector3D(p.x, p.y, p.z), QVector3D(n.x, n.y, n.z));
+      // a level plane without contact (as the default floor of a model
+      // without a ground plane) only marks the ground: keep it below the
+      // model; a plane with contact is where the model stands
+      if(!plane->is_contact_enabled() && std::fabs(n.z) > 0.999) {
+        viewport_->set_floor_below_model(static_cast<float>(p.z));
+      } else {
+        viewport_->set_floor(QVector3D(p.x, p.y, p.z),
+                             QVector3D(n.x, n.y, n.z));
+      }
       return;
     }
   }

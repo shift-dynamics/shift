@@ -5,7 +5,7 @@ This folder contains a model of the Abiflexx D4-1300 Delta robot, a robot common
 
 .. image:: abiflexx_d4_1300.png
 
-To load the model into the *Shift* software, bodies and joints are specified as a list in a `JSON <http://shift-dynamics.io/file_format/file_format.html>`_ input file. Internal loops are identified automatically by the *Shift* software as shown below:
+To load the model into the *Shift* software, bodies and joints are specified as a list in a `JSON <https://shift-dynamics.github.io/shift/model-file/model-file.html>`_ input file. Internal loops are identified automatically by the *Shift* software as shown below:
 
 .. image:: graph.png
 

@@ -10,6 +10,9 @@ void shift::gui::SceneBounds(const Scene& scene, const Poses& poses,
   box_max = -box_min;
   for(const auto& instance : scene.instances) {
     const SceneMesh& mesh = scene.meshes[instance.mesh_index];
+    if(mesh.terrain >= 0) {
+      continue; // frame the model, not the ground it stands on
+    }
     const QMatrix4x4& pose = poses.bodies.at(instance.body_index);
     for(int corner = 0; corner < 8; corner++) {
       const QVector3D local((corner & 1) ? mesh.bounds_max.x() : mesh.bounds_min.x(),
@@ -58,7 +61,10 @@ QImage shift::gui::TextureLoader::Read(const std::string& path) {
   QImage image;
   auto embedded = embedded_.find(path);
   if(embedded == embedded_.end()) {
-    image.load(QString::fromStdString(path));
+    // qrc:/textures/... is a texture built into the viewer, which Qt names
+    // :/textures/...
+    const bool resource = path.rfind("qrc:/", 0) == 0;
+    image.load(QString::fromStdString(resource ? path.substr(3) : path));
   } else if(embedded->second->height == 0) {
     // an encoded image file
     const auto& data = embedded->second->data;

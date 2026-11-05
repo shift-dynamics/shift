@@ -28,7 +28,12 @@ struct Contact {
   /*! velocity of the contact center C, the w frame origin moving with the
    * wheel carrier (the wheel without its spin), in the w frame */
   ksl_vec3_t center_velocity_w;
-  ksl_vec3_t spin_axis_w;    //!< wheel spin axis (hub y axis), in the w frame
+  ksl_vec3_t spin_axis_w = {{0.0, 1.0, 0.0}}; //!< wheel spin axis (hub y
+                                              //!< axis), in the w frame
+  /*! velocity of the hub, and angular velocity of the wheel, in the w
+   * frame */
+  ksl_vec3_t hub_velocity_w = {{0.0, 0.0, 0.0}};
+  ksl_vec3_t angular_velocity_w = {{0.0, 0.0, 0.0}};
   double vx = 0.0;    //!< hub velocity along the w frame x axis
   double omega = 0.0; //!< wheel spin rate about the wheel axis
 };
@@ -48,6 +53,13 @@ public:
 
   /*! \brief unloaded radius, for the contact geometry */
   virtual double get_unloaded_radius() const = 0;
+
+  /*! \brief half the width of the tread, for the contact geometry: a
+   * cambered wheel touches the terrain with the edge of its tread before
+   * the middle of its rim does; 0 if the model has no width */
+  virtual double get_half_width() const {
+    return 0.0;
+  }
 
   /*! \brief compute the force and moment on the wheel in the w frame
    * (referred to the w frame origin) and the time derivatives of the

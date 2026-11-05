@@ -1,7 +1,7 @@
 Sarrus linkage
 ==============
 
-This directory contains a *Shift* `JSON <http://shift-dynamics.io/file_format/file_format.html>`_ model definition file of the Sarrus linkage, an example of a multiloop mechanism.
+This directory contains a *Shift* `JSON <https://shift-dynamics.github.io/shift/model-file/model-file.html>`_ model definition file of the Sarrus linkage, an example of a multiloop mechanism.
 
 .. image:: sarrus.png
 

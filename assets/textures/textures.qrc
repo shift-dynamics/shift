@@ -26,6 +26,10 @@
     <file>pebbles_normal.jpg</file>
     <file>pebbles_specular.jpg</file>
     <file>pebbles_disp.jpg</file>
+    <file>steel_base_color.png</file>
+    <file>steel_normal.png</file>
+    <file>steel_roughness.png</file>
+    <file>cracked_sand_normal.png</file>
     <file>sphere.png</file>
     <file>sphere_normal.png</file>
     <file>daylight_skybox/back.png</file>

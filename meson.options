@@ -3,7 +3,7 @@ option('log_level', type: 'integer', min: -1, max: 5, value: -1,
 option('tests', type: 'feature', value: 'auto',
        description: 'Build the gtest suite (runs models from examples/)')
 option('docs', type: 'feature', value: 'auto',
-       description: 'Add the doxygen documentation target')
+       description: 'Add the doxygen and docs (Sphinx site) documentation targets')
 option('gui', type: 'feature', value: 'auto',
        description: 'Build the Qt 6 / Vulkan viewer (shift)')
 option('cpu', type: 'string', value: 'x86-64',

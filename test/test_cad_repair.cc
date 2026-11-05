@@ -6,6 +6,7 @@ files of examples/cad */
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -235,6 +236,60 @@ protected:
     return a;
   }
 
+  /* volume of a solid body by the divergence theorem, (1/3) of the integral
+  of p . n over its faces, n outward: a face whose normal points inward
+  subtracts its share instead of adding it. Over each face's trims in (u, v)
+  by Green's theorem, the integral of F dv around the loops, F the integral
+  of p . (dp/du x dp/dv) along u (Gauss-Legendre) */
+  static double Volume(const Model& m, int body) {
+    static const double x[5] = {-0.906179845938664, -0.538469310105683, 0.0,
+                                0.538469310105683, 0.906179845938664};
+    static const double w[5] = {0.236926885056189, 0.478628670499366,
+                                0.568888888888889, 0.478628670499366,
+                                0.236926885056189};
+    double volume = 0.0;
+    for(int shell : m.bodies[body].shells) {
+      for(int fi : m.shells[shell].faces) {
+        const Face& f = m.faces[fi];
+        const Surface& s = m.surfaces[f.surface];
+        auto integrand = [&](double u, double v) {
+          Vec3 du, dv;
+          Vec3 p = SurfacePoint(m, s, u, v, &du, &dv);
+          return p[0] * (du[1] * dv[2] - du[2] * dv[1]) +
+                 p[1] * (du[2] * dv[0] - du[0] * dv[2]) +
+                 p[2] * (du[0] * dv[1] - du[1] * dv[0]);
+        };
+        auto along_u = [&](double u, double v) { // from u = 0, 4 pieces
+          double sum = 0.0;
+          for(int piece = 0; piece < 4; ++piece) {
+            const double a = u * piece / 4, b = u * (piece + 1) / 4;
+            for(int k = 0; k < 5; ++k) {
+              sum += w[k] * 0.5 * (b - a) *
+                     integrand(0.5 * (a + b) + 0.5 * (b - a) * x[k], v);
+            }
+          }
+          return sum;
+        };
+        double sum = 0.0;
+        for(const TrimLoop& loop : f.trims) {
+          std::vector<Vec2> poly = TrimPolygon(m, loop, 1024);
+          for(size_t i = 0; i < poly.size(); ++i) {
+            const Vec2& a = poly[i];
+            const Vec2& b = poly[(i + 1) % poly.size()];
+            for(int k = 0; k < 5; ++k) {
+              const double t = 0.5 + 0.5 * x[k];
+              sum += 0.5 * w[k] * (b[1] - a[1]) *
+                     along_u(a[0] + t * (b[0] - a[0]),
+                             a[1] + t * (b[1] - a[1]));
+            }
+          }
+        }
+        volume += (f.same_sense ? sum : -sum) / 3.0;
+      }
+    }
+    return volume;
+  }
+
   static int Count(const Face& f, TrimCurve::Kind kind) {
     int n = 0;
     for(const TrimLoop& loop : f.trims) {
@@ -416,4 +471,45 @@ TEST_F(CadRepair, TubeAndDomeWithoutSeams) {
   EXPECT_EQ(Count(dome, TrimCurve::Kind::kSingular), 1);
   EXPECT_NEAR(Area(m, FaceOf(m, 40)), 2 * M_PI * 0.02, 1e-12);
   EXPECT_NEAR(Area(m, FaceOf(m, 41)), M_PI * M_PI, 1e-12); // up to the pole
+}
+
+/* the sprocket and track link written by scripts/make_track_step.py: lines
+and circles only, with no pcurves in the file; every face is trimmed with
+no gaps */
+TEST_F(CadRepair, TrackSprocketAndLink) {
+  // the volumes of the solids (m^3), from their profiles: a face facing
+  // the wrong way would change them
+  // the link plates, less their bores: the bushing's (20 mm) in the inner
+  // plates, the pin's (19 mm) in the outer plates
+  const double plate = 4.69945e-4;
+  const double inner = plate - M_PI * 0.02 * 0.02 * 0.035;
+  const double outer = plate - M_PI * 0.019 * 0.019 * 0.035;
+  for(const auto& [name, faces, volumes] :
+      {std::tuple<std::string, int, std::vector<double>>{"sprocket.step", 88,
+                                                         {1.664550e-2}},
+       std::tuple<std::string, int, std::vector<double>>{
+         "track_link.step", 60,
+         {1.77280e-4, 2.94870e-4, inner, inner, outer, outer, 2.664e-3}}}) {
+    SCOPED_TRACE(name);
+    Model m = Read(name);
+    ASSERT_EQ(m.bodies.size(), volumes.size());
+    RepairReport r = shift::core::cad::Repair(m);
+    EXPECT_EQ(r.faces, faces);
+    EXPECT_EQ(r.faces_trimmed, faces);
+    EXPECT_EQ(r.edges_failed, 0);
+    EXPECT_EQ(r.vertex_gaps, 0);
+    EXPECT_EQ(r.pcurves_checked, 0);
+    EXPECT_EQ(r.pcurves_failed, 0);
+    EXPECT_EQ(r.pcurves_exact, r.pcurves_computed);
+    EXPECT_EQ(r.gap_segments, 0);
+    EXPECT_EQ(r.seam_segments, 0);
+    EXPECT_LT(r.max_curve_to_surface, 1e-12);
+    ExpectValidTrims(m);
+    for(size_t b = 0; b < volumes.size(); ++b) {
+      EXPECT_TRUE(m.bodies[b].solid) << m.bodies[b].name;
+      EXPECT_NEAR(Volume(m, static_cast<int>(b)), volumes[b],
+                  1e-5 * volumes[b])
+        << m.bodies[b].name;
+    }
+  }
 }

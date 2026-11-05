@@ -114,7 +114,7 @@
           "name": "tire",
           "geometry": [
             {
-              "type": "mesh",
+              "type": "mesh", "texture_mapping": "triplanar", "texture_scale": 0.5,
               "filename": ["left_wheel.obj", "left_wheel.mtl"]
             }
           ],

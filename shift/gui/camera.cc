@@ -43,6 +43,11 @@ QMatrix4x4 shift::gui::Camera::get_projection_matrix(float aspect) const {
   return projection;
 }
 
+void shift::gui::Camera::set_direction(float azimuth, float elevation) {
+  azimuth_ = azimuth;
+  elevation_ = std::clamp(elevation, -kElevationLimit, kElevationLimit);
+}
+
 void shift::gui::Camera::Orbit(float delta_azimuth, float delta_elevation) {
   azimuth_ += delta_azimuth;
   elevation_ = std::clamp(elevation_ + delta_elevation, -kElevationLimit,

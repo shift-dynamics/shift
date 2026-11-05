@@ -14,6 +14,7 @@ namespace core {
 
 namespace collision_geometry {
 class Base;
+struct ContactPoint;
 }
 
 namespace force_module {
@@ -22,8 +23,8 @@ namespace force_module {
 @brief contact properties of a material, see Contact
 
 Values are in the model's units. Each property is needed only by the contact
-laws that use it: the elastic properties by curved surfaces in contact (Hertz),
-the contact stiffness by convex hulls (a linear spring).
+laws that use it: the elastic properties by curved surfaces in contact (Hertz) and by
+CAD geometry, the contact stiffness by convex hulls (a linear spring).
 */
 class ContactMaterial : public parameter::List {
 public:
@@ -43,6 +44,7 @@ public:
   double damping = -1.0;           //!< force per velocity, negative if not given
   double friction = -1.0;          //!< Coulomb friction coefficient
   double contact_stiffness = 0.0;  //!< force per depth, 0 if not given
+  double wear_coefficient = 0.0;   //!< K / H of Archard, 0 for no wear
 
 protected:
   virtual void DeclareParameters() override;
@@ -104,6 +106,20 @@ The stiffness depends on the shapes:
   contact point, so a box on its face rests on four springs. The contact
   stiffnesses of the materials combine in series, 1/k = 1/k_a + 1/k_b, unless
   given for the pair.
+- CAD geometry (collision_geometry::Cad), on CAD geometry or a plane: each
+  point of the contact found on the exact surfaces has its own normal and
+  law (collision_geometry::ContactPoint, see PointLaw). A point where two
+  curved surfaces touch is Hertz contact of an ellipse,
+  K = 4/3 E* sqrt(R*) g and e = 3/2, with 1/R* the sum of the mean
+  curvatures of the two surfaces there and g the factor of the ellipse's
+  elongation (collision_geometry::HertzEllipseFactor, 1 for a circle). A
+  line of contact, between cylinders or a cylinder on a plane, is divided
+  into slices along its length, each the Hertz contact of two cylinders
+  over its length L: a linear spring, K = pi/4 E* L and e = 1. The slices
+  cover only the part of the line where the surfaces overlap, so a line
+  tilting out of parallel carries its load towards one end. CAD geometry on a sphere, an
+  ellipsoid or a convex hull has one point, as Hertz contact with the
+  curvature of the CAD geometry's edge_radius.
 
 The damping c of a pair is its "damping" if given for the pair, or for both
 materials (combined in series, 1/c = 1/c_a + 1/c_b); otherwise it follows
@@ -116,7 +132,10 @@ with m the effective mass of the pair, m_a m_b / (m_a + m_b) of the masses
 of the two rigidly joined groups of bodies (infinite for the fixed body),
 and, for Hertz contact, one point (w = 1) with the stiffness linearized at
 damping_depth, k = 3/2 K sqrt(damping_depth); for a hull, per unit weight
-of the manifold's points, as for a box resting on its face (w = 4 in all).
+of the manifold's points, as for a box resting on its face (w = 4 in all);
+for CAD geometry, k is the sum of the points' stiffnesses, each linearized
+at damping_depth for e = 3/2, and c is shared by the points in proportion
+to their stiffness.
 This is approximate: the rebound of a Hertz contact with constant damping
 depends on the impact speed; a strongly damped contact (r below about 0.5)
 rebounds higher than r, as its force, which never pulls, ends before the
@@ -127,6 +146,18 @@ Friction is Coulomb friction regularized below friction_velocity, against the
 sliding velocity u at the point:
 
   F_t = -mu F u / sqrt(|u|^2 + friction_velocity^2)
+
+Each material may wear by Archard's law: the volume worn from a geometry
+grows at
+
+  dV/dt = (K / H) F |u|
+
+at each of its points of contact, for the normal force F and the sliding
+speed |u| there, with wear_coefficient K / H of its material (the wear
+coefficient over the hardness, volume per normal force and sliding
+distance). The worn volume of each geometry whose material wears is an
+internal state of the module, logged as the output wear_<geometry>; it does
+not change the shape of the geometry.
 
 Friction and restitution of a pair are combined from the two materials by
 friction_combine and restitution_combine, unless the pair is listed in pairs.
@@ -156,10 +187,24 @@ public:
     return registered_;
   }
 
+  /*! \brief the elastic law of a point of CAD contact
+   * (collision_geometry::ContactPair::point_laws), F = K d^e for the
+   * modulus E* of the pair: of a line (e = 1) for a point carrying a length
+   * of a line of contact, Hertz (e = 3/2) otherwise; returns the
+   * stiffness linearized at depth, dF/dd, for e = 3/2 */
+  static double PointLaw(const collision_geometry::ContactPoint& c,
+                         double modulus, double depth, double& stiffness,
+                         double& exponent);
+
   /*! \brief resolve the materials of the collision geometry, combine the
    * properties of each pair of materials and exclude jointed bodies */
   virtual void Load() override;
   virtual void Service(const double* y, double* dy) override;
+  /*! \brief the volume worn from each collision geometry whose material
+   * wears, named wear_\<geometry\> */
+  virtual std::vector<std::string> get_output_names() const override;
+  virtual void UpdateOutputs(double t, const double* y) override;
+  virtual void AppendOutputs(std::vector<double>& values) const override;
   virtual void Connect() override {}
 
 private:
@@ -175,6 +220,7 @@ private:
   struct Geometry {
     int material = 0;
     int load_index = -1;
+    int wear = -1; //!< index of its worn volume among the states, -1 if none
   };
 
   double Combine(const std::string& rule, double a, double b) const;
@@ -196,6 +242,10 @@ private:
    * Context::GetBodyLoadIndex); found at the first Service, once the mass
    * properties are loaded */
   std::unordered_map<int, double> group_mass_;
+  /*! names of the geometries whose material wears, in the order of their
+   * states, and their worn volumes at the last UpdateOutputs */
+  std::vector<std::string> wear_names_;
+  std::vector<double> worn_;
   double GroupMass(int load_index) const;
 };
 

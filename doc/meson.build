@@ -20,3 +20,17 @@ doxyfile = configure_file(
 
 # `meson compile -C build doxygen`
 run_target('doxygen', command: [doxygen, doxyfile])
+
+# `meson compile -C build docs` -> build/doc/html/index.html; conf.py runs
+# doxygen for the API reference into build/doc/doxygen
+sphinx_build = find_program('sphinx-build', required: false)
+if sphinx_build.found()
+  run_target(
+    'docs',
+    command: [
+      sphinx_build, '-b', 'html', '-q',
+      meson.current_source_dir() / 'sphinx',
+      meson.current_build_dir() / 'html',
+    ],
+  )
+endif

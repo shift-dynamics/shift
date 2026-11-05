@@ -1,10 +1,6 @@
-# Blender MTL File: 'None'
-# Material Count: 1
-
+# red: color (linear), metalness Pm, roughness Pr
 newmtl None
-Ns 0
-Ka 0.000000 0.000000 0.000000
-Kd 0.8 0.8 0.8
-Ks 0.8 0.8 0.8
-d 1
-illum 2
+Kd 0.50 0.03 0.02
+Pm 0.0
+Pr 0.35
+norm -bm 0.2 qrc:/textures/steel_normal.png

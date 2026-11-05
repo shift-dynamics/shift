@@ -12,7 +12,7 @@ Ns  690
 Ni 1.0
 Pm 1.0
 Pr 1.0
-map_Kd textures/steel_base_color.png
-map_Pr textures/steel_roughness.png
-norm textures/steel_normal.png
+map_Kd qrc:/textures/steel_base_color.png
+map_Pr qrc:/textures/steel_roughness.png
+norm qrc:/textures/steel_normal.png
 
