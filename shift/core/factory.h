@@ -6,7 +6,7 @@
 #include <map>
 #include <memory>
 
-#include "shift/core/behavior/base.h"
+#include "shift/core/controller/base.h"
 #include "shift/core/body/base.h"
 #include "shift/core/collision_geometry/base.h"
 #include "shift/core/constraint/base.h"
@@ -94,8 +94,8 @@ private:
   std::map<std::string, CreateFunction> factory_map_;
 };
 
-/*! indicate that Behavior specialization exists */
-extern template class Factory<behavior::Base>;
+/*! indicate that Controller specialization exists */
+extern template class Factory<controller::Base>;
 
 /*! indicate that Body specialization exists */
 extern template class Factory<body::Base>;

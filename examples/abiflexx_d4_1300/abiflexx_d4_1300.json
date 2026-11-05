@@ -648,7 +648,6 @@
         },
         {
           "name": "Q_fixed_end_effector",
-          "active": false,
           "type": "float",
           "parent": [
             ["fixed"],

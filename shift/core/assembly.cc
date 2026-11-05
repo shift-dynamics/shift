@@ -1,5 +1,5 @@
 #include "shift/core/assembly.h"
-#include "shift/core/behavior/base.h"
+#include "shift/core/controller/base.h"
 #include "shift/core/body/base.h"
 #include "shift/core/body/fixed.h"
 #include "shift/core/context.h"
@@ -43,9 +43,16 @@ void shift::core::Assembly::DeclareParameters() {
                "in the array must have a unique name identifier",
                false);
 
-  DeclareParameter("behaviors", &behaviors_,
-               "Specifies an array of Shift 'Behavior' datastructures. Each "
-               "behavior in the array must have a unique name identifier",
+  DeclareParameter("sensors", &sensors_,
+               "Specifies an array of Shift 'Sensor' datastructures, signals "
+               "measured from the model state that controllers read by name; "
+               "each sensor in the array must have a unique name identifier",
+               false);
+
+  DeclareParameter("controllers", &controllers_,
+               "Specifies an array of Shift 'Controller' datastructures, e.g. "
+               "PID controllers that read sensors and drive joints; each "
+               "controller in the array must have a unique name identifier",
                false);
 
   DeclareParameter("constraints", &constraints_,

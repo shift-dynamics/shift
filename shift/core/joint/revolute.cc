@@ -699,12 +699,14 @@ void shift::core::joint::Revolute::DeclareParameters() {
     "damping_coefficients", &damping_coefficients_,
     "specify damping coefficients a, where force due to damping is computed as "
     "a_0 + a_1 * \\dot{x}^1 + a_2 * \\dot{x}^2 + .. a_n * \\dot{x}^n\\",
-    false);
+    false)
+    .set_row_dim(-1);
   DeclareParameter("stiffness_coefficients", &stiffness_coefficients_,
                "specify damping coefficients a, where force due to stiffness "
                "is computed as "
                "a_0 + a_1 * x^1 + a_2 * x^2 + .. a_n * x^n\\",
-               false);
+               false)
+    .set_row_dim(-1);
 }
 
 shift::core::joint::Revolute::AxisType shift::core::joint::Revolute::get_axis_type() {

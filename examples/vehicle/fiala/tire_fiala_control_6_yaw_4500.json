@@ -116,28 +116,32 @@
       "active": true,
       "force_modules": [
         {
+          "wheel_body": "tire",
+          "tire_type": "fiala",
+          "type": "tire",
+          "name": "tire"
+        }
+      ],
+      "sensors": [
+        {
+          "type": "frame",
+          "name": "1_Tx_velocity",
+          "body_frame_pair": ["1", "origin"],
+          "quantity": "velocity",
+          "coordinate_system": "local",
+          "dof": "Tx"
+        }
+      ],
+      "controllers": [
+        {
           "type": "pid",
           "name": "pid",
           "kp": 500.0,
           "ki": 300.0,
           "kd": 0.0,
           "target": 20.0,
-          "output": {
-            "joint": "A",
-            "type": "joint"
-          },
-          "input": {
-            "body_frame_pair": ["1", "origin"],
-            "dof": "Tx",
-            "type": "frame",
-            "coordinate_system": "local"
-          }
-        },
-        {
-          "wheel_body": "tire",
-          "tire_type": "fiala",
-          "type": "tire",
-          "name": "tire"
+          "sensor": "1_Tx_velocity",
+          "joint": "A"
         }
       ],
       "bodies": [

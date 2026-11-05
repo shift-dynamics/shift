@@ -4,7 +4,7 @@
 #include <string>
 
 #include "shift/core/base.h"
-#include "shift/core/behavior/base.h"
+#include "shift/core/controller/base.h"
 #include "shift/core/body/base.h"
 #include "shift/core/constraint/base.h"
 #include "shift/core/force_module/base.h"
@@ -48,7 +48,7 @@ private:
   void DeclareParameters() override;
 
   shift::core::parameter::FactoryArray<body::Base> bodies_;
-  shift::core::parameter::FactoryArray<behavior::Base> behaviors_;
+  shift::core::parameter::FactoryArray<controller::Base> controllers_;
   shift::core::parameter::FactoryArray<constraint::Base> constraints_;
   shift::core::parameter::FactoryArray<force_module::Base> force_modules_;
   shift::core::parameter::FactoryArray<joint::Base> joints_;

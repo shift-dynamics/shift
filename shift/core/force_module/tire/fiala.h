@@ -1,76 +1,68 @@
 #ifndef SHIFT_FORCEMODULE_TIRE_FIALA_H_
 #define SHIFT_FORCEMODULE_TIRE_FIALA_H_
 
-#include <memory>
-
-#include "shift/core/force_module/tire/base.h"
+#include "shift/core/force_module/tire/model.h"
 
 namespace shift {
 namespace core {
 namespace force_module {
 namespace tire {
 
-class Fiala : public Base {
-public:
-  Fiala()
-    : Base() {
-    DeclareParameters();
-  }
-  Fiala(std::string name)
-    : Base(name) {
-    DeclareParameters();
-  }
-  virtual ~Fiala() override {}
-
-  static std::unique_ptr<Fiala> Create();
-  static bool is_registered() {
-    return registered_;
-  }
-
-  void DeclareParameters() override;
-
-private:
-  static bool registered_;
-
-  /*! input parameters */
-  double vertical_stiffness_ = 310000;
-  double vertical_damping_ = 3100;
-  double rolling_resistance_ = 0.001;
-  double width_ = 0.235;
-  double cslip_ = 1000000;
-  double calpha_ = 45836.6236;
-  double u_max_ = 1.0;
-  double u_min_ = 0.9;
-  double x_relaxation_length_ = 0.05;
-  double y_relaxation_length_ = 0.15;
-
-  /*! internal parameters */
-  ksl_coscrew_t force_w_;        /*!< reaction force in w frame */
-  ksl_screw_t velocity_local_w_; /*!< velocity screw expressed in frame w*/
-
-  ksl_vec3_t wheel_normal_;   /*!< wheel normal expressed in global frame */
-  ksl_vec3_t terrain_normal_; /*!< terrain normal at wheel location */
-  ksl_vec3_t x_direction_;    /*!< longitudinal heading in terrain plane */
-  ksl_vec3_t y_direction_;    /*!< lateral direction in terrain plane */
-
-  double omega_;
-  double slip_angle_;
-  double longitudinal_slip_;
-  double camber_angle_;
-  double depth_;      /*!< penetration depth */
-  ksl_SE3_t w_frame_; /*! frame of contact patch following ISO
-                          conventions, forces are computed in w frame */
-  ksl_SE3_t contact_frame_;
-  bool in_contact_;
-
-  ksl_coscrew_t f_local_;
-  ksl_coscrew_t f_global_;
+/*! \brief Fiala tire parameters, see Fiala */
+struct FialaParameters {
+  double unloaded_radius = 0.344;
+  double vertical_stiffness = 310000;
+  double vertical_damping = 3100;
+  double rolling_resistance = 0.001;
+  double width = 0.235;
+  double cslip = 1000000;     //!< longitudinal slip stiffness
+  double calpha = 45836.6236; //!< cornering stiffness
+  double u_max = 1.0;         //!< friction coefficient without sliding
+  double u_min = 0.9;         //!< friction coefficient when fully sliding
+  double x_relaxation_length = 0.05;
+  double y_relaxation_length = 0.15;
 };
 
-} // namespace Tire
-}
-} // namespace force_module
+/*!
+@brief Fiala tire model with transient slip
 
+Ported from the C implementation of Shift (2016). The normal force is a
+spring and damper on the penetration of the wheel disc. The longitudinal
+slip and the slip angle are internal states with first order relaxation:
+
+  sigma_x d(kappa)/dt = -(|Vx| kappa + Vsx)
+  sigma_y d(alpha)/dt = Vsy - |Vx| tan(alpha)
+
+where Vsx, Vsy are the slip velocities of the contact point and Vx the hub
+velocity along the heading. The friction coefficient falls from u_max to
+u_min with the combined slip. Fx is linear in kappa up to the critical slip
+and saturates beyond it; Fy and the aligning moment Mz follow the Fiala
+expressions up to the critical slip angle; My is rolling resistance.
+Axes as in tire::Contact (SAE, z down; Fz < 0 pushes the wheel up).
+*/
+class Fiala : public Model {
+public:
+  explicit Fiala(const FialaParameters& parameters)
+    : p_(parameters) {}
+
+  unsigned int get_state_count() const override {
+    return 2;
+  }
+
+  double get_unloaded_radius() const override {
+    return p_.unloaded_radius;
+  }
+
+  void Evaluate(const Contact& contact, const double* states,
+                double* state_rates, ksl_coscrew_t* force_w) override;
+
+private:
+  FialaParameters p_;
+};
+
+} // namespace tire
+} // namespace force_module
+} // namespace core
 } // namespace shift
 
 #endif

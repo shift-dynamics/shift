@@ -80,7 +80,7 @@ void shift::core::integrator::ODE113::Connect() {
 void shift::core::integrator::ODE113::Reset() {
 
   neqn_ = context_->get_q_count() + context_->get_dq_count() +
-          context_->get_force_module_equation_count();
+          context_->get_auxiliary_state_count();
   y_.resize(neqn_);
   std::fill(y_.begin(), y_.end(), 0);
 
@@ -88,13 +88,10 @@ void shift::core::integrator::ODE113::Reset() {
   memcpy(y_.data(), context_->get_q().data(),
          (context_->get_q_count() + context_->get_dq_count()) * sizeof(double));
 
-  /* copy initial conditions from force modules */
-  int i = context_->get_q_count() + context_->get_dq_count();
-  for(auto& force_module : context_->get_active_force_modules()) {
-    for(unsigned int k = 0; k < force_module->get_equation_count(); k++, i++) {
-      y_[i] = force_module->get_q0()[k];
-    }
-  }
+  /* assign state offsets and copy initial conditions of the internal
+  states of force modules and controllers */
+  context_->InitializeAuxiliaryStates(
+    y_.data() + context_->get_q_count() + context_->get_dq_count());
 
   integral_error_.resize(context_->get_constraint_equation_count());
   std::fill(integral_error_.begin(), integral_error_.end(), 0.0);

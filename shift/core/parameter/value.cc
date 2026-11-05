@@ -1,7 +1,7 @@
 #include "shift/core/assembly.h"
 #include "shift/core/exception.h"
 #include "shift/core/model_parameters.h"
-#include "shift/core/behavior/base.h"
+#include "shift/core/controller/base.h"
 #include "shift/core/body/base.h"
 #include "shift/core/integrator/base.h"
 #include "shift/core/logger/base.h"
@@ -31,9 +31,9 @@ shift::core::parameter::Value::get<shift::core::Assembly>() const {
 }
 
 template <>
-const shift::core::behavior::Base&
-shift::core::parameter::Value::get<shift::core::behavior::Base>() const {
-  return *dynamic_cast<shift::core::behavior::Base*>(
+const shift::core::controller::Base&
+shift::core::parameter::Value::get<shift::core::controller::Base>() const {
+  return *dynamic_cast<shift::core::controller::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 
@@ -137,9 +137,9 @@ shift::core::parameter::Value::get_data<shift::core::Assembly>() const {
 }
 
 template <>
-shift::core::behavior::Base*
-shift::core::parameter::Value::get_data<shift::core::behavior::Base>() const {
-  return dynamic_cast<shift::core::behavior::Base*>(
+shift::core::controller::Base*
+shift::core::parameter::Value::get_data<shift::core::controller::Base>() const {
+  return dynamic_cast<shift::core::controller::Base*>(
     std::any_cast<shift::core::parameter::List*>(data_));
 }
 

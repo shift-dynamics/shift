@@ -9,7 +9,7 @@
 
 /* define specializations of FactoryArray class */
 template class shift::core::parameter::FactoryArray<
-  shift::core::behavior::Base>;
+  shift::core::controller::Base>;
 template class shift::core::parameter::FactoryArray<shift::core::body::Base>;
 template class shift::core::parameter::FactoryArray<
   shift::core::collision_geometry::Base>;

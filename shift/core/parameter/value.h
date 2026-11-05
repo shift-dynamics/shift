@@ -29,7 +29,7 @@ namespace core {
 class Context;
 class Assembly;
 class Frame;
-namespace behavior {
+namespace controller {
 class Base;
 }
 namespace body {
@@ -470,7 +470,7 @@ const Frame& Value::get<Frame>() const;
 template <>
 const Assembly& Value::get<Assembly>() const;
 template <>
-const behavior::Base& Value::get<behavior::Base>() const;
+const controller::Base& Value::get<controller::Base>() const;
 template <>
 const body::Base& Value::get<body::Base>() const;
 template <>
@@ -500,7 +500,7 @@ Frame* Value::get_data<Frame>() const;
 template <>
 Assembly* Value::get_data<Assembly>() const;
 template <>
-behavior::Base* Value::get_data<behavior::Base>() const;
+controller::Base* Value::get_data<controller::Base>() const;
 template <>
 body::Base* Value::get_data<body::Base>() const;
 template <>

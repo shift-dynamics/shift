@@ -22,7 +22,7 @@
 namespace shift {
 namespace core {
 
-namespace behavior {
+namespace controller {
 class Base;
 }
 
@@ -237,7 +237,34 @@ public:
     return chord_constraints_;
   }
 
-  unsigned int get_force_module_equation_count();
+  /*! \brief number of auxiliary states (internal states of force modules
+   * and controllers) that follow q and dq in the state vector y */
+  unsigned int get_auxiliary_state_count();
+
+  /*! \brief assign each active force module and controller its offset in
+   * the state vector y = [q, dq, auxiliary states] and copy its initial
+   * values to y_auxiliary, which points to the first auxiliary state;
+   * called by the integrators when they (re)initialize */
+  void InitializeAuxiliaryStates(double* y_auxiliary);
+
+  /*! \brief index of the body's group in the body load and velocity arrays:
+   * the compressed index of its nearest non-rigid parent joint, -1 for a
+   * body rigidly attached to the fixed body; valid once the topology is
+   * initialized */
+  int GetBodyLoadIndex(const body::Base* body) const;
+
+  /*! \brief spatial velocity of a body group (see GetBodyLoadIndex) in the
+   * fixed frame, referred to its origin; zero for index -1 */
+  ksl_screw_t GetBodyVelocity(int load_index) const;
+
+  /*! \brief add an external spatial force (in the fixed frame, referred to
+   * its origin) to a body group (see GetBodyLoadIndex); loads on the fixed
+   * body (index -1) are ignored. Loads are cleared in SetForces. */
+  void AddBodyLoad(int load_index, const ksl_coscrew_t& load);
+
+  inline const std::vector<ksl_coscrew_t>& get_body_loads() const {
+    return body_loads_;
+  }
 
   inline shift::core::Jacobian& get_jacobian() {
     return jacobian_;
@@ -293,7 +320,7 @@ public:
 
   virtual void ActivateObjects(bool) override;
 
-  void ActivateObject(behavior::Base*, bool);
+  void ActivateObject(controller::Base*, bool);
   void ActivateObject(body::Base*, bool);
   void ActivateObject(collision_geometry::Base*, bool);
   void ActivateObject(constraint::Base*, bool);
@@ -385,7 +412,12 @@ public:
   void EvaluateConstraints();
   double EvaluateConstraintError();
 
-  void SetForces(const double t, const std::vector<double>& y);
+  /*! \brief evaluate the run-time modules for the state y: clears the
+   * joint working forces and body loads, then detects contacts and services
+   * joints, sensors, controllers and force modules, in that order. The
+   * modules set the time derivatives of their internal states in dy. */
+  void SetForces(const double t, const std::vector<double>& y,
+                 std::vector<double>& dy);
 
   /*! copies dq and ddq quantities to dy array using vectors quaternion_indices_
   and non_quaternion_indices_; for quaternion_indices_, converts angular
@@ -482,7 +514,7 @@ private:
 
   virtual void DeclareParameters() override;
   void ActivateLoggers();
-  void AppendActiveObject(behavior::Base*);
+  void AppendActiveObject(controller::Base*);
   void AppendActiveObject(body::Base*);
   void AppendActiveObject(collision_geometry::Base*);
   void AppendActiveObject(constraint::Base*);
@@ -495,7 +527,7 @@ private:
   void AppendActiveObject(solver::Base*);
   void AppendActiveObject(integrator::Base*);
   void AppendActiveObject(logger::Base*);
-  void RemoveActiveObject(behavior::Base*);
+  void RemoveActiveObject(controller::Base*);
   void RemoveActiveObject(body::Base*);
   void RemoveActiveObject(collision_geometry::Base*);
   void RemoveActiveObject(constraint::Base*);
@@ -508,7 +540,7 @@ private:
   void RemoveActiveObject(solver::Base*);
   void RemoveActiveObject(integrator::Base*);
   void RemoveActiveObject(logger::Base*);
-  void ClearActiveBehavior();
+  void ClearActiveControllers();
   void ClearActiveArticulatedBodies();
   void ClearActiveFreeBodies();
   void ClearActiveCollisionGeometry();
@@ -623,6 +655,9 @@ private:
   // std::vector<ksl_coscrew_t> g_; /*!< spatial body and inertial
   //                                 forces, length equal to dq count */
   std::vector<ksl_coscrew_t> k_;
+  /*! external spatial forces on each body group, length
+   * non_rigid_joint_count, see AddBodyLoad */
+  std::vector<ksl_coscrew_t> body_loads_;
   std::vector<ksl_inertia_t> inertia_; /*!< body fixed spatial inertias */
   std::vector<int> joint_dof_;
   std::vector<int> joint_lookup_;
@@ -712,7 +747,7 @@ private:
   std::vector<std::vector<int>> substructure_indices_;
   std::vector<std::vector<int>> substructure_members_;
 
-  std::vector<behavior::Base*> active_behaviors_ = {};
+  std::vector<controller::Base*> active_controllers_ = {};
   std::vector<body::Base*> active_articulated_bodies_ = {};
   std::vector<body::Base*> active_free_bodies_ = {};
   StateObserver state_observer_;
@@ -744,8 +779,8 @@ private:
   /*! \brief System generated bodies */
   std::vector<std::unique_ptr<body::Base>> bodies_ = {};
 
-  /*! \brief System generated behaviors */
-  std::vector<std::unique_ptr<behavior::Base>> behaviors_ = {};
+  /*! \brief System generated controllers */
+  std::vector<std::unique_ptr<controller::Base>> controllers_ = {};
 
   /*! \brief System generated constraints */
   std::vector<std::unique_ptr<constraint::Base>> constraints_ = {};

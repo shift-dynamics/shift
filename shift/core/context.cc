@@ -27,7 +27,7 @@
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/topology.h"
-#include "shift/core/behavior/base.h"
+#include "shift/core/controller/base.h"
 #include "shift/core/body/base.h"
 #include "shift/core/body/rigid.h"
 #include "shift/core/collision_geometry/base.h"
@@ -59,7 +59,7 @@ void shift::core::Context::DeclareParameters() {
   DeclareParameter(
     "assemblies", &assemblies_,
     "an array of Shift assemblies, where each assembly contains a list of "
-    "bodies, joints, force modules, behaviors, etc.; Each assembly at a given "
+    "bodies, joints, force modules, controllers, etc.; Each assembly at a given "
     "level must have a unique name identifier",
     true);
 }
@@ -221,9 +221,9 @@ void shift::core::Context::Initialize() {
 
   shift::core::log::SetupLogFile();
 
-  if(!shift::core::behavior::Modules::is_initialized()) {
+  if(!shift::core::controller::Modules::is_initialized()) {
     throw shift::core::Exception(
-      "Behavior modules did not properly initialize");
+      "Controller modules did not properly initialize");
   }
   if(!shift::core::body::Modules::is_initialized()) {
     throw shift::core::Exception("Body modules did not properly initialize");
@@ -309,14 +309,14 @@ void shift::core::Context::AppendActiveObject(
 }
 
 void shift::core::Context::AppendActiveObject(
-  shift::core::behavior::Base* behavior) {
-  if(behavior->is_active()) {
-    for(auto i : active_behaviors_) {
-      if(i == behavior) {
+  shift::core::controller::Base* controller) {
+  if(controller->is_active()) {
+    for(auto i : active_controllers_) {
+      if(i == controller) {
         return;
       }
     }
-    active_behaviors_.push_back(behavior);
+    active_controllers_.push_back(controller);
   }
 }
 
@@ -469,10 +469,10 @@ void shift::core::Context::RemoveActiveObject(
 }
 
 void shift::core::Context::RemoveActiveObject(
-  shift::core::behavior::Base* behavior) {
-  for(unsigned int i = 0; i < active_behaviors_.size(); i++) {
-    if(active_behaviors_[i] == behavior) {
-      active_behaviors_.erase(active_behaviors_.begin() + i);
+  shift::core::controller::Base* controller) {
+  for(unsigned int i = 0; i < active_controllers_.size(); i++) {
+    if(active_controllers_[i] == controller) {
+      active_controllers_.erase(active_controllers_.begin() + i);
       return;
     }
   }
@@ -575,10 +575,10 @@ void shift::core::Context::RemoveActiveObject(
   }
 }
 
-void shift::core::Context::ActivateObject(shift::core::behavior::Base* behavior,
+void shift::core::Context::ActivateObject(shift::core::controller::Base* controller,
                                           bool active) {
-  if(behavior) {
-    active ? AppendActiveObject(behavior) : RemoveActiveObject(behavior);
+  if(controller) {
+    active ? AppendActiveObject(controller) : RemoveActiveObject(controller);
   }
 }
 
@@ -666,8 +666,8 @@ void shift::core::Context::ActivateObject(shift::core::solver::Base* solver,
   }
 }
 
-void shift::core::Context::ClearActiveBehavior() {
-  active_behaviors_.clear();
+void shift::core::Context::ClearActiveControllers() {
+  active_controllers_.clear();
 }
 
 void shift::core::Context::ClearActiveArticulatedBodies() {
@@ -711,7 +711,7 @@ void shift::core::Context::ClearActiveTerrain() {
 }
 
 void shift::core::Context::ClearActiveArrays() {
-  ClearActiveBehavior();
+  ClearActiveControllers();
   ClearActiveArticulatedBodies();
   ClearActiveFreeBodies();
   ClearActiveCollisionGeometry();
@@ -725,8 +725,8 @@ void shift::core::Context::ClearActiveArrays() {
 }
 
 void shift::core::Context::Connect() {
-  for(auto& behavior : active_behaviors_) {
-    behavior->Connect();
+  for(auto& controller : active_controllers_) {
+    controller->Connect();
   }
   for(auto& body : active_articulated_bodies_) {
     body->Connect();
@@ -745,6 +745,16 @@ void shift::core::Context::Connect() {
   }
   for(auto& joint : active_joints_) {
     joint->Connect();
+    for(auto* body : {joint->get_parent_body(), joint->get_child_body()}) {
+      if(body && body != get_fixed_body() &&
+         std::find(active_articulated_bodies_.begin(),
+                   active_articulated_bodies_.end(),
+                   body) == active_articulated_bodies_.end()) {
+        throw shift::core::Exception(
+          "Joint " + joint->get_name() + " connects inactive body " +
+          body->get_name() + "; set \"active\": false on the joint too");
+      }
+    }
   }
   for(auto& light : active_lights_) {
     light->Connect();
@@ -775,8 +785,8 @@ void shift::core::Context::Connect() {
 }
 
 void shift::core::Context::LoadData() {
-  for(auto& behavior : active_behaviors_) {
-    behavior->Load();
+  for(auto& controller : active_controllers_) {
+    controller->Load();
   }
   for(auto& body : active_articulated_bodies_) {
     body->Load();
@@ -1085,15 +1095,23 @@ void shift::core::Context::DetectSubstructures() {
       p_01[current_loop_index++] = chord_constraint_index;
 
       /* append first substructure to list of substructures */
-      auto it = chord_constraint_indices.begin();
+      /* merge every remaining loop that shares a joint with the
+      substructure; repeat until a pass merges nothing, since a merged loop
+      can overlap loops already passed over */
       int merge_count = 1;
       while(merge_count != 0) {
         merge_count = 0;
+        auto it = chord_constraint_indices.begin();
         while(it != chord_constraint_indices.end()) {
           /* base node of substructure */
+          /* loops that share a joint have base nodes on one path to the
+          fixed body, either one above the other */
           int base_node = loop_members_[substructure[0]][0];
-          if(shift::core::topology::InPath(pcl_, loop_members_[(*it)][0],
-                                           base_node)) {
+          int candidate_base_node = loop_members_[(*it)][0];
+          if(shift::core::topology::InPath(pcl_, candidate_base_node,
+                                           base_node) ||
+             shift::core::topology::InPath(pcl_, base_node,
+                                           candidate_base_node)) {
             for(auto loop_index : substructure) {
               for(auto loop_member = loop_members_[loop_index].begin() + 1;
                   loop_member < loop_members_[loop_index].end();
@@ -2733,12 +2751,67 @@ double shift::core::Context::KineticEnergy() {
   return ke;
 }
 
-unsigned int shift::core::Context::get_force_module_equation_count() {
+unsigned int shift::core::Context::get_auxiliary_state_count() {
   unsigned int equation_count = 0;
   for(auto& force_module : active_force_modules_) {
     equation_count += force_module->get_equation_count();
   }
+  for(auto& controller : active_controllers_) {
+    equation_count += controller->get_equation_count();
+  }
   return equation_count;
+}
+
+void shift::core::Context::InitializeAuxiliaryStates(double* y_auxiliary) {
+  size_t offset = q_count_ + dq_count_;
+  size_t k = 0;
+  for(auto& force_module : active_force_modules_) {
+    force_module->set_state_offset(offset + k);
+    for(double value : force_module->get_q0()) {
+      y_auxiliary[k++] = value;
+    }
+  }
+  for(auto& controller : active_controllers_) {
+    controller->set_state_offset(offset + k);
+    for(double value : controller->get_q0()) {
+      y_auxiliary[k++] = value;
+    }
+  }
+  assert(k == get_auxiliary_state_count());
+}
+
+int shift::core::Context::GetBodyLoadIndex(const body::Base* body) const {
+  for(size_t i = 0; i < active_articulated_bodies_.size(); i++) {
+    if(active_articulated_bodies_[i] != body) {
+      continue;
+    }
+    /* bodies attached by rigid joints move with their nearest non-rigid
+    ancestor */
+    int j = static_cast<int>(i);
+    while(j > -1 && joint_lookup_[j] < 0) {
+      j = pcl_[j];
+    }
+    return j > -1 ? joint_lookup_[j] : -1;
+  }
+  return -1;
+}
+
+ksl_screw_t shift::core::Context::GetBodyVelocity(int load_index) const {
+  if(load_index < 0) {
+    return ksl_screw(0, 0, 0, 0, 0, 0);
+  }
+  return dhva_.v[load_index];
+}
+
+void shift::core::Context::AddBodyLoad(int load_index,
+                                       const ksl_coscrew_t& load) {
+  if(load_index < 0) {
+    return;
+  }
+  assert(static_cast<size_t>(load_index) < body_loads_.size());
+  for(int i = 0; i < 6; i++) {
+    body_loads_[load_index].at[i] += load.at[i];
+  }
 }
 
 void shift::core::Context::EvaluateConstraints() {
@@ -2746,15 +2819,30 @@ void shift::core::Context::EvaluateConstraints() {
 }
 
 void shift::core::Context::SetForces(const double t,
-                                     const std::vector<double>& y) {
+                                     const std::vector<double>& y,
+                                     std::vector<double>& dy) {
   (void)t;
   std::fill(f_.begin(), f_.end(), 0);
+  body_loads_.resize(non_rigid_joint_count_);
+  std::fill(body_loads_.begin(), body_loads_.end(),
+            ksl_coscrew(0, 0, 0, 0, 0, 0));
   /* contact detection is performed before all other force modules */
   if(model_parameters_.is_contact_detection_enabled()) {
     DetectContacts();
   }
   for(auto& joint : active_joints_) {
     joint->Service(y);
+  }
+  /* signal chain: sensors measure the state, controllers read the sensors
+  and drive joints, force modules (e.g. tires) apply forces */
+  for(auto& sensor : active_sensors_) {
+    sensor->Update(y.data());
+  }
+  for(auto& controller : active_controllers_) {
+    controller->Service(y.data(), dy.data());
+  }
+  for(auto& force_module : active_force_modules_) {
+    force_module->Service(y.data(), dy.data());
   }
   // std::cout << "f_: ";
   // for(auto& force : f_) {

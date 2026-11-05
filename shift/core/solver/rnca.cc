@@ -1347,7 +1347,14 @@ void shift::core::solver::RNCA::SetupRHS() {
 
   std::fill(fl_.begin(), fl_.end(), 0);
   std::fill(p_.begin(), p_.end(), ksl_coscrew(0, 0, 0, 0, 0, 0));
-  std::fill(g_.begin(), g_.end(), ksl_coscrew(0, 0, 0, 0, 0, 0));
+  /* external loads on the bodies (e.g. tire forces), set in
+  Context::SetForces */
+  const auto& body_loads = context_->get_body_loads();
+  if(body_loads.size() == g_.size()) {
+    std::copy(body_loads.begin(), body_loads.end(), g_.begin());
+  } else {
+    std::fill(g_.begin(), g_.end(), ksl_coscrew(0, 0, 0, 0, 0, 0));
+  }
 
   const ksl_screw_t* aq = dhva.aq;
   const ksl_screw_t* v = dhva.v;
@@ -2074,7 +2081,7 @@ bool shift::core::solver::RNCA::Solve(const double t,
 
   context_->UpdateDHVA(q, dq);
   context_->EvaluateConstraints();
-  context_->SetForces(t, y);
+  context_->SetForces(t, y, dy);
 
   if(SetupEquations(t, y)) {
     return true;

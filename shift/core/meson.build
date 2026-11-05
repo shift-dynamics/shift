@@ -15,7 +15,7 @@ core_src = files(
   'utility.cc',
 )
 
-subdir('behavior')
+subdir('controller')
 subdir('body')
 subdir('collision_geometry')
 subdir('constraint')
