@@ -50,8 +50,9 @@ depends on the state only. The stiffness depends on the shapes:
   on its corners.
 * **CAD geometry**: each point found on the exact surfaces has its own
   normal and law: Hertz contact where two curved surfaces touch, and, along
-  a line of contact (parallel cylinders, a cylinder on a plane), stations
-  of Hertz line contact, :math:`k = \tfrac{\pi}{4} e^* l`, :math:`n = 1`.
+  a line of contact (parallel cylinders, a cylinder on a plane, or a NURBS or
+  extruded face on a cylinder or plane, as a cam on its roller), stations of
+  Hertz line contact, :math:`k = \tfrac{\pi}{4} e^* l`, :math:`n = 1`.
 
 A cylinder or a capsule on a plane touches along a line, the lowest
 generator of the cylinder or the segment of the capsule, and a single
@@ -162,17 +163,57 @@ the speed it gains in that travel gives the friction no time to hold. Choose
 :math:`\sigma_0` so that :math:`\mu_c/\sigma_0` is small against the sizes of the
 motion.
 
+``bristle_damping`` defaults to 5 s/m, because a body held on several points needs
+some. Setting it to 0 is allowed, but the body may then creep though it is below the
+limit of holding. The friction at a point is its normal force times the deflection of its bristles, so as a
+body rocks the friction changes with it, which can feed energy into the rocking.
+Without damping, the smallest disturbance can start a box on a slope rocking more and
+more and slipping a little each time. The box of the example, at 0.58 of the limit of
+holding, walks 4 mm down the slope in 6 s in the optimized build, where rounding is
+enough to set it off, and stays put in the debug build. With :math:`\sigma_1` = 5 s/m it stays put, and the integrator takes a quarter of the
+steps. A body nearer the limit needs more than the default: the box at 0.89 of the limit, with
+:math:`\sigma_0` = 20000 1/m, needs about 500 s/m, where 150 s/m still lets it move. If
+the output ``stick_<a>_<b>`` wanders while the body should be at rest, raise
+:math:`\sigma_1`.
+
 .. code:: javascript
 
    "stick_slip": [
      {"geometry_a": "ground", "geometry_b": "box", "bristle_stiffness": 2000,
-      "static_friction": 0.6, "stribeck_velocity": 0.05}
+      "bristle_damping": 5, "static_friction": 0.6, "stribeck_velocity": 0.05}
    ]
 
 Each entry of ``stick_slip``:
 
 .. shift-parameters:: shift/core/force_module/contact.cc
    :function: StickSlipPair::DeclareParameters
+
+.. shift-parameters:: shift/core/force_module/contact.cc
+   :function: BristleModel::DeclareParameters
+
+With ``stick_slip_all``, every other pair of a model holds in the same way, without
+being listed. Setting aside states for every possible pair would take a number that
+grows with the square of the geometries, so the module keeps a fixed number of sets
+of bristles, ``pairs``, for the pairs in contact at the time. A pair takes a free set
+when it comes into contact and gives it back once it has left contact and its
+bristles have relaxed, so a free set always has no deflection and it does not matter
+which one a pair takes. If no set is free, the pair has regularized friction, and the
+module warns once. Give ``pairs`` at least the number of pairs that touch at once.
+The friction of a pair comes from its materials, and the static friction is
+:math:`\mu_s` = ``static_ratio`` :math:`\mu_c`. A pair listed in ``stick_slip`` keeps its
+own bristles. The module logs ``stick_all``, the largest ratio over the sets, and
+``stick_pairs``, the number of sets in use.
+
+.. code:: javascript
+
+   "stick_slip_all": {"bristle_stiffness": 2000, "bristle_damping": 5,
+                      "static_ratio": 1.2, "stribeck_velocity": 0.05,
+                      "pairs": 32}
+
+Its parameters, with those of the bristles above:
+
+.. shift-parameters:: shift/core/force_module/contact.cc
+   :function: StickSlipAll::DeclareParameters
 
 JSON
 ----
@@ -236,5 +277,7 @@ Examples
 * :source:`examples/collision/stick_slip.json`: a box on a slope held by the
   bristles of its four corners, where regularized Coulomb friction would let it
   creep.
+* :source:`examples/collision/stick_slip_all.json`: the same box with no pair named,
+  held by a set of bristles from ``stick_slip_all``.
 * Tests: :source:`test/test_contact_force.cc`,
   :source:`test/test_contact_geometry.cc` and :source:`test/test_stick_slip.cc`.

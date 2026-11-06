@@ -79,14 +79,20 @@ Faster than real-time simulation
 
 .. raw:: html
 
-    <video src="_static/vehicle_chassis.webm" width="640" controls>
+    <video src="_static/raptor.webm" width="640" controls>
     </video>
 
 
-This simulation of a vehicle chassis uses kinematic substructuring to find
-overlapping clusters of chord loops automatically and simplify the
-equations of motion. The model runs many times faster than real time on a
-desktop workstation.
+This Ford F-150 Raptor R model has 55 bodies and 70 joints and a full drivetrain:
+engine, torque converter, ten-speed transmission and limited slip differential.
+It runs 2x faster than real time. Kinematic substructuring finds the
+overlapping clusters of chord loops in its suspension and steering automatically
+and simplifies the equations of motion.
+
+The truck is based on "2024 Ford F-150 Raptor R"
+(https://sketchfab.com/3d-models/2024-ford-f-150-raptor-r-9fbd01c5acfb45e7a7bbdf4c8e2c4aa8)
+by VTX (https://sketchfab.com/VTX_car), licensed under CC-BY-NC-SA-4.0
+(http://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 
 Automatic assembly of complex mechanisms
@@ -94,7 +100,7 @@ Automatic assembly of complex mechanisms
 
 .. raw:: html
 
-    <video src="_static/klann_linkage.webm" width="640" controls>
+    <video src="_static/klann_walker.webm" width="640" controls>
     </video>
 
 
@@ -117,6 +123,30 @@ through its whole range. *Shift* detects when its partition of the
 coordinates becomes poorly conditioned and chooses a new one as the
 simulation runs, so exceptional and paradoxical linkages need no special
 treatment.
+
+
+Exact CAD geometry from STEP files
+**********************************
+
+.. raw:: html
+
+    <video src="_static/track_loop.webm" width="640" controls>
+    </video>
+
+
+*Shift* reads parts and assemblies from STEP files and keeps their surfaces in the
+exact form the file gives them: planes, cylinders, cones, spheres, tori and NURBS
+surfaces (the free-form surfaces of CAD), bounded by their trimming curves. No
+triangle mesh has to be prepared. The viewer draws the parts by evaluating these
+surfaces on the graphics card, so curved faces look smooth at any distance.
+
+Contact uses the same surfaces. Between two STEP parts, or a STEP part and a plane,
+the points of contact, their depths and their normals are solved on the surfaces
+themselves, so the normals and curvatures are those of the part and not of the
+facets of a mesh, and the Hertz contact law uses the true curvature at each point.
+In this track, 44 links run around a drive sprocket and an idler and rest on the
+ground, with every contact found on the surfaces of the STEP files. Reading STEP
+files needs the optional STEPcode library.
 
 
 Mobility analysis and interactive positioning
