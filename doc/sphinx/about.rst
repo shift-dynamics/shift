@@ -85,7 +85,7 @@ Faster than real-time simulation
 
 This Ford F-150 Raptor R model has 55 bodies and 70 joints and a full drivetrain:
 engine, torque converter, ten-speed transmission and limited slip differential.
-It runs 2x faster than real time. Kinematic substructuring finds the
+It runs 5x faster than real time. Kinematic substructuring finds the
 overlapping clusters of chord loops in its suspension and steering automatically
 and simplifies the equations of motion.
 
