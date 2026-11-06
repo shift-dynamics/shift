@@ -123,6 +123,29 @@ Force modules
 .. doxygenclass:: shift::core::force_module::Bushing
    :members: get_pair_count, get_displacements, get_velocities, get_forces
 
+.. doxygenclass:: shift::core::force_module::SpringDamper
+   :members: Force, get_length, get_rate, get_force
+
+.. doxygenclass:: shift::core::force_module::ThrustCollar
+   :members: FilmThickness, PadLoad, SqueezeDamping
+
+.. doxygenclass:: shift::core::force_module::Spline
+   :members: NormalForce, get_angle, get_torque, get_normal_force, get_friction, get_stick
+
+.. doxygenclass:: shift::core::force_module::BoucWen
+
+.. doxygenclass:: shift::core::force_module::SoilTool
+   :members: ComputeFactors, get_depth, get_draft, get_lift, get_pile
+
+.. doxygenclass:: shift::core::force_module::TerrainContact
+
+.. doxygenclass:: shift::core::force_module::AppliedLoad
+   :members: Scale
+
+.. doxygenclass:: shift::core::force_module::JointFriction
+
+.. doxygenclass:: shift::core::force_module::JointMap
+
 .. doxygenclass:: shift::core::force_module::RubberMount
 
 .. doxygenclass:: shift::core::force_module::Beam

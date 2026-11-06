@@ -60,10 +60,15 @@ Keys of every force module:
    :maxdepth: 1
 
    contact
+   terrain-contact
    tire
    soil
+   soil-tool
    track
    bushing
+   spring-damper
+   joint-forces
+   applied-load
    rubber-mount
    beam
    belt
@@ -71,6 +76,8 @@ Keys of every force module:
    lead-screw
    gear-mesh
    journal-bearing
+   thrust-collar
+   spline
    powertrain
 
 .. list-table::
@@ -80,10 +87,26 @@ Keys of every force module:
      - what it models
    * - :doc:`contact <contact>`
      - contact and friction between collision geometry
+   * - :doc:`terrain_contact <terrain-contact>`
+     - contact of a body with the terrain at a set of points on it
    * - :doc:`tire <tire>`
      - a wheel on the ground or terrain: Fiala and PAC2002 tire models
+   * - :doc:`soil_tool <soil-tool>`
+     - the force of the soil on a blade cutting it, and the pile it pushes
    * - :doc:`bushing <bushing>`
      - a compliant joint: 6×6 stiffness and damping between frames on bodies, as at the pivots of a control arm or a steering link
+   * - :doc:`spring_damper <spring-damper>`
+     - a spring and damper along the line between two frames or about an axis, with measured curves, stops and hysteresis
+   * - :doc:`thrust_collar <thrust-collar>`
+     - the axial contact of a collar and a shoulder: oil film, tapered pads, surfaces and friction
+   * - :doc:`spline <spline>`
+     - a sliding spline: the torque it carries, its backlash, and the friction that grows with that torque
+   * - :doc:`joint_friction <joint-forces>`
+     - Coulomb and viscous friction on a joint, which can hold it at rest
+   * - :doc:`joint_map <joint-forces>`
+     - a force on a joint from a measured map of two variables
+   * - :doc:`applied_load <applied-load>`
+     - a force and moment on a body or between two bodies, constant, over time, or as an impulse
    * - :doc:`rubber_mount <rubber-mount>`
      - a bushing whose stiffness and damping depend on the frequency of the motion
    * - :doc:`beam <beam>`

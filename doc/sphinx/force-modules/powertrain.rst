@@ -356,8 +356,9 @@ Coulomb friction :math:`c_e`. A locked clutch carries its torque without slip, a
 limited slip differential locks while the torque it has to carry is within its
 capacity.
 
-The bristles are elastic, and without damping they ring. Give a ``bristle_damping``
-:math:`\sigma_1` that makes the damping torque :math:`c_e\sigma_1` the critical damping
+The bristles are elastic, and without damping they ring. ``bristle_damping`` defaults
+to 0.5 s/rad, which keeps them from ringing on for long; 0 is allowed but leaves little
+to settle them. For a quick settle, give a :math:`\sigma_1` that makes the damping torque :math:`c_e\sigma_1` the critical damping
 :math:`2\sqrt{c_e\sigma_0 i}` of the bristles' spring, for the inertia :math:`i` that they
 act on, that is :math:`\sigma_1 = 2\sqrt{\sigma_0 i/c_e}`. They are also stiff, relaxing
 within :math:`1/(\sigma_0|u|)` at the slip speed :math:`|u|`, which the variable step

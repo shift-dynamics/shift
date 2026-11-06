@@ -76,8 +76,9 @@ Force modules, sensors and controllers
           :alt: raptor
      - :source:`examples/raptor/raptor.json`
      - a full-size pickup truck, 55 bodies and 70 joints: double wishbone
-       front suspension, a live rear axle, Fiala tires and PID speed
-       control of the rear wheels at 15 m/s (model by VTX,
+       front suspension, a live rear axle and Fiala tires, driven by a
+       powertrain over rolling ground, around a route of schedules for the
+       throttle, gears, brakes and steering (model by VTX,
        CC-BY-NC-SA-4.0, see :source:`examples/raptor/readme.rst`)
    * - .. image:: ../images/examples/collision_50.jpg
           :width: 220px

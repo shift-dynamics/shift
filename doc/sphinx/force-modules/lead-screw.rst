@@ -80,8 +80,37 @@ axial force with these formulas for square and Acme threads, raising and lowerin
 *What the smoothing costs.* Because the friction is smoothed at low speed, a load
 held by a self-locking screw creeps slowly, at a speed up to the slip speed times
 the ratio of the force needed to hold it to the friction available, where a real
-screw would stay. Make ``slip_speed`` small against the speeds of the motion.
-Friction that holds at rest is the stick-slip friction on the roadmap.
+screw would stay. Make ``slip_speed`` small against the speeds of the motion, or use
+the bristles below.
+
+*Stick and slip.* With ``bristle_stiffness`` :math:`\sigma_0` the friction of the thread
+holds at rest, by the bristle model of friction (the LuGre model,
+see :doc:`contact`). The flanks slide along the thread at the speed
+:math:`u = r\omega\cos\lambda + \dot s\sin\lambda` (with the sign of
+:math:`\dot s` reversed for a left handed thread), and the deflection :math:`z` of the
+bristles is a state of the module:
+
+.. math::
+
+   \dot z = u - \frac{\sigma_0|u|}{g(|u|)}\,z, \qquad
+   g(|u|) = \mu + (\mu_s - \mu)\,e^{-(|u|/v_s)^2}, \qquad
+   f_t = |n|\,(\sigma_0 z + \sigma_1\dot z + \sigma_2 u)
+
+for the friction force :math:`f_t` along the thread, with ``bristle_damping``
+:math:`\sigma_1`, ``viscous_friction`` :math:`\sigma_2`, ``static_friction``
+:math:`\mu_s` (at least :math:`\mu`, default :math:`\mu`) and ``stribeck_velocity``
+:math:`v_s`, which takes the place of ``slip_speed``. A load held on the thread moves
+by a small :math:`z` and stops, as long as :math:`\mu_s\sec\alpha \ge \tan\lambda`, so a
+thread can hold from rest and still run once it has started, if :math:`\mu\sec\alpha`
+is below :math:`\tan\lambda`. In steady motion :math:`f_t = \mu|n|`, the friction of the
+formulas above. The tests compare the travel of a held load with the creep of the
+smoothed friction, and check that the bristles at rest carry :math:`\tan\lambda` of the
+normal force.
+
+The bristles are a stiff spring on the screw, of :math:`|n|\sigma_0` along the thread.
+``bristle_damping`` settles them and defaults to 5 s/m. With 0 the screw rings on this
+spring after a load comes on, with nothing to settle it. For a quick settle, choose
+:math:`\sigma_1` so that the screw's inertia on this spring is about critically damped.
 
 *Backlash.* A ``backlash`` (axial play in the thread) leaves the deflection free
 for :math:`|\delta| < \text{backlash}/2`, and the thread loads smoothly beyond it.
@@ -101,8 +130,9 @@ model runs (see :ref:`schedule`).
 
 Outputs, logged as ``<assembly>__<name>__<output>``: ``axial_force`` (the force of the thread on
 the screw along the axis), ``torque`` (on the screw about the axis),
-``deflection``, ``normal_force``, ``friction_force`` and ``turns`` (the rotation
-of the screw relative to the nut, in turns).
+``deflection``, ``normal_force``, ``friction_force``, ``turns`` (the rotation
+of the screw relative to the nut, in turns) and ``stick``
+(:math:`\sigma_0|z|/\mu_s`, 1 at the limit of holding).
 
 .. shift-parameters:: shift/core/force_module/lead_screw.cc
    :exclude: name, type, active
@@ -113,5 +143,11 @@ Examples
 :source:`examples/force_modules/lead_screw.json`: a screw jack. A 500 kg load
 hangs on an Acme screw in a fixed nut, and a PID controller turns the screw at
 20 rad/s to raise it. In steady motion the torque is 15.6 N m for the 501 kg that
-hang on it, as the formula for raising gives. Tests:
-:source:`test/test_lead_screw.cc`.
+hang on it, as the formula for raising gives.
+
+:source:`examples/force_modules/lead_screw_hold.json`: the same jack left to hold its
+load, with no drive. The bristles of the thread hold it, 0.0001 of a turn from the
+start, with ``stick`` at 0.548, which is
+:math:`\tan\lambda/(\mu_s\sec\alpha)`.
+
+Tests: :source:`test/test_lead_screw.cc`.

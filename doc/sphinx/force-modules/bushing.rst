@@ -12,6 +12,10 @@ stiffness has been measured or computed by finite elements. A group of
 :math:`n` frames joins each of its :math:`n (n - 1)/2` pairs, with one set
 of matrices over all the pairs, as a simple model of a flexible structure.
 
+A bushing between the two sides of a spherical or float joint is also the
+spring and damper of that joint: ``"stiffness": [0, 0, 0, k, k, k]`` acts on the
+three rotations of a spherical joint, and all six numbers on a float joint.
+
 The relative motion
 -------------------
 

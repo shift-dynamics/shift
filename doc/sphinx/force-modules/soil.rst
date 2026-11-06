@@ -33,11 +33,39 @@ Bekker's :math:`p = (k_c/b + k_\phi)\,z^n`, with the cohesive modulus
 :math:`n`. Its shear strength is :math:`c + p\tan\phi` for the cohesion
 :math:`c` and the friction angle :math:`\phi`, reached as the plate slides, by
 Janosi and Hanamoto's :math:`1 - e^{-j/k_j}` after the slide :math:`j`
-(:math:`k_j` is the shear modulus). The soil's unit weight gives the earth
-pressure on the face of a grouser or the side of a shoe or wheel, from Rankine's
-theory of passive pressure: on a vertical face down to the depth :math:`h` it
-is :math:`\tfrac12 w h^2 \kappa_p + 2 c h \sqrt{\kappa_p}` per unit of width, with
-:math:`\kappa_p = \tan^2(45^\circ + \phi/2)`.
+(:math:`k_j` is the shear modulus).
+
+Earth pressure
+--------------
+
+The soil's unit weight :math:`w` gives the passive earth pressure on the face
+of a grouser or the side of a shoe or wheel, the pressure of a face pushing
+into the soil. On a vertical face in level soil, down to the depth :math:`h`,
+the force normal to the face is
+:math:`\tfrac12 w h^2 \kappa_p + 2 c h \sqrt{\kappa_p}` per unit of width. The
+coefficient comes from Coulomb's theory, with the friction angle
+:math:`\delta` between the soil and the face (``wall_friction``):
+
+.. math::
+
+   \kappa_p = \frac{\cos^2\phi}{(1 - s)^2}, \quad
+   \kappa_a = \frac{\cos^2\phi}{(1 + s)^2}, \quad
+   s = \sqrt{\frac{\sin(\phi + \delta)\sin\phi}{\cos\delta}}
+
+:math:`\kappa_a` is the active coefficient, of a face giving way to the soil,
+and :math:`\kappa_0 = 1 - \sin\phi` (Jaky) the one at rest, against a face that
+does not move. Tables of Coulomb's coefficients usually give the thrust along
+its inclined line; these are its part normal to the face, smaller by
+:math:`\cos\delta`. The term in :math:`c` is Bell's, and is the exact one only
+for :math:`\delta = 0`.
+
+The default :math:`\delta = 0`, a smooth face, gives Rankine's
+:math:`\kappa_p = \tan^2(45^\circ + \phi/2)`. A rough steel face has
+:math:`\delta` of about :math:`\phi/2`. Coulomb's plane failure surface overstates
+the passive pressure as :math:`\delta` grows, more so above :math:`\phi/2`, and it
+has no finite value when :math:`s` reaches 1 (:math:`\phi = \delta = 45^\circ`),
+which the model refuses. In those cases give ``passive_coefficient``, from a
+test or a table for curved failure surfaces, in place of the computed value.
 
 The table
 ---------
@@ -183,7 +211,9 @@ while the soil is loaded further than ever before. Below the deepest sinkage
 the soil springs back by :math:`z_p` / ``unloading_ratio``, and a shoe that
 is lifted leaves its rut behind. The deepest sinkage is a state that follows
 the sinkage from below, over ``plastic_time``, and so there is no jump as the
-soil is loaded and unloaded.
+soil is loaded and unloaded. Off the soil it fades over ``rut_time``: a shoe
+lifted for a moment comes back to its rut, and one going round the track comes
+down on fresh soil.
 
 The soil also gives traction and side force. The shear on the shoe's plate is
 the soil's shear strength under it, built up by the displacement :math:`\underline{j}` of the shoe
@@ -205,6 +235,13 @@ center over the ground while it is on the soil, and relaxes to zero over
 Outputs, for each shoe, ``<shoe>_sinkage``, and for all the shoes
 ``normal_force``, ``traction`` (along the track) and ``side_force`` (across it),
 in the ground plane.
+
+``examples/cad/track_frame_soil.json`` drives one track of a 20 t excavator
+over dry sand. It settles about 0.1 m into the sand and moves forward at about
+0.31 m/s, close to the 0.32 m/s of its sprocket's rim. The track's contacts are
+on spheres and boxes, with the STEP parts only drawn, so that it runs in about
+25 s in an optimized build; the same track with contact on the STEP surfaces
+is a benchmark (``examples/cad/track_frame.json``).
 
 .. shift-parameters:: shift/core/force_module/track_soil.cc
    :exclude: name, type, active

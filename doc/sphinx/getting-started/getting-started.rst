@@ -116,6 +116,23 @@ is how the pictures in these documents are made
 
 ``shift --help`` lists the options.
 
+To keep a moving body in view, tick *follow* in the *Camera* box of the
+*Simulation* tab and pick the body. The camera then keeps its place relative to
+that body, moving and turning with it, and you can still orbit, pan and zoom.
+With ``--image``, ``--follow`` does the same: the view is set at the start and
+follows the body to ``--time``.
+
+In *body* mode the body looks still, because the camera moves with all of its
+motion. To see a vehicle bounce and tilt, choose *ground* mode
+(``--follow-ground``): the camera stays level, at the height of the ground under
+the body, and turns only with the body's heading.
+
+To export part of a run, use the film strip in the *Video* box of the
+*Simulation* tab. Drag its two handles, or type in *Start* and *End*, to choose
+the part to keep. The view shows the frame under a handle as you drag, and
+hovering over the strip shows a larger preview. *Refresh Preview* redraws the
+strip from the current camera.
+
 Adding to the model
 -------------------
 
