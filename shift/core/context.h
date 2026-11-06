@@ -711,6 +711,7 @@ private:
    * loads any additional external data not specified in JSON model definition
    * file from other data sources */
   void LoadData();
+  void LoadExactShapes();
 
   /*! \brief sort active bodies and joints by level increasing order in
    * spanning tree
@@ -943,6 +944,8 @@ private:
   /* wall-clock time spent in DetectContacts during Simulate */
   double contact_detection_seconds_ = 0.0;
   long contact_detection_calls_ = 0;
+  double contact_test_seconds_ = 0.0; /*!< the last round of pair tests, in
+                                       * seconds of one thread, see DetectContacts */
   long broad_phase_calls_ = 0;
   /*! rigid group of each geometry in contact_geometry_: the body load index
    * of an articulated body, unique for a free body */

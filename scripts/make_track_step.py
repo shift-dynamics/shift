@@ -3,7 +3,8 @@
 STEP surfaces: examples/cad/sprocket.step (the drive sprocket),
 examples/cad/idler.step (the front idler) and examples/cad/track_link.step
 (one link of the track: link plates, bushing, pin and a triple grouser shoe),
-and the model of a whole track loop on them, examples/cad/track_loop.json.
+and the models of a whole track loop on them, examples/cad/track_loop.json,
+track_frame.json and, on soil, track_frame_soil.json.
 
 The sizes are those of a 20 t excavator: a track pitch of 190 mm, a bushing
 of 59 mm diameter and a shoe 600 mm wide. The sprocket has 21 teeth and
@@ -81,6 +82,16 @@ LOOP_E = 2e9                # Young's modulus of the contacts, a hundredth of
                             # steel's: the impacts of the bushings in the
                             # seats need steps 10 times smaller with steel's
 LOOP_TIME = 2.0             # s
+
+# the same track on soil, with contact on primitive shapes
+SOIL_PIN_RADIUS = 16.0      # of the sprocket's and idler's pins, between seats
+SOIL_RAIL_OFFSET = 170.0    # of each rail and roller tread from the middle:
+                            # clear of the spheres of the wheels' treads
+SOIL_RAIL_HALF_WIDTH = 30.0
+SOIL_CONTACT_STIFFNESS = 1e9  # of the boxes under the rollers, N/m^1.5
+SOIL_DRIVE_KP = 40000.0     # of the sprocket's drive
+SOIL_DRIVE_KI = 80000.0
+SOIL_TIME = 3.0             # s
 
 
 # ---------------------------------------------------------------------------
@@ -549,6 +560,8 @@ def main():
 
     track_loop(os.path.join(out, 'track_frame.json'), pitch_radius,
                frame=True)
+    track_loop(os.path.join(out, 'track_frame_soil.json'), pitch_radius,
+               frame=True, soil=True)
 
 
 # the rotation from the sprocket's frame (X up, Y along the track to the
@@ -597,7 +610,7 @@ def roller_mass(radius):
     return tuple(sum(x[i] for x in parts) for i in range(3))
 
 
-def track_loop(path, pitch_radius, frame=False):
+def track_loop(path, pitch_radius, frame=False, soil=False):
     """the model of a track loop around the sprocket and an idler of the
     same pitch radius, in meters: x forward, z down, the axles along y.
     The loop is laid out in the plane of the wheels, in the sprocket's frame
@@ -614,7 +627,15 @@ def track_loop(path, pitch_radius, frame=False):
     bottom links and a carrier roller under the rails of the top links,
     RAIL_GAP off them; the contacts wear, and a track module logs the sag of
     the top spans, the misguide of the links and the side force on the
-    rollers' flanges."""
+    rollers' flanges.
+
+    With soil (and frame), the track runs on soil instead of the ground
+    plane: a track_soil module under every shoe. The STEP files are only
+    drawn. The contacts are on primitive shapes, which make it a fast
+    example where the STEP surfaces make a benchmark: a sphere at each
+    bushing, on a sphere as the tread of each wheel and between pins at its
+    pitch radius, so that it sits in a seat; two boxes as each link's rails
+    and two spheres as each roller's treads."""
     p = PITCH / 1000.0
     r = pitch_radius / 1000.0
     step = 4.0 * math.pi / TEETH
@@ -679,25 +700,42 @@ def track_loop(path, pitch_radius, frame=False):
                                         width ** 2)
     idler_axial = idler_mass / 2.0 * (tread ** 2 + bore ** 2)
     contact = [{'type': 'cad', 'material': 'steel'}]
+
+    def sphere(radius, at=(0.0, 0.0, 0.0)):
+        return {'type': 'sphere', 'radius': number(radius),
+                'material': 'steel',
+                'pose': {'T': [number(v) for v in at]}}
+
+    def pins(offset):
+        # a pin between each two seats of a wheel, seats at offset
+        half = math.pi / TEETH
+        return [sphere(tread)] + [
+            sphere(SOIL_PIN_RADIUS / 1000.0,
+                   (r * math.cos(offset + half * (2 * k + 1)),
+                    r * math.sin(offset + half * (2 * k + 1)), 0.0))
+            for k in range(TEETH)]
+
     bodies = [
         {'name': 'sprocket',
          'geometry': [{'type': 'cad', 'filename': 'sprocket.step'}],
-         'collision_geometry': contact,
+         'collision_geometry': pins(0.0) if soil else contact,
          'center_of_mass': [0.0, 0.0, 0.0],
          'inertia': inertia(130.7, 3.8, 3.8, 7.5)},
         {'name': 'idler',
          'geometry': [{'type': 'cad', 'filename': 'idler.step'}],
-         'collision_geometry': contact,
+         'collision_geometry': pins(math.pi + first) if soil else contact,
          'center_of_mass': [0.0, 0.0, 0.0],
          'inertia': inertia(number(idler_mass), number(idler_radial),
                             number(idler_radial), number(idler_axial))},
-        {'name': 'ground', 'geometry': [],
-         'collision_geometry': [{
-             'name': 'ground', 'type': 'plane', 'normal': [0.0, 0.0, -1.0],
-             'material': 'steel'}],
-         'center_of_mass': [0.0, 0.0, 0.0],
-         'inertia': inertia(1.0, 1.0, 1.0, 1.0)},
     ]
+    if not soil:
+        bodies.append(
+            {'name': 'ground', 'geometry': [],
+             'collision_geometry': [{
+                 'name': 'ground', 'type': 'plane',
+                 'normal': [0.0, 0.0, -1.0], 'material': 'steel'}],
+             'center_of_mass': [0.0, 0.0, 0.0],
+             'inertia': inertia(1.0, 1.0, 1.0, 1.0)})
     # rollers in the plane of the wheels (X, Y): track rollers between the
     # sprocket and the idler, their treads on the rails of the bottom links,
     # 50 mm inside the bushings; a carrier roller under the top links' rails
@@ -716,12 +754,16 @@ def track_loop(path, pitch_radius, frame=False):
         rollers.append(('carrier1', 'carrier_roller.step',
                         (r * math.cos(first) - rail - rc - gap, 0.5 * y_idler),
                         rc))
+    offset = SOIL_RAIL_OFFSET / 1000.0
     for name, filename, center, radius in rollers:
         m, radial, axial = roller_mass(radius * 1000.0)
+        treads = [sphere(radius, (0.0, 0.0, side * offset))
+                  for side in (-1.0, 1.0)]
         bodies.append({
             'name': name,
             'geometry': [{'type': 'cad', 'filename': filename}],
-            'collision_geometry': [{'type': 'cad', 'material': 'steel'}],
+            'collision_geometry': (treads if soil else
+                                   [{'type': 'cad', 'material': 'steel'}]),
             'center_of_mass': [0.0, 0.0, 0.0],
             'inertia': inertia(number(m), number(radial), number(radial),
                                number(axial))})
@@ -753,12 +795,21 @@ def track_loop(path, pitch_radius, frame=False):
                            'inertia': inertia(1.0, 0.01, 0.01, 0.01)})
 
     # a link of steel, from the volumes of its solids, as in the tests
+    link_contact = contact
+    if soil:
+        link_contact = [sphere(BUSHING_RADIUS / 1000.0)]
+        for side in (-1.0, 1.0):
+            link_contact.append({
+                'type': 'box', 'material': 'steel',
+                'half_extents': [number(0.5 * p),
+                                 number(SOIL_RAIL_HALF_WIDTH / 1000.0), rail],
+                'pose': {'T': [number(0.5 * p), side * offset, 0.0]}})
     for i in range(links):
         bodies.append({
             'name': 'link%d' % (i + 1),
             'frames': [{'name': 'pin', 'T': [p, 0.0, 0.0]}],
             'geometry': [{'type': 'cad', 'filename': 'track_link.step'}],
-            'collision_geometry': contact,
+            'collision_geometry': link_contact,
             'center_of_mass': [0.0974, 0.0, 0.0359],
             'inertia': inertia(38.06, 0.75, 0.15, 0.8)})
 
@@ -781,14 +832,16 @@ def track_loop(path, pitch_radius, frame=False):
         {'name': 'idler_joint', 'type': 'revolute',
          'parent': [[carrier], 'idler_axle'], 'child': [['idler'], 'origin'],
          'axis': [0.0, 0.0, 1.0]},
-        {'name': 'ground_joint', 'type': 'rigid',
-         'parent': [['fixed'], 'origin'], 'child': [['ground'], 'origin']},
         {'name': 'link1_joint', 'type': 'float',
          'parent': [['fixed'], 'origin'], 'child': [['link1'], 'origin'],
          'initial_displacement': {
              'T': [number(v) for v in first_bushing],
              'R': [[number(v) for v in row] for row in first_link]}},
     ]
+    if not soil:
+        joints.insert(2, {'name': 'ground_joint', 'type': 'rigid',
+                          'parent': [['fixed'], 'origin'],
+                          'child': [['ground'], 'origin']})
     if frame:
         joints += [
             {'name': 'slide_x', 'type': 'prismatic',
@@ -821,10 +874,28 @@ def track_loop(path, pitch_radius, frame=False):
              'restitution': 0.3, 'friction': 0.3}
     force_modules = [{'name': 'contact', 'type': 'contact',
                       'materials': [steel]}]
-    if frame:
+    relative_error, absolute_error = 1e-6, 1e-9
+    if soil:
+        steel['contact_stiffness'] = SOIL_CONTACT_STIFFNESS
+        force_modules.append({
+            'name': 'soil', 'type': 'track_soil',
+            'soil': {'name': 'dry_sand', 'wall_friction': 0.24},
+            'shoes': ['link%d' % (i + 1) for i in range(links)],
+            'shoe_center': [number(0.5 * p), 0.0,
+                            number((SHOE_TOP + SHOE_THICKNESS +
+                                    GROUSER_HEIGHT) / 1000.0)],
+            'shoe_normal': [0.0, 0.0, 1.0], 'shoe_along': [1.0, 0.0, 0.0],
+            'shoe_length': number(p),
+            'shoe_width': number(2.0 * SHOE_HALF_WIDTH / 1000.0),
+            'grouser_height': number(GROUSER_HEIGHT / 1000.0)})
+    elif frame:
         # Archard wear of hardened steel on steel, K / H: K = 1e-4 over
         # H = 5 GPa
         steel['wear_coefficient'] = 2e-14
+        # tighter tolerances than these only chase the chatter of the contacts,
+        # and take the integrator far longer
+        relative_error, absolute_error = 1e-4, 1e-4
+        force_modules[0]['friction_velocity'] = 0.03
         to_bushing = rail  # from a rail to the bushings' line
         force_modules.append({
             'name': 'track', 'type': 'track', 'frame': 'frame',
@@ -836,6 +907,15 @@ def track_loop(path, pitch_radius, frame=False):
                  'radii': [number(r), number(rc + gap + to_bushing)]},
                 {'name': 'rear', 'supports': ['carrier1', 'sprocket'],
                  'radii': [number(rc + gap + to_bushing), number(r)]}]})
+    soil_description = (
+        'A track of %d links on dry sand (the track_soil force module), the '
+        'track frame of half of a 20 t excavator (%.0f kg) free to move '
+        'forward, up and down and to pitch, the sprocket driving it forward '
+        'at %g rad/s by a PID controller. The STEP files are drawn; the contacts are on '
+        'primitive shapes: spheres at the bushings, on spheres as the wheels\' '
+        'treads and between pins on them, and boxes as the rails under '
+        'spheres as the rollers\' treads. x forward, y to the right, z down. Written by '
+        'scripts/make_track_step.py.' % (links, FRAME_MASS, LOOP_SPEED))
     description = (
         'A track loop of %d links (examples/cad/track_link.step) around the '
         'drive sprocket (sprocket.step) and the idler (idler.step), resting '
@@ -854,6 +934,8 @@ def track_loop(path, pitch_radius, frame=False):
         'A benchmark, not run in the regular tests. x forward, y to the '
         'right, z down: the axles along y, the idler in front of the '
         'sprocket. Written by scripts/make_track_step.py.')
+    if soil:
+        description = soil_description
     if frame:
         model_frames = [{'name': 'frame_start',
                          'T': [number(v) for v in place((0.0, 0.0, 0.0))]}]
@@ -876,9 +958,11 @@ def track_loop(path, pitch_radius, frame=False):
             'include_directories': ['.'],
             'enable_contact_detection': True,
             'solvers': [{'type': 'rnca'}],
-            'integrators': [{'type': 'ode113', 'relative_error': 1e-6,
-                             'absolute_error': 1e-9,
-                             'time_span': LOOP_TIME, 'time_step': 0.01}]},
+            'integrators': [{'type': 'ode113',
+                             'relative_error': relative_error,
+                             'absolute_error': absolute_error,
+                             'time_span': SOIL_TIME if soil else LOOP_TIME,
+                             'time_step': 0.01}]},
         'frames': model_frames,
         'assemblies': [{
             'name': 'track',
@@ -887,8 +971,11 @@ def track_loop(path, pitch_radius, frame=False):
             'sensors': [{'type': 'joint', 'name': 'sprocket_speed',
                          'joint': 'sprocket_joint', 'quantity': 'velocity'}],
             'controllers': [{'type': 'pid', 'name': 'sprocket_drive',
-                             'kp': 500.0, 'ki': 1000.0, 'kd': 0.0,
-                             'target': LOOP_SPEED,
+                             'kp': SOIL_DRIVE_KP if soil else 500.0,
+                             'ki': SOIL_DRIVE_KI if soil else 1000.0,
+                             'kd': 0.0,
+                             # forward, towards the idler
+                             'target': -LOOP_SPEED if soil else LOOP_SPEED,
                              'sensor': 'sprocket_speed',
                              'joint': 'sprocket_joint'}],
             'force_modules': force_modules}]}

@@ -42,6 +42,7 @@ class Base;
 namespace gui {
 
 class PlaybackSlider;
+class VideoTrimmer;
 class Viewport;
 
 /*!
@@ -77,6 +78,10 @@ public:
     float elevation = 0.35f;   /*!< radians, see Camera */
     bool hide_floor = false;   /*!< hide the floor even if the model shows
                                 * it (a model with a terrain hides it) */
+    QString follow_body;       /*!< if given, the camera is placed at the
+                                * start and follows this body to time */
+    bool follow_ground = false; /*!< follow the ground under the body, see
+                                 * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
   };
 
@@ -123,6 +128,9 @@ private:
   void AddSlider(SliderHandle& handle, QLayout* layout, double single_step,
                  QDial* gain_dial);
   QWidget* AddModelParametersBox();
+  QWidget* AddCameraBox();
+  /*! \brief apply the camera box to the viewport */
+  void UpdateFollow();
   QWidget* AddVideoBox();
 
   void OpenDialog();
@@ -162,6 +170,12 @@ private:
   /*! \brief render the computed results to a video file, frame by frame,
    * at the resolution of the video panel */
   void ExportVideo();
+  /*! \brief render the previews of the trimmer from the current camera */
+  void RenderThumbnails();
+  /*! \brief show the range of the trimmer in the video panel */
+  void UpdateVideoRange();
+  /*! \brief the results are gone: empty the trimmer */
+  void ClearVideoRange();
   /*! \brief show the size of the selected resolution preset */
   void UpdateVideoSize();
   void SetPlaybackTime(double t);
@@ -238,6 +252,14 @@ private:
     double rpy_reference[3] = {0.0, 0.0, 0.0}; /*!< roll, pitch, yaw last shown */
   } sliders_;
 
+  /* the camera can follow any body of the model */
+  struct {
+    QGroupBox* group_box = nullptr;
+    QCheckBox* follow = nullptr;
+    QComboBox* body = nullptr; /*!< item i is body i of the simulation */
+    QComboBox* mode = nullptr; /*!< item i is Viewport::FollowMode i */
+  } camera_panel_;
+
   struct {
     QGroupBox* group_box = nullptr;
     QLabel* integrator_type = nullptr;
@@ -256,8 +278,14 @@ private:
     QSpinBox* frame_rate = nullptr;
     QDoubleSpinBox* speed = nullptr; /*!< simulated time per video time */
     QSpinBox* samples = nullptr;     /*!< ray traced frames per video frame */
+    VideoTrimmer* trimmer = nullptr; /*!< the part of the results to export */
+    QDoubleSpinBox* start = nullptr;
+    QDoubleSpinBox* end = nullptr;
+    QLabel* range_info = nullptr;
+    QPushButton* refresh_button = nullptr;
     QPushButton* export_button = nullptr;
     bool exporting = false;
+    double thumbnails_time = -1.0; /*!< computed time they show, -1 if none */
   } video_panel_;
 
   struct {

@@ -77,10 +77,29 @@ protected:
 };
 
 /*!
-@brief a pair of collision geometry whose friction holds at rest: the
-parameters of the bristle (LuGre) model of its stick and slip, see Contact
+@brief the parameters of the bristle (LuGre) model of stick and slip, see
+Contact
 */
-class StickSlipPair : public parameter::List {
+class BristleModel : public parameter::List {
+public:
+  virtual ~BristleModel() {}
+
+  double bristle_stiffness = 0.0;
+  double bristle_damping = 5.0;
+  double viscous_friction = 0.0;
+  double stribeck_velocity = 0.01;
+  int points = 8;
+  double release_time = 0.01;
+
+protected:
+  virtual void DeclareParameters() override;
+};
+
+/*!
+@brief a pair of collision geometry whose friction holds at rest, with its own
+bristles, see Contact
+*/
+class StickSlipPair : public BristleModel {
 public:
   StickSlipPair() {
     DeclareParameters();
@@ -92,13 +111,25 @@ public:
   }
 
   std::string geometry_a, geometry_b;
-  double bristle_stiffness = 0.0;
-  double bristle_damping = 0.0;
-  double viscous_friction = 0.0;
   double static_friction = -1.0;
-  double stribeck_velocity = 0.01;
-  int points = 8;
-  double release_time = 0.01;
+
+protected:
+  virtual void DeclareParameters() override;
+};
+
+/*!
+@brief stick and slip for every pair of collision geometry that comes into
+contact, sharing a number of sets of bristles, see Contact
+*/
+class StickSlipAll : public BristleModel {
+public:
+  StickSlipAll() {
+    DeclareParameters();
+  }
+  virtual ~StickSlipAll() {}
+
+  double static_ratio = 1.0; //!< mu_s over the friction of the pair
+  int pairs = 16;            //!< sets of bristles, for pairs in contact at once
 
 protected:
   virtual void DeclareParameters() override;
@@ -231,7 +262,19 @@ stick_<a>_<b>, the largest \f$|\underline{z}| \sigma_0 / \mu_s\f$ of the pair
 \f$g / (\sigma_0 |\underline{u}|)\f$ at the sliding speed
 \f$|\underline{u}|\f$, which the variable step integrator has to resolve: a
 stiffer \f$\sigma_0\f$ holds closer and takes smaller steps while the body
-slides.
+slides. bristle_damping defaults to 5 s/m. With 0 a body held on several points can
+rock more and more and slip a little each time, since the friction at a point is
+its normal force times the deflection of its bristles, so the body creeps though it
+is below the limit of holding; a body near that limit may need more than the default.
+
+With stick_slip_all, every other pair of the model holds as well. States cannot
+be set aside for each possible pair, whose number grows with the square of the
+geometries, so there are a fixed number (pairs) of sets of bristles, shared: a pair
+takes a free set when it comes into contact, and gives it back when it has left
+contact and its bristles have relaxed, so that a free set always has no deflection
+and it does not matter which one a pair takes. A pair that finds no free set has the
+regularized friction, and the module warns once. The outputs are stick_all, the
+largest ratio over the sets, and stick_pairs, the number of sets in use.
 
 Each material may wear by Archard's law: the volume worn from a geometry
 grows at
@@ -293,6 +336,15 @@ public:
    * wears, named wear_\<geometry\> */
   virtual std::vector<std::string> get_output_names() const override;
   virtual void UpdateOutputs(double t, const double* y) override;
+
+  /*! \brief the sets of bristles of stick_slip_all in use */
+  int get_shared_pairs() const {
+    int count = 0;
+    for(const auto& owner : shared_owner_) {
+      count += owner.first ? 1 : 0;
+    }
+    return count;
+  }
   virtual void AppendOutputs(std::vector<double>& values) const override;
   virtual void Connect() override {}
 
@@ -328,6 +380,7 @@ private:
   parameter::Array<ContactMaterial> materials_;
   parameter::Array<ContactMaterialPair> pairs_;
   parameter::Array<StickSlipPair> stick_slip_;
+  StickSlipAll stick_slip_all_;
   std::string default_material_;
   std::string friction_combine_ = "geometric_mean";
   std::string restitution_combine_ = "geometric_mean";
@@ -353,6 +406,16 @@ private:
            int>
     bristle_index_;
   std::vector<double> stick_ratios_; //!< at the last UpdateOutputs
+  /* the sets of bristles of stick_slip_all, shared by the pairs in contact */
+  using GeometryPair = std::pair<const collision_geometry::Base*,
+                                 const collision_geometry::Base*>;
+  std::vector<Bristles> shared_;
+  std::vector<GeometryPair> shared_owner_; //!< {nullptr, nullptr} if free
+  std::vector<char> shared_touched_;       //!< in contact in this Service
+  std::map<GeometryPair, int> shared_index_;
+  bool shared_warned_ = false;
+  const Bristles* SharedBristles(const GeometryPair& pair, double friction);
+  void ReleaseShared(const double* y);
   double GroupMass(int load_index) const;
 };
 

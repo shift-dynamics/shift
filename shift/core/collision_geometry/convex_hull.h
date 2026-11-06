@@ -46,6 +46,15 @@ public:
   virtual void Support(const ksl_vec3_t& direction, ksl_vec3_t& local,
                        ksl_vec3_t& global, int& hint) const override;
 
+  virtual std::shared_ptr<const CadContactShape>
+  MakeExactShape() const override;
+  virtual const void* ExactShapeKey() const override {
+    return hull_.get();
+  }
+  virtual double get_exact_edge_radius() const override {
+    return edge_radius_;
+  }
+
 protected:
   virtual void DeclareParameters() override;
   virtual bool HasDimensions() const override;
@@ -60,6 +69,7 @@ protected:
                const std::vector<unsigned int>& faces);
 
   ksl_vec3_t half_extents_ = {{0.0, 0.0, 0.0}}; //!< of a box, if given
+  double edge_radius_ = 0.0;
 
 private:
   static bool registered_;

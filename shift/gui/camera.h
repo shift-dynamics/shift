@@ -13,6 +13,10 @@ namespace gui {
 Uses the shift world convention: +z points down (along gravity), so the
 camera's up vector is -z. Azimuth is measured about the z axis from +x
 towards +y, elevation is the angle above the x-y plane (towards -z).
+
+A rigid motion can carry the whole turntable along, see set_follow. The
+getters and the view matrix are in world coordinates with the motion applied;
+orbiting, panning and zooming then work in the moving frame.
 */
 class Camera {
 public:
@@ -31,6 +35,29 @@ public:
   float get_fov_y() const {
     return fov_y_;
   }
+
+  /*! \brief the rigid motion that carries the turntable, see set_follow */
+  const QMatrix4x4& get_follow() const {
+    return follow_;
+  }
+
+  /*! \brief carry the turntable by a rigid motion, from the coordinates of
+   * the turntable to world coordinates. To hold the transform from the camera
+   * to a body, this is the body's pose times the inverse of its pose when the
+   * camera started following, so the camera keeps its place on the body,
+   * rotation included. */
+  void set_follow(const QMatrix4x4& motion) {
+    follow_ = motion;
+  }
+
+  /*! \brief the frame on the ground under a body: at its x and y, at the
+   * height ground_z, and turned by its heading, with no pitch or roll. A
+   * camera that follows this frame sees the body bounce and tilt. */
+  static QMatrix4x4 GroundFrame(const QMatrix4x4& pose, float ground_z);
+
+  /*! \brief stop following, leaving the camera where it is and looking the
+   * same way. A turntable has no roll, so the view levels out. */
+  void ClearFollow();
 
   /*! \brief look at the target from azimuth and elevation, in radians */
   void set_direction(float azimuth, float elevation);
@@ -56,6 +83,12 @@ public:
   void Frame(const QVector3D& box_min, const QVector3D& box_max);
 
 private:
+  /* the view direction and its axes, in the coordinates of the turntable */
+  QVector3D TurntableForward() const;
+  QVector3D TurntableRight() const;
+  QVector3D TurntableUp() const;
+
+  QMatrix4x4 follow_; /*!< see set_follow; identity if not following */
   QVector3D target_{0.f, 0.f, 0.f};
   float distance_ = 5.f;
   float azimuth_ = 0.6f;

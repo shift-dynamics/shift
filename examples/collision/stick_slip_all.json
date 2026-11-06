@@ -1,0 +1,219 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "enable_contact_detection": true,
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "relative_error": 1e-07,
+        "absolute_error": 1e-10,
+        "time_span": 2.0,
+        "time_step": 0.001
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "stick_slip_all.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "incline",
+      "comment": "The box of stick_slip.json with no pair of geometry named: stick_slip_all gives every pair that comes into contact a set of bristles from a shared few. The box holds on the slope, in the same place.",
+      "bodies": [
+        {
+          "name": "ground",
+          "geometry": [],
+          "collision_geometry": [
+            {
+              "name": "ground",
+              "type": "plane",
+              "material": "surface"
+            }
+          ],
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "box",
+          "geometry": [],
+          "collision_geometry": [
+            {
+              "name": "box",
+              "type": "convex_hull",
+              "half_extents": [
+                0.1,
+                0.1,
+                0.1
+              ],
+              "material": "block"
+            }
+          ],
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 10.0,
+            "Ixx": 0.067,
+            "Iyy": 0.067,
+            "Izz": 0.067,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "ground_joint",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "ground"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              0,
+              0,
+              0
+            ],
+            "R": [
+              [
+                0.9438583563660174,
+                0,
+                0.33035042472810605
+              ],
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                -0.33035042472810605,
+                0,
+                0.9438583563660174
+              ]
+            ]
+          }
+        },
+        {
+          "name": "box_joint",
+          "type": "float",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "box"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              -0.032882102606440894,
+              0,
+              -0.09394886458983115
+            ],
+            "R": [
+              [
+                0.9438583563660174,
+                0,
+                0.33035042472810605
+              ],
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                -0.33035042472810605,
+                0,
+                0.9438583563660174
+              ]
+            ]
+          },
+          "initial_velocity": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "force_modules": [
+        {
+          "name": "contact",
+          "type": "contact",
+          "friction_velocity": 0.01,
+          "stick_slip_all": {
+            "bristle_stiffness": 2000,
+            "bristle_damping": 5,
+            "static_ratio": 1.2,
+            "stribeck_velocity": 0.05,
+            "pairs": 4
+          },
+          "materials": [
+            {
+              "name": "surface",
+              "restitution": 0.1,
+              "friction": 0.5,
+              "contact_stiffness": 100000.0
+            },
+            {
+              "name": "block",
+              "restitution": 0.1,
+              "friction": 0.5,
+              "contact_stiffness": 100000.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

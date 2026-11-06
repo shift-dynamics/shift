@@ -57,6 +57,12 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
     }
   }
   request.hide_floor = parser.isSet("no-floor");
+  request.follow_body = parser.value("follow");
+  request.follow_ground = parser.isSet("follow-ground");
+  if(request.follow_ground && request.follow_body.isEmpty()) {
+    error = "--follow-ground needs --follow";
+    return false;
+  }
   return true;
 }
 
@@ -80,6 +86,12 @@ int main(int argc, char* argv[]) {
      "AZIMUTH,ELEVATION"},
     {"samples", "with --image: ray trace, averaging this many frames", "n"},
     {"no-floor", "with --image: hide the floor"},
+    {"follow",
+     "with --image: set the view at the start, and follow this body to --time",
+     "body"},
+    {"follow-ground",
+     "with --follow: follow the ground under the body, level, so that the "
+     "body is seen to bounce and tilt"},
   });
   parser.process(app);
 

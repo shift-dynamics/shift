@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <json/json.h>
 
 #include <cmath>
 #include <cstdio>
@@ -9,11 +10,13 @@
 #include <vector>
 
 #include "shift/core/context.h"
+#include "shift/core/exception.h"
 #include "shift/core/force_module/soil.h"
 #include "shift/core/force_module/track_soil.h"
 #include "shift/core/force_module/tire/bekker_wong.h"
 
 using shift::core::force_module::LookupSoil;
+using shift::core::force_module::Soil;
 using shift::core::force_module::SoilProperties;
 using shift::core::force_module::TrackSoil;
 using shift::core::force_module::tire::BekkerWong;
@@ -72,6 +75,56 @@ TEST(Soil, Table) {
   s.unit_weight = 16000.0;
   EXPECT_NEAR(s.PassiveCoefficient(), 3.0, 1e-12);
   EXPECT_NEAR(s.PassiveForce(0.1), 0.5 * 16000.0 * 0.01 * 3.0, 1e-9);
+  EXPECT_NEAR(s.ActiveCoefficient(), 1.0 / 3.0, 1e-12);
+  EXPECT_NEAR(s.AtRestCoefficient(), 0.5, 1e-12);
+}
+
+TEST(Soil, CoulombEarthPressure) {
+  // the thrust along its line, tabulated for phi 30, delta 15 degrees, is
+  // Kp 4.98 and Ka 0.301: the coefficients are its part normal to the face
+  SoilProperties s;
+  s.friction_angle = M_PI / 6.0;
+  s.wall_friction = M_PI / 12.0;
+  EXPECT_NEAR(s.PassiveCoefficient() / std::cos(s.wall_friction), 4.98, 5e-3);
+  EXPECT_NEAR(s.ActiveCoefficient() / std::cos(s.wall_friction), 0.301, 5e-4);
+  EXPECT_GT(s.PassiveCoefficient(), 3.0);
+  EXPECT_LT(s.ActiveCoefficient(), 1.0 / 3.0);
+  s.passive_coefficient = 3.5;
+  EXPECT_EQ(s.PassiveCoefficient(), 3.5);
+  EXPECT_NEAR(s.PassiveForce(0.1), 0.5 * 16000.0 * 0.01 * 3.5, 1e-9);
+}
+
+static SoilProperties ResolveSoil(const std::string& json) {
+  Json::Value value;
+  std::istringstream stream(json);
+  std::string errors;
+  EXPECT_TRUE(Json::parseFromStream(Json::CharReaderBuilder(), stream, &value,
+                                    &errors));
+  Soil soil;
+  soil.ReadJSON(value);
+  return soil.Resolve("test");
+}
+
+TEST(Soil, EarthPressureKeys) {
+  const SoilProperties s =
+    ResolveSoil(R"({"name": "lete_sand", "wall_friction": 0.2})");
+  EXPECT_EQ(s.wall_friction, 0.2);
+  EXPECT_EQ(
+    ResolveSoil(R"({"name": "lete_sand", "passive_coefficient": 4.0})")
+      .PassiveCoefficient(),
+    4.0);
+  // above the friction angle, a coefficient below 1, and 45 degrees on both
+  // sides, where Coulomb's passive pressure is infinite
+  EXPECT_THROW(ResolveSoil(R"({"name": "lete_sand", "wall_friction": 0.6})"),
+               shift::core::Exception);
+  EXPECT_THROW(
+    ResolveSoil(R"({"name": "lete_sand", "passive_coefficient": 0.5})"),
+    shift::core::Exception);
+  EXPECT_THROW(ResolveSoil(R"({"name": "lete_sand", "friction_angle": 0.8,
+                               "wall_friction": 0.8})"),
+               shift::core::Exception);
+  EXPECT_NO_THROW(ResolveSoil(R"({"name": "lete_sand", "friction_angle": 0.8,
+    "wall_friction": 0.8, "passive_coefficient": 8.0})"));
 }
 
 /* a frictionless, cohesionless soil (no shear) with the greatest stress at
@@ -409,6 +462,19 @@ TEST_F(TrackSoilTest, LiftedShoe) {
   EXPECT_EQ(out[2], 0.0);
   std::vector<double> dy = Rates();
   EXPECT_NEAR(dy[6], -0.02 / 0.01, 1e-12);
+}
+
+TEST_F(TrackSoilTest, AShoeOffTheSoilForgetsItsRut) {
+  Load(-0.01);
+  y_[0] = 0.05;
+  // 10 mm above the ground, ten contact depths: all of z_p / rut_time
+  EXPECT_NEAR(Rates()[0], -0.05 / 0.5, 1e-5);
+}
+
+TEST_F(TrackSoilTest, AShoeOnTheSoilKeepsItsRut) {
+  Load(0.03);
+  y_[0] = 0.05;
+  EXPECT_EQ(Rates()[0], 0.0);
 }
 
 /* ------------------------------------------------------------------------ */

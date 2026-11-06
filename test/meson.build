@@ -28,18 +28,27 @@ test_sources = [
   'test_beam.cc',
   'test_belt.cc',
   'test_mesh_scale.cc',
+  'test_applied_load.cc',
   'test_bushing.cc',
   'test_hydraulic_cylinder.cc',
   'test_rubber_mount.cc',
   'test_step_reader.cc',
   'test_cad_repair.cc',
   'test_cad_contact.cc',
+  'test_cad_line_contact.cc',
+  'test_cad_round_contact.cc',
+  'test_terrain_contact.cc',
   'test_terramechanics.cc',
   'test_schedule.cc',
   'test_lead_screw.cc',
   'test_yaml.cc',
   'test_gear_mesh.cc',
+  'test_joint_force.cc',
   'test_journal_bearing.cc',
+  'test_soil_tool.cc',
+  'test_spline.cc',
+  'test_spring_damper.cc',
+  'test_thrust_collar.cc',
   'test_stick_slip.cc',
   'test_powertrain.cc',
 ]
@@ -49,7 +58,7 @@ test_deps = [shift_core_dep, gtest_dep]
 if not is_disabler(shift_gui_dep)
   test_sources += ['test_instance_bvh.cc', 'test_video_encoder.cc',
                    'test_embedded_texture.cc', 'test_camera.cc',
-                   'test_cad_scene.cc']
+                   'test_cad_scene.cc', 'test_video_trimmer.cc']
   test_deps += [shift_gui_dep]
 endif
 

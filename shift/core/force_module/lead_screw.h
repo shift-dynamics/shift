@@ -81,8 +81,28 @@ deflection of the thread, the damping and the backlash.
 The friction is Coulomb friction smoothed at low speed, so a load held on a
 self-locking screw creeps slowly (at about slip_speed times the ratio of the
 force needed to the friction available, when that is below 1), where a real
-screw would stay; stick-slip friction is to be added (see the roadmap). Make
-slip_speed small against the speeds of the motion to keep the creep small.
+screw would stay. Make slip_speed small against the speeds of the motion to
+keep the creep small, or give bristle_stiffness.
+
+*Stick and slip.* With bristle_stiffness \f$\sigma_0\f$ the friction of the thread
+holds at rest, by the bristle model of friction (LuGre; see Contact). The
+flanks slide along the thread at the speed
+\f$u = r \omega \cos\lambda + \dot{s} \sin\lambda\f$ (with the sign of the
+advance reversed for a left handed thread), and the deflection \f$z\f$ of the bristles, a
+state of the module, gives the friction force along the thread:
+
+\f[
+\dot{z} = u - \frac{\sigma_0 |u|}{g(|u|)} z, \quad
+g(|u|) = \mu + (\mu_s - \mu) e^{-(|u| / v_s)^2}, \quad
+f_t = |n| (\sigma_0 z + \sigma_1 \dot{z} + \sigma_2 u)
+\f]
+
+with bristle_damping \f$\sigma_1\f$, viscous_friction \f$\sigma_2\f$,
+static_friction \f$\mu_s\f$ (at least \f$\mu\f$, default \f$\mu\f$) and
+stribeck_velocity \f$v_s\f$, in place of slip_speed. A load held on the thread
+moves by a small \f$z\f$ and stops, so long as
+\f$\mu_s \sec\alpha \ge \tan\lambda\f$; in steady motion \f$f_t = \mu |n|\f$, the
+friction of the formulas above.
 
 A backlash \f$b\f$ (the axial play in the thread) leaves the deflection free
 for \f$|\delta| < b / 2\f$, and the thread loads only beyond it, smoothly. The
@@ -110,10 +130,15 @@ JSON:
 - slip_speed (optional, default 1e-3 m/s): the speed below which the friction
   goes smoothly to zero.
 - left_handed (optional, default false).
+- bristle_stiffness (optional, default 0, 1/m): the friction holds at rest;
+  bristle_damping (default 5 s/m; with 0 the screw rings on the bristles after a
+  load comes on, with nothing to settle it), viscous_friction (s/m),
+  static_friction, stribeck_velocity (optional, default 0.01 m/s).
 
 Outputs: axial_force (on the screw along the axis, N), torque (on the screw
-about the axis), deflection, normal_force, friction_force (its magnitude,
-mu |N| smoothed) and turns (the relative rotation of the screw, in turns).
+about the axis), deflection, normal_force, friction_force (its magnitude),
+turns (the relative rotation of the screw, in turns) and stick
+(\f$\sigma_0 |z| / \mu_s\f$, 1 at the limit of holding).
 */
 class LeadScrew : public Base {
 public:
@@ -144,7 +169,8 @@ public:
    * \f$\arctan(\mathrm{lead} / (2 \pi r))\f$ */
   double get_lead_angle() const;
   /*! \brief whether the thread holds a load when it is not driven,
-   * \f$\mu \sec\alpha \ge \tan\lambda\f$ */
+   * \f$\mu \sec\alpha \ge \tan\lambda\f$, for the static friction
+   * \f$\mu_s\f$ if the bristles are used */
   bool is_self_locking() const;
 
   double get_axial_force() const {
@@ -161,6 +187,10 @@ public:
   }
   double get_friction_force() const {
     return friction_force_;
+  }
+  /*! \brief how near the bristles are to the limit of holding, 1 at it */
+  double get_stick() const {
+    return stick_;
   }
   /*! \brief the rotation of the screw relative to the nut, in turns */
   double get_turns() const {
@@ -198,11 +228,17 @@ private:
   double backlash_ = 0.0;
   double slip_speed_ = 1e-3;
   bool left_handed_ = false;
+  double bristle_stiffness_ = 0.0;
+  double bristle_damping_ = 5.0;
+  double viscous_friction_ = 0.0;
+  double static_friction_ = -1.0; //!< negative: friction_
+  double stribeck_velocity_ = 0.01;
 
   Attachment screw_, nut_;
   double advance_0_ = 0.0; //!< relative advance along the axis at the start
   double axial_force_ = 0.0, torque_ = 0.0, deflection_ = 0.0;
   double normal_force_ = 0.0, friction_force_ = 0.0, turns_ = 0.0;
+  double stick_ = 0.0;
 };
 
 } // namespace force_module

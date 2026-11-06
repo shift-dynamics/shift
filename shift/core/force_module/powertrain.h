@@ -57,7 +57,7 @@ public:
   double slip_speed = 0.5;
   /* the bristle model of friction (see Powertrain); off if 0 */
   double bristle_stiffness = 0.0;
-  double bristle_damping = 0.0;
+  double bristle_damping = 0.5;
   double static_ratio = 1.0;
   double stribeck_speed = 1.0;
 
@@ -86,7 +86,7 @@ public:
   double drag_torque = 0.0;
   /* the bristle model of friction (see Powertrain); off if 0 */
   double bristle_stiffness = 0.0;
-  double bristle_damping = 0.0;
+  double bristle_damping = 0.5;
   double static_ratio = 1.0;
   double stribeck_speed = 1.0;
 
@@ -125,7 +125,7 @@ public:
   double slip_speed = 0.5;
   /* the bristle model of friction (see Powertrain); off if 0 */
   double bristle_stiffness = 0.0;
-  double bristle_damping = 0.0;
+  double bristle_damping = 0.5;
   double static_ratio = 1.0;
   double stribeck_speed = 1.0;
 
@@ -201,7 +201,7 @@ public:
   double slip_speed = 0.1;
   /* the bristle model of friction (see Powertrain); off if 0 */
   double bristle_stiffness = 0.0;
-  double bristle_damping = 0.0;
+  double bristle_damping = 0.5;
   double static_ratio = 1.0;
   double stribeck_speed = 1.0;
 
@@ -412,8 +412,9 @@ g(|u|) = 1 + (r_s - 1) e^{-(|u| / v_s)^2},
 \f]
 
 with the bristle deflection \f$z\f$ (an angle, a state of the module for each
-such element), bristle_damping \f$\sigma_1\f$ (s/rad), the static friction over
-the Coulomb friction \f$r_s\f$ (static_ratio, at least 1) and the speed
+such element), bristle_damping \f$\sigma_1\f$ (s/rad, default 0.5; with 0 the
+bristles ring, with little to settle them), the static friction over the Coulomb
+friction \f$r_s\f$ (static_ratio, at least 1) and the speed
 \f$v_s\f$ (stribeck_speed) over which it falls from the first to the second. At
 rest the deflection settles where \f$\sigma_0 z\f$ carries the load, so the
 element holds, to a slip of \f$z\f$, up to \f$r_s c_e\f$, and slides beyond that

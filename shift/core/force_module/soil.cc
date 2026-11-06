@@ -13,9 +13,29 @@ double shift::core::force_module::SoilProperties::Pressure(double b,
   return (k_c / b + k_phi) * std::pow(z, n);
 }
 
+/* s of Coulomb's coefficients; see SoilProperties */
+static double CoulombRoot(double friction_angle, double wall_friction) {
+  return std::sqrt(std::sin(friction_angle + wall_friction) *
+                   std::sin(friction_angle) / std::cos(wall_friction));
+}
+
 double shift::core::force_module::SoilProperties::PassiveCoefficient() const {
-  const double t = std::tan(0.25 * M_PI + 0.5 * friction_angle);
-  return t * t;
+  if(passive_coefficient > 0.0) {
+    return passive_coefficient;
+  }
+  const double c = std::cos(friction_angle);
+  const double d = 1.0 - CoulombRoot(friction_angle, wall_friction);
+  return c * c / (d * d);
+}
+
+double shift::core::force_module::SoilProperties::ActiveCoefficient() const {
+  const double c = std::cos(friction_angle);
+  const double d = 1.0 + CoulombRoot(friction_angle, wall_friction);
+  return c * c / (d * d);
+}
+
+double shift::core::force_module::SoilProperties::AtRestCoefficient() const {
+  return 1.0 - std::sin(friction_angle);
 }
 
 double shift::core::force_module::SoilProperties::PassiveForce(double h) const {
@@ -81,7 +101,7 @@ std::vector<std::string> shift::core::force_module::SoilNames() {
 void shift::core::force_module::Soil::DeclareParameters() {
   const double unset = std::numeric_limits<double>::quiet_NaN();
   n_ = k_c_ = k_phi_ = cohesion_ = friction_angle_ = shear_modulus_ =
-    unit_weight_ = unset;
+    unit_weight_ = wall_friction_ = passive_coefficient_ = unset;
   DeclareParameter("name", &name_,
                    "a soil of the table (see LookupSoil), whose properties "
                    "the others override; without it every Bekker and "
@@ -102,6 +122,16 @@ void shift::core::force_module::Soil::DeclareParameters() {
   DeclareParameter("unit_weight", &unit_weight_,
                    "weight per volume, N/m^3, for earth pressure; defaults "
                    "to 16000",
+                   false);
+  DeclareParameter("wall_friction", &wall_friction_,
+                   "friction angle between the soil and the face it presses "
+                   "on, radians, from 0 to the friction_angle; with 0, the "
+                   "default, the earth pressure is Rankine's",
+                   false);
+  DeclareParameter("passive_coefficient", &passive_coefficient_,
+                   "passive earth-pressure coefficient, normal to the face, "
+                   "at least 1, from a test or a table; replaces Coulomb's "
+                   "from the angles",
                    false);
 }
 
@@ -134,11 +164,29 @@ shift::core::force_module::Soil::Resolve(const std::string& owner) const {
   take(friction_angle_, soil.friction_angle, "friction_angle", true);
   take(shear_modulus_, soil.shear_modulus, "shear_modulus", false);
   take(unit_weight_, soil.unit_weight, "unit_weight", false);
+  take(wall_friction_, soil.wall_friction, "wall_friction", false);
+  take(passive_coefficient_, soil.passive_coefficient, "passive_coefficient",
+       false);
   if(!(soil.n > 0.0) || soil.k_c < 0.0 || soil.k_phi < 0.0 ||
      !(soil.k_c + soil.k_phi > 0.0) || soil.cohesion < 0.0 ||
      soil.friction_angle < 0.0 || !(soil.friction_angle < 0.5 * M_PI) ||
      !(soil.shear_modulus > 0.0) || soil.unit_weight < 0.0) {
     throw shift::core::Exception(prefix + "a property is out of range");
+  }
+  if(soil.wall_friction < 0.0 || soil.wall_friction > soil.friction_angle) {
+    throw shift::core::Exception(prefix + "wall_friction must be from 0 to "
+                                          "the friction_angle");
+  }
+  if(!std::isnan(passive_coefficient_) && !(passive_coefficient_ >= 1.0)) {
+    throw shift::core::Exception(prefix + "passive_coefficient must be at "
+                                          "least 1");
+  }
+  if(!(soil.passive_coefficient > 0.0) &&
+     !(CoulombRoot(soil.friction_angle, soil.wall_friction) < 1.0)) {
+    throw shift::core::Exception(prefix + "Coulomb's passive pressure has no "
+                                          "finite value at these angles: "
+                                          "lower wall_friction or give "
+                                          "passive_coefficient");
   }
   return soil;
 }

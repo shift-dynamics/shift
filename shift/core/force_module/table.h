@@ -44,6 +44,21 @@ private:
   Extrapolation extrapolation_ = Extrapolation::kHold;
 };
 
+/*! \brief the ramp of the smooth edge of a stop and its slope: 0 below
+ * \f$-b/2\f$, \f$u\f$ above \f$b/2\f$, with a parabola between */
+inline void Ramp(double u, double b, double& value, double& slope) {
+  if(u <= -0.5 * b) {
+    value = slope = 0.0;
+  } else if(u >= 0.5 * b) {
+    value = u;
+    slope = 1.0;
+  } else {
+    const double a = u + 0.5 * b;
+    value = 0.5 * a * a / b;
+    slope = a / b;
+  }
+}
+
 } // namespace force_module
 } // namespace core
 } // namespace shift

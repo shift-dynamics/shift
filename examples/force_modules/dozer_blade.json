@@ -1,0 +1,143 @@
+{
+  "comment": "A 20 t dozer on a slide, its blade cutting 0.15 m into sandy loam at a set speed: the draft and lift of the blade, and the pile it pushes, which fills and spills. x forward, y right, z down.",
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0,
+      0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "relative_error": 1e-06,
+        "absolute_error": 1e-08,
+        "time_span": 20.0,
+        "time_step": 0.01
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "start",
+      "T": [
+        0,
+        0,
+        -1.0
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "dozer",
+      "bodies": [
+        {
+          "name": "dozer",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "geometry": [],
+          "inertia": {
+            "mass": 20000,
+            "Ixx": 20000,
+            "Iyy": 60000,
+            "Izz": 60000,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "drive",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "start"
+          ],
+          "child": [
+            [
+              "dozer"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ]
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "speed",
+          "joint": "drive",
+          "quantity": "velocity"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "drive_control",
+          "kp": 100000.0,
+          "ki": 50000.0,
+          "kd": 0.0,
+          "target": 1.5,
+          "sensor": "speed",
+          "joint": "drive"
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "soil_tool",
+          "name": "blade",
+          "soil": {
+            "name": "sandy_loam",
+            "unit_weight": 16000,
+            "wall_friction": 0.25
+          },
+          "body": "dozer",
+          "tip": [
+            2.5,
+            0,
+            1.15
+          ],
+          "face": [
+            -0.169967,
+            0,
+            -0.98545
+          ],
+          "edge": [
+            0,
+            1,
+            0
+          ],
+          "front": [
+            1,
+            0,
+            0
+          ],
+          "width": 3.2,
+          "height": 1.1
+        }
+      ]
+    }
+  ]
+}

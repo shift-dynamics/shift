@@ -279,9 +279,9 @@ static void ClosestPointOnEllipsoid(const double e[3], const double y[3],
 /*! the point q of an ellipsoid's surface closest to the inertial point p,
  * the outward normal n there, both in the ellipsoid frame, and the signed
  * distance of p from the surface, negative inside */
-static void ClosestOnEllipsoid(
-  const shift::core::collision_geometry::Ellipsoid& ellipsoid,
-  const ksl_vec3_t& p, ksl_vec3_t& q, ksl_vec3_t& n, double& distance) {
+void shift::core::collision_geometry::ClosestOnEllipsoid(
+  const Ellipsoid& ellipsoid, const ksl_vec3_t& p, ksl_vec3_t& q,
+  ksl_vec3_t& n, double& distance) {
   const ksl_vec3_t& axes = ellipsoid.get_semi_axes();
   const ksl_vec3_t c = ToLocal(ellipsoid.get_d_absolute(), p);
 

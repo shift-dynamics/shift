@@ -5,6 +5,7 @@
 
 #include "shift/core/collision_geometry/fitting.h"
 #include "shift/core/exception.h"
+#include "shift/core/collision_geometry/cad.h"
 #include "shift/core/factory.h"
 
 bool shift::core::collision_geometry::Cylinder::registered_ =
@@ -26,6 +27,11 @@ void shift::core::collision_geometry::Cylinder::DeclareParameters() {
                    "half of the length of the cylinder along its axis, the z "
                    "axis of the pose; centered at the origin of the pose "
                    "(the body origin by default)",
+                   false);
+  DeclareParameter("edge_radius", &edge_radius_,
+                   "radius to which the rims are taken to be rounded, for "
+                   "their Hertz contact with CAD geometry; defaults to 0.2% "
+                   "of the size of the cylinder (the diagonal of its bounds)",
                    false);
 }
 
@@ -77,4 +83,9 @@ void shift::core::collision_geometry::Cylinder::Support(
   const double k = radial > 0.0 ? radius_ / radial : 0.0;
   local = {{k * u.x, k * u.y, u.z >= 0.0 ? half_length_ : -half_length_}};
   ksl_product_dv(&d_absolute_, &local, &global);
+}
+
+std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
+shift::core::collision_geometry::Cylinder::MakeExactShape() const {
+  return MakeCylinderShape(radius_, half_length_, true);
 }

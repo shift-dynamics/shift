@@ -1,8 +1,9 @@
 Ford F-150 Raptor R
 ===================
 
-A full-size pickup truck on its own suspension, driving straight ahead at
-15 m/s on flat ground. The body, wheels and suspension parts of the source
+A full-size pickup truck on its own suspension, driven by a powertrain around
+a route over rolling ground: away from rest, a double lane change, a bend to
+the right, a bend to the left and a stop. The body, wheels and suspension parts of the source
 model were split into separate meshes, one per moving body.
 
 .. image:: raptor.png
@@ -37,8 +38,9 @@ Front suspension, each side, a double wishbone:
   rods or rack, so they are not drawn. The inner end of the tie rod lies on
   the line through the inner pivots of the arms, which keeps bump steer small.
 
-The steering rack slides across the truck, held centred by a spring of
-300 kN/m and a damper of 6 kN·s/m. These stand in for the steering column
+The steering rack slides across the truck. A PID controller holds it at the
+position a schedule asks for, with a damper of 6 kN·s/m. These stand in for the
+steering column
 and the driver's hands on the wheel.
 
 Rear suspension, a live axle:
@@ -56,7 +58,38 @@ suspension: each has a universal joint at its inner end, slides along its
 length, and has a ball joint at its outer end. They add no constraint and
 carry no torque.
 
-The rear wheels are driven by speed controllers holding 15 m/s. The tires use
+The rear wheels are driven by a powertrain module, through a limited slip
+differential: an engine and torque converter with a lockup clutch, and a ten
+speed automatic, with figures like those of the real truck (a supercharged V8).
+All four wheels have brakes.
+
+An engaged clutch is what sets the step of the integrator, so the clutches are
+chosen to run fast. They are smoothed over 20 to 30 rad/s, which lets a gear
+slip by up to about 13 rad/s at full engine torque, and the inertia of the
+transmission's output is well above a real one. Together these leave the truck
+about 2% behind the distance it covers with sharper clutches, and the route
+runs five to six times faster. More damping does not help: a damper is a fast
+term like a clutch, and five times the shaft damping takes three times as long.
+
+The route is a set of schedules in ``ROUTE`` in *generate_raptor.py*: the
+throttle, the gear, the lockup clutch, the brakes and the rack position, which
+is the target of the steering PID. A rack position of 9 mm turns the truck at
+about 20 degrees per second at 17 m/s on level ground, and a positive position
+turns it right. The steering is not closed around the path: on the rolling
+ground the tires push back on the rack, it holds about 8 mm, and the bends come
+out wider than on level ground.
+
+The ground is *raptor_terrain.tiff*, written by *generate_raptor.py* from the
+waves in ``TERRAIN``. Long swells pitch and lift the truck, and shorter waves
+cross its path at an angle, so the wheels on the two sides ride over different
+heights. The suspension travels 14 to 17 cm over the route and no wheel leaves
+the ground. The ground is flat around the start, where the truck is placed.
+
+To ride along in the viewer, tick *follow* in the *Camera* box of the
+*Simulation* tab with ``chassis`` selected, then run the model. Choose *ground*
+next to it to see the truck bounce and tilt on its suspension.
+
+The tires use
 the Fiala model.
 
 The source model draws its wheels 7 to 8 cm below the hubs of its suspension.

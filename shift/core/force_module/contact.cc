@@ -5,6 +5,7 @@
 
 #include "shift/core/body/base.h"
 #include "shift/core/body/free.h"
+#include "shift/core/collision_geometry/cad.h"
 #include "shift/core/collision_geometry/capsule.h"
 #include "shift/core/collision_geometry/convex_hull.h"
 #include "shift/core/collision_geometry/cylinder.h"
@@ -17,6 +18,7 @@
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/joint/base.h"
+#include "shift/core/log.h"
 
 bool shift::core::force_module::Contact::registered_ =
   shift::core::Factory<shift::core::force_module::Base>::get()->RegisterModule(
@@ -73,11 +75,7 @@ void shift::core::force_module::ContactMaterialPair::DeclareParameters() {
                    "contact stiffness of the pair, for convex hulls", false);
 }
 
-void shift::core::force_module::StickSlipPair::DeclareParameters() {
-  DeclareParameter("geometry_a", &geometry_a,
-                   "name of a collision geometry of the pair", true);
-  DeclareParameter("geometry_b", &geometry_b,
-                   "name of the other collision geometry of the pair", true);
+void shift::core::force_module::BristleModel::DeclareParameters() {
   DeclareParameter("bristle_stiffness", &bristle_stiffness,
                    "sigma_0, the stiffness of the bristles per unit of normal "
                    "force (1/m): the sliding at which the friction of a body "
@@ -85,16 +83,14 @@ void shift::core::force_module::StickSlipPair::DeclareParameters() {
                    true);
   DeclareParameter("bristle_damping", &bristle_damping,
                    "sigma_1, the damping of the bristles per unit of normal "
-                   "force (s/m); optional, default 0",
+                   "force (s/m). With 0, a body held on several points can "
+                   "rock, slip a little on each rock and creep down a slope "
+                   "below the limit of holding; a body near the limit may "
+                   "need more than the default; optional, default 5",
                    false);
   DeclareParameter("viscous_friction", &viscous_friction,
                    "sigma_2, friction in proportion to the sliding speed, per "
                    "unit of normal force (s/m); optional, default 0",
-                   false);
-  DeclareParameter("static_friction", &static_friction,
-                   "mu_s, the friction coefficient of a body at rest, at "
-                   "least that of the pair; optional, default the friction "
-                   "of the pair",
                    false);
   DeclareParameter("stribeck_velocity", &stribeck_velocity,
                    "sliding speed over which the friction falls from the "
@@ -111,6 +107,31 @@ void shift::core::force_module::StickSlipPair::DeclareParameters() {
                    false);
 }
 
+void shift::core::force_module::StickSlipPair::DeclareParameters() {
+  BristleModel::DeclareParameters();
+  DeclareParameter("geometry_a", &geometry_a,
+                   "name of a collision geometry of the pair", true);
+  DeclareParameter("geometry_b", &geometry_b,
+                   "name of the other collision geometry of the pair", true);
+  DeclareParameter("static_friction", &static_friction,
+                   "mu_s, the friction coefficient of a body at rest, at "
+                   "least that of the pair; optional, default the friction "
+                   "of the pair",
+                   false);
+}
+
+void shift::core::force_module::StickSlipAll::DeclareParameters() {
+  BristleModel::DeclareParameters();
+  DeclareParameter("static_ratio", &static_ratio,
+                   "mu_s over the friction of the pair, at least 1; optional, "
+                   "default 1",
+                   false);
+  DeclareParameter("pairs", &pairs,
+                   "sets of bristles, the number of pairs that can hold at "
+                   "once; optional, default 16",
+                   false);
+}
+
 void shift::core::force_module::Contact::DeclareParameters() {
   shift::core::force_module::Base::DeclareParameters();
   DeclareParameter("materials", &materials_,
@@ -123,6 +144,10 @@ void shift::core::force_module::Contact::DeclareParameters() {
                    "pairs of collision geometry whose friction holds at "
                    "rest (the bristle model of stick and slip), instead of "
                    "the regularized Coulomb friction of the others",
+                   false);
+  DeclareParameter("stick_slip_all", &stick_slip_all_,
+                   "the bristle model for every pair not in stick_slip, "
+                   "sharing a fixed number of sets of bristles; optional",
                    false);
   DeclareParameter("default_material", &default_material_,
                    "material of collision geometry that names none; defaults "
@@ -220,7 +245,8 @@ void shift::core::force_module::Contact::Load() {
   /* the material and body of each collision geometry, and the shapes that
   each material is used for */
   std::vector<bool> hull(count, false), curved(count, false),
-    plane(count, false);
+    plane(count, false), cad(count, false);
+  std::vector<int> analytic(count, 0); // geometries other than CAD, of each
   geometry_.clear();
   wear_names_.clear();
   q_0_.clear();
@@ -247,10 +273,15 @@ void shift::core::force_module::Contact::Load() {
       continue; // e.g. the default floor; it gets no force if switched on
                 // without the properties its contact law needs
     }
+    if(!dynamic_cast<collision_geometry::Cad*>(geometry)) {
+      analytic[g.material]++;
+    }
     if(dynamic_cast<collision_geometry::ConvexHull*>(geometry)) {
       hull[g.material] = true;
     } else if(dynamic_cast<collision_geometry::Plane*>(geometry)) {
       plane[g.material] = true;
+    } else if(dynamic_cast<collision_geometry::Cad*>(geometry)) {
+      cad[g.material] = true;
     } else {
       curved[g.material] = true;
     }
@@ -322,8 +353,11 @@ void shift::core::force_module::Contact::Load() {
   /* every law that can be needed must be complete */
   for(int i = 0; i < count; i++) {
     for(int j = 0; j < count; j++) {
-      const bool used_i = hull[i] || curved[i] || plane[i];
-      const bool used_j = hull[j] || curved[j] || plane[j];
+      const bool used_i = analytic[i] > 0 || cad[i];
+      const bool used_j = analytic[j] > 0 || cad[j];
+      /* two geometries other than CAD, which a contact law of their own needs */
+      const bool analytic_pair =
+        i == j ? analytic[i] > 1 : analytic[i] > 0 && analytic[j] > 0;
       const Law& law = laws_[i * count + j];
       const std::string names =
         "materials '" + materials[i]->name + "' and '" + materials[j]->name +
@@ -334,18 +368,19 @@ void shift::core::force_module::Contact::Load() {
           " needs the damping or the restitution of both materials or of "
           "the pair");
       }
-      if(((hull[i] && used_j) || (hull[j] && used_i)) && law.stiffness <= 0.0) {
+      if((hull[i] || hull[j]) && analytic_pair && law.stiffness <= 0.0) {
         throw shift::core::Exception(
           description + ": contact of " + names +
           " involves a convex hull, which needs the contact_stiffness of "
           "both materials or of the pair");
       }
-      if(((curved[i] && (curved[j] || plane[j])) || (plane[i] && curved[j])) &&
+      if(((curved[i] && (curved[j] || plane[j])) || (plane[i] && curved[j]) ||
+          (cad[i] && used_j) || (cad[j] && used_i)) &&
          law.modulus <= 0.0) {
         throw shift::core::Exception(
           description + ": Hertz contact of " + names +
-          " (spheres, ellipsoids, cylinders, capsules, planes) needs the youngs_modulus of both "
-          "materials");
+          " (spheres, ellipsoids, cylinders, capsules, planes, or anything "
+          "against CAD geometry) needs the youngs_modulus of both materials");
       }
     }
   }
@@ -410,6 +445,34 @@ void shift::core::force_module::Contact::Load() {
       bristle_index_[{b->second, a->second}] = index;
       bristles_.push_back(bristles);
     }
+    /* the sets of bristles that every other pair shares */
+    shared_.clear();
+    shared_index_.clear();
+    const StickSlipAll& all = stick_slip_all_;
+    if(all.bristle_stiffness > 0.0) {
+      if(all.bristle_damping < 0.0 || all.viscous_friction < 0.0 ||
+         !(all.stribeck_velocity > 0.0) || !(all.release_time > 0.0) ||
+         all.points < 1 || all.pairs < 1 || !(all.static_ratio >= 1.0)) {
+        throw shift::core::Exception(
+          description + ": stick_slip_all: stribeck_velocity and release_time "
+          "must be positive, bristle_damping and viscous_friction not "
+          "negative, points and pairs at least 1 and static_ratio at least 1");
+      }
+      for(int i = 0; i < all.pairs; i++) {
+        Bristles set;
+        set.sigma_0 = all.bristle_stiffness;
+        set.sigma_1 = all.bristle_damping;
+        set.sigma_2 = all.viscous_friction;
+        set.velocity = all.stribeck_velocity;
+        set.release_time = all.release_time;
+        set.points = all.points;
+        set.offset = q_0_.size();
+        q_0_.resize(q_0_.size() + 3 * set.points, 0.0);
+        shared_.push_back(set);
+      }
+    }
+    shared_owner_.assign(shared_.size(), {nullptr, nullptr});
+    shared_touched_.assign(shared_.size(), 0);
     equation_count_ = static_cast<unsigned int>(q_0_.size());
     stick_ratios_.assign(bristles_.size(), 0.0);
   }
@@ -515,6 +578,10 @@ shift::core::force_module::Contact::get_output_names() const {
   for(const auto& bristles : bristles_) {
     names.push_back("stick_" + bristles.name);
   }
+  if(!shared_.empty()) {
+    names.push_back("stick_all");
+    names.push_back("stick_pairs");
+  }
   return names;
 }
 
@@ -530,6 +597,78 @@ void shift::core::force_module::Contact::UpdateOutputs(double,
       const double* z = y + state_offset_ + b.offset + 3 * k;
       const double size = std::sqrt(z[0] * z[0] + z[1] * z[1] + z[2] * z[2]);
       stick_ratios_[i] = std::max(stick_ratios_[i], size * b.sigma_0 / b.mu_static);
+    }
+  }
+  if(!shared_.empty()) {
+    double largest = 0.0;
+    for(size_t i = 0; i < shared_.size(); i++) {
+      const Bristles& b = shared_[i];
+      if(!shared_owner_[i].first || !(b.mu_static > 0.0)) {
+        continue;
+      }
+      for(int k = 0; k < b.points; k++) {
+        const double* z = y + state_offset_ + b.offset + 3 * k;
+        largest = std::max(largest,
+                           std::sqrt(z[0] * z[0] + z[1] * z[1] + z[2] * z[2]) *
+                             b.sigma_0 / b.mu_static);
+      }
+    }
+    stick_ratios_.push_back(largest);
+    stick_ratios_.push_back(static_cast<double>(get_shared_pairs()));
+  }
+}
+
+const shift::core::force_module::Contact::Bristles*
+shift::core::force_module::Contact::SharedBristles(const GeometryPair& pair,
+                                                   double friction) {
+  auto found = shared_index_.find(pair);
+  if(found != shared_index_.end()) {
+    shared_touched_[found->second] = 1;
+    return &shared_[found->second];
+  }
+  /* the sets that are free have no deflection, so any will do: the first */
+  for(size_t i = 0; i < shared_.size(); i++) {
+    if(shared_owner_[i].first) {
+      continue;
+    }
+    Bristles& set = shared_[i];
+    set.mu_coulomb = friction;
+    set.mu_static = stick_slip_all_.static_ratio * friction;
+    shared_owner_[i] = pair;
+    shared_touched_[i] = 1;
+    shared_index_[pair] = static_cast<int>(i);
+    shared_index_[{pair.second, pair.first}] = static_cast<int>(i);
+    return &set;
+  }
+  if(!shared_warned_) {
+    shared_warned_ = true;
+    SHIFT_WARNING("Contact " + get_name() + ": more pairs in contact than the " +
+                  std::to_string(shared_.size()) + " of stick_slip_all; the "
+                  "others have regularized friction");
+  }
+  return nullptr;
+}
+
+/* a set goes back when its pair has left contact and its bristles have relaxed
+to a deflection that holds nothing */
+void shift::core::force_module::Contact::ReleaseShared(const double* y) {
+  for(size_t i = 0; i < shared_.size(); i++) {
+    const Bristles& b = shared_[i];
+    const bool touched = shared_touched_[i];
+    shared_touched_[i] = 0;
+    if(!shared_owner_[i].first || touched) {
+      continue;
+    }
+    bool relaxed = true;
+    const double small = 1e-6 * b.mu_static / b.sigma_0;
+    for(int k = 0; k < 3 * b.points; k++) {
+      relaxed = relaxed && std::fabs(y[state_offset_ + b.offset + k]) <= small;
+    }
+    if(relaxed) {
+      const GeometryPair pair = shared_owner_[i];
+      shared_index_.erase(pair);
+      shared_index_.erase({pair.second, pair.first});
+      shared_owner_[i] = {nullptr, nullptr};
     }
   }
 }
@@ -548,10 +687,12 @@ void shift::core::force_module::Contact::Service(const double* y,
   }
   /* the bristles of a point that is not in contact relax to zero; those of
   the points that are get their rates below */
-  for(const auto& b : bristles_) {
-    for(int i = 0; i < 3 * b.points; i++) {
-      dy[state_offset_ + b.offset + i] =
-        -y[state_offset_ + b.offset + i] / b.release_time;
+  for(const auto* sets : {&bristles_, &shared_}) {
+    for(const auto& b : *sets) {
+      for(int i = 0; i < 3 * b.points; i++) {
+        dy[state_offset_ + b.offset + i] =
+          -y[state_offset_ + b.offset + i] / b.release_time;
+      }
     }
   }
   if(group_mass_.empty()) {
@@ -602,6 +743,9 @@ void shift::core::force_module::Contact::Service(const double* y,
       if(found != bristle_index_.end()) {
         bristles = &bristles_[found->second];
       }
+    }
+    if(!bristles && !shared_.empty()) {
+      bristles = SharedBristles({pair->a, pair->b}, law.friction);
     }
 
     ksl_vec3_t p;
@@ -758,4 +902,5 @@ void shift::core::force_module::Contact::Service(const double* y,
       }
     }
   }
+  ReleaseShared(y);
 }

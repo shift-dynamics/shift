@@ -12,6 +12,7 @@
 #include "shift/core/terrain/base.h"
 #include "shift/gui/playback_slider.h"
 #include "shift/gui/video_encoder.h"
+#include "shift/gui/video_trimmer.h"
 #include "shift/gui/viewport.h"
 
 #include "ksl/mat3x3.h"
@@ -239,6 +240,7 @@ void shift::gui::Workspace::InitializeLeftPanel() {
   auto* simulation_layout = new QVBoxLayout(simulation_box);
   simulation_layout->setContentsMargins(0, 0, 0, 0);
   simulation_layout->addWidget(AddModelParametersBox());
+  simulation_layout->addWidget(AddCameraBox());
   simulation_layout->addWidget(AddVideoBox());
   simulation_layout->addStretch();
   tab_widget_->addTab(simulation_box, QIcon(":/icons/clapper.png"),
@@ -391,6 +393,49 @@ QWidget* shift::gui::Workspace::AddModelParametersBox() {
   return panel.group_box;
 }
 
+QWidget* shift::gui::Workspace::AddCameraBox() {
+  auto& camera = camera_panel_;
+  camera.group_box = new QGroupBox("Camera");
+  auto* camera_layout = new QHBoxLayout(camera.group_box);
+  camera.follow = new QCheckBox("follow");
+  camera.follow->setToolTip(
+    "keep the camera where it is relative to the body: it moves and turns "
+    "with the body, and orbiting, panning and zooming still work");
+  camera.body = new QComboBox;
+  camera.body->setToolTip("the body to follow; selecting a body in the tree "
+                          "picks it here");
+  camera.mode = new QComboBox;
+  camera.mode->addItems({"body", "ground"});
+  camera.mode->setToolTip(
+    "body: move and turn with the body. ground: stay level, at the height of "
+    "the ground under the body and turning with its heading, so the body is "
+    "seen to bounce and tilt");
+  camera_layout->addWidget(camera.follow);
+  camera_layout->addWidget(camera.body, 1);
+  camera_layout->addWidget(camera.mode);
+  connect(camera.follow, &QCheckBox::toggled, this, &Workspace::UpdateFollow);
+  connect(camera.body, &QComboBox::currentIndexChanged, this,
+          &Workspace::UpdateFollow);
+  connect(camera.mode, &QComboBox::currentIndexChanged, this,
+          &Workspace::UpdateFollow);
+  camera.group_box->setVisible(false);
+  return camera.group_box;
+}
+
+void shift::gui::Workspace::UpdateFollow() {
+  const auto& camera = camera_panel_;
+  if(!camera.follow->isChecked()) {
+    if(viewport_->get_follow_body() >= 0) {
+      viewport_->set_follow_body(-1);
+    }
+    return;
+  }
+  viewport_->set_follow_body(camera.body->currentIndex(),
+                             camera.mode->currentIndex() == 1
+                               ? Viewport::FollowMode::kGround
+                               : Viewport::FollowMode::kBody);
+}
+
 QWidget* shift::gui::Workspace::AddVideoBox() {
   auto& panel = video_panel_;
   panel.group_box = new QGroupBox("Video");
@@ -451,16 +496,133 @@ QWidget* shift::gui::Workspace::AddVideoBox() {
     "raster renderer takes one");
   layout->addWidget(panel.samples, 4, 1, 1, 3);
 
+  panel.trimmer = new VideoTrimmer;
+  panel.trimmer->setToolTip(
+    "drag the handles to choose the part to export; the view shows the frame "
+    "under a handle or on the strip as you drag");
+  layout->addWidget(panel.trimmer, 5, 0, 1, 4);
+  auto make_time = [](const char* tip) {
+    auto* spin_box = new QDoubleSpinBox;
+    spin_box->setDecimals(3);
+    spin_box->setSuffix(" s");
+    spin_box->setToolTip(tip);
+    return spin_box;
+  };
+  layout->addWidget(new QLabel("Start"), 6, 0);
+  panel.start = make_time("simulated time of the first frame");
+  layout->addWidget(panel.start, 6, 1);
+  layout->addWidget(new QLabel("End"), 6, 2);
+  panel.end = make_time("simulated time of the last frame");
+  layout->addWidget(panel.end, 6, 3);
+  panel.range_info = new QLabel;
+  layout->addWidget(panel.range_info, 7, 0, 1, 4);
+  panel.refresh_button = new QPushButton("Refresh Preview");
+  panel.refresh_button->setToolTip(
+    "render the previews again from the current camera");
+  layout->addWidget(panel.refresh_button, 8, 0, 1, 4);
+  connect(panel.refresh_button, &QPushButton::clicked, this,
+          &Workspace::RenderThumbnails);
+  connect(panel.trimmer, &VideoTrimmer::range_changed, this,
+          &Workspace::UpdateVideoRange);
+  connect(panel.trimmer, &VideoTrimmer::scrubbed, this, [this](double t) {
+    SetPlaybackTime(t);
+    playback_panel_.slider->set_time(t);
+  });
+  connect(panel.start, &QDoubleSpinBox::valueChanged, this, [this](double t) {
+    video_panel_.trimmer->set_range(t, video_panel_.trimmer->get_end());
+  });
+  connect(panel.end, &QDoubleSpinBox::valueChanged, this, [this](double t) {
+    video_panel_.trimmer->set_range(video_panel_.trimmer->get_start(), t);
+  });
+  connect(panel.frame_rate, &QSpinBox::valueChanged, this,
+          &Workspace::UpdateVideoRange);
+  connect(panel.speed, &QDoubleSpinBox::valueChanged, this,
+          &Workspace::UpdateVideoRange);
+
   panel.export_button = new QPushButton("Export Video…");
   panel.export_button->setToolTip(
     "render the computed results to a video file (.mp4, .mkv, .mov, .webm)");
-  layout->addWidget(panel.export_button, 5, 0, 1, 4);
+  layout->addWidget(panel.export_button, 9, 0, 1, 4);
   connect(panel.export_button, &QPushButton::clicked, this,
           &Workspace::ExportVideo);
 
   UpdateVideoSize();
+  UpdateVideoRange();
   panel.group_box->setVisible(false);
   return panel.group_box;
+}
+
+void shift::gui::Workspace::UpdateVideoRange() {
+  auto& panel = video_panel_;
+  const double start = panel.trimmer->get_start();
+  const double end = panel.trimmer->get_end();
+  for(auto* spin_box : {panel.start, panel.end}) {
+    spin_box->blockSignals(true);
+    spin_box->setRange(0.0, panel.trimmer->get_span());
+  }
+  panel.start->setValue(start);
+  panel.end->setValue(end);
+  for(auto* spin_box : {panel.start, panel.end}) {
+    spin_box->blockSignals(false);
+  }
+  const double speed = panel.speed->value();
+  const int frame_rate = panel.frame_rate->value();
+  const int frames = VideoTrimmer::FrameCount(start, end, speed, frame_rate);
+  panel.range_info->setText(panel.trimmer->get_span() > 0.0
+                              ? QString("%1 frames, %2 s of video")
+                                  .arg(frames)
+                                  .arg(double(frames) / frame_rate, 0, 'f', 2)
+                              : QString("Run the model to choose a range"));
+}
+
+void shift::gui::Workspace::ClearVideoRange() {
+  video_panel_.thumbnails_time = -1.0;
+  video_panel_.trimmer->Clear();
+  UpdateVideoRange();
+}
+
+void shift::gui::Workspace::RenderThumbnails() {
+  auto& panel = video_panel_;
+  if(!simulation_.has_results() || simulation_.is_computing() ||
+     panel.exporting) {
+    return;
+  }
+  // enough for a preview every few pixels of the strip; raster, because a
+  // single ray traced frame is noisy
+  constexpr int kThumbnails = 32;
+  constexpr int kHeight = 108;
+  const int width = std::max(
+    16, (kHeight * panel.width->value() / std::max(panel.height->value(), 1)) &
+          ~1);
+  const QSize size(width, kHeight);
+  QString error;
+  const Viewport::RenderMode mode = viewport_->get_render_mode();
+  if(!viewport_->BeginOffscreen(size, error)) {
+    return; // the window is not exposed yet: the next tick tries again
+  }
+  if(mode != Viewport::RenderMode::kRaster) {
+    viewport_->set_render_mode(Viewport::RenderMode::kRaster);
+  }
+  const double computed = simulation_.get_computed_time();
+  std::vector<QImage> thumbnails;
+  std::vector<uint8_t> rgba;
+  for(int i = 0; i < kThumbnails; i++) {
+    simulation_.ShowTime(computed * i / (kThumbnails - 1));
+    if(!viewport_->RenderOffscreen(1, rgba)) {
+      break;
+    }
+    thumbnails.push_back(QImage(rgba.data(), size.width(), size.height(),
+                                4 * size.width(), QImage::Format_RGBA8888)
+                           .convertToFormat(QImage::Format_RGB888));
+  }
+  viewport_->EndOffscreen();
+  if(mode != Viewport::RenderMode::kRaster) {
+    viewport_->set_render_mode(mode);
+  }
+  simulation_.ShowTime(playback_time_);
+  viewport_->update();
+  panel.trimmer->set_thumbnails(std::move(thumbnails));
+  panel.thumbnails_time = computed;
 }
 
 void shift::gui::Workspace::UpdateVideoSize() {
@@ -491,8 +653,9 @@ void shift::gui::Workspace::ExportVideo() {
   const QSize size(panel.width->value() & ~1, panel.height->value() & ~1);
   const int frame_rate = panel.frame_rate->value();
   const double speed = panel.speed->value();
-  const double end = simulation_.get_computed_time();
-  const int frames = static_cast<int>(std::floor(end / speed * frame_rate + 1e-9)) + 1;
+  const double start = panel.trimmer->get_start();
+  const double end = panel.trimmer->get_end();
+  const int frames = VideoTrimmer::FrameCount(start, end, speed, frame_rate);
 
   const QString base = QFileInfo(QString::fromStdString(simulation_.get_filename()))
                          .completeBaseName();
@@ -534,7 +697,8 @@ void shift::gui::Workspace::ExportVideo() {
         cancelled = true;
         break;
       }
-      simulation_.ShowTime(std::min(i * speed / frame_rate, end));
+      simulation_.ShowTime(
+        VideoTrimmer::FrameTime(i, start, end, speed, frame_rate));
       if(!viewport_->RenderOffscreen(panel.samples->value(), rgba)) {
         throw std::runtime_error("could not render frame " + std::to_string(i));
       }
@@ -657,6 +821,7 @@ bool shift::gui::Workspace::Open(const QString& filename,
       QMessageBox::critical(this, "Open failed", message);
     }
     model_parameters_panel_.group_box->setVisible(false);
+    camera_panel_.group_box->setVisible(false);
     video_panel_.group_box->setVisible(false);
     UpdateStatus();
     return false;
@@ -664,6 +829,7 @@ bool shift::gui::Workspace::Open(const QString& filename,
 
   PopulateTree();
   LoadModelParameters();
+  ClearVideoRange();
   playback_time_ = 0.0;
   playback_panel_.slider->set_time_span(0.0, simulation_.get_end_time());
   playback_panel_.slider->set_progress_time(0.0);
@@ -671,6 +837,12 @@ bool shift::gui::Workspace::Open(const QString& filename,
   playback_panel_.slider->Enable(false);
   playback_panel_.play_pause_button->setIcon(playback_panel_.play_icon);
   viewport_->set_simulation(&simulation_);
+  camera_panel_.follow->setChecked(false);
+  camera_panel_.body->clear();
+  for(const auto* body : simulation_.get_bodies()) {
+    camera_panel_.body->addItem(QString::fromStdString(body->get_name()));
+  }
+  camera_panel_.group_box->setVisible(true);
   UpdateFloor();
   // the floor plane would cut through a terrain
   floor_action_->setChecked(simulation_.get_scene().terrains.empty());
@@ -728,12 +900,25 @@ bool shift::gui::Workspace::AdvanceImage() {
   if(!viewport_->BeginOffscreen(request.size, error)) {
     return false; // the window is not exposed yet
   }
-  simulation_.ShowTime(request.time);
+  const int follow = camera_panel_.body->findText(request.follow_body);
+  if(!request.follow_body.isEmpty() && follow < 0) {
+    viewport_->EndOffscreen();
+    return fail("no body named " + request.follow_body);
+  }
+  // with a body to follow, the view is set at the start and carried along
+  simulation_.ShowTime(request.follow_body.isEmpty() ? request.time : 0.0);
   viewport_->UpdatePoses();
   if(request.set_view) {
     viewport_->set_view(request.azimuth, request.elevation);
   } else {
     viewport_->FrameScene();
+  }
+  if(!request.follow_body.isEmpty()) {
+    viewport_->set_follow_body(follow, request.follow_ground
+                                         ? Viewport::FollowMode::kGround
+                                         : Viewport::FollowMode::kBody);
+    simulation_.ShowTime(request.time);
+    viewport_->UpdatePoses();
   }
   std::vector<uint8_t> rgba;
   const bool rendered = viewport_->RenderOffscreen(request.samples, rgba);
@@ -979,6 +1164,9 @@ void shift::gui::Workspace::SelectTreeItem() {
       simulation_.get_bodies()[index]->get_name()));
     body_panel_.group_box->setVisible(true);
     UpdateBodyPanel();
+    if(!camera_panel_.follow->isChecked()) {
+      camera_panel_.body->setCurrentIndex(index);
+    }
   } else if(item->type() == kGeometryItem) {
     auto& geometry = simulation_.get_context()->get_fixed_collision_geometry();
     if(index >= 0 && index < static_cast<int>(geometry.size())) {
@@ -1492,6 +1680,7 @@ void shift::gui::Workspace::RunSimulation() {
   jogging_ = nullptr;
   target_move_ = TargetMove();
   simulation_.Run();
+  ClearVideoRange();
   playback_time_ = 0.0;
   playing_ = true;
   was_computing_ = true;
@@ -1517,6 +1706,7 @@ void shift::gui::Workspace::ResetSimulation() {
   target_move_ = TargetMove();
   simulation_.Reset();
   QApplication::restoreOverrideCursor();
+  ClearVideoRange();
   playback_time_ = 0.0;
   playback_panel_.slider->set_progress_time(0.0);
   playback_panel_.slider->set_time(0.0);
@@ -1576,6 +1766,13 @@ void shift::gui::Workspace::Tick() {
     playback_panel_.slider->set_progress_time(computed);
   }
   playback_panel_.slider->Enable(has_results);
+  if(has_results) {
+    video_panel_.trimmer->set_span(computed);
+    if(!computing && computed != video_panel_.thumbnails_time &&
+       !video_panel_.exporting && video_panel_.trimmer->isVisible()) {
+      RenderThumbnails();
+    }
+  }
 
   if(playing_ && has_results) {
     playback_time_ += dt * playback_panel_.speed->value();

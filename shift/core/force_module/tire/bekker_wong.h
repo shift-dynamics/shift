@@ -110,15 +110,14 @@ speed.
 
 *Bulldozing.* A cambered or slipping wheel pushes the soil with the sides of
 its tread. The pressure on a side, at the depth h below the terrain, is
-Rankine's passive earth pressure (as Jia, Smith and Peng, after Ishigami,
-Miwa, Nagatani and Yoshida, 2007),
+the passive earth pressure (Rankine's, as in Jia, Smith and Peng, after Ishigami,
+Miwa, Nagatani and Yoshida, 2007, unless the soil gives a wall_friction),
 
 \f[
-p = 2 c \tan\left(45^\circ + \frac{\phi}{2}\right) +
-  w h \tan^2\left(45^\circ + \frac{\phi}{2}\right),
+p = 2 c \sqrt{\kappa_p} + w h \kappa_p,
 \f]
 
-with the unit_weight \f$w\f$, over the part of the side below the terrain, the circular segment that the
+with the unit_weight \f$w\f$ and the coefficient \f$\kappa_p\f$ of SoilProperties, over the part of the side below the terrain, the circular segment that the
 terrain cuts off, and where the side moves into the soil (the velocity of
 the side's point along its outward normal is positive). It is fully
 mobilized above the speed slip_speed, and smoothly (a cubic) from zero at

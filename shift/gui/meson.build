@@ -112,7 +112,7 @@ foreach asset : ['textures', 'html', 'geometry']
 endforeach
 
 gui_moc = qt6.compile_moc(
-  headers: ['playback_slider.h', 'viewport.h', 'workspace.h'],
+  headers: ['playback_slider.h', 'video_trimmer.h', 'viewport.h', 'workspace.h'],
   include_directories: shift_inc,
   dependencies: qt6_dep,
 )
@@ -127,6 +127,7 @@ shift_gui_lib = static_library(
   'scene.cc',
   'simulation.cc',
   'video_encoder.cc',
+  'video_trimmer.cc',
   'viewport.cc',
   'workspace.cc',
   gui_moc,

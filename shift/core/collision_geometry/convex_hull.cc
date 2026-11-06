@@ -3,6 +3,7 @@
 
 #include <cmath>
 
+#include "shift/core/collision_geometry/cad.h"
 #include "shift/core/factory.h"
 #include "shift/core/exception.h"
 
@@ -22,6 +23,12 @@ void shift::core::collision_geometry::ConvexHull::DeclareParameters() {
                    "pose, centered at its origin (the body origin by "
                    "default); if not given, the hull is that of the body's "
                    "mesh",
+                   false);
+  DeclareParameter("edge_radius", &edge_radius_,
+                   "radius to which the corners and edges are taken to be "
+                   "rounded, for their Hertz contact with CAD geometry; "
+                   "defaults to 0.2% of the size of the hull (the diagonal of "
+                   "its bounds)",
                    false);
 }
 
@@ -71,6 +78,11 @@ void shift::core::collision_geometry::ConvexHull::SetHull(
     bounding_radius_ = std::max(bounding_radius_, ksl_vec3_l2norm(&v));
   }
   hull_ = hull;
+}
+
+std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
+shift::core::collision_geometry::ConvexHull::MakeExactShape() const {
+  return MakeHullShape(*hull_);
 }
 
 void shift::core::collision_geometry::ConvexHull::CopyFit(const Base& other) {

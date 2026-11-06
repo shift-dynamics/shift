@@ -56,8 +56,15 @@ public:
     return d_absolute_.R.v[2];
   }
 
+  virtual double get_exact_edge_radius() const override {
+    return edge_radius_;
+  }
+
   virtual void Support(const ksl_vec3_t& direction, ksl_vec3_t& local,
                        ksl_vec3_t& global, int& hint) const override;
+
+  virtual std::shared_ptr<const CadContactShape>
+  MakeExactShape() const override;
 
 protected:
   virtual void DeclareParameters() override;
@@ -71,6 +78,7 @@ private:
   static bool registered_;
   double radius_ = 0.0;
   double half_length_ = 0.0;
+  double edge_radius_ = 0.0;
 };
 
 } // namespace collision_geometry

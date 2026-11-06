@@ -1,0 +1,147 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 1.0,
+        "time_step": 0.005,
+        "relative_error": 1e-06,
+        "absolute_error": 1e-09
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "lead_screw_hold.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "jack",
+      "comment": "The jack of lead_screw.json left to hold its 500 kg load, with no drive: the bristles of the thread take up the load and hold it. With the smoothed friction it would creep down. The output stick is the part of the friction in use, tan(lambda) / (mu sec(alpha)) at rest.",
+      "bodies": [
+        {
+          "name": "carriage",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 0.01,
+            "Iyy": 0.01,
+            "Izz": 0.01,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "screw",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 500.0,
+            "Ixx": 5.0,
+            "Iyy": 5.0,
+            "Izz": 0.05,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "carriage"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "spin",
+          "type": "revolute",
+          "parent": [
+            [
+              "carriage"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "screw"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "lead_screw",
+          "name": "thread",
+          "screw": [
+            "screw",
+            "origin"
+          ],
+          "nut": [
+            "fixed",
+            "origin"
+          ],
+          "lead": 0.008,
+          "mean_radius": 0.015,
+          "thread_angle": 0.2531,
+          "friction": 0.12,
+          "stiffness": 500000000.0,
+          "damping": 50000.0,
+          "bristle_stiffness": 100000.0,
+          "bristle_damping": 20.0,
+          "static_friction": 0.15,
+          "stribeck_velocity": 0.01
+        }
+      ]
+    }
+  ]
+}

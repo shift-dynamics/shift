@@ -1,0 +1,215 @@
+{
+  "comment": "A quarter car dropped on its wheel: the shock absorber's spring and its damper of different curves in compression and rebound, a bump stop, and the tire as a spring that only pushes. x forward, y right, z down.",
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0,
+      0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "relative_error": 1e-06,
+        "absolute_error": 1e-08,
+        "time_span": 3.0,
+        "time_step": 0.005
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "road",
+      "T": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "chassis_start",
+      "T": [
+        0,
+        0,
+        -0.75
+      ]
+    },
+    {
+      "name": "axle_start",
+      "T": [
+        0,
+        0,
+        -0.32
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "quarter_car",
+      "bodies": [
+        {
+          "name": "chassis",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "frames": [],
+          "inertia": {
+            "mass": 350,
+            "Ixx": 35.0,
+            "Iyy": 35.0,
+            "Izz": 35.0,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          },
+          "geometry": []
+        },
+        {
+          "name": "axle",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "frames": [],
+          "inertia": {
+            "mass": 40,
+            "Ixx": 4.0,
+            "Iyy": 4.0,
+            "Izz": 4.0,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          },
+          "geometry": []
+        }
+      ],
+      "joints": [
+        {
+          "name": "chassis_z",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "chassis_start"
+          ],
+          "child": [
+            [
+              "chassis"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "axle_z",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "axle_start"
+          ],
+          "child": [
+            [
+              "axle"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "spring_damper",
+          "name": "shock",
+          "frames": [
+            [
+              "chassis",
+              "origin"
+            ],
+            [
+              "axle",
+              "origin"
+            ]
+          ],
+          "free_length": 0.5,
+          "stiffness": 25000,
+          "damping_curve": [
+            -1.0,
+            -1200,
+            -0.1,
+            -400,
+            0,
+            0,
+            0.1,
+            1000,
+            1.0,
+            3000
+          ]
+        },
+        {
+          "type": "spring_damper",
+          "name": "bump_stop",
+          "frames": [
+            [
+              "chassis",
+              "origin"
+            ],
+            [
+              "axle",
+              "origin"
+            ]
+          ],
+          "free_length": 0.43,
+          "acts": "compression",
+          "gap": 0.06,
+          "stiffness": 200000,
+          "damping": 2000,
+          "smoothing": 0.004
+        },
+        {
+          "type": "spring_damper",
+          "name": "tire",
+          "frames": [
+            [
+              "fixed",
+              "road"
+            ],
+            [
+              "axle",
+              "origin"
+            ]
+          ],
+          "free_length": 0.33,
+          "acts": "compression",
+          "stiffness": 200000,
+          "damping": 300,
+          "smoothing": 0.002
+        }
+      ]
+    }
+  ]
+}
